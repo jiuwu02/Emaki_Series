@@ -573,5 +573,5 @@ public void onSlotClick(GuiSession session, InventoryClickEvent event, GuiTempla
 
 ## 下一步
 
-- [物品源系统](./04-物品源系统.md) - 了解物品创建机制
-- [API文档](./08-API接口文档.md) - 查看完整 API 参考
+- [物品源系统](./物品源系统.md) - 了解物品创建机制
+- [API文档](./API接口文档.md) - 查看完整 API 参考
