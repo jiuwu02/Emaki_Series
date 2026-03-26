@@ -42,7 +42,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\upload-code.ps1
 - 同步后的内容会进入仓库内的 `wiki\`
 - 推送到 `main` 后，GitHub Actions 会把 `wiki\` 的内容发布到仓库 Wiki
 
-如果仓库 Wiki 尚未启用，先在 GitHub 仓库设置里开启 Wiki。
+如果仓库 Wiki 尚未启用，先在 GitHub 仓库设置里开启 Wiki。未开启时，工作流会自动跳过发布，不再报错。
 
 如果默认 `GITHUB_TOKEN` 无法推送 Wiki，可以在仓库 Secrets 中添加：
 
