@@ -1,0 +1,10 @@
+name: Emaki_CoreLib
+main: emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin
+version: ${project.version}
+api-version: '1.21'
+author: JiuWu
+description: Shared native Java core library for Emaki plugins
+softdepend:
+  - Vault
+  - CoinsEngine
+  - PlaceholderAPI

@@ -1,0 +1,176 @@
+package emaki.jiuwu.craft.corelib.gui;
+
+import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
+import emaki.jiuwu.craft.corelib.math.Numbers;
+import emaki.jiuwu.craft.corelib.text.Texts;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import org.bukkit.configuration.ConfigurationSection;
+
+public final class GuiTemplateParser {
+
+    private GuiTemplateParser() {
+    }
+
+    public static GuiTemplate parse(ConfigurationSection section) {
+        if (section == null) {
+            return null;
+        }
+        String id = section.getString("id");
+        if (Texts.isBlank(id)) {
+            return null;
+        }
+        Map<String, GuiSlot> slots = new LinkedHashMap<>();
+        ConfigurationSection slotsSection = section.getConfigurationSection("slots");
+        if (slotsSection != null) {
+            for (String key : slotsSection.getKeys(false)) {
+                GuiSlot slot = parseSlot(key, slotsSection.get(key));
+                if (slot != null) {
+                    slots.put(key, slot);
+                }
+            }
+        }
+        mergeLegacyDecorations(section, slots);
+        mergeLegacyButtons(section, slots);
+        return new GuiTemplate(
+            id,
+            section.getString("title", "GUI"),
+            Numbers.clamp(Numbers.tryParseInt(section.get("rows"), 3), 1, 6),
+            slots
+        );
+    }
+
+    private static GuiSlot parseSlot(String key, Object raw) {
+        if (raw == null) {
+            return null;
+        }
+        List<Integer> positions = raw instanceof ConfigurationSection || raw instanceof Map<?, ?>
+            ? SlotParser.parse(ConfigNodes.get(raw, "slots"))
+            : SlotParser.parse(raw);
+        if (positions.isEmpty()) {
+            return null;
+        }
+        Object itemNode = resolveLegacyPlaceholder(raw);
+        return new GuiSlot(
+            key,
+            positions,
+            resolveAction(key, raw),
+            parseItemText(itemNode),
+            ItemComponentParser.parse(itemNode),
+            parseSounds(raw)
+        );
+    }
+
+    private static Object resolveLegacyPlaceholder(Object raw) {
+        if (!ConfigNodes.contains(raw, "placeholder")) {
+            return raw;
+        }
+        Object placeholder = ConfigNodes.get(raw, "placeholder");
+        if (ItemSourceUtil.parse(raw) == null && ItemComponentParser.hasConfiguredFields(raw) == false) {
+            return placeholder == null ? raw : placeholder;
+        }
+        return raw;
+    }
+
+    private static void mergeLegacyDecorations(ConfigurationSection section, Map<String, GuiSlot> slots) {
+        int index = 0;
+        for (Object raw : ConfigNodes.asObjectList(section.get("decorations"))) {
+            List<Integer> positions = SlotParser.parse(ConfigNodes.get(raw, "slots"));
+            if (positions.isEmpty()) {
+                continue;
+            }
+            String key = "legacy_decoration_" + index++;
+            slots.putIfAbsent(key, new GuiSlot(
+                key,
+                positions,
+                null,
+                parseItemText(raw),
+                ItemComponentParser.parse(raw),
+                parseSounds(raw)
+            ));
+        }
+    }
+
+    private static void mergeLegacyButtons(ConfigurationSection section, Map<String, GuiSlot> slots) {
+        int index = 0;
+        for (Object raw : ConfigNodes.asObjectList(section.get("buttons"))) {
+            int slot = Numbers.tryParseInt(ConfigNodes.get(raw, "slot"), -1);
+            if (slot < 0) {
+                continue;
+            }
+            String action = ConfigNodes.string(raw, "action", null);
+            String key = "legacy_button_" + (Texts.isBlank(action) ? index : Texts.lower(action)) + "_" + index++;
+            slots.putIfAbsent(key, new GuiSlot(
+                key,
+                List.of(slot),
+                action,
+                parseItemText(raw),
+                ItemComponentParser.parse(raw),
+                parseSounds(raw)
+            ));
+        }
+    }
+
+    private static String resolveAction(String key, Object raw) {
+        String configured = ConfigNodes.string(raw, "action", null);
+        if (Texts.isNotBlank(configured)) {
+            return configured;
+        }
+        return switch (Texts.lower(key)) {
+            case "blueprint_inputs", "target_item", "required_materials", "optional_materials",
+                 "recipe_list", "capacity_display", "prev_page", "next_page", "close" -> Texts.lower(key);
+            case "confirm_button" -> "confirm";
+            default -> null;
+        };
+    }
+
+    private static String parseItemText(Object raw) {
+        if (raw == null) {
+            return null;
+        }
+        if (raw instanceof String text) {
+            return Texts.trim(text);
+        }
+        String item = ConfigNodes.string(raw, "item", null);
+        if (Texts.isNotBlank(item)) {
+            return item;
+        }
+        ItemSource source = ItemSourceUtil.parse(raw);
+        return source == null ? null : ItemSourceUtil.toShorthand(source);
+    }
+
+    private static Map<GuiClickType, SoundParser.SoundDefinition> parseSounds(Object raw) {
+        Map<GuiClickType, SoundParser.SoundDefinition> result = new LinkedHashMap<>();
+        SoundParser.SoundDefinition click = SoundParser.parse(ConfigNodes.get(raw, "click"));
+        SoundParser.SoundDefinition left = SoundParser.parse(ConfigNodes.get(raw, "leftclick"));
+        SoundParser.SoundDefinition right = SoundParser.parse(ConfigNodes.get(raw, "rightclick"));
+        if (click != null) {
+            result.put(GuiClickType.CLICK, click);
+        }
+        if (left != null) {
+            result.put(GuiClickType.LEFTCLICK, left);
+        }
+        if (right != null) {
+            result.put(GuiClickType.RIGHTCLICK, right);
+        }
+        Object sounds = ConfigNodes.get(raw, "sounds");
+        if (sounds != null) {
+            SoundParser.SoundDefinition nestedClick = SoundParser.parse(ConfigNodes.get(sounds, "click"));
+            SoundParser.SoundDefinition nestedLeft = SoundParser.parse(ConfigNodes.get(sounds, "leftclick"));
+            SoundParser.SoundDefinition nestedRight = SoundParser.parse(ConfigNodes.get(sounds, "rightclick"));
+            if (nestedClick != null) {
+                result.put(GuiClickType.CLICK, nestedClick);
+            }
+            if (nestedLeft != null) {
+                result.put(GuiClickType.LEFTCLICK, nestedLeft);
+            }
+            if (nestedRight != null) {
+                result.put(GuiClickType.RIGHTCLICK, nestedRight);
+            }
+        }
+        return result;
+    }
+}

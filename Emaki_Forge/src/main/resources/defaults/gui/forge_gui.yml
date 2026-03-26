@@ -1,0 +1,79 @@
+id: "forge_gui"
+title: "<dark_gray>锻造台 - {recipe}</dark_gray>"
+rows: 5
+
+slots:
+  top_frame:
+    slots: [0, 1, 2, 3, 4, 5, 6, 7, 8]
+    item: "GRAY_STAINED_GLASS_PANE"
+    display_name: "<gray>"
+
+  side_frame:
+    slots: [9, 17, 18, 26, 27, 35, 36, 37, 38, 39, 41, 42, 43, 44]
+    item: "GRAY_STAINED_GLASS_PANE"
+    display_name: "<gray>"
+
+  core_frame:
+    slots: [12, 14, 15, 16, 23, 25, 33, 34]
+    item: "BLACK_STAINED_GLASS_PANE"
+    display_name: "<dark_gray>"
+
+  blueprint_inputs:
+    slots: [10, 11]
+    action: "blueprint_inputs"
+    item: "PAPER"
+    display_name: "<light_purple>放入图纸</light_purple>"
+    lore:
+      - "<gray>支持通用图纸与武器图纸"
+
+  target_item:
+    slots: [13]
+    action: "target_item"
+    item: "LIGHT_BLUE_STAINED_GLASS_PANE"
+    display_name: "<aqua>放入目标物品</aqua>"
+    lore:
+      - "<gray>放入要进行锻造的主物品"
+
+  capacity_display:
+    slots: [22]
+    action: "capacity_display"
+    item: "HOPPER"
+    display_name: "<gray>锻造容量</gray>"
+    lore:
+      - "<gray>当前容量: <yellow>{current}</yellow>"
+      - "<gray>容量上限: <gold>{max}</gold>"
+      - "<gray>状态: {capacity_state}</gray>"
+
+  result_preview:
+    slots: [24]
+    action: "result_preview"
+    item: "ANVIL"
+    display_name: "<gold>结果预览</gold>"
+    lore:
+      - "<gray>满足配方后会显示结果物品"
+
+  required_materials:
+    slots: [19, 20, 21]
+    action: "required_materials"
+    item: "YELLOW_STAINED_GLASS_PANE"
+    display_name: "<gold>放入必需材料</gold>"
+    lore:
+      - "<gray>这里会优先接收固定需求材料"
+
+  optional_materials:
+    slots: [28, 29, 30, 31, 32]
+    action: "optional_materials"
+    item: "CYAN_STAINED_GLASS_PANE"
+    display_name: "<green>放入可选材料</green>"
+    lore:
+      - "<gray>可选材料会消耗锻造容量"
+
+  confirm:
+    slots: [40]
+    action: "confirm"
+    item: "ANVIL"
+    display_name: "<green>确认锻造</green>"
+    lore:
+      - "<gray>当前容量: <yellow>{current}/{max}</yellow>"
+      - "<yellow>点击后开始执行锻造"
+    click: "ui.button.click-1-1"

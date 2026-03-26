@@ -1,0 +1,77 @@
+id: "flame_sword"
+display_name: "<gold>烈焰之剑锻造配方</gold>"
+
+target_item:
+  item: "ni-base_sword_iron"
+  forge_capacity: 50
+
+blueprint_requirements:
+  - requirement_mode: "all_of"
+    blueprint_options:
+      - selector:
+          kind: "id"
+          value: "weapon_sword"
+        count: 1
+  - requirement_mode: "any_of"
+    blueprint_options:
+      - selector:
+          kind: "id"
+          value: "universal_blueprint"
+        count: 1
+      - selector:
+          kind: "tag"
+          value: "weapon"
+        count: 1
+
+required_materials:
+  - id: "iron_essence"
+    count: 3
+  - id: "flame_crystal"
+    count: 1
+
+optional_materials:
+  enabled: true
+  whitelist: []
+  blacklist:
+    - "cursed_stone"
+  max_count: 5
+
+condition_type: "all_of"
+conditions:
+  - "%player_level% >= 10"
+
+quality:
+  enabled: true
+  custom_pool: []
+  guarantee:
+    enabled: true
+    attempts: 10
+    minimum: "普通"
+
+gui:
+  template: "forge_gui"
+  slots:
+    blueprint_inputs: [10, 11]
+    target_item: [13]
+    required_materials: [19, 20, 21]
+    optional_materials: [28, 29, 30, 31, 32]
+    capacity_display: [22]
+    confirm: [40]
+    result_preview: [24]
+
+result:
+  output_item:
+    item: "ni-flame_sword"
+  success_message: "forge.success.crafted"
+  sound: "minecraft:block.anvil.use-1-1"
+
+operations:
+  pre:
+    - 'send_action_bar text="<gray>烈焰之力正在熔铸...</gray>"'
+  success:
+    - '@delay=10t play_sound sound=minecraft:entity.player.levelup volume=0.8 pitch=1.15'
+    - '@if="%forge_quality% == 传说" broadcast_message text="<gold>%player_name% 锻造出了传说品质的 %forge_result_item_name%!</gold>"'
+  failure:
+    - '@if="%forge_error_key% == forge.error.operation_failed" send_message text="<red>锻造前置操作失败: %forge_failure_reason%</red>"'
+
+permission: "jiuwuforge.recipe.flame_sword"

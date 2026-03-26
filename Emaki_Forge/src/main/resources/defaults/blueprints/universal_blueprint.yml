@@ -1,0 +1,10 @@
+id: "universal_blueprint"
+display_name: "<light_purple>通用锻造图纸</light_purple>"
+description:
+  - "<gray>可用于任何配方的通用图纸"
+  - "<yellow>稀有物品"
+
+item: "ni-blueprint_universal"
+
+tags:
+  - "universal"

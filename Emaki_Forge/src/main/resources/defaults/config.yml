@@ -1,0 +1,81 @@
+# Emaki Forge 主配置文件
+# 版本: 1.4.0
+
+# 配置文件版本号 (请勿修改)
+config_version: "1.0.0"
+
+# 语言设置
+language: "zh_CN"
+
+# 是否释放默认数据文件 (blueprints/materials/recipes)
+# 设为 false 可避免覆盖自定义配置
+release_default_data: true
+
+# 品质系统配置
+# 品质元数据会在结果元数据和材料元数据之后执行
+# 因此前缀/后缀与 Lore 顶部/底部位置会稳定贴边
+quality:
+  tiers:
+    - "劣质-60-0.9"
+    - "普通-30-1.0"
+    - "精良-10-1.1"
+    - "卓越-5-1.2"
+    - "传说-1-1.5"
+  default_tier: "普通"
+  guarantee:
+    enabled: true
+    threshold: 10
+    minimum: "普通"
+  item_meta:
+    enabled: false
+    tiers:
+      普通:
+        name_modifications: []
+        lore_operations: []
+      精良:
+        name_modifications:
+          - operation: "append_suffix"
+            value: " <aqua>[精良]</aqua>"
+        lore_operations:
+          - operation: "append_lines"
+            content:
+              - "<aqua>品质: 精良</aqua>"
+      卓越:
+        name_modifications:
+          - operation: "append_suffix"
+            value: " <gold>[卓越]</gold>"
+        lore_operations:
+          - operation: "append_lines"
+            content:
+              - "<gold>品质: 卓越</gold>"
+      传说:
+        name_modifications:
+          - operation: "append_suffix"
+            value: " <red>[传说]</red>"
+        lore_operations:
+          - operation: "append_lines"
+            content:
+              - "<red>品质: 传说</red>"
+
+# 数值格式化配置
+number_format:
+  default: "0.##"
+  integer: "0"
+  percentage: "0.##%"
+
+# 权限配置
+permission:
+  op_bypass: false
+
+# 条件配置
+condition:
+  invalid_as_failure: true
+
+# 历史记录配置
+history:
+  enabled: true
+  auto_save: true
+  save_interval: 6000
+
+# 调试模式
+debug: false

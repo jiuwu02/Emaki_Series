@@ -1,0 +1,63 @@
+name: Publish Wiki
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "wiki/**"
+      - ".github/workflows/publish-wiki.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  publish-wiki:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Publish repository wiki
+        env:
+          REPOSITORY: ${{ github.repository }}
+          GITHUB_TOKEN_FALLBACK: ${{ github.token }}
+          WIKI_PUSH_TOKEN: ${{ secrets.WIKI_PUSH_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if [ ! -d "wiki" ]; then
+            echo "wiki source folder is missing"
+            exit 1
+          fi
+
+          TOKEN="${WIKI_PUSH_TOKEN:-$GITHUB_TOKEN_FALLBACK}"
+          WORK_DIR="$(mktemp -d)"
+          WIKI_DIR="$WORK_DIR/wiki"
+          WIKI_URL="https://x-access-token:${TOKEN}@github.com/${REPOSITORY}.wiki.git"
+          TARGET_BRANCH="master"
+
+          if git clone "$WIKI_URL" "$WIKI_DIR"; then
+            CURRENT_BRANCH="$(git -C "$WIKI_DIR" branch --show-current)"
+            if [ -n "$CURRENT_BRANCH" ]; then
+              TARGET_BRANCH="$CURRENT_BRANCH"
+            fi
+          else
+            git init --initial-branch="$TARGET_BRANCH" "$WIKI_DIR"
+            git -C "$WIKI_DIR" remote add origin "$WIKI_URL"
+          fi
+
+          rsync -a --delete --exclude ".git/" wiki/ "$WIKI_DIR"/
+
+          git -C "$WIKI_DIR" config user.name "github-actions[bot]"
+          git -C "$WIKI_DIR" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C "$WIKI_DIR" add -A
+
+          if git -C "$WIKI_DIR" diff --cached --quiet; then
+            echo "No wiki changes to publish."
+            exit 0
+          fi
+
+          git -C "$WIKI_DIR" commit -m "Sync wiki from repository"
+          git -C "$WIKI_DIR" push origin "HEAD:${TARGET_BRANCH}"

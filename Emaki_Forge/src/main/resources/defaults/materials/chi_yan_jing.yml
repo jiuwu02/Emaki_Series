@@ -1,0 +1,33 @@
+id: "chi_yan_jing"
+display_name: "<red>赤焰晶</red>"
+description:
+  - "<gray>可选材料: 炽热增幅"
+  - "<gray>偏向火焰与暴击"
+
+item: "ce-neigeitems:forge_material_chi_yan_jing"
+
+capacity_cost:
+  type: "constant"
+  value: 12
+
+priority:
+  type: "constant"
+  value: 30
+
+effects:
+  - type: "stat_contribution"
+    stats:
+      fire_damage:
+        type: "constant"
+        value: 12
+      critical_chance:
+        type: "constant"
+        value: 4
+
+  - type: "lore_operation"
+    operations:
+      - operation: "insert_below"
+        target_pattern: "锻造属性:"
+        content:
+          - "<red>火焰伤害: +{fire_damage}"
+          - "<yellow>暴击率: +{critical_chance}%"

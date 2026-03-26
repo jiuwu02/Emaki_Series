@@ -1,0 +1,12 @@
+id: "weapon_sword"
+display_name: "<gold>武器锻造图纸</gold>"
+description:
+  - "<gray>用于锻造武器类装备"
+  - "<gray>包含剑、刀等近战武器配方"
+
+item: "ni-blueprint_weapon_sword"
+
+tags:
+  - "weapon"
+  - "melee"
+  - "sword"

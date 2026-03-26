@@ -1,0 +1,33 @@
+id: "yun_lei_sha"
+display_name: "<green>陨雷砂</green>"
+description:
+  - "<gray>可选材料: 穿透增幅"
+  - "<gray>偏向破甲与续航"
+
+item: "ce-neigeitems:forge_material_yun_lei_sha"
+
+capacity_cost:
+  type: "constant"
+  value: 8
+
+priority:
+  type: "constant"
+  value: 15
+
+effects:
+  - type: "stat_contribution"
+    stats:
+      armor_penetration:
+        type: "constant"
+        value: 10
+      max_health:
+        type: "constant"
+        value: 6
+
+  - type: "lore_operation"
+    operations:
+      - operation: "insert_below"
+        target_pattern: "锻造属性:"
+        content:
+          - "<green>护甲穿透: +{armor_penetration}%"
+          - "<gray>额外生命: <green>+{max_health}"

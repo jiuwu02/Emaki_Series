@@ -1,0 +1,25 @@
+name: Emaki_Forge
+main: emaki.jiuwu.craft.forge.EmakiForgePlugin
+version: ${project.version}
+api-version: "1.21"
+depend:
+  - Emaki_CoreLib
+softdepend:
+  - PlaceholderAPI
+  - NeigeItems
+  - CraftEngine
+commands:
+  jiuwuforge:
+    aliases: [jwforge, forge]
+    permission: jiuwuforge.use
+permissions:
+  jiuwuforge.use:
+    default: true
+  jiuwuforge.book:
+    default: true
+  jiuwuforge.reload:
+    default: op
+  jiuwuforge.debug:
+    default: op
+  jiuwuforge.admin:
+    default: op

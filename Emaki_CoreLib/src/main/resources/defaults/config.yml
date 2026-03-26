@@ -1,0 +1,21 @@
+# Emaki CoreLib 默认配置
+config_version: "1.0.0"
+
+text:
+  default_prefix: "<gray>[<gold>Emaki CoreLib</gold>]</gray>"
+
+item_source:
+  allow_custom_registry: true
+
+gui:
+  default_sound:
+    sound: "ui.button.click"
+    volume: 1.0
+    pitch: 1.0
+
+operation:
+  debug: false
+  templates:
+    # forge_success_common:
+    #   - 'send_message text="<green>成功获得 %forge_result_item_name%</green>"'
+    #   - '@delay=10t play_sound sound=minecraft:entity.experience_orb.pickup volume=0.8 pitch=1.2'

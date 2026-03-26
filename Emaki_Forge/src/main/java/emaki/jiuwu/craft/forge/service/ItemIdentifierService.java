@@ -1,0 +1,236 @@
+package emaki.jiuwu.craft.forge.service;
+
+import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.item.ItemSourceType;
+import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
+import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.forge.EmakiForgePlugin;
+import java.util.LinkedHashSet;
+import java.util.Locale;
+import java.util.Set;
+import net.momirealms.craftengine.bukkit.api.CraftEngineItems;
+import net.momirealms.craftengine.core.item.CustomItem;
+import net.momirealms.craftengine.core.item.ItemBuildContext;
+import net.momirealms.craftengine.core.util.Key;
+import org.bukkit.Bukkit;
+import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
+import org.bukkit.Registry;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.plugin.Plugin;
+import pers.neige.neigeitems.manager.ItemManager;
+
+public final class ItemIdentifierService {
+
+    private final EmakiForgePlugin plugin;
+    private final Set<String> unavailableSourceWarnings = new LinkedHashSet<>();
+    private Plugin neigeItemsPlugin;
+    private Plugin craftEnginePlugin;
+    private ExternalItemSupport neigeItemsSupport;
+    private ExternalItemSupport craftEngineSupport;
+
+    public ItemIdentifierService(EmakiForgePlugin plugin) {
+        this.plugin = plugin;
+        refresh();
+    }
+
+    public void refresh() {
+        unavailableSourceWarnings.clear();
+        neigeItemsPlugin = Bukkit.getPluginManager().getPlugin("NeigeItems");
+        craftEnginePlugin = Bukkit.getPluginManager().getPlugin("CraftEngine");
+        neigeItemsSupport = buildNeigeItemsSupport();
+        craftEngineSupport = buildCraftEngineSupport();
+    }
+
+    public ItemSource identifyItem(ItemStack itemStack) {
+        if (itemStack == null || itemStack.getType() == Material.AIR) {
+            return null;
+        }
+        ItemSource neige = identifyNeigeItems(itemStack);
+        if (neige != null) {
+            return neige;
+        }
+        ItemSource craftEngine = identifyCraftEngine(itemStack);
+        if (craftEngine != null) {
+            return craftEngine;
+        }
+        return new ItemSource(ItemSourceType.VANILLA, itemStack.getType().name());
+    }
+
+    public boolean matchesSource(ItemStack itemStack, ItemSource source) {
+        if (!ensureSourceAvailable(source, "runtime-match")) {
+            return false;
+        }
+        ItemSource identified = identifyItem(itemStack);
+        return identified != null && ItemSourceUtil.matches(identified, source);
+    }
+
+    public ItemStack createItem(ItemSource source, int amount) {
+        if (source == null || source.getType() == null || Texts.isBlank(source.getIdentifier())) {
+            return null;
+        }
+        if (!ensureSourceAvailable(source, "runtime-create")) {
+            return null;
+        }
+        return switch (source.getType()) {
+            case NEIGEITEMS -> createNeigeItemsItem(source.getIdentifier(), amount);
+            case CRAFTENGINE -> createCraftEngineItem(source.getIdentifier(), amount);
+            case VANILLA -> createVanillaItem(source.getIdentifier(), amount);
+        };
+    }
+
+    public void validateConfiguredSource(ItemSource source, String location) {
+        ensureSourceAvailable(source, location);
+    }
+
+    private ItemSource identifyNeigeItems(ItemStack itemStack) {
+        return neigeItemsSupport == null ? null : neigeItemsSupport.identify(itemStack);
+    }
+
+    private ItemSource identifyCraftEngine(ItemStack itemStack) {
+        return craftEngineSupport == null ? null : craftEngineSupport.identify(itemStack);
+    }
+
+    private ItemStack createNeigeItemsItem(String identifier, int amount) {
+        return neigeItemsSupport == null ? null : neigeItemsSupport.create(identifier, amount);
+    }
+
+    private ItemStack createCraftEngineItem(String identifier, int amount) {
+        return craftEngineSupport == null ? null : craftEngineSupport.create(identifier, amount);
+    }
+
+    private ItemStack createVanillaItem(String identifier, int amount) {
+        Material material = resolveMaterial(identifier);
+        if (material == null) {
+            plugin.getLogger().warning("Unknown vanilla material source: " + identifier);
+            return null;
+        }
+        return new ItemStack(material, Math.max(1, amount));
+    }
+
+    private Material resolveMaterial(String identifier) {
+        if (Texts.isBlank(identifier)) {
+            return null;
+        }
+        String normalized = identifier.trim().toLowerCase(Locale.ROOT);
+        NamespacedKey key = normalized.contains(":")
+            ? NamespacedKey.fromString(normalized)
+            : NamespacedKey.minecraft(normalized);
+        return key == null ? null : Registry.MATERIAL.get(key);
+    }
+
+    private boolean ensureSourceAvailable(ItemSource source, String context) {
+        if (source == null || source.getType() == null) {
+            return false;
+        }
+        return switch (source.getType()) {
+            case VANILLA -> true;
+            case NEIGEITEMS -> {
+                boolean available = neigeItemsSupport != null;
+                if (!available) {
+                    logUnavailableSource(source, "NeigeItems", context, bridgeUnavailableReason("NeigeItems", neigeItemsPlugin));
+                }
+                yield available;
+            }
+            case CRAFTENGINE -> {
+                boolean available = craftEngineSupport != null;
+                if (!available) {
+                    logUnavailableSource(source, "CraftEngine", context, bridgeUnavailableReason("CraftEngine", craftEnginePlugin));
+                }
+                yield available;
+            }
+        };
+    }
+
+    private String bridgeUnavailableReason(String pluginName, Plugin pluginInstance) {
+        if (pluginInstance == null) {
+            return pluginName + " plugin is not loaded";
+        }
+        if (!pluginInstance.isEnabled()) {
+            return pluginName + " plugin is present but not enabled";
+        }
+        return pluginName + " API bridge is unavailable";
+    }
+
+    private void logUnavailableSource(ItemSource source, String dependency, String context, String reason) {
+        String warningKey = dependency + "|" + context + "|" + ItemSourceUtil.toShorthand(source);
+        if (!unavailableSourceWarnings.add(warningKey)) {
+            return;
+        }
+        plugin.getLogger().warning(
+            "External item source unavailable: dependency=" + dependency
+                + ", context=" + context
+                + ", source=" + ItemSourceUtil.toShorthand(source)
+                + ", detail=" + reason
+        );
+    }
+
+    private ExternalItemSupport buildNeigeItemsSupport() {
+        if (neigeItemsPlugin == null || !neigeItemsPlugin.isEnabled()) {
+            return null;
+        }
+        try {
+            return new NeigeItemsSupport();
+        } catch (Throwable error) {
+            plugin.getLogger().warning("NeigeItems API bridge unavailable: " + error.getMessage());
+            return null;
+        }
+    }
+
+    private ExternalItemSupport buildCraftEngineSupport() {
+        if (craftEnginePlugin == null || !craftEnginePlugin.isEnabled()) {
+            return null;
+        }
+        try {
+            return new CraftEngineSupport();
+        } catch (Throwable error) {
+            plugin.getLogger().warning("CraftEngine API bridge unavailable: " + error.getMessage());
+            return null;
+        }
+    }
+
+    private interface ExternalItemSupport {
+
+        ItemSource identify(ItemStack itemStack);
+
+        ItemStack create(String identifier, int amount);
+    }
+
+    private static final class NeigeItemsSupport implements ExternalItemSupport {
+
+        @Override
+        public ItemSource identify(ItemStack itemStack) {
+            String id = ItemManager.INSTANCE.getItemId(itemStack);
+            return Texts.isBlank(id) ? null : new ItemSource(ItemSourceType.NEIGEITEMS, id);
+        }
+
+        @Override
+        public ItemStack create(String identifier, int amount) {
+            ItemStack itemStack = ItemManager.INSTANCE.getItemStack(identifier);
+            if (itemStack == null) {
+                return null;
+            }
+            ItemStack cloned = itemStack.clone();
+            cloned.setAmount(Math.max(1, amount));
+            return cloned;
+        }
+    }
+
+    private static final class CraftEngineSupport implements ExternalItemSupport {
+
+        @Override
+        public ItemSource identify(ItemStack itemStack) {
+            Key key = CraftEngineItems.getCustomItemId(itemStack);
+            return key == null ? null : new ItemSource(ItemSourceType.CRAFTENGINE, key.asString());
+        }
+
+        @Override
+        public ItemStack create(String identifier, int amount) {
+            CustomItem<ItemStack> customItem = CraftEngineItems.byId(Key.of(identifier));
+            if (customItem == null) {
+                return null;
+            }
+            return customItem.buildItemStack(ItemBuildContext.empty(), Math.max(1, amount));
+        }
+    }
+}
