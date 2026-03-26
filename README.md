@@ -56,4 +56,7 @@ Project/
 
 ## 开源许可
 
-建议在仓库根目录维护标准 `LICENSE` 文件，并在 `README` 中声明适用协议。正式许可文件提交前，仓库内容不应被视为已按照某一开源协议完成授权。
+本项目采用 `GNU General Public License v3.0` 开源发布。
+
+- 许可文件位置：`LICENSE`
+- SPDX 标识：`GPL-3.0-only`
