@@ -2,14 +2,17 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
-$wikiSource = (Resolve-Path (Join-Path $repoRoot "..\\Emaki Plugin Wiki")).Path
+$wikiSourcePath = Join-Path $repoRoot "..\\Emaki Plugin Wiki"
 $wikiTarget = Join-Path $repoRoot "wiki"
 
-if (-not (Test-Path $wikiSource)) {
-    throw "Wiki source folder not found: $wikiSource"
+New-Item -ItemType Directory -Force -Path $wikiTarget | Out-Null
+
+if (-not (Test-Path $wikiSourcePath)) {
+    Write-Host "External wiki source not found. Keeping existing repository wiki at $wikiTarget"
+    exit 0
 }
 
-New-Item -ItemType Directory -Force -Path $wikiTarget | Out-Null
+$wikiSource = (Resolve-Path $wikiSourcePath).Path
 
 & robocopy $wikiSource $wikiTarget /MIR /FFT /NFL /NDL /NJH /NJS /NP
 $robocopyExitCode = $LASTEXITCODE
