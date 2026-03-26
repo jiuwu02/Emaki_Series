@@ -34,6 +34,21 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 DEFAULT_WIKI_SOURCE = PROJECT_ROOT.parent / "Emaki Plugin Wiki"
 LOCAL_WIKI_DIR = PROJECT_ROOT / "wiki"
 API_VERSION = "2022-11-28"
+DEFAULT_RELEASE_NOTES = textwrap.dedent(
+    """\
+    ### 更新摘要
+
+    - 发布新的构建产物
+
+    ### 变更说明
+
+    - 请在此补充本次版本的详细更新内容
+
+    ### 兼容性说明
+
+    - 如无额外说明，则以当前仓库代码与对应模块版本为准
+    """
+).strip()
 
 
 @dataclass(frozen=True)
@@ -402,7 +417,43 @@ def build_release_name(changed_modules: list[ModuleReleaseInfo]) -> str:
     return " / ".join(versions)
 
 
-def build_release_body(all_modules: list[ModuleReleaseInfo], changed_modules: list[ModuleReleaseInfo]) -> str:
+def build_default_release_notes(changed_modules: list[ModuleReleaseInfo]) -> str:
+    sections = []
+    for module in changed_modules:
+        sections.append(
+            textwrap.dedent(
+                f"""\
+                ### {module.spec.display_name}
+
+                - 发布版本：`{module.version}`
+                - 发布附件：`{module.asset_name}`
+                """
+            ).strip()
+        )
+    return "\n\n".join(sections) if sections else DEFAULT_RELEASE_NOTES
+
+
+def load_release_notes(args: argparse.Namespace, changed_modules: list[ModuleReleaseInfo]) -> str:
+    if getattr(args, "notes", None) and getattr(args, "notes_file", None):
+        raise ValueError("--notes and --notes-file cannot be used together.")
+
+    if getattr(args, "notes_file", None):
+        notes_path = Path(args.notes_file).resolve()
+        if not notes_path.exists():
+            raise FileNotFoundError(f"Release notes file not found: {notes_path}")
+        return read_text(notes_path).strip()
+
+    if getattr(args, "notes", None):
+        return args.notes.strip()
+
+    return build_default_release_notes(changed_modules)
+
+
+def build_release_body(
+    all_modules: list[ModuleReleaseInfo],
+    changed_modules: list[ModuleReleaseInfo],
+    release_notes: str,
+) -> str:
     changed_lines = "\n".join(
         f"- {module.spec.display_name}: `{module.version}`" for module in changed_modules
     )
@@ -414,6 +465,10 @@ def build_release_body(all_modules: list[ModuleReleaseInfo], changed_modules: li
     )
     return textwrap.dedent(
         f"""\
+        ## Release Notes
+
+        {release_notes}
+
         ## Published Modules
 
         {changed_lines}
@@ -446,7 +501,8 @@ def command_publish_release(args: argparse.Namespace) -> int:
 
     tag_name = args.tag or build_release_tag(changed_modules)
     release_name = args.name or build_release_name(changed_modules)
-    release_body = build_release_body(module_info, changed_modules)
+    release_notes = load_release_notes(args, changed_modules)
+    release_body = build_release_body(module_info, changed_modules, release_notes)
     target_commitish = args.target_commitish or get_current_branch()
 
     print("Release plan:")
@@ -457,6 +513,8 @@ def command_publish_release(args: argparse.Namespace) -> int:
     print("- Included assets:")
     for module in changed_modules:
         print(f"  - {module.asset_name}")
+    print("- Release notes preview:")
+    print(textwrap.indent(release_notes, "  "))
 
     if args.dry_run:
         return 0
@@ -490,11 +548,128 @@ def command_publish_release(args: argparse.Namespace) -> int:
     return 0
 
 
+def build_guide_text(topic: str) -> str:
+    wiki_source = str(DEFAULT_WIKI_SOURCE)
+    local_wiki = str(LOCAL_WIKI_DIR)
+    if topic == "wiki":
+        return textwrap.dedent(
+            f"""\
+            Wiki 发布操作步骤
+
+            1. 准备 Wiki 内容
+               - 默认外部 Wiki 目录：{wiki_source}
+               - 本地仓库 Wiki 目录：{local_wiki}
+               - 如果你只想直接发布当前本地 wiki/，可以跳过同步步骤
+
+            2. 先同步外部 Wiki 到本地 wiki/
+               python .\\emaki_manager.py sync-wiki --allow-missing-source
+
+            3. 预备检查
+               - 确认 GitHub 仓库已开启 Wiki
+               - 确认你已经至少创建过一次 GitHub Wiki 首页
+
+            4. 发布到 GitHub Wiki
+               python .\\emaki_manager.py publish-wiki
+
+            5. 如果不想先同步外部目录，直接发布当前 wiki/
+               python .\\emaki_manager.py publish-wiki --no-sync
+            """
+        ).strip()
+
+    if topic == "release":
+        return textwrap.dedent(
+            """\
+            Release 发布操作步骤
+
+            1. 先在 IDEA 或命令行完成构建
+               - Emaki_CoreLib/target/emaki-corelib-<version>.jar
+               - Emaki_Forge/target/emaki-forge-<version>.jar
+
+            2. 配置 GitHub Token
+               PowerShell:
+               $env:GH_TOKEN="你的GitHub令牌"
+
+            3. 先查看本次将要发布哪些模块
+               python .\\emaki_manager.py publish-release --dry-run
+
+            4. 如需自定义发布日志，推荐先写一个 Markdown 文件
+               例如：release-notes.md
+
+            5. 使用 notes 文件发布
+               python .\\emaki_manager.py publish-release --notes-file .\\release-notes.md
+
+            6. 如果只想快速发布，也可以不传 notes
+               python .\\emaki_manager.py publish-release
+               脚本会自动生成基础发布日志
+
+            7. 自动识别规则
+               - 如果 CoreLib 和 Forge 都是新版本：同一个 Release 同时上传两个 jar
+               - 如果只有一个模块是新版本：只上传这个模块的 jar
+               - 如果两个模块当前版本都已发布：不创建新 Release
+            """
+        ).strip()
+
+    return textwrap.dedent(
+        """\
+        Emaki Manager 操作总览
+
+        查看完整向导：
+        - python .\\emaki_manager.py guide wiki
+        - python .\\emaki_manager.py guide release
+
+        常用命令：
+        - python .\\emaki_manager.py sync-wiki --allow-missing-source
+        - python .\\emaki_manager.py publish-wiki
+        - python .\\emaki_manager.py publish-release --dry-run
+        - python .\\emaki_manager.py publish-release --notes-file .\\release-notes.md
+        """
+    ).strip()
+
+
+def command_guide(args: argparse.Namespace) -> int:
+    print(build_guide_text(args.topic))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Emaki Series local maintenance utility")
+    parser = argparse.ArgumentParser(
+        description="Emaki Series 本地发布工具",
+        formatter_class=argparse.RawTextHelpFormatter,
+        epilog=build_guide_text("all"),
+    )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    sync_wiki = subparsers.add_parser("sync-wiki", help="Sync external wiki folder into Project/wiki")
+    guide = subparsers.add_parser(
+        "guide",
+        help="显示分步骤操作说明",
+        formatter_class=argparse.RawTextHelpFormatter,
+        description="显示 Wiki 发布或 Release 发布的完整操作步骤。",
+    )
+    guide.add_argument(
+        "topic",
+        nargs="?",
+        choices=["all", "wiki", "release"],
+        default="all",
+        help="查看全部说明，或只看 wiki / release",
+    )
+    guide.set_defaults(func=command_guide)
+
+    sync_wiki = subparsers.add_parser(
+        "sync-wiki",
+        help="同步外部 Wiki 到本地 wiki/",
+        formatter_class=argparse.RawTextHelpFormatter,
+        description=textwrap.dedent(
+            f"""\
+            同步外部 Wiki 内容到本地仓库的 wiki/ 目录。
+
+            默认外部目录：
+            {DEFAULT_WIKI_SOURCE}
+
+            默认本地目录：
+            {LOCAL_WIKI_DIR}
+            """
+        ),
+    )
     sync_wiki.add_argument("--source", default=str(DEFAULT_WIKI_SOURCE), help="External wiki source directory")
     sync_wiki.add_argument("--target", default=str(LOCAL_WIKI_DIR), help="Local wiki directory")
     sync_wiki.add_argument(
@@ -504,19 +679,54 @@ def build_parser() -> argparse.ArgumentParser:
     )
     sync_wiki.set_defaults(func=command_sync_wiki)
 
-    publish_wiki = subparsers.add_parser("publish-wiki", help="Publish Project/wiki to GitHub Wiki")
+    publish_wiki = subparsers.add_parser(
+        "publish-wiki",
+        help="发布本地 wiki/ 到 GitHub Wiki",
+        formatter_class=argparse.RawTextHelpFormatter,
+        description=textwrap.dedent(
+            """\
+            发布 Wiki 的完整流程：
+            1. 如有外部 Wiki 目录，先同步到本地 wiki/
+            2. 克隆 GitHub Wiki 仓库
+            3. 将本地 wiki/ 内容覆盖同步到 GitHub Wiki
+            4. 自动提交并推送
+
+            如果你已经手动维护好了本地 wiki/，可以使用 --no-sync 跳过同步步骤。
+            """
+        ),
+    )
     publish_wiki.add_argument("--source", default=str(DEFAULT_WIKI_SOURCE), help="External wiki source directory")
     publish_wiki.add_argument("--target", default=str(LOCAL_WIKI_DIR), help="Local wiki directory")
     publish_wiki.add_argument("--no-sync", action="store_true", help="Publish the local wiki without syncing from external source first")
     publish_wiki.add_argument("--message", default="docs: 更新 Wiki", help="Git commit message for the wiki repository")
     publish_wiki.set_defaults(func=command_publish_wiki)
 
-    publish_release = subparsers.add_parser("publish-release", help="Create or update a GitHub Release and upload new module jars")
+    publish_release = subparsers.add_parser(
+        "publish-release",
+        help="自动识别新版本并发布 GitHub Release",
+        formatter_class=argparse.RawTextHelpFormatter,
+        description=textwrap.dedent(
+            """\
+            自动识别模块版本是否已发布，并按需要创建或更新 GitHub Release。
+
+            识别规则：
+            - 脚本读取 Emaki_CoreLib 与 Emaki_Forge 的 pom.xml 版本号
+            - 脚本检查 GitHub Releases 中已存在的 jar 资产
+            - 未发布过的模块会被纳入本次 Release
+            - 多个未发布模块会被放进同一个 Release 中
+
+            发布前建议先执行：
+            python .\\emaki_manager.py publish-release --dry-run
+            """
+        ),
+    )
     publish_release.add_argument("--token", help="GitHub token. Defaults to GH_TOKEN or GITHUB_TOKEN")
     publish_release.add_argument("--tag", help="Override the generated release tag")
     publish_release.add_argument("--name", help="Override the generated release title")
     publish_release.add_argument("--target-commitish", help="Branch or commit used for the GitHub Release tag")
     publish_release.add_argument("--prerelease", action="store_true", help="Mark the GitHub Release as a pre-release")
+    publish_release.add_argument("--notes", help="Inline release notes text")
+    publish_release.add_argument("--notes-file", help="Path to a Markdown file used as release notes")
     publish_release.add_argument("--dry-run", action="store_true", help="Print the planned release without creating it")
     publish_release.set_defaults(func=command_publish_release)
 
