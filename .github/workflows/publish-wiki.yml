@@ -60,14 +60,17 @@ jobs:
           WIKI_URL="https://x-access-token:${TOKEN}@github.com/${REPOSITORY}.wiki.git"
           TARGET_BRANCH="master"
 
-          if git clone "$WIKI_URL" "$WIKI_DIR"; then
-            CURRENT_BRANCH="$(git -C "$WIKI_DIR" branch --show-current)"
-            if [ -n "$CURRENT_BRANCH" ]; then
-              TARGET_BRANCH="$CURRENT_BRANCH"
-            fi
-          else
-            git init --initial-branch="$TARGET_BRANCH" "$WIKI_DIR"
-            git -C "$WIKI_DIR" remote add origin "$WIKI_URL"
+          if ! git ls-remote "$WIKI_URL" >/dev/null 2>&1; then
+            echo "GitHub Wiki backend is not reachable yet."
+            echo "Please make sure the repository Wiki is enabled and create the first Wiki page manually on GitHub."
+            echo "After that, rerun this workflow from Actions."
+            exit 0
+          fi
+
+          git clone "$WIKI_URL" "$WIKI_DIR"
+          CURRENT_BRANCH="$(git -C "$WIKI_DIR" branch --show-current)"
+          if [ -n "$CURRENT_BRANCH" ]; then
+            TARGET_BRANCH="$CURRENT_BRANCH"
           fi
 
           rsync -a --delete --exclude ".git/" wiki/ "$WIKI_DIR"/
