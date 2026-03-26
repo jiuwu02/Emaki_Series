@@ -20,7 +20,7 @@ slots:
 
   blueprint_inputs:
     slots: [10, 11]
-      type: "blueprint_inputs"
+    type: "blueprint_inputs"
     item: "PAPER"
     display_name: "<light_purple>放入图纸</light_purple>"
     lore:
@@ -28,7 +28,7 @@ slots:
 
   target_item:
     slots: [13]
-      type: "target_item"
+    type: "target_item"
     item: "LIGHT_BLUE_STAINED_GLASS_PANE"
     display_name: "<aqua>放入目标物品</aqua>"
     lore:
@@ -36,7 +36,7 @@ slots:
 
   capacity_display:
     slots: [22]
-      type: "capacity_display"
+    type: "capacity_display"
     item: "HOPPER"
     display_name: "<gray>锻造容量</gray>"
     lore:
@@ -46,7 +46,7 @@ slots:
 
   result_preview:
     slots: [24]
-      type: "result_preview"
+    type: "result_preview"
     item: "ANVIL"
     display_name: "<gold>结果预览</gold>"
     lore:
@@ -54,7 +54,7 @@ slots:
 
   required_materials:
     slots: [19, 20, 21]
-      type: "required_materials"
+    type: "required_materials"
     item: "YELLOW_STAINED_GLASS_PANE"
     display_name: "<gold>放入必需材料</gold>"
     lore:
@@ -62,7 +62,7 @@ slots:
 
   optional_materials:
     slots: [28, 29, 30, 31, 32]
-      type: "optional_materials"
+    type: "optional_materials"
     item: "CYAN_STAINED_GLASS_PANE"
     display_name: "<green>放入可选材料</green>"
     lore:
@@ -70,7 +70,7 @@ slots:
 
   confirm:
     slots: [40]
-      type: "confirm"
+    type: "confirm"
     item: "ANVIL"
     display_name: "<green>确认锻造</green>"
     lore:
