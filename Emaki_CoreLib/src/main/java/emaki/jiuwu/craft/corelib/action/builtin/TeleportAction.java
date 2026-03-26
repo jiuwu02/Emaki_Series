@@ -37,7 +37,7 @@ public final class TeleportAction extends BaseAction {
         Location base = context.player().getLocation();
         World world = Texts.isBlank(arguments.get("world")) ? base.getWorld() : Bukkit.getWorld(arguments.get("world"));
         if (world == null) {
-            return ActionResult.failure(ActionErrorType.WORLD_NOT_FOUND, "Unknown world for teleport operation.");
+            return ActionResult.failure(ActionErrorType.WORLD_NOT_FOUND, "Unknown world for teleport action.");
         }
         Location target = new Location(
             world,

@@ -34,29 +34,29 @@ quality:
     tiers:
       有缺:
         name_modifications:
-          - operation: "prepend_prefix"
+          - action: "prepend_prefix"
             value: "<color:#733333>[有缺]</color>"
       平庸:
         name_modifications:
-          - operation: "prepend_prefix"
+          - action: "prepend_prefix"
             value: "<color:#999999>[平庸]</color>"
       精良:
         name_modifications:
-          - operation: "prepend_prefix"
+          - action: "prepend_prefix"
             value: "<color:#1F871F>[精良]</color>"
       优质:
         name_modifications:
-          - operation: "prepend_prefix"
+          - action: "prepend_prefix"
             value: "<color:#00FF00>[优质]</color>"
       无暇:
         name_modifications:
-          - operation: "prepend_prefix"
+          - action: "prepend_prefix"
             value: "<color:#4B64C8>[无暇]</color>"
         action:
           - 'broadcast_message text="<color:#4B64C8>%player_name%锻造出了一个无暇品质的<show_item></color>"'
       完美:
         name_modifications:
-          - operation: "prepend_prefix"
+          - action: "prepend_prefix"
             value: "<color:#FFD700>[完美]</color>"
         action:
           - 'broadcast_message text="<color:#FFD700>%player_name%锻造出了一个完美品质的<show_item></color>"'

@@ -25,12 +25,12 @@ effects:
         value: 5
 
   - type: "name_modify"
-    operation: "append_suffix"
+    action: "append_suffix"
     value: "<red> [烈焰]"
 
-  - type: "lore_operation"
+  - type: "lore_action"
     action:
-      - operation: "insert_below"
+      - action: "insert_below"
         target_pattern: "锻造属性:"
         content:
           - "<red>火焰伤害: +{fire_damage}"

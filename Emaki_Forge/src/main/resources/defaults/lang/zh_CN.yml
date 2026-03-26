@@ -76,7 +76,7 @@ console:
   material_iron_exists: "<gray>materials/iron_essence.yml 已存在, 跳过创建</gray>"
   material_flame_exists: "<gray>materials/flame_crystal.yml 已存在, 跳过创建</gray>"
   recipe_flame_exists: "<gray>recipes/flame_sword.yml 已存在, 跳过创建</gray>"
-  recipe_operation_id_migrated: "<gray>已将旧操作写法迁移为标准写法: <yellow>{path}</yellow></gray>"
+  recipe_action_id_migrated: "<gray>已将旧操作写法迁移为标准写法: <yellow>{path}</yellow></gray>"
   file_created_success: "<green>成功创建 <yellow>{name}</yellow>"
   file_create_failed: "<yellow>创建 <red>{name}</red> <yellow>失败: <red>{error}</red>"
   file_create_failed_ext: "<yellow>创建 <red>{name}</red> <yellow>失败: <red>{error}</red>"
@@ -122,7 +122,7 @@ forge:
     material_required: "<red>缺少必要的材料!</red>"
     material_count_exceeded: "<red>可选材料数量超限!</red>"
     item_create: "<red>无法创建结果物品!</red>"
-    operation_failed: "<red>锻造操作执行失败: {reason}</red>"
+    action_failed: "<red>锻造操作执行失败: {reason}</red>"
 
   success:
     crafted: "<green>锻造成功! 获得了 {item}</green>"

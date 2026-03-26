@@ -43,7 +43,7 @@ public final class EconomyManager {
 
     public ActionResult requireSupported(String providerId, String currencyId) {
         if ("coinsengine".equalsIgnoreCase(providerId) && Texts.isBlank(currencyId)) {
-            return ActionResult.failure(ActionErrorType.INVALID_ARGUMENT, "CoinsEngine operations require 'currency'.");
+            return ActionResult.failure(ActionErrorType.INVALID_ARGUMENT, "CoinsEngine actions require 'currency'.");
         }
         EconomyProvider provider = select(providerId, currencyId);
         if (provider == null) {

@@ -3,7 +3,7 @@ package emaki.jiuwu.craft.corelib.action;
 public enum ActionErrorType {
     NONE,
     INVALID_ARGUMENT,
-    OPERATION_NOT_FOUND,
+    ACTION_NOT_FOUND,
     EXECUTION_EXCEPTION,
     INVALID_STATE,
     PROVIDER_UNAVAILABLE,

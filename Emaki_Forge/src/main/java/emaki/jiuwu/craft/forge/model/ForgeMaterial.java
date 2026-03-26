@@ -135,7 +135,7 @@ public final class ForgeMaterial {
     public List<Map<String, Object>> loreActions() {
         List<Map<String, Object>> result = new ArrayList<>();
         for (MaterialEffect effect : effects) {
-            if (!"lore_operation".equals(Texts.lower(effect.type()))) {
+            if (!"lore_action".equals(Texts.lower(effect.type()))) {
                 continue;
             }
             for (Object raw : ConfigNodes.asObjectList(effect.get("action"))) {

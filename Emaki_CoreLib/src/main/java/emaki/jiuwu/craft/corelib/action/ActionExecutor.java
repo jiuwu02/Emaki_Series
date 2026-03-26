@@ -35,16 +35,16 @@ public final class ActionExecutor {
     }
 
     public CompletableFuture<ActionResult> execute(ActionContext context, String actionId, Map<String, String> arguments) {
-        Action operation = registry.get(actionId);
-        if (operation == null) {
-            return CompletableFuture.completedFuture(ActionResult.failure(ActionErrorType.OPERATION_NOT_FOUND, "Action not found: " + actionId));
+        Action action = registry.get(actionId);
+        if (action == null) {
+            return CompletableFuture.completedFuture(ActionResult.failure(ActionErrorType.ACTION_NOT_FOUND, "Action not found: " + actionId));
         }
         Map<String, String> resolved = resolveArguments(context, arguments);
-        ActionResult validation = operation.validate(resolved);
+        ActionResult validation = action.validate(resolved);
         if (!validation.success()) {
             return CompletableFuture.completedFuture(validation);
         }
-        return dispatch(0L, () -> safeExecute(context, operation, resolved));
+        return dispatch(0L, () -> safeExecute(context, action, resolved));
     }
 
     public CompletableFuture<ActionBatchResult> executeAll(ActionContext context, List<String> lines, boolean stopOnFailure) {
@@ -126,11 +126,11 @@ public final class ActionExecutor {
         }
         Map<String, String> resolved = resolveArguments(context, parsed.arguments());
         if ("use_template".equals(parsed.actionId())) {
-            Action operation = registry.get(parsed.actionId());
-            if (operation == null) {
-                return CompletableFuture.completedFuture(ActionResult.failure(ActionErrorType.OPERATION_NOT_FOUND, "Action not found: " + parsed.actionId()));
+            Action action = registry.get(parsed.actionId());
+            if (action == null) {
+                return CompletableFuture.completedFuture(ActionResult.failure(ActionErrorType.ACTION_NOT_FOUND, "Action not found: " + parsed.actionId()));
             }
-            ActionResult validation = operation.validate(resolved);
+            ActionResult validation = action.validate(resolved);
             if (!validation.success()) {
                 return CompletableFuture.completedFuture(validation);
             }
@@ -159,7 +159,7 @@ public final class ActionExecutor {
         }
         ActionContext nextContext = (context == null ? ActionContext.create(plugin, null, "template", false, false) : context)
             .withPlaceholders(templateValues)
-            .withAttribute("operation_template_depth", depth + 1);
+            .withAttribute("action_template_depth", depth + 1);
         return executeAll(nextContext, lines, true)
             .thenApply(batch -> batch.success()
                 ? ActionResult.ok(Map.of("template", name))
@@ -172,26 +172,26 @@ public final class ActionExecutor {
     }
 
     private ActionResult executeAction(ActionContext context, String actionId, Map<String, String> resolved) {
-        Action operation = registry.get(actionId);
-        if (operation == null) {
-            return ActionResult.failure(ActionErrorType.OPERATION_NOT_FOUND, "Action not found: " + actionId);
+        Action action = registry.get(actionId);
+        if (action == null) {
+            return ActionResult.failure(ActionErrorType.ACTION_NOT_FOUND, "Action not found: " + actionId);
         }
-        ActionResult validation = operation.validate(resolved);
+        ActionResult validation = action.validate(resolved);
         if (!validation.success()) {
             return validation;
         }
-        return safeExecute(context, operation, resolved);
+        return safeExecute(context, action, resolved);
     }
 
-    private ActionResult safeExecute(ActionContext context, Action operation, Map<String, String> resolved) {
+    private ActionResult safeExecute(ActionContext context, Action action, Map<String, String> resolved) {
         try {
             if (context != null && context.debug() && plugin != null) {
-                plugin.getLogger().info("[Action] phase=" + context.phase() + " id=" + operation.id() + " args=" + resolved);
+                plugin.getLogger().info("[Action] phase=" + context.phase() + " id=" + action.id() + " args=" + resolved);
             }
-            return operation.execute(context, resolved);
+            return action.execute(context, resolved);
         } catch (Exception exception) {
             if (plugin != null) {
-                plugin.getLogger().warning("[Action] Failed to execute '" + operation.id() + "': " + exception.getMessage());
+                plugin.getLogger().warning("[Action] Failed to execute '" + action.id() + "': " + exception.getMessage());
             }
             return ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, exception.getMessage());
         }
@@ -241,7 +241,7 @@ public final class ActionExecutor {
         if (context == null) {
             return 0;
         }
-        Object raw = context.attribute("operation_template_depth");
+        Object raw = context.attribute("action_template_depth");
         if (raw instanceof Number number) {
             return number.intValue();
         }

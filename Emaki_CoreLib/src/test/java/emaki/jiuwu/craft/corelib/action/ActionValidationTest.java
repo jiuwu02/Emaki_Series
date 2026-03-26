@@ -10,7 +10,7 @@ class ActionValidationTest {
 
     @Test
     void allowsPlaceholderValuesForTypedArguments() {
-        Action operation = new Action() {
+        Action action = new Action() {
             @Override
             public String id() {
                 return "test";
@@ -37,7 +37,7 @@ class ActionValidationTest {
             }
         };
 
-        ActionResult validation = operation.validate(Map.of("amount", "%template_amount%"));
+        ActionResult validation = action.validate(Map.of("amount", "%template_amount%"));
         assertTrue(validation.success());
     }
 }

@@ -89,8 +89,8 @@ public final class RecipeLoader extends AbstractDirectoryLoader<Recipe> {
             if (parsed == null) {
                 continue;
             }
-            Action operation = coreLib.actionRegistry().get(parsed.actionId());
-            if (operation == null) {
+            Action action = coreLib.actionRegistry().get(parsed.actionId());
+            if (action == null) {
                 String suggestion = "send_action_bar".equals(parsed.actionId())
                     ? " 请改用标准操作名 'send_actionbar'."
                     : "";
@@ -98,7 +98,7 @@ public final class RecipeLoader extends AbstractDirectoryLoader<Recipe> {
                     + "' (" + file.getName() + ", phase=" + phase + ", line=" + parsed.lineNumber() + ")." + suggestion);
                 return false;
             }
-            ActionResult validation = operation.validate(parsed.arguments());
+            ActionResult validation = action.validate(parsed.arguments());
             if (!validation.success()) {
                 plugin.getLogger().warning("Invalid action arguments in recipe '" + recipe.id()
                     + "' (" + file.getName() + ", phase=" + phase + ", line=" + parsed.lineNumber() + "): "

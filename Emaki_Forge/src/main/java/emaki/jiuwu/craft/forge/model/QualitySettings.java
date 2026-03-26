@@ -87,8 +87,8 @@ public final class QualitySettings {
             String key = Texts.lower(entry.getKey());
             Object tierConfig = entry.getValue();
             actions.put(key, List.copyOf(Texts.asStringList(ConfigNodes.get(tierConfig, "action"))));
-            nameMods.put(key, toActionList(ConfigNodes.get(tierConfig, "name_modifications"), ConfigNodes.get(tierConfig, "name_operations")));
-            loreOps.put(key, toActionList(ConfigNodes.get(tierConfig, "lore_operations")));
+            nameMods.put(key, toActionList(ConfigNodes.get(tierConfig, "name_modifications"), ConfigNodes.get(tierConfig, "name_actions")));
+            loreOps.put(key, toActionList(ConfigNodes.get(tierConfig, "lore_actions")));
         }
         return new QualitySettings(
             tiers,

@@ -516,11 +516,11 @@ public final class ForgeGuiService {
         sessions.remove(state.player.getUniqueId());
         if (throwable != null) {
             plugin.getLogger().warning("Forge execution failed for recipe '" + activeRecipe.id() + "': " + throwable.getMessage());
-            returnFailedAttempt(state, "forge.error.operation_failed", Map.of("reason", Texts.toStringSafe(throwable.getMessage())));
+            returnFailedAttempt(state, "forge.error.action_failed", Map.of("reason", Texts.toStringSafe(throwable.getMessage())));
             return;
         }
         if (result == null || !result.success()) {
-            String errorKey = result == null || Texts.isBlank(result.errorKey()) ? "forge.error.operation_failed" : result.errorKey();
+            String errorKey = result == null || Texts.isBlank(result.errorKey()) ? "forge.error.action_failed" : result.errorKey();
             Map<String, Object> replacements = result == null || result.replacements() == null ? Map.of() : result.replacements();
             returnFailedAttempt(state, errorKey, replacements);
             return;

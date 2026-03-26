@@ -35,7 +35,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 public final class ForgeService {
 
-    private static final String DEFAULT_OPERATION_FAILURE_KEY = "forge.error.operation_failed";
+    private static final String DEFAULT_ACTION_FAILURE_KEY = "forge.error.action_failed";
 
     public record GuiItems(ItemStack targetItem,
                            Map<Integer, ItemStack> blueprints,
@@ -70,7 +70,7 @@ public final class ForgeService {
         private ItemStack resultItem;
         private String quality;
         private double multiplier = 1D;
-        private String operationFailureReason;
+        private String actionFailureReason;
 
         public boolean success() {
             return success;
@@ -96,8 +96,8 @@ public final class ForgeService {
             return multiplier;
         }
 
-        public String operationFailureReason() {
-            return operationFailureReason;
+        public String actionFailureReason() {
+            return actionFailureReason;
         }
     }
 
@@ -234,12 +234,12 @@ public final class ForgeService {
     private ForgeResult buildActionFailure(Player player, Recipe recipe, GuiItems guiItems, ForgeResult result, ActionBatchResult batch) {
         ActionStepResult failure = batch.firstFailure();
         String reason = resolveFailureReason(failure);
-        result.errorKey = DEFAULT_OPERATION_FAILURE_KEY;
-        result.operationFailureReason = reason;
+        result.errorKey = DEFAULT_ACTION_FAILURE_KEY;
+        result.actionFailureReason = reason;
         Map<String, Object> replacements = new LinkedHashMap<>();
         replacements.put("reason", reason);
         if (failure != null) {
-            replacements.put("operation", failure.actionId());
+            replacements.put("action", failure.actionId());
             replacements.put("line", failure.lineNumber());
         }
         result.replacements = Map.copyOf(replacements);
@@ -729,19 +729,19 @@ public final class ForgeService {
     private void applyMaterialEffects(ItemStack itemStack, List<MaterialContribution> materials, double multiplier) {
         Map<String, Double> contributions = new LinkedHashMap<>();
         List<Map<String, Object>> nameMods = new ArrayList<>();
-        List<Map<String, Object>> loreOps = new ArrayList<>();
+        List<Map<String, Object>> loreActions = new ArrayList<>();
         for (MaterialContribution material : materials) {
             for (Map.Entry<String, Double> entry : material.material().statContributions().entrySet()) {
                 contributions.merge(entry.getKey(), entry.getValue() * material.amount(), Double::sum);
             }
             nameMods.addAll(material.material().nameModifications());
-            loreOps.addAll(material.material().loreActions());
+            loreActions.addAll(material.material().loreActions());
         }
         Map<String, Double> scaled = new LinkedHashMap<>();
         for (Map.Entry<String, Double> entry : contributions.entrySet()) {
             scaled.put(entry.getKey(), entry.getValue() * multiplier);
         }
-        applyMetaActions(itemStack, nameMods, loreOps, scaled);
+        applyMetaActions(itemStack, nameMods, loreActions, scaled);
     }
 
     private List<MaterialContribution> collectMaterialContributions(GuiItems guiItems) {
@@ -806,11 +806,11 @@ public final class ForgeService {
         }
         String currentName = itemMeta.hasDisplayName() ? MiniMessages.serialize(itemMeta.displayName()) : "";
         for (Map<String, Object> modification : nameModifications) {
-            String operation = Texts.lower(modification.get("operation"));
+            String action = Texts.lower(modification.get("action"));
             String value = Texts.toStringSafe(modification.get("value"));
             String regexPattern = Texts.toStringSafe(modification.get("regex_pattern"));
             String replacement = Texts.toStringSafe(modification.get("replacement"));
-            switch (operation) {
+            switch (action) {
                 case "append_suffix" -> currentName = currentName + value;
                 case "prepend_prefix" -> currentName = value + currentName;
                 case "replace" -> currentName = value;
@@ -828,8 +828,8 @@ public final class ForgeService {
             itemMeta.displayName(MiniMessages.parse(currentName));
         }
         List<Component> lore = new ArrayList<>(itemMeta.hasLore() && itemMeta.lore() != null ? itemMeta.lore() : List.of());
-        for (Map<String, Object> operation : loreActions) {
-            applyLoreAction(lore, operation, statContributions);
+        for (Map<String, Object> loreAction : loreActions) {
+            applyLoreAction(lore, loreAction, statContributions);
         }
         if (!lore.isEmpty()) {
             itemMeta.lore(lore);
@@ -838,13 +838,13 @@ public final class ForgeService {
     }
 
     private void applyLoreAction(List<Component> lore,
-                                    Map<String, Object> operation,
+                                    Map<String, Object> action,
                                     Map<String, Double> statContributions) {
-        String type = Texts.lower(operation.get("operation"));
-        List<String> content = Texts.asStringList(operation.get("content"));
-        String targetPattern = Texts.toStringSafe(operation.get("target_pattern"));
-        String regexPattern = Texts.toStringSafe(operation.get("regex_pattern"));
-        String replacement = Texts.toStringSafe(operation.get("replacement"));
+        String type = Texts.lower(action.get("action"));
+        List<String> content = Texts.asStringList(action.get("content"));
+        String targetPattern = Texts.toStringSafe(action.get("target_pattern"));
+        String regexPattern = Texts.toStringSafe(action.get("regex_pattern"));
+        String replacement = Texts.toStringSafe(action.get("replacement"));
         switch (type) {
             case "insert_below" -> insertRelative(lore, content, statContributions, targetPattern, true, false);
             case "insert_above" -> insertRelative(lore, content, statContributions, targetPattern, false, false);

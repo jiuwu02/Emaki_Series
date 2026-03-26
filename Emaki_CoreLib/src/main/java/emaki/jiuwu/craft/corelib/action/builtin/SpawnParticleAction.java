@@ -53,7 +53,7 @@ public final class SpawnParticleAction extends BaseAction {
                 ? (context.player() == null ? null : context.player().getWorld())
                 : Bukkit.getWorld(arguments.get("world"));
             if (world == null) {
-                return ActionResult.failure(ActionErrorType.WORLD_NOT_FOUND, "Unknown world for particle operation.");
+                return ActionResult.failure(ActionErrorType.WORLD_NOT_FOUND, "Unknown world for particle action.");
             }
             double baseX = context.player() == null ? 0D : context.player().getLocation().getX();
             double baseY = context.player() == null ? 0D : context.player().getLocation().getY();

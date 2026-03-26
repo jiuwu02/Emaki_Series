@@ -24,9 +24,9 @@ effects:
         type: "constant"
         value: 6
 
-  - type: "lore_operation"
+  - type: "lore_action"
     action:
-      - operation: "insert_below"
+      - action: "insert_below"
         target_pattern: "锻造属性:"
         content:
           - "<green>护甲穿透: +{armor_penetration}%"

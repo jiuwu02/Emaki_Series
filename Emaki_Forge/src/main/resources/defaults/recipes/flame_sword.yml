@@ -71,6 +71,6 @@ action:
     - 'send_actionbar text="<gray>烈焰之力正在熔铸...</gray>"'
   success: []
   failure:
-    - '@if="%forge_error_key% == forge.error.operation_failed" send_message text="<red>锻造前置操作失败: %forge_failure_reason%</red>"'
+    - '@if="%forge_error_key% == forge.error.action_failed" send_message text="<red>锻造前置操作失败: %forge_failure_reason%</red>"'
 
 permission: "jiuwuforge.recipe.flame_sword"

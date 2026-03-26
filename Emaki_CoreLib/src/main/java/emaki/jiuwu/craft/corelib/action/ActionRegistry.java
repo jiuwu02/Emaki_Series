@@ -8,40 +8,40 @@ import java.util.Map;
 
 public final class ActionRegistry {
 
-    private final Map<String, Action> operations = new LinkedHashMap<>();
+    private final Map<String, Action> actions = new LinkedHashMap<>();
 
-    public ActionResult register(Action operation) {
-        if (operation == null || Texts.isBlank(operation.id())) {
+    public ActionResult register(Action action) {
+        if (action == null || Texts.isBlank(action.id())) {
             return ActionResult.failure(ActionErrorType.INVALID_ARGUMENT, "Action id cannot be blank.");
         }
-        String id = Texts.lower(operation.id());
-        if (operations.containsKey(id)) {
+        String id = Texts.lower(action.id());
+        if (actions.containsKey(id)) {
             return ActionResult.failure(ActionErrorType.INVALID_ARGUMENT, "Action id already registered: " + id);
         }
-        operations.put(id, operation);
+        actions.put(id, action);
         return ActionResult.ok();
     }
 
     public void unregister(String actionId) {
-        operations.remove(Texts.lower(actionId));
+        actions.remove(Texts.lower(actionId));
     }
 
     public Action get(String actionId) {
-        return operations.get(Texts.lower(actionId));
+        return actions.get(Texts.lower(actionId));
     }
 
     public List<Action> byCategory(String category) {
         List<Action> result = new ArrayList<>();
         String normalized = Texts.lower(category);
-        for (Action operation : operations.values()) {
-            if (normalized.equals(Texts.lower(operation.category()))) {
-                result.add(operation);
+        for (Action action : actions.values()) {
+            if (normalized.equals(Texts.lower(action.category()))) {
+                result.add(action);
             }
         }
         return result;
     }
 
     public Map<String, Action> all() {
-        return Map.copyOf(operations);
+        return Map.copyOf(actions);
     }
 }

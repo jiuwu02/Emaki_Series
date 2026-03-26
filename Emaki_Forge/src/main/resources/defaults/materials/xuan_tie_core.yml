@@ -24,9 +24,9 @@ effects:
         type: "constant"
         value: 10
 
-  - type: "lore_operation"
+  - type: "lore_action"
     action:
-      - operation: "insert_below"
+      - action: "insert_below"
         target_pattern: "锻造属性:"
         content:
           - "<gray>基础伤害: <red>+{physical_damage}"

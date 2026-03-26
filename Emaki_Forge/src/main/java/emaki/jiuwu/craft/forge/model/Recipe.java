@@ -216,17 +216,17 @@ public final class Recipe {
             return new ResultConfig(null, List.of(), List.of(), List.of());
         }
         Object outputItem = ConfigNodes.get(raw, "output_item");
-        Object metaActions = ConfigNodes.get(raw, "meta_operations");
+        Object metaActions = ConfigNodes.get(raw, "meta_actions");
         return new ResultConfig(
             ItemSourceUtil.parse(outputItem),
             List.copyOf(Texts.asStringList(ConfigNodes.get(raw, "action"))),
             toActionList(
                 ConfigNodes.get(metaActions, "name_modifications"),
-                ConfigNodes.get(metaActions, "name_operations"),
+                ConfigNodes.get(metaActions, "name_actions"),
                 ConfigNodes.get(raw, "name_modifications"),
-                ConfigNodes.get(raw, "name_operations")
+                ConfigNodes.get(raw, "name_actions")
             ),
-            toActionList(ConfigNodes.get(metaActions, "lore_operations"), ConfigNodes.get(raw, "lore_operations"))
+            toActionList(ConfigNodes.get(metaActions, "lore_actions"), ConfigNodes.get(raw, "lore_actions"))
         );
     }
 
