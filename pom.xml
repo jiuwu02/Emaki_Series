@@ -31,6 +31,7 @@
         <exp4j.version>0.4.8</exp4j.version>
         <vault.api.version>1.7</vault.api.version>
         <coinsengine.version>2.7.0</coinsengine.version>
+        <nightcore.version>2.14.0</nightcore.version>
         <placeholderapi.version>2.12.2</placeholderapi.version>
         <junit.version>5.10.2</junit.version>
     </properties>
@@ -58,6 +59,12 @@
                 <groupId>su.nightexpress.coinsengine</groupId>
                 <artifactId>CoinsEngine</artifactId>
                 <version>${coinsengine.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>su.nightexpress.nightcore</groupId>
+                <artifactId>main</artifactId>
+                <version>${nightcore.version}</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>

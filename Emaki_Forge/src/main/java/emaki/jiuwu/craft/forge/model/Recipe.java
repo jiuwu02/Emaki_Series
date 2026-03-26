@@ -1,7 +1,6 @@
 package emaki.jiuwu.craft.forge.model;
 
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.gui.SoundParser;
 import emaki.jiuwu.craft.corelib.gui.SlotParser;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
@@ -44,15 +43,14 @@ public final class Recipe {
     }
 
     public record ResultConfig(ItemSource outputItem,
-                               String successMessage,
-                               SoundParser.SoundDefinition sound,
+                               List<String> action,
                                List<Map<String, Object>> nameModifications,
-                               List<Map<String, Object>> loreOperations) {
+                               List<Map<String, Object>> loreActions) {
     }
 
-    public record OperationPhases(List<String> pre, List<String> success, List<String> failure) {
-        public static OperationPhases empty() {
-            return new OperationPhases(List.of(), List.of(), List.of());
+    public record ActionPhases(List<String> pre, List<String> success, List<String> failure) {
+        public static ActionPhases empty() {
+            return new ActionPhases(List.of(), List.of(), List.of());
         }
     }
 
@@ -69,7 +67,7 @@ public final class Recipe {
     private final QualityConfig quality;
     private final GuiConfig gui;
     private final ResultConfig result;
-    private final OperationPhases operations;
+    private final ActionPhases action;
     private final String permission;
 
     public Recipe(String id,
@@ -85,7 +83,7 @@ public final class Recipe {
                   QualityConfig quality,
                   GuiConfig gui,
                   ResultConfig result,
-                  OperationPhases operations,
+                  ActionPhases action,
                   String permission) {
         this.id = id;
         this.displayName = displayName;
@@ -100,7 +98,7 @@ public final class Recipe {
         this.quality = quality;
         this.gui = gui;
         this.result = result;
-        this.operations = operations == null ? OperationPhases.empty() : operations;
+        this.action = action == null ? ActionPhases.empty() : action;
         this.permission = permission;
     }
 
@@ -146,7 +144,7 @@ public final class Recipe {
             parseQuality(section.get("quality")),
             parseGui(section.get("gui")),
             parseResult(section.get("result")),
-            parseOperations(section.get("operations")),
+            parseAction(ConfigNodes.get(section, "action")),
             section.getString("permission")
         );
     }
@@ -215,36 +213,35 @@ public final class Recipe {
 
     private static ResultConfig parseResult(Object raw) {
         if (raw == null) {
-            return new ResultConfig(null, null, null, List.of(), List.of());
+            return new ResultConfig(null, List.of(), List.of(), List.of());
         }
         Object outputItem = ConfigNodes.get(raw, "output_item");
-        Object metaOperations = ConfigNodes.get(raw, "meta_operations");
+        Object metaActions = ConfigNodes.get(raw, "meta_operations");
         return new ResultConfig(
             ItemSourceUtil.parse(outputItem),
-            ConfigNodes.string(raw, "success_message", null),
-            SoundParser.parse(ConfigNodes.get(raw, "sound")),
-            toOperationList(
-                ConfigNodes.get(metaOperations, "name_modifications"),
-                ConfigNodes.get(metaOperations, "name_operations"),
+            List.copyOf(Texts.asStringList(ConfigNodes.get(raw, "action"))),
+            toActionList(
+                ConfigNodes.get(metaActions, "name_modifications"),
+                ConfigNodes.get(metaActions, "name_operations"),
                 ConfigNodes.get(raw, "name_modifications"),
                 ConfigNodes.get(raw, "name_operations")
             ),
-            toOperationList(ConfigNodes.get(metaOperations, "lore_operations"), ConfigNodes.get(raw, "lore_operations"))
+            toActionList(ConfigNodes.get(metaActions, "lore_operations"), ConfigNodes.get(raw, "lore_operations"))
         );
     }
 
-    private static OperationPhases parseOperations(Object raw) {
+    private static ActionPhases parseAction(Object raw) {
         if (!(raw instanceof ConfigurationSection section)) {
-            return OperationPhases.empty();
+            return ActionPhases.empty();
         }
-        return new OperationPhases(
+        return new ActionPhases(
             List.copyOf(section.getStringList("pre")),
             List.copyOf(section.getStringList("success")),
             List.copyOf(section.getStringList("failure"))
         );
     }
 
-    private static List<Map<String, Object>> toOperationList(Object... values) {
+    private static List<Map<String, Object>> toActionList(Object... values) {
         List<Map<String, Object>> result = new ArrayList<>();
         for (Object value : values) {
             for (Object entry : ConfigNodes.asObjectList(value)) {
@@ -318,8 +315,8 @@ public final class Recipe {
         return result;
     }
 
-    public OperationPhases operations() {
-        return operations;
+    public ActionPhases action() {
+        return action;
     }
 
     public String permission() {

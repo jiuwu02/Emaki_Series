@@ -1,11 +1,12 @@
 package emaki.jiuwu.craft.corelib.economy;
 
-import emaki.jiuwu.craft.corelib.operation.OperationErrorType;
-import emaki.jiuwu.craft.corelib.operation.OperationResult;
+import emaki.jiuwu.craft.corelib.action.ActionErrorType;
+import emaki.jiuwu.craft.corelib.action.ActionResult;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
-import su.nightexpress.coinsengine.api.CoinsEngineAPI;
+import su.nightexpress.coinsengine.CoinsEnginePlugin;
+import su.nightexpress.excellenteconomy.api.ExcellentEconomyAPI;
 import su.nightexpress.excellenteconomy.api.currency.ExcellentCurrency;
 
 public final class CoinsEngineEconomyProvider implements EconomyProvider {
@@ -23,7 +24,8 @@ public final class CoinsEngineEconomyProvider implements EconomyProvider {
 
     @Override
     public boolean isAvailable() {
-        return plugin != null && plugin.getServer().getPluginManager().isPluginEnabled("CoinsEngine") && CoinsEngineAPI.isLoaded();
+        ExcellentEconomyAPI api = api();
+        return api != null && api.canPerformOperations();
     }
 
     @Override
@@ -31,12 +33,13 @@ public final class CoinsEngineEconomyProvider implements EconomyProvider {
         if (player == null) {
             return 0D;
         }
+        ExcellentEconomyAPI api = api();
         ExcellentCurrency currency = resolveCurrency(currencyId);
-        return currency == null ? 0D : CoinsEngineAPI.getBalance(player.getUniqueId(), currency);
+        return api == null || currency == null ? 0D : api.getBalance(player, currency);
     }
 
     @Override
-    public OperationResult add(Player player, String currencyId, double amount) {
+    public ActionResult add(Player player, String currencyId, double amount) {
         if (player == null) {
             return unavailable();
         }
@@ -44,13 +47,17 @@ public final class CoinsEngineEconomyProvider implements EconomyProvider {
         if (currency == null) {
             return missingCurrency(currencyId);
         }
-        return CoinsEngineAPI.addBalance(player.getUniqueId(), currency, amount)
-            ? OperationResult.ok()
-            : OperationResult.failure(OperationErrorType.EXECUTION_EXCEPTION, "Failed to add CoinsEngine balance.");
+        ExcellentEconomyAPI api = api();
+        if (api == null) {
+            return unavailable();
+        }
+        return api.deposit(player, currency, amount)
+            ? ActionResult.ok()
+            : ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, "Failed to add CoinsEngine balance.");
     }
 
     @Override
-    public OperationResult remove(Player player, String currencyId, double amount) {
+    public ActionResult remove(Player player, String currencyId, double amount) {
         if (player == null) {
             return unavailable();
         }
@@ -58,17 +65,21 @@ public final class CoinsEngineEconomyProvider implements EconomyProvider {
         if (currency == null) {
             return missingCurrency(currencyId);
         }
-        double balance = CoinsEngineAPI.getBalance(player.getUniqueId(), currency);
+        ExcellentEconomyAPI api = api();
+        if (api == null) {
+            return unavailable();
+        }
+        double balance = api.getBalance(player, currency);
         if (balance < amount) {
-            return OperationResult.failure(OperationErrorType.INSUFFICIENT_BALANCE, "Insufficient CoinsEngine balance for currency '" + currencyId + "'.");
+            return ActionResult.failure(ActionErrorType.INSUFFICIENT_BALANCE, "Insufficient CoinsEngine balance for currency '" + currencyId + "'.");
         }
-        return CoinsEngineAPI.removeBalance(player.getUniqueId(), currency, amount)
-            ? OperationResult.ok()
-            : OperationResult.failure(OperationErrorType.EXECUTION_EXCEPTION, "Failed to remove CoinsEngine balance.");
+        return api.withdraw(player, currency, amount)
+            ? ActionResult.ok()
+            : ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, "Failed to remove CoinsEngine balance.");
     }
 
     @Override
-    public OperationResult set(Player player, String currencyId, double amount) {
+    public ActionResult set(Player player, String currencyId, double amount) {
         if (player == null) {
             return unavailable();
         }
@@ -76,23 +87,44 @@ public final class CoinsEngineEconomyProvider implements EconomyProvider {
         if (currency == null) {
             return missingCurrency(currencyId);
         }
-        return CoinsEngineAPI.setBalance(player.getUniqueId(), currency, amount)
-            ? OperationResult.ok()
-            : OperationResult.failure(OperationErrorType.EXECUTION_EXCEPTION, "Failed to set CoinsEngine balance.");
+        ExcellentEconomyAPI api = api();
+        if (api == null) {
+            return unavailable();
+        }
+        return api.setBalance(player, currency, amount)
+            ? ActionResult.ok()
+            : ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, "Failed to set CoinsEngine balance.");
     }
 
     private ExcellentCurrency resolveCurrency(String currencyId) {
-        if (!isAvailable() || Texts.isBlank(currencyId)) {
+        ExcellentEconomyAPI api = api();
+        if (api == null || Texts.isBlank(currencyId)) {
             return null;
         }
-        return CoinsEngineAPI.getCurrency(currencyId);
+        return api.currencyById(currencyId).orElse(null);
     }
 
-    private OperationResult unavailable() {
-        return OperationResult.failure(OperationErrorType.PROVIDER_UNAVAILABLE, "CoinsEngine provider is unavailable.");
+    private ExcellentEconomyAPI api() {
+        CoinsEnginePlugin coinsEnginePlugin = coinsEnginePlugin();
+        return coinsEnginePlugin == null ? null : coinsEnginePlugin.getAPI();
     }
 
-    private OperationResult missingCurrency(String currencyId) {
-        return OperationResult.failure(OperationErrorType.CURRENCY_NOT_FOUND, "CoinsEngine currency not found: " + currencyId);
+    private CoinsEnginePlugin coinsEnginePlugin() {
+        if (plugin == null) {
+            return null;
+        }
+        Plugin external = plugin.getServer().getPluginManager().getPlugin("CoinsEngine");
+        if (!(external instanceof CoinsEnginePlugin coinsEnginePlugin) || !external.isEnabled()) {
+            return null;
+        }
+        return coinsEnginePlugin;
+    }
+
+    private ActionResult unavailable() {
+        return ActionResult.failure(ActionErrorType.PROVIDER_UNAVAILABLE, "CoinsEngine provider is unavailable.");
+    }
+
+    private ActionResult missingCurrency(String currencyId) {
+        return ActionResult.failure(ActionErrorType.CURRENCY_NOT_FOUND, "CoinsEngine currency not found: " + currencyId);
     }
 }

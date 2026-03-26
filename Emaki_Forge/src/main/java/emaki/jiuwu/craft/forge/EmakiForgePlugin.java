@@ -5,6 +5,7 @@ import emaki.jiuwu.craft.corelib.gui.GuiSlot;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
+import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.forge.config.AppConfig;
 import emaki.jiuwu.craft.forge.loader.AppConfigLoader;
 import emaki.jiuwu.craft.forge.loader.BlueprintLoader;
@@ -37,6 +38,14 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 public class EmakiForgePlugin extends JavaPlugin implements Listener, TabExecutor {
 
+    private static final String STARTUP_ASCII = """
+ ______     __    __     ______     __  __     __     ______   ______     ______     ______     ______
+/\\  ___\\   /\\ "-./  \\   /\\  __ \\   /\\ \\/ /    /\\ \\   /\\  ___\\ /\\  __ \\   /\\  == \\   /\\  ___\\   /\\  ___\\
+\\ \\  __\\   \\ \\ \\-./\\ \\  \\ \\  __ \\  \\ \\  _"-.  \\ \\ \\  \\ \\  __\\ \\ \\ \\/\\ \\  \\ \\  __<   \\ \\ \\__ \\  \\ \\  __\\
+ \\ \\_____\\  \\ \\_\\ \\ \\_\\  \\ \\_\\ \\_\\  \\ \\_\\ \\_\\  \\ \\_\\  \\ \\_\\    \\ \\_____\\  \\ \\_\\ \\_\\  \\ \\_____\\  \\ \\_____\\
+  \\/_____/   \\/_/  \\/_/   \\/_/\\/_/   \\/_/\\/_/   \\/_/   \\/_/     \\/_____/   \\/_/ /_/   \\/_____/   \\/_____/
+""";
+
     private AppConfigLoader appConfigLoader;
     private LanguageLoader languageLoader;
     private BlueprintLoader blueprintLoader;
@@ -60,6 +69,7 @@ public class EmakiForgePlugin extends JavaPlugin implements Listener, TabExecuto
 
     @Override
     public void onEnable() {
+        ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII);
         initializeServices();
         messageService.info("console.plugin_starting");
         bootstrapService.bootstrap();
@@ -76,6 +86,9 @@ public class EmakiForgePlugin extends JavaPlugin implements Listener, TabExecuto
 
     @Override
     public void onDisable() {
+        if (messageService != null) {
+            messageService.info("console.plugin_stopping");
+        }
         if (autoSaveTask != null) {
             autoSaveTask.cancel();
             autoSaveTask = null;

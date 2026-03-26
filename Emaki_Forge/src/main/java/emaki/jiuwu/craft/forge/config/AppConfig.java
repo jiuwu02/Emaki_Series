@@ -49,7 +49,7 @@ public final class AppConfig {
     public static AppConfig defaults() {
         return new AppConfig(
             "zh_CN",
-            "1.4.0",
+            "1.1",
             true,
             QualitySettings.defaults(),
             "0.##",

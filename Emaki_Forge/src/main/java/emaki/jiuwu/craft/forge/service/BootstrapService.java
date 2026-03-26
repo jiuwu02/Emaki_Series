@@ -9,7 +9,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.bukkit.configuration.ConfigurationSection;
@@ -132,6 +131,34 @@ public final class BootstrapService {
         return configuration.getBoolean("release_default_data", true);
     }
 
+    private void replaceLangValue(YamlConfiguration runtime, String path, String expected, String replacement) {
+        String current = runtime.getString(path);
+        if (expected.equals(current)) {
+            runtime.set(path, replacement);
+        }
+    }
+
+    private int compareVersions(String current, String latest) {
+        if (current == null) {
+            return -1;
+        }
+        try {
+            String[] currentParts = current.split("\\.");
+            String[] latestParts = latest.split("\\.");
+            int length = Math.max(currentParts.length, latestParts.length);
+            for (int index = 0; index < length; index++) {
+                int currentValue = index < currentParts.length ? Integer.parseInt(currentParts[index]) : 0;
+                int latestValue = index < latestParts.length ? Integer.parseInt(latestParts[index]) : 0;
+                if (currentValue != latestValue) {
+                    return Integer.compare(currentValue, latestValue);
+                }
+            }
+        } catch (Exception ignored) {
+            return 0;
+        }
+        return 0;
+    }
+
     private void mergeMissingValues(YamlConfiguration runtime, ConfigurationSection defaults, String parentPath) {
         for (String key : defaults.getKeys(false)) {
             String fullPath = Texts.isBlank(parentPath) ? key : parentPath + "." + key;
@@ -158,28 +185,12 @@ public final class BootstrapService {
                 runtime.set(key, value.replace("JiuWu's Forge", "Emaki Forge"));
             }
         }
+        replaceLangValue(runtime, "console.plugin_starting", "<white>Emaki Forge <gray>正在启动...</gray>", "<gray>正在启动...</gray>");
+        replaceLangValue(runtime, "console.plugin_started", "<green>Emaki Forge <gray>启动完成!</gray>", "<green>启动完成!</green>");
+        replaceLangValue(runtime, "console.plugin_stopping", "<white>Emaki Forge <gray>正在关闭...</gray>", "<gray>正在关闭...</gray>");
+        replaceLangValue(runtime, "console.plugin_stopped", "<green>Emaki Forge <gray>已关闭!</gray>", "<green>已关闭!</green>");
     }
 
-    private int compareVersions(String current, String latest) {
-        if (current == null) {
-            return -1;
-        }
-        try {
-            String[] currentParts = current.split("\\.");
-            String[] latestParts = latest.split("\\.");
-            int length = Math.max(currentParts.length, latestParts.length);
-            for (int index = 0; index < length; index++) {
-                int currentValue = index < currentParts.length ? Integer.parseInt(currentParts[index]) : 0;
-                int latestValue = index < latestParts.length ? Integer.parseInt(latestParts[index]) : 0;
-                if (currentValue != latestValue) {
-                    return Integer.compare(currentValue, latestValue);
-                }
-            }
-        } catch (Exception ignored) {
-            return 0;
-        }
-        return 0;
-    }
 
     private void copyBundledResource(String relativePath, Path target) {
         ensureDirectory(target.getParent());

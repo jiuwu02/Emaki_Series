@@ -1,8 +1,8 @@
 # Emaki Forge 主配置文件
-# 版本: 1.4.0
+# 版本: 1.1
 
 # 配置文件版本号 (请勿修改)
-config_version: "1.0.0"
+config_version: "1.1"
 
 # 语言设置
 language: "zh_CN"
@@ -14,48 +14,52 @@ release_default_data: true
 # 品质系统配置
 # 品质元数据会在结果元数据和材料元数据之后执行
 # 因此前缀/后缀与 Lore 顶部/底部位置会稳定贴边
+# 每个品质 tier 还可以额外配置 action
+# 在这些操作的消息文本中可直接使用 <show_item> 悬浮展示最终交付给玩家的成品
 quality:
   tiers:
-    - "劣质-60-0.9"
-    - "普通-30-1.0"
-    - "精良-10-1.1"
-    - "卓越-5-1.2"
-    - "传说-1-1.5"
-  default_tier: "普通"
+    - "平庸-60-1.0"
+    - "精良-30-1.05"
+    - "有缺-10-0.95"
+    - "优质-5-1.1"
+    - "无暇-2-1.15"
+    - "完美-1-1.2"
+  default_tier: "平庸"
   guarantee:
     enabled: true
-    threshold: 10
-    minimum: "普通"
+    threshold: 60
+    minimum: "无暇"
   item_meta:
-    enabled: false
+    enabled: true
     tiers:
-      普通:
-        name_modifications: []
-        lore_operations: []
+      有缺:
+        name_modifications:
+          - operation: "prepend_prefix"
+            value: "<color:#733333>[有缺]</color>"
+      平庸:
+        name_modifications:
+          - operation: "prepend_prefix"
+            value: "<color:#999999>[平庸]</color>"
       精良:
         name_modifications:
-          - operation: "append_suffix"
-            value: " <aqua>[精良]</aqua>"
-        lore_operations:
-          - operation: "append_lines"
-            content:
-              - "<aqua>品质: 精良</aqua>"
-      卓越:
+          - operation: "prepend_prefix"
+            value: "<color:#1F871F>[精良]</color>"
+      优质:
         name_modifications:
-          - operation: "append_suffix"
-            value: " <gold>[卓越]</gold>"
-        lore_operations:
-          - operation: "append_lines"
-            content:
-              - "<gold>品质: 卓越</gold>"
-      传说:
+          - operation: "prepend_prefix"
+            value: "<color:#00FF00>[优质]</color>"
+      无暇:
         name_modifications:
-          - operation: "append_suffix"
-            value: " <red>[传说]</red>"
-        lore_operations:
-          - operation: "append_lines"
-            content:
-              - "<red>品质: 传说</red>"
+          - operation: "prepend_prefix"
+            value: "<color:#4B64C8>[无暇]</color>"
+        action:
+          - 'broadcast_message text="<color:#4B64C8>%player_name%锻造出了一个无暇品质的<show_item></color>"'
+      完美:
+        name_modifications:
+          - operation: "prepend_prefix"
+            value: "<color:#FFD700>[完美]</color>"
+        action:
+          - 'broadcast_message text="<color:#FFD700>%player_name%锻造出了一个完美品质的<show_item></color>"'
 
 # 数值格式化配置
 number_format:

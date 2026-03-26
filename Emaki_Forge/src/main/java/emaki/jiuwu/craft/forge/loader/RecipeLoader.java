@@ -1,11 +1,11 @@
 package emaki.jiuwu.craft.forge.loader;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
-import emaki.jiuwu.craft.corelib.operation.Operation;
-import emaki.jiuwu.craft.corelib.operation.OperationLineParser;
-import emaki.jiuwu.craft.corelib.operation.OperationResult;
-import emaki.jiuwu.craft.corelib.operation.OperationSyntaxException;
-import emaki.jiuwu.craft.corelib.operation.ParsedOperationLine;
+import emaki.jiuwu.craft.corelib.action.Action;
+import emaki.jiuwu.craft.corelib.action.ActionLineParser;
+import emaki.jiuwu.craft.corelib.action.ActionResult;
+import emaki.jiuwu.craft.corelib.action.ActionSyntaxException;
+import emaki.jiuwu.craft.corelib.action.ParsedActionLine;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.model.Recipe;
@@ -34,7 +34,7 @@ public final class RecipeLoader extends AbstractDirectoryLoader<Recipe> {
     @Override
     protected Recipe parse(File file, YamlConfiguration configuration) {
         Recipe recipe = Recipe.fromConfig(configuration);
-        return validateOperations(file, recipe) ? recipe : null;
+        return validateActions(file, recipe) ? recipe : null;
     }
 
     @Override
@@ -52,59 +52,63 @@ public final class RecipeLoader extends AbstractDirectoryLoader<Recipe> {
         return result;
     }
 
-    private boolean validateOperations(File file, Recipe recipe) {
-        if (recipe == null || recipe.operations() == null) {
+    private boolean validateActions(File file, Recipe recipe) {
+        if (recipe == null || recipe.action() == null) {
             return recipe != null;
         }
         EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.getInstance();
-        if (coreLib == null || coreLib.operationRegistry() == null || coreLib.operationTemplateRegistry() == null) {
-            plugin.getLogger().warning("Skipped operation validation for recipe '" + file.getName() + "' because Emaki_CoreLib is unavailable.");
+        if (coreLib == null || coreLib.actionRegistry() == null || coreLib.actionTemplateRegistry() == null) {
+            plugin.getLogger().warning("Skipped action validation for recipe '" + file.getName() + "' because Emaki_CoreLib is unavailable.");
             return true;
         }
-        OperationLineParser parser = new OperationLineParser();
-        return validatePhase(file, recipe, "pre", recipe.operations().pre(), parser, coreLib)
-            && validatePhase(file, recipe, "success", recipe.operations().success(), parser, coreLib)
-            && validatePhase(file, recipe, "failure", recipe.operations().failure(), parser, coreLib);
+        ActionLineParser parser = new ActionLineParser();
+        return validatePhase(file, recipe, "pre", recipe.action().pre(), parser, coreLib)
+            && validatePhase(file, recipe, "result", recipe.result() == null ? List.of() : recipe.result().action(), parser, coreLib)
+            && validatePhase(file, recipe, "success", recipe.action().success(), parser, coreLib)
+            && validatePhase(file, recipe, "failure", recipe.action().failure(), parser, coreLib);
     }
 
     private boolean validatePhase(File file,
                                   Recipe recipe,
                                   String phase,
                                   List<String> lines,
-                                  OperationLineParser parser,
+                                  ActionLineParser parser,
                                   EmakiCoreLibPlugin coreLib) {
         if (lines == null || lines.isEmpty()) {
             return true;
         }
         for (int index = 0; index < lines.size(); index++) {
-            ParsedOperationLine parsed;
+            ParsedActionLine parsed;
             try {
                 parsed = parser.parse(index + 1, lines.get(index));
-            } catch (OperationSyntaxException exception) {
-                plugin.getLogger().warning("Invalid operation syntax in recipe '" + recipe.id()
+            } catch (ActionSyntaxException exception) {
+                plugin.getLogger().warning("Invalid action syntax in recipe '" + recipe.id()
                     + "' (" + file.getName() + ", phase=" + phase + ", line=" + (index + 1) + "): " + exception.getMessage());
                 return false;
             }
             if (parsed == null) {
                 continue;
             }
-            Operation operation = coreLib.operationRegistry().get(parsed.operationId());
+            Action operation = coreLib.actionRegistry().get(parsed.actionId());
             if (operation == null) {
-                plugin.getLogger().warning("Unknown operation '" + parsed.operationId() + "' in recipe '" + recipe.id()
-                    + "' (" + file.getName() + ", phase=" + phase + ", line=" + parsed.lineNumber() + ").");
+                String suggestion = "send_action_bar".equals(parsed.actionId())
+                    ? " 请改用标准操作名 'send_actionbar'."
+                    : "";
+                plugin.getLogger().warning("Unknown action '" + parsed.actionId() + "' in recipe '" + recipe.id()
+                    + "' (" + file.getName() + ", phase=" + phase + ", line=" + parsed.lineNumber() + ")." + suggestion);
                 return false;
             }
-            OperationResult validation = operation.validate(parsed.arguments());
+            ActionResult validation = operation.validate(parsed.arguments());
             if (!validation.success()) {
-                plugin.getLogger().warning("Invalid operation arguments in recipe '" + recipe.id()
+                plugin.getLogger().warning("Invalid action arguments in recipe '" + recipe.id()
                     + "' (" + file.getName() + ", phase=" + phase + ", line=" + parsed.lineNumber() + "): "
                     + Texts.toStringSafe(validation.errorMessage()));
                 return false;
             }
-            if ("use_template".equals(parsed.operationId())) {
+            if ("use_template".equals(parsed.actionId())) {
                 String templateName = parsed.arguments().get("name");
-                if (Texts.isBlank(templateName) || coreLib.operationTemplateRegistry().get(templateName) == null) {
-                    plugin.getLogger().warning("Unknown operation template '" + templateName + "' in recipe '" + recipe.id()
+                if (Texts.isBlank(templateName) || coreLib.actionTemplateRegistry().get(templateName) == null) {
+                    plugin.getLogger().warning("Unknown action template '" + templateName + "' in recipe '" + recipe.id()
                         + "' (" + file.getName() + ", phase=" + phase + ", line=" + parsed.lineNumber() + ").");
                     return false;
                 }

@@ -1,4 +1,5 @@
 name: Emaki_Forge
+prefix: ${project.name}
 main: emaki.jiuwu.craft.forge.EmakiForgePlugin
 version: ${project.version}
 api-version: "1.21"

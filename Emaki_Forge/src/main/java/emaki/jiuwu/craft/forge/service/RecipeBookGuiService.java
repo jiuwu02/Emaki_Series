@@ -62,7 +62,7 @@ public final class RecipeBookGuiService {
             return false;
         }
         GuiTemplate template = resolveTemplate();
-        List<Integer> recipeSlots = slotsForAction(template, "recipe_list");
+        List<Integer> recipeSlots = slotsForType(template, "recipe_list");
         if (recipeSlots.isEmpty()) {
             return false;
         }
@@ -142,8 +142,8 @@ public final class RecipeBookGuiService {
         if (slot == null || slot.definition() == null) {
             return null;
         }
-        String action = normalizedAction(slot.definition());
-        if (!"recipe_list".equals(action)) {
+        String type = normalizedType(slot.definition());
+        if (!"recipe_list".equals(type)) {
             return GuiItemBuilder.build(
                 slot.definition().item(),
                 slot.definition().components(),
@@ -183,17 +183,17 @@ public final class RecipeBookGuiService {
         return clone;
     }
 
-    private List<Integer> slotsForAction(GuiTemplate template, String action) {
+    private List<Integer> slotsForType(GuiTemplate template, String type) {
         List<Integer> result = new ArrayList<>();
-        if (template == null || Texts.isBlank(action)) {
+        if (template == null || Texts.isBlank(type)) {
             return result;
         }
-        String normalized = Texts.lower(action);
+        String normalized = Texts.lower(type);
         for (GuiSlot slot : template.slots().values()) {
             if (slot == null) {
                 continue;
             }
-            if (normalized.equals(Texts.lower(slot.action())) || normalized.equals(Texts.lower(slot.key()))) {
+            if (normalized.equals(Texts.lower(slot.type())) || normalized.equals(Texts.lower(slot.key()))) {
                 result.addAll(slot.slots());
             }
         }
@@ -208,11 +208,11 @@ public final class RecipeBookGuiService {
         return slots;
     }
 
-    private String normalizedAction(GuiSlot slot) {
+    private String normalizedType(GuiSlot slot) {
         if (slot == null) {
             return "";
         }
-        return Texts.isNotBlank(slot.action()) ? Texts.lower(slot.action()) : Texts.lower(slot.key());
+        return Texts.isNotBlank(slot.type()) ? Texts.lower(slot.type()) : Texts.lower(slot.key());
     }
 
     private final class BookSessionHandler implements GuiSessionHandler {
@@ -228,7 +228,7 @@ public final class RecipeBookGuiService {
             if (slot == null || slot.definition() == null) {
                 return;
             }
-            switch (normalizedAction(slot.definition())) {
+            switch (normalizedType(slot.definition())) {
                 case "recipe_list" -> handleRecipeOpen(slot.slotIndex());
                 case "prev_page" -> {
                     if (state.page > 0) {

@@ -106,6 +106,6 @@ public final class MessageService {
         if (Texts.isBlank(text)) {
             return;
         }
-        plugin.getLogger().log(level, MiniMessages.plain(render(withPrefix(text))));
+        plugin.getLogger().log(level, MiniMessages.plain(render(text)));
     }
 }

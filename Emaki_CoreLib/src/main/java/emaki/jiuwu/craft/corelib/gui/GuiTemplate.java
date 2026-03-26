@@ -39,14 +39,14 @@ public final class GuiTemplate {
         return resolvedSlots.get(inventorySlot);
     }
 
-    public List<GuiSlot> slotsByAction(String action) {
-        if (Texts.isBlank(action)) {
+    public List<GuiSlot> slotsByType(String type) {
+        if (Texts.isBlank(type)) {
             return List.of();
         }
         List<GuiSlot> result = new ArrayList<>();
-        String normalized = Texts.lower(action);
+        String normalized = Texts.lower(type);
         for (GuiSlot slot : slots.values()) {
-            if (slot != null && normalized.equals(Texts.lower(slot.action()))) {
+            if (slot != null && normalized.equals(Texts.lower(slot.type()))) {
                 result.add(slot);
             }
         }

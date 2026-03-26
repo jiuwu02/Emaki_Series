@@ -1,0 +1,25 @@
+package emaki.jiuwu.craft.corelib.action.builtin;
+
+import emaki.jiuwu.craft.corelib.action.ActionContext;
+import emaki.jiuwu.craft.corelib.action.ActionParameter;
+import emaki.jiuwu.craft.corelib.action.ActionParameterType;
+import emaki.jiuwu.craft.corelib.action.ActionResult;
+import emaki.jiuwu.craft.corelib.text.MiniMessages;
+import java.util.Map;
+
+public final class SendActionBarAction extends BaseAction {
+
+    public SendActionBarAction() {
+        super("send_actionbar", "message", "Send an action bar message.", ActionParameter.required("text", ActionParameterType.STRING, "Action bar text"));
+    }
+
+    @Override
+    public ActionResult execute(ActionContext context, Map<String, String> arguments) {
+        ActionResult playerCheck = requirePlayerResult(context);
+        if (!playerCheck.success()) {
+            return playerCheck;
+        }
+        context.player().sendActionBar(MiniMessages.parse(stringArg(arguments, "text")));
+        return ActionResult.ok();
+    }
+}

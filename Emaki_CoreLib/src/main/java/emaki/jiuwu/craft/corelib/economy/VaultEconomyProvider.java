@@ -1,7 +1,7 @@
 package emaki.jiuwu.craft.corelib.economy;
 
-import emaki.jiuwu.craft.corelib.operation.OperationErrorType;
-import emaki.jiuwu.craft.corelib.operation.OperationResult;
+import emaki.jiuwu.craft.corelib.action.ActionErrorType;
+import emaki.jiuwu.craft.corelib.action.ActionResult;
 import net.milkbowl.vault.economy.Economy;
 import net.milkbowl.vault.economy.EconomyResponse;
 import org.bukkit.entity.Player;
@@ -33,42 +33,42 @@ public final class VaultEconomyProvider implements EconomyProvider {
     }
 
     @Override
-    public OperationResult add(Player player, String currencyId, double amount) {
+    public ActionResult add(Player player, String currencyId, double amount) {
         Economy economy = economy();
         if (player == null || economy == null) {
             return unavailable();
         }
         EconomyResponse response = economy.depositPlayer(player, amount);
         return response.transactionSuccess()
-            ? OperationResult.ok()
-            : OperationResult.failure(OperationErrorType.EXECUTION_EXCEPTION, response.errorMessage);
+            ? ActionResult.ok()
+            : ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, response.errorMessage);
     }
 
     @Override
-    public OperationResult remove(Player player, String currencyId, double amount) {
+    public ActionResult remove(Player player, String currencyId, double amount) {
         Economy economy = economy();
         if (player == null || economy == null) {
             return unavailable();
         }
         double balance = economy.getBalance(player);
         if (balance < amount) {
-            return OperationResult.failure(OperationErrorType.INSUFFICIENT_BALANCE, "Insufficient Vault balance.");
+            return ActionResult.failure(ActionErrorType.INSUFFICIENT_BALANCE, "Insufficient Vault balance.");
         }
         EconomyResponse response = economy.withdrawPlayer(player, amount);
         return response.transactionSuccess()
-            ? OperationResult.ok()
-            : OperationResult.failure(OperationErrorType.EXECUTION_EXCEPTION, response.errorMessage);
+            ? ActionResult.ok()
+            : ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, response.errorMessage);
     }
 
     @Override
-    public OperationResult set(Player player, String currencyId, double amount) {
+    public ActionResult set(Player player, String currencyId, double amount) {
         Economy economy = economy();
         if (player == null || economy == null) {
             return unavailable();
         }
         double current = economy.getBalance(player);
         if (current == amount) {
-            return OperationResult.ok();
+            return ActionResult.ok();
         }
         if (current < amount) {
             return add(player, currencyId, amount - current);
@@ -84,7 +84,7 @@ public final class VaultEconomyProvider implements EconomyProvider {
         return registration == null ? null : registration.getProvider();
     }
 
-    private OperationResult unavailable() {
-        return OperationResult.failure(OperationErrorType.PROVIDER_UNAVAILABLE, "Vault economy provider is unavailable.");
+    private ActionResult unavailable() {
+        return ActionResult.failure(ActionErrorType.PROVIDER_UNAVAILABLE, "Vault economy provider is unavailable.");
     }
 }

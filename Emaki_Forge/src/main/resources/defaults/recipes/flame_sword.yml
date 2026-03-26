@@ -45,8 +45,8 @@ quality:
   custom_pool: []
   guarantee:
     enabled: true
-    attempts: 10
-    minimum: "普通"
+    attempts: 60
+    minimum: "无暇"
 
 gui:
   template: "forge_gui"
@@ -62,15 +62,14 @@ gui:
 result:
   output_item:
     item: "ni-flame_sword"
-  success_message: "forge.success.crafted"
-  sound: "minecraft:block.anvil.use-1-1"
+  action:
+    - 'send_message text="<green>锻造成功! 获得了 %forge_result_item_name%</green>"'
+    - 'play_sound sound=minecraft:block.anvil.use volume=1 pitch=1'
 
-operations:
+action:
   pre:
-    - 'send_action_bar text="<gray>烈焰之力正在熔铸...</gray>"'
-  success:
-    - '@delay=10t play_sound sound=minecraft:entity.player.levelup volume=0.8 pitch=1.15'
-    - '@if="%forge_quality% == 传说" broadcast_message text="<gold>%player_name% 锻造出了传说品质的 %forge_result_item_name%!</gold>"'
+    - 'send_actionbar text="<gray>烈焰之力正在熔铸...</gray>"'
+  success: []
   failure:
     - '@if="%forge_error_key% == forge.error.operation_failed" send_message text="<red>锻造前置操作失败: %forge_failure_reason%</red>"'
 

@@ -2,14 +2,13 @@ package emaki.jiuwu.craft.forge.service;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
-import emaki.jiuwu.craft.corelib.gui.SoundParser;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.math.Randoms;
-import emaki.jiuwu.craft.corelib.operation.OperationBatchResult;
-import emaki.jiuwu.craft.corelib.operation.OperationContext;
-import emaki.jiuwu.craft.corelib.operation.OperationStepResult;
+import emaki.jiuwu.craft.corelib.action.ActionBatchResult;
+import emaki.jiuwu.craft.corelib.action.ActionContext;
+import emaki.jiuwu.craft.corelib.action.ActionStepResult;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
@@ -29,7 +28,6 @@ import java.util.regex.Pattern;
 import me.clip.placeholderapi.PlaceholderAPI;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Material;
-import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -196,6 +194,7 @@ public final class ForgeService {
 
     public CompletableFuture<ForgeResult> executeForgeAsync(Player player, Recipe recipe, GuiItems guiItems) {
         ForgeResult result = new ForgeResult();
+        QualitySettings settings = plugin.appConfig().qualitySettings();
         ValidationResult validation = canForge(player, recipe, guiItems);
         if (!validation.success()) {
             result.errorKey = validation.errorKey();
@@ -209,10 +208,10 @@ public final class ForgeService {
         return executePhase(player, recipe, guiItems, "pre", null, null, 1D, null, null)
             .thenApply(preBatch -> {
                 if (!preBatch.success()) {
-                    return buildOperationFailure(player, recipe, guiItems, result, preBatch);
+                    return buildActionFailure(player, recipe, guiItems, result, preBatch);
                 }
                 QualitySettings.QualityTier qualityTier = rollQuality(player.getUniqueId(), recipe);
-                result.quality = qualityTier == null ? "普通" : qualityTier.name();
+                result.quality = qualityTier == null ? settings.defaultTier().name() : qualityTier.name();
                 result.multiplier = qualityTier == null ? 1D : qualityTier.multiplier();
                 ItemStack resultItem = createResultItem(recipe, guiItems, result.multiplier, qualityTier);
                 if (resultItem == null) {
@@ -225,20 +224,22 @@ public final class ForgeService {
                 plugin.playerDataStore().recordCraft(player.getUniqueId(), recipe.id());
                 result.success = true;
                 result.resultItem = resultItem;
+                triggerPhase(player, recipe, guiItems, "result", resultItem, result.quality, result.multiplier, null, null);
                 triggerPhase(player, recipe, guiItems, "success", resultItem, result.quality, result.multiplier, null, null);
+                triggerQualityActions(player, recipe, guiItems, resultItem, qualityTier, result.quality, result.multiplier);
                 return result;
             });
     }
 
-    private ForgeResult buildOperationFailure(Player player, Recipe recipe, GuiItems guiItems, ForgeResult result, OperationBatchResult batch) {
-        OperationStepResult failure = batch.firstFailure();
+    private ForgeResult buildActionFailure(Player player, Recipe recipe, GuiItems guiItems, ForgeResult result, ActionBatchResult batch) {
+        ActionStepResult failure = batch.firstFailure();
         String reason = resolveFailureReason(failure);
         result.errorKey = DEFAULT_OPERATION_FAILURE_KEY;
         result.operationFailureReason = reason;
         Map<String, Object> replacements = new LinkedHashMap<>();
         replacements.put("reason", reason);
         if (failure != null) {
-            replacements.put("operation", failure.operationId());
+            replacements.put("operation", failure.actionId());
             replacements.put("line", failure.lineNumber());
         }
         result.replacements = Map.copyOf(replacements);
@@ -256,7 +257,7 @@ public final class ForgeService {
         return result;
     }
 
-    private CompletableFuture<OperationBatchResult> executePhase(Player player,
+    private CompletableFuture<ActionBatchResult> executePhase(Player player,
                                                                  Recipe recipe,
                                                                  GuiItems guiItems,
                                                                  String phase,
@@ -265,13 +266,36 @@ public final class ForgeService {
                                                                  double multiplier,
                                                                  String errorKey,
                                                                  String failureReason) {
-        List<String> lines = phaseLines(recipe, phase);
+        return executeActionLines(
+            player,
+            recipe,
+            guiItems,
+            phase,
+            phaseLines(recipe, phase),
+            resultItem,
+            quality,
+            multiplier,
+            errorKey,
+            failureReason
+        );
+    }
+
+    private CompletableFuture<ActionBatchResult> executeActionLines(Player player,
+                                                                          Recipe recipe,
+                                                                          GuiItems guiItems,
+                                                                          String phase,
+                                                                          List<String> lines,
+                                                                          ItemStack resultItem,
+                                                                          String quality,
+                                                                          double multiplier,
+                                                                          String errorKey,
+                                                                          String failureReason) {
         EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.getInstance();
-        if (lines.isEmpty() || coreLib == null || coreLib.operationExecutor() == null) {
-            return CompletableFuture.completedFuture(new OperationBatchResult(true, List.of()));
+        if (lines.isEmpty() || coreLib == null || coreLib.actionExecutor() == null) {
+            return CompletableFuture.completedFuture(new ActionBatchResult(true, List.of()));
         }
-        OperationContext context = buildOperationContext(coreLib, player, recipe, guiItems, phase, resultItem, quality, multiplier, errorKey, failureReason);
-        return coreLib.operationExecutor().executeAll(context, lines, true);
+        ActionContext context = buildActionContext(coreLib, player, recipe, guiItems, phase, resultItem, quality, multiplier, errorKey, failureReason);
+        return coreLib.actionExecutor().executeAll(context, lines, true);
     }
 
     private void triggerPhase(Player player,
@@ -286,28 +310,55 @@ public final class ForgeService {
         executePhase(player, recipe, guiItems, phase, resultItem, quality, multiplier, errorKey, failureMessage)
             .whenComplete((batch, throwable) -> {
                 if (throwable != null) {
-                    plugin.getLogger().warning("Failed to execute forge operation phase '" + phase + "' for recipe '" + recipe.id() + "': " + throwable.getMessage());
+                    plugin.getLogger().warning("Failed to execute forge action phase '" + phase + "' for recipe '" + recipe.id() + "': " + throwable.getMessage());
                     return;
                 }
                 if (batch != null && !batch.success()) {
-                    plugin.getLogger().warning("Forge operation phase '" + phase + "' failed for recipe '" + recipe.id() + "': " + resolveFailureReason(batch.firstFailure()));
+                    plugin.getLogger().warning("Forge action phase '" + phase + "' failed for recipe '" + recipe.id() + "': " + resolveFailureReason(batch.firstFailure()));
+                }
+            });
+    }
+
+    private void triggerQualityActions(Player player,
+                                       Recipe recipe,
+                                       GuiItems guiItems,
+                                       ItemStack resultItem,
+                                       QualitySettings.QualityTier qualityTier,
+                                       String quality,
+                                       double multiplier) {
+        if (qualityTier == null) {
+            return;
+        }
+        List<String> lines = plugin.appConfig().qualitySettings().itemMetaActions(qualityTier.name());
+        if (lines.isEmpty()) {
+            return;
+        }
+        executeActionLines(player, recipe, guiItems, "quality", lines, resultItem, quality, multiplier, null, null)
+            .whenComplete((batch, throwable) -> {
+                if (throwable != null) {
+                    plugin.getLogger().warning("Failed to execute forge quality actions for tier '" + qualityTier.name() + "': " + throwable.getMessage());
+                    return;
+                }
+                if (batch != null && !batch.success()) {
+                    plugin.getLogger().warning("Forge quality actions failed for tier '" + qualityTier.name() + "': " + resolveFailureReason(batch.firstFailure()));
                 }
             });
     }
 
     private List<String> phaseLines(Recipe recipe, String phase) {
-        if (recipe == null || recipe.operations() == null) {
+        if (recipe == null) {
             return List.of();
         }
         return switch (Texts.lower(phase)) {
-            case "pre" -> recipe.operations().pre();
-            case "success" -> recipe.operations().success();
-            case "failure" -> recipe.operations().failure();
+            case "pre" -> recipe.action() == null ? List.of() : recipe.action().pre();
+            case "result" -> recipe.result() == null ? List.of() : recipe.result().action();
+            case "success" -> recipe.action() == null ? List.of() : recipe.action().success();
+            case "failure" -> recipe.action() == null ? List.of() : recipe.action().failure();
             default -> List.of();
         };
     }
 
-    private OperationContext buildOperationContext(EmakiCoreLibPlugin coreLib,
+    private ActionContext buildActionContext(EmakiCoreLibPlugin coreLib,
                                                    Player player,
                                                    Recipe recipe,
                                                    GuiItems guiItems,
@@ -318,36 +369,42 @@ public final class ForgeService {
                                                    String errorKey,
                                                    String failureReason) {
         Map<String, String> placeholders = new LinkedHashMap<>();
+        String sourceItemName = resolveSourceItemName(guiItems, resultItem, recipe);
+        String showItem = buildShowItemPlaceholder(guiItems, recipe, resultItem);
         placeholders.put("forge_recipe_id", recipe == null ? "" : recipe.id());
         placeholders.put("forge_recipe_name", recipe == null ? "" : recipe.displayName());
+        placeholders.put("forge_source_item_name", sourceItemName);
         placeholders.put("forge_result_item_name", resolveResultItemName(recipe, resultItem));
         placeholders.put("forge_quality", Texts.toStringSafe(quality));
         placeholders.put("forge_multiplier", Numbers.formatNumber(multiplier, plugin.appConfig().defaultNumberFormat()));
         placeholders.put("forge_multiplier_raw", Double.toString(multiplier));
         placeholders.put("forge_error_key", Texts.toStringSafe(errorKey));
         placeholders.put("forge_failure_reason", Texts.toStringSafe(failureReason));
+        placeholders.put("forge_show_item", showItem);
+        placeholders.put("show_item", showItem);
 
         Map<String, Object> attributes = new LinkedHashMap<>();
         putIfNotNull(attributes, "recipe", recipe);
         putIfNotNull(attributes, "guiItems", guiItems);
+        putIfNotNull(attributes, "targetItem", guiItems == null ? null : guiItems.targetItem());
         putIfNotNull(attributes, "resultItem", resultItem);
         putIfNotNull(attributes, "quality", quality);
         attributes.put("multiplier", multiplier);
         putIfNotNull(attributes, "errorKey", errorKey);
         putIfNotNull(attributes, "failureReason", failureReason);
 
-        boolean debug = plugin.appConfig().debug() || coreLib.configModel().operationDebug();
-        return new OperationContext(plugin, player, phase, false, debug, placeholders, attributes);
+        boolean debug = plugin.appConfig().debug() || coreLib.configModel().actionDebug();
+        return new ActionContext(plugin, player, phase, false, debug, placeholders, attributes);
     }
 
-    private String resolveFailureReason(OperationStepResult failure) {
+    private String resolveFailureReason(ActionStepResult failure) {
         if (failure == null || failure.result() == null) {
-            return "Unknown forge operation failure.";
+            return "Unknown forge action failure.";
         }
         if (Texts.isNotBlank(failure.result().errorMessage())) {
             return failure.result().errorMessage();
         }
-        return "Operation '" + failure.operationId() + "' failed.";
+        return "Action '" + failure.actionId() + "' failed.";
     }
 
     private void putIfNotNull(Map<String, Object> target, String key, Object value) {
@@ -650,7 +707,7 @@ public final class ForgeService {
     }
 
     private void applyResultMetaEffects(ItemStack itemStack, Recipe.ResultConfig resultConfig) {
-        applyMetaOperations(itemStack, resultConfig.nameModifications(), resultConfig.loreOperations(), Map.of());
+        applyMetaActions(itemStack, resultConfig.nameModifications(), resultConfig.loreActions(), Map.of());
     }
 
     private void applyQualityMetaEffects(ItemStack itemStack, QualitySettings.QualityTier qualityTier) {
@@ -661,10 +718,10 @@ public final class ForgeService {
         if (!settings.itemMetaEnabled()) {
             return;
         }
-        applyMetaOperations(
+        applyMetaActions(
             itemStack,
             settings.itemMetaNameModifications(qualityTier.name()),
-            settings.itemMetaLoreOperations(qualityTier.name()),
+            settings.itemMetaLoreActions(qualityTier.name()),
             Map.of()
         );
     }
@@ -678,13 +735,13 @@ public final class ForgeService {
                 contributions.merge(entry.getKey(), entry.getValue() * material.amount(), Double::sum);
             }
             nameMods.addAll(material.material().nameModifications());
-            loreOps.addAll(material.material().loreOperations());
+            loreOps.addAll(material.material().loreActions());
         }
         Map<String, Double> scaled = new LinkedHashMap<>();
         for (Map.Entry<String, Double> entry : contributions.entrySet()) {
             scaled.put(entry.getKey(), entry.getValue() * multiplier);
         }
-        applyMetaOperations(itemStack, nameMods, loreOps, scaled);
+        applyMetaActions(itemStack, nameMods, loreOps, scaled);
     }
 
     private List<MaterialContribution> collectMaterialContributions(GuiItems guiItems) {
@@ -736,9 +793,9 @@ public final class ForgeService {
         return records;
     }
 
-    private void applyMetaOperations(ItemStack itemStack,
+    private void applyMetaActions(ItemStack itemStack,
                                      List<Map<String, Object>> nameModifications,
-                                     List<Map<String, Object>> loreOperations,
+                                     List<Map<String, Object>> loreActions,
                                      Map<String, Double> statContributions) {
         if (itemStack == null) {
             return;
@@ -771,8 +828,8 @@ public final class ForgeService {
             itemMeta.displayName(MiniMessages.parse(currentName));
         }
         List<Component> lore = new ArrayList<>(itemMeta.hasLore() && itemMeta.lore() != null ? itemMeta.lore() : List.of());
-        for (Map<String, Object> operation : loreOperations) {
-            applyLoreOperation(lore, operation, statContributions);
+        for (Map<String, Object> operation : loreActions) {
+            applyLoreAction(lore, operation, statContributions);
         }
         if (!lore.isEmpty()) {
             itemMeta.lore(lore);
@@ -780,7 +837,7 @@ public final class ForgeService {
         itemStack.setItemMeta(itemMeta);
     }
 
-    private void applyLoreOperation(List<Component> lore,
+    private void applyLoreAction(List<Component> lore,
                                     Map<String, Object> operation,
                                     Map<String, Double> statContributions) {
         String type = Texts.lower(operation.get("operation"));
@@ -997,11 +1054,9 @@ public final class ForgeService {
     }
 
     public String resolveResultItemName(Recipe recipe, ItemStack itemStack) {
-        if (itemStack != null && itemStack.hasItemMeta() && itemStack.getItemMeta().hasDisplayName()) {
-            return MiniMessages.plain(itemStack.getItemMeta().displayName());
-        }
-        if (itemStack != null && itemStack.getType() != Material.AIR) {
-            return itemStack.getType().name();
+        String resolvedItemName = resolveItemName(itemStack);
+        if (Texts.isNotBlank(resolvedItemName)) {
+            return resolvedItemName;
         }
         if (recipe != null && recipe.result() != null && recipe.result().outputItem() != null) {
             return recipe.result().outputItem().getIdentifier();
@@ -1009,14 +1064,54 @@ public final class ForgeService {
         return "物品";
     }
 
-    public void playResultSound(Player player, Recipe recipe) {
-        if (recipe == null || recipe.result() == null || recipe.result().sound() == null) {
-            return;
+    private String resolveSourceItemName(GuiItems guiItems, ItemStack resultItem, Recipe recipe) {
+        String sourceName = resolveItemName(guiItems == null ? null : guiItems.targetItem());
+        return Texts.isNotBlank(sourceName) ? sourceName : resolveResultItemName(recipe, resultItem);
+    }
+
+    private String resolveItemName(ItemStack itemStack) {
+        if (itemStack == null || itemStack.getType() == Material.AIR) {
+            return "";
         }
-        SoundParser.SoundDefinition definition = recipe.result().sound();
-        Sound sound = SoundParser.resolve(definition);
-        if (sound != null) {
-            player.playSound(player.getLocation(), sound, definition.volume(), definition.pitch());
+        if (itemStack.hasItemMeta() && itemStack.getItemMeta().hasDisplayName()) {
+            return MiniMessages.plain(itemStack.getItemMeta().displayName());
+        }
+        try {
+            return MiniMessages.plain(itemStack.effectiveName());
+        } catch (Exception ignored) {
+            return itemStack.getType().name();
+        }
+    }
+
+    private String buildShowItemPlaceholder(GuiItems guiItems, Recipe recipe, ItemStack resultItem) {
+        if (resultItem == null || resultItem.getType() == Material.AIR) {
+            return resolveSourceItemName(guiItems, resultItem, recipe);
+        }
+        Component display = resolveDisplayComponent(guiItems == null ? null : guiItems.targetItem());
+        if (display == null) {
+            display = resolveDisplayComponent(resultItem);
+        }
+        if (display == null) {
+            display = MiniMessages.parse(resolveResultItemName(recipe, resultItem));
+        }
+        try {
+            return MiniMessages.serialize(display.hoverEvent(resultItem.asHoverEvent(showItem -> showItem)));
+        } catch (Exception ignored) {
+            return resolveSourceItemName(guiItems, resultItem, recipe);
+        }
+    }
+
+    private Component resolveDisplayComponent(ItemStack itemStack) {
+        if (itemStack == null || itemStack.getType() == Material.AIR) {
+            return null;
+        }
+        if (itemStack.hasItemMeta() && itemStack.getItemMeta().hasDisplayName()) {
+            return itemStack.getItemMeta().displayName();
+        }
+        try {
+            return itemStack.effectiveName();
+        } catch (Exception ignored) {
+            return Component.text(itemStack.getType().name());
         }
     }
 

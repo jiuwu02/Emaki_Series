@@ -1,4 +1,5 @@
 name: Emaki_CoreLib
+prefix: ${project.name}
 main: emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin
 version: ${project.version}
 api-version: '1.21'

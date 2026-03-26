@@ -35,8 +35,9 @@ public final class QualitySettings {
     private final int guaranteeThreshold;
     private final String guaranteeMinimum;
     private final boolean itemMetaEnabled;
+    private final Map<String, List<String>> itemMetaActions;
     private final Map<String, List<Map<String, Object>>> itemMetaNameModifications;
-    private final Map<String, List<Map<String, Object>>> itemMetaLoreOperations;
+    private final Map<String, List<Map<String, Object>>> itemMetaLoreActions;
 
     public QualitySettings(List<QualityTier> tiers,
                            String defaultTier,
@@ -44,21 +45,23 @@ public final class QualitySettings {
                            int guaranteeThreshold,
                            String guaranteeMinimum,
                            boolean itemMetaEnabled,
+                           Map<String, List<String>> itemMetaActions,
                            Map<String, List<Map<String, Object>>> itemMetaNameModifications,
-                           Map<String, List<Map<String, Object>>> itemMetaLoreOperations) {
+                           Map<String, List<Map<String, Object>>> itemMetaLoreActions) {
         this.tiers = List.copyOf(tiers);
         this.defaultTier = defaultTier;
         this.guaranteeEnabled = guaranteeEnabled;
         this.guaranteeThreshold = guaranteeThreshold;
         this.guaranteeMinimum = guaranteeMinimum;
         this.itemMetaEnabled = itemMetaEnabled;
+        this.itemMetaActions = Map.copyOf(itemMetaActions);
         this.itemMetaNameModifications = Map.copyOf(itemMetaNameModifications);
-        this.itemMetaLoreOperations = Map.copyOf(itemMetaLoreOperations);
+        this.itemMetaLoreActions = Map.copyOf(itemMetaLoreActions);
     }
 
     public static QualitySettings defaults() {
         QualityTier normal = QualityTier.fromString("普通-100-1.0");
-        return new QualitySettings(List.of(normal), "普通", false, 10, "普通", false, Map.of(), Map.of());
+        return new QualitySettings(List.of(normal), "普通", false, 10, "普通", false, Map.of(), Map.of(), Map.of());
     }
 
     public static QualitySettings fromConfig(Object raw) {
@@ -77,13 +80,15 @@ public final class QualitySettings {
         }
         Object guarantee = ConfigNodes.get(raw, "guarantee");
         Object itemMeta = ConfigNodes.get(raw, "item_meta");
+        Map<String, List<String>> actions = new LinkedHashMap<>();
         Map<String, List<Map<String, Object>>> nameMods = new LinkedHashMap<>();
         Map<String, List<Map<String, Object>>> loreOps = new LinkedHashMap<>();
         for (Map.Entry<String, Object> entry : ConfigNodes.entries(ConfigNodes.get(itemMeta, "tiers")).entrySet()) {
             String key = Texts.lower(entry.getKey());
             Object tierConfig = entry.getValue();
-            nameMods.put(key, toOperationList(ConfigNodes.get(tierConfig, "name_modifications"), ConfigNodes.get(tierConfig, "name_operations")));
-            loreOps.put(key, toOperationList(ConfigNodes.get(tierConfig, "lore_operations")));
+            actions.put(key, List.copyOf(Texts.asStringList(ConfigNodes.get(tierConfig, "action"))));
+            nameMods.put(key, toActionList(ConfigNodes.get(tierConfig, "name_modifications"), ConfigNodes.get(tierConfig, "name_operations")));
+            loreOps.put(key, toActionList(ConfigNodes.get(tierConfig, "lore_operations")));
         }
         return new QualitySettings(
             tiers,
@@ -92,12 +97,13 @@ public final class QualitySettings {
             Numbers.tryParseInt(ConfigNodes.get(guarantee, "threshold"), 10),
             ConfigNodes.string(guarantee, "minimum", "普通"),
             ConfigNodes.bool(itemMeta, "enabled", false),
+            actions,
             nameMods,
             loreOps
         );
     }
 
-    private static List<Map<String, Object>> toOperationList(Object... values) {
+    private static List<Map<String, Object>> toActionList(Object... values) {
         List<Map<String, Object>> result = new ArrayList<>();
         for (Object value : values) {
             for (Object entry : ConfigNodes.asObjectList(value)) {
@@ -149,8 +155,12 @@ public final class QualitySettings {
         return itemMetaNameModifications.getOrDefault(Texts.lower(tierName), List.of());
     }
 
-    public List<Map<String, Object>> itemMetaLoreOperations(String tierName) {
-        return itemMetaLoreOperations.getOrDefault(Texts.lower(tierName), List.of());
+    public List<Map<String, Object>> itemMetaLoreActions(String tierName) {
+        return itemMetaLoreActions.getOrDefault(Texts.lower(tierName), List.of());
+    }
+
+    public List<String> itemMetaActions(String tierName) {
+        return itemMetaActions.getOrDefault(Texts.lower(tierName), List.of());
     }
 
     public List<QualityTier> tiers() {

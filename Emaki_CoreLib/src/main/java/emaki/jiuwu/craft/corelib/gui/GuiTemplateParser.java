@@ -33,8 +33,6 @@ public final class GuiTemplateParser {
                 }
             }
         }
-        mergeLegacyDecorations(section, slots);
-        mergeLegacyButtons(section, slots);
         return new GuiTemplate(
             id,
             section.getString("title", "GUI"),
@@ -53,69 +51,18 @@ public final class GuiTemplateParser {
         if (positions.isEmpty()) {
             return null;
         }
-        Object itemNode = resolveLegacyPlaceholder(raw);
         return new GuiSlot(
             key,
             positions,
-            resolveAction(key, raw),
-            parseItemText(itemNode),
-            ItemComponentParser.parse(itemNode),
+            resolveType(key, raw),
+            parseItemText(raw),
+            ItemComponentParser.parse(raw),
             parseSounds(raw)
         );
     }
 
-    private static Object resolveLegacyPlaceholder(Object raw) {
-        if (!ConfigNodes.contains(raw, "placeholder")) {
-            return raw;
-        }
-        Object placeholder = ConfigNodes.get(raw, "placeholder");
-        if (ItemSourceUtil.parse(raw) == null && ItemComponentParser.hasConfiguredFields(raw) == false) {
-            return placeholder == null ? raw : placeholder;
-        }
-        return raw;
-    }
-
-    private static void mergeLegacyDecorations(ConfigurationSection section, Map<String, GuiSlot> slots) {
-        int index = 0;
-        for (Object raw : ConfigNodes.asObjectList(section.get("decorations"))) {
-            List<Integer> positions = SlotParser.parse(ConfigNodes.get(raw, "slots"));
-            if (positions.isEmpty()) {
-                continue;
-            }
-            String key = "legacy_decoration_" + index++;
-            slots.putIfAbsent(key, new GuiSlot(
-                key,
-                positions,
-                null,
-                parseItemText(raw),
-                ItemComponentParser.parse(raw),
-                parseSounds(raw)
-            ));
-        }
-    }
-
-    private static void mergeLegacyButtons(ConfigurationSection section, Map<String, GuiSlot> slots) {
-        int index = 0;
-        for (Object raw : ConfigNodes.asObjectList(section.get("buttons"))) {
-            int slot = Numbers.tryParseInt(ConfigNodes.get(raw, "slot"), -1);
-            if (slot < 0) {
-                continue;
-            }
-            String action = ConfigNodes.string(raw, "action", null);
-            String key = "legacy_button_" + (Texts.isBlank(action) ? index : Texts.lower(action)) + "_" + index++;
-            slots.putIfAbsent(key, new GuiSlot(
-                key,
-                List.of(slot),
-                action,
-                parseItemText(raw),
-                ItemComponentParser.parse(raw),
-                parseSounds(raw)
-            ));
-        }
-    }
-
-    private static String resolveAction(String key, Object raw) {
-        String configured = ConfigNodes.string(raw, "action", null);
+    private static String resolveType(String key, Object raw) {
+        String configured = ConfigNodes.string(raw, "type", null);
         if (Texts.isNotBlank(configured)) {
             return configured;
         }

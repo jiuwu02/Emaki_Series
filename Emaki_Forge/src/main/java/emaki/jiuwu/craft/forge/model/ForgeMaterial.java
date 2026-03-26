@@ -132,13 +132,13 @@ public final class ForgeMaterial {
         return result;
     }
 
-    public List<Map<String, Object>> loreOperations() {
+    public List<Map<String, Object>> loreActions() {
         List<Map<String, Object>> result = new ArrayList<>();
         for (MaterialEffect effect : effects) {
             if (!"lore_operation".equals(Texts.lower(effect.type()))) {
                 continue;
             }
-            for (Object raw : ConfigNodes.asObjectList(effect.get("operations"))) {
+            for (Object raw : ConfigNodes.asObjectList(effect.get("action"))) {
                 Object plain = ConfigNodes.toPlainData(raw);
                 if (!(plain instanceof Map<?, ?> map)) {
                     continue;

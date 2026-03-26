@@ -6,7 +6,7 @@ import java.util.Map;
 
 public record GuiSlot(String key,
                       List<Integer> slots,
-                      String action,
+                      String type,
                       String item,
                       ItemComponentParser.ItemComponents components,
                       Map<GuiClickType, SoundParser.SoundDefinition> sounds) {
@@ -17,8 +17,8 @@ public record GuiSlot(String key,
         sounds = sounds == null ? Map.of() : Map.copyOf(sounds);
     }
 
-    public boolean hasAction() {
-        return Texts.isNotBlank(action);
+    public boolean hasType() {
+        return Texts.isNotBlank(type);
     }
 
     public SoundParser.SoundDefinition soundFor(GuiClickType clickType) {

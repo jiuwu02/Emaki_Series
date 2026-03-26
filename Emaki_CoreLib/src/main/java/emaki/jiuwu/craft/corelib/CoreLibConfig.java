@@ -6,7 +6,7 @@ import java.util.Map;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 
-public record CoreLibConfig(boolean operationDebug, Map<String, List<String>> operationTemplates) {
+public record CoreLibConfig(boolean actionDebug, Map<String, List<String>> actionTemplates) {
 
     public static CoreLibConfig defaults() {
         return new CoreLibConfig(false, Map.of());
@@ -16,8 +16,8 @@ public record CoreLibConfig(boolean operationDebug, Map<String, List<String>> op
         if (configuration == null) {
             return defaults();
         }
-        ConfigurationSection operationSection = configuration.getConfigurationSection("operation");
-        ConfigurationSection templatesSection = operationSection == null ? null : operationSection.getConfigurationSection("templates");
+        ConfigurationSection actionSection = configuration.getConfigurationSection("action");
+        ConfigurationSection templatesSection = actionSection == null ? null : actionSection.getConfigurationSection("templates");
         Map<String, List<String>> templates = new LinkedHashMap<>();
         if (templatesSection != null) {
             for (String key : templatesSection.getKeys(false)) {
@@ -25,7 +25,7 @@ public record CoreLibConfig(boolean operationDebug, Map<String, List<String>> op
             }
         }
         return new CoreLibConfig(
-            operationSection != null && operationSection.getBoolean("debug", false),
+            actionSection != null && actionSection.getBoolean("debug", false),
             Map.copyOf(templates)
         );
     }

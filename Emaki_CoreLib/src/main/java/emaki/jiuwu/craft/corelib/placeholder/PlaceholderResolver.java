@@ -1,8 +1,8 @@
 package emaki.jiuwu.craft.corelib.placeholder;
 
-import emaki.jiuwu.craft.corelib.operation.OperationContext;
+import emaki.jiuwu.craft.corelib.action.ActionContext;
 
 public interface PlaceholderResolver {
 
-    String resolve(OperationContext context, String text);
+    String resolve(ActionContext context, String text);
 }

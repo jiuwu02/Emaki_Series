@@ -8,4 +8,5 @@ Thumbs.db
 __pycache__/
 *.pyc
 wiki/
-scripts/
+release-notes.md
+emaki_manager.py

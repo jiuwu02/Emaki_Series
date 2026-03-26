@@ -150,11 +150,11 @@ public final class ForgeGuiService {
         for (Map.Entry<String, GuiSlot> entry : template.slots().entrySet()) {
             GuiSlot slot = entry.getValue();
             List<Integer> override = recipe.gui().slots().get(entry.getKey());
-            if ((override == null || override.isEmpty()) && Texts.isNotBlank(slot.action())) {
-                override = recipe.gui().slots().get(slot.action());
+            if ((override == null || override.isEmpty()) && Texts.isNotBlank(slot.type())) {
+                override = recipe.gui().slots().get(slot.type());
             }
             if (override != null && !override.isEmpty()) {
-                slot = new GuiSlot(slot.key(), override, slot.action(), slot.item(), slot.components(), slot.sounds());
+                slot = new GuiSlot(slot.key(), override, slot.type(), slot.item(), slot.components(), slot.sounds());
             }
             slots.put(entry.getKey(), slot);
         }
@@ -166,8 +166,8 @@ public final class ForgeGuiService {
             return null;
         }
         GuiSlot slot = resolvedSlot.definition();
-        String action = normalizedAction(slot);
-        ItemStack dynamic = switch (action) {
+        String type = normalizedType(slot);
+        ItemStack dynamic = switch (type) {
             case "blueprint_inputs" -> cloneNonAir(state.blueprintItems.get(resolvedSlot.inventorySlot()));
             case "target_item" -> cloneNonAir(state.targetItem);
             case "required_materials" -> cloneNonAir(state.requiredMaterialItems.get(resolvedSlot.inventorySlot()));
@@ -303,17 +303,17 @@ public final class ForgeGuiService {
         return "<green>正常</green>";
     }
 
-    private List<Integer> slotsForAction(ForgeGuiSession state, String action) {
-        if (state == null || state.guiSession == null || Texts.isBlank(action)) {
+    private List<Integer> slotsForType(ForgeGuiSession state, String type) {
+        if (state == null || state.guiSession == null || Texts.isBlank(type)) {
             return List.of();
         }
         List<Integer> result = new ArrayList<>();
-        String normalized = Texts.lower(action);
+        String normalized = Texts.lower(type);
         for (GuiSlot slot : state.guiSession.template().slots().values()) {
             if (slot == null) {
                 continue;
             }
-            if (normalized.equals(Texts.lower(slot.action())) || normalized.equals(Texts.lower(slot.key()))) {
+            if (normalized.equals(Texts.lower(slot.type())) || normalized.equals(Texts.lower(slot.key()))) {
                 result.addAll(slot.slots());
             }
         }
@@ -339,7 +339,7 @@ public final class ForgeGuiService {
         }
         Blueprint blueprint = findBlueprintBySource(source);
         if (blueprint != null) {
-            int slot = firstFreeSlot(slotsForAction(state, "blueprint_inputs"), state.blueprintItems);
+            int slot = firstFreeSlot(slotsForType(state, "blueprint_inputs"), state.blueprintItems);
             if (slot >= 0) {
                 state.blueprintItems.put(slot, itemStack);
                 event.getClickedInventory().setItem(event.getSlot(), null);
@@ -351,7 +351,7 @@ public final class ForgeGuiService {
         if (material != null) {
             MaterialSlotRules rules = resolveMaterialSlotRules(state);
             if (rules.requiredIds().contains(material.id())) {
-                int slot = firstFreeSlot(slotsForAction(state, "required_materials"), state.requiredMaterialItems);
+                int slot = firstFreeSlot(slotsForType(state, "required_materials"), state.requiredMaterialItems);
                 if (slot >= 0) {
                     state.requiredMaterialItems.put(slot, itemStack);
                     event.getClickedInventory().setItem(event.getSlot(), null);
@@ -360,7 +360,7 @@ public final class ForgeGuiService {
                 return;
             }
             if (canPlaceOptionalMaterial(material.id(), rules)) {
-                int slot = firstFreeSlot(slotsForAction(state, "optional_materials"), state.optionalMaterialItems);
+                int slot = firstFreeSlot(slotsForType(state, "optional_materials"), state.optionalMaterialItems);
                 if (slot >= 0) {
                     state.optionalMaterialItems.put(slot, itemStack);
                     event.getClickedInventory().setItem(event.getSlot(), null);
@@ -372,7 +372,7 @@ public final class ForgeGuiService {
         if (!matchesTarget(state.recipe, itemStack)) {
             return;
         }
-        List<Integer> targetSlots = slotsForAction(state, "target_item");
+        List<Integer> targetSlots = slotsForType(state, "target_item");
         if (targetSlots.isEmpty()) {
             return;
         }
@@ -527,11 +527,6 @@ public final class ForgeGuiService {
         }
         state.forgeCompleted = true;
         clearStoredItems(state);
-        plugin.messageService().send(
-            state.player,
-            successMessageKey(activeRecipe),
-            Map.of("item", plugin.forgeService().resolveResultItemName(activeRecipe, result.resultItem()))
-        );
         if (Texts.isNotBlank(result.quality())) {
             plugin.messageService().send(
                 state.player,
@@ -542,17 +537,11 @@ public final class ForgeGuiService {
         if (firstCraft) {
             plugin.messageService().sendRaw(state.player, "<green>首次完成该配方锻造!</green>");
         }
-        plugin.forgeService().playResultSound(state.player, activeRecipe);
     }
 
     private void returnFailedAttempt(ForgeGuiSession state, String errorKey, Map<String, ?> replacements) {
         plugin.messageService().send(state.player, errorKey, replacements == null ? Map.of() : replacements);
         returnItems(state);
-    }
-
-    private String successMessageKey(Recipe recipe) {
-        String configured = recipe == null || recipe.result() == null ? null : recipe.result().successMessage();
-        return Texts.isBlank(configured) ? "forge.success.crafted" : configured;
     }
 
     private void clearStoredItems(ForgeGuiSession state) {
@@ -568,27 +557,27 @@ public final class ForgeGuiService {
         }
         Inventory inventory = state.guiSession.getInventory();
         state.blueprintItems.clear();
-        for (int slot : slotsForAction(state, "blueprint_inputs")) {
+        for (int slot : slotsForType(state, "blueprint_inputs")) {
             ItemStack itemStack = cloneNonAir(inventory.getItem(slot));
             if (itemStack != null) {
                 state.blueprintItems.put(slot, itemStack);
             }
         }
         state.requiredMaterialItems.clear();
-        for (int slot : slotsForAction(state, "required_materials")) {
+        for (int slot : slotsForType(state, "required_materials")) {
             ItemStack itemStack = cloneNonAir(inventory.getItem(slot));
             if (itemStack != null) {
                 state.requiredMaterialItems.put(slot, itemStack);
             }
         }
         state.optionalMaterialItems.clear();
-        for (int slot : slotsForAction(state, "optional_materials")) {
+        for (int slot : slotsForType(state, "optional_materials")) {
             ItemStack itemStack = cloneNonAir(inventory.getItem(slot));
             if (itemStack != null) {
                 state.optionalMaterialItems.put(slot, itemStack);
             }
         }
-        List<Integer> targetSlots = slotsForAction(state, "target_item");
+        List<Integer> targetSlots = slotsForType(state, "target_item");
         state.targetItem = targetSlots.isEmpty() ? null : cloneNonAir(inventory.getItem(targetSlots.get(0)));
     }
 
@@ -757,11 +746,11 @@ public final class ForgeGuiService {
         leftover.values().forEach(left -> player.getWorld().dropItemNaturally(player.getLocation(), left));
     }
 
-    private String normalizedAction(GuiSlot slot) {
+    private String normalizedType(GuiSlot slot) {
         if (slot == null) {
             return "";
         }
-        return Texts.isNotBlank(slot.action()) ? Texts.lower(slot.action()) : Texts.lower(slot.key());
+        return Texts.isNotBlank(slot.type()) ? Texts.lower(slot.type()) : Texts.lower(slot.key());
     }
 
     private static ItemStack cloneNonAir(ItemStack itemStack) {
@@ -788,7 +777,7 @@ public final class ForgeGuiService {
             if (slot == null || slot.definition() == null) {
                 return;
             }
-            switch (normalizedAction(slot.definition())) {
+            switch (normalizedType(slot.definition())) {
                 case "blueprint_inputs" -> handleBlueprintClick(event, state, slot.inventorySlot());
                 case "target_item" -> handleTargetClick(event, state);
                 case "required_materials" -> handleMaterialClick(event, state, slot.inventorySlot(), true);

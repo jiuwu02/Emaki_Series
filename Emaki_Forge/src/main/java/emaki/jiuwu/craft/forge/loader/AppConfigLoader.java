@@ -29,7 +29,7 @@ public final class AppConfigLoader {
             ConfigurationSection numberFormat = configuration.getConfigurationSection("number_format");
             current = new AppConfig(
                 configuration.getString("language", "zh_CN"),
-                configuration.getString("config_version", "1.4.0"),
+                configuration.getString("config_version", "1.1"),
                 configuration.getBoolean("release_default_data", true),
                 QualitySettings.fromConfig(configuration.get("quality")),
                 numberFormat == null ? "0.##" : numberFormat.getString("default", "0.##"),

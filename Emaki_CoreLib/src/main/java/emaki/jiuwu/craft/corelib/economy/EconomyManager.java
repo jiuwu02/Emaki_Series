@@ -1,7 +1,7 @@
 package emaki.jiuwu.craft.corelib.economy;
 
-import emaki.jiuwu.craft.corelib.operation.OperationErrorType;
-import emaki.jiuwu.craft.corelib.operation.OperationResult;
+import emaki.jiuwu.craft.corelib.action.ActionErrorType;
+import emaki.jiuwu.craft.corelib.action.ActionResult;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -41,18 +41,18 @@ public final class EconomyManager {
         return provider != null && provider.isAvailable() ? provider : null;
     }
 
-    public OperationResult requireSupported(String providerId, String currencyId) {
+    public ActionResult requireSupported(String providerId, String currencyId) {
         if ("coinsengine".equalsIgnoreCase(providerId) && Texts.isBlank(currencyId)) {
-            return OperationResult.failure(OperationErrorType.INVALID_ARGUMENT, "CoinsEngine operations require 'currency'.");
+            return ActionResult.failure(ActionErrorType.INVALID_ARGUMENT, "CoinsEngine operations require 'currency'.");
         }
         EconomyProvider provider = select(providerId, currencyId);
         if (provider == null) {
-            return OperationResult.failure(OperationErrorType.PROVIDER_UNAVAILABLE, "No economy provider available for '" + providerId + "'.");
+            return ActionResult.failure(ActionErrorType.PROVIDER_UNAVAILABLE, "No economy provider available for '" + providerId + "'.");
         }
         if ("auto".equalsIgnoreCase(providerId) && Texts.isBlank(currencyId) && "coinsengine".equalsIgnoreCase(provider.id())) {
-            return OperationResult.failure(OperationErrorType.PROVIDER_UNAVAILABLE, "Auto provider does not infer a default CoinsEngine currency.");
+            return ActionResult.failure(ActionErrorType.PROVIDER_UNAVAILABLE, "Auto provider does not infer a default CoinsEngine currency.");
         }
-        return OperationResult.ok(Map.of("provider", provider.id()));
+        return ActionResult.ok(Map.of("provider", provider.id()));
     }
 
     public double getBalance(Player player, String providerId, String currencyId) {
@@ -60,24 +60,24 @@ public final class EconomyManager {
         return provider == null ? 0D : provider.getBalance(player, currencyId);
     }
 
-    public OperationResult add(Player player, String providerId, String currencyId, double amount) {
-        OperationResult supported = requireSupported(providerId, currencyId);
+    public ActionResult add(Player player, String providerId, String currencyId, double amount) {
+        ActionResult supported = requireSupported(providerId, currencyId);
         if (!supported.success()) {
             return supported;
         }
         return select(providerId, currencyId).add(player, currencyId, amount);
     }
 
-    public OperationResult remove(Player player, String providerId, String currencyId, double amount) {
-        OperationResult supported = requireSupported(providerId, currencyId);
+    public ActionResult remove(Player player, String providerId, String currencyId, double amount) {
+        ActionResult supported = requireSupported(providerId, currencyId);
         if (!supported.success()) {
             return supported;
         }
         return select(providerId, currencyId).remove(player, currencyId, amount);
     }
 
-    public OperationResult set(Player player, String providerId, String currencyId, double amount) {
-        OperationResult supported = requireSupported(providerId, currencyId);
+    public ActionResult set(Player player, String providerId, String currencyId, double amount) {
+        ActionResult supported = requireSupported(providerId, currencyId);
         if (!supported.success()) {
             return supported;
         }

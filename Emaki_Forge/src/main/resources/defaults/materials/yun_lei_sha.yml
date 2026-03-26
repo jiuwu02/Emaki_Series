@@ -25,7 +25,7 @@ effects:
         value: 6
 
   - type: "lore_operation"
-    operations:
+    action:
       - operation: "insert_below"
         target_pattern: "锻造属性:"
         content:
