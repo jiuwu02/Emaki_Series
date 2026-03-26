@@ -26,6 +26,7 @@ import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as et
 from dataclasses import dataclass
+from getpass import getpass
 from pathlib import Path
 from typing import Iterable
 
@@ -33,6 +34,7 @@ from typing import Iterable
 PROJECT_ROOT = Path(__file__).resolve().parent
 DEFAULT_WIKI_SOURCE = PROJECT_ROOT.parent / "Emaki Plugin Wiki"
 LOCAL_WIKI_DIR = PROJECT_ROOT / "wiki"
+DEFAULT_RELEASE_NOTES_FILE = PROJECT_ROOT / "release-notes.md"
 API_VERSION = "2022-11-28"
 DEFAULT_RELEASE_NOTES = textwrap.dedent(
     """\
@@ -114,6 +116,74 @@ def write_text(path: Path, content: str) -> None:
 
 def ensure_dir(path: Path) -> None:
     path.mkdir(parents=True, exist_ok=True)
+
+
+def print_section(title: str) -> None:
+    print(f"\n[{title}]")
+
+
+def read_input(prompt: str = "") -> str:
+    try:
+        return input(prompt)
+    except EOFError as exc:
+        raise KeyboardInterrupt from exc
+
+
+def prompt_text(prompt: str, default: str | None = None, *, allow_empty: bool = True) -> str:
+    while True:
+        suffix = f" [{default}]" if default not in {None, ""} else ""
+        value = read_input(f"{prompt}{suffix}: ").strip()
+        if value:
+            return value
+        if default is not None:
+            return default
+        if allow_empty:
+            return ""
+        print("输入不能为空，请重新输入。")
+
+
+def prompt_yes_no(prompt: str, default: bool = True) -> bool:
+    hint = "Y/n" if default else "y/N"
+    while True:
+        value = read_input(f"{prompt} [{hint}]: ").strip().lower()
+        if not value:
+            return default
+        if value in {"y", "yes", "1"}:
+            return True
+        if value in {"n", "no", "0"}:
+            return False
+        print("请输入 y 或 n。")
+
+
+def prompt_menu_choice(title: str, options: list[tuple[str, str]], *, default: str | None = None) -> str:
+    print_section(title)
+    for key, label in options:
+        print(f"{key}. {label}")
+    valid = {key for key, _ in options}
+    while True:
+        suffix = f" [{default}]" if default else ""
+        value = read_input(f"请输入选项编号{suffix}: ").strip()
+        if not value and default:
+            return default
+        if value in valid:
+            return value
+        print("无效选项，请重新输入。")
+
+
+def prompt_multiline(prompt: str, end_marker: str = "END") -> str:
+    print(prompt)
+    print(f"输入完成后，单独输入一行 {end_marker} 结束。")
+    lines: list[str] = []
+    while True:
+        line = read_input()
+        if line.strip() == end_marker:
+            break
+        lines.append(line)
+    return "\n".join(lines).strip()
+
+
+def prompt_continue() -> None:
+    read_input("\n按回车键继续...")
 
 
 def resolve_github_repo(remote_url: str) -> tuple[str, str]:
@@ -556,23 +626,26 @@ def build_guide_text(topic: str) -> str:
             f"""\
             Wiki 发布操作步骤
 
-            1. 准备 Wiki 内容
+            1. 直接运行脚本
+               python .\\emaki_manager.py
+
+            2. 选择主菜单中的“发布 Wiki”
+
+            3. 准备 Wiki 内容
                - 默认外部 Wiki 目录：{wiki_source}
                - 本地仓库 Wiki 目录：{local_wiki}
                - 如果你只想直接发布当前本地 wiki/，可以跳过同步步骤
 
-            2. 先同步外部 Wiki 到本地 wiki/
-               python .\\emaki_manager.py sync-wiki --allow-missing-source
-
-            3. 预备检查
+            4. 预备检查
                - 确认 GitHub 仓库已开启 Wiki
                - 确认你已经至少创建过一次 GitHub Wiki 首页
 
-            4. 发布到 GitHub Wiki
-               python .\\emaki_manager.py publish-wiki
+            5. 按界面提示选择：
+               - 是否先同步外部 Wiki 目录
+               - 是否直接发布当前本地 wiki/
+               - 本次 Wiki 提交信息
 
-            5. 如果不想先同步外部目录，直接发布当前 wiki/
-               python .\\emaki_manager.py publish-wiki --no-sync
+            6. 确认后脚本会自动完成推送
             """
         ).strip()
 
@@ -585,24 +658,19 @@ def build_guide_text(topic: str) -> str:
                - Emaki_CoreLib/target/emaki-corelib-<version>.jar
                - Emaki_Forge/target/emaki-forge-<version>.jar
 
-            2. 配置 GitHub Token
-               PowerShell:
-               $env:GH_TOKEN="你的GitHub令牌"
+            2. 直接运行脚本
+               python .\\emaki_manager.py
 
-            3. 先查看本次将要发布哪些模块
-               python .\\emaki_manager.py publish-release --dry-run
+            3. 选择主菜单中的“发布 Release”
 
-            4. 如需自定义发布日志，推荐先写一个 Markdown 文件
-               例如：release-notes.md
+            4. 脚本会按步骤引导你：
+               - 检查当前模块版本与构建产物
+               - 输入或读取 GitHub Token
+               - 选择发布日志来源
+               - 先预览本次 Release 计划
+               - 二次确认后正式发布
 
-            5. 使用 notes 文件发布
-               python .\\emaki_manager.py publish-release --notes-file .\\release-notes.md
-
-            6. 如果只想快速发布，也可以不传 notes
-               python .\\emaki_manager.py publish-release
-               脚本会自动生成基础发布日志
-
-            7. 自动识别规则
+            5. 自动识别规则
                - 如果 CoreLib 和 Forge 都是新版本：同一个 Release 同时上传两个 jar
                - 如果只有一个模块是新版本：只上传这个模块的 jar
                - 如果两个模块当前版本都已发布：不创建新 Release
@@ -613,15 +681,20 @@ def build_guide_text(topic: str) -> str:
         """\
         Emaki Manager 操作总览
 
-        查看完整向导：
-        - python .\\emaki_manager.py guide wiki
-        - python .\\emaki_manager.py guide release
+        默认使用方式：
+        - 直接运行 python .\\emaki_manager.py
+        - 根据菜单编号输入选项
+        - 按步骤完成 Wiki 或 Release 发布
 
-        常用命令：
-        - python .\\emaki_manager.py sync-wiki --allow-missing-source
-        - python .\\emaki_manager.py publish-wiki
-        - python .\\emaki_manager.py publish-release --dry-run
-        - python .\\emaki_manager.py publish-release --notes-file .\\release-notes.md
+        主菜单功能：
+        - 查看帮助总览
+        - 查看 Wiki 发布说明
+        - 发布 Wiki
+        - 查看 Release 发布说明
+        - 发布 Release
+
+        兼容说明：
+        - 如你仍然习惯命令行参数，旧的子命令方式仍然可用
         """
     ).strip()
 
@@ -631,9 +704,189 @@ def command_guide(args: argparse.Namespace) -> int:
     return 0
 
 
+def build_release_namespace(
+    *,
+    token: str | None,
+    tag: str | None = None,
+    name: str | None = None,
+    target_commitish: str | None = None,
+    prerelease: bool = False,
+    notes: str | None = None,
+    notes_file: str | None = None,
+    dry_run: bool = False,
+) -> argparse.Namespace:
+    return argparse.Namespace(
+        token=token,
+        tag=tag,
+        name=name,
+        target_commitish=target_commitish,
+        prerelease=prerelease,
+        notes=notes,
+        notes_file=notes_file,
+        dry_run=dry_run,
+    )
+
+
+def interactive_publish_wiki() -> int:
+    print(build_guide_text("wiki"))
+    print_section("Wiki 发布向导")
+
+    source_default = str(DEFAULT_WIKI_SOURCE)
+    target_default = str(LOCAL_WIKI_DIR)
+    source = prompt_text("请输入外部 Wiki 目录", source_default)
+    target = prompt_text("请输入本地 wiki 目录", target_default)
+    do_sync = prompt_yes_no("发布前是否先同步外部 Wiki 到本地 wiki", default=True)
+    message = prompt_text("请输入 Wiki 提交信息", "docs: 更新 Wiki")
+
+    print_section("本次操作确认")
+    print(f"外部 Wiki 目录: {Path(source).resolve()}")
+    print(f"本地 wiki 目录: {Path(target).resolve()}")
+    print(f"发布前同步: {'是' if do_sync else '否'}")
+    print(f"提交信息: {message}")
+
+    if not prompt_yes_no("确认开始发布 Wiki 吗", default=False):
+        print("已取消 Wiki 发布。")
+        return 0
+
+    args = argparse.Namespace(
+        source=source,
+        target=target,
+        no_sync=not do_sync,
+        message=message,
+    )
+    return command_publish_wiki(args)
+
+
+def interactive_choose_release_notes() -> tuple[str | None, str | None]:
+    default_notes_exists = DEFAULT_RELEASE_NOTES_FILE.exists()
+    options: list[tuple[str, str]] = []
+    if default_notes_exists:
+        options.append(("1", f"使用默认日志文件 {DEFAULT_RELEASE_NOTES_FILE.name}"))
+        next_key = 2
+    else:
+        next_key = 1
+    options.extend(
+        [
+            (str(next_key), "使用其他 Markdown 日志文件"),
+            (str(next_key + 1), "手动输入发布日志"),
+            (str(next_key + 2), "使用脚本自动生成的基础日志"),
+        ]
+    )
+
+    choice = prompt_menu_choice("选择发布日志来源", options, default="1")
+    if default_notes_exists and choice == "1":
+        return None, str(DEFAULT_RELEASE_NOTES_FILE)
+    if choice == str(next_key):
+        notes_file = prompt_text("请输入 Markdown 日志文件路径", allow_empty=False)
+        return None, str(Path(notes_file).resolve())
+    if choice == str(next_key + 1):
+        notes = prompt_multiline("请输入本次发布日志内容。")
+        return notes, None
+    return None, None
+
+
+def interactive_publish_release() -> int:
+    print(build_guide_text("release"))
+    print_section("Release 发布向导")
+
+    module_info = collect_module_release_info()
+    print("已检测到以下模块与构建产物：")
+    for module in module_info:
+        print(f"- {module.spec.display_name}: {module.version}")
+        print(f"  jar: {module.jar_path}")
+
+    token = get_github_token(None)
+    if token:
+        print("已检测到环境变量中的 GitHub Token。")
+    else:
+        print("当前未检测到 GH_TOKEN 或 GITHUB_TOKEN。")
+        if prompt_yes_no("是否现在手动输入 GitHub Token", default=True):
+            token_input = getpass("GitHub Token: ").strip()
+            token = token_input or None
+
+    current_branch = get_current_branch()
+    target_commitish = prompt_text("Release 目标分支", current_branch)
+
+    custom_tag = None
+    if prompt_yes_no("是否自定义 Release Tag", default=False):
+        custom_tag = prompt_text("请输入自定义 Tag", allow_empty=False)
+
+    custom_name = None
+    if prompt_yes_no("是否自定义 Release 标题", default=False):
+        custom_name = prompt_text("请输入自定义标题", allow_empty=False)
+
+    prerelease = prompt_yes_no("是否标记为预发布版本", default=False)
+    notes, notes_file = interactive_choose_release_notes()
+
+    preview_args = build_release_namespace(
+        token=token,
+        tag=custom_tag,
+        name=custom_name,
+        target_commitish=target_commitish,
+        prerelease=prerelease,
+        notes=notes,
+        notes_file=notes_file,
+        dry_run=True,
+    )
+
+    print_section("Release 预览")
+    command_publish_release(preview_args)
+
+    if not prompt_yes_no("确认按以上计划正式发布 Release 吗", default=False):
+        print("已取消 Release 发布。")
+        return 0
+
+    publish_args = build_release_namespace(
+        token=token,
+        tag=custom_tag,
+        name=custom_name,
+        target_commitish=target_commitish,
+        prerelease=prerelease,
+        notes=notes,
+        notes_file=notes_file,
+        dry_run=False,
+    )
+    return command_publish_release(publish_args)
+
+
+def interactive_main() -> int:
+    while True:
+        choice = prompt_menu_choice(
+            "Emaki Manager 主菜单",
+            [
+                ("1", "查看操作总览"),
+                ("2", "查看 Wiki 发布说明"),
+                ("3", "发布 Wiki"),
+                ("4", "查看 Release 发布说明"),
+                ("5", "发布 Release"),
+                ("0", "退出"),
+            ],
+            default="1",
+        )
+
+        try:
+            if choice == "1":
+                print(build_guide_text("all"))
+            elif choice == "2":
+                print(build_guide_text("wiki"))
+            elif choice == "3":
+                interactive_publish_wiki()
+            elif choice == "4":
+                print(build_guide_text("release"))
+            elif choice == "5":
+                interactive_publish_release()
+            else:
+                print("已退出 Emaki Manager。")
+                return 0
+        except Exception as exc:
+            print(f"\n操作失败：{exc}")
+
+        prompt_continue()
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Emaki Series 本地发布工具",
+        description="Emaki Series 本地发布工具（默认支持交互式输入模式）",
         formatter_class=argparse.RawTextHelpFormatter,
         epilog=build_guide_text("all"),
     )
@@ -734,6 +987,14 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    argv = list(sys.argv[1:] if argv is None else argv)
+    if not argv:
+        try:
+            return interactive_main()
+        except KeyboardInterrupt:
+            print("\n已取消操作。")
+            return 1
+
     parser = build_parser()
     args = parser.parse_args(argv)
     try:
