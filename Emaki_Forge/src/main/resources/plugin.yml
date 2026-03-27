@@ -10,17 +10,17 @@ softdepend:
   - NeigeItems
   - CraftEngine
 commands:
-  jiuwuforge:
-    aliases: [jwforge, forge]
-    permission: jiuwuforge.use
+  emakiforge:
+    aliases: [emforge, forge]
+    permission: emakiforge.use
 permissions:
-  jiuwuforge.use:
+  emakiforge.use:
     default: true
-  jiuwuforge.book:
+  emakiforge.book:
     default: true
-  jiuwuforge.reload:
+  emakiforge.reload:
     default: op
-  jiuwuforge.debug:
+  emakiforge.debug:
     default: op
-  jiuwuforge.admin:
+  emakiforge.admin:
     default: op

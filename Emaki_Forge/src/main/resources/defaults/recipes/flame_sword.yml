@@ -73,4 +73,4 @@ action:
   failure:
     - '@if="%forge_error_key% == forge.error.action_failed" send_message text="<red>锻造前置操作失败: %forge_failure_reason%</red>"'
 
-permission: "jiuwuforge.recipe.flame_sword"
+permission: "emakiforge.recipe.flame_sword"

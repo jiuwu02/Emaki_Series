@@ -38,6 +38,13 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 public class EmakiForgePlugin extends JavaPlugin implements Listener, TabExecutor {
 
+    private static final String ROOT_COMMAND = "emakiforge";
+    private static final String PERMISSION_ROOT = "emakiforge";
+    private static final String PERMISSION_BOOK = PERMISSION_ROOT + ".book";
+    private static final String PERMISSION_RELOAD = PERMISSION_ROOT + ".reload";
+    private static final String PERMISSION_DEBUG = PERMISSION_ROOT + ".debug";
+    private static final String PERMISSION_ADMIN = PERMISSION_ROOT + ".admin";
+
     private static final String STARTUP_ASCII = """
  ______     __    __     ______     __  __     __     ______   ______     ______     ______     ______
 /\\  ___\\   /\\ "-./  \\   /\\  __ \\   /\\ \\/ /    /\\ \\   /\\  ___\\ /\\  __ \\   /\\  == \\   /\\  ___\\   /\\  ___\\
@@ -74,9 +81,9 @@ public class EmakiForgePlugin extends JavaPlugin implements Listener, TabExecuto
         messageService.info("console.plugin_starting");
         bootstrapService.bootstrap();
         reloadPluginState(false);
-        if (getCommand("jiuwuforge") != null) {
-            getCommand("jiuwuforge").setExecutor(this);
-            getCommand("jiuwuforge").setTabCompleter(this);
+        if (getCommand(ROOT_COMMAND) != null) {
+            getCommand(ROOT_COMMAND).setExecutor(this);
+            getCommand(ROOT_COMMAND).setTabCompleter(this);
         }
         getServer().getPluginManager().registerEvents(guiService, this);
         getServer().getPluginManager().registerEvents(this, this);
@@ -227,7 +234,7 @@ public class EmakiForgePlugin extends JavaPlugin implements Listener, TabExecuto
             messageService.send(sender, "general.player_only");
             return true;
         }
-        if (!sender.hasPermission("jiuwuforge.book") && !sender.hasPermission("jiuwuforge.admin")) {
+        if (!sender.hasPermission(PERMISSION_BOOK) && !sender.hasPermission(PERMISSION_ADMIN)) {
             messageService.send(sender, "general.no_permission");
             return true;
         }
@@ -235,7 +242,7 @@ public class EmakiForgePlugin extends JavaPlugin implements Listener, TabExecuto
     }
 
     private boolean handleReload(CommandSender sender) {
-        if (!sender.hasPermission("jiuwuforge.reload") && !sender.hasPermission("jiuwuforge.admin")) {
+        if (!sender.hasPermission(PERMISSION_RELOAD) && !sender.hasPermission(PERMISSION_ADMIN)) {
             messageService.send(sender, "general.no_permission");
             return true;
         }
@@ -252,7 +259,7 @@ public class EmakiForgePlugin extends JavaPlugin implements Listener, TabExecuto
     }
 
     private boolean handleDebug(CommandSender sender) {
-        if (!sender.hasPermission("jiuwuforge.debug") && !sender.hasPermission("jiuwuforge.admin")) {
+        if (!sender.hasPermission(PERMISSION_DEBUG) && !sender.hasPermission(PERMISSION_ADMIN)) {
             messageService.send(sender, "general.no_permission");
             return true;
         }
@@ -277,7 +284,7 @@ public class EmakiForgePlugin extends JavaPlugin implements Listener, TabExecuto
     }
 
     private boolean handleList(CommandSender sender, String[] args) {
-        if (!sender.hasPermission("jiuwuforge.admin")) {
+        if (!sender.hasPermission(PERMISSION_ADMIN)) {
             messageService.send(sender, "general.no_permission");
             return true;
         }

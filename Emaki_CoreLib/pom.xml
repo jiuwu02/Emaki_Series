@@ -11,7 +11,7 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>emaki-corelib</artifactId>
+    <artifactId>Emaki-corelib</artifactId>
     <version>1.3.0</version>
     <name>Emaki CoreLib</name>
     <packaging>jar</packaging>
