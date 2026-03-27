@@ -1,0 +1,16 @@
+﻿id: magic_crit_multiplier_resistance
+display_name: "法术暴伤抗性"
+aliases: [magic_crit_resistance, spell_crit_multiplier_resistance]
+value_kind: PERCENT
+target_type: DAMAGE
+target_id: spell
+default_value: 0.0
+min_value: -100.0
+max_value: 10000.0
+allow_negative: true
+priority: 78
+lore_format_id: default_percent
+lore_patterns:
+  - '^法术暴伤抗性\s*([+-]?\d+(?:\.\d+)?)%$'
+attribute_power: 1.0
+description: "Reduces incoming spell crit multiplier."

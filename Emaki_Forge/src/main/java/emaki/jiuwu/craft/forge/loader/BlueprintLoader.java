@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.forge.loader;
 
 import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.yaml.YamlDirectoryLoader;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.model.Blueprint;
 import java.io.File;
@@ -8,7 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.bukkit.configuration.file.YamlConfiguration;
 
-public final class BlueprintLoader extends AbstractDirectoryLoader<Blueprint> {
+public final class BlueprintLoader extends YamlDirectoryLoader<Blueprint> {
 
     public BlueprintLoader(EmakiForgePlugin plugin) {
         super(plugin);

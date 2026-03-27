@@ -23,7 +23,7 @@ public final class DefaultProfileRegistry extends DirectoryLoader<DefaultProfile
 
     @Override
     protected String typeName() {
-        return "default profile";
+        return plugin.messageService() == null ? "默认组" : plugin.messageService().message("label.default_profile");
     }
 
     @Override

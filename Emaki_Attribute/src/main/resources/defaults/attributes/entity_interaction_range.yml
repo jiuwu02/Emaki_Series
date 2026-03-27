@@ -1,0 +1,16 @@
+﻿id: entity_interaction_range
+display_name: "实体交互范围"
+aliases: [interaction_range, reach]
+value_kind: FLAT
+target_type: GENERIC
+target_id: entity_interaction_range
+default_value: 0.0
+min_value: 0.0
+max_value: 999999.0
+allow_negative: false
+priority: 24
+lore_format_id: default_flat
+lore_patterns:
+  - '^实体交互范围\s*([+-]?\d+(?:\.\d+)?)$'
+attribute_power: 1.0
+description: "Interaction range modifier in blocks."

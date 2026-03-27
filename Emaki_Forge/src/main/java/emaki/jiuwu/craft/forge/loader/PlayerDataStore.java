@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.forge.loader;
 
+import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.model.PlayerData;
 import java.io.File;
@@ -8,7 +9,6 @@ import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
-import org.bukkit.configuration.file.YamlConfiguration;
 
 public final class PlayerDataStore {
 
@@ -21,7 +21,9 @@ public final class PlayerDataStore {
 
     public void load() {
         File directory = plugin.dataPath("data").toFile();
-        if (!directory.exists() && !directory.mkdirs()) {
+        try {
+            YamlFiles.ensureDirectory(directory.toPath());
+        } catch (IOException exception) {
             plugin.getLogger().warning("Failed to create data directory: " + directory.getPath());
         }
     }
@@ -78,17 +80,13 @@ public final class PlayerDataStore {
         if (!file.exists()) {
             return new PlayerData(uuid);
         }
-        return PlayerData.fromConfig(uuid, YamlConfiguration.loadConfiguration(file));
+        return PlayerData.fromConfig(uuid, YamlFiles.load(file));
     }
 
     private boolean save(String uuid, PlayerData data) {
         File file = plugin.dataPath("data", uuid + ".yml").toFile();
-        YamlConfiguration configuration = new YamlConfiguration();
-        for (Map.Entry<String, Object> entry : data.toMap().entrySet()) {
-            configuration.set(entry.getKey(), entry.getValue());
-        }
         try {
-            configuration.save(file);
+            YamlFiles.save(file, data.toMap());
             return true;
         } catch (IOException exception) {
             plugin.getLogger().warning("Failed to save player data for " + uuid + ": " + exception.getMessage());

@@ -2,16 +2,21 @@ package emaki.jiuwu.craft.attribute;
 
 import emaki.jiuwu.craft.attribute.command.AttributeCommand;
 import emaki.jiuwu.craft.attribute.config.AttributeConfig;
+import emaki.jiuwu.craft.attribute.papi.AttributePlaceholderExpansion;
 import emaki.jiuwu.craft.attribute.loader.AttributePresetRegistry;
 import emaki.jiuwu.craft.attribute.loader.AttributeRegistry;
+import emaki.jiuwu.craft.attribute.loader.AttributeBalanceRegistry;
 import emaki.jiuwu.craft.attribute.loader.DamageTypeRegistry;
 import emaki.jiuwu.craft.attribute.loader.DefaultProfileRegistry;
+import emaki.jiuwu.craft.attribute.loader.LanguageLoader;
 import emaki.jiuwu.craft.attribute.loader.LoreFormatRegistry;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
+import emaki.jiuwu.craft.attribute.service.MessageService;
 import emaki.jiuwu.craft.attribute.listener.AttributeListener;
 import emaki.jiuwu.craft.attribute.bridge.MythicBridge;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
+import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.List;
@@ -24,35 +29,58 @@ import org.bukkit.scheduler.BukkitTask;
 public final class EmakiAttributePlugin extends JavaPlugin {
 
     private static final String STARTUP_ASCII = """
-  _____                           _   _      _   _        _   _
- | ____|_ __ ___  _ __ ___   __ _| |_| |__  | |_| |__    / \\ | |_
- |  _| | '_ ` _ \\| '_ ` _ \\ / _` | __| '_ \\ | __| '_ \\  / _ \\| __|
- | |___| | | | | | | | | | | (_| | |_| | | || |_| | | |/ ___ \\ |_
- |_____|_| |_| |_|_| |_| |_|\\__,_|\\__|_| |_| \\__|_| |_/_/   \\_\\__|
+ ______     __    __     ______     __  __     __     ______     ______   ______   ______     __     ______     __  __     ______   ______
+/\\  ___\\   /\\ "-./  \\   /\\  __ \\   /\\ \\/ /    /\\ \\   /\\  __ \\   /\\__  _\\ /\\__  _\\ /\\  == \\   /\\ \\   /\\  == \\   /\\ \\/ /    /\\__  _\\ /\\  ___\\
+\\ \\  __\\   \\ \\ \\-./\\ \\  \\ \\  __ \\  \\ \\  _"-.  \\ \\ \\  \\ \\  __ \\  \\/_/\\ \\/ \\/_/\\ \\/ \\ \\  __<   \\ \\ \\  \\ \\  __<   \\ \\  _"-.  \\/_/\\ \\/ \\ \\  __\\
+ \\ \\_____\\  \\ \\_\\ \\_\\ \\_\\  \\ \\_\\ \\_\\  \\ \\_\\ \\_\\  \\ \\_\\  \\ \\_\\ \\_\\    \\ \\_\\    \\ \\_\\  \\ \\_\\ \\_\\  \\ \\_\\  \\ \\_____\\  \\ \\_\\ \\_\\    \\ \\_\\  \\ \\_____\\
+  \\/_____/   \\/_/\\/_/\\/_/   \\/_/\\/_/   \\/_/\\/_/   \\/_/   \\/_/\\/_/     \\/_/     \\/_/   \\/_/ /_/   \\/_/   \\/_____/   \\/_/\\/_/     \\/_/   \\/_____/
 """;
 
     private static final List<String> BUNDLED_DEFAULTS = List.of(
         "defaults/config.yml",
         "defaults/global.yml",
+        "defaults/lang/zh_CN.yml",
+        "defaults/attribute_balance.yml",
         "defaults/attributes/health.yml",
         "defaults/attributes/mana.yml",
+        "defaults/attributes/attribute_power.yml",
+        "defaults/attributes/attack_speed.yml",
+        "defaults/attributes/movement_speed.yml",
+        "defaults/attributes/dodge_chance.yml",
         "defaults/attributes/physical_attack.yml",
         "defaults/attributes/physical_defense.yml",
         "defaults/attributes/physical_crit_rate.yml",
         "defaults/attributes/physical_crit_damage.yml",
         "defaults/attributes/physical_damage_bonus.yml",
+        "defaults/attributes/physical_armor_penetration.yml",
+        "defaults/attributes/physical_crit_evasion.yml",
+        "defaults/attributes/physical_crit_multiplier_resistance.yml",
         "defaults/attributes/projectile_attack.yml",
         "defaults/attributes/projectile_damage_bonus.yml",
         "defaults/attributes/projectile_crit_rate.yml",
         "defaults/attributes/projectile_crit_damage.yml",
         "defaults/attributes/projectile_defense.yml",
+        "defaults/attributes/projectile_penetration.yml",
+        "defaults/attributes/projectile_crit_evasion.yml",
+        "defaults/attributes/projectile_crit_multiplier_resistance.yml",
         "defaults/attributes/spell_attack.yml",
         "defaults/attributes/spell_damage_bonus.yml",
         "defaults/attributes/spell_crit_rate.yml",
         "defaults/attributes/spell_crit_damage.yml",
         "defaults/attributes/spell_defense.yml",
+        "defaults/attributes/magic_penetration.yml",
+        "defaults/attributes/magic_crit_evasion.yml",
+        "defaults/attributes/magic_crit_multiplier_resistance.yml",
         "defaults/attributes/health_regen.yml",
         "defaults/attributes/mana_regen.yml",
+        "defaults/attributes/speed.yml",
+        "defaults/attributes/entity_scale.yml",
+        "defaults/attributes/entity_interaction_range.yml",
+        "defaults/attributes/real_damage.yml",
+        "defaults/attributes/lifesteal.yml",
+        "defaults/attributes/percentage_lifesteal.yml",
+        "defaults/attributes/lifesteal_resistance.yml",
+        "defaults/attributes/test_attribute.yml",
         "defaults/attributes/skill_damage_bonus.yml",
         "defaults/attributes/skill_crit_rate.yml",
         "defaults/attributes/skill_crit_damage.yml",
@@ -71,14 +99,18 @@ public final class EmakiAttributePlugin extends JavaPlugin {
 
     private AttributeConfig configModel = AttributeConfig.defaults();
     private AttributeRegistry attributeRegistry;
+    private AttributeBalanceRegistry attributeBalanceRegistry;
     private DamageTypeRegistry damageTypeRegistry;
     private DefaultProfileRegistry defaultProfileRegistry;
     private LoreFormatRegistry loreFormatRegistry;
     private AttributePresetRegistry presetRegistry;
+    private LanguageLoader languageLoader;
+    private MessageService messageService;
     private AttributeService attributeService;
     private AttributeListener listener;
     private AttributeCommand command;
     private MythicBridge mythicBridge;
+    private AttributePlaceholderExpansion placeholderExpansion;
     private BukkitTask regenTask;
 
     public static EmakiAttributePlugin getInstance() {
@@ -88,22 +120,35 @@ public final class EmakiAttributePlugin extends JavaPlugin {
     @Override
     public void onEnable() {
         instance = this;
+        initializeServices();
         ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII);
         ensureBundledDefaults();
-        initializeServices();
         reloadPluginState(true);
         registerCommand();
         registerListeners();
-        getLogger().info("Emaki_Attribute 已启用.");
+        ensurePlaceholderExpansion();
+        if (messageService != null) {
+            messageService.info("console.plugin_started");
+        } else {
+            getLogger().info("console.plugin_started");
+        }
     }
 
     @Override
     public void onDisable() {
         cancelRegenTask();
+        if (placeholderExpansion != null) {
+            placeholderExpansion.unregister();
+            placeholderExpansion = null;
+        }
+        if (messageService != null) {
+            messageService.info("console.plugin_stopped");
+        } else {
+            getLogger().info("console.plugin_stopped");
+        }
         if (instance == this) {
             instance = null;
         }
-        getLogger().info("Emaki_Attribute 已关闭.");
     }
 
     public Path dataPath(String first, String... more) {
@@ -116,6 +161,10 @@ public final class EmakiAttributePlugin extends JavaPlugin {
 
     public AttributeRegistry attributeRegistry() {
         return attributeRegistry;
+    }
+
+    public AttributeBalanceRegistry attributeBalanceRegistry() {
+        return attributeBalanceRegistry;
     }
 
     public DamageTypeRegistry damageTypeRegistry() {
@@ -132,6 +181,14 @@ public final class EmakiAttributePlugin extends JavaPlugin {
 
     public AttributePresetRegistry presetRegistry() {
         return presetRegistry;
+    }
+
+    public LanguageLoader languageLoader() {
+        return languageLoader;
+    }
+
+    public MessageService messageService() {
+        return messageService;
     }
 
     public AttributeService attributeService() {
@@ -153,13 +210,31 @@ public final class EmakiAttributePlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(mythicBridge, this);
     }
 
+    public void ensurePlaceholderExpansion() {
+        if (placeholderExpansion != null) {
+            return;
+        }
+        if (!Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+            return;
+        }
+        placeholderExpansion = new AttributePlaceholderExpansion(this, attributeService);
+        placeholderExpansion.register();
+    }
+
     public void reloadPluginState(boolean resyncPlayers) {
         configModel = loadConfigModel();
+        if (languageLoader != null) {
+            languageLoader.load();
+            languageLoader.setLanguage(configModel.language());
+        }
         if (attributeService != null) {
             attributeService.reloadConfig(configModel);
         }
         if (attributeRegistry != null) {
             attributeRegistry.load();
+        }
+        if (attributeBalanceRegistry != null) {
+            attributeBalanceRegistry.load();
         }
         if (damageTypeRegistry != null) {
             damageTypeRegistry.load();
@@ -185,8 +260,11 @@ public final class EmakiAttributePlugin extends JavaPlugin {
         if (coreLibPlugin == null) {
             throw new IllegalStateException("Emaki_CoreLib must be enabled before Emaki_Attribute.");
         }
+        languageLoader = new LanguageLoader(this);
+        messageService = new MessageService(this, languageLoader, this::configModel);
         attributeRegistry = new AttributeRegistry(this);
-        damageTypeRegistry = new DamageTypeRegistry(this);
+        attributeBalanceRegistry = new AttributeBalanceRegistry(this, attributeRegistry);
+        damageTypeRegistry = new DamageTypeRegistry(this, attributeRegistry);
         defaultProfileRegistry = new DefaultProfileRegistry(this);
         loreFormatRegistry = new LoreFormatRegistry(this);
         presetRegistry = new AttributePresetRegistry(this);
@@ -195,6 +273,7 @@ public final class EmakiAttributePlugin extends JavaPlugin {
             coreLibPlugin.pdcService(),
             configModel,
             attributeRegistry,
+            attributeBalanceRegistry,
             damageTypeRegistry,
             defaultProfileRegistry,
             loreFormatRegistry,
@@ -258,16 +337,30 @@ public final class EmakiAttributePlugin extends JavaPlugin {
         try {
             saveResource(relativePath, false);
         } catch (IllegalArgumentException exception) {
-            getLogger().warning("无法写入默认资源 " + relativePath + ": " + exception.getMessage());
+            if (messageService != null) {
+                messageService.warning("console.default_resource_write_failed", java.util.Map.of(
+                    "path", relativePath,
+                    "error", String.valueOf(exception.getMessage())
+                ));
+            } else {
+                getLogger().warning("console.default_resource_write_failed");
+            }
         }
     }
 
     private AttributeConfig loadConfigModel() {
         try {
             File file = new File(getDataFolder(), "defaults/config.yml");
+            YamlFiles.syncVersionedResource(this, file, "defaults/config.yml", "config_version");
             return AttributeConfig.fromConfig(YamlConfiguration.loadConfiguration(file));
         } catch (Exception exception) {
-            getLogger().warning("加载属性配置失败: " + exception.getMessage());
+            if (messageService != null) {
+                messageService.warning("console.config_load_failed", java.util.Map.of(
+                    "error", String.valueOf(exception.getMessage())
+                ));
+            } else {
+                getLogger().warning("console.config_load_failed");
+            }
             return AttributeConfig.defaults();
         }
     }

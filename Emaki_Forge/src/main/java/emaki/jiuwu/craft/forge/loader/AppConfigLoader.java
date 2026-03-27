@@ -1,9 +1,11 @@
 package emaki.jiuwu.craft.forge.loader;
 
 import emaki.jiuwu.craft.corelib.math.Numbers;
+import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.config.AppConfig;
 import emaki.jiuwu.craft.forge.model.QualitySettings;
+import java.io.IOException;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 
@@ -18,7 +20,9 @@ public final class AppConfigLoader {
 
     public AppConfig load() {
         try {
-            YamlConfiguration configuration = YamlConfiguration.loadConfiguration(plugin.dataPath("config.yml").toFile());
+            java.io.File file = plugin.dataPath("config.yml").toFile();
+            YamlFiles.syncVersionedResource(plugin, file, "defaults/config.yml", "config_version");
+            YamlConfiguration configuration = YamlFiles.load(file);
             if (configuration.getKeys(false).isEmpty()) {
                 current = AppConfig.defaults();
                 return current;

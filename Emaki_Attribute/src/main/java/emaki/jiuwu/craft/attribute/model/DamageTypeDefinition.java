@@ -6,6 +6,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.function.Function;
 
 public record DamageTypeDefinition(String id,
                                    String displayName,
@@ -13,7 +14,10 @@ public record DamageTypeDefinition(String id,
                                    Set<String> allowedEvents,
                                    boolean hardLock,
                                    List<DamageStageDefinition> stages,
-                                   String description) {
+                                   RecoveryDefinition recovery,
+                                   String description,
+                                   String attackerMessage,
+                                   String targetMessage) {
 
     public DamageTypeDefinition {
         id = normalizeId(id);
@@ -30,20 +34,49 @@ public record DamageTypeDefinition(String id,
         }
         allowedEvents = Set.copyOf(normalizedEvents);
         stages = stages == null ? List.of() : List.copyOf(stages);
+        recovery = recovery == null ? null : recovery;
         description = Texts.toStringSafe(description).trim();
+        attackerMessage = Texts.toStringSafe(attackerMessage).trim();
+        targetMessage = Texts.toStringSafe(targetMessage).trim();
+    }
+
+    public DamageTypeDefinition(String id,
+                                String displayName,
+                                List<String> aliases,
+                                Set<String> allowedEvents,
+                                boolean hardLock,
+                                List<DamageStageDefinition> stages,
+                                RecoveryDefinition recovery,
+                                String description) {
+        this(id, displayName, aliases, allowedEvents, hardLock, stages, recovery, description, null, null);
+    }
+
+    public DamageTypeDefinition(String id,
+                                String displayName,
+                                List<String> aliases,
+                                Set<String> allowedEvents,
+                                boolean hardLock,
+                                List<DamageStageDefinition> stages,
+                                String description) {
+        this(id, displayName, aliases, allowedEvents, hardLock, stages, null, description, null, null);
     }
 
     public static DamageTypeDefinition fromMap(Object raw) {
+        return fromMap(raw, null);
+    }
+
+    public static DamageTypeDefinition fromMap(Object raw, Function<String, String> attributeNormalizer) {
         if (raw == null) {
             return null;
         }
         List<DamageStageDefinition> stages = new java.util.ArrayList<>();
         for (Object entry : ConfigNodes.asObjectList(ConfigNodes.get(raw, "stages"))) {
-            DamageStageDefinition stage = DamageStageDefinition.fromMap(entry);
+            DamageStageDefinition stage = DamageStageDefinition.fromMap(entry, attributeNormalizer);
             if (stage != null) {
                 stages.add(stage);
             }
         }
+        RecoveryDefinition recovery = RecoveryDefinition.fromMap(ConfigNodes.get(raw, "recovery"), attributeNormalizer);
         Set<String> allowedEvents = new LinkedHashSet<>();
         for (Object event : ConfigNodes.asObjectList(ConfigNodes.get(raw, "allowed_events"))) {
             String normalized = normalizeId(Texts.toStringSafe(event));
@@ -51,6 +84,9 @@ public record DamageTypeDefinition(String id,
                 allowedEvents.add(normalized);
             }
         }
+        String sharedMessage = ConfigNodes.string(raw, "message", null);
+        String attackerMessage = ConfigNodes.string(raw, "attacker_message", sharedMessage);
+        String targetMessage = ConfigNodes.string(raw, "target_message", sharedMessage);
         return new DamageTypeDefinition(
             ConfigNodes.string(raw, "id", null),
             ConfigNodes.string(raw, "display_name", null),
@@ -58,7 +94,10 @@ public record DamageTypeDefinition(String id,
             allowedEvents,
             ConfigNodes.bool(raw, "hard_lock", false),
             stages,
-            ConfigNodes.string(raw, "description", null)
+            recovery,
+            ConfigNodes.string(raw, "description", null),
+            attackerMessage,
+            targetMessage
         );
     }
 
@@ -80,6 +119,18 @@ public record DamageTypeDefinition(String id,
 
     public boolean allowsCause(String cause) {
         return allowedEvents.contains(normalizeId(cause));
+    }
+
+    public boolean hasAttackerMessage() {
+        return !Texts.isBlank(attackerMessage);
+    }
+
+    public boolean hasTargetMessage() {
+        return !Texts.isBlank(targetMessage);
+    }
+
+    public boolean hasRecovery() {
+        return recovery != null;
     }
 
     private static String normalizeId(String value) {

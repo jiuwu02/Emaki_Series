@@ -1,6 +1,6 @@
-id: projectile_crit_rate
+﻿id: projectile_crit_rate
 display_name: "投射物暴击率"
-aliases: [projectile_crit, ranged_crit_rate]
+aliases: [projectile_crit, ranged_crit_rate, projectile_crit_chance]
 value_kind: CHANCE
 target_type: DAMAGE
 target_id: projectile
@@ -11,5 +11,6 @@ allow_negative: false
 priority: 90
 lore_format_id: default_percent
 lore_patterns:
-  - '^([+-]?\d+(?:\.\d+)?)%\s*投射物暴击率$'
+  - '^投射物暴击率\s*([+-]?\d+(?:\.\d+)?)%$'
+attribute_power: 1.0
 description: "Critical hit chance for projectile damage."

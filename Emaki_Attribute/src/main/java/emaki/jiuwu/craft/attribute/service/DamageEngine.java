@@ -1,6 +1,8 @@
 package emaki.jiuwu.craft.attribute.service;
 
 import emaki.jiuwu.craft.attribute.model.AttributeSnapshot;
+import emaki.jiuwu.craft.attribute.model.DamageContext;
+import emaki.jiuwu.craft.attribute.model.DamageContextVariables;
 import emaki.jiuwu.craft.attribute.model.DamageRequest;
 import emaki.jiuwu.craft.attribute.model.DamageResult;
 import emaki.jiuwu.craft.attribute.model.DamageStageDefinition;
@@ -25,9 +27,11 @@ public final class DamageEngine {
 
     public DamageResult resolve(DamageRequest request, DamageTypeDefinition definition, double seededRoll) {
         if (request == null || definition == null) {
-            return new DamageResult("", 0D, false, 0D, Map.of(), Map.of());
+            return new DamageResult("", 0D, false, 0D, Map.of(), DamageContext.legacy("", 0D, null, null, DamageContextVariables.empty()));
         }
-        double current = Math.max(0D, request.baseDamage());
+        DamageContext damageContext = request.damageContext();
+        DamageContextVariables context = damageContext.variables();
+        double current = Math.max(0D, damageContext.baseDamage());
         Map<String, Double> stageValues = new LinkedHashMap<>();
         boolean critical = false;
         double roll = seededRoll;
@@ -38,7 +42,7 @@ public final class DamageEngine {
             StageInputs inputs = gatherInputs(request, stage, roll);
             double next = switch (stage.kind()) {
                 case FLAT_PERCENT -> applyFlatPercent(current, inputs, stage);
-                case CUSTOM -> applyCustom(current, inputs, stage, request.context(), roll);
+                case CUSTOM -> applyCustom(current, inputs, stage, context, roll);
             };
             if (stage.kind() == DamageStageKind.CUSTOM) {
                 critical = critical || inputs.crit;
@@ -46,7 +50,7 @@ public final class DamageEngine {
             current = next;
             stageValues.put(stage.id(), current);
         }
-        return new DamageResult(definition.id(), Math.max(0D, current), critical, roll, stageValues, request.context());
+        return new DamageResult(definition.id(), Math.max(0D, current), critical, roll, stageValues, damageContext);
     }
 
     private double applyFlatPercent(double input, StageInputs inputs, DamageStageDefinition stage) {
@@ -64,7 +68,7 @@ public final class DamageEngine {
     private double applyCustom(double input,
                                StageInputs inputs,
                                DamageStageDefinition stage,
-                               Map<String, Object> context,
+                               DamageContextVariables context,
                                double roll) {
         Map<String, Object> variables = new LinkedHashMap<>();
         variables.put("input", input);
@@ -76,7 +80,7 @@ public final class DamageEngine {
         variables.put("roll", roll);
         variables.put("crit", inputs.crit ? 1D : 0D);
         if (context != null) {
-            variables.putAll(context);
+            variables.putAll(context.asMap());
         }
         double result;
         if (Texts.isBlank(stage.expression())) {
@@ -103,12 +107,13 @@ public final class DamageEngine {
     }
 
     private StageInputs gatherInputs(DamageRequest request, DamageStageDefinition stage, double roll) {
+        DamageContext damageContext = request.damageContext();
         AttributeSnapshot sourceSnapshot = switch (stage.source()) {
-            case ATTACKER -> request.attackerSnapshot();
-            case TARGET -> request.targetSnapshot();
+            case ATTACKER -> damageContext.attackerSnapshot();
+            case TARGET -> damageContext.targetSnapshot();
             case CONTEXT -> null;
         };
-        Map<String, Object> context = request.context();
+        DamageContextVariables context = damageContext.variables();
         double flat = sum(sourceSnapshot, context, stage.flatAttributes());
         double percent = sum(sourceSnapshot, context, stage.percentAttributes());
         double chance = clamp(sum(sourceSnapshot, context, stage.chanceAttributes()), stage.minChance(), stage.maxChance(), 0D, 100D);
@@ -117,7 +122,7 @@ public final class DamageEngine {
         return new StageInputs(flat, percent, chance, multiplier, crit);
     }
 
-    private double sum(AttributeSnapshot snapshot, Map<String, Object> context, List<String> ids) {
+    private double sum(AttributeSnapshot snapshot, DamageContextVariables context, List<String> ids) {
         if (ids == null || ids.isEmpty()) {
             return 0D;
         }
@@ -152,6 +157,7 @@ public final class DamageEngine {
         result = Math.min(result, effectiveMax);
         return result;
     }
+
     private record StageInputs(double flat, double percent, double chance, double multiplier, boolean crit) {
     }
 }

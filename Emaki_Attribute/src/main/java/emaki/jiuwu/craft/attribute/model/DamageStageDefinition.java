@@ -3,9 +3,11 @@ package emaki.jiuwu.craft.attribute.model;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Function;
 
 public record DamageStageDefinition(String id,
                                     DamageStageKind kind,
@@ -36,6 +38,10 @@ public record DamageStageDefinition(String id,
     }
 
     public static DamageStageDefinition fromMap(Object raw) {
+        return fromMap(raw, null);
+    }
+
+    public static DamageStageDefinition fromMap(Object raw, Function<String, String> attributeNormalizer) {
         if (raw == null) {
             return null;
         }
@@ -48,10 +54,10 @@ public record DamageStageDefinition(String id,
             kind,
             source,
             mode,
-            Texts.asStringList(ConfigNodes.get(raw, "flat_attributes")),
-            Texts.asStringList(ConfigNodes.get(raw, "percent_attributes")),
-            Texts.asStringList(ConfigNodes.get(raw, "chance_attributes")),
-            Texts.asStringList(ConfigNodes.get(raw, "multiplier_attributes")),
+            normalizeAttributes(Texts.asStringList(ConfigNodes.get(raw, "flat_attributes")), attributeNormalizer),
+            normalizeAttributes(Texts.asStringList(ConfigNodes.get(raw, "percent_attributes")), attributeNormalizer),
+            normalizeAttributes(Texts.asStringList(ConfigNodes.get(raw, "chance_attributes")), attributeNormalizer),
+            normalizeAttributes(Texts.asStringList(ConfigNodes.get(raw, "multiplier_attributes")), attributeNormalizer),
             ConfigNodes.string(raw, "expression", null),
             Numbers.tryParseDouble(ConfigNodes.get(raw, "min_result"), null),
             Numbers.tryParseDouble(ConfigNodes.get(raw, "max_result"), null),
@@ -64,6 +70,24 @@ public record DamageStageDefinition(String id,
 
     private static String normalizeId(String value) {
         return Texts.toStringSafe(value).trim().toLowerCase(Locale.ROOT).replace(' ', '_');
+    }
+
+    private static List<String> normalizeAttributes(List<String> ids, Function<String, String> attributeNormalizer) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+        List<String> normalized = new ArrayList<>();
+        for (String id : ids) {
+            if (Texts.isBlank(id)) {
+                continue;
+            }
+            String resolved = attributeNormalizer == null ? id : attributeNormalizer.apply(id);
+            String normalizedId = normalizeId(resolved);
+            if (!normalizedId.isBlank()) {
+                normalized.add(normalizedId);
+            }
+        }
+        return List.copyOf(normalized);
     }
 
     private static <E extends Enum<E>> E parseEnum(String value, E defaultValue) {

@@ -1,6 +1,6 @@
-id: physical_crit_rate
+﻿id: physical_crit_rate
 display_name: "暴击率"
-aliases: [crit_rate, crit]
+aliases: [crit_rate, crit, physical_crit_chance]
 value_kind: CHANCE
 target_type: DAMAGE
 target_id: physical
@@ -11,5 +11,6 @@ allow_negative: false
 priority: 90
 lore_format_id: default_percent
 lore_patterns:
-  - '^([+-]?\d+(?:\.\d+)?)%\s*暴击率$'
+  - '^暴击率\s*([+-]?\d+(?:\.\d+)?)%$'
+attribute_power: 1.0
 description: "Critical hit chance for physical damage."

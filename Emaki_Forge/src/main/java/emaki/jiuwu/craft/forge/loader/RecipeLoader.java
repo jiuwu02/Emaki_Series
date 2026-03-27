@@ -7,6 +7,7 @@ import emaki.jiuwu.craft.corelib.action.ActionResult;
 import emaki.jiuwu.craft.corelib.action.ActionSyntaxException;
 import emaki.jiuwu.craft.corelib.action.ParsedActionLine;
 import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.yaml.YamlDirectoryLoader;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.model.Recipe;
 import java.io.File;
@@ -15,7 +16,7 @@ import java.util.List;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 
-public final class RecipeLoader extends AbstractDirectoryLoader<Recipe> {
+public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
 
     public RecipeLoader(EmakiForgePlugin plugin) {
         super(plugin);

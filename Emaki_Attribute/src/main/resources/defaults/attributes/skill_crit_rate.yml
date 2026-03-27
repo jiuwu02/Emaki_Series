@@ -1,4 +1,4 @@
-id: skill_crit_rate
+﻿id: skill_crit_rate
 display_name: "技能暴击率"
 aliases: [skill_crit, skill_crit_chance]
 value_kind: CHANCE
@@ -11,5 +11,6 @@ allow_negative: false
 priority: 60
 lore_format_id: default_percent
 lore_patterns:
-  - '^([+-]?\d+(?:\.\d+)?)%\s*技能暴击率$'
+  - '^技能暴击率\s*([+-]?\d+(?:\.\d+)?)%$'
+attribute_power: 1.0
 description: "Chance for skill critical hits."

@@ -1,17 +1,13 @@
 package emaki.jiuwu.craft.forge.service;
 
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Map;
-import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 public final class BootstrapService {
@@ -101,33 +97,42 @@ public final class BootstrapService {
         if (Files.exists(target)) {
             return;
         }
-        copyBundledResource(relativePath, target);
+        try {
+            if (!YamlFiles.copyResourceIfMissing(plugin, "defaults/" + relativePath, target.toFile())) {
+                messages.warning("console.default_file_missing", Map.of("path", "defaults/" + relativePath));
+            }
+        } catch (IOException exception) {
+            plugin.getLogger().warning("Failed to copy defaults/" + relativePath + ": " + exception.getMessage());
+        }
     }
 
     private void mergeVersionedFile(String relativePath) {
-        YamlConfiguration runtime = YamlConfiguration.loadConfiguration(plugin.dataPath(relativePath).toFile());
-        YamlConfiguration bundled = loadBundledYaml(relativePath);
+        YamlConfiguration runtime = YamlFiles.load(plugin.dataPath(relativePath).toFile());
+        YamlConfiguration bundled = YamlFiles.loadResource(plugin, "defaults/" + relativePath);
         if (bundled == null) {
             return;
         }
         String versionKey = relativePath.startsWith("lang/") ? "lang_version" : "config_version";
         String currentVersion = runtime.getString(versionKey);
         String bundledVersion = bundled.getString(versionKey);
+        if (bundledVersion == null) {
+            return;
+        }
         if (currentVersion != null && compareVersions(currentVersion, bundledVersion) >= 0) {
             return;
         }
-        mergeMissingValues(runtime, bundled, "");
+        YamlFiles.mergeMissingValues(runtime, bundled);
         applyVersionMigrations(relativePath, runtime);
         runtime.set(versionKey, bundledVersion);
         try {
-            runtime.save(plugin.dataPath(relativePath).toFile());
+            YamlFiles.save(plugin.dataPath(relativePath).toFile(), runtime);
         } catch (IOException exception) {
             plugin.getLogger().warning("Failed to save merged config " + relativePath + ": " + exception.getMessage());
         }
     }
 
     private boolean shouldReleaseDefaultData() {
-        YamlConfiguration configuration = YamlConfiguration.loadConfiguration(plugin.dataPath("config.yml").toFile());
+        YamlConfiguration configuration = YamlFiles.load(plugin.dataPath("config.yml").toFile());
         return configuration.getBoolean("release_default_data", true);
     }
 
@@ -159,19 +164,6 @@ public final class BootstrapService {
         return 0;
     }
 
-    private void mergeMissingValues(YamlConfiguration runtime, ConfigurationSection defaults, String parentPath) {
-        for (String key : defaults.getKeys(false)) {
-            String fullPath = Texts.isBlank(parentPath) ? key : parentPath + "." + key;
-            if (defaults.isConfigurationSection(key)) {
-                mergeMissingValues(runtime, defaults.getConfigurationSection(key), fullPath);
-                continue;
-            }
-            if (!runtime.contains(fullPath)) {
-                runtime.set(fullPath, defaults.get(key));
-            }
-        }
-    }
-
     private void applyVersionMigrations(String relativePath, YamlConfiguration runtime) {
         if (!relativePath.startsWith("lang/")) {
             return;
@@ -192,37 +184,12 @@ public final class BootstrapService {
     }
 
 
-    private void copyBundledResource(String relativePath, Path target) {
-        ensureDirectory(target.getParent());
-        try (InputStream inputStream = plugin.getResource("defaults/" + relativePath)) {
-            if (inputStream == null) {
-                plugin.getLogger().warning("Missing bundled resource defaults/" + relativePath);
-                return;
-            }
-            Files.copy(inputStream, target, StandardCopyOption.REPLACE_EXISTING);
-        } catch (IOException exception) {
-            plugin.getLogger().warning("Failed to copy defaults/" + relativePath + ": " + exception.getMessage());
-        }
-    }
-
-    private YamlConfiguration loadBundledYaml(String relativePath) {
-        try (InputStream inputStream = plugin.getResource("defaults/" + relativePath)) {
-            if (inputStream == null) {
-                return null;
-            }
-            return YamlConfiguration.loadConfiguration(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
-        } catch (IOException exception) {
-            plugin.getLogger().warning("Failed to read bundled yaml defaults/" + relativePath + ": " + exception.getMessage());
-            return null;
-        }
-    }
-
     private void ensureDirectory(Path path) {
         if (path == null) {
             return;
         }
         try {
-            Files.createDirectories(path);
+            YamlFiles.ensureDirectory(path);
         } catch (IOException exception) {
             plugin.getLogger().warning("Failed to create directory " + path + ": " + exception.getMessage());
         }

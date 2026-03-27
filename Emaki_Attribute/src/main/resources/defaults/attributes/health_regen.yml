@@ -1,4 +1,4 @@
-id: health_regen
+﻿id: health_regen
 display_name: "生命恢复"
 aliases: [hp_regen, health_regen]
 value_kind: REGEN
@@ -11,5 +11,6 @@ allow_negative: true
 priority: 90
 lore_format_id: default_regen
 lore_patterns:
-  - '^([+-]?\d+(?:\.\d+)?)\s*生命恢复/秒$'
+  - '^生命恢复\s*([+-]?\d+(?:\.\d+)?)/秒$'
+attribute_power: 1.0
 description: "Adds health regeneration per second."

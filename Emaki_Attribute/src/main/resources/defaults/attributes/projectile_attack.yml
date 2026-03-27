@@ -1,4 +1,4 @@
-id: projectile_attack
+﻿id: projectile_attack
 display_name: "投射物伤害"
 aliases: [projectile_damage, ranged_damage, bow_damage]
 value_kind: FLAT
@@ -12,4 +12,5 @@ priority: 92
 lore_format_id: default_flat
 lore_patterns:
   - '^投射物伤害\s*([+-]?\d+(?:\.\d+)?)$'
+attribute_power: 1.0
 description: "Adds flat projectile damage."

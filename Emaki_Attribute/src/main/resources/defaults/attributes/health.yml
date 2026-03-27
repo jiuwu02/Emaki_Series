@@ -1,4 +1,4 @@
-id: health
+﻿id: health
 display_name: "生命值"
 aliases: [hp, max_health]
 value_kind: RESOURCE
@@ -11,5 +11,6 @@ allow_negative: false
 priority: 100
 lore_format_id: default_resource
 lore_patterns:
-  - '^([+-]?\d+(?:\.\d+)?)\s*生命值$'
+  - '^生命值\s*([+-]?\d+(?:\.\d+)?)$'
+attribute_power: 1.0
 description: "Adds maximum health."

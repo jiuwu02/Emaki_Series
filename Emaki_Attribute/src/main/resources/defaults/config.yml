@@ -1,6 +1,13 @@
+config_version: "1.0"
 debug: false
+language: zh_CN
 hard_lock_damage: true
 default_damage_type: physical
 regen_interval_ticks: 20
 sync_delay_ticks: 1
-allowed_damage_causes: []
+allowed_damage_causes:
+  # String form: just allow the cause and use the default damage type plus the event's damage.
+  # Map form: override the damage type and the damage value for that cause.
+  - cause: SUFFOCATION
+    damage_type: physical
+    damage: 1

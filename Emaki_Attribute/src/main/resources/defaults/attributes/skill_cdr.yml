@@ -1,4 +1,4 @@
-id: skill_cdr
+﻿id: skill_cdr
 display_name: "技能冷却缩减"
 aliases: [cdr, cooldown_reduction]
 value_kind: PERCENT
@@ -11,5 +11,6 @@ allow_negative: false
 priority: 40
 lore_format_id: default_percent
 lore_patterns:
-  - '^([+-]?\d+(?:\.\d+)?)%\s*技能冷却缩减$'
+  - '^技能冷却缩减\s*([+-]?\d+(?:\.\d+)?)%$'
+attribute_power: 1.0
 description: "Reduces skill cooldowns."

@@ -1,4 +1,4 @@
-id: skill_damage_bonus
+﻿id: skill_damage_bonus
 display_name: "技能伤害"
 aliases: [skill_damage, ability_damage]
 value_kind: PERCENT
@@ -11,5 +11,6 @@ allow_negative: true
 priority: 70
 lore_format_id: default_percent
 lore_patterns:
-  - '^([+-]?\d+(?:\.\d+)?)%\s*技能伤害$'
+  - '^技能伤害\s*([+-]?\d+(?:\.\d+)?)%$'
+attribute_power: 1.0
 description: "Extra skill damage percentage."

@@ -1,0 +1,17 @@
+﻿id: attack_speed
+display_name: "攻击速度"
+aliases:
+  [atk_speed, attack_interval, attack_cooldown, item_cooldown, use_cooldown]
+value_kind: FLAT
+target_type: GENERIC
+target_id: attack_speed
+default_value: 0.0
+min_value: 0.0
+max_value: 999999.0
+allow_negative: false
+priority: 35
+lore_format_id: default_flat
+lore_patterns:
+  - '^攻击速度\s*([+-]?\d+(?:\.\d+)?)$'
+attribute_power: 1.0
+description: "Adds ticks per second."

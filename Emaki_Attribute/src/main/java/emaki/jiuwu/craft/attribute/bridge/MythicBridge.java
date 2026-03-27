@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.attribute.bridge;
 
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.attribute.model.AttributeSnapshot;
+import emaki.jiuwu.craft.attribute.model.DamageContextVariables;
 import emaki.jiuwu.craft.attribute.model.ResourceState;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
 import io.lumine.mythic.api.adapters.AbstractEntity;
@@ -18,7 +19,6 @@ import io.lumine.mythic.core.utils.annotations.MythicCondition;
 import io.lumine.mythic.core.utils.annotations.MythicMechanic;
 import java.io.File;
 import java.util.Collection;
-import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import org.bukkit.entity.LivingEntity;
@@ -104,7 +104,7 @@ public final class MythicBridge implements Listener {
             if (damageTypeId == null || damageTypeId.isBlank()) {
                 damageTypeId = attributeService.defaultDamageTypeId();
             }
-            Map<String, Object> context = new LinkedHashMap<>();
+            DamageContextVariables.Builder context = DamageContextVariables.builder();
             context.put("mythic_skill", getTypeName());
             context.put("mythic_power", metadata.getPower());
             context.put("mythic_trigger", metadata.getTrigger() == null ? "" : metadata.getTrigger().getUniqueId().toString());
@@ -125,13 +125,13 @@ public final class MythicBridge implements Listener {
                     if (target == null) {
                         continue;
                     }
-                    applied |= attributeService.applyDamage(attacker, target, damageTypeId, baseDamage, context);
+                    applied |= attributeService.applyDamage(attacker, target, damageTypeId, baseDamage, context.build());
                 }
                 return applied;
             }
             LivingEntity trigger = resolveLiving(metadata.getTrigger());
             if (trigger != null && trigger != attacker) {
-                applied = attributeService.applyDamage(attacker, trigger, damageTypeId, baseDamage, context);
+                applied = attributeService.applyDamage(attacker, trigger, damageTypeId, baseDamage, context.build());
             }
             return applied;
         }
@@ -248,7 +248,7 @@ public final class MythicBridge implements Listener {
                 };
             }
             AttributeSnapshot snapshot = attributeService.collectCombatSnapshot(livingEntity);
-            Double value = snapshot.values().get(attributeId);
+            Double value = attributeService.resolveAttributeValue(snapshot, attributeId);
             return value == null ? 0D : value;
         }
 

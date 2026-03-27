@@ -5,6 +5,7 @@ import emaki.jiuwu.craft.attribute.api.AttributeContribution;
 import emaki.jiuwu.craft.attribute.api.AttributeContributionProvider;
 import emaki.jiuwu.craft.attribute.api.EmakiAttributeDamageEvent;
 import emaki.jiuwu.craft.attribute.config.AttributeConfig;
+import emaki.jiuwu.craft.attribute.loader.AttributeBalanceRegistry;
 import emaki.jiuwu.craft.attribute.loader.AttributePresetRegistry;
 import emaki.jiuwu.craft.attribute.loader.AttributeRegistry;
 import emaki.jiuwu.craft.attribute.loader.DamageTypeRegistry;
@@ -13,18 +14,26 @@ import emaki.jiuwu.craft.attribute.loader.LoreFormatRegistry;
 import emaki.jiuwu.craft.attribute.model.AttributeDefinition;
 import emaki.jiuwu.craft.attribute.model.AttributeSnapshot;
 import emaki.jiuwu.craft.attribute.model.AttributeSnapshotCodecs;
+import emaki.jiuwu.craft.attribute.model.DamageContextVariables;
+import emaki.jiuwu.craft.attribute.model.DamageStageSource;
+import emaki.jiuwu.craft.attribute.model.DamageContext;
 import emaki.jiuwu.craft.attribute.model.DamageRequest;
 import emaki.jiuwu.craft.attribute.model.DamageResult;
 import emaki.jiuwu.craft.attribute.model.DamageTypeDefinition;
 import emaki.jiuwu.craft.attribute.model.DefaultProfile;
 import emaki.jiuwu.craft.attribute.model.ProjectileDamageSnapshot;
+import emaki.jiuwu.craft.attribute.model.RecoveryDefinition;
 import emaki.jiuwu.craft.attribute.model.ResourceDefinition;
 import emaki.jiuwu.craft.attribute.model.ResourceState;
 import emaki.jiuwu.craft.attribute.model.ResourceSyncReason;
 import emaki.jiuwu.craft.attribute.model.AttributeValueKind;
+import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.pdc.PdcPartition;
 import emaki.jiuwu.craft.corelib.pdc.PdcService;
 import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
+import emaki.jiuwu.craft.corelib.math.Numbers;
+import emaki.jiuwu.craft.corelib.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.text.Texts;
 import java.util.LinkedHashMap;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -36,6 +45,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import org.bukkit.Bukkit;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -48,11 +58,14 @@ import org.bukkit.persistence.PersistentDataType;
 public final class AttributeService {
 
     private static final long PROJECTILE_TTL_MS = 5 * 60 * 1000L;
+    private static final double DEFAULT_WALK_SPEED_BLOCKS_PER_SECOND = 4.317D;
+    private static final int DEFAULT_ATTACK_COOLDOWN_TICKS = 20;
 
     private final EmakiAttributePlugin plugin;
     private final PdcService pdcService;
     private volatile AttributeConfig config;
     private final AttributeRegistry attributeRegistry;
+    private final AttributeBalanceRegistry attributeBalanceRegistry;
     private final DamageTypeRegistry damageTypeRegistry;
     private final DefaultProfileRegistry defaultProfileRegistry;
     private final LoreFormatRegistry loreFormatRegistry;
@@ -69,6 +82,7 @@ public final class AttributeService {
                             PdcService pdcService,
                             AttributeConfig config,
                             AttributeRegistry attributeRegistry,
+                            AttributeBalanceRegistry attributeBalanceRegistry,
                             DamageTypeRegistry damageTypeRegistry,
                             DefaultProfileRegistry defaultProfileRegistry,
                             LoreFormatRegistry loreFormatRegistry,
@@ -77,6 +91,7 @@ public final class AttributeService {
         this.pdcService = pdcService;
         this.config = config;
         this.attributeRegistry = attributeRegistry;
+        this.attributeBalanceRegistry = attributeBalanceRegistry;
         this.damageTypeRegistry = damageTypeRegistry;
         this.defaultProfileRegistry = defaultProfileRegistry;
         this.loreFormatRegistry = loreFormatRegistry;
@@ -94,6 +109,10 @@ public final class AttributeService {
 
     public AttributeRegistry attributeRegistry() {
         return attributeRegistry;
+    }
+
+    public AttributeBalanceRegistry attributeBalanceRegistry() {
+        return attributeBalanceRegistry;
     }
 
     public DamageTypeRegistry damageTypeRegistry() {
@@ -159,7 +178,10 @@ public final class AttributeService {
     }
 
     public String defaultProfileSignature() {
-        return SignatureUtil.stableSignature(defaultProfileRegistry.mergedProfiles());
+        return SignatureUtil.combine(
+            SignatureUtil.stableSignature(defaultProfileRegistry.mergedProfiles()),
+            SignatureUtil.stableSignature(attributeRegistry.all().values())
+        );
     }
 
     public Map<String, ResourceDefinition> resourceDefinitions() {
@@ -179,7 +201,29 @@ public final class AttributeService {
                 merged.putIfAbsent(normalizeId(entry.getKey()), entry.getValue());
             }
         }
+        for (AttributeDefinition definition : attributeRegistry.all().values()) {
+            merged.putIfAbsent(definition.id(), definition.defaultValue());
+        }
         return merged;
+    }
+
+    public Double resolveAttributeValue(AttributeSnapshot snapshot, String attributeId) {
+        if (snapshot == null || attributeId == null || attributeId.isBlank()) {
+            return null;
+        }
+        String normalized = normalizeId(attributeId);
+        AttributeDefinition definition = attributeRegistry.resolve(attributeId);
+        if (definition != null) {
+            Double value = snapshot.values().get(definition.id());
+            if (value != null) {
+                return value;
+            }
+        }
+        Double value = snapshot.values().get(normalized);
+        if (value != null) {
+            return value;
+        }
+        return definition == null ? null : snapshot.values().get(definition.id());
     }
 
     public void registerContributionProvider(AttributeContributionProvider provider) {
@@ -211,7 +255,10 @@ public final class AttributeService {
             clearItemCache(itemStack);
             return AttributeSnapshot.empty(SignatureUtil.stableSignature(List.of()));
         }
-        String sourceSignature = SignatureUtil.stableSignature(normalizedLore);
+        String sourceSignature = SignatureUtil.combine(
+            SignatureUtil.stableSignature(normalizedLore),
+            SignatureUtil.stableSignature(attributeRegistry.all().values())
+        );
         String cachedSignature = pdcService.get(itemStack, itemPartition, "source_signature", PersistentDataType.STRING);
         AttributeSnapshot cachedSnapshot = pdcService.readBlob(itemStack, itemPartition, "snapshot", AttributeSnapshotCodecs.ATTRIBUTE_SNAPSHOT);
         if (sourceSignature.equals(cachedSignature) && cachedSnapshot != null) {
@@ -243,6 +290,7 @@ public final class AttributeService {
         List<String> signatureParts = new ArrayList<>();
         mergeValues(values, defaultAttributeValues());
         signatureParts.add("defaults:" + SignatureUtil.stableSignature(defaultProfileRegistry.mergedProfiles()));
+        signatureParts.add("attributes:" + SignatureUtil.stableSignature(attributeRegistry.all().values()));
         PlayerInventory inventory = player.getInventory();
         List<ItemSlot> slots = List.of(
             new ItemSlot("main_hand", inventory.getItemInMainHand()),
@@ -278,6 +326,7 @@ public final class AttributeService {
             }
             signatureParts.add(normalizeId(provider.id()) + ":" + SignatureUtil.stableSignature(providerValues));
         }
+        applyDerivedValues(values);
         String sourceSignature = SignatureUtil.stableSignature(signatureParts);
         AttributeSnapshot snapshot = new AttributeSnapshot(AttributeSnapshot.CURRENT_SCHEMA_VERSION, sourceSignature, values, System.currentTimeMillis());
         String cachedSignature = pdcService.get(player, combatPartition, "source_signature", PersistentDataType.STRING);
@@ -377,6 +426,7 @@ public final class AttributeService {
             Double override = "health".equals(resourceDefinition.id()) ? healthOverride : null;
             syncResource(player, resourceDefinition, snapshot, reason, override);
         }
+        syncMovementSpeed(player, snapshot);
     }
 
     public ResourceState syncResource(Player player,
@@ -578,72 +628,223 @@ public final class AttributeService {
         return snapshot;
     }
 
+    public DamageContext createDamageContext(LivingEntity attacker,
+                                             LivingEntity target,
+                                             Projectile projectile,
+                                             EntityDamageEvent.DamageCause cause,
+                                             String damageTypeId,
+                                             double sourceDamage,
+                                             double baseDamage,
+                                             AttributeSnapshot attackerSnapshot,
+                                             AttributeSnapshot targetSnapshot,
+                                             DamageContextVariables context) {
+        DamageTypeDefinition damageType = resolveDamageType(damageTypeId);
+        AttributeSnapshot resolvedAttacker = attackerSnapshot;
+        if (resolvedAttacker == null) {
+            resolvedAttacker = attacker == null ? AttributeSnapshot.empty("") : collectCombatSnapshot(attacker);
+        }
+        AttributeSnapshot resolvedTarget = targetSnapshot;
+        if (resolvedTarget == null) {
+            resolvedTarget = target == null ? AttributeSnapshot.empty("") : collectCombatSnapshot(target);
+        }
+        DamageContextVariables.Builder merged = DamageContextVariables.builder();
+        merged.putAll(context);
+        String attackerLabel = entityLabel(attacker, cause, messageOrFallback("damage.environment", "环境"));
+        String targetLabel = entityLabel(target, null, messageOrFallback("damage.target", "目标"));
+        merged.put("attacker", attackerLabel);
+        merged.put("attacker_name", attackerLabel);
+        merged.put("attacker_type", attacker == null ? "" : attacker.getType().name());
+        merged.put("attacker_uuid", attacker == null ? "" : attacker.getUniqueId().toString());
+        merged.put("source", attackerLabel);
+        merged.put("source_name", attackerLabel);
+        merged.put("target", targetLabel);
+        merged.put("target_name", targetLabel);
+        merged.put("target_type", target == null ? "" : target.getType().name());
+        merged.put("target_uuid", target == null ? "" : target.getUniqueId().toString());
+        merged.put("damage_type", damageType.displayName());
+        merged.put("damage_type_name", damageType.displayName());
+        merged.put("damage_type_id", damageType.id());
+        merged.put("source_damage", sourceDamage);
+        merged.put("input_damage", sourceDamage);
+        merged.put("base_damage", baseDamage);
+        merged.put("damage", baseDamage);
+        merged.put("cause", cause == null ? "" : cause.name());
+        merged.put("cause_name", causeDisplayName(cause));
+        merged.put("cause_id", cause == null ? "" : normalizeId(cause.name()));
+        merged.put("damage_cause", cause == null ? "" : cause.name());
+        merged.put("damage_cause_name", causeDisplayName(cause));
+        merged.put("damage_cause_id", cause == null ? "" : normalizeId(cause.name()));
+        if (projectile != null) {
+            merged.put("projectile_type", projectile.getType().name());
+            merged.put("projectile_uuid", projectile.getUniqueId().toString());
+        }
+        return DamageContext.of(attacker, target, projectile, cause, damageType.id(), sourceDamage, baseDamage, resolvedAttacker, resolvedTarget, merged.build());
+    }
+
+    public DamageContext createDamageContext(LivingEntity attacker,
+                                             LivingEntity target,
+                                             Projectile projectile,
+                                             EntityDamageEvent.DamageCause cause,
+                                             String damageTypeId,
+                                             double sourceDamage,
+                                             double baseDamage,
+                                             Map<String, ?> context) {
+        return createDamageContext(attacker, target, projectile, cause, damageTypeId, sourceDamage, baseDamage, null, null, DamageContextVariables.from(context));
+    }
+
+    public DamageContext createDamageContext(LivingEntity attacker,
+                                             LivingEntity target,
+                                             Projectile projectile,
+                                             EntityDamageEvent.DamageCause cause,
+                                             String damageTypeId,
+                                             double sourceDamage,
+                                             double baseDamage,
+                                             DamageContextVariables context) {
+        return createDamageContext(attacker, target, projectile, cause, damageTypeId, sourceDamage, baseDamage, null, null, context);
+    }
+
+    public DamageResult calculateDamage(DamageContext damageContext) {
+        if (damageContext == null) {
+            return new DamageResult("", 0D, false, 0D, Map.of(), DamageContext.legacy("", 0D, null, null, DamageContextVariables.empty()));
+        }
+        String resolvedTypeId = damageContext.damageTypeId();
+        if (Texts.isBlank(resolvedTypeId)) {
+            resolvedTypeId = defaultDamageTypeId();
+        }
+        if (damageContext.attacker() instanceof Player player) {
+            String override = consumeDamageTypeOverride(player);
+            if (!Texts.isBlank(override) && Texts.isBlank(damageContext.damageTypeId())) {
+                resolvedTypeId = override;
+            }
+        }
+        DamageTypeDefinition damageType = resolveDamageType(resolvedTypeId);
+        DamageContext resolvedContext = damageContext.withDamageTypeId(damageType.id());
+        DamageRequest request = new DamageRequest(resolvedContext);
+        return damageEngine.resolve(request, damageType, ThreadLocalRandom.current().nextDouble(0D, 100D));
+    }
+
     public DamageResult calculateDamage(LivingEntity attacker,
                                         LivingEntity target,
                                         String damageTypeId,
                                         double baseDamage,
-                                        Map<String, Object> context) {
-        String resolvedTypeId = damageTypeId == null || damageTypeId.isBlank() ? null : normalizeId(damageTypeId);
-        if ((resolvedTypeId == null || resolvedTypeId.isBlank()) && attacker != null) {
-            resolvedTypeId = consumeDamageTypeOverride(attacker);
+                                        DamageContextVariables context) {
+        double sourceDamage = contextDouble(context, "source_damage", baseDamage);
+        EntityDamageEvent.DamageCause cause = extractDamageCause(context);
+        DamageContext damageContext = createDamageContext(attacker, target, null, cause, damageTypeId, sourceDamage, baseDamage, context);
+        return calculateDamage(damageContext);
+    }
+
+    public DamageResult calculateDamage(LivingEntity attacker,
+                                        LivingEntity target,
+                                        String damageTypeId,
+                                        double baseDamage,
+                                  Map<String, ?> context) {
+        return calculateDamage(attacker, target, damageTypeId, baseDamage, DamageContextVariables.from(context));
+    }
+
+    public boolean applyDamage(DamageContext damageContext) {
+        if (damageContext == null || damageContext.target() == null || !damageContext.target().isValid() || damageContext.target().isDead()) {
+            return false;
         }
-        if (resolvedTypeId == null || resolvedTypeId.isBlank()) {
-            resolvedTypeId = defaultDamageTypeId();
+        if (damageContext.projectile() != null) {
+            return applyProjectileDamage(damageContext);
         }
-        DamageTypeDefinition damageType = resolveDamageType(resolvedTypeId);
-        AttributeSnapshot attackerSnapshot = attacker == null ? AttributeSnapshot.empty("") : collectCombatSnapshot(attacker);
-        AttributeSnapshot targetSnapshot = target == null ? AttributeSnapshot.empty("") : collectCombatSnapshot(target);
-        Map<String, Object> normalizedContext = normalizeContext(context);
-        DamageRequest request = new DamageRequest(damageType.id(), baseDamage, attackerSnapshot, targetSnapshot, normalizedContext);
-        return damageEngine.resolve(request, damageType, ThreadLocalRandom.current().nextDouble(0D, 100D));
+        DamageResult result = calculateDamage(damageContext);
+        EmakiAttributeDamageEvent event = new EmakiAttributeDamageEvent(damageContext, result);
+        Bukkit.getPluginManager().callEvent(event);
+        if (event.isCancelled() || event.getFinalDamage() <= 0D) {
+            return false;
+        }
+        double finalDamage = event.getFinalDamage();
+        applyDirectDamage(damageContext.target(), finalDamage, damageContext.attacker());
+        if (damageContext.attacker() instanceof Player player) {
+            startAttackCooldown(player, damageContext.attackerSnapshot(), player.getInventory().getItemInMainHand());
+        }
+        DamageTypeDefinition damageType = resolveDamageType(result.damageTypeId());
+        applyRecovery(damageContext, damageType, result, finalDamage);
+        notifyDamageMessages(damageContext, damageType, result, finalDamage);
+        scheduleHealthSync(damageContext.target());
+        return true;
     }
 
     public boolean applyDamage(LivingEntity attacker,
                                LivingEntity target,
                                String damageTypeId,
                                double baseDamage,
-                               Map<String, Object> context) {
-        if (target == null || !target.isValid() || target.isDead()) {
+                               DamageContextVariables context) {
+        double sourceDamage = contextDouble(context, "source_damage", baseDamage);
+        EntityDamageEvent.DamageCause cause = extractDamageCause(context);
+        DamageContext damageContext = createDamageContext(attacker, target, null, cause, damageTypeId, sourceDamage, baseDamage, context);
+        return applyDamage(damageContext);
+    }
+
+    public boolean applyDamage(LivingEntity attacker,
+                               LivingEntity target,
+                               String damageTypeId,
+                               double baseDamage,
+                               Map<String, ?> context) {
+        return applyDamage(attacker, target, damageTypeId, baseDamage, DamageContextVariables.from(context));
+    }
+
+    public boolean applyProjectileDamage(DamageContext damageContext) {
+        if (damageContext == null || damageContext.projectile() == null || damageContext.target() == null) {
             return false;
         }
-        DamageResult result = calculateDamage(attacker, target, damageTypeId, baseDamage, context);
-        EmakiAttributeDamageEvent event = new EmakiAttributeDamageEvent(attacker, target, null, result.damageTypeId(), baseDamage, result);
+        Projectile projectile = damageContext.projectile();
+        ProjectileDamageSnapshot snapshot = readProjectileSnapshot(projectile);
+        if (snapshot == null) {
+            LivingEntity shooter = projectile.getShooter() instanceof LivingEntity livingEntity ? livingEntity : damageContext.attacker();
+            return applyDamage(shooter, damageContext.target(), defaultProjectileDamageTypeId(), damageContext.baseDamage(), damageContext.variables());
+        }
+        AttributeSnapshot attackSnapshot = snapshot.attackSnapshot() == null ? AttributeSnapshot.empty("") : snapshot.attackSnapshot();
+        AttributeSnapshot targetSnapshot = collectCombatSnapshot(damageContext.target());
+        LivingEntity shooter = projectile.getShooter() instanceof LivingEntity livingEntity ? livingEntity : damageContext.attacker();
+        DamageContext resolvedContext = createDamageContext(
+            shooter,
+            damageContext.target(),
+            projectile,
+            damageContext.cause(),
+            snapshot.damageTypeId(),
+            damageContext.sourceDamage(),
+            damageContext.baseDamage(),
+            attackSnapshot,
+            targetSnapshot,
+            damageContext.variables()
+        );
+        DamageResult result = calculateDamage(resolvedContext);
+        DamageTypeDefinition damageType = resolveDamageType(result.damageTypeId());
+        EmakiAttributeDamageEvent event = new EmakiAttributeDamageEvent(resolvedContext, result);
         Bukkit.getPluginManager().callEvent(event);
         if (event.isCancelled() || event.getFinalDamage() <= 0D) {
             return false;
         }
-        applyDirectDamage(target, event.getFinalDamage(), attacker);
-        scheduleHealthSync(target);
+        double finalDamage = event.getFinalDamage();
+        applyDirectDamage(damageContext.target(), finalDamage, projectile);
+        applyRecovery(resolvedContext, damageType, result, finalDamage);
+        notifyDamageMessages(resolvedContext, damageType, result, finalDamage);
+        scheduleHealthSync(damageContext.target());
         return true;
     }
 
     public boolean applyProjectileDamage(Projectile projectile,
                                          LivingEntity target,
                                          double baseDamage,
-                                         Map<String, Object> context) {
+                                         DamageContextVariables context) {
         if (projectile == null || target == null) {
             return false;
         }
-        ProjectileDamageSnapshot snapshot = readProjectileSnapshot(projectile);
-        if (snapshot == null) {
-            LivingEntity shooter = projectile.getShooter() instanceof LivingEntity livingEntity ? livingEntity : null;
-            return applyDamage(shooter, target, defaultProjectileDamageTypeId(), baseDamage, context);
-        }
-        AttributeSnapshot attackSnapshot = snapshot.attackSnapshot() == null ? AttributeSnapshot.empty("") : snapshot.attackSnapshot();
-        AttributeSnapshot targetSnapshot = collectCombatSnapshot(target);
-        DamageTypeDefinition damageType = resolveDamageType(snapshot.damageTypeId());
-        Map<String, Object> normalizedContext = normalizeContext(context);
-        DamageRequest request = new DamageRequest(damageType.id(), baseDamage, attackSnapshot, targetSnapshot, normalizedContext);
-        DamageResult result = damageEngine.resolve(request, damageType, ThreadLocalRandom.current().nextDouble(0D, 100D));
         LivingEntity shooter = projectile.getShooter() instanceof LivingEntity livingEntity ? livingEntity : null;
-        EmakiAttributeDamageEvent event = new EmakiAttributeDamageEvent(shooter, target, projectile, result.damageTypeId(), baseDamage, result);
-        Bukkit.getPluginManager().callEvent(event);
-        if (event.isCancelled() || event.getFinalDamage() <= 0D) {
-            return false;
-        }
-        applyDirectDamage(target, event.getFinalDamage(), projectile);
-        scheduleHealthSync(target);
-        return true;
+        double sourceDamage = contextDouble(context, "source_damage", baseDamage);
+        EntityDamageEvent.DamageCause cause = extractDamageCause(context);
+        DamageContext damageContext = createDamageContext(shooter, target, projectile, cause, defaultProjectileDamageTypeId(), sourceDamage, baseDamage, context);
+        return applyProjectileDamage(damageContext);
+    }
+
+    public boolean applyProjectileDamage(Projectile projectile,
+                                         LivingEntity target,
+                                         double baseDamage,
+                                         Map<String, ?> context) {
+        return applyProjectileDamage(projectile, target, baseDamage, DamageContextVariables.from(context));
     }
 
     public void clearPlayerDamageTypeOverride(Player player) {
@@ -652,18 +853,38 @@ public final class AttributeService {
         }
     }
 
-    private Map<String, Object> normalizeContext(Map<String, Object> context) {
-        if (context == null || context.isEmpty()) {
-            return Map.of();
+    public boolean isAttackCoolingDown(Player player) {
+        if (player == null) {
+            return false;
         }
-        Map<String, Object> normalized = new LinkedHashMap<>();
-        for (Map.Entry<String, Object> entry : context.entrySet()) {
-            if (entry.getKey() == null) {
-                continue;
-            }
-            normalized.put(normalizeId(entry.getKey()), entry.getValue());
+        Long until = pdcService.get(player, combatPartition, "attack_cooldown_until", PersistentDataType.LONG);
+        if (until == null || until <= 0L) {
+            return false;
         }
-        return normalized;
+        long now = System.currentTimeMillis();
+        if (now >= until) {
+            pdcService.remove(player, combatPartition, "attack_cooldown_until");
+            return false;
+        }
+        return true;
+    }
+
+    public int startAttackCooldown(Player player, AttributeSnapshot snapshot, ItemStack itemStack) {
+        if (player == null) {
+            return 0;
+        }
+        int cooldownTicks = resolveAttackCooldownTicks(snapshot);
+        if (cooldownTicks <= 0) {
+            pdcService.remove(player, combatPartition, "attack_cooldown_until");
+            return 0;
+        }
+        long until = System.currentTimeMillis() + (cooldownTicks * 50L);
+        pdcService.set(player, combatPartition, "attack_cooldown_until", PersistentDataType.LONG, until);
+        ItemStack held = itemStack == null ? player.getInventory().getItemInMainHand() : itemStack;
+        if (held != null && !held.getType().isAir()) {
+            player.setCooldown(held.getType(), cooldownTicks);
+        }
+        return cooldownTicks;
     }
 
     private String normalizeId(String value) {
@@ -702,6 +923,7 @@ public final class AttributeService {
         List<String> signatureParts = new ArrayList<>();
         mergeValues(values, defaultAttributeValues());
         signatureParts.add("defaults:" + SignatureUtil.stableSignature(defaultProfileRegistry.mergedProfiles()));
+        signatureParts.add("attributes:" + SignatureUtil.stableSignature(attributeRegistry.all().values()));
         AttributeSnapshot cached = pdcService.readBlob(entity, combatPartition, "snapshot", AttributeSnapshotCodecs.ATTRIBUTE_SNAPSHOT);
         EntityEquipment equipment = entity.getEquipment();
         if (equipment != null) {
@@ -722,6 +944,7 @@ public final class AttributeService {
                 signatureParts.add(slot.name() + ":" + itemSnapshot.sourceSignature());
             }
         }
+        applyDerivedValues(values);
         String sourceSignature = SignatureUtil.stableSignature(signatureParts);
         AttributeSnapshot snapshot = new AttributeSnapshot(AttributeSnapshot.CURRENT_SCHEMA_VERSION, sourceSignature, values, System.currentTimeMillis());
         String cachedSignature = pdcService.get(entity, combatPartition, "source_signature", PersistentDataType.STRING);
@@ -756,6 +979,370 @@ public final class AttributeService {
             }
             target.playHurtAnimation(yaw);
         }
+    }
+
+    private void applyRecovery(DamageContext damageContext,
+                               DamageTypeDefinition damageType,
+                               DamageResult result,
+                               double finalDamage) {
+        if (damageContext == null || damageType == null || !damageType.hasRecovery() || result == null) {
+            return;
+        }
+        LivingEntity attacker = damageContext.attacker();
+        if (attacker == null || !attacker.isValid() || attacker.isDead()) {
+            return;
+        }
+        double recoveryAmount = resolveRecoveryAmount(damageContext, damageType.recovery(), finalDamage);
+        if (recoveryAmount <= 0D) {
+            return;
+        }
+        double currentHealth = Math.max(0D, attacker.getHealth());
+        double maxHealth = Math.max(1D, attacker.getMaxHealth());
+        attacker.setHealth(Math.min(maxHealth, currentHealth + recoveryAmount));
+        scheduleHealthSync(attacker);
+    }
+
+    private void notifyDamageMessages(DamageContext damageContext,
+                                      DamageTypeDefinition damageType,
+                                      DamageResult result,
+                                      double finalDamage) {
+        if (damageContext == null || damageType == null || result == null) {
+            return;
+        }
+        Map<String, Object> replacements = buildDamageMessageReplacements(damageContext, damageType, result, finalDamage);
+        Player attackerPlayer = damageContext.attacker() instanceof Player player ? player : null;
+        Player targetPlayer = damageContext.target() instanceof Player player ? player : null;
+        if (attackerPlayer != null && targetPlayer != null && attackerPlayer.getUniqueId().equals(targetPlayer.getUniqueId())) {
+            sendDamageMessage(attackerPlayer, firstNonBlank(damageType.attackerMessage(), damageType.targetMessage()), replacements);
+            return;
+        }
+        sendDamageMessage(attackerPlayer, damageType.attackerMessage(), replacements);
+        sendDamageMessage(targetPlayer, damageType.targetMessage(), replacements);
+    }
+
+    private void sendDamageMessage(Player player, String template, Map<String, Object> replacements) {
+        if (player == null || Texts.isBlank(template)) {
+            return;
+        }
+        String rendered = Texts.formatTemplate(template, replacements);
+        if (Texts.isBlank(rendered)) {
+            return;
+        }
+        player.sendMessage(MiniMessages.parse(rendered));
+    }
+
+    private Map<String, Object> buildDamageMessageReplacements(DamageContext damageContext,
+                                                               DamageTypeDefinition damageType,
+                                                               DamageResult result,
+                                                               double finalDamage) {
+        Map<String, Object> replacements = new LinkedHashMap<>();
+        String attackerLabel = entityLabel(damageContext.attacker(), damageContext.cause(), messageOrFallback("damage.environment", "环境"));
+        String targetLabel = entityLabel(damageContext.target(), null, messageOrFallback("damage.target", "目标"));
+        String damageTypeLabel = Texts.isBlank(damageType.displayName()) ? damageType.id() : damageType.displayName();
+        String sourceDamageText = Numbers.formatNumber(damageContext.sourceDamage(), "0.##");
+        String baseDamageText = Numbers.formatNumber(damageContext.baseDamage(), "0.##");
+        String finalDamageText = Numbers.formatNumber(finalDamage, "0.##");
+        String causeName = causeDisplayName(damageContext.cause());
+        replacements.put("attacker", attackerLabel);
+        replacements.put("attacker_name", attackerLabel);
+        replacements.put("attacker_type", damageContext.attacker() == null ? causeName : damageContext.attacker().getType().name());
+        replacements.put("attacker_uuid", damageContext.attacker() == null ? "" : damageContext.attacker().getUniqueId().toString());
+        replacements.put("source", attackerLabel);
+        replacements.put("source_name", attackerLabel);
+        replacements.put("source_type", damageContext.attacker() == null ? causeName : damageContext.attacker().getType().name());
+        replacements.put("source_uuid", damageContext.attacker() == null ? "" : damageContext.attacker().getUniqueId().toString());
+        replacements.put("target", targetLabel);
+        replacements.put("target_name", targetLabel);
+        replacements.put("target_type", damageContext.target() == null ? "" : damageContext.target().getType().name());
+        replacements.put("target_uuid", damageContext.target() == null ? "" : damageContext.target().getUniqueId().toString());
+        replacements.put("damage_type", damageTypeLabel);
+        replacements.put("damage_type_name", damageTypeLabel);
+        replacements.put("damage_type_id", damageType.id());
+        replacements.put("source_damage", sourceDamageText);
+        replacements.put("input_damage", sourceDamageText);
+        replacements.put("base_damage", baseDamageText);
+        replacements.put("final_damage", finalDamageText);
+        replacements.put("damage", finalDamageText);
+        replacements.put("cause", damageContext.causeName());
+        replacements.put("cause_name", causeName);
+        replacements.put("cause_id", damageContext.causeId());
+        replacements.put("damage_cause", damageContext.causeName());
+        replacements.put("damage_cause_name", causeName);
+        replacements.put("damage_cause_id", damageContext.causeId());
+        replacements.put("critical", result.critical());
+        replacements.put("critical_text", result.critical() ? messageOrFallback("damage.critical_text", "暴击") : "");
+        replacements.put("critical_suffix", result.critical() ? messageOrFallback("damage.critical_suffix", " <red>暴击</red>") : "");
+        replacements.put("roll", Numbers.formatNumber(result.roll(), "0.##"));
+        return replacements;
+    }
+
+    private String entityLabel(LivingEntity entity, EntityDamageEvent.DamageCause cause, String fallback) {
+        if (entity == null) {
+            if (cause != null) {
+                return causeDisplayName(cause);
+            }
+            return fallback;
+        }
+        String name = Texts.toStringSafe(entity.getName()).trim();
+        if (Texts.isBlank(name)) {
+            name = entity.getType().name();
+        }
+        return Texts.isBlank(name) ? fallback : name;
+    }
+
+    private String causeDisplayName(EntityDamageEvent.DamageCause cause) {
+        if (cause == null) {
+            return messageOrFallback("damage.cause.environment", "环境");
+        }
+        return switch (cause) {
+            case CONTACT -> messageOrFallback("damage.cause.contact", "接触");
+            case ENTITY_ATTACK -> messageOrFallback("damage.cause.entity_attack", "攻击");
+            case PROJECTILE -> messageOrFallback("damage.cause.projectile", "弹射物");
+            case SUFFOCATION -> messageOrFallback("damage.cause.suffocation", "窒息");
+            case FALL -> messageOrFallback("damage.cause.fall", "摔落");
+            case FIRE -> messageOrFallback("damage.cause.fire", "火焰");
+            case FIRE_TICK -> messageOrFallback("damage.cause.fire_tick", "燃烧");
+            case LAVA -> messageOrFallback("damage.cause.lava", "岩浆");
+            case DROWNING -> messageOrFallback("damage.cause.drowning", "溺水");
+            case BLOCK_EXPLOSION -> messageOrFallback("damage.cause.block_explosion", "方块爆炸");
+            case ENTITY_EXPLOSION -> messageOrFallback("damage.cause.entity_explosion", "爆炸");
+            case VOID -> messageOrFallback("damage.cause.void", "虚空");
+            case LIGHTNING -> messageOrFallback("damage.cause.lightning", "雷击");
+            case STARVATION -> messageOrFallback("damage.cause.starvation", "饥饿");
+            case POISON -> messageOrFallback("damage.cause.poison", "中毒");
+            case MAGIC -> messageOrFallback("damage.cause.magic", "魔法");
+            case WITHER -> messageOrFallback("damage.cause.wither", "凋零");
+            case FALLING_BLOCK -> messageOrFallback("damage.cause.falling_block", "落块");
+            case DRAGON_BREATH -> messageOrFallback("damage.cause.dragon_breath", "龙息");
+            case FLY_INTO_WALL -> messageOrFallback("damage.cause.fly_into_wall", "碰撞");
+            case HOT_FLOOR -> messageOrFallback("damage.cause.hot_floor", "高温");
+            case CAMPFIRE -> messageOrFallback("damage.cause.campfire", "营火");
+            case CRAMMING -> messageOrFallback("damage.cause.cramming", "挤压");
+            case FREEZE -> messageOrFallback("damage.cause.freeze", "冻结");
+            case SONIC_BOOM -> messageOrFallback("damage.cause.sonic_boom", "音爆");
+            default -> messageOrFallback("damage.cause.unknown", cause.name().toLowerCase(Locale.ROOT).replace('_', ' '));
+        };
+    }
+
+    private EntityDamageEvent.DamageCause extractDamageCause(DamageContextVariables context) {
+        if (context == null || context.isEmpty()) {
+            return null;
+        }
+        Object raw = context.get("cause");
+        if (raw == null) {
+            raw = context.get("damage_cause");
+        }
+        if (raw == null) {
+            raw = context.get("damage_cause_id");
+        }
+        if (raw == null) {
+            return null;
+        }
+        if (raw instanceof EntityDamageEvent.DamageCause cause) {
+            return cause;
+        }
+        String normalized = normalizeId(String.valueOf(raw));
+        if (Texts.isBlank(normalized)) {
+            return null;
+        }
+        try {
+            return EntityDamageEvent.DamageCause.valueOf(normalized.trim().toUpperCase(Locale.ROOT));
+        } catch (Exception ignored) {
+            return  null;
+        }
+    }
+
+    private EntityDamageEvent.DamageCause extractDamageCause(Map<String, ?> context) {
+        return extractDamageCause(DamageContextVariables.from(context));
+    }
+
+    private double contextDouble(DamageContextVariables context, String key, double fallback) {
+        if (context == null || context.isEmpty() || Texts.isBlank(key)) {
+            return fallback;
+        }
+        Double value = Numbers.tryParseDouble(context.get(normalizeId(key)), null);
+        return value == null ? fallback : value;
+    }
+
+    private double contextDouble(Map<String, ?> context, String key, double fallback) {
+        return contextDouble(DamageContextVariables.from(context), key, fallback);
+    }
+
+    private String firstNonBlank(String left, String right) {
+        return Texts.isBlank(left) ? right : left;
+    }
+
+    private void applyDerivedValues(Map<String, Double> values) {
+        if (values == null) {
+            return;
+        }
+        values.put("attribute_power", computeAttributePower(values));
+    }
+
+    private double computeAttributePower(Map<String, Double> values) {
+        if (values == null || values.isEmpty()) {
+            return 0D;
+        }
+        double total = 0D;
+        for (AttributeDefinition definition : attributeRegistry.all().values()) {
+            if (definition == null || "attribute_power".equals(definition.id())) {
+                continue;
+            }
+            Double value = values.get(definition.id());
+            if (value == null) {
+                continue;
+            }
+            double weight = attributeBalanceRegistry == null
+                ? definition.attributePower()
+                : attributeBalanceRegistry.weightOf(definition.id(), definition.attributePower());
+            total += value * weight;
+        }
+        return Math.max(0D, total);
+    }
+
+    private void syncMovementSpeed(Player player, AttributeSnapshot snapshot) {
+        if (player == null) {
+            return;
+        }
+        double flatSpeed = 0D;
+        double percentSpeed = 0D;
+        for (AttributeDefinition definition : attributeRegistry.all().values()) {
+            if (definition == null
+                || (!"speed".equals(normalizeId(definition.targetId()))
+                    && !"movement_speed".equals(normalizeId(definition.targetId())))
+                || definition.targetType() != emaki.jiuwu.craft.attribute.model.AttributeTargetType.GENERIC) {
+                continue;
+            }
+            Double value = snapshot == null ? null : snapshot.values().get(definition.id());
+            if (value == null) {
+                continue;
+            }
+            if (definition.valueKind() == AttributeValueKind.PERCENT) {
+                percentSpeed += value;
+            } else if (definition.valueKind() != AttributeValueKind.CHANCE
+                && definition.valueKind() != AttributeValueKind.REGEN
+                && definition.valueKind() != AttributeValueKind.RESOURCE
+                && definition.valueKind() != AttributeValueKind.SKILL
+                && definition.valueKind() != AttributeValueKind.DERIVED) {
+                flatSpeed += value;
+            }
+        }
+        double blocksPerSecond = Math.max(0D, DEFAULT_WALK_SPEED_BLOCKS_PER_SECOND + flatSpeed);
+        blocksPerSecond *= Math.max(0D, 1D + (percentSpeed / 100D));
+        float walkSpeed = (float) Math.max(0D, Math.min(1D, (blocksPerSecond / DEFAULT_WALK_SPEED_BLOCKS_PER_SECOND) * 0.2D));
+        player.setWalkSpeed(walkSpeed);
+    }
+
+    private int resolveAttackCooldownTicks(AttributeSnapshot snapshot) {
+        double flatReduction = 0D;
+        double percentReduction = 0D;
+        for (AttributeDefinition definition : attributeRegistry.all().values()) {
+            if (definition == null
+                || !"attack_speed".equals(normalizeId(definition.targetId()))
+                || definition.targetType() != emaki.jiuwu.craft.attribute.model.AttributeTargetType.GENERIC) {
+                continue;
+            }
+            Double value = snapshot == null ? null : snapshot.values().get(definition.id());
+            if (value == null) {
+                continue;
+            }
+            if (definition.valueKind() == AttributeValueKind.PERCENT) {
+                percentReduction += value;
+            } else if (definition.valueKind() != AttributeValueKind.CHANCE
+                && definition.valueKind() != AttributeValueKind.REGEN
+                && definition.valueKind() != AttributeValueKind.RESOURCE
+                && definition.valueKind() != AttributeValueKind.SKILL
+                && definition.valueKind() != AttributeValueKind.DERIVED) {
+                flatReduction += value;
+            }
+        }
+        double cooldown = Math.max(0D, DEFAULT_ATTACK_COOLDOWN_TICKS - flatReduction);
+        cooldown *= Math.max(0D, 1D - (percentReduction / 100D));
+        return Math.max(1, (int) Math.round(cooldown));
+    }
+
+    private double resolveRecoveryAmount(DamageContext damageContext, RecoveryDefinition recovery, double finalDamage) {
+        if (damageContext == null || recovery == null) {
+            return 0D;
+        }
+        DamageContextVariables.Builder context = damageContext.variables().toBuilder();
+        AttributeSnapshot sourceSnapshot = snapshotForRecovery(damageContext, recovery.source());
+        AttributeSnapshot resistanceSnapshot = snapshotForRecovery(damageContext, recovery.resistanceSource());
+        Map<String, Object> evaluationContext = context.build().asMap();
+        double flat = sumAttributes(sourceSnapshot, evaluationContext, recovery.flatAttributes());
+        double percent = sumAttributes(sourceSnapshot, evaluationContext, recovery.percentAttributes());
+        double resistance = sumAttributes(resistanceSnapshot, evaluationContext, recovery.resistanceAttributes());
+        double percentAmount = finalDamage * (percent / 100D);
+        double grossRecovery = flat + percentAmount;
+        context.put("input", finalDamage);
+        context.put("base", finalDamage);
+        context.put("damage", finalDamage);
+        context.put("final_damage", finalDamage);
+        context.put("flat", flat);
+        context.put("percent", percent);
+        context.put("percent_amount", percentAmount);
+        context.put("gross", grossRecovery);
+        context.put("resistance", resistance);
+        context.put("healing_flat", flat);
+        context.put("healing_percent", percent);
+        context.put("healing_percent_amount", percentAmount);
+        context.put("healing_gross", grossRecovery);
+        context.put("healing_resistance", resistance);
+        evaluationContext = context.build().asMap();
+        double value;
+        if (Texts.isBlank(recovery.expression())) {
+            value = grossRecovery * (1D - (resistance / 100D));
+        } else {
+            value = ExpressionEngine.evaluate(recovery.expression(), evaluationContext);
+        }
+        if (recovery.minResult() != null) {
+            value = Math.max(value, recovery.minResult());
+        }
+        if (recovery.maxResult() != null) {
+            value = Math.min(value, recovery.maxResult());
+        }
+        return Math.max(0D, value);
+    }
+
+    private AttributeSnapshot snapshotForRecovery(DamageContext damageContext, DamageStageSource source) {
+        if (damageContext == null || source == null) {
+            return null;
+        }
+        return switch (source) {
+            case ATTACKER -> damageContext.attackerSnapshot();
+            case TARGET -> damageContext.targetSnapshot();
+            case CONTEXT -> null;
+        };
+    }
+
+    private double sumAttributes(AttributeSnapshot snapshot, Map<String, ?> context, List<String> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return 0D;
+        }
+        double total = 0D;
+        for (String id : ids) {
+            if (Texts.isBlank(id)) {
+                continue;
+            }
+            String normalized = normalizeId(id);
+            Double value = snapshot == null ? null : snapshot.values().get(normalized);
+            if (value == null && context != null) {
+                Object raw = context.get(normalized);
+                value = Numbers.tryParseDouble(raw, null);
+            }
+            if (value != null) {
+                total += value;
+            }
+        }
+        return total;
+    }
+
+    private String messageOrFallback(String key, String fallback) {
+        if (plugin == null || plugin.messageService() == null || Texts.isBlank(key)) {
+            return fallback;
+        }
+        String value = plugin.messageService().message(key);
+        return Texts.isBlank(value) || key.equals(value) ? fallback : value;
     }
 
     private PdcPartition resourcePartition(String resourceId) {

@@ -1,9 +1,10 @@
 package emaki.jiuwu.craft.attribute.listener;
 
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
+import emaki.jiuwu.craft.attribute.config.AttributeConfig;
+import emaki.jiuwu.craft.attribute.config.DamageCauseRule;
+import emaki.jiuwu.craft.attribute.model.DamageContextVariables;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -22,6 +23,8 @@ import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
+import org.bukkit.event.player.PlayerInteractEntityEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 
 public final class AttributeListener implements Listener {
@@ -53,6 +56,9 @@ public final class AttributeListener implements Listener {
     public void onPluginEnable(PluginEnableEvent event) {
         if ("MythicMobs".equalsIgnoreCase(event.getPlugin().getName())) {
             plugin.ensureMythicBridge();
+        }
+        if ("PlaceholderAPI".equalsIgnoreCase(event.getPlugin().getName())) {
+            plugin.ensurePlaceholderExpansion();
         }
     }
 
@@ -87,7 +93,32 @@ public final class AttributeListener implements Listener {
         }
         Entity shooter = projectile.getShooter() instanceof Entity entity ? entity : null;
         if (shooter instanceof LivingEntity livingEntity) {
-            attributeService.snapshotProjectile(projectile, livingEntity);
+            if (livingEntity instanceof Player player && attributeService.isAttackCoolingDown(player)) {
+                event.setCancelled(true);
+                return;
+            }
+            var snapshot = attributeService.snapshotProjectile(projectile, livingEntity);
+            if (livingEntity instanceof Player player) {
+                attributeService.startAttackCooldown(
+                    player,
+                    snapshot == null ? null : snapshot.attackSnapshot(),
+                    player.getInventory().getItemInMainHand()
+                );
+            }
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onPlayerInteract(PlayerInteractEvent event) {
+        if (event.getPlayer() != null && attributeService.isAttackCoolingDown(event.getPlayer())) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onPlayerInteractEntity(PlayerInteractEntityEvent event) {
+        if (event.getPlayer() != null && attributeService.isAttackCoolingDown(event.getPlayer())) {
+            event.setCancelled(true);
         }
     }
 
@@ -98,14 +129,24 @@ public final class AttributeListener implements Listener {
             return;
         }
         // Vanilla damage is treated as input only; Emaki applies the real health change itself.
-        event.setCancelled(true);
-        Map<String, Object> context = baseContext(event, target);
+        DamageContextVariables context = baseContext(event, target);
         Entity damager = event.getDamager();
         if (damager instanceof Projectile projectile) {
+            Entity shooter = projectile.getShooter() instanceof Entity entity ? entity : null;
+            if (shooter instanceof Player player && attributeService.isAttackCoolingDown(player)) {
+                event.setCancelled(true);
+                return;
+            }
+            event.setCancelled(true);
             attributeService.applyProjectileDamage(projectile, target, event.getDamage(), context);
             return;
         }
         LivingEntity attacker = damager instanceof LivingEntity livingEntity ? livingEntity : null;
+        if (attacker instanceof Player player && attributeService.isAttackCoolingDown(player)) {
+            event.setCancelled(true);
+            return;
+        }
+        event.setCancelled(true);
         attributeService.applyDamage(attacker, target, null, event.getDamage(), context);
     }
 
@@ -118,10 +159,7 @@ public final class AttributeListener implements Listener {
         if (target == null) {
             return;
         }
-        // Vanilla damage is treated as input only; Emaki applies the real health change itself.
-        event.setCancelled(true);
-        Map<String, Object> context = baseContext(event, target);
-        attributeService.applyDamage(null, target, null, event.getDamage(), context);
+        handleEnvironmentalDamage(event, target);
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -139,10 +177,49 @@ public final class AttributeListener implements Listener {
         }
     }
 
-    private Map<String, Object> baseContext(EntityDamageEvent event, LivingEntity target) {
-        Map<String, Object> context = new LinkedHashMap<>();
+    private boolean handleEnvironmentalDamage(EntityDamageEvent event, LivingEntity target) {
+        AttributeConfig config = attributeService.config();
+        DamageCauseRule rule = config.damageCauseRule(event.getCause().name());
+        if (rule == null) {
+            if (!config.hasDamageCauseRules()) {
+                if (!config.hardLockDamage()) {
+                    return false;
+                }
+                event.setCancelled(true);
+                return attributeService.applyDamage(null, target, config.defaultDamageType(), event.getDamage(), baseContext(event, target));
+            }
+            return false;
+        }
+
+        event.setCancelled(true);
+        DamageContextVariables.Builder context = baseContext(event, target).toBuilder();
+        if (rule.context() != null && !rule.context().isEmpty()) {
+            context.putAll(rule.context());
+        }
+        double sourceDamage = event.getDamage();
+        double baseDamage = rule.resolveDamage(sourceDamage);
         context.put("cause", event.getCause().name());
+        context.put("damage_cause", event.getCause().name());
+        context.put("damage_cause_id", event.getCause().name());
+        context.put("base_damage", baseDamage);
+        context.put("source_damage", sourceDamage);
+        context.put("input_damage", sourceDamage);
+        context.put("final_damage", event.getFinalDamage());
+        context.put("target_uuid", target.getUniqueId().toString());
+        context.put("target_type", target.getType().name());
+        String damageTypeId = rule.hasDamageType() ? rule.damageTypeId() : config.defaultDamageType();
+        return attributeService.applyDamage(null, target, damageTypeId, baseDamage, context.build());
+    }
+
+    private DamageContextVariables baseContext(EntityDamageEvent event, LivingEntity target) {
+        DamageContextVariables.Builder context = DamageContextVariables.builder();
+        String cause = event.getCause().name();
+        context.put("cause", cause);
+        context.put("damage_cause", cause);
+        context.put("damage_cause_id", cause);
         context.put("base_damage", event.getDamage());
+        context.put("source_damage", event.getDamage());
+        context.put("input_damage", event.getDamage());
         context.put("final_damage", event.getFinalDamage());
         context.put("target_uuid", target.getUniqueId().toString());
         context.put("target_type", target.getType().name());
@@ -150,6 +227,6 @@ public final class AttributeListener implements Listener {
             context.put("damager_type", byEntityEvent.getDamager().getType().name());
             context.put("damager_uuid", byEntityEvent.getDamager().getUniqueId().toString());
         }
-        return context;
+        return context.build();
     }
 }

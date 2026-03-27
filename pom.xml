@@ -28,6 +28,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>21</maven.compiler.release>
+        <emaki.corelib.version>1.5.0</emaki.corelib.version>
         <paper.api.version>1.21.11-R0.1-SNAPSHOT</paper.api.version>
         <exp4j.version>0.4.8</exp4j.version>
         <mythicmobs.version>5.2.3</mythicmobs.version>
@@ -40,6 +41,11 @@
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>emaki.jiuwu.craft</groupId>
+                <artifactId>emaki-corelib</artifactId>
+                <version>${emaki.corelib.version}</version>
+            </dependency>
             <dependency>
                 <groupId>io.papermc.paper</groupId>
                 <artifactId>paper-api</artifactId>

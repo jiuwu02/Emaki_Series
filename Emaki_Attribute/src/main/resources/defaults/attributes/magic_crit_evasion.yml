@@ -1,0 +1,16 @@
+﻿id: magic_crit_evasion
+display_name: "法术暴击闪避"
+aliases: [magic_crit_resist, spell_crit_resist]
+value_kind: CHANCE
+target_type: DAMAGE
+target_id: spell
+default_value: 0.0
+min_value: 0.0
+max_value: 100.0
+allow_negative: false
+priority: 79
+lore_format_id: default_percent
+lore_patterns:
+  - '^法术暴击闪避\s*([+-]?\d+(?:\.\d+)?)%$'
+attribute_power: 1.0
+description: "Reduces incoming spell crit chance."

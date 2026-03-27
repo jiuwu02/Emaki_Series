@@ -34,7 +34,7 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
 
     @Override
     protected String typeName() {
-        return "attribute";
+        return plugin.messageService() == null ? "属性" : plugin.messageService().message("label.attribute");
     }
 
     @Override
@@ -61,7 +61,8 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
             configuration.getInt("priority", 0),
             configuration.getString("lore_format_id"),
             patterns,
-            configuration.getString("description")
+            configuration.getString("description"),
+            configuration.contains("attribute_power") ? configuration.getDouble("attribute_power") : 1D
         );
     }
 
@@ -85,8 +86,18 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
                 try {
                     orderedPatterns.add(new PatternEntry(definition, Pattern.compile(pattern, Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE)));
                 } catch (Exception exception) {
-                    issue("Invalid lore pattern for attribute " + definition.id() + ": " + pattern + " (" + exception.getMessage() + ")");
+                    issue(
+                        "loader.invalid_lore_pattern",
+                        Map.of(
+                            "attribute", definition.id(),
+                            "pattern", pattern,
+                            "error", Texts.toStringSafe(exception.getMessage())
+                        )
+                    );
                 }
+            }
+            for (Pattern fallback : fallbackPatterns(definition)) {
+                orderedPatterns.add(new PatternEntry(definition, fallback));
             }
         }
     }
@@ -120,13 +131,49 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
             }
             var matcher = entry.pattern().matcher(normalizedLine);
             if (matcher.find()) {
-                if (matcher.groupCount() >= 1) {
-                    return matcher.group(1);
+                for (int group = 1; group <= matcher.groupCount(); group++) {
+                    String value = matcher.group(group);
+                    if (!Texts.isBlank(value)) {
+                        return value;
+                    }
                 }
                 return matcher.group();
             }
         }
         return null;
+    }
+
+    private List<Pattern> fallbackPatterns(AttributeDefinition definition) {
+        if (definition == null || definition.lorePatterns().isEmpty()) {
+            return List.of();
+        }
+        String name = Pattern.quote(definition.displayName());
+        String numeric = "([+-]?\\d+(?:\\.\\d+)?)";
+        String suffix = switch (definition.loreFormatId()) {
+            case "default_percent" -> "%";
+            case "default_regen" -> "/秒";
+            default -> "";
+        };
+        String keyFirst = switch (definition.loreFormatId()) {
+            case "default_percent" -> "^" + name + "\\s*" + numeric + suffix + "$";
+            case "default_regen" -> "^" + name + "\\s*" + numeric + suffix + "$";
+            case "default_resource" -> "^" + name + "\\s*" + numeric + "$";
+            default -> "^" + name + "\\s*" + numeric + "$";
+        };
+        String valueFirst = switch (definition.loreFormatId()) {
+            case "default_percent" -> "^" + numeric + suffix + "\\s*" + name + "$";
+            case "default_regen" -> "^" + numeric + "\\s*" + name + "/秒$";
+            case "default_resource" -> "^" + numeric + "\\s*" + name + "$";
+            default -> "^" + numeric + "\\s*" + name + "$";
+        };
+        try {
+            return List.of(
+                Pattern.compile(keyFirst, Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE),
+                Pattern.compile(valueFirst, Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE)
+            );
+        } catch (Exception exception) {
+            return List.of();
+        }
     }
 
     private <E extends Enum<E>> E parseEnum(String value, E defaultValue) {

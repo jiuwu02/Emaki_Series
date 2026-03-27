@@ -18,7 +18,8 @@ public record AttributeDefinition(String id,
                                   int priority,
                                   String loreFormatId,
                                   List<String> lorePatterns,
-                                  String description) {
+                                  String description,
+                                  double attributePower) {
 
     public AttributeDefinition {
         id = normalizeId(id);
@@ -30,6 +31,7 @@ public record AttributeDefinition(String id,
         loreFormatId = Texts.toStringSafe(loreFormatId).trim().toLowerCase(Locale.ROOT);
         lorePatterns = lorePatterns == null ? List.of() : List.copyOf(lorePatterns);
         description = Texts.toStringSafe(description).trim();
+        attributePower = Double.isNaN(attributePower) ? 1D : attributePower;
     }
 
     public boolean matchesAlias(String candidate) {

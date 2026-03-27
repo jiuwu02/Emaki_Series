@@ -2,10 +2,11 @@ package emaki.jiuwu.craft.forge.loader;
 
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.model.ForgeMaterial;
+import emaki.jiuwu.craft.corelib.yaml.YamlDirectoryLoader;
 import java.io.File;
 import org.bukkit.configuration.file.YamlConfiguration;
 
-public final class MaterialLoader extends AbstractDirectoryLoader<ForgeMaterial> {
+public final class MaterialLoader extends YamlDirectoryLoader<ForgeMaterial> {
 
     public MaterialLoader(EmakiForgePlugin plugin) {
         super(plugin);

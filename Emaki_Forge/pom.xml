@@ -12,12 +12,11 @@
     </parent>
 
     <artifactId>emaki-forge</artifactId>
-    <version>1.3.0</version>
+    <version>1.4.0</version>
     <name>Emaki Forge</name>
     <packaging>jar</packaging>
 
     <properties>
-        <emaki.corelib.version>1.3.0</emaki.corelib.version>
         <neigeitems.version>1.21.141</neigeitems.version>
         <craftengine.version>0.0.67</craftengine.version>
     </properties>

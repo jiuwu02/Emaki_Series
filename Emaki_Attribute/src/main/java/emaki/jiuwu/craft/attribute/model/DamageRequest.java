@@ -1,29 +1,52 @@
 package emaki.jiuwu.craft.attribute.model;
 
-import emaki.jiuwu.craft.corelib.text.Texts;
-import java.util.LinkedHashMap;
-import java.util.Locale;
 import java.util.Map;
 
-public record DamageRequest(String damageTypeId,
-                            double baseDamage,
-                            AttributeSnapshot attackerSnapshot,
-                            AttributeSnapshot targetSnapshot,
-                            Map<String, Object> context) {
+public record DamageRequest(DamageContext damageContext) {
 
     public DamageRequest {
-        damageTypeId = Texts.toStringSafe(damageTypeId).trim().toLowerCase(Locale.ROOT);
-        if (context == null || context.isEmpty()) {
-            context = Map.of();
-        } else {
-            Map<String, Object> normalized = new LinkedHashMap<>();
-            for (Map.Entry<String, Object> entry : context.entrySet()) {
-                if (entry.getKey() == null || entry.getValue() == null) {
-                    continue;
-                }
-                normalized.put(entry.getKey(), entry.getValue());
-            }
-            context = Map.copyOf(normalized);
-        }
+        damageContext = damageContext == null
+            ? DamageContext.legacy("", 0D, AttributeSnapshot.empty(""), AttributeSnapshot.empty(""), DamageContextVariables.empty())
+            : damageContext;
+    }
+
+    public DamageRequest(String damageTypeId,
+                         double baseDamage,
+                         AttributeSnapshot attackerSnapshot,
+                         AttributeSnapshot targetSnapshot,
+                         Map<String, ?> context) {
+        this(DamageContext.legacy(damageTypeId, baseDamage, attackerSnapshot, targetSnapshot, DamageContextVariables.from(context)));
+    }
+
+    public DamageRequest(String damageTypeId,
+                         double baseDamage,
+                         AttributeSnapshot attackerSnapshot,
+                         AttributeSnapshot targetSnapshot,
+                         DamageContextVariables variables) {
+        this(DamageContext.legacy(damageTypeId, baseDamage, attackerSnapshot, targetSnapshot, variables));
+    }
+
+    public String damageTypeId() {
+        return damageContext.damageTypeId();
+    }
+
+    public double baseDamage() {
+        return damageContext.baseDamage();
+    }
+
+    public AttributeSnapshot attackerSnapshot() {
+        return damageContext.attackerSnapshot();
+    }
+
+    public AttributeSnapshot targetSnapshot() {
+        return damageContext.targetSnapshot();
+    }
+
+    public DamageContextVariables variables() {
+        return damageContext.variables();
+    }
+
+    public Map<String, Object> context() {
+        return damageContext.context();
     }
 }

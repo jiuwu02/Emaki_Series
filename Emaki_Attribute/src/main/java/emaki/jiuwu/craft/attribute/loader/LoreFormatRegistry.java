@@ -18,7 +18,7 @@ public final class LoreFormatRegistry extends DirectoryLoader<LoreFormatDefiniti
 
     @Override
     protected String typeName() {
-        return "lore format";
+        return plugin.messageService() == null ? "词条格式" : plugin.messageService().message("label.lore_format");
     }
 
     @Override

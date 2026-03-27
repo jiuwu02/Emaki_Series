@@ -1,0 +1,16 @@
+﻿id: entity_scale
+display_name: "实体体型"
+aliases: [scale, entity_size]
+value_kind: PERCENT
+target_type: GENERIC
+target_id: entity_scale
+default_value: 0.0
+min_value: -100.0
+max_value: 1000.0
+allow_negative: true
+priority: 25
+lore_format_id: default_percent
+lore_patterns:
+  - '^实体体型\s*([+-]?\d+(?:\.\d+)?)%$'
+attribute_power: 1.0
+description: "Entity scale modifier."

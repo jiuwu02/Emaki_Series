@@ -1,29 +1,36 @@
 package emaki.jiuwu.craft.attribute.api;
 
+import emaki.jiuwu.craft.attribute.model.DamageContext;
+import emaki.jiuwu.craft.attribute.model.DamageContextVariables;
 import emaki.jiuwu.craft.attribute.model.DamageResult;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Projectile;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
+import org.bukkit.event.entity.EntityDamageEvent;
 
 public final class EmakiAttributeDamageEvent extends Event implements Cancellable {
 
     private static final HandlerList HANDLERS = new HandlerList();
 
-    private final LivingEntity attacker;
-    private final LivingEntity target;
-    private final Projectile projectile;
-    private final String damageTypeId;
-    private final double baseDamage;
-    private final boolean critical;
-    private final double roll;
-    private final Map<String, Object> context;
+    private final DamageContext damageContext;
     private final DamageResult damageResult;
     private boolean cancelled;
     private double finalDamage;
+
+    public EmakiAttributeDamageEvent(DamageContext damageContext, DamageResult damageResult) {
+        this.damageContext = damageContext != null
+            ? damageContext
+            : damageResult != null && damageResult.damageContext() != null
+                ? damageResult.damageContext()
+                : DamageContext.legacy("", 0D, null, null, DamageContextVariables.empty());
+        this.damageResult = damageResult != null
+            ? damageResult
+            : new DamageResult(this.damageContext.damageTypeId(), this.damageContext.baseDamage(), false, 0D, Map.of(), this.damageContext);
+        this.finalDamage = this.damageResult.finalDamage();
+    }
 
     public EmakiAttributeDamageEvent(LivingEntity attacker,
                                      LivingEntity target,
@@ -31,48 +38,47 @@ public final class EmakiAttributeDamageEvent extends Event implements Cancellabl
                                      String damageTypeId,
                                      double baseDamage,
                                      DamageResult damageResult) {
-        this.attacker = attacker;
-        this.target = target;
-        this.projectile = projectile;
-        this.damageTypeId = damageTypeId;
-        this.baseDamage = baseDamage;
-        this.critical = damageResult != null && damageResult.critical();
-        this.roll = damageResult == null ? 0D : damageResult.roll();
-        this.context = damageResult == null ? Map.of() : new LinkedHashMap<>(damageResult.context());
-        this.damageResult = damageResult;
-        this.finalDamage = damageResult == null ? 0D : damageResult.finalDamage();
+        this(resolveDamageContext(attacker, target, projectile, damageTypeId, baseDamage, damageResult), damageResult);
     }
 
     public LivingEntity getAttacker() {
-        return attacker;
+        return damageContext.attacker();
     }
 
     public LivingEntity getTarget() {
-        return target;
+        return damageContext.target();
     }
 
     public Projectile getProjectile() {
-        return projectile;
+        return damageContext.projectile();
     }
 
     public String getDamageTypeId() {
-        return damageTypeId;
+        return damageContext.damageTypeId();
     }
 
     public double getBaseDamage() {
-        return baseDamage;
+        return damageContext.baseDamage();
     }
 
     public boolean isCritical() {
-        return critical;
+        return damageResult != null && damageResult.critical();
     }
 
     public double getRoll() {
-        return roll;
+        return damageResult == null ? 0D : damageResult.roll();
     }
 
     public Map<String, Object> getContext() {
-        return Map.copyOf(context);
+        return Map.copyOf(damageContext.context());
+    }
+
+    public DamageContextVariables getVariables() {
+        return damageContext.variables();
+    }
+
+    public DamageContext getDamageContext() {
+        return damageContext;
     }
 
     public DamageResult getDamageResult() {
@@ -85,6 +91,10 @@ public final class EmakiAttributeDamageEvent extends Event implements Cancellabl
 
     public void setFinalDamage(double finalDamage) {
         this.finalDamage = finalDamage;
+    }
+
+    public EntityDamageEvent.DamageCause getCause() {
+        return damageContext.cause();
     }
 
     @Override
@@ -104,5 +114,29 @@ public final class EmakiAttributeDamageEvent extends Event implements Cancellabl
 
     public static HandlerList getHandlerList() {
         return HANDLERS;
+    }
+
+    private static DamageContext resolveDamageContext(LivingEntity attacker,
+                                                      LivingEntity target,
+                                                      Projectile projectile,
+                                                      String damageTypeId,
+                                                      double baseDamage,
+                                                      DamageResult damageResult) {
+        DamageContext existing = damageResult == null ? null : damageResult.damageContext();
+        if (existing == null) {
+            return DamageContext.of(attacker, target, projectile, null, damageTypeId, baseDamage, baseDamage, null, null, damageResult == null ? DamageContextVariables.empty() : damageResult.variables());
+        }
+        return DamageContext.of(
+            attacker == null ? existing.attacker() : attacker,
+            target == null ? existing.target() : target,
+            projectile == null ? existing.projectile() : projectile,
+            existing.cause(),
+            damageTypeId == null || damageTypeId.isBlank() ? existing.damageTypeId() : damageTypeId,
+            existing.sourceDamage(),
+            baseDamage,
+            existing.attackerSnapshot(),
+            existing.targetSnapshot(),
+            existing.variables()
+        );
     }
 }

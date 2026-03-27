@@ -1,0 +1,16 @@
+﻿id: projectile_penetration
+display_name: "投射物穿透"
+aliases: [projectile_pen, ranged_penetration]
+value_kind: PERCENT
+target_type: DAMAGE
+target_id: projectile
+default_value: 0.0
+min_value: -100.0
+max_value: 10000.0
+allow_negative: true
+priority: 82
+lore_format_id: default_percent
+lore_patterns:
+  - '^投射物穿透\s*([+-]?\d+(?:\.\d+)?)%$'
+attribute_power: 1.0
+description: "Reduces projectile mitigation."

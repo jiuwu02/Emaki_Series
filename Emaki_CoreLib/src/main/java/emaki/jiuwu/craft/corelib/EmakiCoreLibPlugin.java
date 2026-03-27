@@ -12,8 +12,8 @@ import emaki.jiuwu.craft.corelib.placeholder.PlaceholderApiResolver;
 import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRegistry;
 import emaki.jiuwu.craft.corelib.pdc.PdcService;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
+import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import java.io.File;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class EmakiCoreLibPlugin extends JavaPlugin {
@@ -75,16 +75,20 @@ public final class EmakiCoreLibPlugin extends JavaPlugin {
 
     private void ensureBundledFile(String relativePath) {
         File target = new File(getDataFolder(), relativePath);
-        if (target.exists()) {
-            return;
+        try {
+            boolean copied = YamlFiles.copyResourceIfMissing(this, relativePath, target);
+            if (!copied && !target.exists()) {
+                getLogger().warning("Missing bundled resource " + relativePath);
+            }
+        } catch (Exception exception) {
+            getLogger().warning("Failed to write bundled resource " + relativePath + ": " + exception.getMessage());
         }
-        saveResource(relativePath, false);
     }
 
     private CoreLibConfig loadConfigModel() {
         try {
             File file = new File(getDataFolder(), "defaults/config.yml");
-            return CoreLibConfig.fromConfig(YamlConfiguration.loadConfiguration(file));
+            return CoreLibConfig.fromConfig(YamlFiles.load(file));
         } catch (Exception exception) {
             getLogger().warning("Failed to load CoreLib action config: " + exception.getMessage());
             return CoreLibConfig.defaults();

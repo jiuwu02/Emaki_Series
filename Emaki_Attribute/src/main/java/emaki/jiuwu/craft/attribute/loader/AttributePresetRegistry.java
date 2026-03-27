@@ -18,7 +18,7 @@ public final class AttributePresetRegistry extends DirectoryLoader<AttributePres
 
     @Override
     protected String typeName() {
-        return "attribute preset";
+        return plugin.messageService() == null ? "预设" : plugin.messageService().message("label.preset");
     }
 
     @Override

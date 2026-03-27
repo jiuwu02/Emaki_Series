@@ -2,11 +2,12 @@ package emaki.jiuwu.craft.forge.loader;
 
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateParser;
+import emaki.jiuwu.craft.corelib.yaml.YamlDirectoryLoader;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import java.io.File;
 import org.bukkit.configuration.file.YamlConfiguration;
 
-public final class GuiTemplateLoader extends AbstractDirectoryLoader<GuiTemplate> {
+public final class GuiTemplateLoader extends YamlDirectoryLoader<GuiTemplate> {
 
     public GuiTemplateLoader(EmakiForgePlugin plugin) {
         super(plugin);

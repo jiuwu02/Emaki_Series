@@ -1,0 +1,16 @@
+﻿id: real_damage
+display_name: "真实伤害"
+aliases: [true_damage, raw_damage]
+value_kind: FLAT
+target_type: DAMAGE
+target_id: real
+default_value: 0.0
+min_value: -999999.0
+max_value: 999999.0
+allow_negative: true
+priority: 99
+lore_format_id: default_flat
+lore_patterns:
+  - '^真实伤害\s*([+-]?\d+(?:\.\d+)?)$'
+attribute_power: 1.0
+description: "Flat true damage that bypasses normal mitigation."

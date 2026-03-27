@@ -11,17 +11,25 @@ stages:
     source: ATTACKER
     mode: ADD
     flat_attributes: [physical_attack]
-    percent_attributes: [physical_damage_bonus]
+    percent_attributes: [final_physical_damage]
   - id: crit
     kind: CUSTOM
     source: ATTACKER
-    chance_attributes: [physical_crit_rate]
-    multiplier_attributes: [physical_crit_damage]
+    chance_attributes: [physical_crit_chance]
+    multiplier_attributes: [physical_crit_multiplier]
     expression: "{input} * (1 + ({crit} * ({multiplier} / 100)))"
   - id: defense
     kind: FLAT_PERCENT
     source: TARGET
     mode: SUBTRACT
-    flat_attributes: [physical_defense]
+    flat_attributes: [physical_armor]
     percent_attributes: []
+recovery:
+  source: ATTACKER
+  resistance_source: TARGET
+  flat_attributes: [flat_lifesteal]
+  percent_attributes: [percent_lifesteal]
+  resistance_attributes: [lifesteal_resistance]
+attacker_message: "<gray>[<gold>{damage_type}</gold>]</gray> <green>你对 <white>{target}</white> 造成了 <yellow>{final_damage}</yellow> 点伤害</green>{critical_suffix}"
+target_message: "<gray>[<gold>{damage_type}</gold>]</gray> <red>{attacker}</red> 对你造成了 <yellow>{final_damage}</yellow> 点伤害{critical_suffix}"
 description: "Physical damage resolved entirely through Emaki attributes."

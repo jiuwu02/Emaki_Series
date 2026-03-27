@@ -1,12 +1,10 @@
 package emaki.jiuwu.craft.forge.loader;
 
+import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -23,7 +21,7 @@ public final class LanguageLoader {
 
     public LanguageLoader(EmakiForgePlugin plugin) {
         this.plugin = plugin;
-        this.bundledFallback = loadBundledFallbackLanguage();
+        this.bundledFallback = YamlFiles.loadResource(plugin, "defaults/lang/zh_CN.yml");
         if (bundledFallback != null) {
             languages.put(fallbackLanguage, bundledFallback);
         }
@@ -35,8 +33,12 @@ public final class LanguageLoader {
             languages.put(fallbackLanguage, bundledFallback);
         }
         File directory = plugin.dataPath("lang").toFile();
-        if (!directory.exists() && !directory.mkdirs()) {
-            plugin.getLogger().warning("Failed to create lang directory: " + directory.getPath());
+        if (!directory.exists()) {
+            try {
+                YamlFiles.ensureDirectory(directory.toPath());
+            } catch (IOException exception) {
+                plugin.getLogger().warning("Failed to create lang directory: " + directory.getPath());
+            }
         }
         File[] files = directory.listFiles((dir, name) -> name.endsWith(".yml") || name.endsWith(".yaml"));
         if (files == null) {
@@ -45,7 +47,12 @@ public final class LanguageLoader {
         Arrays.sort(files, (left, right) -> left.getName().compareToIgnoreCase(right.getName()));
         for (File file : files) {
             String langId = file.getName().replace(".yml", "").replace(".yaml", "");
-            languages.put(langId, YamlConfiguration.loadConfiguration(file));
+            try {
+                YamlFiles.syncVersionedResource(plugin, file, "defaults/lang/" + langId + ".yml", "lang_version");
+            } catch (IOException exception) {
+                plugin.getLogger().warning("Failed to sync language file " + file.getName() + ": " + exception.getMessage());
+            }
+            languages.put(langId, YamlFiles.load(file));
         }
         return languages.size();
     }
@@ -84,18 +91,6 @@ public final class LanguageLoader {
         return currentLanguage;
     }
 
-    private YamlConfiguration loadBundledFallbackLanguage() {
-        try (InputStream inputStream = plugin.getResource("defaults/lang/zh_CN.yml")) {
-            if (inputStream == null) {
-                return null;
-            }
-            return YamlConfiguration.loadConfiguration(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
-        } catch (IOException exception) {
-            plugin.getLogger().warning("Failed to load bundled fallback language: " + exception.getMessage());
-            return null;
-        }
-    }
-
     private Object getNestedValue(String language, String dottedPath) {
         YamlConfiguration configuration = languages.get(language);
         if (configuration == null) {
@@ -110,6 +105,9 @@ public final class LanguageLoader {
             }
             return null;
         }
-        return current;
+        if (current != null) {
+            return current;
+        }
+        return configuration.getValues(false).get(dottedPath);
     }
 }

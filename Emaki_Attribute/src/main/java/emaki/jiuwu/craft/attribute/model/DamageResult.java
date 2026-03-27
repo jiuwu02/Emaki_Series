@@ -8,10 +8,17 @@ public record DamageResult(String damageTypeId,
                            boolean critical,
                            double roll,
                            Map<String, Double> stageValues,
-                           Map<String, Object> context) {
+                           DamageContext damageContext) {
 
     public DamageResult {
         stageValues = stageValues == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(stageValues));
-        context = context == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(context));
+    }
+
+    public DamageContextVariables variables() {
+        return damageContext == null ? DamageContextVariables.empty() : damageContext.variables();
+    }
+
+    public Map<String, Object> context() {
+        return variables().asMap();
     }
 }

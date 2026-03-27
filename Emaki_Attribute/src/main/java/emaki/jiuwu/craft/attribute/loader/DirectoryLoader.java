@@ -27,7 +27,13 @@ public abstract class DirectoryLoader<T> {
         loaded = false;
         File directory = plugin.dataPath(directoryName()).toFile();
         if (!directory.exists() && !directory.mkdirs()) {
-            issue("Failed to create directory: " + directory.getPath());
+            issue(
+                "loader.directory_create_failed",
+                Map.of(
+                    "type", typeName(),
+                    "path", directory.getPath()
+                )
+            );
         }
         File[] files = directory.listFiles((dir, name) -> name.endsWith(".yml") || name.endsWith(".yaml"));
         if (files == null || files.length == 0) {
@@ -44,17 +50,37 @@ public abstract class DirectoryLoader<T> {
                 }
                 String id = idOf(value);
                 if (Texts.isBlank(id)) {
-                    issue("Skipped invalid " + typeName() + " config with blank id: " + file.getName());
+                    issue(
+                        "loader.invalid_blank_id",
+                        Map.of(
+                            "type", typeName(),
+                            "file", file.getName()
+                        )
+                    );
                     continue;
                 }
                 String normalized = normalizeId(id);
                 if (items.containsKey(normalized)) {
-                    issue("Skipped duplicate " + typeName() + " config: " + file.getName());
+                    issue(
+                        "loader.duplicate_id",
+                        Map.of(
+                            "type", typeName(),
+                            "file", file.getName(),
+                            "id", id
+                        )
+                    );
                     continue;
                 }
                 items.put(normalized, value);
             } catch (Exception exception) {
-                issue("Failed to load " + typeName() + " from " + file.getName() + ": " + exception.getMessage());
+                issue(
+                    "loader.load_failed",
+                    Map.of(
+                        "type", typeName(),
+                        "file", file.getName(),
+                        "error", Texts.toStringSafe(exception.getMessage())
+                    )
+                );
             }
         }
         afterLoad();
@@ -81,9 +107,16 @@ public abstract class DirectoryLoader<T> {
         return items.get(normalizeId(id));
     }
 
-    protected void issue(String message) {
+    protected void issue(String key, Map<String, ?> replacements) {
+        String message = plugin.messageService() == null
+            ? key
+            : plugin.messageService().message(key, replacements);
         issues.add(message);
-        plugin.getLogger().warning(message);
+        if (plugin.messageService() != null) {
+            plugin.messageService().warning(key, replacements);
+        } else {
+            plugin.getLogger().warning(message);
+        }
     }
 
     protected String normalizeId(String id) {

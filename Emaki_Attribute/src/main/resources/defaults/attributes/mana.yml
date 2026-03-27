@@ -1,4 +1,4 @@
-id: mana
+﻿id: mana
 display_name: "法力值"
 aliases: [mp, max_mana]
 value_kind: RESOURCE
@@ -11,5 +11,6 @@ allow_negative: false
 priority: 100
 lore_format_id: default_resource
 lore_patterns:
-  - '^([+-]?\d+(?:\.\d+)?)\s*法力值$'
+  - '^法力值\s*([+-]?\d+(?:\.\d+)?)$'
+attribute_power: 1.0
 description: "Adds maximum mana."

@@ -5,12 +5,12 @@ import emaki.jiuwu.craft.attribute.model.AttributeSnapshot;
 import emaki.jiuwu.craft.attribute.model.ResourceState;
 import emaki.jiuwu.craft.attribute.model.ResourceSyncReason;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
+import emaki.jiuwu.craft.attribute.service.MessageService;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
@@ -46,7 +46,7 @@ public final class AttributeCommand implements TabExecutor {
                 yield true;
             }
             default -> {
-                sender.sendMessage(prefix() + ChatColor.RED + "未知子命令，输入 /" + label + " help 查看帮助。");
+                messages().send(sender, "command.unknown", Map.of("label", label));
                 yield true;
             }
         };
@@ -93,43 +93,45 @@ public final class AttributeCommand implements TabExecutor {
 
     private boolean handleReload(CommandSender sender) {
         if (!sender.hasPermission("emakiattribute.reload") && !sender.hasPermission("emakiattribute.admin")) {
-            sender.sendMessage(prefix() + ChatColor.RED + "你没有重载权限。");
+            messages().send(sender, "command.reload.no_permission");
             return true;
         }
         plugin.reloadPluginState(true);
-        sender.sendMessage(prefix() + ChatColor.GREEN + "已重载属性配置。");
-        sender.sendMessage(prefix() + ChatColor.GRAY + "属性数量: " + attributeService.attributeRegistry().all().size()
-            + ", 伤害类型: " + attributeService.damageTypeRegistry().all().size()
-            + ", 默认组: " + attributeService.defaultProfileRegistry().all().size());
+        messages().send(sender, "command.reload.success");
+        messages().send(sender, "command.reload.summary", Map.of(
+            "attributes", attributeService.attributeRegistry().all().size(),
+            "damage_types", attributeService.damageTypeRegistry().all().size(),
+            "defaults", attributeService.defaultProfileRegistry().all().size()
+        ));
         return true;
     }
 
     private boolean handleResync(CommandSender sender, String[] args) {
         if (!sender.hasPermission("emakiattribute.resync") && !sender.hasPermission("emakiattribute.admin")) {
-            sender.sendMessage(prefix() + ChatColor.RED + "你没有重同步权限。");
+            messages().send(sender, "command.resync.no_permission");
             return true;
         }
         if (args.length < 2) {
             if (sender instanceof Player player) {
                 attributeService.resyncPlayer(player);
-                sender.sendMessage(prefix() + ChatColor.GREEN + "已同步你的属性状态。");
+                messages().send(sender, "command.resync.self_success");
                 return true;
             }
-            sender.sendMessage(prefix() + ChatColor.YELLOW + "控制台需要指定玩家或 all。");
+            messages().send(sender, "command.resync.console_usage");
             return true;
         }
         if ("all".equalsIgnoreCase(args[1])) {
             attributeService.resyncAllPlayers();
-            sender.sendMessage(prefix() + ChatColor.GREEN + "已同步所有在线玩家。");
+            messages().send(sender, "command.resync.all_success");
             return true;
         }
         Player target = Bukkit.getPlayerExact(args[1]);
         if (target == null) {
-            sender.sendMessage(prefix() + ChatColor.RED + "找不到玩家: " + args[1]);
+            messages().send(sender, "command.resync.player_not_found", Map.of("player", args[1]));
             return true;
         }
         attributeService.resyncPlayer(target);
-        sender.sendMessage(prefix() + ChatColor.GREEN + "已同步玩家 " + target.getName() + "。");
+        messages().send(sender, "command.resync.player_success", Map.of("player", target.getName()));
         return true;
     }
 
@@ -141,88 +143,91 @@ public final class AttributeCommand implements TabExecutor {
             slot = args.length >= 2 ? args[1] : "hand";
         } else {
             if (args.length < 3) {
-                sender.sendMessage(prefix() + ChatColor.YELLOW + "控制台用法: /emakiattribute preview <player> <slot>");
+                messages().send(sender, "command.preview.console_usage");
                 return true;
             }
             player = Bukkit.getPlayerExact(args[1]);
             if (player == null) {
-                sender.sendMessage(prefix() + ChatColor.RED + "找不到玩家: " + args[1]);
+                messages().send(sender, "command.preview.player_not_found", Map.of("player", args[1]));
                 return true;
             }
             slot = args[2];
         }
         ItemStack itemStack = resolveItem(player, slot);
         if (itemStack == null || itemStack.getType().isAir()) {
-            sender.sendMessage(prefix() + ChatColor.YELLOW + "该槽位没有物品。");
+            messages().send(sender, "command.preview.no_item");
             return true;
         }
         ItemMeta itemMeta = itemStack.getItemMeta();
         AttributeSnapshot snapshot = itemMeta != null && itemMeta.hasLore()
             ? attributeService.loreParser().parse(itemMeta.getLore()).snapshot()
             : AttributeSnapshot.empty("");
-        sender.sendMessage(prefix() + ChatColor.AQUA + "物品: " + itemStack.getType().name());
+        messages().send(sender, "command.preview.item", Map.of("item", itemStack.getType().name()));
         if (itemMeta != null && itemMeta.hasDisplayName()) {
-            sender.sendMessage(prefix() + ChatColor.GRAY + "名称: " + itemMeta.getDisplayName());
+            messages().send(sender, "command.preview.name", Map.of("name", itemMeta.getDisplayName()));
         }
-        sender.sendMessage(prefix() + ChatColor.GRAY + "签名: " + snapshot.sourceSignature());
-        sender.sendMessage(prefix() + ChatColor.GRAY + "值: " + snapshot.values());
+        messages().send(sender, "command.preview.signature", Map.of("signature", snapshot.sourceSignature()));
+        messages().send(sender, "command.preview.values", Map.of("values", snapshot.values()));
         return true;
     }
 
     private boolean handleDump(CommandSender sender, String[] args) {
         if (!sender.hasPermission("emakiattribute.debug") && !sender.hasPermission("emakiattribute.admin")) {
-            sender.sendMessage(prefix() + ChatColor.RED + "你没有导出权限。");
+            messages().send(sender, "command.dump.no_permission");
             return true;
         }
         Player target;
         if (args.length >= 2) {
             target = Bukkit.getPlayerExact(args[1]);
             if (target == null) {
-                sender.sendMessage(prefix() + ChatColor.RED + "找不到玩家: " + args[1]);
+                messages().send(sender, "command.dump.player_not_found", Map.of("player", args[1]));
                 return true;
             }
         } else if (sender instanceof Player player) {
             target = player;
         } else {
-            sender.sendMessage(prefix() + ChatColor.YELLOW + "控制台用法: /emakiattribute dump <player>");
+            messages().send(sender, "command.dump.console_usage");
             return true;
         }
         AttributeSnapshot snapshot = attributeService.collectCombatSnapshot(target);
-        sender.sendMessage(prefix() + ChatColor.AQUA + "玩家: " + target.getName());
-        sender.sendMessage(prefix() + ChatColor.GRAY + "快照: " + snapshot.sourceSignature());
-        sender.sendMessage(prefix() + ChatColor.GRAY + "属性: " + snapshot.values());
+        messages().send(sender, "command.dump.player", Map.of("player", target.getName()));
+        messages().send(sender, "command.dump.signature", Map.of("signature", snapshot.sourceSignature()));
+        messages().send(sender, "command.dump.values", Map.of("values", snapshot.values()));
         for (Map.Entry<String, ResourceState> entry : dumpResources(target).entrySet()) {
             ResourceState state = entry.getValue();
-            sender.sendMessage(prefix() + ChatColor.GRAY + entry.getKey() + " => default=" + state.defaultMax()
-                + ", bonus=" + state.bonusMax()
-                + ", currentMax=" + state.currentMax()
-                + ", current=" + state.currentValue());
+            messages().send(sender, "command.dump.resource_line", Map.of(
+                "resource", entry.getKey(),
+                "default_max", state.defaultMax(),
+                "bonus_max", state.bonusMax(),
+                "current_max", state.currentMax(),
+                "current", state.currentValue()
+            ));
         }
         return true;
     }
 
     private boolean handleLint(CommandSender sender) {
         if (!sender.hasPermission("emakiattribute.debug") && !sender.hasPermission("emakiattribute.admin")) {
-            sender.sendMessage(prefix() + ChatColor.RED + "你没有调试权限。");
+            messages().send(sender, "command.lint.no_permission");
             return true;
         }
-        sender.sendMessage(prefix() + ChatColor.AQUA + "配置状态: " + plugin.configModel());
-        reportIssues(sender, "属性", attributeService.attributeRegistry().issues());
-        reportIssues(sender, "伤害类型", attributeService.damageTypeRegistry().issues());
-        reportIssues(sender, "默认组", attributeService.defaultProfileRegistry().issues());
-        reportIssues(sender, "词条格式", attributeService.loreFormatRegistry().issues());
-        reportIssues(sender, "预设", attributeService.presetRegistry().issues());
+        messages().send(sender, "command.lint.config_status", Map.of("config", plugin.configModel()));
+        reportIssues(sender, messages().message("label.attribute"), attributeService.attributeRegistry().issues());
+        reportIssues(sender, messages().message("label.damage_type"), attributeService.damageTypeRegistry().issues());
+        reportIssues(sender, messages().message("label.default_profile"), attributeService.defaultProfileRegistry().issues());
+        reportIssues(sender, messages().message("label.lore_format"), attributeService.loreFormatRegistry().issues());
+        reportIssues(sender, messages().message("label.preset"), attributeService.presetRegistry().issues());
         return true;
     }
 
     private void reportIssues(CommandSender sender, String name, List<String> issues) {
         if (issues.isEmpty()) {
-            sender.sendMessage(prefix() + ChatColor.GREEN + name + "配置无错误。");
+            messages().send(sender, "command.lint.ok", Map.of("name", name));
             return;
         }
-        sender.sendMessage(prefix() + ChatColor.YELLOW + name + "配置问题: " + issues.size());
+        messages().send(sender, "command.lint.issues", Map.of("name", name, "count", issues.size()));
         for (String issue : issues) {
-            sender.sendMessage(prefix() + ChatColor.GRAY + "- " + issue);
+            messages().sendRaw(sender, "<gray>- " + issue + "</gray>");
         }
     }
 
@@ -254,14 +259,14 @@ public final class AttributeCommand implements TabExecutor {
     }
 
     private void sendHelp(CommandSender sender) {
-        sender.sendMessage(prefix() + ChatColor.AQUA + "/emakiattribute reload" + ChatColor.GRAY + " 重载配置");
-        sender.sendMessage(prefix() + ChatColor.AQUA + "/emakiattribute resync [all|玩家]" + ChatColor.GRAY + " 重新同步属性");
-        sender.sendMessage(prefix() + ChatColor.AQUA + "/emakiattribute preview [槽位]" + ChatColor.GRAY + " 预览物品词条解析");
-        sender.sendMessage(prefix() + ChatColor.AQUA + "/emakiattribute dump [玩家]" + ChatColor.GRAY + " 导出快照与资源");
-        sender.sendMessage(prefix() + ChatColor.AQUA + "/emakiattribute lint" + ChatColor.GRAY + " 检查配置错误");
+        messages().send(sender, "command.help.reload");
+        messages().send(sender, "command.help.resync");
+        messages().send(sender, "command.help.preview");
+        messages().send(sender, "command.help.dump");
+        messages().send(sender, "command.help.lint");
     }
 
-    private String prefix() {
-        return ChatColor.DARK_AQUA + "[Emaki_Attribute] " + ChatColor.RESET;
+    private MessageService messages() {
+        return plugin.messageService();
     }
 }

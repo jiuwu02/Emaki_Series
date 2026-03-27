@@ -1,0 +1,106 @@
+lang_version: "1.0"
+general:
+  prefix: "<gray>[ <gradient:#66D9EF:#7B7BFF>Emaki Attribute</gradient> ]</gray>"
+
+console:
+  plugin_started: "<green>Emaki_Attribute 已启动。</green>"
+  plugin_stopped: "<yellow>Emaki_Attribute 已关闭。</yellow>"
+  default_resource_write_failed: "<red>默认资源写入失败: {path} ({error})</red>"
+  config_load_failed: "<red>配置读取失败: {error}</red>"
+
+loader:
+  lang_directory_create_failed: "<red>无法创建语言目录: {path}</red>"
+  bundled_language_load_failed: "<red>读取内置语言失败: {error}</red>"
+  directory_create_failed: "<red>无法创建{type}目录: {path}</red>"
+  invalid_blank_id: "<red>{type}文件 {file} 的 ID 为空。</red>"
+  duplicate_id: "<red>{type}文件 {file} 的 ID 重复: {id}。</red>"
+  invalid_lore_pattern: "<red>{attribute} 的词条正则无效: {pattern} ({error})</red>"
+  load_failed: "<red>读取{type}文件 {file} 失败: {error}</red>"
+
+label:
+  attribute: "属性"
+  damage_type: "伤害类型"
+  default_profile: "默认组"
+  lore_format: "词条格式"
+  preset: "预设"
+
+damage:
+  environment: "环境"
+  target: "目标"
+  critical_text: "暴击"
+  critical_suffix: " <red>暴击</red>"
+  cause:
+    environment: "环境"
+    unknown: "未知来源"
+    contact: "接触"
+    entity_attack: "攻击"
+    projectile: "弹射物"
+    suffocation: "窒息"
+    fall: "摔落"
+    fire: "火焰"
+    fire_tick: "燃烧"
+    lava: "岩浆"
+    drowning: "溺水"
+    block_explosion: "方块爆炸"
+    entity_explosion: "爆炸"
+    void: "虚空"
+    lightning: "雷击"
+    starvation: "饥饿"
+    poison: "中毒"
+    magic: "魔法"
+    wither: "凋零"
+    falling_block: "落块"
+    dragon_breath: "龙息"
+    fly_into_wall: "碰撞"
+    hot_floor: "高温"
+    campfire: "营火"
+    cramming: "挤压"
+    freeze: "冻结"
+    sonic_boom: "音爆"
+
+command:
+  unknown: "<red>未知子命令: /{label} help</red>"
+
+  reload:
+    no_permission: "<red>你没有权限执行此命令。</red>"
+    success: "<green>已重新加载属性系统。</green>"
+    summary: "<gray>属性 {attributes} 项，伤害类型 {damage_types} 项，默认组 {defaults} 个。</gray>"
+
+  resync:
+    no_permission: "<red>你没有权限执行此命令。</red>"
+    self_success: "<green>已为你重新同步属性。</green>"
+    console_usage: "<yellow>控制台用法: /emakiattribute resync <player|all></yellow>"
+    player_not_found: "<red>未找到玩家 {player}。</red>"
+    player_success: "<green>已为 {player} 重新同步属性。</green>"
+    all_success: "<green>已为所有在线玩家重新同步属性。</green>"
+
+  preview:
+    console_usage: "<yellow>控制台用法: /emakiattribute preview <player> <slot></yellow>"
+    player_not_found: "<red>未找到玩家 {player}。</red>"
+    no_item: "<yellow>该槽位没有物品。</yellow>"
+    item: "<gray>物品: {item}</gray>"
+    name: "<gray>名称: {name}</gray>"
+    signature: "<gray>签名: {signature}</gray>"
+    values: "<gray>数值: {values}</gray>"
+
+  dump:
+    no_permission: "<red>你没有权限执行此命令。</red>"
+    player_not_found: "<red>未找到玩家 {player}。</red>"
+    console_usage: "<yellow>控制台用法: /emakiattribute dump <player></yellow>"
+    player: "<green>正在查看玩家 {player} 的属性快照。</green>"
+    signature: "<gray>签名: {signature}</gray>"
+    values: "<gray>数值: {values}</gray>"
+    resource_line: "<gray>{resource}: 默认 {default_max}，加成 {bonus_max}，上限 {current_max}，当前 {current}</gray>"
+
+  lint:
+    no_permission: "<red>你没有权限执行此命令。</red>"
+    config_status: "<gray>配置: {config}</gray>"
+    ok: "<green>{name} 没有发现问题。</green>"
+    issues: "<yellow>{name} 发现 {count} 个问题。</yellow>"
+
+  help:
+    reload: "<gray>/emakiattribute reload</gray> 重新加载配置与词条。"
+    resync: "<gray>/emakiattribute resync [玩家|all]</gray> 重新同步玩家属性。"
+    preview: "<gray>/emakiattribute preview [玩家] [槽位]</gray> 预览某个槽位的属性快照。"
+    dump: "<gray>/emakiattribute dump [玩家]</gray> 导出当前战斗快照与资源状态。"
+    lint: "<gray>/emakiattribute lint</gray> 检查配置与资源加载问题。"

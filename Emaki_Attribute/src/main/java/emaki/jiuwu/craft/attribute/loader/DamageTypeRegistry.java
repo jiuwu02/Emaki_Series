@@ -1,25 +1,23 @@
 package emaki.jiuwu.craft.attribute.loader;
 
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
-import emaki.jiuwu.craft.attribute.model.DamageStageDefinition;
 import emaki.jiuwu.craft.attribute.model.DamageTypeDefinition;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import java.io.File;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.regex.Pattern;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 public final class DamageTypeRegistry extends DirectoryLoader<DamageTypeDefinition> {
 
+    private final AttributeRegistry attributeRegistry;
     private final Map<String, DamageTypeDefinition> aliasIndex = new LinkedHashMap<>();
 
-    public DamageTypeRegistry(EmakiAttributePlugin plugin) {
+    public DamageTypeRegistry(EmakiAttributePlugin plugin, AttributeRegistry attributeRegistry) {
         super(plugin);
+        this.attributeRegistry = attributeRegistry;
     }
 
     @Override
@@ -29,27 +27,12 @@ public final class DamageTypeRegistry extends DirectoryLoader<DamageTypeDefiniti
 
     @Override
     protected String typeName() {
-        return "damage type";
+        return plugin.messageService() == null ? "伤害类型" : plugin.messageService().message("label.damage_type");
     }
 
     @Override
     protected DamageTypeDefinition parse(File file, YamlConfiguration configuration) {
-        List<DamageStageDefinition> stages = new ArrayList<>();
-        for (Object entry : ConfigNodes.asObjectList(configuration.get("stages"))) {
-            DamageStageDefinition stage = DamageStageDefinition.fromMap(entry);
-            if (stage != null) {
-                stages.add(stage);
-            }
-        }
-        return new DamageTypeDefinition(
-            configuration.getString("id"),
-            configuration.getString("display_name"),
-            configuration.getStringList("aliases"),
-            new java.util.LinkedHashSet<>(configuration.getStringList("allowed_events")),
-            configuration.getBoolean("hard_lock", false),
-            stages,
-            configuration.getString("description")
-        );
+        return DamageTypeDefinition.fromMap(configuration, this::resolveAttributeId);
     }
 
     @Override
@@ -73,5 +56,18 @@ public final class DamageTypeRegistry extends DirectoryLoader<DamageTypeDefiniti
             return null;
         }
         return aliasIndex.get(normalizeId(id));
+    }
+
+    private String resolveAttributeId(String id) {
+        if (Texts.isBlank(id)) {
+            return "";
+        }
+        if (attributeRegistry != null) {
+            var definition = attributeRegistry.resolve(id);
+            if (definition != null) {
+                return definition.id();
+            }
+        }
+        return normalizeId(id);
     }
 }

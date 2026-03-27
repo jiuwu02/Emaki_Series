@@ -1,0 +1,16 @@
+﻿id: test_attribute
+display_name: "测试属性"
+aliases: [test, debug_attribute]
+value_kind: FLAT
+target_type: GENERIC
+target_id: test
+default_value: 0.0
+min_value: -999999.0
+max_value: 999999.0
+allow_negative: true
+priority: 1
+lore_format_id: default_flat
+lore_patterns:
+  - '^测试属性\s*([+-]?\d+(?:\.\d+)?)$'
+attribute_power: 0.0
+description: "Test attribute for validating pipeline wiring."

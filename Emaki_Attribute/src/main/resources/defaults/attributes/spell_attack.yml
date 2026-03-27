@@ -1,6 +1,6 @@
-id: spell_attack
+﻿id: spell_attack
 display_name: "法术伤害"
-aliases: [spell_damage, magic_damage, spell_power]
+aliases: [spell_damage, magic_damage, spell_power, magic_attack]
 value_kind: FLAT
 target_type: DAMAGE
 target_id: spell
@@ -12,4 +12,5 @@ priority: 87
 lore_format_id: default_flat
 lore_patterns:
   - '^法术伤害\s*([+-]?\d+(?:\.\d+)?)$'
+attribute_power: 1.0
 description: "Adds flat spell damage."
