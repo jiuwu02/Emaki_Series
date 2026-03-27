@@ -1,0 +1,27 @@
+id: physical
+display_name: "物理伤害"
+aliases: [physical_damage, phys]
+allowed_events:
+  - ENTITY_ATTACK
+  - ENTITY_SWEEP_ATTACK
+hard_lock: true
+stages:
+  - id: attack
+    kind: FLAT_PERCENT
+    source: ATTACKER
+    mode: ADD
+    flat_attributes: [physical_attack]
+    percent_attributes: [physical_damage_bonus]
+  - id: crit
+    kind: CUSTOM
+    source: ATTACKER
+    chance_attributes: [physical_crit_rate]
+    multiplier_attributes: [physical_crit_damage]
+    expression: "{input} * (1 + ({crit} * ({multiplier} / 100)))"
+  - id: defense
+    kind: FLAT_PERCENT
+    source: TARGET
+    mode: SUBTRACT
+    flat_attributes: [physical_defense]
+    percent_attributes: []
+description: "Physical damage resolved entirely through Emaki attributes."

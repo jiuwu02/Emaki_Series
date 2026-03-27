@@ -1,0 +1,26 @@
+id: skill
+display_name: "技能伤害"
+aliases: [ability, skill_damage]
+allowed_events:
+  - MAGIC
+  - PROJECTILE
+hard_lock: true
+stages:
+  - id: damage
+    kind: FLAT_PERCENT
+    source: ATTACKER
+    mode: ADD
+    flat_attributes: []
+    percent_attributes: [skill_damage_bonus]
+  - id: crit
+    kind: CUSTOM
+    source: ATTACKER
+    chance_attributes: [skill_crit_rate]
+    multiplier_attributes: [skill_crit_damage]
+    expression: "{input} * (1 + ({crit} * ({multiplier} / 100)))"
+  - id: cdr
+    kind: CUSTOM
+    source: ATTACKER
+    percent_attributes: [skill_cdr]
+    expression: "{input}"
+description: "Skill damage resolved entirely through Emaki attributes."

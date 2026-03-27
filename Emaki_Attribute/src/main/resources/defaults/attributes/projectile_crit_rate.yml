@@ -1,0 +1,15 @@
+id: projectile_crit_rate
+display_name: "投射物暴击率"
+aliases: [projectile_crit, ranged_crit_rate]
+value_kind: CHANCE
+target_type: DAMAGE
+target_id: projectile
+default_value: 0.0
+min_value: 0.0
+max_value: 100.0
+allow_negative: false
+priority: 90
+lore_format_id: default_percent
+lore_patterns:
+  - '^([+-]?\d+(?:\.\d+)?)%\s*投射物暴击率$'
+description: "Critical hit chance for projectile damage."

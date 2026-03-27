@@ -1,0 +1,26 @@
+id: projectile
+display_name: "投射物伤害"
+aliases: [ranged, projectile_damage, arrow]
+allowed_events:
+  - PROJECTILE
+hard_lock: true
+stages:
+  - id: attack
+    kind: FLAT_PERCENT
+    source: ATTACKER
+    mode: ADD
+    flat_attributes: [projectile_attack]
+    percent_attributes: [projectile_damage_bonus]
+  - id: crit
+    kind: CUSTOM
+    source: ATTACKER
+    chance_attributes: [projectile_crit_rate]
+    multiplier_attributes: [projectile_crit_damage]
+    expression: "{input} * (1 + ({crit} * ({multiplier} / 100)))"
+  - id: defense
+    kind: FLAT_PERCENT
+    source: TARGET
+    mode: SUBTRACT
+    flat_attributes: [projectile_defense]
+    percent_attributes: []
+description: "Projectile damage resolved entirely through Emaki attributes."

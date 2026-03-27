@@ -1,0 +1,3 @@
+id: default_regen
+format: "{sign}{value} {name}/秒"
+precision: 1

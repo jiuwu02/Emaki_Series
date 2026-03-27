@@ -1,0 +1,6 @@
+debug: false
+hard_lock_damage: true
+default_damage_type: physical
+regen_interval_ticks: 20
+sync_delay_ticks: 1
+allowed_damage_causes: []

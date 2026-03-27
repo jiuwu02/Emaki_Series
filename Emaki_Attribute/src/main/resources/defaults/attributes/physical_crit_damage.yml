@@ -1,0 +1,15 @@
+id: physical_crit_damage
+display_name: "暴击伤害"
+aliases: [crit_damage, crit_dmg]
+value_kind: PERCENT
+target_type: DAMAGE
+target_id: physical
+default_value: 0.0
+min_value: -100.0
+max_value: 10000.0
+allow_negative: true
+priority: 80
+lore_format_id: default_percent
+lore_patterns:
+  - '^([+-]?\d+(?:\.\d+)?)%\s*暴击伤害$'
+description: "Extra crit damage percentage for physical damage."

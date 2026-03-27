@@ -1,0 +1,15 @@
+id: physical_attack
+display_name: "物理伤害"
+aliases: [atk, attack, physical_atk]
+value_kind: FLAT
+target_type: DAMAGE
+target_id: physical
+default_value: 0.0
+min_value: -999999.0
+max_value: 999999.0
+allow_negative: true
+priority: 100
+lore_format_id: default_flat
+lore_patterns:
+  - '^物理伤害\s*([+-]?\d+(?:\.\d+)?)$'
+description: "Adds flat physical damage."

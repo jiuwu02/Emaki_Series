@@ -1,0 +1,15 @@
+id: mana
+display_name: "法力值"
+aliases: [mp, max_mana]
+value_kind: RESOURCE
+target_type: RESOURCE
+target_id: mana
+default_value: 0.0
+min_value: 0.0
+max_value: 1000000.0
+allow_negative: false
+priority: 100
+lore_format_id: default_resource
+lore_patterns:
+  - '^([+-]?\d+(?:\.\d+)?)\s*法力值$'
+description: "Adds maximum mana."

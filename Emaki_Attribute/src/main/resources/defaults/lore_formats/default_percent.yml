@@ -1,0 +1,3 @@
+id: default_percent
+format: "{sign}{value}% {name}"
+precision: 2

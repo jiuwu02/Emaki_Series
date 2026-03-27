@@ -1,0 +1,15 @@
+id: health_regen
+display_name: "生命恢复"
+aliases: [hp_regen, health_regen]
+value_kind: REGEN
+target_type: RESOURCE
+target_id: health
+default_value: 0.0
+min_value: -1000.0
+max_value: 1000.0
+allow_negative: true
+priority: 90
+lore_format_id: default_regen
+lore_patterns:
+  - '^([+-]?\d+(?:\.\d+)?)\s*生命恢复/秒$'
+description: "Adds health regeneration per second."

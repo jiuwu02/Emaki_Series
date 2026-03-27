@@ -2,6 +2,8 @@ package emaki.jiuwu.craft.forge.service;
 
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
+import emaki.jiuwu.craft.corelib.pdc.PdcPartition;
+import emaki.jiuwu.craft.corelib.pdc.PdcService;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.model.QualitySettings;
@@ -56,6 +58,8 @@ public final class ForgePdcService {
     }
 
     private final EmakiForgePlugin plugin;
+    private final PdcService pdcService;
+    private final PdcPartition forgePartition;
     private final Object mutex = new Object();
 
     private final NamespacedKey schemaVersionKey;
@@ -75,18 +79,19 @@ public final class ForgePdcService {
     private final List<NamespacedKey> materialsBlobReadKeys;
     private final List<NamespacedKey> corruptedReadKeys;
     private final List<NamespacedKey> corruptionReasonReadKeys;
-    private final List<NamespacedKey> allManagedKeys;
 
     public ForgePdcService(EmakiForgePlugin plugin) {
         this.plugin = plugin;
-        this.schemaVersionKey = key("forge_schema_version");
-        this.recipeIdKey = key("forge_recipe_id");
-        this.qualityKey = key("forge_quality");
-        this.multiplierKey = key("forge_multiplier");
-        this.forgedAtKey = key("forge_forged_at");
-        this.materialsBlobKey = key("forge_materials");
-        this.corruptedKey = key("forge_data_corrupted");
-        this.corruptionReasonKey = key("forge_corruption_reason");
+        this.pdcService = new PdcService(NAMESPACE);
+        this.forgePartition = pdcService.partition("");
+        this.schemaVersionKey = pdcService.key("forge_schema_version");
+        this.recipeIdKey = pdcService.key("forge_recipe_id");
+        this.qualityKey = pdcService.key("forge_quality");
+        this.multiplierKey = pdcService.key("forge_multiplier");
+        this.forgedAtKey = pdcService.key("forge_forged_at");
+        this.materialsBlobKey = pdcService.key("forge_materials");
+        this.corruptedKey = pdcService.key("forge_data_corrupted");
+        this.corruptionReasonKey = pdcService.key("forge_corruption_reason");
 
         this.schemaVersionReadKeys = readKeys(plugin, schemaVersionKey, "forge_schema_version");
         this.recipeIdReadKeys = readKeys(plugin, recipeIdKey, "forge_recipe_id");
@@ -96,26 +101,6 @@ public final class ForgePdcService {
         this.materialsBlobReadKeys = readKeys(plugin, materialsBlobKey, "forge_materials");
         this.corruptedReadKeys = readKeys(plugin, corruptedKey, "forge_data_corrupted");
         this.corruptionReasonReadKeys = readKeys(plugin, corruptionReasonKey, "forge_corruption_reason");
-        this.allManagedKeys = List.of(
-            schemaVersionKey, recipeIdKey, qualityKey, multiplierKey, forgedAtKey,
-            materialsBlobKey, corruptedKey, corruptionReasonKey,
-            legacyNamespaceKey("forge_schema_version"),
-            legacyNamespaceKey("forge_recipe_id"),
-            legacyNamespaceKey("forge_quality"),
-            legacyNamespaceKey("forge_multiplier"),
-            legacyNamespaceKey("forge_forged_at"),
-            legacyNamespaceKey("forge_materials"),
-            legacyNamespaceKey("forge_data_corrupted"),
-            legacyNamespaceKey("forge_corruption_reason"),
-            new NamespacedKey(plugin, "forge_schema_version"),
-            new NamespacedKey(plugin, "forge_recipe_id"),
-            new NamespacedKey(plugin, "forge_quality"),
-            new NamespacedKey(plugin, "forge_multiplier"),
-            new NamespacedKey(plugin, "forge_forged_at"),
-            new NamespacedKey(plugin, "forge_materials"),
-            new NamespacedKey(plugin, "forge_data_corrupted"),
-            new NamespacedKey(plugin, "forge_corruption_reason")
-        );
     }
 
     public boolean apply(ItemStack itemStack,
@@ -138,20 +123,18 @@ public final class ForgePdcService {
             try {
                 long forgedAt = System.currentTimeMillis();
                 List<MaterialRecord> normalized = normalizeMaterials(materials, forgedAt);
-                PersistentDataContainer container = itemMeta.getPersistentDataContainer();
-                container.set(schemaVersionKey, PersistentDataType.INTEGER, SCHEMA_VERSION);
-                container.set(recipeIdKey, PersistentDataType.STRING, recipe.id());
-                container.set(forgedAtKey, PersistentDataType.LONG, forgedAt);
-                container.set(multiplierKey, PersistentDataType.DOUBLE, multiplier);
+                pdcService.set(itemStack, forgePartition, "forge_schema_version", PersistentDataType.INTEGER, SCHEMA_VERSION);
+                pdcService.set(itemStack, forgePartition, "forge_recipe_id", PersistentDataType.STRING, recipe.id());
+                pdcService.set(itemStack, forgePartition, "forge_forged_at", PersistentDataType.LONG, forgedAt);
+                pdcService.set(itemStack, forgePartition, "forge_multiplier", PersistentDataType.DOUBLE, multiplier);
                 if (qualityTier != null) {
-                    container.set(qualityKey, PersistentDataType.STRING, qualityTier.name());
+                    pdcService.set(itemStack, forgePartition, "forge_quality", PersistentDataType.STRING, qualityTier.name());
                 } else {
-                    container.remove(qualityKey);
+                    pdcService.remove(itemStack, forgePartition, "forge_quality");
                 }
-                container.set(materialsBlobKey, PersistentDataType.STRING, serializeMaterials(normalized));
-                clearCorruptedState(container);
-                clearLegacyKeys(container);
-                itemStack.setItemMeta(itemMeta);
+                pdcService.set(itemStack, forgePartition, "forge_materials", PersistentDataType.STRING, serializeMaterials(normalized));
+                clearCorruptedState(itemStack);
+                clearLegacyKeys(itemStack);
                 return true;
             } catch (Exception exception) {
                 plugin.getLogger().warning("Failed to write forge PDC data for recipe " + recipe.id() + ": " + exception.getMessage());
@@ -230,11 +213,8 @@ public final class ForgePdcService {
             if (itemMeta == null) {
                 return;
             }
-            PersistentDataContainer container = itemMeta.getPersistentDataContainer();
-            for (NamespacedKey key : allManagedKeys) {
-                container.remove(key);
-            }
-            itemStack.setItemMeta(itemMeta);
+            clearCurrentKeys(itemStack);
+            clearLegacyKeys(itemStack);
         }
     }
 
@@ -430,38 +410,44 @@ public final class ForgePdcService {
         if (itemStack == null || Texts.isBlank(reason) || !Bukkit.isPrimaryThread()) {
             return;
         }
+        pdcService.set(itemStack, forgePartition, "forge_data_corrupted", PersistentDataType.BYTE, (byte) 1);
+        pdcService.set(itemStack, forgePartition, "forge_corruption_reason", PersistentDataType.STRING, reason);
+    }
+
+    private void clearCorruptedState(ItemStack itemStack) {
+        if (itemStack == null) {
+            return;
+        }
+        pdcService.remove(itemStack, forgePartition, "forge_data_corrupted");
+        pdcService.remove(itemStack, forgePartition, "forge_corruption_reason");
+    }
+
+    private void clearLegacyKeys(ItemStack itemStack) {
+        if (itemStack == null) {
+            return;
+        }
         ItemMeta itemMeta = itemStack.getItemMeta();
         if (itemMeta == null) {
             return;
         }
         PersistentDataContainer container = itemMeta.getPersistentDataContainer();
-        container.set(corruptedKey, PersistentDataType.BYTE, (byte) 1);
-        container.set(corruptionReasonKey, PersistentDataType.STRING, reason);
-        itemStack.setItemMeta(itemMeta);
-    }
-
-    private void clearCorruptedState(PersistentDataContainer container) {
-        container.remove(corruptedKey);
-        container.remove(corruptionReasonKey);
-        container.remove(legacyNamespaceKey("forge_data_corrupted"));
-        container.remove(legacyNamespaceKey("forge_corruption_reason"));
-        container.remove(new NamespacedKey(plugin, "forge_data_corrupted"));
-        container.remove(new NamespacedKey(plugin, "forge_corruption_reason"));
-    }
-
-    private void clearLegacyKeys(PersistentDataContainer container) {
         container.remove(legacyNamespaceKey("forge_schema_version"));
         container.remove(legacyNamespaceKey("forge_recipe_id"));
         container.remove(legacyNamespaceKey("forge_quality"));
         container.remove(legacyNamespaceKey("forge_multiplier"));
         container.remove(legacyNamespaceKey("forge_forged_at"));
         container.remove(legacyNamespaceKey("forge_materials"));
+        container.remove(legacyNamespaceKey("forge_data_corrupted"));
+        container.remove(legacyNamespaceKey("forge_corruption_reason"));
         container.remove(new NamespacedKey(plugin, "forge_schema_version"));
         container.remove(new NamespacedKey(plugin, "forge_recipe_id"));
         container.remove(new NamespacedKey(plugin, "forge_quality"));
         container.remove(new NamespacedKey(plugin, "forge_multiplier"));
         container.remove(new NamespacedKey(plugin, "forge_forged_at"));
         container.remove(new NamespacedKey(plugin, "forge_materials"));
+        container.remove(new NamespacedKey(plugin, "forge_data_corrupted"));
+        container.remove(new NamespacedKey(plugin, "forge_corruption_reason"));
+        itemStack.setItemMeta(itemMeta);
     }
 
     private PersistentDataContainer container(ItemStack itemStack) {
@@ -470,6 +456,17 @@ public final class ForgePdcService {
         }
         ItemMeta itemMeta = itemStack.getItemMeta();
         return itemMeta == null ? null : itemMeta.getPersistentDataContainer();
+    }
+
+    private void clearCurrentKeys(ItemStack itemStack) {
+        pdcService.remove(itemStack, forgePartition, "forge_schema_version");
+        pdcService.remove(itemStack, forgePartition, "forge_recipe_id");
+        pdcService.remove(itemStack, forgePartition, "forge_quality");
+        pdcService.remove(itemStack, forgePartition, "forge_multiplier");
+        pdcService.remove(itemStack, forgePartition, "forge_forged_at");
+        pdcService.remove(itemStack, forgePartition, "forge_materials");
+        pdcService.remove(itemStack, forgePartition, "forge_data_corrupted");
+        pdcService.remove(itemStack, forgePartition, "forge_corruption_reason");
     }
 
     private Long readForgedAt(PersistentDataContainer container) {
@@ -501,10 +498,6 @@ public final class ForgePdcService {
             }
         }
         return null;
-    }
-
-    private static NamespacedKey key(String path) {
-        return Objects.requireNonNull(NamespacedKey.fromString(NAMESPACE + ":" + path));
     }
 
     private static List<NamespacedKey> readKeys(EmakiForgePlugin plugin, NamespacedKey primary, String legacyPath) {

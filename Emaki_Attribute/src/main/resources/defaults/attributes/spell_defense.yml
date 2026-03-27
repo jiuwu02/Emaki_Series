@@ -1,0 +1,15 @@
+id: spell_defense
+display_name: "法术防御"
+aliases: [spell_resistance, magic_resistance]
+value_kind: FLAT
+target_type: DAMAGE
+target_id: spell
+default_value: 0.0
+min_value: -999999.0
+max_value: 999999.0
+allow_negative: true
+priority: 83
+lore_format_id: default_flat
+lore_patterns:
+  - '^法术防御\s*([+-]?\d+(?:\.\d+)?)$'
+description: "Flat spell mitigation resolved by Emaki."

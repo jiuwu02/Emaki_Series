@@ -1,0 +1,3 @@
+id: default_resource
+format: "{sign}{value} {name}"
+precision: 2

@@ -1,0 +1,39 @@
+id: global
+priority: 0
+resources:
+  health:
+    display_name: "生命值"
+    default_max: 20.0
+    min_max: 1.0
+    max_max: 2048.0
+    sync_to_bukkit: true
+    full_on_init: true
+  mana:
+    display_name: "法力值"
+    default_max: 100.0
+    min_max: 0.0
+    max_max: 99999.0
+    sync_to_bukkit: false
+    full_on_init: true
+attributes:
+  physical_attack: 0.0
+  physical_defense: 0.0
+  physical_damage_bonus: 0.0
+  physical_crit_rate: 0.0
+  physical_crit_damage: 0.0
+  projectile_attack: 0.0
+  projectile_damage_bonus: 0.0
+  projectile_crit_rate: 0.0
+  projectile_crit_damage: 0.0
+  projectile_defense: 0.0
+  spell_attack: 0.0
+  spell_damage_bonus: 0.0
+  spell_crit_rate: 0.0
+  spell_crit_damage: 0.0
+  spell_defense: 0.0
+  health_regen: 0.0
+  mana_regen: 0.0
+  skill_damage_bonus: 0.0
+  skill_crit_rate: 0.0
+  skill_crit_damage: 0.0
+  skill_cdr: 0.0

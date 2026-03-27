@@ -1,0 +1,79 @@
+package emaki.jiuwu.craft.attribute.model;
+
+import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.math.Numbers;
+import emaki.jiuwu.craft.corelib.text.Texts;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
+public record DamageStageDefinition(String id,
+                                    DamageStageKind kind,
+                                    DamageStageSource source,
+                                    DamageStageMode mode,
+                                    List<String> flatAttributes,
+                                    List<String> percentAttributes,
+                                    List<String> chanceAttributes,
+                                    List<String> multiplierAttributes,
+                                    String expression,
+                                    Double minResult,
+                                    Double maxResult,
+                                    Double minChance,
+                                    Double maxChance,
+                                    Double minMultiplier,
+                                    Double maxMultiplier) {
+
+    public DamageStageDefinition {
+        id = normalizeId(id);
+        kind = kind == null ? DamageStageKind.FLAT_PERCENT : kind;
+        source = source == null ? DamageStageSource.ATTACKER : source;
+        mode = mode == null ? DamageStageMode.ADD : mode;
+        flatAttributes = flatAttributes == null ? List.of() : List.copyOf(flatAttributes);
+        percentAttributes = percentAttributes == null ? List.of() : List.copyOf(percentAttributes);
+        chanceAttributes = chanceAttributes == null ? List.of() : List.copyOf(chanceAttributes);
+        multiplierAttributes = multiplierAttributes == null ? List.of() : List.copyOf(multiplierAttributes);
+        expression = Texts.toStringSafe(expression).trim();
+    }
+
+    public static DamageStageDefinition fromMap(Object raw) {
+        if (raw == null) {
+            return null;
+        }
+        String id = ConfigNodes.string(raw, "id", "stage");
+        DamageStageKind kind = parseEnum(ConfigNodes.string(raw, "kind", "FLAT_PERCENT"), DamageStageKind.FLAT_PERCENT);
+        DamageStageSource source = parseEnum(ConfigNodes.string(raw, "source", "ATTACKER"), DamageStageSource.ATTACKER);
+        DamageStageMode mode = parseEnum(ConfigNodes.string(raw, "mode", "ADD"), DamageStageMode.ADD);
+        return new DamageStageDefinition(
+            id,
+            kind,
+            source,
+            mode,
+            Texts.asStringList(ConfigNodes.get(raw, "flat_attributes")),
+            Texts.asStringList(ConfigNodes.get(raw, "percent_attributes")),
+            Texts.asStringList(ConfigNodes.get(raw, "chance_attributes")),
+            Texts.asStringList(ConfigNodes.get(raw, "multiplier_attributes")),
+            ConfigNodes.string(raw, "expression", null),
+            Numbers.tryParseDouble(ConfigNodes.get(raw, "min_result"), null),
+            Numbers.tryParseDouble(ConfigNodes.get(raw, "max_result"), null),
+            Numbers.tryParseDouble(ConfigNodes.get(raw, "min_chance"), null),
+            Numbers.tryParseDouble(ConfigNodes.get(raw, "max_chance"), null),
+            Numbers.tryParseDouble(ConfigNodes.get(raw, "min_multiplier"), null),
+            Numbers.tryParseDouble(ConfigNodes.get(raw, "max_multiplier"), null)
+        );
+    }
+
+    private static String normalizeId(String value) {
+        return Texts.toStringSafe(value).trim().toLowerCase(Locale.ROOT).replace(' ', '_');
+    }
+
+    private static <E extends Enum<E>> E parseEnum(String value, E defaultValue) {
+        if (Texts.isBlank(value)) {
+            return defaultValue;
+        }
+        try {
+            return Enum.valueOf(defaultValue.getDeclaringClass(), value.trim().toUpperCase(Locale.ROOT));
+        } catch (Exception ignored) {
+            return defaultValue;
+        }
+    }
+}

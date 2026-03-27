@@ -1,0 +1,3 @@
+id: default_flat
+format: "{name} {sign}{value}"
+precision: 2

@@ -21,6 +21,7 @@
 
     <modules>
         <module>Emaki_CoreLib</module>
+        <module>Emaki_Attribute</module>
         <module>Emaki_Forge</module>
     </modules>
 
@@ -29,6 +30,7 @@
         <maven.compiler.release>21</maven.compiler.release>
         <paper.api.version>1.21.11-R0.1-SNAPSHOT</paper.api.version>
         <exp4j.version>0.4.8</exp4j.version>
+        <mythicmobs.version>5.2.3</mythicmobs.version>
         <vault.api.version>1.7</vault.api.version>
         <coinsengine.version>2.7.0</coinsengine.version>
         <nightcore.version>2.14.0</nightcore.version>
@@ -48,6 +50,12 @@
                 <groupId>net.objecthunter</groupId>
                 <artifactId>exp4j</artifactId>
                 <version>${exp4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.lumine</groupId>
+                <artifactId>Mythic-Dist</artifactId>
+                <version>${mythicmobs.version}</version>
+                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>com.github.MilkBowl</groupId>
@@ -114,6 +122,10 @@
         <repository>
             <id>nightexpress-releases</id>
             <url>https://repo.nightexpressdev.com/releases</url>
+        </repository>
+        <repository>
+            <id>lumine-public</id>
+            <url>https://mvn.lumine.io/repository/maven-public/</url>
         </repository>
         <repository>
             <id>maven-central</id>

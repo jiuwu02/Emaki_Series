@@ -1,0 +1,26 @@
+id: spell
+display_name: "法术伤害"
+aliases: [magic_damage, magic, spell_damage]
+allowed_events:
+  - MAGIC
+hard_lock: true
+stages:
+  - id: attack
+    kind: FLAT_PERCENT
+    source: ATTACKER
+    mode: ADD
+    flat_attributes: [spell_attack]
+    percent_attributes: [spell_damage_bonus]
+  - id: crit
+    kind: CUSTOM
+    source: ATTACKER
+    chance_attributes: [spell_crit_rate]
+    multiplier_attributes: [spell_crit_damage]
+    expression: "{input} * (1 + ({crit} * ({multiplier} / 100)))"
+  - id: defense
+    kind: FLAT_PERCENT
+    source: TARGET
+    mode: SUBTRACT
+    flat_attributes: [spell_defense]
+    percent_attributes: []
+description: "Spell damage resolved entirely through Emaki attributes."

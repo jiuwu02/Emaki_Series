@@ -1,0 +1,15 @@
+id: health
+display_name: "生命值"
+aliases: [hp, max_health]
+value_kind: RESOURCE
+target_type: RESOURCE
+target_id: health
+default_value: 0.0
+min_value: 0.0
+max_value: 1000000.0
+allow_negative: false
+priority: 100
+lore_format_id: default_resource
+lore_patterns:
+  - '^([+-]?\d+(?:\.\d+)?)\s*生命值$'
+description: "Adds maximum health."

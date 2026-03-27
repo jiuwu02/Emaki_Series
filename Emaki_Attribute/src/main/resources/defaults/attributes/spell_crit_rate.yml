@@ -1,0 +1,15 @@
+id: spell_crit_rate
+display_name: "法术暴击率"
+aliases: [spell_crit, magic_crit_rate]
+value_kind: CHANCE
+target_type: DAMAGE
+target_id: spell
+default_value: 0.0
+min_value: 0.0
+max_value: 100.0
+allow_negative: false
+priority: 85
+lore_format_id: default_percent
+lore_patterns:
+  - '^([+-]?\d+(?:\.\d+)?)%\s*法术暴击率$'
+description: "Critical hit chance for spell damage."

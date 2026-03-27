@@ -1,0 +1,15 @@
+id: physical_damage_bonus
+display_name: "物理伤害加成"
+aliases: [physical_bonus, damage_bonus]
+value_kind: PERCENT
+target_type: DAMAGE
+target_id: physical
+default_value: 0.0
+min_value: -100.0
+max_value: 10000.0
+allow_negative: true
+priority: 85
+lore_format_id: default_percent
+lore_patterns:
+  - '^([+-]?\d+(?:\.\d+)?)%\s*物理伤害加成$'
+description: "Extra physical damage percentage."

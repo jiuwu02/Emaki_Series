@@ -10,6 +10,7 @@ import emaki.jiuwu.craft.corelib.placeholder.ActionInlineTokenResolver;
 import emaki.jiuwu.craft.corelib.placeholder.ActionContextPlaceholderResolver;
 import emaki.jiuwu.craft.corelib.placeholder.PlaceholderApiResolver;
 import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRegistry;
+import emaki.jiuwu.craft.corelib.pdc.PdcService;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import java.io.File;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -32,6 +33,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin {
     private PlaceholderRegistry placeholderRegistry;
     private EconomyManager economyManager;
     private ActionExecutor actionExecutor;
+    private final PdcService pdcService = new PdcService("emaki_corelib");
 
     public static EmakiCoreLibPlugin getInstance() {
         return instance;
@@ -111,5 +113,9 @@ public final class EmakiCoreLibPlugin extends JavaPlugin {
 
     public ActionExecutor actionExecutor() {
         return actionExecutor;
+    }
+
+    public PdcService pdcService() {
+        return pdcService;
     }
 }
