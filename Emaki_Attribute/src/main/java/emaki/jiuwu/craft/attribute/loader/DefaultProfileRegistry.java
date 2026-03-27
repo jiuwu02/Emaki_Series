@@ -28,6 +28,10 @@ public final class DefaultProfileRegistry extends DirectoryLoader<DefaultProfile
 
     @Override
     protected DefaultProfile parse(File file, YamlConfiguration configuration) {
+        // Only files with bundled resource definitions are treated as default profiles.
+        if (!configuration.contains("resources")) {
+            return null;
+        }
         return DefaultProfile.fromMap(configuration);
     }
 

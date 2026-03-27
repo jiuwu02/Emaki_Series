@@ -1,0 +1,16 @@
+id: physical_crit_evasion
+display_name: "物理暴击闪避"
+aliases: [physical_crit_resist, physical_crit_dodge]
+value_kind: CHANCE
+target_type: DAMAGE
+target_id: physical
+default_value: 0.0
+min_value: 0.0
+max_value: 100.0
+allow_negative: false
+priority: 79
+lore_format_id: default_percent
+lore_patterns:
+  - '^物理暴击闪避\s*([+-]?\d+(?:\.\d+)?)%$'
+attribute_power: 1.0
+description: "Reduces incoming physical crit chance."
