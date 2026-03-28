@@ -13,13 +13,17 @@ import emaki.jiuwu.craft.forge.model.Recipe;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 
 public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
 
+    private final EmakiForgePlugin forgePlugin;
+
     public RecipeLoader(EmakiForgePlugin plugin) {
         super(plugin);
+        this.forgePlugin = plugin;
     }
 
     @Override
@@ -59,7 +63,9 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
         }
         EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.getInstance();
         if (coreLib == null || coreLib.actionRegistry() == null || coreLib.actionTemplateRegistry() == null) {
-            plugin.getLogger().warning("Skipped action validation for recipe '" + file.getName() + "' because Emaki_CoreLib is unavailable.");
+            forgePlugin.messageService().warning("loader.recipe_action_validation_skipped", Map.of(
+                "file", file.getName()
+            ));
             return true;
         }
         ActionLineParser parser = new ActionLineParser();
@@ -83,8 +89,13 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
             try {
                 parsed = parser.parse(index + 1, lines.get(index));
             } catch (ActionSyntaxException exception) {
-                plugin.getLogger().warning("Invalid action syntax in recipe '" + recipe.id()
-                    + "' (" + file.getName() + ", phase=" + phase + ", line=" + (index + 1) + "): " + exception.getMessage());
+                forgePlugin.messageService().warning("loader.recipe_invalid_action_syntax", Map.of(
+                    "recipe", recipe.id(),
+                    "file", file.getName(),
+                    "phase", phase,
+                    "line", index + 1,
+                    "error", String.valueOf(exception.getMessage())
+                ));
                 return false;
             }
             if (parsed == null) {
@@ -95,22 +106,37 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
                 String suggestion = "send_action_bar".equals(parsed.actionId())
                     ? " 请改用标准操作名 'send_actionbar'."
                     : "";
-                plugin.getLogger().warning("Unknown action '" + parsed.actionId() + "' in recipe '" + recipe.id()
-                    + "' (" + file.getName() + ", phase=" + phase + ", line=" + parsed.lineNumber() + ")." + suggestion);
+                forgePlugin.messageService().warning("loader.recipe_unknown_action", Map.of(
+                    "action", parsed.actionId(),
+                    "recipe", recipe.id(),
+                    "file", file.getName(),
+                    "phase", phase,
+                    "line", parsed.lineNumber(),
+                    "suggestion", suggestion
+                ));
                 return false;
             }
             ActionResult validation = action.validate(parsed.arguments());
             if (!validation.success()) {
-                plugin.getLogger().warning("Invalid action arguments in recipe '" + recipe.id()
-                    + "' (" + file.getName() + ", phase=" + phase + ", line=" + parsed.lineNumber() + "): "
-                    + Texts.toStringSafe(validation.errorMessage()));
+                forgePlugin.messageService().warning("loader.recipe_invalid_action_arguments", Map.of(
+                    "recipe", recipe.id(),
+                    "file", file.getName(),
+                    "phase", phase,
+                    "line", parsed.lineNumber(),
+                    "error", Texts.toStringSafe(validation.errorMessage())
+                ));
                 return false;
             }
             if ("use_template".equals(parsed.actionId())) {
                 String templateName = parsed.arguments().get("name");
                 if (Texts.isBlank(templateName) || coreLib.actionTemplateRegistry().get(templateName) == null) {
-                    plugin.getLogger().warning("Unknown action template '" + templateName + "' in recipe '" + recipe.id()
-                        + "' (" + file.getName() + ", phase=" + phase + ", line=" + parsed.lineNumber() + ").");
+                    forgePlugin.messageService().warning("loader.recipe_unknown_action_template", Map.of(
+                        "template", templateName,
+                        "recipe", recipe.id(),
+                        "file", file.getName(),
+                        "phase", phase,
+                        "line", parsed.lineNumber()
+                    ));
                     return false;
                 }
             }

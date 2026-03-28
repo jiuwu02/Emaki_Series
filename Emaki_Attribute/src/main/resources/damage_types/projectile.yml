@@ -23,6 +23,7 @@ stages:
     mode: SUBTRACT
     flat_attributes: [projectile_armor]
     percent_attributes: []
+    expression: "max(0, input - flat)"
 recovery:
   source: ATTACKER
   resistance_source: TARGET

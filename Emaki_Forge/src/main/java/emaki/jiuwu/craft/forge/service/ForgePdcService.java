@@ -110,7 +110,7 @@ public final class ForgePdcService {
                          double multiplier) {
         synchronized (mutex) {
             if (!Bukkit.isPrimaryThread()) {
-                plugin.getLogger().warning("Skipped forge PDC write outside the primary thread.");
+                plugin.messageService().warning("console.pdc_write_skipped_primary_thread", Map.of());
                 return false;
             }
             if (itemStack == null || recipe == null) {
@@ -137,7 +137,10 @@ public final class ForgePdcService {
                 clearLegacyKeys(itemStack);
                 return true;
             } catch (Exception exception) {
-                plugin.getLogger().warning("Failed to write forge PDC data for recipe " + recipe.id() + ": " + exception.getMessage());
+                plugin.messageService().warning("console.pdc_write_failed", Map.of(
+                    "recipe", recipe.id(),
+                    "error", String.valueOf(exception.getMessage())
+                ));
                 return false;
             }
         }
@@ -238,7 +241,9 @@ public final class ForgePdcService {
         List<MaterialRecord> materials = deserializeMaterials(blob);
         String validationError = validateSnapshot(recipeId, forgedAt, blob, materials, corruptedFlag != null && corruptedFlag == (byte) 1, corruptionReason);
         if (validationError != null) {
-            plugin.getLogger().warning("Corrupted forge PDC data detected: " + validationError);
+            plugin.messageService().warning("console.pdc_corrupted_data_detected", Map.of(
+                "reason", validationError
+            ));
             if (markCorrupted) {
                 markCorrupted(itemStack, validationError);
             }
@@ -359,10 +364,14 @@ public final class ForgePdcService {
         try {
             yaml.load(new StringReader(blob));
         } catch (InvalidConfigurationException exception) {
-            plugin.getLogger().warning("Failed to deserialize forge materials blob: " + exception.getMessage());
+            plugin.messageService().warning("console.pdc_deserialize_failed", Map.of(
+                "error", String.valueOf(exception.getMessage())
+            ));
             return null;
         } catch (Exception exception) {
-            plugin.getLogger().warning("Unexpected forge materials blob error: " + exception.getMessage());
+            plugin.messageService().warning("console.pdc_deserialize_unexpected_error", Map.of(
+                "error", String.valueOf(exception.getMessage())
+            ));
             return null;
         }
         ConfigurationSection materialsSection = yaml.getConfigurationSection("materials");

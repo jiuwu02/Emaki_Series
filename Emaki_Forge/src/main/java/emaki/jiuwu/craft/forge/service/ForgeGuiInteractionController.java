@@ -1,0 +1,313 @@
+package emaki.jiuwu.craft.forge.service;
+
+import emaki.jiuwu.craft.corelib.gui.GuiSession;
+import emaki.jiuwu.craft.corelib.gui.GuiSessionHandler;
+import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
+import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.forge.EmakiForgePlugin;
+import emaki.jiuwu.craft.forge.model.Blueprint;
+import emaki.jiuwu.craft.forge.model.ForgeMaterial;
+import emaki.jiuwu.craft.forge.model.Recipe;
+import emaki.jiuwu.craft.forge.service.ForgeGuiService.ForgeGuiSession;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Predicate;
+import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.inventory.ItemStack;
+
+final class ForgeGuiInteractionController {
+
+    private final EmakiForgePlugin plugin;
+    private final ForgeGuiSessionStore sessionStore;
+    private final ForgeGuiStateSupport stateSupport;
+    private final ForgeGuiRenderer renderer;
+
+    ForgeGuiInteractionController(EmakiForgePlugin plugin,
+                                  ForgeGuiSessionStore sessionStore,
+                                  ForgeGuiStateSupport stateSupport,
+                                  ForgeGuiRenderer renderer) {
+        this.plugin = plugin;
+        this.sessionStore = sessionStore;
+        this.stateSupport = stateSupport;
+        this.renderer = renderer;
+    }
+
+    public GuiSessionHandler createSessionHandler(ForgeGuiSession state) {
+        return new ForgeSessionHandler(state);
+    }
+
+    private void handleShiftFromPlayerInventory(InventoryClickEvent event, ForgeGuiSession state) {
+        ItemStack itemStack = ForgeGuiStateSupport.cloneNonAir(event.getCurrentItem());
+        if (itemStack == null) {
+            return;
+        }
+        ItemSource source = plugin.itemIdentifierService().identifyItem(itemStack);
+        if (source == null) {
+            return;
+        }
+        Blueprint blueprint = stateSupport.findBlueprintBySource(source);
+        if (blueprint != null) {
+            int slot = stateSupport.firstFreeSlot(stateSupport.slotsForType(state, "blueprint_inputs"), state.blueprintItems());
+            if (slot >= 0) {
+                state.blueprintItems().put(slot, itemStack);
+                event.getClickedInventory().setItem(event.getSlot(), null);
+                renderer.refreshGui(state);
+            }
+            return;
+        }
+        ForgeMaterial material = stateSupport.findMaterialBySource(source);
+        if (material != null) {
+            ForgeGuiStateSupport.MaterialSlotRules rules = stateSupport.resolveMaterialSlotRules(state);
+            if (rules.requiredIds().contains(material.id())) {
+                int slot = stateSupport.firstFreeSlot(stateSupport.slotsForType(state, "required_materials"), state.requiredMaterialItems());
+                if (slot >= 0) {
+                    state.requiredMaterialItems().put(slot, itemStack);
+                    event.getClickedInventory().setItem(event.getSlot(), null);
+                    renderer.refreshGui(state);
+                }
+                return;
+            }
+            if (stateSupport.canPlaceOptionalMaterial(material.id(), rules)) {
+                int slot = stateSupport.firstFreeSlot(stateSupport.slotsForType(state, "optional_materials"), state.optionalMaterialItems());
+                if (slot >= 0) {
+                    state.optionalMaterialItems().put(slot, itemStack);
+                    event.getClickedInventory().setItem(event.getSlot(), null);
+                    renderer.refreshGui(state);
+                }
+            }
+            return;
+        }
+        if (!stateSupport.matchesTarget(state.recipe(), itemStack)) {
+            return;
+        }
+        List<Integer> targetSlots = stateSupport.slotsForType(state, "target_item");
+        if (targetSlots.isEmpty()) {
+            return;
+        }
+        if (state.targetItem() != null) {
+            stateSupport.giveBackToPlayer(state.player(), state.targetItem());
+        }
+        state.setTargetItem(itemStack);
+        event.getClickedInventory().setItem(event.getSlot(), null);
+        renderer.refreshGui(state);
+    }
+
+    private void handleBlueprintClick(InventoryClickEvent event, ForgeGuiSession state, int slot) {
+        handleMappedSlotClick(
+            event,
+            state,
+            slot,
+            state.blueprintItems(),
+            itemStack -> stateSupport.findBlueprintBySource(plugin.itemIdentifierService().identifyItem(itemStack)) != null
+        );
+    }
+
+    private void handleTargetClick(InventoryClickEvent event, ForgeGuiSession state) {
+        if (event.getClick().isKeyboardClick()) {
+            return;
+        }
+        Player player = (Player) event.getWhoClicked();
+        ItemStack cursor = ForgeGuiStateSupport.cloneNonAir(event.getCursor());
+        if (cursor != null) {
+            if (!stateSupport.matchesTarget(state.recipe(), cursor)) {
+                return;
+            }
+            ItemStack previous = ForgeGuiStateSupport.cloneNonAir(state.targetItem());
+            state.setTargetItem(cursor);
+            player.setItemOnCursor(previous);
+            renderer.refreshGui(state);
+            return;
+        }
+        ItemStack removed = ForgeGuiStateSupport.cloneNonAir(state.targetItem());
+        if (removed == null) {
+            return;
+        }
+        state.setTargetItem(null);
+        if (event.isShiftClick()) {
+            stateSupport.giveBackToPlayer(player, removed);
+        } else {
+            player.setItemOnCursor(removed);
+        }
+        renderer.refreshGui(state);
+    }
+
+    private void handleMaterialClick(InventoryClickEvent event, ForgeGuiSession state, int slot, boolean required) {
+        ForgeGuiStateSupport.MaterialSlotRules rules = stateSupport.resolveMaterialSlotRules(state);
+        handleMappedSlotClick(
+            event,
+            state,
+            slot,
+            required ? state.requiredMaterialItems() : state.optionalMaterialItems(),
+            itemStack -> {
+                ForgeMaterial material = stateSupport.findMaterialBySource(plugin.itemIdentifierService().identifyItem(itemStack));
+                if (material == null) {
+                    return false;
+                }
+                return required ? rules.requiredIds().contains(material.id()) : stateSupport.canPlaceOptionalMaterial(material.id(), rules);
+            }
+        );
+    }
+
+    private void handleMappedSlotClick(InventoryClickEvent event,
+                                       ForgeGuiSession state,
+                                       int slot,
+                                       Map<Integer, ItemStack> items,
+                                       Predicate<ItemStack> validator) {
+        if (event.getClick().isKeyboardClick()) {
+            return;
+        }
+        Player player = (Player) event.getWhoClicked();
+        ItemStack cursor = ForgeGuiStateSupport.cloneNonAir(event.getCursor());
+        if (cursor != null) {
+            if (validator != null && !validator.test(cursor)) {
+                return;
+            }
+            ItemStack previous = ForgeGuiStateSupport.cloneNonAir(items.put(slot, cursor));
+            player.setItemOnCursor(previous);
+            renderer.refreshGui(state);
+            return;
+        }
+        ItemStack removed = ForgeGuiStateSupport.cloneNonAir(items.remove(slot));
+        if (removed == null) {
+            return;
+        }
+        if (event.isShiftClick()) {
+            stateSupport.giveBackToPlayer(player, removed);
+        } else {
+            player.setItemOnCursor(removed);
+        }
+        renderer.refreshGui(state);
+    }
+
+    private void handleConfirmClick(ForgeGuiSession state) {
+        if (state.processing()) {
+            return;
+        }
+        stateSupport.refreshDerivedValues(state);
+        if (state.maxCapacity() > 0 && state.currentCapacity() > state.maxCapacity()) {
+            plugin.messageService().send(
+                state.player(),
+                "forge.error.capacity_exceeded",
+                Map.of("current", state.currentCapacity(), "max", state.maxCapacity())
+            );
+            return;
+        }
+        Recipe activeRecipe = state.recipe() != null ? state.recipe() : state.previewRecipe();
+        if (activeRecipe == null) {
+            ForgeService.RecipeMatch match = plugin.forgeService().findMatchingRecipe(state.player(), state.toGuiItems());
+            if (match.recipe() == null) {
+                plugin.messageService().send(state.player(), match.errorKey(), match.replacements());
+                return;
+            }
+            activeRecipe = match.recipe();
+        }
+        ForgeService.GuiItems snapshot = state.toGuiItems();
+        boolean firstCraft = !plugin.playerDataStore().hasCrafted(state.player().getUniqueId(), activeRecipe.id());
+        Recipe finalRecipe = activeRecipe;
+        state.setProcessing(true);
+        state.setRecipe(finalRecipe);
+        state.setPreviewRecipe(finalRecipe);
+        state.player().closeInventory();
+        plugin.forgeService().executeForgeAsync(state.player(), finalRecipe, snapshot)
+            .whenComplete((result, throwable) -> plugin.getServer().getScheduler().runTask(
+                plugin,
+                () -> completeForgeAttempt(state, finalRecipe, firstCraft, result, throwable)
+            ));
+    }
+
+    private void completeForgeAttempt(ForgeGuiSession state,
+                                      Recipe activeRecipe,
+                                      boolean firstCraft,
+                                      ForgeService.ForgeResult result,
+                                      Throwable throwable) {
+        state.setProcessing(false);
+        sessionStore.remove(state);
+        if (throwable != null) {
+            plugin.messageService().warning("console.forge_execution_failed", Map.of(
+                "recipe", activeRecipe.id(),
+                "error", String.valueOf(throwable.getMessage())
+            ));
+            returnFailedAttempt(state, "forge.error.action_failed", Map.of("reason", Texts.toStringSafe(throwable.getMessage())));
+            return;
+        }
+        if (result == null || !result.success()) {
+            String errorKey = result == null || Texts.isBlank(result.errorKey()) ? "forge.error.action_failed" : result.errorKey();
+            Map<String, Object> replacements = result == null || result.replacements() == null ? Map.of() : result.replacements();
+            returnFailedAttempt(state, errorKey, replacements);
+            return;
+        }
+        state.setForgeCompleted(true);
+        state.clearStoredItems();
+        if (Texts.isNotBlank(result.quality())) {
+            plugin.messageService().send(
+                state.player(),
+                "forge.success.quality",
+                Map.of("quality", result.quality(), "multiplier", result.multiplier())
+            );
+        }
+        if (firstCraft) {
+            plugin.messageService().sendRaw(state.player(), "<green>首次完成该配方锻造!</green>");
+        }
+    }
+
+    private void returnFailedAttempt(ForgeGuiSession state, String errorKey, Map<String, ?> replacements) {
+        plugin.messageService().send(state.player(), errorKey, replacements == null ? Map.of() : replacements);
+        stateSupport.returnItems(state);
+    }
+
+    private final class ForgeSessionHandler implements GuiSessionHandler {
+
+        private final ForgeGuiSession state;
+
+        private ForgeSessionHandler(ForgeGuiSession state) {
+            this.state = state;
+        }
+
+        @Override
+        public void onSlotClick(GuiSession session, InventoryClickEvent event, GuiTemplate.ResolvedSlot slot) {
+            if (state.processing()) {
+                event.setCancelled(true);
+                return;
+            }
+            if (slot == null || slot.definition() == null) {
+                return;
+            }
+            switch (stateSupport.normalizedType(slot.definition())) {
+                case "blueprint_inputs" -> handleBlueprintClick(event, state, slot.inventorySlot());
+                case "target_item" -> handleTargetClick(event, state);
+                case "required_materials" -> handleMaterialClick(event, state, slot.inventorySlot(), true);
+                case "optional_materials" -> handleMaterialClick(event, state, slot.inventorySlot(), false);
+                case "confirm" -> handleConfirmClick(state);
+                default -> {
+                }
+            }
+        }
+
+        @Override
+        public void onPlayerInventoryClick(GuiSession session, InventoryClickEvent event) {
+            if (state.processing()) {
+                event.setCancelled(true);
+                return;
+            }
+            if (!event.isShiftClick()) {
+                return;
+            }
+            event.setCancelled(true);
+            handleShiftFromPlayerInventory(event, state);
+        }
+
+        @Override
+        public void onClose(GuiSession session, InventoryCloseEvent event) {
+            if (state.processing()) {
+                return;
+            }
+            sessionStore.remove(state);
+            if (!state.forgeCompleted()) {
+                stateSupport.returnItems(state);
+            }
+        }
+    }
+}

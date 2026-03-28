@@ -9,6 +9,7 @@ import java.util.regex.Pattern;
 public final class Texts {
 
     private static final Pattern MINI_TAG_PATTERN = Pattern.compile("<[^>]+>");
+    private static final Pattern WHITESPACE_PATTERN = Pattern.compile("\\s+");
 
     private Texts() {
     }
@@ -51,6 +52,18 @@ public final class Texts {
 
     public static String stripMiniTags(Object value) {
         return MINI_TAG_PATTERN.matcher(toStringSafe(value)).replaceAll("");
+    }
+
+    public static String normalizeWhitespace(String value) {
+        String text = toStringSafe(value).trim();
+        if (text.isEmpty()) {
+            return "";
+        }
+        return WHITESPACE_PATTERN.matcher(text).replaceAll(" ");
+    }
+
+    public static String normalizeWhitespace(Object value) {
+        return normalizeWhitespace(toStringSafe(value));
     }
 
     public static List<String> stripMiniTags(Collection<?> values) {

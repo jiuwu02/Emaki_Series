@@ -19,11 +19,10 @@ stages:
     multiplier_attributes: [physical_crit_multiplier]
     expression: "{input} * (1 + ({crit} * ({multiplier} / 100)))"
   - id: defense
-    kind: FLAT_PERCENT
+    kind: CUSTOM
     source: TARGET
-    mode: SUBTRACT
     flat_attributes: [physical_armor]
-    percent_attributes: []
+    expression: "max(0, input - flat)"
 recovery:
   source: ATTACKER
   resistance_source: TARGET
@@ -32,4 +31,4 @@ recovery:
   resistance_attributes: [lifesteal_resistance]
 attacker_message: "<gray>[<gold>{damage_type}</gold>]</gray> <green>你对 <white>{target}</white> 造成了 <yellow>{final_damage}</yellow> 点伤害</green>{critical_suffix}"
 target_message: "<gray>[<gold>{damage_type}</gold>]</gray> <red>{attacker}</red> 对你造成了 <yellow>{final_damage}</yellow> 点伤害{critical_suffix}"
-description: "Physical damage resolved entirely through Emaki attributes."
+description: "Physical damage resolved entirely through Emaki attributes with a custom defense formula."

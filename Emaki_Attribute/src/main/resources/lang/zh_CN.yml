@@ -1,4 +1,4 @@
-lang_version: "1.0"
+lang_version: "1.1"
 general:
   prefix: "<gray>[ <gradient:#66D9EF:#7B7BFF>Emaki Attribute</gradient> ]</gray>"
 
@@ -6,6 +6,8 @@ console:
   plugin_started: "<green>Emaki_Attribute 已启动。</green>"
   plugin_stopped: "<yellow>Emaki_Attribute 已关闭。</yellow>"
   config_load_failed: "<red>配置读取失败: {error}</red>"
+  reload_stage_failed: "<yellow>重载阶段 {stage} 失败: <red>{error}</red></yellow>"
+  vanilla_attribute_resolve_failed: "<yellow>无法解析原版属性映射: <red>{attribute}</red> -> <red>{target}</red></yellow>"
   attribute_registry_empty: "<yellow>[属性注册] 未加载到任何属性定义。</yellow>"
   attribute_registry_summary: "<green>[属性注册] 已加载 {count} 项属性定义。</green>"
   attribute_registry_entry: "<gray>[属性注册]</gray> <white>{index}</white> <dark_gray>|</dark_gray> <aqua>{display_name}</aqua> <dark_gray>(</dark_gray><white>{id}</white><dark_gray>)</dark_gray> <dark_gray>|</dark_gray> <gray>默认值</gray> <yellow>{default_value}</yellow> <dark_gray>|</dark_gray> <gray>战力系数</gray> <light_purple>{attribute_power}</light_purple>"
@@ -14,6 +16,7 @@ loader:
   lang_directory_create_failed: "<red>无法创建语言目录: {path}</red>"
   bundled_language_load_failed: "<red>读取内置语言失败: {error}</red>"
   bundled_resource_missing: "<red>内置资源缺失: {resource}，无法写入 {path}</red>"
+  bundled_resource_sync_failed: "<red>同步内置资源失败: {path} ({error})</red>"
   bundled_resource_write_failed: "<red>写入内置资源失败: {path} ({error})</red>"
   directory_create_failed: "<red>无法创建{type}目录: {path}</red>"
   schema_missing_id: "<red>{type}文件 {file} 缺少 ID 字段。</red>"
@@ -28,6 +31,7 @@ loader:
 
 label:
   attribute: "属性"
+  attribute_balance: "属性权重"
   damage_type: "伤害类型"
   default_profile: "默认组"
   lore_format: "词条格式"
@@ -48,12 +52,14 @@ damage:
     fall: "摔落"
     fire: "火焰"
     fire_tick: "燃烧"
+    melting: "融化"
     lava: "岩浆"
     drowning: "溺水"
     block_explosion: "方块爆炸"
     entity_explosion: "爆炸"
     void: "虚空"
     lightning: "雷击"
+    world_border: "世界边界"
     starvation: "饥饿"
     poison: "中毒"
     magic: "魔法"
@@ -64,6 +70,7 @@ damage:
     hot_floor: "高温"
     campfire: "营火"
     cramming: "挤压"
+    dryout: "脱水"
     freeze: "冻结"
     sonic_boom: "音爆"
 

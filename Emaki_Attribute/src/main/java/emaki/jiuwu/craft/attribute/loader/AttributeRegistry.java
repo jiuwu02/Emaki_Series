@@ -5,9 +5,9 @@ import emaki.jiuwu.craft.attribute.model.AttributeDefinition;
 import emaki.jiuwu.craft.attribute.model.AttributeTargetType;
 import emaki.jiuwu.craft.attribute.model.AttributeValueKind;
 import emaki.jiuwu.craft.attribute.model.LoreFormatDefinition;
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -21,53 +21,6 @@ import java.util.regex.Pattern;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition> {
-
-    private static final List<String> BUNDLED_RESOURCES = List.of(
-        "attack_speed.yml",
-        "attribute_power.yml",
-        "dodge_chance.yml",
-        "entity_interaction_range.yml",
-        "entity_scale.yml",
-        "health.yml",
-        "health_regen.yml",
-        "lifesteal.yml",
-        "lifesteal_resistance.yml",
-        "magic_crit_evasion.yml",
-        "magic_crit_multiplier_resistance.yml",
-        "magic_penetration.yml",
-        "mana.yml",
-        "mana_regen.yml",
-        "movement_speed.yml",
-        "percentage_lifesteal.yml",
-        "physical_armor_penetration.yml",
-        "physical_attack.yml",
-        "physical_crit_damage.yml",
-        "physical_crit_evasion.yml",
-        "physical_crit_multiplier_resistance.yml",
-        "physical_crit_rate.yml",
-        "physical_damage_bonus.yml",
-        "physical_defense.yml",
-        "projectile_attack.yml",
-        "projectile_crit_damage.yml",
-        "projectile_crit_evasion.yml",
-        "projectile_crit_multiplier_resistance.yml",
-        "projectile_crit_rate.yml",
-        "projectile_damage_bonus.yml",
-        "projectile_defense.yml",
-        "projectile_penetration.yml",
-        "real_damage.yml",
-        "skill_cdr.yml",
-        "skill_crit_damage.yml",
-        "skill_crit_rate.yml",
-        "skill_damage_bonus.yml",
-        "speed.yml",
-        "spell_attack.yml",
-        "spell_crit_damage.yml",
-        "spell_crit_rate.yml",
-        "spell_damage_bonus.yml",
-        "spell_defense.yml",
-        "test_attribute.yml"
-    );
 
     private final Map<String, AttributeDefinition> aliasIndex = new LinkedHashMap<>();
     private final List<PatternEntry> orderedPatterns = new ArrayList<>();
@@ -121,8 +74,25 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
 
     @Override
     protected void seedBundledResources(File directory) {
-        for (String resourceName : BUNDLED_RESOURCES) {
-            copyBundledResource("attributes/" + resourceName, new File(directory, resourceName));
+        List<String> bundledResources = YamlFiles.listResourcePaths(plugin, directoryName());
+        if (bundledResources.isEmpty()) {
+            issue(
+                "loader.bundled_resource_missing",
+                Map.of(
+                    "type", typeName(),
+                    "path", directory.getPath(),
+                    "resource", directoryName() + "/*.yml"
+                )
+            );
+            return;
+        }
+        String resourcePrefix = directoryName() + "/";
+        for (String resourceName : bundledResources) {
+            String relativePath = resourceName.startsWith(resourcePrefix)
+                ? resourceName.substring(resourcePrefix.length())
+                : resourceName;
+            File target = new File(directory, relativePath);
+            copyBundledResource(resourceName, target);
         }
     }
 
@@ -461,19 +431,11 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
 
     private void logLoadReport(List<AttributeDefinition> definitions) {
         if (definitions == null || definitions.isEmpty()) {
-            logInfo(
-                "console.attribute_registry_empty",
-                Map.of(),
-                "[属性注册] 未加载到任何属性定义。"
-            );
+            logInfo("console.attribute_registry_empty", Map.of());
             return;
         }
 
-        logInfo(
-            "console.attribute_registry_summary",
-            Map.of("count", definitions.size()),
-            "[属性注册] 已加载 " + definitions.size() + " 项属性定义。"
-        );
+        logInfo("console.attribute_registry_summary", Map.of("count", definitions.size()));
 
         int index = 1;
         for (AttributeDefinition definition : definitions) {
@@ -490,26 +452,16 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
                     "id", id,
                     "default_value", defaultValue,
                     "attribute_power", attributePower
-                ),
-                String.format(
-                    Locale.ROOT,
-                    "[属性注册] %02d | %s (%s) | 默认值 %s | 战力系数 %s",
-                    displayIndex,
-                    displayName,
-                    id,
-                    defaultValue,
-                    attributePower
                 )
             );
         }
     }
 
-    private void logInfo(String key, Map<String, ?> replacements, String fallback) {
-        if (plugin.messageService() != null) {
-            plugin.messageService().info(key, replacements);
+    private void logInfo(String key, Map<String, ?> replacements) {
+        if (plugin.messageService() == null) {
             return;
         }
-        plugin.getLogger().info(fallback);
+        plugin.messageService().info(key, replacements);
     }
 
     private String safeText(String value, String fallback) {

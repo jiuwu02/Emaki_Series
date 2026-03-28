@@ -21,7 +21,7 @@ public final class LanguageLoader {
 
     public LanguageLoader(EmakiForgePlugin plugin) {
         this.plugin = plugin;
-        this.bundledFallback = YamlFiles.loadResource(plugin, "defaults/lang/zh_CN.yml");
+        this.bundledFallback = YamlFiles.loadResource(plugin, "lang/zh_CN.yml");
         if (bundledFallback != null) {
             languages.put(fallbackLanguage, bundledFallback);
         }
@@ -37,7 +37,7 @@ public final class LanguageLoader {
             try {
                 YamlFiles.ensureDirectory(directory.toPath());
             } catch (IOException exception) {
-                plugin.getLogger().warning("Failed to create lang directory: " + directory.getPath());
+                plugin.messageService().warning("loader.lang_directory_create_failed", Map.of("path", directory.getPath()));
             }
         }
         File[] files = directory.listFiles((dir, name) -> name.endsWith(".yml") || name.endsWith(".yaml"));
@@ -48,9 +48,9 @@ public final class LanguageLoader {
         for (File file : files) {
             String langId = file.getName().replace(".yml", "").replace(".yaml", "");
             try {
-                YamlFiles.syncVersionedResource(plugin, file, "defaults/lang/" + langId + ".yml", "lang_version");
+                YamlFiles.syncVersionedResource(plugin, file, "lang/" + langId + ".yml", "lang_version");
             } catch (IOException exception) {
-                plugin.getLogger().warning("Failed to sync language file " + file.getName() + ": " + exception.getMessage());
+                plugin.messageService().warning("loader.bundled_language_load_failed", Map.of("error", String.valueOf(exception.getMessage())));
             }
             languages.put(langId, YamlFiles.load(file));
         }

@@ -75,6 +75,10 @@ public record AttributeDefinition(String id,
         return targetType == AttributeTargetType.RESOURCE;
     }
 
+    public boolean isVanillaMappedValue() {
+        return targetType == AttributeTargetType.VANILLA;
+    }
+
     private static String normalizeId(String value) {
         return Texts.toStringSafe(value).trim().toLowerCase(Locale.ROOT).replace(' ', '_');
     }

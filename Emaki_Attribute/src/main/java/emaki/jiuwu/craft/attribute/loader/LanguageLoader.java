@@ -1,7 +1,6 @@
 package emaki.jiuwu.craft.attribute.loader;
 
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
-import emaki.jiuwu.craft.attribute.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import java.io.File;
@@ -38,35 +37,20 @@ public final class LanguageLoader {
         }
         File directory = plugin.dataPath("lang").toFile();
         if (!directory.exists() && !directory.mkdirs()) {
-            MessageService messages = plugin.messageService();
-            if (messages != null) {
-                messages.warning("loader.lang_directory_create_failed", Map.of("path", directory.getPath()));
-            } else {
-                plugin.getLogger().warning("loader.lang_directory_create_failed");
-            }
+            plugin.messageService().warning("loader.lang_directory_create_failed", Map.of("path", directory.getPath()));
         }
         File fallbackFile = plugin.dataPath("lang", fallbackLanguage + ".yml").toFile();
         try {
             YamlFiles.syncVersionedResource(plugin, fallbackFile, "lang/" + fallbackLanguage + ".yml", "lang_version");
         } catch (IOException exception) {
-            MessageService messages = plugin.messageService();
-            if (messages != null) {
-                messages.warning("loader.bundled_language_load_failed", Map.of("error", String.valueOf(exception.getMessage())));
-            } else {
-                plugin.getLogger().warning("loader.bundled_language_load_failed");
-            }
+            plugin.messageService().warning("loader.bundled_language_load_failed", Map.of("error", String.valueOf(exception.getMessage())));
         }
         if (!fallbackFile.exists()) {
-            MessageService messages = plugin.messageService();
-            if (messages != null) {
-                messages.warning("loader.bundled_resource_missing", Map.of(
-                    "type", "语言",
-                    "path", fallbackFile.getPath(),
-                    "resource", "lang/" + fallbackLanguage + ".yml"
-                ));
-            } else {
-                plugin.getLogger().warning("Missing bundled resource lang/" + fallbackLanguage + ".yml");
-            }
+            plugin.messageService().warning("loader.bundled_resource_missing", Map.of(
+                "type", "语言",
+                "path", fallbackFile.getPath(),
+                "resource", "lang/" + fallbackLanguage + ".yml"
+            ));
         }
         File[] files = directory.listFiles((dir, name) -> name.endsWith(".yml") || name.endsWith(".yaml"));
         if (files == null) {
@@ -78,24 +62,14 @@ public final class LanguageLoader {
             try {
                 YamlFiles.syncVersionedResource(plugin, file, "lang/" + langId + ".yml", "lang_version");
             } catch (IOException exception) {
-                MessageService messages = plugin.messageService();
-                if (messages != null) {
-                    messages.warning("loader.bundled_language_load_failed", Map.of("error", String.valueOf(exception.getMessage())));
-                } else {
-                    plugin.getLogger().warning("loader.bundled_language_load_failed");
-                }
+                plugin.messageService().warning("loader.bundled_language_load_failed", Map.of("error", String.valueOf(exception.getMessage())));
             }
             if (!file.exists()) {
-                MessageService messages = plugin.messageService();
-                if (messages != null) {
-                    messages.warning("loader.bundled_resource_missing", Map.of(
-                        "type", "语言",
-                        "path", file.getPath(),
-                        "resource", "lang/" + langId + ".yml"
-                    ));
-                } else {
-                    plugin.getLogger().warning("Missing bundled resource lang/" + langId + ".yml");
-                }
+                plugin.messageService().warning("loader.bundled_resource_missing", Map.of(
+                    "type", "语言",
+                    "path", file.getPath(),
+                    "resource", "lang/" + langId + ".yml"
+                ));
             }
             languages.put(langId, YamlFiles.load(file));
         }
@@ -143,12 +117,6 @@ public final class LanguageLoader {
             }
             return YamlConfiguration.loadConfiguration(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
         } catch (IOException exception) {
-            MessageService messages = plugin.messageService();
-            if (messages != null) {
-                messages.warning("loader.bundled_language_load_failed", Map.of("error", String.valueOf(exception.getMessage())));
-            } else {
-                plugin.getLogger().warning("loader.bundled_language_load_failed");
-            }
             return null;
         }
     }

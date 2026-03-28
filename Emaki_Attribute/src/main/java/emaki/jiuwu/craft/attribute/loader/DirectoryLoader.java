@@ -119,11 +119,10 @@ public abstract class DirectoryLoader<T> {
             ? key
             : plugin.messageService().message(key, replacements);
         issues.add(message);
-        if (plugin.messageService() != null) {
-            plugin.messageService().warning(key, replacements);
-        } else {
-            plugin.getLogger().warning(message);
+        if (plugin.messageService() == null) {
+            return;
         }
+        plugin.messageService().warning(key, replacements);
     }
 
     protected String normalizeId(String id) {

@@ -1,0 +1,14 @@
+id: block_interaction_range
+display_name: "方块交互距离"
+aliases: [block_reach, block_interaction_distance, 方块交互距离]
+value_kind: FLAT
+target_type: VANILLA
+target_id: block_interaction_range
+default_value: 0.0
+min_value: 0.0
+max_value: 999999.0
+allow_negative: false
+priority: 23
+lore_format_id: default_flat
+attribute_power: 1.0
+description: "Maps to Bukkit's BLOCK_INTERACTION_RANGE attribute."

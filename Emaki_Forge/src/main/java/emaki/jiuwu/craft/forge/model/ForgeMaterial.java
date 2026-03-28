@@ -108,6 +108,25 @@ public final class ForgeMaterial {
         );
     }
 
+    public int forgeCapacityBonus() {
+        int total = 0;
+        for (MaterialEffect effect : effects) {
+            if (effect == null || !isForgeCapacityBonusEffect(effect.type())) {
+                continue;
+            }
+            total += resolveEffectAmount(effect);
+        }
+        return Math.max(0, total);
+    }
+
+    public boolean expandsForgeCapacity() {
+        return forgeCapacityBonus() > 0;
+    }
+
+    public int effectiveCapacityCost() {
+        return expandsForgeCapacity() ? 0 : capacityCost;
+    }
+
     public Map<String, Double> statContributions() {
         Map<String, Double> result = new LinkedHashMap<>();
         for (MaterialEffect effect : effects) {
@@ -151,6 +170,34 @@ public final class ForgeMaterial {
             }
         }
         return result;
+    }
+
+    private static boolean isForgeCapacityBonusEffect(String type) {
+        String normalized = Texts.lower(type);
+        return "forge_capacity_bonus".equals(normalized)
+            || "capacity_bonus".equals(normalized)
+            || "capacity_expand".equals(normalized)
+            || "forge_capacity".equals(normalized);
+    }
+
+    private static int resolveEffectAmount(MaterialEffect effect) {
+        if (effect == null) {
+            return 0;
+        }
+        Object raw = effect.get("amount");
+        if (raw == null) {
+            raw = effect.get("bonus");
+        }
+        if (raw == null) {
+            raw = effect.get("value");
+        }
+        if (raw == null) {
+            raw = effect.get("capacity");
+        }
+        if (raw == null) {
+            return 0;
+        }
+        return Numbers.roundToInt(ExpressionEngine.evaluateRandomConfig(raw));
     }
 
     public String id() {

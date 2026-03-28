@@ -81,7 +81,7 @@ public final class ItemComponentParser {
             return;
         }
         if (Texts.isNotBlank(components.displayName())) {
-            itemMeta.displayName(MiniMessages.parse(components.displayName()));
+            itemMeta.customName(MiniMessages.parse(components.displayName()));
         }
         if (components.loreConfigured()) {
             if (components.lore().isEmpty()) {

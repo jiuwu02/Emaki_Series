@@ -11,8 +11,16 @@ import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.net.JarURLConnection;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
+import java.util.stream.Stream;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -117,6 +125,33 @@ public final class YamlFiles {
         }
     }
 
+    public static java.util.List<String> listResourcePaths(JavaPlugin plugin, String resourceDirectory) {
+        if (plugin == null || Texts.isBlank(resourceDirectory)) {
+            return java.util.List.of();
+        }
+        String normalizedDirectory = normalizeResourceDirectory(resourceDirectory);
+        LinkedHashSet<String> resourcePaths = new LinkedHashSet<>();
+        try {
+            URL rootUrl = plugin.getClass().getResource("/" + normalizedDirectory);
+            if (rootUrl != null) {
+                scanResourceLocation(rootUrl, normalizedDirectory, resourcePaths);
+            }
+            if (resourcePaths.isEmpty()) {
+                URL codeSourceUrl = plugin.getClass().getProtectionDomain().getCodeSource() == null
+                    ? null
+                    : plugin.getClass().getProtectionDomain().getCodeSource().getLocation();
+                if (codeSourceUrl != null) {
+                    scanCodeSourceLocation(codeSourceUrl, normalizedDirectory, resourcePaths);
+                }
+            }
+        } catch (Exception ignored) {
+            return java.util.List.of();
+        }
+        ArrayList<String> ordered = new ArrayList<>(resourcePaths);
+        ordered.sort(String::compareToIgnoreCase);
+        return java.util.List.copyOf(ordered);
+    }
+
     public static boolean ensureDirectory(Path path) throws IOException {
         if (path == null) {
             return false;
@@ -187,5 +222,115 @@ public final class YamlFiles {
         } catch (AtomicMoveNotSupportedException ignored) {
             Files.move(source, target, StandardCopyOption.REPLACE_EXISTING);
         }
+    }
+
+    private static void scanResourceLocation(URL location, String normalizedDirectory, LinkedHashSet<String> resourcePaths) throws Exception {
+        if (location == null || resourcePaths == null || Texts.isBlank(normalizedDirectory)) {
+            return;
+        }
+        String protocol = Texts.toStringSafe(location.getProtocol()).trim().toLowerCase();
+        if ("file".equals(protocol)) {
+            Path root = Path.of(location.toURI());
+            scanFileTree(root, normalizedDirectory, resourcePaths);
+            return;
+        }
+        if ("jar".equals(protocol)) {
+            scanJarLocation(location, normalizedDirectory, resourcePaths);
+        }
+    }
+
+    private static void scanCodeSourceLocation(URL location, String normalizedDirectory, LinkedHashSet<String> resourcePaths) throws Exception {
+        if (location == null || resourcePaths == null || Texts.isBlank(normalizedDirectory)) {
+            return;
+        }
+        String protocol = Texts.toStringSafe(location.getProtocol()).trim().toLowerCase();
+        if ("file".equals(protocol)) {
+            Path root = Path.of(location.toURI());
+            if (Files.isDirectory(root)) {
+                scanFileTree(root.resolve(normalizedDirectory), normalizedDirectory, resourcePaths);
+                return;
+            }
+            if (root.toString().toLowerCase().endsWith(".jar")) {
+                scanJarFile(root, normalizedDirectory, resourcePaths);
+            }
+            return;
+        }
+        if ("jar".equals(protocol)) {
+            scanJarLocation(location, normalizedDirectory, resourcePaths);
+        }
+    }
+
+    private static void scanFileTree(Path resourceRoot, String normalizedDirectory, LinkedHashSet<String> resourcePaths) throws IOException {
+        if (resourceRoot == null || resourcePaths == null || !Files.exists(resourceRoot)) {
+            return;
+        }
+        try (Stream<Path> stream = Files.walk(resourceRoot)) {
+            stream.filter(Files::isRegularFile).forEach(path -> {
+                String relative = resourceRoot.relativize(path).toString().replace(File.separatorChar, '/');
+                if (isYamlResource(relative)) {
+                    resourcePaths.add(normalizedDirectory + "/" + relative);
+                }
+            });
+        }
+    }
+
+    private static void scanJarLocation(URL location, String normalizedDirectory, LinkedHashSet<String> resourcePaths) throws Exception {
+        if (location == null || resourcePaths == null || Texts.isBlank(normalizedDirectory)) {
+            return;
+        }
+        JarURLConnection connection = (JarURLConnection) location.openConnection();
+        try (JarFile jarFile = connection.getJarFile()) {
+            scanJarEntries(jarFile, normalizedDirectory, resourcePaths);
+        }
+    }
+
+    private static void scanJarFile(Path jarPath, String normalizedDirectory, LinkedHashSet<String> resourcePaths) throws IOException {
+        if (jarPath == null || resourcePaths == null || Texts.isBlank(normalizedDirectory) || !Files.exists(jarPath)) {
+            return;
+        }
+        try (JarFile jarFile = new JarFile(jarPath.toFile())) {
+            scanJarEntries(jarFile, normalizedDirectory, resourcePaths);
+        }
+    }
+
+    private static void scanJarEntries(JarFile jarFile, String normalizedDirectory, LinkedHashSet<String> resourcePaths) {
+        if (jarFile == null || resourcePaths == null || Texts.isBlank(normalizedDirectory)) {
+            return;
+        }
+        String prefix = normalizedDirectory.endsWith("/") ? normalizedDirectory : normalizedDirectory + "/";
+        Enumeration<JarEntry> entries = jarFile.entries();
+        while (entries.hasMoreElements()) {
+            JarEntry entry = entries.nextElement();
+            if (entry == null || entry.isDirectory()) {
+                continue;
+            }
+            String name = entry.getName();
+            if (Texts.isBlank(name) || !name.startsWith(prefix)) {
+                continue;
+            }
+            String relative = name.substring(prefix.length());
+            if (isYamlResource(relative)) {
+                resourcePaths.add(name);
+            }
+        }
+    }
+
+    private static boolean isYamlResource(String path) {
+        if (Texts.isBlank(path)) {
+            return false;
+        }
+        String lower = path.trim().toLowerCase();
+        return lower.endsWith(".yml") || lower.endsWith(".yaml");
+    }
+
+    private static String normalizeResourceDirectory(String resourceDirectory) {
+        String normalized = Texts.toStringSafe(resourceDirectory).trim().replace('\\', '/');
+        while (normalized.startsWith("/")) {
+            normalized = normalized.substring(1);
+        }
+        while (normalized.endsWith("/")) {
+            normalized = normalized.substring(0, normalized.length() - 1);
+        }
+        return normalized;
     }
 }

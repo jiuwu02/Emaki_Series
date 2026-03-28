@@ -8,15 +8,19 @@ import emaki.jiuwu.craft.attribute.model.LoreFormatDefinition;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
+import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import org.bukkit.ChatColor;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
 public final class LoreParser {
+
+    private static final LegacyComponentSerializer LEGACY_SECTION = LegacyComponentSerializer.legacySection();
 
     private final AttributeRegistry attributeRegistry;
     private final LoreFormatRegistry loreFormatRegistry;
@@ -26,7 +30,7 @@ public final class LoreParser {
         this.loreFormatRegistry = loreFormatRegistry;
     }
 
-    public ParsedLore parse(Collection<String> loreLines) {
+    public ParsedLore parse(Collection<?> loreLines) {
         List<String> normalized = normalizeLore(loreLines);
         Map<String, Double> values = new LinkedHashMap<>();
         for (String line : normalized) {
@@ -63,21 +67,34 @@ public final class LoreParser {
         return List.of(rendered);
     }
 
-    public List<String> normalizeLore(Collection<String> loreLines) {
+    public List<String> normalizeLore(Collection<?> loreLines) {
         List<String> result = new ArrayList<>();
         if (loreLines == null) {
             return result;
         }
         for (Object entry : loreLines) {
-            String line = Texts.toStringSafe(entry);
-            line = ChatColor.stripColor(line);
+            String line = normalizeLine(entry);
             line = Texts.stripMiniTags(line);
-            line = line == null ? "" : line.trim().replaceAll("\\s+", " ");
+            line = Texts.normalizeWhitespace(line);
             if (!line.isBlank()) {
                 result.add(line);
             }
         }
         return result;
+    }
+
+    private String normalizeLine(Object entry) {
+        if (entry instanceof Component component) {
+            return MiniMessages.serialize(component);
+        }
+        String line = Texts.toStringSafe(entry);
+        if (line.indexOf('§') >= 0) {
+            try {
+                line = MiniMessages.serialize(LEGACY_SECTION.deserialize(line));
+            } catch (Exception ignored) {
+            }
+        }
+        return line;
     }
 
     private double parseValue(String raw, AttributeDefinition definition) {

@@ -1,4 +1,4 @@
-config_version: "1.0"
+config_version: "1.1"
 debug: false
 language: zh_CN
 hard_lock_damage: true
@@ -6,8 +6,67 @@ default_damage_type: physical
 regen_interval_ticks: 20
 sync_delay_ticks: 1
 allowed_damage_causes:
-  # String form: just allow the cause and use the default damage type plus the event's damage.
-  # Map form: override the damage type and the damage value for that cause.
+  # Environmental and hunger damage are normalized into physical damage with a base value of 1.
+  - cause: CONTACT
+    damage_type: physical
+    damage: 1
   - cause: SUFFOCATION
+    damage_type: physical
+    damage: 1
+  - cause: FALL
+    damage_type: physical
+    damage: 1
+  - cause: FLY_INTO_WALL
+    damage_type: physical
+    damage: 1
+  - cause: FALLING_BLOCK
+    damage_type: physical
+    damage: 1
+  - cause: FIRE
+    damage_type: physical
+    damage: 1
+  - cause: FIRE_TICK
+    damage_type: physical
+    damage: 1
+  - cause: MELTING
+    damage_type: physical
+    damage: 1
+  - cause: LAVA
+    damage_type: physical
+    damage: 1
+  - cause: DROWNING
+    damage_type: physical
+    damage: 1
+  - cause: DRYOUT
+    damage_type: physical
+    damage: 1
+  - cause: BLOCK_EXPLOSION
+    damage_type: physical
+    damage: 1
+  - cause: ENTITY_EXPLOSION
+    damage_type: physical
+    damage: 1
+  - cause: VOID
+    damage_type: physical
+    damage: 1
+  - cause: LIGHTNING
+    damage_type: physical
+    damage: 1
+  - cause: WORLD_BORDER
+    damage_type: physical
+    damage: 1
+  - cause: HOT_FLOOR
+    damage_type: physical
+    damage: 1
+  - cause: CAMPFIRE
+    damage_type: physical
+    damage: 1
+  - cause: CRAMMING
+    damage_type: physical
+    damage: 1
+  - cause: FREEZE
+    damage_type: physical
+    damage: 1
+  - cause: STARVATION
     damage_type: physical
     damage: 1

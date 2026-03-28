@@ -2,6 +2,8 @@ package emaki.jiuwu.craft.corelib.action;
 
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRegistry;
+import emaki.jiuwu.craft.corelib.text.LogMessages;
+import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -185,13 +187,24 @@ public final class ActionExecutor {
 
     private ActionResult safeExecute(ActionContext context, Action action, Map<String, String> resolved) {
         try {
-            if (context != null && context.debug() && plugin != null) {
-                plugin.getLogger().info("[Action] phase=" + context.phase() + " id=" + action.id() + " args=" + resolved);
+            if (context != null && context.debug()) {
+                LogMessages messages = messages();
+                if (messages != null) {
+                    messages.info("action.debug_execution", Map.of(
+                        "phase", Texts.toStringSafe(context.phase()),
+                        "id", action.id(),
+                        "args", Texts.toStringSafe(resolved)
+                    ));
+                }
             }
             return action.execute(context, resolved);
         } catch (Exception exception) {
-            if (plugin != null) {
-                plugin.getLogger().warning("[Action] Failed to execute '" + action.id() + "': " + exception.getMessage());
+            LogMessages messages = messages();
+            if (messages != null) {
+                messages.warning("action.execute_failed", Map.of(
+                    "action", action.id(),
+                    "error", Texts.toStringSafe(exception.getMessage())
+                ));
             }
             return ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, exception.getMessage());
         }
@@ -246,5 +259,12 @@ public final class ActionExecutor {
             return number.intValue();
         }
         return ActionParsers.parseInt(Texts.toStringSafe(raw), 0);
+    }
+
+    private LogMessages messages() {
+        if (plugin instanceof LogMessagesProvider provider) {
+            return provider.messageService();
+        }
+        return null;
     }
 }

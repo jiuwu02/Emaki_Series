@@ -1,8 +1,8 @@
 id: entity_interaction_range
 display_name: "实体交互范围"
-aliases: [interaction_range, reach]
+aliases: [interaction_range, reach, entity_interaction_distance]
 value_kind: FLAT
-target_type: GENERIC
+target_type: VANILLA
 target_id: entity_interaction_range
 default_value: 0.0
 min_value: 0.0

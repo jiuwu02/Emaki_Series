@@ -1,0 +1,14 @@
+id: max_health_vanilla
+display_name: "原版生命上限"
+aliases: [vanilla_max_health, max_health, 最大生命值, 原版生命上限]
+value_kind: FLAT
+target_type: VANILLA
+target_id: max_health
+default_value: 0.0
+min_value: 0.0
+max_value: 999999.0
+allow_negative: false
+priority: 60
+lore_format_id: default_flat
+attribute_power: 1.0
+description: "Maps to Bukkit's MAX_HEALTH attribute."

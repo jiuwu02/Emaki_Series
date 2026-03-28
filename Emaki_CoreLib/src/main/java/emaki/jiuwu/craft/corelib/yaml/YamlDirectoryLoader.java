@@ -1,6 +1,8 @@
 package emaki.jiuwu.craft.corelib.yaml;
 
 import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.text.LogMessages;
+import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
@@ -73,19 +75,23 @@ public abstract class YamlDirectoryLoader<T> {
     }
 
     protected void onDirectoryCreateFailed(File directory) {
-        plugin.getLogger().warning("Failed to create directory: " + directory.getPath());
+        issue("loader.directory_create_failed", Map.of("path", directory.getPath()));
     }
 
     protected void onBlankId(File file) {
-        plugin.getLogger().warning("Skipped invalid " + typeName() + " config: " + file.getName() + " (blank id)");
+        issue("loader.invalid_blank_id", Map.of("type", typeName(), "file", file.getName()));
     }
 
     protected void onDuplicateId(File file, String id) {
-        plugin.getLogger().warning("Skipped duplicate " + typeName() + " id '" + id + "' from " + file.getName());
+        issue("loader.duplicate_id", Map.of("type", typeName(), "file", file.getName(), "id", id));
     }
 
     protected void onLoadFailure(File file, Exception exception) {
-        plugin.getLogger().warning("Failed to load " + typeName() + " from " + file.getName() + ": " + exception.getMessage());
+        issue("loader.load_failed", Map.of(
+            "type", typeName(),
+            "file", file.getName(),
+            "error", Texts.toStringSafe(exception.getMessage())
+        ));
     }
 
     protected abstract String directoryName();
@@ -95,4 +101,19 @@ public abstract class YamlDirectoryLoader<T> {
     protected abstract T parse(File file, YamlConfiguration configuration);
 
     protected abstract String idOf(T value);
+
+    private void issue(String key, Map<String, ?> replacements) {
+        LogMessages messages = messages();
+        if (messages == null) {
+            return;
+        }
+        messages.warning(key, replacements);
+    }
+
+    private LogMessages messages() {
+        if (plugin instanceof LogMessagesProvider provider) {
+            return provider.messageService();
+        }
+        return null;
+    }
 }

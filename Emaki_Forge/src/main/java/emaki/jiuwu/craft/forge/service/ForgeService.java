@@ -1,15 +1,10 @@
 package emaki.jiuwu.craft.forge.service;
 
-import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
-import emaki.jiuwu.craft.corelib.math.Numbers;
-import emaki.jiuwu.craft.corelib.math.Randoms;
 import emaki.jiuwu.craft.corelib.action.ActionBatchResult;
-import emaki.jiuwu.craft.corelib.action.ActionContext;
-import emaki.jiuwu.craft.corelib.action.ActionStepResult;
-import emaki.jiuwu.craft.corelib.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.math.Randoms;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.config.AppConfig;
@@ -24,14 +19,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.regex.Pattern;
 import me.clip.placeholderapi.PlaceholderAPI;
-import net.kyori.adventure.text.Component;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
 public final class ForgeService {
 
@@ -110,18 +102,14 @@ public final class ForgeService {
                                       Map<String, ItemStack> optionalMaterials) {
     }
 
-    private record MaterialContribution(ForgeMaterial material,
-                                        int amount,
-                                        int slot,
-                                        String category,
-                                        int sequence,
-                                        ItemSource source) {
-    }
-
     private final EmakiForgePlugin plugin;
+    private final ForgeResultItemFactory resultItemFactory;
+    private final ForgeActionCoordinator actionCoordinator;
 
     public ForgeService(EmakiForgePlugin plugin) {
         this.plugin = plugin;
+        this.resultItemFactory = new ForgeResultItemFactory(plugin);
+        this.actionCoordinator = new ForgeActionCoordinator(plugin, resultItemFactory);
     }
 
     public RecipeMatch findMatchingRecipe(Player player, GuiItems guiItems) {
@@ -205,7 +193,7 @@ public final class ForgeService {
             result.errorKey = "forge.error.material_not_allowed";
             return CompletableFuture.completedFuture(result);
         }
-        return executePhase(player, recipe, guiItems, "pre", null, null, 1D, null, null)
+        return actionCoordinator.executePhase(player, recipe, guiItems, "pre", null, null, 1D, null, null)
             .thenApply(preBatch -> {
                 if (!preBatch.success()) {
                     return buildActionFailure(player, recipe, guiItems, result, preBatch);
@@ -213,27 +201,27 @@ public final class ForgeService {
                 QualitySettings.QualityTier qualityTier = rollQuality(player.getUniqueId(), recipe);
                 result.quality = qualityTier == null ? settings.defaultTier().name() : qualityTier.name();
                 result.multiplier = qualityTier == null ? 1D : qualityTier.multiplier();
-                ItemStack resultItem = createResultItem(recipe, guiItems, result.multiplier, qualityTier);
+                ItemStack resultItem = resultItemFactory.createResultItem(recipe, guiItems, result.multiplier, qualityTier);
                 if (resultItem == null) {
                     result.errorKey = "forge.error.item_create";
                     result.replacements = Map.of();
-                    triggerPhase(player, recipe, guiItems, "failure", null, result.quality, result.multiplier, result.errorKey, "Unable to create forge result item.");
+                    actionCoordinator.triggerPhase(player, recipe, guiItems, "failure", null, result.quality, result.multiplier, result.errorKey, "Unable to create forge result item.");
                     return result;
                 }
                 giveResult(player, resultItem);
                 plugin.playerDataStore().recordCraft(player.getUniqueId(), recipe.id());
                 result.success = true;
                 result.resultItem = resultItem;
-                triggerPhase(player, recipe, guiItems, "result", resultItem, result.quality, result.multiplier, null, null);
-                triggerPhase(player, recipe, guiItems, "success", resultItem, result.quality, result.multiplier, null, null);
-                triggerQualityActions(player, recipe, guiItems, resultItem, qualityTier, result.quality, result.multiplier);
+                actionCoordinator.triggerPhase(player, recipe, guiItems, "result", resultItem, result.quality, result.multiplier, null, null);
+                actionCoordinator.triggerPhase(player, recipe, guiItems, "success", resultItem, result.quality, result.multiplier, null, null);
+                actionCoordinator.triggerQualityActions(player, recipe, guiItems, resultItem, qualityTier, result.quality, result.multiplier);
                 return result;
             });
     }
 
     private ForgeResult buildActionFailure(Player player, Recipe recipe, GuiItems guiItems, ForgeResult result, ActionBatchResult batch) {
-        ActionStepResult failure = batch.firstFailure();
-        String reason = resolveFailureReason(failure);
+        var failure = batch.firstFailure();
+        String reason = actionCoordinator.resolveFailureReason(failure);
         result.errorKey = DEFAULT_ACTION_FAILURE_KEY;
         result.actionFailureReason = reason;
         Map<String, Object> replacements = new LinkedHashMap<>();
@@ -243,7 +231,7 @@ public final class ForgeService {
             replacements.put("line", failure.lineNumber());
         }
         result.replacements = Map.copyOf(replacements);
-        triggerPhase(
+        actionCoordinator.triggerPhase(
             player,
             recipe,
             guiItems,
@@ -255,162 +243,6 @@ public final class ForgeService {
             reason
         );
         return result;
-    }
-
-    private CompletableFuture<ActionBatchResult> executePhase(Player player,
-                                                                 Recipe recipe,
-                                                                 GuiItems guiItems,
-                                                                 String phase,
-                                                                 ItemStack resultItem,
-                                                                 String quality,
-                                                                 double multiplier,
-                                                                 String errorKey,
-                                                                 String failureReason) {
-        return executeActionLines(
-            player,
-            recipe,
-            guiItems,
-            phase,
-            phaseLines(recipe, phase),
-            resultItem,
-            quality,
-            multiplier,
-            errorKey,
-            failureReason
-        );
-    }
-
-    private CompletableFuture<ActionBatchResult> executeActionLines(Player player,
-                                                                          Recipe recipe,
-                                                                          GuiItems guiItems,
-                                                                          String phase,
-                                                                          List<String> lines,
-                                                                          ItemStack resultItem,
-                                                                          String quality,
-                                                                          double multiplier,
-                                                                          String errorKey,
-                                                                          String failureReason) {
-        EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.getInstance();
-        if (lines.isEmpty() || coreLib == null || coreLib.actionExecutor() == null) {
-            return CompletableFuture.completedFuture(new ActionBatchResult(true, List.of()));
-        }
-        ActionContext context = buildActionContext(coreLib, player, recipe, guiItems, phase, resultItem, quality, multiplier, errorKey, failureReason);
-        return coreLib.actionExecutor().executeAll(context, lines, true);
-    }
-
-    private void triggerPhase(Player player,
-                              Recipe recipe,
-                              GuiItems guiItems,
-                              String phase,
-                              ItemStack resultItem,
-                              String quality,
-                              double multiplier,
-                              String errorKey,
-                              String failureMessage) {
-        executePhase(player, recipe, guiItems, phase, resultItem, quality, multiplier, errorKey, failureMessage)
-            .whenComplete((batch, throwable) -> {
-                if (throwable != null) {
-                    plugin.getLogger().warning("Failed to execute forge action phase '" + phase + "' for recipe '" + recipe.id() + "': " + throwable.getMessage());
-                    return;
-                }
-                if (batch != null && !batch.success()) {
-                    plugin.getLogger().warning("Forge action phase '" + phase + "' failed for recipe '" + recipe.id() + "': " + resolveFailureReason(batch.firstFailure()));
-                }
-            });
-    }
-
-    private void triggerQualityActions(Player player,
-                                       Recipe recipe,
-                                       GuiItems guiItems,
-                                       ItemStack resultItem,
-                                       QualitySettings.QualityTier qualityTier,
-                                       String quality,
-                                       double multiplier) {
-        if (qualityTier == null) {
-            return;
-        }
-        List<String> lines = plugin.appConfig().qualitySettings().itemMetaActions(qualityTier.name());
-        if (lines.isEmpty()) {
-            return;
-        }
-        executeActionLines(player, recipe, guiItems, "quality", lines, resultItem, quality, multiplier, null, null)
-            .whenComplete((batch, throwable) -> {
-                if (throwable != null) {
-                    plugin.getLogger().warning("Failed to execute forge quality actions for tier '" + qualityTier.name() + "': " + throwable.getMessage());
-                    return;
-                }
-                if (batch != null && !batch.success()) {
-                    plugin.getLogger().warning("Forge quality actions failed for tier '" + qualityTier.name() + "': " + resolveFailureReason(batch.firstFailure()));
-                }
-            });
-    }
-
-    private List<String> phaseLines(Recipe recipe, String phase) {
-        if (recipe == null) {
-            return List.of();
-        }
-        return switch (Texts.lower(phase)) {
-            case "pre" -> recipe.action() == null ? List.of() : recipe.action().pre();
-            case "result" -> recipe.result() == null ? List.of() : recipe.result().action();
-            case "success" -> recipe.action() == null ? List.of() : recipe.action().success();
-            case "failure" -> recipe.action() == null ? List.of() : recipe.action().failure();
-            default -> List.of();
-        };
-    }
-
-    private ActionContext buildActionContext(EmakiCoreLibPlugin coreLib,
-                                                   Player player,
-                                                   Recipe recipe,
-                                                   GuiItems guiItems,
-                                                   String phase,
-                                                   ItemStack resultItem,
-                                                   String quality,
-                                                   double multiplier,
-                                                   String errorKey,
-                                                   String failureReason) {
-        Map<String, String> placeholders = new LinkedHashMap<>();
-        String sourceItemName = resolveSourceItemName(guiItems, resultItem, recipe);
-        String showItem = buildShowItemPlaceholder(guiItems, recipe, resultItem);
-        placeholders.put("forge_recipe_id", recipe == null ? "" : recipe.id());
-        placeholders.put("forge_recipe_name", recipe == null ? "" : recipe.displayName());
-        placeholders.put("forge_source_item_name", sourceItemName);
-        placeholders.put("forge_result_item_name", resolveResultItemName(recipe, resultItem));
-        placeholders.put("forge_quality", Texts.toStringSafe(quality));
-        placeholders.put("forge_multiplier", Numbers.formatNumber(multiplier, plugin.appConfig().defaultNumberFormat()));
-        placeholders.put("forge_multiplier_raw", Double.toString(multiplier));
-        placeholders.put("forge_error_key", Texts.toStringSafe(errorKey));
-        placeholders.put("forge_failure_reason", Texts.toStringSafe(failureReason));
-        placeholders.put("forge_show_item", showItem);
-        placeholders.put("show_item", showItem);
-
-        Map<String, Object> attributes = new LinkedHashMap<>();
-        putIfNotNull(attributes, "recipe", recipe);
-        putIfNotNull(attributes, "guiItems", guiItems);
-        putIfNotNull(attributes, "targetItem", guiItems == null ? null : guiItems.targetItem());
-        putIfNotNull(attributes, "resultItem", resultItem);
-        putIfNotNull(attributes, "quality", quality);
-        attributes.put("multiplier", multiplier);
-        putIfNotNull(attributes, "errorKey", errorKey);
-        putIfNotNull(attributes, "failureReason", failureReason);
-
-        boolean debug = plugin.appConfig().debug() || coreLib.configModel().actionDebug();
-        return new ActionContext(plugin, player, phase, false, debug, placeholders, attributes);
-    }
-
-    private String resolveFailureReason(ActionStepResult failure) {
-        if (failure == null || failure.result() == null) {
-            return "Unknown forge action failure.";
-        }
-        if (Texts.isNotBlank(failure.result().errorMessage())) {
-            return failure.result().errorMessage();
-        }
-        return "Action '" + failure.actionId() + "' failed.";
-    }
-
-    private void putIfNotNull(Map<String, Object> target, String key, Object value) {
-        if (target != null && value != null) {
-            target.put(key, value);
-        }
     }
 
     private NormalizedGuiItems normalizeMaterialInputs(Recipe recipe, GuiItems guiItems) {
@@ -579,6 +411,7 @@ public final class ForgeService {
             return ValidationResult.ok();
         }
         int totalCapacity = 0;
+        int capacityBonus = 0;
         int totalItems = 0;
         for (ItemStack itemStack : optionalMaterials.values()) {
             ForgeMaterial material = findMaterialBySource(plugin.itemIdentifierService().identifyItem(itemStack));
@@ -591,14 +424,16 @@ public final class ForgeService {
             if (optionalConfig.blacklist().contains(material.id())) {
                 return ValidationResult.fail("forge.error.material_blacklisted");
             }
-            totalCapacity += material.capacityCost() * itemStack.getAmount();
+            totalCapacity += material.effectiveCapacityCost() * itemStack.getAmount();
+            capacityBonus += material.forgeCapacityBonus() * itemStack.getAmount();
             totalItems += itemStack.getAmount();
         }
         if (optionalConfig.maxCount() > 0 && totalItems > optionalConfig.maxCount()) {
             return ValidationResult.fail("forge.error.material_count_exceeded", Map.of("current", totalItems, "max", optionalConfig.maxCount()));
         }
-        if (maxCapacity > 0 && totalCapacity > maxCapacity) {
-            return ValidationResult.fail("forge.error.capacity_exceeded", Map.of("current", totalCapacity, "max", maxCapacity));
+        int effectiveMaxCapacity = maxCapacity + capacityBonus;
+        if (effectiveMaxCapacity > 0 && totalCapacity > effectiveMaxCapacity) {
+            return ValidationResult.fail("forge.error.capacity_exceeded", Map.of("current", totalCapacity, "max", effectiveMaxCapacity));
         }
         return ValidationResult.ok();
     }
@@ -683,258 +518,6 @@ public final class ForgeService {
             }
         }
         return -1;
-    }
-
-    private ItemStack createResultItem(Recipe recipe,
-                                       GuiItems guiItems,
-                                       double multiplier,
-                                       QualitySettings.QualityTier qualityTier) {
-        Recipe.ResultConfig resultConfig = recipe.result();
-        if (resultConfig == null || resultConfig.outputItem() == null) {
-            return null;
-        }
-        ItemStack base = plugin.itemIdentifierService().createItem(resultConfig.outputItem(), 1);
-        if (base == null) {
-            return null;
-        }
-        ItemStack resultItem = base.clone();
-        applyResultMetaEffects(resultItem, resultConfig);
-        List<MaterialContribution> materials = collectMaterialContributions(guiItems);
-        applyMaterialEffects(resultItem, materials, multiplier);
-        applyQualityMetaEffects(resultItem, qualityTier);
-        plugin.pdcService().apply(resultItem, recipe, toPdcRecords(materials), qualityTier, multiplier);
-        return resultItem;
-    }
-
-    private void applyResultMetaEffects(ItemStack itemStack, Recipe.ResultConfig resultConfig) {
-        applyMetaActions(itemStack, resultConfig.nameModifications(), resultConfig.loreActions(), Map.of());
-    }
-
-    private void applyQualityMetaEffects(ItemStack itemStack, QualitySettings.QualityTier qualityTier) {
-        if (qualityTier == null) {
-            return;
-        }
-        QualitySettings settings = plugin.appConfig().qualitySettings();
-        if (!settings.itemMetaEnabled()) {
-            return;
-        }
-        applyMetaActions(
-            itemStack,
-            settings.itemMetaNameModifications(qualityTier.name()),
-            settings.itemMetaLoreActions(qualityTier.name()),
-            Map.of()
-        );
-    }
-
-    private void applyMaterialEffects(ItemStack itemStack, List<MaterialContribution> materials, double multiplier) {
-        Map<String, Double> contributions = new LinkedHashMap<>();
-        List<Map<String, Object>> nameMods = new ArrayList<>();
-        List<Map<String, Object>> loreActions = new ArrayList<>();
-        for (MaterialContribution material : materials) {
-            for (Map.Entry<String, Double> entry : material.material().statContributions().entrySet()) {
-                contributions.merge(entry.getKey(), entry.getValue() * material.amount(), Double::sum);
-            }
-            nameMods.addAll(material.material().nameModifications());
-            loreActions.addAll(material.material().loreActions());
-        }
-        Map<String, Double> scaled = new LinkedHashMap<>();
-        for (Map.Entry<String, Double> entry : contributions.entrySet()) {
-            scaled.put(entry.getKey(), entry.getValue() * multiplier);
-        }
-        applyMetaActions(itemStack, nameMods, loreActions, scaled);
-    }
-
-    private List<MaterialContribution> collectMaterialContributions(GuiItems guiItems) {
-        List<MaterialContribution> materials = new ArrayList<>();
-        int sequence = 0;
-        for (Map.Entry<Integer, ItemStack> entry : guiItems.requiredMaterials().entrySet()) {
-            MaterialContribution contribution = toMaterialContribution(entry.getKey(), entry.getValue(), "required", sequence++);
-            if (contribution != null) {
-                materials.add(contribution);
-            }
-        }
-        for (Map.Entry<Integer, ItemStack> entry : guiItems.optionalMaterials().entrySet()) {
-            MaterialContribution contribution = toMaterialContribution(entry.getKey(), entry.getValue(), "optional", sequence++);
-            if (contribution != null) {
-                materials.add(contribution);
-            }
-        }
-        materials.sort(Comparator.comparingInt((MaterialContribution value) -> value.material().priority())
-            .thenComparingInt(MaterialContribution::sequence));
-        return materials;
-    }
-
-    private MaterialContribution toMaterialContribution(int slot, ItemStack itemStack, String category, int sequence) {
-        if (itemStack == null) {
-            return null;
-        }
-        ItemSource source = plugin.itemIdentifierService().identifyItem(itemStack);
-        ForgeMaterial material = findMaterialBySource(source);
-        if (material == null) {
-            return null;
-        }
-        return new MaterialContribution(material, itemStack.getAmount(), slot, category, sequence, source);
-    }
-
-    private List<ForgePdcService.MaterialRecord> toPdcRecords(List<MaterialContribution> materials) {
-        List<ForgePdcService.MaterialRecord> records = new ArrayList<>();
-        long timestamp = System.currentTimeMillis();
-        for (MaterialContribution material : materials) {
-            records.add(new ForgePdcService.MaterialRecord(
-                material.category(),
-                material.material().id(),
-                material.amount(),
-                material.slot(),
-                material.sequence(),
-                material.source(),
-                timestamp
-            ));
-        }
-        return records;
-    }
-
-    private void applyMetaActions(ItemStack itemStack,
-                                     List<Map<String, Object>> nameModifications,
-                                     List<Map<String, Object>> loreActions,
-                                     Map<String, Double> statContributions) {
-        if (itemStack == null) {
-            return;
-        }
-        ItemMeta itemMeta = itemStack.getItemMeta();
-        if (itemMeta == null) {
-            return;
-        }
-        String currentName = itemMeta.hasDisplayName() ? MiniMessages.serialize(itemMeta.displayName()) : "";
-        for (Map<String, Object> modification : nameModifications) {
-            String action = Texts.lower(modification.get("action"));
-            String value = Texts.toStringSafe(modification.get("value"));
-            String regexPattern = Texts.toStringSafe(modification.get("regex_pattern"));
-            String replacement = Texts.toStringSafe(modification.get("replacement"));
-            switch (action) {
-                case "append_suffix" -> currentName = currentName + value;
-                case "prepend_prefix" -> currentName = value + currentName;
-                case "replace" -> currentName = value;
-                case "regex_replace" -> {
-                    try {
-                        currentName = Pattern.compile(regexPattern).matcher(currentName).replaceAll(replacement);
-                    } catch (Exception ignored) {
-                    }
-                }
-                default -> {
-                }
-            }
-        }
-        if (Texts.isNotBlank(currentName)) {
-            itemMeta.displayName(MiniMessages.parse(currentName));
-        }
-        List<Component> lore = new ArrayList<>(itemMeta.hasLore() && itemMeta.lore() != null ? itemMeta.lore() : List.of());
-        for (Map<String, Object> loreAction : loreActions) {
-            applyLoreAction(lore, loreAction, statContributions);
-        }
-        if (!lore.isEmpty()) {
-            itemMeta.lore(lore);
-        }
-        itemStack.setItemMeta(itemMeta);
-    }
-
-    private void applyLoreAction(List<Component> lore,
-                                    Map<String, Object> action,
-                                    Map<String, Double> statContributions) {
-        String type = Texts.lower(action.get("action"));
-        List<String> content = Texts.asStringList(action.get("content"));
-        String targetPattern = Texts.toStringSafe(action.get("target_pattern"));
-        String regexPattern = Texts.toStringSafe(action.get("regex_pattern"));
-        String replacement = Texts.toStringSafe(action.get("replacement"));
-        switch (type) {
-            case "insert_below" -> insertRelative(lore, content, statContributions, targetPattern, true, false);
-            case "insert_above" -> insertRelative(lore, content, statContributions, targetPattern, false, false);
-            case "insert_below_regex" -> insertRelative(lore, content, statContributions, regexPattern, true, true);
-            case "insert_above_regex" -> insertRelative(lore, content, statContributions, regexPattern, false, true);
-            case "prepend_line", "prepend_lines", "append_first_line", "append_first_lines", "insert_first" ->
-                insertAt(lore, 0, content, statContributions);
-            case "append", "append_line", "append_lines" -> insertAt(lore, lore.size(), content, statContributions);
-            case "replace_line" -> replaceLine(lore, targetPattern, content, statContributions);
-            case "delete_line" -> deleteLine(lore, targetPattern, false);
-            case "delete_line_regex" -> deleteLine(lore, regexPattern, true);
-            case "regex_replace" -> replaceRegex(lore, regexPattern, replacement, statContributions);
-            default -> {
-            }
-        }
-    }
-
-    private void insertRelative(List<Component> lore,
-                                List<String> content,
-                                Map<String, Double> statContributions,
-                                String pattern,
-                                boolean below,
-                                boolean regex) {
-        int index = -1;
-        for (int line = 0; line < lore.size(); line++) {
-            String plain = MiniMessages.plain(lore.get(line));
-            boolean matches = regex ? Pattern.compile(pattern).matcher(plain).find() : plain.contains(pattern);
-            if (matches) {
-                index = below ? line + 1 : line;
-                break;
-            }
-        }
-        insertAt(lore, index < 0 ? lore.size() : index, content, statContributions);
-    }
-
-    private void insertAt(List<Component> lore, int index, List<String> content, Map<String, Double> statContributions) {
-        int insertIndex = index;
-        for (String line : content) {
-            lore.add(insertIndex++, MiniMessages.parse(formatStatLine(line, statContributions)));
-        }
-    }
-
-    private void replaceLine(List<Component> lore,
-                             String targetPattern,
-                             List<String> content,
-                             Map<String, Double> statContributions) {
-        for (int index = 0; index < lore.size(); index++) {
-            String plain = MiniMessages.plain(lore.get(index));
-            if (!plain.contains(targetPattern)) {
-                continue;
-            }
-            String replacement = content.isEmpty() ? "" : formatStatLine(content.get(0), statContributions);
-            lore.set(index, MiniMessages.parse(replacement));
-            return;
-        }
-    }
-
-    private void deleteLine(List<Component> lore, String pattern, boolean regex) {
-        for (int index = lore.size() - 1; index >= 0; index--) {
-            String plain = MiniMessages.plain(lore.get(index));
-            boolean matches = regex ? Pattern.compile(pattern).matcher(plain).find() : plain.contains(pattern);
-            if (matches) {
-                lore.remove(index);
-            }
-        }
-    }
-
-    private void replaceRegex(List<Component> lore,
-                              String regexPattern,
-                              String replacement,
-                              Map<String, Double> statContributions) {
-        for (int index = 0; index < lore.size(); index++) {
-            String plain = MiniMessages.plain(lore.get(index));
-            try {
-                String updated = Pattern.compile(regexPattern).matcher(plain).replaceAll(replacement);
-                lore.set(index, MiniMessages.parse(formatStatLine(updated, statContributions)));
-            } catch (Exception ignored) {
-            }
-        }
-    }
-
-    private String formatStatLine(String line, Map<String, Double> statContributions) {
-        String formatted = Texts.toStringSafe(line);
-        for (Map.Entry<String, Double> entry : statContributions.entrySet()) {
-            formatted = formatted.replace(
-                "{" + entry.getKey() + "}",
-                Numbers.formatNumber(entry.getValue(), plugin.appConfig().defaultNumberFormat())
-            );
-        }
-        return formatted;
     }
 
     private void consumeItems(Player player, Recipe recipe, GuiItems guiItems) {
@@ -1054,65 +637,7 @@ public final class ForgeService {
     }
 
     public String resolveResultItemName(Recipe recipe, ItemStack itemStack) {
-        String resolvedItemName = resolveItemName(itemStack);
-        if (Texts.isNotBlank(resolvedItemName)) {
-            return resolvedItemName;
-        }
-        if (recipe != null && recipe.result() != null && recipe.result().outputItem() != null) {
-            return recipe.result().outputItem().getIdentifier();
-        }
-        return "物品";
-    }
-
-    private String resolveSourceItemName(GuiItems guiItems, ItemStack resultItem, Recipe recipe) {
-        String sourceName = resolveItemName(guiItems == null ? null : guiItems.targetItem());
-        return Texts.isNotBlank(sourceName) ? sourceName : resolveResultItemName(recipe, resultItem);
-    }
-
-    private String resolveItemName(ItemStack itemStack) {
-        if (itemStack == null || itemStack.getType() == Material.AIR) {
-            return "";
-        }
-        if (itemStack.hasItemMeta() && itemStack.getItemMeta().hasDisplayName()) {
-            return MiniMessages.plain(itemStack.getItemMeta().displayName());
-        }
-        try {
-            return MiniMessages.plain(itemStack.effectiveName());
-        } catch (Exception ignored) {
-            return itemStack.getType().name();
-        }
-    }
-
-    private String buildShowItemPlaceholder(GuiItems guiItems, Recipe recipe, ItemStack resultItem) {
-        if (resultItem == null || resultItem.getType() == Material.AIR) {
-            return resolveSourceItemName(guiItems, resultItem, recipe);
-        }
-        Component display = resolveDisplayComponent(guiItems == null ? null : guiItems.targetItem());
-        if (display == null) {
-            display = resolveDisplayComponent(resultItem);
-        }
-        if (display == null) {
-            display = MiniMessages.parse(resolveResultItemName(recipe, resultItem));
-        }
-        try {
-            return MiniMessages.serialize(display.hoverEvent(resultItem.asHoverEvent(showItem -> showItem)));
-        } catch (Exception ignored) {
-            return resolveSourceItemName(guiItems, resultItem, recipe);
-        }
-    }
-
-    private Component resolveDisplayComponent(ItemStack itemStack) {
-        if (itemStack == null || itemStack.getType() == Material.AIR) {
-            return null;
-        }
-        if (itemStack.hasItemMeta() && itemStack.getItemMeta().hasDisplayName()) {
-            return itemStack.getItemMeta().displayName();
-        }
-        try {
-            return itemStack.effectiveName();
-        } catch (Exception ignored) {
-            return Component.text(itemStack.getType().name());
-        }
+        return resultItemFactory.resolveResultItemName(recipe, itemStack);
     }
 
     private String replacePlaceholders(Player player, String text) {

@@ -4,5 +4,6 @@ public enum AttributeTargetType {
     DAMAGE,
     RESOURCE,
     SKILL,
-    GENERIC
+    GENERIC,
+    VANILLA
 }

@@ -24,7 +24,9 @@ public final class PlayerDataStore {
         try {
             YamlFiles.ensureDirectory(directory.toPath());
         } catch (IOException exception) {
-            plugin.getLogger().warning("Failed to create data directory: " + directory.getPath());
+            plugin.messageService().warning("console.player_data_directory_create_failed", Map.of(
+                "path", directory.getPath()
+            ));
         }
     }
 
@@ -89,7 +91,10 @@ public final class PlayerDataStore {
             YamlFiles.save(file, data.toMap());
             return true;
         } catch (IOException exception) {
-            plugin.getLogger().warning("Failed to save player data for " + uuid + ": " + exception.getMessage());
+            plugin.messageService().warning("console.player_data_save_failed", Map.of(
+                "uuid", uuid,
+                "error", String.valueOf(exception.getMessage())
+            ));
             return false;
         }
     }

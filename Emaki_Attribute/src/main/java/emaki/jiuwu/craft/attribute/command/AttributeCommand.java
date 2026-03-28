@@ -7,6 +7,7 @@ import emaki.jiuwu.craft.attribute.model.ResourceSyncReason;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
 import emaki.jiuwu.craft.attribute.service.MessageService;
 import emaki.jiuwu.craft.corelib.math.Numbers;
+import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -166,11 +167,11 @@ public final class AttributeCommand implements TabExecutor {
         }
         ItemMeta itemMeta = itemStack.getItemMeta();
         AttributeSnapshot snapshot = itemMeta != null && itemMeta.hasLore()
-            ? attributeService.loreParser().parse(itemMeta.getLore()).snapshot()
+            ? attributeService.loreParser().parse(itemMeta.lore()).snapshot()
             : AttributeSnapshot.empty("");
         messages().send(sender, "command.preview.item", Map.of("item", itemStack.getType().name()));
-        if (itemMeta != null && itemMeta.hasDisplayName()) {
-            messages().send(sender, "command.preview.name", Map.of("name", itemMeta.getDisplayName()));
+        if (itemMeta != null && itemMeta.hasCustomName()) {
+            messages().send(sender, "command.preview.name", Map.of("name", MiniMessages.serialize(itemMeta.customName())));
         }
         messages().send(sender, "command.preview.signature", Map.of("signature", snapshot.sourceSignature()));
         messages().send(sender, "command.preview.values", Map.of("values", snapshot.values()));

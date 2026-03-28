@@ -168,7 +168,7 @@ public final class RecipeBookGuiService {
         ItemStack clone = itemStack.clone();
         ItemMeta itemMeta = clone.getItemMeta();
         if (itemMeta != null) {
-            itemMeta.displayName(MiniMessages.parse(recipe.displayName()));
+            itemMeta.customName(MiniMessages.parse(recipe.displayName()));
             List<String> lore = new ArrayList<>();
             boolean unlocked = !recipe.requiresPermission() || player.hasPermission(recipe.permission());
             lore.add(unlocked ? "<green>可用</green>" : "<red>未解锁</red>");

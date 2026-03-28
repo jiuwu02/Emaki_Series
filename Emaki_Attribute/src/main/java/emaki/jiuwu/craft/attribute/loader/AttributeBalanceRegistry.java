@@ -5,6 +5,7 @@ import emaki.jiuwu.craft.attribute.model.AttributeDefinition;
 import emaki.jiuwu.craft.attribute.model.AttributeSemanticDefinition;
 import emaki.jiuwu.craft.attribute.model.AttributeTargetType;
 import emaki.jiuwu.craft.attribute.model.AttributeValueKind;
+import emaki.jiuwu.craft.attribute.service.MessageService;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -35,21 +36,21 @@ public final class AttributeBalanceRegistry {
         semantics.clear();
         weights.clear();
         File file = plugin.dataPath("attribute_balance.yml").toFile();
+        MessageService messages = plugin.messageService();
         try {
             YamlFiles.syncVersionedResource(plugin, file, "attribute_balance.yml", "schema_version");
         } catch (IOException exception) {
-            plugin.getLogger().warning("Failed to write default attribute balance file: " + exception.getMessage());
+            messages.warning("loader.bundled_resource_sync_failed", Map.of(
+                "path", file.getPath(),
+                "error", String.valueOf(exception.getMessage())
+            ));
         }
         if (!file.exists()) {
-            if (plugin.messageService() != null) {
-                plugin.messageService().warning("loader.bundled_resource_missing", Map.of(
-                    "type", "属性权重",
-                    "path", file.getPath(),
-                    "resource", "attribute_balance.yml"
-                ));
-            } else {
-                plugin.getLogger().warning("Missing bundled resource attribute_balance.yml");
-            }
+            messages.warning("loader.bundled_resource_missing", Map.of(
+                "type", typeName(),
+                "path", file.getPath(),
+                "resource", "attribute_balance.yml"
+            ));
         }
         configuration = YamlFiles.load(file);
         validateSchema(configuration, file);
@@ -131,15 +132,12 @@ public final class AttributeBalanceRegistry {
         if (raw == null || raw instanceof Map<?, ?> || raw instanceof ConfigurationSection) {
             return;
         }
-        if (plugin.messageService() != null) {
-            plugin.messageService().warning("loader.schema_invalid_section", Map.of(
-                "type", "属性权重",
-                "file", file.getName(),
-                "field", field
-            ));
-        } else {
-            plugin.getLogger().warning("Invalid attribute balance schema in " + file.getName() + ": " + field + " must be a section.");
-        }
+        MessageService messages = plugin.messageService();
+        messages.warning("loader.schema_invalid_section", Map.of(
+            "type", typeName(),
+            "file", file.getName(),
+            "field", field
+        ));
     }
 
     private void applyFallbacks() {
@@ -173,6 +171,14 @@ public final class AttributeBalanceRegistry {
         }
     }
 
+    private String typeName() {
+        MessageService messages = plugin.messageService();
+        if (messages == null) {
+            return "属性权重";
+        }
+        return messages.message("label.attribute_balance");
+    }
+
     private String inferGroup(String id) {
         AttributeDefinition definition = attributeRegistry == null ? null : attributeRegistry.resolve(id);
         if (definition == null) {
@@ -190,7 +196,7 @@ public final class AttributeBalanceRegistry {
             case DAMAGE -> "offense";
             case RESOURCE -> "resource";
             case SKILL -> "skill";
-            case GENERIC -> "utility";
+            case GENERIC, VANILLA -> "utility";
         };
         String domain = Texts.isBlank(targetId) ? definition.valueKind().name().toLowerCase(Locale.ROOT) : targetId;
         return category + "." + domain;

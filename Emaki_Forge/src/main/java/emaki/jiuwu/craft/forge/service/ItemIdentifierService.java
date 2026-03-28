@@ -7,6 +7,7 @@ import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import java.util.LinkedHashSet;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import net.momirealms.craftengine.bukkit.api.CraftEngineItems;
 import net.momirealms.craftengine.core.item.CustomItem;
@@ -102,7 +103,9 @@ public final class ItemIdentifierService {
     private ItemStack createVanillaItem(String identifier, int amount) {
         Material material = resolveMaterial(identifier);
         if (material == null) {
-            plugin.getLogger().warning("Unknown vanilla material source: " + identifier);
+            plugin.messageService().warning("console.item_unknown_vanilla_material_source", Map.of(
+                "identifier", identifier
+            ));
             return null;
         }
         return new ItemStack(material, Math.max(1, amount));
@@ -157,12 +160,12 @@ public final class ItemIdentifierService {
         if (!unavailableSourceWarnings.add(warningKey)) {
             return;
         }
-        plugin.getLogger().warning(
-            "External item source unavailable: dependency=" + dependency
-                + ", context=" + context
-                + ", source=" + ItemSourceUtil.toShorthand(source)
-                + ", detail=" + reason
-        );
+        plugin.messageService().warning("console.external_item_source_unavailable", Map.of(
+            "dependency", dependency,
+            "context", context,
+            "source", ItemSourceUtil.toShorthand(source),
+            "detail", reason
+        ));
     }
 
     private ExternalItemSupport buildNeigeItemsSupport() {
@@ -172,7 +175,10 @@ public final class ItemIdentifierService {
         try {
             return new NeigeItemsSupport();
         } catch (Throwable error) {
-            plugin.getLogger().warning("NeigeItems API bridge unavailable: " + error.getMessage());
+            plugin.messageService().warning("console.item_bridge_unavailable", Map.of(
+                "dependency", "NeigeItems",
+                "error", String.valueOf(error.getMessage())
+            ));
             return null;
         }
     }
@@ -184,7 +190,10 @@ public final class ItemIdentifierService {
         try {
             return new CraftEngineSupport();
         } catch (Throwable error) {
-            plugin.getLogger().warning("CraftEngine API bridge unavailable: " + error.getMessage());
+            plugin.messageService().warning("console.item_bridge_unavailable", Map.of(
+                "dependency", "CraftEngine",
+                "error", String.valueOf(error.getMessage())
+            ));
             return null;
         }
     }

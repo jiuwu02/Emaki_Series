@@ -21,7 +21,7 @@ public final class AppConfigLoader {
     public AppConfig load() {
         try {
             java.io.File file = plugin.dataPath("config.yml").toFile();
-            YamlFiles.syncVersionedResource(plugin, file, "defaults/config.yml", "config_version");
+            YamlFiles.syncVersionedResource(plugin, file, "config.yml", "config_version");
             YamlConfiguration configuration = YamlFiles.load(file);
             if (configuration.getKeys(false).isEmpty()) {
                 current = AppConfig.defaults();
@@ -47,7 +47,10 @@ public final class AppConfigLoader {
                 configuration.getBoolean("debug", false)
             );
         } catch (Exception exception) {
-            plugin.getLogger().warning("Failed to read config.yml, using defaults: " + exception.getMessage());
+            plugin.messageService().warning("console.loader_config_load_error", java.util.Map.of(
+                "path", "config.yml",
+                "error", String.valueOf(exception.getMessage())
+            ));
             current = AppConfig.defaults();
         }
         return current;
