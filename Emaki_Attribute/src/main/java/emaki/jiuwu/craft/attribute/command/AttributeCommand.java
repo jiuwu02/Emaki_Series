@@ -101,7 +101,7 @@ public final class AttributeCommand implements TabExecutor {
         messages().send(sender, "command.reload.summary", Map.of(
             "attributes", attributeService.attributeRegistry().all().size(),
             "damage_types", attributeService.damageTypeRegistry().all().size(),
-            "defaults", attributeService.defaultProfileRegistry().all().size()
+            "profiles", attributeService.defaultProfileRegistry().all().size()
         ));
         return true;
     }

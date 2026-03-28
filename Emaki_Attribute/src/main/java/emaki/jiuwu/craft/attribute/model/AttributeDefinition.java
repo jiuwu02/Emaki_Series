@@ -42,6 +42,9 @@ public record AttributeDefinition(String id,
         if (Objects.equals(id, normalized)) {
             return true;
         }
+        if (Objects.equals(normalizeId(displayName), normalized)) {
+            return true;
+        }
         for (String alias : aliases) {
             if (Objects.equals(normalizeId(alias), normalized)) {
                 return true;

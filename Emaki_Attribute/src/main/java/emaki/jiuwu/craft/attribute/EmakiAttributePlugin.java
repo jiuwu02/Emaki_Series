@@ -19,7 +19,6 @@ import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import java.io.File;
 import java.nio.file.Path;
-import java.util.List;
 import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -35,65 +34,6 @@ public final class EmakiAttributePlugin extends JavaPlugin {
  \\ \\_____\\  \\ \\_\\ \\ \\_\\  \\ \\_\\ \\_\\  \\ \\_\\ \\_\\  \\ \\_\\  \\ \\_\\ \\_\\    \\ \\_\\    \\ \\_\\  \\ \\_\\ \\_\\  \\ \\_\\  \\ \\_____\\  \\ \\_____\\    \\ \\_\\  \\ \\_____\\
   \\/_____/   \\/_/  \\/_/   \\/_/\\/_/   \\/_/\\/_/   \\/_/   \\/_/\\/_/     \\/_/     \\/_/   \\/_/ /_/   \\/_/   \\/_____/   \\/_____/     \\/_/   \\/_____/
 """;
-
-    private static final List<String> BUNDLED_DEFAULTS = List.of(
-        "defaults/config.yml",
-        "defaults/global.yml",
-        "defaults/lang/zh_CN.yml",
-        "defaults/attribute_balance.yml",
-        "defaults/attributes/health.yml",
-        "defaults/attributes/mana.yml",
-        "defaults/attributes/attribute_power.yml",
-        "defaults/attributes/attack_speed.yml",
-        "defaults/attributes/movement_speed.yml",
-        "defaults/attributes/dodge_chance.yml",
-        "defaults/attributes/physical_attack.yml",
-        "defaults/attributes/physical_defense.yml",
-        "defaults/attributes/physical_crit_rate.yml",
-        "defaults/attributes/physical_crit_damage.yml",
-        "defaults/attributes/physical_damage_bonus.yml",
-        "defaults/attributes/physical_armor_penetration.yml",
-        "defaults/attributes/physical_crit_evasion.yml",
-        "defaults/attributes/physical_crit_multiplier_resistance.yml",
-        "defaults/attributes/projectile_attack.yml",
-        "defaults/attributes/projectile_damage_bonus.yml",
-        "defaults/attributes/projectile_crit_rate.yml",
-        "defaults/attributes/projectile_crit_damage.yml",
-        "defaults/attributes/projectile_defense.yml",
-        "defaults/attributes/projectile_penetration.yml",
-        "defaults/attributes/projectile_crit_evasion.yml",
-        "defaults/attributes/projectile_crit_multiplier_resistance.yml",
-        "defaults/attributes/spell_attack.yml",
-        "defaults/attributes/spell_damage_bonus.yml",
-        "defaults/attributes/spell_crit_rate.yml",
-        "defaults/attributes/spell_crit_damage.yml",
-        "defaults/attributes/spell_defense.yml",
-        "defaults/attributes/magic_penetration.yml",
-        "defaults/attributes/magic_crit_evasion.yml",
-        "defaults/attributes/magic_crit_multiplier_resistance.yml",
-        "defaults/attributes/health_regen.yml",
-        "defaults/attributes/mana_regen.yml",
-        "defaults/attributes/speed.yml",
-        "defaults/attributes/entity_scale.yml",
-        "defaults/attributes/entity_interaction_range.yml",
-        "defaults/attributes/real_damage.yml",
-        "defaults/attributes/lifesteal.yml",
-        "defaults/attributes/percentage_lifesteal.yml",
-        "defaults/attributes/lifesteal_resistance.yml",
-        "defaults/attributes/test_attribute.yml",
-        "defaults/attributes/skill_damage_bonus.yml",
-        "defaults/attributes/skill_crit_rate.yml",
-        "defaults/attributes/skill_crit_damage.yml",
-        "defaults/attributes/skill_cdr.yml",
-        "defaults/damage_types/physical.yml",
-        "defaults/damage_types/projectile.yml",
-        "defaults/damage_types/spell.yml",
-        "defaults/damage_types/skill.yml",
-        "defaults/lore_formats/default_flat.yml",
-        "defaults/lore_formats/default_percent.yml",
-        "defaults/lore_formats/default_regen.yml",
-        "defaults/lore_formats/default_resource.yml"
-    );
 
     private static EmakiAttributePlugin instance;
 
@@ -122,7 +62,6 @@ public final class EmakiAttributePlugin extends JavaPlugin {
         instance = this;
         initializeServices();
         ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII);
-        ensureBundledDefaults();
         reloadPluginState(true);
         registerCommand();
         registerListeners();
@@ -223,32 +162,50 @@ public final class EmakiAttributePlugin extends JavaPlugin {
 
     public void reloadPluginState(boolean resyncPlayers) {
         configModel = loadConfigModel();
+        if (attributeService != null) {
+            attributeService.reloadConfig(configModel);
+        }
         if (languageLoader != null) {
             languageLoader.load();
             languageLoader.setLanguage(configModel.language());
         }
+        runReloadStage("attribute_registry", () -> {
+            if (attributeRegistry != null) {
+                attributeRegistry.load();
+            }
+        });
+        runReloadStage("default_profile_registry", () -> {
+            if (defaultProfileRegistry != null) {
+                defaultProfileRegistry.load();
+            }
+        });
+        runReloadStage("lore_format_registry", () -> {
+            if (loreFormatRegistry != null) {
+                loreFormatRegistry.load();
+            }
+        });
+        runReloadStage("preset_registry", () -> {
+            if (presetRegistry != null) {
+                presetRegistry.load();
+            }
+        });
+        runReloadStage("attribute_balance_registry", () -> {
+            if (attributeBalanceRegistry != null) {
+                attributeBalanceRegistry.load();
+            }
+        });
+        runReloadStage("damage_type_registry", () -> {
+            if (damageTypeRegistry != null) {
+                damageTypeRegistry.load();
+            }
+        });
         if (attributeService != null) {
-            attributeService.reloadConfig(configModel);
-        }
-        if (attributeRegistry != null) {
-            attributeRegistry.load();
-        }
-        if (attributeBalanceRegistry != null) {
-            attributeBalanceRegistry.load();
-        }
-        if (damageTypeRegistry != null) {
-            damageTypeRegistry.load();
-        }
-        if (defaultProfileRegistry != null) {
-            defaultProfileRegistry.load();
-        }
-        if (loreFormatRegistry != null) {
-            loreFormatRegistry.load();
-        }
-        if (presetRegistry != null) {
-            presetRegistry.load();
+            attributeService.refreshCaches();
         }
         ensureMythicBridge();
+        if (mythicBridge != null) {
+            mythicBridge.resyncActiveMobs();
+        }
         if (attributeService != null && resyncPlayers) {
             attributeService.resyncAllPlayers();
         }
@@ -323,35 +280,30 @@ public final class EmakiAttributePlugin extends JavaPlugin {
         }
     }
 
-    private void ensureBundledDefaults() {
-        for (String relativePath : BUNDLED_DEFAULTS) {
-            ensureBundledFile(relativePath);
-        }
-    }
-
-    private void ensureBundledFile(String relativePath) {
-        File target = new File(getDataFolder(), relativePath);
-        if (target.exists()) {
-            return;
-        }
+    private void runReloadStage(String stageName, Runnable stage) {
         try {
-            saveResource(relativePath, false);
-        } catch (IllegalArgumentException exception) {
-            if (messageService != null) {
-                messageService.warning("console.default_resource_write_failed", java.util.Map.of(
-                    "path", relativePath,
-                    "error", String.valueOf(exception.getMessage())
-                ));
-            } else {
-                getLogger().warning("console.default_resource_write_failed");
-            }
+            stage.run();
+        } catch (Exception exception) {
+            String message = "Reload stage failed [" + stageName + "]: " + exception.getMessage();
+            getLogger().warning(message);
         }
     }
 
     private AttributeConfig loadConfigModel() {
         try {
-            File file = new File(getDataFolder(), "defaults/config.yml");
-            YamlFiles.syncVersionedResource(this, file, "defaults/config.yml", "config_version");
+            File file = new File(getDataFolder(), "config.yml");
+            YamlFiles.syncVersionedResource(this, file, "config.yml", "config_version");
+            if (!file.exists()) {
+                if (messageService != null) {
+                    messageService.warning("loader.bundled_resource_missing", java.util.Map.of(
+                        "type", "配置",
+                        "path", file.getPath(),
+                        "resource", "config.yml"
+                    ));
+                } else {
+                    getLogger().warning("Missing bundled resource config.yml");
+                }
+            }
             return AttributeConfig.fromConfig(YamlConfiguration.loadConfiguration(file));
         } catch (Exception exception) {
             if (messageService != null) {

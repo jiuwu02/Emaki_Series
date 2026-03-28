@@ -5,6 +5,7 @@ import emaki.jiuwu.craft.attribute.model.AttributeDefinition;
 import emaki.jiuwu.craft.attribute.model.AttributeTargetType;
 import emaki.jiuwu.craft.attribute.model.AttributeValueKind;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import java.io.File;
 import java.util.ArrayList;
@@ -16,6 +17,53 @@ import java.util.regex.Pattern;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition> {
+
+    private static final List<String> BUNDLED_RESOURCES = List.of(
+        "attack_speed.yml",
+        "attribute_power.yml",
+        "dodge_chance.yml",
+        "entity_interaction_range.yml",
+        "entity_scale.yml",
+        "health.yml",
+        "health_regen.yml",
+        "lifesteal.yml",
+        "lifesteal_resistance.yml",
+        "magic_crit_evasion.yml",
+        "magic_crit_multiplier_resistance.yml",
+        "magic_penetration.yml",
+        "mana.yml",
+        "mana_regen.yml",
+        "movement_speed.yml",
+        "percentage_lifesteal.yml",
+        "physical_armor_penetration.yml",
+        "physical_attack.yml",
+        "physical_crit_damage.yml",
+        "physical_crit_evasion.yml",
+        "physical_crit_multiplier_resistance.yml",
+        "physical_crit_rate.yml",
+        "physical_damage_bonus.yml",
+        "physical_defense.yml",
+        "projectile_attack.yml",
+        "projectile_crit_damage.yml",
+        "projectile_crit_evasion.yml",
+        "projectile_crit_multiplier_resistance.yml",
+        "projectile_crit_rate.yml",
+        "projectile_damage_bonus.yml",
+        "projectile_defense.yml",
+        "projectile_penetration.yml",
+        "real_damage.yml",
+        "skill_cdr.yml",
+        "skill_crit_damage.yml",
+        "skill_crit_rate.yml",
+        "skill_damage_bonus.yml",
+        "speed.yml",
+        "spell_attack.yml",
+        "spell_crit_damage.yml",
+        "spell_crit_rate.yml",
+        "spell_damage_bonus.yml",
+        "spell_defense.yml",
+        "test_attribute.yml"
+    );
 
     private final Map<String, AttributeDefinition> aliasIndex = new LinkedHashMap<>();
     private final List<PatternEntry> orderedPatterns = new ArrayList<>();
@@ -67,6 +115,107 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
     }
 
     @Override
+    protected void seedBundledResources(File directory) {
+        for (String resourceName : BUNDLED_RESOURCES) {
+            copyBundledResource("attributes/" + resourceName, new File(directory, resourceName));
+        }
+    }
+
+    @Override
+    protected boolean validateSchema(File file, YamlConfiguration configuration) {
+        boolean valid = true;
+        if (Texts.isBlank(configuration.getString("id"))) {
+            issue(
+                "loader.schema_missing_id",
+                Map.of(
+                    "type", typeName(),
+                    "file", file.getName(),
+                    "field", "id"
+                )
+            );
+            valid = false;
+        }
+        if (configuration.contains("value_kind") && !isValidEnum(configuration.getString("value_kind"), AttributeValueKind.class)) {
+            issue(
+                "loader.schema_invalid_enum",
+                Map.of(
+                    "type", typeName(),
+                    "file", file.getName(),
+                    "field", "value_kind"
+                )
+            );
+            valid = false;
+        }
+        if (configuration.contains("target_type") && !isValidEnum(configuration.getString("target_type"), AttributeTargetType.class)) {
+            issue(
+                "loader.schema_invalid_enum",
+                Map.of(
+                    "type", typeName(),
+                    "file", file.getName(),
+                    "field", "target_type"
+                )
+            );
+            valid = false;
+        }
+        if (configuration.contains("priority") && !isNumeric(configuration.get("priority"))) {
+            issue(
+                "loader.schema_invalid_number",
+                Map.of(
+                    "type", typeName(),
+                    "file", file.getName(),
+                    "field", "priority"
+                )
+            );
+            valid = false;
+        }
+        if (configuration.contains("default_value") && !isNumeric(configuration.get("default_value"))) {
+            issue(
+                "loader.schema_invalid_number",
+                Map.of(
+                    "type", typeName(),
+                    "file", file.getName(),
+                    "field", "default_value"
+                )
+            );
+            valid = false;
+        }
+        if (configuration.contains("min_value") && !isNumeric(configuration.get("min_value"))) {
+            issue(
+                "loader.schema_invalid_number",
+                Map.of(
+                    "type", typeName(),
+                    "file", file.getName(),
+                    "field", "min_value"
+                )
+            );
+            valid = false;
+        }
+        if (configuration.contains("max_value") && !isNumeric(configuration.get("max_value"))) {
+            issue(
+                "loader.schema_invalid_number",
+                Map.of(
+                    "type", typeName(),
+                    "file", file.getName(),
+                    "field", "max_value"
+                )
+            );
+            valid = false;
+        }
+        if (configuration.contains("attribute_power") && !isNumeric(configuration.get("attribute_power"))) {
+            issue(
+                "loader.schema_invalid_number",
+                Map.of(
+                    "type", typeName(),
+                    "file", file.getName(),
+                    "field", "attribute_power"
+                )
+            );
+            valid = false;
+        }
+        return valid;
+    }
+
+    @Override
     protected String idOf(AttributeDefinition value) {
         return value.id();
     }
@@ -79,6 +228,9 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
         definitions.sort((left, right) -> Integer.compare(right.priority(), left.priority()));
         for (AttributeDefinition definition : definitions) {
             aliasIndex.put(definition.id(), definition);
+            if (Texts.isNotBlank(definition.displayName())) {
+                aliasIndex.putIfAbsent(normalizeId(definition.displayName()), definition);
+            }
             for (String alias : definition.aliases()) {
                 aliasIndex.putIfAbsent(normalizeId(alias), definition);
             }
@@ -100,6 +252,7 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
                 orderedPatterns.add(new PatternEntry(definition, fallback));
             }
         }
+        logLoadReport(definitions);
     }
 
     public AttributeDefinition resolve(String id) {
@@ -184,6 +337,83 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
             return Enum.valueOf(defaultValue.getDeclaringClass(), value.trim().toUpperCase(Locale.ROOT));
         } catch (Exception ignored) {
             return defaultValue;
+        }
+    }
+
+    private void logLoadReport(List<AttributeDefinition> definitions) {
+        if (definitions == null || definitions.isEmpty()) {
+            logInfo(
+                "console.attribute_registry_empty",
+                Map.of(),
+                "[属性注册] 未加载到任何属性定义。"
+            );
+            return;
+        }
+
+        logInfo(
+            "console.attribute_registry_summary",
+            Map.of("count", definitions.size()),
+            "[属性注册] 已加载 " + definitions.size() + " 项属性定义。"
+        );
+
+        int index = 1;
+        for (AttributeDefinition definition : definitions) {
+            int displayIndex = index++;
+            String displayName = safeText(definition.displayName(), definition.id());
+            String id = safeText(definition.id(), "-");
+            String defaultValue = formatNumber(definition.defaultValue());
+            String attributePower = formatNumber(definition.attributePower());
+            logInfo(
+                "console.attribute_registry_entry",
+                Map.of(
+                    "index", String.format(Locale.ROOT, "%02d", displayIndex),
+                    "display_name", displayName,
+                    "id", id,
+                    "default_value", defaultValue,
+                    "attribute_power", attributePower
+                ),
+                String.format(
+                    Locale.ROOT,
+                    "[属性注册] %02d | %s (%s) | 默认值 %s | 战力系数 %s",
+                    displayIndex,
+                    displayName,
+                    id,
+                    defaultValue,
+                    attributePower
+                )
+            );
+        }
+    }
+
+    private void logInfo(String key, Map<String, ?> replacements, String fallback) {
+        if (plugin.messageService() != null) {
+            plugin.messageService().info(key, replacements);
+            return;
+        }
+        plugin.getLogger().info(fallback);
+    }
+
+    private String safeText(String value, String fallback) {
+        return Texts.isBlank(value) ? fallback : value;
+    }
+
+    private String formatNumber(double value) {
+        return Numbers.formatNumber(value, "0.###");
+    }
+
+    private static boolean isNumeric(Object value) {
+        return Numbers.tryParseDouble(value, null) != null;
+    }
+
+    private static <E extends Enum<E>> boolean isValidEnum(String value, Class<E> enumType) {
+        if (Texts.isBlank(value) || enumType == null) {
+            return false;
+        }
+        try {
+            Enum.valueOf(enumType, value.trim().toUpperCase(Locale.ROOT));
+            return true;
+        } catch (Exception ignored) {
+            return false;
         }
     }
 }

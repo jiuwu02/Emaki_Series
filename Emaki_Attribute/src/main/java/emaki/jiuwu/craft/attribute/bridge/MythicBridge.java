@@ -1,5 +1,7 @@
 package emaki.jiuwu.craft.attribute.bridge;
 
+import emaki.jiuwu.craft.attribute.api.AttributeContribution;
+import emaki.jiuwu.craft.attribute.api.AttributeContributionProvider;
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.attribute.model.AttributeSnapshot;
 import emaki.jiuwu.craft.attribute.model.DamageContextVariables;
@@ -7,34 +9,49 @@ import emaki.jiuwu.craft.attribute.model.ResourceState;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
 import io.lumine.mythic.api.adapters.AbstractEntity;
 import io.lumine.mythic.api.config.MythicLineConfig;
+import io.lumine.mythic.api.mobs.MythicMob;
+import io.lumine.mythic.api.skills.SkillCaster;
 import io.lumine.mythic.api.skills.SkillMetadata;
-import io.lumine.mythic.bukkit.BukkitAdapter;
 import io.lumine.mythic.bukkit.MythicBukkit;
 import io.lumine.mythic.bukkit.events.MythicConditionLoadEvent;
 import io.lumine.mythic.bukkit.events.MythicMechanicLoadEvent;
+import io.lumine.mythic.bukkit.events.MythicMobSpawnEvent;
+import io.lumine.mythic.bukkit.events.MythicPostReloadedEvent;
+import io.lumine.mythic.core.mobs.ActiveMob;
 import io.lumine.mythic.core.skills.SkillCondition;
 import io.lumine.mythic.core.skills.SkillExecutor;
 import io.lumine.mythic.core.skills.SkillMechanic;
 import io.lumine.mythic.core.utils.annotations.MythicCondition;
 import io.lumine.mythic.core.utils.annotations.MythicMechanic;
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
+import emaki.jiuwu.craft.corelib.math.Numbers;
+import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class MythicBridge implements Listener {
 
     private final EmakiAttributePlugin plugin;
     private final AttributeService attributeService;
+    private final AttributeContributionProvider mythicMobContributionProvider;
 
     public MythicBridge(EmakiAttributePlugin plugin, AttributeService attributeService) {
         this.plugin = plugin;
         this.attributeService = attributeService;
+        this.mythicMobContributionProvider = new MythicMobAttributeContributionProvider();
+        this.attributeService.registerContributionProvider(mythicMobContributionProvider);
     }
 
     @EventHandler
@@ -57,6 +74,41 @@ public final class MythicBridge implements Listener {
         event.register(new AttributeCondition(name, event.getArgument(), event.getConfig(), attributeService));
     }
 
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onMobSpawn(MythicMobSpawnEvent event) {
+        LivingEntity livingEntity = event.getLivingEntity();
+        if (livingEntity == null) {
+            return;
+        }
+        attributeService.syncLivingEntity(livingEntity);
+        attributeService.scheduleLivingEntitySync(livingEntity);
+    }
+
+    @EventHandler
+    public void onPostReloaded(MythicPostReloadedEvent event) {
+        resyncActiveMobs();
+    }
+
+    public void resyncActiveMobs() {
+        if (!Bukkit.getPluginManager().isPluginEnabled("MythicMobs")) {
+            return;
+        }
+        Collection<ActiveMob> activeMobs = MythicBukkit.inst().getMobManager().getActiveMobs();
+        if (activeMobs == null || activeMobs.isEmpty()) {
+            return;
+        }
+        for (ActiveMob activeMob : activeMobs) {
+            if (activeMob == null || activeMob.getEntity() == null) {
+                continue;
+            }
+            org.bukkit.entity.Entity bukkitEntity = activeMob.getEntity().getBukkitEntity();
+            LivingEntity livingEntity = bukkitEntity instanceof LivingEntity livingEntityCandidate ? livingEntityCandidate : null;
+            if (livingEntity != null) {
+                attributeService.scheduleLivingEntitySync(livingEntity);
+            }
+        }
+    }
+
     private boolean isDamageMechanic(String name) {
         return name.equals("emaki_damage") || name.equals("emakiattribute_damage") || name.equals("attribute_damage");
     }
@@ -67,6 +119,45 @@ public final class MythicBridge implements Listener {
 
     private String normalize(String value) {
         return value == null ? "" : value.trim().toLowerCase(Locale.ROOT).replace(' ', '_');
+    }
+
+    private String normalizeId(String value) {
+        return value == null ? "" : value.trim().toLowerCase(Locale.ROOT).replace(' ', '_');
+    }
+
+    private AttributeContribution parseMobAttributeEntry(String rawEntry, String sourceId) {
+        String entry = Texts.toStringSafe(rawEntry).trim();
+        if (Texts.isBlank(entry)) {
+            return null;
+        }
+        int separator = entry.indexOf(':');
+        if (separator < 0) {
+            separator = entry.indexOf('：');
+        }
+        if (separator < 0) {
+            return null;
+        }
+        String attributeName = entry.substring(0, separator).trim();
+        String valueText = entry.substring(separator + 1).trim();
+        if (Texts.isBlank(attributeName) || Texts.isBlank(valueText)) {
+            return null;
+        }
+        var definition = attributeService.attributeRegistry() == null ? null : attributeService.attributeRegistry().resolve(attributeName);
+        String attributeId = definition == null ? normalizeId(attributeName) : definition.id();
+        double value = parseMobAttributeValue(valueText);
+        return new AttributeContribution(attributeId, value, sourceId);
+    }
+
+    private double parseMobAttributeValue(String valueText) {
+        Double parsed = Numbers.tryParseDouble(valueText, null);
+        if (parsed != null) {
+            return parsed;
+        }
+        try {
+            return ExpressionEngine.evaluate(valueText);
+        } catch (Exception ignored) {
+            return 0D;
+        }
     }
 
     @MythicMechanic(
@@ -142,6 +233,52 @@ public final class MythicBridge implements Listener {
             }
             org.bukkit.entity.Entity entity = abstractEntity.getBukkitEntity();
             return entity instanceof LivingEntity livingEntity ? livingEntity : null;
+        }
+    }
+
+    private final class MythicMobAttributeContributionProvider implements AttributeContributionProvider {
+
+        @Override
+        public String id() {
+            return "mythic_mob_attributes";
+        }
+
+        @Override
+        public int priority() {
+            return 250;
+        }
+
+        @Override
+        public Collection<AttributeContribution> collect(LivingEntity entity) {
+            if (entity == null || entity instanceof Player || !Bukkit.getPluginManager().isPluginEnabled("MythicMobs")) {
+                return List.of();
+            }
+            SkillCaster caster;
+            try {
+                caster = MythicBukkit.inst().getMobManager().getSkillCaster(entity.getUniqueId()).orElse(null);
+            } catch (Exception exception) {
+                return List.of();
+            }
+            if (!(caster instanceof ActiveMob activeMob)) {
+                return List.of();
+            }
+            MythicMob mythicMob = activeMob.getType();
+            if (mythicMob == null || mythicMob.getConfig() == null) {
+                return List.of();
+            }
+            List<String> entries = mythicMob.getConfig().getStringList("EmakiAttribute");
+            if (entries == null || entries.isEmpty()) {
+                return List.of();
+            }
+            String sourceId = "mythic_mob:" + normalizeId(mythicMob.getInternalName());
+            List<AttributeContribution> contributions = new ArrayList<>();
+            for (String rawEntry : entries) {
+                AttributeContribution contribution = parseMobAttributeEntry(rawEntry, sourceId);
+                if (contribution != null) {
+                    contributions.add(contribution);
+                }
+            }
+            return contributions.isEmpty() ? List.of() : contributions;
         }
     }
 

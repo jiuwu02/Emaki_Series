@@ -56,6 +56,9 @@ public final class AttributeListener implements Listener {
     public void onPluginEnable(PluginEnableEvent event) {
         if ("MythicMobs".equalsIgnoreCase(event.getPlugin().getName())) {
             plugin.ensureMythicBridge();
+            if (plugin.mythicBridge() != null) {
+                plugin.mythicBridge().resyncActiveMobs();
+            }
         }
         if ("PlaceholderAPI".equalsIgnoreCase(event.getPlugin().getName())) {
             plugin.ensurePlaceholderExpansion();

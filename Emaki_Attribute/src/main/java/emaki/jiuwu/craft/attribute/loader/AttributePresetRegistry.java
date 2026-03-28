@@ -3,6 +3,8 @@ package emaki.jiuwu.craft.attribute.loader;
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.attribute.model.AttributePreset;
 import java.io.File;
+import java.util.Map;
+import emaki.jiuwu.craft.corelib.text.Texts;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 public final class AttributePresetRegistry extends DirectoryLoader<AttributePreset> {
@@ -24,6 +26,35 @@ public final class AttributePresetRegistry extends DirectoryLoader<AttributePres
     @Override
     protected AttributePreset parse(File file, YamlConfiguration configuration) {
         return AttributePreset.fromMap(configuration);
+    }
+
+    @Override
+    protected boolean validateSchema(File file, YamlConfiguration configuration) {
+        boolean valid = true;
+        if (Texts.isBlank(configuration.getString("id"))) {
+            issue(
+                "loader.schema_missing_id",
+                Map.of(
+                    "type", typeName(),
+                    "file", file.getName(),
+                    "field", "id"
+                )
+            );
+            valid = false;
+        }
+        Object values = configuration.get("values");
+        if (values != null && !(values instanceof Map<?, ?> || values instanceof org.bukkit.configuration.ConfigurationSection)) {
+            issue(
+                "loader.schema_invalid_section",
+                Map.of(
+                    "type", typeName(),
+                    "file", file.getName(),
+                    "field", "values"
+                )
+            );
+            valid = false;
+        }
+        return valid;
     }
 
     @Override

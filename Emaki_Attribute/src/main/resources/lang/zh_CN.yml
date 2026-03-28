@@ -5,13 +5,22 @@ general:
 console:
   plugin_started: "<green>Emaki_Attribute 已启动。</green>"
   plugin_stopped: "<yellow>Emaki_Attribute 已关闭。</yellow>"
-  default_resource_write_failed: "<red>默认资源写入失败: {path} ({error})</red>"
   config_load_failed: "<red>配置读取失败: {error}</red>"
+  attribute_registry_empty: "<yellow>[属性注册] 未加载到任何属性定义。</yellow>"
+  attribute_registry_summary: "<green>[属性注册] 已加载 {count} 项属性定义。</green>"
+  attribute_registry_entry: "<gray>[属性注册]</gray> <white>{index}</white> <dark_gray>|</dark_gray> <aqua>{display_name}</aqua> <dark_gray>(</dark_gray><white>{id}</white><dark_gray>)</dark_gray> <dark_gray>|</dark_gray> <gray>默认值</gray> <yellow>{default_value}</yellow> <dark_gray>|</dark_gray> <gray>战力系数</gray> <light_purple>{attribute_power}</light_purple>"
 
 loader:
   lang_directory_create_failed: "<red>无法创建语言目录: {path}</red>"
   bundled_language_load_failed: "<red>读取内置语言失败: {error}</red>"
+  bundled_resource_missing: "<red>内置资源缺失: {resource}，无法写入 {path}</red>"
+  bundled_resource_write_failed: "<red>写入内置资源失败: {path} ({error})</red>"
   directory_create_failed: "<red>无法创建{type}目录: {path}</red>"
+  schema_missing_id: "<red>{type}文件 {file} 缺少 ID 字段。</red>"
+  schema_missing_section: "<red>{type}文件 {file} 缺少必要的 {field} 节点。</red>"
+  schema_invalid_section: "<red>{type}文件 {file} 的 {field} 结构无效。</red>"
+  schema_invalid_enum: "<red>{type}文件 {file} 的 {field} 枚举值无效。</red>"
+  schema_invalid_number: "<red>{type}文件 {file} 的 {field} 不是有效数字。</red>"
   invalid_blank_id: "<red>{type}文件 {file} 的 ID 为空。</red>"
   duplicate_id: "<red>{type}文件 {file} 的 ID 重复: {id}。</red>"
   invalid_lore_pattern: "<red>{attribute} 的词条正则无效: {pattern} ({error})</red>"
@@ -64,7 +73,7 @@ command:
   reload:
     no_permission: "<red>你没有权限执行此命令。</red>"
     success: "<green>已重新加载属性系统。</green>"
-    summary: "<gray>属性 {attributes} 项，伤害类型 {damage_types} 项，默认组 {defaults} 个。</gray>"
+    summary: "<gray>属性 {attributes} 项，伤害类型 {damage_types} 项，默认组 {profiles} 个。</gray>"
 
   resync:
     no_permission: "<red>你没有权限执行此命令。</red>"

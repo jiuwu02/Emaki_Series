@@ -1,7 +1,7 @@
 package emaki.jiuwu.craft.attribute.api;
 
 import java.util.Collection;
-import org.bukkit.entity.Player;
+import org.bukkit.entity.LivingEntity;
 
 public interface AttributeContributionProvider {
 
@@ -9,5 +9,5 @@ public interface AttributeContributionProvider {
 
     int priority();
 
-    Collection<AttributeContribution> collect(Player player);
+    Collection<AttributeContribution> collect(LivingEntity entity);
 }

@@ -15,6 +15,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 public final class AttributeBalanceRegistry {
@@ -33,16 +34,25 @@ public final class AttributeBalanceRegistry {
     public int load() {
         semantics.clear();
         weights.clear();
-        File file = plugin.dataPath("defaults", "attribute_balance.yml").toFile();
+        File file = plugin.dataPath("attribute_balance.yml").toFile();
         try {
-            YamlFiles.syncVersionedResource(plugin, file, "defaults/attribute_balance.yml", "schema_version");
-            if (!file.exists()) {
-                YamlFiles.copyResourceIfMissing(plugin, "defaults/attribute_balance.yml", file);
-            }
+            YamlFiles.syncVersionedResource(plugin, file, "attribute_balance.yml", "schema_version");
         } catch (IOException exception) {
             plugin.getLogger().warning("Failed to write default attribute balance file: " + exception.getMessage());
         }
+        if (!file.exists()) {
+            if (plugin.messageService() != null) {
+                plugin.messageService().warning("loader.bundled_resource_missing", Map.of(
+                    "type", "属性权重",
+                    "path", file.getPath(),
+                    "resource", "attribute_balance.yml"
+                ));
+            } else {
+                plugin.getLogger().warning("Missing bundled resource attribute_balance.yml");
+            }
+        }
         configuration = YamlFiles.load(file);
+        validateSchema(configuration, file);
         parseSemantics(configuration.get("attributes"));
         parseWeights(configuration.get("weights"));
         applyFallbacks();
@@ -76,6 +86,14 @@ public final class AttributeBalanceRegistry {
         return configuration;
     }
 
+    private void validateSchema(YamlConfiguration configuration, File file) {
+        if (configuration == null) {
+            return;
+        }
+        validateSection(file, configuration.get("attributes"), "attributes");
+        validateSection(file, configuration.get("weights"), "weights");
+    }
+
     private void parseSemantics(Object raw) {
         for (Map.Entry<String, Object> entry : ConfigNodes.entries(raw).entrySet()) {
             String id = normalizeId(entry.getKey());
@@ -106,6 +124,21 @@ public final class AttributeBalanceRegistry {
             if (weight != null) {
                 weights.put(id, weight);
             }
+        }
+    }
+
+    private void validateSection(File file, Object raw, String field) {
+        if (raw == null || raw instanceof Map<?, ?> || raw instanceof ConfigurationSection) {
+            return;
+        }
+        if (plugin.messageService() != null) {
+            plugin.messageService().warning("loader.schema_invalid_section", Map.of(
+                "type", "属性权重",
+                "file", file.getName(),
+                "field", field
+            ));
+        } else {
+            plugin.getLogger().warning("Invalid attribute balance schema in " + file.getName() + ": " + field + " must be a section.");
         }
     }
 

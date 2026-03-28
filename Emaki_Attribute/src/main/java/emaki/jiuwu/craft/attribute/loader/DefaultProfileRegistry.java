@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.attribute.loader;
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.attribute.model.DefaultProfile;
 import java.io.File;
+import java.util.Map;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -18,7 +19,7 @@ public final class DefaultProfileRegistry extends DirectoryLoader<DefaultProfile
 
     @Override
     protected String directoryName() {
-        return "defaults";
+        return "profiles";
     }
 
     @Override
@@ -33,6 +34,31 @@ public final class DefaultProfileRegistry extends DirectoryLoader<DefaultProfile
             return null;
         }
         return DefaultProfile.fromMap(configuration);
+    }
+
+    @Override
+    protected void seedBundledResources(File directory) {
+        copyBundledResource("profiles/global.yml", new File(directory, "global.yml"));
+    }
+
+    @Override
+    protected boolean validateSchema(File file, YamlConfiguration configuration) {
+        if (configuration == null) {
+            return false;
+        }
+        if (configuration.getConfigurationSection("resources") == null
+            || configuration.getConfigurationSection("resources").getKeys(false).isEmpty()) {
+            issue(
+                "loader.schema_missing_section",
+                Map.of(
+                    "type", typeName(),
+                    "file", file.getName(),
+                    "field", "resources"
+                )
+            );
+            return false;
+        }
+        return true;
     }
 
     @Override

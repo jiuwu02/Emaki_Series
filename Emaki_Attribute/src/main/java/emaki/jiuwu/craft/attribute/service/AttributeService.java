@@ -73,6 +73,14 @@ public final class AttributeService {
     private final LoreParser loreParser;
     private final DamageEngine damageEngine;
     private final Map<String, AttributeContributionProvider> contributionProviders = new LinkedHashMap<>();
+    private volatile List<AttributeDefinition> attributeDefinitions = List.of();
+    private volatile List<DefaultProfile> defaultProfiles = List.of();
+    private volatile Map<String, ResourceDefinition> resourceDefinitions = Map.of();
+    private volatile Map<String, Double> defaultAttributeValues = Map.of();
+    private volatile Map<String, List<AttributeDefinition>> resourceAttributeDefinitions = Map.of();
+    private volatile Map<String, List<AttributeDefinition>> resourceRegenDefinitions = Map.of();
+    private volatile List<AttributeDefinition> genericSpeedDefinitions = List.of();
+    private volatile List<AttributeDefinition> genericAttackSpeedDefinitions = List.of();
 
     private final PdcPartition itemPartition;
     private final PdcPartition combatPartition;
@@ -101,6 +109,7 @@ public final class AttributeService {
         this.itemPartition = pdcService.partition("item");
         this.combatPartition = pdcService.partition("combat");
         this.projectilePartition = pdcService.partition("projectile");
+        refreshCaches();
     }
 
     public AttributeConfig config() {
@@ -147,6 +156,47 @@ public final class AttributeService {
         this.config = config == null ? AttributeConfig.defaults() : config;
     }
 
+    public void refreshCaches() {
+        List<AttributeDefinition> definitions = attributeRegistry == null
+            ? List.of()
+            : List.copyOf(attributeRegistry.all().values());
+        List<DefaultProfile> profiles = defaultProfileRegistry == null
+            ? List.of()
+            : defaultProfileRegistry.mergedProfiles();
+        Map<String, List<AttributeDefinition>> resourceBuckets = new LinkedHashMap<>();
+        Map<String, List<AttributeDefinition>> resourceRegenBuckets = new LinkedHashMap<>();
+        List<AttributeDefinition> speedDefinitions = new ArrayList<>();
+        List<AttributeDefinition> attackSpeedDefinitions = new ArrayList<>();
+        for (AttributeDefinition definition : definitions) {
+            if (definition == null) {
+                continue;
+            }
+            String targetId = normalizeId(definition.targetId());
+            if (definition.targetType() == emaki.jiuwu.craft.attribute.model.AttributeTargetType.RESOURCE && !targetId.isBlank()) {
+                resourceBuckets.computeIfAbsent(targetId, key -> new ArrayList<>()).add(definition);
+                if (definition.valueKind() == AttributeValueKind.REGEN) {
+                    resourceRegenBuckets.computeIfAbsent(targetId, key -> new ArrayList<>()).add(definition);
+                }
+            }
+            if (definition.targetType() == emaki.jiuwu.craft.attribute.model.AttributeTargetType.GENERIC) {
+                if ("speed".equals(targetId) || "movement_speed".equals(targetId)) {
+                    speedDefinitions.add(definition);
+                }
+                if ("attack_speed".equals(targetId)) {
+                    attackSpeedDefinitions.add(definition);
+                }
+            }
+        }
+        attributeDefinitions = definitions;
+        defaultProfiles = profiles;
+        resourceDefinitions = buildResourceDefinitions(profiles);
+        defaultAttributeValues = buildDefaultAttributeValues(profiles, definitions);
+        resourceAttributeDefinitions = freezeDefinitionBuckets(resourceBuckets);
+        resourceRegenDefinitions = freezeDefinitionBuckets(resourceRegenBuckets);
+        genericSpeedDefinitions = List.copyOf(speedDefinitions);
+        genericAttackSpeedDefinitions = List.copyOf(attackSpeedDefinitions);
+    }
+
     public String defaultDamageTypeId() {
         if (config.defaultDamageType() != null && !config.defaultDamageType().isBlank()) {
             DamageTypeDefinition definition = damageTypeRegistry.resolve(config.defaultDamageType());
@@ -179,32 +229,69 @@ public final class AttributeService {
 
     public String defaultProfileSignature() {
         return SignatureUtil.combine(
-            SignatureUtil.stableSignature(defaultProfileRegistry.mergedProfiles()),
-            SignatureUtil.stableSignature(attributeRegistry.all().values())
+            SignatureUtil.stableSignature(defaultProfiles),
+            SignatureUtil.stableSignature(attributeDefinitions)
         );
     }
 
     public Map<String, ResourceDefinition> resourceDefinitions() {
-        Map<String, ResourceDefinition> merged = new LinkedHashMap<>();
-        for (DefaultProfile profile : defaultProfileRegistry.mergedProfiles()) {
-            for (ResourceDefinition resource : profile.resources().values()) {
-                merged.putIfAbsent(resource.id(), resource);
-            }
-        }
-        return merged;
+        return resourceDefinitions;
     }
 
     public Map<String, Double> defaultAttributeValues() {
-        Map<String, Double> merged = new LinkedHashMap<>();
-        for (DefaultProfile profile : defaultProfileRegistry.mergedProfiles()) {
-            for (Map.Entry<String, Double> entry : profile.attributeDefaults().entrySet()) {
-                merged.putIfAbsent(normalizeId(entry.getKey()), entry.getValue());
+        return defaultAttributeValues;
+    }
+
+    private Map<String, ResourceDefinition> buildResourceDefinitions(List<DefaultProfile> profiles) {
+        if (profiles == null || profiles.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, ResourceDefinition> result = new LinkedHashMap<>();
+        for (DefaultProfile profile : profiles) {
+            if (profile == null || profile.resources() == null || profile.resources().isEmpty()) {
+                continue;
+            }
+            for (ResourceDefinition definition : profile.resources().values()) {
+                if (definition == null || Texts.isBlank(definition.id())) {
+                    continue;
+                }
+                result.putIfAbsent(definition.id(), definition);
             }
         }
-        for (AttributeDefinition definition : attributeRegistry.all().values()) {
-            merged.putIfAbsent(definition.id(), definition.defaultValue());
+        return result.isEmpty() ? Map.of() : Map.copyOf(result);
+    }
+
+    private Map<String, Double> buildDefaultAttributeValues(List<DefaultProfile> profiles, List<AttributeDefinition> definitions) {
+        if (profiles == null || profiles.isEmpty()) {
+            return Map.of();
         }
-        return merged;
+        Map<String, Double> result = new LinkedHashMap<>();
+        for (DefaultProfile profile : profiles) {
+            if (profile == null || profile.attributeDefaults() == null || profile.attributeDefaults().isEmpty()) {
+                continue;
+            }
+            for (Map.Entry<String, Double> entry : profile.attributeDefaults().entrySet()) {
+                if (entry.getKey() == null || entry.getValue() == null) {
+                    continue;
+                }
+                result.merge(normalizeId(entry.getKey()), entry.getValue(), Double::sum);
+            }
+        }
+        return result.isEmpty() ? Map.of() : Map.copyOf(result);
+    }
+
+    private Map<String, List<AttributeDefinition>> freezeDefinitionBuckets(Map<String, List<AttributeDefinition>> buckets) {
+        if (buckets == null || buckets.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, List<AttributeDefinition>> frozen = new LinkedHashMap<>();
+        for (Map.Entry<String, List<AttributeDefinition>> entry : buckets.entrySet()) {
+            if (entry.getKey() == null || entry.getValue() == null || entry.getValue().isEmpty()) {
+                continue;
+            }
+            frozen.put(entry.getKey(), List.copyOf(entry.getValue()));
+        }
+        return frozen.isEmpty() ? Map.of() : Map.copyOf(frozen);
     }
 
     public Double resolveAttributeValue(AttributeSnapshot snapshot, String attributeId) {
@@ -257,7 +344,7 @@ public final class AttributeService {
         }
         String sourceSignature = SignatureUtil.combine(
             SignatureUtil.stableSignature(normalizedLore),
-            SignatureUtil.stableSignature(attributeRegistry.all().values())
+            SignatureUtil.stableSignature(attributeDefinitions)
         );
         String cachedSignature = pdcService.get(itemStack, itemPartition, "source_signature", PersistentDataType.STRING);
         AttributeSnapshot cachedSnapshot = pdcService.readBlob(itemStack, itemPartition, "snapshot", AttributeSnapshotCodecs.ATTRIBUTE_SNAPSHOT);
@@ -289,8 +376,8 @@ public final class AttributeService {
         Map<String, Double> values = new LinkedHashMap<>();
         List<String> signatureParts = new ArrayList<>();
         mergeValues(values, defaultAttributeValues());
-        signatureParts.add("defaults:" + SignatureUtil.stableSignature(defaultProfileRegistry.mergedProfiles()));
-        signatureParts.add("attributes:" + SignatureUtil.stableSignature(attributeRegistry.all().values()));
+        signatureParts.add("defaults:" + SignatureUtil.stableSignature(defaultProfiles));
+        signatureParts.add("attributes:" + SignatureUtil.stableSignature(attributeDefinitions));
         PlayerInventory inventory = player.getInventory();
         List<ItemSlot> slots = List.of(
             new ItemSlot("main_hand", inventory.getItemInMainHand()),
@@ -308,24 +395,7 @@ public final class AttributeService {
             mergeValues(values, itemSnapshot.values());
             signatureParts.add(slot.name() + ":" + itemSnapshot.sourceSignature());
         }
-        List<AttributeContributionProvider> providers = new ArrayList<>(contributionProviders.values());
-        providers.sort(Comparator.comparingInt(AttributeContributionProvider::priority).reversed());
-        for (AttributeContributionProvider provider : providers) {
-            Collection<AttributeContribution> contributions = provider.collect(player);
-            if (contributions == null || contributions.isEmpty()) {
-                continue;
-            }
-            Map<String, Double> providerValues = new LinkedHashMap<>();
-            for (AttributeContribution contribution : contributions) {
-                if (contribution == null || contribution.attributeId() == null || contribution.attributeId().isBlank()) {
-                    continue;
-                }
-                String id = normalizeId(contribution.attributeId());
-                providerValues.merge(id, contribution.value(), Double::sum);
-                values.merge(id, contribution.value(), Double::sum);
-            }
-            signatureParts.add(normalizeId(provider.id()) + ":" + SignatureUtil.stableSignature(providerValues));
-        }
+        mergeContributionProviders(player, values, signatureParts);
         applyDerivedValues(values);
         String sourceSignature = SignatureUtil.stableSignature(signatureParts);
         AttributeSnapshot snapshot = new AttributeSnapshot(AttributeSnapshot.CURRENT_SCHEMA_VERSION, sourceSignature, values, System.currentTimeMillis());
@@ -356,12 +426,7 @@ public final class AttributeService {
                     continue;
                 }
                 double regenPerSecond = resourceDefinition.regenPerSecond();
-                for (AttributeDefinition definition : attributeRegistry.all().values()) {
-                    if (!resourceDefinition.id().equals(normalizeId(definition.targetId()))
-                        || definition.targetType() != emaki.jiuwu.craft.attribute.model.AttributeTargetType.RESOURCE
-                        || definition.valueKind() != AttributeValueKind.REGEN) {
-                        continue;
-                    }
+                for (AttributeDefinition definition : resourceRegenDefinitions.getOrDefault(resourceDefinition.id(), List.of())) {
                     Double value = snapshot == null ? null : snapshot.values().get(definition.id());
                     if (value == null) {
                         continue;
@@ -415,6 +480,34 @@ public final class AttributeService {
         }
     }
 
+    public void scheduleLivingEntitySync(LivingEntity entity) {
+        if (entity == null) {
+            return;
+        }
+        java.util.UUID entityId = entity.getUniqueId();
+        plugin.getServer().getScheduler().runTaskLater(
+            plugin,
+            () -> {
+                Entity current = Bukkit.getEntity(entityId);
+                if (current instanceof LivingEntity livingEntity && livingEntity.isValid() && !livingEntity.isDead()) {
+                    syncLivingEntity(livingEntity);
+                }
+            },
+            Math.max(1, config.syncDelayTicks())
+        );
+    }
+
+    public void syncLivingEntity(LivingEntity entity) {
+        if (entity == null || !entity.isValid() || entity.isDead()) {
+            return;
+        }
+        if (entity instanceof Player player) {
+            syncPlayer(player, ResourceSyncReason.EQUIPMENT, null);
+            return;
+        }
+        collectCombatSnapshot(entity);
+    }
+
     public void syncPlayer(Player player, ResourceSyncReason reason, Double healthOverride) {
         if (player == null || reason == null) {
             return;
@@ -443,10 +536,7 @@ public final class AttributeService {
         double defaultMax = resourceDefinition.defaultMax();
         double flatBonus = 0D;
         double percentBonus = 0D;
-        for (AttributeDefinition definition : attributeRegistry.all().values()) {
-            if (!resourceDefinition.id().equals(normalizeId(definition.targetId())) || definition.targetType() != emaki.jiuwu.craft.attribute.model.AttributeTargetType.RESOURCE) {
-                continue;
-            }
+        for (AttributeDefinition definition : resourceAttributeDefinitions.getOrDefault(resourceDefinition.id(), List.of())) {
             Double value = snapshot == null ? null : snapshot.values().get(definition.id());
             if (value == null) {
                 continue;
@@ -499,11 +589,24 @@ public final class AttributeService {
             pdcService.set(player, resourcePartition, "source_signature", PersistentDataType.STRING, state.sourceSignature());
         }
         if (resourceDefinition.syncToBukkit() && "health".equals(resourceDefinition.id())) {
-            double maxHealth = Math.max(1D, state.currentMax());
-            player.setMaxHealth(maxHealth);
-            player.setHealth(Math.max(0D, Math.min(state.currentValue(), maxHealth)));
+            syncHealthToBukkit(player, state);
         }
         return state;
+    }
+
+    private void syncHealthToBukkit(Player player, ResourceState state) {
+        if (player == null || state == null) {
+            return;
+        }
+        double rawMaxHealth = state.currentMax();
+        double maxHealth = Math.max(1D, rawMaxHealth);
+        // Health can still be tracked as 0 in the attribute layer, but Bukkit must never
+        // receive a zero-or-negative max health or the player can get stuck in a dead state.
+        double bukkitHealth = rawMaxHealth <= 0D
+            ? 1D
+            : Math.max(0D, Math.min(state.currentValue(), maxHealth));
+        player.setMaxHealth(maxHealth);
+        player.setHealth(Math.min(maxHealth, bukkitHealth));
     }
 
     public ResourceState readResourceState(Player player, String resourceId) {
@@ -909,6 +1012,34 @@ public final class AttributeService {
         }
     }
 
+    private void mergeContributionProviders(LivingEntity entity,
+                                            Map<String, Double> target,
+                                            List<String> signatureParts) {
+        if (entity == null) {
+            return;
+        }
+        List<AttributeContributionProvider> providers = new ArrayList<>(contributionProviders.values());
+        providers.sort(Comparator.comparingInt(AttributeContributionProvider::priority).reversed());
+        for (AttributeContributionProvider provider : providers) {
+            Collection<AttributeContribution> contributions = provider.collect(entity);
+            if (contributions == null || contributions.isEmpty()) {
+                continue;
+            }
+            Map<String, Double> providerValues = new LinkedHashMap<>();
+            for (AttributeContribution contribution : contributions) {
+                if (contribution == null || contribution.attributeId() == null || contribution.attributeId().isBlank()) {
+                    continue;
+                }
+                String id = normalizeId(contribution.attributeId());
+                providerValues.merge(id, contribution.value(), Double::sum);
+                target.merge(id, contribution.value(), Double::sum);
+            }
+            if (!providerValues.isEmpty()) {
+                signatureParts.add(normalizeId(provider.id()) + ":" + SignatureUtil.stableSignature(providerValues));
+            }
+        }
+    }
+
     private void syncCombatSnapshot(Player player, AttributeSnapshot snapshot) {
         if (player == null || snapshot == null) {
             return;
@@ -922,8 +1053,8 @@ public final class AttributeService {
         Map<String, Double> values = new LinkedHashMap<>();
         List<String> signatureParts = new ArrayList<>();
         mergeValues(values, defaultAttributeValues());
-        signatureParts.add("defaults:" + SignatureUtil.stableSignature(defaultProfileRegistry.mergedProfiles()));
-        signatureParts.add("attributes:" + SignatureUtil.stableSignature(attributeRegistry.all().values()));
+        signatureParts.add("defaults:" + SignatureUtil.stableSignature(defaultProfiles));
+        signatureParts.add("attributes:" + SignatureUtil.stableSignature(attributeDefinitions));
         AttributeSnapshot cached = pdcService.readBlob(entity, combatPartition, "snapshot", AttributeSnapshotCodecs.ATTRIBUTE_SNAPSHOT);
         EntityEquipment equipment = entity.getEquipment();
         if (equipment != null) {
@@ -944,6 +1075,7 @@ public final class AttributeService {
                 signatureParts.add(slot.name() + ":" + itemSnapshot.sourceSignature());
             }
         }
+        mergeContributionProviders(entity, values, signatureParts);
         applyDerivedValues(values);
         String sourceSignature = SignatureUtil.stableSignature(signatureParts);
         AttributeSnapshot snapshot = new AttributeSnapshot(AttributeSnapshot.CURRENT_SCHEMA_VERSION, sourceSignature, values, System.currentTimeMillis());
@@ -1184,7 +1316,7 @@ public final class AttributeService {
             return 0D;
         }
         double total = 0D;
-        for (AttributeDefinition definition : attributeRegistry.all().values()) {
+        for (AttributeDefinition definition : attributeDefinitions) {
             if (definition == null || "attribute_power".equals(definition.id())) {
                 continue;
             }
@@ -1206,13 +1338,7 @@ public final class AttributeService {
         }
         double flatSpeed = 0D;
         double percentSpeed = 0D;
-        for (AttributeDefinition definition : attributeRegistry.all().values()) {
-            if (definition == null
-                || (!"speed".equals(normalizeId(definition.targetId()))
-                    && !"movement_speed".equals(normalizeId(definition.targetId())))
-                || definition.targetType() != emaki.jiuwu.craft.attribute.model.AttributeTargetType.GENERIC) {
-                continue;
-            }
+        for (AttributeDefinition definition : genericSpeedDefinitions) {
             Double value = snapshot == null ? null : snapshot.values().get(definition.id());
             if (value == null) {
                 continue;
@@ -1236,12 +1362,7 @@ public final class AttributeService {
     private int resolveAttackCooldownTicks(AttributeSnapshot snapshot) {
         double flatReduction = 0D;
         double percentReduction = 0D;
-        for (AttributeDefinition definition : attributeRegistry.all().values()) {
-            if (definition == null
-                || !"attack_speed".equals(normalizeId(definition.targetId()))
-                || definition.targetType() != emaki.jiuwu.craft.attribute.model.AttributeTargetType.GENERIC) {
-                continue;
-            }
+        for (AttributeDefinition definition : genericAttackSpeedDefinitions) {
             Double value = snapshot == null ? null : snapshot.values().get(definition.id());
             if (value == null) {
                 continue;

@@ -2,7 +2,9 @@ package emaki.jiuwu.craft.attribute.loader;
 
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -35,6 +37,7 @@ public abstract class DirectoryLoader<T> {
                 )
             );
         }
+        seedBundledResources(directory);
         File[] files = directory.listFiles((dir, name) -> name.endsWith(".yml") || name.endsWith(".yaml"));
         if (files == null || files.length == 0) {
             loaded = true;
@@ -44,7 +47,11 @@ public abstract class DirectoryLoader<T> {
         Arrays.sort(files, (left, right) -> left.getName().compareToIgnoreCase(right.getName()));
         for (File file : files) {
             try {
-                T value = parse(file, YamlConfiguration.loadConfiguration(file));
+                YamlConfiguration configuration = YamlConfiguration.loadConfiguration(file);
+                if (!validateSchema(file, configuration)) {
+                    continue;
+                }
+                T value = parse(file, configuration);
                 if (value == null) {
                     continue;
                 }
@@ -124,6 +131,41 @@ public abstract class DirectoryLoader<T> {
     }
 
     protected void afterLoad() {
+    }
+
+    protected void seedBundledResources(File directory) {
+    }
+
+    protected boolean validateSchema(File file, YamlConfiguration configuration) {
+        return true;
+    }
+
+    protected void copyBundledResource(String resourcePath, File target) {
+        if (target == null || resourcePath == null || resourcePath.isBlank()) {
+            return;
+        }
+        try {
+            boolean copied = YamlFiles.copyResourceIfMissing(plugin, resourcePath, target);
+            if (!copied && !target.exists()) {
+                issue(
+                    "loader.bundled_resource_missing",
+                    Map.of(
+                        "type", typeName(),
+                        "path", target.getPath(),
+                        "resource", resourcePath
+                    )
+                );
+            }
+        } catch (IOException exception) {
+            issue(
+                "loader.bundled_resource_write_failed",
+                Map.of(
+                    "type", typeName(),
+                    "path", target.getPath(),
+                    "error", Texts.toStringSafe(exception.getMessage())
+                )
+            );
+        }
     }
 
     protected abstract String directoryName();
