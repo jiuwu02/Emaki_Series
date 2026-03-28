@@ -169,6 +169,11 @@ public final class EmakiAttributePlugin extends JavaPlugin {
             languageLoader.load();
             languageLoader.setLanguage(configModel.language());
         }
+        runReloadStage("lore_format_registry", () -> {
+            if (loreFormatRegistry != null) {
+                loreFormatRegistry.load();
+            }
+        });
         runReloadStage("attribute_registry", () -> {
             if (attributeRegistry != null) {
                 attributeRegistry.load();
@@ -177,11 +182,6 @@ public final class EmakiAttributePlugin extends JavaPlugin {
         runReloadStage("default_profile_registry", () -> {
             if (defaultProfileRegistry != null) {
                 defaultProfileRegistry.load();
-            }
-        });
-        runReloadStage("lore_format_registry", () -> {
-            if (loreFormatRegistry != null) {
-                loreFormatRegistry.load();
             }
         });
         runReloadStage("preset_registry", () -> {

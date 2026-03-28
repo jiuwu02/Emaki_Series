@@ -1,4 +1,4 @@
-﻿id: magic_penetration
+id: magic_penetration
 display_name: "法术穿透"
 aliases: [magic_pen, spell_penetration]
 value_kind: PERCENT
@@ -10,7 +10,5 @@ max_value: 10000.0
 allow_negative: true
 priority: 82
 lore_format_id: default_percent
-lore_patterns:
-  - '^法术穿透\s*([+-]?\d+(?:\.\d+)?)%$'
 attribute_power: 1.0
 description: "Reduces spell mitigation."

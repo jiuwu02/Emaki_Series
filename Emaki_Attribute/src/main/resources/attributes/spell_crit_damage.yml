@@ -1,4 +1,4 @@
-﻿id: spell_crit_damage
+id: spell_crit_damage
 display_name: "法术暴击伤害"
 aliases: [spell_crit_dmg, magic_crit_damage, magic_crit_multiplier]
 value_kind: PERCENT
@@ -10,7 +10,5 @@ max_value: 10000.0
 allow_negative: true
 priority: 84
 lore_format_id: default_percent
-lore_patterns:
-  - '^法术暴击伤害\s*([+-]?\d+(?:\.\d+)?)%$'
 attribute_power: 1.0
 description: "Extra spell crit damage percentage."

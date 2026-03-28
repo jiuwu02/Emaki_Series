@@ -21,6 +21,21 @@
         <craftengine.version>0.0.67</craftengine.version>
     </properties>
 
+    <repositories>
+        <repository>
+            <id>momirealms-repo</id>
+            <url>https://repo.momirealms.net/releases/</url>
+        </repository>
+        <repository>
+            <id>momirealms-repo-mirror1</id>
+            <url>https://repo-momi.gtemc.cn/releases/</url>
+        </repository>
+        <repository>
+            <id>momirealms-repo-mirror2</id>
+            <url>https://repo.gtemc.net/releases/</url>
+        </repository>
+    </repositories>
+
     <dependencies>
         <dependency>
             <groupId>io.papermc.paper</groupId>

@@ -1,4 +1,4 @@
-﻿id: projectile_crit_evasion
+id: projectile_crit_evasion
 display_name: "投射物暴击闪避"
 aliases: [projectile_crit_resist, ranged_crit_evasion]
 value_kind: CHANCE
@@ -10,7 +10,5 @@ max_value: 100.0
 allow_negative: false
 priority: 79
 lore_format_id: default_percent
-lore_patterns:
-  - '^投射物暴击闪避\s*([+-]?\d+(?:\.\d+)?)%$'
 attribute_power: 1.0
 description: "Reduces incoming projectile crit chance."

@@ -4,15 +4,19 @@ import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.attribute.model.AttributeDefinition;
 import emaki.jiuwu.craft.attribute.model.AttributeTargetType;
 import emaki.jiuwu.craft.attribute.model.AttributeValueKind;
+import emaki.jiuwu.craft.attribute.model.LoreFormatDefinition;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.bukkit.configuration.file.YamlConfiguration;
 
@@ -67,8 +71,9 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
 
     private final Map<String, AttributeDefinition> aliasIndex = new LinkedHashMap<>();
     private final List<PatternEntry> orderedPatterns = new ArrayList<>();
+    private static final Pattern NUMERIC_CAPTURE_PATTERN = Pattern.compile("^[+-]?\\d+(?:\\.\\d+)?$");
 
-    private record PatternEntry(AttributeDefinition definition, Pattern pattern) {
+    private record PatternEntry(AttributeDefinition definition, Pattern pattern, int priority) {
     }
 
     public AttributeRegistry(EmakiAttributePlugin plugin) {
@@ -234,24 +239,9 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
             for (String alias : definition.aliases()) {
                 aliasIndex.putIfAbsent(normalizeId(alias), definition);
             }
-            for (String pattern : definition.lorePatterns()) {
-                try {
-                    orderedPatterns.add(new PatternEntry(definition, Pattern.compile(pattern, Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE)));
-                } catch (Exception exception) {
-                    issue(
-                        "loader.invalid_lore_pattern",
-                        Map.of(
-                            "attribute", definition.id(),
-                            "pattern", pattern,
-                            "error", Texts.toStringSafe(exception.getMessage())
-                        )
-                    );
-                }
-            }
-            for (Pattern fallback : fallbackPatterns(definition)) {
-                orderedPatterns.add(new PatternEntry(definition, fallback));
-            }
+            orderedPatterns.addAll(compilePatterns(definition));
         }
+        orderedPatterns.sort(Comparator.comparingInt(PatternEntry::priority).reversed());
         logLoadReport(definitions);
     }
 
@@ -284,49 +274,178 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
             }
             var matcher = entry.pattern().matcher(normalizedLine);
             if (matcher.find()) {
-                for (int group = 1; group <= matcher.groupCount(); group++) {
-                    String value = matcher.group(group);
-                    if (!Texts.isBlank(value)) {
-                        return value;
-                    }
+                String capturedValue = extractCapturedValue(matcher, definition);
+                if (Texts.isNotBlank(capturedValue)) {
+                    return capturedValue;
                 }
-                return matcher.group();
             }
         }
         return null;
     }
 
-    private List<Pattern> fallbackPatterns(AttributeDefinition definition) {
-        if (definition == null || definition.lorePatterns().isEmpty()) {
+    private List<PatternEntry> compilePatterns(AttributeDefinition definition) {
+        if (definition == null) {
             return List.of();
         }
-        String name = Pattern.quote(definition.displayName());
-        String numeric = "([+-]?\\d+(?:\\.\\d+)?)";
-        String suffix = switch (definition.loreFormatId()) {
-            case "default_percent" -> "%";
-            case "default_regen" -> "/秒";
-            default -> "";
-        };
-        String keyFirst = switch (definition.loreFormatId()) {
-            case "default_percent" -> "^" + name + "\\s*" + numeric + suffix + "$";
-            case "default_regen" -> "^" + name + "\\s*" + numeric + suffix + "$";
-            case "default_resource" -> "^" + name + "\\s*" + numeric + "$";
-            default -> "^" + name + "\\s*" + numeric + "$";
-        };
-        String valueFirst = switch (definition.loreFormatId()) {
-            case "default_percent" -> "^" + numeric + suffix + "\\s*" + name + "$";
-            case "default_regen" -> "^" + numeric + "\\s*" + name + "/秒$";
-            case "default_resource" -> "^" + numeric + "\\s*" + name + "$";
-            default -> "^" + numeric + "\\s*" + name + "$";
-        };
-        try {
-            return List.of(
-                Pattern.compile(keyFirst, Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE),
-                Pattern.compile(valueFirst, Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE)
-            );
-        } catch (Exception exception) {
+        List<PatternEntry> compiled = new ArrayList<>();
+        LoreFormatDefinition format = resolveLoreFormat(definition.loreFormatId());
+        int basePriority = resolveReadPriority(definition, format);
+        if (format != null && !format.readPatterns().isEmpty()) {
+            compiled.addAll(compilePatternTemplates(definition, format.readPatterns(), basePriority));
+        }
+        if (!definition.lorePatterns().isEmpty()) {
+            compiled.addAll(compilePatternTemplates(definition, definition.lorePatterns(), basePriority + 1));
+        }
+        if (compiled.isEmpty()) {
+            compiled.addAll(compilePatternTemplates(definition, fallbackPatternTemplates(definition), basePriority));
+        }
+        return compiled;
+    }
+
+    private List<PatternEntry> compilePatternTemplates(AttributeDefinition definition, List<String> templates, int priority) {
+        if (definition == null || templates == null || templates.isEmpty()) {
             return List.of();
         }
+        List<PatternEntry> compiled = new ArrayList<>();
+        for (String template : templates) {
+            String expanded = expandPatternTemplate(template, definition);
+            if (Texts.isBlank(expanded)) {
+                continue;
+            }
+            try {
+                compiled.add(new PatternEntry(
+                    definition,
+                    Pattern.compile(expanded, Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE),
+                    priority
+                ));
+            } catch (Exception exception) {
+                issue(
+                    "loader.invalid_lore_pattern",
+                    Map.of(
+                        "attribute", definition.id(),
+                        "pattern", template,
+                        "error", Texts.toStringSafe(exception.getMessage())
+                    )
+                );
+            }
+        }
+        return compiled;
+    }
+
+    private List<String> fallbackPatternTemplates(AttributeDefinition definition) {
+        if (definition == null) {
+            return List.of();
+        }
+        return switch (definition.loreFormatId()) {
+            case "default_percent" -> List.of("{Key}.*?: ?{Value}%$");
+            case "default_regen" -> List.of("{Key}.*?: ?{Value}/秒$");
+            default -> definition.isPercentLike()
+                ? List.of("{Key}.*?: ?{Value}%$")
+                : List.of("{Key}.*?: ?{Value}$");
+        };
+    }
+
+    private String expandPatternTemplate(String template, AttributeDefinition definition) {
+        if (Texts.isBlank(template) || definition == null) {
+            return "";
+        }
+        String key = buildKeyPattern(definition);
+        String value = buildValuePattern();
+        return template
+            .replace("{Key}", key)
+            .replace("{key}", key)
+            .replace("{Value}", value)
+            .replace("{value}", value);
+    }
+
+    private String buildKeyPattern(AttributeDefinition definition) {
+        List<String> options = new ArrayList<>();
+        List<String> keys = keyCandidates(definition);
+        for (String key : keys) {
+            String quoted = Pattern.quote(key);
+            if (!options.contains(quoted)) {
+                options.add(quoted);
+            }
+        }
+        if (options.isEmpty()) {
+            return "(?:)";
+        }
+        if (options.size() == 1) {
+            return options.get(0);
+        }
+        return "(?:" + String.join("|", options) + ")";
+    }
+
+    private List<String> keyCandidates(AttributeDefinition definition) {
+        if (definition == null) {
+            return List.of();
+        }
+        LinkedHashSet<String> keys = new LinkedHashSet<>();
+        if (Texts.isNotBlank(definition.displayName())) {
+            keys.add(definition.displayName());
+        }
+        if (Texts.isNotBlank(definition.id())) {
+            keys.add(definition.id());
+        }
+        if (definition.aliases() != null) {
+            for (String alias : definition.aliases()) {
+                if (Texts.isNotBlank(alias)) {
+                    keys.add(alias);
+                }
+            }
+        }
+        List<String> result = new ArrayList<>(keys);
+        result.sort((left, right) -> Integer.compare(right.length(), left.length()));
+        return result;
+    }
+
+    private String extractCapturedValue(Matcher matcher, AttributeDefinition definition) {
+        if (matcher == null || matcher.groupCount() <= 0) {
+            return null;
+        }
+        for (int group = 1; group <= matcher.groupCount(); group++) {
+            String value = Texts.toStringSafe(matcher.group(group)).trim();
+            if (Texts.isBlank(value)) {
+                continue;
+            }
+            String cleaned = value.replace(",", "");
+            if (definition != null && definition.isPercentLike() && cleaned.endsWith("%")) {
+                cleaned = cleaned.substring(0, cleaned.length() - 1).trim();
+            }
+            if (NUMERIC_CAPTURE_PATTERN.matcher(cleaned).matches()) {
+                return cleaned;
+            }
+        }
+        return null;
+    }
+
+    private String buildValuePattern() {
+        return "([+-]?\\d+(?:\\.\\d+)?)";
+    }
+
+    private int resolveReadPriority(AttributeDefinition definition, LoreFormatDefinition format) {
+        if (format != null) {
+            return format.readPriority();
+        }
+        if (definition == null) {
+            return 0;
+        }
+        String loreFormatId = normalizeId(definition.loreFormatId());
+        return switch (loreFormatId) {
+            case "default_percent" -> 100;
+            case "default_regen" -> 80;
+            case "default_resource" -> 60;
+            case "default_flat" -> 50;
+            default -> definition.isPercentLike() ? 100 : 50;
+        };
+    }
+
+    private LoreFormatDefinition resolveLoreFormat(String loreFormatId) {
+        if (Texts.isBlank(loreFormatId) || plugin == null || plugin.loreFormatRegistry() == null) {
+            return null;
+        }
+        LoreFormatRegistry registry = plugin.loreFormatRegistry();
+        return registry == null ? null : registry.get(loreFormatId);
     }
 
     private <E extends Enum<E>> E parseEnum(String value, E defaultValue) {

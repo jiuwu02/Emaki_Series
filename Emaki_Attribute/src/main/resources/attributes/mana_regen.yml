@@ -1,4 +1,4 @@
-﻿id: mana_regen
+id: mana_regen
 display_name: "法力恢复"
 aliases: [mp_regen, mana_regen]
 value_kind: REGEN
@@ -10,7 +10,5 @@ max_value: 1000.0
 allow_negative: true
 priority: 90
 lore_format_id: default_regen
-lore_patterns:
-  - '^法力恢复\s*([+-]?\d+(?:\.\d+)?)/秒$'
 attribute_power: 1.0
 description: "Adds mana regeneration per second."

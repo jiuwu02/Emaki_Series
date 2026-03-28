@@ -1,3 +1,6 @@
 id: default_flat
 format: "{name} {sign}{value}"
 precision: 2
+read_priority: 50
+read_patterns:
+  - "{Key}.*?: ?{Value}$"

@@ -1,4 +1,4 @@
-﻿id: skill_crit_damage
+id: skill_crit_damage
 display_name: "技能暴伤"
 aliases: [skill_crit_dmg, skill_crit_multiplier]
 value_kind: PERCENT
@@ -10,7 +10,5 @@ max_value: 10000.0
 allow_negative: true
 priority: 50
 lore_format_id: default_percent
-lore_patterns:
-  - '^技能暴伤\s*([+-]?\d+(?:\.\d+)?)%$'
 attribute_power: 1.0
 description: "Extra skill critical damage percentage."

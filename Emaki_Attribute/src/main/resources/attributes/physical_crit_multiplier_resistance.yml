@@ -10,7 +10,5 @@ max_value: 10000.0
 allow_negative: true
 priority: 78
 lore_format_id: default_percent
-lore_patterns:
-  - '^物理暴伤抗性\s*([+-]?\d+(?:\.\d+)?)%$'
 attribute_power: 1.0
 description: "Reduces incoming physical crit multiplier."

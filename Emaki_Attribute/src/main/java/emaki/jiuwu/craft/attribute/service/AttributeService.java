@@ -60,6 +60,7 @@ public final class AttributeService {
     private static final long PROJECTILE_TTL_MS = 5 * 60 * 1000L;
     private static final double DEFAULT_WALK_SPEED_BLOCKS_PER_SECOND = 4.317D;
     private static final int DEFAULT_ATTACK_COOLDOWN_TICKS = 20;
+    private static final String ITEM_LORE_SIGNATURE_VERSION = "lore_parser_v2";
 
     private final EmakiAttributePlugin plugin;
     private final PdcService pdcService;
@@ -343,6 +344,7 @@ public final class AttributeService {
             return AttributeSnapshot.empty(SignatureUtil.stableSignature(List.of()));
         }
         String sourceSignature = SignatureUtil.combine(
+            ITEM_LORE_SIGNATURE_VERSION,
             SignatureUtil.stableSignature(normalizedLore),
             SignatureUtil.stableSignature(attributeDefinitions)
         );
@@ -353,6 +355,14 @@ public final class AttributeService {
         }
         LoreParser.ParsedLore parsedLore = loreParser.parse(lore);
         AttributeSnapshot snapshot = parsedLore.snapshot();
+        if (!sourceSignature.equals(snapshot.sourceSignature())) {
+            snapshot = new AttributeSnapshot(
+                snapshot.schemaVersion(),
+                sourceSignature,
+                snapshot.values(),
+                snapshot.updatedAt()
+            );
+        }
         pdcService.set(itemStack, itemPartition, "schema_version", PersistentDataType.INTEGER, snapshot.schemaVersion());
         pdcService.set(itemStack, itemPartition, "source_signature", PersistentDataType.STRING, snapshot.sourceSignature());
         pdcService.writeBlob(itemStack, itemPartition, "snapshot", AttributeSnapshotCodecs.ATTRIBUTE_SNAPSHOT, snapshot);
@@ -448,6 +458,45 @@ public final class AttributeService {
         }
     }
 
+    public void scheduleJoinHealthSync(Player player) {
+        if (player == null) {
+            return;
+        }
+        java.util.UUID playerId = player.getUniqueId();
+        plugin.getServer().getScheduler().runTaskLater(
+            plugin,
+            () -> {
+                Player online = Bukkit.getPlayer(playerId);
+                if (online != null && online.isOnline()) {
+                    ResourceState existingHealth = readResourceState(online, "health");
+                    if (existingHealth == null || existingHealth.currentValue() <= 0D) {
+                        syncPlayer(online, ResourceSyncReason.HEALTH_CHANGE, null, true);
+                    } else {
+                        syncPlayer(online, ResourceSyncReason.HEALTH_CHANGE, existingHealth.currentValue());
+                    }
+                }
+            },
+            Math.max(1, config.syncDelayTicks())
+        );
+    }
+
+    public void scheduleRespawnHealthSync(Player player) {
+        if (player == null) {
+            return;
+        }
+        java.util.UUID playerId = player.getUniqueId();
+        plugin.getServer().getScheduler().runTaskLater(
+            plugin,
+            () -> {
+                Player online = Bukkit.getPlayer(playerId);
+                if (online != null && online.isOnline()) {
+                    syncPlayer(online, ResourceSyncReason.HEALTH_CHANGE, null, true);
+                }
+            },
+            Math.max(1, config.syncDelayTicks())
+        );
+    }
+
     public void scheduleHealthSync(LivingEntity entity) {
         if (entity instanceof Player player) {
             java.util.UUID playerId = player.getUniqueId();
@@ -509,15 +558,31 @@ public final class AttributeService {
     }
 
     public void syncPlayer(Player player, ResourceSyncReason reason, Double healthOverride) {
+        syncPlayer(player, reason, healthOverride, false);
+    }
+
+    private void syncPlayer(Player player, ResourceSyncReason reason, Double healthOverride, boolean forceHealthToFull) {
         if (player == null || reason == null) {
             return;
         }
         AttributeSnapshot snapshot = collectCombatSnapshot(player);
         syncCombatSnapshot(player, snapshot);
+        syncPlayerResources(player, snapshot, reason, healthOverride, forceHealthToFull);
+    }
+
+    private void syncPlayerResources(Player player,
+                                     AttributeSnapshot snapshot,
+                                     ResourceSyncReason reason,
+                                     Double healthOverride,
+                                     boolean forceHealthToFull) {
         Map<String, ResourceDefinition> resources = resourceDefinitions();
         for (ResourceDefinition resourceDefinition : resources.values()) {
             Double override = "health".equals(resourceDefinition.id()) ? healthOverride : null;
-            syncResource(player, resourceDefinition, snapshot, reason, override);
+            ResourceSyncReason effectiveReason = reason;
+            if (forceHealthToFull && "health".equals(resourceDefinition.id())) {
+                effectiveReason = ResourceSyncReason.INITIALIZE;
+            }
+            syncResource(player, resourceDefinition, snapshot, effectiveReason, override);
         }
         syncMovementSpeed(player, snapshot);
     }
@@ -1360,26 +1425,29 @@ public final class AttributeService {
     }
 
     private int resolveAttackCooldownTicks(AttributeSnapshot snapshot) {
-        double flatReduction = 0D;
-        double percentReduction = 0D;
+        double flatAttackRate = 0D;
+        double percentModifier = 0D;
         for (AttributeDefinition definition : genericAttackSpeedDefinitions) {
             Double value = snapshot == null ? null : snapshot.values().get(definition.id());
             if (value == null) {
                 continue;
             }
             if (definition.valueKind() == AttributeValueKind.PERCENT) {
-                percentReduction += value;
+                percentModifier += value;
             } else if (definition.valueKind() != AttributeValueKind.CHANCE
                 && definition.valueKind() != AttributeValueKind.REGEN
                 && definition.valueKind() != AttributeValueKind.RESOURCE
                 && definition.valueKind() != AttributeValueKind.SKILL
                 && definition.valueKind() != AttributeValueKind.DERIVED) {
-                flatReduction += value;
+                flatAttackRate += value;
             }
         }
-        double cooldown = Math.max(0D, DEFAULT_ATTACK_COOLDOWN_TICKS - flatReduction);
-        cooldown *= Math.max(0D, 1D - (percentReduction / 100D));
-        return Math.max(1, (int) Math.round(cooldown));
+        double effectiveAttackRate = Math.max(0D, flatAttackRate) * Math.max(0D, 1D + (percentModifier / 100D));
+        if (effectiveAttackRate <= 0D) {
+            return DEFAULT_ATTACK_COOLDOWN_TICKS;
+        }
+        double cooldownTicks = (20D / effectiveAttackRate);
+        return Math.max(1, (int) Math.round(cooldownTicks));
     }
 
     private double resolveRecoveryAmount(DamageContext damageContext, RecoveryDefinition recovery, double finalDamage) {

@@ -1,4 +1,4 @@
-﻿id: projectile_damage_bonus
+id: projectile_damage_bonus
 display_name: "投射物伤害加成"
 aliases: [projectile_bonus, ranged_bonus, bow_bonus, final_projectile_damage]
 value_kind: PERCENT
@@ -10,7 +10,5 @@ max_value: 10000.0
 allow_negative: true
 priority: 91
 lore_format_id: default_percent
-lore_patterns:
-  - '^投射物伤害加成\s*([+-]?\d+(?:\.\d+)?)%$'
 attribute_power: 1.0
 description: "Extra projectile damage percentage."

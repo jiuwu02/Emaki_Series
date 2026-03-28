@@ -6,10 +6,16 @@ import emaki.jiuwu.craft.attribute.model.ResourceState;
 import emaki.jiuwu.craft.attribute.model.ResourceSyncReason;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
 import emaki.jiuwu.craft.attribute.service.MessageService;
+import emaki.jiuwu.craft.corelib.math.Numbers;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.HoverEvent;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -192,7 +198,7 @@ public final class AttributeCommand implements TabExecutor {
         AttributeSnapshot snapshot = attributeService.collectCombatSnapshot(target);
         messages().send(sender, "command.dump.player", Map.of("player", target.getName()));
         messages().send(sender, "command.dump.signature", Map.of("signature", snapshot.sourceSignature()));
-        messages().send(sender, "command.dump.values", Map.of("values", snapshot.values()));
+        messages().sendComponent(sender, buildDumpValuesComponent(snapshot));
         for (Map.Entry<String, ResourceState> entry : dumpResources(target).entrySet()) {
             ResourceState state = entry.getValue();
             messages().send(sender, "command.dump.resource_line", Map.of(
@@ -204,6 +210,71 @@ public final class AttributeCommand implements TabExecutor {
             ));
         }
         return true;
+    }
+
+    private Component buildDumpValuesComponent(AttributeSnapshot snapshot) {
+        Component prefix = messages().render(messages().message("general.prefix"));
+        Component label = messages().render(messages().message("command.dump.values"));
+        Component hover = buildDumpValuesHover(snapshot);
+        return prefix.append(Component.space()).append(label.hoverEvent(HoverEvent.showText(hover)));
+    }
+
+    private Component buildDumpValuesHover(AttributeSnapshot snapshot) {
+        List<Component> lines = new ArrayList<>();
+        for (Map.Entry<String, Double> entry : orderedDumpValues(snapshot)) {
+            String attributeId = entry.getKey();
+            Double value = entry.getValue();
+            if (attributeId == null || value == null || Double.compare(value, 0D) == 0) {
+                continue;
+            }
+            var definition = attributeService.attributeRegistry().resolve(attributeId);
+            String displayName = definition == null ? attributeId : definition.displayName();
+            String formattedValue = Numbers.formatNumber(value, "0.##");
+            lines.add(Component.text()
+                .append(Component.text(displayName, NamedTextColor.AQUA))
+                .append(Component.text(" (", NamedTextColor.DARK_GRAY))
+                .append(Component.text(attributeId, NamedTextColor.WHITE))
+                .append(Component.text("): ", NamedTextColor.DARK_GRAY))
+                .append(Component.text(formattedValue, NamedTextColor.YELLOW))
+                .build());
+        }
+        if (lines.isEmpty()) {
+            return Component.text("没有非零属性", NamedTextColor.GRAY);
+        }
+        Component hover = Component.empty();
+        boolean first = true;
+        for (Component line : lines) {
+            if (!first) {
+                hover = hover.append(Component.newline());
+            }
+            hover = hover.append(line);
+            first = false;
+        }
+        return hover;
+    }
+
+    private List<Map.Entry<String, Double>> orderedDumpValues(AttributeSnapshot snapshot) {
+        Map<String, Double> values = snapshot == null ? Map.of() : snapshot.values();
+        List<Map.Entry<String, Double>> ordered = new ArrayList<>();
+        Set<String> seen = new LinkedHashSet<>();
+        for (var definition : attributeService.attributeRegistry().all().values()) {
+            if (definition == null) {
+                continue;
+            }
+            Double value = values.get(definition.id());
+            if (value == null) {
+                continue;
+            }
+            ordered.add(Map.entry(definition.id(), value));
+            seen.add(definition.id());
+        }
+        for (Map.Entry<String, Double> entry : values.entrySet()) {
+            if (entry.getKey() == null || seen.contains(entry.getKey())) {
+                continue;
+            }
+            ordered.add(entry);
+        }
+        return ordered;
     }
 
     private boolean handleLint(CommandSender sender) {

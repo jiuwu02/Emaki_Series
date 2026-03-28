@@ -1,4 +1,4 @@
-﻿id: attack_speed
+id: attack_speed
 display_name: "攻击速度"
 aliases:
   [atk_speed, attack_interval, attack_cooldown, item_cooldown, use_cooldown]
@@ -12,6 +12,6 @@ allow_negative: false
 priority: 35
 lore_format_id: default_flat
 lore_patterns:
-  - '^攻击速度\s*([+-]?\d+(?:\.\d+)?)$'
+  - '{Key}.*?: ?{Value} Hit/s$'
 attribute_power: 1.0
-description: "Adds ticks per second."
+description: "Adds attack rate in hits per second; cooldown is the inverse."

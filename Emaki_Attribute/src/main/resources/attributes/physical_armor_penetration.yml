@@ -1,4 +1,4 @@
-﻿id: physical_armor_penetration
+id: physical_armor_penetration
 display_name: "物理护甲穿透"
 aliases: [physical_penetration, phys_pen, armor_penetration]
 value_kind: PERCENT
@@ -10,7 +10,5 @@ max_value: 10000.0
 allow_negative: true
 priority: 82
 lore_format_id: default_percent
-lore_patterns:
-  - '^物理护甲穿透\s*([+-]?\d+(?:\.\d+)?)%$'
 attribute_power: 1.0
 description: "Reduces physical mitigation."

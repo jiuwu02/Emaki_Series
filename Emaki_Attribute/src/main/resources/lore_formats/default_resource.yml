@@ -1,3 +1,6 @@
 id: default_resource
 format: "{name} {sign}{value}"
 precision: 2
+read_priority: 60
+read_patterns:
+  - "{Key}.*?: ?{Value}$"

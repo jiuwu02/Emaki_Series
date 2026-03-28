@@ -98,7 +98,7 @@ command:
     console_usage: "<yellow>控制台用法: /emakiattribute dump <player></yellow>"
     player: "<green>正在查看玩家 {player} 的属性快照。</green>"
     signature: "<gray>签名: {signature}</gray>"
-    values: "<gray>数值: {values}</gray>"
+    values: "<gray>属性数值 <dark_gray>(悬停查看)</dark_gray></gray>"
     resource_line: "<gray>{resource}: 默认 {default_max}，加成 {bonus_max}，上限 {current_max}，当前 {current}</gray>"
 
   lint:

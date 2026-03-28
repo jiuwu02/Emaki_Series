@@ -1,3 +1,6 @@
 id: default_percent
 format: "{name} {sign}{value}%"
 precision: 2
+read_priority: 100
+read_patterns:
+  - "{Key}.*?: ?{Value}%$"

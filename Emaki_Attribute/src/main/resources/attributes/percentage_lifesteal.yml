@@ -1,4 +1,4 @@
-﻿id: percentage_lifesteal
+id: percentage_lifesteal
 display_name: "固定吸血"
 aliases: [flat_lifesteal, lifesteal_flat]
 value_kind: FLAT
@@ -10,7 +10,5 @@ max_value: 999999.0
 allow_negative: true
 priority: 59
 lore_format_id: default_flat
-lore_patterns:
-  - '^固定吸血\s*([+-]?\d+(?:\.\d+)?)$'
 attribute_power: 1.0
 description: "Heals a fixed amount reduced by lifesteal resistance."

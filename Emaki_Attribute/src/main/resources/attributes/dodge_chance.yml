@@ -1,4 +1,4 @@
-﻿id: dodge_chance
+id: dodge_chance
 display_name: "闪避率"
 aliases: [evade, evasion, dodge]
 value_kind: CHANCE
@@ -10,7 +10,5 @@ max_value: 100.0
 allow_negative: false
 priority: 77
 lore_format_id: default_percent
-lore_patterns:
-  - '^闪避率\s*([+-]?\d+(?:\.\d+)?)%$'
 attribute_power: 1.0
 description: "Dodge chance used by combat logic."

@@ -1,3 +1,6 @@
 id: default_regen
 format: "{name} {sign}{value}/秒"
 precision: 1
+read_priority: 80
+read_patterns:
+  - "{Key}.*?: ?{Value}/秒$"

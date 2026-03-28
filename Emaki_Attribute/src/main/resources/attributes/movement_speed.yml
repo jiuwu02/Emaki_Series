@@ -1,4 +1,4 @@
-﻿id: movement_speed
+id: movement_speed
 display_name: "移动速度"
 aliases: [move_speed, walk_speed, movement_speed_flat]
 value_kind: FLAT
@@ -10,7 +10,5 @@ max_value: 1000.0
 allow_negative: true
 priority: 51
 lore_format_id: default_flat
-lore_patterns:
-  - '^移动速度\s*([+-]?\d+(?:\.\d+)?)$'
 attribute_power: 1.0
 description: "Flat movement speed in blocks per second."

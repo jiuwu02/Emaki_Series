@@ -39,12 +39,12 @@ public final class AttributeListener implements Listener {
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
-        attributeService.scheduleHealthSync(event.getPlayer());
+        attributeService.scheduleJoinHealthSync(event.getPlayer());
     }
 
     @EventHandler
     public void onRespawn(PlayerRespawnEvent event) {
-        attributeService.scheduleHealthSync(event.getPlayer());
+        attributeService.scheduleRespawnHealthSync(event.getPlayer());
     }
 
     @EventHandler
@@ -131,7 +131,7 @@ public final class AttributeListener implements Listener {
         if (target == null) {
             return;
         }
-        // Vanilla damage is treated as input only; Emaki applies the real health change itself.
+        // Vanilla damage is ignored for combat math; Emaki applies the real health change itself.
         DamageContextVariables context = baseContext(event, target);
         Entity damager = event.getDamager();
         if (damager instanceof Projectile projectile) {
@@ -141,7 +141,7 @@ public final class AttributeListener implements Listener {
                 return;
             }
             event.setCancelled(true);
-            attributeService.applyProjectileDamage(projectile, target, event.getDamage(), context);
+            attributeService.applyProjectileDamage(projectile, target, 0D, context);
             return;
         }
         LivingEntity attacker = damager instanceof LivingEntity livingEntity ? livingEntity : null;
@@ -150,7 +150,7 @@ public final class AttributeListener implements Listener {
             return;
         }
         event.setCancelled(true);
-        attributeService.applyDamage(attacker, target, null, event.getDamage(), context);
+        attributeService.applyDamage(attacker, target, null, 0D, context);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -189,7 +189,7 @@ public final class AttributeListener implements Listener {
                     return false;
                 }
                 event.setCancelled(true);
-                return attributeService.applyDamage(null, target, config.defaultDamageType(), event.getDamage(), baseContext(event, target));
+                return attributeService.applyDamage(null, target, config.defaultDamageType(), 0D, baseContext(event, target));
             }
             return false;
         }

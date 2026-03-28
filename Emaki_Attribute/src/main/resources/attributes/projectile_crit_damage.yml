@@ -1,4 +1,4 @@
-﻿id: projectile_crit_damage
+id: projectile_crit_damage
 display_name: "投射物暴击伤害"
 aliases: [projectile_crit_dmg, ranged_crit_damage, projectile_crit_multiplier]
 value_kind: PERCENT
@@ -10,7 +10,5 @@ max_value: 10000.0
 allow_negative: true
 priority: 89
 lore_format_id: default_percent
-lore_patterns:
-  - '^投射物暴击伤害\s*([+-]?\d+(?:\.\d+)?)%$'
 attribute_power: 1.0
 description: "Extra projectile crit damage percentage."

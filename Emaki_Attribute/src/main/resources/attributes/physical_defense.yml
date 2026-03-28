@@ -1,4 +1,4 @@
-﻿id: physical_defense
+id: physical_defense
 display_name: "物理防御"
 aliases: [phys_def, physical_resistance, physical_armor]
 value_kind: FLAT
@@ -10,7 +10,5 @@ max_value: 999999.0
 allow_negative: true
 priority: 95
 lore_format_id: default_flat
-lore_patterns:
-  - '^物理防御\s*([+-]?\d+(?:\.\d+)?)$'
 attribute_power: 1.0
 description: "Flat physical mitigation resolved by Emaki."

@@ -1,4 +1,4 @@
-﻿id: projectile_defense
+id: projectile_defense
 display_name: "投射物防御"
 aliases: [projectile_resistance, ranged_defense, projectile_armor]
 value_kind: FLAT
@@ -10,7 +10,5 @@ max_value: 999999.0
 allow_negative: true
 priority: 88
 lore_format_id: default_flat
-lore_patterns:
-  - '^投射物防御\s*([+-]?\d+(?:\.\d+)?)$'
 attribute_power: 1.0
 description: "Flat projectile mitigation resolved by Emaki."

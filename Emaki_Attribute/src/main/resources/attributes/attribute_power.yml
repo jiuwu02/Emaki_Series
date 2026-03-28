@@ -1,4 +1,4 @@
-﻿id: attribute_power
+id: attribute_power
 display_name: "战斗力"
 aliases: [combat_power, power]
 value_kind: FLAT
@@ -10,7 +10,5 @@ max_value: 999999.0
 allow_negative: true
 priority: 30
 lore_format_id: default_flat
-lore_patterns:
-  - '^战斗力\s*([+-]?\d+(?:\.\d+)?)$'
 attribute_power: 0.0
 description: "Derived combat power calculated from all other attributes."

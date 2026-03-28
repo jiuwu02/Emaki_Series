@@ -1,4 +1,4 @@
-﻿id: lifesteal
+id: lifesteal
 display_name: "百分比吸血"
 aliases: [percent_lifesteal, lifesteal_rate]
 value_kind: PERCENT
@@ -10,7 +10,5 @@ max_value: 10000.0
 allow_negative: true
 priority: 60
 lore_format_id: default_percent
-lore_patterns:
-  - '^百分比吸血\s*([+-]?\d+(?:\.\d+)?)%$'
 attribute_power: 1.0
 description: "Heals a percentage of dealt damage."
