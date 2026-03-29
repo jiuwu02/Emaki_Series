@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.forge.service;
 
 import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.item.ItemSourceResolver;
 import emaki.jiuwu.craft.corelib.item.ItemSourceType;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -9,6 +10,8 @@ import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import net.Indyuce.mmoitems.MMOItems;
+import net.Indyuce.mmoitems.api.Type;
 import net.momirealms.craftengine.bukkit.api.CraftEngineItems;
 import net.momirealms.craftengine.core.item.CustomItem;
 import net.momirealms.craftengine.core.item.ItemBuildContext;
@@ -21,12 +24,14 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import pers.neige.neigeitems.manager.ItemManager;
 
-public final class ItemIdentifierService {
+public final class ItemIdentifierService implements ItemSourceResolver {
 
     private final EmakiForgePlugin plugin;
     private final Set<String> unavailableSourceWarnings = new LinkedHashSet<>();
+    private Plugin mmoItemsPlugin;
     private Plugin neigeItemsPlugin;
     private Plugin craftEnginePlugin;
+    private ExternalItemSupport mmoItemsSupport;
     private ExternalItemSupport neigeItemsSupport;
     private ExternalItemSupport craftEngineSupport;
 
@@ -37,10 +42,27 @@ public final class ItemIdentifierService {
 
     public void refresh() {
         unavailableSourceWarnings.clear();
+        mmoItemsPlugin = Bukkit.getPluginManager().getPlugin("MMOItems");
         neigeItemsPlugin = Bukkit.getPluginManager().getPlugin("NeigeItems");
         craftEnginePlugin = Bukkit.getPluginManager().getPlugin("CraftEngine");
+        mmoItemsSupport = buildMmoItemsSupport();
         neigeItemsSupport = buildNeigeItemsSupport();
         craftEngineSupport = buildCraftEngineSupport();
+    }
+
+    @Override
+    public String id() {
+        return "forge_item_identifier";
+    }
+
+    @Override
+    public int priority() {
+        return 100;
+    }
+
+    @Override
+    public boolean supports(ItemSource source) {
+        return source != null && source.getType() != null;
     }
 
     public ItemSource identifyItem(ItemStack itemStack) {
@@ -55,7 +77,16 @@ public final class ItemIdentifierService {
         if (craftEngine != null) {
             return craftEngine;
         }
+        ItemSource mmoItems = identifyMmoItems(itemStack);
+        if (mmoItems != null) {
+            return mmoItems;
+        }
         return new ItemSource(ItemSourceType.VANILLA, itemStack.getType().name());
+    }
+
+    @Override
+    public ItemSource identify(ItemStack itemStack) {
+        return identifyItem(itemStack);
     }
 
     public boolean matchesSource(ItemStack itemStack, ItemSource source) {
@@ -74,14 +105,24 @@ public final class ItemIdentifierService {
             return null;
         }
         return switch (source.getType()) {
+            case MMOITEMS -> createMmoItemsItem(source.getIdentifier(), amount);
             case NEIGEITEMS -> createNeigeItemsItem(source.getIdentifier(), amount);
             case CRAFTENGINE -> createCraftEngineItem(source.getIdentifier(), amount);
             case VANILLA -> createVanillaItem(source.getIdentifier(), amount);
         };
     }
 
+    @Override
+    public ItemStack create(ItemSource source, int amount) {
+        return createItem(source, amount);
+    }
+
     public void validateConfiguredSource(ItemSource source, String location) {
         ensureSourceAvailable(source, location);
+    }
+
+    private ItemSource identifyMmoItems(ItemStack itemStack) {
+        return mmoItemsSupport == null ? null : mmoItemsSupport.identify(itemStack);
     }
 
     private ItemSource identifyNeigeItems(ItemStack itemStack) {
@@ -94,6 +135,10 @@ public final class ItemIdentifierService {
 
     private ItemStack createNeigeItemsItem(String identifier, int amount) {
         return neigeItemsSupport == null ? null : neigeItemsSupport.create(identifier, amount);
+    }
+
+    private ItemStack createMmoItemsItem(String identifier, int amount) {
+        return mmoItemsSupport == null ? null : mmoItemsSupport.create(identifier, amount);
     }
 
     private ItemStack createCraftEngineItem(String identifier, int amount) {
@@ -128,6 +173,13 @@ public final class ItemIdentifierService {
         }
         return switch (source.getType()) {
             case VANILLA -> true;
+            case MMOITEMS -> {
+                boolean available = mmoItemsSupport != null;
+                if (!available) {
+                    logUnavailableSource(source, "MMOItems", context, bridgeUnavailableReason("MMOItems", mmoItemsPlugin));
+                }
+                yield available;
+            }
             case NEIGEITEMS -> {
                 boolean available = neigeItemsSupport != null;
                 if (!available) {
@@ -168,6 +220,21 @@ public final class ItemIdentifierService {
         ));
     }
 
+    private ExternalItemSupport buildMmoItemsSupport() {
+        if (mmoItemsPlugin == null || !mmoItemsPlugin.isEnabled()) {
+            return null;
+        }
+        try {
+            return new MmoItemsSupport();
+        } catch (Throwable error) {
+            plugin.messageService().warning("console.item_bridge_unavailable", Map.of(
+                "dependency", "MMOItems",
+                "error", String.valueOf(error.getMessage())
+            ));
+            return null;
+        }
+    }
+
     private ExternalItemSupport buildNeigeItemsSupport() {
         if (neigeItemsPlugin == null || !neigeItemsPlugin.isEnabled()) {
             return null;
@@ -205,6 +272,37 @@ public final class ItemIdentifierService {
         ItemStack create(String identifier, int amount);
     }
 
+    private static final class MmoItemsSupport implements ExternalItemSupport {
+
+        @Override
+        public ItemSource identify(ItemStack itemStack) {
+            Type type = MMOItems.getType(itemStack);
+            String id = MMOItems.getID(itemStack);
+            if (type == null || Texts.isBlank(id)) {
+                return null;
+            }
+            return new ItemSource(ItemSourceType.MMOITEMS, type.getId() + ":" + id);
+        }
+
+        @Override
+        public ItemStack create(String identifier, int amount) {
+            MmoItemsKey key = MmoItemsKey.parse(identifier);
+            if (key == null) {
+                return null;
+            }
+            ItemStack itemStack = MMOItems.plugin.getItem(key.typeId(), key.itemId());
+            if (itemStack == null) {
+                itemStack = MMOItems.plugin.getItem(Texts.upper(key.typeId()), key.itemId());
+            }
+            if (itemStack == null) {
+                return null;
+            }
+            ItemStack cloned = itemStack.clone();
+            cloned.setAmount(Math.max(1, amount));
+            return cloned;
+        }
+    }
+
     private static final class NeigeItemsSupport implements ExternalItemSupport {
 
         @Override
@@ -240,6 +338,26 @@ public final class ItemIdentifierService {
                 return null;
             }
             return customItem.buildItemStack(ItemBuildContext.empty(), Math.max(1, amount));
+        }
+    }
+
+    private record MmoItemsKey(String typeId, String itemId) {
+
+        private static MmoItemsKey parse(String raw) {
+            if (Texts.isBlank(raw)) {
+                return null;
+            }
+            String text = Texts.trim(raw);
+            int separator = text.indexOf(':');
+            if (separator <= 0 || separator >= text.length() - 1) {
+                return null;
+            }
+            String typeId = text.substring(0, separator).trim();
+            String itemId = text.substring(separator + 1).trim();
+            if (typeId.isEmpty() || itemId.isEmpty()) {
+                return null;
+            }
+            return new MmoItemsKey(typeId, itemId);
         }
     }
 }

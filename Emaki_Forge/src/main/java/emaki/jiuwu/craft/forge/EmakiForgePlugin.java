@@ -13,7 +13,6 @@ import emaki.jiuwu.craft.forge.loader.PlayerDataStore;
 import emaki.jiuwu.craft.forge.loader.RecipeLoader;
 import emaki.jiuwu.craft.forge.service.BootstrapService;
 import emaki.jiuwu.craft.forge.service.ForgeGuiService;
-import emaki.jiuwu.craft.forge.service.ForgePdcService;
 import emaki.jiuwu.craft.forge.service.ForgeService;
 import emaki.jiuwu.craft.forge.service.ItemIdentifierService;
 import emaki.jiuwu.craft.forge.service.MessageService;
@@ -50,7 +49,6 @@ public class EmakiForgePlugin extends JavaPlugin implements LogMessagesProvider 
     private BootstrapService bootstrapService;
     private GuiService guiService;
     private ItemIdentifierService itemIdentifierService;
-    private ForgePdcService pdcService;
     private ForgeService forgeService;
     private ForgeGuiService forgeGuiService;
     private RecipeBookGuiService recipeBookGuiService;
@@ -94,7 +92,6 @@ public class EmakiForgePlugin extends JavaPlugin implements LogMessagesProvider 
         bootstrapService = components.bootstrapService();
         guiService = components.guiService();
         itemIdentifierService = components.itemIdentifierService();
-        pdcService = components.pdcService();
         forgeService = components.forgeService();
         forgeGuiService = components.forgeGuiService();
         recipeBookGuiService = components.recipeBookGuiService();
@@ -160,10 +157,6 @@ public class EmakiForgePlugin extends JavaPlugin implements LogMessagesProvider 
 
     public ItemIdentifierService itemIdentifierService() {
         return itemIdentifierService;
-    }
-
-    public ForgePdcService pdcService() {
-        return pdcService;
     }
 
     public ForgeService forgeService() {

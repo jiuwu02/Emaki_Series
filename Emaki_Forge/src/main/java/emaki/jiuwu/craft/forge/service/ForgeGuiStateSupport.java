@@ -67,6 +67,7 @@ final class ForgeGuiStateSupport {
         state.setMaxCapacity(resolveMaxCapacity(state));
         state.setCurrentCapacity(calculateCurrentCapacity(state));
         state.setPreviewRecipe(resolvePreviewRecipe(state));
+        refreshPreviewRollState(state);
     }
 
     public Recipe resolvePreviewRecipe(ForgeGuiSession state) {
@@ -348,6 +349,22 @@ final class ForgeGuiStateSupport {
     private void returnItemCollection(Player player, Iterable<ItemStack> items) {
         for (ItemStack item : items) {
             giveBackToPlayer(player, item);
+        }
+    }
+
+    private void refreshPreviewRollState(ForgeGuiSession state) {
+        Recipe previewRecipe = state.previewRecipe();
+        if (previewRecipe == null) {
+            state.setPreviewFingerprint("");
+            state.setPreparedForge(null);
+            state.refreshPreviewRoll();
+            return;
+        }
+        String fingerprint = plugin.forgeService().buildPreviewFingerprint(state.player(), previewRecipe, state.toGuiItems());
+        if (!fingerprint.equals(state.previewFingerprint())) {
+            state.setPreviewFingerprint(fingerprint);
+            state.setPreparedForge(null);
+            state.refreshPreviewRoll();
         }
     }
 }

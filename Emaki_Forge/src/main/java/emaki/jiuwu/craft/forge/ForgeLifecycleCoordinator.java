@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.forge;
 
+import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiSlot;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
@@ -15,7 +16,6 @@ import emaki.jiuwu.craft.forge.loader.PlayerDataStore;
 import emaki.jiuwu.craft.forge.loader.RecipeLoader;
 import emaki.jiuwu.craft.forge.service.BootstrapService;
 import emaki.jiuwu.craft.forge.service.ForgeGuiService;
-import emaki.jiuwu.craft.forge.service.ForgePdcService;
 import emaki.jiuwu.craft.forge.service.ForgeService;
 import emaki.jiuwu.craft.forge.service.ItemIdentifierService;
 import emaki.jiuwu.craft.forge.service.MessageService;
@@ -40,7 +40,7 @@ final class ForgeLifecycleCoordinator {
         BootstrapService bootstrapService = new BootstrapService(plugin, messageService);
         GuiService guiService = new GuiService(plugin);
         ItemIdentifierService itemIdentifierService = new ItemIdentifierService(plugin);
-        ForgePdcService pdcService = new ForgePdcService(plugin);
+        registerCoreLibResolvers(itemIdentifierService);
         ForgeService forgeService = new ForgeService(plugin);
         ForgeGuiService forgeGuiService = new ForgeGuiService(plugin, guiService);
         RecipeBookGuiService recipeBookGuiService = new RecipeBookGuiService(plugin, guiService);
@@ -56,7 +56,6 @@ final class ForgeLifecycleCoordinator {
             bootstrapService,
             guiService,
             itemIdentifierService,
-            pdcService,
             forgeService,
             forgeGuiService,
             recipeBookGuiService
@@ -105,6 +104,7 @@ final class ForgeLifecycleCoordinator {
         if (plugin.messageService() != null) {
             plugin.messageService().info("console.plugin_stopping");
         }
+        unregisterCoreLibResolvers(plugin.itemIdentifierService());
         cancelAutoSave(autoSaveTask);
         if (plugin.playerDataStore() != null && plugin.messageService() != null) {
             plugin.messageService().info("console.saving_player_data");
@@ -158,5 +158,21 @@ final class ForgeLifecycleCoordinator {
         if (source != null) {
             plugin.itemIdentifierService().validateConfiguredSource(source, location);
         }
+    }
+
+    private void registerCoreLibResolvers(ItemIdentifierService itemIdentifierService) {
+        EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.getInstance();
+        if (coreLib == null || itemIdentifierService == null) {
+            return;
+        }
+        coreLib.itemSourceService().registerResolver(itemIdentifierService);
+    }
+
+    private void unregisterCoreLibResolvers(ItemIdentifierService itemIdentifierService) {
+        EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.getInstance();
+        if (coreLib == null || itemIdentifierService == null) {
+            return;
+        }
+        coreLib.itemSourceService().unregisterResolver(itemIdentifierService.id());
     }
 }

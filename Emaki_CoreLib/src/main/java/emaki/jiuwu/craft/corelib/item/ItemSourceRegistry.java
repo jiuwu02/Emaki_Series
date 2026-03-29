@@ -52,6 +52,8 @@ public final class ItemSourceRegistry {
     }
 
     private void registerBuiltinParsers() {
+        parsers.add(prefixParser("mmoitems-", ItemSourceType.MMOITEMS));
+        parsers.add(prefixParser("mi-", ItemSourceType.MMOITEMS));
         parsers.add(prefixParser("neigeitems-", ItemSourceType.NEIGEITEMS));
         parsers.add(prefixParser("ni-", ItemSourceType.NEIGEITEMS));
         parsers.add(prefixParser("craftengine-", ItemSourceType.CRAFTENGINE));

@@ -1,10 +1,12 @@
 package emaki.jiuwu.craft.forge.service;
 
+import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.corelib.action.ActionBatchResult;
+import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
-import emaki.jiuwu.craft.corelib.action.ActionBatchResult;
-import emaki.jiuwu.craft.corelib.math.Randoms;
+import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.config.AppConfig;
@@ -22,7 +24,6 @@ import java.util.concurrent.CompletableFuture;
 import me.clip.placeholderapi.PlaceholderAPI;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
 public final class ForgeService {
@@ -100,6 +101,24 @@ public final class ForgeService {
                                       List<ItemStack> blueprints,
                                       Map<String, ItemStack> requiredMaterials,
                                       Map<String, ItemStack> optionalMaterials) {
+    }
+
+    private record QualityRollPlan(QualitySettings.QualityTier tier,
+                                   String qualityName,
+                                   double multiplier) {
+    }
+
+    public record PreparedForge(EmakiItemAssemblyRequest request,
+                                QualitySettings.QualityTier qualityTier,
+                                String quality,
+                                double multiplier,
+                                ItemStack previewItem) {
+        public PreparedForge {
+            previewItem = previewItem == null ? null : previewItem.clone();
+        }
+    }
+
+    private record GuaranteePolicy(boolean enabled, int threshold, String minimumName) {
     }
 
     private final EmakiForgePlugin plugin;
@@ -180,9 +199,54 @@ public final class ForgeService {
         return validateOptionalMaterials(recipe, normalized.optionalMaterials(), recipe.forgeCapacity());
     }
 
-    public CompletableFuture<ForgeResult> executeForgeAsync(Player player, Recipe recipe, GuiItems guiItems) {
+    public String buildPreviewFingerprint(Player player, Recipe recipe, GuiItems guiItems) {
+        List<Object> parts = new ArrayList<>();
+        parts.add(player == null ? "" : player.getUniqueId().toString());
+        parts.add(recipe == null ? "" : recipe.id());
+        parts.add(player == null || recipe == null ? 0 : plugin.playerDataStore().guaranteeCounter(player.getUniqueId(), recipe.id()));
+        appendItemSignature(parts, "target", guiItems == null ? null : guiItems.targetItem());
+        appendMappedSignatures(parts, "blueprint", guiItems == null ? null : guiItems.blueprints());
+        appendMappedSignatures(parts, "required", guiItems == null ? null : guiItems.requiredMaterials());
+        appendMappedSignatures(parts, "optional", guiItems == null ? null : guiItems.optionalMaterials());
+        return SignatureUtil.stableSignature(parts);
+    }
+
+    public ItemStack previewResultItem(Player player,
+                                       Recipe recipe,
+                                       GuiItems guiItems,
+                                       long previewSeed,
+                                       long forgedAt) {
+        PreparedForge preparedForge = prepareForge(player, recipe, guiItems, previewSeed, forgedAt);
+        return preparedForge == null || preparedForge.previewItem() == null ? null : preparedForge.previewItem().clone();
+    }
+
+    public PreparedForge prepareForge(Player player,
+                                      Recipe recipe,
+                                      GuiItems guiItems,
+                                      long previewSeed,
+                                      long forgedAt) {
+        if (recipe == null) {
+            return null;
+        }
+        QualityRollPlan rollPlan = resolveQualityRoll(
+            player == null ? null : player.getUniqueId(),
+            recipe,
+            buildRollKey(buildPreviewFingerprint(player, recipe, guiItems), previewSeed)
+        );
+        EmakiItemAssemblyRequest request = resultItemFactory.buildAssemblyRequest(recipe, guiItems, rollPlan.multiplier(), rollPlan.tier(), forgedAt);
+        if (request == null) {
+            return null;
+        }
+        EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.getInstance();
+        ItemStack previewItem = coreLib == null ? null : coreLib.itemAssemblyService().preview(request);
+        return new PreparedForge(request, rollPlan.tier(), rollPlan.qualityName(), rollPlan.multiplier(), previewItem);
+    }
+
+    public CompletableFuture<ForgeResult> executeForgeAsync(Player player,
+                                                            Recipe recipe,
+                                                            GuiItems guiItems,
+                                                            PreparedForge preparedForge) {
         ForgeResult result = new ForgeResult();
-        QualitySettings settings = plugin.appConfig().qualitySettings();
         ValidationResult validation = canForge(player, recipe, guiItems);
         if (!validation.success()) {
             result.errorKey = validation.errorKey();
@@ -198,23 +262,33 @@ public final class ForgeService {
                 if (!preBatch.success()) {
                     return buildActionFailure(player, recipe, guiItems, result, preBatch);
                 }
-                QualitySettings.QualityTier qualityTier = rollQuality(player.getUniqueId(), recipe);
-                result.quality = qualityTier == null ? settings.defaultTier().name() : qualityTier.name();
-                result.multiplier = qualityTier == null ? 1D : qualityTier.multiplier();
-                ItemStack resultItem = resultItemFactory.createResultItem(recipe, guiItems, result.multiplier, qualityTier);
+                PreparedForge forgePlan = preparedForge;
+                if (forgePlan == null) {
+                    forgePlan = prepareForge(player, recipe, guiItems, 0L, System.currentTimeMillis());
+                }
+                if (forgePlan == null || forgePlan.request() == null) {
+                    result.errorKey = "forge.error.item_create";
+                    result.replacements = Map.of();
+                    actionCoordinator.triggerPhase(player, recipe, guiItems, "failure", null, null, 1D, result.errorKey, "Unable to prepare forge assembly request.");
+                    return result;
+                }
+                result.quality = forgePlan.quality();
+                result.multiplier = forgePlan.multiplier();
+                EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.getInstance();
+                ItemStack resultItem = coreLib == null ? null : coreLib.itemAssemblyService().give(player, forgePlan.request());
                 if (resultItem == null) {
                     result.errorKey = "forge.error.item_create";
                     result.replacements = Map.of();
                     actionCoordinator.triggerPhase(player, recipe, guiItems, "failure", null, result.quality, result.multiplier, result.errorKey, "Unable to create forge result item.");
                     return result;
                 }
-                giveResult(player, resultItem);
+                applyGuaranteeOutcome(player.getUniqueId(), recipe, forgePlan.qualityTier());
                 plugin.playerDataStore().recordCraft(player.getUniqueId(), recipe.id());
                 result.success = true;
                 result.resultItem = resultItem;
                 actionCoordinator.triggerPhase(player, recipe, guiItems, "result", resultItem, result.quality, result.multiplier, null, null);
                 actionCoordinator.triggerPhase(player, recipe, guiItems, "success", resultItem, result.quality, result.multiplier, null, null);
-                actionCoordinator.triggerQualityActions(player, recipe, guiItems, resultItem, qualityTier, result.quality, result.multiplier);
+                actionCoordinator.triggerQualityActions(player, recipe, guiItems, resultItem, forgePlan.qualityTier(), result.quality, result.multiplier);
                 return result;
             });
     }
@@ -438,27 +512,57 @@ public final class ForgeService {
         return ValidationResult.ok();
     }
 
-    private QualitySettings.QualityTier rollQuality(UUID playerId, Recipe recipe) {
+    private QualityRollPlan resolveQualityRoll(UUID playerId, Recipe recipe, String rollKey) {
         QualitySettings settings = plugin.appConfig().qualitySettings();
-        Recipe.QualityConfig qualityConfig = recipe.quality();
-        boolean guaranteeEnabled = qualityConfig.enabled() && qualityConfig.guaranteeEnabled();
-        int guaranteeThreshold = qualityConfig.guaranteeAttempts();
-        String guaranteeMinimum = qualityConfig.guaranteeMinimum();
-        if (!guaranteeEnabled && settings.guaranteeEnabled()) {
-            guaranteeEnabled = true;
-            guaranteeThreshold = settings.guaranteeThreshold();
-            guaranteeMinimum = settings.minimumTier().name();
-        }
-        if (guaranteeEnabled) {
+        Recipe.QualityConfig qualityConfig = recipe == null ? Recipe.QualityConfig.defaults() : recipe.quality();
+        List<QualitySettings.QualityTier> tiers = resolveQualityPool(qualityConfig, settings);
+        GuaranteePolicy guaranteePolicy = resolveGuaranteePolicy(qualityConfig, settings);
+        if (guaranteePolicy.enabled() && playerId != null && recipe != null) {
             int counter = plugin.playerDataStore().guaranteeCounter(playerId, recipe.id());
-            if (counter >= guaranteeThreshold - 1) {
-                plugin.playerDataStore().resetGuaranteeCounter(playerId, recipe.id());
-                QualitySettings.QualityTier minimumTier = findMinimumTier(qualityConfig.customPool(), guaranteeMinimum);
-                return minimumTier == null ? settings.minimumTier() : minimumTier;
+            if (counter >= guaranteePolicy.threshold() - 1) {
+                QualitySettings.QualityTier guaranteed = findMinimumTier(qualityConfig.customPool(), guaranteePolicy.minimumName());
+                if (guaranteed == null) {
+                    guaranteed = settings.minimumTier();
+                }
+                return new QualityRollPlan(guaranteed, guaranteed.name(), guaranteed.multiplier());
             }
         }
+        QualitySettings.QualityTier rolled = deterministicWeightedTier(tiers, rollKey);
+        if (rolled == null) {
+            rolled = settings.defaultTier();
+        }
+        return new QualityRollPlan(rolled, rolled.name(), rolled.multiplier());
+    }
+
+    private void applyGuaranteeOutcome(UUID playerId, Recipe recipe, QualitySettings.QualityTier rolledTier) {
+        if (playerId == null || recipe == null || rolledTier == null) {
+            return;
+        }
+        QualitySettings settings = plugin.appConfig().qualitySettings();
+        GuaranteePolicy guaranteePolicy = resolveGuaranteePolicy(recipe.quality(), settings);
+        if (!guaranteePolicy.enabled()) {
+            return;
+        }
+        int counter = plugin.playerDataStore().guaranteeCounter(playerId, recipe.id());
+        if (counter >= guaranteePolicy.threshold() - 1) {
+            plugin.playerDataStore().resetGuaranteeCounter(playerId, recipe.id());
+            return;
+        }
+        List<QualitySettings.QualityTier> tiers = resolveQualityPool(recipe.quality(), settings);
+        QualitySettings.QualityTier minimumTier = findMinimumTier(recipe.quality().customPool(), guaranteePolicy.minimumName());
+        if (minimumTier == null) {
+            minimumTier = settings.minimumTier();
+        }
+        if (tierIndex(tiers, rolledTier) < tierIndex(tiers, minimumTier)) {
+            plugin.playerDataStore().incrementGuaranteeCounter(playerId, recipe.id());
+        } else {
+            plugin.playerDataStore().resetGuaranteeCounter(playerId, recipe.id());
+        }
+    }
+
+    private List<QualitySettings.QualityTier> resolveQualityPool(Recipe.QualityConfig qualityConfig, QualitySettings settings) {
         List<QualitySettings.QualityTier> tiers = new ArrayList<>();
-        if (qualityConfig.enabled() && !qualityConfig.customPool().isEmpty()) {
+        if (qualityConfig != null && qualityConfig.enabled() && !qualityConfig.customPool().isEmpty()) {
             for (String entry : qualityConfig.customPool()) {
                 QualitySettings.QualityTier tier = QualitySettings.QualityTier.fromString(entry);
                 if (tier != null) {
@@ -469,26 +573,59 @@ public final class ForgeService {
         if (tiers.isEmpty()) {
             tiers.addAll(settings.tiers());
         }
-        List<Randoms.Weighted<QualitySettings.QualityTier>> weighted = new ArrayList<>();
+        return tiers;
+    }
+
+    private GuaranteePolicy resolveGuaranteePolicy(Recipe.QualityConfig qualityConfig, QualitySettings settings) {
+        boolean enabled = qualityConfig != null && qualityConfig.enabled() && qualityConfig.guaranteeEnabled();
+        int threshold = qualityConfig == null ? 0 : qualityConfig.guaranteeAttempts();
+        String minimum = qualityConfig == null ? "" : qualityConfig.guaranteeMinimum();
+        if (!enabled && settings.guaranteeEnabled()) {
+            enabled = true;
+            threshold = settings.guaranteeThreshold();
+            minimum = settings.minimumTier().name();
+        }
+        return new GuaranteePolicy(enabled, Math.max(1, threshold), minimum);
+    }
+
+    private QualitySettings.QualityTier deterministicWeightedTier(List<QualitySettings.QualityTier> tiers, String rollKey) {
+        if (tiers == null || tiers.isEmpty()) {
+            return null;
+        }
+        double totalWeight = 0D;
         for (QualitySettings.QualityTier tier : tiers) {
-            weighted.add(new Randoms.Weighted<>(tier, tier.weight()));
-        }
-        QualitySettings.QualityTier rolled = Randoms.weightedRandom(weighted);
-        if (rolled == null) {
-            rolled = settings.defaultTier();
-        }
-        if (guaranteeEnabled) {
-            QualitySettings.QualityTier minimumTier = findMinimumTier(qualityConfig.customPool(), guaranteeMinimum);
-            if (minimumTier == null) {
-                minimumTier = settings.minimumTier();
-            }
-            if (tierIndex(tiers, rolled) < tierIndex(tiers, minimumTier)) {
-                plugin.playerDataStore().incrementGuaranteeCounter(playerId, recipe.id());
-            } else {
-                plugin.playerDataStore().resetGuaranteeCounter(playerId, recipe.id());
+            if (tier != null && tier.weight() > 0D) {
+                totalWeight += tier.weight();
             }
         }
-        return rolled;
+        if (totalWeight <= 0D) {
+            return null;
+        }
+        double ratio = deterministicRatio(rollKey);
+        double roll = ratio * totalWeight;
+        double cumulative = 0D;
+        for (QualitySettings.QualityTier tier : tiers) {
+            if (tier == null || tier.weight() <= 0D) {
+                continue;
+            }
+            cumulative += tier.weight();
+            if (roll <= cumulative) {
+                return tier;
+            }
+        }
+        return tiers.get(tiers.size() - 1);
+    }
+
+    private double deterministicRatio(String rollKey) {
+        String signature = SignatureUtil.sha256(Texts.isBlank(rollKey) ? "forge" : rollKey);
+        String sample = signature.substring(0, Math.min(12, signature.length()));
+        try {
+            long value = Long.parseLong(sample, 16);
+            long max = (1L << (sample.length() * 4)) - 1L;
+            return max <= 0L ? 0D : value / (double) max;
+        } catch (Exception ignored) {
+            return 0.5D;
+        }
     }
 
     private QualitySettings.QualityTier findMinimumTier(List<String> pool, String minimumName) {
@@ -520,108 +657,29 @@ public final class ForgeService {
         return -1;
     }
 
-    private void consumeItems(Player player, Recipe recipe, GuiItems guiItems) {
-        Inventory topInventory = player.getOpenInventory().getTopInventory();
-        if (topInventory == null) {
+    private String buildRollKey(String fingerprint, long previewSeed) {
+        return SignatureUtil.combine(fingerprint, Long.toUnsignedString(previewSeed));
+    }
+
+    private void appendMappedSignatures(List<Object> parts, String prefix, Map<Integer, ItemStack> items) {
+        if (parts == null || items == null || items.isEmpty()) {
             return;
         }
-        if (recipe.targetItemSource() != null && guiItems.targetItem() != null) {
-            removeSimilarAmount(topInventory, guiItems.targetItem(), 1);
-        }
-        if (!recipe.blueprintRequirements().isEmpty()) {
-            Map<String, Integer> available = new LinkedHashMap<>();
-            for (ItemStack itemStack : guiItems.blueprintList()) {
-                if (itemStack == null) {
-                    continue;
-                }
-                ItemSource source = plugin.itemIdentifierService().identifyItem(itemStack);
-                for (Blueprint blueprint : plugin.blueprintLoader().all().values()) {
-                    if (ItemSourceUtil.matches(source, blueprint.source())) {
-                        available.merge(blueprint.id(), itemStack.getAmount(), Integer::sum);
-                    }
-                }
-            }
-            Map<String, Integer> plan = new LinkedHashMap<>();
-            for (Recipe.BlueprintRequirement requirement : recipe.blueprintRequirements()) {
-                if ("all_of".equals(Texts.lower(requirement.requirementMode()))) {
-                    for (Recipe.BlueprintOption option : requirement.blueprintOptions()) {
-                        reserveBlueprints(option.selector(), option.count(), available, plan);
-                    }
-                } else {
-                    for (Recipe.BlueprintOption option : requirement.blueprintOptions()) {
-                        if (countMatchingBlueprints(option.selector(), available) >= option.count()) {
-                            reserveBlueprints(option.selector(), option.count(), available, plan);
-                            break;
-                        }
-                    }
-                }
-            }
-            for (Map.Entry<String, Integer> entry : plan.entrySet()) {
-                Blueprint blueprint = plugin.blueprintLoader().get(entry.getKey());
-                if (blueprint != null) {
-                    removeSourceAmount(topInventory, blueprint.source(), entry.getValue());
-                }
-            }
-        }
-        for (Recipe.RequiredMaterial requiredMaterial : recipe.requiredMaterials()) {
-            ForgeMaterial material = plugin.materialLoader().get(requiredMaterial.id());
-            if (material != null) {
-                removeSourceAmount(topInventory, material.source(), requiredMaterial.count());
-            }
-        }
-        for (ItemStack itemStack : guiItems.optionalMaterials().values()) {
-            if (itemStack == null) {
-                continue;
-            }
-            removeSourceAmount(topInventory, plugin.itemIdentifierService().identifyItem(itemStack), itemStack.getAmount());
+        List<Integer> slots = new ArrayList<>(items.keySet());
+        slots.sort(Integer::compareTo);
+        for (Integer slot : slots) {
+            appendItemSignature(parts, prefix + ":" + slot, items.get(slot));
         }
     }
 
-    private int removeSourceAmount(Inventory inventory, ItemSource source, int amount) {
-        if (inventory == null || source == null || amount <= 0) {
-            return 0;
+    private void appendItemSignature(List<Object> parts, String prefix, ItemStack itemStack) {
+        if (parts == null || itemStack == null || itemStack.getType() == Material.AIR) {
+            return;
         }
-        int removed = 0;
-        for (int slot = 0; slot < inventory.getSize() && removed < amount; slot++) {
-            ItemStack itemStack = inventory.getItem(slot);
-            if (itemStack == null || !ItemSourceUtil.matches(plugin.itemIdentifierService().identifyItem(itemStack), source)) {
-                continue;
-            }
-            int take = Math.min(amount - removed, itemStack.getAmount());
-            if (take >= itemStack.getAmount()) {
-                inventory.setItem(slot, null);
-            } else {
-                itemStack.setAmount(itemStack.getAmount() - take);
-                inventory.setItem(slot, itemStack);
-            }
-            removed += take;
-        }
-        return removed;
-    }
-
-    private void removeSimilarAmount(Inventory inventory, ItemStack itemStack, int amount) {
-        int remaining = amount;
-        for (int slot = 0; slot < inventory.getSize() && remaining > 0; slot++) {
-            ItemStack current = inventory.getItem(slot);
-            if (current == null || !current.isSimilar(itemStack)) {
-                continue;
-            }
-            if (current.getAmount() <= remaining) {
-                remaining -= current.getAmount();
-                inventory.setItem(slot, null);
-            } else {
-                current.setAmount(current.getAmount() - remaining);
-                inventory.setItem(slot, current);
-                remaining = 0;
-            }
-        }
-    }
-
-    private void giveResult(Player player, ItemStack itemStack) {
-        Map<Integer, ItemStack> leftover = player.getInventory().addItem(itemStack);
-        if (!leftover.isEmpty()) {
-            leftover.values().forEach(left -> player.getWorld().dropItemNaturally(player.getLocation(), left));
-        }
+        ItemSource source = plugin.itemIdentifierService().identifyItem(itemStack);
+        parts.add(prefix);
+        parts.add(source == null ? "" : ItemSourceUtil.toShorthand(source));
+        parts.add(itemStack.getAmount());
     }
 
     private ForgeMaterial findMaterialBySource(ItemSource source) {

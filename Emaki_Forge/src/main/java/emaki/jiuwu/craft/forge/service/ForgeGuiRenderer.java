@@ -4,17 +4,14 @@ import emaki.jiuwu.craft.corelib.gui.GuiItemBuilder;
 import emaki.jiuwu.craft.corelib.gui.GuiSlot;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.corelib.gui.ItemComponentParser;
-import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.model.Recipe;
 import emaki.jiuwu.craft.forge.service.ForgeGuiService.ForgeGuiSession;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
 final class ForgeGuiRenderer {
 
@@ -94,23 +91,21 @@ final class ForgeGuiRenderer {
         if (preview == null || preview.result() == null || preview.result().outputItem() == null) {
             return null;
         }
-        ItemStack itemStack = plugin.itemIdentifierService().createItem(preview.result().outputItem(), 1);
-        if (itemStack == null) {
+        ForgeService.PreparedForge preparedForge = state.preparedForge();
+        if (preparedForge == null) {
+            preparedForge = plugin.forgeService().prepareForge(
+                state.player(),
+                preview,
+                state.toGuiItems(),
+                state.previewSeed(),
+                state.previewForgedAt()
+            );
+            state.setPreparedForge(preparedForge);
+        }
+        if (preparedForge == null || preparedForge.previewItem() == null) {
             return null;
         }
-        ItemStack clone = itemStack.clone();
-        ItemMeta itemMeta = clone.getItemMeta();
-        if (itemMeta != null) {
-            List<net.kyori.adventure.text.Component> lore = new ArrayList<>();
-            if (itemMeta.hasLore() && itemMeta.lore() != null) {
-                lore.addAll(itemMeta.lore());
-            }
-            lore.add(MiniMessages.parse("<gray>预览配方: <gold>" + preview.displayName() + "</gold></gray>"));
-            lore.add(MiniMessages.parse("<yellow>确认锻造后将生成该物品</yellow>"));
-            itemMeta.lore(lore);
-            clone.setItemMeta(itemMeta);
-        }
-        return clone;
+        return preparedForge.previewItem().clone();
     }
 
     private Map<String, Object> slotReplacements(ForgeGuiSession state) {

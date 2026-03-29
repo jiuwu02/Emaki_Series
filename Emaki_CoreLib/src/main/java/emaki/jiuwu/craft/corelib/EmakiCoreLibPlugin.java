@@ -6,6 +6,11 @@ import emaki.jiuwu.craft.corelib.action.ActionLineParser;
 import emaki.jiuwu.craft.corelib.action.ActionRegistry;
 import emaki.jiuwu.craft.corelib.action.ActionTemplateRegistry;
 import emaki.jiuwu.craft.corelib.action.builtin.BuiltinActions;
+import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
+import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerCodecRegistry;
+import emaki.jiuwu.craft.corelib.assembly.EmakiNamespaceDefinition;
+import emaki.jiuwu.craft.corelib.assembly.EmakiNamespaceRegistry;
+import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.placeholder.ActionInlineTokenResolver;
 import emaki.jiuwu.craft.corelib.placeholder.ActionContextPlaceholderResolver;
@@ -43,6 +48,11 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private EconomyManager economyManager;
     private ActionExecutor actionExecutor;
     private final PdcService pdcService = new PdcService("emaki_corelib");
+    private final ItemSourceService itemSourceService = new ItemSourceService();
+    private final EmakiNamespaceRegistry namespaceRegistry = new EmakiNamespaceRegistry();
+    private final EmakiItemLayerCodecRegistry itemLayerCodecRegistry = new EmakiItemLayerCodecRegistry();
+    private final EmakiItemAssemblyService itemAssemblyService =
+        new EmakiItemAssemblyService(namespaceRegistry, itemLayerCodecRegistry, itemSourceService);
 
     public static EmakiCoreLibPlugin getInstance() {
         return instance;
@@ -103,6 +113,8 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         languageLoader = new LanguageLoader(this);
         messageService = new MessageService(this, languageLoader);
         languageLoader.load();
+        namespaceRegistry.register(new EmakiNamespaceDefinition("forge", 100, "Forge"));
+        namespaceRegistry.register(new EmakiNamespaceDefinition("strengthen", 200, "Strengthen"));
     }
 
     private void ensureBundledFile(String relativePath) {
@@ -199,5 +211,21 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
 
     public PdcService pdcService() {
         return pdcService;
+    }
+
+    public ItemSourceService itemSourceService() {
+        return itemSourceService;
+    }
+
+    public EmakiNamespaceRegistry namespaceRegistry() {
+        return namespaceRegistry;
+    }
+
+    public EmakiItemLayerCodecRegistry itemLayerCodecRegistry() {
+        return itemLayerCodecRegistry;
+    }
+
+    public EmakiItemAssemblyService itemAssemblyService() {
+        return itemAssemblyService;
     }
 }

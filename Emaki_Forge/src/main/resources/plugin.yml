@@ -7,6 +7,7 @@ depend:
   - Emaki_CoreLib
 softdepend:
   - PlaceholderAPI
+  - MMOItems
   - NeigeItems
   - CraftEngine
 commands:

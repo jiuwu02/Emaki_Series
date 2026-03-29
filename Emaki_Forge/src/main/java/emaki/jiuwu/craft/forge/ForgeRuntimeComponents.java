@@ -10,7 +10,6 @@ import emaki.jiuwu.craft.forge.loader.PlayerDataStore;
 import emaki.jiuwu.craft.forge.loader.RecipeLoader;
 import emaki.jiuwu.craft.forge.service.BootstrapService;
 import emaki.jiuwu.craft.forge.service.ForgeGuiService;
-import emaki.jiuwu.craft.forge.service.ForgePdcService;
 import emaki.jiuwu.craft.forge.service.ForgeService;
 import emaki.jiuwu.craft.forge.service.ItemIdentifierService;
 import emaki.jiuwu.craft.forge.service.MessageService;
@@ -27,7 +26,6 @@ record ForgeRuntimeComponents(AppConfigLoader appConfigLoader,
                               BootstrapService bootstrapService,
                               GuiService guiService,
                               ItemIdentifierService itemIdentifierService,
-                              ForgePdcService pdcService,
                               ForgeService forgeService,
                               ForgeGuiService forgeGuiService,
                               RecipeBookGuiService recipeBookGuiService) {

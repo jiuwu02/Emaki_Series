@@ -7,6 +7,7 @@ import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.model.Recipe;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
@@ -26,6 +27,10 @@ public final class ForgeGuiService {
         private int maxCapacity;
         private boolean processing;
         private boolean forgeCompleted;
+        private String previewFingerprint = "";
+        private long previewSeed = ThreadLocalRandom.current().nextLong();
+        private long previewForgedAt = System.currentTimeMillis();
+        private ForgeService.PreparedForge preparedForge;
 
         public ForgeGuiSession(Player player, Recipe recipe, String templateId) {
             this.player = player;
@@ -117,11 +122,41 @@ public final class ForgeGuiService {
             this.forgeCompleted = forgeCompleted;
         }
 
+        public String previewFingerprint() {
+            return previewFingerprint;
+        }
+
+        public void setPreviewFingerprint(String previewFingerprint) {
+            this.previewFingerprint = previewFingerprint == null ? "" : previewFingerprint;
+        }
+
+        public long previewSeed() {
+            return previewSeed;
+        }
+
+        public long previewForgedAt() {
+            return previewForgedAt;
+        }
+
+        public void refreshPreviewRoll() {
+            this.previewSeed = ThreadLocalRandom.current().nextLong();
+            this.previewForgedAt = System.currentTimeMillis();
+        }
+
+        public ForgeService.PreparedForge preparedForge() {
+            return preparedForge;
+        }
+
+        public void setPreparedForge(ForgeService.PreparedForge preparedForge) {
+            this.preparedForge = preparedForge;
+        }
+
         public void clearStoredItems() {
             blueprintItems.clear();
             requiredMaterialItems.clear();
             optionalMaterialItems.clear();
             targetItem = null;
+            preparedForge = null;
         }
 
         public ForgeService.GuiItems toGuiItems() {

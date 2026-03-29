@@ -204,14 +204,34 @@ final class ForgeGuiInteractionController {
             }
             activeRecipe = match.recipe();
         }
-        ForgeService.GuiItems snapshot = state.toGuiItems();
-        boolean firstCraft = !plugin.playerDataStore().hasCrafted(state.player().getUniqueId(), activeRecipe.id());
         Recipe finalRecipe = activeRecipe;
+        ForgeService.GuiItems snapshot = state.toGuiItems();
+        ForgeService.PreparedForge preparedForge = state.preparedForge();
+        if (preparedForge == null) {
+            preparedForge = plugin.forgeService().prepareForge(
+                state.player(),
+                finalRecipe,
+                snapshot,
+                state.previewSeed(),
+                state.previewForgedAt()
+            );
+            state.setPreparedForge(preparedForge);
+        }
+        if (preparedForge == null || preparedForge.request() == null) {
+            plugin.messageService().send(state.player(), "forge.error.item_create");
+            return;
+        }
+        boolean firstCraft = !plugin.playerDataStore().hasCrafted(state.player().getUniqueId(), activeRecipe.id());
         state.setProcessing(true);
         state.setRecipe(finalRecipe);
         state.setPreviewRecipe(finalRecipe);
         state.player().closeInventory();
-        plugin.forgeService().executeForgeAsync(state.player(), finalRecipe, snapshot)
+        plugin.forgeService().executeForgeAsync(
+                state.player(),
+                finalRecipe,
+                snapshot,
+                preparedForge
+            )
             .whenComplete((result, throwable) -> plugin.getServer().getScheduler().runTask(
                 plugin,
                 () -> completeForgeAttempt(state, finalRecipe, firstCraft, result, throwable)

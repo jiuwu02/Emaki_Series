@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-forge</artifactId>
-    <version>1.6.0</version>
+    <version>1.7.0</version>
     <name>Emaki Forge</name>
     <packaging>jar</packaging>
 
@@ -46,6 +46,16 @@
             <groupId>emaki.jiuwu.craft</groupId>
             <artifactId>emaki-corelib</artifactId>
             <version>${emaki.corelib.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>net.Indyuce</groupId>
+            <artifactId>MMOItems-API</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.lumine</groupId>
+            <artifactId>MythicLib-dist</artifactId>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>pers.neige.neigeitems</groupId>

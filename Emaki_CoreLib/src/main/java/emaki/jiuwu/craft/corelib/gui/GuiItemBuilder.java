@@ -1,7 +1,6 @@
 package emaki.jiuwu.craft.corelib.gui;
 
 import emaki.jiuwu.craft.corelib.item.ItemSource;
-import emaki.jiuwu.craft.corelib.item.ItemSourceType;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import java.util.LinkedHashMap;
@@ -62,7 +61,7 @@ public final class GuiItemBuilder {
         }
         ItemStack itemStack = switch (source.getType()) {
             case VANILLA -> createVanillaItem(source.getIdentifier(), amount);
-            case NEIGEITEMS, CRAFTENGINE -> itemFactory == null ? null : itemFactory.create(source, amount);
+            case MMOITEMS, NEIGEITEMS, CRAFTENGINE -> itemFactory == null ? null : itemFactory.create(source, amount);
         };
         if (itemStack == null) {
             return barrier(amount);
