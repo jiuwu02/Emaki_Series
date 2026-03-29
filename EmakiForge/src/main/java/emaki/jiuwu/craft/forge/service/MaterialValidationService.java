@@ -39,10 +39,10 @@ final class MaterialValidationService {
 
     MaterialValidationService(EmakiForgePlugin plugin, ForgeLookupIndex lookupIndex) {
         this(
-            plugin.itemIdentifierService()::identifyItem,
+            itemStack -> plugin.itemIdentifierService() == null ? null : plugin.itemIdentifierService().identifyItem(itemStack),
             lookupIndex::findMaterialBySource,
             lookupIndex::findBlueprintBySource,
-            tag -> plugin.blueprintLoader().getByTag(tag),
+            tag -> plugin.blueprintLoader() == null ? List.of() : plugin.blueprintLoader().getByTag(tag),
             itemStack -> itemStack == null || itemStack.getType() == Material.AIR,
             itemStack -> itemStack == null ? 0 : itemStack.getAmount(),
             (itemStack, amount) -> {

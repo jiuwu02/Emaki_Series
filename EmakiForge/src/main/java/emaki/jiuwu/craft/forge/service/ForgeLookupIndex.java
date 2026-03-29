@@ -22,7 +22,6 @@ final class ForgeLookupIndex {
 
     ForgeLookupIndex(EmakiForgePlugin plugin) {
         this.plugin = plugin;
-        refresh();
     }
 
     void refresh() {
@@ -44,8 +43,9 @@ final class ForgeLookupIndex {
                 }
             }
         }
+        // Services are constructed before loaders are attached to the plugin instance.
         List<Recipe> recipes = plugin.recipeLoader() == null
-            ? List.of()
+            ? new ArrayList<>()
             : new ArrayList<>(plugin.recipeLoader().all().values());
         recipes.sort(Comparator.comparing(recipe -> Texts.lower(recipe.id())));
         materialsBySource = Map.copyOf(materials);

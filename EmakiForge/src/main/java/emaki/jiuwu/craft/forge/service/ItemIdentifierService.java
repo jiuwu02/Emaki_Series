@@ -212,6 +212,9 @@ public final class ItemIdentifierService implements ItemSourceResolver {
         if (!unavailableSourceWarnings.add(warningKey)) {
             return;
         }
+        if (plugin.messageService() == null) {
+            return;
+        }
         plugin.messageService().warning("console.external_item_source_unavailable", Map.of(
             "dependency", dependency,
             "context", context,
@@ -227,10 +230,12 @@ public final class ItemIdentifierService implements ItemSourceResolver {
         try {
             return new MmoItemsSupport();
         } catch (Throwable error) {
-            plugin.messageService().warning("console.item_bridge_unavailable", Map.of(
-                "dependency", "MMOItems",
-                "error", String.valueOf(error.getMessage())
-            ));
+            if (plugin.messageService() != null) {
+                plugin.messageService().warning("console.item_bridge_unavailable", Map.of(
+                    "dependency", "MMOItems",
+                    "error", String.valueOf(error.getMessage())
+                ));
+            }
             return null;
         }
     }
@@ -242,10 +247,12 @@ public final class ItemIdentifierService implements ItemSourceResolver {
         try {
             return new NeigeItemsSupport();
         } catch (Throwable error) {
-            plugin.messageService().warning("console.item_bridge_unavailable", Map.of(
-                "dependency", "NeigeItems",
-                "error", String.valueOf(error.getMessage())
-            ));
+            if (plugin.messageService() != null) {
+                plugin.messageService().warning("console.item_bridge_unavailable", Map.of(
+                    "dependency", "NeigeItems",
+                    "error", String.valueOf(error.getMessage())
+                ));
+            }
             return null;
         }
     }
@@ -257,10 +264,12 @@ public final class ItemIdentifierService implements ItemSourceResolver {
         try {
             return new CraftEngineSupport();
         } catch (Throwable error) {
-            plugin.messageService().warning("console.item_bridge_unavailable", Map.of(
-                "dependency", "CraftEngine",
-                "error", String.valueOf(error.getMessage())
-            ));
+            if (plugin.messageService() != null) {
+                plugin.messageService().warning("console.item_bridge_unavailable", Map.of(
+                    "dependency", "CraftEngine",
+                    "error", String.valueOf(error.getMessage())
+                ));
+            }
             return null;
         }
     }
