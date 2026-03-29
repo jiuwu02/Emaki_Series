@@ -20,15 +20,15 @@
     </scm>
 
     <modules>
-        <module>Emaki_CoreLib</module>
-        <module>Emaki_Attribute</module>
-        <module>Emaki_Forge</module>
+        <module>EmakiCoreLib</module>
+        <module>EmakiAttribute</module>
+        <module>EmakiForge</module>
     </modules>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>21</maven.compiler.release>
-        <emaki.corelib.version>1.8.0</emaki.corelib.version>
+        <emaki.corelib.version>1.9.0</emaki.corelib.version>
         <paper.api.version>1.21.11-R0.1-SNAPSHOT</paper.api.version>
         <exp4j.version>0.4.8</exp4j.version>
         <mythicmobs.version>5.11.2</mythicmobs.version>
@@ -38,7 +38,6 @@
         <nightcore.version>2.14.0</nightcore.version>
         <placeholderapi.version>2.12.2</placeholderapi.version>
         <mmoitems.version>6.10.1-SNAPSHOT</mmoitems.version>
-        <junit.version>5.10.2</junit.version>
     </properties>
 
     <dependencyManagement>
@@ -100,12 +99,6 @@
                 <artifactId>MMOItems-API</artifactId>
                 <version>${mmoitems.version}</version>
                 <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.junit.jupiter</groupId>
-                <artifactId>junit-jupiter</artifactId>
-                <version>${junit.version}</version>
-                <scope>test</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>

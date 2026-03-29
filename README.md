@@ -1,36 +1,21 @@
 # Emaki Series
 
-Emaki Series 是一组面向 Minecraft Paper 服务端的 Java 插件，采用多模块 Maven 工程组织。项目当前包含公共基础库 `Emaki_CoreLib`、功能插件 `Emaki_Forge` 与属性系统 `Emaki_Attribute`，用于承载通用运行时能力、锻造系统业务能力与 RPG 战斗属性能力。
+Emaki Series 是一组面向 Minecraft Paper 服务端的 Java 插件，采用多模块 Maven 工程组织。项目当前包含公共基础库 `Emaki_CoreLib`、功能插件 `Emaki_Forge` 与属性系统 `Emaki_Attribute`，运行时插件名分别为 `EmakiCoreLib`、`EmakiForge` 与 `EmakiAttribute`，用于承载通用运行时能力、锻造系统业务能力与 RPG 战斗属性能力。
 
 ## 模块概览
 
-| 模块              | 当前版本 | 角色     | 说明                                                                                                      |
-| ----------------- | -------- | -------- | --------------------------------------------------------------------------------------------------------- |
-| `Emaki_CoreLib`   | `1.8.0`  | 基础库   | 提供 GUI、可扩展物品源、Emaki 物品装配、表达式、条件评估、动作系统、占位符、YAML 工具与经济桥接等通用能力 |
-| `Emaki_Forge`     | `1.7.0`  | 功能插件 | 基于 CoreLib 构建的锻造系统，当前结果重组与最终发放已交由 CoreLib 统一处理                                |
-| `Emaki_Attribute` | `1.5.0`  | 属性系统 | 提供 RPG 属性、伤害协议层、属性平衡与战斗反馈能力                                                         |
+| 模块               | 当前版本    | 角色   | 说明                                                           |
+| ---------------- | ------- | ---- | ------------------------------------------------------------ |
+| `EmakiCoreLib`   | `1.9.0` | 基础库  | 提供 GUI、可扩展物品源、Emaki 物品装配、表达式、条件评估、动作系统、占位符、YAML 工具与经济桥接等通用能力 |
+| `EmakiForge`     | `1.8.0` | 功能插件 | 基于 CoreLib 构建的锻造系统，当前结果重组、配方索引与 GUI 会话管理已进一步重构               |
+| `EmakiAttribute` | `1.6.0` | 属性系统 | 提供 RPG 属性、伤害协议层、属性平衡与战斗反馈能力，并补入快照服务与缓存统计能力                   |
 
 ## 技术基线
 
-| 项目      | 说明                    |
+| 项目        | 说明                      |
 | --------- | ----------------------- |
 | Java      | 21                      |
-| Maven     | 3.9+                    |
 | Paper API | `1.21.11-R0.1-SNAPSHOT` |
-
-## 构建要求
-
-开始构建前，请确认本地环境已安装 JDK 21 与 Maven。
-
-```powershell
-mvn -pl Emaki_CoreLib clean package
-mvn -pl Emaki_Forge -am clean package
-mvn -pl Emaki_Attribute -am clean package
-```
-
-构建产物默认输出到各模块的 `target/` 目录。
-
-当前工作区中的父工程与模块版本已经对齐到 `CoreLib 1.8.0`，Forge 在多模块构建时会直接引用当前工作区的 CoreLib API。
 
 ## 版本策略
 
@@ -46,9 +31,9 @@ mvn -pl Emaki_Attribute -am clean package
 
 ```text
 Project/
-├── Emaki_CoreLib/   # 核心基础库
-├── Emaki_Forge/     # 锻造系统插件
-├── Emaki_Attribute/ # 属性与战斗系统
+├── EmakiCoreLib/   # 核心基础库
+├── EmakiForge/     # 锻造系统插件
+├── EmakiAttribute/ # 属性与战斗系统
 ├── release-notes.md # 当前工作区发布日志
 ├── pom.xml          # 聚合父工程
 └── README.md
@@ -62,6 +47,12 @@ CoreLib 当前使用统一物品源抽象，常见写法如下：
 - NeigeItems：`ni-example_sword`
 - CraftEngine：`ce-namespace:item`
 - MMOItems：`mi-sword:cutlass`
+
+## 当前重构重点
+
+- `EmakiCoreLib` 已把动作模板展开、调度分发、物品渲染、装配数据读写拆分为独立协作类。
+- `EmakiAttribute` 已补入 `AttributeSnapshotService` 与缓存命中率统计，进一步收敛快照职责。
+- `EmakiForge` 已把查找索引、GUI 会话、结果模型从超大服务类中抽离，降低后续继续拆分的阻力。
 
 ## 文档
 

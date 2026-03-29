@@ -1,0 +1,25 @@
+name: EmakiAttribute
+prefix: ${project.name}
+main: emaki.jiuwu.craft.attribute.EmakiAttributePlugin
+version: ${project.version}
+api-version: "1.21"
+depend:
+  - EmakiCoreLib
+softdepend:
+  - MythicMobs
+  - PlaceholderAPI
+commands:
+  emakiattribute:
+    aliases: [eattr, ea, attr]
+    permission: emakiattribute.use
+permissions:
+  emakiattribute.use:
+    default: true
+  emakiattribute.reload:
+    default: op
+  emakiattribute.resync:
+    default: op
+  emakiattribute.debug:
+    default: op
+  emakiattribute.admin:
+    default: op
