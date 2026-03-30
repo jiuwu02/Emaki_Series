@@ -1,6 +1,5 @@
 id: projectile_crit_multiplier_resistance
 display_name: "投射物暴伤抗性"
-aliases: [projectile_crit_resistance, ranged_crit_multiplier_resistance]
 value_kind: PERCENT
 target_type: DAMAGE
 target_id: projectile

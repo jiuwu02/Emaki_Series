@@ -3,14 +3,13 @@ package emaki.jiuwu.craft.attribute.model;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
 
 public record AttributeDefinition(String id,
                                   String displayName,
-                                  List<String> aliases,
                                   AttributeValueKind valueKind,
                                   AttributeTargetType targetType,
                                   String targetId,
+                                  String mmoItemsStatId,
                                   double defaultValue,
                                   Double minValue,
                                   Double maxValue,
@@ -24,33 +23,14 @@ public record AttributeDefinition(String id,
     public AttributeDefinition {
         id = normalizeId(id);
         displayName = Texts.isBlank(displayName) ? id : Texts.toStringSafe(displayName).trim();
-        aliases = aliases == null ? List.of() : List.copyOf(aliases);
         valueKind = valueKind == null ? AttributeValueKind.FLAT : valueKind;
         targetType = targetType == null ? AttributeTargetType.GENERIC : targetType;
         targetId = Texts.toStringSafe(targetId).trim().toLowerCase(Locale.ROOT);
+        mmoItemsStatId = Texts.toStringSafe(mmoItemsStatId).trim();
         loreFormatId = Texts.toStringSafe(loreFormatId).trim().toLowerCase(Locale.ROOT);
         lorePatterns = lorePatterns == null ? List.of() : List.copyOf(lorePatterns);
         description = Texts.toStringSafe(description).trim();
         attributePower = Double.isNaN(attributePower) ? 1D : attributePower;
-    }
-
-    public boolean matchesAlias(String candidate) {
-        if (Texts.isBlank(candidate)) {
-            return false;
-        }
-        String normalized = normalizeId(candidate);
-        if (Objects.equals(id, normalized)) {
-            return true;
-        }
-        if (Objects.equals(normalizeId(displayName), normalized)) {
-            return true;
-        }
-        for (String alias : aliases) {
-            if (Objects.equals(normalizeId(alias), normalized)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     public double clamp(double value) {

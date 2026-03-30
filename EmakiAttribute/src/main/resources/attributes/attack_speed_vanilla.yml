@@ -1,6 +1,5 @@
 id: attack_speed_vanilla
 display_name: "原版攻击速度"
-aliases: [vanilla_attack_speed, 原版攻击速度]
 value_kind: FLAT
 target_type: VANILLA
 target_id: attack_speed

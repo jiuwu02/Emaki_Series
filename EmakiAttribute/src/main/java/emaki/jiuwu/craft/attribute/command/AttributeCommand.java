@@ -41,6 +41,7 @@ public final class AttributeCommand implements TabExecutor {
             case "reload" -> handleReload(sender);
             case "resync" -> handleResync(sender, args);
             case "dump" -> handleDump(sender, args);
+            case "debug" -> handleDebug(sender, args);
             case "help" -> {
                 sendHelp(sender);
                 yield true;
@@ -56,7 +57,7 @@ public final class AttributeCommand implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            for (String candidate : List.of("help", "reload", "resync", "dump")) {
+            for (String candidate : List.of("help", "reload", "resync", "dump", "debug")) {
                 if (candidate.startsWith(args[0].toLowerCase(Locale.ROOT))) {
                     result.add(candidate);
                 }
@@ -76,6 +77,27 @@ public final class AttributeCommand implements TabExecutor {
             for (Player player : Bukkit.getOnlinePlayers()) {
                 if (player.getName().toLowerCase(Locale.ROOT).startsWith(args[1].toLowerCase(Locale.ROOT))) {
                     result.add(player.getName());
+                }
+            }
+            return result;
+        }
+        if (args.length == 2 && "debug".equalsIgnoreCase(args[0])) {
+            for (String candidate : List.of("toggle", "on", "off")) {
+                if (candidate.startsWith(args[1].toLowerCase(Locale.ROOT))) {
+                    result.add(candidate);
+                }
+            }
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                if (player.getName().toLowerCase(Locale.ROOT).startsWith(args[1].toLowerCase(Locale.ROOT))) {
+                    result.add(player.getName());
+                }
+            }
+            return result;
+        }
+        if (args.length == 3 && "debug".equalsIgnoreCase(args[0]) && Bukkit.getPlayerExact(args[1]) != null) {
+            for (String candidate : List.of("toggle", "on", "off")) {
+                if (candidate.startsWith(args[2].toLowerCase(Locale.ROOT))) {
+                    result.add(candidate);
                 }
             }
             return result;
@@ -147,7 +169,7 @@ public final class AttributeCommand implements TabExecutor {
         }
         AttributeSnapshot snapshot = attributeService.collectCombatSnapshot(target);
         messages().send(sender, "command.dump.player", Map.of("player", target.getName()));
-        messages().send(sender, "command.dump.signature", Map.of("signature", snapshot.sourceSignature()));
+        messages().sendComponent(sender, buildDumpSignatureComponent(snapshot));
         messages().sendComponent(sender, buildDumpValuesComponent(snapshot));
         for (Map.Entry<String, ResourceState> entry : dumpResources(target).entrySet()) {
             ResourceState state = entry.getValue();
@@ -160,6 +182,60 @@ public final class AttributeCommand implements TabExecutor {
             ));
         }
         return true;
+    }
+
+    private boolean handleDebug(CommandSender sender, String[] args) {
+        if (!sender.hasPermission("emakiattribute.debug") && !sender.hasPermission("emakiattribute.admin")) {
+            messages().send(sender, "command.debug.no_permission");
+            return true;
+        }
+        Player target = null;
+        String action = "toggle";
+        if (args.length >= 2) {
+            Player namedTarget = Bukkit.getPlayerExact(args[1]);
+            if (namedTarget != null) {
+                target = namedTarget;
+                if (args.length >= 3) {
+                    action = args[2];
+                }
+            } else if (sender instanceof Player player && isDebugAction(args[1])) {
+                target = player;
+                action = args[1];
+            } else if (sender instanceof Player player && args.length == 2 && player.getName().equalsIgnoreCase(args[1])) {
+                target = player;
+            } else {
+                messages().send(sender, sender instanceof Player ? "command.debug.player_not_found" : "command.debug.console_usage", Map.of("player", args[1]));
+                return true;
+            }
+        } else if (sender instanceof Player player) {
+            target = player;
+        } else {
+            messages().send(sender, "command.debug.console_usage");
+            return true;
+        }
+        if (target == null) {
+            messages().send(sender, "command.debug.console_usage");
+            return true;
+        }
+        boolean enabled;
+        if ("on".equalsIgnoreCase(action) || "enable".equalsIgnoreCase(action) || "true".equalsIgnoreCase(action)) {
+            enabled = attributeService.combatDebugService().setEnabled(target, true);
+        } else if ("off".equalsIgnoreCase(action) || "disable".equalsIgnoreCase(action) || "false".equalsIgnoreCase(action)) {
+            enabled = attributeService.combatDebugService().setEnabled(target, false);
+        } else {
+            enabled = attributeService.combatDebugService().toggle(target);
+        }
+        messages().send(sender, enabled ? "command.debug.enabled" : "command.debug.disabled", Map.of("player", target.getName()));
+        return true;
+    }
+
+    private Component buildDumpSignatureComponent(AttributeSnapshot snapshot) {
+        Component prefix = messages().render(messages().message("general.prefix"));
+        Component label = messages().render(messages().message("command.dump.signature"));
+        Component hover = Component.text(snapshot == null || snapshot.sourceSignature() == null || snapshot.sourceSignature().isBlank()
+            ? "没有签名"
+            : snapshot.sourceSignature(), NamedTextColor.YELLOW);
+        return prefix.append(Component.space()).append(label.hoverEvent(HoverEvent.showText(hover)));
     }
 
     private Component buildDumpValuesComponent(AttributeSnapshot snapshot) {
@@ -242,9 +318,24 @@ public final class AttributeCommand implements TabExecutor {
         messages().send(sender, "command.help.reload");
         messages().send(sender, "command.help.resync");
         messages().send(sender, "command.help.dump");
+        messages().send(sender, "command.help.debug");
     }
 
     private MessageService messages() {
         return plugin.messageService();
+    }
+
+    private boolean isDebugAction(String value) {
+        if (value == null) {
+            return false;
+        }
+        String normalized = value.toLowerCase(Locale.ROOT);
+        return "toggle".equals(normalized)
+            || "on".equals(normalized)
+            || "off".equals(normalized)
+            || "enable".equals(normalized)
+            || "disable".equals(normalized)
+            || "true".equals(normalized)
+            || "false".equals(normalized);
     }
 }

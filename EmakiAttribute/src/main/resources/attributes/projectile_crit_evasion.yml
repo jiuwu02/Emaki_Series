@@ -1,6 +1,5 @@
 id: projectile_crit_evasion
 display_name: "投射物暴击闪避"
-aliases: [projectile_crit_resist, ranged_crit_evasion]
 value_kind: CHANCE
 target_type: DAMAGE
 target_id: projectile

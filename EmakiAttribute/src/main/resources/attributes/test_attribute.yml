@@ -1,6 +1,5 @@
 id: test_attribute
 display_name: "测试属性"
-aliases: [test, debug_attribute]
 value_kind: FLAT
 target_type: GENERIC
 target_id: test

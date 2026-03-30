@@ -71,7 +71,11 @@ public final class LanguageLoader {
                     "resource", "lang/" + langId + ".yml"
                 ));
             }
-            languages.put(langId, YamlFiles.load(file));
+            YamlConfiguration loaded = YamlFiles.load(file);
+            if (bundledFallback != null && fallbackLanguage.equals(langId)) {
+                YamlFiles.mergeMissingValues(loaded, bundledFallback);
+            }
+            languages.put(langId, loaded);
         }
         return languages.size();
     }

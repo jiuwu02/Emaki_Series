@@ -1,7 +1,6 @@
 package emaki.jiuwu.craft.forge;
 
 import emaki.jiuwu.craft.corelib.gui.GuiService;
-import emaki.jiuwu.craft.corelib.runtime.LegacyDataDirectoryMigrator;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.forge.config.AppConfig;
@@ -61,7 +60,6 @@ public class EmakiForgePlugin extends JavaPlugin implements LogMessagesProvider 
 
     @Override
     public void onEnable() {
-        LegacyDataDirectoryMigrator.migrate(this, "Emaki_Forge");
         ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII);
         applyRuntimeComponents(lifecycleCoordinator.initialize(this));
         messageService.info("console.plugin_starting");

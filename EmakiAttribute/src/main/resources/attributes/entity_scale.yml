@@ -1,6 +1,5 @@
 id: entity_scale
 display_name: "实体体型"
-aliases: [scale, entity_size]
 value_kind: PERCENT
 target_type: VANILLA
 target_id: scale

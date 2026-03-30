@@ -1,6 +1,5 @@
 id: physical_crit_damage
 display_name: "暴击伤害"
-aliases: [crit_damage, crit_dmg, physical_crit_multiplier]
 value_kind: PERCENT
 target_type: DAMAGE
 target_id: physical

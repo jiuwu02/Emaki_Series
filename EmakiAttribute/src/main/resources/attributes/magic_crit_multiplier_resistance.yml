@@ -1,6 +1,5 @@
 id: magic_crit_multiplier_resistance
 display_name: "法术暴伤抗性"
-aliases: [magic_crit_resistance, spell_crit_multiplier_resistance]
 value_kind: PERCENT
 target_type: DAMAGE
 target_id: spell

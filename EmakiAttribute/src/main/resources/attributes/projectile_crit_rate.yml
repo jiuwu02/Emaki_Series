@@ -1,6 +1,5 @@
 id: projectile_crit_rate
 display_name: "投射物暴击率"
-aliases: [projectile_crit, ranged_crit_rate, projectile_crit_chance]
 value_kind: CHANCE
 target_type: DAMAGE
 target_id: projectile

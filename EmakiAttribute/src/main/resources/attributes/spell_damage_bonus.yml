@@ -1,6 +1,5 @@
 id: spell_damage_bonus
 display_name: "法术伤害加成"
-aliases: [spell_bonus, magic_bonus, final_spell_damage]
 value_kind: PERCENT
 target_type: DAMAGE
 target_id: spell

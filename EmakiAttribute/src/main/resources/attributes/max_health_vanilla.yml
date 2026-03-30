@@ -1,6 +1,5 @@
 id: max_health_vanilla
 display_name: "原版生命上限"
-aliases: [vanilla_max_health, max_health, 最大生命值, 原版生命上限]
 value_kind: FLAT
 target_type: VANILLA
 target_id: max_health

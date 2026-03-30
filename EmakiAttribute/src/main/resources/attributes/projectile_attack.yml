@@ -1,6 +1,5 @@
 id: projectile_attack
 display_name: "投射物伤害"
-aliases: [projectile_damage, ranged_damage, bow_damage]
 value_kind: FLAT
 target_type: DAMAGE
 target_id: projectile

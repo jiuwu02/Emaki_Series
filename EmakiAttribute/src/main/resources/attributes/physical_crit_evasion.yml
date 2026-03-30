@@ -1,6 +1,5 @@
 id: physical_crit_evasion
 display_name: "物理暴击闪避"
-aliases: [physical_crit_resist, physical_crit_dodge]
 value_kind: CHANCE
 target_type: DAMAGE
 target_id: physical

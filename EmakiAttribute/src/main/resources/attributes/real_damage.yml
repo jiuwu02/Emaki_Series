@@ -1,6 +1,5 @@
 id: real_damage
 display_name: "真实伤害"
-aliases: [true_damage, raw_damage]
 value_kind: FLAT
 target_type: DAMAGE
 target_id: real

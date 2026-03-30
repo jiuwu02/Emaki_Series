@@ -1,4 +1,4 @@
-lang_version: "1.1"
+lang_version: "1.3"
 general:
   prefix: "<gray>[ <gradient:#66D9EF:#7B7BFF>EmakiAttribute</gradient> ]</gray>"
 
@@ -8,6 +8,10 @@ console:
   config_load_failed: "<red>配置读取失败: {error}</red>"
   reload_stage_failed: "<yellow>重载阶段 {stage} 失败: <red>{error}</red></yellow>"
   vanilla_attribute_resolve_failed: "<yellow>无法解析原版属性映射: <red>{attribute}</red> -> <red>{target}</red></yellow>"
+  attribute_key_contains_conflict: "<yellow>[属性注册] 检测到词条关键字包含冲突: <aqua>{lower_display_name}</aqua> (<white>{lower_id}</white>, 优先级 {lower_priority}) 的关键字 <white>{lower_key}</white> 包含了 <aqua>{higher_display_name}</aqua> (<white>{higher_id}</white>, 优先级 {higher_priority}) 的关键字 <white>{higher_key}</white>。这会因为优先级较低导致读取失效，请提高优先级或修改 display_name。</yellow>"
+  mmoitems_bridge_unavailable: "<yellow>MMOItems 属性映射桥初始化失败: <red>{error}</red></yellow>"
+  mmoitems_stat_resolve_failed: "<yellow>MMOItems 属性映射无法解析统计项: 属性 <aqua>{attribute}</aqua> -> <red>{stat}</red></yellow>"
+  mmoitems_stat_read_failed: "<yellow>MMOItems 属性映射读取失败: 属性 <aqua>{attribute}</aqua> -> <red>{stat}</red> (<red>{error}</red>)</yellow>"
   attribute_registry_empty: "<yellow>[属性注册] 未加载到任何属性定义。</yellow>"
   attribute_registry_summary: "<green>[属性注册] 已加载 {count} 项属性定义。</green>"
   attribute_registry_entry: "<gray>[属性注册]</gray> <white>{index}</white> <dark_gray>|</dark_gray> <aqua>{display_name}</aqua> <dark_gray>(</dark_gray><white>{id}</white><dark_gray>)</dark_gray> <dark_gray>|</dark_gray> <gray>默认值</gray> <yellow>{default_value}</yellow> <dark_gray>|</dark_gray> <gray>战力系数</gray> <light_purple>{attribute_power}</light_purple>"
@@ -104,9 +108,16 @@ command:
     player_not_found: "<red>未找到玩家 {player}。</red>"
     console_usage: "<yellow>控制台用法: /emakiattribute dump <player></yellow>"
     player: "<green>正在查看玩家 {player} 的属性快照。</green>"
-    signature: "<gray>签名: {signature}</gray>"
+    signature: "<gray>签名 <dark_gray>(悬停查看)</dark_gray></gray>"
     values: "<gray>属性数值 <dark_gray>(悬停查看)</dark_gray></gray>"
     resource_line: "<gray>{resource}: 默认 {default_max}，加成 {bonus_max}，上限 {current_max}，当前 {current}</gray>"
+
+  debug:
+    no_permission: "<red>你没有权限执行此命令。</red>"
+    player_not_found: "<red>未找到玩家 {player}。</red>"
+    console_usage: "<yellow>控制台用法: /emakiattribute debug <player> [on|off|toggle]</yellow>"
+    enabled: "<green>已为 {player} 开启战斗调试日志，后续相关命中会输出到控制台。</green>"
+    disabled: "<yellow>已为 {player} 关闭战斗调试日志。</yellow>"
 
   lint:
     no_permission: "<red>你没有权限执行此命令。</red>"
@@ -119,4 +130,5 @@ command:
     resync: "<gray>/emakiattribute resync [玩家|all]</gray> 重新同步玩家属性。"
     preview: "<gray>/emakiattribute preview [玩家] [槽位]</gray> 预览某个槽位的属性快照。"
     dump: "<gray>/emakiattribute dump [玩家]</gray> 导出当前战斗快照与资源状态。"
+    debug: "<gray>/emakiattribute debug [玩家] [on|off|toggle]</gray> 追踪该玩家相关的战斗链并输出详细控制台日志。"
     lint: "<gray>/emakiattribute lint</gray> 检查配置与资源加载问题。"

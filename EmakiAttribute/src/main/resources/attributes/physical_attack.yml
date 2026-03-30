@@ -1,6 +1,5 @@
 id: physical_attack
 display_name: "物理伤害"
-aliases: [atk, attack, physical_atk]
 value_kind: FLAT
 target_type: DAMAGE
 target_id: physical

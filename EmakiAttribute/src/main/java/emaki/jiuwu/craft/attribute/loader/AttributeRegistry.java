@@ -16,6 +16,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -56,10 +57,10 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
         return new AttributeDefinition(
             configuration.getString("id"),
             configuration.getString("display_name"),
-            configuration.getStringList("aliases"),
             valueKind,
             targetType,
             configuration.getString("target_id"),
+            configuration.getString("mmoitems_stat"),
             configuration.getDouble("default_value", 0D),
             configuration.contains("min_value") ? configuration.getDouble("min_value") : null,
             configuration.contains("max_value") ? configuration.getDouble("max_value") : null,
@@ -206,13 +207,11 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
             if (Texts.isNotBlank(definition.displayName())) {
                 aliasIndex.putIfAbsent(normalizeId(definition.displayName()), definition);
             }
-            for (String alias : definition.aliases()) {
-                aliasIndex.putIfAbsent(normalizeId(alias), definition);
-            }
             orderedPatterns.addAll(compilePatterns(definition));
         }
         orderedPatterns.sort(Comparator.comparingInt(PatternEntry::priority).reversed());
         logLoadReport(definitions);
+        detectKeyContainmentConflicts(definitions);
     }
 
     public AttributeDefinition resolve(String id) {
@@ -329,44 +328,11 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
     }
 
     private String buildKeyPattern(AttributeDefinition definition) {
-        List<String> options = new ArrayList<>();
-        List<String> keys = keyCandidates(definition);
-        for (String key : keys) {
-            String quoted = Pattern.quote(key);
-            if (!options.contains(quoted)) {
-                options.add(quoted);
-            }
-        }
-        if (options.isEmpty()) {
+        if (definition == null) {
             return "(?:)";
         }
-        if (options.size() == 1) {
-            return options.get(0);
-        }
-        return "(?:" + String.join("|", options) + ")";
-    }
-
-    private List<String> keyCandidates(AttributeDefinition definition) {
-        if (definition == null) {
-            return List.of();
-        }
-        LinkedHashSet<String> keys = new LinkedHashSet<>();
-        if (Texts.isNotBlank(definition.displayName())) {
-            keys.add(definition.displayName());
-        }
-        if (Texts.isNotBlank(definition.id())) {
-            keys.add(definition.id());
-        }
-        if (definition.aliases() != null) {
-            for (String alias : definition.aliases()) {
-                if (Texts.isNotBlank(alias)) {
-                    keys.add(alias);
-                }
-            }
-        }
-        List<String> result = new ArrayList<>(keys);
-        result.sort((left, right) -> Integer.compare(right.length(), left.length()));
-        return result;
+        String key = Texts.isBlank(definition.displayName()) ? definition.id() : definition.displayName();
+        return Texts.isBlank(key) ? "(?:)" : Pattern.quote(key);
     }
 
     private String extractCapturedValue(Matcher matcher, AttributeDefinition definition) {
@@ -455,6 +421,60 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
                 )
             );
         }
+    }
+
+    private void detectKeyContainmentConflicts(List<AttributeDefinition> definitions) {
+        if (definitions == null || definitions.size() < 2 || plugin.messageService() == null) {
+            return;
+        }
+        Set<String> warned = new LinkedHashSet<>();
+        for (AttributeDefinition higher : definitions) {
+            if (higher == null) {
+                continue;
+            }
+            for (AttributeDefinition lower : definitions) {
+                if (lower == null || higher.id().equals(lower.id()) || higher.priority() <= lower.priority()) {
+                    continue;
+                }
+                warnKeyContainmentConflict(higher, lower, warned);
+            }
+        }
+    }
+
+    private void warnKeyContainmentConflict(AttributeDefinition higher,
+                                            AttributeDefinition lower,
+                                            Set<String> warned) {
+        String higherKey = safeText(higher.displayName(), higher.id());
+        String lowerKey = safeText(lower.displayName(), lower.id());
+        String normalizedHigherKey = normalizeKeyCandidate(higherKey);
+        String normalizedLowerKey = normalizeKeyCandidate(lowerKey);
+        if (normalizedHigherKey.isBlank()
+            || normalizedLowerKey.isBlank()
+            || normalizedHigherKey.equals(normalizedLowerKey)
+            || !normalizedLowerKey.contains(normalizedHigherKey)) {
+            return;
+        }
+        String warningKey = higher.id() + "->" + lower.id() + "|" + normalizedHigherKey + "|" + normalizedLowerKey;
+        if (!warned.add(warningKey)) {
+            return;
+        }
+        issue(
+            "console.attribute_key_contains_conflict",
+            Map.of(
+                "higher_display_name", safeText(higher.displayName(), higher.id()),
+                "higher_id", safeText(higher.id(), "-"),
+                "higher_key", higherKey,
+                "higher_priority", Integer.toString(higher.priority()),
+                "lower_display_name", safeText(lower.displayName(), lower.id()),
+                "lower_id", safeText(lower.id(), "-"),
+                "lower_key", lowerKey,
+                "lower_priority", Integer.toString(lower.priority())
+            )
+        );
+    }
+
+    private String normalizeKeyCandidate(String value) {
+        return Texts.normalizeWhitespace(Texts.toStringSafe(value)).toLowerCase(Locale.ROOT);
     }
 
     private void logInfo(String key, Map<String, ?> replacements) {

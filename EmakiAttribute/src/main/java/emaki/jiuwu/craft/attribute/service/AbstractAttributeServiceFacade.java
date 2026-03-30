@@ -16,11 +16,13 @@ import emaki.jiuwu.craft.attribute.model.DamageContextVariables;
 import emaki.jiuwu.craft.attribute.model.DamageResult;
 import emaki.jiuwu.craft.attribute.model.DamageTypeDefinition;
 import emaki.jiuwu.craft.attribute.model.ProjectileDamageSnapshot;
+import emaki.jiuwu.craft.attribute.model.ResolvedDamage;
 import emaki.jiuwu.craft.attribute.model.ResourceDefinition;
 import emaki.jiuwu.craft.attribute.model.ResourceState;
 import emaki.jiuwu.craft.attribute.model.ResourceSyncReason;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import java.util.Map;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
@@ -318,9 +320,17 @@ abstract class AbstractAttributeServiceFacade implements AttributeServiceFacade 
         return damageCalculationServiceRef().calculateDamage(damageContext);
     }
 
+    public ResolvedDamage resolveDamageApplication(DamageContext damageContext) {
+        return damageCalculationServiceRef().resolveDamageApplication(damageContext);
+    }
+
     @Override
     public boolean applyDamage(DamageContext damageContext) {
         return damageCalculationServiceRef().applyDamage(damageContext);
+    }
+
+    public boolean applyResolvedDamage(ResolvedDamage resolvedDamage, Entity visualSource, double alreadyAppliedDamage) {
+        return damageCalculationServiceRef().applyResolvedDamage(resolvedDamage, visualSource, alreadyAppliedDamage);
     }
 
     @Override

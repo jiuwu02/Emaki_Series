@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.attribute;
 
 import emaki.jiuwu.craft.attribute.bridge.MythicBridge;
+import emaki.jiuwu.craft.attribute.bridge.MmoItemsBridge;
 import emaki.jiuwu.craft.attribute.command.AttributeCommand;
 import emaki.jiuwu.craft.attribute.config.AttributeConfig;
 import emaki.jiuwu.craft.attribute.listener.AttributeListener;
@@ -13,7 +14,6 @@ import emaki.jiuwu.craft.attribute.loader.LanguageLoader;
 import emaki.jiuwu.craft.attribute.loader.LoreFormatRegistry;
 import emaki.jiuwu.craft.attribute.papi.AttributePlaceholderExpansion;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
-import emaki.jiuwu.craft.corelib.runtime.LegacyDataDirectoryMigrator;
 import emaki.jiuwu.craft.attribute.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import java.nio.file.Path;
@@ -48,6 +48,7 @@ public final class EmakiAttributePlugin extends JavaPlugin {
     private AttributeListener listener;
     private AttributeCommand command;
     private MythicBridge mythicBridge;
+    private MmoItemsBridge mmoItemsBridge;
     private AttributePlaceholderExpansion placeholderExpansion;
     private BukkitTask regenTask;
 
@@ -58,10 +59,10 @@ public final class EmakiAttributePlugin extends JavaPlugin {
     @Override
     public void onEnable() {
         instance = this;
-        LegacyDataDirectoryMigrator.migrate(this, "Emaki_Attribute");
         applyRuntimeComponents(lifecycleCoordinator.initialize(this));
         ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII);
         reloadPluginState(true);
+        ensureMmoItemsBridge();
         lifecycleCoordinator.registerCommand(this);
         lifecycleCoordinator.registerListener(this);
         ensurePlaceholderExpansion();
@@ -90,6 +91,17 @@ public final class EmakiAttributePlugin extends JavaPlugin {
         }
         mythicBridge = new MythicBridge(this, attributeService);
         getServer().getPluginManager().registerEvents(mythicBridge, this);
+    }
+
+    public void ensureMmoItemsBridge() {
+        if (mmoItemsBridge != null || attributeService == null) {
+            return;
+        }
+        if (!Bukkit.getPluginManager().isPluginEnabled("MMOItems")) {
+            return;
+        }
+        mmoItemsBridge = new MmoItemsBridge(this, attributeService);
+        attributeService.resyncAllPlayers();
     }
 
     public void ensurePlaceholderExpansion() {
@@ -180,6 +192,10 @@ public final class EmakiAttributePlugin extends JavaPlugin {
 
     public MythicBridge mythicBridge() {
         return mythicBridge;
+    }
+
+    public MmoItemsBridge mmoItemsBridge() {
+        return mmoItemsBridge;
     }
 
     public AttributePlaceholderExpansion placeholderExpansion() {

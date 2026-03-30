@@ -38,6 +38,7 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
     private final AttributeSnapshotService snapshotService;
     private final ResourceManagementService resourceManagementService;
     private final DamageCalculationService damageCalculationService;
+    private final CombatDebugService combatDebugService;
 
     public AttributeService(EmakiAttributePlugin plugin,
                             PdcService pdcService,
@@ -69,6 +70,7 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
             presetRegistry,
             vanillaSynchronizer
         );
+        this.combatDebugService = new CombatDebugService(plugin);
         AttributeSnapshotCollector snapshotCollector = new AttributeSnapshotCollector(this);
         this.snapshotService = new AttributeSnapshotService(snapshotCollector);
         this.resourceManagementService = new ResourceManagementService(this);
@@ -187,6 +189,10 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
         return registryService.vanillaMappedAttributeIds();
     }
 
+    public List<AttributeDefinition> mmoItemsMappedDefinitions() {
+        return registryService.mmoItemsMappedDefinitions();
+    }
+
     List<AttributeDefinition> genericSpeedDefinitionsInternal() {
         return registryService.genericSpeedDefinitions();
     }
@@ -213,5 +219,9 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
 
     String itemLoreSignatureVersion() {
         return ITEM_LORE_SIGNATURE_VERSION;
+    }
+
+    public CombatDebugService combatDebugService() {
+        return combatDebugService;
     }
 }

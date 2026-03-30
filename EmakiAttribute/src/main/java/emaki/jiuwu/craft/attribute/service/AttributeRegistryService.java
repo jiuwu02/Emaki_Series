@@ -40,6 +40,7 @@ final class AttributeRegistryService {
     private volatile Map<String, List<AttributeDefinition>> resourceRegenDefinitions = Map.of();
     private volatile List<VanillaAttributeBinding> vanillaAttributeBindings = List.of();
     private volatile Set<String> vanillaMappedAttributeIds = Set.of();
+    private volatile List<AttributeDefinition> mmoItemsMappedDefinitions = List.of();
     private volatile List<AttributeDefinition> genericSpeedDefinitions = List.of();
     private volatile List<AttributeDefinition> genericAttackSpeedDefinitions = List.of();
     private volatile String defaultProfilesSignature = "";
@@ -73,6 +74,7 @@ final class AttributeRegistryService {
         Map<String, List<AttributeDefinition>> resourceBuckets = new LinkedHashMap<>();
         Map<String, List<AttributeDefinition>> resourceRegenBuckets = new LinkedHashMap<>();
         List<VanillaAttributeBinding> vanillaBindings = new ArrayList<>();
+        List<AttributeDefinition> mmoItemsDefinitions = new ArrayList<>();
         List<AttributeDefinition> speedDefinitions = new ArrayList<>();
         List<AttributeDefinition> attackSpeedDefinitions = new ArrayList<>();
         for (AttributeDefinition definition : definitions) {
@@ -92,6 +94,9 @@ final class AttributeRegistryService {
                     vanillaBindings.add(binding);
                 }
             }
+            if (Texts.isNotBlank(definition.mmoItemsStatId())) {
+                mmoItemsDefinitions.add(definition);
+            }
             if (definition.targetType() == emaki.jiuwu.craft.attribute.model.AttributeTargetType.GENERIC) {
                 if ("speed".equals(targetId) || "movement_speed".equals(targetId)) {
                     speedDefinitions.add(definition);
@@ -109,6 +114,7 @@ final class AttributeRegistryService {
         resourceRegenDefinitions = freezeDefinitionBuckets(resourceRegenBuckets);
         vanillaAttributeBindings = vanillaBindings.isEmpty() ? List.of() : List.copyOf(vanillaBindings);
         vanillaMappedAttributeIds = vanillaSynchronizer.collectManagedTargetIds(vanillaAttributeBindings);
+        mmoItemsMappedDefinitions = mmoItemsDefinitions.isEmpty() ? List.of() : List.copyOf(mmoItemsDefinitions);
         genericSpeedDefinitions = List.copyOf(speedDefinitions);
         genericAttackSpeedDefinitions = List.copyOf(attackSpeedDefinitions);
         defaultProfilesSignature = SignatureUtil.stableSignature(defaultProfiles);
@@ -159,6 +165,10 @@ final class AttributeRegistryService {
 
     Set<String> vanillaMappedAttributeIds() {
         return vanillaMappedAttributeIds;
+    }
+
+    List<AttributeDefinition> mmoItemsMappedDefinitions() {
+        return mmoItemsMappedDefinitions;
     }
 
     List<AttributeDefinition> genericSpeedDefinitions() {

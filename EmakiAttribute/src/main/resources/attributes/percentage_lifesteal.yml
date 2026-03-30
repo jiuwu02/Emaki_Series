@@ -1,6 +1,5 @@
 id: percentage_lifesteal
 display_name: "固定吸血"
-aliases: [flat_lifesteal, lifesteal_flat]
 value_kind: FLAT
 target_type: GENERIC
 target_id: lifesteal_flat

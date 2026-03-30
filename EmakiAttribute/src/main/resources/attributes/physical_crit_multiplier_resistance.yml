@@ -1,6 +1,5 @@
 id: physical_crit_multiplier_resistance
 display_name: "物理暴伤抗性"
-aliases: [physical_crit_resistance, physical_crit_multiplier_resist]
 value_kind: PERCENT
 target_type: DAMAGE
 target_id: physical

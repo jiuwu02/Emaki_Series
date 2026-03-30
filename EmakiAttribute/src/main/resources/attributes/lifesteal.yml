@@ -1,6 +1,5 @@
 id: lifesteal
 display_name: "百分比吸血"
-aliases: [percent_lifesteal, lifesteal_rate]
 value_kind: PERCENT
 target_type: GENERIC
 target_id: lifesteal

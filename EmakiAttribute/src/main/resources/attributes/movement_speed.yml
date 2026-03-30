@@ -1,6 +1,5 @@
 id: movement_speed
 display_name: "移动速度"
-aliases: [move_speed, walk_speed, movement_speed_flat]
 value_kind: FLAT
 target_type: GENERIC
 target_id: movement_speed

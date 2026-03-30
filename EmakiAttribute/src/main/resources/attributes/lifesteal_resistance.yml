@@ -1,6 +1,5 @@
 id: lifesteal_resistance
 display_name: "吸血抗性"
-aliases: [ls_resist, lifesteal_defense]
 value_kind: PERCENT
 target_type: GENERIC
 target_id: lifesteal_resistance

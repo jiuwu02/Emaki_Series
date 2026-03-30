@@ -1,6 +1,5 @@
 id: attribute_power
 display_name: "战斗力"
-aliases: [combat_power, power]
 value_kind: FLAT
 target_type: GENERIC
 target_id: combat

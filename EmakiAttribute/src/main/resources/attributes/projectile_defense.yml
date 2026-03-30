@@ -1,6 +1,5 @@
 id: projectile_defense
 display_name: "投射物防御"
-aliases: [projectile_resistance, ranged_defense, projectile_armor]
 value_kind: FLAT
 target_type: DAMAGE
 target_id: projectile

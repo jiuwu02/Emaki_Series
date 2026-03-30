@@ -1,6 +1,5 @@
 id: magic_crit_evasion
 display_name: "法术暴击闪避"
-aliases: [magic_crit_resist, spell_crit_resist]
 value_kind: CHANCE
 target_type: DAMAGE
 target_id: spell

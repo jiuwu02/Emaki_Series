@@ -1,6 +1,5 @@
 id: physical_damage_bonus
 display_name: "物理伤害加成"
-aliases: [physical_bonus, damage_bonus, final_physical_damage]
 value_kind: PERCENT
 target_type: DAMAGE
 target_id: physical

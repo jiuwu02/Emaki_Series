@@ -118,6 +118,7 @@ final class AttributeLifecycleCoordinator {
         if (plugin.mythicBridge() != null) {
             plugin.mythicBridge().resyncActiveMobs();
         }
+        plugin.ensureMmoItemsBridge();
         if (plugin.attributeService() != null && resyncPlayers) {
             plugin.attributeService().resyncAllPlayers();
         }

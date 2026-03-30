@@ -1,6 +1,5 @@
 id: block_interaction_range
 display_name: "方块交互距离"
-aliases: [block_reach, block_interaction_distance, 方块交互距离]
 value_kind: FLAT
 target_type: VANILLA
 target_id: block_interaction_range

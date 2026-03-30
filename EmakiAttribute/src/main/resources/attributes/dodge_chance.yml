@@ -1,6 +1,5 @@
 id: dodge_chance
 display_name: "闪避率"
-aliases: [evade, evasion, dodge]
 value_kind: CHANCE
 target_type: GENERIC
 target_id: dodge

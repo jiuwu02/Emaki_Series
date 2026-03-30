@@ -1,6 +1,5 @@
 id: spell_attack
 display_name: "法术伤害"
-aliases: [spell_damage, magic_damage, spell_power, magic_attack]
 value_kind: FLAT
 target_type: DAMAGE
 target_id: spell

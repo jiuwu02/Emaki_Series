@@ -1,6 +1,5 @@
 id: mana_regen
 display_name: "法力恢复"
-aliases: [mp_regen, mana_regen]
 value_kind: REGEN
 target_type: RESOURCE
 target_id: mana

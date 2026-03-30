@@ -1,6 +1,5 @@
 id: health
 display_name: "生命值"
-aliases: [hp, max_health]
 value_kind: RESOURCE
 target_type: RESOURCE
 target_id: health

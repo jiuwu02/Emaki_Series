@@ -1,6 +1,5 @@
 id: projectile_damage_bonus
 display_name: "投射物伤害加成"
-aliases: [projectile_bonus, ranged_bonus, bow_bonus, final_projectile_damage]
 value_kind: PERCENT
 target_type: DAMAGE
 target_id: projectile

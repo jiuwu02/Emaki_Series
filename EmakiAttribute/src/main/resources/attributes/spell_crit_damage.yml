@@ -1,6 +1,5 @@
 id: spell_crit_damage
 display_name: "法术暴击伤害"
-aliases: [spell_crit_dmg, magic_crit_damage, magic_crit_multiplier]
 value_kind: PERCENT
 target_type: DAMAGE
 target_id: spell

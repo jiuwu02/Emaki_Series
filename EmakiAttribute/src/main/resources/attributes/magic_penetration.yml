@@ -1,6 +1,5 @@
 id: magic_penetration
 display_name: "法术穿透"
-aliases: [magic_pen, spell_penetration]
 value_kind: PERCENT
 target_type: DAMAGE
 target_id: spell

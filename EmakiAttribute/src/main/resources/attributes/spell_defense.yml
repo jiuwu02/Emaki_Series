@@ -1,6 +1,5 @@
 id: spell_defense
 display_name: "法术防御"
-aliases: [spell_resistance, magic_resistance]
 value_kind: FLAT
 target_type: DAMAGE
 target_id: spell

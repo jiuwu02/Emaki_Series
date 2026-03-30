@@ -1,12 +1,5 @@
 id: speed
 display_name: "移速加成"
-aliases:
-  [
-    movement_speed_percent,
-    move_speed_percent,
-    walk_speed_percent,
-    speed_percent,
-  ]
 value_kind: PERCENT
 target_type: GENERIC
 target_id: speed

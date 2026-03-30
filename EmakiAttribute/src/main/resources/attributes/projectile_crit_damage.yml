@@ -1,6 +1,5 @@
 id: projectile_crit_damage
 display_name: "投射物暴击伤害"
-aliases: [projectile_crit_dmg, ranged_crit_damage, projectile_crit_multiplier]
 value_kind: PERCENT
 target_type: DAMAGE
 target_id: projectile

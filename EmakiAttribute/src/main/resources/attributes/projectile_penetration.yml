@@ -1,6 +1,5 @@
 id: projectile_penetration
 display_name: "投射物穿透"
-aliases: [projectile_pen, ranged_penetration]
 value_kind: PERCENT
 target_type: DAMAGE
 target_id: projectile

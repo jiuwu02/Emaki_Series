@@ -9,26 +9,26 @@ stages:
     kind: FLAT_PERCENT
     source: ATTACKER
     mode: ADD
-    flat_attributes: [projectile_damage]
-    percent_attributes: [final_projectile_damage]
+    flat_attributes: [projectile_attack]
+    percent_attributes: [projectile_damage_bonus]
   - id: crit
     kind: CUSTOM
     source: ATTACKER
-    chance_attributes: [projectile_crit_chance]
-    multiplier_attributes: [projectile_crit_multiplier]
+    chance_attributes: [projectile_crit_rate]
+    multiplier_attributes: [projectile_crit_damage]
     expression: "{input} * (1 + ({crit} * ({multiplier} / 100)))"
   - id: defense
     kind: FLAT_PERCENT
     source: TARGET
     mode: SUBTRACT
-    flat_attributes: [projectile_armor]
+    flat_attributes: [projectile_defense]
     percent_attributes: []
-    expression: "max(0, input - flat)"
+    expression: "max(0, {input} - {flat})"
 recovery:
   source: ATTACKER
   resistance_source: TARGET
-  flat_attributes: [flat_lifesteal]
-  percent_attributes: [percent_lifesteal]
+  flat_attributes: [percentage_lifesteal]
+  percent_attributes: [lifesteal]
   resistance_attributes: [lifesteal_resistance]
 attacker_message: "<gray>[<gold>{damage_type}</gold>]</gray> <green>你对 <white>{target}</white> 造成了 <yellow>{final_damage}</yellow> 点伤害</green>{critical_suffix}"
 target_message: "<gray>[<gold>{damage_type}</gold>]</gray> <red>{attacker}</red> 对你造成了 <yellow>{final_damage}</yellow> 点伤害{critical_suffix}"

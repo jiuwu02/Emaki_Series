@@ -1,6 +1,5 @@
 id: health_regen
 display_name: "生命恢复"
-aliases: [hp_regen, health_regen]
 value_kind: REGEN
 target_type: RESOURCE
 target_id: health

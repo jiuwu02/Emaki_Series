@@ -8,6 +8,7 @@ depend:
 softdepend:
   - MythicMobs
   - PlaceholderAPI
+  - MMOItems
 commands:
   emakiattribute:
     aliases: [eattr, ea, attr]

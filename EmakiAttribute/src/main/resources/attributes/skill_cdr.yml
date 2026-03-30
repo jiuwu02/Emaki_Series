@@ -1,6 +1,5 @@
 id: skill_cdr
 display_name: "技能冷却缩减"
-aliases: [cdr, cooldown_reduction]
 value_kind: PERCENT
 target_type: SKILL
 target_id: cdr

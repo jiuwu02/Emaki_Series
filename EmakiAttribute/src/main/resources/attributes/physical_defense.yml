@@ -1,6 +1,5 @@
 id: physical_defense
 display_name: "物理防御"
-aliases: [phys_def, physical_resistance, physical_armor]
 value_kind: FLAT
 target_type: DAMAGE
 target_id: physical

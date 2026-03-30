@@ -1,6 +1,5 @@
 id: spell_crit_rate
 display_name: "法术暴击率"
-aliases: [spell_crit, magic_crit_rate, magic_crit_chance]
 value_kind: CHANCE
 target_type: DAMAGE
 target_id: spell

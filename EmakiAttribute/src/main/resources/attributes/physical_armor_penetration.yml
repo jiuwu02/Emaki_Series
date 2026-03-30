@@ -1,6 +1,5 @@
 id: physical_armor_penetration
 display_name: "物理护甲穿透"
-aliases: [physical_penetration, phys_pen, armor_penetration]
 value_kind: PERCENT
 target_type: DAMAGE
 target_id: physical

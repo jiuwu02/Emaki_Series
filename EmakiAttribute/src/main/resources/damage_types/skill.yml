@@ -26,8 +26,8 @@ stages:
 recovery:
   source: ATTACKER
   resistance_source: TARGET
-  flat_attributes: [flat_lifesteal]
-  percent_attributes: [percent_lifesteal]
+  flat_attributes: [percentage_lifesteal]
+  percent_attributes: [lifesteal]
   resistance_attributes: [lifesteal_resistance]
 attacker_message: "<gray>[<gold>{damage_type}</gold>]</gray> <green>你对 <white>{target}</white> 造成了 <yellow>{final_damage}</yellow> 点伤害</green>{critical_suffix}"
 target_message: "<gray>[<gold>{damage_type}</gold>]</gray> <red>{attacker}</red> 对你造成了 <yellow>{final_damage}</yellow> 点伤害{critical_suffix}"
