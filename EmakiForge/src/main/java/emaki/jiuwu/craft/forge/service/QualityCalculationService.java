@@ -2,16 +2,23 @@ package emaki.jiuwu.craft.forge.service;
 
 import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.forge.model.ForgeMaterial;
+import emaki.jiuwu.craft.forge.model.GuiItems;
 import emaki.jiuwu.craft.forge.model.QualitySettings;
 import emaki.jiuwu.craft.forge.model.Recipe;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 final class QualityCalculationService {
 
-    record QualityRollPlan(QualitySettings.QualityTier tier, String qualityName, double multiplier) {
+    record QualityRollPlan(QualitySettings.QualityTier rolledTier,
+                           QualitySettings.QualityTier finalTier,
+                           boolean forceApplied,
+                           String qualityName,
+                           double multiplier) {
     }
 
     interface GuaranteeCounterStore {
@@ -27,37 +34,46 @@ final class QualityCalculationService {
 
     private final Supplier<QualitySettings> qualitySettingsSupplier;
     private final GuaranteeCounterStore guaranteeCounterStore;
+    private final Function<GuiItems, List<ForgeMaterial.QualityModifier>> materialQualityModifierResolver;
+    private final ForgeQualityModifierResolver qualityModifierResolver = new ForgeQualityModifierResolver();
 
     QualityCalculationService(Supplier<QualitySettings> qualitySettingsSupplier,
-                              GuaranteeCounterStore guaranteeCounterStore) {
+                              GuaranteeCounterStore guaranteeCounterStore,
+                              Function<GuiItems, List<ForgeMaterial.QualityModifier>> materialQualityModifierResolver) {
         this.qualitySettingsSupplier = qualitySettingsSupplier;
         this.guaranteeCounterStore = guaranteeCounterStore;
+        this.materialQualityModifierResolver = materialQualityModifierResolver;
     }
 
-    QualityRollPlan resolveQualityRoll(UUID playerId, Recipe recipe, String rollKey) {
+    QualityRollPlan resolveQualityRoll(UUID playerId, Recipe recipe, GuiItems guiItems, String rollKey) {
         QualitySettings settings = settings();
         Recipe.QualityConfig qualityConfig = recipe == null ? Recipe.QualityConfig.defaults() : recipe.quality();
         List<QualitySettings.QualityTier> tiers = resolveQualityPool(qualityConfig, settings);
+        List<ForgeMaterial.QualityModifier> materialModifiers = resolveMaterialQualityModifiers(guiItems);
+        boolean forceApplied = qualityModifierResolver.hasForceModifier(materialModifiers);
         GuaranteePolicy guaranteePolicy = resolveGuaranteePolicy(qualityConfig, settings);
-        if (guaranteePolicy.enabled() && playerId != null && recipe != null) {
+        QualitySettings.QualityTier rolled;
+        if (!forceApplied && guaranteePolicy.enabled() && playerId != null && recipe != null) {
             int counter = guaranteeCounterStore.counter(playerId, recipe.id());
             if (counter >= guaranteePolicy.threshold() - 1) {
                 QualitySettings.QualityTier guaranteed = findMinimumTier(qualityConfig.customPool(), guaranteePolicy.minimumName());
                 if (guaranteed == null) {
                     guaranteed = settings.minimumTier();
                 }
-                return new QualityRollPlan(guaranteed, guaranteed.name(), guaranteed.multiplier());
+                QualitySettings.QualityTier resolved = qualityModifierResolver.applyModifiers(settings, guaranteed, materialModifiers);
+                return new QualityRollPlan(guaranteed, resolved, false, resolved.name(), resolved.multiplier());
             }
         }
-        QualitySettings.QualityTier rolled = deterministicWeightedTier(tiers, rollKey);
+        rolled = deterministicWeightedTier(tiers, rollKey);
         if (rolled == null) {
             rolled = settings.defaultTier();
         }
-        return new QualityRollPlan(rolled, rolled.name(), rolled.multiplier());
+        QualitySettings.QualityTier resolved = qualityModifierResolver.applyModifiers(settings, rolled, materialModifiers);
+        return new QualityRollPlan(rolled, resolved, forceApplied, resolved.name(), resolved.multiplier());
     }
 
-    void applyGuaranteeOutcome(UUID playerId, Recipe recipe, QualitySettings.QualityTier rolledTier) {
-        if (playerId == null || recipe == null || rolledTier == null) {
+    void applyGuaranteeOutcome(UUID playerId, Recipe recipe, QualitySettings.QualityTier rolledTier, boolean forceApplied) {
+        if (playerId == null || recipe == null || rolledTier == null || forceApplied) {
             return;
         }
         QualitySettings settings = settings();
@@ -113,6 +129,13 @@ final class QualityCalculationService {
             minimum = settings.minimumTier().name();
         }
         return new GuaranteePolicy(enabled, Math.max(1, threshold), minimum);
+    }
+
+    private List<ForgeMaterial.QualityModifier> resolveMaterialQualityModifiers(GuiItems guiItems) {
+        List<ForgeMaterial.QualityModifier> modifiers = materialQualityModifierResolver == null
+            ? List.of()
+            : materialQualityModifierResolver.apply(guiItems);
+        return modifiers == null ? List.of() : List.copyOf(modifiers);
     }
 
     private QualitySettings.QualityTier deterministicWeightedTier(List<QualitySettings.QualityTier> tiers, String rollKey) {

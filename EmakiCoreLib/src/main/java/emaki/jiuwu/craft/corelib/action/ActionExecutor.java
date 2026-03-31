@@ -41,7 +41,7 @@ public final class ActionExecutor {
     public CompletableFuture<ActionResult> execute(ActionContext context, String actionId, Map<String, String> arguments) {
         Action action = registry.get(actionId);
         if (action == null) {
-            return CompletableFuture.completedFuture(ActionResult.failure(ActionErrorType.ACTION_NOT_FOUND, "Action not found: " + actionId));
+            return CompletableFuture.completedFuture(missingActionResult(actionId));
         }
         Map<String, String> resolved = resolveArguments(context, arguments);
         ActionResult validation = action.validate(resolved);
@@ -133,10 +133,10 @@ public final class ActionExecutor {
             }
         }
         Map<String, String> resolved = resolveArguments(context, parsed.arguments());
-        if ("use_template".equals(parsed.actionId())) {
+        if ("usetemplate".equals(parsed.actionId())) {
             Action action = registry.get(parsed.actionId());
             if (action == null) {
-                return CompletableFuture.completedFuture(ActionResult.failure(ActionErrorType.ACTION_NOT_FOUND, "Action not found: " + parsed.actionId()));
+                return CompletableFuture.completedFuture(missingActionResult(parsed.actionId()));
             }
             ActionResult validation = action.validate(resolved);
             if (!validation.success()) {
@@ -152,7 +152,7 @@ public final class ActionExecutor {
     private ActionResult executeAction(ActionContext context, String actionId, Map<String, String> resolved) {
         Action action = registry.get(actionId);
         if (action == null) {
-            return ActionResult.failure(ActionErrorType.ACTION_NOT_FOUND, "Action not found: " + actionId);
+            return missingActionResult(actionId);
         }
         ActionResult validation = action.validate(resolved);
         if (!validation.success()) {
@@ -188,6 +188,14 @@ public final class ActionExecutor {
 
     private String resolveValue(ActionContext context, String raw) {
         return Texts.isBlank(raw) ? raw : placeholderRegistry.resolve(context, raw);
+    }
+
+    private ActionResult missingActionResult(String actionId) {
+        String normalized = Texts.toStringSafe(actionId).replace("_", "");
+        if (!normalized.equals(actionId) && registry.get(normalized) != null) {
+            return ActionResult.failure(ActionErrorType.ACTION_NOT_FOUND, "Action not found: " + actionId + ". Use '" + normalized + "' instead.");
+        }
+        return ActionResult.failure(ActionErrorType.ACTION_NOT_FOUND, "Action not found: " + actionId);
     }
 
     private LogMessages messages() {

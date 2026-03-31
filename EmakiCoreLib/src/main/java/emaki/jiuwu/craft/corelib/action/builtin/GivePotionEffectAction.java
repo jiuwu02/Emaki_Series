@@ -14,7 +14,7 @@ public final class GivePotionEffectAction extends BaseAction {
 
     public GivePotionEffectAction() {
         super(
-            "give_potion_effect",
+            "givepotioneffect",
             "player",
             "Give potion effect.",
             ActionParameter.required("type", ActionParameterType.STRING, "Effect type"),

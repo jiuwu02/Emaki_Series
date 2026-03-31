@@ -25,6 +25,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
 import org.bukkit.event.entity.EntityDamageEvent;
@@ -381,6 +382,7 @@ final class DamageCalculationService {
                 + ", targetAbsorptionBefore=" + formatNumber(absorptionBefore)
                 + ", visualSource=" + entityDebugLabel(visualSource));
         applyDirectDamage(target, remainingDamage, visualSource);
+        applyAggroTarget(target, damageContext.attacker());
         int cooldownTicks = 0;
         if (damageContext.attacker() instanceof Player player) {
             cooldownTicks = service.startAttackCooldown(player, damageContext.attackerSnapshot(), player.getInventory().getItemInMainHand());
@@ -393,6 +395,16 @@ final class DamageCalculationService {
                 + ", targetAbsorptionAfter=" + formatNumber(target.getAbsorptionAmount())
                 + ", attackerCooldownTicks=" + cooldownTicks);
         return remainingDamage > 0D || appliedDamage > 0D;
+    }
+
+    private void applyAggroTarget(LivingEntity target, LivingEntity attacker) {
+        if (!(target instanceof Mob mob) || attacker == null || !attacker.isValid() || attacker.isDead()
+            || !target.isValid() || target.isDead() || target.getUniqueId().equals(attacker.getUniqueId())) {
+            return;
+        }
+        mob.setAware(true);
+        mob.setAggressive(true);
+        mob.setTarget(attacker);
     }
 
     private void applyDirectDamage(LivingEntity target, double damage, Entity visualSource) {
@@ -409,17 +421,25 @@ final class DamageCalculationService {
         }
         target.setLastDamage(damage);
         if (remainingDamage <= 0D) {
-            if (visualSource != null) {
-                target.playHurtAnimation(visualSource.getLocation().getYaw());
-            }
+            playSyntheticImpact(target, visualSource);
             return;
         }
         double currentHealth = Math.max(0D, target.getHealth());
         double nextHealth = Math.max(0D, currentHealth - remainingDamage);
         target.setHealth(nextHealth);
         if (nextHealth > 0D) {
-            float yaw = visualSource == null ? 0F : visualSource.getLocation().getYaw();
-            target.playHurtAnimation(yaw);
+            playSyntheticImpact(target, visualSource);
+        }
+    }
+
+    private void playSyntheticImpact(LivingEntity target, Entity visualSource) {
+        if (target == null || !target.isValid() || target.isDead()) {
+            return;
+        }
+        float yaw = visualSource == null ? target.getLocation().getYaw() : visualSource.getLocation().getYaw();
+        target.playHurtAnimation(yaw);
+        if (service.config().syntheticHitHurtSound() && target.getHurtSound() != null) {
+            target.getWorld().playSound(target, target.getHurtSound(), 1F, 1F);
         }
     }
 

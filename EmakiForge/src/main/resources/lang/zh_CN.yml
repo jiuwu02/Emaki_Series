@@ -1,8 +1,8 @@
 # Emaki Forge 中文语言文件
-# 版本: 1.1
+# 版本: 1.2
 
 # 语言文件版本号 (请勿修改)
-lang_version: "1.1"
+lang_version: "1.2"
 
 # 通用消息
 general:
@@ -103,6 +103,11 @@ console:
   forge_phase_failed: "<yellow>锻造阶段失败: 阶段 <red>{phase}</red>，配方 <red>{recipe}</red> <gray>({reason})</gray></yellow>"
   forge_quality_execution_failed: "<yellow>品质动作执行失败: 品质 <red>{tier}</red> <gray>({error})</gray></yellow>"
   forge_quality_failed: "<yellow>品质动作失败: 品质 <red>{tier}</red> <gray>({reason})</gray></yellow>"
+  forge_refresh_failed: "<yellow>刷新锻造物品失败: 配方 <red>{recipe}</red></yellow>"
+  forge_refresh_invalid_audit: "<yellow>检测到无法刷新的锻造审计数据: <red>{reason}</red></yellow>"
+  forge_refresh_missing_recipe: "<yellow>刷新锻造物品时未找到配方: <red>{recipe}</red></yellow>"
+  forge_refresh_missing_material: "<yellow>刷新锻造物品时未找到材料: 配方 <red>{recipe}</red>，材料 <red>{material}</red></yellow>"
+  forge_refresh_invalid_quality: "<yellow>刷新锻造物品时发现无效品质: 配方 <red>{recipe}</red>，品质 <red>{quality}</red></yellow>"
   pdc_write_skipped_primary_thread: "<yellow>跳过锻造 PDC 写入: 不在主线程。</yellow>"
   pdc_write_failed: "<yellow>写入锻造 PDC 数据失败: 配方 <red>{recipe}</red> <gray>({error})</gray></yellow>"
   pdc_corrupted_data_detected: "<yellow>检测到损坏的锻造 PDC 数据: <red>{reason}</red></yellow>"

@@ -13,7 +13,7 @@ public final class PlaySoundAction extends BaseAction {
 
     public PlaySoundAction() {
         super(
-            "play_sound",
+            "playsound",
             "feedback",
             "Play a sound.",
             ActionParameter.required("sound", ActionParameterType.STRING, "Sound key"),

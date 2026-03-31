@@ -7,7 +7,7 @@ import java.util.Map;
 public final class ClearPotionEffectsAction extends BaseAction {
 
     public ClearPotionEffectsAction() {
-        super("clear_potion_effects", "player", "Clear all potion effects.");
+        super("clearpotioneffects", "player", "Clear all potion effects.");
     }
 
     @Override

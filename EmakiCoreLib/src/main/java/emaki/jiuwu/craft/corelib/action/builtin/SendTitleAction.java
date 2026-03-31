@@ -14,7 +14,7 @@ public final class SendTitleAction extends BaseAction {
 
     public SendTitleAction() {
         super(
-            "send_title",
+            "sendtitle",
             "message",
             "Send a title.",
             ActionParameter.required("title", ActionParameterType.STRING, "Title"),

@@ -11,7 +11,7 @@ import org.bukkit.Bukkit;
 public final class BroadcastMessageAction extends BaseAction {
 
     public BroadcastMessageAction() {
-        super("broadcast_message", "message", "Broadcast a MiniMessage chat message.", ActionParameter.required("text", ActionParameterType.STRING, "Message text"));
+        super("broadcastmessage", "message", "Broadcast a MiniMessage chat message.", ActionParameter.required("text", ActionParameterType.STRING, "Message text"));
     }
 
     @Override

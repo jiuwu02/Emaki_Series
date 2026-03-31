@@ -9,7 +9,7 @@ import org.bukkit.Bukkit;
 public final class RunCommandAsOpAction extends AbstractCommandAction {
 
     public RunCommandAsOpAction() {
-        super("run_command_as_op", "Run command as temporary operator.");
+        super("runcommandasop", "Run command as temporary operator.");
     }
 
     @Override

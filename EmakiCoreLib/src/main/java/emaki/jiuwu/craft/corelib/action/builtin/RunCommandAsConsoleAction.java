@@ -9,7 +9,7 @@ import org.bukkit.Bukkit;
 public final class RunCommandAsConsoleAction extends AbstractCommandAction {
 
     public RunCommandAsConsoleAction() {
-        super("run_command_as_console", "Run command as console.");
+        super("runcommandasconsole", "Run command as console.");
     }
 
     @Override

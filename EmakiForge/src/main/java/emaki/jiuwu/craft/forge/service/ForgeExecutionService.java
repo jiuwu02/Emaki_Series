@@ -68,7 +68,12 @@ final class ForgeExecutionService {
                     return result;
                 }
                 if (player != null) {
-                    qualityCalculationService.applyGuaranteeOutcome(player.getUniqueId(), recipe, forgePlan.qualityTier());
+                    qualityCalculationService.applyGuaranteeOutcome(
+                        player.getUniqueId(),
+                        recipe,
+                        forgePlan.rolledQualityTier(),
+                        forgePlan.forceQualityApplied()
+                    );
                     craftRecorder.record(player.getUniqueId(), recipe.id());
                 }
                 result.setSuccess(true);

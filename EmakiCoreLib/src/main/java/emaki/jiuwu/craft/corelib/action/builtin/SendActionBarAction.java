@@ -10,7 +10,7 @@ import java.util.Map;
 public final class SendActionBarAction extends BaseAction {
 
     public SendActionBarAction() {
-        super("send_actionbar", "message", "Send an action bar message.", ActionParameter.required("text", ActionParameterType.STRING, "Action bar text"));
+        super("sendactionbar", "message", "Send an action bar message.", ActionParameter.required("text", ActionParameterType.STRING, "Action bar text"));
     }
 
     @Override

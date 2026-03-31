@@ -9,8 +9,10 @@ import java.util.Map;
 
 public final class UseTemplateAction extends BaseAction {
 
+    public static final String ID = "usetemplate";
+
     public UseTemplateAction() {
-        super("use_template", "template", "Expand a named action template.", ActionParameter.required("name", ActionParameterType.STRING, "Template name"));
+        super(ID, "template", "Expand a named action template.", ActionParameter.required("name", ActionParameterType.STRING, "Template name"));
     }
 
     @Override

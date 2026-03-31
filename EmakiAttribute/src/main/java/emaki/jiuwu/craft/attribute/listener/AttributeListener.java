@@ -163,13 +163,14 @@ public final class AttributeListener implements Listener {
                 event.setCancelled(true);
                 return;
             }
-            event.setCancelled(true);
             ResolvedDamage resolvedDamage = resolveProjectileDamage(event, projectile, target, context);
             if (resolvedDamage == null) {
+                event.setCancelled(true);
                 debugCombat(shootingEntity, target, projectile, "PROJECTILE_RESOLVE_EMPTY",
                     "投射物命中没有得到有效的 EA 伤害结果，命中流程到此结束。");
                 return;
             }
+            event.setCancelled(true);
             debugCombat(shootingEntity, target, projectile, "PROJECTILE_RESOLVED",
                 "投射物命中已解析 EA 伤害: " + describeResolvedDamage(resolvedDamage));
             applySyntheticKnockback(target, projectile, resolvedDamage.finalDamage());
@@ -193,20 +194,21 @@ public final class AttributeListener implements Listener {
             event.setCancelled(true);
             return;
         }
-        event.setCancelled(true);
         ResolvedDamage resolvedDamage = resolveMeleeDamage(event, attacker, target, context);
         if (resolvedDamage == null) {
+            event.setCancelled(true);
             debugCombat(attacker, target, null, "MELEE_RESOLVE_EMPTY",
                 "近战命中没有得到有效的 EA 伤害结果，命中流程到此结束。");
             return;
         }
+        event.setCancelled(true);
         debugCombat(attacker, target, null, "MELEE_RESOLVED",
             "近战命中已解析 EA 伤害: " + describeResolvedDamage(resolvedDamage));
         applySyntheticKnockback(target, damager, resolvedDamage.finalDamage());
         scheduleDamageApplication(() -> {
             debugCombat(attacker, target, null, "MELEE_APPLY",
                 "开始执行下一 tick 的近战 EA 伤害落地。");
-            attributeService.applyResolvedDamage(resolvedDamage, attacker, 0D);
+            attributeService.applyResolvedDamage(resolvedDamage, damager, 0D);
         });
     }
 
@@ -361,10 +363,15 @@ public final class AttributeListener implements Listener {
     }
 
     private void applySyntheticKnockback(LivingEntity target, Entity source, double finalDamage) {
-        if (target == null || source == null || finalDamage <= 0D || !target.isValid() || target.isDead()) {
+        if (target == null || source == null || finalDamage <= 0D || !target.isValid() || target.isDead()
+            || !attributeService.config().syntheticHitKnockback()) {
             return;
         }
-        Vector direction = target.getLocation().toVector().subtract(source.getLocation().toVector());
+        double strength = Math.max(0D, attributeService.config().syntheticHitKnockbackStrength());
+        if (strength <= 0D) {
+            return;
+        }
+        Vector direction = source.getLocation().toVector().subtract(target.getLocation().toVector());
         direction.setY(0D);
         if (direction.lengthSquared() < 1.0E-6D) {
             direction = source.getLocation().getDirection().multiply(-1D).setY(0D);
@@ -373,7 +380,7 @@ public final class AttributeListener implements Listener {
             return;
         }
         direction.normalize();
-        target.knockback(0.4D, direction.getX(), direction.getZ());
+        target.knockback(strength, direction.getX(), direction.getZ());
     }
 
     private void debugCombat(LivingEntity attacker, LivingEntity target, Projectile projectile, String phase, String detail) {

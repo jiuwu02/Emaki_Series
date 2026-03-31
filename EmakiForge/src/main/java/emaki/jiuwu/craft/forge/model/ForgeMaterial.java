@@ -54,6 +54,31 @@ public final class ForgeMaterial {
         }
     }
 
+    public record QualityModifier(String mode, String tier) {
+        public static QualityModifier fromEffect(MaterialEffect effect) {
+            if (effect == null || !"quality_modify".equals(Texts.lower(effect.type()))) {
+                return null;
+            }
+            String mode = Texts.lower(effect.get("mode"));
+            String tier = Texts.toStringSafe(effect.get("tier"));
+            if (Texts.isBlank(tier)) {
+                tier = Texts.toStringSafe(effect.get("quality"));
+            }
+            if (Texts.isBlank(mode) || Texts.isBlank(tier)) {
+                return null;
+            }
+            return new QualityModifier(mode, tier);
+        }
+
+        public boolean forceMode() {
+            return "force".equals(Texts.lower(mode));
+        }
+
+        public boolean minimumMode() {
+            return "minimum".equals(Texts.lower(mode));
+        }
+    }
+
     private final String id;
     private final String displayName;
     private final List<String> description;
@@ -169,6 +194,36 @@ public final class ForgeMaterial {
                 result.add(normalized);
             }
         }
+        return result;
+    }
+
+    public List<QualityModifier> qualityModifiers() {
+        List<QualityModifier> result = new ArrayList<>();
+        for (MaterialEffect effect : effects) {
+            QualityModifier modifier = QualityModifier.fromEffect(effect);
+            if (modifier != null) {
+                result.add(modifier);
+            }
+        }
+        return result;
+    }
+
+    public Map<String, Object> definitionSignatureData() {
+        List<Map<String, Object>> effectData = new ArrayList<>();
+        for (MaterialEffect effect : effects) {
+            if (effect == null) {
+                continue;
+            }
+            Map<String, Object> map = new LinkedHashMap<>();
+            map.put("type", effect.type());
+            map.put("data", effect.data());
+            effectData.add(map);
+        }
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("id", id);
+        result.put("priority", priority);
+        result.put("source", source == null ? "" : ItemSourceUtil.toShorthand(source));
+        result.put("effects", effectData);
         return result;
     }
 

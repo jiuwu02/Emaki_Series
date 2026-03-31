@@ -10,7 +10,7 @@ import java.util.Map;
 public final class SendMessageAction extends BaseAction {
 
     public SendMessageAction() {
-        super("send_message", "message", "Send a MiniMessage chat message.", ActionParameter.required("text", ActionParameterType.STRING, "Message text"));
+        super("sendmessage", "message", "Send a MiniMessage chat message.", ActionParameter.required("text", ActionParameterType.STRING, "Message text"));
     }
 
     @Override

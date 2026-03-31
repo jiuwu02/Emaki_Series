@@ -6,6 +6,7 @@ import emaki.jiuwu.craft.corelib.action.ActionLineParser;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
 import emaki.jiuwu.craft.corelib.action.ActionSyntaxException;
 import emaki.jiuwu.craft.corelib.action.ParsedActionLine;
+import emaki.jiuwu.craft.corelib.action.builtin.UseTemplateAction;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.YamlDirectoryLoader;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
@@ -103,9 +104,11 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
             }
             Action action = coreLib.actionRegistry().get(parsed.actionId());
             if (action == null) {
-                String suggestion = "send_action_bar".equals(parsed.actionId())
-                    ? " 请改用标准操作名 'send_actionbar'."
-                    : "";
+                String suggestion = "";
+                String normalizedActionId = parsed.actionId().replace("_", "");
+                if (!normalizedActionId.equals(parsed.actionId()) && coreLib.actionRegistry().get(normalizedActionId) != null) {
+                    suggestion = " 请改用标准操作名 '" + normalizedActionId + "'.";
+                }
                 forgePlugin.messageService().warning("loader.recipe_unknown_action", Map.of(
                     "action", parsed.actionId(),
                     "recipe", recipe.id(),
@@ -127,7 +130,7 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
                 ));
                 return false;
             }
-            if ("use_template".equals(parsed.actionId())) {
+            if (UseTemplateAction.ID.equals(parsed.actionId())) {
                 String templateName = parsed.arguments().get("name");
                 if (Texts.isBlank(templateName) || coreLib.actionTemplateRegistry().get(templateName) == null) {
                     forgePlugin.messageService().warning("loader.recipe_unknown_action_template", Map.of(

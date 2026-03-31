@@ -13,6 +13,7 @@ import emaki.jiuwu.craft.forge.loader.PlayerDataStore;
 import emaki.jiuwu.craft.forge.loader.RecipeLoader;
 import emaki.jiuwu.craft.forge.service.BootstrapService;
 import emaki.jiuwu.craft.forge.service.ForgeGuiService;
+import emaki.jiuwu.craft.forge.service.ForgeItemRefreshService;
 import emaki.jiuwu.craft.forge.service.ForgeService;
 import emaki.jiuwu.craft.forge.service.ItemIdentifierService;
 import emaki.jiuwu.craft.forge.service.MessageService;
@@ -37,6 +38,7 @@ public class EmakiForgePlugin extends JavaPlugin implements LogMessagesProvider 
     private final ForgeLifecycleCoordinator lifecycleCoordinator = new ForgeLifecycleCoordinator();
     private final ForgeCommandRouter commandRouter = new ForgeCommandRouter(this);
     private final ForgePlayerDataListener playerDataListener = new ForgePlayerDataListener(this);
+    private final ForgeItemRefreshListener itemRefreshListener = new ForgeItemRefreshListener(this);
 
     private AppConfigLoader appConfigLoader;
     private LanguageLoader languageLoader;
@@ -49,6 +51,7 @@ public class EmakiForgePlugin extends JavaPlugin implements LogMessagesProvider 
     private BootstrapService bootstrapService;
     private GuiService guiService;
     private ItemIdentifierService itemIdentifierService;
+    private ForgeItemRefreshService itemRefreshService;
     private ForgeService forgeService;
     private ForgeGuiService forgeGuiService;
     private RecipeBookGuiService recipeBookGuiService;
@@ -92,6 +95,7 @@ public class EmakiForgePlugin extends JavaPlugin implements LogMessagesProvider 
         bootstrapService = components.bootstrapService();
         guiService = components.guiService();
         itemIdentifierService = components.itemIdentifierService();
+        itemRefreshService = components.itemRefreshService();
         forgeService = components.forgeService();
         forgeGuiService = components.forgeGuiService();
         recipeBookGuiService = components.recipeBookGuiService();
@@ -109,6 +113,7 @@ public class EmakiForgePlugin extends JavaPlugin implements LogMessagesProvider 
     private void registerEventHandlers() {
         getServer().getPluginManager().registerEvents(guiService, this);
         getServer().getPluginManager().registerEvents(playerDataListener, this);
+        getServer().getPluginManager().registerEvents(itemRefreshListener, this);
     }
 
     public AppConfigLoader appConfigLoader() {
@@ -157,6 +162,10 @@ public class EmakiForgePlugin extends JavaPlugin implements LogMessagesProvider 
 
     public ItemIdentifierService itemIdentifierService() {
         return itemIdentifierService;
+    }
+
+    public ForgeItemRefreshService itemRefreshService() {
+        return itemRefreshService;
     }
 
     public ForgeService forgeService() {

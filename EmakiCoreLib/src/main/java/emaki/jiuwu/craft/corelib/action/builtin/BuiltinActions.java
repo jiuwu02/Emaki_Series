@@ -16,6 +16,7 @@ public final class BuiltinActions {
         registry.register(new PlaySoundAction());
         registry.register(new SpawnParticleAction());
         registry.register(new GiveMoneyAction(economyManager));
+        registry.register(new GiveCoinsAction(economyManager));
         registry.register(new TakeMoneyAction(economyManager));
         registry.register(new SetMoneyAction(economyManager));
         registry.register(new TeleportAction());

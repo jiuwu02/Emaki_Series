@@ -5,6 +5,7 @@ import emaki.jiuwu.craft.corelib.assembly.EmakiPresentationEntry;
 import emaki.jiuwu.craft.corelib.assembly.EmakiStatContribution;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
+import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.model.ForgeMaterial;
@@ -20,14 +21,6 @@ import org.bukkit.inventory.ItemStack;
 
 final class ForgeLayerSnapshotBuilder {
 
-    private record MaterialContribution(ForgeMaterial material,
-                                        int amount,
-                                        int slot,
-                                        String category,
-                                        int sequence,
-                                        ItemSource source) {
-    }
-
     private final EmakiForgePlugin plugin;
 
     ForgeLayerSnapshotBuilder(EmakiForgePlugin plugin) {
@@ -39,17 +32,74 @@ final class ForgeLayerSnapshotBuilder {
                                              double multiplier,
                                              QualitySettings.QualityTier qualityTier,
                                              long forgedAt) {
-        List<MaterialContribution> materials = collectMaterialContributions(guiItems);
-        List<EmakiStatContribution> stats = buildStatContributions(materials, multiplier);
-        List<EmakiPresentationEntry> presentation = buildPresentationEntries(recipe, materials, qualityTier);
-        Map<String, Object> audit = buildAudit(recipe, materials, qualityTier, multiplier, forgedAt);
+        return buildLayerSnapshot(recipe, collectMaterialContributions(guiItems), multiplier, qualityTier, forgedAt);
+    }
+
+    EmakiItemLayerSnapshot buildLayerSnapshot(Recipe recipe,
+                                              List<ForgeMaterialContribution> materials,
+                                              double multiplier,
+                                              QualitySettings.QualityTier qualityTier,
+                                              long forgedAt) {
+        List<ForgeMaterialContribution> contributions = materials == null ? List.of() : List.copyOf(materials);
+        List<EmakiStatContribution> stats = buildStatContributions(contributions, multiplier);
+        List<EmakiPresentationEntry> presentation = buildPresentationEntries(recipe, contributions, qualityTier);
+        Map<String, Object> audit = buildAudit(recipe, contributions, qualityTier, multiplier, forgedAt);
         return new EmakiItemLayerSnapshot("forge", 1, audit, stats, presentation);
     }
 
-    private List<EmakiStatContribution> buildStatContributions(List<MaterialContribution> materials, double multiplier) {
+    List<ForgeMaterialContribution> collectMaterialContributions(GuiItems guiItems) {
+        List<ForgeMaterialContribution> materials = new ArrayList<>();
+        if (guiItems == null) {
+            return materials;
+        }
+        int sequence = 0;
+        for (Map.Entry<Integer, ItemStack> entry : guiItems.requiredMaterials().entrySet()) {
+            ForgeMaterialContribution contribution = toMaterialContribution(entry.getKey(), entry.getValue(), "required", sequence++);
+            if (contribution != null) {
+                materials.add(contribution);
+            }
+        }
+        for (Map.Entry<Integer, ItemStack> entry : guiItems.optionalMaterials().entrySet()) {
+            ForgeMaterialContribution contribution = toMaterialContribution(entry.getKey(), entry.getValue(), "optional", sequence++);
+            if (contribution != null) {
+                materials.add(contribution);
+            }
+        }
+        materials.sort(Comparator.comparingInt((ForgeMaterialContribution value) -> value.material().priority())
+            .thenComparingInt(ForgeMaterialContribution::sequence));
+        return materials;
+    }
+
+    List<ForgeMaterial.QualityModifier> collectQualityModifiers(List<ForgeMaterialContribution> materials) {
+        List<ForgeMaterial.QualityModifier> result = new ArrayList<>();
+        if (materials == null) {
+            return result;
+        }
+        for (ForgeMaterialContribution material : materials) {
+            if (material == null || material.amount() <= 0) {
+                continue;
+            }
+            result.addAll(material.qualityModifiers());
+        }
+        return result;
+    }
+
+    String buildMaterialsSignature(List<ForgeMaterialContribution> materials) {
+        List<Map<String, Object>> signatureData = new ArrayList<>();
+        if (materials != null) {
+            for (ForgeMaterialContribution material : materials) {
+                if (material != null && material.amount() > 0) {
+                    signatureData.add(material.toSignatureData());
+                }
+            }
+        }
+        return SignatureUtil.stableSignature(signatureData);
+    }
+
+    private List<EmakiStatContribution> buildStatContributions(List<ForgeMaterialContribution> materials, double multiplier) {
         List<EmakiStatContribution> stats = new ArrayList<>();
         int sequence = 0;
-        for (MaterialContribution material : materials) {
+        for (ForgeMaterialContribution material : materials) {
             for (Map.Entry<String, Double> entry : material.material().statContributions().entrySet()) {
                 stats.add(new EmakiStatContribution(
                     entry.getKey(),
@@ -63,7 +113,7 @@ final class ForgeLayerSnapshotBuilder {
     }
 
     private List<EmakiPresentationEntry> buildPresentationEntries(Recipe recipe,
-                                                                  List<MaterialContribution> materials,
+                                                                  List<ForgeMaterialContribution> materials,
                                                                   QualitySettings.QualityTier qualityTier) {
         List<EmakiPresentationEntry> entries = new ArrayList<>();
         int sequence = 0;
@@ -71,7 +121,7 @@ final class ForgeLayerSnapshotBuilder {
             sequence = addNameEntries(entries, recipe.result().nameModifications(), sequence, "recipe_result");
             sequence = addLoreEntries(entries, recipe.result().loreActions(), sequence, "recipe_result");
         }
-        for (MaterialContribution material : materials) {
+        for (ForgeMaterialContribution material : materials) {
             sequence = addNameEntries(entries, material.material().nameModifications(), sequence, material.material().id());
             sequence = addLoreEntries(entries, material.material().loreActions(), sequence, material.material().id());
         }
@@ -180,7 +230,7 @@ final class ForgeLayerSnapshotBuilder {
     }
 
     private Map<String, Object> buildAudit(Recipe recipe,
-                                           List<MaterialContribution> materials,
+                                           List<ForgeMaterialContribution> materials,
                                            QualitySettings.QualityTier qualityTier,
                                            double multiplier,
                                            long forgedAt) {
@@ -189,45 +239,19 @@ final class ForgeLayerSnapshotBuilder {
         audit.put("quality", qualityTier == null ? "" : qualityTier.name());
         audit.put("multiplier", multiplier);
         audit.put("forged_at", forgedAt);
+        audit.put("materials_signature", buildMaterialsSignature(materials));
         if (recipe != null && recipe.result() != null && recipe.result().outputItem() != null) {
             audit.put("output_item", ItemSourceUtil.toShorthand(recipe.result().outputItem()));
         }
         List<Map<String, Object>> materialMaps = new ArrayList<>();
-        for (MaterialContribution material : materials) {
-            Map<String, Object> map = new LinkedHashMap<>();
-            map.put("material_id", material.material().id());
-            map.put("category", material.category());
-            map.put("amount", material.amount());
-            map.put("slot", material.slot());
-            map.put("sequence", material.sequence());
-            map.put("source", material.source() == null ? "" : ItemSourceUtil.toShorthand(material.source()));
-            materialMaps.add(map);
+        for (ForgeMaterialContribution material : materials) {
+            materialMaps.add(material.toAuditMap());
         }
         audit.put("materials", materialMaps);
         return audit;
     }
 
-    private List<MaterialContribution> collectMaterialContributions(GuiItems guiItems) {
-        List<MaterialContribution> materials = new ArrayList<>();
-        int sequence = 0;
-        for (Map.Entry<Integer, ItemStack> entry : guiItems.requiredMaterials().entrySet()) {
-            MaterialContribution contribution = toMaterialContribution(entry.getKey(), entry.getValue(), "required", sequence++);
-            if (contribution != null) {
-                materials.add(contribution);
-            }
-        }
-        for (Map.Entry<Integer, ItemStack> entry : guiItems.optionalMaterials().entrySet()) {
-            MaterialContribution contribution = toMaterialContribution(entry.getKey(), entry.getValue(), "optional", sequence++);
-            if (contribution != null) {
-                materials.add(contribution);
-            }
-        }
-        materials.sort(Comparator.comparingInt((MaterialContribution value) -> value.material().priority())
-            .thenComparingInt(MaterialContribution::sequence));
-        return materials;
-    }
-
-    private MaterialContribution toMaterialContribution(int slot, ItemStack itemStack, String category, int sequence) {
+    private ForgeMaterialContribution toMaterialContribution(int slot, ItemStack itemStack, String category, int sequence) {
         if (itemStack == null) {
             return null;
         }
@@ -236,7 +260,7 @@ final class ForgeLayerSnapshotBuilder {
         if (material == null) {
             return null;
         }
-        return new MaterialContribution(material, itemStack.getAmount(), slot, category, sequence, source);
+        return new ForgeMaterialContribution(material, itemStack.getAmount(), slot, category, sequence, source);
     }
 
     private ForgeMaterial findMaterialBySource(ItemSource source) {

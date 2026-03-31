@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.attribute;
 
+import emaki.jiuwu.craft.attribute.action.AttributeActions;
 import emaki.jiuwu.craft.attribute.bridge.MythicBridge;
 import emaki.jiuwu.craft.attribute.bridge.MmoItemsBridge;
 import emaki.jiuwu.craft.attribute.command.AttributeCommand;
@@ -15,6 +16,7 @@ import emaki.jiuwu.craft.attribute.loader.LoreFormatRegistry;
 import emaki.jiuwu.craft.attribute.papi.AttributePlaceholderExpansion;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
 import emaki.jiuwu.craft.attribute.service.MessageService;
+import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import java.nio.file.Path;
 import org.bukkit.Bukkit;
@@ -71,6 +73,7 @@ public final class EmakiAttributePlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        unregisterCoreLibActions();
         lifecycleCoordinator.shutdown(this, regenTask);
         regenTask = null;
         if (instance == this) {
@@ -117,6 +120,7 @@ public final class EmakiAttributePlugin extends JavaPlugin {
 
     public void reloadPluginState(boolean resyncPlayers) {
         regenTask = lifecycleCoordinator.reload(this, regenTask, resyncPlayers);
+        registerCoreLibActions();
     }
 
     private void applyRuntimeComponents(AttributeRuntimeComponents components) {
@@ -200,5 +204,21 @@ public final class EmakiAttributePlugin extends JavaPlugin {
 
     public AttributePlaceholderExpansion placeholderExpansion() {
         return placeholderExpansion;
+    }
+
+    private void registerCoreLibActions() {
+        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.getInstance();
+        if (coreLibPlugin == null || coreLibPlugin.actionRegistry() == null || attributeService == null) {
+            return;
+        }
+        AttributeActions.registerAll(coreLibPlugin.actionRegistry(), attributeService);
+    }
+
+    private void unregisterCoreLibActions() {
+        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.getInstance();
+        if (coreLibPlugin == null || coreLibPlugin.actionRegistry() == null) {
+            return;
+        }
+        AttributeActions.unregisterAll(coreLibPlugin.actionRegistry());
     }
 }

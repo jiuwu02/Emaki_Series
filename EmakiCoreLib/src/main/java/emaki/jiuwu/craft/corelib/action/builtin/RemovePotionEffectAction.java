@@ -11,7 +11,7 @@ import org.bukkit.potion.PotionEffectType;
 public final class RemovePotionEffectAction extends BaseAction {
 
     public RemovePotionEffectAction() {
-        super("remove_potion_effect", "player", "Remove potion effect.", ActionParameter.required("type", ActionParameterType.STRING, "Effect type"));
+        super("removepotioneffect", "player", "Remove potion effect.", ActionParameter.required("type", ActionParameterType.STRING, "Effect type"));
     }
 
     @Override

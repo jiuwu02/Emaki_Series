@@ -122,33 +122,60 @@ public final class QualitySettings {
     }
 
     public QualityTier defaultTier() {
-        for (QualityTier tier : tiers) {
-            if (Texts.lower(tier.name()).equals(Texts.lower(defaultTier))) {
-                return tier;
-            }
-        }
-        return tiers.get(0);
+        QualityTier tier = findTier(defaultTier);
+        return tier == null ? tiers.get(0) : tier;
     }
 
     public QualityTier minimumTier() {
-        for (QualityTier tier : tiers) {
-            if (Texts.lower(tier.name()).equals(Texts.lower(guaranteeMinimum))) {
-                return tier;
-            }
-        }
-        return defaultTier();
+        QualityTier tier = findTier(guaranteeMinimum);
+        return tier == null ? defaultTier() : tier;
     }
 
-    public QualityTier tierByName(String name) {
+    public QualityTier findTier(String name) {
         if (Texts.isBlank(name)) {
-            return defaultTier();
+            return null;
         }
         for (QualityTier tier : tiers) {
             if (Texts.lower(tier.name()).equals(Texts.lower(name))) {
                 return tier;
             }
         }
-        return defaultTier();
+        return null;
+    }
+
+    public QualityTier tierByName(String name) {
+        QualityTier tier = findTier(name);
+        return tier == null ? defaultTier() : tier;
+    }
+
+    public int tierIndex(String name) {
+        if (Texts.isBlank(name)) {
+            return -1;
+        }
+        for (int index = 0; index < tiers.size(); index++) {
+            if (Texts.lower(tiers.get(index).name()).equals(Texts.lower(name))) {
+                return index;
+            }
+        }
+        return -1;
+    }
+
+    public int tierIndex(QualityTier tier) {
+        return tier == null ? -1 : tierIndex(tier.name());
+    }
+
+    public boolean hasTier(String name) {
+        return tierIndex(name) >= 0;
+    }
+
+    public QualityTier higherTier(QualityTier first, QualityTier second) {
+        if (first == null) {
+            return second;
+        }
+        if (second == null) {
+            return first;
+        }
+        return tierIndex(second) > tierIndex(first) ? second : first;
     }
 
     public List<Map<String, Object>> itemMetaNameModifications(String tierName) {

@@ -12,7 +12,7 @@ import org.bukkit.attribute.AttributeInstance;
 public final class SetHealthAction extends BaseAction {
 
     public SetHealthAction() {
-        super("set_health", "player", "Set player health.", ActionParameter.required("amount", ActionParameterType.DOUBLE, "Amount"));
+        super("sethealth", "player", "Set player health.", ActionParameter.required("amount", ActionParameterType.DOUBLE, "Amount"));
     }
 
     @Override

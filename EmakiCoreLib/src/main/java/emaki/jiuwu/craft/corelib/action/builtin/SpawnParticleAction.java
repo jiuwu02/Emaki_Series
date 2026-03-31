@@ -17,7 +17,7 @@ public final class SpawnParticleAction extends BaseAction {
 
     public SpawnParticleAction() {
         super(
-            "spawn_particle",
+            "spawnparticle",
             "feedback",
             "Spawn particles.",
             ActionParameter.required("particle", ActionParameterType.STRING, "Particle key"),

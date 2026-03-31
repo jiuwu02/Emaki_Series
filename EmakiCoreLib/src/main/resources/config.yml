@@ -17,5 +17,5 @@ action:
   debug: false
   templates:
     # forge_success_common:
-    #   - 'send_message text="<green>成功获得 %forge_result_item_name%</green>"'
-    #   - '@delay=10t play_sound sound=minecraft:entity.experience_orb.pickup volume=0.8 pitch=1.2'
+    #   - 'sendmessage text="<green>成功获得 %forge_result_item_name%</green>"'
+    #   - '@delay=10t playsound sound=minecraft:entity.experience_orb.pickup volume=0.8 pitch=1.2'

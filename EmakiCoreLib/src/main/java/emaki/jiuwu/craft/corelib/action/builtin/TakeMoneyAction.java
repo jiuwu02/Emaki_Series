@@ -8,7 +8,7 @@ import java.util.Map;
 public final class TakeMoneyAction extends AbstractMoneyAction {
 
     public TakeMoneyAction(EconomyManager economyManager) {
-        super("take_money", economyManager, "Take money.");
+        super("takemoney", economyManager, "Take money.");
     }
 
     @Override

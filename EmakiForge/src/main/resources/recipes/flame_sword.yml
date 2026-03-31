@@ -63,14 +63,14 @@ result:
   output_item:
     item: "ni-flame_sword"
   action:
-    - 'send_message text="<green>锻造成功! 获得了 %forge_result_item_name%</green>"'
-    - 'play_sound sound=minecraft:block.anvil.use volume=1 pitch=1'
+  - 'sendmessage text="<green>锻造成功! 获得了 %forge_result_item_name%</green>"'
+  - 'playsound sound=minecraft:block.anvil.use volume=1 pitch=1'
 
 action:
   pre:
-    - 'send_actionbar text="<gray>烈焰之力正在熔铸...</gray>"'
+  - 'sendactionbar text="<gray>烈焰之力正在熔铸...</gray>"'
   success: []
   failure:
-    - '@if="%forge_error_key% == forge.error.action_failed" send_message text="<red>锻造前置操作失败: %forge_failure_reason%</red>"'
+  - '@if="%forge_error_key% == forge.error.action_failed" sendmessage text="<red>锻造前置操作失败: %forge_failure_reason%</red>"'
 
 permission: "emakiforge.recipe.flame_sword"

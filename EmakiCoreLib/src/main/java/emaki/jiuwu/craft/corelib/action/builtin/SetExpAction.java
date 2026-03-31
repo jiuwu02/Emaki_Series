@@ -7,7 +7,7 @@ import java.util.Map;
 public final class SetExpAction extends AbstractExperienceAction {
 
     public SetExpAction() {
-        super("set_exp", "Set experience.");
+        super("setexp", "Set experience.");
     }
 
     @Override

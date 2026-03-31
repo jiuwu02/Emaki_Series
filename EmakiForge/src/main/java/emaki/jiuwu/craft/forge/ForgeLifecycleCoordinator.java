@@ -16,6 +16,7 @@ import emaki.jiuwu.craft.forge.loader.PlayerDataStore;
 import emaki.jiuwu.craft.forge.loader.RecipeLoader;
 import emaki.jiuwu.craft.forge.service.BootstrapService;
 import emaki.jiuwu.craft.forge.service.ForgeGuiService;
+import emaki.jiuwu.craft.forge.service.ForgeItemRefreshService;
 import emaki.jiuwu.craft.forge.service.ForgeService;
 import emaki.jiuwu.craft.forge.service.ItemIdentifierService;
 import emaki.jiuwu.craft.forge.service.MessageService;
@@ -42,6 +43,7 @@ final class ForgeLifecycleCoordinator {
         ItemIdentifierService itemIdentifierService = new ItemIdentifierService(plugin);
         registerCoreLibResolvers(itemIdentifierService);
         ForgeService forgeService = new ForgeService(plugin);
+        ForgeItemRefreshService itemRefreshService = new ForgeItemRefreshService(plugin);
         ForgeGuiService forgeGuiService = new ForgeGuiService(plugin, guiService);
         RecipeBookGuiService recipeBookGuiService = new RecipeBookGuiService(plugin, guiService);
         return new ForgeRuntimeComponents(
@@ -56,6 +58,7 @@ final class ForgeLifecycleCoordinator {
             bootstrapService,
             guiService,
             itemIdentifierService,
+            itemRefreshService,
             forgeService,
             forgeGuiService,
             recipeBookGuiService
@@ -77,6 +80,9 @@ final class ForgeLifecycleCoordinator {
         plugin.itemIdentifierService().refresh();
         plugin.forgeService().refreshIndexes();
         validateConfiguredExternalSources(plugin);
+        if (plugin.itemRefreshService() != null) {
+            plugin.itemRefreshService().refreshOnlinePlayers();
+        }
         return rescheduleAutoSave(plugin, currentTask);
     }
 

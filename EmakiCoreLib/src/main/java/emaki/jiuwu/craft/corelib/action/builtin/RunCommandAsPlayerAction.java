@@ -8,7 +8,7 @@ import org.bukkit.Bukkit;
 public final class RunCommandAsPlayerAction extends AbstractCommandAction {
 
     public RunCommandAsPlayerAction() {
-        super("run_command_as_player", "Run command as player.");
+        super("runcommandasplayer", "Run command as player.");
     }
 
     @Override

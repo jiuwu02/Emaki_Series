@@ -13,10 +13,12 @@ import emaki.jiuwu.craft.forge.model.Blueprint;
 import emaki.jiuwu.craft.forge.model.ForgeResult;
 import emaki.jiuwu.craft.forge.model.ForgeMaterial;
 import emaki.jiuwu.craft.forge.model.GuiItems;
+import emaki.jiuwu.craft.forge.model.QualitySettings;
 import emaki.jiuwu.craft.forge.model.Recipe;
 import emaki.jiuwu.craft.forge.model.RecipeMatch;
 import emaki.jiuwu.craft.forge.model.ValidationResult;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -29,6 +31,8 @@ import org.bukkit.inventory.ItemStack;
 public final class ForgeService {
 
     public record PreparedForge(EmakiItemAssemblyRequest request,
+                                QualitySettings.QualityTier rolledQualityTier,
+                                boolean forceQualityApplied,
                                 emaki.jiuwu.craft.forge.model.QualitySettings.QualityTier qualityTier,
                                 String quality,
                                 double multiplier,
@@ -70,7 +74,8 @@ public final class ForgeService {
                 public void reset(UUID playerId, String key) {
                     plugin.playerDataStore().resetGuaranteeCounter(playerId, key);
                 }
-            }
+            },
+            this::resolveMaterialQualityModifiers
         );
         this.recipeMatchingService = new RecipeMatchingService(
             lookupIndex::sortedRecipes,
@@ -100,6 +105,10 @@ public final class ForgeService {
 
     public ForgeMaterial findMaterialBySource(ItemSource source) {
         return lookupIndex.findMaterialBySource(source);
+    }
+
+    public ForgeMaterial findMaterialById(String materialId) {
+        return lookupIndex.findMaterialById(materialId);
     }
 
     public Blueprint findBlueprintBySource(ItemSource source) {
@@ -175,15 +184,24 @@ public final class ForgeService {
         QualityCalculationService.QualityRollPlan rollPlan = qualityCalculationService.resolveQualityRoll(
             player == null ? null : player.getUniqueId(),
             recipe,
+            guiItems,
             buildRollKey(buildPreviewFingerprint(player, recipe, guiItems), previewSeed)
         );
-        EmakiItemAssemblyRequest request = resultItemFactory.buildAssemblyRequest(recipe, guiItems, rollPlan.multiplier(), rollPlan.tier(), forgedAt);
+        EmakiItemAssemblyRequest request = resultItemFactory.buildAssemblyRequest(recipe, guiItems, rollPlan.multiplier(), rollPlan.finalTier(), forgedAt);
         if (request == null) {
             return null;
         }
         EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.getInstance();
         ItemStack previewItem = coreLib == null ? null : coreLib.itemAssemblyService().preview(request);
-        return new PreparedForge(request, rollPlan.tier(), rollPlan.qualityName(), rollPlan.multiplier(), previewItem);
+        return new PreparedForge(
+            request,
+            rollPlan.rolledTier(),
+            rollPlan.forceApplied(),
+            rollPlan.finalTier(),
+            rollPlan.qualityName(),
+            rollPlan.multiplier(),
+            previewItem
+        );
     }
 
     public CompletableFuture<ForgeResult> executeForgeAsync(Player player,
@@ -221,6 +239,31 @@ public final class ForgeService {
 
     public String resolveResultItemName(Recipe recipe, ItemStack itemStack) {
         return resultItemFactory.resolveResultItemName(recipe, itemStack);
+    }
+
+    private List<ForgeMaterial.QualityModifier> resolveMaterialQualityModifiers(GuiItems guiItems) {
+        List<ForgeMaterial.QualityModifier> result = new ArrayList<>();
+        if (guiItems == null) {
+            return result;
+        }
+        appendMaterialQualityModifiers(result, guiItems.requiredMaterials().values());
+        appendMaterialQualityModifiers(result, guiItems.optionalMaterials().values());
+        return result;
+    }
+
+    private void appendMaterialQualityModifiers(List<ForgeMaterial.QualityModifier> result, Collection<ItemStack> items) {
+        if (result == null || items == null) {
+            return;
+        }
+        for (ItemStack itemStack : items) {
+            ForgeMaterial material = itemStack == null
+                ? null
+                : lookupIndex.findMaterialBySource(plugin.itemIdentifierService().identifyItem(itemStack));
+            if (material == null || itemStack.getAmount() <= 0) {
+                continue;
+            }
+            result.addAll(material.qualityModifiers());
+        }
     }
 
     private String replacePlaceholders(Player player, String text) {
