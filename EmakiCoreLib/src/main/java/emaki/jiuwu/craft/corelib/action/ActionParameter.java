@@ -1,12 +1,12 @@
 package emaki.jiuwu.craft.corelib.action;
 
 public record ActionParameter(String name,
-                                 ActionParameterType type,
-                                 boolean required,
-                                 String defaultValue,
-                                 String description) {
+        ActionParameterType type,
+        boolean required,
+        String defaultValue,
+        String description) {
 
-    public ActionParameter {
+    public ActionParameter     {
         type = type == null ? ActionParameterType.STRING : type;
         defaultValue = defaultValue == null ? "" : defaultValue;
         description = description == null ? "" : description;

@@ -1,19 +1,20 @@
 package emaki.jiuwu.craft.attribute.model;
 
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.math.Numbers;
-import emaki.jiuwu.craft.corelib.text.Texts;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 
-public record DefaultProfile(String id,
-                             int priority,
-                             Map<String, ResourceDefinition> resources,
-                             Map<String, Double> attributeDefaults,
-                             String description) {
+import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.math.Numbers;
+import emaki.jiuwu.craft.corelib.text.Texts;
 
-    public DefaultProfile {
+public record DefaultProfile(String id,
+        int priority,
+        Map<String, ResourceDefinition> resources,
+        Map<String, Double> attributeDefaults,
+        String description) {
+
+    public DefaultProfile     {
         id = normalizeId(id);
         resources = resources == null ? Map.of() : Map.copyOf(resources);
         attributeDefaults = attributeDefaults == null ? Map.of() : Map.copyOf(attributeDefaults);
@@ -38,11 +39,11 @@ public record DefaultProfile(String id,
             attributes.put(entry.getKey().toLowerCase(Locale.ROOT), Numbers.tryParseDouble(entry.getValue(), 0D));
         }
         return new DefaultProfile(
-            ConfigNodes.string(raw, "id", "global"),
-            Numbers.tryParseInt(ConfigNodes.get(raw, "priority"), 0),
-            resources,
-            attributes,
-            ConfigNodes.string(raw, "description", null)
+                ConfigNodes.string(raw, "id", "global"),
+                Numbers.tryParseInt(ConfigNodes.get(raw, "priority"), 0),
+                resources,
+                attributes,
+                ConfigNodes.string(raw, "description", null)
         );
     }
 

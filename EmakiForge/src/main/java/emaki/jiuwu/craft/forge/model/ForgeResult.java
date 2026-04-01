@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.forge.model;
 
 import java.util.Map;
+
 import org.bukkit.inventory.ItemStack;
 
 public final class ForgeResult {

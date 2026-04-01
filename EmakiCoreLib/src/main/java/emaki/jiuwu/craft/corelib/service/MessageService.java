@@ -1,8 +1,9 @@
 package emaki.jiuwu.craft.corelib.service;
 
+import java.util.Map;
+
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
-import java.util.Map;
 
 public final class MessageService extends AbstractMessageService {
 

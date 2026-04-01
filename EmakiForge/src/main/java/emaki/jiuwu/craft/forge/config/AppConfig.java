@@ -18,17 +18,17 @@ public final class AppConfig {
     private final int historySaveInterval;
 
     public AppConfig(String language,
-                     String configVersion,
-                     boolean releaseDefaultData,
-                     QualitySettings qualitySettings,
-                     String defaultNumberFormat,
-                     String integerNumberFormat,
-                     String percentageNumberFormat,
-                     boolean opBypass,
-                     boolean invalidAsFailure,
-                     boolean historyEnabled,
-                     boolean historyAutoSave,
-                     int historySaveInterval) {
+            String configVersion,
+            boolean releaseDefaultData,
+            QualitySettings qualitySettings,
+            String defaultNumberFormat,
+            String integerNumberFormat,
+            String percentageNumberFormat,
+            boolean opBypass,
+            boolean invalidAsFailure,
+            boolean historyEnabled,
+            boolean historyAutoSave,
+            int historySaveInterval) {
         this.language = language;
         this.configVersion = configVersion;
         this.releaseDefaultData = releaseDefaultData;
@@ -45,18 +45,18 @@ public final class AppConfig {
 
     public static AppConfig defaults() {
         return new AppConfig(
-            "zh_CN",
-            "1.1",
-            true,
-            QualitySettings.defaults(),
-            "0.##",
-            "0",
-            "0.##%",
-            false,
-            true,
-            true,
-            true,
-            6000
+                "zh_CN",
+                "1.1",
+                true,
+                QualitySettings.defaults(),
+                "0.##",
+                "0",
+                "0.##%",
+                false,
+                true,
+                true,
+                true,
+                6000
         );
     }
 

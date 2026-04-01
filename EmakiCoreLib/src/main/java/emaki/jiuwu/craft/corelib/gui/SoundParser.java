@@ -1,13 +1,15 @@
 package emaki.jiuwu.craft.corelib.gui;
 
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.text.Texts;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
 import org.bukkit.Sound;
+
+import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.text.Texts;
 
 /**
  * Parses and resolves configurable sound definitions.
@@ -15,6 +17,7 @@ import org.bukkit.Sound;
 public final class SoundParser {
 
     public record SoundDefinition(String key, float volume, float pitch) {
+
     }
 
     private SoundParser() {
@@ -31,14 +34,14 @@ public final class SoundParser {
             return parseCompact(text);
         }
         String key = ConfigNodes.string(raw, "sound",
-            ConfigNodes.string(raw, "type", ConfigNodes.string(raw, "key", null)));
+                ConfigNodes.string(raw, "type", ConfigNodes.string(raw, "key", null)));
         if (Texts.isBlank(key)) {
             return null;
         }
         return new SoundDefinition(
-            Texts.trim(key),
-            clampFloat(ConfigNodes.get(raw, "volume"), 1F),
-            clampFloat(ConfigNodes.get(raw, "pitch"), 1F)
+                Texts.trim(key),
+                clampFloat(ConfigNodes.get(raw, "volume"), 1F),
+                clampFloat(ConfigNodes.get(raw, "pitch"), 1F)
         );
     }
 
@@ -62,9 +65,9 @@ public final class SoundParser {
         }
         String key = String.join("-", java.util.Arrays.copyOf(parts, idPartCount));
         return new SoundDefinition(
-            key,
-            volume == null ? 1F : volume,
-            pitch
+                key,
+                volume == null ? 1F : volume,
+                pitch
         );
     }
 

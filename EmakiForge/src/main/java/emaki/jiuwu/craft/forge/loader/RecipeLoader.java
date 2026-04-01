@@ -1,5 +1,13 @@
 package emaki.jiuwu.craft.forge.loader;
 
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.Player;
+
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.action.Action;
 import emaki.jiuwu.craft.corelib.action.ActionLineParser;
@@ -11,12 +19,6 @@ import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.YamlDirectoryLoader;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.model.Recipe;
-import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.entity.Player;
 
 public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
 
@@ -65,23 +67,23 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
         EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.getInstance();
         if (coreLib == null || coreLib.actionRegistry() == null || coreLib.actionTemplateRegistry() == null) {
             forgePlugin.messageService().warning("loader.recipe_action_validation_skipped", Map.of(
-                "file", file.getName()
+                    "file", file.getName()
             ));
             return true;
         }
         ActionLineParser parser = new ActionLineParser();
         return validatePhase(file, recipe, "pre", recipe.action().pre(), parser, coreLib)
-            && validatePhase(file, recipe, "result", recipe.result() == null ? List.of() : recipe.result().action(), parser, coreLib)
-            && validatePhase(file, recipe, "success", recipe.action().success(), parser, coreLib)
-            && validatePhase(file, recipe, "failure", recipe.action().failure(), parser, coreLib);
+                && validatePhase(file, recipe, "result", recipe.result() == null ? List.of() : recipe.result().action(), parser, coreLib)
+                && validatePhase(file, recipe, "success", recipe.action().success(), parser, coreLib)
+                && validatePhase(file, recipe, "failure", recipe.action().failure(), parser, coreLib);
     }
 
     private boolean validatePhase(File file,
-                                  Recipe recipe,
-                                  String phase,
-                                  List<String> lines,
-                                  ActionLineParser parser,
-                                  EmakiCoreLibPlugin coreLib) {
+            Recipe recipe,
+            String phase,
+            List<String> lines,
+            ActionLineParser parser,
+            EmakiCoreLibPlugin coreLib) {
         if (lines == null || lines.isEmpty()) {
             return true;
         }
@@ -91,11 +93,11 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
                 parsed = parser.parse(index + 1, lines.get(index));
             } catch (ActionSyntaxException exception) {
                 forgePlugin.messageService().warning("loader.recipe_invalid_action_syntax", Map.of(
-                    "recipe", recipe.id(),
-                    "file", file.getName(),
-                    "phase", phase,
-                    "line", index + 1,
-                    "error", String.valueOf(exception.getMessage())
+                        "recipe", recipe.id(),
+                        "file", file.getName(),
+                        "phase", phase,
+                        "line", index + 1,
+                        "error", String.valueOf(exception.getMessage())
                 ));
                 return false;
             }
@@ -110,23 +112,23 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
                     suggestion = " 请改用标准操作名 '" + normalizedActionId + "'.";
                 }
                 forgePlugin.messageService().warning("loader.recipe_unknown_action", Map.of(
-                    "action", parsed.actionId(),
-                    "recipe", recipe.id(),
-                    "file", file.getName(),
-                    "phase", phase,
-                    "line", parsed.lineNumber(),
-                    "suggestion", suggestion
+                        "action", parsed.actionId(),
+                        "recipe", recipe.id(),
+                        "file", file.getName(),
+                        "phase", phase,
+                        "line", parsed.lineNumber(),
+                        "suggestion", suggestion
                 ));
                 return false;
             }
             ActionResult validation = action.validate(parsed.arguments());
             if (!validation.success()) {
                 forgePlugin.messageService().warning("loader.recipe_invalid_action_arguments", Map.of(
-                    "recipe", recipe.id(),
-                    "file", file.getName(),
-                    "phase", phase,
-                    "line", parsed.lineNumber(),
-                    "error", Texts.toStringSafe(validation.errorMessage())
+                        "recipe", recipe.id(),
+                        "file", file.getName(),
+                        "phase", phase,
+                        "line", parsed.lineNumber(),
+                        "error", Texts.toStringSafe(validation.errorMessage())
                 ));
                 return false;
             }
@@ -134,11 +136,11 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
                 String templateName = parsed.arguments().get("name");
                 if (Texts.isBlank(templateName) || coreLib.actionTemplateRegistry().get(templateName) == null) {
                     forgePlugin.messageService().warning("loader.recipe_unknown_action_template", Map.of(
-                        "template", templateName,
-                        "recipe", recipe.id(),
-                        "file", file.getName(),
-                        "phase", phase,
-                        "line", parsed.lineNumber()
+                            "template", templateName,
+                            "recipe", recipe.id(),
+                            "file", file.getName(),
+                            "phase", phase,
+                            "line", parsed.lineNumber()
                     ));
                     return false;
                 }

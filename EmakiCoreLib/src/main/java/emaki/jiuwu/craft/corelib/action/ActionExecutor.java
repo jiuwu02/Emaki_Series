@@ -1,18 +1,19 @@
 package emaki.jiuwu.craft.corelib.action;
 
-import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
-import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRegistry;
-import emaki.jiuwu.craft.corelib.text.LogMessages;
-import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
-import emaki.jiuwu.craft.corelib.text.Texts;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
-import org.bukkit.Bukkit;
+
 import org.bukkit.plugin.Plugin;
+
+import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
+import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRegistry;
+import emaki.jiuwu.craft.corelib.text.LogMessages;
+import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
+import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class ActionExecutor {
 
@@ -25,10 +26,10 @@ public final class ActionExecutor {
     private final ActionDispatchScheduler dispatchScheduler;
 
     public ActionExecutor(Plugin plugin,
-                             ActionRegistry registry,
-                             ActionLineParser lineParser,
-                             PlaceholderRegistry placeholderRegistry,
-                             ActionTemplateRegistry templateRegistry) {
+            ActionRegistry registry,
+            ActionLineParser lineParser,
+            PlaceholderRegistry placeholderRegistry,
+            ActionTemplateRegistry templateRegistry) {
         this.plugin = plugin;
         this.registry = registry;
         this.lineParser = lineParser;
@@ -49,9 +50,9 @@ public final class ActionExecutor {
             return CompletableFuture.completedFuture(validation);
         }
         return ActionFutureSupport.withTimeout(
-            context,
-            actionId,
-            dispatchScheduler.dispatch(0L, () -> safeExecute(context, action, resolved))
+                context,
+                actionId,
+                dispatchScheduler.dispatch(0L, () -> safeExecute(context, action, resolved))
         );
     }
 
@@ -63,11 +64,11 @@ public final class ActionExecutor {
     }
 
     private void executeIndex(ActionContext context,
-                              List<String> lines,
-                              boolean stopOnFailure,
-                              int index,
-                              List<ActionStepResult> steps,
-                              CompletableFuture<ActionBatchResult> future) {
+            List<String> lines,
+            boolean stopOnFailure,
+            int index,
+            List<ActionStepResult> steps,
+            CompletableFuture<ActionBatchResult> future) {
         if (index >= lines.size()) {
             future.complete(new ActionBatchResult(true, List.copyOf(steps)));
             return;
@@ -77,10 +78,10 @@ public final class ActionExecutor {
             parsed = lineParser.parse(index + 1, lines.get(index));
         } catch (ActionSyntaxException exception) {
             ActionStepResult step = new ActionStepResult(
-                exception.lineNumber(),
-                exception.rawLine(),
-                "",
-                ActionResult.failure(ActionErrorType.SYNTAX_ERROR, exception.getMessage())
+                    exception.lineNumber(),
+                    exception.rawLine(),
+                    "",
+                    ActionResult.failure(ActionErrorType.SYNTAX_ERROR, exception.getMessage())
             );
             steps.add(step);
             future.complete(new ActionBatchResult(false, List.copyOf(steps)));
@@ -92,8 +93,8 @@ public final class ActionExecutor {
         }
         executeParsed(context, parsed).whenComplete((result, throwable) -> {
             ActionResult finalResult = throwable == null
-                ? result
-                : ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, throwable.getMessage());
+                    ? result
+                    : ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, throwable.getMessage());
             steps.add(new ActionStepResult(parsed.lineNumber(), parsed.rawLine(), parsed.actionId(), finalResult));
             if (!finalResult.success() && !parsed.control().ignoreFailure() && stopOnFailure) {
                 future.complete(new ActionBatchResult(false, List.copyOf(steps)));
@@ -143,7 +144,7 @@ public final class ActionExecutor {
                 return CompletableFuture.completedFuture(validation);
             }
             return dispatchScheduler.dispatch(delay, () -> null)
-                .thenCompose(ignored -> templateProcessor.execute(context, resolved, (nextContext, lines) -> executeAll(nextContext, lines, true)));
+                    .thenCompose(ignored -> templateProcessor.execute(context, resolved, (nextContext, lines) -> executeAll(nextContext, lines, true)));
         }
         CompletableFuture<ActionResult> future = dispatchScheduler.dispatch(delay, () -> executeAction(context, parsed.actionId(), resolved));
         return delay > 0L ? future : ActionFutureSupport.withTimeout(context, parsed.actionId(), future);
@@ -168,8 +169,8 @@ public final class ActionExecutor {
             LogMessages messages = messages();
             if (messages != null) {
                 messages.warning("action.execute_failed", Map.of(
-                    "action", action.id(),
-                    "error", Texts.toStringSafe(exception.getMessage())
+                        "action", action.id(),
+                        "error", Texts.toStringSafe(exception.getMessage())
                 ));
             }
             return ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, exception.getMessage());

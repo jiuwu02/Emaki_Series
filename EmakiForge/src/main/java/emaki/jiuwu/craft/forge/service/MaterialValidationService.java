@@ -1,13 +1,5 @@
 package emaki.jiuwu.craft.forge.service;
 
-import emaki.jiuwu.craft.corelib.item.ItemSource;
-import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.forge.EmakiForgePlugin;
-import emaki.jiuwu.craft.forge.model.Blueprint;
-import emaki.jiuwu.craft.forge.model.ForgeMaterial;
-import emaki.jiuwu.craft.forge.model.GuiItems;
-import emaki.jiuwu.craft.forge.model.Recipe;
-import emaki.jiuwu.craft.forge.model.ValidationResult;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -16,17 +8,29 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.ToIntFunction;
+
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
+
+import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.forge.EmakiForgePlugin;
+import emaki.jiuwu.craft.forge.model.Blueprint;
+import emaki.jiuwu.craft.forge.model.ForgeMaterial;
+import emaki.jiuwu.craft.forge.model.GuiItems;
+import emaki.jiuwu.craft.forge.model.Recipe;
+import emaki.jiuwu.craft.forge.model.ValidationResult;
 
 final class MaterialValidationService {
 
     private record MaterialPoolEntry(String materialId, ForgeMaterial material, ItemStack item, int remaining) {
+
     }
 
     private record NormalizedGuiItems(List<ItemStack> blueprints,
-                                      Map<String, ItemStack> requiredMaterials,
-                                      Map<String, ItemStack> optionalMaterials) {
+            Map<String, ItemStack> requiredMaterials,
+            Map<String, ItemStack> optionalMaterials) {
+
     }
 
     private final Function<ItemStack, ItemSource> itemIdentifier;
@@ -39,30 +43,30 @@ final class MaterialValidationService {
 
     MaterialValidationService(EmakiForgePlugin plugin, ForgeLookupIndex lookupIndex) {
         this(
-            itemStack -> plugin.itemIdentifierService() == null ? null : plugin.itemIdentifierService().identifyItem(itemStack),
-            lookupIndex::findMaterialBySource,
-            lookupIndex::findBlueprintBySource,
-            tag -> plugin.blueprintLoader() == null ? List.of() : plugin.blueprintLoader().getByTag(tag),
-            itemStack -> itemStack == null || itemStack.getType() == Material.AIR,
-            itemStack -> itemStack == null ? 0 : itemStack.getAmount(),
-            (itemStack, amount) -> {
-                if (itemStack == null) {
-                    return null;
+                itemStack -> plugin.itemIdentifierService() == null ? null : plugin.itemIdentifierService().identifyItem(itemStack),
+                lookupIndex::findMaterialBySource,
+                lookupIndex::findBlueprintBySource,
+                tag -> plugin.blueprintLoader() == null ? List.of() : plugin.blueprintLoader().getByTag(tag),
+                itemStack -> itemStack == null || itemStack.getType() == Material.AIR,
+                itemStack -> itemStack == null ? 0 : itemStack.getAmount(),
+                (itemStack, amount) -> {
+                    if (itemStack == null) {
+                        return null;
+                    }
+                    ItemStack clone = itemStack.clone();
+                    clone.setAmount(amount);
+                    return clone;
                 }
-                ItemStack clone = itemStack.clone();
-                clone.setAmount(amount);
-                return clone;
-            }
         );
     }
 
     MaterialValidationService(Function<ItemStack, ItemSource> itemIdentifier,
-                              Function<ItemSource, ForgeMaterial> materialResolver,
-                              Function<ItemSource, Blueprint> blueprintResolver,
-                              Function<String, List<Blueprint>> blueprintTagResolver,
-                              Predicate<ItemStack> emptyItemChecker,
-                              ToIntFunction<ItemStack> amountReader,
-                              BiFunction<ItemStack, Integer, ItemStack> amountCloneFactory) {
+            Function<ItemSource, ForgeMaterial> materialResolver,
+            Function<ItemSource, Blueprint> blueprintResolver,
+            Function<String, List<Blueprint>> blueprintTagResolver,
+            Predicate<ItemStack> emptyItemChecker,
+            ToIntFunction<ItemStack> amountReader,
+            BiFunction<ItemStack, Integer, ItemStack> amountCloneFactory) {
         this.itemIdentifier = itemIdentifier;
         this.materialResolver = materialResolver;
         this.blueprintResolver = blueprintResolver;
@@ -198,9 +202,9 @@ final class MaterialValidationService {
     }
 
     private void reserveBlueprints(Map<String, Object> selector,
-                                   int count,
-                                   Map<String, Integer> available,
-                                   Map<String, Integer> reserved) {
+            int count,
+            Map<String, Integer> available,
+            Map<String, Integer> reserved) {
         String kind = Texts.lower(selector.get("kind"));
         String value = Texts.toStringSafe(selector.get("value"));
         int remaining = count;

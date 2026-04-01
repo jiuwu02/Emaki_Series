@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.corelib.pdc;
 
 import java.util.Objects;
 import java.util.regex.Pattern;
+
 import org.bukkit.NamespacedKey;
 
 public record PdcPartition(String namespace, String path) {
@@ -9,7 +10,7 @@ public record PdcPartition(String namespace, String path) {
     private static final Pattern NAMESPACE_PATTERN = Pattern.compile("[^a-z0-9._-]");
     private static final Pattern KEY_PATTERN = Pattern.compile("[^a-z0-9/._-]");
 
-    public PdcPartition {
+    public PdcPartition  {
         namespace = normalizeNamespace(namespace);
         path = normalizePath(path);
     }

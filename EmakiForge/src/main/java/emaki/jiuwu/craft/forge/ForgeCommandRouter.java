@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.forge;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
@@ -32,10 +33,14 @@ final class ForgeCommandRouter implements TabExecutor {
                 sendHelp(sender);
                 yield true;
             }
-            case "forge" -> handleForge(sender);
-            case "book" -> handleBook(sender);
-            case "reload" -> handleReload(sender);
-            case "list" -> handleList(sender, args);
+            case "forge" ->
+                handleForge(sender);
+            case "book" ->
+                handleBook(sender);
+            case "reload" ->
+                handleReload(sender);
+            case "list" ->
+                handleList(sender, args);
             default -> {
                 plugin.messageService().send(sender, "general.unknown_command");
                 yield true;
@@ -93,10 +98,10 @@ final class ForgeCommandRouter implements TabExecutor {
         plugin.reloadPluginState(true);
         plugin.messageService().send(sender, "general.reload_success");
         plugin.messageService().sendRaw(sender, plugin.messageService().message("general.reload_summary", Map.of(
-            "blueprints", plugin.blueprintLoader().all().size(),
-            "materials", plugin.materialLoader().all().size(),
-            "recipes", plugin.recipeLoader().all().size(),
-            "guis", plugin.guiTemplateLoader().all().size()
+                "blueprints", plugin.blueprintLoader().all().size(),
+                "materials", plugin.materialLoader().all().size(),
+                "recipes", plugin.recipeLoader().all().size(),
+                "guis", plugin.guiTemplateLoader().all().size()
         )));
         return true;
     }
@@ -113,27 +118,28 @@ final class ForgeCommandRouter implements TabExecutor {
         switch (args[1].toLowerCase()) {
             case "recipes" -> {
                 plugin.messageService().sendRaw(sender, plugin.messageService().message("command.list.recipes_header", Map.of("count", plugin.recipeLoader().all().size())));
-                plugin.recipeLoader().all().forEach((id, recipe) ->
-                    plugin.messageService().sendRaw(sender, plugin.messageService().message("command.list.recipe_line", Map.of("id", id, "name", recipe.displayName()))));
+                plugin.recipeLoader().all().forEach((id, recipe)
+                        -> plugin.messageService().sendRaw(sender, plugin.messageService().message("command.list.recipe_line", Map.of("id", id, "name", recipe.displayName()))));
             }
             case "blueprints" -> {
                 plugin.messageService().sendRaw(sender, plugin.messageService().message("command.list.blueprints_header", Map.of("count", plugin.blueprintLoader().all().size())));
-                plugin.blueprintLoader().all().forEach((id, blueprint) ->
-                    plugin.messageService().sendRaw(sender, plugin.messageService().message("command.list.blueprint_line", Map.of("id", id, "name", blueprint.displayName()))));
+                plugin.blueprintLoader().all().forEach((id, blueprint)
+                        -> plugin.messageService().sendRaw(sender, plugin.messageService().message("command.list.blueprint_line", Map.of("id", id, "name", blueprint.displayName()))));
             }
             case "materials" -> {
                 plugin.messageService().sendRaw(sender, plugin.messageService().message("command.list.materials_header", Map.of("count", plugin.materialLoader().all().size())));
                 plugin.materialLoader().all().forEach((id, material) -> plugin.messageService().sendRaw(sender, plugin.messageService().message(
-                    "command.list.material_line",
-                    Map.of(
-                        "id", id,
-                        "name", material.displayName(),
-                        "capacity", material.capacityCost(),
-                        "bonus", material.forgeCapacityBonus()
-                    )
+                        "command.list.material_line",
+                        Map.of(
+                                "id", id,
+                                "name", material.displayName(),
+                                "capacity", material.capacityCost(),
+                                "bonus", material.forgeCapacityBonus()
+                        )
                 )));
             }
-            default -> plugin.messageService().send(sender, "general.invalid_args");
+            default ->
+                plugin.messageService().send(sender, "general.invalid_args");
         }
         return true;
     }
@@ -141,14 +147,14 @@ final class ForgeCommandRouter implements TabExecutor {
     private void sendHelp(CommandSender sender) {
         plugin.messageService().sendRaw(sender, plugin.messageService().message("command.help.header"));
         Map<String, String> lines = Map.of(
-            "forge", "打开独立锻造台",
-            "book", "打开配方图鉴",
-            "reload", "重载配置文件",
-            "help", "显示帮助信息",
-            "list <type>", "列出配置项"
+                "forge", "打开独立锻造台",
+                "book", "打开配方图鉴",
+                "reload", "重载配置文件",
+                "help", "显示帮助信息",
+                "list <type>", "列出配置项"
         );
-        lines.forEach((commandName, description) ->
-            plugin.messageService().sendRaw(sender, plugin.messageService().message("command.help.line", Map.of("cmd", commandName, "desc", description))));
+        lines.forEach((commandName, description)
+                -> plugin.messageService().sendRaw(sender, plugin.messageService().message("command.help.line", Map.of("cmd", commandName, "desc", description))));
         plugin.messageService().sendRaw(sender, plugin.messageService().message("command.help.footer"));
     }
 }

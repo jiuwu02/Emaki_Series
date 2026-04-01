@@ -1,5 +1,14 @@
 package emaki.jiuwu.craft.forge.service;
 
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.action.ActionBatchResult;
 import emaki.jiuwu.craft.corelib.action.ActionContext;
@@ -10,13 +19,6 @@ import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.model.GuiItems;
 import emaki.jiuwu.craft.forge.model.QualitySettings;
 import emaki.jiuwu.craft.forge.model.Recipe;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
-import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 
 final class ForgeActionCoordinator {
 
@@ -31,64 +33,64 @@ final class ForgeActionCoordinator {
     }
 
     CompletableFuture<ActionBatchResult> executePhase(Player player,
-                                                      Recipe recipe,
-                                                      GuiItems guiItems,
-                                                      String phase,
-                                                      ItemStack resultItem,
-                                                      String quality,
-                                                      double multiplier,
-                                                      String errorKey,
-                                                      String failureReason) {
+            Recipe recipe,
+            GuiItems guiItems,
+            String phase,
+            ItemStack resultItem,
+            String quality,
+            double multiplier,
+            String errorKey,
+            String failureReason) {
         return executeActionLines(
-            player,
-            recipe,
-            guiItems,
-            phase,
-            phaseLines(recipe, phase),
-            resultItem,
-            quality,
-            multiplier,
-            errorKey,
-            failureReason
+                player,
+                recipe,
+                guiItems,
+                phase,
+                phaseLines(recipe, phase),
+                resultItem,
+                quality,
+                multiplier,
+                errorKey,
+                failureReason
         );
     }
 
     void triggerPhase(Player player,
-                      Recipe recipe,
-                      GuiItems guiItems,
-                      String phase,
-                      ItemStack resultItem,
-                      String quality,
-                      double multiplier,
-                      String errorKey,
-                      String failureMessage) {
+            Recipe recipe,
+            GuiItems guiItems,
+            String phase,
+            ItemStack resultItem,
+            String quality,
+            double multiplier,
+            String errorKey,
+            String failureMessage) {
         executePhase(player, recipe, guiItems, phase, resultItem, quality, multiplier, errorKey, failureMessage)
-            .whenComplete((batch, throwable) -> {
-                if (throwable != null) {
-                    plugin.messageService().warning("console.forge_phase_execution_failed", Map.of(
-                        "phase", phase,
-                        "recipe", recipe.id(),
-                        "error", String.valueOf(throwable.getMessage())
-                    ));
-                    return;
-                }
-                if (batch != null && !batch.success()) {
-                    plugin.messageService().warning("console.forge_phase_failed", Map.of(
-                        "phase", phase,
-                        "recipe", recipe.id(),
-                        "reason", resolveFailureReason(batch.firstFailure())
-                    ));
-                }
-            });
+                .whenComplete((batch, throwable) -> {
+                    if (throwable != null) {
+                        plugin.messageService().warning("console.forge_phase_execution_failed", Map.of(
+                                "phase", phase,
+                                "recipe", recipe.id(),
+                                "error", String.valueOf(throwable.getMessage())
+                        ));
+                        return;
+                    }
+                    if (batch != null && !batch.success()) {
+                        plugin.messageService().warning("console.forge_phase_failed", Map.of(
+                                "phase", phase,
+                                "recipe", recipe.id(),
+                                "reason", resolveFailureReason(batch.firstFailure())
+                        ));
+                    }
+                });
     }
 
     void triggerQualityActions(Player player,
-                               Recipe recipe,
-                               GuiItems guiItems,
-                               ItemStack resultItem,
-                               QualitySettings.QualityTier qualityTier,
-                               String quality,
-                               double multiplier) {
+            Recipe recipe,
+            GuiItems guiItems,
+            ItemStack resultItem,
+            QualitySettings.QualityTier qualityTier,
+            String quality,
+            double multiplier) {
         if (qualityTier == null) {
             return;
         }
@@ -97,21 +99,21 @@ final class ForgeActionCoordinator {
             return;
         }
         executeActionLines(player, recipe, guiItems, "quality", lines, resultItem, quality, multiplier, null, null)
-            .whenComplete((batch, throwable) -> {
-                if (throwable != null) {
-                    plugin.messageService().warning("console.forge_quality_execution_failed", Map.of(
-                        "tier", qualityTier.name(),
-                        "error", String.valueOf(throwable.getMessage())
-                    ));
-                    return;
-                }
-                if (batch != null && !batch.success()) {
-                    plugin.messageService().warning("console.forge_quality_failed", Map.of(
-                        "tier", qualityTier.name(),
-                        "reason", resolveFailureReason(batch.firstFailure())
-                    ));
-                }
-            });
+                .whenComplete((batch, throwable) -> {
+                    if (throwable != null) {
+                        plugin.messageService().warning("console.forge_quality_execution_failed", Map.of(
+                                "tier", qualityTier.name(),
+                                "error", String.valueOf(throwable.getMessage())
+                        ));
+                        return;
+                    }
+                    if (batch != null && !batch.success()) {
+                        plugin.messageService().warning("console.forge_quality_failed", Map.of(
+                                "tier", qualityTier.name(),
+                                "reason", resolveFailureReason(batch.firstFailure())
+                        ));
+                    }
+                });
     }
 
     String resolveFailureReason(ActionStepResult failure) {
@@ -125,23 +127,23 @@ final class ForgeActionCoordinator {
     }
 
     private CompletableFuture<ActionBatchResult> executeActionLines(Player player,
-                                                                   Recipe recipe,
-                                                                   GuiItems guiItems,
-                                                                   String phase,
-                                                                   List<String> lines,
-                                                                   ItemStack resultItem,
-                                                                   String quality,
-                                                                   double multiplier,
-                                                                   String errorKey,
-                                                                   String failureReason) {
+            Recipe recipe,
+            GuiItems guiItems,
+            String phase,
+            List<String> lines,
+            ItemStack resultItem,
+            String quality,
+            double multiplier,
+            String errorKey,
+            String failureReason) {
         EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.getInstance();
         if (lines.isEmpty() || coreLib == null || coreLib.actionExecutor() == null) {
             return CompletableFuture.completedFuture(new ActionBatchResult(true, List.of()));
         }
         ActionContext context = buildActionContext(coreLib, player, recipe, guiItems, phase, resultItem, quality, multiplier, errorKey, failureReason);
         return coreLib.actionExecutor()
-            .executeAll(context, lines, true)
-            .orTimeout(ACTION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                .executeAll(context, lines, true)
+                .orTimeout(ACTION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
     }
 
     private List<String> phaseLines(Recipe recipe, String phase) {
@@ -149,24 +151,29 @@ final class ForgeActionCoordinator {
             return List.of();
         }
         return switch (Texts.lower(phase)) {
-            case "pre" -> recipe.action() == null ? List.of() : recipe.action().pre();
-            case "result" -> recipe.result() == null ? List.of() : recipe.result().action();
-            case "success" -> recipe.action() == null ? List.of() : recipe.action().success();
-            case "failure" -> recipe.action() == null ? List.of() : recipe.action().failure();
-            default -> List.of();
+            case "pre" ->
+                recipe.action() == null ? List.of() : recipe.action().pre();
+            case "result" ->
+                recipe.result() == null ? List.of() : recipe.result().action();
+            case "success" ->
+                recipe.action() == null ? List.of() : recipe.action().success();
+            case "failure" ->
+                recipe.action() == null ? List.of() : recipe.action().failure();
+            default ->
+                List.of();
         };
     }
 
     private ActionContext buildActionContext(EmakiCoreLibPlugin coreLib,
-                                             Player player,
-                                             Recipe recipe,
-                                             GuiItems guiItems,
-                                             String phase,
-                                             ItemStack resultItem,
-                                             String quality,
-                                             double multiplier,
-                                             String errorKey,
-                                             String failureReason) {
+            Player player,
+            Recipe recipe,
+            GuiItems guiItems,
+            String phase,
+            ItemStack resultItem,
+            String quality,
+            double multiplier,
+            String errorKey,
+            String failureReason) {
         Map<String, String> placeholders = new LinkedHashMap<>();
         String sourceItemName = resultItemFactory.resolveSourceItemName(guiItems, resultItem, recipe);
         String showItem = resultItemFactory.buildShowItemPlaceholder(guiItems, recipe, resultItem);

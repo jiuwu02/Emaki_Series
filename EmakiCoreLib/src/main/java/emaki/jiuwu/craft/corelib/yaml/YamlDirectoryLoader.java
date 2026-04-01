@@ -1,15 +1,17 @@
 package emaki.jiuwu.craft.corelib.yaml;
 
-import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.corelib.text.LogMessages;
-import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
+
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
+
+import emaki.jiuwu.craft.corelib.text.LogMessages;
+import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
+import emaki.jiuwu.craft.corelib.text.Texts;
 
 public abstract class YamlDirectoryLoader<T> {
 
@@ -88,9 +90,9 @@ public abstract class YamlDirectoryLoader<T> {
 
     protected void onLoadFailure(File file, Exception exception) {
         issue("loader.load_failed", Map.of(
-            "type", typeName(),
-            "file", file.getName(),
-            "error", Texts.toStringSafe(exception.getMessage())
+                "type", typeName(),
+                "file", file.getName(),
+                "error", Texts.toStringSafe(exception.getMessage())
         ));
     }
 

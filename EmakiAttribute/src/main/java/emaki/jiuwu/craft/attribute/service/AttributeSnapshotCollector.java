@@ -1,22 +1,24 @@
 package emaki.jiuwu.craft.attribute.service;
 
-import emaki.jiuwu.craft.attribute.api.AttributeContribution;
-import emaki.jiuwu.craft.attribute.api.AttributeContributionProvider;
-import emaki.jiuwu.craft.attribute.model.AttributeDefinition;
-import emaki.jiuwu.craft.attribute.model.AttributeSnapshot;
-import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import net.kyori.adventure.text.Component;
+
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
+
+import emaki.jiuwu.craft.attribute.api.AttributeContribution;
+import emaki.jiuwu.craft.attribute.api.AttributeContributionProvider;
+import emaki.jiuwu.craft.attribute.model.AttributeDefinition;
+import emaki.jiuwu.craft.attribute.model.AttributeSnapshot;
+import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
+import net.kyori.adventure.text.Component;
 
 final class AttributeSnapshotCollector {
 
@@ -42,9 +44,9 @@ final class AttributeSnapshotCollector {
             return AttributeSnapshot.empty(SignatureUtil.stableSignature(List.of()));
         }
         String sourceSignature = SignatureUtil.combine(
-            service.itemLoreSignatureVersion(),
-            SignatureUtil.stableSignature(normalizedLore),
-            service.attributeDefinitionsSignatureInternal()
+                service.itemLoreSignatureVersion(),
+                SignatureUtil.stableSignature(normalizedLore),
+                service.attributeDefinitionsSignatureInternal()
         );
         String cachedSignature = service.stateRepositoryInternal().readItemSourceSignature(itemStack);
         AttributeSnapshot cachedSnapshot = service.stateRepositoryInternal().readItemSnapshot(itemStack);
@@ -55,10 +57,10 @@ final class AttributeSnapshotCollector {
         AttributeSnapshot snapshot = parsedLore.snapshot();
         if (!sourceSignature.equals(snapshot.sourceSignature())) {
             snapshot = new AttributeSnapshot(
-                snapshot.schemaVersion(),
-                sourceSignature,
-                snapshot.values(),
-                snapshot.updatedAt()
+                    snapshot.schemaVersion(),
+                    sourceSignature,
+                    snapshot.values(),
+                    snapshot.updatedAt()
             );
         }
         service.stateRepositoryInternal().writeItemSnapshot(itemStack, snapshot);
@@ -86,12 +88,12 @@ final class AttributeSnapshotCollector {
         signatureParts.add("attributes:" + service.attributeDefinitionsSignatureInternal());
         PlayerInventory inventory = player.getInventory();
         List<ItemSlot> slots = List.of(
-            new ItemSlot("main_hand", inventory.getItemInMainHand()),
-            new ItemSlot("off_hand", inventory.getItemInOffHand()),
-            new ItemSlot("helmet", inventory.getHelmet()),
-            new ItemSlot("chestplate", inventory.getChestplate()),
-            new ItemSlot("leggings", inventory.getLeggings()),
-            new ItemSlot("boots", inventory.getBoots())
+                new ItemSlot("main_hand", inventory.getItemInMainHand()),
+                new ItemSlot("off_hand", inventory.getItemInOffHand()),
+                new ItemSlot("helmet", inventory.getHelmet()),
+                new ItemSlot("chestplate", inventory.getChestplate()),
+                new ItemSlot("leggings", inventory.getLeggings()),
+                new ItemSlot("boots", inventory.getBoots())
         );
         for (ItemSlot slot : slots) {
             AttributeSnapshot itemSnapshot = collectItemSnapshot(slot.item());
@@ -124,12 +126,12 @@ final class AttributeSnapshotCollector {
         EntityEquipment equipment = entity.getEquipment();
         if (equipment != null) {
             List<ItemSlot> slots = List.of(
-                new ItemSlot("main_hand", equipment.getItemInMainHand()),
-                new ItemSlot("off_hand", equipment.getItemInOffHand()),
-                new ItemSlot("helmet", equipment.getHelmet()),
-                new ItemSlot("chestplate", equipment.getChestplate()),
-                new ItemSlot("leggings", equipment.getLeggings()),
-                new ItemSlot("boots", equipment.getBoots())
+                    new ItemSlot("main_hand", equipment.getItemInMainHand()),
+                    new ItemSlot("off_hand", equipment.getItemInOffHand()),
+                    new ItemSlot("helmet", equipment.getHelmet()),
+                    new ItemSlot("chestplate", equipment.getChestplate()),
+                    new ItemSlot("leggings", equipment.getLeggings()),
+                    new ItemSlot("boots", equipment.getBoots())
             );
             for (ItemSlot slot : slots) {
                 AttributeSnapshot itemSnapshot = collectItemSnapshot(slot.item());
@@ -165,8 +167,8 @@ final class AttributeSnapshotCollector {
     }
 
     private void mergeContributionProviders(LivingEntity entity,
-                                            Map<String, Double> target,
-                                            List<String> signatureParts) {
+            Map<String, Double> target,
+            List<String> signatureParts) {
         if (entity == null) {
             return;
         }
@@ -212,8 +214,8 @@ final class AttributeSnapshotCollector {
                 continue;
             }
             double weight = service.attributeBalanceRegistry() == null
-                ? definition.attributePower()
-                : service.attributeBalanceRegistry().weightOf(definition.id(), definition.attributePower());
+                    ? definition.attributePower()
+                    : service.attributeBalanceRegistry().weightOf(definition.id(), definition.attributePower());
             total += value * weight;
         }
         return Math.max(0D, total);
@@ -224,5 +226,6 @@ final class AttributeSnapshotCollector {
     }
 
     private record ItemSlot(String name, ItemStack item) {
+
     }
 }

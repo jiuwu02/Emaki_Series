@@ -1,11 +1,12 @@
 package emaki.jiuwu.craft.corelib.action;
 
-import emaki.jiuwu.craft.corelib.text.Texts;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
+
+import emaki.jiuwu.craft.corelib.text.Texts;
 
 public interface Action {
 
@@ -37,8 +38,8 @@ public interface Action {
             if (Texts.isBlank(value)) {
                 if (parameter.required() && Texts.isBlank(parameter.defaultValue())) {
                     return ActionResult.failure(
-                        ActionErrorType.INVALID_ARGUMENT,
-                        "Missing required argument '" + parameter.name() + "' for action '" + id() + "'."
+                            ActionErrorType.INVALID_ARGUMENT,
+                            "Missing required argument '" + parameter.name() + "' for action '" + id() + "'."
                     );
                 }
                 continue;
@@ -48,16 +49,16 @@ public interface Action {
             }
             if (!parameter.type().isValid(value)) {
                 return ActionResult.failure(
-                    ActionErrorType.INVALID_ARGUMENT,
-                    "Invalid value for argument '" + parameter.name() + "' in action '" + id() + "': " + value
+                        ActionErrorType.INVALID_ARGUMENT,
+                        "Invalid value for argument '" + parameter.name() + "' in action '" + id() + "': " + value
                 );
             }
         }
         for (String argument : arguments.keySet()) {
             if (!known.contains(argument) && !acceptsDynamicParameter(argument)) {
                 return ActionResult.failure(
-                    ActionErrorType.INVALID_ARGUMENT,
-                    "Unknown argument '" + argument + "' for action '" + id() + "'."
+                        ActionErrorType.INVALID_ARGUMENT,
+                        "Unknown argument '" + argument + "' for action '" + id() + "'."
                 );
             }
         }

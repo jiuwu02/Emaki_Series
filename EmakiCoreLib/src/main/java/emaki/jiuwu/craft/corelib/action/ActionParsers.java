@@ -1,7 +1,8 @@
 package emaki.jiuwu.craft.corelib.action;
 
-import emaki.jiuwu.craft.corelib.text.Texts;
 import org.bukkit.Particle;
+
+import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class ActionParsers {
 

@@ -1,8 +1,9 @@
 package emaki.jiuwu.craft.corelib.placeholder;
 
-import emaki.jiuwu.craft.corelib.action.ActionContext;
 import java.util.ArrayList;
 import java.util.List;
+
+import emaki.jiuwu.craft.corelib.action.ActionContext;
 
 public final class PlaceholderRegistry {
 

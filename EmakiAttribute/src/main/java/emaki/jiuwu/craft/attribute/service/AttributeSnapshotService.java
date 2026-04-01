@@ -1,9 +1,10 @@
 package emaki.jiuwu.craft.attribute.service;
 
-import emaki.jiuwu.craft.attribute.model.AttributeSnapshot;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+
+import emaki.jiuwu.craft.attribute.model.AttributeSnapshot;
 
 final class AttributeSnapshotService {
 

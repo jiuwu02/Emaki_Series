@@ -1,20 +1,21 @@
 package emaki.jiuwu.craft.attribute.model;
 
+import java.util.Locale;
+
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
-import java.util.Locale;
 
 public record ResourceDefinition(String id,
-                                 String displayName,
-                                 double defaultMax,
-                                 double minMax,
-                                 double maxMax,
-                                 boolean syncToBukkit,
-                                 boolean fullOnInit,
-                                 double regenPerSecond) {
+        String displayName,
+        double defaultMax,
+        double minMax,
+        double maxMax,
+        boolean syncToBukkit,
+        boolean fullOnInit,
+        double regenPerSecond) {
 
-    public ResourceDefinition {
+    public ResourceDefinition        {
         id = normalizeId(id);
         displayName = Texts.isBlank(displayName) ? id : Texts.toStringSafe(displayName).trim();
     }
@@ -24,14 +25,14 @@ public record ResourceDefinition(String id,
             return null;
         }
         return new ResourceDefinition(
-            ConfigNodes.string(raw, "id", fallbackId),
-            ConfigNodes.string(raw, "display_name", fallbackId),
-            Numbers.tryParseDouble(ConfigNodes.get(raw, "default_max"), 0D),
-            Numbers.tryParseDouble(ConfigNodes.get(raw, "min_max"), 0D),
-            Numbers.tryParseDouble(ConfigNodes.get(raw, "max_max"), Double.MAX_VALUE),
-            ConfigNodes.bool(raw, "sync_to_bukkit", false),
-            ConfigNodes.bool(raw, "full_on_init", true),
-            Numbers.tryParseDouble(ConfigNodes.get(raw, "regen_per_second"), 0D)
+                ConfigNodes.string(raw, "id", fallbackId),
+                ConfigNodes.string(raw, "display_name", fallbackId),
+                Numbers.tryParseDouble(ConfigNodes.get(raw, "default_max"), 0D),
+                Numbers.tryParseDouble(ConfigNodes.get(raw, "min_max"), 0D),
+                Numbers.tryParseDouble(ConfigNodes.get(raw, "max_max"), Double.MAX_VALUE),
+                ConfigNodes.bool(raw, "sync_to_bukkit", false),
+                ConfigNodes.bool(raw, "full_on_init", true),
+                Numbers.tryParseDouble(ConfigNodes.get(raw, "regen_per_second"), 0D)
         );
     }
 

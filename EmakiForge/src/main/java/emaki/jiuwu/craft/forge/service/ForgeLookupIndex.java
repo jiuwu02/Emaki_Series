@@ -1,5 +1,11 @@
 package emaki.jiuwu.craft.forge.service;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -7,11 +13,6 @@ import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.model.Blueprint;
 import emaki.jiuwu.craft.forge.model.ForgeMaterial;
 import emaki.jiuwu.craft.forge.model.Recipe;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 
 final class ForgeLookupIndex {
 
@@ -50,8 +51,8 @@ final class ForgeLookupIndex {
         }
         // Services are constructed before loaders are attached to the plugin instance.
         List<Recipe> recipes = plugin.recipeLoader() == null
-            ? new ArrayList<>()
-            : new ArrayList<>(plugin.recipeLoader().all().values());
+                ? new ArrayList<>()
+                : new ArrayList<>(plugin.recipeLoader().all().values());
         recipes.sort(Comparator.comparing(recipe -> Texts.lower(recipe.id())));
         materialsById = Map.copyOf(materials);
         materialsBySource = Map.copyOf(materialsBySourceMap);

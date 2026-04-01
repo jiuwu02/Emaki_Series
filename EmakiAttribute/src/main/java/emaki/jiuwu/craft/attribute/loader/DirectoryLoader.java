@@ -1,8 +1,5 @@
 package emaki.jiuwu.craft.attribute.loader;
 
-import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
-import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -10,7 +7,12 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
 import org.bukkit.configuration.file.YamlConfiguration;
+
+import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
+import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 
 public abstract class DirectoryLoader<T> {
 
@@ -30,11 +32,11 @@ public abstract class DirectoryLoader<T> {
         File directory = plugin.dataPath(directoryName()).toFile();
         if (!directory.exists() && !directory.mkdirs()) {
             issue(
-                "loader.directory_create_failed",
-                Map.of(
-                    "type", typeName(),
-                    "path", directory.getPath()
-                )
+                    "loader.directory_create_failed",
+                    Map.of(
+                            "type", typeName(),
+                            "path", directory.getPath()
+                    )
             );
         }
         seedBundledResources(directory);
@@ -58,35 +60,35 @@ public abstract class DirectoryLoader<T> {
                 String id = idOf(value);
                 if (Texts.isBlank(id)) {
                     issue(
-                        "loader.invalid_blank_id",
-                        Map.of(
-                            "type", typeName(),
-                            "file", file.getName()
-                        )
+                            "loader.invalid_blank_id",
+                            Map.of(
+                                    "type", typeName(),
+                                    "file", file.getName()
+                            )
                     );
                     continue;
                 }
                 String normalized = normalizeId(id);
                 if (items.containsKey(normalized)) {
                     issue(
-                        "loader.duplicate_id",
-                        Map.of(
-                            "type", typeName(),
-                            "file", file.getName(),
-                            "id", id
-                        )
+                            "loader.duplicate_id",
+                            Map.of(
+                                    "type", typeName(),
+                                    "file", file.getName(),
+                                    "id", id
+                            )
                     );
                     continue;
                 }
                 items.put(normalized, value);
             } catch (Exception exception) {
                 issue(
-                    "loader.load_failed",
-                    Map.of(
-                        "type", typeName(),
-                        "file", file.getName(),
-                        "error", Texts.toStringSafe(exception.getMessage())
-                    )
+                        "loader.load_failed",
+                        Map.of(
+                                "type", typeName(),
+                                "file", file.getName(),
+                                "error", Texts.toStringSafe(exception.getMessage())
+                        )
                 );
             }
         }
@@ -116,8 +118,8 @@ public abstract class DirectoryLoader<T> {
 
     protected void issue(String key, Map<String, ?> replacements) {
         String message = plugin.messageService() == null
-            ? key
-            : plugin.messageService().message(key, replacements);
+                ? key
+                : plugin.messageService().message(key, replacements);
         issues.add(message);
         if (plugin.messageService() == null) {
             return;
@@ -147,22 +149,22 @@ public abstract class DirectoryLoader<T> {
             boolean copied = YamlFiles.copyResourceIfMissing(plugin, resourcePath, target);
             if (!copied && !target.exists()) {
                 issue(
-                    "loader.bundled_resource_missing",
-                    Map.of(
-                        "type", typeName(),
-                        "path", target.getPath(),
-                        "resource", resourcePath
-                    )
+                        "loader.bundled_resource_missing",
+                        Map.of(
+                                "type", typeName(),
+                                "path", target.getPath(),
+                                "resource", resourcePath
+                        )
                 );
             }
         } catch (IOException exception) {
             issue(
-                "loader.bundled_resource_write_failed",
-                Map.of(
-                    "type", typeName(),
-                    "path", target.getPath(),
-                    "error", Texts.toStringSafe(exception.getMessage())
-                )
+                    "loader.bundled_resource_write_failed",
+                    Map.of(
+                            "type", typeName(),
+                            "path", target.getPath(),
+                            "error", Texts.toStringSafe(exception.getMessage())
+                    )
             );
         }
     }

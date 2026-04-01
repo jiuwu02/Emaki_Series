@@ -1,17 +1,12 @@
 package emaki.jiuwu.craft.attribute.service;
 
-import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
-import emaki.jiuwu.craft.attribute.model.AttributeDefinition;
-import emaki.jiuwu.craft.attribute.model.AttributeSnapshot;
-import emaki.jiuwu.craft.attribute.model.AttributeValueKind;
-import emaki.jiuwu.craft.corelib.text.Texts;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import net.kyori.adventure.key.Key;
+
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
 import org.bukkit.attribute.Attribute;
@@ -20,16 +15,24 @@ import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 
+import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
+import emaki.jiuwu.craft.attribute.model.AttributeDefinition;
+import emaki.jiuwu.craft.attribute.model.AttributeSnapshot;
+import emaki.jiuwu.craft.attribute.model.AttributeValueKind;
+import emaki.jiuwu.craft.corelib.text.Texts;
+import net.kyori.adventure.key.Key;
+
 final class VanillaAttributeSynchronizer {
 
     private static final double DEFAULT_WALK_SPEED_BLOCKS_PER_SECOND = 4.317D;
     private static final int DEFAULT_ATTACK_COOLDOWN_TICKS = 20;
 
     record VanillaAttributeBinding(AttributeDefinition definition,
-                                   Attribute attribute,
-                                   AttributeModifier.Operation operation,
-                                   NamespacedKey modifierKey,
-                                   String targetAttributeId) {
+            Attribute attribute,
+            AttributeModifier.Operation operation,
+            NamespacedKey modifierKey,
+            String targetAttributeId) {
+
     }
 
     private final EmakiAttributePlugin plugin;
@@ -46,15 +49,17 @@ final class VanillaAttributeSynchronizer {
         if (attribute == null) {
             if (plugin.messageService() != null) {
                 plugin.messageService().warning("console.vanilla_attribute_resolve_failed", Map.of(
-                    "attribute", definition.id(),
-                    "target", definition.targetId()
+                        "attribute", definition.id(),
+                        "target", definition.targetId()
                 ));
             }
             return null;
         }
         AttributeModifier.Operation operation = switch (definition.valueKind()) {
-            case PERCENT, CHANCE -> AttributeModifier.Operation.ADD_SCALAR;
-            default -> AttributeModifier.Operation.ADD_NUMBER;
+            case PERCENT, CHANCE ->
+                AttributeModifier.Operation.ADD_SCALAR;
+            default ->
+                AttributeModifier.Operation.ADD_NUMBER;
         };
         NamespacedKey modifierKey = new NamespacedKey(plugin, "vanilla/" + definition.id());
         return new VanillaAttributeBinding(definition, attribute, operation, modifierKey, attribute.getKey().asString());
@@ -74,10 +79,10 @@ final class VanillaAttributeSynchronizer {
             if (definition.valueKind() == AttributeValueKind.PERCENT) {
                 percentSpeed += value;
             } else if (definition.valueKind() != AttributeValueKind.CHANCE
-                && definition.valueKind() != AttributeValueKind.REGEN
-                && definition.valueKind() != AttributeValueKind.RESOURCE
-                && definition.valueKind() != AttributeValueKind.SKILL
-                && definition.valueKind() != AttributeValueKind.DERIVED) {
+                    && definition.valueKind() != AttributeValueKind.REGEN
+                    && definition.valueKind() != AttributeValueKind.RESOURCE
+                    && definition.valueKind() != AttributeValueKind.SKILL
+                    && definition.valueKind() != AttributeValueKind.DERIVED) {
                 flatSpeed += value;
             }
         }
@@ -88,9 +93,9 @@ final class VanillaAttributeSynchronizer {
     }
 
     void syncVanillaMappedAttributes(LivingEntity entity,
-                                     AttributeSnapshot snapshot,
-                                     List<VanillaAttributeBinding> bindings,
-                                     Set<String> managedAttributeIds) {
+            AttributeSnapshot snapshot,
+            List<VanillaAttributeBinding> bindings,
+            Set<String> managedAttributeIds) {
         if (entity == null || !entity.isValid() || entity.isDead()) {
             return;
         }
@@ -114,10 +119,10 @@ final class VanillaAttributeSynchronizer {
             if (definition.valueKind() == AttributeValueKind.PERCENT) {
                 percentModifier += value;
             } else if (definition.valueKind() != AttributeValueKind.CHANCE
-                && definition.valueKind() != AttributeValueKind.REGEN
-                && definition.valueKind() != AttributeValueKind.RESOURCE
-                && definition.valueKind() != AttributeValueKind.SKILL
-                && definition.valueKind() != AttributeValueKind.DERIVED) {
+                    && definition.valueKind() != AttributeValueKind.REGEN
+                    && definition.valueKind() != AttributeValueKind.RESOURCE
+                    && definition.valueKind() != AttributeValueKind.SKILL
+                    && definition.valueKind() != AttributeValueKind.DERIVED) {
                 flatAttackRate += value;
             }
         }
@@ -192,8 +197,10 @@ final class VanillaAttributeSynchronizer {
             return value;
         }
         return switch (definition.valueKind()) {
-            case PERCENT, CHANCE -> value / 100D;
-            default -> value;
+            case PERCENT, CHANCE ->
+                value / 100D;
+            default ->
+                value;
         };
     }
 
@@ -223,8 +230,8 @@ final class VanillaAttributeSynchronizer {
         candidates.add(normalized);
         int namespaceSeparator = normalized.indexOf(':');
         String key = namespaceSeparator >= 0 && namespaceSeparator < normalized.length() - 1
-            ? normalized.substring(namespaceSeparator + 1)
-            : normalized;
+                ? normalized.substring(namespaceSeparator + 1)
+                : normalized;
         candidates.add(key);
         String normalizedKey = key.replace('.', '_');
         candidates.add(normalizedKey);

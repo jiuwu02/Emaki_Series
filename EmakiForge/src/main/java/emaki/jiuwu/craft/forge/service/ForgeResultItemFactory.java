@@ -1,5 +1,8 @@
 package emaki.jiuwu.craft.forge.service;
 
+import org.bukkit.Material;
+import org.bukkit.inventory.ItemStack;
+
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerSnapshot;
@@ -10,8 +13,6 @@ import emaki.jiuwu.craft.forge.model.GuiItems;
 import emaki.jiuwu.craft.forge.model.QualitySettings;
 import emaki.jiuwu.craft.forge.model.Recipe;
 import net.kyori.adventure.text.Component;
-import org.bukkit.Material;
-import org.bukkit.inventory.ItemStack;
 
 final class ForgeResultItemFactory {
 
@@ -24,30 +25,30 @@ final class ForgeResultItemFactory {
     }
 
     ItemStack createResultItem(Recipe recipe,
-                               GuiItems guiItems,
-                               double multiplier,
-                               QualitySettings.QualityTier qualityTier,
-                               long forgedAt) {
+            GuiItems guiItems,
+            double multiplier,
+            QualitySettings.QualityTier qualityTier,
+            long forgedAt) {
         EmakiItemAssemblyRequest request = buildAssemblyRequest(recipe, guiItems, multiplier, qualityTier, forgedAt);
         EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.getInstance();
         return coreLib == null || request == null ? null : coreLib.itemAssemblyService().preview(request);
     }
 
     EmakiItemAssemblyRequest buildAssemblyRequest(Recipe recipe,
-                                                  GuiItems guiItems,
-                                                  double multiplier,
-                                                  QualitySettings.QualityTier qualityTier,
-                                                  long forgedAt) {
+            GuiItems guiItems,
+            double multiplier,
+            QualitySettings.QualityTier qualityTier,
+            long forgedAt) {
         if (recipe == null || recipe.result() == null || recipe.result().outputItem() == null) {
             return null;
         }
         EmakiItemLayerSnapshot forgeLayer = snapshotBuilder.buildLayerSnapshot(recipe, guiItems, multiplier, qualityTier, forgedAt);
         ItemStack existingItem = guiItems == null ? null : guiItems.targetItem();
         return new EmakiItemAssemblyRequest(
-            recipe.result().outputItem(),
-            1,
-            existingItem,
-            java.util.List.of(forgeLayer)
+                recipe.result().outputItem(),
+                1,
+                existingItem,
+                java.util.List.of(forgeLayer)
         );
     }
 

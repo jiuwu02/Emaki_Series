@@ -1,19 +1,21 @@
 package emaki.jiuwu.craft.attribute.config;
 
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import java.util.ArrayList;
 import java.util.List;
+
 import org.bukkit.configuration.file.YamlConfiguration;
 
+import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+
 public record AttributeConfig(String language,
-                              boolean hardLockDamage,
-                              String defaultDamageType,
-                              int regenIntervalTicks,
-                              int syncDelayTicks,
-                              boolean syntheticHitKnockback,
-                              double syntheticHitKnockbackStrength,
-                              boolean syntheticHitHurtSound,
-                              List<DamageCauseRule> allowedDamageCauses) {
+        boolean hardLockDamage,
+        String defaultDamageType,
+        int regenIntervalTicks,
+        int syncDelayTicks,
+        boolean syntheticHitKnockback,
+        double syntheticHitKnockbackStrength,
+        boolean syntheticHitHurtSound,
+        List<DamageCauseRule> allowedDamageCauses) {
 
     public static AttributeConfig defaults() {
         return new AttributeConfig("zh_CN", true, "physical", 20, 1, true, 0.4D, true, List.of());
@@ -40,15 +42,15 @@ public record AttributeConfig(String language,
             }
         }
         return new AttributeConfig(
-            language,
-            hardLockDamage,
-            defaultDamageType,
-            regenIntervalTicks,
-            syncDelayTicks,
-            syntheticHitKnockback,
-            syntheticHitKnockbackStrength,
-            syntheticHitHurtSound,
-            List.copyOf(causes)
+                language,
+                hardLockDamage,
+                defaultDamageType,
+                regenIntervalTicks,
+                syncDelayTicks,
+                syntheticHitKnockback,
+                syntheticHitKnockbackStrength,
+                syntheticHitHurtSound,
+                List.copyOf(causes)
         );
     }
 

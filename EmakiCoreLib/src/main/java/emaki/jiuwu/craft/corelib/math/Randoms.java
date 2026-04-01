@@ -8,6 +8,7 @@ import java.util.concurrent.ThreadLocalRandom;
 public final class Randoms {
 
     public record Weighted<T>(T item, double weight) {
+
     }
 
     private Randoms() {

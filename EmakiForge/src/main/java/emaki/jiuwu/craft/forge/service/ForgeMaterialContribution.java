@@ -1,21 +1,22 @@
 package emaki.jiuwu.craft.forge.service;
 
-import emaki.jiuwu.craft.corelib.item.ItemSource;
-import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
-import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.forge.model.ForgeMaterial;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-record ForgeMaterialContribution(ForgeMaterial material,
-                                 int amount,
-                                 int slot,
-                                 String category,
-                                 int sequence,
-                                 ItemSource source) {
+import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
+import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.forge.model.ForgeMaterial;
 
-    ForgeMaterialContribution {
+record ForgeMaterialContribution(ForgeMaterial material,
+        int amount,
+        int slot,
+        String category,
+        int sequence,
+        ItemSource source) {
+
+    ForgeMaterialContribution      {
         amount = Math.max(0, amount);
         category = Texts.toStringSafe(category);
         sequence = Math.max(0, sequence);

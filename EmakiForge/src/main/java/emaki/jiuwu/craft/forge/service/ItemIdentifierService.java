@@ -1,27 +1,29 @@
 package emaki.jiuwu.craft.forge.service;
 
-import emaki.jiuwu.craft.corelib.item.ItemSource;
-import emaki.jiuwu.craft.corelib.item.ItemSourceResolver;
-import emaki.jiuwu.craft.corelib.item.ItemSourceType;
-import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
-import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import net.Indyuce.mmoitems.MMOItems;
-import net.Indyuce.mmoitems.api.Type;
-import net.momirealms.craftengine.bukkit.api.CraftEngineItems;
-import net.momirealms.craftengine.core.item.CustomItem;
-import net.momirealms.craftengine.core.item.ItemBuildContext;
-import net.momirealms.craftengine.core.util.Key;
+
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
+
+import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.item.ItemSourceResolver;
+import emaki.jiuwu.craft.corelib.item.ItemSourceType;
+import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
+import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.forge.EmakiForgePlugin;
+import net.Indyuce.mmoitems.MMOItems;
+import net.Indyuce.mmoitems.api.Type;
+import net.momirealms.craftengine.bukkit.api.CraftEngineItems;
+import net.momirealms.craftengine.core.item.CustomItem;
+import net.momirealms.craftengine.core.item.ItemBuildContext;
+import net.momirealms.craftengine.core.util.Key;
 import pers.neige.neigeitems.manager.ItemManager;
 
 public final class ItemIdentifierService implements ItemSourceResolver {
@@ -105,10 +107,14 @@ public final class ItemIdentifierService implements ItemSourceResolver {
             return null;
         }
         return switch (source.getType()) {
-            case MMOITEMS -> createMmoItemsItem(source.getIdentifier(), amount);
-            case NEIGEITEMS -> createNeigeItemsItem(source.getIdentifier(), amount);
-            case CRAFTENGINE -> createCraftEngineItem(source.getIdentifier(), amount);
-            case VANILLA -> createVanillaItem(source.getIdentifier(), amount);
+            case MMOITEMS ->
+                createMmoItemsItem(source.getIdentifier(), amount);
+            case NEIGEITEMS ->
+                createNeigeItemsItem(source.getIdentifier(), amount);
+            case CRAFTENGINE ->
+                createCraftEngineItem(source.getIdentifier(), amount);
+            case VANILLA ->
+                createVanillaItem(source.getIdentifier(), amount);
         };
     }
 
@@ -149,7 +155,7 @@ public final class ItemIdentifierService implements ItemSourceResolver {
         Material material = resolveMaterial(identifier);
         if (material == null) {
             plugin.messageService().warning("console.item_unknown_vanilla_material_source", Map.of(
-                "identifier", identifier
+                    "identifier", identifier
             ));
             return null;
         }
@@ -162,8 +168,8 @@ public final class ItemIdentifierService implements ItemSourceResolver {
         }
         String normalized = identifier.trim().toLowerCase(Locale.ROOT);
         NamespacedKey key = normalized.contains(":")
-            ? NamespacedKey.fromString(normalized)
-            : NamespacedKey.minecraft(normalized);
+                ? NamespacedKey.fromString(normalized)
+                : NamespacedKey.minecraft(normalized);
         return key == null ? null : Registry.MATERIAL.get(key);
     }
 
@@ -172,7 +178,8 @@ public final class ItemIdentifierService implements ItemSourceResolver {
             return false;
         }
         return switch (source.getType()) {
-            case VANILLA -> true;
+            case VANILLA ->
+                true;
             case MMOITEMS -> {
                 boolean available = mmoItemsSupport != null;
                 if (!available) {
@@ -216,10 +223,10 @@ public final class ItemIdentifierService implements ItemSourceResolver {
             return;
         }
         plugin.messageService().warning("console.external_item_source_unavailable", Map.of(
-            "dependency", dependency,
-            "context", context,
-            "source", ItemSourceUtil.toShorthand(source),
-            "detail", reason
+                "dependency", dependency,
+                "context", context,
+                "source", ItemSourceUtil.toShorthand(source),
+                "detail", reason
         ));
     }
 
@@ -232,8 +239,8 @@ public final class ItemIdentifierService implements ItemSourceResolver {
         } catch (Throwable error) {
             if (plugin.messageService() != null) {
                 plugin.messageService().warning("console.item_bridge_unavailable", Map.of(
-                    "dependency", "MMOItems",
-                    "error", String.valueOf(error.getMessage())
+                        "dependency", "MMOItems",
+                        "error", String.valueOf(error.getMessage())
                 ));
             }
             return null;
@@ -249,8 +256,8 @@ public final class ItemIdentifierService implements ItemSourceResolver {
         } catch (Throwable error) {
             if (plugin.messageService() != null) {
                 plugin.messageService().warning("console.item_bridge_unavailable", Map.of(
-                    "dependency", "NeigeItems",
-                    "error", String.valueOf(error.getMessage())
+                        "dependency", "NeigeItems",
+                        "error", String.valueOf(error.getMessage())
                 ));
             }
             return null;
@@ -266,8 +273,8 @@ public final class ItemIdentifierService implements ItemSourceResolver {
         } catch (Throwable error) {
             if (plugin.messageService() != null) {
                 plugin.messageService().warning("console.item_bridge_unavailable", Map.of(
-                    "dependency", "CraftEngine",
-                    "error", String.valueOf(error.getMessage())
+                        "dependency", "CraftEngine",
+                        "error", String.valueOf(error.getMessage())
                 ));
             }
             return null;

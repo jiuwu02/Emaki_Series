@@ -11,11 +11,16 @@ public enum ItemSourceType {
             return null;
         }
         return switch (value.trim().toLowerCase()) {
-            case "craftengine", "ce" -> CRAFTENGINE;
-            case "neigeitems", "ni" -> NEIGEITEMS;
-            case "mmoitems", "mi" -> MMOITEMS;
-            case "vanilla", "minecraft", "v" -> VANILLA;
-            default -> null;
+            case "craftengine", "ce" ->
+                CRAFTENGINE;
+            case "neigeitems", "ni" ->
+                NEIGEITEMS;
+            case "mmoitems", "mi" ->
+                MMOITEMS;
+            case "vanilla", "minecraft", "v" ->
+                VANILLA;
+            default ->
+                null;
         };
     }
 }

@@ -1,12 +1,14 @@
 package emaki.jiuwu.craft.corelib.action.builtin;
 
+import java.util.Map;
+
+import org.bukkit.potion.PotionEffectType;
+
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.action.ActionErrorType;
 import emaki.jiuwu.craft.corelib.action.ActionParameter;
 import emaki.jiuwu.craft.corelib.action.ActionParameterType;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
-import java.util.Map;
-import org.bukkit.potion.PotionEffectType;
 
 public final class RemovePotionEffectAction extends BaseAction {
 

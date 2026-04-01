@@ -1,5 +1,14 @@
 package emaki.jiuwu.craft.attribute.service;
 
+import java.util.Map;
+
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
+import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.inventory.ItemStack;
+
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.attribute.api.AttributeContributionProvider;
 import emaki.jiuwu.craft.attribute.config.AttributeConfig;
@@ -21,13 +30,6 @@ import emaki.jiuwu.craft.attribute.model.ResourceDefinition;
 import emaki.jiuwu.craft.attribute.model.ResourceState;
 import emaki.jiuwu.craft.attribute.model.ResourceSyncReason;
 import emaki.jiuwu.craft.corelib.text.Texts;
-import java.util.Map;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Player;
-import org.bukkit.entity.Projectile;
-import org.bukkit.event.entity.EntityDamageEvent;
-import org.bukkit.inventory.ItemStack;
 
 abstract class AbstractAttributeServiceFacade implements AttributeServiceFacade {
 
@@ -243,10 +245,10 @@ abstract class AbstractAttributeServiceFacade implements AttributeServiceFacade 
 
     @Override
     public ResourceState syncResource(Player player,
-                                      ResourceDefinition resourceDefinition,
-                                      AttributeSnapshot snapshot,
-                                      ResourceSyncReason reason,
-                                      Double currentValueOverride) {
+            ResourceDefinition resourceDefinition,
+            AttributeSnapshot snapshot,
+            ResourceSyncReason reason,
+            Double currentValueOverride) {
         return resourceManagementServiceRef().syncResource(player, resourceDefinition, snapshot, reason, currentValueOverride);
     }
 
@@ -292,26 +294,26 @@ abstract class AbstractAttributeServiceFacade implements AttributeServiceFacade 
 
     @Override
     public DamageContext createDamageContext(LivingEntity attacker,
-                                             LivingEntity target,
-                                             Projectile projectile,
-                                             EntityDamageEvent.DamageCause cause,
-                                             String damageTypeId,
-                                             double sourceDamage,
-                                             double baseDamage,
-                                             AttributeSnapshot attackerSnapshot,
-                                             AttributeSnapshot targetSnapshot,
-                                             DamageContextVariables context) {
+            LivingEntity target,
+            Projectile projectile,
+            EntityDamageEvent.DamageCause cause,
+            String damageTypeId,
+            double sourceDamage,
+            double baseDamage,
+            AttributeSnapshot attackerSnapshot,
+            AttributeSnapshot targetSnapshot,
+            DamageContextVariables context) {
         return damageCalculationServiceRef().createDamageContext(
-            attacker,
-            target,
-            projectile,
-            cause,
-            damageTypeId,
-            sourceDamage,
-            baseDamage,
-            attackerSnapshot,
-            targetSnapshot,
-            context
+                attacker,
+                target,
+                projectile,
+                cause,
+                damageTypeId,
+                sourceDamage,
+                baseDamage,
+                attackerSnapshot,
+                targetSnapshot,
+                context
         );
     }
 

@@ -1,54 +1,64 @@
 package emaki.jiuwu.craft.forge.model;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.bukkit.configuration.ConfigurationSection;
+
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.gui.SlotParser;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import org.bukkit.configuration.ConfigurationSection;
 
 public final class Recipe {
 
     public record BlueprintOption(Map<String, Object> selector, int count) {
+
     }
 
     public record BlueprintRequirement(String requirementMode, List<BlueprintOption> blueprintOptions) {
+
     }
 
     public record RequiredMaterial(String id, int count) {
+
     }
 
     public record OptionalMaterialsConfig(boolean enabled, List<String> whitelist, List<String> blacklist, int maxCount) {
+
         public static OptionalMaterialsConfig defaults() {
             return new OptionalMaterialsConfig(false, List.of(), List.of(), 5);
         }
     }
 
     public record QualityConfig(boolean enabled,
-                                List<String> customPool,
-                                boolean guaranteeEnabled,
-                                int guaranteeAttempts,
-                                String guaranteeMinimum) {
+            List<String> customPool,
+            boolean guaranteeEnabled,
+            int guaranteeAttempts,
+            String guaranteeMinimum) {
+
         public static QualityConfig defaults() {
             return new QualityConfig(false, List.of(), false, 10, "普通");
         }
     }
 
     public record GuiConfig(String template, Map<String, List<Integer>> slots) {
+
     }
 
     public record ResultConfig(ItemSource outputItem,
-                               List<String> action,
-                               List<Map<String, Object>> nameModifications,
-                               List<Map<String, Object>> loreActions) {
+            List<String> action,
+            List<Map<String, Object>> nameModifications,
+            List<Map<String, Object>> loreActions) {
+
     }
 
     public record ActionPhases(List<String> pre, List<String> success, List<String> failure) {
+
         public static ActionPhases empty() {
             return new ActionPhases(List.of(), List.of(), List.of());
         }
@@ -71,20 +81,20 @@ public final class Recipe {
     private final String permission;
 
     public Recipe(String id,
-                  String displayName,
-                  ItemSource targetItemSource,
-                  int forgeCapacity,
-                  List<BlueprintRequirement> blueprintRequirements,
-                  List<RequiredMaterial> requiredMaterials,
-                  OptionalMaterialsConfig optionalMaterials,
-                  String conditionType,
-                  int conditionRequiredCount,
-                  List<String> conditions,
-                  QualityConfig quality,
-                  GuiConfig gui,
-                  ResultConfig result,
-                  ActionPhases action,
-                  String permission) {
+            String displayName,
+            ItemSource targetItemSource,
+            int forgeCapacity,
+            List<BlueprintRequirement> blueprintRequirements,
+            List<RequiredMaterial> requiredMaterials,
+            OptionalMaterialsConfig optionalMaterials,
+            String conditionType,
+            int conditionRequiredCount,
+            List<String> conditions,
+            QualityConfig quality,
+            GuiConfig gui,
+            ResultConfig result,
+            ActionPhases action,
+            String permission) {
         this.id = id;
         this.displayName = displayName;
         this.targetItemSource = targetItemSource;
@@ -131,21 +141,21 @@ public final class Recipe {
             }
         }
         return new Recipe(
-            id,
-            section.getString("display_name", id),
-            targetSource,
-            forgeCapacity,
-            blueprintRequirements,
-            requiredMaterials,
-            parseOptionalMaterials(section.get("optional_materials")),
-            section.getString("condition_type", "all_of"),
-            Numbers.tryParseInt(section.get("condition_required_count"), 0),
-            Texts.asStringList(section.get("conditions")),
-            parseQuality(section.get("quality")),
-            parseGui(section.get("gui")),
-            parseResult(section.get("result")),
-            parseAction(ConfigNodes.get(section, "action")),
-            section.getString("permission")
+                id,
+                section.getString("display_name", id),
+                targetSource,
+                forgeCapacity,
+                blueprintRequirements,
+                requiredMaterials,
+                parseOptionalMaterials(section.get("optional_materials")),
+                section.getString("condition_type", "all_of"),
+                Numbers.tryParseInt(section.get("condition_required_count"), 0),
+                Texts.asStringList(section.get("conditions")),
+                parseQuality(section.get("quality")),
+                parseGui(section.get("gui")),
+                parseResult(section.get("result")),
+                parseAction(ConfigNodes.get(section, "action")),
+                section.getString("permission")
         );
     }
 
@@ -177,10 +187,10 @@ public final class Recipe {
             return OptionalMaterialsConfig.defaults();
         }
         return new OptionalMaterialsConfig(
-            ConfigNodes.bool(raw, "enabled", false),
-            Texts.asStringList(ConfigNodes.get(raw, "whitelist")),
-            Texts.asStringList(ConfigNodes.get(raw, "blacklist")),
-            Numbers.tryParseInt(ConfigNodes.get(raw, "max_count"), 5)
+                ConfigNodes.bool(raw, "enabled", false),
+                Texts.asStringList(ConfigNodes.get(raw, "whitelist")),
+                Texts.asStringList(ConfigNodes.get(raw, "blacklist")),
+                Numbers.tryParseInt(ConfigNodes.get(raw, "max_count"), 5)
         );
     }
 
@@ -190,11 +200,11 @@ public final class Recipe {
         }
         Object guarantee = ConfigNodes.get(raw, "guarantee");
         return new QualityConfig(
-            ConfigNodes.bool(raw, "enabled", false),
-            Texts.asStringList(ConfigNodes.get(raw, "custom_pool")),
-            ConfigNodes.bool(guarantee, "enabled", false),
-            Numbers.tryParseInt(ConfigNodes.get(guarantee, "attempts"), 10),
-            ConfigNodes.string(guarantee, "minimum", "普通")
+                ConfigNodes.bool(raw, "enabled", false),
+                Texts.asStringList(ConfigNodes.get(raw, "custom_pool")),
+                ConfigNodes.bool(guarantee, "enabled", false),
+                Numbers.tryParseInt(ConfigNodes.get(guarantee, "attempts"), 10),
+                ConfigNodes.string(guarantee, "minimum", "普通")
         );
     }
 
@@ -218,15 +228,15 @@ public final class Recipe {
         Object outputItem = ConfigNodes.get(raw, "output_item");
         Object metaActions = ConfigNodes.get(raw, "meta_actions");
         return new ResultConfig(
-            ItemSourceUtil.parse(outputItem),
-            List.copyOf(Texts.asStringList(ConfigNodes.get(raw, "action"))),
-            toActionList(
-                ConfigNodes.get(metaActions, "name_modifications"),
-                ConfigNodes.get(metaActions, "name_actions"),
-                ConfigNodes.get(raw, "name_modifications"),
-                ConfigNodes.get(raw, "name_actions")
-            ),
-            toActionList(ConfigNodes.get(metaActions, "lore_actions"), ConfigNodes.get(raw, "lore_actions"))
+                ItemSourceUtil.parse(outputItem),
+                List.copyOf(Texts.asStringList(ConfigNodes.get(raw, "action"))),
+                toActionList(
+                        ConfigNodes.get(metaActions, "name_modifications"),
+                        ConfigNodes.get(metaActions, "name_actions"),
+                        ConfigNodes.get(raw, "name_modifications"),
+                        ConfigNodes.get(raw, "name_actions")
+                ),
+                toActionList(ConfigNodes.get(metaActions, "lore_actions"), ConfigNodes.get(raw, "lore_actions"))
         );
     }
 
@@ -235,9 +245,9 @@ public final class Recipe {
             return ActionPhases.empty();
         }
         return new ActionPhases(
-            List.copyOf(section.getStringList("pre")),
-            List.copyOf(section.getStringList("success")),
-            List.copyOf(section.getStringList("failure"))
+                List.copyOf(section.getStringList("pre")),
+                List.copyOf(section.getStringList("success")),
+                List.copyOf(section.getStringList("failure"))
         );
     }
 

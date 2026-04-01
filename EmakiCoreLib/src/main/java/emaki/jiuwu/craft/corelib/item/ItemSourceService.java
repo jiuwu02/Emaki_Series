@@ -1,16 +1,18 @@
 package emaki.jiuwu.craft.corelib.item;
 
-import emaki.jiuwu.craft.corelib.text.Texts;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
 import org.bukkit.inventory.ItemStack;
+
+import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class ItemSourceService {
 
@@ -69,7 +71,7 @@ public final class ItemSourceService {
     private void refreshCache() {
         List<ItemSourceResolver> values = new ArrayList<>(resolvers.values());
         values.sort(Comparator.comparingInt(ItemSourceResolver::priority).reversed()
-            .thenComparing(resolver -> normalizeId(resolver.id())));
+                .thenComparing(resolver -> normalizeId(resolver.id())));
         orderedResolvers = values.isEmpty() ? List.of() : List.copyOf(values);
     }
 
@@ -117,8 +119,8 @@ public final class ItemSourceService {
             }
             String normalized = identifier.trim().toLowerCase(Locale.ROOT);
             NamespacedKey key = normalized.contains(":")
-                ? NamespacedKey.fromString(normalized)
-                : NamespacedKey.minecraft(normalized);
+                    ? NamespacedKey.fromString(normalized)
+                    : NamespacedKey.minecraft(normalized);
             return key == null ? null : Registry.MATERIAL.get(key);
         }
     }

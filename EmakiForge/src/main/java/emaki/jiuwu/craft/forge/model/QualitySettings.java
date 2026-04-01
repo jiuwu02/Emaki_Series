@@ -1,16 +1,18 @@
 package emaki.jiuwu.craft.forge.model;
 
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.math.Numbers;
-import emaki.jiuwu.craft.corelib.text.Texts;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.math.Numbers;
+import emaki.jiuwu.craft.corelib.text.Texts;
+
 public final class QualitySettings {
 
     public record QualityTier(String name, int weight, double multiplier) {
+
         public static QualityTier fromString(String raw) {
             if (Texts.isBlank(raw)) {
                 return null;
@@ -40,14 +42,14 @@ public final class QualitySettings {
     private final Map<String, List<Map<String, Object>>> itemMetaLoreActions;
 
     public QualitySettings(List<QualityTier> tiers,
-                           String defaultTier,
-                           boolean guaranteeEnabled,
-                           int guaranteeThreshold,
-                           String guaranteeMinimum,
-                           boolean itemMetaEnabled,
-                           Map<String, List<String>> itemMetaActions,
-                           Map<String, List<Map<String, Object>>> itemMetaNameModifications,
-                           Map<String, List<Map<String, Object>>> itemMetaLoreActions) {
+            String defaultTier,
+            boolean guaranteeEnabled,
+            int guaranteeThreshold,
+            String guaranteeMinimum,
+            boolean itemMetaEnabled,
+            Map<String, List<String>> itemMetaActions,
+            Map<String, List<Map<String, Object>>> itemMetaNameModifications,
+            Map<String, List<Map<String, Object>>> itemMetaLoreActions) {
         this.tiers = List.copyOf(tiers);
         this.defaultTier = defaultTier;
         this.guaranteeEnabled = guaranteeEnabled;
@@ -91,15 +93,15 @@ public final class QualitySettings {
             loreOps.put(key, toActionList(ConfigNodes.get(tierConfig, "lore_actions")));
         }
         return new QualitySettings(
-            tiers,
-            ConfigNodes.string(raw, "default_tier", "普通"),
-            ConfigNodes.bool(guarantee, "enabled", false),
-            Numbers.tryParseInt(ConfigNodes.get(guarantee, "threshold"), 10),
-            ConfigNodes.string(guarantee, "minimum", "普通"),
-            ConfigNodes.bool(itemMeta, "enabled", false),
-            actions,
-            nameMods,
-            loreOps
+                tiers,
+                ConfigNodes.string(raw, "default_tier", "普通"),
+                ConfigNodes.bool(guarantee, "enabled", false),
+                Numbers.tryParseInt(ConfigNodes.get(guarantee, "threshold"), 10),
+                ConfigNodes.string(guarantee, "minimum", "普通"),
+                ConfigNodes.bool(itemMeta, "enabled", false),
+                actions,
+                nameMods,
+                loreOps
         );
     }
 

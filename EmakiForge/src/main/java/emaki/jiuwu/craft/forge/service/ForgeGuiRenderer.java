@@ -1,5 +1,11 @@
 package emaki.jiuwu.craft.forge.service;
 
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.bukkit.inventory.ItemStack;
+
 import emaki.jiuwu.craft.corelib.gui.GuiItemBuilder;
 import emaki.jiuwu.craft.corelib.gui.GuiSlot;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
@@ -7,10 +13,6 @@ import emaki.jiuwu.craft.corelib.gui.ItemComponentParser;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.model.Recipe;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import org.bukkit.inventory.ItemStack;
 
 final class ForgeGuiRenderer {
 
@@ -29,14 +31,22 @@ final class ForgeGuiRenderer {
         GuiSlot slot = resolvedSlot.definition();
         String type = stateSupport.normalizedType(slot);
         ItemStack dynamic = switch (type) {
-            case "blueprint_inputs" -> ForgeGuiStateSupport.cloneNonAir(state.blueprintItems().get(resolvedSlot.inventorySlot()));
-            case "target_item" -> ForgeGuiStateSupport.cloneNonAir(state.targetItem());
-            case "required_materials" -> ForgeGuiStateSupport.cloneNonAir(state.requiredMaterialItems().get(resolvedSlot.inventorySlot()));
-            case "optional_materials" -> ForgeGuiStateSupport.cloneNonAir(state.optionalMaterialItems().get(resolvedSlot.inventorySlot()));
-            case "capacity_display" -> buildCapacityDisplayItem(slot, state);
-            case "confirm" -> buildConfirmItem(slot, state);
-            case "result_preview" -> buildResultPreview(state);
-            default -> null;
+            case "blueprint_inputs" ->
+                ForgeGuiStateSupport.cloneNonAir(state.blueprintItems().get(resolvedSlot.inventorySlot()));
+            case "target_item" ->
+                ForgeGuiStateSupport.cloneNonAir(state.targetItem());
+            case "required_materials" ->
+                ForgeGuiStateSupport.cloneNonAir(state.requiredMaterialItems().get(resolvedSlot.inventorySlot()));
+            case "optional_materials" ->
+                ForgeGuiStateSupport.cloneNonAir(state.optionalMaterialItems().get(resolvedSlot.inventorySlot()));
+            case "capacity_display" ->
+                buildCapacityDisplayItem(slot, state);
+            case "confirm" ->
+                buildConfirmItem(slot, state);
+            case "result_preview" ->
+                buildResultPreview(state);
+            default ->
+                null;
         };
         if (dynamic != null) {
             return dynamic;
@@ -63,23 +73,23 @@ final class ForgeGuiRenderer {
     private ItemStack buildConfirmItem(GuiSlot slot, ForgeGuiSession state) {
         if (state.maxCapacity() > 0 && state.currentCapacity() > state.maxCapacity()) {
             return GuiItemBuilder.build(
-                "BARRIER",
-                new ItemComponentParser.ItemComponents(
-                    "<red>无法锻造</red>",
-                    true,
-                    List.of(
-                        "<gray>当前容量: <yellow>{current}/{max}</yellow></gray>",
-                        "<red>可选材料容量已超出上限</red>",
-                        "<gray>减少材料后再试一次</gray>"
+                    "BARRIER",
+                    new ItemComponentParser.ItemComponents(
+                            "<red>无法锻造</red>",
+                            true,
+                            List.of(
+                                    "<gray>当前容量: <yellow>{current}/{max}</yellow></gray>",
+                                    "<red>可选材料容量已超出上限</red>",
+                                    "<gray>减少材料后再试一次</gray>"
+                            ),
+                            null,
+                            null,
+                            Map.of(),
+                            List.of()
                     ),
-                    null,
-                    null,
-                    Map.of(),
-                    List.of()
-                ),
-                1,
-                slotReplacements(state),
-                plugin.itemIdentifierService()::createItem
+                    1,
+                    slotReplacements(state),
+                    plugin.itemIdentifierService()::createItem
             );
         }
         return GuiItemBuilder.build(slot.item(), slot.components(), 1, slotReplacements(state), plugin.itemIdentifierService()::createItem);
@@ -93,11 +103,11 @@ final class ForgeGuiRenderer {
         ForgeService.PreparedForge preparedForge = state.preparedForge();
         if (preparedForge == null) {
             preparedForge = plugin.forgeService().prepareForge(
-                state.player(),
-                preview,
-                state.toGuiItems(),
-                state.previewSeed(),
-                state.previewForgedAt()
+                    state.player(),
+                    preview,
+                    state.toGuiItems(),
+                    state.previewSeed(),
+                    state.previewForgedAt()
             );
             state.setPreparedForge(preparedForge);
         }

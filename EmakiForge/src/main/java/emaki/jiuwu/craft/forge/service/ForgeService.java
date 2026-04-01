@@ -1,5 +1,16 @@
 package emaki.jiuwu.craft.forge.service;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+
+import org.bukkit.Material;
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
@@ -10,34 +21,26 @@ import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.config.AppConfig;
 import emaki.jiuwu.craft.forge.model.Blueprint;
-import emaki.jiuwu.craft.forge.model.ForgeResult;
 import emaki.jiuwu.craft.forge.model.ForgeMaterial;
+import emaki.jiuwu.craft.forge.model.ForgeResult;
 import emaki.jiuwu.craft.forge.model.GuiItems;
 import emaki.jiuwu.craft.forge.model.QualitySettings;
 import emaki.jiuwu.craft.forge.model.Recipe;
 import emaki.jiuwu.craft.forge.model.RecipeMatch;
 import emaki.jiuwu.craft.forge.model.ValidationResult;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import me.clip.placeholderapi.PlaceholderAPI;
-import org.bukkit.Material;
-import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 
 public final class ForgeService {
 
     public record PreparedForge(EmakiItemAssemblyRequest request,
-                                QualitySettings.QualityTier rolledQualityTier,
-                                boolean forceQualityApplied,
-                                emaki.jiuwu.craft.forge.model.QualitySettings.QualityTier qualityTier,
-                                String quality,
-                                double multiplier,
-                                ItemStack previewItem) {
-        public PreparedForge {
+            QualitySettings.QualityTier rolledQualityTier,
+            boolean forceQualityApplied,
+            emaki.jiuwu.craft.forge.model.QualitySettings.QualityTier qualityTier,
+            String quality,
+            double multiplier,
+            ItemStack previewItem) {
+
+        public PreparedForge       {
             previewItem = previewItem == null ? null : previewItem.clone();
         }
     }
@@ -58,40 +61,40 @@ public final class ForgeService {
         this.lookupIndex = new ForgeLookupIndex(plugin);
         this.materialValidationService = new MaterialValidationService(plugin, lookupIndex);
         this.qualityCalculationService = new QualityCalculationService(
-            () -> plugin.appConfig().qualitySettings(),
-            new QualityCalculationService.GuaranteeCounterStore() {
-                @Override
-                public int counter(UUID playerId, String key) {
-                    return plugin.playerDataStore().guaranteeCounter(playerId, key);
-                }
+                () -> plugin.appConfig().qualitySettings(),
+                new QualityCalculationService.GuaranteeCounterStore() {
+            @Override
+            public int counter(UUID playerId, String key) {
+                return plugin.playerDataStore().guaranteeCounter(playerId, key);
+            }
 
-                @Override
-                public void increment(UUID playerId, String key) {
-                    plugin.playerDataStore().incrementGuaranteeCounter(playerId, key);
-                }
+            @Override
+            public void increment(UUID playerId, String key) {
+                plugin.playerDataStore().incrementGuaranteeCounter(playerId, key);
+            }
 
-                @Override
-                public void reset(UUID playerId, String key) {
-                    plugin.playerDataStore().resetGuaranteeCounter(playerId, key);
-                }
-            },
-            this::resolveMaterialQualityModifiers
+            @Override
+            public void reset(UUID playerId, String key) {
+                plugin.playerDataStore().resetGuaranteeCounter(playerId, key);
+            }
+        },
+                this::resolveMaterialQualityModifiers
         );
         this.recipeMatchingService = new RecipeMatchingService(
-            lookupIndex::sortedRecipes,
-            (player, recipe) -> guiItems -> canForge(player, recipe, guiItems)
+                lookupIndex::sortedRecipes,
+                (player, recipe) -> guiItems -> canForge(player, recipe, guiItems)
         );
         this.forgeExecutionService = new ForgeExecutionService(
-            actionCoordinator,
-            qualityCalculationService,
-            (player, recipe, guiItems, preparedForge) -> preparedForge == null
-                ? prepareForge(player, recipe, guiItems, 0L, System.currentTimeMillis())
-                : preparedForge,
-            (player, request) -> {
-                EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.getInstance();
-                return coreLib == null ? null : coreLib.itemAssemblyService().give(player, request);
-            },
-            (playerId, recipeId) -> plugin.playerDataStore().recordCraft(playerId, recipeId)
+                actionCoordinator,
+                qualityCalculationService,
+                (player, recipe, guiItems, preparedForge) -> preparedForge == null
+                        ? prepareForge(player, recipe, guiItems, 0L, System.currentTimeMillis())
+                        : preparedForge,
+                (player, request) -> {
+                    EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.getInstance();
+                    return coreLib == null ? null : coreLib.itemAssemblyService().give(player, request);
+                },
+                (playerId, recipeId) -> plugin.playerDataStore().recordCraft(playerId, recipeId)
         );
     }
 
@@ -125,17 +128,17 @@ public final class ForgeService {
         }
         AppConfig config = plugin.appConfig();
         if (recipe.requiresPermission()
-            && !(config.opBypass() && player.isOp())
-            && !player.hasPermission(recipe.permission())) {
+                && !(config.opBypass() && player.isOp())
+                && !player.hasPermission(recipe.permission())) {
             return ValidationResult.fail("forge.error.permission_denied");
         }
         if (!recipe.conditions().isEmpty()) {
             boolean conditionsPassed = ConditionEvaluator.evaluate(
-                recipe.conditions(),
-                recipe.conditionType(),
-                recipe.conditionRequiredCount(),
-                text -> replacePlaceholders(player, text),
-                config.invalidAsFailure()
+                    recipe.conditions(),
+                    recipe.conditionType(),
+                    recipe.conditionRequiredCount(),
+                    text -> replacePlaceholders(player, text),
+                    config.invalidAsFailure()
             );
             if (!conditionsPassed) {
                 return ValidationResult.fail("forge.error.condition_not_met");
@@ -165,27 +168,27 @@ public final class ForgeService {
     }
 
     public ItemStack previewResultItem(Player player,
-                                       Recipe recipe,
-                                       GuiItems guiItems,
-                                       long previewSeed,
-                                       long forgedAt) {
+            Recipe recipe,
+            GuiItems guiItems,
+            long previewSeed,
+            long forgedAt) {
         PreparedForge preparedForge = prepareForge(player, recipe, guiItems, previewSeed, forgedAt);
         return preparedForge == null || preparedForge.previewItem() == null ? null : preparedForge.previewItem().clone();
     }
 
     public PreparedForge prepareForge(Player player,
-                                      Recipe recipe,
-                                      GuiItems guiItems,
-                                      long previewSeed,
-                                      long forgedAt) {
+            Recipe recipe,
+            GuiItems guiItems,
+            long previewSeed,
+            long forgedAt) {
         if (recipe == null) {
             return null;
         }
         QualityCalculationService.QualityRollPlan rollPlan = qualityCalculationService.resolveQualityRoll(
-            player == null ? null : player.getUniqueId(),
-            recipe,
-            guiItems,
-            buildRollKey(buildPreviewFingerprint(player, recipe, guiItems), previewSeed)
+                player == null ? null : player.getUniqueId(),
+                recipe,
+                guiItems,
+                buildRollKey(buildPreviewFingerprint(player, recipe, guiItems), previewSeed)
         );
         EmakiItemAssemblyRequest request = resultItemFactory.buildAssemblyRequest(recipe, guiItems, rollPlan.multiplier(), rollPlan.finalTier(), forgedAt);
         if (request == null) {
@@ -194,20 +197,20 @@ public final class ForgeService {
         EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.getInstance();
         ItemStack previewItem = coreLib == null ? null : coreLib.itemAssemblyService().preview(request);
         return new PreparedForge(
-            request,
-            rollPlan.rolledTier(),
-            rollPlan.forceApplied(),
-            rollPlan.finalTier(),
-            rollPlan.qualityName(),
-            rollPlan.multiplier(),
-            previewItem
+                request,
+                rollPlan.rolledTier(),
+                rollPlan.forceApplied(),
+                rollPlan.finalTier(),
+                rollPlan.qualityName(),
+                rollPlan.multiplier(),
+                previewItem
         );
     }
 
     public CompletableFuture<ForgeResult> executeForgeAsync(Player player,
-                                                            Recipe recipe,
-                                                            GuiItems guiItems,
-                                                            PreparedForge preparedForge) {
+            Recipe recipe,
+            GuiItems guiItems,
+            PreparedForge preparedForge) {
         ValidationResult validation = canForge(player, recipe, guiItems);
         return forgeExecutionService.execute(player, recipe, guiItems, preparedForge, validation);
     }
@@ -257,8 +260,8 @@ public final class ForgeService {
         }
         for (ItemStack itemStack : items) {
             ForgeMaterial material = itemStack == null
-                ? null
-                : lookupIndex.findMaterialBySource(plugin.itemIdentifierService().identifyItem(itemStack));
+                    ? null
+                    : lookupIndex.findMaterialBySource(plugin.itemIdentifierService().identifyItem(itemStack));
             if (material == null || itemStack.getAmount() <= 0) {
                 continue;
             }

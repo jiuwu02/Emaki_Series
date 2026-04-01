@@ -1,5 +1,12 @@
 package emaki.jiuwu.craft.attribute.service;
 
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
+
 import emaki.jiuwu.craft.attribute.model.AttributeSnapshot;
 import emaki.jiuwu.craft.attribute.model.DamageContext;
 import emaki.jiuwu.craft.attribute.model.DamageContextVariables;
@@ -9,12 +16,6 @@ import emaki.jiuwu.craft.attribute.model.DamageTypeDefinition;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 final class DamageCalculationCache {
 
@@ -55,9 +56,9 @@ final class DamageCalculationCache {
             return 0D;
         }
         AttributeSumKey key = new AttributeSumKey(
-            snapshot == null ? "" : snapshot.sourceSignature(),
-            contextSignature(context),
-            SignatureUtil.stableSignature(ids)
+                snapshot == null ? "" : snapshot.sourceSignature(),
+                contextSignature(context),
+                SignatureUtil.stableSignature(ids)
         );
         Double cached = sumCache.get(key);
         if (cached != null) {
@@ -71,15 +72,15 @@ final class DamageCalculationCache {
     private DamageResultKey resultKey(DamageRequest request, DamageTypeDefinition definition, double seededRoll) {
         DamageContext damageContext = request == null ? null : request.damageContext();
         return new DamageResultKey(
-            definition == null ? "" : definition.id(),
-            definition == null ? "" : SignatureUtil.stableSignature(definition.stages()),
-            damageContext == null ? "" : damageContext.causeId(),
-            damageContext == null ? 0D : damageContext.sourceDamage(),
-            damageContext == null ? 0D : damageContext.baseDamage(),
-            seededRoll,
-            damageContext == null || damageContext.attackerSnapshot() == null ? "" : damageContext.attackerSnapshot().sourceSignature(),
-            damageContext == null || damageContext.targetSnapshot() == null ? "" : damageContext.targetSnapshot().sourceSignature(),
-            contextSignature(damageContext == null ? null : damageContext.variables())
+                definition == null ? "" : definition.id(),
+                definition == null ? "" : SignatureUtil.stableSignature(definition.stages()),
+                damageContext == null ? "" : damageContext.causeId(),
+                damageContext == null ? 0D : damageContext.sourceDamage(),
+                damageContext == null ? 0D : damageContext.baseDamage(),
+                seededRoll,
+                damageContext == null || damageContext.attackerSnapshot() == null ? "" : damageContext.attackerSnapshot().sourceSignature(),
+                damageContext == null || damageContext.targetSnapshot() == null ? "" : damageContext.targetSnapshot().sourceSignature(),
+                contextSignature(damageContext == null ? null : damageContext.variables())
         );
     }
 
@@ -124,18 +125,20 @@ final class DamageCalculationCache {
     }
 
     private record DamageResultKey(String damageTypeId,
-                                   String stagesSignature,
-                                   String causeId,
-                                   double sourceDamage,
-                                   double baseDamage,
-                                   double seededRoll,
-                                   String attackerSignature,
-                                   String targetSignature,
-                                   String contextSignature) {
+            String stagesSignature,
+            String causeId,
+            double sourceDamage,
+            double baseDamage,
+            double seededRoll,
+            String attackerSignature,
+            String targetSignature,
+            String contextSignature) {
+
     }
 
     private record AttributeSumKey(String snapshotSignature, String contextSignature, String attributeIdsSignature) {
-        private AttributeSumKey {
+
+        private AttributeSumKey   {
             snapshotSignature = Objects.requireNonNullElse(snapshotSignature, "");
             contextSignature = Objects.requireNonNullElse(contextSignature, "");
             attributeIdsSignature = Objects.requireNonNullElse(attributeIdsSignature, "");

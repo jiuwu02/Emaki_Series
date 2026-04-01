@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.corelib.gui;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
+
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -28,13 +29,13 @@ public final class GuiService implements Listener {
             existing.viewer().closeInventory();
         }
         GuiSession session = new GuiSession(
-            request.owner(),
-            request.viewer(),
-            request.template(),
-            request.replacements(),
-            request.itemFactory(),
-            request.renderer(),
-            request.handler()
+                request.owner(),
+                request.viewer(),
+                request.template(),
+                request.replacements(),
+                request.itemFactory(),
+                request.renderer(),
+                request.handler()
         );
         sessions.put(request.viewer().getUniqueId(), session);
         session.open();

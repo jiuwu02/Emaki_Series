@@ -1,5 +1,12 @@
 package emaki.jiuwu.craft.attribute.action;
 
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
+import org.bukkit.event.entity.EntityDamageEvent;
+
 import emaki.jiuwu.craft.attribute.service.AttributeServiceFacade;
 import emaki.jiuwu.craft.corelib.action.Action;
 import emaki.jiuwu.craft.corelib.action.ActionContext;
@@ -9,11 +16,6 @@ import emaki.jiuwu.craft.corelib.action.ActionParameterType;
 import emaki.jiuwu.craft.corelib.action.ActionParsers;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
 import emaki.jiuwu.craft.corelib.text.Texts;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import org.bukkit.event.entity.EntityDamageEvent;
 
 public final class AttributeDamageAction implements Action {
 
@@ -43,9 +45,9 @@ public final class AttributeDamageAction implements Action {
     @Override
     public List<ActionParameter> parameters() {
         return List.of(
-            ActionParameter.required("amount", ActionParameterType.DOUBLE, "Base damage"),
-            ActionParameter.optional("type", ActionParameterType.STRING, "", "Damage type id"),
-            ActionParameter.optional("cause", ActionParameterType.STRING, "CUSTOM", "Damage cause")
+                ActionParameter.required("amount", ActionParameterType.DOUBLE, "Base damage"),
+                ActionParameter.optional("type", ActionParameterType.STRING, "", "Damage type id"),
+                ActionParameter.optional("cause", ActionParameterType.STRING, "CUSTOM", "Damage cause")
         );
     }
 
@@ -80,15 +82,15 @@ public final class AttributeDamageAction implements Action {
         damageContext.put("action_id", ID);
         damageContext.put("damage_type_id", damageTypeId);
         boolean applied = attributeService.applyDamage(
-            null,
-            context.player(),
-            damageTypeId,
-            ActionParsers.parseDouble(arguments.get("amount"), 0D),
-            damageContext
+                null,
+                context.player(),
+                damageTypeId,
+                ActionParsers.parseDouble(arguments.get("amount"), 0D),
+                damageContext
         );
         return applied
-            ? ActionResult.ok(Map.of("damage_type", damageTypeId))
-            : ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, "Failed to apply attribute damage.");
+                ? ActionResult.ok(Map.of("damage_type", damageTypeId))
+                : ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, "Failed to apply attribute damage.");
     }
 
     private EntityDamageEvent.DamageCause parseCause(String raw) {

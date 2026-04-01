@@ -1,26 +1,27 @@
 package emaki.jiuwu.craft.attribute.model;
 
-import emaki.jiuwu.craft.corelib.text.Texts;
 import java.util.List;
 import java.util.Locale;
 
-public record AttributeDefinition(String id,
-                                  String displayName,
-                                  AttributeValueKind valueKind,
-                                  AttributeTargetType targetType,
-                                  String targetId,
-                                  String mmoItemsStatId,
-                                  double defaultValue,
-                                  Double minValue,
-                                  Double maxValue,
-                                  boolean allowNegative,
-                                  int priority,
-                                  String loreFormatId,
-                                  List<String> lorePatterns,
-                                  String description,
-                                  double attributePower) {
+import emaki.jiuwu.craft.corelib.text.Texts;
 
-    public AttributeDefinition {
+public record AttributeDefinition(String id,
+        String displayName,
+        AttributeValueKind valueKind,
+        AttributeTargetType targetType,
+        String targetId,
+        String mmoItemsStatId,
+        double defaultValue,
+        Double minValue,
+        Double maxValue,
+        boolean allowNegative,
+        int priority,
+        String loreFormatId,
+        List<String> lorePatterns,
+        String description,
+        double attributePower) {
+
+    public AttributeDefinition               {
         id = normalizeId(id);
         displayName = Texts.isBlank(displayName) ? id : Texts.toStringSafe(displayName).trim();
         valueKind = valueKind == null ? AttributeValueKind.FLAT : valueKind;

@@ -1,13 +1,15 @@
 package emaki.jiuwu.craft.forge.service;
 
-import emaki.jiuwu.craft.corelib.gui.GuiSession;
-import emaki.jiuwu.craft.forge.model.GuiItems;
-import emaki.jiuwu.craft.forge.model.Recipe;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
+
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+
+import emaki.jiuwu.craft.corelib.gui.GuiSession;
+import emaki.jiuwu.craft.forge.model.GuiItems;
+import emaki.jiuwu.craft.forge.model.Recipe;
 
 public final class ForgeGuiSession {
 
@@ -158,10 +160,10 @@ public final class ForgeGuiSession {
 
     public GuiItems toGuiItems() {
         return new GuiItems(
-            targetItem == null ? null : targetItem.clone(),
-            copyItems(blueprintItems),
-            copyItems(requiredMaterialItems),
-            copyItems(optionalMaterialItems)
+                targetItem == null ? null : targetItem.clone(),
+                copyItems(blueprintItems),
+                copyItems(requiredMaterialItems),
+                copyItems(optionalMaterialItems)
         );
     }
 

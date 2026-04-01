@@ -1,10 +1,11 @@
 package emaki.jiuwu.craft.corelib.assembly;
 
-import emaki.jiuwu.craft.corelib.pdc.SnapshotCodec;
-import emaki.jiuwu.craft.corelib.text.Texts;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
+
+import emaki.jiuwu.craft.corelib.pdc.SnapshotCodec;
+import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class EmakiItemLayerCodecRegistry {
 

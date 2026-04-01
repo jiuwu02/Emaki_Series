@@ -1,19 +1,20 @@
 package emaki.jiuwu.craft.attribute.model;
 
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.math.Numbers;
-import emaki.jiuwu.craft.corelib.text.Texts;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 
-public record AttributePreset(String id,
-                              String displayName,
-                              int priority,
-                              Map<String, Double> values,
-                              String description) {
+import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.math.Numbers;
+import emaki.jiuwu.craft.corelib.text.Texts;
 
-    public AttributePreset {
+public record AttributePreset(String id,
+        String displayName,
+        int priority,
+        Map<String, Double> values,
+        String description) {
+
+    public AttributePreset     {
         id = normalizeId(id);
         displayName = Texts.isBlank(displayName) ? id : Texts.toStringSafe(displayName).trim();
         values = values == null ? Map.of() : Map.copyOf(values);
@@ -30,11 +31,11 @@ public record AttributePreset(String id,
             values.put(entry.getKey().toLowerCase(Locale.ROOT), Numbers.tryParseDouble(entry.getValue(), 0D));
         }
         return new AttributePreset(
-            ConfigNodes.string(raw, "id", null),
-            ConfigNodes.string(raw, "display_name", null),
-            Numbers.tryParseInt(ConfigNodes.get(raw, "priority"), 0),
-            values,
-            ConfigNodes.string(raw, "description", null)
+                ConfigNodes.string(raw, "id", null),
+                ConfigNodes.string(raw, "display_name", null),
+                Numbers.tryParseInt(ConfigNodes.get(raw, "priority"), 0),
+                values,
+                ConfigNodes.string(raw, "description", null)
         );
     }
 

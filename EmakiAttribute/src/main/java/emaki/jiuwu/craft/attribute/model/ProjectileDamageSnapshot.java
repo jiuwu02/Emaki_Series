@@ -1,22 +1,23 @@
 package emaki.jiuwu.craft.attribute.model;
 
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.math.Numbers;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.math.Numbers;
+
 public record ProjectileDamageSnapshot(int schemaVersion,
-                                       String damageTypeId,
-                                       UUID shooterUuid,
-                                       String sourceSignature,
-                                       long launchedAt,
-                                       long expiresAt,
-                                       AttributeSnapshot attackSnapshot) {
+        String damageTypeId,
+        UUID shooterUuid,
+        String sourceSignature,
+        long launchedAt,
+        long expiresAt,
+        AttributeSnapshot attackSnapshot) {
 
     public static final int CURRENT_SCHEMA_VERSION = 1;
 
-    public ProjectileDamageSnapshot {
+    public ProjectileDamageSnapshot       {
         sourceSignature = sourceSignature == null ? "" : sourceSignature;
     }
 
@@ -48,13 +49,13 @@ public record ProjectileDamageSnapshot(int schemaVersion,
             attackSnapshot = AttributeSnapshot.fromMap(plain);
         }
         return new ProjectileDamageSnapshot(
-            Numbers.tryParseInt(map.get("schema_version"), CURRENT_SCHEMA_VERSION),
-            ConfigNodes.string(map, "damage_type_id", ""),
-            map.get("shooter_uuid") == null ? null : UUID.fromString(String.valueOf(map.get("shooter_uuid"))),
-            ConfigNodes.string(map, "source_signature", ""),
-            Numbers.tryParseLong(map.get("launched_at"), 0L),
-            Numbers.tryParseLong(map.get("expires_at"), 0L),
-            attackSnapshot
+                Numbers.tryParseInt(map.get("schema_version"), CURRENT_SCHEMA_VERSION),
+                ConfigNodes.string(map, "damage_type_id", ""),
+                map.get("shooter_uuid") == null ? null : UUID.fromString(String.valueOf(map.get("shooter_uuid"))),
+                ConfigNodes.string(map, "source_signature", ""),
+                Numbers.tryParseLong(map.get("launched_at"), 0L),
+                Numbers.tryParseLong(map.get("expires_at"), 0L),
+                attackSnapshot
         );
     }
 }

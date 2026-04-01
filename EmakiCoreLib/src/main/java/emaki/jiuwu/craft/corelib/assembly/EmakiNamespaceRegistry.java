@@ -1,12 +1,13 @@
 package emaki.jiuwu.craft.corelib.assembly;
 
-import emaki.jiuwu.craft.corelib.text.Texts;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+
+import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class EmakiNamespaceRegistry {
 
@@ -49,18 +50,18 @@ public final class EmakiNamespaceRegistry {
         }
         List<String> ordered = new ArrayList<>(unique.values());
         ordered.sort(Comparator
-            .comparingInt((String namespaceId) -> {
-                EmakiNamespaceDefinition definition = definitions.get(namespaceId);
-                return definition == null ? Integer.MAX_VALUE : definition.order();
-            })
-            .thenComparing(namespaceId -> namespaceId));
+                .comparingInt((String namespaceId) -> {
+                    EmakiNamespaceDefinition definition = definitions.get(namespaceId);
+                    return definition == null ? Integer.MAX_VALUE : definition.order();
+                })
+                .thenComparing(namespaceId -> namespaceId));
         return ordered.isEmpty() ? List.of() : List.copyOf(ordered);
     }
 
     private void refreshCache() {
         List<EmakiNamespaceDefinition> values = new ArrayList<>(definitions.values());
         values.sort(Comparator.comparingInt(EmakiNamespaceDefinition::order)
-            .thenComparing(definition -> normalizeId(definition.id())));
+                .thenComparing(definition -> normalizeId(definition.id())));
         orderedDefinitions = values.isEmpty() ? List.of() : List.copyOf(values);
     }
 

@@ -1,14 +1,15 @@
 package emaki.jiuwu.craft.forge.service;
 
+import java.util.Collection;
+
 import emaki.jiuwu.craft.forge.model.ForgeMaterial;
 import emaki.jiuwu.craft.forge.model.QualitySettings;
-import java.util.Collection;
 
 final class ForgeQualityModifierResolver {
 
     QualitySettings.QualityTier applyModifiers(QualitySettings settings,
-                                               QualitySettings.QualityTier baseTier,
-                                               Collection<ForgeMaterial.QualityModifier> modifiers) {
+            QualitySettings.QualityTier baseTier,
+            Collection<ForgeMaterial.QualityModifier> modifiers) {
         if (settings == null) {
             return baseTier;
         }

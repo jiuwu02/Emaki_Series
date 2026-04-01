@@ -17,18 +17,19 @@ import emaki.jiuwu.craft.forge.service.MessageService;
 import emaki.jiuwu.craft.forge.service.RecipeBookGuiService;
 
 record ForgeRuntimeComponents(AppConfigLoader appConfigLoader,
-                              LanguageLoader languageLoader,
-                              BlueprintLoader blueprintLoader,
-                              MaterialLoader materialLoader,
-                              RecipeLoader recipeLoader,
-                              GuiTemplateLoader guiTemplateLoader,
-                              PlayerDataStore playerDataStore,
-                              MessageService messageService,
-                              BootstrapService bootstrapService,
-                              GuiService guiService,
-                              ItemIdentifierService itemIdentifierService,
-                              ForgeItemRefreshService itemRefreshService,
-                              ForgeService forgeService,
-                              ForgeGuiService forgeGuiService,
-                              RecipeBookGuiService recipeBookGuiService) {
+        LanguageLoader languageLoader,
+        BlueprintLoader blueprintLoader,
+        MaterialLoader materialLoader,
+        RecipeLoader recipeLoader,
+        GuiTemplateLoader guiTemplateLoader,
+        PlayerDataStore playerDataStore,
+        MessageService messageService,
+        BootstrapService bootstrapService,
+        GuiService guiService,
+        ItemIdentifierService itemIdentifierService,
+        ForgeItemRefreshService itemRefreshService,
+        ForgeService forgeService,
+        ForgeGuiService forgeGuiService,
+        RecipeBookGuiService recipeBookGuiService) {
+
 }

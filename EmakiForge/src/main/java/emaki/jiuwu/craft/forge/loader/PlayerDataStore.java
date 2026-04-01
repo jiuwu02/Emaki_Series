@@ -1,14 +1,15 @@
 package emaki.jiuwu.craft.forge.loader;
 
-import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
-import emaki.jiuwu.craft.forge.EmakiForgePlugin;
-import emaki.jiuwu.craft.forge.model.PlayerData;
 import java.io.File;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
+
+import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
+import emaki.jiuwu.craft.forge.EmakiForgePlugin;
+import emaki.jiuwu.craft.forge.model.PlayerData;
 
 public final class PlayerDataStore {
 
@@ -25,7 +26,7 @@ public final class PlayerDataStore {
             YamlFiles.ensureDirectory(directory.toPath());
         } catch (IOException exception) {
             plugin.messageService().warning("console.player_data_directory_create_failed", Map.of(
-                "path", directory.getPath()
+                    "path", directory.getPath()
             ));
         }
     }
@@ -92,8 +93,8 @@ public final class PlayerDataStore {
             return true;
         } catch (IOException exception) {
             plugin.messageService().warning("console.player_data_save_failed", Map.of(
-                "uuid", uuid,
-                "error", String.valueOf(exception.getMessage())
+                    "uuid", uuid,
+                    "error", String.valueOf(exception.getMessage())
             ));
             return false;
         }

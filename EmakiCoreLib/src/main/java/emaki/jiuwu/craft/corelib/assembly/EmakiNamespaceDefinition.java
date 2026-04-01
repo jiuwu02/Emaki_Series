@@ -1,11 +1,12 @@
 package emaki.jiuwu.craft.corelib.assembly;
 
-import emaki.jiuwu.craft.corelib.text.Texts;
 import java.util.Locale;
+
+import emaki.jiuwu.craft.corelib.text.Texts;
 
 public record EmakiNamespaceDefinition(String id, int order, String displayName) {
 
-    public EmakiNamespaceDefinition {
+    public EmakiNamespaceDefinition   {
         id = normalizeId(id);
         displayName = Texts.isBlank(displayName) ? id : displayName;
     }

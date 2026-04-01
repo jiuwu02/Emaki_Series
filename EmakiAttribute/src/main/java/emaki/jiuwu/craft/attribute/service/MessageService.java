@@ -1,13 +1,15 @@
 package emaki.jiuwu.craft.attribute.service;
 
+import java.util.Map;
+import java.util.function.Supplier;
+
+import org.bukkit.command.CommandSender;
+
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.attribute.config.AttributeConfig;
 import emaki.jiuwu.craft.attribute.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.service.AbstractMessageService;
-import java.util.Map;
-import java.util.function.Supplier;
 import net.kyori.adventure.text.Component;
-import org.bukkit.command.CommandSender;
 
 public final class MessageService extends AbstractMessageService {
 
@@ -17,8 +19,8 @@ public final class MessageService extends AbstractMessageService {
     private final Supplier<AttributeConfig> configSupplier;
 
     public MessageService(EmakiAttributePlugin plugin,
-                          LanguageLoader languageLoader,
-                          Supplier<AttributeConfig> configSupplier) {
+            LanguageLoader languageLoader,
+            Supplier<AttributeConfig> configSupplier) {
         super(plugin, DEFAULT_PREFIX);
         this.languageLoader = languageLoader;
         this.configSupplier = configSupplier;

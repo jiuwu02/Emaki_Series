@@ -1,15 +1,17 @@
 package emaki.jiuwu.craft.forge.loader;
 
-import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
-import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
+
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
+
+import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
+import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 
 public final class LanguageLoader {
 

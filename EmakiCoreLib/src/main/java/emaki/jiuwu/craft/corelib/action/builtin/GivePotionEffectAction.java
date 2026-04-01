@@ -1,28 +1,30 @@
 package emaki.jiuwu.craft.corelib.action.builtin;
 
+import java.util.Map;
+
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
+
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.action.ActionErrorType;
 import emaki.jiuwu.craft.corelib.action.ActionParameter;
 import emaki.jiuwu.craft.corelib.action.ActionParameterType;
 import emaki.jiuwu.craft.corelib.action.ActionParsers;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
-import java.util.Map;
-import org.bukkit.potion.PotionEffect;
-import org.bukkit.potion.PotionEffectType;
 
 public final class GivePotionEffectAction extends BaseAction {
 
     public GivePotionEffectAction() {
         super(
-            "givepotioneffect",
-            "player",
-            "Give potion effect.",
-            ActionParameter.required("type", ActionParameterType.STRING, "Effect type"),
-            ActionParameter.required("level", ActionParameterType.INTEGER, "Effect level"),
-            ActionParameter.required("duration", ActionParameterType.TIME, "Duration"),
-            ActionParameter.optional("ambient", ActionParameterType.BOOLEAN, "false", "Ambient"),
-            ActionParameter.optional("particles", ActionParameterType.BOOLEAN, "true", "Particles"),
-            ActionParameter.optional("icon", ActionParameterType.BOOLEAN, "true", "Icon")
+                "givepotioneffect",
+                "player",
+                "Give potion effect.",
+                ActionParameter.required("type", ActionParameterType.STRING, "Effect type"),
+                ActionParameter.required("level", ActionParameterType.INTEGER, "Effect level"),
+                ActionParameter.required("duration", ActionParameterType.TIME, "Duration"),
+                ActionParameter.optional("ambient", ActionParameterType.BOOLEAN, "false", "Ambient"),
+                ActionParameter.optional("particles", ActionParameterType.BOOLEAN, "true", "Particles"),
+                ActionParameter.optional("icon", ActionParameterType.BOOLEAN, "true", "Icon")
         );
     }
 

@@ -1,14 +1,15 @@
 package emaki.jiuwu.craft.attribute.service;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
+
 import emaki.jiuwu.craft.attribute.model.DamageContext;
 import emaki.jiuwu.craft.attribute.model.DamageContextVariables;
 import emaki.jiuwu.craft.attribute.model.DamageRequest;
 import emaki.jiuwu.craft.attribute.model.DamageResult;
 import emaki.jiuwu.craft.attribute.model.DamageStageDefinition;
 import emaki.jiuwu.craft.attribute.model.DamageTypeDefinition;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.concurrent.ThreadLocalRandom;
 
 public final class DamageEngine {
 
@@ -53,6 +54,7 @@ public final class DamageEngine {
         calculationCache.cacheResult(request, definition, seededRoll, result);
         return result;
     }
+
     private DamageResult emptyResult() {
         return new DamageResult("", 0D, false, 0D, Map.of(), DamageContext.legacy("", 0D, null, null, DamageContextVariables.empty()));
     }

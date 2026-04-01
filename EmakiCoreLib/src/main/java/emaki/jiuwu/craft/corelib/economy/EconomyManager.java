@@ -1,12 +1,14 @@
 package emaki.jiuwu.craft.corelib.economy;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
+
 import emaki.jiuwu.craft.corelib.action.ActionErrorType;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
 import emaki.jiuwu.craft.corelib.text.Texts;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import org.bukkit.entity.Player;
-import org.bukkit.plugin.Plugin;
 
 public final class EconomyManager {
 

@@ -1,9 +1,7 @@
 package emaki.jiuwu.craft.corelib.pdc;
 
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.text.Texts;
-import java.math.BigDecimal;
 import java.lang.reflect.RecordComponent;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.ArrayList;
@@ -13,6 +11,9 @@ import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class SignatureUtil {
 

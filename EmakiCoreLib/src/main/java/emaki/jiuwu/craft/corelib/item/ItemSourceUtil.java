@@ -51,10 +51,14 @@ public final class ItemSourceUtil {
             return null;
         }
         return switch (source.getType()) {
-            case MMOITEMS -> "mmoitems-" + source.getIdentifier();
-            case NEIGEITEMS -> "neigeitems-" + source.getIdentifier();
-            case CRAFTENGINE -> "craftengine-" + source.getIdentifier();
-            case VANILLA -> source.getIdentifier();
+            case MMOITEMS ->
+                "mmoitems-" + source.getIdentifier();
+            case NEIGEITEMS ->
+                "neigeitems-" + source.getIdentifier();
+            case CRAFTENGINE ->
+                "craftengine-" + source.getIdentifier();
+            case VANILLA ->
+                source.getIdentifier();
         };
     }
 

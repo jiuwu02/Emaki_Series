@@ -1,5 +1,11 @@
 package emaki.jiuwu.craft.attribute.service;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
 import emaki.jiuwu.craft.attribute.loader.AttributeRegistry;
 import emaki.jiuwu.craft.attribute.loader.LoreFormatRegistry;
 import emaki.jiuwu.craft.attribute.model.AttributeDefinition;
@@ -10,11 +16,6 @@ import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
@@ -59,11 +60,11 @@ public final class LoreParser {
         String formattedValue = Numbers.formatNumber(Math.abs(value), pattern);
         String unit = definition.isPercentLike() ? "%" : "";
         String rendered = template
-            .replace("{sign}", sign)
-            .replace("{value}", formattedValue)
-            .replace("{name}", definition.displayName())
-            .replace("{id}", definition.id())
-            .replace("{unit}", unit);
+                .replace("{sign}", sign)
+                .replace("{value}", formattedValue)
+                .replace("{name}", definition.displayName())
+                .replace("{id}", definition.id())
+                .replace("{unit}", unit);
         return List.of(rendered);
     }
 
@@ -113,5 +114,6 @@ public final class LoreParser {
     }
 
     public record ParsedLore(AttributeSnapshot snapshot, List<String> normalizedLore) {
+
     }
 }

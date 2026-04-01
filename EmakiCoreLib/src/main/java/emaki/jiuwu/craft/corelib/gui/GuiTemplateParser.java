@@ -1,14 +1,16 @@
 package emaki.jiuwu.craft.corelib.gui;
 
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.bukkit.configuration.ConfigurationSection;
+
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import org.bukkit.configuration.ConfigurationSection;
 
 public final class GuiTemplateParser {
 
@@ -34,10 +36,10 @@ public final class GuiTemplateParser {
             }
         }
         return new GuiTemplate(
-            id,
-            section.getString("title", "GUI"),
-            Numbers.clamp(Numbers.tryParseInt(section.get("rows"), 3), 1, 6),
-            slots
+                id,
+                section.getString("title", "GUI"),
+                Numbers.clamp(Numbers.tryParseInt(section.get("rows"), 3), 1, 6),
+                slots
         );
     }
 
@@ -46,18 +48,18 @@ public final class GuiTemplateParser {
             return null;
         }
         List<Integer> positions = raw instanceof ConfigurationSection || raw instanceof Map<?, ?>
-            ? SlotParser.parse(ConfigNodes.get(raw, "slots"))
-            : SlotParser.parse(raw);
+                ? SlotParser.parse(ConfigNodes.get(raw, "slots"))
+                : SlotParser.parse(raw);
         if (positions.isEmpty()) {
             return null;
         }
         return new GuiSlot(
-            key,
-            positions,
-            resolveType(key, raw),
-            parseItemText(raw),
-            ItemComponentParser.parse(raw),
-            parseSounds(raw)
+                key,
+                positions,
+                resolveType(key, raw),
+                parseItemText(raw),
+                ItemComponentParser.parse(raw),
+                parseSounds(raw)
         );
     }
 
@@ -67,10 +69,12 @@ public final class GuiTemplateParser {
             return configured;
         }
         return switch (Texts.lower(key)) {
-            case "blueprint_inputs", "target_item", "required_materials", "optional_materials",
-                 "recipe_list", "capacity_display", "prev_page", "next_page", "close" -> Texts.lower(key);
-            case "confirm_button" -> "confirm";
-            default -> null;
+            case "blueprint_inputs", "target_item", "required_materials", "optional_materials", "recipe_list", "capacity_display", "prev_page", "next_page", "close" ->
+                Texts.lower(key);
+            case "confirm_button" ->
+                "confirm";
+            default ->
+                null;
         };
     }
 

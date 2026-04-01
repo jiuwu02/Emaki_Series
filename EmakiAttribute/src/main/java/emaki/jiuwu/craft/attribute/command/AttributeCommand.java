@@ -1,25 +1,27 @@
 package emaki.jiuwu.craft.attribute.command;
 
-import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
-import emaki.jiuwu.craft.attribute.model.AttributeSnapshot;
-import emaki.jiuwu.craft.attribute.model.ResourceState;
-import emaki.jiuwu.craft.attribute.service.AttributeService;
-import emaki.jiuwu.craft.attribute.service.MessageService;
-import emaki.jiuwu.craft.corelib.math.Numbers;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.event.HoverEvent;
-import net.kyori.adventure.text.format.NamedTextColor;
+
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
+
+import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
+import emaki.jiuwu.craft.attribute.model.AttributeSnapshot;
+import emaki.jiuwu.craft.attribute.model.ResourceState;
+import emaki.jiuwu.craft.attribute.service.AttributeService;
+import emaki.jiuwu.craft.attribute.service.MessageService;
+import emaki.jiuwu.craft.corelib.math.Numbers;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.HoverEvent;
+import net.kyori.adventure.text.format.NamedTextColor;
 
 public final class AttributeCommand implements TabExecutor {
 
@@ -38,10 +40,14 @@ public final class AttributeCommand implements TabExecutor {
             return true;
         }
         return switch (args[0].toLowerCase(Locale.ROOT)) {
-            case "reload" -> handleReload(sender);
-            case "resync" -> handleResync(sender, args);
-            case "dump" -> handleDump(sender, args);
-            case "debug" -> handleDebug(sender, args);
+            case "reload" ->
+                handleReload(sender);
+            case "resync" ->
+                handleResync(sender, args);
+            case "dump" ->
+                handleDump(sender, args);
+            case "debug" ->
+                handleDebug(sender, args);
             case "help" -> {
                 sendHelp(sender);
                 yield true;
@@ -113,9 +119,9 @@ public final class AttributeCommand implements TabExecutor {
         plugin.reloadPluginState(true);
         messages().send(sender, "command.reload.success");
         messages().send(sender, "command.reload.summary", Map.of(
-            "attributes", attributeService.attributeRegistry().all().size(),
-            "damage_types", attributeService.damageTypeRegistry().all().size(),
-            "profiles", attributeService.defaultProfileRegistry().all().size()
+                "attributes", attributeService.attributeRegistry().all().size(),
+                "damage_types", attributeService.damageTypeRegistry().all().size(),
+                "profiles", attributeService.defaultProfileRegistry().all().size()
         ));
         return true;
     }
@@ -174,11 +180,11 @@ public final class AttributeCommand implements TabExecutor {
         for (Map.Entry<String, ResourceState> entry : dumpResources(target).entrySet()) {
             ResourceState state = entry.getValue();
             messages().send(sender, "command.dump.resource_line", Map.of(
-                "resource", entry.getKey(),
-                "default_max", state.defaultMax(),
-                "bonus_max", state.bonusMax(),
-                "current_max", state.currentMax(),
-                "current", state.currentValue()
+                    "resource", entry.getKey(),
+                    "default_max", state.defaultMax(),
+                    "bonus_max", state.bonusMax(),
+                    "current_max", state.currentMax(),
+                    "current", state.currentValue()
             ));
         }
         return true;
@@ -233,8 +239,8 @@ public final class AttributeCommand implements TabExecutor {
         Component prefix = messages().render(messages().message("general.prefix"));
         Component label = messages().render(messages().message("command.dump.signature"));
         Component hover = Component.text(snapshot == null || snapshot.sourceSignature() == null || snapshot.sourceSignature().isBlank()
-            ? "没有签名"
-            : snapshot.sourceSignature(), NamedTextColor.YELLOW);
+                ? "没有签名"
+                : snapshot.sourceSignature(), NamedTextColor.YELLOW);
         return prefix.append(Component.space()).append(label.hoverEvent(HoverEvent.showText(hover)));
     }
 
@@ -257,12 +263,12 @@ public final class AttributeCommand implements TabExecutor {
             String displayName = definition == null ? attributeId : definition.displayName();
             String formattedValue = Numbers.formatNumber(value, "0.##");
             lines.add(Component.text()
-                .append(Component.text(displayName, NamedTextColor.AQUA))
-                .append(Component.text(" (", NamedTextColor.DARK_GRAY))
-                .append(Component.text(attributeId, NamedTextColor.WHITE))
-                .append(Component.text("): ", NamedTextColor.DARK_GRAY))
-                .append(Component.text(formattedValue, NamedTextColor.YELLOW))
-                .build());
+                    .append(Component.text(displayName, NamedTextColor.AQUA))
+                    .append(Component.text(" (", NamedTextColor.DARK_GRAY))
+                    .append(Component.text(attributeId, NamedTextColor.WHITE))
+                    .append(Component.text("): ", NamedTextColor.DARK_GRAY))
+                    .append(Component.text(formattedValue, NamedTextColor.YELLOW))
+                    .build());
         }
         if (lines.isEmpty()) {
             return Component.text("没有非零属性", NamedTextColor.GRAY);
@@ -331,11 +337,11 @@ public final class AttributeCommand implements TabExecutor {
         }
         String normalized = value.toLowerCase(Locale.ROOT);
         return "toggle".equals(normalized)
-            || "on".equals(normalized)
-            || "off".equals(normalized)
-            || "enable".equals(normalized)
-            || "disable".equals(normalized)
-            || "true".equals(normalized)
-            || "false".equals(normalized);
+                || "on".equals(normalized)
+                || "off".equals(normalized)
+                || "enable".equals(normalized)
+                || "disable".equals(normalized)
+                || "true".equals(normalized)
+                || "false".equals(normalized);
     }
 }

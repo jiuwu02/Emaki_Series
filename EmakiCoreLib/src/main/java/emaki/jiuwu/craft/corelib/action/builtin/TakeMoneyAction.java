@@ -1,9 +1,10 @@
 package emaki.jiuwu.craft.corelib.action.builtin;
 
-import emaki.jiuwu.craft.corelib.economy.EconomyManager;
+import java.util.Map;
+
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
-import java.util.Map;
+import emaki.jiuwu.craft.corelib.economy.EconomyManager;
 
 public final class TakeMoneyAction extends AbstractMoneyAction {
 

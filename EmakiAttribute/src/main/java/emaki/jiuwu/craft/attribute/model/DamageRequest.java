@@ -6,23 +6,23 @@ public record DamageRequest(DamageContext damageContext) {
 
     public DamageRequest {
         damageContext = damageContext == null
-            ? DamageContext.legacy("", 0D, AttributeSnapshot.empty(""), AttributeSnapshot.empty(""), DamageContextVariables.empty())
-            : damageContext;
+                ? DamageContext.legacy("", 0D, AttributeSnapshot.empty(""), AttributeSnapshot.empty(""), DamageContextVariables.empty())
+                : damageContext;
     }
 
     public DamageRequest(String damageTypeId,
-                         double baseDamage,
-                         AttributeSnapshot attackerSnapshot,
-                         AttributeSnapshot targetSnapshot,
-                         Map<String, ?> context) {
+            double baseDamage,
+            AttributeSnapshot attackerSnapshot,
+            AttributeSnapshot targetSnapshot,
+            Map<String, ?> context) {
         this(DamageContext.legacy(damageTypeId, baseDamage, attackerSnapshot, targetSnapshot, DamageContextVariables.from(context)));
     }
 
     public DamageRequest(String damageTypeId,
-                         double baseDamage,
-                         AttributeSnapshot attackerSnapshot,
-                         AttributeSnapshot targetSnapshot,
-                         DamageContextVariables variables) {
+            double baseDamage,
+            AttributeSnapshot attackerSnapshot,
+            AttributeSnapshot targetSnapshot,
+            DamageContextVariables variables) {
         this(DamageContext.legacy(damageTypeId, baseDamage, attackerSnapshot, targetSnapshot, variables));
     }
 

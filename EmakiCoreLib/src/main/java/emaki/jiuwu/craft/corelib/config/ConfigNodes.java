@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import org.bukkit.configuration.ConfigurationSection;
 
 public final class ConfigNodes {
@@ -64,9 +65,9 @@ public final class ConfigNodes {
 
     public static Object toPlainData(Object value) {
         if (value == null
-            || value instanceof String
-            || value instanceof Number
-            || value instanceof Boolean) {
+                || value instanceof String
+                || value instanceof Number
+                || value instanceof Boolean) {
             return value;
         }
         if (value instanceof ConfigurationSection section) {

@@ -1,13 +1,15 @@
 package emaki.jiuwu.craft.forge.service;
 
+import java.util.Map;
+import java.util.function.Supplier;
+
+import org.bukkit.command.CommandSender;
+
 import emaki.jiuwu.craft.corelib.service.AbstractMessageService;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.config.AppConfig;
 import emaki.jiuwu.craft.forge.loader.LanguageLoader;
-import java.util.Map;
-import java.util.function.Supplier;
 import net.kyori.adventure.text.Component;
-import org.bukkit.command.CommandSender;
 
 public final class MessageService extends AbstractMessageService {
 
@@ -17,8 +19,8 @@ public final class MessageService extends AbstractMessageService {
     private final Supplier<AppConfig> configSupplier;
 
     public MessageService(EmakiForgePlugin plugin,
-                          LanguageLoader languageLoader,
-                          Supplier<AppConfig> configSupplier) {
+            LanguageLoader languageLoader,
+            Supplier<AppConfig> configSupplier) {
         super(plugin, DEFAULT_PREFIX);
         this.languageLoader = languageLoader;
         this.configSupplier = configSupplier;

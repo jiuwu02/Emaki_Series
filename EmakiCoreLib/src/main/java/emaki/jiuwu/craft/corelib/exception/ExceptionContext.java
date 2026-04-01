@@ -53,6 +53,7 @@ public final class ExceptionContext {
     }
 
     public static final class Builder {
+
         private final Map<String, Object> data = new LinkedHashMap<>();
 
         public Builder with(String key, Object value) {

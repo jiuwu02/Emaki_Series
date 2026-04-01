@@ -1,5 +1,13 @@
 package emaki.jiuwu.craft.attribute.service;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+
 import emaki.jiuwu.craft.attribute.api.AttributeContributionProvider;
 import emaki.jiuwu.craft.attribute.loader.AttributeBalanceRegistry;
 import emaki.jiuwu.craft.attribute.loader.AttributePresetRegistry;
@@ -14,13 +22,6 @@ import emaki.jiuwu.craft.attribute.model.ResourceDefinition;
 import emaki.jiuwu.craft.attribute.service.VanillaAttributeSynchronizer.VanillaAttributeBinding;
 import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
 
 final class AttributeRegistryService {
 
@@ -49,12 +50,12 @@ final class AttributeRegistryService {
     private volatile List<AttributeContributionProvider> orderedContributionProviders = List.of();
 
     AttributeRegistryService(AttributeRegistry attributeRegistry,
-                             AttributeBalanceRegistry attributeBalanceRegistry,
-                             DamageTypeRegistry damageTypeRegistry,
-                             DefaultProfileRegistry defaultProfileRegistry,
-                             LoreFormatRegistry loreFormatRegistry,
-                             AttributePresetRegistry presetRegistry,
-                             VanillaAttributeSynchronizer vanillaSynchronizer) {
+            AttributeBalanceRegistry attributeBalanceRegistry,
+            DamageTypeRegistry damageTypeRegistry,
+            DefaultProfileRegistry defaultProfileRegistry,
+            LoreFormatRegistry loreFormatRegistry,
+            AttributePresetRegistry presetRegistry,
+            VanillaAttributeSynchronizer vanillaSynchronizer) {
         this.attributeRegistry = attributeRegistry;
         this.attributeBalanceRegistry = attributeBalanceRegistry;
         this.damageTypeRegistry = damageTypeRegistry;
@@ -66,11 +67,11 @@ final class AttributeRegistryService {
 
     void refreshCaches() {
         List<AttributeDefinition> definitions = attributeRegistry == null
-            ? List.of()
-            : List.copyOf(attributeRegistry.all().values());
+                ? List.of()
+                : List.copyOf(attributeRegistry.all().values());
         List<DefaultProfile> profiles = defaultProfileRegistry == null
-            ? List.of()
-            : defaultProfileRegistry.mergedProfiles();
+                ? List.of()
+                : defaultProfileRegistry.mergedProfiles();
         Map<String, List<AttributeDefinition>> resourceBuckets = new LinkedHashMap<>();
         Map<String, List<AttributeDefinition>> resourceRegenBuckets = new LinkedHashMap<>();
         List<VanillaAttributeBinding> vanillaBindings = new ArrayList<>();
@@ -250,7 +251,7 @@ final class AttributeRegistryService {
     private void refreshContributionProviderCache() {
         List<AttributeContributionProvider> providers = new ArrayList<>(contributionProviders.values());
         providers.sort(Comparator.comparingInt(AttributeContributionProvider::priority).reversed()
-            .thenComparing(provider -> normalizeId(provider.id())));
+                .thenComparing(provider -> normalizeId(provider.id())));
         orderedContributionProviders = providers.isEmpty() ? List.of() : List.copyOf(providers);
     }
 

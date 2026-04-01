@@ -1,14 +1,16 @@
 package emaki.jiuwu.craft.corelib.service;
 
-import emaki.jiuwu.craft.corelib.text.LogMessages;
-import emaki.jiuwu.craft.corelib.text.MiniMessages;
-import emaki.jiuwu.craft.corelib.text.Texts;
 import java.util.Map;
 import java.util.Objects;
 import java.util.logging.Level;
-import net.kyori.adventure.text.Component;
+
 import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.java.JavaPlugin;
+
+import emaki.jiuwu.craft.corelib.text.LogMessages;
+import emaki.jiuwu.craft.corelib.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.text.Texts;
+import net.kyori.adventure.text.Component;
 
 public abstract class AbstractMessageService implements LogMessages {
 

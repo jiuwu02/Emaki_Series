@@ -30,10 +30,10 @@ public final class ExceptionHandler {
 
     public void handleUnexpected(Exception exception, String operation) {
         FrameworkException wrapped = new FrameworkException(
-            "UNEXPECTED_ERROR",
-            "Unexpected error during " + operation,
-            exception,
-            ExceptionContext.of("operation", operation).asMap()
+                "UNEXPECTED_ERROR",
+                "Unexpected error during " + operation,
+                exception,
+                ExceptionContext.of("operation", operation).asMap()
         );
         handle(wrapped, Level.SEVERE);
     }
@@ -67,10 +67,10 @@ public final class ExceptionHandler {
 
     private Map<String, String> toPlaceholderMap(Map<String, Object> context) {
         return context.entrySet().stream()
-            .collect(java.util.stream.Collectors.toMap(
-                Map.Entry::getKey,
-                e -> String.valueOf(e.getValue())
-            ));
+                .collect(java.util.stream.Collectors.toMap(
+                        Map.Entry::getKey,
+                        e -> String.valueOf(e.getValue())
+                ));
     }
 
     public static ExceptionHandler create(Plugin plugin, LogMessages messages) {

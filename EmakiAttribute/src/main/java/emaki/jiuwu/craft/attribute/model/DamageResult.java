@@ -4,13 +4,13 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 public record DamageResult(String damageTypeId,
-                           double finalDamage,
-                           boolean critical,
-                           double roll,
-                           Map<String, Double> stageValues,
-                           DamageContext damageContext) {
+        double finalDamage,
+        boolean critical,
+        double roll,
+        Map<String, Double> stageValues,
+        DamageContext damageContext) {
 
-    public DamageResult {
+    public DamageResult      {
         stageValues = stageValues == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(stageValues));
     }
 

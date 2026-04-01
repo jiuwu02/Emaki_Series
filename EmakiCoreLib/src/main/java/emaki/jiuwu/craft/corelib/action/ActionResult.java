@@ -3,10 +3,10 @@ package emaki.jiuwu.craft.corelib.action;
 import java.util.Map;
 
 public record ActionResult(boolean success,
-                              boolean skipped,
-                              ActionErrorType errorType,
-                              String errorMessage,
-                              Map<String, Object> data) {
+        boolean skipped,
+        ActionErrorType errorType,
+        String errorMessage,
+        Map<String, Object> data) {
 
     public static ActionResult ok() {
         return new ActionResult(true, false, ActionErrorType.NONE, null, Map.of());

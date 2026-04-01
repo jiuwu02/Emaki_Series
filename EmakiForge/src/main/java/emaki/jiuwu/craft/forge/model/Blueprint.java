@@ -1,13 +1,15 @@
 package emaki.jiuwu.craft.forge.model;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import org.bukkit.configuration.ConfigurationSection;
+
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import org.bukkit.configuration.ConfigurationSection;
 
 public final class Blueprint {
 
@@ -19,11 +21,11 @@ public final class Blueprint {
     private final int forgeCapacity;
 
     public Blueprint(String id,
-                     String displayName,
-                     List<String> description,
-                     ItemSource source,
-                     List<String> tags,
-                     int forgeCapacity) {
+            String displayName,
+            List<String> description,
+            ItemSource source,
+            List<String> tags,
+            int forgeCapacity) {
         this.id = id;
         this.displayName = displayName;
         this.description = List.copyOf(description);
@@ -52,15 +54,15 @@ public final class Blueprint {
         }
         Integer configuredCapacity = Numbers.tryParseInt(section.get("forge_capacity"), null);
         int forgeCapacity = configuredCapacity != null
-            ? configuredCapacity
-            : Numbers.tryParseInt(section.get("max_capacity"), 0);
+                ? configuredCapacity
+                : Numbers.tryParseInt(section.get("max_capacity"), 0);
         return new Blueprint(
-            id,
-            section.getString("display_name", id),
-            Texts.asStringList(section.get("description")),
-            source,
-            tags,
-            forgeCapacity
+                id,
+                section.getString("display_name", id),
+                Texts.asStringList(section.get("description")),
+                source,
+                tags,
+                forgeCapacity
         );
     }
 
@@ -78,9 +80,12 @@ public final class Blueprint {
             return false;
         }
         return switch (kind) {
-            case "id" -> Texts.lower(id).equals(Texts.lower(value));
-            case "tag" -> hasTag(value);
-            default -> false;
+            case "id" ->
+                Texts.lower(id).equals(Texts.lower(value));
+            case "tag" ->
+                hasTag(value);
+            default ->
+                false;
         };
     }
 

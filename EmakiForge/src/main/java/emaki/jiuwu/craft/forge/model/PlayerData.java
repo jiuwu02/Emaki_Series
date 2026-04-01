@@ -1,14 +1,17 @@
 package emaki.jiuwu.craft.forge.model;
 
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.math.Numbers;
 import java.util.LinkedHashMap;
 import java.util.Map;
+
 import org.bukkit.configuration.ConfigurationSection;
+
+import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.math.Numbers;
 
 public final class PlayerData {
 
     public static final class ForgeHistory {
+
         private int craftCount;
         private String firstCraftedAt;
         private String lastCraftedAt;

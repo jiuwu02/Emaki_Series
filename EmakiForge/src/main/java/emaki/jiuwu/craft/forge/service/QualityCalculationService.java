@@ -1,27 +1,30 @@
 package emaki.jiuwu.craft.forge.service;
 
-import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
-import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.forge.model.ForgeMaterial;
-import emaki.jiuwu.craft.forge.model.GuiItems;
-import emaki.jiuwu.craft.forge.model.QualitySettings;
-import emaki.jiuwu.craft.forge.model.Recipe;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
+import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.forge.model.ForgeMaterial;
+import emaki.jiuwu.craft.forge.model.GuiItems;
+import emaki.jiuwu.craft.forge.model.QualitySettings;
+import emaki.jiuwu.craft.forge.model.Recipe;
+
 final class QualityCalculationService {
 
     record QualityRollPlan(QualitySettings.QualityTier rolledTier,
-                           QualitySettings.QualityTier finalTier,
-                           boolean forceApplied,
-                           String qualityName,
-                           double multiplier) {
+            QualitySettings.QualityTier finalTier,
+            boolean forceApplied,
+            String qualityName,
+            double multiplier) {
+
     }
 
     interface GuaranteeCounterStore {
+
         int counter(UUID playerId, String key);
 
         void increment(UUID playerId, String key);
@@ -30,6 +33,7 @@ final class QualityCalculationService {
     }
 
     private record GuaranteePolicy(boolean enabled, int threshold, String minimumName) {
+
     }
 
     private final Supplier<QualitySettings> qualitySettingsSupplier;
@@ -38,8 +42,8 @@ final class QualityCalculationService {
     private final ForgeQualityModifierResolver qualityModifierResolver = new ForgeQualityModifierResolver();
 
     QualityCalculationService(Supplier<QualitySettings> qualitySettingsSupplier,
-                              GuaranteeCounterStore guaranteeCounterStore,
-                              Function<GuiItems, List<ForgeMaterial.QualityModifier>> materialQualityModifierResolver) {
+            GuaranteeCounterStore guaranteeCounterStore,
+            Function<GuiItems, List<ForgeMaterial.QualityModifier>> materialQualityModifierResolver) {
         this.qualitySettingsSupplier = qualitySettingsSupplier;
         this.guaranteeCounterStore = guaranteeCounterStore;
         this.materialQualityModifierResolver = materialQualityModifierResolver;
@@ -133,8 +137,8 @@ final class QualityCalculationService {
 
     private List<ForgeMaterial.QualityModifier> resolveMaterialQualityModifiers(GuiItems guiItems) {
         List<ForgeMaterial.QualityModifier> modifiers = materialQualityModifierResolver == null
-            ? List.of()
-            : materialQualityModifierResolver.apply(guiItems);
+                ? List.of()
+                : materialQualityModifierResolver.apply(guiItems);
         return modifiers == null ? List.of() : List.copyOf(modifiers);
     }
 

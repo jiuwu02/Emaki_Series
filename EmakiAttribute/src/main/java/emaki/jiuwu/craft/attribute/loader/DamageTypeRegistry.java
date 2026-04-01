@@ -1,42 +1,43 @@
 package emaki.jiuwu.craft.attribute.loader;
 
+import java.io.File;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.YamlConfiguration;
+
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.attribute.model.DamageTypeDefinition;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.text.Texts;
-import java.io.File;
-import java.util.List;
-import java.util.LinkedHashMap;
-import java.util.Locale;
-import java.util.Map;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.YamlConfiguration;
 
 public final class DamageTypeRegistry extends DirectoryLoader<DamageTypeDefinition> {
 
     private static final List<String> BUNDLED_RESOURCES = List.of(
-        "physical.yml",
-        "projectile.yml",
-        "spell.yml",
-        "skill.yml"
+            "physical.yml",
+            "projectile.yml",
+            "spell.yml",
+            "skill.yml"
     );
     private static final Map<String, String> LEGACY_ATTRIBUTE_REFERENCE_ALIASES = Map.ofEntries(
-        Map.entry("final_physical_damage", "physical_damage_bonus"),
-        Map.entry("physical_crit_chance", "physical_crit_rate"),
-        Map.entry("physical_crit_multiplier", "physical_crit_damage"),
-        Map.entry("physical_armor", "physical_defense"),
-        Map.entry("projectile_damage", "projectile_attack"),
-        Map.entry("final_projectile_damage", "projectile_damage_bonus"),
-        Map.entry("projectile_crit_chance", "projectile_crit_rate"),
-        Map.entry("projectile_crit_multiplier", "projectile_crit_damage"),
-        Map.entry("projectile_armor", "projectile_defense"),
-        Map.entry("magic_attack", "spell_attack"),
-        Map.entry("final_magic_damage", "spell_damage_bonus"),
-        Map.entry("magic_crit_chance", "spell_crit_rate"),
-        Map.entry("magic_crit_multiplier", "spell_crit_damage"),
-        Map.entry("magic_resistance", "spell_defense"),
-        Map.entry("flat_lifesteal", "percentage_lifesteal"),
-        Map.entry("percent_lifesteal", "lifesteal")
+            Map.entry("final_physical_damage", "physical_damage_bonus"),
+            Map.entry("physical_crit_chance", "physical_crit_rate"),
+            Map.entry("physical_crit_multiplier", "physical_crit_damage"),
+            Map.entry("physical_armor", "physical_defense"),
+            Map.entry("projectile_damage", "projectile_attack"),
+            Map.entry("final_projectile_damage", "projectile_damage_bonus"),
+            Map.entry("projectile_crit_chance", "projectile_crit_rate"),
+            Map.entry("projectile_crit_multiplier", "projectile_crit_damage"),
+            Map.entry("projectile_armor", "projectile_defense"),
+            Map.entry("magic_attack", "spell_attack"),
+            Map.entry("final_magic_damage", "spell_damage_bonus"),
+            Map.entry("magic_crit_chance", "spell_crit_rate"),
+            Map.entry("magic_crit_multiplier", "spell_crit_damage"),
+            Map.entry("magic_resistance", "spell_defense"),
+            Map.entry("flat_lifesteal", "percentage_lifesteal"),
+            Map.entry("percent_lifesteal", "lifesteal")
     );
 
     private final AttributeRegistry attributeRegistry;
@@ -74,12 +75,12 @@ public final class DamageTypeRegistry extends DirectoryLoader<DamageTypeDefiniti
         boolean valid = true;
         if (Texts.isBlank(configuration.getString("id"))) {
             issue(
-                "loader.schema_missing_id",
-                Map.of(
-                    "type", typeName(),
-                    "file", file.getName(),
-                    "field", "id"
-                )
+                    "loader.schema_missing_id",
+                    Map.of(
+                            "type", typeName(),
+                            "file", file.getName(),
+                            "field", "id"
+                    )
             );
             valid = false;
         }
@@ -90,12 +91,12 @@ public final class DamageTypeRegistry extends DirectoryLoader<DamageTypeDefiniti
                     continue;
                 }
                 issue(
-                    "loader.schema_invalid_section",
-                    Map.of(
-                        "type", typeName(),
-                        "file", file.getName(),
-                        "field", "stages"
-                    )
+                        "loader.schema_invalid_section",
+                        Map.of(
+                                "type", typeName(),
+                                "file", file.getName(),
+                                "field", "stages"
+                        )
                 );
                 valid = false;
                 break;
@@ -104,12 +105,12 @@ public final class DamageTypeRegistry extends DirectoryLoader<DamageTypeDefiniti
         Object recovery = configuration.get("recovery");
         if (recovery != null && !(recovery instanceof Map<?, ?> || recovery instanceof ConfigurationSection)) {
             issue(
-                "loader.schema_invalid_section",
-                Map.of(
-                    "type", typeName(),
-                    "file", file.getName(),
-                    "field", "recovery"
-                )
+                    "loader.schema_invalid_section",
+                    Map.of(
+                            "type", typeName(),
+                            "file", file.getName(),
+                            "field", "recovery"
+                    )
             );
             valid = false;
         }

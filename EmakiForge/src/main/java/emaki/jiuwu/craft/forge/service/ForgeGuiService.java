@@ -1,11 +1,12 @@
 package emaki.jiuwu.craft.forge.service;
 
+import org.bukkit.entity.Player;
+
 import emaki.jiuwu.craft.corelib.gui.GuiOpenRequest;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiSession;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.model.Recipe;
-import org.bukkit.entity.Player;
 
 public final class ForgeGuiService {
 
@@ -37,13 +38,13 @@ public final class ForgeGuiService {
         ForgeGuiSession state = new ForgeGuiSession(player, recipe, templateId);
         stateSupport.refreshDerivedValues(state);
         GuiSession session = guiService.open(new GuiOpenRequest(
-            plugin,
-            player,
-            template,
-            renderer.titleReplacements(state),
-            plugin.itemIdentifierService()::createItem,
-            (guiSession, slot) -> renderer.renderSlot(state, slot),
-            interactionController.createSessionHandler(state)
+                plugin,
+                player,
+                template,
+                renderer.titleReplacements(state),
+                plugin.itemIdentifierService()::createItem,
+                (guiSession, slot) -> renderer.renderSlot(state, slot),
+                interactionController.createSessionHandler(state)
         ));
         if (session == null) {
             return false;

@@ -1,10 +1,11 @@
 package emaki.jiuwu.craft.corelib.action;
 
-import emaki.jiuwu.craft.corelib.text.Texts;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class ActionRegistry {
 

@@ -1,13 +1,15 @@
 package emaki.jiuwu.craft.attribute.service;
 
-import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
+
+import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 
 public final class CombatDebugService {
 

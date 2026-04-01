@@ -1,11 +1,12 @@
 package emaki.jiuwu.craft.corelib.action.builtin;
 
+import java.util.Map;
+
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.action.ActionParameter;
 import emaki.jiuwu.craft.corelib.action.ActionParameterType;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
-import java.util.Map;
 
 public final class SendActionBarAction extends BaseAction {
 

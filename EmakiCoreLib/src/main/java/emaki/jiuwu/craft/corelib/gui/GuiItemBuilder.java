@@ -1,30 +1,34 @@
 package emaki.jiuwu.craft.corelib.gui;
 
-import emaki.jiuwu.craft.corelib.item.ItemSource;
-import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
-import emaki.jiuwu.craft.corelib.text.Texts;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
+import emaki.jiuwu.craft.corelib.text.Texts;
+
 public final class GuiItemBuilder {
 
     @FunctionalInterface
     public interface ItemFactory {
+
         ItemStack create(ItemSource source, int amount);
     }
 
     public record Request(String item,
-                          ItemComponentParser.ItemComponents components,
-                          int amount,
-                          Map<String, ?> replacements) {
-        public Request {
+            ItemComponentParser.ItemComponents components,
+            int amount,
+            Map<String, ?> replacements) {
+
+        public Request    {
             amount = Math.max(1, amount);
             replacements = replacements == null ? Map.of() : Map.copyOf(replacements);
         }
@@ -47,10 +51,10 @@ public final class GuiItemBuilder {
     }
 
     public static ItemStack build(String item,
-                                  ItemComponentParser.ItemComponents components,
-                                  int amount,
-                                  Map<String, ?> replacements,
-                                  ItemFactory itemFactory) {
+            ItemComponentParser.ItemComponents components,
+            int amount,
+            Map<String, ?> replacements,
+            ItemFactory itemFactory) {
         return build(new Request(item, components, amount, replacements), itemFactory);
     }
 
@@ -60,8 +64,10 @@ public final class GuiItemBuilder {
             return barrier(amount);
         }
         ItemStack itemStack = switch (source.getType()) {
-            case VANILLA -> createVanillaItem(source.getIdentifier(), amount);
-            case MMOITEMS, NEIGEITEMS, CRAFTENGINE -> itemFactory == null ? null : itemFactory.create(source, amount);
+            case VANILLA ->
+                createVanillaItem(source.getIdentifier(), amount);
+            case MMOITEMS, NEIGEITEMS, CRAFTENGINE ->
+                itemFactory == null ? null : itemFactory.create(source, amount);
         };
         if (itemStack == null) {
             return barrier(amount);
@@ -77,8 +83,8 @@ public final class GuiItemBuilder {
         }
         String normalized = identifier.trim().toLowerCase(Locale.ROOT);
         NamespacedKey key = normalized.contains(":")
-            ? NamespacedKey.fromString(normalized)
-            : NamespacedKey.minecraft(normalized);
+                ? NamespacedKey.fromString(normalized)
+                : NamespacedKey.minecraft(normalized);
         Material material = key == null ? null : Registry.MATERIAL.get(key);
         return material == null ? null : new ItemStack(material, Math.max(1, amount));
     }
@@ -88,18 +94,18 @@ public final class GuiItemBuilder {
     }
 
     private static ItemComponentParser.ItemComponents formatComponents(ItemComponentParser.ItemComponents components,
-                                                                       Map<String, ?> replacements) {
+            Map<String, ?> replacements) {
         ItemComponentParser.ItemComponents base = components == null ? ItemComponentParser.empty() : components;
         List<String> lore = base.lore().stream().map(line -> Texts.formatTemplate(line, replacements)).toList();
         Map<String, Integer> enchantments = new LinkedHashMap<>(base.enchantments());
         return new ItemComponentParser.ItemComponents(
-            Texts.formatTemplate(base.displayName(), replacements),
-            base.loreConfigured(),
-            lore,
-            base.itemModel(),
-            base.customModelData(),
-            enchantments,
-            base.hiddenComponents()
+                Texts.formatTemplate(base.displayName(), replacements),
+                base.loreConfigured(),
+                lore,
+                base.itemModel(),
+                base.customModelData(),
+                enchantments,
+                base.hiddenComponents()
         );
     }
 }

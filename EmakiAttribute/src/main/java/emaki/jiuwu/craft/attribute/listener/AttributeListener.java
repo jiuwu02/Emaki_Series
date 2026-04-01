@@ -1,13 +1,7 @@
 package emaki.jiuwu.craft.attribute.listener;
 
-import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
-import emaki.jiuwu.craft.attribute.config.AttributeConfig;
-import emaki.jiuwu.craft.attribute.config.DamageCauseRule;
-import emaki.jiuwu.craft.attribute.model.DamageContextVariables;
-import emaki.jiuwu.craft.attribute.model.ResolvedDamage;
-import emaki.jiuwu.craft.attribute.service.AttributeService;
-import emaki.jiuwu.craft.corelib.math.Numbers;
 import java.util.Locale;
+
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -21,15 +15,23 @@ import org.bukkit.event.entity.EntityRegainHealthEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
-import org.bukkit.event.server.PluginEnableEvent;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
+import org.bukkit.event.player.PlayerInteractEntityEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
-import org.bukkit.event.player.PlayerInteractEntityEvent;
-import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
+import org.bukkit.event.server.PluginEnableEvent;
 import org.bukkit.util.Vector;
+
+import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
+import emaki.jiuwu.craft.attribute.config.AttributeConfig;
+import emaki.jiuwu.craft.attribute.config.DamageCauseRule;
+import emaki.jiuwu.craft.attribute.model.DamageContextVariables;
+import emaki.jiuwu.craft.attribute.model.ResolvedDamage;
+import emaki.jiuwu.craft.attribute.service.AttributeService;
+import emaki.jiuwu.craft.corelib.math.Numbers;
 
 public final class AttributeListener implements Listener {
 
@@ -105,20 +107,20 @@ public final class AttributeListener implements Listener {
         if (shooter instanceof LivingEntity livingEntity) {
             if (livingEntity instanceof Player player && attributeService.isAttackCoolingDown(player)) {
                 debugCombat(livingEntity, null, projectile, "PROJECTILE_LAUNCH_BLOCKED",
-                    "投射物发射被攻击冷却拦截: shooter=" + describeEntity(livingEntity));
+                        "投射物发射被攻击冷却拦截: shooter=" + describeEntity(livingEntity));
                 event.setCancelled(true);
                 return;
             }
             var snapshot = attributeService.snapshotProjectile(projectile, livingEntity);
             debugCombat(livingEntity, null, projectile, "PROJECTILE_LAUNCH",
-                "投射物已写入快照: projectile=" + describeEntity(projectile)
+                    "投射物已写入快照: projectile=" + describeEntity(projectile)
                     + ", damageType=" + (snapshot == null ? "<none>" : snapshot.damageTypeId())
                     + ", signature=" + (snapshot == null ? "<none>" : snapshot.sourceSignature()));
             if (livingEntity instanceof Player player) {
                 attributeService.startAttackCooldown(
-                    player,
-                    snapshot == null ? null : snapshot.attackSnapshot(),
-                    player.getInventory().getItemInMainHand()
+                        player,
+                        snapshot == null ? null : snapshot.attackSnapshot(),
+                        player.getInventory().getItemInMainHand()
                 );
             }
         }
@@ -151,7 +153,7 @@ public final class AttributeListener implements Listener {
             Entity shooter = projectile.getShooter() instanceof Entity entity ? entity : null;
             LivingEntity shootingEntity = shooter instanceof LivingEntity livingEntity ? livingEntity : null;
             debugCombat(shootingEntity, target, projectile, "PROJECTILE_HIT",
-                "拦截原版投射物伤害: shooter=" + describeEntity(shootingEntity)
+                    "拦截原版投射物伤害: shooter=" + describeEntity(shootingEntity)
                     + ", projectile=" + describeEntity(projectile)
                     + ", target=" + describeEntity(target)
                     + ", cause=" + event.getCause().name()
@@ -159,7 +161,7 @@ public final class AttributeListener implements Listener {
                     + ", vanillaFinal=" + formatNumber(event.getFinalDamage()));
             if (shooter instanceof Player player && attributeService.isAttackCoolingDown(player)) {
                 debugCombat(shootingEntity, target, projectile, "PROJECTILE_HIT_BLOCKED",
-                    "投射物命中被攻击冷却拦截: shooter=" + describeEntity(shootingEntity));
+                        "投射物命中被攻击冷却拦截: shooter=" + describeEntity(shootingEntity));
                 event.setCancelled(true);
                 return;
             }
@@ -167,30 +169,30 @@ public final class AttributeListener implements Listener {
             if (resolvedDamage == null) {
                 event.setCancelled(true);
                 debugCombat(shootingEntity, target, projectile, "PROJECTILE_RESOLVE_EMPTY",
-                    "投射物命中没有得到有效的 EA 伤害结果，命中流程到此结束。");
+                        "投射物命中没有得到有效的 EA 伤害结果，命中流程到此结束。");
                 return;
             }
             event.setCancelled(true);
             debugCombat(shootingEntity, target, projectile, "PROJECTILE_RESOLVED",
-                "投射物命中已解析 EA 伤害: " + describeResolvedDamage(resolvedDamage));
+                    "投射物命中已解析 EA 伤害: " + describeResolvedDamage(resolvedDamage));
             applySyntheticKnockback(target, projectile, resolvedDamage.finalDamage());
             scheduleDamageApplication(() -> {
                 debugCombat(shootingEntity, target, projectile, "PROJECTILE_APPLY",
-                    "开始执行下一 tick 的投射物 EA 伤害落地。");
+                        "开始执行下一 tick 的投射物 EA 伤害落地。");
                 attributeService.applyResolvedDamage(resolvedDamage, projectile, 0D);
             });
             return;
         }
         LivingEntity attacker = damager instanceof LivingEntity livingEntity ? livingEntity : null;
         debugCombat(attacker, target, null, "MELEE_HIT",
-            "拦截原版近战伤害: attacker=" + describeEntity(attacker)
+                "拦截原版近战伤害: attacker=" + describeEntity(attacker)
                 + ", target=" + describeEntity(target)
                 + ", cause=" + event.getCause().name()
                 + ", vanillaDamage=" + formatNumber(event.getDamage())
                 + ", vanillaFinal=" + formatNumber(event.getFinalDamage()));
         if (attacker instanceof Player player && attributeService.isAttackCoolingDown(player)) {
             debugCombat(attacker, target, null, "MELEE_HIT_BLOCKED",
-                "近战命中被攻击冷却拦截: attacker=" + describeEntity(attacker));
+                    "近战命中被攻击冷却拦截: attacker=" + describeEntity(attacker));
             event.setCancelled(true);
             return;
         }
@@ -198,16 +200,16 @@ public final class AttributeListener implements Listener {
         if (resolvedDamage == null) {
             event.setCancelled(true);
             debugCombat(attacker, target, null, "MELEE_RESOLVE_EMPTY",
-                "近战命中没有得到有效的 EA 伤害结果，命中流程到此结束。");
+                    "近战命中没有得到有效的 EA 伤害结果，命中流程到此结束。");
             return;
         }
         event.setCancelled(true);
         debugCombat(attacker, target, null, "MELEE_RESOLVED",
-            "近战命中已解析 EA 伤害: " + describeResolvedDamage(resolvedDamage));
+                "近战命中已解析 EA 伤害: " + describeResolvedDamage(resolvedDamage));
         applySyntheticKnockback(target, damager, resolvedDamage.finalDamage());
         scheduleDamageApplication(() -> {
             debugCombat(attacker, target, null, "MELEE_APPLY",
-                "开始执行下一 tick 的近战 EA 伤害落地。");
+                    "开始执行下一 tick 的近战 EA 伤害落地。");
             attributeService.applyResolvedDamage(resolvedDamage, damager, 0D);
         });
     }
@@ -249,12 +251,12 @@ public final class AttributeListener implements Listener {
                 }
                 event.setCancelled(true);
                 debugCombat(null, target, null, "ENVIRONMENT_FALLBACK",
-                    "环境伤害未命中白名单，但启用了硬锁，改为使用默认伤害类型接管: cause=" + event.getCause().name());
+                        "环境伤害未命中白名单，但启用了硬锁，改为使用默认伤害类型接管: cause=" + event.getCause().name());
                 scheduleDamageApplication(() -> attributeService.applyDamage(null, target, config.defaultDamageType(), 0D, baseContext(event, target)));
                 return true;
             }
             debugCombat(null, target, null, "ENVIRONMENT_IGNORED",
-                "环境伤害未命中白名单，保持原版处理: cause=" + event.getCause().name());
+                    "环境伤害未命中白名单，保持原版处理: cause=" + event.getCause().name());
             return false;
         }
 
@@ -277,7 +279,7 @@ public final class AttributeListener implements Listener {
         String damageTypeId = rule.hasDamageType() ? rule.damageTypeId() : config.defaultDamageType();
         DamageContextVariables resolvedContext = context.build();
         debugCombat(null, target, null, "ENVIRONMENT_RESOLVED",
-            "环境伤害已映射为 EA 伤害: target=" + describeEntity(target)
+                "环境伤害已映射为 EA 伤害: target=" + describeEntity(target)
                 + ", cause=" + event.getCause().name()
                 + ", damageType=" + damageTypeId
                 + ", sourceDamage=" + formatNumber(sourceDamage)
@@ -313,28 +315,28 @@ public final class AttributeListener implements Listener {
     }
 
     private ResolvedDamage resolveMeleeDamage(EntityDamageByEntityEvent event,
-                                              LivingEntity attacker,
-                                              LivingEntity target,
-                                              DamageContextVariables context) {
+            LivingEntity attacker,
+            LivingEntity target,
+            DamageContextVariables context) {
         if (target == null) {
             return null;
         }
         return attributeService.resolveDamageApplication(attributeService.createDamageContext(
-            attacker,
-            target,
-            null,
-            event.getCause(),
-            null,
-            event.getDamage(),
-            0D,
-            context
+                attacker,
+                target,
+                null,
+                event.getCause(),
+                null,
+                event.getDamage(),
+                0D,
+                context
         ));
     }
 
     private ResolvedDamage resolveProjectileDamage(EntityDamageByEntityEvent event,
-                                                   Projectile projectile,
-                                                   LivingEntity target,
-                                                   DamageContextVariables context) {
+            Projectile projectile,
+            LivingEntity target,
+            DamageContextVariables context) {
         if (projectile == null || target == null) {
             return null;
         }
@@ -342,29 +344,29 @@ public final class AttributeListener implements Listener {
         var snapshot = attributeService.readProjectileSnapshot(projectile);
         if (snapshot == null) {
             debugCombat(shooter, target, projectile, "PROJECTILE_SNAPSHOT_MISSING",
-                "投射物命中时未找到快照，已按严格快照模式终止结算: projectile=" + describeEntity(projectile));
+                    "投射物命中时未找到快照，已按严格快照模式终止结算: projectile=" + describeEntity(projectile));
             return null;
         }
         var attackerSnapshot = snapshot.attackSnapshot();
         var targetSnapshot = attributeService.collectCombatSnapshot(target);
         String damageTypeId = snapshot.damageTypeId();
         return attributeService.resolveDamageApplication(attributeService.createDamageContext(
-            shooter,
-            target,
-            projectile,
-            event.getCause(),
-            damageTypeId,
-            event.getDamage(),
-            0D,
-            attackerSnapshot,
-            targetSnapshot,
-            context
+                shooter,
+                target,
+                projectile,
+                event.getCause(),
+                damageTypeId,
+                event.getDamage(),
+                0D,
+                attackerSnapshot,
+                targetSnapshot,
+                context
         ));
     }
 
     private void applySyntheticKnockback(LivingEntity target, Entity source, double finalDamage) {
         if (target == null || source == null || finalDamage <= 0D || !target.isValid() || target.isDead()
-            || !attributeService.config().syntheticHitKnockback()) {
+                || !attributeService.config().syntheticHitKnockback()) {
             return;
         }
         double strength = Math.max(0D, attributeService.config().syntheticHitKnockbackStrength());
@@ -389,8 +391,8 @@ public final class AttributeListener implements Listener {
         }
         var debugService = attributeService.combatDebugService();
         boolean enabled = projectile != null
-            ? debugService.shouldTrace(projectile, target)
-            : debugService.shouldTrace(attacker, target);
+                ? debugService.shouldTrace(projectile, target)
+                : debugService.shouldTrace(attacker, target);
         if (!enabled) {
             return;
         }
@@ -402,9 +404,9 @@ public final class AttributeListener implements Listener {
             return "<null>";
         }
         return "damageType=" + (resolvedDamage.damageType() == null ? resolvedDamage.damageResult().damageTypeId() : resolvedDamage.damageType().id())
-            + ", finalDamage=" + formatNumber(resolvedDamage.finalDamage())
-            + ", critical=" + resolvedDamage.damageResult().critical()
-            + ", stages=" + resolvedDamage.damageResult().stageValues();
+                + ", finalDamage=" + formatNumber(resolvedDamage.finalDamage())
+                + ", critical=" + resolvedDamage.damageResult().critical()
+                + ", stages=" + resolvedDamage.damageResult().stageValues();
     }
 
     private String describeEntity(Entity entity) {

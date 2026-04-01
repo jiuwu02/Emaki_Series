@@ -1,12 +1,14 @@
 package emaki.jiuwu.craft.corelib.placeholder;
 
-import emaki.jiuwu.craft.corelib.action.ActionContext;
-import emaki.jiuwu.craft.corelib.text.Texts;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 import org.bukkit.entity.Player;
+
+import emaki.jiuwu.craft.corelib.action.ActionContext;
+import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class ActionContextPlaceholderResolver implements PlaceholderResolver {
 

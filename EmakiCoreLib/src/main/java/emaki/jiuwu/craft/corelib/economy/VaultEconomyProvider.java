@@ -1,12 +1,13 @@
 package emaki.jiuwu.craft.corelib.economy;
 
+import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.RegisteredServiceProvider;
+
 import emaki.jiuwu.craft.corelib.action.ActionErrorType;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
 import net.milkbowl.vault.economy.Economy;
 import net.milkbowl.vault.economy.EconomyResponse;
-import org.bukkit.entity.Player;
-import org.bukkit.plugin.Plugin;
-import org.bukkit.plugin.RegisteredServiceProvider;
 
 public final class VaultEconomyProvider implements EconomyProvider {
 
@@ -40,8 +41,8 @@ public final class VaultEconomyProvider implements EconomyProvider {
         }
         EconomyResponse response = economy.depositPlayer(player, amount);
         return response.transactionSuccess()
-            ? ActionResult.ok()
-            : ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, response.errorMessage);
+                ? ActionResult.ok()
+                : ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, response.errorMessage);
     }
 
     @Override
@@ -56,8 +57,8 @@ public final class VaultEconomyProvider implements EconomyProvider {
         }
         EconomyResponse response = economy.withdrawPlayer(player, amount);
         return response.transactionSuccess()
-            ? ActionResult.ok()
-            : ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, response.errorMessage);
+                ? ActionResult.ok()
+                : ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, response.errorMessage);
     }
 
     @Override

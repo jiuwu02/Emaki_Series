@@ -1,18 +1,20 @@
 package emaki.jiuwu.craft.corelib.assembly;
 
-import emaki.jiuwu.craft.corelib.item.ItemSource;
-import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
-import emaki.jiuwu.craft.corelib.pdc.PdcPartition;
-import emaki.jiuwu.craft.corelib.pdc.PdcService;
-import emaki.jiuwu.craft.corelib.text.Texts;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
+
+import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
+import emaki.jiuwu.craft.corelib.pdc.PdcPartition;
+import emaki.jiuwu.craft.corelib.pdc.PdcService;
+import emaki.jiuwu.craft.corelib.text.Texts;
 
 final class AssemblyDataManager {
 
@@ -22,14 +24,14 @@ final class AssemblyDataManager {
     private final EmakiItemLayerCodecRegistry codecRegistry;
 
     AssemblyDataManager(EmakiNamespaceRegistry namespaceRegistry,
-                        EmakiItemLayerCodecRegistry codecRegistry) {
+            EmakiItemLayerCodecRegistry codecRegistry) {
         this.namespaceRegistry = Objects.requireNonNull(namespaceRegistry, "namespaceRegistry");
         this.codecRegistry = Objects.requireNonNull(codecRegistry, "codecRegistry");
     }
 
     boolean isEmakiItem(ItemStack itemStack) {
         return pdcService.has(itemStack, itemPartition, "schema_version", PersistentDataType.INTEGER)
-            && pdcService.has(itemStack, itemPartition, "base_source", PersistentDataType.STRING);
+                && pdcService.has(itemStack, itemPartition, "base_source", PersistentDataType.STRING);
     }
 
     ItemSource readBaseSource(ItemStack itemStack) {
@@ -80,12 +82,12 @@ final class AssemblyDataManager {
     }
 
     void writeAssemblyData(ItemStack itemStack,
-                           int currentSchemaVersion,
-                           ItemSource baseSource,
-                           int amount,
-                           List<String> activeLayers,
-                           String assemblySignature,
-                           Iterable<EmakiItemLayerSnapshot> snapshots) {
+            int currentSchemaVersion,
+            ItemSource baseSource,
+            int amount,
+            List<String> activeLayers,
+            String assemblySignature,
+            Iterable<EmakiItemLayerSnapshot> snapshots) {
         pdcService.set(itemStack, itemPartition, "schema_version", PersistentDataType.INTEGER, currentSchemaVersion);
         pdcService.set(itemStack, itemPartition, "base_source", PersistentDataType.STRING, ItemSourceUtil.toShorthand(baseSource));
         pdcService.set(itemStack, itemPartition, "base_amount", PersistentDataType.INTEGER, amount);

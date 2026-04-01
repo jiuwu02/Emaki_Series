@@ -1,11 +1,12 @@
 package emaki.jiuwu.craft.corelib.action.builtin;
 
+import java.util.Map;
+
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.action.ActionParameter;
 import emaki.jiuwu.craft.corelib.action.ActionParameterType;
 import emaki.jiuwu.craft.corelib.action.ActionParsers;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
-import java.util.Map;
 
 public final class DamageAction extends BaseAction {
 

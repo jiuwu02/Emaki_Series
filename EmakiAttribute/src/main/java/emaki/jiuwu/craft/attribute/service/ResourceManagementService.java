@@ -1,19 +1,21 @@
 package emaki.jiuwu.craft.attribute.service;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+
 import emaki.jiuwu.craft.attribute.model.AttributeDefinition;
 import emaki.jiuwu.craft.attribute.model.AttributeSnapshot;
 import emaki.jiuwu.craft.attribute.model.AttributeValueKind;
 import emaki.jiuwu.craft.attribute.model.ResourceDefinition;
 import emaki.jiuwu.craft.attribute.model.ResourceState;
 import emaki.jiuwu.craft.attribute.model.ResourceSyncReason;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import org.bukkit.Bukkit;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 
 final class ResourceManagementService {
 
@@ -69,19 +71,19 @@ final class ResourceManagementService {
         }
         java.util.UUID playerId = player.getUniqueId();
         service.plugin().getServer().getScheduler().runTaskLater(
-            service.plugin(),
-            () -> {
-                Player online = Bukkit.getPlayer(playerId);
-                if (online != null && online.isOnline()) {
-                    ResourceState existingHealth = readResourceState(online, "health");
-                    if (existingHealth == null || existingHealth.currentValue() <= 0D) {
-                        syncPlayer(online, ResourceSyncReason.HEALTH_CHANGE, null, true);
-                    } else {
-                        syncPlayer(online, ResourceSyncReason.HEALTH_CHANGE, existingHealth.currentValue(), false);
+                service.plugin(),
+                () -> {
+                    Player online = Bukkit.getPlayer(playerId);
+                    if (online != null && online.isOnline()) {
+                        ResourceState existingHealth = readResourceState(online, "health");
+                        if (existingHealth == null || existingHealth.currentValue() <= 0D) {
+                            syncPlayer(online, ResourceSyncReason.HEALTH_CHANGE, null, true);
+                        } else {
+                            syncPlayer(online, ResourceSyncReason.HEALTH_CHANGE, existingHealth.currentValue(), false);
+                        }
                     }
-                }
-            },
-            Math.max(1, service.config().syncDelayTicks())
+                },
+                Math.max(1, service.config().syncDelayTicks())
         );
     }
 
@@ -91,14 +93,14 @@ final class ResourceManagementService {
         }
         java.util.UUID playerId = player.getUniqueId();
         service.plugin().getServer().getScheduler().runTaskLater(
-            service.plugin(),
-            () -> {
-                Player online = Bukkit.getPlayer(playerId);
-                if (online != null && online.isOnline()) {
-                    syncPlayer(online, ResourceSyncReason.HEALTH_CHANGE, null, true);
-                }
-            },
-            Math.max(1, service.config().syncDelayTicks())
+                service.plugin(),
+                () -> {
+                    Player online = Bukkit.getPlayer(playerId);
+                    if (online != null && online.isOnline()) {
+                        syncPlayer(online, ResourceSyncReason.HEALTH_CHANGE, null, true);
+                    }
+                },
+                Math.max(1, service.config().syncDelayTicks())
         );
     }
 
@@ -106,14 +108,14 @@ final class ResourceManagementService {
         if (entity instanceof Player player) {
             java.util.UUID playerId = player.getUniqueId();
             service.plugin().getServer().getScheduler().runTaskLater(
-                service.plugin(),
-                () -> {
-                    Player online = Bukkit.getPlayer(playerId);
-                    if (online != null && online.isOnline()) {
-                        syncPlayer(online, ResourceSyncReason.HEALTH_CHANGE, online.getHealth(), false);
-                    }
-                },
-                Math.max(1, service.config().syncDelayTicks())
+                    service.plugin(),
+                    () -> {
+                        Player online = Bukkit.getPlayer(playerId);
+                        if (online != null && online.isOnline()) {
+                            syncPlayer(online, ResourceSyncReason.HEALTH_CHANGE, online.getHealth(), false);
+                        }
+                    },
+                    Math.max(1, service.config().syncDelayTicks())
             );
         }
     }
@@ -124,14 +126,14 @@ final class ResourceManagementService {
         }
         java.util.UUID playerId = player.getUniqueId();
         service.plugin().getServer().getScheduler().runTaskLater(
-            service.plugin(),
-            () -> {
-                Player online = Bukkit.getPlayer(playerId);
-                if (online != null && online.isOnline()) {
-                    syncPlayer(online, ResourceSyncReason.EQUIPMENT, null, false);
-                }
-            },
-            Math.max(1, service.config().syncDelayTicks())
+                service.plugin(),
+                () -> {
+                    Player online = Bukkit.getPlayer(playerId);
+                    if (online != null && online.isOnline()) {
+                        syncPlayer(online, ResourceSyncReason.EQUIPMENT, null, false);
+                    }
+                },
+                Math.max(1, service.config().syncDelayTicks())
         );
     }
 
@@ -141,14 +143,14 @@ final class ResourceManagementService {
         }
         java.util.UUID entityId = entity.getUniqueId();
         service.plugin().getServer().getScheduler().runTaskLater(
-            service.plugin(),
-            () -> {
-                Entity current = Bukkit.getEntity(entityId);
-                if (current instanceof LivingEntity livingEntity && livingEntity.isValid() && !livingEntity.isDead()) {
-                    syncLivingEntity(livingEntity);
-                }
-            },
-            Math.max(1, service.config().syncDelayTicks())
+                service.plugin(),
+                () -> {
+                    Entity current = Bukkit.getEntity(entityId);
+                    if (current instanceof LivingEntity livingEntity && livingEntity.isValid() && !livingEntity.isDead()) {
+                        syncLivingEntity(livingEntity);
+                    }
+                },
+                Math.max(1, service.config().syncDelayTicks())
         );
     }
 
@@ -162,10 +164,10 @@ final class ResourceManagementService {
         }
         AttributeSnapshot snapshot = service.collectCombatSnapshot(entity);
         service.vanillaSynchronizerInternal().syncVanillaMappedAttributes(
-            entity,
-            snapshot,
-            service.vanillaAttributeBindingsInternal(),
-            service.vanillaMappedAttributeIdsInternal()
+                entity,
+                snapshot,
+                service.vanillaAttributeBindingsInternal(),
+                service.vanillaMappedAttributeIdsInternal()
         );
     }
 
@@ -174,10 +176,10 @@ final class ResourceManagementService {
     }
 
     public ResourceState syncResource(Player player,
-                                      ResourceDefinition resourceDefinition,
-                                      AttributeSnapshot snapshot,
-                                      ResourceSyncReason reason,
-                                      Double currentValueOverride) {
+            ResourceDefinition resourceDefinition,
+            AttributeSnapshot snapshot,
+            ResourceSyncReason reason,
+            Double currentValueOverride) {
         if (player == null || resourceDefinition == null) {
             return null;
         }
@@ -192,9 +194,9 @@ final class ResourceManagementService {
                 continue;
             }
             if (definition.valueKind() == AttributeValueKind.REGEN
-                || definition.valueKind() == AttributeValueKind.SKILL
-                || definition.valueKind() == AttributeValueKind.DERIVED
-                || definition.valueKind() == AttributeValueKind.CHANCE) {
+                    || definition.valueKind() == AttributeValueKind.SKILL
+                    || definition.valueKind() == AttributeValueKind.DERIVED
+                    || definition.valueKind() == AttributeValueKind.CHANCE) {
                 continue;
             }
             if (definition.valueKind() == AttributeValueKind.PERCENT) {
@@ -214,26 +216,26 @@ final class ResourceManagementService {
         }
         currentValue = Math.max(0D, Math.min(currentValue, currentMax));
         String sourceSignature = emaki.jiuwu.craft.corelib.pdc.SignatureUtil.combine(
-            service.defaultProfileSignature(),
-            snapshot == null ? "" : snapshot.sourceSignature(),
-            resourceDefinition.id(),
-            Double.toString(defaultMax),
-            Double.toString(flatBonus),
-            Double.toString(percentBonus)
+                service.defaultProfileSignature(),
+                snapshot == null ? "" : snapshot.sourceSignature(),
+                resourceDefinition.id(),
+                Double.toString(defaultMax),
+                Double.toString(flatBonus),
+                Double.toString(percentBonus)
         );
         ResourceState state = new ResourceState(
-            resourceDefinition.id(),
-            defaultMax,
-            currentMax - defaultMax,
-            currentMax,
-            currentValue,
-            sourceSignature,
-            ResourceState.CURRENT_SCHEMA_VERSION
+                resourceDefinition.id(),
+                defaultMax,
+                currentMax - defaultMax,
+                currentMax,
+                currentValue,
+                sourceSignature,
+                ResourceState.CURRENT_SCHEMA_VERSION
         );
         if (!existingState
-            || !Objects.equals(existing.sourceSignature(), state.sourceSignature())
-            || existing.currentMax() != state.currentMax()
-            || existing.currentValue() != state.currentValue()) {
+                || !Objects.equals(existing.sourceSignature(), state.sourceSignature())
+                || existing.currentMax() != state.currentMax()
+                || existing.currentValue() != state.currentValue()) {
             service.stateRepositoryInternal().writeResourceState(player, state);
         }
         if (resourceDefinition.syncToBukkit() && "health".equals(resourceDefinition.id())) {
@@ -290,23 +292,23 @@ final class ResourceManagementService {
     }
 
     private void syncPlayerResources(Player player,
-                                     AttributeSnapshot snapshot,
-                                     ResourceSyncReason reason,
-                                     Double healthOverride,
-                                     boolean forceHealthToFull) {
+            AttributeSnapshot snapshot,
+            ResourceSyncReason reason,
+            Double healthOverride,
+            boolean forceHealthToFull) {
         for (ResourceDefinition resourceDefinition : service.resourceDefinitionsInternal().values()) {
             Double override = "health".equals(resourceDefinition.id()) ? healthOverride : null;
             ResourceSyncReason effectiveReason = forceHealthToFull && "health".equals(resourceDefinition.id())
-                ? ResourceSyncReason.INITIALIZE
-                : reason;
+                    ? ResourceSyncReason.INITIALIZE
+                    : reason;
             syncResource(player, resourceDefinition, snapshot, effectiveReason, override);
         }
         service.vanillaSynchronizerInternal().syncMovementSpeed(player, snapshot, service.genericSpeedDefinitionsInternal());
         service.vanillaSynchronizerInternal().syncVanillaMappedAttributes(
-            player,
-            snapshot,
-            service.vanillaAttributeBindingsInternal(),
-            service.vanillaMappedAttributeIdsInternal()
+                player,
+                snapshot,
+                service.vanillaAttributeBindingsInternal(),
+                service.vanillaMappedAttributeIdsInternal()
         );
     }
 
@@ -317,8 +319,8 @@ final class ResourceManagementService {
         double rawMaxHealth = state.currentMax();
         double maxHealth = Math.max(1D, rawMaxHealth);
         double bukkitHealth = rawMaxHealth <= 0D
-            ? 1D
-            : Math.max(0D, Math.min(state.currentValue(), maxHealth));
+                ? 1D
+                : Math.max(0D, Math.min(state.currentValue(), maxHealth));
         player.setMaxHealth(maxHealth);
         player.setHealth(Math.min(maxHealth, bukkitHealth));
     }

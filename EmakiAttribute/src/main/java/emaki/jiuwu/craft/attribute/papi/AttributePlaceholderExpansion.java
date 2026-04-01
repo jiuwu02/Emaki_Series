@@ -1,5 +1,7 @@
 package emaki.jiuwu.craft.attribute.papi;
 
+import org.bukkit.entity.Player;
+
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.attribute.model.AttributeSnapshot;
 import emaki.jiuwu.craft.attribute.model.ResourceState;
@@ -7,7 +9,6 @@ import emaki.jiuwu.craft.attribute.service.AttributeService;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
-import org.bukkit.entity.Player;
 
 public final class AttributePlaceholderExpansion extends PlaceholderExpansion {
 
@@ -72,12 +73,18 @@ public final class AttributePlaceholderExpansion extends PlaceholderExpansion {
             return "0";
         }
         return switch (field) {
-            case "default", "default_max" -> Numbers.formatNumber(state.defaultMax(), "0.##");
-            case "bonus", "bonus_max" -> Numbers.formatNumber(state.bonusMax(), "0.##");
-            case "max", "current_max" -> Numbers.formatNumber(state.currentMax(), "0.##");
-            case "percent" -> Numbers.formatNumber(state.currentMax() <= 0D ? 0D : (state.currentValue() / state.currentMax()) * 100D, "0.##");
-            case "current", "current_value", "value" -> Numbers.formatNumber(state.currentValue(), "0.##");
-            default -> Numbers.formatNumber(state.currentValue(), "0.##");
+            case "default", "default_max" ->
+                Numbers.formatNumber(state.defaultMax(), "0.##");
+            case "bonus", "bonus_max" ->
+                Numbers.formatNumber(state.bonusMax(), "0.##");
+            case "max", "current_max" ->
+                Numbers.formatNumber(state.currentMax(), "0.##");
+            case "percent" ->
+                Numbers.formatNumber(state.currentMax() <= 0D ? 0D : (state.currentValue() / state.currentMax()) * 100D, "0.##");
+            case "current", "current_value", "value" ->
+                Numbers.formatNumber(state.currentValue(), "0.##");
+            default ->
+                Numbers.formatNumber(state.currentValue(), "0.##");
         };
     }
 }

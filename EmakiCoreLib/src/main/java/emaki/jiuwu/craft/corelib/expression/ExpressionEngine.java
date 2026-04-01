@@ -1,12 +1,13 @@
 package emaki.jiuwu.craft.corelib.expression;
 
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.math.Randoms;
 import emaki.jiuwu.craft.corelib.text.Texts;
-import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import net.objecthunter.exp4j.Expression;
 import net.objecthunter.exp4j.ExpressionBuilder;
 import net.objecthunter.exp4j.function.Function;
@@ -30,8 +31,8 @@ public final class ExpressionEngine {
         String prepared = replaceVariables(expression, variables);
         try {
             Expression built = new ExpressionBuilder(prepared)
-                .functions(customFunctions())
-                .build();
+                    .functions(customFunctions())
+                    .build();
             return built.evaluate();
         } catch (Exception ignored) {
             return 0D;
@@ -64,13 +65,20 @@ public final class ExpressionEngine {
             return 0D;
         }
         return switch (type) {
-            case "constant", "const", "fixed" -> evaluateRandomConfig(ConfigNodes.get(config, "value"));
-            case "uniform" -> evaluateUniform(config);
-            case "gaussian", "normal" -> evaluateGaussian(config);
-            case "skew_normal" -> evaluateSkewNormal(config);
-            case "triangle" -> evaluateTriangle(config);
-            case "expression" -> evaluate(Texts.toStringSafe(ConfigNodes.get(config, "expression")));
-            default -> Numbers.tryParseDouble(config, 0D);
+            case "constant", "const", "fixed" ->
+                evaluateRandomConfig(ConfigNodes.get(config, "value"));
+            case "uniform" ->
+                evaluateUniform(config);
+            case "gaussian", "normal" ->
+                evaluateGaussian(config);
+            case "skew_normal" ->
+                evaluateSkewNormal(config);
+            case "triangle" ->
+                evaluateTriangle(config);
+            case "expression" ->
+                evaluate(Texts.toStringSafe(ConfigNodes.get(config, "expression")));
+            default ->
+                Numbers.tryParseDouble(config, 0D);
         };
     }
 

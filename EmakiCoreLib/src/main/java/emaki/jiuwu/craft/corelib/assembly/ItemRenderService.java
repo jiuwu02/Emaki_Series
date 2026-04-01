@@ -1,8 +1,5 @@
 package emaki.jiuwu.craft.corelib.assembly;
 
-import emaki.jiuwu.craft.corelib.math.Numbers;
-import emaki.jiuwu.craft.corelib.text.MiniMessages;
-import emaki.jiuwu.craft.corelib.text.Texts;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -13,9 +10,14 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import net.kyori.adventure.text.Component;
+
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+
+import emaki.jiuwu.craft.corelib.math.Numbers;
+import emaki.jiuwu.craft.corelib.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.text.Texts;
+import net.kyori.adventure.text.Component;
 
 final class ItemRenderService {
 
@@ -65,7 +67,8 @@ final class ItemRenderService {
                         statLineDefinitions.put(statId, new StatLineDefinition(statId, entry, globalSequence));
                     }
                 }
-                default -> applyLoreEntry(lore, entry, aggregatedStats);
+                default ->
+                    applyLoreEntry(lore, entry, aggregatedStats);
             }
             globalSequence++;
         }
@@ -88,7 +91,7 @@ final class ItemRenderService {
             }
             List<EmakiStatContribution> orderedStats = new ArrayList<>(snapshot.stats());
             orderedStats.sort(Comparator.comparingInt(EmakiStatContribution::sequence)
-                .thenComparing(EmakiStatContribution::statId));
+                    .thenComparing(EmakiStatContribution::statId));
             for (EmakiStatContribution contribution : orderedStats) {
                 if (contribution == null || Texts.isBlank(contribution.statId())) {
                     continue;
@@ -110,16 +113,16 @@ final class ItemRenderService {
             }
             List<EmakiPresentationEntry> orderedEntries = new ArrayList<>(snapshot.presentation());
             orderedEntries.sort(Comparator.comparingInt(EmakiPresentationEntry::sequence)
-                .thenComparing(EmakiPresentationEntry::type)
-                .thenComparing(EmakiPresentationEntry::template));
+                    .thenComparing(EmakiPresentationEntry::type)
+                    .thenComparing(EmakiPresentationEntry::template));
             entries.addAll(orderedEntries);
         }
         return entries;
     }
 
     private void insertStatLines(List<Component> lore,
-                                 Map<String, Double> aggregatedStats,
-                                 Map<String, StatLineDefinition> statLineDefinitions) {
+            Map<String, Double> aggregatedStats,
+            Map<String, StatLineDefinition> statLineDefinitions) {
         if (lore == null || aggregatedStats == null || aggregatedStats.isEmpty() || statLineDefinitions.isEmpty()) {
             return;
         }
@@ -147,13 +150,20 @@ final class ItemRenderService {
         }
         String rendered = formatPlaceholders(entry.template(), aggregatedStats);
         switch (Texts.lower(entry.type())) {
-            case "lore_append", "append", "append_line", "append_lines" -> lore.add(MiniMessages.parse(rendered));
-            case "lore_prepend", "prepend_line", "prepend_lines", "insert_first" -> lore.add(0, MiniMessages.parse(rendered));
-            case "lore_insert_below", "insert_below" -> lore.add(findInsertIndex(lore, entry.anchor()), MiniMessages.parse(rendered));
-            case "lore_insert_above", "insert_above" -> lore.add(findInsertIndexAbove(lore, entry.anchor()), MiniMessages.parse(rendered));
-            case "lore_replace_line", "replace_line" -> replaceLine(lore, entry.anchor(), rendered);
-            case "lore_delete_line", "delete_line" -> deleteLine(lore, entry.anchor());
-            case "lore_regex_replace", "regex_replace" -> replaceRegexInLore(lore, entry.anchor(), rendered, aggregatedStats);
+            case "lore_append", "append", "append_line", "append_lines" ->
+                lore.add(MiniMessages.parse(rendered));
+            case "lore_prepend", "prepend_line", "prepend_lines", "insert_first" ->
+                lore.add(0, MiniMessages.parse(rendered));
+            case "lore_insert_below", "insert_below" ->
+                lore.add(findInsertIndex(lore, entry.anchor()), MiniMessages.parse(rendered));
+            case "lore_insert_above", "insert_above" ->
+                lore.add(findInsertIndexAbove(lore, entry.anchor()), MiniMessages.parse(rendered));
+            case "lore_replace_line", "replace_line" ->
+                replaceLine(lore, entry.anchor(), rendered);
+            case "lore_delete_line", "delete_line" ->
+                deleteLine(lore, entry.anchor());
+            case "lore_regex_replace", "regex_replace" ->
+                replaceRegexInLore(lore, entry.anchor(), rendered, aggregatedStats);
             default -> {
             }
         }
@@ -202,9 +212,9 @@ final class ItemRenderService {
     }
 
     private void replaceRegexInLore(List<Component> lore,
-                                    String regex,
-                                    String replacement,
-                                    Map<String, Double> aggregatedStats) {
+            String regex,
+            String replacement,
+            Map<String, Double> aggregatedStats) {
         if (Texts.isBlank(regex)) {
             return;
         }
@@ -268,5 +278,6 @@ final class ItemRenderService {
     }
 
     private record StatLineDefinition(String statId, EmakiPresentationEntry entry, int globalSequence) {
+
     }
 }

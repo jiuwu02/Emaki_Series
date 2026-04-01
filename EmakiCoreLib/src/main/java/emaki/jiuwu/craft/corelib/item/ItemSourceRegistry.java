@@ -1,13 +1,15 @@
 package emaki.jiuwu.craft.corelib.item;
 
-import emaki.jiuwu.craft.corelib.text.Texts;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+
+import emaki.jiuwu.craft.corelib.text.Texts;
 
 /**
  * Central registry for shorthand {@link ItemSource} parsers.
  *
- * <p>Custom parsers are evaluated before the built-in parsers so projects can
+ * <p>
+ * Custom parsers are evaluated before the built-in parsers so projects can
  * extend CoreLib without forking the default implementation.
  */
 public final class ItemSourceRegistry {
@@ -15,8 +17,8 @@ public final class ItemSourceRegistry {
     private static final ItemSourceRegistry SYSTEM = new ItemSourceRegistry();
 
     private final List<ItemSourceParser> parsers = new CopyOnWriteArrayList<>();
-    private volatile ItemSourceParser fallbackParser = shorthand ->
-        Texts.isBlank(shorthand) ? null : new ItemSource(ItemSourceType.VANILLA, Texts.trim(shorthand));
+    private volatile ItemSourceParser fallbackParser = shorthand
+            -> Texts.isBlank(shorthand) ? null : new ItemSource(ItemSourceType.VANILLA, Texts.trim(shorthand));
 
     private ItemSourceRegistry() {
         registerBuiltinParsers();

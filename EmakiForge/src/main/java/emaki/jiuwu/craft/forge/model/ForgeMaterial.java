@@ -1,20 +1,23 @@
 package emaki.jiuwu.craft.forge.model;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.bukkit.configuration.ConfigurationSection;
+
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import org.bukkit.configuration.ConfigurationSection;
 
 public final class ForgeMaterial {
 
     public static final class MaterialEffect {
+
         private final String type;
         private final Map<String, Object> data;
 
@@ -55,6 +58,7 @@ public final class ForgeMaterial {
     }
 
     public record QualityModifier(String mode, String tier) {
+
         public static QualityModifier fromEffect(MaterialEffect effect) {
             if (effect == null || !"quality_modify".equals(Texts.lower(effect.type()))) {
                 return null;
@@ -88,12 +92,12 @@ public final class ForgeMaterial {
     private final List<MaterialEffect> effects;
 
     public ForgeMaterial(String id,
-                         String displayName,
-                         List<String> description,
-                         ItemSource source,
-                         int capacityCost,
-                         int priority,
-                         List<MaterialEffect> effects) {
+            String displayName,
+            List<String> description,
+            ItemSource source,
+            int capacityCost,
+            int priority,
+            List<MaterialEffect> effects) {
         this.id = id;
         this.displayName = displayName;
         this.description = List.copyOf(description);
@@ -123,13 +127,13 @@ public final class ForgeMaterial {
             }
         }
         return new ForgeMaterial(
-            id,
-            section.getString("display_name", id),
-            Texts.asStringList(section.get("description")),
-            source,
-            Numbers.roundToInt(ExpressionEngine.evaluateRandomConfig(section.get("capacity_cost"))),
-            Numbers.roundToInt(ExpressionEngine.evaluateRandomConfig(section.get("priority"))),
-            effects
+                id,
+                section.getString("display_name", id),
+                Texts.asStringList(section.get("description")),
+                source,
+                Numbers.roundToInt(ExpressionEngine.evaluateRandomConfig(section.get("capacity_cost"))),
+                Numbers.roundToInt(ExpressionEngine.evaluateRandomConfig(section.get("priority"))),
+                effects
         );
     }
 
@@ -230,9 +234,9 @@ public final class ForgeMaterial {
     private static boolean isForgeCapacityBonusEffect(String type) {
         String normalized = Texts.lower(type);
         return "forge_capacity_bonus".equals(normalized)
-            || "capacity_bonus".equals(normalized)
-            || "capacity_expand".equals(normalized)
-            || "forge_capacity".equals(normalized);
+                || "capacity_bonus".equals(normalized)
+                || "capacity_expand".equals(normalized)
+                || "forge_capacity".equals(normalized);
     }
 
     private static int resolveEffectAmount(MaterialEffect effect) {

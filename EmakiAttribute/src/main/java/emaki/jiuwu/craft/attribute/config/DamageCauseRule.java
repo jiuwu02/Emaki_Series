@@ -1,19 +1,20 @@
 package emaki.jiuwu.craft.attribute.config;
 
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.math.Numbers;
-import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.attribute.model.DamageContextVariables;
 import java.util.Locale;
 import java.util.Map;
 
-public record DamageCauseRule(String cause,
-                              String damageTypeId,
-                              Double damage,
-                              boolean enabled,
-                              DamageContextVariables context) {
+import emaki.jiuwu.craft.attribute.model.DamageContextVariables;
+import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.math.Numbers;
+import emaki.jiuwu.craft.corelib.text.Texts;
 
-    public DamageCauseRule {
+public record DamageCauseRule(String cause,
+        String damageTypeId,
+        Double damage,
+        boolean enabled,
+        DamageContextVariables context) {
+
+    public DamageCauseRule     {
         cause = normalizeId(cause);
         damageTypeId = normalizeId(damageTypeId);
         context = context == null ? DamageContextVariables.empty() : context;
@@ -34,20 +35,20 @@ public record DamageCauseRule(String cause,
             return null;
         }
         String damageTypeId = firstNonBlank(
-            ConfigNodes.string(raw, "damage_type", null),
-            ConfigNodes.string(raw, "damageType", null),
-            ConfigNodes.string(raw, "type", null),
-            defaultDamageType
+                ConfigNodes.string(raw, "damage_type", null),
+                ConfigNodes.string(raw, "damageType", null),
+                ConfigNodes.string(raw, "type", null),
+                defaultDamageType
         );
         Double damage = Numbers.tryParseDouble(
-            firstNonNull(
-                ConfigNodes.get(raw, "damage"),
-                ConfigNodes.get(raw, "amount"),
-                ConfigNodes.get(raw, "value"),
-                ConfigNodes.get(raw, "base_damage"),
-                ConfigNodes.get(raw, "baseDamage")
-            ),
-            null
+                firstNonNull(
+                        ConfigNodes.get(raw, "damage"),
+                        ConfigNodes.get(raw, "amount"),
+                        ConfigNodes.get(raw, "value"),
+                        ConfigNodes.get(raw, "base_damage"),
+                        ConfigNodes.get(raw, "baseDamage")
+                ),
+                null
         );
         boolean enabled = ConfigNodes.contains(raw, "enabled") ? ConfigNodes.bool(raw, "enabled", true) : true;
         DamageContextVariables.Builder context = DamageContextVariables.builder();
@@ -88,16 +89,16 @@ public record DamageCauseRule(String cause,
     private static boolean isReservedKey(String key) {
         String normalized = normalizeId(key);
         return normalized.equals("cause")
-            || normalized.equals("damage_type")
-            || normalized.equals("damagetype")
-            || normalized.equals("type")
-            || normalized.equals("damage")
-            || normalized.equals("amount")
-            || normalized.equals("value")
-            || normalized.equals("base_damage")
-            || normalized.equals("basedamage")
-            || normalized.equals("enabled")
-            || normalized.equals("context");
+                || normalized.equals("damage_type")
+                || normalized.equals("damagetype")
+                || normalized.equals("type")
+                || normalized.equals("damage")
+                || normalized.equals("amount")
+                || normalized.equals("value")
+                || normalized.equals("base_damage")
+                || normalized.equals("basedamage")
+                || normalized.equals("enabled")
+                || normalized.equals("context");
     }
 
     private static String firstNonBlank(String... values) {

@@ -1,8 +1,9 @@
 package emaki.jiuwu.craft.corelib.action;
 
-import emaki.jiuwu.craft.corelib.text.Texts;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+
+import emaki.jiuwu.craft.corelib.text.Texts;
 
 final class ActionFutureSupport {
 
@@ -12,16 +13,16 @@ final class ActionFutureSupport {
     }
 
     static CompletableFuture<ActionResult> withTimeout(ActionContext context,
-                                                       String actionId,
-                                                       CompletableFuture<ActionResult> future) {
+            String actionId,
+            CompletableFuture<ActionResult> future) {
         long timeoutMillis = resolveTimeoutMillis(context);
         return future.completeOnTimeout(
-            ActionResult.failure(
-                ActionErrorType.EXECUTION_EXCEPTION,
-                "Action '" + Texts.toStringSafe(actionId) + "' timed out after " + timeoutMillis + " ms."
-            ),
-            timeoutMillis,
-            TimeUnit.MILLISECONDS
+                ActionResult.failure(
+                        ActionErrorType.EXECUTION_EXCEPTION,
+                        "Action '" + Texts.toStringSafe(actionId) + "' timed out after " + timeoutMillis + " ms."
+                ),
+                timeoutMillis,
+                TimeUnit.MILLISECONDS
         );
     }
 

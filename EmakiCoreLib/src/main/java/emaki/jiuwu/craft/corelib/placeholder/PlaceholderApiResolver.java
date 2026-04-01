@@ -1,9 +1,10 @@
 package emaki.jiuwu.craft.corelib.placeholder;
 
+import org.bukkit.Bukkit;
+
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import me.clip.placeholderapi.PlaceholderAPI;
-import org.bukkit.Bukkit;
 
 public final class PlaceholderApiResolver implements PlaceholderResolver {
 

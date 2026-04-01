@@ -1,15 +1,12 @@
 package emaki.jiuwu.craft.corelib.gui;
 
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.math.Numbers;
-import emaki.jiuwu.craft.corelib.text.MiniMessages;
-import emaki.jiuwu.craft.corelib.text.Texts;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
 import org.bukkit.enchantments.Enchantment;
@@ -17,20 +14,26 @@ import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.components.CustomModelDataComponent;
 
+import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.math.Numbers;
+import emaki.jiuwu.craft.corelib.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.text.Texts;
+
 /**
- * Parses GUI item component overrides and applies them onto an {@link ItemMeta}.
+ * Parses GUI item component overrides and applies them onto an
+ * {@link ItemMeta}.
  */
 public final class ItemComponentParser {
 
     public record ItemComponents(String displayName,
-                                 boolean loreConfigured,
-                                 List<String> lore,
-                                 String itemModel,
-                                 Integer customModelData,
-                                 Map<String, Integer> enchantments,
-                                 List<String> hiddenComponents) {
+            boolean loreConfigured,
+            List<String> lore,
+            String itemModel,
+            Integer customModelData,
+            Map<String, Integer> enchantments,
+            List<String> hiddenComponents) {
 
-        public ItemComponents {
+        public ItemComponents       {
             lore = lore == null ? List.of() : List.copyOf(lore);
             enchantments = enchantments == null ? Map.of() : Map.copyOf(enchantments);
             hiddenComponents = hiddenComponents == null ? List.of() : List.copyOf(hiddenComponents);
@@ -46,13 +49,13 @@ public final class ItemComponentParser {
 
     public static boolean hasConfiguredFields(Object raw) {
         return ConfigNodes.contains(raw, "display_name")
-            || ConfigNodes.contains(raw, "lore")
-            || ConfigNodes.contains(raw, "item_model")
-            || ConfigNodes.contains(raw, "item-model")
-            || ConfigNodes.contains(raw, "custom_model_data")
-            || ConfigNodes.contains(raw, "custommodeldata")
-            || ConfigNodes.contains(raw, "enchantments")
-            || ConfigNodes.contains(raw, "hidden_components");
+                || ConfigNodes.contains(raw, "lore")
+                || ConfigNodes.contains(raw, "item_model")
+                || ConfigNodes.contains(raw, "item-model")
+                || ConfigNodes.contains(raw, "custom_model_data")
+                || ConfigNodes.contains(raw, "custommodeldata")
+                || ConfigNodes.contains(raw, "enchantments")
+                || ConfigNodes.contains(raw, "hidden_components");
     }
 
     public static ItemComponents parse(Object raw) {
@@ -62,17 +65,17 @@ public final class ItemComponentParser {
         boolean loreConfigured = ConfigNodes.contains(raw, "lore");
         Object loreRaw = ConfigNodes.get(raw, "lore");
         return new ItemComponents(
-            ConfigNodes.string(raw, "display_name", null),
-            loreConfigured,
-            parseLore(loreRaw, loreConfigured),
-            ConfigNodes.string(raw, "item_model", ConfigNodes.string(raw, "item-model", null)),
-            parseCustomModelData(
-                ConfigNodes.contains(raw, "custom_model_data")
-                    ? ConfigNodes.get(raw, "custom_model_data")
-                    : ConfigNodes.get(raw, "custommodeldata")
-            ),
-            parseEnchantments(ConfigNodes.get(raw, "enchantments")),
-            normalizeTextList(ConfigNodes.get(raw, "hidden_components"))
+                ConfigNodes.string(raw, "display_name", null),
+                loreConfigured,
+                parseLore(loreRaw, loreConfigured),
+                ConfigNodes.string(raw, "item_model", ConfigNodes.string(raw, "item-model", null)),
+                parseCustomModelData(
+                        ConfigNodes.contains(raw, "custom_model_data")
+                        ? ConfigNodes.get(raw, "custom_model_data")
+                        : ConfigNodes.get(raw, "custommodeldata")
+                ),
+                parseEnchantments(ConfigNodes.get(raw, "enchantments")),
+                normalizeTextList(ConfigNodes.get(raw, "hidden_components"))
         );
     }
 
@@ -219,16 +222,26 @@ public final class ItemComponentParser {
 
     private static ItemFlag mapHiddenFlag(String component) {
         return switch (Texts.lower(component)) {
-            case "enchantments", "enchants", "enchant" -> ItemFlag.HIDE_ENCHANTS;
-            case "attributes", "attribute_modifiers", "attribute_modifier" -> ItemFlag.HIDE_ATTRIBUTES;
-            case "unbreakable" -> ItemFlag.HIDE_UNBREAKABLE;
-            case "can_destroy" -> ItemFlag.HIDE_DESTROYS;
-            case "can_place_on" -> ItemFlag.HIDE_PLACED_ON;
-            case "trim", "armor_trim" -> ItemFlag.HIDE_ARMOR_TRIM;
-            case "dye", "dyed_color" -> ItemFlag.HIDE_DYE;
-            case "tooltip_style" -> ItemFlag.HIDE_ADDITIONAL_TOOLTIP;
-            case "additional", "additional_tooltip" -> ItemFlag.HIDE_ADDITIONAL_TOOLTIP;
-            default -> null;
+            case "enchantments", "enchants", "enchant" ->
+                ItemFlag.HIDE_ENCHANTS;
+            case "attributes", "attribute_modifiers", "attribute_modifier" ->
+                ItemFlag.HIDE_ATTRIBUTES;
+            case "unbreakable" ->
+                ItemFlag.HIDE_UNBREAKABLE;
+            case "can_destroy" ->
+                ItemFlag.HIDE_DESTROYS;
+            case "can_place_on" ->
+                ItemFlag.HIDE_PLACED_ON;
+            case "trim", "armor_trim" ->
+                ItemFlag.HIDE_ARMOR_TRIM;
+            case "dye", "dyed_color" ->
+                ItemFlag.HIDE_DYE;
+            case "tooltip_style" ->
+                ItemFlag.HIDE_ADDITIONAL_TOOLTIP;
+            case "additional", "additional_tooltip" ->
+                ItemFlag.HIDE_ADDITIONAL_TOOLTIP;
+            default ->
+                null;
         };
     }
 

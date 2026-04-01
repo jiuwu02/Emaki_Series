@@ -1,19 +1,20 @@
 package emaki.jiuwu.craft.attribute.model;
 
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.math.Numbers;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 
+import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.math.Numbers;
+
 public record AttributeSnapshot(int schemaVersion,
-                                String sourceSignature,
-                                Map<String, Double> values,
-                                long updatedAt) {
+        String sourceSignature,
+        Map<String, Double> values,
+        long updatedAt) {
 
     public static final int CURRENT_SCHEMA_VERSION = 1;
 
-    public AttributeSnapshot {
+    public AttributeSnapshot    {
         sourceSignature = sourceSignature == null ? "" : sourceSignature;
         values = values == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(values));
     }
@@ -41,10 +42,10 @@ public record AttributeSnapshot(int schemaVersion,
             values.put(entry.getKey().toLowerCase(Locale.ROOT), Numbers.tryParseDouble(entry.getValue(), 0D));
         }
         return new AttributeSnapshot(
-            Numbers.tryParseInt(map.get("schema_version"), CURRENT_SCHEMA_VERSION),
-            ConfigNodes.string(map, "source_signature", ""),
-            values,
-            Numbers.tryParseLong(map.get("updated_at"), System.currentTimeMillis())
+                Numbers.tryParseInt(map.get("schema_version"), CURRENT_SCHEMA_VERSION),
+                ConfigNodes.string(map, "source_signature", ""),
+                values,
+                Numbers.tryParseLong(map.get("updated_at"), System.currentTimeMillis())
         );
     }
 }

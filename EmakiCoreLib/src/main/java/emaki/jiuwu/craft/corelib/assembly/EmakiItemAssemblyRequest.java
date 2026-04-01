@@ -1,20 +1,22 @@
 package emaki.jiuwu.craft.corelib.assembly;
 
-import emaki.jiuwu.craft.corelib.item.ItemSource;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+
 import org.bukkit.inventory.ItemStack;
 
+import emaki.jiuwu.craft.corelib.item.ItemSource;
+
 public record EmakiItemAssemblyRequest(ItemSource baseSource,
-                                       int amount,
-                                       ItemStack existingItem,
-                                       List<EmakiItemLayerSnapshot> layerSnapshots) {
+        int amount,
+        ItemStack existingItem,
+        List<EmakiItemLayerSnapshot> layerSnapshots) {
 
     public EmakiItemAssemblyRequest(ItemSource baseSource,
-                                    int amount,
-                                    ItemStack existingItem,
-                                    Collection<EmakiItemLayerSnapshot> layerSnapshots) {
+            int amount,
+            ItemStack existingItem,
+            Collection<EmakiItemLayerSnapshot> layerSnapshots) {
         this(baseSource, amount, existingItem, copyLayers(layerSnapshots));
     }
 

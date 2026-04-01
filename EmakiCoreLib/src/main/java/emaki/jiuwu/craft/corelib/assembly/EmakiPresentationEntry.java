@@ -1,13 +1,14 @@
 package emaki.jiuwu.craft.corelib.assembly;
 
-import emaki.jiuwu.craft.corelib.math.Numbers;
-import emaki.jiuwu.craft.corelib.text.Texts;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import emaki.jiuwu.craft.corelib.math.Numbers;
+import emaki.jiuwu.craft.corelib.text.Texts;
+
 public record EmakiPresentationEntry(String type, String anchor, String template, int sequence, String sourceId) {
 
-    public EmakiPresentationEntry {
+    public EmakiPresentationEntry     {
         type = Texts.isBlank(type) ? "unknown" : Texts.lower(type);
         anchor = Texts.toStringSafe(anchor);
         template = Texts.toStringSafe(template);
@@ -33,11 +34,11 @@ public record EmakiPresentationEntry(String type, String anchor, String template
             return null;
         }
         return new EmakiPresentationEntry(
-            type,
-            Texts.toStringSafe(map.get("anchor")),
-            Texts.toStringSafe(map.get("template")),
-            Numbers.tryParseInt(map.get("sequence"), 0),
-            Texts.toStringSafe(map.get("source_id"))
+                type,
+                Texts.toStringSafe(map.get("anchor")),
+                Texts.toStringSafe(map.get("template")),
+                Numbers.tryParseInt(map.get("sequence"), 0),
+                Texts.toStringSafe(map.get("source_id"))
         );
     }
 }

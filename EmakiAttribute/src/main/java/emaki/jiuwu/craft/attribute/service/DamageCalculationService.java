@@ -1,5 +1,20 @@
 package emaki.jiuwu.craft.attribute.service;
 
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
+
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Mob;
+import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
+import org.bukkit.event.entity.EntityDamageEvent;
+
 import emaki.jiuwu.craft.attribute.api.EmakiAttributeDamageEvent;
 import emaki.jiuwu.craft.attribute.model.AttributeSnapshot;
 import emaki.jiuwu.craft.attribute.model.DamageContext;
@@ -16,19 +31,6 @@ import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ThreadLocalRandom;
-import org.bukkit.Bukkit;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Mob;
-import org.bukkit.entity.Player;
-import org.bukkit.entity.Projectile;
-import org.bukkit.event.entity.EntityDamageEvent;
 
 final class DamageCalculationService {
 
@@ -99,23 +101,23 @@ final class DamageCalculationService {
         }
         long now = System.currentTimeMillis();
         String sourceSignature = SignatureUtil.combine(
-            attackSnapshot.sourceSignature(),
-            damageTypeId,
-            projectile.getUniqueId().toString(),
-            shooter.getUniqueId().toString()
+                attackSnapshot.sourceSignature(),
+                damageTypeId,
+                projectile.getUniqueId().toString(),
+                shooter.getUniqueId().toString()
         );
         ProjectileDamageSnapshot snapshot = new ProjectileDamageSnapshot(
-            ProjectileDamageSnapshot.CURRENT_SCHEMA_VERSION,
-            normalizeId(damageTypeId),
-            shooter.getUniqueId(),
-            sourceSignature,
-            now,
-            now + service.projectileTtlMs(),
-            attackSnapshot
+                ProjectileDamageSnapshot.CURRENT_SCHEMA_VERSION,
+                normalizeId(damageTypeId),
+                shooter.getUniqueId(),
+                sourceSignature,
+                now,
+                now + service.projectileTtlMs(),
+                attackSnapshot
         );
         service.stateRepositoryInternal().writeProjectileSnapshot(projectile, snapshot);
         debugCombat(shooter, null, projectile, "PROJECTILE_SNAPSHOT_WRITE",
-            "投射物快照已写入: projectile=" + entityDebugLabel(projectile)
+                "投射物快照已写入: projectile=" + entityDebugLabel(projectile)
                 + ", shooter=" + entityDebugLabel(shooter)
                 + ", damageType=" + snapshot.damageTypeId()
                 + ", signature=" + snapshot.sourceSignature()
@@ -128,15 +130,15 @@ final class DamageCalculationService {
     }
 
     public DamageContext createDamageContext(LivingEntity attacker,
-                                             LivingEntity target,
-                                             Projectile projectile,
-                                             EntityDamageEvent.DamageCause cause,
-                                             String damageTypeId,
-                                             double sourceDamage,
-                                             double baseDamage,
-                                             AttributeSnapshot attackerSnapshot,
-                                             AttributeSnapshot targetSnapshot,
-                                             DamageContextVariables context) {
+            LivingEntity target,
+            Projectile projectile,
+            EntityDamageEvent.DamageCause cause,
+            String damageTypeId,
+            double sourceDamage,
+            double baseDamage,
+            AttributeSnapshot attackerSnapshot,
+            AttributeSnapshot targetSnapshot,
+            DamageContextVariables context) {
         String resolvedDamageTypeId = resolveRequestedDamageTypeId(attacker, projectile, cause, damageTypeId);
         DamageTypeDefinition damageType = resolveDamageType(resolvedDamageTypeId);
         AttributeSnapshot resolvedAttacker = attackerSnapshot;
@@ -179,38 +181,38 @@ final class DamageCalculationService {
             merged.put("projectile_uuid", projectile.getUniqueId().toString());
         }
         return DamageContext.of(
-            attacker,
-            target,
-            projectile,
-            cause,
-            resolvedDamageTypeId,
-            sourceDamage,
-            baseDamage,
-            resolvedAttacker,
-            resolvedTarget,
-            merged.build()
+                attacker,
+                target,
+                projectile,
+                cause,
+                resolvedDamageTypeId,
+                sourceDamage,
+                baseDamage,
+                resolvedAttacker,
+                resolvedTarget,
+                merged.build()
         );
     }
 
     public DamageContext createDamageContext(LivingEntity attacker,
-                                             LivingEntity target,
-                                             Projectile projectile,
-                                             EntityDamageEvent.DamageCause cause,
-                                             String damageTypeId,
-                                             double sourceDamage,
-                                             double baseDamage,
-                                             Map<String, ?> context) {
+            LivingEntity target,
+            Projectile projectile,
+            EntityDamageEvent.DamageCause cause,
+            String damageTypeId,
+            double sourceDamage,
+            double baseDamage,
+            Map<String, ?> context) {
         return createDamageContext(attacker, target, projectile, cause, damageTypeId, sourceDamage, baseDamage, null, null, DamageContextVariables.from(context));
     }
 
     public DamageContext createDamageContext(LivingEntity attacker,
-                                             LivingEntity target,
-                                             Projectile projectile,
-                                             EntityDamageEvent.DamageCause cause,
-                                             String damageTypeId,
-                                             double sourceDamage,
-                                             double baseDamage,
-                                             DamageContextVariables context) {
+            LivingEntity target,
+            Projectile projectile,
+            EntityDamageEvent.DamageCause cause,
+            String damageTypeId,
+            double sourceDamage,
+            double baseDamage,
+            DamageContextVariables context) {
         return createDamageContext(attacker, target, projectile, cause, damageTypeId, sourceDamage, baseDamage, null, null, context);
     }
 
@@ -229,10 +231,10 @@ final class DamageCalculationService {
     }
 
     public DamageResult calculateDamage(LivingEntity attacker,
-                                        LivingEntity target,
-                                        String damageTypeId,
-                                        double baseDamage,
-                                        DamageContextVariables context) {
+            LivingEntity target,
+            String damageTypeId,
+            double baseDamage,
+            DamageContextVariables context) {
         double sourceDamage = contextDouble(context, "source_damage", baseDamage);
         EntityDamageEvent.DamageCause cause = extractDamageCause(context);
         DamageContext damageContext = createDamageContext(attacker, target, null, cause, damageTypeId, sourceDamage, baseDamage, context);
@@ -240,10 +242,10 @@ final class DamageCalculationService {
     }
 
     public DamageResult calculateDamage(LivingEntity attacker,
-                                        LivingEntity target,
-                                        String damageTypeId,
-                                        double baseDamage,
-                                        Map<String, ?> context) {
+            LivingEntity target,
+            String damageTypeId,
+            double baseDamage,
+            Map<String, ?> context) {
         return calculateDamage(attacker, target, damageTypeId, baseDamage, DamageContextVariables.from(context));
     }
 
@@ -255,10 +257,10 @@ final class DamageCalculationService {
     }
 
     public boolean applyDamage(LivingEntity attacker,
-                               LivingEntity target,
-                               String damageTypeId,
-                               double baseDamage,
-                               DamageContextVariables context) {
+            LivingEntity target,
+            String damageTypeId,
+            double baseDamage,
+            DamageContextVariables context) {
         double sourceDamage = contextDouble(context, "source_damage", baseDamage);
         EntityDamageEvent.DamageCause cause = extractDamageCause(context);
         DamageContext damageContext = createDamageContext(attacker, target, null, cause, damageTypeId, sourceDamage, baseDamage, context);
@@ -266,10 +268,10 @@ final class DamageCalculationService {
     }
 
     public boolean applyDamage(LivingEntity attacker,
-                               LivingEntity target,
-                               String damageTypeId,
-                               double baseDamage,
-                               Map<String, ?> context) {
+            LivingEntity target,
+            String damageTypeId,
+            double baseDamage,
+            Map<String, ?> context) {
         return applyDamage(attacker, target, damageTypeId, baseDamage, DamageContextVariables.from(context));
     }
 
@@ -281,31 +283,31 @@ final class DamageCalculationService {
         ProjectileDamageSnapshot snapshot = readProjectileSnapshot(projectile);
         if (snapshot == null) {
             debugCombat(damageContext, "PROJECTILE_SNAPSHOT_MISSING",
-                "applyProjectileDamage 读取不到投射物快照，已中止结算: projectile=" + entityDebugLabel(projectile));
+                    "applyProjectileDamage 读取不到投射物快照，已中止结算: projectile=" + entityDebugLabel(projectile));
             return false;
         }
         AttributeSnapshot attackSnapshot = snapshot.attackSnapshot() == null ? AttributeSnapshot.empty("") : snapshot.attackSnapshot();
         AttributeSnapshot targetSnapshot = service.collectCombatSnapshot(damageContext.target());
         LivingEntity shooter = projectile.getShooter() instanceof LivingEntity livingEntity ? livingEntity : damageContext.attacker();
         DamageContext resolvedContext = createDamageContext(
-            shooter,
-            damageContext.target(),
-            projectile,
-            damageContext.cause(),
-            snapshot.damageTypeId(),
-            damageContext.sourceDamage(),
-            damageContext.baseDamage(),
-            attackSnapshot,
-            targetSnapshot,
-            damageContext.variables()
+                shooter,
+                damageContext.target(),
+                projectile,
+                damageContext.cause(),
+                snapshot.damageTypeId(),
+                damageContext.sourceDamage(),
+                damageContext.baseDamage(),
+                attackSnapshot,
+                targetSnapshot,
+                damageContext.variables()
         );
         return applyResolvedDamage(resolveDamageApplication(resolvedContext), projectile, 0D);
     }
 
     public boolean applyProjectileDamage(Projectile projectile,
-                                         LivingEntity target,
-                                         double baseDamage,
-                                         DamageContextVariables context) {
+            LivingEntity target,
+            double baseDamage,
+            DamageContextVariables context) {
         if (projectile == null || target == null) {
             return false;
         }
@@ -317,9 +319,9 @@ final class DamageCalculationService {
     }
 
     public boolean applyProjectileDamage(Projectile projectile,
-                                         LivingEntity target,
-                                         double baseDamage,
-                                         Map<String, ?> context) {
+            LivingEntity target,
+            double baseDamage,
+            Map<String, ?> context) {
         return applyProjectileDamage(projectile, target, baseDamage, DamageContextVariables.from(context));
     }
 
@@ -330,16 +332,16 @@ final class DamageCalculationService {
     public ResolvedDamage resolveDamageApplication(DamageContext damageContext) {
         if (damageContext == null || damageContext.target() == null || !damageContext.target().isValid() || damageContext.target().isDead()) {
             debugCombat(damageContext, "RESOLVE_SKIPPED",
-                "目标无效或已死亡，EA 伤害解析已跳过。");
+                    "目标无效或已死亡，EA 伤害解析已跳过。");
             return null;
         }
         debugCombat(damageContext, "RESOLVE_BEGIN",
-            "开始解析 EA 伤害: " + describeDamageContext(damageContext)
+                "开始解析 EA 伤害: " + describeDamageContext(damageContext)
                 + " | attackerSnapshot=" + formatSnapshot(damageContext.attackerSnapshot())
                 + " | targetSnapshot=" + formatSnapshot(damageContext.targetSnapshot()));
         DamageResult result = calculateDamage(damageContext);
         debugCombat(damageContext, "CALC_RESULT",
-            "伤害计算完成: damageType=" + result.damageTypeId()
+                "伤害计算完成: damageType=" + result.damageTypeId()
                 + ", finalDamage=" + formatNumber(result.finalDamage())
                 + ", critical=" + result.critical()
                 + ", roll=" + formatNumber(result.roll())
@@ -348,13 +350,13 @@ final class DamageCalculationService {
         Bukkit.getPluginManager().callEvent(event);
         if (event.isCancelled() || event.getFinalDamage() <= 0D) {
             debugCombat(damageContext, "EVENT_BLOCKED",
-                "EmakiAttributeDamageEvent 未通过: cancelled=" + event.isCancelled()
+                    "EmakiAttributeDamageEvent 未通过: cancelled=" + event.isCancelled()
                     + ", finalDamage=" + formatNumber(event.getFinalDamage()));
             return null;
         }
         DamageTypeDefinition damageType = resolveDamageType(result.damageTypeId());
         debugCombat(damageContext, "EVENT_PASSED",
-            "EmakiAttributeDamageEvent 已通过: finalDamage=" + formatNumber(event.getFinalDamage())
+                "EmakiAttributeDamageEvent 已通过: finalDamage=" + formatNumber(event.getFinalDamage())
                 + ", resolvedDamageType=" + damageType.id());
         return new ResolvedDamage(damageContext, result, damageType, event.getFinalDamage());
     }
@@ -367,7 +369,7 @@ final class DamageCalculationService {
         LivingEntity target = damageContext.target();
         if (target == null || !target.isValid() || target.isDead()) {
             debugCombat(damageContext, "APPLY_SKIPPED",
-                "目标无效或已死亡，EA 伤害落地已跳过。");
+                    "目标无效或已死亡，EA 伤害落地已跳过。");
             return false;
         }
         double appliedDamage = Math.max(0D, alreadyAppliedDamage);
@@ -375,7 +377,7 @@ final class DamageCalculationService {
         double healthBefore = target.getHealth();
         double absorptionBefore = target.getAbsorptionAmount();
         debugCombat(damageContext, "APPLY_BEGIN",
-            "准备落地 EA 伤害: finalDamage=" + formatNumber(resolvedDamage.finalDamage())
+                "准备落地 EA 伤害: finalDamage=" + formatNumber(resolvedDamage.finalDamage())
                 + ", alreadyApplied=" + formatNumber(appliedDamage)
                 + ", remaining=" + formatNumber(remainingDamage)
                 + ", targetHealthBefore=" + formatNumber(healthBefore)
@@ -391,7 +393,7 @@ final class DamageCalculationService {
         notifyDamageMessages(damageContext, resolvedDamage.damageType(), resolvedDamage.damageResult(), resolvedDamage.finalDamage());
         service.scheduleHealthSync(target);
         debugCombat(damageContext, "APPLY_DONE",
-            "EA 伤害已落地: targetHealthAfter=" + formatNumber(target.getHealth())
+                "EA 伤害已落地: targetHealthAfter=" + formatNumber(target.getHealth())
                 + ", targetAbsorptionAfter=" + formatNumber(target.getAbsorptionAmount())
                 + ", attackerCooldownTicks=" + cooldownTicks);
         return remainingDamage > 0D || appliedDamage > 0D;
@@ -399,7 +401,7 @@ final class DamageCalculationService {
 
     private void applyAggroTarget(LivingEntity target, LivingEntity attacker) {
         if (!(target instanceof Mob mob) || attacker == null || !attacker.isValid() || attacker.isDead()
-            || !target.isValid() || target.isDead() || target.getUniqueId().equals(attacker.getUniqueId())) {
+                || !target.isValid() || target.isDead() || target.getUniqueId().equals(attacker.getUniqueId())) {
             return;
         }
         mob.setAware(true);
@@ -444,9 +446,9 @@ final class DamageCalculationService {
     }
 
     private String resolveRequestedDamageTypeId(LivingEntity attacker,
-                                                Projectile projectile,
-                                                EntityDamageEvent.DamageCause cause,
-                                                String damageTypeId) {
+            Projectile projectile,
+            EntityDamageEvent.DamageCause cause,
+            String damageTypeId) {
         if (Texts.isNotBlank(damageTypeId)) {
             return normalizeId(damageTypeId);
         }
@@ -463,9 +465,9 @@ final class DamageCalculationService {
     }
 
     private void applyRecovery(DamageContext damageContext,
-                               DamageTypeDefinition damageType,
-                               DamageResult result,
-                               double finalDamage) {
+            DamageTypeDefinition damageType,
+            DamageResult result,
+            double finalDamage) {
         if (damageContext == null || damageType == null || !damageType.hasRecovery() || result == null) {
             return;
         }
@@ -484,9 +486,9 @@ final class DamageCalculationService {
     }
 
     private void notifyDamageMessages(DamageContext damageContext,
-                                      DamageTypeDefinition damageType,
-                                      DamageResult result,
-                                      double finalDamage) {
+            DamageTypeDefinition damageType,
+            DamageResult result,
+            double finalDamage) {
         if (damageContext == null || damageType == null || result == null) {
             return;
         }
@@ -513,9 +515,9 @@ final class DamageCalculationService {
     }
 
     private Map<String, Object> buildDamageMessageReplacements(DamageContext damageContext,
-                                                               DamageTypeDefinition damageType,
-                                                               DamageResult result,
-                                                               double finalDamage) {
+            DamageTypeDefinition damageType,
+            DamageResult result,
+            double finalDamage) {
         Map<String, Object> replacements = new LinkedHashMap<>();
         String attackerLabel = entityLabel(damageContext.attacker(), damageContext.cause(), messageOrFallback("damage.environment", "环境"));
         String targetLabel = entityLabel(damageContext.target(), null, messageOrFallback("damage.target", "目标"));
@@ -573,35 +575,64 @@ final class DamageCalculationService {
             return messageOrFallback("damage.cause.environment", "环境");
         }
         return switch (cause) {
-            case CONTACT -> messageOrFallback("damage.cause.contact", "接触");
-            case ENTITY_ATTACK -> messageOrFallback("damage.cause.entity_attack", "攻击");
-            case PROJECTILE -> messageOrFallback("damage.cause.projectile", "弹射物");
-            case SUFFOCATION -> messageOrFallback("damage.cause.suffocation", "窒息");
-            case FALL -> messageOrFallback("damage.cause.fall", "摔落");
-            case FIRE -> messageOrFallback("damage.cause.fire", "火焰");
-            case FIRE_TICK -> messageOrFallback("damage.cause.fire_tick", "燃烧");
-            case MELTING -> messageOrFallback("damage.cause.melting", "融化");
-            case LAVA -> messageOrFallback("damage.cause.lava", "岩浆");
-            case DROWNING -> messageOrFallback("damage.cause.drowning", "溺水");
-            case BLOCK_EXPLOSION -> messageOrFallback("damage.cause.block_explosion", "方块爆炸");
-            case ENTITY_EXPLOSION -> messageOrFallback("damage.cause.entity_explosion", "爆炸");
-            case VOID -> messageOrFallback("damage.cause.void", "虚空");
-            case LIGHTNING -> messageOrFallback("damage.cause.lightning", "雷击");
-            case WORLD_BORDER -> messageOrFallback("damage.cause.world_border", "世界边界");
-            case STARVATION -> messageOrFallback("damage.cause.starvation", "饥饿");
-            case POISON -> messageOrFallback("damage.cause.poison", "中毒");
-            case MAGIC -> messageOrFallback("damage.cause.magic", "魔法");
-            case WITHER -> messageOrFallback("damage.cause.wither", "凋零");
-            case FALLING_BLOCK -> messageOrFallback("damage.cause.falling_block", "落块");
-            case DRAGON_BREATH -> messageOrFallback("damage.cause.dragon_breath", "龙息");
-            case FLY_INTO_WALL -> messageOrFallback("damage.cause.fly_into_wall", "碰撞");
-            case HOT_FLOOR -> messageOrFallback("damage.cause.hot_floor", "高温");
-            case CAMPFIRE -> messageOrFallback("damage.cause.campfire", "营火");
-            case CRAMMING -> messageOrFallback("damage.cause.cramming", "挤压");
-            case DRYOUT -> messageOrFallback("damage.cause.dryout", "脱水");
-            case FREEZE -> messageOrFallback("damage.cause.freeze", "冻结");
-            case SONIC_BOOM -> messageOrFallback("damage.cause.sonic_boom", "音爆");
-            default -> messageOrFallback("damage.cause.unknown", cause.name().toLowerCase(Locale.ROOT).replace('_', ' '));
+            case CONTACT ->
+                messageOrFallback("damage.cause.contact", "接触");
+            case ENTITY_ATTACK ->
+                messageOrFallback("damage.cause.entity_attack", "攻击");
+            case PROJECTILE ->
+                messageOrFallback("damage.cause.projectile", "弹射物");
+            case SUFFOCATION ->
+                messageOrFallback("damage.cause.suffocation", "窒息");
+            case FALL ->
+                messageOrFallback("damage.cause.fall", "摔落");
+            case FIRE ->
+                messageOrFallback("damage.cause.fire", "火焰");
+            case FIRE_TICK ->
+                messageOrFallback("damage.cause.fire_tick", "燃烧");
+            case MELTING ->
+                messageOrFallback("damage.cause.melting", "融化");
+            case LAVA ->
+                messageOrFallback("damage.cause.lava", "岩浆");
+            case DROWNING ->
+                messageOrFallback("damage.cause.drowning", "溺水");
+            case BLOCK_EXPLOSION ->
+                messageOrFallback("damage.cause.block_explosion", "方块爆炸");
+            case ENTITY_EXPLOSION ->
+                messageOrFallback("damage.cause.entity_explosion", "爆炸");
+            case VOID ->
+                messageOrFallback("damage.cause.void", "虚空");
+            case LIGHTNING ->
+                messageOrFallback("damage.cause.lightning", "雷击");
+            case WORLD_BORDER ->
+                messageOrFallback("damage.cause.world_border", "世界边界");
+            case STARVATION ->
+                messageOrFallback("damage.cause.starvation", "饥饿");
+            case POISON ->
+                messageOrFallback("damage.cause.poison", "中毒");
+            case MAGIC ->
+                messageOrFallback("damage.cause.magic", "魔法");
+            case WITHER ->
+                messageOrFallback("damage.cause.wither", "凋零");
+            case FALLING_BLOCK ->
+                messageOrFallback("damage.cause.falling_block", "落块");
+            case DRAGON_BREATH ->
+                messageOrFallback("damage.cause.dragon_breath", "龙息");
+            case FLY_INTO_WALL ->
+                messageOrFallback("damage.cause.fly_into_wall", "碰撞");
+            case HOT_FLOOR ->
+                messageOrFallback("damage.cause.hot_floor", "高温");
+            case CAMPFIRE ->
+                messageOrFallback("damage.cause.campfire", "营火");
+            case CRAMMING ->
+                messageOrFallback("damage.cause.cramming", "挤压");
+            case DRYOUT ->
+                messageOrFallback("damage.cause.dryout", "脱水");
+            case FREEZE ->
+                messageOrFallback("damage.cause.freeze", "冻结");
+            case SONIC_BOOM ->
+                messageOrFallback("damage.cause.sonic_boom", "音爆");
+            default ->
+                messageOrFallback("damage.cause.unknown", cause.name().toLowerCase(Locale.ROOT).replace('_', ' '));
         };
     }
 
@@ -674,8 +705,8 @@ final class DamageCalculationService {
         context.put("healing_resistance", resistance);
         evaluationContext = context.build().asMap();
         double value = Texts.isBlank(recovery.expression())
-            ? grossRecovery * (1D - (resistance / 100D))
-            : ExpressionEngine.evaluate(recovery.expression(), evaluationContext);
+                ? grossRecovery * (1D - (resistance / 100D))
+                : ExpressionEngine.evaluate(recovery.expression(), evaluationContext);
         if (recovery.minResult() != null) {
             value = Math.max(value, recovery.minResult());
         }
@@ -690,9 +721,12 @@ final class DamageCalculationService {
             return null;
         }
         return switch (source) {
-            case ATTACKER -> damageContext.attackerSnapshot();
-            case TARGET -> damageContext.targetSnapshot();
-            case CONTEXT -> null;
+            case ATTACKER ->
+                damageContext.attackerSnapshot();
+            case TARGET ->
+                damageContext.targetSnapshot();
+            case CONTEXT ->
+                null;
         };
     }
 
@@ -736,8 +770,8 @@ final class DamageCalculationService {
     private void debugCombat(LivingEntity attacker, LivingEntity target, Projectile projectile, String phase, String detail) {
         var debugService = service.combatDebugService();
         boolean enabled = projectile != null
-            ? debugService.shouldTrace(projectile, target)
-            : debugService.shouldTrace(attacker, target);
+                ? debugService.shouldTrace(projectile, target)
+                : debugService.shouldTrace(attacker, target);
         if (!enabled) {
             return;
         }
@@ -749,12 +783,12 @@ final class DamageCalculationService {
             return "<null>";
         }
         return "attacker=" + entityDebugLabel(damageContext.attacker())
-            + ", target=" + entityDebugLabel(damageContext.target())
-            + ", projectile=" + entityDebugLabel(damageContext.projectile())
-            + ", cause=" + (damageContext.cause() == null ? "<none>" : damageContext.cause().name())
-            + ", damageType=" + damageContext.damageTypeId()
-            + ", sourceDamage=" + formatNumber(damageContext.sourceDamage())
-            + ", baseDamage=" + formatNumber(damageContext.baseDamage());
+                + ", target=" + entityDebugLabel(damageContext.target())
+                + ", projectile=" + entityDebugLabel(damageContext.projectile())
+                + ", cause=" + (damageContext.cause() == null ? "<none>" : damageContext.cause().name())
+                + ", damageType=" + damageContext.damageTypeId()
+                + ", sourceDamage=" + formatNumber(damageContext.sourceDamage())
+                + ", baseDamage=" + formatNumber(damageContext.baseDamage());
     }
 
     private String formatStageValues(Map<String, Double> stageValues) {

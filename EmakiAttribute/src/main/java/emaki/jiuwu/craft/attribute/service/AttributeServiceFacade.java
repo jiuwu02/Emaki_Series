@@ -1,5 +1,14 @@
 package emaki.jiuwu.craft.attribute.service;
 
+import java.util.Locale;
+import java.util.Map;
+
+import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
+import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.inventory.ItemStack;
+
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.attribute.api.AttributeContributionProvider;
 import emaki.jiuwu.craft.attribute.config.AttributeConfig;
@@ -18,13 +27,6 @@ import emaki.jiuwu.craft.attribute.model.ProjectileDamageSnapshot;
 import emaki.jiuwu.craft.attribute.model.ResourceDefinition;
 import emaki.jiuwu.craft.attribute.model.ResourceState;
 import emaki.jiuwu.craft.attribute.model.ResourceSyncReason;
-import java.util.Locale;
-import java.util.Map;
-import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Player;
-import org.bukkit.entity.Projectile;
-import org.bukkit.event.entity.EntityDamageEvent;
-import org.bukkit.inventory.ItemStack;
 
 public interface AttributeServiceFacade {
 
@@ -97,10 +99,10 @@ public interface AttributeServiceFacade {
     void syncPlayer(Player player, ResourceSyncReason reason, Double healthOverride);
 
     ResourceState syncResource(Player player,
-                               ResourceDefinition resourceDefinition,
-                               AttributeSnapshot snapshot,
-                               ResourceSyncReason reason,
-                               Double currentValueOverride);
+            ResourceDefinition resourceDefinition,
+            AttributeSnapshot snapshot,
+            ResourceSyncReason reason,
+            Double currentValueOverride);
 
     ResourceState readResourceState(Player player, String resourceId);
 
@@ -119,15 +121,15 @@ public interface AttributeServiceFacade {
     ProjectileDamageSnapshot readProjectileSnapshot(Projectile projectile);
 
     DamageContext createDamageContext(LivingEntity attacker,
-                                      LivingEntity target,
-                                      Projectile projectile,
-                                      EntityDamageEvent.DamageCause cause,
-                                      String damageTypeId,
-                                      double sourceDamage,
-                                      double baseDamage,
-                                      AttributeSnapshot attackerSnapshot,
-                                      AttributeSnapshot targetSnapshot,
-                                      DamageContextVariables context);
+            LivingEntity target,
+            Projectile projectile,
+            EntityDamageEvent.DamageCause cause,
+            String damageTypeId,
+            double sourceDamage,
+            double baseDamage,
+            AttributeSnapshot attackerSnapshot,
+            AttributeSnapshot targetSnapshot,
+            DamageContextVariables context);
 
     DamageResult calculateDamage(DamageContext damageContext);
 
@@ -142,111 +144,111 @@ public interface AttributeServiceFacade {
     int startAttackCooldown(Player player, AttributeSnapshot snapshot, ItemStack itemStack);
 
     default DamageContext createDamageContext(LivingEntity attacker,
-                                              LivingEntity target,
-                                              Projectile projectile,
-                                              EntityDamageEvent.DamageCause cause,
-                                              String damageTypeId,
-                                              double sourceDamage,
-                                              double baseDamage,
-                                              Map<String, ?> context) {
+            LivingEntity target,
+            Projectile projectile,
+            EntityDamageEvent.DamageCause cause,
+            String damageTypeId,
+            double sourceDamage,
+            double baseDamage,
+            Map<String, ?> context) {
         return createDamageContext(attacker, target, projectile, cause, damageTypeId, sourceDamage, baseDamage, null, null, DamageContextVariables.from(context));
     }
 
     default DamageContext createDamageContext(LivingEntity attacker,
-                                              LivingEntity target,
-                                              Projectile projectile,
-                                              EntityDamageEvent.DamageCause cause,
-                                              String damageTypeId,
-                                              double sourceDamage,
-                                              double baseDamage,
-                                              DamageContextVariables context) {
+            LivingEntity target,
+            Projectile projectile,
+            EntityDamageEvent.DamageCause cause,
+            String damageTypeId,
+            double sourceDamage,
+            double baseDamage,
+            DamageContextVariables context) {
         return createDamageContext(attacker, target, projectile, cause, damageTypeId, sourceDamage, baseDamage, null, null, context);
     }
 
     default DamageResult calculateDamage(LivingEntity attacker,
-                                         LivingEntity target,
-                                         String damageTypeId,
-                                         double baseDamage,
-                                         DamageContextVariables context) {
+            LivingEntity target,
+            String damageTypeId,
+            double baseDamage,
+            DamageContextVariables context) {
         double sourceDamage = context == null ? baseDamage : context.doubleValue("source_damage", baseDamage);
         EntityDamageEvent.DamageCause cause = enumValue(
-            context,
-            "cause",
-            EntityDamageEvent.DamageCause.class,
-            enumValue(context, "damage_cause", EntityDamageEvent.DamageCause.class, null)
+                context,
+                "cause",
+                EntityDamageEvent.DamageCause.class,
+                enumValue(context, "damage_cause", EntityDamageEvent.DamageCause.class, null)
         );
         return calculateDamage(createDamageContext(attacker, target, null, cause, damageTypeId, sourceDamage, baseDamage, context));
     }
 
     default DamageResult calculateDamage(LivingEntity attacker,
-                                         LivingEntity target,
-                                         String damageTypeId,
-                                         double baseDamage,
-                                         Map<String, ?> context) {
+            LivingEntity target,
+            String damageTypeId,
+            double baseDamage,
+            Map<String, ?> context) {
         return calculateDamage(attacker, target, damageTypeId, baseDamage, DamageContextVariables.from(context));
     }
 
     default boolean applyDamage(LivingEntity attacker,
-                                LivingEntity target,
-                                String damageTypeId,
-                                double baseDamage,
-                                DamageContextVariables context) {
+            LivingEntity target,
+            String damageTypeId,
+            double baseDamage,
+            DamageContextVariables context) {
         double sourceDamage = context == null ? baseDamage : context.doubleValue("source_damage", baseDamage);
         EntityDamageEvent.DamageCause cause = enumValue(
-            context,
-            "cause",
-            EntityDamageEvent.DamageCause.class,
-            enumValue(context, "damage_cause", EntityDamageEvent.DamageCause.class, null)
+                context,
+                "cause",
+                EntityDamageEvent.DamageCause.class,
+                enumValue(context, "damage_cause", EntityDamageEvent.DamageCause.class, null)
         );
         return applyDamage(createDamageContext(attacker, target, null, cause, damageTypeId, sourceDamage, baseDamage, context));
     }
 
     default boolean applyDamage(LivingEntity attacker,
-                                LivingEntity target,
-                                String damageTypeId,
-                                double baseDamage,
-                                Map<String, ?> context) {
+            LivingEntity target,
+            String damageTypeId,
+            double baseDamage,
+            Map<String, ?> context) {
         return applyDamage(attacker, target, damageTypeId, baseDamage, DamageContextVariables.from(context));
     }
 
     default boolean applyProjectileDamage(Projectile projectile,
-                                          LivingEntity target,
-                                          double baseDamage,
-                                          DamageContextVariables context) {
+            LivingEntity target,
+            double baseDamage,
+            DamageContextVariables context) {
         if (projectile == null || target == null) {
             return false;
         }
         LivingEntity shooter = projectile.getShooter() instanceof LivingEntity livingEntity ? livingEntity : null;
         double sourceDamage = context == null ? baseDamage : context.doubleValue("source_damage", baseDamage);
         EntityDamageEvent.DamageCause cause = enumValue(
-            context,
-            "cause",
-            EntityDamageEvent.DamageCause.class,
-            enumValue(context, "damage_cause", EntityDamageEvent.DamageCause.class, null)
+                context,
+                "cause",
+                EntityDamageEvent.DamageCause.class,
+                enumValue(context, "damage_cause", EntityDamageEvent.DamageCause.class, null)
         );
         return applyProjectileDamage(createDamageContext(
-            shooter,
-            target,
-            projectile,
-            cause,
-            defaultProjectileDamageTypeId(),
-            sourceDamage,
-            baseDamage,
-            context
+                shooter,
+                target,
+                projectile,
+                cause,
+                defaultProjectileDamageTypeId(),
+                sourceDamage,
+                baseDamage,
+                context
         ));
     }
 
     default boolean applyProjectileDamage(Projectile projectile,
-                                          LivingEntity target,
-                                          double baseDamage,
-                                          Map<String, ?> context) {
+            LivingEntity target,
+            double baseDamage,
+            Map<String, ?> context) {
         return applyProjectileDamage(projectile, target, baseDamage, DamageContextVariables.from(context));
     }
 
     private static <E extends Enum<E>> E enumValue(DamageContextVariables context,
-                                                    String key,
-                                                    Class<E> enumType,
-                                                    E fallback) {
+            String key,
+            Class<E> enumType,
+            E fallback) {
         if (context == null || key == null || key.isBlank() || enumType == null) {
             return fallback;
         }

@@ -1,5 +1,18 @@
 package emaki.jiuwu.craft.attribute;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.bukkit.Bukkit;
+import org.bukkit.command.PluginCommand;
+import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.scheduler.BukkitTask;
+
 import emaki.jiuwu.craft.attribute.bridge.MythicBridge;
 import emaki.jiuwu.craft.attribute.command.AttributeCommand;
 import emaki.jiuwu.craft.attribute.config.AttributeConfig;
@@ -17,17 +30,6 @@ import emaki.jiuwu.craft.attribute.service.MessageService;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import org.bukkit.Bukkit;
-import org.bukkit.command.PluginCommand;
-import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.scheduler.BukkitTask;
 
 final class AttributeLifecycleCoordinator {
 
@@ -45,34 +47,34 @@ final class AttributeLifecycleCoordinator {
         LoreFormatRegistry loreFormatRegistry = new LoreFormatRegistry(plugin);
         AttributePresetRegistry presetRegistry = new AttributePresetRegistry(plugin);
         AttributeService attributeService = new AttributeService(
-            plugin,
-            coreLibPlugin.pdcService(),
-            plugin.configModel(),
-            attributeRegistry,
-            attributeBalanceRegistry,
-            damageTypeRegistry,
-            defaultProfileRegistry,
-            loreFormatRegistry,
-            presetRegistry
+                plugin,
+                coreLibPlugin.pdcService(),
+                plugin.configModel(),
+                attributeRegistry,
+                attributeBalanceRegistry,
+                damageTypeRegistry,
+                defaultProfileRegistry,
+                loreFormatRegistry,
+                presetRegistry
         );
         AttributeListener listener = new AttributeListener(plugin, attributeService);
         MythicBridge mythicBridge = Bukkit.getPluginManager().isPluginEnabled("MythicMobs")
-            ? new MythicBridge(plugin, attributeService)
-            : null;
+                ? new MythicBridge(plugin, attributeService)
+                : null;
         AttributeCommand command = new AttributeCommand(plugin, attributeService);
         return new AttributeRuntimeComponents(
-            attributeRegistry,
-            attributeBalanceRegistry,
-            damageTypeRegistry,
-            defaultProfileRegistry,
-            loreFormatRegistry,
-            presetRegistry,
-            languageLoader,
-            messageService,
-            attributeService,
-            listener,
-            command,
-            mythicBridge
+                attributeRegistry,
+                attributeBalanceRegistry,
+                damageTypeRegistry,
+                defaultProfileRegistry,
+                loreFormatRegistry,
+                presetRegistry,
+                languageLoader,
+                messageService,
+                attributeService,
+                listener,
+                command,
+                mythicBridge
         );
     }
 
@@ -132,10 +134,10 @@ final class AttributeLifecycleCoordinator {
         }
         int intervalTicks = Math.max(1, plugin.configModel().regenIntervalTicks());
         return plugin.getServer().getScheduler().runTaskTimer(
-            plugin,
-            plugin.attributeService()::regenerateOnlinePlayers,
-            intervalTicks,
-            intervalTicks
+                plugin,
+                plugin.attributeService()::regenerateOnlinePlayers,
+                intervalTicks,
+                intervalTicks
         );
     }
 
@@ -164,8 +166,8 @@ final class AttributeLifecycleCoordinator {
             stage.run();
         } catch (Exception exception) {
             plugin.messageService().warning("console.reload_stage_failed", Map.of(
-                "stage", stageName,
-                "error", String.valueOf(exception.getMessage())
+                    "stage", stageName,
+                    "error", String.valueOf(exception.getMessage())
             ));
         }
     }
@@ -182,15 +184,15 @@ final class AttributeLifecycleCoordinator {
             }
             if (!file.exists()) {
                 plugin.messageService().warning("loader.bundled_resource_missing", Map.of(
-                    "type", "配置",
-                    "path", file.getPath(),
-                    "resource", "config.yml"
+                        "type", "配置",
+                        "path", file.getPath(),
+                        "resource", "config.yml"
                 ));
             }
             return AttributeConfig.fromConfig(YamlConfiguration.loadConfiguration(file));
         } catch (Exception exception) {
             plugin.messageService().warning("console.config_load_failed", Map.of(
-                "error", String.valueOf(exception.getMessage())
+                    "error", String.valueOf(exception.getMessage())
             ));
             return AttributeConfig.defaults();
         }

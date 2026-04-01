@@ -6,6 +6,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Objects;
 import java.util.function.Consumer;
+
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class LegacyDataDirectoryMigrator {
@@ -38,13 +39,15 @@ public final class LegacyDataDirectoryMigrator {
     }
 
     static void migrate(Path targetRoot,
-                        Path legacyRoot,
-                        Consumer<String> info,
-                        Consumer<String> warn) {
+            Path legacyRoot,
+            Consumer<String> info,
+            Consumer<String> warn) {
         Objects.requireNonNull(targetRoot, "targetRoot");
         Objects.requireNonNull(legacyRoot, "legacyRoot");
-        Consumer<String> safeInfo = info == null ? ignored -> { } : info;
-        Consumer<String> safeWarn = warn == null ? ignored -> { } : warn;
+        Consumer<String> safeInfo = info == null ? ignored -> {
+        } : info;
+        Consumer<String> safeWarn = warn == null ? ignored -> {
+        } : warn;
         try {
             if (!Files.isDirectory(legacyRoot)) {
                 return;
@@ -57,7 +60,7 @@ public final class LegacyDataDirectoryMigrator {
             }
             if (!isDirectoryEmpty(targetRoot)) {
                 safeWarn.accept("Legacy data directory " + legacyRoot + " was detected, but target directory " + targetRoot
-                    + " already contains files. Skipping migration to avoid overwriting data.");
+                        + " already contains files. Skipping migration to avoid overwriting data.");
                 return;
             }
             mergeMissingFiles(legacyRoot, targetRoot);
@@ -65,7 +68,7 @@ public final class LegacyDataDirectoryMigrator {
             safeInfo.accept("Merged legacy data directory from " + legacyRoot + " into " + targetRoot + ".");
         } catch (IOException exception) {
             safeWarn.accept("Failed to migrate legacy data directory from " + legacyRoot + " to " + targetRoot
-                + ": " + exception.getMessage());
+                    + ": " + exception.getMessage());
         }
     }
 
@@ -107,8 +110,8 @@ public final class LegacyDataDirectoryMigrator {
 
     private static void deleteTreeIfEmpty(Path root) throws IOException {
         Path[] paths = Files.walk(root)
-            .sorted((left, right) -> Integer.compare(right.getNameCount(), left.getNameCount()))
-            .toArray(Path[]::new);
+                .sorted((left, right) -> Integer.compare(right.getNameCount(), left.getNameCount()))
+                .toArray(Path[]::new);
         for (Path path : paths) {
             if (!Files.exists(path)) {
                 continue;

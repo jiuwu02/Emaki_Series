@@ -1,17 +1,19 @@
 package emaki.jiuwu.craft.attribute.service;
 
+import java.util.Locale;
+
+import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.persistence.PersistentDataType;
+
 import emaki.jiuwu.craft.attribute.model.AttributeSnapshot;
 import emaki.jiuwu.craft.attribute.model.AttributeSnapshotCodecs;
 import emaki.jiuwu.craft.attribute.model.ProjectileDamageSnapshot;
 import emaki.jiuwu.craft.attribute.model.ResourceState;
 import emaki.jiuwu.craft.corelib.pdc.PdcPartition;
 import emaki.jiuwu.craft.corelib.pdc.PdcService;
-import java.util.Locale;
-import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Player;
-import org.bukkit.entity.Projectile;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.persistence.PersistentDataType;
 
 final class AttributeStateRepository {
 
@@ -141,17 +143,17 @@ final class AttributeStateRepository {
         String sourceSignature = pdcService.get(player, resourcePartition, "source_signature", PersistentDataType.STRING);
         Integer schemaVersion = pdcService.get(player, resourcePartition, "schema_version", PersistentDataType.INTEGER);
         if (defaultMax == null && bonusMax == null && currentMax == null && currentValue == null
-            && (sourceSignature == null || sourceSignature.isBlank()) && schemaVersion == null) {
+                && (sourceSignature == null || sourceSignature.isBlank()) && schemaVersion == null) {
             return null;
         }
         return new ResourceState(
-            normalizeId(resourceId),
-            defaultMax == null ? 0D : defaultMax,
-            bonusMax == null ? 0D : bonusMax,
-            currentMax == null ? 0D : currentMax,
-            currentValue == null ? 0D : currentValue,
-            sourceSignature,
-            schemaVersion == null ? ResourceState.CURRENT_SCHEMA_VERSION : schemaVersion
+                normalizeId(resourceId),
+                defaultMax == null ? 0D : defaultMax,
+                bonusMax == null ? 0D : bonusMax,
+                currentMax == null ? 0D : currentMax,
+                currentValue == null ? 0D : currentValue,
+                sourceSignature,
+                schemaVersion == null ? ResourceState.CURRENT_SCHEMA_VERSION : schemaVersion
         );
     }
 

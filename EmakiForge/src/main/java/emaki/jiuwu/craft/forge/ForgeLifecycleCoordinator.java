@@ -1,5 +1,11 @@
 package emaki.jiuwu.craft.forge;
 
+import java.util.Map;
+
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitTask;
+
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiSlot;
@@ -21,10 +27,6 @@ import emaki.jiuwu.craft.forge.service.ForgeService;
 import emaki.jiuwu.craft.forge.service.ItemIdentifierService;
 import emaki.jiuwu.craft.forge.service.MessageService;
 import emaki.jiuwu.craft.forge.service.RecipeBookGuiService;
-import java.util.Map;
-import org.bukkit.Bukkit;
-import org.bukkit.entity.Player;
-import org.bukkit.scheduler.BukkitTask;
 
 final class ForgeLifecycleCoordinator {
 
@@ -47,21 +49,21 @@ final class ForgeLifecycleCoordinator {
         ForgeGuiService forgeGuiService = new ForgeGuiService(plugin, guiService);
         RecipeBookGuiService recipeBookGuiService = new RecipeBookGuiService(plugin, guiService);
         return new ForgeRuntimeComponents(
-            appConfigLoader,
-            languageLoader,
-            blueprintLoader,
-            materialLoader,
-            recipeLoader,
-            guiTemplateLoader,
-            playerDataStore,
-            messageService,
-            bootstrapService,
-            guiService,
-            itemIdentifierService,
-            itemRefreshService,
-            forgeService,
-            forgeGuiService,
-            recipeBookGuiService
+                appConfigLoader,
+                languageLoader,
+                blueprintLoader,
+                materialLoader,
+                recipeLoader,
+                guiTemplateLoader,
+                playerDataStore,
+                messageService,
+                bootstrapService,
+                guiService,
+                itemIdentifierService,
+                itemRefreshService,
+                forgeService,
+                forgeGuiService,
+                recipeBookGuiService
         );
     }
 
@@ -91,10 +93,10 @@ final class ForgeLifecycleCoordinator {
         AppConfig config = plugin.appConfig();
         if (config.historyEnabled() && config.historyAutoSave()) {
             nextTask = plugin.getServer().getScheduler().runTaskTimer(
-                plugin,
-                () -> plugin.playerDataStore().saveAll(),
-                config.historySaveInterval(),
-                config.historySaveInterval()
+                    plugin,
+                    () -> plugin.playerDataStore().saveAll(),
+                    config.historySaveInterval(),
+                    config.historySaveInterval()
             );
         }
         return nextTask;

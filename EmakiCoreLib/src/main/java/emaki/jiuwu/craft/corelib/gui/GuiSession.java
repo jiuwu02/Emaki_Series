@@ -1,15 +1,17 @@
 package emaki.jiuwu.craft.corelib.gui;
 
-import emaki.jiuwu.craft.corelib.text.MiniMessages;
-import emaki.jiuwu.craft.corelib.text.Texts;
 import java.util.LinkedHashMap;
 import java.util.Map;
+
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
+
+import emaki.jiuwu.craft.corelib.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class GuiSession implements InventoryHolder {
 
@@ -23,12 +25,12 @@ public final class GuiSession implements InventoryHolder {
     private Inventory inventory;
 
     GuiSession(Plugin owner,
-               Player viewer,
-               GuiTemplate template,
-               Map<String, ?> replacements,
-               GuiItemBuilder.ItemFactory itemFactory,
-               GuiRenderer renderer,
-               GuiSessionHandler handler) {
+            Player viewer,
+            GuiTemplate template,
+            Map<String, ?> replacements,
+            GuiItemBuilder.ItemFactory itemFactory,
+            GuiRenderer renderer,
+            GuiSessionHandler handler) {
         this.owner = owner;
         this.viewer = viewer;
         this.template = template;
@@ -56,11 +58,11 @@ public final class GuiSession implements InventoryHolder {
                 ItemStack rendered = renderer == null ? null : renderer.render(this, resolved);
                 if (rendered == null) {
                     rendered = GuiItemBuilder.build(
-                        slot.item(),
-                        slot.components(),
-                        1,
-                        replacements,
-                        itemFactory
+                            slot.item(),
+                            slot.components(),
+                            1,
+                            replacements,
+                            itemFactory
                     );
                 }
                 inventory.setItem(inventorySlot, rendered);

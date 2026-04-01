@@ -1,15 +1,17 @@
 package emaki.jiuwu.craft.corelib.condition;
 
-import emaki.jiuwu.craft.corelib.math.Numbers;
-import emaki.jiuwu.craft.corelib.text.Texts;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 
+import emaki.jiuwu.craft.corelib.math.Numbers;
+import emaki.jiuwu.craft.corelib.text.Texts;
+
 public final class ConditionEvaluator {
 
     public record ParsedCondition(String left, String operator, String right) {
+
     }
 
     private static final List<String> OPERATORS = List.of("<=", ">=", "==", "!=", "<", ">");
@@ -51,10 +53,10 @@ public final class ConditionEvaluator {
     }
 
     public static boolean evaluate(List<String> conditions,
-                                   String conditionType,
-                                   Integer requiredCount,
-                                   Function<String, String> placeholderReplacer,
-                                   boolean invalidAsFailure) {
+            String conditionType,
+            Integer requiredCount,
+            Function<String, String> placeholderReplacer,
+            boolean invalidAsFailure) {
         if (conditions == null || conditions.isEmpty()) {
             return true;
         }
@@ -92,21 +94,31 @@ public final class ConditionEvaluator {
             return false;
         }
         return switch (operator) {
-            case "<" -> left < right;
-            case "<=" -> left <= right;
-            case "==" -> left.doubleValue() == right.doubleValue();
-            case ">=" -> left >= right;
-            case ">" -> left > right;
-            case "!=" -> left.doubleValue() != right.doubleValue();
-            default -> false;
+            case "<" ->
+                left < right;
+            case "<=" ->
+                left <= right;
+            case "==" ->
+                left.doubleValue() == right.doubleValue();
+            case ">=" ->
+                left >= right;
+            case ">" ->
+                left > right;
+            case "!=" ->
+                left.doubleValue() != right.doubleValue();
+            default ->
+                false;
         };
     }
 
     private static boolean evaluateString(String left, String operator, String right) {
         return switch (operator) {
-            case "==" -> Objects.equals(Texts.toStringSafe(left), Texts.toStringSafe(right));
-            case "!=" -> !Objects.equals(Texts.toStringSafe(left), Texts.toStringSafe(right));
-            default -> false;
+            case "==" ->
+                Objects.equals(Texts.toStringSafe(left), Texts.toStringSafe(right));
+            case "!=" ->
+                !Objects.equals(Texts.toStringSafe(left), Texts.toStringSafe(right));
+            default ->
+                false;
         };
     }
 }

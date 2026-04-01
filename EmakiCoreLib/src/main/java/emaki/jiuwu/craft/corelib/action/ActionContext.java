@@ -1,10 +1,12 @@
 package emaki.jiuwu.craft.corelib.action;
 
-import emaki.jiuwu.craft.corelib.text.Texts;
 import java.util.LinkedHashMap;
 import java.util.Map;
+
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
+
+import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class ActionContext {
 
@@ -16,11 +18,11 @@ public final class ActionContext {
     private final Map<String, Object> attributes;
 
     public ActionContext(Plugin sourcePlugin,
-                         Player player,
-                         String phase,
-                         boolean silent,
-                         Map<String, String> placeholders,
-                         Map<String, Object> attributes) {
+            Player player,
+            String phase,
+            boolean silent,
+            Map<String, String> placeholders,
+            Map<String, Object> attributes) {
         this.sourcePlugin = sourcePlugin;
         this.player = player;
         this.phase = Texts.isBlank(phase) ? "default" : Texts.trim(phase);

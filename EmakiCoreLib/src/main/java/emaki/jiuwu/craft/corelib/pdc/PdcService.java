@@ -1,8 +1,8 @@
 package emaki.jiuwu.craft.corelib.pdc;
 
-import java.util.Collection;
 import java.util.Objects;
 import java.util.function.Consumer;
+
 import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -31,10 +31,10 @@ public final class PdcService {
     }
 
     public <P, C> void set(PersistentDataHolder holder,
-                           PdcPartition partition,
-                           String field,
-                           PersistentDataType<P, C> type,
-                           C value) {
+            PdcPartition partition,
+            String field,
+            PersistentDataType<P, C> type,
+            C value) {
         if (holder == null || partition == null || type == null || field == null) {
             return;
         }
@@ -43,9 +43,9 @@ public final class PdcService {
     }
 
     public <P, C> C get(PersistentDataHolder holder,
-                        PdcPartition partition,
-                        String field,
-                        PersistentDataType<P, C> type) {
+            PdcPartition partition,
+            String field,
+            PersistentDataType<P, C> type) {
         if (holder == null || partition == null || type == null || field == null) {
             return null;
         }
@@ -55,9 +55,9 @@ public final class PdcService {
     }
 
     public <P, C> boolean has(PersistentDataHolder holder,
-                              PdcPartition partition,
-                              String field,
-                              PersistentDataType<P, C> type) {
+            PdcPartition partition,
+            String field,
+            PersistentDataType<P, C> type) {
         if (holder == null || partition == null || type == null || field == null) {
             return false;
         }
@@ -72,10 +72,10 @@ public final class PdcService {
     }
 
     public <T> boolean writeBlob(PersistentDataHolder holder,
-                                 PdcPartition partition,
-                                 String field,
-                                 SnapshotCodec<T> codec,
-                                 T value) {
+            PdcPartition partition,
+            String field,
+            SnapshotCodec<T> codec,
+            T value) {
         if (holder == null || partition == null || codec == null || field == null) {
             return false;
         }
@@ -84,9 +84,9 @@ public final class PdcService {
     }
 
     public <T> T readBlob(PersistentDataHolder holder,
-                          PdcPartition partition,
-                          String field,
-                          SnapshotCodec<T> codec) {
+            PdcPartition partition,
+            String field,
+            SnapshotCodec<T> codec) {
         if (holder == null || partition == null || codec == null || field == null) {
             return null;
         }
@@ -96,17 +96,17 @@ public final class PdcService {
     }
 
     public <P, C> void set(ItemStack itemStack,
-                           PdcPartition partition,
-                           String field,
-                           PersistentDataType<P, C> type,
-                           C value) {
+            PdcPartition partition,
+            String field,
+            PersistentDataType<P, C> type,
+            C value) {
         mutateItemMeta(itemStack, container -> container.set(partition.key(field), type, value));
     }
 
     public <P, C> C get(ItemStack itemStack,
-                        PdcPartition partition,
-                        String field,
-                        PersistentDataType<P, C> type) {
+            PdcPartition partition,
+            String field,
+            PersistentDataType<P, C> type) {
         ItemMeta itemMeta = itemMeta(itemStack);
         if (itemMeta == null) {
             return null;
@@ -117,9 +117,9 @@ public final class PdcService {
     }
 
     public <P, C> boolean has(ItemStack itemStack,
-                              PdcPartition partition,
-                              String field,
-                              PersistentDataType<P, C> type) {
+            PdcPartition partition,
+            String field,
+            PersistentDataType<P, C> type) {
         ItemMeta itemMeta = itemMeta(itemStack);
         if (itemMeta == null) {
             return false;
@@ -132,10 +132,10 @@ public final class PdcService {
     }
 
     public <T> boolean writeBlob(ItemStack itemStack,
-                                 PdcPartition partition,
-                                 String field,
-                                 SnapshotCodec<T> codec,
-                                 T value) {
+            PdcPartition partition,
+            String field,
+            SnapshotCodec<T> codec,
+            T value) {
         if (codec == null) {
             return false;
         }
@@ -144,9 +144,9 @@ public final class PdcService {
     }
 
     public <T> T readBlob(ItemStack itemStack,
-                          PdcPartition partition,
-                          String field,
-                          SnapshotCodec<T> codec) {
+            PdcPartition partition,
+            String field,
+            SnapshotCodec<T> codec) {
         ItemMeta itemMeta = itemMeta(itemStack);
         if (itemMeta == null || codec == null) {
             return null;

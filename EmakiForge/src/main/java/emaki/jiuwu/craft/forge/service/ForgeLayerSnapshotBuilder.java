@@ -1,5 +1,13 @@
 package emaki.jiuwu.craft.forge.service;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.bukkit.inventory.ItemStack;
+
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerSnapshot;
 import emaki.jiuwu.craft.corelib.assembly.EmakiPresentationEntry;
 import emaki.jiuwu.craft.corelib.assembly.EmakiStatContribution;
@@ -12,12 +20,6 @@ import emaki.jiuwu.craft.forge.model.ForgeMaterial;
 import emaki.jiuwu.craft.forge.model.GuiItems;
 import emaki.jiuwu.craft.forge.model.QualitySettings;
 import emaki.jiuwu.craft.forge.model.Recipe;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import org.bukkit.inventory.ItemStack;
 
 final class ForgeLayerSnapshotBuilder {
 
@@ -28,18 +30,18 @@ final class ForgeLayerSnapshotBuilder {
     }
 
     EmakiItemLayerSnapshot buildLayerSnapshot(Recipe recipe,
-                                             GuiItems guiItems,
-                                             double multiplier,
-                                             QualitySettings.QualityTier qualityTier,
-                                             long forgedAt) {
+            GuiItems guiItems,
+            double multiplier,
+            QualitySettings.QualityTier qualityTier,
+            long forgedAt) {
         return buildLayerSnapshot(recipe, collectMaterialContributions(guiItems), multiplier, qualityTier, forgedAt);
     }
 
     EmakiItemLayerSnapshot buildLayerSnapshot(Recipe recipe,
-                                              List<ForgeMaterialContribution> materials,
-                                              double multiplier,
-                                              QualitySettings.QualityTier qualityTier,
-                                              long forgedAt) {
+            List<ForgeMaterialContribution> materials,
+            double multiplier,
+            QualitySettings.QualityTier qualityTier,
+            long forgedAt) {
         List<ForgeMaterialContribution> contributions = materials == null ? List.of() : List.copyOf(materials);
         List<EmakiStatContribution> stats = buildStatContributions(contributions, multiplier);
         List<EmakiPresentationEntry> presentation = buildPresentationEntries(recipe, contributions, qualityTier);
@@ -66,7 +68,7 @@ final class ForgeLayerSnapshotBuilder {
             }
         }
         materials.sort(Comparator.comparingInt((ForgeMaterialContribution value) -> value.material().priority())
-            .thenComparingInt(ForgeMaterialContribution::sequence));
+                .thenComparingInt(ForgeMaterialContribution::sequence));
         return materials;
     }
 
@@ -102,10 +104,10 @@ final class ForgeLayerSnapshotBuilder {
         for (ForgeMaterialContribution material : materials) {
             for (Map.Entry<String, Double> entry : material.material().statContributions().entrySet()) {
                 stats.add(new EmakiStatContribution(
-                    entry.getKey(),
-                    entry.getValue() * material.amount() * multiplier,
-                    material.material().id() + "#" + material.sequence(),
-                    sequence++
+                        entry.getKey(),
+                        entry.getValue() * material.amount() * multiplier,
+                        material.material().id() + "#" + material.sequence(),
+                        sequence++
                 ));
             }
         }
@@ -113,8 +115,8 @@ final class ForgeLayerSnapshotBuilder {
     }
 
     private List<EmakiPresentationEntry> buildPresentationEntries(Recipe recipe,
-                                                                  List<ForgeMaterialContribution> materials,
-                                                                  QualitySettings.QualityTier qualityTier) {
+            List<ForgeMaterialContribution> materials,
+            QualitySettings.QualityTier qualityTier) {
         List<EmakiPresentationEntry> entries = new ArrayList<>();
         int sequence = 0;
         if (recipe != null && recipe.result() != null) {
@@ -136,9 +138,9 @@ final class ForgeLayerSnapshotBuilder {
     }
 
     private int addNameEntries(List<EmakiPresentationEntry> entries,
-                               List<Map<String, Object>> modifications,
-                               int sequence,
-                               String sourceId) {
+            List<Map<String, Object>> modifications,
+            int sequence,
+            String sourceId) {
         if (modifications == null) {
             return sequence;
         }
@@ -146,16 +148,20 @@ final class ForgeLayerSnapshotBuilder {
             String action = Texts.lower(modification.get("action"));
             String value = Texts.toStringSafe(modification.get("value"));
             switch (action) {
-                case "append_suffix" -> entries.add(new EmakiPresentationEntry("name_append", "", value, sequence++, sourceId));
-                case "prepend_prefix" -> entries.add(new EmakiPresentationEntry("name_prepend", "", value, sequence++, sourceId));
-                case "replace" -> entries.add(new EmakiPresentationEntry("name_replace", "", value, sequence++, sourceId));
-                case "regex_replace" -> entries.add(new EmakiPresentationEntry(
-                    "name_regex_replace",
-                    Texts.toStringSafe(modification.get("regex_pattern")),
-                    Texts.toStringSafe(modification.get("replacement")),
-                    sequence++,
-                    sourceId
-                ));
+                case "append_suffix" ->
+                    entries.add(new EmakiPresentationEntry("name_append", "", value, sequence++, sourceId));
+                case "prepend_prefix" ->
+                    entries.add(new EmakiPresentationEntry("name_prepend", "", value, sequence++, sourceId));
+                case "replace" ->
+                    entries.add(new EmakiPresentationEntry("name_replace", "", value, sequence++, sourceId));
+                case "regex_replace" ->
+                    entries.add(new EmakiPresentationEntry(
+                            "name_regex_replace",
+                            Texts.toStringSafe(modification.get("regex_pattern")),
+                            Texts.toStringSafe(modification.get("replacement")),
+                            sequence++,
+                            sourceId
+                    ));
                 default -> {
                 }
             }
@@ -164,9 +170,9 @@ final class ForgeLayerSnapshotBuilder {
     }
 
     private int addLoreEntries(List<EmakiPresentationEntry> entries,
-                               List<Map<String, Object>> loreActions,
-                               int sequence,
-                               String sourceId) {
+            List<Map<String, Object>> loreActions,
+            int sequence,
+            String sourceId) {
         if (loreActions == null) {
             return sequence;
         }
@@ -177,8 +183,7 @@ final class ForgeLayerSnapshotBuilder {
             String regexPattern = Texts.toStringSafe(action.get("regex_pattern"));
             String replacement = Texts.toStringSafe(action.get("replacement"));
             switch (type) {
-                case "insert_below", "insert_above", "append", "append_line", "append_lines", "prepend_line",
-                     "prepend_lines", "append_first_line", "append_first_lines", "insert_first" -> {
+                case "insert_below", "insert_above", "append", "append_line", "append_lines", "prepend_line", "prepend_lines", "append_first_line", "append_first_lines", "insert_first" -> {
                     String entryType = mapLoreEntryType(type);
                     String anchor = "insert_below".equals(type) || "insert_above".equals(type) ? targetPattern : "";
                     for (String line : content) {
@@ -199,8 +204,10 @@ final class ForgeLayerSnapshotBuilder {
                         entries.add(new EmakiPresentationEntry("lore_replace_line", targetPattern, line, sequence++, sourceId));
                     }
                 }
-                case "delete_line" -> entries.add(new EmakiPresentationEntry("lore_delete_line", targetPattern, "", sequence++, sourceId));
-                case "regex_replace" -> entries.add(new EmakiPresentationEntry("lore_regex_replace", regexPattern, replacement, sequence++, sourceId));
+                case "delete_line" ->
+                    entries.add(new EmakiPresentationEntry("lore_delete_line", targetPattern, "", sequence++, sourceId));
+                case "regex_replace" ->
+                    entries.add(new EmakiPresentationEntry("lore_regex_replace", regexPattern, replacement, sequence++, sourceId));
                 default -> {
                 }
             }
@@ -210,10 +217,14 @@ final class ForgeLayerSnapshotBuilder {
 
     private String mapLoreEntryType(String type) {
         return switch (Texts.lower(type)) {
-            case "insert_below" -> "lore_insert_below";
-            case "insert_above" -> "lore_insert_above";
-            case "prepend_line", "prepend_lines", "append_first_line", "append_first_lines", "insert_first" -> "lore_prepend";
-            default -> "lore_append";
+            case "insert_below" ->
+                "lore_insert_below";
+            case "insert_above" ->
+                "lore_insert_above";
+            case "prepend_line", "prepend_lines", "append_first_line", "append_first_lines", "insert_first" ->
+                "lore_prepend";
+            default ->
+                "lore_append";
         };
     }
 
@@ -230,10 +241,10 @@ final class ForgeLayerSnapshotBuilder {
     }
 
     private Map<String, Object> buildAudit(Recipe recipe,
-                                           List<ForgeMaterialContribution> materials,
-                                           QualitySettings.QualityTier qualityTier,
-                                           double multiplier,
-                                           long forgedAt) {
+            List<ForgeMaterialContribution> materials,
+            QualitySettings.QualityTier qualityTier,
+            double multiplier,
+            long forgedAt) {
         Map<String, Object> audit = new LinkedHashMap<>();
         audit.put("recipe_id", recipe == null ? "" : recipe.id());
         audit.put("quality", qualityTier == null ? "" : qualityTier.name());

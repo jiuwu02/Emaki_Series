@@ -1,14 +1,15 @@
 package emaki.jiuwu.craft.corelib.assembly;
 
-import emaki.jiuwu.craft.corelib.math.Numbers;
-import emaki.jiuwu.craft.corelib.text.Texts;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 
+import emaki.jiuwu.craft.corelib.math.Numbers;
+import emaki.jiuwu.craft.corelib.text.Texts;
+
 public record EmakiStatContribution(String statId, double amount, String sourceId, int sequence) {
 
-    public EmakiStatContribution {
+    public EmakiStatContribution    {
         statId = normalizeId(statId);
         sourceId = Texts.isBlank(sourceId) ? statId : Texts.toStringSafe(sourceId);
     }
@@ -31,10 +32,10 @@ public record EmakiStatContribution(String statId, double amount, String sourceI
             return null;
         }
         return new EmakiStatContribution(
-            statId,
-            Numbers.tryParseDouble(map.get("amount"), 0D),
-            Texts.toStringSafe(map.get("source_id")),
-            Numbers.tryParseInt(map.get("sequence"), 0)
+                statId,
+                Numbers.tryParseDouble(map.get("amount"), 0D),
+                Texts.toStringSafe(map.get("source_id")),
+                Numbers.tryParseInt(map.get("sequence"), 0)
         );
     }
 

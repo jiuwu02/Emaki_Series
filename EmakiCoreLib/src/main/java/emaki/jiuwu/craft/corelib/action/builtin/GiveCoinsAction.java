@@ -1,12 +1,13 @@
 package emaki.jiuwu.craft.corelib.action.builtin;
 
+import java.util.Map;
+
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.action.ActionParameter;
 import emaki.jiuwu.craft.corelib.action.ActionParameterType;
 import emaki.jiuwu.craft.corelib.action.ActionParsers;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
 import emaki.jiuwu.craft.corelib.economy.EconomyManager;
-import java.util.Map;
 
 public final class GiveCoinsAction extends BaseAction {
 
@@ -14,11 +15,11 @@ public final class GiveCoinsAction extends BaseAction {
 
     public GiveCoinsAction(EconomyManager economyManager) {
         super(
-            "givecoins",
-            "economy",
-            "Give CoinsEngine currency.",
-            ActionParameter.required("amount", ActionParameterType.DOUBLE, "Amount"),
-            ActionParameter.required("currency", ActionParameterType.STRING, "Currency")
+                "givecoins",
+                "economy",
+                "Give CoinsEngine currency.",
+                ActionParameter.required("amount", ActionParameterType.DOUBLE, "Amount"),
+                ActionParameter.required("currency", ActionParameterType.STRING, "Currency")
         );
         this.economyManager = economyManager;
     }
@@ -30,10 +31,10 @@ public final class GiveCoinsAction extends BaseAction {
             return playerCheck;
         }
         return economyManager.add(
-            context.player(),
-            "coinsengine",
-            stringArg(arguments, "currency"),
-            ActionParsers.parseDouble(arguments.get("amount"), 0D)
+                context.player(),
+                "coinsengine",
+                stringArg(arguments, "currency"),
+                ActionParsers.parseDouble(arguments.get("amount"), 0D)
         );
     }
 }

@@ -1,12 +1,13 @@
 package emaki.jiuwu.craft.corelib.action.builtin;
 
-import emaki.jiuwu.craft.corelib.economy.EconomyManager;
+import java.util.Map;
+
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.action.ActionParameter;
 import emaki.jiuwu.craft.corelib.action.ActionParameterType;
 import emaki.jiuwu.craft.corelib.action.ActionParsers;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
-import java.util.Map;
+import emaki.jiuwu.craft.corelib.economy.EconomyManager;
 
 abstract class AbstractMoneyAction extends BaseAction {
 
@@ -14,12 +15,12 @@ abstract class AbstractMoneyAction extends BaseAction {
 
     AbstractMoneyAction(String id, EconomyManager economyManager, String description) {
         super(
-            id,
-            "economy",
-            description,
-            ActionParameter.required("amount", ActionParameterType.DOUBLE, "Amount"),
-            ActionParameter.optional("provider", ActionParameterType.STRING, "auto", "Provider"),
-            ActionParameter.optional("currency", ActionParameterType.STRING, "", "Currency")
+                id,
+                "economy",
+                description,
+                ActionParameter.required("amount", ActionParameterType.DOUBLE, "Amount"),
+                ActionParameter.optional("provider", ActionParameterType.STRING, "auto", "Provider"),
+                ActionParameter.optional("currency", ActionParameterType.STRING, "", "Currency")
         );
         this.economyManager = economyManager;
     }

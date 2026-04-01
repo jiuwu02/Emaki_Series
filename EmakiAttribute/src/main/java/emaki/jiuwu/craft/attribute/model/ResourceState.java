@@ -1,21 +1,22 @@
 package emaki.jiuwu.craft.attribute.model;
 
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.math.Numbers;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.math.Numbers;
+
 public record ResourceState(String resourceId,
-                            double defaultMax,
-                            double bonusMax,
-                            double currentMax,
-                            double currentValue,
-                            String sourceSignature,
-                            int schemaVersion) {
+        double defaultMax,
+        double bonusMax,
+        double currentMax,
+        double currentValue,
+        String sourceSignature,
+        int schemaVersion) {
 
     public static final int CURRENT_SCHEMA_VERSION = 1;
 
-    public ResourceState {
+    public ResourceState       {
         sourceSignature = sourceSignature == null ? "" : sourceSignature;
     }
 
@@ -36,13 +37,13 @@ public record ResourceState(String resourceId,
             return null;
         }
         return new ResourceState(
-            ConfigNodes.string(raw, "resource_id", null),
-            Numbers.tryParseDouble(ConfigNodes.get(raw, "default_max"), 0D),
-            Numbers.tryParseDouble(ConfigNodes.get(raw, "bonus_max"), 0D),
-            Numbers.tryParseDouble(ConfigNodes.get(raw, "current_max"), 0D),
-            Numbers.tryParseDouble(ConfigNodes.get(raw, "current_value"), 0D),
-            ConfigNodes.string(raw, "source_signature", ""),
-            Numbers.tryParseInt(ConfigNodes.get(raw, "schema_version"), CURRENT_SCHEMA_VERSION)
+                ConfigNodes.string(raw, "resource_id", null),
+                Numbers.tryParseDouble(ConfigNodes.get(raw, "default_max"), 0D),
+                Numbers.tryParseDouble(ConfigNodes.get(raw, "bonus_max"), 0D),
+                Numbers.tryParseDouble(ConfigNodes.get(raw, "current_max"), 0D),
+                Numbers.tryParseDouble(ConfigNodes.get(raw, "current_value"), 0D),
+                ConfigNodes.string(raw, "source_signature", ""),
+                Numbers.tryParseInt(ConfigNodes.get(raw, "schema_version"), CURRENT_SCHEMA_VERSION)
         );
     }
 }

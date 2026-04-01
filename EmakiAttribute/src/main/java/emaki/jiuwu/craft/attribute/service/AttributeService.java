@@ -1,5 +1,9 @@
 package emaki.jiuwu.craft.attribute.service;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.attribute.api.AttributeContributionProvider;
 import emaki.jiuwu.craft.attribute.config.AttributeConfig;
@@ -13,9 +17,6 @@ import emaki.jiuwu.craft.attribute.model.AttributeDefinition;
 import emaki.jiuwu.craft.attribute.model.ResourceDefinition;
 import emaki.jiuwu.craft.attribute.service.VanillaAttributeSynchronizer.VanillaAttributeBinding;
 import emaki.jiuwu.craft.corelib.pdc.PdcService;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 public final class AttributeService extends AbstractAttributeServiceFacade {
 
@@ -41,14 +42,14 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
     private final CombatDebugService combatDebugService;
 
     public AttributeService(EmakiAttributePlugin plugin,
-                            PdcService pdcService,
-                            AttributeConfig config,
-                            AttributeRegistry attributeRegistry,
-                            AttributeBalanceRegistry attributeBalanceRegistry,
-                            DamageTypeRegistry damageTypeRegistry,
-                            DefaultProfileRegistry defaultProfileRegistry,
-                            LoreFormatRegistry loreFormatRegistry,
-                            AttributePresetRegistry presetRegistry) {
+            PdcService pdcService,
+            AttributeConfig config,
+            AttributeRegistry attributeRegistry,
+            AttributeBalanceRegistry attributeBalanceRegistry,
+            DamageTypeRegistry damageTypeRegistry,
+            DefaultProfileRegistry defaultProfileRegistry,
+            LoreFormatRegistry loreFormatRegistry,
+            AttributePresetRegistry presetRegistry) {
         this.plugin = plugin;
         this.config = config == null ? AttributeConfig.defaults() : config;
         this.attributeRegistry = attributeRegistry;
@@ -62,13 +63,13 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
         this.stateRepository = new AttributeStateRepository(pdcService);
         this.vanillaSynchronizer = new VanillaAttributeSynchronizer(plugin);
         this.registryService = new AttributeRegistryService(
-            attributeRegistry,
-            attributeBalanceRegistry,
-            damageTypeRegistry,
-            defaultProfileRegistry,
-            loreFormatRegistry,
-            presetRegistry,
-            vanillaSynchronizer
+                attributeRegistry,
+                attributeBalanceRegistry,
+                damageTypeRegistry,
+                defaultProfileRegistry,
+                loreFormatRegistry,
+                presetRegistry,
+                vanillaSynchronizer
         );
         this.combatDebugService = new CombatDebugService(plugin);
         AttributeSnapshotCollector snapshotCollector = new AttributeSnapshotCollector(this);

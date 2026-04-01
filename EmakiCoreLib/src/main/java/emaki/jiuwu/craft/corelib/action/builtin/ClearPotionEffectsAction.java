@@ -1,8 +1,9 @@
 package emaki.jiuwu.craft.corelib.action.builtin;
 
+import java.util.Map;
+
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
-import java.util.Map;
 
 public final class ClearPotionEffectsAction extends BaseAction {
 

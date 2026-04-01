@@ -1,10 +1,5 @@
 package emaki.jiuwu.craft.corelib.loader;
 
-import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
-import emaki.jiuwu.craft.corelib.text.LogMessages;
-import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
-import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -13,8 +8,16 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
+
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
+
+import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.corelib.text.LogMessages;
+import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
+import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
+
 public final class LanguageLoader {
 
     private final EmakiCoreLibPlugin plugin;
@@ -52,9 +55,9 @@ public final class LanguageLoader {
         }
         if (!fallbackFile.exists()) {
             warning("loader.bundled_resource_missing", Map.of(
-                "type", "语言",
-                "path", fallbackFile.getPath(),
-                "resource", "lang/" + fallbackLanguage + ".yml"
+                    "type", "语言",
+                    "path", fallbackFile.getPath(),
+                    "resource", "lang/" + fallbackLanguage + ".yml"
             ));
         }
         File[] files = directory.listFiles((dir, name) -> name.endsWith(".yml") || name.endsWith(".yaml"));
@@ -71,9 +74,9 @@ public final class LanguageLoader {
             }
             if (!file.exists()) {
                 warning("loader.bundled_resource_missing", Map.of(
-                    "type", "语言",
-                    "path", file.getPath(),
-                    "resource", "lang/" + langId + ".yml"
+                        "type", "语言",
+                        "path", file.getPath(),
+                        "resource", "lang/" + langId + ".yml"
                 ));
             }
             languages.put(langId, YamlFiles.load(file));

@@ -1,19 +1,20 @@
 package emaki.jiuwu.craft.attribute.model;
 
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.math.Numbers;
-import emaki.jiuwu.craft.corelib.text.Texts;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-public record LoreFormatDefinition(String id,
-                                   String format,
-                                   int precision,
-                                   int readPriority,
-                                   List<String> readPatterns) {
+import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.math.Numbers;
+import emaki.jiuwu.craft.corelib.text.Texts;
 
-    public LoreFormatDefinition {
+public record LoreFormatDefinition(String id,
+        String format,
+        int precision,
+        int readPriority,
+        List<String> readPatterns) {
+
+    public LoreFormatDefinition     {
         id = normalizeId(id);
         format = Texts.isBlank(format) ? "{sign}{value} {name}" : Texts.toStringSafe(format).trim();
         readPatterns = readPatterns == null ? List.of() : List.copyOf(readPatterns);
@@ -29,11 +30,11 @@ public record LoreFormatDefinition(String id,
         appendPatterns(readPatterns, ConfigNodes.get(raw, "lore_patterns"));
         appendPatterns(readPatterns, ConfigNodes.get(raw, "lore_pattern"));
         return new LoreFormatDefinition(
-            ConfigNodes.string(raw, "id", null),
-            ConfigNodes.string(raw, "format", null),
-            Numbers.tryParseInt(ConfigNodes.get(raw, "precision"), 2),
-            Numbers.tryParseInt(ConfigNodes.get(raw, "read_priority"), defaultReadPriority(ConfigNodes.string(raw, "id", null))),
-            readPatterns
+                ConfigNodes.string(raw, "id", null),
+                ConfigNodes.string(raw, "format", null),
+                Numbers.tryParseInt(ConfigNodes.get(raw, "precision"), 2),
+                Numbers.tryParseInt(ConfigNodes.get(raw, "read_priority"), defaultReadPriority(ConfigNodes.string(raw, "id", null))),
+                readPatterns
         );
     }
 
@@ -56,11 +57,16 @@ public record LoreFormatDefinition(String id,
     private static int defaultReadPriority(String id) {
         String normalized = normalizeId(id);
         return switch (normalized) {
-            case "default_percent" -> 100;
-            case "default_regen" -> 80;
-            case "default_resource" -> 60;
-            case "default_flat" -> 50;
-            default -> 0;
+            case "default_percent" ->
+                100;
+            case "default_regen" ->
+                80;
+            case "default_resource" ->
+                60;
+            case "default_flat" ->
+                50;
+            default ->
+                0;
         };
     }
 }

@@ -1,25 +1,26 @@
 package emaki.jiuwu.craft.attribute.model;
 
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.text.Texts;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.function.Function;
 
-public record DamageTypeDefinition(String id,
-                                   String displayName,
-                                   List<String> aliases,
-                                   Set<String> allowedEvents,
-                                   boolean hardLock,
-                                   List<DamageStageDefinition> stages,
-                                   RecoveryDefinition recovery,
-                                   String description,
-                                   String attackerMessage,
-                                   String targetMessage) {
+import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.text.Texts;
 
-    public DamageTypeDefinition {
+public record DamageTypeDefinition(String id,
+        String displayName,
+        List<String> aliases,
+        Set<String> allowedEvents,
+        boolean hardLock,
+        List<DamageStageDefinition> stages,
+        RecoveryDefinition recovery,
+        String description,
+        String attackerMessage,
+        String targetMessage) {
+
+    public DamageTypeDefinition          {
         id = normalizeId(id);
         displayName = Texts.isBlank(displayName) ? id : Texts.toStringSafe(displayName).trim();
         aliases = aliases == null ? List.of() : List.copyOf(aliases);
@@ -41,23 +42,23 @@ public record DamageTypeDefinition(String id,
     }
 
     public DamageTypeDefinition(String id,
-                                String displayName,
-                                List<String> aliases,
-                                Set<String> allowedEvents,
-                                boolean hardLock,
-                                List<DamageStageDefinition> stages,
-                                RecoveryDefinition recovery,
-                                String description) {
+            String displayName,
+            List<String> aliases,
+            Set<String> allowedEvents,
+            boolean hardLock,
+            List<DamageStageDefinition> stages,
+            RecoveryDefinition recovery,
+            String description) {
         this(id, displayName, aliases, allowedEvents, hardLock, stages, recovery, description, null, null);
     }
 
     public DamageTypeDefinition(String id,
-                                String displayName,
-                                List<String> aliases,
-                                Set<String> allowedEvents,
-                                boolean hardLock,
-                                List<DamageStageDefinition> stages,
-                                String description) {
+            String displayName,
+            List<String> aliases,
+            Set<String> allowedEvents,
+            boolean hardLock,
+            List<DamageStageDefinition> stages,
+            String description) {
         this(id, displayName, aliases, allowedEvents, hardLock, stages, null, description, null, null);
     }
 
@@ -88,16 +89,16 @@ public record DamageTypeDefinition(String id,
         String attackerMessage = ConfigNodes.string(raw, "attacker_message", sharedMessage);
         String targetMessage = ConfigNodes.string(raw, "target_message", sharedMessage);
         return new DamageTypeDefinition(
-            ConfigNodes.string(raw, "id", null),
-            ConfigNodes.string(raw, "display_name", null),
-            Texts.asStringList(ConfigNodes.get(raw, "aliases")),
-            allowedEvents,
-            ConfigNodes.bool(raw, "hard_lock", false),
-            stages,
-            recovery,
-            ConfigNodes.string(raw, "description", null),
-            attackerMessage,
-            targetMessage
+                ConfigNodes.string(raw, "id", null),
+                ConfigNodes.string(raw, "display_name", null),
+                Texts.asStringList(ConfigNodes.get(raw, "aliases")),
+                allowedEvents,
+                ConfigNodes.bool(raw, "hard_lock", false),
+                stages,
+                recovery,
+                ConfigNodes.string(raw, "description", null),
+                attackerMessage,
+                targetMessage
         );
     }
 

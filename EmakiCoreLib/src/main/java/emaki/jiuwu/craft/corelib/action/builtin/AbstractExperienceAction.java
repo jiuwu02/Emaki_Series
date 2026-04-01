@@ -8,11 +8,11 @@ abstract class AbstractExperienceAction extends BaseAction {
 
     AbstractExperienceAction(String id, String description) {
         super(
-            id,
-            "player",
-            description,
-            ActionParameter.required("amount", ActionParameterType.INTEGER, "Amount"),
-            ActionParameter.optional("mode", ActionParameterType.STRING, "points", "points or levels")
+                id,
+                "player",
+                description,
+                ActionParameter.required("amount", ActionParameterType.INTEGER, "Amount"),
+                ActionParameter.optional("mode", ActionParameterType.STRING, "points", "points or levels")
         );
     }
 

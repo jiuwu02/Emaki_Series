@@ -26,9 +26,12 @@ public enum ActionParameterType {
                     Double.parseDouble(raw);
                     yield true;
                 }
-                case BOOLEAN -> "true".equalsIgnoreCase(raw) || "false".equalsIgnoreCase(raw);
-                case TIME -> ActionParsers.parseTicks(raw) >= 0L;
-                case STRING -> true;
+                case BOOLEAN ->
+                    "true".equalsIgnoreCase(raw) || "false".equalsIgnoreCase(raw);
+                case TIME ->
+                    ActionParsers.parseTicks(raw) >= 0L;
+                case STRING ->
+                    true;
             };
         } catch (Exception ignored) {
             return false;

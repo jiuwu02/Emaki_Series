@@ -1,17 +1,19 @@
 package emaki.jiuwu.craft.corelib.assembly;
 
-import emaki.jiuwu.craft.corelib.item.ItemSource;
-import emaki.jiuwu.craft.corelib.item.ItemSourceService;
-import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
-import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
-import emaki.jiuwu.craft.corelib.text.Texts;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+
+import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.item.ItemSourceService;
+import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
+import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
+import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class EmakiItemAssemblyService {
 
@@ -23,8 +25,8 @@ public final class EmakiItemAssemblyService {
     private final ItemRenderService itemRenderService;
 
     public EmakiItemAssemblyService(EmakiNamespaceRegistry namespaceRegistry,
-                                    EmakiItemLayerCodecRegistry codecRegistry,
-                                    ItemSourceService itemSourceService) {
+            EmakiItemLayerCodecRegistry codecRegistry,
+            ItemSourceService itemSourceService) {
         this.namespaceRegistry = Objects.requireNonNull(namespaceRegistry, "namespaceRegistry");
         this.itemSourceService = Objects.requireNonNull(itemSourceService, "itemSourceService");
         this.dataManager = new AssemblyDataManager(namespaceRegistry, codecRegistry);
@@ -42,13 +44,13 @@ public final class EmakiItemAssemblyService {
         }
         itemRenderService.renderItem(itemStack, context.layerSnapshots().values());
         dataManager.writeAssemblyData(
-            itemStack,
-            CURRENT_SCHEMA_VERSION,
-            context.baseSource(),
-            context.amount(),
-            context.activeLayers(),
-            context.assemblySignature(),
-            context.layerSnapshots().values()
+                itemStack,
+                CURRENT_SCHEMA_VERSION,
+                context.baseSource(),
+                context.amount(),
+                context.activeLayers(),
+                context.assemblySignature(),
+                context.layerSnapshots().values()
         );
         return itemStack;
     }
@@ -133,9 +135,9 @@ public final class EmakiItemAssemblyService {
             }
         }
         String signature = SignatureUtil.stableSignature(List.of(
-            ItemSourceUtil.toShorthand(baseSource),
-            amount,
-            orderedLayers.values().stream().map(EmakiItemLayerSnapshot::toMap).toList()
+                ItemSourceUtil.toShorthand(baseSource),
+                amount,
+                orderedLayers.values().stream().map(EmakiItemLayerSnapshot::toMap).toList()
         ));
         return new AssemblyContext(baseSource, Math.max(1, amount), orderedLayers, activeLayers, signature);
     }
@@ -145,9 +147,10 @@ public final class EmakiItemAssemblyService {
     }
 
     private record AssemblyContext(ItemSource baseSource,
-                                   int amount,
-                                   Map<String, EmakiItemLayerSnapshot> layerSnapshots,
-                                   List<String> activeLayers,
-                                   String assemblySignature) {
+            int amount,
+            Map<String, EmakiItemLayerSnapshot> layerSnapshots,
+            List<String> activeLayers,
+            String assemblySignature) {
+
     }
 }

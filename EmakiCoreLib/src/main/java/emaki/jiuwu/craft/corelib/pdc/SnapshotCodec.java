@@ -1,12 +1,14 @@
 package emaki.jiuwu.craft.corelib.pdc;
 
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.text.Texts;
 import java.io.StringReader;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Function;
+
 import org.bukkit.configuration.file.YamlConfiguration;
+
+import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.text.Texts;
 
 public interface SnapshotCodec<T> {
 
@@ -15,7 +17,7 @@ public interface SnapshotCodec<T> {
     T decode(String payload);
 
     static <T> SnapshotCodec<T> yaml(Function<T, Map<String, Object>> encoder,
-                                     Function<Map<String, Object>, T> decoder) {
+            Function<Map<String, Object>, T> decoder) {
         return new SnapshotCodec<>() {
             @Override
             public String encode(T value) {

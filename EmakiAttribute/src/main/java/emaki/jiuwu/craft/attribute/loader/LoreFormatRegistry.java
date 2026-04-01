@@ -1,20 +1,22 @@
 package emaki.jiuwu.craft.attribute.loader;
 
-import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
-import emaki.jiuwu.craft.attribute.model.LoreFormatDefinition;
 import java.io.File;
 import java.util.List;
 import java.util.Map;
-import emaki.jiuwu.craft.corelib.text.Texts;
+
 import org.bukkit.configuration.file.YamlConfiguration;
+
+import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
+import emaki.jiuwu.craft.attribute.model.LoreFormatDefinition;
+import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class LoreFormatRegistry extends DirectoryLoader<LoreFormatDefinition> {
 
     private static final List<String> BUNDLED_RESOURCES = List.of(
-        "default_flat.yml",
-        "default_percent.yml",
-        "default_regen.yml",
-        "default_resource.yml"
+            "default_flat.yml",
+            "default_percent.yml",
+            "default_regen.yml",
+            "default_resource.yml"
     );
 
     public LoreFormatRegistry(EmakiAttributePlugin plugin) {
@@ -47,12 +49,12 @@ public final class LoreFormatRegistry extends DirectoryLoader<LoreFormatDefiniti
     protected boolean validateSchema(File file, YamlConfiguration configuration) {
         if (Texts.isBlank(configuration.getString("id"))) {
             issue(
-                "loader.schema_missing_id",
-                Map.of(
-                    "type", typeName(),
-                    "file", file.getName(),
-                    "field", "id"
-                )
+                    "loader.schema_missing_id",
+                    Map.of(
+                            "type", typeName(),
+                            "file", file.getName(),
+                            "field", "id"
+                    )
             );
             return false;
         }

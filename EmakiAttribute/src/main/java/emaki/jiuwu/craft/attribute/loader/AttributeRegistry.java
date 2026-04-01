@@ -1,13 +1,5 @@
 package emaki.jiuwu.craft.attribute.loader;
 
-import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
-import emaki.jiuwu.craft.attribute.model.AttributeDefinition;
-import emaki.jiuwu.craft.attribute.model.AttributeTargetType;
-import emaki.jiuwu.craft.attribute.model.AttributeValueKind;
-import emaki.jiuwu.craft.attribute.model.LoreFormatDefinition;
-import emaki.jiuwu.craft.corelib.math.Numbers;
-import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -19,7 +11,17 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 import org.bukkit.configuration.file.YamlConfiguration;
+
+import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
+import emaki.jiuwu.craft.attribute.model.AttributeDefinition;
+import emaki.jiuwu.craft.attribute.model.AttributeTargetType;
+import emaki.jiuwu.craft.attribute.model.AttributeValueKind;
+import emaki.jiuwu.craft.attribute.model.LoreFormatDefinition;
+import emaki.jiuwu.craft.corelib.math.Numbers;
+import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 
 public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition> {
 
@@ -28,6 +30,7 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
     private static final Pattern NUMERIC_CAPTURE_PATTERN = Pattern.compile("^[+-]?\\d+(?:\\.\\d+)?$");
 
     private record PatternEntry(AttributeDefinition definition, Pattern pattern, int priority) {
+
     }
 
     public AttributeRegistry(EmakiAttributePlugin plugin) {
@@ -55,21 +58,21 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
         AttributeValueKind valueKind = parseEnum(configuration.getString("value_kind", "FLAT"), AttributeValueKind.FLAT);
         AttributeTargetType targetType = parseEnum(configuration.getString("target_type", "GENERIC"), AttributeTargetType.GENERIC);
         return new AttributeDefinition(
-            configuration.getString("id"),
-            configuration.getString("display_name"),
-            valueKind,
-            targetType,
-            configuration.getString("target_id"),
-            configuration.getString("mmoitems_stat"),
-            configuration.getDouble("default_value", 0D),
-            configuration.contains("min_value") ? configuration.getDouble("min_value") : null,
-            configuration.contains("max_value") ? configuration.getDouble("max_value") : null,
-            configuration.getBoolean("allow_negative", true),
-            configuration.getInt("priority", 0),
-            configuration.getString("lore_format_id"),
-            patterns,
-            configuration.getString("description"),
-            configuration.contains("attribute_power") ? configuration.getDouble("attribute_power") : 1D
+                configuration.getString("id"),
+                configuration.getString("display_name"),
+                valueKind,
+                targetType,
+                configuration.getString("target_id"),
+                configuration.getString("mmoitems_stat"),
+                configuration.getDouble("default_value", 0D),
+                configuration.contains("min_value") ? configuration.getDouble("min_value") : null,
+                configuration.contains("max_value") ? configuration.getDouble("max_value") : null,
+                configuration.getBoolean("allow_negative", true),
+                configuration.getInt("priority", 0),
+                configuration.getString("lore_format_id"),
+                patterns,
+                configuration.getString("description"),
+                configuration.contains("attribute_power") ? configuration.getDouble("attribute_power") : 1D
         );
     }
 
@@ -78,20 +81,20 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
         List<String> bundledResources = YamlFiles.listResourcePaths(plugin, directoryName());
         if (bundledResources.isEmpty()) {
             issue(
-                "loader.bundled_resource_missing",
-                Map.of(
-                    "type", typeName(),
-                    "path", directory.getPath(),
-                    "resource", directoryName() + "/*.yml"
-                )
+                    "loader.bundled_resource_missing",
+                    Map.of(
+                            "type", typeName(),
+                            "path", directory.getPath(),
+                            "resource", directoryName() + "/*.yml"
+                    )
             );
             return;
         }
         String resourcePrefix = directoryName() + "/";
         for (String resourceName : bundledResources) {
             String relativePath = resourceName.startsWith(resourcePrefix)
-                ? resourceName.substring(resourcePrefix.length())
-                : resourceName;
+                    ? resourceName.substring(resourcePrefix.length())
+                    : resourceName;
             File target = new File(directory, relativePath);
             copyBundledResource(resourceName, target);
         }
@@ -102,89 +105,89 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
         boolean valid = true;
         if (Texts.isBlank(configuration.getString("id"))) {
             issue(
-                "loader.schema_missing_id",
-                Map.of(
-                    "type", typeName(),
-                    "file", file.getName(),
-                    "field", "id"
-                )
+                    "loader.schema_missing_id",
+                    Map.of(
+                            "type", typeName(),
+                            "file", file.getName(),
+                            "field", "id"
+                    )
             );
             valid = false;
         }
         if (configuration.contains("value_kind") && !isValidEnum(configuration.getString("value_kind"), AttributeValueKind.class)) {
             issue(
-                "loader.schema_invalid_enum",
-                Map.of(
-                    "type", typeName(),
-                    "file", file.getName(),
-                    "field", "value_kind"
-                )
+                    "loader.schema_invalid_enum",
+                    Map.of(
+                            "type", typeName(),
+                            "file", file.getName(),
+                            "field", "value_kind"
+                    )
             );
             valid = false;
         }
         if (configuration.contains("target_type") && !isValidEnum(configuration.getString("target_type"), AttributeTargetType.class)) {
             issue(
-                "loader.schema_invalid_enum",
-                Map.of(
-                    "type", typeName(),
-                    "file", file.getName(),
-                    "field", "target_type"
-                )
+                    "loader.schema_invalid_enum",
+                    Map.of(
+                            "type", typeName(),
+                            "file", file.getName(),
+                            "field", "target_type"
+                    )
             );
             valid = false;
         }
         if (configuration.contains("priority") && !isNumeric(configuration.get("priority"))) {
             issue(
-                "loader.schema_invalid_number",
-                Map.of(
-                    "type", typeName(),
-                    "file", file.getName(),
-                    "field", "priority"
-                )
+                    "loader.schema_invalid_number",
+                    Map.of(
+                            "type", typeName(),
+                            "file", file.getName(),
+                            "field", "priority"
+                    )
             );
             valid = false;
         }
         if (configuration.contains("default_value") && !isNumeric(configuration.get("default_value"))) {
             issue(
-                "loader.schema_invalid_number",
-                Map.of(
-                    "type", typeName(),
-                    "file", file.getName(),
-                    "field", "default_value"
-                )
+                    "loader.schema_invalid_number",
+                    Map.of(
+                            "type", typeName(),
+                            "file", file.getName(),
+                            "field", "default_value"
+                    )
             );
             valid = false;
         }
         if (configuration.contains("min_value") && !isNumeric(configuration.get("min_value"))) {
             issue(
-                "loader.schema_invalid_number",
-                Map.of(
-                    "type", typeName(),
-                    "file", file.getName(),
-                    "field", "min_value"
-                )
+                    "loader.schema_invalid_number",
+                    Map.of(
+                            "type", typeName(),
+                            "file", file.getName(),
+                            "field", "min_value"
+                    )
             );
             valid = false;
         }
         if (configuration.contains("max_value") && !isNumeric(configuration.get("max_value"))) {
             issue(
-                "loader.schema_invalid_number",
-                Map.of(
-                    "type", typeName(),
-                    "file", file.getName(),
-                    "field", "max_value"
-                )
+                    "loader.schema_invalid_number",
+                    Map.of(
+                            "type", typeName(),
+                            "file", file.getName(),
+                            "field", "max_value"
+                    )
             );
             valid = false;
         }
         if (configuration.contains("attribute_power") && !isNumeric(configuration.get("attribute_power"))) {
             issue(
-                "loader.schema_invalid_number",
-                Map.of(
-                    "type", typeName(),
-                    "file", file.getName(),
-                    "field", "attribute_power"
-                )
+                    "loader.schema_invalid_number",
+                    Map.of(
+                            "type", typeName(),
+                            "file", file.getName(),
+                            "field", "attribute_power"
+                    )
             );
             valid = false;
         }
@@ -283,18 +286,18 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
             }
             try {
                 compiled.add(new PatternEntry(
-                    definition,
-                    Pattern.compile(expanded, Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE),
-                    priority
+                        definition,
+                        Pattern.compile(expanded, Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE),
+                        priority
                 ));
             } catch (Exception exception) {
                 issue(
-                    "loader.invalid_lore_pattern",
-                    Map.of(
-                        "attribute", definition.id(),
-                        "pattern", template,
-                        "error", Texts.toStringSafe(exception.getMessage())
-                    )
+                        "loader.invalid_lore_pattern",
+                        Map.of(
+                                "attribute", definition.id(),
+                                "pattern", template,
+                                "error", Texts.toStringSafe(exception.getMessage())
+                        )
                 );
             }
         }
@@ -306,9 +309,12 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
             return List.of();
         }
         return switch (definition.loreFormatId()) {
-            case "default_percent" -> List.of("{Key}.*?: ?{Value}%$");
-            case "default_regen" -> List.of("{Key}.*?: ?{Value}/秒$");
-            default -> definition.isPercentLike()
+            case "default_percent" ->
+                List.of("{Key}.*?: ?{Value}%$");
+            case "default_regen" ->
+                List.of("{Key}.*?: ?{Value}/秒$");
+            default ->
+                definition.isPercentLike()
                 ? List.of("{Key}.*?: ?{Value}%$")
                 : List.of("{Key}.*?: ?{Value}$");
         };
@@ -321,10 +327,10 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
         String key = buildKeyPattern(definition);
         String value = buildValuePattern();
         return template
-            .replace("{Key}", key)
-            .replace("{key}", key)
-            .replace("{Value}", value)
-            .replace("{value}", value);
+                .replace("{Key}", key)
+                .replace("{key}", key)
+                .replace("{Value}", value)
+                .replace("{value}", value);
     }
 
     private String buildKeyPattern(AttributeDefinition definition) {
@@ -368,11 +374,16 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
         }
         String loreFormatId = normalizeId(definition.loreFormatId());
         return switch (loreFormatId) {
-            case "default_percent" -> 100;
-            case "default_regen" -> 80;
-            case "default_resource" -> 60;
-            case "default_flat" -> 50;
-            default -> definition.isPercentLike() ? 100 : 50;
+            case "default_percent" ->
+                100;
+            case "default_regen" ->
+                80;
+            case "default_resource" ->
+                60;
+            case "default_flat" ->
+                50;
+            default ->
+                definition.isPercentLike() ? 100 : 50;
         };
     }
 
@@ -411,14 +422,14 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
             String defaultValue = formatNumber(definition.defaultValue());
             String attributePower = formatNumber(definition.attributePower());
             logInfo(
-                "console.attribute_registry_entry",
-                Map.of(
-                    "index", String.format(Locale.ROOT, "%02d", displayIndex),
-                    "display_name", displayName,
-                    "id", id,
-                    "default_value", defaultValue,
-                    "attribute_power", attributePower
-                )
+                    "console.attribute_registry_entry",
+                    Map.of(
+                            "index", String.format(Locale.ROOT, "%02d", displayIndex),
+                            "display_name", displayName,
+                            "id", id,
+                            "default_value", defaultValue,
+                            "attribute_power", attributePower
+                    )
             );
         }
     }
@@ -442,16 +453,16 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
     }
 
     private void warnKeyContainmentConflict(AttributeDefinition higher,
-                                            AttributeDefinition lower,
-                                            Set<String> warned) {
+            AttributeDefinition lower,
+            Set<String> warned) {
         String higherKey = safeText(higher.displayName(), higher.id());
         String lowerKey = safeText(lower.displayName(), lower.id());
         String normalizedHigherKey = normalizeKeyCandidate(higherKey);
         String normalizedLowerKey = normalizeKeyCandidate(lowerKey);
         if (normalizedHigherKey.isBlank()
-            || normalizedLowerKey.isBlank()
-            || normalizedHigherKey.equals(normalizedLowerKey)
-            || !normalizedLowerKey.contains(normalizedHigherKey)) {
+                || normalizedLowerKey.isBlank()
+                || normalizedHigherKey.equals(normalizedLowerKey)
+                || !normalizedLowerKey.contains(normalizedHigherKey)) {
             return;
         }
         String warningKey = higher.id() + "->" + lower.id() + "|" + normalizedHigherKey + "|" + normalizedLowerKey;
@@ -459,17 +470,17 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
             return;
         }
         issue(
-            "console.attribute_key_contains_conflict",
-            Map.of(
-                "higher_display_name", safeText(higher.displayName(), higher.id()),
-                "higher_id", safeText(higher.id(), "-"),
-                "higher_key", higherKey,
-                "higher_priority", Integer.toString(higher.priority()),
-                "lower_display_name", safeText(lower.displayName(), lower.id()),
-                "lower_id", safeText(lower.id(), "-"),
-                "lower_key", lowerKey,
-                "lower_priority", Integer.toString(lower.priority())
-            )
+                "console.attribute_key_contains_conflict",
+                Map.of(
+                        "higher_display_name", safeText(higher.displayName(), higher.id()),
+                        "higher_id", safeText(higher.id(), "-"),
+                        "higher_key", higherKey,
+                        "higher_priority", Integer.toString(higher.priority()),
+                        "lower_display_name", safeText(lower.displayName(), lower.id()),
+                        "lower_id", safeText(lower.id(), "-"),
+                        "lower_key", lowerKey,
+                        "lower_priority", Integer.toString(lower.priority())
+                )
         );
     }
 

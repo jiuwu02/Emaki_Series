@@ -1,7 +1,8 @@
 package emaki.jiuwu.craft.corelib.math;
 
-import emaki.jiuwu.craft.corelib.text.Texts;
 import java.text.DecimalFormat;
+
+import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class Numbers {
 

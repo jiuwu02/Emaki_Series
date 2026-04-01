@@ -1,5 +1,17 @@
 package emaki.jiuwu.craft.forge.service;
 
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Item;
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
+
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerSnapshot;
@@ -10,16 +22,6 @@ import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.model.ForgeMaterial;
 import emaki.jiuwu.craft.forge.model.QualitySettings;
 import emaki.jiuwu.craft.forge.model.Recipe;
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import org.bukkit.Bukkit;
-import org.bukkit.entity.Item;
-import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.PlayerInventory;
 
 public final class ForgeItemRefreshService {
 
@@ -93,18 +95,18 @@ public final class ForgeItemRefreshService {
             return itemStack;
         }
         EmakiItemLayerSnapshot snapshot = snapshotBuilder.buildLayerSnapshot(
-            plan.recipe(),
-            plan.materials(),
-            plan.multiplier(),
-            plan.qualityTier(),
-            plan.forgedAt()
+                plan.recipe(),
+                plan.materials(),
+                plan.multiplier(),
+                plan.qualityTier(),
+                plan.forgedAt()
         );
         ItemStack rebuilt = coreLib.itemAssemblyService().preview(new EmakiItemAssemblyRequest(null, 0, itemStack, List.of(snapshot)));
         if (rebuilt == null) {
             warnOnce(
-                "refresh_failed|" + plan.recipe().id() + "|" + plan.signature(),
-                "console.forge_refresh_failed",
-                Map.of("recipe", plan.recipe().id())
+                    "refresh_failed|" + plan.recipe().id() + "|" + plan.signature(),
+                    "console.forge_refresh_failed",
+                    Map.of("recipe", plan.recipe().id())
             );
             return itemStack;
         }
@@ -144,18 +146,18 @@ public final class ForgeItemRefreshService {
         String recipeId = Texts.toStringSafe(audit.get("recipe_id"));
         if (Texts.isBlank(recipeId)) {
             warnOnce(
-                "missing_recipe_id|" + snapshotIdentity(audit),
-                "console.forge_refresh_invalid_audit",
-                Map.of("reason", "missing recipe_id")
+                    "missing_recipe_id|" + snapshotIdentity(audit),
+                    "console.forge_refresh_invalid_audit",
+                    Map.of("reason", "missing recipe_id")
             );
             return null;
         }
         Recipe recipe = plugin.recipeLoader().all().get(recipeId);
         if (recipe == null) {
             warnOnce(
-                "missing_recipe|" + recipeId + "|" + snapshotIdentity(audit),
-                "console.forge_refresh_missing_recipe",
-                Map.of("recipe", recipeId)
+                    "missing_recipe|" + recipeId + "|" + snapshotIdentity(audit),
+                    "console.forge_refresh_missing_recipe",
+                    Map.of("recipe", recipeId)
             );
             return null;
         }
@@ -164,9 +166,9 @@ public final class ForgeItemRefreshService {
         QualitySettings.QualityTier storedTier = settings.findTier(storedQuality);
         if (storedTier == null) {
             warnOnce(
-                "invalid_quality|" + recipeId + "|" + storedQuality + "|" + snapshotIdentity(audit),
-                "console.forge_refresh_invalid_quality",
-                Map.of("recipe", recipeId, "quality", storedQuality)
+                    "invalid_quality|" + recipeId + "|" + storedQuality + "|" + snapshotIdentity(audit),
+                    "console.forge_refresh_invalid_quality",
+                    Map.of("recipe", recipeId, "quality", storedQuality)
             );
             return null;
         }
@@ -181,9 +183,9 @@ public final class ForgeItemRefreshService {
             return new RefreshPlan(false, recipe, materials, storedTier, storedTier.multiplier(), readForgedAt(audit), signature);
         }
         QualitySettings.QualityTier refreshedTier = qualityModifierResolver.applyModifiers(
-            settings,
-            storedTier,
-            snapshotBuilder.collectQualityModifiers(materials)
+                settings,
+                storedTier,
+                snapshotBuilder.collectQualityModifiers(materials)
         );
         return new RefreshPlan(true, recipe, materials, refreshedTier, refreshedTier.multiplier(), readForgedAt(audit), signature);
     }
@@ -196,18 +198,18 @@ public final class ForgeItemRefreshService {
             String materialId = ConfigNodes.string(entry, "material_id", null);
             if (Texts.isBlank(materialId)) {
                 warnOnce(
-                    "invalid_material_entry|" + recipeId + "|" + snapshotId + "|" + fallbackSequence,
-                    "console.forge_refresh_invalid_audit",
-                    Map.of("reason", "missing material_id")
+                        "invalid_material_entry|" + recipeId + "|" + snapshotId + "|" + fallbackSequence,
+                        "console.forge_refresh_invalid_audit",
+                        Map.of("reason", "missing material_id")
                 );
                 return null;
             }
             ForgeMaterial material = plugin.forgeService().findMaterialById(materialId);
             if (material == null) {
                 warnOnce(
-                    "missing_material|" + recipeId + "|" + materialId + "|" + snapshotId,
-                    "console.forge_refresh_missing_material",
-                    Map.of("recipe", recipeId, "material", materialId)
+                        "missing_material|" + recipeId + "|" + materialId + "|" + snapshotId,
+                        "console.forge_refresh_missing_material",
+                        Map.of("recipe", recipeId, "material", materialId)
                 );
                 return null;
             }
@@ -218,12 +220,12 @@ public final class ForgeItemRefreshService {
             }
             int sequence = Numbers.tryParseInt(entry.get("sequence"), fallbackSequence);
             result.add(new ForgeMaterialContribution(
-                material,
-                amount,
-                Numbers.tryParseInt(entry.get("slot"), -1),
-                ConfigNodes.string(entry, "category", ""),
-                sequence,
-                material.source()
+                    material,
+                    amount,
+                    Numbers.tryParseInt(entry.get("slot"), -1),
+                    ConfigNodes.string(entry, "category", ""),
+                    sequence,
+                    material.source()
             ));
             fallbackSequence = Math.max(fallbackSequence + 1, sequence + 1);
         }
@@ -253,11 +255,12 @@ public final class ForgeItemRefreshService {
     }
 
     private record RefreshPlan(boolean shouldRefresh,
-                               Recipe recipe,
-                               List<ForgeMaterialContribution> materials,
-                               QualitySettings.QualityTier qualityTier,
-                               double multiplier,
-                               long forgedAt,
-                               String signature) {
+            Recipe recipe,
+            List<ForgeMaterialContribution> materials,
+            QualitySettings.QualityTier qualityTier,
+            double multiplier,
+            long forgedAt,
+            String signature) {
+
     }
 }

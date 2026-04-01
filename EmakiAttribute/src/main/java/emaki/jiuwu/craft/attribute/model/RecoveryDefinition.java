@@ -1,23 +1,24 @@
 package emaki.jiuwu.craft.attribute.model;
 
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.math.Numbers;
-import emaki.jiuwu.craft.corelib.text.Texts;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Function;
 
-public record RecoveryDefinition(DamageStageSource source,
-                                 DamageStageSource resistanceSource,
-                                 List<String> flatAttributes,
-                                 List<String> percentAttributes,
-                                 List<String> resistanceAttributes,
-                                 String expression,
-                                 Double minResult,
-                                 Double maxResult) {
+import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.math.Numbers;
+import emaki.jiuwu.craft.corelib.text.Texts;
 
-    public RecoveryDefinition {
+public record RecoveryDefinition(DamageStageSource source,
+        DamageStageSource resistanceSource,
+        List<String> flatAttributes,
+        List<String> percentAttributes,
+        List<String> resistanceAttributes,
+        String expression,
+        Double minResult,
+        Double maxResult) {
+
+    public RecoveryDefinition        {
         source = source == null ? DamageStageSource.ATTACKER : source;
         resistanceSource = resistanceSource == null ? DamageStageSource.TARGET : resistanceSource;
         flatAttributes = flatAttributes == null ? List.of() : List.copyOf(flatAttributes);
@@ -35,14 +36,14 @@ public record RecoveryDefinition(DamageStageSource source,
             return null;
         }
         return new RecoveryDefinition(
-            parseEnum(ConfigNodes.string(raw, "source", "ATTACKER"), DamageStageSource.ATTACKER),
-            parseEnum(ConfigNodes.string(raw, "resistance_source", "TARGET"), DamageStageSource.TARGET),
-            normalizeAttributes(Texts.asStringList(ConfigNodes.get(raw, "flat_attributes")), attributeNormalizer),
-            normalizeAttributes(Texts.asStringList(ConfigNodes.get(raw, "percent_attributes")), attributeNormalizer),
-            normalizeAttributes(Texts.asStringList(ConfigNodes.get(raw, "resistance_attributes")), attributeNormalizer),
-            ConfigNodes.string(raw, "expression", null),
-            Numbers.tryParseDouble(ConfigNodes.get(raw, "min_result"), null),
-            Numbers.tryParseDouble(ConfigNodes.get(raw, "max_result"), null)
+                parseEnum(ConfigNodes.string(raw, "source", "ATTACKER"), DamageStageSource.ATTACKER),
+                parseEnum(ConfigNodes.string(raw, "resistance_source", "TARGET"), DamageStageSource.TARGET),
+                normalizeAttributes(Texts.asStringList(ConfigNodes.get(raw, "flat_attributes")), attributeNormalizer),
+                normalizeAttributes(Texts.asStringList(ConfigNodes.get(raw, "percent_attributes")), attributeNormalizer),
+                normalizeAttributes(Texts.asStringList(ConfigNodes.get(raw, "resistance_attributes")), attributeNormalizer),
+                ConfigNodes.string(raw, "expression", null),
+                Numbers.tryParseDouble(ConfigNodes.get(raw, "min_result"), null),
+                Numbers.tryParseDouble(ConfigNodes.get(raw, "max_result"), null)
         );
     }
 

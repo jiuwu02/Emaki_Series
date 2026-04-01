@@ -1,9 +1,10 @@
 package emaki.jiuwu.craft.corelib.text;
 
+import org.bukkit.plugin.java.JavaPlugin;
+
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.format.TextColor;
-import org.bukkit.plugin.java.JavaPlugin;
 
 public final class ConsoleOutputs {
 
@@ -18,9 +19,9 @@ public final class ConsoleOutputs {
             return;
         }
         String normalized = Texts.toStringSafe(asciiArt)
-            .stripTrailing()
-            .replace("\r\n", "\n")
-            .replace("\r", "\n");
+                .stripTrailing()
+                .replace("\r\n", "\n")
+                .replace("\r", "\n");
         for (String line : normalized.split("\n", -1)) {
             plugin.getServer().getConsoleSender().sendMessage(buildGradientLine(line));
         }

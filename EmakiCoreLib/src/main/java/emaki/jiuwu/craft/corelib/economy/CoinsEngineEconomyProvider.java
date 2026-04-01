@@ -1,10 +1,11 @@
 package emaki.jiuwu.craft.corelib.economy;
 
+import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
+
 import emaki.jiuwu.craft.corelib.action.ActionErrorType;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
 import emaki.jiuwu.craft.corelib.text.Texts;
-import org.bukkit.entity.Player;
-import org.bukkit.plugin.Plugin;
 import su.nightexpress.coinsengine.CoinsEnginePlugin;
 import su.nightexpress.excellenteconomy.api.ExcellentEconomyAPI;
 import su.nightexpress.excellenteconomy.api.currency.ExcellentCurrency;
@@ -52,8 +53,8 @@ public final class CoinsEngineEconomyProvider implements EconomyProvider {
             return unavailable();
         }
         return api.deposit(player, currency, amount)
-            ? ActionResult.ok()
-            : ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, "Failed to add CoinsEngine balance.");
+                ? ActionResult.ok()
+                : ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, "Failed to add CoinsEngine balance.");
     }
 
     @Override
@@ -74,8 +75,8 @@ public final class CoinsEngineEconomyProvider implements EconomyProvider {
             return ActionResult.failure(ActionErrorType.INSUFFICIENT_BALANCE, "Insufficient CoinsEngine balance for currency '" + currencyId + "'.");
         }
         return api.withdraw(player, currency, amount)
-            ? ActionResult.ok()
-            : ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, "Failed to remove CoinsEngine balance.");
+                ? ActionResult.ok()
+                : ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, "Failed to remove CoinsEngine balance.");
     }
 
     @Override
@@ -92,8 +93,8 @@ public final class CoinsEngineEconomyProvider implements EconomyProvider {
             return unavailable();
         }
         return api.setBalance(player, currency, amount)
-            ? ActionResult.ok()
-            : ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, "Failed to set CoinsEngine balance.");
+                ? ActionResult.ok()
+                : ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, "Failed to set CoinsEngine balance.");
     }
 
     private ExcellentCurrency resolveCurrency(String currencyId) {

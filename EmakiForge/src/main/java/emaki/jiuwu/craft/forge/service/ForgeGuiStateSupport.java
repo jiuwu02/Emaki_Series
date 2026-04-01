@@ -1,29 +1,31 @@
 package emaki.jiuwu.craft.forge.service;
 
-import emaki.jiuwu.craft.corelib.gui.GuiSlot;
-import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
-import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
-import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.forge.EmakiForgePlugin;
-import emaki.jiuwu.craft.forge.model.Blueprint;
-import emaki.jiuwu.craft.forge.model.ForgeMaterial;
-import emaki.jiuwu.craft.forge.model.Recipe;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
+import emaki.jiuwu.craft.corelib.gui.GuiSlot;
+import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
+import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.forge.EmakiForgePlugin;
+import emaki.jiuwu.craft.forge.model.Blueprint;
+import emaki.jiuwu.craft.forge.model.ForgeMaterial;
+import emaki.jiuwu.craft.forge.model.Recipe;
+
 final class ForgeGuiStateSupport {
 
     record MaterialSlotRules(List<String> requiredIds,
-                             List<String> optionalWhitelist,
-                             List<String> optionalBlacklist,
-                             boolean optionalAny) {
+            List<String> optionalWhitelist,
+            List<String> optionalBlacklist,
+            boolean optionalAny) {
+
     }
 
     private final EmakiForgePlugin plugin;
@@ -77,9 +79,9 @@ final class ForgeGuiStateSupport {
             return state.recipe();
         }
         if (state.targetItem() == null
-            && state.blueprintItems().isEmpty()
-            && state.requiredMaterialItems().isEmpty()
-            && state.optionalMaterialItems().isEmpty()) {
+                && state.blueprintItems().isEmpty()
+                && state.requiredMaterialItems().isEmpty()
+                && state.optionalMaterialItems().isEmpty()) {
             return null;
         }
         return plugin.forgeService().findMatchingRecipe(state.player(), state.toGuiItems()).recipe();

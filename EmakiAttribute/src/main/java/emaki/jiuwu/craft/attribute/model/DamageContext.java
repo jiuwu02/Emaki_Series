@@ -1,24 +1,26 @@
 package emaki.jiuwu.craft.attribute.model;
 
-import emaki.jiuwu.craft.corelib.text.Texts;
 import java.util.Locale;
 import java.util.Map;
+
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Projectile;
 import org.bukkit.event.entity.EntityDamageEvent;
 
-public record DamageContext(LivingEntity attacker,
-                            LivingEntity target,
-                            Projectile projectile,
-                            EntityDamageEvent.DamageCause cause,
-                            String damageTypeId,
-                            double sourceDamage,
-                            double baseDamage,
-                            AttributeSnapshot attackerSnapshot,
-                            AttributeSnapshot targetSnapshot,
-                            DamageContextVariables variables) {
+import emaki.jiuwu.craft.corelib.text.Texts;
 
-    public DamageContext {
+public record DamageContext(LivingEntity attacker,
+        LivingEntity target,
+        Projectile projectile,
+        EntityDamageEvent.DamageCause cause,
+        String damageTypeId,
+        double sourceDamage,
+        double baseDamage,
+        AttributeSnapshot attackerSnapshot,
+        AttributeSnapshot targetSnapshot,
+        DamageContextVariables variables) {
+
+    public DamageContext          {
         damageTypeId = normalizeId(damageTypeId);
         sourceDamage = Math.max(0D, sourceDamage);
         baseDamage = Math.max(0D, baseDamage);
@@ -28,44 +30,44 @@ public record DamageContext(LivingEntity attacker,
     }
 
     public static DamageContext legacy(String damageTypeId,
-                                       double baseDamage,
-                                       AttributeSnapshot attackerSnapshot,
-                                       AttributeSnapshot targetSnapshot,
-                                       Map<String, ?> variables) {
+            double baseDamage,
+            AttributeSnapshot attackerSnapshot,
+            AttributeSnapshot targetSnapshot,
+            Map<String, ?> variables) {
         return new DamageContext(null, null, null, null, damageTypeId, baseDamage, baseDamage, attackerSnapshot, targetSnapshot, DamageContextVariables.from(variables));
     }
 
     public static DamageContext legacy(String damageTypeId,
-                                       double baseDamage,
-                                       AttributeSnapshot attackerSnapshot,
-                                       AttributeSnapshot targetSnapshot,
-                                       DamageContextVariables variables) {
+            double baseDamage,
+            AttributeSnapshot attackerSnapshot,
+            AttributeSnapshot targetSnapshot,
+            DamageContextVariables variables) {
         return new DamageContext(null, null, null, null, damageTypeId, baseDamage, baseDamage, attackerSnapshot, targetSnapshot, variables);
     }
 
     public static DamageContext of(LivingEntity attacker,
-                                   LivingEntity target,
-                                   Projectile projectile,
-                                   EntityDamageEvent.DamageCause cause,
-                                   String damageTypeId,
-                                   double sourceDamage,
-                                   double baseDamage,
-                                   AttributeSnapshot attackerSnapshot,
-                                   AttributeSnapshot targetSnapshot,
-                                   Map<String, ?> variables) {
+            LivingEntity target,
+            Projectile projectile,
+            EntityDamageEvent.DamageCause cause,
+            String damageTypeId,
+            double sourceDamage,
+            double baseDamage,
+            AttributeSnapshot attackerSnapshot,
+            AttributeSnapshot targetSnapshot,
+            Map<String, ?> variables) {
         return new DamageContext(attacker, target, projectile, cause, damageTypeId, sourceDamage, baseDamage, attackerSnapshot, targetSnapshot, DamageContextVariables.from(variables));
     }
 
     public static DamageContext of(LivingEntity attacker,
-                                   LivingEntity target,
-                                   Projectile projectile,
-                                   EntityDamageEvent.DamageCause cause,
-                                   String damageTypeId,
-                                   double sourceDamage,
-                                   double baseDamage,
-                                   AttributeSnapshot attackerSnapshot,
-                                   AttributeSnapshot targetSnapshot,
-                                   DamageContextVariables variables) {
+            LivingEntity target,
+            Projectile projectile,
+            EntityDamageEvent.DamageCause cause,
+            String damageTypeId,
+            double sourceDamage,
+            double baseDamage,
+            AttributeSnapshot attackerSnapshot,
+            AttributeSnapshot targetSnapshot,
+            DamageContextVariables variables) {
         return new DamageContext(attacker, target, projectile, cause, damageTypeId, sourceDamage, baseDamage, attackerSnapshot, targetSnapshot, variables);
     }
 

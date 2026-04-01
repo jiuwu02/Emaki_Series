@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.corelib.action;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
+
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 

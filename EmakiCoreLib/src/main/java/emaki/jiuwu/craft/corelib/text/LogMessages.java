@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.corelib.text;
 
 import java.util.Map;
+
 import net.kyori.adventure.text.Component;
 
 public interface LogMessages {

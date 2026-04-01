@@ -1,11 +1,13 @@
 package emaki.jiuwu.craft.corelib.action;
 
-import emaki.jiuwu.craft.corelib.text.Texts;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+
 import org.bukkit.plugin.Plugin;
+
+import emaki.jiuwu.craft.corelib.text.Texts;
 
 final class ActionTemplateProcessor {
 
@@ -20,8 +22,8 @@ final class ActionTemplateProcessor {
     }
 
     CompletableFuture<ActionResult> execute(ActionContext context,
-                                            Map<String, String> arguments,
-                                            TemplateExecutor executor) {
+            Map<String, String> arguments,
+            TemplateExecutor executor) {
         String name = arguments.get("name");
         List<String> lines = templateRegistry.get(name);
         if (lines == null) {
@@ -30,7 +32,7 @@ final class ActionTemplateProcessor {
         int depth = resolveTemplateDepth(context);
         if (depth >= MAX_TEMPLATE_DEPTH) {
             return CompletableFuture.completedFuture(
-                ActionResult.failure(ActionErrorType.INVALID_STATE, "Template expansion exceeded max depth of " + MAX_TEMPLATE_DEPTH + ".")
+                    ActionResult.failure(ActionErrorType.INVALID_STATE, "Template expansion exceeded max depth of " + MAX_TEMPLATE_DEPTH + ".")
             );
         }
         Map<String, String> templateValues = new LinkedHashMap<>();
@@ -40,10 +42,10 @@ final class ActionTemplateProcessor {
             }
         }
         ActionContext nextContext = (context == null ? ActionContext.create(plugin, null, "template", false) : context)
-            .withPlaceholders(templateValues)
-            .withAttribute("action_template_depth", depth + 1);
+                .withPlaceholders(templateValues)
+                .withAttribute("action_template_depth", depth + 1);
         return executor.execute(nextContext, lines)
-            .thenApply(batch -> batch.success()
+                .thenApply(batch -> batch.success()
                 ? ActionResult.ok(Map.of("template", name))
                 : ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, firstFailureMessage(batch)));
     }
@@ -66,6 +68,7 @@ final class ActionTemplateProcessor {
 
     @FunctionalInterface
     interface TemplateExecutor {
+
         CompletableFuture<ActionBatchResult> execute(ActionContext context, List<String> lines);
     }
 }

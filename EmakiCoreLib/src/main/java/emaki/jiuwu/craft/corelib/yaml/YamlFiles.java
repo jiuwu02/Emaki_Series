@@ -1,18 +1,16 @@
 package emaki.jiuwu.craft.corelib.yaml;
 
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.text.Texts;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.JarURLConnection;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.net.JarURLConnection;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.LinkedHashSet;
@@ -21,9 +19,13 @@ import java.util.Objects;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.stream.Stream;
+
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
+
+import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class YamlFiles {
 
@@ -138,8 +140,8 @@ public final class YamlFiles {
             }
             if (resourcePaths.isEmpty()) {
                 URL codeSourceUrl = plugin.getClass().getProtectionDomain().getCodeSource() == null
-                    ? null
-                    : plugin.getClass().getProtectionDomain().getCodeSource().getLocation();
+                        ? null
+                        : plugin.getClass().getProtectionDomain().getCodeSource().getLocation();
                 if (codeSourceUrl != null) {
                     scanCodeSourceLocation(codeSourceUrl, normalizedDirectory, resourcePaths);
                 }
@@ -168,9 +170,9 @@ public final class YamlFiles {
     }
 
     public static int syncVersionedResource(JavaPlugin plugin,
-                                            File target,
-                                            String resourcePath,
-                                            String versionKey) throws IOException {
+            File target,
+            String resourcePath,
+            String versionKey) throws IOException {
         if (plugin == null || target == null || Texts.isBlank(resourcePath) || Texts.isBlank(versionKey)) {
             return 0;
         }

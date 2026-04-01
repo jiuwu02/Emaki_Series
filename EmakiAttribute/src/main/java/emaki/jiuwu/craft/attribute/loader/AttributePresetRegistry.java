@@ -1,11 +1,13 @@
 package emaki.jiuwu.craft.attribute.loader;
 
-import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
-import emaki.jiuwu.craft.attribute.model.AttributePreset;
 import java.io.File;
 import java.util.Map;
-import emaki.jiuwu.craft.corelib.text.Texts;
+
 import org.bukkit.configuration.file.YamlConfiguration;
+
+import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
+import emaki.jiuwu.craft.attribute.model.AttributePreset;
+import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class AttributePresetRegistry extends DirectoryLoader<AttributePreset> {
 
@@ -33,24 +35,24 @@ public final class AttributePresetRegistry extends DirectoryLoader<AttributePres
         boolean valid = true;
         if (Texts.isBlank(configuration.getString("id"))) {
             issue(
-                "loader.schema_missing_id",
-                Map.of(
-                    "type", typeName(),
-                    "file", file.getName(),
-                    "field", "id"
-                )
+                    "loader.schema_missing_id",
+                    Map.of(
+                            "type", typeName(),
+                            "file", file.getName(),
+                            "field", "id"
+                    )
             );
             valid = false;
         }
         Object values = configuration.get("values");
         if (values != null && !(values instanceof Map<?, ?> || values instanceof org.bukkit.configuration.ConfigurationSection)) {
             issue(
-                "loader.schema_invalid_section",
-                Map.of(
-                    "type", typeName(),
-                    "file", file.getName(),
-                    "field", "values"
-                )
+                    "loader.schema_invalid_section",
+                    Map.of(
+                            "type", typeName(),
+                            "file", file.getName(),
+                            "field", "values"
+                    )
             );
             valid = false;
         }

@@ -1,7 +1,7 @@
 package emaki.jiuwu.craft.corelib.action.builtin;
 
-import emaki.jiuwu.craft.corelib.economy.EconomyManager;
 import emaki.jiuwu.craft.corelib.action.ActionRegistry;
+import emaki.jiuwu.craft.corelib.economy.EconomyManager;
 
 public final class BuiltinActions {
 

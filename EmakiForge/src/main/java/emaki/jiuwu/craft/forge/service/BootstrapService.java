@@ -1,30 +1,32 @@
 package emaki.jiuwu.craft.forge.service;
 
-import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
-import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Map;
+
 import org.bukkit.configuration.file.YamlConfiguration;
+
+import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
+import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 
 public final class BootstrapService {
 
     private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml");
     private static final List<String> STATIC_FILES = List.of("gui/forge_gui.yml", "gui/recipe_book.yml");
     private static final List<String> DEFAULT_DATA_FILES = List.of(
-        "blueprints/universal_blueprint.yml",
-        "blueprints/weapon_sword.yml",
-        "materials/forge_capacity_core.yml",
-        "materials/chi_yan_jing.yml",
-        "materials/flame_crystal.yml",
-        "materials/iron_essence.yml",
-        "materials/qing_feng_mu.yml",
-        "materials/xuan_tie_core.yml",
-        "materials/yun_lei_sha.yml",
-        "recipes/flame_sword.yml"
+            "blueprints/universal_blueprint.yml",
+            "blueprints/weapon_sword.yml",
+            "materials/forge_capacity_core.yml",
+            "materials/chi_yan_jing.yml",
+            "materials/flame_crystal.yml",
+            "materials/iron_essence.yml",
+            "materials/qing_feng_mu.yml",
+            "materials/xuan_tie_core.yml",
+            "materials/yun_lei_sha.yml",
+            "recipes/flame_sword.yml"
     );
 
     private final EmakiForgePlugin plugin;
@@ -87,15 +89,15 @@ public final class BootstrapService {
                     }
                 } catch (IOException exception) {
                     messages.warning("console.bootstrap_import_legacy_failed", Map.of(
-                        "path", source.toString(),
-                        "error", String.valueOf(exception.getMessage())
+                            "path", source.toString(),
+                            "error", String.valueOf(exception.getMessage())
                     ));
                 }
             });
         } catch (IOException exception) {
             messages.warning("console.bootstrap_scan_legacy_failed", Map.of(
-                "path", legacyRoot.toString(),
-                "error", String.valueOf(exception.getMessage())
+                    "path", legacyRoot.toString(),
+                    "error", String.valueOf(exception.getMessage())
             ));
         }
     }
@@ -111,8 +113,8 @@ public final class BootstrapService {
             }
         } catch (IOException exception) {
             messages.warning("console.bootstrap_copy_failed", Map.of(
-                "path", relativePath,
-                "error", String.valueOf(exception.getMessage())
+                    "path", relativePath,
+                    "error", String.valueOf(exception.getMessage())
             ));
         }
     }
@@ -139,8 +141,8 @@ public final class BootstrapService {
             YamlFiles.save(plugin.dataPath(relativePath).toFile(), runtime);
         } catch (IOException exception) {
             messages.warning("console.bootstrap_save_failed", Map.of(
-                "path", relativePath,
-                "error", String.valueOf(exception.getMessage())
+                    "path", relativePath,
+                    "error", String.valueOf(exception.getMessage())
             ));
         }
     }
@@ -174,15 +176,15 @@ public final class BootstrapService {
                     Files.copy(source, target, StandardCopyOption.COPY_ATTRIBUTES);
                 } catch (IOException exception) {
                     messages.warning("console.bootstrap_migrate_legacy_failed", Map.of(
-                        "path", source.toString(),
-                        "error", String.valueOf(exception.getMessage())
+                            "path", source.toString(),
+                            "error", String.valueOf(exception.getMessage())
                     ));
                 }
             });
         } catch (IOException exception) {
             messages.warning("console.bootstrap_scan_legacy_default_failed", Map.of(
-                "path", legacyRoot.toString(),
-                "error", String.valueOf(exception.getMessage())
+                    "path", legacyRoot.toString(),
+                    "error", String.valueOf(exception.getMessage())
             ));
         }
     }
@@ -234,7 +236,6 @@ public final class BootstrapService {
         replaceLangValue(runtime, "console.plugin_stopped", "<green>Emaki Forge <gray>已关闭!</gray>", "<green>已关闭!</green>");
     }
 
-
     private void ensureDirectory(Path path) {
         if (path == null) {
             return;
@@ -243,7 +244,7 @@ public final class BootstrapService {
             YamlFiles.ensureDirectory(path);
         } catch (IOException exception) {
             messages.warning("console.directory_create_failed", Map.of(
-                "path", path.toString()
+                    "path", path.toString()
             ));
         }
     }

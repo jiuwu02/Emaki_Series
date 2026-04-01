@@ -1,6 +1,13 @@
 package emaki.jiuwu.craft.corelib;
 
-import emaki.jiuwu.craft.corelib.economy.EconomyManager;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+
+import org.bukkit.plugin.java.JavaPlugin;
+
 import emaki.jiuwu.craft.corelib.action.ActionExecutor;
 import emaki.jiuwu.craft.corelib.action.ActionLineParser;
 import emaki.jiuwu.craft.corelib.action.ActionRegistry;
@@ -10,23 +17,18 @@ import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerCodecRegistry;
 import emaki.jiuwu.craft.corelib.assembly.EmakiNamespaceDefinition;
 import emaki.jiuwu.craft.corelib.assembly.EmakiNamespaceRegistry;
+import emaki.jiuwu.craft.corelib.economy.EconomyManager;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
-import emaki.jiuwu.craft.corelib.placeholder.ActionInlineTokenResolver;
+import emaki.jiuwu.craft.corelib.pdc.PdcService;
 import emaki.jiuwu.craft.corelib.placeholder.ActionContextPlaceholderResolver;
+import emaki.jiuwu.craft.corelib.placeholder.ActionInlineTokenResolver;
 import emaki.jiuwu.craft.corelib.placeholder.PlaceholderApiResolver;
 import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRegistry;
-import emaki.jiuwu.craft.corelib.pdc.PdcService;
 import emaki.jiuwu.craft.corelib.service.MessageService;
-import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
+import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
-import org.bukkit.plugin.java.JavaPlugin;
 
 public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvider {
 
@@ -51,8 +53,8 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private final ItemSourceService itemSourceService = new ItemSourceService();
     private final EmakiNamespaceRegistry namespaceRegistry = new EmakiNamespaceRegistry();
     private final EmakiItemLayerCodecRegistry itemLayerCodecRegistry = new EmakiItemLayerCodecRegistry();
-    private final EmakiItemAssemblyService itemAssemblyService =
-        new EmakiItemAssemblyService(namespaceRegistry, itemLayerCodecRegistry, itemSourceService);
+    private final EmakiItemAssemblyService itemAssemblyService
+            = new EmakiItemAssemblyService(namespaceRegistry, itemLayerCodecRegistry, itemSourceService);
 
     public static EmakiCoreLibPlugin getInstance() {
         return instance;
@@ -123,15 +125,15 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
             boolean copied = YamlFiles.copyResourceIfMissing(this, relativePath, target);
             if (!copied && !target.exists()) {
                 messageService.warning("loader.bundled_resource_missing", java.util.Map.of(
-                    "type", "资源",
-                    "path", target.getPath(),
-                    "resource", relativePath
+                        "type", "资源",
+                        "path", target.getPath(),
+                        "resource", relativePath
                 ));
             }
         } catch (Exception exception) {
             messageService.warning("loader.bundled_resource_write_failed", java.util.Map.of(
-                "path", target.getPath(),
-                "error", String.valueOf(exception.getMessage())
+                    "path", target.getPath(),
+                    "error", String.valueOf(exception.getMessage())
             ));
         }
     }
@@ -142,7 +144,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
             return CoreLibConfig.fromConfig(YamlFiles.load(file));
         } catch (Exception exception) {
             messageService.warning("console.action_config_load_failed", java.util.Map.of(
-                "error", String.valueOf(exception.getMessage())
+                    "error", String.valueOf(exception.getMessage())
             ));
             return CoreLibConfig.defaults();
         }
@@ -172,15 +174,15 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
                     Files.copy(source, target, StandardCopyOption.COPY_ATTRIBUTES);
                 } catch (IOException exception) {
                     messageService.warning("loader.legacy_resource_migrate_failed", java.util.Map.of(
-                        "path", source.toString(),
-                        "error", String.valueOf(exception.getMessage())
+                            "path", source.toString(),
+                            "error", String.valueOf(exception.getMessage())
                     ));
                 }
             });
         } catch (IOException exception) {
             messageService.warning("loader.legacy_resource_scan_failed", java.util.Map.of(
-                "path", legacyRoot.toString(),
-                "error", String.valueOf(exception.getMessage())
+                    "path", legacyRoot.toString(),
+                    "error", String.valueOf(exception.getMessage())
             ));
         }
     }

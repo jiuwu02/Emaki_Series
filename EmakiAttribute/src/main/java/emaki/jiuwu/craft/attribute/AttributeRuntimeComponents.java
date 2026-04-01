@@ -14,15 +14,16 @@ import emaki.jiuwu.craft.attribute.service.AttributeService;
 import emaki.jiuwu.craft.attribute.service.MessageService;
 
 record AttributeRuntimeComponents(AttributeRegistry attributeRegistry,
-                                  AttributeBalanceRegistry attributeBalanceRegistry,
-                                  DamageTypeRegistry damageTypeRegistry,
-                                  DefaultProfileRegistry defaultProfileRegistry,
-                                  LoreFormatRegistry loreFormatRegistry,
-                                  AttributePresetRegistry presetRegistry,
-                                  LanguageLoader languageLoader,
-                                  MessageService messageService,
-                                  AttributeService attributeService,
-                                  AttributeListener listener,
-                                  AttributeCommand command,
-                                  MythicBridge mythicBridge) {
+        AttributeBalanceRegistry attributeBalanceRegistry,
+        DamageTypeRegistry damageTypeRegistry,
+        DefaultProfileRegistry defaultProfileRegistry,
+        LoreFormatRegistry loreFormatRegistry,
+        AttributePresetRegistry presetRegistry,
+        LanguageLoader languageLoader,
+        MessageService messageService,
+        AttributeService attributeService,
+        AttributeListener listener,
+        AttributeCommand command,
+        MythicBridge mythicBridge) {
+
 }

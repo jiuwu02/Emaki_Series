@@ -22,10 +22,10 @@ public final class ItemSource {
 
     @Override
     public String toString() {
-        return "ItemSource{" +
-            "type=" + type +
-            ", identifier='" + identifier + '\'' +
-            '}';
+        return "ItemSource{"
+                + "type=" + type
+                + ", identifier='" + identifier + '\''
+                + '}';
     }
 
     @Override

@@ -1,15 +1,17 @@
 package emaki.jiuwu.craft.corelib.action.builtin;
 
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.bukkit.entity.Player;
+
 import emaki.jiuwu.craft.corelib.action.Action;
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.action.ActionErrorType;
 import emaki.jiuwu.craft.corelib.action.ActionParameter;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
 import emaki.jiuwu.craft.corelib.text.Texts;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import org.bukkit.entity.Player;
 
 abstract class BaseAction implements Action {
 
@@ -65,7 +67,7 @@ abstract class BaseAction implements Action {
 
     protected ActionResult requirePlayerResult(ActionContext context) {
         return requirePlayer(context) == null
-            ? ActionResult.failure(ActionErrorType.INVALID_STATE, "Action '" + id() + "' requires a player context.")
-            : ActionResult.ok();
+                ? ActionResult.failure(ActionErrorType.INVALID_STATE, "Action '" + id() + "' requires a player context.")
+                : ActionResult.ok();
     }
 }

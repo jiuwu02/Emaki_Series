@@ -1,12 +1,29 @@
 package emaki.jiuwu.craft.attribute.bridge;
 
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
+import org.bukkit.Bukkit;
+import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.Listener;
+
+import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.attribute.api.AttributeContribution;
 import emaki.jiuwu.craft.attribute.api.AttributeContributionProvider;
-import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.attribute.model.AttributeSnapshot;
 import emaki.jiuwu.craft.attribute.model.DamageContextVariables;
 import emaki.jiuwu.craft.attribute.model.ResourceState;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
+import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
+import emaki.jiuwu.craft.corelib.math.Numbers;
+import emaki.jiuwu.craft.corelib.text.Texts;
 import io.lumine.mythic.api.adapters.AbstractEntity;
 import io.lumine.mythic.api.config.MythicLineConfig;
 import io.lumine.mythic.api.mobs.MythicMob;
@@ -23,23 +40,6 @@ import io.lumine.mythic.core.skills.SkillExecutor;
 import io.lumine.mythic.core.skills.SkillMechanic;
 import io.lumine.mythic.core.utils.annotations.MythicCondition;
 import io.lumine.mythic.core.utils.annotations.MythicMechanic;
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import org.bukkit.Bukkit;
-import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Player;
-import org.bukkit.entity.Projectile;
-import org.bukkit.event.EventPriority;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.Listener;
-import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
-import emaki.jiuwu.craft.corelib.math.Numbers;
-import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class MythicBridge implements Listener {
 
@@ -161,22 +161,22 @@ public final class MythicBridge implements Listener {
     }
 
     @MythicMechanic(
-        name = "emaki_damage",
-        aliases = {"emakiattribute_damage", "attribute_damage"},
-        author = "Emaki",
-        description = "Deal attribute-based damage through Emaki_Attribute.",
-        version = "1.0.0",
-        premium = false
+            name = "emaki_damage",
+            aliases = {"emakiattribute_damage", "attribute_damage"},
+            author = "Emaki",
+            description = "Deal attribute-based damage through Emaki_Attribute.",
+            version = "1.0.0",
+            premium = false
     )
     public static final class DamageSkillMechanic extends SkillMechanic {
 
         private final AttributeService attributeService;
 
         public DamageSkillMechanic(SkillExecutor executor,
-                                   File file,
-                                   String mechanicName,
-                                   MythicLineConfig config,
-                                   AttributeService attributeService) {
+                File file,
+                String mechanicName,
+                MythicLineConfig config,
+                AttributeService attributeService) {
             super(executor, file, mechanicName, config);
             this.attributeService = attributeService;
         }
@@ -283,12 +283,12 @@ public final class MythicBridge implements Listener {
     }
 
     @MythicCondition(
-        name = "emaki_attribute",
-        aliases = {"emakiattribute_attribute", "attribute_value", "attribute_resource"},
-        author = "Emaki",
-        description = "Check an Emaki_Attribute snapshot or resource value.",
-        version = "1.0.0",
-        premium = false
+            name = "emaki_attribute",
+            aliases = {"emakiattribute_attribute", "attribute_value", "attribute_resource"},
+            author = "Emaki",
+            description = "Check an Emaki_Attribute snapshot or resource value.",
+            version = "1.0.0",
+            premium = false
     )
     public static final class AttributeCondition extends SkillCondition {
 
@@ -301,9 +301,9 @@ public final class MythicBridge implements Listener {
         private final double value2;
 
         public AttributeCondition(String conditionName,
-                                  String argument,
-                                  MythicLineConfig config,
-                                  AttributeService attributeService) {
+                String argument,
+                MythicLineConfig config,
+                AttributeService attributeService) {
             super(conditionName);
             this.attributeService = attributeService;
             this.attributeId = normalizeId(config.getString("attribute", config.getString("id", argument)));
@@ -359,13 +359,20 @@ public final class MythicBridge implements Listener {
             }
             double currentValue = readCurrentValue(livingEntity);
             return switch (operator) {
-                case ">", "gt" -> currentValue > value;
-                case ">=", "gte" -> currentValue >= value;
-                case "<", "lt" -> currentValue < value;
-                case "<=", "lte" -> currentValue <= value;
-                case "!=", "<>", "ne" -> currentValue != value;
-                case "between" -> currentValue >= Math.min(value, value2) && currentValue <= Math.max(value, value2);
-                default -> currentValue >= value;
+                case ">", "gt" ->
+                    currentValue > value;
+                case ">=", "gte" ->
+                    currentValue >= value;
+                case "<", "lt" ->
+                    currentValue < value;
+                case "<=", "lte" ->
+                    currentValue <= value;
+                case "!=", "<>", "ne" ->
+                    currentValue != value;
+                case "between" ->
+                    currentValue >= Math.min(value, value2) && currentValue <= Math.max(value, value2);
+                default ->
+                    currentValue >= value;
             };
         }
 
@@ -376,12 +383,18 @@ public final class MythicBridge implements Listener {
                     return 0D;
                 }
                 return switch (field) {
-                    case "default", "default_max" -> state.defaultMax();
-                    case "bonus", "bonus_max" -> state.bonusMax();
-                    case "max", "current_max" -> state.currentMax();
-                    case "percent" -> state.currentMax() <= 0D ? 0D : (state.currentValue() / state.currentMax()) * 100D;
-                    case "current", "current_value", "value" -> state.currentValue();
-                    default -> state.currentValue();
+                    case "default", "default_max" ->
+                        state.defaultMax();
+                    case "bonus", "bonus_max" ->
+                        state.bonusMax();
+                    case "max", "current_max" ->
+                        state.currentMax();
+                    case "percent" ->
+                        state.currentMax() <= 0D ? 0D : (state.currentValue() / state.currentMax()) * 100D;
+                    case "current", "current_value", "value" ->
+                        state.currentValue();
+                    default ->
+                        state.currentValue();
                 };
             }
             AttributeSnapshot snapshot = attributeService.collectCombatSnapshot(livingEntity);

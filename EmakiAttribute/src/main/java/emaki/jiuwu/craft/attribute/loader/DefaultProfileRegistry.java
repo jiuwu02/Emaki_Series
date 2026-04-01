@@ -1,13 +1,15 @@
 package emaki.jiuwu.craft.attribute.loader;
 
-import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
-import emaki.jiuwu.craft.attribute.model.DefaultProfile;
 import java.io.File;
-import java.util.Map;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+
 import org.bukkit.configuration.file.YamlConfiguration;
+
+import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
+import emaki.jiuwu.craft.attribute.model.DefaultProfile;
 
 public final class DefaultProfileRegistry extends DirectoryLoader<DefaultProfile> {
 
@@ -47,14 +49,14 @@ public final class DefaultProfileRegistry extends DirectoryLoader<DefaultProfile
             return false;
         }
         if (configuration.getConfigurationSection("resources") == null
-            || configuration.getConfigurationSection("resources").getKeys(false).isEmpty()) {
+                || configuration.getConfigurationSection("resources").getKeys(false).isEmpty()) {
             issue(
-                "loader.schema_missing_section",
-                Map.of(
-                    "type", typeName(),
-                    "file", file.getName(),
-                    "field", "resources"
-                )
+                    "loader.schema_missing_section",
+                    Map.of(
+                            "type", typeName(),
+                            "file", file.getName(),
+                            "field", "resources"
+                    )
             );
             return false;
         }

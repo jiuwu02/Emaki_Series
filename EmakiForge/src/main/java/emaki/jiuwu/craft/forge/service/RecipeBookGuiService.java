@@ -1,5 +1,18 @@
 package emaki.jiuwu.craft.forge.service;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import org.bukkit.Material;
+import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+
 import emaki.jiuwu.craft.corelib.gui.GuiItemBuilder;
 import emaki.jiuwu.craft.corelib.gui.GuiOpenRequest;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
@@ -11,21 +24,11 @@ import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.model.Recipe;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import org.bukkit.Material;
-import org.bukkit.entity.Player;
-import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryCloseEvent;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
 public final class RecipeBookGuiService {
 
     private static final class BookSession {
+
         private final Player player;
         private final int page;
         private final int totalPages;
@@ -76,13 +79,13 @@ public final class RecipeBookGuiService {
         }
         BookSession state = new BookSession(player, currentPage, totalPages, visibleRecipes);
         GuiSession guiSession = guiService.open(new GuiOpenRequest(
-            plugin,
-            player,
-            template,
-            Map.of("page", currentPage + 1, "pages", totalPages),
-            plugin.itemIdentifierService()::createItem,
-            (session, slot) -> renderSlot(state, slot),
-            new BookSessionHandler(state)
+                plugin,
+                player,
+                template,
+                Map.of("page", currentPage + 1, "pages", totalPages),
+                plugin.itemIdentifierService()::createItem,
+                (session, slot) -> renderSlot(state, slot),
+                new BookSessionHandler(state)
         ));
         if (guiSession == null) {
             return false;
@@ -112,29 +115,29 @@ public final class RecipeBookGuiService {
         }
         Map<String, GuiSlot> slots = new LinkedHashMap<>();
         slots.put("recipe_list", new GuiSlot(
-            "recipe_list",
-            defaultRecipeSlots(),
-            "recipe_list",
-            "BOOK",
-            new emaki.jiuwu.craft.corelib.gui.ItemComponentParser.ItemComponents(
-                "<gray>暂无配方</gray>",
-                true,
-                List.of("<gray>这一页没有更多配方</gray>"),
-                null,
-                null,
-                Map.of(),
-                List.of()
-            ),
-            Map.of()
+                "recipe_list",
+                defaultRecipeSlots(),
+                "recipe_list",
+                "BOOK",
+                new emaki.jiuwu.craft.corelib.gui.ItemComponentParser.ItemComponents(
+                        "<gray>暂无配方</gray>",
+                        true,
+                        List.of("<gray>这一页没有更多配方</gray>"),
+                        null,
+                        null,
+                        Map.of(),
+                        List.of()
+                ),
+                Map.of()
         ));
         slots.put("prev_page", new GuiSlot("prev_page", List.of(45), "prev_page", "ARROW",
-            emaki.jiuwu.craft.corelib.gui.ItemComponentParser.empty(), Map.of()));
+                emaki.jiuwu.craft.corelib.gui.ItemComponentParser.empty(), Map.of()));
         slots.put("next_page", new GuiSlot("next_page", List.of(53), "next_page", "ARROW",
-            emaki.jiuwu.craft.corelib.gui.ItemComponentParser.empty(), Map.of()));
+                emaki.jiuwu.craft.corelib.gui.ItemComponentParser.empty(), Map.of()));
         slots.put("close", new GuiSlot("close", List.of(49), "close", "BARRIER",
-            emaki.jiuwu.craft.corelib.gui.ItemComponentParser.empty(), Map.of()));
+                emaki.jiuwu.craft.corelib.gui.ItemComponentParser.empty(), Map.of()));
         slots.put("footer_fill", new GuiSlot("footer_fill", List.of(46, 47, 48, 50, 51, 52), null, "GRAY_STAINED_GLASS_PANE",
-            new emaki.jiuwu.craft.corelib.gui.ItemComponentParser.ItemComponents("<gray>", false, List.of(), null, null, Map.of(), List.of()), Map.of()));
+                new emaki.jiuwu.craft.corelib.gui.ItemComponentParser.ItemComponents("<gray>", false, List.of(), null, null, Map.of(), List.of()), Map.of()));
         return new GuiTemplate("recipe_book", "<dark_gray>配方图鉴</dark_gray>", 6, slots);
     }
 
@@ -145,11 +148,11 @@ public final class RecipeBookGuiService {
         String type = normalizedType(slot.definition());
         if (!"recipe_list".equals(type)) {
             return GuiItemBuilder.build(
-                slot.definition().item(),
-                slot.definition().components(),
-                1,
-                Map.of("page", state.page + 1, "pages", state.totalPages),
-                plugin.itemIdentifierService()::createItem
+                    slot.definition().item(),
+                    slot.definition().components(),
+                    1,
+                    Map.of("page", state.page + 1, "pages", state.totalPages),
+                    plugin.itemIdentifierService()::createItem
             );
         }
         if (slot.slotIndex() >= state.visibleRecipes.size()) {
@@ -160,8 +163,8 @@ public final class RecipeBookGuiService {
 
     private ItemStack createRecipeItem(Player player, Recipe recipe) {
         ItemStack itemStack = recipe.result() != null && recipe.result().outputItem() != null
-            ? plugin.itemIdentifierService().createItem(recipe.result().outputItem(), 1)
-            : null;
+                ? plugin.itemIdentifierService().createItem(recipe.result().outputItem(), 1)
+                : null;
         if (itemStack == null) {
             itemStack = new ItemStack(Material.BOOK);
         }
@@ -174,8 +177,8 @@ public final class RecipeBookGuiService {
             lore.add(unlocked ? "<green>可用</green>" : "<red>未解锁</red>");
             lore.add("<gray>配方ID: " + recipe.id() + "</gray>");
             lore.add(plugin.playerDataStore().hasCrafted(player.getUniqueId(), recipe.id())
-                ? "<green>已完成过锻造</green>"
-                : "<gray>尚未完成锻造</gray>");
+                    ? "<green>已完成过锻造</green>"
+                    : "<gray>尚未完成锻造</gray>");
             lore.add("<yellow>点击打开锻造界面</yellow>");
             itemMeta.lore(lore.stream().map(MiniMessages::parse).toList());
             clone.setItemMeta(itemMeta);
@@ -229,7 +232,8 @@ public final class RecipeBookGuiService {
                 return;
             }
             switch (normalizedType(slot.definition())) {
-                case "recipe_list" -> handleRecipeOpen(slot.slotIndex());
+                case "recipe_list" ->
+                    handleRecipeOpen(slot.slotIndex());
                 case "prev_page" -> {
                     if (state.page > 0) {
                         openRecipeBook(state.player, state.page - 1);
@@ -240,7 +244,8 @@ public final class RecipeBookGuiService {
                         openRecipeBook(state.player, state.page + 1);
                     }
                 }
-                case "close" -> state.player.closeInventory();
+                case "close" ->
+                    state.player.closeInventory();
                 default -> {
                 }
             }
