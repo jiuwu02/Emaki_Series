@@ -1,11 +1,13 @@
 package emaki.jiuwu.craft.corelib.exception;
 
-import emaki.jiuwu.craft.corelib.text.LogMessages;
-import emaki.jiuwu.craft.corelib.text.Texts;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import org.bukkit.plugin.Plugin;
+
+import emaki.jiuwu.craft.corelib.text.LogMessages;
+import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class ExceptionHandler {
 
@@ -56,9 +58,9 @@ public final class ExceptionHandler {
             return;
         }
         String messageKey = "error." + exception.errorCode().toLowerCase().replace("_", ".");
-        String userMessage = messages.get(messageKey, toPlaceholderMap(exception.context()));
+        String userMessage = messages.message(messageKey, toPlaceholderMap(exception.context()));
         if (Texts.isBlank(userMessage) || userMessage.equals(messageKey)) {
-            userMessage = messages.get("error.generic", toPlaceholderMap(exception.context()));
+            userMessage = messages.message("error.generic", toPlaceholderMap(exception.context()));
         }
         if (!Texts.isBlank(userMessage)) {
             plugin.getServer().getConsoleSender().sendMessage(userMessage);
