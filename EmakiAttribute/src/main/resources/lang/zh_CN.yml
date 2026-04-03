@@ -83,7 +83,10 @@ command:
 
   reload:
     no_permission: "<red>你没有权限执行此命令。</red>"
+    in_progress: "<yellow>属性系统正在重载中，请稍后。</yellow>"
+    started: "<gray>已提交异步重载任务，后续进度会继续回传。</gray>"
     success: "<green>已重新加载属性系统。</green>"
+    failed: "<red>属性系统重载失败: {error}</red>"
     summary: "<gray>属性 {attributes} 项，伤害类型 {damage_types} 项，默认组 {profiles} 个。</gray>"
 
   resync:

@@ -4,7 +4,7 @@ description:
   - "<gray>禁卫锻打底料"
   - "<gray>作为配方固定材料使用"
 
-item: "ce-neigeitems:forge_material_xuan_tie_core"
+item: "netherite_scrap"
 
 capacity_cost:
   type: "constant"

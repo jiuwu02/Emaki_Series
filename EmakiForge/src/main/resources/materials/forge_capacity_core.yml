@@ -4,7 +4,7 @@ description:
   - "<gray>可选材料: 提升本次锻造容量"
   - "<gray>投入 1 个, 可额外增加 20 点锻造容量"
 
-item: "ni-material_forge_capacity_core"
+item: "heart_of_the_sea"
 
 capacity_cost:
   type: "constant"

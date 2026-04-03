@@ -134,10 +134,12 @@ public final class DamageTypeRegistry extends DirectoryLoader<DamageTypeDefiniti
     }
 
     public DamageTypeDefinition resolve(String id) {
-        if (Texts.isBlank(id)) {
-            return null;
+        synchronized (stateLock) {
+            if (Texts.isBlank(id)) {
+                return null;
+            }
+            return aliasIndex.get(normalizeId(id));
         }
-        return aliasIndex.get(normalizeId(id));
     }
 
     private String resolveAttributeId(String id) {

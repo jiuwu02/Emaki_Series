@@ -4,7 +4,7 @@ description:
   - "<red>蕴含火焰之力的晶石"
   - "<gray>可为武器附加火焰属性"
 
-item: "ni-material_flame_crystal"
+item: "blaze_powder"
 
 capacity_cost:
   type: "constant"

@@ -76,6 +76,8 @@ public final class DefaultProfileRegistry extends DirectoryLoader<DefaultProfile
     }
 
     public List<DefaultProfile> mergedProfiles() {
-        return List.copyOf(mergedProfiles);
+        synchronized (stateLock) {
+            return List.copyOf(mergedProfiles);
+        }
     }
 }

@@ -14,7 +14,6 @@ final class ForgePlayerDataListener implements Listener {
 
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
-        plugin.playerDataStore().save(event.getPlayer().getUniqueId());
-        plugin.playerDataStore().clear(event.getPlayer().getUniqueId());
+        plugin.playerDataStore().saveAndClearAsync(event.getPlayer().getUniqueId());
     }
 }

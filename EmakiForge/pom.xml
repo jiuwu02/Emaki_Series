@@ -7,12 +7,12 @@
     <parent>
         <groupId>emaki.jiuwu.craft</groupId>
         <artifactId>emaki-parent</artifactId>
-        <version>1.0.0</version>
+        <version>2.0.0</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>emaki-forge</artifactId>
-    <version>1.10.0</version>
+    <version>2.0.0</version>
     <name>EmakiForge</name>
     <packaging>jar</packaging>
 

@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.attribute.listener;
 
 import java.util.Locale;
+import java.util.concurrent.CompletableFuture;
 
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
@@ -28,6 +29,7 @@ import org.bukkit.util.Vector;
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.attribute.config.AttributeConfig;
 import emaki.jiuwu.craft.attribute.config.DamageCauseRule;
+import emaki.jiuwu.craft.attribute.model.DamageContext;
 import emaki.jiuwu.craft.attribute.model.DamageContextVariables;
 import emaki.jiuwu.craft.attribute.model.ResolvedDamage;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
@@ -165,22 +167,26 @@ public final class AttributeListener implements Listener {
                 event.setCancelled(true);
                 return;
             }
-            ResolvedDamage resolvedDamage = resolveProjectileDamage(event, projectile, target, context);
-            if (resolvedDamage == null) {
-                event.setCancelled(true);
+            event.setCancelled(true);
+            DamageContext damageContext = createProjectileDamageContext(event, projectile, target, context);
+            if (damageContext == null) {
                 debugCombat(shootingEntity, target, projectile, "PROJECTILE_RESOLVE_EMPTY",
                         "投射物命中没有得到有效的 EA 伤害结果，命中流程到此结束。");
                 return;
             }
-            event.setCancelled(true);
-            debugCombat(shootingEntity, target, projectile, "PROJECTILE_RESOLVED",
-                    "投射物命中已解析 EA 伤害: " + describeResolvedDamage(resolvedDamage));
-            applySyntheticKnockback(target, projectile, resolvedDamage.finalDamage());
-            scheduleDamageApplication(() -> {
-                debugCombat(shootingEntity, target, projectile, "PROJECTILE_APPLY",
-                        "开始执行下一 tick 的投射物 EA 伤害落地。");
-                attributeService.applyResolvedDamage(resolvedDamage, projectile, 0D);
-            });
+            resolveAndApplyDamage(
+                    attributeService.resolveDamageApplicationAsync(damageContext),
+                    shootingEntity,
+                    target,
+                    projectile,
+                    projectile,
+                    "PROJECTILE_RESOLVE_EMPTY",
+                    "投射物命中没有得到有效的 EA 伤害结果，命中流程到此结束。",
+                    "PROJECTILE_RESOLVED",
+                    "投射物命中已解析 EA 伤害: ",
+                    "PROJECTILE_APPLY",
+                    "开始执行下一 tick 的投射物 EA 伤害落地。"
+            );
             return;
         }
         LivingEntity attacker = damager instanceof LivingEntity livingEntity ? livingEntity : null;
@@ -196,22 +202,26 @@ public final class AttributeListener implements Listener {
             event.setCancelled(true);
             return;
         }
-        ResolvedDamage resolvedDamage = resolveMeleeDamage(event, attacker, target, context);
-        if (resolvedDamage == null) {
-            event.setCancelled(true);
+        event.setCancelled(true);
+        DamageContext damageContext = createMeleeDamageContext(event, attacker, target, context);
+        if (damageContext == null) {
             debugCombat(attacker, target, null, "MELEE_RESOLVE_EMPTY",
                     "近战命中没有得到有效的 EA 伤害结果，命中流程到此结束。");
             return;
         }
-        event.setCancelled(true);
-        debugCombat(attacker, target, null, "MELEE_RESOLVED",
-                "近战命中已解析 EA 伤害: " + describeResolvedDamage(resolvedDamage));
-        applySyntheticKnockback(target, damager, resolvedDamage.finalDamage());
-        scheduleDamageApplication(() -> {
-            debugCombat(attacker, target, null, "MELEE_APPLY",
-                    "开始执行下一 tick 的近战 EA 伤害落地。");
-            attributeService.applyResolvedDamage(resolvedDamage, damager, 0D);
-        });
+        resolveAndApplyDamage(
+                attributeService.resolveDamageApplicationAsync(damageContext),
+                attacker,
+                target,
+                null,
+                damager,
+                "MELEE_RESOLVE_EMPTY",
+                "近战命中没有得到有效的 EA 伤害结果，命中流程到此结束。",
+                "MELEE_RESOLVED",
+                "近战命中已解析 EA 伤害: ",
+                "MELEE_APPLY",
+                "开始执行下一 tick 的近战 EA 伤害落地。"
+        );
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -252,7 +262,29 @@ public final class AttributeListener implements Listener {
                 event.setCancelled(true);
                 debugCombat(null, target, null, "ENVIRONMENT_FALLBACK",
                         "环境伤害未命中白名单，但启用了硬锁，改为使用默认伤害类型接管: cause=" + event.getCause().name());
-                scheduleDamageApplication(() -> attributeService.applyDamage(null, target, config.defaultDamageType(), 0D, baseContext(event, target)));
+                DamageContext damageContext = attributeService.createDamageContext(
+                        null,
+                        target,
+                        null,
+                        event.getCause(),
+                        config.defaultDamageType(),
+                        event.getDamage(),
+                        0D,
+                        baseContext(event, target)
+                );
+                resolveAndApplyDamage(
+                        attributeService.resolveDamageApplicationAsync(damageContext),
+                        null,
+                        target,
+                        null,
+                        null,
+                        "ENVIRONMENT_RESOLVE_EMPTY",
+                        "环境伤害没有得到有效的 EA 伤害结果，命中流程到此结束。",
+                        "ENVIRONMENT_ASYNC_RESOLVED",
+                        "环境伤害已解析 EA 伤害: ",
+                        "ENVIRONMENT_APPLY",
+                        "开始执行下一 tick 的环境 EA 伤害落地。"
+                );
                 return true;
             }
             debugCombat(null, target, null, "ENVIRONMENT_IGNORED",
@@ -284,7 +316,29 @@ public final class AttributeListener implements Listener {
                 + ", damageType=" + damageTypeId
                 + ", sourceDamage=" + formatNumber(sourceDamage)
                 + ", baseDamage=" + formatNumber(baseDamage));
-        scheduleDamageApplication(() -> attributeService.applyDamage(null, target, damageTypeId, baseDamage, resolvedContext));
+        DamageContext damageContext = attributeService.createDamageContext(
+                null,
+                target,
+                null,
+                event.getCause(),
+                damageTypeId,
+                sourceDamage,
+                baseDamage,
+                resolvedContext
+        );
+        resolveAndApplyDamage(
+                attributeService.resolveDamageApplicationAsync(damageContext),
+                null,
+                target,
+                null,
+                null,
+                "ENVIRONMENT_RESOLVE_EMPTY",
+                "环境伤害没有得到有效的 EA 伤害结果，命中流程到此结束。",
+                "ENVIRONMENT_ASYNC_RESOLVED",
+                "环境伤害已解析 EA 伤害: ",
+                "ENVIRONMENT_APPLY",
+                "开始执行下一 tick 的环境 EA 伤害落地。"
+        );
         return true;
     }
 
@@ -314,14 +368,14 @@ public final class AttributeListener implements Listener {
         plugin.getServer().getScheduler().runTask(plugin, action);
     }
 
-    private ResolvedDamage resolveMeleeDamage(EntityDamageByEntityEvent event,
+    private DamageContext createMeleeDamageContext(EntityDamageByEntityEvent event,
             LivingEntity attacker,
             LivingEntity target,
             DamageContextVariables context) {
         if (target == null) {
             return null;
         }
-        return attributeService.resolveDamageApplication(attributeService.createDamageContext(
+        return attributeService.createDamageContext(
                 attacker,
                 target,
                 null,
@@ -330,10 +384,10 @@ public final class AttributeListener implements Listener {
                 event.getDamage(),
                 0D,
                 context
-        ));
+        );
     }
 
-    private ResolvedDamage resolveProjectileDamage(EntityDamageByEntityEvent event,
+    private DamageContext createProjectileDamageContext(EntityDamageByEntityEvent event,
             Projectile projectile,
             LivingEntity target,
             DamageContextVariables context) {
@@ -350,7 +404,7 @@ public final class AttributeListener implements Listener {
         var attackerSnapshot = snapshot.attackSnapshot();
         var targetSnapshot = attributeService.collectCombatSnapshot(target);
         String damageTypeId = snapshot.damageTypeId();
-        return attributeService.resolveDamageApplication(attributeService.createDamageContext(
+        return attributeService.createDamageContext(
                 shooter,
                 target,
                 projectile,
@@ -361,7 +415,50 @@ public final class AttributeListener implements Listener {
                 attackerSnapshot,
                 targetSnapshot,
                 context
-        ));
+        );
+    }
+
+    private void resolveAndApplyDamage(CompletableFuture<ResolvedDamage> future,
+            LivingEntity attacker,
+            LivingEntity target,
+            Projectile projectile,
+            Entity visualSource,
+            String emptyPhase,
+            String emptyDetail,
+            String resolvedPhase,
+            String resolvedPrefix,
+            String applyPhase,
+            String applyDetail) {
+        if (future == null) {
+            debugCombat(attacker, target, projectile, emptyPhase, emptyDetail);
+            return;
+        }
+        future.whenComplete((resolvedDamage, throwable) -> scheduleDamageApplication(() -> {
+            if (throwable != null) {
+                debugCombat(attacker, target, projectile, "ASYNC_DAMAGE_FAILED",
+                        "异步伤害解析失败: " + rootCauseMessage(throwable));
+                return;
+            }
+            if (resolvedDamage == null) {
+                debugCombat(attacker, target, projectile, emptyPhase, emptyDetail);
+                return;
+            }
+            debugCombat(attacker, target, projectile, resolvedPhase, resolvedPrefix + describeResolvedDamage(resolvedDamage));
+            applySyntheticKnockback(target, visualSource, resolvedDamage.finalDamage());
+            debugCombat(attacker, target, projectile, applyPhase, applyDetail);
+            attributeService.applyResolvedDamage(resolvedDamage, visualSource, 0D);
+        }));
+    }
+
+    private String rootCauseMessage(Throwable throwable) {
+        Throwable current = throwable;
+        while (current != null && current.getCause() != null && current.getCause() != current) {
+            current = current.getCause();
+        }
+        if (current == null || current.getMessage() == null || current.getMessage().isBlank()) {
+            return "unknown";
+        }
+        return current.getMessage();
     }
 
     private void applySyntheticKnockback(LivingEntity target, Entity source, double finalDamage) {

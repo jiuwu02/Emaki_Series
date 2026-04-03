@@ -30,6 +30,14 @@ public interface Action {
         return false;
     }
 
+    default ActionExecutionMode executionMode() {
+        return ActionExecutionMode.SYNC;
+    }
+
+    default long timeoutMillis() {
+        return 30_000L;
+    }
+
     default ActionResult validate(Map<String, String> arguments) {
         Set<String> known = new LinkedHashSet<>();
         for (ActionParameter parameter : parameters()) {

@@ -4,7 +4,7 @@ description:
   - "<gray>可选材料: 炽热增幅"
   - "<gray>偏向火焰与暴击"
 
-item: "ce-neigeitems:forge_material_chi_yan_jing"
+item: "fire_charge"
 
 capacity_cost:
   type: "constant"

@@ -30,9 +30,10 @@ slots:
     slots: [13]
     type: "target_item"
     item: "LIGHT_BLUE_STAINED_GLASS_PANE"
-    display_name: "<aqua>放入目标物品</aqua>"
+    display_name: "<aqua>结果隐藏</aqua>"
     lore:
-      - "<gray>放入要进行锻造的主物品"
+      - "<gray>锻造过程中不会展示成品"
+      - "<gray>请在完成锻造后查看最终结果"
 
   capacity_display:
     slots: [22]
@@ -47,10 +48,11 @@ slots:
   result_preview:
     slots: [24]
     type: "result_preview"
-    item: "ANVIL"
-    display_name: "<gold>结果预览</gold>"
+    item: "BARRIER"
+    display_name: "<red>随机结果不预览</red>"
     lore:
-      - "<gray>满足配方后会显示结果物品"
+      - "<gray>为防止刷随机属性，此处不显示预览"
+      - "<gray>请确认图纸与材料后直接进行锻造"
 
   required_materials:
     slots: [19, 20, 21]

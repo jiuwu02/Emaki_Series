@@ -78,8 +78,7 @@ final class ForgeGuiStateSupport {
         if (state.recipe() != null) {
             return state.recipe();
         }
-        if (state.targetItem() == null
-                && state.blueprintItems().isEmpty()
+        if (state.blueprintItems().isEmpty()
                 && state.requiredMaterialItems().isEmpty()
                 && state.optionalMaterialItems().isEmpty()) {
             return null;
@@ -105,12 +104,9 @@ final class ForgeGuiStateSupport {
         if (state == null) {
             return 0;
         }
-        int max = state.recipe() != null && state.recipe().forgeCapacity() > 0 ? state.recipe().forgeCapacity() : 0;
-        for (ItemStack itemStack : state.blueprintItems().values()) {
-            Blueprint blueprint = findBlueprintBySource(plugin.itemIdentifierService().identifyItem(itemStack));
-            if (blueprint != null) {
-                max = Math.max(max, blueprint.forgeCapacity());
-            }
+        int max = resolveConfiguredCapacity(state);
+        if (max <= 0) {
+            max = resolveBlueprintCapacity(state.blueprintItems().values());
         }
         for (ItemStack itemStack : state.optionalMaterialItems().values()) {
             ForgeMaterial material = findMaterialBySource(plugin.itemIdentifierService().identifyItem(itemStack));
@@ -164,8 +160,7 @@ final class ForgeGuiStateSupport {
                 state.optionalMaterialItems().put(slot, itemStack);
             }
         }
-        List<Integer> targetSlots = slotsForType(state, "target_item");
-        state.setTargetItem(targetSlots.isEmpty() ? null : cloneNonAir(inventory.getItem(targetSlots.get(0))));
+        state.setTargetItem(null);
     }
 
     public MaterialSlotRules resolveMaterialSlotRules(ForgeGuiSession state) {
@@ -173,7 +168,7 @@ final class ForgeGuiStateSupport {
         List<String> optionalWhitelist = new ArrayList<>();
         List<String> optionalBlacklist = new ArrayList<>();
         boolean optionalAny = false;
-        List<Recipe> candidateRecipes = resolveCandidateRecipes(state);
+        List<Recipe> candidateRecipes = new ArrayList<>(resolveCandidateRecipes(state));
         if (candidateRecipes.isEmpty()) {
             candidateRecipes.addAll(plugin.recipeLoader().all().values());
             optionalAny = true;
@@ -212,29 +207,19 @@ final class ForgeGuiStateSupport {
         if (state.recipe() != null) {
             return List.of(state.recipe());
         }
-        if (state.blueprintItems().isEmpty()) {
+        List<ItemStack> blueprints = new ArrayList<>(state.blueprintItems().values());
+        if (blueprints.isEmpty()) {
             return List.of();
         }
         List<Recipe> result = new ArrayList<>();
-        List<ItemStack> blueprints = new ArrayList<>(state.blueprintItems().values());
         for (Recipe recipe : plugin.recipeLoader().all().values()) {
-            boolean matches = true;
-            for (Recipe.BlueprintRequirement requirement : recipe.blueprintRequirements()) {
-                if ("all_of".equals(Texts.lower(requirement.requirementMode()))) {
-                    for (Recipe.BlueprintOption option : requirement.blueprintOptions()) {
-                        if (countBlueprints(blueprints, option.selector()) < option.count()) {
-                            matches = false;
-                            break;
-                        }
-                    }
-                }
-                if (!matches) {
-                    break;
-                }
+            if (recipe == null) {
+                continue;
             }
-            if (matches) {
-                result.add(recipe);
+            if (!blueprints.isEmpty() && !matchesBlueprintRequirements(recipe, blueprints)) {
+                continue;
             }
+            result.add(recipe);
         }
         return result;
     }
@@ -255,10 +240,11 @@ final class ForgeGuiStateSupport {
         if (rules.optionalBlacklist().contains(materialId)) {
             return false;
         }
-        if (rules.optionalAny()) {
-            return true;
+        boolean explicitlyWhitelisted = rules.optionalWhitelist().contains(materialId);
+        if (rules.requiredIds().contains(materialId) && !explicitlyWhitelisted) {
+            return false;
         }
-        return rules.optionalWhitelist().contains(materialId);
+        return rules.optionalAny() || explicitlyWhitelisted;
     }
 
     public Blueprint findBlueprintBySource(ItemSource source) {
@@ -291,9 +277,6 @@ final class ForgeGuiStateSupport {
         returnItemCollection(state.player(), state.blueprintItems().values());
         returnItemCollection(state.player(), state.requiredMaterialItems().values());
         returnItemCollection(state.player(), state.optionalMaterialItems().values());
-        if (state.targetItem() != null) {
-            returnItemCollection(state.player(), List.of(state.targetItem()));
-        }
         state.clearStoredItems();
     }
 
@@ -320,15 +303,136 @@ final class ForgeGuiStateSupport {
         return itemStack.clone();
     }
 
-    private int countBlueprints(List<ItemStack> blueprints, Map<String, Object> selector) {
-        int total = 0;
+    private boolean matchesBlueprintRequirements(Recipe recipe, List<ItemStack> blueprints) {
+        if (recipe == null) {
+            return false;
+        }
+        if (recipe.blueprintRequirements().isEmpty()) {
+            return true;
+        }
+        Map<String, Integer> available = blueprintAvailability(blueprints);
+        for (Recipe.BlueprintRequirement requirement : recipe.blueprintRequirements()) {
+            if ("all_of".equals(Texts.lower(requirement.requirementMode()))) {
+                for (Recipe.BlueprintOption option : requirement.blueprintOptions()) {
+                    if (countBlueprints(available, option.selector()) < option.count()) {
+                        return false;
+                    }
+                    reserveBlueprints(available, option.selector(), option.count());
+                }
+                continue;
+            }
+            Recipe.BlueprintOption satisfied = null;
+            for (Recipe.BlueprintOption option : requirement.blueprintOptions()) {
+                if (countBlueprints(available, option.selector()) >= option.count()) {
+                    satisfied = option;
+                    break;
+                }
+            }
+            if (satisfied == null) {
+                return false;
+            }
+            reserveBlueprints(available, satisfied.selector(), satisfied.count());
+        }
+        return true;
+    }
+
+    private Map<String, Integer> blueprintAvailability(List<ItemStack> blueprints) {
+        Map<String, Integer> available = new LinkedHashMap<>();
+        if (blueprints == null) {
+            return available;
+        }
         for (ItemStack itemStack : blueprints) {
             Blueprint blueprint = findBlueprintBySource(plugin.itemIdentifierService().identifyItem(itemStack));
-            if (blueprint != null && blueprint.matchesSelector(selector)) {
-                total += itemStack.getAmount();
+            if (blueprint == null) {
+                continue;
+            }
+            available.merge(Texts.lower(blueprint.id()), itemStack.getAmount(), Integer::sum);
+        }
+        return available;
+    }
+
+    private int countBlueprints(Map<String, Integer> available, Map<String, Object> selector) {
+        if (available == null || selector == null) {
+            return 0;
+        }
+        String kind = Texts.lower(selector.get("kind"));
+        String value = Texts.lower(selector.get("value"));
+        if ("id".equals(kind)) {
+            return available.getOrDefault(value, 0);
+        }
+        if (!"tag".equals(kind) || plugin.blueprintLoader() == null) {
+            return 0;
+        }
+        int total = 0;
+        for (Blueprint blueprint : plugin.blueprintLoader().getByTag(value)) {
+            if (blueprint != null) {
+                total += available.getOrDefault(Texts.lower(blueprint.id()), 0);
             }
         }
         return total;
+    }
+
+    private void reserveBlueprints(Map<String, Integer> available, Map<String, Object> selector, int count) {
+        if (available == null || selector == null || count <= 0) {
+            return;
+        }
+        String kind = Texts.lower(selector.get("kind"));
+        String value = Texts.lower(selector.get("value"));
+        int remaining = count;
+        if ("id".equals(kind)) {
+            int reserved = Math.min(remaining, available.getOrDefault(value, 0));
+            available.put(value, available.getOrDefault(value, 0) - reserved);
+            return;
+        }
+        if (!"tag".equals(kind) || plugin.blueprintLoader() == null) {
+            return;
+        }
+        for (Blueprint blueprint : plugin.blueprintLoader().getByTag(value)) {
+            if (blueprint == null || remaining <= 0) {
+                continue;
+            }
+            String blueprintId = Texts.lower(blueprint.id());
+            int reserved = Math.min(remaining, available.getOrDefault(blueprintId, 0));
+            if (reserved <= 0) {
+                continue;
+            }
+            available.put(blueprintId, available.getOrDefault(blueprintId, 0) - reserved);
+            remaining -= reserved;
+        }
+    }
+
+    private int resolveConfiguredCapacity(ForgeGuiSession state) {
+        if (state == null) {
+            return 0;
+        }
+        if (state.recipe() != null && state.recipe().forgeCapacity() > 0) {
+            return state.recipe().forgeCapacity();
+        }
+        if (state.previewRecipe() != null && state.previewRecipe().forgeCapacity() > 0) {
+            return state.previewRecipe().forgeCapacity();
+        }
+        List<Recipe> candidates = resolveCandidateRecipes(state);
+        if (candidates.size() == 1) {
+            Recipe candidate = candidates.get(0);
+            if (candidate != null && candidate.forgeCapacity() > 0) {
+                return candidate.forgeCapacity();
+            }
+        }
+        return 0;
+    }
+
+    private int resolveBlueprintCapacity(Iterable<ItemStack> blueprintItems) {
+        int max = 0;
+        if (blueprintItems == null) {
+            return max;
+        }
+        for (ItemStack itemStack : blueprintItems) {
+            Blueprint blueprint = findBlueprintBySource(plugin.itemIdentifierService().identifyItem(itemStack));
+            if (blueprint != null) {
+                max = Math.max(max, blueprint.forgeCapacity());
+            }
+        }
+        return max;
     }
 
     private void returnItemCollection(Player player, Iterable<ItemStack> items) {

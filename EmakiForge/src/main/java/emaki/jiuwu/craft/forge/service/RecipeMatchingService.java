@@ -25,6 +25,7 @@ final class RecipeMatchingService {
 
     RecipeMatch findMatchingRecipe(Player player, GuiItems guiItems) {
         ValidationResult firstError = null;
+        ValidationResult firstTargetError = null;
         for (Recipe recipe : safeRecipes()) {
             ValidationResult validation = validatorFactory.apply(player, recipe).validate(guiItems);
             if (validation.success()) {
@@ -33,16 +34,20 @@ final class RecipeMatchingService {
             if (recipe.targetItemSource() != null
                     && ("forge.error.no_target_item".equals(validation.errorKey())
                     || "forge.error.invalid_target_item".equals(validation.errorKey()))) {
+                if (firstTargetError == null) {
+                    firstTargetError = validation;
+                }
                 continue;
             }
             if (firstError == null) {
                 firstError = validation;
             }
         }
+        ValidationResult resolvedError = firstError != null ? firstError : firstTargetError;
         return new RecipeMatch(
                 null,
-                firstError == null ? "forge.error.no_recipe" : firstError.errorKey(),
-                firstError == null ? Map.of() : firstError.replacements()
+                resolvedError == null ? "forge.error.no_recipe" : resolvedError.errorKey(),
+                resolvedError == null ? Map.of() : resolvedError.replacements()
         );
     }
 

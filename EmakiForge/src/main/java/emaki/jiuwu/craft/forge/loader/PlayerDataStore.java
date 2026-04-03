@@ -3,10 +3,15 @@ package emaki.jiuwu.craft.forge.loader;
 import java.io.File;
 import java.io.IOException;
 import java.time.Instant;
-import java.util.LinkedHashMap;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 
+import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.model.PlayerData;
@@ -14,7 +19,7 @@ import emaki.jiuwu.craft.forge.model.PlayerData;
 public final class PlayerDataStore {
 
     private final EmakiForgePlugin plugin;
-    private final Map<String, PlayerData> cache = new LinkedHashMap<>();
+    private final PlayerDataCache cache = new PlayerDataCache();
 
     public PlayerDataStore(EmakiForgePlugin plugin) {
         this.plugin = plugin;
@@ -32,50 +37,129 @@ public final class PlayerDataStore {
     }
 
     public PlayerData get(UUID uuid) {
-        return cache.computeIfAbsent(uuid.toString(), this::loadPlayerData);
+        return cache.getOrLoad(uuid.toString(), () -> loadPlayerData(uuid.toString()));
     }
 
     public boolean save(UUID uuid) {
-        PlayerData data = cache.get(uuid.toString());
-        return data != null && save(uuid.toString(), data);
+        return saveAsync(uuid).join();
     }
 
     public int saveAll() {
-        int saved = 0;
-        for (Map.Entry<String, PlayerData> entry : cache.entrySet()) {
-            if (save(entry.getKey(), entry.getValue())) {
-                saved++;
-            }
+        return saveAllAsync().join();
+    }
+
+    public CompletableFuture<Boolean> saveAsync(UUID uuid) {
+        if (uuid == null) {
+            return CompletableFuture.completedFuture(false);
         }
-        return saved;
+        String key = uuid.toString();
+        PlayerData snapshot = cache.snapshot(key);
+        return snapshot == null
+                ? CompletableFuture.completedFuture(false)
+                : saveAsync(key, snapshot).thenApply(saved -> {
+                    if (saved) {
+                        cache.markClean(key);
+                    }
+                    return saved;
+                });
+    }
+
+    public CompletableFuture<Boolean> saveAndClearAsync(UUID uuid) {
+        if (uuid == null) {
+            return CompletableFuture.completedFuture(false);
+        }
+        String key = uuid.toString();
+        PlayerData snapshot = cache.snapshot(key);
+        if (snapshot == null) {
+            cache.remove(key);
+            return CompletableFuture.completedFuture(false);
+        }
+        return saveAsync(key, snapshot)
+                .thenApply(saved -> {
+                    if (saved) {
+                        cache.remove(key);
+                    }
+                    return saved;
+                });
+    }
+
+    public CompletableFuture<Integer> saveAllAsync() {
+        Map<String, PlayerData> dirtyEntries = cache.snapshotDirtyEntries();
+        if (dirtyEntries.isEmpty()) {
+            return CompletableFuture.completedFuture(0);
+        }
+        List<CompletableFuture<Boolean>> futures = new ArrayList<>();
+        for (Map.Entry<String, PlayerData> entry : dirtyEntries.entrySet()) {
+            futures.add(saveAsync(entry.getKey(), entry.getValue()));
+        }
+        return CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new))
+                .thenApply(ignored -> {
+                    int saved = 0;
+                    int index = 0;
+                    for (Map.Entry<String, PlayerData> entry : dirtyEntries.entrySet()) {
+                        if (Boolean.TRUE.equals(futures.get(index++).join())) {
+                            cache.markClean(entry.getKey());
+                            saved++;
+                        }
+                    }
+                    return saved;
+                });
+    }
+
+    public CompletableFuture<Void> waitForPendingSaves() {
+        AsyncYamlFiles asyncYamlFiles = asyncYamlFiles();
+        if (asyncYamlFiles == null) {
+            return CompletableFuture.completedFuture(null);
+        }
+        return asyncYamlFiles.waitForIdle().exceptionally(throwable -> null);
     }
 
     public void clear(UUID uuid) {
-        cache.remove(uuid.toString());
+        if (uuid != null) {
+            cache.remove(uuid.toString());
+        }
     }
 
     public void recordCraft(UUID uuid, String recipeId) {
-        get(uuid).recordCraft(recipeId, Instant.now().toString());
+        if (uuid == null) {
+            return;
+        }
+        cache.update(uuid.toString(), () -> loadPlayerData(uuid.toString()), data -> data.recordCraft(recipeId, Instant.now().toString()));
     }
 
     public boolean hasCrafted(UUID uuid, String recipeId) {
-        return get(uuid).hasCrafted(recipeId);
+        if (uuid == null) {
+            return false;
+        }
+        return cache.read(uuid.toString(), () -> loadPlayerData(uuid.toString()), data -> data.hasCrafted(recipeId));
     }
 
     public int craftCount(UUID uuid, String recipeId) {
-        return get(uuid).history(recipeId).craftCount();
+        if (uuid == null) {
+            return 0;
+        }
+        return cache.read(uuid.toString(), () -> loadPlayerData(uuid.toString()), data -> data.history(recipeId).craftCount());
     }
 
     public int guaranteeCounter(UUID uuid, String key) {
-        return get(uuid).guaranteeCounter(key);
+        if (uuid == null) {
+            return 0;
+        }
+        return cache.read(uuid.toString(), () -> loadPlayerData(uuid.toString()), data -> data.guaranteeCounter(key));
     }
 
     public void incrementGuaranteeCounter(UUID uuid, String key) {
-        get(uuid).incrementGuaranteeCounter(key);
+        if (uuid == null) {
+            return;
+        }
+        cache.update(uuid.toString(), () -> loadPlayerData(uuid.toString()), data -> data.incrementGuaranteeCounter(key));
     }
 
     public void resetGuaranteeCounter(UUID uuid, String key) {
-        get(uuid).resetGuaranteeCounter(key);
+        if (uuid == null) {
+            return;
+        }
+        cache.update(uuid.toString(), () -> loadPlayerData(uuid.toString()), data -> data.resetGuaranteeCounter(key));
     }
 
     private PlayerData loadPlayerData(String uuid) {
@@ -86,17 +170,46 @@ public final class PlayerDataStore {
         return PlayerData.fromConfig(uuid, YamlFiles.load(file));
     }
 
-    private boolean save(String uuid, PlayerData data) {
+    private CompletableFuture<Boolean> saveAsync(String uuid, PlayerData snapshot) {
+        return saveAsync(uuid, snapshot == null ? Map.of() : snapshot.toMap());
+    }
+
+    private CompletableFuture<Boolean> saveAsync(String uuid, Map<String, Object> dataSnapshot) {
         File file = plugin.dataPath("data", uuid + ".yml").toFile();
-        try {
-            YamlFiles.save(file, data.toMap());
-            return true;
-        } catch (IOException exception) {
-            plugin.messageService().warning("console.player_data_save_failed", Map.of(
-                    "uuid", uuid,
-                    "error", String.valueOf(exception.getMessage())
-            ));
-            return false;
+        AsyncYamlFiles asyncYamlFiles = asyncYamlFiles();
+        if (asyncYamlFiles == null) {
+            try {
+                YamlFiles.save(file, dataSnapshot);
+                return CompletableFuture.completedFuture(true);
+            } catch (IOException exception) {
+                logSaveFailure(uuid, exception);
+                return CompletableFuture.completedFuture(false);
+            }
         }
+        return asyncYamlFiles.save(file, dataSnapshot)
+                .thenApply(ignored -> true)
+                .exceptionally(throwable -> {
+                    logSaveFailure(uuid, unwrap(throwable));
+                    return false;
+                });
+    }
+
+    private AsyncYamlFiles asyncYamlFiles() {
+        EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.getInstance();
+        return coreLib == null ? null : coreLib.asyncYamlFiles();
+    }
+
+    private void logSaveFailure(String uuid, Throwable throwable) {
+        plugin.messageService().warning("console.player_data_save_failed", Map.of(
+                "uuid", uuid,
+                "error", String.valueOf(throwable == null ? "unknown" : throwable.getMessage())
+        ));
+    }
+
+    private Throwable unwrap(Throwable throwable) {
+        if (throwable instanceof CompletionException completionException && completionException.getCause() != null) {
+            return completionException.getCause();
+        }
+        return throwable;
     }
 }

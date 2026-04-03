@@ -2,7 +2,7 @@
 # 版本: 1.2
 
 # 语言文件版本号 (请勿修改)
-lang_version: "1.2"
+lang_version: "1.3"
 
 # 通用消息
 general:
@@ -120,6 +120,10 @@ console:
   loader_exception: "<red>加载{type}配置时发生异常 <yellow>{path}</yellow>: <gray>{error}</gray>"
   forge_consume_plan_mismatch: "<yellow>{category}消耗规划异常 <gray>配方={recipe}, 模式={mode}, 需求={required}, 预留={reserved}</gray>"
   forge_consume_mismatch: "<yellow>{category}消耗数量异常 <gray>配方={recipe}, 标识={id}, 需求={required}, 实扣={removed}</gray>"
+  lore_search_not_found: "<yellow>Lore 搜索插入未找到目标: 来源 <red>{source}</red>，动作 <red>{action}</red>，匹配 <red>{pattern}</red></yellow>"
+  lore_invalid_action_name: "<yellow>Lore 搜索操作名无效: 来源 <red>{source}</red>，动作 <red>{action}</red> <gray>({error})</gray></yellow>"
+  lore_invalid_regex: "<yellow>Lore 搜索正则无效: 来源 <red>{source}</red>，动作 <red>{action}</red>，表达式 <red>{pattern}</red> <gray>({error})</gray></yellow>"
+  lore_invalid_search_insert_config: "<yellow>Lore 搜索插入配置无效: 来源 <red>{source}</red>，动作 <red>{action}</red> <gray>({error})</gray></yellow>"
 
 loader:
   lang_directory_create_failed: "<red>无法创建语言目录: {path}</red>"
@@ -160,6 +164,9 @@ forge:
     material_count_exceeded: "<red>可选材料数量超限!</red>"
     item_create: "<red>无法创建结果物品!</red>"
     action_failed: "<red>锻造操作执行失败: {reason}</red>"
+    lore_search_not_found: "<red>未找到 Lore 搜索插入目标: {pattern}</red>"
+    lore_invalid_action_name: "<red>Lore 搜索操作无效: {action}</red>"
+    lore_invalid_regex: "<red>Lore 搜索正则无效: {pattern}</red>"
 
   success:
     crafted: "<green>锻造成功! 获得了 {item}</green>"

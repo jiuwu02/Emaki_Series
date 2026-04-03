@@ -218,41 +218,47 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
     }
 
     public AttributeDefinition resolve(String id) {
-        if (Texts.isBlank(id)) {
-            return null;
+        synchronized (stateLock) {
+            if (Texts.isBlank(id)) {
+                return null;
+            }
+            return aliasIndex.get(normalizeId(id));
         }
-        return aliasIndex.get(normalizeId(id));
     }
 
     public AttributeDefinition matchLine(String normalizedLine) {
-        if (Texts.isBlank(normalizedLine)) {
+        synchronized (stateLock) {
+            if (Texts.isBlank(normalizedLine)) {
+                return null;
+            }
+            for (PatternEntry entry : orderedPatterns) {
+                if (entry.pattern().matcher(normalizedLine).find()) {
+                    return entry.definition();
+                }
+            }
             return null;
         }
-        for (PatternEntry entry : orderedPatterns) {
-            if (entry.pattern().matcher(normalizedLine).find()) {
-                return entry.definition();
-            }
-        }
-        return null;
     }
 
     public String extractMatchedValue(String normalizedLine, AttributeDefinition definition) {
-        if (Texts.isBlank(normalizedLine) || definition == null) {
-            return null;
-        }
-        for (PatternEntry entry : orderedPatterns) {
-            if (!entry.definition().id().equals(definition.id())) {
-                continue;
+        synchronized (stateLock) {
+            if (Texts.isBlank(normalizedLine) || definition == null) {
+                return null;
             }
-            var matcher = entry.pattern().matcher(normalizedLine);
-            if (matcher.find()) {
-                String capturedValue = extractCapturedValue(matcher, definition);
-                if (Texts.isNotBlank(capturedValue)) {
-                    return capturedValue;
+            for (PatternEntry entry : orderedPatterns) {
+                if (!entry.definition().id().equals(definition.id())) {
+                    continue;
+                }
+                var matcher = entry.pattern().matcher(normalizedLine);
+                if (matcher.find()) {
+                    String capturedValue = extractCapturedValue(matcher, definition);
+                    if (Texts.isNotBlank(capturedValue)) {
+                        return capturedValue;
+                    }
                 }
             }
+            return null;
         }
-        return null;
     }
 
     private List<PatternEntry> compilePatterns(AttributeDefinition definition) {

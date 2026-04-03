@@ -7,6 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -14,6 +15,11 @@ import java.util.regex.Pattern;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import emaki.jiuwu.craft.corelib.assembly.lore.LoreSearchInsertProcessor;
+import emaki.jiuwu.craft.corelib.assembly.lore.LoreSearchInsertResult;
+import emaki.jiuwu.craft.corelib.assembly.lore.LoreSearchInsertStatus;
+import emaki.jiuwu.craft.corelib.assembly.lore.SearchInsertConfig;
+import emaki.jiuwu.craft.corelib.assembly.lore.SearchInsertValidationException;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -25,8 +31,16 @@ final class ItemRenderService {
     private static final Pattern PLACEHOLDER_PATTERN = Pattern.compile("\\{([^{}]+)}");
 
     private final Map<String, Pattern> regexCache = new ConcurrentHashMap<>();
+    private final LoreSearchInsertProcessor loreSearchInsertProcessor = new LoreSearchInsertProcessor();
 
     void renderItem(ItemStack itemStack, Collection<EmakiItemLayerSnapshot> snapshots) {
+        renderItem(itemStack, snapshots, null, AssemblyFeedbackHandler.noop());
+    }
+
+    void renderItem(ItemStack itemStack,
+            Collection<EmakiItemLayerSnapshot> snapshots,
+            UUID feedbackPlayerId,
+            AssemblyFeedbackHandler feedbackHandler) {
         if (itemStack == null) {
             return;
         }
@@ -38,6 +52,7 @@ final class ItemRenderService {
         boolean writeCustomName = itemMeta.hasCustomName();
         String currentName = resolveInitialName(itemStack, itemMeta);
         List<Component> lore = new ArrayList<>(itemMeta.hasLore() && itemMeta.lore() != null ? itemMeta.lore() : List.<Component>of());
+        AssemblyFeedbackHandler effectiveFeedbackHandler = feedbackHandler == null ? AssemblyFeedbackHandler.noop() : feedbackHandler;
         Map<String, StatLineDefinition> statLineDefinitions = new LinkedHashMap<>();
         int globalSequence = 0;
         for (EmakiPresentationEntry entry : flattenPresentation(snapshots)) {
@@ -68,7 +83,7 @@ final class ItemRenderService {
                     }
                 }
                 default ->
-                    applyLoreEntry(lore, entry, aggregatedStats);
+                    applyLoreEntry(lore, entry, aggregatedStats, feedbackPlayerId, effectiveFeedbackHandler);
             }
             globalSequence++;
         }
@@ -144,7 +159,11 @@ final class ItemRenderService {
         }
     }
 
-    private void applyLoreEntry(List<Component> lore, EmakiPresentationEntry entry, Map<String, Double> aggregatedStats) {
+    private void applyLoreEntry(List<Component> lore,
+            EmakiPresentationEntry entry,
+            Map<String, Double> aggregatedStats,
+            UUID feedbackPlayerId,
+            AssemblyFeedbackHandler feedbackHandler) {
         if (lore == null || entry == null) {
             return;
         }
@@ -164,8 +183,41 @@ final class ItemRenderService {
                 deleteLine(lore, entry.anchor());
             case "lore_regex_replace", "regex_replace" ->
                 replaceRegexInLore(lore, entry.anchor(), rendered, aggregatedStats);
+            case "lore_search_insert" ->
+                applySearchInsertEntry(lore, entry, aggregatedStats, feedbackPlayerId, feedbackHandler);
             default -> {
             }
+        }
+    }
+
+    private void applySearchInsertEntry(List<Component> lore,
+            EmakiPresentationEntry entry,
+            Map<String, Double> aggregatedStats,
+            UUID feedbackPlayerId,
+            AssemblyFeedbackHandler feedbackHandler) {
+        SearchInsertConfig config;
+        try {
+            config = SearchInsertConfig.fromJson(entry.anchor());
+        } catch (SearchInsertValidationException exception) {
+            if (exception.reason() == SearchInsertValidationException.Reason.INVALID_REGEX) {
+                feedbackHandler.onLoreInvalidRegex(feedbackPlayerId, entry, null, exception.getMessage());
+            } else {
+                feedbackHandler.onLoreInvalidConfig(feedbackPlayerId, entry, exception.getMessage());
+            }
+            return;
+        }
+        LoreSearchInsertResult result = loreSearchInsertProcessor.apply(
+                serializeLore(lore),
+                config,
+                template -> formatPlaceholders(template, aggregatedStats)
+        );
+        if (result.mutated()) {
+            replaceLore(lore, result.loreLines());
+        }
+        if (result.status() == LoreSearchInsertStatus.ERROR_NOT_FOUND) {
+            feedbackHandler.onLoreSearchNotFound(feedbackPlayerId, entry, config);
+        } else if (result.status() == LoreSearchInsertStatus.INVALID_REGEX) {
+            feedbackHandler.onLoreInvalidRegex(feedbackPlayerId, entry, config, result.detail());
         }
     }
 
@@ -275,6 +327,27 @@ final class ItemRenderService {
 
     private String normalizeId(String value) {
         return value == null ? "" : value.trim().toLowerCase(Locale.ROOT).replace(' ', '_');
+    }
+
+    private List<String> serializeLore(List<Component> lore) {
+        List<String> serialized = new ArrayList<>();
+        if (lore == null) {
+            return serialized;
+        }
+        for (Component component : lore) {
+            serialized.add(MiniMessages.serialize(component));
+        }
+        return serialized;
+    }
+
+    private void replaceLore(List<Component> lore, List<String> serializedLore) {
+        lore.clear();
+        if (serializedLore == null || serializedLore.isEmpty()) {
+            return;
+        }
+        for (String line : serializedLore) {
+            lore.add(MiniMessages.parse(line));
+        }
     }
 
     private record StatLineDefinition(String statId, EmakiPresentationEntry entry, int globalSequence) {

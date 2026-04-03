@@ -32,7 +32,7 @@ public final class LanguageLoader {
         }
     }
 
-    public int load() {
+    public synchronized int load() {
         languages.clear();
         if (bundledFallback != null) {
             languages.put(fallbackLanguage, bundledFallback);
@@ -82,7 +82,7 @@ public final class LanguageLoader {
         return languages.size();
     }
 
-    public boolean setLanguage(String language) {
+    public synchronized boolean setLanguage(String language) {
         if (Texts.isBlank(language) || !languages.containsKey(language)) {
             return false;
         }
@@ -90,7 +90,7 @@ public final class LanguageLoader {
         return true;
     }
 
-    public Object getValue(String key) {
+    public synchronized Object getValue(String key) {
         Object value = getNestedValue(currentLanguage, key);
         if (value == null && !currentLanguage.equals(fallbackLanguage)) {
             value = getNestedValue(fallbackLanguage, key);
@@ -98,21 +98,21 @@ public final class LanguageLoader {
         return value;
     }
 
-    public String getMessage(String key) {
+    public synchronized String getMessage(String key) {
         Object value = getValue(key);
         return value == null ? key : Texts.toStringSafe(value);
     }
 
-    public String getMessage(String key, Map<String, ?> replacements) {
+    public synchronized String getMessage(String key, Map<String, ?> replacements) {
         return Texts.formatTemplate(getMessage(key), replacements);
     }
 
-    public ConfigurationSection getSection(String key) {
+    public synchronized ConfigurationSection getSection(String key) {
         Object value = getValue(key);
         return value instanceof ConfigurationSection section ? section : null;
     }
 
-    public String currentLanguage() {
+    public synchronized String currentLanguage() {
         return currentLanguage;
     }
 

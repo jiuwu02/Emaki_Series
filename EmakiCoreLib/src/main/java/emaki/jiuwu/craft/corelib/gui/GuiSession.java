@@ -51,6 +51,11 @@ public final class GuiSession implements InventoryHolder {
     }
 
     public void refresh() {
+        applyRenderedSlots(renderSlots());
+    }
+
+    public Map<Integer, ItemStack> renderSlots() {
+        Map<Integer, ItemStack> renderedSlots = new LinkedHashMap<>();
         for (GuiSlot slot : template.slots().values()) {
             for (int index = 0; index < slot.slots().size(); index++) {
                 int inventorySlot = slot.slots().get(index);
@@ -65,8 +70,18 @@ public final class GuiSession implements InventoryHolder {
                             itemFactory
                     );
                 }
-                inventory.setItem(inventorySlot, rendered);
+                renderedSlots.put(inventorySlot, rendered);
             }
+        }
+        return renderedSlots;
+    }
+
+    public void applyRenderedSlots(Map<Integer, ItemStack> renderedSlots) {
+        if (renderedSlots == null) {
+            return;
+        }
+        for (Map.Entry<Integer, ItemStack> entry : renderedSlots.entrySet()) {
+            inventory.setItem(entry.getKey(), entry.getValue());
         }
     }
 

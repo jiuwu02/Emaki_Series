@@ -53,13 +53,13 @@ quality:
           - action: "prepend_prefix"
             value: "<color:#4B64C8>[无暇]</color>"
         action:
-  - 'broadcastmessage text="<color:#4B64C8>%player_name%锻造出了一个无暇品质的<show_item></color>"'
+          - 'broadcastmessage text="<color:#4B64C8>%player_name%锻造出了一个无暇品质的<show_item></color>"'
       完美:
         name_modifications:
           - action: "prepend_prefix"
             value: "<color:#FFD700>[完美]</color>"
         action:
-  - 'broadcastmessage text="<color:#FFD700>%player_name%锻造出了一个完美品质的<show_item></color>"'
+          - 'broadcastmessage text="<color:#FFD700>%player_name%锻造出了一个完美品质的<show_item></color>"'
 
 # 数值格式化配置
 number_format:

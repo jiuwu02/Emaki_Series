@@ -1,6 +1,8 @@
 package emaki.jiuwu.craft.attribute;
 
 import java.nio.file.Path;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -55,6 +57,7 @@ public final class EmakiAttributePlugin extends JavaPlugin {
     private MmoItemsBridge mmoItemsBridge;
     private AttributePlaceholderExpansion placeholderExpansion;
     private BukkitTask regenTask;
+    private CompletableFuture<Void> reloadFuture;
 
     public static EmakiAttributePlugin getInstance() {
         return instance;
@@ -123,6 +126,26 @@ public final class EmakiAttributePlugin extends JavaPlugin {
     public void reloadPluginState(boolean resyncPlayers) {
         regenTask = lifecycleCoordinator.reload(this, regenTask, resyncPlayers);
         registerCoreLibActions();
+    }
+
+    public synchronized CompletableFuture<Void> reloadPluginStateAsync(boolean resyncPlayers, Consumer<String> progressListener) {
+        if (reloadFuture != null && !reloadFuture.isDone()) {
+            if (progressListener != null) {
+                progressListener.accept(messageService.message("command.reload.in_progress"));
+            }
+            return reloadFuture;
+        }
+        reloadFuture = lifecycleCoordinator.reloadAsync(this, regenTask, resyncPlayers, progressListener)
+                .thenAccept(task -> {
+                    regenTask = task;
+                    registerCoreLibActions();
+                })
+                .whenComplete((ignored, throwable) -> {
+                    synchronized (this) {
+                        reloadFuture = null;
+                    }
+                });
+        return reloadFuture;
     }
 
     private void applyRuntimeComponents(AttributeRuntimeComponents components) {

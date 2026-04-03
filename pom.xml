@@ -6,7 +6,7 @@
 
     <groupId>emaki.jiuwu.craft</groupId>
     <artifactId>emaki-parent</artifactId>
-    <version>1.0.0</version>
+    <version>2.0.0</version>
     <packaging>pom</packaging>
 
     <name>Emaki Parent</name>
@@ -28,9 +28,10 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>21</maven.compiler.release>
-        <emaki.corelib.version>1.11.0</emaki.corelib.version>
+        <emaki.corelib.version>2.0.0</emaki.corelib.version>
         <paper.api.version>1.21.11-R0.1-SNAPSHOT</paper.api.version>
         <exp4j.version>0.4.8</exp4j.version>
+        <gson.version>2.13.1</gson.version>
         <mythicmobs.version>5.11.2</mythicmobs.version>
         <mythiclib.version>1.7.1-SNAPSHOT</mythiclib.version>
         <vault.api.version>1.7</vault.api.version>
@@ -46,6 +47,11 @@
                 <groupId>emaki.jiuwu.craft</groupId>
                 <artifactId>emaki-corelib</artifactId>
                 <version>${emaki.corelib.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.code.gson</groupId>
+                <artifactId>gson</artifactId>
+                <version>${gson.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.papermc.paper</groupId>
@@ -185,11 +191,30 @@
                         </relocations>
                         <filters>
                             <filter>
+                                <artifact>*:*</artifact>
+                                <excludes>
+                                    <exclude>module-info.class</exclude>
+                                    <exclude>META-INF/versions/**/module-info.class</exclude>
+                                </excludes>
+                            </filter>
+                            <filter>
                                 <artifact>net.objecthunter:exp4j</artifact>
                                 <excludes>
                                     <exclude>META-INF/MANIFEST.MF</exclude>
                                     <exclude>META-INF/maven/net.objecthunter/exp4j/pom.xml</exclude>
                                     <exclude>META-INF/maven/net.objecthunter/exp4j/pom.properties</exclude>
+                                </excludes>
+                            </filter>
+                            <filter>
+                                <artifact>com.google.code.gson:gson</artifact>
+                                <excludes>
+                                    <exclude>META-INF/MANIFEST.MF</exclude>
+                                </excludes>
+                            </filter>
+                            <filter>
+                                <artifact>com.google.errorprone:error_prone_annotations</artifact>
+                                <excludes>
+                                    <exclude>META-INF/MANIFEST.MF</exclude>
                                 </excludes>
                             </filter>
                         </filters>

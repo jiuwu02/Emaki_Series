@@ -285,6 +285,17 @@ public final class Recipe {
         return targetItemSource;
     }
 
+    public ItemSource configuredOutputSource() {
+        if (targetItemSource != null) {
+            return targetItemSource;
+        }
+        return result == null ? null : result.outputItem();
+    }
+
+    public boolean requiresTargetInput() {
+        return configuredOutputSource() == null;
+    }
+
     public int forgeCapacity() {
         return forgeCapacity;
     }

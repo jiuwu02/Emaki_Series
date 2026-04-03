@@ -24,6 +24,7 @@ import emaki.jiuwu.craft.forge.service.BootstrapService;
 import emaki.jiuwu.craft.forge.service.ForgeGuiService;
 import emaki.jiuwu.craft.forge.service.ForgeItemRefreshService;
 import emaki.jiuwu.craft.forge.service.ForgeService;
+import emaki.jiuwu.craft.forge.service.ForgeAssemblyFeedbackHandler;
 import emaki.jiuwu.craft.forge.service.ItemIdentifierService;
 import emaki.jiuwu.craft.forge.service.MessageService;
 import emaki.jiuwu.craft.forge.service.RecipeBookGuiService;
@@ -44,6 +45,7 @@ final class ForgeLifecycleCoordinator {
         GuiService guiService = new GuiService(plugin);
         ItemIdentifierService itemIdentifierService = new ItemIdentifierService(plugin);
         registerCoreLibResolvers(itemIdentifierService);
+        registerCoreLibAssemblyFeedbackHandler(plugin);
         ForgeService forgeService = new ForgeService(plugin);
         ForgeItemRefreshService itemRefreshService = new ForgeItemRefreshService(plugin);
         ForgeGuiService forgeGuiService = new ForgeGuiService(plugin, guiService);
@@ -94,7 +96,7 @@ final class ForgeLifecycleCoordinator {
         if (config.historyEnabled() && config.historyAutoSave()) {
             nextTask = plugin.getServer().getScheduler().runTaskTimer(
                     plugin,
-                    () -> plugin.playerDataStore().saveAll(),
+                    () -> plugin.playerDataStore().saveAllAsync(),
                     config.historySaveInterval(),
                     config.historySaveInterval()
             );
@@ -114,10 +116,13 @@ final class ForgeLifecycleCoordinator {
             plugin.messageService().info("console.plugin_stopping");
         }
         unregisterCoreLibResolvers(plugin.itemIdentifierService());
+        unregisterCoreLibAssemblyFeedbackHandler();
         cancelAutoSave(autoSaveTask);
         if (plugin.playerDataStore() != null && plugin.messageService() != null) {
             plugin.messageService().info("console.saving_player_data");
-            plugin.messageService().info("console.player_data_saved", Map.of("count", plugin.playerDataStore().saveAll()));
+            int saved = plugin.playerDataStore().saveAllAsync().join();
+            plugin.playerDataStore().waitForPendingSaves().join();
+            plugin.messageService().info("console.player_data_saved", Map.of("count", saved));
         }
         if (plugin.forgeGuiService() != null) {
             plugin.forgeGuiService().clearAllSessions();
@@ -148,8 +153,8 @@ final class ForgeLifecycleCoordinator {
             validateSource(plugin, entry.getValue().source(), "material:" + entry.getKey() + ".source");
         }
         for (var entry : plugin.recipeLoader().all().entrySet()) {
-            validateSource(plugin, entry.getValue().targetItemSource(), "recipe:" + entry.getKey() + ".target_item");
-            if (entry.getValue().result() != null) {
+            validateSource(plugin, entry.getValue().configuredOutputSource(), "recipe:" + entry.getKey() + ".target_item");
+            if (entry.getValue().configuredOutputSource() == null && entry.getValue().result() != null) {
                 validateSource(plugin, entry.getValue().result().outputItem(), "recipe:" + entry.getKey() + ".result.output_item");
             }
         }
@@ -183,5 +188,21 @@ final class ForgeLifecycleCoordinator {
             return;
         }
         coreLib.itemSourceService().unregisterResolver(itemIdentifierService.id());
+    }
+
+    private void registerCoreLibAssemblyFeedbackHandler(EmakiForgePlugin plugin) {
+        EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.getInstance();
+        if (coreLib == null) {
+            return;
+        }
+        coreLib.itemAssemblyService().setFeedbackHandler(new ForgeAssemblyFeedbackHandler(plugin));
+    }
+
+    private void unregisterCoreLibAssemblyFeedbackHandler() {
+        EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.getInstance();
+        if (coreLib == null) {
+            return;
+        }
+        coreLib.itemAssemblyService().setFeedbackHandler(null);
     }
 }

@@ -13,13 +13,17 @@ import emaki.jiuwu.craft.corelib.action.ActionLineParser;
 import emaki.jiuwu.craft.corelib.action.ActionRegistry;
 import emaki.jiuwu.craft.corelib.action.ActionTemplateRegistry;
 import emaki.jiuwu.craft.corelib.action.builtin.BuiltinActions;
+import emaki.jiuwu.craft.corelib.async.AsyncFileService;
+import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerCodecRegistry;
 import emaki.jiuwu.craft.corelib.assembly.EmakiNamespaceDefinition;
 import emaki.jiuwu.craft.corelib.assembly.EmakiNamespaceRegistry;
+import emaki.jiuwu.craft.corelib.assembly.ItemPresentationCompiler;
 import emaki.jiuwu.craft.corelib.economy.EconomyManager;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
+import emaki.jiuwu.craft.corelib.monitor.PerformanceMonitor;
 import emaki.jiuwu.craft.corelib.pdc.PdcService;
 import emaki.jiuwu.craft.corelib.placeholder.ActionContextPlaceholderResolver;
 import emaki.jiuwu.craft.corelib.placeholder.ActionInlineTokenResolver;
@@ -28,6 +32,7 @@ import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRegistry;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
+import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 
 public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvider {
@@ -44,6 +49,10 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private LanguageLoader languageLoader;
     private MessageService messageService;
     private CoreLibConfig configModel = CoreLibConfig.defaults();
+    private PerformanceMonitor performanceMonitor;
+    private AsyncTaskScheduler asyncTaskScheduler;
+    private AsyncFileService asyncFileService;
+    private AsyncYamlFiles asyncYamlFiles;
     private ActionRegistry actionRegistry;
     private ActionTemplateRegistry actionTemplateRegistry;
     private PlaceholderRegistry placeholderRegistry;
@@ -53,6 +62,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private final ItemSourceService itemSourceService = new ItemSourceService();
     private final EmakiNamespaceRegistry namespaceRegistry = new EmakiNamespaceRegistry();
     private final EmakiItemLayerCodecRegistry itemLayerCodecRegistry = new EmakiItemLayerCodecRegistry();
+    private final ItemPresentationCompiler itemPresentationCompiler = new ItemPresentationCompiler();
     private final EmakiItemAssemblyService itemAssemblyService
             = new EmakiItemAssemblyService(namespaceRegistry, itemLayerCodecRegistry, itemSourceService);
 
@@ -76,6 +86,9 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     public void onDisable() {
         if (messageService != null) {
             messageService.info("console.plugin_stopped");
+        }
+        if (asyncTaskScheduler != null) {
+            asyncTaskScheduler.shutdown(5_000L);
         }
         if (instance == this) {
             instance = null;
@@ -114,9 +127,14 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private void initializeServices() {
         languageLoader = new LanguageLoader(this);
         messageService = new MessageService(this, languageLoader);
+        performanceMonitor = new PerformanceMonitor();
+        asyncTaskScheduler = AsyncTaskScheduler.forPlugin(this, "emaki-corelib-async", performanceMonitor);
+        asyncFileService = new AsyncFileService(asyncTaskScheduler, 3, performanceMonitor);
+        asyncYamlFiles = new AsyncYamlFiles(asyncFileService);
         languageLoader.load();
         namespaceRegistry.register(new EmakiNamespaceDefinition("forge", 100, "Forge"));
         namespaceRegistry.register(new EmakiNamespaceDefinition("strengthen", 200, "Strengthen"));
+        itemAssemblyService.configureAsync(asyncTaskScheduler, performanceMonitor);
     }
 
     private void ensureBundledFile(String relativePath) {
@@ -211,6 +229,22 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         return actionExecutor;
     }
 
+    public AsyncTaskScheduler asyncTaskScheduler() {
+        return asyncTaskScheduler;
+    }
+
+    public PerformanceMonitor performanceMonitor() {
+        return performanceMonitor;
+    }
+
+    public AsyncFileService asyncFileService() {
+        return asyncFileService;
+    }
+
+    public AsyncYamlFiles asyncYamlFiles() {
+        return asyncYamlFiles;
+    }
+
     public PdcService pdcService() {
         return pdcService;
     }
@@ -225,6 +259,10 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
 
     public EmakiItemLayerCodecRegistry itemLayerCodecRegistry() {
         return itemLayerCodecRegistry;
+    }
+
+    public ItemPresentationCompiler itemPresentationCompiler() {
+        return itemPresentationCompiler;
     }
 
     public EmakiItemAssemblyService itemAssemblyService() {

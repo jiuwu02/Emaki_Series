@@ -12,10 +12,13 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
+import emaki.jiuwu.craft.corelib.cache.CacheManager;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
+import emaki.jiuwu.craft.corelib.monitor.PerformanceMonitor;
 import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
@@ -53,9 +56,15 @@ public final class ForgeService {
     private final MaterialValidationService materialValidationService;
     private final RecipeMatchingService recipeMatchingService;
     private final ForgeExecutionService forgeExecutionService;
+    private final CacheManager<String, PreparedForge> preparedForgeCache = new CacheManager<>(128, 30_000L);
+    private final AsyncTaskScheduler asyncTaskScheduler;
+    private final PerformanceMonitor performanceMonitor;
 
     public ForgeService(EmakiForgePlugin plugin) {
         this.plugin = plugin;
+        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.getInstance();
+        this.asyncTaskScheduler = coreLibPlugin == null ? null : coreLibPlugin.asyncTaskScheduler();
+        this.performanceMonitor = coreLibPlugin == null ? null : coreLibPlugin.performanceMonitor();
         this.resultItemFactory = new ForgeResultItemFactory(plugin);
         this.actionCoordinator = new ForgeActionCoordinator(plugin, resultItemFactory);
         this.lookupIndex = new ForgeLookupIndex(plugin);
@@ -100,6 +109,7 @@ public final class ForgeService {
 
     public void refreshIndexes() {
         lookupIndex.refresh();
+        preparedForgeCache.clear();
     }
 
     public List<Recipe> sortedRecipes() {
@@ -144,12 +154,9 @@ public final class ForgeService {
                 return ValidationResult.fail("forge.error.condition_not_met");
             }
         }
-        if (recipe.targetItemSource() != null) {
+        if (recipe.requiresTargetInput()) {
             if (guiItems.targetItem() == null) {
                 return ValidationResult.fail("forge.error.no_target_item");
-            }
-            if (!plugin.itemIdentifierService().matchesSource(guiItems.targetItem(), recipe.targetItemSource())) {
-                return ValidationResult.fail("forge.error.invalid_target_item");
             }
         }
         return materialValidationService.validate(recipe, guiItems);
@@ -160,7 +167,9 @@ public final class ForgeService {
         parts.add(player == null ? "" : player.getUniqueId().toString());
         parts.add(recipe == null ? "" : recipe.id());
         parts.add(player == null || recipe == null ? 0 : plugin.playerDataStore().guaranteeCounter(player.getUniqueId(), recipe.id()));
-        appendItemSignature(parts, "target", guiItems == null ? null : guiItems.targetItem());
+        if (recipe != null && recipe.requiresTargetInput()) {
+            appendItemSignature(parts, "target", guiItems == null ? null : guiItems.targetItem());
+        }
         appendMappedSignatures(parts, "blueprint", guiItems == null ? null : guiItems.blueprints());
         appendMappedSignatures(parts, "required", guiItems == null ? null : guiItems.requiredMaterials());
         appendMappedSignatures(parts, "optional", guiItems == null ? null : guiItems.optionalMaterials());
@@ -172,8 +181,8 @@ public final class ForgeService {
             GuiItems guiItems,
             long previewSeed,
             long forgedAt) {
-        PreparedForge preparedForge = prepareForge(player, recipe, guiItems, previewSeed, forgedAt);
-        return preparedForge == null || preparedForge.previewItem() == null ? null : preparedForge.previewItem().clone();
+        // Forge GUI intentionally does not expose preview items to avoid rerolling random outcomes.
+        return null;
     }
 
     public PreparedForge prepareForge(Player player,
@@ -181,29 +190,22 @@ public final class ForgeService {
             GuiItems guiItems,
             long previewSeed,
             long forgedAt) {
-        if (recipe == null) {
-            return null;
+        return measure("forge-prepare", () -> prepareForgeInternal(player, recipe, guiItems, previewSeed, forgedAt));
+    }
+
+    public CompletableFuture<PreparedForge> prepareForgeAsync(Player player,
+            Recipe recipe,
+            GuiItems guiItems,
+            long previewSeed,
+            long forgedAt) {
+        if (asyncTaskScheduler == null) {
+            return CompletableFuture.completedFuture(prepareForge(player, recipe, guiItems, previewSeed, forgedAt));
         }
-        QualityCalculationService.QualityRollPlan rollPlan = qualityCalculationService.resolveQualityRoll(
-                player == null ? null : player.getUniqueId(),
-                recipe,
-                guiItems,
-                buildRollKey(buildPreviewFingerprint(player, recipe, guiItems), previewSeed)
-        );
-        EmakiItemAssemblyRequest request = resultItemFactory.buildAssemblyRequest(recipe, guiItems, rollPlan.multiplier(), rollPlan.finalTier(), forgedAt);
-        if (request == null) {
-            return null;
-        }
-        EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.getInstance();
-        ItemStack previewItem = coreLib == null ? null : coreLib.itemAssemblyService().preview(request);
-        return new PreparedForge(
-                request,
-                rollPlan.rolledTier(),
-                rollPlan.forceApplied(),
-                rollPlan.finalTier(),
-                rollPlan.qualityName(),
-                rollPlan.multiplier(),
-                previewItem
+        return asyncTaskScheduler.supplyAsync(
+                "forge-prepare",
+                AsyncTaskScheduler.TaskPriority.NORMAL,
+                10_000L,
+                () -> prepareForge(player, recipe, guiItems, previewSeed, forgedAt)
         );
     }
 
@@ -217,6 +219,48 @@ public final class ForgeService {
 
     private String buildRollKey(String fingerprint, long previewSeed) {
         return SignatureUtil.combine(fingerprint, Long.toUnsignedString(previewSeed));
+    }
+
+    private String buildPreparationCacheKey(Player player,
+            Recipe recipe,
+            GuiItems guiItems,
+            long previewSeed,
+            long forgedAt) {
+        return SignatureUtil.stableSignature(List.of(
+                buildPreviewFingerprint(player, recipe, guiItems),
+                Long.toUnsignedString(previewSeed),
+                Long.toUnsignedString(forgedAt)
+        ));
+    }
+
+    private PreparedForge copyPreparedForge(PreparedForge source) {
+        if (source == null) {
+            return null;
+        }
+        EmakiItemAssemblyRequest request = copyAssemblyRequest(source.request());
+        return new PreparedForge(
+                request,
+                source.rolledQualityTier(),
+                source.forceQualityApplied(),
+                source.qualityTier(),
+                source.quality(),
+                source.multiplier(),
+                source.previewItem()
+        );
+    }
+
+    private EmakiItemAssemblyRequest copyAssemblyRequest(EmakiItemAssemblyRequest request) {
+        if (request == null) {
+            return null;
+        }
+        ItemStack existingItem = request.existingItem() == null ? null : request.existingItem().clone();
+        return new EmakiItemAssemblyRequest(
+                request.baseSource(),
+                request.amount(),
+                existingItem,
+                request.layerSnapshots(),
+                request.feedbackPlayerId()
+        );
     }
 
     private void appendMappedSignatures(List<Object> parts, String prefix, Map<Integer, ItemStack> items) {
@@ -274,5 +318,65 @@ public final class ForgeService {
             return text;
         }
         return Texts.toStringSafe(PlaceholderAPI.setPlaceholders(player, text));
+    }
+
+    private PreparedForge prepareForgeInternal(Player player,
+            Recipe recipe,
+            GuiItems guiItems,
+            long previewSeed,
+            long forgedAt) {
+        if (recipe == null) {
+            return null;
+        }
+        String cacheKey = buildPreparationCacheKey(player, recipe, guiItems, previewSeed, forgedAt);
+        PreparedForge cached = preparedForgeCache.get(cacheKey);
+        if (cached != null) {
+            return copyPreparedForge(cached);
+        }
+        QualityCalculationService.QualityRollPlan rollPlan = qualityCalculationService.resolveQualityRoll(
+                player == null ? null : player.getUniqueId(),
+                recipe,
+                guiItems,
+                buildRollKey(buildPreviewFingerprint(player, recipe, guiItems), previewSeed)
+        );
+        EmakiItemAssemblyRequest request = resultItemFactory.buildAssemblyRequest(recipe, guiItems, rollPlan.multiplier(), rollPlan.finalTier(), forgedAt);
+        if (request == null) {
+            return null;
+        }
+        PreparedForge preparedForge = new PreparedForge(
+                request,
+                rollPlan.rolledTier(),
+                rollPlan.forceApplied(),
+                rollPlan.finalTier(),
+                rollPlan.qualityName(),
+                rollPlan.multiplier(),
+                null
+        );
+        preparedForgeCache.put(cacheKey, preparedForge);
+        return copyPreparedForge(preparedForge);
+    }
+
+    private <T> T measure(String metricKey, SupplierWithException<T> supplier) {
+        long startedAt = System.nanoTime();
+        boolean success = false;
+        try {
+            T value = supplier.get();
+            success = true;
+            return value;
+        } catch (RuntimeException exception) {
+            throw exception;
+        } catch (Exception exception) {
+            throw new RuntimeException(exception);
+        } finally {
+            if (performanceMonitor != null) {
+                performanceMonitor.record(metricKey, System.nanoTime() - startedAt, success);
+            }
+        }
+    }
+
+    @FunctionalInterface
+    private interface SupplierWithException<T> {
+
+        T get() throws Exception;
     }
 }

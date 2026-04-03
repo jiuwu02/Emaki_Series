@@ -16,6 +16,14 @@ public final class PlayerData {
         private String firstCraftedAt;
         private String lastCraftedAt;
 
+        public ForgeHistory copy() {
+            ForgeHistory copy = new ForgeHistory();
+            copy.craftCount = craftCount;
+            copy.firstCraftedAt = firstCraftedAt;
+            copy.lastCraftedAt = lastCraftedAt;
+            return copy;
+        }
+
         public static ForgeHistory fromConfig(Object raw) {
             ForgeHistory history = new ForgeHistory();
             if (raw == null) {
@@ -58,6 +66,15 @@ public final class PlayerData {
 
     public PlayerData(String uuid) {
         this.uuid = uuid;
+    }
+
+    public PlayerData copy() {
+        PlayerData copy = new PlayerData(uuid);
+        for (Map.Entry<String, ForgeHistory> entry : recipeHistory.entrySet()) {
+            copy.recipeHistory.put(entry.getKey(), entry.getValue() == null ? null : entry.getValue().copy());
+        }
+        copy.guaranteeCounters.putAll(guaranteeCounters);
+        return copy;
     }
 
     public static PlayerData fromConfig(String uuid, ConfigurationSection section) {

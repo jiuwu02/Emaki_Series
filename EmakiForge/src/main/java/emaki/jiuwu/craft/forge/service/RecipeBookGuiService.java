@@ -162,9 +162,9 @@ public final class RecipeBookGuiService {
     }
 
     private ItemStack createRecipeItem(Player player, Recipe recipe) {
-        ItemStack itemStack = recipe.result() != null && recipe.result().outputItem() != null
-                ? plugin.itemIdentifierService().createItem(recipe.result().outputItem(), 1)
-                : null;
+        ItemStack itemStack = recipe == null || recipe.configuredOutputSource() == null
+                ? null
+                : plugin.itemIdentifierService().createItem(recipe.configuredOutputSource(), 1);
         if (itemStack == null) {
             itemStack = new ItemStack(Material.BOOK);
         }

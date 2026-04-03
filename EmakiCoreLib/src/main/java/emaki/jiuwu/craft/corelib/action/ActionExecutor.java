@@ -52,7 +52,7 @@ public final class ActionExecutor {
         return ActionFutureSupport.withTimeout(
                 context,
                 actionId,
-                dispatchScheduler.dispatch(0L, () -> safeExecute(context, action, resolved))
+                dispatchScheduler.dispatch(0L, actionId, action.executionMode(), action.timeoutMillis(), () -> safeExecute(context, action, resolved))
         );
     }
 
@@ -143,10 +143,16 @@ public final class ActionExecutor {
             if (!validation.success()) {
                 return CompletableFuture.completedFuture(validation);
             }
-            return dispatchScheduler.dispatch(delay, () -> null)
+            return dispatchScheduler.dispatch(delay, parsed.actionId(), ActionExecutionMode.SYNC, 30_000L, () -> null)
                     .thenCompose(ignored -> templateProcessor.execute(context, resolved, (nextContext, lines) -> executeAll(nextContext, lines, true)));
         }
-        CompletableFuture<ActionResult> future = dispatchScheduler.dispatch(delay, () -> executeAction(context, parsed.actionId(), resolved));
+        CompletableFuture<ActionResult> future = dispatchScheduler.dispatch(
+                delay,
+                parsed.actionId(),
+                resolveExecutionMode(parsed.actionId()),
+                resolveTimeoutMillis(parsed.actionId()),
+                () -> executeAction(context, parsed.actionId(), resolved)
+        );
         return delay > 0L ? future : ActionFutureSupport.withTimeout(context, parsed.actionId(), future);
     }
 
@@ -204,5 +210,15 @@ public final class ActionExecutor {
             return provider.messageService();
         }
         return null;
+    }
+
+    private ActionExecutionMode resolveExecutionMode(String actionId) {
+        Action action = registry.get(actionId);
+        return action == null ? ActionExecutionMode.SYNC : action.executionMode();
+    }
+
+    private long resolveTimeoutMillis(String actionId) {
+        Action action = registry.get(actionId);
+        return action == null ? 30_000L : action.timeoutMillis();
     }
 }

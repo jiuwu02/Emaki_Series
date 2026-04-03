@@ -2,25 +2,19 @@ id: "flame_sword"
 display_name: "<gold>烈焰之剑锻造配方</gold>"
 
 target_item:
-  item: "ni-base_sword_iron"
-  forge_capacity: 50
+  item: "diamond_sword"
+  forge_capacity: 35
 
 blueprint_requirements:
-  - requirement_mode: "all_of"
+  - requirement_mode: "any_of"
     blueprint_options:
       - selector:
           kind: "id"
           value: "weapon_sword"
         count: 1
-  - requirement_mode: "any_of"
-    blueprint_options:
       - selector:
           kind: "id"
           value: "universal_blueprint"
-        count: 1
-      - selector:
-          kind: "tag"
-          value: "weapon"
         count: 1
 
 required_materials:
@@ -31,14 +25,16 @@ required_materials:
 
 optional_materials:
   enabled: true
-  whitelist: []
-  blacklist:
-    - "cursed_stone"
-  max_count: 5
+  whitelist:
+    - "chi_yan_jing"
+    - "qing_feng_mu"
+    - "yun_lei_sha"
+    - "forge_capacity_core"
+  blacklist: []
+  max_count: 3
 
 condition_type: "all_of"
-conditions:
-  - "%player_level% >= 10"
+conditions: []
 
 quality:
   enabled: true
@@ -60,17 +56,22 @@ gui:
     result_preview: [24]
 
 result:
-  output_item:
-    item: "ni-flame_sword"
+  meta_actions:
+    name_modifications:
+      - action: "replace"
+        value: "<gold>烈焰锻剑</gold>"
+    lore_actions:
+      - action: "append"
+        content:
+          - "<gray>锻造属性:"
+          - "<dark_gray>由 EmakiForge 示例配方锻造"
   action:
-  - 'sendmessage text="<green>锻造成功! 获得了 %forge_result_item_name%</green>"'
-  - 'playsound sound=minecraft:block.anvil.use volume=1 pitch=1'
+    - 'sendmessage text="<green>锻造成功! 获得了 %forge_result_item_name%</green>"'
+    - "playsound sound=minecraft:block.anvil.use volume=1 pitch=1"
 
 action:
   pre:
-  - 'sendactionbar text="<gray>烈焰之力正在熔铸...</gray>"'
+    - 'sendactionbar text="<gray>烈焰之力正在熔铸...</gray>"'
   success: []
   failure:
-  - '@if="%forge_error_key% == forge.error.action_failed" sendmessage text="<red>锻造前置操作失败: %forge_failure_reason%</red>"'
-
-permission: "emakiforge.recipe.flame_sword"
+    - '@if="%forge_error_key% == forge.error.action_failed" sendmessage text="<red>锻造前置操作失败: %forge_failure_reason%</red>"'

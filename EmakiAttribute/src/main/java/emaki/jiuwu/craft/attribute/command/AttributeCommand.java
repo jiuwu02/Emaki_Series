@@ -116,13 +116,20 @@ public final class AttributeCommand implements TabExecutor {
             messages().send(sender, "command.reload.no_permission");
             return true;
         }
-        plugin.reloadPluginState(true);
-        messages().send(sender, "command.reload.success");
-        messages().send(sender, "command.reload.summary", Map.of(
-                "attributes", attributeService.attributeRegistry().all().size(),
-                "damage_types", attributeService.damageTypeRegistry().all().size(),
-                "profiles", attributeService.defaultProfileRegistry().all().size()
-        ));
+        messages().send(sender, "command.reload.started");
+        plugin.reloadPluginStateAsync(true, message -> plugin.getServer().getScheduler().runTask(plugin, () -> messages().sendRaw(sender, message)))
+                .thenRun(() -> messages().send(sender, "command.reload.success"))
+                .thenRun(() -> messages().send(sender, "command.reload.summary", Map.of(
+                        "attributes", attributeService.attributeRegistry().all().size(),
+                        "damage_types", attributeService.damageTypeRegistry().all().size(),
+                        "profiles", attributeService.defaultProfileRegistry().all().size()
+                )))
+                .exceptionally(throwable -> {
+                    plugin.getServer().getScheduler().runTask(plugin, () -> messages().send(sender, "command.reload.failed", Map.of(
+                            "error", rootCauseMessage(throwable)
+                    )));
+                    return null;
+                });
         return true;
     }
 
@@ -343,5 +350,16 @@ public final class AttributeCommand implements TabExecutor {
                 || "disable".equals(normalized)
                 || "true".equals(normalized)
                 || "false".equals(normalized);
+    }
+
+    private String rootCauseMessage(Throwable throwable) {
+        Throwable current = throwable;
+        while (current != null && current.getCause() != null && current.getCause() != current) {
+            current = current.getCause();
+        }
+        if (current == null || current.getMessage() == null || current.getMessage().isBlank()) {
+            return "unknown";
+        }
+        return current.getMessage();
     }
 }

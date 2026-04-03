@@ -4,7 +4,7 @@ description:
   - "<gray>可选材料: 穿透增幅"
   - "<gray>偏向破甲与续航"
 
-item: "ce-neigeitems:forge_material_yun_lei_sha"
+item: "glowstone_dust"
 
 capacity_cost:
   type: "constant"

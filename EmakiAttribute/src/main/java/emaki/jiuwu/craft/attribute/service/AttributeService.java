@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.attribute.service;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.attribute.api.AttributeContributionProvider;
@@ -14,8 +15,11 @@ import emaki.jiuwu.craft.attribute.loader.DamageTypeRegistry;
 import emaki.jiuwu.craft.attribute.loader.DefaultProfileRegistry;
 import emaki.jiuwu.craft.attribute.loader.LoreFormatRegistry;
 import emaki.jiuwu.craft.attribute.model.AttributeDefinition;
+import emaki.jiuwu.craft.attribute.model.DamageContext;
+import emaki.jiuwu.craft.attribute.model.ResolvedDamage;
 import emaki.jiuwu.craft.attribute.model.ResourceDefinition;
 import emaki.jiuwu.craft.attribute.service.VanillaAttributeSynchronizer.VanillaAttributeBinding;
+import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.pdc.PdcService;
 
 public final class AttributeService extends AbstractAttributeServiceFacade {
@@ -24,6 +28,7 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
     private static final String ITEM_LORE_SIGNATURE_VERSION = "lore_parser_v2";
 
     private final EmakiAttributePlugin plugin;
+    private final AsyncTaskScheduler asyncTaskScheduler;
     private volatile AttributeConfig config;
     private final AttributeRegistry attributeRegistry;
     private final AttributeBalanceRegistry attributeBalanceRegistry;
@@ -33,6 +38,7 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
     private final AttributePresetRegistry presetRegistry;
     private final LoreParser loreParser;
     private final DamageEngine damageEngine;
+    private final AsyncDamageEngine asyncDamageEngine;
     private final AttributeStateRepository stateRepository;
     private final VanillaAttributeSynchronizer vanillaSynchronizer;
     private final AttributeRegistryService registryService;
@@ -43,6 +49,7 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
 
     public AttributeService(EmakiAttributePlugin plugin,
             PdcService pdcService,
+            AsyncTaskScheduler asyncTaskScheduler,
             AttributeConfig config,
             AttributeRegistry attributeRegistry,
             AttributeBalanceRegistry attributeBalanceRegistry,
@@ -51,6 +58,7 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
             LoreFormatRegistry loreFormatRegistry,
             AttributePresetRegistry presetRegistry) {
         this.plugin = plugin;
+        this.asyncTaskScheduler = asyncTaskScheduler;
         this.config = config == null ? AttributeConfig.defaults() : config;
         this.attributeRegistry = attributeRegistry;
         this.attributeBalanceRegistry = attributeBalanceRegistry;
@@ -60,6 +68,7 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
         this.presetRegistry = presetRegistry;
         this.loreParser = new LoreParser(attributeRegistry, loreFormatRegistry);
         this.damageEngine = new DamageEngine();
+        this.asyncDamageEngine = new AsyncDamageEngine(asyncTaskScheduler, damageEngine);
         this.stateRepository = new AttributeStateRepository(pdcService);
         this.vanillaSynchronizer = new VanillaAttributeSynchronizer(plugin);
         this.registryService = new AttributeRegistryService(
@@ -214,6 +223,14 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
         return registryService.orderedContributionProviders();
     }
 
+    AsyncTaskScheduler asyncTaskSchedulerInternal() {
+        return asyncTaskScheduler;
+    }
+
+    AsyncDamageEngine asyncDamageEngineInternal() {
+        return asyncDamageEngine;
+    }
+
     long projectileTtlMs() {
         return PROJECTILE_TTL_MS;
     }
@@ -224,5 +241,9 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
 
     public CombatDebugService combatDebugService() {
         return combatDebugService;
+    }
+
+    public CompletableFuture<ResolvedDamage> resolveDamageApplicationAsync(DamageContext damageContext) {
+        return damageCalculationService.resolveDamageApplicationAsync(damageContext);
     }
 }

@@ -4,7 +4,9 @@ description:
   - "<gray>可用于任何配方的通用图纸"
   - "<yellow>稀有物品"
 
-item: "ni-blueprint_universal"
+item: "writable_book"
+
+forge_capacity: 40
 
 tags:
   - "universal"

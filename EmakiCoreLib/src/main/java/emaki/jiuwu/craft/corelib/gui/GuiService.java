@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.corelib.gui;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -11,13 +12,21 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+
 public final class GuiService implements Listener {
 
     private final JavaPlugin plugin;
     private final Map<UUID, GuiSession> sessions = new LinkedHashMap<>();
+    private final AsyncGuiRenderer asyncGuiRenderer;
 
     public GuiService(JavaPlugin plugin) {
         this.plugin = plugin;
+        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.getInstance();
+        this.asyncGuiRenderer = new AsyncGuiRenderer(
+                coreLibPlugin == null ? null : coreLibPlugin.asyncTaskScheduler(),
+                coreLibPlugin == null ? null : coreLibPlugin.performanceMonitor()
+        );
     }
 
     public GuiSession open(GuiOpenRequest request) {
@@ -40,6 +49,41 @@ public final class GuiService implements Listener {
         sessions.put(request.viewer().getUniqueId(), session);
         session.open();
         return session;
+    }
+
+    public CompletableFuture<GuiSession> openAsync(GuiOpenRequest request) {
+        if (request == null || request.viewer() == null || request.template() == null) {
+            return CompletableFuture.completedFuture(null);
+        }
+        CompletableFuture<GuiSession> future = new CompletableFuture<>();
+        plugin.getServer().getScheduler().runTask(plugin, () -> {
+            GuiSession existing = sessions.remove(request.viewer().getUniqueId());
+            if (existing != null) {
+                existing.viewer().closeInventory();
+            }
+            GuiSession session = new GuiSession(
+                    request.owner(),
+                    request.viewer(),
+                    request.template(),
+                    request.replacements(),
+                    request.itemFactory(),
+                    request.renderer(),
+                    request.handler()
+            );
+            sessions.put(request.viewer().getUniqueId(), session);
+            asyncGuiRenderer.prepare(session)
+                    .whenComplete((renderedSlots, throwable) -> plugin.getServer().getScheduler().runTask(plugin, () -> {
+                        if (throwable != null) {
+                            sessions.remove(request.viewer().getUniqueId());
+                            future.completeExceptionally(throwable);
+                            return;
+                        }
+                        session.applyRenderedSlots(renderedSlots);
+                        request.viewer().openInventory(session.getInventory());
+                        future.complete(session);
+                    }));
+        });
+        return future;
     }
 
     public GuiSession getSession(UUID playerId) {

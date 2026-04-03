@@ -33,7 +33,7 @@ public final class AttributeBalanceRegistry {
         this.attributeRegistry = attributeRegistry;
     }
 
-    public int load() {
+    public synchronized int load() {
         semantics.clear();
         weights.clear();
         File file = plugin.dataPath("attribute_balance.yml").toFile();
@@ -61,14 +61,14 @@ public final class AttributeBalanceRegistry {
         return semantics.size();
     }
 
-    public AttributeSemanticDefinition semantic(String id) {
+    public synchronized AttributeSemanticDefinition semantic(String id) {
         if (Texts.isBlank(id)) {
             return null;
         }
         return semantics.get(normalizeId(id));
     }
 
-    public double weightOf(String id, double fallback) {
+    public synchronized double weightOf(String id, double fallback) {
         if (Texts.isBlank(id)) {
             return fallback;
         }
@@ -76,15 +76,15 @@ public final class AttributeBalanceRegistry {
         return weight == null ? fallback : weight;
     }
 
-    public Map<String, AttributeSemanticDefinition> semantics() {
+    public synchronized Map<String, AttributeSemanticDefinition> semantics() {
         return Collections.unmodifiableMap(new LinkedHashMap<>(semantics));
     }
 
-    public Map<String, Double> weights() {
+    public synchronized Map<String, Double> weights() {
         return Collections.unmodifiableMap(new LinkedHashMap<>(weights));
     }
 
-    public YamlConfiguration configuration() {
+    public synchronized YamlConfiguration configuration() {
         return configuration;
     }
 

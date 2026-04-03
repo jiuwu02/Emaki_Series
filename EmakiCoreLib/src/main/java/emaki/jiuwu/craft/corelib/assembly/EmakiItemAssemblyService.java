@@ -5,13 +5,17 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
+import emaki.jiuwu.craft.corelib.cache.CacheManager;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
+import emaki.jiuwu.craft.corelib.monitor.PerformanceMonitor;
 import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
@@ -23,6 +27,10 @@ public final class EmakiItemAssemblyService {
     private final AssemblyDataManager dataManager;
     private final EmakiNamespaceRegistry namespaceRegistry;
     private final ItemRenderService itemRenderService;
+    private final CacheManager<String, ItemStack> previewCache = new CacheManager<>(128, 30_000L);
+    private volatile AssemblyFeedbackHandler feedbackHandler = AssemblyFeedbackHandler.noop();
+    private volatile AsyncTaskScheduler asyncTaskScheduler;
+    private volatile PerformanceMonitor performanceMonitor;
 
     public EmakiItemAssemblyService(EmakiNamespaceRegistry namespaceRegistry,
             EmakiItemLayerCodecRegistry codecRegistry,
@@ -33,26 +41,32 @@ public final class EmakiItemAssemblyService {
         this.itemRenderService = new ItemRenderService();
     }
 
+    public void configureAsync(AsyncTaskScheduler asyncTaskScheduler, PerformanceMonitor performanceMonitor) {
+        this.asyncTaskScheduler = asyncTaskScheduler;
+        this.performanceMonitor = performanceMonitor;
+    }
+
     public ItemStack preview(EmakiItemAssemblyRequest request) {
-        AssemblyContext context = resolveContext(request);
-        if (context == null || context.baseSource() == null) {
-            return null;
+        return measure("assembly-preview", () -> {
+            String cacheKey = requestSignature(request);
+            ItemStack cached = previewCache.get(cacheKey);
+            if (cached != null) {
+                return cached.clone();
+            }
+            ItemStack rendered = renderPreview(request);
+            if (rendered != null) {
+                previewCache.put(cacheKey, rendered.clone());
+            }
+            return rendered;
+        });
+    }
+
+    public CompletableFuture<ItemStack> previewAsync(EmakiItemAssemblyRequest request) {
+        if (asyncTaskScheduler == null) {
+            return CompletableFuture.completedFuture(preview(request));
         }
-        ItemStack itemStack = itemSourceService.createItem(context.baseSource(), context.amount());
-        if (itemStack == null) {
-            return null;
-        }
-        itemRenderService.renderItem(itemStack, context.layerSnapshots().values());
-        dataManager.writeAssemblyData(
-                itemStack,
-                CURRENT_SCHEMA_VERSION,
-                context.baseSource(),
-                context.amount(),
-                context.activeLayers(),
-                context.assemblySignature(),
-                context.layerSnapshots().values()
-        );
-        return itemStack;
+        return asyncTaskScheduler.supplyAsync("assembly-preview", AsyncTaskScheduler.TaskPriority.NORMAL, 10_000L, () -> preview(request))
+                .thenCompose(rendered -> asyncTaskScheduler.callSync("assembly-preview-sync", () -> rendered == null ? null : rendered.clone()));
     }
 
     public ItemStack rebuild(ItemStack itemStack) {
@@ -63,13 +77,30 @@ public final class EmakiItemAssemblyService {
     }
 
     public ItemStack give(Player player, EmakiItemAssemblyRequest request) {
-        ItemStack itemStack = preview(request);
+        EmakiItemAssemblyRequest effectiveRequest = request == null
+                ? null
+                : request.withFeedbackPlayerId(player == null ? null : player.getUniqueId());
+        ItemStack itemStack = preview(effectiveRequest);
         if (player == null || itemStack == null) {
             return itemStack;
         }
         Map<Integer, ItemStack> leftover = player.getInventory().addItem(itemStack.clone());
         leftover.values().forEach(left -> player.getWorld().dropItemNaturally(player.getLocation(), left));
         return itemStack;
+    }
+
+    public CompletableFuture<ItemStack> giveAsync(Player player, EmakiItemAssemblyRequest request) {
+        EmakiItemAssemblyRequest effectiveRequest = request == null
+                ? null
+                : request.withFeedbackPlayerId(player == null ? null : player.getUniqueId());
+        return previewAsync(effectiveRequest).thenApply(itemStack -> {
+            if (player == null || itemStack == null) {
+                return itemStack;
+            }
+            Map<Integer, ItemStack> leftover = player.getInventory().addItem(itemStack.clone());
+            leftover.values().forEach(left -> player.getWorld().dropItemNaturally(player.getLocation(), left));
+            return itemStack;
+        });
     }
 
     public boolean isEmakiItem(ItemStack itemStack) {
@@ -94,6 +125,14 @@ public final class EmakiItemAssemblyService {
 
     public EmakiItemLayerSnapshot readLayerSnapshot(ItemStack itemStack, String namespaceId) {
         return dataManager.readLayerSnapshot(itemStack, namespaceId);
+    }
+
+    public void setFeedbackHandler(AssemblyFeedbackHandler feedbackHandler) {
+        this.feedbackHandler = feedbackHandler == null ? AssemblyFeedbackHandler.noop() : feedbackHandler;
+    }
+
+    public void clearPreviewCache() {
+        previewCache.clear();
     }
 
     private AssemblyContext resolveContext(EmakiItemAssemblyRequest request) {
@@ -142,8 +181,71 @@ public final class EmakiItemAssemblyService {
         return new AssemblyContext(baseSource, Math.max(1, amount), orderedLayers, activeLayers, signature);
     }
 
+    private ItemStack renderPreview(EmakiItemAssemblyRequest request) {
+        AssemblyContext context = resolveContext(request);
+        if (context == null || context.baseSource() == null) {
+            return null;
+        }
+        ItemStack itemStack = itemSourceService.createItem(context.baseSource(), context.amount());
+        if (itemStack == null) {
+            return null;
+        }
+        itemRenderService.renderItem(
+                itemStack,
+                context.layerSnapshots().values(),
+                request == null ? null : request.feedbackPlayerId(),
+                feedbackHandler
+        );
+        dataManager.writeAssemblyData(
+                itemStack,
+                CURRENT_SCHEMA_VERSION,
+                context.baseSource(),
+                context.amount(),
+                context.activeLayers(),
+                context.assemblySignature(),
+                context.layerSnapshots().values()
+        );
+        return itemStack;
+    }
+
+    private String requestSignature(EmakiItemAssemblyRequest request) {
+        if (request == null) {
+            return "assembly:null";
+        }
+        return SignatureUtil.stableSignature(List.of(
+                request.baseSource() == null ? "" : ItemSourceUtil.toShorthand(request.baseSource()),
+                request.amount(),
+                request.existingItem() == null ? "" : ItemSourceUtil.toShorthand(itemSourceService.identifyItem(request.existingItem())),
+                request.layerSnapshots() == null ? List.of() : request.layerSnapshots().stream().map(EmakiItemLayerSnapshot::toMap).toList()
+        ));
+    }
+
+    private <T> T measure(String metricKey, SupplierWithException<T> supplier) {
+        long startedAt = System.nanoTime();
+        boolean success = false;
+        try {
+            T value = supplier.get();
+            success = true;
+            return value;
+        } catch (RuntimeException exception) {
+            throw exception;
+        } catch (Exception exception) {
+            throw new RuntimeException(exception);
+        } finally {
+            if (performanceMonitor != null) {
+                performanceMonitor.record(metricKey, System.nanoTime() - startedAt, success);
+            }
+        }
+    }
+
     private String normalizeId(String value) {
         return value == null ? "" : value.trim().toLowerCase(Locale.ROOT).replace(' ', '_');
+    }
+
+    @FunctionalInterface
+    private interface SupplierWithException<T> {
+
+        T get() throws Exception;
     }
 
     private record AssemblyContext(ItemSource baseSource,

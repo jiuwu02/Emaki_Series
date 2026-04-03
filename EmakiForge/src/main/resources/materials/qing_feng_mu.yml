@@ -4,7 +4,7 @@ description:
   - "<gray>可选材料: 迅捷增幅"
   - "<gray>偏向攻速与重击"
 
-item: "ce-neigeitems:forge_material_qing_feng_mu"
+item: "bamboo"
 
 capacity_cost:
   type: "constant"

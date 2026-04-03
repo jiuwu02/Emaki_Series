@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
 
 import org.bukkit.Bukkit;
@@ -217,17 +218,11 @@ final class DamageCalculationService {
     }
 
     public DamageResult calculateDamage(DamageContext damageContext) {
-        if (damageContext == null) {
+        DamageCalculationPlan plan = prepareDamageCalculation(damageContext);
+        if (plan == null) {
             return new DamageResult("", 0D, false, 0D, Map.of(), DamageContext.legacy("", 0D, null, null, DamageContextVariables.empty()));
         }
-        String resolvedTypeId = damageContext.damageTypeId();
-        if (Texts.isBlank(resolvedTypeId)) {
-            resolvedTypeId = defaultDamageTypeId();
-        }
-        DamageTypeDefinition damageType = resolveDamageType(resolvedTypeId);
-        DamageContext resolvedContext = damageContext.withDamageTypeId(damageType.id());
-        DamageRequest request = new DamageRequest(resolvedContext);
-        return service.damageEngine().resolve(request, damageType, ThreadLocalRandom.current().nextDouble(0D, 100D));
+        return service.damageEngine().resolve(plan.request(), plan.damageType(), plan.seededRoll());
     }
 
     public DamageResult calculateDamage(LivingEntity attacker,
@@ -330,7 +325,7 @@ final class DamageCalculationService {
     }
 
     public ResolvedDamage resolveDamageApplication(DamageContext damageContext) {
-        if (damageContext == null || damageContext.target() == null || !damageContext.target().isValid() || damageContext.target().isDead()) {
+        if (!isResolvableDamageContext(damageContext)) {
             debugCombat(damageContext, "RESOLVE_SKIPPED",
                     "目标无效或已死亡，EA 伤害解析已跳过。");
             return null;
@@ -339,26 +334,39 @@ final class DamageCalculationService {
                 "开始解析 EA 伤害: " + describeDamageContext(damageContext)
                 + " | attackerSnapshot=" + formatSnapshot(damageContext.attackerSnapshot())
                 + " | targetSnapshot=" + formatSnapshot(damageContext.targetSnapshot()));
-        DamageResult result = calculateDamage(damageContext);
-        debugCombat(damageContext, "CALC_RESULT",
-                "伤害计算完成: damageType=" + result.damageTypeId()
-                + ", finalDamage=" + formatNumber(result.finalDamage())
-                + ", critical=" + result.critical()
-                + ", roll=" + formatNumber(result.roll())
-                + ", stages=" + formatStageValues(result.stageValues()));
-        EmakiAttributeDamageEvent event = new EmakiAttributeDamageEvent(damageContext, result);
-        Bukkit.getPluginManager().callEvent(event);
-        if (event.isCancelled() || event.getFinalDamage() <= 0D) {
-            debugCombat(damageContext, "EVENT_BLOCKED",
-                    "EmakiAttributeDamageEvent 未通过: cancelled=" + event.isCancelled()
-                    + ", finalDamage=" + formatNumber(event.getFinalDamage()));
+        DamageCalculationPlan plan = prepareDamageCalculation(damageContext);
+        if (plan == null) {
             return null;
         }
-        DamageTypeDefinition damageType = resolveDamageType(result.damageTypeId());
-        debugCombat(damageContext, "EVENT_PASSED",
-                "EmakiAttributeDamageEvent 已通过: finalDamage=" + formatNumber(event.getFinalDamage())
-                + ", resolvedDamageType=" + damageType.id());
-        return new ResolvedDamage(damageContext, result, damageType, event.getFinalDamage());
+        DamageResult result = service.damageEngine().resolve(plan.request(), plan.damageType(), plan.seededRoll());
+        return finalizeResolvedDamage(plan.damageContext(), result);
+    }
+
+    public CompletableFuture<ResolvedDamage> resolveDamageApplicationAsync(DamageContext damageContext) {
+        if (!isResolvableDamageContext(damageContext)) {
+            debugCombat(damageContext, "RESOLVE_SKIPPED",
+                    "目标无效或已死亡，EA 伤害解析已跳过。");
+            return CompletableFuture.completedFuture(null);
+        }
+        debugCombat(damageContext, "RESOLVE_BEGIN",
+                "开始异步解析 EA 伤害: " + describeDamageContext(damageContext)
+                + " | attackerSnapshot=" + formatSnapshot(damageContext.attackerSnapshot())
+                + " | targetSnapshot=" + formatSnapshot(damageContext.targetSnapshot()));
+        DamageCalculationPlan plan = prepareDamageCalculation(damageContext);
+        if (plan == null) {
+            return CompletableFuture.completedFuture(null);
+        }
+        return service.asyncDamageEngineInternal()
+                .resolveAsync(plan.request(), plan.damageType(), plan.seededRoll())
+                .thenCompose(result -> {
+                    if (service.asyncTaskSchedulerInternal() == null) {
+                        return CompletableFuture.completedFuture(finalizeResolvedDamage(plan.damageContext(), result));
+                    }
+                    return service.asyncTaskSchedulerInternal().callSync(
+                            "attribute-damage-finalize",
+                            () -> finalizeResolvedDamage(plan.damageContext(), result)
+                    );
+                });
     }
 
     public boolean applyResolvedDamage(ResolvedDamage resolvedDamage, Entity visualSource, double alreadyAppliedDamage) {
@@ -462,6 +470,59 @@ final class DamageCalculationService {
             return defaultProjectileDamageTypeId();
         }
         return defaultDamageTypeId();
+    }
+
+    private boolean isResolvableDamageContext(DamageContext damageContext) {
+        return damageContext != null
+                && damageContext.target() != null
+                && damageContext.target().isValid()
+                && !damageContext.target().isDead();
+    }
+
+    private DamageCalculationPlan prepareDamageCalculation(DamageContext damageContext) {
+        if (damageContext == null) {
+            return null;
+        }
+        String resolvedTypeId = damageContext.damageTypeId();
+        if (Texts.isBlank(resolvedTypeId)) {
+            resolvedTypeId = defaultDamageTypeId();
+        }
+        DamageTypeDefinition damageType = resolveDamageType(resolvedTypeId);
+        DamageContext resolvedContext = damageContext.withDamageTypeId(damageType.id());
+        double seededRoll = ThreadLocalRandom.current().nextDouble(0D, 100D);
+        return new DamageCalculationPlan(
+                resolvedContext,
+                damageType,
+                new DamageRequest(resolvedContext),
+                seededRoll
+        );
+    }
+
+    private ResolvedDamage finalizeResolvedDamage(DamageContext damageContext, DamageResult result) {
+        if (!isResolvableDamageContext(damageContext) || result == null) {
+            debugCombat(damageContext, "EVENT_BLOCKED",
+                    "EA 伤害结果为空，已跳过后续事件与落地。");
+            return null;
+        }
+        debugCombat(damageContext, "CALC_RESULT",
+                "伤害计算完成: damageType=" + result.damageTypeId()
+                + ", finalDamage=" + formatNumber(result.finalDamage())
+                + ", critical=" + result.critical()
+                + ", roll=" + formatNumber(result.roll())
+                + ", stages=" + formatStageValues(result.stageValues()));
+        EmakiAttributeDamageEvent event = new EmakiAttributeDamageEvent(damageContext, result);
+        Bukkit.getPluginManager().callEvent(event);
+        if (event.isCancelled() || event.getFinalDamage() <= 0D) {
+            debugCombat(damageContext, "EVENT_BLOCKED",
+                    "EmakiAttributeDamageEvent 未通过: cancelled=" + event.isCancelled()
+                    + ", finalDamage=" + formatNumber(event.getFinalDamage()));
+            return null;
+        }
+        DamageTypeDefinition damageType = resolveDamageType(result.damageTypeId());
+        debugCombat(damageContext, "EVENT_PASSED",
+                "EmakiAttributeDamageEvent 已通过: finalDamage=" + formatNumber(event.getFinalDamage())
+                + ", resolvedDamageType=" + damageType.id());
+        return new ResolvedDamage(damageContext, result, damageType, event.getFinalDamage());
     }
 
     private void applyRecovery(DamageContext damageContext,
@@ -674,6 +735,13 @@ final class DamageCalculationService {
 
     private String firstNonBlank(String left, String right) {
         return Texts.isBlank(left) ? right : left;
+    }
+
+    private record DamageCalculationPlan(DamageContext damageContext,
+            DamageTypeDefinition damageType,
+            DamageRequest request,
+            double seededRoll) {
+
     }
 
     private double resolveRecoveryAmount(DamageContext damageContext, RecoveryDefinition recovery, double finalDamage) {

@@ -23,10 +23,6 @@ import emaki.jiuwu.craft.forge.model.ValidationResult;
 
 final class MaterialValidationService {
 
-    private record MaterialPoolEntry(String materialId, ForgeMaterial material, ItemStack item, int remaining) {
-
-    }
-
     private record NormalizedGuiItems(List<ItemStack> blueprints,
             Map<String, ItemStack> requiredMaterials,
             Map<String, ItemStack> optionalMaterials) {
@@ -89,7 +85,7 @@ final class MaterialValidationService {
         if (!requiredValidation.success()) {
             return requiredValidation;
         }
-        return validateOptionalMaterials(recipe, normalized.optionalMaterials(), recipe.forgeCapacity());
+        return validateOptionalMaterials(recipe, normalized.optionalMaterials(), resolveBaseCapacity(recipe, normalized.blueprints()));
     }
 
     boolean acceptsMaterials(Recipe recipe, GuiItems guiItems) {
@@ -97,10 +93,35 @@ final class MaterialValidationService {
     }
 
     private NormalizedGuiItems normalizeMaterialInputs(Recipe recipe, GuiItems guiItems) {
+        if (recipe == null || guiItems == null) {
+            return null;
+        }
         Map<Integer, ItemStack> requiredMap = guiItems.requiredMaterials() == null ? Map.of() : guiItems.requiredMaterials();
         Map<Integer, ItemStack> optionalMap = guiItems.optionalMaterials() == null ? Map.of() : guiItems.optionalMaterials();
-        List<MaterialPoolEntry> pool = new ArrayList<>();
-        for (ItemStack itemStack : collectMaterialPool(requiredMap, optionalMap)) {
+        List<String> requiredIds = requiredMaterialIds(recipe);
+        Recipe.OptionalMaterialsConfig optionalConfig = recipe.optionalMaterials() == null
+                ? Recipe.OptionalMaterialsConfig.defaults()
+                : recipe.optionalMaterials();
+        Map<String, ItemStack> normalizedRequired = new LinkedHashMap<>();
+        int index = 0;
+        for (ItemStack itemStack : requiredMap.values()) {
+            if (isEmptyItem(itemStack)) {
+                continue;
+            }
+            ItemSource source = itemIdentifier.apply(itemStack);
+            ForgeMaterial material = materialResolver.apply(source);
+            if (material == null || !requiredIds.contains(material.id())) {
+                return null;
+            }
+            ItemStack clone = copyWithAmount(itemStack, amountOf(itemStack));
+            if (clone == null) {
+                return null;
+            }
+            normalizedRequired.put("req_" + index++, clone);
+        }
+        Map<String, ItemStack> normalizedOptional = new LinkedHashMap<>();
+        index = 0;
+        for (ItemStack itemStack : optionalMap.values()) {
             if (isEmptyItem(itemStack)) {
                 continue;
             }
@@ -109,41 +130,30 @@ final class MaterialValidationService {
             if (material == null) {
                 return null;
             }
-            pool.add(new MaterialPoolEntry(material.id(), material, itemStack, amountOf(itemStack)));
-        }
-        Map<String, ItemStack> normalizedRequired = new LinkedHashMap<>();
-        int index = 0;
-        for (Recipe.RequiredMaterial requiredMaterial : recipe.requiredMaterials()) {
-            int needed = requiredMaterial.count();
-            for (int poolIndex = 0; poolIndex < pool.size() && needed > 0; poolIndex++) {
-                MaterialPoolEntry entry = pool.get(poolIndex);
-                if (!requiredMaterial.id().equals(entry.materialId()) || entry.remaining() <= 0) {
-                    continue;
-                }
-                int take = Math.min(needed, entry.remaining());
-                ItemStack clone = copyWithAmount(entry.item(), take);
-                normalizedRequired.put("req_" + index++, clone);
-                pool.set(poolIndex, new MaterialPoolEntry(entry.materialId(), entry.material(), entry.item(), entry.remaining() - take));
-                needed -= take;
+            boolean explicitlyWhitelisted = optionalConfig.enabled() && optionalConfig.whitelist().contains(material.id());
+            if (requiredIds.contains(material.id()) && !explicitlyWhitelisted) {
+                return null;
             }
-        }
-        Map<String, ItemStack> normalizedOptional = new LinkedHashMap<>();
-        index = 0;
-        for (MaterialPoolEntry entry : pool) {
-            if (entry.remaining() <= 0) {
-                continue;
+            ItemStack clone = copyWithAmount(itemStack, amountOf(itemStack));
+            if (clone == null) {
+                return null;
             }
-            ItemStack clone = copyWithAmount(entry.item(), entry.remaining());
             normalizedOptional.put("opt_" + index++, clone);
         }
         return new NormalizedGuiItems(guiItems.blueprintList(), normalizedRequired, normalizedOptional);
     }
 
-    private List<ItemStack> collectMaterialPool(Map<Integer, ItemStack> requiredMap, Map<Integer, ItemStack> optionalMap) {
-        List<ItemStack> pool = new ArrayList<>();
-        pool.addAll(requiredMap.values());
-        pool.addAll(optionalMap.values());
-        return pool;
+    private List<String> requiredMaterialIds(Recipe recipe) {
+        List<String> ids = new ArrayList<>();
+        if (recipe == null) {
+            return ids;
+        }
+        for (Recipe.RequiredMaterial requiredMaterial : recipe.requiredMaterials()) {
+            if (requiredMaterial != null && Texts.isNotBlank(requiredMaterial.id()) && !ids.contains(requiredMaterial.id())) {
+                ids.add(requiredMaterial.id());
+            }
+        }
+        return ids;
     }
 
     private ValidationResult validateBlueprints(Recipe recipe, List<ItemStack> blueprintItems) {
@@ -284,6 +294,26 @@ final class MaterialValidationService {
             return ValidationResult.fail("forge.error.capacity_exceeded", Map.of("current", totalCapacity, "max", effectiveMaxCapacity));
         }
         return ValidationResult.ok();
+    }
+
+    private int resolveBaseCapacity(Recipe recipe, List<ItemStack> blueprintItems) {
+        int max = recipe == null ? 0 : Math.max(0, recipe.forgeCapacity());
+        if (max > 0) {
+            return max;
+        }
+        if (blueprintItems == null) {
+            return max;
+        }
+        for (ItemStack itemStack : blueprintItems) {
+            if (isEmptyItem(itemStack)) {
+                continue;
+            }
+            Blueprint blueprint = blueprintResolver.apply(itemIdentifier.apply(itemStack));
+            if (blueprint != null) {
+                max = Math.max(max, blueprint.forgeCapacity());
+            }
+        }
+        return max;
     }
 
     private List<Blueprint> blueprintsByTag(String tag) {

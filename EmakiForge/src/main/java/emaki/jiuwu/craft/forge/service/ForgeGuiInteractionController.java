@@ -84,19 +84,6 @@ final class ForgeGuiInteractionController {
             }
             return;
         }
-        if (!stateSupport.matchesTarget(state.recipe(), itemStack)) {
-            return;
-        }
-        List<Integer> targetSlots = stateSupport.slotsForType(state, "target_item");
-        if (targetSlots.isEmpty()) {
-            return;
-        }
-        if (state.targetItem() != null) {
-            stateSupport.giveBackToPlayer(state.player(), state.targetItem());
-        }
-        state.setTargetItem(itemStack);
-        event.getClickedInventory().setItem(event.getSlot(), null);
-        renderer.refreshGui(state);
     }
 
     private void handleBlueprintClick(InventoryClickEvent event, ForgeGuiSession state, int slot) {
@@ -110,32 +97,7 @@ final class ForgeGuiInteractionController {
     }
 
     private void handleTargetClick(InventoryClickEvent event, ForgeGuiSession state) {
-        if (event.getClick().isKeyboardClick()) {
-            return;
-        }
-        Player player = (Player) event.getWhoClicked();
-        ItemStack cursor = ForgeGuiStateSupport.cloneNonAir(event.getCursor());
-        if (cursor != null) {
-            if (!stateSupport.matchesTarget(state.recipe(), cursor)) {
-                return;
-            }
-            ItemStack previous = ForgeGuiStateSupport.cloneNonAir(state.targetItem());
-            state.setTargetItem(cursor);
-            player.setItemOnCursor(previous);
-            renderer.refreshGui(state);
-            return;
-        }
-        ItemStack removed = ForgeGuiStateSupport.cloneNonAir(state.targetItem());
-        if (removed == null) {
-            return;
-        }
-        state.setTargetItem(null);
-        if (event.isShiftClick()) {
-            stateSupport.giveBackToPlayer(player, removed);
-        } else {
-            player.setItemOnCursor(removed);
-        }
-        renderer.refreshGui(state);
+        return;
     }
 
     private void handleMaterialClick(InventoryClickEvent event, ForgeGuiSession state, int slot, boolean required) {

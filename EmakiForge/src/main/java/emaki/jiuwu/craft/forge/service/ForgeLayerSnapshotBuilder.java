@@ -8,13 +8,16 @@ import java.util.Map;
 
 import org.bukkit.inventory.ItemStack;
 
+import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerSnapshot;
 import emaki.jiuwu.craft.corelib.assembly.EmakiPresentationEntry;
 import emaki.jiuwu.craft.corelib.assembly.EmakiStatContribution;
+import emaki.jiuwu.craft.corelib.assembly.ItemPresentationCompiler;
+import emaki.jiuwu.craft.corelib.assembly.PresentationCompileIssue;
+import emaki.jiuwu.craft.corelib.assembly.PresentationCompileResult;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
-import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.model.ForgeMaterial;
 import emaki.jiuwu.craft.forge.model.GuiItems;
@@ -24,9 +27,12 @@ import emaki.jiuwu.craft.forge.model.Recipe;
 final class ForgeLayerSnapshotBuilder {
 
     private final EmakiForgePlugin plugin;
+    private final ItemPresentationCompiler presentationCompiler;
 
     ForgeLayerSnapshotBuilder(EmakiForgePlugin plugin) {
         this.plugin = plugin;
+        EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.getInstance();
+        this.presentationCompiler = coreLib == null ? new ItemPresentationCompiler() : coreLib.itemPresentationCompiler();
     }
 
     EmakiItemLayerSnapshot buildLayerSnapshot(Recipe recipe,
@@ -120,124 +126,76 @@ final class ForgeLayerSnapshotBuilder {
         List<EmakiPresentationEntry> entries = new ArrayList<>();
         int sequence = 0;
         if (recipe != null && recipe.result() != null) {
-            sequence = addNameEntries(entries, recipe.result().nameModifications(), sequence, "recipe_result");
-            sequence = addLoreEntries(entries, recipe.result().loreActions(), sequence, "recipe_result");
+            sequence = appendCompiledEntries(
+                    entries,
+                    presentationCompiler.compile(
+                            recipe.result().nameModifications(),
+                            recipe.result().loreActions(),
+                            sequence,
+                            "recipe_result"
+                    )
+            );
         }
         for (ForgeMaterialContribution material : materials) {
-            sequence = addNameEntries(entries, material.material().nameModifications(), sequence, material.material().id());
-            sequence = addLoreEntries(entries, material.material().loreActions(), sequence, material.material().id());
+            sequence = appendCompiledEntries(
+                    entries,
+                    presentationCompiler.compile(
+                            material.material().nameModifications(),
+                            material.material().loreActions(),
+                            sequence,
+                            material.material().id()
+                    )
+            );
         }
         if (qualityTier != null) {
             QualitySettings settings = plugin.appConfig().qualitySettings();
             if (settings.itemMetaEnabled()) {
-                sequence = addNameEntries(entries, settings.itemMetaNameModifications(qualityTier.name()), sequence, "quality:" + qualityTier.name());
-                sequence = addLoreEntries(entries, settings.itemMetaLoreActions(qualityTier.name()), sequence, "quality:" + qualityTier.name());
+                sequence = appendCompiledEntries(
+                        entries,
+                        presentationCompiler.compile(
+                                settings.itemMetaNameModifications(qualityTier.name()),
+                                settings.itemMetaLoreActions(qualityTier.name()),
+                                sequence,
+                                "quality:" + qualityTier.name()
+                        )
+                );
             }
         }
         return entries;
     }
 
-    private int addNameEntries(List<EmakiPresentationEntry> entries,
-            List<Map<String, Object>> modifications,
-            int sequence,
-            String sourceId) {
-        if (modifications == null) {
-            return sequence;
+    private int appendCompiledEntries(List<EmakiPresentationEntry> entries, PresentationCompileResult compileResult) {
+        if (compileResult == null) {
+            return entries.isEmpty() ? 0 : entries.get(entries.size() - 1).sequence() + 1;
         }
-        for (Map<String, Object> modification : modifications) {
-            String action = Texts.lower(modification.get("action"));
-            String value = Texts.toStringSafe(modification.get("value"));
-            switch (action) {
-                case "append_suffix" ->
-                    entries.add(new EmakiPresentationEntry("name_append", "", value, sequence++, sourceId));
-                case "prepend_prefix" ->
-                    entries.add(new EmakiPresentationEntry("name_prepend", "", value, sequence++, sourceId));
-                case "replace" ->
-                    entries.add(new EmakiPresentationEntry("name_replace", "", value, sequence++, sourceId));
-                case "regex_replace" ->
-                    entries.add(new EmakiPresentationEntry(
-                            "name_regex_replace",
-                            Texts.toStringSafe(modification.get("regex_pattern")),
-                            Texts.toStringSafe(modification.get("replacement")),
-                            sequence++,
-                            sourceId
-                    ));
-                default -> {
-                }
+        entries.addAll(compileResult.entries());
+        logCompileIssues(compileResult.issues());
+        return compileResult.nextSequence();
+    }
+
+    private void logCompileIssues(List<PresentationCompileIssue> issues) {
+        if (plugin.messageService() == null || issues == null || issues.isEmpty()) {
+            return;
+        }
+        for (PresentationCompileIssue issue : issues) {
+            if (issue == null) {
+                continue;
             }
+            String messageKey = switch (issue.reason()) {
+                case INVALID_ACTION_NAME ->
+                    "console.lore_invalid_action_name";
+                case INVALID_REGEX ->
+                    "console.lore_invalid_regex";
+                default ->
+                    "console.lore_invalid_search_insert_config";
+            };
+            Map<String, Object> replacements = new LinkedHashMap<>();
+            replacements.put("source", issue.sourceId().isBlank() ? "unknown" : issue.sourceId());
+            replacements.put("action", issue.action());
+            replacements.put("pattern", issue.targetPattern());
+            replacements.put("error", issue.detail());
+            plugin.messageService().warning(messageKey, replacements);
         }
-        return sequence;
-    }
-
-    private int addLoreEntries(List<EmakiPresentationEntry> entries,
-            List<Map<String, Object>> loreActions,
-            int sequence,
-            String sourceId) {
-        if (loreActions == null) {
-            return sequence;
-        }
-        for (Map<String, Object> action : loreActions) {
-            String type = Texts.lower(action.get("action"));
-            List<String> content = Texts.asStringList(action.get("content"));
-            String targetPattern = Texts.toStringSafe(action.get("target_pattern"));
-            String regexPattern = Texts.toStringSafe(action.get("regex_pattern"));
-            String replacement = Texts.toStringSafe(action.get("replacement"));
-            switch (type) {
-                case "insert_below", "insert_above", "append", "append_line", "append_lines", "prepend_line", "prepend_lines", "append_first_line", "append_first_lines", "insert_first" -> {
-                    String entryType = mapLoreEntryType(type);
-                    String anchor = "insert_below".equals(type) || "insert_above".equals(type) ? targetPattern : "";
-                    for (String line : content) {
-                        String statId = firstPlaceholder(line);
-                        if (Texts.isNotBlank(statId)) {
-                            entries.add(new EmakiPresentationEntry("stat_line", anchor, line, sequence++, statId));
-                        } else {
-                            entries.add(new EmakiPresentationEntry(entryType, anchor, line, sequence++, sourceId));
-                        }
-                    }
-                }
-                case "replace_line" -> {
-                    String line = content.isEmpty() ? "" : content.get(0);
-                    String statId = firstPlaceholder(line);
-                    if (Texts.isNotBlank(statId)) {
-                        entries.add(new EmakiPresentationEntry("stat_line", targetPattern, line, sequence++, statId));
-                    } else {
-                        entries.add(new EmakiPresentationEntry("lore_replace_line", targetPattern, line, sequence++, sourceId));
-                    }
-                }
-                case "delete_line" ->
-                    entries.add(new EmakiPresentationEntry("lore_delete_line", targetPattern, "", sequence++, sourceId));
-                case "regex_replace" ->
-                    entries.add(new EmakiPresentationEntry("lore_regex_replace", regexPattern, replacement, sequence++, sourceId));
-                default -> {
-                }
-            }
-        }
-        return sequence;
-    }
-
-    private String mapLoreEntryType(String type) {
-        return switch (Texts.lower(type)) {
-            case "insert_below" ->
-                "lore_insert_below";
-            case "insert_above" ->
-                "lore_insert_above";
-            case "prepend_line", "prepend_lines", "append_first_line", "append_first_lines", "insert_first" ->
-                "lore_prepend";
-            default ->
-                "lore_append";
-        };
-    }
-
-    private String firstPlaceholder(String template) {
-        if (Texts.isBlank(template)) {
-            return "";
-        }
-        int open = template.indexOf('{');
-        int close = template.indexOf('}', open + 1);
-        if (open < 0 || close <= open + 1) {
-            return "";
-        }
-        return Texts.lower(template.substring(open + 1, close));
     }
 
     private Map<String, Object> buildAudit(Recipe recipe,
@@ -251,8 +209,8 @@ final class ForgeLayerSnapshotBuilder {
         audit.put("multiplier", multiplier);
         audit.put("forged_at", forgedAt);
         audit.put("materials_signature", buildMaterialsSignature(materials));
-        if (recipe != null && recipe.result() != null && recipe.result().outputItem() != null) {
-            audit.put("output_item", ItemSourceUtil.toShorthand(recipe.result().outputItem()));
+        if (recipe != null && recipe.configuredOutputSource() != null) {
+            audit.put("output_item", ItemSourceUtil.toShorthand(recipe.configuredOutputSource()));
         }
         List<Map<String, Object>> materialMaps = new ArrayList<>();
         for (ForgeMaterialContribution material : materials) {

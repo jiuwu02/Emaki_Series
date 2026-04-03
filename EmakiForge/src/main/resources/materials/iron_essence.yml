@@ -4,7 +4,7 @@ description:
   - "<gray>蕴含铁之精华的材料"
   - "<gray>可用于强化武器的基础材料"
 
-item: "ni-material_iron_essence"
+item: "iron_ingot"
 
 capacity_cost:
   type: "constant"
@@ -29,5 +29,5 @@ effects:
       - action: "insert_below"
         target_pattern: "锻造属性:"
         content:
-          - "<gray>物理攻击: <red>+{physical_damage}"
+          - "<gray>物理伤害: <red>+{physical_damage}"
           - "<gray>生命值: <green>+{max_health}"

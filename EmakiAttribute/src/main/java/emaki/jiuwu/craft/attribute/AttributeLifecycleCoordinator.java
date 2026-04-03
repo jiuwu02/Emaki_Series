@@ -7,6 +7,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 
 import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
@@ -28,6 +30,7 @@ import emaki.jiuwu.craft.attribute.loader.LoreFormatRegistry;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
 import emaki.jiuwu.craft.attribute.service.MessageService;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 
@@ -49,6 +52,7 @@ final class AttributeLifecycleCoordinator {
         AttributeService attributeService = new AttributeService(
                 plugin,
                 coreLibPlugin.pdcService(),
+                coreLibPlugin.asyncTaskScheduler(),
                 plugin.configModel(),
                 attributeRegistry,
                 attributeBalanceRegistry,
@@ -127,6 +131,97 @@ final class AttributeLifecycleCoordinator {
         return rescheduleRegenTask(plugin, currentTask);
     }
 
+    public CompletableFuture<BukkitTask> reloadAsync(EmakiAttributePlugin plugin,
+            BukkitTask currentTask,
+            boolean resyncPlayers,
+            Consumer<String> progressListener) {
+        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.getInstance();
+        AsyncTaskScheduler scheduler = coreLibPlugin == null ? null : coreLibPlugin.asyncTaskScheduler();
+        if (scheduler == null) {
+            return CompletableFuture.completedFuture(reload(plugin, currentTask, resyncPlayers));
+        }
+        notifyProgress(progressListener, "正在读取语言与配置...");
+        return scheduler.supplyAsync("attribute-reload-bootstrap", () -> {
+            if (plugin.languageLoader() != null) {
+                plugin.languageLoader().load();
+            }
+            return loadConfigModel(plugin);
+        }).thenCompose(configModel -> scheduler.callSync("attribute-reload-config-apply", () -> {
+            plugin.setConfigModel(configModel);
+            if (plugin.attributeService() != null) {
+                plugin.attributeService().reloadConfig(plugin.configModel());
+            }
+            if (plugin.languageLoader() != null) {
+                plugin.languageLoader().setLanguage(plugin.configModel().language());
+            }
+            return configModel;
+        })).thenCompose(configModel -> runReloadStageAsync(
+                scheduler,
+                plugin,
+                "lore_format_registry",
+                "正在加载词条格式...",
+                progressListener,
+                () -> plugin.loreFormatRegistry().load(),
+                configModel
+        )).thenCompose(configModel -> runReloadStageAsync(
+                scheduler,
+                plugin,
+                "attribute_registry",
+                "正在加载属性定义...",
+                progressListener,
+                () -> plugin.attributeRegistry().load(),
+                configModel
+        )).thenCompose(configModel -> runReloadStageAsync(
+                scheduler,
+                plugin,
+                "default_profile_registry",
+                "正在加载默认组...",
+                progressListener,
+                () -> plugin.defaultProfileRegistry().load(),
+                configModel
+        )).thenCompose(configModel -> runReloadStageAsync(
+                scheduler,
+                plugin,
+                "preset_registry",
+                "正在加载属性预设...",
+                progressListener,
+                () -> plugin.presetRegistry().load(),
+                configModel
+        )).thenCompose(configModel -> runReloadStageAsync(
+                scheduler,
+                plugin,
+                "attribute_balance_registry",
+                "正在加载属性权重...",
+                progressListener,
+                () -> plugin.attributeBalanceRegistry().load(),
+                configModel
+        )).thenCompose(configModel -> runReloadStageAsync(
+                scheduler,
+                plugin,
+                "damage_type_registry",
+                "正在加载伤害类型...",
+                progressListener,
+                () -> plugin.damageTypeRegistry().load(),
+                configModel
+        )).thenCompose(configModel -> scheduler.callSync("attribute-reload-finalize", () -> {
+            notifyProgress(progressListener, "正在刷新缓存并同步在线实体...");
+            if (plugin.attributeService() != null) {
+                plugin.attributeService().refreshCaches();
+            }
+            plugin.ensureMythicBridge();
+            if (plugin.mythicBridge() != null) {
+                plugin.mythicBridge().resyncActiveMobs();
+            }
+            plugin.ensureMmoItemsBridge();
+            if (plugin.attributeService() != null && resyncPlayers) {
+                plugin.attributeService().resyncAllPlayers();
+            }
+            BukkitTask nextTask = rescheduleRegenTask(plugin, currentTask);
+            notifyProgress(progressListener, "EmakiAttribute 重载完成。");
+            return nextTask;
+        }));
+    }
+
     public BukkitTask rescheduleRegenTask(EmakiAttributePlugin plugin, BukkitTask currentTask) {
         BukkitTask nextTask = cancelRegenTask(currentTask);
         if (plugin.attributeService() == null) {
@@ -170,6 +265,27 @@ final class AttributeLifecycleCoordinator {
                     "error", String.valueOf(exception.getMessage())
             ));
         }
+    }
+
+    private <T> CompletableFuture<T> runReloadStageAsync(AsyncTaskScheduler scheduler,
+            EmakiAttributePlugin plugin,
+            String stageName,
+            String progressMessage,
+            Consumer<String> progressListener,
+            Runnable stage,
+            T passthrough) {
+        notifyProgress(progressListener, progressMessage);
+        return scheduler.supplyAsync("attribute-reload-" + stageName, () -> {
+            runReloadStage(plugin, stageName, stage);
+            return passthrough;
+        });
+    }
+
+    private void notifyProgress(Consumer<String> progressListener, String message) {
+        if (progressListener == null || message == null || message.isBlank()) {
+            return;
+        }
+        progressListener.accept(message);
     }
 
     private AttributeConfig loadConfigModel(EmakiAttributePlugin plugin) {

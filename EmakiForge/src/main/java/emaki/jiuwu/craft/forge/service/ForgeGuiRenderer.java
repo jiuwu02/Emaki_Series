@@ -12,7 +12,6 @@ import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.corelib.gui.ItemComponentParser;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
-import emaki.jiuwu.craft.forge.model.Recipe;
 
 final class ForgeGuiRenderer {
 
@@ -33,8 +32,6 @@ final class ForgeGuiRenderer {
         ItemStack dynamic = switch (type) {
             case "blueprint_inputs" ->
                 ForgeGuiStateSupport.cloneNonAir(state.blueprintItems().get(resolvedSlot.inventorySlot()));
-            case "target_item" ->
-                ForgeGuiStateSupport.cloneNonAir(state.targetItem());
             case "required_materials" ->
                 ForgeGuiStateSupport.cloneNonAir(state.requiredMaterialItems().get(resolvedSlot.inventorySlot()));
             case "optional_materials" ->
@@ -43,8 +40,6 @@ final class ForgeGuiRenderer {
                 buildCapacityDisplayItem(slot, state);
             case "confirm" ->
                 buildConfirmItem(slot, state);
-            case "result_preview" ->
-                buildResultPreview(state);
             default ->
                 null;
         };
@@ -93,28 +88,6 @@ final class ForgeGuiRenderer {
             );
         }
         return GuiItemBuilder.build(slot.item(), slot.components(), 1, slotReplacements(state), plugin.itemIdentifierService()::createItem);
-    }
-
-    private ItemStack buildResultPreview(ForgeGuiSession state) {
-        Recipe preview = state.previewRecipe();
-        if (preview == null || preview.result() == null || preview.result().outputItem() == null) {
-            return null;
-        }
-        ForgeService.PreparedForge preparedForge = state.preparedForge();
-        if (preparedForge == null) {
-            preparedForge = plugin.forgeService().prepareForge(
-                    state.player(),
-                    preview,
-                    state.toGuiItems(),
-                    state.previewSeed(),
-                    state.previewForgedAt()
-            );
-            state.setPreparedForge(preparedForge);
-        }
-        if (preparedForge == null || preparedForge.previewItem() == null) {
-            return null;
-        }
-        return preparedForge.previewItem().clone();
     }
 
     private Map<String, Object> slotReplacements(ForgeGuiSession state) {

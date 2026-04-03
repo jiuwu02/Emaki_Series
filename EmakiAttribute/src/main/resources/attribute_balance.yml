@@ -4,189 +4,189 @@ attributes:
   health:
     group: resource.health
     role: max_health
-    summary: "增加最大生命值。"
+    summary: "增加最大生命值"
   mana:
     group: resource.mana
     role: max_mana
-    summary: "增加最大法力值。"
+    summary: "增加最大法力值"
   health_regen:
     group: resource.health
     role: regen
-    summary: "每秒恢复生命值。"
+    summary: "每秒恢复生命值"
   mana_regen:
     group: resource.mana
     role: regen
-    summary: "每秒恢复法力值。"
+    summary: "每秒恢复法力值"
 
   physical_attack:
     group: offense.physical
     role: primary_damage
-    summary: "直接提升物理伤害。"
+    summary: "直接提升物理伤害"
   physical_damage_bonus:
     group: offense.physical
     role: damage_bonus
-    summary: "提升物理伤害倍率。"
+    summary: "提升物理伤害倍率"
   physical_defense:
     group: defense.physical
     role: mitigation
-    summary: "降低受到的物理伤害。"
+    summary: "降低受到的物理伤害"
   physical_armor_penetration:
     group: offense.physical
     role: penetration
-    summary: "削弱目标的物理防御。"
+    summary: "削弱目标的物理防御"
   physical_crit_rate:
     group: offense.physical
     role: crit_rate
-    summary: "提升物理暴击率。"
+    summary: "提升物理暴击率"
   physical_crit_damage:
     group: offense.physical
     role: crit_damage
-    summary: "提升物理暴击伤害。"
+    summary: "提升物理暴击伤害"
   physical_crit_evasion:
     group: defense.physical
     role: crit_evasion
-    summary: "降低受到物理暴击的概率。"
+    summary: "降低受到物理暴击的概率"
   physical_crit_multiplier_resistance:
     group: defense.physical
     role: crit_resistance
-    summary: "降低受到的物理暴击倍率。"
+    summary: "降低受到的物理暴击倍率"
 
   projectile_attack:
     group: offense.projectile
     role: primary_damage
-    summary: "直接提升投射物伤害。"
+    summary: "直接提升投射物伤害"
   projectile_damage_bonus:
     group: offense.projectile
     role: damage_bonus
-    summary: "提升投射物伤害倍率。"
+    summary: "提升投射物伤害倍率"
   projectile_defense:
     group: defense.projectile
     role: mitigation
-    summary: "降低受到的投射物伤害。"
+    summary: "降低受到的投射物伤害"
   projectile_penetration:
     group: offense.projectile
     role: penetration
-    summary: "削弱目标的投射物防御。"
+    summary: "削弱目标的投射物防御"
   projectile_crit_rate:
     group: offense.projectile
     role: crit_rate
-    summary: "提升投射物暴击率。"
+    summary: "提升投射物暴击率"
   projectile_crit_damage:
     group: offense.projectile
     role: crit_damage
-    summary: "提升投射物暴击伤害。"
+    summary: "提升投射物暴击伤害"
   projectile_crit_evasion:
     group: defense.projectile
     role: crit_evasion
-    summary: "降低受到投射物暴击的概率。"
+    summary: "降低受到投射物暴击的概率"
   projectile_crit_multiplier_resistance:
     group: defense.projectile
     role: crit_resistance
-    summary: "降低受到的投射物暴击倍率。"
+    summary: "降低受到的投射物暴击倍率"
 
   spell_attack:
     group: offense.spell
     role: primary_damage
-    summary: "直接提升法术伤害。"
+    summary: "直接提升法术伤害"
   spell_damage_bonus:
     group: offense.spell
     role: damage_bonus
-    summary: "提升法术伤害倍率。"
+    summary: "提升法术伤害倍率"
   spell_defense:
     group: defense.spell
     role: mitigation
-    summary: "降低受到的法术伤害。"
+    summary: "降低受到的法术伤害"
   magic_penetration:
     group: offense.spell
     role: penetration
-    summary: "削弱目标的法术防御。"
+    summary: "削弱目标的法术防御"
   magic_crit_rate:
     group: offense.spell
     role: crit_rate
-    summary: "提升法术暴击率。"
+    summary: "提升法术暴击率"
   magic_crit_damage:
     group: offense.spell
     role: crit_damage
-    summary: "提升法术暴击伤害。"
+    summary: "提升法术暴击伤害"
   magic_crit_evasion:
     group: defense.spell
     role: crit_evasion
-    summary: "降低受到法术暴击的概率。"
+    summary: "降低受到法术暴击的概率"
   magic_crit_multiplier_resistance:
     group: defense.spell
     role: crit_resistance
-    summary: "降低受到的法术暴击倍率。"
+    summary: "降低受到的法术暴击倍率"
 
   skill_damage_bonus:
     group: offense.skill
     role: damage_bonus
-    summary: "提升技能伤害倍率。"
+    summary: "提升技能伤害倍率"
   skill_crit_rate:
     group: offense.skill
     role: crit_rate
-    summary: "提升技能暴击率。"
+    summary: "提升技能暴击率"
   skill_crit_damage:
     group: offense.skill
     role: crit_damage
-    summary: "提升技能暴击伤害。"
+    summary: "提升技能暴击伤害"
   skill_cdr:
     group: utility.skill
     role: cooldown_reduction
-    summary: "缩短技能冷却时间。"
+    summary: "缩短技能冷却时间"
 
   speed:
     group: mobility.speed
     role: percent_speed
-    summary: "按百分比提升当前移动速度。"
+    summary: "按百分比提升当前移动速度"
   movement_speed:
     group: mobility.speed
     role: flat_speed
-    summary: "按方块每秒提升移动速度。"
+    summary: "按方块每秒提升移动速度"
   attack_speed:
     group: utility.combat
     role: item_cooldown
-    summary: "降低手持物品使用冷却。"
+    summary: "降低手持物品使用冷却"
 
   entity_scale:
     group: utility.visual
     role: scale
-    summary: "调整实体体型大小。"
+    summary: "调整实体体型大小"
   entity_interaction_range:
     group: utility.reach
     role: reach
-    summary: "增加实体交互范围。"
+    summary: "增加实体交互范围"
 
   real_damage:
     group: offense.true
     role: true_damage
-    summary: "直接造成穿透类真实伤害。"
+    summary: "直接造成穿透类真实伤害"
 
   lifesteal:
     group: sustain.lifesteal
     role: percent_heal
-    summary: "按造成伤害的百分比回复生命。"
+    summary: "按造成伤害的百分比回复生命"
   percentage_lifesteal:
     group: sustain.lifesteal
     role: flat_heal
-    summary: "按固定数值回复生命。"
+    summary: "按固定数值回复生命"
   lifesteal_resistance:
     group: defense.sustain
     role: sustain_resistance
-    summary: "降低敌方吸血效果。"
+    summary: "降低敌方吸血效果"
 
   dodge_chance:
     group: defense.evasion
     role: dodge
-    summary: "提升闪避概率。"
+    summary: "提升闪避概率"
 
   attribute_power:
     group: meta.balance
     role: derived_power
-    summary: "由其他属性推导出的战斗力。"
+    summary: "由其他属性推导出的战斗力"
   test_attribute:
     group: meta.debug
     role: test
-    summary: "用于测试与调试的占位属性。"
+    summary: "用于测试与调试的占位属性"
 
 weights:
   health: 0.35
