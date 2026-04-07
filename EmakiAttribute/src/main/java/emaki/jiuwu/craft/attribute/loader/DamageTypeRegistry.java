@@ -18,8 +18,7 @@ public final class DamageTypeRegistry extends DirectoryLoader<DamageTypeDefiniti
     private static final List<String> BUNDLED_RESOURCES = List.of(
             "physical.yml",
             "projectile.yml",
-            "spell.yml",
-            "skill.yml"
+            "spell.yml"
     );
     private static final Map<String, String> LEGACY_ATTRIBUTE_REFERENCE_ALIASES = Map.ofEntries(
             Map.entry("final_physical_damage", "physical_damage_bonus"),

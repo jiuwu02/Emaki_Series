@@ -1,0 +1,6 @@
+enabled: false
+source_id: gem_bind
+condition_type: all_of
+invalid_as_failure: true
+conditions:
+  - "%source_meta_bound_player% == %player_name%"

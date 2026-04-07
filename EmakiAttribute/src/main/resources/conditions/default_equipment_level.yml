@@ -1,0 +1,6 @@
+enabled: false
+source_id: gem_equipment_level
+condition_type: all_of
+invalid_as_failure: true
+conditions:
+  - "%source_attribute_required_level% <= %player_level%"

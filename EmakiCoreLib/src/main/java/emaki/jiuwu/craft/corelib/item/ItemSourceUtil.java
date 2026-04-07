@@ -53,8 +53,12 @@ public final class ItemSourceUtil {
         return switch (source.getType()) {
             case MMOITEMS ->
                 "mmoitems-" + source.getIdentifier();
+            case ITEMSADDER ->
+                "itemsadder-" + source.getIdentifier();
             case NEIGEITEMS ->
                 "neigeitems-" + source.getIdentifier();
+            case NEXO ->
+                "nexo-" + source.getIdentifier();
             case CRAFTENGINE ->
                 "craftengine-" + source.getIdentifier();
             case VANILLA ->

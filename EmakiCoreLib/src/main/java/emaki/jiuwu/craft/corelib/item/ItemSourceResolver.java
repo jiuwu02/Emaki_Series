@@ -10,6 +10,10 @@ public interface ItemSourceResolver {
 
     boolean supports(ItemSource source);
 
+    default boolean isAvailable(ItemSource source) {
+        return supports(source);
+    }
+
     ItemSource identify(ItemStack itemStack);
 
     ItemStack create(ItemSource source, int amount);

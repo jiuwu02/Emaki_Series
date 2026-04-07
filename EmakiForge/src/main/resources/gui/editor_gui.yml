@@ -1,0 +1,270 @@
+id: "editor_gui"
+title: "<gold>{title}</gold>"
+rows: 6
+
+slots:
+  background:
+    slots: ["0-53"]
+    item: "GRAY_STAINED_GLASS_PANE"
+    display_name: "<gray>"
+
+pages:
+  index:
+    title: "锻造编辑器"
+    buttons:
+      blueprint:
+        slots: [11]
+        item: "PAPER"
+        display_name: "<gold>{type_name}</gold>"
+        lore:
+          - "<gray>打开{type_name}资源列表。</gray>"
+      material:
+        slots: [22]
+        item: "IRON_INGOT"
+        display_name: "<gold>{type_name}</gold>"
+        lore:
+          - "<gray>打开{type_name}资源列表。</gray>"
+      recipe:
+        slots: [33]
+        item: "BOOK"
+        display_name: "<gold>{type_name}</gold>"
+        lore:
+          - "<gray>打开{type_name}资源列表。</gray>"
+      close:
+        slots: [49]
+        item: "BARRIER"
+        display_name: "<red>关闭编辑器</red>"
+        lore:
+          - "<gray>关闭当前界面。</gray>"
+
+  list:
+    title: "{type_name}列表"
+    content_slots: ["0-44"]
+    content_item:
+      item: "BOOK"
+      display_name: "<gold>{entry_id}</gold>"
+      lore:
+        - "<gray>{entry_name}</gray>"
+        - "<gray>左键打开编辑。</gray>"
+    buttons:
+      back:
+        slots: [45]
+        item: "COMPASS"
+        display_name: "<yellow>返回分类</yellow>"
+        lore:
+          - "<gray>回到资源类型选择。</gray>"
+      prev_page:
+        slots: [46]
+        item: "ARROW"
+        display_name: "<yellow>上一页</yellow>"
+        lore:
+          - "<gray>{page}/{pages}</gray>"
+      create:
+        slots: [47]
+        item: "LIME_DYE"
+        display_name: "<green>创建新{type_name}</green>"
+        lore:
+          - "<gray>创建新的资源草稿。</gray>"
+      summary:
+        slots: [49]
+        item: "BOOK"
+        display_name: "<gold>{type_name}列表</gold>"
+        lore:
+          - "<gray>总数: {count}</gray>"
+      next_page:
+        slots: [52]
+        item: "ARROW"
+        display_name: "<yellow>下一页</yellow>"
+        lore:
+          - "<gray>{page}/{pages}</gray>"
+      close:
+        slots: [53]
+        item: "BARRIER"
+        display_name: "<red>关闭编辑器</red>"
+        lore:
+          - "<gray>关闭当前界面。</gray>"
+
+  document:
+    title: "{type_name}:{current_id}"
+    content_slots: ["0-44"]
+    content_templates:
+      map:
+        item: "CHEST"
+        display_name: "<gold>{entry_label}</gold>"
+        lore:
+          - "<gray>类型: {node_type}</gray>"
+          - "<gray>值: {node_value}</gray>"
+          - "{edit_hint}"
+          - "{delete_hint}"
+          - "{is_slot_list}"
+      list:
+        item: "BARREL"
+        display_name: "<gold>{entry_label}</gold>"
+        lore:
+          - "<gray>类型: {node_type}</gray>"
+          - "<gray>值: {node_value}</gray>"
+          - "{edit_hint}"
+          - "{delete_hint}"
+          - "{is_slot_list}"
+      boolean:
+        item: "LEVER"
+        display_name: "<gold>{entry_label}</gold>"
+        lore:
+          - "<gray>类型: {node_type}</gray>"
+          - "<gray>值: {node_value}</gray>"
+          - "{edit_hint}"
+          - "{secondary_hint}"
+          - "{delete_hint}"
+      number:
+        item: "CLOCK"
+        display_name: "<gold>{entry_label}</gold>"
+        lore:
+          - "<gray>类型: {node_type}</gray>"
+          - "<gray>值: {node_value}</gray>"
+          - "{edit_hint}"
+          - "{secondary_hint}"
+          - "{delete_hint}"
+      scalar:
+        item: "NAME_TAG"
+        display_name: "<gold>{entry_label}</gold>"
+        lore:
+          - "<gray>类型: {node_type}</gray>"
+          - "<gray>值: {node_value}</gray>"
+          - "{edit_hint}"
+          - "{secondary_hint}"
+          - "{delete_hint}"
+    buttons:
+      back:
+        slots: [45]
+        item: "COMPASS"
+        display_name: "<yellow>返回上级</yellow>"
+        lore:
+          - "<gray>{path}</gray>"
+      prev_page:
+        slots: [46]
+        item: "ARROW"
+        display_name: "<yellow>上一页</yellow>"
+        lore:
+          - "<gray>{page}/{pages}</gray>"
+      add:
+        slots: [47]
+        item: "LIME_DYE"
+        display_name: "<green>新增条目</green>"
+        lore:
+          - "<gray>Map 新增字段，List 追加元素。</gray>"
+      save:
+        slots: [48]
+        item: "EMERALD"
+        display_name: "<green>保存并热重载</green>"
+        lore:
+          - "<gray>保存当前资源。</gray>"
+      context:
+        slots: [49]
+        item: "WRITABLE_BOOK"
+        display_name: "<gold>当前节点</gold>"
+        lore:
+          - "<gray>{path}</gray>"
+          - "<gray>{node_type}</gray>"
+      context_source:
+        item: "ITEM_FRAME"
+        display_name: "<gold>读取主手物品</gold>"
+        lore:
+          - "<gray>写入 {source_key} 字段。</gray>"
+      grid:
+        slots: [50]
+        item: "CHEST"
+        display_name: "<aqua>打开槽位网格</aqua>"
+        lore:
+          - "<gray>切换当前配方槽位。</gray>"
+      delete:
+        slots: [51]
+        item: "TNT"
+        display_name: "<red>删除当前资源</red>"
+        lore:
+          - "<gray>会先备份再删除。</gray>"
+      next_page:
+        slots: [52]
+        item: "ARROW"
+        display_name: "<yellow>下一页</yellow>"
+        lore:
+          - "<gray>{page}/{pages}</gray>"
+      close:
+        slots: [53]
+        item: "BARRIER"
+        display_name: "<red>关闭编辑器</red>"
+        lore:
+          - "<gray>未保存更改会先确认。</gray>"
+
+  grid:
+    title: "槽位网格"
+    content_slots: ["0-44"]
+    content_templates:
+      enabled:
+        item: "LIME_STAINED_GLASS_PANE"
+        display_name: "<green>槽位 {slot} 已启用</green>"
+        lore:
+          - "<gray>左键切换该槽位。</gray>"
+      disabled:
+        item: "GRAY_STAINED_GLASS_PANE"
+        display_name: "<gray>槽位 {slot} 未启用</gray>"
+        lore:
+          - "<gray>左键切换该槽位。</gray>"
+    buttons:
+      back_document:
+        slots: [45]
+        item: "COMPASS"
+        display_name: "<yellow>返回文档</yellow>"
+        lore:
+          - "<gray>回到文档树。</gray>"
+      prev_page:
+        slots: [46]
+        item: "ARROW"
+        display_name: "<yellow>上一页</yellow>"
+        lore:
+          - "<gray>{page}/{pages}</gray>"
+      save:
+        slots: [48]
+        item: "EMERALD"
+        display_name: "<green>保存并热重载</green>"
+        lore:
+          - "<gray>直接保存当前配方。</gray>"
+      summary:
+        slots: [49]
+        item: "BOOK"
+        display_name: "<gold>槽位数量: {count}</gold>"
+        lore:
+          - "<gray>{path}</gray>"
+      next_page:
+        slots: [52]
+        item: "ARROW"
+        display_name: "<yellow>下一页</yellow>"
+        lore:
+          - "<gray>{page}/{pages}</gray>"
+      close:
+        slots: [53]
+        item: "BARRIER"
+        display_name: "<red>关闭编辑器</red>"
+        lore:
+          - "<gray>未保存更改会先确认。</gray>"
+
+  confirm:
+    title: "确认关闭"
+    buttons:
+      save_exit:
+        slots: [20]
+        item: "EMERALD"
+        display_name: "<green>保存并退出</green>"
+        lore:
+          - "<gray>保存资源后关闭。</gray>"
+      discard:
+        slots: [24]
+        item: "LAVA_BUCKET"
+        display_name: "<red>放弃修改</red>"
+        lore:
+          - "<gray>丢弃当前更改。</gray>"
+      return:
+        slots: [31]
+        item: "COMPASS"
+        display_name: "<yellow>返回编辑</yellow>"
+        lore:
+          - "<gray>回到当前文档。</gray>"

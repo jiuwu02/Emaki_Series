@@ -44,11 +44,13 @@ public final class RecipeBookGuiService {
 
     private final EmakiForgePlugin plugin;
     private final GuiService guiService;
+    private final ConfiguredGuiSupport guiSupport;
     private final Map<UUID, BookSession> openBooks = new LinkedHashMap<>();
 
     public RecipeBookGuiService(EmakiForgePlugin plugin, GuiService guiService) {
         this.plugin = plugin;
         this.guiService = guiService;
+        this.guiSupport = new ConfiguredGuiSupport(plugin);
     }
 
     public boolean openRecipeBook(Player player) {
@@ -168,22 +170,37 @@ public final class RecipeBookGuiService {
         if (itemStack == null) {
             itemStack = new ItemStack(Material.BOOK);
         }
-        ItemStack clone = itemStack.clone();
-        ItemMeta itemMeta = clone.getItemMeta();
-        if (itemMeta != null) {
-            itemMeta.customName(MiniMessages.parse(recipe.displayName()));
-            List<String> lore = new ArrayList<>();
-            boolean unlocked = !recipe.requiresPermission() || player.hasPermission(recipe.permission());
-            lore.add(unlocked ? "<green>可用</green>" : "<red>未解锁</red>");
-            lore.add("<gray>配方ID: " + recipe.id() + "</gray>");
-            lore.add(plugin.playerDataStore().hasCrafted(player.getUniqueId(), recipe.id())
-                    ? "<green>已完成过锻造</green>"
-                    : "<gray>尚未完成锻造</gray>");
-            lore.add("<yellow>点击打开锻造界面</yellow>");
-            itemMeta.lore(lore.stream().map(MiniMessages::parse).toList());
-            clone.setItemMeta(itemMeta);
-        }
-        return clone;
+        boolean unlocked = !recipe.requiresPermission() || player.hasPermission(recipe.permission());
+        Map<String, Object> replacements = new LinkedHashMap<>();
+        replacements.put("recipe_name", recipe.displayName());
+        replacements.put("recipe_id", recipe.id());
+        replacements.put("unlock_state", unlocked
+                ? guiSupport.text("recipe_book", "texts.recipe_entry.unlocked", "<green>可用</green>", Map.of())
+                : guiSupport.text("recipe_book", "texts.recipe_entry.locked", "<red>未解锁</red>", Map.of()));
+        replacements.put("crafted_state", plugin.playerDataStore().hasCrafted(player.getUniqueId(), recipe.id())
+                ? guiSupport.text("recipe_book", "texts.recipe_entry.crafted", "<green>已完成过锻造</green>", Map.of())
+                : guiSupport.text("recipe_book", "texts.recipe_entry.uncrafted", "<gray>尚未完成锻造</gray>", Map.of()));
+        replacements.put("click_hint", guiSupport.text("recipe_book", "texts.recipe_entry.click_hint", "<yellow>点击打开锻造界面</yellow>", Map.of()));
+        return guiSupport.apply(
+                "recipe_book",
+                "virtual_items.recipe_entry",
+                itemStack,
+                replacements,
+                new emaki.jiuwu.craft.corelib.gui.ItemComponentParser.ItemComponents(
+                        "{recipe_name}",
+                        true,
+                        List.of(
+                                "{unlock_state}",
+                                "<gray>配方ID: {recipe_id}</gray>",
+                                "{crafted_state}",
+                                "{click_hint}"
+                        ),
+                        null,
+                        null,
+                        Map.of(),
+                        List.of()
+                )
+        );
     }
 
     private List<Integer> slotsForType(GuiTemplate template, String type) {

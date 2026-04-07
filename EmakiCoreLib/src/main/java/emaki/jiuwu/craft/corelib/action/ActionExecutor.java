@@ -117,11 +117,12 @@ public final class ActionExecutor {
         }
         String chanceRaw = resolveValue(context, parsed.control().chance());
         if (Texts.isNotBlank(chanceRaw)) {
-            double chance = ActionParsers.parseChance(chanceRaw);
-            if (chance < 0D || chance > 1D) {
+            long chanceThreshold = ActionParsers.parseChanceThreshold(chanceRaw);
+            if (chanceThreshold < 0L || chanceThreshold > ActionParsers.chanceDenominator()) {
                 return CompletableFuture.completedFuture(ActionResult.failure(ActionErrorType.INVALID_ARGUMENT, "Invalid @chance value: " + chanceRaw));
             }
-            if (ThreadLocalRandom.current().nextDouble() > chance) {
+            if (chanceThreshold <= 0L
+                    || ThreadLocalRandom.current().nextLong(ActionParsers.chanceDenominator()) >= chanceThreshold) {
                 return CompletableFuture.completedFuture(ActionResult.skipped("Chance did not pass."));
             }
         }

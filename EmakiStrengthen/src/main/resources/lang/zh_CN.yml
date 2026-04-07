@@ -1,0 +1,85 @@
+lang_version: "1.0"
+
+general:
+  prefix: "<gray>[ <gradient:#F2C46D:#C9703D>装备强化</gradient> ]</gray>"
+  no_permission: "<red>你没有权限执行此操作。</red>"
+  player_only: "<red>此命令只能由玩家执行。</red>"
+  player_not_found: "<red>未找到目标玩家。</red>"
+  unknown_command: "<red>未知的命令。</red>"
+  invalid_args: "<red>命令参数无效。</red>"
+  reload_success: "<green>装备强化配置已重载。</green>"
+  reload_summary: "<gray>已重载: 配置/语言/档案({profiles})/规则({rules})/材料({materials})/GUI({guis})</gray>"
+
+command:
+  help:
+    header: "<gold>========== 强化帮助 ==========</gold>"
+    footer: "<gold>==================================</gold>"
+    line: "<yellow>{cmd}</yellow> <gray>- {desc}</gray>"
+  inspect:
+    header: "<gold>========== {player} 的强化状态 ==========</gold>"
+    line: "<yellow>{key}</yellow> <gray>- {value}</gray>"
+  refresh:
+    success: "<green>已刷新 <yellow>{player}</yellow> 背包中的强化层。</green>"
+  setstar:
+    success: "<green>主手物品已设置为 <gold>+{star}</gold>。</green>"
+  clearcrack:
+    success: "<green>主手物品的裂痕已清零。</green>"
+  givecatalyst:
+    success: "<green>已向 <yellow>{player}</yellow> 发放 <gold>{amount}</gold> 个 {material}。</green>"
+  catalyst_not_found: "<red>未找到该强化材料 ID。</red>"
+  catalyst_create_failed: "<red>无法创建该强化材料物品。</red>"
+  admin_state_failed: "<red>无法将主手物品写回强化状态。</red>"
+
+console:
+  plugin_starting: "<gray>正在启动装备强化...</gray>"
+  plugin_started: "<green>装备强化启动完成。</green>"
+  plugin_stopped: "<green>装备强化已关闭。</green>"
+  bootstrap_start: "<white>开始检查装备强化默认文件...</white>"
+  bootstrap_complete: "<green>装备强化默认文件检查完成。</green>"
+  bootstrap_copy_failed: "<yellow>复制默认资源失败: <red>{path}</red> <gray>({error})</gray></yellow>"
+  bootstrap_save_failed: "<yellow>保存合并后的默认资源失败: <red>{path}</red> <gray>({error})</gray></yellow>"
+  default_file_missing: "<yellow>缺少内置默认资源: <red>{path}</red></yellow>"
+  directory_create_failed: "<yellow>创建目录失败: <red>{path}</red></yellow>"
+  loader_config_load_error: "<yellow>读取强化配置失败: <red>{path}</red> <gray>({error})</gray></yellow>"
+
+loader:
+  lang_directory_create_failed: "<yellow>无法创建语言目录: <red>{path}</red></yellow>"
+  bundled_language_load_failed: "<yellow>读取内置语言文件失败: <red>{error}</red></yellow>"
+  directory_create_failed: "<yellow>无法创建 {type} 目录: <red>{path}</red></yellow>"
+  invalid_blank_id: "<yellow>检测到空白 {type} ID: <red>{file}</red></yellow>"
+  duplicate_id: "<yellow>检测到重复 {type} ID <red>{id}</red>，来源 <gray>{file}</gray></yellow>"
+  load_failed: "<yellow>读取 {type} 文件失败: <red>{file}</red> <gray>({error})</gray></yellow>"
+
+strengthen:
+  error:
+    no_target: "<red>请先放入需要强化的物品。</red>"
+    no_source: "<red>该物品无法识别为 Emaki 物品来源。</red>"
+    no_profile: "<red>当前物品未命中可用的强化档案。</red>"
+    already_max: "<red>该物品已经达到最高星级。</red>"
+    base_required: "<red>缺少必需材料: 基础催化剂。</red>"
+    invalid_base_material: "<red>基础材料不匹配，无法进行强化。</red>"
+    invalid_support_material: "<red>辅助材料不匹配，无法参与本次强化。</red>"
+    invalid_protection_material: "<red>保护材当前不可用。</red>"
+    invalid_breakthrough_material: "<red>突破材料与当前目标星级不匹配。</red>"
+    breakthrough_required: "<red>当前目标星级需要额外突破材料。</red>"
+    insufficient_funds: "<red>{currency}不足，本次强化需要 {cost} {currency}。</red>"
+    economy_provider_unavailable: "<red>经济提供者当前不可用。</red>"
+    rebuild_failed: "<red>强化结果写回失败，已尝试返还货币。</red>"
+  preview:
+    failure_keep: "<gray>失败后保留当前星级，并累积裂痕。</gray>"
+    failure_drop: "<red>失败后掉落 1 星，并累积裂痕。</red>"
+    failure_drop_protected: "<gold>失败后消耗保护材，不会掉星。</gold>"
+  broadcast:
+    local_reach: "<gold>{player}</gold> <yellow>将 {show_item} 强化到了 <gold>+{star}</gold>！</yellow>"
+    global_reach: "<gold>{player}</gold> <yellow>成功将 {show_item} 强化到了 <gold>+{star}</gold>！</yellow>"
+
+gui:
+  open_failed: "<red>无法打开强化界面，请检查 GUI 模板是否加载成功。</red>"
+  attempt_success: "<green>强化成功，当前星级提升至 <gold>+{star}</gold>。</green>"
+  attempt_failed: "<yellow>强化失败，但仍维持在 <gold>+{star}</gold>。</yellow>"
+  attempt_failed_downgrade: "<red>强化失败，星级掉落至 <gold>+{star}</gold>。</red>"
+  inventory_full: "<yellow>背包空间不足，多余物品已掉落在脚边。</yellow>"
+  cleanse_no_target: "<red>请先放入需要处理裂痕的物品。</red>"
+  cleanse_no_crack: "<yellow>当前物品没有裂痕，无需净洗。</yellow>"
+  cleanse_missing_material: "<red>背包中缺少裂痕清除剂。</red>"
+  cleanse_success: "<green>裂痕已净洗 1 层。</green>"

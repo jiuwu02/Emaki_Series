@@ -45,6 +45,10 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
         return validateActions(file, recipe) ? recipe : null;
     }
 
+    public Recipe parseDocument(File file, YamlConfiguration configuration) {
+        return parse(file, configuration);
+    }
+
     @Override
     protected String idOf(Recipe value) {
         return value.id();

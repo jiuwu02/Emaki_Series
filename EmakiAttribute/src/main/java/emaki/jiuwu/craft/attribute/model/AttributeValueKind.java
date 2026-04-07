@@ -6,6 +6,5 @@ public enum AttributeValueKind {
     CHANCE,
     REGEN,
     RESOURCE,
-    SKILL,
     DERIVED
 }

@@ -58,6 +58,18 @@ public final class GuiItemBuilder {
         return build(new Request(item, components, amount, replacements), itemFactory);
     }
 
+    public static ItemStack apply(ItemStack baseItem,
+            ItemComponentParser.ItemComponents components,
+            Map<String, ?> replacements) {
+        ItemStack itemStack = baseItem == null ? barrier(1) : baseItem.clone();
+        ItemMeta itemMeta = itemStack.getItemMeta();
+        if (itemMeta != null) {
+            ItemComponentParser.apply(itemMeta, formatComponents(components, replacements));
+            itemStack.setItemMeta(itemMeta);
+        }
+        return itemStack;
+    }
+
     private static ItemStack baseItem(String item, int amount, ItemFactory itemFactory) {
         ItemSource source = ItemSourceUtil.parse(item);
         if (source == null) {
@@ -66,7 +78,7 @@ public final class GuiItemBuilder {
         ItemStack itemStack = switch (source.getType()) {
             case VANILLA ->
                 createVanillaItem(source.getIdentifier(), amount);
-            case MMOITEMS, NEIGEITEMS, CRAFTENGINE ->
+            case MMOITEMS, ITEMSADDER, NEIGEITEMS, NEXO, CRAFTENGINE ->
                 itemFactory == null ? null : itemFactory.create(source, amount);
         };
         if (itemStack == null) {

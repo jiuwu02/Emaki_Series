@@ -13,14 +13,15 @@ import emaki.jiuwu.craft.corelib.action.ActionLineParser;
 import emaki.jiuwu.craft.corelib.action.ActionRegistry;
 import emaki.jiuwu.craft.corelib.action.ActionTemplateRegistry;
 import emaki.jiuwu.craft.corelib.action.builtin.BuiltinActions;
-import emaki.jiuwu.craft.corelib.async.AsyncFileService;
-import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerCodecRegistry;
 import emaki.jiuwu.craft.corelib.assembly.EmakiNamespaceDefinition;
 import emaki.jiuwu.craft.corelib.assembly.EmakiNamespaceRegistry;
 import emaki.jiuwu.craft.corelib.assembly.ItemPresentationCompiler;
+import emaki.jiuwu.craft.corelib.async.AsyncFileService;
+import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.economy.EconomyManager;
+import emaki.jiuwu.craft.corelib.item.ItemSourceIntegrationCoordinator;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.monitor.PerformanceMonitor;
@@ -38,11 +39,11 @@ import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvider {
 
     private static final String STARTUP_ASCII = """
- ______     __    __     ______     __  __     __     ______     ______     ______     ______     __         __     ______
-/\\  ___\\   /\\ "-./  \\   /\\  __ \\   /\\ \\/ /    /\\ \\   /\\  ___\\   /\\  __ \\   /\\  == \\   /\\  ___\\   /\\ \\       /\\ \\   /\\  == \\
-\\ \\  __\\   \\ \\ \\-./\\ \\  \\ \\  __ \\  \\ \\  _"-.  \\ \\ \\  \\ \\ \\____  \\ \\ \\/\\ \\  \\ \\  __<   \\ \\  __\\   \\ \\ \\____  \\ \\ \\  \\ \\  __<
- \\ \\_____\\  \\ \\_\\ \\ \\_\\  \\ \\_\\ \\_\\  \\ \\_\\ \\_\\  \\ \\_\\  \\ \\_____\\  \\ \\_____\\  \\ \\_\\ \\_\\  \\ \\_____\\  \\ \\_____\\  \\ \\_\\  \\ \\_____\\
-  \\/_____/   \\/_/  \\/_/   \\/_/\\/_/   \\/_/\\/_/   \\/_/   \\/_____/   \\/_____/   \\/_/ /_/   \\/_____/   \\/_____/   \\/_/   \\/_____/
+ ______  __    __  ______  __  __   __  ______  ______  ______  ______  __      __  ______
+/\\  ___\\/\\ "-./  \\/\\  __ \\/\\ \\/ /  /\\ \\/\\  ___\\/\\  __ \\/\\  == \\/\\  ___\\/\\ \\    /\\ \\/\\  == \\
+\\ \\  __\\\\ \\ \\-./\\ \\ \\  __ \\ \\  _"-.\\ \\ \\ \\ \\___\\ \\ \\/\\ \\ \\  __<\\ \\  __\\\\ \\ \\___\\ \\ \\ \\  __<
+ \\ \\_____\\ \\_\\ \\ \\_\\ \\_\\ \\_\\ \\_\\ \\_\\\\ \\_\\ \\_____\\ \\_____\\ \\_\\ \\_\\ \\_____\\ \\_____\\ \\_\\ \\_____\\
+  \\/_____/\\/_/  \\/_/\\/_/\\/_/\\/_/\\/_/ \\/_/\\/_____/\\/_____/\\/_/ /_/\\/_____/\\/_____/\\/_/\\/_____/
 """;
 
     private static EmakiCoreLibPlugin instance;
@@ -60,6 +61,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private ActionExecutor actionExecutor;
     private final PdcService pdcService = new PdcService("emaki_corelib");
     private final ItemSourceService itemSourceService = new ItemSourceService();
+    private ItemSourceIntegrationCoordinator itemSourceIntegrationCoordinator;
     private final EmakiNamespaceRegistry namespaceRegistry = new EmakiNamespaceRegistry();
     private final EmakiItemLayerCodecRegistry itemLayerCodecRegistry = new EmakiItemLayerCodecRegistry();
     private final ItemPresentationCompiler itemPresentationCompiler = new ItemPresentationCompiler();
@@ -78,6 +80,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         messageService.info("console.plugin_starting");
         migrateLegacyBundledFiles();
         ensureBundledFile("config.yml");
+        itemSourceIntegrationCoordinator.initialize();
         reloadActionSystem();
         messageService.info("console.plugin_started");
     }
@@ -116,7 +119,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         for (var entry : configModel.actionTemplates().entrySet()) {
             actionTemplateRegistry.register(entry.getKey(), entry.getValue());
         }
-        BuiltinActions.registerAll(actionRegistry, economyManager);
+        BuiltinActions.registerAll(actionRegistry, economyManager, itemSourceService, itemPresentationCompiler);
         actionExecutor = new ActionExecutor(this, actionRegistry, new ActionLineParser(), placeholderRegistry, actionTemplateRegistry);
     }
 
@@ -127,6 +130,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private void initializeServices() {
         languageLoader = new LanguageLoader(this);
         messageService = new MessageService(this, languageLoader);
+        itemSourceIntegrationCoordinator = new ItemSourceIntegrationCoordinator(this, messageService, itemSourceService);
         performanceMonitor = new PerformanceMonitor();
         asyncTaskScheduler = AsyncTaskScheduler.forPlugin(this, "emaki-corelib-async", performanceMonitor);
         asyncFileService = new AsyncFileService(asyncTaskScheduler, 3, performanceMonitor);

@@ -5,10 +5,12 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 import org.bukkit.Bukkit;
+import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
 
 import emaki.jiuwu.craft.attribute.action.AttributeActions;
+import emaki.jiuwu.craft.attribute.api.PdcAttributeApi;
 import emaki.jiuwu.craft.attribute.bridge.MmoItemsBridge;
 import emaki.jiuwu.craft.attribute.bridge.MythicBridge;
 import emaki.jiuwu.craft.attribute.command.AttributeCommand;
@@ -21,6 +23,7 @@ import emaki.jiuwu.craft.attribute.loader.DamageTypeRegistry;
 import emaki.jiuwu.craft.attribute.loader.DefaultProfileRegistry;
 import emaki.jiuwu.craft.attribute.loader.LanguageLoader;
 import emaki.jiuwu.craft.attribute.loader.LoreFormatRegistry;
+import emaki.jiuwu.craft.attribute.loader.PdcReadRuleLoader;
 import emaki.jiuwu.craft.attribute.papi.AttributePlaceholderExpansion;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
 import emaki.jiuwu.craft.attribute.service.MessageService;
@@ -30,11 +33,12 @@ import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 public final class EmakiAttributePlugin extends JavaPlugin {
 
     private static final String STARTUP_ASCII = """
- ______     __    __     ______     __  __     __     ______     ______   ______   ______     __     ______     __  __     ______   ______
-/\\  ___\\   /\\ "-./  \\   /\\  __ \\   /\\ \\/ /    /\\ \\   /\\  __ \\   /\\__  _\\ /\\__  _\\ /\\  == \\   /\\ \\   /\\  == \\   /\\ \\/\\ \\   /\\__  _\\ /\\  ___\\
-\\ \\  __\\   \\ \\ \\-./\\ \\  \\ \\  __ \\  \\ \\  _"-.  \\ \\ \\  \\ \\  __ \\  \\/_/\\ \\/ \\/_/\\ \\/ \\ \\  __<   \\ \\ \\  \\ \\  __<   \\ \\ \\_\\ \\  \\/_/\\ \\/ \\ \\  __\\
- \\ \\_____\\  \\ \\_\\ \\ \\_\\  \\ \\_\\ \\_\\  \\ \\_\\ \\_\\  \\ \\_\\  \\ \\_\\ \\_\\    \\ \\_\\    \\ \\_\\  \\ \\_\\ \\_\\  \\ \\_\\  \\ \\_____\\  \\ \\_____\\    \\ \\_\\  \\ \\_____\\
-  \\/_____/   \\/_/  \\/_/   \\/_/\\/_/   \\/_/\\/_/   \\/_/   \\/_/\\/_/     \\/_/     \\/_/   \\/_/ /_/   \\/_/   \\/_____/   \\/_____/     \\/_/   \\/_____/
+  ______  __    __  ______  __  __   __  ______  ______  ______  ______  __  ______  __  __  ______  ______
+ /\\  ___\\/\\ "-./  \\/\\  __ \\/\\ \\/ /  /\\ \\/\\  __ \\/\\__  _\\/\\__  _\\/\\  == \\/\\ \\/\\  == \\/\\ \\/\\ \\/\\__  _\\/\\  ___\\   
+ \\ \\  __\\\\ \\ \\-./\\ \\ \\  __ \\ \\  _"-.\\ \\ \\ \\  __ \\/_/\\ \\/\\/_/\\ \\/\\ \\  __<\\ \\ \\ \\  __<\\ \\ \\_\\ \\/_/\\ \\/\\ \\  __\\   
+  \\ \\_____\\ \\_\\ \\ \\_\\ \\_\\ \\_\\ \\_\\ \\_\\\\ \\_\\ \\_\\ \\_\\ \\ \\_\\   \\ \\_\\ \\ \\_\\ \\_\\ \\_\\ \\_____\\ \\_____\\ \\ \\_\\ \\ \\_____\\ 
+   \\/_____/\\/_/  \\/_/\\/_/\\/_/\\/_/\\/_/ \\/_/\\/_/\\/_/  \\/_/    \\/_/  \\/_/ /_/\\/_/\\/_____/\\/_____/  \\/_/  \\/_____/
+                                                                                                                
 """;
 
     private static EmakiAttributePlugin instance;
@@ -48,8 +52,10 @@ public final class EmakiAttributePlugin extends JavaPlugin {
     private DefaultProfileRegistry defaultProfileRegistry;
     private LoreFormatRegistry loreFormatRegistry;
     private AttributePresetRegistry presetRegistry;
+    private PdcReadRuleLoader pdcReadRuleLoader;
     private LanguageLoader languageLoader;
     private MessageService messageService;
+    private PdcAttributeApi pdcAttributeApi;
     private AttributeService attributeService;
     private AttributeListener listener;
     private AttributeCommand command;
@@ -67,6 +73,7 @@ public final class EmakiAttributePlugin extends JavaPlugin {
     public void onEnable() {
         instance = this;
         applyRuntimeComponents(lifecycleCoordinator.initialize(this));
+        registerPdcAttributeApi();
         ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII);
         reloadPluginState(true);
         ensureMmoItemsBridge();
@@ -79,6 +86,7 @@ public final class EmakiAttributePlugin extends JavaPlugin {
     @Override
     public void onDisable() {
         unregisterCoreLibActions();
+        Bukkit.getServicesManager().unregisterAll(this);
         lifecycleCoordinator.shutdown(this, regenTask);
         regenTask = null;
         if (instance == this) {
@@ -109,6 +117,7 @@ public final class EmakiAttributePlugin extends JavaPlugin {
             return;
         }
         mmoItemsBridge = new MmoItemsBridge(this, attributeService);
+        getServer().getPluginManager().registerEvents(mmoItemsBridge, this);
         attributeService.resyncAllPlayers();
     }
 
@@ -155,12 +164,22 @@ public final class EmakiAttributePlugin extends JavaPlugin {
         defaultProfileRegistry = components.defaultProfileRegistry();
         loreFormatRegistry = components.loreFormatRegistry();
         presetRegistry = components.presetRegistry();
+        pdcReadRuleLoader = components.pdcReadRuleLoader();
         languageLoader = components.languageLoader();
         messageService = components.messageService();
+        pdcAttributeApi = components.pdcAttributeApi();
         attributeService = components.attributeService();
         listener = components.listener();
         command = components.command();
         mythicBridge = components.mythicBridge();
+    }
+
+    private void registerPdcAttributeApi() {
+        if (pdcAttributeApi == null) {
+            return;
+        }
+        Bukkit.getServicesManager().unregister(PdcAttributeApi.class, pdcAttributeApi);
+        Bukkit.getServicesManager().register(PdcAttributeApi.class, pdcAttributeApi, this, ServicePriority.Normal);
     }
 
     void setConfigModel(AttributeConfig configModel) {
@@ -199,12 +218,20 @@ public final class EmakiAttributePlugin extends JavaPlugin {
         return presetRegistry;
     }
 
+    public PdcReadRuleLoader pdcReadRuleLoader() {
+        return pdcReadRuleLoader;
+    }
+
     public LanguageLoader languageLoader() {
         return languageLoader;
     }
 
     public MessageService messageService() {
         return messageService;
+    }
+
+    public PdcAttributeApi pdcAttributeApi() {
+        return pdcAttributeApi;
     }
 
     public AttributeService attributeService() {

@@ -11,8 +11,26 @@ import emaki.jiuwu.craft.corelib.assembly.lore.SearchInsertValidationException;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
+/**
+ * 物品展示编译器
+ * <p>
+ * 负责将配置中的名称和 Lore 操作编译为标准化的 {@link EmakiPresentationEntry} 列表。
+ * 该类使用标准化字段命名，所有局部变量和参数均遵循小驼峰命名法规范。
+ * </p>
+ *
+ * @since 2.0.0
+ */
 public final class ItemPresentationCompiler {
 
+    /**
+     * 编译完整的物品展示操作（名称 + Lore）
+     *
+     * @param nameOperations 名称操作配置对象
+     * @param loreOperations Lore 操作配置对象
+     * @param startSequence 起始序列号
+     * @param sourceId 来源标识符
+     * @return 编译结果，包含条目列表和问题列表
+     */
     public PresentationCompileResult compile(Object nameOperations,
             Object loreOperations,
             int startSequence,
@@ -26,86 +44,110 @@ public final class ItemPresentationCompiler {
         return new PresentationCompileResult(entries, loreResult.nextSequence(), issues);
     }
 
+    /**
+     * 编译名称相关操作
+     *
+     * @param operations 操作配置列表
+     * @param startSequence 起始序列号
+     * @param sourceId 来源标识符
+     * @return 编译结果
+     */
     public PresentationCompileResult compileNameOperations(Object operations, int startSequence, String sourceId) {
         List<EmakiPresentationEntry> entries = new ArrayList<>();
         int sequence = Math.max(0, startSequence);
+
         for (Object raw : ConfigNodes.asObjectList(operations)) {
             Map<String, Object> operation = normalizeOperation(raw);
             if (operation.isEmpty()) {
                 continue;
             }
             String action = resolveAction(operation);
+
             switch (action) {
-                case "append_suffix", "name_append", "name_append_suffix" ->
+                case "append_suffix" ->
                     entries.add(new EmakiPresentationEntry(
                             "name_append",
                             "",
-                            resolveString(operation, "value", "template", "replacement"),
+                            resolveString(operation, "value"), // 配置键保持不变，仅变量命名标准化
                             sequence++,
                             sourceId
                     ));
-                case "prepend_prefix", "name_prepend", "name_prepend_prefix" ->
+                case "prepend_prefix" ->
                     entries.add(new EmakiPresentationEntry(
                             "name_prepend",
                             "",
-                            resolveString(operation, "value", "template", "replacement"),
+                            resolveString(operation, "value"), // 配置键保持不变
                             sequence++,
                             sourceId
                     ));
-                case "replace", "name_replace" ->
+                case "replace" ->
                     entries.add(new EmakiPresentationEntry(
                             "name_replace",
                             "",
-                            resolveString(operation, "value", "template", "replacement"),
+                            resolveString(operation, "value"), // 配置键保持不变
                             sequence++,
                             sourceId
                     ));
-                case "regex_replace", "name_regex_replace" ->
+                case "regex_replace" ->
                     entries.add(new EmakiPresentationEntry(
                             "name_regex_replace",
-                            resolveString(operation, "regex_pattern", "pattern", "target_pattern", "anchor"),
-                            resolveString(operation, "replacement", "value", "template"),
+                            resolveString(operation, "regex_pattern"), // 配置键保持不变
+                            resolveString(operation, "replacement"), // 配置键保持不变
                             sequence++,
                             sourceId
                     ));
                 default -> {
+                    // 忽略未知操作类型
                 }
             }
         }
         return new PresentationCompileResult(entries, sequence, List.of());
     }
 
+    /**
+     * 编译 Lore 相关操作
+     *
+     * @param operations 操作配置列表
+     * @param startSequence 起始序列号
+     * @param sourceId 来源标识符
+     * @return 编译结果，包含条目列表和可能的编译问题
+     */
     public PresentationCompileResult compileLoreOperations(Object operations, int startSequence, String sourceId) {
         List<EmakiPresentationEntry> entries = new ArrayList<>();
         List<PresentationCompileIssue> issues = new ArrayList<>();
         int sequence = Math.max(0, startSequence);
+
         for (Object raw : ConfigNodes.asObjectList(operations)) {
             Map<String, Object> operation = normalizeOperation(raw);
             if (operation.isEmpty()) {
                 continue;
             }
+
             String action = resolveAction(operation);
             List<String> content = resolveContent(operation);
-            String targetPattern = resolveString(operation, "target_pattern", "pattern", "anchor");
-            String regexPattern = resolveString(operation, "regex_pattern", "pattern", "target_pattern", "anchor");
-            String replacement = resolveString(operation, "replacement", "value", "template");
+
+            // 标准化后的局部变量名（遵循小驼峰命名法）
+            String searchPattern = resolveString(operation, "target_pattern");
+            String regexSearchPattern = resolveString(operation, "regex_pattern");
+            String contentTemplate = resolveString(operation, "replacement");
 
             if (ActionNameParser.isSearchInsertAction(action)) {
                 try {
                     SearchInsertConfig config = SearchInsertConfig.fromAction(
                             action,
-                            targetPattern,
+                            searchPattern,
                             resolveBoolean(operation, "ignore_case", false),
                             content,
                             resolveBoolean(operation, "inherit_style", true),
                             resolveString(operation, "on_not_found")
                     );
+                    // 使用新的字段名创建展示条目
                     entries.add(new EmakiPresentationEntry("lore_search_insert", config.toJson(), "", sequence++, sourceId));
                 } catch (SearchInsertValidationException exception) {
                     issues.add(new PresentationCompileIssue(
                             sourceId,
                             action,
-                            targetPattern,
+                            searchPattern,
                             exception.reason(),
                             exception.getMessage()
                     ));
@@ -114,28 +156,40 @@ public final class ItemPresentationCompiler {
             }
 
             switch (action) {
-                case "insert_below", "lore_insert_below" ->
-                    sequence = addLoreContentEntries(entries, "lore_insert_below", targetPattern, content, sequence, sourceId);
-                case "insert_above", "lore_insert_above" ->
-                    sequence = addLoreContentEntries(entries, "lore_insert_above", targetPattern, content, sequence, sourceId);
-                case "append", "append_line", "append_lines", "lore_append" ->
+                case "insert_below" ->
+                    sequence = addLoreContentEntries(entries, "lore_insert_below", searchPattern, content, sequence, sourceId);
+                case "insert_above" ->
+                    sequence = addLoreContentEntries(entries, "lore_insert_above", searchPattern, content, sequence, sourceId);
+                case "append" ->
                     sequence = addLoreContentEntries(entries, "lore_append", "", content, sequence, sourceId);
-                case "prepend", "prepend_line", "prepend_lines", "append_first_line", "append_first_lines", "insert_first",
-                        "lore_prepend" ->
+                case "prepend" ->
                     sequence = addLoreContentEntries(entries, "lore_prepend", "", content, sequence, sourceId);
-                case "replace_line", "lore_replace_line" ->
-                    sequence = addLoreReplaceEntry(entries, targetPattern, content, sequence, sourceId);
-                case "delete_line", "lore_delete_line" ->
-                    entries.add(new EmakiPresentationEntry("lore_delete_line", targetPattern, "", sequence++, sourceId));
-                case "regex_replace", "lore_regex_replace" ->
-                    entries.add(new EmakiPresentationEntry("lore_regex_replace", regexPattern, replacement, sequence++, sourceId));
+                case "replace_line" ->
+                    sequence = addLoreReplaceEntry(entries, searchPattern, content, sequence, sourceId);
+                case "delete_line" ->
+                    entries.add(new EmakiPresentationEntry("lore_delete_line", searchPattern, "", sequence++, sourceId));
+                case "regex_replace" ->
+                    entries.add(new EmakiPresentationEntry("lore_regex_replace", regexSearchPattern, contentTemplate, sequence++, sourceId));
                 default -> {
+                    // 忽略未知操作类型
                 }
             }
         }
         return new PresentationCompileResult(entries, sequence, issues);
     }
 
+    // ==================== 私有辅助方法 ====================
+    /**
+     * 添加 Lore 内容插入条目（支持多行内容）
+     *
+     * @param entries 条目列表（将被修改）
+     * @param entryType 条目类型
+     * @param anchor 搜索锚点
+     * @param content 内容行列表
+     * @param sequence 当前序列号
+     * @param sourceId 来源标识符
+     * @return 更新后的序列号
+     */
     private int addLoreContentEntries(List<EmakiPresentationEntry> entries,
             String entryType,
             String anchor,
@@ -153,21 +207,37 @@ public final class ItemPresentationCompiler {
         return sequence;
     }
 
+    /**
+     * 添加 Lore 替换条目（仅替换第一行内容）
+     *
+     * @param entries 条目列表（将被修改）
+     * @param searchPattern 搜索模式
+     * @param content 内容行列表
+     * @param sequence 当前序列号
+     * @param sourceId 来源标识符
+     * @return 更新后的序列号
+     */
     private int addLoreReplaceEntry(List<EmakiPresentationEntry> entries,
-            String targetPattern,
+            String searchPattern,
             List<String> content,
             int sequence,
             String sourceId) {
         String line = content.isEmpty() ? "" : content.get(0);
         String statId = firstPlaceholder(line);
         if (Texts.isNotBlank(statId)) {
-            entries.add(new EmakiPresentationEntry("stat_line", targetPattern, line, sequence++, statId));
+            entries.add(new EmakiPresentationEntry("stat_line", searchPattern, line, sequence++, statId));
             return sequence;
         }
-        entries.add(new EmakiPresentationEntry("lore_replace_line", targetPattern, line, sequence++, sourceId));
+        entries.add(new EmakiPresentationEntry("lore_replace_line", searchPattern, line, sequence++, sourceId));
         return sequence;
     }
 
+    /**
+     * 规范化操作配置为统一的 Map 格式
+     *
+     * @param raw 原始配置对象
+     * @return 规范化后的 Map，如果输入无效则返回空 Map
+     */
     private Map<String, Object> normalizeOperation(Object raw) {
         Object plain = ConfigNodes.toPlainData(raw);
         if (!(plain instanceof Map<?, ?> map)) {
@@ -183,19 +253,35 @@ public final class ItemPresentationCompiler {
         return normalized;
     }
 
+    /**
+     * 从操作配置中解析动作名称
+     *
+     * @param operation 操作配置 Map
+     * @return 小写格式的动作名称
+     */
     private String resolveAction(Map<String, Object> operation) {
-        String action = Texts.lower(resolveString(operation, "action", "type", "operation"));
-        if (Texts.isBlank(action) && operation.containsKey("name")) {
-            action = Texts.lower(operation.get("name"));
-        }
-        return action;
+        return Texts.lower(resolveString(operation, "action"));
     }
 
+    /**
+     * 从操作配置中解析内容列表
+     *
+     * @param operation 操作配置 Map
+     * @return 内容字符串列表
+     */
     private List<String> resolveContent(Map<String, Object> operation) {
-        Object raw = firstPresent(operation, "content", "lines");
+        Object raw = firstPresent(operation, "content");
         return List.copyOf(Texts.asStringList(raw));
     }
 
+    /**
+     * 从操作配置中解析布尔值
+     *
+     * @param operation 操作配置 Map
+     * @param key 配置键名
+     * @param defaultValue 默认值（当键不存在时返回）
+     * @return 解析后的布尔值
+     */
     private boolean resolveBoolean(Map<String, Object> operation, String key, boolean defaultValue) {
         if (!operation.containsKey(key)) {
             return defaultValue;
@@ -207,11 +293,25 @@ public final class ItemPresentationCompiler {
         return Boolean.parseBoolean(Texts.toStringSafe(value));
     }
 
+    /**
+     * 从操作配置中解析字符串值（支持多个候选键）
+     *
+     * @param operation 操作配置 Map
+     * @param keys 候选键名列表（按优先级排序）
+     * @return 解析后的字符串值
+     */
     private String resolveString(Map<String, Object> operation, String... keys) {
         Object value = firstPresent(operation, keys);
         return Texts.toStringSafe(value);
     }
 
+    /**
+     * 从 Map 中查找第一个存在的键对应的值
+     *
+     * @param operation 数据源 Map
+     * @param keys 候选键列表（按优先级排序）
+     * @return 第一个找到的值，或 null
+     */
     private Object firstPresent(Map<String, Object> operation, String... keys) {
         for (String key : keys) {
             if (operation.containsKey(key)) {
@@ -221,6 +321,12 @@ public final class ItemPresentationCompiler {
         return null;
     }
 
+    /**
+     * 从模板字符串中提取第一个占位符标识符
+     *
+     * @param template 模板字符串（如 "{player_name}"）
+     * @return 占位符标识符（不含花括号），或空字符串
+     */
     private String firstPlaceholder(String template) {
         if (Texts.isBlank(template)) {
             return "";

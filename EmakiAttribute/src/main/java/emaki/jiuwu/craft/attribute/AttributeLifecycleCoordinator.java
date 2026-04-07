@@ -27,8 +27,10 @@ import emaki.jiuwu.craft.attribute.loader.DamageTypeRegistry;
 import emaki.jiuwu.craft.attribute.loader.DefaultProfileRegistry;
 import emaki.jiuwu.craft.attribute.loader.LanguageLoader;
 import emaki.jiuwu.craft.attribute.loader.LoreFormatRegistry;
+import emaki.jiuwu.craft.attribute.loader.PdcReadRuleLoader;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
 import emaki.jiuwu.craft.attribute.service.MessageService;
+import emaki.jiuwu.craft.attribute.service.PdcAttributeService;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
@@ -49,6 +51,8 @@ final class AttributeLifecycleCoordinator {
         DefaultProfileRegistry defaultProfileRegistry = new DefaultProfileRegistry(plugin);
         LoreFormatRegistry loreFormatRegistry = new LoreFormatRegistry(plugin);
         AttributePresetRegistry presetRegistry = new AttributePresetRegistry(plugin);
+        PdcReadRuleLoader pdcReadRuleLoader = new PdcReadRuleLoader(plugin);
+        PdcAttributeService pdcAttributeService = new PdcAttributeService(plugin, pdcReadRuleLoader);
         AttributeService attributeService = new AttributeService(
                 plugin,
                 coreLibPlugin.pdcService(),
@@ -59,7 +63,8 @@ final class AttributeLifecycleCoordinator {
                 damageTypeRegistry,
                 defaultProfileRegistry,
                 loreFormatRegistry,
-                presetRegistry
+                presetRegistry,
+                pdcAttributeService
         );
         AttributeListener listener = new AttributeListener(plugin, attributeService);
         MythicBridge mythicBridge = Bukkit.getPluginManager().isPluginEnabled("MythicMobs")
@@ -73,8 +78,10 @@ final class AttributeLifecycleCoordinator {
                 defaultProfileRegistry,
                 loreFormatRegistry,
                 presetRegistry,
+                pdcReadRuleLoader,
                 languageLoader,
                 messageService,
+                pdcAttributeService,
                 attributeService,
                 listener,
                 command,
@@ -115,6 +122,7 @@ final class AttributeLifecycleCoordinator {
         runReloadStage(plugin, "attribute_registry", () -> plugin.attributeRegistry().load());
         runReloadStage(plugin, "default_profile_registry", () -> plugin.defaultProfileRegistry().load());
         runReloadStage(plugin, "preset_registry", () -> plugin.presetRegistry().load());
+        runReloadStage(plugin, "pdc_read_rule_loader", () -> plugin.pdcReadRuleLoader().load());
         runReloadStage(plugin, "attribute_balance_registry", () -> plugin.attributeBalanceRegistry().load());
         runReloadStage(plugin, "damage_type_registry", () -> plugin.damageTypeRegistry().load());
         if (plugin.attributeService() != null) {
@@ -178,6 +186,14 @@ final class AttributeLifecycleCoordinator {
                 "正在加载默认组...",
                 progressListener,
                 () -> plugin.defaultProfileRegistry().load(),
+                configModel
+        )).thenCompose(configModel -> runReloadStageAsync(
+                scheduler,
+                plugin,
+                "pdc_read_rule_loader",
+                "正在加载 PDC 读取规则...",
+                progressListener,
+                () -> plugin.pdcReadRuleLoader().load(),
                 configModel
         )).thenCompose(configModel -> runReloadStageAsync(
                 scheduler,

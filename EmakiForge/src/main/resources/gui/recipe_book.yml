@@ -89,3 +89,20 @@ slots:
     lore:
       - "<gray>当前页码: <yellow>{page}/{pages}</yellow>"
     click: "ui.button.click-1-1"
+
+virtual_items:
+  recipe_entry:
+    display_name: "{recipe_name}"
+    lore:
+      - "{unlock_state}"
+      - "<gray>配方ID: {recipe_id}</gray>"
+      - "{crafted_state}"
+      - "{click_hint}"
+
+texts:
+  recipe_entry:
+    unlocked: "<green>可用</green>"
+    locked: "<red>未解锁</red>"
+    crafted: "<green>已完成过锻造</green>"
+    uncrafted: "<gray>尚未完成锻造</gray>"
+    click_hint: "<yellow>点击打开锻造界面</yellow>"

@@ -15,7 +15,7 @@ import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 public final class BootstrapService {
 
     private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml");
-    private static final List<String> STATIC_FILES = List.of("gui/forge_gui.yml", "gui/recipe_book.yml");
+    private static final List<String> STATIC_FILES = List.of("gui/forge_gui.yml", "gui/recipe_book.yml", "gui/editor_gui.yml");
     private static final List<String> DEFAULT_DATA_FILES = List.of(
             "blueprints/universal_blueprint.yml",
             "blueprints/weapon_sword.yml",

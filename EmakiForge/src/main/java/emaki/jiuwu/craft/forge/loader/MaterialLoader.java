@@ -29,6 +29,10 @@ public final class MaterialLoader extends YamlDirectoryLoader<ForgeMaterial> {
         return ForgeMaterial.fromConfig(configuration);
     }
 
+    public ForgeMaterial parseDocument(File file, YamlConfiguration configuration) {
+        return parse(file, configuration);
+    }
+
     @Override
     protected String idOf(ForgeMaterial value) {
         return value.id();

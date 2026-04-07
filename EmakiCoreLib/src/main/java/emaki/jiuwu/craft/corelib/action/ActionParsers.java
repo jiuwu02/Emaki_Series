@@ -1,10 +1,15 @@
 package emaki.jiuwu.craft.corelib.action;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+
 import org.bukkit.Particle;
 
 import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class ActionParsers {
+
+    private static final long CHANCE_DENOMINATOR = 1_000_000_000L;
 
     private ActionParsers() {
     }
@@ -88,17 +93,37 @@ public final class ActionParsers {
     }
 
     public static double parseChance(String raw) {
+        BigDecimal parsed = parseChanceDecimal(raw);
+        return parsed == null ? -1D : parsed.doubleValue();
+    }
+
+    public static long parseChanceThreshold(String raw) {
+        BigDecimal parsed = parseChanceDecimal(raw);
+        if (parsed == null || parsed.compareTo(BigDecimal.ZERO) < 0 || parsed.compareTo(BigDecimal.ONE) > 0) {
+            return -1L;
+        }
+        return parsed.multiply(BigDecimal.valueOf(CHANCE_DENOMINATOR))
+                .setScale(0, RoundingMode.HALF_UP)
+                .longValueExact();
+    }
+
+    public static long chanceDenominator() {
+        return CHANCE_DENOMINATOR;
+    }
+
+    private static BigDecimal parseChanceDecimal(String raw) {
         if (Texts.isBlank(raw)) {
-            return -1D;
+            return null;
         }
         String trimmed = Texts.trim(raw);
         try {
             if (trimmed.endsWith("%")) {
-                return Double.parseDouble(trimmed.substring(0, trimmed.length() - 1)) / 100D;
+                return new BigDecimal(trimmed.substring(0, trimmed.length() - 1))
+                        .divide(BigDecimal.valueOf(100L), 12, RoundingMode.HALF_UP);
             }
-            return Double.parseDouble(trimmed);
-        } catch (NumberFormatException ignored) {
-            return -1D;
+            return new BigDecimal(trimmed);
+        } catch (NumberFormatException | ArithmeticException ignored) {
+            return null;
         }
     }
 

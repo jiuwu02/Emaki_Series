@@ -1,0 +1,8 @@
+id: "cleanse_catalyst"
+display_name: "<gray>裂痕清除剂</gray>"
+description:
+  - "<gray>可在 GUI 中点击裂痕处理时自动消耗。</gray>"
+  - "<gray>每次清除 1 层裂痕。</gray>"
+item: "potion"
+role: "CLEANSE"
+crack_remove: 1

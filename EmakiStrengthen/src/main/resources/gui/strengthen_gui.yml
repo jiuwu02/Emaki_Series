@@ -1,0 +1,90 @@
+id: "strengthen_gui"
+title: "<dark_gray>装备强化</dark_gray>"
+rows: 5
+
+slots:
+  top_frame:
+    slots: [0, 1, 2, 3, 4, 5, 6, 7, 8]
+    item: "GRAY_STAINED_GLASS_PANE"
+    display_name: "<gray>"
+
+  bottom_frame:
+    slots: [36, 37, 38, 39, 41, 42, 43, 44]
+    item: "GRAY_STAINED_GLASS_PANE"
+    display_name: "<gray>"
+
+  side_frame:
+    slots: [9, 17, 18, 26, 27, 35]
+    item: "BLACK_STAINED_GLASS_PANE"
+    display_name: "<dark_gray>"
+
+  target_item:
+    slots: [13]
+    type: "target_item"
+    item: "LIGHT_BLUE_STAINED_GLASS_PANE"
+    display_name: "<aqua>放入待强化装备</aqua>"
+    lore:
+      - "<gray>支持所有可识别为 Emaki 来源的装备"
+      - "<gray>会叠加 strengthen 层，不覆盖 forge 层"
+
+  preview_display:
+    slots: [15]
+    type: "preview_display"
+    item: "BOOK"
+    display_name: "<gold>强化预览</gold>"
+    lore:
+      - "<gray>这里会展示成功率、花费与失败后果"
+
+  crack_display:
+    slots: [22]
+    type: "crack_display"
+    item: "INK_SAC"
+    display_name: "<gray>裂痕处理</gray>"
+    lore:
+      - "<gray>点击时会尝试消耗裂痕清除剂"
+      - "<gray>每次清除 1 层裂痕</gray>"
+
+  base_material:
+    slots: [19]
+    type: "base_material"
+    item: "COPPER_INGOT"
+    display_name: "<gold>基础催化剂</gold>"
+    lore:
+      - "<gray>每次强化都必须放入 1 个基础材料</gray>"
+
+  support_material:
+    slots: [20]
+    type: "support_material"
+    item: "GUNPOWDER"
+    display_name: "<yellow>辅助催化剂</yellow>"
+    lore:
+      - "<gray>可选，固定提高 8% 成功率"
+      - "<gray>最终成功率不会超过 90%</gray>"
+
+  protection_material:
+    slots: [29]
+    type: "protection_material"
+    item: "GOLD_NUGGET"
+    display_name: "<red>保护催化剂</red>"
+    lore:
+      - "<gray>+6 起可用"
+      - "<gray>失败时消耗，防止掉星</gray>"
+
+  breakthrough_material:
+    slots: [30]
+    type: "breakthrough_material"
+    item: "PAPER"
+    display_name: "<light_purple>突破材料</light_purple>"
+    lore:
+      - "<gray>+8 起需要初级突破材料</gray>"
+      - "<gray>+10 起需要高级突破材料</gray>"
+
+  confirm:
+    slots: [40]
+    type: "confirm"
+    item: "ANVIL"
+    display_name: "<green>确认强化</green>"
+    lore:
+      - "<gray>点击后将结算货币与材料"
+      - "<gray>失败只会掉星，不会碎裂</gray>"
+    click: "ui.button.click-1-1"

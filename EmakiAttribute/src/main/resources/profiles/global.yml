@@ -33,7 +33,3 @@ attributes:
   spell_defense: 0.0
   health_regen: 0.0
   mana_regen: 0.0
-  skill_damage_bonus: 0.0
-  skill_crit_rate: 0.0
-  skill_crit_damage: 0.0
-  skill_cdr: 0.0

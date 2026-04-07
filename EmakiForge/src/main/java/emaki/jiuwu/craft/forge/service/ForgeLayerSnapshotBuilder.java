@@ -166,7 +166,7 @@ final class ForgeLayerSnapshotBuilder {
 
     private int appendCompiledEntries(List<EmakiPresentationEntry> entries, PresentationCompileResult compileResult) {
         if (compileResult == null) {
-            return entries.isEmpty() ? 0 : entries.get(entries.size() - 1).sequence() + 1;
+            return entries.isEmpty() ? 0 : entries.get(entries.size() - 1).sequenceOrder() + 1;
         }
         entries.addAll(compileResult.entries());
         logCompileIssues(compileResult.issues());

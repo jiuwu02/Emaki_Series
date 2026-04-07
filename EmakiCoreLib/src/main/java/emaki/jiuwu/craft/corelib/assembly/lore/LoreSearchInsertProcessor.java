@@ -36,28 +36,28 @@ public final class LoreSearchInsertProcessor {
         }
 
         UnaryOperator<String> renderer = templateRenderer == null ? Texts::toStringSafe : templateRenderer;
-        List<String> renderedContent = config.content().stream()
+        List<String> renderedContent = config.contentLines().stream()
                 .map(Texts::toStringSafe)
                 .map(renderer)
                 .toList();
 
-        LoreSearchMatcher matcher = matchers.getOrDefault(config.mode(), matchers.get(SearchMode.CONTAINS));
+        LoreSearchMatcher matcher = matchers.getOrDefault(config.searchMode(), matchers.get(SearchMode.CONTAINS));
         List<Integer> matches;
         try {
-            matches = matcher.matchAll(currentLore, config.targetPattern(), config.ignoreCase());
+            matches = matcher.matchAll(currentLore, config.searchPattern(), config.caseInsensitive());
         } catch (PatternSyntaxException exception) {
             return new LoreSearchInsertResult(currentLore, LoreSearchInsertStatus.INVALID_REGEX, exception.getMessage());
         }
 
         if (matches.isEmpty()) {
-            return switch (config.onNotFound()) {
+            return switch (config.onNotFoundPolicy()) {
                 case SKIP ->
                     new LoreSearchInsertResult(currentLore, LoreSearchInsertStatus.SKIPPED_NOT_FOUND, "");
                 case ERROR ->
                     new LoreSearchInsertResult(currentLore, LoreSearchInsertStatus.ERROR_NOT_FOUND, "");
                 case APPEND_TO_END ->
                     new LoreSearchInsertResult(
-                            insertOperator.appendToEnd(currentLore, renderedContent, config.inheritStyle()),
+                            insertOperator.appendToEnd(currentLore, renderedContent, config.styleInheritance()),
                             LoreSearchInsertStatus.APPENDED_TO_END,
                             ""
                     );
@@ -65,9 +65,9 @@ public final class LoreSearchInsertProcessor {
         }
 
         int targetIndex = insertOperator.resolveTargetIndex(matches, config.matchIndex());
-        List<String> updatedLore = switch (config.position()) {
-            case ABOVE -> insertOperator.insertAbove(currentLore, targetIndex, renderedContent, config.inheritStyle());
-            case BELOW -> insertOperator.insertBelow(currentLore, targetIndex, renderedContent, config.inheritStyle());
+        List<String> updatedLore = switch (config.insertPosition()) {
+            case ABOVE -> insertOperator.insertAbove(currentLore, targetIndex, renderedContent, config.styleInheritance());
+            case BELOW -> insertOperator.insertBelow(currentLore, targetIndex, renderedContent, config.styleInheritance());
         };
         return new LoreSearchInsertResult(updatedLore, LoreSearchInsertStatus.APPLIED, "");
     }

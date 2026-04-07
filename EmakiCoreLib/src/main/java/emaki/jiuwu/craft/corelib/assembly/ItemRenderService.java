@@ -59,25 +59,27 @@ final class ItemRenderService {
             if (entry == null) {
                 continue;
             }
-            switch (Texts.lower(entry.type())) {
-                case "name_prepend", "name_prepend_prefix" -> {
-                    currentName = entry.template() + currentName;
+            switch (Texts.lower(entry.entryType())) {
+                case "name_prepend" -> {
+                    currentName = entry.contentTemplate() + currentName;
                     writeCustomName = true;
                 }
-                case "name_append", "name_append_suffix" -> {
-                    currentName = currentName + entry.template();
+                case "name_append" -> {
+                    currentName = currentName + entry.contentTemplate();
                     writeCustomName = true;
                 }
                 case "name_replace" -> {
-                    currentName = entry.template();
+                    currentName = entry.contentTemplate();
                     writeCustomName = true;
                 }
                 case "name_regex_replace" -> {
-                    currentName = replaceRegex(currentName, entry.anchor(), entry.template());
+                    currentName = replaceRegex(currentName, entry.searchPattern(), entry.contentTemplate());
                     writeCustomName = true;
                 }
                 case "stat_line", "lore_stat_line" -> {
-                    String statId = Texts.isBlank(entry.sourceId()) ? firstPlaceholder(entry.template()) : normalizeId(entry.sourceId());
+                    String statId = Texts.isBlank(entry.sourceNamespace())
+                            ? firstPlaceholder(entry.contentTemplate())
+                            : normalizeId(entry.sourceNamespace());
                     if (Texts.isNotBlank(statId)) {
                         statLineDefinitions.put(statId, new StatLineDefinition(statId, entry, globalSequence));
                     }
@@ -127,9 +129,9 @@ final class ItemRenderService {
                 continue;
             }
             List<EmakiPresentationEntry> orderedEntries = new ArrayList<>(snapshot.presentation());
-            orderedEntries.sort(Comparator.comparingInt(EmakiPresentationEntry::sequence)
-                    .thenComparing(EmakiPresentationEntry::type)
-                    .thenComparing(EmakiPresentationEntry::template));
+            orderedEntries.sort(Comparator.comparingInt(EmakiPresentationEntry::sequenceOrder)
+                    .thenComparing(EmakiPresentationEntry::entryType)
+                    .thenComparing(EmakiPresentationEntry::contentTemplate));
             entries.addAll(orderedEntries);
         }
         return entries;
@@ -149,12 +151,12 @@ final class ItemRenderService {
             if (value == null || Math.abs(value) <= ZERO_EPSILON) {
                 continue;
             }
-            grouped.computeIfAbsent(definition.entry().anchor(), key -> new ArrayList<>()).add(definition);
+            grouped.computeIfAbsent(definition.entry().searchPattern(), key -> new ArrayList<>()).add(definition);
         }
         for (Map.Entry<String, List<StatLineDefinition>> group : grouped.entrySet()) {
             int insertIndex = findInsertIndex(lore, group.getKey());
             for (StatLineDefinition definition : group.getValue()) {
-                lore.add(insertIndex++, MiniMessages.parse(formatPlaceholders(definition.entry().template(), aggregatedStats)));
+                lore.add(insertIndex++, MiniMessages.parse(formatPlaceholders(definition.entry().contentTemplate(), aggregatedStats)));
             }
         }
     }
@@ -167,22 +169,22 @@ final class ItemRenderService {
         if (lore == null || entry == null) {
             return;
         }
-        String rendered = formatPlaceholders(entry.template(), aggregatedStats);
-        switch (Texts.lower(entry.type())) {
-            case "lore_append", "append", "append_line", "append_lines" ->
+        String rendered = formatPlaceholders(entry.contentTemplate(), aggregatedStats);
+        switch (Texts.lower(entry.entryType())) {
+            case "lore_append" ->
                 lore.add(MiniMessages.parse(rendered));
-            case "lore_prepend", "prepend_line", "prepend_lines", "insert_first" ->
+            case "lore_prepend" ->
                 lore.add(0, MiniMessages.parse(rendered));
-            case "lore_insert_below", "insert_below" ->
-                lore.add(findInsertIndex(lore, entry.anchor()), MiniMessages.parse(rendered));
-            case "lore_insert_above", "insert_above" ->
-                lore.add(findInsertIndexAbove(lore, entry.anchor()), MiniMessages.parse(rendered));
-            case "lore_replace_line", "replace_line" ->
-                replaceLine(lore, entry.anchor(), rendered);
-            case "lore_delete_line", "delete_line" ->
-                deleteLine(lore, entry.anchor());
-            case "lore_regex_replace", "regex_replace" ->
-                replaceRegexInLore(lore, entry.anchor(), rendered, aggregatedStats);
+            case "lore_insert_below" ->
+                lore.add(findInsertIndex(lore, entry.searchPattern()), MiniMessages.parse(rendered));
+            case "lore_insert_above" ->
+                lore.add(findInsertIndexAbove(lore, entry.searchPattern()), MiniMessages.parse(rendered));
+            case "lore_replace_line" ->
+                replaceLine(lore, entry.searchPattern(), rendered);
+            case "lore_delete_line" ->
+                deleteLine(lore, entry.searchPattern());
+            case "lore_regex_replace" ->
+                replaceRegexInLore(lore, entry.searchPattern(), rendered, aggregatedStats);
             case "lore_search_insert" ->
                 applySearchInsertEntry(lore, entry, aggregatedStats, feedbackPlayerId, feedbackHandler);
             default -> {
@@ -197,7 +199,7 @@ final class ItemRenderService {
             AssemblyFeedbackHandler feedbackHandler) {
         SearchInsertConfig config;
         try {
-            config = SearchInsertConfig.fromJson(entry.anchor());
+            config = SearchInsertConfig.fromJson(entry.searchPattern());
         } catch (SearchInsertValidationException exception) {
             if (exception.reason() == SearchInsertValidationException.Reason.INVALID_REGEX) {
                 feedbackHandler.onLoreInvalidRegex(feedbackPlayerId, entry, null, exception.getMessage());
@@ -211,13 +213,13 @@ final class ItemRenderService {
                 config,
                 template -> formatPlaceholders(template, aggregatedStats)
         );
-        if (result.mutated()) {
-            replaceLore(lore, result.loreLines());
+        if (result.mutationApplied()) {
+            replaceLore(lore, result.modifiedLore());
         }
-        if (result.status() == LoreSearchInsertStatus.ERROR_NOT_FOUND) {
+        if (result.executionStatus() == LoreSearchInsertStatus.ERROR_NOT_FOUND) {
             feedbackHandler.onLoreSearchNotFound(feedbackPlayerId, entry, config);
-        } else if (result.status() == LoreSearchInsertStatus.INVALID_REGEX) {
-            feedbackHandler.onLoreInvalidRegex(feedbackPlayerId, entry, config, result.detail());
+        } else if (result.executionStatus() == LoreSearchInsertStatus.INVALID_REGEX) {
+            feedbackHandler.onLoreInvalidRegex(feedbackPlayerId, entry, config, result.statusMessage());
         }
     }
 

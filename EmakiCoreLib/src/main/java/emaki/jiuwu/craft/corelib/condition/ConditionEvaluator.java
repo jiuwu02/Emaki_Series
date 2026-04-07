@@ -40,6 +40,40 @@ public final class ConditionEvaluator {
     }
 
     public static Boolean evaluateSingle(String line, Function<String, String> placeholderReplacer) {
+        if (Texts.isBlank(line)) {
+            return null;
+        }
+        List<String> orSegments = splitLogical(line, "||");
+        if (orSegments.size() > 1) {
+            for (String segment : orSegments) {
+                Boolean result = evaluateAndSegment(segment, placeholderReplacer);
+                if (result == null) {
+                    return null;
+                }
+                if (result) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        return evaluateAndSegment(line, placeholderReplacer);
+    }
+
+    private static Boolean evaluateAndSegment(String line, Function<String, String> placeholderReplacer) {
+        List<String> andSegments = splitLogical(line, "&&");
+        for (String segment : andSegments) {
+            Boolean result = evaluateAtomic(segment, placeholderReplacer);
+            if (result == null) {
+                return null;
+            }
+            if (!result) {
+                return false;
+            }
+        }
+        return !andSegments.isEmpty();
+    }
+
+    private static Boolean evaluateAtomic(String line, Function<String, String> placeholderReplacer) {
         ParsedCondition parsed = parse(line);
         if (parsed == null) {
             return null;
@@ -87,6 +121,35 @@ public final class ConditionEvaluator {
             return results.stream().filter(Boolean::booleanValue).count() == count;
         }
         return results.stream().allMatch(Boolean::booleanValue);
+    }
+
+    private static List<String> splitLogical(String line, String operator) {
+        List<String> segments = new ArrayList<>();
+        if (Texts.isBlank(line) || Texts.isBlank(operator)) {
+            return segments;
+        }
+        StringBuilder current = new StringBuilder();
+        boolean singleQuoted = false;
+        boolean doubleQuoted = false;
+        for (int index = 0; index < line.length(); index++) {
+            char currentChar = line.charAt(index);
+            if (currentChar == '\'' && !doubleQuoted) {
+                singleQuoted = !singleQuoted;
+            } else if (currentChar == '"' && !singleQuoted) {
+                doubleQuoted = !doubleQuoted;
+            }
+            if (!singleQuoted
+                    && !doubleQuoted
+                    && line.startsWith(operator, index)) {
+                segments.add(current.toString().trim());
+                current.setLength(0);
+                index += operator.length() - 1;
+                continue;
+            }
+            current.append(currentChar);
+        }
+        segments.add(current.toString().trim());
+        return segments;
     }
 
     private static boolean evaluateNumeric(Double left, String operator, Double right) {

@@ -198,8 +198,6 @@ public final class AttributeBalanceRegistry {
                 "offense";
             case RESOURCE ->
                 "resource";
-            case SKILL ->
-                "skill";
             case GENERIC, VANILLA ->
                 "utility";
         };
@@ -231,8 +229,6 @@ public final class AttributeBalanceRegistry {
                 "regen";
             case RESOURCE ->
                 "resource";
-            case SKILL ->
-                "skill";
             case DERIVED ->
                 "derived";
         };

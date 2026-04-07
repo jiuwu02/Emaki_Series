@@ -21,6 +21,7 @@ import emaki.jiuwu.craft.forge.loader.MaterialLoader;
 import emaki.jiuwu.craft.forge.loader.PlayerDataStore;
 import emaki.jiuwu.craft.forge.loader.RecipeLoader;
 import emaki.jiuwu.craft.forge.service.BootstrapService;
+import emaki.jiuwu.craft.forge.service.EditorGuiService;
 import emaki.jiuwu.craft.forge.service.ForgeGuiService;
 import emaki.jiuwu.craft.forge.service.ForgeItemRefreshService;
 import emaki.jiuwu.craft.forge.service.ForgeService;
@@ -44,12 +45,12 @@ final class ForgeLifecycleCoordinator {
         BootstrapService bootstrapService = new BootstrapService(plugin, messageService);
         GuiService guiService = new GuiService(plugin);
         ItemIdentifierService itemIdentifierService = new ItemIdentifierService(plugin);
-        registerCoreLibResolvers(itemIdentifierService);
         registerCoreLibAssemblyFeedbackHandler(plugin);
         ForgeService forgeService = new ForgeService(plugin);
         ForgeItemRefreshService itemRefreshService = new ForgeItemRefreshService(plugin);
         ForgeGuiService forgeGuiService = new ForgeGuiService(plugin, guiService);
         RecipeBookGuiService recipeBookGuiService = new RecipeBookGuiService(plugin, guiService);
+        EditorGuiService editorGuiService = new EditorGuiService(plugin, guiService);
         return new ForgeRuntimeComponents(
                 appConfigLoader,
                 languageLoader,
@@ -65,7 +66,8 @@ final class ForgeLifecycleCoordinator {
                 itemRefreshService,
                 forgeService,
                 forgeGuiService,
-                recipeBookGuiService
+                recipeBookGuiService,
+                editorGuiService
         );
     }
 
@@ -115,7 +117,6 @@ final class ForgeLifecycleCoordinator {
         if (plugin.messageService() != null) {
             plugin.messageService().info("console.plugin_stopping");
         }
-        unregisterCoreLibResolvers(plugin.itemIdentifierService());
         unregisterCoreLibAssemblyFeedbackHandler();
         cancelAutoSave(autoSaveTask);
         if (plugin.playerDataStore() != null && plugin.messageService() != null) {
@@ -130,6 +131,9 @@ final class ForgeLifecycleCoordinator {
         if (plugin.recipeBookGuiService() != null) {
             plugin.recipeBookGuiService().clearAllBooks();
         }
+        if (plugin.editorGuiService() != null) {
+            plugin.editorGuiService().clearAllSessions();
+        }
         if (plugin.messageService() != null) {
             plugin.messageService().info("console.plugin_stopped");
         }
@@ -137,12 +141,15 @@ final class ForgeLifecycleCoordinator {
 
     private void closeOpenInventories(EmakiForgePlugin plugin) {
         for (Player player : Bukkit.getOnlinePlayers()) {
-            if (plugin.forgeGuiService().getSession(player) != null || plugin.recipeBookGuiService().isRecipeBookInventory(player)) {
+            if (plugin.forgeGuiService().getSession(player) != null
+                    || plugin.recipeBookGuiService().isRecipeBookInventory(player)
+                    || plugin.editorGuiService().hasSession(player)) {
                 player.closeInventory();
             }
         }
         plugin.forgeGuiService().clearAllSessions();
         plugin.recipeBookGuiService().clearAllBooks();
+        plugin.editorGuiService().clearAllSessions();
     }
 
     private void validateConfiguredExternalSources(EmakiForgePlugin plugin) {
@@ -172,22 +179,6 @@ final class ForgeLifecycleCoordinator {
         if (source != null) {
             plugin.itemIdentifierService().validateConfiguredSource(source, location);
         }
-    }
-
-    private void registerCoreLibResolvers(ItemIdentifierService itemIdentifierService) {
-        EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.getInstance();
-        if (coreLib == null || itemIdentifierService == null) {
-            return;
-        }
-        coreLib.itemSourceService().registerResolver(itemIdentifierService);
-    }
-
-    private void unregisterCoreLibResolvers(ItemIdentifierService itemIdentifierService) {
-        EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.getInstance();
-        if (coreLib == null || itemIdentifierService == null) {
-            return;
-        }
-        coreLib.itemSourceService().unregisterResolver(itemIdentifierService.id());
     }
 
     private void registerCoreLibAssemblyFeedbackHandler(EmakiForgePlugin plugin) {

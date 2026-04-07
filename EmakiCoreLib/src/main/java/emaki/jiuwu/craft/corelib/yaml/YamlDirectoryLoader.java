@@ -21,6 +21,7 @@ public abstract class YamlDirectoryLoader<T> {
     protected final JavaPlugin plugin;
     protected final Object stateLock = new Object();
     protected final Map<String, T> items = new LinkedHashMap<>();
+    protected final Map<String, LoadedYamlEntry<T>> loadedEntries = new LinkedHashMap<>();
     protected boolean loaded;
 
     protected YamlDirectoryLoader(JavaPlugin plugin) {
@@ -30,6 +31,7 @@ public abstract class YamlDirectoryLoader<T> {
     public final int load() {
         synchronized (stateLock) {
             items.clear();
+            loadedEntries.clear();
             loaded = false;
             File directory = new File(plugin.getDataFolder(), directoryName());
             if (!directory.exists()) {
@@ -47,7 +49,8 @@ public abstract class YamlDirectoryLoader<T> {
             Arrays.sort(files, (left, right) -> left.getName().compareToIgnoreCase(right.getName()));
             for (File file : files) {
                 try {
-                    T value = parse(file, YamlFiles.load(file));
+                    YamlConfiguration configuration = YamlFiles.load(file);
+                    T value = parse(file, configuration);
                     if (value == null) {
                         continue;
                     }
@@ -61,6 +64,7 @@ public abstract class YamlDirectoryLoader<T> {
                         continue;
                     }
                     items.put(id, value);
+                    loadedEntries.put(id, new LoadedYamlEntry<>(id, file, cloneConfiguration(configuration), value));
                 } catch (Exception exception) {
                     onLoadFailure(file, exception);
                 }
@@ -87,6 +91,18 @@ public abstract class YamlDirectoryLoader<T> {
     public final Map<String, T> all() {
         synchronized (stateLock) {
             return Map.copyOf(items);
+        }
+    }
+
+    public final LoadedYamlEntry<T> entry(String id) {
+        synchronized (stateLock) {
+            return Texts.isBlank(id) ? null : loadedEntries.get(id);
+        }
+    }
+
+    public final Map<String, LoadedYamlEntry<T>> entries() {
+        synchronized (stateLock) {
+            return Map.copyOf(loadedEntries);
         }
     }
 
@@ -142,5 +158,23 @@ public abstract class YamlDirectoryLoader<T> {
     private AsyncTaskScheduler resolveScheduler() {
         EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.getInstance();
         return coreLibPlugin == null ? null : coreLibPlugin.asyncTaskScheduler();
+    }
+
+    private YamlConfiguration cloneConfiguration(YamlConfiguration configuration) {
+        YamlConfiguration copy = new YamlConfiguration();
+        if (configuration == null) {
+            return copy;
+        }
+        try {
+            copy.loadFromString(configuration.saveToString());
+            return copy;
+        } catch (Exception ignored) {
+            copy.addDefaults(configuration);
+            return copy;
+        }
+    }
+
+    public record LoadedYamlEntry<T>(String id, File file, YamlConfiguration configuration, T value) {
+
     }
 }

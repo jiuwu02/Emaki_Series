@@ -17,10 +17,12 @@ final class ForgeGuiRenderer {
 
     private final EmakiForgePlugin plugin;
     private final ForgeGuiStateSupport stateSupport;
+    private final ConfiguredGuiSupport guiSupport;
 
     ForgeGuiRenderer(EmakiForgePlugin plugin, ForgeGuiStateSupport stateSupport) {
         this.plugin = plugin;
         this.stateSupport = stateSupport;
+        this.guiSupport = new ConfiguredGuiSupport(plugin);
     }
 
     public ItemStack renderSlot(ForgeGuiSession state, GuiTemplate.ResolvedSlot resolvedSlot) {
@@ -67,7 +69,10 @@ final class ForgeGuiRenderer {
 
     private ItemStack buildConfirmItem(GuiSlot slot, ForgeGuiSession state) {
         if (state.maxCapacity() > 0 && state.currentCapacity() > state.maxCapacity()) {
-            return GuiItemBuilder.build(
+            return guiSupport.build(
+                    "forge_gui",
+                    "virtual_items.confirm_blocked",
+                    slotReplacements(state),
                     "BARRIER",
                     new ItemComponentParser.ItemComponents(
                             "<red>无法锻造</red>",
@@ -81,10 +86,7 @@ final class ForgeGuiRenderer {
                             null,
                             Map.of(),
                             List.of()
-                    ),
-                    1,
-                    slotReplacements(state),
-                    plugin.itemIdentifierService()::createItem
+                    )
             );
         }
         return GuiItemBuilder.build(slot.item(), slot.components(), 1, slotReplacements(state), plugin.itemIdentifierService()::createItem);
@@ -101,14 +103,14 @@ final class ForgeGuiRenderer {
 
     private String capacityStateText(ForgeGuiSession state) {
         if (state.maxCapacity() <= 0) {
-            return "<gray>等待图纸</gray>";
+            return guiSupport.text("forge_gui", "texts.capacity_state.waiting", "<gray>等待图纸</gray>", Map.of());
         }
         if (state.currentCapacity() > state.maxCapacity()) {
-            return "<red>已超限</red>";
+            return guiSupport.text("forge_gui", "texts.capacity_state.overflow", "<red>已超限</red>", Map.of());
         }
         if (state.currentCapacity() >= Math.max(1, (int) Math.ceil(state.maxCapacity() * 0.8D))) {
-            return "<gold>接近上限</gold>";
+            return guiSupport.text("forge_gui", "texts.capacity_state.warning", "<gold>接近上限</gold>", Map.of());
         }
-        return "<green>正常</green>";
+        return guiSupport.text("forge_gui", "texts.capacity_state.normal", "<green>正常</green>", Map.of());
     }
 }

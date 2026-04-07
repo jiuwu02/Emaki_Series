@@ -18,6 +18,7 @@ import emaki.jiuwu.craft.forge.loader.MaterialLoader;
 import emaki.jiuwu.craft.forge.loader.PlayerDataStore;
 import emaki.jiuwu.craft.forge.loader.RecipeLoader;
 import emaki.jiuwu.craft.forge.service.BootstrapService;
+import emaki.jiuwu.craft.forge.service.EditorGuiService;
 import emaki.jiuwu.craft.forge.service.ForgeGuiService;
 import emaki.jiuwu.craft.forge.service.ForgeItemRefreshService;
 import emaki.jiuwu.craft.forge.service.ForgeService;
@@ -30,11 +31,11 @@ public class EmakiForgePlugin extends JavaPlugin implements LogMessagesProvider 
     private static final String ROOT_COMMAND = "emakiforge";
 
     private static final String STARTUP_ASCII = """
- ______     __    __     ______     __  __     __     ______   ______     ______     ______     ______
-/\\  ___\\   /\\ "-./  \\   /\\  __ \\   /\\ \\/ /    /\\ \\   /\\  ___\\ /\\  __ \\   /\\  == \\   /\\  ___\\   /\\  ___\\
-\\ \\  __\\   \\ \\ \\-./\\ \\  \\ \\  __ \\  \\ \\  _"-.  \\ \\ \\  \\ \\  __\\ \\ \\ \\/\\ \\  \\ \\  __<   \\ \\ \\__ \\  \\ \\  __\\
- \\ \\_____\\  \\ \\_\\ \\ \\_\\  \\ \\_\\ \\_\\  \\ \\_\\ \\_\\  \\ \\_\\  \\ \\_\\    \\ \\_____\\  \\ \\_\\ \\_\\  \\ \\_____\\  \\ \\_____\\
-  \\/_____/   \\/_/  \\/_/   \\/_/\\/_/   \\/_/\\/_/   \\/_/   \\/_/     \\/_____/   \\/_/ /_/   \\/_____/   \\/_____/
+ ______  __    __  ______  __  __   __  ______  ______  ______  ______  ______
+/\\  ___\\/\\ "-./  \\/\\  __ \\/\\ \\/ /  /\\ \\/\\  ___\\/\\  __ \\/\\  == \\/\\  ___\\/\\  ___\\
+\\ \\  __\\\\ \\ \\-./\\ \\ \\  __ \\ \\  _"-.\\ \\ \\ \\  __\\\\ \\ \\/\\ \\ \\  __<\\ \\ \\__ \\ \\  __\\
+ \\ \\_____\\ \\_\\ \\ \\_\\ \\_\\ \\_\\ \\_\\ \\_\\\\ \\_\\ \\_\\   \\ \\_____\\ \\_\\ \\_\\ \\_____\\ \\_____\\
+  \\/_____/\\/_/  \\/_/\\/_/\\/_/\\/_/\\/_/ \\/_/\\/_/    \\/_____/\\/_/ /_/\\/_____/\\/_____/
 """;
 
     private final ForgeLifecycleCoordinator lifecycleCoordinator = new ForgeLifecycleCoordinator();
@@ -57,6 +58,7 @@ public class EmakiForgePlugin extends JavaPlugin implements LogMessagesProvider 
     private ForgeService forgeService;
     private ForgeGuiService forgeGuiService;
     private RecipeBookGuiService recipeBookGuiService;
+    private EditorGuiService editorGuiService;
     private BukkitTask autoSaveTask;
 
     public Path dataPath(String first, String... more) {
@@ -101,6 +103,7 @@ public class EmakiForgePlugin extends JavaPlugin implements LogMessagesProvider 
         forgeService = components.forgeService();
         forgeGuiService = components.forgeGuiService();
         recipeBookGuiService = components.recipeBookGuiService();
+        editorGuiService = components.editorGuiService();
     }
 
     private void registerCommandHandler() {
@@ -116,6 +119,9 @@ public class EmakiForgePlugin extends JavaPlugin implements LogMessagesProvider 
         getServer().getPluginManager().registerEvents(guiService, this);
         getServer().getPluginManager().registerEvents(playerDataListener, this);
         getServer().getPluginManager().registerEvents(itemRefreshListener, this);
+        if (editorGuiService != null) {
+            getServer().getPluginManager().registerEvents(editorGuiService.inputService(), this);
+        }
     }
 
     public AppConfigLoader appConfigLoader() {
@@ -180,5 +186,9 @@ public class EmakiForgePlugin extends JavaPlugin implements LogMessagesProvider 
 
     public RecipeBookGuiService recipeBookGuiService() {
         return recipeBookGuiService;
+    }
+
+    public EditorGuiService editorGuiService() {
+        return editorGuiService;
     }
 }

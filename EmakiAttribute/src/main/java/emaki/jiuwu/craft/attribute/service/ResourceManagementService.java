@@ -194,7 +194,6 @@ final class ResourceManagementService {
                 continue;
             }
             if (definition.valueKind() == AttributeValueKind.REGEN
-                    || definition.valueKind() == AttributeValueKind.SKILL
                     || definition.valueKind() == AttributeValueKind.DERIVED
                     || definition.valueKind() == AttributeValueKind.CHANCE) {
                 continue;

@@ -1,5 +1,8 @@
 package emaki.jiuwu.craft.attribute.papi;
 
+import java.util.Arrays;
+import java.util.Locale;
+
 import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
@@ -45,46 +48,82 @@ public final class AttributePlaceholderExpansion extends PlaceholderExpansion {
         if (player == null || Texts.isBlank(params)) {
             return "";
         }
-        String normalized = params.trim().toLowerCase().replace(' ', '_');
+        String normalized = normalizeToken(params);
         AttributeSnapshot snapshot = attributeService.collectCombatSnapshot(player);
-        if (normalized.equals("power") || normalized.equals("combat_power")) {
-            normalized = "attribute_power";
-        }
         if (normalized.startsWith("resource_")) {
             return resourcePlaceholder(player, normalized.substring("resource_".length()));
         }
-        Double value = attributeService.resolveAttributeValue(snapshot, normalized);
+        Double value = attributeService.resolveAttributeValue(snapshot, canonicalAttributePlaceholder(normalized));
         return value == null ? "0" : Numbers.formatNumber(value, "0.##");
     }
 
     private String resourcePlaceholder(Player player, String params) {
-        if (Texts.isBlank(params)) {
+        ResourceQuery query = parseResourceQuery(params);
+        if (Texts.isBlank(query.resourceId())) {
             return "";
         }
-        String normalized = params.trim().toLowerCase().replace(' ', '_');
-        String[] parts = normalized.split("_");
-        if (parts.length == 0) {
-            return "";
-        }
-        String resourceId = parts[0];
-        String field = parts.length >= 2 ? String.join("_", java.util.Arrays.copyOfRange(parts, 1, parts.length)) : "current";
-        ResourceState state = attributeService.readResourceState(player, resourceId);
+        ResourceState state = attributeService.readResourceState(player, query.resourceId());
         if (state == null) {
             return "0";
         }
-        return switch (field) {
-            case "default", "default_max" ->
+        return switch (query.field()) {
+            case "default" ->
                 Numbers.formatNumber(state.defaultMax(), "0.##");
-            case "bonus", "bonus_max" ->
+            case "bonus" ->
                 Numbers.formatNumber(state.bonusMax(), "0.##");
-            case "max", "current_max" ->
+            case "max" ->
                 Numbers.formatNumber(state.currentMax(), "0.##");
             case "percent" ->
                 Numbers.formatNumber(state.currentMax() <= 0D ? 0D : (state.currentValue() / state.currentMax()) * 100D, "0.##");
-            case "current", "current_value", "value" ->
+            case "current" ->
                 Numbers.formatNumber(state.currentValue(), "0.##");
             default ->
-                Numbers.formatNumber(state.currentValue(), "0.##");
+                "0";
         };
+    }
+
+    static String canonicalAttributePlaceholder(String params) {
+        String normalized = normalizeToken(params);
+        return "power".equals(normalized) ? "attribute_power" : normalized;
+    }
+
+    static String resourceId(String params) {
+        return parseResourceQuery(params).resourceId();
+    }
+
+    static String resourceField(String params) {
+        return parseResourceQuery(params).field();
+    }
+
+    private static ResourceQuery parseResourceQuery(String params) {
+        String normalized = normalizeToken(params);
+        if (Texts.isBlank(normalized)) {
+            return new ResourceQuery("", "");
+        }
+        String[] parts = normalized.split("_");
+        if (parts.length == 0) {
+            return new ResourceQuery("", "");
+        }
+        String resourceId = parts[0];
+        String field = parts.length >= 2 ? String.join("_", Arrays.copyOfRange(parts, 1, parts.length)) : "current";
+        return new ResourceQuery(resourceId, canonicalResourceField(field));
+    }
+
+    private static String canonicalResourceField(String field) {
+        String normalized = normalizeToken(field);
+        return switch (normalized) {
+            case "current", "max", "default", "bonus", "percent" ->
+                normalized;
+            default ->
+                "";
+        };
+    }
+
+    private static String normalizeToken(String value) {
+        return value == null ? "" : value.trim().toLowerCase(Locale.ROOT).replace(' ', '_');
+    }
+
+    private record ResourceQuery(String resourceId, String field) {
+
     }
 }

@@ -1,0 +1,59 @@
+id: "armor_guard"
+display_name: "<yellow>防具强化</yellow>"
+base_cost: 220
+
+stat_lines:
+  physical_defense: "<gray>物理防御: <gold>{sign}{value}</gold></gray>"
+  projectile_defense: "<gray>投射物防御: <gold>{sign}{value}</gold></gray>"
+  spell_defense: "<gray>法术防御: <gold>{sign}{value}</gold></gray>"
+  health: "<gray>生命值: <gold>{sign}{value}</gold></gray>"
+  health_regen: "<gray>生命回复: <gold>{sign}{value}</gold></gray>"
+  dodge_chance: "<gray>闪避率: <gold>{sign}{value}</gold></gray>"
+
+stars:
+  1: { stats: { physical_defense: 2, projectile_defense: 2, spell_defense: 2 } }
+  2: { stats: { physical_defense: 2, projectile_defense: 2, spell_defense: 2 } }
+  3: { stats: { physical_defense: 2.5, projectile_defense: 2.5, spell_defense: 2.5 } }
+  4: { stats: { physical_defense: 3, projectile_defense: 3, spell_defense: 3 } }
+  5: { stats: { physical_defense: 3, projectile_defense: 3, spell_defense: 3 } }
+  6: { stats: { physical_defense: 3.5, projectile_defense: 3.5, spell_defense: 3.5 } }
+  7: { stats: { physical_defense: 4, projectile_defense: 4, spell_defense: 4 } }
+  8: { stats: { physical_defense: 4.5, projectile_defense: 4.5, spell_defense: 4.5 } }
+  9: { stats: { physical_defense: 5, projectile_defense: 5, spell_defense: 5 } }
+  10: { stats: { physical_defense: 6, projectile_defense: 6, spell_defense: 6 } }
+  11: { stats: { physical_defense: 7, projectile_defense: 7, spell_defense: 7 } }
+  12: { stats: { physical_defense: 8, projectile_defense: 8, spell_defense: 8 } }
+
+milestones:
+  5:
+    name: "<yellow>生命值提升</yellow>"
+    stats: { health: 20 }
+    presentation:
+      - "<gray>强化达到 +5 后，防具会额外提供生命值。</gray>"
+    action:
+      - 'sendmessage text="<yellow>强化达到 +5，解锁额外生命值。</yellow>"'
+      - 'playsound sound=minecraft:item.armor.equip_netherite volume=1 pitch=1'
+  8:
+    name: "<yellow>额外生命值</yellow>"
+    stats: { health: 30 }
+    presentation:
+      - "<gray>强化达到 +8 后，防具会继续提升生命值。</gray>"
+    action:
+      - 'sendtitle title="<yellow><bold>+8 生命值提升</bold></yellow>" subtitle="<white>额外生命值已解锁</white>"'
+      - 'playsound sound=minecraft:entity.player.levelup volume=1 pitch=1.1'
+  10:
+    name: "<yellow>生命回复提升</yellow>"
+    stats: { health_regen: 4 }
+    presentation:
+      - "<gray>强化达到 +10 后，防具会额外提供生命回复。</gray>"
+    action:
+      - 'sendtitle title="<yellow><bold>+10 生命回复提升</bold></yellow>" subtitle="<white>生命回复已解锁</white>"'
+      - 'playsound sound=minecraft:block.respawn_anchor.charge volume=1 pitch=1'
+  12:
+    name: "<yellow>闪避提升</yellow>"
+    stats: { dodge_chance: 4 }
+    presentation:
+      - "<gray>强化达到 +12 后，防具会额外提供闪避率。</gray>"
+    action:
+      - 'sendtitle title="<yellow><bold>+12 闪避提升</bold></yellow>" subtitle="<white>闪避率已解锁</white>"'
+      - 'playsound sound=minecraft:ui.toast.challenge_complete volume=1 pitch=1'

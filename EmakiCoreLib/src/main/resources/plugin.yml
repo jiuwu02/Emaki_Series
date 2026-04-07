@@ -9,3 +9,8 @@ softdepend:
   - Vault
   - CoinsEngine
   - PlaceholderAPI
+  - MMOItems
+  - ItemsAdder
+  - Nexo
+  - NeigeItems
+  - CraftEngine

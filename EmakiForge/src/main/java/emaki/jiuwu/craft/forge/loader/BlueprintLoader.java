@@ -32,6 +32,10 @@ public final class BlueprintLoader extends YamlDirectoryLoader<Blueprint> {
         return Blueprint.fromConfig(configuration);
     }
 
+    public Blueprint parseDocument(File file, YamlConfiguration configuration) {
+        return parse(file, configuration);
+    }
+
     @Override
     protected String idOf(Blueprint value) {
         return value.id();

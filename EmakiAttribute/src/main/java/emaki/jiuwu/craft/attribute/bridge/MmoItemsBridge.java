@@ -11,24 +11,46 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.ProjectileHitEvent;
+import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.util.Vector;
 
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.attribute.api.AttributeContribution;
 import emaki.jiuwu.craft.attribute.api.AttributeContributionProvider;
 import emaki.jiuwu.craft.attribute.model.AttributeDefinition;
+import emaki.jiuwu.craft.attribute.model.AttributeSnapshot;
+import emaki.jiuwu.craft.attribute.model.DamageContext;
+import emaki.jiuwu.craft.attribute.model.DamageContextVariables;
+import emaki.jiuwu.craft.attribute.model.ProjectileDamageSnapshot;
+import emaki.jiuwu.craft.attribute.model.ResolvedDamage;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
+import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
+import net.Indyuce.mmoitems.api.event.item.SpecialWeaponAttackEvent;
 
-public final class MmoItemsBridge {
+public final class MmoItemsBridge implements Listener {
 
     private final EmakiAttributePlugin plugin;
     private final AttributeService attributeService;
     private final ReflectiveMmoItemsAccessor accessor;
     private final AttributeContributionProvider contributionProvider;
+    private final Set<UUID> trackedProjectiles = ConcurrentHashMap.newKeySet();
 
     public MmoItemsBridge(EmakiAttributePlugin plugin, AttributeService attributeService) {
         this.plugin = plugin;
@@ -41,12 +63,169 @@ public final class MmoItemsBridge {
         }
     }
 
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onProjectileLaunch(ProjectileLaunchEvent event) {
+        if (!(event.getEntity() instanceof Projectile projectile)) {
+            return;
+        }
+        LivingEntity shooter = projectile.getShooter() instanceof LivingEntity livingEntity ? livingEntity : null;
+        if (shooter == null || sourceItem(shooter) == null) {
+            return;
+        }
+        trackedProjectiles.add(projectile.getUniqueId());
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
+        LivingEntity target = event.getEntity() instanceof LivingEntity livingEntity ? livingEntity : null;
+        if (target == null) {
+            return;
+        }
+        if (event.getDamager() instanceof Projectile projectile && trackedProjectiles.contains(projectile.getUniqueId())) {
+            handleProjectileDamage(event, projectile, target);
+            return;
+        }
+        LivingEntity attacker = event.getDamager() instanceof LivingEntity livingEntity ? livingEntity : null;
+        if (sourceItem(attacker) == null) {
+            return;
+        }
+        event.setCancelled(true);
+        if (attacker instanceof Player player && attributeService.isAttackCoolingDown(player)) {
+            return;
+        }
+        DamageContext damageContext = attributeService.createDamageContext(
+                attacker,
+                target,
+                null,
+                event.getCause(),
+                null,
+                event.getDamage(),
+                0D,
+                baseContext(event, target)
+        );
+        resolveAndApplyDamage(attributeService.resolveDamageApplicationAsync(damageContext), target, event.getDamager());
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onSpecialWeaponAttack(SpecialWeaponAttackEvent event) {
+        if (event == null) {
+            return;
+        }
+        event.setCancelled(true);
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onProjectileHit(ProjectileHitEvent event) {
+        if (event != null && event.getEntity() != null) {
+            trackedProjectiles.remove(event.getEntity().getUniqueId());
+        }
+    }
+
+    private void handleProjectileDamage(EntityDamageByEntityEvent event, Projectile projectile, LivingEntity target) {
+        trackedProjectiles.remove(projectile.getUniqueId());
+        event.setCancelled(true);
+        LivingEntity shooter = projectile.getShooter() instanceof LivingEntity livingEntity ? livingEntity : null;
+        if (shooter instanceof Player player && attributeService.isAttackCoolingDown(player)) {
+            return;
+        }
+        ProjectileDamageSnapshot snapshot = attributeService.readProjectileSnapshot(projectile);
+        if (snapshot == null) {
+            return;
+        }
+        AttributeSnapshot targetSnapshot = attributeService.collectCombatSnapshot(target);
+        DamageContext damageContext = attributeService.createDamageContext(
+                shooter,
+                target,
+                projectile,
+                event.getCause(),
+                snapshot.damageTypeId(),
+                event.getDamage(),
+                0D,
+                snapshot.attackSnapshot(),
+                targetSnapshot,
+                baseContext(event, target)
+        );
+        resolveAndApplyDamage(attributeService.resolveDamageApplicationAsync(damageContext), target, projectile);
+    }
+
+    private ItemStack sourceItem(LivingEntity entity) {
+        if (entity == null) {
+            return null;
+        }
+        EntityEquipment equipment = entity.getEquipment();
+        if (equipment == null) {
+            return null;
+        }
+        ItemStack mainHand = equipment.getItemInMainHand();
+        if (mainHand != null && !mainHand.getType().isAir() && accessor.isMmoItemsItem(mainHand)) {
+            return mainHand;
+        }
+        ItemStack offHand = equipment.getItemInOffHand();
+        if (offHand != null && !offHand.getType().isAir() && accessor.isMmoItemsItem(offHand)) {
+            return offHand;
+        }
+        return null;
+    }
+
+    private DamageContextVariables baseContext(EntityDamageEvent event, LivingEntity target) {
+        DamageContextVariables.Builder context = DamageContextVariables.builder();
+        String cause = event.getCause().name();
+        context.put("cause", cause);
+        context.put("damage_cause", cause);
+        context.put("damage_cause_id", cause);
+        context.put("base_damage", event.getDamage());
+        context.put("source_damage", event.getDamage());
+        context.put("input_damage", event.getDamage());
+        context.put("final_damage", event.getFinalDamage());
+        context.put("target_uuid", target.getUniqueId().toString());
+        context.put("target_type", target.getType().name());
+        if (event instanceof EntityDamageByEntityEvent byEntityEvent) {
+            context.put("damager_type", byEntityEvent.getDamager().getType().name());
+            context.put("damager_uuid", byEntityEvent.getDamager().getUniqueId().toString());
+        }
+        return context.build();
+    }
+
+    private void resolveAndApplyDamage(CompletableFuture<ResolvedDamage> future, LivingEntity target, Entity visualSource) {
+        if (future == null) {
+            return;
+        }
+        future.whenComplete((resolvedDamage, throwable) -> plugin.getServer().getScheduler().runTask(plugin, () -> {
+            if (throwable != null || resolvedDamage == null || target == null || !target.isValid() || target.isDead()) {
+                return;
+            }
+            applySyntheticKnockback(target, visualSource, resolvedDamage.finalDamage());
+            attributeService.applyResolvedDamage(resolvedDamage, visualSource, 0D);
+        }));
+    }
+
+    private void applySyntheticKnockback(LivingEntity target, Entity source, double finalDamage) {
+        if (target == null || source == null || finalDamage <= 0D || !target.isValid() || target.isDead()
+                || !attributeService.config().syntheticHitKnockback()) {
+            return;
+        }
+        double strength = Math.max(0D, attributeService.config().syntheticHitKnockbackStrength());
+        if (strength <= 0D) {
+            return;
+        }
+        Vector direction = source.getLocation().toVector().subtract(target.getLocation().toVector());
+        direction.setY(0D);
+        if (direction.lengthSquared() < 1.0E-6D) {
+            direction = source.getLocation().getDirection().multiply(-1D).setY(0D);
+        }
+        if (direction.lengthSquared() < 1.0E-6D) {
+            return;
+        }
+        direction.normalize();
+        target.knockback(strength, direction.getX(), direction.getZ());
+    }
+
     private void warnBridgeUnavailable(String error) {
         if (plugin == null || plugin.messageService() == null) {
             return;
         }
         plugin.messageService().warning("console.mmoitems_bridge_unavailable", Map.of(
-            "error", Texts.toStringSafe(error)
+                "error", Texts.toStringSafe(error)
         ));
     }
 
@@ -91,8 +270,8 @@ public final class MmoItemsBridge {
                         continue;
                     }
                     double value = statCache.computeIfAbsent(
-                        normalizeId(definition.mmoItemsStatId()),
-                        key -> accessor.readDoubleStat(liveItem, definition.mmoItemsStatId(), definition.id())
+                            normalizeId(definition.mmoItemsStatId()),
+                            key -> accessor.readDoubleStat(liveItem, definition.mmoItemsStatId(), definition.id())
                     );
                     if (Double.compare(value, 0D) == 0) {
                         continue;
@@ -105,12 +284,12 @@ public final class MmoItemsBridge {
 
         private List<ItemSlot> equippedSlots(EntityEquipment equipment) {
             return List.of(
-                new ItemSlot("main_hand", equipment.getItemInMainHand()),
-                new ItemSlot("off_hand", equipment.getItemInOffHand()),
-                new ItemSlot("helmet", equipment.getHelmet()),
-                new ItemSlot("chestplate", equipment.getChestplate()),
-                new ItemSlot("leggings", equipment.getLeggings()),
-                new ItemSlot("boots", equipment.getBoots())
+                    new ItemSlot("main_hand", equipment.getItemInMainHand()),
+                    new ItemSlot("off_hand", equipment.getItemInOffHand()),
+                    new ItemSlot("helmet", equipment.getHelmet()),
+                    new ItemSlot("chestplate", equipment.getChestplate()),
+                    new ItemSlot("leggings", equipment.getLeggings()),
+                    new ItemSlot("boots", equipment.getBoots())
             );
         }
 
@@ -201,13 +380,13 @@ public final class MmoItemsBridge {
                 return liveMmoItemConstructor.newInstance(itemStack);
             } catch (Throwable throwable) {
                 warnOnce(
-                    "console.mmoitems_stat_read_failed",
-                    "live_item|" + throwable.getClass().getName(),
-                    Map.of(
-                        "attribute", "-",
-                        "stat", "-",
-                        "error", Texts.toStringSafe(throwable.getMessage())
-                    )
+                        "console.mmoitems_stat_read_failed",
+                        "live_item|" + throwable.getClass().getName(),
+                        Map.of(
+                                "attribute", "-",
+                                "stat", "-",
+                                "error", Texts.toStringSafe(throwable.getMessage())
+                        )
                 );
                 return null;
             }
@@ -220,12 +399,12 @@ public final class MmoItemsBridge {
             Object statObject = statObjects.get(normalizeId(configuredStatId));
             if (statObject == null) {
                 warnOnce(
-                    "console.mmoitems_stat_resolve_failed",
-                    "missing_stat|" + normalizeId(configuredStatId),
-                    Map.of(
-                        "attribute", safeText(attributeId, "-"),
-                        "stat", configuredStatId
-                    )
+                        "console.mmoitems_stat_resolve_failed",
+                        "missing_stat|" + normalizeId(configuredStatId),
+                        Map.of(
+                                "attribute", safeText(attributeId, "-"),
+                                "stat", configuredStatId
+                        )
                 );
                 return 0D;
             }
@@ -235,13 +414,13 @@ public final class MmoItemsBridge {
                 return numeric == null ? 0D : numeric;
             } catch (Throwable throwable) {
                 warnOnce(
-                    "console.mmoitems_stat_read_failed",
-                    "read_stat|" + safeText(attributeId, "-") + "|" + normalizeId(configuredStatId),
-                    Map.of(
-                        "attribute", safeText(attributeId, "-"),
-                        "stat", configuredStatId,
-                        "error", Texts.toStringSafe(throwable.getMessage())
-                    )
+                        "console.mmoitems_stat_read_failed",
+                        "read_stat|" + safeText(attributeId, "-") + "|" + normalizeId(configuredStatId),
+                        Map.of(
+                                "attribute", safeText(attributeId, "-"),
+                                "stat", configuredStatId,
+                                "error", Texts.toStringSafe(throwable.getMessage())
+                        )
                 );
                 return 0D;
             }
@@ -296,7 +475,7 @@ public final class MmoItemsBridge {
                 }
             } catch (Throwable ignored) {
             }
-            return emaki.jiuwu.craft.corelib.math.Numbers.tryParseDouble(String.valueOf(value), null);
+            return Numbers.tryParseDouble(String.valueOf(value), null);
         }
 
         private String readableId(Object value) {

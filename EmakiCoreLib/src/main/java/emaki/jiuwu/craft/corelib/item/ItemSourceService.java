@@ -68,6 +68,21 @@ public final class ItemSourceService {
         return null;
     }
 
+    public boolean isAvailable(ItemSource source) {
+        if (source == null || source.getType() == null) {
+            return false;
+        }
+        for (ItemSourceResolver resolver : orderedResolvers) {
+            if (!resolver.supports(source)) {
+                continue;
+            }
+            if (resolver.isAvailable(source)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private void refreshCache() {
         List<ItemSourceResolver> values = new ArrayList<>(resolvers.values());
         values.sort(Comparator.comparingInt(ItemSourceResolver::priority).reversed()

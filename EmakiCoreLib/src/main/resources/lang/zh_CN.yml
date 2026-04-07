@@ -9,6 +9,9 @@ console:
   plugin_started: "<green>EmakiCoreLib 已启用</green>"
   plugin_stopped: "<yellow>EmakiCoreLib 已关闭</yellow>"
   action_config_load_failed: "<red>核心库动作配置读取失败: {error}</red>"
+  item_source_bridge_ready: "<gray>物品源桥已接入: {library}</gray>"
+  item_source_bridge_waiting: "<gray>{library} 已检测到，等待其物品注册完成: {detail}</gray>"
+  item_source_bridge_incompatible: "<yellow>{library} 物品源桥未启用: {detail}</yellow>"
 
 loader:
   lang_directory_create_failed: "<red>无法创建语言目录: {path}</red>"

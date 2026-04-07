@@ -32,20 +32,16 @@ final class AttributeSnapshotCollector {
         if (itemStack == null || itemStack.getType().isAir()) {
             return AttributeSnapshot.empty("");
         }
-        var itemMeta = itemStack.getItemMeta();
-        if (itemMeta == null || !itemMeta.hasLore()) {
+        LoreParser.ParsedLore parsedLore = parseLore(itemStack);
+        PdcAttributeService.PdcAttributeCollection rawPdcContribution = service.pdcAttributeServiceInternal().collectRawContribution(itemStack);
+        if (parsedLore.snapshot().values().isEmpty() && rawPdcContribution.values().isEmpty()) {
             service.stateRepositoryInternal().clearItemSnapshot(itemStack);
             return AttributeSnapshot.empty("");
         }
-        List<Component> lore = itemMeta.lore();
-        List<String> normalizedLore = service.loreParser().normalizeLore(lore);
-        if (normalizedLore.isEmpty()) {
-            service.stateRepositoryInternal().clearItemSnapshot(itemStack);
-            return AttributeSnapshot.empty(SignatureUtil.stableSignature(List.of()));
-        }
         String sourceSignature = SignatureUtil.combine(
                 service.itemLoreSignatureVersion(),
-                SignatureUtil.stableSignature(normalizedLore),
+                parsedLore.snapshot().sourceSignature(),
+                rawPdcContribution.sourceSignature(),
                 service.attributeDefinitionsSignatureInternal()
         );
         String cachedSignature = service.stateRepositoryInternal().readItemSourceSignature(itemStack);
@@ -53,16 +49,15 @@ final class AttributeSnapshotCollector {
         if (sourceSignature.equals(cachedSignature) && cachedSnapshot != null) {
             return cachedSnapshot;
         }
-        LoreParser.ParsedLore parsedLore = service.loreParser().parse(lore);
-        AttributeSnapshot snapshot = parsedLore.snapshot();
-        if (!sourceSignature.equals(snapshot.sourceSignature())) {
-            snapshot = new AttributeSnapshot(
-                    snapshot.schemaVersion(),
-                    sourceSignature,
-                    snapshot.values(),
-                    snapshot.updatedAt()
-            );
-        }
+        Map<String, Double> values = new LinkedHashMap<>();
+        mergeValues(values, parsedLore.snapshot().values());
+        mergeValues(values, rawPdcContribution.values());
+        AttributeSnapshot snapshot = new AttributeSnapshot(
+                AttributeSnapshot.CURRENT_SCHEMA_VERSION,
+                sourceSignature,
+                values,
+                System.currentTimeMillis()
+        );
         service.stateRepositoryInternal().writeItemSnapshot(itemStack, snapshot);
         return snapshot;
     }
@@ -100,8 +95,12 @@ final class AttributeSnapshotCollector {
             if (itemSnapshot == null) {
                 continue;
             }
-            mergeValues(values, itemSnapshot.values());
-            signatureParts.add(slot.name() + ":" + itemSnapshot.sourceSignature());
+            Map<String, Double> effectiveValues = new LinkedHashMap<>(itemSnapshot.values());
+            PdcAttributeService.PdcAttributeCollection rawPdcContribution = service.pdcAttributeServiceInternal().collectRawContribution(slot.item());
+            PdcAttributeService.PdcAttributeCollection filteredPdcContribution = service.pdcAttributeServiceInternal().collectFilteredContribution(player, slot.item());
+            replacePdcValues(effectiveValues, rawPdcContribution.values(), filteredPdcContribution.values());
+            mergeValues(values, effectiveValues);
+            signatureParts.add(slot.name() + ":" + SignatureUtil.combine(itemSnapshot.sourceSignature(), filteredPdcContribution.sourceSignature()));
         }
         mergeContributionProviders(player, values, signatureParts);
         applyDerivedValues(values);
@@ -198,6 +197,42 @@ final class AttributeSnapshotCollector {
             return;
         }
         values.put("attribute_power", computeAttributePower(values));
+    }
+
+    private LoreParser.ParsedLore parseLore(ItemStack itemStack) {
+        if (itemStack == null || itemStack.getType().isAir()) {
+            return new LoreParser.ParsedLore(AttributeSnapshot.empty(SignatureUtil.stableSignature(List.of())), List.of());
+        }
+        var itemMeta = itemStack.getItemMeta();
+        if (itemMeta == null || !itemMeta.hasLore()) {
+            return new LoreParser.ParsedLore(AttributeSnapshot.empty(SignatureUtil.stableSignature(List.of())), List.of());
+        }
+        List<Component> lore = itemMeta.lore();
+        if (lore == null || lore.isEmpty()) {
+            return new LoreParser.ParsedLore(AttributeSnapshot.empty(SignatureUtil.stableSignature(List.of())), List.of());
+        }
+        return service.loreParser().parse(lore);
+    }
+
+    private void replacePdcValues(Map<String, Double> values,
+            Map<String, Double> rawPdcValues,
+            Map<String, Double> filteredPdcValues) {
+        if (values == null) {
+            return;
+        }
+        if (rawPdcValues != null) {
+            for (Map.Entry<String, Double> entry : rawPdcValues.entrySet()) {
+                if (entry.getKey() == null || entry.getValue() == null) {
+                    continue;
+                }
+                String key = normalizeId(entry.getKey());
+                values.computeIfPresent(key, (ignored, current) -> current - entry.getValue());
+                if (values.containsKey(key) && Math.abs(values.get(key)) <= 1.0E-9D) {
+                    values.remove(key);
+                }
+            }
+        }
+        mergeValues(values, filteredPdcValues);
     }
 
     private double computeAttributePower(Map<String, Double> values) {

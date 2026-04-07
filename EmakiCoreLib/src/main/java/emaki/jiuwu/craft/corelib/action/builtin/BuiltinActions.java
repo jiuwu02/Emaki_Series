@@ -1,14 +1,19 @@
 package emaki.jiuwu.craft.corelib.action.builtin;
 
 import emaki.jiuwu.craft.corelib.action.ActionRegistry;
+import emaki.jiuwu.craft.corelib.assembly.ItemPresentationCompiler;
 import emaki.jiuwu.craft.corelib.economy.EconomyManager;
+import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 
 public final class BuiltinActions {
 
     private BuiltinActions() {
     }
 
-    public static void registerAll(ActionRegistry registry, EconomyManager economyManager) {
+    public static void registerAll(ActionRegistry registry,
+            EconomyManager economyManager,
+            ItemSourceService itemSourceService,
+            ItemPresentationCompiler itemPresentationCompiler) {
         registry.register(new SendMessageAction());
         registry.register(new SendTitleAction());
         registry.register(new SendActionBarAction());
@@ -16,9 +21,12 @@ public final class BuiltinActions {
         registry.register(new PlaySoundAction());
         registry.register(new SpawnParticleAction());
         registry.register(new GiveMoneyAction(economyManager));
-        registry.register(new GiveCoinsAction(economyManager));
         registry.register(new TakeMoneyAction(economyManager));
         registry.register(new SetMoneyAction(economyManager));
+        registry.register(new CreateItemAction(itemSourceService));
+        registry.register(new EditItemAction(itemPresentationCompiler));
+        registry.register(new SendItemAction());
+        registry.register(new ClearItemAction(itemSourceService));
         registry.register(new TeleportAction());
         registry.register(new HealAction());
         registry.register(new DamageAction());

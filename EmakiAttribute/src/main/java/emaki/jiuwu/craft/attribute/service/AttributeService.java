@@ -46,6 +46,7 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
     private final ResourceManagementService resourceManagementService;
     private final DamageCalculationService damageCalculationService;
     private final CombatDebugService combatDebugService;
+    private final PdcAttributeService pdcAttributeService;
 
     public AttributeService(EmakiAttributePlugin plugin,
             PdcService pdcService,
@@ -56,7 +57,8 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
             DamageTypeRegistry damageTypeRegistry,
             DefaultProfileRegistry defaultProfileRegistry,
             LoreFormatRegistry loreFormatRegistry,
-            AttributePresetRegistry presetRegistry) {
+            AttributePresetRegistry presetRegistry,
+            PdcAttributeService pdcAttributeService) {
         this.plugin = plugin;
         this.asyncTaskScheduler = asyncTaskScheduler;
         this.config = config == null ? AttributeConfig.defaults() : config;
@@ -66,6 +68,7 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
         this.defaultProfileRegistry = defaultProfileRegistry;
         this.loreFormatRegistry = loreFormatRegistry;
         this.presetRegistry = presetRegistry;
+        this.pdcAttributeService = pdcAttributeService;
         this.loreParser = new LoreParser(attributeRegistry, loreFormatRegistry);
         this.damageEngine = new DamageEngine();
         this.asyncDamageEngine = new AsyncDamageEngine(asyncTaskScheduler, damageEngine);
@@ -229,6 +232,10 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
 
     AsyncDamageEngine asyncDamageEngineInternal() {
         return asyncDamageEngine;
+    }
+
+    PdcAttributeService pdcAttributeServiceInternal() {
+        return pdcAttributeService;
     }
 
     long projectileTtlMs() {

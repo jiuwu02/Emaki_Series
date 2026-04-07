@@ -1,0 +1,22 @@
+name: EmakiStrengthen
+prefix: ${project.name}
+main: emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin
+version: ${project.version}
+api-version: "1.21"
+depend:
+  - EmakiCoreLib
+softdepend:
+  - EmakiAttribute
+  - EmakiForge
+  - PlaceholderAPI
+commands:
+  emakistrengthen:
+    aliases: [estrengthen, es]
+    permission: emakistrengthen.use
+permissions:
+  emakistrengthen.use:
+    default: true
+  emakistrengthen.reload:
+    default: op
+  emakistrengthen.admin:
+    default: op

@@ -42,8 +42,8 @@ public final class ForgeAssemblyFeedbackHandler implements AssemblyFeedbackHandl
     @Override
     public void onLoreInvalidConfig(UUID playerId, EmakiPresentationEntry entry, String error) {
         Map<String, Object> replacements = new LinkedHashMap<>();
-        replacements.put("source", entry == null || Texts.isBlank(entry.sourceId()) ? "unknown" : entry.sourceId());
-        replacements.put("action", entry == null ? "lore_search_insert" : Texts.toStringSafe(entry.type()));
+        replacements.put("source", entry == null || Texts.isBlank(entry.sourceNamespace()) ? "unknown" : entry.sourceNamespace());
+        replacements.put("action", entry == null ? "lore_search_insert" : Texts.toStringSafe(entry.entryType()));
         replacements.put("pattern", "");
         replacements.put("error", Texts.toStringSafe(error));
         warn("console.lore_invalid_search_insert_config", replacements);
@@ -51,12 +51,12 @@ public final class ForgeAssemblyFeedbackHandler implements AssemblyFeedbackHandl
 
     private Map<String, Object> replacements(EmakiPresentationEntry entry, SearchInsertConfig config, String error) {
         Map<String, Object> replacements = new LinkedHashMap<>();
-        replacements.put("source", entry == null || Texts.isBlank(entry.sourceId()) ? "unknown" : entry.sourceId());
-        replacements.put("action", config == null ? "lore_search_insert" : Texts.toStringSafe(config.action()));
-        replacements.put("pattern", config == null ? "" : Texts.toStringSafe(config.targetPattern()));
+        replacements.put("source", entry == null || Texts.isBlank(entry.sourceNamespace()) ? "unknown" : entry.sourceNamespace());
+        replacements.put("action", config == null ? "lore_search_insert" : Texts.toStringSafe(config.actionType()));
+        replacements.put("pattern", config == null ? "" : Texts.toStringSafe(config.searchPattern()));
         replacements.put(
                 "mode",
-                config == null || config.mode() == null ? "" : config.mode().name().toLowerCase(Locale.ROOT)
+                config == null || config.searchMode() == null ? "" : config.searchMode().name().toLowerCase(Locale.ROOT)
         );
         replacements.put("error", Texts.toStringSafe(error));
         return replacements;

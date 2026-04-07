@@ -117,23 +117,6 @@ attributes:
     role: crit_resistance
     summary: "降低受到的法术暴击倍率"
 
-  skill_damage_bonus:
-    group: offense.skill
-    role: damage_bonus
-    summary: "提升技能伤害倍率"
-  skill_crit_rate:
-    group: offense.skill
-    role: crit_rate
-    summary: "提升技能暴击率"
-  skill_crit_damage:
-    group: offense.skill
-    role: crit_damage
-    summary: "提升技能暴击伤害"
-  skill_cdr:
-    group: utility.skill
-    role: cooldown_reduction
-    summary: "缩短技能冷却时间"
-
   speed:
     group: mobility.speed
     role: percent_speed
@@ -183,10 +166,6 @@ attributes:
     group: meta.balance
     role: derived_power
     summary: "由其他属性推导出的战斗力"
-  test_attribute:
-    group: meta.debug
-    role: test
-    summary: "用于测试与调试的占位属性"
 
 weights:
   health: 0.35
@@ -221,11 +200,6 @@ weights:
   magic_crit_evasion: 0.55
   magic_crit_multiplier_resistance: 0.55
 
-  skill_damage_bonus: 0.90
-  skill_crit_rate: 0.55
-  skill_crit_damage: 0.50
-  skill_cdr: 0.65
-
   speed: 0.45
   movement_speed: 0.85
   attack_speed: 0.75
@@ -240,4 +214,3 @@ weights:
   dodge_chance: 0.70
 
   attribute_power: 0.0
-  test_attribute: 0.0

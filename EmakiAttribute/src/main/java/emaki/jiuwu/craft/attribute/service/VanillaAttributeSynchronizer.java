@@ -81,7 +81,6 @@ final class VanillaAttributeSynchronizer {
             } else if (definition.valueKind() != AttributeValueKind.CHANCE
                     && definition.valueKind() != AttributeValueKind.REGEN
                     && definition.valueKind() != AttributeValueKind.RESOURCE
-                    && definition.valueKind() != AttributeValueKind.SKILL
                     && definition.valueKind() != AttributeValueKind.DERIVED) {
                 flatSpeed += value;
             }
@@ -121,7 +120,6 @@ final class VanillaAttributeSynchronizer {
             } else if (definition.valueKind() != AttributeValueKind.CHANCE
                     && definition.valueKind() != AttributeValueKind.REGEN
                     && definition.valueKind() != AttributeValueKind.RESOURCE
-                    && definition.valueKind() != AttributeValueKind.SKILL
                     && definition.valueKind() != AttributeValueKind.DERIVED) {
                 flatAttackRate += value;
             }

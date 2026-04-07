@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.attribute;
 
+import emaki.jiuwu.craft.attribute.api.PdcAttributeApi;
 import emaki.jiuwu.craft.attribute.bridge.MythicBridge;
 import emaki.jiuwu.craft.attribute.command.AttributeCommand;
 import emaki.jiuwu.craft.attribute.listener.AttributeListener;
@@ -10,6 +11,7 @@ import emaki.jiuwu.craft.attribute.loader.DamageTypeRegistry;
 import emaki.jiuwu.craft.attribute.loader.DefaultProfileRegistry;
 import emaki.jiuwu.craft.attribute.loader.LanguageLoader;
 import emaki.jiuwu.craft.attribute.loader.LoreFormatRegistry;
+import emaki.jiuwu.craft.attribute.loader.PdcReadRuleLoader;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
 import emaki.jiuwu.craft.attribute.service.MessageService;
 
@@ -19,8 +21,10 @@ record AttributeRuntimeComponents(AttributeRegistry attributeRegistry,
         DefaultProfileRegistry defaultProfileRegistry,
         LoreFormatRegistry loreFormatRegistry,
         AttributePresetRegistry presetRegistry,
+        PdcReadRuleLoader pdcReadRuleLoader,
         LanguageLoader languageLoader,
         MessageService messageService,
+        PdcAttributeApi pdcAttributeApi,
         AttributeService attributeService,
         AttributeListener listener,
         AttributeCommand command,
