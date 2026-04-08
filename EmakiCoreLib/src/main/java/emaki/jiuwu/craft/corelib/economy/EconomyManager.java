@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.corelib.economy;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -15,13 +16,56 @@ public final class EconomyManager {
     private final Map<String, EconomyProvider> providers = new LinkedHashMap<>();
 
     public EconomyManager(Plugin plugin) {
-        register(new VaultEconomyProvider(plugin));
-        register(new CoinsEngineEconomyProvider(plugin));
+        registerOptionalProvider(plugin,
+                "Vault",
+                "net.milkbowl.vault.economy.Economy",
+                "emaki.jiuwu.craft.corelib.economy.VaultEconomyProvider");
+        registerOptionalProvider(plugin,
+                "CoinsEngine",
+                "su.nightexpress.excellenteconomy.api.ExcellentEconomyAPI",
+                "emaki.jiuwu.craft.corelib.economy.CoinsEngineEconomyProvider");
     }
 
     public void register(EconomyProvider provider) {
         if (provider != null) {
             providers.put(Texts.lower(provider.id()), provider);
+        }
+    }
+
+    private void registerOptionalProvider(Plugin plugin, String dependencyName, String requiredClassName, String providerClassName) {
+        if (!hasEnabledPlugin(plugin, dependencyName) || !isClassPresent(requiredClassName, plugin)) {
+            return;
+        }
+        register(instantiateProvider(plugin, providerClassName));
+    }
+
+    private boolean hasEnabledPlugin(Plugin plugin, String dependencyName) {
+        if (plugin == null) {
+            return false;
+        }
+        Plugin dependency = plugin.getServer().getPluginManager().getPlugin(dependencyName);
+        return dependency != null && dependency.isEnabled();
+    }
+
+    private boolean isClassPresent(String className, Plugin plugin) {
+        try {
+            Class.forName(className, false, plugin.getClass().getClassLoader());
+            return true;
+        } catch (ClassNotFoundException exception) {
+            return false;
+        }
+    }
+
+    private EconomyProvider instantiateProvider(Plugin plugin, String providerClassName) {
+        try {
+            Class<?> providerType = Class.forName(providerClassName, true, plugin.getClass().getClassLoader());
+            if (!EconomyProvider.class.isAssignableFrom(providerType)) {
+                return null;
+            }
+            return EconomyProvider.class.cast(providerType.getDeclaredConstructor(Plugin.class).newInstance(plugin));
+        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
+                 | InvocationTargetException | NoSuchMethodException | LinkageError exception) {
+            return null;
         }
     }
 
