@@ -1,8 +1,8 @@
-# Emaki Forge 中文语言文件
+﻿# Emaki Forge 中文语言文件
 # 版本: 1.2
 
 # 语言文件版本号 (请勿修改)
-lang_version: "1.3"
+lang_version: "2.2.0"
 
 # 通用消息
 general:
@@ -13,7 +13,7 @@ general:
   invalid_args: "<red>无效的参数!</red>"
   reload_success: "<green>配置重载成功!</green>"
   reload_fail: "<red>配置重载失败!</red>"
-  reload_summary: "<gray>已重载: 配置/语言/图纸({blueprints})/材料({materials})/配方({recipes})/GUI({guis})</gray>"
+  reload_summary: "<gray>已重载: 配置/语言/配方({recipes})/GUI({guis})</gray>"
 
 # 命令帮助
 command:
@@ -22,12 +22,15 @@ command:
     footer: "<gold>========================================</gold>"
     line: "<yellow>{cmd}</yellow> <gray>- {desc}</gray>"
     commands:
-      forge: "打开独立锻造台"
-      reload: "重载配置文件"
-      book: "打开配方图鉴"
-      debug: "切换调试模式"
       help: "显示帮助信息"
-      "list <type>": "列出配置项(recipes/blueprints/materials)"
+      forge: "打开独立锻造台"
+      book: "打开配方图鉴"
+      reload: "重载配置文件"
+      "list <type>": "列出配置项(recipes)"
+      editor: "打开锻造资源编辑器"
+      "edit recipe <id>": "编辑指定配方"
+      "create recipe [id]": "创建新配方草稿"
+      "delete recipe <id>": "删除指定配方"
   list:
     header: "<gold>========== {type} 列表 ==========</gold>"
     recipes_header: "<gold>========== 配方列表 (共 {count} 条) ==========</gold>"
@@ -36,11 +39,6 @@ command:
     recipe_line: "<yellow>{id}</yellow> <gray>- {name}</gray>"
     blueprint_line: "<yellow>{id}</yellow> <gray>- {name}</gray>"
     material_line: "<yellow>{id}</yellow> <gray>- {name} (消耗: {capacity}, 加成: +{bonus})</gray>"
-
-# 调试模式
-debug:
-  enabled: "<green>调试模式已启用!</green>"
-  disabled: "<yellow>调试模式已禁用!</yellow>"
 
 # 控制台日志
 console:

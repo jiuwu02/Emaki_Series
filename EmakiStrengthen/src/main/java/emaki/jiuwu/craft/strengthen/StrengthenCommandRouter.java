@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.strengthen;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -10,12 +11,10 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.math.Numbers;
-import emaki.jiuwu.craft.corelib.text.MiniMessages;
-import emaki.jiuwu.craft.strengthen.model.StrengthenMaterial;
+import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.strengthen.model.StrengthenState;
 
 final class StrengthenCommandRouter implements TabExecutor {
@@ -71,14 +70,18 @@ final class StrengthenCommandRouter implements TabExecutor {
             switch (args[0].toLowerCase()) {
                 case "inspect", "refresh" -> completePlayers(result, args[1]);
                 case "setstar" -> {
-                    for (int star = 0; star <= plugin.appConfig().maxStar(); star++) {
+                    int maxStar = plugin.recipeLoader().all().values().stream()
+                            .mapToInt(recipe -> recipe == null ? 0 : recipe.limits().maxStar())
+                            .max()
+                            .orElse(12);
+                    for (int star = 0; star <= maxStar; star++) {
                         String value = Integer.toString(star);
                         if (value.startsWith(args[1])) {
                             result.add(value);
                         }
                     }
                 }
-                case "givecatalyst" -> plugin.materialLoader().all().keySet().stream()
+                case "givecatalyst" -> plugin.recipeLoader().materialCatalog().keySet().stream()
                         .filter(id -> id.startsWith(args[1].toLowerCase()))
                         .forEach(result::add);
                 default -> {
@@ -88,7 +91,7 @@ final class StrengthenCommandRouter implements TabExecutor {
         }
         if (args.length == 3) {
             switch (args[0].toLowerCase()) {
-                case "setstar" -> plugin.profileLoader().all().keySet().stream()
+                case "setstar" -> plugin.replaceLoader().all().keySet().stream()
                         .filter(id -> id.startsWith(args[2].toLowerCase()))
                         .forEach(result::add);
                 case "givecatalyst" -> {
@@ -133,9 +136,8 @@ final class StrengthenCommandRouter implements TabExecutor {
         plugin.reloadPluginState(true);
         plugin.messageService().send(sender, "general.reload_success");
         plugin.messageService().sendRaw(sender, plugin.messageService().message("general.reload_summary", Map.of(
-                "profiles", plugin.profileLoader().all().size(),
-                "rules", plugin.ruleLoader().all().size(),
-                "materials", plugin.materialLoader().all().size(),
+                "recipes", plugin.recipeLoader().all().size(),
+                "materials", plugin.recipeLoader().materialCatalog().size(),
                 "guis", plugin.guiTemplateLoader().all().size()
         )));
         return true;
@@ -159,8 +161,8 @@ final class StrengthenCommandRouter implements TabExecutor {
                 "value", state.eligibleReason().isBlank() ? "-" : state.eligibleReason()
         )));
         plugin.messageService().sendRaw(sender, plugin.messageService().message("command.inspect.line", Map.of(
-                "key", "profile",
-                "value", state.profileId().isBlank() ? "-" : state.profileId()
+                "key", "recipe",
+                "value", state.recipeId().isBlank() ? "-" : state.recipeId()
         )));
         plugin.messageService().sendRaw(sender, plugin.messageService().message("command.inspect.line", Map.of(
                 "key", "source",
@@ -169,8 +171,8 @@ final class StrengthenCommandRouter implements TabExecutor {
         plugin.messageService().sendRaw(sender, plugin.messageService().message("command.inspect.line", Map.of("key", "star", "value", state.currentStar())));
         plugin.messageService().sendRaw(sender, plugin.messageService().message("command.inspect.line", Map.of("key", "crack", "value", state.crackLevel())));
         plugin.messageService().sendRaw(sender, plugin.messageService().message("command.inspect.line", Map.of(
-                "key", "milestones",
-                "value", state.milestoneFlags().isEmpty() ? "-" : state.milestoneFlags()
+                "key", "first_reach",
+                "value", state.firstReachFlags().isEmpty() ? "-" : state.firstReachFlags()
         )));
         return true;
     }
@@ -251,8 +253,8 @@ final class StrengthenCommandRouter implements TabExecutor {
             plugin.messageService().send(sender, "general.invalid_args");
             return true;
         }
-        StrengthenMaterial material = plugin.materialLoader().get(args[1]);
-        if (material == null) {
+        String materialToken = plugin.recipeLoader().resolveMaterialToken(args[1]);
+        if (Texts.isBlank(materialToken)) {
             plugin.messageService().send(sender, "command.catalyst_not_found");
             return true;
         }
@@ -266,7 +268,7 @@ final class StrengthenCommandRouter implements TabExecutor {
             plugin.messageService().send(sender, "general.player_not_found");
             return true;
         }
-        ItemStack itemStack = createMaterialItem(material, amount);
+        ItemStack itemStack = createMaterialItem(materialToken, amount);
         if (itemStack == null) {
             plugin.messageService().send(sender, "command.catalyst_create_failed");
             return true;
@@ -275,26 +277,14 @@ final class StrengthenCommandRouter implements TabExecutor {
         leftover.values().forEach(left -> target.getWorld().dropItemNaturally(target.getLocation(), left));
         plugin.messageService().send(sender, "command.givecatalyst.success", Map.of(
                 "player", target.getName(),
-                "material", material.displayName(),
+                "material", materialToken,
                 "amount", amount
         ));
         return true;
     }
 
-    private ItemStack createMaterialItem(StrengthenMaterial material, int amount) {
-        ItemStack itemStack = plugin.coreItemFactory().create(material.source(), Math.max(1, amount));
-        if (itemStack == null) {
-            return null;
-        }
-        ItemMeta itemMeta = itemStack.getItemMeta();
-        if (itemMeta != null) {
-            itemMeta.customName(MiniMessages.parse(material.displayName()));
-            if (!material.description().isEmpty()) {
-                itemMeta.lore(material.description().stream().map(MiniMessages::parse).toList());
-            }
-            itemStack.setItemMeta(itemMeta);
-        }
-        return itemStack;
+    private ItemStack createMaterialItem(String materialToken, int amount) {
+        return plugin.coreItemFactory().create(ItemSourceUtil.parse(materialToken), Math.max(1, amount));
     }
 
     private void completePlayers(List<String> result, String prefix) {
@@ -306,15 +296,15 @@ final class StrengthenCommandRouter implements TabExecutor {
 
     private void sendHelp(CommandSender sender) {
         plugin.messageService().sendRaw(sender, plugin.messageService().message("command.help.header"));
-        Map<String, String> lines = Map.of(
-                "open", "打开强化界面",
-                "reload", "重载强化配置和 GUI",
-                "inspect [player]", "查看手持物品强化状态",
-                "refresh [player]", "刷新玩家背包中的强化层",
-                "setstar <star> [profile]", "直接设置主手物品星级",
-                "clearcrack", "清除主手物品裂痕",
-                "givecatalyst <id> [amount] [player]", "发放强化材料"
-        );
+        Map<String, String> lines = new LinkedHashMap<>();
+        lines.put("help", "显示帮助信息");
+        lines.put("open", "打开强化界面");
+        lines.put("reload", "重载强化配置和 GUI");
+        lines.put("inspect [player]", "查看手持物品强化状态");
+        lines.put("refresh [player]", "刷新玩家背包中的强化层");
+        lines.put("setstar <star> [recipe]", "直接设置主手物品星级");
+        lines.put("clearcrack", "清除主手物品裂痕");
+        lines.put("givecatalyst <id> [amount] [player]", "发放强化材料");
         lines.forEach((name, description) -> plugin.messageService().sendRaw(sender,
                 plugin.messageService().message("command.help.line", Map.of("cmd", name, "desc", description))));
         plugin.messageService().sendRaw(sender, plugin.messageService().message("command.help.footer"));

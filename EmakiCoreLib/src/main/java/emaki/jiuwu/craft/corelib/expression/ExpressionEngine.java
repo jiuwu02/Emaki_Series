@@ -14,8 +14,12 @@ import net.objecthunter.exp4j.function.Function;
 
 public final class ExpressionEngine {
 
+    private static final int MAX_EXPRESSION_LENGTH = 256;
+    private static final int MAX_NESTED_DEPTH = 10;
     private static final Pattern VARIABLE_PATTERN = Pattern.compile("\\{(\\w+)}");
     private static final Pattern RANGE_PATTERN = Pattern.compile("^\\s*(.+)\\s*~\\s*(.+)\\s*$");
+    private static final Pattern NON_NUMERIC_EXPRESSION_PATTERN = Pattern.compile("[^0-9.\\s+\\-*/%^(),]");
+    private static final Pattern DANGEROUS_CHAR_PATTERN = Pattern.compile("[`$\\\\]");
 
     private ExpressionEngine() {
     }
@@ -28,13 +32,26 @@ public final class ExpressionEngine {
         if (Texts.isBlank(expression)) {
             return 0D;
         }
+        if (!validateExpressionLength(expression)) {
+            return 0D;
+        }
+        if (containsDangerousChars(expression)) {
+            return 0D;
+        }
         String prepared = replaceVariables(expression, variables);
+        if (!validateExpressionLength(prepared)) {
+            return 0D;
+        }
         try {
             Expression built = new ExpressionBuilder(prepared)
                     .functions(customFunctions())
                     .build();
-            return built.evaluate();
-        } catch (Exception ignored) {
+            double result = built.evaluate();
+            if (Double.isNaN(result) || Double.isInfinite(result)) {
+                return 0D;
+            }
+            return result;
+        } catch (Exception e) {
             return 0D;
         }
     }
@@ -82,7 +99,10 @@ public final class ExpressionEngine {
         };
     }
 
-    private static String replaceVariables(String expression, Map<String, ?> variables) {
+    public static String replaceVariables(String expression, Map<String, ?> variables) {
+        if (expression == null) {
+            return "";
+        }
         if (variables == null || variables.isEmpty()) {
             return expression;
         }
@@ -94,6 +114,64 @@ public final class ExpressionEngine {
         }
         matcher.appendTail(buffer);
         return buffer.toString();
+    }
+
+    public static String evaluateExpressionBlock(String innerExpression, Matcher matcher, Map<String, ?> variables) {
+        String prepared = Texts.toStringSafe(innerExpression);
+        if (matcher != null) {
+            for (int group = 1; group <= matcher.groupCount(); group++) {
+                String groupValue = matcher.group(group);
+                if (groupValue != null) {
+                    prepared = prepared.replace("$" + group, groupValue);
+                }
+            }
+        }
+        prepared = replaceVariables(prepared, variables);
+        if (!isPureNumericExpression(prepared)) {
+            return prepared;
+        }
+        try {
+            double result = evaluate(prepared);
+            if (Math.abs(result - Math.rint(result)) <= 1.0E-9D) {
+                return Long.toString(Math.round(result));
+            }
+            return Numbers.formatNumber(result, "0.##");
+        } catch (Exception e) {
+            return prepared;
+        }
+    }
+
+    private static boolean validateExpressionLength(String expression) {
+        return expression != null && expression.length() <= MAX_EXPRESSION_LENGTH;
+    }
+
+    private static boolean containsDangerousChars(String expression) {
+        return expression != null && DANGEROUS_CHAR_PATTERN.matcher(expression).find();
+    }
+
+    private static String sanitizeForLog(String expression) {
+        if (expression == null) {
+            return "";
+        }
+        if (expression.length() > 50) {
+            return expression.substring(0, 50) + "...(truncated)";
+        }
+        return expression;
+    }
+
+    private static boolean isPureNumericExpression(String expression) {
+        if (Texts.isBlank(expression)) {
+            return false;
+        }
+        String lowered = Texts.lower(expression)
+                .replace("ceil", "")
+                .replace("floor", "")
+                .replace("round", "")
+                .replace("log10", "")
+                .replace("min", "")
+                .replace("max", "")
+                .replace("pow", "");
+        return !NON_NUMERIC_EXPRESSION_PATTERN.matcher(lowered).find();
     }
 
     private static double evaluateNumericText(String text) {

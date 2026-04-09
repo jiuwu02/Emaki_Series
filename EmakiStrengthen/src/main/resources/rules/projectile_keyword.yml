@@ -1,6 +1,0 @@
-id: "projectile_keyword"
-profile: "weapon_projectile"
-lore_contains:
-  - "投射物伤害"
-stats_any:
-  - "projectile_attack"

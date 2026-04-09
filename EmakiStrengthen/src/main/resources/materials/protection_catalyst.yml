@@ -1,8 +1,0 @@
-id: "protection_catalyst"
-display_name: "<red>保护催化剂</red>"
-description:
-  - "<gray>+6 起可放入。</gray>"
-  - "<gray>失败时消耗，并阻止掉星。</gray>"
-item: "gold_nugget"
-role: "PROTECTION"
-protection_min_target_star: 6

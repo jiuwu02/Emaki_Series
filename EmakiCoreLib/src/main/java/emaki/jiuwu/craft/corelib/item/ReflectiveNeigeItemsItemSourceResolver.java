@@ -213,7 +213,7 @@ final class ReflectiveNeigeItemsItemSourceResolver implements ManagedItemSourceR
             }
             try {
                 return itemManagerInstanceField.get(null);
-            } catch (Throwable ignored) {
+            } catch (Throwable throwable) {
                 return null;
             }
         }
@@ -224,7 +224,7 @@ final class ReflectiveNeigeItemsItemSourceResolver implements ManagedItemSourceR
             }
             try {
                 return method.invoke(target, arguments);
-            } catch (Throwable ignored) {
+            } catch (Throwable throwable) {
                 return null;
             }
         }

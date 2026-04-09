@@ -33,51 +33,48 @@ slots:
     item: "BOOK"
     display_name: "<gold>强化预览</gold>"
     lore:
-      - "<gray>这里会展示成功率、花费与失败后果"
+      - "<gray>这里会展示成功率、花费与所需材料"
+      - "<gray>固定材料直接从背包中扣除"
 
-  crack_display:
+  temper_display:
     slots: [22]
-    type: "crack_display"
+    type: "temper_display"
     item: "INK_SAC"
-    display_name: "<gray>裂痕处理</gray>"
+    display_name: "<gold>锻印状态</gold>"
     lore:
-      - "<gray>点击时会尝试消耗裂痕清除剂"
-      - "<gray>每次清除 1 层裂痕</gray>"
+      - "<gray>失败后会累积锻印，提高后续成功率"
 
-  base_material:
+  material_input_1:
     slots: [19]
-    type: "base_material"
-    item: "COPPER_INGOT"
-    display_name: "<gold>基础催化剂</gold>"
-    lore:
-      - "<gray>每次强化都必须放入 1 个基础材料</gray>"
-
-  support_material:
-    slots: [20]
-    type: "support_material"
-    item: "GUNPOWDER"
-    display_name: "<yellow>辅助催化剂</yellow>"
-    lore:
-      - "<gray>可选，固定提高 8% 成功率"
-      - "<gray>最终成功率不会超过 90%</gray>"
-
-  protection_material:
-    slots: [29]
-    type: "protection_material"
+    type: "material_input_1"
     item: "GOLD_NUGGET"
-    display_name: "<red>保护催化剂</red>"
+    display_name: "<yellow>可选材料槽 I</yellow>"
     lore:
-      - "<gray>+6 起可用"
-      - "<gray>失败时消耗，防止掉星</gray>"
+      - "<gray>可放入保护类或锻印类可选材料"
 
-  breakthrough_material:
-    slots: [30]
-    type: "breakthrough_material"
+  material_input_2:
+    slots: [20]
+    type: "material_input_2"
     item: "PAPER"
-    display_name: "<light_purple>突破材料</light_purple>"
+    display_name: "<yellow>可选材料槽 II</yellow>"
     lore:
-      - "<gray>+8 起需要初级突破材料</gray>"
-      - "<gray>+10 起需要高级突破材料</gray>"
+      - "<gray>可放入本次强化需要的可选材料"
+
+  material_input_3:
+    slots: [29]
+    type: "material_input_3"
+    item: "ECHO_SHARD"
+    display_name: "<yellow>可选材料槽 III</yellow>"
+    lore:
+      - "<gray>支持多种突破或保护类材料"
+
+  material_input_4:
+    slots: [30]
+    type: "material_input_4"
+    item: "POTION"
+    display_name: "<yellow>可选材料槽 IV</yellow>"
+    lore:
+      - "<gray>可放入会提供额外锻印的材料"
 
   confirm:
     slots: [40]
@@ -86,5 +83,5 @@ slots:
     display_name: "<green>确认强化</green>"
     lore:
       - "<gray>点击后将结算货币与材料"
-      - "<gray>失败只会掉星，不会碎裂</gray>"
+      - "<gray>失败会累积锻印，并可能掉星</gray>"
     click: "ui.button.click-1-1"

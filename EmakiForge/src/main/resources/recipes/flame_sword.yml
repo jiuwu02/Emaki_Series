@@ -2,36 +2,115 @@ id: "flame_sword"
 display_name: "<gold>烈焰之剑锻造配方</gold>"
 
 target_item:
-  item: "diamond_sword"
+  item: "minecraft:diamond_sword"
   forge_capacity: 35
 
 blueprint_requirements:
-  - requirement_mode: "any_of"
-    blueprint_options:
-      - selector:
-          kind: "id"
-          value: "weapon_sword"
-        count: 1
-      - selector:
-          kind: "id"
-          value: "universal_blueprint"
-        count: 1
+  - item: "minecraft:enchanted_book"
+    amount: 1
 
-required_materials:
-  - id: "iron_essence"
-    count: 3
-  - id: "flame_crystal"
-    count: 1
+materials:
+  - item: "minecraft:iron_ingot"
+    amount: 3
+    capacity_cost: 5
+    effects:
+      - type: "stat_contribution"
+        stats:
+          physical_damage:
+            type: "constant"
+            value: 5
+          max_health:
+            type: "constant"
+            value: 2
+      - type: "lore_action"
+        action:
+          - action: "insert_below"
+            target_pattern: "锻造属性:"
+            content:
+              - "<gray>物理伤害: <red>+{physical_damage}"
+              - "<gray>生命值: <green>+{max_health}"
 
-optional_materials:
-  enabled: true
-  whitelist:
-    - "chi_yan_jing"
-    - "qing_feng_mu"
-    - "yun_lei_sha"
-    - "forge_capacity_core"
-  blacklist: []
-  max_count: 3
+  - item: "minecraft:blaze_powder"
+    amount: 1
+    capacity_cost: 10
+    effects:
+      - type: "stat_contribution"
+        stats:
+          fire_damage:
+            type: "constant"
+            value: 10
+          critical_chance:
+            type: "constant"
+            value: 5
+      - type: "name_modify"
+        action: "append_suffix"
+        value: "<red> [烈焰]"
+      - type: "lore_action"
+        action:
+          - action: "insert_below"
+            target_pattern: "锻造属性:"
+            content:
+              - "<red>火焰伤害: +{fire_damage}"
+              - "<yellow>暴击率: +{critical_chance}%"
+
+  - item: "minecraft:fire_charge"
+    amount: 1
+    optional: true
+    capacity_cost: 12
+    effects:
+      - type: "stat_contribution"
+        stats:
+          fire_damage:
+            type: "constant"
+            value: 12
+          critical_chance:
+            type: "constant"
+            value: 4
+      - type: "lore_action"
+        action:
+          - action: "insert_below"
+            target_pattern: "锻造属性:"
+            content:
+              - "<red>火焰伤害: +{fire_damage}"
+              - "<yellow>暴击率: +{critical_chance}%"
+
+  - item: "minecraft:feather"
+    amount: 1
+    optional: true
+    capacity_cost: 8
+    effects:
+      - type: "stat_contribution"
+        stats:
+          movement_speed:
+            type: "constant"
+            value: 3
+          dodge_chance:
+            type: "constant"
+            value: 2
+
+  - item: "minecraft:echo_shard"
+    amount: 1
+    optional: true
+    capacity_cost: 15
+    effects:
+      - type: "stat_contribution"
+        stats:
+          magic_penetration:
+            type: "constant"
+            value: 6
+          spell_crit_rate:
+            type: "constant"
+            value: 3
+
+  - item: "minecraft:nether_star"
+    amount: 1
+    optional: true
+    capacity_cost: 0
+    effects:
+      - type: "capacity_bonus"
+        value: 20
+
+optional_material_limit: 3
 
 condition_type: "all_of"
 conditions: []
@@ -43,17 +122,6 @@ quality:
     enabled: true
     attempts: 60
     minimum: "无暇"
-
-gui:
-  template: "forge_gui"
-  slots:
-    blueprint_inputs: [10, 11]
-    target_item: [13]
-    required_materials: [19, 20, 21]
-    optional_materials: [28, 29, 30, 31, 32]
-    capacity_display: [22]
-    confirm: [40]
-    result_preview: [24]
 
 result:
   meta_actions:

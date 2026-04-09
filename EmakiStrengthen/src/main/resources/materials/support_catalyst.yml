@@ -1,9 +1,0 @@
-id: "support_catalyst"
-display_name: "<yellow>辅助催化剂</yellow>"
-description:
-  - "<gray>可选辅助材料，固定提高 8% 成功率。</gray>"
-  - "<gray>最终成功率不会超过 90%。</gray>"
-item: "gunpowder"
-role: "SUPPORT"
-success_bonus: 8.0
-success_cap: 90.0

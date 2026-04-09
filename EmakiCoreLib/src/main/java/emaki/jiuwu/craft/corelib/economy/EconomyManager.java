@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.corelib.economy;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -71,6 +72,21 @@ public final class EconomyManager {
 
     public EconomyProvider get(String id) {
         return providers.get(Texts.lower(id));
+    }
+
+    public List<String> providerIds() {
+        return providers.values().stream()
+                .map(EconomyProvider::id)
+                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .toList();
+    }
+
+    public List<String> availableProviderIds() {
+        return providers.values().stream()
+                .filter(EconomyProvider::isAvailable)
+                .map(EconomyProvider::id)
+                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .toList();
     }
 
     public EconomyProvider select(String providerId, String currencyId) {

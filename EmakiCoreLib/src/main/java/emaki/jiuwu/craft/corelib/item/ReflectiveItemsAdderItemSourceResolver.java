@@ -221,7 +221,7 @@ final class ReflectiveItemsAdderItemSourceResolver implements ManagedItemSourceR
         private Method getOptionalMethod(Class<?> type, String methodName, Class<?>... parameterTypes) {
             try {
                 return type.getMethod(methodName, parameterTypes);
-            } catch (Throwable ignored) {
+            } catch (Throwable throwable) {
                 return null;
             }
         }
@@ -232,7 +232,7 @@ final class ReflectiveItemsAdderItemSourceResolver implements ManagedItemSourceR
             }
             try {
                 return method.invoke(target, arguments);
-            } catch (Throwable ignored) {
+            } catch (Throwable throwable) {
                 return null;
             }
         }

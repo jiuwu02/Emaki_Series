@@ -8,7 +8,6 @@ import java.util.Map;
 import org.bukkit.configuration.ConfigurationSection;
 
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.gui.SlotParser;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.math.Numbers;
@@ -16,22 +15,25 @@ import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class Recipe {
 
-    public record BlueprintOption(Map<String, Object> selector, int count) {
+    public record TargetItem(String item, int forgeCapacity, ItemSource source) {
 
-    }
-
-    public record BlueprintRequirement(String requirementMode, List<BlueprintOption> blueprintOptions) {
-
-    }
-
-    public record RequiredMaterial(String id, int count) {
-
-    }
-
-    public record OptionalMaterialsConfig(boolean enabled, List<String> whitelist, List<String> blacklist, int maxCount) {
-
-        public static OptionalMaterialsConfig defaults() {
-            return new OptionalMaterialsConfig(false, List.of(), List.of(), 5);
+        public static TargetItem fromConfig(Object raw) {
+            if (raw == null) {
+                return null;
+            }
+            String item = ConfigNodes.string(raw, "item", null);
+            if (Texts.isBlank(item)) {
+                return null;
+            }
+            ItemSource source = ItemSourceUtil.parseShorthand(item);
+            if (source == null) {
+                return null;
+            }
+            return new TargetItem(
+                    item,
+                    Math.max(0, Numbers.tryParseInt(ConfigNodes.get(raw, "forge_capacity"), 0)),
+                    source
+            );
         }
     }
 
@@ -44,10 +46,6 @@ public final class Recipe {
         public static QualityConfig defaults() {
             return new QualityConfig(false, List.of(), false, 10, "普通");
         }
-    }
-
-    public record GuiConfig(String template, Map<String, List<Integer>> slots) {
-
     }
 
     public record ResultConfig(ItemSource outputItem,
@@ -66,47 +64,41 @@ public final class Recipe {
 
     private final String id;
     private final String displayName;
-    private final ItemSource targetItemSource;
-    private final int forgeCapacity;
+    private final TargetItem targetItem;
     private final List<BlueprintRequirement> blueprintRequirements;
-    private final List<RequiredMaterial> requiredMaterials;
-    private final OptionalMaterialsConfig optionalMaterials;
+    private final List<ForgeMaterial> materials;
+    private final int optionalMaterialLimit;
     private final String conditionType;
     private final int conditionRequiredCount;
     private final List<String> conditions;
     private final QualityConfig quality;
-    private final GuiConfig gui;
     private final ResultConfig result;
     private final ActionPhases action;
     private final String permission;
 
     public Recipe(String id,
             String displayName,
-            ItemSource targetItemSource,
-            int forgeCapacity,
+            TargetItem targetItem,
             List<BlueprintRequirement> blueprintRequirements,
-            List<RequiredMaterial> requiredMaterials,
-            OptionalMaterialsConfig optionalMaterials,
+            List<ForgeMaterial> materials,
+            int optionalMaterialLimit,
             String conditionType,
             int conditionRequiredCount,
             List<String> conditions,
             QualityConfig quality,
-            GuiConfig gui,
             ResultConfig result,
             ActionPhases action,
             String permission) {
         this.id = id;
         this.displayName = displayName;
-        this.targetItemSource = targetItemSource;
-        this.forgeCapacity = forgeCapacity;
+        this.targetItem = targetItem;
         this.blueprintRequirements = List.copyOf(blueprintRequirements);
-        this.requiredMaterials = List.copyOf(requiredMaterials);
-        this.optionalMaterials = optionalMaterials;
+        this.materials = List.copyOf(materials);
+        this.optionalMaterialLimit = optionalMaterialLimit;
         this.conditionType = conditionType;
         this.conditionRequiredCount = conditionRequiredCount;
         this.conditions = List.copyOf(conditions);
         this.quality = quality;
-        this.gui = gui;
         this.result = result;
         this.action = action == null ? ActionPhases.empty() : action;
         this.permission = permission;
@@ -117,81 +109,70 @@ public final class Recipe {
             return null;
         }
         String id = section.getString("id");
-        if (Texts.isBlank(id)) {
+        if (Texts.isBlank(id) || containsLegacyKeys(section)) {
             return null;
         }
-        ConfigurationSection targetSection = section.getConfigurationSection("target_item");
-        ItemSource targetSource = targetSection == null ? null : ItemSourceUtil.parse(targetSection);
-        int forgeCapacity = Numbers.tryParseInt(section.get("forge_capacity"), 0);
-        if (forgeCapacity <= 0 && targetSection != null) {
-            forgeCapacity = Numbers.tryParseInt(targetSection.get("forge_capacity"), 0);
-        }
-        List<BlueprintRequirement> blueprintRequirements = new ArrayList<>();
-        for (Object raw : ConfigNodes.asObjectList(section.get("blueprint_requirements"))) {
-            BlueprintRequirement requirement = parseBlueprintRequirement(raw);
-            if (requirement != null) {
-                blueprintRequirements.add(requirement);
+        TargetItem targetItem = null;
+        if (section.contains("target_item")) {
+            targetItem = TargetItem.fromConfig(section.get("target_item"));
+            if (targetItem == null) {
+                return null;
             }
         }
-        List<RequiredMaterial> requiredMaterials = new ArrayList<>();
-        for (Object raw : ConfigNodes.asObjectList(section.get("required_materials"))) {
-            RequiredMaterial material = parseRequiredMaterial(raw);
-            if (material != null) {
-                requiredMaterials.add(material);
-            }
+        List<BlueprintRequirement> blueprintRequirements = parseBlueprintRequirements(section.get("blueprint_requirements"));
+        if (blueprintRequirements == null) {
+            return null;
+        }
+        List<ForgeMaterial> materials = parseMaterials(section.get("materials"));
+        if (materials == null) {
+            return null;
         }
         return new Recipe(
                 id,
                 section.getString("display_name", id),
-                targetSource,
-                forgeCapacity,
+                targetItem,
                 blueprintRequirements,
-                requiredMaterials,
-                parseOptionalMaterials(section.get("optional_materials")),
+                materials,
+                Math.max(0, Numbers.tryParseInt(section.get("optional_material_limit"), 0)),
                 section.getString("condition_type", "all_of"),
                 Numbers.tryParseInt(section.get("condition_required_count"), 0),
                 Texts.asStringList(section.get("conditions")),
                 parseQuality(section.get("quality")),
-                parseGui(section.get("gui")),
                 parseResult(section.get("result")),
                 parseAction(ConfigNodes.get(section, "action")),
                 section.getString("permission")
         );
     }
 
-    private static BlueprintRequirement parseBlueprintRequirement(Object raw) {
-        if (raw == null) {
-            return null;
-        }
-        List<BlueprintOption> options = new ArrayList<>();
-        for (Object optionRaw : ConfigNodes.asObjectList(ConfigNodes.get(raw, "blueprint_options"))) {
-            Map<String, Object> selector = new LinkedHashMap<>(ConfigNodes.entries(ConfigNodes.get(optionRaw, "selector")));
-            if (selector.isEmpty()) {
-                continue;
+    private static boolean containsLegacyKeys(ConfigurationSection section) {
+        return section.contains("gui")
+                || section.contains("required_materials")
+                || section.contains("optional_materials")
+                || section.contains("forge_capacity");
+    }
+
+    private static List<BlueprintRequirement> parseBlueprintRequirements(Object raw) {
+        List<BlueprintRequirement> result = new ArrayList<>();
+        for (Object entry : ConfigNodes.asObjectList(raw)) {
+            BlueprintRequirement requirement = BlueprintRequirement.fromConfig(entry);
+            if (requirement == null) {
+                return null;
             }
-            options.add(new BlueprintOption(selector, Numbers.tryParseInt(ConfigNodes.get(optionRaw, "count"), 1)));
+            result.add(requirement);
         }
-        return new BlueprintRequirement(ConfigNodes.string(raw, "requirement_mode", "all_of"), options);
+        return result;
     }
 
-    private static RequiredMaterial parseRequiredMaterial(Object raw) {
-        String id = ConfigNodes.string(raw, "id", null);
-        if (Texts.isBlank(id)) {
-            return null;
+    private static List<ForgeMaterial> parseMaterials(Object raw) {
+        List<ForgeMaterial> result = new ArrayList<>();
+        for (Object entry : ConfigNodes.asObjectList(raw)) {
+            ForgeMaterial material = ForgeMaterial.fromConfig(entry);
+            if (material == null) {
+                return null;
+            }
+            result.add(material);
         }
-        return new RequiredMaterial(id, Numbers.tryParseInt(ConfigNodes.get(raw, "count"), 1));
-    }
-
-    private static OptionalMaterialsConfig parseOptionalMaterials(Object raw) {
-        if (raw == null) {
-            return OptionalMaterialsConfig.defaults();
-        }
-        return new OptionalMaterialsConfig(
-                ConfigNodes.bool(raw, "enabled", false),
-                Texts.asStringList(ConfigNodes.get(raw, "whitelist")),
-                Texts.asStringList(ConfigNodes.get(raw, "blacklist")),
-                Numbers.tryParseInt(ConfigNodes.get(raw, "max_count"), 5)
-        );
+        return result;
     }
 
     private static QualityConfig parseQuality(Object raw) {
@@ -206,19 +187,6 @@ public final class Recipe {
                 Numbers.tryParseInt(ConfigNodes.get(guarantee, "attempts"), 10),
                 ConfigNodes.string(guarantee, "minimum", "普通")
         );
-    }
-
-    private static GuiConfig parseGui(Object raw) {
-        if (raw == null) {
-            return new GuiConfig(null, Map.of());
-        }
-        Map<String, List<Integer>> slots = new LinkedHashMap<>();
-        for (Map.Entry<String, Object> entry : ConfigNodes.entries(ConfigNodes.get(raw, "slots")).entrySet()) {
-            Object slotValue = entry.getValue();
-            Object nestedSlots = ConfigNodes.get(slotValue, "slots");
-            slots.put(entry.getKey(), SlotParser.parse(nestedSlots == null ? slotValue : nestedSlots));
-        }
-        return new GuiConfig(ConfigNodes.string(raw, "template", null), slots);
     }
 
     private static ResultConfig parseResult(Object raw) {
@@ -269,6 +237,63 @@ public final class Recipe {
         return result;
     }
 
+    public ForgeMaterial findMaterialBySource(ItemSource source) {
+        if (source == null) {
+            return null;
+        }
+        for (ForgeMaterial material : materials) {
+            if (material.matches(source)) {
+                return material;
+            }
+        }
+        return null;
+    }
+
+    public ForgeMaterial findMaterialBySource(ItemSource source, boolean optional) {
+        if (source == null) {
+            return null;
+        }
+        for (ForgeMaterial material : materials) {
+            if (material.optional() == optional && material.matches(source)) {
+                return material;
+            }
+        }
+        return null;
+    }
+
+    public ForgeMaterial findMaterialByItem(String item) {
+        if (Texts.isBlank(item)) {
+            return null;
+        }
+        String normalized = Texts.lower(item);
+        for (ForgeMaterial material : materials) {
+            if (normalized.equals(material.key())) {
+                return material;
+            }
+        }
+        return null;
+    }
+
+    public List<ForgeMaterial> requiredMaterials() {
+        List<ForgeMaterial> result = new ArrayList<>();
+        for (ForgeMaterial material : materials) {
+            if (material != null && !material.optional()) {
+                result.add(material);
+            }
+        }
+        return result;
+    }
+
+    public List<ForgeMaterial> optionalMaterials() {
+        List<ForgeMaterial> result = new ArrayList<>();
+        for (ForgeMaterial material : materials) {
+            if (material != null && material.optional()) {
+                result.add(material);
+            }
+        }
+        return result;
+    }
+
     public boolean requiresPermission() {
         return Texts.isNotBlank(permission);
     }
@@ -281,13 +306,21 @@ public final class Recipe {
         return displayName;
     }
 
+    public TargetItem targetItem() {
+        return targetItem;
+    }
+
     public ItemSource targetItemSource() {
-        return targetItemSource;
+        return targetItem == null ? null : targetItem.source();
+    }
+
+    public int forgeCapacity() {
+        return targetItem == null ? 0 : targetItem.forgeCapacity();
     }
 
     public ItemSource configuredOutputSource() {
-        if (targetItemSource != null) {
-            return targetItemSource;
+        if (targetItem != null && targetItem.source() != null) {
+            return targetItem.source();
         }
         return result == null ? null : result.outputItem();
     }
@@ -296,20 +329,16 @@ public final class Recipe {
         return configuredOutputSource() == null;
     }
 
-    public int forgeCapacity() {
-        return forgeCapacity;
-    }
-
     public List<BlueprintRequirement> blueprintRequirements() {
         return blueprintRequirements;
     }
 
-    public List<RequiredMaterial> requiredMaterials() {
-        return requiredMaterials;
+    public List<ForgeMaterial> materials() {
+        return materials;
     }
 
-    public OptionalMaterialsConfig optionalMaterials() {
-        return optionalMaterials;
+    public int optionalMaterialLimit() {
+        return optionalMaterialLimit;
     }
 
     public String conditionType() {
@@ -326,10 +355,6 @@ public final class Recipe {
 
     public QualityConfig quality() {
         return quality;
-    }
-
-    public GuiConfig gui() {
-        return gui;
     }
 
     public ResultConfig result() {

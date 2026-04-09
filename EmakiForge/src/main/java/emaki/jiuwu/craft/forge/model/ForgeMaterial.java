@@ -83,58 +83,76 @@ public final class ForgeMaterial {
         }
     }
 
-    private final String id;
-    private final String displayName;
-    private final List<String> description;
-    private final ItemSource source;
+    private final String item;
+    private final int amount;
+    private final boolean optional;
     private final int capacityCost;
-    private final int priority;
     private final List<MaterialEffect> effects;
+    private final ItemSource source;
 
-    public ForgeMaterial(String id,
-            String displayName,
-            List<String> description,
-            ItemSource source,
+    public ForgeMaterial(String item,
+            int amount,
+            boolean optional,
             int capacityCost,
-            int priority,
-            List<MaterialEffect> effects) {
-        this.id = id;
-        this.displayName = displayName;
-        this.description = List.copyOf(description);
-        this.source = source;
+            List<MaterialEffect> effects,
+            ItemSource source) {
+        this.item = item;
+        this.amount = amount;
+        this.optional = optional;
         this.capacityCost = capacityCost;
-        this.priority = priority;
         this.effects = List.copyOf(effects);
+        this.source = source;
     }
 
     public static ForgeMaterial fromConfig(ConfigurationSection section) {
-        if (section == null) {
+        return fromConfig((Object) section);
+    }
+
+    public static ForgeMaterial fromConfig(Object raw) {
+        if (raw == null) {
             return null;
         }
-        String id = section.getString("id");
-        if (Texts.isBlank(id)) {
+        if (raw instanceof ConfigurationSection section
+                && (section.contains("id") || section.contains("display_name") || section.contains("description"))) {
             return null;
         }
-        ItemSource source = ItemSourceUtil.parse(section);
+        String item = ConfigNodes.string(raw, "item", null);
+        if (Texts.isBlank(item)) {
+            return null;
+        }
+        ItemSource source = ItemSourceUtil.parseShorthand(item);
         if (source == null) {
             return null;
         }
+        int amount = Numbers.tryParseInt(ConfigNodes.get(raw, "amount"), 1);
+        if (amount == 0) {
+            return null;
+        }
         List<MaterialEffect> effects = new ArrayList<>();
-        for (Object raw : ConfigNodes.asObjectList(section.get("effects"))) {
-            MaterialEffect effect = MaterialEffect.fromConfig(raw);
-            if (effect != null) {
-                effects.add(effect);
+        for (Object effectRaw : ConfigNodes.asObjectList(ConfigNodes.get(raw, "effects"))) {
+            MaterialEffect effect = MaterialEffect.fromConfig(effectRaw);
+            if (effect == null) {
+                return null;
             }
+            effects.add(effect);
         }
         return new ForgeMaterial(
-                id,
-                section.getString("display_name", id),
-                Texts.asStringList(section.get("description")),
-                source,
-                Numbers.roundToInt(ExpressionEngine.evaluateRandomConfig(section.get("capacity_cost"))),
-                Numbers.roundToInt(ExpressionEngine.evaluateRandomConfig(section.get("priority"))),
-                effects
+                item,
+                amount,
+                ConfigNodes.bool(raw, "optional", false),
+                Numbers.roundToInt(ExpressionEngine.evaluateRandomConfig(ConfigNodes.get(raw, "capacity_cost"))),
+                effects,
+                source
         );
+    }
+
+    public boolean matches(ItemSource other) {
+        return other != null && ItemSourceUtil.matches(source, other);
+    }
+
+    public String key() {
+        String shorthand = ItemSourceUtil.toShorthand(source);
+        return shorthand == null ? "" : Texts.lower(shorthand);
     }
 
     public int forgeCapacityBonus() {
@@ -163,7 +181,7 @@ public final class ForgeMaterial {
                 continue;
             }
             for (Map.Entry<String, Object> entry : ConfigNodes.entries(effect.get("stats")).entrySet()) {
-                double value = ExpressionEngine.evaluateRandomConfig(entry.getValue());
+                double value = resolveStatValue(entry.getValue());
                 result.merge(entry.getKey(), value, Double::sum);
             }
         }
@@ -224,11 +242,21 @@ public final class ForgeMaterial {
             effectData.add(map);
         }
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("id", id);
-        result.put("priority", priority);
-        result.put("source", source == null ? "" : ItemSourceUtil.toShorthand(source));
+        result.put("item", item);
+        result.put("amount", amount);
+        result.put("optional", optional);
+        result.put("capacity_cost", capacityCost);
         result.put("effects", effectData);
         return result;
+    }
+
+    private static double resolveStatValue(Object raw) {
+        Object value = raw;
+        String type = Texts.lower(ConfigNodes.get(raw, "type"));
+        if (Texts.isNotBlank(type)) {
+            value = ConfigNodes.get(raw, "value");
+        }
+        return ExpressionEngine.evaluateRandomConfig(value);
     }
 
     private static boolean isForgeCapacityBonusEffect(String type) {
@@ -259,20 +287,24 @@ public final class ForgeMaterial {
         return Numbers.roundToInt(ExpressionEngine.evaluateRandomConfig(raw));
     }
 
+    public String item() {
+        return item;
+    }
+
     public String id() {
-        return id;
+        return key();
     }
 
     public String displayName() {
-        return displayName;
+        return item;
     }
 
-    public List<String> description() {
-        return description;
+    public int amount() {
+        return amount;
     }
 
-    public ItemSource source() {
-        return source;
+    public boolean optional() {
+        return optional;
     }
 
     public int capacityCost() {
@@ -280,10 +312,14 @@ public final class ForgeMaterial {
     }
 
     public int priority() {
-        return priority;
+        return 0;
     }
 
     public List<MaterialEffect> effects() {
         return effects;
+    }
+
+    public ItemSource source() {
+        return source;
     }
 }

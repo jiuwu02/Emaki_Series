@@ -1,0 +1,219 @@
+id: "weapon_projectile"
+display_name: "<green>投射物武器强化</green>"
+gui_template: "strengthen_gui"
+
+economy:
+  enabled: true
+  currencies:
+    - provider: "vault"
+      currency_id: ""
+      base_cost: 320
+      cost_formula: "{base_cost} * {star}"
+      display_name: "<gold>金币</gold>"
+
+limits:
+  max_star: 12
+  max_temper: 4
+  temper_chance_bonus_per_level: 5.0
+  success_chance_cap: 90.0
+
+match:
+  lore_contains: ["投射物伤害"]
+  stats_any: ["projectile_attack"]
+
+stat_lines:
+  projectile_attack:
+    template: "<gray>投射物伤害: <gold>{sign}{value}</gold></gray>"
+    lore_operations:
+      - type: "lore_search_insert"
+        anchor: "强化等级"
+        position: "below"
+      - type: "lore_append"
+  projectile_crit_rate:
+    template: "<gray>投射物暴击率: <gold>{sign}{value}</gold></gray>"
+    lore_operations:
+      - type: "lore_append"
+  projectile_damage_bonus:
+    template: "<gray>投射物增伤: <gold>{sign}{value}</gold></gray>"
+    lore_operations:
+      - type: "lore_append"
+  projectile_crit_damage:
+    template: "<gray>投射物暴伤: <gold>{sign}{value}</gold></gray>"
+    lore_operations:
+      - type: "lore_append"
+  projectile_penetration:
+    template: "<gray>投射物穿透: <gold>{sign}{value}</gold></gray>"
+    lore_operations:
+      - type: "lore_append"
+
+stars:
+  1:
+    stats: { projectile_attack: 4 }
+    materials:
+      - item: "copper_ingot"
+        amount: 1
+      - item: "gunpowder"
+        amount: 2
+  2:
+    stats: { projectile_attack: 4 }
+    materials:
+      - item: "copper_ingot"
+        amount: 1
+      - item: "gunpowder"
+        amount: 3
+  3:
+    stats: { projectile_attack: 5 }
+    materials:
+      - item: "copper_ingot"
+        amount: 2
+      - item: "gunpowder"
+        amount: 4
+  4:
+    stats: { projectile_attack: 6 }
+    materials:
+      - item: "copper_ingot"
+        amount: 2
+      - item: "gunpowder"
+        amount: 5
+      - item: "gold_nugget"
+        amount: -1
+        optional: true
+        protection: true
+  5:
+    name: "<green>暴击率提升</green>"
+    stats: { projectile_attack: 6, projectile_crit_rate: 2 }
+    materials:
+      - item: "copper_ingot"
+        amount: 3
+      - item: "gunpowder"
+        amount: 6
+      - item: "gold_nugget"
+        amount: -1
+        optional: true
+        protection: true
+    presentation:
+      - "<gray>强化达到 +5 后，投射物武器会额外提供暴击率。</gray>"
+    success_actions:
+      - 'sendmessage text="<green>强化达到 +5，解锁额外投射物暴击率。</green>"'
+      - "playsound sound=minecraft:item.crossbow.loading_end volume=1 pitch=1.15"
+  6:
+    stats: { projectile_attack: 7 }
+    materials:
+      - item: "copper_ingot"
+        amount: 4
+      - item: "gunpowder"
+        amount: 8
+      - item: "gold_nugget"
+        amount: -1
+        optional: true
+        protection: true
+  7:
+    stats: { projectile_attack: 8 }
+    materials:
+      - item: "copper_ingot"
+        amount: 5
+      - item: "gunpowder"
+        amount: 10
+      - item: "gold_nugget"
+        amount: -1
+        optional: true
+        protection: true
+  8:
+    name: "<green>伤害提升</green>"
+    stats: { projectile_attack: 9, projectile_damage_bonus: 4 }
+    materials:
+      - item: "copper_ingot"
+        amount: 6
+      - item: "gunpowder"
+        amount: 12
+      - item: "paper"
+        amount: 2
+      - item: "gold_nugget"
+        amount: -1
+        optional: true
+        protection: true
+    presentation:
+      - "<gray>强化达到 +8 后，投射物武器会额外提供增伤。</gray>"
+    success_actions:
+      - 'sendtitle title="<green><bold>+8 投射物增伤提升</bold></green>" subtitle="<yellow>额外增伤已解锁</yellow>"'
+      - "playsound sound=minecraft:entity.player.levelup volume=1 pitch=1.2"
+  9:
+    stats: { projectile_attack: 10 }
+    materials:
+      - item: "copper_ingot"
+        amount: 8
+      - item: "gunpowder"
+        amount: 16
+      - item: "paper"
+        amount: 2
+      - item: "gold_nugget"
+        amount: -1
+        optional: true
+        protection: true
+  10:
+    name: "<green>暴击伤害提升</green>"
+    stats: { projectile_attack: 12, projectile_crit_damage: 6 }
+    materials:
+      - item: "copper_ingot"
+        amount: 10
+      - item: "gunpowder"
+        amount: 20
+      - item: "echo_shard"
+        amount: 2
+      - item: "gold_nugget"
+        amount: -1
+        optional: true
+        protection: true
+    presentation:
+      - "<gray>强化达到 +10 后，投射物武器会额外提供暴击伤害。</gray>"
+    success_actions:
+      - 'sendtitle title="<green><bold>+10 投射物暴伤提升</bold></green>" subtitle="<yellow>额外暴伤已解锁</yellow>"'
+      - "playsound sound=minecraft:entity.arrow.hit_player volume=1 pitch=1"
+  11:
+    stats: { projectile_attack: 14 }
+    materials:
+      - item: "copper_ingot"
+        amount: 13
+      - item: "gunpowder"
+        amount: 26
+      - item: "echo_shard"
+        amount: 3
+      - item: "gold_nugget"
+        amount: -1
+        optional: true
+        protection: true
+  12:
+    name: "<green>穿透提升</green>"
+    stats: { projectile_attack: 16, projectile_penetration: 8 }
+    materials:
+      - item: "copper_ingot"
+        amount: 16
+      - item: "gunpowder"
+        amount: 32
+      - item: "echo_shard"
+        amount: 4
+      - item: "gold_nugget"
+        amount: -1
+        optional: true
+        protection: true
+      - item: "potion"
+        amount: -1
+        optional: true
+        temper_boost: 1
+    presentation:
+      - "<gray>强化达到 +12 后，投射物武器会额外提供穿透。</gray>"
+    success_actions:
+      - 'sendtitle title="<green><bold>+12 投射物穿透提升</bold></green>" subtitle="<yellow>额外穿透已解锁</yellow>"'
+      - "playsound sound=minecraft:ui.toast.challenge_complete volume=1 pitch=1"
+
+presentation:
+  name_operations:
+    - type: "name_regex_replace"
+      pattern: "^(.*?)\\s*\\[\\+(\\d+)\\]\\s*$"
+      replacement: "$1 [+{star}]"
+    - type: "name_append"
+      value: " [+{star}]"
+      condition: "if_unchanged"
+  lore_prepend:
+    - "<gradient:#F2C46D:#C9703D>强化等级 +{star}</gradient>"
+    - "<gray>锻印: {temper_color}{temper}/{max_temper}</gray>"

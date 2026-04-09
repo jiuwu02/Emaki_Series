@@ -18,8 +18,6 @@ permissions:
     default: true
   emakiforge.reload:
     default: op
-  emakiforge.debug:
-    default: op
   emakiforge.editor:
     default: op
   emakiforge.editor.delete:

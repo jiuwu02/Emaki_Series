@@ -1,0 +1,175 @@
+id: "generic_visual"
+display_name: "<gray>通用强化</gray>"
+gui_template: "strengthen_gui"
+
+economy:
+  enabled: true
+  currencies:
+    - provider: "vault"
+      currency_id: ""
+      base_cost: 160
+      cost_formula: "{base_cost} * {star}"
+      display_name: "<gold>金币</gold>"
+
+limits:
+  max_star: 12
+  max_temper: 4
+  temper_chance_bonus_per_level: 5.0
+  success_chance_cap: 90.0
+
+stat_lines: {}
+
+stars:
+  1:
+    {
+      stats: {},
+      materials:
+        [{ item: "copper_ingot", amount: 1 }, { item: "gunpowder", amount: 2 }],
+    }
+  2:
+    {
+      stats: {},
+      materials:
+        [{ item: "copper_ingot", amount: 1 }, { item: "gunpowder", amount: 3 }],
+    }
+  3:
+    {
+      stats: {},
+      materials:
+        [{ item: "copper_ingot", amount: 2 }, { item: "gunpowder", amount: 4 }],
+    }
+  4:
+    {
+      stats: {},
+      materials:
+        [
+          { item: "copper_ingot", amount: 2 },
+          { item: "gunpowder", amount: 5 },
+          { item: "gold_nugget", amount: -1, optional: true, protection: true },
+        ],
+    }
+  5:
+    name: "<gray>外观强化 I</gray>"
+    stats: {}
+    materials:
+      - item: "copper_ingot"
+        amount: 3
+      - item: "gunpowder"
+        amount: 6
+      - item: "gold_nugget"
+        amount: -1
+        optional: true
+        protection: true
+    presentation: ["<gray>虽然不提供战斗属性，但会开始显示强化标记。</gray>"]
+    success_actions:
+      - 'sendmessage text="<gray>强化达到 +5，物品开始显示强化标记。</gray>"'
+  6:
+    {
+      stats: {},
+      materials:
+        [
+          { item: "copper_ingot", amount: 4 },
+          { item: "gunpowder", amount: 8 },
+          { item: "gold_nugget", amount: -1, optional: true, protection: true },
+        ],
+    }
+  7:
+    {
+      stats: {},
+      materials:
+        [
+          { item: "copper_ingot", amount: 5 },
+          { item: "gunpowder", amount: 10 },
+          { item: "gold_nugget", amount: -1, optional: true, protection: true },
+        ],
+    }
+  8:
+    name: "<gray>外观强化 II</gray>"
+    stats: {}
+    materials:
+      - item: "copper_ingot"
+        amount: 6
+      - item: "gunpowder"
+        amount: 12
+      - item: "paper"
+        amount: 2
+      - item: "gold_nugget"
+        amount: -1
+        optional: true
+        protection: true
+    presentation: ["<gray>高星强化会让物品的展示效果更加明显。</gray>"]
+    success_actions:
+      - 'sendtitle title="<gray><bold>+8 外观强化 II</bold></gray>" subtitle="<white>外观效果已提升</white>"'
+  9:
+    {
+      stats: {},
+      materials:
+        [
+          { item: "copper_ingot", amount: 8 },
+          { item: "gunpowder", amount: 16 },
+          { item: "paper", amount: 2 },
+          { item: "gold_nugget", amount: -1, optional: true, protection: true },
+        ],
+    }
+  10:
+    name: "<gray>外观强化 III</gray>"
+    stats: {}
+    materials:
+      - item: "copper_ingot"
+        amount: 10
+      - item: "gunpowder"
+        amount: 20
+      - item: "echo_shard"
+        amount: 2
+      - item: "gold_nugget"
+        amount: -1
+        optional: true
+        protection: true
+    presentation: ["<gray>强化达到 +10 后，会进一步增强展示效果。</gray>"]
+    success_actions:
+      - 'sendtitle title="<gray><bold>+10 外观强化 III</bold></gray>" subtitle="<white>外观效果继续提升</white>"'
+  11:
+    {
+      stats: {},
+      materials:
+        [
+          { item: "copper_ingot", amount: 13 },
+          { item: "gunpowder", amount: 26 },
+          { item: "echo_shard", amount: 3 },
+          { item: "gold_nugget", amount: -1, optional: true, protection: true },
+        ],
+    }
+  12:
+    name: "<gray>外观强化 IV</gray>"
+    stats: {}
+    materials:
+      - item: "copper_ingot"
+        amount: 16
+      - item: "gunpowder"
+        amount: 32
+      - item: "echo_shard"
+        amount: 4
+      - item: "gold_nugget"
+        amount: -1
+        optional: true
+        protection: true
+      - item: "potion"
+        amount: -1
+        optional: true
+        temper_boost: 1
+    presentation:
+      ["<gray>强化达到 +12 后，会获得最高等级的默认展示效果。</gray>"]
+    success_actions:
+      - 'sendtitle title="<gray><bold>+12 外观强化 IV</bold></gray>" subtitle="<white>最高外观效果已解锁</white>"'
+
+presentation:
+  name_operations:
+    - type: "name_regex_replace"
+      pattern: "^(.*?)\\s*\\[\\+(\\d+)\\]\\s*$"
+      replacement: "$1 [+{star}]"
+    - type: "name_append"
+      value: " [+{star}]"
+      condition: "if_unchanged"
+  lore_prepend:
+    - "<gradient:#F2C46D:#C9703D>强化等级 +{star}</gradient>"
+    - "<gray>锻印: {temper_color}{temper}/{max_temper}</gray>"

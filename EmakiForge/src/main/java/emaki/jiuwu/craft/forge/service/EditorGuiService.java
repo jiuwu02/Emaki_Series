@@ -227,14 +227,6 @@ public final class EditorGuiService {
     }
 
     private ItemStack renderIndex(EditorSession session, int slot) {
-        if (buttonSlot(session, "blueprint", slot)) {
-            return clickable(session, slot, typeItem(EditableResourceType.BLUEPRINT),
-                    (editorSession, event) -> showType(editorSession, EditableResourceType.BLUEPRINT));
-        }
-        if (buttonSlot(session, "material", slot)) {
-            return clickable(session, slot, typeItem(EditableResourceType.MATERIAL),
-                    (editorSession, event) -> showType(editorSession, EditableResourceType.MATERIAL));
-        }
         if (buttonSlot(session, "recipe", slot)) {
             return clickable(session, slot, typeItem(EditableResourceType.RECIPE),
                     (editorSession, event) -> showType(editorSession, EditableResourceType.RECIPE));
@@ -943,9 +935,7 @@ public final class EditorGuiService {
     private List<Integer> defaultButtonSlots(EditorSession.Mode mode, String buttonKey) {
         return switch (mode) {
             case INDEX -> switch (buttonKey) {
-                case "blueprint" -> List.of(11);
-                case "material" -> List.of(22);
-                case "recipe" -> List.of(33);
+                case "recipe" -> List.of(22);
                 case "close" -> List.of(49);
                 default -> List.of();
             };

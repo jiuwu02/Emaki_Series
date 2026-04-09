@@ -195,21 +195,22 @@ public final class ForgeItemRefreshService {
         int fallbackSequence = 0;
         for (Object rawEntry : ConfigNodes.asObjectList(rawMaterials)) {
             Map<String, Object> entry = ConfigNodes.entries(rawEntry);
-            String materialId = ConfigNodes.string(entry, "material_id", null);
-            if (Texts.isBlank(materialId)) {
+            String materialItem = ConfigNodes.string(entry, "material_item", null);
+            if (Texts.isBlank(materialItem)) {
                 warnOnce(
                         "invalid_material_entry|" + recipeId + "|" + snapshotId + "|" + fallbackSequence,
                         "console.forge_refresh_invalid_audit",
-                        Map.of("reason", "missing material_id")
+                        Map.of("reason", "missing material_item")
                 );
                 return null;
             }
-            ForgeMaterial material = plugin.forgeService().findMaterialById(materialId);
+            Recipe recipe = plugin.recipeLoader().all().get(recipeId);
+            ForgeMaterial material = recipe == null ? null : recipe.findMaterialByItem(materialItem);
             if (material == null) {
                 warnOnce(
-                        "missing_material|" + recipeId + "|" + materialId + "|" + snapshotId,
+                        "missing_material|" + recipeId + "|" + materialItem + "|" + snapshotId,
                         "console.forge_refresh_missing_material",
-                        Map.of("recipe", recipeId, "material", materialId)
+                        Map.of("recipe", recipeId, "material", materialItem)
                 );
                 return null;
             }

@@ -1,7 +1,0 @@
-id: "breakthrough_catalyst_basic"
-display_name: "<light_purple>初级突破材料</light_purple>"
-description:
-  - "<gray>+8 与 +9 的突破材料。</gray>"
-item: "paper"
-role: "BREAKTHROUGH"
-required_from_target_star: 8

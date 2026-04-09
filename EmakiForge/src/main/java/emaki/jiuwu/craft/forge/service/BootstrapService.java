@@ -17,15 +17,6 @@ public final class BootstrapService {
     private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml");
     private static final List<String> STATIC_FILES = List.of("gui/forge_gui.yml", "gui/recipe_book.yml", "gui/editor_gui.yml");
     private static final List<String> DEFAULT_DATA_FILES = List.of(
-            "blueprints/universal_blueprint.yml",
-            "blueprints/weapon_sword.yml",
-            "materials/forge_capacity_core.yml",
-            "materials/chi_yan_jing.yml",
-            "materials/flame_crystal.yml",
-            "materials/iron_essence.yml",
-            "materials/qing_feng_mu.yml",
-            "materials/xuan_tie_core.yml",
-            "materials/yun_lei_sha.yml",
             "recipes/flame_sword.yml"
     );
 
@@ -40,8 +31,6 @@ public final class BootstrapService {
     public boolean bootstrap() {
         messages.info("console.bootstrap_start");
         ensureDirectory(plugin.getDataFolder().toPath());
-        migrateLegacyDefaultData();
-        importLegacyPySpigotDataIfPresent();
         for (String file : VERSIONED_FILES) {
             ensureDefaultFile(file);
             mergeVersionedFile(file);
@@ -59,47 +48,6 @@ public final class BootstrapService {
         ensureDirectory(plugin.dataPath("data"));
         messages.info("console.bootstrap_complete");
         return true;
-    }
-
-    private void importLegacyPySpigotDataIfPresent() {
-        Path targetRoot = plugin.getDataFolder().toPath();
-        if (Files.exists(targetRoot.resolve("config.yml"))) {
-            return;
-        }
-        Path pluginsDir = targetRoot.getParent();
-        if (pluginsDir == null) {
-            return;
-        }
-        Path legacyRoot = pluginsDir.resolve("PySpigot").resolve("configs").resolve("JiuWus_Forge");
-        if (!Files.exists(legacyRoot)) {
-            return;
-        }
-        try (var paths = Files.walk(legacyRoot)) {
-            paths.forEach(source -> {
-                try {
-                    Path relative = legacyRoot.relativize(source);
-                    Path target = targetRoot.resolve(relative);
-                    if (Files.isDirectory(source)) {
-                        ensureDirectory(target);
-                        return;
-                    }
-                    if (!Files.exists(target)) {
-                        ensureDirectory(target.getParent());
-                        Files.copy(source, target, StandardCopyOption.COPY_ATTRIBUTES);
-                    }
-                } catch (IOException exception) {
-                    messages.warning("console.bootstrap_import_legacy_failed", Map.of(
-                            "path", source.toString(),
-                            "error", String.valueOf(exception.getMessage())
-                    ));
-                }
-            });
-        } catch (IOException exception) {
-            messages.warning("console.bootstrap_scan_legacy_failed", Map.of(
-                    "path", legacyRoot.toString(),
-                    "error", String.valueOf(exception.getMessage())
-            ));
-        }
     }
 
     private void ensureDefaultFile(String relativePath) {
@@ -152,42 +100,6 @@ public final class BootstrapService {
         return configuration.getBoolean("release_default_data", true);
     }
 
-    private void migrateLegacyDefaultData() {
-        Path legacyRoot = plugin.getDataFolder().toPath().resolve("defaults");
-        if (!Files.exists(legacyRoot) || !Files.isDirectory(legacyRoot)) {
-            return;
-        }
-        try (var paths = Files.walk(legacyRoot)) {
-            paths.forEach(source -> {
-                try {
-                    Path relative = legacyRoot.relativize(source);
-                    if (relative.toString().isBlank()) {
-                        return;
-                    }
-                    Path target = plugin.getDataFolder().toPath().resolve(relative);
-                    if (Files.isDirectory(source)) {
-                        ensureDirectory(target);
-                        return;
-                    }
-                    if (Files.exists(target)) {
-                        return;
-                    }
-                    ensureDirectory(target.getParent());
-                    Files.copy(source, target, StandardCopyOption.COPY_ATTRIBUTES);
-                } catch (IOException exception) {
-                    messages.warning("console.bootstrap_migrate_legacy_failed", Map.of(
-                            "path", source.toString(),
-                            "error", String.valueOf(exception.getMessage())
-                    ));
-                }
-            });
-        } catch (IOException exception) {
-            messages.warning("console.bootstrap_scan_legacy_default_failed", Map.of(
-                    "path", legacyRoot.toString(),
-                    "error", String.valueOf(exception.getMessage())
-            ));
-        }
-    }
 
     private void replaceLangValue(YamlConfiguration runtime, String path, String expected, String replacement) {
         String current = runtime.getString(path);

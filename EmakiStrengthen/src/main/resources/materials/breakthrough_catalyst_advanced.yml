@@ -1,7 +1,0 @@
-id: "breakthrough_catalyst_advanced"
-display_name: "<aqua>高级突破材料</aqua>"
-description:
-  - "<gray>+10 及以上的高段突破材料。</gray>"
-item: "echo_shard"
-role: "BREAKTHROUGH"
-required_from_target_star: 10

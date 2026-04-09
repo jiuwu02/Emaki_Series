@@ -14,8 +14,6 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
-import emaki.jiuwu.craft.corelib.action.ActionErrorType;
-import emaki.jiuwu.craft.corelib.action.ActionResult;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerSnapshot;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
@@ -26,28 +24,32 @@ import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
 import emaki.jiuwu.craft.strengthen.api.EmakiStrengthenApi;
 import emaki.jiuwu.craft.strengthen.model.AttemptContext;
+import emaki.jiuwu.craft.strengthen.model.AttemptCost;
+import emaki.jiuwu.craft.strengthen.model.AttemptMaterial;
 import emaki.jiuwu.craft.strengthen.model.AttemptPreview;
 import emaki.jiuwu.craft.strengthen.model.AttemptResult;
-import emaki.jiuwu.craft.strengthen.model.StrengthenMaterial;
-import emaki.jiuwu.craft.strengthen.model.StrengthenProfile;
+import emaki.jiuwu.craft.strengthen.model.StrengthenRecipe;
 import emaki.jiuwu.craft.strengthen.model.StrengthenState;
 
 public final class StrengthenAttemptService implements EmakiStrengthenApi {
 
     private final EmakiStrengthenPlugin plugin;
-    private final ProfileResolver profileResolver;
+    private final StrengthenRecipeResolver recipeResolver;
     private final ChanceCalculator chanceCalculator;
+    private final StrengthenEconomyService economyService;
     private final StrengthenSnapshotBuilder snapshotBuilder;
     private final StrengthenActionCoordinator actionCoordinator;
 
     public StrengthenAttemptService(EmakiStrengthenPlugin plugin,
-            ProfileResolver profileResolver,
+            StrengthenRecipeResolver recipeResolver,
             ChanceCalculator chanceCalculator,
+            StrengthenEconomyService economyService,
             StrengthenSnapshotBuilder snapshotBuilder,
             StrengthenActionCoordinator actionCoordinator) {
         this.plugin = plugin;
-        this.profileResolver = profileResolver;
+        this.recipeResolver = recipeResolver;
         this.chanceCalculator = chanceCalculator;
+        this.economyService = economyService;
         this.snapshotBuilder = snapshotBuilder;
         this.actionCoordinator = actionCoordinator;
     }
@@ -62,24 +64,24 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
         if (itemStack == null || itemStack.getType().isAir()) {
             return StrengthenState.ineligible("strengthen.error.no_target", null, "");
         }
-        ProfileResolver.ResolvedItem resolved = profileResolver.resolve(itemStack, readStoredProfileId(itemStack));
+        StrengthenRecipeResolver.ResolvedItem resolved = recipeResolver.resolve(itemStack, readStoredRecipeId(itemStack));
         if (resolved.baseSource() == null) {
             return StrengthenState.ineligible("strengthen.error.no_source", null, "");
         }
         StoredState stored = readStoredState(itemStack, resolved.baseSource(), resolved.baseSourceSignature());
-        String profileId = Texts.isNotBlank(stored.profileId()) ? stored.profileId() : resolved.profileId();
-        boolean eligible = Texts.isNotBlank(profileId) && plugin.profileLoader().get(profileId) != null;
-        String reason = eligible ? "" : "strengthen.error.no_profile";
+        String recipeId = Texts.isNotBlank(stored.recipeId()) ? stored.recipeId() : resolved.recipeId();
+        boolean eligible = Texts.isNotBlank(recipeId) && plugin.recipeLoader().get(recipeId) != null;
+        String reason = eligible ? "" : "strengthen.error.no_recipe";
         return new StrengthenState(
                 eligible,
                 reason,
                 stored.hasLayer(),
                 resolved.baseSource(),
                 resolved.baseSourceSignature(),
-                profileId,
+                recipeId,
                 stored.currentStar(),
                 stored.crackLevel(),
-                stored.milestoneFlags(),
+                stored.firstReachFlags(),
                 stored.successCount(),
                 stored.failureCount(),
                 stored.lastAttemptAt()
@@ -91,83 +93,65 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
         ItemStack targetItem = context == null ? null : context.targetItem();
         StrengthenState state = readState(targetItem);
         if (!state.eligible()) {
-            return new AttemptPreview(false, state.eligibleReason(), state, null, state.currentStar(), state.currentStar(), 0D, 0L,
-                    state.currentStar(), state.crackLevel(), false, Map.of(), Set.of(), null, null, null, null);
+            return ineligiblePreview(state.eligibleReason(), state);
         }
-        StrengthenProfile profile = plugin.profileLoader().get(state.profileId());
-        if (profile == null) {
-            return new AttemptPreview(false, "strengthen.error.no_profile", state, null, state.currentStar(), state.currentStar(), 0D, 0L,
-                    state.currentStar(), state.crackLevel(), false, Map.of(), Set.of(), null, null, null, null);
+        StrengthenRecipe recipe = plugin.recipeLoader().get(state.recipeId());
+        if (recipe == null) {
+            return ineligiblePreview("strengthen.error.no_recipe", state);
         }
-        if (state.currentStar() >= plugin.appConfig().maxStar()) {
-            return new AttemptPreview(false, "strengthen.error.already_max", state, profile, state.currentStar(), state.currentStar(), 0D, 0L,
-                    state.currentStar(), state.crackLevel(), false, Map.of(), Set.of(), null, null, null, null);
-        }
-        MaterialSelection selection = resolveMaterials(context);
-        if (selection.baseMaterial() == null) {
-            return new AttemptPreview(false, selection.errorKey().isBlank() ? "strengthen.error.base_required" : selection.errorKey(), state, profile,
-                    state.currentStar(), state.currentStar() + 1, 0D, 0L, state.currentStar(), state.crackLevel(), false, Map.of(), Set.of(),
-                    null, selection.supportMaterial(), selection.protectionMaterial(), selection.breakthroughMaterial());
+        if (state.currentStar() >= recipe.limits().maxStar()) {
+            return ineligiblePreview("strengthen.error.already_max", state, recipe);
         }
 
         int targetStar = state.currentStar() + 1;
-        int requiredBreakthroughTier = requiredBreakthroughTier(targetStar);
-        if (requiredBreakthroughTier > 0) {
-            if (selection.breakthroughMaterial() == null || selection.breakthroughMaterial().requiredFromTargetStar() != requiredBreakthroughTier) {
-                return new AttemptPreview(false, "strengthen.error.breakthrough_required", state, profile, state.currentStar(), targetStar, 0D, 0L,
-                        state.currentStar(), state.crackLevel(), false, Map.of(), Set.of(), selection.baseMaterial(), selection.supportMaterial(),
-                        selection.protectionMaterial(), selection.breakthroughMaterial());
-            }
-        } else if (selection.breakthroughMaterial() != null) {
-            return new AttemptPreview(false, "strengthen.error.invalid_breakthrough_material", state, profile, state.currentStar(), targetStar, 0D, 0L,
-                    state.currentStar(), state.crackLevel(), false, Map.of(), Set.of(), selection.baseMaterial(), selection.supportMaterial(),
-                    selection.protectionMaterial(), selection.breakthroughMaterial());
+        StrengthenRecipe.StarStage stage = recipe.stage(targetStar);
+        if (stage == null) {
+            return ineligiblePreview("strengthen.error.already_max", state, recipe);
         }
 
-        boolean protectionApplied = selection.protectionMaterial() != null && targetStar >= selection.protectionMaterial().protectionMinTargetStar();
-        if (selection.protectionMaterial() != null && !protectionApplied) {
-            return new AttemptPreview(false, "strengthen.error.invalid_protection_material", state, profile, state.currentStar(), targetStar, 0D, 0L,
-                    state.currentStar(), state.crackLevel(), false, Map.of(), Set.of(), selection.baseMaterial(), selection.supportMaterial(),
-                    selection.protectionMaterial(), selection.breakthroughMaterial());
+        MaterialPlan materials = resolveMaterialPlan(player, context, stage);
+        if (Texts.isNotBlank(materials.errorKey())) {
+            return new AttemptPreview(false, materials.errorKey(), state, recipe, state.currentStar(), targetStar, 0D, List.of(),
+                    state.currentStar(), state.temperLevel(), false, 0, Map.of(), Set.of(), materials.requiredMaterials(), materials.optionalMaterials());
         }
 
-        double successRate = chanceCalculator.calculateSuccessRate(plugin.appConfig(), state.currentStar(), state.crackLevel(), selection.supportMaterial());
-        ChanceCalculator.FailureResolution failure = chanceCalculator.resolveFailure(plugin.appConfig(), state.currentStar(), state.crackLevel(), protectionApplied);
-        long cost = chanceCalculator.calculateCurrencyCost(profile, targetStar);
-        Set<Integer> unlockingMilestones = new LinkedHashSet<>();
-        for (StrengthenProfile.Milestone milestone : profile.reachedMilestones(targetStar)) {
-            if (milestone.star() > state.currentStar()) {
-                unlockingMilestones.add(milestone.star());
-            }
-        }
-        return new AttemptPreview(true, "", state, profile, state.currentStar(), targetStar, successRate, cost,
-                failure.resultingStar(), failure.resultingCrack(), protectionApplied,
-                profile.deltaStats(state.currentStar(), targetStar), unlockingMilestones,
-                selection.baseMaterial(), selection.supportMaterial(), selection.protectionMaterial(), selection.breakthroughMaterial());
+        double successRate = chanceCalculator.calculateSuccessRate(plugin.appConfig(), recipe, state.currentStar(), state.temperLevel(),
+                materials.appliedTemperBonus());
+        ChanceCalculator.FailureResolution failure = chanceCalculator.resolveFailure(recipe, state.currentStar(), state.temperLevel(),
+                materials.appliedTemperBonus(), materials.protectionApplied());
+        Set<Integer> firstReachStars = collectFirstReach(state.firstReachFlags(), targetStar);
+        return new AttemptPreview(
+                true,
+                "",
+                state,
+                recipe,
+                state.currentStar(),
+                targetStar,
+                successRate,
+                economyService.quoteCosts(recipe, targetStar),
+                failure.resultingStar(),
+                failure.resultingTemper(),
+                materials.protectionApplied(),
+                materials.appliedTemperBonus(),
+                recipe.deltaStats(state.currentStar(), targetStar),
+                firstReachStars,
+                materials.requiredMaterials(),
+                materials.optionalMaterials()
+        );
     }
 
     @Override
     public AttemptResult attempt(Player player, AttemptContext context) {
         AttemptPreview preview = preview(player, context);
         if (!preview.eligible()) {
-            return AttemptResult.failure(preview.errorKey(), preview, replacements(preview, preview.currentStar(), preview.currencyCost()));
-        }
-        ActionResult economyResult = removeCurrency(player, preview.currencyCost());
-        if (!economyResult.success()) {
-            String key = economyResult.errorType() == ActionErrorType.INSUFFICIENT_BALANCE
-                    ? "strengthen.error.insufficient_funds"
-                    : "strengthen.error.economy_provider_unavailable";
-            return AttemptResult.failure(key, preview, replacements(preview, preview.currentStar(), preview.currencyCost()));
+            return AttemptResult.failure(preview.errorKey(), preview, replacements(preview, preview.currentStar()));
         }
 
         boolean success = ThreadLocalRandom.current().nextDouble(100D) < preview.successRate();
         StrengthenState currentState = preview.state();
-        int star = success ? preview.targetStar() : preview.failureStar();
-        int crack = success ? 0 : preview.failureCrack();
-        MilestoneProgress milestoneProgress = collectMilestoneProgress(
-                currentState.milestoneFlags(),
-                success ? preview.unlockingMilestones() : Set.of()
-        );
+        int resultStar = success ? preview.targetStar() : preview.failureStar();
+        int resultTemper = success ? 0 : preview.failureTemper();
+        StarProgress progress = collectStarProgress(currentState.firstReachFlags(), success ? Set.of(preview.targetStar()) : Set.of());
 
         StrengthenState updated = new StrengthenState(
                 true,
@@ -175,25 +159,31 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
                 true,
                 currentState.baseSource(),
                 currentState.baseSourceSignature(),
-                preview.profile().id(),
-                star,
-                crack,
-                milestoneProgress.updatedFlags(),
+                preview.recipe().id(),
+                resultStar,
+                resultTemper,
+                progress.updatedFlags(),
                 currentState.successCount() + (success ? 1 : 0),
                 currentState.failureCount() + (success ? 0 : 1),
                 System.currentTimeMillis()
         );
+
         ItemStack rebuilt = rebuildWithState(context == null ? null : context.targetItem(), updated, buildMaterialsSignature(preview));
         if (rebuilt == null) {
-            refundCurrency(player, preview.currencyCost());
-            return AttemptResult.failure("strengthen.error.rebuild_failed", preview, replacements(preview, star, preview.currencyCost()));
+            return AttemptResult.failure("strengthen.error.rebuild_failed", preview, replacements(preview, resultStar));
         }
 
-        if (success && player != null) {
-            actionCoordinator.triggerMilestoneActions(player, preview.profile(), milestoneProgress.newlyReached(), rebuilt, star);
-            broadcastFirstReach(player, rebuilt, milestoneProgress.newlyReached());
+        StrengthenEconomyService.ChargeResult chargeResult = economyService.charge(player, preview.costs());
+        if (!chargeResult.success()) {
+            return AttemptResult.failure(chargeResult.errorKey(), preview, replacements(preview, preview.currentStar()));
         }
-        return new AttemptResult(success, "", replacements(preview, star, preview.currencyCost()), preview, rebuilt, star, crack);
+
+        if (!consumeRequiredInventoryMaterials(player, preview.requiredMaterials())) {
+            economyService.refund(player, chargeResult.appliedCosts());
+            return AttemptResult.failure("strengthen.error.material_missing", preview, replacements(preview, preview.currentStar()));
+        }
+
+        return new AttemptResult(success, "", replacements(preview, resultStar), preview, rebuilt, resultStar, resultTemper, progress.newlyReached());
     }
 
     @Override
@@ -202,19 +192,20 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
             return itemStack;
         }
         StrengthenState state = readState(itemStack);
-        if (!state.hasLayer() || Texts.isBlank(state.profileId())) {
+        if (!state.hasLayer() || Texts.isBlank(state.recipeId())) {
             return itemStack;
         }
         return rebuildWithState(itemStack, state, readStoredMaterialsSignature(itemStack));
     }
 
-    public ItemStack applyAdminState(ItemStack itemStack, Integer star, Integer crack, String profileId) {
+    public ItemStack applyAdminState(ItemStack itemStack, Integer star, Integer temper, String recipeId) {
         StrengthenState current = readState(itemStack);
         if (current.baseSource() == null) {
             return null;
         }
-        String effectiveProfile = Texts.isNotBlank(profileId) ? profileId : current.profileId();
-        if (plugin.profileLoader().get(effectiveProfile) == null) {
+        String effectiveRecipe = Texts.isNotBlank(recipeId) ? recipeId : current.recipeId();
+        StrengthenRecipe recipe = plugin.recipeLoader().get(effectiveRecipe);
+        if (recipe == null) {
             return null;
         }
         StrengthenState updated = new StrengthenState(
@@ -223,9 +214,9 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
                 true,
                 current.baseSource(),
                 current.baseSourceSignature(),
-                effectiveProfile,
-                star == null ? current.currentStar() : Numbers.clamp(star, 0, plugin.appConfig().maxStar()),
-                crack == null ? current.crackLevel() : Numbers.clamp(crack, 0, plugin.appConfig().maxCrack()),
+                effectiveRecipe,
+                star == null ? current.currentStar() : Numbers.clamp(star, 0, recipe.limits().maxStar()),
+                temper == null ? current.temperLevel() : Numbers.clamp(temper, 0, recipe.limits().maxTemper()),
                 current.milestoneFlags(),
                 current.successCount(),
                 current.failureCount(),
@@ -234,55 +225,65 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
         return rebuildWithState(itemStack, updated, readStoredMaterialsSignature(itemStack));
     }
 
-    public ItemStack consumeCleanseMaterial(Player player, ItemStack itemStack) {
-        if (player == null || itemStack == null) {
-            return null;
+    public void triggerSuccessActions(Player player, StrengthenRecipe recipe, String resultSlotId, ItemStack resultItem, int star, int temper) {
+        actionCoordinator.triggerSuccessActions(player, recipe, resultSlotId, resultItem, star, temper);
+    }
+
+    public void triggerFailureActions(Player player,
+            StrengthenRecipe recipe,
+            String resultSlotId,
+            ItemStack resultItem,
+            int wasStar,
+            int resultStar,
+            int temper,
+            boolean dropped,
+            boolean protectionApplied) {
+        actionCoordinator.triggerFailureActions(player, recipe, resultSlotId, resultItem, wasStar, resultStar, temper, dropped, protectionApplied);
+    }
+
+    public void broadcastFirstReach(Player player, ItemStack resultItem, Set<Integer> newlyReached) {
+        if (player == null || newlyReached == null || newlyReached.isEmpty()) {
+            return;
         }
-        StrengthenState state = readState(itemStack);
-        if (!state.hasLayer() || state.crackLevel() <= 0) {
-            return null;
+        String showItem = actionCoordinator.buildShowItem(resultItem);
+        if (newlyReached.contains(8)) {
+            String message = plugin.messageService().message("strengthen.broadcast.local_reach", Map.of(
+                    "player", player.getName(),
+                    "show_item", showItem,
+                    "star", 8
+            ));
+            double radius = plugin.appConfig().localBroadcastRadius();
+            Bukkit.getOnlinePlayers().stream()
+                    .filter(viewer -> viewer.getWorld().equals(player.getWorld()) && viewer.getLocation().distanceSquared(player.getLocation()) <= radius * radius)
+                    .forEach(viewer -> plugin.messageService().sendRaw(viewer, message));
         }
-        MaterialSlot found = findInventoryMaterial(player.getInventory(), StrengthenMaterial.Role.CLEANSE);
-        if (found == null || found.material() == null || found.material().crackRemove() <= 0) {
-            return null;
-        }
-        StrengthenState updated = new StrengthenState(
-                true,
-                "",
-                true,
-                state.baseSource(),
-                state.baseSourceSignature(),
-                state.profileId(),
-                state.currentStar(),
-                Numbers.clamp(state.crackLevel() - found.material().crackRemove(), 0, plugin.appConfig().maxCrack()),
-                state.milestoneFlags(),
-                state.successCount(),
-                state.failureCount(),
-                System.currentTimeMillis()
-        );
-        ItemStack rebuilt = rebuildWithState(itemStack, updated, readStoredMaterialsSignature(itemStack));
-        if (rebuilt == null) {
-            return null;
-        }
-        ItemStack stack = player.getInventory().getItem(found.slot());
-        if (stack != null) {
-            stack.setAmount(stack.getAmount() - 1);
-            if (stack.getAmount() <= 0) {
-                player.getInventory().setItem(found.slot(), null);
-            } else {
-                player.getInventory().setItem(found.slot(), stack);
+        for (int star : List.of(10, 12)) {
+            if (!newlyReached.contains(star)) {
+                continue;
             }
+            String message = plugin.messageService().message("strengthen.broadcast.global_reach", Map.of(
+                    "player", player.getName(),
+                    "show_item", showItem,
+                    "star", star
+            ));
+            Bukkit.getOnlinePlayers().forEach(viewer -> plugin.messageService().sendRaw(viewer, message));
         }
-        return rebuilt;
     }
 
-    public StrengthenMaterial resolveConfiguredMaterial(ItemStack itemStack) {
-        return findMaterial(itemStack);
+    private AttemptPreview ineligiblePreview(String errorKey, StrengthenState state) {
+        return ineligiblePreview(errorKey, state, null);
     }
 
-    private String readStoredProfileId(ItemStack itemStack) {
-        StoredState state = readStoredState(itemStack, profileResolver.resolveBaseSource(itemStack), "");
-        return state.profileId();
+    private AttemptPreview ineligiblePreview(String errorKey, StrengthenState state, StrengthenRecipe recipe) {
+        int currentStar = state == null ? 0 : state.currentStar();
+        int temper = state == null ? 0 : state.temperLevel();
+        return new AttemptPreview(false, errorKey, state, recipe, currentStar, currentStar, 0D, List.of(),
+                currentStar, temper, false, 0, Map.of(), Set.of(), List.of(), List.of());
+    }
+
+    private String readStoredRecipeId(ItemStack itemStack) {
+        StoredState state = readStoredState(itemStack, recipeResolver.resolveBaseSource(itemStack), "");
+        return state.recipeId();
     }
 
     private StoredState readStoredState(ItemStack itemStack, ItemSource baseSource, String fallbackSignature) {
@@ -299,7 +300,7 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
         Map<String, Object> audit = snapshot.audit();
         return new StoredState(
                 true,
-                Texts.toStringSafe(audit.get("profile_id")),
+                Texts.toStringSafe(audit.get("recipe_id")),
                 Numbers.tryParseInt(audit.get("current_star"), 0),
                 Numbers.tryParseInt(audit.get("crack_level"), 0),
                 parseFlagSet(audit.get("first_reach_flags")),
@@ -331,87 +332,188 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
         return flags;
     }
 
-    private MaterialSelection resolveMaterials(AttemptContext context) {
-        StrengthenMaterial base = findMaterial(context == null ? null : context.baseMaterial());
-        StrengthenMaterial support = findMaterial(context == null ? null : context.supportMaterial());
-        StrengthenMaterial protection = findMaterial(context == null ? null : context.protectionMaterial());
-        StrengthenMaterial breakthrough = findMaterial(context == null ? null : context.breakthroughMaterial());
-        if (context != null && context.baseMaterial() != null && (base == null || base.role() != StrengthenMaterial.Role.BASE)) {
-            return new MaterialSelection(null, support, protection, breakthrough, "strengthen.error.invalid_base_material");
+    private MaterialPlan resolveMaterialPlan(Player player, AttemptContext context, StrengthenRecipe.StarStage stage) {
+        if (stage == null) {
+            return new MaterialPlan("strengthen.error.material_missing", List.of(), List.of(), false, 0);
         }
-        if (support != null && support.role() != StrengthenMaterial.Role.SUPPORT) {
-            return new MaterialSelection(base, null, protection, breakthrough, "strengthen.error.invalid_support_material");
-        }
-        if (protection != null && protection.role() != StrengthenMaterial.Role.PROTECTION) {
-            return new MaterialSelection(base, support, null, breakthrough, "strengthen.error.invalid_protection_material");
-        }
-        if (breakthrough != null && breakthrough.role() != StrengthenMaterial.Role.BREAKTHROUGH) {
-            return new MaterialSelection(base, support, protection, null, "strengthen.error.invalid_breakthrough_material");
-        }
-        return new MaterialSelection(base, support, protection, breakthrough, "");
-    }
-
-    private StrengthenMaterial findMaterial(ItemStack itemStack) {
-        if (itemStack == null || itemStack.getType().isAir()) {
-            return null;
-        }
-        ItemSource source = profileResolver.resolveBaseSource(itemStack);
-        if (source == null) {
-            return null;
-        }
-        for (StrengthenMaterial material : plugin.materialLoader().all().values()) {
-            if (material != null && ItemSourceUtil.matches(source, material.source())) {
-                return material;
-            }
-        }
-        return null;
-    }
-
-    private int requiredBreakthroughTier(int targetStar) {
-        int required = 0;
-        for (StrengthenMaterial material : plugin.materialLoader().all().values()) {
-            if (material == null || material.role() != StrengthenMaterial.Role.BREAKTHROUGH) {
+        List<AttemptMaterial> requiredMaterials = new ArrayList<>();
+        for (StrengthenRecipe.StarStageMaterial material : stage.materials()) {
+            if (material == null || material.optional()) {
                 continue;
             }
-            if (material.requiredFromTargetStar() <= targetStar) {
-                required = Math.max(required, material.requiredFromTargetStar());
+            int available = player == null ? 0 : countInventoryMaterial(player, material.item());
+            AttemptMaterial attemptMaterial = new AttemptMaterial(
+                    material.item(),
+                    material.amount(),
+                    available,
+                    false,
+                    material.protection(),
+                    material.temperBoost(),
+                    Math.max(0, material.amount())
+            );
+            requiredMaterials.add(attemptMaterial);
+            if (!attemptMaterial.satisfied()) {
+                return new MaterialPlan("strengthen.error.material_missing", requiredMaterials, buildEmptyOptionalMaterials(context), false, 0);
             }
         }
-        return required;
+
+        Map<String, StrengthenRecipe.StarStageMaterial> optionalByItem = new LinkedHashMap<>();
+        for (StrengthenRecipe.StarStageMaterial material : stage.materials()) {
+            if (material != null && material.optional()) {
+                optionalByItem.putIfAbsent(Texts.lower(material.item()), material);
+            }
+        }
+
+        List<ItemStack> inputs = context == null ? List.of() : context.materialInputs();
+        List<AttemptMaterial> optionalMaterials = new ArrayList<>();
+        boolean protectionApplied = false;
+        int temperBonus = 0;
+        for (ItemStack input : inputs) {
+            if (input == null || input.getType().isAir()) {
+                optionalMaterials.add(new AttemptMaterial("", 0, 0, true, false, 0, 0));
+                continue;
+            }
+            String token = resolveItemToken(input);
+            StrengthenRecipe.StarStageMaterial matched = optionalByItem.get(Texts.lower(token));
+            if (matched == null) {
+                return new MaterialPlan("strengthen.error.invalid_optional_material", requiredMaterials, optionalMaterials, false, 0);
+            }
+            int available = input.getAmount();
+            int consumed = resolveOptionalConsumeAmount(matched, available);
+            optionalMaterials.add(new AttemptMaterial(
+                    matched.item(),
+                    matched.amount(),
+                    available,
+                    true,
+                    matched.protection(),
+                    matched.temperBoost(),
+                    consumed
+            ));
+            protectionApplied = protectionApplied || (matched.protection() && available > 0);
+            temperBonus += consumed * matched.temperBoost();
+        }
+
+        return new MaterialPlan("", List.copyOf(requiredMaterials), List.copyOf(optionalMaterials), protectionApplied, temperBonus);
     }
 
-    private ActionResult removeCurrency(Player player, long cost) {
-        EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.getInstance();
-        if (player == null) {
-            return ActionResult.failure(ActionErrorType.INVALID_ARGUMENT, "Player is required.");
+    private List<AttemptMaterial> buildEmptyOptionalMaterials(AttemptContext context) {
+        List<ItemStack> inputs = context == null ? List.of() : context.materialInputs();
+        List<AttemptMaterial> result = new ArrayList<>();
+        for (int index = 0; index < inputs.size(); index++) {
+            result.add(new AttemptMaterial("", 0, 0, true, false, 0, 0));
         }
-        if (coreLib == null || coreLib.economyManager() == null) {
-            return ActionResult.failure(ActionErrorType.PROVIDER_UNAVAILABLE, "CoreLib economy is unavailable.");
-        }
-        return coreLib.economyManager().remove(player, plugin.appConfig().economyProvider(), plugin.appConfig().economyCurrencyId(), cost);
+        return List.copyOf(result);
     }
 
-    private void refundCurrency(Player player, long cost) {
-        EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.getInstance();
-        if (player == null || cost <= 0L || coreLib == null || coreLib.economyManager() == null) {
-            return;
+    private int resolveOptionalConsumeAmount(StrengthenRecipe.StarStageMaterial material, int available) {
+        if (material == null || available <= 0) {
+            return 0;
         }
-        coreLib.economyManager().add(player, plugin.appConfig().economyProvider(), plugin.appConfig().economyCurrencyId(), cost);
+        if (material.temperBoost() > 0) {
+            return material.amount() > 0 ? Math.min(material.amount(), available) : available;
+        }
+        if (material.protection()) {
+            return 1;
+        }
+        if (material.amount() > 0) {
+            return Math.min(material.amount(), available);
+        }
+        return available;
+    }
+
+    private int countInventoryMaterial(Player player, String itemToken) {
+        if (player == null || Texts.isBlank(itemToken)) {
+            return 0;
+        }
+        ItemSource targetSource = ItemSourceUtil.parse(itemToken);
+        if (targetSource == null) {
+            return 0;
+        }
+        EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.getInstance();
+        if (coreLib == null || coreLib.itemSourceService() == null) {
+            return 0;
+        }
+        int total = 0;
+        for (ItemStack stack : player.getInventory().getContents()) {
+            if (stack == null || stack.getType().isAir()) {
+                continue;
+            }
+            ItemSource source = coreLib.itemSourceService().identifyItem(stack);
+            if (ItemSourceUtil.matches(targetSource, source)) {
+                total += stack.getAmount();
+            }
+        }
+        return total;
+    }
+
+    private boolean consumeRequiredInventoryMaterials(Player player, List<AttemptMaterial> materials) {
+        if (player == null || materials == null || materials.isEmpty()) {
+            return true;
+        }
+        for (AttemptMaterial material : materials) {
+            if (material == null || material.consumedAmount() <= 0) {
+                continue;
+            }
+            if (countInventoryMaterial(player, material.item()) < material.consumedAmount()) {
+                return false;
+            }
+        }
+        for (AttemptMaterial material : materials) {
+            if (material == null || material.consumedAmount() <= 0) {
+                continue;
+            }
+            if (!removeInventoryMaterial(player.getInventory(), material.item(), material.consumedAmount())) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean removeInventoryMaterial(PlayerInventory inventory, String itemToken, int amount) {
+        if (inventory == null || Texts.isBlank(itemToken) || amount <= 0) {
+            return amount <= 0;
+        }
+        ItemSource targetSource = ItemSourceUtil.parse(itemToken);
+        if (targetSource == null) {
+            return false;
+        }
+        EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.getInstance();
+        if (coreLib == null || coreLib.itemSourceService() == null) {
+            return false;
+        }
+        int remaining = amount;
+        ItemStack[] contents = inventory.getContents();
+        for (int slot = 0; slot < contents.length && remaining > 0; slot++) {
+            ItemStack stack = contents[slot];
+            if (stack == null || stack.getType().isAir()) {
+                continue;
+            }
+            ItemSource source = coreLib.itemSourceService().identifyItem(stack);
+            if (!ItemSourceUtil.matches(targetSource, source)) {
+                continue;
+            }
+            int take = Math.min(remaining, stack.getAmount());
+            stack.setAmount(stack.getAmount() - take);
+            remaining -= take;
+            contents[slot] = stack.getAmount() <= 0 ? null : stack;
+        }
+        inventory.setContents(contents);
+        return remaining <= 0;
     }
 
     private ItemStack rebuildWithState(ItemStack itemStack, StrengthenState state, String materialsSignature) {
         if (itemStack == null || itemStack.getType().isAir()) {
             return null;
         }
-        StrengthenProfile profile = plugin.profileLoader().get(state.profileId());
-        if (profile == null) {
+        StrengthenRecipe recipe = plugin.recipeLoader().get(state.recipeId());
+        if (recipe == null) {
             return null;
         }
         EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.getInstance();
         if (coreLib == null) {
             return null;
         }
-        EmakiItemLayerSnapshot snapshot = snapshotBuilder.buildLayerSnapshot(profile, state, materialsSignature);
+        EmakiItemLayerSnapshot snapshot = snapshotBuilder.buildLayerSnapshot(recipe, state, materialsSignature);
         ItemStack rebuilt = coreLib.itemAssemblyService().preview(new EmakiItemAssemblyRequest(
                 state.baseSource(),
                 Math.max(1, itemStack.getAmount()),
@@ -426,107 +528,91 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
 
     private String buildMaterialsSignature(AttemptPreview preview) {
         List<Object> signatureData = new ArrayList<>();
-        appendMaterial(signatureData, preview.baseMaterial());
-        appendMaterial(signatureData, preview.supportMaterial());
-        appendMaterial(signatureData, preview.protectionMaterial());
-        appendMaterial(signatureData, preview.breakthroughMaterial());
+        if (preview != null && preview.optionalMaterials() != null) {
+            for (AttemptMaterial material : preview.optionalMaterials()) {
+                if (material == null || Texts.isBlank(material.item()) || material.consumedAmount() <= 0) {
+                    continue;
+                }
+                signatureData.add(Map.of("item", material.item(), "amount", material.consumedAmount()));
+            }
+        }
         return SignatureUtil.stableSignature(signatureData);
     }
 
-    private void appendMaterial(List<Object> target, StrengthenMaterial material) {
-        if (target != null && material != null) {
-            target.add(Map.of("id", material.id(), "role", material.role().name()));
-        }
-    }
-
     private String readStoredMaterialsSignature(ItemStack itemStack) {
-        StoredState state = readStoredState(itemStack, profileResolver.resolveBaseSource(itemStack), "");
+        StoredState state = readStoredState(itemStack, recipeResolver.resolveBaseSource(itemStack), "");
         return state.materialsSignature();
     }
 
-    private Map<String, Object> replacements(AttemptPreview preview, int star, long cost) {
+    private Map<String, Object> replacements(AttemptPreview preview, int star) {
         Map<String, Object> replacements = new LinkedHashMap<>();
         replacements.put("star", star);
-        replacements.put("cost", cost);
-        replacements.put("currency", plugin.appConfig().economyCurrencyName());
-        if (preview != null && preview.profile() != null) {
-            replacements.put("profile", preview.profile().displayName());
+        replacements.put("temper", preview == null ? 0 : preview.failureTemper());
+        if (preview != null && preview.recipe() != null) {
+            replacements.put("recipe", preview.recipe().displayName());
+        }
+        if (preview != null && !preview.costs().isEmpty()) {
+            AttemptCost first = preview.costs().get(0);
+            replacements.put("cost", first.amount());
+            replacements.put("currency", first.displayName());
+            replacements.put("costs", renderCosts(preview.costs()));
+        } else {
+            replacements.put("cost", 0);
+            replacements.put("currency", "免费");
+            replacements.put("costs", "免费");
         }
         return replacements;
     }
 
-    private void broadcastFirstReach(Player player, ItemStack resultItem, Set<Integer> newlyReached) {
-        if (player == null || newlyReached == null || newlyReached.isEmpty()) {
-            return;
+    private String renderCosts(List<AttemptCost> costs) {
+        if (costs == null || costs.isEmpty()) {
+            return "免费";
         }
-        String showItem = actionCoordinator.buildShowItem(resultItem);
-        if (newlyReached.contains(8)) {
-            String message = plugin.messageService().message("strengthen.broadcast.local_reach", Map.of(
-                    "player", player.getName(),
-                    "show_item", showItem,
-                    "star", 8
-            ));
-            double radius = plugin.appConfig().localBroadcastRadius();
-            Bukkit.getOnlinePlayers().stream()
-                    .filter(viewer -> viewer.getWorld().equals(player.getWorld()) && viewer.getLocation().distanceSquared(player.getLocation()) <= radius * radius)
-                    .forEach(viewer -> plugin.messageService().sendRaw(viewer, message));
+        List<String> parts = new ArrayList<>();
+        for (AttemptCost cost : costs) {
+            parts.add(cost.amount() + " " + cost.displayName());
         }
-        for (int star : List.of(10, 12)) {
-            if (!newlyReached.contains(star)) {
-                continue;
-            }
-            String message = plugin.messageService().message("strengthen.broadcast.global_reach", Map.of(
-                    "player", player.getName(),
-                    "show_item", showItem,
-                    "star", star
-            ));
-            Bukkit.getOnlinePlayers().forEach(viewer -> plugin.messageService().sendRaw(viewer, message));
-        }
+        return String.join(", ", parts);
     }
 
-    private MaterialSlot findInventoryMaterial(PlayerInventory inventory, StrengthenMaterial.Role role) {
-        if (inventory == null || role == null) {
-            return null;
+    private Set<Integer> collectFirstReach(Set<Integer> currentFlags, int targetStar) {
+        if (targetStar <= 0 || currentFlags != null && currentFlags.contains(targetStar)) {
+            return Set.of();
         }
-        for (int slot = 0; slot < inventory.getSize(); slot++) {
-            StrengthenMaterial material = findMaterial(inventory.getItem(slot));
-            if (material != null && material.role() == role) {
-                return new MaterialSlot(slot, material);
-            }
-        }
-        return null;
+        return Set.of(targetStar);
     }
 
-    private record MaterialSelection(StrengthenMaterial baseMaterial,
-            StrengthenMaterial supportMaterial,
-            StrengthenMaterial protectionMaterial,
-            StrengthenMaterial breakthroughMaterial,
-            String errorKey) {
-
+    private String resolveItemToken(ItemStack itemStack) {
+        ItemSource source = recipeResolver.resolveBaseSource(itemStack);
+        return source == null ? "" : ItemSourceUtil.toShorthand(source);
     }
 
-    private record MaterialSlot(int slot, StrengthenMaterial material) {
-
-    }
-
-    static MilestoneProgress collectMilestoneProgress(Set<Integer> currentFlags, Set<Integer> reachedNow) {
+    static StarProgress collectStarProgress(Set<Integer> currentFlags, Set<Integer> reachedNow) {
         Set<Integer> updated = new LinkedHashSet<>(currentFlags == null ? Set.of() : currentFlags);
         Set<Integer> newlyReached = new LinkedHashSet<>();
         if (reachedNow != null) {
-            for (Integer milestone : reachedNow) {
-                if (milestone != null && updated.add(milestone)) {
-                    newlyReached.add(milestone);
+            for (Integer stage : reachedNow) {
+                if (stage != null && updated.add(stage)) {
+                    newlyReached.add(stage);
                 }
             }
         }
-        return new MilestoneProgress(Set.copyOf(updated), Set.copyOf(newlyReached));
+        return new StarProgress(Set.copyOf(updated), Set.copyOf(newlyReached));
+    }
+
+    private record MaterialPlan(String errorKey,
+            List<AttemptMaterial> requiredMaterials,
+            List<AttemptMaterial> optionalMaterials,
+            boolean protectionApplied,
+            int appliedTemperBonus) {
+
     }
 
     private record StoredState(boolean hasLayer,
-            String profileId,
+            String recipeId,
             int currentStar,
             int crackLevel,
-            Set<Integer> milestoneFlags,
+            Set<Integer> firstReachFlags,
             int successCount,
             int failureCount,
             long lastAttemptAt,
@@ -535,7 +621,7 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
 
     }
 
-    record MilestoneProgress(Set<Integer> updatedFlags, Set<Integer> newlyReached) {
+    record StarProgress(Set<Integer> updatedFlags, Set<Integer> newlyReached) {
 
     }
 }

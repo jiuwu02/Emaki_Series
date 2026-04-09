@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.forge;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -72,7 +73,7 @@ final class ForgeCommandRouter implements TabExecutor {
             return result;
         }
         if (args.length == 2 && List.of("list", "edit", "create", "delete").contains(args[0].toLowerCase())) {
-            for (String sub : List.of("recipes", "blueprints", "materials", "recipe", "blueprint", "material")) {
+            for (String sub : List.of("recipes", "recipe")) {
                 if (sub.startsWith(args[1].toLowerCase())) {
                     result.add(sub);
                 }
@@ -120,8 +121,6 @@ final class ForgeCommandRouter implements TabExecutor {
         plugin.reloadPluginState(true);
         plugin.messageService().send(sender, "general.reload_success");
         plugin.messageService().sendRaw(sender, plugin.messageService().message("general.reload_summary", Map.of(
-                "blueprints", plugin.blueprintLoader().all().size(),
-                "materials", plugin.materialLoader().all().size(),
                 "recipes", plugin.recipeLoader().all().size(),
                 "guis", plugin.guiTemplateLoader().all().size()
         )));
@@ -142,23 +141,6 @@ final class ForgeCommandRouter implements TabExecutor {
                 plugin.messageService().sendRaw(sender, plugin.messageService().message("command.list.recipes_header", Map.of("count", plugin.recipeLoader().all().size())));
                 plugin.recipeLoader().all().forEach((id, recipe)
                         -> plugin.messageService().sendRaw(sender, plugin.messageService().message("command.list.recipe_line", Map.of("id", id, "name", recipe.displayName()))));
-            }
-            case "blueprints" -> {
-                plugin.messageService().sendRaw(sender, plugin.messageService().message("command.list.blueprints_header", Map.of("count", plugin.blueprintLoader().all().size())));
-                plugin.blueprintLoader().all().forEach((id, blueprint)
-                        -> plugin.messageService().sendRaw(sender, plugin.messageService().message("command.list.blueprint_line", Map.of("id", id, "name", blueprint.displayName()))));
-            }
-            case "materials" -> {
-                plugin.messageService().sendRaw(sender, plugin.messageService().message("command.list.materials_header", Map.of("count", plugin.materialLoader().all().size())));
-                plugin.materialLoader().all().forEach((id, material) -> plugin.messageService().sendRaw(sender, plugin.messageService().message(
-                        "command.list.material_line",
-                        Map.of(
-                                "id", id,
-                                "name", material.displayName(),
-                                "capacity", material.capacityCost(),
-                                "bonus", material.forgeCapacityBonus()
-                        )
-                )));
             }
             default ->
                 plugin.messageService().send(sender, "general.invalid_args");
@@ -193,7 +175,7 @@ final class ForgeCommandRouter implements TabExecutor {
             return true;
         }
         EditableResourceType type = EditableResourceType.fromInput(args[1]);
-        if (type == null) {
+        if (type == null || type != EditableResourceType.RECIPE) {
             plugin.messageService().send(sender, "general.invalid_args");
             return true;
         }
@@ -215,7 +197,7 @@ final class ForgeCommandRouter implements TabExecutor {
             return true;
         }
         EditableResourceType type = EditableResourceType.fromInput(args[1]);
-        if (type == null) {
+        if (type == null || type != EditableResourceType.RECIPE) {
             plugin.messageService().send(sender, "general.invalid_args");
             return true;
         }
@@ -237,7 +219,7 @@ final class ForgeCommandRouter implements TabExecutor {
             return true;
         }
         EditableResourceType type = EditableResourceType.fromInput(args[1]);
-        if (type == null) {
+        if (type == null || type != EditableResourceType.RECIPE) {
             plugin.messageService().send(sender, "general.invalid_args");
             return true;
         }
@@ -251,25 +233,23 @@ final class ForgeCommandRouter implements TabExecutor {
 
     private List<String> resourceIds(EditableResourceType type) {
         return switch (type) {
-            case BLUEPRINT -> new ArrayList<>(plugin.blueprintLoader().all().keySet());
-            case MATERIAL -> new ArrayList<>(plugin.materialLoader().all().keySet());
             case RECIPE -> new ArrayList<>(plugin.recipeLoader().all().keySet());
+            default -> List.of();
         };
     }
 
     private void sendHelp(CommandSender sender) {
         plugin.messageService().sendRaw(sender, plugin.messageService().message("command.help.header"));
-        Map<String, String> lines = Map.of(
-                "forge", "打开独立锻造台",
-                "book", "打开配方图鉴",
-                "reload", "重载配置文件",
-                "help", "显示帮助信息",
-                "list <type>", "列出配置项",
-                "editor", "打开锻造资源编辑器",
-                "edit <type> <id>", "编辑指定资源",
-                "create <type> [id]", "创建新资源草稿",
-                "delete <type> <id>", "删除指定资源"
-        );
+        Map<String, String> lines = new LinkedHashMap<>();
+        lines.put("help", "显示帮助信息");
+        lines.put("forge", "打开独立锻造台");
+        lines.put("book", "打开配方图鉴");
+        lines.put("reload", "重载配置文件");
+        lines.put("list <type>", "列出配方配置项");
+        lines.put("editor", "打开锻造资源编辑器");
+        lines.put("edit recipe <id>", "编辑指定配方");
+        lines.put("create recipe [id]", "创建新配方草稿");
+        lines.put("delete recipe <id>", "删除指定配方");
         lines.forEach((commandName, description)
                 -> plugin.messageService().sendRaw(sender, plugin.messageService().message("command.help.line", Map.of("cmd", commandName, "desc", description))));
         plugin.messageService().sendRaw(sender, plugin.messageService().message("command.help.footer"));

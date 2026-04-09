@@ -1,7 +1,0 @@
-id: "base_catalyst"
-display_name: "<gold>基础催化剂</gold>"
-description:
-  - "<gray>装备强化的基础材料。</gray>"
-  - "<gray>每次强化都必须放入 1 个。</gray>"
-item: "copper_ingot"
-role: "BASE"

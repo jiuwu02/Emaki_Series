@@ -1,0 +1,204 @@
+id: "offhand_focus"
+display_name: "<light_purple>副手强化</light_purple>"
+gui_template: "strengthen_gui"
+
+economy:
+  enabled: true
+  currencies:
+    - provider: "vault"
+      currency_id: ""
+      base_cost: 260
+      cost_formula: "{base_cost} * {star}"
+      display_name: "<gold>金币</gold>"
+
+limits:
+  max_star: 12
+  max_temper: 4
+  temper_chance_bonus_per_level: 5.0
+  success_chance_cap: 90.0
+
+match:
+  slot_groups: ["offhand"]
+
+stat_lines:
+  spell_damage_bonus:
+    template: "<gray>法术增伤: <gold>{sign}{value}</gold></gray>"
+    lore_operations:
+      - type: "lore_search_insert"
+        anchor: "强化等级"
+        position: "below"
+      - type: "lore_append"
+  mana:
+    template: "<gray>法力上限: <gold>{sign}{value}</gold></gray>"
+    lore_operations:
+      - type: "lore_append"
+  spell_crit_rate:
+    template: "<gray>法术暴击率: <gold>{sign}{value}</gold></gray>"
+    lore_operations:
+      - type: "lore_append"
+  mana_regen:
+    template: "<gray>法力回复: <gold>{sign}{value}</gold></gray>"
+    lore_operations:
+      - type: "lore_append"
+  health:
+    template: "<gray>生命值: <gold>{sign}{value}</gold></gray>"
+    lore_operations:
+      - type: "lore_append"
+  dodge_chance:
+    template: "<gray>闪避率: <gold>{sign}{value}</gold></gray>"
+    lore_operations:
+      - type: "lore_append"
+
+stars:
+  1:
+    {
+      stats: { spell_damage_bonus: 1, health: 6 },
+      materials:
+        [{ item: "copper_ingot", amount: 1 }, { item: "gunpowder", amount: 2 }],
+    }
+  2:
+    {
+      stats: { spell_damage_bonus: 1, health: 6 },
+      materials:
+        [{ item: "copper_ingot", amount: 1 }, { item: "gunpowder", amount: 3 }],
+    }
+  3:
+    {
+      stats: { spell_damage_bonus: 1.5, health: 8 },
+      materials:
+        [{ item: "copper_ingot", amount: 2 }, { item: "gunpowder", amount: 4 }],
+    }
+  4:
+    {
+      stats: { spell_damage_bonus: 2, health: 8 },
+      materials:
+        [
+          { item: "copper_ingot", amount: 2 },
+          { item: "gunpowder", amount: 5 },
+          { item: "gold_nugget", amount: -1, optional: true, protection: true },
+        ],
+    }
+  5:
+    name: "<light_purple>法力回复提升</light_purple>"
+    stats: { spell_damage_bonus: 2, health: 10, mana_regen: 3 }
+    materials:
+      - item: "copper_ingot"
+        amount: 3
+      - item: "gunpowder"
+        amount: 6
+      - item: "gold_nugget"
+        amount: -1
+        optional: true
+        protection: true
+    presentation: ["<gray>强化达到 +5 后，副手会额外提供法力回复。</gray>"]
+    success_actions:
+      - 'sendmessage text="<light_purple>强化达到 +5，解锁额外法力回复。</light_purple>"'
+  6:
+    {
+      stats: { spell_damage_bonus: 2.5, health: 10 },
+      materials:
+        [
+          { item: "copper_ingot", amount: 4 },
+          { item: "gunpowder", amount: 8 },
+          { item: "gold_nugget", amount: -1, optional: true, protection: true },
+        ],
+    }
+  7:
+    {
+      stats: { spell_damage_bonus: 3, health: 12 },
+      materials:
+        [
+          { item: "copper_ingot", amount: 5 },
+          { item: "gunpowder", amount: 10 },
+          { item: "gold_nugget", amount: -1, optional: true, protection: true },
+        ],
+    }
+  8:
+    name: "<light_purple>法术暴击率提升</light_purple>"
+    stats: { spell_damage_bonus: 3.5, health: 12, spell_crit_rate: 3 }
+    materials:
+      - item: "copper_ingot"
+        amount: 6
+      - item: "gunpowder"
+        amount: 12
+      - item: "paper"
+        amount: 2
+      - item: "gold_nugget"
+        amount: -1
+        optional: true
+        protection: true
+    presentation: ["<gray>强化达到 +8 后，副手会额外提供法术暴击率。</gray>"]
+    success_actions:
+      - 'sendtitle title="<light_purple><bold>+8 法术暴击率提升</bold></light_purple>" subtitle="<white>额外法术暴击率已解锁</white>"'
+  9:
+    {
+      stats: { spell_damage_bonus: 4, health: 14 },
+      materials:
+        [
+          { item: "copper_ingot", amount: 8 },
+          { item: "gunpowder", amount: 16 },
+          { item: "paper", amount: 2 },
+          { item: "gold_nugget", amount: -1, optional: true, protection: true },
+        ],
+    }
+  10:
+    name: "<light_purple>法力上限提升</light_purple>"
+    stats: { spell_damage_bonus: 4.5, health: 14, mana: 12 }
+    materials:
+      - item: "copper_ingot"
+        amount: 10
+      - item: "gunpowder"
+        amount: 20
+      - item: "echo_shard"
+        amount: 2
+      - item: "gold_nugget"
+        amount: -1
+        optional: true
+        protection: true
+    presentation: ["<gray>强化达到 +10 后，副手会额外提供法力上限。</gray>"]
+    success_actions:
+      - 'sendtitle title="<light_purple><bold>+10 法力上限提升</bold></light_purple>" subtitle="<white>额外法力上限已解锁</white>"'
+  11:
+    {
+      stats: { spell_damage_bonus: 5, health: 16 },
+      materials:
+        [
+          { item: "copper_ingot", amount: 13 },
+          { item: "gunpowder", amount: 26 },
+          { item: "echo_shard", amount: 3 },
+          { item: "gold_nugget", amount: -1, optional: true, protection: true },
+        ],
+    }
+  12:
+    name: "<light_purple>闪避提升</light_purple>"
+    stats: { spell_damage_bonus: 6, health: 18, dodge_chance: 4 }
+    materials:
+      - item: "copper_ingot"
+        amount: 16
+      - item: "gunpowder"
+        amount: 32
+      - item: "echo_shard"
+        amount: 4
+      - item: "gold_nugget"
+        amount: -1
+        optional: true
+        protection: true
+      - item: "potion"
+        amount: -1
+        optional: true
+        temper_boost: 1
+    presentation: ["<gray>强化达到 +12 后，副手会额外提供闪避率。</gray>"]
+    success_actions:
+      - 'sendtitle title="<light_purple><bold>+12 闪避提升</bold></light_purple>" subtitle="<white>闪避率已解锁</white>"'
+
+presentation:
+  name_operations:
+    - type: "name_regex_replace"
+      pattern: "^(.*?)\\s*\\[\\+(\\d+)\\]\\s*$"
+      replacement: "$1 [+{star}]"
+    - type: "name_append"
+      value: " [+{star}]"
+      condition: "if_unchanged"
+  lore_prepend:
+    - "<gradient:#F2C46D:#C9703D>强化等级 +{star}</gradient>"
+    - "<gray>锻印: {temper_color}{temper}/{max_temper}</gray>"

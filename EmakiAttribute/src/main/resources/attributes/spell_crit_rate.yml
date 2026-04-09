@@ -1,4 +1,4 @@
-id: spell_crit_rate
+﻿id: spell_crit_rate
 display_name: "法术暴击率"
 value_kind: CHANCE
 target_type: DAMAGE
@@ -7,7 +7,7 @@ default_value: 0.0
 min_value: 0.0
 max_value: 100.0
 allow_negative: false
-priority: 85
+priority: 91
 lore_format_id: default_percent
 attribute_power: 1.0
 description: "Critical hit chance for spell damage."

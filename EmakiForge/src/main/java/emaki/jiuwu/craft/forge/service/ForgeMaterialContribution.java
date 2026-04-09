@@ -28,7 +28,7 @@ record ForgeMaterialContribution(ForgeMaterial material,
 
     Map<String, Object> toAuditMap() {
         Map<String, Object> map = new LinkedHashMap<>();
-        map.put("material_id", material == null ? "" : material.id());
+        map.put("material_item", material == null ? "" : material.key());
         map.put("category", category);
         map.put("amount", amount);
         map.put("slot", slot);

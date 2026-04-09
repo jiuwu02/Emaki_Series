@@ -1,7 +1,6 @@
 package emaki.jiuwu.craft.forge.service;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,7 +39,7 @@ final class ForgeLayerSnapshotBuilder {
             double multiplier,
             QualitySettings.QualityTier qualityTier,
             long forgedAt) {
-        return buildLayerSnapshot(recipe, collectMaterialContributions(guiItems), multiplier, qualityTier, forgedAt);
+        return buildLayerSnapshot(recipe, collectMaterialContributions(recipe, guiItems), multiplier, qualityTier, forgedAt);
     }
 
     EmakiItemLayerSnapshot buildLayerSnapshot(Recipe recipe,
@@ -55,26 +54,25 @@ final class ForgeLayerSnapshotBuilder {
         return new EmakiItemLayerSnapshot("forge", 1, audit, stats, presentation);
     }
 
-    List<ForgeMaterialContribution> collectMaterialContributions(GuiItems guiItems) {
+    List<ForgeMaterialContribution> collectMaterialContributions(Recipe recipe, GuiItems guiItems) {
         List<ForgeMaterialContribution> materials = new ArrayList<>();
-        if (guiItems == null) {
+        if (recipe == null || guiItems == null) {
             return materials;
         }
         int sequence = 0;
         for (Map.Entry<Integer, ItemStack> entry : guiItems.requiredMaterials().entrySet()) {
-            ForgeMaterialContribution contribution = toMaterialContribution(entry.getKey(), entry.getValue(), "required", sequence++);
+            ForgeMaterialContribution contribution = toMaterialContribution(recipe, entry.getKey(), entry.getValue(), "required", sequence++, false);
             if (contribution != null) {
                 materials.add(contribution);
             }
         }
         for (Map.Entry<Integer, ItemStack> entry : guiItems.optionalMaterials().entrySet()) {
-            ForgeMaterialContribution contribution = toMaterialContribution(entry.getKey(), entry.getValue(), "optional", sequence++);
+            ForgeMaterialContribution contribution = toMaterialContribution(recipe, entry.getKey(), entry.getValue(), "optional", sequence++, true);
             if (contribution != null) {
                 materials.add(contribution);
             }
         }
-        materials.sort(Comparator.comparingInt((ForgeMaterialContribution value) -> value.material().priority())
-                .thenComparingInt(ForgeMaterialContribution::sequence));
+        materials.sort((left, right) -> Integer.compare(left.sequence(), right.sequence()));
         return materials;
     }
 
@@ -112,7 +110,7 @@ final class ForgeLayerSnapshotBuilder {
                 stats.add(new EmakiStatContribution(
                         entry.getKey(),
                         entry.getValue() * material.amount() * multiplier,
-                        material.material().id() + "#" + material.sequence(),
+                        material.material().key() + "#" + material.sequence(),
                         sequence++
                 ));
             }
@@ -143,7 +141,7 @@ final class ForgeLayerSnapshotBuilder {
                             material.material().nameModifications(),
                             material.material().loreActions(),
                             sequence,
-                            material.material().id()
+                            material.material().key()
                     )
             );
         }
@@ -220,27 +218,20 @@ final class ForgeLayerSnapshotBuilder {
         return audit;
     }
 
-    private ForgeMaterialContribution toMaterialContribution(int slot, ItemStack itemStack, String category, int sequence) {
-        if (itemStack == null) {
+    private ForgeMaterialContribution toMaterialContribution(Recipe recipe,
+            int slot,
+            ItemStack itemStack,
+            String category,
+            int sequence,
+            boolean optional) {
+        if (itemStack == null || recipe == null) {
             return null;
         }
         ItemSource source = plugin.itemIdentifierService().identifyItem(itemStack);
-        ForgeMaterial material = findMaterialBySource(source);
+        ForgeMaterial material = recipe.findMaterialBySource(source, optional);
         if (material == null) {
             return null;
         }
         return new ForgeMaterialContribution(material, itemStack.getAmount(), slot, category, sequence, source);
-    }
-
-    private ForgeMaterial findMaterialBySource(ItemSource source) {
-        if (source == null) {
-            return null;
-        }
-        for (ForgeMaterial material : plugin.materialLoader().all().values()) {
-            if (ItemSourceUtil.matches(source, material.source())) {
-                return material;
-            }
-        }
-        return null;
     }
 }

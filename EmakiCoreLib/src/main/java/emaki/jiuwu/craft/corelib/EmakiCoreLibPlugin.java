@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.Map;
 
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -82,6 +83,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         ensureBundledFile("config.yml");
         itemSourceIntegrationCoordinator.initialize();
         reloadActionSystem();
+        logStartupAudit();
         messageService.info("console.plugin_started");
     }
 
@@ -121,6 +123,15 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         }
         BuiltinActions.registerAll(actionRegistry, economyManager, itemSourceService, itemPresentationCompiler);
         actionExecutor = new ActionExecutor(this, actionRegistry, new ActionLineParser(), placeholderRegistry, actionTemplateRegistry);
+    }
+
+    private void logStartupAudit() {
+        if (economyManager == null) {
+            return;
+        }
+        for (String providerId : economyManager.availableProviderIds()) {
+            messageService.info("console.economy_bridge_ready", Map.of("provider", providerId));
+        }
     }
 
     public Path dataPath(String first, String... more) {

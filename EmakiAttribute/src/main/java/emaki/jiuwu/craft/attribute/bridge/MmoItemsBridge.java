@@ -309,6 +309,7 @@ public final class MmoItemsBridge implements Listener {
     }
 
     private record ItemSlot(String name, ItemStack item) {
+
     }
 
     private static final class ReflectiveMmoItemsAccessor {
@@ -455,7 +456,7 @@ public final class MmoItemsBridge implements Listener {
             }
             try {
                 return method.invoke(target, arguments);
-            } catch (Throwable ignored) {
+            } catch (Throwable throwable) {
                 return null;
             }
         }
@@ -473,7 +474,7 @@ public final class MmoItemsBridge implements Listener {
                 if (raw instanceof Number number) {
                     return number.doubleValue();
                 }
-            } catch (Throwable ignored) {
+            } catch (Throwable throwable) {
             }
             return Numbers.tryParseDouble(String.valueOf(value), null);
         }
@@ -491,7 +492,7 @@ public final class MmoItemsBridge implements Listener {
                 if (raw != null) {
                     return String.valueOf(raw).trim();
                 }
-            } catch (Throwable ignored) {
+            } catch (Throwable throwable) {
             }
             return String.valueOf(value).trim();
         }

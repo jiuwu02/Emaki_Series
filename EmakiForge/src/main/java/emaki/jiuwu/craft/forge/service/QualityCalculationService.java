@@ -3,7 +3,7 @@ package emaki.jiuwu.craft.forge.service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
 import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
@@ -38,12 +38,12 @@ final class QualityCalculationService {
 
     private final Supplier<QualitySettings> qualitySettingsSupplier;
     private final GuaranteeCounterStore guaranteeCounterStore;
-    private final Function<GuiItems, List<ForgeMaterial.QualityModifier>> materialQualityModifierResolver;
+    private final BiFunction<Recipe, GuiItems, List<ForgeMaterial.QualityModifier>> materialQualityModifierResolver;
     private final ForgeQualityModifierResolver qualityModifierResolver = new ForgeQualityModifierResolver();
 
     QualityCalculationService(Supplier<QualitySettings> qualitySettingsSupplier,
             GuaranteeCounterStore guaranteeCounterStore,
-            Function<GuiItems, List<ForgeMaterial.QualityModifier>> materialQualityModifierResolver) {
+            BiFunction<Recipe, GuiItems, List<ForgeMaterial.QualityModifier>> materialQualityModifierResolver) {
         this.qualitySettingsSupplier = qualitySettingsSupplier;
         this.guaranteeCounterStore = guaranteeCounterStore;
         this.materialQualityModifierResolver = materialQualityModifierResolver;
@@ -53,7 +53,7 @@ final class QualityCalculationService {
         QualitySettings settings = settings();
         Recipe.QualityConfig qualityConfig = recipe == null ? Recipe.QualityConfig.defaults() : recipe.quality();
         List<QualitySettings.QualityTier> tiers = resolveQualityPool(qualityConfig, settings);
-        List<ForgeMaterial.QualityModifier> materialModifiers = resolveMaterialQualityModifiers(guiItems);
+        List<ForgeMaterial.QualityModifier> materialModifiers = resolveMaterialQualityModifiers(recipe, guiItems);
         boolean forceApplied = qualityModifierResolver.hasForceModifier(materialModifiers);
         GuaranteePolicy guaranteePolicy = resolveGuaranteePolicy(qualityConfig, settings);
         QualitySettings.QualityTier rolled;
@@ -135,10 +135,10 @@ final class QualityCalculationService {
         return new GuaranteePolicy(enabled, Math.max(1, threshold), minimum);
     }
 
-    private List<ForgeMaterial.QualityModifier> resolveMaterialQualityModifiers(GuiItems guiItems) {
+    private List<ForgeMaterial.QualityModifier> resolveMaterialQualityModifiers(Recipe recipe, GuiItems guiItems) {
         List<ForgeMaterial.QualityModifier> modifiers = materialQualityModifierResolver == null
                 ? List.of()
-                : materialQualityModifierResolver.apply(guiItems);
+                : materialQualityModifierResolver.apply(recipe, guiItems);
         return modifiers == null ? List.of() : List.copyOf(modifiers);
     }
 

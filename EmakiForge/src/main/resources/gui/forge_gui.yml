@@ -24,7 +24,7 @@ slots:
     item: "guster_banner_pattern"
     display_name: "<light_purple>放入图纸</light_purple>"
     lore:
-      - "<gray>支持通用图纸与武器图纸"
+      - "<gray>配方会按图纸物品源自动匹配"
 
   target_item:
     slots: [25]
@@ -51,7 +51,7 @@ slots:
     item: "BARRIER"
     display_name: "<gold>放入必需材料</gold>"
     lore:
-      - "<gray>这里会优先接收固定需求材料"
+      - "<gray>这里会接收配方固定材料"
 
   optional_materials:
     slots: [13, 14, 22, 23, 31, 32]
@@ -59,7 +59,7 @@ slots:
     item: "BARRIER"
     display_name: "<green>放入可选材料</green>"
     lore:
-      - "<gray>可选材料会消耗锻造容量"
+      - "<gray>可选材料会按配方生效并消耗容量"
 
   confirm:
     slots: [34]

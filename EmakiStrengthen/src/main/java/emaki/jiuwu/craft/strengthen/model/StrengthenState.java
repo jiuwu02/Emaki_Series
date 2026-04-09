@@ -10,7 +10,7 @@ public record StrengthenState(boolean eligible,
         boolean hasLayer,
         ItemSource baseSource,
         String baseSourceSignature,
-        String profileId,
+        String recipeId,
         int currentStar,
         int crackLevel,
         Set<Integer> milestoneFlags,
@@ -24,5 +24,17 @@ public record StrengthenState(boolean eligible,
 
     public static StrengthenState ineligible(String eligibleReason, ItemSource baseSource, String baseSourceSignature) {
         return new StrengthenState(false, eligibleReason, false, baseSource, baseSourceSignature, "", 0, 0, Set.of(), 0, 0, 0L);
+    }
+
+    public String profileId() {
+        return recipeId;
+    }
+
+    public Set<Integer> firstReachFlags() {
+        return milestoneFlags;
+    }
+
+    public int temperLevel() {
+        return crackLevel;
     }
 }

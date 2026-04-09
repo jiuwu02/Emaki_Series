@@ -20,6 +20,7 @@ import emaki.jiuwu.craft.corelib.assembly.lore.LoreSearchInsertResult;
 import emaki.jiuwu.craft.corelib.assembly.lore.LoreSearchInsertStatus;
 import emaki.jiuwu.craft.corelib.assembly.lore.SearchInsertConfig;
 import emaki.jiuwu.craft.corelib.assembly.lore.SearchInsertValidationException;
+import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -29,6 +30,7 @@ final class ItemRenderService {
 
     private static final double ZERO_EPSILON = 1.0E-9D;
     private static final Pattern PLACEHOLDER_PATTERN = Pattern.compile("\\{([^{}]+)}");
+    private static final Pattern EXPRESSION_BLOCK_PATTERN = Pattern.compile("\\[([^\\[\\]]+)]");
 
     private final Map<String, Pattern> regexCache = new ConcurrentHashMap<>();
     private final LoreSearchInsertProcessor loreSearchInsertProcessor = new LoreSearchInsertProcessor();
@@ -55,25 +57,54 @@ final class ItemRenderService {
         AssemblyFeedbackHandler effectiveFeedbackHandler = feedbackHandler == null ? AssemblyFeedbackHandler.noop() : feedbackHandler;
         Map<String, StatLineDefinition> statLineDefinitions = new LinkedHashMap<>();
         int globalSequence = 0;
+        boolean lastNameChanged = false;
         for (EmakiPresentationEntry entry : flattenPresentation(snapshots)) {
             if (entry == null) {
                 continue;
             }
             switch (Texts.lower(entry.entryType())) {
                 case "name_prepend" -> {
-                    currentName = entry.contentTemplate() + currentName;
+                    String updatedName = formatPlaceholders(entry.contentTemplate(), aggregatedStats) + currentName;
+                    lastNameChanged = !updatedName.equals(currentName);
+                    currentName = updatedName;
                     writeCustomName = true;
                 }
                 case "name_append" -> {
-                    currentName = currentName + entry.contentTemplate();
+                    String updatedName = currentName + formatPlaceholders(entry.contentTemplate(), aggregatedStats);
+                    lastNameChanged = !updatedName.equals(currentName);
+                    currentName = updatedName;
+                    writeCustomName = true;
+                }
+                case "name_append_if_unchanged" -> {
+                    if (!lastNameChanged) {
+                        String updatedName = currentName + formatPlaceholders(entry.contentTemplate(), aggregatedStats);
+                        lastNameChanged = !updatedName.equals(currentName);
+                        currentName = updatedName;
+                    } else {
+                        lastNameChanged = false;
+                    }
+                    writeCustomName = true;
+                }
+                case "name_append_if_changed" -> {
+                    if (lastNameChanged) {
+                        String updatedName = currentName + formatPlaceholders(entry.contentTemplate(), aggregatedStats);
+                        lastNameChanged = !updatedName.equals(currentName);
+                        currentName = updatedName;
+                    } else {
+                        lastNameChanged = false;
+                    }
                     writeCustomName = true;
                 }
                 case "name_replace" -> {
-                    currentName = entry.contentTemplate();
+                    String updatedName = formatPlaceholders(entry.contentTemplate(), aggregatedStats);
+                    lastNameChanged = !updatedName.equals(currentName);
+                    currentName = updatedName;
                     writeCustomName = true;
                 }
                 case "name_regex_replace" -> {
-                    currentName = replaceRegex(currentName, entry.searchPattern(), entry.contentTemplate());
+                    String updatedName = replaceRegex(currentName, entry.searchPattern(), entry.contentTemplate(), aggregatedStats);
+                    lastNameChanged = !updatedName.equals(currentName);
+                    currentName = updatedName;
                     writeCustomName = true;
                 }
                 case "stat_line", "lore_stat_line" -> {
@@ -184,7 +215,7 @@ final class ItemRenderService {
             case "lore_delete_line" ->
                 deleteLine(lore, entry.searchPattern());
             case "lore_regex_replace" ->
-                replaceRegexInLore(lore, entry.searchPattern(), rendered, aggregatedStats);
+                replaceRegexInLore(lore, entry.searchPattern(), entry.contentTemplate(), aggregatedStats);
             case "lore_search_insert" ->
                 applySearchInsertEntry(lore, entry, aggregatedStats, feedbackPlayerId, feedbackHandler);
             default -> {
@@ -274,20 +305,73 @@ final class ItemRenderService {
         }
         for (int index = 0; index < lore.size(); index++) {
             String plain = MiniMessages.plain(lore.get(index));
-            lore.set(index, MiniMessages.parse(formatPlaceholders(replaceRegex(plain, regex, replacement), aggregatedStats)));
+            lore.set(index, MiniMessages.parse(replaceRegex(plain, regex, replacement, aggregatedStats)));
         }
     }
 
-    private String replaceRegex(String text, String regex, String replacement) {
+    private String replaceRegex(String text, String regex, String replacement, Map<String, Double> variables) {
         if (Texts.isBlank(regex)) {
             return Texts.toStringSafe(text);
         }
         try {
             Pattern pattern = regexCache.computeIfAbsent(regex, Pattern::compile);
-            return pattern.matcher(Texts.toStringSafe(text)).replaceAll(replacement == null ? "" : replacement);
+            Matcher matcher = pattern.matcher(Texts.toStringSafe(text));
+            String template = replacement == null ? "" : replacement;
+            if (template.indexOf('[') < 0 || template.indexOf(']') < 0) {
+                return matcher.replaceAll(ExpressionEngine.replaceVariables(template, variables));
+            }
+            StringBuffer buffer = new StringBuffer();
+            while (matcher.find()) {
+                String resolved = resolveExpressionReplacement(template, matcher, variables);
+                matcher.appendReplacement(buffer, Matcher.quoteReplacement(resolved));
+            }
+            matcher.appendTail(buffer);
+            return buffer.toString();
         } catch (Exception ignored) {
             return Texts.toStringSafe(text);
         }
+    }
+
+    private String resolveExpressionReplacement(String template, Matcher matcher, Map<String, Double> variables) {
+        String withExpressions = resolveExpressionBlocks(template, matcher, variables);
+        return replaceCaptureGroups(ExpressionEngine.replaceVariables(withExpressions, variables), matcher);
+    }
+
+    private String resolveExpressionBlocks(String template, Matcher matcher, Map<String, Double> variables) {
+        Matcher blockMatcher = EXPRESSION_BLOCK_PATTERN.matcher(Texts.toStringSafe(template));
+        StringBuffer buffer = new StringBuffer();
+        while (blockMatcher.find()) {
+            String evaluated = ExpressionEngine.evaluateExpressionBlock(blockMatcher.group(1), matcher, variables);
+            blockMatcher.appendReplacement(buffer, Matcher.quoteReplacement("[" + evaluated + "]"));
+        }
+        blockMatcher.appendTail(buffer);
+        return buffer.toString();
+    }
+
+    private String replaceCaptureGroups(String template, Matcher matcher) {
+        if (matcher == null || Texts.isBlank(template)) {
+            return Texts.toStringSafe(template);
+        }
+        StringBuilder builder = new StringBuilder();
+        for (int index = 0; index < template.length(); index++) {
+            char current = template.charAt(index);
+            if (current == '$' && index + 1 < template.length()) {
+                char next = template.charAt(index + 1);
+                if (Character.isDigit(next)) {
+                    int group = Character.digit(next, 10);
+                    if (group >= 0 && group <= matcher.groupCount()) {
+                        String value = matcher.group(group);
+                        if (value != null) {
+                            builder.append(value);
+                        }
+                        index++;
+                        continue;
+                    }
+                }
+            }
+            builder.append(current);
+        }
+        return builder.toString();
     }
 
     private String formatPlaceholders(String template, Map<String, Double> aggregatedStats) {

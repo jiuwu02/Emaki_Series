@@ -1,5 +1,8 @@
 package emaki.jiuwu.craft.strengthen.service;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
@@ -9,19 +12,21 @@ import emaki.jiuwu.craft.strengthen.model.AttemptPreview;
 
 final class StrengthenGuiSession {
 
+    private static final int MATERIAL_SLOT_COUNT = 4;
+
     private final Player player;
+    private final List<ItemStack> materialInputs = new ArrayList<>(MATERIAL_SLOT_COUNT);
     private GuiSession guiSession;
     private ItemStack targetItem;
-    private ItemStack baseMaterial;
-    private ItemStack supportMaterial;
-    private ItemStack protectionMaterial;
-    private ItemStack breakthroughMaterial;
     private AttemptPreview preview;
     private boolean processing;
     private boolean completed;
 
     StrengthenGuiSession(Player player) {
         this.player = player;
+        for (int index = 0; index < MATERIAL_SLOT_COUNT; index++) {
+            materialInputs.add(null);
+        }
     }
 
     public Player player() {
@@ -44,36 +49,28 @@ final class StrengthenGuiSession {
         this.targetItem = cloneNonAir(targetItem);
     }
 
-    public ItemStack baseMaterial() {
-        return baseMaterial;
+    public ItemStack materialInput(int index) {
+        return index >= 0 && index < materialInputs.size() ? materialInputs.get(index) : null;
     }
 
-    public void setBaseMaterial(ItemStack baseMaterial) {
-        this.baseMaterial = cloneNonAir(baseMaterial);
+    public void setMaterialInput(int index, ItemStack itemStack) {
+        if (index < 0 || index >= materialInputs.size()) {
+            return;
+        }
+        materialInputs.set(index, cloneNonAir(itemStack));
     }
 
-    public ItemStack supportMaterial() {
-        return supportMaterial;
+    public int firstEmptyMaterialSlot() {
+        for (int index = 0; index < materialInputs.size(); index++) {
+            if (materialInputs.get(index) == null) {
+                return index;
+            }
+        }
+        return -1;
     }
 
-    public void setSupportMaterial(ItemStack supportMaterial) {
-        this.supportMaterial = cloneNonAir(supportMaterial);
-    }
-
-    public ItemStack protectionMaterial() {
-        return protectionMaterial;
-    }
-
-    public void setProtectionMaterial(ItemStack protectionMaterial) {
-        this.protectionMaterial = cloneNonAir(protectionMaterial);
-    }
-
-    public ItemStack breakthroughMaterial() {
-        return breakthroughMaterial;
-    }
-
-    public void setBreakthroughMaterial(ItemStack breakthroughMaterial) {
-        this.breakthroughMaterial = cloneNonAir(breakthroughMaterial);
+    public List<ItemStack> materialInputs() {
+        return List.copyOf(materialInputs);
     }
 
     public AttemptPreview preview() {
@@ -101,15 +98,14 @@ final class StrengthenGuiSession {
     }
 
     public AttemptContext toAttemptContext() {
-        return AttemptContext.of(targetItem, baseMaterial, supportMaterial, protectionMaterial, breakthroughMaterial);
+        return AttemptContext.of(targetItem, materialInputs);
     }
 
     public void clearStoredItems() {
         targetItem = null;
-        baseMaterial = null;
-        supportMaterial = null;
-        protectionMaterial = null;
-        breakthroughMaterial = null;
+        for (int index = 0; index < materialInputs.size(); index++) {
+            materialInputs.set(index, null);
+        }
     }
 
     static ItemStack cloneNonAir(ItemStack itemStack) {

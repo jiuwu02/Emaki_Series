@@ -88,7 +88,7 @@ final class ReflectiveMmoItemsItemSourceResolver implements ItemSourceResolver {
                 getTypeMethod = mmoItemsClass.getMethod("getType", ItemStack.class);
                 getIdMethod = mmoItemsClass.getMethod("getID", ItemStack.class);
                 available = true;
-            } catch (Throwable ignored) {
+            } catch (Throwable throwable) {
                 available = false;
             }
             return available;
@@ -103,7 +103,7 @@ final class ReflectiveMmoItemsItemSourceResolver implements ItemSourceResolver {
                 Method getId = rawType.getClass().getMethod("getId");
                 Object value = getId.invoke(rawType);
                 return Texts.toStringSafe(value).trim();
-            } catch (Throwable ignored) {
+            } catch (Throwable throwable) {
                 return Texts.toStringSafe(rawType).trim();
             }
         }
@@ -130,7 +130,7 @@ final class ReflectiveMmoItemsItemSourceResolver implements ItemSourceResolver {
             }
             try {
                 return field.get(null);
-            } catch (Throwable ignored) {
+            } catch (Throwable throwable) {
                 return null;
             }
         }
@@ -141,7 +141,7 @@ final class ReflectiveMmoItemsItemSourceResolver implements ItemSourceResolver {
             }
             try {
                 return method.invoke(target, arguments);
-            } catch (Throwable ignored) {
+            } catch (Throwable throwable) {
                 return null;
             }
         }

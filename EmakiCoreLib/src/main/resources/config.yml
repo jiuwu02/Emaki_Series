@@ -1,5 +1,5 @@
-# Emaki CoreLib 默认配置
-config_version: "1.3.0"
+﻿# Emaki CoreLib 默认配置
+config_version: "2.3.0"
 
 text:
   default_prefix: "<gray>[<gold>Emaki CoreLib</gold>]</gray>"

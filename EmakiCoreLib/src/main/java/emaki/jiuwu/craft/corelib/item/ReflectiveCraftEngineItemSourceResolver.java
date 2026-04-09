@@ -285,9 +285,9 @@ final class ReflectiveCraftEngineItemSourceResolver implements ManagedItemSource
         }
 
         private BuildPlan resolveWrappedBuildPlan(Class<?> itemClass,
-                                                  String methodName,
-                                                  InvocationMode invocationMode,
-                                                  Class<?>... parameterTypes) {
+                String methodName,
+                InvocationMode invocationMode,
+                Class<?>... parameterTypes) {
             Method method = getOptionalMethod(itemClass, methodName, parameterTypes);
             if (method == null) {
                 return null;
@@ -321,7 +321,7 @@ final class ReflectiveCraftEngineItemSourceResolver implements ManagedItemSource
             }
             try {
                 return type.getMethod(methodName, parameterTypes);
-            } catch (Throwable ignored) {
+            } catch (Throwable throwable) {
                 return null;
             }
         }
@@ -332,7 +332,7 @@ final class ReflectiveCraftEngineItemSourceResolver implements ManagedItemSource
             }
             try {
                 return method.invoke(target, arguments);
-            } catch (Throwable ignored) {
+            } catch (Throwable throwable) {
                 return null;
             }
         }
@@ -361,19 +361,19 @@ final class ReflectiveCraftEngineItemSourceResolver implements ManagedItemSource
             CONTEXT_AND_AMOUNT {
                 @Override
                 Object[] arguments(Object buildContext, int amount) {
-                    return new Object[] { buildContext, amount };
+                    return new Object[]{buildContext, amount};
                 }
             },
             CONTEXT_ONLY {
                 @Override
                 Object[] arguments(Object buildContext, int amount) {
-                    return new Object[] { buildContext };
+                    return new Object[]{buildContext};
                 }
             },
             AMOUNT_ONLY {
                 @Override
                 Object[] arguments(Object buildContext, int amount) {
-                    return new Object[] { amount };
+                    return new Object[]{amount};
                 }
             },
             NONE {

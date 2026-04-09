@@ -23,7 +23,7 @@ import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.config.AppConfig;
-import emaki.jiuwu.craft.forge.model.Blueprint;
+import emaki.jiuwu.craft.forge.model.BlueprintRequirement;
 import emaki.jiuwu.craft.forge.model.ForgeMaterial;
 import emaki.jiuwu.craft.forge.model.ForgeResult;
 import emaki.jiuwu.craft.forge.model.GuiItems;
@@ -121,11 +121,20 @@ public final class ForgeService {
     }
 
     public ForgeMaterial findMaterialById(String materialId) {
-        return lookupIndex.findMaterialById(materialId);
+        if (Texts.isBlank(materialId)) {
+            return null;
+        }
+        for (Recipe recipe : lookupIndex.sortedRecipes()) {
+            ForgeMaterial material = recipe.findMaterialByItem(materialId);
+            if (material != null) {
+                return material;
+            }
+        }
+        return null;
     }
 
-    public Blueprint findBlueprintBySource(ItemSource source) {
-        return lookupIndex.findBlueprintBySource(source);
+    public BlueprintRequirement findBlueprintRequirementBySource(ItemSource source) {
+        return lookupIndex.findBlueprintRequirementBySource(source);
     }
 
     public RecipeMatch findMatchingRecipe(Player player, GuiItems guiItems) {
@@ -288,24 +297,27 @@ public final class ForgeService {
         return resultItemFactory.resolveResultItemName(recipe, itemStack);
     }
 
-    private List<ForgeMaterial.QualityModifier> resolveMaterialQualityModifiers(GuiItems guiItems) {
+    private List<ForgeMaterial.QualityModifier> resolveMaterialQualityModifiers(Recipe recipe, GuiItems guiItems) {
         List<ForgeMaterial.QualityModifier> result = new ArrayList<>();
-        if (guiItems == null) {
+        if (recipe == null || guiItems == null) {
             return result;
         }
-        appendMaterialQualityModifiers(result, guiItems.requiredMaterials().values());
-        appendMaterialQualityModifiers(result, guiItems.optionalMaterials().values());
+        appendMaterialQualityModifiers(result, recipe, guiItems.requiredMaterials().values(), false);
+        appendMaterialQualityModifiers(result, recipe, guiItems.optionalMaterials().values(), true);
         return result;
     }
 
-    private void appendMaterialQualityModifiers(List<ForgeMaterial.QualityModifier> result, Collection<ItemStack> items) {
+    private void appendMaterialQualityModifiers(List<ForgeMaterial.QualityModifier> result,
+            Recipe recipe,
+            Collection<ItemStack> items,
+            boolean optional) {
         if (result == null || items == null) {
             return;
         }
         for (ItemStack itemStack : items) {
-            ForgeMaterial material = itemStack == null
+            ForgeMaterial material = itemStack == null || recipe == null
                     ? null
-                    : lookupIndex.findMaterialBySource(plugin.itemIdentifierService().identifyItem(itemStack));
+                    : recipe.findMaterialBySource(plugin.itemIdentifierService().identifyItem(itemStack), optional);
             if (material == null || itemStack.getAmount() <= 0) {
                 continue;
             }

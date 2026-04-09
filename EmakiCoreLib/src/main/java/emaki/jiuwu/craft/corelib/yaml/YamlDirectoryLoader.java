@@ -2,8 +2,10 @@ package emaki.jiuwu.craft.corelib.yaml;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
@@ -22,6 +24,7 @@ public abstract class YamlDirectoryLoader<T> {
     protected final Object stateLock = new Object();
     protected final Map<String, T> items = new LinkedHashMap<>();
     protected final Map<String, LoadedYamlEntry<T>> loadedEntries = new LinkedHashMap<>();
+    protected final List<String> issues = new ArrayList<>();
     protected boolean loaded;
 
     protected YamlDirectoryLoader(JavaPlugin plugin) {
@@ -32,6 +35,7 @@ public abstract class YamlDirectoryLoader<T> {
         synchronized (stateLock) {
             items.clear();
             loadedEntries.clear();
+            issues.clear();
             loaded = false;
             File directory = new File(plugin.getDataFolder(), directoryName());
             if (!directory.exists()) {
@@ -94,6 +98,12 @@ public abstract class YamlDirectoryLoader<T> {
         }
     }
 
+    public final List<String> issues() {
+        synchronized (stateLock) {
+            return List.copyOf(issues);
+        }
+    }
+
     public final LoadedYamlEntry<T> entry(String id) {
         synchronized (stateLock) {
             return Texts.isBlank(id) ? null : loadedEntries.get(id);
@@ -142,10 +152,12 @@ public abstract class YamlDirectoryLoader<T> {
 
     private void issue(String key, Map<String, ?> replacements) {
         LogMessages messages = messages();
-        if (messages == null) {
+        if (messages != null) {
+            issues.add(messages.message(key, replacements));
+            messages.warning(key, replacements);
             return;
         }
-        messages.warning(key, replacements);
+        issues.add(key);
     }
 
     private LogMessages messages() {

@@ -27,7 +27,7 @@ public final class StrengthenGuiService {
         if (player == null) {
             return false;
         }
-        var template = plugin.guiTemplateLoader().get(plugin.appConfig().defaultGuiTemplate());
+        var template = plugin.guiTemplateLoader().get("strengthen_gui");
         if (template == null) {
             plugin.messageService().send(player, "gui.open_failed");
             return false;

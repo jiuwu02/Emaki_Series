@@ -19,20 +19,20 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
-import emaki.jiuwu.craft.strengthen.model.StrengthenRule;
+import emaki.jiuwu.craft.strengthen.model.StrengthenRecipe;
 import net.kyori.adventure.text.Component;
 
-public final class ProfileResolver {
+public final class StrengthenRecipeResolver {
 
     private static final double EPSILON = 1.0E-9D;
 
     private final EmakiStrengthenPlugin plugin;
 
-    public ProfileResolver(EmakiStrengthenPlugin plugin) {
+    public StrengthenRecipeResolver(EmakiStrengthenPlugin plugin) {
         this.plugin = plugin;
     }
 
-    public ResolvedItem resolve(ItemStack itemStack, String explicitProfileId) {
+    public ResolvedItem resolve(ItemStack itemStack, String explicitRecipeId) {
         EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.getInstance();
         boolean isEmaki = coreLib != null && coreLib.itemAssemblyService().isEmakiItem(itemStack);
         ItemSource baseSource = resolveBaseSource(itemStack);
@@ -40,8 +40,8 @@ public final class ProfileResolver {
         Map<String, Double> stats = aggregateStats(itemStack, isEmaki);
         List<String> loreLines = extractLore(itemStack);
         String slotGroup = resolveSlotGroup(itemStack, baseSource);
-        String resolvedProfileId = resolveProfileId(explicitProfileId, shorthand, baseSource, slotGroup, loreLines, stats);
-        return new ResolvedItem(baseSource, shorthand, stats, loreLines, slotGroup, isEmaki, resolvedProfileId);
+        String resolvedRecipeId = resolveRecipeId(explicitRecipeId, shorthand, baseSource, slotGroup, loreLines, stats);
+        return new ResolvedItem(baseSource, shorthand, stats, loreLines, slotGroup, isEmaki, resolvedRecipeId);
     }
 
     public ItemSource resolveBaseSource(ItemStack itemStack) {
@@ -61,16 +61,16 @@ public final class ProfileResolver {
         return coreLib.itemSourceService().identifyItem(itemStack);
     }
 
-    private String resolveProfileId(String explicitProfileId,
+    private String resolveRecipeId(String explicitRecipeId,
             String shorthand,
             ItemSource baseSource,
             String slotGroup,
             List<String> loreLines,
             Map<String, Double> stats) {
-        return selectProfileId(
-                explicitProfileId,
-                profileId -> plugin.profileLoader().get(profileId) != null,
-                plugin.ruleLoader().ordered(),
+        return selectRecipeId(
+                explicitRecipeId,
+                recipeId -> plugin.recipeLoader().get(recipeId) != null,
+                plugin.recipeLoader().ordered(),
                 shorthand,
                 baseSource,
                 slotGroup,
@@ -79,50 +79,73 @@ public final class ProfileResolver {
         );
     }
 
-    static String selectProfileId(String explicitProfileId,
-            Predicate<String> profileExists,
-            List<StrengthenRule> orderedRules,
+    static String selectRecipeId(String explicitRecipeId,
+            Predicate<String> recipeExists,
+            List<StrengthenRecipe> orderedRecipes,
             String shorthand,
             ItemSource baseSource,
             String slotGroup,
             List<String> loreLines,
             Map<String, Double> stats) {
-        Predicate<String> exists = profileExists == null ? profileId -> false : profileExists;
-        if (Texts.isNotBlank(explicitProfileId) && exists.test(explicitProfileId)) {
-            return explicitProfileId;
+        Predicate<String> exists = recipeExists == null ? recipeId -> false : recipeExists;
+        if (Texts.isNotBlank(explicitRecipeId) && exists.test(explicitRecipeId)) {
+            return explicitRecipeId;
         }
-        if (orderedRules != null) {
-            for (StrengthenRule rule : orderedRules) {
-                if (rule == null || !exists.test(rule.profileId())) {
+        if (orderedRecipes != null) {
+            for (StrengthenRecipe recipe : orderedRecipes) {
+                if (recipe == null || !exists.test(recipe.id())) {
                     continue;
                 }
-                if (matchesRule(rule, shorthand, baseSource, slotGroup, loreLines, stats)) {
-                    return rule.profileId();
+                if (matchesRecipe(recipe, shorthand, baseSource, slotGroup, loreLines, stats)) {
+                    return recipe.id();
                 }
             }
         }
-        return resolveHeuristicProfileId(exists, slotGroup, loreLines, stats);
+        return resolveHeuristicRecipeId(exists, slotGroup, loreLines, stats);
     }
 
-    static boolean matchesRule(StrengthenRule rule,
+    static boolean matchesRecipe(StrengthenRecipe recipe,
             String shorthand,
             ItemSource baseSource,
             String slotGroup,
             List<String> loreLines,
             Map<String, Double> stats) {
+        if (recipe == null || recipe.matchRule() == null || recipe.matchRule().empty()) {
+            return false;
+        }
+        StrengthenRecipe.MatchRule rule = recipe.matchRule();
         if (!rule.sourceTypes().isEmpty()) {
             String sourceType = baseSource == null || baseSource.getType() == null ? "" : Texts.lower(baseSource.getType().name());
             if (!rule.sourceTypes().contains(sourceType)) {
                 return false;
             }
         }
-        if (Texts.isNotBlank(rule.sourcePattern())) {
-            String value = Texts.toStringSafe(shorthand);
-            if (Texts.isBlank(value) || !Pattern.compile(rule.sourcePattern(), Pattern.CASE_INSENSITIVE).matcher(value).find()) {
+        if (!rule.sourceIds().isEmpty()) {
+            String value = Texts.lower(shorthand);
+            if (Texts.isBlank(value) || !rule.sourceIds().contains(value)) {
                 return false;
             }
         }
-        if (Texts.isNotBlank(rule.slotGroup()) && !Texts.lower(rule.slotGroup()).equals(Texts.lower(slotGroup))) {
+        if (!rule.sourcePatterns().isEmpty()) {
+            String value = Texts.toStringSafe(shorthand);
+            if (Texts.isBlank(value)) {
+                return false;
+            }
+            boolean matched = false;
+            for (String pattern : rule.sourcePatterns()) {
+                if (Texts.isBlank(pattern)) {
+                    continue;
+                }
+                if (Pattern.compile(pattern, Pattern.CASE_INSENSITIVE).matcher(value).find()) {
+                    matched = true;
+                    break;
+                }
+            }
+            if (!matched) {
+                return false;
+            }
+        }
+        if (!rule.slotGroups().isEmpty() && !rule.slotGroups().contains(Texts.lower(slotGroup))) {
             return false;
         }
         for (String fragment : rule.loreContains()) {
@@ -145,11 +168,11 @@ public final class ProfileResolver {
         return true;
     }
 
-    static String resolveHeuristicProfileId(Predicate<String> profileExists,
+    static String resolveHeuristicRecipeId(Predicate<String> recipeExists,
             String slotGroup,
             List<String> loreLines,
             Map<String, Double> stats) {
-        Predicate<String> exists = profileExists == null ? profileId -> false : profileExists;
+        Predicate<String> exists = recipeExists == null ? recipeId -> false : recipeExists;
         if (stats.getOrDefault("spell_attack", 0D) > EPSILON || containsLore(loreLines, "法术伤害")) {
             return existingOrFallback(exists, "weapon_spell", "weapon_physical");
         }
@@ -229,8 +252,8 @@ public final class ProfileResolver {
         return false;
     }
 
-    private static String existingOrFallback(Predicate<String> profileExists, String primary, String fallback) {
-        Predicate<String> exists = profileExists == null ? profileId -> false : profileExists;
+    private static String existingOrFallback(Predicate<String> recipeExists, String primary, String fallback) {
+        Predicate<String> exists = recipeExists == null ? recipeId -> false : recipeExists;
         if (Texts.isNotBlank(primary) && exists.test(primary)) {
             return primary;
         }
@@ -269,7 +292,7 @@ public final class ProfileResolver {
             List<String> loreLines,
             String slotGroup,
             boolean emaki,
-            String profileId) {
+            String recipeId) {
 
         public ResolvedItem {
             stats = stats == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(stats));

@@ -1,13 +1,13 @@
-# Emaki Forge 主配置文件
+﻿# Emaki Forge 主配置文件
 # 版本: 1.1
 
 # 配置文件版本号 (请勿修改)
-config_version: "1.1"
+config_version: "2.2.0"
 
 # 语言设置
 language: "zh_CN"
 
-# 是否释放默认数据文件 (blueprints/materials/recipes)
+# 是否释放默认数据文件 (recipes)
 # 设为 false 可避免覆盖自定义配置
 release_default_data: true
 

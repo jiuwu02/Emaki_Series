@@ -1,4 +1,4 @@
-config_version: "1.2"
+﻿config_version: "2.1.0"
 debug: false
 language: zh_CN
 hard_lock_damage: true

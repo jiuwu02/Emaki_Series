@@ -4,30 +4,28 @@ import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.strengthen.loader.AppConfigLoader;
 import emaki.jiuwu.craft.strengthen.loader.GuiTemplateLoader;
 import emaki.jiuwu.craft.strengthen.loader.LanguageLoader;
-import emaki.jiuwu.craft.strengthen.loader.StrengthenMaterialLoader;
-import emaki.jiuwu.craft.strengthen.loader.StrengthenProfileLoader;
-import emaki.jiuwu.craft.strengthen.loader.StrengthenRuleLoader;
+import emaki.jiuwu.craft.strengthen.loader.StrengthenRecipeLoader;
 import emaki.jiuwu.craft.strengthen.service.BootstrapService;
 import emaki.jiuwu.craft.strengthen.service.ChanceCalculator;
 import emaki.jiuwu.craft.strengthen.service.MessageService;
-import emaki.jiuwu.craft.strengthen.service.ProfileResolver;
+import emaki.jiuwu.craft.strengthen.service.StrengthenRecipeResolver;
 import emaki.jiuwu.craft.strengthen.service.StrengthenActionCoordinator;
 import emaki.jiuwu.craft.strengthen.service.StrengthenAttemptService;
+import emaki.jiuwu.craft.strengthen.service.StrengthenEconomyService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenGuiService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenRefreshService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenSnapshotBuilder;
 
 record StrengthenRuntimeComponents(AppConfigLoader appConfigLoader,
         LanguageLoader languageLoader,
-        StrengthenProfileLoader profileLoader,
-        StrengthenRuleLoader ruleLoader,
-        StrengthenMaterialLoader materialLoader,
+        StrengthenRecipeLoader recipeLoader,
         GuiTemplateLoader guiTemplateLoader,
         MessageService messageService,
         BootstrapService bootstrapService,
         GuiService guiService,
-        ProfileResolver profileResolver,
+        StrengthenRecipeResolver recipeResolver,
         ChanceCalculator chanceCalculator,
+        StrengthenEconomyService economyService,
         StrengthenSnapshotBuilder snapshotBuilder,
         StrengthenActionCoordinator actionCoordinator,
         StrengthenAttemptService attemptService,

@@ -29,32 +29,12 @@ public final class AppConfigLoader {
                 current = AppConfig.defaults();
                 return current;
             }
-            ConfigurationSection economy = configuration.getConfigurationSection("economy");
-            ConfigurationSection successRates = configuration.getConfigurationSection("success_rates");
-            Map<Integer, Double> rates = new LinkedHashMap<>();
-            if (successRates != null) {
-                for (String key : successRates.getKeys(false)) {
-                    Integer star = Numbers.tryParseInt(key, null);
-                    Double value = Numbers.tryParseDouble(successRates.get(key), null);
-                    if (star != null && value != null) {
-                        rates.put(star, value);
-                    }
-                }
-            }
+            Map<Integer, Double> rates = parseSuccessRates(configuration.getConfigurationSection("success_rates"));
             AppConfig defaults = AppConfig.defaults();
             current = new AppConfig(
                     configuration.getString("language", defaults.language()),
                     configuration.getString("config_version", defaults.configVersion()),
-                    configuration.getBoolean("release_default_data", defaults.releaseDefaultData()),
-                    configuration.getString("gui.default_template", defaults.defaultGuiTemplate()),
-                    Numbers.tryParseInt(configuration.get("max_star"), defaults.maxStar()),
-                    Numbers.tryParseInt(configuration.get("max_crack"), defaults.maxCrack()),
-                    Numbers.tryParseDouble(configuration.get("crack_chance_bonus_per_level"), defaults.crackChanceBonusPerLevel()),
-                    Numbers.tryParseDouble(configuration.get("success_chance_cap"), defaults.successChanceCap()),
                     Numbers.tryParseInt(configuration.get("local_broadcast_radius"), defaults.localBroadcastRadius()),
-                    economy == null ? defaults.economyProvider() : economy.getString("provider", defaults.economyProvider()),
-                    economy == null ? defaults.economyCurrencyId() : economy.getString("currency_id", defaults.economyCurrencyId()),
-                    economy == null ? defaults.economyCurrencyName() : economy.getString("currency_name", defaults.economyCurrencyName()),
                     rates.isEmpty() ? defaults.successRates() : rates
             );
         } catch (Exception exception) {
@@ -71,5 +51,20 @@ public final class AppConfigLoader {
 
     public AppConfig current() {
         return current;
+    }
+
+    private Map<Integer, Double> parseSuccessRates(ConfigurationSection section) {
+        if (section == null) {
+            return Map.of();
+        }
+        Map<Integer, Double> rates = new LinkedHashMap<>();
+        for (String key : section.getKeys(false)) {
+            Integer star = Numbers.tryParseInt(key, null);
+            Double value = Numbers.tryParseDouble(section.get(key), null);
+            if (star != null && value != null) {
+                rates.put(star, value);
+            }
+        }
+        return rates;
     }
 }

@@ -16,15 +16,14 @@ import emaki.jiuwu.craft.strengthen.config.AppConfig;
 import emaki.jiuwu.craft.strengthen.loader.AppConfigLoader;
 import emaki.jiuwu.craft.strengthen.loader.GuiTemplateLoader;
 import emaki.jiuwu.craft.strengthen.loader.LanguageLoader;
-import emaki.jiuwu.craft.strengthen.loader.StrengthenMaterialLoader;
-import emaki.jiuwu.craft.strengthen.loader.StrengthenProfileLoader;
-import emaki.jiuwu.craft.strengthen.loader.StrengthenRuleLoader;
+import emaki.jiuwu.craft.strengthen.loader.StrengthenRecipeLoader;
 import emaki.jiuwu.craft.strengthen.service.BootstrapService;
 import emaki.jiuwu.craft.strengthen.service.ChanceCalculator;
 import emaki.jiuwu.craft.strengthen.service.MessageService;
-import emaki.jiuwu.craft.strengthen.service.ProfileResolver;
+import emaki.jiuwu.craft.strengthen.service.StrengthenRecipeResolver;
 import emaki.jiuwu.craft.strengthen.service.StrengthenActionCoordinator;
 import emaki.jiuwu.craft.strengthen.service.StrengthenAttemptService;
+import emaki.jiuwu.craft.strengthen.service.StrengthenEconomyService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenGuiService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenRefreshService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenSnapshotBuilder;
@@ -51,15 +50,14 @@ public final class EmakiStrengthenPlugin extends JavaPlugin implements LogMessag
 
     private AppConfigLoader appConfigLoader;
     private LanguageLoader languageLoader;
-    private StrengthenProfileLoader profileLoader;
-    private StrengthenRuleLoader ruleLoader;
-    private StrengthenMaterialLoader materialLoader;
+    private StrengthenRecipeLoader recipeLoader;
     private GuiTemplateLoader guiTemplateLoader;
     private MessageService messageService;
     private BootstrapService bootstrapService;
     private GuiService guiService;
-    private ProfileResolver profileResolver;
+    private StrengthenRecipeResolver recipeResolver;
     private ChanceCalculator chanceCalculator;
+    private StrengthenEconomyService economyService;
     private StrengthenSnapshotBuilder snapshotBuilder;
     private StrengthenActionCoordinator actionCoordinator;
     private StrengthenAttemptService attemptService;
@@ -96,15 +94,14 @@ public final class EmakiStrengthenPlugin extends JavaPlugin implements LogMessag
     private void applyRuntimeComponents(StrengthenRuntimeComponents components) {
         appConfigLoader = components.appConfigLoader();
         languageLoader = components.languageLoader();
-        profileLoader = components.profileLoader();
-        ruleLoader = components.ruleLoader();
-        materialLoader = components.materialLoader();
+        recipeLoader = components.recipeLoader();
         guiTemplateLoader = components.guiTemplateLoader();
         messageService = components.messageService();
         bootstrapService = components.bootstrapService();
         guiService = components.guiService();
-        profileResolver = components.profileResolver();
+        recipeResolver = components.recipeResolver();
         chanceCalculator = components.chanceCalculator();
+        economyService = components.economyService();
         snapshotBuilder = components.snapshotBuilder();
         actionCoordinator = components.actionCoordinator();
         attemptService = components.attemptService();
@@ -142,16 +139,12 @@ public final class EmakiStrengthenPlugin extends JavaPlugin implements LogMessag
         return languageLoader;
     }
 
-    public StrengthenProfileLoader profileLoader() {
-        return profileLoader;
+    public StrengthenRecipeLoader recipeLoader() {
+        return recipeLoader;
     }
 
-    public StrengthenRuleLoader ruleLoader() {
-        return ruleLoader;
-    }
-
-    public StrengthenMaterialLoader materialLoader() {
-        return materialLoader;
+    public StrengthenRecipeLoader replaceLoader() {
+        return recipeLoader;
     }
 
     public GuiTemplateLoader guiTemplateLoader() {
@@ -171,12 +164,16 @@ public final class EmakiStrengthenPlugin extends JavaPlugin implements LogMessag
         return guiService;
     }
 
-    public ProfileResolver profileResolver() {
-        return profileResolver;
+    public StrengthenRecipeResolver recipeResolver() {
+        return recipeResolver;
     }
 
     public ChanceCalculator chanceCalculator() {
         return chanceCalculator;
+    }
+
+    public StrengthenEconomyService economyService() {
+        return economyService;
     }
 
     public StrengthenSnapshotBuilder snapshotBuilder() {

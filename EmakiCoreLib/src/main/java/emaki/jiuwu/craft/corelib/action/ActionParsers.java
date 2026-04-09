@@ -20,7 +20,7 @@ public final class ActionParsers {
         }
         try {
             return Integer.parseInt(raw);
-        } catch (NumberFormatException ignored) {
+        } catch (NumberFormatException e) {
             return fallback;
         }
     }
@@ -31,7 +31,7 @@ public final class ActionParsers {
         }
         try {
             return Integer.parseInt(raw);
-        } catch (NumberFormatException ignored) {
+        } catch (NumberFormatException e) {
             return null;
         }
     }
@@ -42,7 +42,7 @@ public final class ActionParsers {
         }
         try {
             return Double.parseDouble(raw);
-        } catch (NumberFormatException ignored) {
+        } catch (NumberFormatException e) {
             return fallback;
         }
     }
@@ -53,7 +53,7 @@ public final class ActionParsers {
         }
         try {
             return Double.parseDouble(raw);
-        } catch (NumberFormatException ignored) {
+        } catch (NumberFormatException e) {
             return null;
         }
     }
@@ -87,7 +87,7 @@ public final class ActionParsers {
                 return Math.max(0L, Math.round(Double.parseDouble(trimmed.substring(0, trimmed.length() - 1))));
             }
             return Math.max(0L, Math.round(Double.parseDouble(trimmed)));
-        } catch (NumberFormatException ignored) {
+        } catch (NumberFormatException e) {
             return -1L;
         }
     }
@@ -122,7 +122,7 @@ public final class ActionParsers {
                         .divide(BigDecimal.valueOf(100L), 12, RoundingMode.HALF_UP);
             }
             return new BigDecimal(trimmed);
-        } catch (NumberFormatException | ArithmeticException ignored) {
+        } catch (NumberFormatException | ArithmeticException e) {
             return null;
         }
     }
@@ -139,7 +139,7 @@ public final class ActionParsers {
         String normalized = Texts.trim(raw).replace("minecraft:", "").replace('.', '_').toUpperCase();
         try {
             return Particle.valueOf(normalized);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
             return null;
         }
     }

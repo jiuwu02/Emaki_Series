@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.corelib.cache;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
 public final class CacheManager<K, V> {
@@ -10,11 +11,11 @@ public final class CacheManager<K, V> {
     private final int maxSize;
     private final long expireAfterAccessMillis;
     private final LinkedHashMap<K, CacheEntry<V>> entries = new LinkedHashMap<>(16, 0.75F, true);
-    private long hits;
-    private long misses;
-    private long evictions;
-    private long expirations;
-    private long loads;
+    private final AtomicLong hits = new AtomicLong();
+    private final AtomicLong misses = new AtomicLong();
+    private final AtomicLong evictions = new AtomicLong();
+    private final AtomicLong expirations = new AtomicLong();
+    private final AtomicLong loads = new AtomicLong();
 
     public CacheManager(int maxSize, long expireAfterAccessMillis) {
         this.maxSize = Math.max(1, maxSize);
@@ -25,17 +26,17 @@ public final class CacheManager<K, V> {
         long now = System.currentTimeMillis();
         CacheEntry<V> entry = entries.get(key);
         if (entry == null) {
-            misses++;
+            misses.incrementAndGet();
             return null;
         }
         if (isExpired(entry, now)) {
             entries.remove(key);
-            expirations++;
-            misses++;
+            expirations.incrementAndGet();
+            misses.incrementAndGet();
             return null;
         }
         entry.touch(now);
-        hits++;
+        hits.incrementAndGet();
         return entry.value();
     }
 
@@ -46,7 +47,7 @@ public final class CacheManager<K, V> {
         }
         V loaded = loader.get();
         if (loaded != null) {
-            loads++;
+            loads.incrementAndGet();
             put(key, loaded);
         }
         return loaded;
@@ -92,7 +93,7 @@ public final class CacheManager<K, V> {
 
     public synchronized CacheStats stats() {
         pruneExpired();
-        return new CacheStats(entries.size(), hits, misses, evictions, expirations, loads);
+        return new CacheStats(entries.size(), hits.get(), misses.get(), evictions.get(), expirations.get(), loads.get());
     }
 
     private void pruneExpired() {
@@ -104,7 +105,7 @@ public final class CacheManager<K, V> {
             if (!isExpired(entry.getValue(), now)) {
                 return false;
             }
-            expirations++;
+            expirations.incrementAndGet();
             return true;
         });
     }
@@ -113,7 +114,7 @@ public final class CacheManager<K, V> {
         while (entries.size() > maxSize) {
             K eldest = entries.keySet().iterator().next();
             entries.remove(eldest);
-            evictions++;
+            evictions.incrementAndGet();
         }
     }
 

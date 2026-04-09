@@ -1,20 +1,7 @@
-config_version: "1.0"
+﻿config_version: "2.0.0"
 language: "zh_CN"
 release_default_data: true
-
-gui:
-  default_template: "strengthen_gui"
-
-max_star: 12
-max_crack: 4
-crack_chance_bonus_per_level: 5.0
-success_chance_cap: 90.0
 local_broadcast_radius: 48
-
-economy:
-  provider: "auto"
-  currency_id: ""
-  currency_name: "金币"
 
 success_rates:
   1: 100.0

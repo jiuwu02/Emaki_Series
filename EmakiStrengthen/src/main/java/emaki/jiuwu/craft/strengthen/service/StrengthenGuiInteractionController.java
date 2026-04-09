@@ -12,9 +12,8 @@ import emaki.jiuwu.craft.corelib.gui.GuiSessionHandler;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
+import emaki.jiuwu.craft.strengthen.model.AttemptMaterial;
 import emaki.jiuwu.craft.strengthen.model.AttemptResult;
-import emaki.jiuwu.craft.strengthen.model.StrengthenMaterial;
-import emaki.jiuwu.craft.strengthen.model.StrengthenState;
 
 final class StrengthenGuiInteractionController {
 
@@ -48,38 +47,12 @@ final class StrengthenGuiInteractionController {
             renderer.refreshGui(state);
             return;
         }
-        StrengthenMaterial material = attemptService.resolveConfiguredMaterial(itemStack);
-        if (material == null) {
+        int slotIndex = state.firstEmptyMaterialSlot();
+        if (slotIndex < 0) {
             return;
         }
-        switch (material.role()) {
-            case BASE -> {
-                if (state.baseMaterial() == null) {
-                    state.setBaseMaterial(itemStack);
-                    event.getClickedInventory().setItem(event.getSlot(), null);
-                }
-            }
-            case SUPPORT -> {
-                if (state.supportMaterial() == null) {
-                    state.setSupportMaterial(itemStack);
-                    event.getClickedInventory().setItem(event.getSlot(), null);
-                }
-            }
-            case PROTECTION -> {
-                if (state.protectionMaterial() == null) {
-                    state.setProtectionMaterial(itemStack);
-                    event.getClickedInventory().setItem(event.getSlot(), null);
-                }
-            }
-            case BREAKTHROUGH -> {
-                if (state.breakthroughMaterial() == null) {
-                    state.setBreakthroughMaterial(itemStack);
-                    event.getClickedInventory().setItem(event.getSlot(), null);
-                }
-            }
-            default -> {
-            }
-        }
+        state.setMaterialInput(slotIndex, itemStack);
+        event.getClickedInventory().setItem(event.getSlot(), null);
         renderer.refreshGui(state);
     }
 
@@ -109,6 +82,10 @@ final class StrengthenGuiInteractionController {
         renderer.refreshGui(state);
     }
 
+    private void handleMaterialSlotSwap(InventoryClickEvent event, StrengthenGuiSession state, int index) {
+        handleSlotSwap(event, state, () -> state.materialInput(index), itemStack -> state.setMaterialInput(index, itemStack));
+    }
+
     private void handleConfirm(StrengthenGuiSession state) {
         if (state.processing()) {
             return;
@@ -126,6 +103,25 @@ final class StrengthenGuiInteractionController {
         state.clearStoredItems();
         state.player().closeInventory();
         giveBackToPlayer(state.player(), result.resultItem());
+        if (result.preview() != null && result.preview().recipe() != null) {
+            if (result.success()) {
+                attemptService.triggerSuccessActions(state.player(), result.preview().recipe(), "gui", result.resultItem(), result.resultingStar(),
+                        result.resultingCrack());
+                attemptService.broadcastFirstReach(state.player(), result.resultItem(), result.newlyReachedStars());
+            } else {
+                attemptService.triggerFailureActions(
+                        state.player(),
+                        result.preview().recipe(),
+                        "gui",
+                        result.resultItem(),
+                        result.preview().currentStar(),
+                        result.resultingStar(),
+                        result.resultingCrack(),
+                        result.resultingStar() < result.preview().currentStar(),
+                        result.preview().protectionApplied()
+                );
+            }
+        }
         if (result.success()) {
             plugin.messageService().send(state.player(), "gui.attempt_success", Map.of("star", result.resultingStar()));
         } else if (result.resultingStar() < result.preview().currentStar()) {
@@ -133,26 +129,6 @@ final class StrengthenGuiInteractionController {
         } else {
             plugin.messageService().send(state.player(), "gui.attempt_failed", Map.of("star", result.resultingStar()));
         }
-    }
-
-    private void handleCleanse(StrengthenGuiSession state) {
-        if (state.targetItem() == null) {
-            plugin.messageService().send(state.player(), "gui.cleanse_no_target");
-            return;
-        }
-        StrengthenState strengthenState = attemptService.readState(state.targetItem());
-        if (strengthenState.crackLevel() <= 0) {
-            plugin.messageService().send(state.player(), "gui.cleanse_no_crack");
-            return;
-        }
-        ItemStack rebuilt = attemptService.consumeCleanseMaterial(state.player(), state.targetItem());
-        if (rebuilt == null) {
-            plugin.messageService().send(state.player(), "gui.cleanse_missing_material");
-            return;
-        }
-        state.setTargetItem(rebuilt);
-        plugin.messageService().send(state.player(), "gui.cleanse_success");
-        renderer.refreshGui(state);
     }
 
     private void giveBackToPlayer(Player player, ItemStack itemStack) {
@@ -168,10 +144,9 @@ final class StrengthenGuiInteractionController {
 
     private void returnItems(StrengthenGuiSession state) {
         giveBackToPlayer(state.player(), state.targetItem());
-        giveBackToPlayer(state.player(), state.baseMaterial());
-        giveBackToPlayer(state.player(), state.supportMaterial());
-        giveBackToPlayer(state.player(), state.protectionMaterial());
-        giveBackToPlayer(state.player(), state.breakthroughMaterial());
+        for (ItemStack itemStack : state.materialInputs()) {
+            giveBackToPlayer(state.player(), itemStack);
+        }
         state.clearStoredItems();
     }
 
@@ -179,11 +154,14 @@ final class StrengthenGuiInteractionController {
         if (state == null || result == null || result.preview() == null) {
             return;
         }
-        returnRemaining(state.player(), state.baseMaterial(), result.preview().baseMaterial() == null ? 0 : 1);
-        returnRemaining(state.player(), state.supportMaterial(), result.preview().supportMaterial() == null ? 0 : 1);
-        returnRemaining(state.player(), state.breakthroughMaterial(), result.preview().breakthroughMaterial() == null ? 0 : 1);
-        int protectionConsume = !result.success() && result.preview().protectionApplied() ? 1 : 0;
-        returnRemaining(state.player(), state.protectionMaterial(), protectionConsume);
+        for (int index = 0; index < state.materialInputs().size(); index++) {
+            ItemStack itemStack = state.materialInput(index);
+            AttemptMaterial material = index < result.preview().optionalMaterials().size()
+                    ? result.preview().optionalMaterials().get(index)
+                    : null;
+            int consumeAmount = material == null ? 0 : material.consumedAmount();
+            returnRemaining(state.player(), itemStack, consumeAmount);
+        }
     }
 
     private void returnRemaining(Player player, ItemStack itemStack, int consumeAmount) {
@@ -215,12 +193,11 @@ final class StrengthenGuiInteractionController {
             String type = Texts.lower(slot.definition().type());
             switch (type) {
                 case "target_item" -> handleSlotSwap(event, state, state::targetItem, state::setTargetItem);
-                case "base_material" -> handleSlotSwap(event, state, state::baseMaterial, state::setBaseMaterial);
-                case "support_material" -> handleSlotSwap(event, state, state::supportMaterial, state::setSupportMaterial);
-                case "protection_material" -> handleSlotSwap(event, state, state::protectionMaterial, state::setProtectionMaterial);
-                case "breakthrough_material" -> handleSlotSwap(event, state, state::breakthroughMaterial, state::setBreakthroughMaterial);
+                case "material_input_1" -> handleMaterialSlotSwap(event, state, 0);
+                case "material_input_2" -> handleMaterialSlotSwap(event, state, 1);
+                case "material_input_3" -> handleMaterialSlotSwap(event, state, 2);
+                case "material_input_4" -> handleMaterialSlotSwap(event, state, 3);
                 case "confirm" -> handleConfirm(state);
-                case "crack_display" -> handleCleanse(state);
                 default -> {
                 }
             }

@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.corelib.item;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -124,8 +125,7 @@ public final class ItemSourceIntegrationCoordinator implements Listener {
                     true
             );
             loadEventBindings.put(eventClassName, resolver);
-        } catch (Throwable ignored) {
-            // Defer registration until the dependency is actually present.
+        } catch (Throwable throwable) {
         }
     }
 
@@ -142,18 +142,58 @@ public final class ItemSourceIntegrationCoordinator implements Listener {
             case ABSENT -> {
                 return;
             }
-            case READY -> messageService.info("console.item_source_bridge_ready", Map.of(
-                    "library", resolver.pluginName()
-            ));
-            case WAITING -> messageService.info("console.item_source_bridge_waiting", Map.of(
-                    "library", resolver.pluginName(),
-                    "detail", defaultDetail(status.detail(), "Waiting for the external item registry to finish loading.")
-            ));
-            case INCOMPATIBLE -> messageService.warning("console.item_source_bridge_incompatible", Map.of(
-                    "library", resolver.pluginName(),
-                    "detail", defaultDetail(status.detail(), "The external API could not be resolved.")
-            ));
+            case READY ->
+                messageService.info("console.item_source_bridge_ready", Map.of(
+                        "library", resolver.pluginName()
+                ));
+            case WAITING ->
+                messageService.info("console.item_source_bridge_waiting", Map.of(
+                        "library", resolver.pluginName(),
+                        "detail", defaultWaitingDetail(resolver.pluginName(), status.detail())
+                ));
+            case INCOMPATIBLE ->
+                messageService.warning("console.item_source_bridge_incompatible", Map.of(
+                        "library", resolver.pluginName(),
+                        "detail", defaultIncompatibleDetail(resolver.pluginName(), status.detail())
+                ));
         }
+    }
+
+    public Map<String, ManagedItemSourceResolver.Status> statuses() {
+        return Map.copyOf(new LinkedHashMap<>(lastStatuses));
+    }
+
+    public int detectedResolverCount() {
+        return lastStatuses.size();
+    }
+
+    public int readyResolverCount() {
+        return (int) lastStatuses.values().stream()
+                .filter(status -> status != null && status.state() == ManagedItemSourceResolver.State.READY)
+                .count();
+    }
+
+    public int managedResolverCount() {
+        return managedResolvers.size();
+    }
+
+    private String defaultWaitingDetail(String library, String detail) {
+        return defaultDetail(detail, switch (Texts.lower(library)) {
+            case "itemsadder" ->
+                "插件已启用，但物品注册尚未完成，请等待其加载流程结束。";
+            case "craftengine" ->
+                "插件已启用，但物品表尚未完成重载，请等待其重载事件结束。";
+            case "neigeitems" ->
+                "插件已启用，但物品库尚未完成刷新，请等待其重载完成。";
+            case "nexo" ->
+                "插件已启用，但物品表尚未完成初始化，请等待其加载事件结束。";
+            default ->
+                "外部物品注册尚未完成，请等待依赖插件完成加载。";
+        });
+    }
+
+    private String defaultIncompatibleDetail(String library, String detail) {
+        return defaultDetail(detail, library + " 已检测到，但当前 API 结构与 CoreLib 适配器不兼容。");
     }
 
     private String defaultDetail(String detail, String fallback) {

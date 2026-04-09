@@ -1,6 +1,0 @@
-id: "spell_keyword"
-profile: "weapon_spell"
-lore_contains:
-  - "法术伤害"
-stats_any:
-  - "spell_attack"

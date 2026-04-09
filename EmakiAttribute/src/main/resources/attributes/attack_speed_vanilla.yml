@@ -1,4 +1,4 @@
-id: attack_speed_vanilla
+﻿id: attack_speed_vanilla
 display_name: "原版攻击速度"
 value_kind: FLAT
 target_type: VANILLA
@@ -7,7 +7,7 @@ default_value: 0.0
 min_value: 0.0
 max_value: 999999.0
 allow_negative: false
-priority: 34
+priority: 36
 lore_format_id: default_flat
 attribute_power: 1.0
 description: "Maps to Bukkit's ATTACK_SPEED attribute."

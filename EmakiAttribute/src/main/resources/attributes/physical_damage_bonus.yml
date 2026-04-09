@@ -1,4 +1,4 @@
-id: physical_damage_bonus
+﻿id: physical_damage_bonus
 display_name: "物理伤害加成"
 value_kind: PERCENT
 target_type: DAMAGE
@@ -7,7 +7,7 @@ default_value: 0.0
 min_value: -100.0
 max_value: 10000.0
 allow_negative: true
-priority: 85
+priority: 101
 lore_format_id: default_percent
 attribute_power: 1.0
 description: "Extra physical damage percentage."

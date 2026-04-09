@@ -1,5 +1,5 @@
-# Emaki CoreLib 默认语言文件
-lang_version: "1.3.0"
+﻿# Emaki CoreLib 默认语言文件
+lang_version: "2.3.0"
 
 general:
   prefix: "<gray>[<gold>EmakiCoreLib</gold>]</gray>"
@@ -8,6 +8,7 @@ console:
   plugin_starting: "<gray>核心库正在启动...</gray>"
   plugin_started: "<green>EmakiCoreLib 已启用</green>"
   plugin_stopped: "<yellow>EmakiCoreLib 已关闭</yellow>"
+  economy_bridge_ready: "<gray>经济后端已接入: {provider}</gray>"
   action_config_load_failed: "<red>核心库动作配置读取失败: {error}</red>"
   item_source_bridge_ready: "<gray>物品源桥已接入: {library}</gray>"
   item_source_bridge_waiting: "<gray>{library} 已检测到，等待其物品注册完成: {detail}</gray>"

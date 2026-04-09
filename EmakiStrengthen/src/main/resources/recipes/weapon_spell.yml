@@ -1,0 +1,231 @@
+id: "weapon_spell"
+display_name: "<aqua>法术武器强化</aqua>"
+gui_template: "strengthen_gui"
+
+economy:
+  enabled: true
+  currencies:
+    - provider: "vault"
+      currency_id: ""
+      base_cost: 320
+      cost_formula: "{base_cost} * {star}"
+      display_name: "<gold>金币</gold>"
+
+limits:
+  max_star: 12
+  max_temper: 4
+  temper_chance_bonus_per_level: 5.0
+  success_chance_cap: 90.0
+
+success_rates:
+  10: 20.0
+  11: 12.0
+  12: 6.0
+
+match:
+  lore_contains: ["法术伤害"]
+  stats_any: ["spell_attack"]
+
+stat_lines:
+  spell_attack:
+    template: "<gray>法术伤害: <gold>{sign}{value}</gold></gray>"
+    lore_operations:
+      - type: "lore_search_insert"
+        anchor: "强化等级"
+        position: "below"
+      - type: "lore_append"
+  spell_crit_rate:
+    template: "<gray>法术暴击率: <gold>{sign}{value}</gold></gray>"
+    lore_operations:
+      - type: "lore_append"
+  spell_damage_bonus:
+    template: "<gray>法术增伤: <gold>{sign}{value}</gold></gray>"
+    lore_operations:
+      - type: "lore_append"
+  spell_crit_damage:
+    template: "<gray>法术暴伤: <gold>{sign}{value}</gold></gray>"
+    lore_operations:
+      - type: "lore_append"
+  magic_penetration:
+    template: "<gray>法术穿透: <gold>{sign}{value}</gold></gray>"
+    lore_operations:
+      - type: "lore_append"
+
+stars:
+  1:
+    stats: { spell_attack: 4 }
+    materials:
+      - item: "copper_ingot"
+        amount: 1
+      - item: "gunpowder"
+        amount: 2
+  2:
+    stats: { spell_attack: 4 }
+    materials:
+      - item: "copper_ingot"
+        amount: 1
+      - item: "gunpowder"
+        amount: 3
+  3:
+    stats: { spell_attack: 5 }
+    materials:
+      - item: "copper_ingot"
+        amount: 2
+      - item: "gunpowder"
+        amount: 4
+  4:
+    stats: { spell_attack: 6 }
+    materials:
+      - item: "copper_ingot"
+        amount: 2
+      - item: "gunpowder"
+        amount: 5
+      - item: "gold_nugget"
+        amount: -1
+        optional: true
+        protection: true
+  5:
+    name: "<aqua>暴击率提升</aqua>"
+    stats: { spell_attack: 6, spell_crit_rate: 2 }
+    materials:
+      - item: "copper_ingot"
+        amount: 3
+      - item: "gunpowder"
+        amount: 6
+      - item: "gold_nugget"
+        amount: -1
+        optional: true
+        protection: true
+    presentation:
+      - "<gray>强化达到 +5 后，法术武器会额外提供暴击率。</gray>"
+    success_actions:
+      - 'sendmessage text="<aqua>强化达到 +5，解锁额外法术暴击率。</aqua>"'
+      - "playsound sound=minecraft:block.enchantment_table.use volume=1 pitch=1.1"
+    failure_actions:
+      - 'sendmessage text="<red>强化失败，锻印加深。</red>"'
+  6:
+    stats: { spell_attack: 7 }
+    materials:
+      - item: "copper_ingot"
+        amount: 4
+      - item: "gunpowder"
+        amount: 8
+      - item: "gold_nugget"
+        amount: -1
+        optional: true
+        protection: true
+  7:
+    stats: { spell_attack: 8 }
+    materials:
+      - item: "copper_ingot"
+        amount: 5
+      - item: "gunpowder"
+        amount: 10
+      - item: "gold_nugget"
+        amount: -1
+        optional: true
+        protection: true
+  8:
+    name: "<aqua>伤害提升</aqua>"
+    stats: { spell_attack: 9, spell_damage_bonus: 4 }
+    materials:
+      - item: "copper_ingot"
+        amount: 6
+      - item: "gunpowder"
+        amount: 12
+      - item: "paper"
+        amount: 2
+      - item: "gold_nugget"
+        amount: -1
+        optional: true
+        protection: true
+    presentation:
+      - "<gray>强化达到 +8 后，法术武器会额外提供增伤。</gray>"
+    success_actions:
+      - 'sendtitle title="<aqua><bold>+8 法术增伤提升</bold></aqua>" subtitle="<white>额外增伤已解锁</white>"'
+      - "playsound sound=minecraft:entity.player.levelup volume=1 pitch=1.25"
+    failure_actions:
+      - 'sendtitle title="<red><bold>强化失败</bold></red>" subtitle="<gray>增伤未能解锁</gray>"'
+  9:
+    stats: { spell_attack: 10 }
+    materials:
+      - item: "copper_ingot"
+        amount: 8
+      - item: "gunpowder"
+        amount: 16
+      - item: "paper"
+        amount: 2
+      - item: "gold_nugget"
+        amount: -1
+        optional: true
+        protection: true
+  10:
+    name: "<aqua>暴击伤害提升</aqua>"
+    stats: { spell_attack: 12, spell_crit_damage: 6 }
+    materials:
+      - item: "copper_ingot"
+        amount: 10
+      - item: "gunpowder"
+        amount: 20
+      - item: "echo_shard"
+        amount: 2
+      - item: "gold_nugget"
+        amount: -1
+        optional: true
+        protection: true
+    presentation:
+      - "<gray>强化达到 +10 后，法术武器会额外提供暴击伤害。</gray>"
+    success_actions:
+      - 'sendtitle title="<aqua><bold>+10 法术暴伤提升</bold></aqua>" subtitle="<white>额外暴伤已解锁</white>"'
+      - "playsound sound=minecraft:entity.evoker.prepare_attack volume=1 pitch=1"
+  11:
+    stats: { spell_attack: 14 }
+    materials:
+      - item: "copper_ingot"
+        amount: 13
+      - item: "gunpowder"
+        amount: 26
+      - item: "echo_shard"
+        amount: 3
+      - item: "gold_nugget"
+        amount: -1
+        optional: true
+        protection: true
+  12:
+    name: "<aqua>穿透提升</aqua>"
+    stats: { spell_attack: 16, magic_penetration: 8 }
+    materials:
+      - item: "copper_ingot"
+        amount: 16
+      - item: "gunpowder"
+        amount: 32
+      - item: "echo_shard"
+        amount: 4
+      - item: "gold_nugget"
+        amount: -1
+        optional: true
+        protection: true
+      - item: "potion"
+        amount: -1
+        optional: true
+        temper_boost: 1
+    presentation:
+      - "<gray>强化达到 +12 后，法术武器会额外提供穿透。</gray>"
+    success_actions:
+      - 'sendtitle title="<aqua><bold>+12 法术穿透提升</bold></aqua>" subtitle="<white>额外穿透已解锁</white>"'
+      - "playsound sound=minecraft:ui.toast.challenge_complete volume=1 pitch=1"
+    failure_actions:
+      - 'sendtitle title="<red><bold>满星梦碎</bold></red>"'
+      - 'broadcast text="<red>{player} 在 +12 强化中失败了！</red>"'
+
+presentation:
+  name_operations:
+    - type: "name_regex_replace"
+      pattern: "^(.*?)\\s*\\[\\+(\\d+)\\]\\s*$"
+      replacement: "$1 [+{star}]"
+    - type: "name_append"
+      value: " [+{star}]"
+      condition: "if_unchanged"
+  lore_prepend:
+    - "<gradient:#F2C46D:#C9703D>强化等级 +{star}</gradient>"
+    - "<gray>锻印: {temper_color}{temper}/{max_temper}</gray>"

@@ -1,6 +1,5 @@
 package emaki.jiuwu.craft.forge.service;
 
-import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
 
@@ -15,8 +14,6 @@ import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
-import emaki.jiuwu.craft.forge.model.Blueprint;
-import emaki.jiuwu.craft.forge.model.ForgeMaterial;
 import emaki.jiuwu.craft.forge.model.ForgeResult;
 import emaki.jiuwu.craft.forge.model.GuiItems;
 import emaki.jiuwu.craft.forge.model.Recipe;
@@ -52,8 +49,7 @@ final class ForgeGuiInteractionController {
         if (source == null) {
             return;
         }
-        Blueprint blueprint = stateSupport.findBlueprintBySource(source);
-        if (blueprint != null) {
+        if (stateSupport.findBlueprintRequirementBySource(source) != null) {
             int slot = stateSupport.firstFreeSlot(stateSupport.slotsForType(state, "blueprint_inputs"), state.blueprintItems());
             if (slot >= 0) {
                 state.blueprintItems().put(slot, itemStack);
@@ -62,27 +58,24 @@ final class ForgeGuiInteractionController {
             }
             return;
         }
-        ForgeMaterial material = stateSupport.findMaterialBySource(source);
-        if (material != null) {
-            ForgeGuiStateSupport.MaterialSlotRules rules = stateSupport.resolveMaterialSlotRules(state);
-            if (rules.requiredIds().contains(material.id())) {
-                int slot = stateSupport.firstFreeSlot(stateSupport.slotsForType(state, "required_materials"), state.requiredMaterialItems());
-                if (slot >= 0) {
-                    state.requiredMaterialItems().put(slot, itemStack);
-                    event.getClickedInventory().setItem(event.getSlot(), null);
-                    renderer.refreshGui(state);
-                }
-                return;
-            }
-            if (stateSupport.canPlaceOptionalMaterial(material.id(), rules)) {
-                int slot = stateSupport.firstFreeSlot(stateSupport.slotsForType(state, "optional_materials"), state.optionalMaterialItems());
-                if (slot >= 0) {
-                    state.optionalMaterialItems().put(slot, itemStack);
-                    event.getClickedInventory().setItem(event.getSlot(), null);
-                    renderer.refreshGui(state);
-                }
+        ForgeGuiStateSupport.MaterialSlotRules rules = stateSupport.resolveMaterialSlotRules(state);
+        String materialId = materialKey(source);
+        if (rules.requiredIds().contains(materialId)) {
+            int slot = stateSupport.firstFreeSlot(stateSupport.slotsForType(state, "required_materials"), state.requiredMaterialItems());
+            if (slot >= 0) {
+                state.requiredMaterialItems().put(slot, itemStack);
+                event.getClickedInventory().setItem(event.getSlot(), null);
+                renderer.refreshGui(state);
             }
             return;
+        }
+        if (stateSupport.canPlaceOptionalMaterial(materialId, rules, state.optionalMaterialItems().size())) {
+            int slot = stateSupport.firstFreeSlot(stateSupport.slotsForType(state, "optional_materials"), state.optionalMaterialItems());
+            if (slot >= 0) {
+                state.optionalMaterialItems().put(slot, itemStack);
+                event.getClickedInventory().setItem(event.getSlot(), null);
+                renderer.refreshGui(state);
+            }
         }
     }
 
@@ -92,7 +85,7 @@ final class ForgeGuiInteractionController {
                 state,
                 slot,
                 state.blueprintItems(),
-                itemStack -> stateSupport.findBlueprintBySource(plugin.itemIdentifierService().identifyItem(itemStack)) != null
+                itemStack -> stateSupport.findBlueprintRequirementBySource(plugin.itemIdentifierService().identifyItem(itemStack)) != null
         );
     }
 
@@ -102,17 +95,21 @@ final class ForgeGuiInteractionController {
 
     private void handleMaterialClick(InventoryClickEvent event, ForgeGuiSession state, int slot, boolean required) {
         ForgeGuiStateSupport.MaterialSlotRules rules = stateSupport.resolveMaterialSlotRules(state);
+        int optionalOccupied = state.optionalMaterialItems().size() - (state.optionalMaterialItems().containsKey(slot) ? 1 : 0);
         handleMappedSlotClick(
                 event,
                 state,
                 slot,
                 required ? state.requiredMaterialItems() : state.optionalMaterialItems(),
                 itemStack -> {
-                    ForgeMaterial material = stateSupport.findMaterialBySource(plugin.itemIdentifierService().identifyItem(itemStack));
-                    if (material == null) {
+                    ItemSource source = plugin.itemIdentifierService().identifyItem(itemStack);
+                    String materialId = materialKey(source);
+                    if (Texts.isBlank(materialId)) {
                         return false;
                     }
-                    return required ? rules.requiredIds().contains(material.id()) : stateSupport.canPlaceOptionalMaterial(material.id(), rules);
+                    return required
+                            ? rules.requiredIds().contains(materialId)
+                            : stateSupport.canPlaceOptionalMaterial(materialId, rules, Math.max(0, optionalOccupied));
                 }
         );
     }
@@ -197,8 +194,7 @@ final class ForgeGuiInteractionController {
                 finalRecipe,
                 snapshot,
                 preparedForge
-        )
-                .whenComplete((result, throwable) -> plugin.getServer().getScheduler().runTask(
+        ).whenComplete((result, throwable) -> plugin.getServer().getScheduler().runTask(
                 plugin,
                 () -> completeForgeAttempt(state, finalRecipe, firstCraft, result, throwable)
         ));
@@ -242,6 +238,12 @@ final class ForgeGuiInteractionController {
     private void returnFailedAttempt(ForgeGuiSession state, String errorKey, Map<String, ?> replacements) {
         plugin.messageService().send(state.player(), errorKey, replacements == null ? Map.of() : replacements);
         stateSupport.returnItems(state);
+    }
+
+    private String materialKey(ItemSource source) {
+        return source == null || plugin.forgeService() == null || plugin.forgeService().findMaterialBySource(source) == null
+                ? ""
+                : plugin.forgeService().findMaterialBySource(source).key();
     }
 
     private final class ForgeSessionHandler implements GuiSessionHandler {
