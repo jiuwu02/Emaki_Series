@@ -1,34 +1,93 @@
+# ========================================
+# EmakiAttribute 伤害类型定义 - physical（物理伤害）
+# ========================================
+# 伤害类型定义了 EA 系统如何结算特定类型的伤害。
+# 每个伤害类型包含伤害流水线阶段（stages）、暴击机制、
+# 防御减伤、吸血回复、以及攻守双方的消息模板。
+# ========================================
+
+# 伤害类型 ID，全局唯一
 id: physical
+
+# 显示名称
 display_name: "物理伤害"
+
+# 别名列表：在配置和命令中可以使用这些别名引用此伤害类型
 aliases: [physical_damage, phys]
+
+# 允许的 Bukkit DamageCause 事件类型
+# 只有这些事件类型会触发此伤害类型的结算流水线
 allowed_events:
   - ENTITY_ATTACK
   - ENTITY_SWEEP_ATTACK
+
+# 硬锁模式：设为 true 时，此伤害类型完全接管原版伤害结算
+# 原版伤害值会被忽略，完全由 EA 属性系统计算最终伤害
 hard_lock: true
+
+# 伤害结算流水线阶段
+# 按 stages 列表顺序依次执行，每个阶段的输出作为下一个阶段的输入
 stages:
+  # 阶段 1：攻击力计算
   - id: attack
+    # 阶段类型：
+    #   FLAT_PERCENT - 将 flat_attributes 和 percent_attributes 求和后叠加
+    #   CUSTOM       - 使用自定义表达式计算
     kind: FLAT_PERCENT
+    # 属性来源：ATTACKER 表示从攻击者属性快照中取值
     source: ATTACKER
+    # 叠加模式：ADD 表示将 flat 和 percent 的结果加到当前伤害值上
     mode: ADD
+    # 固定值属性列表：这些属性的值直接求和作为基础伤害
     flat_attributes: [physical_attack]
+    # 百分比增伤属性列表：这些属性的值求和后作为伤害倍率
     percent_attributes: [physical_damage_bonus]
+
+  # 阶段 2：暴击判定
   - id: crit
+    # 自定义阶段：使用表达式计算暴击加成
     kind: CUSTOM
     source: ATTACKER
+    # 暴击率属性：决定暴击触发的概率
     chance_attributes: [physical_crit_rate]
+    # 暴击倍率属性：暴击触发后的伤害倍率加成
     multiplier_attributes: [physical_crit_damage]
+    # 暴击计算表达式：
+    #   {input}      - 当前伤害值（上一阶段的输出）
+    #   {crit}       - 暴击率（0-100，随机掷骰 <= crit 则暴击）
+    #   {multiplier} - 暴击倍率加成
     expression: "{input} * (1 + ({crit} * ({multiplier} / 100)))"
+
+  # 阶段 3：防御减伤
   - id: defense
     kind: CUSTOM
+    # TARGET 表示从目标属性快照中取值
     source: TARGET
+    # 防御属性列表：这些属性的值直接从伤害中扣除
     flat_attributes: [physical_defense]
+    # 减伤表达式：伤害值减去防御值，最低为 0
     expression: "max(0, {input} - {flat})"
+
+# 吸血回复配置
 recovery:
+  # 吸血属性来源：从攻击者属性快照中取值
   source: ATTACKER
+  # 吸血抗性来源：从目标属性快照中取值
   resistance_source: TARGET
+  # 固定吸血属性：按固定数值回复生命
   flat_attributes: [percentage_lifesteal]
+  # 百分比吸血属性：按造成伤害的百分比回复生命
   percent_attributes: [lifesteal]
+  # 吸血抗性属性：降低敌方的吸血效果
   resistance_attributes: [lifesteal_resistance]
+
+# 攻击者消息模板
+# 支持占位符：{damage_type}, {target}, {final_damage}, {critical_suffix}
 attacker_message: "<gray>[<gold>{damage_type}</gold>]</gray> <green>你对 <white>{target}</white> 造成了 <yellow>{final_damage}</yellow> 点伤害</green>{critical_suffix}"
+
+# 目标消息模板
+# 支持占位符：{damage_type}, {attacker}, {final_damage}, {critical_suffix}
 target_message: "<gray>[<gold>{damage_type}</gold>]</gray> <red>{attacker}</red> 对你造成了 <yellow>{final_damage}</yellow> 点伤害{critical_suffix}"
+
+# 伤害类型描述
 description: "Physical damage resolved entirely through Emaki attributes."

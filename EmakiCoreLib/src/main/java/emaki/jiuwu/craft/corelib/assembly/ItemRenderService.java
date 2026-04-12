@@ -21,6 +21,7 @@ import emaki.jiuwu.craft.corelib.assembly.lore.LoreSearchInsertStatus;
 import emaki.jiuwu.craft.corelib.assembly.lore.SearchInsertConfig;
 import emaki.jiuwu.craft.corelib.assembly.lore.SearchInsertValidationException;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
+import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -51,9 +52,9 @@ final class ItemRenderService {
             return;
         }
         Map<String, Double> aggregatedStats = aggregateStats(snapshots);
-        boolean writeCustomName = itemMeta.hasCustomName();
+        boolean writeCustomName = ItemTextBridge.hasCustomName(itemMeta);
         String currentName = resolveInitialName(itemStack, itemMeta);
-        List<Component> lore = new ArrayList<>(itemMeta.hasLore() && itemMeta.lore() != null ? itemMeta.lore() : List.<Component>of());
+        List<Component> lore = new ArrayList<>(itemMeta.hasLore() && ItemTextBridge.lore(itemMeta) != null ? ItemTextBridge.lore(itemMeta) : List.<Component>of());
         AssemblyFeedbackHandler effectiveFeedbackHandler = feedbackHandler == null ? AssemblyFeedbackHandler.noop() : feedbackHandler;
         Map<String, StatLineDefinition> statLineDefinitions = new LinkedHashMap<>();
         int globalSequence = 0;
@@ -122,9 +123,9 @@ final class ItemRenderService {
         }
         insertStatLines(lore, aggregatedStats, statLineDefinitions);
         if (writeCustomName) {
-            itemMeta.customName(MiniMessages.parse(currentName));
+            ItemTextBridge.customName(itemMeta, MiniMessages.parse(currentName));
         }
-        itemMeta.lore(lore.isEmpty() ? null : lore);
+        ItemTextBridge.lore(itemMeta, lore.isEmpty() ? null : lore);
         itemStack.setItemMeta(itemMeta);
     }
 
@@ -182,11 +183,16 @@ final class ItemRenderService {
             if (value == null || Math.abs(value) <= ZERO_EPSILON) {
                 continue;
             }
-            grouped.computeIfAbsent(definition.entry().searchPattern(), key -> new ArrayList<>()).add(definition);
+            String groupKey = Texts.lower(definition.entry().entryType()) + "|" + definition.entry().searchPattern();
+            grouped.computeIfAbsent(groupKey, key -> new ArrayList<>()).add(definition);
         }
-        for (Map.Entry<String, List<StatLineDefinition>> group : grouped.entrySet()) {
-            int insertIndex = findInsertIndex(lore, group.getKey());
-            for (StatLineDefinition definition : group.getValue()) {
+        for (List<StatLineDefinition> group : grouped.values()) {
+            if (group.isEmpty()) {
+                continue;
+            }
+            StatLineDefinition first = group.get(0);
+            int insertIndex = resolveStatInsertIndex(lore, first.entry());
+            for (StatLineDefinition definition : group) {
                 lore.add(insertIndex++, MiniMessages.parse(formatPlaceholders(definition.entry().contentTemplate(), aggregatedStats)));
             }
         }
@@ -210,6 +216,10 @@ final class ItemRenderService {
                 lore.add(findInsertIndex(lore, entry.searchPattern()), MiniMessages.parse(rendered));
             case "lore_insert_above" ->
                 lore.add(findInsertIndexAbove(lore, entry.searchPattern()), MiniMessages.parse(rendered));
+            case "lore_top_line_insert" ->
+                lore.add(findInsertIndexFromTop(lore, entry.searchPattern()), MiniMessages.parse(rendered));
+            case "lore_bottom_line_insert" ->
+                lore.add(findInsertIndexFromBottom(lore, entry.searchPattern()), MiniMessages.parse(rendered));
             case "lore_replace_line" ->
                 replaceLine(lore, entry.searchPattern(), rendered);
             case "lore_delete_line" ->
@@ -276,6 +286,40 @@ final class ItemRenderService {
             }
         }
         return lore.size();
+    }
+
+    private int findInsertIndexFromTop(List<Component> lore, String lineIndexText) {
+        if (lore == null || lore.isEmpty()) {
+            return 0;
+        }
+        int lineIndex = parsePositiveInt(lineIndexText, lore.size() + 1);
+        if (lineIndex <= 1) {
+            return 0;
+        }
+        if (lineIndex > lore.size()) {
+            return lore.size();
+        }
+        return lineIndex - 1;
+    }
+
+    private int findInsertIndexFromBottom(List<Component> lore, String lineIndexText) {
+        if (lore == null || lore.isEmpty()) {
+            return 0;
+        }
+        int lineIndex = parsePositiveInt(lineIndexText, 1);
+        if (lineIndex >= lore.size()) {
+            return 0;
+        }
+        return Math.max(0, lore.size() - Math.max(1, lineIndex));
+    }
+
+    private int resolveStatInsertIndex(List<Component> lore, EmakiPresentationEntry entry) {
+        String entryType = Texts.lower(entry.entryType());
+        return switch (entryType) {
+            case "stat_line_top" -> findInsertIndexFromTop(lore, entry.searchPattern());
+            case "stat_line_bottom" -> findInsertIndexFromBottom(lore, entry.searchPattern());
+            default -> findInsertIndex(lore, entry.searchPattern());
+        };
     }
 
     private void replaceLine(List<Component> lore, String anchor, String replacement) {
@@ -397,13 +441,21 @@ final class ItemRenderService {
         return matcher.find() ? normalizeId(matcher.group(1)) : "";
     }
 
+    private int parsePositiveInt(String value, int fallback) {
+        Integer parsed = Numbers.tryParseInt(value, null);
+        if (parsed == null || parsed <= 0) {
+            return fallback;
+        }
+        return parsed;
+    }
+
     private String resolveInitialName(ItemStack itemStack, ItemMeta itemMeta) {
-        if (itemMeta != null && itemMeta.hasCustomName()) {
-            return MiniMessages.serialize(itemMeta.customName());
+        if (itemMeta != null && ItemTextBridge.hasCustomName(itemMeta)) {
+            return MiniMessages.serialize(ItemTextBridge.customName(itemMeta));
         }
         if (itemStack != null) {
             try {
-                return MiniMessages.serialize(itemStack.effectiveName());
+                return MiniMessages.serialize(ItemTextBridge.effectiveName(itemStack));
             } catch (Exception ignored) {
                 return "";
             }

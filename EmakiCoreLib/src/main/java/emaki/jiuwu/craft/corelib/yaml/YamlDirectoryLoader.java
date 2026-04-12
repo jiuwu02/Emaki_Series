@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
@@ -53,7 +52,7 @@ public abstract class YamlDirectoryLoader<T> {
             Arrays.sort(files, (left, right) -> left.getName().compareToIgnoreCase(right.getName()));
             for (File file : files) {
                 try {
-                    YamlConfiguration configuration = YamlFiles.load(file);
+                    YamlSection configuration = YamlFiles.load(file);
                     T value = parse(file, configuration);
                     if (value == null) {
                         continue;
@@ -146,7 +145,7 @@ public abstract class YamlDirectoryLoader<T> {
 
     protected abstract String typeName();
 
-    protected abstract T parse(File file, YamlConfiguration configuration);
+    protected abstract T parse(File file, YamlSection configuration);
 
     protected abstract String idOf(T value);
 
@@ -172,21 +171,11 @@ public abstract class YamlDirectoryLoader<T> {
         return coreLibPlugin == null ? null : coreLibPlugin.asyncTaskScheduler();
     }
 
-    private YamlConfiguration cloneConfiguration(YamlConfiguration configuration) {
-        YamlConfiguration copy = new YamlConfiguration();
-        if (configuration == null) {
-            return copy;
-        }
-        try {
-            copy.loadFromString(configuration.saveToString());
-            return copy;
-        } catch (Exception ignored) {
-            copy.addDefaults(configuration);
-            return copy;
-        }
+    private YamlSection cloneConfiguration(YamlSection configuration) {
+        return configuration == null ? new MapYamlSection() : configuration.copy();
     }
 
-    public record LoadedYamlEntry<T>(String id, File file, YamlConfiguration configuration, T value) {
+    public record LoadedYamlEntry<T>(String id, File file, YamlSection configuration, T value) {
 
     }
 }

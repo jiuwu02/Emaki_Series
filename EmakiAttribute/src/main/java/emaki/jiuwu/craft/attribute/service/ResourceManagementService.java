@@ -34,7 +34,7 @@ final class ResourceManagementService {
     public void regenerateOnlinePlayers() {
         int intervalTicks = Math.max(1, service.config().regenIntervalTicks());
         double intervalSeconds = intervalTicks / 20D;
-        Map<String, ResourceDefinition> resources = service.resourceDefinitionsInternal();
+        Map<String, ResourceDefinition> resources = service.resourceDefinitions();
         for (Player player : Bukkit.getOnlinePlayers()) {
             AttributeSnapshot snapshot = service.collectCombatSnapshot(player);
             for (ResourceDefinition resourceDefinition : resources.values()) {
@@ -43,7 +43,7 @@ final class ResourceManagementService {
                     continue;
                 }
                 double regenPerSecond = resourceDefinition.regenPerSecond();
-                for (AttributeDefinition definition : service.resourceRegenDefinitionsInternal().getOrDefault(resourceDefinition.id(), List.of())) {
+                for (AttributeDefinition definition : service.registryService().resourceRegenDefinitions().getOrDefault(resourceDefinition.id(), List.of())) {
                     Double value = snapshot == null ? null : snapshot.values().get(definition.id());
                     if (value == null) {
                         continue;
@@ -163,11 +163,11 @@ final class ResourceManagementService {
             return;
         }
         AttributeSnapshot snapshot = service.collectCombatSnapshot(entity);
-        service.vanillaSynchronizerInternal().syncVanillaMappedAttributes(
+        service.vanillaSynchronizer().syncVanillaMappedAttributes(
                 entity,
                 snapshot,
-                service.vanillaAttributeBindingsInternal(),
-                service.vanillaMappedAttributeIdsInternal()
+                service.registryService().vanillaAttributeBindings(),
+                service.registryService().vanillaMappedAttributeIds()
         );
     }
 
@@ -183,12 +183,12 @@ final class ResourceManagementService {
         if (player == null || resourceDefinition == null) {
             return null;
         }
-        ResourceState existing = service.stateRepositoryInternal().readResourceState(player, resourceDefinition.id());
+        ResourceState existing = service.stateRepository().readResourceState(player, resourceDefinition.id());
         boolean existingState = existing != null;
         double defaultMax = resourceDefinition.defaultMax();
         double flatBonus = 0D;
         double percentBonus = 0D;
-        for (AttributeDefinition definition : service.resourceAttributeDefinitionsInternal().getOrDefault(resourceDefinition.id(), List.of())) {
+        for (AttributeDefinition definition : service.registryService().resourceAttributeDefinitions().getOrDefault(resourceDefinition.id(), List.of())) {
             Double value = snapshot == null ? null : snapshot.values().get(definition.id());
             if (value == null) {
                 continue;
@@ -235,7 +235,7 @@ final class ResourceManagementService {
                 || !Objects.equals(existing.sourceSignature(), state.sourceSignature())
                 || existing.currentMax() != state.currentMax()
                 || existing.currentValue() != state.currentValue()) {
-            service.stateRepositoryInternal().writeResourceState(player, state);
+            service.stateRepository().writeResourceState(player, state);
         }
         if (resourceDefinition.syncToBukkit() && "health".equals(resourceDefinition.id())) {
             syncHealthToBukkit(player, state);
@@ -244,20 +244,20 @@ final class ResourceManagementService {
     }
 
     public ResourceState readResourceState(Player player, String resourceId) {
-        return service.stateRepositoryInternal().readResourceState(player, resourceId);
+        return service.stateRepository().readResourceState(player, resourceId);
     }
 
     public boolean isAttackCoolingDown(Player player) {
         if (player == null) {
             return false;
         }
-        Long until = service.stateRepositoryInternal().readAttackCooldownUntil(player);
+        Long until = service.stateRepository().readAttackCooldownUntil(player);
         if (until == null || until <= 0L) {
             return false;
         }
         long now = System.currentTimeMillis();
         if (now >= until) {
-            service.stateRepositoryInternal().clearAttackCooldown(player);
+            service.stateRepository().clearAttackCooldown(player);
             return false;
         }
         return true;
@@ -267,13 +267,13 @@ final class ResourceManagementService {
         if (player == null) {
             return 0;
         }
-        int cooldownTicks = service.vanillaSynchronizerInternal().resolveAttackCooldownTicks(snapshot, service.genericAttackSpeedDefinitionsInternal());
+        int cooldownTicks = service.vanillaSynchronizer().resolveAttackCooldownTicks(snapshot, service.registryService().genericAttackSpeedDefinitions());
         if (cooldownTicks <= 0) {
-            service.stateRepositoryInternal().clearAttackCooldown(player);
+            service.stateRepository().clearAttackCooldown(player);
             return 0;
         }
         long until = System.currentTimeMillis() + (cooldownTicks * 50L);
-        service.stateRepositoryInternal().writeAttackCooldownUntil(player, until);
+        service.stateRepository().writeAttackCooldownUntil(player, until);
         ItemStack held = itemStack == null ? player.getInventory().getItemInMainHand() : itemStack;
         if (held != null && !held.getType().isAir()) {
             player.setCooldown(held.getType(), cooldownTicks);
@@ -286,7 +286,7 @@ final class ResourceManagementService {
             return;
         }
         AttributeSnapshot snapshot = service.collectCombatSnapshot(player);
-        service.stateRepositoryInternal().writeCombatSnapshot(player, snapshot);
+        service.stateRepository().writeCombatSnapshot(player, snapshot);
         syncPlayerResources(player, snapshot, reason, healthOverride, forceHealthToFull);
     }
 
@@ -295,19 +295,19 @@ final class ResourceManagementService {
             ResourceSyncReason reason,
             Double healthOverride,
             boolean forceHealthToFull) {
-        for (ResourceDefinition resourceDefinition : service.resourceDefinitionsInternal().values()) {
+        for (ResourceDefinition resourceDefinition : service.resourceDefinitions().values()) {
             Double override = "health".equals(resourceDefinition.id()) ? healthOverride : null;
             ResourceSyncReason effectiveReason = forceHealthToFull && "health".equals(resourceDefinition.id())
                     ? ResourceSyncReason.INITIALIZE
                     : reason;
             syncResource(player, resourceDefinition, snapshot, effectiveReason, override);
         }
-        service.vanillaSynchronizerInternal().syncMovementSpeed(player, snapshot, service.genericSpeedDefinitionsInternal());
-        service.vanillaSynchronizerInternal().syncVanillaMappedAttributes(
+        service.vanillaSynchronizer().syncMovementSpeed(player, snapshot, service.registryService().genericSpeedDefinitions());
+        service.vanillaSynchronizer().syncVanillaMappedAttributes(
                 player,
                 snapshot,
-                service.vanillaAttributeBindingsInternal(),
-                service.vanillaMappedAttributeIdsInternal()
+                service.registryService().vanillaAttributeBindings(),
+                service.registryService().vanillaMappedAttributeIds()
         );
     }
 

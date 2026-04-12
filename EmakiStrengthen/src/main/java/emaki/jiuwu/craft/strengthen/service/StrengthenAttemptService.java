@@ -13,10 +13,12 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 
-import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
+import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerSnapshot;
+import emaki.jiuwu.craft.corelib.integration.ReflectivePdcAttributeGateway;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
@@ -33,25 +35,33 @@ import emaki.jiuwu.craft.strengthen.model.StrengthenState;
 
 public final class StrengthenAttemptService implements EmakiStrengthenApi {
 
+    private static final String PDC_ATTRIBUTE_SOURCE_ID = "strengthen";
+
     private final EmakiStrengthenPlugin plugin;
     private final StrengthenRecipeResolver recipeResolver;
     private final ChanceCalculator chanceCalculator;
     private final StrengthenEconomyService economyService;
     private final StrengthenSnapshotBuilder snapshotBuilder;
     private final StrengthenActionCoordinator actionCoordinator;
+    private final EmakiItemAssemblyService itemAssemblyService;
+    private final ItemSourceService itemSourceService;
 
     public StrengthenAttemptService(EmakiStrengthenPlugin plugin,
             StrengthenRecipeResolver recipeResolver,
             ChanceCalculator chanceCalculator,
             StrengthenEconomyService economyService,
             StrengthenSnapshotBuilder snapshotBuilder,
-            StrengthenActionCoordinator actionCoordinator) {
+            StrengthenActionCoordinator actionCoordinator,
+            EmakiItemAssemblyService itemAssemblyService,
+            ItemSourceService itemSourceService) {
         this.plugin = plugin;
         this.recipeResolver = recipeResolver;
         this.chanceCalculator = chanceCalculator;
         this.economyService = economyService;
         this.snapshotBuilder = snapshotBuilder;
         this.actionCoordinator = actionCoordinator;
+        this.itemAssemblyService = itemAssemblyService;
+        this.itemSourceService = itemSourceService;
     }
 
     @Override
@@ -253,8 +263,11 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
                     "star", 8
             ));
             double radius = plugin.appConfig().localBroadcastRadius();
-            Bukkit.getOnlinePlayers().stream()
-                    .filter(viewer -> viewer.getWorld().equals(player.getWorld()) && viewer.getLocation().distanceSquared(player.getLocation()) <= radius * radius)
+            double radiusSquared = radius * radius;
+            var world = player.getWorld();
+            var playerLocation = player.getLocation();
+            world.getPlayers().stream()
+                    .filter(viewer -> viewer.getLocation().distanceSquared(playerLocation) <= radiusSquared)
                     .forEach(viewer -> plugin.messageService().sendRaw(viewer, message));
         }
         for (int star : List.of(10, 12)) {
@@ -287,12 +300,11 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
     }
 
     private StoredState readStoredState(ItemStack itemStack, ItemSource baseSource, String fallbackSignature) {
-        EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.getInstance();
-        if (coreLib == null || itemStack == null || !coreLib.itemAssemblyService().isEmakiItem(itemStack)) {
+        if (itemAssemblyService == null || itemStack == null || !itemAssemblyService.isEmakiItem(itemStack)) {
             String signature = Texts.isBlank(fallbackSignature) ? ItemSourceUtil.toShorthand(baseSource) : fallbackSignature;
             return new StoredState(false, "", 0, 0, Set.of(), 0, 0, 0L, "", signature);
         }
-        EmakiItemLayerSnapshot snapshot = coreLib.itemAssemblyService().readLayerSnapshot(itemStack, "strengthen");
+        EmakiItemLayerSnapshot snapshot = itemAssemblyService.readLayerSnapshot(itemStack, "strengthen");
         if (snapshot == null) {
             String signature = Texts.isBlank(fallbackSignature) ? ItemSourceUtil.toShorthand(baseSource) : fallbackSignature;
             return new StoredState(false, "", 0, 0, Set.of(), 0, 0, 0L, "", signature);
@@ -429,8 +441,7 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
         if (targetSource == null) {
             return 0;
         }
-        EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.getInstance();
-        if (coreLib == null || coreLib.itemSourceService() == null) {
+        if (itemSourceService == null) {
             return 0;
         }
         int total = 0;
@@ -438,7 +449,7 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
             if (stack == null || stack.getType().isAir()) {
                 continue;
             }
-            ItemSource source = coreLib.itemSourceService().identifyItem(stack);
+            ItemSource source = itemSourceService.identifyItem(stack);
             if (ItemSourceUtil.matches(targetSource, source)) {
                 total += stack.getAmount();
             }
@@ -477,8 +488,7 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
         if (targetSource == null) {
             return false;
         }
-        EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.getInstance();
-        if (coreLib == null || coreLib.itemSourceService() == null) {
+        if (itemSourceService == null) {
             return false;
         }
         int remaining = amount;
@@ -488,7 +498,7 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
             if (stack == null || stack.getType().isAir()) {
                 continue;
             }
-            ItemSource source = coreLib.itemSourceService().identifyItem(stack);
+            ItemSource source = itemSourceService.identifyItem(stack);
             if (!ItemSourceUtil.matches(targetSource, source)) {
                 continue;
             }
@@ -509,12 +519,11 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
         if (recipe == null) {
             return null;
         }
-        EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.getInstance();
-        if (coreLib == null) {
+        if (itemAssemblyService == null) {
             return null;
         }
         EmakiItemLayerSnapshot snapshot = snapshotBuilder.buildLayerSnapshot(recipe, state, materialsSignature);
-        ItemStack rebuilt = coreLib.itemAssemblyService().preview(new EmakiItemAssemblyRequest(
+        ItemStack rebuilt = itemAssemblyService.preview(new EmakiItemAssemblyRequest(
                 state.baseSource(),
                 Math.max(1, itemStack.getAmount()),
                 itemStack,
@@ -522,6 +531,7 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
         ));
         if (rebuilt != null) {
             rebuilt.setAmount(Math.max(1, itemStack.getAmount()));
+            applyPdcAttributes(rebuilt, recipe, state);
         }
         return rebuilt;
     }
@@ -558,21 +568,28 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
             replacements.put("costs", renderCosts(preview.costs()));
         } else {
             replacements.put("cost", 0);
-            replacements.put("currency", "免费");
-            replacements.put("costs", "免费");
+            replacements.put("currency", freeCostLabel());
+            replacements.put("costs", freeCostLabel());
         }
         return replacements;
     }
 
     private String renderCosts(List<AttemptCost> costs) {
         if (costs == null || costs.isEmpty()) {
-            return "免费";
+            return freeCostLabel();
         }
         List<String> parts = new ArrayList<>();
         for (AttemptCost cost : costs) {
             parts.add(cost.amount() + " " + cost.displayName());
         }
         return String.join(", ", parts);
+    }
+
+    private String freeCostLabel() {
+        var message = plugin.messageService() == null
+                ? ""
+                : plugin.messageService().message("strengthen.misc.free_cost");
+        return Texts.isBlank(message) ? "免费" : message;
     }
 
     private Set<Integer> collectFirstReach(Set<Integer> currentFlags, int targetStar) {
@@ -585,6 +602,25 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
     private String resolveItemToken(ItemStack itemStack) {
         ItemSource source = recipeResolver.resolveBaseSource(itemStack);
         return source == null ? "" : ItemSourceUtil.toShorthand(source);
+    }
+
+    private void applyPdcAttributes(ItemStack itemStack, StrengthenRecipe recipe, StrengthenState state) {
+        if (itemStack == null || recipe == null || state == null) {
+            return;
+        }
+        ReflectivePdcAttributeGateway gateway = plugin.pdcAttributeGateway();
+        if (gateway == null || !gateway.available()) {
+            return;
+        }
+        Map<String, Double> eaAttributes = recipe.cumulativeEaAttributes(state.currentStar());
+        if (eaAttributes.isEmpty()) {
+            gateway.clear(itemStack, PDC_ATTRIBUTE_SOURCE_ID);
+            return;
+        }
+        Map<String, String> meta = new LinkedHashMap<>();
+        meta.put("recipe_id", recipe.id());
+        meta.put("current_star", String.valueOf(state.currentStar()));
+        gateway.write(itemStack, PDC_ATTRIBUTE_SOURCE_ID, eaAttributes, meta);
     }
 
     static StarProgress collectStarProgress(Set<Integer> currentFlags, Set<Integer> reachedNow) {

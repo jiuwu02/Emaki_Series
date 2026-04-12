@@ -4,29 +4,37 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 
-import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.action.Action;
 import emaki.jiuwu.craft.corelib.action.ActionLineParser;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
+import emaki.jiuwu.craft.corelib.action.ActionRegistry;
 import emaki.jiuwu.craft.corelib.action.ActionSyntaxException;
+import emaki.jiuwu.craft.corelib.action.ActionTemplateRegistry;
 import emaki.jiuwu.craft.corelib.action.ParsedActionLine;
 import emaki.jiuwu.craft.corelib.action.builtin.UseTemplateAction;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.YamlDirectoryLoader;
+import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.model.Recipe;
 
 public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
 
     private final EmakiForgePlugin forgePlugin;
+    private final Supplier<ActionRegistry> actionRegistrySupplier;
+    private final Supplier<ActionTemplateRegistry> actionTemplateRegistrySupplier;
 
-    public RecipeLoader(EmakiForgePlugin plugin) {
+    public RecipeLoader(EmakiForgePlugin plugin,
+            Supplier<ActionRegistry> actionRegistrySupplier,
+            Supplier<ActionTemplateRegistry> actionTemplateRegistrySupplier) {
         super(plugin);
         this.forgePlugin = plugin;
+        this.actionRegistrySupplier = actionRegistrySupplier;
+        this.actionTemplateRegistrySupplier = actionTemplateRegistrySupplier;
     }
 
     @Override
@@ -40,12 +48,12 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
     }
 
     @Override
-    protected Recipe parse(File file, YamlConfiguration configuration) {
+    protected Recipe parse(File file, YamlSection configuration) {
         Recipe recipe = Recipe.fromConfig(configuration);
         return validateActions(file, recipe) ? recipe : null;
     }
 
-    public Recipe parseDocument(File file, YamlConfiguration configuration) {
+    public Recipe parseDocument(File file, YamlSection configuration) {
         return parse(file, configuration);
     }
 
@@ -68,18 +76,21 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
         if (recipe == null || recipe.action() == null) {
             return recipe != null;
         }
-        EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.getInstance();
-        if (coreLib == null || coreLib.actionRegistry() == null || coreLib.actionTemplateRegistry() == null) {
+        var actionRegistry = actionRegistrySupplier == null ? null : actionRegistrySupplier.get();
+        var actionTemplateRegistry = actionTemplateRegistrySupplier == null
+                ? null
+                : actionTemplateRegistrySupplier.get();
+        if (actionRegistry == null || actionTemplateRegistry == null) {
             forgePlugin.messageService().warning("loader.recipe_action_validation_skipped", Map.of(
                     "file", file.getName()
             ));
             return true;
         }
         ActionLineParser parser = new ActionLineParser();
-        return validatePhase(file, recipe, "pre", recipe.action().pre(), parser, coreLib)
-                && validatePhase(file, recipe, "result", recipe.result() == null ? List.of() : recipe.result().action(), parser, coreLib)
-                && validatePhase(file, recipe, "success", recipe.action().success(), parser, coreLib)
-                && validatePhase(file, recipe, "failure", recipe.action().failure(), parser, coreLib);
+        return validatePhase(file, recipe, "pre", recipe.action().pre(), parser, actionRegistry, actionTemplateRegistry)
+                && validatePhase(file, recipe, "result", recipe.result() == null ? List.of() : recipe.result().action(), parser, actionRegistry, actionTemplateRegistry)
+                && validatePhase(file, recipe, "success", recipe.action().success(), parser, actionRegistry, actionTemplateRegistry)
+                && validatePhase(file, recipe, "failure", recipe.action().failure(), parser, actionRegistry, actionTemplateRegistry);
     }
 
     private boolean validatePhase(File file,
@@ -87,7 +98,8 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
             String phase,
             List<String> lines,
             ActionLineParser parser,
-            EmakiCoreLibPlugin coreLib) {
+            ActionRegistry actionRegistry,
+            ActionTemplateRegistry actionTemplateRegistry) {
         if (lines == null || lines.isEmpty()) {
             return true;
         }
@@ -108,11 +120,11 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
             if (parsed == null) {
                 continue;
             }
-            Action action = coreLib.actionRegistry().get(parsed.actionId());
+            Action action = actionRegistry.get(parsed.actionId());
             if (action == null) {
                 String suggestion = "";
                 String normalizedActionId = parsed.actionId().replace("_", "");
-                if (!normalizedActionId.equals(parsed.actionId()) && coreLib.actionRegistry().get(normalizedActionId) != null) {
+                if (!normalizedActionId.equals(parsed.actionId()) && actionRegistry.get(normalizedActionId) != null) {
                     suggestion = " 请改用标准操作名 '" + normalizedActionId + "'.";
                 }
                 forgePlugin.messageService().warning("loader.recipe_unknown_action", Map.of(
@@ -138,7 +150,7 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
             }
             if (UseTemplateAction.ID.equals(parsed.actionId())) {
                 String templateName = parsed.arguments().get("name");
-                if (Texts.isBlank(templateName) || coreLib.actionTemplateRegistry().get(templateName) == null) {
+                if (Texts.isBlank(templateName) || actionTemplateRegistry.get(templateName) == null) {
                     forgePlugin.messageService().warning("loader.recipe_unknown_action_template", Map.of(
                             "template", templateName,
                             "recipe", recipe.id(),

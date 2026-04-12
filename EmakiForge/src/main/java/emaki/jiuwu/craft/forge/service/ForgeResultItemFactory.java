@@ -5,7 +5,9 @@ import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerSnapshot;
+import emaki.jiuwu.craft.corelib.assembly.ItemPresentationCompiler;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
@@ -19,9 +21,9 @@ final class ForgeResultItemFactory {
     private final EmakiForgePlugin plugin;
     private final ForgeLayerSnapshotBuilder snapshotBuilder;
 
-    ForgeResultItemFactory(EmakiForgePlugin plugin) {
+    ForgeResultItemFactory(EmakiForgePlugin plugin, ItemPresentationCompiler itemPresentationCompiler) {
         this.plugin = plugin;
-        this.snapshotBuilder = new ForgeLayerSnapshotBuilder(plugin);
+        this.snapshotBuilder = new ForgeLayerSnapshotBuilder(plugin, itemPresentationCompiler);
     }
 
     EmakiItemAssemblyRequest buildAssemblyRequest(Recipe recipe,
@@ -90,7 +92,7 @@ final class ForgeResultItemFactory {
             display = MiniMessages.parse(resolveResultItemName(recipe, resultItem));
         }
         try {
-            return MiniMessages.serialize(display.hoverEvent(resultItem.asHoverEvent(showItem -> showItem)));
+            return MiniMessages.serialize(ItemTextBridge.displayWithItemHover(display, resultItem));
         } catch (Exception ignored) {
             return resolveSourceItemName(guiItems, resultItem, recipe);
         }
@@ -100,28 +102,14 @@ final class ForgeResultItemFactory {
         if (itemStack == null || itemStack.getType() == Material.AIR) {
             return "";
         }
-        if (itemStack.hasItemMeta() && itemStack.getItemMeta().hasCustomName()) {
-            return MiniMessages.plain(itemStack.getItemMeta().customName());
-        }
-        try {
-            return MiniMessages.plain(itemStack.effectiveName());
-        } catch (Exception ignored) {
-            return itemStack.getType().name();
-        }
+        return MiniMessages.plain(ItemTextBridge.effectiveName(itemStack));
     }
 
     private Component resolveDisplayComponent(ItemStack itemStack) {
         if (itemStack == null || itemStack.getType() == Material.AIR) {
             return null;
         }
-        if (itemStack.hasItemMeta() && itemStack.getItemMeta().hasCustomName()) {
-            return itemStack.getItemMeta().customName();
-        }
-        try {
-            return itemStack.effectiveName();
-        } catch (Exception ignored) {
-            return Component.text(itemStack.getType().name());
-        }
+        return ItemTextBridge.effectiveName(itemStack);
     }
 
     private ItemStack cloneNonAir(ItemStack itemStack) {

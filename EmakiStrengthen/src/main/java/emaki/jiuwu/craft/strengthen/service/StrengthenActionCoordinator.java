@@ -3,13 +3,15 @@ package emaki.jiuwu.craft.strengthen.service;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.action.ActionBatchResult;
 import emaki.jiuwu.craft.corelib.action.ActionContext;
+import emaki.jiuwu.craft.corelib.action.ActionExecutor;
+import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
 import emaki.jiuwu.craft.strengthen.model.StrengthenRecipe;
@@ -18,9 +20,11 @@ import net.kyori.adventure.text.Component;
 public final class StrengthenActionCoordinator {
 
     private final EmakiStrengthenPlugin plugin;
+    private final Supplier<ActionExecutor> actionExecutorSupplier;
 
-    public StrengthenActionCoordinator(EmakiStrengthenPlugin plugin) {
+    public StrengthenActionCoordinator(EmakiStrengthenPlugin plugin, Supplier<ActionExecutor> actionExecutorSupplier) {
         this.plugin = plugin;
+        this.actionExecutorSupplier = actionExecutorSupplier;
     }
 
     public void triggerSuccessActions(Player player,
@@ -57,8 +61,8 @@ public final class StrengthenActionCoordinator {
             boolean dropped,
             boolean protectionApplied,
             int wasStar) {
-        EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.getInstance();
-        if (coreLib == null || coreLib.actionExecutor() == null || recipe == null || player == null || actions == null || actions.isEmpty()) {
+        ActionExecutor actionExecutor = actionExecutorSupplier == null ? null : actionExecutorSupplier.get();
+        if (actionExecutor == null || recipe == null || player == null || actions == null || actions.isEmpty()) {
             return;
         }
         String showItem = buildShowItem(resultItem);
@@ -84,7 +88,7 @@ public final class StrengthenActionCoordinator {
                 "protected", protectionApplied,
                 "was_star", wasStar
         ));
-        coreLib.actionExecutor().executeAll(context, actions, true)
+        actionExecutor.executeAll(context, actions, true)
                 .whenComplete((result, throwable) -> logActionResult(recipe, phase, star, result, throwable));
     }
 
@@ -118,15 +122,20 @@ public final class StrengthenActionCoordinator {
 
     public String buildShowItem(ItemStack itemStack) {
         if (itemStack == null || itemStack.getType().isAir()) {
-            return "物品";
+            return defaultShowItemName();
         }
-        Component display = itemStack.hasItemMeta() && itemStack.getItemMeta().hasCustomName()
-                ? itemStack.getItemMeta().customName()
-                : itemStack.effectiveName();
+        Component display = ItemTextBridge.effectiveName(itemStack);
         try {
-            return MiniMessages.serialize(display.hoverEvent(itemStack.asHoverEvent(showItem -> showItem)));
+            return MiniMessages.serialize(ItemTextBridge.displayWithItemHover(itemStack));
         } catch (Exception ignored) {
             return MiniMessages.plain(display);
         }
+    }
+
+    private String defaultShowItemName() {
+        var message = plugin.messageService() == null
+                ? ""
+                : plugin.messageService().message("strengthen.misc.default_item_name");
+        return emaki.jiuwu.craft.corelib.text.Texts.isBlank(message) ? "物品" : message;
     }
 }

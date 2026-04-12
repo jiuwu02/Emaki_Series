@@ -2,9 +2,8 @@ package emaki.jiuwu.craft.forge.loader;
 
 import java.io.File;
 
-import org.bukkit.configuration.file.YamlConfiguration;
-
 import emaki.jiuwu.craft.corelib.yaml.YamlDirectoryLoader;
+import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.model.ForgeMaterial;
 
@@ -25,11 +24,11 @@ public final class MaterialLoader extends YamlDirectoryLoader<ForgeMaterial> {
     }
 
     @Override
-    protected ForgeMaterial parse(File file, YamlConfiguration configuration) {
+    protected ForgeMaterial parse(File file, YamlSection configuration) {
         return ForgeMaterial.fromConfig(configuration);
     }
 
-    public ForgeMaterial parseDocument(File file, YamlConfiguration configuration) {
+    public ForgeMaterial parseDocument(File file, YamlSection configuration) {
         return parse(file, configuration);
     }
 

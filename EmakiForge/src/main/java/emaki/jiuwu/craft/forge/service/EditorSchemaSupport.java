@@ -23,9 +23,8 @@ final class EditorSchemaSupport {
             };
             case RECIPE -> switch (normalized) {
                 case "blueprint_requirements" -> defaultBlueprintRequirement();
-                case "blueprint_requirements.blueprint_options" -> defaultBlueprintOption();
-                case "required_materials" -> defaultRequiredMaterial();
-                case "optional_materials.whitelist", "optional_materials.blacklist", "conditions", "quality.custom_pool",
+                case "materials" -> defaultRecipeMaterial();
+                case "conditions", "quality.custom_pool",
                         "result.action", "action.pre", "action.success", "action.failure" -> "";
                 case "result.meta_actions.name_modifications" -> defaultNameAction();
                 case "result.meta_actions.lore_actions" -> defaultLoreAction();
@@ -83,22 +82,18 @@ final class EditorSchemaSupport {
 
     private static Map<String, Object> defaultBlueprintRequirement() {
         Map<String, Object> requirement = new LinkedHashMap<>();
-        requirement.put("requirement_mode", "any_of");
-        requirement.put("blueprint_options", new ArrayList<>(List.of(defaultBlueprintOption())));
+        requirement.put("item", "");
+        requirement.put("amount", "1");
         return requirement;
     }
 
-    private static Map<String, Object> defaultBlueprintOption() {
-        Map<String, Object> option = new LinkedHashMap<>();
-        option.put("selector", new LinkedHashMap<>(Map.of("kind", "id", "value", "")));
-        option.put("count", "1");
-        return option;
-    }
-
-    private static Map<String, Object> defaultRequiredMaterial() {
+    private static Map<String, Object> defaultRecipeMaterial() {
         Map<String, Object> material = new LinkedHashMap<>();
-        material.put("id", "");
-        material.put("count", "1");
+        material.put("item", "");
+        material.put("amount", "1");
+        material.put("optional", "false");
+        material.put("capacity_cost", "0");
+        material.put("effects", new ArrayList<Object>());
         return material;
     }
 

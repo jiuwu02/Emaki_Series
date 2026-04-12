@@ -7,10 +7,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.bukkit.configuration.ConfigurationSection;
-
+import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
 public final class StrengthenRecipe {
 
@@ -172,6 +172,7 @@ public final class StrengthenRecipe {
     public record StarStage(int targetStar,
             String name,
             Map<String, Double> stats,
+            Map<String, Double> eaAttributes,
             List<StarStageMaterial> materials,
             EconomyOverride economyOverride,
             List<String> presentation,
@@ -181,6 +182,7 @@ public final class StrengthenRecipe {
         public StarStage {
             name = Texts.toStringSafe(name);
             stats = stats == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(stats));
+            eaAttributes = eaAttributes == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(eaAttributes));
             materials = materials == null ? List.of() : List.copyOf(materials);
             economyOverride = economyOverride == null ? new EconomyOverride(List.of()) : economyOverride;
             presentation = normalizeList(presentation);
@@ -222,7 +224,7 @@ public final class StrengthenRecipe {
         this.presentation = presentation == null ? new PresentationConfig(List.of(), List.of()) : presentation;
     }
 
-    public static StrengthenRecipe fromConfig(ConfigurationSection section) {
+    public static StrengthenRecipe fromConfig(YamlSection section) {
         if (section == null) {
             return null;
         }
@@ -234,13 +236,13 @@ public final class StrengthenRecipe {
                 id,
                 section.getString("display_name", id),
                 section.getString("gui_template", "strengthen_gui"),
-                parseEconomy(section.getConfigurationSection("economy")),
-                parseLimits(section.getConfigurationSection("limits")),
-                parseSuccessRates(section.getConfigurationSection("success_rates")),
-                parseMatchRule(section.getConfigurationSection("match")),
-                parseStatLines(section.getConfigurationSection("stat_lines")),
-                parseStars(section.getConfigurationSection("stars")),
-                parsePresentation(section.getConfigurationSection("presentation"))
+                parseEconomy(section.getSection("economy")),
+                parseLimits(section.getSection("limits")),
+                parseSuccessRates(section.getSection("success_rates")),
+                parseMatchRule(section.getSection("match")),
+                parseStatLines(section.getSection("stat_lines")),
+                parseStars(section.getSection("stars")),
+                parsePresentation(section.getSection("presentation"))
         );
     }
 
@@ -251,6 +253,17 @@ public final class StrengthenRecipe {
                 continue;
             }
             merge(values, entry.getValue().stats());
+        }
+        return values;
+    }
+
+    public Map<String, Double> cumulativeEaAttributes(int currentStar) {
+        Map<String, Double> values = new LinkedHashMap<>();
+        for (Map.Entry<Integer, StarStage> entry : stars.entrySet()) {
+            if (entry.getKey() > currentStar || entry.getValue() == null) {
+                continue;
+            }
+            merge(values, entry.getValue().eaAttributes());
         }
         return values;
     }
@@ -354,16 +367,17 @@ public final class StrengthenRecipe {
         return presentation;
     }
 
-    private static EconomyConfig parseEconomy(ConfigurationSection section) {
+    private static EconomyConfig parseEconomy(YamlSection section) {
         if (section == null) {
             return new EconomyConfig(false, List.of());
         }
         List<CurrencyEntry> currencies = parseCurrencies(section.getMapList("currencies"));
-        boolean enabled = section.contains("enabled") ? section.getBoolean("enabled") : !currencies.isEmpty();
+        Boolean enabledValue = section.getBoolean("enabled");
+        boolean enabled = enabledValue != null ? enabledValue : !currencies.isEmpty();
         return new EconomyConfig(enabled, currencies);
     }
 
-    private static EconomyOverride parseEconomyOverride(ConfigurationSection section) {
+    private static EconomyOverride parseEconomyOverride(YamlSection section) {
         if (section == null) {
             return new EconomyOverride(List.of());
         }
@@ -380,17 +394,17 @@ public final class StrengthenRecipe {
                 continue;
             }
             currencies.add(new CurrencyEntry(
-                    Texts.toStringSafe(rawEntry.get("provider")),
-                    Texts.toStringSafe(rawEntry.get("currency_id")),
-                    Numbers.tryParseLong(rawEntry.get("base_cost"), 0L),
-                    Texts.toStringSafe(rawEntry.get("cost_formula")),
-                    Texts.toStringSafe(rawEntry.get("display_name"))
+                    ConfigNodes.string(rawEntry, "provider", ""),
+                    ConfigNodes.string(rawEntry, "currency_id", ""),
+                    Numbers.tryParseLong(ConfigNodes.get(rawEntry, "base_cost"), 0L),
+                    ConfigNodes.string(rawEntry, "cost_formula", ""),
+                    ConfigNodes.string(rawEntry, "display_name", "")
             ));
         }
         return List.copyOf(currencies);
     }
 
-    private static Limits parseLimits(ConfigurationSection section) {
+    private static Limits parseLimits(YamlSection section) {
         if (section == null) {
             return Limits.defaults();
         }
@@ -403,7 +417,7 @@ public final class StrengthenRecipe {
         );
     }
 
-    private static Map<Integer, Double> parseSuccessRates(ConfigurationSection section) {
+    private static Map<Integer, Double> parseSuccessRates(YamlSection section) {
         if (section == null) {
             return Map.of();
         }
@@ -418,7 +432,7 @@ public final class StrengthenRecipe {
         return result;
     }
 
-    private static MatchRule parseMatchRule(ConfigurationSection section) {
+    private static MatchRule parseMatchRule(YamlSection section) {
         if (section == null) {
             return new MatchRule(List.of(), List.of(), List.of(), List.of(), List.of(), List.of());
         }
@@ -432,13 +446,13 @@ public final class StrengthenRecipe {
         );
     }
 
-    private static Map<String, StatLineDefinition> parseStatLines(ConfigurationSection section) {
+    private static Map<String, StatLineDefinition> parseStatLines(YamlSection section) {
         if (section == null) {
             return Map.of();
         }
         Map<String, StatLineDefinition> result = new LinkedHashMap<>();
         for (String key : section.getKeys(false)) {
-            ConfigurationSection statSection = section.getConfigurationSection(key);
+            YamlSection statSection = section.getSection(key);
             if (statSection == null) {
                 String template = Texts.toStringSafe(section.get(key));
                 result.put(Texts.lower(key), new StatLineDefinition(template, List.of(), List.of()));
@@ -453,7 +467,7 @@ public final class StrengthenRecipe {
         return result;
     }
 
-    private static Map<Integer, StarStage> parseStars(ConfigurationSection section) {
+    private static Map<Integer, StarStage> parseStars(YamlSection section) {
         if (section == null) {
             return Map.of();
         }
@@ -463,16 +477,17 @@ public final class StrengthenRecipe {
             if (targetStar == null || targetStar <= 0) {
                 continue;
             }
-            ConfigurationSection stageSection = section.getConfigurationSection(key);
+            YamlSection stageSection = section.getSection(key);
             if (stageSection == null) {
                 continue;
             }
             result.put(targetStar, new StarStage(
                     targetStar,
                     stageSection.getString("name", ""),
-                    parseDoubleMap(stageSection.getConfigurationSection("stats")),
+                    parseDoubleMap(stageSection.getSection("stats")),
+                    parseDoubleMap(stageSection.getSection("ea_attributes")),
                     parseStageMaterials(stageSection.getMapList("materials")),
-                    parseEconomyOverride(stageSection.getConfigurationSection("economy_override")),
+                    parseEconomyOverride(stageSection.getSection("economy_override")),
                     stageSection.getStringList("presentation"),
                     stageSection.getStringList("success_actions"),
                     stageSection.getStringList("failure_actions")
@@ -491,17 +506,17 @@ public final class StrengthenRecipe {
                 continue;
             }
             result.add(new StarStageMaterial(
-                    Texts.toStringSafe(rawEntry.get("item")),
-                    Numbers.tryParseInt(rawEntry.get("amount"), 1),
-                    Boolean.TRUE.equals(rawEntry.get("optional")),
-                    Boolean.TRUE.equals(rawEntry.get("protection")),
-                    Numbers.tryParseInt(rawEntry.get("temper_boost"), 0)
+                    ConfigNodes.string(rawEntry, "item", ""),
+                    Numbers.tryParseInt(ConfigNodes.get(rawEntry, "amount"), 1),
+                    ConfigNodes.bool(rawEntry, "optional", false),
+                    ConfigNodes.bool(rawEntry, "protection", false),
+                    Numbers.tryParseInt(ConfigNodes.get(rawEntry, "temper_boost"), 0)
             ));
         }
         return List.copyOf(result);
     }
 
-    private static PresentationConfig parsePresentation(ConfigurationSection section) {
+    private static PresentationConfig parsePresentation(YamlSection section) {
         if (section == null) {
             return new PresentationConfig(List.of(), List.of());
         }
@@ -525,7 +540,7 @@ public final class StrengthenRecipe {
         return List.copyOf(result);
     }
 
-    private static Map<String, Double> parseDoubleMap(ConfigurationSection section) {
+    private static Map<String, Double> parseDoubleMap(YamlSection section) {
         if (section == null) {
             return Map.of();
         }

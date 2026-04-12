@@ -90,45 +90,38 @@ public enum EditableResourceType {
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("id", "new_recipe");
         data.put("display_name", "<white>新配方</white>");
-        data.put("target_item", new LinkedHashMap<>(Map.of("item", "stone")));
-        data.put("forge_capacity", "0");
+        Map<String, Object> targetItem = new LinkedHashMap<>();
+        targetItem.put("item", "minecraft:stone");
+        targetItem.put("forge_capacity", "0");
+        data.put("target_item", targetItem);
         data.put("blueprint_requirements", new ArrayList<Object>());
-        data.put("required_materials", new ArrayList<Object>());
-        data.put("optional_materials", new LinkedHashMap<>(Map.of(
-                "enabled", "false",
-                "whitelist", new ArrayList<String>(),
-                "blacklist", new ArrayList<String>(),
-                "max_count", "0"
-        )));
+        data.put("materials", new ArrayList<Object>());
+        data.put("optional_material_limit", "0");
         data.put("condition_type", "all_of");
         data.put("condition_required_count", "0");
         data.put("conditions", new ArrayList<String>());
-        data.put("quality", new LinkedHashMap<>(Map.of(
-                "enabled", "false",
-                "custom_pool", new ArrayList<String>(),
-                "guarantee", new LinkedHashMap<>(Map.of(
-                        "enabled", "false",
-                        "attempts", "10",
-                        "minimum", "普通"
-                ))
-        )));
-        data.put("gui", new LinkedHashMap<>(Map.of(
-                "template", "forge_gui",
-                "slots", new LinkedHashMap<String, Object>()
-        )));
-        data.put("result", new LinkedHashMap<>(Map.of(
-                "output_item", "",
-                "meta_actions", new LinkedHashMap<>(Map.of(
-                        "name_modifications", new ArrayList<Object>(),
-                        "lore_actions", new ArrayList<Object>()
-                )),
-                "action", new ArrayList<String>()
-        )));
-        data.put("action", new LinkedHashMap<>(Map.of(
-                "pre", new ArrayList<String>(),
-                "success", new ArrayList<String>(),
-                "failure", new ArrayList<String>()
-        )));
+        Map<String, Object> guarantee = new LinkedHashMap<>();
+        guarantee.put("enabled", "false");
+        guarantee.put("attempts", "10");
+        guarantee.put("minimum", "普通");
+        Map<String, Object> quality = new LinkedHashMap<>();
+        quality.put("enabled", "false");
+        quality.put("custom_pool", new ArrayList<String>());
+        quality.put("guarantee", guarantee);
+        data.put("quality", quality);
+        Map<String, Object> metaActions = new LinkedHashMap<>();
+        metaActions.put("name_modifications", new ArrayList<Object>());
+        metaActions.put("lore_actions", new ArrayList<Object>());
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("output_item", "");
+        result.put("meta_actions", metaActions);
+        result.put("action", new ArrayList<String>());
+        data.put("result", result);
+        Map<String, Object> action = new LinkedHashMap<>();
+        action.put("pre", new ArrayList<String>());
+        action.put("success", new ArrayList<String>());
+        action.put("failure", new ArrayList<String>());
+        data.put("action", action);
         data.put("permission", "");
         return data;
     }

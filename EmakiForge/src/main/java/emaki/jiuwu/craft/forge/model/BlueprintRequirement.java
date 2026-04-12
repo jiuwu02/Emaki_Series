@@ -1,12 +1,11 @@
 package emaki.jiuwu.craft.forge.model;
 
-import org.bukkit.configuration.ConfigurationSection;
-
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
 public final class BlueprintRequirement {
 
@@ -24,7 +23,7 @@ public final class BlueprintRequirement {
         if (raw == null) {
             return null;
         }
-        if (raw instanceof ConfigurationSection section
+        if (raw instanceof YamlSection section
                 && (section.contains("requirement_mode") || section.contains("blueprint_options"))) {
             return null;
         }

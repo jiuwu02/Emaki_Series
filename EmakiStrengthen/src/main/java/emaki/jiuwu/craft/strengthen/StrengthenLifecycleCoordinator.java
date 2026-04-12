@@ -1,15 +1,27 @@
 package emaki.jiuwu.craft.strengthen;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
 import org.bukkit.Bukkit;
 
 import emaki.jiuwu.craft.corelib.gui.GuiService;
-import emaki.jiuwu.craft.strengthen.loader.AppConfigLoader;
+import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
+import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.integration.ReflectivePdcAttributeGateway;
+import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
+import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
+import emaki.jiuwu.craft.corelib.service.MessageService;
+import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
+import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
+import emaki.jiuwu.craft.corelib.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.math.Numbers;
+import emaki.jiuwu.craft.strengthen.config.AppConfig;
 import emaki.jiuwu.craft.strengthen.loader.GuiTemplateLoader;
-import emaki.jiuwu.craft.strengthen.loader.LanguageLoader;
 import emaki.jiuwu.craft.strengthen.loader.StrengthenRecipeLoader;
-import emaki.jiuwu.craft.strengthen.service.BootstrapService;
 import emaki.jiuwu.craft.strengthen.service.ChanceCalculator;
-import emaki.jiuwu.craft.strengthen.service.MessageService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenActionCoordinator;
 import emaki.jiuwu.craft.strengthen.service.StrengthenAttemptService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenEconomyService;
@@ -18,28 +30,67 @@ import emaki.jiuwu.craft.strengthen.service.StrengthenRefreshService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenRecipeResolver;
 import emaki.jiuwu.craft.strengthen.service.StrengthenSnapshotBuilder;
 
-final class StrengthenLifecycleCoordinator {
+final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiStrengthenPlugin, StrengthenRuntimeComponents> {
 
+    private static final String DEFAULT_PREFIX = "<gray>[ <gradient:#F2C46D:#C9703D>装备强化</gradient> ]</gray>";
+    private static final String PDC_ATTRIBUTE_SOURCE_ID = "strengthen";
+    private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml");
+    private static final List<String> LEGACY_DIRECTORIES = List.of("replace", "profiles", "rules", "materials");
+
+    @Override
     public StrengthenRuntimeComponents initialize(EmakiStrengthenPlugin plugin) {
-        AppConfigLoader appConfigLoader = new AppConfigLoader(plugin);
-        LanguageLoader languageLoader = new LanguageLoader(plugin);
+        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.getInstance();
+        if (coreLibPlugin == null) {
+            throw new IllegalStateException("EmakiCoreLib must be enabled before EmakiStrengthen.");
+        }
+        YamlConfigLoader<AppConfig> appConfigLoader = new YamlConfigLoader<>(
+                plugin,
+                "config.yml",
+                "config_version",
+                AppConfig::defaults,
+                this::parseAppConfig
+        );
+        appConfigLoader.load();
+        LanguageLoader languageLoader = new LanguageLoader(plugin, "lang", "lang", "zh_CN", "zh_CN");
         StrengthenRecipeLoader recipeLoader = new StrengthenRecipeLoader(plugin);
         GuiTemplateLoader guiTemplateLoader = new GuiTemplateLoader(plugin);
-        MessageService messageService = new MessageService(plugin, languageLoader);
-        BootstrapService bootstrapService = new BootstrapService(plugin, messageService);
-        GuiService guiService = new GuiService(plugin);
-        StrengthenRecipeResolver recipeResolver = new StrengthenRecipeResolver(plugin);
+        MessageService messageService = new MessageService(plugin, languageLoader, DEFAULT_PREFIX, false);
+        BootstrapService bootstrapService = new BootstrapService(
+                plugin,
+                messageService,
+                VERSIONED_FILES,
+                staticFiles(plugin),
+                List.of(),
+                List.of(),
+                LEGACY_DIRECTORIES,
+                new BootstrapHooks() {
+                }
+        );
+        GuiService guiService = new GuiService(plugin, coreLibPlugin.asyncTaskScheduler(), coreLibPlugin.performanceMonitor());
+        ReflectivePdcAttributeGateway pdcAttributeGateway = new ReflectivePdcAttributeGateway(plugin);
+        syncPdcAttributeRegistration(pdcAttributeGateway);
+        StrengthenRecipeResolver recipeResolver = new StrengthenRecipeResolver(
+                plugin,
+                coreLibPlugin.itemAssemblyService(),
+                coreLibPlugin.itemSourceService()
+        );
         ChanceCalculator chanceCalculator = new ChanceCalculator();
-        StrengthenEconomyService economyService = new StrengthenEconomyService(plugin);
+        StrengthenEconomyService economyService = new StrengthenEconomyService(
+                plugin,
+                coreLibPlugin::economyManager,
+                coreLibPlugin.itemSourceService()
+        );
         StrengthenSnapshotBuilder snapshotBuilder = new StrengthenSnapshotBuilder();
-        StrengthenActionCoordinator actionCoordinator = new StrengthenActionCoordinator(plugin);
+        StrengthenActionCoordinator actionCoordinator = new StrengthenActionCoordinator(plugin, coreLibPlugin::actionExecutor);
         StrengthenAttemptService attemptService = new StrengthenAttemptService(
                 plugin,
                 recipeResolver,
                 chanceCalculator,
                 economyService,
                 snapshotBuilder,
-                actionCoordinator
+                actionCoordinator,
+                coreLibPlugin.itemAssemblyService(),
+                coreLibPlugin.itemSourceService()
         );
         StrengthenRefreshService refreshService = new StrengthenRefreshService(plugin, attemptService);
         StrengthenGuiService strengthenGuiService = new StrengthenGuiService(plugin, guiService, attemptService);
@@ -51,6 +102,8 @@ final class StrengthenLifecycleCoordinator {
                 messageService,
                 bootstrapService,
                 guiService,
+                coreLibPlugin.itemSourceService(),
+                pdcAttributeGateway,
                 recipeResolver,
                 chanceCalculator,
                 economyService,
@@ -76,12 +129,59 @@ final class StrengthenLifecycleCoordinator {
         plugin.languageLoader().setLanguage(plugin.appConfig().language());
         plugin.recipeLoader().load();
         plugin.guiTemplateLoader().load();
+        syncPdcAttributeRegistration(plugin.pdcAttributeGateway());
         plugin.refreshService().refreshOnlinePlayers();
     }
 
     public void shutdown(EmakiStrengthenPlugin plugin) {
+        if (plugin.pdcAttributeGateway() != null) {
+            plugin.pdcAttributeGateway().shutdown();
+        }
         if (plugin.strengthenGuiService() != null) {
             plugin.strengthenGuiService().clearAllSessions();
         }
+    }
+
+    private AppConfig parseAppConfig(YamlSection configuration) {
+        if (configuration == null || configuration.getKeys(false).isEmpty()) {
+            return AppConfig.defaults();
+        }
+        Map<Integer, Double> rates = parseSuccessRates(configuration.getSection("success_rates"));
+        AppConfig defaults = AppConfig.defaults();
+        return new AppConfig(
+                configuration.getString("language", defaults.language()),
+                configuration.getString("config_version", defaults.configVersion()),
+                Numbers.tryParseInt(configuration.get("local_broadcast_radius"), defaults.localBroadcastRadius()),
+                rates.isEmpty() ? defaults.successRates() : rates
+        );
+    }
+
+    private Map<Integer, Double> parseSuccessRates(YamlSection section) {
+        if (section == null) {
+            return Map.of();
+        }
+        Map<Integer, Double> rates = new java.util.LinkedHashMap<>();
+        for (String key : section.getKeys(false)) {
+            Integer star = Numbers.tryParseInt(key, null);
+            Double value = Numbers.tryParseDouble(section.get(key), null);
+            if (star != null && value != null) {
+                rates.put(star, value);
+            }
+        }
+        return rates;
+    }
+
+    private List<String> staticFiles(EmakiStrengthenPlugin plugin) {
+        List<String> files = new ArrayList<>();
+        files.addAll(YamlFiles.listResourcePaths(plugin, "gui"));
+        files.addAll(YamlFiles.listResourcePaths(plugin, "recipes"));
+        return List.copyOf(files);
+    }
+
+    private void syncPdcAttributeRegistration(ReflectivePdcAttributeGateway gateway) {
+        if (gateway == null) {
+            return;
+        }
+        gateway.syncRegistration(PDC_ATTRIBUTE_SOURCE_ID);
     }
 }

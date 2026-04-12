@@ -12,24 +12,12 @@ pages:
   index:
     title: "锻造编辑器"
     buttons:
-      blueprint:
-        slots: [11]
-        item: "PAPER"
-        display_name: "<gold>{type_name}</gold>"
-        lore:
-          - "<gray>打开{type_name}资源列表。</gray>"
-      material:
-        slots: [22]
-        item: "IRON_INGOT"
-        display_name: "<gold>{type_name}</gold>"
-        lore:
-          - "<gray>打开{type_name}资源列表。</gray>"
       recipe:
-        slots: [33]
+        slots: [22]
         item: "BOOK"
         display_name: "<gold>{type_name}</gold>"
         lore:
-          - "<gray>打开{type_name}资源列表。</gray>"
+          - "<gray>打开最新配方资源列表。</gray>"
       close:
         slots: [49]
         item: "BARRIER"

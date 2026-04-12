@@ -3,7 +3,6 @@ package emaki.jiuwu.craft.forge.service;
 import java.util.List;
 import java.util.Map;
 
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
@@ -14,6 +13,7 @@ import emaki.jiuwu.craft.corelib.gui.SlotParser;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 
 final class ConfiguredGuiSupport {
@@ -30,12 +30,12 @@ final class ConfiguredGuiSupport {
     }
 
     Object raw(String guiId, String path) {
-        YamlConfiguration configuration = configuration(guiId);
+        YamlSection configuration = configuration(guiId);
         return configuration == null || Texts.isBlank(path) ? null : configuration.get(path);
     }
 
     boolean has(String guiId, String path) {
-        YamlConfiguration configuration = configuration(guiId);
+        YamlSection configuration = configuration(guiId);
         return configuration != null && Texts.isNotBlank(path) && configuration.contains(path);
     }
 
@@ -77,7 +77,7 @@ final class ConfiguredGuiSupport {
         return Texts.formatTemplate(value, replacements == null ? Map.of() : replacements);
     }
 
-    private YamlConfiguration configuration(String guiId) {
+    private YamlSection configuration(String guiId) {
         var entry = plugin.guiTemplateLoader().entry(guiId);
         return entry == null ? null : entry.configuration();
     }

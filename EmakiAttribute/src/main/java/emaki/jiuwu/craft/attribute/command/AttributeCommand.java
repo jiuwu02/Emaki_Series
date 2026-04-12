@@ -288,11 +288,11 @@ public final class AttributeCommand implements TabExecutor {
         }
         boolean enabled;
         if ("on".equalsIgnoreCase(action) || "enable".equalsIgnoreCase(action) || "true".equalsIgnoreCase(action)) {
-            enabled = attributeService.combatDebugService().setEnabled(target, true);
+            enabled = attributeService.setCombatDebug(target, true);
         } else if ("off".equalsIgnoreCase(action) || "disable".equalsIgnoreCase(action) || "false".equalsIgnoreCase(action)) {
-            enabled = attributeService.combatDebugService().setEnabled(target, false);
+            enabled = attributeService.setCombatDebug(target, false);
         } else {
-            enabled = attributeService.combatDebugService().toggle(target);
+            enabled = attributeService.toggleCombatDebug(target);
         }
         messages().send(sender, enabled ? "command.debug.enabled" : "command.debug.disabled", Map.of("player", target.getName()));
         return true;

@@ -10,12 +10,13 @@ import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.yaml.MapYamlSection;
 import emaki.jiuwu.craft.corelib.yaml.YamlDirectoryLoader;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
+import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.loader.BlueprintLoader;
 import emaki.jiuwu.craft.forge.loader.MaterialLoader;
@@ -81,7 +82,7 @@ final class EditorPersistenceService {
             return new OperationResult(false, "<red>该资源正被其他编辑器会话占用。</red>");
         }
         File targetFile = resourceFile(session.resourceType(), currentId);
-        YamlConfiguration configuration = toConfiguration(session.rootData());
+        YamlSection configuration = toConfiguration(session.rootData());
         if (!validate(session.resourceType(), targetFile, configuration)) {
             return new OperationResult(false, "<red>资源校验失败，请检查当前字段。</red>");
         }
@@ -187,7 +188,7 @@ final class EditorPersistenceService {
         return plugin.dataPath(type.directoryName(), type.fileName(resourceId)).toFile();
     }
 
-    private boolean validate(EditableResourceType type, File file, YamlConfiguration configuration) {
+    private boolean validate(EditableResourceType type, File file, YamlSection configuration) {
         return switch (type) {
             case BLUEPRINT -> {
                 Blueprint value = plugin.blueprintLoader().parseDocument(file, configuration);
@@ -204,14 +205,14 @@ final class EditorPersistenceService {
         };
     }
 
-    private YamlConfiguration toConfiguration(Map<String, Object> data) {
-        YamlConfiguration configuration = new YamlConfiguration();
+    private YamlSection toConfiguration(Map<String, Object> data) {
+        Map<String, Object> normalized = new LinkedHashMap<>();
         if (data != null) {
             for (Map.Entry<String, Object> entry : data.entrySet()) {
-                configuration.set(entry.getKey(), ConfigNodes.toPlainData(entry.getValue()));
+                normalized.put(entry.getKey(), ConfigNodes.toPlainData(entry.getValue()));
             }
         }
-        return configuration;
+        return new MapYamlSection(normalized);
     }
 
     private void backupFile(EditableResourceType type, File sourceFile) throws IOException {

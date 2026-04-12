@@ -7,7 +7,6 @@ import java.util.Set;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
-import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceType;
@@ -18,10 +17,12 @@ import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 public final class ItemIdentifierService {
 
     private final EmakiForgePlugin plugin;
+    private final ItemSourceService itemSourceService;
     private final Set<String> unavailableSourceWarnings = new LinkedHashSet<>();
 
-    public ItemIdentifierService(EmakiForgePlugin plugin) {
+    public ItemIdentifierService(EmakiForgePlugin plugin, ItemSourceService itemSourceService) {
         this.plugin = plugin;
+        this.itemSourceService = itemSourceService;
         refresh();
     }
 
@@ -65,8 +66,7 @@ public final class ItemIdentifierService {
     }
 
     private ItemSourceService coreItemSourceService() {
-        EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.getInstance();
-        return coreLib == null ? null : coreLib.itemSourceService();
+        return itemSourceService;
     }
 
     private boolean ensureSourceAvailable(ItemSource source, String context) {

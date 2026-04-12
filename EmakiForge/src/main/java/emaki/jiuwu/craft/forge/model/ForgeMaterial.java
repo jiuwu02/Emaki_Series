@@ -5,14 +5,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.bukkit.configuration.ConfigurationSection;
-
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
 public final class ForgeMaterial {
 
@@ -104,7 +103,7 @@ public final class ForgeMaterial {
         this.source = source;
     }
 
-    public static ForgeMaterial fromConfig(ConfigurationSection section) {
+    public static ForgeMaterial fromConfig(YamlSection section) {
         return fromConfig((Object) section);
     }
 
@@ -112,7 +111,7 @@ public final class ForgeMaterial {
         if (raw == null) {
             return null;
         }
-        if (raw instanceof ConfigurationSection section
+        if (raw instanceof YamlSection section
                 && (section.contains("id") || section.contains("display_name") || section.contains("description"))) {
             return null;
         }
@@ -183,6 +182,37 @@ public final class ForgeMaterial {
             for (Map.Entry<String, Object> entry : ConfigNodes.entries(effect.get("stats")).entrySet()) {
                 double value = resolveStatValue(entry.getValue());
                 result.merge(entry.getKey(), value, Double::sum);
+            }
+        }
+        return result;
+    }
+
+    public Map<String, Double> eaAttributeContributions() {
+        Map<String, Double> result = new LinkedHashMap<>();
+        for (MaterialEffect effect : effects) {
+            if (!"ea_attribute".equals(Texts.lower(effect.type()))) {
+                continue;
+            }
+            for (Map.Entry<String, Object> entry : ConfigNodes.entries(effect.get("attributes")).entrySet()) {
+                Double value = Numbers.tryParseDouble(entry.getValue(), null);
+                if (value != null) {
+                    result.merge(Texts.lower(entry.getKey()), value, Double::sum);
+                }
+            }
+        }
+        return result;
+    }
+
+    public Map<String, String> eaAttributeMeta() {
+        Map<String, String> result = new LinkedHashMap<>();
+        for (MaterialEffect effect : effects) {
+            if (!"ea_attribute".equals(Texts.lower(effect.type()))) {
+                continue;
+            }
+            for (Map.Entry<String, Object> entry : ConfigNodes.entries(effect.get("meta")).entrySet()) {
+                if (entry.getValue() != null) {
+                    result.putIfAbsent(Texts.lower(entry.getKey()), Texts.toStringSafe(entry.getValue()));
+                }
             }
         }
         return result;

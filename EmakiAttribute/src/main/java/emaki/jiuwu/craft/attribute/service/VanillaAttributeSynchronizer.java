@@ -14,14 +14,13 @@ import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.EquipmentSlotGroup;
 
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.attribute.model.AttributeDefinition;
 import emaki.jiuwu.craft.attribute.model.AttributeSnapshot;
 import emaki.jiuwu.craft.attribute.model.AttributeValueKind;
 import emaki.jiuwu.craft.corelib.text.Texts;
-import net.kyori.adventure.key.Key;
-
 final class VanillaAttributeSynchronizer {
 
     private static final double DEFAULT_WALK_SPEED_BLOCKS_PER_SECOND = 4.317D;
@@ -62,7 +61,7 @@ final class VanillaAttributeSynchronizer {
                 AttributeModifier.Operation.ADD_NUMBER;
         };
         NamespacedKey modifierKey = new NamespacedKey(plugin, "vanilla/" + definition.id());
-        return new VanillaAttributeBinding(definition, attribute, operation, modifierKey, attribute.getKey().asString());
+        return new VanillaAttributeBinding(definition, attribute, operation, modifierKey, attribute.getKey().toString());
     }
 
     void syncMovementSpeed(Player player, AttributeSnapshot snapshot, List<AttributeDefinition> speedDefinitions) {
@@ -182,12 +181,12 @@ final class VanillaAttributeSynchronizer {
         if (instance == null) {
             return;
         }
-        instance.addModifier(new AttributeModifier(binding.modifierKey(), amount, binding.operation()));
+        instance.addModifier(new AttributeModifier(binding.modifierKey(), amount, binding.operation(), EquipmentSlotGroup.ANY));
     }
 
     private boolean isManagedVanillaModifier(AttributeModifier modifier) {
-        Key key = modifier == null ? null : modifier.getKey();
-        return key != null && key.asString().contains(":vanilla/");
+        NamespacedKey key = modifier == null ? null : modifier.getKey();
+        return key != null && key.toString().contains(":vanilla/");
     }
 
     private double resolveVanillaModifierAmount(AttributeDefinition definition, double value) {

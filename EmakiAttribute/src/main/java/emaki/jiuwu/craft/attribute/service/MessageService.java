@@ -9,6 +9,7 @@ import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.attribute.config.AttributeConfig;
 import emaki.jiuwu.craft.attribute.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.service.AbstractMessageService;
+import emaki.jiuwu.craft.corelib.text.AdventureSupport;
 import net.kyori.adventure.text.Component;
 
 public final class MessageService extends AbstractMessageService {
@@ -52,6 +53,6 @@ public final class MessageService extends AbstractMessageService {
         if (sender == null || component == null) {
             return;
         }
-        sender.sendMessage(component);
+        AdventureSupport.sendMessage(plugin(), sender, component);
     }
 }

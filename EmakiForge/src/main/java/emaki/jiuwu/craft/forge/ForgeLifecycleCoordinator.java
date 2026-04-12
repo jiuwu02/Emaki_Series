@@ -1,53 +1,111 @@
 package emaki.jiuwu.craft.forge;
 
 import java.util.Map;
+import java.util.List;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
+import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiSlot;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
+import emaki.jiuwu.craft.corelib.integration.ReflectivePdcAttributeGateway;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
+import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
+import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
+import emaki.jiuwu.craft.corelib.service.MessageService;
+import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
+import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
+import emaki.jiuwu.craft.corelib.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.forge.config.AppConfig;
-import emaki.jiuwu.craft.forge.loader.AppConfigLoader;
 import emaki.jiuwu.craft.forge.loader.BlueprintLoader;
 import emaki.jiuwu.craft.forge.loader.GuiTemplateLoader;
-import emaki.jiuwu.craft.forge.loader.LanguageLoader;
 import emaki.jiuwu.craft.forge.loader.MaterialLoader;
 import emaki.jiuwu.craft.forge.loader.PlayerDataStore;
 import emaki.jiuwu.craft.forge.loader.RecipeLoader;
-import emaki.jiuwu.craft.forge.service.BootstrapService;
 import emaki.jiuwu.craft.forge.service.EditorGuiService;
 import emaki.jiuwu.craft.forge.service.ForgeGuiService;
 import emaki.jiuwu.craft.forge.service.ForgeItemRefreshService;
 import emaki.jiuwu.craft.forge.service.ForgeService;
 import emaki.jiuwu.craft.forge.service.ForgeAssemblyFeedbackHandler;
 import emaki.jiuwu.craft.forge.service.ItemIdentifierService;
-import emaki.jiuwu.craft.forge.service.MessageService;
 import emaki.jiuwu.craft.forge.service.RecipeBookGuiService;
 
-final class ForgeLifecycleCoordinator {
+final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiForgePlugin, ForgeRuntimeComponents> {
 
+    private static final String DEFAULT_PREFIX = "<gray>[ <gradient:#F2C46D:#C9703D>Emaki Forge</gradient> ]</gray>";
+    private static final String PDC_ATTRIBUTE_SOURCE_ID = "forge";
+    private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml");
+    private static final List<String> STATIC_FILES = List.of("gui/forge_gui.yml", "gui/recipe_book.yml", "gui/editor_gui.yml");
+    private static final List<String> DEFAULT_DATA_FILES = List.of("recipes/flame_sword.yml");
+    private static final List<String> EXTRA_DIRECTORIES = List.of("data");
+
+    @Override
     public ForgeRuntimeComponents initialize(EmakiForgePlugin plugin) {
-        AppConfigLoader appConfigLoader = new AppConfigLoader(plugin);
-        LanguageLoader languageLoader = new LanguageLoader(plugin);
+        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.getInstance();
+        if (coreLibPlugin == null) {
+            throw new IllegalStateException("EmakiCoreLib must be enabled before EmakiForge.");
+        }
+        YamlConfigLoader<AppConfig> appConfigLoader = new YamlConfigLoader<>(
+                plugin,
+                "config.yml",
+                "config_version",
+                AppConfig::defaults,
+                this::parseAppConfig
+        );
+        appConfigLoader.load();
+        LanguageLoader languageLoader = new LanguageLoader(plugin, "lang", "lang", "zh_CN", "zh_CN");
         BlueprintLoader blueprintLoader = new BlueprintLoader(plugin);
         MaterialLoader materialLoader = new MaterialLoader(plugin);
-        RecipeLoader recipeLoader = new RecipeLoader(plugin);
+        RecipeLoader recipeLoader = new RecipeLoader(plugin, coreLibPlugin::actionRegistry, coreLibPlugin::actionTemplateRegistry);
         GuiTemplateLoader guiTemplateLoader = new GuiTemplateLoader(plugin);
-        PlayerDataStore playerDataStore = new PlayerDataStore(plugin);
-        MessageService messageService = new MessageService(plugin, languageLoader, plugin::appConfig);
+        PlayerDataStore playerDataStore = new PlayerDataStore(plugin, coreLibPlugin::asyncYamlFiles);
+        MessageService messageService = new MessageService(plugin, languageLoader, DEFAULT_PREFIX, false);
         languageLoader.load();
-        BootstrapService bootstrapService = new BootstrapService(plugin, messageService);
-        GuiService guiService = new GuiService(plugin);
-        ItemIdentifierService itemIdentifierService = new ItemIdentifierService(plugin);
+        BootstrapService bootstrapService = new BootstrapService(
+                plugin,
+                messageService,
+                VERSIONED_FILES,
+                STATIC_FILES,
+                DEFAULT_DATA_FILES,
+                EXTRA_DIRECTORIES,
+                List.of(),
+                new BootstrapHooks() {
+                    @Override
+                    public boolean shouldInstallDefaultData() {
+                        return shouldReleaseDefaultData(plugin);
+                    }
+
+                    @Override
+                    public void afterVersionedMerge(String relativePath, YamlSection runtime, YamlSection bundled) {
+                        applyVersionMigrations(relativePath, runtime);
+                    }
+                }
+        );
+        GuiService guiService = new GuiService(plugin, coreLibPlugin.asyncTaskScheduler(), coreLibPlugin.performanceMonitor());
+        ItemIdentifierService itemIdentifierService = new ItemIdentifierService(plugin, coreLibPlugin.itemSourceService());
+        ReflectivePdcAttributeGateway pdcAttributeGateway = new ReflectivePdcAttributeGateway(plugin);
+        syncPdcAttributeRegistration(pdcAttributeGateway);
         registerCoreLibAssemblyFeedbackHandler(plugin);
-        ForgeService forgeService = new ForgeService(plugin);
-        ForgeItemRefreshService itemRefreshService = new ForgeItemRefreshService(plugin);
+        ForgeService forgeService = new ForgeService(
+                plugin,
+                coreLibPlugin.asyncTaskScheduler(),
+                coreLibPlugin.performanceMonitor(),
+                coreLibPlugin.itemAssemblyService(),
+                coreLibPlugin.itemPresentationCompiler(),
+                coreLibPlugin::actionExecutor
+        );
+        ForgeItemRefreshService itemRefreshService = new ForgeItemRefreshService(
+                plugin,
+                coreLibPlugin.itemAssemblyService(),
+                coreLibPlugin.itemPresentationCompiler()
+        );
         ForgeGuiService forgeGuiService = new ForgeGuiService(plugin, guiService);
         RecipeBookGuiService recipeBookGuiService = new RecipeBookGuiService(plugin, guiService);
         EditorGuiService editorGuiService = new EditorGuiService(plugin, guiService);
@@ -63,6 +121,7 @@ final class ForgeLifecycleCoordinator {
                 bootstrapService,
                 guiService,
                 itemIdentifierService,
+                pdcAttributeGateway,
                 itemRefreshService,
                 forgeService,
                 forgeGuiService,
@@ -83,6 +142,7 @@ final class ForgeLifecycleCoordinator {
         plugin.recipeLoader().load();
         plugin.guiTemplateLoader().load();
         plugin.playerDataStore().load();
+        syncPdcAttributeRegistration(plugin.pdcAttributeGateway());
         plugin.itemIdentifierService().refresh();
         plugin.forgeService().refreshIndexes();
         validateConfiguredExternalSources(plugin);
@@ -119,6 +179,9 @@ final class ForgeLifecycleCoordinator {
         }
         unregisterCoreLibAssemblyFeedbackHandler();
         cancelAutoSave(autoSaveTask);
+        if (plugin.pdcAttributeGateway() != null) {
+            plugin.pdcAttributeGateway().shutdown();
+        }
         if (plugin.playerDataStore() != null && plugin.messageService() != null) {
             plugin.messageService().info("console.saving_player_data");
             int saved = plugin.playerDataStore().saveAllAsync().join();
@@ -195,5 +258,67 @@ final class ForgeLifecycleCoordinator {
             return;
         }
         coreLib.itemAssemblyService().setFeedbackHandler(null);
+    }
+
+    private AppConfig parseAppConfig(YamlSection configuration) {
+        if (configuration == null || configuration.getKeys(false).isEmpty()) {
+            return AppConfig.defaults();
+        }
+        YamlSection permission = configuration.getSection("permission");
+        YamlSection condition = configuration.getSection("condition");
+        YamlSection history = configuration.getSection("history");
+        YamlSection numberFormat = configuration.getSection("number_format");
+        return new AppConfig(
+                configuration.getString("language", "zh_CN"),
+                configuration.getString("config_version", AppConfig.defaults().configVersion()),
+                configuration.getBoolean("release_default_data", true),
+                emaki.jiuwu.craft.forge.model.QualitySettings.fromConfig(configuration.get("quality")),
+                numberFormat == null ? "0.##" : numberFormat.getString("default", "0.##"),
+                numberFormat == null ? "0" : numberFormat.getString("integer", "0"),
+                numberFormat == null ? "0.##%" : numberFormat.getString("percentage", "0.##%"),
+                permission != null && permission.getBoolean("op_bypass", false),
+                condition == null || condition.getBoolean("invalid_as_failure", true),
+                history == null || history.getBoolean("enabled", true),
+                history == null || history.getBoolean("auto_save", true),
+                history == null ? 6000 : Numbers.tryParseInt(history.get("save_interval"), 6000)
+        );
+    }
+
+    private boolean shouldReleaseDefaultData(EmakiForgePlugin plugin) {
+        YamlSection configuration = YamlFiles.load(plugin.dataPath("config.yml").toFile());
+        return configuration.getBoolean("release_default_data", true);
+    }
+
+    private void applyVersionMigrations(String relativePath, YamlSection runtime) {
+        if (runtime == null || relativePath == null || !relativePath.startsWith("lang/")) {
+            return;
+        }
+        for (String key : runtime.getKeys(true)) {
+            if (!runtime.isString(key)) {
+                continue;
+            }
+            String value = runtime.getString(key);
+            if (value != null && value.contains("JiuWu's Forge")) {
+                runtime.set(key, value.replace("JiuWu's Forge", "Emaki Forge"));
+            }
+        }
+        replaceLangValue(runtime, "console.plugin_starting", "<white>Emaki Forge <gray>正在启动...</gray>", "<gray>正在启动...</gray>");
+        replaceLangValue(runtime, "console.plugin_started", "<green>Emaki Forge <gray>启动完成!</gray>", "<green>启动完成!</green>");
+        replaceLangValue(runtime, "console.plugin_stopping", "<white>Emaki Forge <gray>正在关闭...</gray>", "<gray>正在关闭...</gray>");
+        replaceLangValue(runtime, "console.plugin_stopped", "<green>Emaki Forge <gray>已关闭!</gray>", "<green>已关闭!</green>");
+    }
+
+    private void replaceLangValue(YamlSection runtime, String path, String expected, String replacement) {
+        String current = runtime.getString(path);
+        if (expected.equals(current)) {
+            runtime.set(path, replacement);
+        }
+    }
+
+    private void syncPdcAttributeRegistration(ReflectivePdcAttributeGateway gateway) {
+        if (gateway == null) {
+            return;
+        }
+        gateway.syncRegistration(PDC_ATTRIBUTE_SOURCE_ID);
     }
 }

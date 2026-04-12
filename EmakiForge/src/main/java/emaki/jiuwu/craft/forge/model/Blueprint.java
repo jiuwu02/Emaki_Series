@@ -4,12 +4,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import org.bukkit.configuration.ConfigurationSection;
-
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
 public final class Blueprint {
 
@@ -34,7 +33,7 @@ public final class Blueprint {
         this.forgeCapacity = forgeCapacity;
     }
 
-    public static Blueprint fromConfig(ConfigurationSection section) {
+    public static Blueprint fromConfig(YamlSection section) {
         if (section == null) {
             return null;
         }

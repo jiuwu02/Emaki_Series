@@ -1,28 +1,83 @@
+# ========================================
+# EmakiStrengthen 强化配方 - 物理武器强化
+# ========================================
+# 强化配方定义了装备从 +1 到 +max_star 的完整强化路径。
+# 每个星级（star）定义了该等级的属性加成、EA 属性写入、
+# 材料需求、成功率、以及成功/失败时的动作。
+# ========================================
+
+# 配方 ID，全局唯一标识
 id: "weapon_physical"
+
+# 配方显示名称，支持 MiniMessage 富文本
 display_name: "<gold>物理武器强化</gold>"
+
+# 使用的 GUI 模板 ID，对应 gui/ 目录下的模板文件
 gui_template: "strengthen_gui"
 
+# ========================================
+# 经济系统配置
+# ========================================
+# 强化需要消耗货币，支持多货币系统
 economy:
+  # 是否启用经济消耗
   enabled: true
+  # 货币列表（可配置多种货币同时消耗）
   currencies:
-    - provider: "vault"
+    - # 经济桥接提供者：
+      #   vault  - 通过 Vault 插件桥接
+      #   playerpoints - 通过 PlayerPoints 桥接
+      provider: "vault"
+      # 货币 ID（Vault 留空即可，PlayerPoints 填 "points"）
       currency_id: ""
+      # 基础费用：+1 级的强化费用
       base_cost: 320
+      # 费用计算公式：支持占位符
+      #   {base_cost} - 基础费用
+      #   {star}      - 目标星级
+      #   {temper}    - 当前锻印数
       cost_formula: "{base_cost} * {star}"
+      # 货币显示名称
       display_name: "<gold>金币</gold>"
 
+# ========================================
+# 强化上限与概率配置
+# ========================================
 limits:
+  # 最大星级（+12 为满星）
   max_star: 12
+  # 最大锻印数（失败累积的上限）
   max_temper: 4
+  # 每点锻印提供的成功率加成（百分比）
   temper_chance_bonus_per_level: 5.0
+  # 成功率上限（百分比），无论加成多高都不能超过此值
   success_chance_cap: 90.0
 
+# ========================================
+# 物品匹配规则
+# ========================================
+# 定义哪些装备可以使用此配方强化
 match:
-  slot_groups: ["weapon"]
+  # 按装备槽位组匹配
+  # 可选值: weapon, armor, offhand, helmet, chestplate, leggings, boots
+  slot_groups:
+    - "weapon"
 
+# ========================================
+# 属性行定义
+# ========================================
+# 定义此配方可能修改的所有属性及其 Lore 显示方式
+# 键名必须与 EmakiAttribute 中注册的属性 ID 一致
 stat_lines:
+  # 物理伤害属性
   physical_attack:
+    # Lore 显示模板，支持占位符：
+    #   {sign}  - 正负号（+/-）
+    #   {value} - 格式化后的数值
     template: "<gray>物理伤害: <gold>{sign}{value}</gold></gray>"
+    # Lore 操作序列：按顺序执行
+    #   lore_search_insert - 在指定锚点行下方插入
+    #   lore_append        - 追加到 Lore 末尾
     lore_operations:
       - type: "lore_search_insert"
         anchor: "强化等级"
@@ -45,42 +100,82 @@ stat_lines:
     lore_operations:
       - type: "lore_append"
 
+# ========================================
+# 星级定义
+# ========================================
+# 每个星级定义了从上一级升到此级时的属性加成和材料需求
+# 键名为星级数字（1-12）
 stars:
+  # +1 级
   1:
-    stats: { physical_attack: 4 }
+    # stats: CoreLib 内部占位符数值（用于 Lore 展示）
+    stats:
+      physical_attack: 4
+    # ea_attributes: EA 属性 PDC 写入数值（用于战斗结算）
+    # 键名为 EA 属性 ID，值为 Double 类型
+    ea_attributes:
+      physical_attack: 4.0
+    # 材料需求列表
     materials:
       - item: "copper_ingot"
         amount: 1
       - item: "gunpowder"
         amount: 2
+
+  # +2 级
   2:
-    stats: { physical_attack: 4 }
+    stats:
+      physical_attack: 4
+    ea_attributes:
+      physical_attack: 4.0
     materials:
       - item: "copper_ingot"
         amount: 1
       - item: "gunpowder"
         amount: 3
+
+  # +3 级
   3:
-    stats: { physical_attack: 5 }
+    stats:
+      physical_attack: 5
+    ea_attributes:
+      physical_attack: 5.0
     materials:
       - item: "copper_ingot"
         amount: 2
       - item: "gunpowder"
         amount: 4
+
+  # +4 级：开始出现可选保护材料
   4:
-    stats: { physical_attack: 6 }
+    stats:
+      physical_attack: 6
+    ea_attributes:
+      physical_attack: 6.0
     materials:
       - item: "copper_ingot"
         amount: 2
       - item: "gunpowder"
         amount: 5
+      # 可选保护材料
+      #   optional: true  - 非必需，玩家可选择是否放入
+      #   protection: true - 放入后强化失败时防止惩罚
+      #   amount: -1       - 数量不限（背包中有即可）
       - item: "gold_nugget"
         amount: -1
         optional: true
         protection: true
+
+  # +5 级：里程碑 - 解锁暴击率
   5:
+    # 里程碑名称，会显示在预览中
     name: "<gold>暴击率提升</gold>"
-    stats: { physical_attack: 6, physical_crit_rate: 2 }
+    stats:
+      physical_attack: 6
+      physical_crit_rate: 2
+    ea_attributes:
+      physical_attack: 6.0
+      physical_crit_rate: 2.0
     materials:
       - item: "copper_ingot"
         amount: 3
@@ -90,13 +185,20 @@ stars:
         amount: -1
         optional: true
         protection: true
+    # 里程碑描述文本，显示在强化预览中
     presentation:
       - "<gray>强化达到 +5 后，物理武器会额外提供暴击率。</gray>"
+    # 强化成功时执行的动作序列
     success_actions:
       - 'sendmessage text="<gold>强化达到 +5，解锁额外物理暴击率。</gold>"'
       - "playsound sound=minecraft:block.anvil.use volume=1 pitch=1.15"
+
+  # +6 级
   6:
-    stats: { physical_attack: 7 }
+    stats:
+      physical_attack: 7
+    ea_attributes:
+      physical_attack: 7.0
     materials:
       - item: "copper_ingot"
         amount: 4
@@ -106,8 +208,13 @@ stars:
         amount: -1
         optional: true
         protection: true
+
+  # +7 级
   7:
-    stats: { physical_attack: 8 }
+    stats:
+      physical_attack: 8
+    ea_attributes:
+      physical_attack: 8.0
     materials:
       - item: "copper_ingot"
         amount: 5
@@ -117,9 +224,16 @@ stars:
         amount: -1
         optional: true
         protection: true
+
+  # +8 级：里程碑 - 解锁增伤
   8:
     name: "<gold>伤害提升</gold>"
-    stats: { physical_attack: 9, physical_damage_bonus: 4 }
+    stats:
+      physical_attack: 9
+      physical_damage_bonus: 4
+    ea_attributes:
+      physical_attack: 9.0
+      physical_damage_bonus: 4.0
     materials:
       - item: "copper_ingot"
         amount: 6
@@ -136,8 +250,13 @@ stars:
     success_actions:
       - 'sendtitle title="<gold><bold>+8 物理增伤提升</bold></gold>" subtitle="<yellow>额外增伤已解锁</yellow>"'
       - "playsound sound=minecraft:entity.player.levelup volume=1.1 pitch=1.2"
+
+  # +9 级
   9:
-    stats: { physical_attack: 10 }
+    stats:
+      physical_attack: 10
+    ea_attributes:
+      physical_attack: 10.0
     materials:
       - item: "copper_ingot"
         amount: 8
@@ -149,9 +268,16 @@ stars:
         amount: -1
         optional: true
         protection: true
+
+  # +10 级：里程碑 - 解锁暴击伤害
   10:
     name: "<gold>暴击伤害提升</gold>"
-    stats: { physical_attack: 12, physical_crit_damage: 6 }
+    stats:
+      physical_attack: 12
+      physical_crit_damage: 6
+    ea_attributes:
+      physical_attack: 12.0
+      physical_crit_damage: 6.0
     materials:
       - item: "copper_ingot"
         amount: 10
@@ -168,8 +294,13 @@ stars:
     success_actions:
       - 'sendtitle title="<gold><bold>+10 物理暴伤提升</bold></gold>" subtitle="<yellow>额外暴伤已解锁</yellow>"'
       - "playsound sound=minecraft:entity.firework_rocket.twinkle_far volume=1 pitch=1"
+
+  # +11 级
   11:
-    stats: { physical_attack: 14 }
+    stats:
+      physical_attack: 14
+    ea_attributes:
+      physical_attack: 14.0
     materials:
       - item: "copper_ingot"
         amount: 13
@@ -181,9 +312,16 @@ stars:
         amount: -1
         optional: true
         protection: true
+
+  # +12 级：满星里程碑 - 解锁穿透
   12:
     name: "<gold>穿透提升</gold>"
-    stats: { physical_attack: 16, physical_armor_penetration: 8 }
+    stats:
+      physical_attack: 16
+      physical_armor_penetration: 8
+    ea_attributes:
+      physical_attack: 16.0
+      physical_armor_penetration: 8.0
     materials:
       - item: "copper_ingot"
         amount: 16
@@ -195,6 +333,9 @@ stars:
         amount: -1
         optional: true
         protection: true
+      # 锻印加成材料
+      #   temper_boost: 放入后额外增加的锻印数
+      #   失败时锻印累积更多，下次成功率更高
       - item: "potion"
         amount: -1
         optional: true
@@ -205,14 +346,28 @@ stars:
       - 'sendtitle title="<gold><bold>+12 物理穿透提升</bold></gold>" subtitle="<yellow>额外穿透已解锁</yellow>"'
       - "playsound sound=minecraft:ui.toast.challenge_complete volume=1 pitch=1"
 
+# ========================================
+# 展示配置
+# ========================================
+# 定义强化后物品名称和 Lore 的修改规则
 presentation:
+  # 名称操作序列：按顺序执行
   name_operations:
+    # 正则替换：移除已有的 [+N] 标记，避免重复
     - type: "name_regex_replace"
       pattern: "^(.*?)\\s*\\[\\+(\\d+)\\]\\s*$"
       replacement: "$1 [+{star}]"
+    # 追加标记：如果正则未匹配到已有标记，则追加新的
+    #   condition: "if_unchanged" - 仅在名称未被上一步修改时执行
     - type: "name_append"
       value: " [+{star}]"
       condition: "if_unchanged"
+  # Lore 前置行：插入到 Lore 最顶部
+  # 支持占位符：
+  #   {star}         - 当前星级
+  #   {temper}       - 当前锻印数
+  #   {max_temper}   - 最大锻印数
+  #   {temper_color} - 根据锻印数变化的颜色
   lore_prepend:
     - "<gradient:#F2C46D:#C9703D>强化等级 +{star}</gradient>"
     - "<gray>锻印: {temper_color}{temper}/{max_temper}</gray>"

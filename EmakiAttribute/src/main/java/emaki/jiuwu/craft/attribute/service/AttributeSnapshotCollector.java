@@ -17,6 +17,7 @@ import emaki.jiuwu.craft.attribute.api.AttributeContribution;
 import emaki.jiuwu.craft.attribute.api.AttributeContributionProvider;
 import emaki.jiuwu.craft.attribute.model.AttributeDefinition;
 import emaki.jiuwu.craft.attribute.model.AttributeSnapshot;
+import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
 import net.kyori.adventure.text.Component;
 
@@ -33,19 +34,19 @@ final class AttributeSnapshotCollector {
             return AttributeSnapshot.empty("");
         }
         LoreParser.ParsedLore parsedLore = parseLore(itemStack);
-        PdcAttributeService.PdcAttributeCollection rawPdcContribution = service.pdcAttributeServiceInternal().collectRawContribution(itemStack);
+        PdcAttributeService.PdcAttributeCollection rawPdcContribution = service.pdcAttributeService().collectRawContribution(itemStack);
         if (parsedLore.snapshot().values().isEmpty() && rawPdcContribution.values().isEmpty()) {
-            service.stateRepositoryInternal().clearItemSnapshot(itemStack);
+            service.stateRepository().clearItemSnapshot(itemStack);
             return AttributeSnapshot.empty("");
         }
         String sourceSignature = SignatureUtil.combine(
                 service.itemLoreSignatureVersion(),
                 parsedLore.snapshot().sourceSignature(),
                 rawPdcContribution.sourceSignature(),
-                service.attributeDefinitionsSignatureInternal()
+                service.registryService().attributeDefinitionsSignature()
         );
-        String cachedSignature = service.stateRepositoryInternal().readItemSourceSignature(itemStack);
-        AttributeSnapshot cachedSnapshot = service.stateRepositoryInternal().readItemSnapshot(itemStack);
+        String cachedSignature = service.stateRepository().readItemSourceSignature(itemStack);
+        AttributeSnapshot cachedSnapshot = service.stateRepository().readItemSnapshot(itemStack);
         if (sourceSignature.equals(cachedSignature) && cachedSnapshot != null) {
             return cachedSnapshot;
         }
@@ -58,7 +59,7 @@ final class AttributeSnapshotCollector {
                 values,
                 System.currentTimeMillis()
         );
-        service.stateRepositoryInternal().writeItemSnapshot(itemStack, snapshot);
+        service.stateRepository().writeItemSnapshot(itemStack, snapshot);
         return snapshot;
     }
 
@@ -78,9 +79,9 @@ final class AttributeSnapshotCollector {
         }
         Map<String, Double> values = new LinkedHashMap<>();
         List<String> signatureParts = new ArrayList<>();
-        mergeValues(values, service.defaultAttributeValuesInternal());
-        signatureParts.add("defaults:" + service.defaultProfilesSignatureInternal());
-        signatureParts.add("attributes:" + service.attributeDefinitionsSignatureInternal());
+        mergeValues(values, service.defaultAttributeValues());
+        signatureParts.add("defaults:" + service.registryService().defaultProfilesSignature());
+        signatureParts.add("attributes:" + service.registryService().attributeDefinitionsSignature());
         PlayerInventory inventory = player.getInventory();
         List<ItemSlot> slots = List.of(
                 new ItemSlot("main_hand", inventory.getItemInMainHand()),
@@ -96,8 +97,8 @@ final class AttributeSnapshotCollector {
                 continue;
             }
             Map<String, Double> effectiveValues = new LinkedHashMap<>(itemSnapshot.values());
-            PdcAttributeService.PdcAttributeCollection rawPdcContribution = service.pdcAttributeServiceInternal().collectRawContribution(slot.item());
-            PdcAttributeService.PdcAttributeCollection filteredPdcContribution = service.pdcAttributeServiceInternal().collectFilteredContribution(player, slot.item());
+            PdcAttributeService.PdcAttributeCollection rawPdcContribution = service.pdcAttributeService().collectRawContribution(slot.item());
+            PdcAttributeService.PdcAttributeCollection filteredPdcContribution = service.pdcAttributeService().collectFilteredContribution(player, slot.item());
             replacePdcValues(effectiveValues, rawPdcContribution.values(), filteredPdcContribution.values());
             mergeValues(values, effectiveValues);
             signatureParts.add(slot.name() + ":" + SignatureUtil.combine(itemSnapshot.sourceSignature(), filteredPdcContribution.sourceSignature()));
@@ -106,22 +107,22 @@ final class AttributeSnapshotCollector {
         applyDerivedValues(values);
         String sourceSignature = SignatureUtil.stableSignature(signatureParts);
         AttributeSnapshot snapshot = new AttributeSnapshot(AttributeSnapshot.CURRENT_SCHEMA_VERSION, sourceSignature, values, System.currentTimeMillis());
-        String cachedSignature = service.stateRepositoryInternal().readCombatSourceSignature(player);
-        AttributeSnapshot cachedSnapshot = service.stateRepositoryInternal().readCombatSnapshot(player);
+        String cachedSignature = service.stateRepository().readCombatSourceSignature(player);
+        AttributeSnapshot cachedSnapshot = service.stateRepository().readCombatSnapshot(player);
         if (sourceSignature.equals(cachedSignature) && cachedSnapshot != null) {
             return cachedSnapshot;
         }
-        service.stateRepositoryInternal().writeCombatSnapshot(player, snapshot);
+        service.stateRepository().writeCombatSnapshot(player, snapshot);
         return snapshot;
     }
 
     private AttributeSnapshot collectLivingCombatSnapshot(LivingEntity entity) {
         Map<String, Double> values = new LinkedHashMap<>();
         List<String> signatureParts = new ArrayList<>();
-        mergeValues(values, service.defaultAttributeValuesInternal());
-        signatureParts.add("defaults:" + service.defaultProfilesSignatureInternal());
-        signatureParts.add("attributes:" + service.attributeDefinitionsSignatureInternal());
-        AttributeSnapshot cached = service.stateRepositoryInternal().readCombatSnapshot(entity);
+        mergeValues(values, service.defaultAttributeValues());
+        signatureParts.add("defaults:" + service.registryService().defaultProfilesSignature());
+        signatureParts.add("attributes:" + service.registryService().attributeDefinitionsSignature());
+        AttributeSnapshot cached = service.stateRepository().readCombatSnapshot(entity);
         EntityEquipment equipment = entity.getEquipment();
         if (equipment != null) {
             List<ItemSlot> slots = List.of(
@@ -145,11 +146,11 @@ final class AttributeSnapshotCollector {
         applyDerivedValues(values);
         String sourceSignature = SignatureUtil.stableSignature(signatureParts);
         AttributeSnapshot snapshot = new AttributeSnapshot(AttributeSnapshot.CURRENT_SCHEMA_VERSION, sourceSignature, values, System.currentTimeMillis());
-        String cachedSignature = service.stateRepositoryInternal().readCombatSourceSignature(entity);
+        String cachedSignature = service.stateRepository().readCombatSourceSignature(entity);
         if (sourceSignature.equals(cachedSignature) && cached != null) {
             return cached;
         }
-        service.stateRepositoryInternal().writeCombatSnapshot(entity, snapshot);
+        service.stateRepository().writeCombatSnapshot(entity, snapshot);
         return snapshot;
     }
 
@@ -171,7 +172,7 @@ final class AttributeSnapshotCollector {
         if (entity == null) {
             return;
         }
-        List<AttributeContributionProvider> providers = service.orderedContributionProvidersInternal();
+        List<AttributeContributionProvider> providers = service.registryService().orderedContributionProviders();
         for (AttributeContributionProvider provider : providers) {
             Collection<AttributeContribution> contributions = provider.collect(entity);
             if (contributions == null || contributions.isEmpty()) {
@@ -207,7 +208,7 @@ final class AttributeSnapshotCollector {
         if (itemMeta == null || !itemMeta.hasLore()) {
             return new LoreParser.ParsedLore(AttributeSnapshot.empty(SignatureUtil.stableSignature(List.of())), List.of());
         }
-        List<Component> lore = itemMeta.lore();
+        List<Component> lore = ItemTextBridge.lore(itemMeta);
         if (lore == null || lore.isEmpty()) {
             return new LoreParser.ParsedLore(AttributeSnapshot.empty(SignatureUtil.stableSignature(List.of())), List.of());
         }
@@ -240,7 +241,7 @@ final class AttributeSnapshotCollector {
             return 0D;
         }
         double total = 0D;
-        for (AttributeDefinition definition : service.attributeDefinitionsInternal()) {
+        for (AttributeDefinition definition : service.registryService().attributeDefinitions()) {
             if (definition == null || "attribute_power".equals(definition.id())) {
                 continue;
             }

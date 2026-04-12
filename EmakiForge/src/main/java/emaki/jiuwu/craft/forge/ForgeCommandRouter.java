@@ -73,7 +73,7 @@ final class ForgeCommandRouter implements TabExecutor {
             return result;
         }
         if (args.length == 2 && List.of("list", "edit", "create", "delete").contains(args[0].toLowerCase())) {
-            for (String sub : List.of("recipes", "recipe")) {
+            for (String sub : List.of("recipe")) {
                 if (sub.startsWith(args[1].toLowerCase())) {
                     result.add(sub);
                 }
@@ -137,7 +137,7 @@ final class ForgeCommandRouter implements TabExecutor {
             return true;
         }
         switch (args[1].toLowerCase()) {
-            case "recipes" -> {
+            case "recipe", "recipes" -> {
                 plugin.messageService().sendRaw(sender, plugin.messageService().message("command.list.recipes_header", Map.of("count", plugin.recipeLoader().all().size())));
                 plugin.recipeLoader().all().forEach((id, recipe)
                         -> plugin.messageService().sendRaw(sender, plugin.messageService().message("command.list.recipe_line", Map.of("id", id, "name", recipe.displayName()))));

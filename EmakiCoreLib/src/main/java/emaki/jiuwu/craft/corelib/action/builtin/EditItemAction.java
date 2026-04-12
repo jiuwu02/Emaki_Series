@@ -16,6 +16,7 @@ import emaki.jiuwu.craft.corelib.assembly.ItemPresentationCompiler;
 import emaki.jiuwu.craft.corelib.assembly.ItemPresentationEditor;
 import emaki.jiuwu.craft.corelib.assembly.PresentationCompileIssue;
 import emaki.jiuwu.craft.corelib.assembly.lore.ActionNameParser;
+import emaki.jiuwu.craft.corelib.assembly.lore.IndexedLineInsertActionParser;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class EditItemAction extends BaseAction {
@@ -161,7 +162,9 @@ public final class EditItemAction extends BaseAction {
     }
 
     private boolean isSupportedLoreOperation(String operation) {
-        return LORE_OPERATIONS.contains(operation) || ActionNameParser.isSearchInsertAction(operation);
+        return LORE_OPERATIONS.contains(operation)
+                || ActionNameParser.isSearchInsertAction(operation)
+                || IndexedLineInsertActionParser.isIndexedLineInsertAction(operation);
     }
 
     private String normalize(String value) {

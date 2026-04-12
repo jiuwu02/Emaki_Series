@@ -6,6 +6,9 @@ import java.util.List;
 import java.util.Map;
 
 import emaki.jiuwu.craft.corelib.assembly.lore.ActionNameParser;
+import emaki.jiuwu.craft.corelib.assembly.lore.IndexedLineInsertActionParser;
+import emaki.jiuwu.craft.corelib.assembly.lore.IndexedLineInsertActionParser.LineDirection;
+import emaki.jiuwu.craft.corelib.assembly.lore.IndexedLineInsertActionParser.ParsedIndexedLineInsertAction;
 import emaki.jiuwu.craft.corelib.assembly.lore.SearchInsertConfig;
 import emaki.jiuwu.craft.corelib.assembly.lore.SearchInsertValidationException;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
@@ -154,6 +157,11 @@ public final class ItemPresentationCompiler {
                 }
                 continue;
             }
+            if (IndexedLineInsertActionParser.isIndexedLineInsertAction(action)) {
+                ParsedIndexedLineInsertAction indexedAction = IndexedLineInsertActionParser.parse(action);
+                sequence = addIndexedLoreEntries(entries, indexedAction, content, sequence, sourceId);
+                continue;
+            }
 
             switch (action) {
                 case "insert_below" ->
@@ -203,6 +211,35 @@ public final class ItemPresentationCompiler {
                 continue;
             }
             entries.add(new EmakiPresentationEntry(entryType, anchor, line, sequence++, sourceId));
+        }
+        return sequence;
+    }
+
+    private int addIndexedLoreEntries(List<EmakiPresentationEntry> entries,
+            ParsedIndexedLineInsertAction indexedAction,
+            List<String> content,
+            int sequence,
+            String sourceId) {
+        int lineIndex = Math.max(1, indexedAction.lineIndex());
+        int offset = 0;
+        for (String line : content) {
+            String entryType;
+            int effectiveLineIndex;
+            if (indexedAction.direction() == LineDirection.TOP) {
+                effectiveLineIndex = lineIndex + offset;
+                entryType = "lore_top_line_insert";
+                offset++;
+            } else {
+                effectiveLineIndex = lineIndex;
+                entryType = "lore_bottom_line_insert";
+            }
+            String statId = firstPlaceholder(line);
+            if (Texts.isNotBlank(statId)) {
+                String statEntryType = indexedAction.direction() == LineDirection.TOP ? "stat_line_top" : "stat_line_bottom";
+                entries.add(new EmakiPresentationEntry(statEntryType, String.valueOf(effectiveLineIndex), line, sequence++, statId));
+                continue;
+            }
+            entries.add(new EmakiPresentationEntry(entryType, String.valueOf(effectiveLineIndex), line, sequence++, sourceId));
         }
         return sequence;
     }

@@ -10,13 +10,12 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
-import org.bukkit.configuration.file.YamlConfiguration;
-
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
+import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
 public abstract class DirectoryLoader<T> {
 
@@ -63,7 +62,7 @@ public abstract class DirectoryLoader<T> {
             int processed = 0;
             for (File file : files) {
                 try {
-                    YamlConfiguration configuration = YamlConfiguration.loadConfiguration(file);
+                    YamlSection configuration = YamlFiles.load(file);
                     if (!validateSchema(file, configuration)) {
                         continue;
                     }
@@ -176,7 +175,7 @@ public abstract class DirectoryLoader<T> {
     protected void seedBundledResources(File directory) {
     }
 
-    protected boolean validateSchema(File file, YamlConfiguration configuration) {
+    protected boolean validateSchema(File file, YamlSection configuration) {
         return true;
     }
 
@@ -212,7 +211,7 @@ public abstract class DirectoryLoader<T> {
 
     protected abstract String typeName();
 
-    protected abstract T parse(File file, YamlConfiguration configuration);
+    protected abstract T parse(File file, YamlSection configuration);
 
     protected abstract String idOf(T value);
 

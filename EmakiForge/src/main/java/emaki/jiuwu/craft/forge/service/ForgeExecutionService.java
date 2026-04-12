@@ -24,17 +24,20 @@ final class ForgeExecutionService {
     private final ForgePlanResolver forgePlanResolver;
     private final ResultItemGiver resultItemGiver;
     private final CraftRecorder craftRecorder;
+    private final ResultItemPostProcessor resultItemPostProcessor;
 
     ForgeExecutionService(ForgeActionCoordinator actionCoordinator,
             QualityCalculationService qualityCalculationService,
             ForgePlanResolver forgePlanResolver,
             ResultItemGiver resultItemGiver,
-            CraftRecorder craftRecorder) {
+            CraftRecorder craftRecorder,
+            ResultItemPostProcessor resultItemPostProcessor) {
         this.actionCoordinator = actionCoordinator;
         this.qualityCalculationService = qualityCalculationService;
         this.forgePlanResolver = forgePlanResolver;
         this.resultItemGiver = resultItemGiver;
         this.craftRecorder = craftRecorder;
+        this.resultItemPostProcessor = resultItemPostProcessor;
     }
 
     CompletableFuture<ForgeResult> execute(Player player,
@@ -68,6 +71,9 @@ final class ForgeExecutionService {
                         result.setReplacements(Map.of());
                         actionCoordinator.triggerPhase(player, recipe, guiItems, "failure", null, result.quality(), result.multiplier(), result.errorKey(), "Unable to create forge result item.");
                         return result;
+                    }
+                    if (resultItemPostProcessor != null) {
+                        resultItemPostProcessor.process(recipe, guiItems, forgePlan, resultItem);
                     }
                     if (player != null) {
                         qualityCalculationService.applyGuaranteeOutcome(
@@ -129,5 +135,11 @@ final class ForgeExecutionService {
     interface CraftRecorder {
 
         void record(UUID playerId, String recipeId);
+    }
+
+    @FunctionalInterface
+    interface ResultItemPostProcessor {
+
+        void process(Recipe recipe, GuiItems guiItems, ForgeService.PreparedForge preparedForge, ItemStack resultItem);
     }
 }

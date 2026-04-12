@@ -11,6 +11,7 @@ import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.Nullable;
 
 import emaki.jiuwu.craft.corelib.text.Texts;
 
@@ -23,7 +24,7 @@ public final class ItemSourceService {
         registerResolver(new VanillaItemSourceResolver());
     }
 
-    public void registerResolver(ItemSourceResolver resolver) {
+    public void registerResolver(@Nullable ItemSourceResolver resolver) {
         if (resolver == null || Texts.isBlank(resolver.id())) {
             return;
         }
@@ -31,7 +32,7 @@ public final class ItemSourceService {
         refreshCache();
     }
 
-    public void unregisterResolver(String resolverId) {
+    public void unregisterResolver(@Nullable String resolverId) {
         if (Texts.isBlank(resolverId)) {
             return;
         }
@@ -39,7 +40,8 @@ public final class ItemSourceService {
         refreshCache();
     }
 
-    public ItemSource identifyItem(ItemStack itemStack) {
+    @Nullable
+    public ItemSource identifyItem(@Nullable ItemStack itemStack) {
         if (itemStack == null || itemStack.getType().isAir()) {
             return null;
         }
@@ -52,7 +54,8 @@ public final class ItemSourceService {
         return null;
     }
 
-    public ItemStack createItem(ItemSource source, int amount) {
+    @Nullable
+    public ItemStack createItem(@Nullable ItemSource source, int amount) {
         if (source == null || source.getType() == null || Texts.isBlank(source.getIdentifier())) {
             return null;
         }
@@ -68,7 +71,7 @@ public final class ItemSourceService {
         return null;
     }
 
-    public boolean isAvailable(ItemSource source) {
+    public boolean isAvailable(@Nullable ItemSource source) {
         if (source == null || source.getType() == null) {
             return false;
         }

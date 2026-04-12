@@ -8,11 +8,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.bukkit.configuration.file.YamlConfiguration;
-
 import emaki.jiuwu.craft.corelib.text.LogMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
+import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
 import emaki.jiuwu.craft.strengthen.model.StrengthenRecipe;
 
@@ -97,7 +96,7 @@ public final class StrengthenRecipeLoader {
 
     private void loadFile(File file) {
         try {
-            YamlConfiguration configuration = YamlFiles.load(file);
+            YamlSection configuration = YamlFiles.load(file);
             StrengthenRecipe recipe = StrengthenRecipe.fromConfig(configuration);
             if (recipe == null || Texts.isBlank(recipe.id())) {
                 issue("loader.invalid_blank_id", Map.of(

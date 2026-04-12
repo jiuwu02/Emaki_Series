@@ -22,6 +22,7 @@ import emaki.jiuwu.craft.corelib.gui.GuiSlot;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.corelib.gui.ItemComponentParser;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -1025,8 +1026,8 @@ public final class EditorGuiService {
         ItemStack itemStack = new ItemStack(material == null ? Material.PAPER : material);
         ItemMeta meta = itemStack.getItemMeta();
         if (meta != null) {
-            meta.customName(MiniMessages.parse(name));
-            meta.lore(lore.stream().map(MiniMessages::parse).toList());
+            ItemTextBridge.customName(meta, MiniMessages.parse(name));
+            ItemTextBridge.lore(meta, lore.stream().map(MiniMessages::parse).toList());
             itemStack.setItemMeta(meta);
         }
         return itemStack;

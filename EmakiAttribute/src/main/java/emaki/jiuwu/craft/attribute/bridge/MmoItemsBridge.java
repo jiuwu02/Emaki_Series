@@ -40,6 +40,7 @@ import emaki.jiuwu.craft.attribute.model.DamageContextVariables;
 import emaki.jiuwu.craft.attribute.model.ProjectileDamageSnapshot;
 import emaki.jiuwu.craft.attribute.model.ResolvedDamage;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
+import emaki.jiuwu.craft.corelib.entity.EntityPhysicsSupport;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import net.Indyuce.mmoitems.api.event.item.SpecialWeaponAttackEvent;
@@ -79,6 +80,9 @@ public final class MmoItemsBridge implements Listener {
     public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
         LivingEntity target = event.getEntity() instanceof LivingEntity livingEntity ? livingEntity : null;
         if (target == null) {
+            return;
+        }
+        if (attributeService.isSyntheticDamage(target)) {
             return;
         }
         if (event.getDamager() instanceof Projectile projectile && trackedProjectiles.contains(projectile.getUniqueId())) {
@@ -208,16 +212,7 @@ public final class MmoItemsBridge implements Listener {
         if (strength <= 0D) {
             return;
         }
-        Vector direction = source.getLocation().toVector().subtract(target.getLocation().toVector());
-        direction.setY(0D);
-        if (direction.lengthSquared() < 1.0E-6D) {
-            direction = source.getLocation().getDirection().multiply(-1D).setY(0D);
-        }
-        if (direction.lengthSquared() < 1.0E-6D) {
-            return;
-        }
-        direction.normalize();
-        target.knockback(strength, direction.getX(), direction.getZ());
+        EntityPhysicsSupport.applyKnockback(target, source, strength);
     }
 
     private void warnBridgeUnavailable(String error) {

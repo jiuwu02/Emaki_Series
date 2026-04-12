@@ -2,11 +2,10 @@ package emaki.jiuwu.craft.strengthen.loader;
 
 import java.io.File;
 
-import org.bukkit.configuration.file.YamlConfiguration;
-
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateParser;
 import emaki.jiuwu.craft.corelib.yaml.YamlDirectoryLoader;
+import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
 
 public final class GuiTemplateLoader extends YamlDirectoryLoader<GuiTemplate> {
@@ -26,7 +25,7 @@ public final class GuiTemplateLoader extends YamlDirectoryLoader<GuiTemplate> {
     }
 
     @Override
-    protected GuiTemplate parse(File file, YamlConfiguration configuration) {
+    protected GuiTemplate parse(File file, YamlSection configuration) {
         return GuiTemplateParser.parse(configuration);
     }
 

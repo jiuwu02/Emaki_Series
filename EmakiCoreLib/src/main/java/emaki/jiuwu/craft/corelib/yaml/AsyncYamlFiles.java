@@ -6,8 +6,6 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
-import org.bukkit.configuration.file.YamlConfiguration;
-
 import emaki.jiuwu.craft.corelib.async.AsyncFileService;
 
 public final class AsyncYamlFiles {
@@ -18,17 +16,17 @@ public final class AsyncYamlFiles {
         this.fileService = fileService;
     }
 
-    public CompletableFuture<YamlConfiguration> load(File file) {
+    public CompletableFuture<YamlSection> load(File file) {
         if (fileService == null) {
             return CompletableFuture.completedFuture(YamlFiles.load(file));
         }
         return fileService.read("yaml-load:" + safeName(file), () -> YamlFiles.load(file));
     }
 
-    public CompletableFuture<Void> save(File file, YamlConfiguration configuration) {
+    public CompletableFuture<Void> save(File file, YamlSection section) {
         if (fileService == null) {
             try {
-                YamlFiles.save(file, configuration);
+                YamlFiles.save(file, section);
                 return CompletableFuture.completedFuture(null);
             } catch (IOException exception) {
                 return failedFuture(exception);
@@ -36,7 +34,7 @@ public final class AsyncYamlFiles {
         }
         return fileService.write(file == null ? null : file.toPath(), "yaml-save:" + safeName(file), () -> {
             try {
-                YamlFiles.save(file, configuration);
+                YamlFiles.save(file, section);
             } catch (IOException exception) {
                 throw new CompletionException(exception);
             }

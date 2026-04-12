@@ -7,19 +7,19 @@
     <parent>
         <groupId>emaki.jiuwu.craft</groupId>
         <artifactId>emaki-parent</artifactId>
-        <version>2.0.0</version>
+        <version>3.0.0</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>emaki-strengthen</artifactId>
-    <version>2.0.0</version>
+    <version>3.0.0</version>
     <name>EmakiStrengthen</name>
     <packaging>jar</packaging>
 
     <dependencies>
         <dependency>
-            <groupId>io.papermc.paper</groupId>
-            <artifactId>paper-api</artifactId>
+            <groupId>org.spigotmc</groupId>
+            <artifactId>spigot-api</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -28,8 +28,18 @@
             <version>${emaki.corelib.version}</version>
         </dependency>
         <dependency>
+            <groupId>net.kyori</groupId>
+            <artifactId>adventure-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
             <groupId>me.clip</groupId>
             <artifactId>placeholderapi</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jetbrains</groupId>
+            <artifactId>annotations</artifactId>
             <scope>provided</scope>
         </dependency>
     </dependencies>

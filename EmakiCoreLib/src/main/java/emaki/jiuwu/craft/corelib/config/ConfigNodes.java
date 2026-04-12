@@ -7,7 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.bukkit.configuration.ConfigurationSection;
+import emaki.jiuwu.craft.corelib.yaml.MapYamlSection;
+import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
 public final class ConfigNodes {
 
@@ -18,7 +19,7 @@ public final class ConfigNodes {
         if (mapping == null || key == null) {
             return null;
         }
-        if (mapping instanceof ConfigurationSection section) {
+        if (mapping instanceof YamlSection section) {
             return section.get(key);
         }
         if (mapping instanceof Map<?, ?> map) {
@@ -31,7 +32,7 @@ public final class ConfigNodes {
         if (mapping == null || key == null) {
             return false;
         }
-        if (mapping instanceof ConfigurationSection section) {
+        if (mapping instanceof YamlSection section) {
             return section.contains(key);
         }
         if (mapping instanceof Map<?, ?> map) {
@@ -45,7 +46,7 @@ public final class ConfigNodes {
         if (mapping == null) {
             return result;
         }
-        if (mapping instanceof ConfigurationSection section) {
+        if (mapping instanceof YamlSection section) {
             Set<String> keys = section.getKeys(false);
             for (String key : keys) {
                 result.put(key, section.get(key));
@@ -70,7 +71,7 @@ public final class ConfigNodes {
                 || value instanceof Boolean) {
             return value;
         }
-        if (value instanceof ConfigurationSection section) {
+        if (value instanceof YamlSection section) {
             Map<String, Object> result = new LinkedHashMap<>();
             for (String key : section.getKeys(false)) {
                 result.put(key, toPlainData(section.get(key)));
@@ -113,12 +114,15 @@ public final class ConfigNodes {
         return Boolean.parseBoolean(String.valueOf(value));
     }
 
-    public static ConfigurationSection section(Object mapping, String key) {
-        if (mapping instanceof ConfigurationSection configurationSection) {
-            return configurationSection.getConfigurationSection(key);
+    public static YamlSection section(Object mapping, String key) {
+        if (mapping instanceof YamlSection section) {
+            return section.getSection(key);
         }
         Object value = get(mapping, key);
-        return value instanceof ConfigurationSection section ? section : null;
+        if (value instanceof Map<?, ?> map) {
+            return new MapYamlSection(MapYamlSection.normalizeMap(map));
+        }
+        return value instanceof YamlSection section ? section : null;
     }
 
     public static List<Object> asObjectList(Object value) {

@@ -1,25 +1,49 @@
 package emaki.jiuwu.craft.corelib.service;
 
-import java.util.Map;
 import java.util.Objects;
+import java.util.Map;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.logging.Level;
 
 import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import emaki.jiuwu.craft.corelib.text.AdventureSupport;
 import emaki.jiuwu.craft.corelib.text.LogMessages;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import net.kyori.adventure.text.Component;
 
-public abstract class AbstractMessageService implements LogMessages {
+public class AbstractMessageService implements LogMessages {
 
     private final JavaPlugin plugin;
     private final String defaultPrefix;
+    private final Function<String, String> messageResolver;
+    private final BiFunction<String, Map<String, ?>, String> replacementResolver;
+    private final boolean includePrefixInLogs;
 
     protected AbstractMessageService(JavaPlugin plugin, String defaultPrefix) {
+        this(plugin, defaultPrefix, null, null, false);
+    }
+
+    public AbstractMessageService(JavaPlugin plugin,
+            String defaultPrefix,
+            Function<String, String> messageResolver,
+            BiFunction<String, Map<String, ?>, String> replacementResolver) {
+        this(plugin, defaultPrefix, messageResolver, replacementResolver, false);
+    }
+
+    public AbstractMessageService(JavaPlugin plugin,
+            String defaultPrefix,
+            Function<String, String> messageResolver,
+            BiFunction<String, Map<String, ?>, String> replacementResolver,
+            boolean includePrefixInLogs) {
         this.plugin = Objects.requireNonNull(plugin, "plugin");
         this.defaultPrefix = Texts.toStringSafe(defaultPrefix);
+        this.messageResolver = messageResolver;
+        this.replacementResolver = replacementResolver;
+        this.includePrefixInLogs = includePrefixInLogs;
     }
 
     @Override
@@ -67,12 +91,41 @@ public abstract class AbstractMessageService implements LogMessages {
         log(Level.SEVERE, message(key, replacements));
     }
 
-    protected abstract String resolveMessage(String key);
+    public void send(CommandSender sender, String key) {
+        send(sender, key, Map.of());
+    }
 
-    protected abstract String resolveMessage(String key, Map<String, ?> replacements);
+    public void send(CommandSender sender, String key, Map<String, ?> replacements) {
+        sendRaw(sender, message(key, replacements == null ? Map.of() : replacements));
+    }
+
+    public void sendRaw(CommandSender sender, String text) {
+        sendPrefixed(sender, text);
+    }
+
+    public void sendComponent(CommandSender sender, Component component) {
+        if (sender == null || component == null) {
+            return;
+        }
+        AdventureSupport.sendMessage(plugin(), sender, component);
+    }
+
+    protected String resolveMessage(String key) {
+        if (messageResolver == null) {
+            return key;
+        }
+        return messageResolver.apply(key);
+    }
+
+    protected String resolveMessage(String key, Map<String, ?> replacements) {
+        if (replacementResolver != null) {
+            return replacementResolver.apply(key, replacements);
+        }
+        return Texts.formatTemplate(resolveMessage(key), replacements);
+    }
 
     protected boolean includePrefixInLogs() {
-        return false;
+        return includePrefixInLogs;
     }
 
     protected final JavaPlugin plugin() {
@@ -83,7 +136,7 @@ public abstract class AbstractMessageService implements LogMessages {
         if (sender == null || Texts.isBlank(text)) {
             return;
         }
-        sender.sendMessage(render(withPrefix(text)));
+        AdventureSupport.sendMessage(plugin(), sender, render(withPrefix(text)));
     }
 
     protected final String withPrefix(String text) {

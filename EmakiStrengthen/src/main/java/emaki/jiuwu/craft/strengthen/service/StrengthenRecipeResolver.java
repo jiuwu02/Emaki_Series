@@ -11,10 +11,12 @@ import java.util.function.Predicate;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
-import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerSnapshot;
 import emaki.jiuwu.craft.corelib.assembly.EmakiStatContribution;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.item.ItemSourceService;
+import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -27,14 +29,19 @@ public final class StrengthenRecipeResolver {
     private static final double EPSILON = 1.0E-9D;
 
     private final EmakiStrengthenPlugin plugin;
+    private final EmakiItemAssemblyService itemAssemblyService;
+    private final ItemSourceService itemSourceService;
 
-    public StrengthenRecipeResolver(EmakiStrengthenPlugin plugin) {
+    public StrengthenRecipeResolver(EmakiStrengthenPlugin plugin,
+            EmakiItemAssemblyService itemAssemblyService,
+            ItemSourceService itemSourceService) {
         this.plugin = plugin;
+        this.itemAssemblyService = itemAssemblyService;
+        this.itemSourceService = itemSourceService;
     }
 
     public ResolvedItem resolve(ItemStack itemStack, String explicitRecipeId) {
-        EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.getInstance();
-        boolean isEmaki = coreLib != null && coreLib.itemAssemblyService().isEmakiItem(itemStack);
+        boolean isEmaki = itemAssemblyService != null && itemAssemblyService.isEmakiItem(itemStack);
         ItemSource baseSource = resolveBaseSource(itemStack);
         String shorthand = ItemSourceUtil.toShorthand(baseSource);
         Map<String, Double> stats = aggregateStats(itemStack, isEmaki);
@@ -48,17 +55,16 @@ public final class StrengthenRecipeResolver {
         if (itemStack == null || itemStack.getType().isAir()) {
             return null;
         }
-        EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.getInstance();
-        if (coreLib == null) {
+        if (itemSourceService == null) {
             return null;
         }
-        if (coreLib.itemAssemblyService().isEmakiItem(itemStack)) {
-            ItemSource stored = coreLib.itemAssemblyService().readBaseSource(itemStack);
+        if (itemAssemblyService != null && itemAssemblyService.isEmakiItem(itemStack)) {
+            ItemSource stored = itemAssemblyService.readBaseSource(itemStack);
             if (stored != null) {
                 return stored;
             }
         }
-        return coreLib.itemSourceService().identifyItem(itemStack);
+        return itemSourceService.identifyItem(itemStack);
     }
 
     private String resolveRecipeId(String explicitRecipeId,
@@ -196,9 +202,8 @@ public final class StrengthenRecipeResolver {
         if (itemStack == null || itemStack.getType().isAir()) {
             return values;
         }
-        EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.getInstance();
-        if (isEmaki && coreLib != null) {
-            for (EmakiItemLayerSnapshot snapshot : coreLib.itemAssemblyService().readLayerSnapshots(itemStack).values()) {
+        if (isEmaki && itemAssemblyService != null) {
+            for (EmakiItemLayerSnapshot snapshot : itemAssemblyService.readLayerSnapshots(itemStack).values()) {
                 if (snapshot == null || snapshot.stats() == null) {
                     continue;
                 }
@@ -229,7 +234,7 @@ public final class StrengthenRecipeResolver {
         if (itemStack == null || !itemStack.hasItemMeta() || !itemStack.getItemMeta().hasLore()) {
             return lines;
         }
-        List<Component> lore = itemStack.getItemMeta().lore();
+        List<Component> lore = ItemTextBridge.lore(itemStack.getItemMeta());
         if (lore == null) {
             return lines;
         }

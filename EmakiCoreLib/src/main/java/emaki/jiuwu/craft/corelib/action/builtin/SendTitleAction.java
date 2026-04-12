@@ -8,6 +8,7 @@ import emaki.jiuwu.craft.corelib.action.ActionParameter;
 import emaki.jiuwu.craft.corelib.action.ActionParameterType;
 import emaki.jiuwu.craft.corelib.action.ActionParsers;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
+import emaki.jiuwu.craft.corelib.text.AdventureSupport;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import net.kyori.adventure.title.Title;
 
@@ -40,7 +41,7 @@ public final class SendTitleAction extends BaseAction {
                 MiniMessages.parse(stringArg(arguments, "subtitle")),
                 Title.Times.times(Duration.ofMillis(fadeIn * 50L), Duration.ofMillis(stay * 50L), Duration.ofMillis(fadeOut * 50L))
         );
-        context.player().showTitle(title);
+        AdventureSupport.showTitle(context.sourcePlugin(), context.player(), title);
         return ActionResult.ok();
     }
 }

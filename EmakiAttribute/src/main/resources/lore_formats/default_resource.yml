@@ -1,6 +1,22 @@
+# ========================================
+# EmakiAttribute Lore 格式定义 - default_resource
+# ========================================
+# 资源类属性的 Lore 显示格式，用于生命值、法力值等资源上限属性。
+# ========================================
+
+# 格式 ID
 id: default_resource
+
+# 显示格式模板
+# 示例输出：生命值 +20
 format: "{name} {sign}{value}"
+
+# 小数精度
 precision: 2
+
+# 读取优先级（高于 default_flat，确保资源属性优先匹配）
 read_priority: 60
+
+# Lore 读取正则
 read_patterns:
   - "{Key}.*?: ?{Value}$"

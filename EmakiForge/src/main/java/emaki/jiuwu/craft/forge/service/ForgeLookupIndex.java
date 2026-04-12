@@ -18,6 +18,7 @@ final class ForgeLookupIndex {
 
     private final EmakiForgePlugin plugin;
     private volatile Map<String, ForgeMaterial> materialsBySource = Map.of();
+    private volatile Map<String, ForgeMaterial> materialsById = Map.of();
     private volatile Map<String, BlueprintRequirement> blueprintsBySource = Map.of();
     private volatile List<Recipe> sortedRecipes = List.of();
 
@@ -27,6 +28,7 @@ final class ForgeLookupIndex {
 
     void refresh() {
         Map<String, ForgeMaterial> materialIndex = new LinkedHashMap<>();
+        Map<String, ForgeMaterial> materialIdIndex = new LinkedHashMap<>();
         Map<String, BlueprintRequirement> blueprintIndex = new LinkedHashMap<>();
         List<Recipe> recipes = plugin.recipeLoader() == null
                 ? new ArrayList<>()
@@ -44,6 +46,10 @@ final class ForgeLookupIndex {
                 if (!key.isBlank()) {
                     materialIndex.putIfAbsent(key, material);
                 }
+                String materialId = Texts.lower(material.key());
+                if (!materialId.isBlank()) {
+                    materialIdIndex.putIfAbsent(materialId, material);
+                }
             }
             for (BlueprintRequirement requirement : recipe.blueprintRequirements()) {
                 if (requirement == null) {
@@ -56,12 +62,17 @@ final class ForgeLookupIndex {
             }
         }
         materialsBySource = Map.copyOf(materialIndex);
+        materialsById = Map.copyOf(materialIdIndex);
         blueprintsBySource = Map.copyOf(blueprintIndex);
         sortedRecipes = List.copyOf(recipes);
     }
 
     ForgeMaterial findMaterialBySource(ItemSource source) {
         return source == null ? null : materialsBySource.get(shorthand(source));
+    }
+
+    ForgeMaterial findMaterialById(String materialId) {
+        return Texts.isBlank(materialId) ? null : materialsById.get(Texts.lower(materialId));
     }
 
     BlueprintRequirement findBlueprintRequirementBySource(ItemSource source) {

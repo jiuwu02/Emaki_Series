@@ -1,14 +1,13 @@
 package emaki.jiuwu.craft.corelib.pdc;
 
-import java.io.StringReader;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Function;
 
-import org.bukkit.configuration.file.YamlConfiguration;
-
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
+import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
 public interface SnapshotCodec<T> {
 
@@ -25,11 +24,11 @@ public interface SnapshotCodec<T> {
                     return "";
                 }
                 Map<String, Object> data = encoder == null ? Map.of() : encoder.apply(value);
-                YamlConfiguration configuration = new YamlConfiguration();
+                Map<String, Object> normalized = new LinkedHashMap<>();
                 for (Map.Entry<String, Object> entry : data.entrySet()) {
-                    configuration.set(entry.getKey(), ConfigNodes.toPlainData(entry.getValue()));
+                    normalized.put(entry.getKey(), ConfigNodes.toPlainData(entry.getValue()));
                 }
-                return configuration.saveToString();
+                return YamlFiles.dump(normalized);
             }
 
             @Override
@@ -37,13 +36,8 @@ public interface SnapshotCodec<T> {
                 if (Texts.isBlank(payload)) {
                     return null;
                 }
-                YamlConfiguration configuration = new YamlConfiguration();
-                try {
-                    configuration.load(new StringReader(payload));
-                } catch (Exception exception) {
-                    return null;
-                }
-                Map<String, Object> data = new LinkedHashMap<>(ConfigNodes.entries(configuration));
+                YamlSection configuration = YamlFiles.load(payload);
+                Map<String, Object> data = configuration.asMap();
                 return decoder == null ? null : decoder.apply(data);
             }
         };

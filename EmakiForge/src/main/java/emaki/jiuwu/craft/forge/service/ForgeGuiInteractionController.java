@@ -89,10 +89,6 @@ final class ForgeGuiInteractionController {
         );
     }
 
-    private void handleTargetClick(InventoryClickEvent event, ForgeGuiSession state) {
-        return;
-    }
-
     private void handleMaterialClick(InventoryClickEvent event, ForgeGuiSession state, int slot, boolean required) {
         ForgeGuiStateSupport.MaterialSlotRules rules = stateSupport.resolveMaterialSlotRules(state);
         int optionalOccupied = state.optionalMaterialItems().size() - (state.optionalMaterialItems().containsKey(slot) ? 1 : 0);
@@ -266,8 +262,6 @@ final class ForgeGuiInteractionController {
             switch (stateSupport.normalizedType(slot.definition())) {
                 case "blueprint_inputs" ->
                     handleBlueprintClick(event, state, slot.inventorySlot());
-                case "target_item" ->
-                    handleTargetClick(event, state);
                 case "required_materials" ->
                     handleMaterialClick(event, state, slot.inventorySlot(), true);
                 case "optional_materials" ->

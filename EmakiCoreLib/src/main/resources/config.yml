@@ -1,20 +1,39 @@
-﻿# Emaki CoreLib 默认配置
-config_version: "2.3.0"
+# ========================================
+# Emaki CoreLib 主配置文件
+# ========================================
+# CoreLib 是 Emaki 系列插件的核心依赖库，提供物品源、GUI、动作系统、
+# 经济桥接、表达式引擎等基础设施。本文件控制 CoreLib 的全局行为。
+# ========================================
 
+# 配置文件版本号（由版本迁移器自动管理，请勿手动修改）
+config_version: "3.0.0"
+
+# 文本显示配置
 text:
+  # 默认消息前缀，支持 MiniMessage 富文本格式
   default_prefix: "<gray>[<gold>Emaki CoreLib</gold>]</gray>"
 
+# 物品源配置
 item_source:
+  # 是否允许自定义物品源注册表
+  # 设为 true 时，第三方插件可通过 ItemSourceService 注册自定义物品源
+  # 设为 false 时，仅使用内置的物品源解析器（原版物品、NamespacedKey 等）
   allow_custom_registry: true
 
+# GUI 系统配置
 gui:
+  # 默认点击音效，在玩家点击 GUI 按钮时播放
   default_sound:
     sound: "ui.button.click"
     volume: 1.0
     pitch: 1.0
 
+# 动作系统配置
 action:
+  # 调试模式：开启后会在控制台输出每个动作的执行详情
   debug: false
+  # 动作模板：可定义可复用的动作序列，在配方中通过 @template=名称 引用
+  # 取消注释以下示例即可启用
   templates:
     # forge_success_common:
     #   - 'sendmessage text="<green>成功获得 %forge_result_item_name%</green>"'

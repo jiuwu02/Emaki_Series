@@ -2,11 +2,13 @@ package emaki.jiuwu.craft.attribute.service;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
+import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
+
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
-import emaki.jiuwu.craft.attribute.api.AttributeContributionProvider;
 import emaki.jiuwu.craft.attribute.config.AttributeConfig;
 import emaki.jiuwu.craft.attribute.loader.AttributeBalanceRegistry;
 import emaki.jiuwu.craft.attribute.loader.AttributePresetRegistry;
@@ -17,8 +19,6 @@ import emaki.jiuwu.craft.attribute.loader.LoreFormatRegistry;
 import emaki.jiuwu.craft.attribute.model.AttributeDefinition;
 import emaki.jiuwu.craft.attribute.model.DamageContext;
 import emaki.jiuwu.craft.attribute.model.ResolvedDamage;
-import emaki.jiuwu.craft.attribute.model.ResourceDefinition;
-import emaki.jiuwu.craft.attribute.service.VanillaAttributeSynchronizer.VanillaAttributeBinding;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.pdc.PdcService;
 
@@ -166,75 +166,31 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
         return damageCalculationService;
     }
 
-    AttributeStateRepository stateRepositoryInternal() {
+    AttributeStateRepository stateRepository() {
         return stateRepository;
     }
 
-    VanillaAttributeSynchronizer vanillaSynchronizerInternal() {
+    VanillaAttributeSynchronizer vanillaSynchronizer() {
         return vanillaSynchronizer;
-    }
-
-    List<AttributeDefinition> attributeDefinitionsInternal() {
-        return registryService.attributeDefinitions();
-    }
-
-    Map<String, Double> defaultAttributeValuesInternal() {
-        return registryService.defaultAttributeValues();
-    }
-
-    Map<String, ResourceDefinition> resourceDefinitionsInternal() {
-        return registryService.resourceDefinitions();
-    }
-
-    Map<String, List<AttributeDefinition>> resourceAttributeDefinitionsInternal() {
-        return registryService.resourceAttributeDefinitions();
-    }
-
-    Map<String, List<AttributeDefinition>> resourceRegenDefinitionsInternal() {
-        return registryService.resourceRegenDefinitions();
-    }
-
-    List<VanillaAttributeBinding> vanillaAttributeBindingsInternal() {
-        return registryService.vanillaAttributeBindings();
-    }
-
-    Set<String> vanillaMappedAttributeIdsInternal() {
-        return registryService.vanillaMappedAttributeIds();
     }
 
     public List<AttributeDefinition> mmoItemsMappedDefinitions() {
         return registryService.mmoItemsMappedDefinitions();
     }
 
-    List<AttributeDefinition> genericSpeedDefinitionsInternal() {
-        return registryService.genericSpeedDefinitions();
+    AttributeRegistryService registryService() {
+        return registryService;
     }
 
-    List<AttributeDefinition> genericAttackSpeedDefinitionsInternal() {
-        return registryService.genericAttackSpeedDefinitions();
-    }
-
-    String defaultProfilesSignatureInternal() {
-        return registryService.defaultProfilesSignature();
-    }
-
-    String attributeDefinitionsSignatureInternal() {
-        return registryService.attributeDefinitionsSignature();
-    }
-
-    List<AttributeContributionProvider> orderedContributionProvidersInternal() {
-        return registryService.orderedContributionProviders();
-    }
-
-    AsyncTaskScheduler asyncTaskSchedulerInternal() {
+    AsyncTaskScheduler asyncTaskScheduler() {
         return asyncTaskScheduler;
     }
 
-    AsyncDamageEngine asyncDamageEngineInternal() {
+    AsyncDamageEngine asyncDamageEngine() {
         return asyncDamageEngine;
     }
 
-    PdcAttributeService pdcAttributeServiceInternal() {
+    PdcAttributeService pdcAttributeService() {
         return pdcAttributeService;
     }
 
@@ -246,8 +202,32 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
         return ITEM_LORE_SIGNATURE_VERSION;
     }
 
-    public CombatDebugService combatDebugService() {
+    CombatDebugService combatDebug() {
         return combatDebugService;
+    }
+
+    public boolean toggleCombatDebug(Player player) {
+        return combatDebugService.toggle(player);
+    }
+
+    public boolean setCombatDebug(Player player, boolean enabled) {
+        return combatDebugService.setEnabled(player, enabled);
+    }
+
+    public boolean shouldTraceCombat(LivingEntity attacker, LivingEntity target) {
+        return combatDebugService.shouldTrace(attacker, target);
+    }
+
+    public boolean shouldTraceCombat(Projectile projectile, LivingEntity target) {
+        return combatDebugService.shouldTrace(projectile, target);
+    }
+
+    public void logCombatDebug(String phase, String messageKey) {
+        combatDebugService.logMessage(phase, messageKey, Map.of());
+    }
+
+    public void logCombatDebug(String phase, String messageKey, Map<String, ?> replacements) {
+        combatDebugService.logMessage(phase, messageKey, replacements);
     }
 
     public CompletableFuture<ResolvedDamage> resolveDamageApplicationAsync(DamageContext damageContext) {

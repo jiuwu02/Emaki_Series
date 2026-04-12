@@ -5,13 +5,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.YamlConfiguration;
-
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.attribute.model.DamageTypeDefinition;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
 public final class DamageTypeRegistry extends DirectoryLoader<DamageTypeDefinition> {
 
@@ -58,7 +56,7 @@ public final class DamageTypeRegistry extends DirectoryLoader<DamageTypeDefiniti
     }
 
     @Override
-    protected DamageTypeDefinition parse(File file, YamlConfiguration configuration) {
+    protected DamageTypeDefinition parse(File file, YamlSection configuration) {
         return DamageTypeDefinition.fromMap(configuration, this::resolveAttributeId);
     }
 
@@ -70,7 +68,7 @@ public final class DamageTypeRegistry extends DirectoryLoader<DamageTypeDefiniti
     }
 
     @Override
-    protected boolean validateSchema(File file, YamlConfiguration configuration) {
+    protected boolean validateSchema(File file, YamlSection configuration) {
         boolean valid = true;
         if (Texts.isBlank(configuration.getString("id"))) {
             issue(
@@ -86,7 +84,7 @@ public final class DamageTypeRegistry extends DirectoryLoader<DamageTypeDefiniti
         Object stages = configuration.get("stages");
         if (stages != null) {
             for (Object stage : ConfigNodes.asObjectList(stages)) {
-                if (stage instanceof Map<?, ?> || stage instanceof ConfigurationSection) {
+                if (stage instanceof Map<?, ?> || stage instanceof YamlSection) {
                     continue;
                 }
                 issue(
@@ -102,7 +100,7 @@ public final class DamageTypeRegistry extends DirectoryLoader<DamageTypeDefiniti
             }
         }
         Object recovery = configuration.get("recovery");
-        if (recovery != null && !(recovery instanceof Map<?, ?> || recovery instanceof ConfigurationSection)) {
+        if (recovery != null && !(recovery instanceof Map<?, ?> || recovery instanceof YamlSection)) {
             issue(
                     "loader.schema_invalid_section",
                     Map.of(

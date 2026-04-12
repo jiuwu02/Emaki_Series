@@ -1,7 +1,9 @@
 package emaki.jiuwu.craft.attribute;
 
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 import org.bukkit.Bukkit;
@@ -28,9 +30,11 @@ import emaki.jiuwu.craft.attribute.papi.AttributePlaceholderExpansion;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
 import emaki.jiuwu.craft.attribute.service.MessageService;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.corelib.service.EmakiServiceRegistry;
+import emaki.jiuwu.craft.corelib.text.AdventureSupport;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 
-public final class EmakiAttributePlugin extends JavaPlugin {
+public final class EmakiAttributePlugin extends JavaPlugin implements EmakiServiceRegistry {
 
     private static final String STARTUP_ASCII = """
   ______  __    __  ______  __  __   __  ______  ______  ______  ______  __  ______  __  __  ______  ______
@@ -44,6 +48,7 @@ public final class EmakiAttributePlugin extends JavaPlugin {
     private static EmakiAttributePlugin instance;
 
     private final AttributeLifecycleCoordinator lifecycleCoordinator = new AttributeLifecycleCoordinator();
+    private final Map<Class<?>, Object> serviceRegistry = new ConcurrentHashMap<>();
 
     private AttributeConfig configModel = AttributeConfig.defaults();
     private AttributeRegistry attributeRegistry;
@@ -65,6 +70,10 @@ public final class EmakiAttributePlugin extends JavaPlugin {
     private BukkitTask regenTask;
     private CompletableFuture<Void> reloadFuture;
 
+    /**
+     * @deprecated Prefer constructor injection or {@link #getService(Class)} for new code.
+     */
+    @Deprecated
     public static EmakiAttributePlugin getInstance() {
         return instance;
     }
@@ -88,6 +97,7 @@ public final class EmakiAttributePlugin extends JavaPlugin {
         unregisterCoreLibActions();
         Bukkit.getServicesManager().unregisterAll(this);
         lifecycleCoordinator.shutdown(this, regenTask);
+        AdventureSupport.close(this);
         regenTask = null;
         if (instance == this) {
             instance = null;
@@ -172,6 +182,7 @@ public final class EmakiAttributePlugin extends JavaPlugin {
         listener = components.listener();
         command = components.command();
         mythicBridge = components.mythicBridge();
+        registerServices(components.services());
     }
 
     private void registerPdcAttributeApi() {
@@ -258,6 +269,15 @@ public final class EmakiAttributePlugin extends JavaPlugin {
         return placeholderExpansion;
     }
 
+    @Override
+    public <T> T getService(Class<T> type) {
+        if (type == null) {
+            return null;
+        }
+        Object service = serviceRegistry.get(type);
+        return type.isInstance(service) ? type.cast(service) : null;
+    }
+
     private void registerCoreLibActions() {
         EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.getInstance();
         if (coreLibPlugin == null || coreLibPlugin.actionRegistry() == null || attributeService == null) {
@@ -272,5 +292,12 @@ public final class EmakiAttributePlugin extends JavaPlugin {
             return;
         }
         AttributeActions.unregisterAll(coreLibPlugin.actionRegistry());
+    }
+
+    private void registerServices(Map<Class<?>, Object> services) {
+        serviceRegistry.clear();
+        if (services != null) {
+            serviceRegistry.putAll(services);
+        }
     }
 }

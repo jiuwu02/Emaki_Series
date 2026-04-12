@@ -1,25 +1,48 @@
+# ========================================
+# EmakiStrengthen GUI 模板 - 装备强化界面
+# ========================================
+# GUI 模板定义了强化界面的布局、槽位分配和显示物品。
+# 玩家通过此界面放入待强化装备和材料，并执行强化操作。
+# ========================================
+
+# 模板 ID，全局唯一
 id: "strengthen_gui"
+
+# GUI 标题，支持 MiniMessage 富文本
 title: "<dark_gray>装备强化</dark_gray>"
+
+# GUI 行数（1-6）
 rows: 5
 
+# ========================================
+# 槽位布局定义
+# ========================================
+# 每个槽位组定义了占据的槽位索引、显示物品和交互类型
+# 槽位索引从 0 开始，按行排列：
+#   行1: 0-8, 行2: 9-17, 行3: 18-26, 行4: 27-35, 行5: 36-44
 slots:
+  # 顶部边框
   top_frame:
     slots: [0, 1, 2, 3, 4, 5, 6, 7, 8]
     item: "GRAY_STAINED_GLASS_PANE"
     display_name: "<gray>"
 
+  # 底部边框（中间 40 号槽位留给确认按钮）
   bottom_frame:
     slots: [36, 37, 38, 39, 41, 42, 43, 44]
     item: "GRAY_STAINED_GLASS_PANE"
     display_name: "<gray>"
 
+  # 左右边框
   side_frame:
     slots: [9, 17, 18, 26, 27, 35]
     item: "BLACK_STAINED_GLASS_PANE"
     display_name: "<dark_gray>"
 
+  # 目标装备槽：放入待强化的装备
   target_item:
     slots: [13]
+    # 槽位类型：目标物品输入
     type: "target_item"
     item: "LIGHT_BLUE_STAINED_GLASS_PANE"
     display_name: "<aqua>放入待强化装备</aqua>"
@@ -27,8 +50,10 @@ slots:
       - "<gray>支持所有可识别为 Emaki 来源的装备"
       - "<gray>会叠加 strengthen 层，不覆盖 forge 层"
 
+  # 强化预览槽：显示成功率、花费与所需材料
   preview_display:
     slots: [15]
+    # 槽位类型：预览显示（只读）
     type: "preview_display"
     item: "BOOK"
     display_name: "<gold>强化预览</gold>"
@@ -36,14 +61,17 @@ slots:
       - "<gray>这里会展示成功率、花费与所需材料"
       - "<gray>固定材料直接从背包中扣除"
 
+  # 锻印状态显示槽
   temper_display:
     slots: [22]
+    # 槽位类型：锻印状态显示（只读）
     type: "temper_display"
     item: "INK_SAC"
     display_name: "<gold>锻印状态</gold>"
     lore:
       - "<gray>失败后会累积锻印，提高后续成功率"
 
+  # 可选材料槽 I：保护类或锻印类材料
   material_input_1:
     slots: [19]
     type: "material_input_1"
@@ -52,6 +80,7 @@ slots:
     lore:
       - "<gray>可放入保护类或锻印类可选材料"
 
+  # 可选材料槽 II：本次强化需要的可选材料
   material_input_2:
     slots: [20]
     type: "material_input_2"
@@ -60,6 +89,7 @@ slots:
     lore:
       - "<gray>可放入本次强化需要的可选材料"
 
+  # 可选材料槽 III：突破或保护类材料
   material_input_3:
     slots: [29]
     type: "material_input_3"
@@ -68,6 +98,7 @@ slots:
     lore:
       - "<gray>支持多种突破或保护类材料"
 
+  # 可选材料槽 IV：锻印加成材料
   material_input_4:
     slots: [30]
     type: "material_input_4"
@@ -76,12 +107,15 @@ slots:
     lore:
       - "<gray>可放入会提供额外锻印的材料"
 
+  # 确认按钮
   confirm:
     slots: [40]
+    # 槽位类型：确认操作
     type: "confirm"
     item: "ANVIL"
     display_name: "<green>确认强化</green>"
     lore:
       - "<gray>点击后将结算货币与材料"
       - "<gray>失败会累积锻印，并可能掉星</gray>"
+    # 点击音效：sound-volume-pitch 格式
     click: "ui.button.click-1-1"

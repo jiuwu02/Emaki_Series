@@ -4,11 +4,10 @@ import java.io.File;
 import java.util.List;
 import java.util.Map;
 
-import org.bukkit.configuration.file.YamlConfiguration;
-
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.attribute.model.LoreFormatDefinition;
 import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
 public final class LoreFormatRegistry extends DirectoryLoader<LoreFormatDefinition> {
 
@@ -34,7 +33,7 @@ public final class LoreFormatRegistry extends DirectoryLoader<LoreFormatDefiniti
     }
 
     @Override
-    protected LoreFormatDefinition parse(File file, YamlConfiguration configuration) {
+    protected LoreFormatDefinition parse(File file, YamlSection configuration) {
         return LoreFormatDefinition.fromMap(configuration);
     }
 
@@ -46,7 +45,7 @@ public final class LoreFormatRegistry extends DirectoryLoader<LoreFormatDefiniti
     }
 
     @Override
-    protected boolean validateSchema(File file, YamlConfiguration configuration) {
+    protected boolean validateSchema(File file, YamlSection configuration) {
         if (Texts.isBlank(configuration.getString("id"))) {
             issue(
                     "loader.schema_missing_id",

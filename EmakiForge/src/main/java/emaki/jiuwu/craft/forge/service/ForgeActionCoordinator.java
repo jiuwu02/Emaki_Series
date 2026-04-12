@@ -5,13 +5,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.action.ActionBatchResult;
 import emaki.jiuwu.craft.corelib.action.ActionContext;
+import emaki.jiuwu.craft.corelib.action.ActionExecutor;
 import emaki.jiuwu.craft.corelib.action.ActionStepResult;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -26,10 +27,14 @@ final class ForgeActionCoordinator {
 
     private final EmakiForgePlugin plugin;
     private final ForgeResultItemFactory resultItemFactory;
+    private final Supplier<ActionExecutor> actionExecutorSupplier;
 
-    ForgeActionCoordinator(EmakiForgePlugin plugin, ForgeResultItemFactory resultItemFactory) {
+    ForgeActionCoordinator(EmakiForgePlugin plugin,
+            ForgeResultItemFactory resultItemFactory,
+            Supplier<ActionExecutor> actionExecutorSupplier) {
         this.plugin = plugin;
         this.resultItemFactory = resultItemFactory;
+        this.actionExecutorSupplier = actionExecutorSupplier;
     }
 
     CompletableFuture<ActionBatchResult> executePhase(Player player,
@@ -136,12 +141,12 @@ final class ForgeActionCoordinator {
             double multiplier,
             String errorKey,
             String failureReason) {
-        EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.getInstance();
-        if (lines.isEmpty() || coreLib == null || coreLib.actionExecutor() == null) {
+        var actionExecutor = actionExecutorSupplier == null ? null : actionExecutorSupplier.get();
+        if (lines.isEmpty() || actionExecutor == null) {
             return CompletableFuture.completedFuture(new ActionBatchResult(true, List.of()));
         }
-        ActionContext context = buildActionContext(coreLib, player, recipe, guiItems, phase, resultItem, quality, multiplier, errorKey, failureReason);
-        return coreLib.actionExecutor()
+        ActionContext context = buildActionContext(player, recipe, guiItems, phase, resultItem, quality, multiplier, errorKey, failureReason);
+        return actionExecutor
                 .executeAll(context, lines, true)
                 .orTimeout(ACTION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
     }
@@ -164,8 +169,7 @@ final class ForgeActionCoordinator {
         };
     }
 
-    private ActionContext buildActionContext(EmakiCoreLibPlugin coreLib,
-            Player player,
+    private ActionContext buildActionContext(Player player,
             Recipe recipe,
             GuiItems guiItems,
             String phase,

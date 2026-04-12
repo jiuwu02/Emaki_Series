@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.attribute.service;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.Map;
 
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
@@ -11,7 +12,7 @@ import org.bukkit.entity.Projectile;
 
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 
-public final class CombatDebugService {
+final class CombatDebugService {
 
     private final EmakiAttributePlugin plugin;
     private final Set<UUID> trackedPlayers = ConcurrentHashMap.newKeySet();
@@ -68,5 +69,13 @@ public final class CombatDebugService {
         String safePhase = phase == null || phase.isBlank() ? "TRACE" : phase;
         String safeMessage = message == null ? "" : message;
         plugin.getLogger().info("[CombatDebug][" + safePhase + "] " + safeMessage);
+    }
+
+    public void logMessage(String phase, String messageKey, Map<String, ?> replacements) {
+        if (plugin == null || plugin.messageService() == null) {
+            log(phase, messageKey);
+            return;
+        }
+        log(phase, plugin.messageService().message(messageKey, replacements == null ? Map.of() : replacements));
     }
 }

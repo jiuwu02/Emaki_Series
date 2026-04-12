@@ -3,11 +3,10 @@ package emaki.jiuwu.craft.attribute.loader;
 import java.io.File;
 import java.util.Map;
 
-import org.bukkit.configuration.file.YamlConfiguration;
-
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.attribute.model.AttributePreset;
 import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
 public final class AttributePresetRegistry extends DirectoryLoader<AttributePreset> {
 
@@ -26,12 +25,12 @@ public final class AttributePresetRegistry extends DirectoryLoader<AttributePres
     }
 
     @Override
-    protected AttributePreset parse(File file, YamlConfiguration configuration) {
+    protected AttributePreset parse(File file, YamlSection configuration) {
         return AttributePreset.fromMap(configuration);
     }
 
     @Override
-    protected boolean validateSchema(File file, YamlConfiguration configuration) {
+    protected boolean validateSchema(File file, YamlSection configuration) {
         boolean valid = true;
         if (Texts.isBlank(configuration.getString("id"))) {
             issue(
@@ -45,7 +44,7 @@ public final class AttributePresetRegistry extends DirectoryLoader<AttributePres
             valid = false;
         }
         Object values = configuration.get("values");
-        if (values != null && !(values instanceof Map<?, ?> || values instanceof org.bukkit.configuration.ConfigurationSection)) {
+        if (values != null && !(values instanceof Map<?, ?> || values instanceof YamlSection)) {
             issue(
                     "loader.schema_invalid_section",
                     Map.of(

@@ -7,7 +7,6 @@ depend:
   - EmakiCoreLib
 softdepend:
   - EmakiAttribute
-  - EmakiForge
   - PlaceholderAPI
 commands:
   emakistrengthen:

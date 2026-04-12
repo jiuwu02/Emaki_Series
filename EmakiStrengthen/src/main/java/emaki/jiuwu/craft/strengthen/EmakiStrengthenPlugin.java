@@ -1,25 +1,30 @@
 package emaki.jiuwu.craft.strengthen;
 
 import java.nio.file.Path;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.gui.GuiItemBuilder;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
+import emaki.jiuwu.craft.corelib.integration.ReflectivePdcAttributeGateway;
+import emaki.jiuwu.craft.corelib.item.ItemSourceService;
+import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
+import emaki.jiuwu.craft.corelib.service.EmakiServiceRegistry;
+import emaki.jiuwu.craft.corelib.service.MessageService;
+import emaki.jiuwu.craft.corelib.text.AdventureSupport;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
+import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.strengthen.api.EmakiStrengthenApi;
 import emaki.jiuwu.craft.strengthen.config.AppConfig;
-import emaki.jiuwu.craft.strengthen.loader.AppConfigLoader;
 import emaki.jiuwu.craft.strengthen.loader.GuiTemplateLoader;
-import emaki.jiuwu.craft.strengthen.loader.LanguageLoader;
 import emaki.jiuwu.craft.strengthen.loader.StrengthenRecipeLoader;
-import emaki.jiuwu.craft.strengthen.service.BootstrapService;
 import emaki.jiuwu.craft.strengthen.service.ChanceCalculator;
-import emaki.jiuwu.craft.strengthen.service.MessageService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenRecipeResolver;
 import emaki.jiuwu.craft.strengthen.service.StrengthenActionCoordinator;
 import emaki.jiuwu.craft.strengthen.service.StrengthenAttemptService;
@@ -28,7 +33,7 @@ import emaki.jiuwu.craft.strengthen.service.StrengthenGuiService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenRefreshService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenSnapshotBuilder;
 
-public final class EmakiStrengthenPlugin extends JavaPlugin implements LogMessagesProvider {
+public final class EmakiStrengthenPlugin extends JavaPlugin implements LogMessagesProvider, EmakiServiceRegistry {
 
     private static final String ROOT_COMMAND = "emakistrengthen";
 
@@ -43,18 +48,20 @@ public final class EmakiStrengthenPlugin extends JavaPlugin implements LogMessag
     private final StrengthenLifecycleCoordinator lifecycleCoordinator = new StrengthenLifecycleCoordinator();
     private final StrengthenCommandRouter commandRouter = new StrengthenCommandRouter(this);
     private final StrengthenItemRefreshListener itemRefreshListener = new StrengthenItemRefreshListener(this);
+    private final Map<Class<?>, Object> serviceRegistry = new ConcurrentHashMap<>();
+    private ItemSourceService coreItemSourceService;
     private final GuiItemBuilder.ItemFactory coreItemFactory = (source, amount) -> {
-        EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.getInstance();
-        return coreLib == null ? null : coreLib.itemSourceService().createItem(source, amount);
+        return coreItemSourceService == null ? null : coreItemSourceService.createItem(source, amount);
     };
 
-    private AppConfigLoader appConfigLoader;
+    private YamlConfigLoader<AppConfig> appConfigLoader;
     private LanguageLoader languageLoader;
     private StrengthenRecipeLoader recipeLoader;
     private GuiTemplateLoader guiTemplateLoader;
     private MessageService messageService;
     private BootstrapService bootstrapService;
     private GuiService guiService;
+    private ReflectivePdcAttributeGateway pdcAttributeGateway;
     private StrengthenRecipeResolver recipeResolver;
     private ChanceCalculator chanceCalculator;
     private StrengthenEconomyService economyService;
@@ -85,6 +92,7 @@ public final class EmakiStrengthenPlugin extends JavaPlugin implements LogMessag
     public void onDisable() {
         getServer().getServicesManager().unregisterAll(this);
         lifecycleCoordinator.shutdown(this);
+        AdventureSupport.close(this);
     }
 
     public void reloadPluginState(boolean closeOpenInventories) {
@@ -99,6 +107,8 @@ public final class EmakiStrengthenPlugin extends JavaPlugin implements LogMessag
         messageService = components.messageService();
         bootstrapService = components.bootstrapService();
         guiService = components.guiService();
+        coreItemSourceService = components.coreItemSourceService();
+        pdcAttributeGateway = components.pdcAttributeGateway();
         recipeResolver = components.recipeResolver();
         chanceCalculator = components.chanceCalculator();
         economyService = components.economyService();
@@ -107,6 +117,7 @@ public final class EmakiStrengthenPlugin extends JavaPlugin implements LogMessag
         attemptService = components.attemptService();
         refreshService = components.refreshService();
         strengthenGuiService = components.strengthenGuiService();
+        registerServices(components.services());
     }
 
     private void registerApi() {
@@ -127,7 +138,7 @@ public final class EmakiStrengthenPlugin extends JavaPlugin implements LogMessag
         getServer().getPluginManager().registerEvents(itemRefreshListener, this);
     }
 
-    public AppConfigLoader appConfigLoader() {
+    public YamlConfigLoader<AppConfig> appConfigLoader() {
         return appConfigLoader;
     }
 
@@ -140,10 +151,6 @@ public final class EmakiStrengthenPlugin extends JavaPlugin implements LogMessag
     }
 
     public StrengthenRecipeLoader recipeLoader() {
-        return recipeLoader;
-    }
-
-    public StrengthenRecipeLoader replaceLoader() {
         return recipeLoader;
     }
 
@@ -162,6 +169,10 @@ public final class EmakiStrengthenPlugin extends JavaPlugin implements LogMessag
 
     public GuiService guiService() {
         return guiService;
+    }
+
+    public ReflectivePdcAttributeGateway pdcAttributeGateway() {
+        return pdcAttributeGateway;
     }
 
     public StrengthenRecipeResolver recipeResolver() {
@@ -198,5 +209,21 @@ public final class EmakiStrengthenPlugin extends JavaPlugin implements LogMessag
 
     public GuiItemBuilder.ItemFactory coreItemFactory() {
         return coreItemFactory;
+    }
+
+    @Override
+    public <T> T getService(Class<T> type) {
+        if (type == null) {
+            return null;
+        }
+        Object service = serviceRegistry.get(type);
+        return type.isInstance(service) ? type.cast(service) : null;
+    }
+
+    private void registerServices(Map<Class<?>, Object> services) {
+        serviceRegistry.clear();
+        if (services != null) {
+            serviceRegistry.putAll(services);
+        }
     }
 }

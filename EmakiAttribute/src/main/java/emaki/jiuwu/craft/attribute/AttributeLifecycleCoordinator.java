@@ -12,7 +12,6 @@ import java.util.function.Consumer;
 
 import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.scheduler.BukkitTask;
 
 import emaki.jiuwu.craft.attribute.bridge.MythicBridge;
@@ -34,10 +33,14 @@ import emaki.jiuwu.craft.attribute.service.PdcAttributeService;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
+import emaki.jiuwu.craft.corelib.yaml.VersionedYamlFile;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
+import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
-final class AttributeLifecycleCoordinator {
+final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiAttributePlugin, AttributeRuntimeComponents> {
 
+    @Override
     public AttributeRuntimeComponents initialize(EmakiAttributePlugin plugin) {
         EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.getInstance();
         if (coreLibPlugin == null) {
@@ -118,13 +121,13 @@ final class AttributeLifecycleCoordinator {
         if (plugin.languageLoader() != null) {
             plugin.languageLoader().setLanguage(plugin.configModel().language());
         }
-        runReloadStage(plugin, "lore_format_registry", () -> plugin.loreFormatRegistry().load());
-        runReloadStage(plugin, "attribute_registry", () -> plugin.attributeRegistry().load());
-        runReloadStage(plugin, "default_profile_registry", () -> plugin.defaultProfileRegistry().load());
-        runReloadStage(plugin, "preset_registry", () -> plugin.presetRegistry().load());
-        runReloadStage(plugin, "pdc_read_rule_loader", () -> plugin.pdcReadRuleLoader().load());
-        runReloadStage(plugin, "attribute_balance_registry", () -> plugin.attributeBalanceRegistry().load());
-        runReloadStage(plugin, "damage_type_registry", () -> plugin.damageTypeRegistry().load());
+        runReloadStage("lore_format_registry", () -> plugin.loreFormatRegistry().load(), failureHandler(plugin));
+        runReloadStage("attribute_registry", () -> plugin.attributeRegistry().load(), failureHandler(plugin));
+        runReloadStage("default_profile_registry", () -> plugin.defaultProfileRegistry().load(), failureHandler(plugin));
+        runReloadStage("preset_registry", () -> plugin.presetRegistry().load(), failureHandler(plugin));
+        runReloadStage("pdc_read_rule_loader", () -> plugin.pdcReadRuleLoader().load(), failureHandler(plugin));
+        runReloadStage("attribute_balance_registry", () -> plugin.attributeBalanceRegistry().load(), failureHandler(plugin));
+        runReloadStage("damage_type_registry", () -> plugin.damageTypeRegistry().load(), failureHandler(plugin));
         if (plugin.attributeService() != null) {
             plugin.attributeService().refreshCaches();
         }
@@ -165,60 +168,67 @@ final class AttributeLifecycleCoordinator {
             return configModel;
         })).thenCompose(configModel -> runReloadStageAsync(
                 scheduler,
-                plugin,
+                "attribute",
                 "lore_format_registry",
                 "正在加载词条格式...",
                 progressListener,
                 () -> plugin.loreFormatRegistry().load(),
-                configModel
+                configModel,
+                failureHandler(plugin)
         )).thenCompose(configModel -> runReloadStageAsync(
                 scheduler,
-                plugin,
+                "attribute",
                 "attribute_registry",
                 "正在加载属性定义...",
                 progressListener,
                 () -> plugin.attributeRegistry().load(),
-                configModel
+                configModel,
+                failureHandler(plugin)
         )).thenCompose(configModel -> runReloadStageAsync(
                 scheduler,
-                plugin,
+                "attribute",
                 "default_profile_registry",
                 "正在加载默认组...",
                 progressListener,
                 () -> plugin.defaultProfileRegistry().load(),
-                configModel
+                configModel,
+                failureHandler(plugin)
         )).thenCompose(configModel -> runReloadStageAsync(
                 scheduler,
-                plugin,
+                "attribute",
                 "pdc_read_rule_loader",
                 "正在加载 PDC 读取规则...",
                 progressListener,
                 () -> plugin.pdcReadRuleLoader().load(),
-                configModel
+                configModel,
+                failureHandler(plugin)
         )).thenCompose(configModel -> runReloadStageAsync(
                 scheduler,
-                plugin,
+                "attribute",
                 "preset_registry",
                 "正在加载属性预设...",
                 progressListener,
                 () -> plugin.presetRegistry().load(),
-                configModel
+                configModel,
+                failureHandler(plugin)
         )).thenCompose(configModel -> runReloadStageAsync(
                 scheduler,
-                plugin,
+                "attribute",
                 "attribute_balance_registry",
                 "正在加载属性权重...",
                 progressListener,
                 () -> plugin.attributeBalanceRegistry().load(),
-                configModel
+                configModel,
+                failureHandler(plugin)
         )).thenCompose(configModel -> runReloadStageAsync(
                 scheduler,
-                plugin,
+                "attribute",
                 "damage_type_registry",
                 "正在加载伤害类型...",
                 progressListener,
                 () -> plugin.damageTypeRegistry().load(),
-                configModel
+                configModel,
+                failureHandler(plugin)
         )).thenCompose(configModel -> scheduler.callSync("attribute-reload-finalize", () -> {
             notifyProgress(progressListener, "正在刷新缓存并同步在线实体...");
             if (plugin.attributeService() != null) {
@@ -272,48 +282,23 @@ final class AttributeLifecycleCoordinator {
         return plugin.getCommand("emakiattribute");
     }
 
-    private void runReloadStage(EmakiAttributePlugin plugin, String stageName, Runnable stage) {
-        try {
-            stage.run();
-        } catch (Exception exception) {
-            plugin.messageService().warning("console.reload_stage_failed", Map.of(
-                    "stage", stageName,
-                    "error", String.valueOf(exception.getMessage())
-            ));
-        }
-    }
-
-    private <T> CompletableFuture<T> runReloadStageAsync(AsyncTaskScheduler scheduler,
-            EmakiAttributePlugin plugin,
-            String stageName,
-            String progressMessage,
-            Consumer<String> progressListener,
-            Runnable stage,
-            T passthrough) {
-        notifyProgress(progressListener, progressMessage);
-        return scheduler.supplyAsync("attribute-reload-" + stageName, () -> {
-            runReloadStage(plugin, stageName, stage);
-            return passthrough;
-        });
-    }
-
-    private void notifyProgress(Consumer<String> progressListener, String message) {
-        if (progressListener == null || message == null || message.isBlank()) {
-            return;
-        }
-        progressListener.accept(message);
+    private java.util.function.BiConsumer<String, Exception> failureHandler(EmakiAttributePlugin plugin) {
+        return (stageName, exception) -> plugin.messageService().warning("console.reload_stage_failed", Map.of(
+                "stage", stageName,
+                "error", String.valueOf(exception.getMessage())
+        ));
     }
 
     private AttributeConfig loadConfigModel(EmakiAttributePlugin plugin) {
         try {
             File file = new File(plugin.getDataFolder(), "config.yml");
-            YamlConfiguration bundled = YamlFiles.loadResource(plugin, "config.yml");
-            String bundledVersion = bundled == null ? "" : ConfigNodes.string(bundled, "config_version", "");
-            String runtimeVersion = file.exists() ? ConfigNodes.string(YamlFiles.load(file), "config_version", "") : "";
-            YamlFiles.syncVersionedResource(plugin, file, "config.yml", "config_version");
-            if (bundled != null && !bundledVersion.isBlank() && !bundledVersion.equals(runtimeVersion)) {
-                mergeAllowedDamageCauses(file, bundled);
-            }
+            VersionedYamlFile versionedFile = YamlFiles.syncVersionedResource(
+                    plugin,
+                    file,
+                    "config.yml",
+                    "config_version",
+                    document -> mergeAllowedDamageCauses(document.root(), document.defaults())
+            );
             if (!file.exists()) {
                 plugin.messageService().warning("loader.bundled_resource_missing", Map.of(
                         "type", "配置",
@@ -321,7 +306,7 @@ final class AttributeLifecycleCoordinator {
                         "resource", "config.yml"
                 ));
             }
-            return AttributeConfig.fromConfig(YamlConfiguration.loadConfiguration(file));
+            return AttributeConfig.fromConfig(versionedFile == null ? YamlFiles.load(file) : versionedFile.root());
         } catch (Exception exception) {
             plugin.messageService().warning("console.config_load_failed", Map.of(
                     "error", String.valueOf(exception.getMessage())
@@ -330,11 +315,10 @@ final class AttributeLifecycleCoordinator {
         }
     }
 
-    private void mergeAllowedDamageCauses(File file, YamlConfiguration bundled) throws IOException {
-        if (file == null || !file.exists()) {
+    private void mergeAllowedDamageCauses(YamlSection runtime, YamlSection bundled) {
+        if (runtime == null || bundled == null) {
             return;
         }
-        YamlConfiguration runtime = YamlFiles.load(file);
         List<Object> runtimeEntries = new ArrayList<>(ConfigNodes.asObjectList(runtime.get("allowed_damage_causes")));
         List<Object> bundledEntries = ConfigNodes.asObjectList(bundled.get("allowed_damage_causes"));
         if (bundledEntries.isEmpty()) {
@@ -363,6 +347,5 @@ final class AttributeLifecycleCoordinator {
         }
         runtime.set("allowed_damage_causes", runtimeEntries);
         runtime.set("config_version", bundled.get("config_version"));
-        YamlFiles.save(file, runtime);
     }
 }

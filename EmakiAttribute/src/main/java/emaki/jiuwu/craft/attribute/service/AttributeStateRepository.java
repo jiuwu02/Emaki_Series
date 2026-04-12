@@ -41,15 +41,19 @@ final class AttributeStateRepository {
         if (itemStack == null || snapshot == null) {
             return;
         }
-        pdcService.set(itemStack, itemPartition, "schema_version", PersistentDataType.INTEGER, snapshot.schemaVersion());
-        pdcService.set(itemStack, itemPartition, "source_signature", PersistentDataType.STRING, snapshot.sourceSignature());
-        pdcService.writeBlob(itemStack, itemPartition, "snapshot", AttributeSnapshotCodecs.ATTRIBUTE_SNAPSHOT, snapshot);
+        pdcService.batchMutate(itemStack, container -> {
+            container.set(itemPartition.key("schema_version"), PersistentDataType.INTEGER, snapshot.schemaVersion());
+            container.set(itemPartition.key("source_signature"), PersistentDataType.STRING, snapshot.sourceSignature());
+            container.set(itemPartition.key("snapshot"), PersistentDataType.STRING, AttributeSnapshotCodecs.ATTRIBUTE_SNAPSHOT.encode(snapshot));
+        });
     }
 
     void clearItemSnapshot(ItemStack itemStack) {
-        pdcService.remove(itemStack, itemPartition, "schema_version");
-        pdcService.remove(itemStack, itemPartition, "source_signature");
-        pdcService.remove(itemStack, itemPartition, "snapshot");
+        pdcService.batchMutate(itemStack, container -> {
+            container.remove(itemPartition.key("schema_version"));
+            container.remove(itemPartition.key("source_signature"));
+            container.remove(itemPartition.key("snapshot"));
+        });
     }
 
     String readCombatSourceSignature(LivingEntity entity) {

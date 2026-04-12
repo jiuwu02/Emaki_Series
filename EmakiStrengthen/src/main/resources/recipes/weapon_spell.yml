@@ -1,7 +1,22 @@
+# ========================================
+# EmakiStrengthen 强化配方 - 法术武器强化
+# ========================================
+# 法术武器的强化路径，提供法术伤害、暴击率、增伤、暴伤和穿透加成。
+# 结构与物理武器类似，但使用法术属性体系。
+# ========================================
+
+# 配方 ID
 id: "weapon_spell"
+
+# 配方显示名称
 display_name: "<aqua>法术武器强化</aqua>"
+
+# GUI 模板
 gui_template: "strengthen_gui"
 
+# ========================================
+# 经济系统配置
+# ========================================
 economy:
   enabled: true
   currencies:
@@ -11,21 +26,40 @@ economy:
       cost_formula: "{base_cost} * {star}"
       display_name: "<gold>金币</gold>"
 
+# ========================================
+# 强化上限与概率配置
+# ========================================
 limits:
   max_star: 12
   max_temper: 4
   temper_chance_bonus_per_level: 5.0
   success_chance_cap: 90.0
 
+# ========================================
+# 自定义成功率覆盖
+# ========================================
+# 指定星级的固定成功率（百分比），覆盖默认计算公式
+# 未列出的星级使用默认公式计算
 success_rates:
   10: 20.0
   11: 12.0
   12: 6.0
 
+# ========================================
+# 物品匹配规则
+# ========================================
+# 法术武器通过 Lore 内容和属性 ID 双重匹配
 match:
-  lore_contains: ["法术伤害"]
-  stats_any: ["spell_attack"]
+  # Lore 中包含以下关键词的物品可使用此配方
+  lore_contains:
+    - "法术伤害"
+  # 物品拥有以下任一属性的也可匹配
+  stats_any:
+    - "spell_attack"
 
+# ========================================
+# 属性行定义
+# ========================================
 stat_lines:
   spell_attack:
     template: "<gray>法术伤害: <gold>{sign}{value}</gold></gray>"
@@ -51,30 +85,45 @@ stat_lines:
     lore_operations:
       - type: "lore_append"
 
+# ========================================
+# 星级定义
+# ========================================
 stars:
   1:
-    stats: { spell_attack: 4 }
+    stats:
+      spell_attack: 4
+    ea_attributes:
+      spell_attack: 4.0
     materials:
       - item: "copper_ingot"
         amount: 1
       - item: "gunpowder"
         amount: 2
   2:
-    stats: { spell_attack: 4 }
+    stats:
+      spell_attack: 4
+    ea_attributes:
+      spell_attack: 4.0
     materials:
       - item: "copper_ingot"
         amount: 1
       - item: "gunpowder"
         amount: 3
   3:
-    stats: { spell_attack: 5 }
+    stats:
+      spell_attack: 5
+    ea_attributes:
+      spell_attack: 5.0
     materials:
       - item: "copper_ingot"
         amount: 2
       - item: "gunpowder"
         amount: 4
   4:
-    stats: { spell_attack: 6 }
+    stats:
+      spell_attack: 6
+    ea_attributes:
+      spell_attack: 6.0
     materials:
       - item: "copper_ingot"
         amount: 2
@@ -84,9 +133,15 @@ stars:
         amount: -1
         optional: true
         protection: true
+  # +5 里程碑：解锁法术暴击率
   5:
     name: "<aqua>暴击率提升</aqua>"
-    stats: { spell_attack: 6, spell_crit_rate: 2 }
+    stats:
+      spell_attack: 6
+      spell_crit_rate: 2
+    ea_attributes:
+      spell_attack: 6.0
+      spell_crit_rate: 2.0
     materials:
       - item: "copper_ingot"
         amount: 3
@@ -101,10 +156,14 @@ stars:
     success_actions:
       - 'sendmessage text="<aqua>强化达到 +5，解锁额外法术暴击率。</aqua>"'
       - "playsound sound=minecraft:block.enchantment_table.use volume=1 pitch=1.1"
+    # 强化失败时执行的动作序列
     failure_actions:
       - 'sendmessage text="<red>强化失败，锻印加深。</red>"'
   6:
-    stats: { spell_attack: 7 }
+    stats:
+      spell_attack: 7
+    ea_attributes:
+      spell_attack: 7.0
     materials:
       - item: "copper_ingot"
         amount: 4
@@ -115,7 +174,10 @@ stars:
         optional: true
         protection: true
   7:
-    stats: { spell_attack: 8 }
+    stats:
+      spell_attack: 8
+    ea_attributes:
+      spell_attack: 8.0
     materials:
       - item: "copper_ingot"
         amount: 5
@@ -125,9 +187,15 @@ stars:
         amount: -1
         optional: true
         protection: true
+  # +8 里程碑：解锁法术增伤
   8:
     name: "<aqua>伤害提升</aqua>"
-    stats: { spell_attack: 9, spell_damage_bonus: 4 }
+    stats:
+      spell_attack: 9
+      spell_damage_bonus: 4
+    ea_attributes:
+      spell_attack: 9.0
+      spell_damage_bonus: 4.0
     materials:
       - item: "copper_ingot"
         amount: 6
@@ -147,7 +215,10 @@ stars:
     failure_actions:
       - 'sendtitle title="<red><bold>强化失败</bold></red>" subtitle="<gray>增伤未能解锁</gray>"'
   9:
-    stats: { spell_attack: 10 }
+    stats:
+      spell_attack: 10
+    ea_attributes:
+      spell_attack: 10.0
     materials:
       - item: "copper_ingot"
         amount: 8
@@ -159,9 +230,15 @@ stars:
         amount: -1
         optional: true
         protection: true
+  # +10 里程碑：解锁法术暴击伤害
   10:
     name: "<aqua>暴击伤害提升</aqua>"
-    stats: { spell_attack: 12, spell_crit_damage: 6 }
+    stats:
+      spell_attack: 12
+      spell_crit_damage: 6
+    ea_attributes:
+      spell_attack: 12.0
+      spell_crit_damage: 6.0
     materials:
       - item: "copper_ingot"
         amount: 10
@@ -179,7 +256,10 @@ stars:
       - 'sendtitle title="<aqua><bold>+10 法术暴伤提升</bold></aqua>" subtitle="<white>额外暴伤已解锁</white>"'
       - "playsound sound=minecraft:entity.evoker.prepare_attack volume=1 pitch=1"
   11:
-    stats: { spell_attack: 14 }
+    stats:
+      spell_attack: 14
+    ea_attributes:
+      spell_attack: 14.0
     materials:
       - item: "copper_ingot"
         amount: 13
@@ -191,9 +271,15 @@ stars:
         amount: -1
         optional: true
         protection: true
+  # +12 满星里程碑：解锁法术穿透
   12:
     name: "<aqua>穿透提升</aqua>"
-    stats: { spell_attack: 16, magic_penetration: 8 }
+    stats:
+      spell_attack: 16
+      magic_penetration: 8
+    ea_attributes:
+      spell_attack: 16.0
+      magic_penetration: 8.0
     materials:
       - item: "copper_ingot"
         amount: 16
@@ -218,6 +304,9 @@ stars:
       - 'sendtitle title="<red><bold>满星梦碎</bold></red>"'
       - 'broadcast text="<red>{player} 在 +12 强化中失败了！</red>"'
 
+# ========================================
+# 展示配置
+# ========================================
 presentation:
   name_operations:
     - type: "name_regex_replace"

@@ -1,0 +1,24 @@
+# ========================================
+# EmakiAttribute PDC 读取条件规则 - 强化源
+# ========================================
+# 本文件定义了从 PDC 读取 "strengthen" 源属性时的条件过滤规则。
+# 强化属性默认无条件通过（conditions 为空列表），
+# 如需添加等级限制等条件，可参照 forge.yml 的格式添加。
+# ========================================
+
+# 是否启用此条件规则
+enabled: true
+
+# 源标识符，必须与 PdcAttributePayload.sourceId() 精确匹配
+source_id: "strengthen"
+
+# 条件类型：all_of 表示所有条件必须全部满足
+condition_type: "all_of"
+
+# 当条件表达式中的占位符无法解析时，是否视为条件不通过
+invalid_as_failure: true
+
+# 条件表达式列表（空列表表示无条件通过）
+# 如需添加条件，示例：
+#   - "%source_meta_required_level% <= %player_level%"
+conditions: []

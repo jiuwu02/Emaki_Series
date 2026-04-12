@@ -12,9 +12,10 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 
-import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
+import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerSnapshot;
+import emaki.jiuwu.craft.corelib.assembly.ItemPresentationCompiler;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -26,13 +27,19 @@ import emaki.jiuwu.craft.forge.model.Recipe;
 public final class ForgeItemRefreshService {
 
     private final EmakiForgePlugin plugin;
+    private final EmakiItemAssemblyService itemAssemblyService;
     private final ForgeLayerSnapshotBuilder snapshotBuilder;
+    private final ForgePdcAttributeWriter pdcAttributeWriter;
     private final ForgeQualityModifierResolver qualityModifierResolver = new ForgeQualityModifierResolver();
     private final Set<String> warningCache = new LinkedHashSet<>();
 
-    public ForgeItemRefreshService(EmakiForgePlugin plugin) {
+    public ForgeItemRefreshService(EmakiForgePlugin plugin,
+            EmakiItemAssemblyService itemAssemblyService,
+            ItemPresentationCompiler itemPresentationCompiler) {
         this.plugin = plugin;
-        this.snapshotBuilder = new ForgeLayerSnapshotBuilder(plugin);
+        this.itemAssemblyService = itemAssemblyService;
+        this.snapshotBuilder = new ForgeLayerSnapshotBuilder(plugin, itemPresentationCompiler);
+        this.pdcAttributeWriter = new ForgePdcAttributeWriter(plugin);
     }
 
     public void refreshOnlinePlayers() {
@@ -90,8 +97,7 @@ public final class ForgeItemRefreshService {
         if (plan == null || !plan.shouldRefresh()) {
             return itemStack;
         }
-        EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.getInstance();
-        if (coreLib == null) {
+        if (itemAssemblyService == null) {
             return itemStack;
         }
         EmakiItemLayerSnapshot snapshot = snapshotBuilder.buildLayerSnapshot(
@@ -101,7 +107,7 @@ public final class ForgeItemRefreshService {
                 plan.qualityTier(),
                 plan.forgedAt()
         );
-        ItemStack rebuilt = coreLib.itemAssemblyService().preview(new EmakiItemAssemblyRequest(null, 0, itemStack, List.of(snapshot)));
+        ItemStack rebuilt = itemAssemblyService.preview(new EmakiItemAssemblyRequest(null, 0, itemStack, List.of(snapshot)));
         if (rebuilt == null) {
             warnOnce(
                     "refresh_failed|" + plan.recipe().id() + "|" + plan.signature(),
@@ -111,6 +117,7 @@ public final class ForgeItemRefreshService {
             return itemStack;
         }
         rebuilt.setAmount(Math.max(1, itemStack.getAmount()));
+        pdcAttributeWriter.apply(plan.recipe(), plan.materials(), plan.multiplier(), plan.qualityTier(), rebuilt);
         return rebuilt;
     }
 
@@ -134,11 +141,10 @@ public final class ForgeItemRefreshService {
         if (itemStack == null || itemStack.getType().isAir()) {
             return null;
         }
-        EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.getInstance();
-        if (coreLib == null || !coreLib.itemAssemblyService().isEmakiItem(itemStack)) {
+        if (itemAssemblyService == null || !itemAssemblyService.isEmakiItem(itemStack)) {
             return null;
         }
-        EmakiItemLayerSnapshot oldSnapshot = coreLib.itemAssemblyService().readLayerSnapshot(itemStack, "forge");
+        EmakiItemLayerSnapshot oldSnapshot = itemAssemblyService.readLayerSnapshot(itemStack, "forge");
         if (oldSnapshot == null) {
             return null;
         }

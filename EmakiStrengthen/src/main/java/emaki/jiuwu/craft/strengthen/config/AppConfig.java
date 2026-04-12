@@ -34,7 +34,7 @@ public final class AppConfig {
         defaults.put(10, 14D);
         defaults.put(11, 8D);
         defaults.put(12, 4D);
-        return new AppConfig("zh_CN", "2.0", 48, defaults);
+        return new AppConfig("zh_CN", "2.1.0", 48, defaults);
     }
 
     public double successRateForTargetStar(int targetStar) {

@@ -6,7 +6,6 @@ import java.util.function.Supplier;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 
-import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.monitor.PerformanceMonitor;
 
@@ -17,10 +16,15 @@ final class ActionDispatchScheduler {
     private final PerformanceMonitor performanceMonitor;
 
     ActionDispatchScheduler(Plugin plugin) {
+        this(plugin, null, null);
+    }
+
+    ActionDispatchScheduler(Plugin plugin,
+            AsyncTaskScheduler asyncTaskScheduler,
+            PerformanceMonitor performanceMonitor) {
         this.plugin = plugin;
-        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.getInstance();
-        this.asyncTaskScheduler = coreLibPlugin == null ? null : coreLibPlugin.asyncTaskScheduler();
-        this.performanceMonitor = coreLibPlugin == null ? null : coreLibPlugin.performanceMonitor();
+        this.asyncTaskScheduler = asyncTaskScheduler;
+        this.performanceMonitor = performanceMonitor;
     }
 
     CompletableFuture<ActionResult> dispatch(long delayTicks,

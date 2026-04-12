@@ -12,8 +12,6 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.bukkit.configuration.file.YamlConfiguration;
-
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.attribute.model.AttributeDefinition;
 import emaki.jiuwu.craft.attribute.model.AttributeTargetType;
@@ -22,6 +20,7 @@ import emaki.jiuwu.craft.attribute.model.LoreFormatDefinition;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
+import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
 public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition> {
 
@@ -48,7 +47,7 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
     }
 
     @Override
-    protected AttributeDefinition parse(File file, YamlConfiguration configuration) {
+    protected AttributeDefinition parse(File file, YamlSection configuration) {
         List<String> patterns = new ArrayList<>();
         patterns.addAll(configuration.getStringList("lore_patterns"));
         String singlePattern = configuration.getString("lore_pattern");
@@ -101,7 +100,7 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
     }
 
     @Override
-    protected boolean validateSchema(File file, YamlConfiguration configuration) {
+    protected boolean validateSchema(File file, YamlSection configuration) {
         boolean valid = true;
         if (Texts.isBlank(configuration.getString("id"))) {
             issue(

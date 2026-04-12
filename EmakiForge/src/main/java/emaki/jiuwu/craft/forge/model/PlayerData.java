@@ -3,10 +3,9 @@ package emaki.jiuwu.craft.forge.model;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import org.bukkit.configuration.ConfigurationSection;
-
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.math.Numbers;
+import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
 public final class PlayerData {
 
@@ -77,7 +76,7 @@ public final class PlayerData {
         return copy;
     }
 
-    public static PlayerData fromConfig(String uuid, ConfigurationSection section) {
+    public static PlayerData fromConfig(String uuid, YamlSection section) {
         PlayerData data = new PlayerData(uuid);
         if (section == null) {
             return data;

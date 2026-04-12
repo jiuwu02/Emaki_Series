@@ -1,5 +1,7 @@
 package emaki.jiuwu.craft.corelib.expression;
 
+import java.lang.ref.SoftReference;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -20,6 +22,56 @@ public final class ExpressionEngine {
     private static final Pattern RANGE_PATTERN = Pattern.compile("^\\s*(.+)\\s*~\\s*(.+)\\s*$");
     private static final Pattern NON_NUMERIC_EXPRESSION_PATTERN = Pattern.compile("[^0-9.\\s+\\-*/%^(),]");
     private static final Pattern DANGEROUS_CHAR_PATTERN = Pattern.compile("[`$\\\\]");
+    private static final int COMPILED_CACHE_LIMIT = 64;
+    private static final long COMPILED_CACHE_TTL_MILLIS = 5 * 60 * 1000L;
+    private static final int DEFAULT_RANDOM_MAX_ATTEMPTS = 128;
+    private static final double INTEGER_ROUNDING_EPSILON = 1.0E-9D;
+    private static final Object EXPRESSION_CACHE_LOCK = new Object();
+    private static final LinkedHashMap<String, CachedExpression> COMPILED_CACHE = new LinkedHashMap<>(COMPILED_CACHE_LIMIT, 0.75F, true);
+    private static final Function[] CUSTOM_FUNCTIONS = new Function[]{
+        new Function("ceil", 1) {
+            @Override
+            public double apply(double... args) {
+                return Math.ceil(args[0]);
+            }
+        },
+        new Function("floor", 1) {
+            @Override
+            public double apply(double... args) {
+                return Math.floor(args[0]);
+            }
+        },
+        new Function("round", 1) {
+            @Override
+            public double apply(double... args) {
+                return Math.round(args[0]);
+            }
+        },
+        new Function("log10", 1) {
+            @Override
+            public double apply(double... args) {
+                return Math.log10(args[0]);
+            }
+        },
+        new Function("min", 2) {
+            @Override
+            public double apply(double... args) {
+                return Math.min(args[0], args[1]);
+            }
+        },
+        new Function("max", 2) {
+            @Override
+            public double apply(double... args) {
+                return Math.max(args[0], args[1]);
+            }
+        },
+        new Function("pow", 2) {
+            @Override
+            public double apply(double... args) {
+                return Math.pow(args[0], args[1]);
+            }
+        }
+    };
 
     private ExpressionEngine() {
     }
@@ -43,10 +95,11 @@ public final class ExpressionEngine {
             return 0D;
         }
         try {
-            Expression built = new ExpressionBuilder(prepared)
-                    .functions(customFunctions())
-                    .build();
-            double result = built.evaluate();
+            Expression compiled = compiledExpression(prepared);
+            double result;
+            synchronized (compiled) {
+                result = compiled.evaluate();
+            }
             if (Double.isNaN(result) || Double.isInfinite(result)) {
                 return 0D;
             }
@@ -132,7 +185,7 @@ public final class ExpressionEngine {
         }
         try {
             double result = evaluate(prepared);
-            if (Math.abs(result - Math.rint(result)) <= 1.0E-9D) {
+            if (Math.abs(result - Math.rint(result)) <= INTEGER_ROUNDING_EPSILON) {
                 return Long.toString(Math.round(result));
             }
             return Numbers.formatNumber(result, "0.##");
@@ -147,16 +200,6 @@ public final class ExpressionEngine {
 
     private static boolean containsDangerousChars(String expression) {
         return expression != null && DANGEROUS_CHAR_PATTERN.matcher(expression).find();
-    }
-
-    private static String sanitizeForLog(String expression) {
-        if (expression == null) {
-            return "";
-        }
-        if (expression.length() > 50) {
-            return expression.substring(0, 50) + "...(truncated)";
-        }
-        return expression;
     }
 
     private static boolean isPureNumericExpression(String expression) {
@@ -205,7 +248,7 @@ public final class ExpressionEngine {
         if (stdDev == null) {
             stdDev = min != null && max != null ? Math.abs(max - min) / 6D : 1D;
         }
-        int maxAttempts = Numbers.tryParseInt(ConfigNodes.get(config, "max_attempts"), 128);
+        int maxAttempts = Numbers.tryParseInt(ConfigNodes.get(config, "max_attempts"), DEFAULT_RANDOM_MAX_ATTEMPTS);
         return Randoms.gaussian(mean, stdDev, min, max, maxAttempts);
     }
 
@@ -224,7 +267,7 @@ public final class ExpressionEngine {
             stdDev = min != null && max != null ? Math.abs(max - min) / 6D : 1D;
         }
         Double skewness = optionalNumber(ConfigNodes.get(config, "skewness"));
-        int maxAttempts = Numbers.tryParseInt(ConfigNodes.get(config, "max_attempts"), 128);
+        int maxAttempts = Numbers.tryParseInt(ConfigNodes.get(config, "max_attempts"), DEFAULT_RANDOM_MAX_ATTEMPTS);
         return Randoms.skewNormal(mean, stdDev, skewness == null ? 0D : skewness, min, max, maxAttempts);
     }
 
@@ -241,50 +284,56 @@ public final class ExpressionEngine {
         return evaluateRandomConfig(value);
     }
 
-    private static Function[] customFunctions() {
-        return new Function[]{
-            new Function("ceil", 1) {
-                @Override
-                public double apply(double... args) {
-                    return Math.ceil(args[0]);
-                }
-            },
-            new Function("floor", 1) {
-                @Override
-                public double apply(double... args) {
-                    return Math.floor(args[0]);
-                }
-            },
-            new Function("round", 1) {
-                @Override
-                public double apply(double... args) {
-                    return Math.round(args[0]);
-                }
-            },
-            new Function("log10", 1) {
-                @Override
-                public double apply(double... args) {
-                    return Math.log10(args[0]);
-                }
-            },
-            new Function("min", 2) {
-                @Override
-                public double apply(double... args) {
-                    return Math.min(args[0], args[1]);
-                }
-            },
-            new Function("max", 2) {
-                @Override
-                public double apply(double... args) {
-                    return Math.max(args[0], args[1]);
-                }
-            },
-            new Function("pow", 2) {
-                @Override
-                public double apply(double... args) {
-                    return Math.pow(args[0], args[1]);
-                }
+    private static Expression compiledExpression(String prepared) {
+        long now = System.currentTimeMillis();
+        synchronized (EXPRESSION_CACHE_LOCK) {
+            CachedExpression cached = COMPILED_CACHE.get(prepared);
+            Expression expression = cached == null ? null : cached.expression();
+            if (expression != null && !cached.isExpired(now)) {
+                cached.touch(now);
+                return expression;
             }
-        };
+            if (cached != null) {
+                COMPILED_CACHE.remove(prepared);
+            }
+        }
+        Expression compiled = new ExpressionBuilder(prepared)
+                .functions(CUSTOM_FUNCTIONS)
+                .build();
+        synchronized (EXPRESSION_CACHE_LOCK) {
+            COMPILED_CACHE.put(prepared, new CachedExpression(compiled, now + COMPILED_CACHE_TTL_MILLIS));
+            trimCompiledCache();
+        }
+        return compiled;
+    }
+
+    private static void trimCompiledCache() {
+        while (COMPILED_CACHE.size() > COMPILED_CACHE_LIMIT) {
+            String eldest = COMPILED_CACHE.keySet().iterator().next();
+            COMPILED_CACHE.remove(eldest);
+        }
+    }
+
+    private static final class CachedExpression {
+
+        private final SoftReference<Expression> reference;
+        private volatile long expiresAt;
+
+        private CachedExpression(Expression expression, long expiresAt) {
+            this.reference = new SoftReference<>(expression);
+            this.expiresAt = expiresAt;
+        }
+
+        private Expression expression() {
+            return reference.get();
+        }
+
+        private boolean isExpired(long now) {
+            return now >= expiresAt || reference.get() == null;
+        }
+
+        private void touch(long now) {
+            expiresAt = now + COMPILED_CACHE_TTL_MILLIS;
+        }
     }
 }

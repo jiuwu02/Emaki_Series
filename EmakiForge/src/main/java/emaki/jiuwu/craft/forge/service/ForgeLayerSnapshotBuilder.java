@@ -7,7 +7,6 @@ import java.util.Map;
 
 import org.bukkit.inventory.ItemStack;
 
-import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerSnapshot;
 import emaki.jiuwu.craft.corelib.assembly.EmakiPresentationEntry;
 import emaki.jiuwu.craft.corelib.assembly.EmakiStatContribution;
@@ -28,10 +27,9 @@ final class ForgeLayerSnapshotBuilder {
     private final EmakiForgePlugin plugin;
     private final ItemPresentationCompiler presentationCompiler;
 
-    ForgeLayerSnapshotBuilder(EmakiForgePlugin plugin) {
+    ForgeLayerSnapshotBuilder(EmakiForgePlugin plugin, ItemPresentationCompiler presentationCompiler) {
         this.plugin = plugin;
-        EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.getInstance();
-        this.presentationCompiler = coreLib == null ? new ItemPresentationCompiler() : coreLib.itemPresentationCompiler();
+        this.presentationCompiler = presentationCompiler == null ? new ItemPresentationCompiler() : presentationCompiler;
     }
 
     EmakiItemLayerSnapshot buildLayerSnapshot(Recipe recipe,

@@ -6,14 +6,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.corelib.action.ActionExecutor;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
+import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
+import emaki.jiuwu.craft.corelib.assembly.ItemPresentationCompiler;
 import emaki.jiuwu.craft.corelib.cache.CacheManager;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
@@ -34,6 +37,9 @@ import emaki.jiuwu.craft.forge.model.ValidationResult;
 import me.clip.placeholderapi.PlaceholderAPI;
 
 public final class ForgeService {
+
+    private static final int PREPARED_FORGE_CACHE_SIZE = 128;
+    private static final long PREPARED_FORGE_CACHE_TTL_MILLIS = 30_000L;
 
     public record PreparedForge(EmakiItemAssemblyRequest request,
             QualitySettings.QualityTier rolledQualityTier,
@@ -56,17 +62,28 @@ public final class ForgeService {
     private final MaterialValidationService materialValidationService;
     private final RecipeMatchingService recipeMatchingService;
     private final ForgeExecutionService forgeExecutionService;
-    private final CacheManager<String, PreparedForge> preparedForgeCache = new CacheManager<>(128, 30_000L);
+    private final ForgeLayerSnapshotBuilder layerSnapshotBuilder;
+    private final ForgePdcAttributeWriter pdcAttributeWriter;
+    private final CacheManager<String, PreparedForge> preparedForgeCache =
+            new CacheManager<>(PREPARED_FORGE_CACHE_SIZE, PREPARED_FORGE_CACHE_TTL_MILLIS);
+    private final EmakiItemAssemblyService itemAssemblyService;
     private final AsyncTaskScheduler asyncTaskScheduler;
     private final PerformanceMonitor performanceMonitor;
 
-    public ForgeService(EmakiForgePlugin plugin) {
+    public ForgeService(EmakiForgePlugin plugin,
+            AsyncTaskScheduler asyncTaskScheduler,
+            PerformanceMonitor performanceMonitor,
+            EmakiItemAssemblyService itemAssemblyService,
+            ItemPresentationCompiler itemPresentationCompiler,
+            Supplier<ActionExecutor> actionExecutorSupplier) {
         this.plugin = plugin;
-        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.getInstance();
-        this.asyncTaskScheduler = coreLibPlugin == null ? null : coreLibPlugin.asyncTaskScheduler();
-        this.performanceMonitor = coreLibPlugin == null ? null : coreLibPlugin.performanceMonitor();
-        this.resultItemFactory = new ForgeResultItemFactory(plugin);
-        this.actionCoordinator = new ForgeActionCoordinator(plugin, resultItemFactory);
+        this.asyncTaskScheduler = asyncTaskScheduler;
+        this.performanceMonitor = performanceMonitor;
+        this.itemAssemblyService = itemAssemblyService;
+        this.layerSnapshotBuilder = new ForgeLayerSnapshotBuilder(plugin, itemPresentationCompiler);
+        this.resultItemFactory = new ForgeResultItemFactory(plugin, itemPresentationCompiler);
+        this.pdcAttributeWriter = new ForgePdcAttributeWriter(plugin);
+        this.actionCoordinator = new ForgeActionCoordinator(plugin, resultItemFactory, actionExecutorSupplier);
         this.lookupIndex = new ForgeLookupIndex(plugin);
         this.materialValidationService = new MaterialValidationService(plugin, lookupIndex);
         this.qualityCalculationService = new QualityCalculationService(
@@ -99,11 +116,9 @@ public final class ForgeService {
                 (player, recipe, guiItems, preparedForge) -> preparedForge == null
                         ? prepareForge(player, recipe, guiItems, 0L, System.currentTimeMillis())
                         : preparedForge,
-                (player, request) -> {
-                    EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.getInstance();
-                    return coreLib == null ? null : coreLib.itemAssemblyService().give(player, request);
-                },
-                (playerId, recipeId) -> plugin.playerDataStore().recordCraft(playerId, recipeId)
+                (player, request) -> itemAssemblyService == null ? null : itemAssemblyService.give(player, request),
+                (playerId, recipeId) -> plugin.playerDataStore().recordCraft(playerId, recipeId),
+                this::applyPdcAttributes
         );
     }
 
@@ -121,16 +136,7 @@ public final class ForgeService {
     }
 
     public ForgeMaterial findMaterialById(String materialId) {
-        if (Texts.isBlank(materialId)) {
-            return null;
-        }
-        for (Recipe recipe : lookupIndex.sortedRecipes()) {
-            ForgeMaterial material = recipe.findMaterialByItem(materialId);
-            if (material != null) {
-                return material;
-            }
-        }
-        return null;
+        return lookupIndex.findMaterialById(materialId);
     }
 
     public BlueprintRequirement findBlueprintRequirementBySource(ItemSource source) {
@@ -366,6 +372,22 @@ public final class ForgeService {
         );
         preparedForgeCache.put(cacheKey, preparedForge);
         return copyPreparedForge(preparedForge);
+    }
+
+    private void applyPdcAttributes(Recipe recipe,
+            GuiItems guiItems,
+            PreparedForge preparedForge,
+            ItemStack resultItem) {
+        if (preparedForge == null || resultItem == null) {
+            return;
+        }
+        pdcAttributeWriter.apply(
+                recipe,
+                layerSnapshotBuilder.collectMaterialContributions(recipe, guiItems),
+                preparedForge.multiplier(),
+                preparedForge.qualityTier(),
+                resultItem
+        );
     }
 
     private <T> T measure(String metricKey, SupplierWithException<T> supplier) {

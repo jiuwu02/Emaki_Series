@@ -4,6 +4,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Supplier;
 
 public final class CacheManager<K, V> {
@@ -11,6 +13,9 @@ public final class CacheManager<K, V> {
     private final int maxSize;
     private final long expireAfterAccessMillis;
     private final LinkedHashMap<K, CacheEntry<V>> entries = new LinkedHashMap<>(16, 0.75F, true);
+    private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
+    private final Lock readLock = lock.readLock();
+    private final Lock writeLock = lock.writeLock();
     private final AtomicLong hits = new AtomicLong();
     private final AtomicLong misses = new AtomicLong();
     private final AtomicLong evictions = new AtomicLong();
@@ -22,92 +27,167 @@ public final class CacheManager<K, V> {
         this.expireAfterAccessMillis = Math.max(0L, expireAfterAccessMillis);
     }
 
-    public synchronized V get(K key) {
+    public V get(K key) {
         long now = System.currentTimeMillis();
-        CacheEntry<V> entry = entries.get(key);
+        CacheEntry<V> entry;
+        readLock.lock();
+        try {
+            entry = entries.get(key);
+        } finally {
+            readLock.unlock();
+        }
         if (entry == null) {
             misses.incrementAndGet();
             return null;
         }
-        if (isExpired(entry, now)) {
-            entries.remove(key);
-            expirations.incrementAndGet();
+        writeLock.lock();
+        try {
+            CacheEntry<V> current = entries.remove(key);
+            if (current == null) {
+                misses.incrementAndGet();
+                return null;
+            }
+            if (isExpired(current, now)) {
+                expirations.incrementAndGet();
+                misses.incrementAndGet();
+                return null;
+            }
+            current.touch(now);
+            entries.put(key, current);
+            hits.incrementAndGet();
+            return current.value();
+        } finally {
+            writeLock.unlock();
+        }
+    }
+
+    public V getOrLoad(K key, Supplier<V> loader) {
+        writeLock.lock();
+        try {
+            long now = System.currentTimeMillis();
+            CacheEntry<V> existing = entries.remove(key);
+            if (existing != null && !isExpired(existing, now)) {
+                existing.touch(now);
+                entries.put(key, existing);
+                hits.incrementAndGet();
+                return existing.value();
+            }
+            if (existing != null) {
+                expirations.incrementAndGet();
+            }
             misses.incrementAndGet();
-            return null;
-        }
-        entry.touch(now);
-        hits.incrementAndGet();
-        return entry.value();
-    }
-
-    public synchronized V getOrLoad(K key, Supplier<V> loader) {
-        V cached = get(key);
-        if (cached != null || loader == null) {
-            return cached;
-        }
-        V loaded = loader.get();
-        if (loaded != null) {
+            if (loader == null) {
+                return null;
+            }
+            V loaded = loader.get();
+            if (loaded == null) {
+                return null;
+            }
             loads.incrementAndGet();
-            put(key, loaded);
+            entries.put(key, new CacheEntry<>(loaded, now));
+            trimToSize();
+            return loaded;
+        } finally {
+            writeLock.unlock();
         }
-        return loaded;
     }
 
-    public synchronized void put(K key, V value) {
+    public void put(K key, V value) {
         Objects.requireNonNull(key, "key");
-        if (value == null) {
-            entries.remove(key);
-            return;
+        writeLock.lock();
+        try {
+            if (value == null) {
+                entries.remove(key);
+                return;
+            }
+            long now = System.currentTimeMillis();
+            entries.put(key, new CacheEntry<>(value, now));
+            trimToSize();
+        } finally {
+            writeLock.unlock();
         }
-        long now = System.currentTimeMillis();
-        entries.put(key, new CacheEntry<>(value, now));
-        trimToSize();
     }
 
-    public synchronized boolean containsKey(K key) {
+    public boolean containsKey(K key) {
         return get(key) != null;
     }
 
-    public synchronized V invalidate(K key) {
-        CacheEntry<V> removed = entries.remove(key);
-        return removed == null ? null : removed.value();
-    }
-
-    public synchronized void clear() {
-        entries.clear();
-    }
-
-    public synchronized int size() {
-        pruneExpired();
-        return entries.size();
-    }
-
-    public synchronized Map<K, V> snapshot() {
-        pruneExpired();
-        Map<K, V> snapshot = new LinkedHashMap<>();
-        for (Map.Entry<K, CacheEntry<V>> entry : entries.entrySet()) {
-            snapshot.put(entry.getKey(), entry.getValue().value());
+    public V invalidate(K key) {
+        writeLock.lock();
+        try {
+            CacheEntry<V> removed = entries.remove(key);
+            return removed == null ? null : removed.value();
+        } finally {
+            writeLock.unlock();
         }
-        return Map.copyOf(snapshot);
     }
 
-    public synchronized CacheStats stats() {
-        pruneExpired();
-        return new CacheStats(entries.size(), hits.get(), misses.get(), evictions.get(), expirations.get(), loads.get());
+    public void clear() {
+        writeLock.lock();
+        try {
+            entries.clear();
+        } finally {
+            writeLock.unlock();
+        }
+    }
+
+    public int size() {
+        if (expireAfterAccessMillis > 0L) {
+            pruneExpired();
+        }
+        readLock.lock();
+        try {
+            return entries.size();
+        } finally {
+            readLock.unlock();
+        }
+    }
+
+    public Map<K, V> snapshot() {
+        if (expireAfterAccessMillis > 0L) {
+            pruneExpired();
+        }
+        readLock.lock();
+        try {
+            Map<K, V> snapshot = new LinkedHashMap<>();
+            for (Map.Entry<K, CacheEntry<V>> entry : entries.entrySet()) {
+                snapshot.put(entry.getKey(), entry.getValue().value());
+            }
+            return Map.copyOf(snapshot);
+        } finally {
+            readLock.unlock();
+        }
+    }
+
+    public CacheStats stats() {
+        if (expireAfterAccessMillis > 0L) {
+            pruneExpired();
+        }
+        readLock.lock();
+        try {
+            return new CacheStats(entries.size(), hits.get(), misses.get(), evictions.get(), expirations.get(), loads.get());
+        } finally {
+            readLock.unlock();
+        }
     }
 
     private void pruneExpired() {
-        if (expireAfterAccessMillis <= 0L || entries.isEmpty()) {
-            return;
-        }
-        long now = System.currentTimeMillis();
-        entries.entrySet().removeIf(entry -> {
-            if (!isExpired(entry.getValue(), now)) {
-                return false;
+        writeLock.lock();
+        try {
+            if (expireAfterAccessMillis <= 0L || entries.isEmpty()) {
+                return;
             }
-            expirations.incrementAndGet();
-            return true;
-        });
+            long now = System.currentTimeMillis();
+            entries.entrySet().removeIf(entry -> {
+                if (!isExpired(entry.getValue(), now)) {
+                    return false;
+                }
+                expirations.incrementAndGet();
+                return true;
+            });
+        } finally {
+            writeLock.unlock();
+        }
     }
 
     private void trimToSize() {

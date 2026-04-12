@@ -4,10 +4,9 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.bukkit.configuration.file.YamlConfiguration;
-
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.YamlDirectoryLoader;
+import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.model.Blueprint;
 
@@ -28,11 +27,11 @@ public final class BlueprintLoader extends YamlDirectoryLoader<Blueprint> {
     }
 
     @Override
-    protected Blueprint parse(File file, YamlConfiguration configuration) {
+    protected Blueprint parse(File file, YamlSection configuration) {
         return Blueprint.fromConfig(configuration);
     }
 
-    public Blueprint parseDocument(File file, YamlConfiguration configuration) {
+    public Blueprint parseDocument(File file, YamlSection configuration) {
         return parse(file, configuration);
     }
 

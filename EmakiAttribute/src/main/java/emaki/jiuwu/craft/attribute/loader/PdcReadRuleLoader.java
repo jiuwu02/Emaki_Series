@@ -4,12 +4,11 @@ import java.io.File;
 import java.util.List;
 import java.util.Map;
 
-import org.bukkit.configuration.file.YamlConfiguration;
-
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.attribute.model.PdcReadRule;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
+import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
 public final class PdcReadRuleLoader extends DirectoryLoader<PdcReadRule> {
 
@@ -40,8 +39,8 @@ public final class PdcReadRuleLoader extends DirectoryLoader<PdcReadRule> {
     }
 
     @Override
-    protected boolean validateSchema(File file, YamlConfiguration configuration) {
-        if (configuration == null || !configuration.getBoolean("enabled", true)) {
+    protected boolean validateSchema(File file, YamlSection configuration) {
+        if (configuration == null || !Boolean.TRUE.equals(configuration.getBoolean("enabled", true))) {
             return true;
         }
         if (Texts.isBlank(configuration.getString("source_id"))) {
@@ -59,11 +58,11 @@ public final class PdcReadRuleLoader extends DirectoryLoader<PdcReadRule> {
     }
 
     @Override
-    protected PdcReadRule parse(File file, YamlConfiguration configuration) {
-        if (configuration == null || !configuration.getBoolean("enabled", true)) {
+    protected PdcReadRule parse(File file, YamlSection configuration) {
+        if (configuration == null || !Boolean.TRUE.equals(configuration.getBoolean("enabled", true))) {
             return null;
         }
-        return PdcReadRule.fromMap(configuration.getValues(false));
+        return PdcReadRule.fromMap(configuration.asMap());
     }
 
     @Override

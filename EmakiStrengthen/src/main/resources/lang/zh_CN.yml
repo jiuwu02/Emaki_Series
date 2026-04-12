@@ -1,4 +1,4 @@
-﻿lang_version: "2.0.0"
+lang_version: "3.0.0"
 
 general:
   prefix: "<gray>[ <gradient:#F2C46D:#C9703D>装备强化</gradient> ]</gray>"
@@ -52,6 +52,9 @@ loader:
   load_failed: "<yellow>读取 {type} 文件失败: <red>{file}</red> <gray>({error})</gray></yellow>"
 
 strengthen:
+  misc:
+    default_item_name: "物品"
+    free_cost: "免费"
   error:
     no_target: "<red>请先放入需要强化的物品。</red>"
     no_source: "<red>该物品无法识别为 Emaki 物品来源。</red>"

@@ -2,10 +2,10 @@ package emaki.jiuwu.craft.attribute.service;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.locks.ReentrantLock;
 
 import emaki.jiuwu.craft.attribute.model.AttributeSnapshot;
 import emaki.jiuwu.craft.attribute.model.DamageContext;
@@ -22,33 +22,28 @@ final class DamageCalculationCache {
     private static final int DEFAULT_RESULT_LIMIT = 512;
     private static final int DEFAULT_SUM_LIMIT = 1024;
 
-    private final int resultLimit;
-    private final int sumLimit;
-    private final Map<DamageResultKey, DamageResult> resultCache = new ConcurrentHashMap<>();
-    private final Map<AttributeSumKey, Double> sumCache = new ConcurrentHashMap<>();
-    private final ConcurrentLinkedQueue<DamageResultKey> resultOrder = new ConcurrentLinkedQueue<>();
-    private final ConcurrentLinkedQueue<AttributeSumKey> sumOrder = new ConcurrentLinkedQueue<>();
+    private final BoundedCache<DamageResultKey, DamageResult> resultCache;
+    private final BoundedCache<AttributeSumKey, Double> sumCache;
 
     DamageCalculationCache() {
         this(DEFAULT_RESULT_LIMIT, DEFAULT_SUM_LIMIT);
     }
 
     DamageCalculationCache(int resultLimit, int sumLimit) {
-        this.resultLimit = Math.max(1, resultLimit);
-        this.sumLimit = Math.max(1, sumLimit);
+        this.resultCache = new BoundedCache<>(resultLimit);
+        this.sumCache = new BoundedCache<>(sumLimit);
     }
 
     DamageResult getResult(DamageRequest request, DamageTypeDefinition definition, double seededRoll) {
         DamageResultKey key = resultKey(request, definition, seededRoll);
-        DamageResult cached = resultCache.get(key);
-        return cached;
+        return resultCache.get(key);
     }
 
     void cacheResult(DamageRequest request, DamageTypeDefinition definition, double seededRoll, DamageResult result) {
         if (result == null) {
             return;
         }
-        putBounded(resultCache, resultOrder, resultKey(request, definition, seededRoll), result, resultLimit);
+        resultCache.put(resultKey(request, definition, seededRoll), result);
     }
 
     double sum(AttributeSnapshot snapshot, DamageContextVariables context, List<String> ids) {
@@ -65,7 +60,7 @@ final class DamageCalculationCache {
             return cached;
         }
         double computed = computeSum(snapshot, context, ids);
-        putBounded(sumCache, sumOrder, key, computed, sumLimit);
+        sumCache.put(key, computed);
         return computed;
     }
 
@@ -106,22 +101,41 @@ final class DamageCalculationCache {
         return total;
     }
 
-    private <K, V> void putBounded(Map<K, V> cache, ConcurrentLinkedQueue<K> order, K key, V value, int limit) {
-        if (key == null || value == null || cache.putIfAbsent(key, value) != null) {
-            return;
-        }
-        order.add(key);
-        while (cache.size() > limit) {
-            K evicted = order.poll();
-            if (evicted == null) {
-                break;
-            }
-            cache.remove(evicted);
-        }
-    }
-
     private String normalizeId(String value) {
         return value == null ? "" : value.trim().toLowerCase(Locale.ROOT).replace(' ', '_');
+    }
+
+    private static final class BoundedCache<K, V> {
+
+        private final int limit;
+        private final ReentrantLock lock = new ReentrantLock();
+        private final LinkedHashMap<K, V> entries = new LinkedHashMap<>(16, 0.75F, true);
+        private volatile Map<K, V> snapshot = Map.of();
+
+        private BoundedCache(int limit) {
+            this.limit = Math.max(1, limit);
+        }
+
+        private V get(K key) {
+            return key == null ? null : snapshot.get(key);
+        }
+
+        private void put(K key, V value) {
+            if (key == null || value == null) {
+                return;
+            }
+            lock.lock();
+            try {
+                entries.put(key, value);
+                while (entries.size() > limit) {
+                    K eldest = entries.keySet().iterator().next();
+                    entries.remove(eldest);
+                }
+                snapshot = entries.isEmpty() ? Map.of() : Map.copyOf(entries);
+            } finally {
+                lock.unlock();
+            }
+        }
     }
 
     private record DamageResultKey(String damageTypeId,

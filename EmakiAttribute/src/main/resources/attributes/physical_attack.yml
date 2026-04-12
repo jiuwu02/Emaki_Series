@@ -1,13 +1,59 @@
+# ========================================
+# EmakiAttribute 属性定义 - physical_attack
+# ========================================
+# 属性定义文件描述了单个属性的元数据，包括值的类型、范围、
+# 在伤害结算中的角色、Lore 显示格式等。
+# 所有属性定义文件位于 attributes/ 目录下，文件名即为属性 ID。
+# ========================================
+
+# 属性 ID，必须与文件名一致，全局唯一
+# 用于 PdcAttributePayload.attributes 的键名、条件规则占位符等
 id: physical_attack
+
+# 显示名称，用于属性面板、Lore 展示和调试信息
 display_name: "物理伤害"
+
+# 值类型，决定属性的数值行为方式：
+#   FLAT    - 固定数值加成（如 +5 物理伤害）
+#   RESOURCE - 资源上限加成（如 +20 生命值）
+#   CHANCE  - 概率值（0-100，如 15% 暴击率）
 value_kind: FLAT
+
+# 目标类型，决定属性在伤害结算中的角色：
+#   DAMAGE  - 伤害类属性，参与伤害计算流水线
+#   RESOURCE - 资源类属性，影响生命/法力上限
+#   GENERIC - 通用属性，不直接参与伤害结算
 target_type: DAMAGE
+
+# 目标 ID，与 target_type 配合使用：
+#   DAMAGE 类型：对应 damage_types/ 目录下的伤害类型 ID（如 physical、spell、projectile）
+#   RESOURCE 类型：对应资源名称（如 health、mana）
+#   GENERIC 类型：自定义标识符
 target_id: physical
+
+# 默认值：当属性未被任何来源提供时的初始值
 default_value: 0.0
+
+# 最小值：属性值的下限
 min_value: -999999.0
+
+# 最大值：属性值的上限
 max_value: 999999.0
+
+# 是否允许负值：设为 false 时，负值会被钳制为 0
 allow_negative: true
+
+# 优先级：当多个来源提供相同属性的 Lore 词条时，优先级高的优先读取
+# 数值越大优先级越高
 priority: 100
+
+# Lore 格式 ID：对应 lore_formats/ 目录下的格式定义文件
+# 决定该属性在物品 Lore 中的显示样式
 lore_format_id: default_flat
+
+# 战斗力系数：该属性对 attribute_power（综合战力评分）的贡献权重
+# 1.0 表示标准权重，0.0 表示不计入战力评分
 attribute_power: 1.0
+
+# 属性描述（用于文档和调试）
 description: "Adds flat physical damage."

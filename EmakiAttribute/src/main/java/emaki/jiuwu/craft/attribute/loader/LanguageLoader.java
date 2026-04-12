@@ -2,25 +2,22 @@ package emaki.jiuwu.craft.attribute.loader;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.YamlConfiguration;
-
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.yaml.MapYamlSection;
+import emaki.jiuwu.craft.corelib.yaml.VersionedYamlFile;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
+import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
 public final class LanguageLoader {
 
     private final EmakiAttributePlugin plugin;
-    private final Map<String, YamlConfiguration> languages = new LinkedHashMap<>();
-    private final YamlConfiguration bundledFallback;
+    private final Map<String, YamlSection> languages = new LinkedHashMap<>();
+    private final YamlSection bundledFallback;
     private String currentLanguage = "zh_CN";
     private String fallbackLanguage = "zh_CN";
 
@@ -62,9 +59,17 @@ public final class LanguageLoader {
         for (File file : files) {
             String langId = file.getName().replace(".yml", "").replace(".yaml", "");
             try {
-                YamlFiles.syncVersionedResource(plugin, file, "lang/" + langId + ".yml", "lang_version");
+                VersionedYamlFile versionedFile = YamlFiles.syncVersionedResource(plugin, file, "lang/" + langId + ".yml", "lang_version");
+                YamlSection loaded = versionedFile == null || versionedFile.root() == null
+                        ? YamlFiles.load(file)
+                        : versionedFile.root().copy();
+                if (bundledFallback != null && fallbackLanguage.equals(langId)) {
+                    YamlFiles.mergeMissingValues(loaded, bundledFallback);
+                }
+                languages.put(langId, loaded);
             } catch (IOException exception) {
                 plugin.messageService().warning("loader.bundled_language_load_failed", Map.of("error", String.valueOf(exception.getMessage())));
+                languages.put(langId, YamlFiles.load(file));
             }
             if (!file.exists()) {
                 plugin.messageService().warning("loader.bundled_resource_missing", Map.of(
@@ -73,11 +78,6 @@ public final class LanguageLoader {
                         "resource", "lang/" + langId + ".yml"
                 ));
             }
-            YamlConfiguration loaded = YamlFiles.load(file);
-            if (bundledFallback != null && fallbackLanguage.equals(langId)) {
-                YamlFiles.mergeMissingValues(loaded, bundledFallback);
-            }
-            languages.put(langId, loaded);
         }
         return languages.size();
     }
@@ -107,43 +107,32 @@ public final class LanguageLoader {
         return Texts.formatTemplate(getMessage(key), replacements);
     }
 
-    public synchronized ConfigurationSection getSection(String key) {
+    public synchronized YamlSection getSection(String key) {
         Object value = getValue(key);
-        return value instanceof ConfigurationSection section ? section : null;
+        if (value instanceof Map<?, ?> map) {
+            return new MapYamlSection(MapYamlSection.normalizeMap(map));
+        }
+        return value instanceof YamlSection section ? section : null;
     }
 
     public synchronized String currentLanguage() {
         return currentLanguage;
     }
 
-    private YamlConfiguration loadBundledFallbackLanguage() {
-        try (InputStream inputStream = plugin.getResource("lang/zh_CN.yml")) {
-            if (inputStream == null) {
-                return null;
-            }
-            return YamlConfiguration.loadConfiguration(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
-        } catch (IOException exception) {
-            return null;
-        }
+    private YamlSection loadBundledFallbackLanguage() {
+        VersionedYamlFile versionedFile = YamlFiles.loadVersionedResource(plugin, "lang/zh_CN.yml");
+        return versionedFile == null || versionedFile.root() == null ? null : versionedFile.root().copy();
     }
 
     private Object getNestedValue(String language, String dottedPath) {
-        YamlConfiguration configuration = languages.get(language);
+        YamlSection configuration = languages.get(language);
         if (configuration == null) {
             return null;
         }
-        String[] keys = dottedPath.split("\\.");
-        Object current = configuration;
-        for (String key : keys) {
-            if (current instanceof ConfigurationSection section) {
-                current = section.get(key);
-                continue;
-            }
-            return null;
+        Object direct = configuration.get(dottedPath);
+        if (direct != null) {
+            return direct;
         }
-        if (current != null) {
-            return current;
-        }
-        return configuration.getValues(false).get(dottedPath);
+        return configuration.getSection(dottedPath);
     }
 }

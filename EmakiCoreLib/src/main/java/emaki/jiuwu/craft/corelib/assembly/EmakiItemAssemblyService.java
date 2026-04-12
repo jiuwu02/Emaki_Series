@@ -10,6 +10,7 @@ import java.util.concurrent.CompletableFuture;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import emaki.jiuwu.craft.corelib.action.Action;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.cache.CacheManager;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
@@ -22,12 +23,15 @@ import emaki.jiuwu.craft.corelib.text.Texts;
 public final class EmakiItemAssemblyService {
 
     private static final int CURRENT_SCHEMA_VERSION = 1;
+    private static final int PREVIEW_CACHE_SIZE = 128;
+    private static final long PREVIEW_CACHE_TTL_MILLIS = Action.DEFAULT_TIMEOUT_MILLIS;
 
     private final ItemSourceService itemSourceService;
     private final AssemblyDataManager dataManager;
     private final EmakiNamespaceRegistry namespaceRegistry;
     private final ItemRenderService itemRenderService;
-    private final CacheManager<String, ItemStack> previewCache = new CacheManager<>(128, 30_000L);
+    private final CacheManager<String, ItemStack> previewCache =
+            new CacheManager<>(PREVIEW_CACHE_SIZE, PREVIEW_CACHE_TTL_MILLIS);
     private volatile AssemblyFeedbackHandler feedbackHandler = AssemblyFeedbackHandler.noop();
     private volatile AsyncTaskScheduler asyncTaskScheduler;
     private volatile PerformanceMonitor performanceMonitor;

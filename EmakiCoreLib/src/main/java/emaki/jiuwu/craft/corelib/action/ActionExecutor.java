@@ -8,14 +8,23 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
 
 import org.bukkit.plugin.Plugin;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
+import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
+import emaki.jiuwu.craft.corelib.monitor.PerformanceMonitor;
 import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRegistry;
 import emaki.jiuwu.craft.corelib.text.LogMessages;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
+/**
+ * Executes parsed action lines against a runtime {@link ActionContext}.
+ */
 public final class ActionExecutor {
+
+    private static final long USE_TEMPLATE_DISPATCH_TIMEOUT_MILLIS = Action.DEFAULT_TIMEOUT_MILLIS;
 
     private final Plugin plugin;
     private final ActionRegistry registry;
@@ -25,21 +34,62 @@ public final class ActionExecutor {
     private final ActionTemplateProcessor templateProcessor;
     private final ActionDispatchScheduler dispatchScheduler;
 
-    public ActionExecutor(Plugin plugin,
-            ActionRegistry registry,
-            ActionLineParser lineParser,
-            PlaceholderRegistry placeholderRegistry,
-            ActionTemplateRegistry templateRegistry) {
+    /**
+     * Creates an executor without async scheduling support.
+     *
+     * @param plugin the owning plugin
+     * @param registry the action registry
+     * @param lineParser the parser used for action lines
+     * @param placeholderRegistry the placeholder resolver registry
+     * @param templateRegistry the template registry
+     */
+    public ActionExecutor(@NotNull Plugin plugin,
+            @NotNull ActionRegistry registry,
+            @NotNull ActionLineParser lineParser,
+            @NotNull PlaceholderRegistry placeholderRegistry,
+            @NotNull ActionTemplateRegistry templateRegistry) {
+        this(plugin, registry, lineParser, placeholderRegistry, templateRegistry, null, null);
+    }
+
+    /**
+     * Creates an executor with optional async scheduling support.
+     *
+     * @param plugin the owning plugin
+     * @param registry the action registry
+     * @param lineParser the parser used for action lines
+     * @param placeholderRegistry the placeholder resolver registry
+     * @param templateRegistry the template registry
+     * @param asyncTaskScheduler the optional async task scheduler
+     * @param performanceMonitor the optional performance monitor
+     */
+    public ActionExecutor(@NotNull Plugin plugin,
+            @NotNull ActionRegistry registry,
+            @NotNull ActionLineParser lineParser,
+            @NotNull PlaceholderRegistry placeholderRegistry,
+            @NotNull ActionTemplateRegistry templateRegistry,
+            @Nullable AsyncTaskScheduler asyncTaskScheduler,
+            @Nullable PerformanceMonitor performanceMonitor) {
         this.plugin = plugin;
         this.registry = registry;
         this.lineParser = lineParser;
         this.placeholderRegistry = placeholderRegistry;
         this.templateRegistry = templateRegistry;
         this.templateProcessor = new ActionTemplateProcessor(plugin, templateRegistry);
-        this.dispatchScheduler = new ActionDispatchScheduler(plugin);
+        this.dispatchScheduler = new ActionDispatchScheduler(plugin, asyncTaskScheduler, performanceMonitor);
     }
 
-    public CompletableFuture<ActionResult> execute(ActionContext context, String actionId, Map<String, String> arguments) {
+    /**
+     * Executes a single action by id.
+     *
+     * @param context the action runtime context
+     * @param actionId the action id to execute
+     * @param arguments the optional resolved arguments
+     * @return a future that completes with the action result
+     */
+    @NotNull
+    public CompletableFuture<ActionResult> execute(@NotNull ActionContext context,
+            @NotNull String actionId,
+            @Nullable Map<String, String> arguments) {
         Action action = registry.get(actionId);
         if (action == null) {
             return CompletableFuture.completedFuture(missingActionResult(actionId));
@@ -56,7 +106,18 @@ public final class ActionExecutor {
         );
     }
 
-    public CompletableFuture<ActionBatchResult> executeAll(ActionContext context, List<String> lines, boolean stopOnFailure) {
+    /**
+     * Executes a batch of action lines in order.
+     *
+     * @param context the action runtime context
+     * @param lines the raw action lines to execute
+     * @param stopOnFailure whether execution should stop on the first non-ignored failure
+     * @return a future that completes with the batch result
+     */
+    @NotNull
+    public CompletableFuture<ActionBatchResult> executeAll(@NotNull ActionContext context,
+            @Nullable List<String> lines,
+            boolean stopOnFailure) {
         List<String> safeLines = lines == null ? List.of() : lines;
         CompletableFuture<ActionBatchResult> future = new CompletableFuture<>();
         executeIndex(context, safeLines, stopOnFailure, 0, new ArrayList<>(), future);
@@ -144,7 +205,7 @@ public final class ActionExecutor {
             if (!validation.success()) {
                 return CompletableFuture.completedFuture(validation);
             }
-            return dispatchScheduler.dispatch(delay, parsed.actionId(), ActionExecutionMode.SYNC, 30_000L, () -> null)
+            return dispatchScheduler.dispatch(delay, parsed.actionId(), ActionExecutionMode.SYNC, USE_TEMPLATE_DISPATCH_TIMEOUT_MILLIS, () -> null)
                     .thenCompose(ignored -> templateProcessor.execute(context, resolved, (nextContext, lines) -> executeAll(nextContext, lines, true)));
         }
         CompletableFuture<ActionResult> future = dispatchScheduler.dispatch(
@@ -220,6 +281,6 @@ public final class ActionExecutor {
 
     private long resolveTimeoutMillis(String actionId) {
         Action action = registry.get(actionId);
-        return action == null ? 30_000L : action.timeoutMillis();
+        return action == null ? Action.DEFAULT_TIMEOUT_MILLIS : action.timeoutMillis();
     }
 }

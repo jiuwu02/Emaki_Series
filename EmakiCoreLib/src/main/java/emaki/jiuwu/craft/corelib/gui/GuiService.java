@@ -1,9 +1,9 @@
 package emaki.jiuwu.craft.corelib.gui;
 
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -13,20 +13,41 @@ import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
+import emaki.jiuwu.craft.corelib.monitor.PerformanceMonitor;
 
 public final class GuiService implements Listener {
 
     private final JavaPlugin plugin;
-    private final Map<UUID, GuiSession> sessions = new LinkedHashMap<>();
+    private final Map<UUID, GuiSession> sessions = new ConcurrentHashMap<>();
     private final AsyncGuiRenderer asyncGuiRenderer;
 
     public GuiService(JavaPlugin plugin) {
-        this.plugin = plugin;
-        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.getInstance();
-        this.asyncGuiRenderer = new AsyncGuiRenderer(
-                coreLibPlugin == null ? null : coreLibPlugin.asyncTaskScheduler(),
-                coreLibPlugin == null ? null : coreLibPlugin.performanceMonitor()
+        this(
+                plugin,
+                resolveAsyncTaskScheduler(),
+                resolvePerformanceMonitor()
         );
+    }
+
+    public GuiService(JavaPlugin plugin,
+            AsyncTaskScheduler asyncTaskScheduler,
+            PerformanceMonitor performanceMonitor) {
+        this.plugin = plugin;
+        this.asyncGuiRenderer = new AsyncGuiRenderer(
+                asyncTaskScheduler,
+                performanceMonitor
+        );
+    }
+
+    private static AsyncTaskScheduler resolveAsyncTaskScheduler() {
+        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.getInstance();
+        return coreLibPlugin == null ? null : coreLibPlugin.asyncTaskScheduler();
+    }
+
+    private static PerformanceMonitor resolvePerformanceMonitor() {
+        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.getInstance();
+        return coreLibPlugin == null ? null : coreLibPlugin.performanceMonitor();
     }
 
     public GuiSession open(GuiOpenRequest request) {
@@ -102,6 +123,9 @@ public final class GuiService implements Listener {
         if (!(event.getView().getTopInventory().getHolder() instanceof GuiSession session)) {
             return;
         }
+        if (!isManagedSession(session)) {
+            return;
+        }
         if (event.getClickedInventory() == null) {
             return;
         }
@@ -120,6 +144,9 @@ public final class GuiService implements Listener {
         if (!(event.getView().getTopInventory().getHolder() instanceof GuiSession session)) {
             return;
         }
+        if (!isManagedSession(session)) {
+            return;
+        }
         event.setCancelled(true);
         session.handler().onDrag(session, event);
     }
@@ -129,8 +156,18 @@ public final class GuiService implements Listener {
         if (!(event.getInventory().getHolder() instanceof GuiSession session)) {
             return;
         }
+        if (!isManagedSession(session)) {
+            return;
+        }
         sessions.remove(event.getPlayer().getUniqueId());
         session.handler().onClose(session, event);
+    }
+
+    private boolean isManagedSession(GuiSession session) {
+        if (session == null || session.owner() != plugin || session.viewer() == null) {
+            return false;
+        }
+        return sessions.get(session.viewer().getUniqueId()) == session;
     }
 
     private void playClickSound(GuiSession session, GuiTemplate.ResolvedSlot slot, GuiClickType clickType) {

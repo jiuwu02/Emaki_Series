@@ -51,13 +51,20 @@ public final class Texts {
     }
 
     public static String stripMiniTags(Object value) {
-        return MINI_TAG_PATTERN.matcher(toStringSafe(value)).replaceAll("");
+        String text = toStringSafe(value);
+        if (text.indexOf('<') < 0 || text.indexOf('>') < 0) {
+            return text;
+        }
+        return MINI_TAG_PATTERN.matcher(text).replaceAll("");
     }
 
     public static String normalizeWhitespace(String value) {
         String text = toStringSafe(value).trim();
         if (text.isEmpty()) {
             return "";
+        }
+        if (text.length() < 2 || !containsRepeatedWhitespace(text)) {
+            return text;
         }
         return WHITESPACE_PATTERN.matcher(text).replaceAll(" ");
     }
@@ -115,5 +122,17 @@ public final class Texts {
         }
         result.add(toStringSafe(value));
         return result;
+    }
+
+    private static boolean containsRepeatedWhitespace(String text) {
+        boolean previousWhitespace = false;
+        for (int index = 0; index < text.length(); index++) {
+            boolean whitespace = Character.isWhitespace(text.charAt(index));
+            if (whitespace && previousWhitespace) {
+                return true;
+            }
+            previousWhitespace = whitespace;
+        }
+        return false;
     }
 }

@@ -6,10 +6,9 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
-import org.bukkit.configuration.file.YamlConfiguration;
-
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.attribute.model.DefaultProfile;
+import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
 public final class DefaultProfileRegistry extends DirectoryLoader<DefaultProfile> {
 
@@ -30,7 +29,7 @@ public final class DefaultProfileRegistry extends DirectoryLoader<DefaultProfile
     }
 
     @Override
-    protected DefaultProfile parse(File file, YamlConfiguration configuration) {
+    protected DefaultProfile parse(File file, YamlSection configuration) {
         // Only files with bundled resource definitions are treated as default profiles.
         if (!configuration.contains("resources")) {
             return null;
@@ -44,12 +43,12 @@ public final class DefaultProfileRegistry extends DirectoryLoader<DefaultProfile
     }
 
     @Override
-    protected boolean validateSchema(File file, YamlConfiguration configuration) {
+    protected boolean validateSchema(File file, YamlSection configuration) {
         if (configuration == null) {
             return false;
         }
-        if (configuration.getConfigurationSection("resources") == null
-                || configuration.getConfigurationSection("resources").getKeys(false).isEmpty()) {
+        YamlSection resources = configuration.getSection("resources");
+        if (resources == null || resources.getKeys(false).isEmpty()) {
             issue(
                     "loader.schema_missing_section",
                     Map.of(

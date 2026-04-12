@@ -1,7 +1,22 @@
+# ========================================
+# EmakiStrengthen 强化配方 - 投射物武器强化
+# ========================================
+# 投射物武器的强化路径，提供投射物伤害、暴击率、增伤、暴伤和穿透加成。
+# 适用于弓箭、三叉戟等远程武器。
+# ========================================
+
+# 配方 ID
 id: "weapon_projectile"
+
+# 配方显示名称
 display_name: "<green>投射物武器强化</green>"
+
+# GUI 模板
 gui_template: "strengthen_gui"
 
+# ========================================
+# 经济系统配置
+# ========================================
 economy:
   enabled: true
   currencies:
@@ -11,16 +26,28 @@ economy:
       cost_formula: "{base_cost} * {star}"
       display_name: "<gold>金币</gold>"
 
+# ========================================
+# 强化上限与概率配置
+# ========================================
 limits:
   max_star: 12
   max_temper: 4
   temper_chance_bonus_per_level: 5.0
   success_chance_cap: 90.0
 
+# ========================================
+# 物品匹配规则
+# ========================================
+# 投射物武器通过 Lore 内容和属性 ID 双重匹配
 match:
-  lore_contains: ["投射物伤害"]
-  stats_any: ["projectile_attack"]
+  lore_contains:
+    - "投射物伤害"
+  stats_any:
+    - "projectile_attack"
 
+# ========================================
+# 属性行定义
+# ========================================
 stat_lines:
   projectile_attack:
     template: "<gray>投射物伤害: <gold>{sign}{value}</gold></gray>"
@@ -46,30 +73,45 @@ stat_lines:
     lore_operations:
       - type: "lore_append"
 
+# ========================================
+# 星级定义
+# ========================================
 stars:
   1:
-    stats: { projectile_attack: 4 }
+    stats:
+      projectile_attack: 4
+    ea_attributes:
+      projectile_attack: 4.0
     materials:
       - item: "copper_ingot"
         amount: 1
       - item: "gunpowder"
         amount: 2
   2:
-    stats: { projectile_attack: 4 }
+    stats:
+      projectile_attack: 4
+    ea_attributes:
+      projectile_attack: 4.0
     materials:
       - item: "copper_ingot"
         amount: 1
       - item: "gunpowder"
         amount: 3
   3:
-    stats: { projectile_attack: 5 }
+    stats:
+      projectile_attack: 5
+    ea_attributes:
+      projectile_attack: 5.0
     materials:
       - item: "copper_ingot"
         amount: 2
       - item: "gunpowder"
         amount: 4
   4:
-    stats: { projectile_attack: 6 }
+    stats:
+      projectile_attack: 6
+    ea_attributes:
+      projectile_attack: 6.0
     materials:
       - item: "copper_ingot"
         amount: 2
@@ -79,9 +121,15 @@ stars:
         amount: -1
         optional: true
         protection: true
+  # +5 里程碑：解锁投射物暴击率
   5:
     name: "<green>暴击率提升</green>"
-    stats: { projectile_attack: 6, projectile_crit_rate: 2 }
+    stats:
+      projectile_attack: 6
+      projectile_crit_rate: 2
+    ea_attributes:
+      projectile_attack: 6.0
+      projectile_crit_rate: 2.0
     materials:
       - item: "copper_ingot"
         amount: 3
@@ -97,7 +145,10 @@ stars:
       - 'sendmessage text="<green>强化达到 +5，解锁额外投射物暴击率。</green>"'
       - "playsound sound=minecraft:item.crossbow.loading_end volume=1 pitch=1.15"
   6:
-    stats: { projectile_attack: 7 }
+    stats:
+      projectile_attack: 7
+    ea_attributes:
+      projectile_attack: 7.0
     materials:
       - item: "copper_ingot"
         amount: 4
@@ -108,7 +159,10 @@ stars:
         optional: true
         protection: true
   7:
-    stats: { projectile_attack: 8 }
+    stats:
+      projectile_attack: 8
+    ea_attributes:
+      projectile_attack: 8.0
     materials:
       - item: "copper_ingot"
         amount: 5
@@ -118,9 +172,15 @@ stars:
         amount: -1
         optional: true
         protection: true
+  # +8 里程碑：解锁投射物增伤
   8:
     name: "<green>伤害提升</green>"
-    stats: { projectile_attack: 9, projectile_damage_bonus: 4 }
+    stats:
+      projectile_attack: 9
+      projectile_damage_bonus: 4
+    ea_attributes:
+      projectile_attack: 9.0
+      projectile_damage_bonus: 4.0
     materials:
       - item: "copper_ingot"
         amount: 6
@@ -138,7 +198,10 @@ stars:
       - 'sendtitle title="<green><bold>+8 投射物增伤提升</bold></green>" subtitle="<yellow>额外增伤已解锁</yellow>"'
       - "playsound sound=minecraft:entity.player.levelup volume=1 pitch=1.2"
   9:
-    stats: { projectile_attack: 10 }
+    stats:
+      projectile_attack: 10
+    ea_attributes:
+      projectile_attack: 10.0
     materials:
       - item: "copper_ingot"
         amount: 8
@@ -150,9 +213,15 @@ stars:
         amount: -1
         optional: true
         protection: true
+  # +10 里程碑：解锁投射物暴击伤害
   10:
     name: "<green>暴击伤害提升</green>"
-    stats: { projectile_attack: 12, projectile_crit_damage: 6 }
+    stats:
+      projectile_attack: 12
+      projectile_crit_damage: 6
+    ea_attributes:
+      projectile_attack: 12.0
+      projectile_crit_damage: 6.0
     materials:
       - item: "copper_ingot"
         amount: 10
@@ -170,7 +239,10 @@ stars:
       - 'sendtitle title="<green><bold>+10 投射物暴伤提升</bold></green>" subtitle="<yellow>额外暴伤已解锁</yellow>"'
       - "playsound sound=minecraft:entity.arrow.hit_player volume=1 pitch=1"
   11:
-    stats: { projectile_attack: 14 }
+    stats:
+      projectile_attack: 14
+    ea_attributes:
+      projectile_attack: 14.0
     materials:
       - item: "copper_ingot"
         amount: 13
@@ -182,9 +254,15 @@ stars:
         amount: -1
         optional: true
         protection: true
+  # +12 满星里程碑：解锁投射物穿透
   12:
     name: "<green>穿透提升</green>"
-    stats: { projectile_attack: 16, projectile_penetration: 8 }
+    stats:
+      projectile_attack: 16
+      projectile_penetration: 8
+    ea_attributes:
+      projectile_attack: 16.0
+      projectile_penetration: 8.0
     materials:
       - item: "copper_ingot"
         amount: 16
@@ -206,6 +284,9 @@ stars:
       - 'sendtitle title="<green><bold>+12 投射物穿透提升</bold></green>" subtitle="<yellow>额外穿透已解锁</yellow>"'
       - "playsound sound=minecraft:ui.toast.challenge_complete volume=1 pitch=1"
 
+# ========================================
+# 展示配置
+# ========================================
 presentation:
   name_operations:
     - type: "name_regex_replace"

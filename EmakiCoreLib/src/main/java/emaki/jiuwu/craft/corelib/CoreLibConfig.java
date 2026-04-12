@@ -4,8 +4,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.YamlConfiguration;
+import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
 public record CoreLibConfig(Map<String, List<String>> actionTemplates) {
 
@@ -13,12 +12,12 @@ public record CoreLibConfig(Map<String, List<String>> actionTemplates) {
         return new CoreLibConfig(Map.of());
     }
 
-    public static CoreLibConfig fromConfig(YamlConfiguration configuration) {
+    public static CoreLibConfig fromConfig(YamlSection configuration) {
         if (configuration == null) {
             return defaults();
         }
-        ConfigurationSection actionSection = configuration.getConfigurationSection("action");
-        ConfigurationSection templatesSection = actionSection == null ? null : actionSection.getConfigurationSection("templates");
+        YamlSection actionSection = configuration.getSection("action");
+        YamlSection templatesSection = actionSection == null ? null : actionSection.getSection("templates");
         Map<String, List<String>> templates = new LinkedHashMap<>();
         if (templatesSection != null) {
             for (String key : templatesSection.getKeys(false)) {

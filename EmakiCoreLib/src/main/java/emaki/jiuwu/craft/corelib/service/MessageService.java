@@ -1,33 +1,52 @@
 package emaki.jiuwu.craft.corelib.service;
 
 import java.util.Map;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
+import emaki.jiuwu.craft.corelib.text.Texts;
+import org.bukkit.plugin.java.JavaPlugin;
 
 public final class MessageService extends AbstractMessageService {
 
     private static final String DEFAULT_PREFIX = "<gray>[<gold>Emaki CoreLib</gold>]</gray>";
 
-    private final LanguageLoader languageLoader;
-
     public MessageService(EmakiCoreLibPlugin plugin, LanguageLoader languageLoader) {
-        super(plugin, DEFAULT_PREFIX);
-        this.languageLoader = languageLoader;
+        this(plugin, languageLoader, DEFAULT_PREFIX, true);
     }
 
-    @Override
-    protected String resolveMessage(String key) {
-        return languageLoader == null ? key : languageLoader.getMessage(key);
+    public MessageService(JavaPlugin plugin, LanguageLoader languageLoader, String defaultPrefix) {
+        this(plugin, languageLoader, defaultPrefix, false);
     }
 
-    @Override
-    protected String resolveMessage(String key, Map<String, ?> replacements) {
-        return languageLoader == null ? key : languageLoader.getMessage(key, replacements);
+    public MessageService(JavaPlugin plugin,
+            LanguageLoader languageLoader,
+            String defaultPrefix,
+            boolean includePrefixInLogs) {
+        this(
+                plugin,
+                defaultPrefix,
+                languageLoader == null ? null : languageLoader::getMessage,
+                languageLoader == null ? null : languageLoader::getMessage,
+                includePrefixInLogs
+        );
     }
 
-    @Override
-    protected boolean includePrefixInLogs() {
-        return true;
+    public MessageService(JavaPlugin plugin,
+            String defaultPrefix,
+            Function<String, String> messageResolver,
+            BiFunction<String, Map<String, ?>, String> replacementResolver,
+            boolean includePrefixInLogs) {
+        super(
+                plugin,
+                defaultPrefix,
+                messageResolver == null ? key -> key : messageResolver,
+                replacementResolver == null
+                        ? (key, replacements) -> Texts.formatTemplate(messageResolver == null ? key : messageResolver.apply(key), replacements)
+                        : replacementResolver,
+                includePrefixInLogs
+        );
     }
 }

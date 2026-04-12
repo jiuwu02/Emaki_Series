@@ -6,6 +6,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -31,13 +32,16 @@ import emaki.jiuwu.craft.corelib.placeholder.ActionContextPlaceholderResolver;
 import emaki.jiuwu.craft.corelib.placeholder.ActionInlineTokenResolver;
 import emaki.jiuwu.craft.corelib.placeholder.PlaceholderApiResolver;
 import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRegistry;
+import emaki.jiuwu.craft.corelib.service.EmakiServiceRegistry;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
+import emaki.jiuwu.craft.corelib.text.AdventureSupport;
 import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
+import emaki.jiuwu.craft.corelib.yaml.VersionedYamlFile;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 
-public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvider {
+public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvider, EmakiServiceRegistry {
 
     private static final String STARTUP_ASCII = """
  ______  __    __  ______  __  __   __  ______  ______  ______  ______  __      __  ______
@@ -68,7 +72,12 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private final ItemPresentationCompiler itemPresentationCompiler = new ItemPresentationCompiler();
     private final EmakiItemAssemblyService itemAssemblyService
             = new EmakiItemAssemblyService(namespaceRegistry, itemLayerCodecRegistry, itemSourceService);
+    private final Map<Class<?>, Object> serviceRegistry = new ConcurrentHashMap<>();
 
+    /**
+     * @deprecated Prefer constructor injection or {@link #getService(Class)} for new code.
+     */
+    @Deprecated
     public static EmakiCoreLibPlugin getInstance() {
         return instance;
     }
@@ -95,6 +104,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         if (asyncTaskScheduler != null) {
             asyncTaskScheduler.shutdown(5_000L);
         }
+        AdventureSupport.close(this);
         if (instance == this) {
             instance = null;
         }
@@ -103,6 +113,15 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     @Override
     public MessageService messageService() {
         return messageService;
+    }
+
+    @Override
+    public <T> T getService(Class<T> type) {
+        if (type == null) {
+            return null;
+        }
+        Object service = serviceRegistry.get(type);
+        return type.isInstance(service) ? type.cast(service) : null;
     }
 
     public LanguageLoader languageLoader() {
@@ -122,7 +141,16 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
             actionTemplateRegistry.register(entry.getKey(), entry.getValue());
         }
         BuiltinActions.registerAll(actionRegistry, economyManager, itemSourceService, itemPresentationCompiler);
-        actionExecutor = new ActionExecutor(this, actionRegistry, new ActionLineParser(), placeholderRegistry, actionTemplateRegistry);
+        actionExecutor = new ActionExecutor(
+                this,
+                actionRegistry,
+                new ActionLineParser(),
+                placeholderRegistry,
+                actionTemplateRegistry,
+                asyncTaskScheduler,
+                performanceMonitor
+        );
+        refreshServiceRegistry();
     }
 
     private void logStartupAudit() {
@@ -150,6 +178,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         namespaceRegistry.register(new EmakiNamespaceDefinition("forge", 100, "Forge"));
         namespaceRegistry.register(new EmakiNamespaceDefinition("strengthen", 200, "Strengthen"));
         itemAssemblyService.configureAsync(asyncTaskScheduler, performanceMonitor);
+        refreshServiceRegistry();
     }
 
     private void ensureBundledFile(String relativePath) {
@@ -174,7 +203,8 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private CoreLibConfig loadConfigModel() {
         try {
             File file = new File(getDataFolder(), "config.yml");
-            return CoreLibConfig.fromConfig(YamlFiles.load(file));
+            VersionedYamlFile versionedFile = YamlFiles.syncVersionedResource(this, file, "config.yml", "config_version");
+            return CoreLibConfig.fromConfig(versionedFile == null ? YamlFiles.load(file) : versionedFile.root());
         } catch (Exception exception) {
             messageService.warning("console.action_config_load_failed", java.util.Map.of(
                     "error", String.valueOf(exception.getMessage())
@@ -282,5 +312,32 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
 
     public EmakiItemAssemblyService itemAssemblyService() {
         return itemAssemblyService;
+    }
+
+    private void refreshServiceRegistry() {
+        serviceRegistry.clear();
+        registerService(LanguageLoader.class, languageLoader);
+        registerService(MessageService.class, messageService);
+        registerService(PerformanceMonitor.class, performanceMonitor);
+        registerService(AsyncTaskScheduler.class, asyncTaskScheduler);
+        registerService(AsyncFileService.class, asyncFileService);
+        registerService(AsyncYamlFiles.class, asyncYamlFiles);
+        registerService(ActionRegistry.class, actionRegistry);
+        registerService(ActionTemplateRegistry.class, actionTemplateRegistry);
+        registerService(PlaceholderRegistry.class, placeholderRegistry);
+        registerService(EconomyManager.class, economyManager);
+        registerService(ActionExecutor.class, actionExecutor);
+        registerService(PdcService.class, pdcService);
+        registerService(ItemSourceService.class, itemSourceService);
+        registerService(EmakiNamespaceRegistry.class, namespaceRegistry);
+        registerService(EmakiItemLayerCodecRegistry.class, itemLayerCodecRegistry);
+        registerService(ItemPresentationCompiler.class, itemPresentationCompiler);
+        registerService(EmakiItemAssemblyService.class, itemAssemblyService);
+    }
+
+    private <T> void registerService(Class<T> type, T service) {
+        if (service != null) {
+            serviceRegistry.put(type, service);
+        }
     }
 }

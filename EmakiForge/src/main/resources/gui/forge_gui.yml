@@ -1,33 +1,59 @@
+# ========================================
+# EmakiForge GUI 模板 - 锻造台
+# ========================================
+# GUI 模板定义了锻造台界面的布局、槽位分配和显示物品。
+# 玩家通过此界面放入图纸、目标物品和材料，并执行锻造。
+# ========================================
+
+# 模板 ID，全局唯一
 id: "forge_gui"
+
+# GUI 标题，支持 MiniMessage 富文本
+# {recipe} 占位符会被替换为当前配方名称
 title: "<dark_gray>锻造台 - {recipe}</dark_gray>"
+
+# GUI 行数（1-6）
 rows: 5
 
+# ========================================
+# 槽位布局定义
+# ========================================
+# 每个槽位组定义了占据的槽位索引、显示物品和交互类型
+# 槽位索引从 0 开始，按行排列：
+#   行1: 0-8, 行2: 9-17, 行3: 18-26, 行4: 27-35, 行5: 36-44
 slots:
+  # 顶部边框
   top_frame:
     slots: [0, 1, 2, 3, 4, 5, 6, 7, 8]
     item: "BLACK_STAINED_GLASS_PANE"
     display_name: "<gray>"
 
+  # 底部边框
   side_frame:
     slots: [36, 37, 38, 39, 40, 41, 42, 43, 44]
     item: "BLACK_STAINED_GLASS_PANE"
     display_name: "<gray>"
 
+  # 核心区域边框
   core_frame:
     slots: [9, 12, 15, 17, 18, 21, 24, 26, 27, 28, 30, 33, 35]
     item: "GRAY_STAINED_GLASS_PANE"
     display_name: "<dark_gray>"
 
+  # 图纸输入槽（2 个槽位）
   blueprint_inputs:
     slots: [10, 19]
+    # 槽位类型：图纸输入
     type: "blueprint_inputs"
     item: "guster_banner_pattern"
     display_name: "<light_purple>放入图纸</light_purple>"
     lore:
       - "<gray>配方会按图纸物品源自动匹配"
 
+  # 目标物品槽
   target_item:
     slots: [25]
+    # 槽位类型：目标物品
     type: "target_item"
     item: "NAME_TAG"
     display_name: "<aqua>INFO</aqua>"
@@ -35,8 +61,10 @@ slots:
       - "<gray>锻造过程中不会展示成品"
       - "<gray>请在完成锻造后查看最终结果"
 
+  # 容量显示槽
   capacity_display:
     slots: [16]
+    # 槽位类型：容量显示（只读）
     type: "capacity_display"
     item: "BLAST_FURNACE"
     display_name: "<gray>锻造容量</gray>"
@@ -45,33 +73,45 @@ slots:
       - "<gray>容量上限: <gold>{max}</gold>"
       - "<gray>状态: {capacity_state}</gray>"
 
+  # 必需材料槽（3 个槽位）
   required_materials:
     slots: [20, 11, 29]
+    # 槽位类型：必需材料输入
     type: "required_materials"
     item: "BARRIER"
     display_name: "<gold>放入必需材料</gold>"
     lore:
       - "<gray>这里会接收配方固定材料"
 
+  # 可选材料槽（6 个槽位）
   optional_materials:
     slots: [13, 14, 22, 23, 31, 32]
+    # 槽位类型：可选材料输入
     type: "optional_materials"
     item: "BARRIER"
     display_name: "<green>放入可选材料</green>"
     lore:
       - "<gray>可选材料会按配方生效并消耗容量"
 
+  # 确认按钮
   confirm:
     slots: [34]
+    # 槽位类型：确认操作
     type: "confirm"
     item: "ANVIL"
     display_name: "<green>确认锻造</green>"
     lore:
       - "<gray>当前容量: <yellow>{current}/{max}</yellow>"
       - "<yellow>点击后开始执行锻造"
+    # 点击音效：sound-volume-pitch 格式
     click: "ui.button.click-1-1"
 
+# ========================================
+# 虚拟物品定义
+# ========================================
+# 当特定条件满足时，替换槽位的显示物品
 virtual_items:
+  # 确认按钮被阻止时的显示
   confirm_blocked:
     item: "BARRIER"
     display_name: "<red>无法锻造</red>"
@@ -80,9 +120,18 @@ virtual_items:
       - "<red>可选材料容量已超出上限</red>"
       - "<gray>减少材料后再试一次</gray>"
 
+# ========================================
+# 文本模板定义
+# ========================================
+# 用于动态替换的文本模板
 texts:
+  # 容量状态文本
   capacity_state:
+    # 等待图纸输入
     waiting: "<gray>等待图纸</gray>"
+    # 容量已超限
     overflow: "<red>已超限</red>"
+    # 容量接近上限
     warning: "<gold>接近上限</gold>"
+    # 容量正常
     normal: "<green>正常</green>"

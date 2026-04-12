@@ -46,7 +46,7 @@ public final class AppConfig {
     public static AppConfig defaults() {
         return new AppConfig(
                 "zh_CN",
-                "1.1",
+                "2.3.0",
                 true,
                 QualitySettings.defaults(),
                 "0.##",
@@ -107,5 +107,4 @@ public final class AppConfig {
     public int historySaveInterval() {
         return historySaveInterval;
     }
-
 }

@@ -15,6 +15,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.components.CustomModelDataComponent;
 
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -84,13 +85,13 @@ public final class ItemComponentParser {
             return;
         }
         if (Texts.isNotBlank(components.displayName())) {
-            itemMeta.customName(MiniMessages.parse(components.displayName()));
+            ItemTextBridge.customName(itemMeta, MiniMessages.parse(components.displayName()));
         }
         if (components.loreConfigured()) {
             if (components.lore().isEmpty()) {
-                itemMeta.lore(null);
+                ItemTextBridge.lore(itemMeta, null);
             } else {
-                itemMeta.lore(components.lore().stream().map(MiniMessages::parse).toList());
+                ItemTextBridge.lore(itemMeta, components.lore().stream().map(MiniMessages::parse).toList());
             }
         }
         if (Texts.isNotBlank(components.itemModel())) {

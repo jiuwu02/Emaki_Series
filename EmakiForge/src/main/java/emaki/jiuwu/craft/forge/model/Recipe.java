@@ -5,13 +5,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.bukkit.configuration.ConfigurationSection;
-
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.yaml.MapYamlSection;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
 public final class Recipe {
 
@@ -104,7 +104,7 @@ public final class Recipe {
         this.permission = permission;
     }
 
-    public static Recipe fromConfig(ConfigurationSection section) {
+    public static Recipe fromConfig(YamlSection section) {
         if (section == null) {
             return null;
         }
@@ -144,7 +144,7 @@ public final class Recipe {
         );
     }
 
-    private static boolean containsLegacyKeys(ConfigurationSection section) {
+    private static boolean containsLegacyKeys(YamlSection section) {
         return section.contains("gui")
                 || section.contains("required_materials")
                 || section.contains("optional_materials")
@@ -209,7 +209,12 @@ public final class Recipe {
     }
 
     private static ActionPhases parseAction(Object raw) {
-        if (!(raw instanceof ConfigurationSection section)) {
+        YamlSection section = raw instanceof YamlSection yamlSection
+                ? yamlSection
+                : raw instanceof Map<?, ?> map
+                ? new MapYamlSection(MapYamlSection.normalizeMap(map))
+                : null;
+        if (section == null) {
             return ActionPhases.empty();
         }
         return new ActionPhases(

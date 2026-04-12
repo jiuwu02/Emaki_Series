@@ -4,15 +4,17 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.action.ActionErrorType;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
+import emaki.jiuwu.craft.corelib.economy.EconomyManager;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -38,9 +40,15 @@ public final class StrengthenEconomyService {
     }
 
     private final EmakiStrengthenPlugin plugin;
+    private final Supplier<EconomyManager> economyManagerSupplier;
+    private final ItemSourceService itemSourceService;
 
-    public StrengthenEconomyService(EmakiStrengthenPlugin plugin) {
+    public StrengthenEconomyService(EmakiStrengthenPlugin plugin,
+            Supplier<EconomyManager> economyManagerSupplier,
+            ItemSourceService itemSourceService) {
         this.plugin = plugin;
+        this.economyManagerSupplier = economyManagerSupplier;
+        this.itemSourceService = itemSourceService;
     }
 
     public List<AttemptCost> quoteCosts(StrengthenRecipe recipe, int targetStar) {
@@ -92,12 +100,12 @@ public final class StrengthenEconomyService {
                 applied.add(cost);
                 continue;
             }
-            EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.getInstance();
-            if (coreLib == null || coreLib.economyManager() == null) {
+            EconomyManager economyManager = economyManager();
+            if (economyManager == null) {
                 refund(player, applied);
                 return ChargeResult.failure("strengthen.error.economy_provider_unavailable", applied);
             }
-            ActionResult result = coreLib.economyManager().remove(player, cost.provider(), cost.currencyId(), cost.amount());
+            ActionResult result = economyManager.remove(player, cost.provider(), cost.currencyId(), cost.amount());
             if (!result.success()) {
                 refund(player, applied);
                 String errorKey = result.errorType() == ActionErrorType.INSUFFICIENT_BALANCE
@@ -114,7 +122,7 @@ public final class StrengthenEconomyService {
         if (player == null || costs == null || costs.isEmpty()) {
             return;
         }
-        EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.getInstance();
+        EconomyManager economyManager = economyManager();
         for (AttemptCost cost : costs) {
             if (cost == null || cost.amount() <= 0L) {
                 continue;
@@ -123,10 +131,10 @@ public final class StrengthenEconomyService {
                 addItemCost(player, cost.currencyId(), cost.amount());
                 continue;
             }
-            if (coreLib == null || coreLib.economyManager() == null) {
+            if (economyManager == null) {
                 continue;
             }
-            coreLib.economyManager().add(player, cost.provider(), cost.currencyId(), cost.amount());
+            economyManager.add(player, cost.provider(), cost.currencyId(), cost.amount());
         }
     }
 
@@ -137,10 +145,9 @@ public final class StrengthenEconomyService {
         if (cost.itemCost()) {
             return countItemCost(player, cost.currencyId()) >= cost.amount();
         }
-        EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.getInstance();
-        return coreLib != null
-                && coreLib.economyManager() != null
-                && coreLib.economyManager().getBalance(player, cost.provider(), cost.currencyId()) >= cost.amount();
+        EconomyManager economyManager = economyManager();
+        return economyManager != null
+                && economyManager.getBalance(player, cost.provider(), cost.currencyId()) >= cost.amount();
     }
 
     private long countItemCost(Player player, String itemToken) {
@@ -148,8 +155,7 @@ public final class StrengthenEconomyService {
         if (player == null || targetSource == null) {
             return 0L;
         }
-        EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.getInstance();
-        if (coreLib == null || coreLib.itemSourceService() == null) {
+        if (itemSourceService == null) {
             return 0L;
         }
         long total = 0L;
@@ -157,7 +163,7 @@ public final class StrengthenEconomyService {
             if (itemStack == null || itemStack.getType().isAir()) {
                 continue;
             }
-            ItemSource source = coreLib.itemSourceService().identifyItem(itemStack);
+            ItemSource source = itemSourceService.identifyItem(itemStack);
             if (ItemSourceUtil.matches(targetSource, source)) {
                 total += itemStack.getAmount();
             }
@@ -170,8 +176,7 @@ public final class StrengthenEconomyService {
         if (player == null || targetSource == null || amount <= 0L) {
             return amount <= 0L;
         }
-        EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.getInstance();
-        if (coreLib == null || coreLib.itemSourceService() == null) {
+        if (itemSourceService == null) {
             return false;
         }
         long remaining = amount;
@@ -181,7 +186,7 @@ public final class StrengthenEconomyService {
             if (itemStack == null || itemStack.getType().isAir()) {
                 continue;
             }
-            ItemSource source = coreLib.itemSourceService().identifyItem(itemStack);
+            ItemSource source = itemSourceService.identifyItem(itemStack);
             if (!ItemSourceUtil.matches(targetSource, source)) {
                 continue;
             }
@@ -222,5 +227,9 @@ public final class StrengthenEconomyService {
             return currency.currencyId();
         }
         return Texts.isBlank(currency.currencyId()) ? currency.provider() : currency.currencyId();
+    }
+
+    private EconomyManager economyManager() {
+        return economyManagerSupplier == null ? null : economyManagerSupplier.get();
     }
 }

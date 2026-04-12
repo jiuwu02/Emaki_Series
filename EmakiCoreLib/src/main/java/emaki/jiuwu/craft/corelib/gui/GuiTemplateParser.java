@@ -4,20 +4,19 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.bukkit.configuration.ConfigurationSection;
-
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
 public final class GuiTemplateParser {
 
     private GuiTemplateParser() {
     }
 
-    public static GuiTemplate parse(ConfigurationSection section) {
+    public static GuiTemplate parse(YamlSection section) {
         if (section == null) {
             return null;
         }
@@ -26,7 +25,7 @@ public final class GuiTemplateParser {
             return null;
         }
         Map<String, GuiSlot> slots = new LinkedHashMap<>();
-        ConfigurationSection slotsSection = section.getConfigurationSection("slots");
+        YamlSection slotsSection = section.getSection("slots");
         if (slotsSection != null) {
             for (String key : slotsSection.getKeys(false)) {
                 GuiSlot slot = parseSlot(key, slotsSection.get(key));
@@ -47,7 +46,7 @@ public final class GuiTemplateParser {
         if (raw == null) {
             return null;
         }
-        List<Integer> positions = raw instanceof ConfigurationSection || raw instanceof Map<?, ?>
+        List<Integer> positions = raw instanceof YamlSection || raw instanceof Map<?, ?>
                 ? SlotParser.parse(ConfigNodes.get(raw, "slots"))
                 : SlotParser.parse(raw);
         if (positions.isEmpty()) {

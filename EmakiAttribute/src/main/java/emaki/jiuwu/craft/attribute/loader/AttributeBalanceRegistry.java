@@ -7,9 +7,6 @@ import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.YamlConfiguration;
-
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.attribute.model.AttributeDefinition;
 import emaki.jiuwu.craft.attribute.model.AttributeSemanticDefinition;
@@ -18,7 +15,9 @@ import emaki.jiuwu.craft.attribute.service.MessageService;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.yaml.VersionedYamlFile;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
+import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
 public final class AttributeBalanceRegistry {
 
@@ -26,7 +25,7 @@ public final class AttributeBalanceRegistry {
     private final AttributeRegistry attributeRegistry;
     private final Map<String, AttributeSemanticDefinition> semantics = new LinkedHashMap<>();
     private final Map<String, Double> weights = new LinkedHashMap<>();
-    private YamlConfiguration configuration = new YamlConfiguration();
+    private YamlSection configuration = new emaki.jiuwu.craft.corelib.yaml.MapYamlSection();
 
     public AttributeBalanceRegistry(EmakiAttributePlugin plugin, AttributeRegistry attributeRegistry) {
         this.plugin = plugin;
@@ -39,12 +38,16 @@ public final class AttributeBalanceRegistry {
         File file = plugin.dataPath("attribute_balance.yml").toFile();
         MessageService messages = plugin.messageService();
         try {
-            YamlFiles.syncVersionedResource(plugin, file, "attribute_balance.yml", "schema_version");
+            VersionedYamlFile versionedFile = YamlFiles.syncVersionedResource(plugin, file, "attribute_balance.yml", "schema_version");
+            configuration = versionedFile == null || versionedFile.root() == null
+                    ? YamlFiles.load(file)
+                    : versionedFile.root().copy();
         } catch (IOException exception) {
             messages.warning("loader.bundled_resource_sync_failed", Map.of(
                     "path", file.getPath(),
                     "error", String.valueOf(exception.getMessage())
             ));
+            configuration = YamlFiles.load(file);
         }
         if (!file.exists()) {
             messages.warning("loader.bundled_resource_missing", Map.of(
@@ -53,7 +56,6 @@ public final class AttributeBalanceRegistry {
                     "resource", "attribute_balance.yml"
             ));
         }
-        configuration = YamlFiles.load(file);
         validateSchema(configuration, file);
         parseSemantics(configuration.get("attributes"));
         parseWeights(configuration.get("weights"));
@@ -84,11 +86,11 @@ public final class AttributeBalanceRegistry {
         return Collections.unmodifiableMap(new LinkedHashMap<>(weights));
     }
 
-    public synchronized YamlConfiguration configuration() {
+    public synchronized YamlSection configuration() {
         return configuration;
     }
 
-    private void validateSchema(YamlConfiguration configuration, File file) {
+    private void validateSchema(YamlSection configuration, File file) {
         if (configuration == null) {
             return;
         }
@@ -130,7 +132,7 @@ public final class AttributeBalanceRegistry {
     }
 
     private void validateSection(File file, Object raw, String field) {
-        if (raw == null || raw instanceof Map<?, ?> || raw instanceof ConfigurationSection) {
+        if (raw == null || raw instanceof Map<?, ?> || raw instanceof YamlSection) {
             return;
         }
         MessageService messages = plugin.messageService();

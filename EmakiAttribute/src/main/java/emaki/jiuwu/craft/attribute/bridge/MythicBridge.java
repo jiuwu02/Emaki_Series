@@ -195,6 +195,10 @@ public final class MythicBridge implements Listener {
             if (damageTypeId == null || damageTypeId.isBlank()) {
                 damageTypeId = attributeService.defaultDamageTypeId();
             }
+            boolean allowCritical = resolveBoolean(true, "allow_critical", "critical");
+            boolean allowTargetDodge = resolveBoolean(false, "allow_target_dodge", "target_dodge", "allow_dodge", "dodge");
+            boolean calculateTargetDefense = resolveBoolean(true, "calculate_target_defense", "target_defense", "calculate_defense", "defense");
+            boolean triggerMythicOnDamaged = resolveBoolean(false, "trigger_mythic_on_damaged", "trigger_on_damaged", "mythic_on_damaged");
             DamageContextVariables.Builder context = DamageContextVariables.builder();
             context.put("mythic_skill", getTypeName());
             context.put("mythic_power", metadata.getPower());
@@ -208,6 +212,10 @@ public final class MythicBridge implements Listener {
                     context.put(key, entry.getValue());
                 }
             }
+            context.put("allow_critical", allowCritical);
+            context.put("allow_target_dodge", allowTargetDodge);
+            context.put("calculate_target_defense", calculateTargetDefense);
+            context.put("trigger_mythic_on_damaged", triggerMythicOnDamaged);
             boolean applied = false;
             Collection<AbstractEntity> targets = metadata.getEntityTargets();
             if (targets != null && !targets.isEmpty()) {
@@ -233,6 +241,16 @@ public final class MythicBridge implements Listener {
             }
             org.bukkit.entity.Entity entity = abstractEntity.getBukkitEntity();
             return entity instanceof LivingEntity livingEntity ? livingEntity : null;
+        }
+
+        private boolean resolveBoolean(boolean fallback, String... keys) {
+            for (String key : keys) {
+                String value = config.getString(key, null);
+                if (value != null && !value.isBlank()) {
+                    return Boolean.parseBoolean(value.trim());
+                }
+            }
+            return fallback;
         }
     }
 

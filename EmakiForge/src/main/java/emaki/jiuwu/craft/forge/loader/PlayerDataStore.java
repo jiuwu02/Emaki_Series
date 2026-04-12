@@ -9,8 +9,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.function.Supplier;
 
-import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
@@ -19,10 +19,12 @@ import emaki.jiuwu.craft.forge.model.PlayerData;
 public final class PlayerDataStore {
 
     private final EmakiForgePlugin plugin;
+    private final Supplier<AsyncYamlFiles> asyncYamlFilesSupplier;
     private final PlayerDataCache cache = new PlayerDataCache();
 
-    public PlayerDataStore(EmakiForgePlugin plugin) {
+    public PlayerDataStore(EmakiForgePlugin plugin, Supplier<AsyncYamlFiles> asyncYamlFilesSupplier) {
         this.plugin = plugin;
+        this.asyncYamlFilesSupplier = asyncYamlFilesSupplier;
     }
 
     public void load() {
@@ -195,8 +197,7 @@ public final class PlayerDataStore {
     }
 
     private AsyncYamlFiles asyncYamlFiles() {
-        EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.getInstance();
-        return coreLib == null ? null : coreLib.asyncYamlFiles();
+        return asyncYamlFilesSupplier == null ? null : asyncYamlFilesSupplier.get();
     }
 
     private void logSaveFailure(String uuid, Throwable throwable) {

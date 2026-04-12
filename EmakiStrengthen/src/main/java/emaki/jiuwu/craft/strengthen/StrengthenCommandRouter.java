@@ -91,7 +91,7 @@ final class StrengthenCommandRouter implements TabExecutor {
         }
         if (args.length == 3) {
             switch (args[0].toLowerCase()) {
-                case "setstar" -> plugin.replaceLoader().all().keySet().stream()
+                case "setstar" -> plugin.recipeLoader().all().keySet().stream()
                         .filter(id -> id.startsWith(args[2].toLowerCase()))
                         .forEach(result::add);
                 case "givecatalyst" -> {

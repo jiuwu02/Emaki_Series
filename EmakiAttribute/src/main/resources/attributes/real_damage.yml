@@ -1,13 +1,45 @@
+# ========================================
+# EmakiAttribute 属性定义 - real_damage
+# ========================================
+# 真实伤害属性，属于 FLAT 类型，直接造成穿透类伤害，
+# 不受防御、护甲等减伤属性影响。
+# ========================================
+
+# 属性 ID
 id: real_damage
+
+# 显示名称
 display_name: "真实伤害"
+
+# 值类型：FLAT 表示固定数值加成
 value_kind: FLAT
+
+# 目标类型：DAMAGE 表示伤害类属性
 target_type: DAMAGE
+
+# 目标 ID：real，表示真实伤害类型
 target_id: real
+
+# 默认值
 default_value: 0.0
+
+# 最小值（允许负值，用于某些减益效果）
 min_value: -999999.0
+
+# 最大值
 max_value: 999999.0
+
+# 是否允许负值
 allow_negative: true
+
+# 优先级
 priority: 99
+
+# Lore 格式：使用固定数值格式，显示为 "真实伤害 +5"
 lore_format_id: default_flat
+
+# 战斗力系数（真实伤害权重较高，因为无视防御）
 attribute_power: 1.0
+
+# 属性描述
 description: "Flat true damage that bypasses normal mitigation."
