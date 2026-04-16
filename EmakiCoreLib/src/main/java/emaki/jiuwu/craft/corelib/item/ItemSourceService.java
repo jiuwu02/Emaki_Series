@@ -13,7 +13,9 @@ import org.bukkit.Registry;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
+import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
+import net.kyori.adventure.text.Component;
 
 public final class ItemSourceService {
 
@@ -86,6 +88,28 @@ public final class ItemSourceService {
         return false;
     }
 
+    public String displayName(@Nullable ItemSource source) {
+        if (source == null || source.getType() == null || Texts.isBlank(source.getIdentifier())) {
+            return "";
+        }
+        if (source.getType() == ItemSourceType.VANILLA) {
+            String vanillaName = vanillaDisplayName(source);
+            if (Texts.isNotBlank(vanillaName)) {
+                return vanillaName;
+            }
+        }
+        for (ItemSourceResolver resolver : orderedResolvers) {
+            if (!resolver.supports(source)) {
+                continue;
+            }
+            String displayName = resolver.displayName(source);
+            if (Texts.isNotBlank(displayName)) {
+                return displayName;
+            }
+        }
+        return fallbackDisplayName(source);
+    }
+
     private void refreshCache() {
         List<ItemSourceResolver> values = new ArrayList<>(resolvers.values());
         values.sort(Comparator.comparingInt(ItemSourceResolver::priority).reversed()
@@ -95,6 +119,48 @@ public final class ItemSourceService {
 
     private String normalizeId(String value) {
         return value == null ? "" : value.trim().toLowerCase(Locale.ROOT).replace(' ', '_');
+    }
+
+    private String vanillaDisplayName(ItemSource source) {
+        Material material = resolveMaterial(source.getIdentifier());
+        if (material == null) {
+            return "";
+        }
+        String translationKey = translationKey(material);
+        return Texts.isBlank(translationKey) ? "" : MiniMessages.serialize(Component.translatable(translationKey));
+    }
+
+    private String translationKey(Material material) {
+        if (material == null) {
+            return "";
+        }
+        try {
+            if (material.isItem()) {
+                return material.getItemTranslationKey();
+            }
+            if (material.isBlock()) {
+                return material.getBlockTranslationKey();
+            }
+            return material.getTranslationKey();
+        } catch (RuntimeException ignored) {
+            return "";
+        }
+    }
+
+    private String fallbackDisplayName(ItemSource source) {
+        String shorthand = ItemSourceUtil.toShorthand(source);
+        return Texts.isBlank(shorthand) ? source.getIdentifier() : shorthand;
+    }
+
+    private Material resolveMaterial(String identifier) {
+        if (Texts.isBlank(identifier)) {
+            return null;
+        }
+        String normalized = identifier.trim().toLowerCase(Locale.ROOT);
+        NamespacedKey key = normalized.contains(":")
+                ? NamespacedKey.fromString(normalized)
+                : NamespacedKey.minecraft(normalized);
+        return key == null ? null : Registry.MATERIAL.get(key);
     }
 
     private static final class VanillaItemSourceResolver implements ItemSourceResolver {

@@ -1,19 +1,16 @@
 package emaki.jiuwu.craft.strengthen;
 
-import java.nio.file.Path;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.ServicePriority;
-import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.gui.GuiItemBuilder;
+import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.integration.ReflectivePdcAttributeGateway;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
+import emaki.jiuwu.craft.corelib.plugin.AbstractConfigurableEmakiPlugin;
 import emaki.jiuwu.craft.corelib.service.EmakiServiceRegistry;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.AdventureSupport;
@@ -22,7 +19,6 @@ import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.strengthen.api.EmakiStrengthenApi;
 import emaki.jiuwu.craft.strengthen.config.AppConfig;
-import emaki.jiuwu.craft.strengthen.loader.GuiTemplateLoader;
 import emaki.jiuwu.craft.strengthen.loader.StrengthenRecipeLoader;
 import emaki.jiuwu.craft.strengthen.service.ChanceCalculator;
 import emaki.jiuwu.craft.strengthen.service.StrengthenRecipeResolver;
@@ -33,7 +29,7 @@ import emaki.jiuwu.craft.strengthen.service.StrengthenGuiService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenRefreshService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenSnapshotBuilder;
 
-public final class EmakiStrengthenPlugin extends JavaPlugin implements LogMessagesProvider, EmakiServiceRegistry {
+public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider, EmakiServiceRegistry {
 
     private static final String ROOT_COMMAND = "emakistrengthen";
 
@@ -48,7 +44,6 @@ public final class EmakiStrengthenPlugin extends JavaPlugin implements LogMessag
     private final StrengthenLifecycleCoordinator lifecycleCoordinator = new StrengthenLifecycleCoordinator();
     private final StrengthenCommandRouter commandRouter = new StrengthenCommandRouter(this);
     private final StrengthenItemRefreshListener itemRefreshListener = new StrengthenItemRefreshListener(this);
-    private final Map<Class<?>, Object> serviceRegistry = new ConcurrentHashMap<>();
     private ItemSourceService coreItemSourceService;
     private final GuiItemBuilder.ItemFactory coreItemFactory = (source, amount) -> {
         return coreItemSourceService == null ? null : coreItemSourceService.createItem(source, amount);
@@ -71,8 +66,8 @@ public final class EmakiStrengthenPlugin extends JavaPlugin implements LogMessag
     private StrengthenRefreshService refreshService;
     private StrengthenGuiService strengthenGuiService;
 
-    public Path dataPath(String first, String... more) {
-        return getDataFolder().toPath().resolve(Path.of(first, more));
+    public EmakiStrengthenPlugin() {
+        super(AppConfig::defaults);
     }
 
     @Override
@@ -117,7 +112,7 @@ public final class EmakiStrengthenPlugin extends JavaPlugin implements LogMessag
         attemptService = components.attemptService();
         refreshService = components.refreshService();
         strengthenGuiService = components.strengthenGuiService();
-        registerServices(components.services());
+        registerServices(components);
     }
 
     private void registerApi() {
@@ -140,10 +135,6 @@ public final class EmakiStrengthenPlugin extends JavaPlugin implements LogMessag
 
     public YamlConfigLoader<AppConfig> appConfigLoader() {
         return appConfigLoader;
-    }
-
-    public AppConfig appConfig() {
-        return appConfigLoader == null ? AppConfig.defaults() : appConfigLoader.current();
     }
 
     public LanguageLoader languageLoader() {
@@ -211,19 +202,7 @@ public final class EmakiStrengthenPlugin extends JavaPlugin implements LogMessag
         return coreItemFactory;
     }
 
-    @Override
-    public <T> T getService(Class<T> type) {
-        if (type == null) {
-            return null;
-        }
-        Object service = serviceRegistry.get(type);
-        return type.isInstance(service) ? type.cast(service) : null;
-    }
-
-    private void registerServices(Map<Class<?>, Object> services) {
-        serviceRegistry.clear();
-        if (services != null) {
-            serviceRegistry.putAll(services);
-        }
+    public ItemSourceService coreItemSourceService() {
+        return coreItemSourceService;
     }
 }

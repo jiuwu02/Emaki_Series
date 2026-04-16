@@ -1,36 +1,27 @@
 package emaki.jiuwu.craft.forge.service;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.UUID;
-
 import org.bukkit.entity.Player;
+
+import emaki.jiuwu.craft.corelib.session.PlayerSessionMap;
 
 final class GuiStateManager {
 
-    private final Map<UUID, ForgeGuiSession> sessions = new LinkedHashMap<>();
+    private final PlayerSessionMap<ForgeGuiSession> sessions = new PlayerSessionMap<>(ForgeGuiSession::player);
 
     public ForgeGuiSession get(Player player) {
-        return player == null ? null : sessions.get(player.getUniqueId());
+        return sessions.get(player);
     }
 
     public void put(ForgeGuiSession session) {
-        if (session == null || session.player() == null) {
-            return;
-        }
-        sessions.put(session.player().getUniqueId(), session);
+        sessions.put(session);
     }
 
     public void remove(Player player) {
-        if (player != null) {
-            sessions.remove(player.getUniqueId());
-        }
+        sessions.remove(player);
     }
 
     public void remove(ForgeGuiSession session) {
-        if (session != null && session.player() != null) {
-            sessions.remove(session.player().getUniqueId());
-        }
+        sessions.remove(session);
     }
 
     public void clear() {

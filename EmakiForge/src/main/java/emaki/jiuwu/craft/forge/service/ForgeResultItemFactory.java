@@ -64,7 +64,10 @@ final class ForgeResultItemFactory {
         }
         ItemSource source = resolveConfiguredOutputSource(recipe);
         if (source != null) {
-            return source.getIdentifier();
+            String displayName = plugin.itemIdentifierService().displayName(source);
+            if (Texts.isNotBlank(displayName)) {
+                return displayName;
+            }
         }
         return "物品";
     }

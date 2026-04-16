@@ -7,22 +7,18 @@ import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.text.Texts;
 
-final class ReflectiveItemsAdderItemSourceResolver implements ManagedItemSourceResolver {
+final class ReflectiveItemsAdderItemSourceResolver
+        extends AbstractManagedItemSourceResolver<ReflectiveItemsAdderItemSourceResolver.ReflectiveAccessor> {
 
     private static final String PLUGIN_NAME = "ItemsAdder";
     private static final String LOAD_EVENT_CLASS = "dev.lone.itemsadder.api.Events.ItemsAdderLoadDataEvent";
-
-    private final PluginAvailability pluginAvailability;
-    private final Accessor accessor;
-    private volatile boolean loaded;
 
     ReflectiveItemsAdderItemSourceResolver() {
         this(PluginAvailability.BUKKIT, new ReflectiveAccessor());
     }
 
-    ReflectiveItemsAdderItemSourceResolver(PluginAvailability pluginAvailability, Accessor accessor) {
-        this.pluginAvailability = pluginAvailability == null ? PluginAvailability.BUKKIT : pluginAvailability;
-        this.accessor = accessor == null ? new ReflectiveAccessor() : accessor;
+    ReflectiveItemsAdderItemSourceResolver(PluginAvailability pluginAvailability, ReflectiveAccessor accessor) {
+        super(pluginAvailability, accessor == null ? new ReflectiveAccessor() : accessor);
     }
 
     @Override
@@ -46,104 +42,18 @@ final class ReflectiveItemsAdderItemSourceResolver implements ManagedItemSourceR
     }
 
     @Override
-    public boolean supports(ItemSource source) {
-        return source != null && source.getType() == ItemSourceType.ITEMSADDER;
+    protected ItemSourceType sourceType() {
+        return ItemSourceType.ITEMSADDER;
     }
 
     @Override
-    public boolean isAvailable(ItemSource source) {
-        return supports(source) && isOperational();
+    protected String waitingDetail() {
+        return "ItemsAdder items are not loaded yet.";
     }
 
-    @Override
-    public ItemSource identify(ItemStack itemStack) {
-        if (itemStack == null || itemStack.getType().isAir() || !isOperational()) {
-            return null;
-        }
-        String identifier = accessor.identifyIdentifier(itemStack);
-        return Texts.isBlank(identifier) ? null : new ItemSource(ItemSourceType.ITEMSADDER, identifier);
-    }
+    static final class ReflectiveAccessor extends AbstractReflectiveAccessor
+            implements AbstractManagedItemSourceResolver.Accessor {
 
-    @Override
-    public ItemStack create(ItemSource source, int amount) {
-        if (!supports(source) || !isOperational()) {
-            return null;
-        }
-        ItemStack itemStack = accessor.createItem(source.getIdentifier());
-        if (itemStack == null) {
-            return null;
-        }
-        ItemStack cloned = itemStack.clone();
-        cloned.setAmount(Math.max(1, amount));
-        return cloned;
-    }
-
-    @Override
-    public Status bootstrap() {
-        return refresh(false);
-    }
-
-    @Override
-    public Status onPluginEnabled() {
-        return refresh(false);
-    }
-
-    @Override
-    public Status onItemsLoaded() {
-        return refresh(true);
-    }
-
-    @Override
-    public void onPluginDisabled() {
-        loaded = false;
-        accessor.reset();
-    }
-
-    private Status refresh(boolean loadedSignal) {
-        if (!pluginAvailability.isPluginEnabled(pluginName())) {
-            loaded = false;
-            accessor.reset();
-            return new Status(State.ABSENT, "");
-        }
-        if (!accessor.ensureAvailable()) {
-            loaded = false;
-            return new Status(State.INCOMPATIBLE, accessor.failureReason());
-        }
-        if (loadedSignal) {
-            loaded = true;
-        }
-        if (!loaded) {
-            loaded = accessor.detectLoaded();
-        }
-        return loaded
-                ? new Status(State.READY, "")
-                : new Status(State.WAITING, "ItemsAdder items are not loaded yet.");
-    }
-
-    private boolean isOperational() {
-        return loaded && pluginAvailability.isPluginEnabled(pluginName()) && accessor.ensureAvailable();
-    }
-
-    interface Accessor {
-
-        boolean ensureAvailable();
-
-        String failureReason();
-
-        boolean detectLoaded();
-
-        String identifyIdentifier(ItemStack itemStack);
-
-        ItemStack createItem(String identifier);
-
-        void reset();
-    }
-
-    private static final class ReflectiveAccessor implements Accessor {
-
-        private boolean initialized;
-        private boolean available;
-        private String failureReason = "";
         private Method customStackByItemStackMethod;
         private Method customStackGetInstanceMethod;
         private Method customStackGetItemStackMethod;
@@ -152,32 +62,25 @@ final class ReflectiveItemsAdderItemSourceResolver implements ManagedItemSourceR
         private Method itemsAdderGetAllItemsMethod;
 
         @Override
-        public synchronized boolean ensureAvailable() {
-            if (initialized) {
-                return available;
-            }
-            initialized = true;
-            try {
-                Class<?> customStackClass = Class.forName("dev.lone.itemsadder.api.CustomStack");
-                customStackByItemStackMethod = customStackClass.getMethod("byItemStack", ItemStack.class);
-                customStackGetInstanceMethod = customStackClass.getMethod("getInstance", String.class);
-                customStackGetItemStackMethod = customStackClass.getMethod("getItemStack");
-                customStackGetNamespacedIdMethod = customStackClass.getMethod("getNamespacedID");
-                Class<?> itemsAdderClass = Class.forName("dev.lone.itemsadder.api.ItemsAdder");
-                itemsAdderAreItemsLoadedMethod = getOptionalMethod(itemsAdderClass, "areItemsLoaded");
-                itemsAdderGetAllItemsMethod = getOptionalMethod(itemsAdderClass, "getAllItems");
-                available = true;
-                failureReason = "";
-            } catch (Throwable throwable) {
-                available = false;
-                failureReason = throwable.getClass().getSimpleName() + ": " + Texts.toStringSafe(throwable.getMessage());
-            }
-            return available;
+        protected void initializeBindings() throws Exception {
+            Class<?> customStackClass = Class.forName("dev.lone.itemsadder.api.CustomStack");
+            customStackByItemStackMethod = customStackClass.getMethod("byItemStack", ItemStack.class);
+            customStackGetInstanceMethod = customStackClass.getMethod("getInstance", String.class);
+            customStackGetItemStackMethod = customStackClass.getMethod("getItemStack");
+            customStackGetNamespacedIdMethod = customStackClass.getMethod("getNamespacedID");
+            Class<?> itemsAdderClass = Class.forName("dev.lone.itemsadder.api.ItemsAdder");
+            itemsAdderAreItemsLoadedMethod = getOptionalMethod(itemsAdderClass, "areItemsLoaded");
+            itemsAdderGetAllItemsMethod = getOptionalMethod(itemsAdderClass, "getAllItems");
         }
 
         @Override
-        public String failureReason() {
-            return failureReason;
+        protected void resetBindings() {
+            customStackByItemStackMethod = null;
+            customStackGetInstanceMethod = null;
+            customStackGetItemStackMethod = null;
+            customStackGetNamespacedIdMethod = null;
+            itemsAdderAreItemsLoadedMethod = null;
+            itemsAdderGetAllItemsMethod = null;
         }
 
         @Override
@@ -200,45 +103,9 @@ final class ReflectiveItemsAdderItemSourceResolver implements ManagedItemSourceR
         }
 
         @Override
-        public ItemStack createItem(String identifier) {
+        public ItemStack createItem(String identifier, int amount) {
             Object customStack = invoke(customStackGetInstanceMethod, null, identifier);
             return asItemStack(invoke(customStackGetItemStackMethod, customStack));
-        }
-
-        @Override
-        public synchronized void reset() {
-            initialized = false;
-            available = false;
-            failureReason = "";
-            customStackByItemStackMethod = null;
-            customStackGetInstanceMethod = null;
-            customStackGetItemStackMethod = null;
-            customStackGetNamespacedIdMethod = null;
-            itemsAdderAreItemsLoadedMethod = null;
-            itemsAdderGetAllItemsMethod = null;
-        }
-
-        private Method getOptionalMethod(Class<?> type, String methodName, Class<?>... parameterTypes) {
-            try {
-                return type.getMethod(methodName, parameterTypes);
-            } catch (Throwable throwable) {
-                return null;
-            }
-        }
-
-        private Object invoke(Method method, Object target, Object... arguments) {
-            if (method == null || target == null && !java.lang.reflect.Modifier.isStatic(method.getModifiers())) {
-                return null;
-            }
-            try {
-                return method.invoke(target, arguments);
-            } catch (Throwable throwable) {
-                return null;
-            }
-        }
-
-        private ItemStack asItemStack(Object value) {
-            return value instanceof ItemStack itemStack ? itemStack : null;
         }
     }
 }

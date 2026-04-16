@@ -35,9 +35,15 @@ final class StageCalculator {
     }
 
     private double applyFlatPercent(double input, StageInputs inputs, DamageStageDefinition stage) {
-        double result = stage.mode() == DamageStageMode.SUBTRACT
-                ? Math.max(0D, (input - inputs.flat()) * Math.max(0D, 1D - (inputs.percent() / 100D)))
-                : (input + inputs.flat()) * (1D + (inputs.percent() / 100D));
+        double result;
+        if (stage.mode() == DamageStageMode.SUBTRACT) {
+            result = Math.max(0D, (input - inputs.flat()) * Math.max(0D, 1D - (inputs.percent() / 100D)));
+        } else if (inputs.fusedFlat()) {
+            double factor = AttributeFusionMath.percentFactor(inputs.percent(), false);
+            result = Math.max(0D, (input * factor) + inputs.flat());
+        } else {
+            result = (input + inputs.flat()) * (1D + (inputs.percent() / 100D));
+        }
         return clampResult(result, stage);
     }
 
@@ -80,6 +86,11 @@ final class StageCalculator {
         DamageContextVariables context = damageContext == null ? DamageContextVariables.empty() : damageContext.variables();
         double flat = calculationCache.sum(sourceSnapshot, context, stage.flatAttributes());
         double percent = calculationCache.sum(sourceSnapshot, context, stage.percentAttributes());
+        boolean fusedFlat = stage.kind() == DamageStageKind.FLAT_PERCENT
+                && stage.mode() == DamageStageMode.ADD
+                && !stage.flatAttributes().isEmpty()
+                && !stage.percentAttributes().isEmpty()
+                && AttributeFusionMath.usesFusedCombatValues(sourceSnapshot);
         double chance = clamp(
                 calculationCache.sum(sourceSnapshot, context, stage.chanceAttributes()),
                 stage.minChance(),
@@ -94,7 +105,7 @@ final class StageCalculator {
                 -100D,
                 100000D
         );
-        return new StageInputs(flat, percent, chance, multiplier, chance > 0D && roll <= chance);
+        return new StageInputs(flat, percent, chance, multiplier, chance > 0D && roll <= chance, fusedFlat);
     }
 
     private AttributeSnapshot resolveSourceSnapshot(DamageContext damageContext, DamageStageSource source) {
@@ -137,7 +148,12 @@ final class StageCalculator {
 
     }
 
-    private record StageInputs(double flat, double percent, double chance, double multiplier, boolean critical) {
+    private record StageInputs(double flat,
+            double percent,
+            double chance,
+            double multiplier,
+            boolean critical,
+            boolean fusedFlat) {
 
     }
 }

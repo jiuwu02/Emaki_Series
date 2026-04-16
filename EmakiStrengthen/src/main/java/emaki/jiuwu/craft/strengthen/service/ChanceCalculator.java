@@ -18,13 +18,13 @@ public final class ChanceCalculator {
             int currentStar,
             int temperLevel,
             int appliedTemperBonus) {
-        if (config == null || recipe == null) {
+        if (recipe == null) {
             return 0D;
         }
         int targetStar = currentStar + 1;
         StrengthenRecipe.Limits limits = recipe.limits();
         int effectiveTemper = Numbers.clamp(temperLevel + Math.max(0, appliedTemperBonus), 0, limits.maxTemper());
-        double chance = recipe.successRateForTargetStar(config.successRates(), targetStar);
+        double chance = recipe.successRateForTargetStar(config == null ? null : config.successRates(), targetStar);
         chance += effectiveTemper * limits.temperChanceBonusPerLevel();
         return Numbers.clamp(chance, 0D, limits.successChanceCap());
     }

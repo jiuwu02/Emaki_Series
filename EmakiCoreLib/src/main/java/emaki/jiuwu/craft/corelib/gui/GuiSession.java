@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.corelib.gui;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Collections;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -116,7 +117,7 @@ public final class GuiSession implements InventoryHolder {
     }
 
     public Map<String, Object> replacements() {
-        return replacements;
+        return Collections.unmodifiableMap(replacements);
     }
 
     @Override

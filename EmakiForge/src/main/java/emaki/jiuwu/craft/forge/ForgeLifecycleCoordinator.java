@@ -5,11 +5,13 @@ import java.util.List;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiSlot;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
@@ -25,7 +27,6 @@ import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.forge.config.AppConfig;
 import emaki.jiuwu.craft.forge.loader.BlueprintLoader;
-import emaki.jiuwu.craft.forge.loader.GuiTemplateLoader;
 import emaki.jiuwu.craft.forge.loader.MaterialLoader;
 import emaki.jiuwu.craft.forge.loader.PlayerDataStore;
 import emaki.jiuwu.craft.forge.loader.RecipeLoader;
@@ -48,10 +49,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
 
     @Override
     public ForgeRuntimeComponents initialize(EmakiForgePlugin plugin) {
-        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.getInstance();
-        if (coreLibPlugin == null) {
-            throw new IllegalStateException("EmakiCoreLib must be enabled before EmakiForge.");
-        }
+        EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
         YamlConfigLoader<AppConfig> appConfigLoader = new YamlConfigLoader<>(
                 plugin,
                 "config.yml",
@@ -91,7 +89,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         GuiService guiService = new GuiService(plugin, coreLibPlugin.asyncTaskScheduler(), coreLibPlugin.performanceMonitor());
         ItemIdentifierService itemIdentifierService = new ItemIdentifierService(plugin, coreLibPlugin.itemSourceService());
         ReflectivePdcAttributeGateway pdcAttributeGateway = new ReflectivePdcAttributeGateway(plugin);
-        syncPdcAttributeRegistration(pdcAttributeGateway);
+        syncPdcAttributeRegistration(pdcAttributeGateway, PDC_ATTRIBUTE_SOURCE_ID);
         registerCoreLibAssemblyFeedbackHandler(plugin);
         ForgeService forgeService = new ForgeService(
                 plugin,
@@ -142,7 +140,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         plugin.recipeLoader().load();
         plugin.guiTemplateLoader().load();
         plugin.playerDataStore().load();
-        syncPdcAttributeRegistration(plugin.pdcAttributeGateway());
+        syncPdcAttributeRegistration(plugin.pdcAttributeGateway(), PDC_ATTRIBUTE_SOURCE_ID);
         plugin.itemIdentifierService().refresh();
         plugin.forgeService().refreshIndexes();
         validateConfiguredExternalSources(plugin);
@@ -245,18 +243,12 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
     }
 
     private void registerCoreLibAssemblyFeedbackHandler(EmakiForgePlugin plugin) {
-        EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.getInstance();
-        if (coreLib == null) {
-            return;
-        }
+        EmakiCoreLibPlugin coreLib = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
         coreLib.itemAssemblyService().setFeedbackHandler(new ForgeAssemblyFeedbackHandler(plugin));
     }
 
     private void unregisterCoreLibAssemblyFeedbackHandler() {
-        EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.getInstance();
-        if (coreLib == null) {
-            return;
-        }
+        EmakiCoreLibPlugin coreLib = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
         coreLib.itemAssemblyService().setFeedbackHandler(null);
     }
 
@@ -315,10 +307,4 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         }
     }
 
-    private void syncPdcAttributeRegistration(ReflectivePdcAttributeGateway gateway) {
-        if (gateway == null) {
-            return;
-        }
-        gateway.syncRegistration(PDC_ATTRIBUTE_SOURCE_ID);
-    }
 }

@@ -62,6 +62,7 @@ slots:
     slots: [46, 47, 48, 50, 51, 52]
     item: "GRAY_STAINED_GLASS_PANE"
     display_name: "<gray>"
+    hidden_components: ["tooltip"]
 
   prev_page:
     slots: [45]
@@ -70,7 +71,11 @@ slots:
     display_name: "<gray>上一页</gray>"
     lore:
       - "<gray>当前页码: <yellow>{page}/{pages}</yellow>"
-    click: "ui.button.click-1-1"
+    sounds:
+      click:
+        sound: "ui.button.click"
+        volume: 1.0
+        pitch: 1.0
 
   close:
     slots: [49]
@@ -79,7 +84,11 @@ slots:
     display_name: "<red>关闭</red>"
     lore:
       - "<gray>关闭配方图鉴</gray>"
-    click: "ui.button.click-1-1"
+    sounds:
+      click:
+        sound: "ui.button.click"
+        volume: 1.0
+        pitch: 1.0
 
   next_page:
     slots: [53]
@@ -88,7 +97,11 @@ slots:
     display_name: "<gray>下一页</gray>"
     lore:
       - "<gray>当前页码: <yellow>{page}/{pages}</yellow>"
-    click: "ui.button.click-1-1"
+    sounds:
+      click:
+        sound: "ui.button.click"
+        volume: 1.0
+        pitch: 1.0
 
 virtual_items:
   recipe_entry:

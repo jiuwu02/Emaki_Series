@@ -17,9 +17,11 @@ import emaki.jiuwu.craft.forge.model.ValidationResult;
 final class MaterialValidationService {
 
     private final EmakiForgePlugin plugin;
+    private final ForgeMaterialUsagePlanner usagePlanner;
 
     MaterialValidationService(EmakiForgePlugin plugin, ForgeLookupIndex lookupIndex) {
         this.plugin = plugin;
+        this.usagePlanner = new ForgeMaterialUsagePlanner(plugin);
     }
 
     ValidationResult validate(Recipe recipe, GuiItems guiItems) {
@@ -84,8 +86,6 @@ final class MaterialValidationService {
             return ValidationResult.fail("forge.error.material_not_allowed");
         }
         int occupiedStacks = 0;
-        int totalCapacity = 0;
-        int capacityBonus = 0;
         for (ItemStack itemStack : guiItems.optionalMaterials().values()) {
             if (isEmpty(itemStack)) {
                 continue;
@@ -95,8 +95,6 @@ final class MaterialValidationService {
             if (material == null) {
                 return ValidationResult.fail("forge.error.material_not_allowed");
             }
-            totalCapacity += material.effectiveCapacityCost() * itemStack.getAmount();
-            capacityBonus += material.forgeCapacityBonus() * itemStack.getAmount();
         }
         if (recipe.optionalMaterialLimit() > 0 && occupiedStacks > recipe.optionalMaterialLimit()) {
             return ValidationResult.fail("forge.error.material_count_exceeded", Map.of(
@@ -104,6 +102,8 @@ final class MaterialValidationService {
                     "max", recipe.optionalMaterialLimit()
             ));
         }
+        int totalCapacity = usagePlanner.optionalCapacityCost(recipe, guiItems);
+        int capacityBonus = usagePlanner.optionalCapacityBonus(recipe, guiItems);
         int maxCapacity = Math.max(0, recipe.forgeCapacity()) + capacityBonus;
         if (maxCapacity > 0 && totalCapacity > maxCapacity) {
             return ValidationResult.fail("forge.error.capacity_exceeded", Map.of(

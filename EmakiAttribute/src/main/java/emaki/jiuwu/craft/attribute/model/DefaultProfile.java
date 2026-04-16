@@ -14,6 +14,9 @@ public record DefaultProfile(String id,
         Map<String, Double> attributeDefaults,
         String description) {
 
+    private static final String DEFAULT_ID = "default";
+    private static final int DEFAULT_PRIORITY = 1_000_000;
+
     public DefaultProfile     {
         id = normalizeId(id);
         resources = resources == null ? Map.of() : Map.copyOf(resources);
@@ -39,8 +42,8 @@ public record DefaultProfile(String id,
             attributes.put(entry.getKey().toLowerCase(Locale.ROOT), Numbers.tryParseDouble(entry.getValue(), 0D));
         }
         return new DefaultProfile(
-                ConfigNodes.string(raw, "id", "global"),
-                Numbers.tryParseInt(ConfigNodes.get(raw, "priority"), 0),
+                ConfigNodes.string(raw, "id", DEFAULT_ID),
+                Numbers.tryParseInt(ConfigNodes.get(raw, "priority"), DEFAULT_PRIORITY),
                 resources,
                 attributes,
                 ConfigNodes.string(raw, "description", null)

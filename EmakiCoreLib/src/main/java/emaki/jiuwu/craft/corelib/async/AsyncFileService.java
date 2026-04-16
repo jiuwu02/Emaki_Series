@@ -38,7 +38,7 @@ public final class AsyncFileService {
                 T value = supplier.get();
                 recordPerformance("async-file:read:" + safeTaskName(taskName), System.nanoTime() - startedAt, true);
                 return CompletableFuture.completedFuture(value);
-            } catch (Throwable throwable) {
+            } catch (Exception throwable) {
                 recordPerformance("async-file:read:" + safeTaskName(taskName), 0L, false);
                 CompletableFuture<T> failedFuture = new CompletableFuture<>();
                 failedFuture.completeExceptionally(throwable);
@@ -95,7 +95,7 @@ public final class AsyncFileService {
                 task.run();
                 recordPerformance("async-file:write:" + safeTaskName(taskName), System.nanoTime() - startedAt, true);
                 return CompletableFuture.completedFuture(null);
-            } catch (Throwable throwable) {
+            } catch (Exception throwable) {
                 recordPerformance("async-file:write:" + safeTaskName(taskName), 0L, false);
                 CompletableFuture<Void> failedFuture = new CompletableFuture<>();
                 failedFuture.completeExceptionally(throwable);
@@ -109,14 +109,14 @@ public final class AsyncFileService {
     }
 
     private <T> T executeWithRetry(String metricKey, Supplier<T> supplier) {
-        Throwable lastFailure = null;
+        Exception lastFailure = null;
         for (int attempt = 1; attempt <= retryAttempts; attempt++) {
             long startedAt = System.nanoTime();
             try {
                 T value = supplier.get();
                 recordPerformance(metricKey, System.nanoTime() - startedAt, true);
                 return value;
-            } catch (Throwable throwable) {
+            } catch (Exception throwable) {
                 lastFailure = throwable;
                 recordPerformance(metricKey, System.nanoTime() - startedAt, false);
                 if (attempt >= retryAttempts) {

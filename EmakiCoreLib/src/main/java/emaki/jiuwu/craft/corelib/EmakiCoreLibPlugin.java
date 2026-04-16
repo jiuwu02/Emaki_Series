@@ -51,7 +51,6 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
   \\/_____/\\/_/  \\/_/\\/_/\\/_/\\/_/\\/_/ \\/_/\\/_____/\\/_____/\\/_/ /_/\\/_____/\\/_____/\\/_/\\/_____/
 """;
 
-    private static EmakiCoreLibPlugin instance;
     private LanguageLoader languageLoader;
     private MessageService messageService;
     private CoreLibConfig configModel = CoreLibConfig.defaults();
@@ -74,17 +73,8 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
             = new EmakiItemAssemblyService(namespaceRegistry, itemLayerCodecRegistry, itemSourceService);
     private final Map<Class<?>, Object> serviceRegistry = new ConcurrentHashMap<>();
 
-    /**
-     * @deprecated Prefer constructor injection or {@link #getService(Class)} for new code.
-     */
-    @Deprecated
-    public static EmakiCoreLibPlugin getInstance() {
-        return instance;
-    }
-
     @Override
     public void onEnable() {
-        instance = this;
         initializeServices();
         ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII);
         messageService.info("console.plugin_starting");
@@ -105,9 +95,6 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
             asyncTaskScheduler.shutdown(5_000L);
         }
         AdventureSupport.close(this);
-        if (instance == this) {
-            instance = null;
-        }
     }
 
     @Override
@@ -177,6 +164,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         languageLoader.load();
         namespaceRegistry.register(new EmakiNamespaceDefinition("forge", 100, "Forge"));
         namespaceRegistry.register(new EmakiNamespaceDefinition("strengthen", 200, "Strengthen"));
+        namespaceRegistry.register(new EmakiNamespaceDefinition("gem", 300, "Gem"));
         itemAssemblyService.configureAsync(asyncTaskScheduler, performanceMonitor);
         refreshServiceRegistry();
     }

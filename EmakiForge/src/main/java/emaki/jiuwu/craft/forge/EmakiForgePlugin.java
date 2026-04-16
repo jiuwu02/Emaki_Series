@@ -1,17 +1,14 @@
 package emaki.jiuwu.craft.forge;
 
-import java.nio.file.Path;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
 import org.bukkit.command.PluginCommand;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
 
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.integration.ReflectivePdcAttributeGateway;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
+import emaki.jiuwu.craft.corelib.plugin.AbstractConfigurableEmakiPlugin;
 import emaki.jiuwu.craft.corelib.service.EmakiServiceRegistry;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.AdventureSupport;
@@ -20,7 +17,6 @@ import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.forge.config.AppConfig;
 import emaki.jiuwu.craft.forge.loader.BlueprintLoader;
-import emaki.jiuwu.craft.forge.loader.GuiTemplateLoader;
 import emaki.jiuwu.craft.forge.loader.MaterialLoader;
 import emaki.jiuwu.craft.forge.loader.PlayerDataStore;
 import emaki.jiuwu.craft.forge.loader.RecipeLoader;
@@ -31,7 +27,7 @@ import emaki.jiuwu.craft.forge.service.ForgeService;
 import emaki.jiuwu.craft.forge.service.ItemIdentifierService;
 import emaki.jiuwu.craft.forge.service.RecipeBookGuiService;
 
-public class EmakiForgePlugin extends JavaPlugin implements LogMessagesProvider, EmakiServiceRegistry {
+public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider, EmakiServiceRegistry {
 
     private static final String ROOT_COMMAND = "emakiforge";
 
@@ -47,7 +43,6 @@ public class EmakiForgePlugin extends JavaPlugin implements LogMessagesProvider,
     private final ForgeCommandRouter commandRouter = new ForgeCommandRouter(this);
     private final ForgePlayerDataListener playerDataListener = new ForgePlayerDataListener(this);
     private final ForgeItemRefreshListener itemRefreshListener = new ForgeItemRefreshListener(this);
-    private final Map<Class<?>, Object> serviceRegistry = new ConcurrentHashMap<>();
 
     private YamlConfigLoader<AppConfig> appConfigLoader;
     private LanguageLoader languageLoader;
@@ -68,8 +63,8 @@ public class EmakiForgePlugin extends JavaPlugin implements LogMessagesProvider,
     private EditorGuiService editorGuiService;
     private BukkitTask autoSaveTask;
 
-    public Path dataPath(String first, String... more) {
-        return getDataFolder().toPath().resolve(Path.of(first, more));
+    public EmakiForgePlugin() {
+        super(AppConfig::defaults);
     }
 
     @Override
@@ -113,7 +108,7 @@ public class EmakiForgePlugin extends JavaPlugin implements LogMessagesProvider,
         forgeGuiService = components.forgeGuiService();
         recipeBookGuiService = components.recipeBookGuiService();
         editorGuiService = components.editorGuiService();
-        registerServices(components.services());
+        registerServices(components);
     }
 
     private void registerCommandHandler() {
@@ -136,10 +131,6 @@ public class EmakiForgePlugin extends JavaPlugin implements LogMessagesProvider,
 
     public YamlConfigLoader<AppConfig> appConfigLoader() {
         return appConfigLoader;
-    }
-
-    public AppConfig appConfig() {
-        return appConfigLoader == null ? AppConfig.defaults() : appConfigLoader.current();
     }
 
     public LanguageLoader languageLoader() {
@@ -204,21 +195,5 @@ public class EmakiForgePlugin extends JavaPlugin implements LogMessagesProvider,
 
     public EditorGuiService editorGuiService() {
         return editorGuiService;
-    }
-
-    @Override
-    public <T> T getService(Class<T> type) {
-        if (type == null) {
-            return null;
-        }
-        Object service = serviceRegistry.get(type);
-        return type.isInstance(service) ? type.cast(service) : null;
-    }
-
-    private void registerServices(Map<Class<?>, Object> services) {
-        serviceRegistry.clear();
-        if (services != null) {
-            serviceRegistry.putAll(services);
-        }
     }
 }

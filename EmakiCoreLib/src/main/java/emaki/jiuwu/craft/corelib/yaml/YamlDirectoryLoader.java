@@ -3,7 +3,6 @@ package emaki.jiuwu.craft.corelib.yaml;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,12 +43,11 @@ public abstract class YamlDirectoryLoader<T> {
                     onDirectoryCreateFailed(directory);
                 }
             }
-            File[] files = directory.listFiles((dir, name) -> name.endsWith(".yml") || name.endsWith(".yaml"));
-            if (files == null) {
+            List<File> files = collectYamlFiles(directory);
+            if (files.isEmpty()) {
                 loaded = true;
                 return 0;
             }
-            Arrays.sort(files, (left, right) -> left.getName().compareToIgnoreCase(right.getName()));
             for (File file : files) {
                 try {
                     YamlSection configuration = YamlFiles.load(file);
@@ -167,12 +165,41 @@ public abstract class YamlDirectoryLoader<T> {
     }
 
     private AsyncTaskScheduler resolveScheduler() {
-        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.getInstance();
-        return coreLibPlugin == null ? null : coreLibPlugin.asyncTaskScheduler();
+        return JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).asyncTaskScheduler();
     }
 
     private YamlSection cloneConfiguration(YamlSection configuration) {
         return configuration == null ? new MapYamlSection() : configuration.copy();
+    }
+
+    private List<File> collectYamlFiles(File directory) {
+        List<File> files = new ArrayList<>();
+        collectYamlFiles(directory, files);
+        files.sort((left, right) -> left.getPath().compareToIgnoreCase(right.getPath()));
+        return files;
+    }
+
+    private void collectYamlFiles(File directory, List<File> sink) {
+        if (directory == null || sink == null || !directory.exists()) {
+            return;
+        }
+        File[] entries = directory.listFiles();
+        if (entries == null) {
+            return;
+        }
+        for (File entry : entries) {
+            if (entry == null) {
+                continue;
+            }
+            if (entry.isDirectory()) {
+                collectYamlFiles(entry, sink);
+                continue;
+            }
+            String name = entry.getName().toLowerCase();
+            if (name.endsWith(".yml") || name.endsWith(".yaml")) {
+                sink.add(entry);
+            }
+        }
     }
 
     public record LoadedYamlEntry<T>(String id, File file, YamlSection configuration, T value) {

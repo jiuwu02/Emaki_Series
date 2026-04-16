@@ -149,7 +149,7 @@ public final class StrengthenSnapshotBuilder {
             String sourceId) {
         String anchor = operation.string("anchor");
         String position = Texts.lower(operation.string("position"));
-        String action = "above".equals(position) ? "insert_above" : "insert_below";
+        String action = "above".equals(position) ? "search_insert_above" : "search_insert_below";
         try {
             SearchInsertConfig config = SearchInsertConfig.fromAction(
                     action,

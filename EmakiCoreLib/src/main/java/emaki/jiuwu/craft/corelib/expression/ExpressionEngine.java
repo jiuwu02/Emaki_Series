@@ -26,8 +26,9 @@ public final class ExpressionEngine {
     private static final long COMPILED_CACHE_TTL_MILLIS = 5 * 60 * 1000L;
     private static final int DEFAULT_RANDOM_MAX_ATTEMPTS = 128;
     private static final double INTEGER_ROUNDING_EPSILON = 1.0E-9D;
-    private static final Object EXPRESSION_CACHE_LOCK = new Object();
-    private static final LinkedHashMap<String, CachedExpression> COMPILED_CACHE = new LinkedHashMap<>(COMPILED_CACHE_LIMIT, 0.75F, true);
+    private static final ThreadLocal<LinkedHashMap<String, CachedExpression>> COMPILED_CACHE = ThreadLocal.withInitial(
+            () -> new LinkedHashMap<>(COMPILED_CACHE_LIMIT, 0.75F, true)
+    );
     private static final Function[] CUSTOM_FUNCTIONS = new Function[]{
         new Function("ceil", 1) {
             @Override
@@ -96,10 +97,7 @@ public final class ExpressionEngine {
         }
         try {
             Expression compiled = compiledExpression(prepared);
-            double result;
-            synchronized (compiled) {
-                result = compiled.evaluate();
-            }
+            double result = compiled.evaluate();
             if (Double.isNaN(result) || Double.isInfinite(result)) {
                 return 0D;
             }
@@ -235,40 +233,21 @@ public final class ExpressionEngine {
     }
 
     private static double evaluateGaussian(Object config) {
-        Double min = optionalNumber(ConfigNodes.get(config, "min"));
-        Double max = optionalNumber(ConfigNodes.get(config, "max"));
-        Double mean = optionalNumber(ConfigNodes.get(config, "mean"));
-        if (mean == null) {
-            mean = min != null && max != null ? (min + max) / 2D : 0D;
-        }
-        Double stdDev = optionalNumber(ConfigNodes.get(config, "std_dev"));
-        if (stdDev == null) {
-            stdDev = optionalNumber(ConfigNodes.get(config, "std-dev"));
-        }
-        if (stdDev == null) {
-            stdDev = min != null && max != null ? Math.abs(max - min) / 6D : 1D;
-        }
-        int maxAttempts = Numbers.tryParseInt(ConfigNodes.get(config, "max_attempts"), DEFAULT_RANDOM_MAX_ATTEMPTS);
-        return Randoms.gaussian(mean, stdDev, min, max, maxAttempts);
+        DistributionParams params = resolveDistributionParams(config);
+        return Randoms.gaussian(params.mean(), params.stdDev(), params.min(), params.max(), params.maxAttempts());
     }
 
     private static double evaluateSkewNormal(Object config) {
-        Double min = optionalNumber(ConfigNodes.get(config, "min"));
-        Double max = optionalNumber(ConfigNodes.get(config, "max"));
-        Double mean = optionalNumber(ConfigNodes.get(config, "mean"));
-        if (mean == null) {
-            mean = min != null && max != null ? (min + max) / 2D : 0D;
-        }
-        Double stdDev = optionalNumber(ConfigNodes.get(config, "std_dev"));
-        if (stdDev == null) {
-            stdDev = optionalNumber(ConfigNodes.get(config, "std-dev"));
-        }
-        if (stdDev == null) {
-            stdDev = min != null && max != null ? Math.abs(max - min) / 6D : 1D;
-        }
+        DistributionParams params = resolveDistributionParams(config);
         Double skewness = optionalNumber(ConfigNodes.get(config, "skewness"));
-        int maxAttempts = Numbers.tryParseInt(ConfigNodes.get(config, "max_attempts"), DEFAULT_RANDOM_MAX_ATTEMPTS);
-        return Randoms.skewNormal(mean, stdDev, skewness == null ? 0D : skewness, min, max, maxAttempts);
+        return Randoms.skewNormal(
+                params.mean(),
+                params.stdDev(),
+                skewness == null ? 0D : skewness,
+                params.min(),
+                params.max(),
+                params.maxAttempts()
+        );
     }
 
     private static double evaluateTriangle(Object config) {
@@ -284,34 +263,53 @@ public final class ExpressionEngine {
         return evaluateRandomConfig(value);
     }
 
+    private static DistributionParams resolveDistributionParams(Object config) {
+        Double min = optionalNumber(ConfigNodes.get(config, "min"));
+        Double max = optionalNumber(ConfigNodes.get(config, "max"));
+        Double mean = optionalNumber(ConfigNodes.get(config, "mean"));
+        if (mean == null) {
+            mean = min != null && max != null ? (min + max) / 2D : 0D;
+        }
+        Double stdDev = optionalNumber(ConfigNodes.get(config, "std_dev"));
+        if (stdDev == null) {
+            stdDev = optionalNumber(ConfigNodes.get(config, "std-dev"));
+        }
+        if (stdDev == null) {
+            stdDev = min != null && max != null ? Math.abs(max - min) / 6D : 1D;
+        }
+        int maxAttempts = Numbers.tryParseInt(ConfigNodes.get(config, "max_attempts"), DEFAULT_RANDOM_MAX_ATTEMPTS);
+        return new DistributionParams(min, max, mean, stdDev, maxAttempts);
+    }
+
     private static Expression compiledExpression(String prepared) {
         long now = System.currentTimeMillis();
-        synchronized (EXPRESSION_CACHE_LOCK) {
-            CachedExpression cached = COMPILED_CACHE.get(prepared);
-            Expression expression = cached == null ? null : cached.expression();
-            if (expression != null && !cached.isExpired(now)) {
-                cached.touch(now);
-                return expression;
-            }
-            if (cached != null) {
-                COMPILED_CACHE.remove(prepared);
-            }
+        LinkedHashMap<String, CachedExpression> cache = COMPILED_CACHE.get();
+        CachedExpression cached = cache.get(prepared);
+        Expression expression = cached == null ? null : cached.expression();
+        if (expression != null && !cached.isExpired(now)) {
+            cached.touch(now);
+            return expression;
+        }
+        if (cached != null) {
+            cache.remove(prepared);
         }
         Expression compiled = new ExpressionBuilder(prepared)
                 .functions(CUSTOM_FUNCTIONS)
                 .build();
-        synchronized (EXPRESSION_CACHE_LOCK) {
-            COMPILED_CACHE.put(prepared, new CachedExpression(compiled, now + COMPILED_CACHE_TTL_MILLIS));
-            trimCompiledCache();
-        }
+        cache.put(prepared, new CachedExpression(compiled, now + COMPILED_CACHE_TTL_MILLIS));
+        trimCompiledCache(cache);
         return compiled;
     }
 
-    private static void trimCompiledCache() {
-        while (COMPILED_CACHE.size() > COMPILED_CACHE_LIMIT) {
-            String eldest = COMPILED_CACHE.keySet().iterator().next();
-            COMPILED_CACHE.remove(eldest);
+    private static void trimCompiledCache(LinkedHashMap<String, CachedExpression> cache) {
+        while (cache.size() > COMPILED_CACHE_LIMIT) {
+            String eldest = cache.keySet().iterator().next();
+            cache.remove(eldest);
         }
+    }
+
+    private record DistributionParams(Double min, Double max, double mean, double stdDev, int maxAttempts) {
+
     }
 
     private static final class CachedExpression {

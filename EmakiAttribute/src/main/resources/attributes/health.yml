@@ -16,7 +16,7 @@ value_kind: RESOURCE
 # 目标类型：RESOURCE 表示影响资源上限
 target_type: RESOURCE
 
-# 目标 ID：health，对应 profiles/global.yml 中的 resources.health
+# 目标 ID：health，对应 config.yml 中 default_profile.resources.health
 target_id: health
 
 # 默认值

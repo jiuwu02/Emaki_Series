@@ -3,10 +3,10 @@ package emaki.jiuwu.craft.strengthen.config;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-public final class AppConfig {
+import emaki.jiuwu.craft.corelib.config.BaseAppConfig;
 
-    private final String language;
-    private final String configVersion;
+public final class AppConfig extends BaseAppConfig {
+
     private final int localBroadcastRadius;
     private final Map<Integer, Double> successRates;
 
@@ -14,8 +14,7 @@ public final class AppConfig {
             String configVersion,
             int localBroadcastRadius,
             Map<Integer, Double> successRates) {
-        this.language = language;
-        this.configVersion = configVersion;
+        super(language, configVersion, "3.2.0");
         this.localBroadcastRadius = Math.max(1, localBroadcastRadius);
         this.successRates = successRates == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(successRates));
     }
@@ -34,19 +33,7 @@ public final class AppConfig {
         defaults.put(10, 14D);
         defaults.put(11, 8D);
         defaults.put(12, 4D);
-        return new AppConfig("zh_CN", "2.1.0", 48, defaults);
-    }
-
-    public double successRateForTargetStar(int targetStar) {
-        return successRates.getOrDefault(targetStar, 0D);
-    }
-
-    public String language() {
-        return language;
-    }
-
-    public String configVersion() {
-        return configVersion;
+        return new AppConfig("zh_CN", "3.2.0", 48, defaults);
     }
 
     public int localBroadcastRadius() {

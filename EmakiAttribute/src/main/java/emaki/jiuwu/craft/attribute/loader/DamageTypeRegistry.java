@@ -8,6 +8,7 @@ import java.util.Map;
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.attribute.model.DamageTypeDefinition;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
@@ -39,6 +40,7 @@ public final class DamageTypeRegistry extends DirectoryLoader<DamageTypeDefiniti
 
     private final AttributeRegistry attributeRegistry;
     private final Map<String, DamageTypeDefinition> aliasIndex = new LinkedHashMap<>();
+    private volatile String definitionSignature = "";
 
     public DamageTypeRegistry(EmakiAttributePlugin plugin, AttributeRegistry attributeRegistry) {
         super(plugin);
@@ -128,6 +130,7 @@ public final class DamageTypeRegistry extends DirectoryLoader<DamageTypeDefiniti
                 aliasIndex.putIfAbsent(normalizeId(alias), definition);
             }
         }
+        definitionSignature = SignatureUtil.stableSignature(items.values());
     }
 
     public DamageTypeDefinition resolve(String id) {
@@ -137,6 +140,10 @@ public final class DamageTypeRegistry extends DirectoryLoader<DamageTypeDefiniti
             }
             return aliasIndex.get(normalizeId(id));
         }
+    }
+
+    public String definitionSignature() {
+        return definitionSignature;
     }
 
     private String resolveAttributeId(String id) {

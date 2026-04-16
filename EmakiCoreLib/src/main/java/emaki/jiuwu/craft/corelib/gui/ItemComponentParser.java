@@ -56,7 +56,10 @@ public final class ItemComponentParser {
                 || ConfigNodes.contains(raw, "custom_model_data")
                 || ConfigNodes.contains(raw, "custommodeldata")
                 || ConfigNodes.contains(raw, "enchantments")
-                || ConfigNodes.contains(raw, "hidden_components");
+                || ConfigNodes.contains(raw, "hidden_components")
+                || ConfigNodes.contains(raw, "hide_tooltip")
+                || ConfigNodes.contains(raw, "hide-tooltip")
+                || ConfigNodes.contains(raw, "tooltip_display");
     }
 
     public static ItemComponents parse(Object raw) {
@@ -76,7 +79,7 @@ public final class ItemComponentParser {
                         : ConfigNodes.get(raw, "custommodeldata")
                 ),
                 parseEnchantments(ConfigNodes.get(raw, "enchantments")),
-                normalizeTextList(ConfigNodes.get(raw, "hidden_components"))
+                parseHiddenComponents(raw)
         );
     }
 
@@ -165,6 +168,21 @@ public final class ItemComponentParser {
             if (Texts.isNotBlank(entry)) {
                 result.add(Texts.lower(entry).trim());
             }
+        }
+        return result;
+    }
+
+    private static List<String> parseHiddenComponents(Object raw) {
+        List<String> result = new ArrayList<>(normalizeTextList(ConfigNodes.get(raw, "hidden_components")));
+        if (ConfigNodes.bool(raw, "hide_tooltip", false) || ConfigNodes.bool(raw, "hide-tooltip", false)) {
+            result.add("tooltip");
+        }
+        Object tooltipDisplay = ConfigNodes.get(raw, "tooltip_display");
+        if (tooltipDisplay instanceof Boolean enabled && enabled) {
+            result.add("tooltip");
+        } else if (ConfigNodes.bool(tooltipDisplay, "hide_tooltip", false)
+                || ConfigNodes.bool(tooltipDisplay, "hide-tooltip", false)) {
+            result.add("tooltip");
         }
         return result;
     }

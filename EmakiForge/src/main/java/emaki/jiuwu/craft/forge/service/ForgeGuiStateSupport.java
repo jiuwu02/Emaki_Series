@@ -28,9 +28,11 @@ final class ForgeGuiStateSupport {
     }
 
     private final EmakiForgePlugin plugin;
+    private final ForgeMaterialUsagePlanner usagePlanner;
 
     ForgeGuiStateSupport(EmakiForgePlugin plugin) {
         this.plugin = plugin;
+        this.usagePlanner = new ForgeMaterialUsagePlanner(plugin);
     }
 
     public String resolveTemplateId(Recipe recipe) {
@@ -75,14 +77,7 @@ final class ForgeGuiStateSupport {
         if (recipe == null) {
             return 0;
         }
-        int total = 0;
-        for (ItemStack itemStack : state.optionalMaterialItems().values()) {
-            ForgeMaterial material = resolveMaterial(recipe, itemStack, true);
-            if (material != null) {
-                total += material.effectiveCapacityCost() * itemStack.getAmount();
-            }
-        }
-        return total;
+        return usagePlanner.optionalCapacityCost(recipe, state.toGuiItems());
     }
 
     public int resolveMaxCapacity(ForgeGuiSession state) {
@@ -98,12 +93,7 @@ final class ForgeGuiStateSupport {
             }
         }
         if (recipe != null) {
-            for (ItemStack itemStack : state.optionalMaterialItems().values()) {
-                ForgeMaterial material = resolveMaterial(recipe, itemStack, true);
-                if (material != null) {
-                    max += material.forgeCapacityBonus() * itemStack.getAmount();
-                }
-            }
+            max += usagePlanner.optionalCapacityBonus(recipe, state.toGuiItems());
         }
         return max;
     }
@@ -251,6 +241,13 @@ final class ForgeGuiStateSupport {
         returnItemCollection(state.player(), state.requiredMaterialItems().values());
         returnItemCollection(state.player(), state.optionalMaterialItems().values());
         state.clearStoredItems();
+    }
+
+    public void returnUnusedInputs(ForgeGuiSession state, Recipe recipe) {
+        if (state == null || recipe == null) {
+            return;
+        }
+        returnItemCollection(state.player(), usagePlanner.unconsumedInputs(recipe, state.toGuiItems()));
     }
 
     public void giveBackToPlayer(Player player, ItemStack itemStack) {

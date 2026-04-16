@@ -16,6 +16,7 @@ import org.bukkit.inventory.PlayerInventory;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerSnapshot;
+import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 import emaki.jiuwu.craft.corelib.integration.ReflectivePdcAttributeGateway;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
@@ -71,30 +72,40 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
 
     @Override
     public StrengthenState readState(ItemStack itemStack) {
+        return resolveState(itemStack).state();
+    }
+
+    private ResolvedState resolveState(ItemStack itemStack) {
         if (itemStack == null || itemStack.getType().isAir()) {
-            return StrengthenState.ineligible("strengthen.error.no_target", null, "");
+            return new ResolvedState(StrengthenState.ineligible("strengthen.error.no_target", null, ""), StoredState.empty(null, ""));
         }
-        StrengthenRecipeResolver.ResolvedItem resolved = recipeResolver.resolve(itemStack, readStoredRecipeId(itemStack));
+        ItemSource initialBaseSource = recipeResolver.resolveBaseSource(itemStack);
+        String initialSignature = ItemSourceUtil.toShorthand(initialBaseSource);
+        StoredState stored = readStoredState(itemStack, initialBaseSource, initialSignature);
+        StrengthenRecipeResolver.ResolvedItem resolved = recipeResolver.resolve(itemStack, stored.recipeId());
         if (resolved.baseSource() == null) {
-            return StrengthenState.ineligible("strengthen.error.no_source", null, "");
+            return new ResolvedState(StrengthenState.ineligible("strengthen.error.no_source", null, ""), stored);
         }
-        StoredState stored = readStoredState(itemStack, resolved.baseSource(), resolved.baseSourceSignature());
+        stored = stored.withBaseSourceSignature(resolved.baseSourceSignature());
         String recipeId = Texts.isNotBlank(stored.recipeId()) ? stored.recipeId() : resolved.recipeId();
         boolean eligible = Texts.isNotBlank(recipeId) && plugin.recipeLoader().get(recipeId) != null;
         String reason = eligible ? "" : "strengthen.error.no_recipe";
-        return new StrengthenState(
-                eligible,
-                reason,
-                stored.hasLayer(),
-                resolved.baseSource(),
-                resolved.baseSourceSignature(),
-                recipeId,
-                stored.currentStar(),
-                stored.crackLevel(),
-                stored.firstReachFlags(),
-                stored.successCount(),
-                stored.failureCount(),
-                stored.lastAttemptAt()
+        return new ResolvedState(
+                new StrengthenState(
+                        eligible,
+                        reason,
+                        stored.hasLayer(),
+                        resolved.baseSource(),
+                        resolved.baseSourceSignature(),
+                        recipeId,
+                        stored.currentStar(),
+                        stored.crackLevel(),
+                        stored.firstReachFlags(),
+                        stored.successCount(),
+                        stored.failureCount(),
+                        stored.lastAttemptAt()
+                ),
+                stored
         );
     }
 
@@ -183,14 +194,14 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
             return AttemptResult.failure("strengthen.error.rebuild_failed", preview, replacements(preview, resultStar));
         }
 
-        StrengthenEconomyService.ChargeResult chargeResult = economyService.charge(player, preview.costs());
-        if (!chargeResult.success()) {
-            return AttemptResult.failure(chargeResult.errorKey(), preview, replacements(preview, preview.currentStar()));
+        if (!consumeRequiredInventoryMaterials(player, preview.requiredMaterials())) {
+            return AttemptResult.failure("strengthen.error.material_missing", preview, replacements(preview, preview.currentStar()));
         }
 
-        if (!consumeRequiredInventoryMaterials(player, preview.requiredMaterials())) {
-            economyService.refund(player, chargeResult.appliedCosts());
-            return AttemptResult.failure("strengthen.error.material_missing", preview, replacements(preview, preview.currentStar()));
+        StrengthenEconomyService.ChargeResult chargeResult = economyService.charge(player, preview.costs());
+        if (!chargeResult.success()) {
+            refundRequiredInventoryMaterials(player, preview.requiredMaterials());
+            return AttemptResult.failure(chargeResult.errorKey(), preview, replacements(preview, preview.currentStar()));
         }
 
         return new AttemptResult(success, "", replacements(preview, resultStar), preview, rebuilt, resultStar, resultTemper, progress.newlyReached());
@@ -201,11 +212,12 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
         if (itemStack == null || itemStack.getType().isAir()) {
             return itemStack;
         }
-        StrengthenState state = readState(itemStack);
+        ResolvedState resolvedState = resolveState(itemStack);
+        StrengthenState state = resolvedState.state();
         if (!state.hasLayer() || Texts.isBlank(state.recipeId())) {
             return itemStack;
         }
-        return rebuildWithState(itemStack, state, readStoredMaterialsSignature(itemStack));
+        return rebuildWithState(itemStack, state, resolvedState.stored().materialsSignature());
     }
 
     public ItemStack applyAdminState(ItemStack itemStack, Integer star, Integer temper, String recipeId) {
@@ -232,7 +244,7 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
                 current.failureCount(),
                 System.currentTimeMillis()
         );
-        return rebuildWithState(itemStack, updated, readStoredMaterialsSignature(itemStack));
+        return rebuildWithState(itemStack, updated, readStoredState(itemStack, current.baseSource(), current.baseSourceSignature()).materialsSignature());
     }
 
     public void triggerSuccessActions(Player player, StrengthenRecipe recipe, String resultSlotId, ItemStack resultItem, int star, int temper) {
@@ -294,20 +306,13 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
                 currentStar, temper, false, 0, Map.of(), Set.of(), List.of(), List.of());
     }
 
-    private String readStoredRecipeId(ItemStack itemStack) {
-        StoredState state = readStoredState(itemStack, recipeResolver.resolveBaseSource(itemStack), "");
-        return state.recipeId();
-    }
-
     private StoredState readStoredState(ItemStack itemStack, ItemSource baseSource, String fallbackSignature) {
         if (itemAssemblyService == null || itemStack == null || !itemAssemblyService.isEmakiItem(itemStack)) {
-            String signature = Texts.isBlank(fallbackSignature) ? ItemSourceUtil.toShorthand(baseSource) : fallbackSignature;
-            return new StoredState(false, "", 0, 0, Set.of(), 0, 0, 0L, "", signature);
+            return StoredState.empty(baseSource, fallbackSignature);
         }
         EmakiItemLayerSnapshot snapshot = itemAssemblyService.readLayerSnapshot(itemStack, "strengthen");
         if (snapshot == null) {
-            String signature = Texts.isBlank(fallbackSignature) ? ItemSourceUtil.toShorthand(baseSource) : fallbackSignature;
-            return new StoredState(false, "", 0, 0, Set.of(), 0, 0, 0L, "", signature);
+            return StoredState.empty(baseSource, fallbackSignature);
         }
         Map<String, Object> audit = snapshot.audit();
         return new StoredState(
@@ -434,27 +439,7 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
     }
 
     private int countInventoryMaterial(Player player, String itemToken) {
-        if (player == null || Texts.isBlank(itemToken)) {
-            return 0;
-        }
-        ItemSource targetSource = ItemSourceUtil.parse(itemToken);
-        if (targetSource == null) {
-            return 0;
-        }
-        if (itemSourceService == null) {
-            return 0;
-        }
-        int total = 0;
-        for (ItemStack stack : player.getInventory().getContents()) {
-            if (stack == null || stack.getType().isAir()) {
-                continue;
-            }
-            ItemSource source = itemSourceService.identifyItem(stack);
-            if (ItemSourceUtil.matches(targetSource, source)) {
-                total += stack.getAmount();
-            }
-        }
-        return total;
+        return (int) InventoryItemUtil.countItems(player, itemSourceService, itemToken);
     }
 
     private boolean consumeRequiredInventoryMaterials(Player player, List<AttemptMaterial> materials) {
@@ -481,34 +466,25 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
     }
 
     private boolean removeInventoryMaterial(PlayerInventory inventory, String itemToken, int amount) {
-        if (inventory == null || Texts.isBlank(itemToken) || amount <= 0) {
-            return amount <= 0;
+        return InventoryItemUtil.removeItems(inventory, itemSourceService, itemToken, amount);
+    }
+
+    private void refundRequiredInventoryMaterials(Player player, List<AttemptMaterial> materials) {
+        if (player == null || materials == null || materials.isEmpty()) {
+            return;
         }
-        ItemSource targetSource = ItemSourceUtil.parse(itemToken);
-        if (targetSource == null) {
-            return false;
-        }
-        if (itemSourceService == null) {
-            return false;
-        }
-        int remaining = amount;
-        ItemStack[] contents = inventory.getContents();
-        for (int slot = 0; slot < contents.length && remaining > 0; slot++) {
-            ItemStack stack = contents[slot];
-            if (stack == null || stack.getType().isAir()) {
+        for (AttemptMaterial material : materials) {
+            if (material == null || Texts.isBlank(material.item()) || material.consumedAmount() <= 0) {
                 continue;
             }
-            ItemSource source = itemSourceService.identifyItem(stack);
-            if (!ItemSourceUtil.matches(targetSource, source)) {
+            ItemSource source = ItemSourceUtil.parse(material.item());
+            ItemStack restored = source == null ? null : plugin.coreItemFactory().create(source, material.consumedAmount());
+            if (restored == null) {
                 continue;
             }
-            int take = Math.min(remaining, stack.getAmount());
-            stack.setAmount(stack.getAmount() - take);
-            remaining -= take;
-            contents[slot] = stack.getAmount() <= 0 ? null : stack;
+            Map<Integer, ItemStack> leftover = player.getInventory().addItem(restored);
+            leftover.values().forEach(left -> player.getWorld().dropItemNaturally(player.getLocation(), left));
         }
-        inventory.setContents(contents);
-        return remaining <= 0;
     }
 
     private ItemStack rebuildWithState(ItemStack itemStack, StrengthenState state, String materialsSignature) {
@@ -547,11 +523,6 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
             }
         }
         return SignatureUtil.stableSignature(signatureData);
-    }
-
-    private String readStoredMaterialsSignature(ItemStack itemStack) {
-        StoredState state = readStoredState(itemStack, recipeResolver.resolveBaseSource(itemStack), "");
-        return state.materialsSignature();
     }
 
     private Map<String, Object> replacements(AttemptPreview preview, int star) {
@@ -654,6 +625,33 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
             long lastAttemptAt,
             String materialsSignature,
             String baseSourceSignature) {
+
+        private static StoredState empty(ItemSource baseSource, String fallbackSignature) {
+            String signature = Texts.isBlank(fallbackSignature) ? ItemSourceUtil.toShorthand(baseSource) : fallbackSignature;
+            return new StoredState(false, "", 0, 0, Set.of(), 0, 0, 0L, "", signature);
+        }
+
+        private StoredState withBaseSourceSignature(String fallbackSignature) {
+            String resolvedSignature = Texts.isBlank(baseSourceSignature) ? fallbackSignature : baseSourceSignature;
+            if (java.util.Objects.equals(baseSourceSignature, resolvedSignature)) {
+                return this;
+            }
+            return new StoredState(
+                    hasLayer,
+                    recipeId,
+                    currentStar,
+                    crackLevel,
+                    firstReachFlags,
+                    successCount,
+                    failureCount,
+                    lastAttemptAt,
+                    materialsSignature,
+                    resolvedSignature
+            );
+        }
+    }
+
+    private record ResolvedState(StrengthenState state, StoredState stored) {
 
     }
 

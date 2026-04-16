@@ -8,22 +8,18 @@ import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.text.Texts;
 
-final class ReflectiveCraftEngineItemSourceResolver implements ManagedItemSourceResolver {
+final class ReflectiveCraftEngineItemSourceResolver
+        extends AbstractManagedItemSourceResolver<ReflectiveCraftEngineItemSourceResolver.ReflectiveAccessor> {
 
     private static final String PLUGIN_NAME = "CraftEngine";
     private static final String LOAD_EVENT_CLASS = "net.momirealms.craftengine.bukkit.api.event.CraftEngineReloadEvent";
-
-    private final PluginAvailability pluginAvailability;
-    private final Accessor accessor;
-    private volatile boolean loaded;
 
     ReflectiveCraftEngineItemSourceResolver() {
         this(PluginAvailability.BUKKIT, new ReflectiveAccessor());
     }
 
-    ReflectiveCraftEngineItemSourceResolver(PluginAvailability pluginAvailability, Accessor accessor) {
-        this.pluginAvailability = pluginAvailability == null ? PluginAvailability.BUKKIT : pluginAvailability;
-        this.accessor = accessor == null ? new ReflectiveAccessor() : accessor;
+    ReflectiveCraftEngineItemSourceResolver(PluginAvailability pluginAvailability, ReflectiveAccessor accessor) {
+        super(pluginAvailability, accessor == null ? new ReflectiveAccessor() : accessor);
     }
 
     @Override
@@ -47,104 +43,18 @@ final class ReflectiveCraftEngineItemSourceResolver implements ManagedItemSource
     }
 
     @Override
-    public boolean supports(ItemSource source) {
-        return source != null && source.getType() == ItemSourceType.CRAFTENGINE;
+    protected ItemSourceType sourceType() {
+        return ItemSourceType.CRAFTENGINE;
     }
 
     @Override
-    public boolean isAvailable(ItemSource source) {
-        return supports(source) && isOperational();
+    protected String waitingDetail() {
+        return "CraftEngine items are not loaded yet.";
     }
 
-    @Override
-    public ItemSource identify(ItemStack itemStack) {
-        if (itemStack == null || itemStack.getType().isAir() || !isOperational()) {
-            return null;
-        }
-        String identifier = accessor.identifyIdentifier(itemStack);
-        return Texts.isBlank(identifier) ? null : new ItemSource(ItemSourceType.CRAFTENGINE, identifier);
-    }
+    static final class ReflectiveAccessor extends AbstractReflectiveAccessor
+            implements AbstractManagedItemSourceResolver.Accessor {
 
-    @Override
-    public ItemStack create(ItemSource source, int amount) {
-        if (!supports(source) || !isOperational()) {
-            return null;
-        }
-        ItemStack itemStack = accessor.createItem(source.getIdentifier(), amount);
-        if (itemStack == null) {
-            return null;
-        }
-        ItemStack cloned = itemStack.clone();
-        cloned.setAmount(Math.max(1, amount));
-        return cloned;
-    }
-
-    @Override
-    public Status bootstrap() {
-        return refresh(false);
-    }
-
-    @Override
-    public Status onPluginEnabled() {
-        return refresh(false);
-    }
-
-    @Override
-    public Status onItemsLoaded() {
-        return refresh(true);
-    }
-
-    @Override
-    public void onPluginDisabled() {
-        loaded = false;
-        accessor.reset();
-    }
-
-    private Status refresh(boolean loadedSignal) {
-        if (!pluginAvailability.isPluginEnabled(pluginName())) {
-            loaded = false;
-            accessor.reset();
-            return new Status(State.ABSENT, "");
-        }
-        if (!accessor.ensureAvailable()) {
-            loaded = false;
-            return new Status(State.INCOMPATIBLE, accessor.failureReason());
-        }
-        if (loadedSignal) {
-            loaded = true;
-        }
-        if (!loaded) {
-            loaded = accessor.detectLoaded();
-        }
-        return loaded
-                ? new Status(State.READY, "")
-                : new Status(State.WAITING, "CraftEngine items are not loaded yet.");
-    }
-
-    private boolean isOperational() {
-        return loaded && pluginAvailability.isPluginEnabled(pluginName()) && accessor.ensureAvailable();
-    }
-
-    interface Accessor {
-
-        boolean ensureAvailable();
-
-        String failureReason();
-
-        boolean detectLoaded();
-
-        String identifyIdentifier(ItemStack itemStack);
-
-        ItemStack createItem(String identifier, int amount);
-
-        void reset();
-    }
-
-    private static final class ReflectiveAccessor implements Accessor {
-
-        private boolean initialized;
-        private boolean available;
-        private String failureReason = "";
         private Method loadedItemsMethod;
         private Method byIdMethod;
         private Method getCustomItemIdMethod;
@@ -155,34 +65,29 @@ final class ReflectiveCraftEngineItemSourceResolver implements ManagedItemSource
         private final Map<Class<?>, BuildPlan> buildPlans = new ConcurrentHashMap<>();
 
         @Override
-        public synchronized boolean ensureAvailable() {
-            if (initialized) {
-                return available;
-            }
-            initialized = true;
-            try {
-                Class<?> craftEngineItemsClass = Class.forName("net.momirealms.craftengine.bukkit.api.CraftEngineItems");
-                Class<?> keyClass = Class.forName("net.momirealms.craftengine.core.util.Key");
-                itemBuildContextClass = Class.forName("net.momirealms.craftengine.core.item.ItemBuildContext");
+        protected void initializeBindings() throws Exception {
+            Class<?> craftEngineItemsClass = Class.forName("net.momirealms.craftengine.bukkit.api.CraftEngineItems");
+            Class<?> keyClass = Class.forName("net.momirealms.craftengine.core.util.Key");
+            itemBuildContextClass = Class.forName("net.momirealms.craftengine.core.item.ItemBuildContext");
 
-                loadedItemsMethod = craftEngineItemsClass.getMethod("loadedItems");
-                byIdMethod = craftEngineItemsClass.getMethod("byId", keyClass);
-                getCustomItemIdMethod = craftEngineItemsClass.getMethod("getCustomItemId", ItemStack.class);
-                keyOfMethod = keyClass.getMethod("of", String.class);
-                keyAsStringMethod = keyClass.getMethod("asString");
-                buildContextEmptyMethod = itemBuildContextClass.getMethod("empty");
-                available = true;
-                failureReason = "";
-            } catch (Throwable throwable) {
-                available = false;
-                failureReason = throwable.getClass().getSimpleName() + ": " + Texts.toStringSafe(throwable.getMessage());
-            }
-            return available;
+            loadedItemsMethod = craftEngineItemsClass.getMethod("loadedItems");
+            byIdMethod = craftEngineItemsClass.getMethod("byId", keyClass);
+            getCustomItemIdMethod = craftEngineItemsClass.getMethod("getCustomItemId", ItemStack.class);
+            keyOfMethod = keyClass.getMethod("of", String.class);
+            keyAsStringMethod = keyClass.getMethod("asString");
+            buildContextEmptyMethod = itemBuildContextClass.getMethod("empty");
         }
 
         @Override
-        public String failureReason() {
-            return failureReason;
+        protected void resetBindings() {
+            loadedItemsMethod = null;
+            byIdMethod = null;
+            getCustomItemIdMethod = null;
+            keyOfMethod = null;
+            keyAsStringMethod = null;
+            buildContextEmptyMethod = null;
+            itemBuildContextClass = null;
+            buildPlans.clear();
         }
 
         @Override
@@ -206,21 +111,6 @@ final class ReflectiveCraftEngineItemSourceResolver implements ManagedItemSource
             Object customItem = invoke(byIdMethod, null, key);
             Object buildContext = invoke(buildContextEmptyMethod, null);
             return buildItem(customItem, buildContext, Math.max(1, amount));
-        }
-
-        @Override
-        public synchronized void reset() {
-            initialized = false;
-            available = false;
-            failureReason = "";
-            loadedItemsMethod = null;
-            byIdMethod = null;
-            getCustomItemIdMethod = null;
-            keyOfMethod = null;
-            keyAsStringMethod = null;
-            buildContextEmptyMethod = null;
-            itemBuildContextClass = null;
-            buildPlans.clear();
         }
 
         private ItemStack buildItem(Object customItem, Object buildContext, int amount) {
@@ -313,32 +203,6 @@ final class ReflectiveCraftEngineItemSourceResolver implements ManagedItemSource
                 return method;
             }
             return getOptionalMethod(itemClass, "platformItem");
-        }
-
-        private Method getOptionalMethod(Class<?> type, String methodName, Class<?>... parameterTypes) {
-            if (type == null) {
-                return null;
-            }
-            try {
-                return type.getMethod(methodName, parameterTypes);
-            } catch (Throwable throwable) {
-                return null;
-            }
-        }
-
-        private Object invoke(Method method, Object target, Object... arguments) {
-            if (method == null || target == null && !java.lang.reflect.Modifier.isStatic(method.getModifiers())) {
-                return null;
-            }
-            try {
-                return method.invoke(target, arguments);
-            } catch (Throwable throwable) {
-                return null;
-            }
-        }
-
-        private ItemStack asItemStack(Object value) {
-            return value instanceof ItemStack itemStack ? itemStack : null;
         }
 
         private record BuildPlan(Method buildMethod, InvocationMode invocationMode, Method unwrapMethod) {

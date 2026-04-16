@@ -3,9 +3,11 @@ package emaki.jiuwu.craft.attribute.service;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -17,13 +19,21 @@ import emaki.jiuwu.craft.attribute.api.AttributeContribution;
 import emaki.jiuwu.craft.attribute.api.AttributeContributionProvider;
 import emaki.jiuwu.craft.attribute.model.AttributeDefinition;
 import emaki.jiuwu.craft.attribute.model.AttributeSnapshot;
+import emaki.jiuwu.craft.attribute.model.AttributeValueKind;
+import emaki.jiuwu.craft.attribute.model.DamageStageDefinition;
+import emaki.jiuwu.craft.attribute.model.DamageStageKind;
+import emaki.jiuwu.craft.attribute.model.DamageStageMode;
+import emaki.jiuwu.craft.attribute.model.DamageTypeDefinition;
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
 import net.kyori.adventure.text.Component;
 
 final class AttributeSnapshotCollector {
 
+    private static final double ZERO_EPSILON = 1.0E-9D;
+
     private final AttributeService service;
+    private volatile FusionRuleCache fusionRuleCache = new FusionRuleCache("", List.of());
 
     AttributeSnapshotCollector(AttributeService service) {
         this.service = service;
@@ -47,14 +57,16 @@ final class AttributeSnapshotCollector {
         );
         String cachedSignature = service.stateRepository().readItemSourceSignature(itemStack);
         AttributeSnapshot cachedSnapshot = service.stateRepository().readItemSnapshot(itemStack);
-        if (sourceSignature.equals(cachedSignature) && cachedSnapshot != null) {
+        if (sourceSignature.equals(cachedSignature)
+                && cachedSnapshot != null
+                && cachedSnapshot.schemaVersion() == AttributeFusionMath.LEGACY_SNAPSHOT_SCHEMA_VERSION) {
             return cachedSnapshot;
         }
         Map<String, Double> values = new LinkedHashMap<>();
         mergeValues(values, parsedLore.snapshot().values());
-        mergeValues(values, rawPdcContribution.values());
+        overlayValues(values, rawPdcContribution.values());
         AttributeSnapshot snapshot = new AttributeSnapshot(
-                AttributeSnapshot.CURRENT_SCHEMA_VERSION,
+                AttributeFusionMath.LEGACY_SNAPSHOT_SCHEMA_VERSION,
                 sourceSignature,
                 values,
                 System.currentTimeMillis()
@@ -106,10 +118,17 @@ final class AttributeSnapshotCollector {
         mergeContributionProviders(player, values, signatureParts);
         applyDerivedValues(values);
         String sourceSignature = SignatureUtil.stableSignature(signatureParts);
-        AttributeSnapshot snapshot = new AttributeSnapshot(AttributeSnapshot.CURRENT_SCHEMA_VERSION, sourceSignature, values, System.currentTimeMillis());
+        AttributeSnapshot snapshot = new AttributeSnapshot(
+                AttributeFusionMath.FUSED_COMBAT_SNAPSHOT_SCHEMA_VERSION,
+                sourceSignature,
+                values,
+                System.currentTimeMillis()
+        );
         String cachedSignature = service.stateRepository().readCombatSourceSignature(player);
         AttributeSnapshot cachedSnapshot = service.stateRepository().readCombatSnapshot(player);
-        if (sourceSignature.equals(cachedSignature) && cachedSnapshot != null) {
+        if (sourceSignature.equals(cachedSignature)
+                && cachedSnapshot != null
+                && cachedSnapshot.schemaVersion() >= AttributeFusionMath.FUSED_COMBAT_SNAPSHOT_SCHEMA_VERSION) {
             return cachedSnapshot;
         }
         service.stateRepository().writeCombatSnapshot(player, snapshot);
@@ -145,9 +164,16 @@ final class AttributeSnapshotCollector {
         mergeContributionProviders(entity, values, signatureParts);
         applyDerivedValues(values);
         String sourceSignature = SignatureUtil.stableSignature(signatureParts);
-        AttributeSnapshot snapshot = new AttributeSnapshot(AttributeSnapshot.CURRENT_SCHEMA_VERSION, sourceSignature, values, System.currentTimeMillis());
+        AttributeSnapshot snapshot = new AttributeSnapshot(
+                AttributeFusionMath.FUSED_COMBAT_SNAPSHOT_SCHEMA_VERSION,
+                sourceSignature,
+                values,
+                System.currentTimeMillis()
+        );
         String cachedSignature = service.stateRepository().readCombatSourceSignature(entity);
-        if (sourceSignature.equals(cachedSignature) && cached != null) {
+        if (sourceSignature.equals(cachedSignature)
+                && cached != null
+                && cached.schemaVersion() >= AttributeFusionMath.FUSED_COMBAT_SNAPSHOT_SCHEMA_VERSION) {
             return cached;
         }
         service.stateRepository().writeCombatSnapshot(entity, snapshot);
@@ -163,6 +189,24 @@ final class AttributeSnapshotCollector {
                 continue;
             }
             target.merge(normalizeId(entry.getKey()), entry.getValue(), Double::sum);
+        }
+    }
+
+    private void overlayValues(Map<String, Double> target, Map<String, Double> source) {
+        if (target == null || source == null || source.isEmpty()) {
+            return;
+        }
+        for (Map.Entry<String, Double> entry : source.entrySet()) {
+            if (entry.getKey() == null || entry.getValue() == null) {
+                continue;
+            }
+            String key = normalizeId(entry.getKey());
+            double value = entry.getValue();
+            if (Math.abs(value) <= ZERO_EPSILON) {
+                target.remove(key);
+                continue;
+            }
+            target.put(key, value);
         }
     }
 
@@ -197,7 +241,32 @@ final class AttributeSnapshotCollector {
         if (values == null) {
             return;
         }
+        applyCombatFusion(values);
         values.put("attribute_power", computeAttributePower(values));
+    }
+
+    private void applyCombatFusion(Map<String, Double> values) {
+        if (values == null || values.isEmpty()) {
+            return;
+        }
+        for (FusionRule rule : fusionRules()) {
+            if (rule == null || rule.flatIds().isEmpty() || rule.percentIds().isEmpty()) {
+                continue;
+            }
+            double percentBonus = sumValues(values, rule.percentIds());
+            for (String flatId : rule.flatIds()) {
+                Double rawValue = values.get(flatId);
+                if (rawValue == null) {
+                    continue;
+                }
+                double effectiveValue = AttributeFusionMath.toEffectiveFlat(rawValue, percentBonus, rule.clampPercentFactor());
+                if (Math.abs(effectiveValue) <= ZERO_EPSILON) {
+                    values.remove(flatId);
+                    continue;
+                }
+                values.put(flatId, effectiveValue);
+            }
+        }
     }
 
     private LoreParser.ParsedLore parseLore(ItemStack itemStack) {
@@ -236,6 +305,108 @@ final class AttributeSnapshotCollector {
         mergeValues(values, filteredPdcValues);
     }
 
+    private List<FusionRule> fusionRules() {
+        String cacheKey = SignatureUtil.combine(
+                service.registryService().attributeDefinitionsSignature(),
+                service.damageTypeRegistry() == null ? "" : service.damageTypeRegistry().definitionSignature()
+        );
+        FusionRuleCache cached = fusionRuleCache;
+        if (cached.matches(cacheKey)) {
+            return cached.rules();
+        }
+        FusionRuleBuilder builder = new FusionRuleBuilder();
+        collectDamageStageFusionRules(builder);
+        for (Collection<AttributeDefinition> definitions : service.registryService().resourceAttributeDefinitions().values()) {
+            addDefinitionFusionRule(builder, definitions, true);
+        }
+        addDefinitionFusionRule(builder, service.registryService().genericSpeedDefinitions(), true);
+        addDefinitionFusionRule(builder, service.registryService().genericAttackSpeedDefinitions(), true);
+        List<FusionRule> rules = builder.rules();
+        fusionRuleCache = new FusionRuleCache(cacheKey, rules);
+        return rules;
+    }
+
+    private void collectDamageStageFusionRules(FusionRuleBuilder builder) {
+        if (builder == null) {
+            return;
+        }
+        Map<String, DamageTypeDefinition> damageTypes = service.damageTypeRegistry() == null
+                ? Map.of()
+                : service.damageTypeRegistry().all();
+        for (DamageTypeDefinition damageType : damageTypes.values()) {
+            if (damageType == null || damageType.stages().isEmpty()) {
+                continue;
+            }
+            for (DamageStageDefinition stage : damageType.stages()) {
+                if (stage == null
+                        || stage.kind() != DamageStageKind.FLAT_PERCENT
+                        || stage.mode() != DamageStageMode.ADD
+                        || stage.flatAttributes().isEmpty()
+                        || stage.percentAttributes().isEmpty()) {
+                    continue;
+                }
+                builder.add(stage.flatAttributes(), stage.percentAttributes(), false);
+            }
+        }
+    }
+
+    private void addDefinitionFusionRule(FusionRuleBuilder builder,
+            Collection<AttributeDefinition> definitions,
+            boolean clampPercentFactor) {
+        if (builder == null || definitions == null || definitions.isEmpty()) {
+            return;
+        }
+        List<String> flatIds = new ArrayList<>();
+        List<String> percentIds = new ArrayList<>();
+        for (AttributeDefinition definition : definitions) {
+            if (definition == null) {
+                continue;
+            }
+            if (definition.valueKind() == AttributeValueKind.PERCENT) {
+                percentIds.add(definition.id());
+                continue;
+            }
+            if (Set.of(
+                    AttributeValueKind.CHANCE,
+                    AttributeValueKind.REGEN,
+                    AttributeValueKind.DERIVED
+            ).contains(definition.valueKind())) {
+                continue;
+            }
+            flatIds.add(definition.id());
+        }
+        builder.add(flatIds, percentIds, clampPercentFactor);
+    }
+
+    private List<String> normalizeIds(Collection<String> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+        Set<String> normalized = new LinkedHashSet<>();
+        for (String id : ids) {
+            String normalizedId = normalizeId(id);
+            if (normalizedId.isBlank()) {
+                continue;
+            }
+            normalized.add(normalizedId);
+        }
+        return normalized.isEmpty() ? List.of() : List.copyOf(normalized);
+    }
+
+    private double sumValues(Map<String, Double> values, Collection<String> ids) {
+        if (values == null || values.isEmpty() || ids == null || ids.isEmpty()) {
+            return 0D;
+        }
+        double total = 0D;
+        for (String id : ids) {
+            if (id == null) {
+                continue;
+            }
+            total += values.getOrDefault(normalizeId(id), 0D);
+        }
+        return total;
+    }
+
     private double computeAttributePower(Map<String, Double> values) {
         if (values == null || values.isEmpty()) {
             return 0D;
@@ -263,5 +434,58 @@ final class AttributeSnapshotCollector {
 
     private record ItemSlot(String name, ItemStack item) {
 
+    }
+
+    private record FusionRule(List<String> flatIds, List<String> percentIds, boolean clampPercentFactor) {
+
+        private FusionRule {
+            flatIds = flatIds == null ? List.of() : List.copyOf(flatIds);
+            percentIds = percentIds == null ? List.of() : List.copyOf(percentIds);
+        }
+    }
+
+    private record FusionRuleCache(String key, List<FusionRule> rules) {
+
+        private FusionRuleCache {
+            key = key == null ? "" : key;
+            rules = rules == null ? List.of() : List.copyOf(rules);
+        }
+
+        private boolean matches(String candidate) {
+            return key.equals(candidate);
+        }
+    }
+
+    private final class FusionRuleBuilder {
+
+        private final Map<String, FusionRule> rules = new LinkedHashMap<>();
+        private final Set<String> registeredFlatIds = new LinkedHashSet<>();
+
+        private void add(Collection<String> flatIds, Collection<String> percentIds, boolean clampPercentFactor) {
+            List<String> normalizedFlatIds = normalizeIds(flatIds);
+            List<String> normalizedPercentIds = normalizeIds(percentIds);
+            if (normalizedFlatIds.isEmpty() || normalizedPercentIds.isEmpty()) {
+                return;
+            }
+            String ruleKey = String.join(",", normalizedFlatIds)
+                    + "|"
+                    + String.join(",", normalizedPercentIds)
+                    + "|"
+                    + clampPercentFactor;
+            if (rules.containsKey(ruleKey)) {
+                return;
+            }
+            for (String flatId : normalizedFlatIds) {
+                if (registeredFlatIds.contains(flatId)) {
+                    return;
+                }
+            }
+            rules.put(ruleKey, new FusionRule(normalizedFlatIds, normalizedPercentIds, clampPercentFactor));
+            registeredFlatIds.addAll(normalizedFlatIds);
+        }
+
+        private List<FusionRule> rules() {
+            return rules.isEmpty() ? List.of() : List.copyOf(rules.values());
+        }
     }
 }

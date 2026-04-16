@@ -10,6 +10,8 @@ import emaki.jiuwu.craft.corelib.gui.GuiItemBuilder;
 import emaki.jiuwu.craft.corelib.gui.GuiSlot;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.corelib.gui.ItemComponentParser;
+import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
@@ -110,7 +112,7 @@ final class StrengthenGuiRenderer {
             lore.add("<gray>固定材料:</gray>");
             for (AttemptMaterial material : preview.requiredMaterials()) {
                 String color = material.satisfied() ? "<green>" : "<red>";
-                lore.add(color + " - " + material.item() + " x" + material.requiredAmount()
+                lore.add(color + " - " + materialDisplayName(material.item()) + " x" + material.requiredAmount()
                         + " <gray>(" + material.availableAmount() + "/" + material.requiredAmount() + ")</gray>");
             }
         }
@@ -121,9 +123,21 @@ final class StrengthenGuiRenderer {
                 if (material == null || Texts.isBlank(material.item())) {
                     continue;
                 }
-                lore.add("<aqua> - " + material.item() + " x" + material.availableAmount() + "</aqua>");
+                lore.add("<aqua> - " + materialDisplayName(material.item()) + " x" + material.availableAmount() + "</aqua>");
             }
         }
+    }
+
+    private String materialDisplayName(String item) {
+        if (Texts.isBlank(item)) {
+            return "未知材料";
+        }
+        ItemSource source = ItemSourceUtil.parseShorthand(item);
+        if (source == null || plugin.coreItemSourceService() == null) {
+            return item;
+        }
+        String displayName = plugin.coreItemSourceService().displayName(source);
+        return Texts.isBlank(displayName) ? item : displayName;
     }
 
     private ItemStack buildTemperItem(StrengthenGuiSession state) {

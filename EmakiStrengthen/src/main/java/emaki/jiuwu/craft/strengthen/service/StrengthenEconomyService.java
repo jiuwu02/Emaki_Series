@@ -12,6 +12,7 @@ import org.bukkit.inventory.ItemStack;
 import emaki.jiuwu.craft.corelib.action.ActionErrorType;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
 import emaki.jiuwu.craft.corelib.economy.EconomyManager;
+import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
@@ -151,56 +152,16 @@ public final class StrengthenEconomyService {
     }
 
     private long countItemCost(Player player, String itemToken) {
-        ItemSource targetSource = ItemSourceUtil.parse(itemToken);
-        if (player == null || targetSource == null) {
-            return 0L;
-        }
-        if (itemSourceService == null) {
-            return 0L;
-        }
-        long total = 0L;
-        for (ItemStack itemStack : player.getInventory().getContents()) {
-            if (itemStack == null || itemStack.getType().isAir()) {
-                continue;
-            }
-            ItemSource source = itemSourceService.identifyItem(itemStack);
-            if (ItemSourceUtil.matches(targetSource, source)) {
-                total += itemStack.getAmount();
-            }
-        }
-        return total;
+        return InventoryItemUtil.countItems(player, itemSourceService, itemToken);
     }
 
     private boolean removeItemCost(Player player, String itemToken, long amount) {
-        ItemSource targetSource = ItemSourceUtil.parse(itemToken);
-        if (player == null || targetSource == null || amount <= 0L) {
-            return amount <= 0L;
-        }
-        if (itemSourceService == null) {
-            return false;
-        }
-        long remaining = amount;
-        ItemStack[] contents = player.getInventory().getContents();
-        for (int slot = 0; slot < contents.length && remaining > 0L; slot++) {
-            ItemStack itemStack = contents[slot];
-            if (itemStack == null || itemStack.getType().isAir()) {
-                continue;
-            }
-            ItemSource source = itemSourceService.identifyItem(itemStack);
-            if (!ItemSourceUtil.matches(targetSource, source)) {
-                continue;
-            }
-            int take = (int) Math.min(remaining, itemStack.getAmount());
-            itemStack.setAmount(itemStack.getAmount() - take);
-            remaining -= take;
-            if (itemStack.getAmount() <= 0) {
-                contents[slot] = null;
-            } else {
-                contents[slot] = itemStack;
-            }
-        }
-        player.getInventory().setContents(contents);
-        return remaining <= 0L;
+        return InventoryItemUtil.removeItems(
+                player == null ? null : player.getInventory(),
+                itemSourceService,
+                itemToken,
+                amount
+        );
     }
 
     private void addItemCost(Player player, String itemToken, long amount) {

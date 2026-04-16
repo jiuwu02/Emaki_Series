@@ -12,6 +12,7 @@ import java.util.function.Consumer;
 
 import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
+import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
 
 import emaki.jiuwu.craft.attribute.bridge.MythicBridge;
@@ -42,10 +43,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
 
     @Override
     public AttributeRuntimeComponents initialize(EmakiAttributePlugin plugin) {
-        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.getInstance();
-        if (coreLibPlugin == null) {
-            throw new IllegalStateException("EmakiCoreLib must be enabled before EmakiAttribute.");
-        }
+        EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
         LanguageLoader languageLoader = new LanguageLoader(plugin);
         MessageService messageService = new MessageService(plugin, languageLoader, plugin::configModel);
         AttributeRegistry attributeRegistry = new AttributeRegistry(plugin);
@@ -146,8 +144,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
             BukkitTask currentTask,
             boolean resyncPlayers,
             Consumer<String> progressListener) {
-        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.getInstance();
-        AsyncTaskScheduler scheduler = coreLibPlugin == null ? null : coreLibPlugin.asyncTaskScheduler();
+        AsyncTaskScheduler scheduler = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).asyncTaskScheduler();
         if (scheduler == null) {
             return CompletableFuture.completedFuture(reload(plugin, currentTask, resyncPlayers));
         }
@@ -166,8 +163,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                 plugin.languageLoader().setLanguage(plugin.configModel().language());
             }
             return configModel;
-        })).thenCompose(configModel -> runReloadStageAsync(
-                scheduler,
+        })).thenCompose(configModel -> runReloadStageAsync(scheduler, new ReloadStageConfig<>(
                 "attribute",
                 "lore_format_registry",
                 "正在加载词条格式...",
@@ -175,8 +171,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                 () -> plugin.loreFormatRegistry().load(),
                 configModel,
                 failureHandler(plugin)
-        )).thenCompose(configModel -> runReloadStageAsync(
-                scheduler,
+        ))).thenCompose(configModel -> runReloadStageAsync(scheduler, new ReloadStageConfig<>(
                 "attribute",
                 "attribute_registry",
                 "正在加载属性定义...",
@@ -184,26 +179,23 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                 () -> plugin.attributeRegistry().load(),
                 configModel,
                 failureHandler(plugin)
-        )).thenCompose(configModel -> runReloadStageAsync(
-                scheduler,
+        ))).thenCompose(configModel -> runReloadStageAsync(scheduler, new ReloadStageConfig<>(
                 "attribute",
                 "default_profile_registry",
-                "正在加载默认组...",
+                "正在加载默认属性配置...",
                 progressListener,
                 () -> plugin.defaultProfileRegistry().load(),
                 configModel,
                 failureHandler(plugin)
-        )).thenCompose(configModel -> runReloadStageAsync(
-                scheduler,
+        ))).thenCompose(configModel -> runReloadStageAsync(scheduler, new ReloadStageConfig<>(
                 "attribute",
                 "pdc_read_rule_loader",
-                "正在加载 PDC 读取规则...",
+                "正在加载属性读取条件...",
                 progressListener,
                 () -> plugin.pdcReadRuleLoader().load(),
                 configModel,
                 failureHandler(plugin)
-        )).thenCompose(configModel -> runReloadStageAsync(
-                scheduler,
+        ))).thenCompose(configModel -> runReloadStageAsync(scheduler, new ReloadStageConfig<>(
                 "attribute",
                 "preset_registry",
                 "正在加载属性预设...",
@@ -211,8 +203,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                 () -> plugin.presetRegistry().load(),
                 configModel,
                 failureHandler(plugin)
-        )).thenCompose(configModel -> runReloadStageAsync(
-                scheduler,
+        ))).thenCompose(configModel -> runReloadStageAsync(scheduler, new ReloadStageConfig<>(
                 "attribute",
                 "attribute_balance_registry",
                 "正在加载属性权重...",
@@ -220,8 +211,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                 () -> plugin.attributeBalanceRegistry().load(),
                 configModel,
                 failureHandler(plugin)
-        )).thenCompose(configModel -> runReloadStageAsync(
-                scheduler,
+        ))).thenCompose(configModel -> runReloadStageAsync(scheduler, new ReloadStageConfig<>(
                 "attribute",
                 "damage_type_registry",
                 "正在加载伤害类型...",
@@ -229,7 +219,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                 () -> plugin.damageTypeRegistry().load(),
                 configModel,
                 failureHandler(plugin)
-        )).thenCompose(configModel -> scheduler.callSync("attribute-reload-finalize", () -> {
+        ))).thenCompose(configModel -> scheduler.callSync("attribute-reload-finalize", () -> {
             notifyProgress(progressListener, "正在刷新缓存并同步在线实体...");
             if (plugin.attributeService() != null) {
                 plugin.attributeService().refreshCaches();
@@ -297,7 +287,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                     file,
                     "config.yml",
                     "config_version",
-                    document -> mergeAllowedDamageCauses(document.root(), document.defaults())
+                    document -> mergeBundledConfig(document.root(), document.defaults())
             );
             if (!file.exists()) {
                 plugin.messageService().warning("loader.bundled_resource_missing", Map.of(
@@ -315,14 +305,36 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         }
     }
 
-    private void mergeAllowedDamageCauses(YamlSection runtime, YamlSection bundled) {
+    private void mergeBundledConfig(YamlSection runtime, YamlSection bundled) {
+        boolean changed = mergeDefaultProfile(runtime, bundled);
+        if (mergeAllowedDamageCauses(runtime, bundled)) {
+            changed = true;
+        }
+        if (changed) {
+            runtime.set("config_version", bundled.get("config_version"));
+        }
+    }
+
+    private boolean mergeDefaultProfile(YamlSection runtime, YamlSection bundled) {
+        if (runtime == null || bundled == null || runtime.contains("default_profile")) {
+            return false;
+        }
+        Object bundledProfile = ConfigNodes.toPlainData(bundled.get("default_profile"));
+        if (bundledProfile == null) {
+            return false;
+        }
+        runtime.set("default_profile", bundledProfile);
+        return true;
+    }
+
+    private boolean mergeAllowedDamageCauses(YamlSection runtime, YamlSection bundled) {
         if (runtime == null || bundled == null) {
-            return;
+            return false;
         }
         List<Object> runtimeEntries = new ArrayList<>(ConfigNodes.asObjectList(runtime.get("allowed_damage_causes")));
         List<Object> bundledEntries = ConfigNodes.asObjectList(bundled.get("allowed_damage_causes"));
         if (bundledEntries.isEmpty()) {
-            return;
+            return false;
         }
         String defaultDamageType = ConfigNodes.string(bundled, "default_damage_type", "physical");
         Set<String> existingCauses = new LinkedHashSet<>();
@@ -343,9 +355,9 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
             changed = true;
         }
         if (!changed) {
-            return;
+            return false;
         }
         runtime.set("allowed_damage_causes", runtimeEntries);
-        runtime.set("config_version", bundled.get("config_version"));
+        return true;
     }
 }

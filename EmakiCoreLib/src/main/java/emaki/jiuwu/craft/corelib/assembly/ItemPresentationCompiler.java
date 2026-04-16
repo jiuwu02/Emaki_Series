@@ -121,67 +121,7 @@ public final class ItemPresentationCompiler {
         int sequence = Math.max(0, startSequence);
 
         for (Object raw : ConfigNodes.asObjectList(operations)) {
-            Map<String, Object> operation = normalizeOperation(raw);
-            if (operation.isEmpty()) {
-                continue;
-            }
-
-            String action = resolveAction(operation);
-            List<String> content = resolveContent(operation);
-
-            // 标准化后的局部变量名（遵循小驼峰命名法）
-            String searchPattern = resolveString(operation, "target_pattern");
-            String regexSearchPattern = resolveString(operation, "regex_pattern");
-            String contentTemplate = resolveString(operation, "replacement");
-
-            if (ActionNameParser.isSearchInsertAction(action)) {
-                try {
-                    SearchInsertConfig config = SearchInsertConfig.fromAction(
-                            action,
-                            searchPattern,
-                            resolveBoolean(operation, "ignore_case", false),
-                            content,
-                            resolveBoolean(operation, "inherit_style", true),
-                            resolveString(operation, "on_not_found")
-                    );
-                    // 使用新的字段名创建展示条目
-                    entries.add(new EmakiPresentationEntry("lore_search_insert", config.toJson(), "", sequence++, sourceId));
-                } catch (SearchInsertValidationException exception) {
-                    issues.add(new PresentationCompileIssue(
-                            sourceId,
-                            action,
-                            searchPattern,
-                            exception.reason(),
-                            exception.getMessage()
-                    ));
-                }
-                continue;
-            }
-            if (IndexedLineInsertActionParser.isIndexedLineInsertAction(action)) {
-                ParsedIndexedLineInsertAction indexedAction = IndexedLineInsertActionParser.parse(action);
-                sequence = addIndexedLoreEntries(entries, indexedAction, content, sequence, sourceId);
-                continue;
-            }
-
-            switch (action) {
-                case "insert_below" ->
-                    sequence = addLoreContentEntries(entries, "lore_insert_below", searchPattern, content, sequence, sourceId);
-                case "insert_above" ->
-                    sequence = addLoreContentEntries(entries, "lore_insert_above", searchPattern, content, sequence, sourceId);
-                case "append" ->
-                    sequence = addLoreContentEntries(entries, "lore_append", "", content, sequence, sourceId);
-                case "prepend" ->
-                    sequence = addLoreContentEntries(entries, "lore_prepend", "", content, sequence, sourceId);
-                case "replace_line" ->
-                    sequence = addLoreReplaceEntry(entries, searchPattern, content, sequence, sourceId);
-                case "delete_line" ->
-                    entries.add(new EmakiPresentationEntry("lore_delete_line", searchPattern, "", sequence++, sourceId));
-                case "regex_replace" ->
-                    entries.add(new EmakiPresentationEntry("lore_regex_replace", regexSearchPattern, contentTemplate, sequence++, sourceId));
-                default -> {
-                    // 忽略未知操作类型
-                }
-            }
+            sequence = compileLoreOperation(raw, entries, issues, sequence, sourceId);
         }
         return new PresentationCompileResult(entries, sequence, issues);
     }
@@ -240,6 +180,81 @@ public final class ItemPresentationCompiler {
                 continue;
             }
             entries.add(new EmakiPresentationEntry(entryType, String.valueOf(effectiveLineIndex), line, sequence++, sourceId));
+        }
+        return sequence;
+    }
+
+    private int compileLoreOperation(Object raw,
+            List<EmakiPresentationEntry> entries,
+            List<PresentationCompileIssue> issues,
+            int sequence,
+            String sourceId) {
+        Map<String, Object> operation = normalizeOperation(raw);
+        if (operation.isEmpty()) {
+            return sequence;
+        }
+        String action = resolveAction(operation);
+        List<String> content = resolveContent(operation);
+        String searchPattern = resolveString(operation, "target_pattern");
+        String regexSearchPattern = resolveString(operation, "regex_pattern");
+        String contentTemplate = resolveString(operation, "replacement");
+
+        if (ActionNameParser.isSearchInsertAction(action)) {
+            return addSearchInsertEntry(operation, entries, issues, sequence, sourceId, action, content, searchPattern);
+        }
+        if (IndexedLineInsertActionParser.isIndexedLineInsertAction(action)) {
+            ParsedIndexedLineInsertAction indexedAction = IndexedLineInsertActionParser.parse(action);
+            return addIndexedLoreEntries(entries, indexedAction, content, sequence, sourceId);
+        }
+        return switch (action) {
+            case "insert_below" ->
+                addLoreContentEntries(entries, "lore_insert_below", searchPattern, content, sequence, sourceId);
+            case "insert_above" ->
+                addLoreContentEntries(entries, "lore_insert_above", searchPattern, content, sequence, sourceId);
+            case "append" ->
+                addLoreContentEntries(entries, "lore_append", "", content, sequence, sourceId);
+            case "prepend" ->
+                addLoreContentEntries(entries, "lore_prepend", "", content, sequence, sourceId);
+            case "replace_line" ->
+                addLoreReplaceEntry(entries, searchPattern, content, sequence, sourceId);
+            case "delete_line" -> {
+                entries.add(new EmakiPresentationEntry("lore_delete_line", searchPattern, "", sequence++, sourceId));
+                yield sequence;
+            }
+            case "regex_replace" -> {
+                entries.add(new EmakiPresentationEntry("lore_regex_replace", regexSearchPattern, contentTemplate, sequence++, sourceId));
+                yield sequence;
+            }
+            default -> sequence;
+        };
+    }
+
+    private int addSearchInsertEntry(Map<String, Object> operation,
+            List<EmakiPresentationEntry> entries,
+            List<PresentationCompileIssue> issues,
+            int sequence,
+            String sourceId,
+            String action,
+            List<String> content,
+            String searchPattern) {
+        try {
+            SearchInsertConfig config = SearchInsertConfig.fromAction(
+                    action,
+                    searchPattern,
+                    resolveBoolean(operation, "ignore_case", false),
+                    content,
+                    resolveBoolean(operation, "inherit_style", true),
+                    resolveString(operation, "on_not_found")
+            );
+            entries.add(new EmakiPresentationEntry("lore_search_insert", config.toJson(), "", sequence++, sourceId));
+        } catch (SearchInsertValidationException exception) {
+            issues.add(new PresentationCompileIssue(
+                    sourceId,
+                    action,
+                    searchPattern,
+                    exception.reason(),
+                    exception.getMessage()
+            ));
         }
         return sequence;
     }

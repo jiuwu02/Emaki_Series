@@ -30,7 +30,11 @@ public final class BoostedYamlSection implements YamlSection {
         if (Texts.isBlank(path)) {
             return this;
         }
-        return MapYamlSection.unwrapValue(section.get(path));
+        Object raw = section.get(path);
+        if (raw instanceof Section nestedSection) {
+            return new BoostedYamlSection(nestedSection);
+        }
+        return MapYamlSection.unwrapValue(raw);
     }
 
     @Override
@@ -64,7 +68,14 @@ public final class BoostedYamlSection implements YamlSection {
             return defaultValue == null ? List.of() : List.copyOf(defaultValue);
         }
         List<?> list = section.getList(path, defaultValue);
-        return list == null ? List.of() : List.copyOf(list.stream().map(MapYamlSection::unwrapValue).toList());
+        if (list == null || list.isEmpty()) {
+            return List.of();
+        }
+        List<Object> normalized = new ArrayList<>(list.size());
+        for (Object value : list) {
+            normalized.add(unwrapBoostedValue(value));
+        }
+        return List.copyOf(normalized);
     }
 
     @Override
@@ -157,5 +168,12 @@ public final class BoostedYamlSection implements YamlSection {
     @Override
     public YamlSection copy() {
         return new MapYamlSection(asMap());
+    }
+
+    static Object unwrapBoostedValue(Object value) {
+        if (value instanceof Section nestedSection) {
+            return new BoostedYamlSection(nestedSection);
+        }
+        return MapYamlSection.unwrapValue(value);
     }
 }

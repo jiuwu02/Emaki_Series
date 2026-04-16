@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.forge.service;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.bukkit.entity.Player;
@@ -14,11 +15,14 @@ import emaki.jiuwu.craft.forge.model.ValidationResult;
 
 final class RecipeMatchingService {
 
+    private final Function<GuiItems, List<Recipe>> candidateSelector;
     private final Supplier<List<Recipe>> recipesSupplier;
     private final BiFunction<Player, Recipe, RecipeValidator> validatorFactory;
 
-    RecipeMatchingService(Supplier<List<Recipe>> recipesSupplier,
+    RecipeMatchingService(Function<GuiItems, List<Recipe>> candidateSelector,
+            Supplier<List<Recipe>> recipesSupplier,
             BiFunction<Player, Recipe, RecipeValidator> validatorFactory) {
+        this.candidateSelector = candidateSelector;
         this.recipesSupplier = recipesSupplier;
         this.validatorFactory = validatorFactory;
     }
@@ -26,7 +30,7 @@ final class RecipeMatchingService {
     RecipeMatch findMatchingRecipe(Player player, GuiItems guiItems) {
         ValidationResult firstError = null;
         ValidationResult firstTargetError = null;
-        for (Recipe recipe : safeRecipes()) {
+        for (Recipe recipe : candidateRecipes(guiItems)) {
             ValidationResult validation = validatorFactory.apply(player, recipe).validate(guiItems);
             if (validation.success()) {
                 return new RecipeMatch(recipe, null, Map.of());
@@ -54,6 +58,14 @@ final class RecipeMatchingService {
     private List<Recipe> safeRecipes() {
         List<Recipe> recipes = recipesSupplier == null ? null : recipesSupplier.get();
         return recipes == null ? List.of() : recipes;
+    }
+
+    private List<Recipe> candidateRecipes(GuiItems guiItems) {
+        List<Recipe> candidates = candidateSelector == null ? null : candidateSelector.apply(guiItems);
+        if (candidates == null || candidates.isEmpty()) {
+            return safeRecipes();
+        }
+        return candidates;
     }
 
     @FunctionalInterface

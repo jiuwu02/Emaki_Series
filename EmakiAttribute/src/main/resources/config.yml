@@ -7,11 +7,7 @@
 # ========================================
 
 # 配置文件版本号（由版本迁移器自动管理，请勿手动修改）
-config_version: "3.0.0"
-
-# 调试模式：开启后会在控制台输出详细的战斗结算日志
-# 包括伤害计算过程、属性快照、闪避/暴击判定等
-debug: false
+config_version: "3.1.0"
 
 # 语言设置，对应 lang/ 目录下的语言文件
 language: zh_CN
@@ -32,6 +28,43 @@ regen_interval_ticks: 20
 # 属性同步延迟（tick）：属性变更后延迟多少 tick 再同步到 Bukkit 原版属性
 # 设为 1 表示在下一个 tick 同步，避免在同 tick 内多次触发属性更新
 sync_delay_ticks: 1
+
+# 默认属性配置：所有玩家共享的基础属性与资源上限
+# 这部分会在装备、PDC 和其他贡献源之前作为基础值叠加到玩家快照中
+default_profile:
+  resources:
+    health:
+      display_name: "生命值"
+      default_max: 20.0
+      min_max: 1.0
+      max_max: 2048.0
+      sync_to_bukkit: true
+      full_on_init: true
+    mana:
+      display_name: "法力值"
+      default_max: 100.0
+      min_max: 0.0
+      max_max: 99999.0
+      sync_to_bukkit: false
+      full_on_init: true
+  attributes:
+    physical_attack: 0.0
+    physical_defense: 0.0
+    physical_damage_bonus: 0.0
+    physical_crit_rate: 0.0
+    physical_crit_damage: 150.0
+    projectile_attack: 0.0
+    projectile_damage_bonus: 0.0
+    projectile_crit_rate: 0.0
+    projectile_crit_damage: 0.0
+    projectile_defense: 0.0
+    spell_attack: 0.0
+    spell_damage_bonus: 0.0
+    spell_crit_rate: 0.0
+    spell_crit_damage: 0.0
+    spell_defense: 0.0
+    health_regen: 0.1
+    mana_regen: 0.1
 
 # 合成伤害反馈：当 EA 系统接管伤害后，是否模拟原版的击退和受伤音效
 # 因为 EA 系统会取消原版伤害事件，所以需要手动模拟这些视觉/听觉反馈

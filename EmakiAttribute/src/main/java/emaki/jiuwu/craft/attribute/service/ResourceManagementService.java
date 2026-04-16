@@ -3,8 +3,12 @@ package emaki.jiuwu.craft.attribute.service;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
+import java.util.function.Consumer;
 
 import org.bukkit.Bukkit;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -27,7 +31,7 @@ final class ResourceManagementService {
 
     public void resyncAllPlayers() {
         for (Player player : Bukkit.getOnlinePlayers()) {
-            scheduleHealthSync(player);
+            syncPlayer(player, ResourceSyncReason.MANUAL, null, false);
         }
     }
 
@@ -66,92 +70,32 @@ final class ResourceManagementService {
     }
 
     public void scheduleJoinHealthSync(Player player) {
-        if (player == null) {
-            return;
-        }
-        java.util.UUID playerId = player.getUniqueId();
-        service.plugin().getServer().getScheduler().runTaskLater(
-                service.plugin(),
-                () -> {
-                    Player online = Bukkit.getPlayer(playerId);
-                    if (online != null && online.isOnline()) {
-                        ResourceState existingHealth = readResourceState(online, "health");
-                        if (existingHealth == null || existingHealth.currentValue() <= 0D) {
-                            syncPlayer(online, ResourceSyncReason.HEALTH_CHANGE, null, true);
-                        } else {
-                            syncPlayer(online, ResourceSyncReason.HEALTH_CHANGE, existingHealth.currentValue(), false);
-                        }
-                    }
-                },
-                Math.max(1, service.config().syncDelayTicks())
-        );
+        schedulePlayer(player, online -> {
+            ResourceState existingHealth = readResourceState(online, "health");
+            if (existingHealth == null || existingHealth.currentValue() <= 0D) {
+                syncPlayer(online, ResourceSyncReason.HEALTH_CHANGE, null, true);
+            } else {
+                syncPlayer(online, ResourceSyncReason.HEALTH_CHANGE, existingHealth.currentValue(), false);
+            }
+        });
     }
 
     public void scheduleRespawnHealthSync(Player player) {
-        if (player == null) {
-            return;
-        }
-        java.util.UUID playerId = player.getUniqueId();
-        service.plugin().getServer().getScheduler().runTaskLater(
-                service.plugin(),
-                () -> {
-                    Player online = Bukkit.getPlayer(playerId);
-                    if (online != null && online.isOnline()) {
-                        syncPlayer(online, ResourceSyncReason.HEALTH_CHANGE, null, true);
-                    }
-                },
-                Math.max(1, service.config().syncDelayTicks())
-        );
+        schedulePlayer(player, online -> syncPlayer(online, ResourceSyncReason.HEALTH_CHANGE, null, true));
     }
 
     public void scheduleHealthSync(LivingEntity entity) {
         if (entity instanceof Player player) {
-            java.util.UUID playerId = player.getUniqueId();
-            service.plugin().getServer().getScheduler().runTaskLater(
-                    service.plugin(),
-                    () -> {
-                        Player online = Bukkit.getPlayer(playerId);
-                        if (online != null && online.isOnline()) {
-                            syncPlayer(online, ResourceSyncReason.HEALTH_CHANGE, online.getHealth(), false);
-                        }
-                    },
-                    Math.max(1, service.config().syncDelayTicks())
-            );
+            schedulePlayer(player, online -> syncPlayer(online, ResourceSyncReason.HEALTH_CHANGE, online.getHealth(), false));
         }
     }
 
     public void scheduleEquipmentSync(Player player) {
-        if (player == null) {
-            return;
-        }
-        java.util.UUID playerId = player.getUniqueId();
-        service.plugin().getServer().getScheduler().runTaskLater(
-                service.plugin(),
-                () -> {
-                    Player online = Bukkit.getPlayer(playerId);
-                    if (online != null && online.isOnline()) {
-                        syncPlayer(online, ResourceSyncReason.EQUIPMENT, null, false);
-                    }
-                },
-                Math.max(1, service.config().syncDelayTicks())
-        );
+        schedulePlayer(player, online -> syncPlayer(online, ResourceSyncReason.EQUIPMENT, null, false));
     }
 
     public void scheduleLivingEntitySync(LivingEntity entity) {
-        if (entity == null) {
-            return;
-        }
-        java.util.UUID entityId = entity.getUniqueId();
-        service.plugin().getServer().getScheduler().runTaskLater(
-                service.plugin(),
-                () -> {
-                    Entity current = Bukkit.getEntity(entityId);
-                    if (current instanceof LivingEntity livingEntity && livingEntity.isValid() && !livingEntity.isDead()) {
-                        syncLivingEntity(livingEntity);
-                    }
-                },
-                Math.max(1, service.config().syncDelayTicks())
-        );
+        scheduleLivingEntity(entity, this::syncLivingEntity);
     }
 
     public void syncLivingEntity(LivingEntity entity) {
@@ -167,7 +111,7 @@ final class ResourceManagementService {
                 entity,
                 snapshot,
                 service.registryService().vanillaAttributeBindings(),
-                service.registryService().vanillaMappedAttributeIds()
+                service.registryService().vanillaMappedAttributes()
         );
     }
 
@@ -204,7 +148,10 @@ final class ResourceManagementService {
                 flatBonus += value;
             }
         }
-        double currentMax = resourceDefinition.clampMax((defaultMax + flatBonus) * (1D + (percentBonus / 100D)));
+        double factor = AttributeFusionMath.percentFactor(percentBonus, true);
+        double currentMax = AttributeFusionMath.usesFusedCombatValues(snapshot)
+                ? resourceDefinition.clampMax((defaultMax * factor) + flatBonus)
+                : resourceDefinition.clampMax((defaultMax + flatBonus) * factor);
         double currentValue;
         if (currentValueOverride != null) {
             currentValue = currentValueOverride;
@@ -307,7 +254,7 @@ final class ResourceManagementService {
                 player,
                 snapshot,
                 service.registryService().vanillaAttributeBindings(),
-                service.registryService().vanillaMappedAttributeIds()
+                service.registryService().vanillaMappedAttributes()
         );
     }
 
@@ -320,7 +267,44 @@ final class ResourceManagementService {
         double bukkitHealth = rawMaxHealth <= 0D
                 ? 1D
                 : Math.max(0D, Math.min(state.currentValue(), maxHealth));
-        player.setMaxHealth(maxHealth);
+        AttributeInstance maxHealthAttribute = player.getAttribute(Attribute.MAX_HEALTH);
+        if (maxHealthAttribute != null) {
+            maxHealthAttribute.setBaseValue(maxHealth);
+        }
         player.setHealth(Math.min(maxHealth, bukkitHealth));
+    }
+
+    private void schedulePlayer(Player player, Consumer<Player> action) {
+        if (player == null || action == null) {
+            return;
+        }
+        UUID playerId = player.getUniqueId();
+        service.plugin().getServer().getScheduler().runTaskLater(
+                service.plugin(),
+                () -> {
+                    Player online = Bukkit.getPlayer(playerId);
+                    if (online != null && online.isOnline()) {
+                        action.accept(online);
+                    }
+                },
+                Math.max(1, service.config().syncDelayTicks())
+        );
+    }
+
+    private void scheduleLivingEntity(LivingEntity entity, Consumer<LivingEntity> action) {
+        if (entity == null || action == null) {
+            return;
+        }
+        UUID entityId = entity.getUniqueId();
+        service.plugin().getServer().getScheduler().runTaskLater(
+                service.plugin(),
+                () -> {
+                    Entity current = Bukkit.getEntity(entityId);
+                    if (current instanceof LivingEntity livingEntity && livingEntity.isValid() && !livingEntity.isDead()) {
+                        action.accept(livingEntity);
+                    }
+                },
+                Math.max(1, service.config().syncDelayTicks())
+        );
     }
 }

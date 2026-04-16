@@ -16,6 +16,7 @@ import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
+import org.bukkit.plugin.java.JavaPlugin;
 
 public abstract class DirectoryLoader<T> {
 
@@ -216,8 +217,7 @@ public abstract class DirectoryLoader<T> {
     protected abstract String idOf(T value);
 
     private AsyncTaskScheduler resolveAsyncScheduler() {
-        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.getInstance();
-        return coreLibPlugin == null ? null : coreLibPlugin.asyncTaskScheduler();
+        return JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).asyncTaskScheduler();
     }
 
     private void notifyProgress(Consumer<LoadProgress> progressCallback,

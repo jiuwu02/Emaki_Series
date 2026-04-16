@@ -94,23 +94,11 @@ public final class GuiTemplateParser {
 
     private static Map<GuiClickType, SoundParser.SoundDefinition> parseSounds(Object raw) {
         Map<GuiClickType, SoundParser.SoundDefinition> result = new LinkedHashMap<>();
-        SoundParser.SoundDefinition click = SoundParser.parse(ConfigNodes.get(raw, "click"));
-        SoundParser.SoundDefinition left = SoundParser.parse(ConfigNodes.get(raw, "leftclick"));
-        SoundParser.SoundDefinition right = SoundParser.parse(ConfigNodes.get(raw, "rightclick"));
-        if (click != null) {
-            result.put(GuiClickType.CLICK, click);
-        }
-        if (left != null) {
-            result.put(GuiClickType.LEFTCLICK, left);
-        }
-        if (right != null) {
-            result.put(GuiClickType.RIGHTCLICK, right);
-        }
         Object sounds = ConfigNodes.get(raw, "sounds");
         if (sounds != null) {
             SoundParser.SoundDefinition nestedClick = SoundParser.parse(ConfigNodes.get(sounds, "click"));
-            SoundParser.SoundDefinition nestedLeft = SoundParser.parse(ConfigNodes.get(sounds, "leftclick"));
-            SoundParser.SoundDefinition nestedRight = SoundParser.parse(ConfigNodes.get(sounds, "rightclick"));
+            SoundParser.SoundDefinition nestedLeft = SoundParser.parse(ConfigNodes.get(sounds, "left_click"));
+            SoundParser.SoundDefinition nestedRight = SoundParser.parse(ConfigNodes.get(sounds, "right_click"));
             if (nestedClick != null) {
                 result.put(GuiClickType.CLICK, nestedClick);
             }

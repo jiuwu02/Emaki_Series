@@ -18,7 +18,9 @@ condition_type: "all_of"
 # 当条件表达式中的占位符无法解析时，是否视为条件不通过
 invalid_as_failure: true
 
-# 条件表达式列表（空列表表示无条件通过）
-# 如需添加条件，示例：
-#   - "%source_meta_required_level% <= %player_level%"
-conditions: []
+# 自由检查项列表（空列表表示无条件通过）
+# 如需添加 Lore 等级限制，示例：
+#   - type: lore_regex
+#     pattern: "装备等级需求: Lv\\.(\\d+)"
+#     condition: "$1 <= %player_level%"
+checks: []

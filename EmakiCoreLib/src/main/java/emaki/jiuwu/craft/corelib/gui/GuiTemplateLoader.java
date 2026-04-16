@@ -1,16 +1,15 @@
-package emaki.jiuwu.craft.strengthen.loader;
+package emaki.jiuwu.craft.corelib.gui;
 
 import java.io.File;
 
-import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
-import emaki.jiuwu.craft.corelib.gui.GuiTemplateParser;
+import org.bukkit.plugin.java.JavaPlugin;
+
 import emaki.jiuwu.craft.corelib.yaml.YamlDirectoryLoader;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
-import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
 
-public final class GuiTemplateLoader extends YamlDirectoryLoader<GuiTemplate> {
+public class GuiTemplateLoader extends YamlDirectoryLoader<GuiTemplate> {
 
-    public GuiTemplateLoader(EmakiStrengthenPlugin plugin) {
+    public GuiTemplateLoader(JavaPlugin plugin) {
         super(plugin);
     }
 

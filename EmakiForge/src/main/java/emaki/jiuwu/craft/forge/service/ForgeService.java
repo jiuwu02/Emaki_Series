@@ -107,6 +107,7 @@ public final class ForgeService {
                 this::resolveMaterialQualityModifiers
         );
         this.recipeMatchingService = new RecipeMatchingService(
+                this::candidateRecipes,
                 lookupIndex::sortedRecipes,
                 (player, recipe) -> guiItems -> canForge(player, recipe, guiItems)
         );
@@ -145,6 +146,21 @@ public final class ForgeService {
 
     public RecipeMatch findMatchingRecipe(Player player, GuiItems guiItems) {
         return recipeMatchingService.findMatchingRecipe(player, guiItems);
+    }
+
+    private List<Recipe> candidateRecipes(GuiItems guiItems) {
+        List<Recipe> candidates = new ArrayList<>(lookupIndex.genericRecipes());
+        ItemSource targetSource = guiItems == null || guiItems.targetItem() == null
+                ? null
+                : plugin.itemIdentifierService().identifyItem(guiItems.targetItem());
+        if (targetSource == null) {
+            if (candidates.isEmpty()) {
+                return lookupIndex.sortedRecipes();
+            }
+            return List.copyOf(candidates);
+        }
+        candidates.addAll(lookupIndex.findRecipesByTargetSource(targetSource));
+        return candidates.isEmpty() ? List.of() : List.copyOf(candidates);
     }
 
     public ValidationResult canForge(Player player, Recipe recipe, GuiItems guiItems) {
@@ -304,31 +320,10 @@ public final class ForgeService {
     }
 
     private List<ForgeMaterial.QualityModifier> resolveMaterialQualityModifiers(Recipe recipe, GuiItems guiItems) {
-        List<ForgeMaterial.QualityModifier> result = new ArrayList<>();
         if (recipe == null || guiItems == null) {
-            return result;
+            return List.of();
         }
-        appendMaterialQualityModifiers(result, recipe, guiItems.requiredMaterials().values(), false);
-        appendMaterialQualityModifiers(result, recipe, guiItems.optionalMaterials().values(), true);
-        return result;
-    }
-
-    private void appendMaterialQualityModifiers(List<ForgeMaterial.QualityModifier> result,
-            Recipe recipe,
-            Collection<ItemStack> items,
-            boolean optional) {
-        if (result == null || items == null) {
-            return;
-        }
-        for (ItemStack itemStack : items) {
-            ForgeMaterial material = itemStack == null || recipe == null
-                    ? null
-                    : recipe.findMaterialBySource(plugin.itemIdentifierService().identifyItem(itemStack), optional);
-            if (material == null || itemStack.getAmount() <= 0) {
-                continue;
-            }
-            result.addAll(material.qualityModifiers());
-        }
+        return layerSnapshotBuilder.collectQualityModifiers(layerSnapshotBuilder.collectMaterialContributions(recipe, guiItems));
     }
 
     private String replacePlaceholders(Player player, String text) {

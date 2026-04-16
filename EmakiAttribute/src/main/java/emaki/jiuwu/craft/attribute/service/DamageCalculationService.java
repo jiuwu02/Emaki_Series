@@ -10,6 +10,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
 
 import org.bukkit.Bukkit;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.damage.DamageSource;
 import org.bukkit.damage.DamageType;
 import org.bukkit.entity.Entity;
@@ -823,7 +825,8 @@ final class DamageCalculationService {
             return;
         }
         double currentHealth = Math.max(0D, attacker.getHealth());
-        double maxHealth = Math.max(1D, attacker.getMaxHealth());
+        AttributeInstance maxHealthAttribute = attacker.getAttribute(Attribute.MAX_HEALTH);
+        double maxHealth = maxHealthAttribute == null ? Math.max(1D, currentHealth) : Math.max(1D, maxHealthAttribute.getValue());
         attacker.setHealth(Math.min(maxHealth, currentHealth + recoveryAmount));
         service.scheduleHealthSync(attacker);
     }

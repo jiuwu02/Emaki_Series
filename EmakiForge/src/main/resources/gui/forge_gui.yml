@@ -27,18 +27,21 @@ slots:
     slots: [0, 1, 2, 3, 4, 5, 6, 7, 8]
     item: "BLACK_STAINED_GLASS_PANE"
     display_name: "<gray>"
+    hidden_components: ["tooltip"]
 
   # 底部边框
   side_frame:
     slots: [36, 37, 38, 39, 40, 41, 42, 43, 44]
     item: "BLACK_STAINED_GLASS_PANE"
     display_name: "<gray>"
+    hidden_components: ["tooltip"]
 
   # 核心区域边框
   core_frame:
     slots: [9, 12, 15, 17, 18, 21, 24, 26, 27, 28, 30, 33, 35]
     item: "GRAY_STAINED_GLASS_PANE"
     display_name: "<dark_gray>"
+    hidden_components: ["tooltip"]
 
   # 图纸输入槽（2 个槽位）
   blueprint_inputs:
@@ -103,8 +106,12 @@ slots:
     lore:
       - "<gray>当前容量: <yellow>{current}/{max}</yellow>"
       - "<yellow>点击后开始执行锻造"
-    # 点击音效：sound-volume-pitch 格式
-    click: "ui.button.click-1-1"
+    # 点击音效
+    sounds:
+      click:
+        sound: "ui.button.click"
+        volume: 1.0
+        pitch: 1.0
 
 # ========================================
 # 虚拟物品定义

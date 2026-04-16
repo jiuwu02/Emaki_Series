@@ -23,13 +23,16 @@ condition_type: "all_of"
 # 设为 true 更安全，防止因占位符解析失败而意外放行
 invalid_as_failure: true
 
-# 条件表达式列表
-# 支持的占位符：
-#   %source_meta_xxx%        - PDC payload 中的 meta 字段值
-#   %source_attribute_xxx%   - PDC payload 中的 attributes 字段值
-#   %source_id%              - PDC payload 的 sourceId
-#   %player_level%           - PlaceholderAPI 玩家等级
-#   %player_name%            - PlaceholderAPI 玩家名称
-conditions:
-  # 要求锻造时写入的 required_level 元数据值不超过玩家当前等级
-  - "%source_meta_required_level% <= %player_level%"
+# 自由检查项列表
+# 常见用法：
+#   pdc_meta      - 读取 payload.meta[key]
+#   pdc_attribute - 读取 payload.attributes[key]
+#   lore_regex    - 对 Lore 纯文本逐行做正则匹配
+# 条件表达式支持：
+#   %value% - 当前检查项取得的值
+#   $1..$n  - 正则捕获组
+#   %player_xxx% - PlaceholderAPI / 内置玩家占位符
+checks:
+  - type: pdc_meta
+    key: required_level
+    condition: "%value% <= %player_level%"

@@ -26,18 +26,21 @@ slots:
     slots: [0, 1, 2, 3, 4, 5, 6, 7, 8]
     item: "GRAY_STAINED_GLASS_PANE"
     display_name: "<gray>"
+    hidden_components: ["tooltip"]
 
   # 底部边框（中间 40 号槽位留给确认按钮）
   bottom_frame:
     slots: [36, 37, 38, 39, 41, 42, 43, 44]
     item: "GRAY_STAINED_GLASS_PANE"
     display_name: "<gray>"
+    hidden_components: ["tooltip"]
 
   # 左右边框
   side_frame:
     slots: [9, 17, 18, 26, 27, 35]
     item: "BLACK_STAINED_GLASS_PANE"
     display_name: "<dark_gray>"
+    hidden_components: ["tooltip"]
 
   # 目标装备槽：放入待强化的装备
   target_item:
@@ -117,5 +120,9 @@ slots:
     lore:
       - "<gray>点击后将结算货币与材料"
       - "<gray>失败会累积锻印，并可能掉星</gray>"
-    # 点击音效：sound-volume-pitch 格式
-    click: "ui.button.click-1-1"
+    # 点击音效
+    sounds:
+      click:
+        sound: "ui.button.click"
+        volume: 1.0
+        pitch: 1.0

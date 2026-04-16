@@ -19,14 +19,16 @@ public final class ItemTextBridge {
     }
 
     public static boolean hasCustomName(ItemMeta itemMeta) {
-        return itemMeta != null && itemMeta.hasDisplayName();
+        return itemMeta != null && (itemMeta.hasDisplayName() || itemMeta.hasItemName());
     }
 
     public static Component customName(ItemMeta itemMeta) {
         if (!hasCustomName(itemMeta)) {
             return null;
         }
-        return MiniMessages.read(itemMeta.getDisplayName());
+        return itemMeta.hasDisplayName()
+                ? MiniMessages.read(itemMeta.getDisplayName())
+                : MiniMessages.read(itemMeta.getItemName());
     }
 
     public static void customName(ItemMeta itemMeta, Component name) {

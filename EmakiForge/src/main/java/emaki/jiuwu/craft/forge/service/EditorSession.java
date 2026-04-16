@@ -41,14 +41,14 @@ final class EditorSession {
     private EditableResourceType resourceType;
     private String originalId;
     private Map<String, Object> rootData;
-    private volatile Mode mode;
+    private Mode mode;
     private List<String> currentPath = new ArrayList<>();
-    private volatile int page;
-    private volatile GuiSession guiSession;
-    private volatile boolean dirty;
-    private volatile boolean closingByService;
-    private volatile boolean suspendCloseHandling;
-    private volatile PendingInput pendingInput;
+    private int page;
+    private GuiSession guiSession;
+    private boolean dirty;
+    private boolean closingByService;
+    private boolean suspendCloseHandling;
+    private PendingInput pendingInput;
     private final Map<Integer, ItemStack> renderedItems = new LinkedHashMap<>();
     private final Map<Integer, ClickAction> clickActions = new LinkedHashMap<>();
 

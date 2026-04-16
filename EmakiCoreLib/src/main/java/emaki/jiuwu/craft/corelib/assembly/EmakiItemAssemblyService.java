@@ -33,8 +33,7 @@ public final class EmakiItemAssemblyService {
     private final CacheManager<String, ItemStack> previewCache =
             new CacheManager<>(PREVIEW_CACHE_SIZE, PREVIEW_CACHE_TTL_MILLIS);
     private volatile AssemblyFeedbackHandler feedbackHandler = AssemblyFeedbackHandler.noop();
-    private volatile AsyncTaskScheduler asyncTaskScheduler;
-    private volatile PerformanceMonitor performanceMonitor;
+    private volatile AsyncConfig asyncConfig = new AsyncConfig(null, null);
 
     public EmakiItemAssemblyService(EmakiNamespaceRegistry namespaceRegistry,
             EmakiItemLayerCodecRegistry codecRegistry,
@@ -46,8 +45,7 @@ public final class EmakiItemAssemblyService {
     }
 
     public void configureAsync(AsyncTaskScheduler asyncTaskScheduler, PerformanceMonitor performanceMonitor) {
-        this.asyncTaskScheduler = asyncTaskScheduler;
-        this.performanceMonitor = performanceMonitor;
+        this.asyncConfig = new AsyncConfig(asyncTaskScheduler, performanceMonitor);
     }
 
     public ItemStack preview(EmakiItemAssemblyRequest request) {
@@ -66,11 +64,12 @@ public final class EmakiItemAssemblyService {
     }
 
     public CompletableFuture<ItemStack> previewAsync(EmakiItemAssemblyRequest request) {
-        if (asyncTaskScheduler == null) {
+        AsyncConfig config = asyncConfig;
+        if (config.scheduler() == null) {
             return CompletableFuture.completedFuture(preview(request));
         }
-        return asyncTaskScheduler.supplyAsync("assembly-preview", AsyncTaskScheduler.TaskPriority.NORMAL, 10_000L, () -> preview(request))
-                .thenCompose(rendered -> asyncTaskScheduler.callSync("assembly-preview-sync", () -> rendered == null ? null : rendered.clone()));
+        return config.scheduler().supplyAsync("assembly-preview", AsyncTaskScheduler.TaskPriority.NORMAL, 10_000L, () -> preview(request))
+                .thenCompose(rendered -> config.scheduler().callSync("assembly-preview-sync", () -> rendered == null ? null : rendered.clone()));
     }
 
     public ItemStack rebuild(ItemStack itemStack) {
@@ -236,8 +235,9 @@ public final class EmakiItemAssemblyService {
         } catch (Exception exception) {
             throw new RuntimeException(exception);
         } finally {
-            if (performanceMonitor != null) {
-                performanceMonitor.record(metricKey, System.nanoTime() - startedAt, success);
+            PerformanceMonitor monitor = asyncConfig.monitor();
+            if (monitor != null) {
+                monitor.record(metricKey, System.nanoTime() - startedAt, success);
             }
         }
     }
@@ -250,6 +250,10 @@ public final class EmakiItemAssemblyService {
     private interface SupplierWithException<T> {
 
         T get() throws Exception;
+    }
+
+    private record AsyncConfig(AsyncTaskScheduler scheduler, PerformanceMonitor monitor) {
+
     }
 
     private record AssemblyContext(ItemSource baseSource,

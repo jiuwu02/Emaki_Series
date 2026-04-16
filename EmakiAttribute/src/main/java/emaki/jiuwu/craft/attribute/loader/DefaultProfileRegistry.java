@@ -1,82 +1,87 @@
 package emaki.jiuwu.craft.attribute.loader;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.attribute.model.DefaultProfile;
-import emaki.jiuwu.craft.corelib.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.text.Texts;
 
-public final class DefaultProfileRegistry extends DirectoryLoader<DefaultProfile> {
+public final class DefaultProfileRegistry {
 
+    private final EmakiAttributePlugin plugin;
+    private final Object stateLock = new Object();
+    private final Map<String, DefaultProfile> items = new LinkedHashMap<>();
+    private final List<String> issues = new ArrayList<>();
     private final List<DefaultProfile> mergedProfiles = new ArrayList<>();
+    private boolean loaded;
 
     public DefaultProfileRegistry(EmakiAttributePlugin plugin) {
-        super(plugin);
+        this.plugin = plugin;
     }
 
-    @Override
-    protected String directoryName() {
-        return "profiles";
-    }
-
-    @Override
-    protected String typeName() {
-        return plugin.messageService() == null ? "默认组" : plugin.messageService().message("label.default_profile");
-    }
-
-    @Override
-    protected DefaultProfile parse(File file, YamlSection configuration) {
-        // Only files with bundled resource definitions are treated as default profiles.
-        if (!configuration.contains("resources")) {
-            return null;
+    public int load() {
+        synchronized (stateLock) {
+            items.clear();
+            issues.clear();
+            mergedProfiles.clear();
+            loaded = false;
+            DefaultProfile profile = plugin == null || plugin.configModel() == null
+                    ? null
+                    : plugin.configModel().defaultProfile();
+            if (profile == null) {
+                profile = emaki.jiuwu.craft.attribute.config.AttributeConfig.defaults().defaultProfile();
+            }
+            if (profile == null) {
+                loaded = true;
+                return 0;
+            }
+            String id = normalizeId(Texts.isBlank(profile.id()) ? "default" : profile.id());
+            items.put(id, profile);
+            mergedProfiles.add(profile);
+            mergedProfiles.sort(Comparator.comparingInt(DefaultProfile::priority).reversed());
+            loaded = true;
+            return items.size();
         }
-        return DefaultProfile.fromMap(configuration);
     }
 
-    @Override
-    protected void seedBundledResources(File directory) {
-        copyBundledResource("profiles/global.yml", new File(directory, "global.yml"));
-    }
-
-    @Override
-    protected boolean validateSchema(File file, YamlSection configuration) {
-        if (configuration == null) {
-            return false;
+    public Map<String, DefaultProfile> all() {
+        synchronized (stateLock) {
+            return Map.copyOf(items);
         }
-        YamlSection resources = configuration.getSection("resources");
-        if (resources == null || resources.getKeys(false).isEmpty()) {
-            issue(
-                    "loader.schema_missing_section",
-                    Map.of(
-                            "type", typeName(),
-                            "file", file.getName(),
-                            "field", "resources"
-                    )
-            );
-            return false;
+    }
+
+    public List<String> issues() {
+        synchronized (stateLock) {
+            return List.copyOf(issues);
         }
-        return true;
     }
 
-    @Override
-    protected String idOf(DefaultProfile value) {
-        return value.id();
+    public boolean loaded() {
+        synchronized (stateLock) {
+            return loaded;
+        }
     }
 
-    @Override
-    protected void afterLoad() {
-        mergedProfiles.clear();
-        mergedProfiles.addAll(items.values());
-        mergedProfiles.sort(Comparator.comparingInt(DefaultProfile::priority).reversed());
+    public DefaultProfile get(String id) {
+        synchronized (stateLock) {
+            if (Texts.isBlank(id)) {
+                return null;
+            }
+            return items.get(normalizeId(id));
+        }
     }
 
     public List<DefaultProfile> mergedProfiles() {
         synchronized (stateLock) {
             return List.copyOf(mergedProfiles);
         }
+    }
+
+    private String normalizeId(String id) {
+        return Texts.toStringSafe(id).trim().toLowerCase().replace(' ', '_');
     }
 }

@@ -3,9 +3,9 @@ package emaki.jiuwu.craft.attribute.service;
 import java.util.List;
 import java.util.Locale;
 import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.Map;
 
 import emaki.jiuwu.craft.attribute.model.AttributeSnapshot;
 import emaki.jiuwu.craft.attribute.model.DamageContext;
@@ -110,14 +110,21 @@ final class DamageCalculationCache {
         private final int limit;
         private final ReentrantLock lock = new ReentrantLock();
         private final LinkedHashMap<K, V> entries = new LinkedHashMap<>(16, 0.75F, true);
-        private volatile Map<K, V> snapshot = Map.of();
 
         private BoundedCache(int limit) {
             this.limit = Math.max(1, limit);
         }
 
         private V get(K key) {
-            return key == null ? null : snapshot.get(key);
+            if (key == null) {
+                return null;
+            }
+            lock.lock();
+            try {
+                return entries.get(key);
+            } finally {
+                lock.unlock();
+            }
         }
 
         private void put(K key, V value) {
@@ -131,7 +138,6 @@ final class DamageCalculationCache {
                     K eldest = entries.keySet().iterator().next();
                     entries.remove(eldest);
                 }
-                snapshot = entries.isEmpty() ? Map.of() : Map.copyOf(entries);
             } finally {
                 lock.unlock();
             }

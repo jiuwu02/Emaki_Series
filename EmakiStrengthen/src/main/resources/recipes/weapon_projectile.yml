@@ -36,6 +36,23 @@ limits:
   success_chance_cap: 90.0
 
 # ========================================
+# 每星级成功率配置
+# ========================================
+success_rates:
+  1: 100.0
+  2: 100.0
+  3: 95.0
+  4: 85.0
+  5: 75.0
+  6: 60.0
+  7: 45.0
+  8: 32.0
+  9: 22.0
+  10: 14.0
+  11: 8.0
+  12: 4.0
+
+# ========================================
 # 物品匹配规则
 # ========================================
 # 投射物武器通过 Lore 内容和属性 ID 双重匹配
@@ -55,7 +72,6 @@ stat_lines:
       - type: "lore_search_insert"
         anchor: "强化等级"
         position: "below"
-      - type: "lore_append"
   projectile_crit_rate:
     template: "<gray>投射物暴击率: <gold>{sign}{value}</gold></gray>"
     lore_operations:

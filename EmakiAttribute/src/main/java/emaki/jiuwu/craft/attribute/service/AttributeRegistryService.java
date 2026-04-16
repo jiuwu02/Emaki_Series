@@ -8,6 +8,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+import org.bukkit.attribute.Attribute;
+
 import emaki.jiuwu.craft.attribute.api.AttributeContributionProvider;
 import emaki.jiuwu.craft.attribute.loader.AttributeBalanceRegistry;
 import emaki.jiuwu.craft.attribute.loader.AttributePresetRegistry;
@@ -40,7 +42,7 @@ final class AttributeRegistryService {
     private volatile Map<String, List<AttributeDefinition>> resourceAttributeDefinitions = Map.of();
     private volatile Map<String, List<AttributeDefinition>> resourceRegenDefinitions = Map.of();
     private volatile List<VanillaAttributeBinding> vanillaAttributeBindings = List.of();
-    private volatile Set<String> vanillaMappedAttributeIds = Set.of();
+    private volatile Set<Attribute> vanillaMappedAttributes = Set.of();
     private volatile List<AttributeDefinition> mmoItemsMappedDefinitions = List.of();
     private volatile List<AttributeDefinition> genericSpeedDefinitions = List.of();
     private volatile List<AttributeDefinition> genericAttackSpeedDefinitions = List.of();
@@ -114,7 +116,7 @@ final class AttributeRegistryService {
         resourceAttributeDefinitions = freezeDefinitionBuckets(resourceBuckets);
         resourceRegenDefinitions = freezeDefinitionBuckets(resourceRegenBuckets);
         vanillaAttributeBindings = vanillaBindings.isEmpty() ? List.of() : List.copyOf(vanillaBindings);
-        vanillaMappedAttributeIds = vanillaSynchronizer.collectManagedTargetIds(vanillaAttributeBindings);
+        vanillaMappedAttributes = vanillaSynchronizer.collectManagedAttributes(vanillaAttributeBindings);
         mmoItemsMappedDefinitions = mmoItemsDefinitions.isEmpty() ? List.of() : List.copyOf(mmoItemsDefinitions);
         genericSpeedDefinitions = List.copyOf(speedDefinitions);
         genericAttackSpeedDefinitions = List.copyOf(attackSpeedDefinitions);
@@ -164,8 +166,8 @@ final class AttributeRegistryService {
         return vanillaAttributeBindings;
     }
 
-    Set<String> vanillaMappedAttributeIds() {
-        return vanillaMappedAttributeIds;
+    Set<Attribute> vanillaMappedAttributes() {
+        return vanillaMappedAttributes;
     }
 
     List<AttributeDefinition> mmoItemsMappedDefinitions() {

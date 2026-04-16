@@ -124,6 +124,3 @@ history:
   auto_save: true
   # 自动保存间隔（tick），6000 tick = 5 分钟
   save_interval: 6000
-
-# 调试模式：开启后会在控制台输出锻造执行的详细日志
-debug: false

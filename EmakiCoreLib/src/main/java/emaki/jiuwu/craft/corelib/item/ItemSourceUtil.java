@@ -70,6 +70,17 @@ public final class ItemSourceUtil {
         if (left == null || right == null || left.getType() != right.getType()) {
             return false;
         }
-        return Texts.lower(left.getIdentifier()).equals(Texts.lower(right.getIdentifier()));
+        return normalizeIdentifier(left).equals(normalizeIdentifier(right));
+    }
+
+    private static String normalizeIdentifier(ItemSource source) {
+        if (source == null || source.getType() == null) {
+            return "";
+        }
+        String identifier = Texts.lower(source.getIdentifier()).trim();
+        if (source.getType() == ItemSourceType.VANILLA && identifier.startsWith("minecraft:")) {
+            return identifier.substring("minecraft:".length());
+        }
+        return identifier;
     }
 }

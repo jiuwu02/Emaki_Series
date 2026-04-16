@@ -307,10 +307,10 @@ public final class AttributeCommand implements TabExecutor {
         reportLintSection(sender, "配置", collectConfigIssues());
         reportLintSection(sender, "属性定义", plugin.attributeRegistry().issues());
         reportLintSection(sender, "伤害类型", plugin.damageTypeRegistry().issues());
-        reportLintSection(sender, "默认组", plugin.defaultProfileRegistry().issues());
+        reportLintSection(sender, "默认属性配置", plugin.defaultProfileRegistry().issues());
         reportLintSection(sender, "Lore 格式", plugin.loreFormatRegistry().issues());
         reportLintSection(sender, "属性预设", plugin.presetRegistry().issues());
-        reportLintSection(sender, "PDC 读取规则", plugin.pdcReadRuleLoader().issues());
+        reportLintSection(sender, "属性读取条件", plugin.pdcReadRuleLoader().issues());
         messages().sendRaw(sender, messages().message("command.lint.footer"));
         return true;
     }

@@ -57,26 +57,22 @@ public final class PerformanceMonitor {
     public PerformanceSnapshot snapshot() {
         long usedMemoryBytes = Math.max(0L, Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory());
         long maxMemoryBytes = Math.max(0L, Runtime.getRuntime().maxMemory());
-        List<PerformanceOperationSnapshot> operations = new ArrayList<>();
+        List<PerformanceOperationSnapshot> operations = new ArrayList<>(metrics.size());
         for (Map.Entry<String, MetricAccumulator> entry : metrics.entrySet()) {
             operations.add(entry.getValue().snapshot(entry.getKey()));
         }
         operations.sort(Comparator.comparingLong(PerformanceOperationSnapshot::totalDurationNanos).reversed()
                 .thenComparing(PerformanceOperationSnapshot::operation));
+        Map<String, PerformanceOperationSnapshot> orderedOperations = new LinkedHashMap<>(operations.size());
+        for (PerformanceOperationSnapshot operation : operations) {
+            orderedOperations.put(operation.operation(), operation);
+        }
         return new PerformanceSnapshot(
-                Map.copyOf(new LinkedHashMap<>(toMap(operations))),
+                Map.copyOf(orderedOperations),
                 usedMemoryBytes,
                 maxMemoryBytes,
                 System.currentTimeMillis()
         );
-    }
-
-    private Map<String, PerformanceOperationSnapshot> toMap(List<PerformanceOperationSnapshot> operations) {
-        Map<String, PerformanceOperationSnapshot> result = new LinkedHashMap<>();
-        for (PerformanceOperationSnapshot operation : operations) {
-            result.put(operation.operation(), operation);
-        }
-        return result;
     }
 
     private String normalizeOperation(String operation) {

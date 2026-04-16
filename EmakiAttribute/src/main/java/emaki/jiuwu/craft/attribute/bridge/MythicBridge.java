@@ -76,7 +76,7 @@ public final class MythicBridge implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onMobSpawn(MythicMobSpawnEvent event) {
-        LivingEntity livingEntity = event.getLivingEntity();
+        LivingEntity livingEntity = event.getEntity() instanceof LivingEntity candidate ? candidate : null;
         if (livingEntity == null) {
             return;
         }

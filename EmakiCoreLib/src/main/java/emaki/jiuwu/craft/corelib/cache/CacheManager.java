@@ -28,20 +28,9 @@ public final class CacheManager<K, V> {
     }
 
     public V get(K key) {
-        long now = System.currentTimeMillis();
-        CacheEntry<V> entry;
-        readLock.lock();
-        try {
-            entry = entries.get(key);
-        } finally {
-            readLock.unlock();
-        }
-        if (entry == null) {
-            misses.incrementAndGet();
-            return null;
-        }
         writeLock.lock();
         try {
+            long now = System.currentTimeMillis();
             CacheEntry<V> current = entries.remove(key);
             if (current == null) {
                 misses.incrementAndGet();

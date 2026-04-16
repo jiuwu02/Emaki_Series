@@ -5,11 +5,13 @@ import java.util.List;
 import java.util.Map;
 
 import org.bukkit.Bukkit;
+import org.bukkit.plugin.java.JavaPlugin;
 
-import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
+import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.integration.ReflectivePdcAttributeGateway;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
@@ -19,7 +21,6 @@ import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.strengthen.config.AppConfig;
-import emaki.jiuwu.craft.strengthen.loader.GuiTemplateLoader;
 import emaki.jiuwu.craft.strengthen.loader.StrengthenRecipeLoader;
 import emaki.jiuwu.craft.strengthen.service.ChanceCalculator;
 import emaki.jiuwu.craft.strengthen.service.StrengthenActionCoordinator;
@@ -39,10 +40,7 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
 
     @Override
     public StrengthenRuntimeComponents initialize(EmakiStrengthenPlugin plugin) {
-        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.getInstance();
-        if (coreLibPlugin == null) {
-            throw new IllegalStateException("EmakiCoreLib must be enabled before EmakiStrengthen.");
-        }
+        EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
         YamlConfigLoader<AppConfig> appConfigLoader = new YamlConfigLoader<>(
                 plugin,
                 "config.yml",
@@ -68,7 +66,7 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
         );
         GuiService guiService = new GuiService(plugin, coreLibPlugin.asyncTaskScheduler(), coreLibPlugin.performanceMonitor());
         ReflectivePdcAttributeGateway pdcAttributeGateway = new ReflectivePdcAttributeGateway(plugin);
-        syncPdcAttributeRegistration(pdcAttributeGateway);
+        syncPdcAttributeRegistration(pdcAttributeGateway, PDC_ATTRIBUTE_SOURCE_ID);
         StrengthenRecipeResolver recipeResolver = new StrengthenRecipeResolver(
                 plugin,
                 coreLibPlugin.itemAssemblyService(),
@@ -129,7 +127,7 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
         plugin.languageLoader().setLanguage(plugin.appConfig().language());
         plugin.recipeLoader().load();
         plugin.guiTemplateLoader().load();
-        syncPdcAttributeRegistration(plugin.pdcAttributeGateway());
+        syncPdcAttributeRegistration(plugin.pdcAttributeGateway(), PDC_ATTRIBUTE_SOURCE_ID);
         plugin.refreshService().refreshOnlinePlayers();
     }
 
@@ -146,29 +144,27 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
         if (configuration == null || configuration.getKeys(false).isEmpty()) {
             return AppConfig.defaults();
         }
-        Map<Integer, Double> rates = parseSuccessRates(configuration.getSection("success_rates"));
         AppConfig defaults = AppConfig.defaults();
         return new AppConfig(
                 configuration.getString("language", defaults.language()),
                 configuration.getString("config_version", defaults.configVersion()),
-                Numbers.tryParseInt(configuration.get("local_broadcast_radius"), defaults.localBroadcastRadius()),
-                rates.isEmpty() ? defaults.successRates() : rates
+                configuration.getInt("local_broadcast_radius", defaults.localBroadcastRadius()),
+                parseSuccessRates(configuration.getSection("success_rates"), defaults.successRates())
         );
     }
 
-    private Map<Integer, Double> parseSuccessRates(YamlSection section) {
-        if (section == null) {
-            return Map.of();
-        }
+    private Map<Integer, Double> parseSuccessRates(YamlSection section, Map<Integer, Double> fallback) {
         Map<Integer, Double> rates = new java.util.LinkedHashMap<>();
-        for (String key : section.getKeys(false)) {
-            Integer star = Numbers.tryParseInt(key, null);
-            Double value = Numbers.tryParseDouble(section.get(key), null);
-            if (star != null && value != null) {
-                rates.put(star, value);
+        if (section != null) {
+            for (String key : section.getKeys(false)) {
+                Integer star = Numbers.tryParseInt(key, null);
+                Double value = Numbers.tryParseDouble(section.get(key), null);
+                if (star != null && value != null) {
+                    rates.put(star, value);
+                }
             }
         }
-        return rates;
+        return rates.isEmpty() ? fallback : Map.copyOf(rates);
     }
 
     private List<String> staticFiles(EmakiStrengthenPlugin plugin) {
@@ -178,10 +174,4 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
         return List.copyOf(files);
     }
 
-    private void syncPdcAttributeRegistration(ReflectivePdcAttributeGateway gateway) {
-        if (gateway == null) {
-            return;
-        }
-        gateway.syncRegistration(PDC_ATTRIBUTE_SOURCE_ID);
-    }
 }

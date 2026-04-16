@@ -5,15 +5,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.bukkit.inventory.ItemStack;
-
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerSnapshot;
 import emaki.jiuwu.craft.corelib.assembly.EmakiPresentationEntry;
 import emaki.jiuwu.craft.corelib.assembly.EmakiStatContribution;
 import emaki.jiuwu.craft.corelib.assembly.ItemPresentationCompiler;
 import emaki.jiuwu.craft.corelib.assembly.PresentationCompileIssue;
 import emaki.jiuwu.craft.corelib.assembly.PresentationCompileResult;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
@@ -26,10 +23,12 @@ final class ForgeLayerSnapshotBuilder {
 
     private final EmakiForgePlugin plugin;
     private final ItemPresentationCompiler presentationCompiler;
+    private final ForgeMaterialUsagePlanner usagePlanner;
 
     ForgeLayerSnapshotBuilder(EmakiForgePlugin plugin, ItemPresentationCompiler presentationCompiler) {
         this.plugin = plugin;
         this.presentationCompiler = presentationCompiler == null ? new ItemPresentationCompiler() : presentationCompiler;
+        this.usagePlanner = new ForgeMaterialUsagePlanner(plugin);
     }
 
     EmakiItemLayerSnapshot buildLayerSnapshot(Recipe recipe,
@@ -53,23 +52,7 @@ final class ForgeLayerSnapshotBuilder {
     }
 
     List<ForgeMaterialContribution> collectMaterialContributions(Recipe recipe, GuiItems guiItems) {
-        List<ForgeMaterialContribution> materials = new ArrayList<>();
-        if (recipe == null || guiItems == null) {
-            return materials;
-        }
-        int sequence = 0;
-        for (Map.Entry<Integer, ItemStack> entry : guiItems.requiredMaterials().entrySet()) {
-            ForgeMaterialContribution contribution = toMaterialContribution(recipe, entry.getKey(), entry.getValue(), "required", sequence++, false);
-            if (contribution != null) {
-                materials.add(contribution);
-            }
-        }
-        for (Map.Entry<Integer, ItemStack> entry : guiItems.optionalMaterials().entrySet()) {
-            ForgeMaterialContribution contribution = toMaterialContribution(recipe, entry.getKey(), entry.getValue(), "optional", sequence++, true);
-            if (contribution != null) {
-                materials.add(contribution);
-            }
-        }
+        List<ForgeMaterialContribution> materials = usagePlanner.collectMaterialContributions(recipe, guiItems);
         materials.sort((left, right) -> Integer.compare(left.sequence(), right.sequence()));
         return materials;
     }
@@ -216,20 +199,4 @@ final class ForgeLayerSnapshotBuilder {
         return audit;
     }
 
-    private ForgeMaterialContribution toMaterialContribution(Recipe recipe,
-            int slot,
-            ItemStack itemStack,
-            String category,
-            int sequence,
-            boolean optional) {
-        if (itemStack == null || recipe == null) {
-            return null;
-        }
-        ItemSource source = plugin.itemIdentifierService().identifyItem(itemStack);
-        ForgeMaterial material = recipe.findMaterialBySource(source, optional);
-        if (material == null) {
-            return null;
-        }
-        return new ForgeMaterialContribution(material, itemStack.getAmount(), slot, category, sequence, source);
-    }
 }

@@ -19,7 +19,9 @@ condition_type: all_of
 # 当条件表达式中的占位符无法解析时，是否视为条件不通过
 invalid_as_failure: true
 
-# 条件表达式列表
-conditions:
-  # 要求装备的 required_level 属性值不超过玩家当前等级
-  - "%source_attribute_required_level% <= %player_level%"
+# 自由检查项列表示例
+# 这里直接读取 Lore 纯文本中的等级需求，然后拿捕获组 $1 和玩家等级比较
+checks:
+  - type: lore_regex
+    pattern: "装备等级需求: Lv\\.(\\d+)"
+    condition: "$1 <= %player_level%"

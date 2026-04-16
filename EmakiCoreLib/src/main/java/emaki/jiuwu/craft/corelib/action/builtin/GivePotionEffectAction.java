@@ -1,7 +1,10 @@
 package emaki.jiuwu.craft.corelib.action.builtin;
 
+import java.util.Locale;
 import java.util.Map;
 
+import org.bukkit.NamespacedKey;
+import org.bukkit.Registry;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
@@ -34,7 +37,7 @@ public final class GivePotionEffectAction extends BaseAction {
         if (!playerCheck.success()) {
             return playerCheck;
         }
-        PotionEffectType type = PotionEffectType.getByName(arguments.get("type").toUpperCase());
+        PotionEffectType type = resolveEffectType(arguments.get("type"));
         if (type == null) {
             return ActionResult.failure(ActionErrorType.INVALID_ARGUMENT, "Unknown potion effect: " + arguments.get("type"));
         }
@@ -45,5 +48,14 @@ public final class GivePotionEffectAction extends BaseAction {
         boolean icon = !Boolean.FALSE.equals(ActionParsers.parseBoolean(arguments.get("icon")));
         context.player().addPotionEffect(new PotionEffect(type, duration, amplifier, ambient, particles, icon));
         return ActionResult.ok();
+    }
+
+    private PotionEffectType resolveEffectType(String rawType) {
+        String normalized = rawType == null ? "" : rawType.trim().toLowerCase(Locale.ROOT).replace(' ', '_');
+        if (normalized.isBlank()) {
+            return null;
+        }
+        NamespacedKey key = NamespacedKey.fromString(normalized.contains(":") ? normalized : "minecraft:" + normalized);
+        return key == null ? null : Registry.EFFECT.get(key);
     }
 }

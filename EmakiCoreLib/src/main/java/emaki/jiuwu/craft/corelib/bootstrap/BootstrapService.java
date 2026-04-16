@@ -114,7 +114,7 @@ public final class BootstrapService {
     }
 
     private void mergeVersionedFile(String relativePath) {
-        String versionKey = relativePath.startsWith("lang/") ? "lang_version" : "config_version";
+        String versionKey = versionKeyFor(relativePath);
         try {
             VersionedYamlFile versionedFile = YamlFiles.syncVersionedResource(
                     plugin,
@@ -132,6 +132,33 @@ public final class BootstrapService {
                     "error", String.valueOf(exception.getMessage())
             ));
         }
+    }
+
+    private String versionKeyFor(String relativePath) {
+        if (relativePath == null || relativePath.isBlank()) {
+            return "config_version";
+        }
+        Path normalized = Path.of(relativePath.replace('\\', '/'));
+        String fileName = normalized.getFileName() == null ? "" : normalized.getFileName().toString();
+        String stem = stripExtension(fileName);
+        for (Path segment : normalized) {
+            String name = segment.toString();
+            if ("lang".equalsIgnoreCase(name) || "language".equalsIgnoreCase(name) || "languages".equalsIgnoreCase(name)) {
+                return "lang_version";
+            }
+        }
+        if ("config".equalsIgnoreCase(stem)) {
+            return "config_version";
+        }
+        return stem.isBlank() ? "config_version" : stem.toLowerCase() + "_version";
+    }
+
+    private String stripExtension(String fileName) {
+        if (fileName == null || fileName.isBlank()) {
+            return "";
+        }
+        int dot = fileName.lastIndexOf('.');
+        return dot <= 0 ? fileName : fileName.substring(0, dot);
     }
 
     private void ensureDirectory(Path path) {

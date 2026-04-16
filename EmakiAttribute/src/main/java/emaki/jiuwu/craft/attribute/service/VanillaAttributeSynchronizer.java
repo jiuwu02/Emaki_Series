@@ -84,8 +84,10 @@ final class VanillaAttributeSynchronizer {
                 flatSpeed += value;
             }
         }
-        double blocksPerSecond = Math.max(0D, DEFAULT_WALK_SPEED_BLOCKS_PER_SECOND + flatSpeed);
-        blocksPerSecond *= Math.max(0D, 1D + (percentSpeed / 100D));
+        double factor = AttributeFusionMath.percentFactor(percentSpeed, true);
+        double blocksPerSecond = AttributeFusionMath.usesFusedCombatValues(snapshot)
+                ? Math.max(0D, (DEFAULT_WALK_SPEED_BLOCKS_PER_SECOND * factor) + flatSpeed)
+                : Math.max(0D, DEFAULT_WALK_SPEED_BLOCKS_PER_SECOND + flatSpeed) * factor;
         float walkSpeed = (float) Math.max(0D, Math.min(1D, (blocksPerSecond / DEFAULT_WALK_SPEED_BLOCKS_PER_SECOND) * 0.2D));
         player.setWalkSpeed(walkSpeed);
     }
@@ -93,11 +95,11 @@ final class VanillaAttributeSynchronizer {
     void syncVanillaMappedAttributes(LivingEntity entity,
             AttributeSnapshot snapshot,
             List<VanillaAttributeBinding> bindings,
-            Set<String> managedAttributeIds) {
+            Set<Attribute> managedAttributes) {
         if (entity == null || !entity.isValid() || entity.isDead()) {
             return;
         }
-        clearManagedVanillaAttributeModifiers(entity, managedAttributeIds);
+        clearManagedVanillaAttributeModifiers(entity, managedAttributes);
         if (snapshot == null || bindings.isEmpty()) {
             return;
         }
@@ -123,7 +125,9 @@ final class VanillaAttributeSynchronizer {
                 flatAttackRate += value;
             }
         }
-        double effectiveAttackRate = Math.max(0D, flatAttackRate) * Math.max(0D, 1D + (percentModifier / 100D));
+        double effectiveAttackRate = AttributeFusionMath.usesFusedCombatValues(snapshot)
+                ? Math.max(0D, flatAttackRate)
+                : Math.max(0D, flatAttackRate) * AttributeFusionMath.percentFactor(percentModifier, true);
         if (effectiveAttackRate <= 0D) {
             return DEFAULT_ATTACK_COOLDOWN_TICKS;
         }
@@ -131,25 +135,24 @@ final class VanillaAttributeSynchronizer {
         return Math.max(1, (int) Math.round(cooldownTicks));
     }
 
-    Set<String> collectManagedTargetIds(List<VanillaAttributeBinding> bindings) {
+    Set<Attribute> collectManagedAttributes(List<VanillaAttributeBinding> bindings) {
         if (bindings == null || bindings.isEmpty()) {
             return Set.of();
         }
-        LinkedHashSet<String> ids = new LinkedHashSet<>();
+        LinkedHashSet<Attribute> attributes = new LinkedHashSet<>();
         for (VanillaAttributeBinding binding : bindings) {
-            if (binding != null && Texts.isNotBlank(binding.targetAttributeId())) {
-                ids.add(binding.targetAttributeId());
+            if (binding != null && binding.attribute() != null) {
+                attributes.add(binding.attribute());
             }
         }
-        return ids.isEmpty() ? Set.of() : Set.copyOf(ids);
+        return attributes.isEmpty() ? Set.of() : Set.copyOf(attributes);
     }
 
-    private void clearManagedVanillaAttributeModifiers(LivingEntity entity, Set<String> managedAttributeIds) {
-        if (entity == null || managedAttributeIds == null || managedAttributeIds.isEmpty()) {
+    private void clearManagedVanillaAttributeModifiers(LivingEntity entity, Set<Attribute> managedAttributes) {
+        if (entity == null || managedAttributes == null || managedAttributes.isEmpty()) {
             return;
         }
-        for (String targetId : managedAttributeIds) {
-            Attribute attribute = resolveVanillaAttribute(targetId);
+        for (Attribute attribute : managedAttributes) {
             if (attribute == null) {
                 continue;
             }

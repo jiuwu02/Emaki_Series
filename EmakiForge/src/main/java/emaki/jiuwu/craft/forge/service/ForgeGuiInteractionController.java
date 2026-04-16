@@ -4,8 +4,11 @@ import java.util.Map;
 import java.util.function.Predicate;
 
 import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.ClickType;
+import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.gui.GuiSession;
@@ -115,17 +118,17 @@ final class ForgeGuiInteractionController {
             int slot,
             Map<Integer, ItemStack> items,
             Predicate<ItemStack> validator) {
-        if (event.getClick().isKeyboardClick()) {
+        if (isUnsupportedKeyboardClick(event)) {
             return;
         }
         Player player = (Player) event.getWhoClicked();
-        ItemStack cursor = ForgeGuiStateSupport.cloneNonAir(event.getCursor());
-        if (cursor != null) {
-            if (validator != null && !validator.test(cursor)) {
+        ItemStack heldItem = resolveHeldItem(player, event);
+        if (heldItem != null) {
+            if (validator != null && !validator.test(heldItem)) {
                 return;
             }
-            ItemStack previous = ForgeGuiStateSupport.cloneNonAir(items.put(slot, cursor));
-            player.setItemOnCursor(previous);
+            ItemStack previous = ForgeGuiStateSupport.cloneNonAir(items.put(slot, heldItem));
+            setHeldItem(player, event, previous);
             renderer.refreshGui(state);
             return;
         }
@@ -136,7 +139,7 @@ final class ForgeGuiInteractionController {
         if (event.isShiftClick()) {
             stateSupport.giveBackToPlayer(player, removed);
         } else {
-            player.setItemOnCursor(removed);
+            setHeldItem(player, event, removed);
         }
         renderer.refreshGui(state);
     }
@@ -218,6 +221,7 @@ final class ForgeGuiInteractionController {
             return;
         }
         state.setForgeCompleted(true);
+        stateSupport.returnUnusedInputs(state, activeRecipe);
         state.clearStoredItems();
         if (Texts.isNotBlank(result.quality())) {
             plugin.messageService().send(
@@ -231,6 +235,85 @@ final class ForgeGuiInteractionController {
         }
     }
 
+    private void handleSingleSlotDrag(InventoryDragEvent event, ForgeGuiSession state) {
+        if (event == null || state == null || state.guiSession() == null) {
+            return;
+        }
+        if (event.getNewItems().isEmpty() || event.getRawSlots().isEmpty()) {
+            return;
+        }
+        int topSize = state.guiSession().getInventory().getSize();
+        Integer rawSlot = event.getRawSlots().stream()
+                .filter(slot -> slot != null && slot >= 0 && slot < topSize)
+                .findFirst()
+                .orElse(null);
+        if (rawSlot == null || event.getRawSlots().size() != 1 || event.getNewItems().size() != 1) {
+            return;
+        }
+        GuiTemplate.ResolvedSlot slot = state.guiSession().template().resolvedSlotAt(rawSlot);
+        if (slot == null || slot.definition() == null) {
+            return;
+        }
+        ItemStack placedItem = ForgeGuiStateSupport.cloneNonAir(event.getNewItems().get(rawSlot));
+        if (placedItem == null) {
+            return;
+        }
+        switch (stateSupport.normalizedType(slot.definition())) {
+            case "blueprint_inputs" ->
+                handleDragPlacement(event, state, rawSlot, placedItem, state.blueprintItems(),
+                        itemStack -> stateSupport.findBlueprintRequirementBySource(plugin.itemIdentifierService().identifyItem(itemStack)) != null);
+            case "required_materials" ->
+                handleDragPlacement(event, state, rawSlot, placedItem, state.requiredMaterialItems(),
+                        itemStack -> {
+                            ForgeGuiStateSupport.MaterialSlotRules rules = stateSupport.resolveMaterialSlotRules(state);
+                            String materialId = materialKey(plugin.itemIdentifierService().identifyItem(itemStack));
+                            return Texts.isNotBlank(materialId) && rules.requiredIds().contains(materialId);
+                        });
+            case "optional_materials" ->
+                handleDragPlacement(event, state, rawSlot, placedItem, state.optionalMaterialItems(),
+                        itemStack -> {
+                            ForgeGuiStateSupport.MaterialSlotRules rules = stateSupport.resolveMaterialSlotRules(state);
+                            int occupied = state.optionalMaterialItems().containsKey(rawSlot)
+                                    ? state.optionalMaterialItems().size() - 1
+                                    : state.optionalMaterialItems().size();
+                            String materialId = materialKey(plugin.itemIdentifierService().identifyItem(itemStack));
+                            return stateSupport.canPlaceOptionalMaterial(materialId, rules, Math.max(0, occupied));
+                        });
+            default -> {
+            }
+        }
+    }
+
+    private void handleDragPlacement(InventoryDragEvent event,
+            ForgeGuiSession state,
+            int slot,
+            ItemStack placedItem,
+            Map<Integer, ItemStack> items,
+            Predicate<ItemStack> validator) {
+        if (event == null || state == null || placedItem == null || items == null) {
+            return;
+        }
+        if (items.containsKey(slot)) {
+            return;
+        }
+        if (validator != null && !validator.test(placedItem)) {
+            return;
+        }
+        Player player = (Player) event.getWhoClicked();
+        items.put(slot, placedItem);
+        ItemStack cursor = ForgeGuiStateSupport.cloneNonAir(event.getOldCursor());
+        if (cursor != null) {
+            int remaining = Math.max(0, cursor.getAmount() - placedItem.getAmount());
+            if (remaining <= 0) {
+                player.setItemOnCursor(null);
+            } else {
+                cursor.setAmount(remaining);
+                player.setItemOnCursor(cursor);
+            }
+        }
+        renderer.refreshGui(state);
+    }
+
     private void returnFailedAttempt(ForgeGuiSession state, String errorKey, Map<String, ?> replacements) {
         plugin.messageService().send(state.player(), errorKey, replacements == null ? Map.of() : replacements);
         stateSupport.returnItems(state);
@@ -240,6 +323,58 @@ final class ForgeGuiInteractionController {
         return source == null || plugin.forgeService() == null || plugin.forgeService().findMaterialBySource(source) == null
                 ? ""
                 : plugin.forgeService().findMaterialBySource(source).key();
+    }
+
+    private boolean isUnsupportedKeyboardClick(InventoryClickEvent event) {
+        if (event == null || !event.getClick().isKeyboardClick()) {
+            return false;
+        }
+        return event.getClick() != ClickType.NUMBER_KEY && event.getClick() != ClickType.SWAP_OFFHAND;
+    }
+
+    private ItemStack resolveHeldItem(Player player, InventoryClickEvent event) {
+        if (player == null || event == null) {
+            return null;
+        }
+        if (event.getClick() == ClickType.NUMBER_KEY) {
+            int hotbarButton = event.getHotbarButton();
+            if (hotbarButton < 0 || hotbarButton >= 9) {
+                return null;
+            }
+            return ForgeGuiStateSupport.cloneNonAir(player.getInventory().getItem(hotbarButton));
+        }
+        if (event.getClick() == ClickType.SWAP_OFFHAND) {
+            return ForgeGuiStateSupport.cloneNonAir(player.getInventory().getItemInOffHand());
+        }
+        return ForgeGuiStateSupport.cloneNonAir(event.getCursor());
+    }
+
+    private void setHeldItem(Player player, InventoryClickEvent event, ItemStack itemStack) {
+        if (player == null || event == null) {
+            return;
+        }
+        if (event.getClick() == ClickType.NUMBER_KEY) {
+            int hotbarButton = event.getHotbarButton();
+            if (hotbarButton >= 0 && hotbarButton < 9) {
+                player.getInventory().setItem(hotbarButton, ForgeGuiStateSupport.cloneNonAir(itemStack));
+            }
+            return;
+        }
+        if (event.getClick() == ClickType.SWAP_OFFHAND) {
+            player.getInventory().setItemInOffHand(ForgeGuiStateSupport.cloneNonAir(itemStack));
+            return;
+        }
+        player.setItemOnCursor(ForgeGuiStateSupport.cloneNonAir(itemStack));
+    }
+
+    private boolean shouldBlockPlayerInventoryTransfer(InventoryClickEvent event) {
+        if (event == null) {
+            return false;
+        }
+        return event.isShiftClick()
+                || event.getAction() == InventoryAction.MOVE_TO_OTHER_INVENTORY
+                || event.getAction() == InventoryAction.COLLECT_TO_CURSOR
+                || event.getClick() == ClickType.DOUBLE_CLICK;
     }
 
     private final class ForgeSessionHandler implements GuiSessionHandler {
@@ -279,11 +414,21 @@ final class ForgeGuiInteractionController {
                 event.setCancelled(true);
                 return;
             }
-            if (!event.isShiftClick()) {
+            if (!shouldBlockPlayerInventoryTransfer(event)) {
                 return;
             }
             event.setCancelled(true);
-            handleShiftFromPlayerInventory(event, state);
+            if (event.isShiftClick() || event.getAction() == InventoryAction.MOVE_TO_OTHER_INVENTORY) {
+                handleShiftFromPlayerInventory(event, state);
+            }
+        }
+
+        @Override
+        public void onDrag(GuiSession session, InventoryDragEvent event) {
+            if (state.processing()) {
+                return;
+            }
+            handleSingleSlotDrag(event, state);
         }
 
         @Override

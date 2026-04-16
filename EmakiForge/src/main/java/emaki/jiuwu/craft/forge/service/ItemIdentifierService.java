@@ -61,6 +61,18 @@ public final class ItemIdentifierService {
         return itemSourceService == null ? null : itemSourceService.createItem(source, amount);
     }
 
+    public String displayName(ItemSource source) {
+        if (source == null || source.getType() == null || Texts.isBlank(source.getIdentifier())) {
+            return "";
+        }
+        ItemSourceService itemSourceService = coreItemSourceService();
+        if (itemSourceService == null) {
+            String shorthand = ItemSourceUtil.toShorthand(source);
+            return Texts.isBlank(shorthand) ? source.getIdentifier() : shorthand;
+        }
+        return itemSourceService.displayName(source);
+    }
+
     public void validateConfiguredSource(ItemSource source, String location) {
         ensureSourceAvailable(source, location);
     }

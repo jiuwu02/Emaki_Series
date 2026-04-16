@@ -5,7 +5,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -24,14 +23,12 @@ final class PlayerDataCache {
     public <R> R read(String uuid, Supplier<PlayerData> loader, Function<PlayerData, R> reader) {
         Objects.requireNonNull(reader, "reader");
         CachedPlayerData entry = resolveEntry(uuid, loader);
-        entry.touch();
         return entry.store().read(reader);
     }
 
     public void update(String uuid, Supplier<PlayerData> loader, Consumer<PlayerData> consumer) {
         Objects.requireNonNull(consumer, "consumer");
         CachedPlayerData entry = resolveEntry(uuid, loader);
-        entry.touch();
         entry.store().write(data -> {
             consumer.accept(data);
             return data;
@@ -44,7 +41,6 @@ final class PlayerDataCache {
         if (entry == null) {
             return null;
         }
-        entry.touch();
         return entry.store().read(PlayerData::copy);
     }
 
@@ -54,7 +50,6 @@ final class PlayerDataCache {
             if (!entry.getValue().dirty()) {
                 continue;
             }
-            entry.getValue().touch();
             snapshots.put(entry.getKey(), entry.getValue().store().read(PlayerData::copy));
         }
         return snapshots;
@@ -103,7 +98,6 @@ final class PlayerDataCache {
 
         private final ConcurrentDataStore<PlayerData> store;
         private final AtomicBoolean dirty = new AtomicBoolean();
-        private final AtomicLong lastAccessedAt = new AtomicLong(System.currentTimeMillis());
 
         private CachedPlayerData(PlayerData data) {
             this.store = new ConcurrentDataStore<>(data == null ? new PlayerData("") : data);
@@ -111,10 +105,6 @@ final class PlayerDataCache {
 
         private ConcurrentDataStore<PlayerData> store() {
             return store;
-        }
-
-        private void touch() {
-            lastAccessedAt.set(System.currentTimeMillis());
         }
 
         private boolean dirty() {

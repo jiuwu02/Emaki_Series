@@ -64,34 +64,33 @@ final class ReflectiveMmoItemsItemSourceResolver implements ItemSourceResolver {
         return cloned;
     }
 
-    private static final class Accessor {
+    private static final class Accessor extends AbstractReflectiveAccessor {
 
-        private boolean initialized;
-        private boolean available;
         private Field pluginField;
         private Method getItemMethod;
         private Method getTypeMethod;
         private Method getIdMethod;
 
-        private synchronized boolean ensureAvailable() {
-            if (!Bukkit.getPluginManager().isPluginEnabled("MMOItems")) {
-                return false;
-            }
-            if (initialized) {
-                return available;
-            }
-            initialized = true;
-            try {
-                Class<?> mmoItemsClass = Class.forName("net.Indyuce.mmoitems.MMOItems");
-                pluginField = mmoItemsClass.getField("plugin");
-                getItemMethod = mmoItemsClass.getMethod("getItem", String.class, String.class);
-                getTypeMethod = mmoItemsClass.getMethod("getType", ItemStack.class);
-                getIdMethod = mmoItemsClass.getMethod("getID", ItemStack.class);
-                available = true;
-            } catch (Throwable throwable) {
-                available = false;
-            }
-            return available;
+        @Override
+        protected void initializeBindings() throws Exception {
+            Class<?> mmoItemsClass = Class.forName("net.Indyuce.mmoitems.MMOItems");
+            pluginField = mmoItemsClass.getField("plugin");
+            getItemMethod = mmoItemsClass.getMethod("getItem", String.class, String.class);
+            getTypeMethod = mmoItemsClass.getMethod("getType", ItemStack.class);
+            getIdMethod = mmoItemsClass.getMethod("getID", ItemStack.class);
+        }
+
+        @Override
+        protected void resetBindings() {
+            pluginField = null;
+            getItemMethod = null;
+            getTypeMethod = null;
+            getIdMethod = null;
+        }
+
+        @Override
+        protected boolean preEnsureAvailable() {
+            return Bukkit.getPluginManager().isPluginEnabled("MMOItems");
         }
 
         private String resolveTypeId(ItemStack itemStack) {
@@ -99,13 +98,9 @@ final class ReflectiveMmoItemsItemSourceResolver implements ItemSourceResolver {
             if (rawType == null) {
                 return "";
             }
-            try {
-                Method getId = rawType.getClass().getMethod("getId");
-                Object value = getId.invoke(rawType);
-                return Texts.toStringSafe(value).trim();
-            } catch (Throwable throwable) {
-                return Texts.toStringSafe(rawType).trim();
-            }
+            Method getIdMethod = getOptionalMethod(rawType.getClass(), "getId");
+            Object value = invoke(getIdMethod, rawType);
+            return value == null ? Texts.toStringSafe(rawType).trim() : Texts.toStringSafe(value).trim();
         }
 
         private String resolveItemId(ItemStack itemStack) {
@@ -113,7 +108,7 @@ final class ReflectiveMmoItemsItemSourceResolver implements ItemSourceResolver {
         }
 
         private ItemStack createItem(MmoItemsKey key) {
-            Object plugin = invokeField(pluginField);
+            Object plugin = readStaticField(pluginField);
             if (plugin == null || key == null) {
                 return null;
             }
@@ -122,32 +117,6 @@ final class ReflectiveMmoItemsItemSourceResolver implements ItemSourceResolver {
                 return created;
             }
             return asItemStack(invoke(getItemMethod, plugin, key.typeId().toUpperCase(Locale.ROOT), key.itemId()));
-        }
-
-        private Object invokeField(Field field) {
-            if (field == null) {
-                return null;
-            }
-            try {
-                return field.get(null);
-            } catch (Throwable throwable) {
-                return null;
-            }
-        }
-
-        private Object invoke(Method method, Object target, Object... arguments) {
-            if (method == null) {
-                return null;
-            }
-            try {
-                return method.invoke(target, arguments);
-            } catch (Throwable throwable) {
-                return null;
-            }
-        }
-
-        private ItemStack asItemStack(Object value) {
-            return value instanceof ItemStack itemStack ? itemStack : null;
         }
     }
 

@@ -12,7 +12,6 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.monitor.PerformanceMonitor;
 
@@ -22,14 +21,6 @@ public final class GuiService implements Listener {
     private final Map<UUID, GuiSession> sessions = new ConcurrentHashMap<>();
     private final AsyncGuiRenderer asyncGuiRenderer;
 
-    public GuiService(JavaPlugin plugin) {
-        this(
-                plugin,
-                resolveAsyncTaskScheduler(),
-                resolvePerformanceMonitor()
-        );
-    }
-
     public GuiService(JavaPlugin plugin,
             AsyncTaskScheduler asyncTaskScheduler,
             PerformanceMonitor performanceMonitor) {
@@ -38,16 +29,6 @@ public final class GuiService implements Listener {
                 asyncTaskScheduler,
                 performanceMonitor
         );
-    }
-
-    private static AsyncTaskScheduler resolveAsyncTaskScheduler() {
-        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.getInstance();
-        return coreLibPlugin == null ? null : coreLibPlugin.asyncTaskScheduler();
-    }
-
-    private static PerformanceMonitor resolvePerformanceMonitor() {
-        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.getInstance();
-        return coreLibPlugin == null ? null : coreLibPlugin.performanceMonitor();
     }
 
     public GuiSession open(GuiOpenRequest request) {
@@ -78,7 +59,8 @@ public final class GuiService implements Listener {
         }
         CompletableFuture<GuiSession> future = new CompletableFuture<>();
         plugin.getServer().getScheduler().runTask(plugin, () -> {
-            GuiSession existing = sessions.remove(request.viewer().getUniqueId());
+            UUID viewerId = request.viewer().getUniqueId();
+            GuiSession existing = sessions.remove(viewerId);
             if (existing != null) {
                 existing.viewer().closeInventory();
             }
@@ -91,12 +73,16 @@ public final class GuiService implements Listener {
                     request.renderer(),
                     request.handler()
             );
-            sessions.put(request.viewer().getUniqueId(), session);
+            sessions.put(viewerId, session);
             asyncGuiRenderer.prepare(session)
                     .whenComplete((renderedSlots, throwable) -> plugin.getServer().getScheduler().runTask(plugin, () -> {
                         if (throwable != null) {
-                            sessions.remove(request.viewer().getUniqueId());
+                            sessions.remove(viewerId, session);
                             future.completeExceptionally(throwable);
+                            return;
+                        }
+                        if (sessions.get(viewerId) != session) {
+                            future.complete(null);
                             return;
                         }
                         session.applyRenderedSlots(renderedSlots);
@@ -159,7 +145,7 @@ public final class GuiService implements Listener {
         if (!isManagedSession(session)) {
             return;
         }
-        sessions.remove(event.getPlayer().getUniqueId());
+        sessions.remove(event.getPlayer().getUniqueId(), session);
         session.handler().onClose(session, event);
     }
 
