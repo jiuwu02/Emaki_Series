@@ -23,7 +23,7 @@ import emaki.jiuwu.craft.attribute.api.PdcAttributeApi;
 import emaki.jiuwu.craft.attribute.loader.PdcReadRuleLoader;
 import emaki.jiuwu.craft.attribute.model.PdcAttributePayload;
 import emaki.jiuwu.craft.attribute.model.PdcReadRule;
-import emaki.jiuwu.craft.attribute.model.PdcReadRule.RuleCheck;
+import emaki.jiuwu.craft.attribute.model.PdcReadRule.RuleCondition;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.pdc.PdcPartition;
@@ -224,13 +224,13 @@ public final class PdcAttributeService implements PdcAttributeApi {
             PdcAttributePayload payload,
             PdcReadRule rule,
             List<String> loreLines) {
-        if (rule == null || !rule.hasChecks()) {
+        if (rule == null || !rule.hasConditions()) {
             return new FilterOutcome(true, List.of());
         }
         List<String> traces = new ArrayList<>();
         List<Boolean> results = new ArrayList<>();
-        for (RuleCheck check : rule.checks()) {
-            CheckOutcome outcome = evaluateCheck(player, payload, loreLines, check);
+        for (RuleCondition condition : rule.conditions()) {
+            ConditionOutcome outcome = evaluateCondition(player, payload, loreLines, condition);
             traces.addAll(outcome.traces());
             if (outcome.accepted() == null) {
                 if (rule.invalidAsFailure()) {
@@ -246,86 +246,86 @@ public final class PdcAttributeService implements PdcAttributeApi {
         return new FilterOutcome(combineResults(results, rule.conditionType(), rule.requiredCount()), traces);
     }
 
-    private CheckOutcome evaluateCheck(Player player,
+    private ConditionOutcome evaluateCondition(Player player,
             PdcAttributePayload payload,
             List<String> loreLines,
-            RuleCheck check) {
-        if (payload == null || check == null || Texts.isBlank(check.type())) {
-            return CheckOutcome.invalid("check=invalid");
+            RuleCondition condition) {
+        if (payload == null || condition == null || Texts.isBlank(condition.type())) {
+            return ConditionOutcome.invalid("condition=invalid");
         }
-        return switch (normalizeCheckType(check.type())) {
+        return switch (normalizeConditionType(condition.type())) {
             case "pdc_meta" ->
-                evaluateSingleValueCheck(player, payload, check, payload.meta().get(Texts.normalizeId(check.key())), "pdc_meta");
+                evaluateSingleValueCondition(player, payload, condition, payload.meta().get(Texts.normalizeId(condition.key())), "pdc_meta");
             case "pdc_attribute" ->
-                evaluateSingleValueCheck(player, payload, check, formatNumber(payload.attributes().get(Texts.normalizeId(check.key()))), "pdc_attribute");
+                evaluateSingleValueCondition(player, payload, condition, formatNumber(payload.attributes().get(Texts.normalizeId(condition.key()))), "pdc_attribute");
             case "source_id" ->
-                evaluateSingleValueCheck(player, payload, check, payload.sourceId(), "source_id");
+                evaluateSingleValueCondition(player, payload, condition, payload.sourceId(), "source_id");
             case "lore_regex" ->
-                evaluateLoreRegexCheck(player, payload, loreLines, check);
+                evaluateLoreRegexCondition(player, payload, loreLines, condition);
             default ->
-                CheckOutcome.invalid("check_type=" + check.type());
+                ConditionOutcome.invalid("condition_type=" + condition.type());
         };
     }
 
-    private CheckOutcome evaluateSingleValueCheck(Player player,
+    private ConditionOutcome evaluateSingleValueCondition(Player player,
             PdcAttributePayload payload,
-            RuleCheck check,
+            RuleCondition condition,
             String rawValue,
             String typeName) {
         String value = Texts.toStringSafe(rawValue);
-        if (check.hasPattern()) {
-            Pattern pattern = compileRulePattern(check.pattern());
+        if (condition.hasPattern()) {
+            Pattern pattern = compileRulePattern(condition.pattern());
             if (pattern == null) {
-                return CheckOutcome.invalid(typeName + " key=" + check.key() + " invalid_pattern=" + check.pattern());
+                return ConditionOutcome.invalid(typeName + " key=" + condition.key() + " invalid_pattern=" + condition.pattern());
             }
             Matcher matcher = pattern.matcher(value);
             if (!matcher.find()) {
-                return CheckOutcome.of(
-                        check.requireMatch() ? Boolean.FALSE : Boolean.TRUE,
-                        typeName + " key=" + check.key() + " value=" + value + " pattern=" + check.pattern() + " matched=false"
+                return ConditionOutcome.of(
+                        condition.requireMatch() ? Boolean.FALSE : Boolean.TRUE,
+                        typeName + " key=" + condition.key() + " value=" + value + " pattern=" + condition.pattern() + " matched=false"
                 );
             }
-            if (!check.hasCondition()) {
-                return CheckOutcome.of(
+            if (!condition.hasCondition()) {
+                return ConditionOutcome.of(
                         Boolean.TRUE,
-                        typeName + " key=" + check.key() + " value=" + value + " pattern=" + check.pattern() + " matched=true"
+                        typeName + " key=" + condition.key() + " value=" + value + " pattern=" + condition.pattern() + " matched=true"
                 );
             }
-            String resolvedCondition = applyFlexibleContext(player, payload, check.condition(), value, matcher);
+            String resolvedCondition = applyFlexibleContext(player, payload, condition.condition(), value, matcher);
             Boolean accepted = evaluateResolvedCondition(resolvedCondition);
-            return new CheckOutcome(
+            return new ConditionOutcome(
                     accepted,
-                    List.of(typeName + " key=" + check.key() + " value=" + value + " pattern=" + check.pattern()
+                    List.of(typeName + " key=" + condition.key() + " value=" + value + " pattern=" + condition.pattern()
                             + " condition=" + resolvedCondition + " accepted=" + accepted)
             );
         }
-        if (!check.hasCondition()) {
+        if (!condition.hasCondition()) {
             boolean accepted = Texts.isNotBlank(value);
-            return CheckOutcome.of(
+            return ConditionOutcome.of(
                     accepted,
-                    typeName + " key=" + check.key() + " value=" + value + " exists=" + accepted
+                    typeName + " key=" + condition.key() + " value=" + value + " exists=" + accepted
             );
         }
-        String resolvedCondition = applyFlexibleContext(player, payload, check.condition(), value, null);
+        String resolvedCondition = applyFlexibleContext(player, payload, condition.condition(), value, null);
         Boolean accepted = evaluateResolvedCondition(resolvedCondition);
-        return new CheckOutcome(
+        return new ConditionOutcome(
                 accepted,
-                List.of(typeName + " key=" + check.key() + " value=" + value + " condition=" + resolvedCondition + " accepted=" + accepted)
+                List.of(typeName + " key=" + condition.key() + " value=" + value + " condition=" + resolvedCondition + " accepted=" + accepted)
         );
     }
 
-    private CheckOutcome evaluateLoreRegexCheck(Player player,
+    private ConditionOutcome evaluateLoreRegexCondition(Player player,
             PdcAttributePayload payload,
             List<String> loreLines,
-            RuleCheck check) {
-        Pattern pattern = compileRulePattern(check.pattern());
+            RuleCondition condition) {
+        Pattern pattern = compileRulePattern(condition.pattern());
         if (pattern == null) {
-            return CheckOutcome.invalid("lore_regex invalid_pattern=" + check.pattern());
+            return ConditionOutcome.invalid("lore_regex invalid_pattern=" + condition.pattern());
         }
         if (loreLines == null || loreLines.isEmpty()) {
-            return CheckOutcome.of(
-                    check.requireMatch() ? Boolean.FALSE : Boolean.TRUE,
-                    "lore_regex pattern=" + check.pattern() + " lore_empty=true"
+            return ConditionOutcome.of(
+                    condition.requireMatch() ? Boolean.FALSE : Boolean.TRUE,
+                    "lore_regex pattern=" + condition.pattern() + " lore_empty=true"
             );
         }
         boolean matched = false;
@@ -337,30 +337,30 @@ public final class PdcAttributeService implements PdcAttributeApi {
                 continue;
             }
             matched = true;
-            if (!check.hasCondition()) {
-                return CheckOutcome.of(Boolean.TRUE, "lore_regex pattern=" + check.pattern() + " line=" + line + " matched=true");
+            if (!condition.hasCondition()) {
+                return ConditionOutcome.of(Boolean.TRUE, "lore_regex pattern=" + condition.pattern() + " line=" + line + " matched=true");
             }
-            String resolvedCondition = applyFlexibleContext(player, payload, check.condition(), line, matcher);
+            String resolvedCondition = applyFlexibleContext(player, payload, condition.condition(), line, matcher);
             Boolean accepted = evaluateResolvedCondition(resolvedCondition);
-            traces.add("lore_regex pattern=" + check.pattern() + " line=" + line + " condition=" + resolvedCondition + " accepted=" + accepted);
+            traces.add("lore_regex pattern=" + condition.pattern() + " line=" + line + " condition=" + resolvedCondition + " accepted=" + accepted);
             if (accepted == null) {
                 sawInvalid = true;
                 continue;
             }
             if (accepted) {
-                return new CheckOutcome(Boolean.TRUE, traces);
+                return new ConditionOutcome(Boolean.TRUE, traces);
             }
         }
         if (!matched) {
-            return CheckOutcome.of(
-                    check.requireMatch() ? Boolean.FALSE : Boolean.TRUE,
-                    "lore_regex pattern=" + check.pattern() + " matched=false"
+            return ConditionOutcome.of(
+                    condition.requireMatch() ? Boolean.FALSE : Boolean.TRUE,
+                    "lore_regex pattern=" + condition.pattern() + " matched=false"
             );
         }
         if (sawInvalid) {
-            return new CheckOutcome(null, traces);
+            return new ConditionOutcome(null, traces);
         }
-        return new CheckOutcome(Boolean.FALSE, traces);
+        return new ConditionOutcome(Boolean.FALSE, traces);
     }
 
     private Boolean evaluateResolvedCondition(String resolvedCondition) {
@@ -542,7 +542,7 @@ public final class PdcAttributeService implements PdcAttributeApi {
         }
         pdcService.set(itemStack, itemPartition, "source_index", PersistentDataType.STRING, String.join(",", sourceIds));
     }
-    private String normalizeCheckType(String type) {
+    private String normalizeConditionType(String type) {
         return Texts.normalizeId(type);
     }
 
@@ -569,19 +569,18 @@ public final class PdcAttributeService implements PdcAttributeApi {
         }
     }
 
-    private record CheckOutcome(Boolean accepted, List<String> traces) {
+    private record ConditionOutcome(Boolean accepted, List<String> traces) {
 
-        private CheckOutcome {
+        private ConditionOutcome {
             traces = traces == null ? List.of() : List.copyOf(traces);
         }
 
-        static CheckOutcome of(Boolean accepted, String trace) {
-            return new CheckOutcome(accepted, Texts.isBlank(trace) ? List.of() : List.of(trace));
+        static ConditionOutcome of(Boolean accepted, String trace) {
+            return new ConditionOutcome(accepted, Texts.isBlank(trace) ? List.of() : List.of(trace));
         }
 
-        static CheckOutcome invalid(String trace) {
+        static ConditionOutcome invalid(String trace) {
             return of(null, trace);
         }
     }
 }
-

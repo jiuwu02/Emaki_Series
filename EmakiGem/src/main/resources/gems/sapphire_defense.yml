@@ -1,5 +1,4 @@
-# 货币字段统一使用 currency_id。
-# 旧字段 currency 仍兼容加载，建议新配置改用 currency_id。
+# 货币字段仅接受 currency_id。
 id: "sapphire_defense"
 gem_type: "defense"
 tier: 1

@@ -7,7 +7,7 @@ import java.util.regex.Pattern;
 
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.attribute.model.PdcReadRule;
-import emaki.jiuwu.craft.attribute.model.PdcReadRule.RuleCheck;
+import emaki.jiuwu.craft.attribute.model.PdcReadRule.RuleCondition;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
@@ -61,6 +61,17 @@ public final class PdcReadRuleLoader extends DirectoryLoader<PdcReadRule> {
         if (rule == null) {
             return false;
         }
+        if (hasLegacyChecksField(configuration)) {
+            issue(
+                    "loader.schema_unsupported_field",
+                    Map.of(
+                            "type", typeName(),
+                            "file", file.getName(),
+                            "field", "checks"
+                    )
+            );
+            return false;
+        }
         if (!hasValidConditionEntries(configuration, rule)) {
             issue(
                     "loader.schema_invalid_section",
@@ -72,8 +83,8 @@ public final class PdcReadRuleLoader extends DirectoryLoader<PdcReadRule> {
             );
             return false;
         }
-        for (RuleCheck check : rule.checks()) {
-            if (!isSupportedCheckType(check.type())) {
+        for (RuleCondition condition : rule.conditions()) {
+            if (!isSupportedConditionType(condition.type())) {
                 issue(
                         "loader.schema_invalid_enum",
                         Map.of(
@@ -84,7 +95,7 @@ public final class PdcReadRuleLoader extends DirectoryLoader<PdcReadRule> {
                 );
                 return false;
             }
-            if (requiresKey(check.type()) && Texts.isBlank(check.key())) {
+            if (requiresKey(condition.type()) && Texts.isBlank(condition.key())) {
                 issue(
                         "loader.schema_missing_id",
                         Map.of(
@@ -95,7 +106,7 @@ public final class PdcReadRuleLoader extends DirectoryLoader<PdcReadRule> {
                 );
                 return false;
             }
-            if ("lore_regex".equals(normalizeCheckType(check.type())) && Texts.isBlank(check.pattern())) {
+            if ("lore_regex".equals(normalizeConditionType(condition.type())) && Texts.isBlank(condition.pattern())) {
                 issue(
                         "loader.schema_missing_section",
                         Map.of(
@@ -106,13 +117,13 @@ public final class PdcReadRuleLoader extends DirectoryLoader<PdcReadRule> {
                 );
                 return false;
             }
-            if (Texts.isNotBlank(check.pattern()) && !isValidRegex(check.pattern())) {
+            if (Texts.isNotBlank(condition.pattern()) && !isValidRegex(condition.pattern())) {
                 issue(
                         "loader.load_failed",
                         Map.of(
                                 "type", typeName(),
                                 "file", file.getName(),
-                                "error", "无效正则: " + check.pattern()
+                                "error", "无效正则: " + condition.pattern()
                         )
                 );
                 return false;
@@ -134,8 +145,8 @@ public final class PdcReadRuleLoader extends DirectoryLoader<PdcReadRule> {
         return value == null ? null : value.sourceId();
     }
 
-    private boolean isSupportedCheckType(String type) {
-        return switch (normalizeCheckType(type)) {
+    private boolean isSupportedConditionType(String type) {
+        return switch (normalizeConditionType(type)) {
             case "pdc_meta", "pdc_attribute", "lore_regex", "source_id" ->
                 true;
             default ->
@@ -147,7 +158,7 @@ public final class PdcReadRuleLoader extends DirectoryLoader<PdcReadRule> {
         if (configuration == null || rule == null) {
             return false;
         }
-        Object rawEntries = resolveConditionEntries(configuration);
+        Object rawEntries = configuration.get("conditions");
         if (rawEntries == null) {
             return true;
         }
@@ -155,11 +166,11 @@ public final class PdcReadRuleLoader extends DirectoryLoader<PdcReadRule> {
         if (entries.isEmpty()) {
             return true;
         }
-        return rule.checks().size() == entries.size();
+        return rule.conditions().size() == entries.size();
     }
 
     private boolean requiresKey(String type) {
-        return switch (normalizeCheckType(type)) {
+        return switch (normalizeConditionType(type)) {
             case "pdc_meta", "pdc_attribute" ->
                 true;
             default ->
@@ -167,16 +178,12 @@ public final class PdcReadRuleLoader extends DirectoryLoader<PdcReadRule> {
         };
     }
 
-    private String normalizeCheckType(String type) {
+    private String normalizeConditionType(String type) {
         return Texts.normalizeId(type);
     }
 
-    private Object resolveConditionEntries(YamlSection configuration) {
-        if (configuration == null) {
-            return null;
-        }
-        Object conditions = configuration.get("conditions");
-        return conditions != null ? conditions : configuration.get("checks");
+    private boolean hasLegacyChecksField(YamlSection configuration) {
+        return configuration != null && configuration.contains("checks");
     }
 
     private boolean isValidRegex(String pattern) {

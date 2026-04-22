@@ -173,7 +173,7 @@ public final class SkillsGuiService {
             return emptySlotItem(slotIndex);
         }
 
-        Material icon = resolveIcon(definition.iconSource());
+        Material icon = resolveIcon(definition.iconMaterial());
         ItemStack item = new ItemStack(icon);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
@@ -242,7 +242,7 @@ public final class SkillsGuiService {
         // Check if already equipped
         boolean equipped = isSkillEquipped(player, entry.skillId());
 
-        Material icon = resolveIcon(definition.iconSource());
+        Material icon = resolveIcon(definition.iconMaterial());
         ItemStack item = new ItemStack(icon);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
@@ -419,11 +419,11 @@ public final class SkillsGuiService {
     // Utility
     // ------------------------------------------------------------------
 
-    private Material resolveIcon(String iconSource) {
-        if (iconSource == null || iconSource.isBlank()) {
+    private Material resolveIcon(String iconMaterial) {
+        if (iconMaterial == null || iconMaterial.isBlank()) {
             return Material.NETHER_STAR;
         }
-        Material material = ItemSourceUtil.resolveVanillaMaterial(iconSource);
+        Material material = ItemSourceUtil.resolveVanillaMaterial(iconMaterial);
         return material != null ? material : Material.NETHER_STAR;
     }
 

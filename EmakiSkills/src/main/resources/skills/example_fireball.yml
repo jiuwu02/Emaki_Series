@@ -1,5 +1,3 @@
-# 技能图标优先使用 icon_material 指定 Bukkit Material。
-# 旧字段 icon_source 仍兼容加载，建议新配置改用 icon_material。
 id: fireball
 display_name: "<gradient:#FF6B35:#FF4500>火球术</gradient>"
 description:

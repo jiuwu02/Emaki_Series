@@ -208,7 +208,7 @@ public final class GemItemDefinition {
             return new SocketSlot(
                     index,
                     ConfigNodes.string(raw, "type", "universal"),
-                    ConfigNodes.string(raw, "display_name", ConfigNodes.string(raw, "name", ""))
+                    ConfigNodes.string(raw, "display_name", "")
             );
         }
     }

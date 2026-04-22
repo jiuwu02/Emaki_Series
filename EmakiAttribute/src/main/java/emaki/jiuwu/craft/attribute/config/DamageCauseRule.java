@@ -33,22 +33,8 @@ public record DamageCauseRule(String cause,
         if (Texts.isBlank(cause)) {
             return null;
         }
-        String damageTypeId = firstNonBlank(
-                ConfigNodes.string(raw, "damage_type", null),
-                ConfigNodes.string(raw, "damageType", null),
-                ConfigNodes.string(raw, "type", null),
-                defaultDamageType
-        );
-        Double damage = Numbers.tryParseDouble(
-                firstNonNull(
-                        ConfigNodes.get(raw, "damage"),
-                        ConfigNodes.get(raw, "amount"),
-                        ConfigNodes.get(raw, "value"),
-                        ConfigNodes.get(raw, "base_damage"),
-                        ConfigNodes.get(raw, "baseDamage")
-                ),
-                null
-        );
+        String damageTypeId = ConfigNodes.string(raw, "damage_type", defaultDamageType);
+        Double damage = Numbers.tryParseDouble(ConfigNodes.get(raw, "damage"), null);
         boolean enabled = ConfigNodes.contains(raw, "enabled") ? ConfigNodes.bool(raw, "enabled", true) : true;
         DamageContextVariables.Builder context = DamageContextVariables.builder();
         Object nestedContext = ConfigNodes.get(raw, "context");
@@ -89,39 +75,9 @@ public record DamageCauseRule(String cause,
         String normalized = Texts.normalizeId(key);
         return normalized.equals("cause")
                 || normalized.equals("damage_type")
-                || normalized.equals("damagetype")
-                || normalized.equals("type")
                 || normalized.equals("damage")
-                || normalized.equals("amount")
-                || normalized.equals("value")
-                || normalized.equals("base_damage")
-                || normalized.equals("basedamage")
                 || normalized.equals("enabled")
                 || normalized.equals("context");
-    }
-
-    private static String firstNonBlank(String... values) {
-        if (values == null) {
-            return "";
-        }
-        for (String value : values) {
-            if (!Texts.isBlank(value)) {
-                return value;
-            }
-        }
-        return "";
-    }
-
-    private static Object firstNonNull(Object... values) {
-        if (values == null) {
-            return null;
-        }
-        for (Object value : values) {
-            if (value != null) {
-                return value;
-            }
-        }
-        return null;
     }
 }
 

@@ -399,7 +399,7 @@ public final class StrengthenRecipe {
             }
             result.put(Texts.lower(key), new StatLineDefinition(
                     statSection.getString("template", ""),
-                    statSection.getString("section_id", statSection.getString("lore_section", "")),
+                    statSection.getString("section_id", ""),
                     Numbers.tryParseInt(statSection.get("section_order"), 0)
             ));
         }

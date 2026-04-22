@@ -49,7 +49,7 @@ public final class SkillDefinitionLoader extends YamlDirectoryLoader<SkillDefini
         }
 
         List<SkillResourceCost> resourceCosts = parseResourceCosts(configuration.getMapList("resource_costs"));
-        String iconMaterial = configuration.getString("icon_material", configuration.getString("icon_source", ""));
+        String iconMaterial = configuration.getString("icon_material", "");
 
         return new SkillDefinition(
                 id,

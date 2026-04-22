@@ -294,7 +294,7 @@ public final class GemDefinition {
     }
 
     public record CurrencyCost(String provider,
-            String currency,
+            String currencyId,
             double amount,
             double baseCost,
             String costFormula,
@@ -302,7 +302,7 @@ public final class GemDefinition {
 
         public CurrencyCost {
             provider = Texts.isBlank(provider) ? "auto" : Texts.lower(provider);
-            currency = Texts.toStringSafe(currency);
+            currencyId = Texts.toStringSafe(currencyId);
             amount = amount < 0D ? -1D : Math.max(0D, amount);
             baseCost = Math.max(0D, baseCost);
             costFormula = Texts.toStringSafe(costFormula).trim();
@@ -329,23 +329,19 @@ public final class GemDefinition {
             if (resolvedAmount <= 0D) {
                 return null;
             }
-            return new CurrencyCost(provider, currency, resolvedAmount, baseCost, costFormula, displayName);
-        }
-
-        public String currencyId() {
-            return currency;
+            return new CurrencyCost(provider, currencyId, resolvedAmount, baseCost, costFormula, displayName);
         }
 
         public static CurrencyCost fromConfig(Object raw) {
             Double configuredAmount = Numbers.tryParseDouble(ConfigNodes.get(raw, "amount"), null);
             double baseCost = Numbers.tryParseDouble(ConfigNodes.get(raw, "base_cost"), 0D);
-            String costFormula = ConfigNodes.string(raw, "cost_formula", ConfigNodes.string(raw, "formula", ""));
+            String costFormula = ConfigNodes.string(raw, "cost_formula", "");
             if ((configuredAmount == null || configuredAmount <= 0D) && baseCost <= 0D && Texts.isBlank(costFormula)) {
                 return null;
             }
             return new CurrencyCost(
                     ConfigNodes.string(raw, "provider", "auto"),
-                    ConfigNodes.string(raw, "currency_id", ConfigNodes.string(raw, "currency", "")),
+                    ConfigNodes.string(raw, "currency_id", ""),
                     configuredAmount == null ? -1D : configuredAmount,
                     baseCost,
                     costFormula,

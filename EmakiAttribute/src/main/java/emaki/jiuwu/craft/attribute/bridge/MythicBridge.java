@@ -184,7 +184,7 @@ public final class MythicBridge implements Listener {
                 attacker = resolveLiving(metadata.getTrigger());
             }
             double baseDamage = config.getDouble("damage", config.getDouble("base", metadata.getPower()));
-            String damageTypeId = config.getString("damage_type", config.getString("type", ""));
+            String damageTypeId = config.getString("damage_type", "");
             if (damageTypeId.isBlank() && attacker != null) {
                 damageTypeId = attributeService.consumeDamageTypeOverride(attacker);
             }

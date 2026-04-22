@@ -176,7 +176,7 @@ public final class GemEconomyService {
                 if (currency == null || currency.amount() <= 0D) {
                     continue;
                 }
-                economyManager.add(player, currency.provider(), currency.currency(), currency.amount());
+                economyManager.add(player, currency.provider(), currency.currencyId(), currency.amount());
             }
         }
         if (materials != null) {
@@ -192,7 +192,7 @@ public final class GemEconomyService {
         }
         EconomyManager economyManager = economyManager();
         return economyManager != null
-                && economyManager.getBalance(player, currency.provider(), currency.currency()) >= currency.amount();
+                && economyManager.getBalance(player, currency.provider(), currency.currencyId()) >= currency.amount();
     }
 
     private boolean canAfford(Player player,
@@ -217,7 +217,7 @@ public final class GemEconomyService {
         if (economyManager == null) {
             return false;
         }
-        ActionResult result = economyManager.remove(player, currency.provider(), currency.currency(), currency.amount());
+        ActionResult result = economyManager.remove(player, currency.provider(), currency.currencyId(), currency.amount());
         return result.success();
     }
 

@@ -12,7 +12,7 @@ import emaki.jiuwu.craft.corelib.text.Texts;
 public record PdcReadRule(String sourceId,
         String conditionType,
         Integer requiredCount,
-        List<RuleCheck> checks,
+        List<RuleCondition> conditions,
         boolean invalidAsFailure,
         int schemaVersion) {
 
@@ -21,7 +21,7 @@ public record PdcReadRule(String sourceId,
     public PdcReadRule {
         sourceId = Texts.normalizeId(sourceId);
         conditionType = Texts.isBlank(conditionType) ? "all_of" : Texts.lower(conditionType);
-        checks = checks == null ? List.of() : List.copyOf(checks.stream().filter(java.util.Objects::nonNull).toList());
+        conditions = conditions == null ? List.of() : List.copyOf(conditions.stream().filter(java.util.Objects::nonNull).toList());
         schemaVersion = schemaVersion <= 0 ? CURRENT_SCHEMA_VERSION : schemaVersion;
     }
 
@@ -32,8 +32,8 @@ public record PdcReadRule(String sourceId,
         if (requiredCount != null) {
             map.put("required_count", requiredCount);
         }
-        if (!checks.isEmpty()) {
-            map.put("conditions", checks.stream().map(RuleCheck::toMap).toList());
+        if (!conditions.isEmpty()) {
+            map.put("conditions", conditions.stream().map(RuleCondition::toMap).toList());
         }
         map.put("invalid_as_failure", invalidAsFailure);
         map.put("schema_version", schemaVersion);
@@ -48,49 +48,41 @@ public record PdcReadRule(String sourceId,
                 ConfigNodes.string(map, "source_id", ""),
                 ConfigNodes.string(map, "condition_type", "all_of"),
                 Numbers.tryParseInt(map.get("required_count"), null),
-                parseChecks(resolveConditionEntries(map)),
+                parseConditions(map.get("conditions")),
                 ConfigNodes.bool(map, "invalid_as_failure", true),
                 Numbers.tryParseInt(map.get("schema_version"), CURRENT_SCHEMA_VERSION)
         );
     }
 
-    public boolean hasChecks() {
-        return !checks.isEmpty();
+    public boolean hasConditions() {
+        return !conditions.isEmpty();
     }
 
-    private static List<RuleCheck> parseChecks(Object raw) {
-        List<RuleCheck> result = new ArrayList<>();
+    private static List<RuleCondition> parseConditions(Object raw) {
+        List<RuleCondition> result = new ArrayList<>();
         for (Object entry : ConfigNodes.asObjectList(raw)) {
-            RuleCheck check = RuleCheck.fromMap(entry);
-            if (check != null) {
-                result.add(check);
+            RuleCondition condition = RuleCondition.fromMap(entry);
+            if (condition != null) {
+                result.add(condition);
             }
         }
         return result;
     }
 
-    private static Object resolveConditionEntries(Map<String, Object> map) {
-        if (map == null) {
-            return null;
-        }
-        Object conditions = map.get("conditions");
-        return conditions != null ? conditions : map.get("checks");
-    }
-
-    public record RuleCheck(String type,
+    public record RuleCondition(String type,
             String key,
             String pattern,
             String condition,
             boolean requireMatch) {
 
-        public RuleCheck {
+        public RuleCondition {
             type = Texts.normalizeId(type);
             key = Texts.normalizeId(key);
             pattern = Texts.toStringSafe(pattern).trim();
             condition = Texts.toStringSafe(condition).trim();
         }
 
-        public static RuleCheck fromMap(Object raw) {
+        public static RuleCondition fromMap(Object raw) {
             if (raw == null) {
                 return null;
             }
@@ -100,7 +92,7 @@ public record PdcReadRule(String sourceId,
             }
             String pattern = ConfigNodes.string(raw, "pattern", "");
             String condition = ConfigNodes.string(raw, "condition", "");
-            return new RuleCheck(
+            return new RuleCondition(
                     type,
                     ConfigNodes.string(raw, "key", ""),
                     pattern,
