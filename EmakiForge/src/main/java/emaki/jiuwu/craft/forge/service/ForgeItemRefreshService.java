@@ -16,6 +16,7 @@ import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerSnapshot;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.item.PlayerItemRefreshService;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
@@ -23,7 +24,7 @@ import emaki.jiuwu.craft.forge.model.ForgeMaterial;
 import emaki.jiuwu.craft.forge.model.QualitySettings;
 import emaki.jiuwu.craft.forge.model.Recipe;
 
-public final class ForgeItemRefreshService {
+public final class ForgeItemRefreshService implements PlayerItemRefreshService {
 
     private final EmakiForgePlugin plugin;
     private final EmakiItemAssemblyService itemAssemblyService;
@@ -52,6 +53,7 @@ public final class ForgeItemRefreshService {
         }
     }
 
+    @Override
     public void refreshPlayerInventory(Player player) {
         if (player == null || !player.isOnline()) {
             return;
@@ -79,6 +81,7 @@ public final class ForgeItemRefreshService {
         }
     }
 
+    @Override
     public void refreshDroppedItem(Item itemEntity) {
         if (itemEntity == null || !itemEntity.isValid()) {
             return;

@@ -3,7 +3,9 @@ package emaki.jiuwu.craft.attribute.service;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 import org.bukkit.Bukkit;
@@ -24,6 +26,7 @@ import emaki.jiuwu.craft.attribute.model.ResourceSyncReason;
 final class ResourceManagementService {
 
     private final AttributeService service;
+    private final Set<UUID> pendingEquipmentSyncs = ConcurrentHashMap.newKeySet();
 
     ResourceManagementService(AttributeService service) {
         this.service = service;
@@ -91,7 +94,29 @@ final class ResourceManagementService {
     }
 
     public void scheduleEquipmentSync(Player player) {
-        schedulePlayer(player, online -> syncPlayer(online, ResourceSyncReason.EQUIPMENT, null, false));
+        if (player == null) {
+            return;
+        }
+        UUID playerId = player.getUniqueId();
+        // Equipment is sampled when the task runs, so one pending sync per player is
+        // enough to apply the latest inventory state within the current delay window.
+        if (!pendingEquipmentSyncs.add(playerId)) {
+            return;
+        }
+        service.plugin().getServer().getScheduler().runTaskLater(
+                service.plugin(),
+                () -> {
+                    try {
+                        Player online = Bukkit.getPlayer(playerId);
+                        if (online != null && online.isOnline()) {
+                            syncPlayer(online, ResourceSyncReason.EQUIPMENT, null, false);
+                        }
+                    } finally {
+                        pendingEquipmentSyncs.remove(playerId);
+                    }
+                },
+                Math.max(1, service.config().syncDelayTicks())
+        );
     }
 
     public void scheduleLivingEntitySync(LivingEntity entity) {

@@ -28,4 +28,8 @@ public record SkillDefinition(String id,
         loreAliases = loreAliases == null ? List.of() : List.copyOf(loreAliases);
         uiCategory = uiCategory == null || uiCategory.isBlank() ? "default" : uiCategory;
     }
+
+    public String iconMaterial() {
+        return iconSource;
+    }
 }

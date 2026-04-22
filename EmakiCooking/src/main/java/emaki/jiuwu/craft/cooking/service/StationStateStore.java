@@ -60,26 +60,38 @@ public final class StationStateStore {
     }
 
     public void save(StationCoordinates coordinates, Map<String, Object> state) {
+        trySave(coordinates, state);
+    }
+
+    public boolean trySave(StationCoordinates coordinates, Map<String, Object> state) {
         if (coordinates == null || state == null || state.isEmpty()) {
-            return;
+            return false;
         }
         try {
             YamlFiles.save(pathFor(coordinates).toFile(), state);
+            return true;
         } catch (IOException exception) {
             plugin.getLogger().warning("Failed to save station state " + coordinates.runtimeKey() + ": " + exception.getMessage());
+            return false;
         }
     }
 
     public void delete(StationCoordinates coordinates) {
+        tryDelete(coordinates);
+    }
+
+    public boolean tryDelete(StationCoordinates coordinates) {
         if (coordinates == null) {
-            return;
+            return false;
         }
         Path file = pathFor(coordinates);
         try {
             Files.deleteIfExists(file);
             cleanupParents(file.getParent());
+            return true;
         } catch (IOException exception) {
             plugin.getLogger().warning("Failed to delete station state " + coordinates.runtimeKey() + ": " + exception.getMessage());
+            return false;
         }
     }
 

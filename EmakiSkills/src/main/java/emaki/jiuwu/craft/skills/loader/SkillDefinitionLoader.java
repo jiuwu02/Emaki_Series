@@ -49,12 +49,13 @@ public final class SkillDefinitionLoader extends YamlDirectoryLoader<SkillDefini
         }
 
         List<SkillResourceCost> resourceCosts = parseResourceCosts(configuration.getMapList("resource_costs"));
+        String iconMaterial = configuration.getString("icon_material", configuration.getString("icon_source", ""));
 
         return new SkillDefinition(
                 id,
                 configuration.getString("display_name", id),
                 configuration.getStringList("description"),
-                configuration.getString("icon_source", ""),
+                iconMaterial,
                 configuration.getString("mythic_skill", ""),
                 configuration.getInt("cooldown_ticks", 0),
                 configuration.getInt("global_cooldown_ticks", 0),

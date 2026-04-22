@@ -6,4 +6,6 @@ condition_type: "all_of"
 
 invalid_as_failure: true
 
-checks: []
+# 默认示例统一使用 conditions。
+# 旧字段 checks 仍兼容加载，便于平滑升级旧配置。
+conditions: []

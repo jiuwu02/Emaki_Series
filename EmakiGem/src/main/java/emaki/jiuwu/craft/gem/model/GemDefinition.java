@@ -332,6 +332,10 @@ public final class GemDefinition {
             return new CurrencyCost(provider, currency, resolvedAmount, baseCost, costFormula, displayName);
         }
 
+        public String currencyId() {
+            return currency;
+        }
+
         public static CurrencyCost fromConfig(Object raw) {
             Double configuredAmount = Numbers.tryParseDouble(ConfigNodes.get(raw, "amount"), null);
             double baseCost = Numbers.tryParseDouble(ConfigNodes.get(raw, "base_cost"), 0D);
@@ -341,7 +345,7 @@ public final class GemDefinition {
             }
             return new CurrencyCost(
                     ConfigNodes.string(raw, "provider", "auto"),
-                    ConfigNodes.string(raw, "currency", ""),
+                    ConfigNodes.string(raw, "currency_id", ConfigNodes.string(raw, "currency", "")),
                     configuredAmount == null ? -1D : configuredAmount,
                     baseCost,
                     costFormula,

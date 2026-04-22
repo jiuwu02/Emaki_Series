@@ -1,9 +1,11 @@
+# 技能图标优先使用 icon_material 指定 Bukkit Material。
+# 旧字段 icon_source 仍兼容加载，建议新配置改用 icon_material。
 id: fireball
 display_name: "<gradient:#FF6B35:#FF4500>火球术</gradient>"
 description:
   - "<gray>向前方发射一颗炽热的火球</gray>"
   - "<gray>对命中目标造成火焰伤害</gray>"
-icon_source: "FIRE_CHARGE"
+icon_material: "FIRE_CHARGE"
 mythic_skill: "ExampleFireball"
 cooldown_ticks: 100
 global_cooldown_ticks: 20

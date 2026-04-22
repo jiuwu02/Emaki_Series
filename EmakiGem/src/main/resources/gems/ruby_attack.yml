@@ -1,3 +1,5 @@
+# 货币字段统一使用 currency_id。
+# 旧字段 currency 仍兼容加载，建议新配置改用 currency_id。
 id: "ruby_attack"
 gem_type: "attack"
 tier: 1
@@ -30,7 +32,7 @@ structured_presentation:
 inlay_cost:
   currencies:
     - provider: "vault"
-      currency: ""
+      currency_id: ""
       base_cost: 1000
       cost_formula: "{base_cost} * {tier}"
       display_name: "<gold>金币</gold>"
@@ -41,7 +43,7 @@ inlay_cost:
 extract_cost:
   currencies:
     - provider: "vault"
-      currency: ""
+      currency_id: ""
       base_cost: 500
       cost_formula: "{base_cost} * {tier}"
       display_name: "<gold>金币</gold>"
@@ -60,7 +62,7 @@ upgrade:
     enabled: true
     currencies:
       - provider: "vault"
-        currency: ""
+        currency_id: ""
         base_cost: 2000
         cost_formula: "{base_cost} * {target_level}"
         display_name: "<gold>金币</gold>"
@@ -153,7 +155,7 @@ upgrade:
         enabled: true
         currencies:
           - provider: "vault"
-            currency: ""
+            currency_id: ""
             base_cost: 5000
             cost_formula: "{base_cost}"
             display_name: "<gold>金币</gold>"

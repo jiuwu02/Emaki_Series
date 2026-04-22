@@ -1,3 +1,5 @@
+# 货币字段统一使用 currency_id。
+# 旧字段 currency 仍兼容加载，建议新配置改用 currency_id。
 id: "emerald_utility"
 gem_type: "utility"
 tier: 1
@@ -30,7 +32,7 @@ structured_presentation:
 inlay_cost:
   currencies:
     - provider: "vault"
-      currency: ""
+      currency_id: ""
       base_cost: 800
       cost_formula: "{base_cost} * {tier}"
       display_name: "<gold>金币</gold>"
@@ -41,7 +43,7 @@ inlay_cost:
 extract_cost:
   currencies:
     - provider: "vault"
-      currency: ""
+      currency_id: ""
       base_cost: 400
       cost_formula: "{base_cost} * {tier}"
       display_name: "<gold>金币</gold>"
@@ -58,7 +60,7 @@ upgrade:
     enabled: true
     currencies:
       - provider: "vault"
-        currency: ""
+        currency_id: ""
         base_cost: 1600
         cost_formula: "{base_cost} * {target_level}"
         display_name: "<gold>金币</gold>"
