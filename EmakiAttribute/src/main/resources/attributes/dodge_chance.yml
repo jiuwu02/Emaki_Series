@@ -1,44 +1,25 @@
-# ========================================
-# EmakiAttribute 属性定义 - dodge_chance
-# ========================================
-# 闪避率属性，属于 CHANCE 类型，值为 0-100 的概率百分比。
-# ========================================
-
-# 属性 ID
 id: dodge_chance
 
-# 显示名称
 display_name: "闪避率"
 
-# 值类型：CHANCE 表示概率值（0-100）
 value_kind: CHANCE
 
-# 目标类型：GENERIC 表示通用属性，不直接参与伤害结算
 target_type: GENERIC
 
-# 目标 ID
 target_id: dodge
 
-# 默认值
 default_value: 0.0
 
-# 最小值（闪避率不允许为负）
 min_value: 0.0
 
-# 最大值（闪避率上限 100%）
 max_value: 100.0
 
-# 是否允许负值
 allow_negative: false
 
-# 优先级
 priority: 77
 
-# Lore 格式：使用百分比格式，显示为 "闪避率 +15%"
 lore_format_id: default_percent
 
-# 战斗力系数
 attribute_power: 1.0
 
-# 属性描述
 description: "Dodge chance used by combat logic."

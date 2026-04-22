@@ -5,11 +5,14 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import emaki.jiuwu.craft.corelib.assembly.BaseNamePolicy;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerSnapshot;
-import emaki.jiuwu.craft.corelib.assembly.EmakiPresentationEntry;
+import emaki.jiuwu.craft.corelib.assembly.EmakiLoreSectionContribution;
+import emaki.jiuwu.craft.corelib.assembly.EmakiNameContribution;
 import emaki.jiuwu.craft.corelib.assembly.EmakiStatContribution;
-import emaki.jiuwu.craft.corelib.assembly.lore.SearchInsertConfig;
-import emaki.jiuwu.craft.corelib.assembly.lore.SearchInsertValidationException;
+import emaki.jiuwu.craft.corelib.assembly.EmakiStructuredPresentation;
+import emaki.jiuwu.craft.corelib.assembly.StructuredPresentationTemplateResolver;
+import emaki.jiuwu.craft.corelib.assembly.StructuredPresentationValidator;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -18,6 +21,13 @@ import emaki.jiuwu.craft.strengthen.model.StrengthenState;
 
 public final class StrengthenSnapshotBuilder {
 
+    private static final String NAMESPACE_ID = "strengthen";
+    private static final int STATS_PRIMARY_ORDER = 210;
+    private static final int EFFECTS_ORDER = 230;
+    private static final int STATS_SECONDARY_ORDER = 240;
+    private final StructuredPresentationTemplateResolver structuredResolver = new StructuredPresentationTemplateResolver();
+    private final StructuredPresentationValidator structuredValidator = new StructuredPresentationValidator();
+
     public EmakiItemLayerSnapshot buildLayerSnapshot(StrengthenRecipe recipe,
             StrengthenState state,
             String materialsSignature) {
@@ -25,12 +35,14 @@ public final class StrengthenSnapshotBuilder {
             return null;
         }
         Map<String, Double> stats = recipe.cumulativeStats(state.currentStar());
+        Map<String, Object> variables = buildVariables(recipe, state, stats);
+        EmakiStructuredPresentation structuredPresentation = buildStructuredPresentation(recipe, state, stats, variables);
         return new EmakiItemLayerSnapshot(
-                "strengthen",
+                NAMESPACE_ID,
                 1,
                 buildAudit(recipe, state, materialsSignature),
                 buildStatContributions(stats),
-                buildPresentation(recipe, state, stats)
+                structuredPresentation == null || structuredPresentation.isEmpty() ? null : structuredPresentation
         );
     }
 
@@ -58,37 +70,60 @@ public final class StrengthenSnapshotBuilder {
             if (entry.getKey() == null || entry.getValue() == null || Math.abs(entry.getValue()) <= 1.0E-9D) {
                 continue;
             }
-            result.add(new EmakiStatContribution(entry.getKey(), entry.getValue(), "strengthen:" + entry.getKey(), sequence++));
+            result.add(new EmakiStatContribution(entry.getKey(), entry.getValue(), NAMESPACE_ID + ":" + entry.getKey(), sequence++));
         }
         return result;
     }
 
-    private List<EmakiPresentationEntry> buildPresentation(StrengthenRecipe recipe,
+    private EmakiStructuredPresentation buildStructuredPresentation(StrengthenRecipe recipe,
             StrengthenState state,
-            Map<String, Double> stats) {
-        Map<String, Object> variables = buildVariables(recipe, state, stats);
-        List<EmakiPresentationEntry> entries = new ArrayList<>();
-        int sequence = 0;
-
-        List<String> prependLines = new ArrayList<>();
-        prependLines.addAll(recipe.presentation().lorePrepend());
+            Map<String, Double> stats,
+            Map<String, Object> variables) {
+        EmakiStructuredPresentation configuredPresentation = resolveConfiguredPresentation(recipe.structuredPresentation(), variables);
+        BaseNamePolicy baseNamePolicy = configuredPresentation == null
+                ? BaseNamePolicy.SOURCE_EFFECTIVE_NAME
+                : configuredPresentation.baseNamePolicy();
+        String baseNameTemplate = configuredPresentation == null ? "" : configuredPresentation.baseNameTemplate();
+        List<EmakiNameContribution> nameContributions = new ArrayList<>();
+        List<EmakiLoreSectionContribution> loreSections = new ArrayList<>();
+        if (configuredPresentation != null) {
+            nameContributions.addAll(configuredPresentation.nameContributions());
+            loreSections.addAll(configuredPresentation.loreSections());
+        }
+        List<String> effectLines = new ArrayList<>();
         for (StrengthenRecipe.StarStage stage : recipe.reachedStages(state.currentStar())) {
-            if (Texts.isNotBlank(stage.name())) {
-                prependLines.add("<gold>星级效果: " + stage.name() + "</gold>");
+            if (stage == null) {
+                continue;
             }
-            prependLines.addAll(stage.presentation());
+            if (Texts.isNotBlank(stage.name())) {
+                effectLines.add("<gold>星级效果: " + renderTemplate(stage.name(), variables) + "</gold>");
+            }
+            EmakiStructuredPresentation stagePresentation = resolveConfiguredPresentation(stage.structuredPresentation(), variables);
+            if (stagePresentation == null) {
+                continue;
+            }
+            if (hasExplicitBaseName(stagePresentation)) {
+                baseNamePolicy = stagePresentation.baseNamePolicy();
+                baseNameTemplate = stagePresentation.baseNameTemplate();
+            }
+            nameContributions.addAll(stagePresentation.nameContributions());
+            loreSections.addAll(stagePresentation.loreSections());
         }
-        for (int index = prependLines.size() - 1; index >= 0; index--) {
-            entries.add(new EmakiPresentationEntry(
-                    "lore_prepend",
-                    "",
-                    renderTemplate(prependLines.get(index), variables),
-                    sequence++,
-                    "strengthen"
-            ));
-        }
+        addSection(loreSections, "strengthen.effects", EFFECTS_ORDER, effectLines);
+        loreSections.addAll(buildStatSections(recipe, stats, variables));
+        StructuredPresentationValidator.ValidationResult validation = structuredValidator.sanitize(new EmakiStructuredPresentation(
+                baseNamePolicy,
+                baseNameTemplate,
+                nameContributions,
+                loreSections
+        ));
+        return validation.presentation();
+    }
 
-        List<StrengthenRecipe.PresentationOperation> nameOperations = new ArrayList<>(recipe.presentation().nameOperations());
+    private List<EmakiLoreSectionContribution> buildStatSections(StrengthenRecipe recipe,
+            Map<String, Double> stats,
+            Map<String, Object> variables) {
+        Map<SectionTarget, List<String>> statSectionLines = new LinkedHashMap<>();
         for (Map.Entry<String, Double> entry : stats.entrySet()) {
             if (Math.abs(entry.getValue()) <= 1.0E-9D) {
                 continue;
@@ -96,161 +131,30 @@ public final class StrengthenSnapshotBuilder {
             String statId = Texts.lower(entry.getKey());
             StrengthenRecipe.StatLineDefinition definition = recipe.statLines().get(statId);
             String renderedLine = renderStatLine(definition, statId, entry.getValue(), variables);
-            if (definition == null || definition.loreOperations().isEmpty()) {
-                entries.add(new EmakiPresentationEntry("lore_append", "", renderedLine, sequence++, "strengthen"));
-            } else {
-                for (StrengthenRecipe.PresentationOperation operation : definition.loreOperations()) {
-                    sequence = appendLoreOperation(entries, operation, renderedLine, sequence, statId);
-                }
+            if (Texts.isBlank(renderedLine)) {
+                continue;
             }
-            if (definition != null && !definition.nameOperations().isEmpty()) {
-                nameOperations.addAll(definition.nameOperations());
-            }
+            SectionTarget sectionTarget = resolveStatSection(definition);
+            statSectionLines.computeIfAbsent(sectionTarget, ignored -> new ArrayList<>()).add(renderedLine);
         }
-
-        for (StrengthenRecipe.PresentationOperation operation : nameOperations) {
-            sequence = appendNameOperation(entries, operation, variables, state, sequence);
-        }
-        return entries;
+        List<EmakiLoreSectionContribution> sections = new ArrayList<>();
+        statSectionLines.entrySet().stream()
+                .sorted(Map.Entry.<SectionTarget, List<String>>comparingByKey())
+                .forEach(entry -> addSection(sections, entry.getKey().sectionId(), entry.getKey().order(), entry.getValue()));
+        return sections;
     }
 
-    private int appendLoreOperation(List<EmakiPresentationEntry> entries,
-            StrengthenRecipe.PresentationOperation operation,
-            String content,
-            int sequence,
-            String sourceId) {
-        if (operation == null) {
-            return sequence;
+    private SectionTarget resolveStatSection(StrengthenRecipe.StatLineDefinition definition) {
+        if (definition != null && Texts.isNotBlank(definition.sectionId())) {
+            int order = definition.sectionOrder() > 0
+                    ? definition.sectionOrder()
+                    : Texts.lower(definition.sectionId()).contains("primary") ? STATS_PRIMARY_ORDER : STATS_SECONDARY_ORDER;
+            return new SectionTarget(definition.sectionId(), order);
         }
-        String type = Texts.lower(operation.type());
-        String anchor = operation.string("anchor");
-        String pattern = Texts.isNotBlank(operation.string("pattern")) ? operation.string("pattern") : operation.string("regex_pattern");
-        return switch (type) {
-            case "lore_search_insert" -> appendSearchInsert(entries, operation, content, sequence, sourceId);
-            case "lore_insert_below" ->
-                addLoreEntry(entries, "lore_insert_below", anchor, content, sequence, sourceId);
-            case "lore_insert_above" ->
-                addLoreEntry(entries, "lore_insert_above", anchor, content, sequence, sourceId);
-            case "lore_prepend" ->
-                addLoreEntry(entries, "lore_prepend", "", content, sequence, sourceId);
-            case "lore_replace_line" ->
-                addLoreEntry(entries, "lore_replace_line", pattern, content, sequence, sourceId);
-            case "lore_regex_replace" ->
-                addLoreEntry(entries, "lore_regex_replace", pattern, content, sequence, sourceId);
-            default ->
-                addLoreEntry(entries, "lore_append", "", content, sequence, sourceId);
-        };
-    }
-
-    private int appendSearchInsert(List<EmakiPresentationEntry> entries,
-            StrengthenRecipe.PresentationOperation operation,
-            String content,
-            int sequence,
-            String sourceId) {
-        String anchor = operation.string("anchor");
-        String position = Texts.lower(operation.string("position"));
-        String action = "above".equals(position) ? "search_insert_above" : "search_insert_below";
-        try {
-            SearchInsertConfig config = SearchInsertConfig.fromAction(
-                    action,
-                    anchor,
-                    operation.bool("ignore_case", false),
-                    List.of(content),
-                    operation.bool("inherit_style", true),
-                    operation.string("on_not_found")
-            );
-            entries.add(new EmakiPresentationEntry("lore_search_insert", config.toJson(), "", sequence, sourceId));
-            return sequence + 1;
-        } catch (SearchInsertValidationException ignored) {
-            entries.add(new EmakiPresentationEntry("lore_append", "", content, sequence, sourceId));
-            return sequence + 1;
-        }
-    }
-
-    private int addLoreEntry(List<EmakiPresentationEntry> entries,
-            String type,
-            String searchPattern,
-            String content,
-            int sequence,
-            String sourceId) {
-        entries.add(new EmakiPresentationEntry(type, Texts.toStringSafe(searchPattern), content, sequence, sourceId));
-        return sequence + 1;
-    }
-
-    private int appendNameOperation(List<EmakiPresentationEntry> entries,
-            StrengthenRecipe.PresentationOperation operation,
-            Map<String, Object> variables,
-            StrengthenState state,
-            int sequence) {
-        if (operation == null || !conditionMatches(operation.string("condition"), state)) {
-            return sequence;
-        }
-        String type = Texts.lower(operation.type());
-        String renderedValue = renderTemplate(resolveOperationValue(operation), variables);
-        String entryType = switch (type) {
-            case "name_regex_replace" -> "name_regex_replace";
-            case "name_prepend" -> "name_prepend";
-            case "name_replace" -> "name_replace";
-            default -> resolveConditionalNameType(operation.string("condition"));
-        };
-        entries.add(new EmakiPresentationEntry(
-                entryType,
-                renderTemplate(resolvePattern(operation), variables),
-                renderedValue,
-                sequence,
-                "strengthen"
-        ));
-        return sequence + 1;
-    }
-
-    private String resolveConditionalNameType(String condition) {
-        String normalized = Texts.lower(condition);
-        if ("unchanged_from_previous".equals(normalized) || "if_unchanged".equals(normalized)) {
-            return "name_append_if_unchanged";
-        }
-        if ("changed_from_previous".equals(normalized)) {
-            return "name_append_if_changed";
-        }
-        return "name_append";
-    }
-
-    private boolean conditionMatches(String condition, StrengthenState state) {
-        String normalized = Texts.lower(condition);
-        if (Texts.isBlank(normalized)
-                || "always".equals(normalized)
-                || "unchanged_from_previous".equals(normalized)
-                || "if_unchanged".equals(normalized)
-                || "changed_from_previous".equals(normalized)) {
-            return true;
-        }
-        if (normalized.startsWith("star_eq:")) {
-            return state.currentStar() == Numbers.tryParseInt(normalized.substring("star_eq:".length()), Integer.MIN_VALUE);
-        }
-        if (normalized.startsWith("star_gte:")) {
-            return state.currentStar() >= Numbers.tryParseInt(normalized.substring("star_gte:".length()), Integer.MAX_VALUE);
-        }
-        if (normalized.startsWith("star_lt:")) {
-            return state.currentStar() < Numbers.tryParseInt(normalized.substring("star_lt:".length()), Integer.MIN_VALUE);
-        }
-        if (normalized.startsWith("milestone_reached:")) {
-            int milestone = Numbers.tryParseInt(normalized.substring("milestone_reached:".length()), Integer.MIN_VALUE);
-            return state.firstReachFlags().contains(milestone);
-        }
-        return true;
-    }
-
-    private String resolveOperationValue(StrengthenRecipe.PresentationOperation operation) {
-        String value = operation.string("value");
-        if (Texts.isNotBlank(value)) {
-            return value;
-        }
-        value = operation.string("replacement");
-        return Texts.isBlank(value) ? operation.string("content") : value;
-    }
-
-    private String resolvePattern(StrengthenRecipe.PresentationOperation operation) {
-        String pattern = operation.string("pattern");
-        return Texts.isBlank(pattern) ? operation.string("regex_pattern") : pattern;
+        return new SectionTarget(
+                "strengthen.stats.secondary",
+                STATS_SECONDARY_ORDER
+        );
     }
 
     private Map<String, Object> buildVariables(StrengthenRecipe recipe,
@@ -291,5 +195,45 @@ public final class StrengthenSnapshotBuilder {
     private String humanize(String statId) {
         String text = Texts.toStringSafe(statId).replace('_', ' ');
         return text.isBlank() ? "属性" : text;
+    }
+
+    private void addSection(List<EmakiLoreSectionContribution> sections,
+            String sectionId,
+            int order,
+            List<String> lines) {
+        if (sections == null || Texts.isBlank(sectionId) || lines == null || lines.isEmpty()) {
+            return;
+        }
+        sections.add(new EmakiLoreSectionContribution(sectionId, order, List.copyOf(lines), NAMESPACE_ID));
+    }
+
+    private EmakiStructuredPresentation resolveConfiguredPresentation(Object raw, Map<String, ?> variables) {
+        StructuredPresentationValidator.ValidationResult validation = structuredValidator.sanitize(
+                structuredResolver.fromConfig(raw, variables, NAMESPACE_ID)
+        );
+        return validation.presentation();
+    }
+
+    private boolean hasExplicitBaseName(EmakiStructuredPresentation presentation) {
+        return presentation != null
+                && presentation.baseNamePolicy() == BaseNamePolicy.EXPLICIT_TEMPLATE
+                && Texts.isNotBlank(presentation.baseNameTemplate());
+    }
+
+    private record SectionTarget(String sectionId, int order) implements Comparable<SectionTarget> {
+
+        private SectionTarget {
+            sectionId = Texts.isBlank(sectionId) ? "strengthen.stats.secondary" : sectionId;
+            order = Math.max(0, order);
+        }
+
+        @Override
+        public int compareTo(SectionTarget other) {
+            if (other == null) {
+                return -1;
+            }
+            int orderCompare = Integer.compare(order, other.order);
+            return orderCompare != 0 ? orderCompare : sectionId.compareTo(other.sectionId);
+        }
     }
 }

@@ -1,0 +1,122 @@
+id: "emerald_utility"
+gem_type: "utility"
+tier: 1
+item_source: "minecraft-emerald"
+
+stats:
+  movement_speed: 2
+  cooldown_reduction: 3
+ea_attributes:
+  movement_speed: 2.0
+  cooldown_reduction: 3.0
+
+socket_compatibility:
+  - "utility"
+  - "universal"
+
+structured_presentation:
+  name_contributions:
+    - slot_id: "gem.slot.{slot_index}.badge"
+      position: "POSTFIX"
+      order: 300
+      content_template: " <green>[{display_name}]</green>"
+  lore_sections:
+    - section_id: "gem.slot.{slot_index}.detail"
+      order: 200
+      lines:
+        - "<green>◆ {display_name}: 移动速度+{movement_speed}%
+          冷却缩减+{cooldown_reduction}%</green>"
+
+inlay_cost:
+  currencies:
+    - provider: "vault"
+      currency: ""
+      base_cost: 800
+      cost_formula: "{base_cost} * {tier}"
+      display_name: "<gold>金币</gold>"
+  materials:
+    - item: "minecraft-emerald"
+      amount: 1
+
+extract_cost:
+  currencies:
+    - provider: "vault"
+      currency: ""
+      base_cost: 400
+      cost_formula: "{base_cost} * {tier}"
+      display_name: "<gold>金币</gold>"
+
+extract_return:
+  mode: "downgrade"
+  degraded_chance: 0.0
+
+upgrade:
+  enabled: true
+  max_level: 3
+  gui_template: "upgrade/default"
+  economy:
+    enabled: true
+    currencies:
+      - provider: "vault"
+        currency: ""
+        base_cost: 1600
+        cost_formula: "{base_cost} * {target_level}"
+        display_name: "<gold>金币</gold>"
+  success_rates:
+    2: 100.0
+    3: 75.0
+  failure_penalty: "none"
+  levels:
+    2:
+      stats:
+        movement_speed: 3
+        cooldown_reduction: 5
+      ea_attributes:
+        movement_speed: 3.0
+        cooldown_reduction: 5.0
+      structured_presentation:
+        name_contributions:
+          - slot_id: "gem.slot.{slot_index}.badge"
+            position: "POSTFIX"
+            order: 300
+            content_template: " <green>[{display_name}]</green>"
+        lore_sections:
+          - section_id: "gem.slot.{slot_index}.detail"
+            order: 200
+            lines:
+              - "<green>◆ {display_name}: 移动速度+{movement_speed}%
+                冷却缩减+{cooldown_reduction}%</green>"
+      materials:
+        - item: "minecraft-emerald"
+          amount: 4
+      success_rate: 100.0
+      success_actions: []
+      failure_actions: []
+
+    3:
+      stats:
+        movement_speed: 5
+        cooldown_reduction: 8
+      ea_attributes:
+        movement_speed: 5.0
+        cooldown_reduction: 8.0
+      structured_presentation:
+        name_contributions:
+          - slot_id: "gem.slot.{slot_index}.badge"
+            position: "POSTFIX"
+            order: 300
+            content_template: " <green>[{display_name}]</green>"
+        lore_sections:
+          - section_id: "gem.slot.{slot_index}.detail"
+            order: 200
+            lines:
+              - "<green>◆ {display_name}: 移动速度+{movement_speed}%
+                冷却缩减+{cooldown_reduction}%</green>"
+      materials:
+        - item: "minecraft-emerald_block"
+          amount: 1
+      success_actions: []
+      failure_actions: []
+
+inlay_success_actions: []
+extract_success_actions: []

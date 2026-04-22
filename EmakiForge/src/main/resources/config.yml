@@ -1,35 +1,15 @@
-# ========================================
-# EmakiForge 主配置文件
-# ========================================
-# EmakiForge 是 Emaki 系列的锻造插件，支持材料投入、品质系统、
-# 图纸需求、容量管理、Lore 操作等完整的锻造流程。
-# 本文件控制锻造系统的全局行为。
-# ========================================
+# 锻造系统主配置
+# config_version 由资源同步维护
+config_version: "3.2.0"
 
-# 配置文件版本号（由版本迁移器自动管理，请勿手动修改）
-config_version: "3.0.0"
-
-# 语言设置，对应 lang/ 目录下的语言文件
+# 语言文件 ID
 language: "zh_CN"
 
-# 是否释放默认数据文件（recipes、gui 等）
-# 设为 false 可避免覆盖已自定义的配置文件
-# 首次安装建议设为 true，确认文件生成后改为 false
+# 是否写入默认资源
 release_default_data: true
 
-# ========================================
-# 品质系统配置
-# ========================================
-# 品质元数据会在结果元数据和材料元数据之后执行，
-# 因此前缀/后缀与 Lore 顶部/底部位置会稳定贴边。
-# 每个品质 tier 还可以额外配置 action（如广播消息）。
-# 在这些操作的消息文本中可直接使用 <show_item> 悬浮展示最终交付给玩家的成品。
 quality:
-  # 品质等级定义列表
-  # 格式: "名称-权重-倍率"
-  #   名称: 品质显示名
-  #   权重: 随机抽取权重（数值越大出现概率越高）
-  #   倍率: stat_contribution 的数值乘以此倍率（1.0 为无变化）
+  # 品质池，格式为 "名称-权重-倍率"
   tiers:
     - "平庸-60-1.0"
     - "精良-30-1.05"
@@ -38,89 +18,81 @@ quality:
     - "无暇-2-1.15"
     - "完美-1-1.2"
 
-  # 默认品质：当品质随机抽取失败时使用的回退品质
+  # 随机失败时的回退品质
   default_tier: "平庸"
 
-  # 保底机制：连续锻造一定次数后保证最低品质
   guarantee:
-    # 是否启用保底
+    # 连续锻造达到阈值后的品质保底
     enabled: true
-    # 保底阈值：连续锻造多少次后触发保底
     threshold: 60
-    # 保底最低品质：触发保底时保证不低于此品质
     minimum: "无暇"
 
-  # 品质对物品元数据的影响
   item_meta:
-    # 是否启用品质对物品名称/Lore 的修改
+    # 是否将品质写入名称和 Lore
     enabled: true
-    # 每个品质等级的名称修改和动作配置
     tiers:
       有缺:
-        name_modifications:
-          - action: "prepend_prefix"
-            value: "<color:#733333>[有缺]</color>"
+        structured_presentation:
+          name_contributions:
+            - slot_id: "forge.quality.prefix"
+              position: "PREFIX"
+              order: 100
+              content_template: "<color:#733333>[有缺]</color>"
       平庸:
-        name_modifications:
-          - action: "prepend_prefix"
-            value: "<color:#999999>[平庸]</color>"
+        structured_presentation:
+          name_contributions:
+            - slot_id: "forge.quality.prefix"
+              position: "PREFIX"
+              order: 100
+              content_template: "<color:#999999>[平庸]</color>"
       精良:
-        name_modifications:
-          - action: "prepend_prefix"
-            value: "<color:#1F871F>[精良]</color>"
+        structured_presentation:
+          name_contributions:
+            - slot_id: "forge.quality.prefix"
+              position: "PREFIX"
+              order: 100
+              content_template: "<color:#1F871F>[精良]</color>"
       优质:
-        name_modifications:
-          - action: "prepend_prefix"
-            value: "<color:#00FF00>[优质]</color>"
+        structured_presentation:
+          name_contributions:
+            - slot_id: "forge.quality.prefix"
+              position: "PREFIX"
+              order: 100
+              content_template: "<color:#00FF00>[优质]</color>"
       无暇:
-        name_modifications:
-          - action: "prepend_prefix"
-            value: "<color:#4B64C8>[无暇]</color>"
-        # 无暇品质触发全服广播
+        structured_presentation:
+          name_contributions:
+            - slot_id: "forge.quality.prefix"
+              position: "PREFIX"
+              order: 100
+              content_template: "<color:#4B64C8>[无暇]</color>"
         action:
-          - 'broadcastmessage text="<color:#4B64C8>%player_name%锻造出了一个无暇品质的<show_item></color>"'
+          - "broadcastmessage text=\"<color:#4B64C8>%player_name%锻造出了一个无暇品质的<show_item></color>\""
       完美:
-        name_modifications:
-          - action: "prepend_prefix"
-            value: "<color:#FFD700>[完美]</color>"
-        # 完美品质触发全服广播
+        structured_presentation:
+          name_contributions:
+            - slot_id: "forge.quality.prefix"
+              position: "PREFIX"
+              order: 100
+              content_template: "<color:#FFD700>[完美]</color>"
         action:
-          - 'broadcastmessage text="<color:#FFD700>%player_name%锻造出了一个完美品质的<show_item></color>"'
+          - "broadcastmessage text=\"<color:#FFD700>%player_name%锻造出了一个完美品质的<show_item></color>\""
 
-# ========================================
-# 数值格式化配置
-# ========================================
-# 控制锻造系统中数值的显示格式
 number_format:
-  # 默认格式：保留最多 2 位小数
   default: "0.##"
-  # 整数格式：不显示小数
   integer: "0"
-  # 百分比格式：保留最多 2 位小数并带 % 后缀
   percentage: "0.##%"
 
-# ========================================
-# 权限配置
-# ========================================
 permission:
-  # OP 玩家是否跳过锻造条件检查
+  # OP 是否跳过锻造条件检查
   op_bypass: false
 
-# ========================================
-# 条件配置
-# ========================================
 condition:
-  # 当条件表达式无法解析时，是否视为条件不通过
-  # 设为 true 更安全，防止因解析失败而意外放行
+  # 条件表达式解析失败时，是否视为条件不通过
   invalid_as_failure: true
 
-# ========================================
-# 历史记录配置
-# ========================================
 history:
-  # 是否启用锻造历史记录
   enabled: true
-  # 是否自动保存历史记录到磁盘
   auto_save: true
-  # 自动保存间隔（tick），6000 tick = 5 分钟
+  # 自动保存间隔，6000 tick = 5 分钟
   save_interval: 6000

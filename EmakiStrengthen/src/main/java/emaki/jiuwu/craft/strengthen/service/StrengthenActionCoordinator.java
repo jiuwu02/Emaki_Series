@@ -12,10 +12,8 @@ import emaki.jiuwu.craft.corelib.action.ActionBatchResult;
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.action.ActionExecutor;
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
-import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
 import emaki.jiuwu.craft.strengthen.model.StrengthenRecipe;
-import net.kyori.adventure.text.Component;
 
 public final class StrengthenActionCoordinator {
 
@@ -124,11 +122,10 @@ public final class StrengthenActionCoordinator {
         if (itemStack == null || itemStack.getType().isAir()) {
             return defaultShowItemName();
         }
-        Component display = ItemTextBridge.effectiveName(itemStack);
         try {
-            return MiniMessages.serialize(ItemTextBridge.displayWithItemHover(itemStack));
+            return ItemTextBridge.displayWithItemHoverText(itemStack);
         } catch (Exception ignored) {
-            return MiniMessages.plain(display);
+            return ItemTextBridge.effectiveNamePlain(itemStack);
         }
     }
 

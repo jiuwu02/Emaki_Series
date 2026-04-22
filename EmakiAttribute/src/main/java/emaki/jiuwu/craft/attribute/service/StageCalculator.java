@@ -84,22 +84,22 @@ final class StageCalculator {
         DamageContext damageContext = request == null ? null : request.damageContext();
         AttributeSnapshot sourceSnapshot = resolveSourceSnapshot(damageContext, stage.source());
         DamageContextVariables context = damageContext == null ? DamageContextVariables.empty() : damageContext.variables();
-        double flat = calculationCache.sum(sourceSnapshot, context, stage.flatAttributes());
-        double percent = calculationCache.sum(sourceSnapshot, context, stage.percentAttributes());
+        double flat = calculationCache.sum(sourceSnapshot, context, stage.flatAttributes(), stage.flatAttributesSignature());
+        double percent = calculationCache.sum(sourceSnapshot, context, stage.percentAttributes(), stage.percentAttributesSignature());
         boolean fusedFlat = stage.kind() == DamageStageKind.FLAT_PERCENT
                 && stage.mode() == DamageStageMode.ADD
                 && !stage.flatAttributes().isEmpty()
                 && !stage.percentAttributes().isEmpty()
                 && AttributeFusionMath.usesFusedCombatValues(sourceSnapshot);
         double chance = clamp(
-                calculationCache.sum(sourceSnapshot, context, stage.chanceAttributes()),
+                calculationCache.sum(sourceSnapshot, context, stage.chanceAttributes(), stage.chanceAttributesSignature()),
                 stage.minChance(),
                 stage.maxChance(),
                 0D,
                 100D
         );
         double multiplier = clamp(
-                calculationCache.sum(sourceSnapshot, context, stage.multiplierAttributes()),
+                calculationCache.sum(sourceSnapshot, context, stage.multiplierAttributes(), stage.multiplierAttributesSignature()),
                 stage.minMultiplier(),
                 stage.maxMultiplier(),
                 -100D,

@@ -1,6 +1,8 @@
 package emaki.jiuwu.craft.corelib.inventory;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -127,5 +129,65 @@ public final class InventoryItemUtil {
         }
         items.entrySet().removeIf(entry -> entry.getValue() == null || entry.getValue().getType().isAir());
         return remaining;
+    }
+
+    public static Map<Integer, ItemStack> addOrDrop(Player player, ItemStack itemStack) {
+        ItemStack clone = cloneNonAir(itemStack);
+        if (player == null || clone == null) {
+            return Map.of();
+        }
+        Map<Integer, ItemStack> leftover = new LinkedHashMap<>(player.getInventory().addItem(clone));
+        for (ItemStack left : leftover.values()) {
+            ItemStack drop = cloneNonAir(left);
+            if (drop != null) {
+                player.getWorld().dropItemNaturally(player.getLocation(), drop);
+            }
+        }
+        return leftover.isEmpty() ? Map.of() : Map.copyOf(leftover);
+    }
+
+    public static void giveOrDrop(Player player, ItemStack itemStack) {
+        addOrDrop(player, itemStack);
+    }
+
+    public static ItemStack cloneNonAir(ItemStack itemStack) {
+        if (itemStack == null || itemStack.getType().isAir()) {
+            return null;
+        }
+        return itemStack.clone();
+    }
+
+    /**
+     * Temporarily replaces the player's main hand and off hand with the given items,
+     * executes the supplier, then unconditionally restores the original held items.
+     *
+     * @param player the player whose hands to temporarily replace
+     * @param mainHand the temporary main hand item (may be null)
+     * @param offHand the temporary off hand item (may be null)
+     * @param supplier the operation to execute while hands are replaced
+     * @param <T> the result type
+     * @return a result containing the supplier's return value and post-execution hand snapshots
+     */
+    public static <T> TemporaryHandsResult<T> withTemporaryHands(Player player,
+            ItemStack mainHand,
+            ItemStack offHand,
+            Supplier<T> supplier) {
+        ItemStack originalMainHand = cloneNonAir(player.getInventory().getItemInMainHand());
+        ItemStack originalOffHand = cloneNonAir(player.getInventory().getItemInOffHand());
+        try {
+            player.getInventory().setItemInMainHand(cloneNonAir(mainHand));
+            player.getInventory().setItemInOffHand(cloneNonAir(offHand));
+            T result = supplier.get();
+            ItemStack updatedMainHand = cloneNonAir(player.getInventory().getItemInMainHand());
+            ItemStack updatedOffHand = cloneNonAir(player.getInventory().getItemInOffHand());
+            return new TemporaryHandsResult<>(result, updatedMainHand, updatedOffHand);
+        } finally {
+            player.getInventory().setItemInMainHand(originalMainHand);
+            player.getInventory().setItemInOffHand(originalOffHand);
+        }
+    }
+
+    public record TemporaryHandsResult<T>(T result, ItemStack updatedMainHand, ItemStack updatedOffHand) {
+
     }
 }

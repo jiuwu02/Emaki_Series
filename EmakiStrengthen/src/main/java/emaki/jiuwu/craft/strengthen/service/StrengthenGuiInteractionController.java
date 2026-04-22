@@ -10,6 +10,7 @@ import org.bukkit.inventory.ItemStack;
 import emaki.jiuwu.craft.corelib.gui.GuiSession;
 import emaki.jiuwu.craft.corelib.gui.GuiSessionHandler;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
+import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
 import emaki.jiuwu.craft.strengthen.model.AttemptMaterial;
@@ -132,12 +133,10 @@ final class StrengthenGuiInteractionController {
     }
 
     private void giveBackToPlayer(Player player, ItemStack itemStack) {
-        if (player == null || itemStack == null) {
+        if (player == null || itemStack == null || itemStack.getType().isAir()) {
             return;
         }
-        Map<Integer, ItemStack> leftover = player.getInventory().addItem(itemStack);
-        leftover.values().forEach(left -> player.getWorld().dropItemNaturally(player.getLocation(), left));
-        if (!leftover.isEmpty()) {
+        if (!InventoryItemUtil.addOrDrop(player, itemStack).isEmpty()) {
             plugin.messageService().send(player, "gui.inventory_full");
         }
     }
@@ -193,12 +192,14 @@ final class StrengthenGuiInteractionController {
             String type = Texts.lower(slot.definition().type());
             switch (type) {
                 case "target_item" -> handleSlotSwap(event, state, state::targetItem, state::setTargetItem);
-                case "material_input_1" -> handleMaterialSlotSwap(event, state, 0);
-                case "material_input_2" -> handleMaterialSlotSwap(event, state, 1);
-                case "material_input_3" -> handleMaterialSlotSwap(event, state, 2);
-                case "material_input_4" -> handleMaterialSlotSwap(event, state, 3);
                 case "confirm" -> handleConfirm(state);
                 default -> {
+                    if (type.startsWith("material_input_")) {
+                        int index = parseMaterialIndex(type);
+                        if (index >= 0) {
+                            handleMaterialSlotSwap(event, state, index);
+                        }
+                    }
                 }
             }
         }
@@ -214,10 +215,27 @@ final class StrengthenGuiInteractionController {
 
         @Override
         public void onClose(GuiSession session, InventoryCloseEvent event) {
+            ItemStack cursorItem = event != null && event.getPlayer() != null
+                    ? StrengthenGuiSession.cloneNonAir(event.getPlayer().getItemOnCursor())
+                    : null;
+            if (cursorItem != null) {
+                event.getPlayer().setItemOnCursor(null);
+            }
             stateManager.remove(state.player());
             if (!state.completed()) {
                 returnItems(state);
             }
+            if (cursorItem != null) {
+                giveBackToPlayer(state.player(), cursorItem);
+            }
+        }
+    }
+
+    private static int parseMaterialIndex(String type) {
+        try {
+            return Integer.parseInt(type.substring("material_input_".length())) - 1;
+        } catch (NumberFormatException ignored) {
+            return -1;
         }
     }
 }

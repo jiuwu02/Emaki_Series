@@ -1,0 +1,111 @@
+# 主配置
+# config_version 由资源同步维护
+config_version: "1.0.0"
+
+# 语言文件 ID
+language: "zh_CN"
+
+# 是否写入默认资源
+release_default_data: true
+
+slots:
+  # 默认技能槽数量
+  default_count: 3
+
+cast_mode:
+  # auto: 优先 G，不可用时回退 F
+  # g: 仅使用 G
+  # f: 仅使用 F
+  entry_key: "auto"
+  # 重登后是否恢复上次的施法模式
+  restore_last_state_on_join: true
+
+cast_timing:
+  # 任意技能成功释放后的全局延迟，单位 tick
+  # 0 表示关闭
+  forced_global_cast_delay_ticks: 0
+
+actionbar:
+  enabled: true
+  # 刷新间隔，单位 tick
+  refresh_interval_ticks: 10
+  # 施法模式下的显示模板
+  template_cast_mode: "<gold>施法模式</gold> {slot_1} {slot_2} {slot_3} <gray>延迟:</gray> {forced_delay}"
+  # 非施法模式下的显示模板，空字符串表示不显示
+  template_idle: ""
+
+# 触发器配置
+triggers:
+  left_click:
+    display_name: "[左键]"
+    enabled: true
+    incompatible_with:
+      - shift_left_click
+
+  right_click:
+    display_name: "[右键]"
+    enabled: true
+    incompatible_with:
+      - shift_right_click
+
+  shift_left_click:
+    display_name: "[Shift + 左键]"
+    enabled: true
+    incompatible_with:
+      - left_click
+
+  shift_right_click:
+    display_name: "[Shift + 右键]"
+    enabled: true
+    incompatible_with:
+      - right_click
+
+  drop_q:
+    display_name: "[Q 键]"
+    enabled: true
+    incompatible_with: []
+
+  hotbar_1:
+    display_name: "[数字键 1]"
+    enabled: true
+    incompatible_with: []
+
+  hotbar_2:
+    display_name: "[数字键 2]"
+    enabled: true
+    incompatible_with: []
+
+  hotbar_3:
+    display_name: "[数字键 3]"
+    enabled: true
+    incompatible_with: []
+
+  hotbar_4:
+    display_name: "[数字键 4]"
+    enabled: true
+    incompatible_with: []
+
+  hotbar_5:
+    display_name: "[数字键 5]"
+    enabled: true
+    incompatible_with: []
+
+  hotbar_6:
+    display_name: "[数字键 6]"
+    enabled: true
+    incompatible_with: []
+
+  hotbar_7:
+    display_name: "[数字键 7]"
+    enabled: true
+    incompatible_with: []
+
+  hotbar_8:
+    display_name: "[数字键 8]"
+    enabled: true
+    incompatible_with: []
+
+  hotbar_9:
+    display_name: "[数字键 9]"
+    enabled: true
+    incompatible_with: []

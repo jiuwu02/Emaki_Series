@@ -56,6 +56,14 @@ public class AbstractMessageService implements LogMessages {
         return resolveMessage(key, replacements == null ? Map.of() : replacements);
     }
 
+    public final String messageOrFallback(String key, String fallback) {
+        if (Texts.isBlank(key)) {
+            return fallback;
+        }
+        String value = message(key);
+        return Texts.isBlank(value) || key.equals(value) ? fallback : value;
+    }
+
     @Override
     public Component render(String text) {
         return MiniMessages.parse(text);

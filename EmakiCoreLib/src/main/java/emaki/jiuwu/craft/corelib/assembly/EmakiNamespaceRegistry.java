@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -18,7 +17,7 @@ public final class EmakiNamespaceRegistry {
         if (definition == null || Texts.isBlank(definition.id())) {
             return;
         }
-        definitions.put(normalizeId(definition.id()), definition);
+        definitions.put(Texts.normalizeId(definition.id()), definition);
         refreshCache();
     }
 
@@ -26,12 +25,12 @@ public final class EmakiNamespaceRegistry {
         if (Texts.isBlank(namespaceId)) {
             return;
         }
-        definitions.remove(normalizeId(namespaceId));
+        definitions.remove(Texts.normalizeId(namespaceId));
         refreshCache();
     }
 
     public EmakiNamespaceDefinition get(String namespaceId) {
-        return Texts.isBlank(namespaceId) ? null : definitions.get(normalizeId(namespaceId));
+        return Texts.isBlank(namespaceId) ? null : definitions.get(Texts.normalizeId(namespaceId));
     }
 
     public List<EmakiNamespaceDefinition> ordered() {
@@ -42,7 +41,7 @@ public final class EmakiNamespaceRegistry {
         Map<String, String> unique = new LinkedHashMap<>();
         if (namespaceIds != null) {
             for (String namespaceId : namespaceIds) {
-                String normalized = normalizeId(namespaceId);
+                String normalized = Texts.normalizeId(namespaceId);
                 if (!normalized.isBlank()) {
                     unique.putIfAbsent(normalized, normalized);
                 }
@@ -61,11 +60,8 @@ public final class EmakiNamespaceRegistry {
     private void refreshCache() {
         List<EmakiNamespaceDefinition> values = new ArrayList<>(definitions.values());
         values.sort(Comparator.comparingInt(EmakiNamespaceDefinition::order)
-                .thenComparing(definition -> normalizeId(definition.id())));
+                .thenComparing(definition -> Texts.normalizeId(definition.id())));
         orderedDefinitions = values.isEmpty() ? List.of() : List.copyOf(values);
     }
-
-    private String normalizeId(String value) {
-        return value == null ? "" : value.trim().toLowerCase(Locale.ROOT).replace(' ', '_');
-    }
 }
+

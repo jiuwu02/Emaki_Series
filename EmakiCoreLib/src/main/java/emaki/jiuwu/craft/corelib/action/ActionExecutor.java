@@ -196,38 +196,26 @@ public final class ActionExecutor {
             }
         }
         Map<String, String> resolved = resolveArguments(context, parsed.arguments());
+        Action action = registry.get(parsed.actionId());
+        if (action == null) {
+            return CompletableFuture.completedFuture(missingActionResult(parsed.actionId()));
+        }
+        ActionResult validation = action.validate(resolved);
+        if (!validation.success()) {
+            return CompletableFuture.completedFuture(validation);
+        }
         if ("usetemplate".equals(parsed.actionId())) {
-            Action action = registry.get(parsed.actionId());
-            if (action == null) {
-                return CompletableFuture.completedFuture(missingActionResult(parsed.actionId()));
-            }
-            ActionResult validation = action.validate(resolved);
-            if (!validation.success()) {
-                return CompletableFuture.completedFuture(validation);
-            }
             return dispatchScheduler.dispatch(delay, parsed.actionId(), ActionExecutionMode.SYNC, USE_TEMPLATE_DISPATCH_TIMEOUT_MILLIS, () -> null)
                     .thenCompose(ignored -> templateProcessor.execute(context, resolved, (nextContext, lines) -> executeAll(nextContext, lines, true)));
         }
         CompletableFuture<ActionResult> future = dispatchScheduler.dispatch(
                 delay,
                 parsed.actionId(),
-                resolveExecutionMode(parsed.actionId()),
-                resolveTimeoutMillis(parsed.actionId()),
-                () -> executeAction(context, parsed.actionId(), resolved)
+                action.executionMode(),
+                action.timeoutMillis(),
+                () -> safeExecute(context, action, resolved)
         );
         return delay > 0L ? future : ActionFutureSupport.withTimeout(context, parsed.actionId(), future);
-    }
-
-    private ActionResult executeAction(ActionContext context, String actionId, Map<String, String> resolved) {
-        Action action = registry.get(actionId);
-        if (action == null) {
-            return missingActionResult(actionId);
-        }
-        ActionResult validation = action.validate(resolved);
-        if (!validation.success()) {
-            return validation;
-        }
-        return safeExecute(context, action, resolved);
     }
 
     private ActionResult safeExecute(ActionContext context, Action action, Map<String, String> resolved) {
@@ -274,13 +262,4 @@ public final class ActionExecutor {
         return null;
     }
 
-    private ActionExecutionMode resolveExecutionMode(String actionId) {
-        Action action = registry.get(actionId);
-        return action == null ? ActionExecutionMode.SYNC : action.executionMode();
-    }
-
-    private long resolveTimeoutMillis(String actionId) {
-        Action action = registry.get(actionId);
-        return action == null ? Action.DEFAULT_TIMEOUT_MILLIS : action.timeoutMillis();
-    }
 }

@@ -1,0 +1,120 @@
+id: "sapphire_defense"
+gem_type: "defense"
+tier: 1
+item_source: "minecraft-lapis_lazuli"
+
+stats:
+  physical_defense: 6
+  max_health: 10
+ea_attributes:
+  physical_defense: 6.0
+  max_health: 10.0
+
+socket_compatibility:
+  - "defense"
+  - "universal"
+
+structured_presentation:
+  name_contributions:
+    - slot_id: "gem.slot.{slot_index}.badge"
+      position: "POSTFIX"
+      order: 300
+      content_template: " <blue>[{display_name}]</blue>"
+  lore_sections:
+    - section_id: "gem.slot.{slot_index}.detail"
+      order: 200
+      lines:
+        - "<blue>◆ {display_name}: 物理防御+{physical_defense} 生命+{max_health}</blue>"
+
+inlay_cost:
+  currencies:
+    - provider: "vault"
+      currency: ""
+      base_cost: 900
+      cost_formula: "{base_cost} * {tier}"
+      display_name: "<gold>金币</gold>"
+  materials:
+    - item: "minecraft-lapis_lazuli"
+      amount: 2
+
+extract_cost:
+  currencies:
+    - provider: "vault"
+      currency: ""
+      base_cost: 450
+      cost_formula: "{base_cost} * {tier}"
+      display_name: "<gold>金币</gold>"
+
+extract_return:
+  mode: "original"
+
+upgrade:
+  enabled: true
+  max_level: 3
+  gui_template: "upgrade/default"
+  economy:
+    enabled: true
+    currencies:
+      - provider: "vault"
+        currency: ""
+        base_cost: 1800
+        cost_formula: "{base_cost} * {target_level}"
+        display_name: "<gold>金币</gold>"
+  success_rates:
+    2: 100.0
+    3: 75.0
+  failure_penalty: "none"
+  levels:
+    2:
+      stats:
+        physical_defense: 9
+        max_health: 14
+      ea_attributes:
+        physical_defense: 9.0
+        max_health: 14.0
+      structured_presentation:
+        name_contributions:
+          - slot_id: "gem.slot.{slot_index}.badge"
+            position: "POSTFIX"
+            order: 300
+            content_template: " <blue>[{display_name}]</blue>"
+        lore_sections:
+          - section_id: "gem.slot.{slot_index}.detail"
+            order: 200
+            lines:
+              - "<blue>◆ {display_name}: 物理防御+{physical_defense} 生命+{max_health}</blue>"
+      materials:
+        - item: "minecraft-lapis_lazuli"
+          amount: 6
+      success_rate: 100.0
+      success_actions: []
+      failure_actions: []
+
+    3:
+      stats:
+        physical_defense: 13
+        max_health: 20
+      ea_attributes:
+        physical_defense: 13.0
+        max_health: 20.0
+      structured_presentation:
+        name_contributions:
+          - slot_id: "gem.slot.{slot_index}.badge"
+            position: "POSTFIX"
+            order: 300
+            content_template: " <blue>[{display_name}]</blue>"
+        lore_sections:
+          - section_id: "gem.slot.{slot_index}.detail"
+            order: 200
+            lines:
+              - "<blue>◆ {display_name}: 物理防御+{physical_defense} 生命+{max_health}</blue>"
+      materials:
+        - item: "minecraft-diamond"
+          amount: 1
+        - item: "minecraft-lapis_lazuli"
+          amount: 12
+      success_actions: []
+      failure_actions: []
+
+inlay_success_actions: []
+extract_success_actions: []

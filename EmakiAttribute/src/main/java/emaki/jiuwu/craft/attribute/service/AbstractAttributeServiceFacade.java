@@ -356,6 +356,6 @@ abstract class AbstractAttributeServiceFacade implements AttributeServiceFacade 
     }
 
     protected String normalizeId(String value) {
-        return value == null ? "" : value.trim().toLowerCase(java.util.Locale.ROOT).replace(' ', '_');
+        return Texts.normalizeId(value);
     }
 }

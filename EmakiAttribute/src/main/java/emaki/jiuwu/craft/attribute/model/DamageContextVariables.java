@@ -5,6 +5,8 @@ import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 
+import org.bukkit.event.entity.EntityDamageEvent;
+
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -56,7 +58,7 @@ public record DamageContextVariables(Map<String, Object> values) {
         if (Texts.isBlank(key)) {
             return null;
         }
-        return values.get(normalizeId(key));
+        return values.get(Texts.normalizeId(key));
     }
 
     public String string(String key, String fallback) {
@@ -70,8 +72,66 @@ public record DamageContextVariables(Map<String, Object> values) {
         return value == null ? fallback : value;
     }
 
+    public double getDouble(String key, double fallback) {
+        return doubleValue(key, fallback);
+    }
+
+    public boolean getBoolean(boolean fallback, String... keys) {
+        if (keys == null || keys.length == 0) {
+            return fallback;
+        }
+        for (String key : keys) {
+            if (Texts.isBlank(key) || !contains(key)) {
+                continue;
+            }
+            Object raw = get(key);
+            if (raw instanceof Boolean boolValue) {
+                return boolValue;
+            }
+            String normalized = Texts.toStringSafe(raw).trim().toLowerCase(Locale.ROOT);
+            if (normalized.isBlank()) {
+                continue;
+            }
+            if ("true".equals(normalized) || "yes".equals(normalized) || "1".equals(normalized)) {
+                return true;
+            }
+            if ("false".equals(normalized) || "no".equals(normalized) || "0".equals(normalized)) {
+                return false;
+            }
+        }
+        return fallback;
+    }
+
+    public EntityDamageEvent.DamageCause extractDamageCause() {
+        if (isEmpty()) {
+            return null;
+        }
+        Object raw = get("cause");
+        if (raw == null) {
+            raw = get("damage_cause");
+        }
+        if (raw == null) {
+            raw = get("damage_cause_id");
+        }
+        if (raw == null) {
+            return null;
+        }
+        if (raw instanceof EntityDamageEvent.DamageCause cause) {
+            return cause;
+        }
+        String normalized = Texts.normalizeId(String.valueOf(raw));
+        if (Texts.isBlank(normalized)) {
+            return null;
+        }
+        try {
+            return EntityDamageEvent.DamageCause.valueOf(normalized.trim().toUpperCase(Locale.ROOT));
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
     public boolean contains(String key) {
-        return !Texts.isBlank(key) && values.containsKey(normalizeId(key));
+        return !Texts.isBlank(key) && values.containsKey(Texts.normalizeId(key));
     }
 
     private static Map<String, Object> normalize(Map<String, ?> values) {
@@ -83,7 +143,7 @@ public record DamageContextVariables(Map<String, Object> values) {
             if (entry.getKey() == null || entry.getValue() == null) {
                 continue;
             }
-            normalized.put(normalizeId(entry.getKey()), ConfigNodes.toPlainData(entry.getValue()));
+            normalized.put(Texts.normalizeId(entry.getKey()), ConfigNodes.toPlainData(entry.getValue()));
         }
         if (normalized.isEmpty()) {
             return Map.of();
@@ -102,10 +162,6 @@ public record DamageContextVariables(Map<String, Object> values) {
         return copy;
     }
 
-    private static String normalizeId(String value) {
-        return Texts.toStringSafe(value).trim().toLowerCase(Locale.ROOT).replace(' ', '_');
-    }
-
     public static final class Builder {
 
         private final LinkedHashMap<String, Object> values = new LinkedHashMap<>();
@@ -117,7 +173,7 @@ public record DamageContextVariables(Map<String, Object> values) {
             if (Texts.isBlank(key) || value == null) {
                 return this;
             }
-            values.put(normalizeId(key), ConfigNodes.toPlainData(value));
+            values.put(Texts.normalizeId(key), ConfigNodes.toPlainData(value));
             return this;
         }
 

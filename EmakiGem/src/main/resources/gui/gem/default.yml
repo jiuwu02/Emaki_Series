@@ -1,0 +1,75 @@
+id: "gem/default"
+title: "<dark_gray>宝石工坊 - 装备宝石界面</dark_gray>"
+rows: 5
+slots:
+  top_frame:
+    slots: [ 0, 1, 2, 3, 4, 5, 6, 7, 8 ]
+    item: "GRAY_STAINED_GLASS_PANE"
+    display_name: "<gray>"
+    hidden_components: [ "tooltip" ]
+
+  bottom_frame:
+    slots: [ 36, 37, 38, 41, 42, 43, 44 ]
+    item: "GRAY_STAINED_GLASS_PANE"
+    display_name: "<gray>"
+    hidden_components: [ "tooltip" ]
+
+  side_frame:
+    slots: [ 9, 17, 18, 26, 27, 35 ]
+    item: "BLACK_STAINED_GLASS_PANE"
+    display_name: "<dark_gray>"
+    hidden_components: [ "tooltip" ]
+
+  filler_frame:
+    slots: [ 11, 20, 24, 28, 29, 30, 31, 32, 33 ]
+    item: "BLACK_STAINED_GLASS_PANE"
+    display_name: "<dark_gray>"
+    hidden_components: [ "tooltip" ]
+
+  target_item:
+    slots: [ 10 ]
+    type: "target_item"
+    item: "LIGHT_BLUE_STAINED_GLASS_PANE"
+    display_name: "<aqua>放入装备</aqua>"
+
+  socket_info:
+    slots: [ 19 ]
+    type: "socket_info"
+    item: "BOOK"
+    display_name: "<gold>操作说明</gold>"
+
+  socket_summary:
+    slots: [ 25 ]
+    type: "socket_summary"
+    item: "COMPASS"
+    display_name: "<gold>宝石槽统计</gold>"
+
+  socket_slots:
+    slots: [ 12, 13, 14, 15, 21, 22, 23 ]
+    type: "socket_slot"
+    item: "WHITE_STAINED_GLASS_PANE"
+    display_name: "<white>宝石插槽</white>"
+
+  preview_display:
+    slots: [ 16 ]
+    type: "preview_display"
+    item: "WRITABLE_BOOK"
+    display_name: "<gold>操作预览</gold>"
+
+  confirm:
+    slots: [ 34 ]
+    type: "confirm"
+    item: "LIME_STAINED_GLASS_PANE"
+    display_name: "<green>确认操作</green>"
+
+  mode_inlay:
+    slots: [ 39 ]
+    type: "mode_inlay"
+    item: "GREEN_STAINED_GLASS_PANE"
+    display_name: "<green>镶嵌模式</green>"
+
+  mode_extract:
+    slots: [ 40 ]
+    type: "mode_extract"
+    item: "YELLOW_STAINED_GLASS_PANE"
+    display_name: "<yellow>取出模式</yellow>"

@@ -90,10 +90,7 @@ public enum EditableResourceType {
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("id", "new_recipe");
         data.put("display_name", "<white>新配方</white>");
-        Map<String, Object> targetItem = new LinkedHashMap<>();
-        targetItem.put("item", "minecraft:stone");
-        targetItem.put("forge_capacity", "0");
-        data.put("target_item", targetItem);
+        data.put("forge_capacity", "0");
         data.put("blueprint_requirements", new ArrayList<Object>());
         data.put("materials", new ArrayList<Object>());
         data.put("optional_material_limit", "0");
@@ -113,7 +110,7 @@ public enum EditableResourceType {
         metaActions.put("name_modifications", new ArrayList<Object>());
         metaActions.put("lore_actions", new ArrayList<Object>());
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("output_item", "");
+        result.put("output_item", "minecraft:stone");
         result.put("meta_actions", metaActions);
         result.put("action", new ArrayList<String>());
         data.put("result", result);

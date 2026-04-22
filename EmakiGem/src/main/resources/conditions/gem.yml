@@ -1,0 +1,9 @@
+enabled: true
+
+source_id: "gem"
+
+condition_type: "all_of"
+
+invalid_as_failure: true
+
+checks: []

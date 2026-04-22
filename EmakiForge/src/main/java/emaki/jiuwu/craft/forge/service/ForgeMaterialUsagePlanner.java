@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.ToIntFunction;
 
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
@@ -35,17 +36,17 @@ final class ForgeMaterialUsagePlanner {
     }
 
     int optionalCapacityCost(Recipe recipe, GuiItems guiItems) {
-        int total = 0;
-        for (ForgeMaterialContribution contribution : collectOptionalContributions(recipe, guiItems, 0)) {
-            total += contribution.material().effectiveCapacityCost() * contribution.amount();
-        }
-        return total;
+        return sumOptionalContributions(recipe, guiItems, ForgeMaterial::effectiveCapacityCost);
     }
 
     int optionalCapacityBonus(Recipe recipe, GuiItems guiItems) {
+        return sumOptionalContributions(recipe, guiItems, ForgeMaterial::forgeCapacityBonus);
+    }
+
+    private int sumOptionalContributions(Recipe recipe, GuiItems guiItems, ToIntFunction<ForgeMaterial> extractor) {
         int total = 0;
-        for (ForgeMaterialContribution contribution : collectOptionalContributions(recipe, guiItems, 0)) {
-            total += contribution.material().forgeCapacityBonus() * contribution.amount();
+        for (ForgeMaterialContribution c : collectOptionalContributions(recipe, guiItems, 0)) {
+            total += extractor.applyAsInt(c.material()) * c.amount();
         }
         return total;
     }

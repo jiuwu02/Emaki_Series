@@ -1,44 +1,25 @@
-# ========================================
-# EmakiAttribute 属性定义 - health
-# ========================================
-# 生命值属性，属于 RESOURCE 类型，会同步到 Bukkit 原版最大生命值。
-# ========================================
-
-# 属性 ID
 id: health
 
-# 显示名称
 display_name: "生命值"
 
-# 值类型：RESOURCE 表示资源上限加成
 value_kind: RESOURCE
 
-# 目标类型：RESOURCE 表示影响资源上限
 target_type: RESOURCE
 
-# 目标 ID：health，对应 config.yml 中 default_profile.resources.health
 target_id: health
 
-# 默认值
 default_value: 0.0
 
-# 最小值（生命值不允许为负）
 min_value: 0.0
 
-# 最大值
 max_value: 1000000.0
 
-# 是否允许负值
 allow_negative: false
 
-# 优先级
 priority: 100
 
-# Lore 格式：使用资源类格式，显示为 "生命值 +20"
 lore_format_id: default_resource
 
-# 战斗力系数
 attribute_power: 1.0
 
-# 属性描述
 description: "Adds maximum health."

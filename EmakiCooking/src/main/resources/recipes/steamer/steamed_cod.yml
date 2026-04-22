@@ -1,0 +1,23 @@
+schema_version: "2.0.0"
+
+recipe_version: "2.0.0"
+
+id: "steamed_cod"
+
+display_name: "清蒸鳕鱼"
+
+input:
+  source: "minecraft-cod"
+
+required_steam: 40
+
+permission: "emakicooking.recipe.steamed_cod"
+
+result:
+  output:
+    source: "minecraft-cooked_cod"
+    amount: 1
+    actions:
+      - 'sendmessage text="<aqua>蒸制完成。</aqua>"'
+
+structured_presentation: {}

@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.corelib.text;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Pattern;
 
@@ -73,6 +74,10 @@ public final class Texts {
         return normalizeWhitespace(toStringSafe(value));
     }
 
+    public static String normalizeId(String value) {
+        return toStringSafe(value).trim().toLowerCase(Locale.ROOT).replace(' ', '_');
+    }
+
     public static List<String> stripMiniTags(Collection<?> values) {
         List<String> result = new ArrayList<>();
         if (values == null) {
@@ -91,11 +96,24 @@ public final class Texts {
         if (replacements == null || replacements.isEmpty()) {
             return template;
         }
-        String result = template;
-        for (Map.Entry<String, ?> entry : replacements.entrySet()) {
-            result = result.replace("{" + entry.getKey() + "}", toStringSafe(entry.getValue()));
+        int len = template.length();
+        StringBuilder sb = new StringBuilder(len + 32);
+        for (int i = 0; i < len; i++) {
+            char ch = template.charAt(i);
+            if (ch == '{') {
+                int close = template.indexOf('}', i + 1);
+                if (close > i) {
+                    String key = template.substring(i + 1, close);
+                    if (replacements.containsKey(key)) {
+                        sb.append(toStringSafe(replacements.get(key)));
+                        i = close;
+                        continue;
+                    }
+                }
+            }
+            sb.append(ch);
         }
-        return result;
+        return sb.toString();
     }
 
     public static List<String> formatTemplateList(Collection<?> template, Map<String, ?> replacements) {

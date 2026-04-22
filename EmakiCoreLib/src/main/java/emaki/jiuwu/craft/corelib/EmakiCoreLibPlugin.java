@@ -1,10 +1,7 @@
 package emaki.jiuwu.craft.corelib;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -19,10 +16,11 @@ import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerCodecRegistry;
 import emaki.jiuwu.craft.corelib.assembly.EmakiNamespaceDefinition;
 import emaki.jiuwu.craft.corelib.assembly.EmakiNamespaceRegistry;
-import emaki.jiuwu.craft.corelib.assembly.ItemPresentationCompiler;
 import emaki.jiuwu.craft.corelib.async.AsyncFileService;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.economy.EconomyManager;
+import emaki.jiuwu.craft.corelib.integration.CraftEngineBlockBridge;
+import emaki.jiuwu.craft.corelib.integration.ReflectiveCraftEngineBlockBridge;
 import emaki.jiuwu.craft.corelib.item.ItemSourceIntegrationCoordinator;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
@@ -68,7 +66,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private ItemSourceIntegrationCoordinator itemSourceIntegrationCoordinator;
     private final EmakiNamespaceRegistry namespaceRegistry = new EmakiNamespaceRegistry();
     private final EmakiItemLayerCodecRegistry itemLayerCodecRegistry = new EmakiItemLayerCodecRegistry();
-    private final ItemPresentationCompiler itemPresentationCompiler = new ItemPresentationCompiler();
+    private final CraftEngineBlockBridge craftEngineBlockBridge = new ReflectiveCraftEngineBlockBridge(this);
     private final EmakiItemAssemblyService itemAssemblyService
             = new EmakiItemAssemblyService(namespaceRegistry, itemLayerCodecRegistry, itemSourceService);
     private final Map<Class<?>, Object> serviceRegistry = new ConcurrentHashMap<>();
@@ -78,7 +76,6 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         initializeServices();
         ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII);
         messageService.info("console.plugin_starting");
-        migrateLegacyBundledFiles();
         ensureBundledFile("config.yml");
         itemSourceIntegrationCoordinator.initialize();
         reloadActionSystem();
@@ -127,7 +124,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         for (var entry : configModel.actionTemplates().entrySet()) {
             actionTemplateRegistry.register(entry.getKey(), entry.getValue());
         }
-        BuiltinActions.registerAll(actionRegistry, economyManager, itemSourceService, itemPresentationCompiler);
+        BuiltinActions.registerAll(actionRegistry, economyManager, itemSourceService);
         actionExecutor = new ActionExecutor(
                 this,
                 actionRegistry,
@@ -165,6 +162,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         namespaceRegistry.register(new EmakiNamespaceDefinition("forge", 100, "Forge"));
         namespaceRegistry.register(new EmakiNamespaceDefinition("strengthen", 200, "Strengthen"));
         namespaceRegistry.register(new EmakiNamespaceDefinition("gem", 300, "Gem"));
+        namespaceRegistry.register(new EmakiNamespaceDefinition("cooking", 10000, "Cooking"));
         itemAssemblyService.configureAsync(asyncTaskScheduler, performanceMonitor);
         refreshServiceRegistry();
     }
@@ -198,43 +196,6 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
                     "error", String.valueOf(exception.getMessage())
             ));
             return CoreLibConfig.defaults();
-        }
-    }
-
-    private void migrateLegacyBundledFiles() {
-        Path legacyRoot = getDataFolder().toPath().resolve("defaults");
-        if (!Files.exists(legacyRoot) || !Files.isDirectory(legacyRoot)) {
-            return;
-        }
-        try (var paths = Files.walk(legacyRoot)) {
-            paths.forEach(source -> {
-                try {
-                    Path relative = legacyRoot.relativize(source);
-                    if (relative.toString().isBlank()) {
-                        return;
-                    }
-                    Path target = getDataFolder().toPath().resolve(relative);
-                    if (Files.isDirectory(source)) {
-                        YamlFiles.ensureDirectory(target);
-                        return;
-                    }
-                    if (Files.exists(target)) {
-                        return;
-                    }
-                    YamlFiles.ensureDirectory(target.getParent());
-                    Files.copy(source, target, StandardCopyOption.COPY_ATTRIBUTES);
-                } catch (IOException exception) {
-                    messageService.warning("loader.legacy_resource_migrate_failed", java.util.Map.of(
-                            "path", source.toString(),
-                            "error", String.valueOf(exception.getMessage())
-                    ));
-                }
-            });
-        } catch (IOException exception) {
-            messageService.warning("loader.legacy_resource_scan_failed", java.util.Map.of(
-                    "path", legacyRoot.toString(),
-                    "error", String.valueOf(exception.getMessage())
-            ));
         }
     }
 
@@ -294,12 +255,12 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         return itemLayerCodecRegistry;
     }
 
-    public ItemPresentationCompiler itemPresentationCompiler() {
-        return itemPresentationCompiler;
-    }
-
     public EmakiItemAssemblyService itemAssemblyService() {
         return itemAssemblyService;
+    }
+
+    public CraftEngineBlockBridge craftEngineBlockBridge() {
+        return craftEngineBlockBridge;
     }
 
     private void refreshServiceRegistry() {
@@ -319,7 +280,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         registerService(ItemSourceService.class, itemSourceService);
         registerService(EmakiNamespaceRegistry.class, namespaceRegistry);
         registerService(EmakiItemLayerCodecRegistry.class, itemLayerCodecRegistry);
-        registerService(ItemPresentationCompiler.class, itemPresentationCompiler);
+        registerService(CraftEngineBlockBridge.class, craftEngineBlockBridge);
         registerService(EmakiItemAssemblyService.class, itemAssemblyService);
     }
 

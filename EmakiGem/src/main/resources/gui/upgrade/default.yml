@@ -1,0 +1,51 @@
+id: "upgrade/default"
+title: "<dark_gray>宝石升级台</dark_gray>"
+rows: 4
+slots:
+  top_frame:
+    slots: [ 0, 1, 2, 3, 4, 5, 6, 7, 8 ]
+    item: "GRAY_STAINED_GLASS_PANE"
+    display_name: "<gray>"
+    hidden_components: [ "tooltip" ]
+
+  bottom_frame:
+    slots: [ 27, 28, 29, 31, 32, 33, 34, 35 ]
+    item: "GRAY_STAINED_GLASS_PANE"
+    display_name: "<gray>"
+    hidden_components: [ "tooltip" ]
+
+  target_gem:
+    slots: [ 10 ]
+    type: "target_gem"
+    item: "RED_STAINED_GLASS_PANE"
+    display_name: "<red>放入宝石</red>"
+
+  level_info:
+    slots: [ 19 ]
+    type: "level_info"
+    item: "BOOK"
+    display_name: "<gold>等级信息</gold>"
+
+  material_slots:
+    slots: [ 12, 13, 14, 21, 22, 23 ]
+    type: "material_slot"
+    item: "BLAZE_POWDER"
+    display_name: "<aqua>升级材料</aqua>"
+
+  preview:
+    slots: [ 16 ]
+    type: "preview"
+    item: "WRITABLE_BOOK"
+    display_name: "<gold>升级预览</gold>"
+
+  success_rate:
+    slots: [ 25 ]
+    type: "success_rate"
+    item: "EXPERIENCE_BOTTLE"
+    display_name: "<gold>成功率</gold>"
+
+  confirm:
+    slots: [ 30 ]
+    type: "confirm"
+    item: "LIME_STAINED_GLASS_PANE"
+    display_name: "<green>确认升级</green>"

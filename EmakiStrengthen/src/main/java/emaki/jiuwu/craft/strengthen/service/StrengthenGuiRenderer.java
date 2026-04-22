@@ -38,14 +38,16 @@ final class StrengthenGuiRenderer {
         String type = Texts.lower(slot.type());
         ItemStack dynamic = switch (type) {
             case "target_item" -> StrengthenGuiSession.cloneNonAir(state.targetItem());
-            case "material_input_1" -> StrengthenGuiSession.cloneNonAir(state.materialInput(0));
-            case "material_input_2" -> StrengthenGuiSession.cloneNonAir(state.materialInput(1));
-            case "material_input_3" -> StrengthenGuiSession.cloneNonAir(state.materialInput(2));
-            case "material_input_4" -> StrengthenGuiSession.cloneNonAir(state.materialInput(3));
             case "preview_display" -> buildPreviewItem(state);
             case "temper_display" -> buildTemperItem(state);
             case "confirm" -> buildConfirmItem(state);
-            default -> null;
+            default -> {
+                if (type.startsWith("material_input_")) {
+                    int index = parseMaterialIndex(type);
+                    yield index >= 0 ? StrengthenGuiSession.cloneNonAir(state.materialInput(index)) : null;
+                }
+                yield null;
+            }
         };
         if (dynamic != null) {
             return dynamic;
@@ -64,44 +66,36 @@ final class StrengthenGuiRenderer {
     private ItemStack buildPreviewItem(StrengthenGuiSession state) {
         AttemptPreview preview = state.preview();
         if (state.targetItem() == null) {
-            return buildItem("BOOK", "<gold>强化预览</gold>", List.of(
-                    "<gray>放入待强化装备后显示成功率、材料与花费</gray>",
-                    "<gray>固定材料会直接从背包中扣除</gray>"
+            return buildItem("BOOK", msg("gui.preview.title"), List.of(
+                    msg("gui.preview.hint_no_target_1"),
+                    msg("gui.preview.hint_no_target_2")
             ));
         }
         if (preview == null || !preview.eligible()) {
             List<String> lore = new ArrayList<>();
-            lore.add("<gray>当前无法强化</gray>");
+            lore.add(msg("gui.preview.ineligible_hint"));
             if (preview != null && Texts.isNotBlank(preview.errorKey())) {
-                lore.add("<red>" + plugin.messageService().message(preview.errorKey(), Map.of()) + "</red>");
+                lore.add("<red>" + msg(preview.errorKey()) + "</red>");
             }
             appendMaterialLines(lore, preview);
-            return buildItem("BOOK", "<red>强化条件未满足</red>", lore);
+            return buildItem("BOOK", msg("gui.preview.ineligible_title"), lore);
         }
         List<String> lore = new ArrayList<>();
-        lore.add("<gray>当前星级: <gold>+" + preview.currentStar() + "</gold></gray>");
-        lore.add("<gray>目标星级: <yellow>+" + preview.targetStar() + "</yellow></gray>");
-        lore.add("<gray>成功率: <green>" + Numbers.formatNumber(preview.successRate(), "0.##") + "%</green></gray>");
-        if (preview.costs().isEmpty()) {
-            lore.add("<gray>花费: <green>免费</green></gray>");
-        } else {
-            lore.add("<gray>花费:</gray>");
-            for (AttemptCost cost : preview.costs()) {
-                lore.add("<gold> - " + cost.amount() + " " + cost.displayName() + "</gold>");
-            }
-        }
+        lore.add(msg("gui.preview.current_star", Map.of("star", preview.currentStar())));
+        lore.add(msg("gui.preview.target_star", Map.of("star", preview.targetStar())));
+        appendRateAndCostSummary(lore, preview);
         lore.add(preview.protectionApplied()
-                ? plugin.messageService().message("strengthen.preview.failure_drop_protected")
+                ? msg("strengthen.preview.failure_drop_protected")
                 : (preview.failureStar() < preview.currentStar()
-                ? plugin.messageService().message("strengthen.preview.failure_drop")
-                : plugin.messageService().message("strengthen.preview.failure_keep")));
+                ? msg("strengthen.preview.failure_drop")
+                : msg("strengthen.preview.failure_keep")));
         appendMaterialLines(lore, preview);
         if (!preview.successDeltaStats().isEmpty()) {
-            lore.add("<gray>强化提升:</gray>");
+            lore.add(msg("gui.preview.delta_stats_header"));
             preview.successDeltaStats().forEach((id, value)
-                    -> lore.add("<gold> - " + id + " +" + Numbers.formatNumber(value, "0.##") + "</gold>"));
+                    -> lore.add(msg("gui.preview.delta_stats_line", Map.of("id", id, "value", Numbers.formatNumber(value, "0.##")))));
         }
-        return buildItem("BOOK", "<gold>强化预览</gold>", lore);
+        return buildItem("BOOK", msg("gui.preview.title"), lore);
     }
 
     private void appendMaterialLines(List<String> lore, AttemptPreview preview) {
@@ -109,7 +103,7 @@ final class StrengthenGuiRenderer {
             return;
         }
         if (!preview.requiredMaterials().isEmpty()) {
-            lore.add("<gray>固定材料:</gray>");
+            lore.add(msg("gui.preview.required_materials_header"));
             for (AttemptMaterial material : preview.requiredMaterials()) {
                 String color = material.satisfied() ? "<green>" : "<red>";
                 lore.add(color + " - " + materialDisplayName(material.item()) + " x" + material.requiredAmount()
@@ -118,7 +112,7 @@ final class StrengthenGuiRenderer {
         }
         boolean hasOptional = preview.optionalMaterials().stream().anyMatch(material -> material != null && Texts.isNotBlank(material.item()));
         if (hasOptional) {
-            lore.add("<gray>已放入可选材料:</gray>");
+            lore.add(msg("gui.preview.optional_materials_header"));
             for (AttemptMaterial material : preview.optionalMaterials()) {
                 if (material == null || Texts.isBlank(material.item())) {
                     continue;
@@ -130,7 +124,7 @@ final class StrengthenGuiRenderer {
 
     private String materialDisplayName(String item) {
         if (Texts.isBlank(item)) {
-            return "未知材料";
+            return msg("strengthen.misc.unknown_material");
         }
         ItemSource source = ItemSourceUtil.parseShorthand(item);
         if (source == null || plugin.coreItemSourceService() == null) {
@@ -145,29 +139,42 @@ final class StrengthenGuiRenderer {
         int temper = strengthenState == null ? 0 : strengthenState.temperLevel();
         int maxTemper = state.preview() == null || state.preview().recipe() == null ? 0 : state.preview().recipe().limits().maxTemper();
         List<String> lore = new ArrayList<>();
-        lore.add("<gray>当前锻印: <gold>" + temper + "/" + maxTemper + "</gold></gray>");
+        lore.add(msg("gui.temper.current", Map.of("temper", temper, "max", maxTemper)));
         if (state.preview() != null && state.preview().appliedTemperBonus() > 0) {
-            lore.add("<gray>本次额外锻印加成: <aqua>+" + state.preview().appliedTemperBonus() + "</aqua></gray>");
+            lore.add(msg("gui.temper.bonus", Map.of("bonus", state.preview().appliedTemperBonus())));
         }
-        lore.add("<gray>失败后会累积锻印，提高后续成功率</gray>");
-        return buildItem("INK_SAC", "<gold>锻印状态</gold>", lore);
+        lore.add(msg("gui.temper.hint"));
+        return buildItem("INK_SAC", msg("gui.temper.title"), lore);
     }
 
     private ItemStack buildConfirmItem(StrengthenGuiSession state) {
         AttemptPreview preview = state.preview();
         if (preview == null || !preview.eligible()) {
-            return buildItem("BARRIER", "<red>无法强化</red>", List.of("<gray>请先满足所有强化条件</gray>"));
+            return buildItem("BARRIER", msg("gui.confirm.ineligible_title"), List.of(msg("gui.confirm.ineligible_hint")));
         }
         List<String> lore = new ArrayList<>();
-        lore.add("<gray>成功率: <green>" + Numbers.formatNumber(preview.successRate(), "0.##") + "%</green></gray>");
+        appendRateAndCostSummary(lore, preview);
+        return buildItem("ANVIL", msg("gui.confirm.title"), lore);
+    }
+
+    private void appendRateAndCostSummary(List<String> lore, AttemptPreview preview) {
+        lore.add(msg("gui.preview.success_rate", Map.of("rate", Numbers.formatNumber(preview.successRate(), "0.##"))));
         if (preview.costs().isEmpty()) {
-            lore.add("<gray>花费: <green>免费</green></gray>");
+            lore.add(msg("gui.preview.cost_free"));
         } else {
+            lore.add(msg("gui.preview.cost_header"));
             for (AttemptCost cost : preview.costs()) {
-                lore.add("<gray>花费: <gold>" + cost.amount() + " " + cost.displayName() + "</gold></gray>");
+                lore.add(msg("gui.preview.cost_line", Map.of("amount", cost.amount(), "name", cost.displayName())));
             }
         }
-        return buildItem("ANVIL", "<green>确认强化</green>", lore);
+    }
+
+    private String msg(String key) {
+        return plugin.messageService().message(key);
+    }
+
+    private String msg(String key, Map<String, ?> replacements) {
+        return plugin.messageService().message(key, replacements);
     }
 
     private ItemStack buildItem(String item, String name, List<String> lore) {
@@ -178,5 +185,13 @@ final class StrengthenGuiRenderer {
                 Map.of(),
                 (source, amount) -> plugin.coreItemFactory().create(source, amount)
         );
+    }
+
+    private static int parseMaterialIndex(String type) {
+        try {
+            return Integer.parseInt(type.substring("material_input_".length())) - 1;
+        } catch (NumberFormatException ignored) {
+            return -1;
+        }
     }
 }

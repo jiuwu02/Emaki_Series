@@ -1,0 +1,114 @@
+lang_version: "1.1.0"
+
+general:
+  prefix: "<gray>[ <gradient:#B84DFF:#FF8A3D>装备宝石</gradient> ]</gray>"
+  unknown_command: "<red>未知命令，请使用 <yellow>/emakigem help</yellow> 查看帮助。</red>"
+  player_only: "<red>这个命令只能由玩家执行。</red>"
+  no_permission: "<red>你没有权限执行这个命令。</red>"
+  invalid_args: "<red>参数错误，请检查命令格式。</red>"
+  player_not_found: "<red>找不到目标玩家。</red>"
+  reload_success: "<green>配置已重载。</green>"
+  reload_summary: "<gray>已加载宝石 {gems} 个、装备 {items} 个、GUI 模板 {guis} 个。</gray>"
+
+console:
+  plugin_starting: "<gray>正在启动 EmakiGem...</gray>"
+  plugin_started: "<green>EmakiGem 启动完成。</green>"
+  bootstrap_start: "<white>开始检查默认文件...</white>"
+  bootstrap_skip: "<gray>release_default_data=false，跳过默认数据文件生成。</gray>"
+  bootstrap_complete: "<green>默认文件检查完成。</green>"
+  default_file_missing: "<yellow>缺少内置默认资源，已跳过: <red>{path}</red></yellow>"
+  bootstrap_copy_failed: "<yellow>复制默认资源失败: <red>{path}</red> <gray>({error})</gray></yellow>"
+  bootstrap_save_failed: "<yellow>保存默认资源失败: <red>{path}</red> <gray>({error})</gray></yellow>"
+  directory_create_failed: "<yellow>无法创建目录: <red>{path}</red></yellow>"
+  bootstrap_legacy_cleanup_failed: "<yellow>清理旧版资源目录失败: <red>{path}</red> <gray>({error})</gray></yellow>"
+  loader_config_load_error: "<red>加载配置失败: {path} ({error})</red>"
+
+loader:
+  directory_create_failed: "<red>无法创建目录: {path}</red>"
+  invalid_blank_id: "<red>{type} 文件 {file} 缺少有效 ID。</red>"
+  duplicate_id: "<red>{type} 文件 {file} 出现重复 ID: {id}</red>"
+  load_failed: "<red>加载 {type} 文件 {file} 失败: {error}</red>"
+  invalid_config: "<red>{type} 文件 {file} 配置无效，已跳过加载。</red>"
+  gem_missing_item_source: "<red>宝石文件 {file} 的 item_source 缺失或无效，已拒绝加载: {id}</red>"
+
+gem:
+  error:
+    invalid_equipment: "<red>{player} 的主手物品不是可镶嵌装备。</red>"
+    insufficient_cost: "<red>所需货币或材料不足。</red>"
+    player_required: "<red>必须由玩家执行该操作。</red>"
+
+command:
+  help:
+    header: "<gold>EmakiGem 帮助</gold>"
+    line: "<gray>/emakigem <yellow>{cmd}</yellow> <dark_gray>-</dark_gray>
+      {desc}</gray>"
+    footer: "<dark_gray>镶嵌、开孔、取出和升级界面请使用 <gray>/emakigem gui [inlay|extract|open|upgrade]</gray> 打开。</dark_gray>"
+
+  gui_only: "<yellow>对应界面现在只能通过 <gold>/emakigem gui
+    [inlay|extract|open|upgrade]</gold> 打开。</yellow>"
+
+  inspect:
+    header: "<gold>宝石状态检查 - {player}</gold>"
+    line: "<gray>{key}: <yellow>{value}</yellow></gray>"
+
+  open:
+    opener_not_found: "<red>未找到可用的开孔器配置: {opener}</red>"
+    hold_opener: "<red>请提供有效的 <yellow>{opener}</yellow> 开孔器。</red>"
+    no_available_slot: "<red>没有可开启的插槽了。</red>"
+    slot_already_opened: "<yellow>当前孔位已开启。</yellow>"
+    slot_unavailable: "<red>指定插槽当前不可开启。</red>"
+    apply_failed: "<red>开孔失败，无法写回装备状态。</red>"
+    success: "<green>已为 <yellow>{player}</yellow> 开启插槽 <gold>#{slot}</gold>。</green>"
+
+  inlay:
+    slot_not_found: "<red>找不到插槽 #{slot}。</red>"
+    slot_not_opened: "<red>插槽 #{slot} 尚未开孔。</red>"
+    slot_occupied: "<red>插槽 #{slot} 已经镶嵌了宝石。</red>"
+    hold_gem: "<red>请提供有效的宝石物品。</red>"
+    gem_type_blocked: "<red>该装备不允许镶嵌类型为 <yellow>{type}</yellow> 的宝石。</red>"
+    socket_incompatible: "<red>宝石与插槽 #{slot} 的类型 <yellow>{type}</yellow> 不兼容。</red>"
+    max_same_type: "<red>该装备已达到同类型宝石上限: {type}</red>"
+    max_same_id: "<red>该装备已达到同 ID 宝石上限: {gem}</red>"
+    chance_failed: "<red>镶嵌失败，本次未写入装备。</red>"
+    apply_failed: "<red>镶嵌失败，无法写回装备状态。</red>"
+    success: "<green>已将 <yellow>{gem}</yellow> 镶嵌到插槽 <gold>#{slot}</gold>。</green>"
+
+  extract:
+    slot_empty: "<red>插槽 #{slot} 中没有可取出的宝石。</red>"
+    apply_failed: "<red>拆卸失败，无法写回装备状态。</red>"
+    success: "<green>已从插槽 <gold>#{slot}</gold> 取出 <yellow>{gem}</yellow>。</green>"
+
+  clearstate:
+    no_layer: "<yellow>主手物品当前没有可移除的宝石层。</yellow>"
+    apply_failed: "<red>清空宝石层失败，无法写回装备状态。</red>"
+    success: "<green>已清空主手物品上的宝石层。</green>"
+
+  upgrade:
+    hold_gem: "<red>请先放入要升级的宝石物品。</red>"
+    slot_empty: "<red>指定插槽 #{slot} 中没有可升级的宝石。</red>"
+    direct_disabled: "<red>当前配置未启用装备内直升，请使用独立升级界面。</red>"
+    max_level: "<red>该宝石已经达到当前可升级的最高等级。</red>"
+    failed: "<red>升级失败，材料已消耗但宝石未提升。</red>"
+    apply_failed: "<red>升级失败，无法生成新的宝石物品。</red>"
+    success: "<green>宝石升级成功，当前等级 <gold>{target_level}</gold>。</green>"
+
+  gui:
+  open_failed: "<red>无法打开宝石主界面，请检查 GUI 模板是否存在。</red>"
+  open_socket_failed: "<red>无法打开开孔界面，请检查 GUI 模板是否存在。</red>"
+  upgrade_open_failed: "<red>无法打开宝石升级界面，请检查 GUI 模板是否存在。</red>"
+  gem:
+    target_required: "<red>请先在左侧槽位放入一件可镶嵌装备。</red>"
+    invalid_target: "<red>放入的物品不是可镶嵌宝石的装备。</red>"
+    hold_gem: "<red>请将宝石物品拿到光标后点击空槽。</red>"
+    hold_opener: "<red>请将开孔器拿到光标后点击锁定槽位。</red>"
+    open_via_open_gui: "<yellow>该插槽尚未开孔，请使用 <gold>/emakigem gui open</gold> 处理。</yellow>"
+    no_pending_action: "<red>当前没有待确认的操作。</red>"
+  open:
+    target_required: "<red>请先放入一件可开孔装备。</red>"
+    invalid_target: "<red>放入的物品不是可开孔的装备。</red>"
+    invalid_opener: "<red>放入的物品不是有效的开孔器。</red>"
+    hold_opener: "<red>请先放入一个可用的开孔器。</red>"
+    no_slot_selected: "<red>请先选择一个要开启的锁定插槽。</red>"
+  upgrade:
+    invalid_gem: "<red>放入的物品不是有效的宝石物品。</red>"
+    invalid_material: "<red>该材料槽只接受 <yellow>{material}</yellow> 对应的物品。</red>"

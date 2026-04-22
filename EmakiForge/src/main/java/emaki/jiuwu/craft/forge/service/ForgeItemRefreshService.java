@@ -15,7 +15,6 @@ import org.bukkit.inventory.PlayerInventory;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerSnapshot;
-import emaki.jiuwu.craft.corelib.assembly.ItemPresentationCompiler;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -33,12 +32,10 @@ public final class ForgeItemRefreshService {
     private final ForgeQualityModifierResolver qualityModifierResolver = new ForgeQualityModifierResolver();
     private final Set<String> warningCache = new LinkedHashSet<>();
 
-    public ForgeItemRefreshService(EmakiForgePlugin plugin,
-            EmakiItemAssemblyService itemAssemblyService,
-            ItemPresentationCompiler itemPresentationCompiler) {
+    public ForgeItemRefreshService(EmakiForgePlugin plugin, EmakiItemAssemblyService itemAssemblyService) {
         this.plugin = plugin;
         this.itemAssemblyService = itemAssemblyService;
-        this.snapshotBuilder = new ForgeLayerSnapshotBuilder(plugin, itemPresentationCompiler);
+        this.snapshotBuilder = new ForgeLayerSnapshotBuilder(plugin);
         this.pdcAttributeWriter = new ForgePdcAttributeWriter(plugin);
     }
 
@@ -246,7 +243,7 @@ public final class ForgeItemRefreshService {
 
     private String snapshotIdentity(Map<String, Object> audit) {
         String signature = audit == null ? "" : Texts.toStringSafe(audit.get("materials_signature"));
-        return Texts.isBlank(signature) ? "legacy" : signature;
+        return Texts.isBlank(signature) ? "unknown" : signature;
     }
 
     private void warnOnce(String cacheKey, String messageKey, Map<String, ?> replacements) {

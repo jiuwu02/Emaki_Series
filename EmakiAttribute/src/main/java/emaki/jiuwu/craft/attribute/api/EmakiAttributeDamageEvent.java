@@ -27,7 +27,7 @@ public final class EmakiAttributeDamageEvent extends Event implements Cancellabl
                 ? damageContext
                 : damageResult != null && damageResult.damageContext() != null
                 ? damageResult.damageContext()
-                : DamageContext.legacy("", 0D, null, null, DamageContextVariables.empty());
+                : DamageContext.empty();
         this.damageResult = damageResult != null
                 ? damageResult
                 : new DamageResult(this.damageContext.damageTypeId(), this.damageContext.baseDamage(), false, 0D, Map.of(), this.damageContext);

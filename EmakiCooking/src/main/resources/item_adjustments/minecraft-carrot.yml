@@ -1,0 +1,30 @@
+source: "minecraft-carrot"
+
+stations:
+  chopping_board:
+    offset:
+      x: 0.54
+      y: 1.01
+      z: 0.52
+    rotation:
+      x: 90.0
+      y: 0.0
+      z: 24.0
+    scale:
+      x: 0.72
+      y: 0.72
+      z: 0.72
+
+  wok:
+    offset:
+      x: 0.47
+      y: 1.0
+      z: 0.45
+    rotation:
+      x: 88.0
+      y: 12.0
+      z: "-28.0-18.0"
+    scale:
+      x: 0.56
+      y: 0.56
+      z: 0.56

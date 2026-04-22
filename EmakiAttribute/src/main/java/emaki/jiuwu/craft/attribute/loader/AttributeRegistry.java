@@ -135,59 +135,19 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
             );
             valid = false;
         }
-        if (configuration.contains("priority") && !isNumeric(configuration.get("priority"))) {
-            issue(
-                    "loader.schema_invalid_number",
-                    Map.of(
-                            "type", typeName(),
-                            "file", file.getName(),
-                            "field", "priority"
-                    )
-            );
+        if (!validateNumericField(configuration, file, "priority", typeName())) {
             valid = false;
         }
-        if (configuration.contains("default_value") && !isNumeric(configuration.get("default_value"))) {
-            issue(
-                    "loader.schema_invalid_number",
-                    Map.of(
-                            "type", typeName(),
-                            "file", file.getName(),
-                            "field", "default_value"
-                    )
-            );
+        if (!validateNumericField(configuration, file, "default_value", typeName())) {
             valid = false;
         }
-        if (configuration.contains("min_value") && !isNumeric(configuration.get("min_value"))) {
-            issue(
-                    "loader.schema_invalid_number",
-                    Map.of(
-                            "type", typeName(),
-                            "file", file.getName(),
-                            "field", "min_value"
-                    )
-            );
+        if (!validateNumericField(configuration, file, "min_value", typeName())) {
             valid = false;
         }
-        if (configuration.contains("max_value") && !isNumeric(configuration.get("max_value"))) {
-            issue(
-                    "loader.schema_invalid_number",
-                    Map.of(
-                            "type", typeName(),
-                            "file", file.getName(),
-                            "field", "max_value"
-                    )
-            );
+        if (!validateNumericField(configuration, file, "max_value", typeName())) {
             valid = false;
         }
-        if (configuration.contains("attribute_power") && !isNumeric(configuration.get("attribute_power"))) {
-            issue(
-                    "loader.schema_invalid_number",
-                    Map.of(
-                            "type", typeName(),
-                            "file", file.getName(),
-                            "field", "attribute_power"
-                    )
-            );
+        if (!validateNumericField(configuration, file, "attribute_power", typeName())) {
             valid = false;
         }
         return valid;
@@ -506,6 +466,14 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
 
     private String formatNumber(double value) {
         return Numbers.formatNumber(value, "0.###");
+    }
+
+    private boolean validateNumericField(YamlSection config, File file, String field, String type) {
+        if (config.contains(field) && !isNumeric(config.get(field))) {
+            issue("loader.schema_invalid_number", Map.of("type", type, "file", file.getName(), "field", field));
+            return false;
+        }
+        return true;
     }
 
     private static boolean isNumeric(Object value) {

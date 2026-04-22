@@ -18,11 +18,9 @@ import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
-import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
 import emaki.jiuwu.craft.strengthen.model.StrengthenRecipe;
-import net.kyori.adventure.text.Component;
 
 public final class StrengthenRecipeResolver {
 
@@ -180,21 +178,21 @@ public final class StrengthenRecipeResolver {
             Map<String, Double> stats) {
         Predicate<String> exists = recipeExists == null ? recipeId -> false : recipeExists;
         if (stats.getOrDefault("spell_attack", 0D) > EPSILON || containsLore(loreLines, "法术伤害")) {
-            return existingOrFallback(exists, "weapon_spell", "weapon_physical");
+            return exists.test("weapon_spell") ? "weapon_spell" : "";
         }
         if (stats.getOrDefault("projectile_attack", 0D) > EPSILON || containsLore(loreLines, "投射物伤害")) {
-            return existingOrFallback(exists, "weapon_projectile", "weapon_physical");
+            return exists.test("weapon_projectile") ? "weapon_projectile" : "";
         }
         if ("offhand".equals(slotGroup)) {
-            return existingOrFallback(exists, "offhand_focus", "generic_visual");
+            return exists.test("offhand_focus") ? "offhand_focus" : "";
         }
         if ("armor".equals(slotGroup)) {
-            return existingOrFallback(exists, "armor_guard", "generic_visual");
+            return exists.test("armor_guard") ? "armor_guard" : "";
         }
         if ("weapon".equals(slotGroup)) {
-            return existingOrFallback(exists, "weapon_physical", "generic_visual");
+            return exists.test("weapon_physical") ? "weapon_physical" : "";
         }
-        return existingOrFallback(exists, "generic_visual", "");
+        return exists.test("generic_visual") ? "generic_visual" : "";
     }
 
     private Map<String, Double> aggregateStats(ItemStack itemStack, boolean isEmaki) {
@@ -234,12 +232,12 @@ public final class StrengthenRecipeResolver {
         if (itemStack == null || !itemStack.hasItemMeta() || !itemStack.getItemMeta().hasLore()) {
             return lines;
         }
-        List<Component> lore = ItemTextBridge.lore(itemStack.getItemMeta());
+        List<String> lore = ItemTextBridge.loreLines(itemStack.getItemMeta());
         if (lore == null) {
             return lines;
         }
-        for (Component line : lore) {
-            lines.add(Texts.stripMiniTags(MiniMessages.serialize(line)));
+        for (String line : lore) {
+            lines.add(Texts.stripMiniTags(line));
         }
         return lines;
     }
@@ -255,17 +253,6 @@ public final class StrengthenRecipeResolver {
             }
         }
         return false;
-    }
-
-    private static String existingOrFallback(Predicate<String> recipeExists, String primary, String fallback) {
-        Predicate<String> exists = recipeExists == null ? recipeId -> false : recipeExists;
-        if (Texts.isNotBlank(primary) && exists.test(primary)) {
-            return primary;
-        }
-        if (Texts.isNotBlank(fallback) && exists.test(fallback)) {
-            return fallback;
-        }
-        return "";
     }
 
     private String resolveSlotGroup(ItemStack itemStack, ItemSource baseSource) {

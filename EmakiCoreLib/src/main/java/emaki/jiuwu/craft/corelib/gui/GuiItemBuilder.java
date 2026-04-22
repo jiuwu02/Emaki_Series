@@ -2,12 +2,9 @@ package emaki.jiuwu.craft.corelib.gui;
 
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
-import org.bukkit.Registry;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
@@ -90,14 +87,7 @@ public final class GuiItemBuilder {
     }
 
     private static ItemStack createVanillaItem(String identifier, int amount) {
-        if (Texts.isBlank(identifier)) {
-            return null;
-        }
-        String normalized = identifier.trim().toLowerCase(Locale.ROOT);
-        NamespacedKey key = normalized.contains(":")
-                ? NamespacedKey.fromString(normalized)
-                : NamespacedKey.minecraft(normalized);
-        Material material = key == null ? null : Registry.MATERIAL.get(key);
+        Material material = ItemSourceUtil.resolveVanillaMaterial(identifier);
         return material == null ? null : new ItemStack(material, Math.max(1, amount));
     }
 

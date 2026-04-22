@@ -20,7 +20,7 @@ final class ForgeLookupIndex {
     private volatile Map<String, ForgeMaterial> materialsBySource = Map.of();
     private volatile Map<String, ForgeMaterial> materialsById = Map.of();
     private volatile Map<String, BlueprintRequirement> blueprintsBySource = Map.of();
-    private volatile Map<String, List<Recipe>> recipesByTargetSource = Map.of();
+    private volatile Map<String, List<Recipe>> recipesByConfiguredOutputSource = Map.of();
     private volatile List<Recipe> genericRecipes = List.of();
     private volatile List<Recipe> sortedRecipes = List.of();
 
@@ -32,7 +32,7 @@ final class ForgeLookupIndex {
         Map<String, ForgeMaterial> materialIndex = new LinkedHashMap<>();
         Map<String, ForgeMaterial> materialIdIndex = new LinkedHashMap<>();
         Map<String, BlueprintRequirement> blueprintIndex = new LinkedHashMap<>();
-        Map<String, List<Recipe>> targetRecipeIndex = new LinkedHashMap<>();
+        Map<String, List<Recipe>> outputRecipeIndex = new LinkedHashMap<>();
         List<Recipe> genericRecipeList = new ArrayList<>();
         List<Recipe> recipes = plugin.recipeLoader() == null
                 ? new ArrayList<>()
@@ -42,11 +42,11 @@ final class ForgeLookupIndex {
             if (recipe == null) {
                 continue;
             }
-            ItemSource targetSource = recipe.targetItemSource();
-            if (targetSource == null) {
+            ItemSource outputSource = recipe.configuredOutputSource();
+            if (outputSource == null) {
                 genericRecipeList.add(recipe);
             } else {
-                targetRecipeIndex.computeIfAbsent(shorthand(targetSource), ignored -> new ArrayList<>()).add(recipe);
+                outputRecipeIndex.computeIfAbsent(shorthand(outputSource), ignored -> new ArrayList<>()).add(recipe);
             }
             for (ForgeMaterial material : recipe.materials()) {
                 if (material == null) {
@@ -74,7 +74,7 @@ final class ForgeLookupIndex {
         materialsBySource = Map.copyOf(materialIndex);
         materialsById = Map.copyOf(materialIdIndex);
         blueprintsBySource = Map.copyOf(blueprintIndex);
-        recipesByTargetSource = freezeRecipeIndex(targetRecipeIndex);
+        recipesByConfiguredOutputSource = freezeRecipeIndex(outputRecipeIndex);
         genericRecipes = genericRecipeList.isEmpty() ? List.of() : List.copyOf(genericRecipeList);
         sortedRecipes = List.copyOf(recipes);
     }
@@ -95,8 +95,8 @@ final class ForgeLookupIndex {
         return sortedRecipes;
     }
 
-    List<Recipe> findRecipesByTargetSource(ItemSource source) {
-        return source == null ? genericRecipes() : recipesByTargetSource.getOrDefault(shorthand(source), List.of());
+    List<Recipe> findRecipesByConfiguredOutputSource(ItemSource source) {
+        return source == null ? genericRecipes() : recipesByConfiguredOutputSource.getOrDefault(shorthand(source), List.of());
     }
 
     List<Recipe> genericRecipes() {

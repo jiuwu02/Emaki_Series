@@ -1,0 +1,99 @@
+lang_version: "2.0.0"
+
+general:
+  prefix: "<gray>[ <gradient:#D8792E:#F6D16E>Emaki Cooking</gradient> ]</gray>"
+  no_permission: "<red>你没有权限执行此操作。</red>"
+  player_only: "<red>此命令只能由玩家执行。</red>"
+  unknown_command: "<red>未知命令。</red>"
+  invalid_args: "<red>参数错误。</red>"
+  no_item_in_hand: "<red>你的主手当前没有可检查的物品。</red>"
+  reload_success: "<green>配置已重载。</green>"
+  reload_summary: "<gray>已重载配方 {recipes} 个，GUI 资源 {resources} 个。</gray>"
+
+command:
+  help:
+    header: "<gold>========== EmakiCooking 帮助 ==========</gold>"
+    footer: "<gold>=======================================</gold>"
+    line: "<yellow>{cmd}</yellow> <gray>- {desc}</gray>"
+  inspect:
+    header: "<gold>========== 手持物品检查 ==========</gold>"
+    line: "<yellow>{key}</yellow> <gray>- {value}</gray>"
+  convert:
+    dryrun_success: "<green>旧版 dryrun 完成：导入配方 {recipes} 个，工位状态 {stations} 个。</green>"
+    apply_success: "<green>旧版数据导入完成：配方 {recipes} 个，工位状态 {stations} 个。</green>"
+    report: "<gray>导入报告：{path}</gray>"
+    backup: "<gray>备份目录：{path}</gray>"
+    issues: "<yellow>已跳过 {skipped} 条，冲突 {conflicts} 条，未识别来源 {unknown_sources} 条，待复查动作上下文 {action_context_issues} 条。</yellow>"
+
+console:
+  plugin_starting: "<gray>正在启动 EmakiCooking...</gray>"
+  plugin_started: "<green>EmakiCooking 启动完成。</green>"
+  plugin_stopped: "<green>EmakiCooking 已关闭。</green>"
+  bootstrap_start: "<white>开始检查默认文件...</white>"
+  bootstrap_complete: "<green>默认文件检查完成。</green>"
+  bootstrap_skip: "<yellow>已跳过默认数据写入。</yellow>"
+  bootstrap_copy_failed: "<yellow>复制默认资源失败: <red>{path}</red> <gray>({error})</gray></yellow>"
+  bootstrap_save_failed: "<yellow>保存合并资源失败: <red>{path}</red> <gray>({error})</gray></yellow>"
+  bootstrap_cleanup_failed: "<yellow>清理旧目录失败: <red>{path}</red> <gray>({error})</gray></yellow>"
+  default_file_missing: "<yellow>缺少内置默认资源: <red>{path}</red></yellow>"
+  directory_create_failed: "<yellow>创建目录失败: <red>{path}</red></yellow>"
+  loader_config_load_error: "<yellow>读取 EmakiCooking 配置失败: <red>{path}</red>
+    <gray>({error})</gray></yellow>"
+
+loader:
+  lang_directory_create_failed: "<yellow>无法创建语言目录: <red>{path}</red></yellow>"
+  bundled_language_load_failed: "<yellow>读取内置语言失败: <red>{error}</red></yellow>"
+  directory_create_failed: "<yellow>无法创建 {type} 目录: <red>{path}</red></yellow>"
+  invalid_blank_id: "<yellow>{type} ID 为空: <red>{file}</red></yellow>"
+  duplicate_id: "<yellow>重复的 {type} ID <red>{id}</red>，来源 <gray>{file}</gray></yellow>"
+  load_failed: "<yellow>读取 {type} 文件失败: <red>{file}</red> <gray>({error})</gray></yellow>"
+
+chopping_board:
+  too_fast: "<yellow>操作太快了，请稍等一下。</yellow>"
+  wrong_tool: "<yellow>需要手持配置中的厨刀才能切割。</yellow>"
+  cannot_cut: "<red>当前放置的食材没有可用的砧板配方。</red>"
+  progress: "<gray>切割进度: <yellow>{current}</yellow>/<yellow>{required}</yellow></gray>"
+  completed: "<green>砧板处理完成: <yellow>{recipe}</yellow></green>"
+  item_placed: "<gray>已将食材放到砧板上。</gray>"
+  item_returned: "<gray>已从砧板取回食材。</gray>"
+  cut_hurt: "<red>切到手了，受到 {damage} 点伤害。</red>"
+
+grinder:
+  busy: "<yellow>研磨机正在运行，请稍候。</yellow>"
+  no_recipe: "<red>当前物品没有匹配的研磨机配方。</red>"
+  started: "<gray>研磨已开始，预计 <yellow>{seconds}</yellow> 秒完成。</gray>"
+  completed: "<green>研磨完成: <yellow>{recipe}</yellow></green>"
+
+wok:
+  no_item: "<yellow>炒锅里现在没有可操作的食材。</yellow>"
+  no_heat: "<red>炒锅下方没有有效热源，无法开始烹饪。</red>"
+  too_fast: "<yellow>翻炒过快，请稍后再试。</yellow>"
+  wrong_tool: "<yellow>需要手持配置中的锅铲才能翻炒或查看内容。</yellow>"
+  burnt_timeout: "<red>火候断了太久，这锅已经糊了。</red>"
+  stir_count: "<gray>翻炒次数: <yellow>{count}</yellow></gray>"
+  ingredient_added: "<gray>已加入食材: <yellow>{item}</yellow></gray>"
+  ingredient_returned: "<gray>已从炒锅取回食材: <yellow>{item}</yellow></gray>"
+  no_recipe: "<yellow>当前食材组合还不能盛出成菜。</yellow>"
+  completed_success: "<green>成功出锅: <yellow>{recipe}</yellow></green>"
+  completed_undercooked: "<yellow>火候不足，做出了半生不熟的 <white>{recipe}</white></yellow>"
+  completed_overcooked: "<red>火候过了，做出了焦糊的 <white>{recipe}</white></red>"
+  completed_invalid: "<red>这锅菜做砸了。</red>"
+  scalded: "<red>你被热锅烫到了，受到 {damage} 点伤害。</red>"
+  info_header: "<gold>========== 炒锅内容 =========="
+  info_line: "<gray>{index}. {item} x{amount} | 单项翻炒 {stir}</gray>"
+  info_footer: "<gray>总翻炒: <yellow>{count}</yellow> | 火候: <yellow>{heat}</yellow></gray>"
+
+steamer:
+  no_heat_source: "<red>蒸锅下方缺少有效热源，无法打开。</red>"
+  in_use: "<yellow>这口蒸锅正在被其他玩家使用，请稍后再试。</yellow>"
+  open_failed: "<red>蒸锅 GUI 打开失败。</red>"
+  opened: "<gray>蒸锅已打开。</gray>"
+  add_fuel: "<gray>已加入燃料 <yellow>{item}</yellow>，预计持续 <yellow>{seconds}</yellow>
+    秒。</gray>"
+  add_moisture: "<gray>已加入水分源 <yellow>{item}</yellow>，增加 <aqua>{moisture}</aqua>
+    点水分，当前总量 <aqua>{total}</aqua>。</gray>"
+  info: "<gray>燃烧时间: <yellow>{burning_time}</yellow>秒 | 水分:
+    <aqua>{moisture}</aqua> | 蒸汽: <white>{steam}</white> | 烹饪进度:
+    <yellow>{progress}</yellow></gray>"
+  progress_not_started: "未开始"
+  progress_completed: "已完成"

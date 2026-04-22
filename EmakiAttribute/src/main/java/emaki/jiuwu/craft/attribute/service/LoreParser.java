@@ -16,12 +16,8 @@ import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
 public final class LoreParser {
-
-    private static final LegacyComponentSerializer LEGACY_SECTION = LegacyComponentSerializer.legacySection();
 
     private final AttributeRegistry attributeRegistry;
     private final LoreFormatRegistry loreFormatRegistry;
@@ -85,17 +81,7 @@ public final class LoreParser {
     }
 
     private String normalizeLine(Object entry) {
-        if (entry instanceof Component component) {
-            return MiniMessages.serialize(component);
-        }
-        String line = Texts.toStringSafe(entry);
-        if (line.indexOf('§') >= 0) {
-            try {
-                line = MiniMessages.serialize(LEGACY_SECTION.deserialize(line));
-            } catch (Exception ignored) {
-            }
-        }
-        return line;
+        return MiniMessages.toMiniMessage(entry);
     }
 
     private double parseValue(String raw, AttributeDefinition definition) {

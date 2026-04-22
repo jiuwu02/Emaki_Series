@@ -1,6 +1,5 @@
 package emaki.jiuwu.craft.attribute.config;
 
-import java.util.Locale;
 import java.util.Map;
 
 import emaki.jiuwu.craft.attribute.model.DamageContextVariables;
@@ -15,8 +14,8 @@ public record DamageCauseRule(String cause,
         DamageContextVariables context) {
 
     public DamageCauseRule     {
-        cause = normalizeId(cause);
-        damageTypeId = normalizeId(damageTypeId);
+        cause = Texts.normalizeId(cause);
+        damageTypeId = Texts.normalizeId(damageTypeId);
         context = context == null ? DamageContextVariables.empty() : context;
     }
 
@@ -30,7 +29,7 @@ public record DamageCauseRule(String cause,
         } else {
             cause = ConfigNodes.string(raw, "cause", null);
         }
-        cause = normalizeId(cause);
+        cause = Texts.normalizeId(cause);
         if (Texts.isBlank(cause)) {
             return null;
         }
@@ -75,7 +74,7 @@ public record DamageCauseRule(String cause,
         if (!enabled || Texts.isBlank(candidate)) {
             return false;
         }
-        return cause.equals(normalizeId(candidate));
+        return cause.equals(Texts.normalizeId(candidate));
     }
 
     public boolean hasDamageType() {
@@ -87,7 +86,7 @@ public record DamageCauseRule(String cause,
     }
 
     private static boolean isReservedKey(String key) {
-        String normalized = normalizeId(key);
+        String normalized = Texts.normalizeId(key);
         return normalized.equals("cause")
                 || normalized.equals("damage_type")
                 || normalized.equals("damagetype")
@@ -124,8 +123,5 @@ public record DamageCauseRule(String cause,
         }
         return null;
     }
-
-    private static String normalizeId(String value) {
-        return Texts.toStringSafe(value).trim().toLowerCase(Locale.ROOT).replace(' ', '_');
-    }
 }
+

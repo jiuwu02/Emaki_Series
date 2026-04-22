@@ -14,6 +14,7 @@ import emaki.jiuwu.craft.attribute.loader.LoreFormatRegistry;
 import emaki.jiuwu.craft.attribute.loader.PdcReadRuleLoader;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
 import emaki.jiuwu.craft.attribute.service.MessageService;
+import emaki.jiuwu.craft.corelib.integration.EmakiAttributeBridge;
 import emaki.jiuwu.craft.corelib.runtime.RuntimeComponents;
 
 record AttributeRuntimeComponents(AttributeRegistry attributeRegistry,
@@ -25,6 +26,7 @@ record AttributeRuntimeComponents(AttributeRegistry attributeRegistry,
         PdcReadRuleLoader pdcReadRuleLoader,
         LanguageLoader languageLoader,
         MessageService messageService,
+        EmakiAttributeBridge emakiAttributeBridge,
         PdcAttributeApi pdcAttributeApi,
         AttributeService attributeService,
         AttributeListener listener,

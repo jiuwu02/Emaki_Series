@@ -3,7 +3,6 @@ package emaki.jiuwu.craft.attribute.model;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
@@ -13,7 +12,6 @@ import emaki.jiuwu.craft.corelib.text.Texts;
 public record PdcReadRule(String sourceId,
         String conditionType,
         Integer requiredCount,
-        List<String> conditions,
         List<RuleCheck> checks,
         boolean invalidAsFailure,
         int schemaVersion) {
@@ -21,9 +19,8 @@ public record PdcReadRule(String sourceId,
     public static final int CURRENT_SCHEMA_VERSION = 2;
 
     public PdcReadRule {
-        sourceId = normalizeId(sourceId);
+        sourceId = Texts.normalizeId(sourceId);
         conditionType = Texts.isBlank(conditionType) ? "all_of" : Texts.lower(conditionType);
-        conditions = conditions == null ? List.of() : List.copyOf(conditions.stream().filter(Texts::isNotBlank).toList());
         checks = checks == null ? List.of() : List.copyOf(checks.stream().filter(java.util.Objects::nonNull).toList());
         schemaVersion = schemaVersion <= 0 ? CURRENT_SCHEMA_VERSION : schemaVersion;
     }
@@ -35,9 +32,8 @@ public record PdcReadRule(String sourceId,
         if (requiredCount != null) {
             map.put("required_count", requiredCount);
         }
-        map.put("conditions", conditions);
         if (!checks.isEmpty()) {
-            map.put("checks", checks.stream().map(RuleCheck::toMap).toList());
+            map.put("conditions", checks.stream().map(RuleCheck::toMap).toList());
         }
         map.put("invalid_as_failure", invalidAsFailure);
         map.put("schema_version", schemaVersion);
@@ -52,14 +48,13 @@ public record PdcReadRule(String sourceId,
                 ConfigNodes.string(map, "source_id", ""),
                 ConfigNodes.string(map, "condition_type", "all_of"),
                 Numbers.tryParseInt(map.get("required_count"), null),
-                Texts.asStringList(map.get("conditions")),
-                parseChecks(map.get("checks")),
+                parseChecks(resolveConditionEntries(map)),
                 ConfigNodes.bool(map, "invalid_as_failure", true),
                 Numbers.tryParseInt(map.get("schema_version"), CURRENT_SCHEMA_VERSION)
         );
     }
 
-    public boolean usesFlexibleChecks() {
+    public boolean hasChecks() {
         return !checks.isEmpty();
     }
 
@@ -74,8 +69,12 @@ public record PdcReadRule(String sourceId,
         return result;
     }
 
-    private static String normalizeId(String value) {
-        return value == null ? "" : value.trim().toLowerCase(Locale.ROOT).replace(' ', '_');
+    private static Object resolveConditionEntries(Map<String, Object> map) {
+        if (map == null) {
+            return null;
+        }
+        Object conditions = map.get("conditions");
+        return conditions != null ? conditions : map.get("checks");
     }
 
     public record RuleCheck(String type,
@@ -85,8 +84,8 @@ public record PdcReadRule(String sourceId,
             boolean requireMatch) {
 
         public RuleCheck {
-            type = normalizeId(type);
-            key = normalizeId(key);
+            type = Texts.normalizeId(type);
+            key = Texts.normalizeId(key);
             pattern = Texts.toStringSafe(pattern).trim();
             condition = Texts.toStringSafe(condition).trim();
         }
@@ -95,12 +94,12 @@ public record PdcReadRule(String sourceId,
             if (raw == null) {
                 return null;
             }
-            String type = ConfigNodes.string(raw, "type", ConfigNodes.string(raw, "source", ""));
+            String type = ConfigNodes.string(raw, "type", "");
             if (Texts.isBlank(type)) {
                 return null;
             }
-            String pattern = ConfigNodes.string(raw, "pattern", ConfigNodes.string(raw, "regex", ""));
-            String condition = ConfigNodes.string(raw, "condition", ConfigNodes.string(raw, "expression", ""));
+            String pattern = ConfigNodes.string(raw, "pattern", "");
+            String condition = ConfigNodes.string(raw, "condition", "");
             return new RuleCheck(
                     type,
                     ConfigNodes.string(raw, "key", ""),
@@ -135,3 +134,4 @@ public record PdcReadRule(String sourceId,
         }
     }
 }
+

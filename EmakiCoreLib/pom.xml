@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-corelib</artifactId>
-    <version>3.1.0</version>
+    <version>3.2.0</version>
     <name>EmakiCoreLib</name>
     <packaging>jar</packaging>
 
@@ -25,32 +25,22 @@
         <dependency>
             <groupId>net.kyori</groupId>
             <artifactId>adventure-api</artifactId>
-            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>net.kyori</groupId>
             <artifactId>adventure-text-minimessage</artifactId>
-            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>net.kyori</groupId>
             <artifactId>adventure-platform-bukkit</artifactId>
-            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>net.kyori</groupId>
             <artifactId>adventure-text-serializer-legacy</artifactId>
-            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>net.kyori</groupId>
             <artifactId>adventure-text-serializer-plain</artifactId>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>com.google.code.gson</groupId>
-            <artifactId>gson</artifactId>
-            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>net.objecthunter</groupId>
@@ -87,11 +77,6 @@
             <artifactId>boosted-yaml</artifactId>
             <optional>true</optional>
         </dependency>
-        <dependency>
-            <groupId>org.yaml</groupId>
-            <artifactId>snakeyaml</artifactId>
-            <optional>true</optional>
-        </dependency>
     </dependencies>
 
     <build>
@@ -119,110 +104,6 @@
                 <configuration>
                     <forceCreation>true</forceCreation>
                 </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-shade-plugin</artifactId>
-                <configuration>
-                    <createDependencyReducedPom>false</createDependencyReducedPom>
-                    <filters>
-                        <filter>
-                            <artifact>*:*</artifact>
-                            <excludes>
-                                <exclude>module-info.class</exclude>
-                                <exclude>META-INF/versions/**/module-info.class</exclude>
-                            </excludes>
-                        </filter>
-                        <filter>
-                            <artifact>com.google.code.gson:gson</artifact>
-                            <excludes>
-                                <exclude>META-INF/MANIFEST.MF</exclude>
-                                <exclude>META-INF/maven/**</exclude>
-                                <exclude>META-INF/proguard/**</exclude>
-                            </excludes>
-                        </filter>
-                        <filter>
-                            <artifact>com.google.errorprone:error_prone_annotations</artifact>
-                            <excludes>
-                                <exclude>META-INF/MANIFEST.MF</exclude>
-                                <exclude>META-INF/maven/**</exclude>
-                            </excludes>
-                        </filter>
-                        <filter>
-                            <artifact>net.kyori:*</artifact>
-                            <excludes>
-                                <exclude>META-INF/MANIFEST.MF</exclude>
-                            </excludes>
-                        </filter>
-                        <filter>
-                            <artifact>com.google.auto.service:auto-service-annotations</artifact>
-                            <excludes>
-                                <exclude>META-INF/MANIFEST.MF</exclude>
-                                <exclude>META-INF/maven/**</exclude>
-                            </excludes>
-                        </filter>
-                        <filter>
-                            <artifact>org.jspecify:jspecify</artifact>
-                            <excludes>
-                                <exclude>META-INF/MANIFEST.MF</exclude>
-                            </excludes>
-                        </filter>
-                        <filter>
-                            <artifact>net.objecthunter:exp4j</artifact>
-                            <excludes>
-                                <exclude>META-INF/MANIFEST.MF</exclude>
-                                <exclude>META-INF/maven/**</exclude>
-                            </excludes>
-                        </filter>
-                        <filter>
-                            <artifact>dev.dejvokep:boosted-yaml</artifact>
-                            <excludes>
-                                <exclude>META-INF/MANIFEST.MF</exclude>
-                                <exclude>META-INF/maven/**</exclude>
-                            </excludes>
-                        </filter>
-                        <filter>
-                            <artifact>org.yaml:snakeyaml</artifact>
-                            <excludes>
-                                <exclude>META-INF/MANIFEST.MF</exclude>
-                                <exclude>META-INF/maven/**</exclude>
-                            </excludes>
-                        </filter>
-                        <filter>
-                            <artifact>org.snakeyaml:snakeyaml-engine</artifact>
-                            <excludes>
-                                <exclude>META-INF/MANIFEST.MF</exclude>
-                                <exclude>META-INF/maven/**</exclude>
-                            </excludes>
-                        </filter>
-                    </filters>
-                    <relocations>
-                        <relocation>
-                            <pattern>net.objecthunter.exp4j</pattern>
-                            <shadedPattern>emaki.jiuwu.craft.corelib.shadow.exp4j</shadedPattern>
-                        </relocation>
-                        <relocation>
-                            <pattern>dev.dejvokep.boostedyaml</pattern>
-                            <shadedPattern>emaki.jiuwu.craft.corelib.shadow.boostedyaml</shadedPattern>
-                        </relocation>
-                        <relocation>
-                            <pattern>org.yaml.snakeyaml</pattern>
-                            <shadedPattern>emaki.jiuwu.craft.corelib.shadow.snakeyaml</shadedPattern>
-                        </relocation>
-                        <relocation>
-                            <pattern>org.snakeyaml.engine</pattern>
-                            <shadedPattern>emaki.jiuwu.craft.corelib.shadow.snakeyaml.engine</shadedPattern>
-                        </relocation>
-                    </relocations>
-                </configuration>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>shade</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
         </plugins>
     </build>

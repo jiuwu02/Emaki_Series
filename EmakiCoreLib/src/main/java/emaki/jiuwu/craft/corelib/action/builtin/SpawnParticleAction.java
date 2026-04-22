@@ -2,7 +2,6 @@ package emaki.jiuwu.craft.corelib.action.builtin;
 
 import java.util.Map;
 
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.World;
@@ -51,9 +50,10 @@ public final class SpawnParticleAction extends BaseAction {
             }
             location = context.player().getLocation();
         } else {
-            World world = Texts.isBlank(arguments.get("world"))
-                    ? (context.player() == null ? null : context.player().getWorld())
-                    : Bukkit.getWorld(arguments.get("world"));
+            World world = WorldArgumentResolver.resolve(
+                    arguments.get("world"),
+                    context.player() == null ? null : context.player().getWorld()
+            );
             if (world == null) {
                 return ActionResult.failure(ActionErrorType.WORLD_NOT_FOUND, "Unknown world for particle action.");
             }

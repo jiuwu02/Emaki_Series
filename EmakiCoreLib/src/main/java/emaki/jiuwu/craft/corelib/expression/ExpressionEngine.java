@@ -158,7 +158,7 @@ public final class ExpressionEngine {
             return expression;
         }
         Matcher matcher = VARIABLE_PATTERN.matcher(expression);
-        StringBuffer buffer = new StringBuffer();
+        StringBuilder buffer = new StringBuilder();
         while (matcher.find()) {
             Object value = variables.get(matcher.group(1));
             matcher.appendReplacement(buffer, Matcher.quoteReplacement(Texts.toStringSafe(value)));

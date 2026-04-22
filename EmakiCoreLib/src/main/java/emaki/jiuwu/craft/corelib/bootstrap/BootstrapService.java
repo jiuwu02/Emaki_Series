@@ -47,7 +47,7 @@ public final class BootstrapService {
         info("console.bootstrap_start");
         hooks.beforeBootstrap();
         ensureDirectory(plugin.getDataFolder().toPath());
-        cleanupLegacyDirectories();
+        cleanupDirectories();
         for (String directory : extraDirectories) {
             ensureDirectory(dataPath(directory));
         }
@@ -61,6 +61,7 @@ public final class BootstrapService {
         if (hooks.shouldInstallDefaultData()) {
             for (String file : defaultDataFiles) {
                 ensureDefaultFile(file);
+                mergeVersionedFile(file);
             }
         } else if (!defaultDataFiles.isEmpty()) {
             info("console.bootstrap_skip");
@@ -70,7 +71,7 @@ public final class BootstrapService {
         return true;
     }
 
-    private void cleanupLegacyDirectories() {
+    private void cleanupDirectories() {
         for (String relativePath : cleanupDirectories) {
             Path path = dataPath(relativePath);
             if (!Files.exists(path)) {
@@ -81,14 +82,14 @@ public final class BootstrapService {
                     try {
                         Files.deleteIfExists(target);
                     } catch (IOException exception) {
-                        warning("console.bootstrap_legacy_cleanup_failed", Map.of(
+                        warning("console.bootstrap_cleanup_failed", Map.of(
                                 "path", relativePath,
                                 "error", String.valueOf(exception.getMessage())
                         ));
                     }
                 });
             } catch (IOException exception) {
-                warning("console.bootstrap_legacy_cleanup_failed", Map.of(
+                warning("console.bootstrap_cleanup_failed", Map.of(
                         "path", relativePath,
                         "error", String.valueOf(exception.getMessage())
                 ));
@@ -145,6 +146,9 @@ public final class BootstrapService {
             String name = segment.toString();
             if ("lang".equalsIgnoreCase(name) || "language".equalsIgnoreCase(name) || "languages".equalsIgnoreCase(name)) {
                 return "lang_version";
+            }
+            if ("recipe".equalsIgnoreCase(name) || "recipes".equalsIgnoreCase(name)) {
+                return "recipe_version";
             }
         }
         if ("config".equalsIgnoreCase(stem)) {

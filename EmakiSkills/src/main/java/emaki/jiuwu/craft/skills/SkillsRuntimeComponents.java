@@ -1,0 +1,52 @@
+package emaki.jiuwu.craft.skills;
+
+import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
+import emaki.jiuwu.craft.corelib.gui.GuiService;
+import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
+import emaki.jiuwu.craft.corelib.runtime.RuntimeComponents;
+import emaki.jiuwu.craft.corelib.service.MessageService;
+import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
+import emaki.jiuwu.craft.skills.bridge.EaBridge;
+import emaki.jiuwu.craft.skills.bridge.MythicBridge;
+import emaki.jiuwu.craft.skills.config.AppConfig;
+import emaki.jiuwu.craft.skills.gui.SkillsGuiService;
+import emaki.jiuwu.craft.skills.loader.LocalResourceDefinitionLoader;
+import emaki.jiuwu.craft.skills.loader.SkillDefinitionLoader;
+import emaki.jiuwu.craft.skills.mythic.MythicSkillCastService;
+import emaki.jiuwu.craft.skills.provider.EquipmentSkillCollector;
+import emaki.jiuwu.craft.skills.provider.SkillSourceRegistry;
+import emaki.jiuwu.craft.skills.service.ActionBarService;
+import emaki.jiuwu.craft.skills.service.CastAttemptService;
+import emaki.jiuwu.craft.skills.service.CastModeService;
+import emaki.jiuwu.craft.skills.service.PlayerSkillDataStore;
+import emaki.jiuwu.craft.skills.service.PlayerSkillStateService;
+import emaki.jiuwu.craft.skills.service.SkillRegistryService;
+import emaki.jiuwu.craft.skills.trigger.TriggerConflictResolver;
+import emaki.jiuwu.craft.skills.trigger.TriggerRegistry;
+
+record SkillsRuntimeComponents(
+        YamlConfigLoader<AppConfig> appConfigLoader,
+        LanguageLoader languageLoader,
+        SkillDefinitionLoader skillDefinitionLoader,
+        LocalResourceDefinitionLoader localResourceDefinitionLoader,
+        GuiTemplateLoader guiTemplateLoader,
+        MessageService messageService,
+        BootstrapService bootstrapService,
+        GuiService guiService,
+        EquipmentSkillCollector equipmentSkillCollector,
+        SkillSourceRegistry skillSourceRegistry,
+        TriggerRegistry triggerRegistry,
+        TriggerConflictResolver triggerConflictResolver,
+        SkillRegistryService skillRegistryService,
+        PlayerSkillDataStore playerSkillDataStore,
+        PlayerSkillStateService playerSkillStateService,
+        CastModeService castModeService,
+        CastAttemptService castAttemptService,
+        MythicSkillCastService mythicSkillCastService,
+        ActionBarService actionBarService,
+        SkillsGuiService skillsGuiService,
+        EaBridge eaBridge,
+        MythicBridge mythicBridge
+) implements RuntimeComponents {
+}

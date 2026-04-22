@@ -1,6 +1,5 @@
 package emaki.jiuwu.craft.attribute.service;
 
-import java.util.Locale;
 
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -14,6 +13,7 @@ import emaki.jiuwu.craft.attribute.model.ProjectileDamageSnapshot;
 import emaki.jiuwu.craft.attribute.model.ResourceState;
 import emaki.jiuwu.craft.corelib.pdc.PdcPartition;
 import emaki.jiuwu.craft.corelib.pdc.PdcService;
+import emaki.jiuwu.craft.corelib.text.Texts;
 
 final class AttributeStateRepository {
 
@@ -81,7 +81,7 @@ final class AttributeStateRepository {
             pdcService.remove(entity, combatPartition, "damage_type_override");
             return;
         }
-        pdcService.set(entity, combatPartition, "damage_type_override", PersistentDataType.STRING, normalizeId(damageTypeId));
+        pdcService.set(entity, combatPartition, "damage_type_override", PersistentDataType.STRING, Texts.normalizeId(damageTypeId));
     }
 
     String peekDamageTypeOverride(LivingEntity entity) {
@@ -151,7 +151,7 @@ final class AttributeStateRepository {
             return null;
         }
         return new ResourceState(
-                normalizeId(resourceId),
+                Texts.normalizeId(resourceId),
                 defaultMax == null ? 0D : defaultMax,
                 bonusMax == null ? 0D : bonusMax,
                 currentMax == null ? 0D : currentMax,
@@ -220,8 +220,5 @@ final class AttributeStateRepository {
     private PdcPartition resourcePartition(String resourceId) {
         return combatPartition.child("resource").child(resourceId);
     }
-
-    private String normalizeId(String value) {
-        return value == null ? "" : value.trim().toLowerCase(Locale.ROOT).replace(' ', '_');
-    }
 }
+

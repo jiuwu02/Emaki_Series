@@ -3,7 +3,6 @@ package emaki.jiuwu.craft.corelib.assembly;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
@@ -51,7 +50,7 @@ final class AssemblyDataManager {
         }
         List<String> result = new ArrayList<>();
         for (String entry : raw.split(",")) {
-            String normalized = normalizeId(entry);
+            String normalized = Texts.normalizeId(entry);
             if (!normalized.isBlank()) {
                 result.add(normalized);
             }
@@ -77,7 +76,7 @@ final class AssemblyDataManager {
         if (itemStack == null || Texts.isBlank(namespaceId)) {
             return null;
         }
-        String field = normalizeId(namespaceId) + ".snapshot";
+        String field = Texts.normalizeId(namespaceId) + ".snapshot";
         return pdcService.readBlob(itemStack, pdcService.partition(""), field, codecRegistry.codecFor(namespaceId));
     }
 
@@ -86,6 +85,7 @@ final class AssemblyDataManager {
             ItemSource baseSource,
             int amount,
             List<String> activeLayers,
+            List<String> previousActiveLayers,
             String assemblySignature,
             Iterable<EmakiItemLayerSnapshot> snapshots) {
         pdcService.set(itemStack, itemPartition, "schema_version", PersistentDataType.INTEGER, currentSchemaVersion);
@@ -93,6 +93,7 @@ final class AssemblyDataManager {
         pdcService.set(itemStack, itemPartition, "base_amount", PersistentDataType.INTEGER, amount);
         pdcService.set(itemStack, itemPartition, "active_layers", PersistentDataType.STRING, String.join(",", activeLayers));
         pdcService.set(itemStack, itemPartition, "assembly_signature", PersistentDataType.STRING, assemblySignature);
+        clearInactiveLayerSnapshots(itemStack, previousActiveLayers, activeLayers);
         if (snapshots == null) {
             return;
         }
@@ -100,12 +101,25 @@ final class AssemblyDataManager {
             if (snapshot == null) {
                 continue;
             }
-            String field = normalizeId(snapshot.namespaceId()) + ".snapshot";
+            String field = Texts.normalizeId(snapshot.namespaceId()) + ".snapshot";
             pdcService.writeBlob(itemStack, pdcService.partition(""), field, codecRegistry.codecFor(snapshot.namespaceId()), snapshot);
         }
     }
 
-    private String normalizeId(String value) {
-        return value == null ? "" : value.trim().toLowerCase(Locale.ROOT).replace(' ', '_');
+    private void clearInactiveLayerSnapshots(ItemStack itemStack,
+            List<String> previousActiveLayers,
+            List<String> activeLayers) {
+        if (itemStack == null || previousActiveLayers == null || previousActiveLayers.isEmpty()) {
+            return;
+        }
+        List<String> currentActiveLayers = activeLayers == null ? List.of() : activeLayers;
+        for (String namespaceId : previousActiveLayers) {
+            String normalized = Texts.normalizeId(namespaceId);
+            if (normalized.isBlank() || currentActiveLayers.contains(normalized)) {
+                continue;
+            }
+            pdcService.remove(itemStack, pdcService.partition(""), normalized + ".snapshot");
+        }
     }
 }
+

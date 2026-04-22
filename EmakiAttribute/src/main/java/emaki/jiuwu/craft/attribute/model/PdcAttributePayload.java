@@ -1,7 +1,6 @@
 package emaki.jiuwu.craft.attribute.model;
 
 import java.util.LinkedHashMap;
-import java.util.Locale;
 import java.util.Map;
 
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
@@ -17,7 +16,7 @@ public record PdcAttributePayload(String sourceId,
     public static final int CURRENT_SCHEMA_VERSION = 1;
 
     public PdcAttributePayload {
-        sourceId = normalizeId(sourceId);
+        sourceId = Texts.normalizeId(sourceId);
         attributes = normalizeAttributes(attributes);
         meta = normalizeMeta(meta);
         schemaVersion = schemaVersion <= 0 ? CURRENT_SCHEMA_VERSION : schemaVersion;
@@ -50,14 +49,14 @@ public record PdcAttributePayload(String sourceId,
             if (value == null) {
                 continue;
             }
-            attributes.put(normalizeId(entry.getKey()), value);
+            attributes.put(Texts.normalizeId(entry.getKey()), value);
         }
         Map<String, String> meta = new LinkedHashMap<>();
         for (Map.Entry<String, Object> entry : ConfigNodes.entries(map.get("meta")).entrySet()) {
             if (entry.getValue() == null) {
                 continue;
             }
-            meta.put(normalizeId(entry.getKey()), Texts.toStringSafe(entry.getValue()));
+            meta.put(Texts.normalizeId(entry.getKey()), Texts.toStringSafe(entry.getValue()));
         }
         return new PdcAttributePayload(
                 ConfigNodes.string(map, "source_id", ""),
@@ -77,7 +76,7 @@ public record PdcAttributePayload(String sourceId,
             if (entry.getKey() == null || entry.getValue() == null) {
                 continue;
             }
-            normalized.put(normalizeId(entry.getKey()), entry.getValue());
+            normalized.put(Texts.normalizeId(entry.getKey()), entry.getValue());
         }
         return normalized.isEmpty() ? Map.of() : Map.copyOf(normalized);
     }
@@ -91,12 +90,9 @@ public record PdcAttributePayload(String sourceId,
             if (entry.getKey() == null || entry.getValue() == null) {
                 continue;
             }
-            normalized.put(normalizeId(entry.getKey()), entry.getValue());
+            normalized.put(Texts.normalizeId(entry.getKey()), entry.getValue());
         }
         return normalized.isEmpty() ? Map.of() : Map.copyOf(normalized);
     }
-
-    private static String normalizeId(String value) {
-        return value == null ? "" : value.trim().toLowerCase(Locale.ROOT).replace(' ', '_');
-    }
 }
+

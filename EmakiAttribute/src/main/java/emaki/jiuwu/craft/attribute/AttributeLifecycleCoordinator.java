@@ -15,6 +15,7 @@ import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
 
+import emaki.jiuwu.craft.attribute.bridge.ServiceBackedEmakiAttributeBridge;
 import emaki.jiuwu.craft.attribute.bridge.MythicBridge;
 import emaki.jiuwu.craft.attribute.command.AttributeCommand;
 import emaki.jiuwu.craft.attribute.config.AttributeConfig;
@@ -34,6 +35,7 @@ import emaki.jiuwu.craft.attribute.service.PdcAttributeService;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.integration.EmakiAttributeBridge;
 import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
 import emaki.jiuwu.craft.corelib.yaml.VersionedYamlFile;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
@@ -67,6 +69,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                 presetRegistry,
                 pdcAttributeService
         );
+        EmakiAttributeBridge emakiAttributeBridge = new ServiceBackedEmakiAttributeBridge(attributeService);
         AttributeListener listener = new AttributeListener(plugin, attributeService);
         MythicBridge mythicBridge = Bukkit.getPluginManager().isPluginEnabled("MythicMobs")
                 ? new MythicBridge(plugin, attributeService)
@@ -82,6 +85,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                 pdcReadRuleLoader,
                 languageLoader,
                 messageService,
+                emakiAttributeBridge,
                 pdcAttributeService,
                 attributeService,
                 listener,

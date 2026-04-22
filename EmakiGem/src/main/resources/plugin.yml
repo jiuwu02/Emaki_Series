@@ -1,0 +1,21 @@
+name: EmakiGem
+prefix: ${project.name}
+main: emaki.jiuwu.craft.gem.EmakiGemPlugin
+version: ${project.version}
+api-version: "1.21"
+depend:
+  - EmakiCoreLib
+softdepend:
+  - EmakiAttribute
+  - PlaceholderAPI
+commands:
+  emakigem:
+    aliases: [egem, eg]
+    permission: emakigem.use
+permissions:
+  emakigem.use:
+    default: true
+  emakigem.reload:
+    default: op
+  emakigem.admin:
+    default: op

@@ -31,10 +31,9 @@ import emaki.jiuwu.craft.forge.loader.MaterialLoader;
 import emaki.jiuwu.craft.forge.loader.PlayerDataStore;
 import emaki.jiuwu.craft.forge.loader.RecipeLoader;
 import emaki.jiuwu.craft.forge.service.EditorGuiService;
-import emaki.jiuwu.craft.forge.service.ForgeGuiService;
 import emaki.jiuwu.craft.forge.service.ForgeItemRefreshService;
+import emaki.jiuwu.craft.forge.service.ForgeGuiService;
 import emaki.jiuwu.craft.forge.service.ForgeService;
-import emaki.jiuwu.craft.forge.service.ForgeAssemblyFeedbackHandler;
 import emaki.jiuwu.craft.forge.service.ItemIdentifierService;
 import emaki.jiuwu.craft.forge.service.RecipeBookGuiService;
 
@@ -79,30 +78,22 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                     public boolean shouldInstallDefaultData() {
                         return shouldReleaseDefaultData(plugin);
                     }
-
-                    @Override
-                    public void afterVersionedMerge(String relativePath, YamlSection runtime, YamlSection bundled) {
-                        applyVersionMigrations(relativePath, runtime);
-                    }
                 }
         );
         GuiService guiService = new GuiService(plugin, coreLibPlugin.asyncTaskScheduler(), coreLibPlugin.performanceMonitor());
         ItemIdentifierService itemIdentifierService = new ItemIdentifierService(plugin, coreLibPlugin.itemSourceService());
         ReflectivePdcAttributeGateway pdcAttributeGateway = new ReflectivePdcAttributeGateway(plugin);
         syncPdcAttributeRegistration(pdcAttributeGateway, PDC_ATTRIBUTE_SOURCE_ID);
-        registerCoreLibAssemblyFeedbackHandler(plugin);
         ForgeService forgeService = new ForgeService(
                 plugin,
                 coreLibPlugin.asyncTaskScheduler(),
                 coreLibPlugin.performanceMonitor(),
                 coreLibPlugin.itemAssemblyService(),
-                coreLibPlugin.itemPresentationCompiler(),
                 coreLibPlugin::actionExecutor
         );
         ForgeItemRefreshService itemRefreshService = new ForgeItemRefreshService(
                 plugin,
-                coreLibPlugin.itemAssemblyService(),
-                coreLibPlugin.itemPresentationCompiler()
+                coreLibPlugin.itemAssemblyService()
         );
         ForgeGuiService forgeGuiService = new ForgeGuiService(plugin, guiService);
         RecipeBookGuiService recipeBookGuiService = new RecipeBookGuiService(plugin, guiService);
@@ -135,8 +126,6 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         plugin.languageLoader().load();
         plugin.appConfigLoader().load();
         plugin.languageLoader().setLanguage(plugin.appConfig().language());
-        plugin.blueprintLoader().load();
-        plugin.materialLoader().load();
         plugin.recipeLoader().load();
         plugin.guiTemplateLoader().load();
         plugin.playerDataStore().load();
@@ -175,7 +164,6 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         if (plugin.messageService() != null) {
             plugin.messageService().info("console.plugin_stopping");
         }
-        unregisterCoreLibAssemblyFeedbackHandler();
         cancelAutoSave(autoSaveTask);
         if (plugin.pdcAttributeGateway() != null) {
             plugin.pdcAttributeGateway().shutdown();
@@ -221,10 +209,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
             validateSource(plugin, entry.getValue().source(), "material:" + entry.getKey() + ".source");
         }
         for (var entry : plugin.recipeLoader().all().entrySet()) {
-            validateSource(plugin, entry.getValue().configuredOutputSource(), "recipe:" + entry.getKey() + ".target_item");
-            if (entry.getValue().configuredOutputSource() == null && entry.getValue().result() != null) {
-                validateSource(plugin, entry.getValue().result().outputItem(), "recipe:" + entry.getKey() + ".result.output_item");
-            }
+            validateSource(plugin, entry.getValue().configuredOutputSource(), "recipe:" + entry.getKey() + ".result.output_item");
         }
         for (Map.Entry<String, GuiTemplate> entry : plugin.guiTemplateLoader().all().entrySet()) {
             for (GuiSlot slot : entry.getValue().slots().values()) {
@@ -240,16 +225,6 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         if (source != null) {
             plugin.itemIdentifierService().validateConfiguredSource(source, location);
         }
-    }
-
-    private void registerCoreLibAssemblyFeedbackHandler(EmakiForgePlugin plugin) {
-        EmakiCoreLibPlugin coreLib = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
-        coreLib.itemAssemblyService().setFeedbackHandler(new ForgeAssemblyFeedbackHandler(plugin));
-    }
-
-    private void unregisterCoreLibAssemblyFeedbackHandler() {
-        EmakiCoreLibPlugin coreLib = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
-        coreLib.itemAssemblyService().setFeedbackHandler(null);
     }
 
     private AppConfig parseAppConfig(YamlSection configuration) {
@@ -279,32 +254,6 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
     private boolean shouldReleaseDefaultData(EmakiForgePlugin plugin) {
         YamlSection configuration = YamlFiles.load(plugin.dataPath("config.yml").toFile());
         return configuration.getBoolean("release_default_data", true);
-    }
-
-    private void applyVersionMigrations(String relativePath, YamlSection runtime) {
-        if (runtime == null || relativePath == null || !relativePath.startsWith("lang/")) {
-            return;
-        }
-        for (String key : runtime.getKeys(true)) {
-            if (!runtime.isString(key)) {
-                continue;
-            }
-            String value = runtime.getString(key);
-            if (value != null && value.contains("JiuWu's Forge")) {
-                runtime.set(key, value.replace("JiuWu's Forge", "Emaki Forge"));
-            }
-        }
-        replaceLangValue(runtime, "console.plugin_starting", "<white>Emaki Forge <gray>正在启动...</gray>", "<gray>正在启动...</gray>");
-        replaceLangValue(runtime, "console.plugin_started", "<green>Emaki Forge <gray>启动完成!</gray>", "<green>启动完成!</green>");
-        replaceLangValue(runtime, "console.plugin_stopping", "<white>Emaki Forge <gray>正在关闭...</gray>", "<gray>正在关闭...</gray>");
-        replaceLangValue(runtime, "console.plugin_stopped", "<green>Emaki Forge <gray>已关闭!</gray>", "<green>已关闭!</green>");
-    }
-
-    private void replaceLangValue(YamlSection runtime, String path, String expected, String replacement) {
-        String current = runtime.getString(path);
-        if (expected.equals(current)) {
-            runtime.set(path, replacement);
-        }
     }
 
 }

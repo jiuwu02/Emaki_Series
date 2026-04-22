@@ -147,7 +147,7 @@ public abstract class YamlDirectoryLoader<T> {
 
     protected abstract String idOf(T value);
 
-    private void issue(String key, Map<String, ?> replacements) {
+    protected final void issue(String key, Map<String, ?> replacements) {
         LogMessages messages = messages();
         if (messages != null) {
             issues.add(messages.message(key, replacements));

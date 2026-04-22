@@ -25,8 +25,6 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.event.server.PluginEnableEvent;
-import org.bukkit.util.Vector;
-
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.attribute.config.AttributeConfig;
 import emaki.jiuwu.craft.attribute.config.DamageCauseRule;
@@ -34,7 +32,7 @@ import emaki.jiuwu.craft.attribute.model.DamageContext;
 import emaki.jiuwu.craft.attribute.model.DamageContextVariables;
 import emaki.jiuwu.craft.attribute.model.ResolvedDamage;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
-import emaki.jiuwu.craft.corelib.entity.EntityPhysicsSupport;
+import emaki.jiuwu.craft.attribute.service.CombatSupport;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
@@ -165,7 +163,7 @@ public final class AttributeListener implements Listener {
             return;
         }
         // Vanilla damage is ignored for combat math; Emaki applies the real health change itself.
-        DamageContextVariables context = baseContext(event, target);
+        DamageContextVariables context = CombatSupport.baseContext(event, target);
         if (damager instanceof Projectile projectile) {
             Entity shooter = projectile.getShooter() instanceof Entity entity ? entity : null;
             LivingEntity shootingEntity = shooter instanceof LivingEntity livingEntity ? livingEntity : null;
@@ -302,7 +300,7 @@ public final class AttributeListener implements Listener {
                         config.defaultDamageType(),
                         event.getDamage(),
                         0D,
-                        baseContext(event, target)
+                        CombatSupport.baseContext(event, target)
                 );
                 resolveAndApplyDamage(
                         attributeService.resolveDamageApplicationAsync(damageContext),
@@ -328,7 +326,7 @@ public final class AttributeListener implements Listener {
         }
 
         event.setCancelled(true);
-        DamageContextVariables.Builder context = baseContext(event, target).toBuilder();
+        DamageContextVariables.Builder context = CombatSupport.baseContext(event, target).toBuilder();
         if (rule.context() != null && !rule.context().isEmpty()) {
             context.putAll(rule.context());
         }
@@ -378,25 +376,6 @@ public final class AttributeListener implements Listener {
                 "combat_debug.environment_apply"
         );
         return true;
-    }
-
-    private DamageContextVariables baseContext(EntityDamageEvent event, LivingEntity target) {
-        DamageContextVariables.Builder context = DamageContextVariables.builder();
-        String cause = event.getCause().name();
-        context.put("cause", cause);
-        context.put("damage_cause", cause);
-        context.put("damage_cause_id", cause);
-        context.put("base_damage", event.getDamage());
-        context.put("source_damage", event.getDamage());
-        context.put("input_damage", event.getDamage());
-        context.put("final_damage", event.getFinalDamage());
-        context.put("target_uuid", target.getUniqueId().toString());
-        context.put("target_type", target.getType().name());
-        if (event instanceof EntityDamageByEntityEvent byEntityEvent) {
-            context.put("damager_type", byEntityEvent.getDamager().getType().name());
-            context.put("damager_uuid", byEntityEvent.getDamager().getUniqueId().toString());
-        }
-        return context.build();
     }
 
     private void scheduleDamageApplication(Runnable action) {
@@ -478,7 +457,7 @@ public final class AttributeListener implements Listener {
             if (throwable != null) {
                 if (shouldDebugCombat(attacker, target, projectile)) {
                     debugCombat(attacker, target, projectile, "ASYNC_DAMAGE_FAILED", "combat_debug.async_damage_failed", Map.of(
-                            "error", rootCauseMessage(throwable)
+                            "error", CombatSupport.rootCauseMessage(throwable)
                     ));
                 }
                 return;
@@ -492,33 +471,10 @@ public final class AttributeListener implements Listener {
                         "resolved", describeResolvedDamage(resolvedDamage)
                 ));
             }
-            applySyntheticKnockback(target, visualSource, resolvedDamage.finalDamage());
+            CombatSupport.applySyntheticKnockback(target, visualSource, resolvedDamage.finalDamage(), attributeService.config());
             debugCombat(attacker, target, projectile, applyPhase, applyMessageKey);
             attributeService.applyResolvedDamage(resolvedDamage, visualSource, 0D);
         }));
-    }
-
-    private String rootCauseMessage(Throwable throwable) {
-        Throwable current = throwable;
-        while (current != null && current.getCause() != null && current.getCause() != current) {
-            current = current.getCause();
-        }
-        if (current == null || current.getMessage() == null || current.getMessage().isBlank()) {
-            return "unknown";
-        }
-        return current.getMessage();
-    }
-
-    private void applySyntheticKnockback(LivingEntity target, Entity source, double finalDamage) {
-        if (target == null || source == null || finalDamage <= 0D || !target.isValid() || target.isDead()
-                || !attributeService.config().syntheticHitKnockback()) {
-            return;
-        }
-        double strength = Math.max(0D, attributeService.config().syntheticHitKnockbackStrength());
-        if (strength <= 0D) {
-            return;
-        }
-        EntityPhysicsSupport.applyKnockback(target, source, strength);
     }
 
     private boolean shouldDebugCombat(LivingEntity attacker, LivingEntity target, Projectile projectile) {

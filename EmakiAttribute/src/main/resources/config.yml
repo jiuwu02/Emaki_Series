@@ -1,36 +1,25 @@
-# ========================================
-# EmakiAttribute 主配置文件
-# ========================================
-# EmakiAttribute 是 Emaki 系列的属性与战斗系统核心插件，
-# 管理属性定义、伤害类型、资源系统（生命/法力）、PDC 属性读写、
-# 条件规则等。本文件控制属性系统的全局行为。
-# ========================================
+# 属性系统主配置
+# config_version 由资源同步维护
+config_version: "3.2.0"
 
-# 配置文件版本号（由版本迁移器自动管理，请勿手动修改）
-config_version: "3.1.0"
-
-# 语言设置，对应 lang/ 目录下的语言文件
+# 语言文件 ID
 language: zh_CN
 
-# 硬锁模式：当设为 true 时，所有原版伤害事件都会被 EA 伤害系统接管
-# 未命中 allowed_damage_causes 白名单的环境伤害也会被强制转为默认伤害类型
-# 设为 false 时，仅有白名单内的伤害原因会被 EA 系统处理
+# 是否接管未命中白名单的原版伤害
+# true 时，所有原版伤害都会进入 EA 结算；未命中的环境伤害会回退到默认伤害类型
+# false 时，只有白名单中的伤害原因会进入 EA
 hard_lock_damage: true
 
-# 默认伤害类型：当伤害事件无法确定具体伤害类型时使用的回退类型
-# 对应 damage_types/ 目录下定义的伤害类型 ID
+# 默认伤害类型 ID
 default_damage_type: physical
 
-# 资源回复间隔（tick）：生命和法力的自然回复周期
-# 20 tick = 1 秒，即每秒回复一次
+# 资源自然回复间隔，单位 tick
 regen_interval_ticks: 20
 
-# 属性同步延迟（tick）：属性变更后延迟多少 tick 再同步到 Bukkit 原版属性
-# 设为 1 表示在下一个 tick 同步，避免在同 tick 内多次触发属性更新
+# 属性同步到 Bukkit 的延迟，单位 tick
 sync_delay_ticks: 1
 
-# 默认属性配置：所有玩家共享的基础属性与资源上限
-# 这部分会在装备、PDC 和其他贡献源之前作为基础值叠加到玩家快照中
+# 默认属性与资源基础值
 default_profile:
   resources:
     health:
@@ -66,25 +55,17 @@ default_profile:
     health_regen: 0.1
     mana_regen: 0.1
 
-# 合成伤害反馈：当 EA 系统接管伤害后，是否模拟原版的击退和受伤音效
-# 因为 EA 系统会取消原版伤害事件，所以需要手动模拟这些视觉/听觉反馈
 synthetic_hit_feedback:
-  # 是否模拟击退效果
+  # 接管原版伤害后，是否补发击退和受伤音效
   knockback: true
-  # 击退力度（0.4 为原版默认值）
   knockback_strength: 0.4
-  # 是否播放受伤音效
   hurt_sound: true
 
-# 允许的 EA 伤害原因白名单
-# 只有列在此处的 EntityDamageEvent.DamageCause 才会被 EA 系统处理
-# 未列出的伤害原因在 hard_lock_damage=true 时会被强制转为默认伤害类型
-# 每条配置包含：
-#   cause:       Bukkit DamageCause 枚举名
-#   damage_type: 映射到的 EA 伤害类型 ID（对应 damage_types/ 目录）
-#   damage:      基础伤害值，用于覆盖原版伤害（原版伤害值将被忽略）
+# 允许进入 EA 结算的 DamageCause 白名单
+# cause: Bukkit DamageCause
+# damage_type: 对应 damage_types/ 下的伤害类型 ID
+# damage: 使用的基础伤害值
 allowed_damage_causes:
-  # 环境伤害和饥饿伤害统一归为物理伤害，基础伤害值为 1
   - cause: CONTACT
     damage_type: physical
     damage: 1

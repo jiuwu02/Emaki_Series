@@ -1,22 +1,9 @@
-# ========================================
-# EmakiStrengthen 强化配方 - 副手强化
-# ========================================
-# 副手装备的强化路径，提供法术增伤、法力上限、法术暴击率、
-# 法力回复、生命值和闪避率加成。
-# ========================================
-
-# 配方 ID
 id: "offhand_focus"
 
-# 配方显示名称
 display_name: "<light_purple>副手强化</light_purple>"
 
-# GUI 模板
 gui_template: "strengthen_gui"
 
-# ========================================
-# 经济系统配置
-# ========================================
 economy:
   enabled: true
   currencies:
@@ -26,18 +13,12 @@ economy:
       cost_formula: "{base_cost} * {star}"
       display_name: "<gold>金币</gold>"
 
-# ========================================
-# 强化上限与概率配置
-# ========================================
 limits:
   max_star: 12
   max_temper: 4
   temper_chance_bonus_per_level: 5.0
   success_chance_cap: 90.0
 
-# ========================================
-# 每星级成功率配置
-# ========================================
 success_rates:
   1: 100.0
   2: 100.0
@@ -52,48 +33,36 @@ success_rates:
   11: 8.0
   12: 4.0
 
-# ========================================
-# 物品匹配规则
-# ========================================
-# 副手装备通过装备槽位组匹配
 match:
   slot_groups:
     - "offhand"
 
-# ========================================
-# 属性行定义
-# ========================================
 stat_lines:
   spell_damage_bonus:
     template: "<gray>法术增伤: <gold>{sign}{value}</gold></gray>"
-    lore_operations:
-      - type: "lore_search_insert"
-        anchor: "强化等级"
-        position: "below"
+    section_id: "strengthen.stats.primary"
+    section_order: 210
   mana:
     template: "<gray>法力上限: <gold>{sign}{value}</gold></gray>"
-    lore_operations:
-      - type: "lore_append"
+    section_id: "strengthen.stats.secondary"
+    section_order: 240
   spell_crit_rate:
     template: "<gray>法术暴击率: <gold>{sign}{value}</gold></gray>"
-    lore_operations:
-      - type: "lore_append"
+    section_id: "strengthen.stats.secondary"
+    section_order: 240
   mana_regen:
     template: "<gray>法力回复: <gold>{sign}{value}</gold></gray>"
-    lore_operations:
-      - type: "lore_append"
+    section_id: "strengthen.stats.secondary"
+    section_order: 240
   health:
     template: "<gray>生命值: <gold>{sign}{value}</gold></gray>"
-    lore_operations:
-      - type: "lore_append"
+    section_id: "strengthen.stats.secondary"
+    section_order: 240
   dodge_chance:
     template: "<gray>闪避率: <gold>{sign}{value}</gold></gray>"
-    lore_operations:
-      - type: "lore_append"
+    section_id: "strengthen.stats.secondary"
+    section_order: 240
 
-# ========================================
-# 星级定义
-# ========================================
 stars:
   1:
     stats:
@@ -147,7 +116,6 @@ stars:
         amount: -1
         optional: true
         protection: true
-  # +5 里程碑：解锁法力回复
   5:
     name: "<light_purple>法力回复提升</light_purple>"
     stats:
@@ -167,10 +135,14 @@ stars:
         amount: -1
         optional: true
         protection: true
-    presentation:
-      - "<gray>强化达到 +5 后，副手会额外提供法力回复。</gray>"
+    structured_presentation:
+      lore_sections:
+        - section_id: "strengthen.effects"
+          order: 230
+          lines:
+            - "<gray>强化达到 +5 后，副手会额外提供法力回复。</gray>"
     success_actions:
-      - 'sendmessage text="<light_purple>强化达到 +5，解锁额外法力回复。</light_purple>"'
+      - "sendmessage text=\"<light_purple>强化达到 +5，解锁额外法力回复。</light_purple>\""
   6:
     stats:
       spell_damage_bonus: 2.5
@@ -203,7 +175,6 @@ stars:
         amount: -1
         optional: true
         protection: true
-  # +8 里程碑：解锁法术暴击率
   8:
     name: "<light_purple>法术暴击率提升</light_purple>"
     stats:
@@ -225,10 +196,15 @@ stars:
         amount: -1
         optional: true
         protection: true
-    presentation:
-      - "<gray>强化达到 +8 后，副手会额外提供法术暴击率。</gray>"
+    structured_presentation:
+      lore_sections:
+        - section_id: "strengthen.effects"
+          order: 230
+          lines:
+            - "<gray>强化达到 +8 后，副手会额外提供法术暴击率。</gray>"
     success_actions:
-      - 'sendtitle title="<light_purple><bold>+8 法术暴击率提升</bold></light_purple>" subtitle="<white>额外法术暴击率已解锁</white>"'
+      - "sendtitle title=\"<light_purple><bold>+8
+        法术暴击率提升</bold></light_purple>\" subtitle=\"<white>额外法术暴击率已解锁</white>\""
   9:
     stats:
       spell_damage_bonus: 4
@@ -247,7 +223,6 @@ stars:
         amount: -1
         optional: true
         protection: true
-  # +10 里程碑：解锁法力上限
   10:
     name: "<light_purple>法力上限提升</light_purple>"
     stats:
@@ -269,10 +244,15 @@ stars:
         amount: -1
         optional: true
         protection: true
-    presentation:
-      - "<gray>强化达到 +10 后，副手会额外提供法力上限。</gray>"
+    structured_presentation:
+      lore_sections:
+        - section_id: "strengthen.effects"
+          order: 230
+          lines:
+            - "<gray>强化达到 +10 后，副手会额外提供法力上限。</gray>"
     success_actions:
-      - 'sendtitle title="<light_purple><bold>+10 法力上限提升</bold></light_purple>" subtitle="<white>额外法力上限已解锁</white>"'
+      - "sendtitle title=\"<light_purple><bold>+10
+        法力上限提升</bold></light_purple>\" subtitle=\"<white>额外法力上限已解锁</white>\""
   11:
     stats:
       spell_damage_bonus: 5
@@ -291,7 +271,6 @@ stars:
         amount: -1
         optional: true
         protection: true
-  # +12 满星里程碑：解锁闪避率
   12:
     name: "<light_purple>闪避提升</light_purple>"
     stats:
@@ -317,22 +296,28 @@ stars:
         amount: -1
         optional: true
         temper_boost: 1
-    presentation:
-      - "<gray>强化达到 +12 后，副手会额外提供闪避率。</gray>"
+    structured_presentation:
+      lore_sections:
+        - section_id: "strengthen.effects"
+          order: 230
+          lines:
+            - "<gray>强化达到 +12 后，副手会额外提供闪避率。</gray>"
     success_actions:
-      - 'sendtitle title="<light_purple><bold>+12 闪避提升</bold></light_purple>" subtitle="<white>闪避率已解锁</white>"'
+      - "sendtitle title=\"<light_purple><bold>+12 闪避提升</bold></light_purple>\"
+        subtitle=\"<white>闪避率已解锁</white>\""
 
-# ========================================
-# 展示配置
-# ========================================
-presentation:
-  name_operations:
-    - type: "name_regex_replace"
-      pattern: "^(.*?)\\s*\\[\\+(\\d+)\\]\\s*$"
-      replacement: "$1 [+{star}]"
-    - type: "name_append"
-      value: " [+{star}]"
-      condition: "if_unchanged"
-  lore_prepend:
-    - "<gradient:#F2C46D:#C9703D>强化等级 +{star}</gradient>"
-    - "<gray>锻印: {temper_color}{temper}/{max_temper}</gray>"
+structured_presentation:
+  name_contributions:
+    - slot_id: "strengthen.badge"
+      position: "POSTFIX"
+      order: 200
+      content_template: " [+{star}]"
+  lore_sections:
+    - section_id: "strengthen.header.primary"
+      order: 200
+      lines:
+        - "<gradient:#F2C46D:#C9703D>强化等级 +{star}</gradient>"
+    - section_id: "strengthen.header.secondary"
+      order: 220
+      lines:
+        - "<gray>锻印: {temper_color}{temper}/{max_temper}</gray>"

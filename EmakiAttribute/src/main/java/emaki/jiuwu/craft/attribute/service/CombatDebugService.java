@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.attribute.service;
 
+import java.util.LinkedHashMap;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -10,15 +11,18 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
 
-import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
+import emaki.jiuwu.craft.attribute.model.AttributeSnapshot;
+import emaki.jiuwu.craft.attribute.model.DamageContext;
+import emaki.jiuwu.craft.corelib.math.Numbers;
+import emaki.jiuwu.craft.corelib.text.Texts;
 
 final class CombatDebugService {
 
-    private final EmakiAttributePlugin plugin;
+    private final AttributeService service;
     private final Set<UUID> trackedPlayers = ConcurrentHashMap.newKeySet();
 
-    CombatDebugService(EmakiAttributePlugin plugin) {
-        this.plugin = plugin;
+    CombatDebugService(AttributeService service) {
+        this.service = service;
     }
 
     public boolean toggle(Player player) {
@@ -63,19 +67,113 @@ final class CombatDebugService {
     }
 
     public void log(String phase, String message) {
-        if (plugin == null) {
+        if (service == null || service.plugin() == null) {
             return;
         }
         String safePhase = phase == null || phase.isBlank() ? "TRACE" : phase;
         String safeMessage = message == null ? "" : message;
-        plugin.getLogger().info("[CombatDebug][" + safePhase + "] " + safeMessage);
+        service.plugin().getLogger().info("[CombatDebug][" + safePhase + "] " + safeMessage);
     }
 
     public void logMessage(String phase, String messageKey, Map<String, ?> replacements) {
-        if (plugin == null || plugin.messageService() == null) {
+        if (service == null || service.plugin() == null || service.plugin().messageService() == null) {
             log(phase, messageKey);
             return;
         }
-        log(phase, plugin.messageService().message(messageKey, replacements == null ? Map.of() : replacements));
+        log(phase, service.plugin().messageService().message(messageKey, replacements == null ? Map.of() : replacements));
+    }
+
+    String describeDamageContext(DamageContext damageContext) {
+        if (damageContext == null) {
+            return "<null>";
+        }
+        return "attacker=" + entityDebugLabel(damageContext.attacker())
+                + ", target=" + entityDebugLabel(damageContext.target())
+                + ", projectile=" + entityDebugLabel(damageContext.projectile())
+                + ", cause=" + (damageContext.cause() == null ? "<none>" : damageContext.cause().name())
+                + ", damageType=" + damageContext.damageTypeId()
+                + ", sourceDamage=" + formatNumber(damageContext.sourceDamage())
+                + ", baseDamage=" + formatNumber(damageContext.baseDamage());
+    }
+
+    String formatStageValues(Map<String, Double> stageValues) {
+        if (stageValues == null || stageValues.isEmpty()) {
+            return "{}";
+        }
+        StringBuilder builder = new StringBuilder("{");
+        boolean first = true;
+        for (Map.Entry<String, Double> entry : stageValues.entrySet()) {
+            if (!first) {
+                builder.append(", ");
+            }
+            builder.append(entry.getKey()).append('=').append(formatNumber(entry.getValue() == null ? 0D : entry.getValue()));
+            first = false;
+        }
+        builder.append('}');
+        return builder.toString();
+    }
+
+    String formatSnapshot(AttributeSnapshot snapshot) {
+        if (snapshot == null) {
+            return "<null>";
+        }
+        if (snapshot.values().isEmpty()) {
+            return "signature=" + snapshot.sourceSignature() + ", values={}";
+        }
+        StringBuilder builder = new StringBuilder();
+        builder.append("signature=").append(snapshot.sourceSignature()).append(", values={");
+        boolean first = true;
+        for (Map.Entry<String, Double> entry : orderedSnapshotEntries(snapshot).entrySet()) {
+            Double value = entry.getValue();
+            if (value == null || Double.compare(value, 0D) == 0) {
+                continue;
+            }
+            if (!first) {
+                builder.append(", ");
+            }
+            builder.append(entry.getKey()).append('=').append(formatNumber(value));
+            first = false;
+        }
+        if (first) {
+            builder.append('}');
+            return builder.toString();
+        }
+        builder.append('}');
+        return builder.toString();
+    }
+
+    Map<String, Double> orderedSnapshotEntries(AttributeSnapshot snapshot) {
+        if (snapshot == null || snapshot.values().isEmpty()) {
+            return Map.of();
+        }
+        Map<String, Double> ordered = new LinkedHashMap<>();
+        for (var definition : service.attributeRegistry().all().values()) {
+            if (definition == null) {
+                continue;
+            }
+            Double value = snapshot.values().get(definition.id());
+            if (value != null) {
+                ordered.put(definition.id(), value);
+            }
+        }
+        for (Map.Entry<String, Double> entry : snapshot.values().entrySet()) {
+            ordered.putIfAbsent(entry.getKey(), entry.getValue());
+        }
+        return ordered;
+    }
+
+    String entityDebugLabel(Entity entity) {
+        if (entity == null) {
+            return "<none>";
+        }
+        String name = Texts.toStringSafe(entity.getName()).trim();
+        if (Texts.isBlank(name)) {
+            name = entity.getType().name();
+        }
+        return name + "(" + entity.getType().name() + "," + entity.getUniqueId() + ")";
+    }
+
+    String formatNumber(double value) {
+        return Numbers.formatNumber(value, "0.##");
     }
 }

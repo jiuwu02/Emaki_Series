@@ -1,11 +1,10 @@
 package emaki.jiuwu.craft.attribute.service;
 
 import java.util.List;
-import java.util.Locale;
 import java.util.LinkedHashMap;
 import java.util.Objects;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.Map;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import emaki.jiuwu.craft.attribute.model.AttributeSnapshot;
 import emaki.jiuwu.craft.attribute.model.DamageContext;
@@ -47,13 +46,17 @@ final class DamageCalculationCache {
     }
 
     double sum(AttributeSnapshot snapshot, DamageContextVariables context, List<String> ids) {
+        return sum(snapshot, context, ids, SignatureUtil.stableSignature(ids));
+    }
+
+    double sum(AttributeSnapshot snapshot, DamageContextVariables context, List<String> ids, String attributeIdsSignature) {
         if (ids == null || ids.isEmpty()) {
             return 0D;
         }
         AttributeSumKey key = new AttributeSumKey(
                 snapshot == null ? "" : snapshot.sourceSignature(),
                 contextSignature(context),
-                SignatureUtil.stableSignature(ids)
+                attributeIdsSignature
         );
         Double cached = sumCache.get(key);
         if (cached != null) {
@@ -89,10 +92,9 @@ final class DamageCalculationCache {
             if (Texts.isBlank(id)) {
                 continue;
             }
-            String normalized = normalizeId(id);
-            Double value = snapshot == null ? null : snapshot.values().get(normalized);
+            Double value = snapshot == null ? null : snapshot.values().get(id);
             if (value == null && context != null) {
-                value = Numbers.tryParseDouble(context.get(normalized), null);
+                value = Numbers.tryParseDouble(context.get(id), null);
             }
             if (value != null) {
                 total += value;
@@ -101,14 +103,10 @@ final class DamageCalculationCache {
         return total;
     }
 
-    private String normalizeId(String value) {
-        return value == null ? "" : value.trim().toLowerCase(Locale.ROOT).replace(' ', '_');
-    }
-
     private static final class BoundedCache<K, V> {
 
         private final int limit;
-        private final ReentrantLock lock = new ReentrantLock();
+        private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
         private final LinkedHashMap<K, V> entries = new LinkedHashMap<>(16, 0.75F, true);
 
         private BoundedCache(int limit) {
@@ -119,11 +117,11 @@ final class DamageCalculationCache {
             if (key == null) {
                 return null;
             }
-            lock.lock();
+            lock.writeLock().lock();
             try {
                 return entries.get(key);
             } finally {
-                lock.unlock();
+                lock.writeLock().unlock();
             }
         }
 
@@ -131,15 +129,16 @@ final class DamageCalculationCache {
             if (key == null || value == null) {
                 return;
             }
-            lock.lock();
+            lock.writeLock().lock();
             try {
+                entries.remove(key);
                 entries.put(key, value);
                 while (entries.size() > limit) {
                     K eldest = entries.keySet().iterator().next();
                     entries.remove(eldest);
                 }
             } finally {
-                lock.unlock();
+                lock.writeLock().unlock();
             }
         }
     }

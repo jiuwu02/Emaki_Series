@@ -1,0 +1,47 @@
+# EmakiSkills 本地资源示例：mana
+#
+# 这份配置演示的是 EmakiSkills 自己维护的本地资源。
+# 本地资源只保存在技能数据中，不会自动与 EmakiAttribute 互通。
+#
+# 适合保留本地资源的场景：
+# - 只想让技能系统单独维护一套能量
+# - 服务器没有启用 EmakiAttribute
+# - 不希望技能消耗接入 EA 资源系统
+#
+# 如果服务器已经统一使用 EmakiAttribute 的 mana，
+# 建议不要再保留同名本地资源，避免出现两套 mana 并存。
+#
+# 直接消耗 EmakiAttribute 当前 mana 的写法：
+# resource_costs:
+#   - type: "ea-resource"
+#     target_id: "mana"
+#     amount: 30.0
+#     operation: "consume"
+#     failure_message: "法力不足，需要 30 点法力"
+#
+# 检查 EmakiAttribute mana 属性值的写法：
+# resource_costs:
+#   - type: "ea-attribute-check"
+#     target_id: "mana"
+#     amount: 100.0
+#     failure_message: "法力值上限不足，需要至少 100 点法力"
+#
+# 字段说明：
+# id: 资源 ID
+# display_name: 资源显示名
+# max: 默认上限
+# default_current: 初始当前值
+# regen_amount: 每次回复量
+# regen_interval_ticks: 回复间隔，20 tick = 1 秒
+# clamp_min: 当前值最小值
+# clamp_max: 当前值最大值；<= 0 时回退到 max
+
+example_mana_version: "1.0.0"
+id: mana
+display_name: "<gradient:#4DA6FF:#00BFFF>魔力</gradient>"
+max: 100.0
+default_current: 100.0
+regen_amount: 2.0
+regen_interval_ticks: 20
+clamp_min: 0.0
+clamp_max: 100.0

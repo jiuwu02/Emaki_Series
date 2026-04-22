@@ -17,8 +17,7 @@ public final class ItemSourceRegistry {
     private static final ItemSourceRegistry SYSTEM = new ItemSourceRegistry();
 
     private final List<ItemSourceParser> parsers = new CopyOnWriteArrayList<>();
-    private volatile ItemSourceParser fallbackParser = shorthand
-            -> Texts.isBlank(shorthand) ? null : new ItemSource(ItemSourceType.VANILLA, Texts.trim(shorthand));
+    private volatile ItemSourceParser fallbackParser = ItemSourceUtil::parseVanillaShorthand;
 
     private ItemSourceRegistry() {
         registerBuiltinParsers();
@@ -65,6 +64,7 @@ public final class ItemSourceRegistry {
         parsers.add(prefixParser("craftengine-", ItemSourceType.CRAFTENGINE));
         parsers.add(prefixParser("ce-", ItemSourceType.CRAFTENGINE));
         parsers.add(prefixParser("minecraft-", ItemSourceType.VANILLA));
+        parsers.add(prefixParser("mc-", ItemSourceType.VANILLA));
         parsers.add(prefixParser("v-", ItemSourceType.VANILLA));
     }
 
@@ -78,7 +78,11 @@ public final class ItemSourceRegistry {
                 return null;
             }
             String identifier = text.substring(prefix.length());
-            return Texts.isBlank(identifier) ? null : new ItemSource(type, identifier);
+            if (Texts.isBlank(identifier)) {
+                return null;
+            }
+            String normalized = ItemSourceUtil.normalizeIdentifier(type, identifier);
+            return Texts.isBlank(normalized) ? null : new ItemSource(type, normalized);
         };
     }
 }

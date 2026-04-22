@@ -19,25 +19,6 @@ public final class DamageTypeRegistry extends DirectoryLoader<DamageTypeDefiniti
             "projectile.yml",
             "spell.yml"
     );
-    private static final Map<String, String> LEGACY_ATTRIBUTE_REFERENCE_ALIASES = Map.ofEntries(
-            Map.entry("final_physical_damage", "physical_damage_bonus"),
-            Map.entry("physical_crit_chance", "physical_crit_rate"),
-            Map.entry("physical_crit_multiplier", "physical_crit_damage"),
-            Map.entry("physical_armor", "physical_defense"),
-            Map.entry("projectile_damage", "projectile_attack"),
-            Map.entry("final_projectile_damage", "projectile_damage_bonus"),
-            Map.entry("projectile_crit_chance", "projectile_crit_rate"),
-            Map.entry("projectile_crit_multiplier", "projectile_crit_damage"),
-            Map.entry("projectile_armor", "projectile_defense"),
-            Map.entry("magic_attack", "spell_attack"),
-            Map.entry("final_magic_damage", "spell_damage_bonus"),
-            Map.entry("magic_crit_chance", "spell_crit_rate"),
-            Map.entry("magic_crit_multiplier", "spell_crit_damage"),
-            Map.entry("magic_resistance", "spell_defense"),
-            Map.entry("flat_lifesteal", "percentage_lifesteal"),
-            Map.entry("percent_lifesteal", "lifesteal")
-    );
-
     private final AttributeRegistry attributeRegistry;
     private final Map<String, DamageTypeDefinition> aliasIndex = new LinkedHashMap<>();
     private volatile String definitionSignature = "";
@@ -157,7 +138,6 @@ public final class DamageTypeRegistry extends DirectoryLoader<DamageTypeDefiniti
                 return definition.id();
             }
         }
-        String legacyMapped = LEGACY_ATTRIBUTE_REFERENCE_ALIASES.get(normalized);
-        return legacyMapped == null ? normalized : legacyMapped;
+        return normalized;
     }
 }

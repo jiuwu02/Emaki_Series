@@ -1,6 +1,5 @@
 package emaki.jiuwu.craft.corelib.gui;
 
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -255,20 +254,12 @@ public final class ItemComponentParser {
                 ItemFlag.HIDE_ARMOR_TRIM;
             case "dye", "dyed_color" ->
                 ItemFlag.HIDE_DYE;
-            case "tooltip_style" ->
-                ItemFlag.HIDE_ADDITIONAL_TOOLTIP;
-            case "additional", "additional_tooltip" ->
-                ItemFlag.HIDE_ADDITIONAL_TOOLTIP;
             default ->
                 null;
         };
     }
 
     private static void invokeHideTooltip(ItemMeta itemMeta) {
-        try {
-            Method method = itemMeta.getClass().getMethod("setHideTooltip", boolean.class);
-            method.invoke(itemMeta, true);
-        } catch (ReflectiveOperationException ignored) {
-        }
+        itemMeta.setHideTooltip(true);
     }
 }

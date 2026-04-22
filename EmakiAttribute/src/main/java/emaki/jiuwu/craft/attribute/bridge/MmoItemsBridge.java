@@ -28,7 +28,6 @@ import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.util.Vector;
 
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.attribute.api.AttributeContribution;
@@ -40,7 +39,7 @@ import emaki.jiuwu.craft.attribute.model.DamageContextVariables;
 import emaki.jiuwu.craft.attribute.model.ProjectileDamageSnapshot;
 import emaki.jiuwu.craft.attribute.model.ResolvedDamage;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
-import emaki.jiuwu.craft.corelib.entity.EntityPhysicsSupport;
+import emaki.jiuwu.craft.attribute.service.CombatSupport;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import net.Indyuce.mmoitems.api.event.item.SpecialWeaponAttackEvent;
@@ -105,7 +104,7 @@ public final class MmoItemsBridge implements Listener {
                 null,
                 event.getDamage(),
                 0D,
-                baseContext(event, target)
+                CombatSupport.baseContext(event, target)
         );
         resolveAndApplyDamage(attributeService.resolveDamageApplicationAsync(damageContext), target, event.getDamager());
     }
@@ -147,7 +146,7 @@ public final class MmoItemsBridge implements Listener {
                 0D,
                 snapshot.attackSnapshot(),
                 targetSnapshot,
-                baseContext(event, target)
+                CombatSupport.baseContext(event, target)
         );
         resolveAndApplyDamage(attributeService.resolveDamageApplicationAsync(damageContext), target, projectile);
     }
@@ -171,25 +170,6 @@ public final class MmoItemsBridge implements Listener {
         return null;
     }
 
-    private DamageContextVariables baseContext(EntityDamageEvent event, LivingEntity target) {
-        DamageContextVariables.Builder context = DamageContextVariables.builder();
-        String cause = event.getCause().name();
-        context.put("cause", cause);
-        context.put("damage_cause", cause);
-        context.put("damage_cause_id", cause);
-        context.put("base_damage", event.getDamage());
-        context.put("source_damage", event.getDamage());
-        context.put("input_damage", event.getDamage());
-        context.put("final_damage", event.getFinalDamage());
-        context.put("target_uuid", target.getUniqueId().toString());
-        context.put("target_type", target.getType().name());
-        if (event instanceof EntityDamageByEntityEvent byEntityEvent) {
-            context.put("damager_type", byEntityEvent.getDamager().getType().name());
-            context.put("damager_uuid", byEntityEvent.getDamager().getUniqueId().toString());
-        }
-        return context.build();
-    }
-
     private void resolveAndApplyDamage(CompletableFuture<ResolvedDamage> future, LivingEntity target, Entity visualSource) {
         if (future == null) {
             return;
@@ -198,21 +178,9 @@ public final class MmoItemsBridge implements Listener {
             if (throwable != null || resolvedDamage == null || target == null || !target.isValid() || target.isDead()) {
                 return;
             }
-            applySyntheticKnockback(target, visualSource, resolvedDamage.finalDamage());
+            CombatSupport.applySyntheticKnockback(target, visualSource, resolvedDamage.finalDamage(), attributeService.config());
             attributeService.applyResolvedDamage(resolvedDamage, visualSource, 0D);
         }));
-    }
-
-    private void applySyntheticKnockback(LivingEntity target, Entity source, double finalDamage) {
-        if (target == null || source == null || finalDamage <= 0D || !target.isValid() || target.isDead()
-                || !attributeService.config().syntheticHitKnockback()) {
-            return;
-        }
-        double strength = Math.max(0D, attributeService.config().syntheticHitKnockbackStrength());
-        if (strength <= 0D) {
-            return;
-        }
-        EntityPhysicsSupport.applyKnockback(target, source, strength);
     }
 
     private void warnBridgeUnavailable(String error) {
@@ -265,7 +233,7 @@ public final class MmoItemsBridge implements Listener {
                         continue;
                     }
                     double value = statCache.computeIfAbsent(
-                            normalizeId(definition.mmoItemsStatId()),
+                            normalizeMmoId(definition.mmoItemsStatId()),
                             key -> accessor.readDoubleStat(liveItem, definition.mmoItemsStatId(), definition.id())
                     );
                     if (Double.compare(value, 0D) == 0) {
@@ -392,11 +360,11 @@ public final class MmoItemsBridge implements Listener {
             if (!ensureAvailable() || liveItem == null || Texts.isBlank(configuredStatId)) {
                 return 0D;
             }
-            Object statObject = statObjects.get(normalizeId(configuredStatId));
+            Object statObject = statObjects.get(normalizeMmoId(configuredStatId));
             if (statObject == null) {
                 warnOnce(
                         "console.mmoitems_stat_resolve_failed",
-                        "missing_stat|" + normalizeId(configuredStatId),
+                        "missing_stat|" + normalizeMmoId(configuredStatId),
                         Map.of(
                                 "attribute", safeText(attributeId, "-"),
                                 "stat", configuredStatId
@@ -411,7 +379,7 @@ public final class MmoItemsBridge implements Listener {
             } catch (Throwable throwable) {
                 warnOnce(
                         "console.mmoitems_stat_read_failed",
-                        "read_stat|" + safeText(attributeId, "-") + "|" + normalizeId(configuredStatId),
+                        "read_stat|" + safeText(attributeId, "-") + "|" + normalizeMmoId(configuredStatId),
                         Map.of(
                                 "attribute", safeText(attributeId, "-"),
                                 "stat", configuredStatId,
@@ -432,11 +400,11 @@ public final class MmoItemsBridge implements Listener {
                 if (statObject == null) {
                     continue;
                 }
-                statObjects.putIfAbsent(normalizeId(field.getName()), statObject);
+                statObjects.putIfAbsent(normalizeMmoId(field.getName()), statObject);
                 Object rawId = invoke(itemStatGetIdMethod, statObject);
                 String statId = readableId(rawId);
                 if (Texts.isNotBlank(statId)) {
-                    statObjects.putIfAbsent(normalizeId(statId), statObject);
+                    statObjects.putIfAbsent(normalizeMmoId(statId), statObject);
                 }
             }
         }
@@ -499,8 +467,8 @@ public final class MmoItemsBridge implements Listener {
             plugin.messageService().warning(key, replacements);
         }
 
-        private String normalizeId(String value) {
-            return value == null ? "" : value.trim().toLowerCase(Locale.ROOT).replace('-', '_').replace(' ', '_');
+        private String normalizeMmoId(String value) {
+            return Texts.normalizeId(value).replace('-', '_');
         }
 
         private String safeText(String value, String fallback) {
@@ -508,7 +476,7 @@ public final class MmoItemsBridge implements Listener {
         }
     }
 
-    private static String normalizeId(String value) {
-        return value == null ? "" : value.trim().toLowerCase(Locale.ROOT).replace('-', '_').replace(' ', '_');
+    private static String normalizeMmoId(String value) {
+        return Texts.normalizeId(value).replace('-', '_');
     }
 }

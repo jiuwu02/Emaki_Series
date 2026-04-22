@@ -8,6 +8,7 @@ import java.util.regex.Pattern;
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.attribute.model.PdcReadRule;
 import emaki.jiuwu.craft.attribute.model.PdcReadRule.RuleCheck;
+import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
@@ -60,6 +61,17 @@ public final class PdcReadRuleLoader extends DirectoryLoader<PdcReadRule> {
         if (rule == null) {
             return false;
         }
+        if (!hasValidConditionEntries(configuration, rule)) {
+            issue(
+                    "loader.schema_invalid_section",
+                    Map.of(
+                            "type", typeName(),
+                            "file", file.getName(),
+                            "field", "conditions"
+                    )
+            );
+            return false;
+        }
         for (RuleCheck check : rule.checks()) {
             if (!isSupportedCheckType(check.type())) {
                 issue(
@@ -67,7 +79,7 @@ public final class PdcReadRuleLoader extends DirectoryLoader<PdcReadRule> {
                         Map.of(
                                 "type", typeName(),
                                 "file", file.getName(),
-                                "field", "checks.type"
+                                "field", "conditions.type"
                         )
                 );
                 return false;
@@ -78,7 +90,7 @@ public final class PdcReadRuleLoader extends DirectoryLoader<PdcReadRule> {
                         Map.of(
                                 "type", typeName(),
                                 "file", file.getName(),
-                                "field", "checks.key"
+                                "field", "conditions.key"
                         )
                 );
                 return false;
@@ -89,7 +101,7 @@ public final class PdcReadRuleLoader extends DirectoryLoader<PdcReadRule> {
                         Map.of(
                                 "type", typeName(),
                                 "file", file.getName(),
-                                "field", "checks.pattern"
+                                "field", "conditions.pattern"
                         )
                 );
                 return false;
@@ -131,6 +143,21 @@ public final class PdcReadRuleLoader extends DirectoryLoader<PdcReadRule> {
         };
     }
 
+    private boolean hasValidConditionEntries(YamlSection configuration, PdcReadRule rule) {
+        if (configuration == null || rule == null) {
+            return false;
+        }
+        Object rawEntries = resolveConditionEntries(configuration);
+        if (rawEntries == null) {
+            return true;
+        }
+        List<Object> entries = ConfigNodes.asObjectList(rawEntries);
+        if (entries.isEmpty()) {
+            return true;
+        }
+        return rule.checks().size() == entries.size();
+    }
+
     private boolean requiresKey(String type) {
         return switch (normalizeCheckType(type)) {
             case "pdc_meta", "pdc_attribute" ->
@@ -141,19 +168,15 @@ public final class PdcReadRuleLoader extends DirectoryLoader<PdcReadRule> {
     }
 
     private String normalizeCheckType(String type) {
-        String normalized = Texts.lower(type);
-        return switch (normalized) {
-            case "meta" ->
-                "pdc_meta";
-            case "attribute", "attr" ->
-                "pdc_attribute";
-            case "lore" ->
-                "lore_regex";
-            case "source" ->
-                "source_id";
-            default ->
-                normalized;
-        };
+        return Texts.normalizeId(type);
+    }
+
+    private Object resolveConditionEntries(YamlSection configuration) {
+        if (configuration == null) {
+            return null;
+        }
+        Object conditions = configuration.get("conditions");
+        return conditions != null ? conditions : configuration.get("checks");
     }
 
     private boolean isValidRegex(String pattern) {

@@ -3,7 +3,6 @@ package emaki.jiuwu.craft.attribute.service;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -12,18 +11,11 @@ import java.util.concurrent.ThreadLocalRandom;
 import org.bukkit.Bukkit;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
-import org.bukkit.damage.DamageSource;
-import org.bukkit.damage.DamageType;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
-import org.bukkit.entity.AbstractArrow;
-import org.bukkit.entity.Fireball;
-import org.bukkit.entity.Trident;
-import org.bukkit.entity.WitherSkull;
-import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 
 import emaki.jiuwu.craft.attribute.api.EmakiAttributeDamageEvent;
@@ -40,17 +32,25 @@ import emaki.jiuwu.craft.attribute.model.ResolvedDamage;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
-import emaki.jiuwu.craft.corelib.text.AdventureSupport;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
 final class DamageCalculationService {
 
-    private static final double ZERO_EPSILON = 1.0E-9D;
     private final AttributeService service;
+    private final DamageRecoveryCalculator recoveryCalculator;
+    private final DamageMessageDispatcher messageDispatcher;
+    private final SyntheticDamageDispatcher syntheticDamageDispatcher;
 
     DamageCalculationService(AttributeService service) {
         this.service = service;
+        this.recoveryCalculator = new DamageRecoveryCalculator(service);
+        this.messageDispatcher = new DamageMessageDispatcher(service);
+        this.syntheticDamageDispatcher = new SyntheticDamageDispatcher(service);
+    }
+
+    void refreshCaches() {
+        messageDispatcher.refreshCaches();
     }
 
     public String defaultDamageTypeId() {
@@ -75,7 +75,7 @@ final class DamageCalculationService {
     }
 
     public DamageTypeDefinition resolveDamageType(String damageTypeId) {
-        String resolvedId = Texts.isBlank(damageTypeId) ? defaultDamageTypeId() : normalizeId(damageTypeId);
+        String resolvedId = Texts.isBlank(damageTypeId) ? defaultDamageTypeId() : Texts.normalizeId(damageTypeId);
         DamageTypeDefinition definition = service.damageTypeRegistry().resolve(resolvedId);
         if (definition != null) {
             return definition;
@@ -121,7 +121,7 @@ final class DamageCalculationService {
         );
         ProjectileDamageSnapshot snapshot = new ProjectileDamageSnapshot(
                 ProjectileDamageSnapshot.CURRENT_SCHEMA_VERSION,
-                normalizeId(damageTypeId),
+                Texts.normalizeId(damageTypeId),
                 shooter.getUniqueId(),
                 sourceSignature,
                 now,
@@ -131,11 +131,11 @@ final class DamageCalculationService {
         service.stateRepository().writeProjectileSnapshot(projectile, snapshot);
         if (shouldDebugCombat(shooter, null, projectile)) {
             debugCombat(shooter, null, projectile, "PROJECTILE_SNAPSHOT_WRITE", "combat_debug.projectile_snapshot_write", Map.of(
-                    "projectile", entityDebugLabel(projectile),
-                    "shooter", entityDebugLabel(shooter),
+                    "projectile", service.combatDebug().entityDebugLabel(projectile),
+                    "shooter", service.combatDebug().entityDebugLabel(shooter),
                     "damage_type", snapshot.damageTypeId(),
                     "signature", snapshot.sourceSignature(),
-                    "snapshot", formatSnapshot(snapshot.attackSnapshot())
+                    "snapshot", service.combatDebug().formatSnapshot(snapshot.attackSnapshot())
             ));
         }
         return snapshot;
@@ -167,8 +167,17 @@ final class DamageCalculationService {
         }
         DamageContextVariables.Builder merged = DamageContextVariables.builder();
         merged.putAll(context);
-        String attackerLabel = entityLabel(attacker, cause, messageOrFallback("damage.environment", "environment"));
-        String targetLabel = entityLabel(target, null, messageOrFallback("damage.target", "target"));
+        MessageService messageService = service.plugin() == null ? null : service.plugin().messageService();
+        String attackerLabel = messageDispatcher.entityLabel(
+                attacker,
+                cause,
+                messageService == null ? "environment" : messageService.messageOrFallback("damage.environment", "environment")
+        );
+        String targetLabel = messageDispatcher.entityLabel(
+                target,
+                null,
+                messageService == null ? "target" : messageService.messageOrFallback("damage.target", "target")
+        );
         merged.put("attacker", attackerLabel);
         merged.put("attacker_name", attackerLabel);
         merged.put("attacker_type", attacker == null ? "" : attacker.getType().name());
@@ -187,11 +196,11 @@ final class DamageCalculationService {
         merged.put("base_damage", baseDamage);
         merged.put("damage", baseDamage);
         merged.put("cause", cause == null ? "" : cause.name());
-        merged.put("cause_name", causeDisplayName(cause));
-        merged.put("cause_id", cause == null ? "" : normalizeId(cause.name()));
+        merged.put("cause_name", messageDispatcher.causeDisplayName(cause));
+        merged.put("cause_id", cause == null ? "" : Texts.normalizeId(cause.name()));
         merged.put("damage_cause", cause == null ? "" : cause.name());
-        merged.put("damage_cause_name", causeDisplayName(cause));
-        merged.put("damage_cause_id", cause == null ? "" : normalizeId(cause.name()));
+        merged.put("damage_cause_name", messageDispatcher.causeDisplayName(cause));
+        merged.put("damage_cause_id", cause == null ? "" : Texts.normalizeId(cause.name()));
         if (projectile != null) {
             merged.put("projectile_type", projectile.getType().name());
             merged.put("projectile_uuid", projectile.getUniqueId().toString());
@@ -235,7 +244,7 @@ final class DamageCalculationService {
     public DamageResult calculateDamage(DamageContext damageContext) {
         DamageCalculationPlan plan = prepareDamageCalculation(damageContext);
         if (plan == null) {
-            return new DamageResult("", 0D, false, 0D, Map.of(), DamageContext.legacy("", 0D, null, null, DamageContextVariables.empty()));
+            return new DamageResult("", 0D, false, 0D, Map.of(), DamageContext.empty());
         }
         return service.damageEngine().resolve(plan.request(), plan.damageType(), plan.seededRoll());
     }
@@ -245,9 +254,10 @@ final class DamageCalculationService {
             String damageTypeId,
             double baseDamage,
             DamageContextVariables context) {
-        double sourceDamage = contextDouble(context, "source_damage", baseDamage);
-        EntityDamageEvent.DamageCause cause = extractDamageCause(context);
-        DamageContext damageContext = createDamageContext(attacker, target, null, cause, damageTypeId, sourceDamage, baseDamage, context);
+        DamageContextVariables effectiveContext = context == null ? DamageContextVariables.empty() : context;
+        double sourceDamage = effectiveContext.getDouble("source_damage", baseDamage);
+        EntityDamageEvent.DamageCause cause = effectiveContext.extractDamageCause();
+        DamageContext damageContext = createDamageContext(attacker, target, null, cause, damageTypeId, sourceDamage, baseDamage, effectiveContext);
         return calculateDamage(damageContext);
     }
 
@@ -271,9 +281,10 @@ final class DamageCalculationService {
             String damageTypeId,
             double baseDamage,
             DamageContextVariables context) {
-        double sourceDamage = contextDouble(context, "source_damage", baseDamage);
-        EntityDamageEvent.DamageCause cause = extractDamageCause(context);
-        DamageContext damageContext = createDamageContext(attacker, target, null, cause, damageTypeId, sourceDamage, baseDamage, context);
+        DamageContextVariables effectiveContext = context == null ? DamageContextVariables.empty() : context;
+        double sourceDamage = effectiveContext.getDouble("source_damage", baseDamage);
+        EntityDamageEvent.DamageCause cause = effectiveContext.extractDamageCause();
+        DamageContext damageContext = createDamageContext(attacker, target, null, cause, damageTypeId, sourceDamage, baseDamage, effectiveContext);
         return applyDamage(damageContext);
     }
 
@@ -294,7 +305,7 @@ final class DamageCalculationService {
         if (snapshot == null) {
             if (shouldDebugCombat(damageContext)) {
                 debugCombat(damageContext, "PROJECTILE_SNAPSHOT_MISSING", "combat_debug.projectile_snapshot_missing_apply", Map.of(
-                        "projectile", entityDebugLabel(projectile)
+                        "projectile", service.combatDebug().entityDebugLabel(projectile)
                 ));
             }
             return false;
@@ -325,9 +336,10 @@ final class DamageCalculationService {
             return false;
         }
         LivingEntity shooter = projectile.getShooter() instanceof LivingEntity livingEntity ? livingEntity : null;
-        double sourceDamage = contextDouble(context, "source_damage", baseDamage);
-        EntityDamageEvent.DamageCause cause = extractDamageCause(context);
-        DamageContext damageContext = createDamageContext(shooter, target, projectile, cause, defaultProjectileDamageTypeId(), sourceDamage, baseDamage, context);
+        DamageContextVariables effectiveContext = context == null ? DamageContextVariables.empty() : context;
+        double sourceDamage = effectiveContext.getDouble("source_damage", baseDamage);
+        EntityDamageEvent.DamageCause cause = effectiveContext.extractDamageCause();
+        DamageContext damageContext = createDamageContext(shooter, target, projectile, cause, defaultProjectileDamageTypeId(), sourceDamage, baseDamage, effectiveContext);
         return applyProjectileDamage(damageContext);
     }
 
@@ -349,9 +361,9 @@ final class DamageCalculationService {
         }
         if (shouldDebugCombat(damageContext)) {
             debugCombat(damageContext, "RESOLVE_BEGIN", "combat_debug.resolve_begin_sync", Map.of(
-                    "context", describeDamageContext(damageContext),
-                    "attacker_snapshot", formatSnapshot(damageContext.attackerSnapshot()),
-                    "target_snapshot", formatSnapshot(damageContext.targetSnapshot())
+                    "context", service.combatDebug().describeDamageContext(damageContext),
+                    "attacker_snapshot", service.combatDebug().formatSnapshot(damageContext.attackerSnapshot()),
+                    "target_snapshot", service.combatDebug().formatSnapshot(damageContext.targetSnapshot())
             ));
         }
         DamageCalculationPlan plan = prepareDamageCalculation(damageContext);
@@ -369,9 +381,9 @@ final class DamageCalculationService {
         }
         if (shouldDebugCombat(damageContext)) {
             debugCombat(damageContext, "RESOLVE_BEGIN", "combat_debug.resolve_begin_async", Map.of(
-                    "context", describeDamageContext(damageContext),
-                    "attacker_snapshot", formatSnapshot(damageContext.attackerSnapshot()),
-                    "target_snapshot", formatSnapshot(damageContext.targetSnapshot())
+                    "context", service.combatDebug().describeDamageContext(damageContext),
+                    "attacker_snapshot", service.combatDebug().formatSnapshot(damageContext.attackerSnapshot()),
+                    "target_snapshot", service.combatDebug().formatSnapshot(damageContext.targetSnapshot())
             ));
         }
         DamageCalculationPlan plan = prepareDamageCalculation(damageContext);
@@ -395,9 +407,7 @@ final class DamageCalculationService {
         if (resolvedDamage == null || resolvedDamage.damageContext() == null) {
             return false;
         }
-        ResolvedDamage effectiveResolvedDamage = shouldTriggerMythicOnDamaged(resolvedDamage.damageContext())
-                ? dispatchSyntheticOnDamaged(resolvedDamage, visualSource)
-                : resolvedDamage;
+        ResolvedDamage effectiveResolvedDamage = syntheticDamageDispatcher.dispatchIfNeeded(resolvedDamage, visualSource);
         if (effectiveResolvedDamage == null || effectiveResolvedDamage.damageContext() == null) {
             return false;
         }
@@ -413,12 +423,12 @@ final class DamageCalculationService {
         double absorptionBefore = target.getAbsorptionAmount();
         if (shouldDebugCombat(damageContext)) {
             debugCombat(damageContext, "APPLY_BEGIN", "combat_debug.apply_begin", Map.of(
-                    "final_damage", formatNumber(effectiveResolvedDamage.finalDamage()),
-                    "already_applied", formatNumber(appliedDamage),
-                    "remaining", formatNumber(remainingDamage),
-                    "target_health_before", formatNumber(healthBefore),
-                    "target_absorption_before", formatNumber(absorptionBefore),
-                    "visual_source", entityDebugLabel(visualSource)
+                    "final_damage", service.combatDebug().formatNumber(effectiveResolvedDamage.finalDamage()),
+                    "already_applied", service.combatDebug().formatNumber(appliedDamage),
+                    "remaining", service.combatDebug().formatNumber(remainingDamage),
+                    "target_health_before", service.combatDebug().formatNumber(healthBefore),
+                    "target_absorption_before", service.combatDebug().formatNumber(absorptionBefore),
+                    "visual_source", service.combatDebug().entityDebugLabel(visualSource)
             ));
         }
         applyDirectDamage(target, remainingDamage, visualSource);
@@ -432,8 +442,8 @@ final class DamageCalculationService {
         service.scheduleHealthSync(target);
         if (shouldDebugCombat(damageContext)) {
             debugCombat(damageContext, "APPLY_DONE", "combat_debug.apply_done", Map.of(
-                    "target_health_after", formatNumber(target.getHealth()),
-                    "target_absorption_after", formatNumber(target.getAbsorptionAmount()),
+                    "target_health_after", service.combatDebug().formatNumber(target.getHealth()),
+                    "target_absorption_after", service.combatDebug().formatNumber(target.getAbsorptionAmount()),
                     "attacker_cooldown_ticks", cooldownTicks
             ));
         }
@@ -490,12 +500,12 @@ final class DamageCalculationService {
             EntityDamageEvent.DamageCause cause,
             String damageTypeId) {
         if (Texts.isNotBlank(damageTypeId)) {
-            return normalizeId(damageTypeId);
+            return Texts.normalizeId(damageTypeId);
         }
         if (attacker != null) {
             String override = consumeDamageTypeOverride(attacker);
             if (Texts.isNotBlank(override)) {
-                return normalizeId(override);
+                return Texts.normalizeId(override);
             }
         }
         if (projectile != null || cause == EntityDamageEvent.DamageCause.PROJECTILE) {
@@ -521,10 +531,9 @@ final class DamageCalculationService {
         }
         DamageTypeDefinition damageType = resolveDamageType(resolvedTypeId);
         DamageContext resolvedContext = damageContext.withDamageTypeId(damageType.id());
-        boolean allowCritical = contextBoolean(resolvedContext.variables(), true, "allow_critical", "critical");
-        boolean allowTargetDodge = contextBoolean(resolvedContext.variables(), false, "allow_target_dodge", "target_dodge", "allow_dodge", "dodge");
-        boolean calculateTargetDefense = contextBoolean(
-                resolvedContext.variables(),
+        boolean allowCritical = resolvedContext.variables().getBoolean(true, "allow_critical", "critical");
+        boolean allowTargetDodge = resolvedContext.variables().getBoolean(false, "allow_target_dodge", "target_dodge", "allow_dodge", "dodge");
+        boolean calculateTargetDefense = resolvedContext.variables().getBoolean(
                 true,
                 "calculate_target_defense",
                 "target_defense",
@@ -549,8 +558,8 @@ final class DamageCalculationService {
             if (dodgeRoll < dodgeChance) {
                 if (shouldDebugCombat(resolvedContext)) {
                     debugCombat(resolvedContext, "DODGE_TRIGGERED", "combat_debug.dodge_triggered", Map.of(
-                            "dodge_chance", formatNumber(dodgeChance),
-                            "dodge_roll", formatNumber(dodgeRoll)
+                            "dodge_chance", service.combatDebug().formatNumber(dodgeChance),
+                            "dodge_roll", service.combatDebug().formatNumber(dodgeRoll)
                     ));
                 }
                 return new DamageCalculationPlan(
@@ -577,10 +586,10 @@ final class DamageCalculationService {
         if (shouldDebugCombat(damageContext)) {
             debugCombat(damageContext, "CALC_RESULT", "combat_debug.calc_result", Map.of(
                     "damage_type", result.damageTypeId(),
-                    "final_damage", formatNumber(result.finalDamage()),
+                    "final_damage", service.combatDebug().formatNumber(result.finalDamage()),
                     "critical", result.critical(),
-                    "roll", formatNumber(result.roll()),
-                    "stages", formatStageValues(result.stageValues())
+                    "roll", service.combatDebug().formatNumber(result.roll()),
+                    "stages", service.combatDebug().formatStageValues(result.stageValues())
             ));
         }
         EmakiAttributeDamageEvent event = new EmakiAttributeDamageEvent(damageContext, result);
@@ -589,7 +598,7 @@ final class DamageCalculationService {
             if (shouldDebugCombat(damageContext)) {
                 debugCombat(damageContext, "EVENT_BLOCKED", "combat_debug.event_blocked", Map.of(
                         "cancelled", event.isCancelled(),
-                        "final_damage", formatNumber(event.getFinalDamage())
+                        "final_damage", service.combatDebug().formatNumber(event.getFinalDamage())
                 ));
             }
             return null;
@@ -597,149 +606,11 @@ final class DamageCalculationService {
         DamageTypeDefinition damageType = resolveDamageType(result.damageTypeId());
         if (shouldDebugCombat(damageContext)) {
             debugCombat(damageContext, "EVENT_PASSED", "combat_debug.event_passed", Map.of(
-                    "final_damage", formatNumber(event.getFinalDamage()),
+                    "final_damage", service.combatDebug().formatNumber(event.getFinalDamage()),
                     "resolved_damage_type", damageType.id()
             ));
         }
         return new ResolvedDamage(damageContext, result, damageType, event.getFinalDamage());
-    }
-
-    private boolean shouldTriggerMythicOnDamaged(DamageContext damageContext) {
-        return damageContext != null
-                && contextBoolean(
-                        damageContext.variables(),
-                        false,
-                        "trigger_mythic_on_damaged",
-                        "trigger_on_damaged",
-                        "mythic_on_damaged"
-                );
-    }
-
-    private ResolvedDamage dispatchSyntheticOnDamaged(ResolvedDamage resolvedDamage, Entity visualSource) {
-        if (resolvedDamage == null || resolvedDamage.damageContext() == null) {
-            return null;
-        }
-        DamageContext damageContext = resolvedDamage.damageContext();
-        LivingEntity target = damageContext.target();
-        if (target == null || !target.isValid() || target.isDead()) {
-            return null;
-        }
-        EntityDamageEvent.DamageCause cause = damageContext.cause() == null ? EntityDamageEvent.DamageCause.CUSTOM : damageContext.cause();
-        DamageSource damageSource = buildSyntheticDamageSource(damageContext, visualSource, cause);
-        EntityDamageEvent event = visualSource == null
-                ? new EntityDamageEvent(target, cause, damageSource, resolvedDamage.finalDamage())
-                : new EntityDamageByEntityEvent(visualSource, target, cause, damageSource, resolvedDamage.finalDamage());
-        markSyntheticDamage(target, true);
-        try {
-            Bukkit.getPluginManager().callEvent(event);
-        } finally {
-            markSyntheticDamage(target, false);
-        }
-        if (event.isCancelled() || event.getFinalDamage() <= 0D) {
-            if (shouldDebugCombat(damageContext)) {
-                debugCombat(damageContext, "MYTHIC_ON_DAMAGED_BLOCKED", "combat_debug.mythic_on_damaged_blocked", Map.of(
-                        "cancelled", event.isCancelled(),
-                        "final_damage", formatNumber(event.getFinalDamage())
-                ));
-            }
-            return null;
-        }
-        if (Math.abs(event.getFinalDamage() - resolvedDamage.finalDamage()) > ZERO_EPSILON) {
-            if (shouldDebugCombat(damageContext)) {
-                debugCombat(damageContext, "MYTHIC_ON_DAMAGED_ADJUSTED", "combat_debug.mythic_on_damaged_adjusted", Map.of(
-                        "before", formatNumber(resolvedDamage.finalDamage()),
-                        "after", formatNumber(event.getFinalDamage())
-                ));
-            }
-        }
-        return new ResolvedDamage(
-                damageContext,
-                resolvedDamage.damageResult(),
-                resolvedDamage.damageType(),
-                Math.max(0D, event.getFinalDamage())
-        );
-    }
-
-    private DamageSource buildSyntheticDamageSource(DamageContext damageContext, Entity visualSource, EntityDamageEvent.DamageCause cause) {
-        DamageSource.Builder builder = DamageSource.builder(resolveSyntheticDamageType(damageContext, visualSource, cause));
-        Entity directEntity = resolveDirectDamageEntity(damageContext, visualSource);
-        Entity causingEntity = resolveCausingDamageEntity(damageContext, visualSource);
-        if (directEntity != null && directEntity.isValid()) {
-            builder.withDirectEntity(directEntity);
-            builder.withDamageLocation(directEntity.getLocation());
-        } else if (damageContext != null && damageContext.target() != null) {
-            builder.withDamageLocation(damageContext.target().getLocation());
-        }
-        if (causingEntity != null && causingEntity.isValid()) {
-            builder.withCausingEntity(causingEntity);
-            if (directEntity == null) {
-                builder.withDamageLocation(causingEntity.getLocation());
-            }
-        }
-        return builder.build();
-    }
-
-    private DamageType resolveSyntheticDamageType(DamageContext damageContext, Entity visualSource, EntityDamageEvent.DamageCause cause) {
-        Entity source = visualSource != null ? visualSource : resolveDirectDamageEntity(damageContext, null);
-        return switch (cause == null ? EntityDamageEvent.DamageCause.CUSTOM : cause) {
-            case ENTITY_ATTACK, ENTITY_SWEEP_ATTACK ->
-                damageContext != null && damageContext.attacker() instanceof Player ? DamageType.PLAYER_ATTACK : DamageType.MOB_ATTACK;
-            case PROJECTILE -> resolveProjectileDamageType(source);
-            case MAGIC, POISON -> source instanceof Projectile ? DamageType.INDIRECT_MAGIC : DamageType.MAGIC;
-            case THORNS -> DamageType.THORNS;
-            case BLOCK_EXPLOSION -> DamageType.EXPLOSION;
-            case ENTITY_EXPLOSION ->
-                source instanceof Player ? DamageType.PLAYER_EXPLOSION : DamageType.EXPLOSION;
-            case SONIC_BOOM -> DamageType.SONIC_BOOM;
-            case WITHER -> DamageType.WITHER;
-            case FALL -> DamageType.FALL;
-            case DROWNING -> DamageType.DROWN;
-            case LAVA -> DamageType.LAVA;
-            case FIRE_TICK -> DamageType.ON_FIRE;
-            case FIRE -> DamageType.IN_FIRE;
-            case CONTACT -> DamageType.CACTUS;
-            case VOID -> DamageType.OUT_OF_WORLD;
-            default -> DamageType.GENERIC;
-        };
-    }
-
-    private DamageType resolveProjectileDamageType(Entity source) {
-        if (source instanceof Trident) {
-            return DamageType.TRIDENT;
-        }
-        if (source instanceof WitherSkull) {
-            return DamageType.WITHER_SKULL;
-        }
-        if (source instanceof Fireball) {
-            return DamageType.FIREBALL;
-        }
-        if (source instanceof AbstractArrow) {
-            return DamageType.ARROW;
-        }
-        return DamageType.MOB_PROJECTILE;
-    }
-
-    private Entity resolveDirectDamageEntity(DamageContext damageContext, Entity visualSource) {
-        if (visualSource != null) {
-            return visualSource;
-        }
-        if (damageContext == null) {
-            return null;
-        }
-        if (damageContext.projectile() != null) {
-            return damageContext.projectile();
-        }
-        return damageContext.attacker();
-    }
-
-    private Entity resolveCausingDamageEntity(DamageContext damageContext, Entity visualSource) {
-        if (damageContext != null && damageContext.attacker() != null) {
-            return damageContext.attacker();
-        }
-        if (visualSource instanceof Projectile projectile && projectile.getShooter() instanceof Entity entity) {
-            return entity;
-        }
-        return visualSource;
     }
 
     private DamageTypeDefinition filterDamageType(DamageTypeDefinition damageType, boolean allowCritical, boolean calculateTargetDefense) {
@@ -792,12 +663,12 @@ final class DamageCalculationService {
     }
 
     private boolean isCriticalStage(String stageId) {
-        String normalized = normalizeId(stageId);
+        String normalized = Texts.normalizeId(stageId);
         return "crit".equals(normalized) || "critical".equals(normalized);
     }
 
     private boolean isDefenseStage(String stageId) {
-        String normalized = normalizeId(stageId);
+        String normalized = Texts.normalizeId(stageId);
         return "defense".equals(normalized) || "target_defense".equals(normalized);
     }
 
@@ -805,7 +676,7 @@ final class DamageCalculationService {
         if (snapshot == null || snapshot.values().isEmpty() || Texts.isBlank(attributeId)) {
             return 0D;
         }
-        Double value = snapshot.values().get(normalizeId(attributeId));
+        Double value = snapshot.values().get(Texts.normalizeId(attributeId));
         return value == null ? 0D : value;
     }
 
@@ -813,235 +684,14 @@ final class DamageCalculationService {
             DamageTypeDefinition damageType,
             DamageResult result,
             double finalDamage) {
-        if (damageContext == null || damageType == null || !damageType.hasRecovery() || result == null) {
-            return;
-        }
-        LivingEntity attacker = damageContext.attacker();
-        if (attacker == null || !attacker.isValid() || attacker.isDead()) {
-            return;
-        }
-        double recoveryAmount = resolveRecoveryAmount(damageContext, damageType.recovery(), finalDamage);
-        if (recoveryAmount <= 0D) {
-            return;
-        }
-        double currentHealth = Math.max(0D, attacker.getHealth());
-        AttributeInstance maxHealthAttribute = attacker.getAttribute(Attribute.MAX_HEALTH);
-        double maxHealth = maxHealthAttribute == null ? Math.max(1D, currentHealth) : Math.max(1D, maxHealthAttribute.getValue());
-        attacker.setHealth(Math.min(maxHealth, currentHealth + recoveryAmount));
-        service.scheduleHealthSync(attacker);
+        recoveryCalculator.applyRecovery(damageContext, damageType, result, finalDamage);
     }
 
     private void notifyDamageMessages(DamageContext damageContext,
             DamageTypeDefinition damageType,
             DamageResult result,
             double finalDamage) {
-        if (damageContext == null || damageType == null || result == null) {
-            return;
-        }
-        Map<String, Object> replacements = buildDamageMessageReplacements(damageContext, damageType, result, finalDamage);
-        Player attackerPlayer = damageContext.attacker() instanceof Player player ? player : null;
-        Player targetPlayer = damageContext.target() instanceof Player player ? player : null;
-        if (attackerPlayer != null && targetPlayer != null && attackerPlayer.getUniqueId().equals(targetPlayer.getUniqueId())) {
-            sendDamageMessage(attackerPlayer, firstNonBlank(damageType.attackerMessage(), damageType.targetMessage()), replacements);
-            return;
-        }
-        sendDamageMessage(attackerPlayer, damageType.attackerMessage(), replacements);
-        sendDamageMessage(targetPlayer, damageType.targetMessage(), replacements);
-    }
-
-    private void sendDamageMessage(Player player, String template, Map<String, Object> replacements) {
-        if (player == null || Texts.isBlank(template)) {
-            return;
-        }
-        String rendered = Texts.formatTemplate(template, replacements);
-        if (Texts.isBlank(rendered)) {
-            return;
-        }
-        AdventureSupport.sendMessage(service.plugin(), player, MiniMessages.parse(rendered));
-    }
-
-    private Map<String, Object> buildDamageMessageReplacements(DamageContext damageContext,
-            DamageTypeDefinition damageType,
-            DamageResult result,
-            double finalDamage) {
-        Map<String, Object> replacements = new LinkedHashMap<>();
-        String attackerLabel = entityLabel(damageContext.attacker(), damageContext.cause(), messageOrFallback("damage.environment", "environment"));
-        String targetLabel = entityLabel(damageContext.target(), null, messageOrFallback("damage.target", "target"));
-        String damageTypeLabel = Texts.isBlank(damageType.displayName()) ? damageType.id() : damageType.displayName();
-        String sourceDamageText = Numbers.formatNumber(damageContext.sourceDamage(), "0.##");
-        String baseDamageText = Numbers.formatNumber(damageContext.baseDamage(), "0.##");
-        String finalDamageText = Numbers.formatNumber(finalDamage, "0.##");
-        String causeName = causeDisplayName(damageContext.cause());
-        replacements.put("attacker", attackerLabel);
-        replacements.put("attacker_name", attackerLabel);
-        replacements.put("attacker_type", damageContext.attacker() == null ? causeName : damageContext.attacker().getType().name());
-        replacements.put("attacker_uuid", damageContext.attacker() == null ? "" : damageContext.attacker().getUniqueId().toString());
-        replacements.put("source", attackerLabel);
-        replacements.put("source_name", attackerLabel);
-        replacements.put("source_type", damageContext.attacker() == null ? causeName : damageContext.attacker().getType().name());
-        replacements.put("source_uuid", damageContext.attacker() == null ? "" : damageContext.attacker().getUniqueId().toString());
-        replacements.put("target", targetLabel);
-        replacements.put("target_name", targetLabel);
-        replacements.put("target_type", damageContext.target() == null ? "" : damageContext.target().getType().name());
-        replacements.put("target_uuid", damageContext.target() == null ? "" : damageContext.target().getUniqueId().toString());
-        replacements.put("damage_type", damageTypeLabel);
-        replacements.put("damage_type_name", damageTypeLabel);
-        replacements.put("damage_type_id", damageType.id());
-        replacements.put("source_damage", sourceDamageText);
-        replacements.put("input_damage", sourceDamageText);
-        replacements.put("base_damage", baseDamageText);
-        replacements.put("final_damage", finalDamageText);
-        replacements.put("damage", finalDamageText);
-        replacements.put("cause", damageContext.causeName());
-        replacements.put("cause_name", causeName);
-        replacements.put("cause_id", damageContext.causeId());
-        replacements.put("damage_cause", damageContext.causeName());
-        replacements.put("damage_cause_name", causeName);
-        replacements.put("damage_cause_id", damageContext.causeId());
-        replacements.put("critical", result.critical());
-        replacements.put("critical_text", result.critical() ? messageOrFallback("damage.critical_text", "critical") : "");
-        replacements.put("critical_suffix", result.critical() ? messageOrFallback("damage.critical_suffix", " <red>critical</red>") : "");
-        replacements.put("roll", Numbers.formatNumber(result.roll(), "0.##"));
-        return replacements;
-    }
-
-    private String entityLabel(LivingEntity entity, EntityDamageEvent.DamageCause cause, String fallback) {
-        if (entity == null) {
-            return cause != null ? causeDisplayName(cause) : fallback;
-        }
-        String name = Texts.toStringSafe(entity.getName()).trim();
-        if (Texts.isBlank(name)) {
-            name = entity.getType().name();
-        }
-        return Texts.isBlank(name) ? fallback : name;
-    }
-
-    private String causeDisplayName(EntityDamageEvent.DamageCause cause) {
-        if (cause == null) {
-            return messageOrFallback("damage.cause.environment", "environment");
-        }
-        return switch (cause) {
-            case CONTACT ->
-                messageOrFallback("damage.cause.contact", "contact");
-            case ENTITY_ATTACK ->
-                messageOrFallback("damage.cause.entity_attack", "attack");
-            case PROJECTILE ->
-                messageOrFallback("damage.cause.projectile", "projectile");
-            case SUFFOCATION ->
-                messageOrFallback("damage.cause.suffocation", "suffocation");
-            case FALL ->
-                messageOrFallback("damage.cause.fall", "fall");
-            case FIRE ->
-                messageOrFallback("damage.cause.fire", "fire");
-            case FIRE_TICK ->
-                messageOrFallback("damage.cause.fire_tick", "burning");
-            case MELTING ->
-                messageOrFallback("damage.cause.melting", "melting");
-            case LAVA ->
-                messageOrFallback("damage.cause.lava", "lava");
-            case DROWNING ->
-                messageOrFallback("damage.cause.drowning", "drowning");
-            case BLOCK_EXPLOSION ->
-                messageOrFallback("damage.cause.block_explosion", "block explosion");
-            case ENTITY_EXPLOSION ->
-                messageOrFallback("damage.cause.entity_explosion", "entity explosion");
-            case VOID ->
-                messageOrFallback("damage.cause.void", "void");
-            case LIGHTNING ->
-                messageOrFallback("damage.cause.lightning", "lightning");
-            case WORLD_BORDER ->
-                messageOrFallback("damage.cause.world_border", "world border");
-            case STARVATION ->
-                messageOrFallback("damage.cause.starvation", "starvation");
-            case POISON ->
-                messageOrFallback("damage.cause.poison", "poison");
-            case MAGIC ->
-                messageOrFallback("damage.cause.magic", "magic");
-            case WITHER ->
-                messageOrFallback("damage.cause.wither", "wither");
-            case FALLING_BLOCK ->
-                messageOrFallback("damage.cause.falling_block", "falling block");
-            case DRAGON_BREATH ->
-                messageOrFallback("damage.cause.dragon_breath", "dragon breath");
-            case FLY_INTO_WALL ->
-                messageOrFallback("damage.cause.fly_into_wall", "collision");
-            case HOT_FLOOR ->
-                messageOrFallback("damage.cause.hot_floor", "hot floor");
-            case CAMPFIRE ->
-                messageOrFallback("damage.cause.campfire", "campfire");
-            case CRAMMING ->
-                messageOrFallback("damage.cause.cramming", "cramming");
-            case DRYOUT ->
-                messageOrFallback("damage.cause.dryout", "dryout");
-            case FREEZE ->
-                messageOrFallback("damage.cause.freeze", "freeze");
-            case SONIC_BOOM ->
-                messageOrFallback("damage.cause.sonic_boom", "sonic boom");
-            default ->
-                messageOrFallback("damage.cause.unknown", cause.name().toLowerCase(Locale.ROOT).replace('_', ' '));
-        };
-    }
-
-    private EntityDamageEvent.DamageCause extractDamageCause(DamageContextVariables context) {
-        if (context == null || context.isEmpty()) {
-            return null;
-        }
-        Object raw = context.get("cause");
-        if (raw == null) {
-            raw = context.get("damage_cause");
-        }
-        if (raw == null) {
-            raw = context.get("damage_cause_id");
-        }
-        if (raw == null) {
-            return null;
-        }
-        if (raw instanceof EntityDamageEvent.DamageCause cause) {
-            return cause;
-        }
-        String normalized = normalizeId(String.valueOf(raw));
-        if (Texts.isBlank(normalized)) {
-            return null;
-        }
-        try {
-            return EntityDamageEvent.DamageCause.valueOf(normalized.trim().toUpperCase(Locale.ROOT));
-        } catch (Exception ignored) {
-            return null;
-        }
-    }
-
-    private double contextDouble(DamageContextVariables context, String key, double fallback) {
-        if (context == null || context.isEmpty() || Texts.isBlank(key)) {
-            return fallback;
-        }
-        Double value = Numbers.tryParseDouble(context.get(normalizeId(key)), null);
-        return value == null ? fallback : value;
-    }
-
-    private boolean contextBoolean(DamageContextVariables context, boolean fallback, String... keys) {
-        if (context == null || context.isEmpty() || keys == null || keys.length == 0) {
-            return fallback;
-        }
-        for (String key : keys) {
-            if (Texts.isBlank(key) || !context.contains(key)) {
-                continue;
-            }
-            Object raw = context.get(key);
-            if (raw instanceof Boolean boolValue) {
-                return boolValue;
-            }
-            String normalized = Texts.toStringSafe(raw).trim().toLowerCase(Locale.ROOT);
-            if (normalized.isBlank()) {
-                continue;
-            }
-            if ("true".equals(normalized) || "yes".equals(normalized) || "1".equals(normalized)) {
-                return true;
-            }
-            if ("false".equals(normalized) || "no".equals(normalized) || "0".equals(normalized)) {
-                return false;
-            }
-        }
-        return fallback;
+        messageDispatcher.notifyDamageMessages(damageContext, damageType, result, finalDamage);
     }
 
     private String firstNonBlank(String left, String right) {
@@ -1118,7 +768,7 @@ final class DamageCalculationService {
             if (Texts.isBlank(id)) {
                 continue;
             }
-            String normalized = normalizeId(id);
+            String normalized = Texts.normalizeId(id);
             Double value = snapshot == null ? null : snapshot.values().get(normalized);
             if (value == null && context != null) {
                 value = Numbers.tryParseDouble(context.get(normalized), null);
@@ -1128,14 +778,6 @@ final class DamageCalculationService {
             }
         }
         return total;
-    }
-
-    private String messageOrFallback(String key, String fallback) {
-        if (service.plugin() == null || service.plugin().messageService() == null || Texts.isBlank(key)) {
-            return fallback;
-        }
-        String value = service.plugin().messageService().message(key);
-        return Texts.isBlank(value) || key.equals(value) ? fallback : value;
     }
 
     private boolean shouldDebugCombat(DamageContext damageContext) {
@@ -1175,101 +817,4 @@ final class DamageCalculationService {
         service.combatDebug().logMessage(phase, messageKey, replacements);
     }
 
-    private String describeDamageContext(DamageContext damageContext) {
-        if (damageContext == null) {
-            return "<null>";
-        }
-        return "attacker=" + entityDebugLabel(damageContext.attacker())
-                + ", target=" + entityDebugLabel(damageContext.target())
-                + ", projectile=" + entityDebugLabel(damageContext.projectile())
-                + ", cause=" + (damageContext.cause() == null ? "<none>" : damageContext.cause().name())
-                + ", damageType=" + damageContext.damageTypeId()
-                + ", sourceDamage=" + formatNumber(damageContext.sourceDamage())
-                + ", baseDamage=" + formatNumber(damageContext.baseDamage());
-    }
-
-    private String formatStageValues(Map<String, Double> stageValues) {
-        if (stageValues == null || stageValues.isEmpty()) {
-            return "{}";
-        }
-        StringBuilder builder = new StringBuilder("{");
-        boolean first = true;
-        for (Map.Entry<String, Double> entry : stageValues.entrySet()) {
-            if (!first) {
-                builder.append(", ");
-            }
-            builder.append(entry.getKey()).append('=').append(formatNumber(entry.getValue() == null ? 0D : entry.getValue()));
-            first = false;
-        }
-        builder.append('}');
-        return builder.toString();
-    }
-
-    private String formatSnapshot(AttributeSnapshot snapshot) {
-        if (snapshot == null) {
-            return "<null>";
-        }
-        if (snapshot.values().isEmpty()) {
-            return "signature=" + snapshot.sourceSignature() + ", values={}";
-        }
-        StringBuilder builder = new StringBuilder();
-        builder.append("signature=").append(snapshot.sourceSignature()).append(", values={");
-        boolean first = true;
-        for (Map.Entry<String, Double> entry : orderedSnapshotEntries(snapshot).entrySet()) {
-            Double value = entry.getValue();
-            if (value == null || Double.compare(value, 0D) == 0) {
-                continue;
-            }
-            if (!first) {
-                builder.append(", ");
-            }
-            builder.append(entry.getKey()).append('=').append(formatNumber(value));
-            first = false;
-        }
-        if (first) {
-            builder.append('}');
-            return builder.toString();
-        }
-        builder.append('}');
-        return builder.toString();
-    }
-
-    private Map<String, Double> orderedSnapshotEntries(AttributeSnapshot snapshot) {
-        if (snapshot == null || snapshot.values().isEmpty()) {
-            return Map.of();
-        }
-        Map<String, Double> ordered = new LinkedHashMap<>();
-        for (var definition : service.attributeRegistry().all().values()) {
-            if (definition == null) {
-                continue;
-            }
-            Double value = snapshot.values().get(definition.id());
-            if (value != null) {
-                ordered.put(definition.id(), value);
-            }
-        }
-        for (Map.Entry<String, Double> entry : snapshot.values().entrySet()) {
-            ordered.putIfAbsent(entry.getKey(), entry.getValue());
-        }
-        return ordered;
-    }
-
-    private String entityDebugLabel(Entity entity) {
-        if (entity == null) {
-            return "<none>";
-        }
-        String name = Texts.toStringSafe(entity.getName()).trim();
-        if (Texts.isBlank(name)) {
-            name = entity.getType().name();
-        }
-        return name + "(" + entity.getType().name() + "," + entity.getUniqueId() + ")";
-    }
-
-    private String formatNumber(double value) {
-        return Numbers.formatNumber(value, "0.##");
-    }
-
-    private String normalizeId(String value) {
-        return value == null ? "" : value.trim().toLowerCase(Locale.ROOT).replace(' ', '_');
-    }
 }

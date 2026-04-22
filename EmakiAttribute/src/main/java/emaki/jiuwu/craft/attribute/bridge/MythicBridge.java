@@ -118,11 +118,7 @@ public final class MythicBridge implements Listener {
     }
 
     private String normalize(String value) {
-        return value == null ? "" : value.trim().toLowerCase(Locale.ROOT).replace(' ', '_');
-    }
-
-    private String normalizeId(String value) {
-        return value == null ? "" : value.trim().toLowerCase(Locale.ROOT).replace(' ', '_');
+        return Texts.normalizeId(value);
     }
 
     private AttributeContribution parseMobAttributeEntry(String rawEntry, String sourceId) {
@@ -143,7 +139,7 @@ public final class MythicBridge implements Listener {
             return null;
         }
         var definition = attributeService.attributeRegistry() == null ? null : attributeService.attributeRegistry().resolve(attributeName);
-        String attributeId = definition == null ? normalizeId(attributeName) : definition.id();
+        String attributeId = definition == null ? Texts.normalizeId(attributeName) : definition.id();
         double value = parseMobAttributeValue(valueText);
         return new AttributeContribution(attributeId, value, sourceId);
     }
@@ -288,7 +284,7 @@ public final class MythicBridge implements Listener {
             if (entries == null || entries.isEmpty()) {
                 return List.of();
             }
-            String sourceId = "mythic_mob:" + normalizeId(mythicMob.getInternalName());
+            String sourceId = "mythic_mob:" + Texts.normalizeId(mythicMob.getInternalName());
             List<AttributeContribution> contributions = new ArrayList<>();
             for (String rawEntry : entries) {
                 AttributeContribution contribution = parseMobAttributeEntry(rawEntry, sourceId);
@@ -324,10 +320,10 @@ public final class MythicBridge implements Listener {
                 AttributeService attributeService) {
             super(conditionName);
             this.attributeService = attributeService;
-            this.attributeId = normalizeId(config.getString("attribute", config.getString("id", argument)));
-            this.resourceId = normalizeId(config.getString("resource", ""));
-            this.field = normalizeId(config.getString("field", resourceId.isBlank() ? "value" : "current_value"));
-            this.operator = normalizeId(config.getString("operator", config.getString("compare", ">=")));
+            this.attributeId = Texts.normalizeId(config.getString("attribute", config.getString("id", argument)));
+            this.resourceId = Texts.normalizeId(config.getString("resource", ""));
+            this.field = Texts.normalizeId(config.getString("field", resourceId.isBlank() ? "value" : "current_value"));
+            this.operator = Texts.normalizeId(config.getString("operator", config.getString("compare", ">=")));
             this.value = config.getDouble("value", config.getDouble("min", 0D));
             this.value2 = config.getDouble("value_2", config.getDouble("max", value));
         }
@@ -428,8 +424,5 @@ public final class MythicBridge implements Listener {
             return entity instanceof LivingEntity livingEntity ? livingEntity : null;
         }
 
-        private String normalizeId(String value) {
-            return value == null ? "" : value.trim().toLowerCase(Locale.ROOT).replace(' ', '_');
-        }
     }
 }

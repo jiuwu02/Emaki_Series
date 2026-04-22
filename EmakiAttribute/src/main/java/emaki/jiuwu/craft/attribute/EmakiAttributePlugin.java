@@ -27,6 +27,7 @@ import emaki.jiuwu.craft.attribute.papi.AttributePlaceholderExpansion;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
 import emaki.jiuwu.craft.attribute.service.MessageService;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.corelib.integration.EmakiAttributeBridge;
 import emaki.jiuwu.craft.corelib.plugin.AbstractEmakiPlugin;
 import emaki.jiuwu.craft.corelib.service.EmakiServiceRegistry;
 import emaki.jiuwu.craft.corelib.text.AdventureSupport;
@@ -55,6 +56,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
     private PdcReadRuleLoader pdcReadRuleLoader;
     private LanguageLoader languageLoader;
     private MessageService messageService;
+    private EmakiAttributeBridge emakiAttributeBridge;
     private PdcAttributeApi pdcAttributeApi;
     private AttributeService attributeService;
     private AttributeListener listener;
@@ -68,6 +70,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
     @Override
     public void onEnable() {
         applyRuntimeComponents(lifecycleCoordinator.initialize(this));
+        registerAttributeBridgeService();
         registerPdcAttributeApi();
         ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII);
         reloadPluginState(true);
@@ -156,6 +159,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         pdcReadRuleLoader = components.pdcReadRuleLoader();
         languageLoader = components.languageLoader();
         messageService = components.messageService();
+        emakiAttributeBridge = components.emakiAttributeBridge();
         pdcAttributeApi = components.pdcAttributeApi();
         attributeService = components.attributeService();
         listener = components.listener();
@@ -170,6 +174,14 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         }
         Bukkit.getServicesManager().unregister(PdcAttributeApi.class, pdcAttributeApi);
         Bukkit.getServicesManager().register(PdcAttributeApi.class, pdcAttributeApi, this, ServicePriority.Normal);
+    }
+
+    private void registerAttributeBridgeService() {
+        if (emakiAttributeBridge == null) {
+            return;
+        }
+        Bukkit.getServicesManager().unregister(EmakiAttributeBridge.class, emakiAttributeBridge);
+        Bukkit.getServicesManager().register(EmakiAttributeBridge.class, emakiAttributeBridge, this, ServicePriority.Normal);
     }
 
     void setConfigModel(AttributeConfig configModel) {

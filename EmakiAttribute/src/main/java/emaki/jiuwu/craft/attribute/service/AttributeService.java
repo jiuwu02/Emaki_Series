@@ -83,7 +83,7 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
                 presetRegistry,
                 vanillaSynchronizer
         );
-        this.combatDebugService = new CombatDebugService(plugin);
+        this.combatDebugService = new CombatDebugService(this);
         AttributeSnapshotCollector snapshotCollector = new AttributeSnapshotCollector(this);
         this.snapshotService = new AttributeSnapshotService(snapshotCollector);
         this.resourceManagementService = new ResourceManagementService(this);
@@ -232,5 +232,11 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
 
     public CompletableFuture<ResolvedDamage> resolveDamageApplicationAsync(DamageContext damageContext) {
         return damageCalculationService.resolveDamageApplicationAsync(damageContext);
+    }
+
+    @Override
+    public void refreshCaches() {
+        super.refreshCaches();
+        damageCalculationService.refreshCaches();
     }
 }

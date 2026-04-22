@@ -2,7 +2,6 @@ package emaki.jiuwu.craft.corelib.action.builtin;
 
 import java.util.Map;
 
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 
@@ -12,7 +11,6 @@ import emaki.jiuwu.craft.corelib.action.ActionParameter;
 import emaki.jiuwu.craft.corelib.action.ActionParameterType;
 import emaki.jiuwu.craft.corelib.action.ActionParsers;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
-import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class TeleportAction extends BaseAction {
 
@@ -37,7 +35,7 @@ public final class TeleportAction extends BaseAction {
             return playerCheck;
         }
         Location base = context.player().getLocation();
-        World world = Texts.isBlank(arguments.get("world")) ? base.getWorld() : Bukkit.getWorld(arguments.get("world"));
+        World world = WorldArgumentResolver.resolve(arguments.get("world"), base.getWorld());
         if (world == null) {
             return ActionResult.failure(ActionErrorType.WORLD_NOT_FOUND, "Unknown world for teleport action.");
         }

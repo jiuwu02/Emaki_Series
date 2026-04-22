@@ -1,0 +1,124 @@
+lang_version: "1.3.0"
+
+general:
+  prefix: "<gray>[ <gradient:#4DA6FF:#FF6B6B>主动技能</gradient> ]</gray>"
+  no_permission: "<red>你没有权限执行此操作。</red>"
+  player_only: "<red>此命令只能由玩家执行。</red>"
+  player_not_found: "<red>未找到目标玩家。</red>"
+  unknown_command: "<red>未知命令，请使用 /eskills help 查看帮助。</red>"
+  invalid_args: "<red>参数错误。</red>"
+  reload_success: "<green>配置已重载。</green>"
+  reload_summary: "<gray>技能: {skills} | 资源: {resources} | GUI: {guis}</gray>"
+
+console:
+  plugin_starting: "正在启动 EmakiSkills..."
+  plugin_started: "EmakiSkills 启动完成。"
+  bootstrap_start: "开始检查默认文件..."
+  bootstrap_complete: "默认文件检查完成。"
+  bootstrap_skip: "已跳过默认数据写入。"
+  bootstrap_copy_failed: "复制默认资源失败: {path} ({error})"
+  bootstrap_save_failed: "保存默认资源失败: {path} ({error})"
+  bootstrap_cleanup_failed: "清理旧目录失败: {path} ({error})"
+  default_file_missing: "缺少内置默认资源: {path}"
+  directory_create_failed: "创建目录失败: {path}"
+  loader_config_load_error: "读取 EmakiSkills 配置失败: {path} ({error})"
+  ea_bridge_unavailable: "未检测到 EmakiAttribute，已禁用属性桥接。"
+  ea_bridge_service_unregistered: "EmakiAttribute 已加载，但未暴露技能桥接服务，已禁用属性桥接。"
+  ea_bridge_ready: "EmakiAttribute 桥接已就绪，接入方式: {mode}。"
+  ea_bridge_init_failed: "初始化 EmakiAttribute 桥接失败: {error}"
+  ea_bridge_read_resource_current_failed: "读取 EmakiAttribute 资源当前值失败: {resource} ({error})"
+  ea_bridge_read_resource_max_failed: "读取 EmakiAttribute 资源上限失败: {resource} ({error})"
+  ea_bridge_consume_failed: "扣除 EmakiAttribute 资源失败: {resource} ({error})"
+  ea_bridge_attribute_read_failed: "读取 EmakiAttribute 属性失败: {attribute} ({error})"
+  mythic_bridge_unavailable: "未检测到 MythicMobs，已禁用 Mythic 技能桥接。"
+  mythic_bridge_class_unavailable: "MythicMobs 类不可用，已禁用 Mythic 技能桥接。"
+  mythic_bridge_ready: "MythicMobs 技能桥接已就绪。"
+  mythic_bridge_init_failed: "初始化 MythicMobs 技能桥接失败: {error}"
+  mythic_bridge_skill_lookup_failed: "查询 Mythic 技能失败: {skill} ({error})"
+  mythic_bridge_cast_failed: "释放 Mythic 技能失败: {skill} ({error})"
+
+loader:
+  lang_directory_create_failed: "无法创建语言目录: {path}"
+  bundled_language_load_failed: "读取内置语言文件失败: {error}"
+  bundled_resource_missing: "内置资源缺失: {resource}，无法写入 {path}"
+
+cast_mode:
+  enabled: "<green>已进入施法模式。</green>"
+  disabled: "<yellow>已退出施法模式。</yellow>"
+  already_enabled: "<gray>你已经处于施法模式中。</gray>"
+  already_disabled: "<gray>你当前不在施法模式中。</gray>"
+
+skill:
+  equipped: "<green>已将 <white>{skill}</white> 装配到槽位 {slot}。</green>"
+  unequipped: "<yellow>已从槽位 {slot} 卸下技能。</yellow>"
+  source_lost: "<red>技能 <white>{skill}</white> 的来源已失效，已自动卸下。</red>"
+  not_found: "<red>找不到技能: {skill_id}</red>"
+  not_unlocked: "<red>你尚未解锁该技能。</red>"
+
+trigger:
+  bound: "<green>已将触发器 <white>{trigger}</white> 绑定到槽位 {slot}。</green>"
+  conflict: "<red>触发器 <white>{trigger}</white> 与槽位 {conflict_slot} 的
+    <white>{conflict_trigger}</white> 冲突。</red>"
+  disabled: "<red>触发器 <white>{trigger}</white> 已被禁用。</red>"
+  conflict_auto_fix: "<yellow>触发器冲突已自动修正：已清除槽位 {slot} 的绑定。</yellow>"
+
+cast:
+  invalid_input: "<red>无效的施法输入。</red>"
+  not_in_cast_mode: "<red>当前未处于施法模式。</red>"
+  no_profile: "<red>玩家数据尚未加载。</red>"
+  no_binding: "<red>该触发器未绑定技能。</red>"
+  forced_delay: "<red>全局施法延迟中，剩余 {remaining}s。</red>"
+  global_cooldown: "<red>公共冷却中，剩余 {remaining}s。</red>"
+  skill_cooldown: "<red>技能 <white>{skill}</white> 冷却中，剩余 {remaining}s。</red>"
+  resource_insufficient: "<red>{message}</red>"
+  mythic_not_configured: "<red>技能未配置 Mythic 映射。</red>"
+  mythic_not_found: "<red>未找到 Mythic 技能 {mythic_skill}。</red>"
+  mythic_failed: "<red>技能释放失败。</red>"
+  success: ""
+
+gui:
+  open_failed: "<red>无法打开技能界面。</red>"
+  title: "主动技能"
+  slot_empty: "<gray>空技能槽</gray>"
+  slot_empty_hint: "<dark_gray>点击装配技能</dark_gray>"
+  slot_info_trigger: "<gray>触发器: <white>{trigger}</white></gray>"
+  slot_info_cooldown: "<gray>独立冷却: <white>{cooldown}s</white></gray>"
+  slot_info_gcd: "<gray>公冷: <white>{gcd}s</white></gray>"
+  slot_info_delay: "<gray>强制延迟: <white>{delay}s</white></gray>"
+  skill_source_equipment: "<gray>来源: {slot_name}</gray>"
+  skill_source_multiple: "<gray>来自 {count} 个来源</gray>"
+  skill_source_provider: "<gray>外部来源: {provider}</gray>"
+  trigger_select_title: "选择触发器"
+  trigger_occupied: "<red>已被占用</red>"
+  trigger_available: "<green>可用</green>"
+  trigger_conflict_hint: "<red>与 {trigger} 冲突</red>"
+  click_to_equip: "<yellow>点击装配技能</yellow>"
+  click_to_unequip: "<yellow>点击卸下技能</yellow>"
+  click_to_bind: "<yellow>点击绑定触发器</yellow>"
+  cast_mode_on: "<green>进入施法模式</green>"
+  cast_mode_off: "<red>退出施法模式</red>"
+  refresh_pool: "<yellow>刷新技能列表</yellow>"
+  close: "<gray>关闭</gray>"
+  page_prev: "<gray>上一页</gray>"
+  page_next: "<gray>下一页</gray>"
+  page_info: "<gray>第 {current}/{total} 页</gray>"
+
+slot_names:
+  main_hand: "主手"
+  off_hand: "副手"
+  helmet: "头盔"
+  chestplate: "胸甲"
+  leggings: "护腿"
+  boots: "靴子"
+
+command:
+  help:
+    header: "<gray>========== <gradient:#4DA6FF:#FF6B6B>EmakiSkills 帮助</gradient>
+      ==========</gray>"
+    line: "<gold>/{cmd}</gold> <gray>- {desc}</gray>"
+    footer: "<gray>==========================================</gray>"
+  inspect:
+    header: "<gray>===== 玩家 <white>{player}</white> 技能状态 =====</gray>"
+    line: "<gray>{key}: <white>{value}</white></gray>"
+  debug:
+    header: "<gray>===== 调试信息: <white>{player}</white> =====</gray>"

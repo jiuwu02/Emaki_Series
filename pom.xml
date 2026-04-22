@@ -24,21 +24,34 @@
         <module>EmakiAttribute</module>
         <module>EmakiForge</module>
         <module>EmakiStrengthen</module>
-        <module>EmakiGem</module>
+        <module>EmakiCooking</module>
     </modules>
+
+    <profiles>
+        <profile>
+            <id>private-modules</id>
+            <activation>
+                <file>
+                    <exists>${basedir}/.key</exists>
+                </file>
+            </activation>
+            <modules>
+                <module>EmakiGem</module>
+                <module>EmakiSkills</module>
+            </modules>
+        </profile>
+    </profiles>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>21</maven.compiler.release>
-        <emaki.corelib.version>3.1.0</emaki.corelib.version>
+        <emaki.corelib.version>3.2.0</emaki.corelib.version>
         <spigot.api.version>1.21.11-R0.1-SNAPSHOT</spigot.api.version>
         <adventure.version>4.26.1</adventure.version>
         <adventure.platform.version>4.4.1</adventure.platform.version>
         <exp4j.version>0.4.8</exp4j.version>
-        <gson.version>2.13.1</gson.version>
         <jetbrains.annotations.version>26.0.2</jetbrains.annotations.version>
         <boosted.yaml.version>1.3.7</boosted.yaml.version>
-        <snakeyaml.version>2.6</snakeyaml.version>
         <mythicmobs.version>5.11.2</mythicmobs.version>
         <mythiclib.version>1.7.1-SNAPSHOT</mythiclib.version>
         <vault.api.version>1.7</vault.api.version>
@@ -56,11 +69,6 @@
                 <version>${emaki.corelib.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.google.code.gson</groupId>
-                <artifactId>gson</artifactId>
-                <version>${gson.version}</version>
-            </dependency>
-            <dependency>
                 <groupId>org.jetbrains</groupId>
                 <artifactId>annotations</artifactId>
                 <version>${jetbrains.annotations.version}</version>
@@ -70,11 +78,6 @@
                 <groupId>dev.dejvokep</groupId>
                 <artifactId>boosted-yaml</artifactId>
                 <version>${boosted.yaml.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.yaml</groupId>
-                <artifactId>snakeyaml</artifactId>
-                <version>${snakeyaml.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.spigotmc</groupId>
@@ -242,15 +245,6 @@
                                 <excludes>
                                     <exclude>META-INF/MANIFEST.MF</exclude>
                                     <exclude>META-INF/maven/**</exclude>
-                                </excludes>
-                            </filter>
-                            <filter>
-                                <artifact>com.google.code.gson:gson</artifact>
-                                <excludes>
-                                    <exclude>META-INF/MANIFEST.MF</exclude>
-                                    <exclude>META-INF/maven/**</exclude>
-                                    <exclude>META-INF/proguard/**</exclude>
-                                    <exclude>META-INF/services/**</exclude>
                                 </excludes>
                             </filter>
                             <filter>

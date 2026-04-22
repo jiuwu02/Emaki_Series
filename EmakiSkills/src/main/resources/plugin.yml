@@ -1,0 +1,24 @@
+name: EmakiSkills
+prefix: ${project.name}
+main: emaki.jiuwu.craft.skills.EmakiSkillsPlugin
+version: ${project.version}
+api-version: "1.21"
+depend:
+  - EmakiCoreLib
+softdepend:
+  - MythicMobs
+  - EmakiAttribute
+  - PlaceholderAPI
+commands:
+  emakiskills:
+    aliases: [ emakiskills, es ]
+    permission: emakiskills.use
+permissions:
+  emakiskills.use:
+    default: true
+  emakiskills.reload:
+    default: op
+  emakiskills.admin:
+    default: op
+  emakiskills.debug:
+    default: op

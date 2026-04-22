@@ -1,0 +1,94 @@
+# 宝石系统主配置
+# config_version 由资源同步维护
+config_version: "1.1.0"
+
+# 语言文件 ID
+language: "zh_CN"
+
+# 是否写入默认资源
+release_default_data: true
+
+socket_openers:
+  # 攻击向插槽开孔器
+  attack_drill:
+    enabled: true
+    item_source: "minecraft-blaze_rod"
+    opens_gem_types:
+      - "attack"
+    consume_on_success: true
+    success_actions:
+      - "sendmessage text=\"<green>成功为装备开启了攻击宝石插槽！</green>\""
+      - "playsound sound=block.anvil.use volume=1.0 pitch=1.1"
+    failure_actions:
+      - "sendmessage text=\"<red>该装备没有可由攻击开孔器开启的预留插槽。</red>\""
+      - "playsound sound=entity.villager.no volume=1.0 pitch=0.8"
+
+  # 防御向插槽开孔器
+  defense_drill:
+    enabled: true
+    item_source: "minecraft-prismarine_shard"
+    opens_gem_types:
+      - "defense"
+    consume_on_success: true
+    success_actions:
+      - "sendmessage text=\"<green>成功为装备开启了防御宝石插槽！</green>\""
+      - "playsound sound=block.anvil.use volume=1.0 pitch=1.0"
+    failure_actions:
+      - "sendmessage text=\"<red>该装备没有可由防御开孔器开启的预留插槽。</red>\""
+      - "playsound sound=entity.villager.no volume=1.0 pitch=0.8"
+
+  # 通用开孔器
+  universal_drill:
+    enabled: true
+    item_source: "minecraft-echo_shard"
+    opens_gem_types:
+      - "any"
+    consume_on_success: true
+    success_actions:
+      - "sendmessage text=\"<green>成功为装备开启了一个宝石插槽！</green>\""
+      - "playsound sound=block.amethyst_block.chime volume=1.0 pitch=1.2"
+    failure_actions:
+      - "sendmessage text=\"<red>该装备没有可开启的预留插槽。</red>\""
+      - "playsound sound=entity.villager.no volume=1.0 pitch=0.8"
+
+inlay_success:
+  # false 时固定 100% 成功
+  enabled: true
+  # 默认成功率（百分比）
+  default_chance: 100.0
+  # 支持变量:
+  # {default_chance} {tier_chance} {configured_chance} {tier}
+  rate_formula: "{default_chance} - ({tier} - 1) * 5"
+  # 镶嵌失败时的处理：
+  # return_gem: 不扣宝石，也不扣镶嵌成本
+  # destroy_gem: 扣宝石，并在判定前先扣镶嵌成本
+  # destroy_both: 扣宝石，不扣镶嵌成本
+  failure_action: "destroy_gem"
+
+upgrade:
+  # 宝石未单独配置 success_rate / success_rates 时使用这里
+  global_success_rates:
+    2: 100.0
+    3: 80.0
+    4: 60.0
+    5: 45.0
+    6: 30.0
+  # 宝石未单独配置 failure_penalty 时使用这里
+  # none: 不处理
+  # downgrade: 降 1 级，最低保留 1 级
+  # destroy: 直接销毁
+  global_failure_penalty: "none"
+
+number_format:
+  # 默认数值格式
+  default: "0.##"
+
+permission:
+  # OP 是否跳过镶嵌、开孔、取出、升级的消耗与条件检查
+  op_bypass: false
+
+gui:
+  # 默认打开模式: inlay | extract
+  default_mode: "inlay"
+  # 关闭界面时是否自动保存状态
+  save_on_close: false

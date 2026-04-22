@@ -5,25 +5,22 @@ import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerSnapshot;
-import emaki.jiuwu.craft.corelib.assembly.ItemPresentationCompiler;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
-import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.model.GuiItems;
 import emaki.jiuwu.craft.forge.model.QualitySettings;
 import emaki.jiuwu.craft.forge.model.Recipe;
-import net.kyori.adventure.text.Component;
 
 final class ForgeResultItemFactory {
 
     private final EmakiForgePlugin plugin;
     private final ForgeLayerSnapshotBuilder snapshotBuilder;
 
-    ForgeResultItemFactory(EmakiForgePlugin plugin, ItemPresentationCompiler itemPresentationCompiler) {
+    ForgeResultItemFactory(EmakiForgePlugin plugin) {
         this.plugin = plugin;
-        this.snapshotBuilder = new ForgeLayerSnapshotBuilder(plugin, itemPresentationCompiler);
+        this.snapshotBuilder = new ForgeLayerSnapshotBuilder(plugin);
     }
 
     EmakiItemAssemblyRequest buildAssemblyRequest(Recipe recipe,
@@ -84,18 +81,18 @@ final class ForgeResultItemFactory {
         if (resultItem == null || resultItem.getType() == Material.AIR) {
             return resolveSourceItemName(guiItems, resultItem, recipe);
         }
-        Component display = resolveDisplayComponent(createConfiguredOutputItem(recipe));
-        if (display == null) {
-            display = resolveDisplayComponent(guiItems == null ? null : guiItems.targetItem());
+        String displayText = resolveDisplayText(createConfiguredOutputItem(recipe));
+        if (Texts.isBlank(displayText)) {
+            displayText = resolveDisplayText(guiItems == null ? null : guiItems.targetItem());
         }
-        if (display == null) {
-            display = resolveDisplayComponent(resultItem);
+        if (Texts.isBlank(displayText)) {
+            displayText = resolveDisplayText(resultItem);
         }
-        if (display == null) {
-            display = MiniMessages.parse(resolveResultItemName(recipe, resultItem));
+        if (Texts.isBlank(displayText)) {
+            displayText = resolveResultItemName(recipe, resultItem);
         }
         try {
-            return MiniMessages.serialize(ItemTextBridge.displayWithItemHover(display, resultItem));
+            return ItemTextBridge.displayWithItemHoverText(displayText, resultItem);
         } catch (Exception ignored) {
             return resolveSourceItemName(guiItems, resultItem, recipe);
         }
@@ -105,14 +102,14 @@ final class ForgeResultItemFactory {
         if (itemStack == null || itemStack.getType() == Material.AIR) {
             return "";
         }
-        return MiniMessages.plain(ItemTextBridge.effectiveName(itemStack));
+        return ItemTextBridge.effectiveNamePlain(itemStack);
     }
 
-    private Component resolveDisplayComponent(ItemStack itemStack) {
+    private String resolveDisplayText(ItemStack itemStack) {
         if (itemStack == null || itemStack.getType() == Material.AIR) {
-            return null;
+            return "";
         }
-        return ItemTextBridge.effectiveName(itemStack);
+        return ItemTextBridge.effectiveNameText(itemStack);
     }
 
     private ItemStack cloneNonAir(ItemStack itemStack) {

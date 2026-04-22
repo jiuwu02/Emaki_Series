@@ -11,15 +11,11 @@ import java.util.concurrent.ThreadLocalRandom;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.PlayerInventory;
 
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerSnapshot;
-import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
-import emaki.jiuwu.craft.corelib.integration.ReflectivePdcAttributeGateway;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
-import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
@@ -40,12 +36,13 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
 
     private final EmakiStrengthenPlugin plugin;
     private final StrengthenRecipeResolver recipeResolver;
+    private final MaterialPlanResolver materialPlanResolver;
     private final ChanceCalculator chanceCalculator;
     private final StrengthenEconomyService economyService;
     private final StrengthenSnapshotBuilder snapshotBuilder;
     private final StrengthenActionCoordinator actionCoordinator;
     private final EmakiItemAssemblyService itemAssemblyService;
-    private final ItemSourceService itemSourceService;
+    private final StrengthenPdcAttributeWriter pdcAttributeWriter;
 
     public StrengthenAttemptService(EmakiStrengthenPlugin plugin,
             StrengthenRecipeResolver recipeResolver,
@@ -53,16 +50,16 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
             StrengthenEconomyService economyService,
             StrengthenSnapshotBuilder snapshotBuilder,
             StrengthenActionCoordinator actionCoordinator,
-            EmakiItemAssemblyService itemAssemblyService,
-            ItemSourceService itemSourceService) {
+            EmakiItemAssemblyService itemAssemblyService) {
         this.plugin = plugin;
         this.recipeResolver = recipeResolver;
+        this.materialPlanResolver = new MaterialPlanResolver(recipeResolver);
         this.chanceCalculator = chanceCalculator;
         this.economyService = economyService;
         this.snapshotBuilder = snapshotBuilder;
         this.actionCoordinator = actionCoordinator;
         this.itemAssemblyService = itemAssemblyService;
-        this.itemSourceService = itemSourceService;
+        this.pdcAttributeWriter = new StrengthenPdcAttributeWriter(plugin, PDC_ATTRIBUTE_SOURCE_ID);
     }
 
     @Override
@@ -130,7 +127,7 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
             return ineligiblePreview("strengthen.error.already_max", state, recipe);
         }
 
-        MaterialPlan materials = resolveMaterialPlan(player, context, stage);
+        MaterialPlanResolver.MaterialPlan materials = materialPlanResolver.resolveMaterialPlan(context, stage);
         if (Texts.isNotBlank(materials.errorKey())) {
             return new AttemptPreview(false, materials.errorKey(), state, recipe, state.currentStar(), targetStar, 0D, List.of(),
                     state.currentStar(), state.temperLevel(), false, 0, Map.of(), Set.of(), materials.requiredMaterials(), materials.optionalMaterials());
@@ -194,13 +191,8 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
             return AttemptResult.failure("strengthen.error.rebuild_failed", preview, replacements(preview, resultStar));
         }
 
-        if (!consumeRequiredInventoryMaterials(player, preview.requiredMaterials())) {
-            return AttemptResult.failure("strengthen.error.material_missing", preview, replacements(preview, preview.currentStar()));
-        }
-
         StrengthenEconomyService.ChargeResult chargeResult = economyService.charge(player, preview.costs());
         if (!chargeResult.success()) {
-            refundRequiredInventoryMaterials(player, preview.requiredMaterials());
             return AttemptResult.failure(chargeResult.errorKey(), preview, replacements(preview, preview.currentStar()));
         }
 
@@ -247,6 +239,26 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
         return rebuildWithState(itemStack, updated, readStoredState(itemStack, current.baseSource(), current.baseSourceSignature()).materialsSignature());
     }
 
+    public ItemStack clearStrengthenLayer(ItemStack itemStack) {
+        if (itemStack == null || itemStack.getType().isAir()) {
+            return null;
+        }
+        if (itemAssemblyService == null || !itemAssemblyService.isEmakiItem(itemStack)) {
+            return null;
+        }
+        if (itemAssemblyService.readLayerSnapshot(itemStack, "strengthen") == null) {
+            return null;
+        }
+        ItemStack rebuilt = itemAssemblyService.removeLayer(itemStack, "strengthen");
+        if (rebuilt == null) {
+            return null;
+        }
+        rebuilt.setAmount(Math.max(1, itemStack.getAmount()));
+        preserveOtherAttributePayloads(itemStack, rebuilt);
+        clearPdcAttributes(rebuilt);
+        return rebuilt;
+    }
+
     public void triggerSuccessActions(Player player, StrengthenRecipe recipe, String resultSlotId, ItemStack resultItem, int star, int temper) {
         actionCoordinator.triggerSuccessActions(player, recipe, resultSlotId, resultItem, star, temper);
     }
@@ -268,11 +280,14 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
             return;
         }
         String showItem = actionCoordinator.buildShowItem(resultItem);
-        if (newlyReached.contains(8)) {
+        for (int star : plugin.appConfig().localBroadcastStars()) {
+            if (!newlyReached.contains(star)) {
+                continue;
+            }
             String message = plugin.messageService().message("strengthen.broadcast.local_reach", Map.of(
                     "player", player.getName(),
                     "show_item", showItem,
-                    "star", 8
+                    "star", star
             ));
             double radius = plugin.appConfig().localBroadcastRadius();
             double radiusSquared = radius * radius;
@@ -282,7 +297,7 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
                     .filter(viewer -> viewer.getLocation().distanceSquared(playerLocation) <= radiusSquared)
                     .forEach(viewer -> plugin.messageService().sendRaw(viewer, message));
         }
-        for (int star : List.of(10, 12)) {
+        for (int star : plugin.appConfig().globalBroadcastStars()) {
             if (!newlyReached.contains(star)) {
                 continue;
             }
@@ -349,144 +364,6 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
         return flags;
     }
 
-    private MaterialPlan resolveMaterialPlan(Player player, AttemptContext context, StrengthenRecipe.StarStage stage) {
-        if (stage == null) {
-            return new MaterialPlan("strengthen.error.material_missing", List.of(), List.of(), false, 0);
-        }
-        List<AttemptMaterial> requiredMaterials = new ArrayList<>();
-        for (StrengthenRecipe.StarStageMaterial material : stage.materials()) {
-            if (material == null || material.optional()) {
-                continue;
-            }
-            int available = player == null ? 0 : countInventoryMaterial(player, material.item());
-            AttemptMaterial attemptMaterial = new AttemptMaterial(
-                    material.item(),
-                    material.amount(),
-                    available,
-                    false,
-                    material.protection(),
-                    material.temperBoost(),
-                    Math.max(0, material.amount())
-            );
-            requiredMaterials.add(attemptMaterial);
-            if (!attemptMaterial.satisfied()) {
-                return new MaterialPlan("strengthen.error.material_missing", requiredMaterials, buildEmptyOptionalMaterials(context), false, 0);
-            }
-        }
-
-        Map<String, StrengthenRecipe.StarStageMaterial> optionalByItem = new LinkedHashMap<>();
-        for (StrengthenRecipe.StarStageMaterial material : stage.materials()) {
-            if (material != null && material.optional()) {
-                optionalByItem.putIfAbsent(Texts.lower(material.item()), material);
-            }
-        }
-
-        List<ItemStack> inputs = context == null ? List.of() : context.materialInputs();
-        List<AttemptMaterial> optionalMaterials = new ArrayList<>();
-        boolean protectionApplied = false;
-        int temperBonus = 0;
-        for (ItemStack input : inputs) {
-            if (input == null || input.getType().isAir()) {
-                optionalMaterials.add(new AttemptMaterial("", 0, 0, true, false, 0, 0));
-                continue;
-            }
-            String token = resolveItemToken(input);
-            StrengthenRecipe.StarStageMaterial matched = optionalByItem.get(Texts.lower(token));
-            if (matched == null) {
-                return new MaterialPlan("strengthen.error.invalid_optional_material", requiredMaterials, optionalMaterials, false, 0);
-            }
-            int available = input.getAmount();
-            int consumed = resolveOptionalConsumeAmount(matched, available);
-            optionalMaterials.add(new AttemptMaterial(
-                    matched.item(),
-                    matched.amount(),
-                    available,
-                    true,
-                    matched.protection(),
-                    matched.temperBoost(),
-                    consumed
-            ));
-            protectionApplied = protectionApplied || (matched.protection() && available > 0);
-            temperBonus += consumed * matched.temperBoost();
-        }
-
-        return new MaterialPlan("", List.copyOf(requiredMaterials), List.copyOf(optionalMaterials), protectionApplied, temperBonus);
-    }
-
-    private List<AttemptMaterial> buildEmptyOptionalMaterials(AttemptContext context) {
-        List<ItemStack> inputs = context == null ? List.of() : context.materialInputs();
-        List<AttemptMaterial> result = new ArrayList<>();
-        for (int index = 0; index < inputs.size(); index++) {
-            result.add(new AttemptMaterial("", 0, 0, true, false, 0, 0));
-        }
-        return List.copyOf(result);
-    }
-
-    private int resolveOptionalConsumeAmount(StrengthenRecipe.StarStageMaterial material, int available) {
-        if (material == null || available <= 0) {
-            return 0;
-        }
-        if (material.temperBoost() > 0) {
-            return material.amount() > 0 ? Math.min(material.amount(), available) : available;
-        }
-        if (material.protection()) {
-            return 1;
-        }
-        if (material.amount() > 0) {
-            return Math.min(material.amount(), available);
-        }
-        return available;
-    }
-
-    private int countInventoryMaterial(Player player, String itemToken) {
-        return (int) InventoryItemUtil.countItems(player, itemSourceService, itemToken);
-    }
-
-    private boolean consumeRequiredInventoryMaterials(Player player, List<AttemptMaterial> materials) {
-        if (player == null || materials == null || materials.isEmpty()) {
-            return true;
-        }
-        for (AttemptMaterial material : materials) {
-            if (material == null || material.consumedAmount() <= 0) {
-                continue;
-            }
-            if (countInventoryMaterial(player, material.item()) < material.consumedAmount()) {
-                return false;
-            }
-        }
-        for (AttemptMaterial material : materials) {
-            if (material == null || material.consumedAmount() <= 0) {
-                continue;
-            }
-            if (!removeInventoryMaterial(player.getInventory(), material.item(), material.consumedAmount())) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private boolean removeInventoryMaterial(PlayerInventory inventory, String itemToken, int amount) {
-        return InventoryItemUtil.removeItems(inventory, itemSourceService, itemToken, amount);
-    }
-
-    private void refundRequiredInventoryMaterials(Player player, List<AttemptMaterial> materials) {
-        if (player == null || materials == null || materials.isEmpty()) {
-            return;
-        }
-        for (AttemptMaterial material : materials) {
-            if (material == null || Texts.isBlank(material.item()) || material.consumedAmount() <= 0) {
-                continue;
-            }
-            ItemSource source = ItemSourceUtil.parse(material.item());
-            ItemStack restored = source == null ? null : plugin.coreItemFactory().create(source, material.consumedAmount());
-            if (restored == null) {
-                continue;
-            }
-            Map<Integer, ItemStack> leftover = player.getInventory().addItem(restored);
-            leftover.values().forEach(left -> player.getWorld().dropItemNaturally(player.getLocation(), left));
-        }
-    }
-
     private ItemStack rebuildWithState(ItemStack itemStack, StrengthenState state, String materialsSignature) {
         if (itemStack == null || itemStack.getType().isAir()) {
             return null;
@@ -507,7 +384,8 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
         ));
         if (rebuilt != null) {
             rebuilt.setAmount(Math.max(1, itemStack.getAmount()));
-            applyPdcAttributes(rebuilt, recipe, state);
+            pdcAttributeWriter.preserveOtherAttributePayloads(itemStack, rebuilt);
+            pdcAttributeWriter.applyPdcAttributes(rebuilt, recipe, state);
         }
         return rebuilt;
     }
@@ -560,7 +438,7 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
         var message = plugin.messageService() == null
                 ? ""
                 : plugin.messageService().message("strengthen.misc.free_cost");
-        return Texts.isBlank(message) ? "免费" : message;
+        return Texts.isBlank(message) ? "Free" : message;
     }
 
     private Set<Integer> collectFirstReach(Set<Integer> currentFlags, int targetStar) {
@@ -570,28 +448,16 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
         return Set.of(targetStar);
     }
 
-    private String resolveItemToken(ItemStack itemStack) {
-        ItemSource source = recipeResolver.resolveBaseSource(itemStack);
-        return source == null ? "" : ItemSourceUtil.toShorthand(source);
+    private void applyPdcAttributes(ItemStack itemStack, StrengthenRecipe recipe, StrengthenState state) {
+        pdcAttributeWriter.applyPdcAttributes(itemStack, recipe, state);
     }
 
-    private void applyPdcAttributes(ItemStack itemStack, StrengthenRecipe recipe, StrengthenState state) {
-        if (itemStack == null || recipe == null || state == null) {
-            return;
-        }
-        ReflectivePdcAttributeGateway gateway = plugin.pdcAttributeGateway();
-        if (gateway == null || !gateway.available()) {
-            return;
-        }
-        Map<String, Double> eaAttributes = recipe.cumulativeEaAttributes(state.currentStar());
-        if (eaAttributes.isEmpty()) {
-            gateway.clear(itemStack, PDC_ATTRIBUTE_SOURCE_ID);
-            return;
-        }
-        Map<String, String> meta = new LinkedHashMap<>();
-        meta.put("recipe_id", recipe.id());
-        meta.put("current_star", String.valueOf(state.currentStar()));
-        gateway.write(itemStack, PDC_ATTRIBUTE_SOURCE_ID, eaAttributes, meta);
+    private void clearPdcAttributes(ItemStack itemStack) {
+        pdcAttributeWriter.clearPdcAttributes(itemStack);
+    }
+
+    private void preserveOtherAttributePayloads(ItemStack original, ItemStack rebuilt) {
+        pdcAttributeWriter.preserveOtherAttributePayloads(original, rebuilt);
     }
 
     static StarProgress collectStarProgress(Set<Integer> currentFlags, Set<Integer> reachedNow) {
@@ -605,14 +471,6 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
             }
         }
         return new StarProgress(Set.copyOf(updated), Set.copyOf(newlyReached));
-    }
-
-    private record MaterialPlan(String errorKey,
-            List<AttemptMaterial> requiredMaterials,
-            List<AttemptMaterial> optionalMaterials,
-            boolean protectionApplied,
-            int appliedTemperBonus) {
-
     }
 
     private record StoredState(boolean hasLayer,

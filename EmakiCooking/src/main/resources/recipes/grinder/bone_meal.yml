@@ -1,0 +1,23 @@
+schema_version: "2.0.0"
+
+recipe_version: "2.0.0"
+
+id: "bone_meal"
+
+display_name: "骨粉研磨"
+
+input:
+  source: "minecraft-bone"
+
+grind_time_seconds: 6
+
+permission: "emakicooking.recipe.bone_meal"
+
+result:
+  outputs:
+    - source: "minecraft-bone_meal"
+      amount: 3
+  actions:
+    - 'sendmessage text="<gray>研磨结束。</gray>"'
+
+structured_presentation: {}

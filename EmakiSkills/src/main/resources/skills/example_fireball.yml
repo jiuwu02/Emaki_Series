@@ -1,0 +1,21 @@
+id: fireball
+display_name: "<gradient:#FF6B35:#FF4500>火球术</gradient>"
+description:
+  - "<gray>向前方发射一颗炽热的火球</gray>"
+  - "<gray>对命中目标造成火焰伤害</gray>"
+icon_source: "FIRE_CHARGE"
+mythic_skill: "ExampleFireball"
+cooldown_ticks: 100
+global_cooldown_ticks: 20
+lore_aliases:
+  - "火球术"
+  - "烈焰弹"
+ui_category: "attack"
+sort_order: 1
+enabled: true
+resource_costs:
+  - type: "local-resource"
+    target_id: "mana"
+    amount: 30.0
+    operation: "consume"
+    failure_message: "魔力不足，需要 30 点魔力"

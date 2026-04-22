@@ -1,0 +1,47 @@
+id: "diamond_sword"
+
+match:
+  item_sources:
+    - "minecraft-diamond_sword"
+  slot_groups:
+    - "weapon"
+  lore_contains: []
+
+slots:
+  - index: 0
+    type: "attack"
+    display_name: "<red>攻击插槽</red>"
+  - index: 1
+    type: "universal"
+    display_name: "<white>通用插槽</white>"
+  - index: 2
+    type: "defense"
+    display_name: "<blue>防御插槽</blue>"
+
+default_open_slots: 2
+
+allowed_gem_types:
+  - "attack"
+  - "defense"
+  - "utility"
+  - "universal"
+
+max_same_type: 0
+
+max_same_id: 1
+
+gui:
+  gem_template: "gem/default"
+  open_template: "open/default"
+
+structured_presentation:
+  name_contributions:
+    - slot_id: "gem.item.prefix"
+      position: "PREFIX"
+      order: 100
+      content_template: "<gold>✦</gold> "
+  lore_sections:
+    - section_id: "gem.overview"
+      order: 101
+      lines:
+        - "<dark_gray>─────────────</dark_gray>"

@@ -1,0 +1,167 @@
+id: "ruby_attack"
+gem_type: "attack"
+tier: 1
+item_source: "minecraft-redstone"
+
+stats:
+  physical_attack: 8
+  physical_crit_rate: 3
+ea_attributes:
+  physical_attack: 8.0
+  physical_crit_rate: 3.0
+
+socket_compatibility:
+  - "attack"
+  - "universal"
+
+structured_presentation:
+  name_contributions:
+    - slot_id: "gem.slot.{slot_index}.badge"
+      position: "POSTFIX"
+      order: 300
+      content_template: " <red>[{display_name}]</red>"
+  lore_sections:
+    - section_id: "gem.slot.{slot_index}.detail"
+      order: 200
+      lines:
+        - "<red>◆ {display_name}: 物理攻击+{physical_attack}
+          暴击率+{physical_crit_rate}%</red>"
+
+inlay_cost:
+  currencies:
+    - provider: "vault"
+      currency: ""
+      base_cost: 1000
+      cost_formula: "{base_cost} * {tier}"
+      display_name: "<gold>金币</gold>"
+  materials:
+    - item: "minecraft-gold_nugget"
+      amount: 1
+
+extract_cost:
+  currencies:
+    - provider: "vault"
+      currency: ""
+      base_cost: 500
+      cost_formula: "{base_cost} * {tier}"
+      display_name: "<gold>金币</gold>"
+  materials:
+    - item: "minecraft-iron_nugget"
+      amount: 1
+
+extract_return:
+  mode: "original"
+
+upgrade:
+  enabled: true
+  max_level: 4
+  gui_template: "upgrade/default"
+  economy:
+    enabled: true
+    currencies:
+      - provider: "vault"
+        currency: ""
+        base_cost: 2000
+        cost_formula: "{base_cost} * {target_level}"
+        display_name: "<gold>金币</gold>"
+  success_rates:
+    2: 100.0
+    3: 80.0
+    4: 60.0
+  failure_penalty: "none"
+  levels:
+    2:
+      stats:
+        physical_attack: 12
+        physical_crit_rate: 4
+      ea_attributes:
+        physical_attack: 12.0
+        physical_crit_rate: 4.0
+      structured_presentation:
+        name_contributions:
+          - slot_id: "gem.slot.{slot_index}.badge"
+            position: "POSTFIX"
+            order: 300
+            content_template: " <red>[{display_name}]</red>"
+        lore_sections:
+          - section_id: "gem.slot.{slot_index}.detail"
+            order: 200
+            lines:
+              - "<red>◆ {display_name}: 物理攻击+{physical_attack}
+                暴击率+{physical_crit_rate}%</red>"
+      materials:
+        - item: "minecraft-gold_nugget"
+          amount: 3
+        - item: "minecraft-blaze_powder"
+          amount: 1
+      success_rate: 100.0
+      success_actions: []
+      failure_actions: []
+
+    3:
+      stats:
+        physical_attack: 16
+        physical_crit_rate: 5
+      ea_attributes:
+        physical_attack: 16.0
+        physical_crit_rate: 5.0
+      structured_presentation:
+        name_contributions:
+          - slot_id: "gem.slot.{slot_index}.badge"
+            position: "POSTFIX"
+            order: 300
+            content_template: " <red>[{display_name}]</red>"
+        lore_sections:
+          - section_id: "gem.slot.{slot_index}.detail"
+            order: 200
+            lines:
+              - "<red>◆ {display_name}: 物理攻击+{physical_attack}
+                暴击率+{physical_crit_rate}%</red>"
+      materials:
+        - item: "minecraft-gold_ingot"
+          amount: 2
+        - item: "minecraft-blaze_rod"
+          amount: 1
+      success_actions: []
+      failure_actions: []
+
+    4:
+      stats:
+        physical_attack: 22
+        physical_crit_rate: 7
+      ea_attributes:
+        physical_attack: 22.0
+        physical_crit_rate: 7.0
+      structured_presentation:
+        name_contributions:
+          - slot_id: "gem.slot.{slot_index}.badge"
+            position: "POSTFIX"
+            order: 300
+            content_template: " <red>[{display_name}]</red>"
+        lore_sections:
+          - section_id: "gem.slot.{slot_index}.detail"
+            order: 200
+            lines:
+              - "<red>◆ {display_name}: 物理攻击+{physical_attack}
+                暴击率+{physical_crit_rate}%</red>"
+      materials:
+        - item: "minecraft-netherite_ingot"
+          amount: 1
+        - item: "minecraft-blaze_rod"
+          amount: 3
+      economy:
+        enabled: true
+        currencies:
+          - provider: "vault"
+            currency: ""
+            base_cost: 5000
+            cost_formula: "{base_cost}"
+            display_name: "<gold>金币</gold>"
+      success_rate: 60.0
+      success_actions:
+        - "sendmessage text=\"<gold>{player}</gold> <yellow>成功将红宝石升级至
+          IV！</yellow>\""
+      failure_actions: []
+
+inlay_success_actions: []
+extract_success_actions: []

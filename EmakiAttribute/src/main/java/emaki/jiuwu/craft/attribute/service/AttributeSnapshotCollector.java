@@ -5,9 +5,9 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.IntFunction;
 
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -26,11 +26,19 @@ import emaki.jiuwu.craft.attribute.model.DamageStageMode;
 import emaki.jiuwu.craft.attribute.model.DamageTypeDefinition;
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
-import net.kyori.adventure.text.Component;
+import emaki.jiuwu.craft.corelib.text.Texts;
 
 final class AttributeSnapshotCollector {
 
     private static final double ZERO_EPSILON = 1.0E-9D;
+    private static final String[] EQUIPMENT_SLOT_NAMES = {
+            "main_hand",
+            "off_hand",
+            "helmet",
+            "chestplate",
+            "leggings",
+            "boots"
+    };
 
     private final AttributeService service;
     private volatile FusionRuleCache fusionRuleCache = new FusionRuleCache("", List.of());
@@ -40,33 +48,40 @@ final class AttributeSnapshotCollector {
     }
 
     public AttributeSnapshot collectItemSnapshot(ItemStack itemStack) {
+        return collectItemSnapshot(itemStack, service.pdcAttributeService().collectRawContribution(itemStack));
+    }
+
+    private AttributeSnapshot collectItemSnapshot(ItemStack itemStack,
+            PdcAttributeService.PdcAttributeCollection rawPdcContribution) {
         if (itemStack == null || itemStack.getType().isAir()) {
             return AttributeSnapshot.empty("");
         }
         LoreParser.ParsedLore parsedLore = parseLore(itemStack);
-        PdcAttributeService.PdcAttributeCollection rawPdcContribution = service.pdcAttributeService().collectRawContribution(itemStack);
-        if (parsedLore.snapshot().values().isEmpty() && rawPdcContribution.values().isEmpty()) {
+        PdcAttributeService.PdcAttributeCollection resolvedRawContribution = rawPdcContribution == null
+                ? new PdcAttributeService.PdcAttributeCollection(Map.of(), "")
+                : rawPdcContribution;
+        if (parsedLore.snapshot().values().isEmpty() && resolvedRawContribution.values().isEmpty()) {
             service.stateRepository().clearItemSnapshot(itemStack);
             return AttributeSnapshot.empty("");
         }
         String sourceSignature = SignatureUtil.combine(
                 service.itemLoreSignatureVersion(),
                 parsedLore.snapshot().sourceSignature(),
-                rawPdcContribution.sourceSignature(),
+                resolvedRawContribution.sourceSignature(),
                 service.registryService().attributeDefinitionsSignature()
         );
         String cachedSignature = service.stateRepository().readItemSourceSignature(itemStack);
         AttributeSnapshot cachedSnapshot = service.stateRepository().readItemSnapshot(itemStack);
         if (sourceSignature.equals(cachedSignature)
                 && cachedSnapshot != null
-                && cachedSnapshot.schemaVersion() == AttributeFusionMath.LEGACY_SNAPSHOT_SCHEMA_VERSION) {
+                && cachedSnapshot.schemaVersion() == AttributeFusionMath.ITEM_SNAPSHOT_SCHEMA_VERSION) {
             return cachedSnapshot;
         }
         Map<String, Double> values = new LinkedHashMap<>();
         mergeValues(values, parsedLore.snapshot().values());
-        overlayValues(values, rawPdcContribution.values());
+        overlayValues(values, resolvedRawContribution.values());
         AttributeSnapshot snapshot = new AttributeSnapshot(
-                AttributeFusionMath.LEGACY_SNAPSHOT_SCHEMA_VERSION,
+                AttributeFusionMath.ITEM_SNAPSHOT_SCHEMA_VERSION,
                 sourceSignature,
                 values,
                 System.currentTimeMillis()
@@ -89,77 +104,46 @@ final class AttributeSnapshotCollector {
         if (player == null) {
             return AttributeSnapshot.empty("");
         }
-        Map<String, Double> values = new LinkedHashMap<>();
-        List<String> signatureParts = new ArrayList<>();
-        mergeValues(values, service.defaultAttributeValues());
-        signatureParts.add("defaults:" + service.registryService().defaultProfilesSignature());
-        signatureParts.add("attributes:" + service.registryService().attributeDefinitionsSignature());
         PlayerInventory inventory = player.getInventory();
-        List<ItemSlot> slots = List.of(
-                new ItemSlot("main_hand", inventory.getItemInMainHand()),
-                new ItemSlot("off_hand", inventory.getItemInOffHand()),
-                new ItemSlot("helmet", inventory.getHelmet()),
-                new ItemSlot("chestplate", inventory.getChestplate()),
-                new ItemSlot("leggings", inventory.getLeggings()),
-                new ItemSlot("boots", inventory.getBoots())
+        return collectCombatSnapshot(
+                player,
+                index -> switch (index) {
+                    case 0 -> inventory.getItemInMainHand();
+                    case 1 -> inventory.getItemInOffHand();
+                    case 2 -> inventory.getHelmet();
+                    case 3 -> inventory.getChestplate();
+                    case 4 -> inventory.getLeggings();
+                    case 5 -> inventory.getBoots();
+                    default -> null;
+                },
+                player
         );
-        for (ItemSlot slot : slots) {
-            AttributeSnapshot itemSnapshot = collectItemSnapshot(slot.item());
-            if (itemSnapshot == null) {
-                continue;
-            }
-            Map<String, Double> effectiveValues = new LinkedHashMap<>(itemSnapshot.values());
-            PdcAttributeService.PdcAttributeCollection rawPdcContribution = service.pdcAttributeService().collectRawContribution(slot.item());
-            PdcAttributeService.PdcAttributeCollection filteredPdcContribution = service.pdcAttributeService().collectFilteredContribution(player, slot.item());
-            replacePdcValues(effectiveValues, rawPdcContribution.values(), filteredPdcContribution.values());
-            mergeValues(values, effectiveValues);
-            signatureParts.add(slot.name() + ":" + SignatureUtil.combine(itemSnapshot.sourceSignature(), filteredPdcContribution.sourceSignature()));
-        }
-        mergeContributionProviders(player, values, signatureParts);
-        applyDerivedValues(values);
-        String sourceSignature = SignatureUtil.stableSignature(signatureParts);
-        AttributeSnapshot snapshot = new AttributeSnapshot(
-                AttributeFusionMath.FUSED_COMBAT_SNAPSHOT_SCHEMA_VERSION,
-                sourceSignature,
-                values,
-                System.currentTimeMillis()
-        );
-        String cachedSignature = service.stateRepository().readCombatSourceSignature(player);
-        AttributeSnapshot cachedSnapshot = service.stateRepository().readCombatSnapshot(player);
-        if (sourceSignature.equals(cachedSignature)
-                && cachedSnapshot != null
-                && cachedSnapshot.schemaVersion() >= AttributeFusionMath.FUSED_COMBAT_SNAPSHOT_SCHEMA_VERSION) {
-            return cachedSnapshot;
-        }
-        service.stateRepository().writeCombatSnapshot(player, snapshot);
-        return snapshot;
     }
 
     private AttributeSnapshot collectLivingCombatSnapshot(LivingEntity entity) {
+        EntityEquipment equipment = entity.getEquipment();
+        IntFunction<org.bukkit.inventory.ItemStack> itemResolver = equipment == null ? null : index -> switch (index) {
+            case 0 -> equipment.getItemInMainHand();
+            case 1 -> equipment.getItemInOffHand();
+            case 2 -> equipment.getHelmet();
+            case 3 -> equipment.getChestplate();
+            case 4 -> equipment.getLeggings();
+            case 5 -> equipment.getBoots();
+            default -> null;
+        };
+        return collectCombatSnapshot(entity, itemResolver, null);
+    }
+
+    private AttributeSnapshot collectCombatSnapshot(LivingEntity entity,
+            IntFunction<org.bukkit.inventory.ItemStack> itemResolver,
+            Player playerOrNull) {
         Map<String, Double> values = new LinkedHashMap<>();
         List<String> signatureParts = new ArrayList<>();
         mergeValues(values, service.defaultAttributeValues());
         signatureParts.add("defaults:" + service.registryService().defaultProfilesSignature());
         signatureParts.add("attributes:" + service.registryService().attributeDefinitionsSignature());
-        AttributeSnapshot cached = service.stateRepository().readCombatSnapshot(entity);
-        EntityEquipment equipment = entity.getEquipment();
-        if (equipment != null) {
-            List<ItemSlot> slots = List.of(
-                    new ItemSlot("main_hand", equipment.getItemInMainHand()),
-                    new ItemSlot("off_hand", equipment.getItemInOffHand()),
-                    new ItemSlot("helmet", equipment.getHelmet()),
-                    new ItemSlot("chestplate", equipment.getChestplate()),
-                    new ItemSlot("leggings", equipment.getLeggings()),
-                    new ItemSlot("boots", equipment.getBoots())
-            );
-            for (ItemSlot slot : slots) {
-                AttributeSnapshot itemSnapshot = collectItemSnapshot(slot.item());
-                if (itemSnapshot == null) {
-                    continue;
-                }
-                mergeValues(values, itemSnapshot.values());
-                signatureParts.add(slot.name() + ":" + itemSnapshot.sourceSignature());
-            }
+        if (itemResolver != null) {
+            collectEquipmentSnapshots(itemResolver, playerOrNull, values, signatureParts);
         }
         mergeContributionProviders(entity, values, signatureParts);
         applyDerivedValues(values);
@@ -171,13 +155,47 @@ final class AttributeSnapshotCollector {
                 System.currentTimeMillis()
         );
         String cachedSignature = service.stateRepository().readCombatSourceSignature(entity);
+        AttributeSnapshot cachedSnapshot = service.stateRepository().readCombatSnapshot(entity);
         if (sourceSignature.equals(cachedSignature)
-                && cached != null
-                && cached.schemaVersion() >= AttributeFusionMath.FUSED_COMBAT_SNAPSHOT_SCHEMA_VERSION) {
-            return cached;
+                && cachedSnapshot != null
+                && cachedSnapshot.schemaVersion() >= AttributeFusionMath.FUSED_COMBAT_SNAPSHOT_SCHEMA_VERSION) {
+            return cachedSnapshot;
         }
         service.stateRepository().writeCombatSnapshot(entity, snapshot);
         return snapshot;
+    }
+
+    private void collectEquipmentSnapshots(IntFunction<org.bukkit.inventory.ItemStack> itemResolver,
+            Player player,
+            Map<String, Double> values,
+            List<String> signatureParts) {
+        if (itemResolver == null) {
+            return;
+        }
+        for (int index = 0; index < EQUIPMENT_SLOT_NAMES.length; index++) {
+            org.bukkit.inventory.ItemStack itemStack = itemResolver.apply(index);
+            PdcAttributeService.PdcAttributeViews views = player == null
+                    ? null
+                    : service.pdcAttributeService().collectContributionViews(player, itemStack);
+            AttributeSnapshot itemSnapshot = player == null
+                    ? collectItemSnapshot(itemStack)
+                    : collectItemSnapshot(itemStack, views.raw());
+            if (itemSnapshot == null) {
+                continue;
+            }
+            if (player == null) {
+                mergeValues(values, itemSnapshot.values());
+                signatureParts.add(EQUIPMENT_SLOT_NAMES[index] + ":" + itemSnapshot.sourceSignature());
+                continue;
+            }
+            Map<String, Double> effectiveValues = new LinkedHashMap<>(itemSnapshot.values());
+            replacePdcValues(effectiveValues, views.raw().values(), views.filtered().values());
+            mergeValues(values, effectiveValues);
+            signatureParts.add(EQUIPMENT_SLOT_NAMES[index] + ":" + SignatureUtil.combine(
+                    itemSnapshot.sourceSignature(),
+                    views.filtered().sourceSignature()
+            ));
+        }
     }
 
     private void mergeValues(Map<String, Double> target, Map<String, Double> source) {
@@ -188,7 +206,7 @@ final class AttributeSnapshotCollector {
             if (entry.getKey() == null) {
                 continue;
             }
-            target.merge(normalizeId(entry.getKey()), entry.getValue(), Double::sum);
+            target.merge(Texts.normalizeId(entry.getKey()), entry.getValue(), Double::sum);
         }
     }
 
@@ -200,7 +218,7 @@ final class AttributeSnapshotCollector {
             if (entry.getKey() == null || entry.getValue() == null) {
                 continue;
             }
-            String key = normalizeId(entry.getKey());
+            String key = Texts.normalizeId(entry.getKey());
             double value = entry.getValue();
             if (Math.abs(value) <= ZERO_EPSILON) {
                 target.remove(key);
@@ -227,12 +245,12 @@ final class AttributeSnapshotCollector {
                 if (contribution == null || contribution.attributeId() == null || contribution.attributeId().isBlank()) {
                     continue;
                 }
-                String id = normalizeId(contribution.attributeId());
+                String id = Texts.normalizeId(contribution.attributeId());
                 providerValues.merge(id, contribution.value(), Double::sum);
                 target.merge(id, contribution.value(), Double::sum);
             }
             if (!providerValues.isEmpty()) {
-                signatureParts.add(normalizeId(provider.id()) + ":" + SignatureUtil.stableSignature(providerValues));
+                signatureParts.add(Texts.normalizeId(provider.id()) + ":" + SignatureUtil.stableSignature(providerValues));
             }
         }
     }
@@ -277,7 +295,7 @@ final class AttributeSnapshotCollector {
         if (itemMeta == null || !itemMeta.hasLore()) {
             return new LoreParser.ParsedLore(AttributeSnapshot.empty(SignatureUtil.stableSignature(List.of())), List.of());
         }
-        List<Component> lore = ItemTextBridge.lore(itemMeta);
+        List<String> lore = ItemTextBridge.loreLines(itemMeta);
         if (lore == null || lore.isEmpty()) {
             return new LoreParser.ParsedLore(AttributeSnapshot.empty(SignatureUtil.stableSignature(List.of())), List.of());
         }
@@ -295,7 +313,7 @@ final class AttributeSnapshotCollector {
                 if (entry.getKey() == null || entry.getValue() == null) {
                     continue;
                 }
-                String key = normalizeId(entry.getKey());
+                String key = Texts.normalizeId(entry.getKey());
                 values.computeIfPresent(key, (ignored, current) -> current - entry.getValue());
                 if (values.containsKey(key) && Math.abs(values.get(key)) <= 1.0E-9D) {
                     values.remove(key);
@@ -384,7 +402,7 @@ final class AttributeSnapshotCollector {
         }
         Set<String> normalized = new LinkedHashSet<>();
         for (String id : ids) {
-            String normalizedId = normalizeId(id);
+            String normalizedId = Texts.normalizeId(id);
             if (normalizedId.isBlank()) {
                 continue;
             }
@@ -402,7 +420,7 @@ final class AttributeSnapshotCollector {
             if (id == null) {
                 continue;
             }
-            total += values.getOrDefault(normalizeId(id), 0D);
+            total += values.getOrDefault(Texts.normalizeId(id), 0D);
         }
         return total;
     }
@@ -426,14 +444,6 @@ final class AttributeSnapshotCollector {
             total += value * weight;
         }
         return Math.max(0D, total);
-    }
-
-    private String normalizeId(String value) {
-        return value == null ? "" : value.trim().toLowerCase(Locale.ROOT).replace(' ', '_');
-    }
-
-    private record ItemSlot(String name, ItemStack item) {
-
     }
 
     private record FusionRule(List<String> flatIds, List<String> percentIds, boolean clampPercentFactor) {
