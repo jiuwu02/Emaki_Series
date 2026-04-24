@@ -112,6 +112,7 @@ public final class StrengthenRecipe {
             String name,
             Map<String, Double> stats,
             Map<String, Double> eaAttributes,
+            List<String> skillIds,
             List<StarStageMaterial> materials,
             EconomyOverride economyOverride,
             Object structuredPresentation,
@@ -122,6 +123,7 @@ public final class StrengthenRecipe {
             name = Texts.toStringSafe(name);
             stats = stats == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(stats));
             eaAttributes = eaAttributes == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(eaAttributes));
+            skillIds = normalizeList(skillIds).stream().map(Texts::normalizeId).filter(Texts::isNotBlank).distinct().toList();
             materials = materials == null ? List.of() : List.copyOf(materials);
             economyOverride = economyOverride == null ? new EconomyOverride(List.of()) : economyOverride;
             structuredPresentation = ConfigNodes.toPlainData(structuredPresentation);
@@ -205,6 +207,17 @@ public final class StrengthenRecipe {
             merge(values, entry.getValue().eaAttributes());
         }
         return values;
+    }
+
+    public List<String> cumulativeSkillIds(int currentStar) {
+        LinkedHashSet<String> values = new LinkedHashSet<>();
+        for (Map.Entry<Integer, StarStage> entry : stars.entrySet()) {
+            if (entry.getKey() > currentStar || entry.getValue() == null) {
+                continue;
+            }
+            values.addAll(entry.getValue().skillIds());
+        }
+        return List.copyOf(values);
     }
 
     public Map<String, Double> deltaStats(int fromStar, int toStar) {
@@ -425,6 +438,7 @@ public final class StrengthenRecipe {
                     stageSection.getString("name", ""),
                     parseDoubleMap(stageSection.getSection("stats")),
                     parseDoubleMap(stageSection.getSection("ea_attributes")),
+                    parseSkillEffects(stageSection.getMapList("effects")),
                     parseStageMaterials(stageSection.getMapList("materials")),
                     parseEconomyOverride(stageSection.getSection("economy_override")),
                     stageSection.get("structured_presentation"),
@@ -451,6 +465,29 @@ public final class StrengthenRecipe {
                     ConfigNodes.bool(rawEntry, "protection", false),
                     Numbers.tryParseInt(ConfigNodes.get(rawEntry, "temper_boost"), 0)
             ));
+        }
+        return List.copyOf(result);
+    }
+
+    private static List<String> parseSkillEffects(List<Map<?, ?>> rawEffects) {
+        if (rawEffects == null || rawEffects.isEmpty()) {
+            return List.of();
+        }
+        LinkedHashSet<String> result = new LinkedHashSet<>();
+        for (Map<?, ?> rawEffect : rawEffects) {
+            if (!"skill".equals(Texts.lower(ConfigNodes.string(rawEffect, "type", "")))) {
+                continue;
+            }
+            for (Object rawSkill : ConfigNodes.asObjectList(ConfigNodes.get(rawEffect, "skills"))) {
+                String skillId = Texts.normalizeId(Texts.toStringSafe(rawSkill));
+                if (Texts.isNotBlank(skillId)) {
+                    result.add(skillId);
+                }
+            }
+            String skillId = Texts.normalizeId(ConfigNodes.string(rawEffect, "skill", ""));
+            if (Texts.isNotBlank(skillId)) {
+                result.add(skillId);
+            }
         }
         return List.copyOf(result);
     }

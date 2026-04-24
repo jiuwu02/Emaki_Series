@@ -218,6 +218,26 @@ public final class ForgeMaterial {
         return result;
     }
 
+    public List<String> skillIds() {
+        List<String> result = new ArrayList<>();
+        for (MaterialEffect effect : effects) {
+            if (!"skill".equals(Texts.lower(effect.type()))) {
+                continue;
+            }
+            for (Object rawSkill : ConfigNodes.asObjectList(effect.get("skills"))) {
+                String skillId = Texts.normalizeId(Texts.toStringSafe(rawSkill));
+                if (Texts.isNotBlank(skillId) && !result.contains(skillId)) {
+                    result.add(skillId);
+                }
+            }
+            String skillId = Texts.normalizeId(ConfigNodes.string(effect.data(), "skill", ""));
+            if (Texts.isNotBlank(skillId) && !result.contains(skillId)) {
+                result.add(skillId);
+            }
+        }
+        return List.copyOf(result);
+    }
+
     public List<Map<String, Object>> nameModifications() {
         List<Map<String, Object>> result = new ArrayList<>();
         for (MaterialEffect effect : effects) {

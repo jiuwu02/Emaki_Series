@@ -26,6 +26,7 @@ public final class GemDefinition {
     private final Integer customModelData;
     private final Map<String, Double> stats;
     private final Map<String, Double> eaAttributes;
+    private final List<String> skillIds;
     private final Set<String> socketCompatibility;
     private final Object structuredPresentation;
     private final CostConfig inlayCost;
@@ -44,6 +45,7 @@ public final class GemDefinition {
             Integer customModelData,
             Map<String, Double> stats,
             Map<String, Double> eaAttributes,
+            List<String> skillIds,
             Set<String> socketCompatibility,
             Object structuredPresentation,
             CostConfig inlayCost,
@@ -61,6 +63,7 @@ public final class GemDefinition {
         this.customModelData = customModelData;
         this.stats = stats == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(stats));
         this.eaAttributes = eaAttributes == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(eaAttributes));
+        this.skillIds = normalizeSkillIds(skillIds);
         this.socketCompatibility = socketCompatibility == null ? Set.of() : Set.copyOf(socketCompatibility);
         this.structuredPresentation = ConfigNodes.toPlainData(structuredPresentation);
         this.inlayCost = inlayCost == null ? CostConfig.none() : inlayCost;
@@ -105,6 +108,10 @@ public final class GemDefinition {
 
     public Map<String, Double> eaAttributes() {
         return eaAttributes;
+    }
+
+    public List<String> skillIds() {
+        return skillIds;
     }
 
     public Set<String> socketCompatibility() {
@@ -162,6 +169,11 @@ public final class GemDefinition {
         return upgradeLevel == null || upgradeLevel.eaAttributes().isEmpty() ? eaAttributes : upgradeLevel.eaAttributes();
     }
 
+    public List<String> skillIdsForLevel(int level) {
+        GemUpgradeLevel upgradeLevel = upgrade.level(level);
+        return upgradeLevel == null || upgradeLevel.skillIds().isEmpty() ? skillIds : upgradeLevel.skillIds();
+    }
+
     public Object structuredPresentationForLevel(int level) {
         GemUpgradeLevel upgradeLevel = upgrade.level(level);
         return mergeStructuredPresentations(structuredPresentation, upgradeLevel == null ? null : upgradeLevel.structuredPresentation());
@@ -199,6 +211,7 @@ public final class GemDefinition {
                 Numbers.tryParseInt(section.get("custom_model_data"), null),
                 parseStatMap(section.getSection("stats")),
                 parseStatMap(section.getSection("ea_attributes")),
+                parseSkillEffects(section.getMapList("effects")),
                 socketCompatibility,
                 section.get("structured_presentation"),
                 CostConfig.fromConfig(section.getSection("inlay_cost")),
@@ -258,6 +271,44 @@ public final class GemDefinition {
             }
         }
         return Map.copyOf(stats);
+    }
+
+    private static List<String> parseSkillEffects(List<Map<?, ?>> rawEffects) {
+        if (rawEffects == null || rawEffects.isEmpty()) {
+            return List.of();
+        }
+        List<String> result = new ArrayList<>();
+        for (Map<?, ?> rawEffect : rawEffects) {
+            if (!"skill".equals(Texts.lower(ConfigNodes.string(rawEffect, "type", "")))) {
+                continue;
+            }
+            for (Object rawSkill : ConfigNodes.asObjectList(ConfigNodes.get(rawEffect, "skills"))) {
+                String skillId = Texts.normalizeId(Texts.toStringSafe(rawSkill));
+                if (Texts.isNotBlank(skillId)) {
+                    result.add(skillId);
+                }
+            }
+            String skillId = Texts.normalizeId(ConfigNodes.string(rawEffect, "skill", ""));
+            if (Texts.isNotBlank(skillId)) {
+                result.add(skillId);
+            }
+        }
+        return normalizeSkillIds(result);
+    }
+
+    private static List<String> normalizeSkillIds(List<String> rawSkillIds) {
+        if (rawSkillIds == null || rawSkillIds.isEmpty()) {
+            return List.of();
+        }
+        List<String> result = new ArrayList<>();
+        Set<String> seen = new LinkedHashSet<>();
+        for (String rawSkillId : rawSkillIds) {
+            String skillId = Texts.normalizeId(rawSkillId);
+            if (Texts.isNotBlank(skillId) && seen.add(skillId)) {
+                result.add(skillId);
+            }
+        }
+        return List.copyOf(result);
     }
 
     public record CostConfig(List<CurrencyCost> currencies, List<MaterialCost> materials) {
@@ -477,6 +528,7 @@ public final class GemDefinition {
             String displayName,
             Map<String, Double> stats,
             Map<String, Double> eaAttributes,
+            List<String> skillIds,
             Object structuredPresentation,
             double successChance,
             List<CurrencyCost> currencies,
@@ -490,6 +542,7 @@ public final class GemDefinition {
             displayName = Texts.toStringSafe(displayName);
             stats = stats == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(stats));
             eaAttributes = eaAttributes == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(eaAttributes));
+            skillIds = normalizeSkillIds(skillIds);
             structuredPresentation = ConfigNodes.toPlainData(structuredPresentation);
             successChance = successChance < 0D ? -1D : Math.max(0D, Math.min(100D, successChance));
             currencies = currencies == null ? List.of() : List.copyOf(currencies);
@@ -529,6 +582,7 @@ public final class GemDefinition {
                     section.getString("display_name", ""),
                     parseStatMap(section.getSection("stats")),
                     parseStatMap(section.getSection("ea_attributes")),
+                    parseSkillEffects(section.getMapList("effects")),
                     section.get("structured_presentation"),
                     successChance,
                     currencies,

@@ -265,6 +265,9 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
 
     public void shutdown(EmakiAttributePlugin plugin, BukkitTask currentTask) {
         cancelRegenTask(currentTask);
+        if (plugin.attributeService() != null) {
+            plugin.attributeService().shutdown();
+        }
         if (plugin.placeholderExpansion() != null) {
             plugin.placeholderExpansion().unregister();
             plugin.setPlaceholderExpansion(null);

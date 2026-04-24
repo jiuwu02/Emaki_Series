@@ -166,6 +166,24 @@ public final class GemSnapshotBuilder {
         return Map.copyOf(aggregated);
     }
 
+    public List<String> aggregateSkillIds(GemState state) {
+        List<String> aggregated = new ArrayList<>();
+        if (state == null) {
+            return aggregated;
+        }
+        for (GemItemInstance instance : state.socketAssignments().values()) {
+            if (instance == null) {
+                continue;
+            }
+            GemDefinition definition = plugin.gemLoader().get(instance.gemId());
+            if (definition == null) {
+                continue;
+            }
+            aggregated.addAll(definition.skillIdsForLevel(instance.level()));
+        }
+        return List.copyOf(aggregated);
+    }
+
     private EmakiStructuredPresentation resolveStructuredPresentation(Object raw, Map<String, ?> placeholders) {
         StructuredPresentationValidator.ValidationResult validation = structuredValidator.sanitize(
                 structuredResolver.fromConfig(raw, placeholders, NAMESPACE_ID)

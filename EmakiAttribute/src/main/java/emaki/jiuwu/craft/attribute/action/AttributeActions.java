@@ -14,6 +14,9 @@ public final class AttributeActions {
         }
         unregisterAll(registry);
         registry.register(new AttributeDamageAction(attributeService));
+        registry.register(new TemporaryAttributeAction(TemporaryAttributeAction.ADD_ID, attributeService));
+        registry.register(new TemporaryAttributeAction(TemporaryAttributeAction.SET_ID, attributeService));
+        registry.register(new TemporaryAttributeAction(TemporaryAttributeAction.REMOVE_ID, attributeService));
     }
 
     public static void unregisterAll(ActionRegistry registry) {
@@ -21,5 +24,8 @@ public final class AttributeActions {
             return;
         }
         registry.unregister(AttributeDamageAction.ID);
+        registry.unregister(TemporaryAttributeAction.ADD_ID);
+        registry.unregister(TemporaryAttributeAction.SET_ID);
+        registry.unregister(TemporaryAttributeAction.REMOVE_ID);
     }
 }

@@ -73,6 +73,15 @@ final class AttributeStateRepository {
         pdcService.writeBlob(entity, combatPartition, "snapshot", AttributeSnapshotCodecs.ATTRIBUTE_SNAPSHOT, snapshot);
     }
 
+    void clearCombatSnapshot(LivingEntity entity) {
+        if (entity == null) {
+            return;
+        }
+        pdcService.remove(entity, combatPartition, "schema_version");
+        pdcService.remove(entity, combatPartition, "source_signature");
+        pdcService.remove(entity, combatPartition, "snapshot");
+    }
+
     void setDamageTypeOverride(LivingEntity entity, String damageTypeId) {
         if (entity == null) {
             return;

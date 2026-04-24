@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-attribute</artifactId>
-    <version>3.2.0</version>
+    <version>3.3.0</version>
     <name>EmakiAttribute</name>
     <packaging>jar</packaging>
 
@@ -30,6 +30,11 @@
         <dependency>
             <groupId>io.lumine</groupId>
             <artifactId>Mythic-Dist</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.lumine</groupId>
+            <artifactId>MythicLib-dist</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>

@@ -7,6 +7,7 @@ import java.util.Map;
 import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.integration.ReflectivePdcAttributeGateway;
+import emaki.jiuwu.craft.corelib.integration.ReflectiveSkillPdcGateway;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.model.QualitySettings;
 import emaki.jiuwu.craft.forge.model.Recipe;
@@ -16,6 +17,7 @@ final class ForgePdcAttributeWriter {
     private static final String SOURCE_ID = "forge";
 
     private final EmakiForgePlugin plugin;
+    private final ReflectiveSkillPdcGateway skillPdcGateway = new ReflectiveSkillPdcGateway();
 
     ForgePdcAttributeWriter(EmakiForgePlugin plugin) {
         this.plugin = plugin;
@@ -30,16 +32,15 @@ final class ForgePdcAttributeWriter {
             return;
         }
         ReflectivePdcAttributeGateway gateway = plugin.pdcAttributeGateway();
-        if (gateway == null || !gateway.available()) {
-            return;
-        }
         Map<String, Double> attributes = new LinkedHashMap<>();
         Map<String, String> meta = new LinkedHashMap<>();
+        java.util.List<String> skillIds = new java.util.ArrayList<>();
         if (materials != null) {
             for (ForgeMaterialContribution contribution : materials) {
                 if (contribution == null || contribution.material() == null || contribution.amount() <= 0) {
                     continue;
                 }
+                skillIds.addAll(contribution.material().skillIds());
                 for (Map.Entry<String, Double> entry : contribution.material().eaAttributeContributions().entrySet()) {
                     if (entry.getKey() == null || entry.getValue() == null) {
                         continue;
@@ -52,6 +53,10 @@ final class ForgePdcAttributeWriter {
                 }
                 meta.putAll(contribution.material().eaAttributeMeta());
             }
+        }
+        skillPdcGateway.write(itemStack, skillIds);
+        if (gateway == null || !gateway.available()) {
+            return;
         }
         if (attributes.isEmpty()) {
             gateway.clear(itemStack, SOURCE_ID);

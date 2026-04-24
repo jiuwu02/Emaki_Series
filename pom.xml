@@ -45,7 +45,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>21</maven.compiler.release>
-        <emaki.corelib.version>3.2.0</emaki.corelib.version>
+        <emaki.corelib.version>3.3.0</emaki.corelib.version>
         <spigot.api.version>1.21.11-R0.1-SNAPSHOT</spigot.api.version>
         <adventure.version>4.26.1</adventure.version>
         <adventure.platform.version>4.4.1</adventure.platform.version>

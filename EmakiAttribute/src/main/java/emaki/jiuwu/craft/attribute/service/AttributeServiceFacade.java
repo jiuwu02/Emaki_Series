@@ -82,6 +82,8 @@ public interface AttributeServiceFacade {
 
     void regenerateOnlinePlayers();
 
+    TemporaryAttributeService temporaryAttributeService();
+
     void resyncPlayer(Player player);
 
     void scheduleJoinHealthSync(Player player);

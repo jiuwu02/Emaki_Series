@@ -13,10 +13,9 @@ slots:
   default_count: 3
 
 cast_mode:
-  # auto: 优先 G，不可用时回退 F
-  # g: 仅使用 G
-  # f: 仅使用 F
-  entry_key: "auto"
+  # F 键用于进入/退出施法模式。
+  # G 键为客户端本地按键，Spigot 服务端无法监听，ProtocolLib/PacketEvents 也无法获取。
+  entry_key: "f"
   # 重登后是否恢复上次的施法模式
   restore_last_state_on_join: true
 

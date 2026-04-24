@@ -47,6 +47,7 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
     private final DamageCalculationService damageCalculationService;
     private final CombatDebugService combatDebugService;
     private final PdcAttributeService pdcAttributeService;
+    private final TemporaryAttributeService temporaryAttributeService;
 
     public AttributeService(EmakiAttributePlugin plugin,
             PdcService pdcService,
@@ -84,6 +85,7 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
                 vanillaSynchronizer
         );
         this.combatDebugService = new CombatDebugService(this);
+        this.temporaryAttributeService = new TemporaryAttributeService(plugin, this);
         AttributeSnapshotCollector snapshotCollector = new AttributeSnapshotCollector(this);
         this.snapshotService = new AttributeSnapshotService(snapshotCollector);
         this.resourceManagementService = new ResourceManagementService(this);
@@ -192,6 +194,15 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
 
     PdcAttributeService pdcAttributeService() {
         return pdcAttributeService;
+    }
+
+    @Override
+    public TemporaryAttributeService temporaryAttributeService() {
+        return temporaryAttributeService;
+    }
+
+    public void shutdown() {
+        temporaryAttributeService.close();
     }
 
     long projectileTtlMs() {

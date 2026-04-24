@@ -98,9 +98,10 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                 skillRegistryService,
                 equipmentSkillCollector,
                 skillSourceRegistry,
-                triggerConflictResolver
+                triggerConflictResolver,
+                triggerRegistry
         );
-        CastModeService castModeService = new CastModeService(plugin, playerSkillDataStore);
+        CastModeService castModeService = new CastModeService(playerSkillDataStore);
         MythicSkillCastService mythicSkillCastService = new MythicSkillCastService(mythicBridge);
         CastAttemptService castAttemptService = new CastAttemptService(
                 plugin,

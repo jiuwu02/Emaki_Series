@@ -14,6 +14,7 @@ import emaki.jiuwu.craft.skills.model.UnlockedSkillEntry;
 import emaki.jiuwu.craft.skills.provider.EquipmentSkillCollector;
 import emaki.jiuwu.craft.skills.provider.SkillSourceRegistry;
 import emaki.jiuwu.craft.skills.trigger.TriggerConflictResolver;
+import emaki.jiuwu.craft.skills.trigger.TriggerRegistry;
 
 public final class PlayerSkillStateService {
 
@@ -23,19 +24,22 @@ public final class PlayerSkillStateService {
     private final EquipmentSkillCollector equipmentCollector;
     private final SkillSourceRegistry sourceRegistry;
     private final TriggerConflictResolver conflictResolver;
+    private final TriggerRegistry triggerRegistry;
 
     public PlayerSkillStateService(JavaPlugin plugin,
             PlayerSkillDataStore dataStore,
             SkillRegistryService registryService,
             EquipmentSkillCollector equipmentCollector,
             SkillSourceRegistry sourceRegistry,
-            TriggerConflictResolver conflictResolver) {
+            TriggerConflictResolver conflictResolver,
+            TriggerRegistry triggerRegistry) {
         this.plugin = plugin;
         this.dataStore = dataStore;
         this.registryService = registryService;
         this.equipmentCollector = equipmentCollector;
         this.sourceRegistry = sourceRegistry;
         this.conflictResolver = conflictResolver;
+        this.triggerRegistry = triggerRegistry;
     }
 
     public List<UnlockedSkillEntry> getUnlockedSkills(Player player) {
@@ -141,10 +145,14 @@ public final class PlayerSkillStateService {
             if (binding.isEmpty()) {
                 continue;
             }
-            if (!unlockedIds.contains(binding.skillId())) {
+            if (!unlockedIds.contains(binding.skillId()) || !isValidTrigger(binding.triggerId())) {
                 profile.clearSlot(binding.slotIndex());
             }
         }
+    }
+
+    private boolean isValidTrigger(String triggerId) {
+        return triggerId != null && triggerRegistry != null && triggerRegistry.isEnabled(triggerId);
     }
 
     public SkillDefinition getDefinition(String skillId) {

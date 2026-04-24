@@ -1,17 +1,13 @@
 package emaki.jiuwu.craft.skills.service;
 
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.java.JavaPlugin;
-
 import emaki.jiuwu.craft.skills.model.PlayerSkillProfile;
 
 public final class CastModeService {
 
-    private final JavaPlugin plugin;
     private final PlayerSkillDataStore dataStore;
 
-    public CastModeService(JavaPlugin plugin, PlayerSkillDataStore dataStore) {
-        this.plugin = plugin;
+    public CastModeService(PlayerSkillDataStore dataStore) {
         this.dataStore = dataStore;
     }
 
@@ -48,7 +44,6 @@ public final class CastModeService {
     }
 
     public String getEntryKeyType() {
-        // Reads from config via plugin; default to "auto"
-        return "auto";
+        return "f";
     }
 }

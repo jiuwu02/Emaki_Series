@@ -71,8 +71,12 @@ public final class AppConfig extends BaseAppConfig {
 
     public record CastModeSettings(String entryKey, boolean restoreLastStateOnJoin) {
 
+        public CastModeSettings {
+            entryKey = "f";
+        }
+
         public static CastModeSettings defaults() {
-            return new CastModeSettings("auto", true);
+            return new CastModeSettings("f", true);
         }
     }
 

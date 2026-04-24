@@ -91,6 +91,7 @@ public final class GemStateService {
                     "opened_slots", String.valueOf(state.openedSlotIndexes().size())
             ));
         }
+        pdcAttributeWriter.applySkills(rebuilt, snapshotBuilder.aggregateSkillIds(state));
         return rebuilt;
     }
 
@@ -108,6 +109,7 @@ public final class GemStateService {
         rebuilt.setAmount(Math.max(1, itemStack.getAmount()));
         pdcAttributeWriter.copyOtherSources(itemStack, rebuilt);
         pdcAttributeWriter.clear(rebuilt);
+        pdcAttributeWriter.applySkills(rebuilt, java.util.List.of());
         return rebuilt;
     }
 

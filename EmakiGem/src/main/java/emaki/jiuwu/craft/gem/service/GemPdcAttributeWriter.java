@@ -6,6 +6,7 @@ import java.util.Set;
 import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.integration.ReflectivePdcAttributeGateway;
+import emaki.jiuwu.craft.corelib.integration.ReflectiveSkillPdcGateway;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
 
 public final class GemPdcAttributeWriter {
@@ -14,6 +15,7 @@ public final class GemPdcAttributeWriter {
 
     private final EmakiGemPlugin plugin;
     private final ReflectivePdcAttributeGateway gateway;
+    private final ReflectiveSkillPdcGateway skillPdcGateway = new ReflectiveSkillPdcGateway();
 
     public GemPdcAttributeWriter(EmakiGemPlugin plugin, ReflectivePdcAttributeGateway gateway) {
         this.plugin = plugin;
@@ -37,10 +39,24 @@ public final class GemPdcAttributeWriter {
         }
     }
 
+    public void applySkills(ItemStack itemStack, Iterable<String> skillIds) {
+        if (itemStack == null) {
+            return;
+        }
+        java.util.List<String> ids = new java.util.ArrayList<>();
+        if (skillIds != null) {
+            for (String skillId : skillIds) {
+                ids.add(skillId);
+            }
+        }
+        skillPdcGateway.write(itemStack, ids);
+    }
+
     public void copyOtherSources(ItemStack original, ItemStack rebuilt) {
         if (gateway != null && original != null && rebuilt != null) {
             gateway.copyPayloads(original, rebuilt, Set.of(SOURCE_ID));
         }
+        skillPdcGateway.copy(original, rebuilt);
     }
 
     public boolean available() {

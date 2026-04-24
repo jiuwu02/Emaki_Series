@@ -36,6 +36,7 @@ import emaki.jiuwu.craft.skills.trigger.HotbarTriggerSource;
 import emaki.jiuwu.craft.skills.trigger.InteractTriggerSource;
 import emaki.jiuwu.craft.skills.trigger.TriggerConflictResolver;
 import emaki.jiuwu.craft.skills.trigger.TriggerRegistry;
+import emaki.jiuwu.craft.skills.listener.CastModeKeyListener;
 import emaki.jiuwu.craft.skills.listener.PlayerJoinQuitListener;
 
 public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider, EmakiServiceRegistry {
@@ -157,6 +158,11 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
         new InteractTriggerSource().register(this, dispatcher);
         new DropTriggerSource().register(this, dispatcher);
         new HotbarTriggerSource().register(this, dispatcher);
+
+        // Register fixed F-key cast mode listener
+        getServer().getPluginManager().registerEvents(
+                new CastModeKeyListener(castModeService, actionBarService, messageService),
+                this);
 
         // Register player join/quit listener
         getServer().getPluginManager().registerEvents(

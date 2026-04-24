@@ -146,6 +146,14 @@ final class AttributeSnapshotCollector {
             collectEquipmentSnapshots(itemResolver, playerOrNull, values, signatureParts);
         }
         mergeContributionProviders(entity, values, signatureParts);
+        if (playerOrNull != null) {
+            mergeValues(values, service.temporaryAttributeService().additiveValues(playerOrNull));
+            overlayValues(values, service.temporaryAttributeService().setValues(playerOrNull));
+            String temporarySignature = service.temporaryAttributeService().signature(playerOrNull);
+            if (Texts.isNotBlank(temporarySignature)) {
+                signatureParts.add("temporary:" + temporarySignature);
+            }
+        }
         applyDerivedValues(values);
         String sourceSignature = SignatureUtil.stableSignature(signatureParts);
         AttributeSnapshot snapshot = new AttributeSnapshot(
