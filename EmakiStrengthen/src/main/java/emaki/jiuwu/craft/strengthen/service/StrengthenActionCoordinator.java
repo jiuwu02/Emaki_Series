@@ -124,7 +124,7 @@ public final class StrengthenActionCoordinator {
         }
         try {
             return ItemTextBridge.displayWithItemHoverText(itemStack);
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             return ItemTextBridge.effectiveNamePlain(itemStack);
         }
     }

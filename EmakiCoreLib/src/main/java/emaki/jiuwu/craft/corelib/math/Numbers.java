@@ -18,7 +18,7 @@ public final class Numbers {
         }
         try {
             return Integer.parseInt(Texts.trim(value));
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             return defaultValue;
         }
     }
@@ -32,7 +32,7 @@ public final class Numbers {
         }
         try {
             return Long.parseLong(Texts.trim(value));
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             return defaultValue;
         }
     }
@@ -46,7 +46,7 @@ public final class Numbers {
         }
         try {
             return Double.parseDouble(Texts.trim(value));
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             return defaultValue;
         }
     }
@@ -67,7 +67,7 @@ public final class Numbers {
         String effectivePattern = Texts.isBlank(pattern) ? "0.##" : pattern;
         try {
             return new DecimalFormat(effectivePattern).format(value);
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             return Double.toString(value);
         }
     }

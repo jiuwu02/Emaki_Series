@@ -333,7 +333,7 @@ final class EditorSession {
     private int parseIndex(String token) {
         try {
             return Integer.parseInt(token.substring(1));
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             return -1;
         }
     }

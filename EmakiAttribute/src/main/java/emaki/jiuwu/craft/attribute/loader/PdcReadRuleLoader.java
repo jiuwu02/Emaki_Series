@@ -190,7 +190,7 @@ public final class PdcReadRuleLoader extends DirectoryLoader<PdcReadRule> {
         try {
             Pattern.compile(pattern, Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
             return true;
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             return false;
         }
     }

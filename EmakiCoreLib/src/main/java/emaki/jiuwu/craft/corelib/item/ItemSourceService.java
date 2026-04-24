@@ -135,7 +135,7 @@ public final class ItemSourceService {
                 return material.getBlockTranslationKey();
             }
             return material.getTranslationKey();
-        } catch (RuntimeException ignored) {
+        } catch (RuntimeException _) {
             return "";
         }
     }

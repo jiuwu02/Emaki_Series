@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.attribute.service;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -31,6 +32,12 @@ import emaki.jiuwu.craft.corelib.text.Texts;
 final class AttributeSnapshotCollector {
 
     private static final double ZERO_EPSILON = 1.0E-9D;
+    // 预分配的不可变 EnumSet，避免热路径中反复创建临时 Set
+    private static final Set<AttributeValueKind> SKIP_FLAT_KINDS = EnumSet.of(
+            AttributeValueKind.CHANCE,
+            AttributeValueKind.REGEN,
+            AttributeValueKind.DERIVED
+    );
     private static final String[] EQUIPMENT_SLOT_NAMES = {
             "main_hand",
             "off_hand",
@@ -137,31 +144,23 @@ final class AttributeSnapshotCollector {
     private AttributeSnapshot collectCombatSnapshot(LivingEntity entity,
             IntFunction<org.bukkit.inventory.ItemStack> itemResolver,
             Player playerOrNull) {
-        Map<String, Double> values = new LinkedHashMap<>();
+        // 第一阶段：仅收集签名材料，不构建 values
         List<String> signatureParts = new ArrayList<>();
-        mergeValues(values, service.defaultAttributeValues());
         signatureParts.add("defaults:" + service.registryService().defaultProfilesSignature());
         signatureParts.add("attributes:" + service.registryService().attributeDefinitionsSignature());
         if (itemResolver != null) {
-            collectEquipmentSnapshots(itemResolver, playerOrNull, values, signatureParts);
+            collectEquipmentSignatures(itemResolver, playerOrNull, signatureParts);
         }
-        mergeContributionProviders(entity, values, signatureParts);
+        collectContributionProviderSignatures(entity, signatureParts);
         if (playerOrNull != null) {
-            mergeValues(values, service.temporaryAttributeService().additiveValues(playerOrNull));
-            overlayValues(values, service.temporaryAttributeService().setValues(playerOrNull));
             String temporarySignature = service.temporaryAttributeService().signature(playerOrNull);
             if (Texts.isNotBlank(temporarySignature)) {
                 signatureParts.add("temporary:" + temporarySignature);
             }
         }
-        applyDerivedValues(values);
         String sourceSignature = SignatureUtil.stableSignature(signatureParts);
-        AttributeSnapshot snapshot = new AttributeSnapshot(
-                AttributeFusionMath.FUSED_COMBAT_SNAPSHOT_SCHEMA_VERSION,
-                sourceSignature,
-                values,
-                System.currentTimeMillis()
-        );
+
+        // 第二阶段：签名比对缓存，命中则直接返回，跳过全量计算
         String cachedSignature = service.stateRepository().readCombatSourceSignature(entity);
         AttributeSnapshot cachedSnapshot = service.stateRepository().readCombatSnapshot(entity);
         if (sourceSignature.equals(cachedSignature)
@@ -169,6 +168,25 @@ final class AttributeSnapshotCollector {
                 && cachedSnapshot.schemaVersion() >= AttributeFusionMath.FUSED_COMBAT_SNAPSHOT_SCHEMA_VERSION) {
             return cachedSnapshot;
         }
+
+        // 第三阶段：缓存未命中，执行全量计算
+        Map<String, Double> values = new LinkedHashMap<>();
+        mergeValues(values, service.defaultAttributeValues());
+        if (itemResolver != null) {
+            collectEquipmentSnapshots(itemResolver, playerOrNull, values);
+        }
+        mergeContributionProviders(entity, values);
+        if (playerOrNull != null) {
+            mergeValues(values, service.temporaryAttributeService().additiveValues(playerOrNull));
+            overlayValues(values, service.temporaryAttributeService().setValues(playerOrNull));
+        }
+        applyDerivedValues(values);
+        AttributeSnapshot snapshot = new AttributeSnapshot(
+                AttributeFusionMath.FUSED_COMBAT_SNAPSHOT_SCHEMA_VERSION,
+                sourceSignature,
+                values,
+                System.currentTimeMillis()
+        );
         service.stateRepository().writeCombatSnapshot(entity, snapshot);
         return snapshot;
     }
@@ -203,6 +221,63 @@ final class AttributeSnapshotCollector {
                     itemSnapshot.sourceSignature(),
                     views.filtered().sourceSignature()
             ));
+        }
+    }
+
+    // 仅收集装备签名，不构建 values（用于缓存命中前的轻量签名计算）
+    private void collectEquipmentSignatures(IntFunction<org.bukkit.inventory.ItemStack> itemResolver,
+            Player playerOrNull,
+            List<String> signatureParts) {
+        if (itemResolver == null) {
+            return;
+        }
+        for (int index = 0; index < EQUIPMENT_SLOT_NAMES.length; index++) {
+            org.bukkit.inventory.ItemStack itemStack = itemResolver.apply(index);
+            PdcAttributeService.PdcAttributeViews views = playerOrNull == null
+                    ? null
+                    : service.pdcAttributeService().collectContributionViews(playerOrNull, itemStack);
+            AttributeSnapshot itemSnapshot = playerOrNull == null
+                    ? collectItemSnapshot(itemStack)
+                    : collectItemSnapshot(itemStack, views.raw());
+            if (itemSnapshot == null) {
+                continue;
+            }
+            if (playerOrNull == null) {
+                signatureParts.add(EQUIPMENT_SLOT_NAMES[index] + ":" + itemSnapshot.sourceSignature());
+            } else {
+                signatureParts.add(EQUIPMENT_SLOT_NAMES[index] + ":" + SignatureUtil.combine(
+                        itemSnapshot.sourceSignature(),
+                        views.filtered().sourceSignature()
+                ));
+            }
+        }
+    }
+
+    // 仅收集 values，不收集签名（用于缓存未命中后的全量计算）
+    private void collectEquipmentSnapshots(IntFunction<org.bukkit.inventory.ItemStack> itemResolver,
+            Player playerOrNull,
+            Map<String, Double> values) {
+        if (itemResolver == null) {
+            return;
+        }
+        for (int index = 0; index < EQUIPMENT_SLOT_NAMES.length; index++) {
+            org.bukkit.inventory.ItemStack itemStack = itemResolver.apply(index);
+            PdcAttributeService.PdcAttributeViews views = playerOrNull == null
+                    ? null
+                    : service.pdcAttributeService().collectContributionViews(playerOrNull, itemStack);
+            AttributeSnapshot itemSnapshot = playerOrNull == null
+                    ? collectItemSnapshot(itemStack)
+                    : collectItemSnapshot(itemStack, views.raw());
+            if (itemSnapshot == null) {
+                continue;
+            }
+            if (playerOrNull == null) {
+                mergeValues(values, itemSnapshot.values());
+            } else {
+                Map<String, Double> effectiveValues = new LinkedHashMap<>(itemSnapshot.values());
+                replacePdcValues(effectiveValues, views.raw().values(), views.filtered().values());
+                mergeValues(values, effectiveValues);
+            }
         }
     }
 
@@ -259,6 +334,52 @@ final class AttributeSnapshotCollector {
             }
             if (!providerValues.isEmpty()) {
                 signatureParts.add(Texts.normalizeId(provider.id()) + ":" + SignatureUtil.stableSignature(providerValues));
+            }
+        }
+    }
+
+    // 仅收集 contribution provider 签名（用于缓存命中前的轻量签名计算）
+    private void collectContributionProviderSignatures(LivingEntity entity,
+            List<String> signatureParts) {
+        if (entity == null) {
+            return;
+        }
+        List<AttributeContributionProvider> providers = service.registryService().orderedContributionProviders();
+        for (AttributeContributionProvider provider : providers) {
+            Collection<AttributeContribution> contributions = provider.collect(entity);
+            if (contributions == null || contributions.isEmpty()) {
+                continue;
+            }
+            Map<String, Double> providerValues = new LinkedHashMap<>();
+            for (AttributeContribution contribution : contributions) {
+                if (contribution == null || contribution.attributeId() == null || contribution.attributeId().isBlank()) {
+                    continue;
+                }
+                providerValues.merge(Texts.normalizeId(contribution.attributeId()), contribution.value(), Double::sum);
+            }
+            if (!providerValues.isEmpty()) {
+                signatureParts.add(Texts.normalizeId(provider.id()) + ":" + SignatureUtil.stableSignature(providerValues));
+            }
+        }
+    }
+
+    // 仅合并 contribution provider values（用于缓存未命中后的全量计算）
+    private void mergeContributionProviders(LivingEntity entity,
+            Map<String, Double> target) {
+        if (entity == null) {
+            return;
+        }
+        List<AttributeContributionProvider> providers = service.registryService().orderedContributionProviders();
+        for (AttributeContributionProvider provider : providers) {
+            Collection<AttributeContribution> contributions = provider.collect(entity);
+            if (contributions == null || contributions.isEmpty()) {
+                continue;
+            }
+            for (AttributeContribution contribution : contributions) {
+                if (contribution == null || contribution.attributeId() == null || contribution.attributeId().isBlank()) {
+                    continue;
+                }
+                target.merge(Texts.normalizeId(contribution.attributeId()), contribution.value(), Double::sum);
             }
         }
     }
@@ -322,7 +443,7 @@ final class AttributeSnapshotCollector {
                     continue;
                 }
                 String key = Texts.normalizeId(entry.getKey());
-                values.computeIfPresent(key, (ignored, current) -> current - entry.getValue());
+                values.computeIfPresent(key, (_, current) -> current - entry.getValue());
                 if (values.containsKey(key) && Math.abs(values.get(key)) <= 1.0E-9D) {
                     values.remove(key);
                 }
@@ -392,11 +513,7 @@ final class AttributeSnapshotCollector {
                 percentIds.add(definition.id());
                 continue;
             }
-            if (Set.of(
-                    AttributeValueKind.CHANCE,
-                    AttributeValueKind.REGEN,
-                    AttributeValueKind.DERIVED
-            ).contains(definition.valueKind())) {
+            if (SKIP_FLAT_KINDS.contains(definition.valueKind())) {
                 continue;
             }
             flatIds.add(definition.id());

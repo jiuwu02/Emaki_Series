@@ -263,7 +263,7 @@ public interface AttributeServiceFacade {
         }
         try {
             return Enum.valueOf(enumType, String.valueOf(raw).trim().toUpperCase(Locale.ROOT));
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             return fallback;
         }
     }

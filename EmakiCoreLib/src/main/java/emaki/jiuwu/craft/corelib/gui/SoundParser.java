@@ -101,7 +101,7 @@ public final class SoundParser {
         }
         try {
             return Float.parseFloat(Texts.toStringSafe(raw));
-        } catch (NumberFormatException ignored) {
+        } catch (NumberFormatException _) {
             return fallback;
         }
     }
@@ -112,7 +112,7 @@ public final class SoundParser {
         }
         try {
             return Float.parseFloat(Texts.toStringSafe(raw));
-        } catch (NumberFormatException ignored) {
+        } catch (NumberFormatException _) {
             return null;
         }
     }

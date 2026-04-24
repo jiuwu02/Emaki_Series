@@ -461,7 +461,7 @@ final class ForgeLayerSnapshotBuilder {
                     Texts.toStringSafe(replacement),
                     variables == null ? Map.of() : variables
             )));
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             return Texts.toStringSafe(text);
         }
     }

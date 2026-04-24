@@ -151,7 +151,7 @@ public final class TemporaryAttributeService implements AutoCloseable {
         long expiresAtMillis = System.currentTimeMillis() + Math.max(1L, durationTicks) * 50L;
         Map<String, TemporaryAttributeEntry> playerEntries = entries.computeIfAbsent(player.getUniqueId(), ignored -> new ConcurrentHashMap<>());
         AtomicBoolean existed = new AtomicBoolean(false);
-        TemporaryAttributeEntry next = playerEntries.compute(normalizedEffectId, (ignored, current) -> {
+        TemporaryAttributeEntry next = playerEntries.compute(normalizedEffectId, (_, current) -> {
             existed.set(current != null && !current.expired(System.currentTimeMillis()));
             double nextValue = mode == TemporaryAttributeMode.ADD
                     && current != null
@@ -171,7 +171,7 @@ public final class TemporaryAttributeService implements AutoCloseable {
     private void cleanupExpiredSafely() {
         try {
             cleanupExpired();
-        } catch (Exception ignored) {
+        } catch (Exception _) {
         }
     }
 

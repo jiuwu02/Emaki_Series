@@ -19,7 +19,7 @@ public final class VaultEconomyProvider implements EconomyProvider {
 
     @Override
     public String id() {
-        return "vault";
+        return "Vault";
     }
 
     @Override

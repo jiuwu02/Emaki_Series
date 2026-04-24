@@ -33,7 +33,7 @@ public enum ActionParameterType {
                 case STRING ->
                     true;
             };
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             return false;
         }
     }

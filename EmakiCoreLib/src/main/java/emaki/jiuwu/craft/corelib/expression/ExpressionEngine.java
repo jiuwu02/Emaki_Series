@@ -308,10 +308,17 @@ public final class ExpressionEngine {
                 .build();
         cache.put(prepared, new CachedExpression(compiled, now + COMPILED_CACHE_TTL_MILLIS));
         trimCompiledCache(cache);
-        // Store in global cache
-        if (GLOBAL_COMPILED_CACHE.size() < GLOBAL_CACHE_LIMIT) {
-            GLOBAL_COMPILED_CACHE.put(prepared, compiled);
+        // Store in global cache, evict oldest entries if full
+        if (GLOBAL_COMPILED_CACHE.size() >= GLOBAL_CACHE_LIMIT) {
+            var iterator = GLOBAL_COMPILED_CACHE.keySet().iterator();
+            int toRemove = GLOBAL_CACHE_LIMIT / 4;
+            while (iterator.hasNext() && toRemove > 0) {
+                iterator.next();
+                iterator.remove();
+                toRemove--;
+            }
         }
+        GLOBAL_COMPILED_CACHE.put(prepared, compiled);
         return compiled;
     }
 
@@ -324,6 +331,22 @@ public final class ExpressionEngine {
 
     private record DistributionParams(Double min, Double max, double mean, double stdDev, int maxAttempts) {
 
+    }
+
+    /**
+     * 清理当前线程的表达式编译缓存。
+     * 应在插件 disable 或线程池关闭时调用，防止 ThreadLocal 内存泄漏。
+     */
+    public static void clearThreadLocalCache() {
+        COMPILED_CACHE.remove();
+    }
+
+    /**
+     * 清理全局表达式编译缓存。
+     * 应在插件 disable 时调用。
+     */
+    public static void clearGlobalCache() {
+        GLOBAL_COMPILED_CACHE.clear();
     }
 
     private static final class CachedExpression {

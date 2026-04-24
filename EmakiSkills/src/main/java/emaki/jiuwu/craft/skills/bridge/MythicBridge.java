@@ -34,7 +34,7 @@ public final class MythicBridge {
             apiHelper = MythicBukkit.inst().getAPIHelper();
             available = true;
             info("console.mythic_bridge_ready");
-        } catch (NoClassDefFoundError ignored) {
+        } catch (NoClassDefFoundError _) {
             info("console.mythic_bridge_class_unavailable");
         } catch (Exception exception) {
             warning("console.mythic_bridge_init_failed", Map.of(

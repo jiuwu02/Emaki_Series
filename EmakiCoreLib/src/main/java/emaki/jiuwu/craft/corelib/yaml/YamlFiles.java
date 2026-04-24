@@ -209,7 +209,7 @@ public final class YamlFiles {
                     scanCodeSourceLocation(codeSourceUrl, normalizedDirectory, resourcePaths);
                 }
             }
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             return java.util.List.of();
         }
         ArrayList<String> ordered = new ArrayList<>(resourcePaths);
@@ -290,7 +290,7 @@ public final class YamlFiles {
                     return Integer.compare(currentValue, latestValue);
                 }
             }
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             return 0;
         }
         return 0;
@@ -299,7 +299,7 @@ public final class YamlFiles {
     private static void moveReplacing(Path source, Path target) throws IOException {
         try {
             Files.move(source, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-        } catch (AtomicMoveNotSupportedException ignored) {
+        } catch (AtomicMoveNotSupportedException _) {
             Files.move(source, target, StandardCopyOption.REPLACE_EXISTING);
         }
     }

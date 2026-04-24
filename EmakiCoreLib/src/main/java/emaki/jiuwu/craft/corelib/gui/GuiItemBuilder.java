@@ -98,8 +98,14 @@ public final class GuiItemBuilder {
     private static ItemComponentParser.ItemComponents formatComponents(ItemComponentParser.ItemComponents components,
             Map<String, ?> replacements) {
         ItemComponentParser.ItemComponents base = components == null ? ItemComponentParser.empty() : components;
-        List<String> lore = base.lore().stream().map(line -> Texts.formatTemplate(line, replacements)).toList();
-        Map<String, Integer> enchantments = new LinkedHashMap<>(base.enchantments());
+        // 跳过空 replacements 的无意义 stream 处理
+        List<String> lore = (replacements == null || replacements.isEmpty())
+                ? base.lore()
+                : base.lore().stream().map(line -> Texts.formatTemplate(line, replacements)).toList();
+        // 空 enchantments 直接复用，避免无意义的 Map 拷贝
+        Map<String, Integer> enchantments = base.enchantments().isEmpty()
+                ? base.enchantments()
+                : new LinkedHashMap<>(base.enchantments());
         return new ItemComponentParser.ItemComponents(
                 Texts.formatTemplate(base.displayName(), replacements),
                 base.loreConfigured(),

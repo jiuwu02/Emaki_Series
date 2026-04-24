@@ -254,7 +254,7 @@ final class SkillsCommandRouter implements TabExecutor {
         int slot;
         try {
             slot = Integer.parseInt(args[2]);
-        } catch (NumberFormatException ignored) {
+        } catch (NumberFormatException _) {
             plugin.messageService().send(sender, "general.invalid_args");
             return true;
         }

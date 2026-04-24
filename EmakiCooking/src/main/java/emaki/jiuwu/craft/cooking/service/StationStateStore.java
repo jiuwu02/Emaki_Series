@@ -45,7 +45,7 @@ public final class StationStateStore {
                     states.put(coordinates, state);
                 }
             }
-        } catch (IOException ignored) {
+        } catch (IOException _) {
             return Map.of();
         }
         return states.isEmpty() ? Map.of() : Map.copyOf(states);

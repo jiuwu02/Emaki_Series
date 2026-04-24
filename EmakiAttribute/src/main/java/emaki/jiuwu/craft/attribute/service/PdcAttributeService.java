@@ -39,6 +39,8 @@ public final class PdcAttributeService implements PdcAttributeApi {
     private static final Pattern SOURCE_META_PATTERN = Pattern.compile("%source_meta_([a-zA-Z0-9_\\-.]+)%");
     private static final Pattern SOURCE_ATTRIBUTE_PATTERN = Pattern.compile("%source_(?:attr|attribute)_([a-zA-Z0-9_\\-.]+)%");
     private static final ThreadLocal<DecimalFormat> DECIMAL_FORMAT = ThreadLocal.withInitial(() -> new DecimalFormat("0.######"));
+    // 预编译正则缓存，避免热路径中反复 Pattern.compile()
+    private static final ConcurrentHashMap<String, Pattern> COMPILED_PATTERN_CACHE = new ConcurrentHashMap<>();
     private static final SnapshotCodec<PdcAttributePayload> PAYLOAD_CODEC = SnapshotCodec.yaml(
             PdcAttributePayload::toMap,
             PdcAttributePayload::fromMap
@@ -395,11 +397,13 @@ public final class PdcAttributeService implements PdcAttributeApi {
         if (Texts.isBlank(pattern)) {
             return null;
         }
-        try {
-            return Pattern.compile(pattern, Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
-        } catch (Exception ignored) {
-            return null;
-        }
+        return COMPILED_PATTERN_CACHE.computeIfAbsent(pattern, key -> {
+            try {
+                return Pattern.compile(key, Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+            } catch (Exception _) {
+                return null;
+            }
+        });
     }
 
     private boolean combineResults(List<Boolean> results, String conditionType, Integer requiredCount) {
@@ -463,7 +467,7 @@ public final class PdcAttributeService implements PdcAttributeApi {
         if (Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
             try {
                 resolved = PlaceholderAPI.setPlaceholders(player, resolved);
-            } catch (Exception ignored) {
+            } catch (Exception _) {
             }
         }
         return resolved;

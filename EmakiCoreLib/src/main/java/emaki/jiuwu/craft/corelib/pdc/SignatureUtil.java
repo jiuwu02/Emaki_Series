@@ -129,7 +129,7 @@ public final class SignatureUtil {
         }
         try {
             return BigDecimal.valueOf(number.doubleValue()).stripTrailingZeros().toPlainString();
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             return String.valueOf(number);
         }
     }

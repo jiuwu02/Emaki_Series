@@ -108,7 +108,7 @@ public final class SkillDefinitionLoader extends YamlDirectoryLoader<SkillDefini
         }
         try {
             return Double.parseDouble(Texts.toStringSafe(value).trim());
-        } catch (NumberFormatException ignored) {
+        } catch (NumberFormatException _) {
             return defaultValue;
         }
     }

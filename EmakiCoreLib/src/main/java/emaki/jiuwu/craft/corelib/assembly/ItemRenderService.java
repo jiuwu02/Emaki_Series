@@ -85,7 +85,7 @@ final class ItemRenderService {
         if (itemStack != null) {
             try {
                 return MiniMessages.serialize(ItemTextBridge.effectiveName(itemStack));
-            } catch (Exception ignored) {
+            } catch (Exception _) {
                 return "";
             }
         }

@@ -1,6 +1,6 @@
 package emaki.jiuwu.craft.attribute.service;
 
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -39,7 +39,7 @@ public final class DamageEngine {
         }
         DamageContext damageContext = request.damageContext();
         double current = Math.max(0D, damageContext.baseDamage());
-        Map<String, Double> stageValues = new LinkedHashMap<>();
+        Map<String, Double> stageValues = new HashMap<>();
         boolean critical = false;
         for (DamageStageDefinition stage : definition.stages()) {
             if (stage == null) {

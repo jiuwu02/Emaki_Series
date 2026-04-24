@@ -53,7 +53,7 @@ final class ActionFutureSupport {
         try {
             long value = Long.parseLong(text);
             return value > 0L ? value : -1L;
-        } catch (NumberFormatException ignored) {
+        } catch (NumberFormatException _) {
             return -1L;
         }
     }

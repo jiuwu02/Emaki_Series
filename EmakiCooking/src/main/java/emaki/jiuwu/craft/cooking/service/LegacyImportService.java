@@ -1189,7 +1189,7 @@ public final class LegacyImportService {
     private Integer parseInteger(Object raw, Integer fallback) {
         try {
             return Integer.parseInt(Texts.toStringSafe(raw).trim());
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             return fallback;
         }
     }
@@ -1197,7 +1197,7 @@ public final class LegacyImportService {
     private Double parseDouble(Object raw, Double fallback) {
         try {
             return Double.parseDouble(Texts.toStringSafe(raw).trim());
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             return fallback;
         }
     }

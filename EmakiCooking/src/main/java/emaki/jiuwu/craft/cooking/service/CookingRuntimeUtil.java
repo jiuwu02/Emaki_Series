@@ -53,7 +53,7 @@ public final class CookingRuntimeUtil {
         }
         try {
             return Long.parseLong(String.valueOf(raw).trim());
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             return fallback;
         }
     }
@@ -67,7 +67,7 @@ public final class CookingRuntimeUtil {
         }
         try {
             return Integer.parseInt(String.valueOf(raw).trim());
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             return fallback;
         }
     }
@@ -89,7 +89,7 @@ public final class CookingRuntimeUtil {
         }
         try {
             return UUID.fromString(raw);
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             return null;
         }
     }

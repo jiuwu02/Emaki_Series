@@ -25,6 +25,8 @@ import emaki.jiuwu.craft.attribute.model.ResourceSyncReason;
 
 final class ResourceManagementService {
 
+    private static final String HEALTH_RESOURCE_ID = "health";
+
     private final AttributeService service;
     private final Set<UUID> pendingEquipmentSyncs = ConcurrentHashMap.newKeySet();
 
@@ -74,7 +76,7 @@ final class ResourceManagementService {
 
     public void scheduleJoinHealthSync(Player player) {
         schedulePlayer(player, online -> {
-            ResourceState existingHealth = readResourceState(online, "health");
+            ResourceState existingHealth = readResourceState(online, HEALTH_RESOURCE_ID);
             if (existingHealth == null || existingHealth.currentValue() <= 0D) {
                 syncPlayer(online, ResourceSyncReason.HEALTH_CHANGE, null, true);
             } else {
@@ -209,7 +211,7 @@ final class ResourceManagementService {
                 || existing.currentValue() != state.currentValue()) {
             service.stateRepository().writeResourceState(player, state);
         }
-        if (resourceDefinition.syncToBukkit() && "health".equals(resourceDefinition.id())) {
+        if (resourceDefinition.syncToBukkit() && HEALTH_RESOURCE_ID.equals(resourceDefinition.id())) {
             syncHealthToBukkit(player, state);
         }
         return state;
@@ -268,8 +270,8 @@ final class ResourceManagementService {
             Double healthOverride,
             boolean forceHealthToFull) {
         for (ResourceDefinition resourceDefinition : service.resourceDefinitions().values()) {
-            Double override = "health".equals(resourceDefinition.id()) ? healthOverride : null;
-            ResourceSyncReason effectiveReason = forceHealthToFull && "health".equals(resourceDefinition.id())
+            Double override = HEALTH_RESOURCE_ID.equals(resourceDefinition.id()) ? healthOverride : null;
+            ResourceSyncReason effectiveReason = forceHealthToFull && HEALTH_RESOURCE_ID.equals(resourceDefinition.id())
                     ? ResourceSyncReason.INITIALIZE
                     : reason;
             syncResource(player, resourceDefinition, snapshot, effectiveReason, override);

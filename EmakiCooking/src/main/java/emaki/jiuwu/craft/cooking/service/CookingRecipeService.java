@@ -236,7 +236,7 @@ public final class CookingRecipeService {
         }
         try {
             return Integer.parseInt(value.trim());
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             return fallback;
         }
     }

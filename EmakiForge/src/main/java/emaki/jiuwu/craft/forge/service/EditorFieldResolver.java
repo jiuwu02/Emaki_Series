@@ -102,7 +102,7 @@ final class EditorFieldResolver {
             }
             try {
                 out.add(Integer.parseInt(Texts.toStringSafe(entry)));
-            } catch (Exception ignored) {
+            } catch (Exception _) {
             }
         }
         return out;
@@ -141,7 +141,7 @@ final class EditorFieldResolver {
     int parseIndex(String token) {
         try {
             return Integer.parseInt(token.substring(1));
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             return -1;
         }
     }

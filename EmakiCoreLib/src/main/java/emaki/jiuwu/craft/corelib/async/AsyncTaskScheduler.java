@@ -196,9 +196,9 @@ public final class AsyncTaskScheduler implements AutoCloseable {
             task.cancel();
         }, timeoutMillis, TimeUnit.MILLISECONDS);
         if (timeout != null) {
-            future.whenComplete((ignored, throwable) -> timeout.cancel(false));
+            future.whenComplete((_, throwable) -> timeout.cancel(false));
         }
-        future.whenComplete((ignored, throwable) -> activeTasks.decrementAndGet());
+        future.whenComplete((_, throwable) -> activeTasks.decrementAndGet());
         return future;
     }
 

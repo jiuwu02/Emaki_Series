@@ -265,7 +265,7 @@ public final class SteamerRuntimeService implements Listener {
         InventoryType inventoryType;
         try {
             inventoryType = InventoryType.valueOf(typeName);
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             inventoryType = InventoryType.HOPPER;
         }
         if (inventoryType == InventoryType.CHEST) {
@@ -1068,7 +1068,7 @@ public final class SteamerRuntimeService implements Listener {
         }
         try {
             return ItemStack.deserialize(new LinkedHashMap<>(serializedItem));
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             return null;
         }
     }

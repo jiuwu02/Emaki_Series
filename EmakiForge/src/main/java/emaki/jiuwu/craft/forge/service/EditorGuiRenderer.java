@@ -398,7 +398,7 @@ final class EditorGuiRenderer {
                 Double.parseDouble(Texts.toStringSafe(value));
                 templateKey = "number";
                 fallbackItem = "CLOCK";
-            } catch (Exception ignored) {
+            } catch (Exception _) {
                 templateKey = "scalar";
                 fallbackItem = "NAME_TAG";
             }

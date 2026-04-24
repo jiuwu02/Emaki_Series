@@ -20,7 +20,7 @@ public final class ExcellentEconomyProvider implements EconomyProvider {
 
     @Override
     public String id() {
-        return "excellenteconomy";
+        return "ExcellentEconomy";
     }
 
     @Override

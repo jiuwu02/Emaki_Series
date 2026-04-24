@@ -268,7 +268,7 @@ public final class CookingSettingsService {
         }
         try {
             return Integer.parseInt(String.valueOf(raw).trim());
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             return fallback;
         }
     }
@@ -290,7 +290,7 @@ public final class CookingSettingsService {
         Path directory = plugin.getDataFolder().toPath().resolve("item_adjustments");
         try {
             YamlFiles.ensureDirectory(directory);
-        } catch (IOException ignored) {
+        } catch (IOException _) {
             return Map.of();
         }
         if (!Files.exists(directory)) {
@@ -310,7 +310,7 @@ public final class CookingSettingsService {
                 }
                 loaded.put(Texts.normalizeId(adjustment.source()), adjustment);
             }
-        } catch (IOException ignored) {
+        } catch (IOException _) {
             return Map.of();
         }
         return loaded.isEmpty() ? Map.of() : Map.copyOf(loaded);
@@ -447,7 +447,7 @@ public final class CookingSettingsService {
     private double parseDouble(String raw, double fallback) {
         try {
             return Double.parseDouble(Texts.toStringSafe(raw).trim());
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             return fallback;
         }
     }

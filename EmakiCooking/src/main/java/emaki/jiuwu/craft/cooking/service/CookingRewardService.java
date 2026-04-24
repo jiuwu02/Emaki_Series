@@ -256,7 +256,7 @@ public final class CookingRewardService {
         }
         try {
             return Integer.parseInt(Texts.toStringSafe(raw).trim());
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             return fallback;
         }
     }
