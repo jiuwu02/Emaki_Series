@@ -5,21 +5,21 @@ rows: 4
 slots:
   trigger_option:
     type: trigger_option
-    positions: [ 10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25 ]
-    material: GRAY_STAINED_GLASS_PANE
+    slots: [ 10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25 ]
+    item: "gray_stained_glass_pane"
     display_name: "<gray>空</gray>"
 
   back:
     type: back
-    positions: [ 31 ]
-    material: ARROW
+    slots: [ 31 ]
+    item: "arrow"
     display_name: "<yellow>返回</yellow>"
     lore:
       - "<gray>返回技能界面</gray>"
 
   border:
     type: filler
-    positions:
+    slots:
       [
         0,
         1,
@@ -43,5 +43,5 @@ slots:
         34,
         35,
       ]
-    material: BLACK_STAINED_GLASS_PANE
+    item: "black_stained_glass_pane"
     display_name: " "

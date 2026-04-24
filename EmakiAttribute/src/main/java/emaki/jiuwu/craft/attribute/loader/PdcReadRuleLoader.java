@@ -61,7 +61,7 @@ public final class PdcReadRuleLoader extends DirectoryLoader<PdcReadRule> {
         if (rule == null) {
             return false;
         }
-        if (hasLegacyChecksField(configuration)) {
+        if (hasUnsupportedChecksField(configuration)) {
             issue(
                     "loader.schema_unsupported_field",
                     Map.of(
@@ -182,7 +182,7 @@ public final class PdcReadRuleLoader extends DirectoryLoader<PdcReadRule> {
         return Texts.normalizeId(type);
     }
 
-    private boolean hasLegacyChecksField(YamlSection configuration) {
+    private boolean hasUnsupportedChecksField(YamlSection configuration) {
         return configuration != null && configuration.contains("checks");
     }
 

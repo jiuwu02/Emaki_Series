@@ -11,4 +11,6 @@ __pycache__/
 wiki/
 emaki_manager.py
 *.md
+docs/
 .codex/
+.github/
