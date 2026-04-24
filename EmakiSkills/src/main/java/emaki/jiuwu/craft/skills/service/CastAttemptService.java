@@ -171,6 +171,9 @@ public final class CastAttemptService {
     // ------------------------------------------------------------------
 
     private SkillSlotBinding findBindingByTrigger(PlayerSkillProfile profile, String triggerId) {
+        SkillSlotBinding indexed = profile.findBindingByTrigger(triggerId);
+        if (indexed != null) return indexed;
+        // Fallback to linear scan for safety
         for (SkillSlotBinding binding : profile.bindings()) {
             if (!binding.isEmpty() && triggerId.equals(binding.triggerId())) {
                 return binding;

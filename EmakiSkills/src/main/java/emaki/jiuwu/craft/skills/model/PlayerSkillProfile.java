@@ -11,6 +11,7 @@ public final class PlayerSkillProfile {
     private final List<SkillSlotBinding> bindings;
     private final Map<String, PlayerLocalResourceState> localResources;
     private final PlayerCastTimingState timingState;
+    private final Map<String, SkillSlotBinding> bindingByTrigger = new ConcurrentHashMap<>();
     private boolean castModeEnabled;
     private boolean dirty;
 
@@ -24,6 +25,7 @@ public final class PlayerSkillProfile {
         this.timingState = new PlayerCastTimingState();
         this.castModeEnabled = false;
         this.dirty = false;
+        rebuildTriggerIndex();
     }
 
     public String uuid() {
@@ -65,12 +67,34 @@ public final class PlayerSkillProfile {
         if (slotIndex < 0 || slotIndex >= bindings.size()) {
             return;
         }
-        bindings.set(slotIndex, binding == null ? new SkillSlotBinding(slotIndex, null, null) : binding);
+        SkillSlotBinding old = bindings.get(slotIndex);
+        if (old != null && !old.isEmpty() && old.triggerId() != null) {
+            bindingByTrigger.remove(old.triggerId());
+        }
+        SkillSlotBinding effective = binding == null ? new SkillSlotBinding(slotIndex, null, null) : binding;
+        bindings.set(slotIndex, effective);
+        if (!effective.isEmpty() && effective.triggerId() != null && !effective.triggerId().isBlank()) {
+            bindingByTrigger.put(effective.triggerId(), effective);
+        }
         markDirty();
     }
 
     public void clearSlot(int slotIndex) {
         setBinding(slotIndex, new SkillSlotBinding(slotIndex, null, null));
+    }
+
+    public SkillSlotBinding findBindingByTrigger(String triggerId) {
+        if (triggerId == null || triggerId.isBlank()) return null;
+        return bindingByTrigger.get(triggerId);
+    }
+
+    public void rebuildTriggerIndex() {
+        bindingByTrigger.clear();
+        for (SkillSlotBinding binding : bindings) {
+            if (binding != null && !binding.isEmpty() && binding.triggerId() != null && !binding.triggerId().isBlank()) {
+                bindingByTrigger.put(binding.triggerId(), binding);
+            }
+        }
     }
 
     public void markDirty() {

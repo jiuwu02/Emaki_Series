@@ -81,6 +81,28 @@ public final class AsyncTaskScheduler implements AutoCloseable {
         );
     }
 
+    public AsyncTaskScheduler(Executor syncExecutor,
+            int threadCount,
+            long defaultTimeoutMillis,
+            String threadPrefix,
+            PerformanceMonitor performanceMonitor,
+            boolean useVirtualThreads) {
+        this(
+                new ThreadPoolExecutor(
+                        Math.max(1, threadCount),
+                        Math.max(1, threadCount),
+                        30L,
+                        TimeUnit.SECONDS,
+                        new PriorityBlockingQueue<>(),
+                        new NamedThreadFactory(threadPrefix, useVirtualThreads)
+                ),
+                Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(threadPrefix + "-timeout")),
+                syncExecutor,
+                defaultTimeoutMillis,
+                performanceMonitor
+        );
+    }
+
     public AsyncTaskScheduler(ThreadPoolExecutor executor,
             ScheduledExecutorService timeoutExecutor,
             Executor syncExecutor,
@@ -115,6 +137,25 @@ public final class AsyncTaskScheduler implements AutoCloseable {
         };
         int threads = Math.max(2, Runtime.getRuntime().availableProcessors() / 2);
         return new AsyncTaskScheduler(sync, threads, DEFAULT_TIMEOUT_MILLIS, threadPrefix, performanceMonitor);
+    }
+
+    public static AsyncTaskScheduler forPluginVirtual(Plugin plugin, String threadPrefix, PerformanceMonitor performanceMonitor) {
+        Executor sync = runnable -> {
+            if (runnable == null) {
+                return;
+            }
+            if (plugin == null || !plugin.isEnabled()) {
+                runnable.run();
+                return;
+            }
+            if (Bukkit.isPrimaryThread()) {
+                runnable.run();
+                return;
+            }
+            plugin.getServer().getScheduler().runTask(plugin, runnable);
+        };
+        int threads = Math.max(2, Runtime.getRuntime().availableProcessors() / 2);
+        return new AsyncTaskScheduler(sync, threads, DEFAULT_TIMEOUT_MILLIS, threadPrefix, performanceMonitor, true);
     }
 
     public <T> CompletableFuture<T> supplyAsync(String taskName, Supplier<T> supplier) {
@@ -307,13 +348,24 @@ public final class AsyncTaskScheduler implements AutoCloseable {
 
         private final String prefix;
         private final AtomicInteger counter = new AtomicInteger();
+        private final boolean virtual;
 
         private NamedThreadFactory(String prefix) {
+            this(prefix, false);
+        }
+
+        private NamedThreadFactory(String prefix, boolean virtual) {
             this.prefix = prefix == null || prefix.isBlank() ? "emaki-async" : prefix;
+            this.virtual = virtual;
         }
 
         @Override
         public Thread newThread(Runnable runnable) {
+            if (virtual) {
+                return Thread.ofVirtual()
+                        .name(prefix + "-vt-" + counter.incrementAndGet())
+                        .unstarted(runnable);
+            }
             Thread thread = new Thread(runnable, prefix + "-" + counter.incrementAndGet());
             thread.setDaemon(true);
             return thread;

@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.corelib.expression;
 import java.lang.ref.SoftReference;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -22,8 +23,10 @@ public final class ExpressionEngine {
     private static final Pattern RANGE_PATTERN = Pattern.compile("^\\s*(.+)\\s*~\\s*(.+)\\s*$");
     private static final Pattern NON_NUMERIC_EXPRESSION_PATTERN = Pattern.compile("[^0-9.\\s+\\-*/%^(),]");
     private static final Pattern DANGEROUS_CHAR_PATTERN = Pattern.compile("[`$\\\\]");
-    private static final int COMPILED_CACHE_LIMIT = 64;
-    private static final long COMPILED_CACHE_TTL_MILLIS = 5 * 60 * 1000L;
+    private static final int COMPILED_CACHE_LIMIT = 256;
+    private static final long COMPILED_CACHE_TTL_MILLIS = 30 * 60 * 1000L;
+    private static final Map<String, Expression> GLOBAL_COMPILED_CACHE = new ConcurrentHashMap<>(256);
+    private static final int GLOBAL_CACHE_LIMIT = 1024;
     private static final int DEFAULT_RANDOM_MAX_ATTEMPTS = 128;
     private static final double INTEGER_ROUNDING_EPSILON = 1.0E-9D;
     private static final ThreadLocal<LinkedHashMap<String, CachedExpression>> COMPILED_CACHE = ThreadLocal.withInitial(
@@ -293,11 +296,22 @@ public final class ExpressionEngine {
         if (cached != null) {
             cache.remove(prepared);
         }
+        // L2: check global cache
+        Expression global = GLOBAL_COMPILED_CACHE.get(prepared);
+        if (global != null) {
+            cache.put(prepared, new CachedExpression(global, now + COMPILED_CACHE_TTL_MILLIS));
+            trimCompiledCache(cache);
+            return global;
+        }
         Expression compiled = new ExpressionBuilder(prepared)
                 .functions(CUSTOM_FUNCTIONS)
                 .build();
         cache.put(prepared, new CachedExpression(compiled, now + COMPILED_CACHE_TTL_MILLIS));
         trimCompiledCache(cache);
+        // Store in global cache
+        if (GLOBAL_COMPILED_CACHE.size() < GLOBAL_CACHE_LIMIT) {
+            GLOBAL_COMPILED_CACHE.put(prepared, compiled);
+        }
         return compiled;
     }
 

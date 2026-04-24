@@ -22,9 +22,9 @@ public final class EconomyManager {
                 "net.milkbowl.vault.economy.Economy",
                 "emaki.jiuwu.craft.corelib.economy.VaultEconomyProvider");
         registerOptionalProvider(plugin,
-                "CoinsEngine",
+                "ExcellentEconomy",
                 "su.nightexpress.excellenteconomy.api.ExcellentEconomyAPI",
-                "emaki.jiuwu.craft.corelib.economy.CoinsEngineEconomyProvider");
+                "emaki.jiuwu.craft.corelib.economy.ExcellentEconomyProvider");
     }
 
     public void register(EconomyProvider provider) {
@@ -93,8 +93,8 @@ public final class EconomyManager {
         String normalized = Texts.lower(providerId);
         if (Texts.isBlank(normalized) || "auto".equals(normalized)) {
             if (Texts.isNotBlank(currencyId)) {
-                EconomyProvider coinsEngine = get("coinsengine");
-                return coinsEngine != null && coinsEngine.isAvailable() ? coinsEngine : null;
+                EconomyProvider economy = get("excellenteconomy");
+                return economy != null && economy.isAvailable() ? economy : null;
             }
             EconomyProvider vault = get("vault");
             return vault != null && vault.isAvailable() ? vault : null;
@@ -104,15 +104,15 @@ public final class EconomyManager {
     }
 
     public ActionResult requireSupported(String providerId, String currencyId) {
-        if ("coinsengine".equalsIgnoreCase(providerId) && Texts.isBlank(currencyId)) {
-            return ActionResult.failure(ActionErrorType.INVALID_ARGUMENT, "CoinsEngine actions require 'currency'.");
+        if ("excellenteconomy".equalsIgnoreCase(providerId) && Texts.isBlank(currencyId)) {
+            return ActionResult.failure(ActionErrorType.INVALID_ARGUMENT, "ExcellentEconomy actions require 'currency'.");
         }
         EconomyProvider provider = select(providerId, currencyId);
         if (provider == null) {
             return ActionResult.failure(ActionErrorType.PROVIDER_UNAVAILABLE, "No economy provider available for '" + providerId + "'.");
         }
-        if ("auto".equalsIgnoreCase(providerId) && Texts.isBlank(currencyId) && "coinsengine".equalsIgnoreCase(provider.id())) {
-            return ActionResult.failure(ActionErrorType.PROVIDER_UNAVAILABLE, "Auto provider does not infer a default CoinsEngine currency.");
+        if ("auto".equalsIgnoreCase(providerId) && Texts.isBlank(currencyId) && "excellenteconomy".equalsIgnoreCase(provider.id())) {
+            return ActionResult.failure(ActionErrorType.PROVIDER_UNAVAILABLE, "Auto provider does not infer a default ExcellentEconomy currency.");
         }
         return ActionResult.ok(Map.of("provider", provider.id()));
     }
