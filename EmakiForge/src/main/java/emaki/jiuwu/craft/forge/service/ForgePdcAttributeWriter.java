@@ -41,7 +41,7 @@ final class ForgePdcAttributeWriter {
                     continue;
                 }
                 skillIds.addAll(contribution.material().skillIds());
-                for (Map.Entry<String, Double> entry : contribution.material().eaAttributeContributions().entrySet()) {
+                for (Map.Entry<String, Double> entry : contribution.material().attributeContributions().entrySet()) {
                     if (entry.getKey() == null || entry.getValue() == null) {
                         continue;
                     }
@@ -51,7 +51,7 @@ final class ForgePdcAttributeWriter {
                     }
                     attributes.merge(entry.getKey(), value, Double::sum);
                 }
-                meta.putAll(contribution.material().eaAttributeMeta());
+                meta.putAll(contribution.material().attributeMeta());
             }
         }
         skillPdcGateway.write(itemStack, skillIds);

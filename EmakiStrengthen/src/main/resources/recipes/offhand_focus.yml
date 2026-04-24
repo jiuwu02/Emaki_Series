@@ -68,7 +68,7 @@ stars:
     stats:
       spell_damage_bonus: 1
       health: 6
-    ea_attributes:
+    attributes:
       spell_damage_bonus: 1.0
       health: 6.0
     materials:
@@ -80,7 +80,7 @@ stars:
     stats:
       spell_damage_bonus: 1
       health: 6
-    ea_attributes:
+    attributes:
       spell_damage_bonus: 1.0
       health: 6.0
     materials:
@@ -92,7 +92,7 @@ stars:
     stats:
       spell_damage_bonus: 1.5
       health: 8
-    ea_attributes:
+    attributes:
       spell_damage_bonus: 1.5
       health: 8.0
     materials:
@@ -104,7 +104,7 @@ stars:
     stats:
       spell_damage_bonus: 2
       health: 8
-    ea_attributes:
+    attributes:
       spell_damage_bonus: 2.0
       health: 8.0
     materials:
@@ -122,7 +122,7 @@ stars:
       spell_damage_bonus: 2
       health: 10
       mana_regen: 3
-    ea_attributes:
+    attributes:
       spell_damage_bonus: 2.0
       health: 10.0
       mana_regen: 3.0
@@ -147,7 +147,7 @@ stars:
     stats:
       spell_damage_bonus: 2.5
       health: 10
-    ea_attributes:
+    attributes:
       spell_damage_bonus: 2.5
       health: 10.0
     materials:
@@ -163,7 +163,7 @@ stars:
     stats:
       spell_damage_bonus: 3
       health: 12
-    ea_attributes:
+    attributes:
       spell_damage_bonus: 3.0
       health: 12.0
     materials:
@@ -181,7 +181,7 @@ stars:
       spell_damage_bonus: 3.5
       health: 12
       spell_crit_rate: 3
-    ea_attributes:
+    attributes:
       spell_damage_bonus: 3.5
       health: 12.0
       spell_crit_rate: 3.0
@@ -209,7 +209,7 @@ stars:
     stats:
       spell_damage_bonus: 4
       health: 14
-    ea_attributes:
+    attributes:
       spell_damage_bonus: 4.0
       health: 14.0
     materials:
@@ -229,7 +229,7 @@ stars:
       spell_damage_bonus: 4.5
       health: 14
       mana: 12
-    ea_attributes:
+    attributes:
       spell_damage_bonus: 4.5
       health: 14.0
       mana: 12.0
@@ -257,7 +257,7 @@ stars:
     stats:
       spell_damage_bonus: 5
       health: 16
-    ea_attributes:
+    attributes:
       spell_damage_bonus: 5.0
       health: 16.0
     materials:
@@ -277,7 +277,7 @@ stars:
       spell_damage_bonus: 6
       health: 18
       dodge_chance: 4
-    ea_attributes:
+    attributes:
       spell_damage_bonus: 6.0
       health: 18.0
       dodge_chance: 4.0

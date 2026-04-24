@@ -146,7 +146,7 @@ public final class GemSnapshotBuilder {
         return Map.copyOf(aggregated);
     }
 
-    public Map<String, Double> aggregateEaAttributes(GemState state) {
+    public Map<String, Double> aggregateAttributes(GemState state) {
         Map<String, Double> aggregated = new LinkedHashMap<>();
         if (state == null) {
             return aggregated;
@@ -159,7 +159,7 @@ public final class GemSnapshotBuilder {
             if (definition == null) {
                 continue;
             }
-            definition.eaAttributesForLevel(instance.level()).forEach((attributeId, amount) ->
+            definition.attributesForLevel(instance.level()).forEach((attributeId, amount) ->
                     aggregated.merge(attributeId, amount, Double::sum)
             );
         }

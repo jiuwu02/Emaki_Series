@@ -82,7 +82,7 @@ public final class GemStateService {
             return null;
         }
         pdcAttributeWriter.copyOtherSources(original, rebuilt);
-        Map<String, Double> attributes = snapshotBuilder.aggregateEaAttributes(state);
+        Map<String, Double> attributes = snapshotBuilder.aggregateAttributes(state);
         if (attributes.isEmpty() || !pdcAttributeWriter.available()) {
             pdcAttributeWriter.clear(rebuilt);
         } else {

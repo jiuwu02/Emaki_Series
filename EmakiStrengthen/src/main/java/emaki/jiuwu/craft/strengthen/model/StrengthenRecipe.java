@@ -111,7 +111,7 @@ public final class StrengthenRecipe {
     public record StarStage(int targetStar,
             String name,
             Map<String, Double> stats,
-            Map<String, Double> eaAttributes,
+            Map<String, Double> attributes,
             List<String> skillIds,
             List<StarStageMaterial> materials,
             EconomyOverride economyOverride,
@@ -122,7 +122,7 @@ public final class StrengthenRecipe {
         public StarStage {
             name = Texts.toStringSafe(name);
             stats = stats == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(stats));
-            eaAttributes = eaAttributes == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(eaAttributes));
+            attributes = attributes == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(attributes));
             skillIds = normalizeList(skillIds).stream().map(Texts::normalizeId).filter(Texts::isNotBlank).distinct().toList();
             materials = materials == null ? List.of() : List.copyOf(materials);
             economyOverride = economyOverride == null ? new EconomyOverride(List.of()) : economyOverride;
@@ -198,13 +198,13 @@ public final class StrengthenRecipe {
         return values;
     }
 
-    public Map<String, Double> cumulativeEaAttributes(int currentStar) {
+    public Map<String, Double> cumulativeAttributes(int currentStar) {
         Map<String, Double> values = new LinkedHashMap<>();
         for (Map.Entry<Integer, StarStage> entry : stars.entrySet()) {
             if (entry.getKey() > currentStar || entry.getValue() == null) {
                 continue;
             }
-            merge(values, entry.getValue().eaAttributes());
+            merge(values, entry.getValue().attributes());
         }
         return values;
     }
@@ -437,7 +437,7 @@ public final class StrengthenRecipe {
                     targetStar,
                     stageSection.getString("name", ""),
                     parseDoubleMap(stageSection.getSection("stats")),
-                    parseDoubleMap(stageSection.getSection("ea_attributes")),
+                    parseDoubleMap(stageSection.getSection("attributes")),
                     parseSkillEffects(stageSection.getMapList("effects")),
                     parseStageMaterials(stageSection.getMapList("materials")),
                     parseEconomyOverride(stageSection.getSection("economy_override")),

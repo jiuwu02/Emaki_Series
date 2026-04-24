@@ -7,7 +7,7 @@ item_source: "minecraft-lapis_lazuli"
 stats:
   physical_defense: 6
   max_health: 10
-ea_attributes:
+attributes:
   physical_defense: 6.0
   max_health: 10.0
 
@@ -70,7 +70,7 @@ upgrade:
       stats:
         physical_defense: 9
         max_health: 14
-      ea_attributes:
+      attributes:
         physical_defense: 9.0
         max_health: 14.0
       structured_presentation:
@@ -95,7 +95,7 @@ upgrade:
       stats:
         physical_defense: 13
         max_health: 20
-      ea_attributes:
+      attributes:
         physical_defense: 13.0
         max_health: 20.0
       structured_presentation:

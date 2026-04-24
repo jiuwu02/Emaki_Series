@@ -69,7 +69,7 @@ stars:
       physical_defense: 2
       projectile_defense: 2
       spell_defense: 2
-    ea_attributes:
+    attributes:
       physical_defense: 2.0
       projectile_defense: 2.0
       spell_defense: 2.0
@@ -83,7 +83,7 @@ stars:
       physical_defense: 2
       projectile_defense: 2
       spell_defense: 2
-    ea_attributes:
+    attributes:
       physical_defense: 2.0
       projectile_defense: 2.0
       spell_defense: 2.0
@@ -97,7 +97,7 @@ stars:
       physical_defense: 2.5
       projectile_defense: 2.5
       spell_defense: 2.5
-    ea_attributes:
+    attributes:
       physical_defense: 2.5
       projectile_defense: 2.5
       spell_defense: 2.5
@@ -111,7 +111,7 @@ stars:
       physical_defense: 3
       projectile_defense: 3
       spell_defense: 3
-    ea_attributes:
+    attributes:
       physical_defense: 3.0
       projectile_defense: 3.0
       spell_defense: 3.0
@@ -131,7 +131,7 @@ stars:
       projectile_defense: 3
       spell_defense: 3
       health: 20
-    ea_attributes:
+    attributes:
       physical_defense: 3.0
       projectile_defense: 3.0
       spell_defense: 3.0
@@ -158,7 +158,7 @@ stars:
       physical_defense: 3.5
       projectile_defense: 3.5
       spell_defense: 3.5
-    ea_attributes:
+    attributes:
       physical_defense: 3.5
       projectile_defense: 3.5
       spell_defense: 3.5
@@ -176,7 +176,7 @@ stars:
       physical_defense: 4
       projectile_defense: 4
       spell_defense: 4
-    ea_attributes:
+    attributes:
       physical_defense: 4.0
       projectile_defense: 4.0
       spell_defense: 4.0
@@ -196,7 +196,7 @@ stars:
       projectile_defense: 4.5
       spell_defense: 4.5
       health: 30
-    ea_attributes:
+    attributes:
       physical_defense: 4.5
       projectile_defense: 4.5
       spell_defense: 4.5
@@ -226,7 +226,7 @@ stars:
       physical_defense: 5
       projectile_defense: 5
       spell_defense: 5
-    ea_attributes:
+    attributes:
       physical_defense: 5.0
       projectile_defense: 5.0
       spell_defense: 5.0
@@ -248,7 +248,7 @@ stars:
       projectile_defense: 6
       spell_defense: 6
       health_regen: 4
-    ea_attributes:
+    attributes:
       physical_defense: 6.0
       projectile_defense: 6.0
       spell_defense: 6.0
@@ -278,7 +278,7 @@ stars:
       physical_defense: 7
       projectile_defense: 7
       spell_defense: 7
-    ea_attributes:
+    attributes:
       physical_defense: 7.0
       projectile_defense: 7.0
       spell_defense: 7.0
@@ -300,7 +300,7 @@ stars:
       projectile_defense: 8
       spell_defense: 8
       dodge_chance: 4
-    ea_attributes:
+    attributes:
       physical_defense: 8.0
       projectile_defense: 8.0
       spell_defense: 8.0

@@ -32,15 +32,15 @@ final class StrengthenPdcAttributeWriter {
         if (gateway == null || !gateway.available()) {
             return;
         }
-        Map<String, Double> eaAttributes = recipe.cumulativeEaAttributes(state.currentStar());
-        if (eaAttributes.isEmpty()) {
+        Map<String, Double> attributes = recipe.cumulativeAttributes(state.currentStar());
+        if (attributes.isEmpty()) {
             gateway.clear(itemStack, sourceId);
             return;
         }
         Map<String, String> meta = new LinkedHashMap<>();
         meta.put("recipe_id", recipe.id());
         meta.put("current_star", String.valueOf(state.currentStar()));
-        gateway.write(itemStack, sourceId, eaAttributes, meta);
+        gateway.write(itemStack, sourceId, attributes, meta);
     }
 
     void clearPdcAttributes(ItemStack itemStack) {

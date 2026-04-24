@@ -7,7 +7,7 @@ item_source: "minecraft-emerald"
 stats:
   movement_speed: 2
   cooldown_reduction: 3
-ea_attributes:
+attributes:
   movement_speed: 2.0
   cooldown_reduction: 3.0
 
@@ -72,7 +72,7 @@ upgrade:
       stats:
         movement_speed: 3
         cooldown_reduction: 5
-      ea_attributes:
+      attributes:
         movement_speed: 3.0
         cooldown_reduction: 5.0
       structured_presentation:
@@ -98,7 +98,7 @@ upgrade:
       stats:
         movement_speed: 5
         cooldown_reduction: 8
-      ea_attributes:
+      attributes:
         movement_speed: 5.0
         cooldown_reduction: 8.0
       structured_presentation:

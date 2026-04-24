@@ -187,10 +187,10 @@ public final class ForgeMaterial {
         return result;
     }
 
-    public Map<String, Double> eaAttributeContributions() {
+    public Map<String, Double> attributeContributions() {
         Map<String, Double> result = new LinkedHashMap<>();
         for (MaterialEffect effect : effects) {
-            if (!"ea_attribute".equals(Texts.lower(effect.type()))) {
+            if (!"attribute".equals(Texts.lower(effect.type()))) {
                 continue;
             }
             for (Map.Entry<String, Object> entry : ConfigNodes.entries(effect.get("attributes")).entrySet()) {
@@ -203,10 +203,10 @@ public final class ForgeMaterial {
         return result;
     }
 
-    public Map<String, String> eaAttributeMeta() {
+    public Map<String, String> attributeMeta() {
         Map<String, String> result = new LinkedHashMap<>();
         for (MaterialEffect effect : effects) {
-            if (!"ea_attribute".equals(Texts.lower(effect.type()))) {
+            if (!"attribute".equals(Texts.lower(effect.type()))) {
                 continue;
             }
             for (Map.Entry<String, Object> entry : ConfigNodes.entries(effect.get("meta")).entrySet()) {

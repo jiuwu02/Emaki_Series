@@ -7,7 +7,7 @@ item_source: "minecraft-redstone"
 stats:
   physical_attack: 8
   physical_crit_rate: 3
-ea_attributes:
+attributes:
   physical_attack: 8.0
   physical_crit_rate: 3.0
 
@@ -75,7 +75,7 @@ upgrade:
       stats:
         physical_attack: 12
         physical_crit_rate: 4
-      ea_attributes:
+      attributes:
         physical_attack: 12.0
         physical_crit_rate: 4.0
       structured_presentation:
@@ -103,7 +103,7 @@ upgrade:
       stats:
         physical_attack: 16
         physical_crit_rate: 5
-      ea_attributes:
+      attributes:
         physical_attack: 16.0
         physical_crit_rate: 5.0
       structured_presentation:
@@ -130,7 +130,7 @@ upgrade:
       stats:
         physical_attack: 22
         physical_crit_rate: 7
-      ea_attributes:
+      attributes:
         physical_attack: 22.0
         physical_crit_rate: 7.0
       structured_presentation:

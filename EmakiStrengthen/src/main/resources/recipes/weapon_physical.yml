@@ -63,7 +63,7 @@ stars:
   1:
     stats:
       physical_attack: 4
-    ea_attributes:
+    attributes:
       physical_attack: 4.0
     materials:
       - item: "copper_ingot"
@@ -74,7 +74,7 @@ stars:
   2:
     stats:
       physical_attack: 4
-    ea_attributes:
+    attributes:
       physical_attack: 4.0
     materials:
       - item: "copper_ingot"
@@ -85,7 +85,7 @@ stars:
   3:
     stats:
       physical_attack: 5
-    ea_attributes:
+    attributes:
       physical_attack: 5.0
     materials:
       - item: "copper_ingot"
@@ -96,7 +96,7 @@ stars:
   4:
     stats:
       physical_attack: 6
-    ea_attributes:
+    attributes:
       physical_attack: 6.0
     materials:
       - item: "copper_ingot"
@@ -113,7 +113,7 @@ stars:
     stats:
       physical_attack: 6
       physical_crit_rate: 2
-    ea_attributes:
+    attributes:
       physical_attack: 6.0
       physical_crit_rate: 2.0
     materials:
@@ -138,7 +138,7 @@ stars:
   6:
     stats:
       physical_attack: 7
-    ea_attributes:
+    attributes:
       physical_attack: 7.0
     materials:
       - item: "copper_ingot"
@@ -153,7 +153,7 @@ stars:
   7:
     stats:
       physical_attack: 8
-    ea_attributes:
+    attributes:
       physical_attack: 8.0
     materials:
       - item: "copper_ingot"
@@ -170,7 +170,7 @@ stars:
     stats:
       physical_attack: 9
       physical_damage_bonus: 4
-    ea_attributes:
+    attributes:
       physical_attack: 9.0
       physical_damage_bonus: 4.0
     materials:
@@ -198,7 +198,7 @@ stars:
   9:
     stats:
       physical_attack: 10
-    ea_attributes:
+    attributes:
       physical_attack: 10.0
     materials:
       - item: "copper_ingot"
@@ -217,7 +217,7 @@ stars:
     stats:
       physical_attack: 12
       physical_crit_damage: 6
-    ea_attributes:
+    attributes:
       physical_attack: 12.0
       physical_crit_damage: 6.0
     materials:
@@ -246,7 +246,7 @@ stars:
   11:
     stats:
       physical_attack: 14
-    ea_attributes:
+    attributes:
       physical_attack: 14.0
     materials:
       - item: "copper_ingot"
@@ -265,7 +265,7 @@ stars:
     stats:
       physical_attack: 16
       physical_armor_penetration: 8
-    ea_attributes:
+    attributes:
       physical_attack: 16.0
       physical_armor_penetration: 8.0
     materials:

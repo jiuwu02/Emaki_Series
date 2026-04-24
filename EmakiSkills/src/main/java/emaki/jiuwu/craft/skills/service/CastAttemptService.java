@@ -184,7 +184,7 @@ public final class CastAttemptService {
         for (SkillResourceCost cost : definition.resourceCosts()) {
             boolean sufficient = switch (cost.type()) {
                 case EA_RESOURCE -> checkEaResource(player, cost);
-                case EA_ATTRIBUTE_CHECK -> checkEaAttribute(player, cost);
+                case ATTRIBUTE_CHECK -> checkAttribute(player, cost);
                 case LOCAL_RESOURCE -> checkLocalResource(profile, cost);
             };
             if (!sufficient) {
@@ -205,7 +205,7 @@ public final class CastAttemptService {
         return current >= cost.amount();
     }
 
-    private boolean checkEaAttribute(Player player, SkillResourceCost cost) {
+    private boolean checkAttribute(Player player, SkillResourceCost cost) {
         if (eaBridge == null || !eaBridge.isAvailable()) {
             return true;
         }
@@ -238,7 +238,7 @@ public final class CastAttemptService {
                         state.setCurrentValue(Math.max(0D, state.currentValue() - cost.amount()));
                     }
                 }
-                case EA_ATTRIBUTE_CHECK -> {
+                case ATTRIBUTE_CHECK -> {
                     // Attribute checks are read-only, no consumption
                 }
             }

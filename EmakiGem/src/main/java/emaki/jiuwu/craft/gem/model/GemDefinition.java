@@ -25,7 +25,7 @@ public final class GemDefinition {
     private final ItemSource itemSource;
     private final Integer customModelData;
     private final Map<String, Double> stats;
-    private final Map<String, Double> eaAttributes;
+    private final Map<String, Double> attributes;
     private final List<String> skillIds;
     private final Set<String> socketCompatibility;
     private final Object structuredPresentation;
@@ -44,7 +44,7 @@ public final class GemDefinition {
             ItemSource itemSource,
             Integer customModelData,
             Map<String, Double> stats,
-            Map<String, Double> eaAttributes,
+            Map<String, Double> attributes,
             List<String> skillIds,
             Set<String> socketCompatibility,
             Object structuredPresentation,
@@ -62,7 +62,7 @@ public final class GemDefinition {
         this.itemSource = itemSource;
         this.customModelData = customModelData;
         this.stats = stats == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(stats));
-        this.eaAttributes = eaAttributes == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(eaAttributes));
+        this.attributes = attributes == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(attributes));
         this.skillIds = normalizeSkillIds(skillIds);
         this.socketCompatibility = socketCompatibility == null ? Set.of() : Set.copyOf(socketCompatibility);
         this.structuredPresentation = ConfigNodes.toPlainData(structuredPresentation);
@@ -106,8 +106,8 @@ public final class GemDefinition {
         return stats;
     }
 
-    public Map<String, Double> eaAttributes() {
-        return eaAttributes;
+    public Map<String, Double> attributes() {
+        return attributes;
     }
 
     public List<String> skillIds() {
@@ -164,9 +164,9 @@ public final class GemDefinition {
         return upgradeLevel == null || upgradeLevel.stats().isEmpty() ? stats : upgradeLevel.stats();
     }
 
-    public Map<String, Double> eaAttributesForLevel(int level) {
+    public Map<String, Double> attributesForLevel(int level) {
         GemUpgradeLevel upgradeLevel = upgrade.level(level);
-        return upgradeLevel == null || upgradeLevel.eaAttributes().isEmpty() ? eaAttributes : upgradeLevel.eaAttributes();
+        return upgradeLevel == null || upgradeLevel.attributes().isEmpty() ? attributes : upgradeLevel.attributes();
     }
 
     public List<String> skillIdsForLevel(int level) {
@@ -210,7 +210,7 @@ public final class GemDefinition {
                 itemSource,
                 Numbers.tryParseInt(section.get("custom_model_data"), null),
                 parseStatMap(section.getSection("stats")),
-                parseStatMap(section.getSection("ea_attributes")),
+                parseStatMap(section.getSection("attributes")),
                 parseSkillEffects(section.getMapList("effects")),
                 socketCompatibility,
                 section.get("structured_presentation"),
@@ -527,7 +527,7 @@ public final class GemDefinition {
     public record GemUpgradeLevel(int targetLevel,
             String displayName,
             Map<String, Double> stats,
-            Map<String, Double> eaAttributes,
+            Map<String, Double> attributes,
             List<String> skillIds,
             Object structuredPresentation,
             double successChance,
@@ -541,7 +541,7 @@ public final class GemDefinition {
             targetLevel = Math.max(2, targetLevel);
             displayName = Texts.toStringSafe(displayName);
             stats = stats == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(stats));
-            eaAttributes = eaAttributes == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(eaAttributes));
+            attributes = attributes == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(attributes));
             skillIds = normalizeSkillIds(skillIds);
             structuredPresentation = ConfigNodes.toPlainData(structuredPresentation);
             successChance = successChance < 0D ? -1D : Math.max(0D, Math.min(100D, successChance));
@@ -581,7 +581,7 @@ public final class GemDefinition {
                     targetLevel,
                     section.getString("display_name", ""),
                     parseStatMap(section.getSection("stats")),
-                    parseStatMap(section.getSection("ea_attributes")),
+                    parseStatMap(section.getSection("attributes")),
                     parseSkillEffects(section.getMapList("effects")),
                     section.get("structured_presentation"),
                     successChance,
