@@ -5,7 +5,6 @@ import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
 public final class BlueprintRequirement {
 
@@ -21,13 +20,6 @@ public final class BlueprintRequirement {
 
     public static BlueprintRequirement fromConfig(Object raw) {
         if (raw == null) {
-            return null;
-        }
-        if (raw instanceof YamlSection section
-                && (section.contains("requirement_mode") || section.contains("blueprint_options"))) {
-            return null;
-        }
-        if (ConfigNodes.get(raw, "requirement_mode") != null || ConfigNodes.get(raw, "blueprint_options") != null) {
             return null;
         }
         String item = ConfigNodes.string(raw, "item", null);

@@ -33,6 +33,13 @@ public final class AdventureSupport {
         sender.sendMessage(sender instanceof Player ? MiniMessages.legacy(component) : MiniMessages.plain(component));
     }
 
+    public static void sendMiniMessage(Plugin plugin, CommandSender sender, String text) {
+        if (plugin == null || sender == null || Texts.isBlank(text)) {
+            return;
+        }
+        sendMessage(plugin, sender, MiniMessages.parse(text));
+    }
+
     public static void broadcast(Plugin plugin, Component component) {
         if (plugin == null || component == null) {
             return;
@@ -53,6 +60,13 @@ public final class AdventureSupport {
         } catch (Exception ignored) {
         }
         player.sendMessage(MiniMessages.legacy(component));
+    }
+
+    public static void sendActionBar(Plugin plugin, Player player, String miniMessageText) {
+        if (plugin == null || player == null || Texts.isBlank(miniMessageText)) {
+            return;
+        }
+        sendActionBar(plugin, player, MiniMessages.parse(miniMessageText));
     }
 
     public static void showTitle(Plugin plugin, Player player, Title title) {

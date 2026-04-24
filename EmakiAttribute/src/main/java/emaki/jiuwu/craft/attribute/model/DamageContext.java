@@ -1,6 +1,5 @@
 package emaki.jiuwu.craft.attribute.model;
 
-import java.util.Locale;
 import java.util.Map;
 
 import org.bukkit.entity.LivingEntity;
@@ -21,7 +20,7 @@ public record DamageContext(LivingEntity attacker,
         DamageContextVariables variables) {
 
     public DamageContext          {
-        damageTypeId = normalizeId(damageTypeId);
+        damageTypeId = Texts.normalizeId(damageTypeId);
         sourceDamage = Math.max(0D, sourceDamage);
         baseDamage = Math.max(0D, baseDamage);
         attackerSnapshot = attackerSnapshot == null ? AttributeSnapshot.empty("") : attackerSnapshot;
@@ -29,20 +28,43 @@ public record DamageContext(LivingEntity attacker,
         variables = variables == null ? DamageContextVariables.empty() : variables;
     }
 
-    public static DamageContext legacy(String damageTypeId,
+    public static DamageContext empty() {
+        return new DamageContext(
+                null,
+                null,
+                null,
+                null,
+                "",
+                0D,
+                0D,
+                AttributeSnapshot.empty(""),
+                AttributeSnapshot.empty(""),
+                DamageContextVariables.empty()
+        );
+    }
+
+    public static DamageContext of(LivingEntity attacker,
+            LivingEntity target,
+            Projectile projectile,
+            EntityDamageEvent.DamageCause cause,
+            String damageTypeId,
             double baseDamage,
             AttributeSnapshot attackerSnapshot,
             AttributeSnapshot targetSnapshot,
             Map<String, ?> variables) {
-        return new DamageContext(null, null, null, null, damageTypeId, baseDamage, baseDamage, attackerSnapshot, targetSnapshot, DamageContextVariables.from(variables));
+        return new DamageContext(attacker, target, projectile, cause, damageTypeId, baseDamage, baseDamage, attackerSnapshot, targetSnapshot, DamageContextVariables.from(variables));
     }
 
-    public static DamageContext legacy(String damageTypeId,
+    public static DamageContext of(LivingEntity attacker,
+            LivingEntity target,
+            Projectile projectile,
+            EntityDamageEvent.DamageCause cause,
+            String damageTypeId,
             double baseDamage,
             AttributeSnapshot attackerSnapshot,
             AttributeSnapshot targetSnapshot,
             DamageContextVariables variables) {
-        return new DamageContext(null, null, null, null, damageTypeId, baseDamage, baseDamage, attackerSnapshot, targetSnapshot, variables);
+        return new DamageContext(attacker, target, projectile, cause, damageTypeId, baseDamage, baseDamage, attackerSnapshot, targetSnapshot, variables);
     }
 
     public static DamageContext of(LivingEntity attacker,
@@ -80,7 +102,7 @@ public record DamageContext(LivingEntity attacker,
     }
 
     public String causeId() {
-        return cause == null ? "" : normalizeId(cause.name());
+        return cause == null ? "" : Texts.normalizeId(cause.name());
     }
 
     public String causeName() {
@@ -114,8 +136,5 @@ public record DamageContext(LivingEntity attacker,
     public DamageContext withVariables(DamageContextVariables newVariables) {
         return new DamageContext(attacker, target, projectile, cause, damageTypeId, sourceDamage, baseDamage, attackerSnapshot, targetSnapshot, newVariables);
     }
-
-    private static String normalizeId(String value) {
-        return Texts.toStringSafe(value).trim().toLowerCase(Locale.ROOT).replace(' ', '_');
-    }
 }
+

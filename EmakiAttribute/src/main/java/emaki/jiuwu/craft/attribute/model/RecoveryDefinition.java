@@ -57,7 +57,7 @@ public record RecoveryDefinition(DamageStageSource source,
                 continue;
             }
             String resolved = attributeNormalizer == null ? id : attributeNormalizer.apply(id);
-            String normalizedId = normalizeId(resolved);
+            String normalizedId = Texts.normalizeId(resolved);
             if (!normalizedId.isBlank()) {
                 normalized.add(normalizedId);
             }
@@ -75,8 +75,5 @@ public record RecoveryDefinition(DamageStageSource source,
             return defaultValue;
         }
     }
-
-    private static String normalizeId(String value) {
-        return Texts.toStringSafe(value).trim().toLowerCase(Locale.ROOT).replace(' ', '_');
-    }
 }
+

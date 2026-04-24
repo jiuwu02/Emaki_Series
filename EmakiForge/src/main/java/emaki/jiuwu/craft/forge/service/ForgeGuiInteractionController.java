@@ -132,15 +132,14 @@ final class ForgeGuiInteractionController {
             renderer.refreshGui(state);
             return;
         }
+        if (event.isShiftClick()) {
+            return;
+        }
         ItemStack removed = ForgeGuiStateSupport.cloneNonAir(items.remove(slot));
         if (removed == null) {
             return;
         }
-        if (event.isShiftClick()) {
-            stateSupport.giveBackToPlayer(player, removed);
-        } else {
-            setHeldItem(player, event, removed);
-        }
+        setHeldItem(player, event, removed);
         renderer.refreshGui(state);
     }
 
@@ -231,7 +230,7 @@ final class ForgeGuiInteractionController {
             );
         }
         if (firstCraft) {
-            plugin.messageService().sendRaw(state.player(), "<green>首次完成该配方锻造!</green>");
+            plugin.messageService().send(state.player(), "forge.success.first_craft");
         }
     }
 
@@ -320,9 +319,11 @@ final class ForgeGuiInteractionController {
     }
 
     private String materialKey(ItemSource source) {
-        return source == null || plugin.forgeService() == null || plugin.forgeService().findMaterialBySource(source) == null
-                ? ""
-                : plugin.forgeService().findMaterialBySource(source).key();
+        if (source == null || plugin.forgeService() == null) {
+            return "";
+        }
+        var material = plugin.forgeService().findMaterialBySource(source);
+        return material == null ? "" : material.key();
     }
 
     private boolean isUnsupportedKeyboardClick(InventoryClickEvent event) {
@@ -367,16 +368,6 @@ final class ForgeGuiInteractionController {
         player.setItemOnCursor(ForgeGuiStateSupport.cloneNonAir(itemStack));
     }
 
-    private boolean shouldBlockPlayerInventoryTransfer(InventoryClickEvent event) {
-        if (event == null) {
-            return false;
-        }
-        return event.isShiftClick()
-                || event.getAction() == InventoryAction.MOVE_TO_OTHER_INVENTORY
-                || event.getAction() == InventoryAction.COLLECT_TO_CURSOR
-                || event.getClick() == ClickType.DOUBLE_CLICK;
-    }
-
     private final class ForgeSessionHandler implements GuiSessionHandler {
 
         private final ForgeGuiSession state;
@@ -414,7 +405,7 @@ final class ForgeGuiInteractionController {
                 event.setCancelled(true);
                 return;
             }
-            if (!shouldBlockPlayerInventoryTransfer(event)) {
+            if (!GuiSessionHandler.isBlockedTransfer(event)) {
                 return;
             }
             event.setCancelled(true);
@@ -436,9 +427,18 @@ final class ForgeGuiInteractionController {
             if (state.processing()) {
                 return;
             }
+            ItemStack cursorItem = event != null && event.getPlayer() != null
+                    ? ForgeGuiStateSupport.cloneNonAir(event.getPlayer().getItemOnCursor())
+                    : null;
+            if (cursorItem != null) {
+                event.getPlayer().setItemOnCursor(null);
+            }
             stateManager.remove(state);
             if (!state.forgeCompleted()) {
                 stateSupport.returnItems(state);
+            }
+            if (cursorItem != null) {
+                stateSupport.giveBackToPlayer(state.player(), cursorItem);
             }
         }
     }

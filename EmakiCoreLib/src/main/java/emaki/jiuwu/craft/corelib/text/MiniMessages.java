@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.corelib.text;
 
+import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
@@ -74,6 +75,45 @@ public final class MiniMessages {
         } catch (Exception ignored) {
             return plain(component);
         }
+    }
+
+    public static String toMiniMessage(Object value) {
+        if (value instanceof Component component) {
+            return serialize(component);
+        }
+        return Texts.toStringSafe(value);
+    }
+
+    public static String plainText(String text) {
+        if (Texts.isBlank(text)) {
+            return "";
+        }
+        return plain(read(text));
+    }
+
+    public static String plainText(Object value) {
+        if (value instanceof Component component) {
+            return plain(component);
+        }
+        return plainText(Texts.toStringSafe(value));
+    }
+
+    public static String escape(String text) {
+        if (Texts.isBlank(text)) {
+            return "";
+        }
+        return MINI_MESSAGE.escapeTags(Texts.toStringSafe(text));
+    }
+
+    public static String withHoverText(String content, String hoverText) {
+        if (Texts.isBlank(content)) {
+            return "";
+        }
+        Component rendered = parse(content);
+        if (Texts.isBlank(hoverText)) {
+            return serialize(rendered);
+        }
+        return serialize(rendered.hoverEvent(HoverEvent.showText(parse(hoverText))));
     }
 
     public static MiniMessage miniMessage() {

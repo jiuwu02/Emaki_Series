@@ -1,38 +1,12 @@
-# ========================================
-# EmakiAttribute PDC 读取条件规则 - 锻造源
-# ========================================
-# 本文件定义了从 PDC 读取 "forge" 源属性时的条件过滤规则。
-# 当 EmakiAttribute 从物品的 PDC 中读取 source_id 为 "forge" 的属性时，
-# 会检查此条件规则。只有条件全部通过，该源的属性值才会被纳入属性快照。
-# ========================================
-
-# 是否启用此条件规则
-# 设为 false 时，forge 源的所有属性无条件通过
 enabled: true
 
-# 源标识符，必须与 PdcAttributePayload.sourceId() 精确匹配
 source_id: "forge"
 
-# 条件类型：
-#   all_of  - 所有条件必须全部满足
-#   any_of  - 至少满足 required_count 个条件
-#   none_of - 所有条件都不满足时通过
 condition_type: "all_of"
 
-# 当条件表达式中的占位符无法解析时，是否视为条件不通过
-# 设为 true 更安全，防止因占位符解析失败而意外放行
 invalid_as_failure: true
 
-# 自由检查项列表
-# 常见用法：
-#   pdc_meta      - 读取 payload.meta[key]
-#   pdc_attribute - 读取 payload.attributes[key]
-#   lore_regex    - 对 Lore 纯文本逐行做正则匹配
-# 条件表达式支持：
-#   %value% - 当前检查项取得的值
-#   $1..$n  - 正则捕获组
-#   %player_xxx% - PlaceholderAPI / 内置玩家占位符
-checks:
+conditions:
   - type: pdc_meta
     key: required_level
     condition: "%value% <= %player_level%"

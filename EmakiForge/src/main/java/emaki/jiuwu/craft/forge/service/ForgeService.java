@@ -16,7 +16,6 @@ import emaki.jiuwu.craft.corelib.action.ActionExecutor;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
-import emaki.jiuwu.craft.corelib.assembly.ItemPresentationCompiler;
 import emaki.jiuwu.craft.corelib.cache.CacheManager;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
@@ -74,14 +73,13 @@ public final class ForgeService {
             AsyncTaskScheduler asyncTaskScheduler,
             PerformanceMonitor performanceMonitor,
             EmakiItemAssemblyService itemAssemblyService,
-            ItemPresentationCompiler itemPresentationCompiler,
             Supplier<ActionExecutor> actionExecutorSupplier) {
         this.plugin = plugin;
         this.asyncTaskScheduler = asyncTaskScheduler;
         this.performanceMonitor = performanceMonitor;
         this.itemAssemblyService = itemAssemblyService;
-        this.layerSnapshotBuilder = new ForgeLayerSnapshotBuilder(plugin, itemPresentationCompiler);
-        this.resultItemFactory = new ForgeResultItemFactory(plugin, itemPresentationCompiler);
+        this.layerSnapshotBuilder = new ForgeLayerSnapshotBuilder(plugin);
+        this.resultItemFactory = new ForgeResultItemFactory(plugin);
         this.pdcAttributeWriter = new ForgePdcAttributeWriter(plugin);
         this.actionCoordinator = new ForgeActionCoordinator(plugin, resultItemFactory, actionExecutorSupplier);
         this.lookupIndex = new ForgeLookupIndex(plugin);
@@ -117,7 +115,17 @@ public final class ForgeService {
                 (player, recipe, guiItems, preparedForge) -> preparedForge == null
                         ? prepareForge(player, recipe, guiItems, 0L, System.currentTimeMillis())
                         : preparedForge,
-                (player, request) -> itemAssemblyService == null ? null : itemAssemblyService.give(player, request),
+                new ForgeExecutionService.ResultItemGiver() {
+                    @Override
+                    public ItemStack give(Player player, EmakiItemAssemblyRequest request) {
+                        return itemAssemblyService == null ? null : itemAssemblyService.give(player, request);
+                    }
+
+                    @Override
+                    public ItemStack preview(EmakiItemAssemblyRequest request) {
+                        return itemAssemblyService == null ? null : itemAssemblyService.preview(request);
+                    }
+                },
                 (playerId, recipeId) -> plugin.playerDataStore().recordCraft(playerId, recipeId),
                 this::applyPdcAttributes
         );
@@ -150,16 +158,16 @@ public final class ForgeService {
 
     private List<Recipe> candidateRecipes(GuiItems guiItems) {
         List<Recipe> candidates = new ArrayList<>(lookupIndex.genericRecipes());
-        ItemSource targetSource = guiItems == null || guiItems.targetItem() == null
+        ItemSource inputSource = guiItems == null || guiItems.targetItem() == null
                 ? null
                 : plugin.itemIdentifierService().identifyItem(guiItems.targetItem());
-        if (targetSource == null) {
+        if (inputSource == null) {
             if (candidates.isEmpty()) {
                 return lookupIndex.sortedRecipes();
             }
             return List.copyOf(candidates);
         }
-        candidates.addAll(lookupIndex.findRecipesByTargetSource(targetSource));
+        candidates.addAll(lookupIndex.findRecipesByConfiguredOutputSource(inputSource));
         return candidates.isEmpty() ? List.of() : List.copyOf(candidates);
     }
 
@@ -186,7 +194,7 @@ public final class ForgeService {
             }
         }
         if (recipe.requiresTargetInput()) {
-            if (guiItems.targetItem() == null) {
+            if (guiItems == null || guiItems.targetItem() == null) {
                 return ValidationResult.fail("forge.error.no_target_item");
             }
         }

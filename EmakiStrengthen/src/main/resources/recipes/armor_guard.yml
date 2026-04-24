@@ -1,22 +1,9 @@
-# ========================================
-# EmakiStrengthen 强化配方 - 防具强化
-# ========================================
-# 防具的强化路径，提供三防（物理/投射物/法术防御）、
-# 生命值、生命回复和闪避率加成。
-# ========================================
-
-# 配方 ID
 id: "armor_guard"
 
-# 配方显示名称
 display_name: "<yellow>防具强化</yellow>"
 
-# GUI 模板
 gui_template: "strengthen_gui"
 
-# ========================================
-# 经济系统配置
-# ========================================
 economy:
   enabled: true
   currencies:
@@ -26,18 +13,12 @@ economy:
       cost_formula: "{base_cost} * {star}"
       display_name: "<gold>金币</gold>"
 
-# ========================================
-# 强化上限与概率配置
-# ========================================
 limits:
   max_star: 12
   max_temper: 4
   temper_chance_bonus_per_level: 5.0
   success_chance_cap: 90.0
 
-# ========================================
-# 每星级成功率配置
-# ========================================
 success_rates:
   1: 100.0
   2: 100.0
@@ -52,48 +33,36 @@ success_rates:
   11: 8.0
   12: 4.0
 
-# ========================================
-# 物品匹配规则
-# ========================================
-# 防具通过装备槽位组匹配
 match:
   slot_groups:
     - "armor"
 
-# ========================================
-# 属性行定义
-# ========================================
 stat_lines:
   physical_defense:
     template: "<gray>物理防御: <gold>{sign}{value}</gold></gray>"
-    lore_operations:
-      - type: "lore_search_insert"
-        anchor: "强化等级"
-        position: "below"
+    section_id: "strengthen.stats.primary"
+    section_order: 210
   projectile_defense:
     template: "<gray>投射物防御: <gold>{sign}{value}</gold></gray>"
-    lore_operations:
-      - type: "lore_append"
+    section_id: "strengthen.stats.secondary"
+    section_order: 240
   spell_defense:
     template: "<gray>法术防御: <gold>{sign}{value}</gold></gray>"
-    lore_operations:
-      - type: "lore_append"
+    section_id: "strengthen.stats.secondary"
+    section_order: 240
   health:
     template: "<gray>生命值: <gold>{sign}{value}</gold></gray>"
-    lore_operations:
-      - type: "lore_append"
+    section_id: "strengthen.stats.secondary"
+    section_order: 240
   health_regen:
     template: "<gray>生命回复: <gold>{sign}{value}</gold></gray>"
-    lore_operations:
-      - type: "lore_append"
+    section_id: "strengthen.stats.secondary"
+    section_order: 240
   dodge_chance:
     template: "<gray>闪避率: <gold>{sign}{value}</gold></gray>"
-    lore_operations:
-      - type: "lore_append"
+    section_id: "strengthen.stats.secondary"
+    section_order: 240
 
-# ========================================
-# 星级定义
-# ========================================
 stars:
   1:
     stats:
@@ -155,7 +124,6 @@ stars:
         amount: -1
         optional: true
         protection: true
-  # +5 里程碑：解锁生命值
   5:
     name: "<yellow>生命值提升</yellow>"
     stats:
@@ -177,10 +145,14 @@ stars:
         amount: -1
         optional: true
         protection: true
-    presentation:
-      - "<gray>强化达到 +5 后，防具会额外提供生命值。</gray>"
+    structured_presentation:
+      lore_sections:
+        - section_id: "strengthen.effects"
+          order: 230
+          lines:
+            - "<gray>强化达到 +5 后，防具会额外提供生命值。</gray>"
     success_actions:
-      - 'sendmessage text="<yellow>强化达到 +5，解锁额外生命值。</yellow>"'
+      - "sendmessage text=\"<yellow>强化达到 +5，解锁额外生命值。</yellow>\""
   6:
     stats:
       physical_defense: 3.5
@@ -217,7 +189,6 @@ stars:
         amount: -1
         optional: true
         protection: true
-  # +8 里程碑：额外生命值
   8:
     name: "<yellow>额外生命值</yellow>"
     stats:
@@ -241,10 +212,15 @@ stars:
         amount: -1
         optional: true
         protection: true
-    presentation:
-      - "<gray>强化达到 +8 后，防具会继续提升生命值。</gray>"
+    structured_presentation:
+      lore_sections:
+        - section_id: "strengthen.effects"
+          order: 230
+          lines:
+            - "<gray>强化达到 +8 后，防具会继续提升生命值。</gray>"
     success_actions:
-      - 'sendtitle title="<yellow><bold>+8 生命值提升</bold></yellow>" subtitle="<white>额外生命值已解锁</white>"'
+      - "sendtitle title=\"<yellow><bold>+8 生命值提升</bold></yellow>\"
+        subtitle=\"<white>额外生命值已解锁</white>\""
   9:
     stats:
       physical_defense: 5
@@ -265,7 +241,6 @@ stars:
         amount: -1
         optional: true
         protection: true
-  # +10 里程碑：解锁生命回复
   10:
     name: "<yellow>生命回复提升</yellow>"
     stats:
@@ -289,10 +264,15 @@ stars:
         amount: -1
         optional: true
         protection: true
-    presentation:
-      - "<gray>强化达到 +10 后，防具会额外提供生命回复。</gray>"
+    structured_presentation:
+      lore_sections:
+        - section_id: "strengthen.effects"
+          order: 230
+          lines:
+            - "<gray>强化达到 +10 后，防具会额外提供生命回复。</gray>"
     success_actions:
-      - 'sendtitle title="<yellow><bold>+10 生命回复提升</bold></yellow>" subtitle="<white>生命回复已解锁</white>"'
+      - "sendtitle title=\"<yellow><bold>+10 生命回复提升</bold></yellow>\"
+        subtitle=\"<white>生命回复已解锁</white>\""
   11:
     stats:
       physical_defense: 7
@@ -313,7 +293,6 @@ stars:
         amount: -1
         optional: true
         protection: true
-  # +12 满星里程碑：解锁闪避率
   12:
     name: "<yellow>闪避提升</yellow>"
     stats:
@@ -341,22 +320,28 @@ stars:
         amount: -1
         optional: true
         temper_boost: 1
-    presentation:
-      - "<gray>强化达到 +12 后，防具会额外提供闪避率。</gray>"
+    structured_presentation:
+      lore_sections:
+        - section_id: "strengthen.effects"
+          order: 230
+          lines:
+            - "<gray>强化达到 +12 后，防具会额外提供闪避率。</gray>"
     success_actions:
-      - 'sendtitle title="<yellow><bold>+12 闪避提升</bold></yellow>" subtitle="<white>闪避率已解锁</white>"'
+      - "sendtitle title=\"<yellow><bold>+12 闪避提升</bold></yellow>\"
+        subtitle=\"<white>闪避率已解锁</white>\""
 
-# ========================================
-# 展示配置
-# ========================================
-presentation:
-  name_operations:
-    - type: "name_regex_replace"
-      pattern: "^(.*?)\\s*\\[\\+(\\d+)\\]\\s*$"
-      replacement: "$1 [+{star}]"
-    - type: "name_append"
-      value: " [+{star}]"
-      condition: "if_unchanged"
-  lore_prepend:
-    - "<gradient:#F2C46D:#C9703D>强化等级 +{star}</gradient>"
-    - "<gray>锻印: {temper_color}{temper}/{max_temper}</gray>"
+structured_presentation:
+  name_contributions:
+    - slot_id: "strengthen.badge"
+      position: "POSTFIX"
+      order: 200
+      content_template: " [+{star}]"
+  lore_sections:
+    - section_id: "strengthen.header.primary"
+      order: 200
+      lines:
+        - "<gradient:#F2C46D:#C9703D>强化等级 +{star}</gradient>"
+    - section_id: "strengthen.header.secondary"
+      order: 220
+      lines:
+        - "<gray>锻印: {temper_color}{temper}/{max_temper}</gray>"

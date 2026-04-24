@@ -15,8 +15,8 @@ import org.bukkit.inventory.PlayerInventory;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerSnapshot;
-import emaki.jiuwu.craft.corelib.assembly.ItemPresentationCompiler;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.item.PlayerItemRefreshService;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
@@ -24,7 +24,7 @@ import emaki.jiuwu.craft.forge.model.ForgeMaterial;
 import emaki.jiuwu.craft.forge.model.QualitySettings;
 import emaki.jiuwu.craft.forge.model.Recipe;
 
-public final class ForgeItemRefreshService {
+public final class ForgeItemRefreshService implements PlayerItemRefreshService {
 
     private final EmakiForgePlugin plugin;
     private final EmakiItemAssemblyService itemAssemblyService;
@@ -33,12 +33,10 @@ public final class ForgeItemRefreshService {
     private final ForgeQualityModifierResolver qualityModifierResolver = new ForgeQualityModifierResolver();
     private final Set<String> warningCache = new LinkedHashSet<>();
 
-    public ForgeItemRefreshService(EmakiForgePlugin plugin,
-            EmakiItemAssemblyService itemAssemblyService,
-            ItemPresentationCompiler itemPresentationCompiler) {
+    public ForgeItemRefreshService(EmakiForgePlugin plugin, EmakiItemAssemblyService itemAssemblyService) {
         this.plugin = plugin;
         this.itemAssemblyService = itemAssemblyService;
-        this.snapshotBuilder = new ForgeLayerSnapshotBuilder(plugin, itemPresentationCompiler);
+        this.snapshotBuilder = new ForgeLayerSnapshotBuilder(plugin);
         this.pdcAttributeWriter = new ForgePdcAttributeWriter(plugin);
     }
 
@@ -55,6 +53,7 @@ public final class ForgeItemRefreshService {
         }
     }
 
+    @Override
     public void refreshPlayerInventory(Player player) {
         if (player == null || !player.isOnline()) {
             return;
@@ -82,6 +81,7 @@ public final class ForgeItemRefreshService {
         }
     }
 
+    @Override
     public void refreshDroppedItem(Item itemEntity) {
         if (itemEntity == null || !itemEntity.isValid()) {
             return;
@@ -246,7 +246,7 @@ public final class ForgeItemRefreshService {
 
     private String snapshotIdentity(Map<String, Object> audit) {
         String signature = audit == null ? "" : Texts.toStringSafe(audit.get("materials_signature"));
-        return Texts.isBlank(signature) ? "legacy" : signature;
+        return Texts.isBlank(signature) ? "unknown" : signature;
     }
 
     private void warnOnce(String cacheKey, String messageKey, Map<String, ?> replacements) {

@@ -8,6 +8,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.gui.GuiSession;
+import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 import emaki.jiuwu.craft.strengthen.model.AttemptContext;
 import emaki.jiuwu.craft.strengthen.model.AttemptPreview;
 
@@ -114,9 +115,6 @@ final class StrengthenGuiSession {
     }
 
     static ItemStack cloneNonAir(ItemStack itemStack) {
-        if (itemStack == null || itemStack.getType().isAir()) {
-            return null;
-        }
-        return itemStack.clone();
+        return InventoryItemUtil.cloneNonAir(itemStack);
     }
 }

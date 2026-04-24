@@ -1,4 +1,4 @@
-lang_version: "3.0.0"
+lang_version: "3.2.0"
 general:
   prefix: "<gray>[ <gradient:#66D9EF:#7B7BFF>EmakiAttribute</gradient> ]</gray>"
 
@@ -8,13 +8,26 @@ console:
   config_load_failed: "<red>配置读取失败: {error}</red>"
   reload_stage_failed: "<yellow>重载阶段 {stage} 失败: <red>{error}</red></yellow>"
   vanilla_attribute_resolve_failed: "<yellow>无法解析原版属性映射: <red>{attribute}</red> -> <red>{target}</red></yellow>"
-  attribute_key_contains_conflict: "<yellow>[属性注册] 检测到词条关键字包含冲突: <aqua>{lower_display_name}</aqua> (<white>{lower_id}</white>, 优先级 {lower_priority}) 的关键字 <white>{lower_key}</white> 包含了 <aqua>{higher_display_name}</aqua> (<white>{higher_id}</white>, 优先级 {higher_priority}) 的关键字 <white>{higher_key}</white>。这会因为优先级较低导致读取失效，请提高优先级或修改 display_name。</yellow>"
+  attribute_key_contains_conflict: "<yellow>[属性注册] 检测到词条关键字包含冲突:
+    <aqua>{lower_display_name}</aqua> (<white>{lower_id}</white>, 优先级
+    {lower_priority}) 的关键字 <white>{lower_key}</white> 包含了
+    <aqua>{higher_display_name}</aqua> (<white>{higher_id}</white>, 优先级
+    {higher_priority}) 的关键字
+    <white>{higher_key}</white>。这会因为优先级较低导致读取失效，请提高优先级或修改
+    display_name。</yellow>"
   mmoitems_bridge_unavailable: "<yellow>MMOItems 属性映射桥初始化失败: <red>{error}</red></yellow>"
-  mmoitems_stat_resolve_failed: "<yellow>MMOItems 属性映射无法解析统计项: 属性 <aqua>{attribute}</aqua> -> <red>{stat}</red></yellow>"
-  mmoitems_stat_read_failed: "<yellow>MMOItems 属性映射读取失败: 属性 <aqua>{attribute}</aqua> -> <red>{stat}</red> (<red>{error}</red>)</yellow>"
+  mmoitems_stat_resolve_failed: "<yellow>MMOItems 属性映射无法解析统计项: 属性
+    <aqua>{attribute}</aqua> -> <red>{stat}</red></yellow>"
+  mmoitems_stat_read_failed: "<yellow>MMOItems 属性映射读取失败: 属性
+    <aqua>{attribute}</aqua> -> <red>{stat}</red> (<red>{error}</red>)</yellow>"
   attribute_registry_empty: "<yellow>[属性注册] 未加载到任何属性定义。</yellow>"
   attribute_registry_summary: "<green>[属性注册] 已加载 {count} 项属性定义。</green>"
-  attribute_registry_entry: "<gray>[属性注册]</gray> <white>{index}</white> <dark_gray>|</dark_gray> <aqua>{display_name}</aqua> <dark_gray>(</dark_gray><white>{id}</white><dark_gray>)</dark_gray> <dark_gray>|</dark_gray> <gray>默认值</gray> <yellow>{default_value}</yellow> <dark_gray>|</dark_gray> <gray>战力系数</gray> <light_purple>{attribute_power}</light_purple>"
+  attribute_registry_entry: "<gray>[属性注册]</gray> <white>{index}</white>
+    <dark_gray>|</dark_gray> <aqua>{display_name}</aqua>
+    <dark_gray>(</dark_gray><white>{id}</white><dark_gray>)</dark_gray>
+    <dark_gray>|</dark_gray> <gray>默认值</gray> <yellow>{default_value}</yellow>
+    <dark_gray>|</dark_gray> <gray>战力系数</gray>
+    <light_purple>{attribute_power}</light_purple>"
 
 loader:
   lang_directory_create_failed: "<red>无法创建语言目录: {path}</red>"
@@ -28,6 +41,7 @@ loader:
   schema_invalid_section: "<red>{type}文件 {file} 的 {field} 结构无效。</red>"
   schema_invalid_enum: "<red>{type}文件 {file} 的 {field} 枚举值无效。</red>"
   schema_invalid_number: "<red>{type}文件 {file} 的 {field} 不是有效数字。</red>"
+  schema_unsupported_field: "<red>{type}文件 {file} 仍包含当前版本不支持的 {field} 字段。</red>"
   invalid_blank_id: "<red>{type}文件 {file} 的 ID 为空。</red>"
   duplicate_id: "<red>{type}文件 {file} 的 ID 重复: {id}。</red>"
   invalid_lore_pattern: "<red>{attribute} 的词条正则无效: {pattern} ({error})</red>"
@@ -79,30 +93,48 @@ damage:
     sonic_boom: "音爆"
 
 combat_debug:
-  projectile_snapshot_write: "投射物快照已写入: projectile={projectile}, shooter={shooter}, damageType={damage_type}, signature={signature}, snapshot={snapshot}"
+  projectile_snapshot_write: "投射物快照已写入: projectile={projectile},
+    shooter={shooter}, damageType={damage_type}, signature={signature},
+    snapshot={snapshot}"
   projectile_snapshot_missing_apply: "applyProjectileDamage 读取不到投射物快照，已中止结算: projectile={projectile}"
   resolve_skipped: "目标无效或已死亡，EA 伤害解析已跳过。"
-  resolve_begin_sync: "开始解析 EA 伤害: {context} | attackerSnapshot={attacker_snapshot} | targetSnapshot={target_snapshot}"
-  resolve_begin_async: "开始异步解析 EA 伤害: {context} | attackerSnapshot={attacker_snapshot} | targetSnapshot={target_snapshot}"
+  resolve_begin_sync: "开始解析 EA 伤害: {context} |
+    attackerSnapshot={attacker_snapshot} | targetSnapshot={target_snapshot}"
+  resolve_begin_async: "开始异步解析 EA 伤害: {context} |
+    attackerSnapshot={attacker_snapshot} | targetSnapshot={target_snapshot}"
   apply_skipped: "目标无效或已死亡，EA 伤害落地已跳过。"
-  apply_begin: "准备落地 EA 伤害: finalDamage={final_damage}, alreadyApplied={already_applied}, remaining={remaining}, targetHealthBefore={target_health_before}, targetAbsorptionBefore={target_absorption_before}, visualSource={visual_source}"
-  apply_done: "EA 伤害已落地: targetHealthAfter={target_health_after}, targetAbsorptionAfter={target_absorption_after}, attackerCooldownTicks={attacker_cooldown_ticks}"
+  apply_begin: "准备落地 EA 伤害: finalDamage={final_damage},
+    alreadyApplied={already_applied}, remaining={remaining},
+    targetHealthBefore={target_health_before},
+    targetAbsorptionBefore={target_absorption_before},
+    visualSource={visual_source}"
+  apply_done: "EA 伤害已落地: targetHealthAfter={target_health_after},
+    targetAbsorptionAfter={target_absorption_after},
+    attackerCooldownTicks={attacker_cooldown_ticks}"
   dodge_triggered: "目标闪避了本次 EA 伤害: dodgeChance={dodge_chance}, dodgeRoll={dodge_roll}"
   event_result_empty: "EA 伤害结果为空，已跳过后续事件与落地。"
-  calc_result: "伤害计算完成: damageType={damage_type}, finalDamage={final_damage}, critical={critical}, roll={roll}, stages={stages}"
-  event_blocked: "EmakiAttributeDamageEvent 未通过: cancelled={cancelled}, finalDamage={final_damage}"
-  event_passed: "EmakiAttributeDamageEvent 已通过: finalDamage={final_damage}, resolvedDamageType={resolved_damage_type}"
-  mythic_on_damaged_blocked: "synthetic onDamaged 事件阻止了本次 EA 伤害: cancelled={cancelled}, finalDamage={final_damage}"
+  calc_result: "伤害计算完成: damageType={damage_type}, finalDamage={final_damage},
+    critical={critical}, roll={roll}, stages={stages}"
+  event_blocked: "EmakiAttributeDamageEvent 未通过: cancelled={cancelled},
+    finalDamage={final_damage}"
+  event_passed: "EmakiAttributeDamageEvent 已通过: finalDamage={final_damage},
+    resolvedDamageType={resolved_damage_type}"
+  mythic_on_damaged_blocked: "synthetic onDamaged 事件阻止了本次 EA 伤害:
+    cancelled={cancelled}, finalDamage={final_damage}"
   mythic_on_damaged_adjusted: "synthetic onDamaged 调整了最终伤害: before={before}, after={after}"
   projectile_launch_blocked: "投射物发射被攻击冷却拦截: shooter={shooter}"
-  projectile_launch_snapshot_written: "投射物已写入快照: projectile={projectile}, damageType={damage_type}, signature={signature}"
+  projectile_launch_snapshot_written: "投射物已写入快照: projectile={projectile},
+    damageType={damage_type}, signature={signature}"
   synthetic_damage_bypass_entity: "已放行 synthetic 伤害事件，避免 EA 二次接管。"
-  projectile_hit_intercept: "拦截原版投射物伤害: shooter={shooter}, projectile={projectile}, target={target}, cause={cause}, vanillaDamage={vanilla_damage}, vanillaFinal={vanilla_final}"
+  projectile_hit_intercept: "拦截原版投射物伤害: shooter={shooter},
+    projectile={projectile}, target={target}, cause={cause},
+    vanillaDamage={vanilla_damage}, vanillaFinal={vanilla_final}"
   projectile_hit_blocked: "投射物命中被攻击冷却拦截: shooter={shooter}"
   projectile_resolve_empty: "投射物命中没有得到有效的 EA 伤害结果，命中流程到此结束。"
   projectile_resolved: "投射物命中已解析 EA 伤害: {resolved}"
   projectile_apply: "开始执行下一 tick 的投射物 EA 伤害落地。"
-  melee_hit_intercept: "拦截原版近战伤害: attacker={attacker}, target={target}, cause={cause}, vanillaDamage={vanilla_damage}, vanillaFinal={vanilla_final}"
+  melee_hit_intercept: "拦截原版近战伤害: attacker={attacker}, target={target},
+    cause={cause}, vanillaDamage={vanilla_damage}, vanillaFinal={vanilla_final}"
   melee_hit_blocked: "近战命中被攻击冷却拦截: attacker={attacker}"
   melee_resolve_empty: "近战命中没有得到有效的 EA 伤害结果，命中流程到此结束。"
   melee_resolved: "近战命中已解析 EA 伤害: {resolved}"
@@ -113,18 +145,20 @@ combat_debug:
   environment_resolved_async: "环境伤害已解析 EA 伤害: {resolved}"
   environment_apply: "开始执行下一 tick 的环境 EA 伤害落地。"
   environment_ignored: "环境伤害未命中白名单，保持原版处理: cause={cause}"
-  environment_mapped: "环境伤害已映射为 EA 伤害: target={target}, cause={cause}, damageType={damage_type}, sourceDamage={source_damage}, baseDamage={base_damage}"
+  environment_mapped: "环境伤害已映射为 EA 伤害: target={target}, cause={cause},
+    damageType={damage_type}, sourceDamage={source_damage},
+    baseDamage={base_damage}"
   projectile_snapshot_missing_strict: "投射物命中时未找到快照，已按严格快照模式终止结算: projectile={projectile}"
   async_damage_failed: "异步伤害解析失败: {error}"
 
 command:
-  unknown: "<red>未知子命令: /{label} help</red>"
+  unknown: "<red>未知子命令，请使用 /{label} help 查看帮助。</red>"
 
   reload:
     no_permission: "<red>你没有权限执行此命令。</red>"
     in_progress: "<yellow>属性系统正在重载中，请稍后。</yellow>"
-    started: "<gray>已提交异步重载任务，后续进度会继续回传。</gray>"
-    success: "<green>已重新加载属性系统。</green>"
+    started: "<gray>已提交异步重载任务，后续进度会继续输出。</gray>"
+    success: "<green>属性系统已重载。</green>"
     failed: "<red>属性系统重载失败: {error}</red>"
     summary: "<gray>属性 {attributes} 项，伤害类型 {damage_types} 项，默认属性配置 {profiles} 份。</gray>"
 
@@ -140,9 +174,11 @@ command:
     no_permission: "<red>你没有权限执行此命令。</red>"
     console_usage: "<yellow>控制台用法: /emakiattribute preview <player> <slot></yellow>"
     player_not_found: "<red>未找到玩家 {player}。</red>"
-    invalid_slot: "<red>无效槽位 {slot}，可用值: main_hand/off_hand/helmet/chestplate/leggings/boots。</red>"
+    invalid_slot: "<red>无效槽位 {slot}，可用值:
+      main_hand/off_hand/helmet/chestplate/leggings/boots。</red>"
     no_item: "<yellow>该槽位没有物品。</yellow>"
     item: "<gray>物品: {item}</gray>"
+    name_label: "<gray>名称: </gray>"
     name: "<gray>名称: {name}</gray>"
     signature: "<gray>签名: {signature}</gray>"
     values: "<gray>数值: {values}</gray>"
@@ -154,13 +190,14 @@ command:
     player: "<green>正在查看玩家 {player} 的属性快照。</green>"
     signature: "<gray>签名 <dark_gray>(悬停查看)</dark_gray></gray>"
     values: "<gray>属性数值 <dark_gray>(悬停查看)</dark_gray></gray>"
-    resource_line: "<gray>{resource}: 默认 {default_max}，加成 {bonus_max}，上限 {current_max}，当前 {current}</gray>"
+    resource_line: "<gray>{resource}: 默认 {default_max}，加成 {bonus_max}，上限
+      {current_max}，当前 {current}</gray>"
 
   debug:
     no_permission: "<red>你没有权限执行此命令。</red>"
     player_not_found: "<red>未找到玩家 {player}。</red>"
     console_usage: "<yellow>控制台用法: /emakiattribute debug <player> [on|off|toggle]</yellow>"
-    enabled: "<green>已为 {player} 开启战斗调试日志，后续相关命中会输出到控制台。</green>"
+    enabled: "<green>已为 {player} 开启战斗调试日志，相关输出将写入控制台。</green>"
     disabled: "<yellow>已为 {player} 关闭战斗调试日志。</yellow>"
 
   lint:
@@ -168,7 +205,7 @@ command:
     header: "<gold>========== EmakiAttribute 自检 ==========</gold>"
     footer: "<gold>==========================================</gold>"
     config_status: "<gray>配置: {config}</gray>"
-    ok: "<green>{name} 没有发现问题。</green>"
+    ok: "<green>{name} 未发现问题。</green>"
     issues: "<yellow>{name} 发现 {count} 个问题。</yellow>"
 
   help:
@@ -177,6 +214,7 @@ command:
     reload: "<gray>/emakiattribute reload</gray> 重新加载配置与词条。"
     resync: "<gray>/emakiattribute resync [玩家|all]</gray> 重新同步玩家属性。"
     preview: "<gray>/emakiattribute preview [玩家] [槽位]</gray> 预览某个槽位的属性快照。"
-    dump: "<gray>/emakiattribute dump [玩家]</gray> 导出当前战斗快照与资源状态。"
-    debug: "<gray>/emakiattribute debug [玩家] [on|off|toggle]</gray> 追踪该玩家相关的战斗链并输出详细控制台日志。"
+    dump: "<gray>/emakiattribute dump [玩家]</gray> 查看当前战斗快照与资源状态。"
+    debug: "<gray>/emakiattribute debug [玩家] [on|off|toggle]</gray>
+      跟踪该玩家的战斗流程并输出详细控制台日志。"
     lint: "<gray>/emakiattribute lint</gray> 检查配置与资源加载问题。"

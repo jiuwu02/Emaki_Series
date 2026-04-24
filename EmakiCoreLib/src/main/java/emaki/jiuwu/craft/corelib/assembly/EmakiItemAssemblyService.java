@@ -2,7 +2,6 @@ package emaki.jiuwu.craft.corelib.assembly;
 
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
@@ -32,7 +31,6 @@ public final class EmakiItemAssemblyService {
     private final ItemRenderService itemRenderService;
     private final CacheManager<String, ItemStack> previewCache =
             new CacheManager<>(PREVIEW_CACHE_SIZE, PREVIEW_CACHE_TTL_MILLIS);
-    private volatile AssemblyFeedbackHandler feedbackHandler = AssemblyFeedbackHandler.noop();
     private volatile AsyncConfig asyncConfig = new AsyncConfig(null, null);
 
     public EmakiItemAssemblyService(EmakiNamespaceRegistry namespaceRegistry,
@@ -41,7 +39,7 @@ public final class EmakiItemAssemblyService {
         this.namespaceRegistry = Objects.requireNonNull(namespaceRegistry, "namespaceRegistry");
         this.itemSourceService = Objects.requireNonNull(itemSourceService, "itemSourceService");
         this.dataManager = new AssemblyDataManager(namespaceRegistry, codecRegistry);
-        this.itemRenderService = new ItemRenderService();
+        this.itemRenderService = new ItemRenderService(namespaceRegistry);
     }
 
     public void configureAsync(AsyncTaskScheduler asyncTaskScheduler, PerformanceMonitor performanceMonitor) {
@@ -87,8 +85,7 @@ public final class EmakiItemAssemblyService {
         if (player == null || itemStack == null) {
             return itemStack;
         }
-        Map<Integer, ItemStack> leftover = player.getInventory().addItem(itemStack.clone());
-        leftover.values().forEach(left -> player.getWorld().dropItemNaturally(player.getLocation(), left));
+        deliverToPlayer(player, itemStack);
         return itemStack;
     }
 
@@ -100,14 +97,18 @@ public final class EmakiItemAssemblyService {
             if (player == null || itemStack == null) {
                 return itemStack;
             }
-            Map<Integer, ItemStack> leftover = player.getInventory().addItem(itemStack.clone());
-            leftover.values().forEach(left -> player.getWorld().dropItemNaturally(player.getLocation(), left));
+            deliverToPlayer(player, itemStack);
             return itemStack;
         });
     }
 
     public boolean isEmakiItem(ItemStack itemStack) {
         return dataManager.isEmakiItem(itemStack);
+    }
+
+    private void deliverToPlayer(Player player, ItemStack itemStack) {
+        Map<Integer, ItemStack> leftover = player.getInventory().addItem(itemStack.clone());
+        leftover.values().forEach(left -> player.getWorld().dropItemNaturally(player.getLocation(), left));
     }
 
     public ItemSource readBaseSource(ItemStack itemStack) {
@@ -130,8 +131,18 @@ public final class EmakiItemAssemblyService {
         return dataManager.readLayerSnapshot(itemStack, namespaceId);
     }
 
-    public void setFeedbackHandler(AssemblyFeedbackHandler feedbackHandler) {
-        this.feedbackHandler = feedbackHandler == null ? AssemblyFeedbackHandler.noop() : feedbackHandler;
+    public ItemStack removeLayer(ItemStack itemStack, String namespaceId) {
+        if (itemStack == null || !isEmakiItem(itemStack)) {
+            return itemStack == null ? null : itemStack.clone();
+        }
+        return preview(new EmakiItemAssemblyRequest(null, 0, itemStack, List.of(), List.of(namespaceId)));
+    }
+
+    public ItemStack removeLayers(ItemStack itemStack, List<String> namespaceIds) {
+        if (itemStack == null || !isEmakiItem(itemStack)) {
+            return itemStack == null ? null : itemStack.clone();
+        }
+        return preview(new EmakiItemAssemblyRequest(null, 0, itemStack, List.of(), namespaceIds));
     }
 
     public void clearPreviewCache() {
@@ -145,6 +156,7 @@ public final class EmakiItemAssemblyService {
         Map<String, EmakiItemLayerSnapshot> mergedLayers = new LinkedHashMap<>();
         ItemSource baseSource = request.baseSource();
         int amount = request.amount() > 0 ? request.amount() : 1;
+        List<String> previousActiveLayers = List.of();
         if (request.existingItem() != null && dataManager.isEmakiItem(request.existingItem())) {
             if (baseSource == null) {
                 baseSource = dataManager.readBaseSource(request.existingItem());
@@ -152,14 +164,18 @@ public final class EmakiItemAssemblyService {
             if (request.amount() <= 0) {
                 amount = dataManager.readBaseAmount(request.existingItem());
             }
+            previousActiveLayers = dataManager.readActiveLayers(request.existingItem());
             mergedLayers.putAll(dataManager.readLayerSnapshots(request.existingItem()));
+        }
+        for (String namespaceId : request.removedNamespaceIds()) {
+            mergedLayers.remove(Texts.normalizeId(namespaceId));
         }
         if (request.layerSnapshots() != null) {
             for (EmakiItemLayerSnapshot snapshot : request.layerSnapshots()) {
                 if (snapshot == null || Texts.isBlank(snapshot.namespaceId())) {
                     continue;
                 }
-                mergedLayers.put(normalizeId(snapshot.namespaceId()), snapshot);
+                mergedLayers.put(Texts.normalizeId(snapshot.namespaceId()), snapshot);
             }
         }
         if (baseSource == null && request.existingItem() != null && !request.existingItem().getType().isAir()) {
@@ -181,7 +197,7 @@ public final class EmakiItemAssemblyService {
                 amount,
                 orderedLayers.values().stream().map(EmakiItemLayerSnapshot::toMap).toList()
         ));
-        return new AssemblyContext(baseSource, Math.max(1, amount), orderedLayers, activeLayers, signature);
+        return new AssemblyContext(baseSource, Math.max(1, amount), orderedLayers, activeLayers, previousActiveLayers, signature);
     }
 
     private ItemStack renderPreview(EmakiItemAssemblyRequest request) {
@@ -193,18 +209,14 @@ public final class EmakiItemAssemblyService {
         if (itemStack == null) {
             return null;
         }
-        itemRenderService.renderItem(
-                itemStack,
-                context.layerSnapshots().values(),
-                request == null ? null : request.feedbackPlayerId(),
-                feedbackHandler
-        );
+        itemRenderService.renderItem(itemStack, context.layerSnapshots().values());
         dataManager.writeAssemblyData(
                 itemStack,
                 CURRENT_SCHEMA_VERSION,
                 context.baseSource(),
                 context.amount(),
                 context.activeLayers(),
+                context.previousActiveLayers(),
                 context.assemblySignature(),
                 context.layerSnapshots().values()
         );
@@ -219,7 +231,8 @@ public final class EmakiItemAssemblyService {
                 request.baseSource() == null ? "" : ItemSourceUtil.toShorthand(request.baseSource()),
                 request.amount(),
                 request.existingItem() == null ? "" : ItemSourceUtil.toShorthand(itemSourceService.identifyItem(request.existingItem())),
-                request.layerSnapshots() == null ? List.of() : request.layerSnapshots().stream().map(EmakiItemLayerSnapshot::toMap).toList()
+                request.layerSnapshots() == null ? List.of() : request.layerSnapshots().stream().map(EmakiItemLayerSnapshot::toMap).toList(),
+                request.removedNamespaceIds()
         ));
     }
 
@@ -241,12 +254,7 @@ public final class EmakiItemAssemblyService {
             }
         }
     }
-
-    private String normalizeId(String value) {
-        return value == null ? "" : value.trim().toLowerCase(Locale.ROOT).replace(' ', '_');
-    }
-
-    @FunctionalInterface
+@FunctionalInterface
     private interface SupplierWithException<T> {
 
         T get() throws Exception;
@@ -260,7 +268,9 @@ public final class EmakiItemAssemblyService {
             int amount,
             Map<String, EmakiItemLayerSnapshot> layerSnapshots,
             List<String> activeLayers,
+            List<String> previousActiveLayers,
             String assemblySignature) {
 
     }
 }
+

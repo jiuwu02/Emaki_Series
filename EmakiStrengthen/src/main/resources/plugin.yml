@@ -10,7 +10,7 @@ softdepend:
   - PlaceholderAPI
 commands:
   emakistrengthen:
-    aliases: [estrengthen, es]
+    aliases: [estrengthen]
     permission: emakistrengthen.use
 permissions:
   emakistrengthen.use:

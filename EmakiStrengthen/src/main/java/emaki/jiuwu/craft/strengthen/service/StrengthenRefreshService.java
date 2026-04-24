@@ -6,9 +6,10 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 
+import emaki.jiuwu.craft.corelib.item.PlayerItemRefreshService;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
 
-public final class StrengthenRefreshService {
+public final class StrengthenRefreshService implements PlayerItemRefreshService {
 
     private final EmakiStrengthenPlugin plugin;
     private final StrengthenAttemptService attemptService;
@@ -28,6 +29,7 @@ public final class StrengthenRefreshService {
         }
     }
 
+    @Override
     public void refreshPlayerInventory(Player player) {
         if (player == null || !player.isOnline()) {
             return;
@@ -50,6 +52,7 @@ public final class StrengthenRefreshService {
         }
     }
 
+    @Override
     public void refreshDroppedItem(Item itemEntity) {
         if (itemEntity == null || !itemEntity.isValid()) {
             return;

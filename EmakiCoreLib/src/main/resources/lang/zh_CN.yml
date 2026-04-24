@@ -1,18 +1,18 @@
 ﻿# Emaki CoreLib 默认语言文件
-lang_version: "3.0.0"
+lang_version: "3.2.0"
 
 general:
   prefix: "<gray>[<gold>EmakiCoreLib</gold>]</gray>"
 
 console:
-  plugin_starting: "<gray>核心库正在启动...</gray>"
-  plugin_started: "<green>EmakiCoreLib 已启用</green>"
-  plugin_stopped: "<yellow>EmakiCoreLib 已关闭</yellow>"
-  economy_bridge_ready: "<gray>经济后端已接入: {provider}</gray>"
-  action_config_load_failed: "<red>核心库动作配置读取失败: {error}</red>"
-  item_source_bridge_ready: "<gray>物品源桥已接入: {library}</gray>"
-  item_source_bridge_waiting: "<gray>{library} 已检测到，等待其物品注册完成: {detail}</gray>"
-  item_source_bridge_incompatible: "<yellow>{library} 物品源桥未启用: {detail}</yellow>"
+  plugin_starting: "<gray>正在启动核心库...</gray>"
+  plugin_started: "<green>核心库已启动</green>"
+  plugin_stopped: "<yellow>核心库已关闭</yellow>"
+  economy_bridge_ready: "<gray>经济桥接已接入: {provider}</gray>"
+  action_config_load_failed: "<red>加载动作配置失败: {error}</red>"
+  item_source_bridge_ready: "<gray>已接入物品源: {library}</gray>"
+  item_source_bridge_waiting: "<gray>已检测到 {library}，等待物品注册完成: {detail}</gray>"
+  item_source_bridge_incompatible: "<yellow>{library} 物品源未接入: {detail}</yellow>"
 
 loader:
   lang_directory_create_failed: "<red>无法创建语言目录: {path}</red>"
@@ -20,12 +20,12 @@ loader:
   bundled_resource_missing: "<red>内置资源缺失: {resource}，无法写入 {path}</red>"
   bundled_resource_write_failed: "<red>写入内置资源失败: {path} ({error})</red>"
   directory_create_failed: "<red>无法创建目录: {path}</red>"
-  invalid_blank_id: "<red>{type}文件 {file} 的 ID 为空。</red>"
+  invalid_blank_id: "<red>{type} 文件 {file} 的 ID 为空。</red>"
   duplicate_id: "<red>跳过重复的 {type} ID {id}: {file}</red>"
-  load_failed: "<red>读取{type}文件 {file} 失败: {error}</red>"
-  legacy_resource_migrate_failed: "<red>迁移旧版 CoreLib 资源失败: {path} ({error})</red>"
-  legacy_resource_scan_failed: "<red>扫描旧版 CoreLib 资源目录失败: {path} ({error})</red>"
+  load_failed: "<red>读取 {type} 文件 {file} 失败: {error}</red>"
+  bootstrap_cleanup_failed: "<red>清理废弃目录失败: {path} ({error})</red>"
 
 action:
-  debug_execution: "<gray>[Action]</gray> <white>phase={phase}</white> <white>id={id}</white> <gray>args={args}</gray>"
+  debug_execution: "<gray>[Action]</gray> <white>phase={phase}</white>
+    <white>id={id}</white> <gray>args={args}</gray>"
   execute_failed: "<red>[Action] 执行 {action} 失败: {error}</red>"

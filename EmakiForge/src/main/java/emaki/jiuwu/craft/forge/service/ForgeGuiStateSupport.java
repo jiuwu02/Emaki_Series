@@ -218,21 +218,6 @@ final class ForgeGuiStateSupport {
         return plugin.forgeService().findMaterialBySource(source);
     }
 
-    public boolean matchesTarget(Recipe recipe, ItemStack itemStack) {
-        if (itemStack == null) {
-            return false;
-        }
-        if (recipe == null) {
-            for (Recipe candidate : plugin.forgeService().sortedRecipes()) {
-                if (candidate.targetItemSource() != null && plugin.itemIdentifierService().matchesSource(itemStack, candidate.targetItemSource())) {
-                    return true;
-                }
-            }
-            return false;
-        }
-        return recipe.targetItemSource() != null && plugin.itemIdentifierService().matchesSource(itemStack, recipe.targetItemSource());
-    }
-
     public void returnItems(ForgeGuiSession state) {
         if (state == null) {
             return;

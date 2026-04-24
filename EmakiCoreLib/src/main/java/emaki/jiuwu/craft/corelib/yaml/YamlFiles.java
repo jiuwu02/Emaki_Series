@@ -55,18 +55,18 @@ public final class YamlFiles {
             return new MapYamlSection();
         }
         try (InputStream inputStream = Files.newInputStream(file.toPath())) {
-            return SnakeYamlSupport.load(inputStream);
+            return BoostedYamlSupport.load(inputStream);
         } catch (Exception exception) {
             return new MapYamlSection();
         }
     }
 
     public static YamlSection load(InputStream inputStream) {
-        return SnakeYamlSupport.load(inputStream);
+        return BoostedYamlSupport.load(inputStream);
     }
 
     public static YamlSection load(String payload) {
-        return SnakeYamlSupport.load(payload);
+        return BoostedYamlSupport.load(payload);
     }
 
     public static YamlSection loadResource(JavaPlugin plugin, String resourcePath) {
@@ -148,7 +148,7 @@ public final class YamlFiles {
         Path temp = Files.createTempFile(tempDirectory, target.getFileName().toString(), ".tmp");
         boolean moved = false;
         try {
-            Files.writeString(temp, SnakeYamlSupport.dump(values), StandardCharsets.UTF_8);
+            Files.writeString(temp, BoostedYamlSupport.dump(values), StandardCharsets.UTF_8);
             moveReplacing(temp, target);
             moved = true;
         } finally {
@@ -159,7 +159,7 @@ public final class YamlFiles {
     }
 
     public static String dump(Map<String, ?> values) {
-        return SnakeYamlSupport.dump(values);
+        return BoostedYamlSupport.dump(values);
     }
 
     public static boolean copyResourceIfMissing(JavaPlugin plugin, String resourcePath, File target) throws IOException {

@@ -1,6 +1,5 @@
 package emaki.jiuwu.craft.attribute.model;
 
-import java.util.Locale;
 
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.math.Numbers;
@@ -16,7 +15,7 @@ public record ResourceDefinition(String id,
         double regenPerSecond) {
 
     public ResourceDefinition        {
-        id = normalizeId(id);
+        id = Texts.normalizeId(id);
         displayName = Texts.isBlank(displayName) ? id : Texts.toStringSafe(displayName).trim();
     }
 
@@ -42,8 +41,5 @@ public record ResourceDefinition(String id,
         result = Math.min(result, maxMax);
         return result;
     }
-
-    private static String normalizeId(String value) {
-        return Texts.toStringSafe(value).trim().toLowerCase(Locale.ROOT).replace(' ', '_');
-    }
 }
+

@@ -39,7 +39,7 @@ public final class DefaultProfileRegistry {
                 loaded = true;
                 return 0;
             }
-            String id = normalizeId(Texts.isBlank(profile.id()) ? "default" : profile.id());
+            String id = Texts.normalizeId(Texts.isBlank(profile.id()) ? "default" : profile.id());
             items.put(id, profile);
             mergedProfiles.add(profile);
             mergedProfiles.sort(Comparator.comparingInt(DefaultProfile::priority).reversed());
@@ -71,7 +71,7 @@ public final class DefaultProfileRegistry {
             if (Texts.isBlank(id)) {
                 return null;
             }
-            return items.get(normalizeId(id));
+            return items.get(Texts.normalizeId(id));
         }
     }
 
@@ -80,8 +80,5 @@ public final class DefaultProfileRegistry {
             return List.copyOf(mergedProfiles);
         }
     }
-
-    private String normalizeId(String id) {
-        return Texts.toStringSafe(id).trim().toLowerCase().replace(' ', '_');
-    }
 }
+

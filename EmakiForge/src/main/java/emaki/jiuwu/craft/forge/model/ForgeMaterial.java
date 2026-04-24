@@ -249,6 +249,17 @@ public final class ForgeMaterial {
         return result;
     }
 
+    public List<Object> structuredPresentations() {
+        List<Object> result = new ArrayList<>();
+        for (MaterialEffect effect : effects) {
+            if (!"structured_presentation".equals(Texts.lower(effect.type()))) {
+                continue;
+            }
+            result.add(ConfigNodes.toPlainData(effect.data()));
+        }
+        return result;
+    }
+
     public List<QualityModifier> qualityModifiers() {
         List<QualityModifier> result = new ArrayList<>();
         for (MaterialEffect effect : effects) {
@@ -281,20 +292,11 @@ public final class ForgeMaterial {
     }
 
     private static double resolveStatValue(Object raw) {
-        Object value = raw;
-        String type = Texts.lower(ConfigNodes.get(raw, "type"));
-        if (Texts.isNotBlank(type)) {
-            value = ConfigNodes.get(raw, "value");
-        }
-        return ExpressionEngine.evaluateRandomConfig(value);
+        return ExpressionEngine.evaluateRandomConfig(raw);
     }
 
     private static boolean isForgeCapacityBonusEffect(String type) {
-        String normalized = Texts.lower(type);
-        return "forge_capacity_bonus".equals(normalized)
-                || "capacity_bonus".equals(normalized)
-                || "capacity_expand".equals(normalized)
-                || "forge_capacity".equals(normalized);
+        return "capacity_bonus".equals(Texts.lower(type));
     }
 
     private static int resolveEffectAmount(MaterialEffect effect) {

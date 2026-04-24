@@ -65,7 +65,7 @@ final class ForgeExecutionService {
                     }
                     result.setQuality(forgePlan.quality());
                     result.setMultiplier(forgePlan.multiplier());
-                    ItemStack resultItem = resultItemGiver.give(player, forgePlan.request());
+                    ItemStack resultItem = resultItemGiver.preview(forgePlan.request());
                     if (resultItem == null) {
                         result.setErrorKey("forge.error.item_create");
                         result.setReplacements(Map.of());
@@ -74,6 +74,12 @@ final class ForgeExecutionService {
                     }
                     if (resultItemPostProcessor != null) {
                         resultItemPostProcessor.process(recipe, guiItems, forgePlan, resultItem);
+                    }
+                    if (!resultItemGiver.deliver(player, resultItem)) {
+                        result.setErrorKey("forge.error.item_create");
+                        result.setReplacements(Map.of());
+                        actionCoordinator.triggerPhase(player, recipe, guiItems, "failure", null, result.quality(), result.multiplier(), result.errorKey(), "Unable to deliver forge result item.");
+                        return result;
                     }
                     if (player != null) {
                         qualityCalculationService.applyGuaranteeOutcome(
@@ -129,6 +135,19 @@ final class ForgeExecutionService {
     interface ResultItemGiver {
 
         ItemStack give(Player player, EmakiItemAssemblyRequest request);
+
+        default ItemStack preview(EmakiItemAssemblyRequest request) {
+            return give(null, request);
+        }
+
+        default boolean deliver(Player player, ItemStack itemStack) {
+            if (player == null || itemStack == null || itemStack.getType().isAir()) {
+                return false;
+            }
+            java.util.Map<Integer, ItemStack> leftover = player.getInventory().addItem(itemStack.clone());
+            leftover.values().forEach(left -> player.getWorld().dropItemNaturally(player.getLocation(), left));
+            return true;
+        }
     }
 
     @FunctionalInterface

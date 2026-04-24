@@ -3,7 +3,6 @@ package emaki.jiuwu.craft.attribute.service;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -34,6 +33,10 @@ final class VanillaAttributeSynchronizer {
 
     }
 
+    private record ResolvedVanillaAttribute(Attribute attribute, NamespacedKey key) {
+
+    }
+
     private final EmakiAttributePlugin plugin;
 
     VanillaAttributeSynchronizer(EmakiAttributePlugin plugin) {
@@ -44,8 +47,8 @@ final class VanillaAttributeSynchronizer {
         if (definition == null || !definition.isVanillaMappedValue()) {
             return null;
         }
-        Attribute attribute = resolveVanillaAttribute(definition.targetId());
-        if (attribute == null) {
+        ResolvedVanillaAttribute resolved = resolveVanillaAttribute(definition.targetId());
+        if (resolved == null || resolved.attribute() == null) {
             if (plugin.messageService() != null) {
                 plugin.messageService().warning("console.vanilla_attribute_resolve_failed", Map.of(
                         "attribute", definition.id(),
@@ -54,6 +57,7 @@ final class VanillaAttributeSynchronizer {
             }
             return null;
         }
+        Attribute attribute = resolved.attribute();
         AttributeModifier.Operation operation = switch (definition.valueKind()) {
             case PERCENT, CHANCE ->
                 AttributeModifier.Operation.ADD_SCALAR;
@@ -61,7 +65,10 @@ final class VanillaAttributeSynchronizer {
                 AttributeModifier.Operation.ADD_NUMBER;
         };
         NamespacedKey modifierKey = new NamespacedKey(plugin, "vanilla/" + definition.id());
-        return new VanillaAttributeBinding(definition, attribute, operation, modifierKey, attribute.getKey().toString());
+        String targetAttributeId = resolved.key() == null
+                ? Texts.normalizeId(definition.targetId())
+                : resolved.key().toString();
+        return new VanillaAttributeBinding(definition, attribute, operation, modifierKey, targetAttributeId);
     }
 
     void syncMovementSpeed(Player player, AttributeSnapshot snapshot, List<AttributeDefinition> speedDefinitions) {
@@ -77,10 +84,7 @@ final class VanillaAttributeSynchronizer {
             }
             if (definition.valueKind() == AttributeValueKind.PERCENT) {
                 percentSpeed += value;
-            } else if (definition.valueKind() != AttributeValueKind.CHANCE
-                    && definition.valueKind() != AttributeValueKind.REGEN
-                    && definition.valueKind() != AttributeValueKind.RESOURCE
-                    && definition.valueKind() != AttributeValueKind.DERIVED) {
+            } else if (isNumericFlat(definition.valueKind())) {
                 flatSpeed += value;
             }
         }
@@ -118,10 +122,7 @@ final class VanillaAttributeSynchronizer {
             }
             if (definition.valueKind() == AttributeValueKind.PERCENT) {
                 percentModifier += value;
-            } else if (definition.valueKind() != AttributeValueKind.CHANCE
-                    && definition.valueKind() != AttributeValueKind.REGEN
-                    && definition.valueKind() != AttributeValueKind.RESOURCE
-                    && definition.valueKind() != AttributeValueKind.DERIVED) {
+            } else if (isNumericFlat(definition.valueKind())) {
                 flatAttackRate += value;
             }
         }
@@ -192,6 +193,14 @@ final class VanillaAttributeSynchronizer {
         return key != null && key.toString().contains(":vanilla/");
     }
 
+    private static boolean isNumericFlat(AttributeValueKind kind) {
+        return kind != AttributeValueKind.PERCENT
+                && kind != AttributeValueKind.CHANCE
+                && kind != AttributeValueKind.REGEN
+                && kind != AttributeValueKind.RESOURCE
+                && kind != AttributeValueKind.DERIVED;
+    }
+
     private double resolveVanillaModifierAmount(AttributeDefinition definition, double value) {
         if (definition == null) {
             return value;
@@ -204,8 +213,8 @@ final class VanillaAttributeSynchronizer {
         };
     }
 
-    private Attribute resolveVanillaAttribute(String targetId) {
-        String normalized = normalizeId(targetId);
+    private ResolvedVanillaAttribute resolveVanillaAttribute(String targetId) {
+        String normalized = Texts.normalizeId(targetId);
         if (Texts.isBlank(normalized)) {
             return null;
         }
@@ -216,7 +225,7 @@ final class VanillaAttributeSynchronizer {
             }
             Attribute attribute = Registry.ATTRIBUTE.get(key);
             if (attribute != null) {
-                return attribute;
+                return new ResolvedVanillaAttribute(attribute, key);
             }
         }
         return null;
@@ -235,23 +244,7 @@ final class VanillaAttributeSynchronizer {
         candidates.add(key);
         String normalizedKey = key.replace('.', '_');
         candidates.add(normalizedKey);
-        addLegacyVanillaCandidates(candidates, key, "generic_");
-        addLegacyVanillaCandidates(candidates, key, "player_");
-        addLegacyVanillaCandidates(candidates, normalizedKey, "generic_");
-        addLegacyVanillaCandidates(candidates, normalizedKey, "player_");
         return List.copyOf(candidates);
     }
-
-    private void addLegacyVanillaCandidates(Set<String> candidates, String key, String legacyPrefix) {
-        if (candidates == null || Texts.isBlank(key) || Texts.isBlank(legacyPrefix)) {
-            return;
-        }
-        if (key.startsWith(legacyPrefix) && key.length() > legacyPrefix.length()) {
-            candidates.add(key.substring(legacyPrefix.length()));
-        }
-    }
-
-    private String normalizeId(String value) {
-        return value == null ? "" : value.trim().toLowerCase(Locale.ROOT).replace(' ', '_');
-    }
 }
+

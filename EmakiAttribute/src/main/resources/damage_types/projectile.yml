@@ -1,29 +1,15 @@
-# ========================================
-# EmakiAttribute 伤害类型定义 - projectile（投射物伤害）
-# ========================================
-# 投射物伤害类型，用于弓箭、三叉戟等远程攻击的结算。
-# 与物理伤害结构类似，但使用投射物专属属性。
-# ========================================
-
-# 伤害类型 ID
 id: projectile
 
-# 显示名称
 display_name: "投射物伤害"
 
-# 别名
 aliases: [ranged, projectile_damage, arrow]
 
-# 允许的事件类型：PROJECTILE 对应原版投射物命中事件
 allowed_events:
   - PROJECTILE
 
-# 硬锁模式
 hard_lock: true
 
-# 伤害结算流水线
 stages:
-  # 阶段 1：投射物攻击力计算
   - id: attack
     kind: FLAT_PERCENT
     source: ATTACKER
@@ -31,7 +17,6 @@ stages:
     flat_attributes: [projectile_attack]
     percent_attributes: [projectile_damage_bonus]
 
-  # 阶段 2：投射物暴击判定
   - id: crit
     kind: CUSTOM
     source: ATTACKER
@@ -39,7 +24,6 @@ stages:
     multiplier_attributes: [projectile_crit_damage]
     expression: "{input} * (1 + ({crit} * ({multiplier} / 100)))"
 
-  # 阶段 3：投射物防御减伤
   - id: defense
     kind: FLAT_PERCENT
     source: TARGET
@@ -48,7 +32,6 @@ stages:
     percent_attributes: []
     expression: "max(0, {input} - {flat})"
 
-# 吸血回复
 recovery:
   source: ATTACKER
   resistance_source: TARGET
@@ -56,7 +39,6 @@ recovery:
   percent_attributes: [lifesteal]
   resistance_attributes: [lifesteal_resistance]
 
-# 消息模板
 attacker_message: "<gray>[<gold>{damage_type}</gold>]</gray> <green>你对 <white>{target}</white> 造成了 <yellow>{final_damage}</yellow> 点伤害</green>{critical_suffix}"
 target_message: "<gray>[<gold>{damage_type}</gold>]</gray> <red>{attacker}</red> 对你造成了 <yellow>{final_damage}</yellow> 点伤害{critical_suffix}"
 

@@ -1,0 +1,7 @@
+gui_version: "2.0.0"
+
+title: "<dark_gray>蒸锅"
+
+inventory_type: HOPPER
+
+inventory_slots: 5

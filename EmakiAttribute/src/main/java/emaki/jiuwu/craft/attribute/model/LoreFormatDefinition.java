@@ -2,7 +2,6 @@ package emaki.jiuwu.craft.attribute.model;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.math.Numbers;
@@ -15,7 +14,7 @@ public record LoreFormatDefinition(String id,
         List<String> readPatterns) {
 
     public LoreFormatDefinition     {
-        id = normalizeId(id);
+        id = Texts.normalizeId(id);
         format = Texts.isBlank(format) ? "{sign}{value} {name}" : Texts.toStringSafe(format).trim();
         readPatterns = readPatterns == null ? List.of() : List.copyOf(readPatterns);
     }
@@ -37,12 +36,7 @@ public record LoreFormatDefinition(String id,
                 readPatterns
         );
     }
-
-    private static String normalizeId(String value) {
-        return Texts.toStringSafe(value).trim().toLowerCase(Locale.ROOT).replace(' ', '_');
-    }
-
-    private static void appendPatterns(List<String> target, Object raw) {
+private static void appendPatterns(List<String> target, Object raw) {
         if (target == null || raw == null) {
             return;
         }
@@ -55,7 +49,7 @@ public record LoreFormatDefinition(String id,
     }
 
     private static int defaultReadPriority(String id) {
-        String normalized = normalizeId(id);
+        String normalized = Texts.normalizeId(id);
         return switch (normalized) {
             case "default_percent" ->
                 100;
@@ -70,3 +64,4 @@ public record LoreFormatDefinition(String id,
         };
     }
 }
+

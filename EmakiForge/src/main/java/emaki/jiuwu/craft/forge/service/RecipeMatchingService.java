@@ -35,7 +35,7 @@ final class RecipeMatchingService {
             if (validation.success()) {
                 return new RecipeMatch(recipe, null, Map.of());
             }
-            if (recipe.targetItemSource() != null
+            if (recipe.requiresTargetInput()
                     && ("forge.error.no_target_item".equals(validation.errorKey())
                     || "forge.error.invalid_target_item".equals(validation.errorKey()))) {
                 if (firstTargetError == null) {

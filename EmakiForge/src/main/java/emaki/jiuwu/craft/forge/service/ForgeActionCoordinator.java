@@ -1,11 +1,14 @@
 package emaki.jiuwu.craft.forge.service;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -24,6 +27,7 @@ import emaki.jiuwu.craft.forge.model.Recipe;
 final class ForgeActionCoordinator {
 
     private static final long ACTION_TIMEOUT_SECONDS = 30L;
+    private static final Pattern BRACE_PLACEHOLDER = Pattern.compile("\\{([a-zA-Z0-9_]+)\\}");
 
     private final EmakiForgePlugin plugin;
     private final ForgeResultItemFactory resultItemFactory;
@@ -146,8 +150,9 @@ final class ForgeActionCoordinator {
             return CompletableFuture.completedFuture(new ActionBatchResult(true, List.of()));
         }
         ActionContext context = buildActionContext(player, recipe, guiItems, phase, resultItem, quality, multiplier, errorKey, failureReason);
+        List<String> resolved = replaceBracePlaceholders(lines, context.placeholders());
         return actionExecutor
-                .executeAll(context, lines, true)
+                .executeAll(context, resolved, true)
                 .orTimeout(ACTION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
     }
 
@@ -210,5 +215,31 @@ final class ForgeActionCoordinator {
         if (target != null && value != null) {
             target.put(key, value);
         }
+    }
+
+    private List<String> replaceBracePlaceholders(List<String> lines, Map<String, String> placeholders) {
+        if (placeholders == null || placeholders.isEmpty()) {
+            return lines;
+        }
+        List<String> result = new ArrayList<>(lines.size());
+        for (String line : lines) {
+            result.add(replaceBracePlaceholders(line, placeholders));
+        }
+        return result;
+    }
+
+    private String replaceBracePlaceholders(String line, Map<String, String> placeholders) {
+        if (Texts.isBlank(line)) {
+            return line;
+        }
+        Matcher matcher = BRACE_PLACEHOLDER.matcher(line);
+        StringBuilder sb = new StringBuilder();
+        while (matcher.find()) {
+            String key = Texts.lower(matcher.group(1));
+            String replacement = placeholders.get(key);
+            matcher.appendReplacement(sb, Matcher.quoteReplacement(replacement != null ? replacement : matcher.group()));
+        }
+        matcher.appendTail(sb);
+        return sb.toString();
     }
 }

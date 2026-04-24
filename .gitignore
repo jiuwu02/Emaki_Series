@@ -1,4 +1,5 @@
 .idea/
+.key
 .vscode/
 **/target/
 *.iml
@@ -7,11 +8,9 @@ Thumbs.db
 .DS_Store
 __pycache__/
 *.pyc
-wiki
-release-notes.md
+wiki/
 emaki_manager.py
-Plugin Description.md
-CHANGELOG.md
-PROJECT_OVERVIEW.md
+*.md
+docs/
 .codex/
-EmakiGem/
+.github/

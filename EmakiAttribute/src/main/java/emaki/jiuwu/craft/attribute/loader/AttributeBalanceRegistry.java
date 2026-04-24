@@ -67,14 +67,14 @@ public final class AttributeBalanceRegistry {
         if (Texts.isBlank(id)) {
             return null;
         }
-        return semantics.get(normalizeId(id));
+        return semantics.get(Texts.normalizeId(id));
     }
 
     public synchronized double weightOf(String id, double fallback) {
         if (Texts.isBlank(id)) {
             return fallback;
         }
-        Double weight = weights.get(normalizeId(id));
+        Double weight = weights.get(Texts.normalizeId(id));
         return weight == null ? fallback : weight;
     }
 
@@ -100,7 +100,7 @@ public final class AttributeBalanceRegistry {
 
     private void parseSemantics(Object raw) {
         for (Map.Entry<String, Object> entry : ConfigNodes.entries(raw).entrySet()) {
-            String id = normalizeId(entry.getKey());
+            String id = Texts.normalizeId(entry.getKey());
             if (Texts.isBlank(id)) {
                 continue;
             }
@@ -120,7 +120,7 @@ public final class AttributeBalanceRegistry {
 
     private void parseWeights(Object raw) {
         for (Map.Entry<String, Object> entry : ConfigNodes.entries(raw).entrySet()) {
-            String id = normalizeId(entry.getKey());
+            String id = Texts.normalizeId(entry.getKey());
             if (Texts.isBlank(id)) {
                 continue;
             }
@@ -194,7 +194,7 @@ public final class AttributeBalanceRegistry {
         if (definition == null) {
             return "utility.generic";
         }
-        String targetId = normalizeId(definition.targetId());
+        String targetId = Texts.normalizeId(definition.targetId());
         String category = switch (definition.targetType()) {
             case DAMAGE ->
                 "offense";
@@ -239,8 +239,5 @@ public final class AttributeBalanceRegistry {
     private static String firstNonBlank(String left, String right) {
         return Texts.isBlank(left) ? right : left;
     }
-
-    private static String normalizeId(String value) {
-        return Texts.toStringSafe(value).trim().toLowerCase(Locale.ROOT).replace(' ', '_');
-    }
 }
+

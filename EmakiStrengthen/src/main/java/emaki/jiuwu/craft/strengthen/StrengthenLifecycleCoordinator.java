@@ -36,7 +36,6 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
     private static final String DEFAULT_PREFIX = "<gray>[ <gradient:#F2C46D:#C9703D>装备强化</gradient> ]</gray>";
     private static final String PDC_ATTRIBUTE_SOURCE_ID = "strengthen";
     private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml");
-    private static final List<String> LEGACY_DIRECTORIES = List.of("replace", "profiles", "rules", "materials");
 
     @Override
     public StrengthenRuntimeComponents initialize(EmakiStrengthenPlugin plugin) {
@@ -60,7 +59,7 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
                 staticFiles(plugin),
                 List.of(),
                 List.of(),
-                LEGACY_DIRECTORIES,
+                List.of(),
                 new BootstrapHooks() {
                 }
         );
@@ -87,8 +86,7 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
                 economyService,
                 snapshotBuilder,
                 actionCoordinator,
-                coreLibPlugin.itemAssemblyService(),
-                coreLibPlugin.itemSourceService()
+                coreLibPlugin.itemAssemblyService()
         );
         StrengthenRefreshService refreshService = new StrengthenRefreshService(plugin, attemptService);
         StrengthenGuiService strengthenGuiService = new StrengthenGuiService(plugin, guiService, attemptService);
@@ -149,6 +147,8 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
                 configuration.getString("language", defaults.language()),
                 configuration.getString("config_version", defaults.configVersion()),
                 configuration.getInt("local_broadcast_radius", defaults.localBroadcastRadius()),
+                parseIntegerList(configuration.getSection("broadcast.local_stars"), configuration.get("broadcast.local_stars"), defaults.localBroadcastStars()),
+                parseIntegerList(configuration.getSection("broadcast.global_stars"), configuration.get("broadcast.global_stars"), defaults.globalBroadcastStars()),
                 parseSuccessRates(configuration.getSection("success_rates"), defaults.successRates())
         );
     }
@@ -165,6 +165,29 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
             }
         }
         return rates.isEmpty() ? fallback : Map.copyOf(rates);
+    }
+
+    private java.util.List<Integer> parseIntegerList(YamlSection section, Object raw, java.util.Set<Integer> fallback) {
+        java.util.List<Integer> values = new java.util.ArrayList<>();
+        if (section != null) {
+            for (String key : section.getKeys(false)) {
+                Integer value = Numbers.tryParseInt(section.get(key), null);
+                if (value != null) {
+                    values.add(value);
+                }
+            }
+        } else if (raw instanceof Iterable<?> iterable) {
+            for (Object entry : iterable) {
+                Integer value = Numbers.tryParseInt(entry, null);
+                if (value != null) {
+                    values.add(value);
+                }
+            }
+        }
+        if (values.isEmpty()) {
+            return java.util.List.copyOf(fallback);
+        }
+        return java.util.List.copyOf(values);
     }
 
     private List<String> staticFiles(EmakiStrengthenPlugin plugin) {

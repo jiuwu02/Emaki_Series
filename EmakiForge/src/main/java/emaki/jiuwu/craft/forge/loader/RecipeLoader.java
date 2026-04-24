@@ -24,6 +24,8 @@ import emaki.jiuwu.craft.forge.model.Recipe;
 
 public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
 
+    private static final List<String> SUPPORTED_CONDITION_TYPES = List.of("all_of", "any_of", "at_least", "exactly");
+
     private final EmakiForgePlugin forgePlugin;
     private final Supplier<ActionRegistry> actionRegistrySupplier;
     private final Supplier<ActionTemplateRegistry> actionTemplateRegistrySupplier;
@@ -49,7 +51,32 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
 
     @Override
     protected Recipe parse(File file, YamlSection configuration) {
+        if (configuration == null) {
+            issue("loader.invalid_config", Map.of("type", typeName(), "file", file == null ? "-" : file.getName()));
+            return null;
+        }
+        if (Texts.isBlank(configuration.getString("id"))) {
+            onBlankId(file);
+            return null;
+        }
+        if (configuration.contains("target_item")) {
+            issue("loader.recipe_target_item_unsupported", Map.of("file", file.getName()));
+            return null;
+        }
         Recipe recipe = Recipe.fromConfig(configuration);
+        if (recipe == null) {
+            issue("loader.invalid_config", Map.of("type", typeName(), "file", file.getName()));
+            return null;
+        }
+        if (!SUPPORTED_CONDITION_TYPES.contains(Texts.lower(recipe.conditionType()))) {
+            issue("loader.recipe_invalid_condition_type", Map.of(
+                    "recipe", recipe.id(),
+                    "file", file.getName(),
+                    "value", recipe.conditionType(),
+                    "allowed", String.join(", ", SUPPORTED_CONDITION_TYPES)
+            ));
+            return null;
+        }
         return validateActions(file, recipe) ? recipe : null;
     }
 

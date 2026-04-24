@@ -1,0 +1,146 @@
+# 烹饪系统主配置
+# 原版物品 / 方块来源支持以下写法：
+# minecraft-iron_axe / mc-iron_axe / v-iron_axe / iron_axe
+# 不再接受 minecraft:iron_axe
+config_version: "2.1.0"
+
+# 语言文件 ID
+language: "zh_CN"
+
+# 是否写入默认 recipes
+release_default_data: true
+
+legacy_import:
+  # /ecooking convert old dryrun|apply 读取的旧版目录
+  old_directory: old
+
+display_adjustments:
+  defaults:
+    item:
+      offset:
+        x: 0.5
+        y: 1.02
+        z: 0.5
+      rotation:
+        x: 90.0
+        y: 0.0
+        z: 0.0
+      scale:
+        x: 0.5
+        y: 0.5
+        z: 0.5
+    block:
+      offset:
+        x: 0.5
+        y: 1.125
+        z: 0.5
+      rotation:
+        x: 0.0
+        y: 90.0
+        z: 0.0
+      scale:
+        x: 0.25
+        y: 0.25
+        z: 0.25
+
+  station_defaults:
+    # 工位级展示覆盖；当前主要给炒锅预留
+    wok:
+      item:
+        rotation:
+          z: "0.0-90.0"
+
+# 四类工位运行配置
+stations:
+  chopping_board:
+    # 砧板方块来源
+    block_source: minecraft-oak_log
+    require_sneaking: true
+    # 结果物是否直接掉落
+    drop_result: true
+    # 是否检查空间限制
+    space_restriction: false
+    # 交互最小间隔，单位毫秒
+    interaction_delay_ms: 1000
+    # 识别为厨刀的物品来源
+    tool_sources:
+      - minecraft-iron_axe
+    cut_damage:
+      enabled: true
+      chance: 10
+      value: 2
+
+  wok:
+    # 炒锅方块来源
+    block_source: minecraft-iron_block
+    require_sneaking: true
+    drop_result: true
+    # 是否要求手持碗才能出锅
+    need_bowl: true
+    # 两次翻炒之间的最小间隔，单位毫秒
+    stir_delay_ms: 5000
+    # 锅状态超时后按过火处理，单位毫秒
+    timeout_ms: 30000
+    # 未命中配方或无效结果时的默认产物
+    invalid_result_source: minecraft-stone
+    # 识别为锅铲的物品来源
+    spatula_sources:
+      - minecraft-iron_shovel
+    # 下方方块命中 source 后，解析为对应火候等级
+    heat_levels:
+      - source: minecraft-campfire
+        level: 1
+      - source: minecraft-magma_block
+        level: 2
+      - source: minecraft-lava
+        level: 3
+    scald_damage:
+      enabled: true
+      value: 2
+    failure:
+      enabled: true
+      chance: 5
+      output_source: minecraft-bone_meal
+
+  grinder:
+    # 研磨机方块来源
+    block_source: minecraft-grindstone
+    require_sneaking: true
+    drop_result: true
+    # 后台检查周期，单位 tick
+    check_delay_ticks: 20
+
+  steamer:
+    # 蒸锅主体方块来源；GUI 细节在 gui/steamer.yml
+    block_source: minecraft-barrel
+    require_sneaking: true
+    drop_result: true
+    heat_sources:
+      - minecraft-furnace
+      - minecraft-smoker
+    # 加燃料后是否点亮下方热源外观
+    ignite_heat_source: true
+    # 蒸锅燃料；duration_seconds 为增加的燃烧时间
+    fuels:
+      - source: minecraft-stick
+        duration_seconds: 5
+      - source: minecraft-coal
+        duration_seconds: 80
+      - source: minecraft-charcoal
+        duration_seconds: 80
+    # 水分输入规则
+    moisture_sources:
+      - input_source: minecraft-water_bucket
+        output_source: minecraft-bucket
+        moisture: 120
+      - input_source: minecraft-potion
+        output_source: minecraft-glass_bottle
+        moisture: 40
+    # 蒸汽耗尽时是否重置全部进度
+    reset_progress_when_steam_empty: true
+    # 每个周期最多将多少 moisture 转成 steam
+    steam_production_efficiency: 10
+    # 每次 steam 消耗换算成多少进度
+    steam_conversion_efficiency: 1
+    # 每个周期的基础 steam 消耗量
+    steam_consumption_efficiency: 1

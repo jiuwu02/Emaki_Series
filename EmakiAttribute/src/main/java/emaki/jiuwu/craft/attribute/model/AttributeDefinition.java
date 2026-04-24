@@ -61,6 +61,6 @@ public record AttributeDefinition(String id,
     }
 
     private static String normalizeId(String value) {
-        return Texts.toStringSafe(value).trim().toLowerCase(Locale.ROOT).replace(' ', '_');
+        return Texts.normalizeId(value);
     }
 }

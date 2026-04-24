@@ -79,73 +79,12 @@ public final class StrengthenRecipe {
         }
     }
 
-    public record PresentationOperation(String type, Map<String, Object> values) {
-
-        public PresentationOperation {
-            type = Texts.lower(type);
-            values = values == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(values));
-        }
-
-        public static PresentationOperation fromRaw(Map<?, ?> raw) {
-            if (raw == null || raw.isEmpty()) {
-                return null;
-            }
-            Map<String, Object> values = new LinkedHashMap<>();
-            String type = "";
-            for (Map.Entry<?, ?> entry : raw.entrySet()) {
-                if (entry.getKey() == null) {
-                    continue;
-                }
-                String key = Texts.lower(String.valueOf(entry.getKey()));
-                Object value = entry.getValue();
-                values.put(key, value);
-                if ("type".equals(key)) {
-                    type = Texts.lower(value);
-                }
-            }
-            if (Texts.isBlank(type)) {
-                return null;
-            }
-            return new PresentationOperation(type, values);
-        }
-
-        public String string(String key) {
-            return Texts.toStringSafe(values.get(Texts.lower(key)));
-        }
-
-        public boolean bool(String key, boolean defaultValue) {
-            Object value = values.get(Texts.lower(key));
-            if (value == null) {
-                return defaultValue;
-            }
-            if (value instanceof Boolean boolValue) {
-                return boolValue;
-            }
-            return Boolean.parseBoolean(Texts.toStringSafe(value));
-        }
-
-        public int intValue(String key, int defaultValue) {
-            return Numbers.tryParseInt(values.get(Texts.lower(key)), defaultValue);
-        }
-    }
-
-    public record StatLineDefinition(String template,
-            List<PresentationOperation> loreOperations,
-            List<PresentationOperation> nameOperations) {
+    public record StatLineDefinition(String template, String sectionId, int sectionOrder) {
 
         public StatLineDefinition {
             template = Texts.toStringSafe(template);
-            loreOperations = loreOperations == null ? List.of() : List.copyOf(loreOperations);
-            nameOperations = nameOperations == null ? List.of() : List.copyOf(nameOperations);
-        }
-    }
-
-    public record PresentationConfig(List<PresentationOperation> nameOperations,
-            List<String> lorePrepend) {
-
-        public PresentationConfig {
-            nameOperations = nameOperations == null ? List.of() : List.copyOf(nameOperations);
-            lorePrepend = normalizeList(lorePrepend);
+            sectionId = Texts.toStringSafe(sectionId);
+            sectionOrder = Math.max(0, sectionOrder);
         }
     }
 
@@ -175,7 +114,7 @@ public final class StrengthenRecipe {
             Map<String, Double> eaAttributes,
             List<StarStageMaterial> materials,
             EconomyOverride economyOverride,
-            List<String> presentation,
+            Object structuredPresentation,
             List<String> successActions,
             List<String> failureActions) {
 
@@ -185,7 +124,7 @@ public final class StrengthenRecipe {
             eaAttributes = eaAttributes == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(eaAttributes));
             materials = materials == null ? List.of() : List.copyOf(materials);
             economyOverride = economyOverride == null ? new EconomyOverride(List.of()) : economyOverride;
-            presentation = normalizeList(presentation);
+            structuredPresentation = ConfigNodes.toPlainData(structuredPresentation);
             successActions = normalizeList(successActions);
             failureActions = normalizeList(failureActions);
         }
@@ -200,7 +139,7 @@ public final class StrengthenRecipe {
     private final MatchRule matchRule;
     private final Map<String, StatLineDefinition> statLines;
     private final Map<Integer, StarStage> stars;
-    private final PresentationConfig presentation;
+    private final Object structuredPresentation;
 
     public StrengthenRecipe(String id,
             String displayName,
@@ -211,7 +150,7 @@ public final class StrengthenRecipe {
             MatchRule matchRule,
             Map<String, StatLineDefinition> statLines,
             Map<Integer, StarStage> stars,
-            PresentationConfig presentation) {
+            Object structuredPresentation) {
         this.id = Texts.trim(id);
         this.displayName = Texts.toStringSafe(displayName);
         this.guiTemplate = Texts.isBlank(guiTemplate) ? "strengthen_gui" : Texts.toStringSafe(guiTemplate);
@@ -221,7 +160,7 @@ public final class StrengthenRecipe {
         this.matchRule = matchRule == null ? new MatchRule(List.of(), List.of(), List.of(), List.of(), List.of(), List.of()) : matchRule;
         this.statLines = statLines == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(statLines));
         this.stars = stars == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(stars));
-        this.presentation = presentation == null ? new PresentationConfig(List.of(), List.of()) : presentation;
+        this.structuredPresentation = ConfigNodes.toPlainData(structuredPresentation);
     }
 
     public static StrengthenRecipe fromConfig(YamlSection section) {
@@ -242,7 +181,7 @@ public final class StrengthenRecipe {
                 parseMatchRule(section.getSection("match")),
                 parseStatLines(section.getSection("stat_lines")),
                 parseStars(section.getSection("stars")),
-                parsePresentation(section.getSection("presentation"))
+                section.get("structured_presentation")
         );
     }
 
@@ -363,8 +302,8 @@ public final class StrengthenRecipe {
         return stars;
     }
 
-    public PresentationConfig presentation() {
-        return presentation;
+    public Object structuredPresentation() {
+        return structuredPresentation;
     }
 
     private static EconomyConfig parseEconomy(YamlSection section) {
@@ -455,13 +394,13 @@ public final class StrengthenRecipe {
             YamlSection statSection = section.getSection(key);
             if (statSection == null) {
                 String template = Texts.toStringSafe(section.get(key));
-                result.put(Texts.lower(key), new StatLineDefinition(template, List.of(), List.of()));
+                result.put(Texts.lower(key), new StatLineDefinition(template, "", 0));
                 continue;
             }
             result.put(Texts.lower(key), new StatLineDefinition(
                     statSection.getString("template", ""),
-                    parseOperations(statSection.getMapList("lore_operations")),
-                    parseOperations(statSection.getMapList("name_operations"))
+                    statSection.getString("section_id", ""),
+                    Numbers.tryParseInt(statSection.get("section_order"), 0)
             ));
         }
         return result;
@@ -488,7 +427,7 @@ public final class StrengthenRecipe {
                     parseDoubleMap(stageSection.getSection("ea_attributes")),
                     parseStageMaterials(stageSection.getMapList("materials")),
                     parseEconomyOverride(stageSection.getSection("economy_override")),
-                    stageSection.getStringList("presentation"),
+                    stageSection.get("structured_presentation"),
                     stageSection.getStringList("success_actions"),
                     stageSection.getStringList("failure_actions")
             ));
@@ -512,30 +451,6 @@ public final class StrengthenRecipe {
                     ConfigNodes.bool(rawEntry, "protection", false),
                     Numbers.tryParseInt(ConfigNodes.get(rawEntry, "temper_boost"), 0)
             ));
-        }
-        return List.copyOf(result);
-    }
-
-    private static PresentationConfig parsePresentation(YamlSection section) {
-        if (section == null) {
-            return new PresentationConfig(List.of(), List.of());
-        }
-        return new PresentationConfig(
-                parseOperations(section.getMapList("name_operations")),
-                section.getStringList("lore_prepend")
-        );
-    }
-
-    private static List<PresentationOperation> parseOperations(List<Map<?, ?>> rawEntries) {
-        if (rawEntries == null || rawEntries.isEmpty()) {
-            return List.of();
-        }
-        List<PresentationOperation> result = new ArrayList<>();
-        for (Map<?, ?> rawEntry : rawEntries) {
-            PresentationOperation operation = PresentationOperation.fromRaw(rawEntry);
-            if (operation != null) {
-                result.add(operation);
-            }
         }
         return List.copyOf(result);
     }

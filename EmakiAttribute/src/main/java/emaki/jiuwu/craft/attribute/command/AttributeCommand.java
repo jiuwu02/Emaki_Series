@@ -19,12 +19,12 @@ import emaki.jiuwu.craft.attribute.config.DamageCauseRule;
 import emaki.jiuwu.craft.attribute.model.AttributeSnapshot;
 import emaki.jiuwu.craft.attribute.model.ResourceState;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
+import emaki.jiuwu.craft.attribute.service.CombatSupport;
 import emaki.jiuwu.craft.attribute.service.MessageService;
+import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.math.Numbers;
+import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.event.HoverEvent;
-import net.kyori.adventure.text.format.NamedTextColor;
 
 public final class AttributeCommand implements TabExecutor {
 
@@ -78,28 +78,16 @@ public final class AttributeCommand implements TabExecutor {
             return result;
         }
         if (args.length == 2 && "resync".equalsIgnoreCase(args[0])) {
-            for (Player player : Bukkit.getOnlinePlayers()) {
-                if (player.getName().toLowerCase(Locale.ROOT).startsWith(args[1].toLowerCase(Locale.ROOT))) {
-                    result.add(player.getName());
-                }
-            }
+            completePlayerNames(result, args[1]);
             result.add("all");
             return result;
         }
         if (args.length == 2 && "dump".equalsIgnoreCase(args[0])) {
-            for (Player player : Bukkit.getOnlinePlayers()) {
-                if (player.getName().toLowerCase(Locale.ROOT).startsWith(args[1].toLowerCase(Locale.ROOT))) {
-                    result.add(player.getName());
-                }
-            }
+            completePlayerNames(result, args[1]);
             return result;
         }
         if (args.length == 2 && "preview".equalsIgnoreCase(args[0])) {
-            for (Player player : Bukkit.getOnlinePlayers()) {
-                if (player.getName().toLowerCase(Locale.ROOT).startsWith(args[1].toLowerCase(Locale.ROOT))) {
-                    result.add(player.getName());
-                }
-            }
+            completePlayerNames(result, args[1]);
             for (String slot : previewSlots()) {
                 if (slot.startsWith(args[1].toLowerCase(Locale.ROOT))) {
                     result.add(slot);
@@ -121,11 +109,7 @@ public final class AttributeCommand implements TabExecutor {
                     result.add(candidate);
                 }
             }
-            for (Player player : Bukkit.getOnlinePlayers()) {
-                if (player.getName().toLowerCase(Locale.ROOT).startsWith(args[1].toLowerCase(Locale.ROOT))) {
-                    result.add(player.getName());
-                }
-            }
+            completePlayerNames(result, args[1]);
             return result;
         }
         if (args.length == 3 && "debug".equalsIgnoreCase(args[0]) && Bukkit.getPlayerExact(args[1]) != null) {
@@ -154,7 +138,7 @@ public final class AttributeCommand implements TabExecutor {
                 )))
                 .exceptionally(throwable -> {
                     plugin.getServer().getScheduler().runTask(plugin, () -> messages().send(sender, "command.reload.failed", Map.of(
-                            "error", rootCauseMessage(throwable)
+                            "error", CombatSupport.rootCauseMessage(throwable)
                     )));
                     return null;
                 });
@@ -208,7 +192,7 @@ public final class AttributeCommand implements TabExecutor {
         messages().send(sender, "command.preview.item", Map.of(
                 "item", request.player().getName() + " / " + request.slot()
         ));
-        messages().send(sender, "command.preview.name", Map.of("name", previewItemName(itemStack)));
+        messages().sendRaw(sender, buildPreviewNameMessage(itemStack));
         messages().send(sender, "command.preview.signature", Map.of(
                 "signature", snapshot == null || Texts.isBlank(snapshot.sourceSignature()) ? "-" : snapshot.sourceSignature()
         ));
@@ -238,8 +222,8 @@ public final class AttributeCommand implements TabExecutor {
         }
         AttributeSnapshot snapshot = attributeService.collectCombatSnapshot(target);
         messages().send(sender, "command.dump.player", Map.of("player", target.getName()));
-        messages().sendComponent(sender, buildDumpSignatureComponent(snapshot));
-        messages().sendComponent(sender, buildDumpValuesComponent(snapshot));
+        messages().sendRaw(sender, buildDumpSignatureMessage(snapshot));
+        messages().sendRaw(sender, buildDumpValuesMessage(snapshot));
         for (Map.Entry<String, ResourceState> entry : dumpResources(target).entrySet()) {
             ResourceState state = entry.getValue();
             messages().send(sender, "command.dump.resource_line", Map.of(
@@ -315,24 +299,26 @@ public final class AttributeCommand implements TabExecutor {
         return true;
     }
 
-    private Component buildDumpSignatureComponent(AttributeSnapshot snapshot) {
-        Component prefix = messages().render(messages().message("general.prefix"));
-        Component label = messages().render(messages().message("command.dump.signature"));
-        Component hover = Component.text(snapshot == null || snapshot.sourceSignature() == null || snapshot.sourceSignature().isBlank()
-                ? "没有签名"
-                : snapshot.sourceSignature(), NamedTextColor.YELLOW);
-        return prefix.append(Component.space()).append(label.hoverEvent(HoverEvent.showText(hover)));
+    private String buildPreviewNameMessage(ItemStack itemStack) {
+        return messages().message("command.preview.name_label")
+                + "<white>"
+                + ItemTextBridge.displayWithItemHoverText(itemStack)
+                + "</white>";
     }
 
-    private Component buildDumpValuesComponent(AttributeSnapshot snapshot) {
-        Component prefix = messages().render(messages().message("general.prefix"));
-        Component label = messages().render(messages().message("command.dump.values"));
-        Component hover = buildDumpValuesHover(snapshot);
-        return prefix.append(Component.space()).append(label.hoverEvent(HoverEvent.showText(hover)));
+    private String buildDumpSignatureMessage(AttributeSnapshot snapshot) {
+        String hoverText = snapshot == null || snapshot.sourceSignature() == null || snapshot.sourceSignature().isBlank()
+                ? "<gray>没有签名</gray>"
+                : "<yellow>" + MiniMessages.escape(snapshot.sourceSignature()) + "</yellow>";
+        return MiniMessages.withHoverText(messages().message("command.dump.signature"), hoverText);
     }
 
-    private Component buildDumpValuesHover(AttributeSnapshot snapshot) {
-        List<Component> lines = new ArrayList<>();
+    private String buildDumpValuesMessage(AttributeSnapshot snapshot) {
+        return MiniMessages.withHoverText(messages().message("command.dump.values"), buildDumpValuesHoverText(snapshot));
+    }
+
+    private String buildDumpValuesHoverText(AttributeSnapshot snapshot) {
+        List<String> lines = new ArrayList<>();
         for (Map.Entry<String, Double> entry : orderedDumpValues(snapshot)) {
             String attributeId = entry.getKey();
             Double value = entry.getValue();
@@ -342,27 +328,16 @@ public final class AttributeCommand implements TabExecutor {
             var definition = attributeService.attributeRegistry().resolve(attributeId);
             String displayName = definition == null ? attributeId : definition.displayName();
             String formattedValue = Numbers.formatNumber(value, "0.##");
-            lines.add(Component.text()
-                    .append(Component.text(displayName, NamedTextColor.AQUA))
-                    .append(Component.text(" (", NamedTextColor.DARK_GRAY))
-                    .append(Component.text(attributeId, NamedTextColor.WHITE))
-                    .append(Component.text("): ", NamedTextColor.DARK_GRAY))
-                    .append(Component.text(formattedValue, NamedTextColor.YELLOW))
-                    .build());
+            lines.add("<aqua>" + MiniMessages.escape(displayName) + "</aqua>"
+                    + "<dark_gray> (</dark_gray>"
+                    + "<white>" + MiniMessages.escape(attributeId) + "</white>"
+                    + "<dark_gray>): </dark_gray>"
+                    + "<yellow>" + MiniMessages.escape(formattedValue) + "</yellow>");
         }
         if (lines.isEmpty()) {
-            return Component.text("没有非零属性", NamedTextColor.GRAY);
+            return "<gray>没有非零属性</gray>";
         }
-        Component hover = Component.empty();
-        boolean first = true;
-        for (Component line : lines) {
-            if (!first) {
-                hover = hover.append(Component.newline());
-            }
-            hover = hover.append(line);
-            first = false;
-        }
-        return hover;
+        return String.join("\n", lines);
     }
 
     private List<Map.Entry<String, Double>> orderedDumpValues(AttributeSnapshot snapshot) {
@@ -415,6 +390,15 @@ public final class AttributeCommand implements TabExecutor {
         return plugin.messageService();
     }
 
+    private void completePlayerNames(List<String> result, String prefix) {
+        String lowerPrefix = prefix.toLowerCase(Locale.ROOT);
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            if (player.getName().toLowerCase(Locale.ROOT).startsWith(lowerPrefix)) {
+                result.add(player.getName());
+            }
+        }
+    }
+
     private boolean isDebugAction(String value) {
         if (value == null) {
             return false;
@@ -427,17 +411,6 @@ public final class AttributeCommand implements TabExecutor {
                 || "disable".equals(normalized)
                 || "true".equals(normalized)
                 || "false".equals(normalized);
-    }
-
-    private String rootCauseMessage(Throwable throwable) {
-        Throwable current = throwable;
-        while (current != null && current.getCause() != null && current.getCause() != current) {
-            current = current.getCause();
-        }
-        if (current == null || current.getMessage() == null || current.getMessage().isBlank()) {
-            return "unknown";
-        }
-        return current.getMessage();
     }
 
     private PreviewRequest resolvePreviewRequest(CommandSender sender, String[] args) {
@@ -499,16 +472,6 @@ public final class AttributeCommand implements TabExecutor {
             case "boots" -> player.getInventory().getBoots();
             default -> null;
         };
-    }
-
-    private String previewItemName(ItemStack itemStack) {
-        if (itemStack == null || itemStack.getType().isAir()) {
-            return "-";
-        }
-        if (itemStack.hasItemMeta() && itemStack.getItemMeta() != null && itemStack.getItemMeta().hasDisplayName()) {
-            return itemStack.getItemMeta().getDisplayName();
-        }
-        return itemStack.getType().name();
     }
 
     private String formatPreviewValues(AttributeSnapshot snapshot) {

@@ -1,12 +1,16 @@
 package emaki.jiuwu.craft.attribute.model;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.WeakHashMap;
 import java.util.function.Function;
 
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.math.Numbers;
+import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
 public record DamageStageDefinition(String id,
@@ -25,8 +29,11 @@ public record DamageStageDefinition(String id,
         Double minMultiplier,
         Double maxMultiplier) {
 
+    private static final Map<DamageStageDefinition, AttributeSignatureCache> ATTRIBUTE_SIGNATURE_CACHE =
+            Collections.synchronizedMap(new WeakHashMap<>());
+
     public DamageStageDefinition               {
-        id = normalizeId(id);
+        id = Texts.normalizeId(id);
         kind = kind == null ? DamageStageKind.FLAT_PERCENT : kind;
         source = source == null ? DamageStageSource.ATTACKER : source;
         mode = mode == null ? DamageStageMode.ADD : mode;
@@ -68,11 +75,34 @@ public record DamageStageDefinition(String id,
         );
     }
 
-    private static String normalizeId(String value) {
-        return Texts.toStringSafe(value).trim().toLowerCase(Locale.ROOT).replace(' ', '_');
+    public String flatAttributesSignature() {
+        return attributeSignatureCache().flatAttributesSignature();
     }
 
-    private static List<String> normalizeAttributes(List<String> ids, Function<String, String> attributeNormalizer) {
+    public String percentAttributesSignature() {
+        return attributeSignatureCache().percentAttributesSignature();
+    }
+
+    public String chanceAttributesSignature() {
+        return attributeSignatureCache().chanceAttributesSignature();
+    }
+
+    public String multiplierAttributesSignature() {
+        return attributeSignatureCache().multiplierAttributesSignature();
+    }
+
+    private AttributeSignatureCache attributeSignatureCache() {
+        return ATTRIBUTE_SIGNATURE_CACHE.computeIfAbsent(
+                this,
+                definition -> new AttributeSignatureCache(
+                        SignatureUtil.stableSignature(definition.flatAttributes()),
+                        SignatureUtil.stableSignature(definition.percentAttributes()),
+                        SignatureUtil.stableSignature(definition.chanceAttributes()),
+                        SignatureUtil.stableSignature(definition.multiplierAttributes())
+                )
+        );
+    }
+private static List<String> normalizeAttributes(List<String> ids, Function<String, String> attributeNormalizer) {
         if (ids == null || ids.isEmpty()) {
             return List.of();
         }
@@ -82,7 +112,7 @@ public record DamageStageDefinition(String id,
                 continue;
             }
             String resolved = attributeNormalizer == null ? id : attributeNormalizer.apply(id);
-            String normalizedId = normalizeId(resolved);
+            String normalizedId = Texts.normalizeId(resolved);
             if (!normalizedId.isBlank()) {
                 normalized.add(normalizedId);
             }
@@ -100,4 +130,12 @@ public record DamageStageDefinition(String id,
             return defaultValue;
         }
     }
+
+    private record AttributeSignatureCache(String flatAttributesSignature,
+            String percentAttributesSignature,
+            String chanceAttributesSignature,
+            String multiplierAttributesSignature) {
+
+    }
 }
+

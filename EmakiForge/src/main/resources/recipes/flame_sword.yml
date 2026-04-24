@@ -1,56 +1,18 @@
-# ========================================
-# EmakiForge 锻造配方 - 烈焰之剑
-# ========================================
-# 锻造配方定义了完整的锻造流程，包括目标物品、材料需求、
-# 效果系统、品质配置和结果处理。
-# ========================================
-
-# 配方 ID，全局唯一标识
 id: "flame_sword"
 
-# 配方显示名称，支持 MiniMessage 富文本
 display_name: "<gold>烈焰之剑锻造配方</gold>"
 
-# ========================================
-# 目标物品配置
-# ========================================
-target_item:
-  # 目标物品来源，使用物品源简写格式
-  # "minecraft:" 前缀表示原版物品
-  item: "minecraft:diamond_sword"
-  # 锻造容量上限：此目标物品可容纳的最大容量值
-  # 所有材料的 capacity_cost 之和不能超过此值
-  forge_capacity: 35
+forge_capacity: 35
 
-# ========================================
-# 图纸需求
-# ========================================
-# 玩家必须持有指定图纸才能使用此配方
 blueprint_requirements:
-  - item: "minecraft:enchanted_book"
+  - item: "minecraft-enchanted_book"
     amount: 1
 
-# ========================================
-# 材料列表
-# ========================================
-# 每个材料定义了物品来源、数量、容量消耗和效果列表
-# 效果类型（type）决定了材料对锻造结果的影响方式：
-#   stat_contribution - 为 CoreLib 内部占位符提供数值（展示层）
-#   ea_attribute      - 为 EA 属性 PDC 写入提供数值（属性层）
-#   lore_action       - 修改物品 Lore 行
-#   name_modify       - 修改物品名称
-#   capacity_bonus    - 增加锻造容量上限
-#   quality_modify    - 修改品质结果
 materials:
-  # 必需材料：铁锭
-  - item: "minecraft:iron_ingot"
+  - item: "minecraft-iron_ingot"
     amount: 3
-    # 容量消耗：此材料占用 5 点锻造容量
     capacity_cost: 5
     effects:
-      # stat_contribution：为 CoreLib 占位符提供数值
-      # stats 中的键名对应配方内部的占位符变量名（如 {physical_damage}）
-      # 支持 constant（固定值）和 random（随机范围）两种类型
       - type: "stat_contribution"
         stats:
           physical_damage:
@@ -59,17 +21,15 @@ materials:
           max_health:
             type: "constant"
             value: 2
-      # lore_action：向物品 Lore 中插入属性描述行
-      - type: "lore_action"
-        action:
-          - action: "insert_below"
-            target_pattern: "锻造属性:"
-            content:
+      - type: "structured_presentation"
+        lore_sections:
+          - section_id: "forge.material.iron_ingot"
+            order: 120
+            lines:
               - "<gray>物理伤害: <red>+{physical_damage}"
               - "<gray>生命值: <green>+{max_health}"
 
-  # 必需材料：烈焰粉
-  - item: "minecraft:blaze_powder"
+  - item: "minecraft-blaze_powder"
     amount: 1
     capacity_cost: 10
     effects:
@@ -81,20 +41,20 @@ materials:
           critical_chance:
             type: "constant"
             value: 5
-      # name_modify：修改物品名称
-      - type: "name_modify"
-        action: "append_suffix"
-        value: "<red> [烈焰]"
-      - type: "lore_action"
-        action:
-          - action: "insert_below"
-            target_pattern: "锻造属性:"
-            content:
+      - type: "structured_presentation"
+        name_contributions:
+          - slot_id: "forge.material.blaze_powder.badge"
+            position: "POSTFIX"
+            order: 130
+            content_template: "<red> [烈焰]"
+        lore_sections:
+          - section_id: "forge.material.blaze_powder"
+            order: 130
+            lines:
               - "<red>火焰伤害: +{fire_damage}"
               - "<yellow>暴击率: +{critical_chance}%"
 
-  # 可选材料：火焰弹
-  - item: "minecraft:fire_charge"
+  - item: "minecraft-fire_charge"
     amount: 1
     optional: true
     capacity_cost: 12
@@ -107,16 +67,15 @@ materials:
           critical_chance:
             type: "constant"
             value: 4
-      - type: "lore_action"
-        action:
-          - action: "insert_below"
-            target_pattern: "锻造属性:"
-            content:
+      - type: "structured_presentation"
+        lore_sections:
+          - section_id: "forge.material.fire_charge"
+            order: 131
+            lines:
               - "<red>火焰伤害: +{fire_damage}"
               - "<yellow>暴击率: +{critical_chance}%"
 
-  # 可选材料：羽毛
-  - item: "minecraft:feather"
+  - item: "minecraft-feather"
     amount: 1
     optional: true
     capacity_cost: 8
@@ -130,8 +89,7 @@ materials:
             type: "constant"
             value: 2
 
-  # 可选材料：回响碎片
-  - item: "minecraft:echo_shard"
+  - item: "minecraft-echo_shard"
     amount: 1
     optional: true
     capacity_cost: 15
@@ -145,79 +103,48 @@ materials:
             type: "constant"
             value: 3
 
-  # 可选材料：下界之星（容量加成型）
-  - item: "minecraft:nether_star"
+  - item: "minecraft-nether_star"
     amount: 1
     optional: true
-    # 容量消耗为 0，因为此材料是容量加成型
     capacity_cost: 0
     effects:
-      # capacity_bonus：增加锻造容量上限，允许放入更多材料
       - type: "capacity_bonus"
         value: 20
 
-# 可选材料数量上限：最多可放入 3 个可选材料
 optional_material_limit: 3
 
-# ========================================
-# 锻造条件配置
-# ========================================
-# condition_type: 条件组合方式
-#   all_of  - 所有条件必须全部满足
-#   any_of  - 至少满足 N 个条件
-#   none_of - 所有条件都不满足时通过
 condition_type: "all_of"
 
-# 条件表达式列表（空列表表示无条件）
 conditions: []
 
-# ========================================
-# 品质配置（配方级覆盖）
-# ========================================
 quality:
-  # 是否启用品质系统
   enabled: true
-  # 自定义品质池：为空时使用全局品质池
   custom_pool: []
-  # 保底配置
   guarantee:
     enabled: true
-    # 连续锻造 60 次后触发保底
     attempts: 60
-    # 保底最低品质
     minimum: "无暇"
 
-# ========================================
-# 锻造结果配置
-# ========================================
 result:
-  # 结果物品的元数据操作
+  output_item: "minecraft-diamond_sword"
   meta_actions:
-    # 名称修改
-    name_modifications:
-      - action: "replace"
-        value: "<gold>烈焰锻剑</gold>"
-    # Lore 修改
-    lore_actions:
-      - action: "append"
-        content:
-          - "<gray>锻造属性:"
-          - "<dark_gray>由 EmakiForge 示例配方锻造"
-  # 锻造成功后执行的动作序列
+    structured_presentation:
+      base_name_policy: "EXPLICIT_TEMPLATE"
+      base_name_template: "<gold>烈焰锻剑</gold>"
+      lore_sections:
+        - section_id: "forge.result.summary"
+          order: 100
+          lines:
+            - "<gray>锻造属性:"
+            - "<dark_gray>由 EmakiForge 示例配方锻造"
   action:
-    - 'sendmessage text="<green>锻造成功! 获得了 %forge_result_item_name%</green>"'
+    - "sendmessage text=\"<green>锻造成功! 获得了 %forge_result_item_name%</green>\""
     - "playsound sound=minecraft:block.anvil.use volume=1 pitch=1"
 
-# ========================================
-# 阶段动作配置
-# ========================================
-# 在锻造流程的不同阶段执行的动作
 action:
-  # 锻造前置阶段：开始锻造时执行
   pre:
-    - 'sendactionbar text="<gray>烈焰之力正在熔铸...</gray>"'
-  # 锻造成功阶段：由 result.action 处理
+    - "sendactionbar text=\"<gray>烈焰之力正在熔铸...</gray>\""
   success: []
-  # 锻造失败阶段：锻造失败时执行
   failure:
-    - '@if="%forge_error_key% == forge.error.action_failed" sendmessage text="<red>锻造前置操作失败: %forge_failure_reason%</red>"'
+    - "@if=\"%forge_error_key% == forge.error.action_failed\" sendmessage
+      text=\"<red>锻造前置操作失败: %forge_failure_reason%</red>\""

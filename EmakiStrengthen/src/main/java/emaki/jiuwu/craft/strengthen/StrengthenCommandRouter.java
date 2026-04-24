@@ -46,6 +46,7 @@ final class StrengthenCommandRouter implements TabExecutor {
             case "inspect" -> handleInspect(sender, args);
             case "refresh" -> handleRefresh(sender, args);
             case "setstar" -> handleSetStar(sender, args);
+            case "clearstate" -> handleClearState(sender);
             case "clearcrack" -> handleClearCrack(sender);
             case "givecatalyst" -> handleGiveCatalyst(sender, args);
             default -> {
@@ -59,7 +60,7 @@ final class StrengthenCommandRouter implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            for (String sub : List.of("help", "open", "reload", "inspect", "refresh", "setstar", "clearcrack", "givecatalyst")) {
+            for (String sub : List.of("help", "open", "reload", "inspect", "refresh", "setstar", "clearstate", "clearcrack", "givecatalyst")) {
                 if (sub.startsWith(args[0].toLowerCase())) {
                     result.add(sub);
                 }
@@ -225,6 +226,29 @@ final class StrengthenCommandRouter implements TabExecutor {
         return true;
     }
 
+    private boolean handleClearState(CommandSender sender) {
+        if (!(sender instanceof Player player)) {
+            plugin.messageService().send(sender, "general.player_only");
+            return true;
+        }
+        if (!sender.hasPermission(PERMISSION_ADMIN)) {
+            plugin.messageService().send(sender, "general.no_permission");
+            return true;
+        }
+        if (!plugin.attemptService().readState(player.getInventory().getItemInMainHand()).hasLayer()) {
+            plugin.messageService().send(sender, "command.clearstate.no_layer");
+            return true;
+        }
+        ItemStack rebuilt = plugin.attemptService().clearStrengthenLayer(player.getInventory().getItemInMainHand());
+        if (rebuilt == null) {
+            plugin.messageService().send(sender, "command.admin_state_failed");
+            return true;
+        }
+        player.getInventory().setItemInMainHand(rebuilt);
+        plugin.messageService().send(sender, "command.clearstate.success");
+        return true;
+    }
+
     private boolean handleClearCrack(CommandSender sender) {
         if (!(sender instanceof Player player)) {
             plugin.messageService().send(sender, "general.player_only");
@@ -297,14 +321,15 @@ final class StrengthenCommandRouter implements TabExecutor {
     private void sendHelp(CommandSender sender) {
         plugin.messageService().sendRaw(sender, plugin.messageService().message("command.help.header"));
         Map<String, String> lines = new LinkedHashMap<>();
-        lines.put("help", "显示帮助信息");
-        lines.put("open", "打开强化界面");
-        lines.put("reload", "重载强化配置和 GUI");
-        lines.put("inspect [player]", "查看手持物品强化状态");
-        lines.put("refresh [player]", "刷新玩家背包中的强化层");
-        lines.put("setstar <star> [recipe]", "直接设置主手物品星级");
-        lines.put("clearcrack", "清除主手物品裂痕");
-        lines.put("givecatalyst <id> [amount] [player]", "发放强化材料");
+        lines.put("help", plugin.messageService().message("command.help.desc.help"));
+        lines.put("open", plugin.messageService().message("command.help.desc.open"));
+        lines.put("reload", plugin.messageService().message("command.help.desc.reload"));
+        lines.put("inspect [player]", plugin.messageService().message("command.help.desc.inspect"));
+        lines.put("refresh [player]", plugin.messageService().message("command.help.desc.refresh"));
+        lines.put("setstar <star> [recipe]", plugin.messageService().message("command.help.desc.setstar"));
+        lines.put("clearstate", plugin.messageService().message("command.help.desc.clearstate"));
+        lines.put("clearcrack", plugin.messageService().message("command.help.desc.clearcrack"));
+        lines.put("givecatalyst <id> [amount] [player]", plugin.messageService().message("command.help.desc.givecatalyst"));
         lines.forEach((name, description) -> plugin.messageService().sendRaw(sender,
                 plugin.messageService().message("command.help.line", Map.of("cmd", name, "desc", description))));
         plugin.messageService().sendRaw(sender, plugin.messageService().message("command.help.footer"));

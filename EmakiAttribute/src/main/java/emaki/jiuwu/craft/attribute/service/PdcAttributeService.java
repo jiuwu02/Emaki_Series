@@ -6,7 +6,6 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -24,7 +23,7 @@ import emaki.jiuwu.craft.attribute.api.PdcAttributeApi;
 import emaki.jiuwu.craft.attribute.loader.PdcReadRuleLoader;
 import emaki.jiuwu.craft.attribute.model.PdcAttributePayload;
 import emaki.jiuwu.craft.attribute.model.PdcReadRule;
-import emaki.jiuwu.craft.attribute.model.PdcReadRule.RuleCheck;
+import emaki.jiuwu.craft.attribute.model.PdcReadRule.RuleCondition;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.pdc.PdcPartition;
@@ -39,7 +38,7 @@ public final class PdcAttributeService implements PdcAttributeApi {
 
     private static final Pattern SOURCE_META_PATTERN = Pattern.compile("%source_meta_([a-zA-Z0-9_\\-.]+)%");
     private static final Pattern SOURCE_ATTRIBUTE_PATTERN = Pattern.compile("%source_(?:attr|attribute)_([a-zA-Z0-9_\\-.]+)%");
-    private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("0.######");
+    private static final ThreadLocal<DecimalFormat> DECIMAL_FORMAT = ThreadLocal.withInitial(() -> new DecimalFormat("0.######"));
     private static final SnapshotCodec<PdcAttributePayload> PAYLOAD_CODEC = SnapshotCodec.yaml(
             PdcAttributePayload::toMap,
             PdcAttributePayload::fromMap
@@ -59,13 +58,13 @@ public final class PdcAttributeService implements PdcAttributeApi {
 
     @Override
     public boolean registerSource(String sourceId) {
-        String normalized = normalizeId(sourceId);
+        String normalized = Texts.normalizeId(sourceId);
         return Texts.isNotBlank(normalized) && registeredSources.add(normalized);
     }
 
     @Override
     public void unregisterSource(String sourceId) {
-        String normalized = normalizeId(sourceId);
+        String normalized = Texts.normalizeId(sourceId);
         if (Texts.isNotBlank(normalized)) {
             registeredSources.remove(normalized);
         }
@@ -73,7 +72,7 @@ public final class PdcAttributeService implements PdcAttributeApi {
 
     @Override
     public boolean isRegisteredSource(String sourceId) {
-        String normalized = normalizeId(sourceId);
+        String normalized = Texts.normalizeId(sourceId);
         return Texts.isNotBlank(normalized) && registeredSources.contains(normalized);
     }
 
@@ -102,7 +101,7 @@ public final class PdcAttributeService implements PdcAttributeApi {
         if (itemStack == null || Texts.isBlank(sourceId)) {
             return null;
         }
-        return pdcService.readBlob(itemStack, sourcePartition.child(normalizeId(sourceId)), "payload", PAYLOAD_CODEC);
+        return pdcService.readBlob(itemStack, sourcePartition.child(Texts.normalizeId(sourceId)), "payload", PAYLOAD_CODEC);
     }
 
     @Override
@@ -122,7 +121,7 @@ public final class PdcAttributeService implements PdcAttributeApi {
 
     @Override
     public boolean clear(ItemStack itemStack, String sourceId) {
-        String normalized = normalizeId(sourceId);
+        String normalized = Texts.normalizeId(sourceId);
         if (itemStack == null || Texts.isBlank(normalized)) {
             return false;
         }
@@ -147,10 +146,21 @@ public final class PdcAttributeService implements PdcAttributeApi {
     }
 
     PdcAttributeCollection collectFilteredContribution(Player player, ItemStack itemStack) {
+        return collectContributionViews(player, itemStack).filtered();
+    }
+
+    PdcAttributeViews collectContributionViews(Player player, ItemStack itemStack) {
         Map<String, PdcAttributePayload> payloads = readAll(itemStack);
+        PdcAttributeCollection raw = collectRawContribution(payloads.values());
         if (player == null || payloads.isEmpty()) {
-            return collectRawContribution(payloads.values());
+            return new PdcAttributeViews(raw, raw);
         }
+        return new PdcAttributeViews(raw, collectFilteredContribution(player, itemStack, payloads));
+    }
+
+    private PdcAttributeCollection collectFilteredContribution(Player player,
+            ItemStack itemStack,
+            Map<String, PdcAttributePayload> payloads) {
         List<String> loreLines = readLoreLines(itemStack);
         Map<String, Double> values = new LinkedHashMap<>();
         List<Object> signatureParts = new ArrayList<>();
@@ -207,38 +217,20 @@ public final class PdcAttributeService implements PdcAttributeApi {
             PdcAttributePayload payload,
             PdcReadRule rule,
             List<String> loreLines) {
-        if (rule != null && rule.usesFlexibleChecks()) {
-            return evaluateFlexibleRule(player, payload, rule, loreLines);
-        }
-        return evaluateLegacyRule(player, payload, rule);
-    }
-
-    private FilterOutcome evaluateLegacyRule(Player player, PdcAttributePayload payload, PdcReadRule rule) {
-        List<String> resolvedConditions = new ArrayList<>();
-        for (String condition : rule.conditions()) {
-            resolvedConditions.add(resolvePlaceholders(player, payload, condition));
-        }
-        boolean accepted = ConditionEvaluator.evaluate(
-                rule.conditions(),
-                rule.conditionType(),
-                rule.requiredCount(),
-                text -> resolvePlaceholders(player, payload, text),
-                rule.invalidAsFailure()
-        );
-        return new FilterOutcome(accepted, resolvedConditions);
+        return evaluateFlexibleRule(player, payload, rule, loreLines);
     }
 
     private FilterOutcome evaluateFlexibleRule(Player player,
             PdcAttributePayload payload,
             PdcReadRule rule,
             List<String> loreLines) {
-        if (rule == null || rule.checks().isEmpty()) {
+        if (rule == null || !rule.hasConditions()) {
             return new FilterOutcome(true, List.of());
         }
         List<String> traces = new ArrayList<>();
         List<Boolean> results = new ArrayList<>();
-        for (RuleCheck check : rule.checks()) {
-            CheckOutcome outcome = evaluateCheck(player, payload, loreLines, check);
+        for (RuleCondition condition : rule.conditions()) {
+            ConditionOutcome outcome = evaluateCondition(player, payload, loreLines, condition);
             traces.addAll(outcome.traces());
             if (outcome.accepted() == null) {
                 if (rule.invalidAsFailure()) {
@@ -254,86 +246,86 @@ public final class PdcAttributeService implements PdcAttributeApi {
         return new FilterOutcome(combineResults(results, rule.conditionType(), rule.requiredCount()), traces);
     }
 
-    private CheckOutcome evaluateCheck(Player player,
+    private ConditionOutcome evaluateCondition(Player player,
             PdcAttributePayload payload,
             List<String> loreLines,
-            RuleCheck check) {
-        if (payload == null || check == null || Texts.isBlank(check.type())) {
-            return CheckOutcome.invalid("check=invalid");
+            RuleCondition condition) {
+        if (payload == null || condition == null || Texts.isBlank(condition.type())) {
+            return ConditionOutcome.invalid("condition=invalid");
         }
-        return switch (normalizeCheckType(check.type())) {
+        return switch (normalizeConditionType(condition.type())) {
             case "pdc_meta" ->
-                evaluateSingleValueCheck(player, payload, check, payload.meta().get(normalizeId(check.key())), "pdc_meta");
+                evaluateSingleValueCondition(player, payload, condition, payload.meta().get(Texts.normalizeId(condition.key())), "pdc_meta");
             case "pdc_attribute" ->
-                evaluateSingleValueCheck(player, payload, check, formatNumber(payload.attributes().get(normalizeId(check.key()))), "pdc_attribute");
+                evaluateSingleValueCondition(player, payload, condition, formatNumber(payload.attributes().get(Texts.normalizeId(condition.key()))), "pdc_attribute");
             case "source_id" ->
-                evaluateSingleValueCheck(player, payload, check, payload.sourceId(), "source_id");
+                evaluateSingleValueCondition(player, payload, condition, payload.sourceId(), "source_id");
             case "lore_regex" ->
-                evaluateLoreRegexCheck(player, payload, loreLines, check);
+                evaluateLoreRegexCondition(player, payload, loreLines, condition);
             default ->
-                CheckOutcome.invalid("check_type=" + check.type());
+                ConditionOutcome.invalid("condition_type=" + condition.type());
         };
     }
 
-    private CheckOutcome evaluateSingleValueCheck(Player player,
+    private ConditionOutcome evaluateSingleValueCondition(Player player,
             PdcAttributePayload payload,
-            RuleCheck check,
+            RuleCondition condition,
             String rawValue,
             String typeName) {
         String value = Texts.toStringSafe(rawValue);
-        if (check.hasPattern()) {
-            Pattern pattern = compileRulePattern(check.pattern());
+        if (condition.hasPattern()) {
+            Pattern pattern = compileRulePattern(condition.pattern());
             if (pattern == null) {
-                return CheckOutcome.invalid(typeName + " key=" + check.key() + " invalid_pattern=" + check.pattern());
+                return ConditionOutcome.invalid(typeName + " key=" + condition.key() + " invalid_pattern=" + condition.pattern());
             }
             Matcher matcher = pattern.matcher(value);
             if (!matcher.find()) {
-                return CheckOutcome.of(
-                        check.requireMatch() ? Boolean.FALSE : Boolean.TRUE,
-                        typeName + " key=" + check.key() + " value=" + value + " pattern=" + check.pattern() + " matched=false"
+                return ConditionOutcome.of(
+                        condition.requireMatch() ? Boolean.FALSE : Boolean.TRUE,
+                        typeName + " key=" + condition.key() + " value=" + value + " pattern=" + condition.pattern() + " matched=false"
                 );
             }
-            if (!check.hasCondition()) {
-                return CheckOutcome.of(
+            if (!condition.hasCondition()) {
+                return ConditionOutcome.of(
                         Boolean.TRUE,
-                        typeName + " key=" + check.key() + " value=" + value + " pattern=" + check.pattern() + " matched=true"
+                        typeName + " key=" + condition.key() + " value=" + value + " pattern=" + condition.pattern() + " matched=true"
                 );
             }
-            String resolvedCondition = applyFlexibleContext(player, payload, check.condition(), value, matcher);
+            String resolvedCondition = applyFlexibleContext(player, payload, condition.condition(), value, matcher);
             Boolean accepted = evaluateResolvedCondition(resolvedCondition);
-            return new CheckOutcome(
+            return new ConditionOutcome(
                     accepted,
-                    List.of(typeName + " key=" + check.key() + " value=" + value + " pattern=" + check.pattern()
+                    List.of(typeName + " key=" + condition.key() + " value=" + value + " pattern=" + condition.pattern()
                             + " condition=" + resolvedCondition + " accepted=" + accepted)
             );
         }
-        if (!check.hasCondition()) {
+        if (!condition.hasCondition()) {
             boolean accepted = Texts.isNotBlank(value);
-            return CheckOutcome.of(
+            return ConditionOutcome.of(
                     accepted,
-                    typeName + " key=" + check.key() + " value=" + value + " exists=" + accepted
+                    typeName + " key=" + condition.key() + " value=" + value + " exists=" + accepted
             );
         }
-        String resolvedCondition = applyFlexibleContext(player, payload, check.condition(), value, null);
+        String resolvedCondition = applyFlexibleContext(player, payload, condition.condition(), value, null);
         Boolean accepted = evaluateResolvedCondition(resolvedCondition);
-        return new CheckOutcome(
+        return new ConditionOutcome(
                 accepted,
-                List.of(typeName + " key=" + check.key() + " value=" + value + " condition=" + resolvedCondition + " accepted=" + accepted)
+                List.of(typeName + " key=" + condition.key() + " value=" + value + " condition=" + resolvedCondition + " accepted=" + accepted)
         );
     }
 
-    private CheckOutcome evaluateLoreRegexCheck(Player player,
+    private ConditionOutcome evaluateLoreRegexCondition(Player player,
             PdcAttributePayload payload,
             List<String> loreLines,
-            RuleCheck check) {
-        Pattern pattern = compileRulePattern(check.pattern());
+            RuleCondition condition) {
+        Pattern pattern = compileRulePattern(condition.pattern());
         if (pattern == null) {
-            return CheckOutcome.invalid("lore_regex invalid_pattern=" + check.pattern());
+            return ConditionOutcome.invalid("lore_regex invalid_pattern=" + condition.pattern());
         }
         if (loreLines == null || loreLines.isEmpty()) {
-            return CheckOutcome.of(
-                    check.requireMatch() ? Boolean.FALSE : Boolean.TRUE,
-                    "lore_regex pattern=" + check.pattern() + " lore_empty=true"
+            return ConditionOutcome.of(
+                    condition.requireMatch() ? Boolean.FALSE : Boolean.TRUE,
+                    "lore_regex pattern=" + condition.pattern() + " lore_empty=true"
             );
         }
         boolean matched = false;
@@ -345,30 +337,30 @@ public final class PdcAttributeService implements PdcAttributeApi {
                 continue;
             }
             matched = true;
-            if (!check.hasCondition()) {
-                return CheckOutcome.of(Boolean.TRUE, "lore_regex pattern=" + check.pattern() + " line=" + line + " matched=true");
+            if (!condition.hasCondition()) {
+                return ConditionOutcome.of(Boolean.TRUE, "lore_regex pattern=" + condition.pattern() + " line=" + line + " matched=true");
             }
-            String resolvedCondition = applyFlexibleContext(player, payload, check.condition(), line, matcher);
+            String resolvedCondition = applyFlexibleContext(player, payload, condition.condition(), line, matcher);
             Boolean accepted = evaluateResolvedCondition(resolvedCondition);
-            traces.add("lore_regex pattern=" + check.pattern() + " line=" + line + " condition=" + resolvedCondition + " accepted=" + accepted);
+            traces.add("lore_regex pattern=" + condition.pattern() + " line=" + line + " condition=" + resolvedCondition + " accepted=" + accepted);
             if (accepted == null) {
                 sawInvalid = true;
                 continue;
             }
             if (accepted) {
-                return new CheckOutcome(Boolean.TRUE, traces);
+                return new ConditionOutcome(Boolean.TRUE, traces);
             }
         }
         if (!matched) {
-            return CheckOutcome.of(
-                    check.requireMatch() ? Boolean.FALSE : Boolean.TRUE,
-                    "lore_regex pattern=" + check.pattern() + " matched=false"
+            return ConditionOutcome.of(
+                    condition.requireMatch() ? Boolean.FALSE : Boolean.TRUE,
+                    "lore_regex pattern=" + condition.pattern() + " matched=false"
             );
         }
         if (sawInvalid) {
-            return new CheckOutcome(null, traces);
+            return new ConditionOutcome(null, traces);
         }
-        return new CheckOutcome(Boolean.FALSE, traces);
+        return new ConditionOutcome(Boolean.FALSE, traces);
     }
 
     private Boolean evaluateResolvedCondition(String resolvedCondition) {
@@ -440,13 +432,13 @@ public final class PdcAttributeService implements PdcAttributeApi {
         if (itemMeta == null || !itemMeta.hasLore()) {
             return List.of();
         }
-        var lore = ItemTextBridge.lore(itemMeta);
+        var lore = ItemTextBridge.loreLines(itemMeta);
         if (lore == null || lore.isEmpty()) {
             return List.of();
         }
         List<String> lines = new ArrayList<>();
         for (var line : lore) {
-            String plain = Texts.normalizeWhitespace(MiniMessages.plain(line));
+            String plain = Texts.normalizeWhitespace(MiniMessages.plainText(line));
             if (Texts.isNotBlank(plain)) {
                 lines.add(plain);
             }
@@ -455,8 +447,8 @@ public final class PdcAttributeService implements PdcAttributeApi {
     }
 
     private String resolvePlaceholders(Player player, PdcAttributePayload payload, String text) {
-        String resolved = replaceTokenPattern(text, SOURCE_META_PATTERN, key -> payload.meta().getOrDefault(normalizeId(key), ""));
-        resolved = replaceTokenPattern(resolved, SOURCE_ATTRIBUTE_PATTERN, key -> formatNumber(payload.attributes().get(normalizeId(key))));
+        String resolved = replaceTokenPattern(text, SOURCE_META_PATTERN, key -> payload.meta().getOrDefault(Texts.normalizeId(key), ""));
+        resolved = replaceTokenPattern(resolved, SOURCE_ATTRIBUTE_PATTERN, key -> formatNumber(payload.attributes().get(Texts.normalizeId(key))));
         resolved = resolved.replace("%source_id%", payload.sourceId());
         return applyPlayerPlaceholders(player, resolved);
     }
@@ -495,9 +487,7 @@ public final class PdcAttributeService implements PdcAttributeApi {
         if (value == null) {
             return "";
         }
-        synchronized (DECIMAL_FORMAT) {
-            return DECIMAL_FORMAT.format(value);
-        }
+        return DECIMAL_FORMAT.get().format(value);
     }
 
     private void mergeValues(Map<String, Double> target, Map<String, Double> source) {
@@ -508,19 +498,19 @@ public final class PdcAttributeService implements PdcAttributeApi {
             if (entry.getKey() == null || entry.getValue() == null) {
                 continue;
             }
-            target.merge(normalizeId(entry.getKey()), entry.getValue(), Double::sum);
+            target.merge(Texts.normalizeId(entry.getKey()), entry.getValue(), Double::sum);
         }
     }
 
     private List<String> addSource(List<String> current, String sourceId) {
         LinkedHashSet<String> ids = new LinkedHashSet<>(current == null ? List.of() : current);
-        ids.add(normalizeId(sourceId));
+        ids.add(Texts.normalizeId(sourceId));
         return new ArrayList<>(ids);
     }
 
     private List<String> removeSource(List<String> current, String sourceId) {
         LinkedHashSet<String> ids = new LinkedHashSet<>(current == null ? List.of() : current);
-        ids.remove(normalizeId(sourceId));
+        ids.remove(Texts.normalizeId(sourceId));
         return new ArrayList<>(ids);
     }
 
@@ -534,7 +524,7 @@ public final class PdcAttributeService implements PdcAttributeApi {
         }
         List<String> result = new ArrayList<>();
         for (String entry : raw.split(",")) {
-            String normalized = normalizeId(entry);
+            String normalized = Texts.normalizeId(entry);
             if (Texts.isNotBlank(normalized)) {
                 result.add(normalized);
             }
@@ -552,25 +542,8 @@ public final class PdcAttributeService implements PdcAttributeApi {
         }
         pdcService.set(itemStack, itemPartition, "source_index", PersistentDataType.STRING, String.join(",", sourceIds));
     }
-
-    private String normalizeId(String value) {
-        return value == null ? "" : value.trim().toLowerCase(Locale.ROOT).replace(' ', '_');
-    }
-
-    private String normalizeCheckType(String type) {
-        String normalized = normalizeId(type);
-        return switch (normalized) {
-            case "meta" ->
-                "pdc_meta";
-            case "attribute", "attr" ->
-                "pdc_attribute";
-            case "lore" ->
-                "lore_regex";
-            case "source" ->
-                "source_id";
-            default ->
-                normalized;
-        };
+    private String normalizeConditionType(String type) {
+        return Texts.normalizeId(type);
     }
 
     record PdcAttributeCollection(Map<String, Double> values, String sourceSignature) {
@@ -581,6 +554,14 @@ public final class PdcAttributeService implements PdcAttributeApi {
         }
     }
 
+    record PdcAttributeViews(PdcAttributeCollection raw, PdcAttributeCollection filtered) {
+
+        PdcAttributeViews {
+            raw = raw == null ? new PdcAttributeCollection(Map.of(), "") : raw;
+            filtered = filtered == null ? raw : filtered;
+        }
+    }
+
     private record FilterOutcome(boolean accepted, List<String> resolvedConditions) {
 
         private FilterOutcome {
@@ -588,17 +569,17 @@ public final class PdcAttributeService implements PdcAttributeApi {
         }
     }
 
-    private record CheckOutcome(Boolean accepted, List<String> traces) {
+    private record ConditionOutcome(Boolean accepted, List<String> traces) {
 
-        private CheckOutcome {
+        private ConditionOutcome {
             traces = traces == null ? List.of() : List.copyOf(traces);
         }
 
-        static CheckOutcome of(Boolean accepted, String trace) {
-            return new CheckOutcome(accepted, Texts.isBlank(trace) ? List.of() : List.of(trace));
+        static ConditionOutcome of(Boolean accepted, String trace) {
+            return new ConditionOutcome(accepted, Texts.isBlank(trace) ? List.of() : List.of(trace));
         }
 
-        static CheckOutcome invalid(String trace) {
+        static ConditionOutcome invalid(String trace) {
             return of(null, trace);
         }
     }

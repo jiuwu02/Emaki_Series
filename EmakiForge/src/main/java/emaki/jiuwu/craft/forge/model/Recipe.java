@@ -14,29 +14,6 @@ import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
 public final class Recipe {
-
-    public record TargetItem(String item, int forgeCapacity, ItemSource source) {
-
-        public static TargetItem fromConfig(Object raw) {
-            if (raw == null) {
-                return null;
-            }
-            String item = ConfigNodes.string(raw, "item", null);
-            if (Texts.isBlank(item)) {
-                return null;
-            }
-            ItemSource source = ItemSourceUtil.parseShorthand(item);
-            if (source == null) {
-                return null;
-            }
-            return new TargetItem(
-                    item,
-                    Math.max(0, Numbers.tryParseInt(ConfigNodes.get(raw, "forge_capacity"), 0)),
-                    source
-            );
-        }
-    }
-
     public record QualityConfig(boolean enabled,
             List<String> customPool,
             boolean guaranteeEnabled,
@@ -51,7 +28,8 @@ public final class Recipe {
     public record ResultConfig(ItemSource outputItem,
             List<String> action,
             List<Map<String, Object>> nameModifications,
-            List<Map<String, Object>> loreActions) {
+            List<Map<String, Object>> loreActions,
+            Object structuredPresentation) {
 
     }
 
@@ -64,9 +42,9 @@ public final class Recipe {
 
     private final String id;
     private final String displayName;
-    private final TargetItem targetItem;
     private final List<BlueprintRequirement> blueprintRequirements;
     private final List<ForgeMaterial> materials;
+    private final int forgeCapacity;
     private final int optionalMaterialLimit;
     private final String conditionType;
     private final int conditionRequiredCount;
@@ -78,9 +56,9 @@ public final class Recipe {
 
     public Recipe(String id,
             String displayName,
-            TargetItem targetItem,
             List<BlueprintRequirement> blueprintRequirements,
             List<ForgeMaterial> materials,
+            int forgeCapacity,
             int optionalMaterialLimit,
             String conditionType,
             int conditionRequiredCount,
@@ -91,9 +69,9 @@ public final class Recipe {
             String permission) {
         this.id = id;
         this.displayName = displayName;
-        this.targetItem = targetItem;
         this.blueprintRequirements = List.copyOf(blueprintRequirements);
         this.materials = List.copyOf(materials);
+        this.forgeCapacity = forgeCapacity;
         this.optionalMaterialLimit = optionalMaterialLimit;
         this.conditionType = conditionType;
         this.conditionRequiredCount = conditionRequiredCount;
@@ -109,15 +87,8 @@ public final class Recipe {
             return null;
         }
         String id = section.getString("id");
-        if (Texts.isBlank(id) || containsLegacyKeys(section)) {
+        if (Texts.isBlank(id)) {
             return null;
-        }
-        TargetItem targetItem = null;
-        if (section.contains("target_item")) {
-            targetItem = TargetItem.fromConfig(section.get("target_item"));
-            if (targetItem == null) {
-                return null;
-            }
         }
         List<BlueprintRequirement> blueprintRequirements = parseBlueprintRequirements(section.get("blueprint_requirements"));
         if (blueprintRequirements == null) {
@@ -127,28 +98,25 @@ public final class Recipe {
         if (materials == null) {
             return null;
         }
+        ResultConfig result = parseResult(section.get("result"));
+        if (result == null) {
+            return null;
+        }
         return new Recipe(
                 id,
                 section.getString("display_name", id),
-                targetItem,
                 blueprintRequirements,
                 materials,
+                Math.max(0, Numbers.tryParseInt(section.get("forge_capacity"), 0)),
                 Math.max(0, Numbers.tryParseInt(section.get("optional_material_limit"), 0)),
                 section.getString("condition_type", "all_of"),
                 Numbers.tryParseInt(section.get("condition_required_count"), 0),
                 Texts.asStringList(section.get("conditions")),
                 parseQuality(section.get("quality")),
-                parseResult(section.get("result")),
+                result,
                 parseAction(ConfigNodes.get(section, "action")),
                 section.getString("permission")
         );
-    }
-
-    private static boolean containsLegacyKeys(YamlSection section) {
-        return section.contains("gui")
-                || section.contains("required_materials")
-                || section.contains("optional_materials")
-                || section.contains("forge_capacity");
     }
 
     private static List<BlueprintRequirement> parseBlueprintRequirements(Object raw) {
@@ -191,20 +159,20 @@ public final class Recipe {
 
     private static ResultConfig parseResult(Object raw) {
         if (raw == null) {
-            return new ResultConfig(null, List.of(), List.of(), List.of());
+            return new ResultConfig(null, List.of(), List.of(), List.of(), null);
         }
         Object outputItem = ConfigNodes.get(raw, "output_item");
+        ItemSource parsedOutputItem = ItemSourceUtil.parse(outputItem);
+        if (Texts.isNotBlank(Texts.toStringSafe(outputItem)) && parsedOutputItem == null) {
+            return null;
+        }
         Object metaActions = ConfigNodes.get(raw, "meta_actions");
         return new ResultConfig(
-                ItemSourceUtil.parse(outputItem),
+                parsedOutputItem,
                 List.copyOf(Texts.asStringList(ConfigNodes.get(raw, "action"))),
-                toActionList(
-                        ConfigNodes.get(metaActions, "name_modifications"),
-                        ConfigNodes.get(metaActions, "name_actions"),
-                        ConfigNodes.get(raw, "name_modifications"),
-                        ConfigNodes.get(raw, "name_actions")
-                ),
-                toActionList(ConfigNodes.get(metaActions, "lore_actions"), ConfigNodes.get(raw, "lore_actions"))
+                toActionList(ConfigNodes.get(metaActions, "name_modifications")),
+                toActionList(ConfigNodes.get(metaActions, "lore_actions")),
+                ConfigNodes.toPlainData(ConfigNodes.get(metaActions, "structured_presentation"))
         );
     }
 
@@ -311,22 +279,11 @@ public final class Recipe {
         return displayName;
     }
 
-    public TargetItem targetItem() {
-        return targetItem;
-    }
-
-    public ItemSource targetItemSource() {
-        return targetItem == null ? null : targetItem.source();
-    }
-
     public int forgeCapacity() {
-        return targetItem == null ? 0 : targetItem.forgeCapacity();
+        return forgeCapacity;
     }
 
     public ItemSource configuredOutputSource() {
-        if (targetItem != null && targetItem.source() != null) {
-            return targetItem.source();
-        }
         return result == null ? null : result.outputItem();
     }
 

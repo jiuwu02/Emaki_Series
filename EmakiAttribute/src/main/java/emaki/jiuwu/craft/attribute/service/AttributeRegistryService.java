@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -84,7 +83,7 @@ final class AttributeRegistryService {
             if (definition == null) {
                 continue;
             }
-            String targetId = normalizeId(definition.targetId());
+            String targetId = Texts.normalizeId(definition.targetId());
             if (definition.targetType() == emaki.jiuwu.craft.attribute.model.AttributeTargetType.RESOURCE && !targetId.isBlank()) {
                 resourceBuckets.computeIfAbsent(targetId, key -> new ArrayList<>()).add(definition);
                 if (definition.valueKind() == AttributeValueKind.REGEN) {
@@ -130,7 +129,7 @@ final class AttributeRegistryService {
         if (provider == null || Texts.isBlank(provider.id())) {
             return;
         }
-        contributionProviders.put(normalizeId(provider.id()), provider);
+        contributionProviders.put(Texts.normalizeId(provider.id()), provider);
         refreshContributionProviderCache();
     }
 
@@ -138,7 +137,7 @@ final class AttributeRegistryService {
         if (Texts.isBlank(providerId)) {
             return;
         }
-        contributionProviders.remove(normalizeId(providerId));
+        contributionProviders.remove(Texts.normalizeId(providerId));
         refreshContributionProviderCache();
     }
 
@@ -230,7 +229,7 @@ final class AttributeRegistryService {
                 if (entry.getKey() == null || entry.getValue() == null) {
                     continue;
                 }
-                result.merge(normalizeId(entry.getKey()), entry.getValue(), Double::sum);
+                result.merge(Texts.normalizeId(entry.getKey()), entry.getValue(), Double::sum);
             }
         }
         return result.isEmpty() ? Map.of() : Map.copyOf(result);
@@ -253,11 +252,8 @@ final class AttributeRegistryService {
     private void refreshContributionProviderCache() {
         List<AttributeContributionProvider> providers = new ArrayList<>(contributionProviders.values());
         providers.sort(Comparator.comparingInt(AttributeContributionProvider::priority).reversed()
-                .thenComparing(provider -> normalizeId(provider.id())));
+                .thenComparing(provider -> Texts.normalizeId(provider.id())));
         orderedContributionProviders = providers.isEmpty() ? List.of() : List.copyOf(providers);
     }
-
-    private String normalizeId(String value) {
-        return value == null ? "" : value.trim().toLowerCase(Locale.ROOT).replace(' ', '_');
-    }
 }
+

@@ -1,0 +1,16 @@
+source: "minecraft-cooked_chicken"
+
+stations:
+  wok:
+    offset:
+      x: 0.53
+      y: 1.01
+      z: 0.57
+    rotation:
+      x: 78.0
+      y: -18.0
+      z: "-12.0-22.0"
+    scale:
+      x: 0.64
+      y: 0.64
+      z: 0.64

@@ -56,6 +56,6 @@ public final class DamageEngine {
     }
 
     private DamageResult emptyResult() {
-        return new DamageResult("", 0D, false, 0D, Map.of(), DamageContext.legacy("", 0D, null, null, DamageContextVariables.empty()));
+        return new DamageResult("", 0D, false, 0D, Map.of(), DamageContext.empty());
     }
 }

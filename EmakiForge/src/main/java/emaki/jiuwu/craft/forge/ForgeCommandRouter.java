@@ -54,6 +54,8 @@ final class ForgeCommandRouter implements TabExecutor {
                 handleCreate(sender, args);
             case "delete" ->
                 handleDelete(sender, args);
+            case "input" ->
+                handleInput(sender, args);
             default -> {
                 plugin.messageService().send(sender, "general.unknown_command");
                 yield true;
@@ -65,10 +67,16 @@ final class ForgeCommandRouter implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            for (String sub : List.of("help", "forge", "book", "reload", "list", "editor", "edit", "create", "delete")) {
+            for (String sub : List.of("help", "forge", "book", "reload", "list", "editor", "edit", "create", "delete", "input")) {
                 if (sub.startsWith(args[0].toLowerCase())) {
                     result.add(sub);
                 }
+            }
+            return result;
+        }
+        if (args.length == 2 && "input".equalsIgnoreCase(args[0])) {
+            if ("cancel".startsWith(args[1].toLowerCase())) {
+                result.add("cancel");
             }
             return result;
         }
@@ -227,6 +235,24 @@ final class ForgeCommandRouter implements TabExecutor {
         return true;
     }
 
+    private boolean handleInput(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player player)) {
+            plugin.messageService().send(sender, "general.player_only");
+            return true;
+        }
+        if (!hasEditorPermission(sender)) {
+            plugin.messageService().send(sender, "general.no_permission");
+            return true;
+        }
+        if (args.length < 2) {
+            plugin.messageService().sendRaw(sender, "<yellow>用法: /emakiforge input <内容|cancel></yellow>");
+            return true;
+        }
+        String content = String.join(" ", java.util.Arrays.copyOfRange(args, 1, args.length)).trim();
+        plugin.editorGuiService().inputService().submitPendingInput(player, content);
+        return true;
+    }
+
     private boolean hasEditorPermission(CommandSender sender) {
         return sender.hasPermission(PERMISSION_EDITOR) || sender.hasPermission(PERMISSION_ADMIN);
     }
@@ -250,6 +276,7 @@ final class ForgeCommandRouter implements TabExecutor {
         lines.put("edit recipe <id>", "编辑指定配方");
         lines.put("create recipe [id]", "创建新配方草稿");
         lines.put("delete recipe <id>", "删除指定配方");
+        lines.put("input <内容|cancel>", "提交当前编辑器待输入内容");
         lines.forEach((commandName, description)
                 -> plugin.messageService().sendRaw(sender, plugin.messageService().message("command.help.line", Map.of("cmd", commandName, "desc", description))));
         plugin.messageService().sendRaw(sender, plugin.messageService().message("command.help.footer"));

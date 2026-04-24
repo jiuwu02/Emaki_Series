@@ -1,14 +1,11 @@
 package emaki.jiuwu.craft.attribute.bridge;
 
-import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -23,12 +20,10 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
-import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.util.Vector;
 
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.attribute.api.AttributeContribution;
@@ -36,27 +31,32 @@ import emaki.jiuwu.craft.attribute.api.AttributeContributionProvider;
 import emaki.jiuwu.craft.attribute.model.AttributeDefinition;
 import emaki.jiuwu.craft.attribute.model.AttributeSnapshot;
 import emaki.jiuwu.craft.attribute.model.DamageContext;
-import emaki.jiuwu.craft.attribute.model.DamageContextVariables;
 import emaki.jiuwu.craft.attribute.model.ProjectileDamageSnapshot;
 import emaki.jiuwu.craft.attribute.model.ResolvedDamage;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
-import emaki.jiuwu.craft.corelib.entity.EntityPhysicsSupport;
-import emaki.jiuwu.craft.corelib.math.Numbers;
+import emaki.jiuwu.craft.attribute.service.CombatSupport;
 import emaki.jiuwu.craft.corelib.text.Texts;
+import net.Indyuce.mmoitems.ItemStats;
+import net.Indyuce.mmoitems.MMOItems;
+import net.Indyuce.mmoitems.api.Type;
 import net.Indyuce.mmoitems.api.event.item.SpecialWeaponAttackEvent;
+import net.Indyuce.mmoitems.api.item.mmoitem.LiveMMOItem;
+import net.Indyuce.mmoitems.api.item.mmoitem.MMOItem;
+import net.Indyuce.mmoitems.stat.data.DoubleData;
+import net.Indyuce.mmoitems.stat.type.ItemStat;
 
 public final class MmoItemsBridge implements Listener {
 
     private final EmakiAttributePlugin plugin;
     private final AttributeService attributeService;
-    private final ReflectiveMmoItemsAccessor accessor;
+    private final DirectMmoItemsAccessor accessor;
     private final AttributeContributionProvider contributionProvider;
     private final Set<UUID> trackedProjectiles = ConcurrentHashMap.newKeySet();
 
     public MmoItemsBridge(EmakiAttributePlugin plugin, AttributeService attributeService) {
         this.plugin = plugin;
         this.attributeService = attributeService;
-        this.accessor = new ReflectiveMmoItemsAccessor(plugin);
+        this.accessor = new DirectMmoItemsAccessor(plugin);
         this.contributionProvider = new MmoItemsAttributeContributionProvider();
         this.attributeService.registerContributionProvider(contributionProvider);
         if (!accessor.ensureAvailable()) {
@@ -105,7 +105,7 @@ public final class MmoItemsBridge implements Listener {
                 null,
                 event.getDamage(),
                 0D,
-                baseContext(event, target)
+                CombatSupport.baseContext(event, target)
         );
         resolveAndApplyDamage(attributeService.resolveDamageApplicationAsync(damageContext), target, event.getDamager());
     }
@@ -147,7 +147,7 @@ public final class MmoItemsBridge implements Listener {
                 0D,
                 snapshot.attackSnapshot(),
                 targetSnapshot,
-                baseContext(event, target)
+                CombatSupport.baseContext(event, target)
         );
         resolveAndApplyDamage(attributeService.resolveDamageApplicationAsync(damageContext), target, projectile);
     }
@@ -171,25 +171,6 @@ public final class MmoItemsBridge implements Listener {
         return null;
     }
 
-    private DamageContextVariables baseContext(EntityDamageEvent event, LivingEntity target) {
-        DamageContextVariables.Builder context = DamageContextVariables.builder();
-        String cause = event.getCause().name();
-        context.put("cause", cause);
-        context.put("damage_cause", cause);
-        context.put("damage_cause_id", cause);
-        context.put("base_damage", event.getDamage());
-        context.put("source_damage", event.getDamage());
-        context.put("input_damage", event.getDamage());
-        context.put("final_damage", event.getFinalDamage());
-        context.put("target_uuid", target.getUniqueId().toString());
-        context.put("target_type", target.getType().name());
-        if (event instanceof EntityDamageByEntityEvent byEntityEvent) {
-            context.put("damager_type", byEntityEvent.getDamager().getType().name());
-            context.put("damager_uuid", byEntityEvent.getDamager().getUniqueId().toString());
-        }
-        return context.build();
-    }
-
     private void resolveAndApplyDamage(CompletableFuture<ResolvedDamage> future, LivingEntity target, Entity visualSource) {
         if (future == null) {
             return;
@@ -198,21 +179,9 @@ public final class MmoItemsBridge implements Listener {
             if (throwable != null || resolvedDamage == null || target == null || !target.isValid() || target.isDead()) {
                 return;
             }
-            applySyntheticKnockback(target, visualSource, resolvedDamage.finalDamage());
+            CombatSupport.applySyntheticKnockback(target, visualSource, resolvedDamage.finalDamage(), attributeService.config());
             attributeService.applyResolvedDamage(resolvedDamage, visualSource, 0D);
         }));
-    }
-
-    private void applySyntheticKnockback(LivingEntity target, Entity source, double finalDamage) {
-        if (target == null || source == null || finalDamage <= 0D || !target.isValid() || target.isDead()
-                || !attributeService.config().syntheticHitKnockback()) {
-            return;
-        }
-        double strength = Math.max(0D, attributeService.config().syntheticHitKnockbackStrength());
-        if (strength <= 0D) {
-            return;
-        }
-        EntityPhysicsSupport.applyKnockback(target, source, strength);
     }
 
     private void warnBridgeUnavailable(String error) {
@@ -254,7 +223,7 @@ public final class MmoItemsBridge implements Listener {
                 if (slot.item() == null || slot.item().getType().isAir() || !accessor.isMmoItemsItem(slot.item())) {
                     continue;
                 }
-                Object liveItem = accessor.createLiveItem(slot.item());
+                MMOItem liveItem = accessor.createLiveItem(slot.item());
                 if (liveItem == null) {
                     continue;
                 }
@@ -265,7 +234,7 @@ public final class MmoItemsBridge implements Listener {
                         continue;
                     }
                     double value = statCache.computeIfAbsent(
-                            normalizeId(definition.mmoItemsStatId()),
+                            normalizeMmoId(definition.mmoItemsStatId()),
                             key -> accessor.readDoubleStat(liveItem, definition.mmoItemsStatId(), definition.id())
                     );
                     if (Double.compare(value, 0D) == 0) {
@@ -307,21 +276,16 @@ public final class MmoItemsBridge implements Listener {
 
     }
 
-    private static final class ReflectiveMmoItemsAccessor {
+    private static final class DirectMmoItemsAccessor {
 
         private final EmakiAttributePlugin plugin;
         private final Set<String> warnings = new LinkedHashSet<>();
         private boolean initialized;
         private boolean available;
         private String availabilityError = "";
-        private Method mmoItemsGetTypeMethod;
-        private Method mmoItemsGetIdMethod;
-        private Constructor<?> liveMmoItemConstructor;
-        private Method mmoItemGetDataMethod;
-        private Method itemStatGetIdMethod;
-        private final Map<String, Object> statObjects = new LinkedHashMap<>();
+        private final Map<String, ItemStat<?, ?>> statObjects = new LinkedHashMap<>();
 
-        private ReflectiveMmoItemsAccessor(EmakiAttributePlugin plugin) {
+        private DirectMmoItemsAccessor(EmakiAttributePlugin plugin) {
             this.plugin = plugin;
         }
 
@@ -331,17 +295,8 @@ public final class MmoItemsBridge implements Listener {
             }
             initialized = true;
             try {
-                Class<?> mmoItemsClass = Class.forName("net.Indyuce.mmoitems.MMOItems");
-                Class<?> itemStatsClass = Class.forName("net.Indyuce.mmoitems.ItemStats");
-                Class<?> itemStatClass = Class.forName("net.Indyuce.mmoitems.stat.type.ItemStat");
-                Class<?> liveMmoItemClass = Class.forName("net.Indyuce.mmoitems.api.item.mmoitem.LiveMMOItem");
-                Class<?> mmoItemClass = Class.forName("net.Indyuce.mmoitems.api.item.mmoitem.MMOItem");
-                mmoItemsGetTypeMethod = mmoItemsClass.getMethod("getType", ItemStack.class);
-                mmoItemsGetIdMethod = mmoItemsClass.getMethod("getID", ItemStack.class);
-                liveMmoItemConstructor = liveMmoItemClass.getConstructor(ItemStack.class);
-                mmoItemGetDataMethod = mmoItemClass.getMethod("getData", itemStatClass);
-                itemStatGetIdMethod = itemStatClass.getMethod("getId");
-                loadStatObjects(itemStatsClass, itemStatClass);
+                Class.forName("net.Indyuce.mmoitems.MMOItems");
+                loadStatObjects();
                 available = true;
             } catch (Throwable throwable) {
                 available = false;
@@ -359,21 +314,29 @@ public final class MmoItemsBridge implements Listener {
         }
 
         private String resolveTypeId(ItemStack itemStack) {
-            Object rawType = invokeStatic(mmoItemsGetTypeMethod, itemStack);
-            return readableId(rawType);
+            try {
+                Type type = MMOItems.getType(itemStack);
+                return type == null ? "" : type.getId().trim();
+            } catch (Throwable throwable) {
+                return "";
+            }
         }
 
         private String resolveItemId(ItemStack itemStack) {
-            Object rawId = invokeStatic(mmoItemsGetIdMethod, itemStack);
-            return Texts.toStringSafe(rawId).trim();
+            try {
+                String id = MMOItems.getID(itemStack);
+                return id == null ? "" : id.trim();
+            } catch (Throwable throwable) {
+                return "";
+            }
         }
 
-        private Object createLiveItem(ItemStack itemStack) {
-            if (!ensureAvailable() || liveMmoItemConstructor == null || itemStack == null || itemStack.getType().isAir()) {
+        private MMOItem createLiveItem(ItemStack itemStack) {
+            if (!ensureAvailable() || itemStack == null || itemStack.getType().isAir()) {
                 return null;
             }
             try {
-                return liveMmoItemConstructor.newInstance(itemStack);
+                return new LiveMMOItem(itemStack);
             } catch (Throwable throwable) {
                 warnOnce(
                         "console.mmoitems_stat_read_failed",
@@ -388,15 +351,15 @@ public final class MmoItemsBridge implements Listener {
             }
         }
 
-        private double readDoubleStat(Object liveItem, String configuredStatId, String attributeId) {
+        private double readDoubleStat(MMOItem liveItem, String configuredStatId, String attributeId) {
             if (!ensureAvailable() || liveItem == null || Texts.isBlank(configuredStatId)) {
                 return 0D;
             }
-            Object statObject = statObjects.get(normalizeId(configuredStatId));
-            if (statObject == null) {
+            ItemStat<?, ?> stat = statObjects.get(normalizeMmoId(configuredStatId));
+            if (stat == null) {
                 warnOnce(
                         "console.mmoitems_stat_resolve_failed",
-                        "missing_stat|" + normalizeId(configuredStatId),
+                        "missing_stat|" + normalizeMmoId(configuredStatId),
                         Map.of(
                                 "attribute", safeText(attributeId, "-"),
                                 "stat", configuredStatId
@@ -405,13 +368,18 @@ public final class MmoItemsBridge implements Listener {
                 return 0D;
             }
             try {
-                Object data = mmoItemGetDataMethod.invoke(liveItem, statObject);
-                Double numeric = toDouble(data);
-                return numeric == null ? 0D : numeric;
+                Object data = liveItem.getData(stat);
+                if (data instanceof DoubleData doubleData) {
+                    return doubleData.getValue();
+                }
+                if (data instanceof Number number) {
+                    return number.doubleValue();
+                }
+                return 0D;
             } catch (Throwable throwable) {
                 warnOnce(
                         "console.mmoitems_stat_read_failed",
-                        "read_stat|" + safeText(attributeId, "-") + "|" + normalizeId(configuredStatId),
+                        "read_stat|" + safeText(attributeId, "-") + "|" + normalizeMmoId(configuredStatId),
                         Map.of(
                                 "attribute", safeText(attributeId, "-"),
                                 "stat", configuredStatId,
@@ -422,74 +390,23 @@ public final class MmoItemsBridge implements Listener {
             }
         }
 
-        private void loadStatObjects(Class<?> itemStatsClass, Class<?> itemStatClass) throws IllegalAccessException {
+        @SuppressWarnings("unchecked")
+        private void loadStatObjects() throws IllegalAccessException {
             statObjects.clear();
-            for (Field field : itemStatsClass.getFields()) {
-                if (!Modifier.isStatic(field.getModifiers()) || !itemStatClass.isAssignableFrom(field.getType())) {
+            for (Field field : ItemStats.class.getFields()) {
+                if (!Modifier.isStatic(field.getModifiers()) || !ItemStat.class.isAssignableFrom(field.getType())) {
                     continue;
                 }
-                Object statObject = field.get(null);
-                if (statObject == null) {
+                ItemStat<?, ?> stat = (ItemStat<?, ?>) field.get(null);
+                if (stat == null) {
                     continue;
                 }
-                statObjects.putIfAbsent(normalizeId(field.getName()), statObject);
-                Object rawId = invoke(itemStatGetIdMethod, statObject);
-                String statId = readableId(rawId);
+                statObjects.putIfAbsent(normalizeMmoId(field.getName()), stat);
+                String statId = stat.getId();
                 if (Texts.isNotBlank(statId)) {
-                    statObjects.putIfAbsent(normalizeId(statId), statObject);
+                    statObjects.putIfAbsent(normalizeMmoId(statId), stat);
                 }
             }
-        }
-
-        private Object invokeStatic(Method method, Object argument) {
-            return invoke(method, null, argument);
-        }
-
-        private Object invoke(Method method, Object target, Object... arguments) {
-            if (method == null) {
-                return null;
-            }
-            try {
-                return method.invoke(target, arguments);
-            } catch (Throwable throwable) {
-                return null;
-            }
-        }
-
-        private Double toDouble(Object value) {
-            if (value == null) {
-                return null;
-            }
-            if (value instanceof Number number) {
-                return number.doubleValue();
-            }
-            try {
-                Method getValueMethod = value.getClass().getMethod("getValue");
-                Object raw = getValueMethod.invoke(value);
-                if (raw instanceof Number number) {
-                    return number.doubleValue();
-                }
-            } catch (Throwable throwable) {
-            }
-            return Numbers.tryParseDouble(String.valueOf(value), null);
-        }
-
-        private String readableId(Object value) {
-            if (value == null) {
-                return "";
-            }
-            if (value instanceof String text) {
-                return text.trim();
-            }
-            try {
-                Method getIdMethod = value.getClass().getMethod("getId");
-                Object raw = getIdMethod.invoke(value);
-                if (raw != null) {
-                    return String.valueOf(raw).trim();
-                }
-            } catch (Throwable throwable) {
-            }
-            return String.valueOf(value).trim();
         }
 
         private void warnOnce(String key, String uniqueId, Map<String, ?> replacements) {
@@ -499,16 +416,12 @@ public final class MmoItemsBridge implements Listener {
             plugin.messageService().warning(key, replacements);
         }
 
-        private String normalizeId(String value) {
-            return value == null ? "" : value.trim().toLowerCase(Locale.ROOT).replace('-', '_').replace(' ', '_');
-        }
-
         private String safeText(String value, String fallback) {
             return Texts.isBlank(value) ? fallback : value;
         }
     }
 
-    private static String normalizeId(String value) {
-        return value == null ? "" : value.trim().toLowerCase(Locale.ROOT).replace('-', '_').replace(' ', '_');
+    private static String normalizeMmoId(String value) {
+        return Texts.normalizeId(value).replace('-', '_');
     }
 }

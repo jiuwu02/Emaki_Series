@@ -4,12 +4,9 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
-import org.bukkit.Registry;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
@@ -30,7 +27,7 @@ public final class ItemSourceService {
         if (resolver == null || Texts.isBlank(resolver.id())) {
             return;
         }
-        resolvers.put(normalizeId(resolver.id()), resolver);
+        resolvers.put(Texts.normalizeId(resolver.id()), resolver);
         refreshCache();
     }
 
@@ -38,7 +35,7 @@ public final class ItemSourceService {
         if (Texts.isBlank(resolverId)) {
             return;
         }
-        resolvers.remove(normalizeId(resolverId));
+        resolvers.remove(Texts.normalizeId(resolverId));
         refreshCache();
     }
 
@@ -113,12 +110,8 @@ public final class ItemSourceService {
     private void refreshCache() {
         List<ItemSourceResolver> values = new ArrayList<>(resolvers.values());
         values.sort(Comparator.comparingInt(ItemSourceResolver::priority).reversed()
-                .thenComparing(resolver -> normalizeId(resolver.id())));
+                .thenComparing(resolver -> Texts.normalizeId(resolver.id())));
         orderedResolvers = values.isEmpty() ? List.of() : List.copyOf(values);
-    }
-
-    private String normalizeId(String value) {
-        return value == null ? "" : value.trim().toLowerCase(Locale.ROOT).replace(' ', '_');
     }
 
     private String vanillaDisplayName(ItemSource source) {
@@ -153,14 +146,7 @@ public final class ItemSourceService {
     }
 
     private Material resolveMaterial(String identifier) {
-        if (Texts.isBlank(identifier)) {
-            return null;
-        }
-        String normalized = identifier.trim().toLowerCase(Locale.ROOT);
-        NamespacedKey key = normalized.contains(":")
-                ? NamespacedKey.fromString(normalized)
-                : NamespacedKey.minecraft(normalized);
-        return key == null ? null : Registry.MATERIAL.get(key);
+        return ItemSourceUtil.resolveVanillaMaterial(identifier);
     }
 
     private static final class VanillaItemSourceResolver implements ItemSourceResolver {
@@ -185,7 +171,7 @@ public final class ItemSourceService {
             if (itemStack == null || itemStack.getType().isAir()) {
                 return null;
             }
-            return new ItemSource(ItemSourceType.VANILLA, itemStack.getType().name());
+            return new ItemSource(ItemSourceType.VANILLA, itemStack.getType().name().toLowerCase(java.util.Locale.ROOT));
         }
 
         @Override
@@ -198,14 +184,8 @@ public final class ItemSourceService {
         }
 
         private Material resolveMaterial(String identifier) {
-            if (Texts.isBlank(identifier)) {
-                return null;
-            }
-            String normalized = identifier.trim().toLowerCase(Locale.ROOT);
-            NamespacedKey key = normalized.contains(":")
-                    ? NamespacedKey.fromString(normalized)
-                    : NamespacedKey.minecraft(normalized);
-            return key == null ? null : Registry.MATERIAL.get(key);
+            return ItemSourceUtil.resolveVanillaMaterial(identifier);
         }
     }
 }
+

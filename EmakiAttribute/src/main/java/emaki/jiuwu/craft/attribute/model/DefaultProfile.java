@@ -18,7 +18,7 @@ public record DefaultProfile(String id,
     private static final int DEFAULT_PRIORITY = 1_000_000;
 
     public DefaultProfile     {
-        id = normalizeId(id);
+        id = Texts.normalizeId(id);
         resources = resources == null ? Map.of() : Map.copyOf(resources);
         attributeDefaults = attributeDefaults == null ? Map.of() : Map.copyOf(attributeDefaults);
         description = Texts.toStringSafe(description).trim();
@@ -49,8 +49,5 @@ public record DefaultProfile(String id,
                 ConfigNodes.string(raw, "description", null)
         );
     }
-
-    private static String normalizeId(String value) {
-        return Texts.toStringSafe(value).trim().toLowerCase(Locale.ROOT).replace(' ', '_');
-    }
 }
+

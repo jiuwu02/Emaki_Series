@@ -2,7 +2,6 @@ package emaki.jiuwu.craft.attribute.model;
 
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -21,13 +20,13 @@ public record DamageTypeDefinition(String id,
         String targetMessage) {
 
     public DamageTypeDefinition          {
-        id = normalizeId(id);
+        id = Texts.normalizeId(id);
         displayName = Texts.isBlank(displayName) ? id : Texts.toStringSafe(displayName).trim();
         aliases = aliases == null ? List.of() : List.copyOf(aliases);
         Set<String> normalizedEvents = new LinkedHashSet<>();
         if (allowedEvents != null) {
             for (String event : allowedEvents) {
-                String normalized = normalizeId(event);
+                String normalized = Texts.normalizeId(event);
                 if (!normalized.isBlank()) {
                     normalizedEvents.add(normalized);
                 }
@@ -80,7 +79,7 @@ public record DamageTypeDefinition(String id,
         RecoveryDefinition recovery = RecoveryDefinition.fromMap(ConfigNodes.get(raw, "recovery"), attributeNormalizer);
         Set<String> allowedEvents = new LinkedHashSet<>();
         for (Object event : ConfigNodes.asObjectList(ConfigNodes.get(raw, "allowed_events"))) {
-            String normalized = normalizeId(Texts.toStringSafe(event));
+            String normalized = Texts.normalizeId(Texts.toStringSafe(event));
             if (!normalized.isBlank()) {
                 allowedEvents.add(normalized);
             }
@@ -106,12 +105,12 @@ public record DamageTypeDefinition(String id,
         if (Texts.isBlank(candidate)) {
             return false;
         }
-        String normalized = normalizeId(candidate);
+        String normalized = Texts.normalizeId(candidate);
         if (id.equals(normalized)) {
             return true;
         }
         for (String alias : aliases) {
-            if (normalizeId(alias).equals(normalized)) {
+            if (Texts.normalizeId(alias).equals(normalized)) {
                 return true;
             }
         }
@@ -119,7 +118,7 @@ public record DamageTypeDefinition(String id,
     }
 
     public boolean allowsCause(String cause) {
-        return allowedEvents.contains(normalizeId(cause));
+        return allowedEvents.contains(Texts.normalizeId(cause));
     }
 
     public boolean hasAttackerMessage() {
@@ -133,8 +132,5 @@ public record DamageTypeDefinition(String id,
     public boolean hasRecovery() {
         return recovery != null;
     }
-
-    private static String normalizeId(String value) {
-        return Texts.toStringSafe(value).trim().toLowerCase(Locale.ROOT).replace(' ', '_');
-    }
 }
+

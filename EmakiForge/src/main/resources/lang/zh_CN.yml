@@ -1,18 +1,18 @@
 ﻿# Emaki Forge 中文语言文件
 
 # 语言文件版本号 (请勿修改)
-lang_version: "3.0.0"
+lang_version: "3.2.0"
 
 # 通用消息
 general:
   prefix: "<gray>[ <gradient:#F2C46D:#C9703D>EmakiForge</gradient> ]</gray>"
-  no_permission: "<red>你没有权限执行此操作!</red>"
-  player_only: "<red>此命令只能由玩家执行!</red>"
-  unknown_command: "<red>未知的命令!</red>"
-  invalid_args: "<red>无效的参数!</red>"
-  reload_success: "<green>配置重载成功!</green>"
-  reload_fail: "<red>配置重载失败!</red>"
-  reload_summary: "<gray>已重载: 配置/语言/配方({recipes})/GUI({guis})</gray>"
+  no_permission: "<red>你没有权限执行此操作。</red>"
+  player_only: "<red>此命令只能由玩家执行。</red>"
+  unknown_command: "<red>未知命令。</red>"
+  invalid_args: "<red>参数错误。</red>"
+  reload_success: "<green>配置已重载。</green>"
+  reload_fail: "<red>配置重载失败。</red>"
+  reload_summary: "<gray>已重载配方 {recipes} 个，GUI {guis} 个。</gray>"
 
 # 命令帮助
 command:
@@ -24,8 +24,8 @@ command:
       help: "显示帮助信息"
       forge: "打开独立锻造台"
       book: "打开配方图鉴"
-      reload: "重载配置文件"
-      "list <type>": "列出配置项(recipes)"
+      reload: "重载配置"
+      "list <type>": "列出指定类型配置"
       editor: "打开锻造资源编辑器"
       "edit recipe <id>": "编辑指定配方"
       "create recipe [id]": "创建新配方草稿"
@@ -37,55 +37,51 @@ command:
     materials_header: "<gold>========== 材料列表 (共 {count} 条) ==========</gold>"
     recipe_line: "<yellow>{id}</yellow> <gray>- {name}</gray>"
     blueprint_line: "<yellow>{id}</yellow> <gray>- {name}</gray>"
-    material_line: "<yellow>{id}</yellow> <gray>- {name} (消耗: {capacity}, 加成: +{bonus})</gray>"
+    material_line: "<yellow>{id}</yellow> <gray>- {name} (消耗: {capacity}, 加成:
+      +{bonus})</gray>"
 
 # 控制台日志
 console:
   plugin_starting: "<gray>正在启动...</gray>"
-  plugin_started: "<green>启动完成!</green>"
+  plugin_started: "<green>启动完成。</green>"
   plugin_stopping: "<gray>正在关闭...</gray>"
-  plugin_stopped: "<green>已关闭!</green>"
+  plugin_stopped: "<green>已关闭。</green>"
   config_load_failed: "<red>配置读取失败: {error}</red>"
   checking_config: "<white>正在检查默认配置文件...</white>"
-  data_folder_error: "<yellow>无法获取数据文件夹路径, 跳过 Bootstrap!</yellow>"
+  data_folder_error: "<yellow>无法获取数据目录，已跳过默认文件检查。</yellow>"
   data_folder_failed: "<yellow>获取数据文件夹失败: <red>{error}</red>"
   loading_configs: "<white>正在加载配置文件...</white>"
-  config_loaded: "<green>配置文件加载完成!</green>"
+  config_loaded: "<green>配置文件加载完成。</green>"
   registering_services: "<white>正在注册服务...</white>"
-  services_registered: "<green>服务注册完成!</green>"
+  services_registered: "<green>服务注册完成。</green>"
   unregistering_services: "<white>正在注销服务...</white>"
-  services_unregistered: "<green>服务注销完成!</green>"
+  services_unregistered: "<green>服务注销完成。</green>"
   registering_listeners: "<white>正在注册事件监听器...</white>"
-  listeners_registered: "<green>事件监听器注册完成!</green>"
+  listeners_registered: "<green>事件监听器注册完成。</green>"
   saving_player_data: "<white>正在保存玩家数据...</white>"
-  player_data_saved: "<green>已保存 <yellow>{count}</yellow> <gray>个玩家数据</gray>"
+  player_data_saved: "<green>已保存 <yellow>{count}</yellow> <gray>份玩家数据</gray>"
   bootstrap_start: "<white>开始检查默认文件...</white>"
-  bootstrap_skip: "<gray>release_default_data=false, 跳过默认数据文件生成</gray>"
-  bootstrap_complete: "<green>默认文件检查完成!</green>"
-  bootstrap_config_read_error: "<yellow>读取或更新配置失败, 将使用安全默认值: <red>{error}</red>"
+  bootstrap_skip: "<gray>release_default_data=false，已跳过默认数据生成</gray>"
+  bootstrap_complete: "<green>默认文件检查完成。</green>"
+  bootstrap_config_read_error: "<yellow>读取或更新配置失败，将使用默认值: <red>{error}</red>"
   directory_created: "<green>创建目录 <yellow>{path}</yellow>"
   directory_create_failed: "<yellow>创建目录失败 <red>{path}</red>"
-  config_exists: "<gray>config.yml 已存在, 跳过创建</gray>"
-  lang_exists: "<gray>lang/zh_CN.yml 已存在, 跳过创建</gray>"
-  gui_forge_exists: "<gray>gui/forge_gui.yml 已存在, 跳过创建</gray>"
-  gui_book_exists: "<gray>gui/recipe_book.yml 已存在, 跳过创建</gray>"
-  blueprint_weapon_exists: "<gray>blueprints/weapon_sword.yml 已存在, 跳过创建</gray>"
-  blueprint_universal_exists: "<gray>blueprints/universal_blueprint.yml 已存在, 跳过创建</gray>"
-  material_iron_exists: "<gray>materials/iron_essence.yml 已存在, 跳过创建</gray>"
-  material_flame_exists: "<gray>materials/flame_crystal.yml 已存在, 跳过创建</gray>"
-  recipe_flame_exists: "<gray>recipes/flame_sword.yml 已存在, 跳过创建</gray>"
-  recipe_action_id_migrated: "<gray>已将旧操作写法迁移为标准写法: <yellow>{path}</yellow></gray>"
+  config_exists: "<gray>config.yml 已存在，跳过创建</gray>"
+  lang_exists: "<gray>lang/zh_CN.yml 已存在，跳过创建</gray>"
+  gui_forge_exists: "<gray>gui/forge_gui.yml 已存在，跳过创建</gray>"
+  gui_book_exists: "<gray>gui/recipe_book.yml 已存在，跳过创建</gray>"
+  blueprint_weapon_exists: "<gray>blueprints/weapon_sword.yml 已存在，跳过创建</gray>"
+  blueprint_universal_exists: "<gray>blueprints/universal_blueprint.yml 已存在，跳过创建</gray>"
+  material_iron_exists: "<gray>materials/iron_essence.yml 已存在，跳过创建</gray>"
+  material_flame_exists: "<gray>materials/flame_crystal.yml 已存在，跳过创建</gray>"
+  recipe_flame_exists: "<gray>recipes/flame_sword.yml 已存在，跳过创建</gray>"
   file_created_success: "<green>成功创建 <yellow>{name}</yellow>"
   file_create_failed: "<yellow>创建 <red>{name}</red> <yellow>失败: <red>{error}</red>"
   file_create_failed_ext: "<yellow>创建 <red>{name}</red> <yellow>失败: <red>{error}</red>"
-  default_file_missing: "<yellow>默认资源文件不存在, 已跳过: <red>{path}</red>"
-  data_folder_not_init: "<yellow>数据文件夹未初始化!</yellow>"
-  bootstrap_import_legacy_failed: "<yellow>迁移旧版配置失败: <red>{path}</red> <gray>({error})</gray></yellow>"
-  bootstrap_scan_legacy_failed: "<yellow>扫描旧版 PySpigot 配置目录失败: <red>{path}</red> <gray>({error})</gray></yellow>"
+  default_file_missing: "<yellow>内置资源不存在，已跳过: <red>{path}</red>"
+  data_folder_not_init: "<yellow>数据目录尚未初始化。</yellow>"
   bootstrap_copy_failed: "<yellow>复制默认资源失败: <red>{path}</red> <gray>({error})</gray></yellow>"
   bootstrap_save_failed: "<yellow>保存合并后的配置失败: <red>{path}</red> <gray>({error})</gray></yellow>"
-  bootstrap_migrate_legacy_failed: "<yellow>迁移旧版默认数据失败: <red>{path}</red> <gray>({error})</gray></yellow>"
-  bootstrap_scan_legacy_default_failed: "<yellow>扫描旧版默认数据目录失败: <red>{path}</red> <gray>({error})</gray></yellow>"
   blueprints_loaded: "<gray>已加载 <yellow>{count}</yellow> 个图纸</gray>"
   materials_loaded: "<gray>已加载 <yellow>{count}</yellow> 个材料</gray>"
   recipes_loaded: "<gray>已加载 <yellow>{count}</yellow> 个配方</gray>"
@@ -93,20 +89,26 @@ console:
   player_data_directory_create_failed: "<yellow>无法创建玩家数据目录: <red>{path}</red></yellow>"
   player_data_save_failed: "<yellow>保存玩家数据失败: <red>{uuid}</red> <gray>({error})</gray></yellow>"
   item_unknown_vanilla_material_source: "<yellow>未知的原版材料来源: <red>{identifier}</red></yellow>"
-  external_item_source_unavailable: "<yellow>外部物品来源不可用: <gray>依赖={dependency}, 场景={context}, 来源={source}, 详情={detail}</gray></yellow>"
+  external_item_source_unavailable: "<yellow>外部物品来源不可用: <gray>依赖={dependency},
+    场景={context}, 来源={source}, 详情={detail}</gray></yellow>"
   item_bridge_unavailable: "<yellow>{dependency} API 桥接不可用: <red>{error}</red></yellow>"
   forge_execution_failed: "<yellow>锻造执行失败: 配方 <red>{recipe}</red> <gray>({error})</gray></yellow>"
-  forge_phase_execution_failed: "<yellow>锻造阶段执行失败: 阶段 <red>{phase}</red>，配方 <red>{recipe}</red> <gray>({error})</gray></yellow>"
-  forge_phase_failed: "<yellow>锻造阶段失败: 阶段 <red>{phase}</red>，配方 <red>{recipe}</red> <gray>({reason})</gray></yellow>"
+  forge_phase_execution_failed: "<yellow>锻造阶段执行失败: 阶段 <red>{phase}</red>，配方
+    <red>{recipe}</red> <gray>({error})</gray></yellow>"
+  forge_phase_failed: "<yellow>锻造阶段失败: 阶段 <red>{phase}</red>，配方
+    <red>{recipe}</red> <gray>({reason})</gray></yellow>"
   forge_quality_execution_failed: "<yellow>品质动作执行失败: 品质 <red>{tier}</red> <gray>({error})</gray></yellow>"
   forge_quality_failed: "<yellow>品质动作失败: 品质 <red>{tier}</red> <gray>({reason})</gray></yellow>"
   forge_refresh_failed: "<yellow>刷新锻造物品失败: 配方 <red>{recipe}</red></yellow>"
   forge_refresh_invalid_audit: "<yellow>检测到无法刷新的锻造审计数据: <red>{reason}</red></yellow>"
   forge_refresh_missing_recipe: "<yellow>刷新锻造物品时未找到配方: <red>{recipe}</red></yellow>"
-  forge_refresh_missing_material: "<yellow>刷新锻造物品时未找到材料: 配方 <red>{recipe}</red>，材料 <red>{material}</red></yellow>"
-  forge_refresh_invalid_quality: "<yellow>刷新锻造物品时发现无效品质: 配方 <red>{recipe}</red>，品质 <red>{quality}</red></yellow>"
+  forge_refresh_missing_material: "<yellow>刷新锻造物品时未找到材料: 配方 <red>{recipe}</red>，材料
+    <red>{material}</red></yellow>"
+  forge_refresh_invalid_quality: "<yellow>刷新锻造物品时发现无效品质: 配方 <red>{recipe}</red>，品质
+    <red>{quality}</red></yellow>"
   pdc_write_skipped_primary_thread: "<yellow>跳过锻造 PDC 写入: 不在主线程。</yellow>"
-  pdc_write_failed: "<yellow>写入锻造 PDC 数据失败: 配方 <red>{recipe}</red> <gray>({error})</gray></yellow>"
+  pdc_write_failed: "<yellow>写入锻造 PDC 数据失败: 配方 <red>{recipe}</red>
+    <gray>({error})</gray></yellow>"
   pdc_corrupted_data_detected: "<yellow>检测到损坏的锻造 PDC 数据: <red>{reason}</red></yellow>"
   pdc_deserialize_failed: "<yellow>反序列化锻造材料数据失败: <red>{error}</red></yellow>"
   pdc_deserialize_unexpected_error: "<yellow>反序列化锻造材料数据时发生未知错误: <red>{error}</red></yellow>"
@@ -115,67 +117,86 @@ console:
   loader_invalid_config: "<yellow>{type}配置无效 <red>{path}</red>"
   loader_duplicate_id: "<yellow>发现重复的{type}ID <red>{id}</red> <gray>来源: {path}</gray>"
   loader_exception: "<red>加载{type}配置时发生异常 <yellow>{path}</yellow>: <gray>{error}</gray>"
-  forge_consume_plan_mismatch: "<yellow>{category}消耗规划异常 <gray>配方={recipe}, 模式={mode}, 需求={required}, 预留={reserved}</gray>"
-  forge_consume_mismatch: "<yellow>{category}消耗数量异常 <gray>配方={recipe}, 标识={id}, 需求={required}, 实扣={removed}</gray>"
-  lore_search_not_found: "<yellow>Lore 搜索插入未找到目标: 来源 <red>{source}</red>，动作 <red>{action}</red>，匹配 <red>{pattern}</red></yellow>"
-  lore_invalid_action_name: "<yellow>Lore 搜索操作名无效: 来源 <red>{source}</red>，动作 <red>{action}</red> <gray>({error})</gray></yellow>"
-  lore_invalid_regex: "<yellow>Lore 搜索正则无效: 来源 <red>{source}</red>，动作 <red>{action}</red>，表达式 <red>{pattern}</red> <gray>({error})</gray></yellow>"
-  lore_invalid_search_insert_config: "<yellow>Lore 搜索插入配置无效: 来源 <red>{source}</red>，动作 <red>{action}</red> <gray>({error})</gray></yellow>"
+  forge_consume_plan_mismatch: "<yellow>{category}消耗规划异常 <gray>配方={recipe},
+    模式={mode}, 需求={required}, 预留={reserved}</gray>"
+  forge_consume_mismatch: "<yellow>{category}消耗数量异常 <gray>配方={recipe}, 标识={id},
+    需求={required}, 实扣={removed}</gray>"
+  lore_search_not_found: "<yellow>Lore 搜索插入未找到目标: 来源 <red>{source}</red>，动作
+    <red>{action}</red>，匹配 <red>{pattern}</red></yellow>"
+  lore_invalid_action_name: "<yellow>Lore 搜索操作名无效: 来源 <red>{source}</red>，动作
+    <red>{action}</red> <gray>({error})</gray></yellow>"
+  lore_invalid_regex: "<yellow>Lore 搜索正则无效: 来源 <red>{source}</red>，动作
+    <red>{action}</red>，表达式 <red>{pattern}</red>
+    <gray>({error})</gray></yellow>"
+  lore_invalid_search_insert_config: "<yellow>Lore 搜索插入配置无效: 来源
+    <red>{source}</red>，动作 <red>{action}</red> <gray>({error})</gray></yellow>"
 
 loader:
   lang_directory_create_failed: "<red>无法创建语言目录: {path}</red>"
   bundled_language_load_failed: "<red>读取内置语言失败: {error}</red>"
+  invalid_config: "<yellow>{type} 文件 {file} 配置无效，已跳过加载。</yellow>"
+  recipe_target_item_unsupported: "<yellow>配方文件 {file} 使用了当前版本不支持的 target_item
+    输出字段，请改用根级 forge_capacity 与 result.output_item。</yellow>"
   bundled_resource_missing: "<red>内置资源缺失: {resource}，无法写入 {path}</red>"
   recipe_action_validation_skipped: "<yellow>跳过配方 {file} 的操作校验，因为 EmakiCoreLib 不可用。</yellow>"
-  recipe_invalid_action_syntax: "<yellow>配方 {recipe} 的操作语法无效: {file}，阶段 {phase}，第 {line} 行 <gray>({error})</gray></yellow>"
-  recipe_unknown_action: "<yellow>配方 {recipe} 中存在未知操作 <red>{action}</red>: {file}，阶段 {phase}，第 {line} 行{suggestion}</yellow>"
-  recipe_invalid_action_arguments: "<yellow>配方 {recipe} 中的操作参数无效: {file}，阶段 {phase}，第 {line} 行 <gray>({error})</gray></yellow>"
-  recipe_unknown_action_template: "<yellow>配方 {recipe} 中存在未知模板 <red>{template}</red>: {file}，阶段 {phase}，第 {line} 行</yellow>"
+  recipe_invalid_action_syntax: "<yellow>配方 {recipe} 的操作语法无效: {file}，阶段 {phase}，第
+    {line} 行 <gray>({error})</gray></yellow>"
+  recipe_unknown_action: "<yellow>配方 {recipe} 中存在未知操作 <red>{action}</red>:
+    {file}，阶段 {phase}，第 {line} 行{suggestion}</yellow>"
+  recipe_invalid_action_arguments: "<yellow>配方 {recipe} 中的操作参数无效: {file}，阶段
+    {phase}，第 {line} 行 <gray>({error})</gray></yellow>"
+  recipe_unknown_action_template: "<yellow>配方 {recipe} 中存在未知模板
+    <red>{template}</red>: {file}，阶段 {phase}，第 {line} 行</yellow>"
+  recipe_invalid_condition_type: "<yellow>配方 {recipe} 的 condition_type 非法: {file}
+    -> <red>{value}</red>。允许值: <gray>{allowed}</gray>，已拒绝加载。</yellow>"
 
 # 版本控制相关
 version:
-  config_outdated: "<yellow>配置文件版本过旧 (当前: <red>{current}</red>, 最新: <green>{latest}</green>)，正在增量更新...</yellow>"
-  lang_outdated: "<yellow>语言文件版本过旧 (当前: <red>{current}</red>, 最新: <green>{latest}</green>)，正在增量更新...</yellow>"
+  config_outdated: "<yellow>配置文件版本过旧 (当前: <red>{current}</red>, 最新:
+    <green>{latest}</green>)，正在增量更新...</yellow>"
+  lang_outdated: "<yellow>语言文件版本过旧 (当前: <red>{current}</red>, 最新:
+    <green>{latest}</green>)，正在增量更新...</yellow>"
   config_updating: "<white>正在更新配置文件...</white>"
   lang_updating: "<white>正在更新语言文件...</white>"
   config_updated: "<green>配置文件已更新, 新增 <yellow>{count}</yellow> <gray>个配置项</gray>"
   lang_updated: "<green>语言文件已更新, 新增 <yellow>{count}</yellow> <gray>个消息项</gray>"
   config_uptodate: "<gray>配置文件已是最新版本</gray>"
   lang_uptodate: "<gray>语言文件已是最新版本</gray>"
-  config_missing_version: "<yellow>配置文件缺少版本号, 将执行增量更新...</yellow>"
-  lang_missing_version: "<yellow>语言文件缺少版本号, 将执行增量更新...</yellow>"
+  config_missing_version: "<yellow>配置文件缺少版本号，将执行增量更新...</yellow>"
+  lang_missing_version: "<yellow>语言文件缺少版本号，将执行增量更新...</yellow>"
 
 # 锻造相关
 forge:
   error:
-    no_recipe: "<red>未找到配方!</red>"
-    permission_denied: "<red>你没有权限使用此配方!</red>"
-    condition_not_met: "<red>锻造条件不满足!</red>"
-    no_target_item: "<red>请放入目标物品!</red>"
-    invalid_target_item: "<red>目标物品不匹配!</red>"
-    capacity_exceeded: "<red>锻造容量超限! 当前: {current}/{max}</red>"
-    material_not_allowed: "<red>此材料不在允许列表中!</red>"
-    material_blacklisted: "<red>此材料被禁止使用!</red>"
-    blueprint_required: "<red>缺少必要的图纸!</red>"
-    material_required: "<red>缺少必要的材料!</red>"
-    material_count_exceeded: "<red>可选材料数量超限!</red>"
-    item_create: "<red>无法创建结果物品!</red>"
+    no_recipe: "<red>未找到配方。</red>"
+    permission_denied: "<red>你没有权限使用该配方。</red>"
+    condition_not_met: "<red>锻造条件未满足。</red>"
+    no_target_item: "<red>请放入目标物品。</red>"
+    invalid_target_item: "<red>目标物品不匹配。</red>"
+    capacity_exceeded: "<red>锻造容量超限：当前 {current}/{max}</red>"
+    material_not_allowed: "<red>该材料不在允许列表中。</red>"
+    material_blacklisted: "<red>该材料被禁止使用。</red>"
+    blueprint_required: "<red>缺少所需图纸。</red>"
+    material_required: "<red>缺少所需材料。</red>"
+    material_count_exceeded: "<red>可选材料数量超限。</red>"
+    item_create: "<red>无法创建结果物品。</red>"
     action_failed: "<red>锻造操作执行失败: {reason}</red>"
     lore_search_not_found: "<red>未找到 Lore 搜索插入目标: {pattern}</red>"
     lore_invalid_action_name: "<red>Lore 搜索操作无效: {action}</red>"
     lore_invalid_regex: "<red>Lore 搜索正则无效: {pattern}</red>"
 
   success:
-    crafted: "<green>锻造成功! 获得了 {item}</green>"
+    crafted: "<green>锻造成功，获得 {item}</green>"
     quality: "<gold>品质: {quality} (倍率: {multiplier}x)</gold>"
+    first_craft: "<green>首次完成该配方锻造。</green>"
 
 # 图纸相关
 blueprint:
-  count_not_enough: "<red>图纸数量不足!</red>"
+  count_not_enough: "<red>图纸数量不足。</red>"
 
 # 材料相关
 material:
-  count_not_enough: "<red>材料数量不足!</red>"
+  count_not_enough: "<red>材料数量不足。</red>"
 
 # GUI相关
 gui:
@@ -197,7 +218,7 @@ gui:
   display:
     capacity: "<gray>锻造容量: <yellow>{current}/{max}</yellow></gray>"
     capacity_warning: "<gold>锻造容量: {current}/{max} (接近上限)</gold>"
-    capacity_exceeded: "<red>锻造容量: {current}/{max} (已超限!)</red>"
+    capacity_exceeded: "<red>锻造容量: {current}/{max} (已超限)</red>"
     capacity_pending: "<gray>锻造容量: 点击确认后匹配配方</gray>"
 
   button:

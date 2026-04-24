@@ -15,7 +15,7 @@ public record EmakiItemLayerSnapshot(String namespaceId,
                                      int schemaVersion,
                                      Map<String, Object> audit,
                                      List<EmakiStatContribution> stats,
-                                     List<EmakiPresentationEntry> presentation) {
+                                     EmakiStructuredPresentation structuredPresentation) {
 
     public static final SnapshotCodec<EmakiItemLayerSnapshot> CODEC = SnapshotCodec.yaml(
         EmakiItemLayerSnapshot::toMap,
@@ -27,7 +27,11 @@ public record EmakiItemLayerSnapshot(String namespaceId,
         schemaVersion = schemaVersion <= 0 ? 1 : schemaVersion;
         audit = audit == null || audit.isEmpty() ? Map.of() : Map.copyOf(audit);
         stats = stats == null || stats.isEmpty() ? List.of() : List.copyOf(stats);
-        presentation = presentation == null || presentation.isEmpty() ? List.of() : List.copyOf(presentation);
+        structuredPresentation = structuredPresentation == null || structuredPresentation.isEmpty() ? null : structuredPresentation;
+    }
+
+    public boolean hasStructuredPresentation() {
+        return structuredPresentation != null && !structuredPresentation.isEmpty();
     }
 
     public Map<String, Object> toMap() {
@@ -42,13 +46,9 @@ public record EmakiItemLayerSnapshot(String namespaceId,
             }
         }
         map.put("stats", statMaps);
-        List<Map<String, Object>> presentationMaps = new ArrayList<>();
-        for (EmakiPresentationEntry entry : presentation) {
-            if (entry != null) {
-                presentationMaps.add(entry.toMap());
-            }
+        if (structuredPresentation != null) {
+            map.put("structured_presentation", structuredPresentation.toMap());
         }
-        map.put("presentation", presentationMaps);
         return map;
     }
 
@@ -71,25 +71,18 @@ public record EmakiItemLayerSnapshot(String namespaceId,
                 stats.add(contribution);
             }
         }
-        List<EmakiPresentationEntry> presentation = new ArrayList<>();
-        for (Object raw : ConfigNodes.asObjectList(map.get("presentation"))) {
-            Object plain = ConfigNodes.toPlainData(raw);
-            if (!(plain instanceof Map<?, ?> presentationMap)) {
-                continue;
-            }
-            EmakiPresentationEntry entry = EmakiPresentationEntry.fromMap(normalizeMap(presentationMap));
-            if (entry != null) {
-                presentation.add(entry);
-            }
-        }
         Object auditRaw = ConfigNodes.toPlainData(map.get("audit"));
         Map<String, Object> audit = auditRaw instanceof Map<?, ?> auditMap ? normalizeMap(auditMap) : Map.of();
+        Object structuredRaw = ConfigNodes.toPlainData(map.get("structured_presentation"));
+        EmakiStructuredPresentation structuredPresentation = structuredRaw instanceof Map<?, ?> structuredMap
+                ? EmakiStructuredPresentation.fromMap(normalizeMap(structuredMap))
+                : null;
         return new EmakiItemLayerSnapshot(
             namespaceId,
             Numbers.tryParseInt(map.get("schema_version"), 1),
             audit,
             stats,
-            presentation
+            structuredPresentation
         );
     }
 

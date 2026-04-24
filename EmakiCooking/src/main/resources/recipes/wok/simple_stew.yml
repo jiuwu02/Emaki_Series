@@ -1,0 +1,43 @@
+schema_version: "2.0.0"
+
+recipe_version: "2.0.0"
+
+id: "simple_stew"
+
+display_name: "简易炖菜"
+
+ingredients:
+  - source: "minecraft-carrot"
+    amount: 1
+    stir_rule: "1-3"
+  - source: "minecraft-cooked_chicken"
+    amount: 1
+    stir_rule: "2-3"
+
+heat_level: 1
+
+stir_total:
+  min: 2
+  max: 5
+
+fault_tolerance: 0
+
+permission: "emakicooking.recipe.simple_stew"
+
+result:
+  success:
+    source: "minecraft-rabbit_stew"
+    amount: 1
+    actions:
+      - "sendmessage text=\"<green>成功出锅。</green>\""
+  undercooked:
+    source: "minecraft-mushroom_stew"
+    amount: 1
+  overcooked:
+    source: "minecraft-dried_kelp"
+    amount: 1
+  invalid:
+    source: "minecraft-stone"
+    amount: 1
+
+structured_presentation: {}
