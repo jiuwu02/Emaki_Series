@@ -15,6 +15,8 @@ import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 
 public final class BootstrapService {
 
+    private static final String VERSION_KEY = "version";
+
     private final JavaPlugin plugin;
     private final LogMessages messages;
     private final List<String> versionedFiles;
@@ -61,7 +63,6 @@ public final class BootstrapService {
         if (hooks.shouldInstallDefaultData()) {
             for (String file : defaultDataFiles) {
                 ensureDefaultFile(file);
-                mergeVersionedFile(file);
             }
         } else if (!defaultDataFiles.isEmpty()) {
             info("console.bootstrap_skip");
@@ -115,13 +116,12 @@ public final class BootstrapService {
     }
 
     private void mergeVersionedFile(String relativePath) {
-        String versionKey = versionKeyFor(relativePath);
         try {
             VersionedYamlFile versionedFile = YamlFiles.syncVersionedResource(
                     plugin,
                     dataPath(relativePath).toFile(),
                     relativePath,
-                    versionKey,
+                    VERSION_KEY,
                     document -> hooks.afterVersionedMerge(relativePath, document.root(), document.defaults())
             );
             if (versionedFile == null) {
@@ -133,36 +133,6 @@ public final class BootstrapService {
                     "error", String.valueOf(exception.getMessage())
             ));
         }
-    }
-
-    private String versionKeyFor(String relativePath) {
-        if (relativePath == null || relativePath.isBlank()) {
-            return "config_version";
-        }
-        Path normalized = Path.of(relativePath.replace('\\', '/'));
-        String fileName = normalized.getFileName() == null ? "" : normalized.getFileName().toString();
-        String stem = stripExtension(fileName);
-        for (Path segment : normalized) {
-            String name = segment.toString();
-            if ("lang".equalsIgnoreCase(name) || "language".equalsIgnoreCase(name) || "languages".equalsIgnoreCase(name)) {
-                return "lang_version";
-            }
-            if ("recipe".equalsIgnoreCase(name) || "recipes".equalsIgnoreCase(name)) {
-                return "recipe_version";
-            }
-        }
-        if ("config".equalsIgnoreCase(stem)) {
-            return "config_version";
-        }
-        return stem.isBlank() ? "config_version" : stem.toLowerCase() + "_version";
-    }
-
-    private String stripExtension(String fileName) {
-        if (fileName == null || fileName.isBlank()) {
-            return "";
-        }
-        int dot = fileName.lastIndexOf('.');
-        return dot <= 0 ? fileName : fileName.substring(0, dot);
     }
 
     private void ensureDirectory(Path path) {

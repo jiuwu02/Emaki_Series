@@ -141,7 +141,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
                     regenTask = task;
                     registerCoreLibActions();
                 })
-                .whenComplete((ignored, throwable) -> {
+                .whenComplete((_, throwable) -> {
                     synchronized (this) {
                         reloadFuture = null;
                     }

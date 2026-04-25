@@ -122,12 +122,25 @@ public final class YamlFiles {
             return versionedFile;
         }
         String runtimeVersion = Texts.toStringSafe(versionedFile.version(versionKey)).trim();
+        boolean migratedLegacyVersionKey = false;
+        if (runtimeVersion.isBlank() && "version".equals(versionKey)) {
+            runtimeVersion = legacyVersion(versionedFile, resourcePath);
+            migratedLegacyVersionKey = Texts.isNotBlank(runtimeVersion);
+        }
         if (!runtimeVersion.isBlank() && compareVersions(runtimeVersion, bundledVersion) >= 0) {
+            if (migratedLegacyVersionKey || !versionedFile.root().contains(versionKey)) {
+                removeLegacyVersionKeys(versionedFile.root(), resourcePath);
+                versionedFile.root().set(versionKey, bundledVersion);
+                versionedFile.save();
+            }
             return versionedFile;
         }
         versionedFile.document().update(BOOSTED_UPDATER_SETTINGS);
         if (migration != null) {
             migration.accept(versionedFile);
+        }
+        if ("version".equals(versionKey)) {
+            removeLegacyVersionKeys(versionedFile.root(), resourcePath);
         }
         versionedFile.root().set(versionKey, bundledVersion);
         versionedFile.save();
@@ -209,7 +222,7 @@ public final class YamlFiles {
                     scanCodeSourceLocation(codeSourceUrl, normalizedDirectory, resourcePaths);
                 }
             }
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             return java.util.List.of();
         }
         ArrayList<String> ordered = new ArrayList<>(resourcePaths);
@@ -258,6 +271,55 @@ public final class YamlFiles {
         }
     }
 
+    private static String legacyVersion(VersionedYamlFile versionedFile, String resourcePath) {
+        if (versionedFile == null || versionedFile.root() == null) {
+            return "";
+        }
+        for (String key : legacyVersionKeys(resourcePath)) {
+            String value = Texts.toStringSafe(versionedFile.version(key)).trim();
+            if (Texts.isNotBlank(value)) {
+                return value;
+            }
+        }
+        return "";
+    }
+
+    private static void removeLegacyVersionKeys(YamlSection root, String resourcePath) {
+        if (root == null) {
+            return;
+        }
+        for (String key : legacyVersionKeys(resourcePath)) {
+            root.set(key, null);
+        }
+    }
+
+    private static java.util.List<String> legacyVersionKeys(String resourcePath) {
+        String normalized = Texts.toStringSafe(resourcePath).replace('\\', '/').toLowerCase(java.util.Locale.ROOT);
+        java.util.LinkedHashSet<String> keys = new java.util.LinkedHashSet<>();
+        if (normalized.endsWith("config.yml") || normalized.endsWith("config.yaml")) {
+            keys.add("config_version");
+        }
+        if (normalized.contains("/lang/") || normalized.startsWith("lang/")) {
+            keys.add("lang_version");
+        }
+        if (normalized.contains("/recipes/") || normalized.startsWith("recipes/")) {
+            keys.add("recipe_version");
+        }
+        String fileName = normalized;
+        int slash = fileName.lastIndexOf('/');
+        if (slash >= 0) {
+            fileName = fileName.substring(slash + 1);
+        }
+        int dot = fileName.lastIndexOf('.');
+        String stem = dot <= 0 ? fileName : fileName.substring(0, dot);
+        if (Texts.isNotBlank(stem)) {
+            keys.add(stem + "_version");
+        }
+        keys.add("schema_version");
+        keys.remove("version");
+        return java.util.List.copyOf(keys);
+    }
+
     private static int mergeMissingValues(YamlSection runtime, YamlSection defaults, String parentPath) {
         int merged = 0;
         for (String key : defaults.getKeys(false)) {
@@ -290,7 +352,7 @@ public final class YamlFiles {
                     return Integer.compare(currentValue, latestValue);
                 }
             }
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             return 0;
         }
         return 0;
@@ -299,7 +361,7 @@ public final class YamlFiles {
     private static void moveReplacing(Path source, Path target) throws IOException {
         try {
             Files.move(source, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-        } catch (AtomicMoveNotSupportedException ignored) {
+        } catch (AtomicMoveNotSupportedException _) {
             Files.move(source, target, StandardCopyOption.REPLACE_EXISTING);
         }
     }

@@ -125,7 +125,7 @@ public record DamageContextVariables(Map<String, Object> values) {
         }
         try {
             return EntityDamageEvent.DamageCause.valueOf(normalized.trim().toUpperCase(Locale.ROOT));
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             return null;
         }
     }

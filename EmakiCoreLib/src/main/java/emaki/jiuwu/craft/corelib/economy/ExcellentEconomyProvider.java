@@ -2,25 +2,25 @@ package emaki.jiuwu.craft.corelib.economy;
 
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.RegisteredServiceProvider;
 
 import emaki.jiuwu.craft.corelib.action.ActionErrorType;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
 import emaki.jiuwu.craft.corelib.text.Texts;
-import su.nightexpress.coinsengine.CoinsEnginePlugin;
 import su.nightexpress.excellenteconomy.api.ExcellentEconomyAPI;
 import su.nightexpress.excellenteconomy.api.currency.ExcellentCurrency;
 
-public final class CoinsEngineEconomyProvider implements EconomyProvider {
+public final class ExcellentEconomyProvider implements EconomyProvider {
 
     private final Plugin plugin;
 
-    public CoinsEngineEconomyProvider(Plugin plugin) {
+    public ExcellentEconomyProvider(Plugin plugin) {
         this.plugin = plugin;
     }
 
     @Override
     public String id() {
-        return "coinsengine";
+        return "ExcellentEconomy";
     }
 
     @Override
@@ -54,7 +54,7 @@ public final class CoinsEngineEconomyProvider implements EconomyProvider {
         }
         return api.deposit(player, currency, amount)
                 ? ActionResult.ok()
-                : ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, "Failed to add CoinsEngine balance.");
+                : ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, "Failed to add ExcellentEconomy balance.");
     }
 
     @Override
@@ -72,11 +72,11 @@ public final class CoinsEngineEconomyProvider implements EconomyProvider {
         }
         double balance = api.getBalance(player, currency);
         if (balance < amount) {
-            return ActionResult.failure(ActionErrorType.INSUFFICIENT_BALANCE, "Insufficient CoinsEngine balance for currency '" + currencyId + "'.");
+            return ActionResult.failure(ActionErrorType.INSUFFICIENT_BALANCE, "Insufficient ExcellentEconomy balance for currency '" + currencyId + "'.");
         }
         return api.withdraw(player, currency, amount)
                 ? ActionResult.ok()
-                : ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, "Failed to remove CoinsEngine balance.");
+                : ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, "Failed to remove ExcellentEconomy balance.");
     }
 
     @Override
@@ -94,7 +94,7 @@ public final class CoinsEngineEconomyProvider implements EconomyProvider {
         }
         return api.setBalance(player, currency, amount)
                 ? ActionResult.ok()
-                : ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, "Failed to set CoinsEngine balance.");
+                : ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, "Failed to set ExcellentEconomy balance.");
     }
 
     private ExcellentCurrency resolveCurrency(String currencyId) {
@@ -102,30 +102,23 @@ public final class CoinsEngineEconomyProvider implements EconomyProvider {
         if (api == null || Texts.isBlank(currencyId)) {
             return null;
         }
-        return api.currencyById(currencyId).orElse(null);
+        return api.getCurrency(currencyId);
     }
 
     private ExcellentEconomyAPI api() {
-        CoinsEnginePlugin coinsEnginePlugin = coinsEnginePlugin();
-        return coinsEnginePlugin == null ? null : coinsEnginePlugin.getAPI();
-    }
-
-    private CoinsEnginePlugin coinsEnginePlugin() {
         if (plugin == null) {
             return null;
         }
-        Plugin external = plugin.getServer().getPluginManager().getPlugin("CoinsEngine");
-        if (!(external instanceof CoinsEnginePlugin coinsEnginePlugin) || !external.isEnabled()) {
-            return null;
-        }
-        return coinsEnginePlugin;
+        RegisteredServiceProvider<ExcellentEconomyAPI> registration =
+                plugin.getServer().getServicesManager().getRegistration(ExcellentEconomyAPI.class);
+        return registration == null ? null : registration.getProvider();
     }
 
     private ActionResult unavailable() {
-        return ActionResult.failure(ActionErrorType.PROVIDER_UNAVAILABLE, "CoinsEngine provider is unavailable.");
+        return ActionResult.failure(ActionErrorType.PROVIDER_UNAVAILABLE, "ExcellentEconomy provider is unavailable.");
     }
 
     private ActionResult missingCurrency(String currencyId) {
-        return ActionResult.failure(ActionErrorType.CURRENCY_NOT_FOUND, "CoinsEngine currency not found: " + currencyId);
+        return ActionResult.failure(ActionErrorType.CURRENCY_NOT_FOUND, "ExcellentEconomy currency not found: " + currencyId);
     }
 }

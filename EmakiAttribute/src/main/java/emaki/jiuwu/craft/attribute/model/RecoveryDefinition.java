@@ -71,7 +71,7 @@ public record RecoveryDefinition(DamageStageSource source,
         }
         try {
             return Enum.valueOf(defaultValue.getDeclaringClass(), value.trim().toUpperCase(Locale.ROOT));
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             return defaultValue;
         }
     }

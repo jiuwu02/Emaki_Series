@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
@@ -176,16 +177,39 @@ public final class CookingSettingsService {
         return configuration.getBoolean("stations.steamer.drop_result", true);
     }
 
-    public String steamerInventoryType() {
-        return steamerGuiConfiguration.getString("inventory_type", "HOPPER");
-    }
-
     public String steamerInventoryTitle() {
         return steamerGuiConfiguration.getString("title", "<dark_gray>蒸锅");
     }
 
-    public int steamerInventorySlots() {
-        return Math.max(1, steamerGuiConfiguration.getInt("inventory_slots", 5));
+    public int steamerInventoryRows() {
+        int rows = steamerGuiConfiguration.getInt("rows", 1);
+        return Math.max(1, Math.min(6, rows));
+    }
+
+    public List<Integer> steamerIngredientSlots() {
+        int inventorySize = steamerInventoryRows() * 9;
+        LinkedHashSet<Integer> slots = new LinkedHashSet<>();
+        YamlSection slotsSection = steamerGuiConfiguration.getSection("slots");
+        if (slotsSection != null && !slotsSection.isEmpty()) {
+            for (String key : slotsSection.getKeys(false)) {
+                YamlSection slotSection = slotsSection.getSection(key);
+                if (slotSection == null || slotSection.isEmpty()) {
+                    addSlotIndexes(slots, slotsSection.get(key), inventorySize);
+                    continue;
+                }
+                String type = Texts.lower(slotSection.getString("type", ""));
+                if (Texts.isNotBlank(type) && !"ingredient".equals(type)) {
+                    continue;
+                }
+                addSlotIndexes(slots, slotSection.get("slots"), inventorySize);
+            }
+        }
+        if (slots.isEmpty()) {
+            for (int slot = 0; slot < Math.min(5, inventorySize); slot++) {
+                slots.add(slot);
+            }
+        }
+        return List.copyOf(slots);
     }
 
     public List<ItemSource> steamerHeatSources() {
@@ -268,8 +292,28 @@ public final class CookingSettingsService {
         }
         try {
             return Integer.parseInt(String.valueOf(raw).trim());
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             return fallback;
+        }
+    }
+
+    private void addSlotIndexes(LinkedHashSet<Integer> sink, Object raw, int inventorySize) {
+        if (sink == null || raw == null || inventorySize <= 0) {
+            return;
+        }
+        if (raw instanceof Iterable<?> iterable) {
+            for (Object entry : iterable) {
+                addSlotIndex(sink, entry, inventorySize);
+            }
+            return;
+        }
+        addSlotIndex(sink, raw, inventorySize);
+    }
+
+    private void addSlotIndex(LinkedHashSet<Integer> sink, Object raw, int inventorySize) {
+        Integer slot = configurationValueToInt(raw, null);
+        if (slot != null && slot >= 0 && slot < inventorySize) {
+            sink.add(slot);
         }
     }
 
@@ -290,7 +334,7 @@ public final class CookingSettingsService {
         Path directory = plugin.getDataFolder().toPath().resolve("item_adjustments");
         try {
             YamlFiles.ensureDirectory(directory);
-        } catch (IOException ignored) {
+        } catch (IOException _) {
             return Map.of();
         }
         if (!Files.exists(directory)) {
@@ -310,7 +354,7 @@ public final class CookingSettingsService {
                 }
                 loaded.put(Texts.normalizeId(adjustment.source()), adjustment);
             }
-        } catch (IOException ignored) {
+        } catch (IOException _) {
             return Map.of();
         }
         return loaded.isEmpty() ? Map.of() : Map.copyOf(loaded);
@@ -368,7 +412,6 @@ public final class CookingSettingsService {
         String normalized = Texts.normalizeId(value);
         for (StationType stationType : StationType.values()) {
             if (normalized.equals(Texts.normalizeId(stationType.folderName()))
-                    || normalized.equals(Texts.normalizeId(stationType.legacySection()))
                     || normalized.equals(Texts.normalizeId(stationType.name()))) {
                 return stationType;
             }
@@ -447,7 +490,7 @@ public final class CookingSettingsService {
     private double parseDouble(String raw, double fallback) {
         try {
             return Double.parseDouble(Texts.toStringSafe(raw).trim());
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             return fallback;
         }
     }

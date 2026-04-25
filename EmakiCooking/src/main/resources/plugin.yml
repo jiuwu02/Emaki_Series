@@ -18,8 +18,6 @@ permissions:
     default: op
   emakicooking.inspect:
     default: op
-  emakicooking.convert:
-    default: op
   emakicooking.admin:
     default: op
   emakicooking.station.chopping_board.use:

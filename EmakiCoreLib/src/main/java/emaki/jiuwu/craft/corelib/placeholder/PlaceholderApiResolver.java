@@ -18,7 +18,7 @@ public final class PlaceholderApiResolver implements PlaceholderResolver {
         }
         try {
             return PlaceholderAPI.setPlaceholders(context.player(), text);
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             return text;
         }
     }

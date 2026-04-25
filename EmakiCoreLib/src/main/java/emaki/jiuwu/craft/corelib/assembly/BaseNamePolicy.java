@@ -16,7 +16,7 @@ public enum BaseNamePolicy {
         }
         try {
             return BaseNamePolicy.valueOf(normalized);
-        } catch (IllegalArgumentException ignored) {
+        } catch (IllegalArgumentException _) {
             return SOURCE_EFFECTIVE_NAME;
         }
     }

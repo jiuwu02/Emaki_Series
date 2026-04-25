@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-corelib</artifactId>
-    <version>3.2.0</version>
+    <version>3.3.0</version>
     <name>EmakiCoreLib</name>
     <packaging>jar</packaging>
 
@@ -53,8 +53,8 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>su.nightexpress.coinsengine</groupId>
-            <artifactId>CoinsEngine</artifactId>
+            <groupId>su.nightexpress.excellenteconomy</groupId>
+            <artifactId>ExcellentEconomy</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -75,6 +75,11 @@
         <dependency>
             <groupId>dev.dejvokep</groupId>
             <artifactId>boosted-yaml</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
             <optional>true</optional>
         </dependency>
     </dependencies>

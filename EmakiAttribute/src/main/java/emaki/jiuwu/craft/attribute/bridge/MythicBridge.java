@@ -151,7 +151,7 @@ public final class MythicBridge implements Listener {
         }
         try {
             return ExpressionEngine.evaluate(valueText);
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             return 0D;
         }
     }

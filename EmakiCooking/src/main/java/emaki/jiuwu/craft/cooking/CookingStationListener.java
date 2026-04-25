@@ -151,7 +151,7 @@ final class CookingStationListener implements Listener {
                     plugin,
                     true
             );
-        } catch (Throwable ignored) {
+        } catch (Throwable _) {
         }
     }
 
@@ -167,7 +167,7 @@ final class CookingStationListener implements Listener {
         try {
             Method method = target.getClass().getMethod(methodName);
             return method.invoke(target);
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             return null;
         }
     }
@@ -179,7 +179,7 @@ final class CookingStationListener implements Listener {
         try {
             Method method = target.getClass().getMethod("setCancelled", boolean.class);
             method.invoke(target, cancelled);
-        } catch (Exception ignored) {
+        } catch (Exception _) {
         }
     }
 }

@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.strengthen;
 
+import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.ServicePriority;
 
@@ -20,6 +21,7 @@ import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.strengthen.api.EmakiStrengthenApi;
 import emaki.jiuwu.craft.strengthen.config.AppConfig;
 import emaki.jiuwu.craft.strengthen.loader.StrengthenRecipeLoader;
+import emaki.jiuwu.craft.strengthen.papi.StrengthenPlaceholderExpansion;
 import emaki.jiuwu.craft.strengthen.service.ChanceCalculator;
 import emaki.jiuwu.craft.strengthen.service.StrengthenRecipeResolver;
 import emaki.jiuwu.craft.strengthen.service.StrengthenActionCoordinator;
@@ -65,6 +67,7 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     private StrengthenAttemptService attemptService;
     private StrengthenRefreshService refreshService;
     private StrengthenGuiService strengthenGuiService;
+    private StrengthenPlaceholderExpansion placeholderExpansion;
 
     public EmakiStrengthenPlugin() {
         super(AppConfig::defaults);
@@ -80,11 +83,16 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         registerApi();
         registerCommandHandler();
         registerEventHandlers();
+        ensurePlaceholderExpansion();
         messageService.info("console.plugin_started");
     }
 
     @Override
     public void onDisable() {
+        if (placeholderExpansion != null) {
+            placeholderExpansion.unregister();
+            placeholderExpansion = null;
+        }
         getServer().getServicesManager().unregisterAll(this);
         lifecycleCoordinator.shutdown(this);
         AdventureSupport.close(this);
@@ -131,6 +139,17 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     private void registerEventHandlers() {
         getServer().getPluginManager().registerEvents(guiService, this);
         getServer().getPluginManager().registerEvents(itemRefreshListener, this);
+    }
+
+    private void ensurePlaceholderExpansion() {
+        if (placeholderExpansion != null) {
+            return;
+        }
+        if (!Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+            return;
+        }
+        placeholderExpansion = new StrengthenPlaceholderExpansion(this, attemptService);
+        placeholderExpansion.register();
     }
 
     public YamlConfigLoader<AppConfig> appConfigLoader() {

@@ -195,7 +195,7 @@ public final class ItemTextBridge {
                 return material.getBlockTranslationKey();
             }
             return material.getTranslationKey();
-        } catch (RuntimeException ignored) {
+        } catch (RuntimeException _) {
             return "";
         }
     }

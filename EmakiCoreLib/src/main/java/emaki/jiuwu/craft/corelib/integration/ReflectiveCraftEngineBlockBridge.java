@@ -137,7 +137,7 @@ public final class ReflectiveCraftEngineBlockBridge implements CraftEngineBlockB
         for (String candidate : candidates) {
             try {
                 return type.getMethod(candidate, parameterTypes);
-            } catch (NoSuchMethodException ignored) {
+            } catch (NoSuchMethodException _) {
             }
         }
         LinkedHashSet<String> lowered = new LinkedHashSet<>();
@@ -174,7 +174,7 @@ public final class ReflectiveCraftEngineBlockBridge implements CraftEngineBlockB
         for (String candidate : candidates) {
             try {
                 return type.getMethod(candidate);
-            } catch (NoSuchMethodException ignored) {
+            } catch (NoSuchMethodException _) {
             }
         }
         for (Method method : type.getMethods()) {

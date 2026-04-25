@@ -25,7 +25,7 @@ public final class MiniMessages {
         }
         try {
             return MINI_MESSAGE.deserialize(text);
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             return Component.text(Texts.toStringSafe(text));
         }
     }
@@ -38,7 +38,7 @@ public final class MiniMessages {
         if (normalized.indexOf(LegacyComponentSerializer.SECTION_CHAR) >= 0) {
             try {
                 return LEGACY.deserialize(normalized);
-            } catch (Exception ignored) {
+            } catch (Exception _) {
             }
         }
         return parse(normalized);
@@ -50,7 +50,7 @@ public final class MiniMessages {
         }
         try {
             return MINI_MESSAGE.serialize(component);
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             return plain(component);
         }
     }
@@ -61,7 +61,7 @@ public final class MiniMessages {
         }
         try {
             return PLAIN.serialize(component);
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             return "";
         }
     }
@@ -72,7 +72,7 @@ public final class MiniMessages {
         }
         try {
             return LEGACY.serialize(component);
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             return plain(component);
         }
     }

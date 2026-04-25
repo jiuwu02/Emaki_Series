@@ -34,9 +34,10 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.type.Campfire;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
-import org.bukkit.event.inventory.InventoryType;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
@@ -236,6 +237,37 @@ public final class SteamerRuntimeService implements Listener {
         }
     }
 
+    @EventHandler
+    public void onInventoryClick(InventoryClickEvent event) {
+        if (!(event.getInventory().getHolder() instanceof SteamerGuiHolder)) {
+            return;
+        }
+        if (event.isShiftClick()) {
+            event.setCancelled(true);
+            return;
+        }
+        int topSize = event.getInventory().getSize();
+        int rawSlot = event.getRawSlot();
+        if (rawSlot >= 0 && rawSlot < topSize && !ingredientSlotSet(event.getInventory()).contains(rawSlot)) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    public void onInventoryDrag(InventoryDragEvent event) {
+        if (!(event.getInventory().getHolder() instanceof SteamerGuiHolder)) {
+            return;
+        }
+        int topSize = event.getInventory().getSize();
+        Set<Integer> ingredientSlots = ingredientSlotSet(event.getInventory());
+        for (Integer rawSlot : event.getRawSlots()) {
+            if (rawSlot != null && rawSlot >= 0 && rawSlot < topSize && !ingredientSlots.contains(rawSlot)) {
+                event.setCancelled(true);
+                return;
+            }
+        }
+    }
+
     private boolean openGui(Player player, StationCoordinates coordinates) {
         if (player == null || coordinates == null) {
             return false;
@@ -261,17 +293,7 @@ public final class SteamerRuntimeService implements Listener {
 
     private Inventory createInventory(SteamerGuiHolder holder) {
         String title = MiniMessages.legacy(MiniMessages.parse(settingsService.steamerInventoryTitle()));
-        String typeName = settingsService.steamerInventoryType().trim().toUpperCase(Locale.ROOT);
-        InventoryType inventoryType;
-        try {
-            inventoryType = InventoryType.valueOf(typeName);
-        } catch (Exception ignored) {
-            inventoryType = InventoryType.HOPPER;
-        }
-        if (inventoryType == InventoryType.CHEST) {
-            return Bukkit.createInventory(holder, normalizeChestSlots(settingsService.steamerInventorySlots()), title);
-        }
-        return Bukkit.createInventory(holder, inventoryType, title);
+        return Bukkit.createInventory(holder, settingsService.steamerInventoryRows() * 9, title);
     }
 
     private void loadInventory(StationCoordinates coordinates, Inventory inventory) {
@@ -280,7 +302,7 @@ public final class SteamerRuntimeService implements Listener {
         }
         inventory.clear();
         SteamerState state = loadStateOrEmpty(coordinates);
-        for (int slot = 0; slot < inventory.getSize(); slot++) {
+        for (int slot : ingredientSlots(inventory)) {
             String source = state.slotSources().get(slot);
             if (Texts.isBlank(source)) {
                 continue;
@@ -742,9 +764,17 @@ public final class SteamerRuntimeService implements Listener {
             return updated;
         }
         Player player = playerUuid == null ? null : Bukkit.getPlayer(playerUuid);
+        Set<Integer> ingredientSlots = ingredientSlotSet(inventory);
         for (int slot = 0; slot < inventory.getSize(); slot++) {
             ItemStack itemStack = inventory.getItem(slot);
             if (itemStack == null || itemStack.getType().isAir()) {
+                continue;
+            }
+            if (!ingredientSlots.contains(slot)) {
+                if (player != null) {
+                    inventory.clear(slot);
+                    InventoryItemUtil.giveOrDrop(player, itemStack);
+                }
                 continue;
             }
             String source = identifySource(itemStack);
@@ -985,9 +1015,18 @@ public final class SteamerRuntimeService implements Listener {
         if (player == null || inventory == null) {
             return;
         }
+        Set<Integer> ingredientSlots = ingredientSlotSet(inventory);
         for (int slot = 0; slot < inventory.getSize(); slot++) {
             ItemStack itemStack = inventory.getItem(slot);
-            if (itemStack == null || itemStack.getType().isAir() || itemStack.getAmount() <= 1) {
+            if (itemStack == null || itemStack.getType().isAir()) {
+                continue;
+            }
+            if (!ingredientSlots.contains(slot)) {
+                inventory.clear(slot);
+                InventoryItemUtil.giveOrDrop(player, itemStack);
+                continue;
+            }
+            if (itemStack.getAmount() <= 1) {
                 continue;
             }
             ItemStack excess = itemStack.clone();
@@ -1068,7 +1107,7 @@ public final class SteamerRuntimeService implements Listener {
         }
         try {
             return ItemStack.deserialize(new LinkedHashMap<>(serializedItem));
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             return null;
         }
     }
@@ -1081,12 +1120,23 @@ public final class SteamerRuntimeService implements Listener {
                 : displayName;
     }
 
-    private int normalizeChestSlots(int configured) {
-        int slots = Math.max(9, Math.min(54, configured));
-        if (slots % 9 != 0) {
-            slots = ((slots + 8) / 9) * 9;
+    private List<Integer> ingredientSlots(Inventory inventory) {
+        if (inventory == null) {
+            return List.of();
         }
-        return Math.max(9, Math.min(54, slots));
+        int size = inventory.getSize();
+        List<Integer> configured = settingsService.steamerIngredientSlots();
+        List<Integer> slots = new ArrayList<>();
+        for (Integer slot : configured) {
+            if (slot != null && slot >= 0 && slot < size) {
+                slots.add(slot);
+            }
+        }
+        return slots.isEmpty() ? List.of() : List.copyOf(slots);
+    }
+
+    private Set<Integer> ingredientSlotSet(Inventory inventory) {
+        return Set.copyOf(ingredientSlots(inventory));
     }
 
     private Map<Integer, String> sortedSlots(Map<Integer, String> slots) {

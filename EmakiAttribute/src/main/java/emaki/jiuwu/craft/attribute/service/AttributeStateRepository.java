@@ -1,6 +1,10 @@
 package emaki.jiuwu.craft.attribute.service;
 
 
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
@@ -21,6 +25,10 @@ final class AttributeStateRepository {
     private final PdcPartition itemPartition;
     private final PdcPartition combatPartition;
     private final PdcPartition projectilePartition;
+
+    private final Map<UUID, Long> attackCooldownCache = new ConcurrentHashMap<>();
+    private final Map<UUID, Boolean> syntheticDamageCache = new ConcurrentHashMap<>();
+    private final Map<UUID, String> damageTypeOverrideCache = new ConcurrentHashMap<>();
 
     AttributeStateRepository(PdcService pdcService) {
         this.pdcService = pdcService;
@@ -73,30 +81,47 @@ final class AttributeStateRepository {
         pdcService.writeBlob(entity, combatPartition, "snapshot", AttributeSnapshotCodecs.ATTRIBUTE_SNAPSHOT, snapshot);
     }
 
+    void clearCombatSnapshot(LivingEntity entity) {
+        if (entity == null) {
+            return;
+        }
+        pdcService.remove(entity, combatPartition, "schema_version");
+        pdcService.remove(entity, combatPartition, "source_signature");
+        pdcService.remove(entity, combatPartition, "snapshot");
+    }
+
     void setDamageTypeOverride(LivingEntity entity, String damageTypeId) {
         if (entity == null) {
             return;
         }
         if (damageTypeId == null || damageTypeId.isBlank()) {
-            pdcService.remove(entity, combatPartition, "damage_type_override");
+            damageTypeOverrideCache.remove(entity.getUniqueId());
             return;
         }
-        pdcService.set(entity, combatPartition, "damage_type_override", PersistentDataType.STRING, Texts.normalizeId(damageTypeId));
+        damageTypeOverrideCache.put(entity.getUniqueId(), Texts.normalizeId(damageTypeId));
     }
 
     String peekDamageTypeOverride(LivingEntity entity) {
         if (entity == null) {
             return null;
         }
-        return pdcService.get(entity, combatPartition, "damage_type_override", PersistentDataType.STRING);
+        return damageTypeOverrideCache.get(entity.getUniqueId());
     }
 
     String consumeDamageTypeOverride(LivingEntity entity) {
-        String override = peekDamageTypeOverride(entity);
-        if (override != null && !override.isBlank()) {
-            pdcService.remove(entity, combatPartition, "damage_type_override");
+        if (entity == null) {
+            return null;
         }
-        return override;
+        return damageTypeOverrideCache.remove(entity.getUniqueId());
+    }
+
+    void cleanupEntity(UUID entityId) {
+        if (entityId == null) {
+            return;
+        }
+        attackCooldownCache.remove(entityId);
+        syntheticDamageCache.remove(entityId);
+        damageTypeOverrideCache.remove(entityId);
     }
 
     void markSyntheticDamage(LivingEntity entity, boolean value) {
@@ -104,18 +129,21 @@ final class AttributeStateRepository {
             return;
         }
         if (value) {
-            pdcService.set(entity, combatPartition, "synthetic_damage", PersistentDataType.BYTE, (byte) 1);
+            syntheticDamageCache.put(entity.getUniqueId(), Boolean.TRUE);
         } else {
-            pdcService.remove(entity, combatPartition, "synthetic_damage");
+            syntheticDamageCache.remove(entity.getUniqueId());
         }
     }
 
     boolean isSyntheticDamage(LivingEntity entity) {
-        return entity != null && pdcService.has(entity, combatPartition, "synthetic_damage", PersistentDataType.BYTE);
+        return entity != null && syntheticDamageCache.containsKey(entity.getUniqueId());
     }
 
     Long readAttackCooldownUntil(Player player) {
-        return player == null ? null : pdcService.get(player, combatPartition, "attack_cooldown_until", PersistentDataType.LONG);
+        if (player == null) {
+            return null;
+        }
+        return attackCooldownCache.get(player.getUniqueId());
     }
 
     void writeAttackCooldownUntil(Player player, long until) {
@@ -123,15 +151,15 @@ final class AttributeStateRepository {
             return;
         }
         if (until <= 0L) {
-            pdcService.remove(player, combatPartition, "attack_cooldown_until");
+            attackCooldownCache.remove(player.getUniqueId());
             return;
         }
-        pdcService.set(player, combatPartition, "attack_cooldown_until", PersistentDataType.LONG, until);
+        attackCooldownCache.put(player.getUniqueId(), until);
     }
 
     void clearAttackCooldown(Player player) {
         if (player != null) {
-            pdcService.remove(player, combatPartition, "attack_cooldown_until");
+            attackCooldownCache.remove(player.getUniqueId());
         }
     }
 

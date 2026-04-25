@@ -15,7 +15,7 @@ public enum NamePosition {
         }
         try {
             return NamePosition.valueOf(normalized);
-        } catch (IllegalArgumentException ignored) {
+        } catch (IllegalArgumentException _) {
             return POSTFIX;
         }
     }

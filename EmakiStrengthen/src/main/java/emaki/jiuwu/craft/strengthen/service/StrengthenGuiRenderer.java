@@ -190,7 +190,7 @@ final class StrengthenGuiRenderer {
     private static int parseMaterialIndex(String type) {
         try {
             return Integer.parseInt(type.substring("material_input_".length())) - 1;
-        } catch (NumberFormatException ignored) {
+        } catch (NumberFormatException _) {
             return -1;
         }
     }

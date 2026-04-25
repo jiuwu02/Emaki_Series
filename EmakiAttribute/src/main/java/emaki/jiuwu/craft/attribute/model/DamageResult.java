@@ -11,7 +11,10 @@ public record DamageResult(String damageTypeId,
         DamageContext damageContext) {
 
     public DamageResult      {
+        damageTypeId = damageTypeId == null ? "" : damageTypeId;
+        finalDamage = Math.max(0D, finalDamage);
         stageValues = stageValues == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(stageValues));
+        damageContext = damageContext == null ? DamageContext.empty() : damageContext;
     }
 
     public DamageContextVariables variables() {

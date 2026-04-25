@@ -28,7 +28,6 @@ import emaki.jiuwu.craft.cooking.service.CookingRecipeService;
 import emaki.jiuwu.craft.cooking.service.CookingRewardService;
 import emaki.jiuwu.craft.cooking.service.CookingSettingsService;
 import emaki.jiuwu.craft.cooking.service.GrinderRuntimeService;
-import emaki.jiuwu.craft.cooking.service.LegacyImportService;
 import emaki.jiuwu.craft.cooking.service.StationStateStore;
 import emaki.jiuwu.craft.cooking.service.SteamerRuntimeService;
 import emaki.jiuwu.craft.cooking.service.WokRuntimeService;
@@ -36,17 +35,14 @@ import emaki.jiuwu.craft.cooking.service.WokRuntimeService;
 final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiCookingPlugin, CookingRuntimeComponents> {
 
     private static final String DEFAULT_PREFIX = "<gray>[ <gradient:#D8792E:#F6D16E>Emaki Cooking</gradient> ]</gray>";
-    private static final List<String> VERSIONED_FILES = List.of("lang/zh_CN.yml");
-    private static final List<String> STATIC_FILES = List.of("config.yml");
+    private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml");
     private static final List<String> EXTRA_DIRECTORIES = List.of(
             "recipes/chopping_board",
             "recipes/wok",
             "recipes/grinder",
             "recipes/steamer",
             "item_adjustments",
-            "data/stations",
-            "old",
-            "backup"
+            "data/stations"
     );
 
     @Override
@@ -55,7 +51,7 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
         YamlConfigLoader<AppConfig> appConfigLoader = new YamlConfigLoader<>(
                 plugin,
                 "config.yml",
-                "",
+                "version",
                 AppConfig::defaults,
                 this::parseAppConfig
         );
@@ -95,12 +91,6 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 coreLibPlugin.itemSourceService(),
                 coreActionExecutor,
                 coreLibPlugin.itemAssemblyService()
-        );
-        LegacyImportService legacyImportService = new LegacyImportService(
-                plugin,
-                messageService,
-                coreLibPlugin.itemSourceService(),
-                craftEngineBlockBridge
         );
         CookingInspectService inspectService = new CookingInspectService(messageService, coreLibPlugin.itemSourceService());
         ChoppingBoardRuntimeService choppingBoardRuntimeService = new ChoppingBoardRuntimeService(
@@ -160,7 +150,6 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 stationStateStore,
                 recipeService,
                 rewardService,
-                legacyImportService,
                 inspectService,
                 choppingBoardRuntimeService,
                 wokRuntimeService,
@@ -189,12 +178,10 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
             return AppConfig.defaults();
         }
         AppConfig defaults = AppConfig.defaults();
-        YamlSection legacyImport = configuration.getSection("legacy_import");
         return new AppConfig(
                 configuration.getString("language", defaults.language()),
-                configuration.getString("config_version", defaults.configVersion()),
-                configuration.getBoolean("release_default_data", defaults.releaseDefaultData()),
-                legacyImport == null ? defaults.oldDirectory() : legacyImport.getString("old_directory", defaults.oldDirectory())
+                configuration.getString("version", defaults.configVersion()),
+                configuration.getBoolean("release_default_data", defaults.releaseDefaultData())
         );
     }
 
@@ -204,7 +191,7 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
     }
 
     private List<String> staticFiles(EmakiCookingPlugin plugin) {
-        List<String> files = new ArrayList<>(STATIC_FILES);
+        List<String> files = new ArrayList<>();
         files.addAll(YamlFiles.listResourcePaths(plugin, "gui"));
         return List.copyOf(files);
     }

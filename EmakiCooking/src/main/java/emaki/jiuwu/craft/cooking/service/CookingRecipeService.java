@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 import emaki.jiuwu.craft.cooking.model.RecipeDocument;
@@ -17,6 +18,7 @@ public final class CookingRecipeService {
 
     private final EmakiCookingPlugin plugin;
     private final CookingSettingsService settingsService;
+    private final Map<RecipeDocument, ItemSource> parsedSourceCache = new ConcurrentHashMap<>();
 
     public CookingRecipeService(EmakiCookingPlugin plugin, CookingSettingsService settingsService) {
         this.plugin = plugin;
@@ -199,8 +201,9 @@ public final class CookingRecipeService {
             if (recipe == null) {
                 continue;
             }
-            ItemSource configured = ItemSourceUtil.parse(recipe.configuration().getString("input.source", ""));
-            if (!ItemSourceUtil.matches(configured, expected)) {
+            ItemSource configured = parsedSourceCache.computeIfAbsent(recipe,
+                    r -> ItemSourceUtil.parse(r.configuration().getString("input.source", "")));
+            if (configured == null || !ItemSourceUtil.matches(configured, expected)) {
                 continue;
             }
             String permission = recipe.configuration().getString("permission", "");
@@ -210,6 +213,10 @@ public final class CookingRecipeService {
             return recipe;
         }
         return null;
+    }
+
+    public void clearCaches() {
+        parsedSourceCache.clear();
     }
 
     private List<Map<String, Object>> mapList(List<Map<?, ?>> raw) {
@@ -229,7 +236,7 @@ public final class CookingRecipeService {
         }
         try {
             return Integer.parseInt(value.trim());
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             return fallback;
         }
     }

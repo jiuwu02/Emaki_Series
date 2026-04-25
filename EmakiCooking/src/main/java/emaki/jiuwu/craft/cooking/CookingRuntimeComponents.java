@@ -20,7 +20,6 @@ import emaki.jiuwu.craft.cooking.service.CookingRecipeService;
 import emaki.jiuwu.craft.cooking.service.CookingRewardService;
 import emaki.jiuwu.craft.cooking.service.CookingSettingsService;
 import emaki.jiuwu.craft.cooking.service.GrinderRuntimeService;
-import emaki.jiuwu.craft.cooking.service.LegacyImportService;
 import emaki.jiuwu.craft.cooking.service.StationStateStore;
 import emaki.jiuwu.craft.cooking.service.SteamerRuntimeService;
 import emaki.jiuwu.craft.cooking.service.WokRuntimeService;
@@ -41,7 +40,6 @@ record CookingRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
         StationStateStore stationStateStore,
         CookingRecipeService recipeService,
         CookingRewardService rewardService,
-        LegacyImportService legacyImportService,
         CookingInspectService inspectService,
         ChoppingBoardRuntimeService choppingBoardRuntimeService,
         WokRuntimeService wokRuntimeService,

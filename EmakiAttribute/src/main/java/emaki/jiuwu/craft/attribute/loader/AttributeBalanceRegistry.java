@@ -15,7 +15,6 @@ import emaki.jiuwu.craft.attribute.service.MessageService;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.corelib.yaml.VersionedYamlFile;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
@@ -38,10 +37,8 @@ public final class AttributeBalanceRegistry {
         File file = plugin.dataPath("attribute_balance.yml").toFile();
         MessageService messages = plugin.messageService();
         try {
-            VersionedYamlFile versionedFile = YamlFiles.syncVersionedResource(plugin, file, "attribute_balance.yml", "schema_version");
-            configuration = versionedFile == null || versionedFile.root() == null
-                    ? YamlFiles.load(file)
-                    : versionedFile.root().copy();
+            YamlFiles.copyResourceIfMissing(plugin, "attribute_balance.yml", file);
+            configuration = YamlFiles.load(file);
         } catch (IOException exception) {
             messages.warning("loader.bundled_resource_sync_failed", Map.of(
                     "path", file.getPath(),

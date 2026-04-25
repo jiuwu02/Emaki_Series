@@ -1,4 +1,5 @@
-lang_version: "2.0.0"
+# version 由资源同步维护
+version: "2.1.0"
 
 general:
   prefix: "<gray>[ <gradient:#D8792E:#F6D16E>Emaki Cooking</gradient> ]</gray>"

@@ -366,7 +366,7 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
         }
         try {
             return Enum.valueOf(defaultValue.getDeclaringClass(), value.trim().toUpperCase(Locale.ROOT));
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             return defaultValue;
         }
     }
@@ -487,7 +487,7 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
         try {
             Enum.valueOf(enumType, value.trim().toUpperCase(Locale.ROOT));
             return true;
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             return false;
         }
     }

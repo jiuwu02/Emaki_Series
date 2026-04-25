@@ -187,10 +187,10 @@ public final class ForgeMaterial {
         return result;
     }
 
-    public Map<String, Double> eaAttributeContributions() {
+    public Map<String, Double> attributeContributions() {
         Map<String, Double> result = new LinkedHashMap<>();
         for (MaterialEffect effect : effects) {
-            if (!"ea_attribute".equals(Texts.lower(effect.type()))) {
+            if (!"attribute".equals(Texts.lower(effect.type()))) {
                 continue;
             }
             for (Map.Entry<String, Object> entry : ConfigNodes.entries(effect.get("attributes")).entrySet()) {
@@ -203,10 +203,10 @@ public final class ForgeMaterial {
         return result;
     }
 
-    public Map<String, String> eaAttributeMeta() {
+    public Map<String, String> attributeMeta() {
         Map<String, String> result = new LinkedHashMap<>();
         for (MaterialEffect effect : effects) {
-            if (!"ea_attribute".equals(Texts.lower(effect.type()))) {
+            if (!"attribute".equals(Texts.lower(effect.type()))) {
                 continue;
             }
             for (Map.Entry<String, Object> entry : ConfigNodes.entries(effect.get("meta")).entrySet()) {
@@ -216,6 +216,26 @@ public final class ForgeMaterial {
             }
         }
         return result;
+    }
+
+    public List<String> skillIds() {
+        List<String> result = new ArrayList<>();
+        for (MaterialEffect effect : effects) {
+            if (!"skill".equals(Texts.lower(effect.type()))) {
+                continue;
+            }
+            for (Object rawSkill : ConfigNodes.asObjectList(effect.get("skills"))) {
+                String skillId = Texts.normalizeId(Texts.toStringSafe(rawSkill));
+                if (Texts.isNotBlank(skillId) && !result.contains(skillId)) {
+                    result.add(skillId);
+                }
+            }
+            String skillId = Texts.normalizeId(ConfigNodes.string(effect.data(), "skill", ""));
+            if (Texts.isNotBlank(skillId) && !result.contains(skillId)) {
+                result.add(skillId);
+            }
+        }
+        return List.copyOf(result);
     }
 
     public List<Map<String, Object>> nameModifications() {

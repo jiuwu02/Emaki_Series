@@ -126,7 +126,7 @@ private static List<String> normalizeAttributes(List<String> ids, Function<Strin
         }
         try {
             return Enum.valueOf(defaultValue.getDeclaringClass(), value.trim().toUpperCase(Locale.ROOT));
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             return defaultValue;
         }
     }

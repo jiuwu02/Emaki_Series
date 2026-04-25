@@ -25,7 +25,7 @@ public final class StrengthenMaterial {
             }
             try {
                 return Role.valueOf(Texts.trim(text).toUpperCase(Locale.ROOT));
-            } catch (Exception ignored) {
+            } catch (Exception _) {
                 return null;
             }
         }

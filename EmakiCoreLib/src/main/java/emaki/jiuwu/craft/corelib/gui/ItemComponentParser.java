@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
@@ -24,6 +25,9 @@ import emaki.jiuwu.craft.corelib.text.Texts;
  * {@link ItemMeta}.
  */
 public final class ItemComponentParser {
+
+    // 附魔解析缓存，避免每次 GUI 渲染都重复 Registry 查找
+    private static final ConcurrentHashMap<String, Enchantment> ENCHANTMENT_CACHE = new ConcurrentHashMap<>();
 
     public record ItemComponents(String displayName,
             boolean loreConfigured,
@@ -200,6 +204,10 @@ public final class ItemComponentParser {
             return null;
         }
         String trimmed = raw.trim();
+        Enchantment cached = ENCHANTMENT_CACHE.get(trimmed);
+        if (cached != null) {
+            return cached;
+        }
         String lowered = trimmed.toLowerCase(Locale.ROOT);
         List<String> candidates = new ArrayList<>();
         candidates.add(trimmed);
@@ -216,6 +224,7 @@ public final class ItemComponentParser {
             }
             Enchantment enchantment = Registry.ENCHANTMENT.get(key);
             if (enchantment != null) {
+                ENCHANTMENT_CACHE.put(trimmed, enchantment);
                 return enchantment;
             }
         }

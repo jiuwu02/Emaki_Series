@@ -11,7 +11,6 @@ import emaki.jiuwu.craft.forge.loader.MaterialLoader;
 import emaki.jiuwu.craft.forge.loader.PlayerDataStore;
 import emaki.jiuwu.craft.forge.loader.RecipeLoader;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
-import emaki.jiuwu.craft.forge.service.EditorGuiService;
 import emaki.jiuwu.craft.forge.service.ForgeGuiService;
 import emaki.jiuwu.craft.forge.service.ForgeItemRefreshService;
 import emaki.jiuwu.craft.forge.service.ForgeService;
@@ -35,6 +34,5 @@ record ForgeRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
         ForgeItemRefreshService itemRefreshService,
         ForgeService forgeService,
         ForgeGuiService forgeGuiService,
-        RecipeBookGuiService recipeBookGuiService,
-        EditorGuiService editorGuiService) implements RuntimeComponents {
+        RecipeBookGuiService recipeBookGuiService) implements RuntimeComponents {
 }

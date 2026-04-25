@@ -65,7 +65,7 @@ stars:
   1:
     stats:
       spell_attack: 4
-    ea_attributes:
+    attributes:
       spell_attack: 4.0
     materials:
       - item: "copper_ingot"
@@ -75,7 +75,7 @@ stars:
   2:
     stats:
       spell_attack: 4
-    ea_attributes:
+    attributes:
       spell_attack: 4.0
     materials:
       - item: "copper_ingot"
@@ -85,7 +85,7 @@ stars:
   3:
     stats:
       spell_attack: 5
-    ea_attributes:
+    attributes:
       spell_attack: 5.0
     materials:
       - item: "copper_ingot"
@@ -95,7 +95,7 @@ stars:
   4:
     stats:
       spell_attack: 6
-    ea_attributes:
+    attributes:
       spell_attack: 6.0
     materials:
       - item: "copper_ingot"
@@ -111,7 +111,7 @@ stars:
     stats:
       spell_attack: 6
       spell_crit_rate: 2
-    ea_attributes:
+    attributes:
       spell_attack: 6.0
       spell_crit_rate: 2.0
     materials:
@@ -138,7 +138,7 @@ stars:
   6:
     stats:
       spell_attack: 7
-    ea_attributes:
+    attributes:
       spell_attack: 7.0
     materials:
       - item: "copper_ingot"
@@ -152,7 +152,7 @@ stars:
   7:
     stats:
       spell_attack: 8
-    ea_attributes:
+    attributes:
       spell_attack: 8.0
     materials:
       - item: "copper_ingot"
@@ -168,7 +168,7 @@ stars:
     stats:
       spell_attack: 9
       spell_damage_bonus: 4
-    ea_attributes:
+    attributes:
       spell_attack: 9.0
       spell_damage_bonus: 4.0
     materials:
@@ -198,7 +198,7 @@ stars:
   9:
     stats:
       spell_attack: 10
-    ea_attributes:
+    attributes:
       spell_attack: 10.0
     materials:
       - item: "copper_ingot"
@@ -216,7 +216,7 @@ stars:
     stats:
       spell_attack: 12
       spell_crit_damage: 6
-    ea_attributes:
+    attributes:
       spell_attack: 12.0
       spell_crit_damage: 6.0
     materials:
@@ -243,7 +243,7 @@ stars:
   11:
     stats:
       spell_attack: 14
-    ea_attributes:
+    attributes:
       spell_attack: 14.0
     materials:
       - item: "copper_ingot"
@@ -261,7 +261,7 @@ stars:
     stats:
       spell_attack: 16
       magic_penetration: 8
-    ea_attributes:
+    attributes:
       spell_attack: 16.0
       magic_penetration: 8.0
     materials:

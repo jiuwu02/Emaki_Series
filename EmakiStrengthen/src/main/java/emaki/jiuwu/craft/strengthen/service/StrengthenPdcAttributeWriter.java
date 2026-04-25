@@ -7,6 +7,7 @@ import java.util.Set;
 import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.integration.ReflectivePdcAttributeGateway;
+import emaki.jiuwu.craft.corelib.integration.ReflectiveSkillPdcGateway;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
 import emaki.jiuwu.craft.strengthen.model.StrengthenRecipe;
 import emaki.jiuwu.craft.strengthen.model.StrengthenState;
@@ -15,6 +16,7 @@ final class StrengthenPdcAttributeWriter {
 
     private final EmakiStrengthenPlugin plugin;
     private final String sourceId;
+    private final ReflectiveSkillPdcGateway skillPdcGateway = new ReflectiveSkillPdcGateway();
 
     StrengthenPdcAttributeWriter(EmakiStrengthenPlugin plugin, String sourceId) {
         this.plugin = plugin;
@@ -25,22 +27,26 @@ final class StrengthenPdcAttributeWriter {
         if (itemStack == null || recipe == null || state == null) {
             return;
         }
+        skillPdcGateway.write(itemStack, recipe.cumulativeSkillIds(state.currentStar()));
         ReflectivePdcAttributeGateway gateway = plugin.pdcAttributeGateway();
         if (gateway == null || !gateway.available()) {
             return;
         }
-        Map<String, Double> eaAttributes = recipe.cumulativeEaAttributes(state.currentStar());
-        if (eaAttributes.isEmpty()) {
+        Map<String, Double> attributes = recipe.cumulativeAttributes(state.currentStar());
+        if (attributes.isEmpty()) {
             gateway.clear(itemStack, sourceId);
             return;
         }
         Map<String, String> meta = new LinkedHashMap<>();
         meta.put("recipe_id", recipe.id());
         meta.put("current_star", String.valueOf(state.currentStar()));
-        gateway.write(itemStack, sourceId, eaAttributes, meta);
+        gateway.write(itemStack, sourceId, attributes, meta);
     }
 
     void clearPdcAttributes(ItemStack itemStack) {
+        if (itemStack != null) {
+            skillPdcGateway.clear(itemStack);
+        }
         ReflectivePdcAttributeGateway gateway = plugin.pdcAttributeGateway();
         if (gateway == null || !gateway.available() || itemStack == null) {
             return;
@@ -49,6 +55,7 @@ final class StrengthenPdcAttributeWriter {
     }
 
     void preserveOtherAttributePayloads(ItemStack original, ItemStack rebuilt) {
+        skillPdcGateway.copy(original, rebuilt);
         ReflectivePdcAttributeGateway gateway = plugin.pdcAttributeGateway();
         if (gateway == null || original == null || rebuilt == null) {
             return;

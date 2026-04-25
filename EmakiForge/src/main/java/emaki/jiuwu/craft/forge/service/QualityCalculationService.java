@@ -177,7 +177,7 @@ final class QualityCalculationService {
             long value = Long.parseLong(sample, 16);
             long max = (1L << (sample.length() * 4)) - 1L;
             return max <= 0L ? 0D : value / (double) max;
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             return 0.5D;
         }
     }

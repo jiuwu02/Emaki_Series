@@ -30,7 +30,6 @@ import emaki.jiuwu.craft.forge.loader.BlueprintLoader;
 import emaki.jiuwu.craft.forge.loader.MaterialLoader;
 import emaki.jiuwu.craft.forge.loader.PlayerDataStore;
 import emaki.jiuwu.craft.forge.loader.RecipeLoader;
-import emaki.jiuwu.craft.forge.service.EditorGuiService;
 import emaki.jiuwu.craft.forge.service.ForgeItemRefreshService;
 import emaki.jiuwu.craft.forge.service.ForgeGuiService;
 import emaki.jiuwu.craft.forge.service.ForgeService;
@@ -42,7 +41,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
     private static final String DEFAULT_PREFIX = "<gray>[ <gradient:#F2C46D:#C9703D>Emaki Forge</gradient> ]</gray>";
     private static final String PDC_ATTRIBUTE_SOURCE_ID = "forge";
     private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml");
-    private static final List<String> STATIC_FILES = List.of("gui/forge_gui.yml", "gui/recipe_book.yml", "gui/editor_gui.yml");
+    private static final List<String> STATIC_FILES = List.of("gui/forge_gui.yml", "gui/recipe_book.yml");
     private static final List<String> DEFAULT_DATA_FILES = List.of("recipes/flame_sword.yml");
     private static final List<String> EXTRA_DIRECTORIES = List.of("data");
 
@@ -52,7 +51,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         YamlConfigLoader<AppConfig> appConfigLoader = new YamlConfigLoader<>(
                 plugin,
                 "config.yml",
-                "config_version",
+                "version",
                 AppConfig::defaults,
                 this::parseAppConfig
         );
@@ -97,7 +96,6 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         );
         ForgeGuiService forgeGuiService = new ForgeGuiService(plugin, guiService);
         RecipeBookGuiService recipeBookGuiService = new RecipeBookGuiService(plugin, guiService);
-        EditorGuiService editorGuiService = new EditorGuiService(plugin, guiService);
         return new ForgeRuntimeComponents(
                 appConfigLoader,
                 languageLoader,
@@ -114,8 +112,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                 itemRefreshService,
                 forgeService,
                 forgeGuiService,
-                recipeBookGuiService,
-                editorGuiService
+                recipeBookGuiService
         );
     }
 
@@ -180,9 +177,6 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         if (plugin.recipeBookGuiService() != null) {
             plugin.recipeBookGuiService().clearAllBooks();
         }
-        if (plugin.editorGuiService() != null) {
-            plugin.editorGuiService().clearAllSessions();
-        }
         if (plugin.messageService() != null) {
             plugin.messageService().info("console.plugin_stopped");
         }
@@ -191,14 +185,12 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
     private void closeOpenInventories(EmakiForgePlugin plugin) {
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (plugin.forgeGuiService().getSession(player) != null
-                    || plugin.recipeBookGuiService().isRecipeBookInventory(player)
-                    || plugin.editorGuiService().hasSession(player)) {
+                    || plugin.recipeBookGuiService().isRecipeBookInventory(player)) {
                 player.closeInventory();
             }
         }
         plugin.forgeGuiService().clearAllSessions();
         plugin.recipeBookGuiService().clearAllBooks();
-        plugin.editorGuiService().clearAllSessions();
     }
 
     private void validateConfiguredExternalSources(EmakiForgePlugin plugin) {
@@ -237,7 +229,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         YamlSection numberFormat = configuration.getSection("number_format");
         return new AppConfig(
                 configuration.getString("language", "zh_CN"),
-                configuration.getString("config_version", AppConfig.defaults().configVersion()),
+                configuration.getString("version", AppConfig.defaults().configVersion()),
                 configuration.getBoolean("release_default_data", true),
                 emaki.jiuwu.craft.forge.model.QualitySettings.fromConfig(configuration.get("quality")),
                 numberFormat == null ? "0.##" : numberFormat.getString("default", "0.##"),

@@ -33,19 +33,36 @@ final class StructuredPresentationRenderer {
             return new RenderResult(Texts.toStringSafe(fallbackBaseName), copyLore(currentLore), false);
         }
 
-        String baseName = resolveBaseName(itemStack, fallbackBaseName, presentations, aggregatedStats);
+        // 预构建格式化 Map，整个 render 过程只构建一次，避免每次 renderTemplate 都重建
+        Map<String, Object> formattedStats = buildFormattedStats(aggregatedStats);
+
+        String baseName = resolveBaseName(itemStack, fallbackBaseName, presentations, formattedStats);
         List<EmakiNameContribution> nameContributions = collectNameContributions(presentations);
         List<Component> lore = copyLore(currentLore);
-        appendLoreSections(lore, presentations, aggregatedStats);
+        appendLoreSections(lore, presentations, formattedStats);
 
         boolean customizedName = Texts.isNotBlank(resolveExplicitBaseNameTemplate(presentations)) || !nameContributions.isEmpty();
         if (!customizedName) {
             return new RenderResult(baseName, lore, false);
         }
 
-        String prefix = joinContributions(nameContributions, NamePosition.PREFIX, aggregatedStats);
-        String postfix = joinContributions(nameContributions, NamePosition.POSTFIX, aggregatedStats);
+        String prefix = joinContributions(nameContributions, NamePosition.PREFIX, formattedStats);
+        String postfix = joinContributions(nameContributions, NamePosition.POSTFIX, formattedStats);
         return new RenderResult(prefix + baseName + postfix, lore, true);
+    }
+
+    private static Map<String, Object> buildFormattedStats(Map<String, Double> aggregatedStats) {
+        if (aggregatedStats == null || aggregatedStats.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, Object> formatted = new LinkedHashMap<>();
+        for (Map.Entry<String, Double> entry : aggregatedStats.entrySet()) {
+            if (entry.getKey() == null || entry.getValue() == null) {
+                continue;
+            }
+            formatted.put(entry.getKey(), Numbers.formatNumber(entry.getValue(), "0.##"));
+        }
+        return formatted;
     }
 
     private List<StructuredLayerPresentation> collectPresentations(Collection<EmakiItemLayerSnapshot> snapshots) {
@@ -79,7 +96,7 @@ final class StructuredPresentationRenderer {
 
     private void appendLoreSections(List<Component> lore,
             List<StructuredLayerPresentation> presentations,
-            Map<String, Double> aggregatedStats) {
+            Map<String, Object> formattedStats) {
         List<EmakiLoreSectionContribution> sections = new ArrayList<>();
         for (StructuredLayerPresentation presentation : presentations) {
             sections.addAll(presentation.presentation().loreSections());
@@ -89,7 +106,7 @@ final class StructuredPresentationRenderer {
                 .thenComparing(EmakiLoreSectionContribution::sectionId));
         for (EmakiLoreSectionContribution section : sections) {
             for (String line : section.lines()) {
-                String rendered = renderTemplate(line, aggregatedStats);
+                String rendered = renderTemplate(line, formattedStats);
                 lore.add(Texts.isBlank(rendered) ? Component.empty() : MiniMessages.parse(rendered));
             }
         }
@@ -97,13 +114,13 @@ final class StructuredPresentationRenderer {
 
     private String joinContributions(List<EmakiNameContribution> contributions,
             NamePosition position,
-            Map<String, Double> aggregatedStats) {
+            Map<String, Object> formattedStats) {
         StringBuilder builder = new StringBuilder();
         for (EmakiNameContribution contribution : contributions) {
             if (contribution == null || contribution.position() != position) {
                 continue;
             }
-            builder.append(renderTemplate(contribution.contentTemplate(), aggregatedStats));
+            builder.append(renderTemplate(contribution.contentTemplate(), formattedStats));
         }
         return builder.toString();
     }
@@ -111,10 +128,10 @@ final class StructuredPresentationRenderer {
     private String resolveBaseName(ItemStack itemStack,
             String fallbackBaseName,
             List<StructuredLayerPresentation> presentations,
-            Map<String, Double> aggregatedStats) {
+            Map<String, Object> formattedStats) {
         String explicitTemplate = resolveExplicitBaseNameTemplate(presentations);
         if (Texts.isNotBlank(explicitTemplate)) {
-            return renderTemplate(explicitTemplate, aggregatedStats);
+            return renderTemplate(explicitTemplate, formattedStats);
         }
         if (Texts.isNotBlank(fallbackBaseName)) {
             return fallbackBaseName;
@@ -132,18 +149,11 @@ final class StructuredPresentationRenderer {
         return "";
     }
 
-    private String renderTemplate(String template, Map<String, Double> aggregatedStats) {
-        if (Texts.isBlank(template) || aggregatedStats == null || aggregatedStats.isEmpty()) {
+    private String renderTemplate(String template, Map<String, Object> formattedStats) {
+        if (Texts.isBlank(template) || formattedStats == null || formattedStats.isEmpty()) {
             return Texts.toStringSafe(template);
         }
-        Map<String, Object> replacements = new LinkedHashMap<>();
-        for (Map.Entry<String, Double> entry : aggregatedStats.entrySet()) {
-            if (entry.getKey() == null || entry.getValue() == null) {
-                continue;
-            }
-            replacements.put(entry.getKey(), Numbers.formatNumber(entry.getValue(), "0.##"));
-        }
-        return Texts.formatTemplate(template, replacements);
+        return Texts.formatTemplate(template, formattedStats);
     }
 
     private int namespaceOrder(String namespaceId) {

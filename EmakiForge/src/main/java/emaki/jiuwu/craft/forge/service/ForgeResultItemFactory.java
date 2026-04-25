@@ -93,7 +93,7 @@ final class ForgeResultItemFactory {
         }
         try {
             return ItemTextBridge.displayWithItemHoverText(displayText, resultItem);
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             return resolveSourceItemName(guiItems, resultItem, recipe);
         }
     }

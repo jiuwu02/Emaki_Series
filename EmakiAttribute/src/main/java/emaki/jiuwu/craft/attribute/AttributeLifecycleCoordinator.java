@@ -265,6 +265,9 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
 
     public void shutdown(EmakiAttributePlugin plugin, BukkitTask currentTask) {
         cancelRegenTask(currentTask);
+        if (plugin.attributeService() != null) {
+            plugin.attributeService().shutdown();
+        }
         if (plugin.placeholderExpansion() != null) {
             plugin.placeholderExpansion().unregister();
             plugin.setPlaceholderExpansion(null);
@@ -290,7 +293,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                     plugin,
                     file,
                     "config.yml",
-                    "config_version",
+                    "version",
                     document -> mergeBundledConfig(document.root(), document.defaults())
             );
             if (!file.exists()) {
@@ -315,7 +318,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
             changed = true;
         }
         if (changed) {
-            runtime.set("config_version", bundled.get("config_version"));
+            runtime.set("version", bundled.get("version"));
         }
     }
 

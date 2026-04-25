@@ -77,7 +77,7 @@ public final class MapYamlSection implements YamlSection {
         }
         try {
             return Integer.parseInt(String.valueOf(value).trim());
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             return defaultValue;
         }
     }
@@ -93,7 +93,7 @@ public final class MapYamlSection implements YamlSection {
         }
         try {
             return Double.parseDouble(String.valueOf(value).trim());
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             return defaultValue;
         }
     }

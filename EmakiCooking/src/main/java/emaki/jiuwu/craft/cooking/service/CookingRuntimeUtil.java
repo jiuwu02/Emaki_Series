@@ -53,7 +53,7 @@ public final class CookingRuntimeUtil {
         }
         try {
             return Long.parseLong(String.valueOf(raw).trim());
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             return fallback;
         }
     }
@@ -67,14 +67,13 @@ public final class CookingRuntimeUtil {
         }
         try {
             return Integer.parseInt(String.valueOf(raw).trim());
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             return fallback;
         }
     }
 
     static Map<String, Object> buildStateRoot(StationType stationType, StationCoordinates coordinates) {
         Map<String, Object> root = new LinkedHashMap<>();
-        root.put("schema_version", "2.0.0");
         root.put("station_type", stationType.folderName());
         root.put("world", coordinates.world());
         root.put("x", coordinates.x());
@@ -89,7 +88,7 @@ public final class CookingRuntimeUtil {
         }
         try {
             return UUID.fromString(raw);
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             return null;
         }
     }

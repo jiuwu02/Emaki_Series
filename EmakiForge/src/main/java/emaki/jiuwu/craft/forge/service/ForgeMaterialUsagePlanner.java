@@ -203,7 +203,7 @@ final class ForgeMaterialUsagePlanner {
             String key = keyResolver == null ? "" : keyResolver.resolve(input.source());
             int consume = isBlank(key) ? 0 : Math.min(itemStack.getAmount(), consumption.getOrDefault(key, 0));
             if (consume > 0) {
-                consumption.computeIfPresent(key, (ignored, current) -> Math.max(0, current - consume));
+                consumption.computeIfPresent(key, (_, current) -> Math.max(0, current - consume));
             }
             int unconsumed = Math.max(0, itemStack.getAmount() - consume);
             if (unconsumed <= 0) {

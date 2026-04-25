@@ -82,6 +82,8 @@ public interface AttributeServiceFacade {
 
     void regenerateOnlinePlayers();
 
+    TemporaryAttributeService temporaryAttributeService();
+
     void resyncPlayer(Player player);
 
     void scheduleJoinHealthSync(Player player);
@@ -261,7 +263,7 @@ public interface AttributeServiceFacade {
         }
         try {
             return Enum.valueOf(enumType, String.valueOf(raw).trim().toUpperCase(Locale.ROOT));
-        } catch (Exception ignored) {
+        } catch (Exception _) {
             return fallback;
         }
     }

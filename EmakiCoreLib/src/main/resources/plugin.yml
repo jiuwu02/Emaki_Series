@@ -14,7 +14,7 @@ libraries:
   - dev.dejvokep:boosted-yaml:${boosted.yaml.version}
 softdepend:
   - Vault
-  - CoinsEngine
+  - ExcellentEconomy
   - PlaceholderAPI
   - MMOItems
   - ItemsAdder

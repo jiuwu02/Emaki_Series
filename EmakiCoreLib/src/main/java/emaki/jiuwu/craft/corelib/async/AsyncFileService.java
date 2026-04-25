@@ -53,13 +53,13 @@ public final class AsyncFileService {
             return CompletableFuture.completedFuture(null);
         }
         Path normalized = path.toAbsolutePath().normalize();
-        CompletableFuture<Void> scheduled = pendingWrites.compute(normalized, (ignored, previous) -> {
+        CompletableFuture<Void> scheduled = pendingWrites.compute(normalized, (_, previous) -> {
             CompletableFuture<Void> base = previous == null
                     ? CompletableFuture.completedFuture(null)
                     : previous.exceptionally(throwable -> null);
             return base.thenCompose(unused -> runWrite(taskName, task));
         });
-        scheduled.whenComplete((unused, throwable) -> pendingWrites.compute(normalized, (ignored, current) -> current == scheduled ? null : current));
+        scheduled.whenComplete((unused, throwable) -> pendingWrites.compute(normalized, (_, current) -> current == scheduled ? null : current));
         return scheduled;
     }
 

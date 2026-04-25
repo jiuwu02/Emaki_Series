@@ -115,6 +115,16 @@ public final class PlayerData {
         return history != null && history.hasCrafted();
     }
 
+    public int totalCraftCount() {
+        int total = 0;
+        for (ForgeHistory history : recipeHistory.values()) {
+            if (history != null) {
+                total += history.craftCount();
+            }
+        }
+        return total;
+    }
+
     public int guaranteeCounter(String key) {
         return guaranteeCounters.getOrDefault(key, 0);
     }

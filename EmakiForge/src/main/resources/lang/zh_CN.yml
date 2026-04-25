@@ -1,7 +1,7 @@
 ﻿# Emaki Forge 中文语言文件
 
-# 语言文件版本号 (请勿修改)
-lang_version: "3.2.0"
+# version 由资源同步维护
+version: "3.3.0"
 
 # 通用消息
 general:
@@ -149,21 +149,6 @@ loader:
     <red>{template}</red>: {file}，阶段 {phase}，第 {line} 行</yellow>"
   recipe_invalid_condition_type: "<yellow>配方 {recipe} 的 condition_type 非法: {file}
     -> <red>{value}</red>。允许值: <gray>{allowed}</gray>，已拒绝加载。</yellow>"
-
-# 版本控制相关
-version:
-  config_outdated: "<yellow>配置文件版本过旧 (当前: <red>{current}</red>, 最新:
-    <green>{latest}</green>)，正在增量更新...</yellow>"
-  lang_outdated: "<yellow>语言文件版本过旧 (当前: <red>{current}</red>, 最新:
-    <green>{latest}</green>)，正在增量更新...</yellow>"
-  config_updating: "<white>正在更新配置文件...</white>"
-  lang_updating: "<white>正在更新语言文件...</white>"
-  config_updated: "<green>配置文件已更新, 新增 <yellow>{count}</yellow> <gray>个配置项</gray>"
-  lang_updated: "<green>语言文件已更新, 新增 <yellow>{count}</yellow> <gray>个消息项</gray>"
-  config_uptodate: "<gray>配置文件已是最新版本</gray>"
-  lang_uptodate: "<gray>语言文件已是最新版本</gray>"
-  config_missing_version: "<yellow>配置文件缺少版本号，将执行增量更新...</yellow>"
-  lang_missing_version: "<yellow>语言文件缺少版本号，将执行增量更新...</yellow>"
 
 # 锻造相关
 forge:

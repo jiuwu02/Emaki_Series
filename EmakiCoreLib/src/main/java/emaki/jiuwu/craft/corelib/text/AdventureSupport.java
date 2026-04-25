@@ -28,7 +28,7 @@ public final class AdventureSupport {
         try {
             audiences(plugin).sender(sender).sendMessage(component);
             return;
-        } catch (Exception ignored) {
+        } catch (Exception _) {
         }
         sender.sendMessage(sender instanceof Player ? MiniMessages.legacy(component) : MiniMessages.plain(component));
     }
@@ -57,7 +57,7 @@ public final class AdventureSupport {
         try {
             audiences(plugin).player(player).sendActionBar(component);
             return;
-        } catch (Exception ignored) {
+        } catch (Exception _) {
         }
         player.sendMessage(MiniMessages.legacy(component));
     }
