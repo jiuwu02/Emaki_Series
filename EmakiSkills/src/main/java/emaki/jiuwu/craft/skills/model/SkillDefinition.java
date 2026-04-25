@@ -7,6 +7,8 @@ public record SkillDefinition(String id,
         List<String> description,
         String iconMaterial,
         String mythicSkill,
+        SkillActivationType activationType,
+        List<String> passiveTriggers,
         long cooldownTicks,
         long globalCooldownTicks,
         List<SkillResourceCost> resourceCosts,
@@ -22,6 +24,8 @@ public record SkillDefinition(String id,
         description = description == null ? List.of() : List.copyOf(description);
         iconMaterial = iconMaterial == null ? "" : iconMaterial;
         mythicSkill = mythicSkill == null ? "" : mythicSkill;
+        activationType = activationType == null ? SkillActivationType.ACTIVE : activationType;
+        passiveTriggers = passiveTriggers == null ? List.of() : List.copyOf(passiveTriggers);
         cooldownTicks = Math.max(0L, cooldownTicks);
         globalCooldownTicks = Math.max(0L, globalCooldownTicks);
         resourceCosts = resourceCosts == null ? List.of() : List.copyOf(resourceCosts);

@@ -12,6 +12,7 @@ import emaki.jiuwu.craft.corelib.yaml.YamlDirectoryLoader;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 import emaki.jiuwu.craft.skills.model.CostOperation;
 import emaki.jiuwu.craft.skills.model.ResourceCostType;
+import emaki.jiuwu.craft.skills.model.SkillActivationType;
 import emaki.jiuwu.craft.skills.model.SkillDefinition;
 import emaki.jiuwu.craft.skills.model.SkillResourceCost;
 
@@ -50,6 +51,8 @@ public final class SkillDefinitionLoader extends YamlDirectoryLoader<SkillDefini
 
         List<SkillResourceCost> resourceCosts = parseResourceCosts(configuration.getMapList("resource_costs"));
         String iconMaterial = configuration.getString("icon_material", "");
+        SkillActivationType activationType = SkillActivationType.fromString(
+                configuration.getString("trigger_type", "active"));
 
         return new SkillDefinition(
                 id,
@@ -57,6 +60,8 @@ public final class SkillDefinitionLoader extends YamlDirectoryLoader<SkillDefini
                 configuration.getStringList("description"),
                 iconMaterial,
                 configuration.getString("mythic_skill", ""),
+                activationType,
+                normalizeTriggerIds(configuration.getStringList("passive_triggers")),
                 configuration.getInt("cooldown_ticks", 0),
                 configuration.getInt("global_cooldown_ticks", 0),
                 resourceCosts,
@@ -85,6 +90,20 @@ public final class SkillDefinitionLoader extends YamlDirectoryLoader<SkillDefini
             }
         }
         return costs;
+    }
+
+    private List<String> normalizeTriggerIds(List<String> rawIds) {
+        if (rawIds == null || rawIds.isEmpty()) {
+            return List.of();
+        }
+        List<String> normalized = new ArrayList<>();
+        for (String rawId : rawIds) {
+            String id = Texts.lower(rawId).replace('-', '_').trim();
+            if (!id.isBlank() && !normalized.contains(id)) {
+                normalized.add(id);
+            }
+        }
+        return List.copyOf(normalized);
     }
 
     private SkillResourceCost parseResourceCost(Map<?, ?> map) {

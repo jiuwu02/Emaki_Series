@@ -14,6 +14,8 @@ public final class AppConfig extends BaseAppConfig {
     private final CastTimingSettings castTiming;
     private final ActionBarSettings actionBar;
     private final Map<String, TriggerConfig> triggers;
+    private final Map<String, TriggerConfig> passiveTriggers;
+    private final PassiveTriggerSettings passiveTriggerSettings;
 
     public AppConfig(String language,
             String configVersion,
@@ -22,7 +24,9 @@ public final class AppConfig extends BaseAppConfig {
             CastModeSettings castMode,
             CastTimingSettings castTiming,
             ActionBarSettings actionBar,
-            Map<String, TriggerConfig> triggers) {
+            Map<String, TriggerConfig> triggers,
+            Map<String, TriggerConfig> passiveTriggers,
+            PassiveTriggerSettings passiveTriggerSettings) {
         super(language, configVersion, "1.0.0");
         this.releaseDefaultData = releaseDefaultData;
         this.defaultSlotCount = Math.max(1, defaultSlotCount);
@@ -30,6 +34,10 @@ public final class AppConfig extends BaseAppConfig {
         this.castTiming = castTiming == null ? CastTimingSettings.defaults() : castTiming;
         this.actionBar = actionBar == null ? ActionBarSettings.defaults() : actionBar;
         this.triggers = triggers == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(triggers));
+        this.passiveTriggers = passiveTriggers == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(passiveTriggers));
+        this.passiveTriggerSettings = passiveTriggerSettings == null
+                ? PassiveTriggerSettings.defaults()
+                : passiveTriggerSettings;
     }
 
     public static AppConfig defaults() {
@@ -41,7 +49,9 @@ public final class AppConfig extends BaseAppConfig {
                 CastModeSettings.defaults(),
                 CastTimingSettings.defaults(),
                 ActionBarSettings.defaults(),
-                Map.of()
+                Map.of(),
+                Map.of(),
+                PassiveTriggerSettings.defaults()
         );
     }
 
@@ -67,6 +77,14 @@ public final class AppConfig extends BaseAppConfig {
 
     public Map<String, TriggerConfig> triggers() {
         return triggers;
+    }
+
+    public Map<String, TriggerConfig> passiveTriggers() {
+        return passiveTriggers;
+    }
+
+    public PassiveTriggerSettings passiveTriggerSettings() {
+        return passiveTriggerSettings;
     }
 
     public record CastModeSettings(String entryKey, boolean restoreLastStateOnJoin) {
@@ -116,6 +134,17 @@ public final class AppConfig extends BaseAppConfig {
         public TriggerConfig {
             displayName = displayName == null || displayName.isBlank() ? "Unknown" : displayName;
             incompatibleWith = incompatibleWith == null ? List.of() : List.copyOf(incompatibleWith);
+        }
+    }
+
+    public record PassiveTriggerSettings(long timerIntervalTicks) {
+
+        public PassiveTriggerSettings {
+            timerIntervalTicks = Math.max(1L, timerIntervalTicks);
+        }
+
+        public static PassiveTriggerSettings defaults() {
+            return new PassiveTriggerSettings(20L);
         }
     }
 }

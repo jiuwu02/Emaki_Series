@@ -5,6 +5,7 @@ description:
   - "<gray>对命中目标造成火焰伤害</gray>"
 icon_material: "FIRE_CHARGE"
 mythic_skill: "ExampleFireball"
+trigger_type: "active"
 cooldown_ticks: 100
 global_cooldown_ticks: 20
 lore_aliases:

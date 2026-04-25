@@ -220,7 +220,7 @@ public final class SkillsGuiService {
 
     private ItemStack renderSkillPoolSlot(GuiSession session, Player player, int slotIndex) {
         int page = SkillsGuiHandler.getPage(session);
-        List<UnlockedSkillEntry> unlocked = stateService.getUnlockedSkills(player);
+        List<UnlockedSkillEntry> unlocked = stateService.getUnlockedActiveSkills(player);
         List<GuiSlot> poolSlots = session.template().slotsByType("skill_pool");
         int poolSize = 0;
         for (GuiSlot poolSlot : poolSlots) {
@@ -300,7 +300,7 @@ public final class SkillsGuiService {
 
     private ItemStack renderPageInfo(GuiSession session, Player player) {
         int page = SkillsGuiHandler.getPage(session);
-        List<UnlockedSkillEntry> unlocked = stateService.getUnlockedSkills(player);
+        List<UnlockedSkillEntry> unlocked = stateService.getUnlockedActiveSkills(player);
         List<GuiSlot> poolSlots = session.template().slotsByType("skill_pool");
         int poolSize = 0;
         for (GuiSlot poolSlot : poolSlots) {

@@ -238,6 +238,14 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
 
         // Triggers
         Map<String, AppConfig.TriggerConfig> triggers = parseTriggers(configuration.getSection("triggers"));
+        Map<String, AppConfig.TriggerConfig> passiveTriggers = parseTriggers(configuration.getSection("passive_triggers"));
+        YamlSection passiveTriggerSettingsSection = configuration.getSection("passive_trigger_settings");
+        AppConfig.PassiveTriggerSettings passiveTriggerSettings = passiveTriggerSettingsSection == null
+                ? defaults.passiveTriggerSettings()
+                : new AppConfig.PassiveTriggerSettings(
+                        intValue(passiveTriggerSettingsSection.getInt("timer_interval_ticks"),
+                                (int) defaults.passiveTriggerSettings().timerIntervalTicks())
+                );
 
         return new AppConfig(
                 configuration.getString("language", defaults.language()),
@@ -247,7 +255,9 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                 castMode,
                 castTiming,
                 actionBar,
-                triggers
+                triggers,
+                passiveTriggers,
+                passiveTriggerSettings
         );
     }
 
@@ -285,6 +295,9 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
         for (SkillTriggerDefinition def : TriggerRegistry.defaultDefinitions()) {
             registry.register(def);
         }
+        for (SkillTriggerDefinition def : TriggerRegistry.defaultPassiveDefinitions()) {
+            registry.register(def);
+        }
 
         // Override with config-defined triggers
         Map<String, AppConfig.TriggerConfig> configTriggers = plugin.appConfig().triggers();
@@ -301,6 +314,24 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                     tc.enabled(),
                     incompatible,
                     null
+            ));
+        }
+
+        Map<String, AppConfig.TriggerConfig> configPassiveTriggers = plugin.appConfig().passiveTriggers();
+        for (Map.Entry<String, AppConfig.TriggerConfig> entry : configPassiveTriggers.entrySet()) {
+            String id = entry.getKey();
+            AppConfig.TriggerConfig tc = entry.getValue();
+            Set<String> incompatible = tc.incompatibleWith() == null
+                    ? Set.of()
+                    : new HashSet<>(tc.incompatibleWith());
+            registry.register(new SkillTriggerDefinition(
+                    id,
+                    tc.displayName(),
+                    null,
+                    tc.enabled(),
+                    incompatible,
+                    null,
+                    emaki.jiuwu.craft.skills.trigger.TriggerCategory.PASSIVE
             ));
         }
     }

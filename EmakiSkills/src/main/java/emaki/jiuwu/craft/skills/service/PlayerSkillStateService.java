@@ -8,12 +8,15 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.skills.model.PlayerSkillProfile;
+import emaki.jiuwu.craft.skills.model.SkillActivationType;
 import emaki.jiuwu.craft.skills.model.SkillDefinition;
 import emaki.jiuwu.craft.skills.model.SkillSlotBinding;
 import emaki.jiuwu.craft.skills.model.UnlockedSkillEntry;
 import emaki.jiuwu.craft.skills.provider.EquipmentSkillCollector;
 import emaki.jiuwu.craft.skills.provider.SkillSourceRegistry;
+import emaki.jiuwu.craft.skills.trigger.SkillTriggerDefinition;
 import emaki.jiuwu.craft.skills.trigger.TriggerConflictResolver;
+import emaki.jiuwu.craft.skills.trigger.TriggerCategory;
 import emaki.jiuwu.craft.skills.trigger.TriggerRegistry;
 
 public final class PlayerSkillStateService {
@@ -46,12 +49,21 @@ public final class PlayerSkillStateService {
         return registryService.collectUnlockedSkills(player, equipmentCollector, sourceRegistry);
     }
 
+    public List<UnlockedSkillEntry> getUnlockedActiveSkills(Player player) {
+        return getUnlockedSkills(player).stream()
+                .filter(entry -> {
+                    SkillDefinition definition = registryService.getDefinition(entry.skillId());
+                    return definition != null && definition.activationType() == SkillActivationType.ACTIVE;
+                })
+                .toList();
+    }
+
     public boolean equipSkill(Player player, int slotIndex, String skillId) {
         if (player == null || skillId == null || skillId.isBlank()) {
             return false;
         }
         SkillDefinition definition = registryService.getDefinition(skillId);
-        if (definition == null || !definition.enabled()) {
+        if (definition == null || !definition.enabled() || definition.activationType() != SkillActivationType.ACTIVE) {
             return false;
         }
         PlayerSkillProfile profile = dataStore.get(player);
@@ -152,7 +164,11 @@ public final class PlayerSkillStateService {
     }
 
     private boolean isValidTrigger(String triggerId) {
-        return triggerId != null && triggerRegistry != null && triggerRegistry.isEnabled(triggerId);
+        if (triggerId == null || triggerRegistry == null) {
+            return false;
+        }
+        SkillTriggerDefinition definition = triggerRegistry.get(triggerId);
+        return definition != null && definition.enabled() && definition.category() == TriggerCategory.ACTIVE;
     }
 
     public SkillDefinition getDefinition(String skillId) {

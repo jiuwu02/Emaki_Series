@@ -1,0 +1,18 @@
+id: attack_passive
+display_name: "<gradient:#FFD166:#EF476F>命中回响</gradient>"
+description:
+  - "<gray>被动技能示例：命中实体时自动触发</gray>"
+  - "<gray>玩家不可在 GUI 中修改此技能的触发器</gray>"
+icon_material: "ECHO_SHARD"
+mythic_skill: "ExampleAttackPassive"
+trigger_type: "passive"
+passive_triggers:
+  - "attack"
+cooldown_ticks: 40
+global_cooldown_ticks: 0
+lore_aliases:
+  - "命中回响"
+ui_category: "passive"
+sort_order: 100
+enabled: true
+resource_costs: []

@@ -1,5 +1,7 @@
 package emaki.jiuwu.craft.skills.trigger;
 
+import org.bukkit.Location;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 
@@ -15,6 +17,9 @@ public final class TriggerInvocation {
     private final Event rawEvent;
     private final boolean sneaking;
     private final long occurredAt;
+    private final Entity targetEntity;
+    private final Location targetLocation;
+    private final Entity sourceEntity;
 
     private boolean cancelOriginalAction;
 
@@ -24,12 +29,27 @@ public final class TriggerInvocation {
                              boolean sneaking,
                              boolean cancelOriginalAction,
                              long occurredAt) {
+        this(player, triggerId, rawEvent, sneaking, cancelOriginalAction, occurredAt, null, null, null);
+    }
+
+    public TriggerInvocation(Player player,
+                             String triggerId,
+                             Event rawEvent,
+                             boolean sneaking,
+                             boolean cancelOriginalAction,
+                             long occurredAt,
+                             Entity targetEntity,
+                             Location targetLocation,
+                             Entity sourceEntity) {
         this.player = player;
         this.triggerId = triggerId;
         this.rawEvent = rawEvent;
         this.sneaking = sneaking;
         this.cancelOriginalAction = cancelOriginalAction;
         this.occurredAt = occurredAt;
+        this.targetEntity = targetEntity;
+        this.targetLocation = targetLocation;
+        this.sourceEntity = sourceEntity;
     }
 
     public Player player() {
@@ -58,5 +78,17 @@ public final class TriggerInvocation {
 
     public long occurredAt() {
         return occurredAt;
+    }
+
+    public Entity targetEntity() {
+        return targetEntity;
+    }
+
+    public Location targetLocation() {
+        return targetLocation == null ? null : targetLocation.clone();
+    }
+
+    public Entity sourceEntity() {
+        return sourceEntity;
     }
 }

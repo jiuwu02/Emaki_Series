@@ -108,3 +108,121 @@ triggers:
     display_name: "[数字键 9]"
     enabled: true
     incompatible_with: []
+
+# 被动触发器设置
+passive_trigger_settings:
+  # timer 被动触发器的检查间隔，单位 tick
+  timer_interval_ticks: 20
+
+# 被动触发器配置
+# 这些触发器由技能配置 passive_triggers 固定声明，玩家不能在 GUI 中修改。
+passive_triggers:
+  attack:
+    display_name: "[攻击命中]"
+    enabled: true
+    incompatible_with: []
+
+  damaged:
+    display_name: "[受到伤害]"
+    enabled: true
+    incompatible_with: []
+
+  damaged_by_entity:
+    display_name: "[被实体伤害]"
+    enabled: true
+    incompatible_with: []
+
+  death:
+    display_name: "[死亡]"
+    enabled: true
+    incompatible_with: []
+
+  kill_entity:
+    display_name: "[击杀实体]"
+    enabled: true
+    incompatible_with: []
+
+  kill_player:
+    display_name: "[击杀玩家]"
+    enabled: true
+    incompatible_with: []
+
+  shoot_bow:
+    display_name: "[射出弓箭]"
+    enabled: true
+    incompatible_with: []
+
+  arrow_hit:
+    display_name: "[箭矢命中实体]"
+    enabled: true
+    incompatible_with: []
+
+  arrow_land:
+    display_name: "[箭矢落地]"
+    enabled: true
+    incompatible_with: []
+
+  shoot_trident:
+    display_name: "[掷出三叉戟]"
+    enabled: true
+    incompatible_with: []
+
+  trident_hit:
+    display_name: "[三叉戟命中实体]"
+    enabled: true
+    incompatible_with: []
+
+  trident_land:
+    display_name: "[三叉戟落地]"
+    enabled: true
+    incompatible_with: []
+
+  break_block:
+    display_name: "[破坏方块]"
+    enabled: true
+    incompatible_with: []
+
+  place_block:
+    display_name: "[放置方块]"
+    enabled: true
+    incompatible_with: []
+
+  drop_item:
+    display_name: "[丢弃物品]"
+    enabled: true
+    incompatible_with: []
+
+  shift_drop_item:
+    display_name: "[Shift + 丢弃物品]"
+    enabled: true
+    incompatible_with: []
+
+  swap_items:
+    display_name: "[交换主副手]"
+    enabled: true
+    incompatible_with: []
+
+  shift_swap_items:
+    display_name: "[Shift + 交换主副手]"
+    enabled: true
+    incompatible_with: []
+
+  login:
+    display_name: "[登录]"
+    enabled: true
+    incompatible_with: []
+
+  sneak:
+    display_name: "[潜行]"
+    enabled: true
+    incompatible_with: []
+
+  teleport:
+    display_name: "[传送]"
+    enabled: true
+    incompatible_with: []
+
+  timer:
+    display_name: "[定时]"
+    enabled: true
+    incompatible_with: []

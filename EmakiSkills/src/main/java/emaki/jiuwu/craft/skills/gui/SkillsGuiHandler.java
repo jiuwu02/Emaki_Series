@@ -121,7 +121,7 @@ public final class SkillsGuiHandler implements GuiSessionHandler {
 
     private void handleSkillPoolClick(GuiSession session, GuiTemplate.ResolvedSlot slot, Player player) {
         int page = getPage(session);
-        List<UnlockedSkillEntry> unlocked = stateService.getUnlockedSkills(player);
+        List<UnlockedSkillEntry> unlocked = stateService.getUnlockedActiveSkills(player);
         List<String> poolSlotPositions = poolSlotPositions(session);
         int poolSize = poolSlotPositions.size();
         int index = page * poolSize + slot.slotIndex();
@@ -193,7 +193,7 @@ public final class SkillsGuiHandler implements GuiSessionHandler {
 
     private void handlePageNext(GuiSession session, Player player) {
         int page = getPage(session);
-        List<UnlockedSkillEntry> unlocked = stateService.getUnlockedSkills(player);
+        List<UnlockedSkillEntry> unlocked = stateService.getUnlockedActiveSkills(player);
         List<String> poolSlotPositions = poolSlotPositions(session);
         int poolSize = Math.max(1, poolSlotPositions.size());
         int totalPages = Math.max(1, (int) Math.ceil((double) unlocked.size() / poolSize));

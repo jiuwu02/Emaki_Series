@@ -16,6 +16,7 @@ import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.skills.service.PlayerSkillStateService;
 import emaki.jiuwu.craft.skills.trigger.SkillTriggerDefinition;
+import emaki.jiuwu.craft.skills.trigger.TriggerCategory;
 import emaki.jiuwu.craft.skills.trigger.TriggerRegistry;
 
 public final class TriggerSelectGuiHandler implements GuiSessionHandler {
@@ -128,7 +129,7 @@ public final class TriggerSelectGuiHandler implements GuiSessionHandler {
     List<SkillTriggerDefinition> getEnabledTriggers() {
         List<SkillTriggerDefinition> result = new ArrayList<>();
         for (SkillTriggerDefinition def : triggerRegistry.all().values()) {
-            if (def.enabled()) {
+            if (def.enabled() && def.category() == TriggerCategory.ACTIVE) {
                 result.add(def);
             }
         }

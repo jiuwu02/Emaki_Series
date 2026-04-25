@@ -21,6 +21,7 @@ import emaki.jiuwu.craft.skills.model.SkillResourceCost;
 import emaki.jiuwu.craft.skills.model.SkillSlotBinding;
 import emaki.jiuwu.craft.skills.model.UnlockedSkillEntry;
 import emaki.jiuwu.craft.skills.mythic.MythicSkillCastService;
+import emaki.jiuwu.craft.skills.trigger.TriggerInvocation;
 
 public final class CastAttemptService {
 
@@ -93,6 +94,19 @@ public final class CastAttemptService {
         return attemptCastWithBinding(player, triggerId, binding);
     }
 
+    public CastAttemptResult attemptPassiveCast(Player player,
+            String triggerId,
+            SkillDefinition definition,
+            TriggerInvocation invocation) {
+        if (player == null || triggerId == null || triggerId.isBlank()) {
+            return CastAttemptResult.fail(FailureReason.NO_BINDING, "cast.invalid_input");
+        }
+        if (definition == null || !definition.enabled()) {
+            return CastAttemptResult.fail(FailureReason.SKILL_NOT_FOUND, "skill.not_found");
+        }
+        return attemptCastWithDefinition(player, definition, invocation);
+    }
+
     private CastAttemptResult attemptCastWithBinding(Player player, String triggerId, SkillSlotBinding binding) {
 
         // 3. Look up SkillDefinition
@@ -114,11 +128,18 @@ public final class CastAttemptService {
             return CastAttemptResult.fail(FailureReason.SOURCE_LOST, "skill.source_lost");
         }
 
-        // 5. Check forced global delay
+        return attemptCastWithDefinition(player, definition, null);
+    }
+
+    private CastAttemptResult attemptCastWithDefinition(Player player,
+            SkillDefinition definition,
+            TriggerInvocation invocation) {
         PlayerSkillProfile profile = dataStore.get(player);
         if (profile == null) {
             return CastAttemptResult.fail(FailureReason.NO_BINDING, "cast.no_profile");
         }
+
+        // 5. Check forced global delay
         PlayerCastTimingState timing = profile.timingState();
         if (timing.isForcedDelayActive()) {
             return CastAttemptResult.fail(FailureReason.FORCED_DELAY_ACTIVE, "cast.forced_delay");
@@ -130,7 +151,7 @@ public final class CastAttemptService {
         }
 
         // 7. Check skill cooldown
-        if (timing.isSkillOnCooldown(binding.skillId())) {
+        if (timing.isSkillOnCooldown(definition.id())) {
             return CastAttemptResult.fail(FailureReason.SKILL_COOLDOWN_ACTIVE, "cast.skill_cooldown");
         }
 
@@ -150,7 +171,7 @@ public final class CastAttemptService {
             return CastAttemptResult.fail(FailureReason.MYTHIC_SKILL_NOT_FOUND,
                     "cast.mythic_not_found");
         }
-        boolean castSuccess = mythicCastService.cast(player, mythicSkillId);
+        boolean castSuccess = mythicCastService.cast(player, mythicSkillId, invocation);
         if (!castSuccess) {
             return CastAttemptResult.fail(FailureReason.MYTHIC_CAST_FAILED, "cast.mythic_failed");
         }
@@ -159,7 +180,7 @@ public final class CastAttemptService {
         consumeResources(player, profile, definition);
         AppConfig config = configSupplier.get();
         long forcedDelayTicks = config != null ? config.castTiming().forcedGlobalCastDelayTicks() : 0L;
-        timing.recordCast(binding.skillId(), definition.cooldownTicks(),
+        timing.recordCast(definition.id(), definition.cooldownTicks(),
                 definition.globalCooldownTicks(), forcedDelayTicks);
         profile.markDirty();
 

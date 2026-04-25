@@ -1,8 +1,11 @@
 package emaki.jiuwu.craft.skills.bridge;
 
 import java.util.Map;
+import java.util.List;
 import java.util.logging.Level;
 
+import org.bukkit.Location;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -69,6 +72,28 @@ public final class MythicBridge {
         }
         try {
             return apiHelper.castSkill(caster, mythicSkillId);
+        } catch (Exception exception) {
+            warning("console.mythic_bridge_cast_failed", Map.of(
+                    "skill", String.valueOf(mythicSkillId),
+                    "error", errorMessage(exception)
+            ), exception);
+            return false;
+        }
+    }
+
+    public boolean castSkill(Player caster, String mythicSkillId, Entity targetEntity, Location targetLocation) {
+        if (!available || apiHelper == null || caster == null || mythicSkillId == null || mythicSkillId.isBlank()) {
+            return false;
+        }
+        if (targetEntity == null && targetLocation == null) {
+            return castSkill(caster, mythicSkillId);
+        }
+        try {
+            Entity trigger = targetEntity == null ? caster : targetEntity;
+            Location origin = targetLocation == null ? trigger.getLocation() : targetLocation;
+            List<Entity> entityTargets = targetEntity == null ? List.of() : List.of(targetEntity);
+            List<Location> locationTargets = targetLocation == null ? List.of() : List.of(targetLocation);
+            return apiHelper.castSkill(caster, mythicSkillId, trigger, origin, entityTargets, locationTargets, 1.0F);
         } catch (Exception exception) {
             warning("console.mythic_bridge_cast_failed", Map.of(
                     "skill", String.valueOf(mythicSkillId),

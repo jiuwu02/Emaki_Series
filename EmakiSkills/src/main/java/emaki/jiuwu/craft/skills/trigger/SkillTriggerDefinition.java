@@ -12,6 +12,7 @@ import java.util.Set;
  * @param enabled          whether this trigger is active
  * @param incompatibleWith immutable set of trigger ids that conflict with this one
  * @param material         optional Bukkit Material name for GUI icon (nullable)
+ * @param category         whether this is player-bound active trigger or fixed passive trigger
  */
 public record SkillTriggerDefinition(
         String id,
@@ -19,8 +20,18 @@ public record SkillTriggerDefinition(
         String description,
         boolean enabled,
         Set<String> incompatibleWith,
-        String material
+        String material,
+        TriggerCategory category
 ) {
+
+    public SkillTriggerDefinition(String id,
+            String displayName,
+            String description,
+            boolean enabled,
+            Set<String> incompatibleWith,
+            String material) {
+        this(id, displayName, description, enabled, incompatibleWith, material, TriggerCategory.ACTIVE);
+    }
 
     public SkillTriggerDefinition {
         if (id == null || id.isBlank()) {
@@ -32,5 +43,6 @@ public record SkillTriggerDefinition(
         incompatibleWith = incompatibleWith == null
                 ? Set.of()
                 : Collections.unmodifiableSet(Set.copyOf(incompatibleWith));
+        category = category == null ? TriggerCategory.ACTIVE : category;
     }
 }

@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.skills.mythic;
 import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.skills.bridge.MythicBridge;
+import emaki.jiuwu.craft.skills.trigger.TriggerInvocation;
 
 public final class MythicSkillCastService {
 
@@ -28,5 +29,16 @@ public final class MythicSkillCastService {
             return false;
         }
         return mythicBridge.castSkill(caster, mythicSkillId);
+    }
+
+    public boolean cast(Player caster, String mythicSkillId, TriggerInvocation invocation) {
+        if (!isAvailable() || caster == null || mythicSkillId == null || mythicSkillId.isBlank()) {
+            return false;
+        }
+        if (invocation == null) {
+            return mythicBridge.castSkill(caster, mythicSkillId);
+        }
+        return mythicBridge.castSkill(caster, mythicSkillId,
+                invocation.targetEntity(), invocation.targetLocation());
     }
 }
