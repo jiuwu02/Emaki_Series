@@ -43,6 +43,9 @@ import emaki.jiuwu.craft.skills.trigger.TriggerConflictResolver;
 import emaki.jiuwu.craft.skills.trigger.TriggerRegistry;
 import emaki.jiuwu.craft.skills.listener.CastModeKeyListener;
 import emaki.jiuwu.craft.skills.listener.PlayerJoinQuitListener;
+import emaki.jiuwu.craft.skills.papi.SkillsPlaceholderExpansion;
+
+import org.bukkit.Bukkit;
 
 public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider, EmakiServiceRegistry {
 
@@ -84,6 +87,7 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
     private SkillsGuiService skillsGuiService;
     private EaBridge eaBridge;
     private MythicBridge mythicBridge;
+    private SkillsPlaceholderExpansion placeholderExpansion;
 
     public EmakiSkillsPlugin() {
         super(AppConfig::defaults);
@@ -102,6 +106,7 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
         reloadPluginState(false);
         registerCommandHandler();
         registerEventHandlers();
+        ensurePlaceholderExpansion();
         if (actionBarService != null) {
             actionBarService.startRefreshTask();
         }
@@ -110,6 +115,10 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
 
     @Override
     public void onDisable() {
+        if (placeholderExpansion != null) {
+            placeholderExpansion.unregister();
+            placeholderExpansion = null;
+        }
         getServer().getServicesManager().unregisterAll(this);
         lifecycleCoordinator.shutdown(this);
         AdventureSupport.close(this);
@@ -184,6 +193,18 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
                 new PlayerJoinQuitListener(this, playerSkillDataStore,
                         castModeService, actionBarService, this::appConfig),
                 this);
+    }
+
+    private void ensurePlaceholderExpansion() {
+        if (placeholderExpansion != null) {
+            return;
+        }
+        if (!Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+            return;
+        }
+        placeholderExpansion = new SkillsPlaceholderExpansion(
+                this, playerSkillDataStore, skillRegistryService, localResourceDefinitionLoader);
+        placeholderExpansion.register();
     }
 
     public YamlConfigLoader<AppConfig> appConfigLoader() {
@@ -289,5 +310,9 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
 
     public MythicBridge mythicBridge() {
         return mythicBridge;
+    }
+
+    public SkillsPlaceholderExpansion placeholderExpansion() {
+        return placeholderExpansion;
     }
 }

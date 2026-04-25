@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.forge;
 
+import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -20,6 +21,7 @@ import emaki.jiuwu.craft.forge.loader.BlueprintLoader;
 import emaki.jiuwu.craft.forge.loader.MaterialLoader;
 import emaki.jiuwu.craft.forge.loader.PlayerDataStore;
 import emaki.jiuwu.craft.forge.loader.RecipeLoader;
+import emaki.jiuwu.craft.forge.papi.ForgePlaceholderExpansion;
 import emaki.jiuwu.craft.forge.service.EditorGuiService;
 import emaki.jiuwu.craft.forge.service.ForgeGuiService;
 import emaki.jiuwu.craft.forge.service.ForgeItemRefreshService;
@@ -61,6 +63,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     private ForgeGuiService forgeGuiService;
     private RecipeBookGuiService recipeBookGuiService;
     private EditorGuiService editorGuiService;
+    private ForgePlaceholderExpansion placeholderExpansion;
     private BukkitTask autoSaveTask;
 
     public EmakiForgePlugin() {
@@ -76,11 +79,16 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         reloadPluginState(false);
         registerCommandHandler();
         registerEventHandlers();
+        ensurePlaceholderExpansion();
         messageService.info("console.plugin_started");
     }
 
     @Override
     public void onDisable() {
+        if (placeholderExpansion != null) {
+            placeholderExpansion.unregister();
+            placeholderExpansion = null;
+        }
         lifecycleCoordinator.shutdown(this, autoSaveTask);
         AdventureSupport.close(this);
         autoSaveTask = null;
@@ -127,6 +135,17 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         if (editorGuiService != null) {
             getServer().getPluginManager().registerEvents(editorGuiService.inputService(), this);
         }
+    }
+
+    private void ensurePlaceholderExpansion() {
+        if (placeholderExpansion != null) {
+            return;
+        }
+        if (!Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+            return;
+        }
+        placeholderExpansion = new ForgePlaceholderExpansion(this, playerDataStore);
+        placeholderExpansion.register();
     }
 
     public YamlConfigLoader<AppConfig> appConfigLoader() {

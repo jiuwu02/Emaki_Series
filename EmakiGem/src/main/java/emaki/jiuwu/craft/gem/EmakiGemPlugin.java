@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.gem;
 
+import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -20,6 +21,7 @@ import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.gem.config.AppConfig;
 import emaki.jiuwu.craft.gem.loader.GemItemLoader;
 import emaki.jiuwu.craft.gem.loader.GemLoader;
+import emaki.jiuwu.craft.gem.papi.GemPlaceholderExpansion;
 import emaki.jiuwu.craft.gem.service.GemActionCoordinator;
 import emaki.jiuwu.craft.gem.service.GemEconomyService;
 import emaki.jiuwu.craft.gem.service.GemExtractService;
@@ -70,6 +72,7 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
     private GemExtractService extractService;
     private GemUpgradeService upgradeService;
     private GemGuiService gemGuiService;
+    private GemPlaceholderExpansion placeholderExpansion;
 
     public EmakiGemPlugin() {
         super(AppConfig::defaults);
@@ -88,11 +91,16 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         reloadPluginState(false);
         registerCommandHandler();
         registerEventHandlers();
+        ensurePlaceholderExpansion();
         messageService.info("console.plugin_started");
     }
 
     @Override
     public void onDisable() {
+        if (placeholderExpansion != null) {
+            placeholderExpansion.unregister();
+            placeholderExpansion = null;
+        }
         getServer().getServicesManager().unregisterAll(this);
         lifecycleCoordinator.shutdown(this);
         AdventureSupport.close(this);
@@ -141,6 +149,17 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         if (guiService != null) {
             getServer().getPluginManager().registerEvents(guiService, this);
         }
+    }
+
+    public void ensurePlaceholderExpansion() {
+        if (placeholderExpansion != null) {
+            return;
+        }
+        if (!Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+            return;
+        }
+        placeholderExpansion = new GemPlaceholderExpansion(this, stateService, gemItemLoader);
+        placeholderExpansion.register();
     }
 
     public YamlConfigLoader<AppConfig> appConfigLoader() {
