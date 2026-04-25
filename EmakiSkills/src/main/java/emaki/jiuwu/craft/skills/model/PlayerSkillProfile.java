@@ -10,6 +10,7 @@ public final class PlayerSkillProfile {
     private String uuid;
     private final List<SkillSlotBinding> bindings;
     private final Map<String, PlayerLocalResourceState> localResources;
+    private final Map<String, PlayerSkillLevelState> skillLevels;
     private final PlayerCastTimingState timingState;
     private final Map<String, SkillSlotBinding> bindingByTrigger = new ConcurrentHashMap<>();
     private boolean castModeEnabled;
@@ -22,6 +23,7 @@ public final class PlayerSkillProfile {
             bindings.add(new SkillSlotBinding(i, null, null));
         }
         this.localResources = new ConcurrentHashMap<>();
+        this.skillLevels = new ConcurrentHashMap<>();
         this.timingState = new PlayerCastTimingState();
         this.castModeEnabled = false;
         this.dirty = false;
@@ -42,6 +44,10 @@ public final class PlayerSkillProfile {
 
     public Map<String, PlayerLocalResourceState> localResources() {
         return localResources;
+    }
+
+    public Map<String, PlayerSkillLevelState> skillLevels() {
+        return skillLevels;
     }
 
     public PlayerCastTimingState timingState() {

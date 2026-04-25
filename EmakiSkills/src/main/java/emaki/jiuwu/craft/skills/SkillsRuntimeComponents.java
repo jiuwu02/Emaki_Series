@@ -21,7 +21,10 @@ import emaki.jiuwu.craft.skills.service.CastAttemptService;
 import emaki.jiuwu.craft.skills.service.CastModeService;
 import emaki.jiuwu.craft.skills.service.PlayerSkillDataStore;
 import emaki.jiuwu.craft.skills.service.PlayerSkillStateService;
+import emaki.jiuwu.craft.skills.service.SkillLevelService;
+import emaki.jiuwu.craft.skills.service.SkillParameterResolver;
 import emaki.jiuwu.craft.skills.service.SkillRegistryService;
+import emaki.jiuwu.craft.skills.service.SkillUpgradeService;
 import emaki.jiuwu.craft.skills.trigger.TriggerConflictResolver;
 import emaki.jiuwu.craft.skills.trigger.TriggerRegistry;
 
@@ -41,6 +44,9 @@ record SkillsRuntimeComponents(
         SkillRegistryService skillRegistryService,
         PlayerSkillDataStore playerSkillDataStore,
         PlayerSkillStateService playerSkillStateService,
+        SkillLevelService skillLevelService,
+        SkillParameterResolver skillParameterResolver,
+        SkillUpgradeService skillUpgradeService,
         CastModeService castModeService,
         CastAttemptService castAttemptService,
         MythicSkillCastService mythicSkillCastService,

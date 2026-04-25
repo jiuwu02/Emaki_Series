@@ -16,6 +16,7 @@ import emaki.jiuwu.craft.skills.model.LocalResourceDefinition;
 import emaki.jiuwu.craft.skills.model.PlayerCastTimingState;
 import emaki.jiuwu.craft.skills.model.PlayerLocalResourceState;
 import emaki.jiuwu.craft.skills.model.PlayerSkillProfile;
+import emaki.jiuwu.craft.skills.model.ResolvedSkillParameters;
 import emaki.jiuwu.craft.skills.model.SkillDefinition;
 import emaki.jiuwu.craft.skills.model.SkillResourceCost;
 import emaki.jiuwu.craft.skills.model.SkillSlotBinding;
@@ -30,6 +31,7 @@ public final class CastAttemptService {
     private final CastModeService castModeService;
     private final PlayerSkillDataStore dataStore;
     private final MythicSkillCastService mythicCastService;
+    private final SkillParameterResolver skillParameterResolver;
     private final EaBridge eaBridge;
     private final Supplier<Map<String, LocalResourceDefinition>> localResourceDefsSupplier;
     private final Supplier<AppConfig> configSupplier;
@@ -39,6 +41,7 @@ public final class CastAttemptService {
             CastModeService castModeService,
             PlayerSkillDataStore dataStore,
             MythicSkillCastService mythicCastService,
+            SkillParameterResolver skillParameterResolver,
             EaBridge eaBridge,
             Supplier<Map<String, LocalResourceDefinition>> localResourceDefsSupplier,
             Supplier<AppConfig> configSupplier) {
@@ -47,6 +50,7 @@ public final class CastAttemptService {
         this.castModeService = castModeService;
         this.dataStore = dataStore;
         this.mythicCastService = mythicCastService;
+        this.skillParameterResolver = skillParameterResolver;
         this.eaBridge = eaBridge;
         this.localResourceDefsSupplier = localResourceDefsSupplier;
         this.configSupplier = configSupplier;
@@ -104,7 +108,7 @@ public final class CastAttemptService {
         if (definition == null || !definition.enabled()) {
             return CastAttemptResult.fail(FailureReason.SKILL_NOT_FOUND, "skill.not_found");
         }
-        return attemptCastWithDefinition(player, definition, invocation);
+        return attemptCastWithDefinition(player, definition, triggerId, invocation);
     }
 
     private CastAttemptResult attemptCastWithBinding(Player player, String triggerId, SkillSlotBinding binding) {
@@ -128,11 +132,12 @@ public final class CastAttemptService {
             return CastAttemptResult.fail(FailureReason.SOURCE_LOST, "skill.source_lost");
         }
 
-        return attemptCastWithDefinition(player, definition, null);
+        return attemptCastWithDefinition(player, definition, triggerId, null);
     }
 
     private CastAttemptResult attemptCastWithDefinition(Player player,
             SkillDefinition definition,
+            String triggerId,
             TriggerInvocation invocation) {
         PlayerSkillProfile profile = dataStore.get(player);
         if (profile == null) {
@@ -171,7 +176,10 @@ public final class CastAttemptService {
             return CastAttemptResult.fail(FailureReason.MYTHIC_SKILL_NOT_FOUND,
                     "cast.mythic_not_found");
         }
-        boolean castSuccess = mythicCastService.cast(player, mythicSkillId, invocation);
+        ResolvedSkillParameters parameters = skillParameterResolver == null
+                ? ResolvedSkillParameters.empty()
+                : skillParameterResolver.resolve(player, definition, triggerId, invocation);
+        boolean castSuccess = mythicCastService.cast(player, mythicSkillId, invocation, parameters);
         if (!castSuccess) {
             return CastAttemptResult.fail(FailureReason.MYTHIC_CAST_FAILED, "cast.mythic_failed");
         }

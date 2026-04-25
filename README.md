@@ -44,7 +44,7 @@ EmakiCoreLib
 - `EmakiStrengthen` 通过配方系统为装备附加强化层，并可选把强化属性接入 EmakiAttribute。
 - `EmakiCooking` 通过 CoreLib 的物品源、动作系统、方块桥接与结构化展示能力承接四类厨具与旧版数据迁移。
 - `EmakiGem` 通过装备模板、开孔器和宝石定义提供可组合装备成长，可选把宝石属性接入 EmakiAttribute。
-- `EmakiSkills` 通过技能解锁、主动触发器、被动触发器和施法模式承接技能管理，并可桥接 MythicMobs 与 EmakiAttribute。
+- `EmakiSkills` 通过技能解锁、主动触发器、被动触发器、技能等级、技能传参与施法模式承接技能管理，并可桥接 MythicMobs 与 EmakiAttribute。
 
 ## 仓库结构
 
@@ -68,7 +68,15 @@ Project/
 - `EmakiStrengthen`：默认强化内容位于 `recipes/*.yml`，例如 `weapon_physical`、`weapon_projectile`、`weapon_spell`、`armor_guard`、`generic_visual`、`offhand_focus`。
 - `EmakiCooking`：烹饪资源位于 `recipes/chopping_board/`、`recipes/wok/`、`recipes/grinder/`、`recipes/steamer/`、`gui/steamer.yml` 与 `data/stations/`。
 - `EmakiGem`：宝石、装备模板、开孔器与 GUI 资源位于 `gems/`、`items/`、`gui/gem/`、`gui/open/`、`gui/upgrade/` 与 `config.yml`。
-- `EmakiSkills`：技能、GUI、主动/被动触发器配置位于 `skills/`、`gui/` 与 `config.yml`，技能效果本体通过 MythicMobs 配置桥接。
+- `EmakiSkills`：技能、GUI、主动/被动触发器配置位于 `skills/`、`gui/` 与 `config.yml`，技能效果本体通过 MythicMobs 配置桥接；技能配置可通过 `skill_parameters` 注入 `<skill.var.xxx>`，并使用与宝石/强化一致的 `upgrade` 风格配置技能升级。
+
+## EmakiSkills 技能参数与升级
+
+- `skill_parameters` 用于配置释放技能时注入 MythicMobs 的变量，MythicMobs 技能中推荐使用 `<skill.var.damage>`、`<skill.var.radius>`、`<skill.var.emaki_skill_level>` 读取。
+- `upgrade` 是技能升级的唯一配置入口，字段风格对齐 `EmakiGem` / `EmakiStrengthen`：`enabled`、`max_level`、`gui_template`、`economy.currencies`、`success_rates`、`failure_penalty`、`levels`。
+- `upgrade.levels.<target_level>` 表示升级到该等级的材料、经济覆盖、成功率覆盖、成功/失败动作，以及可选的参数覆盖。
+- 玩家技能等级由 `EmakiSkills` 持久化到玩家档案的 `skill_levels.<skill_id>.level`，未开启升级的技能等级固定为 `1`。
+- 第一版升级入口提供命令 `/eskills upgrade <skill>`；管理命令为 `/eskills level get|set|add <player> <skill> [value]`。
 
 ## 构建方式
 

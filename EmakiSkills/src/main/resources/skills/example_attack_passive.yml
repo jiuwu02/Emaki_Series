@@ -16,3 +16,76 @@ ui_category: "passive"
 sort_order: 100
 enabled: true
 resource_costs: []
+
+skill_parameters:
+  echo_damage:
+    type: "number"
+    formula: "6 + ({level} - 1) * 2.5"
+    decimals: 1
+    min: 0
+
+  echo_chance:
+    type: "number"
+    formula: "15 + ({level} - 1) * 3"
+    decimals: 0
+    max: 40
+
+  sound_pitch:
+    type: "number"
+    formula: "1 + ({level} - 1) * 0.03"
+    decimals: 2
+
+upgrade:
+  enabled: true
+  max_level: 8
+  gui_template: "upgrade/default"
+
+  economy:
+    enabled: true
+    currencies:
+      - provider: "vault"
+        currency_id: ""
+        base_cost: 800
+        cost_formula: "{base_cost} * {target_level}"
+        display_name: "<gold>金币</gold>"
+
+  success_rates:
+    2: 100.0
+    3: 95.0
+    4: 90.0
+    5: 80.0
+    6: 70.0
+    7: 60.0
+    8: 50.0
+
+  failure_penalty: "none"
+
+  levels:
+    2:
+      materials:
+        - item: "minecraft-amethyst_shard"
+          amount: 3
+      success_actions: []
+      failure_actions: []
+
+    4:
+      materials:
+        - item: "minecraft-echo_shard"
+          amount: 1
+      parameters:
+        echo_chance:
+          type: "number"
+          value: 30
+          decimals: 0
+      success_actions:
+        - "sendmessage text=\"<aqua>命中回响达到 IV，触发概率获得额外提升。</aqua>\""
+      failure_actions: []
+
+    8:
+      materials:
+        - item: "minecraft-echo_shard"
+          amount: 3
+      success_rate: 50.0
+      success_actions:
+        - "broadcast text=\"<aqua>{player}</aqua> <gray>将命中回响提升至满级。</gray>\""
+      failure_actions: []

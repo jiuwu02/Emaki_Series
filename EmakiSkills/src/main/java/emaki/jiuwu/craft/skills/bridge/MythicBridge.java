@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.skills.bridge;
 import java.util.Map;
 import java.util.List;
 import java.util.logging.Level;
+import java.util.function.Consumer;
 
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
@@ -11,6 +12,8 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.text.LogMessages;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
+import emaki.jiuwu.craft.skills.model.ResolvedSkillParameters;
+import io.lumine.mythic.api.skills.SkillMetadata;
 import io.lumine.mythic.bukkit.BukkitAPIHelper;
 import io.lumine.mythic.bukkit.MythicBukkit;
 
@@ -67,11 +70,15 @@ public final class MythicBridge {
     }
 
     public boolean castSkill(Player caster, String mythicSkillId) {
+        return castSkill(caster, mythicSkillId, ResolvedSkillParameters.empty());
+    }
+
+    public boolean castSkill(Player caster, String mythicSkillId, ResolvedSkillParameters parameters) {
         if (!available || apiHelper == null || caster == null || mythicSkillId == null || mythicSkillId.isBlank()) {
             return false;
         }
         try {
-            return apiHelper.castSkill(caster, mythicSkillId);
+            return apiHelper.castSkill(caster, mythicSkillId, metadataConsumer(parameters));
         } catch (Exception exception) {
             warning("console.mythic_bridge_cast_failed", Map.of(
                     "skill", String.valueOf(mythicSkillId),
@@ -82,18 +89,27 @@ public final class MythicBridge {
     }
 
     public boolean castSkill(Player caster, String mythicSkillId, Entity targetEntity, Location targetLocation) {
+        return castSkill(caster, mythicSkillId, targetEntity, targetLocation, ResolvedSkillParameters.empty());
+    }
+
+    public boolean castSkill(Player caster,
+            String mythicSkillId,
+            Entity targetEntity,
+            Location targetLocation,
+            ResolvedSkillParameters parameters) {
         if (!available || apiHelper == null || caster == null || mythicSkillId == null || mythicSkillId.isBlank()) {
             return false;
         }
         if (targetEntity == null && targetLocation == null) {
-            return castSkill(caster, mythicSkillId);
+            return castSkill(caster, mythicSkillId, parameters);
         }
         try {
             Entity trigger = targetEntity == null ? caster : targetEntity;
             Location origin = targetLocation == null ? trigger.getLocation() : targetLocation;
             List<Entity> entityTargets = targetEntity == null ? List.of() : List.of(targetEntity);
             List<Location> locationTargets = targetLocation == null ? List.of() : List.of(targetLocation);
-            return apiHelper.castSkill(caster, mythicSkillId, trigger, origin, entityTargets, locationTargets, 1.0F);
+            return apiHelper.castSkill(caster, mythicSkillId, trigger, origin,
+                    entityTargets, locationTargets, 1.0F, metadataConsumer(parameters));
         } catch (Exception exception) {
             warning("console.mythic_bridge_cast_failed", Map.of(
                     "skill", String.valueOf(mythicSkillId),
@@ -101,6 +117,21 @@ public final class MythicBridge {
             ), exception);
             return false;
         }
+    }
+
+    private Consumer<SkillMetadata> metadataConsumer(ResolvedSkillParameters parameters) {
+        return metadata -> {
+            if (metadata == null || parameters == null || parameters.values().isEmpty()) {
+                return;
+            }
+            try {
+                metadata.getParameters().putAll(parameters.values());
+            } catch (RuntimeException _) {
+            }
+            for (Map.Entry<String, String> entry : parameters.values().entrySet()) {
+                metadata.getVariables().putString(entry.getKey(), entry.getValue());
+            }
+        };
     }
 
     public void shutdown() {

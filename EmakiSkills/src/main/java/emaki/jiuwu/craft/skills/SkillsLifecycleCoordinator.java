@@ -35,7 +35,10 @@ import emaki.jiuwu.craft.skills.service.CastAttemptService;
 import emaki.jiuwu.craft.skills.service.CastModeService;
 import emaki.jiuwu.craft.skills.service.PlayerSkillDataStore;
 import emaki.jiuwu.craft.skills.service.PlayerSkillStateService;
+import emaki.jiuwu.craft.skills.service.SkillLevelService;
+import emaki.jiuwu.craft.skills.service.SkillParameterResolver;
 import emaki.jiuwu.craft.skills.service.SkillRegistryService;
+import emaki.jiuwu.craft.skills.service.SkillUpgradeService;
 import emaki.jiuwu.craft.skills.trigger.SkillTriggerDefinition;
 import emaki.jiuwu.craft.skills.trigger.TriggerConflictResolver;
 import emaki.jiuwu.craft.skills.trigger.TriggerRegistry;
@@ -101,6 +104,8 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                 triggerConflictResolver,
                 triggerRegistry
         );
+        SkillLevelService skillLevelService = new SkillLevelService(playerSkillDataStore);
+        SkillParameterResolver skillParameterResolver = new SkillParameterResolver(skillLevelService);
         CastModeService castModeService = new CastModeService(playerSkillDataStore);
         MythicSkillCastService mythicSkillCastService = new MythicSkillCastService(mythicBridge);
         CastAttemptService castAttemptService = new CastAttemptService(
@@ -109,9 +114,20 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                 castModeService,
                 playerSkillDataStore,
                 mythicSkillCastService,
+                skillParameterResolver,
                 eaBridge,
                 () -> localResourceDefinitionLoader.all(),
                 plugin::appConfig
+        );
+        SkillUpgradeService skillUpgradeService = new SkillUpgradeService(
+                plugin,
+                playerSkillStateService,
+                playerSkillDataStore,
+                skillLevelService,
+                skillParameterResolver,
+                coreLibPlugin::economyManager,
+                coreLibPlugin.itemSourceService(),
+                coreLibPlugin::actionExecutor
         );
         ActionBarService actionBarService = new ActionBarService(
                 plugin,
@@ -125,7 +141,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                 plugin, guiService, guiTemplateLoader,
                 playerSkillStateService, playerSkillDataStore,
                 skillRegistryService, triggerRegistry,
-                castModeService, messageService);
+                castModeService, skillLevelService, skillParameterResolver, messageService);
         return new SkillsRuntimeComponents(
                 appConfigLoader,
                 languageLoader,
@@ -142,6 +158,9 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                 skillRegistryService,
                 playerSkillDataStore,
                 playerSkillStateService,
+                skillLevelService,
+                skillParameterResolver,
+                skillUpgradeService,
                 castModeService,
                 castAttemptService,
                 mythicSkillCastService,

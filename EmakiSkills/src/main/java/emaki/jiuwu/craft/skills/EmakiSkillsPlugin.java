@@ -29,7 +29,10 @@ import emaki.jiuwu.craft.skills.service.CastAttemptService;
 import emaki.jiuwu.craft.skills.service.CastModeService;
 import emaki.jiuwu.craft.skills.service.PlayerSkillDataStore;
 import emaki.jiuwu.craft.skills.service.PlayerSkillStateService;
+import emaki.jiuwu.craft.skills.service.SkillLevelService;
+import emaki.jiuwu.craft.skills.service.SkillParameterResolver;
 import emaki.jiuwu.craft.skills.service.SkillRegistryService;
+import emaki.jiuwu.craft.skills.service.SkillUpgradeService;
 import emaki.jiuwu.craft.skills.trigger.DefaultTriggerDispatcher;
 import emaki.jiuwu.craft.skills.trigger.DropTriggerSource;
 import emaki.jiuwu.craft.skills.trigger.HotbarTriggerSource;
@@ -71,6 +74,9 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
     private SkillRegistryService skillRegistryService;
     private PlayerSkillDataStore playerSkillDataStore;
     private PlayerSkillStateService playerSkillStateService;
+    private SkillLevelService skillLevelService;
+    private SkillParameterResolver skillParameterResolver;
+    private SkillUpgradeService skillUpgradeService;
     private CastModeService castModeService;
     private CastAttemptService castAttemptService;
     private MythicSkillCastService mythicSkillCastService;
@@ -129,6 +135,9 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
         skillRegistryService = components.skillRegistryService();
         playerSkillDataStore = components.playerSkillDataStore();
         playerSkillStateService = components.playerSkillStateService();
+        skillLevelService = components.skillLevelService();
+        skillParameterResolver = components.skillParameterResolver();
+        skillUpgradeService = components.skillUpgradeService();
         castModeService = components.castModeService();
         castAttemptService = components.castAttemptService();
         mythicSkillCastService = components.mythicSkillCastService();
@@ -240,6 +249,18 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
 
     public PlayerSkillStateService playerSkillStateService() {
         return playerSkillStateService;
+    }
+
+    public SkillLevelService skillLevelService() {
+        return skillLevelService;
+    }
+
+    public SkillParameterResolver skillParameterResolver() {
+        return skillParameterResolver;
+    }
+
+    public SkillUpgradeService skillUpgradeService() {
+        return skillUpgradeService;
     }
 
     public CastModeService castModeService() {

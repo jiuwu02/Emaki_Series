@@ -1,6 +1,8 @@
 package emaki.jiuwu.craft.skills.model;
 
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 public record SkillDefinition(String id,
         String displayName,
@@ -9,6 +11,8 @@ public record SkillDefinition(String id,
         String mythicSkill,
         SkillActivationType activationType,
         List<String> passiveTriggers,
+        Map<String, SkillParameterDefinition> skillParameters,
+        SkillUpgradeConfig upgrade,
         long cooldownTicks,
         long globalCooldownTicks,
         List<SkillResourceCost> resourceCosts,
@@ -26,6 +30,8 @@ public record SkillDefinition(String id,
         mythicSkill = mythicSkill == null ? "" : mythicSkill;
         activationType = activationType == null ? SkillActivationType.ACTIVE : activationType;
         passiveTriggers = passiveTriggers == null ? List.of() : List.copyOf(passiveTriggers);
+        skillParameters = skillParameters == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(skillParameters));
+        upgrade = upgrade == null ? SkillUpgradeConfig.disabled() : upgrade;
         cooldownTicks = Math.max(0L, cooldownTicks);
         globalCooldownTicks = Math.max(0L, globalCooldownTicks);
         resourceCosts = resourceCosts == null ? List.of() : List.copyOf(resourceCosts);

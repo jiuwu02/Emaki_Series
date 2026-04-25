@@ -22,14 +22,18 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.skills.model.PlayerSkillProfile;
+import emaki.jiuwu.craft.skills.model.ResolvedSkillParameters;
 import emaki.jiuwu.craft.skills.model.SkillDefinition;
 import emaki.jiuwu.craft.skills.model.SkillSlotBinding;
 import emaki.jiuwu.craft.skills.model.UnlockedSkillEntry;
 import emaki.jiuwu.craft.skills.service.CastModeService;
 import emaki.jiuwu.craft.skills.service.PlayerSkillDataStore;
 import emaki.jiuwu.craft.skills.service.PlayerSkillStateService;
+import emaki.jiuwu.craft.skills.service.SkillLevelService;
+import emaki.jiuwu.craft.skills.service.SkillParameterResolver;
 import emaki.jiuwu.craft.skills.service.SkillRegistryService;
 import emaki.jiuwu.craft.skills.trigger.SkillTriggerDefinition;
+import emaki.jiuwu.craft.skills.trigger.TriggerCategory;
 import emaki.jiuwu.craft.skills.trigger.TriggerRegistry;
 
 public final class SkillsGuiService {
@@ -45,6 +49,8 @@ public final class SkillsGuiService {
     private final SkillRegistryService registryService;
     private final TriggerRegistry triggerRegistry;
     private final CastModeService castModeService;
+    private final SkillLevelService skillLevelService;
+    private final SkillParameterResolver skillParameterResolver;
     private final MessageService messageService;
 
     public SkillsGuiService(JavaPlugin plugin,
@@ -55,6 +61,8 @@ public final class SkillsGuiService {
             SkillRegistryService registryService,
             TriggerRegistry triggerRegistry,
             CastModeService castModeService,
+            SkillLevelService skillLevelService,
+            SkillParameterResolver skillParameterResolver,
             MessageService messageService) {
         this.plugin = plugin;
         this.guiService = guiService;
@@ -64,6 +72,8 @@ public final class SkillsGuiService {
         this.registryService = registryService;
         this.triggerRegistry = triggerRegistry;
         this.castModeService = castModeService;
+        this.skillLevelService = skillLevelService;
+        this.skillParameterResolver = skillParameterResolver;
         this.messageService = messageService;
     }
 
@@ -190,6 +200,8 @@ public final class SkillsGuiService {
             lore.add("<gray>触发器: " + triggerDisplay);
 
             // Cooldown info
+            appendLevelAndParameterLore(lore, player, definition);
+
             if (definition.cooldownTicks() > 0) {
                 double seconds = definition.cooldownTicks() / 20.0;
                 lore.add("<gray>冷却: <aqua>" + String.format("%.1f", seconds) + "s");
@@ -253,6 +265,8 @@ public final class SkillsGuiService {
             for (String line : definition.description()) {
                 lore.add("<gray>" + line);
             }
+
+            appendLevelAndParameterLore(lore, player, definition);
 
             if (entry.sourceType() != null) {
                 lore.add("");
@@ -443,10 +457,39 @@ public final class SkillsGuiService {
     private List<SkillTriggerDefinition> getEnabledTriggers() {
         List<SkillTriggerDefinition> result = new ArrayList<>();
         for (SkillTriggerDefinition def : triggerRegistry.all().values()) {
-            if (def.enabled()) {
+            if (def.enabled() && def.category() == TriggerCategory.ACTIVE) {
                 result.add(def);
             }
         }
         return result;
+    }
+
+    private void appendLevelAndParameterLore(List<String> lore, Player player, SkillDefinition definition) {
+        if (lore == null || player == null || definition == null || skillLevelService == null) {
+            return;
+        }
+        int level = skillLevelService.currentLevel(player, definition);
+        int maxLevel = skillLevelService.maxLevel(definition);
+        if (maxLevel > 1) {
+            lore.add("<gray>等级: <gold>" + level + "</gold><dark_gray>/</dark_gray><yellow>" + maxLevel + "</yellow>");
+        }
+        if (skillParameterResolver == null || definition.skillParameters().isEmpty()) {
+            return;
+        }
+        ResolvedSkillParameters parameters = skillParameterResolver.resolve(player, definition, "preview", null);
+        int shown = 0;
+        for (Map.Entry<String, String> entry : parameters.values().entrySet()) {
+            if (entry.getKey().startsWith("emaki_")) {
+                continue;
+            }
+            if (shown == 0) {
+                lore.add("<dark_gray>参数预览:");
+            }
+            lore.add("<gray> - " + entry.getKey() + ": <white>" + entry.getValue());
+            shown++;
+            if (shown >= 3) {
+                break;
+            }
+        }
     }
 }

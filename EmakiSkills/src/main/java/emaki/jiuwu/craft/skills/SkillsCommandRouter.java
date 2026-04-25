@@ -11,9 +11,12 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 
+import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.skills.model.PlayerSkillProfile;
+import emaki.jiuwu.craft.skills.model.SkillDefinition;
 import emaki.jiuwu.craft.skills.model.SkillSlotBinding;
 import emaki.jiuwu.craft.skills.model.UnlockedSkillEntry;
+import emaki.jiuwu.craft.skills.service.SkillUpgradeService;
 
 final class SkillsCommandRouter implements TabExecutor {
 
@@ -43,6 +46,8 @@ final class SkillsCommandRouter implements TabExecutor {
             case "gui" -> handleGui(sender);
             case "reload" -> handleReload(sender);
             case "castmode" -> handleCastMode(sender, args);
+            case "upgrade" -> handleUpgrade(sender, args);
+            case "level" -> handleLevel(sender, args);
             case "debug" -> handleDebug(sender, args);
             case "inspect" -> handleInspect(sender, args);
             case "clearslot" -> handleClearSlot(sender, args);
@@ -58,7 +63,8 @@ final class SkillsCommandRouter implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            for (String sub : List.of("help", "gui", "reload", "castmode", "debug", "inspect", "clearslot", "resync")) {
+            for (String sub : List.of("help", "gui", "reload", "castmode", "upgrade", "level",
+                    "debug", "inspect", "clearslot", "resync")) {
                 if (sub.startsWith(args[0].toLowerCase())) {
                     result.add(sub);
                 }
@@ -74,6 +80,8 @@ final class SkillsCommandRouter implements TabExecutor {
                         }
                     }
                 }
+                case "upgrade" -> completeUpgradeableSkills(sender, result, args[1]);
+                case "level" -> completeLiteral(result, args[1], "get", "set", "add");
                 case "debug", "inspect", "resync" -> completePlayers(result, args[1]);
                 case "clearslot" -> completePlayers(result, args[1]);
                 default -> {
@@ -89,7 +97,18 @@ final class SkillsCommandRouter implements TabExecutor {
                         result.add(slot);
                     }
                 }
+            } else if ("level".equalsIgnoreCase(args[0])) {
+                completePlayers(result, args[2]);
             }
+            return result;
+        }
+        if (args.length == 4 && "level".equalsIgnoreCase(args[0])) {
+            completeSkillIds(result, args[3]);
+            return result;
+        }
+        if (args.length == 5 && "level".equalsIgnoreCase(args[0])
+                && ("set".equalsIgnoreCase(args[1]) || "add".equalsIgnoreCase(args[1]))) {
+            completeLiteral(result, args[4], "1", "2", "5", "10");
             return result;
         }
         return result;
@@ -107,6 +126,95 @@ final class SkillsCommandRouter implements TabExecutor {
         if (!plugin.skillsGuiService().open(player)) {
             plugin.messageService().send(sender, "gui.open_failed");
         }
+        return true;
+    }
+
+    private boolean handleUpgrade(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player player)) {
+            plugin.messageService().send(sender, "general.player_only");
+            return true;
+        }
+        if (!sender.hasPermission(PERMISSION_USE) && !sender.hasPermission(PERMISSION_ADMIN)) {
+            plugin.messageService().send(sender, "general.no_permission");
+            return true;
+        }
+        if (args.length < 2) {
+            plugin.messageService().send(sender, "general.invalid_args");
+            return true;
+        }
+        SkillUpgradeService.UpgradeResult result = plugin.skillUpgradeService().upgrade(player, args[1]);
+        plugin.messageService().send(sender, result.messageKey(), result.placeholders());
+        return true;
+    }
+
+    private boolean handleLevel(CommandSender sender, String[] args) {
+        if (!sender.hasPermission(PERMISSION_ADMIN)) {
+            plugin.messageService().send(sender, "general.no_permission");
+            return true;
+        }
+        if (args.length < 4) {
+            plugin.messageService().send(sender, "general.invalid_args");
+            return true;
+        }
+        String action = args[1].toLowerCase();
+        Player target = Bukkit.getPlayerExact(args[2]);
+        if (target == null) {
+            plugin.messageService().send(sender, "general.player_not_found");
+            return true;
+        }
+        String skillId = Texts.normalizeId(args[3]);
+        SkillDefinition definition = plugin.skillRegistryService().getDefinition(skillId);
+        if (definition == null) {
+            plugin.messageService().send(sender, "skill.not_found", Map.of("skill_id", skillId));
+            return true;
+        }
+        return switch (action) {
+            case "get" -> {
+                int currentLevel = plugin.skillLevelService().currentLevel(target, definition);
+                plugin.messageService().send(sender, "command.level.get", Map.of(
+                        "player", target.getName(),
+                        "skill_id", definition.id(),
+                        "skill", definition.displayName(),
+                        "level", currentLevel,
+                        "max_level", plugin.skillLevelService().maxLevel(definition)
+                ));
+                yield true;
+            }
+            case "set", "add" -> handleLevelMutation(sender, args, action, target, definition);
+            default -> {
+                plugin.messageService().send(sender, "general.invalid_args");
+                yield true;
+            }
+        };
+    }
+
+    private boolean handleLevelMutation(CommandSender sender,
+            String[] args,
+            String action,
+            Player target,
+            SkillDefinition definition) {
+        if (args.length < 5) {
+            plugin.messageService().send(sender, "general.invalid_args");
+            return true;
+        }
+        int value;
+        try {
+            value = Integer.parseInt(args[4]);
+        } catch (NumberFormatException _) {
+            plugin.messageService().send(sender, "general.invalid_args");
+            return true;
+        }
+        int level = "set".equals(action)
+                ? plugin.skillLevelService().setLevel(target, definition, value)
+                : plugin.skillLevelService().addLevel(target, definition, value);
+        plugin.playerSkillDataStore().save(target);
+        plugin.messageService().send(sender, "command.level.changed", Map.of(
+                "player", target.getName(),
+                "skill_id", definition.id(),
+                "skill", definition.displayName(),
+                "level", level,
+                "max_level", plugin.skillLevelService().maxLevel(definition)
+        ));
         return true;
     }
 
@@ -289,6 +397,40 @@ final class SkillsCommandRouter implements TabExecutor {
                 .forEach(result::add);
     }
 
+    private void completeUpgradeableSkills(CommandSender sender, List<String> result, String prefix) {
+        if (sender instanceof Player player) {
+            plugin.playerSkillStateService().getUnlockedSkills(player).stream()
+                    .map(UnlockedSkillEntry::skillId)
+                    .filter(skillId -> {
+                        SkillDefinition definition = plugin.skillRegistryService().getDefinition(skillId);
+                        return definition != null
+                                && definition.upgrade().enabled()
+                                && !plugin.skillLevelService().isMaxLevel(player, definition);
+                    })
+                    .filter(skillId -> skillId.toLowerCase().startsWith(prefix.toLowerCase()))
+                    .distinct()
+                    .forEach(result::add);
+            return;
+        }
+        completeSkillIds(result, prefix);
+    }
+
+    private void completeSkillIds(List<String> result, String prefix) {
+        String lowered = prefix == null ? "" : prefix.toLowerCase();
+        plugin.skillRegistryService().allDefinitions().keySet().stream()
+                .filter(skillId -> skillId.toLowerCase().startsWith(lowered))
+                .forEach(result::add);
+    }
+
+    private void completeLiteral(List<String> result, String prefix, String... values) {
+        String lowered = prefix == null ? "" : prefix.toLowerCase();
+        for (String value : values) {
+            if (value.toLowerCase().startsWith(lowered)) {
+                result.add(value);
+            }
+        }
+    }
+
     private void sendHelp(CommandSender sender) {
         plugin.messageService().sendRaw(sender, plugin.messageService().message("command.help.header"));
         Map<String, String> lines = new LinkedHashMap<>();
@@ -296,6 +438,8 @@ final class SkillsCommandRouter implements TabExecutor {
         lines.put("gui", "打开技能 GUI");
         lines.put("reload", "重载技能配置与资源");
         lines.put("castmode <on|off|toggle>", "切换施法模式");
+        lines.put("upgrade <skill>", "升级已解锁技能");
+        lines.put("level get|set|add <player> <skill> [value]", "管理玩家技能等级");
         lines.put("debug [player]", "查看调试信息");
         lines.put("inspect [player]", "查看玩家技能槽位状态");
         lines.put("clearslot <player> <slot>", "清除指定槽位的技能绑定");

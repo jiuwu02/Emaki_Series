@@ -15,6 +15,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.skills.model.PlayerCastTimingState;
 import emaki.jiuwu.craft.skills.model.PlayerLocalResourceState;
+import emaki.jiuwu.craft.skills.model.PlayerSkillLevelState;
 import emaki.jiuwu.craft.skills.model.PlayerSkillProfile;
 import emaki.jiuwu.craft.skills.model.SkillSlotBinding;
 
@@ -155,6 +156,15 @@ public final class PlayerSkillDataStore {
             }
         }
 
+        // skill_levels
+        ConfigurationSection skillLevelsSection = yaml.getConfigurationSection("skill_levels");
+        if (skillLevelsSection != null) {
+            for (String skillId : skillLevelsSection.getKeys(false)) {
+                int level = skillLevelsSection.getInt(skillId + ".level", 1);
+                profile.skillLevels().put(skillId, new PlayerSkillLevelState(skillId, level));
+            }
+        }
+
         // timing
         ConfigurationSection timingSection = yaml.getConfigurationSection("timing");
         if (timingSection != null) {
@@ -202,6 +212,15 @@ public final class PlayerSkillDataStore {
             PlayerLocalResourceState state = entry.getValue();
             yaml.set(path + ".current_value", state.currentValue());
             yaml.set(path + ".last_regen_at", state.lastRegenAt());
+        }
+
+        // skill_levels
+        for (Map.Entry<String, PlayerSkillLevelState> entry : profile.skillLevels().entrySet()) {
+            PlayerSkillLevelState state = entry.getValue();
+            if (state == null || state.level() <= 1) {
+                continue;
+            }
+            yaml.set("skill_levels." + entry.getKey() + ".level", state.level());
         }
 
         // timing
