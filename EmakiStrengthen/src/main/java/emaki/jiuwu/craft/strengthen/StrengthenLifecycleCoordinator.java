@@ -43,7 +43,7 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
         YamlConfigLoader<AppConfig> appConfigLoader = new YamlConfigLoader<>(
                 plugin,
                 "config.yml",
-                "config_version",
+                "version",
                 AppConfig::defaults,
                 this::parseAppConfig
         );
@@ -145,7 +145,7 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
         AppConfig defaults = AppConfig.defaults();
         return new AppConfig(
                 configuration.getString("language", defaults.language()),
-                configuration.getString("config_version", defaults.configVersion()),
+                configuration.getString("version", defaults.configVersion()),
                 configuration.getInt("local_broadcast_radius", defaults.localBroadcastRadius()),
                 parseIntegerList(configuration.getSection("broadcast.local_stars"), configuration.get("broadcast.local_stars"), defaults.localBroadcastStars()),
                 parseIntegerList(configuration.getSection("broadcast.global_stars"), configuration.get("broadcast.global_stars"), defaults.globalBroadcastStars()),

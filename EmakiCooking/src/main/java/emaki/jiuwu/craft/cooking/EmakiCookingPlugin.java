@@ -26,7 +26,6 @@ import emaki.jiuwu.craft.cooking.service.CookingRecipeService;
 import emaki.jiuwu.craft.cooking.service.CookingRewardService;
 import emaki.jiuwu.craft.cooking.service.CookingSettingsService;
 import emaki.jiuwu.craft.cooking.service.GrinderRuntimeService;
-import emaki.jiuwu.craft.cooking.service.LegacyImportService;
 import emaki.jiuwu.craft.cooking.service.StationStateStore;
 import emaki.jiuwu.craft.cooking.service.SteamerRuntimeService;
 import emaki.jiuwu.craft.cooking.service.WokRuntimeService;
@@ -63,7 +62,6 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
     private StationStateStore stationStateStore;
     private CookingRecipeService recipeService;
     private CookingRewardService rewardService;
-    private LegacyImportService legacyImportService;
     private CookingInspectService inspectService;
     private ChoppingBoardRuntimeService choppingBoardRuntimeService;
     private WokRuntimeService wokRuntimeService;
@@ -121,7 +119,6 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         stationStateStore = components.stationStateStore();
         recipeService = components.recipeService();
         rewardService = components.rewardService();
-        legacyImportService = components.legacyImportService();
         inspectService = components.inspectService();
         choppingBoardRuntimeService = components.choppingBoardRuntimeService();
         wokRuntimeService = components.wokRuntimeService();
@@ -215,10 +212,6 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
 
     public CookingRewardService rewardService() {
         return rewardService;
-    }
-
-    public LegacyImportService legacyImportService() {
-        return legacyImportService;
     }
 
     public CookingInspectService inspectService() {

@@ -19,14 +19,5 @@ permissions:
     default: true
   emakiforge.reload:
     default: op
-  emakiforge.editor:
-    default: op
-  emakiforge.editor.delete:
-    default: op
-  emakiforge.editor.*:
-    default: op
-    children:
-      emakiforge.editor: true
-      emakiforge.editor.delete: true
   emakiforge.admin:
     default: op

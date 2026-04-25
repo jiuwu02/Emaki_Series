@@ -5,6 +5,8 @@ import emaki.jiuwu.craft.forge.model.QualitySettings;
 
 public final class AppConfig extends BaseAppConfig {
 
+    public static final String CURRENT_VERSION = "3.3.0";
+
     private final boolean releaseDefaultData;
     private final QualitySettings qualitySettings;
     private final String defaultNumberFormat;
@@ -28,7 +30,7 @@ public final class AppConfig extends BaseAppConfig {
             boolean historyEnabled,
             boolean historyAutoSave,
             int historySaveInterval) {
-        super(language, configVersion, "2.3.0");
+        super(language, configVersion, CURRENT_VERSION);
         this.releaseDefaultData = releaseDefaultData;
         this.qualitySettings = qualitySettings;
         this.defaultNumberFormat = defaultNumberFormat;
@@ -44,7 +46,7 @@ public final class AppConfig extends BaseAppConfig {
     public static AppConfig defaults() {
         return new AppConfig(
                 "zh_CN",
-                "2.3.0",
+                CURRENT_VERSION,
                 true,
                 QualitySettings.defaults(),
                 "0.##",

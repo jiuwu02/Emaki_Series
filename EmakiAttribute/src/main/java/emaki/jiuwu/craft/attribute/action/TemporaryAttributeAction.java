@@ -19,9 +19,9 @@ import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class TemporaryAttributeAction implements Action {
 
-    public static final String ADD_ID = "temp_attribute_add";
-    public static final String SET_ID = "temp_attribute_set";
-    public static final String REMOVE_ID = "temp_attribute_remove";
+    public static final String ADD_ID = "attribute_add";
+    public static final String SET_ID = "attribute_set";
+    public static final String REMOVE_ID = "attribute_remove";
 
     private final String id;
     private final AttributeServiceFacade attributeService;

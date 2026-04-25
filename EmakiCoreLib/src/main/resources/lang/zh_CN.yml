@@ -1,5 +1,6 @@
 ﻿# Emaki CoreLib 默认语言文件
-lang_version: "3.2.0"
+# version 由资源同步维护
+version: "3.3.0"
 
 general:
   prefix: "<gray>[<gold>EmakiCoreLib</gold>]</gray>"

@@ -1,5 +1,3 @@
-schema_version: 1
-
 attributes:
   health:
     group: resource.health

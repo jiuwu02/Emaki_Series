@@ -36,7 +36,6 @@
 # clamp_min: 当前值最小值
 # clamp_max: 当前值最大值；<= 0 时回退到 max
 
-example_mana_version: "1.0.0"
 id: mana
 display_name: "<gradient:#4DA6FF:#00BFFF>魔力</gradient>"
 max: 100.0

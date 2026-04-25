@@ -1,6 +1,6 @@
 # CoreLib 主配置
-# config_version 由资源同步维护
-config_version: "3.2.0"
+# version 由资源同步维护
+version: "3.3.0"
 
 action:
   # 在配方或动作列表中通过 @template=名称 引用

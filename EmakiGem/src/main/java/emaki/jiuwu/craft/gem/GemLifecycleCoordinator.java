@@ -53,7 +53,7 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
         YamlConfigLoader<AppConfig> appConfigLoader = new YamlConfigLoader<>(
                 plugin,
                 "config.yml",
-                "config_version",
+                "version",
                 AppConfig::defaults,
                 this::parseAppConfig
         );
@@ -188,7 +188,7 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
         YamlSection gui = configuration.getSection("gui");
         return new AppConfig(
                 configuration.getString("language", defaults.language()),
-                configuration.getString("config_version", defaults.configVersion()),
+                configuration.getString("version", defaults.configVersion()),
                 configuration.getBoolean("release_default_data", defaults.releaseDefaultData()),
                 parseSocketOpeners(configuration.getSection("socket_openers")),
                 parseInlaySuccess(inlaySuccess, defaults.inlaySuccess()),

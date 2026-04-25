@@ -56,7 +56,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
         YamlConfigLoader<AppConfig> appConfigLoader = new YamlConfigLoader<>(
                 plugin,
                 "config.yml",
-                "config_version",
+                "version",
                 AppConfig::defaults,
                 this::parseAppConfig
         );
@@ -268,7 +268,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
 
         return new AppConfig(
                 configuration.getString("language", defaults.language()),
-                configuration.getString("config_version", "1.0.0"),
+                configuration.getString("version", defaults.configVersion()),
                 boolValue(configuration.getBoolean("release_default_data"), defaults.releaseDefaultData()),
                 defaultSlotCount,
                 castMode,

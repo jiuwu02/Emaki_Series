@@ -2,7 +2,8 @@
 # 原版物品 / 方块来源支持以下写法：
 # minecraft-iron_axe / mc-iron_axe / v-iron_axe / iron_axe
 # 不再接受 minecraft:iron_axe
-config_version: "2.1.0"
+# version 由资源同步维护
+version: "2.1.0"
 
 # 语言文件 ID
 language: "zh_CN"

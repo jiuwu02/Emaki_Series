@@ -22,7 +22,6 @@ import emaki.jiuwu.craft.forge.loader.MaterialLoader;
 import emaki.jiuwu.craft.forge.loader.PlayerDataStore;
 import emaki.jiuwu.craft.forge.loader.RecipeLoader;
 import emaki.jiuwu.craft.forge.papi.ForgePlaceholderExpansion;
-import emaki.jiuwu.craft.forge.service.EditorGuiService;
 import emaki.jiuwu.craft.forge.service.ForgeGuiService;
 import emaki.jiuwu.craft.forge.service.ForgeItemRefreshService;
 import emaki.jiuwu.craft.forge.service.ForgeService;
@@ -62,7 +61,6 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     private ForgeService forgeService;
     private ForgeGuiService forgeGuiService;
     private RecipeBookGuiService recipeBookGuiService;
-    private EditorGuiService editorGuiService;
     private ForgePlaceholderExpansion placeholderExpansion;
     private BukkitTask autoSaveTask;
 
@@ -115,7 +113,6 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         forgeService = components.forgeService();
         forgeGuiService = components.forgeGuiService();
         recipeBookGuiService = components.recipeBookGuiService();
-        editorGuiService = components.editorGuiService();
         registerServices(components);
     }
 
@@ -132,9 +129,6 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         getServer().getPluginManager().registerEvents(guiService, this);
         getServer().getPluginManager().registerEvents(playerDataListener, this);
         getServer().getPluginManager().registerEvents(itemRefreshListener, this);
-        if (editorGuiService != null) {
-            getServer().getPluginManager().registerEvents(editorGuiService.inputService(), this);
-        }
     }
 
     private void ensurePlaceholderExpansion() {
@@ -210,9 +204,5 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
 
     public RecipeBookGuiService recipeBookGuiService() {
         return recipeBookGuiService;
-    }
-
-    public EditorGuiService editorGuiService() {
-        return editorGuiService;
     }
 }

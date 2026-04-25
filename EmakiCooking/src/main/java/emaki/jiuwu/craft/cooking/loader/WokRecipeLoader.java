@@ -10,7 +10,6 @@ public final class WokRecipeLoader extends BaseRecipeLoader {
 
     public WokRecipeLoader(JavaPlugin plugin) {
         super(plugin, StationType.WOK, List.of(
-                "schema_version",
                 "id",
                 "display_name",
                 "ingredients",

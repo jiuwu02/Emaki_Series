@@ -8,6 +8,8 @@ import emaki.jiuwu.craft.corelib.config.BaseAppConfig;
 
 public final class AppConfig extends BaseAppConfig {
 
+    public static final String CURRENT_VERSION = "1.1.0";
+
     private final boolean releaseDefaultData;
     private final int defaultSlotCount;
     private final CastModeSettings castMode;
@@ -27,7 +29,7 @@ public final class AppConfig extends BaseAppConfig {
             Map<String, TriggerConfig> triggers,
             Map<String, TriggerConfig> passiveTriggers,
             PassiveTriggerSettings passiveTriggerSettings) {
-        super(language, configVersion, "1.0.0");
+        super(language, configVersion, CURRENT_VERSION);
         this.releaseDefaultData = releaseDefaultData;
         this.defaultSlotCount = Math.max(1, defaultSlotCount);
         this.castMode = castMode == null ? CastModeSettings.defaults() : castMode;
@@ -43,7 +45,7 @@ public final class AppConfig extends BaseAppConfig {
     public static AppConfig defaults() {
         return new AppConfig(
                 "zh_CN",
-                "1.0.0",
+                CURRENT_VERSION,
                 true,
                 3,
                 CastModeSettings.defaults(),

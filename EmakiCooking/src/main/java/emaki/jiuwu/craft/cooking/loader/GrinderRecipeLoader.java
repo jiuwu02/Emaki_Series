@@ -10,7 +10,6 @@ public final class GrinderRecipeLoader extends BaseRecipeLoader {
 
     public GrinderRecipeLoader(JavaPlugin plugin) {
         super(plugin, StationType.GRINDER, List.of(
-                "schema_version",
                 "id",
                 "display_name",
                 "input.source",

@@ -293,7 +293,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                     plugin,
                     file,
                     "config.yml",
-                    "config_version",
+                    "version",
                     document -> mergeBundledConfig(document.root(), document.defaults())
             );
             if (!file.exists()) {
@@ -318,7 +318,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
             changed = true;
         }
         if (changed) {
-            runtime.set("config_version", bundled.get("config_version"));
+            runtime.set("version", bundled.get("version"));
         }
     }
 

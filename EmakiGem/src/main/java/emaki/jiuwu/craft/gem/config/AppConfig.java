@@ -10,6 +10,8 @@ import emaki.jiuwu.craft.gem.model.SocketOpenerConfig;
 
 public final class AppConfig extends BaseAppConfig {
 
+    public static final String CURRENT_VERSION = "1.2.0";
+
     private final boolean releaseDefaultData;
     private final Map<String, SocketOpenerConfig> socketOpeners;
     private final InlaySuccessConfig inlaySuccess;
@@ -27,7 +29,7 @@ public final class AppConfig extends BaseAppConfig {
             String numberFormat,
             boolean opBypass,
             GuiSettings gui) {
-        super(language, configVersion, "3.0.0");
+        super(language, configVersion, CURRENT_VERSION);
         this.releaseDefaultData = releaseDefaultData;
         this.socketOpeners = socketOpeners == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(socketOpeners));
         this.inlaySuccess = inlaySuccess == null ? InlaySuccessConfig.defaults() : inlaySuccess;
@@ -40,7 +42,7 @@ public final class AppConfig extends BaseAppConfig {
     public static AppConfig defaults() {
         return new AppConfig(
                 "zh_CN",
-                "3.0.0",
+                CURRENT_VERSION,
                 true,
                 Map.of(),
                 InlaySuccessConfig.defaults(),

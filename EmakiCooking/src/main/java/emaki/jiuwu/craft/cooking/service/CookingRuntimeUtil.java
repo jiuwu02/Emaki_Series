@@ -74,7 +74,6 @@ public final class CookingRuntimeUtil {
 
     static Map<String, Object> buildStateRoot(StationType stationType, StationCoordinates coordinates) {
         Map<String, Object> root = new LinkedHashMap<>();
-        root.put("schema_version", "2.0.0");
         root.put("station_type", stationType.folderName());
         root.put("world", coordinates.world());
         root.put("x", coordinates.x());

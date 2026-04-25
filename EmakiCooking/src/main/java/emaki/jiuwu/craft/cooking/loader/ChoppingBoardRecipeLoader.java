@@ -10,7 +10,6 @@ public final class ChoppingBoardRecipeLoader extends BaseRecipeLoader {
 
     public ChoppingBoardRecipeLoader(JavaPlugin plugin) {
         super(plugin, StationType.CHOPPING_BOARD, List.of(
-                "schema_version",
                 "id",
                 "display_name",
                 "input.source",
