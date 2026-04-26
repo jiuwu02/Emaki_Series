@@ -19,6 +19,7 @@ import java.util.function.Supplier;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 
+import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.monitor.PerformanceMonitor;
 
 public final class AsyncTaskScheduler implements AutoCloseable {
@@ -243,6 +244,15 @@ public final class AsyncTaskScheduler implements AutoCloseable {
     }
 
     public void shutdown(long timeoutMillis) {
+        // 在关闭线程池前，向每个工作线程提交 ThreadLocal 清理任务
+        int poolSize = executor.getCorePoolSize();
+        for (int i = 0; i < poolSize; i++) {
+            try {
+                executor.execute(ExpressionEngine::clearThreadLocalCache);
+            } catch (java.util.concurrent.RejectedExecutionException _) {
+                break;
+            }
+        }
         executor.shutdown();
         timeoutExecutor.shutdown();
         try {

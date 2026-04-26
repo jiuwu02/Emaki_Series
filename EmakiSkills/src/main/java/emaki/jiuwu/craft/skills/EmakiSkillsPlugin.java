@@ -88,6 +88,8 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
     private EaBridge eaBridge;
     private MythicBridge mythicBridge;
     private SkillsPlaceholderExpansion placeholderExpansion;
+    private DefaultTriggerDispatcher triggerDispatcher;
+    private PassiveTriggerDispatcher passiveTriggerDispatcher;
 
     public EmakiSkillsPlugin() {
         super(AppConfig::defaults);
@@ -171,17 +173,17 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
             getServer().getPluginManager().registerEvents(guiService, this);
         }
 
-        // Register trigger sources
-        DefaultTriggerDispatcher dispatcher = new DefaultTriggerDispatcher(
+        // Register trigger sources — 存为字段以便 reload 时可追踪
+        triggerDispatcher = new DefaultTriggerDispatcher(
                 castModeService, triggerRegistry, playerSkillDataStore,
                 castAttemptService, this::appConfig, messageService);
-        new InteractTriggerSource().register(this, dispatcher);
-        new DropTriggerSource().register(this, dispatcher);
-        new HotbarTriggerSource().register(this, dispatcher);
+        new InteractTriggerSource().register(this, triggerDispatcher);
+        new DropTriggerSource().register(this, triggerDispatcher);
+        new HotbarTriggerSource().register(this, triggerDispatcher);
 
-        PassiveTriggerDispatcher passiveDispatcher = new PassiveTriggerDispatcher(
+        passiveTriggerDispatcher = new PassiveTriggerDispatcher(
                 triggerRegistry, playerSkillStateService, castAttemptService);
-        new PassiveTriggerSource(this::appConfig).register(this, passiveDispatcher);
+        new PassiveTriggerSource(this::appConfig).register(this, passiveTriggerDispatcher);
 
         // Register fixed F-key cast mode listener
         getServer().getPluginManager().registerEvents(
@@ -314,5 +316,13 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
 
     public SkillsPlaceholderExpansion placeholderExpansion() {
         return placeholderExpansion;
+    }
+
+    public DefaultTriggerDispatcher triggerDispatcher() {
+        return triggerDispatcher;
+    }
+
+    public PassiveTriggerDispatcher passiveTriggerDispatcher() {
+        return passiveTriggerDispatcher;
     }
 }

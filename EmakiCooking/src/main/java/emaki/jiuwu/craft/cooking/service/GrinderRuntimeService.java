@@ -6,6 +6,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+import emaki.jiuwu.craft.cooking.CookingPermissions;
 import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 import emaki.jiuwu.craft.cooking.model.RecipeDocument;
 import emaki.jiuwu.craft.cooking.model.StationBreakContext;
@@ -87,8 +88,8 @@ public final class GrinderRuntimeService {
         if (settingsService.requireSneaking(StationType.GRINDER) && !player.isSneaking()) {
             return false;
         }
-        if (!player.hasPermission("emakicooking.station.grinder.use")
-                && !player.hasPermission("emakicooking.admin")) {
+        if (!player.hasPermission(CookingPermissions.GRINDER_USE)
+                && !player.hasPermission(CookingPermissions.ADMIN)) {
             messageService.send(player, "general.no_permission");
             interaction.cancel();
             return true;

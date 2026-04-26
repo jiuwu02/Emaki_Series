@@ -19,6 +19,7 @@ import emaki.jiuwu.craft.corelib.assembly.EmakiNamespaceRegistry;
 import emaki.jiuwu.craft.corelib.async.AsyncFileService;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.economy.EconomyManager;
+import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.integration.CraftEngineBlockBridge;
 import emaki.jiuwu.craft.corelib.integration.ReflectiveCraftEngineBlockBridge;
 import emaki.jiuwu.craft.corelib.item.ItemSourceIntegrationCoordinator;
@@ -91,6 +92,9 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         if (asyncTaskScheduler != null) {
             asyncTaskScheduler.shutdown(5_000L);
         }
+        // 清理表达式引擎的全局缓存和当前线程缓存，防止内存泄漏
+        ExpressionEngine.clearGlobalCache();
+        ExpressionEngine.clearThreadLocalCache();
         AdventureSupport.close(this);
     }
 

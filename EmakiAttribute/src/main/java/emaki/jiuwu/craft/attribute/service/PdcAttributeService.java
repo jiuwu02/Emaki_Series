@@ -40,6 +40,8 @@ public final class PdcAttributeService implements PdcAttributeApi {
     private static final Pattern SOURCE_ATTRIBUTE_PATTERN = Pattern.compile("%source_(?:attr|attribute)_([a-zA-Z0-9_\\-.]+)%");
     private static final ThreadLocal<DecimalFormat> DECIMAL_FORMAT = ThreadLocal.withInitial(() -> new DecimalFormat("0.######"));
     // 预编译正则缓存，避免热路径中反复 Pattern.compile()
+    // 上限 512 条，超出时清空重建（pattern 来自配置文件，实际数量远低于此）
+    private static final int PATTERN_CACHE_LIMIT = 512;
     private static final ConcurrentHashMap<String, Pattern> COMPILED_PATTERN_CACHE = new ConcurrentHashMap<>();
     private static final SnapshotCodec<PdcAttributePayload> PAYLOAD_CODEC = SnapshotCodec.yaml(
             PdcAttributePayload::toMap,
@@ -396,6 +398,9 @@ public final class PdcAttributeService implements PdcAttributeApi {
     private Pattern compileRulePattern(String pattern) {
         if (Texts.isBlank(pattern)) {
             return null;
+        }
+        if (COMPILED_PATTERN_CACHE.size() >= PATTERN_CACHE_LIMIT) {
+            COMPILED_PATTERN_CACHE.clear();
         }
         return COMPILED_PATTERN_CACHE.computeIfAbsent(pattern, key -> {
             try {
