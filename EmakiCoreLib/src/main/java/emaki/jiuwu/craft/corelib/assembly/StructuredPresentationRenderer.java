@@ -7,6 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
@@ -24,19 +25,19 @@ final class StructuredPresentationRenderer {
     }
 
     RenderResult render(ItemStack itemStack,
-            String fallbackBaseName,
+            Component fallbackBaseName,
             List<Component> currentLore,
             Map<String, Double> aggregatedStats,
             Collection<EmakiItemLayerSnapshot> snapshots) {
         List<StructuredLayerPresentation> presentations = collectPresentations(snapshots);
         if (presentations.isEmpty()) {
-            return new RenderResult(Texts.toStringSafe(fallbackBaseName), copyLore(currentLore), false);
+            return new RenderResult(normalizeComponent(fallbackBaseName), copyLore(currentLore), false);
         }
 
         // 预构建格式化 Map，整个 render 过程只构建一次，避免每次 renderTemplate 都重建
         Map<String, Object> formattedStats = buildFormattedStats(aggregatedStats);
 
-        String baseName = resolveBaseName(itemStack, fallbackBaseName, presentations, formattedStats);
+        Component baseName = resolveBaseName(itemStack, fallbackBaseName, presentations, formattedStats);
         List<EmakiNameContribution> nameContributions = collectNameContributions(presentations);
         List<Component> lore = copyLore(currentLore);
         appendLoreSections(lore, presentations, formattedStats);
@@ -46,9 +47,9 @@ final class StructuredPresentationRenderer {
             return new RenderResult(baseName, lore, false);
         }
 
-        String prefix = joinContributions(nameContributions, NamePosition.PREFIX, formattedStats);
-        String postfix = joinContributions(nameContributions, NamePosition.POSTFIX, formattedStats);
-        return new RenderResult(prefix + baseName + postfix, lore, true);
+        Component prefix = joinContributions(nameContributions, NamePosition.PREFIX, formattedStats);
+        Component postfix = joinContributions(nameContributions, NamePosition.POSTFIX, formattedStats);
+        return new RenderResult(Component.empty().append(prefix).append(baseName).append(postfix), lore, true);
     }
 
     private static Map<String, Object> buildFormattedStats(Map<String, Double> aggregatedStats) {
@@ -112,31 +113,34 @@ final class StructuredPresentationRenderer {
         }
     }
 
-    private String joinContributions(List<EmakiNameContribution> contributions,
+    private Component joinContributions(List<EmakiNameContribution> contributions,
             NamePosition position,
             Map<String, Object> formattedStats) {
-        StringBuilder builder = new StringBuilder();
+        Component result = Component.empty();
         for (EmakiNameContribution contribution : contributions) {
             if (contribution == null || contribution.position() != position) {
                 continue;
             }
-            builder.append(renderTemplate(contribution.contentTemplate(), formattedStats));
+            result = result.append(MiniMessages.parse(renderTemplate(contribution.contentTemplate(), formattedStats)));
         }
-        return builder.toString();
+        return result;
     }
 
-    private String resolveBaseName(ItemStack itemStack,
-            String fallbackBaseName,
+    private Component resolveBaseName(ItemStack itemStack,
+            Component fallbackBaseName,
             List<StructuredLayerPresentation> presentations,
             Map<String, Object> formattedStats) {
         String explicitTemplate = resolveExplicitBaseNameTemplate(presentations);
         if (Texts.isNotBlank(explicitTemplate)) {
-            return renderTemplate(explicitTemplate, formattedStats);
+            return MiniMessages.parse(renderTemplate(explicitTemplate, formattedStats));
         }
-        if (Texts.isNotBlank(fallbackBaseName)) {
+        if (resolveBaseNamePolicy(presentations) == BaseNamePolicy.SOURCE_TRANSLATABLE) {
+            return sourceTranslatableName(itemStack);
+        }
+        if (!isEmptyComponent(fallbackBaseName)) {
             return fallbackBaseName;
         }
-        return MiniMessages.serialize(ItemTextBridge.effectiveName(itemStack));
+        return ItemTextBridge.effectiveName(itemStack);
     }
 
     private String resolveExplicitBaseNameTemplate(List<StructuredLayerPresentation> presentations) {
@@ -147,6 +151,64 @@ final class StructuredPresentationRenderer {
             }
         }
         return "";
+    }
+
+    private BaseNamePolicy resolveBaseNamePolicy(List<StructuredLayerPresentation> presentations) {
+        for (StructuredLayerPresentation presentation : presentations) {
+            if (presentation.presentation().baseNamePolicy() == BaseNamePolicy.SOURCE_TRANSLATABLE) {
+                return BaseNamePolicy.SOURCE_TRANSLATABLE;
+            }
+        }
+        return BaseNamePolicy.SOURCE_EFFECTIVE_NAME;
+    }
+
+    private Component sourceTranslatableName(ItemStack itemStack) {
+        if (itemStack == null || itemStack.getType().isAir()) {
+            return Component.empty();
+        }
+        String translationKey = translationKey(itemStack.getType());
+        if (Texts.isNotBlank(translationKey)) {
+            return Component.translatable(translationKey);
+        }
+        return Component.text(humanizeMaterial(itemStack.getType()));
+    }
+
+    private String translationKey(Material material) {
+        if (material == null) {
+            return "";
+        }
+        try {
+            if (material.isItem()) {
+                return material.getItemTranslationKey();
+            }
+            if (material.isBlock()) {
+                return material.getBlockTranslationKey();
+            }
+            return material.getTranslationKey();
+        } catch (RuntimeException _) {
+            return "";
+        }
+    }
+
+    private String humanizeMaterial(Material material) {
+        if (material == null) {
+            return "";
+        }
+        String[] parts = material.name().toLowerCase(java.util.Locale.ROOT).split("_");
+        StringBuilder builder = new StringBuilder();
+        for (String part : parts) {
+            if (part.isEmpty()) {
+                continue;
+            }
+            if (builder.length() > 0) {
+                builder.append(' ');
+            }
+            builder.append(Character.toUpperCase(part.charAt(0)));
+            if (part.length() > 1) {
+                builder.append(part.substring(1));
+            }
+        }
+        return builder.toString();
     }
 
     private String renderTemplate(String template, Map<String, Object> formattedStats) {
@@ -168,10 +230,18 @@ final class StructuredPresentationRenderer {
         return currentLore == null || currentLore.isEmpty() ? new ArrayList<>() : new ArrayList<>(currentLore);
     }
 
-    record RenderResult(String name, List<Component> lore, boolean customizedName) {
+    private Component normalizeComponent(Component component) {
+        return component == null ? Component.empty() : component;
+    }
+
+    private boolean isEmptyComponent(Component component) {
+        return component == null || Component.empty().equals(component);
+    }
+
+    record RenderResult(Component name, List<Component> lore, boolean customizedName) {
 
         RenderResult {
-            name = Texts.toStringSafe(name);
+            name = name == null ? Component.empty() : name;
             lore = lore == null ? List.of() : List.copyOf(lore);
         }
     }

@@ -31,7 +31,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.Furnace;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.block.data.type.Campfire;
+import org.bukkit.block.data.Lightable;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -123,22 +123,7 @@ public final class SteamerRuntimeService implements Listener {
             return false;
         }
         if (blockMatcher.matches(block, StationType.STEAMER)) {
-            if (settingsService.requireSneaking(StationType.STEAMER) && !player.isSneaking()) {
-                return false;
-            }
-            if (!player.hasPermission("emakicooking.station.steamer.use")
-                    && !player.hasPermission("emakicooking.admin")) {
-                messageService.send(player, "general.no_permission");
-                interaction.cancel();
-                return true;
-            }
-            if (!isHeatSourceBlock(block.getRelative(BlockFace.DOWN))) {
-                CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "steamer.no_heat_source", Map.of());
-                interaction.cancel();
-                return true;
-            }
-            interaction.cancel();
-            return openGui(player, StationCoordinates.fromBlock(block));
+            return handleSteamerBlockInteraction(interaction, block, player);
         }
 
         if (!isHeatSourceBlock(block)) {
@@ -148,18 +133,63 @@ public final class SteamerRuntimeService implements Listener {
         if (!blockMatcher.matches(topBlock, StationType.STEAMER)) {
             return false;
         }
+        return handleHeatSourceBlockInteraction(interaction, block, topBlock, player);
+    }
+
+    private boolean handleSteamerBlockInteraction(StationInteraction interaction, Block steamerBlock, Player player) {
+        Block heatSourceBlock = steamerBlock.getRelative(BlockFace.DOWN);
+        if (!isHeatSourceBlock(heatSourceBlock)) {
+            CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "steamer.no_heat_source", Map.of());
+            interaction.cancel();
+            return true;
+        }
+
+        StationCoordinates coordinates = StationCoordinates.fromBlock(steamerBlock);
+        ItemStack hand = player.getInventory().getItemInMainHand();
+        if (handleResourceInput(interaction, player, coordinates, heatSourceBlock, hand)) {
+            return true;
+        }
+
         if (settingsService.requireSneaking(StationType.STEAMER) && !player.isSneaking()) {
             return false;
         }
+        if (!player.hasPermission("emakicooking.station.steamer.use")
+                && !player.hasPermission("emakicooking.admin")) {
+            messageService.send(player, "general.no_permission");
+            interaction.cancel();
+            return true;
+        }
         interaction.cancel();
+        return openGui(player, coordinates);
+    }
+
+    private boolean handleHeatSourceBlockInteraction(StationInteraction interaction,
+            Block heatSourceBlock,
+            Block steamerBlock,
+            Player player) {
         ItemStack hand = player.getInventory().getItemInMainHand();
-        StationCoordinates coordinates = StationCoordinates.fromBlock(topBlock);
+        StationCoordinates coordinates = StationCoordinates.fromBlock(steamerBlock);
+        if (handleResourceInput(interaction, player, coordinates, heatSourceBlock, hand)) {
+            return true;
+        }
+        if (settingsService.requireSneaking(StationType.STEAMER) && !player.isSneaking()) {
+            return false;
+        }
         if (hand == null || hand.getType().isAir()) {
+            interaction.cancel();
             return showInfo(player, coordinates);
         }
+        return false;
+    }
 
+    private boolean handleResourceInput(StationInteraction interaction,
+            Player player,
+            StationCoordinates coordinates,
+            Block heatSourceBlock,
+            ItemStack hand) {
         CookingSettingsService.SteamerMoistureRule moistureRule = matchMoistureRule(hand);
         if (moistureRule != null) {
+            interaction.cancel();
             if (!player.hasPermission("emakicooking.station.steamer.moisture")
                     && !player.hasPermission("emakicooking.admin")) {
                 messageService.send(player, "general.no_permission");
@@ -170,14 +200,15 @@ public final class SteamerRuntimeService implements Listener {
 
         CookingSettingsService.SteamerFuelRule fuelRule = matchFuelRule(hand);
         if (fuelRule != null) {
+            interaction.cancel();
             if (!player.hasPermission("emakicooking.station.steamer.fuel")
                     && !player.hasPermission("emakicooking.admin")) {
                 messageService.send(player, "general.no_permission");
                 return true;
             }
-            return addFuel(player, coordinates, block, hand, fuelRule);
+            return addFuel(player, coordinates, heatSourceBlock, hand, fuelRule);
         }
-        return true;
+        return false;
     }
 
     public boolean handleBreak(StationBreakContext context) {
@@ -983,10 +1014,9 @@ public final class SteamerRuntimeService implements Listener {
             return;
         }
         BlockData blockData = heatSourceBlock.getBlockData();
-        if (blockData instanceof Campfire campfire) {
-            campfire.setLit(true);
-            heatSourceBlock.setBlockData(campfire);
-            return;
+        if (blockData instanceof Lightable lightable) {
+            lightable.setLit(true);
+            heatSourceBlock.setBlockData(lightable);
         }
         if (heatSourceBlock.getState() instanceof Furnace furnace) {
             long remainingTicks = Math.max(0L, (burningUntilMs - now) / 50L);
@@ -1000,10 +1030,9 @@ public final class SteamerRuntimeService implements Listener {
             return;
         }
         BlockData blockData = heatSourceBlock.getBlockData();
-        if (blockData instanceof Campfire campfire) {
-            campfire.setLit(false);
-            heatSourceBlock.setBlockData(campfire);
-            return;
+        if (blockData instanceof Lightable lightable) {
+            lightable.setLit(false);
+            heatSourceBlock.setBlockData(lightable);
         }
         if (heatSourceBlock.getState() instanceof Furnace furnace) {
             furnace.setBurnTime((short) 0);

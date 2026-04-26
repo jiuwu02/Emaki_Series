@@ -1,12 +1,12 @@
 package emaki.jiuwu.craft.skills.model;
 
+import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
 public record SkillParameterDefinition(
         String id,
         SkillParameterType type,
-        String value,
-        String formula,
+        Object config,
         Double min,
         Double max,
         int decimals,
@@ -15,9 +15,8 @@ public record SkillParameterDefinition(
 
     public SkillParameterDefinition {
         id = Texts.normalizeId(id);
-        type = type == null ? SkillParameterType.NUMBER : type;
-        value = Texts.toStringSafe(value);
-        formula = Texts.toStringSafe(formula);
+        type = type == null ? SkillParameterType.CONSTANT : type;
+        config = ConfigNodes.toPlainData(config);
         decimals = Math.max(0, decimals);
         defaultValue = Texts.toStringSafe(defaultValue);
     }

@@ -8,6 +8,7 @@ import java.util.Map;
 
 import org.bukkit.plugin.java.JavaPlugin;
 
+import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.YamlDirectoryLoader;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
@@ -101,18 +102,17 @@ public final class SkillDefinitionLoader extends YamlDirectoryLoader<SkillDefini
                         id,
                         SkillParameterType.STRING,
                         Texts.toStringSafe(section.get(rawId)),
-                        "",
                         null,
                         null,
                         0,
                         ""
                 );
             } else {
+                SkillParameterType type = resolveParameterType(parameterSection);
                 definition = new SkillParameterDefinition(
                         id,
-                        SkillParameterType.fromString(parameterSection.getString("type", "number")),
-                        parameterSection.getString("value", ""),
-                        parameterSection.getString("formula", ""),
+                        type,
+                        parameterConfig(parameterSection, type),
                         parameterSection.getDouble("min", null),
                         parameterSection.getDouble("max", null),
                         intValue(parameterSection.getInt("decimals", 0), 0),
@@ -122,6 +122,51 @@ public final class SkillDefinitionLoader extends YamlDirectoryLoader<SkillDefini
             parameters.put(definition.id(), definition);
         }
         return Map.copyOf(parameters);
+    }
+
+    private SkillParameterType resolveParameterType(YamlSection section) {
+        String configuredType = section.getString("type", "");
+        if (Texts.isNotBlank(configuredType)) {
+            return SkillParameterType.fromString(configuredType);
+        }
+        if (Texts.isNotBlank(section.getString("formula", ""))
+                || Texts.isNotBlank(section.getString("expression", ""))) {
+            return SkillParameterType.EXPRESSION;
+        }
+        if (section.contains("min") && section.contains("max")) {
+            return SkillParameterType.RANGE;
+        }
+        return SkillParameterType.CONSTANT;
+    }
+
+    private Object parameterConfig(YamlSection section, SkillParameterType type) {
+        if (section == null) {
+            return "";
+        }
+        if (type == SkillParameterType.STRING || type == SkillParameterType.BOOLEAN) {
+            return firstNotBlank(
+                    section.getString("formula", ""),
+                    firstNotBlank(section.getString("expression", ""), section.getString("value", ""))
+            );
+        }
+        Map<String, Object> config = new LinkedHashMap<>(ConfigNodes.entries(section));
+        config.put("type", type.configType());
+        if (type == SkillParameterType.EXPRESSION) {
+            config.put("expression", firstNotBlank(
+                    section.getString("formula", ""),
+                    firstNotBlank(section.getString("expression", ""), section.getString("value", ""))
+            ));
+        } else if (type == SkillParameterType.CONSTANT && !config.containsKey("value")) {
+            String value = firstNotBlank(
+                    section.getString("formula", ""),
+                    firstNotBlank(section.getString("expression", ""), section.getString("default", ""))
+            );
+            if (Texts.isNotBlank(value)) {
+                config.put("value", value);
+            }
+        }
+        config.entrySet().removeIf(entry -> entry.getValue() == null);
+        return Map.copyOf(config);
     }
 
     private SkillUpgradeConfig parseUpgradeConfig(YamlSection section) {
@@ -339,5 +384,9 @@ public final class SkillDefinitionLoader extends YamlDirectoryLoader<SkillDefini
         String name = file == null ? "" : file.getName();
         int dot = name.lastIndexOf('.');
         return Texts.lower(dot >= 0 ? name.substring(0, dot) : name);
+    }
+
+    private String firstNotBlank(String primary, String fallback) {
+        return Texts.isNotBlank(primary) ? primary : Texts.toStringSafe(fallback);
     }
 }

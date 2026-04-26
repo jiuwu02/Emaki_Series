@@ -5,6 +5,7 @@ import java.math.RoundingMode;
 
 import org.bukkit.Particle;
 
+import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class ActionParsers {
@@ -59,16 +60,7 @@ public final class ActionParsers {
     }
 
     public static Boolean parseBoolean(String raw) {
-        if (Texts.isBlank(raw)) {
-            return null;
-        }
-        if ("true".equalsIgnoreCase(raw)) {
-            return true;
-        }
-        if ("false".equalsIgnoreCase(raw)) {
-            return false;
-        }
-        return null;
+        return ExpressionEngine.evaluateBoolean(raw);
     }
 
     public static long parseTicks(String raw) {

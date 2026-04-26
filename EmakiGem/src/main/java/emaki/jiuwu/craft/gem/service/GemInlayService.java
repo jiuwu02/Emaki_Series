@@ -63,6 +63,15 @@ public final class GemInlayService {
             int slotIndex,
             boolean bypassCost,
             Map<Integer, ItemStack> providedMaterials) {
+        return inlay(actor, target, slotIndex, bypassCost, providedMaterials, false);
+    }
+
+    public Result inlay(Player actor,
+            Player target,
+            int slotIndex,
+            boolean bypassCost,
+            Map<Integer, ItemStack> providedMaterials,
+            boolean preserveInputOnFailure) {
         if (actor == null || target == null) {
             return Result.failure("general.player_not_found", Map.of());
         }
@@ -119,7 +128,10 @@ public final class GemInlayService {
             }
         }
         if (!rollSuccess(successChance)) {
-            boolean inputConsumed = shouldConsumeGemOnFailure(failureAction);
+            if (preserveInputOnFailure && chargeResult != null) {
+                economyService.refund(actor, chargeResult.chargedCurrencies(), chargeResult.chargedMaterials());
+            }
+            boolean inputConsumed = !preserveInputOnFailure && shouldConsumeGemOnFailure(failureAction);
             if (inputConsumed) {
                 consumeOne(actor.getInventory().getItemInOffHand(), actor);
             }

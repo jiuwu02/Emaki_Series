@@ -45,7 +45,7 @@ public final class GemGuiService {
 
     public boolean open(Player player, GemGuiMode mode) {
         return switch (normalizeMode(mode)) {
-            case INLAY, EXTRACT -> openGemFromHand(player, mode);
+            case INLAY, EXTRACT -> openEmptyGem(player, mode);
             case OPEN_SOCKET -> openSocketFromHand(player);
             case UPGRADE -> openUpgradeFromHand(player);
         };
@@ -111,7 +111,7 @@ public final class GemGuiService {
         return opened;
     }
 
-    private boolean openGemFromHand(Player player, GemGuiMode mode) {
+    private boolean openEmptyGem(Player player, GemGuiMode mode) {
         return openGem(player, mode, null);
     }
 

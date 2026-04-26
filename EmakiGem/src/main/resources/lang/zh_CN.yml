@@ -1,5 +1,5 @@
 # version 由资源同步维护
-version: "1.2.0"
+version: "1.2.1"
 
 general:
   prefix: "<gray>[ <gradient:#B84DFF:#FF8A3D>装备宝石</gradient> ]</gray>"
@@ -20,11 +20,15 @@ console:
   default_file_missing: "<yellow>缺少内置默认资源，已跳过: <red>{path}</red></yellow>"
   bootstrap_copy_failed: "<yellow>复制默认资源失败: <red>{path}</red> <gray>({error})</gray></yellow>"
   bootstrap_save_failed: "<yellow>保存默认资源失败: <red>{path}</red> <gray>({error})</gray></yellow>"
+  bootstrap_cleanup_failed: "<yellow>清理资源目录失败: <red>{path}</red> <gray>({error})</gray></yellow>"
   directory_create_failed: "<yellow>无法创建目录: <red>{path}</red></yellow>"
   bootstrap_legacy_cleanup_failed: "<yellow>清理旧版资源目录失败: <red>{path}</red> <gray>({error})</gray></yellow>"
   loader_config_load_error: "<red>加载配置失败: {path} ({error})</red>"
 
 loader:
+  lang_directory_create_failed: "<red>无法创建语言目录: {path}</red>"
+  bundled_language_load_failed: "<red>读取内置语言失败: {error}</red>"
+  bundled_resource_missing: "<red>内置资源缺失: {resource}，无法写入 {path}</red>"
   directory_create_failed: "<red>无法创建目录: {path}</red>"
   invalid_blank_id: "<red>{type} 文件 {file} 缺少有效 ID。</red>"
   duplicate_id: "<red>{type} 文件 {file} 出现重复 ID: {id}</red>"
@@ -93,7 +97,7 @@ command:
     apply_failed: "<red>升级失败，无法生成新的宝石物品。</red>"
     success: "<green>宝石升级成功，当前等级 <gold>{target_level}</gold>。</green>"
 
-  gui:
+gui:
   open_failed: "<red>无法打开宝石主界面，请检查 GUI 模板是否存在。</red>"
   open_socket_failed: "<red>无法打开开孔界面，请检查 GUI 模板是否存在。</red>"
   upgrade_open_failed: "<red>无法打开宝石升级界面，请检查 GUI 模板是否存在。</red>"
@@ -109,7 +113,7 @@ command:
     invalid_target: "<red>放入的物品不是可开孔的装备。</red>"
     invalid_opener: "<red>放入的物品不是有效的开孔器。</red>"
     hold_opener: "<red>请先放入一个可用的开孔器。</red>"
-    no_slot_selected: "<red>请先选择一个要开启的锁定插槽。</red>"
+    no_slot_selected: "<red>请先选择一个要开启的锁定槽位。</red>"
   upgrade:
     invalid_gem: "<red>放入的物品不是有效的宝石物品。</red>"
     invalid_material: "<red>该材料槽只接受 <yellow>{material}</yellow> 对应的物品。</red>"

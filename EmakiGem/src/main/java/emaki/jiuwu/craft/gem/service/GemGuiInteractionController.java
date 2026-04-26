@@ -92,6 +92,7 @@ final class GemGuiInteractionController {
                 plugin.messageService().send(state.player(), "gui.gem.hold_gem");
                 return;
             }
+            returnPendingInput(state);
             state.setPendingOperation(new GemGuiSession.PendingOperation(
                     GemGuiSession.PendingType.INLAY,
                     slotIndex,
@@ -104,6 +105,7 @@ final class GemGuiInteractionController {
             plugin.messageService().send(state.player(), "command.extract.slot_empty", Map.of("slot", slotIndex));
             return;
         }
+        returnPendingInput(state);
         state.setPendingOperation(new GemGuiSession.PendingOperation(GemGuiSession.PendingType.EXTRACT, slotIndex, null));
         renderer.refreshGui(state);
     }
@@ -115,6 +117,7 @@ final class GemGuiInteractionController {
             plugin.messageService().send(state.player(), "gui.gem.invalid_target");
             return;
         }
+        returnPendingInput(state);
         state.setTargetItem(cursorItem);
         event.getWhoClicked().setItemOnCursor(targetItem);
         scheduleSwitchIfNeeded(state);
@@ -162,7 +165,7 @@ final class GemGuiInteractionController {
             case INLAY -> {
                 var hands = InventoryItemUtil.withTemporaryHands(
                         player, targetItem, pendingOperation.inputItem(),
-                        () -> plugin.inlayService().inlay(player, player, pendingOperation.slotIndex(), false, hiddenHeldItems)
+                        () -> plugin.inlayService().inlay(player, player, pendingOperation.slotIndex(), false, hiddenHeldItems, true)
                 );
                 yield new OperationExecution(isSuccess(hands.result()), hands.result(), hands.updatedMainHand());
             }
@@ -227,6 +230,18 @@ final class GemGuiInteractionController {
         return false;
     }
 
+    private void returnPendingInput(GemGuiSession state) {
+        if (state == null) {
+            return;
+        }
+        GemGuiSession.PendingOperation pendingOperation = state.pendingOperation();
+        ItemStack inputItem = pendingOperation.inputItem();
+        state.clearPendingOperation();
+        if (inputItem != null && !inputItem.getType().isAir()) {
+            InventoryItemUtil.giveOrDrop(state.player(), inputItem);
+        }
+    }
+
     private ItemStack consumeOneFromCursor(InventoryClickEvent event) {
         ItemStack cursorItem = InventoryItemUtil.cloneNonAir(event.getCursor());
         if (cursorItem == null) {
@@ -259,11 +274,17 @@ final class GemGuiInteractionController {
             switch (Texts.lower(slot.definition().type())) {
                 case "target_item" -> handleTargetItemClick(state, event);
                 case "mode_inlay" -> {
-                    state.setMode(GemGuiMode.INLAY);
+                    if (state.mode() != GemGuiMode.INLAY) {
+                        returnPendingInput(state);
+                        state.setMode(GemGuiMode.INLAY);
+                    }
                     renderer.refreshGui(state);
                 }
                 case "mode_extract" -> {
-                    state.setMode(GemGuiMode.EXTRACT);
+                    if (state.mode() != GemGuiMode.EXTRACT) {
+                        returnPendingInput(state);
+                        state.setMode(GemGuiMode.EXTRACT);
+                    }
                     renderer.refreshGui(state);
                 }
                 case "socket_slot" -> handleSocketClick(state, event, slot.slotIndex());
@@ -291,6 +312,7 @@ final class GemGuiInteractionController {
             ItemStack cursorItem = event != null && event.getPlayer() != null
                     ? InventoryItemUtil.cloneNonAir(event.getPlayer().getItemOnCursor())
                     : null;
+            ItemStack pendingInput = state.pendingOperation().inputItem();
             if (cursorItem != null) {
                 event.getPlayer().setItemOnCursor(null);
             }
@@ -298,10 +320,10 @@ final class GemGuiInteractionController {
                 InventoryItemUtil.giveOrDrop(state.player(), state.mutableTargetItem());
                 state.setTargetItem(null);
             }
-            if (state.pendingOperation().inputItem() != null) {
-                InventoryItemUtil.giveOrDrop(state.player(), state.pendingOperation().inputItem());
-                state.clearPendingOperation();
+            if (pendingInput != null) {
+                InventoryItemUtil.giveOrDrop(state.player(), pendingInput);
             }
+            state.clearPendingOperation();
             if (cursorItem != null) {
                 InventoryItemUtil.giveOrDrop(state.player(), cursorItem);
             }

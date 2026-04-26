@@ -19,21 +19,30 @@ resource_costs: []
 
 skill_parameters:
   echo_damage:
-    type: "number"
-    formula: "6 + ({level} - 1) * 2.5"
+    type: "expression"
+    expression: "6 + ({level} - 1) * 2.5"
     decimals: 1
     min: 0
 
   echo_chance:
-    type: "number"
-    formula: "15 + ({level} - 1) * 3"
+    type: "expression"
+    expression: "15 + ({level} - 1) * 3"
     decimals: 0
     max: 40
 
   sound_pitch:
-    type: "number"
-    formula: "1 + ({level} - 1) * 0.03"
+    type: "expression"
+    expression: "1 + ({level} - 1) * 0.03"
     decimals: 2
+
+  echo_tag:
+    type: "string"
+    value: "echo_{trigger_id}_{level}"
+
+  can_chain:
+    type: "boolean"
+    expression: "{level} >= 4 && {trigger_id} == 'attack'"
+    default: false
 
 upgrade:
   enabled: true
@@ -74,7 +83,7 @@ upgrade:
           amount: 1
       parameters:
         echo_chance:
-          type: "number"
+          type: "constant"
           value: 30
           decimals: 0
       success_actions:

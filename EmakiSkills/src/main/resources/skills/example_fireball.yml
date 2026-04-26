@@ -23,26 +23,42 @@ resource_costs:
 
 skill_parameters:
   damage:
-    type: "number"
-    formula: "18 + ({level} - 1) * 4"
+    type: "expression"
+    expression: "{base_damage} + {level_bonus}"
+    variables:
+      base_damage:
+        type: "constant"
+        value: 18
+      level_bonus:
+        type: "expression"
+        expression: "({level} - 1) * 4"
     decimals: 1
     min: 0
 
   radius:
-    type: "number"
-    formula: "2 + floor(({level} - 1) / 3) * 0.5"
+    type: "expression"
+    expression: "2 + floor(({level} - 1) / 3) * 0.5"
     decimals: 2
     min: 1
 
   ignite_ticks:
-    type: "number"
-    formula: "40 + ({level} - 1) * 6"
+    type: "expression"
+    expression: "40 + ({level} - 1) * 6"
     decimals: 0
     min: 20
 
   element:
     type: "string"
     value: "fire"
+
+  element_label:
+    type: "string"
+    value: "fire_lv_{level}"
+
+  empowered:
+    type: "boolean"
+    expression: "{level} >= 5 && {has_target} == 1"
+    default: false
 
 upgrade:
   enabled: true
@@ -85,7 +101,7 @@ upgrade:
           amount: 1
       parameters:
         radius:
-          type: "number"
+          type: "constant"
           value: 3.5
           decimals: 2
       success_actions:

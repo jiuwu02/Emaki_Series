@@ -43,6 +43,11 @@ final class AssemblyDataManager {
         return amount == null || amount <= 0 ? 1 : amount;
     }
 
+    String readBaseCustomName(ItemStack itemStack) {
+        String customName = pdcService.get(itemStack, itemPartition, "base_custom_name", PersistentDataType.STRING);
+        return Texts.toStringSafe(customName);
+    }
+
     List<String> readActiveLayers(ItemStack itemStack) {
         String raw = pdcService.get(itemStack, itemPartition, "active_layers", PersistentDataType.STRING);
         if (Texts.isBlank(raw)) {
@@ -84,6 +89,7 @@ final class AssemblyDataManager {
             int currentSchemaVersion,
             ItemSource baseSource,
             int amount,
+            String baseCustomName,
             List<String> activeLayers,
             List<String> previousActiveLayers,
             String assemblySignature,
@@ -91,6 +97,11 @@ final class AssemblyDataManager {
         pdcService.set(itemStack, itemPartition, "schema_version", PersistentDataType.INTEGER, currentSchemaVersion);
         pdcService.set(itemStack, itemPartition, "base_source", PersistentDataType.STRING, ItemSourceUtil.toShorthand(baseSource));
         pdcService.set(itemStack, itemPartition, "base_amount", PersistentDataType.INTEGER, amount);
+        if (Texts.isBlank(baseCustomName)) {
+            pdcService.remove(itemStack, itemPartition, "base_custom_name");
+        } else {
+            pdcService.set(itemStack, itemPartition, "base_custom_name", PersistentDataType.STRING, baseCustomName);
+        }
         pdcService.set(itemStack, itemPartition, "active_layers", PersistentDataType.STRING, String.join(",", activeLayers));
         pdcService.set(itemStack, itemPartition, "assembly_signature", PersistentDataType.STRING, assemblySignature);
         clearInactiveLayerSnapshots(itemStack, previousActiveLayers, activeLayers);

@@ -105,7 +105,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                 triggerRegistry
         );
         SkillLevelService skillLevelService = new SkillLevelService(playerSkillDataStore);
-        SkillParameterResolver skillParameterResolver = new SkillParameterResolver(skillLevelService);
+        SkillParameterResolver skillParameterResolver = new SkillParameterResolver(skillLevelService, plugin);
         CastModeService castModeService = new CastModeService(playerSkillDataStore);
         MythicSkillCastService mythicSkillCastService = new MythicSkillCastService(mythicBridge);
         CastAttemptService castAttemptService = new CastAttemptService(

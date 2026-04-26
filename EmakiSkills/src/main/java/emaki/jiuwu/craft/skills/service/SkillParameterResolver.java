@@ -2,11 +2,13 @@ package emaki.jiuwu.craft.skills.service;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Logger;
 
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.math.Numbers;
@@ -15,18 +17,22 @@ import emaki.jiuwu.craft.skills.model.ResolvedSkillParameters;
 import emaki.jiuwu.craft.skills.model.SkillActivationType;
 import emaki.jiuwu.craft.skills.model.SkillDefinition;
 import emaki.jiuwu.craft.skills.model.SkillParameterDefinition;
-import emaki.jiuwu.craft.skills.model.SkillParameterType;
 import emaki.jiuwu.craft.skills.model.SkillUpgradeConfig;
 import emaki.jiuwu.craft.skills.trigger.TriggerInvocation;
 
 public final class SkillParameterResolver {
 
-    private static final Pattern COMPARISON_PATTERN = Pattern.compile("^(.+?)\\s*(>=|<=|==|!=|>|<)\\s*(.+)$");
-
     private final SkillLevelService levelService;
+    private final Logger logger;
+    private final Set<String> reportedNumericIssues = ConcurrentHashMap.newKeySet();
 
     public SkillParameterResolver(SkillLevelService levelService) {
+        this(levelService, null);
+    }
+
+    public SkillParameterResolver(SkillLevelService levelService, JavaPlugin plugin) {
         this.levelService = levelService;
+        this.logger = plugin == null ? null : plugin.getLogger();
     }
 
     public ResolvedSkillParameters resolve(Player player,
@@ -100,19 +106,25 @@ public final class SkillParameterResolver {
     }
 
     private String resolveSingle(SkillParameterDefinition parameter, Map<String, Object> variables) {
-        String raw = Texts.isNotBlank(parameter.formula()) ? parameter.formula() : parameter.value();
-        if (Texts.isBlank(raw)) {
-            raw = parameter.defaultValue();
-        }
+        Object config = parameter.config();
         return switch (parameter.type()) {
-            case STRING -> Texts.formatTemplate(raw, variables);
-            case BOOLEAN -> Boolean.toString(resolveBoolean(raw, variables, parseBoolean(parameter.defaultValue(), false)));
-            case NUMBER -> resolveNumber(parameter, raw, variables);
+            case STRING -> ExpressionEngine.evaluateString(Texts.toStringSafe(config), variables);
+            case BOOLEAN -> Boolean.toString(ExpressionEngine.evaluateBoolean(Texts.toStringSafe(config), variables,
+                    ExpressionEngine.evaluateBoolean(parameter.defaultValue(), variables, false)));
+            case CONSTANT, RANGE, UNIFORM, GAUSSIAN, SKEW_NORMAL, TRIANGLE, EXPRESSION -> resolveNumeric(parameter, config, variables);
         };
     }
 
-    private String resolveNumber(SkillParameterDefinition parameter, String raw, Map<String, Object> variables) {
-        double value = ExpressionEngine.evaluate(raw, variables);
+    private String resolveNumeric(SkillParameterDefinition parameter, Object config, Map<String, Object> variables) {
+        Object effectiveConfig = config == null && Texts.isNotBlank(parameter.defaultValue())
+                ? parameter.defaultValue()
+                : config;
+        ExpressionEngine.NumericEvaluationResult result = ExpressionEngine.evaluateRandomConfigDetailed(effectiveConfig,
+                variables);
+        if (result.hasIssues()) {
+            reportNumericIssues(parameter, result);
+        }
+        double value = result.success() ? result.value() : 0D;
         if (parameter.min() != null) {
             value = Math.max(parameter.min(), value);
         }
@@ -127,42 +139,15 @@ public final class SkillParameterResolver {
         return Numbers.formatNumber(value, pattern.toString());
     }
 
-    private boolean resolveBoolean(String raw, Map<String, Object> variables, boolean fallback) {
-        String prepared = Texts.formatTemplate(raw, variables).trim();
-        Boolean literal = parseBooleanObject(prepared);
-        if (literal != null) {
-            return literal;
+    private void reportNumericIssues(SkillParameterDefinition parameter,
+            ExpressionEngine.NumericEvaluationResult result) {
+        if (logger == null || parameter == null || !result.hasIssues()) {
+            return;
         }
-        Matcher matcher = COMPARISON_PATTERN.matcher(prepared);
-        if (matcher.matches()) {
-            double left = ExpressionEngine.evaluate(matcher.group(1), variables);
-            double right = ExpressionEngine.evaluate(matcher.group(3), variables);
-            return switch (matcher.group(2)) {
-                case ">=" -> left >= right;
-                case "<=" -> left <= right;
-                case "==" -> Double.compare(left, right) == 0;
-                case "!=" -> Double.compare(left, right) != 0;
-                case ">" -> left > right;
-                case "<" -> left < right;
-                default -> fallback;
-            };
+        String message = "Skill parameter '" + parameter.id()
+                + "' numeric expression/config issue: " + String.join("; ", result.issues());
+        if (reportedNumericIssues.add(message)) {
+            logger.warning(message);
         }
-        return ExpressionEngine.evaluate(prepared, variables) > 0D;
-    }
-
-    private boolean parseBoolean(String raw, boolean fallback) {
-        Boolean value = parseBooleanObject(raw);
-        return value == null ? fallback : value;
-    }
-
-    private Boolean parseBooleanObject(String raw) {
-        String value = Texts.lower(raw).trim();
-        if ("true".equals(value) || "yes".equals(value) || "1".equals(value)) {
-            return true;
-        }
-        if ("false".equals(value) || "no".equals(value) || "0".equals(value)) {
-            return false;
-        }
-        return null;
     }
 }

@@ -11,7 +11,6 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
-import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import net.kyori.adventure.text.Component;
 
@@ -28,6 +27,10 @@ final class ItemRenderService {
     }
 
     void renderItem(ItemStack itemStack, Collection<EmakiItemLayerSnapshot> snapshots) {
+        renderItem(itemStack, snapshots, null);
+    }
+
+    void renderItem(ItemStack itemStack, Collection<EmakiItemLayerSnapshot> snapshots, Component baseNameOverride) {
         if (itemStack == null) {
             return;
         }
@@ -36,7 +39,7 @@ final class ItemRenderService {
             return;
         }
         Map<String, Double> aggregatedStats = aggregateStats(snapshots);
-        String currentName = resolveInitialName(itemStack, itemMeta);
+        Component currentName = baseNameOverride == null ? resolveInitialName(itemStack, itemMeta) : baseNameOverride;
         List<Component> currentLore = new ArrayList<>(
                 itemMeta.hasLore() && ItemTextBridge.lore(itemMeta) != null
                         ? ItemTextBridge.lore(itemMeta)
@@ -49,11 +52,17 @@ final class ItemRenderService {
                 aggregatedStats,
                 snapshots
         );
-        if (renderResult.customizedName()) {
-            ItemTextBridge.customName(itemMeta, MiniMessages.parse(renderResult.name()));
-        }
         ItemTextBridge.lore(itemMeta, renderResult.lore().isEmpty() ? null : renderResult.lore());
         itemStack.setItemMeta(itemMeta);
+        if (renderResult.customizedName() || baseNameOverride != null) {
+            if (!SpigotItemComponentNameWriter.writeCustomName(itemStack, renderResult.name())) {
+                itemMeta = itemStack.getItemMeta();
+                if (itemMeta != null) {
+                    ItemTextBridge.customName(itemMeta, renderResult.name());
+                    itemStack.setItemMeta(itemMeta);
+                }
+            }
+        }
     }
 
     private Map<String, Double> aggregateStats(Collection<EmakiItemLayerSnapshot> snapshots) {
@@ -78,17 +87,17 @@ final class ItemRenderService {
         return result;
     }
 
-    private String resolveInitialName(ItemStack itemStack, ItemMeta itemMeta) {
+    private Component resolveInitialName(ItemStack itemStack, ItemMeta itemMeta) {
         if (itemMeta != null && ItemTextBridge.hasCustomName(itemMeta)) {
-            return MiniMessages.serialize(ItemTextBridge.customName(itemMeta));
+            return ItemTextBridge.customName(itemMeta);
         }
         if (itemStack != null) {
             try {
-                return MiniMessages.serialize(ItemTextBridge.effectiveName(itemStack));
+                return ItemTextBridge.effectiveName(itemStack);
             } catch (Exception _) {
-                return "";
+                return Component.empty();
             }
         }
-        return "";
+        return Component.empty();
     }
 }

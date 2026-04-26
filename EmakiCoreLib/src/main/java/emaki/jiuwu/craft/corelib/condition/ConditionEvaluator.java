@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 
-import emaki.jiuwu.craft.corelib.math.Numbers;
+import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class ConditionEvaluator {
@@ -43,47 +43,8 @@ public final class ConditionEvaluator {
         if (Texts.isBlank(line)) {
             return null;
         }
-        List<String> orSegments = splitLogical(line, "||");
-        if (orSegments.size() > 1) {
-            for (String segment : orSegments) {
-                Boolean result = evaluateAndSegment(segment, placeholderReplacer);
-                if (result == null) {
-                    return null;
-                }
-                if (result) {
-                    return true;
-                }
-            }
-            return false;
-        }
-        return evaluateAndSegment(line, placeholderReplacer);
-    }
-
-    private static Boolean evaluateAndSegment(String line, Function<String, String> placeholderReplacer) {
-        List<String> andSegments = splitLogical(line, "&&");
-        for (String segment : andSegments) {
-            Boolean result = evaluateAtomic(segment, placeholderReplacer);
-            if (result == null) {
-                return null;
-            }
-            if (!result) {
-                return false;
-            }
-        }
-        return !andSegments.isEmpty();
-    }
-
-    private static Boolean evaluateAtomic(String line, Function<String, String> placeholderReplacer) {
-        ParsedCondition parsed = parse(line);
-        if (parsed == null) {
-            return null;
-        }
-        String left = placeholderReplacer == null ? parsed.left() : placeholderReplacer.apply(parsed.left());
-        String right = placeholderReplacer == null ? parsed.right() : placeholderReplacer.apply(parsed.right());
-        if (Numbers.isNumeric(left) && Numbers.isNumeric(right)) {
-            return evaluateNumeric(Numbers.tryParseDouble(left, null), parsed.operator(), Numbers.tryParseDouble(right, null));
-        }
-        return evaluateString(left, parsed.operator(), right);
+        String prepared = placeholderReplacer == null ? line : Texts.toStringSafe(placeholderReplacer.apply(line));
+        return ExpressionEngine.evaluateBoolean(prepared);
     }
 
     public static boolean evaluate(List<String> conditions,
@@ -123,65 +84,4 @@ public final class ConditionEvaluator {
         return results.stream().allMatch(Boolean::booleanValue);
     }
 
-    private static List<String> splitLogical(String line, String operator) {
-        List<String> segments = new ArrayList<>();
-        if (Texts.isBlank(line) || Texts.isBlank(operator)) {
-            return segments;
-        }
-        StringBuilder current = new StringBuilder();
-        boolean singleQuoted = false;
-        boolean doubleQuoted = false;
-        for (int index = 0; index < line.length(); index++) {
-            char currentChar = line.charAt(index);
-            if (currentChar == '\'' && !doubleQuoted) {
-                singleQuoted = !singleQuoted;
-            } else if (currentChar == '"' && !singleQuoted) {
-                doubleQuoted = !doubleQuoted;
-            }
-            if (!singleQuoted
-                    && !doubleQuoted
-                    && line.startsWith(operator, index)) {
-                segments.add(current.toString().trim());
-                current.setLength(0);
-                index += operator.length() - 1;
-                continue;
-            }
-            current.append(currentChar);
-        }
-        segments.add(current.toString().trim());
-        return segments;
-    }
-
-    private static boolean evaluateNumeric(Double left, String operator, Double right) {
-        if (left == null || right == null) {
-            return false;
-        }
-        return switch (operator) {
-            case "<" ->
-                left < right;
-            case "<=" ->
-                left <= right;
-            case "==" ->
-                left.doubleValue() == right.doubleValue();
-            case ">=" ->
-                left >= right;
-            case ">" ->
-                left > right;
-            case "!=" ->
-                left.doubleValue() != right.doubleValue();
-            default ->
-                false;
-        };
-    }
-
-    private static boolean evaluateString(String left, String operator, String right) {
-        return switch (operator) {
-            case "==" ->
-                Objects.equals(Texts.toStringSafe(left), Texts.toStringSafe(right));
-            case "!=" ->
-                !Objects.equals(Texts.toStringSafe(left), Texts.toStringSafe(right));
-            default ->
-                false;
-        };
-    }
 }
