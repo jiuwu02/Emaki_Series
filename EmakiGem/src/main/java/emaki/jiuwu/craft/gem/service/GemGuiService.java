@@ -53,7 +53,7 @@ public final class GemGuiService {
 
     public boolean open(Player player, GemGuiMode mode, ItemStack initialItem) {
         return switch (normalizeMode(mode)) {
-            case INLAY, EXTRACT -> openGem(player, mode, initialItem);
+            case INLAY, EXTRACT -> openEmptyGem(player, mode);
             case OPEN_SOCKET -> openSocket(player, initialItem);
             case UPGRADE -> openUpgrade(player, initialItem);
         };

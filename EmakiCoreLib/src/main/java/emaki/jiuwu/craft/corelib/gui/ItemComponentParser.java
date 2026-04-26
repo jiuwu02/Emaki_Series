@@ -15,6 +15,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.components.CustomModelDataComponent;
 
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
@@ -35,12 +36,27 @@ public final class ItemComponentParser {
             String itemModel,
             Integer customModelData,
             Map<String, Integer> enchantments,
-            List<String> hiddenComponents) {
+            List<String> hiddenComponents,
+            Object displayNameConfig,
+            Object loreConfig) {
 
         public ItemComponents       {
             lore = lore == null ? List.of() : List.copyOf(lore);
             enchantments = enchantments == null ? Map.of() : Map.copyOf(enchantments);
             hiddenComponents = hiddenComponents == null ? List.of() : List.copyOf(hiddenComponents);
+            displayNameConfig = ConfigNodes.toPlainData(displayNameConfig);
+            loreConfig = ConfigNodes.toPlainData(loreConfig);
+        }
+
+        public ItemComponents(String displayName,
+                boolean loreConfigured,
+                List<String> lore,
+                String itemModel,
+                Integer customModelData,
+                Map<String, Integer> enchantments,
+                List<String> hiddenComponents) {
+            this(displayName, loreConfigured, lore, itemModel, customModelData, enchantments, hiddenComponents,
+                    null, null);
         }
     }
 
@@ -71,8 +87,13 @@ public final class ItemComponentParser {
         }
         boolean loreConfigured = ConfigNodes.contains(raw, "lore");
         Object loreRaw = ConfigNodes.get(raw, "lore");
+        Object displayNameRaw = ConfigNodes.get(raw, "display_name");
+        boolean displayNameIsTextConfig = displayNameRaw instanceof Map<?, ?>
+                || displayNameRaw instanceof emaki.jiuwu.craft.corelib.yaml.YamlSection;
         return new ItemComponents(
-                ConfigNodes.string(raw, "display_name", null),
+                displayNameIsTextConfig
+                        ? null
+                        : ConfigNodes.string(raw, "display_name", null),
                 loreConfigured,
                 parseLore(loreRaw, loreConfigured),
                 ConfigNodes.string(raw, "item_model", ConfigNodes.string(raw, "item-model", null)),
@@ -82,7 +103,11 @@ public final class ItemComponentParser {
                         : ConfigNodes.get(raw, "custommodeldata")
                 ),
                 parseEnchantments(ConfigNodes.get(raw, "enchantments")),
-                parseHiddenComponents(raw)
+                parseHiddenComponents(raw),
+                displayNameIsTextConfig ? displayNameRaw : null,
+                loreRaw instanceof Map<?, ?> || loreRaw instanceof emaki.jiuwu.craft.corelib.yaml.YamlSection
+                        ? loreRaw
+                        : null
         );
     }
 
@@ -123,6 +148,9 @@ public final class ItemComponentParser {
         }
         if (loreRaw instanceof String text && Texts.isBlank(text)) {
             return List.of();
+        }
+        if (loreRaw instanceof Map<?, ?> || loreRaw instanceof emaki.jiuwu.craft.corelib.yaml.YamlSection) {
+            return ExpressionEngine.evaluateStringLinesConfig(loreRaw);
         }
         return Texts.asStringList(loreRaw);
     }

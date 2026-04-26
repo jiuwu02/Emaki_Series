@@ -60,6 +60,26 @@ skill_parameters:
     expression: "{level} >= 5 && {has_target} == 1"
     default: false
 
+  random_bonus_lines:
+    type: "random_text"
+    rolls: "{bonus_rolls}"
+    allow_duplicates: false
+    variables:
+      bonus_rolls:
+        type: "constant"
+        value: 2
+      物理攻击:
+        type: "range"
+        min: 2
+        max: 6
+      物理防御:
+        type: "uniform"
+        min: 1
+        max: 4
+    lines:
+      - "物理攻击: +{物理攻击}"
+      - "物理防御: +{物理防御}"
+
 upgrade:
   enabled: true
   max_level: 10

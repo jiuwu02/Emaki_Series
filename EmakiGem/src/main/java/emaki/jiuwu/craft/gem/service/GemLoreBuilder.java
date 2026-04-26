@@ -8,6 +8,7 @@ import java.util.Map;
 import emaki.jiuwu.craft.corelib.assembly.EmakiLoreSectionContribution;
 import emaki.jiuwu.craft.corelib.assembly.EmakiStructuredPresentation;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
 import emaki.jiuwu.craft.gem.model.GemDefinition;
@@ -228,6 +229,6 @@ final class GemLoreBuilder {
 
     private List<String> resolveContent(Map<String, Object> operation) {
         Object raw = operation == null ? null : operation.get("content");
-        return Texts.asStringList(raw);
+        return ExpressionEngine.evaluateStringLinesConfig(raw);
     }
 }

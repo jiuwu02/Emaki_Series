@@ -25,6 +25,7 @@ public final class SkillParameterResolver {
     private final SkillLevelService levelService;
     private final Logger logger;
     private final Set<String> reportedNumericIssues = ConcurrentHashMap.newKeySet();
+    private final Set<String> reportedTextIssues = ConcurrentHashMap.newKeySet();
 
     public SkillParameterResolver(SkillLevelService levelService) {
         this(levelService, null);
@@ -108,11 +109,23 @@ public final class SkillParameterResolver {
     private String resolveSingle(SkillParameterDefinition parameter, Map<String, Object> variables) {
         Object config = parameter.config();
         return switch (parameter.type()) {
-            case STRING -> ExpressionEngine.evaluateString(Texts.toStringSafe(config), variables);
+            case STRING, RANDOM_TEXT -> resolveText(parameter, config, variables);
             case BOOLEAN -> Boolean.toString(ExpressionEngine.evaluateBoolean(Texts.toStringSafe(config), variables,
                     ExpressionEngine.evaluateBoolean(parameter.defaultValue(), variables, false)));
             case CONSTANT, RANGE, UNIFORM, GAUSSIAN, SKEW_NORMAL, TRIANGLE, EXPRESSION -> resolveNumeric(parameter, config, variables);
         };
+    }
+
+    private String resolveText(SkillParameterDefinition parameter, Object config, Map<String, Object> variables) {
+        Object effectiveConfig = config == null && Texts.isNotBlank(parameter.defaultValue())
+                ? parameter.defaultValue()
+                : config;
+        ExpressionEngine.TextEvaluationResult result = ExpressionEngine.evaluateStringConfigDetailed(effectiveConfig,
+                variables);
+        if (result.hasIssues()) {
+            reportTextIssues(parameter, result);
+        }
+        return result.value();
     }
 
     private String resolveNumeric(SkillParameterDefinition parameter, Object config, Map<String, Object> variables) {
@@ -147,6 +160,18 @@ public final class SkillParameterResolver {
         String message = "Skill parameter '" + parameter.id()
                 + "' numeric expression/config issue: " + String.join("; ", result.issues());
         if (reportedNumericIssues.add(message)) {
+            logger.warning(message);
+        }
+    }
+
+    private void reportTextIssues(SkillParameterDefinition parameter,
+            ExpressionEngine.TextEvaluationResult result) {
+        if (logger == null || parameter == null || !result.hasIssues()) {
+            return;
+        }
+        String message = "Skill parameter '" + parameter.id()
+                + "' text expression/config issue: " + String.join("; ", result.issues());
+        if (reportedTextIssues.add(message)) {
             logger.warning(message);
         }
     }

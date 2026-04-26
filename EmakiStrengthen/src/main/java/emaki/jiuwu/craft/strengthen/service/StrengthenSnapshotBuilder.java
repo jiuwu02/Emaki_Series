@@ -189,7 +189,7 @@ public final class StrengthenSnapshotBuilder {
     }
 
     private String renderTemplate(String template, Map<String, Object> variables) {
-        return ExpressionEngine.replaceVariables(Texts.toStringSafe(template), variables);
+        return ExpressionEngine.evaluateStringConfig(template, variables == null ? Map.of() : variables);
     }
 
     private String humanize(String statId) {

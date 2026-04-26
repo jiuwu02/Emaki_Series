@@ -27,6 +27,7 @@ import emaki.jiuwu.craft.cooking.model.StationInteraction;
 import emaki.jiuwu.craft.cooking.model.StationType;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.Furnace;
@@ -176,8 +177,14 @@ public final class SteamerRuntimeService implements Listener {
             return false;
         }
         if (hand == null || hand.getType().isAir()) {
+            if (!player.hasPermission("emakicooking.station.steamer.use")
+                    && !player.hasPermission("emakicooking.admin")) {
+                messageService.send(player, "general.no_permission");
+                interaction.cancel();
+                return true;
+            }
             interaction.cancel();
-            return showInfo(player, coordinates);
+            return openGui(player, coordinates);
         }
         return false;
     }
@@ -975,12 +982,25 @@ public final class SteamerRuntimeService implements Listener {
         if (block == null) {
             return false;
         }
+        if (isBuiltinFurnaceHeatSource(block)) {
+            return true;
+        }
         for (ItemSource source : settingsService.steamerHeatSources()) {
             if (blockMatcher.matches(block, source)) {
                 return true;
             }
         }
         return false;
+    }
+
+    private boolean isBuiltinFurnaceHeatSource(Block block) {
+        if (block == null) {
+            return false;
+        }
+        Material type = block.getType();
+        return type == Material.FURNACE
+                || type == Material.SMOKER
+                || type == Material.BLAST_FURNACE;
     }
 
     private CookingSettingsService.SteamerFuelRule matchFuelRule(ItemStack itemStack) {

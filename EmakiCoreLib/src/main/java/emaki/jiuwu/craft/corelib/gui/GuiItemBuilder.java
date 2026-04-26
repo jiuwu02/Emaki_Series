@@ -8,6 +8,7 @@ import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -98,16 +99,17 @@ public final class GuiItemBuilder {
     private static ItemComponentParser.ItemComponents formatComponents(ItemComponentParser.ItemComponents components,
             Map<String, ?> replacements) {
         ItemComponentParser.ItemComponents base = components == null ? ItemComponentParser.empty() : components;
-        // 跳过空 replacements 的无意义 stream 处理
-        List<String> lore = (replacements == null || replacements.isEmpty())
-                ? base.lore()
-                : base.lore().stream().map(line -> Texts.formatTemplate(line, replacements)).toList();
+        Map<String, ?> safeReplacements = replacements == null ? Map.of() : replacements;
+        String displayName = base.displayNameConfig() == null
+                ? Texts.formatTemplate(base.displayName(), safeReplacements)
+                : ExpressionEngine.evaluateStringConfig(base.displayNameConfig(), safeReplacements);
+        List<String> lore = resolveLore(base, safeReplacements);
         // 空 enchantments 直接复用，避免无意义的 Map 拷贝
         Map<String, Integer> enchantments = base.enchantments().isEmpty()
                 ? base.enchantments()
                 : new LinkedHashMap<>(base.enchantments());
         return new ItemComponentParser.ItemComponents(
-                Texts.formatTemplate(base.displayName(), replacements),
+                displayName,
                 base.loreConfigured(),
                 lore,
                 base.itemModel(),
@@ -115,5 +117,17 @@ public final class GuiItemBuilder {
                 enchantments,
                 base.hiddenComponents()
         );
+    }
+
+    private static List<String> resolveLore(ItemComponentParser.ItemComponents base, Map<String, ?> replacements) {
+        if (base == null || !base.loreConfigured()) {
+            return List.of();
+        }
+        if (base.loreConfig() != null) {
+            return ExpressionEngine.evaluateStringLinesConfig(base.loreConfig(), replacements);
+        }
+        return base.lore().stream()
+                .map(line -> Texts.formatTemplate(line, replacements))
+                .toList();
     }
 }

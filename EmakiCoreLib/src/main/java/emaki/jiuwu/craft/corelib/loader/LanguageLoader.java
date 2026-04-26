@@ -9,6 +9,7 @@ import java.util.Map;
 
 import org.bukkit.plugin.java.JavaPlugin;
 
+import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.text.LogMessages;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -117,12 +118,18 @@ public final class LanguageLoader {
     }
 
     public String getMessage(String key) {
-        Object value = getValue(key);
-        return value == null ? key : Texts.toStringSafe(value);
+        return getMessage(key, Map.of());
     }
 
     public String getMessage(String key, Map<String, ?> replacements) {
-        return Texts.formatTemplate(getMessage(key), replacements);
+        Object value = getValue(key);
+        if (value == null) {
+            return key;
+        }
+        Map<String, ?> safeReplacements = replacements == null ? Map.of() : replacements;
+        return value instanceof String text
+                ? Texts.formatTemplate(text, safeReplacements)
+                : ExpressionEngine.evaluateStringConfig(value, safeReplacements);
     }
 
     public YamlSection getSection(String key) {

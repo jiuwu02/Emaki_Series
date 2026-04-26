@@ -24,6 +24,8 @@ public final class GuiTemplateParser {
         if (Texts.isBlank(id)) {
             return null;
         }
+        Object titleRaw = section.get("title");
+        boolean titleIsTextConfig = titleRaw instanceof Map<?, ?> || titleRaw instanceof YamlSection;
         Map<String, GuiSlot> slots = new LinkedHashMap<>();
         YamlSection slotsSection = section.getSection("slots");
         if (slotsSection != null) {
@@ -36,7 +38,8 @@ public final class GuiTemplateParser {
         }
         return new GuiTemplate(
                 id,
-                section.getString("title", "GUI"),
+                titleIsTextConfig ? "GUI" : section.getString("title", "GUI"),
+                titleIsTextConfig ? titleRaw : null,
                 Numbers.clamp(Numbers.tryParseInt(section.get("rows"), 3), 1, 6),
                 slots
         );

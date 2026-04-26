@@ -14,6 +14,7 @@ import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
+import emaki.jiuwu.craft.gem.model.GemDefinition;
 import emaki.jiuwu.craft.gem.model.GemItemDefinition;
 import emaki.jiuwu.craft.gem.model.GemItemInstance;
 import emaki.jiuwu.craft.gem.model.GemState;
@@ -88,8 +89,26 @@ final class GemGuiInteractionController {
                 return;
             }
             GemItemInstance instance = plugin.itemMatcher().readGemInstance(cursorItem);
-            if (instance == null) {
+            GemDefinition gemDefinition = instance == null ? null : plugin.gemLoader().get(instance.gemId());
+            if (gemDefinition == null) {
                 plugin.messageService().send(state.player(), "gui.gem.hold_gem");
+                return;
+            }
+            if (!itemDefinition.allowsGemType(gemDefinition.gemType())) {
+                plugin.messageService().send(state.player(), "command.inlay.gem_type_blocked", Map.of("type", gemDefinition.gemType()));
+                return;
+            }
+            if (!gemDefinition.supportsSocketType(slot.type())) {
+                plugin.messageService().send(state.player(), "command.inlay.socket_incompatible", Map.of("slot", slotIndex, "type", slot.type()));
+                return;
+            }
+            if (itemDefinition.maxSameType() > 0
+                    && plugin.stateService().countAssignmentsByType(itemDefinition, currentState).getOrDefault(gemDefinition.gemType(), 0) >= itemDefinition.maxSameType()) {
+                plugin.messageService().send(state.player(), "command.inlay.max_same_type", Map.of("type", gemDefinition.gemType()));
+                return;
+            }
+            if (plugin.stateService().countAssignmentsByGemId(currentState, gemDefinition.id()) >= itemDefinition.maxSameId()) {
+                plugin.messageService().send(state.player(), "command.inlay.max_same_id", Map.of("gem", gemDefinition.id()));
                 return;
             }
             returnPendingInput(state);
@@ -146,8 +165,11 @@ final class GemGuiInteractionController {
             } else if (execution.updatedTarget() == null || execution.updatedTarget().getType().isAir()) {
                 state.setTargetItem(null);
             }
-            if (pendingOperation.inputItem() != null && !inputConsumedOf(execution.result())) {
-                InventoryItemUtil.giveOrDrop(state.player(), pendingOperation.inputItem());
+            if (!inputConsumedOf(execution.result())) {
+                ItemStack returnedInput = execution.updatedInput() == null ? pendingOperation.inputItem() : execution.updatedInput();
+                if (returnedInput != null && !returnedInput.getType().isAir()) {
+                    InventoryItemUtil.giveOrDrop(state.player(), returnedInput);
+                }
             }
         }
         state.clearPendingOperation();
@@ -158,26 +180,31 @@ final class GemGuiInteractionController {
         Player player = state.player();
         ItemStack targetItem = state.mutableTargetItem();
         if (player == null || targetItem == null) {
-            return new OperationExecution(false, null, state.targetItem());
+            return new OperationExecution(false, null, state.targetItem(), pendingOperation.inputItem());
         }
         Map<Integer, ItemStack> hiddenHeldItems = buildHiddenHeldItems(player);
-        return switch (pendingOperation.type()) {
-            case INLAY -> {
-                var hands = InventoryItemUtil.withTemporaryHands(
-                        player, targetItem, pendingOperation.inputItem(),
-                        () -> plugin.inlayService().inlay(player, player, pendingOperation.slotIndex(), false, hiddenHeldItems, true)
-                );
-                yield new OperationExecution(isSuccess(hands.result()), hands.result(), hands.updatedMainHand());
-            }
-            case EXTRACT -> {
-                var hands = InventoryItemUtil.withTemporaryHands(
-                        player, targetItem, null,
-                        () -> plugin.extractService().extract(player, player, pendingOperation.slotIndex(), false)
-                );
-                yield new OperationExecution(isSuccess(hands.result()), hands.result(), hands.updatedMainHand());
-            }
-            default -> new OperationExecution(false, null, state.targetItem());
-        };
+        try {
+            return switch (pendingOperation.type()) {
+                case INLAY -> {
+                    var hands = InventoryItemUtil.withTemporaryHands(
+                            player, targetItem, pendingOperation.inputItem(),
+                            () -> plugin.inlayService().inlay(player, player, pendingOperation.slotIndex(), false, hiddenHeldItems, true)
+                    );
+                    yield new OperationExecution(isSuccess(hands.result()), hands.result(), hands.updatedMainHand(), hands.updatedOffHand());
+                }
+                case EXTRACT -> {
+                    var hands = InventoryItemUtil.withTemporaryHands(
+                            player, targetItem, null,
+                            () -> plugin.extractService().extract(player, player, pendingOperation.slotIndex(), false)
+                    );
+                    yield new OperationExecution(isSuccess(hands.result()), hands.result(), hands.updatedMainHand(), hands.updatedOffHand());
+                }
+                default -> new OperationExecution(false, null, state.targetItem(), pendingOperation.inputItem());
+            };
+        } catch (RuntimeException ex) {
+            plugin.getLogger().warning("Failed to execute gem GUI operation for " + player.getName() + ": " + ex.getMessage());
+            return new OperationExecution(false, null, state.targetItem(), pendingOperation.inputItem());
+        }
     }
 
     private Map<Integer, ItemStack> buildHiddenHeldItems(Player player) {
@@ -331,6 +358,6 @@ final class GemGuiInteractionController {
         }
     }
 
-    private record OperationExecution(boolean success, Object result, ItemStack updatedTarget) {
+    private record OperationExecution(boolean success, Object result, ItemStack updatedTarget, ItemStack updatedInput) {
     }
 }

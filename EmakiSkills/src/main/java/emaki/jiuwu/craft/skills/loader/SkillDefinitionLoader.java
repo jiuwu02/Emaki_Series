@@ -133,6 +133,9 @@ public final class SkillDefinitionLoader extends YamlDirectoryLoader<SkillDefini
                 || Texts.isNotBlank(section.getString("expression", ""))) {
             return SkillParameterType.EXPRESSION;
         }
+        if (hasRandomTextLines(section)) {
+            return SkillParameterType.RANDOM_TEXT;
+        }
         if (section.contains("min") && section.contains("max")) {
             return SkillParameterType.RANGE;
         }
@@ -142,6 +145,12 @@ public final class SkillDefinitionLoader extends YamlDirectoryLoader<SkillDefini
     private Object parameterConfig(YamlSection section, SkillParameterType type) {
         if (section == null) {
             return "";
+        }
+        if (type == SkillParameterType.STRING && hasRandomTextLines(section)) {
+            Map<String, Object> config = new LinkedHashMap<>(ConfigNodes.entries(section));
+            config.put("type", SkillParameterType.RANDOM_TEXT.configType());
+            config.entrySet().removeIf(entry -> entry.getValue() == null);
+            return Map.copyOf(config);
         }
         if (type == SkillParameterType.STRING || type == SkillParameterType.BOOLEAN) {
             return firstNotBlank(
@@ -167,6 +176,14 @@ public final class SkillDefinitionLoader extends YamlDirectoryLoader<SkillDefini
         }
         config.entrySet().removeIf(entry -> entry.getValue() == null);
         return Map.copyOf(config);
+    }
+
+    private boolean hasRandomTextLines(YamlSection section) {
+        return section != null
+                && (section.contains("lines")
+                || section.contains("values")
+                || section.contains("options")
+                || section.contains("texts"));
     }
 
     private SkillUpgradeConfig parseUpgradeConfig(YamlSection section) {

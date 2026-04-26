@@ -119,6 +119,7 @@ stations:
     heat_sources:
       - minecraft-furnace
       - minecraft-smoker
+      - minecraft-blast_furnace
     # 加燃料后是否点亮下方热源外观
     ignite_heat_source: true
     # 蒸锅燃料；duration_seconds 为增加的燃烧时间

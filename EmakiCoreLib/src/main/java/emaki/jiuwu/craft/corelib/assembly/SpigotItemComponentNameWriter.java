@@ -67,16 +67,17 @@ final class SpigotItemComponentNameWriter {
 
     static String putCustomNameComponent(String components, String customNameJson) {
         String normalizedComponents = Texts.toStringSafe(components).trim();
+        String customNameValue = toSnbtString(customNameJson);
         if (normalizedComponents.isEmpty() || "[]".equals(normalizedComponents)) {
-            return "[" + CUSTOM_NAME_COMPONENT + "=" + customNameJson + "]";
+            return "[" + CUSTOM_NAME_COMPONENT + "=" + customNameValue + "]";
         }
         if (!normalizedComponents.startsWith("[") || !normalizedComponents.endsWith("]")) {
-            return "[" + CUSTOM_NAME_COMPONENT + "=" + customNameJson + "]";
+            return "[" + CUSTOM_NAME_COMPONENT + "=" + customNameValue + "]";
         }
 
         String body = normalizedComponents.substring(1, normalizedComponents.length() - 1).trim();
         if (body.isEmpty()) {
-            return "[" + CUSTOM_NAME_COMPONENT + "=" + customNameJson + "]";
+            return "[" + CUSTOM_NAME_COMPONENT + "=" + customNameValue + "]";
         }
 
         List<String> entries = splitTopLevelEntries(body);
@@ -84,16 +85,31 @@ final class SpigotItemComponentNameWriter {
         List<String> patched = new ArrayList<>(entries.size() + 1);
         for (String entry : entries) {
             if (isCustomNameEntry(entry)) {
-                patched.add(CUSTOM_NAME_COMPONENT + "=" + customNameJson);
+                patched.add(CUSTOM_NAME_COMPONENT + "=" + customNameValue);
                 replaced = true;
             } else {
                 patched.add(entry);
             }
         }
         if (!replaced) {
-            patched.add(CUSTOM_NAME_COMPONENT + "=" + customNameJson);
+            patched.add(CUSTOM_NAME_COMPONENT + "=" + customNameValue);
         }
         return "[" + String.join(",", patched) + "]";
+    }
+
+    private static String toSnbtString(String value) {
+        String text = Texts.toStringSafe(value);
+        StringBuilder builder = new StringBuilder(text.length() + 2);
+        builder.append('\'');
+        for (int index = 0; index < text.length(); index++) {
+            char current = text.charAt(index);
+            if (current == '\\' || current == '\'') {
+                builder.append('\\');
+            }
+            builder.append(current);
+        }
+        builder.append('\'');
+        return builder.toString();
     }
 
     private static List<String> splitTopLevelEntries(String body) {
