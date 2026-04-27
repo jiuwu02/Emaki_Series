@@ -165,7 +165,7 @@ attributes:
     role: derived_power
     summary: "由其他属性推导出的战斗力"
 
-weights:
+scores:
   health: 0.35
   mana: 0.20
   health_regen: 0.30

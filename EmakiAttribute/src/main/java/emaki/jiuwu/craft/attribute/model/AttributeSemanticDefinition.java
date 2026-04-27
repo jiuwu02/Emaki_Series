@@ -8,14 +8,14 @@ public record AttributeSemanticDefinition(String id,
         String group,
         String role,
         String summary,
-        double weight) {
+        double score) {
 
     public AttributeSemanticDefinition     {
         id = Texts.normalizeId(id);
         group = Texts.toStringSafe(group).trim().toLowerCase(Locale.ROOT);
         role = Texts.toStringSafe(role).trim().toLowerCase(Locale.ROOT);
         summary = Texts.toStringSafe(summary).trim();
-        weight = Double.isNaN(weight) ? 1D : weight;
+        score = Double.isNaN(score) ? 1D : score;
     }
 }
 
