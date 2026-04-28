@@ -5,6 +5,7 @@ import java.util.Map;
 import emaki.jiuwu.craft.corelib.action.ActionExecutor;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.integration.CraftEngineBlockBridge;
+import emaki.jiuwu.craft.corelib.integration.CustomBlockBridge;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.runtime.RuntimeComponents;
@@ -37,6 +38,8 @@ record CookingRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
         ActionExecutor coreActionExecutor,
         ItemSourceService coreItemSourceService,
         CraftEngineBlockBridge craftEngineBlockBridge,
+        CustomBlockBridge itemsAdderBlockBridge,
+        CustomBlockBridge nexoBlockBridge,
         CookingSettingsService settingsService,
         CookingBlockMatcher blockMatcher,
         StationStateStore stationStateStore,
@@ -62,6 +65,7 @@ record CookingRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
                 RuntimeComponents.component(ActionExecutor.class, coreActionExecutor),
                 RuntimeComponents.component(ItemSourceService.class, coreItemSourceService),
                 RuntimeComponents.component(CraftEngineBlockBridge.class, craftEngineBlockBridge),
+                RuntimeComponents.component(CustomBlockBridge.class, itemsAdderBlockBridge),
                 RuntimeComponents.component(CookingSettingsService.class, settingsService),
                 RuntimeComponents.component(CookingBlockMatcher.class, blockMatcher),
                 RuntimeComponents.component(StationStateStore.class, stationStateStore),

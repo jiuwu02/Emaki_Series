@@ -5,6 +5,7 @@ import org.bukkit.command.PluginCommand;
 import emaki.jiuwu.craft.corelib.action.ActionExecutor;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.integration.CraftEngineBlockBridge;
+import emaki.jiuwu.craft.corelib.integration.CustomBlockBridge;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.plugin.AbstractConfigurableEmakiPlugin;
@@ -57,6 +58,8 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
     private ActionExecutor coreActionExecutor;
     private ItemSourceService coreItemSourceService;
     private CraftEngineBlockBridge craftEngineBlockBridge;
+    private CustomBlockBridge itemsAdderBlockBridge;
+    private CustomBlockBridge nexoBlockBridge;
     private CookingSettingsService settingsService;
     private CookingBlockMatcher blockMatcher;
     private StationStateStore stationStateStore;
@@ -114,6 +117,8 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         coreActionExecutor = components.coreActionExecutor();
         coreItemSourceService = components.coreItemSourceService();
         craftEngineBlockBridge = components.craftEngineBlockBridge();
+        itemsAdderBlockBridge = components.itemsAdderBlockBridge();
+        nexoBlockBridge = components.nexoBlockBridge();
         settingsService = components.settingsService();
         blockMatcher = components.blockMatcher();
         stationStateStore = components.stationStateStore();
@@ -146,6 +151,8 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
             getServer().getPluginManager().registerEvents(steamerRuntimeService, this);
         }
         registerCraftEngineEventHandlers();
+        registerItemsAdderEventHandlers();
+        registerNexoEventHandlers();
     }
 
     private void registerCraftEngineEventHandlers() {
@@ -156,6 +163,28 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
             getServer().getPluginManager().registerEvents(new CraftEngineCookingStationListener(stationListener), this);
         } catch (LinkageError exception) {
             getLogger().warning("CraftEngine API listener is unavailable: " + exception.getMessage());
+        }
+    }
+
+    private void registerItemsAdderEventHandlers() {
+        if (stationListener == null || !getServer().getPluginManager().isPluginEnabled("ItemsAdder")) {
+            return;
+        }
+        try {
+            getServer().getPluginManager().registerEvents(new ItemsAdderCookingStationListener(stationListener), this);
+        } catch (LinkageError exception) {
+            getLogger().warning("ItemsAdder API listener is unavailable: " + exception.getMessage());
+        }
+    }
+
+    private void registerNexoEventHandlers() {
+        if (stationListener == null || !getServer().getPluginManager().isPluginEnabled("Nexo")) {
+            return;
+        }
+        try {
+            getServer().getPluginManager().registerEvents(new NexoCookingStationListener(stationListener), this);
+        } catch (LinkageError exception) {
+            getLogger().warning("Nexo API listener is unavailable: " + exception.getMessage());
         }
     }
 
@@ -203,6 +232,14 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
 
     public CraftEngineBlockBridge craftEngineBlockBridge() {
         return craftEngineBlockBridge;
+    }
+
+    public CustomBlockBridge itemsAdderBlockBridge() {
+        return itemsAdderBlockBridge;
+    }
+
+    public CustomBlockBridge nexoBlockBridge() {
+        return nexoBlockBridge;
     }
 
     public CookingSettingsService settingsService() {

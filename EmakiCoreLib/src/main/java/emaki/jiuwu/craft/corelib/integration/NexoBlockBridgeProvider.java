@@ -6,16 +6,16 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.text.Texts;
 
-public final class CraftEngineBlockBridgeProvider implements CraftEngineBlockBridge {
+public final class NexoBlockBridgeProvider implements CustomBlockBridge {
 
-    private static final String PLUGIN_NAME = "CraftEngine";
-    private static final CraftEngineBlockBridge NOOP = new NoopCraftEngineBlockBridgeAdapter();
+    private static final String PLUGIN_NAME = "Nexo";
+    private static final CustomBlockBridge NOOP = new NoopCustomBlockBridge();
 
     private final JavaPlugin owner;
-    private volatile CraftEngineBlockBridge delegate;
+    private volatile CustomBlockBridge delegate;
     private volatile boolean failed;
 
-    public CraftEngineBlockBridgeProvider(JavaPlugin owner) {
+    public NexoBlockBridgeProvider(JavaPlugin owner) {
         this.owner = owner;
     }
 
@@ -39,12 +39,12 @@ public final class CraftEngineBlockBridgeProvider implements CraftEngineBlockBri
         return resolveDelegate().matches(block, identifier);
     }
 
-    private CraftEngineBlockBridge resolveDelegate() {
-        CraftEngineBlockBridge current = delegate;
+    private CustomBlockBridge resolveDelegate() {
+        CustomBlockBridge current = delegate;
         if (current != null) {
             return current;
         }
-        if (failed || !isCraftEngineEnabled()) {
+        if (failed || !isPluginEnabled()) {
             return NOOP;
         }
         synchronized (this) {
@@ -53,13 +53,13 @@ public final class CraftEngineBlockBridgeProvider implements CraftEngineBlockBri
                 return current;
             }
             try {
-                current = new CraftEngineBlockBridgeApi();
+                current = new NexoBlockBridgeApi();
                 delegate = current;
                 return current;
             } catch (LinkageError exception) {
                 failed = true;
                 if (owner != null) {
-                    owner.getLogger().warning("Failed to initialize CraftEngine block API bridge: "
+                    owner.getLogger().warning("Failed to initialize Nexo block API bridge: "
                             + Texts.toStringSafe(exception.getMessage()));
                 }
                 return NOOP;
@@ -67,11 +67,8 @@ public final class CraftEngineBlockBridgeProvider implements CraftEngineBlockBri
         }
     }
 
-    private boolean isCraftEngineEnabled() {
+    private boolean isPluginEnabled() {
         Plugin plugin = Bukkit.getPluginManager().getPlugin(PLUGIN_NAME);
         return plugin != null && plugin.isEnabled();
-    }
-
-    private static final class NoopCraftEngineBlockBridgeAdapter extends NoopCustomBlockBridge implements CraftEngineBlockBridge {
     }
 }

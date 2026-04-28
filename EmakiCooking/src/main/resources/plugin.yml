@@ -7,6 +7,8 @@ depend:
   - EmakiCoreLib
 softdepend:
   - CraftEngine
+  - ItemsAdder
+  - Nexo
 commands:
   ecooking:
     aliases: [ec]
