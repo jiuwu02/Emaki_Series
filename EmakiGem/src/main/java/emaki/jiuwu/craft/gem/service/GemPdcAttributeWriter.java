@@ -5,8 +5,8 @@ import java.util.Set;
 
 import org.bukkit.inventory.ItemStack;
 
-import emaki.jiuwu.craft.corelib.integration.ReflectivePdcAttributeGateway;
-import emaki.jiuwu.craft.corelib.integration.ReflectiveSkillPdcGateway;
+import emaki.jiuwu.craft.corelib.integration.PdcAttributeGateway;
+import emaki.jiuwu.craft.corelib.integration.SkillPdcGateway;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
 
 public final class GemPdcAttributeWriter {
@@ -14,10 +14,10 @@ public final class GemPdcAttributeWriter {
     private static final String SOURCE_ID = "gem";
 
     private final EmakiGemPlugin plugin;
-    private final ReflectivePdcAttributeGateway gateway;
-    private final ReflectiveSkillPdcGateway skillPdcGateway = new ReflectiveSkillPdcGateway();
+    private final PdcAttributeGateway gateway;
+    private final SkillPdcGateway skillPdcGateway = new SkillPdcGateway();
 
-    public GemPdcAttributeWriter(EmakiGemPlugin plugin, ReflectivePdcAttributeGateway gateway) {
+    public GemPdcAttributeWriter(EmakiGemPlugin plugin, PdcAttributeGateway gateway) {
         this.plugin = plugin;
         this.gateway = gateway;
     }

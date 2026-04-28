@@ -1,5 +1,7 @@
 package emaki.jiuwu.craft.cooking;
 
+import java.util.Map;
+
 import emaki.jiuwu.craft.corelib.action.ActionExecutor;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.integration.CraftEngineBlockBridge;
@@ -45,4 +47,31 @@ record CookingRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
         WokRuntimeService wokRuntimeService,
         GrinderRuntimeService grinderRuntimeService,
         SteamerRuntimeService steamerRuntimeService) implements RuntimeComponents {
+
+    @Override
+    public Map<Class<?>, Object> services() {
+        return RuntimeComponents.services(
+                RuntimeComponents.component(YamlConfigLoader.class, appConfigLoader),
+                RuntimeComponents.component(LanguageLoader.class, languageLoader),
+                RuntimeComponents.component(ChoppingBoardRecipeLoader.class, choppingBoardRecipeLoader),
+                RuntimeComponents.component(WokRecipeLoader.class, wokRecipeLoader),
+                RuntimeComponents.component(GrinderRecipeLoader.class, grinderRecipeLoader),
+                RuntimeComponents.component(SteamerRecipeLoader.class, steamerRecipeLoader),
+                RuntimeComponents.component(MessageService.class, messageService),
+                RuntimeComponents.component(BootstrapService.class, bootstrapService),
+                RuntimeComponents.component(ActionExecutor.class, coreActionExecutor),
+                RuntimeComponents.component(ItemSourceService.class, coreItemSourceService),
+                RuntimeComponents.component(CraftEngineBlockBridge.class, craftEngineBlockBridge),
+                RuntimeComponents.component(CookingSettingsService.class, settingsService),
+                RuntimeComponents.component(CookingBlockMatcher.class, blockMatcher),
+                RuntimeComponents.component(StationStateStore.class, stationStateStore),
+                RuntimeComponents.component(CookingRecipeService.class, recipeService),
+                RuntimeComponents.component(CookingRewardService.class, rewardService),
+                RuntimeComponents.component(CookingInspectService.class, inspectService),
+                RuntimeComponents.component(ChoppingBoardRuntimeService.class, choppingBoardRuntimeService),
+                RuntimeComponents.component(WokRuntimeService.class, wokRuntimeService),
+                RuntimeComponents.component(GrinderRuntimeService.class, grinderRuntimeService),
+                RuntimeComponents.component(SteamerRuntimeService.class, steamerRuntimeService)
+        );
+    }
 }

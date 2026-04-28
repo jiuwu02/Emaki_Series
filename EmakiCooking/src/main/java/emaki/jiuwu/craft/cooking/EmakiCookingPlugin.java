@@ -124,7 +124,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         wokRuntimeService = components.wokRuntimeService();
         grinderRuntimeService = components.grinderRuntimeService();
         steamerRuntimeService = components.steamerRuntimeService();
-        stationListener = new CookingStationListener(this, choppingBoardRuntimeService, wokRuntimeService, grinderRuntimeService, steamerRuntimeService);
+        stationListener = new CookingStationListener(choppingBoardRuntimeService, wokRuntimeService, grinderRuntimeService, steamerRuntimeService);
         registerServices(components);
     }
 
@@ -145,7 +145,18 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         if (steamerRuntimeService != null) {
             getServer().getPluginManager().registerEvents(steamerRuntimeService, this);
         }
-        stationListener.registerReflectiveEvents();
+        registerCraftEngineEventHandlers();
+    }
+
+    private void registerCraftEngineEventHandlers() {
+        if (stationListener == null || !getServer().getPluginManager().isPluginEnabled("CraftEngine")) {
+            return;
+        }
+        try {
+            getServer().getPluginManager().registerEvents(new CraftEngineCookingStationListener(stationListener), this);
+        } catch (LinkageError exception) {
+            getLogger().warning("CraftEngine API listener is unavailable: " + exception.getMessage());
+        }
     }
 
     @Override

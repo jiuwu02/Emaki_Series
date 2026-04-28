@@ -1,5 +1,7 @@
 package emaki.jiuwu.craft.skills;
 
+import java.util.Map;
+
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
@@ -55,4 +57,35 @@ record SkillsRuntimeComponents(
         EaBridge eaBridge,
         MythicBridge mythicBridge
 ) implements RuntimeComponents {
+
+    @Override
+    public Map<Class<?>, Object> services() {
+        return RuntimeComponents.services(
+                RuntimeComponents.component(YamlConfigLoader.class, appConfigLoader),
+                RuntimeComponents.component(LanguageLoader.class, languageLoader),
+                RuntimeComponents.component(SkillDefinitionLoader.class, skillDefinitionLoader),
+                RuntimeComponents.component(LocalResourceDefinitionLoader.class, localResourceDefinitionLoader),
+                RuntimeComponents.component(GuiTemplateLoader.class, guiTemplateLoader),
+                RuntimeComponents.component(MessageService.class, messageService),
+                RuntimeComponents.component(BootstrapService.class, bootstrapService),
+                RuntimeComponents.component(GuiService.class, guiService),
+                RuntimeComponents.component(EquipmentSkillCollector.class, equipmentSkillCollector),
+                RuntimeComponents.component(SkillSourceRegistry.class, skillSourceRegistry),
+                RuntimeComponents.component(TriggerRegistry.class, triggerRegistry),
+                RuntimeComponents.component(TriggerConflictResolver.class, triggerConflictResolver),
+                RuntimeComponents.component(SkillRegistryService.class, skillRegistryService),
+                RuntimeComponents.component(PlayerSkillDataStore.class, playerSkillDataStore),
+                RuntimeComponents.component(PlayerSkillStateService.class, playerSkillStateService),
+                RuntimeComponents.component(SkillLevelService.class, skillLevelService),
+                RuntimeComponents.component(SkillParameterResolver.class, skillParameterResolver),
+                RuntimeComponents.component(SkillUpgradeService.class, skillUpgradeService),
+                RuntimeComponents.component(CastModeService.class, castModeService),
+                RuntimeComponents.component(CastAttemptService.class, castAttemptService),
+                RuntimeComponents.component(MythicSkillCastService.class, mythicSkillCastService),
+                RuntimeComponents.component(ActionBarService.class, actionBarService),
+                RuntimeComponents.component(SkillsGuiService.class, skillsGuiService),
+                RuntimeComponents.component(EaBridge.class, eaBridge),
+                RuntimeComponents.component(MythicBridge.class, mythicBridge)
+        );
+    }
 }

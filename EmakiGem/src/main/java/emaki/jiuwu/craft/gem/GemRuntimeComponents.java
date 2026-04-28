@@ -1,9 +1,11 @@
 package emaki.jiuwu.craft.gem;
 
+import java.util.Map;
+
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
-import emaki.jiuwu.craft.corelib.integration.ReflectivePdcAttributeGateway;
+import emaki.jiuwu.craft.corelib.integration.PdcAttributeGateway;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.runtime.RuntimeComponents;
@@ -34,7 +36,7 @@ record GemRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
         BootstrapService bootstrapService,
         GuiService guiService,
         ItemSourceService coreItemSourceService,
-        ReflectivePdcAttributeGateway pdcAttributeGateway,
+        PdcAttributeGateway pdcAttributeGateway,
         GemItemMatcher itemMatcher,
         GemItemFactory itemFactory,
         GemSnapshotBuilder snapshotBuilder,
@@ -47,4 +49,32 @@ record GemRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
         GemExtractService extractService,
         GemUpgradeService upgradeService,
         GemGuiService gemGuiService) implements RuntimeComponents {
+
+    @Override
+    public Map<Class<?>, Object> services() {
+        return RuntimeComponents.services(
+                RuntimeComponents.component(YamlConfigLoader.class, appConfigLoader),
+                RuntimeComponents.component(LanguageLoader.class, languageLoader),
+                RuntimeComponents.component(GemLoader.class, gemLoader),
+                RuntimeComponents.component(GemItemLoader.class, gemItemLoader),
+                RuntimeComponents.component(GuiTemplateLoader.class, guiTemplateLoader),
+                RuntimeComponents.component(MessageService.class, messageService),
+                RuntimeComponents.component(BootstrapService.class, bootstrapService),
+                RuntimeComponents.component(GuiService.class, guiService),
+                RuntimeComponents.component(ItemSourceService.class, coreItemSourceService),
+                RuntimeComponents.component(PdcAttributeGateway.class, pdcAttributeGateway),
+                RuntimeComponents.component(GemItemMatcher.class, itemMatcher),
+                RuntimeComponents.component(GemItemFactory.class, itemFactory),
+                RuntimeComponents.component(GemSnapshotBuilder.class, snapshotBuilder),
+                RuntimeComponents.component(GemPdcAttributeWriter.class, pdcAttributeWriter),
+                RuntimeComponents.component(GemStateService.class, stateService),
+                RuntimeComponents.component(GemEconomyService.class, economyService),
+                RuntimeComponents.component(GemActionCoordinator.class, actionCoordinator),
+                RuntimeComponents.component(SocketOpenerService.class, socketOpenerService),
+                RuntimeComponents.component(GemInlayService.class, inlayService),
+                RuntimeComponents.component(GemExtractService.class, extractService),
+                RuntimeComponents.component(GemUpgradeService.class, upgradeService),
+                RuntimeComponents.component(GemGuiService.class, gemGuiService)
+        );
+    }
 }

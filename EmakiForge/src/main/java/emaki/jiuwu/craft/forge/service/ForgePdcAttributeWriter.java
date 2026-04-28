@@ -6,8 +6,8 @@ import java.util.Map;
 
 import org.bukkit.inventory.ItemStack;
 
-import emaki.jiuwu.craft.corelib.integration.ReflectivePdcAttributeGateway;
-import emaki.jiuwu.craft.corelib.integration.ReflectiveSkillPdcGateway;
+import emaki.jiuwu.craft.corelib.integration.PdcAttributeGateway;
+import emaki.jiuwu.craft.corelib.integration.SkillPdcGateway;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.model.QualitySettings;
 import emaki.jiuwu.craft.forge.model.Recipe;
@@ -17,7 +17,7 @@ final class ForgePdcAttributeWriter {
     private static final String SOURCE_ID = "forge";
 
     private final EmakiForgePlugin plugin;
-    private final ReflectiveSkillPdcGateway skillPdcGateway = new ReflectiveSkillPdcGateway();
+    private final SkillPdcGateway skillPdcGateway = new SkillPdcGateway();
 
     ForgePdcAttributeWriter(EmakiForgePlugin plugin) {
         this.plugin = plugin;
@@ -31,7 +31,7 @@ final class ForgePdcAttributeWriter {
         if (itemStack == null) {
             return;
         }
-        ReflectivePdcAttributeGateway gateway = plugin.pdcAttributeGateway();
+        PdcAttributeGateway gateway = plugin.pdcAttributeGateway();
         Map<String, Double> attributes = new LinkedHashMap<>();
         Map<String, String> meta = new LinkedHashMap<>();
         java.util.List<String> skillIds = new java.util.ArrayList<>();

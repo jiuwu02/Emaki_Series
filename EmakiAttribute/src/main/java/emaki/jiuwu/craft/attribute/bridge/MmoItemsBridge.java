@@ -1,7 +1,5 @@
 package emaki.jiuwu.craft.attribute.bridge;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -36,7 +34,6 @@ import emaki.jiuwu.craft.attribute.model.ResolvedDamage;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
 import emaki.jiuwu.craft.attribute.service.CombatSupport;
 import emaki.jiuwu.craft.corelib.text.Texts;
-import net.Indyuce.mmoitems.ItemStats;
 import net.Indyuce.mmoitems.MMOItems;
 import net.Indyuce.mmoitems.api.Type;
 import net.Indyuce.mmoitems.api.event.item.SpecialWeaponAttackEvent;
@@ -295,7 +292,6 @@ public final class MmoItemsBridge implements Listener {
             }
             initialized = true;
             try {
-                Class.forName("net.Indyuce.mmoitems.MMOItems");
                 loadStatObjects();
                 available = true;
             } catch (Throwable throwable) {
@@ -390,18 +386,16 @@ public final class MmoItemsBridge implements Listener {
             }
         }
 
-        @SuppressWarnings("unchecked")
-        private void loadStatObjects() throws IllegalAccessException {
+        private void loadStatObjects() {
             statObjects.clear();
-            for (Field field : ItemStats.class.getFields()) {
-                if (!Modifier.isStatic(field.getModifiers()) || !ItemStat.class.isAssignableFrom(field.getType())) {
-                    continue;
-                }
-                ItemStat<?, ?> stat = (ItemStat<?, ?>) field.get(null);
+            if (MMOItems.plugin == null || MMOItems.plugin.getStats() == null) {
+                return;
+            }
+            for (ItemStat<?, ?> stat : MMOItems.plugin.getStats().getAll()) {
                 if (stat == null) {
                     continue;
                 }
-                statObjects.putIfAbsent(normalizeMmoId(field.getName()), stat);
+                statObjects.putIfAbsent(normalizeMmoId(stat.name()), stat);
                 String statId = stat.getId();
                 if (Texts.isNotBlank(statId)) {
                     statObjects.putIfAbsent(normalizeMmoId(statId), stat);

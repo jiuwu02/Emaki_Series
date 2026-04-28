@@ -8,7 +8,7 @@ import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
-import emaki.jiuwu.craft.corelib.integration.ReflectivePdcAttributeGateway;
+import emaki.jiuwu.craft.corelib.integration.PdcAttributeGateway;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.plugin.AbstractConfigurableEmakiPlugin;
@@ -59,7 +59,7 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
     private BootstrapService bootstrapService;
     private GuiService guiService;
     private ItemSourceService coreItemSourceService;
-    private ReflectivePdcAttributeGateway pdcAttributeGateway;
+    private PdcAttributeGateway pdcAttributeGateway;
     private GemItemMatcher itemMatcher;
     private GemItemFactory itemFactory;
     private GemSnapshotBuilder snapshotBuilder;
@@ -203,7 +203,7 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         return coreItemSourceService;
     }
 
-    public ReflectivePdcAttributeGateway pdcAttributeGateway() {
+    public PdcAttributeGateway pdcAttributeGateway() {
         return pdcAttributeGateway;
     }
 

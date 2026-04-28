@@ -13,7 +13,7 @@ import org.bukkit.persistence.PersistentDataType;
 
 import emaki.jiuwu.craft.corelib.text.Texts;
 
-public final class ReflectiveSkillPdcGateway {
+public final class SkillPdcGateway {
 
     private static final NamespacedKey SKILL_IDS_KEY = new NamespacedKey("emaki_skills", "item.skills.ids");
 
