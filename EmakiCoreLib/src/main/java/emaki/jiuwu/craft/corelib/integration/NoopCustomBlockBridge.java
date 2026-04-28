@@ -2,7 +2,7 @@ package emaki.jiuwu.craft.corelib.integration;
 
 import org.bukkit.block.Block;
 
-final class NoopCustomBlockBridge implements CustomBlockBridge {
+class NoopCustomBlockBridge implements CustomBlockBridge {
 
     @Override
     public boolean available() {

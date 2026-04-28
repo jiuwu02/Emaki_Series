@@ -26,7 +26,7 @@ final class NexoBlockBridgeApi implements CustomBlockBridge {
             return false;
         }
         try {
-            return NexoBlocks.isNexoBlock(block);
+            return NexoBlocks.isCustomBlock(block);
         } catch (RuntimeException | LinkageError exception) {
             return false;
         }

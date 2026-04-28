@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.corelib.integration;
 
 import org.bukkit.Bukkit;
+import org.bukkit.block.Block;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
