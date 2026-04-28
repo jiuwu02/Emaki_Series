@@ -1,6 +1,6 @@
 # 属性系统主配置
 # version 由资源同步维护
-version: "3.3.0"
+version: "3.4.0"
 
 # 语言文件 ID
 language: zh_CN

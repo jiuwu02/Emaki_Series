@@ -1,0 +1,133 @@
+# version is maintained by resource sync
+version: "3.4.0"
+
+general:
+  prefix: "<gray>[ <gradient:#F2C46D:#C9703D>EmakiStrengthen</gradient> ]</gray>"
+  no_permission: "<red>You do not have permission to perform this action.</red>"
+  player_only: "<red>This command can only be executed by a player.</red>"
+  player_not_found: "<red>Target player not found.</red>"
+  unknown_command: "<red>Unknown command.</red>"
+  invalid_args: "<red>Invalid arguments.</red>"
+  reload_success: "<green>Config reloaded.</green>"
+  reload_summary: "<gray>Reloaded {recipes} recipes, {materials} materials, {guis}
+    GUIs.</gray>"
+
+command:
+  help:
+    header: "<gold>========== Strengthen Help ==========</gold>"
+    footer: "<gold>==================================</gold>"
+    line: "<yellow>{cmd}</yellow> <gray>- {desc}</gray>"
+    desc:
+      help: "Show help"
+      open: "Open strengthen GUI"
+      reload: "Reload strengthen config and GUI"
+      inspect: "Inspect held item strengthen state"
+      refresh: "Refresh strengthen layers in player inventory"
+      setstar: "Set main-hand item star level"
+      clearstate: "Remove strengthen layer from main-hand item"
+      clearcrack: "Clear main-hand item crack"
+      givecatalyst: "Give strengthen material"
+  inspect:
+    header: "<gold>========== {player} Strengthen State ==========</gold>"
+    line: "<yellow>{key}</yellow> <gray>- {value}</gray>"
+  refresh:
+    success: "<green>Refreshed strengthen layers for <yellow>{player}</yellow>.</green>"
+  setstar:
+    success: "<green>Main-hand item set to <gold>+{star}</gold>.</green>"
+  clearstate:
+    success: "<green>Strengthen layer removed from main-hand item.</green>"
+    no_layer: "<yellow>Main-hand item has no removable strengthen layer.</yellow>"
+  clearcrack:
+    success: "<green>Main-hand item crack cleared.</green>"
+  givecatalyst:
+    success: "<green>Gave <gold>{amount}</gold> {material} to
+      <yellow>{player}</yellow>.</green>"
+  catalyst_not_found: "<red>Strengthen material ID not found.</red>"
+  catalyst_create_failed: "<red>Failed to create strengthen material item.</red>"
+  admin_state_failed: "<red>Failed to write strengthen state back to main-hand item.</red>"
+
+console:
+  plugin_starting: "<gray>Starting EmakiStrengthen...</gray>"
+  plugin_started: "<green>EmakiStrengthen started.</green>"
+  plugin_stopped: "<green>EmakiStrengthen stopped.</green>"
+  bootstrap_start: "<white>Checking default files...</white>"
+  bootstrap_complete: "<green>Default file check complete.</green>"
+  bootstrap_copy_failed: "<yellow>Failed to copy default resource:
+    <red>{path}</red> <gray>({error})</gray></yellow>"
+  bootstrap_save_failed: "<yellow>Failed to save merged resource:
+    <red>{path}</red> <gray>({error})</gray></yellow>"
+  default_file_missing: "<yellow>Missing bundled default resource: <red>{path}</red></yellow>"
+  directory_create_failed: "<yellow>Failed to create directory: <red>{path}</red></yellow>"
+  loader_config_load_error: "<yellow>Failed to load strengthen config:
+    <red>{path}</red> <gray>({error})</gray></yellow>"
+  recipe_action_failed: "<yellow>Strengthen action chain failed:
+    <red>{recipe}</red> <gray>phase {phase} star {star}
+    ({error})</gray></yellow>"
+
+loader:
+  lang_directory_create_failed: "<yellow>Failed to create language directory: <red>{path}</red></yellow>"
+  bundled_language_load_failed: "<yellow>Failed to load bundled language: <red>{error}</red></yellow>"
+  directory_create_failed: "<yellow>Failed to create {type} directory: <red>{path}</red></yellow>"
+  invalid_blank_id: "<yellow>{type} ID is blank: <red>{file}</red></yellow>"
+  duplicate_id: "<yellow>Duplicate {type} ID <red>{id}</red>, source
+    <gray>{file}</gray></yellow>"
+  load_failed: "<yellow>Failed to load {type} file: <red>{file}</red>
+    <gray>({error})</gray></yellow>"
+
+strengthen:
+  misc:
+    default_item_name: "Item"
+    free_cost: "Free"
+    unknown_material: "Unknown Material"
+  error:
+    no_target: "<red>Please place an item to strengthen first.</red>"
+    no_source: "<red>This item cannot be identified as an Emaki item source.</red>"
+    no_recipe: "<red>No matching strengthen recipe for this item.</red>"
+    already_max: "<red>This item has already reached the maximum star level.</red>"
+    material_missing: "<red>Insufficient strengthen materials in GUI.</red>"
+    invalid_optional_material: "<red>Materials in GUI do not match the current star recipe.</red>"
+    insufficient_funds: "<red>Insufficient funds for this strengthen: {costs}</red>"
+    economy_provider_unavailable: "<red>Economy provider is currently unavailable.</red>"
+    rebuild_failed: "<red>Failed to write strengthen result, operation aborted.</red>"
+  preview:
+    failure_keep: "<gray>On failure, keep current star and accumulate crack.</gray>"
+    failure_drop: "<red>On failure, drop 1 star and accumulate crack.</red>"
+    failure_drop_protected: "<gold>On failure, protection material consumed, no star drop.</gold>"
+  broadcast:
+    local_reach: "<gold>{player}</gold> <yellow>strengthened {show_item} to
+      <gold>+{star}</gold>.</yellow>"
+    global_reach: "<gold>{player}</gold> <yellow>successfully strengthened
+      {show_item} to <gold>+{star}</gold>.</yellow>"
+
+gui:
+  open_failed: "<red>Failed to open strengthen GUI, check if GUI template loaded.</red>"
+  attempt_success: "<green>Strengthen success, star level raised to
+    <gold>+{star}</gold>.</green>"
+  attempt_failed: "<yellow>Strengthen failed, still at <gold>+{star}</gold>.</yellow>"
+  attempt_failed_downgrade: "<red>Strengthen failed, star level dropped to <gold>+{star}</gold>.</red>"
+  inventory_full: "<yellow>Inventory full, excess items dropped at your feet.</yellow>"
+  preview:
+    title: "<gold>Strengthen Preview</gold>"
+    hint_no_target_1: "<gray>Place equipment to see success rate, materials and cost</gray>"
+    hint_no_target_2: "<gray>All materials must be placed in GUI to be counted</gray>"
+    ineligible_title: "<red>Strengthen conditions not met</red>"
+    ineligible_hint: "<gray>Cannot strengthen at this time</gray>"
+    current_star: "<gray>Current star: <gold>+{star}</gold></gray>"
+    target_star: "<gray>Target star: <yellow>+{star}</yellow></gray>"
+    success_rate: "<gray>Success rate: <green>{rate}%</green></gray>"
+    cost_free: "<gray>Cost: <green>Free</green></gray>"
+    cost_header: "<gray>Cost:</gray>"
+    cost_line: "<gold> - {amount} {name}</gold>"
+    required_materials_header: "<gray>Stage materials (GUI):</gray>"
+    optional_materials_header: "<gray>Placed GUI materials:</gray>"
+    delta_stats_header: "<gray>Strengthen bonus:</gray>"
+    delta_stats_line: "<gold> - {id} +{value}</gold>"
+  temper:
+    title: "<gold>Crack Status</gold>"
+    current: "<gray>Current crack: <gold>{temper}/{max}</gold></gray>"
+    bonus: "<gray>Extra crack bonus this time: <aqua>+{bonus}</aqua></gray>"
+    hint: "<gray>Crack accumulates on failure, increasing future success rate</gray>"
+  confirm:
+    title: "<green>Confirm Strengthen</green>"
+    ineligible_title: "<red>Cannot Strengthen</red>"
+    ineligible_hint: "<gray>Please meet all strengthen conditions first</gray>"

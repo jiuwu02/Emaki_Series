@@ -1,6 +1,6 @@
 # 锻造系统主配置
 # version 由资源同步维护
-version: "3.3.0"
+version: "3.4.0"
 
 # 语言文件 ID
 language: "zh_CN"
@@ -67,7 +67,8 @@ quality:
               order: 100
               content_template: "<color:#4B64C8>[无暇]</color>"
         action:
-          - "broadcastmessage text=\"<color:#4B64C8>%player_name%锻造出了一个无暇品质的<show_item></color>\""
+          - "broadcastmessage
+            text=\"<color:#4B64C8>%player_name%锻造出了一个无暇品质的<show_item></color>\""
       完美:
         structured_presentation:
           name_contributions:
@@ -76,7 +77,8 @@ quality:
               order: 100
               content_template: "<color:#FFD700>[完美]</color>"
         action:
-          - "broadcastmessage text=\"<color:#FFD700>%player_name%锻造出了一个完美品质的<show_item></color>\""
+          - "broadcastmessage
+            text=\"<color:#FFD700>%player_name%锻造出了一个完美品质的<show_item></color>\""
 
 number_format:
   default: "0.##"

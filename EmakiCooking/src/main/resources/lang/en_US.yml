@@ -1,0 +1,116 @@
+# version is maintained by resource sync
+version: "2.2.0"
+
+general:
+  prefix: "<gray>[ <gradient:#D8792E:#F6D16E>Emaki Cooking</gradient> ]</gray>"
+  no_permission: "<red>You do not have permission to perform this action.</red>"
+  player_only: "<red>This command can only be executed by a player.</red>"
+  unknown_command: "<red>Unknown command.</red>"
+  invalid_args: "<red>Invalid arguments.</red>"
+  no_item_in_hand: "<red>You are not holding an inspectable item in your main hand.</red>"
+  reload_success: "<green>Configuration reloaded.</green>"
+  reload_summary: "<gray>Reloaded {recipes} recipes, {resources} GUI resources.</gray>"
+
+command:
+  help:
+    header: "<gold>========== EmakiCooking Help ==========</gold>"
+    footer: "<gold>=======================================</gold>"
+    line: "<yellow>{cmd}</yellow> <gray>- {desc}</gray>"
+  inspect:
+    header: "<gold>========== Held Item Inspection ==========</gold>"
+    line: "<yellow>{key}</yellow> <gray>- {value}</gray>"
+  convert:
+    dryrun_success: "<green>Legacy dry run complete: imported {recipes} recipes,
+      {stations} station states.</green>"
+    apply_success: "<green>Legacy data import complete: {recipes} recipes,
+      {stations} station states.</green>"
+    report: "<gray>Import report: {path}</gray>"
+    backup: "<gray>Backup directory: {path}</gray>"
+    issues: "<yellow>Skipped {skipped}, conflicts {conflicts}, unrecognized sources
+      {unknown_sources}, action context issues
+      {action_context_issues}.</yellow>"
+
+console:
+  plugin_starting: "<gray>Starting EmakiCooking...</gray>"
+  plugin_started: "<green>EmakiCooking started successfully.</green>"
+  plugin_stopped: "<green>EmakiCooking shut down.</green>"
+  bootstrap_start: "<white>Checking default files...</white>"
+  bootstrap_complete: "<green>Default file check complete.</green>"
+  bootstrap_skip: "<yellow>Skipped default data generation.</yellow>"
+  bootstrap_copy_failed: "<yellow>Failed to copy default resource:
+    <red>{path}</red> <gray>({error})</gray></yellow>"
+  bootstrap_save_failed: "<yellow>Failed to save merged resource:
+    <red>{path}</red> <gray>({error})</gray></yellow>"
+  bootstrap_cleanup_failed: "<yellow>Failed to clean up old directory:
+    <red>{path}</red> <gray>({error})</gray></yellow>"
+  default_file_missing: "<yellow>Missing built-in default resource: <red>{path}</red></yellow>"
+  directory_create_failed: "<yellow>Failed to create directory: <red>{path}</red></yellow>"
+  loader_config_load_error: "<yellow>Failed to load EmakiCooking config:
+    <red>{path}</red> <gray>({error})</gray></yellow>"
+
+loader:
+  lang_directory_create_failed: "<yellow>Unable to create language directory: <red>{path}</red></yellow>"
+  bundled_language_load_failed: "<yellow>Failed to load bundled language: <red>{error}</red></yellow>"
+  directory_create_failed: "<yellow>Unable to create {type} directory: <red>{path}</red></yellow>"
+  invalid_blank_id: "<yellow>{type} ID is blank: <red>{file}</red></yellow>"
+  duplicate_id: "<yellow>Duplicate {type} ID <red>{id}</red>, source
+    <gray>{file}</gray></yellow>"
+  load_failed: "<yellow>Failed to load {type} file: <red>{file}</red>
+    <gray>({error})</gray></yellow>"
+
+chopping_board:
+  too_fast: "<yellow>Too fast, please wait a moment.</yellow>"
+  wrong_tool: "<yellow>You need to hold the configured kitchen knife to chop.</yellow>"
+  cannot_cut: "<red>The placed ingredient has no available chopping board recipe.</red>"
+  progress: "<gray>Chopping progress:
+    <yellow>{current}</yellow>/<yellow>{required}</yellow></gray>"
+  completed: "<green>Chopping board processing complete:
+    <yellow>{recipe}</yellow></green>"
+  item_placed: "<gray>Placed ingredient on the chopping board.</gray>"
+  item_returned: "<gray>Retrieved ingredient from the chopping board.</gray>"
+  cut_hurt: "<red>You cut yourself, taking {damage} damage.</red>"
+
+grinder:
+  busy: "<yellow>The grinder is running, please wait.</yellow>"
+  no_recipe: "<red>No matching grinder recipe for the current item.</red>"
+  started: "<gray>Grinding started, estimated <yellow>{seconds}</yellow> seconds
+    to complete.</gray>"
+  completed: "<green>Grinding complete: <yellow>{recipe}</yellow></green>"
+
+wok:
+  no_item: "<yellow>There are no ingredients in the wok to work with.</yellow>"
+  no_heat: "<red>No valid heat source under the wok, cannot start cooking.</red>"
+  too_fast: "<yellow>Stirring too fast, please try again later.</yellow>"
+  wrong_tool: "<yellow>You need to hold the configured spatula to stir or inspect
+    contents.</yellow>"
+  burnt_timeout: "<red>Heat was interrupted too long, the food is burnt.</red>"
+  stir_count: "<gray>Stir count: <yellow>{count}</yellow></gray>"
+  ingredient_added: "<gray>Added ingredient: <yellow>{item}</yellow></gray>"
+  ingredient_returned: "<gray>Retrieved ingredient from wok: <yellow>{item}</yellow></gray>"
+  no_recipe: "<yellow>The current ingredient combination cannot be served yet.</yellow>"
+  completed_success: "<green>Successfully served: <yellow>{recipe}</yellow></green>"
+  completed_undercooked: "<yellow>Undercooked, produced a half-raw <white>{recipe}</white></yellow>"
+  completed_overcooked: "<red>Overcooked, produced a burnt <white>{recipe}</white></red>"
+  completed_invalid: "<red>This dish is ruined.</red>"
+  scalded: "<red>You were scalded by the hot wok, taking {damage} damage.</red>"
+  info_header: "<gold>========== Wok Contents =========="
+  info_line: "<gray>{index}. {item} x{amount} | Stirs per item {stir}</gray>"
+  info_footer: "<gray>Total stirs: <yellow>{count}</yellow> | Heat:
+    <yellow>{heat}</yellow></gray>"
+
+steamer:
+  no_heat_source: "<red>No valid heat source under the steamer, cannot open.</red>"
+  in_use: "<yellow>This steamer is being used by another player, please try again
+    later.</yellow>"
+  open_failed: "<red>Failed to open steamer GUI.</red>"
+  opened: "<gray>Steamer opened.</gray>"
+  add_fuel: "<gray>Added fuel <yellow>{item}</yellow>, estimated duration
+    <yellow>{seconds}</yellow> seconds.</gray>"
+  add_moisture: "<gray>Added moisture source <yellow>{item}</yellow>, added
+    <aqua>{moisture}</aqua> moisture, current total
+    <aqua>{total}</aqua>.</gray>"
+  info: "<gray>Burn time: <yellow>{burning_time}</yellow>s | Moisture:
+    <aqua>{moisture}</aqua> | Steam: <white>{steam}</white> | Cooking progress:
+    <yellow>{progress}</yellow></gray>"
+  progress_not_started: "Not Started"
+  progress_completed: "Completed"

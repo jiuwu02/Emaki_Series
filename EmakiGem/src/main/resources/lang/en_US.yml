@@ -1,0 +1,148 @@
+# version is maintained by resource sync
+version: "1.3.0"
+
+general:
+  prefix: "<gray>[ <gradient:#B84DFF:#FF8A3D>Equipment Gems</gradient> ]</gray>"
+  unknown_command: "<red>Unknown command, use <yellow>/emakigem help</yellow> to
+    view help.</red>"
+  player_only: "<red>This command can only be executed by a player.</red>"
+  no_permission: "<red>You do not have permission to execute this command.</red>"
+  invalid_args: "<red>Invalid arguments, please check the command format.</red>"
+  player_not_found: "<red>Target player not found.</red>"
+  reload_success: "<green>Configuration reloaded.</green>"
+  reload_summary: "<gray>Loaded {gems} gems, {items} equipment items, {guis} GUI
+    templates.</gray>"
+
+console:
+  plugin_starting: "<gray>Starting EmakiGem...</gray>"
+  plugin_started: "<green>EmakiGem started successfully.</green>"
+  bootstrap_start: "<white>Checking default files...</white>"
+  bootstrap_skip: "<gray>release_default_data=false, skipped default data file
+    generation.</gray>"
+  bootstrap_complete: "<green>Default file check complete.</green>"
+  default_file_missing: "<yellow>Missing built-in default resource, skipped:
+    <red>{path}</red></yellow>"
+  bootstrap_copy_failed: "<yellow>Failed to copy default resource:
+    <red>{path}</red> <gray>({error})</gray></yellow>"
+  bootstrap_save_failed: "<yellow>Failed to save default resource:
+    <red>{path}</red> <gray>({error})</gray></yellow>"
+  bootstrap_cleanup_failed: "<yellow>Failed to clean up resource directory:
+    <red>{path}</red> <gray>({error})</gray></yellow>"
+  directory_create_failed: "<yellow>Unable to create directory: <red>{path}</red></yellow>"
+  bootstrap_legacy_cleanup_failed: "<yellow>Failed to clean up legacy resource
+    directory: <red>{path}</red> <gray>({error})</gray></yellow>"
+  loader_config_load_error: "<red>Failed to load config: {path} ({error})</red>"
+
+loader:
+  lang_directory_create_failed: "<red>Unable to create language directory: {path}</red>"
+  bundled_language_load_failed: "<red>Failed to load bundled language: {error}</red>"
+  bundled_resource_missing: "<red>Bundled resource missing: {resource}, cannot write to {path}</red>"
+  directory_create_failed: "<red>Unable to create directory: {path}</red>"
+  invalid_blank_id: "<red>{type} file {file} is missing a valid ID.</red>"
+  duplicate_id: "<red>{type} file {file} has duplicate ID: {id}</red>"
+  load_failed: "<red>Failed to load {type} file {file}: {error}</red>"
+  invalid_config: "<red>{type} file {file} has invalid config, skipped loading.</red>"
+  gem_missing_item_source: "<red>Gem file {file} has missing or invalid
+    item_source, loading rejected: {id}</red>"
+
+gem:
+  error:
+    invalid_equipment: "<red>{player}'s main hand item is not an inlayable equipment.</red>"
+    insufficient_cost: "<red>Insufficient currency or materials.</red>"
+    player_required: "<red>This operation must be performed by a player.</red>"
+
+command:
+  help:
+    header: "<gold>EmakiGem Help</gold>"
+    line: "<gray>/emakigem <yellow>{cmd}</yellow> <dark_gray>-</dark_gray>
+      {desc}</gray>"
+    footer: "<dark_gray>For inlay, socket opening, extraction and upgrade
+      interfaces, use <gray>/emakigem gui [inlay|extract|open|upgrade]</gray> to
+      open.</dark_gray>"
+
+  gui_only: "<yellow>The corresponding interface can now only be opened via
+    <gold>/emakigem gui [inlay|extract|open|upgrade]</gold>.</yellow>"
+
+  inspect:
+    header: "<gold>Gem Status Check - {player}</gold>"
+    line: "<gray>{key}: <yellow>{value}</yellow></gray>"
+
+  open:
+    opener_not_found: "<red>No available socket opener config found: {opener}</red>"
+    hold_opener: "<red>Please provide a valid <yellow>{opener}</yellow> socket
+      opener.</red>"
+    no_available_slot: "<red>No more slots available to open.</red>"
+    slot_already_opened: "<yellow>This socket is already opened.</yellow>"
+    slot_unavailable: "<red>The specified slot cannot be opened at this time.</red>"
+    apply_failed: "<red>Socket opening failed, unable to write back equipment state.</red>"
+    success: "<green>Opened slot <gold>#{slot}</gold> for
+      <yellow>{player}</yellow>.</green>"
+
+  inlay:
+    slot_not_found: "<red>Slot #{slot} not found.</red>"
+    slot_not_opened: "<red>Slot #{slot} has not been opened yet.</red>"
+    slot_occupied: "<red>Slot #{slot} already has a gem inlaid.</red>"
+    hold_gem: "<red>Please provide a valid gem item.</red>"
+    gem_type_blocked: "<red>This equipment does not allow gems of type
+      <yellow>{type}</yellow>.</red>"
+    socket_incompatible: "<red>Gem is incompatible with slot #{slot} of type
+      <yellow>{type}</yellow>.</red>"
+    max_same_type: "<red>This equipment has reached the limit for gems of the same
+      type: {type}</red>"
+    max_same_id: "<red>This equipment has reached the limit for gems with the same
+      ID: {gem}</red>"
+    chance_failed: "<red>Inlay failed, gem was not applied to equipment.</red>"
+    apply_failed: "<red>Inlay failed, unable to write back equipment state.</red>"
+    success: "<green>Inlaid <yellow>{gem}</yellow> into slot
+      <gold>#{slot}</gold>.</green>"
+
+  extract:
+    slot_empty: "<red>No gem to extract in slot #{slot}.</red>"
+    apply_failed: "<red>Extraction failed, unable to write back equipment state.</red>"
+    success: "<green>Extracted <yellow>{gem}</yellow> from slot
+      <gold>#{slot}</gold>.</green>"
+
+  clearstate:
+    no_layer: "<yellow>The main hand item currently has no removable gem layer.</yellow>"
+    apply_failed: "<red>Failed to clear gem layer, unable to write back equipment
+      state.</red>"
+    success: "<green>Cleared the gem layer on the main hand item.</green>"
+
+  upgrade:
+    hold_gem: "<red>Please place the gem item to upgrade first.</red>"
+    slot_empty: "<red>No upgradeable gem in the specified slot #{slot}.</red>"
+    direct_disabled: "<red>Direct in-equipment upgrade is not enabled, please use
+      the standalone upgrade interface.</red>"
+    max_level: "<red>This gem has already reached the maximum upgradeable level.</red>"
+    failed: "<red>Upgrade failed, materials consumed but gem was not improved.</red>"
+    apply_failed: "<red>Upgrade failed, unable to generate new gem item.</red>"
+    success: "<green>Gem upgraded successfully, current level
+      <gold>{target_level}</gold>.</green>"
+
+gui:
+  open_failed: "<red>Unable to open gem main interface, please check if the GUI
+    template exists.</red>"
+  open_socket_failed: "<red>Unable to open socket opening interface, please check
+    if the GUI template exists.</red>"
+  upgrade_open_failed: "<red>Unable to open gem upgrade interface, please check if
+    the GUI template exists.</red>"
+  gem:
+    target_required: "<red>Please place an inlayable equipment in the left slot first.</red>"
+    invalid_target: "<red>The placed item is not an equipment that supports gem inlay.</red>"
+    hold_gem: "<red>Please hold a gem item on your cursor and click an empty slot.</red>"
+    hold_opener: "<red>Please hold a socket opener on your cursor and click a locked
+      slot.</red>"
+    open_via_open_gui: "<yellow>This slot has not been opened yet, please use
+      <gold>/emakigem gui open</gold> to handle it.</yellow>"
+    no_pending_action: "<red>No pending action to confirm.</red>"
+  open:
+    target_required: "<red>Please place an equipment that supports socket opening first.</red>"
+    invalid_target: "<red>The placed item is not an equipment that supports socket
+      opening.</red>"
+    invalid_opener: "<red>The placed item is not a valid socket opener.</red>"
+    hold_opener: "<red>Please place a usable socket opener first.</red>"
+    no_slot_selected: "<red>Please select a locked slot to open first.</red>"
+  upgrade:
+    invalid_gem: "<red>The placed item is not a valid gem item.</red>"
+    invalid_material: "<red>This material slot only accepts items matching
+      <yellow>{material}</yellow>.</red>"

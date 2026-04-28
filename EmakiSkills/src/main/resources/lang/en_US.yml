@@ -1,0 +1,162 @@
+# version is maintained by resource sync
+version: "1.2.0"
+
+general:
+  prefix: "<gray>[ <gradient:#4DA6FF:#FF6B6B>Active Skills</gradient> ]</gray>"
+  no_permission: "<red>You do not have permission to perform this action.</red>"
+  player_only: "<red>This command can only be executed by a player.</red>"
+  player_not_found: "<red>Target player not found.</red>"
+  unknown_command: "<red>Unknown command, use /eskills help to view help.</red>"
+  invalid_args: "<red>Invalid arguments.</red>"
+  reload_success: "<green>Configuration reloaded.</green>"
+  reload_summary: "<gray>Skills: {skills} | Resources: {resources} | GUI: {guis}</gray>"
+
+console:
+  plugin_starting: "Starting EmakiSkills..."
+  plugin_started: "EmakiSkills started successfully."
+  bootstrap_start: "Checking default files..."
+  bootstrap_complete: "Default file check complete."
+  bootstrap_skip: "Skipped default data generation."
+  bootstrap_copy_failed: "Failed to copy default resource: {path} ({error})"
+  bootstrap_save_failed: "Failed to save default resource: {path} ({error})"
+  bootstrap_cleanup_failed: "Failed to clean up old directory: {path} ({error})"
+  default_file_missing: "Missing built-in default resource: {path}"
+  directory_create_failed: "Failed to create directory: {path}"
+  loader_config_load_error: "Failed to load EmakiSkills config: {path} ({error})"
+  ea_bridge_unavailable: "EmakiAttribute not detected, attribute bridge disabled."
+  ea_bridge_service_unregistered: "EmakiAttribute loaded but skill bridge service
+    not exposed, attribute bridge disabled."
+  ea_bridge_ready: "EmakiAttribute bridge ready, connection mode: {mode}."
+  ea_bridge_init_failed: "Failed to initialize EmakiAttribute bridge: {error}"
+  ea_bridge_read_resource_current_failed: "Failed to read EmakiAttribute resource current value: {resource} ({error})"
+  ea_bridge_read_resource_max_failed: "Failed to read EmakiAttribute resource max value: {resource} ({error})"
+  ea_bridge_consume_failed: "Failed to consume EmakiAttribute resource: {resource} ({error})"
+  ea_bridge_attribute_read_failed: "Failed to read EmakiAttribute attribute: {attribute} ({error})"
+  mythic_bridge_unavailable: "MythicMobs not detected, Mythic skill bridge disabled."
+  mythic_bridge_class_unavailable: "MythicMobs class unavailable, Mythic skill bridge disabled."
+  mythic_bridge_ready: "MythicMobs skill bridge ready."
+  mythic_bridge_init_failed: "Failed to initialize MythicMobs skill bridge: {error}"
+  mythic_bridge_skill_lookup_failed: "Failed to look up Mythic skill: {skill} ({error})"
+  mythic_bridge_cast_failed: "Failed to cast Mythic skill: {skill} ({error})"
+
+loader:
+  lang_directory_create_failed: "Unable to create language directory: {path}"
+  bundled_language_load_failed: "Failed to load bundled language file: {error}"
+  bundled_resource_missing: "Bundled resource missing: {resource}, cannot write to {path}"
+
+cast_mode:
+  enabled: "<green>Entered cast mode.</green>"
+  disabled: "<yellow>Exited cast mode.</yellow>"
+  already_enabled: "<gray>You are already in cast mode.</gray>"
+  already_disabled: "<gray>You are not currently in cast mode.</gray>"
+
+skill:
+  equipped: "<green>Equipped <white>{skill}</white> to slot {slot}.</green>"
+  unequipped: "<yellow>Unequipped skill from slot {slot}.</yellow>"
+  source_lost: "<red>The source of skill <white>{skill}</white> is no longer
+    valid, automatically unequipped.</red>"
+  not_found: "<red>Skill not found: {skill_id}</red>"
+  not_unlocked: "<red>You have not unlocked this skill yet.</red>"
+
+trigger:
+  bound: "<green>Bound trigger <white>{trigger}</white> to slot {slot}.</green>"
+  conflict: "<red>Trigger <white>{trigger}</white> conflicts with
+    <white>{conflict_trigger}</white> in slot {conflict_slot}.</red>"
+  disabled: "<red>Trigger <white>{trigger}</white> is disabled.</red>"
+  conflict_auto_fix: "<yellow>Trigger conflict auto-resolved: cleared binding for
+    slot {slot}.</yellow>"
+
+cast:
+  invalid_input: "<red>Invalid cast input.</red>"
+  not_in_cast_mode: "<red>Not currently in cast mode.</red>"
+  no_profile: "<red>Player data not yet loaded.</red>"
+  no_binding: "<red>No skill bound to this trigger.</red>"
+  forced_delay: "<red>Global cast delay active, {remaining}s remaining.</red>"
+  global_cooldown: "<red>Global cooldown active, {remaining}s remaining.</red>"
+  skill_cooldown: "<red>Skill <white>{skill}</white> on cooldown, {remaining}s
+    remaining.</red>"
+  resource_insufficient: "<red>{message}</red>"
+  mythic_not_configured: "<red>Skill has no Mythic mapping configured.</red>"
+  mythic_not_found: "<red>Mythic skill {mythic_skill} not found.</red>"
+  mythic_failed: "<red>Skill cast failed.</red>"
+  success: ""
+
+gui:
+  open_failed: "<red>Unable to open skill interface.</red>"
+  title: "Active Skills"
+  slot_empty: "<gray>Empty Skill Slot</gray>"
+  slot_empty_hint: "<dark_gray>Click to equip skill</dark_gray>"
+  slot_info_trigger: "<gray>Trigger: <white>{trigger}</white></gray>"
+  slot_info_cooldown: "<gray>Cooldown: <white>{cooldown}s</white></gray>"
+  slot_info_gcd: "<gray>GCD: <white>{gcd}s</white></gray>"
+  slot_info_delay: "<gray>Forced Delay: <white>{delay}s</white></gray>"
+  skill_source_equipment: "<gray>Source: {slot_name}</gray>"
+  skill_source_multiple: "<gray>From {count} sources</gray>"
+  skill_source_provider: "<gray>External source: {provider}</gray>"
+  trigger_select_title: "Select Trigger"
+  trigger_occupied: "<red>Occupied</red>"
+  trigger_available: "<green>Available</green>"
+  trigger_conflict_hint: "<red>Conflicts with {trigger}</red>"
+  click_to_equip: "<yellow>Click to equip skill</yellow>"
+  click_to_unequip: "<yellow>Click to unequip skill</yellow>"
+  click_to_bind: "<yellow>Click to bind trigger</yellow>"
+  cast_mode_on: "<green>Enter Cast Mode</green>"
+  cast_mode_off: "<red>Exit Cast Mode</red>"
+  refresh_pool: "<yellow>Refresh Skill List</yellow>"
+  close: "<gray>Close</gray>"
+  page_prev: "<gray>Previous Page</gray>"
+  page_next: "<gray>Next Page</gray>"
+  page_info: "<gray>Page {current}/{total}</gray>"
+
+slot_names:
+  main_hand: "Main Hand"
+  off_hand: "Off Hand"
+  helmet: "Helmet"
+  chestplate: "Chestplate"
+  leggings: "Leggings"
+  boots: "Boots"
+
+command:
+  help:
+    header: "<gray>========== <gradient:#4DA6FF:#FF6B6B>EmakiSkills Help</gradient>
+      ==========</gray>"
+    line: "<gold>/{cmd}</gold> <gray>- {desc}</gray>"
+    footer: "<gray>==========================================</gray>"
+  inspect:
+    header: "<gray>===== Player <white>{player}</white> Skill Status =====</gray>"
+    line: "<gray>{key}: <white>{value}</white></gray>"
+  debug:
+    header: "<gray>===== Debug Info: <white>{player}</white> =====</gray>"
+    line: "<gray>{key}: <white>{value}</white></gray>"
+  castmode:
+    enabled: "<green>Cast mode enabled.</green>"
+    disabled: "<yellow>Cast mode disabled.</yellow>"
+  clearslot:
+    success: "<green>Specified skill slot cleared.</green>"
+    failed: "<red>Failed to clear skill slot.</red>"
+  resync:
+    success: "<green>Player skill pool re-synced.</green>"
+  level:
+    get: "<gray>Player <white>{player}</white>'s <white>{skill}</white> level is
+      <gold>{level}</gold><dark_gray>/</dark_gray><yellow>{max_level}</yellow>.\
+      </gray>"
+    changed: "<green>Set player <white>{player}</white>'s <white>{skill}</white>
+      level to
+      <gold>{level}</gold><dark_gray>/</dark_gray><yellow>{max_level}</yellow>.\
+      </green>"
+
+upgrade:
+  player_required: "<red>An online player must be specified to upgrade skills.</red>"
+  invalid: "<red>Invalid skill upgrade data.</red>"
+  disabled: "<red>Skill <white>{skill}</white> does not have upgrades enabled.</red>"
+  not_unlocked: "<red>You have not unlocked skill <white>{skill}</white>.</red>"
+  max_level: "<yellow>Skill <white>{skill}</white> has reached the maximum level
+    <gold>{max_level}</gold>.</yellow>"
+  economy_unavailable: "<red>Economy service unavailable, cannot deduct {cost}.</red>"
+  insufficient_funds: "<red>Insufficient funds, requires {cost}.</red>"
+  insufficient_materials: "<red>Insufficient materials, requires
+    <white>{material}</white> x{required}, currently {available}.</red>"
+  success: "<green>Skill <white>{skill}</white> upgraded to level
+    <gold>{target_level}</gold>.</green>"
+  failed: "<red>Skill <white>{skill}</white> upgrade failed, success rate
+    {success_rate}%.</red>"

@@ -1,0 +1,236 @@
+# version is maintained by resource sync
+version: "3.4.0"
+general:
+  prefix: "<gray>[ <gradient:#66D9EF:#7B7BFF>EmakiAttribute</gradient> ]</gray>"
+
+console:
+  plugin_started: "<green>EmakiAttribute started.</green>"
+  plugin_stopped: "<yellow>EmakiAttribute stopped.</yellow>"
+  config_load_failed: "<red>Config load failed: {error}</red>"
+  reload_stage_failed: "<yellow>Reload stage {stage} failed: <red>{error}</red></yellow>"
+  vanilla_attribute_resolve_failed: "<yellow>Failed to resolve vanilla attribute
+    mapping: <red>{attribute}</red> -> <red>{target}</red></yellow>"
+  attribute_key_contains_conflict: "<yellow>[Attribute Registry] Keyword
+    containment conflict detected: <aqua>{lower_display_name}</aqua>
+    (<white>{lower_id}</white>, priority {lower_priority}) keyword
+    <white>{lower_key}</white> contains <aqua>{higher_display_name}</aqua>
+    (<white>{higher_id}</white>, priority {higher_priority}) keyword
+    <white>{higher_key}</white>. Lower priority causes read failure; raise
+    priority or change display_name.</yellow>"
+  mmoitems_bridge_unavailable: "<yellow>MMOItems attribute bridge init failed: <red>{error}</red></yellow>"
+  mmoitems_stat_resolve_failed: "<yellow>MMOItems attribute mapping cannot resolve
+    stat: attribute <aqua>{attribute}</aqua> -> <red>{stat}</red></yellow>"
+  mmoitems_stat_read_failed: "<yellow>MMOItems attribute mapping read failed:
+    attribute <aqua>{attribute}</aqua> -> <red>{stat}</red>
+    (<red>{error}</red>)</yellow>"
+  attribute_registry_empty: "<yellow>[Attribute Registry] No attribute definitions loaded.</yellow>"
+  attribute_registry_summary: "<green>[Attribute Registry] Loaded {count} attribute definitions.</green>"
+  attribute_registry_entry: "<gray>[Attribute Registry]</gray>
+    <white>{index}</white> <dark_gray>|</dark_gray> <aqua>{display_name}</aqua>
+    <dark_gray>(</dark_gray><white>{id}</white><dark_gray>)</dark_gray>
+    <dark_gray>|</dark_gray> <gray>Default</gray>
+    <yellow>{default_value}</yellow> <dark_gray>|</dark_gray> <gray>Power</gray>
+    <light_purple>{attribute_power}</light_purple>"
+
+loader:
+  lang_directory_create_failed: "<red>Failed to create language directory: {path}</red>"
+  bundled_language_load_failed: "<red>Failed to load bundled language: {error}</red>"
+  bundled_resource_missing: "<red>Bundled resource missing: {resource}, cannot write to {path}</red>"
+  bundled_resource_sync_failed: "<red>Failed to sync bundled resource: {path} ({error})</red>"
+  bundled_resource_write_failed: "<red>Failed to write bundled resource: {path} ({error})</red>"
+  directory_create_failed: "<red>Failed to create {type} directory: {path}</red>"
+  schema_missing_id: "<red>{type} file {file} is missing the ID field.</red>"
+  schema_missing_section: "<red>{type} file {file} is missing required {field} section.</red>"
+  schema_invalid_section: "<red>{type} file {file} has invalid {field} structure.</red>"
+  schema_invalid_enum: "<red>{type} file {file} has invalid {field} enum value.</red>"
+  schema_invalid_number: "<red>{type} file {file} has invalid {field} number.</red>"
+  schema_unsupported_field: "<red>{type} file {file} still contains unsupported {field} field.</red>"
+  invalid_blank_id: "<red>{type} file {file} has a blank ID.</red>"
+  duplicate_id: "<red>{type} file {file} has duplicate ID: {id}.</red>"
+  invalid_lore_pattern: "<red>{attribute} has invalid lore regex: {pattern} ({error})</red>"
+  load_failed: "<red>Failed to load {type} file {file}: {error}</red>"
+
+label:
+  attribute: "Attribute"
+  attribute_balance: "Attribute Balance"
+  damage_type: "Damage Type"
+  default_profile: "Default Profile"
+  lore_format: "Lore Format"
+  preset: "Preset"
+
+damage:
+  environment: "Environment"
+  target: "Target"
+  critical_text: "Critical"
+  critical_suffix: " <red>Critical</red>"
+  cause:
+    environment: "Environment"
+    unknown: "Unknown"
+    contact: "Contact"
+    entity_attack: "Attack"
+    projectile: "Projectile"
+    suffocation: "Suffocation"
+    fall: "Fall"
+    fire: "Fire"
+    fire_tick: "Burning"
+    melting: "Melting"
+    lava: "Lava"
+    drowning: "Drowning"
+    block_explosion: "Block Explosion"
+    entity_explosion: "Explosion"
+    void: "Void"
+    lightning: "Lightning"
+    world_border: "World Border"
+    starvation: "Starvation"
+    poison: "Poison"
+    magic: "Magic"
+    wither: "Wither"
+    falling_block: "Falling Block"
+    dragon_breath: "Dragon Breath"
+    fly_into_wall: "Collision"
+    hot_floor: "Hot Floor"
+    campfire: "Campfire"
+    cramming: "Cramming"
+    dryout: "Dryout"
+    freeze: "Freeze"
+    sonic_boom: "Sonic Boom"
+
+combat_debug:
+  projectile_snapshot_write: "Projectile snapshot written:
+    projectile={projectile}, shooter={shooter}, damageType={damage_type},
+    signature={signature}, snapshot={snapshot}"
+  projectile_snapshot_missing_apply: "applyProjectileDamage could not find
+    projectile snapshot, aborting: projectile={projectile}"
+  resolve_skipped: "Target invalid or dead, EA damage resolve skipped."
+  resolve_begin_sync: "Begin EA damage resolve: {context} |
+    attackerSnapshot={attacker_snapshot} | targetSnapshot={target_snapshot}"
+  resolve_begin_async: "Begin async EA damage resolve: {context} |
+    attackerSnapshot={attacker_snapshot} | targetSnapshot={target_snapshot}"
+  apply_skipped: "Target invalid or dead, EA damage apply skipped."
+  apply_begin: "Preparing EA damage apply: finalDamage={final_damage},
+    alreadyApplied={already_applied}, remaining={remaining},
+    targetHealthBefore={target_health_before},
+    targetAbsorptionBefore={target_absorption_before},
+    visualSource={visual_source}"
+  apply_done: "EA damage applied: targetHealthAfter={target_health_after},
+    targetAbsorptionAfter={target_absorption_after},
+    attackerCooldownTicks={attacker_cooldown_ticks}"
+  dodge_triggered: "Target dodged EA damage: dodgeChance={dodge_chance}, dodgeRoll={dodge_roll}"
+  event_result_empty: "EA damage result is empty, skipping event and apply."
+  calc_result: "Damage calculation complete: damageType={damage_type},
+    finalDamage={final_damage}, critical={critical}, roll={roll},
+    stages={stages}"
+  event_blocked: "EmakiAttributeDamageEvent blocked: cancelled={cancelled},
+    finalDamage={final_damage}"
+  event_passed: "EmakiAttributeDamageEvent passed: finalDamage={final_damage},
+    resolvedDamageType={resolved_damage_type}"
+  mythic_on_damaged_blocked: "Synthetic onDamaged event blocked EA damage:
+    cancelled={cancelled}, finalDamage={final_damage}"
+  mythic_on_damaged_adjusted: "Synthetic onDamaged adjusted final damage: before={before}, after={after}"
+  projectile_launch_blocked: "Projectile launch blocked by attack cooldown: shooter={shooter}"
+  projectile_launch_snapshot_written: "Projectile snapshot written:
+    projectile={projectile}, damageType={damage_type}, signature={signature}"
+  synthetic_damage_bypass_entity: "Bypassed synthetic damage event to avoid EA re-intercept."
+  projectile_hit_intercept: "Intercepted vanilla projectile damage:
+    shooter={shooter}, projectile={projectile}, target={target}, cause={cause},
+    vanillaDamage={vanilla_damage}, vanillaFinal={vanilla_final}"
+  projectile_hit_blocked: "Projectile hit blocked by attack cooldown: shooter={shooter}"
+  projectile_resolve_empty: "Projectile hit produced no valid EA damage result, ending hit flow."
+  projectile_resolved: "Projectile hit resolved EA damage: {resolved}"
+  projectile_apply: "Executing next-tick projectile EA damage apply."
+  melee_hit_intercept: "Intercepted vanilla melee damage: attacker={attacker},
+    target={target}, cause={cause}, vanillaDamage={vanilla_damage},
+    vanillaFinal={vanilla_final}"
+  melee_hit_blocked: "Melee hit blocked by attack cooldown: attacker={attacker}"
+  melee_resolve_empty: "Melee hit produced no valid EA damage result, ending hit flow."
+  melee_resolved: "Melee hit resolved EA damage: {resolved}"
+  melee_apply: "Executing next-tick melee EA damage apply."
+  synthetic_damage_bypass_non_entity: "Bypassed synthetic non-entity damage event to avoid EA re-intercept."
+  environment_fallback: "Environment damage not in whitelist but hard-lock
+    enabled, using default damage type: cause={cause}"
+  environment_resolve_empty: "Environment damage produced no valid EA damage result, ending flow."
+  environment_resolved_async: "Environment damage resolved EA damage: {resolved}"
+  environment_apply: "Executing next-tick environment EA damage apply."
+  environment_ignored: "Environment damage not in whitelist, keeping vanilla
+    handling: cause={cause}"
+  environment_mapped: "Environment damage mapped to EA damage: target={target},
+    cause={cause}, damageType={damage_type}, sourceDamage={source_damage},
+    baseDamage={base_damage}"
+  projectile_snapshot_missing_strict: "Projectile hit snapshot not found, aborting
+    under strict snapshot mode: projectile={projectile}"
+  async_damage_failed: "Async damage resolve failed: {error}"
+
+command:
+  unknown: "<red>Unknown subcommand, use /{label} help for help.</red>"
+
+  reload:
+    no_permission: "<red>You do not have permission to run this command.</red>"
+    in_progress: "<yellow>Attribute system is reloading, please wait.</yellow>"
+    started: "<gray>Async reload task submitted, progress will follow.</gray>"
+    success: "<green>Attribute system reloaded.</green>"
+    failed: "<red>Attribute system reload failed: {error}</red>"
+    summary: "<gray>Attributes {attributes}, damage types {damage_types}, default
+      profiles {profiles}.</gray>"
+
+  resync:
+    no_permission: "<red>You do not have permission to run this command.</red>"
+    self_success: "<green>Attributes re-synced for you.</green>"
+    console_usage: "<yellow>Console usage: /emakiattribute resync <player|all></yellow>"
+    player_not_found: "<red>Player {player} not found.</red>"
+    player_success: "<green>Attributes re-synced for {player}.</green>"
+    all_success: "<green>Attributes re-synced for all online players.</green>"
+
+  preview:
+    no_permission: "<red>You do not have permission to run this command.</red>"
+    console_usage: "<yellow>Console usage: /emakiattribute preview <player> <slot></yellow>"
+    player_not_found: "<red>Player {player} not found.</red>"
+    invalid_slot: "<red>Invalid slot {slot}, valid values:
+      main_hand/off_hand/helmet/chestplate/leggings/boots.</red>"
+    no_item: "<yellow>No item in that slot.</yellow>"
+    item: "<gray>Item: {item}</gray>"
+    name_label: "<gray>Name: </gray>"
+    name: "<gray>Name: {name}</gray>"
+    signature: "<gray>Signature: {signature}</gray>"
+    values: "<gray>Values: {values}</gray>"
+
+  dump:
+    no_permission: "<red>You do not have permission to run this command.</red>"
+    player_not_found: "<red>Player {player} not found.</red>"
+    console_usage: "<yellow>Console usage: /emakiattribute dump <player></yellow>"
+    player: "<green>Viewing attribute snapshot for {player}.</green>"
+    signature: "<gray>Signature <dark_gray>(hover to view)</dark_gray></gray>"
+    values: "<gray>Attribute values <dark_gray>(hover to view)</dark_gray></gray>"
+    resource_line: "<gray>{resource}: default {default_max}, bonus {bonus_max}, cap
+      {current_max}, current {current}</gray>"
+
+  debug:
+    no_permission: "<red>You do not have permission to run this command.</red>"
+    player_not_found: "<red>Player {player} not found.</red>"
+    console_usage: "<yellow>Console usage: /emakiattribute debug <player>
+      [on|off|toggle]</yellow>"
+    enabled: "<green>Combat debug logging enabled for {player}, output goes to
+      console.</green>"
+    disabled: "<yellow>Combat debug logging disabled for {player}.</yellow>"
+
+  lint:
+    no_permission: "<red>You do not have permission to run this command.</red>"
+    header: "<gold>========== EmakiAttribute Lint ==========</gold>"
+    footer: "<gold>==========================================</gold>"
+    config_status: "<gray>Config: {config}</gray>"
+    ok: "<green>{name} no issues found.</green>"
+    issues: "<yellow>{name} found {count} issue(s).</yellow>"
+
+  help:
+    header: "<gold>========== EmakiAttribute Help ==========</gold>"
+    footer: "<gold>========================================</gold>"
+    reload: "<gray>/emakiattribute reload</gray> Reload config and lore."
+    resync: "<gray>/emakiattribute resync [player|all]</gray> Re-sync player
+      attributes."
+    preview: "<gray>/emakiattribute preview [player] [slot]</gray> Preview attribute
+      snapshot for a slot."
+    dump: "<gray>/emakiattribute dump [player]</gray> View combat snapshot and
+      resource state."
+    debug: "<gray>/emakiattribute debug [player] [on|off|toggle]</gray> Trace combat
+      flow and output detailed console logs."
+    lint: "<gray>/emakiattribute lint</gray> Check config and resource loading
+      issues."
