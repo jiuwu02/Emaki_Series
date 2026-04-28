@@ -12,6 +12,7 @@ libraries:
   - net.kyori:adventure-text-serializer-plain:${adventure.version}
   - net.objecthunter:exp4j:${exp4j.version}
   - dev.dejvokep:boosted-yaml:${boosted.yaml.version}
+  - com.github.ben-manes.caffeine:caffeine:${caffeine.version}
 softdepend:
   - Vault
   - ExcellentEconomy

@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-skills</artifactId>
-    <version>1.1.0</version>
+    <version>1.2.0</version>
     <name>EmakiSkills</name>
     <packaging>jar</packaging>
 
