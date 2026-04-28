@@ -2,12 +2,13 @@ package emaki.jiuwu.craft.corelib.item;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
-import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -24,10 +25,10 @@ public final class ItemSourceIntegrationCoordinator implements Listener {
     private final JavaPlugin plugin;
     private final MessageService messageService;
     private final ItemSourceService itemSourceService;
-    private final List<ItemSourceResolver> resolvers;
     private final List<ManagedItemSourceResolver> managedResolvers;
     private final Map<String, ManagedItemSourceResolver.Status> lastStatuses = new HashMap<>();
-    private final Map<String, ManagedItemSourceResolver> loadEventBindings = new HashMap<>();
+    private final Set<String> registeredResolverIds = new HashSet<>();
+    private final Set<String> loadEventBindings = new HashSet<>();
     private boolean initialized;
 
     public ItemSourceIntegrationCoordinator(
@@ -37,20 +38,7 @@ public final class ItemSourceIntegrationCoordinator implements Listener {
         this.plugin = Objects.requireNonNull(plugin, "plugin");
         this.messageService = Objects.requireNonNull(messageService, "messageService");
         this.itemSourceService = Objects.requireNonNull(itemSourceService, "itemSourceService");
-        this.resolvers = List.of(
-                new ReflectiveNeigeItemsItemSourceResolver(),
-                new ReflectiveCraftEngineItemSourceResolver(),
-                new ReflectiveMmoItemsItemSourceResolver(),
-                new ReflectiveItemsAdderItemSourceResolver(),
-                new ReflectiveNexoItemSourceResolver()
-        );
-        List<ManagedItemSourceResolver> managed = new ArrayList<>();
-        for (ItemSourceResolver resolver : resolvers) {
-            if (resolver instanceof ManagedItemSourceResolver managedResolver) {
-                managed.add(managedResolver);
-            }
-        }
-        this.managedResolvers = List.copyOf(managed);
+        this.managedResolvers = new ArrayList<>();
     }
 
     public void initialize() {
@@ -58,14 +46,8 @@ public final class ItemSourceIntegrationCoordinator implements Listener {
             return;
         }
         initialized = true;
-        for (ItemSourceResolver resolver : resolvers) {
-            itemSourceService.registerResolver(resolver);
-        }
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
-        for (ManagedItemSourceResolver resolver : managedResolvers) {
-            ensureLoadEventListener(resolver);
-            publishStatus(resolver, resolver.bootstrap());
-        }
+        registerResolversForEnabledPlugins();
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
@@ -80,6 +62,9 @@ public final class ItemSourceIntegrationCoordinator implements Listener {
 
     private void handlePluginEnable(Plugin enabledPlugin) {
         if (enabledPlugin == null) {
+            return;
+        }
+        if (registerResolverForPlugin(enabledPlugin.getName())) {
             return;
         }
         for (ManagedItemSourceResolver resolver : managedResolvers) {
@@ -105,28 +90,69 @@ public final class ItemSourceIntegrationCoordinator implements Listener {
     }
 
     private void ensureLoadEventListener(ManagedItemSourceResolver resolver) {
-        String eventClassName = resolver.loadEventClassName();
-        if (Texts.isBlank(eventClassName) || loadEventBindings.containsKey(eventClassName)) {
+        if (resolver == null || !loadEventBindings.add(Texts.normalizeId(resolver.id()))) {
             return;
         }
-        try {
-            Class<?> rawEventClass = Class.forName(eventClassName);
-            if (!Event.class.isAssignableFrom(rawEventClass)) {
-                return;
-            }
-            @SuppressWarnings("unchecked")
-            Class<? extends Event> eventClass = (Class<? extends Event>) rawEventClass;
-            plugin.getServer().getPluginManager().registerEvent(
-                    eventClass,
-                    this,
-                    EventPriority.MONITOR,
-                    (listener, event) -> publishStatus(resolver, resolver.onItemsLoaded()),
-                    plugin,
-                    true
-            );
-            loadEventBindings.put(eventClassName, resolver);
-        } catch (Throwable throwable) {
+        resolver.registerLoadEventListener(plugin, loadedResolver -> publishStatus(loadedResolver, loadedResolver.onItemsLoaded()));
+    }
+
+    private void registerResolversForEnabledPlugins() {
+        registerResolverForPlugin("NeigeItems");
+        registerResolverForPlugin("CraftEngine");
+        registerResolverForPlugin("MMOItems");
+        registerResolverForPlugin("ItemsAdder");
+        registerResolverForPlugin("Nexo");
+    }
+
+    private boolean registerResolverForPlugin(String pluginName) {
+        ItemSourceResolver resolver = createResolver(pluginName);
+        if (resolver == null) {
+            return false;
         }
+        return registerResolver(resolver);
+    }
+
+    private boolean registerResolver(ItemSourceResolver resolver) {
+        if (resolver == null || Texts.isBlank(resolver.id())) {
+            return false;
+        }
+        String resolverId = Texts.normalizeId(resolver.id());
+        if (!registeredResolverIds.add(resolverId)) {
+            return false;
+        }
+        itemSourceService.registerResolver(resolver);
+        if (resolver instanceof ManagedItemSourceResolver managedResolver) {
+            managedResolvers.add(managedResolver);
+            ensureLoadEventListener(managedResolver);
+            publishStatus(managedResolver, managedResolver.bootstrap());
+        }
+        return true;
+    }
+
+    private ItemSourceResolver createResolver(String pluginName) {
+        if (!isPluginEnabled(pluginName)) {
+            return null;
+        }
+        try {
+            return switch (Texts.lower(pluginName)) {
+                case "neigeitems" -> new NeigeItemsItemSourceResolver();
+                case "craftengine" -> new CraftEngineItemSourceResolver();
+                case "mmoitems" -> new MmoItemsItemSourceResolver();
+                case "itemsadder" -> new ItemsAdderItemSourceResolver();
+                case "nexo" -> new NexoItemSourceResolver();
+                default -> null;
+            };
+        } catch (LinkageError exception) {
+            messageService.warning("console.item_source_bridge_incompatible", Map.of(
+                    "library", pluginName,
+                    "detail", defaultIncompatibleDetail(pluginName, exception.getMessage())
+            ));
+            return null;
+        }
+    }
+
+    private boolean isPluginEnabled(String pluginName) {
+        return Texts.isNotBlank(pluginName) && plugin.getServer().getPluginManager().isPluginEnabled(pluginName);
     }
 
     private void publishStatus(ManagedItemSourceResolver resolver, ManagedItemSourceResolver.Status status) {

@@ -23,7 +23,7 @@ public final class AttributeBalanceRegistry {
     private final EmakiAttributePlugin plugin;
     private final AttributeRegistry attributeRegistry;
     private final Map<String, AttributeSemanticDefinition> semantics = new LinkedHashMap<>();
-    private final Map<String, Double> weights = new LinkedHashMap<>();
+    private final Map<String, Double> scores = new LinkedHashMap<>();
     private YamlSection configuration = new emaki.jiuwu.craft.corelib.yaml.MapYamlSection();
 
     public AttributeBalanceRegistry(EmakiAttributePlugin plugin, AttributeRegistry attributeRegistry) {
@@ -33,7 +33,7 @@ public final class AttributeBalanceRegistry {
 
     public synchronized int load() {
         semantics.clear();
-        weights.clear();
+        scores.clear();
         File file = plugin.dataPath("attribute_balance.yml").toFile();
         MessageService messages = plugin.messageService();
         try {
@@ -55,7 +55,7 @@ public final class AttributeBalanceRegistry {
         }
         validateSchema(configuration, file);
         parseSemantics(configuration.get("attributes"));
-        parseWeights(configuration.get("weights"));
+        parseScores(configuration.get("scores"));
         applyFallbacks();
         return semantics.size();
     }
@@ -67,20 +67,20 @@ public final class AttributeBalanceRegistry {
         return semantics.get(Texts.normalizeId(id));
     }
 
-    public synchronized double weightOf(String id, double fallback) {
+    public synchronized double scoreOf(String id, double fallback) {
         if (Texts.isBlank(id)) {
             return fallback;
         }
-        Double weight = weights.get(Texts.normalizeId(id));
-        return weight == null ? fallback : weight;
+        Double score = scores.get(Texts.normalizeId(id));
+        return score == null ? fallback : score;
     }
 
     public synchronized Map<String, AttributeSemanticDefinition> semantics() {
         return Collections.unmodifiableMap(new LinkedHashMap<>(semantics));
     }
 
-    public synchronized Map<String, Double> weights() {
-        return Collections.unmodifiableMap(new LinkedHashMap<>(weights));
+    public synchronized Map<String, Double> scores() {
+        return Collections.unmodifiableMap(new LinkedHashMap<>(scores));
     }
 
     public synchronized YamlSection configuration() {
@@ -92,7 +92,7 @@ public final class AttributeBalanceRegistry {
             return;
         }
         validateSection(file, configuration.get("attributes"), "attributes");
-        validateSection(file, configuration.get("weights"), "weights");
+        validateSection(file, configuration.get("scores"), "scores");
     }
 
     private void parseSemantics(Object raw) {
@@ -108,22 +108,22 @@ public final class AttributeBalanceRegistry {
                     ConfigNodes.string(semanticRaw, "summary", null),
                     ConfigNodes.string(semanticRaw, "description", null)
             );
-            double weight = Numbers.tryParseDouble(ConfigNodes.get(semanticRaw, "weight"), 1D);
-            AttributeSemanticDefinition definition = new AttributeSemanticDefinition(id, group, role, summary, weight);
+            double score = Numbers.tryParseDouble(ConfigNodes.get(semanticRaw, "score"), 1D);
+            AttributeSemanticDefinition definition = new AttributeSemanticDefinition(id, group, role, summary, score);
             semantics.put(id, definition);
-            weights.putIfAbsent(id, definition.weight());
+            scores.putIfAbsent(id, definition.score());
         }
     }
 
-    private void parseWeights(Object raw) {
+    private void parseScores(Object raw) {
         for (Map.Entry<String, Object> entry : ConfigNodes.entries(raw).entrySet()) {
             String id = Texts.normalizeId(entry.getKey());
             if (Texts.isBlank(id)) {
                 continue;
             }
-            Double weight = Numbers.tryParseDouble(entry.getValue(), null);
-            if (weight != null) {
-                weights.put(id, weight);
+            Double score = Numbers.tryParseDouble(entry.getValue(), null);
+            if (score != null) {
+                scores.put(id, score);
             }
         }
     }
@@ -150,10 +150,10 @@ public final class AttributeBalanceRegistry {
             }
             String id = definition.id();
             AttributeSemanticDefinition semantic = semantics.get(id);
-            double weight = weights.containsKey(id)
-                    ? weights.get(id)
-                    : (semantic != null ? semantic.weight() : definition.attributePower());
-            weights.put(id, weight);
+            double score = scores.containsKey(id)
+                    ? scores.get(id)
+                    : (semantic != null ? semantic.score() : definition.attributePower());
+            scores.put(id, score);
             if (semantic == null) {
                 semantics.put(
                         id,
@@ -162,11 +162,11 @@ public final class AttributeBalanceRegistry {
                                 inferGroup(definition),
                                 inferRole(definition),
                                 firstNonBlank(definition.description(), definition.displayName()),
-                                weight
+                                score
                         )
                 );
-            } else if (Double.compare(semantic.weight(), weight) != 0) {
-                semantics.put(id, new AttributeSemanticDefinition(id, semantic.group(), semantic.role(), semantic.summary(), weight));
+            } else if (Double.compare(semantic.score(), score) != 0) {
+                semantics.put(id, new AttributeSemanticDefinition(id, semantic.group(), semantic.role(), semantic.summary(), score));
             }
         }
     }
@@ -174,7 +174,7 @@ public final class AttributeBalanceRegistry {
     private String typeName() {
         MessageService messages = plugin.messageService();
         if (messages == null) {
-            return "属性权重";
+            return "属性战力分数";
         }
         return messages.message("label.attribute_balance");
     }

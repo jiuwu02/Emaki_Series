@@ -205,6 +205,14 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
         temporaryAttributeService.close();
     }
 
+    /**
+     * 清理指定实体的内存缓存（攻击冷却、合成伤害标记、伤害类型覆盖）。
+     * 应在玩家退出或被踢出时调用，防止缓存条目永久残留。
+     */
+    public void cleanupEntityState(java.util.UUID entityId) {
+        stateRepository.cleanupEntity(entityId);
+    }
+
     long projectileTtlMs() {
         return PROJECTILE_TTL_MS;
     }

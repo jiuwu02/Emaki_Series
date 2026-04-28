@@ -1,6 +1,5 @@
 package emaki.jiuwu.craft.corelib.runtime;
 
-import java.lang.reflect.RecordComponent;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -8,27 +7,24 @@ import emaki.jiuwu.craft.corelib.service.EmakiServiceRegistry;
 
 public interface RuntimeComponents extends EmakiServiceRegistry {
 
-    default Map<Class<?>, Object> services() {
-        RecordComponent[] components = getClass().getRecordComponents();
+    Map<Class<?>, Object> services();
+
+    static Map<Class<?>, Object> services(Component... components) {
+        Map<Class<?>, Object> services = new LinkedHashMap<>();
         if (components == null || components.length == 0) {
             return Map.of();
         }
-        Map<Class<?>, Object> services = new LinkedHashMap<>();
-        for (RecordComponent component : components) {
-            if (component == null || component.getAccessor() == null) {
+        for (Component component : components) {
+            if (component == null || component.type() == null || component.value() == null) {
                 continue;
             }
-            try {
-                component.getAccessor().setAccessible(true);
-                Object value = component.getAccessor().invoke(this);
-                if (value != null) {
-                    services.put(component.getType(), value);
-                }
-            } catch (ReflectiveOperationException exception) {
-                throw new IllegalStateException("Failed to expose runtime component: " + component.getName(), exception);
-            }
+            services.put(component.type(), component.value());
         }
         return Map.copyOf(services);
+    }
+
+    static Component component(Class<?> type, Object value) {
+        return new Component(type, value);
     }
 
     default <T> T service(Class<T> type) {
@@ -42,5 +38,8 @@ public interface RuntimeComponents extends EmakiServiceRegistry {
     @Override
     default <T> T getService(Class<T> type) {
         return service(type);
+    }
+
+    record Component(Class<?> type, Object value) {
     }
 }

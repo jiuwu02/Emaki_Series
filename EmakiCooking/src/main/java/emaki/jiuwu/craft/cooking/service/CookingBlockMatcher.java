@@ -4,6 +4,7 @@ import emaki.jiuwu.craft.cooking.model.StationType;
 import org.bukkit.block.Block;
 
 import emaki.jiuwu.craft.corelib.integration.CraftEngineBlockBridge;
+import emaki.jiuwu.craft.corelib.integration.CustomBlockBridge;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceType;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
@@ -13,10 +14,17 @@ public final class CookingBlockMatcher {
 
     private final CookingSettingsService settingsService;
     private final CraftEngineBlockBridge craftEngineBlockBridge;
+    private final CustomBlockBridge itemsAdderBlockBridge;
+    private final CustomBlockBridge nexoBlockBridge;
 
-    public CookingBlockMatcher(CookingSettingsService settingsService, CraftEngineBlockBridge craftEngineBlockBridge) {
+    public CookingBlockMatcher(CookingSettingsService settingsService,
+            CraftEngineBlockBridge craftEngineBlockBridge,
+            CustomBlockBridge itemsAdderBlockBridge,
+            CustomBlockBridge nexoBlockBridge) {
         this.settingsService = settingsService;
         this.craftEngineBlockBridge = craftEngineBlockBridge;
+        this.itemsAdderBlockBridge = itemsAdderBlockBridge;
+        this.nexoBlockBridge = nexoBlockBridge;
     }
 
     public boolean matches(Block block, StationType stationType) {
@@ -34,6 +42,8 @@ public final class CookingBlockMatcher {
         return switch (source.getType()) {
             case VANILLA -> matchesVanilla(block, source.getIdentifier());
             case CRAFTENGINE -> craftEngineBlockBridge != null && craftEngineBlockBridge.matches(block, source.getIdentifier());
+            case ITEMSADDER -> itemsAdderBlockBridge != null && itemsAdderBlockBridge.matches(block, source.getIdentifier());
+            case NEXO -> nexoBlockBridge != null && nexoBlockBridge.matches(block, source.getIdentifier());
             default -> false;
         };
     }

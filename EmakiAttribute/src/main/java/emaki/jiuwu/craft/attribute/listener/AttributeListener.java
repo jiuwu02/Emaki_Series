@@ -22,6 +22,8 @@ import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerKickEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.event.server.PluginEnableEvent;
@@ -49,6 +51,16 @@ public final class AttributeListener implements Listener {
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
         attributeService.scheduleJoinHealthSync(event.getPlayer());
+    }
+
+    @EventHandler
+    public void onQuit(PlayerQuitEvent event) {
+        attributeService.cleanupEntityState(event.getPlayer().getUniqueId());
+    }
+
+    @EventHandler
+    public void onKick(PlayerKickEvent event) {
+        attributeService.cleanupEntityState(event.getPlayer().getUniqueId());
     }
 
     @EventHandler

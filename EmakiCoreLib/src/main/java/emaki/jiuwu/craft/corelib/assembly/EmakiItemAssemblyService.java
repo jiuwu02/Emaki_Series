@@ -8,16 +8,20 @@ import java.util.concurrent.CompletableFuture;
 
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 
 import emaki.jiuwu.craft.corelib.action.Action;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.cache.CacheManager;
+import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.monitor.PerformanceMonitor;
 import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
+import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
+import net.kyori.adventure.text.Component;
 
 public final class EmakiItemAssemblyService {
 
@@ -157,7 +161,9 @@ public final class EmakiItemAssemblyService {
         ItemSource baseSource = request.baseSource();
         int amount = request.amount() > 0 ? request.amount() : 1;
         List<String> previousActiveLayers = List.of();
-        if (request.existingItem() != null && dataManager.isEmakiItem(request.existingItem())) {
+        boolean existingIsEmakiItem = request.existingItem() != null && dataManager.isEmakiItem(request.existingItem());
+        String baseCustomName = resolveBaseCustomName(request.existingItem(), existingIsEmakiItem);
+        if (existingIsEmakiItem) {
             if (baseSource == null) {
                 baseSource = dataManager.readBaseSource(request.existingItem());
             }
@@ -195,9 +201,10 @@ public final class EmakiItemAssemblyService {
         String signature = SignatureUtil.stableSignature(List.of(
                 ItemSourceUtil.toShorthand(baseSource),
                 amount,
+                baseCustomName,
                 orderedLayers.values().stream().map(EmakiItemLayerSnapshot::toMap).toList()
         ));
-        return new AssemblyContext(baseSource, Math.max(1, amount), orderedLayers, activeLayers, previousActiveLayers, signature);
+        return new AssemblyContext(baseSource, Math.max(1, amount), baseCustomName, orderedLayers, activeLayers, previousActiveLayers, signature);
     }
 
     private ItemStack renderPreview(EmakiItemAssemblyRequest request) {
@@ -209,12 +216,13 @@ public final class EmakiItemAssemblyService {
         if (itemStack == null) {
             return null;
         }
-        itemRenderService.renderItem(itemStack, context.layerSnapshots().values());
+        itemRenderService.renderItem(itemStack, context.layerSnapshots().values(), baseNameOverride(context.baseCustomName()));
         dataManager.writeAssemblyData(
                 itemStack,
                 CURRENT_SCHEMA_VERSION,
                 context.baseSource(),
                 context.amount(),
+                context.baseCustomName(),
                 context.activeLayers(),
                 context.previousActiveLayers(),
                 context.assemblySignature(),
@@ -231,9 +239,28 @@ public final class EmakiItemAssemblyService {
                 request.baseSource() == null ? "" : ItemSourceUtil.toShorthand(request.baseSource()),
                 request.amount(),
                 request.existingItem() == null ? "" : ItemSourceUtil.toShorthand(itemSourceService.identifyItem(request.existingItem())),
+                request.existingItem() == null ? "" : resolveBaseCustomName(request.existingItem(), dataManager.isEmakiItem(request.existingItem())),
                 request.layerSnapshots() == null ? List.of() : request.layerSnapshots().stream().map(EmakiItemLayerSnapshot::toMap).toList(),
                 request.removedNamespaceIds()
         ));
+    }
+
+    private String resolveBaseCustomName(ItemStack existingItem, boolean existingIsEmakiItem) {
+        if (existingItem == null) {
+            return "";
+        }
+        if (existingIsEmakiItem) {
+            return dataManager.readBaseCustomName(existingItem);
+        }
+        ItemMeta itemMeta = existingItem.getItemMeta();
+        if (!ItemTextBridge.hasCustomName(itemMeta)) {
+            return "";
+        }
+        return MiniMessages.serialize(ItemTextBridge.customName(itemMeta));
+    }
+
+    private Component baseNameOverride(String baseCustomName) {
+        return Texts.isBlank(baseCustomName) ? null : MiniMessages.parse(baseCustomName);
     }
 
     private <T> T measure(String metricKey, SupplierWithException<T> supplier) {
@@ -266,6 +293,7 @@ public final class EmakiItemAssemblyService {
 
     private record AssemblyContext(ItemSource baseSource,
             int amount,
+            String baseCustomName,
             Map<String, EmakiItemLayerSnapshot> layerSnapshots,
             List<String> activeLayers,
             List<String> previousActiveLayers,

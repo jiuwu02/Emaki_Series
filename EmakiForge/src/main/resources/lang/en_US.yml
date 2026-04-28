@@ -1,0 +1,241 @@
+# version is maintained by resource sync
+
+version: "3.4.0"
+
+# General messages
+general:
+  prefix: "<gray>[ <gradient:#F2C46D:#C9703D>EmakiForge</gradient> ]</gray>"
+  no_permission: "<red>You do not have permission to perform this action.</red>"
+  player_only: "<red>This command can only be executed by a player.</red>"
+  unknown_command: "<red>Unknown command.</red>"
+  invalid_args: "<red>Invalid arguments.</red>"
+  reload_success: "<green>Configuration reloaded.</green>"
+  reload_fail: "<red>Configuration reload failed.</red>"
+  reload_summary: "<gray>Reloaded {recipes} recipes, {guis} GUIs.</gray>"
+
+# Command help
+command:
+  help:
+    header: "<gold>========== Emaki Forge Help ==========</gold>"
+    footer: "<gold>========================================</gold>"
+    line: "<yellow>{cmd}</yellow> <gray>- {desc}</gray>"
+    commands:
+      help: "Show help information"
+      forge: "Open standalone forge"
+      book: "Open recipe book"
+      reload: "Reload configuration"
+      "list <type>": "List configs of specified type"
+      editor: "Open forge resource editor"
+      "edit recipe <id>": "Edit specified recipe"
+      "create recipe [id]": "Create new recipe draft"
+      "delete recipe <id>": "Delete specified recipe"
+  list:
+    header: "<gold>========== {type} List ==========</gold>"
+    recipes_header: "<gold>========== Recipe List ({count} total) ==========</gold>"
+    blueprints_header: "<gold>========== Blueprint List ({count} total) ==========</gold>"
+    materials_header: "<gold>========== Material List ({count} total) ==========</gold>"
+    recipe_line: "<yellow>{id}</yellow> <gray>- {name}</gray>"
+    blueprint_line: "<yellow>{id}</yellow> <gray>- {name}</gray>"
+    material_line: "<yellow>{id}</yellow> <gray>- {name} (Cost: {capacity}, Bonus:
+      +{bonus})</gray>"
+
+# Console logs
+console:
+  plugin_starting: "<gray>Starting...</gray>"
+  plugin_started: "<green>Started successfully.</green>"
+  plugin_stopping: "<gray>Shutting down...</gray>"
+  plugin_stopped: "<green>Shut down.</green>"
+  config_load_failed: "<red>Failed to load config: {error}</red>"
+  checking_config: "<white>Checking default config files...</white>"
+  data_folder_error: "<yellow>Unable to access data directory, skipped default
+    file check.</yellow>"
+  data_folder_failed: "<yellow>Failed to access data folder: <red>{error}</red>"
+  loading_configs: "<white>Loading config files...</white>"
+  config_loaded: "<green>Config files loaded.</green>"
+  registering_services: "<white>Registering services...</white>"
+  services_registered: "<green>Services registered.</green>"
+  unregistering_services: "<white>Unregistering services...</white>"
+  services_unregistered: "<green>Services unregistered.</green>"
+  registering_listeners: "<white>Registering event listeners...</white>"
+  listeners_registered: "<green>Event listeners registered.</green>"
+  saving_player_data: "<white>Saving player data...</white>"
+  player_data_saved: "<green>Saved <yellow>{count}</yellow> <gray>player data entries</gray>"
+  bootstrap_start: "<white>Checking default files...</white>"
+  bootstrap_skip: "<gray>release_default_data=false, skipped default data generation</gray>"
+  bootstrap_complete: "<green>Default file check complete.</green>"
+  bootstrap_config_read_error: "<yellow>Failed to read or update config, using defaults: <red>{error}</red>"
+  directory_created: "<green>Created directory <yellow>{path}</yellow>"
+  directory_create_failed: "<yellow>Failed to create directory <red>{path}</red>"
+  config_exists: "<gray>config.yml already exists, skipping creation</gray>"
+  lang_exists: "<gray>lang/zh_CN.yml already exists, skipping creation</gray>"
+  gui_forge_exists: "<gray>gui/forge_gui.yml already exists, skipping creation</gray>"
+  gui_book_exists: "<gray>gui/recipe_book.yml already exists, skipping creation</gray>"
+  blueprint_weapon_exists: "<gray>blueprints/weapon_sword.yml already exists, skipping creation</gray>"
+  blueprint_universal_exists: "<gray>blueprints/universal_blueprint.yml already
+    exists, skipping creation</gray>"
+  material_iron_exists: "<gray>materials/iron_essence.yml already exists, skipping creation</gray>"
+  material_flame_exists: "<gray>materials/flame_crystal.yml already exists, skipping creation</gray>"
+  recipe_flame_exists: "<gray>recipes/flame_sword.yml already exists, skipping creation</gray>"
+  file_created_success: "<green>Successfully created <yellow>{name}</yellow>"
+  file_create_failed: "<yellow>Failed to create <red>{name}</red> <yellow>: <red>{error}</red>"
+  file_create_failed_ext: "<yellow>Failed to create <red>{name}</red> <yellow>: <red>{error}</red>"
+  default_file_missing: "<yellow>Built-in resource does not exist, skipped: <red>{path}</red>"
+  data_folder_not_init: "<yellow>Data directory not yet initialized.</yellow>"
+  bootstrap_copy_failed: "<yellow>Failed to copy default resource:
+    <red>{path}</red> <gray>({error})</gray></yellow>"
+  bootstrap_save_failed: "<yellow>Failed to save merged config: <red>{path}</red>
+    <gray>({error})</gray></yellow>"
+  blueprints_loaded: "<gray>Loaded <yellow>{count}</yellow> blueprints</gray>"
+  materials_loaded: "<gray>Loaded <yellow>{count}</yellow> materials</gray>"
+  recipes_loaded: "<gray>Loaded <yellow>{count}</yellow> recipes</gray>"
+  guis_loaded: "<gray>Loaded <yellow>{count}</yellow> GUI templates</gray>"
+  player_data_directory_create_failed: "<yellow>Unable to create player data directory: <red>{path}</red></yellow>"
+  player_data_save_failed: "<yellow>Failed to save player data: <red>{uuid}</red>
+    <gray>({error})</gray></yellow>"
+  item_unknown_vanilla_material_source: "<yellow>Unknown vanilla material source: <red>{identifier}</red></yellow>"
+  external_item_source_unavailable: "<yellow>External item source unavailable:
+    <gray>dependency={dependency}, context={context}, source={source},
+    detail={detail}</gray></yellow>"
+  item_bridge_unavailable: "<yellow>{dependency} API bridge unavailable: <red>{error}</red></yellow>"
+  forge_execution_failed: "<yellow>Forge execution failed: recipe
+    <red>{recipe}</red> <gray>({error})</gray></yellow>"
+  forge_phase_execution_failed: "<yellow>Forge phase execution failed: phase
+    <red>{phase}</red>, recipe <red>{recipe}</red>
+    <gray>({error})</gray></yellow>"
+  forge_phase_failed: "<yellow>Forge phase failed: phase <red>{phase}</red>,
+    recipe <red>{recipe}</red> <gray>({reason})</gray></yellow>"
+  forge_quality_execution_failed: "<yellow>Quality action execution failed:
+    quality <red>{tier}</red> <gray>({error})</gray></yellow>"
+  forge_quality_failed: "<yellow>Quality action failed: quality <red>{tier}</red>
+    <gray>({reason})</gray></yellow>"
+  forge_refresh_failed: "<yellow>Failed to refresh forged item: recipe <red>{recipe}</red></yellow>"
+  forge_refresh_invalid_audit: "<yellow>Detected non-refreshable forge audit data:
+    <red>{reason}</red></yellow>"
+  forge_refresh_missing_recipe: "<yellow>Recipe not found when refreshing forged
+    item: <red>{recipe}</red></yellow>"
+  forge_refresh_missing_material: "<yellow>Material not found when refreshing
+    forged item: recipe <red>{recipe}</red>, material
+    <red>{material}</red></yellow>"
+  forge_refresh_invalid_quality: "<yellow>Invalid quality found when refreshing
+    forged item: recipe <red>{recipe}</red>, quality
+    <red>{quality}</red></yellow>"
+  pdc_write_skipped_primary_thread: "<yellow>Skipped forge PDC write: not on primary thread.</yellow>"
+  pdc_write_failed: "<yellow>Failed to write forge PDC data: recipe
+    <red>{recipe}</red> <gray>({error})</gray></yellow>"
+  pdc_corrupted_data_detected: "<yellow>Corrupted forge PDC data detected: <red>{reason}</red></yellow>"
+  pdc_deserialize_failed: "<yellow>Failed to deserialize forge material data:
+    <red>{error}</red></yellow>"
+  pdc_deserialize_unexpected_error: "<yellow>Unexpected error deserializing forge
+    material data: <red>{error}</red></yellow>"
+  loader_config_load_error: "<red>Failed to load config file
+    <yellow>{path}</yellow>: <gray>{error}</gray>"
+  loader_config_unavailable: "<yellow>{type} config unavailable <red>{path}</red>"
+  loader_invalid_config: "<yellow>{type} config invalid <red>{path}</red>"
+  loader_duplicate_id: "<yellow>Duplicate {type} ID found <red>{id}</red>
+    <gray>source: {path}</gray>"
+  loader_exception: "<red>Exception loading {type} config <yellow>{path}</yellow>:
+    <gray>{error}</gray>"
+  forge_consume_plan_mismatch: "<yellow>{category} consumption plan mismatch
+    <gray>recipe={recipe}, mode={mode}, required={required},
+    reserved={reserved}</gray>"
+  forge_consume_mismatch: "<yellow>{category} consumption quantity mismatch
+    <gray>recipe={recipe}, id={id}, required={required},
+    removed={removed}</gray>"
+  lore_search_not_found: "<yellow>Lore search insert target not found: source
+    <red>{source}</red>, action <red>{action}</red>, pattern
+    <red>{pattern}</red></yellow>"
+  lore_invalid_action_name: "<yellow>Invalid lore search action name: source
+    <red>{source}</red>, action <red>{action}</red>
+    <gray>({error})</gray></yellow>"
+  lore_invalid_regex: "<yellow>Invalid lore search regex: source
+    <red>{source}</red>, action <red>{action}</red>, expression
+    <red>{pattern}</red> <gray>({error})</gray></yellow>"
+  lore_invalid_search_insert_config: "<yellow>Invalid lore search insert config:
+    source <red>{source}</red>, action <red>{action}</red>
+    <gray>({error})</gray></yellow>"
+
+loader:
+  lang_directory_create_failed: "<red>Unable to create language directory: {path}</red>"
+  bundled_language_load_failed: "<red>Failed to load bundled language: {error}</red>"
+  invalid_config: "<yellow>{type} file {file} has invalid config, skipped loading.</yellow>"
+  recipe_target_item_unsupported: "<yellow>Recipe file {file} uses a target_item
+    output field unsupported in this version, please use root-level
+    forge_capacity and result.output_item instead.</yellow>"
+  bundled_resource_missing: "<red>Bundled resource missing: {resource}, cannot write to {path}</red>"
+  recipe_action_validation_skipped: "<yellow>Skipped action validation for recipe
+    {file} because EmakiCoreLib is unavailable.</yellow>"
+  recipe_invalid_action_syntax: "<yellow>Invalid action syntax in recipe {recipe}:
+    {file}, phase {phase}, line {line} <gray>({error})</gray></yellow>"
+  recipe_unknown_action: "<yellow>Unknown action <red>{action}</red> in recipe
+    {recipe}: {file}, phase {phase}, line {line}{suggestion}</yellow>"
+  recipe_invalid_action_arguments: "<yellow>Invalid action arguments in recipe
+    {recipe}: {file}, phase {phase}, line {line}
+    <gray>({error})</gray></yellow>"
+  recipe_unknown_action_template: "<yellow>Unknown template <red>{template}</red>
+    in recipe {recipe}: {file}, phase {phase}, line {line}</yellow>"
+  recipe_invalid_condition_type: "<yellow>Invalid condition_type in recipe
+    {recipe}: {file} -> <red>{value}</red>. Allowed values:
+    <gray>{allowed}</gray>, loading rejected.</yellow>"
+
+# Forge related
+forge:
+  error:
+    no_recipe: "<red>Recipe not found.</red>"
+    permission_denied: "<red>You do not have permission to use this recipe.</red>"
+    condition_not_met: "<red>Forge conditions not met.</red>"
+    no_target_item: "<red>Please place a target item.</red>"
+    invalid_target_item: "<red>Target item does not match.</red>"
+    capacity_exceeded: "<red>Forge capacity exceeded: current {current}/{max}</red>"
+    material_not_allowed: "<red>This material is not in the allowed list.</red>"
+    material_blacklisted: "<red>This material is blacklisted.</red>"
+    blueprint_required: "<red>Required blueprint is missing.</red>"
+    material_required: "<red>Required material is missing.</red>"
+    material_count_exceeded: "<red>Optional material count exceeded.</red>"
+    item_create: "<red>Unable to create result item.</red>"
+    action_failed: "<red>Forge action execution failed: {reason}</red>"
+    lore_search_not_found: "<red>Lore search insert target not found: {pattern}</red>"
+    lore_invalid_action_name: "<red>Invalid lore search action: {action}</red>"
+    lore_invalid_regex: "<red>Invalid lore search regex: {pattern}</red>"
+
+  success:
+    crafted: "<green>Forge successful, obtained {item}</green>"
+    quality: "<gold>Quality: {quality} (Multiplier: {multiplier}x)</gold>"
+    first_craft: "<green>First time completing this recipe.</green>"
+
+# Blueprint related
+blueprint:
+  count_not_enough: "<red>Insufficient blueprint quantity.</red>"
+
+# Material related
+material:
+  count_not_enough: "<red>Insufficient material quantity.</red>"
+
+# GUI related
+gui:
+  title:
+    book: "<dark_gray>Recipe Book</dark_gray>"
+    forge: "<dark_gray>Forge - {recipe}</dark_gray>"
+
+  slot:
+    blueprint: "<gray>Place Blueprint</gray>"
+    target: "<aqua>Place Target Item</aqua>"
+    required: "<gold>Place Material (any slot)</gold>"
+    optional: "<green>Place Material (any slot)</green>"
+
+  status:
+    crafted: "<green>Crafted</green>"
+    not_crafted: "<gray>Not Crafted</gray>"
+    locked: "<red>Locked</red>"
+
+  display:
+    capacity: "<gray>Forge Capacity: <yellow>{current}/{max}</yellow></gray>"
+    capacity_warning: "<gold>Forge Capacity: {current}/{max} (near limit)</gold>"
+    capacity_exceeded: "<red>Forge Capacity: {current}/{max} (exceeded)</red>"
+    capacity_pending: "<gray>Forge Capacity: click confirm to match recipe</gray>"
+
+  button:
+    confirm: "<green>Confirm Forge</green>"
+    cancel: "<red>Cancel</red>"
+    prev_page: "<gray>Previous Page</gray>"
+    next_page: "<gray>Next Page</gray>"
+    close: "<red>Close</red>"

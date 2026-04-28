@@ -6,6 +6,7 @@ import java.util.Map;
 import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.gui.GuiItemBuilder;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.corelib.gui.ItemComponentParser;
@@ -70,11 +71,14 @@ final class ConfiguredGuiSupport {
     }
 
     String text(String guiId, String path, String fallback, Map<String, ?> replacements) {
-        String value = Texts.toStringSafe(raw(guiId, path));
-        if (Texts.isBlank(value)) {
+        Object value = raw(guiId, path);
+        if (value == null || Texts.isBlank(value)) {
             value = fallback;
         }
-        return Texts.formatTemplate(value, replacements == null ? Map.of() : replacements);
+        Map<String, ?> safeReplacements = replacements == null ? Map.of() : replacements;
+        return value instanceof String text
+                ? Texts.formatTemplate(text, safeReplacements)
+                : ExpressionEngine.evaluateStringConfig(value, safeReplacements);
     }
 
     private YamlSection configuration(String guiId) {

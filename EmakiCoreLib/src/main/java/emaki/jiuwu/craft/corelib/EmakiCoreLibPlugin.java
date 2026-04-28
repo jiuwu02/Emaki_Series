@@ -19,8 +19,12 @@ import emaki.jiuwu.craft.corelib.assembly.EmakiNamespaceRegistry;
 import emaki.jiuwu.craft.corelib.async.AsyncFileService;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.economy.EconomyManager;
+import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.integration.CraftEngineBlockBridge;
-import emaki.jiuwu.craft.corelib.integration.ReflectiveCraftEngineBlockBridge;
+import emaki.jiuwu.craft.corelib.integration.CraftEngineBlockBridgeProvider;
+import emaki.jiuwu.craft.corelib.integration.CustomBlockBridge;
+import emaki.jiuwu.craft.corelib.integration.ItemsAdderBlockBridgeProvider;
+import emaki.jiuwu.craft.corelib.integration.NexoBlockBridgeProvider;
 import emaki.jiuwu.craft.corelib.item.ItemSourceIntegrationCoordinator;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
@@ -66,7 +70,9 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private ItemSourceIntegrationCoordinator itemSourceIntegrationCoordinator;
     private final EmakiNamespaceRegistry namespaceRegistry = new EmakiNamespaceRegistry();
     private final EmakiItemLayerCodecRegistry itemLayerCodecRegistry = new EmakiItemLayerCodecRegistry();
-    private final CraftEngineBlockBridge craftEngineBlockBridge = new ReflectiveCraftEngineBlockBridge(this);
+    private final CraftEngineBlockBridge craftEngineBlockBridge = new CraftEngineBlockBridgeProvider(this);
+    private final CustomBlockBridge itemsAdderBlockBridge = new ItemsAdderBlockBridgeProvider(this);
+    private final CustomBlockBridge nexoBlockBridge = new NexoBlockBridgeProvider(this);
     private final EmakiItemAssemblyService itemAssemblyService
             = new EmakiItemAssemblyService(namespaceRegistry, itemLayerCodecRegistry, itemSourceService);
     private final Map<Class<?>, Object> serviceRegistry = new ConcurrentHashMap<>();
@@ -91,6 +97,9 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         if (asyncTaskScheduler != null) {
             asyncTaskScheduler.shutdown(5_000L);
         }
+        // 清理表达式引擎的全局缓存和当前线程缓存，防止内存泄漏
+        ExpressionEngine.clearGlobalCache();
+        ExpressionEngine.clearThreadLocalCache();
         AdventureSupport.close(this);
     }
 
@@ -263,6 +272,14 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         return craftEngineBlockBridge;
     }
 
+    public CustomBlockBridge itemsAdderBlockBridge() {
+        return itemsAdderBlockBridge;
+    }
+
+    public CustomBlockBridge nexoBlockBridge() {
+        return nexoBlockBridge;
+    }
+
     private void refreshServiceRegistry() {
         serviceRegistry.clear();
         registerService(LanguageLoader.class, languageLoader);
@@ -281,6 +298,8 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         registerService(EmakiNamespaceRegistry.class, namespaceRegistry);
         registerService(EmakiItemLayerCodecRegistry.class, itemLayerCodecRegistry);
         registerService(CraftEngineBlockBridge.class, craftEngineBlockBridge);
+        registerService(ItemsAdderBlockBridgeProvider.class, (ItemsAdderBlockBridgeProvider) itemsAdderBlockBridge);
+        registerService(NexoBlockBridgeProvider.class, (NexoBlockBridgeProvider) nexoBlockBridge);
         registerService(EmakiItemAssemblyService.class, itemAssemblyService);
     }
 

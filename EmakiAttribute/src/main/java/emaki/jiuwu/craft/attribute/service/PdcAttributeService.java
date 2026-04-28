@@ -30,16 +30,19 @@ import emaki.jiuwu.craft.corelib.pdc.PdcPartition;
 import emaki.jiuwu.craft.corelib.pdc.PdcService;
 import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
 import emaki.jiuwu.craft.corelib.pdc.SnapshotCodec;
+import emaki.jiuwu.craft.corelib.integration.PdcAttributePayloadSnapshot;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import me.clip.placeholderapi.PlaceholderAPI;
 
-public final class PdcAttributeService implements PdcAttributeApi {
+public final class PdcAttributeService implements PdcAttributeApi, emaki.jiuwu.craft.corelib.integration.PdcAttributeApi {
 
     private static final Pattern SOURCE_META_PATTERN = Pattern.compile("%source_meta_([a-zA-Z0-9_\\-.]+)%");
     private static final Pattern SOURCE_ATTRIBUTE_PATTERN = Pattern.compile("%source_(?:attr|attribute)_([a-zA-Z0-9_\\-.]+)%");
     private static final ThreadLocal<DecimalFormat> DECIMAL_FORMAT = ThreadLocal.withInitial(() -> new DecimalFormat("0.######"));
     // 预编译正则缓存，避免热路径中反复 Pattern.compile()
+    // 上限 512 条，超出时清空重建（pattern 来自配置文件，实际数量远低于此）
+    private static final int PATTERN_CACHE_LIMIT = 512;
     private static final ConcurrentHashMap<String, Pattern> COMPILED_PATTERN_CACHE = new ConcurrentHashMap<>();
     private static final SnapshotCodec<PdcAttributePayload> PAYLOAD_CODEC = SnapshotCodec.yaml(
             PdcAttributePayload::toMap,
@@ -99,6 +102,14 @@ public final class PdcAttributeService implements PdcAttributeApi {
     }
 
     @Override
+    public boolean write(ItemStack itemStack,
+            String sourceId,
+            Map<String, Double> attributes,
+            Map<String, String> meta) {
+        return write(itemStack, PdcAttributePayload.of(sourceId, attributes, meta));
+    }
+
+    @Override
     public PdcAttributePayload read(ItemStack itemStack, String sourceId) {
         if (itemStack == null || Texts.isBlank(sourceId)) {
             return null;
@@ -117,6 +128,22 @@ public final class PdcAttributeService implements PdcAttributeApi {
             if (payload != null) {
                 result.put(sourceId, payload);
             }
+        }
+        return result.isEmpty() ? Map.of() : Map.copyOf(result);
+    }
+
+    @Override
+    public Map<String, PdcAttributePayloadSnapshot> readAllSnapshots(ItemStack itemStack) {
+        Map<String, PdcAttributePayloadSnapshot> result = new LinkedHashMap<>();
+        for (PdcAttributePayload payload : readAll(itemStack).values()) {
+            if (payload == null || Texts.isBlank(payload.sourceId())) {
+                continue;
+            }
+            result.put(payload.sourceId(), new PdcAttributePayloadSnapshot(
+                    payload.sourceId(),
+                    payload.attributes(),
+                    payload.meta()
+            ));
         }
         return result.isEmpty() ? Map.of() : Map.copyOf(result);
     }
@@ -396,6 +423,9 @@ public final class PdcAttributeService implements PdcAttributeApi {
     private Pattern compileRulePattern(String pattern) {
         if (Texts.isBlank(pattern)) {
             return null;
+        }
+        if (COMPILED_PATTERN_CACHE.size() >= PATTERN_CACHE_LIMIT) {
+            COMPILED_PATTERN_CACHE.clear();
         }
         return COMPILED_PATTERN_CACHE.computeIfAbsent(pattern, key -> {
             try {

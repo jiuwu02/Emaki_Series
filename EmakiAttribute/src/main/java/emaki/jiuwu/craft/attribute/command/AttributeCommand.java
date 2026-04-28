@@ -14,6 +14,7 @@ import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import emaki.jiuwu.craft.attribute.AttributePermissions;
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.attribute.config.DamageCauseRule;
 import emaki.jiuwu.craft.attribute.model.AttributeSnapshot;
@@ -124,7 +125,7 @@ public final class AttributeCommand implements TabExecutor {
     }
 
     private boolean handleReload(CommandSender sender) {
-        if (!sender.hasPermission("emakiattribute.reload") && !sender.hasPermission("emakiattribute.admin")) {
+        if (!sender.hasPermission(AttributePermissions.RELOAD) && !sender.hasPermission(AttributePermissions.ADMIN)) {
             messages().send(sender, "command.reload.no_permission");
             return true;
         }
@@ -146,7 +147,7 @@ public final class AttributeCommand implements TabExecutor {
     }
 
     private boolean handleResync(CommandSender sender, String[] args) {
-        if (!sender.hasPermission("emakiattribute.resync") && !sender.hasPermission("emakiattribute.admin")) {
+        if (!sender.hasPermission(AttributePermissions.RESYNC) && !sender.hasPermission(AttributePermissions.ADMIN)) {
             messages().send(sender, "command.resync.no_permission");
             return true;
         }
@@ -175,7 +176,7 @@ public final class AttributeCommand implements TabExecutor {
     }
 
     private boolean handlePreview(CommandSender sender, String[] args) {
-        if (!sender.hasPermission("emakiattribute.debug") && !sender.hasPermission("emakiattribute.admin")) {
+        if (!sender.hasPermission(AttributePermissions.DEBUG) && !sender.hasPermission(AttributePermissions.ADMIN)) {
             messages().send(sender, "command.preview.no_permission");
             return true;
         }
@@ -203,7 +204,7 @@ public final class AttributeCommand implements TabExecutor {
     }
 
     private boolean handleDump(CommandSender sender, String[] args) {
-        if (!sender.hasPermission("emakiattribute.debug") && !sender.hasPermission("emakiattribute.admin")) {
+        if (!sender.hasPermission(AttributePermissions.DEBUG) && !sender.hasPermission(AttributePermissions.ADMIN)) {
             messages().send(sender, "command.dump.no_permission");
             return true;
         }
@@ -238,7 +239,7 @@ public final class AttributeCommand implements TabExecutor {
     }
 
     private boolean handleDebug(CommandSender sender, String[] args) {
-        if (!sender.hasPermission("emakiattribute.debug") && !sender.hasPermission("emakiattribute.admin")) {
+        if (!sender.hasPermission(AttributePermissions.DEBUG) && !sender.hasPermission(AttributePermissions.ADMIN)) {
             messages().send(sender, "command.debug.no_permission");
             return true;
         }
@@ -283,7 +284,7 @@ public final class AttributeCommand implements TabExecutor {
     }
 
     private boolean handleLint(CommandSender sender) {
-        if (!sender.hasPermission("emakiattribute.reload") && !sender.hasPermission("emakiattribute.admin")) {
+        if (!sender.hasPermission(AttributePermissions.RELOAD) && !sender.hasPermission(AttributePermissions.ADMIN)) {
             messages().send(sender, "command.lint.no_permission");
             return true;
         }

@@ -1,6 +1,5 @@
 package emaki.jiuwu.craft.corelib.pdc;
 
-import java.lang.reflect.RecordComponent;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -97,24 +96,32 @@ public final class SignatureUtil {
             }
             return builder.append(']').toString();
         }
-        if (value.getClass().isRecord()) {
-            Map<String, Object> normalized = new LinkedHashMap<>();
-            for (RecordComponent component : value.getClass().getRecordComponents()) {
-                try {
-                    normalized.put(component.getName(), ConfigNodes.toPlainData(component.getAccessor().invoke(value)));
-                } catch (Exception exception) {
-                    normalized.put(component.getName(), Texts.toStringSafe(value));
-                }
-            }
-            return canonicalize(normalized);
+        if (value instanceof Object[] array) {
+            return canonicalize(toList(array));
         }
-        if (value.getClass().isArray()) {
-            List<Object> entries = new ArrayList<>();
-            int length = java.lang.reflect.Array.getLength(value);
-            for (int index = 0; index < length; index++) {
-                entries.add(java.lang.reflect.Array.get(value, index));
-            }
-            return canonicalize(entries);
+        if (value instanceof int[] array) {
+            return canonicalize(toList(array));
+        }
+        if (value instanceof long[] array) {
+            return canonicalize(toList(array));
+        }
+        if (value instanceof double[] array) {
+            return canonicalize(toList(array));
+        }
+        if (value instanceof float[] array) {
+            return canonicalize(toList(array));
+        }
+        if (value instanceof boolean[] array) {
+            return canonicalize(toList(array));
+        }
+        if (value instanceof byte[] array) {
+            return canonicalize(toList(array));
+        }
+        if (value instanceof short[] array) {
+            return canonicalize(toList(array));
+        }
+        if (value instanceof char[] array) {
+            return canonicalize(toList(array));
         }
         Object plain = ConfigNodes.toPlainData(value);
         if (plain != value) {
@@ -132,5 +139,79 @@ public final class SignatureUtil {
         } catch (Exception _) {
             return String.valueOf(number);
         }
+    }
+
+    private static List<Object> toList(Object[] array) {
+        List<Object> entries = new ArrayList<>();
+        if (array != null) {
+            for (Object entry : array) {
+                entries.add(entry);
+            }
+        }
+        return entries;
+    }
+
+    private static List<Object> toList(int[] array) {
+        List<Object> entries = new ArrayList<>();
+        for (int entry : array) {
+            entries.add(entry);
+        }
+        return entries;
+    }
+
+    private static List<Object> toList(long[] array) {
+        List<Object> entries = new ArrayList<>();
+        for (long entry : array) {
+            entries.add(entry);
+        }
+        return entries;
+    }
+
+    private static List<Object> toList(double[] array) {
+        List<Object> entries = new ArrayList<>();
+        for (double entry : array) {
+            entries.add(entry);
+        }
+        return entries;
+    }
+
+    private static List<Object> toList(float[] array) {
+        List<Object> entries = new ArrayList<>();
+        for (float entry : array) {
+            entries.add(entry);
+        }
+        return entries;
+    }
+
+    private static List<Object> toList(boolean[] array) {
+        List<Object> entries = new ArrayList<>();
+        for (boolean entry : array) {
+            entries.add(entry);
+        }
+        return entries;
+    }
+
+    private static List<Object> toList(byte[] array) {
+        List<Object> entries = new ArrayList<>();
+        for (byte entry : array) {
+            entries.add(entry);
+        }
+        return entries;
+    }
+
+    private static List<Object> toList(short[] array) {
+        List<Object> entries = new ArrayList<>();
+        for (short entry : array) {
+            entries.add(entry);
+        }
+        return entries;
+    }
+
+    private static List<Object> toList(char[] array) {
+        List<Object> entries = new ArrayList<>();
+        for (char entry : array) {
+            entries.add(String.valueOf(entry));
+        }
+        return entries;
     }
 }

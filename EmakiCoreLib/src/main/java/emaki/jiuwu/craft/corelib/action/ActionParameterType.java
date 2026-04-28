@@ -18,16 +18,12 @@ public enum ActionParameterType {
         }
         try {
             return switch (this) {
-                case INTEGER -> {
-                    Integer.parseInt(raw);
-                    yield true;
-                }
-                case DOUBLE -> {
-                    Double.parseDouble(raw);
-                    yield true;
-                }
+                case INTEGER ->
+                    ActionParsers.parseIntNullable(raw) != null;
+                case DOUBLE ->
+                    ActionParsers.parseDoubleNullable(raw) != null;
                 case BOOLEAN ->
-                    "true".equalsIgnoreCase(raw) || "false".equalsIgnoreCase(raw);
+                    ActionParsers.parseBoolean(raw) != null;
                 case TIME ->
                     ActionParsers.parseTicks(raw) >= 0L;
                 case STRING ->

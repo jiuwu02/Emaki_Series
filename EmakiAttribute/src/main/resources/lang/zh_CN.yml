@@ -1,5 +1,5 @@
 # version 由资源同步维护
-version: "3.3.0"
+version: "3.4.0"
 general:
   prefix: "<gray>[ <gradient:#66D9EF:#7B7BFF>EmakiAttribute</gradient> ]</gray>"
 

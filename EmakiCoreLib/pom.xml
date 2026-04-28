@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-corelib</artifactId>
-    <version>3.3.0</version>
+    <version>3.4.0</version>
     <name>EmakiCoreLib</name>
     <packaging>jar</packaging>
 
@@ -65,6 +65,47 @@
         <dependency>
             <groupId>me.clip</groupId>
             <artifactId>placeholderapi</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>net.Indyuce</groupId>
+            <artifactId>MMOItems-API</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.lumine</groupId>
+            <artifactId>MythicLib-dist</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>net.momirealms</groupId>
+            <artifactId>craft-engine-bukkit</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>net.momirealms</groupId>
+            <artifactId>craft-engine-core</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>dev.lone</groupId>
+            <artifactId>api-itemsadder</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.nexomc</groupId>
+            <artifactId>nexo</artifactId>
+            <scope>provided</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>*</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>pers.neige.neigeitems</groupId>
+            <artifactId>NeigeItems</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>

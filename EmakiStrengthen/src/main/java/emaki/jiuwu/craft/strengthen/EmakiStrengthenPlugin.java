@@ -8,7 +8,7 @@ import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.gui.GuiItemBuilder;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
-import emaki.jiuwu.craft.corelib.integration.ReflectivePdcAttributeGateway;
+import emaki.jiuwu.craft.corelib.integration.PdcAttributeGateway;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.plugin.AbstractConfigurableEmakiPlugin;
@@ -58,7 +58,7 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     private MessageService messageService;
     private BootstrapService bootstrapService;
     private GuiService guiService;
-    private ReflectivePdcAttributeGateway pdcAttributeGateway;
+    private PdcAttributeGateway pdcAttributeGateway;
     private StrengthenRecipeResolver recipeResolver;
     private ChanceCalculator chanceCalculator;
     private StrengthenEconomyService economyService;
@@ -181,7 +181,7 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         return guiService;
     }
 
-    public ReflectivePdcAttributeGateway pdcAttributeGateway() {
+    public PdcAttributeGateway pdcAttributeGateway() {
         return pdcAttributeGateway;
     }
 

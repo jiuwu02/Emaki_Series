@@ -12,6 +12,7 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.cooking.CookingPermissions;
 import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 import emaki.jiuwu.craft.cooking.model.RecipeDocument;
 import emaki.jiuwu.craft.cooking.model.StationBreakContext;
@@ -79,8 +80,8 @@ public final class WokRuntimeService {
         if (settingsService.requireSneaking(StationType.WOK) && !player.isSneaking()) {
             return false;
         }
-        if (!player.hasPermission("emakicooking.station.wok.use")
-                && !player.hasPermission("emakicooking.admin")) {
+        if (!player.hasPermission(CookingPermissions.WOK_USE)
+                && !player.hasPermission(CookingPermissions.ADMIN)) {
             messageService.send(player, "general.no_permission");
             interaction.cancel();
             return true;
@@ -109,8 +110,8 @@ public final class WokRuntimeService {
         }
 
         if (isSpatula(hand)) {
-            if (!player.hasPermission("emakicooking.station.wok.stir")
-                    && !player.hasPermission("emakicooking.admin")) {
+            if (!player.hasPermission(CookingPermissions.WOK_STIR)
+                    && !player.hasPermission(CookingPermissions.ADMIN)) {
                 messageService.send(player, "general.no_permission");
                 interaction.cancel();
                 return true;
@@ -158,8 +159,8 @@ public final class WokRuntimeService {
         boolean servingWithBowl = settingsService.wokNeedBowl() && isPlainBowl(hand);
         boolean servingWithEmptyHand = !settingsService.wokNeedBowl() && (hand == null || hand.getType().isAir());
         if (servingWithBowl || servingWithEmptyHand) {
-            if (!player.hasPermission("emakicooking.station.wok.serve")
-                    && !player.hasPermission("emakicooking.admin")) {
+            if (!player.hasPermission(CookingPermissions.WOK_SERVE)
+                    && !player.hasPermission(CookingPermissions.ADMIN)) {
                 messageService.send(player, "general.no_permission");
                 interaction.cancel();
                 return true;

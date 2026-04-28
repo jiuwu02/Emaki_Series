@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
+import emaki.jiuwu.craft.cooking.CookingPermissions;
 import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 import emaki.jiuwu.craft.cooking.model.RecipeDocument;
 import emaki.jiuwu.craft.cooking.model.StationBreakContext;
@@ -117,8 +118,8 @@ public final class ChoppingBoardRuntimeService {
         if (settingsService.choppingSpaceRestriction() && block.getRelative(BlockFace.UP).getType() != Material.AIR) {
             return false;
         }
-        if (!player.hasPermission("emakicooking.station.chopping_board.use")
-                && !player.hasPermission("emakicooking.admin")) {
+        if (!player.hasPermission(CookingPermissions.CHOPPING_BOARD_USE)
+                && !player.hasPermission(CookingPermissions.ADMIN)) {
             messageService.send(player, "general.no_permission");
             interaction.cancel();
             return true;
@@ -142,8 +143,8 @@ public final class ChoppingBoardRuntimeService {
                 interaction.cancel();
                 return true;
             }
-            if (!player.hasPermission("emakicooking.station.chopping_board.cut")
-                    && !player.hasPermission("emakicooking.admin")) {
+            if (!player.hasPermission(CookingPermissions.CHOPPING_BOARD_CUT)
+                    && !player.hasPermission(CookingPermissions.ADMIN)) {
                 messageService.send(player, "general.no_permission");
                 interaction.cancel();
                 return true;

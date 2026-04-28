@@ -16,6 +16,7 @@ import emaki.jiuwu.craft.corelib.assembly.EmakiStructuredPresentation;
 import emaki.jiuwu.craft.corelib.assembly.NamePosition;
 import emaki.jiuwu.craft.corelib.assembly.StructuredPresentationTemplateResolver;
 import emaki.jiuwu.craft.corelib.assembly.StructuredPresentationValidator;
+import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
@@ -368,35 +369,31 @@ final class ForgeLayerSnapshotBuilder {
     }
 
     private List<String> renderContent(Map<String, Object> operation, Map<String, Object> variables) {
-        List<String> rendered = new ArrayList<>();
-        for (String line : Texts.asStringList(operation == null ? null : operation.get("content"))) {
-            rendered.add(renderTemplate(line, variables));
-        }
-        return rendered;
+        return renderTextLines(operation == null ? null : operation.get("content"), variables);
     }
 
-    private String resolveOperationValue(Map<String, Object> operation) {
+    private Object resolveOperationValue(Map<String, Object> operation) {
         if (operation == null) {
             return "";
         }
-        String value = Texts.toStringSafe(operation.get("value"));
-        if (Texts.isNotBlank(value)) {
+        Object value = operation.get("value");
+        if (value != null && Texts.isNotBlank(value)) {
             return value;
         }
-        value = Texts.toStringSafe(operation.get("replacement"));
-        return Texts.isBlank(value) ? Texts.toStringSafe(operation.get("content")) : value;
+        value = operation.get("replacement");
+        return value == null || Texts.isBlank(value) ? operation.get("content") : value;
     }
 
-    private String resolveSearchPattern(Map<String, Object> operation) {
+    private Object resolveSearchPattern(Map<String, Object> operation) {
         if (operation == null) {
             return "";
         }
-        String pattern = Texts.toStringSafe(operation.get("target_pattern"));
-        if (Texts.isNotBlank(pattern)) {
+        Object pattern = operation.get("target_pattern");
+        if (pattern != null && Texts.isNotBlank(pattern)) {
             return pattern;
         }
-        pattern = Texts.toStringSafe(operation.get("pattern"));
-        return Texts.isBlank(pattern) ? Texts.toStringSafe(operation.get("anchor")) : pattern;
+        pattern = operation.get("pattern");
+        return pattern == null || Texts.isBlank(pattern) ? operation.get("anchor") : pattern;
     }
 
     private int findInsertIndex(List<String> lines, String anchor, boolean below) {
@@ -466,8 +463,27 @@ final class ForgeLayerSnapshotBuilder {
         }
     }
 
-    private String renderTemplate(String template, Map<String, Object> variables) {
-        return Texts.formatTemplate(Texts.toStringSafe(template), variables == null ? Map.of() : variables);
+    private String renderTemplate(Object template, Map<String, Object> variables) {
+        if (template instanceof String text) {
+            return Texts.formatTemplate(text, variables == null ? Map.of() : variables);
+        }
+        return ExpressionEngine.evaluateStringConfig(template, variables == null ? Map.of() : variables);
+    }
+
+    private List<String> renderTextLines(Object raw, Map<String, Object> variables) {
+        Map<String, Object> safeVariables = variables == null ? Map.of() : variables;
+        if (raw instanceof Iterable<?> iterable) {
+            List<String> result = new ArrayList<>();
+            for (Object entry : iterable) {
+                if (entry instanceof String text) {
+                    result.add(Texts.formatTemplate(text, safeVariables));
+                    continue;
+                }
+                result.addAll(ExpressionEngine.evaluateStringLinesConfig(entry, safeVariables));
+            }
+            return result;
+        }
+        return ExpressionEngine.evaluateStringLinesConfig(raw, safeVariables);
     }
 
     private String stableNameSlotId(String role, int index) {

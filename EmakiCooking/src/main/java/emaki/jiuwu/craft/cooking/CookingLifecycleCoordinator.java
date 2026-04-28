@@ -10,6 +10,7 @@ import emaki.jiuwu.craft.corelib.action.ActionExecutor;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.integration.CraftEngineBlockBridge;
+import emaki.jiuwu.craft.corelib.integration.CustomBlockBridge;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
 import emaki.jiuwu.craft.corelib.service.MessageService;
@@ -79,9 +80,11 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 }
         );
         CraftEngineBlockBridge craftEngineBlockBridge = coreLibPlugin.craftEngineBlockBridge();
+        CustomBlockBridge itemsAdderBlockBridge = coreLibPlugin.itemsAdderBlockBridge();
+        CustomBlockBridge nexoBlockBridge = coreLibPlugin.nexoBlockBridge();
         CookingSettingsService settingsService = new CookingSettingsService(plugin);
         settingsService.reload();
-        CookingBlockMatcher blockMatcher = new CookingBlockMatcher(settingsService, craftEngineBlockBridge);
+        CookingBlockMatcher blockMatcher = new CookingBlockMatcher(settingsService, craftEngineBlockBridge, itemsAdderBlockBridge, nexoBlockBridge);
         StationStateStore stationStateStore = new StationStateStore(plugin);
         CookingRecipeService recipeService = new CookingRecipeService(plugin, settingsService);
         ActionExecutor coreActionExecutor = coreLibPlugin.actionExecutor();
@@ -145,6 +148,8 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 coreActionExecutor,
                 coreLibPlugin.itemSourceService(),
                 craftEngineBlockBridge,
+                itemsAdderBlockBridge,
+                nexoBlockBridge,
                 settingsService,
                 blockMatcher,
                 stationStateStore,

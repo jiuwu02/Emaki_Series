@@ -5,7 +5,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
-import emaki.jiuwu.craft.corelib.integration.ReflectivePdcAttributeGateway;
+import emaki.jiuwu.craft.corelib.integration.PdcAttributeGateway;
 
 public abstract class AbstractLifecycleCoordinator<P, C extends RuntimeComponents> {
 
@@ -47,7 +47,7 @@ public abstract class AbstractLifecycleCoordinator<P, C extends RuntimeComponent
         });
     }
 
-    protected final void syncPdcAttributeRegistration(ReflectivePdcAttributeGateway gateway, String sourceId) {
+    protected final void syncPdcAttributeRegistration(PdcAttributeGateway gateway, String sourceId) {
         if (gateway == null || sourceId == null || sourceId.isBlank()) {
             return;
         }

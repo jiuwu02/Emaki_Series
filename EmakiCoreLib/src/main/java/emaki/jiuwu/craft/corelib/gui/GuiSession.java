@@ -11,6 +11,7 @@ import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 
+import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.text.AdventureSupport;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -43,8 +44,19 @@ public final class GuiSession implements InventoryHolder {
         if (replacements != null) {
             this.replacements.putAll(replacements);
         }
-        String title = Texts.formatTemplate(template.title(), this.replacements);
+        String title = resolveTitle(template, this.replacements);
         this.inventory = AdventureSupport.createInventory(this, template.rows() * 9, MiniMessages.parse(title));
+    }
+
+    private static String resolveTitle(GuiTemplate template, Map<String, ?> replacements) {
+        if (template == null) {
+            return "";
+        }
+        Map<String, ?> safeReplacements = replacements == null ? Map.of() : replacements;
+        if (template.titleConfig() != null) {
+            return ExpressionEngine.evaluateStringConfig(template.titleConfig(), safeReplacements);
+        }
+        return Texts.formatTemplate(template.title(), safeReplacements);
     }
 
     public void open() {

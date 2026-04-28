@@ -563,10 +563,10 @@ final class AttributeSnapshotCollector {
             if (value == null) {
                 continue;
             }
-            double weight = service.attributeBalanceRegistry() == null
+            double score = service.attributeBalanceRegistry() == null
                     ? definition.attributePower()
-                    : service.attributeBalanceRegistry().weightOf(definition.id(), definition.attributePower());
-            total += value * weight;
+                    : service.attributeBalanceRegistry().scoreOf(definition.id(), definition.attributePower());
+            total += value * score;
         }
         return Math.max(0D, total);
     }

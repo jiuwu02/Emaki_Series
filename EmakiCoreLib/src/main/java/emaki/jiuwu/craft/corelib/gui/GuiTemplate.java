@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class GuiTemplate {
@@ -15,13 +16,19 @@ public final class GuiTemplate {
 
     private final String id;
     private final String title;
+    private final Object titleConfig;
     private final int rows;
     private final Map<String, GuiSlot> slots;
     private final Map<Integer, ResolvedSlot> resolvedSlots;
 
     public GuiTemplate(String id, String title, int rows, Map<String, GuiSlot> slots) {
+        this(id, title, null, rows, slots);
+    }
+
+    public GuiTemplate(String id, String title, Object titleConfig, int rows, Map<String, GuiSlot> slots) {
         this.id = id;
-        this.title = title;
+        this.title = Texts.toStringSafe(title);
+        this.titleConfig = ConfigNodes.toPlainData(titleConfig);
         this.rows = rows;
         this.slots = Map.copyOf(slots);
         Map<Integer, ResolvedSlot> resolved = new LinkedHashMap<>();
@@ -65,6 +72,10 @@ public final class GuiTemplate {
 
     public String title() {
         return title;
+    }
+
+    public Object titleConfig() {
+        return titleConfig;
     }
 
     public int rows() {

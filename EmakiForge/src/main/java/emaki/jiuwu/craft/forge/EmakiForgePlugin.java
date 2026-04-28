@@ -7,7 +7,7 @@ import org.bukkit.scheduler.BukkitTask;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
-import emaki.jiuwu.craft.corelib.integration.ReflectivePdcAttributeGateway;
+import emaki.jiuwu.craft.corelib.integration.PdcAttributeGateway;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.plugin.AbstractConfigurableEmakiPlugin;
 import emaki.jiuwu.craft.corelib.service.EmakiServiceRegistry;
@@ -56,7 +56,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     private BootstrapService bootstrapService;
     private GuiService guiService;
     private ItemIdentifierService itemIdentifierService;
-    private ReflectivePdcAttributeGateway pdcAttributeGateway;
+    private PdcAttributeGateway pdcAttributeGateway;
     private ForgeItemRefreshService itemRefreshService;
     private ForgeService forgeService;
     private ForgeGuiService forgeGuiService;
@@ -186,7 +186,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         return itemIdentifierService;
     }
 
-    public ReflectivePdcAttributeGateway pdcAttributeGateway() {
+    public PdcAttributeGateway pdcAttributeGateway() {
         return pdcAttributeGateway;
     }
 

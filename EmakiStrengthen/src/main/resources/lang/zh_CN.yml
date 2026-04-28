@@ -1,5 +1,5 @@
 # version 由资源同步维护
-version: "3.3.0"
+version: "3.4.0"
 
 general:
   prefix: "<gray>[ <gradient:#F2C46D:#C9703D>装备强化</gradient> ]</gray>"
@@ -87,8 +87,10 @@ strengthen:
     failure_drop: "<red>失败后掉落 1 星，并累积锻印。</red>"
     failure_drop_protected: "<gold>失败后消耗保护材料，不会掉星。</gold>"
   broadcast:
-    local_reach: "<gold>{player}</gold> <yellow>将 {show_item} 强化到 <gold>+{star}</gold>。</yellow>"
-    global_reach: "<gold>{player}</gold> <yellow>成功将 {show_item} 强化到 <gold>+{star}</gold>。</yellow>"
+    local_reach: "<gold>{player}</gold> <yellow>将 {show_item} 强化到
+      <gold>+{star}</gold>。</yellow>"
+    global_reach: "<gold>{player}</gold> <yellow>成功将 {show_item} 强化到
+      <gold>+{star}</gold>。</yellow>"
 
 gui:
   open_failed: "<red>无法打开强化界面，请检查 GUI 模板是否加载成功。</red>"

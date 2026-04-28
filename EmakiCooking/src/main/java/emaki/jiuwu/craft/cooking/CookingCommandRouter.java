@@ -12,11 +12,10 @@ import org.bukkit.entity.Player;
 
 final class CookingCommandRouter implements TabExecutor {
 
-    private static final String PERMISSION_ROOT = "emakicooking";
-    private static final String PERMISSION_USE = PERMISSION_ROOT + ".use";
-    private static final String PERMISSION_RELOAD = PERMISSION_ROOT + ".reload";
-    private static final String PERMISSION_INSPECT = PERMISSION_ROOT + ".inspect";
-    private static final String PERMISSION_ADMIN = PERMISSION_ROOT + ".admin";
+    private static final String PERMISSION_USE = CookingPermissions.USE;
+    private static final String PERMISSION_RELOAD = CookingPermissions.RELOAD;
+    private static final String PERMISSION_INSPECT = CookingPermissions.INSPECT;
+    private static final String PERMISSION_ADMIN = CookingPermissions.ADMIN;
 
     private final EmakiCookingPlugin plugin;
 

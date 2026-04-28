@@ -174,6 +174,10 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         }
         Bukkit.getServicesManager().unregister(PdcAttributeApi.class, pdcAttributeApi);
         Bukkit.getServicesManager().register(PdcAttributeApi.class, pdcAttributeApi, this, ServicePriority.Normal);
+        emaki.jiuwu.craft.corelib.integration.PdcAttributeApi coreApi =
+                (emaki.jiuwu.craft.corelib.integration.PdcAttributeApi) pdcAttributeApi;
+        Bukkit.getServicesManager().unregister(emaki.jiuwu.craft.corelib.integration.PdcAttributeApi.class, coreApi);
+        Bukkit.getServicesManager().register(emaki.jiuwu.craft.corelib.integration.PdcAttributeApi.class, coreApi, this, ServicePriority.Normal);
     }
 
     private void registerAttributeBridgeService() {
