@@ -18,6 +18,7 @@ softdepend:
   - ExcellentEconomy
   - PlaceholderAPI
   - MMOItems
+  - MythicMobs
   - ItemsAdder
   - Nexo
   - NeigeItems

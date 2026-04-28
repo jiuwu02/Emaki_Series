@@ -15,6 +15,7 @@ import emaki.jiuwu.craft.corelib.text.AdventureSupport;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
+import emaki.jiuwu.craft.skills.action.CastSkillAction;
 import emaki.jiuwu.craft.skills.bridge.EaBridge;
 import emaki.jiuwu.craft.skills.bridge.MythicBridge;
 import emaki.jiuwu.craft.skills.config.AppConfig;
@@ -108,6 +109,7 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
         reloadPluginState(false);
         registerCommandHandler();
         registerEventHandlers();
+        registerCoreLibActions();
         ensurePlaceholderExpansion();
         if (actionBarService != null) {
             actionBarService.startRefreshTask();
@@ -117,6 +119,7 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
 
     @Override
     public void onDisable() {
+        unregisterCoreLibActions();
         if (placeholderExpansion != null) {
             placeholderExpansion.unregister();
             placeholderExpansion = null;
@@ -195,6 +198,14 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
                 new PlayerJoinQuitListener(this, playerSkillDataStore,
                         castModeService, actionBarService, this::appConfig),
                 this);
+    }
+
+    private void registerCoreLibActions() {
+        coreLib().actionRegistry().register(new CastSkillAction(mythicSkillCastService));
+    }
+
+    private void unregisterCoreLibActions() {
+        coreLib().actionRegistry().unregister("castskill");
     }
 
     private void ensurePlaceholderExpansion() {

@@ -15,6 +15,7 @@ import org.bukkit.inventory.ItemStack;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerSnapshot;
+import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.math.Numbers;
@@ -163,6 +164,20 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
         AttemptPreview preview = preview(player, context);
         if (!preview.eligible()) {
             return AttemptResult.failure(preview.errorKey(), preview, replacements(preview, preview.currentStar()));
+        }
+
+        StrengthenRecipe recipe = preview.recipe();
+        if (recipe != null && !recipe.conditions().isEmpty()) {
+            boolean conditionsPassed = ConditionEvaluator.evaluate(
+                    recipe.conditions(),
+                    recipe.conditionType(),
+                    recipe.conditionRequiredCount(),
+                    text -> resolvePlaceholders(player, text),
+                    true
+            );
+            if (!conditionsPassed) {
+                return AttemptResult.failure("strengthen.error.condition_not_met", preview, replacements(preview, preview.currentStar()));
+            }
         }
 
         boolean success = ThreadLocalRandom.current().nextDouble(100D) < preview.successRate();
@@ -515,5 +530,16 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
 
     record StarProgress(Set<Integer> updatedFlags, Set<Integer> newlyReached) {
 
+    }
+
+    private String resolvePlaceholders(Player player, String text) {
+        if (player == null || Texts.isBlank(text) || !plugin.getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+            return text;
+        }
+        try {
+            return Texts.toStringSafe(me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(player, text));
+        } catch (Exception | NoClassDefFoundError _) {
+            return text;
+        }
     }
 }

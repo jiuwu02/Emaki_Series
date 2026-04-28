@@ -42,7 +42,10 @@ final class StrengthenRecipeParser {
                 parseMatchRule(section.getSection("match")),
                 parseStatLines(section.getSection("stat_lines")),
                 parseStars(section.getSection("stars")),
-                section.get("structured_presentation")
+                section.get("structured_presentation"),
+                section.getStringList("conditions"),
+                section.getString("condition_type", "all_of"),
+                Numbers.tryParseInt(section.get("condition_required_count"), 0)
         );
     }
 

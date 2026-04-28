@@ -78,6 +78,11 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
+            <groupId>io.lumine</groupId>
+            <artifactId>Mythic-Dist</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
             <groupId>net.momirealms</groupId>
             <artifactId>craft-engine-bukkit</artifactId>
             <scope>provided</scope>

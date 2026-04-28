@@ -13,6 +13,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.action.ActionBatchResult;
+import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.action.ActionErrorType;
 import emaki.jiuwu.craft.corelib.action.ActionExecutor;
@@ -175,6 +176,21 @@ public final class SkillUpgradeService {
 
         int targetLevel = currentLevel + 1;
         UpgradePreview preview = preview(player, definition);
+
+        if (!definition.conditions().isEmpty()) {
+            boolean conditionsPassed = ConditionEvaluator.evaluate(
+                    definition.conditions(),
+                    definition.conditionType(),
+                    null,
+                    text -> resolvePlaceholders(player, text),
+                    true
+            );
+            if (!conditionsPassed) {
+                return UpgradeResult.fail("upgrade.condition_not_met",
+                        basePlaceholders(player, definition, currentLevel, targetLevel, maxLevel, preview == null ? 100D : preview.successRate()), preview);
+            }
+        }
+
         Map<String, Object> placeholders = basePlaceholders(
                 player,
                 definition,
@@ -557,5 +573,16 @@ public final class SkillUpgradeService {
 
     private EconomyManager economyManager() {
         return economyManagerSupplier == null ? null : economyManagerSupplier.get();
+    }
+
+    private String resolvePlaceholders(Player player, String text) {
+        if (player == null || Texts.isBlank(text) || !plugin.getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+            return text;
+        }
+        try {
+            return Texts.toStringSafe(me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(player, text));
+        } catch (Exception | NoClassDefFoundError _) {
+            return text;
+        }
     }
 }

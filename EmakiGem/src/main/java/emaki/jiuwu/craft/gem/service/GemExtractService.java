@@ -7,6 +7,8 @@ import java.util.concurrent.ThreadLocalRandom;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
+import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
 import emaki.jiuwu.craft.gem.model.GemDefinition;
 import emaki.jiuwu.craft.gem.model.GemItemDefinition;
@@ -66,6 +68,9 @@ public final class GemExtractService {
         if (instance == null || gemDefinition == null) {
             return Result.failure("command.extract.slot_empty", Map.of("slot", slotIndex));
         }
+        if (!evaluateConditions(actor)) {
+            return Result.failure("gem.error.condition_not_met", Map.of());
+        }
         GemEconomyService.ChargeResult chargeResult = null;
         if (!bypassCost) {
             chargeResult = economyService.charge(actor, gemDefinition.extractCost(), costVariables(gemDefinition, instance.level()));
@@ -118,5 +123,30 @@ public final class GemExtractService {
         variables.put("current_level", Math.max(1, level));
         variables.put("target_level", Math.max(1, level));
         return Map.copyOf(variables);
+    }
+
+    private boolean evaluateConditions(Player player) {
+        var config = plugin.appConfig().condition();
+        if (config.conditions().isEmpty()) {
+            return true;
+        }
+        return ConditionEvaluator.evaluate(
+                config.conditions(),
+                config.conditionType(),
+                config.requiredCount(),
+                text -> resolvePlaceholders(player, text),
+                config.invalidAsFailure()
+        );
+    }
+
+    private String resolvePlaceholders(Player player, String text) {
+        if (player == null || Texts.isBlank(text) || !plugin.getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+            return text;
+        }
+        try {
+            return Texts.toStringSafe(me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(player, text));
+        } catch (Exception | NoClassDefFoundError _) {
+            return text;
+        }
     }
 }

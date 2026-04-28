@@ -7,6 +7,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
@@ -109,6 +110,9 @@ public final class GemInlayService {
         }
         if (stateService.countAssignmentsByGemId(currentState, gemDefinition.id()) >= itemDefinition.maxSameId()) {
             return Result.failure("command.inlay.max_same_id", Map.of("gem", gemDefinition.id()));
+        }
+        if (!evaluateConditions(actor)) {
+            return Result.failure("gem.error.condition_not_met", Map.of());
         }
         Map<String, Object> placeholders = new LinkedHashMap<>();
         placeholders.put("player", target.getName());
@@ -213,6 +217,31 @@ public final class GemInlayService {
 
     private double clampChance(double chance) {
         return Math.max(0D, Math.min(100D, chance));
+    }
+
+    private boolean evaluateConditions(Player player) {
+        var config = plugin.appConfig().condition();
+        if (config.conditions().isEmpty()) {
+            return true;
+        }
+        return ConditionEvaluator.evaluate(
+                config.conditions(),
+                config.conditionType(),
+                config.requiredCount(),
+                text -> resolvePlaceholders(player, text),
+                config.invalidAsFailure()
+        );
+    }
+
+    private String resolvePlaceholders(Player player, String text) {
+        if (player == null || Texts.isBlank(text) || !plugin.getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+            return text;
+        }
+        try {
+            return Texts.toStringSafe(me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(player, text));
+        } catch (Exception | NoClassDefFoundError _) {
+            return text;
+        }
     }
 
     private void consumeOne(ItemStack itemStack, Player holder) {

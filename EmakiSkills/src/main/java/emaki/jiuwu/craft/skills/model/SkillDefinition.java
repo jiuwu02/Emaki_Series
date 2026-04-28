@@ -20,7 +20,9 @@ public record SkillDefinition(String id,
         String pdcSkillId,
         String uiCategory,
         int sortOrder,
-        boolean enabled) {
+        boolean enabled,
+        List<String> conditions,
+        String conditionType) {
 
     public SkillDefinition {
         id = id == null ? "" : id;
@@ -37,5 +39,7 @@ public record SkillDefinition(String id,
         resourceCosts = resourceCosts == null ? List.of() : List.copyOf(resourceCosts);
         loreAliases = loreAliases == null ? List.of() : List.copyOf(loreAliases);
         uiCategory = uiCategory == null || uiCategory.isBlank() ? "default" : uiCategory;
+        conditions = conditions == null ? List.of() : List.copyOf(conditions);
+        conditionType = conditionType == null || conditionType.isBlank() ? "all_of" : conditionType;
     }
 }

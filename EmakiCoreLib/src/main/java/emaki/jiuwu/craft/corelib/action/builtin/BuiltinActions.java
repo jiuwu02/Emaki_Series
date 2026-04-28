@@ -38,5 +38,6 @@ public final class BuiltinActions {
         registry.register(new RunCommandAsOpAction());
         registry.register(new RunCommandAsConsoleAction());
         registry.register(new UseTemplateAction());
+        registry.register(new CastMythicSkillAction());
     }
 }

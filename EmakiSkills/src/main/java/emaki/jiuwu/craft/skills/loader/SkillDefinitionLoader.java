@@ -76,7 +76,9 @@ public final class SkillDefinitionLoader extends YamlDirectoryLoader<SkillDefini
                 configuration.getString("pdc_skill_id", id),
                 configuration.getString("ui_category", "default"),
                 configuration.getInt("sort_order", 0),
-                enabled
+                enabled,
+                configuration.getStringList("conditions"),
+                configuration.getString("condition_type", "all_of")
         );
     }
 

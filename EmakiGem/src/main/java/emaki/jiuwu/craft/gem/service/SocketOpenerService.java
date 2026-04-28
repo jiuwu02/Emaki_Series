@@ -7,6 +7,7 @@ import java.util.Map;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
 import emaki.jiuwu.craft.gem.model.GemItemDefinition;
@@ -71,6 +72,9 @@ public final class SocketOpenerService {
         GemItemDefinition itemDefinition = stateService.resolveItemDefinition(equipment);
         if (itemDefinition == null) {
             return Result.failure("gem.error.invalid_equipment", Map.of("player", target.getName()));
+        }
+        if (!evaluateConditions(target)) {
+            return Result.failure("gem.error.condition_not_met", Map.of());
         }
         ItemStack openerItem = actor == null ? null : actor.getInventory().getItemInOffHand();
         if (!bypassRequirement) {
@@ -169,5 +173,30 @@ public final class SocketOpenerService {
         }
         itemStack.setAmount(itemStack.getAmount() - 1);
         holder.getInventory().setItemInOffHand(itemStack);
+    }
+
+    private boolean evaluateConditions(Player player) {
+        var config = plugin.appConfig().condition();
+        if (config.conditions().isEmpty()) {
+            return true;
+        }
+        return ConditionEvaluator.evaluate(
+                config.conditions(),
+                config.conditionType(),
+                config.requiredCount(),
+                text -> resolvePlaceholders(player, text),
+                config.invalidAsFailure()
+        );
+    }
+
+    private String resolvePlaceholders(Player player, String text) {
+        if (player == null || Texts.isBlank(text) || !plugin.getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+            return text;
+        }
+        try {
+            return Texts.toStringSafe(me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(player, text));
+        } catch (Exception | NoClassDefFoundError _) {
+            return text;
+        }
     }
 }

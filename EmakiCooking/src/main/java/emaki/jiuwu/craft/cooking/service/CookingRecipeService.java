@@ -8,6 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 import emaki.jiuwu.craft.cooking.model.RecipeDocument;
+import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -210,6 +211,20 @@ public final class CookingRecipeService {
             if (player != null && Texts.isNotBlank(permission) && !player.hasPermission(permission)) {
                 continue;
             }
+            List<String> conditions = recipe.configuration().getStringList("conditions");
+            if (player != null && !conditions.isEmpty()) {
+                String conditionType = recipe.configuration().getString("condition_type", "all_of");
+                boolean conditionsPassed = ConditionEvaluator.evaluate(
+                        conditions,
+                        conditionType,
+                        null,
+                        text -> resolvePlaceholders(player, text),
+                        true
+                );
+                if (!conditionsPassed) {
+                    continue;
+                }
+            }
             return recipe;
         }
         return null;
@@ -238,6 +253,17 @@ public final class CookingRecipeService {
             return Integer.parseInt(value.trim());
         } catch (Exception _) {
             return fallback;
+        }
+    }
+
+    private String resolvePlaceholders(Player player, String text) {
+        if (player == null || Texts.isBlank(text) || !plugin.getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+            return text;
+        }
+        try {
+            return Texts.toStringSafe(me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(player, text));
+        } catch (Exception | NoClassDefFoundError _) {
+            return text;
         }
     }
 }

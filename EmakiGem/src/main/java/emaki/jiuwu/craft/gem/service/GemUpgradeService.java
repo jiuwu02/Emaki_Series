@@ -9,6 +9,8 @@ import java.util.concurrent.ThreadLocalRandom;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
+import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
 import emaki.jiuwu.craft.gem.model.GemDefinition;
 import emaki.jiuwu.craft.gem.model.GemItemDefinition;
@@ -112,6 +114,9 @@ public final class GemUpgradeService {
         UpgradePreview preview = preview(itemStack);
         if (!preview.eligible()) {
             return Result.failure(preview.errorKey(), Map.of());
+        }
+        if (!evaluateConditions(player)) {
+            return Result.failure("gem.error.condition_not_met", Map.of());
         }
         GemDefinition definition = preview.definition();
         GemItemInstance instance = preview.instance();
@@ -308,5 +313,30 @@ public final class GemUpgradeService {
             return definition.upgrade().failurePenalty();
         }
         return plugin.appConfig().upgrade().globalFailurePenalty();
+    }
+
+    private boolean evaluateConditions(Player player) {
+        var config = plugin.appConfig().condition();
+        if (config.conditions().isEmpty()) {
+            return true;
+        }
+        return ConditionEvaluator.evaluate(
+                config.conditions(),
+                config.conditionType(),
+                config.requiredCount(),
+                text -> resolvePlaceholders(player, text),
+                config.invalidAsFailure()
+        );
+    }
+
+    private String resolvePlaceholders(Player player, String text) {
+        if (player == null || Texts.isBlank(text) || !plugin.getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+            return text;
+        }
+        try {
+            return Texts.toStringSafe(me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(player, text));
+        } catch (Exception | NoClassDefFoundError _) {
+            return text;
+        }
     }
 }

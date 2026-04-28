@@ -23,6 +23,8 @@ import emaki.jiuwu.craft.skills.model.SkillSlotBinding;
 import emaki.jiuwu.craft.skills.model.UnlockedSkillEntry;
 import emaki.jiuwu.craft.skills.mythic.MythicSkillCastService;
 import emaki.jiuwu.craft.skills.trigger.TriggerInvocation;
+import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
+import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class CastAttemptService {
 
@@ -160,6 +162,20 @@ public final class CastAttemptService {
             return CastAttemptResult.fail(FailureReason.SKILL_COOLDOWN_ACTIVE, "cast.skill_cooldown");
         }
 
+        // 7.5. Check skill conditions
+        if (!definition.conditions().isEmpty()) {
+            boolean conditionsPassed = ConditionEvaluator.evaluate(
+                    definition.conditions(),
+                    definition.conditionType(),
+                    null,
+                    text -> resolvePlaceholders(player, text),
+                    true
+            );
+            if (!conditionsPassed) {
+                return CastAttemptResult.fail(FailureReason.RESOURCE_INSUFFICIENT, "cast.condition_not_met");
+            }
+        }
+
         // 8. Check resource costs
         CastAttemptResult costCheck = checkResourceCosts(player, profile, definition);
         if (costCheck != null) {
@@ -274,6 +290,17 @@ public final class CastAttemptService {
                     // Attribute checks are read-only, no consumption
                 }
             }
+        }
+    }
+
+    private String resolvePlaceholders(Player player, String text) {
+        if (player == null || Texts.isBlank(text) || !plugin.getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+            return text;
+        }
+        try {
+            return Texts.toStringSafe(me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(player, text));
+        } catch (Exception | NoClassDefFoundError _) {
+            return text;
         }
     }
 }

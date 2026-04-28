@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.gem.config;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import emaki.jiuwu.craft.corelib.config.BaseAppConfig;
@@ -19,6 +20,7 @@ public final class AppConfig extends BaseAppConfig {
     private final String numberFormat;
     private final boolean opBypass;
     private final GuiSettings gui;
+    private final ConditionConfig condition;
 
     public AppConfig(String language,
             String configVersion,
@@ -28,7 +30,8 @@ public final class AppConfig extends BaseAppConfig {
             UpgradeSettings upgrade,
             String numberFormat,
             boolean opBypass,
-            GuiSettings gui) {
+            GuiSettings gui,
+            ConditionConfig condition) {
         super(language, configVersion, CURRENT_VERSION);
         this.releaseDefaultData = releaseDefaultData;
         this.socketOpeners = socketOpeners == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(socketOpeners));
@@ -37,6 +40,7 @@ public final class AppConfig extends BaseAppConfig {
         this.numberFormat = numberFormat == null || numberFormat.isBlank() ? "0.##" : numberFormat;
         this.opBypass = opBypass;
         this.gui = gui == null ? GuiSettings.defaults() : gui;
+        this.condition = condition == null ? ConditionConfig.defaults() : condition;
     }
 
     public static AppConfig defaults() {
@@ -49,7 +53,8 @@ public final class AppConfig extends BaseAppConfig {
                 UpgradeSettings.defaults(),
                 "0.##",
                 false,
-                GuiSettings.defaults()
+                GuiSettings.defaults(),
+                ConditionConfig.defaults()
         );
     }
 
@@ -79,6 +84,10 @@ public final class AppConfig extends BaseAppConfig {
 
     public GuiSettings gui() {
         return gui;
+    }
+
+    public ConditionConfig condition() {
+        return condition;
     }
 
     public record InlaySuccessConfig(boolean enabled,
@@ -120,6 +129,22 @@ public final class AppConfig extends BaseAppConfig {
 
         public static GuiSettings defaults() {
             return new GuiSettings(GemGuiMode.INLAY, false);
+        }
+    }
+
+    public record ConditionConfig(List<String> conditions,
+            String conditionType,
+            int requiredCount,
+            boolean invalidAsFailure) {
+
+        public ConditionConfig {
+            conditions = conditions == null ? List.of() : List.copyOf(conditions);
+            conditionType = Texts.isBlank(conditionType) ? "all_of" : Texts.lower(conditionType);
+            requiredCount = Math.max(0, requiredCount);
+        }
+
+        public static ConditionConfig defaults() {
+            return new ConditionConfig(List.of(), "all_of", 0, true);
         }
     }
 }
