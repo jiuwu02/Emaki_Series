@@ -6,6 +6,7 @@ api-version: "1.21"
 depend:
   - EmakiCoreLib
 softdepend:
+  - PlaceholderAPI
   - CraftEngine
   - ItemsAdder
   - Nexo

@@ -186,6 +186,7 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
         YamlSection permission = configuration.getSection("permission");
         YamlSection numberFormat = configuration.getSection("number_format");
         YamlSection gui = configuration.getSection("gui");
+        YamlSection condition = configuration.getSection("condition");
         return new AppConfig(
                 configuration.getString("language", defaults.language()),
                 configuration.getString("version", defaults.configVersion()),
@@ -199,7 +200,8 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
                 ),
                 numberFormat == null ? defaults.numberFormat() : numberFormat.getString("default", defaults.numberFormat()),
                 permission != null && permission.getBoolean("op_bypass", defaults.opBypass()),
-                parseGuiSettings(gui, defaults.gui())
+                parseGuiSettings(gui, defaults.gui()),
+                parseConditionConfig(condition, defaults.condition())
         );
     }
 
@@ -278,6 +280,18 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
         return new AppConfig.GuiSettings(
                 defaultMode,
                 section.getBoolean("save_on_close", defaults.saveOnClose())
+        );
+    }
+
+    private AppConfig.ConditionConfig parseConditionConfig(YamlSection section, AppConfig.ConditionConfig defaults) {
+        if (section == null || section.getKeys(false).isEmpty()) {
+            return defaults;
+        }
+        return new AppConfig.ConditionConfig(
+                section.getStringList("conditions"),
+                section.getString("condition_type", defaults.conditionType()),
+                section.getInt("required_count", defaults.requiredCount()),
+                section.getBoolean("invalid_as_failure", defaults.invalidAsFailure())
         );
     }
 

@@ -1,0 +1,24 @@
+name: EmakiItem
+prefix: ${project.name}
+main: emaki.jiuwu.craft.item.EmakiItemPlugin
+version: ${project.version}
+api-version: "1.21"
+depend:
+  - EmakiCoreLib
+softdepend:
+  - EmakiAttribute
+  - EmakiSkills
+  - PlaceholderAPI
+commands:
+  emakiitem:
+    aliases: [ei]
+    permission: emakiitem.use
+permissions:
+  emakiitem.use:
+    default: true
+  emakiitem.give:
+    default: op
+  emakiitem.inspect:
+    default: op
+  emakiitem.reload:
+    default: op

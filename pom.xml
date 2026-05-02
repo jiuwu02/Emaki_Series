@@ -38,6 +38,7 @@
             <modules>
                 <module>EmakiGem</module>
                 <module>EmakiSkills</module>
+                <module>EmakiItem</module>
             </modules>
         </profile>
     </profiles>

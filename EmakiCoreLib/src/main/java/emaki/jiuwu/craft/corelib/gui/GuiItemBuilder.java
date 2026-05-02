@@ -76,7 +76,7 @@ public final class GuiItemBuilder {
         ItemStack itemStack = switch (source.getType()) {
             case VANILLA ->
                 createVanillaItem(source.getIdentifier(), amount);
-            case MMOITEMS, ITEMSADDER, NEIGEITEMS, NEXO, CRAFTENGINE ->
+            case MMOITEMS, ITEMSADDER, NEIGEITEMS, NEXO, CRAFTENGINE, EMAKIITEM ->
                 itemFactory == null ? null : itemFactory.create(source, amount);
         };
         if (itemStack == null) {

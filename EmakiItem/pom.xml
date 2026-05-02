@@ -11,20 +11,15 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>emaki-cooking</artifactId>
-    <version>2.2.0</version>
-    <name>EmakiCooking</name>
+    <artifactId>emaki-item</artifactId>
+    <version>1.0.0</version>
+    <name>EmakiItem</name>
     <packaging>jar</packaging>
 
     <dependencies>
         <dependency>
             <groupId>org.spigotmc</groupId>
             <artifactId>spigot-api</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>net.kyori</groupId>
-            <artifactId>adventure-api</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -36,32 +31,6 @@
             <groupId>me.clip</groupId>
             <artifactId>placeholderapi</artifactId>
             <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>net.momirealms</groupId>
-            <artifactId>craft-engine-bukkit</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>net.momirealms</groupId>
-            <artifactId>craft-engine-core</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>dev.lone</groupId>
-            <artifactId>api-itemsadder</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.nexomc</groupId>
-            <artifactId>nexo</artifactId>
-            <scope>provided</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>*</groupId>
-                    <artifactId>*</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
     </dependencies>
 

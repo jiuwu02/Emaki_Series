@@ -1,0 +1,43 @@
+version: "1.0.0"
+general:
+  prefix: "<gray>[ <gradient:#EBD48A:#7FB08A>Emaki Item</gradient> ]</gray>"
+  no_permission: "<red>You do not have permission.</red>"
+  player_only: "<red>This command can only be used by a player.</red>"
+  player_not_found: "<red>Player not found.</red>"
+  invalid_args: "<red>Invalid arguments.</red>"
+  unknown_command: "<red>Unknown subcommand.</red>"
+  reload_success: "<green>EmakiItem reloaded.</green>"
+  reload_summary: "<gray>Loaded <white>{items}</white> item definitions.</gray>"
+  item_not_found: "<red>Item not found: <white>{id}</white></red>"
+  give_success: "<green>Gave <white>{player}</white> <gold>{id}</gold> x{amount}.</green>"
+console:
+  plugin_starting: "Starting EmakiItem..."
+  plugin_started: "EmakiItem started."
+  plugin_stopping: "Stopping EmakiItem..."
+  plugin_stopped: "EmakiItem stopped."
+  items_loaded: "Loaded {count} EmakiItem item definitions."
+  bootstrap_start: "Syncing bundled resources..."
+  bootstrap_complete: "Bundled resources synced."
+  bootstrap_skip: "Skipped default data release by config."
+  default_file_missing: "Bundled resource missing: {path}"
+  bootstrap_copy_failed: "Failed to copy default resource: {path} ({error})"
+  bootstrap_save_failed: "Failed to save versioned resource: {path} ({error})"
+  bootstrap_cleanup_failed: "Failed to clean directory: {path} ({error})"
+  directory_create_failed: "Failed to create directory: {path}"
+command:
+  help:
+    header: "<gold>EmakiItem Commands</gold>"
+    line: "<yellow>/ei {cmd}</yellow> <gray>- {desc}</gray>"
+    footer: "<dark_gray>Item source example: ei-example_blade</dark_gray>"
+    desc:
+      help: "Show help"
+      list: "List item ids"
+      give: "Give an item to a player"
+      inspect: "Inspect held EmakiItem"
+      reload: "Reload config and items"
+  list:
+    header: "<gold>EmakiItem Items</gold> <gray>({page}/{pages}, {count} total)</gray>"
+    line: "<gray>- <white>{id}</white> <dark_gray>{name}</dark_gray>"
+  inspect:
+    header: "<gold>{player}</gold><gray> held item</gray>"
+    line: "<gray>{key}: <white>{value}</white></gray>"

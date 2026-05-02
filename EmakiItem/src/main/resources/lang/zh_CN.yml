@@ -1,0 +1,43 @@
+version: "1.0.0"
+general:
+  prefix: "<gray>[ <gradient:#EBD48A:#7FB08A>Emaki Item</gradient> ]</gray>"
+  no_permission: "<red>你没有权限执行这个命令。</red>"
+  player_only: "<red>这个命令只能由玩家执行。</red>"
+  player_not_found: "<red>找不到目标玩家。</red>"
+  invalid_args: "<red>参数不正确。</red>"
+  unknown_command: "<red>未知子命令。</red>"
+  reload_success: "<green>EmakiItem 已重载。</green>"
+  reload_summary: "<gray>已加载 <white>{items}</white> 个物品定义。</gray>"
+  item_not_found: "<red>找不到物品定义: <white>{id}</white></red>"
+  give_success: "<green>已给予 <white>{player}</white> <gold>{id}</gold> x{amount}。</green>"
+console:
+  plugin_starting: "EmakiItem 正在启动..."
+  plugin_started: "EmakiItem 已启动。"
+  plugin_stopping: "EmakiItem 正在关闭..."
+  plugin_stopped: "EmakiItem 已关闭。"
+  items_loaded: "已加载 {count} 个 EmakiItem 物品定义。"
+  bootstrap_start: "正在同步默认资源..."
+  bootstrap_complete: "默认资源同步完成。"
+  bootstrap_skip: "已按配置跳过默认数据释放。"
+  default_file_missing: "内置资源不存在: {path}"
+  bootstrap_copy_failed: "复制默认资源失败: {path} ({error})"
+  bootstrap_save_failed: "保存版本化资源失败: {path} ({error})"
+  bootstrap_cleanup_failed: "清理目录失败: {path} ({error})"
+  directory_create_failed: "创建目录失败: {path}"
+command:
+  help:
+    header: "<gold>EmakiItem 命令</gold>"
+    line: "<yellow>/ei {cmd}</yellow> <gray>- {desc}</gray>"
+    footer: "<dark_gray>物品源示例: ei-example_blade</dark_gray>"
+    desc:
+      help: "显示帮助"
+      list: "分页列出物品 ID"
+      give: "给予玩家物品"
+      inspect: "检查主手 EmakiItem"
+      reload: "重载配置和物品定义"
+  list:
+    header: "<gold>EmakiItem 物品列表</gold> <gray>({page}/{pages}, 共 {count} 个)</gray>"
+    line: "<gray>- <white>{id}</white> <dark_gray>{name}</dark_gray>"
+  inspect:
+    header: "<gold>{player}</gold><gray> 主手物品</gray>"
+    line: "<gray>{key}: <white>{value}</white></gray>"

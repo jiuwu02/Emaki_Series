@@ -1,0 +1,3 @@
+version: "1.0.0"
+language: "zh_CN"
+release_default_data: true

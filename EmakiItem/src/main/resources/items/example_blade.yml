@@ -1,0 +1,40 @@
+id: "example_blade"
+material: "diamond_sword"
+display_name: "<gold>示例之刃</gold>"
+lore:
+  - "<gray>一把用于演示的钻石剑</gray>"
+  - ""
+  - "<yellow>物理攻击: <white>+{physical_attack}</white></yellow>"
+  - "<yellow>暴击率: <white>+{physical_crit_rate}%</white></yellow>"
+  - ""
+  - "<dark_gray>品质: 示例</dark_gray>"
+variables:
+  physical_attack: 12
+  physical_crit_rate: 5
+components:
+  enchantments:
+    sharpness: 5
+  item_flags:
+    - "HIDE_ENCHANTS"
+    - "HIDE_ATTRIBUTES"
+  enchantment_glint_override: true
+  max_stack_size: 1
+  rarity: "rare"
+  attribute_modifiers:
+    - attribute: "attack_damage"
+      amount: 12.0
+      operation: "add_number"
+      slot: "hand"
+    - attribute: "attack_speed"
+      amount: -2.4
+      operation: "add_number"
+      slot: "hand"
+attributes:
+  physical_attack: 12.0
+  physical_crit_rate: 5.0
+skills:
+  - "fireball"
+actions:
+  give:
+    - "playsound sound=entity.player.levelup volume=1.0 pitch=1.2"
+    - "sendmessage text=\"<green>你获得了 <gold>{item_name}</gold>！</green>\""
