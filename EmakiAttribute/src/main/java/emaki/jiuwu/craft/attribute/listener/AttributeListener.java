@@ -120,12 +120,9 @@ public final class AttributeListener implements Listener {
         }
         Entity shooter = projectile.getShooter() instanceof Entity entity ? entity : null;
         if (shooter instanceof LivingEntity livingEntity) {
-            if (livingEntity instanceof Player player && attributeService.isAttackCoolingDown(player)) {
-                if (shouldDebugCombat(livingEntity, null, projectile)) {
-                    debugCombat(livingEntity, null, projectile, "PROJECTILE_LAUNCH_BLOCKED", "combat_debug.projectile_launch_blocked", Map.of(
-                            "shooter", describeEntity(livingEntity)
-                    ));
-                }
+            Player playerShooter = livingEntity instanceof Player player ? player : null;
+            if (isAttackCoolingDown(playerShooter, livingEntity, null, projectile,
+                    "PROJECTILE_LAUNCH_BLOCKED", "combat_debug.projectile_launch_blocked", "shooter")) {
                 event.setCancelled(true);
                 return;
             }
@@ -137,11 +134,11 @@ public final class AttributeListener implements Listener {
                         "signature", snapshot == null ? "<none>" : snapshot.sourceSignature()
                 ));
             }
-            if (livingEntity instanceof Player player) {
+            if (playerShooter != null) {
                 attributeService.startAttackCooldown(
-                        player,
+                        playerShooter,
                         snapshot == null ? null : snapshot.attackSnapshot(),
-                        player.getInventory().getItemInMainHand()
+                        playerShooter.getInventory().getItemInMainHand()
                 );
             }
         }
@@ -189,12 +186,9 @@ public final class AttributeListener implements Listener {
                         "vanilla_final", formatNumber(event.getFinalDamage())
                 ));
             }
-            if (shooter instanceof Player player && attributeService.isAttackCoolingDown(player)) {
-                if (shouldDebugCombat(shootingEntity, target, projectile)) {
-                    debugCombat(shootingEntity, target, projectile, "PROJECTILE_HIT_BLOCKED", "combat_debug.projectile_hit_blocked", Map.of(
-                            "shooter", describeEntity(shootingEntity)
-                    ));
-                }
+            Player playerShooter = shooter instanceof Player player ? player : null;
+            if (isAttackCoolingDown(playerShooter, shootingEntity, target, projectile,
+                    "PROJECTILE_HIT_BLOCKED", "combat_debug.projectile_hit_blocked", "shooter")) {
                 event.setCancelled(true);
                 return;
             }
@@ -229,12 +223,9 @@ public final class AttributeListener implements Listener {
                     "vanilla_final", formatNumber(event.getFinalDamage())
             ));
         }
-        if (attacker instanceof Player player && attributeService.isAttackCoolingDown(player)) {
-            if (shouldDebugCombat(attacker, target, null)) {
-                debugCombat(attacker, target, null, "MELEE_HIT_BLOCKED", "combat_debug.melee_hit_blocked", Map.of(
-                        "attacker", describeEntity(attacker)
-                ));
-            }
+        Player attackingPlayer = attacker instanceof Player player ? player : null;
+        if (isAttackCoolingDown(attackingPlayer, attacker, target, null,
+                "MELEE_HIT_BLOCKED", "combat_debug.melee_hit_blocked", "attacker")) {
             event.setCancelled(true);
             return;
         }
@@ -395,6 +386,24 @@ public final class AttributeListener implements Listener {
             return;
         }
         plugin.getServer().getScheduler().runTask(plugin, action);
+    }
+
+    private boolean isAttackCoolingDown(Player player,
+            LivingEntity attacker,
+            LivingEntity target,
+            Projectile projectile,
+            String phase,
+            String messageKey,
+            String entityKey) {
+        if (player == null || !attributeService.isAttackCoolingDown(player)) {
+            return false;
+        }
+        if (shouldDebugCombat(attacker, target, projectile)) {
+            debugCombat(attacker, target, projectile, phase, messageKey, Map.of(
+                    entityKey, describeEntity(attacker)
+            ));
+        }
+        return true;
     }
 
     private DamageContext createMeleeDamageContext(EntityDamageByEntityEvent event,

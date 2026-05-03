@@ -11,6 +11,7 @@ import emaki.jiuwu.craft.cooking.model.RecipeDocument;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
+import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.MapYamlSection;
 import org.bukkit.entity.Player;
@@ -246,14 +247,7 @@ public final class CookingRecipeService {
     }
 
     private int parseInteger(String value, int fallback) {
-        if (Texts.isBlank(value)) {
-            return fallback;
-        }
-        try {
-            return Integer.parseInt(value.trim());
-        } catch (Exception _) {
-            return fallback;
-        }
+        return Numbers.tryParseInt(value, fallback);
     }
 
     private String resolvePlaceholders(Player player, String text) {

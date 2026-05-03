@@ -22,6 +22,7 @@ import org.joml.Vector3f;
 
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
+import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.MapYamlSection;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
@@ -284,17 +285,7 @@ public final class CookingSettingsService {
     }
 
     private Integer configurationValueToInt(Object raw, Integer fallback) {
-        if (raw instanceof Number number) {
-            return number.intValue();
-        }
-        if (raw == null) {
-            return fallback;
-        }
-        try {
-            return Integer.parseInt(String.valueOf(raw).trim());
-        } catch (Exception _) {
-            return fallback;
-        }
+        return Numbers.tryParseInt(raw, fallback);
     }
 
     private void addSlotIndexes(LinkedHashSet<Integer> sink, Object raw, int inventorySize) {
@@ -488,11 +479,7 @@ public final class CookingSettingsService {
     }
 
     private double parseDouble(String raw, double fallback) {
-        try {
-            return Double.parseDouble(Texts.toStringSafe(raw).trim());
-        } catch (Exception _) {
-            return fallback;
-        }
+        return Numbers.tryParseDouble(raw, fallback);
     }
 
     public record HeatLevelRule(ItemSource source, int level) {
