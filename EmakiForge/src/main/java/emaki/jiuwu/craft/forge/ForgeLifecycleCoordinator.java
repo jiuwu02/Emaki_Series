@@ -71,7 +71,6 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                 STATIC_FILES,
                 DEFAULT_DATA_FILES,
                 EXTRA_DIRECTORIES,
-                List.of(),
                 new BootstrapHooks() {
                     @Override
                     public boolean shouldInstallDefaultData() {

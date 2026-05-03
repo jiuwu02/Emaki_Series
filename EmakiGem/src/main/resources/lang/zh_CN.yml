@@ -20,9 +20,7 @@ console:
   default_file_missing: "<yellow>缺少内置默认资源，已跳过: <red>{path}</red></yellow>"
   bootstrap_copy_failed: "<yellow>复制默认资源失败: <red>{path}</red> <gray>({error})</gray></yellow>"
   bootstrap_save_failed: "<yellow>保存默认资源失败: <red>{path}</red> <gray>({error})</gray></yellow>"
-  bootstrap_cleanup_failed: "<yellow>清理资源目录失败: <red>{path}</red> <gray>({error})</gray></yellow>"
   directory_create_failed: "<yellow>无法创建目录: <red>{path}</red></yellow>"
-  bootstrap_legacy_cleanup_failed: "<yellow>清理旧版资源目录失败: <red>{path}</red> <gray>({error})</gray></yellow>"
   loader_config_load_error: "<red>加载配置失败: {path} ({error})</red>"
 
 loader:
@@ -49,9 +47,6 @@ command:
       {desc}</gray>"
     footer: "<dark_gray>镶嵌、开孔、取出和升级界面请使用 <gray>/emakigem gui
       [inlay|extract|open|upgrade]</gray> 打开。</dark_gray>"
-
-  gui_only: "<yellow>对应界面现在只能通过 <gold>/emakigem gui
-    [inlay|extract|open|upgrade]</gold> 打开。</yellow>"
 
   inspect:
     header: "<gold>宝石状态检查 - {player}</gold>"

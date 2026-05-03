@@ -8,6 +8,7 @@ general:
   unknown_command: "<red>未知命令。</red>"
   invalid_args: "<red>参数错误。</red>"
   no_item_in_hand: "<red>你的主手当前没有可检查的物品。</red>"
+  input_rejected: "<red>该物品不是此工位可用配方输入。</red>"
   reload_success: "<green>配置已重载。</green>"
   reload_summary: "<gray>已重载配方 {recipes} 个，GUI 资源 {resources} 个。</gray>"
 
@@ -19,13 +20,6 @@ command:
   inspect:
     header: "<gold>========== 手持物品检查 ==========</gold>"
     line: "<yellow>{key}</yellow> <gray>- {value}</gray>"
-  convert:
-    dryrun_success: "<green>旧版 dryrun 完成：导入配方 {recipes} 个，工位状态 {stations} 个。</green>"
-    apply_success: "<green>旧版数据导入完成：配方 {recipes} 个，工位状态 {stations} 个。</green>"
-    report: "<gray>导入报告：{path}</gray>"
-    backup: "<gray>备份目录：{path}</gray>"
-    issues: "<yellow>已跳过 {skipped} 条，冲突 {conflicts} 条，未识别来源 {unknown_sources}
-      条，待复查动作上下文 {action_context_issues} 条。</yellow>"
 
 console:
   plugin_starting: "<gray>正在启动 EmakiCooking...</gray>"
@@ -36,7 +30,6 @@ console:
   bootstrap_skip: "<yellow>已跳过默认数据写入。</yellow>"
   bootstrap_copy_failed: "<yellow>复制默认资源失败: <red>{path}</red> <gray>({error})</gray></yellow>"
   bootstrap_save_failed: "<yellow>保存合并资源失败: <red>{path}</red> <gray>({error})</gray></yellow>"
-  bootstrap_cleanup_failed: "<yellow>清理旧目录失败: <red>{path}</red> <gray>({error})</gray></yellow>"
   default_file_missing: "<yellow>缺少内置默认资源: <red>{path}</red></yellow>"
   directory_create_failed: "<yellow>创建目录失败: <red>{path}</red></yellow>"
   loader_config_load_error: "<yellow>读取 EmakiCooking 配置失败: <red>{path}</red>

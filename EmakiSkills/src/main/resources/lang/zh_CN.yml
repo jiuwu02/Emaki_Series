@@ -19,7 +19,6 @@ console:
   bootstrap_skip: "已跳过默认数据写入。"
   bootstrap_copy_failed: "复制默认资源失败: {path} ({error})"
   bootstrap_save_failed: "保存默认资源失败: {path} ({error})"
-  bootstrap_cleanup_failed: "清理旧目录失败: {path} ({error})"
   default_file_missing: "缺少内置默认资源: {path}"
   directory_create_failed: "创建目录失败: {path}"
   loader_config_load_error: "读取 EmakiSkills 配置失败: {path} ({error})"

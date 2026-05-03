@@ -22,7 +22,6 @@ console:
   default_file_missing: "内置资源不存在: {path}"
   bootstrap_copy_failed: "复制默认资源失败: {path} ({error})"
   bootstrap_save_failed: "保存版本化资源失败: {path} ({error})"
-  bootstrap_cleanup_failed: "清理目录失败: {path} ({error})"
   directory_create_failed: "创建目录失败: {path}"
 command:
   help:

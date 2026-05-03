@@ -19,7 +19,6 @@ console:
   bootstrap_skip: "Skipped default data generation."
   bootstrap_copy_failed: "Failed to copy default resource: {path} ({error})"
   bootstrap_save_failed: "Failed to save default resource: {path} ({error})"
-  bootstrap_cleanup_failed: "Failed to clean up old directory: {path} ({error})"
   default_file_missing: "Missing built-in default resource: {path}"
   directory_create_failed: "Failed to create directory: {path}"
   loader_config_load_error: "Failed to load EmakiSkills config: {path} ({error})"

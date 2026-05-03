@@ -72,7 +72,7 @@ public final class SteamerRuntimeService implements Listener {
         this.itemSourceService = itemSourceService;
         this.codec = new SteamerStateCodec();
         this.tickProcessor = new SteamerTickProcessor(settingsService, blockMatcher, recipeService, rewardService, itemSourceService, codec);
-        this.guiController = new SteamerGuiController(plugin, messageService, settingsService, itemSourceService, codec);
+        this.guiController = new SteamerGuiController(plugin, messageService, settingsService, itemSourceService, recipeService, codec);
         this.guiController.setRuntimeService(this);
     }
 
@@ -127,7 +127,7 @@ public final class SteamerRuntimeService implements Listener {
     public boolean handleInteraction(StationInteraction interaction) {
         Block block = interaction.block();
         Player player = interaction.player();
-        if (block == null || player == null || !interaction.rightClick() || !interaction.mainHand()) {
+        if (block == null || player == null || !interaction.mainHand()) {
             return false;
         }
         if (blockMatcher.matches(block, StationType.STEAMER)) {
@@ -158,7 +158,10 @@ public final class SteamerRuntimeService implements Listener {
             return true;
         }
 
-        if (settingsService.requireSneaking(StationType.STEAMER) && !player.isSneaking()) {
+        if (!settingsService.matchesInteraction(
+                StationType.STEAMER,
+                CookingSettingsService.INTERACTION_OPEN,
+                interaction)) {
             return false;
         }
         if (!player.hasPermission(CookingPermissions.STEAMER_USE)
@@ -180,7 +183,10 @@ public final class SteamerRuntimeService implements Listener {
         if (handleResourceInput(interaction, player, coordinates, heatSourceBlock, hand)) {
             return true;
         }
-        if (settingsService.requireSneaking(StationType.STEAMER) && !player.isSneaking()) {
+        if (!settingsService.matchesInteraction(
+                StationType.STEAMER,
+                CookingSettingsService.INTERACTION_OPEN,
+                interaction)) {
             return false;
         }
         if (hand == null || hand.getType().isAir()) {
@@ -202,7 +208,10 @@ public final class SteamerRuntimeService implements Listener {
             Block heatSourceBlock,
             ItemStack hand) {
         CookingSettingsService.SteamerMoistureRule moistureRule = matchMoistureRule(hand);
-        if (moistureRule != null) {
+        if (moistureRule != null && settingsService.matchesInteraction(
+                StationType.STEAMER,
+                CookingSettingsService.INTERACTION_MOISTURE,
+                interaction)) {
             interaction.cancel();
             if (!player.hasPermission(CookingPermissions.STEAMER_MOISTURE)
                     && !player.hasPermission(CookingPermissions.ADMIN)) {
@@ -213,7 +222,10 @@ public final class SteamerRuntimeService implements Listener {
         }
 
         CookingSettingsService.SteamerFuelRule fuelRule = matchFuelRule(hand);
-        if (fuelRule != null) {
+        if (fuelRule != null && settingsService.matchesInteraction(
+                StationType.STEAMER,
+                CookingSettingsService.INTERACTION_FUEL,
+                interaction)) {
             interaction.cancel();
             if (!player.hasPermission(CookingPermissions.STEAMER_FUEL)
                     && !player.hasPermission(CookingPermissions.ADMIN)) {

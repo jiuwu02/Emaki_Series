@@ -22,7 +22,6 @@ console:
   default_file_missing: "Bundled resource missing: {path}"
   bootstrap_copy_failed: "Failed to copy default resource: {path} ({error})"
   bootstrap_save_failed: "Failed to save versioned resource: {path} ({error})"
-  bootstrap_cleanup_failed: "Failed to clean directory: {path} ({error})"
   directory_create_failed: "Failed to create directory: {path}"
 command:
   help:

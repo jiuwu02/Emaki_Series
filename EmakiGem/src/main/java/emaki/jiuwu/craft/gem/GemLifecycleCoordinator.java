@@ -70,7 +70,6 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
                 staticFiles(plugin),
                 defaultDataFiles(plugin),
                 EXTRA_DIRECTORIES,
-                List.of(),
                 new BootstrapHooks() {
                     @Override
                     public boolean shouldInstallDefaultData() {

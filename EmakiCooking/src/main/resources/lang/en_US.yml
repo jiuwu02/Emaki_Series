@@ -8,6 +8,7 @@ general:
   unknown_command: "<red>Unknown command.</red>"
   invalid_args: "<red>Invalid arguments.</red>"
   no_item_in_hand: "<red>You are not holding an inspectable item in your main hand.</red>"
+  input_rejected: "<red>This item is not a valid recipe input for this station.</red>"
   reload_success: "<green>Configuration reloaded.</green>"
   reload_summary: "<gray>Reloaded {recipes} recipes, {resources} GUI resources.</gray>"
 
@@ -19,16 +20,6 @@ command:
   inspect:
     header: "<gold>========== Held Item Inspection ==========</gold>"
     line: "<yellow>{key}</yellow> <gray>- {value}</gray>"
-  convert:
-    dryrun_success: "<green>Legacy dry run complete: imported {recipes} recipes,
-      {stations} station states.</green>"
-    apply_success: "<green>Legacy data import complete: {recipes} recipes,
-      {stations} station states.</green>"
-    report: "<gray>Import report: {path}</gray>"
-    backup: "<gray>Backup directory: {path}</gray>"
-    issues: "<yellow>Skipped {skipped}, conflicts {conflicts}, unrecognized sources
-      {unknown_sources}, action context issues
-      {action_context_issues}.</yellow>"
 
 console:
   plugin_starting: "<gray>Starting EmakiCooking...</gray>"
@@ -40,8 +31,6 @@ console:
   bootstrap_copy_failed: "<yellow>Failed to copy default resource:
     <red>{path}</red> <gray>({error})</gray></yellow>"
   bootstrap_save_failed: "<yellow>Failed to save merged resource:
-    <red>{path}</red> <gray>({error})</gray></yellow>"
-  bootstrap_cleanup_failed: "<yellow>Failed to clean up old directory:
     <red>{path}</red> <gray>({error})</gray></yellow>"
   default_file_missing: "<yellow>Missing built-in default resource: <red>{path}</red></yellow>"
   directory_create_failed: "<yellow>Failed to create directory: <red>{path}</red></yellow>"

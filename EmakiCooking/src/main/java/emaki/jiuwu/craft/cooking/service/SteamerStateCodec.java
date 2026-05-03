@@ -97,25 +97,11 @@ final class SteamerStateCodec {
     }
 
     Map<String, Object> serializeItem(ItemStack itemStack) {
-        if (itemStack == null || itemStack.getType().isAir()) {
-            return Map.of();
-        }
-        Object plain = ConfigNodes.toPlainData(itemStack.serialize());
-        if (!(plain instanceof Map<?, ?> itemMap)) {
-            return Map.of();
-        }
-        return Map.copyOf(MapYamlSection.normalizeMap(itemMap));
+        return StoredItemCodec.serialize(itemStack);
     }
 
     ItemStack deserializeItem(Map<String, Object> serializedItem) {
-        if (serializedItem == null || serializedItem.isEmpty()) {
-            return null;
-        }
-        try {
-            return ItemStack.deserialize(new LinkedHashMap<>(serializedItem));
-        } catch (Exception _) {
-            return null;
-        }
+        return StoredItemCodec.deserialize(serializedItem);
     }
 
     Map<Integer, String> sortedSlots(Map<Integer, String> slots) {

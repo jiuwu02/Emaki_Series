@@ -2,7 +2,7 @@
 
 Emaki Series 是一组面向 Minecraft Spigot 服务端的 Java 插件，采用多模块 Maven 工程组织。项目以 `EmakiCoreLib` 为共享基础库，向上承载属性战斗、锻造、强化、烹饪与装备宝石等 RPG 玩法模块。
 
-当前工作区的当前版本线为：`EmakiCoreLib / EmakiAttribute / EmakiForge / EmakiStrengthen = 3.2.0`、`EmakiCooking = 2.0.0`、`EmakiGem = 1.1.0`、`EmakiSkills = 1.0.0`。
+当前工作区的当前版本线为：`EmakiCoreLib / EmakiAttribute / EmakiForge / EmakiStrengthen = 3.2.0`、`EmakiCooking = 2.2.0`、`EmakiGem = 1.1.0`、`EmakiSkills = 1.0.0`。
 
 ## 模块概览
 
@@ -12,7 +12,7 @@ Emaki Series 是一组面向 Minecraft Spigot 服务端的 Java 插件，采用�
 | `EmakiAttribute`  | `3.2.0`  | 属性系统   | 提供 RPG 属性、三系伤害、资源状态、PDC 属性接入、条件检查、快照调试与战斗反馈能力     |
 | `EmakiForge`      | `3.2.0`  | 锻造系统   | 提供配方驱动锻造、品质随机、材料贡献、图鉴、编辑器、结果组装与 PDC 属性写入能力       |
 | `EmakiStrengthen` | `3.2.0`  | 强化系统   | 提供星级强化、成功率配置、锻印 / 里程碑、强化 GUI、材料消耗与强化层刷新能力           |
-| `EmakiCooking`    | `2.0.0`  | 烹饪系统   | 提供砧板、炒锅、研磨机、蒸锅的 Java 化运行骨架，以及旧版 JiuWu's Kitchen 配置导入链路 |
+| `EmakiCooking`    | `2.2.0`  | 烹饪系统   | 提供砧板、炒锅、研磨机、蒸锅的世界工位运行时、配方判定、输入限制与状态持久化能力 |
 | `EmakiGem`        | `1.1.0`  | 宝石系统   | 提供装备开孔、宝石镶嵌、取出、升级、装备模板、宝石定义与可选属性系统接入能力          |
 | `EmakiSkills`     | `1.0.0`  | 技能系统   | 提供主动技能槽位、被动触发器、施法模式、冷却与 MythicMobs / Attribute 桥接能力        |
 
@@ -42,7 +42,7 @@ EmakiCoreLib
 - `EmakiAttribute` 可独立提供属性与战斗计算，也可接收 Forge / Strengthen / Gem 通过 PDC 写入的属性。
 - `EmakiForge` 通过 CoreLib 装配物品、读取材料来源，并可选写入 EmakiAttribute 属性数据。
 - `EmakiStrengthen` 通过配方系统为装备附加强化层，并可选把强化属性接入 EmakiAttribute。
-- `EmakiCooking` 通过 CoreLib 的物品源、动作系统、方块桥接与结构化展示能力承接四类厨具与旧版数据迁移。
+- `EmakiCooking` 通过 CoreLib 的物品源、动作系统、方块桥接与结构化展示能力承接四类世界厨具。
 - `EmakiGem` 通过装备模板、开孔器和宝石定义提供可组合装备成长，可选把宝石属性接入 EmakiAttribute。
 - `EmakiSkills` 通过技能解锁、主动触发器、被动触发器、技能等级、技能传参与施法模式承接技能管理，并可桥接 MythicMobs 与 EmakiAttribute。
 
@@ -63,7 +63,7 @@ Project/
 ## 默认资源定位
 
 - `EmakiCoreLib`：共享配置位于 `EmakiCoreLib/src/main/resources/config.yml`，主要提供动作模板、经济、物品源与基础服务配置。
-- `EmakiAttribute`：属性、条件与默认档案配置位于 `attributes/*.yml`、`conditions/*.yml` 与 `config.yml > default_profile`；旧的 `profiles/global.yml` 已不再作为默认基线入口。
+- `EmakiAttribute`：属性、条件与默认档案配置位于 `attributes/*.yml`、`conditions/*.yml` 与 `config.yml > default_profile`。
 - `EmakiForge`：锻造配方、GUI 与语言资源位于 `recipes/`、`gui/`、`lang/` 等目录，当前重点围绕材料批次、容量与结果装配链路。
 - `EmakiStrengthen`：默认强化内容位于 `recipes/*.yml`，例如 `weapon_physical`、`weapon_projectile`、`weapon_spell`、`armor_guard`、`generic_visual`、`offhand_focus`。
 - `EmakiCooking`：烹饪资源位于 `recipes/chopping_board/`、`recipes/wok/`、`recipes/grinder/`、`recipes/steamer/`、`gui/steamer.yml` 与 `data/stations/`。

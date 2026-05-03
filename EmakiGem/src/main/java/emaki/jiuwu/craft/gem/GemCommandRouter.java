@@ -44,7 +44,6 @@ final class GemCommandRouter implements TabExecutor {
             case "gui" -> handleGuiCommand(sender, args);
             case "reload" -> handleReload(sender);
             case "inspect" -> handleInspect(sender, args);
-            case "open", "inlay", "extract", "upgrade" -> handleLegacyGuiAlias(sender);
             case "clearstate" -> handleClearState(sender);
             default -> {
                 plugin.messageService().send(sender, "general.unknown_command");
@@ -162,11 +161,6 @@ final class GemCommandRouter implements TabExecutor {
                         .map(entry -> entry.getKey() + "=" + entry.getValue().token())
                         .toList()
         )));
-        return true;
-    }
-
-    private boolean handleLegacyGuiAlias(CommandSender sender) {
-        plugin.messageService().send(sender, "command.gui_only");
         return true;
     }
 

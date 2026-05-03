@@ -73,7 +73,6 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                 staticFiles(plugin),
                 defaultDataFiles(plugin),
                 EXTRA_DIRECTORIES,
-                List.of(),
                 new BootstrapHooks() {
                     @Override
                     public boolean shouldInstallDefaultData() {

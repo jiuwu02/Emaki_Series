@@ -8,7 +8,9 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
+import emaki.jiuwu.craft.cooking.model.RecipeDocument;
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
+import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
@@ -32,6 +34,7 @@ final class SteamerGuiController implements Listener {
     private final MessageService messageService;
     private final CookingSettingsService settingsService;
     private final ItemSourceService itemSourceService;
+    private final CookingRecipeService recipeService;
     private final SteamerStateCodec codec;
     private final Map<UUID, SteamerGuiHolder> openSessions = new ConcurrentHashMap<>();
 
@@ -41,11 +44,13 @@ final class SteamerGuiController implements Listener {
             MessageService messageService,
             CookingSettingsService settingsService,
             ItemSourceService itemSourceService,
+            CookingRecipeService recipeService,
             SteamerStateCodec codec) {
         this.plugin = plugin;
         this.messageService = messageService;
         this.settingsService = settingsService;
         this.itemSourceService = itemSourceService;
+        this.recipeService = recipeService;
         this.codec = codec;
     }
 
@@ -120,6 +125,12 @@ final class SteamerGuiController implements Listener {
             if (!ingredientSlots.contains(slot)) {
                 inventory.clear(slot);
                 InventoryItemUtil.giveOrDrop(player, itemStack);
+                continue;
+            }
+            if (rejectsRecipeInput(itemStack, player)) {
+                inventory.clear(slot);
+                InventoryItemUtil.giveOrDrop(player, itemStack);
+                sendInputRejected(player);
                 continue;
             }
             if (itemStack.getAmount() <= 1) {
@@ -209,7 +220,16 @@ final class SteamerGuiController implements Listener {
             String source = identifySource(itemStack);
             if (Texts.isBlank(source)) {
                 if (player != null) {
+                    inventory.clear(slot);
                     InventoryItemUtil.giveOrDrop(player, itemStack);
+                }
+                continue;
+            }
+            if (rejectsRecipeInput(itemStack, player)) {
+                if (player != null) {
+                    inventory.clear(slot);
+                    InventoryItemUtil.giveOrDrop(player, itemStack);
+                    sendInputRejected(player);
                 }
                 continue;
             }
@@ -248,31 +268,56 @@ final class SteamerGuiController implements Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (!(event.getInventory().getHolder() instanceof SteamerGuiHolder)) {
+        Inventory topInventory = event.getView().getTopInventory();
+        if (!(topInventory.getHolder() instanceof SteamerGuiHolder)) {
             return;
         }
+        Player player = event.getWhoClicked() instanceof Player viewer ? viewer : null;
         if (event.isShiftClick()) {
             event.setCancelled(true);
             return;
         }
-        int topSize = event.getInventory().getSize();
+        int topSize = topInventory.getSize();
         int rawSlot = event.getRawSlot();
-        if (rawSlot >= 0 && rawSlot < topSize && !ingredientSlotSet(event.getInventory()).contains(rawSlot)) {
+        if (rawSlot >= 0 && rawSlot < topSize && !ingredientSlotSet(topInventory).contains(rawSlot)) {
             event.setCancelled(true);
+            return;
+        }
+        if (rawSlot >= 0 && rawSlot < topSize && rejectsRecipeInput(event.getCursor(), player)) {
+            event.setCancelled(true);
+            sendInputRejected(player);
+            return;
+        }
+        if (rawSlot >= 0 && rawSlot < topSize && event.getHotbarButton() >= 0 && player != null) {
+            ItemStack hotbarItem = player.getInventory().getItem(event.getHotbarButton());
+            if (rejectsRecipeInput(hotbarItem, player)) {
+                event.setCancelled(true);
+                sendInputRejected(player);
+            }
         }
     }
 
     @EventHandler
     public void onInventoryDrag(InventoryDragEvent event) {
-        if (!(event.getInventory().getHolder() instanceof SteamerGuiHolder)) {
+        Inventory topInventory = event.getView().getTopInventory();
+        if (!(topInventory.getHolder() instanceof SteamerGuiHolder)) {
             return;
         }
-        int topSize = event.getInventory().getSize();
-        Set<Integer> ingredientSlots = ingredientSlotSet(event.getInventory());
+        Player player = event.getWhoClicked() instanceof Player viewer ? viewer : null;
+        int topSize = topInventory.getSize();
+        Set<Integer> ingredientSlots = ingredientSlotSet(topInventory);
         for (Integer rawSlot : event.getRawSlots()) {
             if (rawSlot != null && rawSlot >= 0 && rawSlot < topSize && !ingredientSlots.contains(rawSlot)) {
                 event.setCancelled(true);
                 return;
+            }
+            if (rawSlot != null && rawSlot >= 0 && rawSlot < topSize) {
+                ItemStack newItem = event.getNewItems().get(rawSlot);
+                if (rejectsRecipeInput(newItem, player)) {
+                    event.setCancelled(true);
+                    sendInputRejected(player);
+                    return;
+                }
             }
         }
     }
@@ -299,5 +344,21 @@ final class SteamerGuiController implements Listener {
 
     Set<Integer> ingredientSlotSet(Inventory inventory) {
         return Set.copyOf(ingredientSlots(inventory));
+    }
+
+    private boolean rejectsRecipeInput(ItemStack itemStack, Player player) {
+        if (!settingsService.onlyRecipeItems(StationType.STEAMER) || itemStack == null || itemStack.getType().isAir()) {
+            return false;
+        }
+        String source = identifySource(itemStack);
+        if (Texts.isBlank(source)) {
+            return true;
+        }
+        RecipeDocument recipe = recipeService.findSteamerRecipe(source, player);
+        return recipe == null;
+    }
+
+    private void sendInputRejected(Player player) {
+        CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "general.input_rejected", Map.of());
     }
 }

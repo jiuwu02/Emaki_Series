@@ -58,7 +58,6 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                 List.of(),
                 DEFAULT_DATA_FILES,
                 EXTRA_DIRECTORIES,
-                List.of(),
                 new BootstrapHooks() {
                     @Override
                     public boolean shouldInstallDefaultData() {

@@ -59,7 +59,6 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
                 staticFiles(plugin),
                 List.of(),
                 List.of(),
-                List.of(),
                 new BootstrapHooks() {
                 }
         );

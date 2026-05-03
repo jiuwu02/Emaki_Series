@@ -26,11 +26,7 @@ console:
     <red>{path}</red> <gray>({error})</gray></yellow>"
   bootstrap_save_failed: "<yellow>Failed to save default resource:
     <red>{path}</red> <gray>({error})</gray></yellow>"
-  bootstrap_cleanup_failed: "<yellow>Failed to clean up resource directory:
-    <red>{path}</red> <gray>({error})</gray></yellow>"
   directory_create_failed: "<yellow>Unable to create directory: <red>{path}</red></yellow>"
-  bootstrap_legacy_cleanup_failed: "<yellow>Failed to clean up legacy resource
-    directory: <red>{path}</red> <gray>({error})</gray></yellow>"
   loader_config_load_error: "<red>Failed to load config: {path} ({error})</red>"
 
 loader:
@@ -59,9 +55,6 @@ command:
     footer: "<dark_gray>For inlay, socket opening, extraction and upgrade
       interfaces, use <gray>/emakigem gui [inlay|extract|open|upgrade]</gray> to
       open.</dark_gray>"
-
-  gui_only: "<yellow>The corresponding interface can now only be opened via
-    <gold>/emakigem gui [inlay|extract|open|upgrade]</gold>.</yellow>"
 
   inspect:
     header: "<gold>Gem Status Check - {player}</gold>"
