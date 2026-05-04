@@ -56,7 +56,6 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
         YamlConfigLoader<AppConfig> appConfigLoader = new YamlConfigLoader<>(
                 plugin,
                 "config.yml",
-                "version",
                 AppConfig::defaults,
                 this::parseAppConfig
         );

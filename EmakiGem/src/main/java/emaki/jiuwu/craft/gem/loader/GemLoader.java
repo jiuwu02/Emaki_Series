@@ -28,12 +28,11 @@ public final class GemLoader extends YamlDirectoryLoader<GemDefinition> {
 
     @Override
     protected GemDefinition parse(File file, YamlSection configuration) {
-        String fallbackId = baseName(file);
         if (configuration == null) {
             issue("loader.invalid_config", Map.of("type", typeName(), "file", file == null ? "-" : file.getName()));
             return null;
         }
-        String id = Texts.lower(configuration.getString("id", fallbackId));
+        String id = Texts.lower(configuration.getString("id"));
         if (Texts.isBlank(id)) {
             onBlankId(file);
             return null;
@@ -42,7 +41,7 @@ public final class GemLoader extends YamlDirectoryLoader<GemDefinition> {
             issue("loader.gem_missing_item_source", Map.of("file", file.getName(), "id", id));
             return null;
         }
-        GemDefinition definition = GemDefinition.fromConfig(fallbackId, configuration);
+        GemDefinition definition = GemDefinition.fromConfig(configuration);
         if (definition == null) {
             issue("loader.invalid_config", Map.of("type", typeName(), "file", file.getName()));
         }
@@ -52,11 +51,5 @@ public final class GemLoader extends YamlDirectoryLoader<GemDefinition> {
     @Override
     protected String idOf(GemDefinition value) {
         return value.id();
-    }
-
-    private String baseName(File file) {
-        String name = file == null ? "" : file.getName();
-        int dot = name.lastIndexOf('.');
-        return Texts.lower(dot >= 0 ? name.substring(0, dot) : name);
     }
 }

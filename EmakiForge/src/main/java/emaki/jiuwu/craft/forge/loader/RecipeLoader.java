@@ -59,10 +59,6 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
             onBlankId(file);
             return null;
         }
-        if (configuration.contains("target_item")) {
-            issue("loader.recipe_target_item_unsupported", Map.of("file", file.getName()));
-            return null;
-        }
         Recipe recipe = Recipe.fromConfig(configuration);
         if (recipe == null) {
             issue("loader.invalid_config", Map.of("type", typeName(), "file", file.getName()));

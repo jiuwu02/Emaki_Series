@@ -31,8 +31,7 @@ public final class EmakiItemLoader {
         }
         Map<String, EmakiItemDefinition> loaded = new LinkedHashMap<>();
         for (File file : files(directory)) {
-            String fallbackId = fallbackId(file);
-            EmakiItemDefinition definition = parser.parse(YamlFiles.load(file), fallbackId, file.getPath());
+            EmakiItemDefinition definition = parser.parse(YamlFiles.load(file), file.getPath());
             if (definition == null) {
                 continue;
             }
@@ -74,11 +73,5 @@ public final class EmakiItemLoader {
             }
         }
         return result.toArray(File[]::new);
-    }
-
-    private String fallbackId(File file) {
-        String name = file == null ? "" : file.getName();
-        int dot = name.lastIndexOf('.');
-        return Texts.normalizeId(dot > 0 ? name.substring(0, dot) : name);
     }
 }

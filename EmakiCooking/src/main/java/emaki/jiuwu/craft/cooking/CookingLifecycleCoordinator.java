@@ -52,7 +52,6 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
         YamlConfigLoader<AppConfig> appConfigLoader = new YamlConfigLoader<>(
                 plugin,
                 "config.yml",
-                "version",
                 AppConfig::defaults,
                 this::parseAppConfig
         );

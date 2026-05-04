@@ -23,11 +23,11 @@ public final class EmakiItemDefinitionParser {
         this.logger = logger;
     }
 
-    public EmakiItemDefinition parse(YamlSection root, String fallbackId, String source) {
+    public EmakiItemDefinition parse(YamlSection root, String source) {
         if (root == null || root.isEmpty()) {
             return null;
         }
-        String id = Texts.normalizeId(root.getString("id", fallbackId));
+        String id = Texts.normalizeId(root.getString("id"));
         String materialName = root.getString("material", "");
         Material material = ItemSourceUtil.resolveVanillaMaterial(materialName);
         if (Texts.isBlank(id) || material == null || !material.isItem()) {

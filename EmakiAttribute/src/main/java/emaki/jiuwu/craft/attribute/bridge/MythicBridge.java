@@ -320,7 +320,7 @@ public final class MythicBridge implements Listener {
                 AttributeService attributeService) {
             super(conditionName);
             this.attributeService = attributeService;
-            this.attributeId = Texts.normalizeId(config.getString("attribute", config.getString("id", argument)));
+            this.attributeId = Texts.normalizeId(config.getString("attribute", ""));
             this.resourceId = Texts.normalizeId(config.getString("resource", ""));
             this.field = Texts.normalizeId(config.getString("field", resourceId.isBlank() ? "value" : "current_value"));
             this.operator = Texts.normalizeId(config.getString("operator", config.getString("compare", ">=")));

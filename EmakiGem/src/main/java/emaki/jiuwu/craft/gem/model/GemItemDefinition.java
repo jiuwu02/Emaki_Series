@@ -118,11 +118,11 @@ public final class GemItemDefinition {
         return allowedGemTypes.contains(normalized) || allowedGemTypes.contains("any");
     }
 
-    public static GemItemDefinition fromConfig(String fallbackId, YamlSection section) {
+    public static GemItemDefinition fromConfig(YamlSection section) {
         if (section == null) {
             return null;
         }
-        String id = Texts.lower(section.getString("id", fallbackId));
+        String id = Texts.lower(section.getString("id"));
         if (Texts.isBlank(id)) {
             return null;
         }

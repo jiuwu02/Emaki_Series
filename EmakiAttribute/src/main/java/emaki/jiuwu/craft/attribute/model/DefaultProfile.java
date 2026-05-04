@@ -31,7 +31,7 @@ public record DefaultProfile(String id,
         Map<String, ResourceDefinition> resources = new LinkedHashMap<>();
         Object resourcesRaw = ConfigNodes.get(raw, "resources");
         for (Map.Entry<String, Object> entry : ConfigNodes.entries(resourcesRaw).entrySet()) {
-            ResourceDefinition definition = ResourceDefinition.fromMap(entry.getKey(), entry.getValue());
+            ResourceDefinition definition = ResourceDefinition.fromMap(entry.getValue());
             if (definition != null) {
                 resources.put(definition.id(), definition);
             }

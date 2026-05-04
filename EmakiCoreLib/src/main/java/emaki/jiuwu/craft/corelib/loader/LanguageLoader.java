@@ -63,7 +63,7 @@ public final class LanguageLoader {
         }
         File fallbackFile = dataPath(languageDirectory, fallbackLanguage + ".yml").toFile();
         try {
-            YamlFiles.syncVersionedResource(plugin, fallbackFile, bundledPath(fallbackLanguage), "version");
+            YamlFiles.loadCurrentResource(plugin, fallbackFile, bundledPath(fallbackLanguage));
         } catch (IOException exception) {
             warning("loader.bundled_language_load_failed", Map.of("error", Texts.toStringSafe(exception.getMessage())));
         }
@@ -82,7 +82,7 @@ public final class LanguageLoader {
         for (File file : files) {
             String langId = file.getName().replace(".yml", "").replace(".yaml", "");
             try {
-                VersionedYamlFile versionedFile = YamlFiles.syncVersionedResource(plugin, file, bundledPath(langId), "version");
+                VersionedYamlFile versionedFile = YamlFiles.loadCurrentResource(plugin, file, bundledPath(langId));
                 languages.put(langId, versionedFile == null || versionedFile.root() == null
                         ? YamlFiles.load(file)
                         : versionedFile.root().copy());

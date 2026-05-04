@@ -9,12 +9,9 @@ import java.util.Map;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.text.LogMessages;
-import emaki.jiuwu.craft.corelib.yaml.VersionedYamlFile;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 
 public final class BootstrapService {
-
-    private static final String VERSION_KEY = "version";
 
     private final JavaPlugin plugin;
     private final LogMessages messages;
@@ -86,14 +83,7 @@ public final class BootstrapService {
 
     private void mergeVersionedFile(String relativePath) {
         try {
-            VersionedYamlFile versionedFile = YamlFiles.syncVersionedResource(
-                    plugin,
-                    dataPath(relativePath).toFile(),
-                    relativePath,
-                    VERSION_KEY,
-                    document -> hooks.afterVersionedMerge(relativePath, document.root(), document.defaults())
-            );
-            if (versionedFile == null) {
+            if (YamlFiles.loadCurrentResource(plugin, dataPath(relativePath).toFile(), relativePath) == null) {
                 warning("console.default_file_missing", Map.of("path", relativePath));
             }
         } catch (IOException exception) {

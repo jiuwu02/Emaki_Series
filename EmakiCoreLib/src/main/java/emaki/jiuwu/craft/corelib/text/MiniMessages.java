@@ -3,18 +3,12 @@ package emaki.jiuwu.craft.corelib.text;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 
 public final class MiniMessages {
 
     private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
     private static final PlainTextComponentSerializer PLAIN = PlainTextComponentSerializer.plainText();
-    private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.builder()
-            .character(LegacyComponentSerializer.SECTION_CHAR)
-            .hexColors()
-            .useUnusualXRepeatedCharacterHexFormat()
-            .build();
 
     private MiniMessages() {
     }
@@ -34,14 +28,7 @@ public final class MiniMessages {
         if (Texts.isBlank(text)) {
             return Component.empty();
         }
-        String normalized = Texts.toStringSafe(text);
-        if (normalized.indexOf(LegacyComponentSerializer.SECTION_CHAR) >= 0) {
-            try {
-                return LEGACY.deserialize(normalized);
-            } catch (Exception _) {
-            }
-        }
-        return parse(normalized);
+        return parse(Texts.toStringSafe(text));
     }
 
     public static String serialize(Component component) {
@@ -63,17 +50,6 @@ public final class MiniMessages {
             return PLAIN.serialize(component);
         } catch (Exception _) {
             return "";
-        }
-    }
-
-    public static String legacy(Component component) {
-        if (component == null) {
-            return "";
-        }
-        try {
-            return LEGACY.serialize(component);
-        } catch (Exception _) {
-            return plain(component);
         }
     }
 

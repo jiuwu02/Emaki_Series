@@ -37,7 +37,7 @@ public final class ItemTextBridge {
         if (itemMeta == null) {
             return;
         }
-        itemMeta.setDisplayName(name == null ? null : MiniMessages.legacy(name));
+        itemMeta.setDisplayName(name == null ? null : MiniMessages.serialize(name));
     }
 
     public static void customNameText(ItemMeta itemMeta, String name) {
@@ -72,7 +72,7 @@ public final class ItemTextBridge {
         }
         List<String> lines = new ArrayList<>(lore.size());
         for (Component line : lore) {
-            lines.add(MiniMessages.legacy(line));
+            lines.add(MiniMessages.serialize(line));
         }
         itemMeta.setLore(lines);
     }

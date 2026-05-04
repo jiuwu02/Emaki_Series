@@ -53,7 +53,6 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
         YamlConfigLoader<AppConfig> appConfigLoader = new YamlConfigLoader<>(
                 plugin,
                 "config.yml",
-                "version",
                 AppConfig::defaults,
                 this::parseAppConfig
         );

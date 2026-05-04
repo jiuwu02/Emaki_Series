@@ -42,7 +42,6 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
         YamlConfigLoader<AppConfig> appConfigLoader = new YamlConfigLoader<>(
                 plugin,
                 "config.yml",
-                "version",
                 AppConfig::defaults,
                 this::parseAppConfig
         );

@@ -25,11 +25,11 @@ final class GemDefinitionParser {
     private GemDefinitionParser() {
     }
 
-    static GemDefinition parse(String fallbackId, YamlSection section) {
+    static GemDefinition parse(YamlSection section) {
         if (section == null) {
             return null;
         }
-        String id = Texts.lower(section.getString("id", fallbackId));
+        String id = Texts.lower(section.getString("id"));
         if (Texts.isBlank(id)) {
             return null;
         }

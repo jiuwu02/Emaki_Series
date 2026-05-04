@@ -51,7 +51,6 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         YamlConfigLoader<AppConfig> appConfigLoader = new YamlConfigLoader<>(
                 plugin,
                 "config.yml",
-                "version",
                 AppConfig::defaults,
                 this::parseAppConfig
         );

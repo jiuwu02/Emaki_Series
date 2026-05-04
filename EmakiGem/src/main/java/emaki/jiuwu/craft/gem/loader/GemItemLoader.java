@@ -2,7 +2,6 @@ package emaki.jiuwu.craft.gem.loader;
 
 import java.io.File;
 
-import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.YamlDirectoryLoader;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
@@ -26,17 +25,11 @@ public final class GemItemLoader extends YamlDirectoryLoader<GemItemDefinition> 
 
     @Override
     protected GemItemDefinition parse(File file, YamlSection configuration) {
-        return GemItemDefinition.fromConfig(baseName(file), configuration);
+        return GemItemDefinition.fromConfig(configuration);
     }
 
     @Override
     protected String idOf(GemItemDefinition value) {
         return value.id();
-    }
-
-    private String baseName(File file) {
-        String name = file == null ? "" : file.getName();
-        int dot = name.lastIndexOf('.');
-        return Texts.lower(dot >= 0 ? name.substring(0, dot) : name);
     }
 }

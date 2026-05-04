@@ -180,8 +180,8 @@ public final class GemDefinition {
         return upgrade.level(level);
     }
 
-    public static GemDefinition fromConfig(String fallbackId, YamlSection section) {
-        return GemDefinitionParser.parse(fallbackId, section);
+    public static GemDefinition fromConfig(YamlSection section) {
+        return GemDefinitionParser.parse(section);
     }
 
     private static Object mergeStructuredPresentations(Object base, Object override) {

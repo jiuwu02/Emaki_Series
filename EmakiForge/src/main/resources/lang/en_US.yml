@@ -158,9 +158,6 @@ loader:
   lang_directory_create_failed: "<red>Unable to create language directory: {path}</red>"
   bundled_language_load_failed: "<red>Failed to load bundled language: {error}</red>"
   invalid_config: "<yellow>{type} file {file} has invalid config, skipped loading.</yellow>"
-  recipe_target_item_unsupported: "<yellow>Recipe file {file} uses a target_item
-    output field unsupported in this version, please use root-level
-    forge_capacity and result.output_item instead.</yellow>"
   bundled_resource_missing: "<red>Bundled resource missing: {resource}, cannot write to {path}</red>"
   recipe_action_validation_skipped: "<yellow>Skipped action validation for recipe
     {file} because EmakiCoreLib is unavailable.</yellow>"

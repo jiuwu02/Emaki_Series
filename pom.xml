@@ -108,11 +108,6 @@
             </dependency>
             <dependency>
                 <groupId>net.kyori</groupId>
-                <artifactId>adventure-text-serializer-legacy</artifactId>
-                <version>${adventure.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>net.kyori</groupId>
                 <artifactId>adventure-text-serializer-plain</artifactId>
                 <version>${adventure.version}</version>
             </dependency>

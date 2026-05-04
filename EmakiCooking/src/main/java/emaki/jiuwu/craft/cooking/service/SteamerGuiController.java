@@ -86,7 +86,7 @@ final class SteamerGuiController implements Listener {
     }
 
     Inventory createInventory(SteamerGuiHolder holder) {
-        String title = MiniMessages.legacy(MiniMessages.parse(settingsService.steamerInventoryTitle()));
+        String title = MiniMessages.plain(MiniMessages.parse(settingsService.steamerInventoryTitle()));
         return Bukkit.createInventory(holder, settingsService.steamerInventoryRows() * 9, title);
     }
 

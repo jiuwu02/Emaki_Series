@@ -28,12 +28,11 @@ public final class LocalResourceDefinitionLoader extends YamlDirectoryLoader<Loc
 
     @Override
     protected LocalResourceDefinition parse(File file, YamlSection configuration) {
-        String fallbackId = baseName(file);
         if (configuration == null) {
             issue("loader.invalid_config", Map.of("type", typeName(), "file", file == null ? "-" : file.getName()));
             return null;
         }
-        String id = Texts.lower(configuration.getString("id", fallbackId));
+        String id = Texts.lower(configuration.getString("id"));
         if (Texts.isBlank(id)) {
             onBlankId(file);
             return null;
@@ -54,11 +53,5 @@ public final class LocalResourceDefinitionLoader extends YamlDirectoryLoader<Loc
     @Override
     protected String idOf(LocalResourceDefinition value) {
         return value.id();
-    }
-
-    private String baseName(File file) {
-        String name = file == null ? "" : file.getName();
-        int dot = name.lastIndexOf('.');
-        return Texts.lower(dot >= 0 ? name.substring(0, dot) : name);
     }
 }
