@@ -30,6 +30,7 @@ import emaki.jiuwu.craft.cooking.service.GrinderRuntimeService;
 import emaki.jiuwu.craft.cooking.service.StationStateStore;
 import emaki.jiuwu.craft.cooking.service.SteamerRuntimeService;
 import emaki.jiuwu.craft.cooking.service.WokRuntimeService;
+import emaki.jiuwu.craft.cooking.service.display.CookingDisplayService;
 
 public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider, EmakiServiceRegistry {
 
@@ -66,6 +67,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
     private CookingRecipeService recipeService;
     private CookingRewardService rewardService;
     private CookingInspectService inspectService;
+    private CookingDisplayService displayService;
     private ChoppingBoardRuntimeService choppingBoardRuntimeService;
     private WokRuntimeService wokRuntimeService;
     private GrinderRuntimeService grinderRuntimeService;
@@ -94,6 +96,9 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         }
         if (steamerRuntimeService != null) {
             steamerRuntimeService.shutdown();
+        }
+        if (displayService != null) {
+            displayService.shutdown();
         }
         if (messageService != null) {
             messageService.info("console.plugin_stopped");
@@ -125,6 +130,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         recipeService = components.recipeService();
         rewardService = components.rewardService();
         inspectService = components.inspectService();
+        displayService = components.displayService();
         choppingBoardRuntimeService = components.choppingBoardRuntimeService();
         wokRuntimeService = components.wokRuntimeService();
         grinderRuntimeService = components.grinderRuntimeService();
@@ -264,6 +270,10 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
 
     public CookingInspectService inspectService() {
         return inspectService;
+    }
+
+    public CookingDisplayService displayService() {
+        return displayService;
     }
 
     public ChoppingBoardRuntimeService choppingBoardRuntimeService() {

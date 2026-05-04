@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.cooking.service;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -12,6 +13,8 @@ import emaki.jiuwu.craft.cooking.model.StationBreakContext;
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationInteraction;
 import emaki.jiuwu.craft.cooking.model.StationType;
+import emaki.jiuwu.craft.cooking.service.display.CookingDisplayService;
+import emaki.jiuwu.craft.cooking.service.display.CookingDisplaySpec;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
@@ -44,7 +47,7 @@ public final class ChoppingBoardRuntimeService {
     private final CookingRecipeService recipeService;
     private final CookingRewardService rewardService;
     private final ItemSourceService itemSourceService;
-    private final Map<String, UUID> displayEntities = new LinkedHashMap<>();
+    private final CookingDisplayService displayService;
 
     public ChoppingBoardRuntimeService(EmakiCookingPlugin plugin,
             MessageService messageService,
@@ -53,7 +56,8 @@ public final class ChoppingBoardRuntimeService {
             StationStateStore stateStore,
             CookingRecipeService recipeService,
             CookingRewardService rewardService,
-            ItemSourceService itemSourceService) {
+            ItemSourceService itemSourceService,
+            CookingDisplayService displayService) {
         this.plugin = plugin;
         this.messageService = messageService;
         this.settingsService = settingsService;
@@ -62,10 +66,11 @@ public final class ChoppingBoardRuntimeService {
         this.recipeService = recipeService;
         this.rewardService = rewardService;
         this.itemSourceService = itemSourceService;
+        this.displayService = Objects.requireNonNull(displayService, "displayService");
     }
 
     public void reload() {
-        displayEntities.clear();
+        displayService.removeStationType(StationType.CHOPPING_BOARD);
         for (Map.Entry<StationCoordinates, emaki.jiuwu.craft.corelib.yaml.YamlSection> entry : stateStore.loadAll(StationType.CHOPPING_BOARD).entrySet()) {
             StationCoordinates coordinates = entry.getKey();
             ChoppingBoardState state = readState(entry.getValue());
@@ -76,14 +81,17 @@ public final class ChoppingBoardRuntimeService {
                 continue;
             }
             if (state.hasInputSource()) {
-                UUID displayId = spawnDisplay(coordinates, state.inputSource(), state.inputItemData(), state.displayEntityId());
-                if (displayId != null && !displayId.equals(state.displayEntityId())) {
+                if (state.displayEntityId() != null) {
+                    clearDisplay(coordinates, state.displayEntityId(), state.inputSource());
+                }
+                refreshDisplay(coordinates, state.inputSource(), state.inputItemData());
+                if (state.displayEntityId() != null) {
                     saveState(coordinates, new ChoppingBoardState(
                             state.inputSource(),
                             state.inputItemData(),
                             state.cutCount(),
                             state.lastInteractionMs(),
-                            displayId
+                            null
                     ));
                 }
             }
@@ -240,8 +248,8 @@ public final class ChoppingBoardRuntimeService {
             return false;
         }
         Map<String, Object> itemData = StoredItemCodec.serialize(displayItem);
-        UUID displayId = spawnDisplay(coordinates, shorthand, itemData, state == null ? null : state.displayEntityId());
-        ChoppingBoardState updated = new ChoppingBoardState(shorthand, itemData, 0, now, displayId);
+        refreshDisplay(coordinates, shorthand, itemData);
+        ChoppingBoardState updated = new ChoppingBoardState(shorthand, itemData, 0, now, null);
         saveState(coordinates, updated);
         CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "chopping_board.item_placed", Map.of());
         interaction.cancel();
@@ -347,7 +355,6 @@ public final class ChoppingBoardRuntimeService {
             }
             root.put("input_item", inputItem);
         }
-        root.put("display_entity", state.displayEntityId() == null ? Map.of() : Map.of("uuid", state.displayEntityId().toString()));
         root.put("timestamps", Map.of("last_interaction_ms", state.lastInteractionMs()));
         root.put("chopping_board", Map.of("cut_count", state.cutCount()));
         stateStore.save(coordinates, root);
@@ -365,15 +372,15 @@ public final class ChoppingBoardRuntimeService {
         return new ChoppingBoardState(inputSource, inputItemData, cutCount == null ? 0 : cutCount, lastInteraction, displayId);
     }
 
-    private UUID spawnDisplay(StationCoordinates coordinates, String inputSource, Map<String, Object> inputItemData, UUID knownId) {
-        clearDisplay(coordinates, knownId, inputSource);
+    private void refreshDisplay(StationCoordinates coordinates, String inputSource, Map<String, Object> inputItemData) {
         ItemSource source = ItemSourceUtil.parse(inputSource);
         ItemStack itemStack = storedItemOrFallback(inputSource, inputItemData, 1);
         if (source == null && itemStack != null && !itemStack.getType().isAir()) {
             source = itemSourceService.identifyItem(itemStack);
         }
         if (source == null || itemStack == null || itemStack.getType().isAir()) {
-            return null;
+            displayService.removeStation(StationType.CHOPPING_BOARD, coordinates);
+            return;
         }
         CookingSettingsService.DisplayAdjustmentProfile adjustment = settingsService.displayAdjustment(
                 StationType.CHOPPING_BOARD,
@@ -381,20 +388,19 @@ public final class ChoppingBoardRuntimeService {
                 itemStack.getType().isBlock()
         );
         Location baseLocation = coordinates.location(0D, 0D, 0D);
-        Location location = adjustment.applyOffset(baseLocation);
-        if (location == null || location.getWorld() == null) {
-            return null;
+        if (baseLocation == null || baseLocation.getWorld() == null) {
+            displayService.removeStation(StationType.CHOPPING_BOARD, coordinates);
+            return;
         }
-        ItemDisplay display = location.getWorld().spawn(location, ItemDisplay.class, entity -> {
-            entity.setItemStack(itemStack);
-            entity.setTransformation(adjustment.transformation());
-            entity.setInvulnerable(true);
-            entity.setPersistent(true);
-            entity.setSilent(true);
-            entity.setGravity(false);
-        });
-        displayEntities.put(coordinates.runtimeKey(), display.getUniqueId());
-        return display.getUniqueId();
+        displayService.upsert(new CookingDisplaySpec(
+                StationType.CHOPPING_BOARD,
+                coordinates,
+                "input",
+                itemStack,
+                baseLocation,
+                adjustment,
+                null
+        ));
     }
 
     private Map<String, Object> readItemData(Object raw) {
@@ -419,12 +425,15 @@ public final class ChoppingBoardRuntimeService {
         if (coordinates == null) {
             return;
         }
-        UUID tracked = knownId == null ? displayEntities.remove(coordinates.runtimeKey()) : knownId;
+        displayService.removeStation(StationType.CHOPPING_BOARD, coordinates);
+        if (knownId == null) {
+            return;
+        }
         Location baseLocation = coordinates.location(0.5D, 0.5D, 0.5D);
         Location targetLocation = resolveDisplayLocation(coordinates, inputSource);
         Location searchLocation = targetLocation == null ? baseLocation : targetLocation;
-        if (tracked != null && searchLocation != null && searchLocation.getWorld() != null) {
-            Entity trackedEntity = Bukkit.getEntity(tracked);
+        if (searchLocation != null && searchLocation.getWorld() != null) {
+            Entity trackedEntity = Bukkit.getEntity(knownId);
             if (trackedEntity instanceof ItemDisplay) {
                 trackedEntity.remove();
             }

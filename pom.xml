@@ -64,6 +64,7 @@
         <itemsadder.version>4.0.10</itemsadder.version>
         <nexo.version>1.21.0</nexo.version>
         <neigeitems.version>1.21.142</neigeitems.version>
+        <packetevents.version>2.12.1</packetevents.version>
         <caffeine.version>3.1.8</caffeine.version>
     </properties>
 
@@ -200,6 +201,12 @@
                 <scope>provided</scope>
             </dependency>
             <dependency>
+                <groupId>com.github.retrooper</groupId>
+                <artifactId>packetevents-spigot</artifactId>
+                <version>${packetevents.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
                 <groupId>com.github.ben-manes.caffeine</groupId>
                 <artifactId>caffeine</artifactId>
                 <version>${caffeine.version}</version>
@@ -247,6 +254,10 @@
         <repository>
             <id>nexo-releases</id>
             <url>https://repo.nexomc.com/releases/</url>
+        </repository>
+        <repository>
+            <id>codemc-releases</id>
+            <url>https://repo.codemc.io/repository/maven-releases/</url>
         </repository>
         <repository>
             <id>maven-central</id>

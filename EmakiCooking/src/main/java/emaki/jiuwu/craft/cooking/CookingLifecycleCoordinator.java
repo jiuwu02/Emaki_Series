@@ -32,6 +32,8 @@ import emaki.jiuwu.craft.cooking.service.GrinderRuntimeService;
 import emaki.jiuwu.craft.cooking.service.StationStateStore;
 import emaki.jiuwu.craft.cooking.service.SteamerRuntimeService;
 import emaki.jiuwu.craft.cooking.service.WokRuntimeService;
+import emaki.jiuwu.craft.cooking.service.display.CookingDisplayService;
+import emaki.jiuwu.craft.cooking.service.display.CookingDisplayServiceFactory;
 
 final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiCookingPlugin, CookingRuntimeComponents> {
 
@@ -94,6 +96,7 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 coreLibPlugin.itemAssemblyService()
         );
         CookingInspectService inspectService = new CookingInspectService(messageService, coreLibPlugin.itemSourceService());
+        CookingDisplayService displayService = CookingDisplayServiceFactory.create(plugin, settingsService);
         ChoppingBoardRuntimeService choppingBoardRuntimeService = new ChoppingBoardRuntimeService(
                 plugin,
                 messageService,
@@ -102,7 +105,8 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 stationStateStore,
                 recipeService,
                 rewardService,
-                coreLibPlugin.itemSourceService()
+                coreLibPlugin.itemSourceService(),
+                displayService
         );
         WokRuntimeService wokRuntimeService = new WokRuntimeService(
                 plugin,
@@ -112,7 +116,8 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 stationStateStore,
                 recipeService,
                 rewardService,
-                coreLibPlugin.itemSourceService()
+                coreLibPlugin.itemSourceService(),
+                displayService
         );
         GrinderRuntimeService grinderRuntimeService = new GrinderRuntimeService(
                 plugin,
@@ -154,6 +159,7 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 recipeService,
                 rewardService,
                 inspectService,
+                displayService,
                 choppingBoardRuntimeService,
                 wokRuntimeService,
                 grinderRuntimeService,

@@ -10,6 +10,7 @@ softdepend:
   - CraftEngine
   - ItemsAdder
   - Nexo
+  - PacketEvents
 commands:
   ecooking:
     aliases: [ec]

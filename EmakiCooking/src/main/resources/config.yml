@@ -15,6 +15,16 @@ input_rules:
   # 严格模式：只允许能继续匹配当前工位配方的物品进入工位输入。
   only_recipe_items: true
 
+display_entities:
+  # auto: 有 PacketEvents 时使用虚拟展示实体；不可用时回退 Bukkit 真实 ItemDisplay
+  # packet_events: 优先使用 PacketEvents，加载失败仍回退 Bukkit
+  # bukkit: 始终使用 Bukkit 真实 ItemDisplay
+  backend: auto
+  view_distance_blocks: 48
+  refresh_interval_ticks: 20
+  wok:
+    layout_radius: 0.26
+
 display_adjustments:
   defaults:
     item:

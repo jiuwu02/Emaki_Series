@@ -85,6 +85,26 @@ public final class CookingSettingsService {
         return configuration.getBoolean("input_rules.only_recipe_items", true);
     }
 
+    public String displayEntitiesBackend() {
+        String backend = Texts.normalizeId(configuration.getString("display_entities.backend", "auto"));
+        return switch (backend) {
+            case "packet_events", "bukkit" -> backend;
+            default -> "auto";
+        };
+    }
+
+    public double displayEntitiesViewDistanceBlocks() {
+        return Math.max(1D, configuration.getDouble("display_entities.view_distance_blocks", 48D));
+    }
+
+    public int displayEntitiesRefreshIntervalTicks() {
+        return Math.max(1, configuration.getInt("display_entities.refresh_interval_ticks", 20));
+    }
+
+    public double wokDisplayLayoutRadius() {
+        return Math.max(0D, configuration.getDouble("display_entities.wok.layout_radius", 0.26D));
+    }
+
     public boolean matchesInteraction(StationType stationType,
             String operation,
             StationInteraction interaction) {
