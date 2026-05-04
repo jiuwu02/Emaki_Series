@@ -6,6 +6,7 @@ public enum ItemSourceType {
     ITEMSADDER,
     NEIGEITEMS,
     MMOITEMS,
+    EMAKIITEM,
     NEXO;
 
     public String displayName() {
@@ -20,6 +21,8 @@ public enum ItemSourceType {
                 "NeigeItems";
             case MMOITEMS ->
                 "MMOItems";
+            case EMAKIITEM ->
+                "EmakiItem";
             case NEXO ->
                 "Nexo";
         };
@@ -38,6 +41,8 @@ public enum ItemSourceType {
                 NEIGEITEMS;
             case "mmoitems", "mi" ->
                 MMOITEMS;
+            case "emakiitem", "ei" ->
+                EMAKIITEM;
             case "nexo", "no" ->
                 NEXO;
             case "vanilla", "minecraft", "v" ->

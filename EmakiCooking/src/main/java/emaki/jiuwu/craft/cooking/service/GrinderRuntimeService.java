@@ -81,11 +81,13 @@ public final class GrinderRuntimeService {
         Block block = interaction.block();
         Player player = interaction.player();
         if (block == null || player == null || !interaction.mainHand()
-                || !interaction.leftClick()
                 || !blockMatcher.matches(block, StationType.GRINDER)) {
             return false;
         }
-        if (settingsService.requireSneaking(StationType.GRINDER) && !player.isSneaking()) {
+        if (!settingsService.matchesInteraction(
+                StationType.GRINDER,
+                CookingSettingsService.INTERACTION_START,
+                interaction)) {
             return false;
         }
         if (!player.hasPermission(CookingPermissions.GRINDER_USE)

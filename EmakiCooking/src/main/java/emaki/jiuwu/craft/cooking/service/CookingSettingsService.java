@@ -22,13 +22,29 @@ import org.joml.Vector3f;
 
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
+import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.MapYamlSection;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
+import emaki.jiuwu.craft.cooking.model.StationInteraction;
+import emaki.jiuwu.craft.cooking.model.StationInteractionType;
 import emaki.jiuwu.craft.cooking.model.StationType;
 
 public final class CookingSettingsService {
+
+    public static final String INTERACTION_PLACE_INPUT = "place_input";
+    public static final String INTERACTION_PROCESS = "process";
+    public static final String INTERACTION_RETURN_INPUT = "return_input";
+    public static final String INTERACTION_ADD_INGREDIENT = "add_ingredient";
+    public static final String INTERACTION_STIR = "stir";
+    public static final String INTERACTION_SERVE = "serve";
+    public static final String INTERACTION_RETURN_INGREDIENT = "return_ingredient";
+    public static final String INTERACTION_INSPECT = "inspect";
+    public static final String INTERACTION_START = "start";
+    public static final String INTERACTION_OPEN = "open";
+    public static final String INTERACTION_FUEL = "fuel";
+    public static final String INTERACTION_MOISTURE = "moisture";
 
     private static final Pattern RANGE_PATTERN = Pattern.compile("^\\s*(-?\\d+(?:\\.\\d+)?)\\s*-\\s*(-?\\d+(?:\\.\\d+)?)\\s*$");
     private static final DisplayAdjustmentProfile DEFAULT_ITEM_DISPLAY_ADJUSTMENT = new DisplayAdjustmentProfile(
@@ -61,8 +77,29 @@ public final class CookingSettingsService {
         return ItemSourceUtil.parse(configuration.getString(stationPath(stationType) + ".block_source", ""));
     }
 
-    public boolean requireSneaking(StationType stationType) {
-        return configuration.getBoolean(stationPath(stationType) + ".require_sneaking", true);
+    public boolean onlyRecipeItems(StationType stationType) {
+        String stationPath = stationPath(stationType) + ".only_recipe_items";
+        if (configuration.contains(stationPath)) {
+            return configuration.getBoolean(stationPath, true);
+        }
+        return configuration.getBoolean("input_rules.only_recipe_items", true);
+    }
+
+    public boolean matchesInteraction(StationType stationType,
+            String operation,
+            StationInteraction interaction) {
+        if (stationType == null || Texts.isBlank(operation) || interaction == null) {
+            return false;
+        }
+        StationInteractionType configured = null;
+        YamlSection interactions = configuration.getSection(stationPath(stationType) + ".interactions");
+        if (interactions != null && !interactions.isEmpty()) {
+            configured = StationInteractionType.parse(interactions.getString(operation, ""));
+        }
+        if (configured == null) {
+            configured = defaultInteraction(stationType, operation);
+        }
+        return interaction.matches(configured);
     }
 
     public DisplayAdjustmentProfile displayAdjustment(StationType stationType, ItemSource source, boolean blockDisplay) {
@@ -283,18 +320,29 @@ public final class CookingSettingsService {
         return "stations." + stationType.folderName();
     }
 
+    private StationInteractionType defaultInteraction(StationType stationType, String operation) {
+        return switch (stationType) {
+            case CHOPPING_BOARD -> switch (operation) {
+                case INTERACTION_PLACE_INPUT, INTERACTION_PROCESS -> StationInteractionType.SHIFT_LEFT_CLICK;
+                case INTERACTION_RETURN_INPUT -> StationInteractionType.RIGHT_CLICK;
+                default -> null;
+            };
+            case WOK -> switch (operation) {
+                case INTERACTION_ADD_INGREDIENT, INTERACTION_STIR, INTERACTION_SERVE, INTERACTION_RETURN_INGREDIENT -> StationInteractionType.SHIFT_LEFT_CLICK;
+                case INTERACTION_INSPECT -> StationInteractionType.SHIFT_RIGHT_CLICK;
+                default -> null;
+            };
+            case GRINDER -> INTERACTION_START.equals(operation) ? StationInteractionType.SHIFT_LEFT_CLICK : null;
+            case STEAMER -> switch (operation) {
+                case INTERACTION_OPEN -> StationInteractionType.SHIFT_RIGHT_CLICK;
+                case INTERACTION_FUEL, INTERACTION_MOISTURE -> StationInteractionType.RIGHT_CLICK;
+                default -> null;
+            };
+        };
+    }
+
     private Integer configurationValueToInt(Object raw, Integer fallback) {
-        if (raw instanceof Number number) {
-            return number.intValue();
-        }
-        if (raw == null) {
-            return fallback;
-        }
-        try {
-            return Integer.parseInt(String.valueOf(raw).trim());
-        } catch (Exception _) {
-            return fallback;
-        }
+        return Numbers.tryParseInt(raw, fallback);
     }
 
     private void addSlotIndexes(LinkedHashSet<Integer> sink, Object raw, int inventorySize) {
@@ -488,11 +536,7 @@ public final class CookingSettingsService {
     }
 
     private double parseDouble(String raw, double fallback) {
-        try {
-            return Double.parseDouble(Texts.toStringSafe(raw).trim());
-        } catch (Exception _) {
-            return fallback;
-        }
+        return Numbers.tryParseDouble(raw, fallback);
     }
 
     public record HeatLevelRule(ItemSource source, int level) {

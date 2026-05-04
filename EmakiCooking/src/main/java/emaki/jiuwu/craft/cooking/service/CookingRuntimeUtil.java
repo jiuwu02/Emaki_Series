@@ -6,6 +6,7 @@ import java.util.UUID;
 
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationType;
+import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.AdventureSupport;
 import org.bukkit.Material;
@@ -45,31 +46,11 @@ public final class CookingRuntimeUtil {
     }
 
     static long parseLong(Object raw, long fallback) {
-        if (raw instanceof Number number) {
-            return number.longValue();
-        }
-        if (raw == null) {
-            return fallback;
-        }
-        try {
-            return Long.parseLong(String.valueOf(raw).trim());
-        } catch (Exception _) {
-            return fallback;
-        }
+        return Numbers.tryParseLong(raw, fallback);
     }
 
     static int parseInteger(Object raw, int fallback) {
-        if (raw instanceof Number number) {
-            return number.intValue();
-        }
-        if (raw == null) {
-            return fallback;
-        }
-        try {
-            return Integer.parseInt(String.valueOf(raw).trim());
-        } catch (Exception _) {
-            return fallback;
-        }
+        return Numbers.tryParseInt(raw, fallback);
     }
 
     static Map<String, Object> buildStateRoot(StationType stationType, StationCoordinates coordinates) {

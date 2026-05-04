@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-cooking</artifactId>
-    <version>2.2.0</version>
+    <version>2.3.0</version>
     <name>EmakiCooking</name>
     <packaging>jar</packaging>
 
@@ -31,6 +31,11 @@
             <groupId>emaki.jiuwu.craft</groupId>
             <artifactId>emaki-corelib</artifactId>
             <version>${emaki.corelib.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>me.clip</groupId>
+            <artifactId>placeholderapi</artifactId>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>net.momirealms</groupId>

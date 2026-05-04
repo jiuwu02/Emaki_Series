@@ -15,7 +15,6 @@ import java.util.Enumeration;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Consumer;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.stream.Stream;
@@ -101,50 +100,13 @@ public final class YamlFiles {
         }
     }
 
-    public static VersionedYamlFile syncVersionedResource(JavaPlugin plugin,
+    public static VersionedYamlFile loadCurrentResource(JavaPlugin plugin,
             File target,
-            String resourcePath,
-            String versionKey) throws IOException {
-        return syncVersionedResource(plugin, target, resourcePath, versionKey, null);
-    }
-
-    public static VersionedYamlFile syncVersionedResource(JavaPlugin plugin,
-            File target,
-            String resourcePath,
-            String versionKey,
-            Consumer<VersionedYamlFile> migration) throws IOException {
-        VersionedYamlFile versionedFile = openVersioned(plugin, target, resourcePath);
-        if (versionedFile == null || Texts.isBlank(versionKey)) {
-            return versionedFile;
+            String resourcePath) throws IOException {
+        if (target != null && !target.exists()) {
+            copyResource(plugin, resourcePath, target, false);
         }
-        String bundledVersion = Texts.toStringSafe(versionedFile.bundledVersion(versionKey)).trim();
-        if (bundledVersion.isBlank()) {
-            return versionedFile;
-        }
-        String runtimeVersion = Texts.toStringSafe(versionedFile.version(versionKey)).trim();
-        boolean migratedLegacyVersionKey = false;
-        if (runtimeVersion.isBlank() && "version".equals(versionKey)) {
-            runtimeVersion = legacyVersion(versionedFile, resourcePath);
-            migratedLegacyVersionKey = Texts.isNotBlank(runtimeVersion);
-        }
-        if (!runtimeVersion.isBlank() && compareVersions(runtimeVersion, bundledVersion) >= 0) {
-            if (migratedLegacyVersionKey || !versionedFile.root().contains(versionKey)) {
-                removeLegacyVersionKeys(versionedFile.root(), resourcePath);
-                versionedFile.root().set(versionKey, bundledVersion);
-                versionedFile.save();
-            }
-            return versionedFile;
-        }
-        versionedFile.document().update(BOOSTED_UPDATER_SETTINGS);
-        if (migration != null) {
-            migration.accept(versionedFile);
-        }
-        if ("version".equals(versionKey)) {
-            removeLegacyVersionKeys(versionedFile.root(), resourcePath);
-        }
-        versionedFile.root().set(versionKey, bundledVersion);
-        versionedFile.save();
-        return versionedFile;
+        return openVersioned(plugin, target, resourcePath);
     }
 
     public static void save(File file, YamlSection section) throws IOException {
@@ -238,13 +200,6 @@ public final class YamlFiles {
         return true;
     }
 
-    public static int mergeMissingValues(YamlSection runtime, YamlSection defaults) {
-        if (runtime == null || defaults == null) {
-            return 0;
-        }
-        return mergeMissingValues(runtime, defaults, "");
-    }
-
     private static VersionedYamlFile openVersioned(JavaPlugin plugin, File target, String resourcePath) throws IOException {
         if (plugin == null || target == null || Texts.isBlank(resourcePath)) {
             return null;
@@ -269,93 +224,6 @@ public final class YamlFiles {
                     );
             return new VersionedYamlFile(target, resourcePath, document);
         }
-    }
-
-    private static String legacyVersion(VersionedYamlFile versionedFile, String resourcePath) {
-        if (versionedFile == null || versionedFile.root() == null) {
-            return "";
-        }
-        for (String key : legacyVersionKeys(resourcePath)) {
-            String value = Texts.toStringSafe(versionedFile.version(key)).trim();
-            if (Texts.isNotBlank(value)) {
-                return value;
-            }
-        }
-        return "";
-    }
-
-    private static void removeLegacyVersionKeys(YamlSection root, String resourcePath) {
-        if (root == null) {
-            return;
-        }
-        for (String key : legacyVersionKeys(resourcePath)) {
-            root.set(key, null);
-        }
-    }
-
-    private static java.util.List<String> legacyVersionKeys(String resourcePath) {
-        String normalized = Texts.toStringSafe(resourcePath).replace('\\', '/').toLowerCase(java.util.Locale.ROOT);
-        java.util.LinkedHashSet<String> keys = new java.util.LinkedHashSet<>();
-        if (normalized.endsWith("config.yml") || normalized.endsWith("config.yaml")) {
-            keys.add("config_version");
-        }
-        if (normalized.contains("/lang/") || normalized.startsWith("lang/")) {
-            keys.add("lang_version");
-        }
-        if (normalized.contains("/recipes/") || normalized.startsWith("recipes/")) {
-            keys.add("recipe_version");
-        }
-        String fileName = normalized;
-        int slash = fileName.lastIndexOf('/');
-        if (slash >= 0) {
-            fileName = fileName.substring(slash + 1);
-        }
-        int dot = fileName.lastIndexOf('.');
-        String stem = dot <= 0 ? fileName : fileName.substring(0, dot);
-        if (Texts.isNotBlank(stem)) {
-            keys.add(stem + "_version");
-        }
-        keys.add("schema_version");
-        keys.remove("version");
-        return java.util.List.copyOf(keys);
-    }
-
-    private static int mergeMissingValues(YamlSection runtime, YamlSection defaults, String parentPath) {
-        int merged = 0;
-        for (String key : defaults.getKeys(false)) {
-            String fullPath = parentPath == null || parentPath.isBlank() ? key : parentPath + "." + key;
-            YamlSection nested = defaults.getSection(key);
-            if (nested != null) {
-                merged += mergeMissingValues(runtime, nested, fullPath);
-                continue;
-            }
-            if (!runtime.contains(fullPath)) {
-                runtime.set(fullPath, defaults.get(key));
-                merged++;
-            }
-        }
-        return merged;
-    }
-
-    private static int compareVersions(String current, String latest) {
-        if (Texts.isBlank(current)) {
-            return -1;
-        }
-        try {
-            String[] currentParts = current.split("\\.");
-            String[] latestParts = latest.split("\\.");
-            int length = Math.max(currentParts.length, latestParts.length);
-            for (int index = 0; index < length; index++) {
-                int currentValue = index < currentParts.length ? Integer.parseInt(currentParts[index]) : 0;
-                int latestValue = index < latestParts.length ? Integer.parseInt(latestParts[index]) : 0;
-                if (currentValue != latestValue) {
-                    return Integer.compare(currentValue, latestValue);
-                }
-            }
-        } catch (Exception _) {
-            return 0;
-        }
-        return 0;
     }
 
     private static void moveReplacing(Path source, Path target) throws IOException {

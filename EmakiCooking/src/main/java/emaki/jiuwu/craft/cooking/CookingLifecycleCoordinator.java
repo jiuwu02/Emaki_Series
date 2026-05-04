@@ -52,7 +52,6 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
         YamlConfigLoader<AppConfig> appConfigLoader = new YamlConfigLoader<>(
                 plugin,
                 "config.yml",
-                "version",
                 AppConfig::defaults,
                 this::parseAppConfig
         );
@@ -71,7 +70,6 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 staticFiles(plugin),
                 defaultDataFiles(plugin),
                 EXTRA_DIRECTORIES,
-                List.of(),
                 new BootstrapHooks() {
                     @Override
                     public boolean shouldInstallDefaultData() {

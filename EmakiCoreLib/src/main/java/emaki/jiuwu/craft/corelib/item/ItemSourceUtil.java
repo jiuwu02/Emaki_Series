@@ -75,6 +75,8 @@ public final class ItemSourceUtil {
                 "itemsadder-" + source.getIdentifier();
             case NEIGEITEMS ->
                 "neigeitems-" + source.getIdentifier();
+            case EMAKIITEM ->
+                "emakiitem-" + source.getIdentifier();
             case NEXO ->
                 "nexo-" + source.getIdentifier();
             case CRAFTENGINE ->

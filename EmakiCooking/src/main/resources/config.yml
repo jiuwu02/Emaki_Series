@@ -3,7 +3,7 @@
 # minecraft-iron_axe / mc-iron_axe / v-iron_axe / iron_axe
 # 不再接受 minecraft:iron_axe
 # version 由资源同步维护
-version: "2.1.0"
+version: "2.3.0"
 
 # 语言文件 ID
 language: "zh_CN"
@@ -11,9 +11,9 @@ language: "zh_CN"
 # 是否写入默认 recipes
 release_default_data: true
 
-legacy_import:
-  # /ecooking convert old dryrun|apply 读取的旧版目录
-  old_directory: old
+input_rules:
+  # 严格模式：只允许能继续匹配当前工位配方的物品进入工位输入。
+  only_recipe_items: true
 
 display_adjustments:
   defaults:
@@ -56,7 +56,12 @@ stations:
   chopping_board:
     # 砧板方块来源
     block_source: minecraft-oak_log
-    require_sneaking: true
+    # 省略时继承 input_rules.only_recipe_items
+    only_recipe_items: true
+    interactions:
+      place_input: shift_left_click
+      process: shift_left_click
+      return_input: right_click
     # 结果物是否直接掉落
     drop_result: true
     # 是否检查空间限制
@@ -74,7 +79,12 @@ stations:
   wok:
     # 炒锅方块来源
     block_source: minecraft-iron_block
-    require_sneaking: true
+    interactions:
+      add_ingredient: shift_left_click
+      stir: shift_left_click
+      serve: shift_left_click
+      return_ingredient: shift_left_click
+      inspect: shift_right_click
     drop_result: true
     # 是否要求手持碗才能出锅
     need_bowl: true
@@ -106,7 +116,8 @@ stations:
   grinder:
     # 研磨机方块来源
     block_source: minecraft-grindstone
-    require_sneaking: true
+    interactions:
+      start: shift_left_click
     drop_result: true
     # 后台检查周期，单位 tick
     check_delay_ticks: 20
@@ -114,7 +125,10 @@ stations:
   steamer:
     # 蒸锅主体方块来源；GUI 细节在 gui/steamer.yml
     block_source: minecraft-barrel
-    require_sneaking: true
+    interactions:
+      open: shift_right_click
+      fuel: right_click
+      moisture: right_click
     drop_result: true
     heat_sources:
       - minecraft-furnace

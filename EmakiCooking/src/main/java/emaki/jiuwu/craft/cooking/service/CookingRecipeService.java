@@ -8,8 +8,10 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 import emaki.jiuwu.craft.cooking.model.RecipeDocument;
+import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
+import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.MapYamlSection;
 import org.bukkit.entity.Player;
@@ -100,6 +102,46 @@ public final class CookingRecipeService {
 
     public int wokFaultTolerance(RecipeDocument recipe) {
         return recipe == null ? 0 : Math.max(0, recipe.configuration().getInt("fault_tolerance", 0));
+    }
+
+    public boolean canUseRecipe(RecipeDocument recipe, Player player) {
+        if (recipe == null) {
+            return false;
+        }
+        String permission = recipe.configuration().getString("permission", "");
+        if (player != null && Texts.isNotBlank(permission) && !player.hasPermission(permission)) {
+            return false;
+        }
+        List<String> conditions = recipe.configuration().getStringList("conditions");
+        if (player != null && !conditions.isEmpty()) {
+            String conditionType = recipe.configuration().getString("condition_type", "all_of");
+            return ConditionEvaluator.evaluate(
+                    conditions,
+                    conditionType,
+                    null,
+                    text -> resolvePlaceholders(player, text),
+                    true
+            );
+        }
+        return true;
+    }
+
+    public boolean canAcceptWokIngredientPrefix(List<WokIngredientInput> actualIngredients, Player player, int heatLevel) {
+        if (actualIngredients == null || actualIngredients.isEmpty()) {
+            return false;
+        }
+        for (RecipeDocument recipe : wokRecipes()) {
+            if (!canUseRecipe(recipe, player)) {
+                continue;
+            }
+            if (wokHeatLevel(recipe) > 0 && wokHeatLevel(recipe) != heatLevel) {
+                continue;
+            }
+            if (matchesWokIngredientPrefix(recipe, actualIngredients)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public int wokStirTotalMin(RecipeDocument recipe) {
@@ -206,13 +248,38 @@ public final class CookingRecipeService {
             if (configured == null || !ItemSourceUtil.matches(configured, expected)) {
                 continue;
             }
-            String permission = recipe.configuration().getString("permission", "");
-            if (player != null && Texts.isNotBlank(permission) && !player.hasPermission(permission)) {
+            if (!canUseRecipe(recipe, player)) {
                 continue;
             }
             return recipe;
         }
         return null;
+    }
+
+    private boolean matchesWokIngredientPrefix(RecipeDocument recipe, List<WokIngredientInput> actualIngredients) {
+        List<Map<String, Object>> expectedIngredients = wokIngredients(recipe);
+        if (expectedIngredients.isEmpty() || actualIngredients.size() > expectedIngredients.size()) {
+            return false;
+        }
+        for (int index = 0; index < actualIngredients.size(); index++) {
+            WokIngredientInput actual = actualIngredients.get(index);
+            if (actual == null || Texts.isBlank(actual.source())) {
+                return false;
+            }
+            Map<String, Object> expected = expectedIngredients.get(index);
+            String expectedSource = String.valueOf(expected.getOrDefault("source", ""));
+            int expectedAmount = Math.max(1, Numbers.tryParseInt(expected.get("amount"), 1));
+            if (!ItemSourceUtil.matches(ItemSourceUtil.parse(expectedSource), ItemSourceUtil.parse(actual.source()))) {
+                return false;
+            }
+            if (actual.amount() > expectedAmount) {
+                return false;
+            }
+            if (index < actualIngredients.size() - 1 && actual.amount() != expectedAmount) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public void clearCaches() {
@@ -231,13 +298,25 @@ public final class CookingRecipeService {
     }
 
     private int parseInteger(String value, int fallback) {
-        if (Texts.isBlank(value)) {
-            return fallback;
+        return Numbers.tryParseInt(value, fallback);
+    }
+
+    private String resolvePlaceholders(Player player, String text) {
+        if (player == null || Texts.isBlank(text) || !plugin.getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+            return text;
         }
         try {
-            return Integer.parseInt(value.trim());
-        } catch (Exception _) {
-            return fallback;
+            return Texts.toStringSafe(me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(player, text));
+        } catch (Exception | NoClassDefFoundError _) {
+            return text;
+        }
+    }
+
+    public record WokIngredientInput(String source, int amount) {
+
+        public WokIngredientInput {
+            source = Texts.toStringSafe(source);
+            amount = Math.max(1, amount);
         }
     }
 }

@@ -19,13 +19,13 @@ public record ResourceDefinition(String id,
         displayName = Texts.isBlank(displayName) ? id : Texts.toStringSafe(displayName).trim();
     }
 
-    public static ResourceDefinition fromMap(String fallbackId, Object raw) {
+    public static ResourceDefinition fromMap(Object raw) {
         if (raw == null) {
             return null;
         }
         return new ResourceDefinition(
-                ConfigNodes.string(raw, "id", fallbackId),
-                ConfigNodes.string(raw, "display_name", fallbackId),
+                ConfigNodes.string(raw, "id", null),
+                ConfigNodes.string(raw, "display_name", null),
                 Numbers.tryParseDouble(ConfigNodes.get(raw, "default_max"), 0D),
                 Numbers.tryParseDouble(ConfigNodes.get(raw, "min_max"), 0D),
                 Numbers.tryParseDouble(ConfigNodes.get(raw, "max_max"), Double.MAX_VALUE),

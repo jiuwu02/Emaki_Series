@@ -10,6 +10,8 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
+import org.bukkit.event.player.PlayerKickEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
@@ -147,6 +149,20 @@ public final class GuiService implements Listener {
         }
         sessions.remove(event.getPlayer().getUniqueId(), session);
         session.handler().onClose(session, event);
+    }
+
+    @EventHandler
+    public void onPlayerQuit(PlayerQuitEvent event) {
+        if (event.getPlayer() != null) {
+            sessions.remove(event.getPlayer().getUniqueId());
+        }
+    }
+
+    @EventHandler
+    public void onPlayerKick(PlayerKickEvent event) {
+        if (event.getPlayer() != null) {
+            sessions.remove(event.getPlayer().getUniqueId());
+        }
     }
 
     private boolean isManagedSession(GuiSession session) {

@@ -17,11 +17,7 @@ import net.objecthunter.exp4j.function.Function;
 
 public final class ExpressionEngine {
 
-    private static final int MAX_EXPRESSION_LENGTH = 256;
-    private static final int MAX_NESTED_DEPTH = 10;
     static final Pattern VARIABLE_PATTERN = Pattern.compile("\\{([^{}\\s]+)}");
-    private static final Pattern NON_NUMERIC_EXPRESSION_PATTERN = Pattern.compile("[^0-9.\\s+\\-*/%^(),]");
-    private static final Pattern DANGEROUS_CHAR_PATTERN = Pattern.compile("[`$\\\\]");
     private static final double INTEGER_ROUNDING_EPSILON = 1.0E-9D;
     private static final Function[] CUSTOM_FUNCTIONS = new Function[]{
         new Function("ceil", 1) {
@@ -240,26 +236,15 @@ public final class ExpressionEngine {
     }
 
     private static boolean validateExpressionLength(String expression) {
-        return expression != null && expression.length() <= MAX_EXPRESSION_LENGTH;
+        return ExpressionRules.isLengthAllowed(expression);
     }
 
     private static boolean containsDangerousChars(String expression) {
-        return expression != null && DANGEROUS_CHAR_PATTERN.matcher(expression).find();
+        return ExpressionRules.containsDangerousChars(expression);
     }
 
     static boolean isPureNumericExpression(String expression) {
-        if (Texts.isBlank(expression)) {
-            return false;
-        }
-        String lowered = Texts.lower(expression)
-                .replace("ceil", "")
-                .replace("floor", "")
-                .replace("round", "")
-                .replace("log10", "")
-                .replace("min", "")
-                .replace("max", "")
-                .replace("pow", "");
-        return !NON_NUMERIC_EXPRESSION_PATTERN.matcher(lowered).find();
+        return ExpressionRules.isPureNumericExpression(expression);
     }
 
     static String abbreviate(Object value) {
@@ -274,16 +259,16 @@ public final class ExpressionEngine {
     static NumericEvaluationResult evaluateNumberDetailed(String expression,
             NumericEvaluationScope scope,
             int depth) {
-        if (depth > MAX_NESTED_DEPTH) {
+        if (depth > ExpressionRules.MAX_NESTED_DEPTH) {
             return NumericEvaluationResult.failure("Numeric expression exceeded maximum nested depth "
-                    + MAX_NESTED_DEPTH + ".");
+                    + ExpressionRules.MAX_NESTED_DEPTH + ".");
         }
         if (Texts.isBlank(expression)) {
             return NumericEvaluationResult.failure("Numeric expression is blank.");
         }
         if (!validateExpressionLength(expression)) {
             return NumericEvaluationResult.failure("Numeric expression is longer than "
-                    + MAX_EXPRESSION_LENGTH + " characters: " + abbreviate(expression));
+                    + ExpressionRules.MAX_EXPRESSION_LENGTH + " characters: " + abbreviate(expression));
         }
         if (containsDangerousChars(expression)) {
             return NumericEvaluationResult.failure("Numeric expression contains unsupported characters: "
@@ -296,7 +281,7 @@ public final class ExpressionEngine {
         String prepared = preparation.expression();
         if (!validateExpressionLength(prepared)) {
             return NumericEvaluationResult.failure("Prepared numeric expression is longer than "
-                    + MAX_EXPRESSION_LENGTH + " characters: " + abbreviate(prepared));
+                    + ExpressionRules.MAX_EXPRESSION_LENGTH + " characters: " + abbreviate(prepared));
         }
         if (containsDangerousChars(prepared)) {
             return NumericEvaluationResult.failure("Prepared numeric expression contains unsupported characters: "
@@ -354,9 +339,9 @@ public final class ExpressionEngine {
             Object rawValue,
             NumericEvaluationScope scope,
             int depth) {
-        if (depth > MAX_NESTED_DEPTH) {
+        if (depth > ExpressionRules.MAX_NESTED_DEPTH) {
             return NumericEvaluationResult.failure("Numeric expression variable '{" + name
-                    + "}' exceeded maximum nested depth " + MAX_NESTED_DEPTH + ".");
+                    + "}' exceeded maximum nested depth " + ExpressionRules.MAX_NESTED_DEPTH + ".");
         }
         Double cached = scope.resolvedVariables().get(name);
         if (cached != null) {
@@ -393,7 +378,7 @@ public final class ExpressionEngine {
                     + "}' is boolean and cannot be used in a numeric expression.");
         }
         if (rawValue instanceof String text) {
-            NumericEvaluationResult result = RandomExpressionEvaluator.evaluateNumericTextDetailed(text, scope, depth + 1, MAX_NESTED_DEPTH);
+            NumericEvaluationResult result = RandomExpressionEvaluator.evaluateNumericTextDetailed(text, scope, depth + 1, ExpressionRules.MAX_NESTED_DEPTH);
             if (result.success()) {
                 return result;
             }
@@ -421,9 +406,9 @@ public final class ExpressionEngine {
     private static TextEvaluationResult evaluateStringConfigDetailed(Object config,
             TextEvaluationScope scope,
             int depth) {
-        if (depth > MAX_NESTED_DEPTH) {
+        if (depth > ExpressionRules.MAX_NESTED_DEPTH) {
             return TextEvaluationResult.failure("Text config exceeded maximum nested depth "
-                    + MAX_NESTED_DEPTH + ".");
+                    + ExpressionRules.MAX_NESTED_DEPTH + ".");
         }
         if (config == null) {
             return TextEvaluationResult.success("");
@@ -489,9 +474,9 @@ public final class ExpressionEngine {
     private static TextEvaluationResult evaluateRandomTextLinesDetailed(Object config,
             TextEvaluationScope scope,
             int depth) {
-        if (depth > MAX_NESTED_DEPTH) {
+        if (depth > ExpressionRules.MAX_NESTED_DEPTH) {
             return TextEvaluationResult.failure("Random text config exceeded maximum nested depth "
-                    + MAX_NESTED_DEPTH + ".");
+                    + ExpressionRules.MAX_NESTED_DEPTH + ".");
         }
         TextEvaluationScope scoped = textScopeWithConfigVariables(config, scope);
         List<Object> candidates = randomTextLineCandidates(config);
@@ -542,8 +527,8 @@ public final class ExpressionEngine {
     private static TextEvaluationResult evaluateTextListDetailed(Object config,
             TextEvaluationScope scope,
             int depth) {
-        if (depth > MAX_NESTED_DEPTH) {
-            return TextEvaluationResult.failure("Text list exceeded maximum nested depth " + MAX_NESTED_DEPTH + ".");
+        if (depth > ExpressionRules.MAX_NESTED_DEPTH) {
+            return TextEvaluationResult.failure("Text list exceeded maximum nested depth " + ExpressionRules.MAX_NESTED_DEPTH + ".");
         }
         List<String> lines = new ArrayList<>();
         List<String> issues = new ArrayList<>();
@@ -562,16 +547,16 @@ public final class ExpressionEngine {
     private static TextEvaluationResult evaluateStringTemplateDetailed(String template,
             TextEvaluationScope scope,
             int depth) {
-        if (depth > MAX_NESTED_DEPTH) {
+        if (depth > ExpressionRules.MAX_NESTED_DEPTH) {
             return TextEvaluationResult.failure("Text expression exceeded maximum nested depth "
-                    + MAX_NESTED_DEPTH + ".");
+                    + ExpressionRules.MAX_NESTED_DEPTH + ".");
         }
         if (template == null) {
             return TextEvaluationResult.success("");
         }
         if (!validateExpressionLength(template)) {
             return TextEvaluationResult.failure("Text expression is longer than "
-                    + MAX_EXPRESSION_LENGTH + " characters: " + abbreviate(template));
+                    + ExpressionRules.MAX_EXPRESSION_LENGTH + " characters: " + abbreviate(template));
         }
         if (containsDangerousChars(template)) {
             return TextEvaluationResult.failure("Text expression contains unsupported characters: "
@@ -582,7 +567,7 @@ public final class ExpressionEngine {
         if (!validateExpressionLength(prepared)) {
             List<String> issues = new ArrayList<>(preparation.issues());
             issues.add("Prepared text expression is longer than "
-                    + MAX_EXPRESSION_LENGTH + " characters: " + abbreviate(prepared));
+                    + ExpressionRules.MAX_EXPRESSION_LENGTH + " characters: " + abbreviate(prepared));
             return TextEvaluationResult.failure(issues, "", List.of());
         }
         if (containsDangerousChars(prepared)) {
@@ -617,9 +602,9 @@ public final class ExpressionEngine {
             Object rawValue,
             TextEvaluationScope scope,
             int depth) {
-        if (depth > MAX_NESTED_DEPTH) {
+        if (depth > ExpressionRules.MAX_NESTED_DEPTH) {
             return TextEvaluationResult.failure("Text expression variable '{" + name
-                    + "}' exceeded maximum nested depth " + MAX_NESTED_DEPTH + ".");
+                    + "}' exceeded maximum nested depth " + ExpressionRules.MAX_NESTED_DEPTH + ".");
         }
         if (scope.resolvingVariables().contains(name)) {
             return TextEvaluationResult.failure("Text expression variable '{" + name + "}' references itself.");
@@ -821,7 +806,7 @@ public final class ExpressionEngine {
     private static NumericEvaluationResult evaluateRandomConfigDetailed(Object config,
             NumericEvaluationScope scope,
             int depth) {
-        return RandomExpressionEvaluator.evaluateRandomConfigDetailed(config, scope, depth, MAX_NESTED_DEPTH);
+        return RandomExpressionEvaluator.evaluateRandomConfigDetailed(config, scope, depth, ExpressionRules.MAX_NESTED_DEPTH);
     }
 
     static NumericEvaluationScope scopeWithConfigVariables(Object config, NumericEvaluationScope scope) {

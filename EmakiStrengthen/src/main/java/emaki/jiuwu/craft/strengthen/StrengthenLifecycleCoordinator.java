@@ -43,7 +43,6 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
         YamlConfigLoader<AppConfig> appConfigLoader = new YamlConfigLoader<>(
                 plugin,
                 "config.yml",
-                "version",
                 AppConfig::defaults,
                 this::parseAppConfig
         );
@@ -57,7 +56,6 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
                 messageService,
                 VERSIONED_FILES,
                 staticFiles(plugin),
-                List.of(),
                 List.of(),
                 List.of(),
                 new BootstrapHooks() {

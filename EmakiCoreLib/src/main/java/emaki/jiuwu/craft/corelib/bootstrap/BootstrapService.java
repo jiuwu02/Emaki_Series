@@ -3,19 +3,15 @@ package emaki.jiuwu.craft.corelib.bootstrap;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.text.LogMessages;
-import emaki.jiuwu.craft.corelib.yaml.VersionedYamlFile;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 
 public final class BootstrapService {
-
-    private static final String VERSION_KEY = "version";
 
     private final JavaPlugin plugin;
     private final LogMessages messages;
@@ -23,7 +19,6 @@ public final class BootstrapService {
     private final List<String> staticFiles;
     private final List<String> defaultDataFiles;
     private final List<String> extraDirectories;
-    private final List<String> cleanupDirectories;
     private final BootstrapHooks hooks;
 
     public BootstrapService(JavaPlugin plugin,
@@ -32,7 +27,6 @@ public final class BootstrapService {
             List<String> staticFiles,
             List<String> defaultDataFiles,
             List<String> extraDirectories,
-            List<String> cleanupDirectories,
             BootstrapHooks hooks) {
         this.plugin = plugin;
         this.messages = messages;
@@ -40,7 +34,6 @@ public final class BootstrapService {
         this.staticFiles = staticFiles == null ? List.of() : List.copyOf(staticFiles);
         this.defaultDataFiles = defaultDataFiles == null ? List.of() : List.copyOf(defaultDataFiles);
         this.extraDirectories = extraDirectories == null ? List.of() : List.copyOf(extraDirectories);
-        this.cleanupDirectories = cleanupDirectories == null ? List.of() : List.copyOf(cleanupDirectories);
         this.hooks = hooks == null ? new BootstrapHooks() {
         } : hooks;
     }
@@ -49,7 +42,6 @@ public final class BootstrapService {
         info("console.bootstrap_start");
         hooks.beforeBootstrap();
         ensureDirectory(plugin.getDataFolder().toPath());
-        cleanupDirectories();
         for (String directory : extraDirectories) {
             ensureDirectory(dataPath(directory));
         }
@@ -72,32 +64,6 @@ public final class BootstrapService {
         return true;
     }
 
-    private void cleanupDirectories() {
-        for (String relativePath : cleanupDirectories) {
-            Path path = dataPath(relativePath);
-            if (!Files.exists(path)) {
-                continue;
-            }
-            try (var stream = Files.walk(path)) {
-                stream.sorted(Comparator.reverseOrder()).forEach(target -> {
-                    try {
-                        Files.deleteIfExists(target);
-                    } catch (IOException exception) {
-                        warning("console.bootstrap_cleanup_failed", Map.of(
-                                "path", relativePath,
-                                "error", String.valueOf(exception.getMessage())
-                        ));
-                    }
-                });
-            } catch (IOException exception) {
-                warning("console.bootstrap_cleanup_failed", Map.of(
-                        "path", relativePath,
-                        "error", String.valueOf(exception.getMessage())
-                ));
-            }
-        }
-    }
-
     private void ensureDefaultFile(String relativePath) {
         Path target = dataPath(relativePath);
         if (Files.exists(target)) {
@@ -117,14 +83,7 @@ public final class BootstrapService {
 
     private void mergeVersionedFile(String relativePath) {
         try {
-            VersionedYamlFile versionedFile = YamlFiles.syncVersionedResource(
-                    plugin,
-                    dataPath(relativePath).toFile(),
-                    relativePath,
-                    VERSION_KEY,
-                    document -> hooks.afterVersionedMerge(relativePath, document.root(), document.defaults())
-            );
-            if (versionedFile == null) {
+            if (YamlFiles.loadCurrentResource(plugin, dataPath(relativePath).toFile(), relativePath) == null) {
                 warning("console.default_file_missing", Map.of("path", relativePath));
             }
         } catch (IOException exception) {

@@ -1,7 +1,7 @@
-﻿# Emaki Forge 中文语言文件
+# Emaki Forge 中文语言文件
 
 # version 由资源同步维护
-version: "3.4.0"
+version: "3.5.0"
 
 # 通用消息
 general:
@@ -135,8 +135,6 @@ loader:
   lang_directory_create_failed: "<red>无法创建语言目录: {path}</red>"
   bundled_language_load_failed: "<red>读取内置语言失败: {error}</red>"
   invalid_config: "<yellow>{type} 文件 {file} 配置无效，已跳过加载。</yellow>"
-  recipe_target_item_unsupported: "<yellow>配方文件 {file} 使用了当前版本不支持的 target_item
-    输出字段，请改用根级 forge_capacity 与 result.output_item。</yellow>"
   bundled_resource_missing: "<red>内置资源缺失: {resource}，无法写入 {path}</red>"
   recipe_action_validation_skipped: "<yellow>跳过配方 {file} 的操作校验，因为 EmakiCoreLib 不可用。</yellow>"
   recipe_invalid_action_syntax: "<yellow>配方 {recipe} 的操作语法无效: {file}，阶段 {phase}，第

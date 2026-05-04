@@ -59,6 +59,8 @@ public final class ItemSourceRegistry {
         parsers.add(prefixParser("ia-", ItemSourceType.ITEMSADDER));
         parsers.add(prefixParser("neigeitems-", ItemSourceType.NEIGEITEMS));
         parsers.add(prefixParser("ni-", ItemSourceType.NEIGEITEMS));
+        parsers.add(prefixParser("emakiitem-", ItemSourceType.EMAKIITEM));
+        parsers.add(prefixParser("ei-", ItemSourceType.EMAKIITEM));
         parsers.add(prefixParser("nexo-", ItemSourceType.NEXO));
         parsers.add(prefixParser("no-", ItemSourceType.NEXO));
         parsers.add(prefixParser("craftengine-", ItemSourceType.CRAFTENGINE));

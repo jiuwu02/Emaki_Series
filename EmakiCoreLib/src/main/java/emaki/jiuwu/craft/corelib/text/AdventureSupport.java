@@ -6,8 +6,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.plugin.Plugin;
 
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
@@ -25,12 +23,7 @@ public final class AdventureSupport {
         if (plugin == null || sender == null || component == null) {
             return;
         }
-        try {
-            audiences(plugin).sender(sender).sendMessage(component);
-            return;
-        } catch (Exception _) {
-        }
-        sender.sendMessage(sender instanceof Player ? MiniMessages.legacy(component) : MiniMessages.plain(component));
+        audiences(plugin).sender(sender).sendMessage(component);
     }
 
     public static void sendMiniMessage(Plugin plugin, CommandSender sender, String text) {
@@ -54,12 +47,7 @@ public final class AdventureSupport {
         if (plugin == null || player == null || component == null) {
             return;
         }
-        try {
-            audiences(plugin).player(player).sendActionBar(component);
-            return;
-        } catch (Exception _) {
-        }
-        player.sendMessage(MiniMessages.legacy(component));
+        audiences(plugin).player(player).sendActionBar(component);
     }
 
     public static void sendActionBar(Plugin plugin, Player player, String miniMessageText) {
@@ -74,10 +62,6 @@ public final class AdventureSupport {
             return;
         }
         audiences(plugin).player(player).showTitle(title);
-    }
-
-    public static Inventory createInventory(InventoryHolder holder, int size, Component title) {
-        return Bukkit.createInventory(holder, size, MiniMessages.legacy(title));
     }
 
     public static void close(Plugin plugin) {

@@ -8,7 +8,6 @@ description: Shared native Java core library for Emaki plugins
 libraries:
   - net.kyori:adventure-platform-bukkit:${adventure.platform.version}
   - net.kyori:adventure-text-minimessage:${adventure.version}
-  - net.kyori:adventure-text-serializer-legacy:${adventure.version}
   - net.kyori:adventure-text-serializer-plain:${adventure.version}
   - net.objecthunter:exp4j:${exp4j.version}
   - dev.dejvokep:boosted-yaml:${boosted.yaml.version}
@@ -18,6 +17,7 @@ softdepend:
   - ExcellentEconomy
   - PlaceholderAPI
   - MMOItems
+  - MythicMobs
   - ItemsAdder
   - Nexo
   - NeigeItems

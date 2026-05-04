@@ -1,0 +1,14 @@
+enabled: true
+
+source_id: "emakiitem"
+
+condition_type: "all_of"
+
+invalid_as_failure: true
+
+conditions:
+  - type: pdc_meta
+    key: condition_expressions
+    pattern: ".+"
+    condition: "%value%"
+    require_match: false
