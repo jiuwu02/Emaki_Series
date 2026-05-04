@@ -3,12 +3,14 @@ package emaki.jiuwu.craft.corelib.text;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 
 public final class MiniMessages {
 
     private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
     private static final PlainTextComponentSerializer PLAIN = PlainTextComponentSerializer.plainText();
+    private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
 
     private MiniMessages() {
     }
@@ -39,6 +41,28 @@ public final class MiniMessages {
             return MINI_MESSAGE.serialize(component);
         } catch (Exception _) {
             return plain(component);
+        }
+    }
+
+    public static String legacy(Component component) {
+        if (component == null) {
+            return "";
+        }
+        try {
+            return LEGACY.serialize(component);
+        } catch (Exception _) {
+            return plain(component);
+        }
+    }
+
+    public static Component legacyRead(String text) {
+        if (Texts.isBlank(text)) {
+            return Component.empty();
+        }
+        try {
+            return LEGACY.deserialize(Texts.toStringSafe(text));
+        } catch (Exception _) {
+            return Component.text(Texts.toStringSafe(text));
         }
     }
 
