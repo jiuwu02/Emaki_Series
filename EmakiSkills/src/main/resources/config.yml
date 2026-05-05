@@ -1,6 +1,6 @@
 # 主配置
 # version 由资源同步维护
-version: "1.2.0"
+version: "2.0.0"
 
 # 语言文件 ID
 language: "zh_CN"
