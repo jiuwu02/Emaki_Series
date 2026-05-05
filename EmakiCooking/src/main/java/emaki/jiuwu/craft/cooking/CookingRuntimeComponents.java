@@ -4,8 +4,8 @@ import java.util.Map;
 
 import emaki.jiuwu.craft.corelib.action.ActionExecutor;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
-import emaki.jiuwu.craft.corelib.integration.CraftEngineBlockBridge;
-import emaki.jiuwu.craft.corelib.integration.CustomBlockBridge;
+import emaki.jiuwu.craft.corelib.api.integration.CraftEngineBlockBridge;
+import emaki.jiuwu.craft.corelib.api.integration.CustomBlockBridge;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.runtime.RuntimeComponents;

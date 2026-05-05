@@ -15,7 +15,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 
-import emaki.jiuwu.craft.corelib.integration.PdcAttributePayloadSnapshot;
+import emaki.jiuwu.craft.corelib.api.integration.PdcAttributePayloadSnapshot;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;

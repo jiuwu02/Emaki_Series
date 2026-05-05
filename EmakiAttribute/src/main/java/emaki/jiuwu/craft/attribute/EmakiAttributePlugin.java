@@ -27,7 +27,7 @@ import emaki.jiuwu.craft.attribute.papi.AttributePlaceholderExpansion;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
 import emaki.jiuwu.craft.attribute.service.MessageService;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
-import emaki.jiuwu.craft.corelib.integration.EmakiAttributeBridge;
+import emaki.jiuwu.craft.corelib.api.integration.EmakiAttributeBridge;
 import emaki.jiuwu.craft.corelib.plugin.AbstractEmakiPlugin;
 import emaki.jiuwu.craft.corelib.service.EmakiServiceRegistry;
 import emaki.jiuwu.craft.corelib.text.AdventureSupport;
@@ -174,10 +174,10 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         }
         Bukkit.getServicesManager().unregister(PdcAttributeApi.class, pdcAttributeApi);
         Bukkit.getServicesManager().register(PdcAttributeApi.class, pdcAttributeApi, this, ServicePriority.Normal);
-        emaki.jiuwu.craft.corelib.integration.PdcAttributeApi coreApi =
-                (emaki.jiuwu.craft.corelib.integration.PdcAttributeApi) pdcAttributeApi;
-        Bukkit.getServicesManager().unregister(emaki.jiuwu.craft.corelib.integration.PdcAttributeApi.class, coreApi);
-        Bukkit.getServicesManager().register(emaki.jiuwu.craft.corelib.integration.PdcAttributeApi.class, coreApi, this, ServicePriority.Normal);
+        emaki.jiuwu.craft.corelib.api.integration.PdcAttributeApi coreApi =
+                (emaki.jiuwu.craft.corelib.api.integration.PdcAttributeApi) pdcAttributeApi;
+        Bukkit.getServicesManager().unregister(emaki.jiuwu.craft.corelib.api.integration.PdcAttributeApi.class, coreApi);
+        Bukkit.getServicesManager().register(emaki.jiuwu.craft.corelib.api.integration.PdcAttributeApi.class, coreApi, this, ServicePriority.Normal);
     }
 
     private void registerAttributeBridgeService() {

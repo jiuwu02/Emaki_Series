@@ -2,6 +2,8 @@ package emaki.jiuwu.craft.corelib.integration;
 
 import java.util.Locale;
 
+import emaki.jiuwu.craft.corelib.api.integration.CraftEngineBlockBridge;
+
 import org.bukkit.block.Block;
 
 import emaki.jiuwu.craft.corelib.text.Texts;

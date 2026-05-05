@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.corelib.integration;
+package emaki.jiuwu.craft.corelib.api.integration;
 
 import java.util.Map;
 import java.util.Set;

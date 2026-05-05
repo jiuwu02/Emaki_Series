@@ -2,6 +2,8 @@ package emaki.jiuwu.craft.corelib.integration;
 
 import java.util.Locale;
 
+import emaki.jiuwu.craft.corelib.api.integration.CustomBlockBridge;
+
 import org.bukkit.block.Block;
 
 import dev.lone.itemsadder.api.CustomBlock;

@@ -23,7 +23,7 @@ import emaki.jiuwu.craft.corelib.script.ScriptExecutionResult;
 import emaki.jiuwu.craft.corelib.script.ScriptReloadResult;
 import emaki.jiuwu.craft.corelib.script.ScriptRepository;
 import emaki.jiuwu.craft.corelib.script.ScriptSource;
-import emaki.jiuwu.craft.corelib.script.api.EmakiScriptApi;
+import emaki.jiuwu.craft.corelib.api.script.EmakiScriptApi;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class GraalJavaScriptService implements JavaScriptService {

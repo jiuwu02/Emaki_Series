@@ -7,7 +7,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import emaki.jiuwu.craft.corelib.integration.EmakiAttributeBridge;
+import emaki.jiuwu.craft.corelib.api.integration.EmakiAttributeBridge;
 import emaki.jiuwu.craft.corelib.text.LogMessages;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 

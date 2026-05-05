@@ -3,8 +3,8 @@ package emaki.jiuwu.craft.cooking.service;
 import emaki.jiuwu.craft.cooking.model.StationType;
 import org.bukkit.block.Block;
 
-import emaki.jiuwu.craft.corelib.integration.CraftEngineBlockBridge;
-import emaki.jiuwu.craft.corelib.integration.CustomBlockBridge;
+import emaki.jiuwu.craft.corelib.api.integration.CraftEngineBlockBridge;
+import emaki.jiuwu.craft.corelib.api.integration.CustomBlockBridge;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceType;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;

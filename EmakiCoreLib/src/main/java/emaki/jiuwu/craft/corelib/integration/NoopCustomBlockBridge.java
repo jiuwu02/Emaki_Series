@@ -1,5 +1,7 @@
 package emaki.jiuwu.craft.corelib.integration;
 
+import emaki.jiuwu.craft.corelib.api.integration.CustomBlockBridge;
+
 import org.bukkit.block.Block;
 
 class NoopCustomBlockBridge implements CustomBlockBridge {

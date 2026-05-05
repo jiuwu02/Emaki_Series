@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.corelib.script.api;
+package emaki.jiuwu.craft.corelib.api.script;
 
 import org.bukkit.entity.Player;
 

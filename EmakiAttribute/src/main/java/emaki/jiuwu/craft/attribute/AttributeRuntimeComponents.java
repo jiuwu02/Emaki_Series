@@ -16,7 +16,7 @@ import emaki.jiuwu.craft.attribute.loader.LoreFormatRegistry;
 import emaki.jiuwu.craft.attribute.loader.PdcReadRuleLoader;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
 import emaki.jiuwu.craft.attribute.service.MessageService;
-import emaki.jiuwu.craft.corelib.integration.EmakiAttributeBridge;
+import emaki.jiuwu.craft.corelib.api.integration.EmakiAttributeBridge;
 import emaki.jiuwu.craft.corelib.runtime.RuntimeComponents;
 
 record AttributeRuntimeComponents(AttributeRegistry attributeRegistry,
@@ -49,7 +49,7 @@ record AttributeRuntimeComponents(AttributeRegistry attributeRegistry,
                 RuntimeComponents.component(MessageService.class, messageService),
                 RuntimeComponents.component(EmakiAttributeBridge.class, emakiAttributeBridge),
                 RuntimeComponents.component(PdcAttributeApi.class, pdcAttributeApi),
-                RuntimeComponents.component(emaki.jiuwu.craft.corelib.integration.PdcAttributeApi.class, pdcAttributeApi),
+                RuntimeComponents.component(emaki.jiuwu.craft.corelib.api.integration.PdcAttributeApi.class, pdcAttributeApi),
                 RuntimeComponents.component(AttributeService.class, attributeService),
                 RuntimeComponents.component(AttributeListener.class, listener),
                 RuntimeComponents.component(AttributeCommand.class, command),
