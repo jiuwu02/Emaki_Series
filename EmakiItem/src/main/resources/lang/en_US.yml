@@ -10,12 +10,14 @@ general:
   reload_summary: "<gray>Loaded <white>{items}</white> item definitions.</gray>"
   item_not_found: "<red>Item not found: <white>{id}</white></red>"
   give_success: "<green>Gave <white>{player}</white> <gold>{id}</gold> x{amount}.</green>"
+  update_success: "<green>Refreshed <white>{player}</white>'s equipped set items, processed <white>{count}</white> items.</green>"
 console:
   plugin_starting: "Starting EmakiItem..."
   plugin_started: "EmakiItem started."
   plugin_stopping: "Stopping EmakiItem..."
   plugin_stopped: "EmakiItem stopped."
   items_loaded: "Loaded {count} EmakiItem item definitions."
+  sets_loaded: "Loaded {count} EmakiItem set definitions."
   bootstrap_start: "Syncing bundled resources..."
   bootstrap_complete: "Bundled resources synced."
   bootstrap_skip: "Skipped default data release by config."
@@ -33,6 +35,7 @@ command:
       list: "List item ids"
       give: "Give an item to a player"
       inspect: "Inspect held EmakiItem"
+      update: "Refresh equipped items and set lore"
       reload: "Reload config and items"
   list:
     header: "<gold>EmakiItem Items</gold> <gray>({page}/{pages}, {count} total)</gray>"

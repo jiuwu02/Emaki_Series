@@ -26,6 +26,7 @@ final class ItemCommandRouter implements TabExecutor {
     private static final String PERMISSION_GIVE = "emakiitem.give";
     private static final String PERMISSION_INSPECT = "emakiitem.inspect";
     private static final String PERMISSION_RELOAD = "emakiitem.reload";
+    private static final String PERMISSION_UPDATE = "emakiitem.update";
     private static final NamespacedKey SKILL_IDS_KEY = new NamespacedKey("emaki_skills", "item.skills.ids");
 
     private final EmakiItemPlugin plugin;
@@ -48,6 +49,7 @@ final class ItemCommandRouter implements TabExecutor {
             case "list" -> handleList(sender, args);
             case "give" -> handleGive(sender, args);
             case "inspect" -> handleInspect(sender, args);
+            case "update" -> handleUpdate(sender, args);
             case "reload" -> handleReload(sender);
             default -> {
                 plugin.messageService().send(sender, "general.unknown_command");
@@ -60,7 +62,7 @@ final class ItemCommandRouter implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            for (String sub : List.of("help", "list", "give", "inspect", "reload")) {
+            for (String sub : List.of("help", "list", "give", "inspect", "update", "reload")) {
                 if (sub.startsWith(args[0].toLowerCase())) {
                     result.add(sub);
                 }
@@ -69,7 +71,7 @@ final class ItemCommandRouter implements TabExecutor {
         }
         if (args.length == 2) {
             switch (args[0].toLowerCase()) {
-                case "give", "inspect" -> completePlayers(result, args[1]);
+                case "give", "inspect", "update" -> completePlayers(result, args[1]);
                 default -> {
                 }
             }
@@ -172,6 +174,27 @@ final class ItemCommandRouter implements TabExecutor {
         plugin.messageService().sendRaw(sender, plugin.messageService().message("command.inspect.line", Map.of("key", "attributes", "value", inspectAttributes(held))));
         plugin.messageService().sendRaw(sender, plugin.messageService().message("command.inspect.line", Map.of("key", "attribute_meta", "value", inspectAttributeMeta(held))));
         plugin.messageService().sendRaw(sender, plugin.messageService().message("command.inspect.line", Map.of("key", "skills", "value", inspectSkills(held))));
+        plugin.messageService().sendRaw(sender, plugin.messageService().message("command.inspect.line", Map.of("key", "definition_signature", "value", plugin.identifier().definitionSignature(held))));
+        plugin.messageService().sendRaw(sender, plugin.messageService().message("command.inspect.line", Map.of("key", "set_id", "value", valueOrDash(plugin.identifier().setId(held)))));
+        plugin.messageService().sendRaw(sender, plugin.messageService().message("command.inspect.line", Map.of("key", "set_piece", "value", valueOrDash(plugin.identifier().setPiece(held)))));
+        plugin.messageService().sendRaw(sender, plugin.messageService().message("command.inspect.line", Map.of("key", "set_active_count", "value", valueOrDash(plugin.identifier().setActiveCount(held)))));
+        plugin.messageService().sendRaw(sender, plugin.messageService().message("command.inspect.line", Map.of("key", "set_total_count", "value", valueOrDash(plugin.identifier().setTotalCount(held)))));
+        plugin.messageService().sendRaw(sender, plugin.messageService().message("command.inspect.line", Map.of("key", "set_active_thresholds", "value", valueOrDash(plugin.identifier().setActiveThresholds(held)))));
+        return true;
+    }
+
+    private boolean handleUpdate(CommandSender sender, String[] args) {
+        if (!sender.hasPermission(PERMISSION_UPDATE)) {
+            plugin.messageService().send(sender, "general.no_permission");
+            return true;
+        }
+        Player target = args.length >= 2 ? Bukkit.getPlayerExact(args[1]) : (sender instanceof Player self ? self : null);
+        if (target == null) {
+            plugin.messageService().send(sender, "general.player_not_found");
+            return true;
+        }
+        int changed = plugin.setService().refreshEquippedSets(target, "command");
+        plugin.messageService().send(sender, "general.update_success", Map.of("player", target.getName(), "count", changed));
         return true;
     }
 
@@ -183,6 +206,14 @@ final class ItemCommandRouter implements TabExecutor {
     private String inspectAttributeMeta(ItemStack itemStack) {
         PdcAttributePayloadSnapshot snapshot = plugin.pdcAttributeGateway().readAll(itemStack).get("emakiitem");
         return snapshot == null || snapshot.meta().isEmpty() ? "-" : snapshot.meta().toString();
+    }
+
+    private String valueOrDash(Object value) {
+        if (value == null) {
+            return "-";
+        }
+        String text = String.valueOf(value);
+        return Texts.isBlank(text) ? "-" : text;
     }
 
     private String inspectSkills(ItemStack itemStack) {
@@ -223,6 +254,7 @@ final class ItemCommandRouter implements TabExecutor {
         lines.put("list [page]", plugin.messageService().message("command.help.desc.list"));
         lines.put("give <player> <id> [amount]", plugin.messageService().message("command.help.desc.give"));
         lines.put("inspect [player]", plugin.messageService().message("command.help.desc.inspect"));
+        lines.put("update [player]", plugin.messageService().message("command.help.desc.update"));
         lines.put("reload", plugin.messageService().message("command.help.desc.reload"));
         lines.forEach((name, description) -> plugin.messageService().sendRaw(sender,
                 plugin.messageService().message("command.help.line", Map.of("cmd", name, "desc", description))));

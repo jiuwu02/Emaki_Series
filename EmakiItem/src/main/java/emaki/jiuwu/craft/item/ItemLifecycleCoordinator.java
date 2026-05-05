@@ -19,22 +19,28 @@ import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 import emaki.jiuwu.craft.item.api.EmakiItemApi;
 import emaki.jiuwu.craft.item.config.AppConfig;
+import emaki.jiuwu.craft.item.model.ItemUpdateConfig;
+import emaki.jiuwu.craft.item.model.SetBonusConfig;
 import emaki.jiuwu.craft.item.loader.EmakiItemLoader;
+import emaki.jiuwu.craft.item.loader.EmakiItemSetLoader;
 import emaki.jiuwu.craft.item.service.DefaultEmakiItemApi;
 import emaki.jiuwu.craft.item.service.EmakiItemActionService;
 import emaki.jiuwu.craft.item.service.EmakiItemConditionChecker;
 import emaki.jiuwu.craft.item.service.EmakiItemFactory;
 import emaki.jiuwu.craft.item.service.EmakiItemIdentifier;
 import emaki.jiuwu.craft.item.service.EmakiItemPdcWriter;
+import emaki.jiuwu.craft.item.service.EmakiItemSetService;
 import emaki.jiuwu.craft.item.service.EmakiItemSourceResolver;
+import emaki.jiuwu.craft.item.service.EmakiItemUpdateService;
+import emaki.jiuwu.craft.item.service.ItemSetLoreRenderer;
 
 final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiItemPlugin, ItemRuntimeComponents> {
 
     private static final String DEFAULT_PREFIX = "<gray>[ <gradient:#EBD48A:#7FB08A>Emaki Item</gradient> ]</gray>";
     private static final String PDC_ATTRIBUTE_SOURCE_ID = "emakiitem";
     private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml", "lang/en_US.yml");
-    private static final List<String> DEFAULT_DATA_FILES = List.of("items/example_blade.yml");
-    private static final List<String> EXTRA_DIRECTORIES = List.of("items");
+    private static final List<String> DEFAULT_DATA_FILES = List.of("items/example_blade.yml", "sets/example_set.yml");
+    private static final List<String> EXTRA_DIRECTORIES = List.of("items", "sets");
 
     @Override
     public ItemRuntimeComponents initialize(EmakiItemPlugin plugin) {
@@ -65,12 +71,31 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                 }
         );
         EmakiItemLoader itemLoader = new EmakiItemLoader(plugin);
+        EmakiItemSetLoader setLoader = new EmakiItemSetLoader(plugin);
         PdcService pdcService = new PdcService("emaki");
         EmakiItemIdentifier identifier = new EmakiItemIdentifier(pdcService);
         PdcAttributeGateway pdcAttributeGateway = new PdcAttributeGateway(plugin);
         syncPdcAttributeRegistration(pdcAttributeGateway, PDC_ATTRIBUTE_SOURCE_ID);
         EmakiItemPdcWriter pdcWriter = new EmakiItemPdcWriter(identifier, pdcAttributeGateway, new SkillPdcGateway());
         EmakiItemFactory itemFactory = new EmakiItemFactory(itemLoader, pdcWriter);
+        EmakiItemUpdateService updateService = new EmakiItemUpdateService(
+                itemLoader,
+                itemFactory,
+                identifier,
+                pdcWriter,
+                pdcAttributeGateway::copyPayloads,
+                plugin::appConfig
+        );
+        EmakiItemSetService setService = new EmakiItemSetService(
+                itemLoader,
+                setLoader,
+                itemFactory,
+                identifier,
+                pdcWriter,
+                updateService,
+                new ItemSetLoreRenderer(),
+                plugin::appConfig
+        );
         DefaultEmakiItemApi itemApi = new DefaultEmakiItemApi(itemLoader, itemFactory, identifier);
         EmakiItemActionService actionService = new EmakiItemActionService(plugin, coreLibPlugin.actionExecutor());
         EmakiItemConditionChecker conditionChecker = new EmakiItemConditionChecker(plugin, coreLibPlugin.placeholderRegistry(), actionService);
@@ -80,9 +105,12 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                 messageService,
                 bootstrapService,
                 itemLoader,
+                setLoader,
                 identifier,
                 pdcWriter,
                 itemFactory,
+                updateService,
+                setService,
                 actionService,
                 conditionChecker,
                 itemApi,
@@ -98,9 +126,11 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
         plugin.languageLoader().setLanguage(plugin.appConfig().language());
         syncPdcAttributeRegistration(plugin.pdcAttributeGateway(), PDC_ATTRIBUTE_SOURCE_ID);
         int loadedItems = plugin.itemLoader().load();
+        int loadedSets = plugin.setLoader().load();
         plugin.itemFactory().clearCache();
         if (plugin.messageService() != null) {
             plugin.messageService().info("console.items_loaded", java.util.Map.of("count", loadedItems));
+            plugin.messageService().info("console.sets_loaded", java.util.Map.of("count", loadedSets));
         }
     }
 
@@ -137,7 +167,44 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
         return new AppConfig(
                 configuration.getString("language", "zh_CN"),
                 configuration.getString("version", "1.0.0"),
-                configuration.getBoolean("release_default_data", true)
+                configuration.getBoolean("release_default_data", true),
+                parseItemUpdate(configuration.getSection("item_update")),
+                parseSetBonus(configuration.getSection("set_bonus"))
+        );
+    }
+
+    private ItemUpdateConfig parseItemUpdate(YamlSection section) {
+        if (section == null) {
+            return ItemUpdateConfig.defaults();
+        }
+        return new ItemUpdateConfig(
+                section.getBoolean("enabled", true),
+                section.getBoolean("preserve_amount", true),
+                section.getBoolean("preserve_damage", true),
+                section.getBoolean("preserve_unknown_attribute_sources", true),
+                parseTriggers(section.getSection("triggers"))
+        );
+    }
+
+    private SetBonusConfig parseSetBonus(YamlSection section) {
+        if (section == null) {
+            return SetBonusConfig.defaults();
+        }
+        return new SetBonusConfig(section.getBoolean("enabled", true), parseTriggers(section.getSection("refresh_triggers")));
+    }
+
+    private ItemUpdateConfig.TriggerConfig parseTriggers(YamlSection section) {
+        if (section == null) {
+            return ItemUpdateConfig.TriggerConfig.defaults();
+        }
+        return new ItemUpdateConfig.TriggerConfig(
+                section.getBoolean("join", true),
+                section.getBoolean("held_change", true),
+                section.getBoolean("inventory_click", true),
+                section.getBoolean("inventory_drag", true),
+                section.getBoolean("pickup", true),
+                section.getBoolean("interact", true),
+                section.getBoolean("command", true)
         );
     }
 

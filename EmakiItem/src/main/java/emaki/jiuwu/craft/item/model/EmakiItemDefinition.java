@@ -6,6 +6,7 @@ import java.util.Map;
 import org.bukkit.Material;
 
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
 
 public record EmakiItemDefinition(String id,
         Material material,
@@ -17,6 +18,7 @@ public record EmakiItemDefinition(String id,
         Map<String, Double> attributes,
         Map<String, String> attributeMeta,
         List<String> skills,
+        ItemSetMembership setMembership,
         ItemConditions conditions,
         Map<String, List<String>> actions,
         boolean hasRandomElements) {
@@ -31,8 +33,27 @@ public record EmakiItemDefinition(String id,
         attributes = attributes == null ? Map.of() : Map.copyOf(attributes);
         attributeMeta = attributeMeta == null ? Map.of() : Map.copyOf(attributeMeta);
         skills = skills == null ? List.of() : List.copyOf(skills);
+        setMembership = setMembership == null ? ItemSetMembership.empty() : setMembership;
         conditions = conditions == null ? ItemConditions.empty() : conditions;
         actions = actions == null ? Map.of() : copyActions(actions);
+    }
+
+    public String definitionSignature() {
+        Map<String, Object> signatureData = new java.util.LinkedHashMap<>();
+        signatureData.put("id", id);
+        signatureData.put("material", material == null ? "" : material.name());
+        signatureData.put("display_name", displayName);
+        signatureData.put("item_name", itemName);
+        signatureData.put("lore", lore);
+        signatureData.put("variables", variables);
+        signatureData.put("components", components);
+        signatureData.put("attributes", attributes);
+        signatureData.put("attribute_meta", attributeMeta);
+        signatureData.put("skills", skills);
+        signatureData.put("set", Map.of("id", setMembership.setId(), "piece", setMembership.pieceId()));
+        signatureData.put("conditions", conditions);
+        signatureData.put("actions", actions);
+        return SignatureUtil.stableSignature(signatureData);
     }
 
     public List<String> actions(String trigger) {

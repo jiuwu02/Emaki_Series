@@ -16,6 +16,7 @@ import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
 public final class EmakiItemPdcWriter {
 
     private static final String ATTRIBUTE_SOURCE_ID = "emakiitem";
+    public static final String SET_ATTRIBUTE_SOURCE_ID = "emakiitem_set";
 
     private final EmakiItemIdentifier identifier;
     private final PdcAttributeGateway attributeGateway;
@@ -35,7 +36,7 @@ public final class EmakiItemPdcWriter {
         }
         ItemMeta itemMeta = itemStack.getItemMeta();
         if (itemMeta != null) {
-            identifier.writeIdentity(itemMeta, definition.id());
+            identifier.writeIdentity(itemMeta, definition.id(), definition.definitionSignature());
             itemStack.setItemMeta(itemMeta);
         }
         if (!definition.attributes().isEmpty()
@@ -48,8 +49,68 @@ public final class EmakiItemPdcWriter {
         }
     }
 
+    public void writeDynamicSet(ItemStack itemStack,
+            EmakiItemDefinition definition,
+            String setId,
+            String setPiece,
+            int activeCount,
+            int totalCount,
+            List<Integer> activeThresholds,
+            Map<String, Double> setAttributes,
+            List<String> setSkills,
+            String setSignature) {
+        if (itemStack == null || definition == null) {
+            return;
+        }
+        ItemMeta itemMeta = itemStack.getItemMeta();
+        if (itemMeta != null) {
+            identifier.writeSetState(itemMeta, setId, setPiece, activeCount, totalCount, thresholds(activeThresholds), setSignature);
+            itemStack.setItemMeta(itemMeta);
+        }
+        if (Bukkit.getPluginManager().isPluginEnabled("EmakiAttribute")) {
+            if (setAttributes == null || setAttributes.isEmpty()) {
+                attributeGateway.clear(itemStack, SET_ATTRIBUTE_SOURCE_ID);
+            } else {
+                attributeGateway.write(itemStack, SET_ATTRIBUTE_SOURCE_ID, setAttributes, Map.of(
+                        "set_id", Texts.normalizeId(setId),
+                        "active_count", Integer.toString(Math.max(0, activeCount)),
+                        "active_thresholds", thresholds(activeThresholds)
+                ));
+            }
+        }
+        if (Bukkit.getPluginManager().isPluginEnabled("EmakiSkills")) {
+            java.util.LinkedHashSet<String> skills = new java.util.LinkedHashSet<>(definition.skills());
+            if (setSkills != null) {
+                skills.addAll(setSkills);
+            }
+            skillPdcGateway.write(itemStack, skills);
+        }
+    }
+
+    public void clearDynamicSet(ItemStack itemStack, EmakiItemDefinition definition) {
+        if (itemStack == null) {
+            return;
+        }
+        ItemMeta itemMeta = itemStack.getItemMeta();
+        if (itemMeta != null) {
+            identifier.clearSetState(itemMeta);
+            itemStack.setItemMeta(itemMeta);
+        }
+        attributeGateway.clear(itemStack, SET_ATTRIBUTE_SOURCE_ID);
+        if (definition != null && Bukkit.getPluginManager().isPluginEnabled("EmakiSkills")) {
+            skillPdcGateway.write(itemStack, definition.skills());
+        }
+    }
+
     public void shutdown() {
         attributeGateway.shutdown();
+    }
+
+    private String thresholds(List<Integer> thresholds) {
+        if (thresholds == null || thresholds.isEmpty()) {
+            return "";
+        }
+        return thresholds.stream().map(String::valueOf).collect(java.util.stream.Collectors.joining(";"));
     }
 
     private Map<String, String> attributeMeta(EmakiItemDefinition definition) {

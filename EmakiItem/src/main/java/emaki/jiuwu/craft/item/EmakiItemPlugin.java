@@ -16,13 +16,17 @@ import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.item.api.EmakiItemApi;
 import emaki.jiuwu.craft.item.config.AppConfig;
 import emaki.jiuwu.craft.item.listener.ItemTriggerListener;
+import emaki.jiuwu.craft.item.listener.ItemUpdateListener;
 import emaki.jiuwu.craft.item.loader.EmakiItemLoader;
+import emaki.jiuwu.craft.item.loader.EmakiItemSetLoader;
 import emaki.jiuwu.craft.item.papi.ItemPlaceholderExpansion;
 import emaki.jiuwu.craft.item.service.EmakiItemActionService;
 import emaki.jiuwu.craft.item.service.EmakiItemConditionChecker;
 import emaki.jiuwu.craft.item.service.EmakiItemFactory;
 import emaki.jiuwu.craft.item.service.EmakiItemIdentifier;
 import emaki.jiuwu.craft.item.service.EmakiItemPdcWriter;
+import emaki.jiuwu.craft.item.service.EmakiItemSetService;
+import emaki.jiuwu.craft.item.service.EmakiItemUpdateService;
 
 public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider {
 
@@ -44,9 +48,12 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     private MessageService messageService;
     private BootstrapService bootstrapService;
     private EmakiItemLoader itemLoader;
+    private EmakiItemSetLoader setLoader;
     private EmakiItemIdentifier identifier;
     private EmakiItemPdcWriter pdcWriter;
     private EmakiItemFactory itemFactory;
+    private EmakiItemUpdateService updateService;
+    private EmakiItemSetService setService;
     private EmakiItemActionService actionService;
     private EmakiItemConditionChecker conditionChecker;
     private EmakiItemApi itemApi;
@@ -91,9 +98,12 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         messageService = components.messageService();
         bootstrapService = components.bootstrapService();
         itemLoader = components.itemLoader();
+        setLoader = components.setLoader();
         identifier = components.identifier();
         pdcWriter = components.pdcWriter();
         itemFactory = components.itemFactory();
+        updateService = components.updateService();
+        setService = components.setService();
         actionService = components.actionService();
         conditionChecker = components.conditionChecker();
         itemApi = components.itemApi();
@@ -112,6 +122,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
 
     private void registerEventHandlers() {
         getServer().getPluginManager().registerEvents(new ItemTriggerListener(this), this);
+        getServer().getPluginManager().registerEvents(new ItemUpdateListener(this), this);
     }
 
     private void ensurePlaceholderExpansion() {
@@ -143,6 +154,10 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         return itemLoader;
     }
 
+    public EmakiItemSetLoader setLoader() {
+        return setLoader;
+    }
+
     public EmakiItemIdentifier identifier() {
         return identifier;
     }
@@ -153,6 +168,14 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
 
     public EmakiItemFactory itemFactory() {
         return itemFactory;
+    }
+
+    public EmakiItemUpdateService updateService() {
+        return updateService;
+    }
+
+    public EmakiItemSetService setService() {
+        return setService;
     }
 
     public EmakiItemActionService actionService() {

@@ -52,6 +52,7 @@ public final class EmakiItemDefinitionParser {
                 toDoubleMap(root.get("attributes")),
                 toStringMap(root.get("attribute_meta")),
                 normalizedList(root.get("skills")),
+                parseSetMembership(root.getSection("set")),
                 parseConditions(root.getSection("conditions")),
                 parseActions(root.getSection("actions")),
                 random
@@ -123,6 +124,13 @@ public final class EmakiItemDefinitionParser {
             }
         }
         return actions;
+    }
+
+    private ItemSetMembership parseSetMembership(YamlSection section) {
+        if (section == null) {
+            return ItemSetMembership.empty();
+        }
+        return new ItemSetMembership(section.getString("id", ""), section.getString("piece", ""));
     }
 
     private Map<String, Object> toPlainMap(Object raw) {

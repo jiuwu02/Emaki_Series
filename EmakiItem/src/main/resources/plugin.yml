@@ -20,5 +20,7 @@ permissions:
     default: op
   emakiitem.inspect:
     default: op
+  emakiitem.update:
+    default: op
   emakiitem.reload:
     default: op

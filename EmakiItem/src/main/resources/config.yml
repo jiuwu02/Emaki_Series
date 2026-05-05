@@ -1,3 +1,28 @@
 version: "1.0.0"
 language: "zh_CN"
 release_default_data: true
+
+item_update:
+  enabled: true
+  preserve_amount: true
+  preserve_damage: true
+  preserve_unknown_attribute_sources: true
+  triggers:
+    join: true
+    held_change: true
+    inventory_click: true
+    inventory_drag: true
+    pickup: true
+    interact: true
+    command: true
+
+set_bonus:
+  enabled: true
+  refresh_triggers:
+    join: true
+    held_change: true
+    inventory_click: true
+    inventory_drag: true
+    pickup: true
+    interact: true
+    command: true

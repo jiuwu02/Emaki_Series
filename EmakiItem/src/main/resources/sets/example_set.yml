@@ -1,0 +1,42 @@
+id: "example_guardian"
+display_name: "<aqua>示例守护者套装</aqua>"
+pieces:
+  blade:
+    item: "example_blade"
+    slot: "main_hand"
+    display: "示例之刃"
+  helmet:
+    item: "example_guardian_helmet"
+    slot: "helmet"
+    display: "守护者头盔"
+  chestplate:
+    item: "example_guardian_chestplate"
+    slot: "chestplate"
+    display: "守护者胸甲"
+  boots:
+    item: "example_guardian_boots"
+    slot: "boots"
+    display: "守护者战靴"
+lore:
+  header: "<dark_gray>—— <aqua>示例守护者套装</aqua> <gray>({active}/{total})</gray> ——</dark_gray>"
+  equipped_format: "<green>✔ {piece}</green>"
+  missing_format: "<gray>✘ {piece}</gray>"
+  active_threshold_format: "<green>{line}</green>"
+  inactive_threshold_format: "<dark_gray>{line}</dark_gray>"
+  separator: ""
+thresholds:
+  2:
+    lore:
+      - "[2件套] 物理攻击 +5"
+    attributes:
+      physical_attack: 5.0
+    skills:
+      - "guardian_dash"
+  4:
+    lore:
+      - "[4件套] 解锁守护者光环"
+    attributes:
+      physical_attack: 15.0
+      physical_defense: 10.0
+    skills:
+      - "guardian_aura"

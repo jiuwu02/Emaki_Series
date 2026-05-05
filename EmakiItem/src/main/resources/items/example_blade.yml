@@ -34,6 +34,9 @@ attributes:
   physical_crit_rate: 5.0
 skills:
   - "fireball"
+set:
+  id: "example_guardian"
+  piece: "blade"
 actions:
   give:
     - "playsound sound=entity.player.levelup volume=1.0 pitch=1.2"

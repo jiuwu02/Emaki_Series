@@ -10,12 +10,14 @@ general:
   reload_summary: "<gray>已加载 <white>{items}</white> 个物品定义。</gray>"
   item_not_found: "<red>找不到物品定义: <white>{id}</white></red>"
   give_success: "<green>已给予 <white>{player}</white> <gold>{id}</gold> x{amount}。</green>"
+  update_success: "<green>已刷新 <white>{player}</white> 的穿戴套装物品，共处理 <white>{count}</white> 件。</green>"
 console:
   plugin_starting: "EmakiItem 正在启动..."
   plugin_started: "EmakiItem 已启动。"
   plugin_stopping: "EmakiItem 正在关闭..."
   plugin_stopped: "EmakiItem 已关闭。"
   items_loaded: "已加载 {count} 个 EmakiItem 物品定义。"
+  sets_loaded: "已加载 {count} 个 EmakiItem 套装定义。"
   bootstrap_start: "正在同步默认资源..."
   bootstrap_complete: "默认资源同步完成。"
   bootstrap_skip: "已按配置跳过默认数据释放。"
@@ -33,6 +35,7 @@ command:
       list: "分页列出物品 ID"
       give: "给予玩家物品"
       inspect: "检查主手 EmakiItem"
+      update: "刷新玩家穿戴物品和套装 Lore"
       reload: "重载配置和物品定义"
   list:
     header: "<gold>EmakiItem 物品列表</gold> <gray>({page}/{pages}, 共 {count} 个)</gray>"

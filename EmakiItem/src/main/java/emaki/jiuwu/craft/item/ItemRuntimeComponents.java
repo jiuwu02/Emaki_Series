@@ -13,20 +13,26 @@ import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.item.api.EmakiItemApi;
 import emaki.jiuwu.craft.item.config.AppConfig;
 import emaki.jiuwu.craft.item.loader.EmakiItemLoader;
+import emaki.jiuwu.craft.item.loader.EmakiItemSetLoader;
 import emaki.jiuwu.craft.item.service.EmakiItemActionService;
 import emaki.jiuwu.craft.item.service.EmakiItemConditionChecker;
 import emaki.jiuwu.craft.item.service.EmakiItemFactory;
 import emaki.jiuwu.craft.item.service.EmakiItemIdentifier;
 import emaki.jiuwu.craft.item.service.EmakiItemPdcWriter;
+import emaki.jiuwu.craft.item.service.EmakiItemSetService;
+import emaki.jiuwu.craft.item.service.EmakiItemUpdateService;
 
 record ItemRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
         LanguageLoader languageLoader,
         MessageService messageService,
         BootstrapService bootstrapService,
         EmakiItemLoader itemLoader,
+        EmakiItemSetLoader setLoader,
         EmakiItemIdentifier identifier,
         EmakiItemPdcWriter pdcWriter,
         EmakiItemFactory itemFactory,
+        EmakiItemUpdateService updateService,
+        EmakiItemSetService setService,
         EmakiItemActionService actionService,
         EmakiItemConditionChecker conditionChecker,
         EmakiItemApi itemApi,
@@ -42,9 +48,12 @@ record ItemRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
                 RuntimeComponents.component(MessageService.class, messageService),
                 RuntimeComponents.component(BootstrapService.class, bootstrapService),
                 RuntimeComponents.component(EmakiItemLoader.class, itemLoader),
+                RuntimeComponents.component(EmakiItemSetLoader.class, setLoader),
                 RuntimeComponents.component(EmakiItemIdentifier.class, identifier),
                 RuntimeComponents.component(EmakiItemPdcWriter.class, pdcWriter),
                 RuntimeComponents.component(EmakiItemFactory.class, itemFactory),
+                RuntimeComponents.component(EmakiItemUpdateService.class, updateService),
+                RuntimeComponents.component(EmakiItemSetService.class, setService),
                 RuntimeComponents.component(EmakiItemActionService.class, actionService),
                 RuntimeComponents.component(EmakiItemConditionChecker.class, conditionChecker),
                 RuntimeComponents.component(EmakiItemApi.class, itemApi),

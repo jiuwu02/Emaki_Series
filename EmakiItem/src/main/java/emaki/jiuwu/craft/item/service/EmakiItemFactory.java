@@ -57,6 +57,15 @@ public final class EmakiItemFactory {
         prototypeCache.clear();
     }
 
+    public ItemStack rebuildBase(EmakiItemDefinition definition, int amount) {
+        if (definition == null) {
+            return null;
+        }
+        ItemStack itemStack = build(definition);
+        itemStack.setAmount(Math.max(1, Math.min(amount, itemStack.getMaxStackSize())));
+        return itemStack;
+    }
+
     private ItemStack build(EmakiItemDefinition definition) {
         ItemStack itemStack = baseItem(definition);
         ItemMeta itemMeta = itemStack.getItemMeta();
