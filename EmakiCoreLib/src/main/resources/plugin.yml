@@ -13,7 +13,10 @@ libraries:
   - dev.dejvokep:boosted-yaml:${boosted.yaml.version}
   - com.github.ben-manes.caffeine:caffeine:${caffeine.version}
   - org.graalvm.polyglot:polyglot:${graalvm.polyglot.version}
-  - org.graalvm.polyglot:js:${graalvm.polyglot.version}
+  - org.graalvm.js:js-language:${graalvm.polyglot.version}
+  - org.graalvm.regex:regex:${graalvm.polyglot.version}
+  - org.graalvm.truffle:truffle-api:${graalvm.polyglot.version}
+  - org.graalvm.shadowed:icu4j:${graalvm.polyglot.version}
 softdepend:
   - Vault
   - ExcellentEconomy
