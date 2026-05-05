@@ -54,14 +54,19 @@ public record SocketOpenerConfig(String id,
         return new SocketOpenerConfig(
                 normalizedId,
                 section.getBoolean("enabled", true),
-                ItemSourceUtil.parse(section.get("item_source")),
+                ItemSourceUtil.parse(section.get("item_sources")),
                 Numbers.tryParseInt(section.get("custom_model_data"), null),
                 section.getString("display_name", normalizedId),
                 section.getStringList("lore"),
                 gemTypes,
                 section.getBoolean("consume_on_success", true),
-                section.getStringList("success_actions"),
-                section.getStringList("failure_actions")
+                actionLines(section, "success"),
+                actionLines(section, "failure")
         );
+    }
+
+    private static List<String> actionLines(YamlSection section, String key) {
+        YamlSection actions = section.getSection("actions");
+        return actions == null ? List.of() : actions.getStringList(key);
     }
 }

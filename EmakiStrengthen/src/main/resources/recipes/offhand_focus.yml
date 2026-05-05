@@ -72,9 +72,11 @@ stars:
       spell_damage_bonus: 1.0
       health: 6.0
     materials:
-      - item: "copper_ingot"
+      - item_sources:
+          - "copper_ingot"
         amount: 1
-      - item: "gunpowder"
+      - item_sources:
+          - "gunpowder"
         amount: 2
   2:
     stats:
@@ -84,9 +86,11 @@ stars:
       spell_damage_bonus: 1.0
       health: 6.0
     materials:
-      - item: "copper_ingot"
+      - item_sources:
+          - "copper_ingot"
         amount: 1
-      - item: "gunpowder"
+      - item_sources:
+          - "gunpowder"
         amount: 3
   3:
     stats:
@@ -96,9 +100,11 @@ stars:
       spell_damage_bonus: 1.5
       health: 8.0
     materials:
-      - item: "copper_ingot"
+      - item_sources:
+          - "copper_ingot"
         amount: 2
-      - item: "gunpowder"
+      - item_sources:
+          - "gunpowder"
         amount: 4
   4:
     stats:
@@ -108,11 +114,14 @@ stars:
       spell_damage_bonus: 2.0
       health: 8.0
     materials:
-      - item: "copper_ingot"
+      - item_sources:
+          - "copper_ingot"
         amount: 2
-      - item: "gunpowder"
+      - item_sources:
+          - "gunpowder"
         amount: 5
-      - item: "gold_nugget"
+      - item_sources:
+          - "gold_nugget"
         amount: -1
         optional: true
         protection: true
@@ -127,11 +136,14 @@ stars:
       health: 10.0
       mana_regen: 3.0
     materials:
-      - item: "copper_ingot"
+      - item_sources:
+          - "copper_ingot"
         amount: 3
-      - item: "gunpowder"
+      - item_sources:
+          - "gunpowder"
         amount: 6
-      - item: "gold_nugget"
+      - item_sources:
+          - "gold_nugget"
         amount: -1
         optional: true
         protection: true
@@ -141,8 +153,9 @@ stars:
           order: 230
           lines:
             - "<gray>强化达到 +5 后，副手会额外提供法力回复。</gray>"
-    success_actions:
-      - "sendmessage text=\"<light_purple>强化达到 +5，解锁额外法力回复。</light_purple>\""
+    actions:
+      success:
+        - "sendmessage text=\"<light_purple>强化达到 +5，解锁额外法力回复。</light_purple>\""
   6:
     stats:
       spell_damage_bonus: 2.5
@@ -151,11 +164,14 @@ stars:
       spell_damage_bonus: 2.5
       health: 10.0
     materials:
-      - item: "copper_ingot"
+      - item_sources:
+          - "copper_ingot"
         amount: 4
-      - item: "gunpowder"
+      - item_sources:
+          - "gunpowder"
         amount: 8
-      - item: "gold_nugget"
+      - item_sources:
+          - "gold_nugget"
         amount: -1
         optional: true
         protection: true
@@ -167,11 +183,14 @@ stars:
       spell_damage_bonus: 3.0
       health: 12.0
     materials:
-      - item: "copper_ingot"
+      - item_sources:
+          - "copper_ingot"
         amount: 5
-      - item: "gunpowder"
+      - item_sources:
+          - "gunpowder"
         amount: 10
-      - item: "gold_nugget"
+      - item_sources:
+          - "gold_nugget"
         amount: -1
         optional: true
         protection: true
@@ -186,13 +205,17 @@ stars:
       health: 12.0
       spell_crit_rate: 3.0
     materials:
-      - item: "copper_ingot"
+      - item_sources:
+          - "copper_ingot"
         amount: 6
-      - item: "gunpowder"
+      - item_sources:
+          - "gunpowder"
         amount: 12
-      - item: "paper"
+      - item_sources:
+          - "paper"
         amount: 2
-      - item: "gold_nugget"
+      - item_sources:
+          - "gold_nugget"
         amount: -1
         optional: true
         protection: true
@@ -202,8 +225,9 @@ stars:
           order: 230
           lines:
             - "<gray>强化达到 +8 后，副手会额外提供法术暴击率。</gray>"
-    success_actions:
-      - "sendtitle title=\"<light_purple><bold>+8
+    actions:
+      success:
+        - "sendtitle title=\"<light_purple><bold>+8
         法术暴击率提升</bold></light_purple>\" subtitle=\"<white>额外法术暴击率已解锁</white>\""
   9:
     stats:
@@ -213,13 +237,17 @@ stars:
       spell_damage_bonus: 4.0
       health: 14.0
     materials:
-      - item: "copper_ingot"
+      - item_sources:
+          - "copper_ingot"
         amount: 8
-      - item: "gunpowder"
+      - item_sources:
+          - "gunpowder"
         amount: 16
-      - item: "paper"
+      - item_sources:
+          - "paper"
         amount: 2
-      - item: "gold_nugget"
+      - item_sources:
+          - "gold_nugget"
         amount: -1
         optional: true
         protection: true
@@ -234,13 +262,17 @@ stars:
       health: 14.0
       mana: 12.0
     materials:
-      - item: "copper_ingot"
+      - item_sources:
+          - "copper_ingot"
         amount: 10
-      - item: "gunpowder"
+      - item_sources:
+          - "gunpowder"
         amount: 20
-      - item: "echo_shard"
+      - item_sources:
+          - "echo_shard"
         amount: 2
-      - item: "gold_nugget"
+      - item_sources:
+          - "gold_nugget"
         amount: -1
         optional: true
         protection: true
@@ -250,8 +282,9 @@ stars:
           order: 230
           lines:
             - "<gray>强化达到 +10 后，副手会额外提供法力上限。</gray>"
-    success_actions:
-      - "sendtitle title=\"<light_purple><bold>+10
+    actions:
+      success:
+        - "sendtitle title=\"<light_purple><bold>+10
         法力上限提升</bold></light_purple>\" subtitle=\"<white>额外法力上限已解锁</white>\""
   11:
     stats:
@@ -261,13 +294,17 @@ stars:
       spell_damage_bonus: 5.0
       health: 16.0
     materials:
-      - item: "copper_ingot"
+      - item_sources:
+          - "copper_ingot"
         amount: 13
-      - item: "gunpowder"
+      - item_sources:
+          - "gunpowder"
         amount: 26
-      - item: "echo_shard"
+      - item_sources:
+          - "echo_shard"
         amount: 3
-      - item: "gold_nugget"
+      - item_sources:
+          - "gold_nugget"
         amount: -1
         optional: true
         protection: true
@@ -282,17 +319,22 @@ stars:
       health: 18.0
       dodge_chance: 4.0
     materials:
-      - item: "copper_ingot"
+      - item_sources:
+          - "copper_ingot"
         amount: 16
-      - item: "gunpowder"
+      - item_sources:
+          - "gunpowder"
         amount: 32
-      - item: "echo_shard"
+      - item_sources:
+          - "echo_shard"
         amount: 4
-      - item: "gold_nugget"
+      - item_sources:
+          - "gold_nugget"
         amount: -1
         optional: true
         protection: true
-      - item: "potion"
+      - item_sources:
+          - "potion"
         amount: -1
         optional: true
         temper_boost: 1
@@ -302,8 +344,9 @@ stars:
           order: 230
           lines:
             - "<gray>强化达到 +12 后，副手会额外提供闪避率。</gray>"
-    success_actions:
-      - "sendtitle title=\"<light_purple><bold>+12 闪避提升</bold></light_purple>\"
+    actions:
+      success:
+        - "sendtitle title=\"<light_purple><bold>+12 闪避提升</bold></light_purple>\"
         subtitle=\"<white>闪避率已解锁</white>\""
 
 structured_presentation:

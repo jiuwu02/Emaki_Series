@@ -20,6 +20,7 @@ import org.bukkit.util.Transformation;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
+import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.math.Numbers;
@@ -74,7 +75,7 @@ public final class CookingSettingsService {
     }
 
     public ItemSource stationBlockSource(StationType stationType) {
-        return ItemSourceUtil.parse(configuration.getString(stationPath(stationType) + ".block_source", ""));
+        return ItemSourceUtil.parse(configuration.get(stationPath(stationType) + ".item_sources"));
     }
 
     public boolean onlyRecipeItems(StationType stationType) {
@@ -149,7 +150,7 @@ public final class CookingSettingsService {
     }
 
     public List<ItemSource> choppingToolSources() {
-        return parseSources(configuration.getStringList("stations.chopping_board.tool_sources"));
+        return parseSources(configuration.get("stations.chopping_board.tool_item_sources"));
     }
 
     public boolean choppingCutDamageEnabled() {
@@ -189,14 +190,14 @@ public final class CookingSettingsService {
     }
 
     public List<ItemSource> wokSpatulaSources() {
-        return parseSources(configuration.getStringList("stations.wok.spatula_sources"));
+        return parseSources(configuration.get("stations.wok.spatula_item_sources"));
     }
 
     public List<HeatLevelRule> wokHeatLevels() {
         List<HeatLevelRule> result = new ArrayList<>();
         for (Map<?, ?> entry : configuration.getMapList("stations.wok.heat_levels")) {
             Map<String, Object> normalized = MapYamlSection.normalizeMap(entry);
-            ItemSource source = ItemSourceUtil.parse(normalized.get("source"));
+            ItemSource source = ItemSourceUtil.parse(normalized.get("item_sources"));
             if (source == null) {
                 continue;
             }
@@ -223,11 +224,11 @@ public final class CookingSettingsService {
     }
 
     public String wokFailureOutputSource() {
-        return configuration.getString("stations.wok.failure.output_source", "");
+        return firstSourceShorthand(configuration.get("stations.wok.failure.item_sources"));
     }
 
     public String wokInvalidResultSource() {
-        return configuration.getString("stations.wok.invalid_result_source", "");
+        return firstSourceShorthand(configuration.get("stations.wok.item_sources"));
     }
 
     public boolean steamerDropResult() {
@@ -270,7 +271,7 @@ public final class CookingSettingsService {
     }
 
     public List<ItemSource> steamerHeatSources() {
-        return parseSources(configuration.getStringList("stations.steamer.heat_sources"));
+        return parseSources(configuration.get("stations.steamer.heat_item_sources"));
     }
 
     public boolean steamerIgniteHeatSource() {
@@ -281,7 +282,7 @@ public final class CookingSettingsService {
         List<SteamerFuelRule> result = new ArrayList<>();
         for (Map<?, ?> entry : configuration.getMapList("stations.steamer.fuels")) {
             Map<String, Object> normalized = MapYamlSection.normalizeMap(entry);
-            ItemSource source = ItemSourceUtil.parse(normalized.get("source"));
+            ItemSource source = ItemSourceUtil.parse(normalized.get("item_sources"));
             if (source == null) {
                 continue;
             }
@@ -293,13 +294,13 @@ public final class CookingSettingsService {
 
     public List<SteamerMoistureRule> steamerMoistureSources() {
         List<SteamerMoistureRule> result = new ArrayList<>();
-        for (Map<?, ?> entry : configuration.getMapList("stations.steamer.moisture_sources")) {
+        for (Map<?, ?> entry : configuration.getMapList("stations.steamer.moisture_rules")) {
             Map<String, Object> normalized = MapYamlSection.normalizeMap(entry);
-            ItemSource input = ItemSourceUtil.parse(normalized.get("input_source"));
+            ItemSource input = ItemSourceUtil.parse(normalized.get("input_item_sources"));
             if (input == null) {
                 continue;
             }
-            ItemSource output = ItemSourceUtil.parse(normalized.get("output_source"));
+            ItemSource output = ItemSourceUtil.parse(normalized.get("item_sources"));
             Integer moisture = configurationValueToInt(normalized.get("moisture"), 0);
             result.add(new SteamerMoistureRule(input, output, moisture == null ? 0 : Math.max(0, moisture)));
         }
@@ -322,18 +323,21 @@ public final class CookingSettingsService {
         return Math.max(0, configuration.getInt("stations.steamer.steam_consumption_efficiency", 1));
     }
 
-    private List<ItemSource> parseSources(List<String> tokens) {
+    private List<ItemSource> parseSources(Object raw) {
         List<ItemSource> result = new ArrayList<>();
-        if (tokens == null) {
-            return result;
-        }
-        for (String token : tokens) {
+        for (Object token : ConfigNodes.asObjectList(raw)) {
             ItemSource source = ItemSourceUtil.parse(token);
             if (source != null) {
                 result.add(source);
             }
         }
         return List.copyOf(result);
+    }
+
+    private String firstSourceShorthand(Object raw) {
+        ItemSource source = ItemSourceUtil.parse(raw);
+        String shorthand = ItemSourceUtil.toShorthand(source);
+        return shorthand == null ? "" : shorthand;
     }
 
     private String stationPath(StationType stationType) {
@@ -440,7 +444,7 @@ public final class CookingSettingsService {
         if (section == null || section.isEmpty()) {
             return null;
         }
-        ItemSource source = ItemSourceUtil.parse(section.getString("source", ""));
+        ItemSource source = ItemSourceUtil.parse(section.get("item_sources"));
         String shorthand = source == null ? "" : ItemSourceUtil.toShorthand(source);
         if (Texts.isBlank(shorthand)) {
             return null;

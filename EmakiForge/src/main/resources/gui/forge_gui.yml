@@ -19,7 +19,7 @@ slots:
 
   core_frame:
     slots: [ 9, 12, 15, 17, 18, 21, 24, 25, 26, 27, 28, 30, 33, 35 ]
-    item: "GRAY_STAINED_GLASS_PANE"
+    item: "gray_stained_glass_pane"
     display_name: "<dark_gray>"
     hidden_components: [ "tooltip" ]
 

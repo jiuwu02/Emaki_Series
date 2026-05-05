@@ -3,7 +3,8 @@ id: "bone_meal"
 display_name: "骨粉研磨"
 
 input:
-  source: "minecraft-bone"
+  item_sources:
+    - "minecraft-bone"
 
 grind_time_seconds: 6
 
@@ -11,7 +12,8 @@ permission: "emakicooking.recipe.bone_meal"
 
 result:
   outputs:
-    - source: "minecraft-bone_meal"
+    - item_sources:
+        - "minecraft-bone_meal"
       amount: 3
   actions:
     - 'sendmessage text="<gray>研磨结束。</gray>"'

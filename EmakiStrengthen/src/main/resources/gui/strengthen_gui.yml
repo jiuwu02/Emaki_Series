@@ -7,13 +7,13 @@ rows: 5
 slots:
   top_frame:
     slots: [ 0, 1, 2, 3, 4, 5, 6, 7, 8 ]
-    item: "GRAY_STAINED_GLASS_PANE"
+    item: "gray_stained_glass_pane"
     display_name: "<gray>"
     hidden_components: [ "tooltip" ]
 
   bottom_frame:
     slots: [ 36, 37, 38, 39, 41, 42, 43, 44 ]
-    item: "GRAY_STAINED_GLASS_PANE"
+    item: "gray_stained_glass_pane"
     display_name: "<gray>"
     hidden_components: [ "tooltip" ]
 
@@ -35,7 +35,7 @@ slots:
   preview_display:
     slots: [ 15 ]
     type: "preview_display"
-    item: "BOOK"
+    item: "book"
     display_name: "<gold>强化预览</gold>"
     lore:
       - "<gray>这里会展示成功率、花费与所需材料"

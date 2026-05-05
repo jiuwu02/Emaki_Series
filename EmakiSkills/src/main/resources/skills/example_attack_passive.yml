@@ -51,13 +51,14 @@ script:
   mode: "native"
   stop_on_failure: true
 
-  cast:
-    - "@chance={echo_chance}% particle particle=SONIC_BOOM at=target count=1"
-    - "@chance={echo_chance}% sound sound=ENTITY_ALLAY_AMBIENT_WITHOUT_ITEM at=caster volume=0.8 pitch={sound_pitch}"
+  actions:
+    cast:
+      - "@chance={echo_chance}% particle particle=sonic_boom at=target count=1"
+      - "@chance={echo_chance}% playsound sound=entity.allay.ambient_without_item at=caster volume=0.8 pitch={sound_pitch}"
 
-  hit:
-    - "damage target=target amount={echo_damage} damage_type=spell element=echo"
-    - "message target=caster text='{echo_message}'"
+    hit:
+      - "damage target=target amount={echo_damage} damage_type=spell element=echo"
+      - 'sendmessage target=caster text="{echo_message}"'
 
 upgrade:
   enabled: true
@@ -87,29 +88,35 @@ upgrade:
   levels:
     2:
       materials:
-        - item: "minecraft-amethyst_shard"
+        - item_sources:
+            - "minecraft-amethyst_shard"
           amount: 3
-      success_actions: []
-      failure_actions: []
+      actions:
+        success: []
+        failure: []
 
     4:
       materials:
-        - item: "minecraft-echo_shard"
+        - item_sources:
+            - "minecraft-echo_shard"
           amount: 1
       parameters:
         echo_chance:
           type: "constant"
           value: 30
           decimals: 0
-      success_actions:
-        - "sendmessage text=\"<aqua>命中回响达到 IV，触发概率获得额外提升。</aqua>\""
-      failure_actions: []
+      actions:
+        success:
+          - "sendmessage text=\"<aqua>命中回响达到 IV，触发概率获得额外提升。</aqua>\""
+        failure: []
 
     8:
       materials:
-        - item: "minecraft-echo_shard"
+        - item_sources:
+            - "minecraft-echo_shard"
           amount: 3
       success_rate: 50.0
-      success_actions:
-        - "broadcast text=\"<aqua>{player}</aqua> <gray>将命中回响提升至满级。</gray>\""
-      failure_actions: []
+      actions:
+        success:
+          - "broadcastmessage text=\"<aqua>{player}</aqua> <gray>将命中回响提升至满级。</gray>\""
+        failure: []

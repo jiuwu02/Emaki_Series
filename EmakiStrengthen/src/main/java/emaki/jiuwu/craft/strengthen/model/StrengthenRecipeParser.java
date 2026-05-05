@@ -6,7 +6,10 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 
+import emaki.jiuwu.craft.corelib.condition.ConditionGroup;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
@@ -43,7 +46,7 @@ final class StrengthenRecipeParser {
                 parseStatLines(section.getSection("stat_lines")),
                 parseStars(section.getSection("stars")),
                 section.get("structured_presentation"),
-                section.getStringList("conditions"),
+                ConditionGroup.fromConfig(section, section.getString("condition_type", "all_of"), Numbers.tryParseInt(section.get("condition_required_count"), 0)),
                 section.getString("condition_type", "all_of"),
                 Numbers.tryParseInt(section.get("condition_required_count"), 0)
         );
@@ -172,8 +175,8 @@ final class StrengthenRecipeParser {
                     parseStageMaterials(stageSection.getMapList("materials")),
                     parseEconomyOverride(stageSection.getSection("economy_override")),
                     stageSection.get("structured_presentation"),
-                    stageSection.getStringList("success_actions"),
-                    stageSection.getStringList("failure_actions")
+                    parseActionLines(stageSection.getSection("actions"), "success"),
+                    parseActionLines(stageSection.getSection("actions"), "failure")
             ));
         }
         return result;
@@ -189,7 +192,7 @@ final class StrengthenRecipeParser {
                 continue;
             }
             result.add(new StarStageMaterial(
-                    ConfigNodes.string(rawEntry, "item", ""),
+                    parseMaterialItem(rawEntry),
                     Numbers.tryParseInt(ConfigNodes.get(rawEntry, "amount"), 1),
                     ConfigNodes.bool(rawEntry, "optional", false),
                     ConfigNodes.bool(rawEntry, "protection", false),
@@ -197,6 +200,16 @@ final class StrengthenRecipeParser {
             ));
         }
         return List.copyOf(result);
+    }
+
+    static List<String> parseActionLines(YamlSection section, String key) {
+        return section == null ? List.of() : section.getStringList(key);
+    }
+
+    static String parseMaterialItem(Object rawEntry) {
+        ItemSource source = ItemSourceUtil.parse(ConfigNodes.get(rawEntry, "item_sources"));
+        String shorthand = ItemSourceUtil.toShorthand(source);
+        return shorthand == null ? "" : shorthand;
     }
 
     static List<String> parseSkillEffects(List<Map<?, ?>> rawEffects) {

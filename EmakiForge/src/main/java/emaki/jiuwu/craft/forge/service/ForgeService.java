@@ -181,11 +181,9 @@ public final class ForgeService {
                 && !player.hasPermission(recipe.permission())) {
             return ValidationResult.fail("forge.error.permission_denied");
         }
-        if (!recipe.conditions().isEmpty()) {
+        if (!recipe.conditions().emptyGroup()) {
             boolean conditionsPassed = ConditionEvaluator.evaluate(
                     recipe.conditions(),
-                    recipe.conditionType(),
-                    recipe.conditionRequiredCount(),
                     text -> replacePlaceholders(player, text),
                     config.invalidAsFailure()
             );

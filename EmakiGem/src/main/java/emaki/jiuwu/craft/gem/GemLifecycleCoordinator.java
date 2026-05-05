@@ -11,6 +11,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.condition.ConditionGroup;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.integration.PdcAttributeGateway;
@@ -285,10 +286,12 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
         if (section == null || section.getKeys(false).isEmpty()) {
             return defaults;
         }
+        String conditionType = section.getString("condition_type", defaults.conditionType());
+        int requiredCount = section.getInt("required_count", defaults.requiredCount());
         return new AppConfig.ConditionConfig(
-                section.getStringList("conditions"),
-                section.getString("condition_type", defaults.conditionType()),
-                section.getInt("required_count", defaults.requiredCount()),
+                ConditionGroup.fromConfig(section, conditionType, requiredCount),
+                conditionType,
+                requiredCount,
                 section.getBoolean("invalid_as_failure", defaults.invalidAsFailure())
         );
     }

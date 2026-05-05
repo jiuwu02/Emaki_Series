@@ -9,4 +9,4 @@ invalid_as_failure: true
 conditions:
   - type: lore_regex
     pattern: "装备等级需求: Lv\\.(\\d+)"
-    condition: "$1 <= %player_level%"
+    condition: "{value} <= {player_level}"

@@ -8,6 +8,7 @@ import java.util.Map;
 
 import org.bukkit.plugin.java.JavaPlugin;
 
+import emaki.jiuwu.craft.corelib.condition.ConditionGroup;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.YamlDirectoryLoader;
@@ -57,7 +58,7 @@ public final class SkillDefinitionLoader extends YamlDirectoryLoader<SkillDefini
         }
 
         List<SkillResourceCost> resourceCosts = parseResourceCosts(configuration.getMapList("resource_costs"));
-        String iconMaterial = configuration.getString("icon_material", "");
+        String iconMaterial = Texts.lower(configuration.getString("icon_material", ""));
         SkillActivationType activationType = SkillActivationType.fromString(
                 configuration.getString("trigger_type", "active"));
 
@@ -81,7 +82,7 @@ public final class SkillDefinitionLoader extends YamlDirectoryLoader<SkillDefini
                 configuration.getString("ui_category", "default"),
                 configuration.getInt("sort_order", 0),
                 enabled,
-                configuration.getStringList("conditions"),
+                ConditionGroup.fromConfig(configuration, configuration.getString("condition_type", "all_of"), 0),
                 configuration.getString("condition_type", "all_of")
         );
     }
@@ -199,10 +200,13 @@ public final class SkillDefinitionLoader extends YamlDirectoryLoader<SkillDefini
         SkillScriptMode mode = SkillScriptMode.fromString(section.getString("mode", "native"), SkillScriptMode.NATIVE);
         boolean stopOnFailure = section.getBoolean("stop_on_failure", true);
         Map<SkillScriptPhase, List<String>> linesByPhase = new LinkedHashMap<>();
-        putPhaseLines(linesByPhase, SkillScriptPhase.CAST, section, "cast", "on_cast");
-        putPhaseLines(linesByPhase, SkillScriptPhase.HIT, section, "hit", "on_hit");
-        putPhaseLines(linesByPhase, SkillScriptPhase.MISS, section, "miss", "on_miss");
-        putPhaseLines(linesByPhase, SkillScriptPhase.FAIL, section, "fail", "on_fail");
+        YamlSection actions = section.getSection("actions");
+        if (actions != null) {
+            putPhaseLines(linesByPhase, SkillScriptPhase.CAST, actions, "cast", "on_cast");
+            putPhaseLines(linesByPhase, SkillScriptPhase.HIT, actions, "hit", "on_hit");
+            putPhaseLines(linesByPhase, SkillScriptPhase.MISS, actions, "miss", "on_miss");
+            putPhaseLines(linesByPhase, SkillScriptPhase.FAIL, actions, "fail", "on_fail");
+        }
 
         Map<SkillScriptPhase, List<String>> conditionsByPhase = new LinkedHashMap<>();
         YamlSection conditions = section.getSection("conditions");
@@ -329,8 +333,8 @@ public final class SkillDefinitionLoader extends YamlDirectoryLoader<SkillDefini
                     parseEconomyOverride(levelSection.getSection("economy")),
                     successRate,
                     parseSkillParameters(levelSection.getSection("parameters")),
-                    levelSection.getStringList("success_actions"),
-                    levelSection.getStringList("failure_actions")
+                    parseActionLines(levelSection.getSection("actions"), "success"),
+                    parseActionLines(levelSection.getSection("actions"), "failure")
             );
             levels.put(targetLevel, level);
         }
@@ -346,7 +350,7 @@ public final class SkillDefinitionLoader extends YamlDirectoryLoader<SkillDefini
             if (map == null || map.isEmpty()) {
                 continue;
             }
-            String item = Texts.toStringSafe(map.get("item"));
+            String item = Texts.asStringList(map.get("item_sources")).stream().findFirst().orElse("");
             if (item.isBlank()) {
                 continue;
             }
@@ -358,6 +362,10 @@ public final class SkillDefinitionLoader extends YamlDirectoryLoader<SkillDefini
             ));
         }
         return List.copyOf(materials);
+    }
+
+    private List<String> parseActionLines(YamlSection section, String key) {
+        return section == null ? List.of() : section.getStringList(key);
     }
 
     private List<SkillResourceCost> parseResourceCosts(List<Map<?, ?>> mapList) {

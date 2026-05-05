@@ -1,4 +1,5 @@
-source: "minecraft-cooked_chicken"
+item_sources:
+  - "minecraft-cooked_chicken"
 
 stations:
   wok:

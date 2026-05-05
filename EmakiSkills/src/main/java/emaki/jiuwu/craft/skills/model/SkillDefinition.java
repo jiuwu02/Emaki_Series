@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import emaki.jiuwu.craft.corelib.condition.ConditionGroup;
 import emaki.jiuwu.craft.skills.script.SkillScriptDefinition;
 
 public record SkillDefinition(String id,
@@ -25,7 +26,7 @@ public record SkillDefinition(String id,
         String uiCategory,
         int sortOrder,
         boolean enabled,
-        List<String> conditions,
+        ConditionGroup conditions,
         String conditionType) {
 
     public SkillDefinition {
@@ -45,7 +46,7 @@ public record SkillDefinition(String id,
         resourceCosts = resourceCosts == null ? List.of() : List.copyOf(resourceCosts);
         loreAliases = loreAliases == null ? List.of() : List.copyOf(loreAliases);
         uiCategory = uiCategory == null || uiCategory.isBlank() ? "default" : uiCategory;
-        conditions = conditions == null ? List.of() : List.copyOf(conditions);
+        conditions = conditions == null ? ConditionGroup.empty() : conditions;
         conditionType = conditionType == null || conditionType.isBlank() ? "all_of" : conditionType;
     }
 }

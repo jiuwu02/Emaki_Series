@@ -2,7 +2,8 @@
 id: "emerald_utility"
 gem_type: "utility"
 tier: 1
-item_source: "minecraft-emerald"
+item_sources:
+  - "minecraft-emerald"
 
 stats:
   movement_speed: 2
@@ -36,7 +37,8 @@ inlay_cost:
       cost_formula: "{base_cost} * {tier}"
       display_name: "<gold>金币</gold>"
   materials:
-    - item: "minecraft-emerald"
+    - item_sources:
+        - "minecraft-emerald"
       amount: 1
 
 extract_cost:
@@ -88,11 +90,13 @@ upgrade:
               - "<green>◆ {display_name}: 移动速度+{movement_speed}%
                 冷却缩减+{cooldown_reduction}%</green>"
       materials:
-        - item: "minecraft-emerald"
+        - item_sources:
+            - "minecraft-emerald"
           amount: 4
       success_rate: 100.0
-      success_actions: []
-      failure_actions: []
+      actions:
+        success: []
+        failure: []
 
     3:
       stats:
@@ -114,10 +118,13 @@ upgrade:
               - "<green>◆ {display_name}: 移动速度+{movement_speed}%
                 冷却缩减+{cooldown_reduction}%</green>"
       materials:
-        - item: "minecraft-emerald_block"
+        - item_sources:
+            - "minecraft-emerald_block"
           amount: 1
-      success_actions: []
-      failure_actions: []
+      actions:
+        success: []
+        failure: []
 
-inlay_success_actions: []
-extract_success_actions: []
+actions:
+  inlay_success: []
+  extract_success: []

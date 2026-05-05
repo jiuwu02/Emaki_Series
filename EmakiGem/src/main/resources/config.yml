@@ -12,44 +12,50 @@ socket_openers:
   # 攻击向插槽开孔器
   attack_drill:
     enabled: true
-    item_source: "minecraft-blaze_rod"
+    item_sources:
+      - "minecraft-blaze_rod"
     opens_gem_types:
       - "attack"
     consume_on_success: true
-    success_actions:
-      - "sendmessage text=\"<green>成功为装备开启了攻击宝石插槽！</green>\""
-      - "playsound sound=block.anvil.use volume=1.0 pitch=1.1"
-    failure_actions:
-      - "sendmessage text=\"<red>该装备没有可由攻击开孔器开启的预留插槽。</red>\""
-      - "playsound sound=entity.villager.no volume=1.0 pitch=0.8"
+    actions:
+      success:
+        - "sendmessage text=\"<green>成功为装备开启了攻击宝石插槽！</green>\""
+        - "playsound sound=block.anvil.use volume=1.0 pitch=1.1"
+      failure:
+        - "sendmessage text=\"<red>该装备没有可由攻击开孔器开启的预留插槽。</red>\""
+        - "playsound sound=entity.villager.no volume=1.0 pitch=0.8"
 
   # 防御向插槽开孔器
   defense_drill:
     enabled: true
-    item_source: "minecraft-prismarine_shard"
+    item_sources:
+      - "minecraft-prismarine_shard"
     opens_gem_types:
       - "defense"
     consume_on_success: true
-    success_actions:
-      - "sendmessage text=\"<green>成功为装备开启了防御宝石插槽！</green>\""
-      - "playsound sound=block.anvil.use volume=1.0 pitch=1.0"
-    failure_actions:
-      - "sendmessage text=\"<red>该装备没有可由防御开孔器开启的预留插槽。</red>\""
-      - "playsound sound=entity.villager.no volume=1.0 pitch=0.8"
+    actions:
+      success:
+        - "sendmessage text=\"<green>成功为装备开启了防御宝石插槽！</green>\""
+        - "playsound sound=block.anvil.use volume=1.0 pitch=1.0"
+      failure:
+        - "sendmessage text=\"<red>该装备没有可由防御开孔器开启的预留插槽。</red>\""
+        - "playsound sound=entity.villager.no volume=1.0 pitch=0.8"
 
   # 通用开孔器
   universal_drill:
     enabled: true
-    item_source: "minecraft-echo_shard"
+    item_sources:
+      - "minecraft-echo_shard"
     opens_gem_types:
       - "any"
     consume_on_success: true
-    success_actions:
-      - "sendmessage text=\"<green>成功为装备开启了一个宝石插槽！</green>\""
-      - "playsound sound=block.amethyst_block.chime volume=1.0 pitch=1.2"
-    failure_actions:
-      - "sendmessage text=\"<red>该装备没有可开启的预留插槽。</red>\""
-      - "playsound sound=entity.villager.no volume=1.0 pitch=0.8"
+    actions:
+      success:
+        - "sendmessage text=\"<green>成功为装备开启了一个宝石插槽！</green>\""
+        - "playsound sound=block.amethyst_block.chime volume=1.0 pitch=1.2"
+      failure:
+        - "sendmessage text=\"<red>该装备没有可开启的预留插槽。</red>\""
+        - "playsound sound=entity.villager.no volume=1.0 pitch=0.8"
 
 inlay_success:
   # false 时固定 100% 成功

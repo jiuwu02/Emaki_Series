@@ -33,7 +33,7 @@ final class GemDefinitionParser {
         if (Texts.isBlank(id)) {
             return null;
         }
-        ItemSource itemSource = ItemSourceUtil.parse(section.get("item_source"));
+        ItemSource itemSource = ItemSourceUtil.parse(section.get("item_sources"));
         if (itemSource == null) {
             return null;
         }
@@ -60,8 +60,8 @@ final class GemDefinitionParser {
                 parseCostConfig(section.getSection("extract_cost")),
                 parseExtractReturn(section.getSection("extract_return")),
                 parseUpgradeConfig(section.getSection("upgrade")),
-                section.getStringList("inlay_success_actions"),
-                section.getStringList("extract_success_actions")
+                parseActionLines(section.getSection("actions"), "inlay_success"),
+                parseActionLines(section.getSection("actions"), "extract_success")
         );
     }
 
@@ -208,9 +208,13 @@ final class GemDefinitionParser {
                 currencies,
                 section.getString("failure_penalty", ""),
                 materials,
-                section.getStringList("success_actions"),
-                section.getStringList("failure_actions")
+                parseActionLines(section.getSection("actions"), "success"),
+                parseActionLines(section.getSection("actions"), "failure")
         );
+    }
+
+    static List<String> parseActionLines(YamlSection section, String key) {
+        return section == null ? List.of() : section.getStringList(key);
     }
 
     static Map<String, Double> parseStatMap(YamlSection section) {

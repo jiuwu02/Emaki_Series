@@ -3,7 +3,7 @@ display_name: "<gradient:#FF6B35:#FF4500>火球术</gradient>"
 description:
   - "<gray>向前方发射一颗炽热的火球</gray>"
   - "<gray>命中目标后造成火焰法术伤害</gray>"
-icon_material: "FIRE_CHARGE"
+icon_material: "fire_charge"
 trigger_type: "active"
 cooldown_ticks: 100
 global_cooldown_ticks: 20
@@ -42,27 +42,28 @@ variables:
   ignite_ticks: "40 + ({level} - 1) * 6"
   element: "fire"
   empowered: "{level} >= 5 && {has_target} == 1"
-  impact_message: "<gold>火球术命中 %target_name%，造成 {damage} 点火焰伤害。</gold>"
+  impact_message: "<gold>火球术命中 {target_name}，造成 {damage} 点火焰伤害。</gold>"
 
 script:
   enabled: true
   mode: "native"
   stop_on_failure: true
 
-  cast:
-    - "sound sound=ENTITY_BLAZE_SHOOT volume=1 pitch=1.05"
-    - "particle particle=FLAME at=caster count=24 speed=0.02"
-    - "ray range=18 width={radius} save=target"
+  actions:
+    cast:
+      - "playsound sound=entity.blaze.shoot volume=1 pitch=1.05"
+      - "particle particle=flame at=caster count=24 speed=0.02"
+      - "ray range=18 width={radius} save=target"
 
-  hit:
-    - "damage target=target amount={damage} damage_type=spell element={element}"
-    - "@if='{level} >= 3' ignite target=target ticks={ignite_ticks}"
-    - "@if='{empowered} == true' particle particle=EXPLOSION at=target count=1"
-    - "message target=caster text='{impact_message}'"
+    hit:
+      - "damage target=target amount={damage} damage_type=spell element={element}"
+      - "@if='{level} >= 3' ignite target=target ticks={ignite_ticks}"
+      - "@if='{empowered} == true' particle particle=explosion at=target count=1"
+      - 'sendmessage target=caster text="{impact_message}"'
 
-  miss:
-    - "particle particle=SMOKE at=look count=8 speed=0.01"
-    - "message target=caster text='<gray>火球术没有命中目标。</gray>'"
+    miss:
+      - "particle particle=smoke at=look count=8 speed=0.01"
+      - 'sendmessage target=caster text="<gray>火球术没有命中目标。</gray>"'
 
 upgrade:
   enabled: true
@@ -94,23 +95,27 @@ upgrade:
   levels:
     2:
       materials:
-        - item: "minecraft-blaze_powder"
+        - item_sources:
+            - "minecraft-blaze_powder"
           amount: 2
-      success_actions: []
-      failure_actions: []
+      actions:
+        success: []
+        failure: []
 
     5:
       materials:
-        - item: "minecraft-blaze_rod"
+        - item_sources:
+            - "minecraft-blaze_rod"
           amount: 1
       parameters:
         radius:
           type: "constant"
           value: 3.5
           decimals: 2
-      success_actions:
-        - "sendmessage text=\"<yellow>火球术达到 V，爆炸范围进一步扩大。</yellow>\""
-      failure_actions: []
+      actions:
+        success:
+          - "sendmessage text=\"<yellow>火球术达到 V，爆炸范围进一步扩大。</yellow>\""
+        failure: []
 
     10:
       economy:
@@ -122,9 +127,11 @@ upgrade:
             cost_formula: "{base_cost}"
             display_name: "<gold>金币</gold>"
       materials:
-        - item: "minecraft-nether_star"
+        - item_sources:
+            - "minecraft-nether_star"
           amount: 1
       success_rate: 40.0
-      success_actions:
-        - "broadcast text=\"<gold>{player}</gold> <yellow>将火球术提升至满级！</yellow>\""
-      failure_actions: []
+      actions:
+        success:
+          - "broadcastmessage text=\"<gold>{player}</gold> <yellow>将火球术提升至满级！</yellow>\""
+        failure: []

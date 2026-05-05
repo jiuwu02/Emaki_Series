@@ -4,13 +4,13 @@ rows: 4
 slots:
   top_frame:
     slots: [ 0, 1, 2, 3, 4, 5, 6, 7, 8 ]
-    item: "GRAY_STAINED_GLASS_PANE"
+    item: "gray_stained_glass_pane"
     display_name: "<gray>"
     hidden_components: [ "tooltip" ]
 
   bottom_frame:
     slots: [ 27, 28, 29, 31, 32, 33, 34, 35 ]
-    item: "GRAY_STAINED_GLASS_PANE"
+    item: "gray_stained_glass_pane"
     display_name: "<gray>"
     hidden_components: [ "tooltip" ]
 
@@ -35,7 +35,7 @@ slots:
   socket_info:
     slots: [ 19 ]
     type: "socket_info"
-    item: "BOOK"
+    item: "book"
     display_name: "<gold>开孔信息</gold>"
 
   socket_slots:
@@ -47,11 +47,11 @@ slots:
   preview_display:
     slots: [ 25 ]
     type: "preview_display"
-    item: "WRITABLE_BOOK"
+    item: "writable_book"
     display_name: "<gold>开孔预览</gold>"
 
   confirm:
     slots: [ 30 ]
     type: "confirm"
-    item: "LIME_STAINED_GLASS_PANE"
+    item: "lime_stained_glass_pane"
     display_name: "<green>确认开孔</green>"

@@ -168,11 +168,9 @@ public final class CastAttemptService {
         }
 
         // 7.5. Check skill conditions
-        if (!definition.conditions().isEmpty()) {
+        if (!definition.conditions().emptyGroup()) {
             boolean conditionsPassed = ConditionEvaluator.evaluate(
                     definition.conditions(),
-                    definition.conditionType(),
-                    null,
                     text -> resolvePlaceholders(player, text),
                     true
             );

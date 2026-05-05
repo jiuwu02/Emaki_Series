@@ -2,7 +2,8 @@
 id: "ruby_attack"
 gem_type: "attack"
 tier: 1
-item_source: "minecraft-redstone"
+item_sources:
+  - "minecraft-redstone"
 
 stats:
   physical_attack: 8
@@ -36,7 +37,8 @@ inlay_cost:
       cost_formula: "{base_cost} * {tier}"
       display_name: "<gold>金币</gold>"
   materials:
-    - item: "minecraft-gold_nugget"
+    - item_sources:
+        - "minecraft-gold_nugget"
       amount: 1
 
 extract_cost:
@@ -47,7 +49,8 @@ extract_cost:
       cost_formula: "{base_cost} * {tier}"
       display_name: "<gold>金币</gold>"
   materials:
-    - item: "minecraft-iron_nugget"
+    - item_sources:
+        - "minecraft-iron_nugget"
       amount: 1
 
 extract_return:
@@ -91,13 +94,16 @@ upgrade:
               - "<red>◆ {display_name}: 物理攻击+{physical_attack}
                 暴击率+{physical_crit_rate}%</red>"
       materials:
-        - item: "minecraft-gold_nugget"
+        - item_sources:
+            - "minecraft-gold_nugget"
           amount: 3
-        - item: "minecraft-blaze_powder"
+        - item_sources:
+            - "minecraft-blaze_powder"
           amount: 1
       success_rate: 100.0
-      success_actions: []
-      failure_actions: []
+      actions:
+        success: []
+        failure: []
 
     3:
       stats:
@@ -119,12 +125,15 @@ upgrade:
               - "<red>◆ {display_name}: 物理攻击+{physical_attack}
                 暴击率+{physical_crit_rate}%</red>"
       materials:
-        - item: "minecraft-gold_ingot"
+        - item_sources:
+            - "minecraft-gold_ingot"
           amount: 2
-        - item: "minecraft-blaze_rod"
+        - item_sources:
+            - "minecraft-blaze_rod"
           amount: 1
-      success_actions: []
-      failure_actions: []
+      actions:
+        success: []
+        failure: []
 
     4:
       stats:
@@ -146,9 +155,11 @@ upgrade:
               - "<red>◆ {display_name}: 物理攻击+{physical_attack}
                 暴击率+{physical_crit_rate}%</red>"
       materials:
-        - item: "minecraft-netherite_ingot"
+        - item_sources:
+            - "minecraft-netherite_ingot"
           amount: 1
-        - item: "minecraft-blaze_rod"
+        - item_sources:
+            - "minecraft-blaze_rod"
           amount: 3
       economy:
         enabled: true
@@ -159,10 +170,12 @@ upgrade:
             cost_formula: "{base_cost}"
             display_name: "<gold>金币</gold>"
       success_rate: 60.0
-      success_actions:
-        - "sendmessage text=\"<gold>{player}</gold> <yellow>成功将红宝石升级至
+      actions:
+        success:
+          - "sendmessage text=\"<gold>{player}</gold> <yellow>成功将红宝石升级至
           IV！</yellow>\""
-      failure_actions: []
+        failure: []
 
-inlay_success_actions: []
-extract_success_actions: []
+actions:
+  inlay_success: []
+  extract_success: []

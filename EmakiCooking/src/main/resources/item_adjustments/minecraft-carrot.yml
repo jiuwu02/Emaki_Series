@@ -1,4 +1,5 @@
-source: "minecraft-carrot"
+item_sources:
+  - "minecraft-carrot"
 
 stations:
   chopping_board:

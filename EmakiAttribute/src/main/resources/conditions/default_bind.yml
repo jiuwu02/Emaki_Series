@@ -9,4 +9,4 @@ invalid_as_failure: true
 conditions:
   - type: pdc_meta
     key: bound_player
-    condition: "%value% == %player_name%"
+    condition: "{value} == {player_name}"

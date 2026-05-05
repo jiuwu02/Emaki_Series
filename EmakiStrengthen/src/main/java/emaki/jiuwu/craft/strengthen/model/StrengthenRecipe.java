@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import emaki.jiuwu.craft.corelib.condition.ConditionGroup;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -142,7 +143,7 @@ public final class StrengthenRecipe {
     private final Map<String, StatLineDefinition> statLines;
     private final Map<Integer, StarStage> stars;
     private final Object structuredPresentation;
-    private final List<String> conditions;
+    private final ConditionGroup conditions;
     private final String conditionType;
     private final int conditionRequiredCount;
 
@@ -156,7 +157,7 @@ public final class StrengthenRecipe {
             Map<String, StatLineDefinition> statLines,
             Map<Integer, StarStage> stars,
             Object structuredPresentation,
-            List<String> conditions,
+            ConditionGroup conditions,
             String conditionType,
             int conditionRequiredCount) {
         this.id = Texts.trim(id);
@@ -169,7 +170,7 @@ public final class StrengthenRecipe {
         this.statLines = statLines == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(statLines));
         this.stars = stars == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(stars));
         this.structuredPresentation = ConfigNodes.toPlainData(structuredPresentation);
-        this.conditions = normalizeList(conditions);
+        this.conditions = conditions == null ? ConditionGroup.empty() : conditions;
         this.conditionType = Texts.isBlank(conditionType) ? "all_of" : Texts.lower(conditionType);
         this.conditionRequiredCount = Math.max(0, conditionRequiredCount);
     }
@@ -310,7 +311,7 @@ public final class StrengthenRecipe {
         return structuredPresentation;
     }
 
-    public List<String> conditions() {
+    public ConditionGroup conditions() {
         return conditions;
     }
 

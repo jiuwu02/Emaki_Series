@@ -5,11 +5,13 @@ display_name: "<gold>烈焰之剑锻造配方</gold>"
 forge_capacity: 35
 
 blueprint_requirements:
-  - item: "minecraft-enchanted_book"
+  - item_sources:
+      - "minecraft-enchanted_book"
     amount: 1
 
 materials:
-  - item: "minecraft-iron_ingot"
+  - item_sources:
+      - "minecraft-iron_ingot"
     amount: 3
     capacity_cost: 5
     effects:
@@ -29,7 +31,8 @@ materials:
               - "<gray>物理伤害: <red>+{physical_damage}"
               - "<gray>生命值: <green>+{max_health}"
 
-  - item: "minecraft-blaze_powder"
+  - item_sources:
+      - "minecraft-blaze_powder"
     amount: 1
     capacity_cost: 10
     effects:
@@ -54,7 +57,8 @@ materials:
               - "<red>火焰伤害: +{fire_damage}"
               - "<yellow>暴击率: +{critical_chance}%"
 
-  - item: "minecraft-fire_charge"
+  - item_sources:
+      - "minecraft-fire_charge"
     amount: 1
     optional: true
     capacity_cost: 12
@@ -75,7 +79,8 @@ materials:
               - "<red>火焰伤害: +{fire_damage}"
               - "<yellow>暴击率: +{critical_chance}%"
 
-  - item: "minecraft-feather"
+  - item_sources:
+      - "minecraft-feather"
     amount: 1
     optional: true
     capacity_cost: 8
@@ -89,7 +94,8 @@ materials:
             type: "constant"
             value: 2
 
-  - item: "minecraft-echo_shard"
+  - item_sources:
+      - "minecraft-echo_shard"
     amount: 1
     optional: true
     capacity_cost: 15
@@ -103,7 +109,8 @@ materials:
             type: "constant"
             value: 3
 
-  - item: "minecraft-nether_star"
+  - item_sources:
+      - "minecraft-nether_star"
     amount: 1
     optional: true
     capacity_cost: 0
@@ -126,7 +133,8 @@ quality:
     minimum: "无暇"
 
 result:
-  output_item: "minecraft-diamond_sword"
+  item_sources:
+    - "minecraft-diamond_sword"
   meta_actions:
     structured_presentation:
       base_name_policy: "EXPLICIT_TEMPLATE"
@@ -138,7 +146,7 @@ result:
             - "<gray>锻造属性:"
             - "<dark_gray>由 EmakiForge 示例配方锻造"
   action:
-    - "sendmessage text=\"<green>锻造成功! 获得了 %forge_result_item_name%</green>\""
+    - "sendmessage text=\"<green>锻造成功! 获得了 {forge_result_item_name}</green>\""
     - "playsound sound=minecraft:block.anvil.use volume=1 pitch=1"
 
 action:
@@ -146,5 +154,5 @@ action:
     - "sendactionbar text=\"<gray>烈焰之力正在熔铸...</gray>\""
   success: []
   failure:
-    - "@if=\"%forge_error_key% == forge.error.action_failed\" sendmessage
-      text=\"<red>锻造前置操作失败: %forge_failure_reason%</red>\""
+    - "@if=\"{forge_error_key} == forge.error.action_failed\" sendmessage
+      text=\"<red>锻造前置操作失败: {forge_failure_reason}</red>\""

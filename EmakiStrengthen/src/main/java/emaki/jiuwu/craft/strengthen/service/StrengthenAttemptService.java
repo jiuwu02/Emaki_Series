@@ -167,11 +167,9 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
         }
 
         StrengthenRecipe recipe = preview.recipe();
-        if (recipe != null && !recipe.conditions().isEmpty()) {
+        if (recipe != null && !recipe.conditions().emptyGroup()) {
             boolean conditionsPassed = ConditionEvaluator.evaluate(
                     recipe.conditions(),
-                    recipe.conditionType(),
-                    recipe.conditionRequiredCount(),
                     text -> resolvePlaceholders(player, text),
                     true
             );

@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import emaki.jiuwu.craft.corelib.condition.ConditionGroup;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.yaml.MapYamlSection;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
@@ -48,7 +49,7 @@ public final class Recipe {
     private final int optionalMaterialLimit;
     private final String conditionType;
     private final int conditionRequiredCount;
-    private final List<String> conditions;
+    private final ConditionGroup conditions;
     private final QualityConfig quality;
     private final ResultConfig result;
     private final ActionPhases action;
@@ -62,7 +63,7 @@ public final class Recipe {
             int optionalMaterialLimit,
             String conditionType,
             int conditionRequiredCount,
-            List<String> conditions,
+            ConditionGroup conditions,
             QualityConfig quality,
             ResultConfig result,
             ActionPhases action,
@@ -75,7 +76,7 @@ public final class Recipe {
         this.optionalMaterialLimit = optionalMaterialLimit;
         this.conditionType = conditionType;
         this.conditionRequiredCount = conditionRequiredCount;
-        this.conditions = List.copyOf(conditions);
+        this.conditions = conditions == null ? ConditionGroup.empty() : conditions;
         this.quality = quality;
         this.result = result;
         this.action = action == null ? ActionPhases.empty() : action;
@@ -111,10 +112,10 @@ public final class Recipe {
                 Math.max(0, Numbers.tryParseInt(section.get("optional_material_limit"), 0)),
                 section.getString("condition_type", "all_of"),
                 Numbers.tryParseInt(section.get("condition_required_count"), 0),
-                Texts.asStringList(section.get("conditions")),
+                ConditionGroup.fromConfig(section, section.getString("condition_type", "all_of"), Numbers.tryParseInt(section.get("condition_required_count"), 0)),
                 parseQuality(section.get("quality")),
                 result,
-                parseAction(ConfigNodes.get(section, "action")),
+                parseAction(ConfigNodes.get(section, "actions")),
                 section.getString("permission")
         );
     }
@@ -161,15 +162,15 @@ public final class Recipe {
         if (raw == null) {
             return new ResultConfig(null, List.of(), List.of(), List.of(), null);
         }
-        Object outputItem = ConfigNodes.get(raw, "output_item");
+        Object outputItem = ConfigNodes.get(raw, "item_sources");
         ItemSource parsedOutputItem = ItemSourceUtil.parse(outputItem);
-        if (Texts.isNotBlank(Texts.toStringSafe(outputItem)) && parsedOutputItem == null) {
+        if (!ConfigNodes.asObjectList(outputItem).isEmpty() && parsedOutputItem == null) {
             return null;
         }
         Object metaActions = ConfigNodes.get(raw, "meta_actions");
         return new ResultConfig(
                 parsedOutputItem,
-                List.copyOf(Texts.asStringList(ConfigNodes.get(raw, "action"))),
+                List.copyOf(Texts.asStringList(ConfigNodes.get(raw, "actions"))),
                 toActionList(ConfigNodes.get(metaActions, "name_modifications")),
                 toActionList(ConfigNodes.get(metaActions, "lore_actions")),
                 ConfigNodes.toPlainData(ConfigNodes.get(metaActions, "structured_presentation"))
@@ -311,7 +312,7 @@ public final class Recipe {
         return conditionRequiredCount;
     }
 
-    public List<String> conditions() {
+    public ConditionGroup conditions() {
         return conditions;
     }
 

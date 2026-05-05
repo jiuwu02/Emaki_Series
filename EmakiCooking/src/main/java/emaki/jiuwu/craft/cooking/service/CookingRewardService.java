@@ -68,7 +68,7 @@ public final class CookingRewardService {
         if (output == null || output.isEmpty()) {
             return null;
         }
-        ItemSource source = ItemSourceUtil.parse(output.get("source"));
+        ItemSource source = ItemSourceUtil.parse(output.get("item_sources"));
         if (source == null) {
             return null;
         }

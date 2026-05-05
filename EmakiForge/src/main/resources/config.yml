@@ -68,7 +68,7 @@ quality:
               content_template: "<color:#4B64C8>[无暇]</color>"
         action:
           - "broadcastmessage
-            text=\"<color:#4B64C8>%player_name%锻造出了一个无暇品质的<show_item></color>\""
+            text=\"<color:#4B64C8>{player_name}锻造出了一个无暇品质的<show_item></color>\""
       完美:
         structured_presentation:
           name_contributions:
@@ -78,7 +78,7 @@ quality:
               content_template: "<color:#FFD700>[完美]</color>"
         action:
           - "broadcastmessage
-            text=\"<color:#FFD700>%player_name%锻造出了一个完美品质的<show_item></color>\""
+            text=\"<color:#FFD700>{player_name}锻造出了一个完美品质的<show_item></color>\""
 
 number_format:
   default: "0.##"

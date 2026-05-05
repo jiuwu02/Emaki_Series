@@ -10,5 +10,5 @@ conditions:
   - type: pdc_meta
     key: condition_expressions
     pattern: ".+"
-    condition: "%value%"
+    condition: "{value}"
     require_match: false

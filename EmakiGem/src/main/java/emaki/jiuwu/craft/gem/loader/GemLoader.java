@@ -37,7 +37,7 @@ public final class GemLoader extends YamlDirectoryLoader<GemDefinition> {
             onBlankId(file);
             return null;
         }
-        if (ItemSourceUtil.parse(configuration.get("item_source")) == null) {
+        if (ItemSourceUtil.parse(configuration.get("item_sources")) == null) {
             issue("loader.gem_missing_item_source", Map.of("file", file.getName(), "id", id));
             return null;
         }

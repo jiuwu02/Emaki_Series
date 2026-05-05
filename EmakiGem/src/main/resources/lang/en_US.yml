@@ -38,7 +38,7 @@ loader:
   duplicate_id: "<red>{type} file {file} has duplicate ID: {id}</red>"
   load_failed: "<red>Failed to load {type} file {file}: {error}</red>"
   invalid_config: "<red>{type} file {file} has invalid config, skipped loading.</red>"
-  gem_missing_item_source: "<red>Gem file {file} has missing or invalid
+  gem_missing_item_sources: "<red>Gem file {file} has missing or invalid
     item_source, loading rejected: {id}</red>"
 
 gem:

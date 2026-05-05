@@ -9,4 +9,4 @@ invalid_as_failure: true
 conditions:
   - type: pdc_meta
     key: required_level
-    condition: "%value% <= %player_level%"
+    condition: "{value} <= {player_level}"

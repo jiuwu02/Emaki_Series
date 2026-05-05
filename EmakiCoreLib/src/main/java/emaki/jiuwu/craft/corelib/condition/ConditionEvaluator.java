@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 
+import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
@@ -52,12 +54,20 @@ public final class ConditionEvaluator {
             Integer requiredCount,
             Function<String, String> placeholderReplacer,
             boolean invalidAsFailure) {
-        if (conditions == null || conditions.isEmpty()) {
+        return evaluate(ConditionGroup.of(conditions, conditionType, requiredCount == null ? 0 : requiredCount),
+                placeholderReplacer,
+                invalidAsFailure);
+    }
+
+    public static boolean evaluate(ConditionGroup group,
+            Function<String, String> placeholderReplacer,
+            boolean invalidAsFailure) {
+        if (group == null || group.emptyGroup()) {
             return true;
         }
         List<Boolean> results = new ArrayList<>();
-        for (String condition : conditions) {
-            Boolean result = evaluateSingle(condition, placeholderReplacer);
+        for (ConditionNode condition : group.conditions()) {
+            Boolean result = evaluateNode(condition, placeholderReplacer, invalidAsFailure);
             if (result == null) {
                 if (invalidAsFailure) {
                     return false;
@@ -69,16 +79,52 @@ public final class ConditionEvaluator {
         if (results.isEmpty()) {
             return !invalidAsFailure;
         }
+        return combine(results, group.conditionType(), group.requiredCount());
+    }
+
+    public static boolean evaluate(Object conditionsConfig,
+            String conditionType,
+            Integer requiredCount,
+            Function<String, String> placeholderReplacer,
+            boolean invalidAsFailure) {
+        ConditionGroup group = ConfigNodes.asObjectList(conditionsConfig).isEmpty()
+                ? ConditionGroup.empty()
+                : new ConditionGroup(conditionType, requiredCount == null ? 0 : requiredCount, ConditionGroup.parseNodes(conditionsConfig));
+        return evaluate(group, placeholderReplacer, invalidAsFailure);
+    }
+
+    private static Boolean evaluateNode(ConditionNode condition,
+            Function<String, String> placeholderReplacer,
+            boolean invalidAsFailure) {
+        if (condition == null) {
+            return null;
+        }
+        if (condition.groupNode()) {
+            return evaluate(condition.group(), placeholderReplacer, invalidAsFailure);
+        }
+        if (condition.expressionNode() || Objects.equals(condition.type(), "expression")) {
+            return evaluateSingle(condition.expression(), placeholderReplacer);
+        }
+        if (Texts.isNotBlank(condition.expression())) {
+            return evaluateSingle(condition.expression(), placeholderReplacer);
+        }
+        return null;
+    }
+
+    private static boolean combine(List<Boolean> results, String conditionType, int requiredCount) {
         String mode = Texts.lower(conditionType);
         if (Objects.equals(mode, "any_of")) {
             return results.stream().anyMatch(Boolean::booleanValue);
         }
+        if (Objects.equals(mode, "none_of")) {
+            return results.stream().noneMatch(Boolean::booleanValue);
+        }
         if (Objects.equals(mode, "at_least")) {
-            int count = requiredCount == null ? 1 : requiredCount;
+            int count = requiredCount <= 0 ? 1 : requiredCount;
             return results.stream().filter(Boolean::booleanValue).count() >= count;
         }
         if (Objects.equals(mode, "exactly")) {
-            int count = requiredCount == null ? 1 : requiredCount;
+            int count = Math.max(0, requiredCount);
             return results.stream().filter(Boolean::booleanValue).count() == count;
         }
         return results.stream().allMatch(Boolean::booleanValue);

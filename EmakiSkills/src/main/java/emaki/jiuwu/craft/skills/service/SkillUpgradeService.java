@@ -177,11 +177,9 @@ public final class SkillUpgradeService {
         int targetLevel = currentLevel + 1;
         UpgradePreview preview = preview(player, definition);
 
-        if (!definition.conditions().isEmpty()) {
+        if (!definition.conditions().emptyGroup()) {
             boolean conditionsPassed = ConditionEvaluator.evaluate(
                     definition.conditions(),
-                    definition.conditionType(),
-                    null,
                     text -> resolvePlaceholders(player, text),
                     true
             );

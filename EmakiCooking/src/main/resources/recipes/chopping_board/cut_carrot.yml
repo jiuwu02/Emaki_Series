@@ -3,7 +3,8 @@ id: "cut_carrot"
 display_name: "切制胡萝卜"
 
 input:
-  source: "minecraft-carrot"
+  item_sources:
+    - "minecraft-carrot"
 
 cuts_required: 3
 
@@ -13,7 +14,8 @@ permission: "emakicooking.recipe.cut_carrot"
 
 result:
   outputs:
-    - source: "minecraft-golden_carrot"
+    - item_sources:
+        - "minecraft-golden_carrot"
       amount: 1
   actions:
     - 'sendmessage text="<green>砧板处理完成。</green>"'

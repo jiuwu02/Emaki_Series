@@ -9,6 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 import emaki.jiuwu.craft.cooking.model.RecipeDocument;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
+import emaki.jiuwu.craft.corelib.condition.ConditionGroup;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.math.Numbers;
@@ -112,13 +113,10 @@ public final class CookingRecipeService {
         if (player != null && Texts.isNotBlank(permission) && !player.hasPermission(permission)) {
             return false;
         }
-        List<String> conditions = recipe.configuration().getStringList("conditions");
-        if (player != null && !conditions.isEmpty()) {
-            String conditionType = recipe.configuration().getString("condition_type", "all_of");
+        ConditionGroup conditions = ConditionGroup.fromConfig(recipe.configuration(), recipe.configuration().getString("condition_type", "all_of"), 0);
+        if (player != null && !conditions.emptyGroup()) {
             return ConditionEvaluator.evaluate(
                     conditions,
-                    conditionType,
-                    null,
                     text -> resolvePlaceholders(player, text),
                     true
             );
@@ -177,7 +175,7 @@ public final class CookingRecipeService {
             }
             return normalized.isEmpty() ? List.of() : List.copyOf(normalized);
         }
-        if (ItemSourceUtil.parse(outcome.get("source")) == null) {
+        if (ItemSourceUtil.parse(outcome.get("item_sources")) == null) {
             return List.of();
         }
         Map<String, Object> singleOutput = new java.util.LinkedHashMap<>(outcome);
@@ -244,7 +242,7 @@ public final class CookingRecipeService {
                 continue;
             }
             ItemSource configured = parsedSourceCache.computeIfAbsent(recipe,
-                    r -> ItemSourceUtil.parse(r.configuration().getString("input.source", "")));
+                    r -> ItemSourceUtil.parse(r.configuration().get("input.item_sources")));
             if (configured == null || !ItemSourceUtil.matches(configured, expected)) {
                 continue;
             }
@@ -267,7 +265,7 @@ public final class CookingRecipeService {
                 return false;
             }
             Map<String, Object> expected = expectedIngredients.get(index);
-            String expectedSource = String.valueOf(expected.getOrDefault("source", ""));
+            String expectedSource = firstSourceShorthand(expected.get("item_sources"));
             int expectedAmount = Math.max(1, Numbers.tryParseInt(expected.get("amount"), 1));
             if (!ItemSourceUtil.matches(ItemSourceUtil.parse(expectedSource), ItemSourceUtil.parse(actual.source()))) {
                 return false;
@@ -280,6 +278,12 @@ public final class CookingRecipeService {
             }
         }
         return true;
+    }
+
+    private String firstSourceShorthand(Object raw) {
+        ItemSource source = ItemSourceUtil.parse(raw);
+        String shorthand = ItemSourceUtil.toShorthand(source);
+        return shorthand == null ? "" : shorthand;
     }
 
     public void clearCaches() {

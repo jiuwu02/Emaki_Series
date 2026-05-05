@@ -66,9 +66,11 @@ stars:
     attributes:
       physical_attack: 4.0
     materials:
-      - item: "copper_ingot"
+      - item_sources:
+          - "copper_ingot"
         amount: 1
-      - item: "gunpowder"
+      - item_sources:
+          - "gunpowder"
         amount: 2
 
   2:
@@ -77,9 +79,11 @@ stars:
     attributes:
       physical_attack: 4.0
     materials:
-      - item: "copper_ingot"
+      - item_sources:
+          - "copper_ingot"
         amount: 1
-      - item: "gunpowder"
+      - item_sources:
+          - "gunpowder"
         amount: 3
 
   3:
@@ -88,9 +92,11 @@ stars:
     attributes:
       physical_attack: 5.0
     materials:
-      - item: "copper_ingot"
+      - item_sources:
+          - "copper_ingot"
         amount: 2
-      - item: "gunpowder"
+      - item_sources:
+          - "gunpowder"
         amount: 4
 
   4:
@@ -99,11 +105,14 @@ stars:
     attributes:
       physical_attack: 6.0
     materials:
-      - item: "copper_ingot"
+      - item_sources:
+          - "copper_ingot"
         amount: 2
-      - item: "gunpowder"
+      - item_sources:
+          - "gunpowder"
         amount: 5
-      - item: "gold_nugget"
+      - item_sources:
+          - "gold_nugget"
         amount: -1
         optional: true
         protection: true
@@ -117,11 +126,14 @@ stars:
       physical_attack: 6.0
       physical_crit_rate: 2.0
     materials:
-      - item: "copper_ingot"
+      - item_sources:
+          - "copper_ingot"
         amount: 3
-      - item: "gunpowder"
+      - item_sources:
+          - "gunpowder"
         amount: 6
-      - item: "gold_nugget"
+      - item_sources:
+          - "gold_nugget"
         amount: -1
         optional: true
         protection: true
@@ -131,9 +143,10 @@ stars:
           order: 230
           lines:
             - "<gray>强化达到 +5 后，物理武器会额外提供暴击率。</gray>"
-    success_actions:
-      - "sendmessage text=\"<gold>强化达到 +5，解锁额外物理暴击率。</gold>\""
-      - "playsound sound=minecraft:block.anvil.use volume=1 pitch=1.15"
+    actions:
+      success:
+        - "sendmessage text=\"<gold>强化达到 +5，解锁额外物理暴击率。</gold>\""
+        - "playsound sound=minecraft:block.anvil.use volume=1 pitch=1.15"
 
   6:
     stats:
@@ -141,11 +154,14 @@ stars:
     attributes:
       physical_attack: 7.0
     materials:
-      - item: "copper_ingot"
+      - item_sources:
+          - "copper_ingot"
         amount: 4
-      - item: "gunpowder"
+      - item_sources:
+          - "gunpowder"
         amount: 8
-      - item: "gold_nugget"
+      - item_sources:
+          - "gold_nugget"
         amount: -1
         optional: true
         protection: true
@@ -156,11 +172,14 @@ stars:
     attributes:
       physical_attack: 8.0
     materials:
-      - item: "copper_ingot"
+      - item_sources:
+          - "copper_ingot"
         amount: 5
-      - item: "gunpowder"
+      - item_sources:
+          - "gunpowder"
         amount: 10
-      - item: "gold_nugget"
+      - item_sources:
+          - "gold_nugget"
         amount: -1
         optional: true
         protection: true
@@ -174,13 +193,17 @@ stars:
       physical_attack: 9.0
       physical_damage_bonus: 4.0
     materials:
-      - item: "copper_ingot"
+      - item_sources:
+          - "copper_ingot"
         amount: 6
-      - item: "gunpowder"
+      - item_sources:
+          - "gunpowder"
         amount: 12
-      - item: "paper"
+      - item_sources:
+          - "paper"
         amount: 2
-      - item: "gold_nugget"
+      - item_sources:
+          - "gold_nugget"
         amount: -1
         optional: true
         protection: true
@@ -190,10 +213,11 @@ stars:
           order: 230
           lines:
             - "<gray>强化达到 +8 后，物理武器会额外提供增伤。</gray>"
-    success_actions:
-      - "sendtitle title=\"<gold><bold>+8 物理伤害提升</bold></gold>\"
+    actions:
+      success:
+        - "sendtitle title=\"<gold><bold>+8 物理伤害提升</bold></gold>\"
         subtitle=\"<yellow>额外增伤已解锁</yellow>\""
-      - "playsound sound=minecraft:entity.player.levelup volume=1.1 pitch=1.2"
+        - "playsound sound=minecraft:entity.player.levelup volume=1.1 pitch=1.2"
 
   9:
     stats:
@@ -201,13 +225,17 @@ stars:
     attributes:
       physical_attack: 10.0
     materials:
-      - item: "copper_ingot"
+      - item_sources:
+          - "copper_ingot"
         amount: 8
-      - item: "gunpowder"
+      - item_sources:
+          - "gunpowder"
         amount: 16
-      - item: "paper"
+      - item_sources:
+          - "paper"
         amount: 2
-      - item: "gold_nugget"
+      - item_sources:
+          - "gold_nugget"
         amount: -1
         optional: true
         protection: true
@@ -221,13 +249,17 @@ stars:
       physical_attack: 12.0
       physical_crit_damage: 6.0
     materials:
-      - item: "copper_ingot"
+      - item_sources:
+          - "copper_ingot"
         amount: 10
-      - item: "gunpowder"
+      - item_sources:
+          - "gunpowder"
         amount: 20
-      - item: "echo_shard"
+      - item_sources:
+          - "echo_shard"
         amount: 2
-      - item: "gold_nugget"
+      - item_sources:
+          - "gold_nugget"
         amount: -1
         optional: true
         protection: true
@@ -237,10 +269,11 @@ stars:
           order: 230
           lines:
             - "<gray>强化达到 +10 后，物理武器会额外提供暴击伤害。</gray>"
-    success_actions:
-      - "sendtitle title=\"<gold><bold>+10 物理暴伤提升</bold></gold>\"
+    actions:
+      success:
+        - "sendtitle title=\"<gold><bold>+10 物理暴伤提升</bold></gold>\"
         subtitle=\"<yellow>额外暴伤已解锁</yellow>\""
-      - "playsound sound=minecraft:entity.firework_rocket.twinkle_far volume=1
+        - "playsound sound=minecraft:entity.firework_rocket.twinkle_far volume=1
         pitch=1"
 
   11:
@@ -249,13 +282,17 @@ stars:
     attributes:
       physical_attack: 14.0
     materials:
-      - item: "copper_ingot"
+      - item_sources:
+          - "copper_ingot"
         amount: 13
-      - item: "gunpowder"
+      - item_sources:
+          - "gunpowder"
         amount: 26
-      - item: "echo_shard"
+      - item_sources:
+          - "echo_shard"
         amount: 3
-      - item: "gold_nugget"
+      - item_sources:
+          - "gold_nugget"
         amount: -1
         optional: true
         protection: true
@@ -269,17 +306,22 @@ stars:
       physical_attack: 16.0
       physical_armor_penetration: 8.0
     materials:
-      - item: "copper_ingot"
+      - item_sources:
+          - "copper_ingot"
         amount: 16
-      - item: "gunpowder"
+      - item_sources:
+          - "gunpowder"
         amount: 32
-      - item: "echo_shard"
+      - item_sources:
+          - "echo_shard"
         amount: 4
-      - item: "gold_nugget"
+      - item_sources:
+          - "gold_nugget"
         amount: -1
         optional: true
         protection: true
-      - item: "potion"
+      - item_sources:
+          - "potion"
         amount: -1
         optional: true
         temper_boost: 1
@@ -289,10 +331,11 @@ stars:
           order: 230
           lines:
             - "<gray>强化达到 +12 后，物理武器会额外提供穿透。</gray>"
-    success_actions:
-      - "sendtitle title=\"<gold><bold>+12 物理穿透提升</bold></gold>\"
+    actions:
+      success:
+        - "sendtitle title=\"<gold><bold>+12 物理穿透提升</bold></gold>\"
         subtitle=\"<yellow>额外穿透已解锁</yellow>\""
-      - "playsound sound=minecraft:ui.toast.challenge_complete volume=1 pitch=1"
+        - "playsound sound=minecraft:ui.toast.challenge_complete volume=1 pitch=1"
 
 structured_presentation:
   name_contributions:

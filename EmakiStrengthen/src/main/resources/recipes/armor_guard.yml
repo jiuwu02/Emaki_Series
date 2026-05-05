@@ -74,9 +74,11 @@ stars:
       projectile_defense: 2.0
       spell_defense: 2.0
     materials:
-      - item: "copper_ingot"
+      - item_sources:
+          - "copper_ingot"
         amount: 1
-      - item: "gunpowder"
+      - item_sources:
+          - "gunpowder"
         amount: 2
   2:
     stats:
@@ -88,9 +90,11 @@ stars:
       projectile_defense: 2.0
       spell_defense: 2.0
     materials:
-      - item: "copper_ingot"
+      - item_sources:
+          - "copper_ingot"
         amount: 1
-      - item: "gunpowder"
+      - item_sources:
+          - "gunpowder"
         amount: 3
   3:
     stats:
@@ -102,9 +106,11 @@ stars:
       projectile_defense: 2.5
       spell_defense: 2.5
     materials:
-      - item: "copper_ingot"
+      - item_sources:
+          - "copper_ingot"
         amount: 2
-      - item: "gunpowder"
+      - item_sources:
+          - "gunpowder"
         amount: 4
   4:
     stats:
@@ -116,11 +122,14 @@ stars:
       projectile_defense: 3.0
       spell_defense: 3.0
     materials:
-      - item: "copper_ingot"
+      - item_sources:
+          - "copper_ingot"
         amount: 2
-      - item: "gunpowder"
+      - item_sources:
+          - "gunpowder"
         amount: 5
-      - item: "gold_nugget"
+      - item_sources:
+          - "gold_nugget"
         amount: -1
         optional: true
         protection: true
@@ -137,11 +146,14 @@ stars:
       spell_defense: 3.0
       health: 20.0
     materials:
-      - item: "copper_ingot"
+      - item_sources:
+          - "copper_ingot"
         amount: 3
-      - item: "gunpowder"
+      - item_sources:
+          - "gunpowder"
         amount: 6
-      - item: "gold_nugget"
+      - item_sources:
+          - "gold_nugget"
         amount: -1
         optional: true
         protection: true
@@ -151,8 +163,9 @@ stars:
           order: 230
           lines:
             - "<gray>强化达到 +5 后，防具会额外提供生命值。</gray>"
-    success_actions:
-      - "sendmessage text=\"<yellow>强化达到 +5，解锁额外生命值。</yellow>\""
+    actions:
+      success:
+        - "sendmessage text=\"<yellow>强化达到 +5，解锁额外生命值。</yellow>\""
   6:
     stats:
       physical_defense: 3.5
@@ -163,11 +176,14 @@ stars:
       projectile_defense: 3.5
       spell_defense: 3.5
     materials:
-      - item: "copper_ingot"
+      - item_sources:
+          - "copper_ingot"
         amount: 4
-      - item: "gunpowder"
+      - item_sources:
+          - "gunpowder"
         amount: 8
-      - item: "gold_nugget"
+      - item_sources:
+          - "gold_nugget"
         amount: -1
         optional: true
         protection: true
@@ -181,11 +197,14 @@ stars:
       projectile_defense: 4.0
       spell_defense: 4.0
     materials:
-      - item: "copper_ingot"
+      - item_sources:
+          - "copper_ingot"
         amount: 5
-      - item: "gunpowder"
+      - item_sources:
+          - "gunpowder"
         amount: 10
-      - item: "gold_nugget"
+      - item_sources:
+          - "gold_nugget"
         amount: -1
         optional: true
         protection: true
@@ -202,13 +221,17 @@ stars:
       spell_defense: 4.5
       health: 30.0
     materials:
-      - item: "copper_ingot"
+      - item_sources:
+          - "copper_ingot"
         amount: 6
-      - item: "gunpowder"
+      - item_sources:
+          - "gunpowder"
         amount: 12
-      - item: "paper"
+      - item_sources:
+          - "paper"
         amount: 2
-      - item: "gold_nugget"
+      - item_sources:
+          - "gold_nugget"
         amount: -1
         optional: true
         protection: true
@@ -218,8 +241,9 @@ stars:
           order: 230
           lines:
             - "<gray>强化达到 +8 后，防具会继续提升生命值。</gray>"
-    success_actions:
-      - "sendtitle title=\"<yellow><bold>+8 生命值提升</bold></yellow>\"
+    actions:
+      success:
+        - "sendtitle title=\"<yellow><bold>+8 生命值提升</bold></yellow>\"
         subtitle=\"<white>额外生命值已解锁</white>\""
   9:
     stats:
@@ -231,13 +255,17 @@ stars:
       projectile_defense: 5.0
       spell_defense: 5.0
     materials:
-      - item: "copper_ingot"
+      - item_sources:
+          - "copper_ingot"
         amount: 8
-      - item: "gunpowder"
+      - item_sources:
+          - "gunpowder"
         amount: 16
-      - item: "paper"
+      - item_sources:
+          - "paper"
         amount: 2
-      - item: "gold_nugget"
+      - item_sources:
+          - "gold_nugget"
         amount: -1
         optional: true
         protection: true
@@ -254,13 +282,17 @@ stars:
       spell_defense: 6.0
       health_regen: 4.0
     materials:
-      - item: "copper_ingot"
+      - item_sources:
+          - "copper_ingot"
         amount: 10
-      - item: "gunpowder"
+      - item_sources:
+          - "gunpowder"
         amount: 20
-      - item: "echo_shard"
+      - item_sources:
+          - "echo_shard"
         amount: 2
-      - item: "gold_nugget"
+      - item_sources:
+          - "gold_nugget"
         amount: -1
         optional: true
         protection: true
@@ -270,8 +302,9 @@ stars:
           order: 230
           lines:
             - "<gray>强化达到 +10 后，防具会额外提供生命回复。</gray>"
-    success_actions:
-      - "sendtitle title=\"<yellow><bold>+10 生命回复提升</bold></yellow>\"
+    actions:
+      success:
+        - "sendtitle title=\"<yellow><bold>+10 生命回复提升</bold></yellow>\"
         subtitle=\"<white>生命回复已解锁</white>\""
   11:
     stats:
@@ -283,13 +316,17 @@ stars:
       projectile_defense: 7.0
       spell_defense: 7.0
     materials:
-      - item: "copper_ingot"
+      - item_sources:
+          - "copper_ingot"
         amount: 13
-      - item: "gunpowder"
+      - item_sources:
+          - "gunpowder"
         amount: 26
-      - item: "echo_shard"
+      - item_sources:
+          - "echo_shard"
         amount: 3
-      - item: "gold_nugget"
+      - item_sources:
+          - "gold_nugget"
         amount: -1
         optional: true
         protection: true
@@ -306,17 +343,22 @@ stars:
       spell_defense: 8.0
       dodge_chance: 4.0
     materials:
-      - item: "copper_ingot"
+      - item_sources:
+          - "copper_ingot"
         amount: 16
-      - item: "gunpowder"
+      - item_sources:
+          - "gunpowder"
         amount: 32
-      - item: "echo_shard"
+      - item_sources:
+          - "echo_shard"
         amount: 4
-      - item: "gold_nugget"
+      - item_sources:
+          - "gold_nugget"
         amount: -1
         optional: true
         protection: true
-      - item: "potion"
+      - item_sources:
+          - "potion"
         amount: -1
         optional: true
         temper_boost: 1
@@ -326,8 +368,9 @@ stars:
           order: 230
           lines:
             - "<gray>强化达到 +12 后，防具会额外提供闪避率。</gray>"
-    success_actions:
-      - "sendtitle title=\"<yellow><bold>+12 闪避提升</bold></yellow>\"
+    actions:
+      success:
+        - "sendtitle title=\"<yellow><bold>+12 闪避提升</bold></yellow>\"
         subtitle=\"<white>闪避率已解锁</white>\""
 
 structured_presentation:

@@ -65,7 +65,8 @@ display_adjustments:
 stations:
   chopping_board:
     # 砧板方块来源
-    block_source: minecraft-oak_log
+    item_sources:
+      - minecraft-oak_log
     # 省略时继承 input_rules.only_recipe_items
     only_recipe_items: true
     interactions:
@@ -79,7 +80,7 @@ stations:
     # 交互最小间隔，单位毫秒
     interaction_delay_ms: 1000
     # 识别为厨刀的物品来源
-    tool_sources:
+    tool_item_sources:
       - minecraft-iron_axe
     cut_damage:
       enabled: true
@@ -88,7 +89,8 @@ stations:
 
   wok:
     # 炒锅方块来源
-    block_source: minecraft-iron_block
+    item_sources:
+      - minecraft-iron_block
     interactions:
       add_ingredient: shift_left_click
       stir: shift_left_click
@@ -103,17 +105,21 @@ stations:
     # 锅状态超时后按过火处理，单位毫秒
     timeout_ms: 30000
     # 未命中配方或无效结果时的默认产物
-    invalid_result_source: minecraft-stone
+    item_sources:
+      - minecraft-stone
     # 识别为锅铲的物品来源
-    spatula_sources:
+    spatula_item_sources:
       - minecraft-iron_shovel
     # 下方方块命中 source 后，解析为对应火候等级
     heat_levels:
-      - source: minecraft-campfire
+      - item_sources:
+          - minecraft-campfire
         level: 1
-      - source: minecraft-magma_block
+      - item_sources:
+          - minecraft-magma_block
         level: 2
-      - source: minecraft-lava
+      - item_sources:
+          - minecraft-lava
         level: 3
     scald_damage:
       enabled: true
@@ -121,11 +127,13 @@ stations:
     failure:
       enabled: true
       chance: 5
-      output_source: minecraft-bone_meal
+      item_sources:
+        - minecraft-bone_meal
 
   grinder:
     # 研磨机方块来源
-    block_source: minecraft-grindstone
+    item_sources:
+      - minecraft-grindstone
     interactions:
       start: shift_left_click
     drop_result: true
@@ -134,13 +142,14 @@ stations:
 
   steamer:
     # 蒸锅主体方块来源；GUI 细节在 gui/steamer.yml
-    block_source: minecraft-barrel
+    item_sources:
+      - minecraft-barrel
     interactions:
       open: shift_right_click
       fuel: right_click
       moisture: right_click
     drop_result: true
-    heat_sources:
+    heat_item_sources:
       - minecraft-furnace
       - minecraft-smoker
       - minecraft-blast_furnace
@@ -148,19 +157,26 @@ stations:
     ignite_heat_source: true
     # 蒸锅燃料；duration_seconds 为增加的燃烧时间
     fuels:
-      - source: minecraft-stick
+      - item_sources:
+          - minecraft-stick
         duration_seconds: 5
-      - source: minecraft-coal
+      - item_sources:
+          - minecraft-coal
         duration_seconds: 80
-      - source: minecraft-charcoal
+      - item_sources:
+          - minecraft-charcoal
         duration_seconds: 80
     # 水分输入规则
-    moisture_sources:
-      - input_source: minecraft-water_bucket
-        output_source: minecraft-bucket
+    moisture_rules:
+      - input_item_sources:
+          - minecraft-water_bucket
+        item_sources:
+          - minecraft-bucket
         moisture: 120
-      - input_source: minecraft-potion
-        output_source: minecraft-glass_bottle
+      - input_item_sources:
+          - minecraft-potion
+        item_sources:
+          - minecraft-glass_bottle
         moisture: 40
     # 蒸汽耗尽时是否重置全部进度
     reset_progress_when_steam_empty: true

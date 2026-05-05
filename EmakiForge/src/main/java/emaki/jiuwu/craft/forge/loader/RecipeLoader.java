@@ -24,7 +24,7 @@ import emaki.jiuwu.craft.forge.model.Recipe;
 
 public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
 
-    private static final List<String> SUPPORTED_CONDITION_TYPES = List.of("all_of", "any_of", "at_least", "exactly");
+    private static final List<String> SUPPORTED_CONDITION_TYPES = List.of("all_of", "any_of", "none_of", "at_least", "exactly");
 
     private final EmakiForgePlugin forgePlugin;
     private final Supplier<ActionRegistry> actionRegistrySupplier;

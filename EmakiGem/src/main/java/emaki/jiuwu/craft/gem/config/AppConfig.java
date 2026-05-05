@@ -4,6 +4,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import emaki.jiuwu.craft.corelib.condition.ConditionGroup;
+
 import emaki.jiuwu.craft.corelib.config.BaseAppConfig;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.gem.service.GemGuiMode;
@@ -132,19 +134,19 @@ public final class AppConfig extends BaseAppConfig {
         }
     }
 
-    public record ConditionConfig(List<String> conditions,
+    public record ConditionConfig(ConditionGroup conditions,
             String conditionType,
             int requiredCount,
             boolean invalidAsFailure) {
 
         public ConditionConfig {
-            conditions = conditions == null ? List.of() : List.copyOf(conditions);
+            conditions = conditions == null ? ConditionGroup.empty() : conditions;
             conditionType = Texts.isBlank(conditionType) ? "all_of" : Texts.lower(conditionType);
             requiredCount = Math.max(0, requiredCount);
         }
 
         public static ConditionConfig defaults() {
-            return new ConditionConfig(List.of(), "all_of", 0, true);
+            return new ConditionConfig(ConditionGroup.empty(), "all_of", 0, true);
         }
     }
 }

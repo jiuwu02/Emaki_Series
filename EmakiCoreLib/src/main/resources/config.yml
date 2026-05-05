@@ -6,7 +6,7 @@ action:
   # 在配方或动作列表中通过 @template=名称 引用
   templates:
     # forge_success_common:
-    #   - 'sendmessage text="<green>成功获得 %forge_result_item_name%</green>"'
+    #   - 'sendmessage text="<green>成功获得 {forge_result_item_name}</green>"'
     #   - '@delay=10t playsound sound=minecraft:entity.experience_orb.pickup volume=0.8 pitch=1.2'
 
 script:

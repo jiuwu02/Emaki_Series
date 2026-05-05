@@ -2,7 +2,8 @@
 id: "sapphire_defense"
 gem_type: "defense"
 tier: 1
-item_source: "minecraft-lapis_lazuli"
+item_sources:
+  - "minecraft-lapis_lazuli"
 
 stats:
   physical_defense: 6
@@ -35,7 +36,8 @@ inlay_cost:
       cost_formula: "{base_cost} * {tier}"
       display_name: "<gold>金币</gold>"
   materials:
-    - item: "minecraft-lapis_lazuli"
+    - item_sources:
+        - "minecraft-lapis_lazuli"
       amount: 2
 
 extract_cost:
@@ -85,11 +87,13 @@ upgrade:
             lines:
               - "<blue>◆ {display_name}: 物理防御+{physical_defense} 生命+{max_health}</blue>"
       materials:
-        - item: "minecraft-lapis_lazuli"
+        - item_sources:
+            - "minecraft-lapis_lazuli"
           amount: 6
       success_rate: 100.0
-      success_actions: []
-      failure_actions: []
+      actions:
+        success: []
+        failure: []
 
     3:
       stats:
@@ -110,12 +114,16 @@ upgrade:
             lines:
               - "<blue>◆ {display_name}: 物理防御+{physical_defense} 生命+{max_health}</blue>"
       materials:
-        - item: "minecraft-diamond"
+        - item_sources:
+            - "minecraft-diamond"
           amount: 1
-        - item: "minecraft-lapis_lazuli"
+        - item_sources:
+            - "minecraft-lapis_lazuli"
           amount: 12
-      success_actions: []
-      failure_actions: []
+      actions:
+        success: []
+        failure: []
 
-inlay_success_actions: []
-extract_success_actions: []
+actions:
+  inlay_success: []
+  extract_success: []

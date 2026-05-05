@@ -53,14 +53,14 @@ slots:
         44,
       ]
     type: "recipe_list"
-    item: "BOOK"
+    item: "book"
     display_name: "<gray>暂无配方</gray>"
     lore:
       - "<gray>这一页没有更多配方了"
 
   footer_fill:
     slots: [46, 47, 48, 50, 51, 52]
-    item: "GRAY_STAINED_GLASS_PANE"
+    item: "gray_stained_glass_pane"
     display_name: "<gray>"
     hidden_components: ["tooltip"]
 

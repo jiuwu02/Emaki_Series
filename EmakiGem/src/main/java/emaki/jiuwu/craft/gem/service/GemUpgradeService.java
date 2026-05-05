@@ -317,13 +317,11 @@ public final class GemUpgradeService {
 
     private boolean evaluateConditions(Player player) {
         var config = plugin.appConfig().condition();
-        if (config.conditions().isEmpty()) {
+        if (config.conditions().emptyGroup()) {
             return true;
         }
         return ConditionEvaluator.evaluate(
                 config.conditions(),
-                config.conditionType(),
-                config.requiredCount(),
                 text -> resolvePlaceholders(player, text),
                 config.invalidAsFailure()
         );
