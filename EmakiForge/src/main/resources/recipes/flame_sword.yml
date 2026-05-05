@@ -145,14 +145,13 @@ result:
           lines:
             - "<gray>锻造属性:"
             - "<dark_gray>由 EmakiForge 示例配方锻造"
-  action:
+  actions:
     - "sendmessage text=\"<green>锻造成功! 获得了 {forge_result_item_name}</green>\""
     - "playsound sound=minecraft:block.anvil.use volume=1 pitch=1"
 
-action:
+actions:
   pre:
     - "sendactionbar text=\"<gray>烈焰之力正在熔铸...</gray>\""
   success: []
   failure:
-    - "@if=\"{forge_error_key} == forge.error.action_failed\" sendmessage
-      text=\"<red>锻造前置操作失败: {forge_failure_reason}</red>\""
+    - 'sendmessage text="<red>锻造前置操作失败: {forge_failure_reason}</red>"'

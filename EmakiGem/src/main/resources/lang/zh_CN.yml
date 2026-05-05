@@ -32,7 +32,7 @@ loader:
   duplicate_id: "<red>{type} 文件 {file} 出现重复 ID: {id}</red>"
   load_failed: "<red>加载 {type} 文件 {file} 失败: {error}</red>"
   invalid_config: "<red>{type} 文件 {file} 配置无效，已跳过加载。</red>"
-  gem_missing_item_sources: "<red>宝石文件 {file} 的 item_source 缺失或无效，已拒绝加载: {id}</red>"
+  gem_missing_item_source: "<red>宝石文件 {file} 的 item_sources 缺失或无效，已拒绝加载: {id}，当前值: {item_sources}</red>"
 
 gem:
   error:
