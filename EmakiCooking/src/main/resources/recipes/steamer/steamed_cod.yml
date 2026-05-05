@@ -16,6 +16,6 @@ result:
       - "minecraft-cooked_cod"
     amount: 1
     actions:
-      - 'sendmessage text="<aqua>蒸制完成。</aqua>"'
+      - "sendmessage text=\"<aqua>蒸制完成。</aqua>\""
 
 structured_presentation: {}

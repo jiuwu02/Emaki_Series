@@ -10,7 +10,8 @@ general:
   reload_summary: "<gray>Loaded <white>{items}</white> item definitions.</gray>"
   item_not_found: "<red>Item not found: <white>{id}</white></red>"
   give_success: "<green>Gave <white>{player}</white> <gold>{id}</gold> x{amount}.</green>"
-  update_success: "<green>Refreshed <white>{player}</white>'s equipped set items, processed <white>{count}</white> items.</green>"
+  update_success: "<green>Refreshed <white>{player}</white>'s equipped set items,
+    processed <white>{count}</white> items.</green>"
 console:
   plugin_starting: "Starting EmakiItem..."
   plugin_started: "EmakiItem started."

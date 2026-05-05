@@ -65,7 +65,7 @@ display_adjustments:
 stations:
   chopping_board:
     # 砧板方块来源
-    item_sources:
+    block_item_sources:
       - minecraft-oak_log
     # 省略时继承 input_rules.only_recipe_items
     only_recipe_items: true
@@ -89,7 +89,7 @@ stations:
 
   wok:
     # 炒锅方块来源
-    item_sources:
+    block_item_sources:
       - minecraft-iron_block
     interactions:
       add_ingredient: shift_left_click
@@ -104,8 +104,8 @@ stations:
     stir_delay_ms: 5000
     # 锅状态超时后按过火处理，单位毫秒
     timeout_ms: 30000
-    # 未命中配方或无效结果时的默认产物
-    item_sources:
+    # 未命中配方或结果无效时的默认产物来源
+    invalid_result_item_sources:
       - minecraft-stone
     # 识别为锅铲的物品来源
     spatula_item_sources:
@@ -132,7 +132,7 @@ stations:
 
   grinder:
     # 研磨机方块来源
-    item_sources:
+    block_item_sources:
       - minecraft-grindstone
     interactions:
       start: shift_left_click
@@ -142,7 +142,7 @@ stations:
 
   steamer:
     # 蒸锅主体方块来源；GUI 细节在 gui/steamer.yml
-    item_sources:
+    block_item_sources:
       - minecraft-barrel
     interactions:
       open: shift_right_click

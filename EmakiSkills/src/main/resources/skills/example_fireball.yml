@@ -56,14 +56,15 @@ script:
       - "ray range=18 width={radius} save=target"
 
     hit:
-      - "damage target=target amount={damage} damage_type=spell element={element}"
+      - "damage target=target amount={damage} damage_type=spell
+        element={element}"
       - "@if='{level} >= 3' ignite target=target ticks={ignite_ticks}"
       - "@if='{empowered} == true' particle particle=explosion at=target count=1"
-      - 'sendmessage target=caster text="{impact_message}"'
+      - "sendmessage target=caster text=\"{impact_message}\""
 
     miss:
       - "particle particle=smoke at=look count=8 speed=0.01"
-      - 'sendmessage target=caster text="<gray>火球术没有命中目标。</gray>"'
+      - "sendmessage target=caster text=\"<gray>火球术没有命中目标。</gray>\""
 
 upgrade:
   enabled: true
@@ -133,5 +134,6 @@ upgrade:
       success_rate: 40.0
       actions:
         success:
-          - "broadcastmessage text=\"<gold>{player}</gold> <yellow>将火球术提升至满级！</yellow>\""
+          - "broadcastmessage text=\"<gold>{player}</gold>
+            <yellow>将火球术提升至满级！</yellow>\""
         failure: []

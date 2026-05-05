@@ -216,7 +216,7 @@ stars:
     actions:
       success:
         - "sendtitle title=\"<gold><bold>+8 物理伤害提升</bold></gold>\"
-        subtitle=\"<yellow>额外增伤已解锁</yellow>\""
+          subtitle=\"<yellow>额外增伤已解锁</yellow>\""
         - "playsound sound=minecraft:entity.player.levelup volume=1.1 pitch=1.2"
 
   9:
@@ -272,9 +272,9 @@ stars:
     actions:
       success:
         - "sendtitle title=\"<gold><bold>+10 物理暴伤提升</bold></gold>\"
-        subtitle=\"<yellow>额外暴伤已解锁</yellow>\""
+          subtitle=\"<yellow>额外暴伤已解锁</yellow>\""
         - "playsound sound=minecraft:entity.firework_rocket.twinkle_far volume=1
-        pitch=1"
+          pitch=1"
 
   11:
     stats:
@@ -334,8 +334,9 @@ stars:
     actions:
       success:
         - "sendtitle title=\"<gold><bold>+12 物理穿透提升</bold></gold>\"
-        subtitle=\"<yellow>额外穿透已解锁</yellow>\""
-        - "playsound sound=minecraft:ui.toast.challenge_complete volume=1 pitch=1"
+          subtitle=\"<yellow>额外穿透已解锁</yellow>\""
+        - "playsound sound=minecraft:ui.toast.challenge_complete volume=1
+          pitch=1"
 
 structured_presentation:
   name_contributions:

@@ -75,7 +75,7 @@ public final class CookingSettingsService {
     }
 
     public ItemSource stationBlockSource(StationType stationType) {
-        return ItemSourceUtil.parse(configuration.get(stationPath(stationType) + ".item_sources"));
+        return ItemSourceUtil.parse(configuration.get(stationPath(stationType) + ".block_item_sources"));
     }
 
     public boolean onlyRecipeItems(StationType stationType) {
@@ -228,7 +228,7 @@ public final class CookingSettingsService {
     }
 
     public String wokInvalidResultSource() {
-        return firstSourceShorthand(configuration.get("stations.wok.item_sources"));
+        return firstSourceShorthand(configuration.get("stations.wok.invalid_result_item_sources"));
     }
 
     public boolean steamerDropResult() {

@@ -146,7 +146,7 @@ stars:
     actions:
       success:
         - "sendtitle title=\"<gray><bold>+8 外观强化 II</bold></gray>\"
-        subtitle=\"<white>外观效果已提升</white>\""
+          subtitle=\"<white>外观效果已提升</white>\""
   9:
     materials:
       - item_sources:
@@ -189,7 +189,7 @@ stars:
     actions:
       success:
         - "sendtitle title=\"<gray><bold>+10 外观强化 III</bold></gray>\"
-        subtitle=\"<white>外观效果继续提升</white>\""
+          subtitle=\"<white>外观效果继续提升</white>\""
   11:
     materials:
       - item_sources:
@@ -237,7 +237,7 @@ stars:
     actions:
       success:
         - "sendtitle title=\"<gray><bold>+12 外观强化 IV</bold></gray>\"
-        subtitle=\"<white>最高外观效果已解锁</white>\""
+          subtitle=\"<white>最高外观效果已解锁</white>\""
 
 structured_presentation:
   name_contributions:

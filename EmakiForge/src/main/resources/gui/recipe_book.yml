@@ -59,13 +59,13 @@ slots:
       - "<gray>这一页没有更多配方了"
 
   footer_fill:
-    slots: [46, 47, 48, 50, 51, 52]
+    slots: [ 46, 47, 48, 50, 51, 52 ]
     item: "gray_stained_glass_pane"
     display_name: "<gray>"
-    hidden_components: ["tooltip"]
+    hidden_components: [ "tooltip" ]
 
   prev_page:
-    slots: [45]
+    slots: [ 45 ]
     type: "prev_page"
     item: "ARROW"
     display_name: "<gray>上一页</gray>"
@@ -78,7 +78,7 @@ slots:
         pitch: 1.0
 
   close:
-    slots: [49]
+    slots: [ 49 ]
     type: "close"
     item: "BARRIER"
     display_name: "<red>关闭</red>"
@@ -91,7 +91,7 @@ slots:
         pitch: 1.0
 
   next_page:
-    slots: [53]
+    slots: [ 53 ]
     type: "next_page"
     item: "ARROW"
     display_name: "<gray>下一页</gray>"

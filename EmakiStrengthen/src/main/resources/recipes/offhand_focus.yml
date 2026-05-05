@@ -228,7 +228,8 @@ stars:
     actions:
       success:
         - "sendtitle title=\"<light_purple><bold>+8
-        法术暴击率提升</bold></light_purple>\" subtitle=\"<white>额外法术暴击率已解锁</white>\""
+          法术暴击率提升</bold></light_purple>\"
+          subtitle=\"<white>额外法术暴击率已解锁</white>\""
   9:
     stats:
       spell_damage_bonus: 4
@@ -285,7 +286,7 @@ stars:
     actions:
       success:
         - "sendtitle title=\"<light_purple><bold>+10
-        法力上限提升</bold></light_purple>\" subtitle=\"<white>额外法力上限已解锁</white>\""
+          法力上限提升</bold></light_purple>\" subtitle=\"<white>额外法力上限已解锁</white>\""
   11:
     stats:
       spell_damage_bonus: 5
@@ -346,8 +347,8 @@ stars:
             - "<gray>强化达到 +12 后，副手会额外提供闪避率。</gray>"
     actions:
       success:
-        - "sendtitle title=\"<light_purple><bold>+12 闪避提升</bold></light_purple>\"
-        subtitle=\"<white>闪避率已解锁</white>\""
+        - "sendtitle title=\"<light_purple><bold>+12
+          闪避提升</bold></light_purple>\" subtitle=\"<white>闪避率已解锁</white>\""
 
 structured_presentation:
   name_contributions:

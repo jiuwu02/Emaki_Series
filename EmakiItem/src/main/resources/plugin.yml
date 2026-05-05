@@ -11,7 +11,7 @@ softdepend:
   - PlaceholderAPI
 commands:
   emakiitem:
-    aliases: [ei]
+    aliases: [ ei ]
     permission: emakiitem.use
 permissions:
   emakiitem.use:

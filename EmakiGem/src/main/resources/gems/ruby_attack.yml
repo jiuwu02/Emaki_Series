@@ -173,7 +173,7 @@ upgrade:
       actions:
         success:
           - "sendmessage text=\"<gold>{player}</gold> <yellow>成功将红宝石升级至
-          IV！</yellow>\""
+            IV！</yellow>\""
         failure: []
 
 actions:

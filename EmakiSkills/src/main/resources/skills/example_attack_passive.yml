@@ -54,11 +54,14 @@ script:
   actions:
     cast:
       - "@chance={echo_chance}% particle particle=sonic_boom at=target count=1"
-      - "@chance={echo_chance}% playsound sound=entity.allay.ambient_without_item at=caster volume=0.8 pitch={sound_pitch}"
+      - "@chance={echo_chance}% playsound
+        sound=entity.allay.ambient_without_item at=caster volume=0.8
+        pitch={sound_pitch}"
 
     hit:
-      - "damage target=target amount={echo_damage} damage_type=spell element=echo"
-      - 'sendmessage target=caster text="{echo_message}"'
+      - "damage target=target amount={echo_damage} damage_type=spell
+        element=echo"
+      - "sendmessage target=caster text=\"{echo_message}\""
 
 upgrade:
   enabled: true
@@ -118,5 +121,6 @@ upgrade:
       success_rate: 50.0
       actions:
         success:
-          - "broadcastmessage text=\"<aqua>{player}</aqua> <gray>将命中回响提升至满级。</gray>\""
+          - "broadcastmessage text=\"<aqua>{player}</aqua>
+            <gray>将命中回响提升至满级。</gray>\""
         failure: []

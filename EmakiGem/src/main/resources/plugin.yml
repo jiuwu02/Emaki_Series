@@ -10,7 +10,7 @@ softdepend:
   - PlaceholderAPI
 commands:
   emakigem:
-    aliases: [egem, eg]
+    aliases: [ egem, eg ]
     permission: emakigem.use
 permissions:
   emakigem.use:

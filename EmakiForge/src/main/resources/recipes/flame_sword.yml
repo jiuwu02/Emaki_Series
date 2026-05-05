@@ -154,4 +154,4 @@ actions:
     - "sendactionbar text=\"<gray>烈焰之力正在熔铸...</gray>\""
   success: []
   failure:
-    - 'sendmessage text="<red>锻造前置操作失败: {forge_failure_reason}</red>"'
+    - "sendmessage text=\"<red>锻造前置操作失败: {forge_failure_reason}</red>\""

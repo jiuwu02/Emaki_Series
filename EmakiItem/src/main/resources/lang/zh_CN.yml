@@ -10,7 +10,8 @@ general:
   reload_summary: "<gray>已加载 <white>{items}</white> 个物品定义。</gray>"
   item_not_found: "<red>找不到物品定义: <white>{id}</white></red>"
   give_success: "<green>已给予 <white>{player}</white> <gold>{id}</gold> x{amount}。</green>"
-  update_success: "<green>已刷新 <white>{player}</white> 的穿戴套装物品，共处理 <white>{count}</white> 件。</green>"
+  update_success: "<green>已刷新 <white>{player}</white> 的穿戴套装物品，共处理
+    <white>{count}</white> 件。</green>"
 console:
   plugin_starting: "EmakiItem 正在启动..."
   plugin_started: "EmakiItem 已启动。"

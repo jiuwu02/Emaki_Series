@@ -1,28 +1,75 @@
+# 配置文件版本。仅用于标识当前默认配置结构，不建议手动修改。
 version: "2.0.0"
+
+# 语言文件 ID，对应 lang/<language>.yml。
+# 例如："zh_CN"、"en_US"。
 language: "zh_CN"
+
+# 是否释放默认数据文件。
+# true：首次启动或缺失数据目录时释放 items/、sets/ 等默认示例数据。
+# false：只加载已有数据，不再主动释放默认示例。
+# 注意：config.yml 与语言文件不属于这里说的默认数据文件。
 release_default_data: true
 
+# 物品自动更新设置。
+# EmakiItem 会根据物品 PDC 中记录的 item id，尝试把玩家身上的旧版物品刷新为当前 items/*.yml 中的定义。
 item_update:
+  # 是否启用自动更新。
   enabled: true
+
+  # 更新物品时是否保留原堆叠数量。
+  # true：只替换物品定义，数量沿用旧物品数量。
+  # false：使用物品配置里生成出的默认数量。
   preserve_amount: true
+
+  # 更新物品时是否保留耐久损耗。
+  # true：新版物品会继承旧物品当前 damage 值。
+  # false：按新物品定义重置耐久。
   preserve_damage: true
+
+  # 更新物品时是否保留未知来源的属性数据。
+  # true：如果物品上存在 EmakiAttribute 数据，但来源不是当前 EmakiItem 能识别的来源，会尽量保留，避免误删其他插件写入的属性。
+  # false：只保留当前物品定义重新生成出的属性数据。
   preserve_unknown_attribute_sources: true
+
+  # 自动更新触发器。
+  # 关闭某个触发器可以减少频繁扫描，但旧物品可能需要等待其他触发器或命令才会刷新。
   triggers:
+    # 玩家进服时扫描玩家背包、装备等可更新物品。
     join: true
+    # 玩家切换手持物品时检查当前手持物。
     held_change: true
+    # 玩家点击背包时检查相关物品。
     inventory_click: true
+    # 玩家拖拽物品时检查相关物品。
     inventory_drag: true
+    # 玩家拾取物品时检查拾取到的物品。
     pickup: true
+    # 玩家交互时检查手持物品。
     interact: true
+    # 执行 EmakiItem 相关命令时允许触发刷新逻辑。
     command: true
 
+# 套装加成设置。
+# 套装定义位于 sets/*.yml，物品通过自身配置声明所属套装和部位。
 set_bonus:
+  # 是否启用套装加成系统。
   enabled: true
+
+  # 套装刷新触发器。
+  # 玩家装备变化、背包变化或命令刷新时，会重新计算当前已穿戴/持有的套装件数和加成。
   refresh_triggers:
+    # 玩家进服时刷新套装状态。
     join: true
+    # 玩家切换手持物品时刷新套装状态。
     held_change: true
+    # 玩家点击背包时刷新套装状态。
     inventory_click: true
+    # 玩家拖拽物品时刷新套装状态。
     inventory_drag: true
+    # 玩家拾取物品时刷新套装状态。
     pickup: true
+    # 玩家交互时刷新套装状态。
     interact: true
+    # 执行 EmakiItem 相关命令时允许触发套装刷新。
     command: true

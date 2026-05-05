@@ -26,7 +26,8 @@ structured_presentation:
     - section_id: "gem.slot.{slot_index}.detail"
       order: 200
       lines:
-        - "<blue>◆ {display_name}: 物理防御+{physical_defense} 生命+{max_health}</blue>"
+        - "<blue>◆ {display_name}: 物理防御+{physical_defense}
+          生命+{max_health}</blue>"
 
 inlay_cost:
   currencies:
@@ -85,7 +86,8 @@ upgrade:
           - section_id: "gem.slot.{slot_index}.detail"
             order: 200
             lines:
-              - "<blue>◆ {display_name}: 物理防御+{physical_defense} 生命+{max_health}</blue>"
+              - "<blue>◆ {display_name}: 物理防御+{physical_defense}
+                生命+{max_health}</blue>"
       materials:
         - item_sources:
             - "minecraft-lapis_lazuli"
@@ -112,7 +114,8 @@ upgrade:
           - section_id: "gem.slot.{slot_index}.detail"
             order: 200
             lines:
-              - "<blue>◆ {display_name}: 物理防御+{physical_defense} 生命+{max_health}</blue>"
+              - "<blue>◆ {display_name}: 物理防御+{physical_defense}
+                生命+{max_health}</blue>"
       materials:
         - item_sources:
             - "minecraft-diamond"
