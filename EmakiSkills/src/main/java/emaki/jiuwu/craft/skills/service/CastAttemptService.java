@@ -22,6 +22,8 @@ import emaki.jiuwu.craft.skills.model.SkillResourceCost;
 import emaki.jiuwu.craft.skills.model.SkillSlotBinding;
 import emaki.jiuwu.craft.skills.model.UnlockedSkillEntry;
 import emaki.jiuwu.craft.skills.mythic.MythicSkillCastService;
+import emaki.jiuwu.craft.skills.script.SkillScriptCastService;
+import emaki.jiuwu.craft.skills.script.SkillScriptMode;
 import emaki.jiuwu.craft.skills.trigger.TriggerInvocation;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -33,6 +35,7 @@ public final class CastAttemptService {
     private final CastModeService castModeService;
     private final PlayerSkillDataStore dataStore;
     private final MythicSkillCastService mythicCastService;
+    private final SkillScriptCastService skillScriptCastService;
     private final SkillParameterResolver skillParameterResolver;
     private final EaBridge eaBridge;
     private final Supplier<Map<String, LocalResourceDefinition>> localResourceDefsSupplier;
@@ -43,6 +46,7 @@ public final class CastAttemptService {
             CastModeService castModeService,
             PlayerSkillDataStore dataStore,
             MythicSkillCastService mythicCastService,
+            SkillScriptCastService skillScriptCastService,
             SkillParameterResolver skillParameterResolver,
             EaBridge eaBridge,
             Supplier<Map<String, LocalResourceDefinition>> localResourceDefsSupplier,
@@ -52,6 +56,7 @@ public final class CastAttemptService {
         this.castModeService = castModeService;
         this.dataStore = dataStore;
         this.mythicCastService = mythicCastService;
+        this.skillScriptCastService = skillScriptCastService;
         this.skillParameterResolver = skillParameterResolver;
         this.eaBridge = eaBridge;
         this.localResourceDefsSupplier = localResourceDefsSupplier;
@@ -182,22 +187,13 @@ public final class CastAttemptService {
             return costCheck;
         }
 
-        // 9. Cast via MythicMobs
-        String mythicSkillId = definition.mythicSkill();
-        if (mythicSkillId == null || mythicSkillId.isBlank()) {
-            return CastAttemptResult.fail(FailureReason.MYTHIC_SKILL_NOT_FOUND,
-                    "cast.mythic_not_configured");
-        }
-        if (!mythicCastService.skillExists(mythicSkillId)) {
-            return CastAttemptResult.fail(FailureReason.MYTHIC_SKILL_NOT_FOUND,
-                    "cast.mythic_not_found");
-        }
+        // 9. Cast via native script and/or MythicMobs
         ResolvedSkillParameters parameters = skillParameterResolver == null
                 ? ResolvedSkillParameters.empty()
                 : skillParameterResolver.resolve(player, definition, triggerId, invocation);
-        boolean castSuccess = mythicCastService.cast(player, mythicSkillId, invocation, parameters);
+        boolean castSuccess = castSkill(player, definition, triggerId, invocation, parameters);
         if (!castSuccess) {
-            return CastAttemptResult.fail(FailureReason.MYTHIC_CAST_FAILED, "cast.mythic_failed");
+            return CastAttemptResult.fail(FailureReason.MYTHIC_CAST_FAILED, "cast.skill_execute_failed");
         }
 
         // 10. On success: consume resources, record timing
@@ -214,6 +210,39 @@ public final class CastAttemptService {
     // ------------------------------------------------------------------
     // Internal helpers
     // ------------------------------------------------------------------
+
+    private boolean castSkill(Player player,
+            SkillDefinition definition,
+            String triggerId,
+            TriggerInvocation invocation,
+            ResolvedSkillParameters parameters) {
+        boolean hasScript = definition.script() != null && definition.script().enabled();
+        String mythicSkillId = definition.mythicSkill();
+        boolean hasMythic = mythicSkillId != null && !mythicSkillId.isBlank();
+        SkillScriptMode mode = hasScript ? definition.script().mode() : SkillScriptMode.MYTHIC;
+        if (hasScript && mode == SkillScriptMode.NATIVE) {
+            return skillScriptCastService != null
+                    && skillScriptCastService.cast(player, definition, triggerId, invocation, parameters);
+        }
+        if (hasScript && mode == SkillScriptMode.HYBRID) {
+            boolean nativeOk = skillScriptCastService != null
+                    && skillScriptCastService.cast(player, definition, triggerId, invocation, parameters);
+            return nativeOk && (!hasMythic || castMythic(player, mythicSkillId, invocation, parameters));
+        }
+        if (hasMythic) {
+            return castMythic(player, mythicSkillId, invocation, parameters);
+        }
+        return false;
+    }
+
+    private boolean castMythic(Player player,
+            String mythicSkillId,
+            TriggerInvocation invocation,
+            ResolvedSkillParameters parameters) {
+        return mythicCastService != null
+                && mythicCastService.skillExists(mythicSkillId)
+                && mythicCastService.cast(player, mythicSkillId, invocation, parameters);
+    }
 
     private SkillSlotBinding findBindingByTrigger(PlayerSkillProfile profile, String triggerId) {
         SkillSlotBinding indexed = profile.findBindingByTrigger(triggerId);

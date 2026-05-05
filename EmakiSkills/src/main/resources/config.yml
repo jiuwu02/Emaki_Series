@@ -33,6 +33,16 @@ actionbar:
   # 非施法模式下的显示模板，空字符串表示不显示
   template_idle: ""
 
+# 原生技能脚本引擎
+script_engine:
+  enabled: true
+  default_mode: "native"
+  stop_on_failure: true
+  fallback_to_corelib_actions: true
+  max_lines_per_phase: 64
+  max_targets_per_action: 16
+  debug: false
+
 # 触发器配置
 triggers:
   left_click:

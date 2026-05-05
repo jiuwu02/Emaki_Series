@@ -2,9 +2,8 @@ id: fireball
 display_name: "<gradient:#FF6B35:#FF4500>火球术</gradient>"
 description:
   - "<gray>向前方发射一颗炽热的火球</gray>"
-  - "<gray>对命中目标造成火焰伤害</gray>"
+  - "<gray>命中目标后造成火焰法术伤害</gray>"
 icon_material: "FIRE_CHARGE"
-mythic_skill: "ExampleFireball"
 trigger_type: "active"
 cooldown_ticks: 100
 global_cooldown_ticks: 20
@@ -14,6 +13,11 @@ lore_aliases:
 ui_category: "attack"
 sort_order: 1
 enabled: true
+
+conditions:
+  - "{level} >= 1"
+condition_type: "all_of"
+
 resource_costs:
   - type: "local-resource"
     target_id: "mana"
@@ -24,14 +28,7 @@ resource_costs:
 skill_parameters:
   damage:
     type: "expression"
-    expression: "{base_damage} + {level_bonus}"
-    variables:
-      base_damage:
-        type: "constant"
-        value: 18
-      level_bonus:
-        type: "expression"
-        expression: "({level} - 1) * 4"
+    expression: "18 + ({level} - 1) * 4"
     decimals: 1
     min: 0
 
@@ -41,44 +38,31 @@ skill_parameters:
     decimals: 2
     min: 1
 
-  ignite_ticks:
-    type: "expression"
-    expression: "40 + ({level} - 1) * 6"
-    decimals: 0
-    min: 20
+variables:
+  ignite_ticks: "40 + ({level} - 1) * 6"
+  element: "fire"
+  empowered: "{level} >= 5 && {has_target} == 1"
+  impact_message: "<gold>火球术命中 %target_name%，造成 {damage} 点火焰伤害。</gold>"
 
-  element:
-    type: "string"
-    value: "fire"
+script:
+  enabled: true
+  mode: "native"
+  stop_on_failure: true
 
-  element_label:
-    type: "string"
-    value: "fire_lv_{level}"
+  cast:
+    - "sound sound=ENTITY_BLAZE_SHOOT volume=1 pitch=1.05"
+    - "particle particle=FLAME at=caster count=24 speed=0.02"
+    - "ray range=18 width={radius} save=target"
 
-  empowered:
-    type: "boolean"
-    expression: "{level} >= 5 && {has_target} == 1"
-    default: false
+  hit:
+    - "damage target=target amount={damage} damage_type=spell element={element}"
+    - "@if='{level} >= 3' ignite target=target ticks={ignite_ticks}"
+    - "@if='{empowered} == true' particle particle=EXPLOSION at=target count=1"
+    - "message target=caster text='{impact_message}'"
 
-  random_bonus_lines:
-    type: "random_text"
-    rolls: "{bonus_rolls}"
-    allow_duplicates: false
-    variables:
-      bonus_rolls:
-        type: "constant"
-        value: 2
-      物理攻击:
-        type: "range"
-        min: 2
-        max: 6
-      物理防御:
-        type: "uniform"
-        min: 1
-        max: 4
-    lines:
-      - "物理攻击: +{物理攻击}"
-      - "物理防御: +{物理防御}"
+  miss:
+    - "particle particle=SMOKE at=look count=8 speed=0.01"
+    - "message target=caster text='<gray>火球术没有命中目标。</gray>'"
 
 upgrade:
   enabled: true

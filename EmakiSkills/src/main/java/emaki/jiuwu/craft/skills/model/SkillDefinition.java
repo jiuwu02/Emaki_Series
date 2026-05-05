@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import emaki.jiuwu.craft.skills.script.SkillScriptDefinition;
+
 public record SkillDefinition(String id,
         String displayName,
         List<String> description,
@@ -12,6 +14,8 @@ public record SkillDefinition(String id,
         SkillActivationType activationType,
         List<String> passiveTriggers,
         Map<String, SkillParameterDefinition> skillParameters,
+        Map<String, SkillParameterDefinition> variables,
+        SkillScriptDefinition script,
         SkillUpgradeConfig upgrade,
         long cooldownTicks,
         long globalCooldownTicks,
@@ -33,6 +37,8 @@ public record SkillDefinition(String id,
         activationType = activationType == null ? SkillActivationType.ACTIVE : activationType;
         passiveTriggers = passiveTriggers == null ? List.of() : List.copyOf(passiveTriggers);
         skillParameters = skillParameters == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(skillParameters));
+        variables = variables == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(variables));
+        script = script == null ? SkillScriptDefinition.disabled() : script;
         upgrade = upgrade == null ? SkillUpgradeConfig.disabled() : upgrade;
         cooldownTicks = Math.max(0L, cooldownTicks);
         globalCooldownTicks = Math.max(0L, globalCooldownTicks);

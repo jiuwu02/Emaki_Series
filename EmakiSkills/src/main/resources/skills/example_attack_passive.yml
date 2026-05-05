@@ -4,7 +4,6 @@ description:
   - "<gray>被动技能示例：命中实体时自动触发</gray>"
   - "<gray>玩家不可在 GUI 中修改此技能的触发器</gray>"
 icon_material: "ECHO_SHARD"
-mythic_skill: "ExampleAttackPassive"
 trigger_type: "passive"
 passive_triggers:
   - "attack"
@@ -43,6 +42,22 @@ skill_parameters:
     type: "boolean"
     expression: "{level} >= 4 && {trigger_id} == 'attack'"
     default: false
+
+variables:
+  echo_message: "<aqua>命中回响触发，追加 {echo_damage} 点伤害。</aqua>"
+
+script:
+  enabled: true
+  mode: "native"
+  stop_on_failure: true
+
+  cast:
+    - "@chance={echo_chance}% particle particle=SONIC_BOOM at=target count=1"
+    - "@chance={echo_chance}% sound sound=ENTITY_ALLAY_AMBIENT_WITHOUT_ITEM at=caster volume=0.8 pitch={sound_pitch}"
+
+  hit:
+    - "damage target=target amount={echo_damage} damage_type=spell element=echo"
+    - "message target=caster text='{echo_message}'"
 
 upgrade:
   enabled: true

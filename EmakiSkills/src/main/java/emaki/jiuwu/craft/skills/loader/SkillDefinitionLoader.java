@@ -20,6 +20,9 @@ import emaki.jiuwu.craft.skills.model.SkillParameterDefinition;
 import emaki.jiuwu.craft.skills.model.SkillParameterType;
 import emaki.jiuwu.craft.skills.model.SkillResourceCost;
 import emaki.jiuwu.craft.skills.model.SkillUpgradeConfig;
+import emaki.jiuwu.craft.skills.script.SkillScriptDefinition;
+import emaki.jiuwu.craft.skills.script.SkillScriptMode;
+import emaki.jiuwu.craft.skills.script.SkillScriptPhase;
 
 public final class SkillDefinitionLoader extends YamlDirectoryLoader<SkillDefinition> {
 
@@ -67,6 +70,8 @@ public final class SkillDefinitionLoader extends YamlDirectoryLoader<SkillDefini
                 activationType,
                 normalizeTriggerIds(configuration.getStringList("passive_triggers")),
                 parseSkillParameters(configuration.getSection("skill_parameters")),
+                parseSkillParameters(configuration.getSection("variables")),
+                parseScript(configuration.getSection("script")),
                 parseUpgradeConfig(configuration.getSection("upgrade")),
                 configuration.getInt("cooldown_ticks", 0),
                 configuration.getInt("global_cooldown_ticks", 0),
@@ -185,6 +190,46 @@ public final class SkillDefinitionLoader extends YamlDirectoryLoader<SkillDefini
                 || section.contains("values")
                 || section.contains("options")
                 || section.contains("texts"));
+    }
+
+    private SkillScriptDefinition parseScript(YamlSection section) {
+        if (section == null || section.getKeys(false).isEmpty()) {
+            return SkillScriptDefinition.disabled();
+        }
+        SkillScriptMode mode = SkillScriptMode.fromString(section.getString("mode", "native"), SkillScriptMode.NATIVE);
+        boolean stopOnFailure = section.getBoolean("stop_on_failure", true);
+        Map<SkillScriptPhase, List<String>> linesByPhase = new LinkedHashMap<>();
+        putPhaseLines(linesByPhase, SkillScriptPhase.CAST, section, "cast", "on_cast");
+        putPhaseLines(linesByPhase, SkillScriptPhase.HIT, section, "hit", "on_hit");
+        putPhaseLines(linesByPhase, SkillScriptPhase.MISS, section, "miss", "on_miss");
+        putPhaseLines(linesByPhase, SkillScriptPhase.FAIL, section, "fail", "on_fail");
+
+        Map<SkillScriptPhase, List<String>> conditionsByPhase = new LinkedHashMap<>();
+        YamlSection conditions = section.getSection("conditions");
+        if (conditions != null) {
+            putPhaseLines(conditionsByPhase, SkillScriptPhase.CAST, conditions, "cast", "on_cast");
+            putPhaseLines(conditionsByPhase, SkillScriptPhase.HIT, conditions, "hit", "on_hit");
+            putPhaseLines(conditionsByPhase, SkillScriptPhase.MISS, conditions, "miss", "on_miss");
+            putPhaseLines(conditionsByPhase, SkillScriptPhase.FAIL, conditions, "fail", "on_fail");
+        }
+
+        boolean enabled = section.contains("enabled")
+                ? section.getBoolean("enabled", false)
+                : !linesByPhase.isEmpty();
+        return new SkillScriptDefinition(enabled, mode, stopOnFailure, conditionsByPhase, linesByPhase);
+    }
+
+    private void putPhaseLines(Map<SkillScriptPhase, List<String>> target,
+            SkillScriptPhase phase,
+            YamlSection section,
+            String primaryKey,
+            String aliasKey) {
+        List<String> lines = new ArrayList<>();
+        lines.addAll(section.getStringList(primaryKey));
+        lines.addAll(section.getStringList(aliasKey));
+        if (!lines.isEmpty()) {
+            target.put(phase, List.copyOf(lines));
+        }
     }
 
     private SkillUpgradeConfig parseUpgradeConfig(YamlSection section) {

@@ -21,6 +21,10 @@ import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
+import emaki.jiuwu.craft.skills.api.DefaultEmakiSkillsApi;
+import emaki.jiuwu.craft.skills.api.DefaultSkillScriptActionRegistry;
+import emaki.jiuwu.craft.skills.api.EmakiSkillsApi;
+import emaki.jiuwu.craft.skills.api.SkillScriptActionRegistry;
 import emaki.jiuwu.craft.skills.bridge.EaBridge;
 import emaki.jiuwu.craft.skills.bridge.MythicBridge;
 import emaki.jiuwu.craft.skills.config.AppConfig;
@@ -39,6 +43,10 @@ import emaki.jiuwu.craft.skills.service.SkillLevelService;
 import emaki.jiuwu.craft.skills.service.SkillParameterResolver;
 import emaki.jiuwu.craft.skills.service.SkillRegistryService;
 import emaki.jiuwu.craft.skills.service.SkillUpgradeService;
+import emaki.jiuwu.craft.skills.script.SkillScriptCastService;
+import emaki.jiuwu.craft.skills.script.SkillScriptExecutor;
+import emaki.jiuwu.craft.skills.script.SkillVariableResolver;
+import emaki.jiuwu.craft.skills.script.builtin.BuiltinSkillScriptActions;
 import emaki.jiuwu.craft.skills.trigger.SkillTriggerDefinition;
 import emaki.jiuwu.craft.skills.trigger.TriggerConflictResolver;
 import emaki.jiuwu.craft.skills.trigger.TriggerRegistry;
@@ -106,12 +114,19 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
         SkillParameterResolver skillParameterResolver = new SkillParameterResolver(skillLevelService, plugin);
         CastModeService castModeService = new CastModeService(playerSkillDataStore);
         MythicSkillCastService mythicSkillCastService = new MythicSkillCastService(mythicBridge);
+        SkillVariableResolver skillVariableResolver = new SkillVariableResolver(skillLevelService, skillParameterResolver);
+        SkillScriptActionRegistry skillScriptActionRegistry = new DefaultSkillScriptActionRegistry();
+        SkillScriptExecutor skillScriptExecutor = new SkillScriptExecutor(skillScriptActionRegistry, coreLibPlugin.actionExecutor());
+        SkillScriptCastService skillScriptCastService = new SkillScriptCastService(plugin, skillVariableResolver, skillScriptExecutor);
+        BuiltinSkillScriptActions.registerAll(skillScriptActionRegistry, plugin, mythicSkillCastService);
+        EmakiSkillsApi emakiSkillsApi = new DefaultEmakiSkillsApi(skillScriptActionRegistry, skillScriptCastService);
         CastAttemptService castAttemptService = new CastAttemptService(
                 plugin,
                 playerSkillStateService,
                 castModeService,
                 playerSkillDataStore,
                 mythicSkillCastService,
+                skillScriptCastService,
                 skillParameterResolver,
                 eaBridge,
                 () -> localResourceDefinitionLoader.all(),
@@ -158,6 +173,11 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                 playerSkillStateService,
                 skillLevelService,
                 skillParameterResolver,
+                skillVariableResolver,
+                skillScriptActionRegistry,
+                skillScriptExecutor,
+                skillScriptCastService,
+                emakiSkillsApi,
                 skillUpgradeService,
                 castModeService,
                 castAttemptService,
@@ -264,6 +284,9 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                                 (int) defaults.passiveTriggerSettings().timerIntervalTicks())
                 );
 
+        AppConfig.ScriptEngineSettings scriptEngine = parseScriptEngineSettings(
+                configuration.getSection("script_engine"), defaults.scriptEngine());
+
         return new AppConfig(
                 configuration.getString("language", defaults.language()),
                 configuration.getString("version", defaults.configVersion()),
@@ -274,7 +297,8 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                 actionBar,
                 triggers,
                 passiveTriggers,
-                passiveTriggerSettings
+                passiveTriggerSettings,
+                scriptEngine
         );
     }
 
@@ -284,6 +308,22 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
 
     private static boolean boolValue(Boolean value, boolean fallback) {
         return value != null ? value : fallback;
+    }
+
+    private AppConfig.ScriptEngineSettings parseScriptEngineSettings(YamlSection section,
+            AppConfig.ScriptEngineSettings defaults) {
+        if (section == null) {
+            return defaults;
+        }
+        return new AppConfig.ScriptEngineSettings(
+                boolValue(section.getBoolean("enabled"), defaults.enabled()),
+                section.getString("default_mode", defaults.defaultMode()),
+                boolValue(section.getBoolean("stop_on_failure"), defaults.stopOnFailure()),
+                boolValue(section.getBoolean("fallback_to_corelib_actions"), defaults.fallbackToCoreLibActions()),
+                intValue(section.getInt("max_lines_per_phase"), defaults.maxLinesPerPhase()),
+                intValue(section.getInt("max_targets_per_action"), defaults.maxTargetsPerAction()),
+                boolValue(section.getBoolean("debug"), defaults.debug())
+        );
     }
 
     private Map<String, AppConfig.TriggerConfig> parseTriggers(YamlSection section) {

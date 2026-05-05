@@ -16,6 +16,8 @@ import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.skills.action.CastSkillAction;
+import emaki.jiuwu.craft.skills.api.EmakiSkillsApi;
+import emaki.jiuwu.craft.skills.api.SkillScriptActionRegistry;
 import emaki.jiuwu.craft.skills.bridge.EaBridge;
 import emaki.jiuwu.craft.skills.bridge.MythicBridge;
 import emaki.jiuwu.craft.skills.config.AppConfig;
@@ -34,6 +36,9 @@ import emaki.jiuwu.craft.skills.service.SkillLevelService;
 import emaki.jiuwu.craft.skills.service.SkillParameterResolver;
 import emaki.jiuwu.craft.skills.service.SkillRegistryService;
 import emaki.jiuwu.craft.skills.service.SkillUpgradeService;
+import emaki.jiuwu.craft.skills.script.SkillScriptCastService;
+import emaki.jiuwu.craft.skills.script.SkillScriptExecutor;
+import emaki.jiuwu.craft.skills.script.SkillVariableResolver;
 import emaki.jiuwu.craft.skills.trigger.DefaultTriggerDispatcher;
 import emaki.jiuwu.craft.skills.trigger.DropTriggerSource;
 import emaki.jiuwu.craft.skills.trigger.HotbarTriggerSource;
@@ -80,6 +85,11 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
     private PlayerSkillStateService playerSkillStateService;
     private SkillLevelService skillLevelService;
     private SkillParameterResolver skillParameterResolver;
+    private SkillVariableResolver skillVariableResolver;
+    private SkillScriptActionRegistry skillScriptActionRegistry;
+    private SkillScriptExecutor skillScriptExecutor;
+    private SkillScriptCastService skillScriptCastService;
+    private EmakiSkillsApi emakiSkillsApi;
     private SkillUpgradeService skillUpgradeService;
     private CastModeService castModeService;
     private CastAttemptService castAttemptService;
@@ -110,6 +120,7 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
         registerCommandHandler();
         registerEventHandlers();
         registerCoreLibActions();
+        registerPublicApi();
         ensurePlaceholderExpansion();
         if (actionBarService != null) {
             actionBarService.startRefreshTask();
@@ -123,6 +134,9 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
         if (placeholderExpansion != null) {
             placeholderExpansion.unregister();
             placeholderExpansion = null;
+        }
+        if (skillScriptActionRegistry != null) {
+            skillScriptActionRegistry.unregisterAll(this);
         }
         getServer().getServicesManager().unregisterAll(this);
         lifecycleCoordinator.shutdown(this);
@@ -151,6 +165,11 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
         playerSkillStateService = components.playerSkillStateService();
         skillLevelService = components.skillLevelService();
         skillParameterResolver = components.skillParameterResolver();
+        skillVariableResolver = components.skillVariableResolver();
+        skillScriptActionRegistry = components.skillScriptActionRegistry();
+        skillScriptExecutor = components.skillScriptExecutor();
+        skillScriptCastService = components.skillScriptCastService();
+        emakiSkillsApi = components.emakiSkillsApi();
         skillUpgradeService = components.skillUpgradeService();
         castModeService = components.castModeService();
         castAttemptService = components.castAttemptService();
@@ -202,6 +221,14 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
 
     private void registerCoreLibActions() {
         coreLib().actionRegistry().register(new CastSkillAction(mythicSkillCastService));
+    }
+
+    private void registerPublicApi() {
+        if (emakiSkillsApi == null) {
+            return;
+        }
+        getServer().getServicesManager().register(EmakiSkillsApi.class, emakiSkillsApi, this,
+                org.bukkit.plugin.ServicePriority.Normal);
     }
 
     private void unregisterCoreLibActions() {
@@ -291,6 +318,26 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
 
     public SkillParameterResolver skillParameterResolver() {
         return skillParameterResolver;
+    }
+
+    public SkillVariableResolver skillVariableResolver() {
+        return skillVariableResolver;
+    }
+
+    public SkillScriptActionRegistry skillScriptActionRegistry() {
+        return skillScriptActionRegistry;
+    }
+
+    public SkillScriptExecutor skillScriptExecutor() {
+        return skillScriptExecutor;
+    }
+
+    public SkillScriptCastService skillScriptCastService() {
+        return skillScriptCastService;
+    }
+
+    public EmakiSkillsApi emakiSkillsApi() {
+        return emakiSkillsApi;
     }
 
     public SkillUpgradeService skillUpgradeService() {

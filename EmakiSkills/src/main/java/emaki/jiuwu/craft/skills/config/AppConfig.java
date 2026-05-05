@@ -18,6 +18,7 @@ public final class AppConfig extends BaseAppConfig {
     private final Map<String, TriggerConfig> triggers;
     private final Map<String, TriggerConfig> passiveTriggers;
     private final PassiveTriggerSettings passiveTriggerSettings;
+    private final ScriptEngineSettings scriptEngine;
 
     public AppConfig(String language,
             String configVersion,
@@ -28,7 +29,8 @@ public final class AppConfig extends BaseAppConfig {
             ActionBarSettings actionBar,
             Map<String, TriggerConfig> triggers,
             Map<String, TriggerConfig> passiveTriggers,
-            PassiveTriggerSettings passiveTriggerSettings) {
+            PassiveTriggerSettings passiveTriggerSettings,
+            ScriptEngineSettings scriptEngine) {
         super(language, configVersion, CURRENT_VERSION);
         this.releaseDefaultData = releaseDefaultData;
         this.defaultSlotCount = Math.max(1, defaultSlotCount);
@@ -40,6 +42,7 @@ public final class AppConfig extends BaseAppConfig {
         this.passiveTriggerSettings = passiveTriggerSettings == null
                 ? PassiveTriggerSettings.defaults()
                 : passiveTriggerSettings;
+        this.scriptEngine = scriptEngine == null ? ScriptEngineSettings.defaults() : scriptEngine;
     }
 
     public static AppConfig defaults() {
@@ -53,7 +56,8 @@ public final class AppConfig extends BaseAppConfig {
                 ActionBarSettings.defaults(),
                 Map.of(),
                 Map.of(),
-                PassiveTriggerSettings.defaults()
+                PassiveTriggerSettings.defaults(),
+                ScriptEngineSettings.defaults()
         );
     }
 
@@ -87,6 +91,10 @@ public final class AppConfig extends BaseAppConfig {
 
     public PassiveTriggerSettings passiveTriggerSettings() {
         return passiveTriggerSettings;
+    }
+
+    public ScriptEngineSettings scriptEngine() {
+        return scriptEngine;
     }
 
     public record CastModeSettings(String entryKey, boolean restoreLastStateOnJoin) {
@@ -147,6 +155,25 @@ public final class AppConfig extends BaseAppConfig {
 
         public static PassiveTriggerSettings defaults() {
             return new PassiveTriggerSettings(20L);
+        }
+    }
+
+    public record ScriptEngineSettings(boolean enabled,
+            String defaultMode,
+            boolean stopOnFailure,
+            boolean fallbackToCoreLibActions,
+            int maxLinesPerPhase,
+            int maxTargetsPerAction,
+            boolean debug) {
+
+        public ScriptEngineSettings {
+            defaultMode = defaultMode == null || defaultMode.isBlank() ? "native" : defaultMode;
+            maxLinesPerPhase = Math.max(1, maxLinesPerPhase);
+            maxTargetsPerAction = Math.max(1, maxTargetsPerAction);
+        }
+
+        public static ScriptEngineSettings defaults() {
+            return new ScriptEngineSettings(true, "native", true, true, 64, 16, false);
         }
     }
 }
