@@ -428,9 +428,13 @@ public final class SkillUpgradeService {
         for (Map.Entry<String, Object> entry : placeholders.entrySet()) {
             stringPlaceholders.put(Texts.lower(entry.getKey()), Texts.toStringSafe(entry.getValue()));
         }
+        stringPlaceholders.putIfAbsent("skills_skill_id", definition.id());
+        stringPlaceholders.putIfAbsent("skills_phase", phase);
         ActionContext context = ActionContext.create(plugin, player, phase, false)
                 .withPlaceholders(stringPlaceholders)
-                .withAttribute("skill_id", definition.id());
+                .withAttribute("skill_definition", definition)
+                .withAttribute("skill_id", definition.id())
+                .withAttribute("phase", phase);
         executor.executeAll(context, actions, true)
                 .whenComplete((result, throwable) -> logActionResult(definition, phase, result, throwable));
     }

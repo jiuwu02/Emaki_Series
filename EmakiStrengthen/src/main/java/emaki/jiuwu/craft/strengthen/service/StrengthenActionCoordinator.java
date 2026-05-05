@@ -77,15 +77,17 @@ public final class StrengthenActionCoordinator {
         placeholders.put("dropped", Boolean.toString(dropped));
         placeholders.put("protected", Boolean.toString(protectionApplied));
         placeholders.put("was_star", Integer.toString(wasStar));
-        ActionContext context = new ActionContext(plugin, player, phase, false, placeholders, Map.of(
-                "recipe_id", recipe.id(),
-                "star", star,
-                "temper", temper,
-                "result_slot", resultSlotId == null ? "" : resultSlotId,
-                "dropped", dropped,
-                "protected", protectionApplied,
-                "was_star", wasStar
-        ));
+        Map<String, Object> attributes = new LinkedHashMap<>();
+        attributes.put("recipe", recipe);
+        attributes.put("recipe_id", recipe.id());
+        attributes.put("resultItem", resultItem);
+        attributes.put("star", star);
+        attributes.put("temper", temper);
+        attributes.put("result_slot", resultSlotId == null ? "" : resultSlotId);
+        attributes.put("dropped", dropped);
+        attributes.put("protected", protectionApplied);
+        attributes.put("was_star", wasStar);
+        ActionContext context = new ActionContext(plugin, player, phase, false, placeholders, attributes);
         actionExecutor.executeAll(context, actions, true)
                 .whenComplete((result, throwable) -> logActionResult(recipe, phase, star, result, throwable));
     }

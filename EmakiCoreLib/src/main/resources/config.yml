@@ -8,3 +8,62 @@ action:
     # forge_success_common:
     #   - 'sendmessage text="<green>成功获得 %forge_result_item_name%</green>"'
     #   - '@delay=10t playsound sound=minecraft:entity.experience_orb.pickup volume=0.8 pitch=1.2'
+
+script:
+  enabled: true
+  engine:
+    type: "graaljs"
+    default_timeout_millis: 1000
+    max_timeout_millis: 5000
+    cache_enabled: true
+    recompile_on_reload: true
+    allow_host_access: false
+    allow_host_class_lookup: false
+    allow_io: false
+    allow_threads: false
+    allow_native_access: false
+    allow_environment_access: false
+  paths:
+    root: "scripts"
+    create_directories:
+      - "global"
+      - "forge"
+      - "strengthen"
+      - "cooking"
+      - "gem"
+      - "skills"
+      - "item"
+      - "attribute"
+      - "templates"
+      - "examples"
+  action:
+    id: "runjs"
+    aliases:
+      - "runscript"
+      - "javascript"
+    default_function: "main"
+    stop_on_failure: true
+  context:
+    expose_context: true
+    expose_player: true
+    expose_item: true
+    expose_action: true
+    expose_logger: true
+    expose_random: true
+    expose_shared_state: true
+    expose_text: true
+  security:
+    denied_path_fragments:
+      - ".."
+      - ":"
+      - "\\"
+    denied_actions_from_script:
+      - "runjs"
+      - "runscript"
+      - "javascript"
+    allow_action_dispatch: true
+    max_action_depth: 3
+  debug:
+    log_script_load: true
+    log_script_execute: false
+    print_stacktrace: false

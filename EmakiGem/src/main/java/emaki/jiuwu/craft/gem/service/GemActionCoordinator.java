@@ -41,7 +41,9 @@ public final class GemActionCoordinator {
         if (executor == null) {
             return ExecutionResult.failure("Action executor unavailable.");
         }
-        ActionContext context = ActionContext.create(plugin, player, phase, false).withPlaceholders(placeholders);
+        ActionContext context = ActionContext.create(plugin, player, phase, false)
+                .withPlaceholders(placeholders)
+                .withAttribute("phase", phase);
         ActionBatchResult result = executor.executeAll(context, actions, true).join();
         if (result == null || result.success()) {
             return ExecutionResult.ok();

@@ -128,6 +128,15 @@
             <artifactId>caffeine</artifactId>
             <optional>true</optional>
         </dependency>
+        <dependency>
+            <groupId>org.graalvm.polyglot</groupId>
+            <artifactId>polyglot</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.graalvm.polyglot</groupId>
+            <artifactId>js</artifactId>
+            <type>pom</type>
+        </dependency>
     </dependencies>
 
     <build>

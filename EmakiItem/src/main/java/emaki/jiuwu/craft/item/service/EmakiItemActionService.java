@@ -47,10 +47,15 @@ public final class EmakiItemActionService {
         Map<String, Object> placeholders = new LinkedHashMap<>();
         placeholders.put("player", player == null ? "" : player.getName());
         placeholders.put("item_id", definition.id());
+        placeholders.put("item_trigger", trigger == null ? "" : trigger);
         placeholders.put("item_name", ItemTextBridge.effectiveNamePlain(plugin.itemFactory().create(definition.id(), 1)));
         if (extraPlaceholders != null) {
             placeholders.putAll(extraPlaceholders);
         }
-        return ActionContext.create(plugin, player, trigger, false).withPlaceholders(placeholders);
+        return ActionContext.create(plugin, player, trigger, false)
+                .withPlaceholders(placeholders)
+                .withAttribute("item_definition", definition)
+                .withAttribute("item_id", definition.id())
+                .withAttribute("trigger", trigger == null ? "" : trigger);
     }
 }

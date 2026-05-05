@@ -144,7 +144,9 @@ public final class CookingRewardService {
             return;
         }
         ActionContext context = ActionContext.create(plugin, player, phase, false)
-                .withPlaceholders(defaultPlaceholders(player, location, placeholders));
+                .withPlaceholders(defaultPlaceholders(player, location, placeholders))
+                .withAttribute("phase", phase)
+                .withAttribute("location", location);
         actionExecutor.executeAll(context, actions, true).whenComplete((result, throwable) -> {
             if (throwable != null) {
                 plugin.getLogger().warning("Failed to execute cooking actions: " + throwable.getMessage());
@@ -199,6 +201,9 @@ public final class CookingRewardService {
             values.put("recipe_id", recipe.id());
             values.put("recipe_name", recipe.displayName());
             values.put("station_type", recipe.stationType().folderName());
+            values.put("cooking_recipe_id", recipe.id());
+            values.put("cooking_recipe_name", recipe.displayName());
+            values.put("cooking_station_type", recipe.stationType().folderName());
         }
         if (Texts.isNotBlank(phase)) {
             values.put("phase", phase);
