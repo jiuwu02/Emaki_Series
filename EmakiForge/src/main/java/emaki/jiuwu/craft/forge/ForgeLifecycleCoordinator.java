@@ -40,7 +40,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
 
     private static final String DEFAULT_PREFIX = "<gray>[ <gradient:#F2C46D:#C9703D>Emaki Forge</gradient> ]</gray>";
     private static final String PDC_ATTRIBUTE_SOURCE_ID = "forge";
-    private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml");
+    private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml", "lang/en_US.yml");
     private static final List<String> STATIC_FILES = List.of("gui/forge_gui.yml", "gui/recipe_book.yml");
     private static final List<String> DEFAULT_DATA_FILES = List.of("recipes/flame_sword.yml");
     private static final List<String> EXTRA_DIRECTORIES = List.of("data");

@@ -35,7 +35,7 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
 
     private static final String DEFAULT_PREFIX = "<gray>[ <gradient:#F2C46D:#C9703D>装备强化</gradient> ]</gray>";
     private static final String PDC_ATTRIBUTE_SOURCE_ID = "strengthen";
-    private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml");
+    private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml", "lang/en_US.yml");
 
     @Override
     public StrengthenRuntimeComponents initialize(EmakiStrengthenPlugin plugin) {

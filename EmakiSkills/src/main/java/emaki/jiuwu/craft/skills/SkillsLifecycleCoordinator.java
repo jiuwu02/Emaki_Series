@@ -46,7 +46,7 @@ import emaki.jiuwu.craft.skills.trigger.TriggerRegistry;
 final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiSkillsPlugin, SkillsRuntimeComponents> {
 
     private static final String DEFAULT_PREFIX = "<gray>[ <gradient:#4DA6FF:#FF6B6B>主动技能</gradient> ]</gray>";
-    private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml");
+    private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml", "lang/en_US.yml");
     private static final List<String> EXTRA_DIRECTORIES = List.of("data");
 
     @Override

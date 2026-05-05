@@ -38,7 +38,7 @@ import emaki.jiuwu.craft.cooking.service.display.CookingDisplayServiceFactory;
 final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiCookingPlugin, CookingRuntimeComponents> {
 
     private static final String DEFAULT_PREFIX = "<gray>[ <gradient:#D8792E:#F6D16E>Emaki Cooking</gradient> ]</gray>";
-    private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml");
+    private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml", "lang/en_US.yml");
     private static final List<String> EXTRA_DIRECTORIES = List.of(
             "recipes/chopping_board",
             "recipes/wok",

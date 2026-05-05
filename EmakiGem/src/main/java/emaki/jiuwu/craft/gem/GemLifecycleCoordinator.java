@@ -43,7 +43,7 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
 
     private static final String DEFAULT_PREFIX = "<gray>[ <gradient:#B84DFF:#FF8A3D>装备宝石</gradient> ]</gray>";
     private static final String PDC_ATTRIBUTE_SOURCE_ID = "gem";
-    private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml");
+    private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml", "lang/en_US.yml");
     private static final List<String> EXTRA_DIRECTORIES = List.of("data");
 
     @Override

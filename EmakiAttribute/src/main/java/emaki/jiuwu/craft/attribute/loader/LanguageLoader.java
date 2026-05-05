@@ -41,7 +41,8 @@ public final class LanguageLoader {
         }
         File fallbackFile = plugin.dataPath("lang", fallbackLanguage + ".yml").toFile();
         try {
-            YamlFiles.loadCurrentResource(plugin, fallbackFile, "lang/" + fallbackLanguage + ".yml");
+            YamlFiles.syncVersionedResource(plugin, fallbackFile, "lang/" + fallbackLanguage + ".yml", "version");
+            syncBundledLanguages();
         } catch (IOException exception) {
             plugin.messageService().warning("loader.bundled_language_load_failed", Map.of("error", String.valueOf(exception.getMessage())));
         }
@@ -60,10 +61,13 @@ public final class LanguageLoader {
         for (File file : files) {
             String langId = file.getName().replace(".yml", "").replace(".yaml", "");
             try {
-                VersionedYamlFile versionedFile = YamlFiles.loadCurrentResource(plugin, file, "lang/" + langId + ".yml");
+                VersionedYamlFile versionedFile = YamlFiles.syncVersionedResource(plugin, file, "lang/" + langId + ".yml", "version");
                 YamlSection loaded = versionedFile == null || versionedFile.root() == null
                         ? YamlFiles.load(file)
                         : versionedFile.root().copy();
+                if (bundledFallback != null && fallbackLanguage.equals(langId)) {
+                    YamlFiles.mergeMissingValues(loaded, bundledFallback);
+                }
                 languages.put(langId, loaded);
             } catch (IOException exception) {
                 plugin.messageService().warning("loader.bundled_language_load_failed", Map.of("error", String.valueOf(exception.getMessage())));
@@ -78,6 +82,17 @@ public final class LanguageLoader {
             }
         }
         return languages.size();
+    }
+
+    private void syncBundledLanguages() throws IOException {
+        for (String bundledResource : YamlFiles.listResourcePaths(plugin, "lang")) {
+            String fileName = java.nio.file.Path.of(bundledResource).getFileName().toString();
+            if (Texts.isBlank(fileName)) {
+                continue;
+            }
+            File target = plugin.dataPath("lang", fileName).toFile();
+            YamlFiles.syncVersionedResource(plugin, target, bundledResource, "version");
+        }
     }
 
     public synchronized boolean setLanguage(String language) {
