@@ -63,7 +63,8 @@ public final class EmakiItemSetService {
         }
         List<EquippedItem> equippedItems = readEquippedItems(player);
         Map<String, Set<String>> equippedPiecesBySet = collectEquippedPieces(equippedItems);
-        Map<String, EquippedSetState> states = buildStates(equippedPiecesBySet);
+        Map<String, Set<String>> allPiecesBySet = collectAllPieces(player, equippedPiecesBySet);
+        Map<String, EquippedSetState> states = buildStates(allPiecesBySet);
         int changed = 0;
         for (EquippedItem equippedItem : equippedItems) {
             ItemStack original = equippedItem.itemStack();
@@ -90,6 +91,63 @@ public final class EmakiItemSetService {
                 changed++;
             } else if (updated != original) {
                 equippedItem.write(player.getInventory(), updated);
+                changed++;
+            }
+        }
+        // 扫描背包中非装备槽的物品，清除残留的套装 lore
+        changed += cleanInventorySetLore(player, states);
+        return changed;
+    }
+
+    private int cleanInventorySetLore(Player player,
+            Map<String, EquippedSetState> states) {
+        PlayerInventory inventory = player.getInventory();
+        int changed = 0;
+        // 背包主区域 0-35，排除装备槽对应的 index
+        // 装备槽: 主手=getHeldItemSlot(), 副手=40, 头盔=39, 胸甲=38, 护腿=37, 靴子=36
+        Set<Integer> equippedSlots = new java.util.HashSet<>(Set.of(40, 39, 38, 37, 36));
+        equippedSlots.add(inventory.getHeldItemSlot());
+        for (int slot = 0; slot < inventory.getSize(); slot++) {
+            if (equippedSlots.contains(slot)) {
+                continue;
+            }
+            ItemStack original = inventory.getItem(slot);
+            if (original == null || original.getType().isAir()) {
+                continue;
+            }
+            String id = identifier.identify(original);
+            EmakiItemDefinition definition = Texts.isBlank(id) ? null : itemLoader.get(id);
+            if (definition == null) {
+                continue;
+            }
+            ItemSetMembership membership = definition.setMembership();
+            // 如果物品是套装成员且在背包中（非装备槽），需要显示套装 lore（仅展示信息，不激活属性）
+            if (membership.configured()) {
+                EquippedSetState state = states.get(membership.setId());
+                if (state != null) {
+                    // 背包中的套装物品也应该显示套装 lore（与装备槽一致）
+                    String existingSignature = identifier.setSignature(original);
+                    ItemStack updated = updateService.forceUpdate(original);
+                    ItemStack rendered = renderSetItem(updated, definition, membership, state);
+                    String newSignature = identifier.setSignature(rendered);
+                    if (!newSignature.equals(existingSignature)) {
+                        inventory.setItem(slot, rendered);
+                        changed++;
+                    }
+                } else {
+                    // 套装定义不存在或没有任何装备件数，清除残留套装 lore
+                    if (Texts.isNotBlank(identifier.setSignature(original))) {
+                        ItemStack updated = updateService.forceUpdate(original);
+                        pdcWriter.clearDynamicSet(updated, definition);
+                        inventory.setItem(slot, updated);
+                        changed++;
+                    }
+                }
+            } else if (Texts.isNotBlank(identifier.setSignature(original))) {
+                // 物品不再是套装成员但仍有套装签名，清除
+                ItemStack updated = updateService.forceUpdate(original);
+                pdcWriter.clearDynamicSet(updated, definition);
+                inventory.setItem(slot, updated);
                 changed++;
             }
         }
@@ -161,6 +219,36 @@ public final class EmakiItemSetService {
         Map<String, Set<String>> result = new LinkedHashMap<>();
         for (EquippedItem equippedItem : equippedItems) {
             String id = identifier.identify(equippedItem.itemStack());
+            EmakiItemDefinition definition = Texts.isBlank(id) ? null : itemLoader.get(id);
+            if (definition == null || !definition.setMembership().configured()) {
+                continue;
+            }
+            ItemSetMembership membership = definition.setMembership();
+            result.computeIfAbsent(membership.setId(), ignored -> new LinkedHashSet<>())
+                    .add(membership.effectivePieceId(definition.id()));
+        }
+        return result;
+    }
+
+    /**
+     * 收集玩家整个背包（含装备槽）中所有套装物品的 pieceId，用于构建完整的套装状态。
+     * 这样即使物品在背包中未装备，也能正确显示套装 lore。
+     */
+    private Map<String, Set<String>> collectAllPieces(Player player, Map<String, Set<String>> equippedPieces) {
+        Map<String, Set<String>> result = new LinkedHashMap<>(equippedPieces.size());
+        equippedPieces.forEach((setId, pieces) -> result.put(setId, new LinkedHashSet<>(pieces)));
+        PlayerInventory inventory = player.getInventory();
+        Set<Integer> equippedSlots = new java.util.HashSet<>(Set.of(40, 39, 38, 37, 36));
+        equippedSlots.add(inventory.getHeldItemSlot());
+        for (int slot = 0; slot < inventory.getSize(); slot++) {
+            if (equippedSlots.contains(slot)) {
+                continue;
+            }
+            ItemStack itemStack = inventory.getItem(slot);
+            if (itemStack == null || itemStack.getType().isAir()) {
+                continue;
+            }
+            String id = identifier.identify(itemStack);
             EmakiItemDefinition definition = Texts.isBlank(id) ? null : itemLoader.get(id);
             if (definition == null || !definition.setMembership().configured()) {
                 continue;

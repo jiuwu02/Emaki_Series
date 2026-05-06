@@ -38,7 +38,7 @@ public record ItemUpdateConfig(boolean enabled,
                 case "inventory_drag" -> inventoryDrag;
                 case "pickup" -> pickup;
                 case "interact" -> interact;
-                case "command" -> command;
+                case "command", "give" -> command;
                 default -> false;
             };
         }

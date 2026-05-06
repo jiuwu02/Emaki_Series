@@ -50,7 +50,7 @@ public final class BoostedYamlSupport {
             );
             return new MapYamlSection(new BoostedYamlSection(document).asMap());
         } catch (Exception exception) {
-            return new MapYamlSection();
+            throw new YamlLoadException("Failed to parse YAML input: " + safeMessage(exception), exception);
         }
     }
 
@@ -60,8 +60,10 @@ public final class BoostedYamlSupport {
         }
         try (InputStream inputStream = new ByteArrayInputStream(payload.getBytes(StandardCharsets.UTF_8))) {
             return load(inputStream);
+        } catch (YamlLoadException exception) {
+            throw exception;
         } catch (Exception exception) {
-            return new MapYamlSection();
+            throw new YamlLoadException("Failed to read YAML payload: " + safeMessage(exception), exception);
         }
     }
 
@@ -73,8 +75,10 @@ public final class BoostedYamlSupport {
             StringWriter writer = new StringWriter();
             reader.transferTo(writer);
             return load(writer.toString());
+        } catch (YamlLoadException exception) {
+            throw exception;
         } catch (Exception exception) {
-            return new MapYamlSection();
+            throw new YamlLoadException("Failed to read YAML stream: " + safeMessage(exception), exception);
         }
     }
 
@@ -96,5 +100,12 @@ public final class BoostedYamlSupport {
         } catch (Exception exception) {
             return "";
         }
+    }
+
+    private static String safeMessage(Throwable throwable) {
+        if (throwable == null || throwable.getMessage() == null || throwable.getMessage().isBlank()) {
+            return throwable == null ? "unknown error" : throwable.getClass().getSimpleName();
+        }
+        return throwable.getMessage();
     }
 }

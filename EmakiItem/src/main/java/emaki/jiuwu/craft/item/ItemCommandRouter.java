@@ -145,6 +145,7 @@ final class ItemCommandRouter implements TabExecutor {
         Map<Integer, ItemStack> leftovers = target.getInventory().addItem(itemStack);
         leftovers.values().forEach(left -> target.getWorld().dropItemNaturally(target.getLocation(), left));
         plugin.actionService().execute(target, definition, "give", Map.of("amount", amount));
+        plugin.setService().refreshEquippedSets(target, "give");
         plugin.messageService().send(sender, "general.give_success", Map.of(
                 "player", target.getName(),
                 "id", id,

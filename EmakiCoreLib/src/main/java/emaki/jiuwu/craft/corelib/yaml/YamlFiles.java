@@ -56,8 +56,10 @@ public final class YamlFiles {
         }
         try (InputStream inputStream = Files.newInputStream(file.toPath())) {
             return BoostedYamlSupport.load(inputStream);
+        } catch (YamlLoadException exception) {
+            throw new YamlLoadException("Failed to load YAML file '" + file.getPath() + "': " + safeMessage(exception), exception);
         } catch (Exception exception) {
-            return new MapYamlSection();
+            throw new YamlLoadException("Failed to read YAML file '" + file.getPath() + "': " + safeMessage(exception), exception);
         }
     }
 
@@ -74,9 +76,14 @@ public final class YamlFiles {
             return new MapYamlSection();
         }
         try (InputStream inputStream = plugin.getResource(resourcePath)) {
+            if (inputStream == null) {
+                return new MapYamlSection();
+            }
             return load(inputStream);
+        } catch (YamlLoadException exception) {
+            throw new YamlLoadException("Failed to load YAML resource '" + resourcePath + "': " + safeMessage(exception), exception);
         } catch (Exception exception) {
-            return new MapYamlSection();
+            throw new YamlLoadException("Failed to read YAML resource '" + resourcePath + "': " + safeMessage(exception), exception);
         }
     }
 
@@ -97,7 +104,7 @@ public final class YamlFiles {
             );
             return new VersionedYamlFile(null, resourcePath, document);
         } catch (Exception exception) {
-            return null;
+            throw new YamlLoadException("Failed to load versioned YAML resource '" + resourcePath + "': " + safeMessage(exception), exception);
         }
     }
 
@@ -322,6 +329,13 @@ public final class YamlFiles {
         } catch (AtomicMoveNotSupportedException _) {
             Files.move(source, target, StandardCopyOption.REPLACE_EXISTING);
         }
+    }
+
+    private static String safeMessage(Throwable throwable) {
+        if (throwable == null || throwable.getMessage() == null || throwable.getMessage().isBlank()) {
+            return throwable == null ? "unknown error" : throwable.getClass().getSimpleName();
+        }
+        return throwable.getMessage();
     }
 
     private static void scanResourceLocation(URL location, String normalizedDirectory, LinkedHashSet<String> resourcePaths) throws Exception {
