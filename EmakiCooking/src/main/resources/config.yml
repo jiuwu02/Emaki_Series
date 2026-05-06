@@ -228,6 +228,10 @@ stations:
     drop_result: true
     only_recipe_items: true
     require_container: true
+    # 榨汁机内部默认最大流体容量，单位 ml
+    max_fluid_ml: 1000
+    # 默认每次容器盛取需要的流体量，单位 ml
+    default_serving_ml: 250
     container_item_sources:
       - minecraft-glass_bottle
     drop_completed_result_on_break: false

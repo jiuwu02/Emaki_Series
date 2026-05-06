@@ -55,6 +55,10 @@ final class OvenStateCodec {
             Map<String, Object> progress = new LinkedHashMap<>();
             progress.put("index", entry.getKey());
             progress.put("progress", Math.max(0, entry.getValue()));
+            int perfectProgress = state.perfectProgressAt(entry.getKey());
+            if (perfectProgress > 0) {
+                progress.put("perfect_progress", perfectProgress);
+            }
             slotProgress.add(progress);
         }
         if (!slotProgress.isEmpty()) {
@@ -87,8 +91,10 @@ final class OvenStateCodec {
             Map<String, Object> progress = MapYamlSection.normalizeMap(raw);
             int index = CookingRuntimeUtil.parseInteger(progress.get("index"), -1);
             int value = CookingRuntimeUtil.parseInteger(progress.get("progress"), 0);
+            int perfectValue = CookingRuntimeUtil.parseInteger(progress.get("perfect_progress"), 0);
             if (index >= 0) {
                 state.setProgress(index, value);
+                state.setPerfectProgress(index, perfectValue);
             }
         }
         return state;

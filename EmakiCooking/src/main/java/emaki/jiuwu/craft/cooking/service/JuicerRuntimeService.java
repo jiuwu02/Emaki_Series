@@ -101,6 +101,11 @@ public final class JuicerRuntimeService implements Listener {
             }
             return guiController.openGui(player, coordinates);
         }
+        if (settingsService.matchesInteraction(StationType.JUICER, CookingSettingsService.INTERACTION_SERVE, interaction)
+                && loadStateOrEmpty(coordinates).hasFluid()) {
+            interaction.cancel();
+            return serve(player, block, coordinates);
+        }
         if (settingsService.matchesInteraction(StationType.JUICER, CookingSettingsService.INTERACTION_PROCESS, interaction)) {
             interaction.cancel();
             if (!player.hasPermission(CookingPermissions.JUICER_PRESS) && !player.hasPermission(CookingPermissions.ADMIN)) {
@@ -160,6 +165,9 @@ public final class JuicerRuntimeService implements Listener {
                 return true;
             }
             state.setProgress(slot, required);
+            if (recipeService.juicerHasFluidMode(recipe)) {
+                return completeFluidPress(player, coordinates, state, slot, recipe);
+            }
             if (!consumeContainerIfNeeded(player, recipe)) {
                 saveState(coordinates, state);
                 CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "juicer.need_container", Map.of());
@@ -171,6 +179,40 @@ public final class JuicerRuntimeService implements Listener {
             return true;
         }
         CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "juicer.no_recipe", Map.of());
+        return true;
+    }
+
+    private boolean completeFluidPress(Player player, StationCoordinates coordinates, JuicerState state, int slot, RecipeDocument recipe) {
+        String fluidId = recipeService.juicerFluidId(recipe);
+        String fluidName = recipeService.juicerFluidDisplayName(recipe);
+        int amountMl = recipeService.juicerFluidAmountMl(recipe);
+        int maxMl = settingsService.juicerMaxFluidMl();
+        if (state.hasFluid() && !state.fluidId().equalsIgnoreCase(fluidId)) {
+            saveState(coordinates, state);
+            CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "juicer.fluid_mismatch", Map.of(
+                    "current_fluid", state.fluidDisplayName(),
+                    "new_fluid", fluidName
+            ));
+            return true;
+        }
+        if (!state.canAcceptFluid(fluidId, amountMl, maxMl)) {
+            saveState(coordinates, state);
+            CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "juicer.fluid_full", Map.of(
+                    "current", state.fluidAmountMl(),
+                    "max", maxMl
+            ));
+            return true;
+        }
+        state.removeSlot(slot);
+        state.addFluid(fluidId, fluidName, amountMl, maxMl);
+        state.setPlayerContext(player.getUniqueId(), player.getName());
+        saveState(coordinates, state);
+        CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "juicer.fluid_added", Map.of(
+                "fluid", state.fluidDisplayName(),
+                "amount", amountMl,
+                "current", state.fluidAmountMl(),
+                "max", maxMl
+        ));
         return true;
     }
 
@@ -198,6 +240,47 @@ public final class JuicerRuntimeService implements Listener {
         return false;
     }
 
+    private boolean serve(Player player, Block block, StationCoordinates coordinates) {
+        JuicerState state = loadStateOrEmpty(coordinates);
+        if (!state.hasFluid()) {
+            CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "juicer.fluid_empty", Map.of());
+            return true;
+        }
+        RecipeDocument recipe = recipeService.findJuicerRecipeByFluidId(state.fluidId(), player);
+        if (recipe == null) {
+            CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "juicer.no_recipe", Map.of());
+            return true;
+        }
+        int servingMl = recipeService.juicerServingMl(recipe);
+        if (state.fluidAmountMl() < servingMl) {
+            CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "juicer.fluid_not_enough", Map.of(
+                    "fluid", state.fluidDisplayName(),
+                    "required", servingMl,
+                    "current", state.fluidAmountMl()
+            ));
+            return true;
+        }
+        if (!consumeContainerIfNeeded(player, recipe)) {
+            saveState(coordinates, state);
+            CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "juicer.need_container", Map.of());
+            return true;
+        }
+        Location location = block.getLocation().add(0.5D, 1.0D, 0.5D);
+        Map<String, Object> outcome = recipeService.outcome(recipe, "result.output");
+        rewardService.deliver(recipe, player, location, settingsService.juicerDropResult(), recipeService.outputs(outcome),
+                recipeService.actions(outcome), "cooking_juicer_serve", Map.of("recipe_id", recipe.id(), "station_type", StationType.JUICER.folderName(), "fluid_id", state.fluidId()));
+        state.consumeFluid(servingMl);
+        state.setPlayerContext(player.getUniqueId(), player.getName());
+        saveState(coordinates, state);
+        CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "juicer.served", Map.of(
+                "fluid", recipeService.juicerFluidDisplayName(recipe),
+                "amount", servingMl,
+                "current", state.fluidAmountMl(),
+                "max", settingsService.juicerMaxFluidMl()
+        ));
+        return true;
+    }
+
     private void completeSlot(Player player, Block block, JuicerState state, int slot, RecipeDocument recipe) {
         Location location = block.getLocation().add(0.5D, 1.0D, 0.5D);
         Map<String, Object> outcome = recipeService.outcome(recipe, "result.output");
@@ -219,7 +302,10 @@ public final class JuicerRuntimeService implements Listener {
             progress += Math.min(recipeService.juicerPressesRequired(recipe), state.progressAt(entry.getKey()));
         }
         String text = total <= 0 ? messageService.message("juicer.progress_not_started") : progress + "/" + total;
-        CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "juicer.info", Map.of("progress", text));
+        String fluidText = state.hasFluid()
+                ? state.fluidDisplayName() + " " + state.fluidAmountMl() + "/" + settingsService.juicerMaxFluidMl() + "ml"
+                : messageService.message("juicer.fluid_none");
+        CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "juicer.info", Map.of("progress", text, "fluid", fluidText));
         return true;
     }
 

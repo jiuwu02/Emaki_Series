@@ -8,6 +8,13 @@ input:
 
 bake_time_seconds: 20
 
+baking:
+  perfect_heat:
+    min: 45
+    max: 60
+  perfect_required_ratio: 0.7
+  overbake_seconds: 10
+
 permission: "emakicooking.recipe.baked_potato"
 
 result:

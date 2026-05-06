@@ -103,6 +103,7 @@ final class JuicerGuiController {
         JuicerState previous = runtimeService.loadStateOrEmpty(coordinates);
         JuicerState updated = new JuicerState();
         updated.setPlayerContext(playerUuid, playerName);
+        updated.setFluid(previous.fluidId(), previous.fluidDisplayName(), previous.fluidAmountMl());
         if (inventory == null) {
             return updated;
         }
@@ -121,7 +122,7 @@ final class JuicerGuiController {
                 continue;
             }
             String source = identifySource(itemStack);
-            if (Texts.isBlank(source) || rejectsRecipeInput(itemStack, player)) {
+            if (Texts.isBlank(source) || rejectsRecipeInput(coordinates, itemStack, player)) {
                 if (player != null) {
                     inventory.clear(slot);
                     InventoryItemUtil.giveOrDrop(player, itemStack);
@@ -210,7 +211,7 @@ final class JuicerGuiController {
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
         Inventory topInventory = event.getView().getTopInventory();
-        if (!(topInventory.getHolder() instanceof JuicerGuiHolder)) {
+        if (!(topInventory.getHolder() instanceof JuicerGuiHolder holder)) {
             return;
         }
         Player player = event.getWhoClicked() instanceof Player viewer ? viewer : null;
@@ -224,7 +225,7 @@ final class JuicerGuiController {
             event.setCancelled(true);
             return;
         }
-        if (rawSlot >= 0 && rawSlot < topSize && rejectsRecipeInput(event.getCursor(), player)) {
+        if (rawSlot >= 0 && rawSlot < topSize && rejectsRecipeInput(holder.coordinates(), event.getCursor(), player)) {
             event.setCancelled(true);
             sendInputRejected(player);
         }
@@ -233,7 +234,7 @@ final class JuicerGuiController {
     @EventHandler
     public void onInventoryDrag(InventoryDragEvent event) {
         Inventory topInventory = event.getView().getTopInventory();
-        if (!(topInventory.getHolder() instanceof JuicerGuiHolder)) {
+        if (!(topInventory.getHolder() instanceof JuicerGuiHolder holder)) {
             return;
         }
         Player player = event.getWhoClicked() instanceof Player viewer ? viewer : null;
@@ -244,7 +245,7 @@ final class JuicerGuiController {
                 event.setCancelled(true);
                 return;
             }
-            if (rawSlot != null && rawSlot >= 0 && rawSlot < topSize && rejectsRecipeInput(event.getNewItems().get(rawSlot), player)) {
+            if (rawSlot != null && rawSlot >= 0 && rawSlot < topSize && rejectsRecipeInput(holder.coordinates(), event.getNewItems().get(rawSlot), player)) {
                 event.setCancelled(true);
                 sendInputRejected(player);
                 return;
@@ -275,12 +276,20 @@ final class JuicerGuiController {
         return source == null ? "" : Texts.toStringSafe(ItemSourceUtil.toShorthand(source));
     }
 
-    private boolean rejectsRecipeInput(ItemStack itemStack, Player player) {
-        if (!settingsService.onlyRecipeItems(StationType.JUICER) || itemStack == null || itemStack.getType().isAir()) {
+    private boolean rejectsRecipeInput(StationCoordinates coordinates, ItemStack itemStack, Player player) {
+        if (itemStack == null || itemStack.getType().isAir()) {
             return false;
         }
         String source = identifySource(itemStack);
-        return Texts.isBlank(source) || recipeService.findJuicerRecipe(source, player) == null;
+        RecipeDocument recipe = Texts.isBlank(source) ? null : recipeService.findJuicerRecipe(source, player);
+        if (settingsService.onlyRecipeItems(StationType.JUICER) && recipe == null) {
+            return true;
+        }
+        if (recipe == null || !recipeService.juicerHasFluidMode(recipe) || coordinates == null || runtimeService == null) {
+            return false;
+        }
+        JuicerState state = runtimeService.loadStateOrEmpty(coordinates);
+        return state.hasFluid() && !state.fluidId().equalsIgnoreCase(recipeService.juicerFluidId(recipe));
     }
 
     private void sendInputRejected(Player player) {

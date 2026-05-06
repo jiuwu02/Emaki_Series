@@ -150,16 +150,32 @@ public final class FermentationBarrelRuntimeService implements Listener {
                 messageService.send(player, "general.no_permission");
                 return true;
             }
-            deliverResult(player, block, state);
+            FermentationStage stage = currentFermentationStage(state, System.currentTimeMillis());
+            deliverResult(player, block, state, stage);
             state.clearSlots();
             state.clearProcess();
             removeState(coordinates, true);
             activeStations.remove(coordinates);
-            CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "fermentation_barrel.collected", Map.of());
+            CookingRuntimeUtil.sendActionBar(plugin, player, messageService, collectionMessage(stage), Map.of());
             return true;
         }
         if (state.fermenting()) {
-            long seconds = Math.max(0L, (state.finishAtMs() - System.currentTimeMillis()) / 1000L);
+            long now = System.currentTimeMillis();
+            FermentationStage stage = currentFermentationStage(state, now);
+            if (stage == FermentationStage.EARLY) {
+                if (!player.hasPermission(CookingPermissions.FERMENTATION_BARREL_COLLECT) && !player.hasPermission(CookingPermissions.ADMIN)) {
+                    messageService.send(player, "general.no_permission");
+                    return true;
+                }
+                deliverResult(player, block, state, stage);
+                state.clearSlots();
+                state.clearProcess();
+                removeState(coordinates, true);
+                activeStations.remove(coordinates);
+                CookingRuntimeUtil.sendActionBar(plugin, player, messageService, collectionMessage(stage), Map.of());
+                return true;
+            }
+            long seconds = Math.max(0L, (state.finishAtMs() - now) / 1000L);
             CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "fermentation_barrel.fermenting", Map.of("seconds", seconds));
             return true;
         }
@@ -232,12 +248,64 @@ public final class FermentationBarrelRuntimeService implements Listener {
     private boolean showInfo(Player player, StationCoordinates coordinates) {
         FermentationBarrelState state = loadStateOrEmpty(coordinates);
         long now = System.currentTimeMillis();
-        String status = state.completed() ? messageService.message("fermentation_barrel.status_completed")
-                : state.fermenting() ? messageService.message("fermentation_barrel.status_fermenting") : messageService.message("fermentation_barrel.status_idle");
+        FermentationStage stage = currentFermentationStage(state, now);
+        String status = statusText(state, stage);
         long seconds = state.fermenting() ? Math.max(0L, (state.finishAtMs() - now) / 1000L) : 0L;
         String progress = calculateProgress(state, now);
         CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "fermentation_barrel.info", Map.of("status", status, "seconds", seconds, "progress", progress));
         return true;
+    }
+
+    private String statusText(FermentationBarrelState state, FermentationStage stage) {
+        if (state == null || (!state.fermenting() && !state.completed())) {
+            return messageService.message("fermentation_barrel.status_idle");
+        }
+        if (stage == FermentationStage.OVER) {
+            return messageService.message("fermentation_barrel.status_over");
+        }
+        if (stage == FermentationStage.EARLY) {
+            return messageService.message("fermentation_barrel.status_early_ready");
+        }
+        return state.completed() ? messageService.message("fermentation_barrel.status_completed")
+                : messageService.message("fermentation_barrel.status_fermenting");
+    }
+
+    private FermentationStage currentFermentationStage(FermentationBarrelState state, long now) {
+        if (state == null) {
+            return FermentationStage.COMPLETE;
+        }
+        RecipeDocument recipe = recipeService.fermentationBarrelRecipeById(state.activeRecipeId());
+        if (recipe == null) {
+            return FermentationStage.COMPLETE;
+        }
+        if (state.completed()) {
+            int overSeconds = recipeService.fermentationOverTimeSeconds(recipe);
+            if (overSeconds > 0 && now >= state.finishAtMs() + overSeconds * 1000L) {
+                return FermentationStage.OVER;
+            }
+            return FermentationStage.COMPLETE;
+        }
+        if (state.fermenting()) {
+            double earlyRatio = recipeService.fermentationEarlyMinProgressRatio(recipe);
+            if (earlyRatio >= 0.0D) {
+                long total = Math.max(1L, state.finishAtMs() - state.startedAtMs());
+                long done = Math.max(0L, now - state.startedAtMs());
+                if ((double) done / (double) total >= earlyRatio) {
+                    return FermentationStage.EARLY;
+                }
+            }
+        }
+        return FermentationStage.COMPLETE;
+    }
+
+    private String collectionMessage(FermentationStage stage) {
+        if (stage == FermentationStage.EARLY) {
+            return "fermentation_barrel.collected_early";
+        }
+        if (stage == FermentationStage.OVER) {
+            return "fermentation_barrel.collected_over";
+        }
+        return "fermentation_barrel.collected";
     }
 
     private String calculateProgress(FermentationBarrelState state, long now) {
@@ -289,18 +357,18 @@ public final class FermentationBarrelRuntimeService implements Listener {
         }
     }
 
-    private void deliverResult(Player player, Block block, FermentationBarrelState state) {
+    private void deliverResult(Player player, Block block, FermentationBarrelState state, FermentationStage stage) {
         RecipeDocument recipe = recipeService.fermentationBarrelRecipeById(state.activeRecipeId());
         if (recipe == null) {
             return;
         }
         Location location = block.getLocation().add(0.5D, 1.0D, 0.5D);
-        Map<String, Object> outcome = recipeService.outcome(recipe, "result.output");
+        Map<String, Object> outcome = recipeService.fermentationOutcomeForStage(recipe, stage);
         rewardService.deliver(recipe, player, location, settingsService.fermentationBarrelDropResult(), recipeService.outputs(outcome),
-                recipeService.actions(outcome), "cooking_fermentation_barrel_complete", Map.of("recipe_id", recipe.id(), "station_type", StationType.FERMENTATION_BARREL.folderName()));
+                recipeService.actions(outcome), "cooking_fermentation_barrel_complete", Map.of("recipe_id", recipe.id(), "station_type", StationType.FERMENTATION_BARREL.folderName(), "stage", stage.name().toLowerCase(java.util.Locale.ROOT)));
     }
 
-    private void dropResult(Block block, FermentationBarrelState state) { deliverResult(null, block, state); }
+    private void dropResult(Block block, FermentationBarrelState state) { deliverResult(null, block, state, currentFermentationStage(state, System.currentTimeMillis())); }
 
     private void dropOriginalItems(Block block, FermentationBarrelState state) {
         if (block.getWorld() == null) {

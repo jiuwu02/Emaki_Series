@@ -101,12 +101,84 @@ public final class CookingRecipeService {
         return recipe == null ? 0 : Math.max(0, recipe.configuration().getInt("bake_time_seconds", 0));
     }
 
+    public int ovenPerfectHeatMin(RecipeDocument recipe) {
+        return recipe == null ? settingsService.ovenHeatMin()
+                : Math.max(0, recipe.configuration().getInt("baking.perfect_heat.min", settingsService.ovenHeatMin()));
+    }
+
+    public int ovenPerfectHeatMax(RecipeDocument recipe) {
+        return recipe == null ? settingsService.ovenHeatMax()
+                : Math.max(ovenPerfectHeatMin(recipe), recipe.configuration().getInt("baking.perfect_heat.max", settingsService.ovenHeatMax()));
+    }
+
+    public double ovenPerfectRequiredRatio(RecipeDocument recipe) {
+        if (recipe == null) {
+            return 1.0D;
+        }
+        double value = recipe.configuration().getDouble("baking.perfect_required_ratio", 1.0D);
+        return Math.max(0.0D, Math.min(1.0D, value));
+    }
+
+    public int ovenOverbakeSeconds(RecipeDocument recipe) {
+        return recipe == null ? 0 : Math.max(0, recipe.configuration().getInt("baking.overbake_seconds", 0));
+    }
+
+    public Map<String, Object> ovenOutcomeForStage(RecipeDocument recipe, OvenBakeStage stage) {
+        if (stage == OvenBakeStage.PERFECT) {
+            Map<String, Object> outcome = outcome(recipe, "result.perfect_output");
+            return outcome.isEmpty() ? outcome(recipe, "result.output") : outcome;
+        }
+        if (stage == OvenBakeStage.OVERBAKED) {
+            Map<String, Object> outcome = outcome(recipe, "result.overbaked_output");
+            return outcome.isEmpty() ? outcome(recipe, "result.output") : outcome;
+        }
+        return outcome(recipe, "result.output");
+    }
+
     public RecipeDocument findJuicerRecipe(String inputSource, Player player) {
         return findByInput(plugin.juicerRecipeLoader().all().values(), inputSource, player);
     }
 
     public int juicerPressesRequired(RecipeDocument recipe) {
         return recipe == null ? 0 : Math.max(0, recipe.configuration().getInt("presses_required", 0));
+    }
+
+    public boolean juicerHasFluidMode(RecipeDocument recipe) {
+        return Texts.isNotBlank(juicerFluidId(recipe));
+    }
+
+    public String juicerFluidId(RecipeDocument recipe) {
+        return recipe == null ? "" : Texts.toStringSafe(recipe.configuration().getString("fluid.id", "")).trim();
+    }
+
+    public String juicerFluidDisplayName(RecipeDocument recipe) {
+        if (recipe == null) {
+            return "";
+        }
+        String displayName = recipe.configuration().getString("fluid.display_name", "");
+        return Texts.isBlank(displayName) ? juicerFluidId(recipe) : displayName;
+    }
+
+    public int juicerFluidAmountMl(RecipeDocument recipe) {
+        return recipe == null ? 0 : Math.max(0, recipe.configuration().getInt("fluid.amount_ml", 0));
+    }
+
+    public int juicerServingMl(RecipeDocument recipe) {
+        return recipe == null ? settingsService.juicerDefaultServingMl()
+                : Math.max(1, recipe.configuration().getInt("container.serving_ml", settingsService.juicerDefaultServingMl()));
+    }
+
+    public RecipeDocument findJuicerRecipeByFluidId(String fluidId, Player player) {
+        if (Texts.isBlank(fluidId)) {
+            return null;
+        }
+        for (RecipeDocument recipe : plugin.juicerRecipeLoader().all().values()) {
+            if (recipe == null || !fluidId.equalsIgnoreCase(juicerFluidId(recipe)) || !canUseRecipe(recipe, player)) {
+                continue;
+            }
+            return recipe;
+        }
+        return null;
     }
 
     public List<ItemSource> juicerContainerSources(RecipeDocument recipe) {
@@ -127,6 +199,33 @@ public final class CookingRecipeService {
 
     public int fermentationTimeSeconds(RecipeDocument recipe) {
         return recipe == null ? 0 : Math.max(0, recipe.configuration().getInt("fermentation_time_seconds", 0));
+    }
+
+    public double fermentationEarlyMinProgressRatio(RecipeDocument recipe) {
+        if (recipe == null || outcome(recipe, "fermentation.early_collect.output").isEmpty()) {
+            return -1.0D;
+        }
+        double value = recipe.configuration().getDouble("fermentation.early_collect.min_progress_ratio", 1.0D);
+        return Math.max(0.0D, Math.min(1.0D, value));
+    }
+
+    public int fermentationOverTimeSeconds(RecipeDocument recipe) {
+        if (recipe == null || outcome(recipe, "fermentation.over_output").isEmpty()) {
+            return 0;
+        }
+        return Math.max(0, recipe.configuration().getInt("fermentation.over_time_seconds", 0));
+    }
+
+    public Map<String, Object> fermentationOutcomeForStage(RecipeDocument recipe, FermentationStage stage) {
+        if (stage == FermentationStage.EARLY) {
+            Map<String, Object> outcome = outcome(recipe, "fermentation.early_collect.output");
+            return outcome.isEmpty() ? outcome(recipe, "result.output") : outcome;
+        }
+        if (stage == FermentationStage.OVER) {
+            Map<String, Object> outcome = outcome(recipe, "fermentation.over_output");
+            return outcome.isEmpty() ? outcome(recipe, "result.output") : outcome;
+        }
+        return outcome(recipe, "result.output");
     }
 
     public List<Map<String, Object>> fermentationInputs(RecipeDocument recipe) {

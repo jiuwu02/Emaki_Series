@@ -15,6 +15,7 @@ final class OvenState {
     private final Map<Integer, String> slotSources = new LinkedHashMap<>();
     private final Map<Integer, Map<String, Object>> slotItems = new LinkedHashMap<>();
     private final Map<Integer, Integer> slotProgress = new LinkedHashMap<>();
+    private final Map<Integer, Integer> slotPerfectProgress = new LinkedHashMap<>();
 
     long burningUntilMs() {
         return burningUntilMs;
@@ -55,6 +56,10 @@ final class OvenState {
         return slotProgress;
     }
 
+    Map<Integer, Integer> slotPerfectProgress() {
+        return slotPerfectProgress;
+    }
+
     Map<String, Object> slotItemData(int slot) {
         return slotItems.get(slot);
     }
@@ -73,6 +78,22 @@ final class OvenState {
             return;
         }
         slotProgress.put(slot, normalized);
+    }
+
+    int perfectProgressAt(int slot) {
+        return Math.max(0, slotPerfectProgress.getOrDefault(slot, 0));
+    }
+
+    void setPerfectProgress(int slot, int progress) {
+        if (slot < 0) {
+            return;
+        }
+        int normalized = Math.max(0, progress);
+        if (normalized <= 0) {
+            slotPerfectProgress.remove(slot);
+            return;
+        }
+        slotPerfectProgress.put(slot, normalized);
     }
 
     void setSlotSource(int slot, String source) {
@@ -97,12 +118,14 @@ final class OvenState {
         slotSources.remove(slot);
         slotItems.remove(slot);
         slotProgress.remove(slot);
+        slotPerfectProgress.remove(slot);
     }
 
     void clearSlots() {
         slotSources.clear();
         slotItems.clear();
         slotProgress.clear();
+        slotPerfectProgress.clear();
     }
 
     boolean hasSlots() {

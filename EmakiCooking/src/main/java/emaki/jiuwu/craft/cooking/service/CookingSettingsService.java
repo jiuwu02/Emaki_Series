@@ -411,6 +411,14 @@ public final class CookingSettingsService {
         return parseSources(configuration.get("stations.juicer.container_item_sources"));
     }
 
+    public int juicerMaxFluidMl() {
+        return Math.max(1, configuration.getInt("stations.juicer.max_fluid_ml", 1000));
+    }
+
+    public int juicerDefaultServingMl() {
+        return Math.max(1, configuration.getInt("stations.juicer.default_serving_ml", 250));
+    }
+
     public String juicerInventoryTitle() {
         return juicerGuiConfiguration.getString("title", "<dark_gray>榨汁机");
     }

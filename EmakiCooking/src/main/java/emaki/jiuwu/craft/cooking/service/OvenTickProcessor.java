@@ -84,8 +84,12 @@ final class OvenTickProcessor {
             RecipeDocument recipe = recipesBySlot.get(slot);
             int requiredSeconds = recipeService.ovenBakeTimeSeconds(recipe);
             int progress = state.progressAt(slot) + 1;
+            if (heatInPerfectRange(state, recipe)) {
+                state.setPerfectProgress(slot, state.perfectProgressAt(slot) + 1);
+            }
             if (progress >= requiredSeconds) {
-                completeSlot(ovenBlock, state, slot, recipe);
+                state.setProgress(slot, requiredSeconds);
+                completeSlot(ovenBlock, state, slot, recipe, determineStage(state, slot, recipe, requiredSeconds));
             } else {
                 state.setProgress(slot, progress);
             }
@@ -95,7 +99,11 @@ final class OvenTickProcessor {
     }
 
     void completeSlot(Block ovenBlock, OvenState state, int slot, RecipeDocument recipe) {
-        Map<String, Object> outcome = recipeService.outcome(recipe, "result.output");
+        completeSlot(ovenBlock, state, slot, recipe, OvenBakeStage.NORMAL);
+    }
+
+    void completeSlot(Block ovenBlock, OvenState state, int slot, RecipeDocument recipe, OvenBakeStage stage) {
+        Map<String, Object> outcome = recipeService.ovenOutcomeForStage(recipe, stage);
         List<Map<String, Object>> outputs = recipeService.outputs(outcome);
         List<String> actions = combineActions(recipeService.actions(recipe), recipeService.actions(outcome));
         Location rewardLocation = ovenBlock.getLocation().add(0.5D, 1.0D, 0.5D);
@@ -103,7 +111,8 @@ final class OvenTickProcessor {
         Map<String, Object> placeholders = Map.of(
                 "recipe_id", recipe.id(),
                 "station_type", StationType.OVEN.folderName(),
-                "slot_index", slot
+                "slot_index", slot,
+                "stage", stage.name().toLowerCase(java.util.Locale.ROOT)
         );
 
         if (!settingsService.ovenDropResult() && canStoreOutcomeInSlot(outputs)) {
@@ -146,6 +155,25 @@ final class OvenTickProcessor {
                 placeholders
         );
         state.removeSlot(slot);
+    }
+
+    private OvenBakeStage determineStage(OvenState state, int slot, RecipeDocument recipe, int requiredSeconds) {
+        if (requiredSeconds <= 0) {
+            return OvenBakeStage.NORMAL;
+        }
+        if (recipeService.ovenOverbakeSeconds(recipe) > 0 && state.heat() > recipeService.ovenPerfectHeatMax(recipe)) {
+            return OvenBakeStage.OVERBAKED;
+        }
+        double ratio = (double) state.perfectProgressAt(slot) / (double) requiredSeconds;
+        return ratio >= recipeService.ovenPerfectRequiredRatio(recipe) ? OvenBakeStage.PERFECT : OvenBakeStage.NORMAL;
+    }
+
+    private boolean heatInPerfectRange(OvenState state, RecipeDocument recipe) {
+        if (state == null || recipe == null) {
+            return false;
+        }
+        int heat = state.heat();
+        return heat >= recipeService.ovenPerfectHeatMin(recipe) && heat <= recipeService.ovenPerfectHeatMax(recipe);
     }
 
     boolean canStoreOutcomeInSlot(List<Map<String, Object>> outputs) {

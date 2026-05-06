@@ -24,6 +24,11 @@ final class JuicerStateCodec {
         if (Texts.isNotBlank(state.playerName())) {
             juicer.put("player_name", state.playerName());
         }
+        if (state.hasFluid()) {
+            juicer.put("fluid_id", state.fluidId());
+            juicer.put("fluid_display_name", state.fluidDisplayName());
+            juicer.put("fluid_amount_ml", state.fluidAmountMl());
+        }
         root.put("juicer", juicer);
 
         List<Map<String, Object>> guiSlots = new ArrayList<>();
@@ -63,6 +68,11 @@ final class JuicerStateCodec {
             return state;
         }
         state.setPlayerContext(CookingRuntimeUtil.parseUuid(section.getString("juicer.player_uuid", "")), section.getString("juicer.player_name", ""));
+        state.setFluid(
+                section.getString("juicer.fluid_id", ""),
+                section.getString("juicer.fluid_display_name", ""),
+                section.getInt("juicer.fluid_amount_ml", 0)
+        );
         for (Map<?, ?> raw : section.getMapList("gui_slots")) {
             Map<String, Object> slot = MapYamlSection.normalizeMap(raw);
             int index = CookingRuntimeUtil.parseInteger(slot.get("index"), -1);

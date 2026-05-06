@@ -13,6 +13,9 @@ final class JuicerState {
     private final Map<Integer, String> slotSources = new LinkedHashMap<>();
     private final Map<Integer, Map<String, Object>> slotItems = new LinkedHashMap<>();
     private final Map<Integer, Integer> slotProgress = new LinkedHashMap<>();
+    private String fluidId = "";
+    private String fluidDisplayName = "";
+    private int fluidAmountMl;
 
     UUID playerUuid() {
         return playerUuid;
@@ -87,7 +90,68 @@ final class JuicerState {
         slotProgress.clear();
     }
 
+    String fluidId() {
+        return fluidId;
+    }
+
+    String fluidDisplayName() {
+        return Texts.isBlank(fluidDisplayName) ? fluidId : fluidDisplayName;
+    }
+
+    int fluidAmountMl() {
+        return Math.max(0, fluidAmountMl);
+    }
+
+    boolean hasFluid() {
+        return Texts.isNotBlank(fluidId) && fluidAmountMl() > 0;
+    }
+
+    void setFluid(String fluidId, String fluidDisplayName, int fluidAmountMl) {
+        if (Texts.isBlank(fluidId) || fluidAmountMl <= 0) {
+            clearFluid();
+            return;
+        }
+        this.fluidId = Texts.toStringSafe(fluidId).trim();
+        this.fluidDisplayName = Texts.toStringSafe(fluidDisplayName).trim();
+        this.fluidAmountMl = Math.max(0, fluidAmountMl);
+    }
+
+    boolean canAcceptFluid(String fluidId, int addAmountMl, int maxAmountMl) {
+        if (Texts.isBlank(fluidId) || addAmountMl <= 0) {
+            return false;
+        }
+        if (hasFluid() && !this.fluidId.equalsIgnoreCase(fluidId)) {
+            return false;
+        }
+        return fluidAmountMl() + addAmountMl <= Math.max(1, maxAmountMl);
+    }
+
+    void addFluid(String fluidId, String fluidDisplayName, int amountMl, int maxAmountMl) {
+        if (!canAcceptFluid(fluidId, amountMl, maxAmountMl)) {
+            return;
+        }
+        setFluid(fluidId, Texts.isBlank(fluidDisplayName) ? fluidId : fluidDisplayName, fluidAmountMl() + amountMl);
+    }
+
+    boolean consumeFluid(int amountMl) {
+        int normalized = Math.max(1, amountMl);
+        if (fluidAmountMl() < normalized) {
+            return false;
+        }
+        fluidAmountMl -= normalized;
+        if (fluidAmountMl <= 0) {
+            clearFluid();
+        }
+        return true;
+    }
+
+    void clearFluid() {
+        fluidId = "";
+        fluidDisplayName = "";
+        fluidAmountMl = 0;
+    }
+
     boolean isCompletelyEmpty() {
-        return slotSources.isEmpty();
+        return slotSources.isEmpty() && !hasFluid();
     }
 }

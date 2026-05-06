@@ -8,9 +8,15 @@ input:
 
 presses_required: 5
 
+fluid:
+  id: "apple_juice"
+  display_name: "苹果汁"
+  amount_ml: 180
+
 container:
   item_sources:
     - "minecraft-glass_bottle"
+  serving_ml: 250
 
 permission: "emakicooking.recipe.apple_juice"
 
