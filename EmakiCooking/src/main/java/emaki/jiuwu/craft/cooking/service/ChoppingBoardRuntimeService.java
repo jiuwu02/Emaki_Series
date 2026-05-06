@@ -77,7 +77,7 @@ public final class ChoppingBoardRuntimeService {
             Block block = coordinates.block();
             if (state == null || block == null || !blockMatcher.matches(block, StationType.CHOPPING_BOARD)) {
                 clearDisplay(coordinates, state == null ? null : state.displayEntityId(), state == null ? null : state.inputSource());
-                stateStore.delete(coordinates);
+                stateStore.deleteAsync(coordinates);
                 continue;
             }
             if (state.hasInputSource()) {
@@ -179,7 +179,7 @@ public final class ChoppingBoardRuntimeService {
 
             if (nextCutCount >= cutsRequired) {
                 clearDisplay(coordinates, state.displayEntityId(), state.inputSource());
-                stateStore.delete(coordinates);
+                stateStore.deleteAsync(coordinates);
                 rewardService.deliver(
                         recipe,
                         player,
@@ -273,7 +273,7 @@ public final class ChoppingBoardRuntimeService {
             }
         }
         clearDisplay(coordinates, state.displayEntityId(), state.inputSource());
-        stateStore.delete(coordinates);
+        stateStore.deleteAsync(coordinates);
         return true;
     }
 
@@ -295,7 +295,7 @@ public final class ChoppingBoardRuntimeService {
 
     private void returnStoredInput(Player player, StationCoordinates coordinates, ChoppingBoardState state) {
         clearDisplay(coordinates, state == null ? null : state.displayEntityId(), state == null ? null : state.inputSource());
-        stateStore.delete(coordinates);
+        stateStore.deleteAsync(coordinates);
         if (state == null || !state.hasInputSource()) {
             return;
         }
@@ -357,7 +357,7 @@ public final class ChoppingBoardRuntimeService {
         }
         root.put("timestamps", Map.of("last_interaction_ms", state.lastInteractionMs()));
         root.put("chopping_board", Map.of("cut_count", state.cutCount()));
-        stateStore.save(coordinates, root);
+        stateStore.saveAsync(coordinates, root);
     }
 
     private ChoppingBoardState readState(emaki.jiuwu.craft.corelib.yaml.YamlSection section) {

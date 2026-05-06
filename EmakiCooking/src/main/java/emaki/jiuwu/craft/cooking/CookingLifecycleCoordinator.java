@@ -85,7 +85,7 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
         CookingSettingsService settingsService = new CookingSettingsService(plugin);
         settingsService.reload();
         CookingBlockMatcher blockMatcher = new CookingBlockMatcher(settingsService, craftEngineBlockBridge, itemsAdderBlockBridge, nexoBlockBridge);
-        StationStateStore stationStateStore = new StationStateStore(plugin);
+        StationStateStore stationStateStore = new StationStateStore(plugin, coreLibPlugin.asyncFileService());
         CookingRecipeService recipeService = new CookingRecipeService(plugin, settingsService);
         ActionExecutor coreActionExecutor = coreLibPlugin.actionExecutor();
         CookingRewardService rewardService = new CookingRewardService(

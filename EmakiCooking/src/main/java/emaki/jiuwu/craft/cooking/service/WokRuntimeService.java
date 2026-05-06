@@ -75,7 +75,7 @@ public final class WokRuntimeService {
             WokState state = readState(entry.getValue());
             Block block = coordinates.block();
             if (state == null || block == null || !blockMatcher.matches(block, StationType.WOK) || !state.hasIngredients()) {
-                stateStore.delete(coordinates);
+                stateStore.deleteAsync(coordinates);
                 displayService.removeStation(StationType.WOK, coordinates);
                 continue;
             }
@@ -656,7 +656,7 @@ public final class WokRuntimeService {
                 "last_stir_time_ms", state.lastStirTimeMs(),
                 "stir_fried_time_ms", state.lastStirActionMs()
         ));
-        stateStore.save(coordinates, root);
+        stateStore.saveAsync(coordinates, root);
     }
 
     private void refreshDisplays(StationCoordinates coordinates, WokState state) {
@@ -755,7 +755,7 @@ public final class WokRuntimeService {
 
     private void clearState(StationCoordinates coordinates) {
         displayService.removeStation(StationType.WOK, coordinates);
-        stateStore.delete(coordinates);
+        stateStore.deleteAsync(coordinates);
     }
 
     private WokState readState(emaki.jiuwu.craft.corelib.yaml.YamlSection section) {

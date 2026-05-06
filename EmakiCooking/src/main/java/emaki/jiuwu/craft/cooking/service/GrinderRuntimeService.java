@@ -64,7 +64,7 @@ public final class GrinderRuntimeService {
             GrinderState state = readState(entry.getValue());
             Block block = coordinates.block();
             if (state == null || block == null || !blockMatcher.matches(block, StationType.GRINDER)) {
-                stateStore.delete(coordinates);
+                stateStore.deleteAsync(coordinates);
                 continue;
             }
             activeStations.add(coordinates.runtimeKey());
@@ -152,7 +152,7 @@ public final class GrinderRuntimeService {
             }
         }
         activeStations.remove(coordinates.runtimeKey());
-        stateStore.delete(coordinates);
+        stateStore.deleteAsync(coordinates);
         return true;
     }
 
@@ -199,7 +199,7 @@ public final class GrinderRuntimeService {
         RecipeDocument recipe = recipeService.grinderRecipeById(state.recipeId());
         if (block == null || recipe == null || !blockMatcher.matches(block, StationType.GRINDER)) {
             activeStations.remove(coordinates.runtimeKey());
-            stateStore.delete(coordinates);
+            stateStore.deleteAsync(coordinates);
             return;
         }
         int grindTimeSeconds = recipeService.grinderTimeSeconds(recipe);
@@ -234,7 +234,7 @@ public final class GrinderRuntimeService {
             CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "grinder.completed", Map.of("recipe", recipe.displayName()));
         }
         activeStations.remove(coordinates.runtimeKey());
-        stateStore.delete(coordinates);
+        stateStore.deleteAsync(coordinates);
     }
 
     private void saveState(StationCoordinates coordinates, GrinderState state) {
@@ -252,7 +252,7 @@ public final class GrinderRuntimeService {
             grinder.put("player_name", state.playerName());
         }
         root.put("grinder", grinder);
-        stateStore.save(coordinates, root);
+        stateStore.saveAsync(coordinates, root);
     }
 
     private GrinderState readState(emaki.jiuwu.craft.corelib.yaml.YamlSection section) {

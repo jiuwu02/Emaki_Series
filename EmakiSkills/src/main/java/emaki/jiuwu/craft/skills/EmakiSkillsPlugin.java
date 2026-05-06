@@ -147,6 +147,10 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
         lifecycleCoordinator.reload(this, closeOpenInventories);
     }
 
+    public java.util.concurrent.CompletableFuture<Void> reloadPluginStateAsync(boolean closeOpenInventories, java.util.function.Consumer<String> progressListener) {
+        return lifecycleCoordinator.reloadAsync(this, closeOpenInventories, progressListener);
+    }
+
     private void applyRuntimeComponents(SkillsRuntimeComponents components) {
         appConfigLoader = components.appConfigLoader();
         languageLoader = components.languageLoader();

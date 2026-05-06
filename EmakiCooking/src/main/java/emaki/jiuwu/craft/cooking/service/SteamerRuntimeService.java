@@ -117,6 +117,7 @@ public final class SteamerRuntimeService implements Listener {
     public void shutdown() {
         guiController.closeAllOpenInventories(false);
         flushDirtyStates();
+        stateStore.waitForIdle().join();
         cancelFlushTask();
         cancelTicker();
         activeStations.clear();
@@ -448,9 +449,14 @@ public final class SteamerRuntimeService implements Listener {
                 removeState(coordinates, true);
                 continue;
             }
-            if (stateStore.trySave(coordinates, codec.serializeState(coordinates, state))) {
-                dirtyStations.remove(coordinates);
-            }
+            Map<String, Object> serialized = codec.serializeState(coordinates, state);
+            dirtyStations.remove(coordinates);
+            stateStore.saveAsync(coordinates, serialized).thenAccept(success -> {
+                if (!success) {
+                    // Re-mark dirty on failure so next flush retries
+                    dirtyStations.add(coordinates);
+                }
+            });
         }
         if (dirtyStations.isEmpty()) {
             cancelFlushTask();
@@ -544,7 +550,7 @@ public final class SteamerRuntimeService implements Listener {
         runtimeStates.remove(coordinates);
         dirtyStations.remove(coordinates);
         if (deleteFile) {
-            stateStore.tryDelete(coordinates);
+            stateStore.deleteAsync(coordinates);
         }
         if (dirtyStations.isEmpty()) {
             cancelFlushTask();

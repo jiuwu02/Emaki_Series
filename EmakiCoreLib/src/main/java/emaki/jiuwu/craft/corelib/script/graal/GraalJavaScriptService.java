@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.corelib.script.graal;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -32,7 +33,7 @@ public final class GraalJavaScriptService implements JavaScriptService {
     private final ScriptConfig config;
     private final ScriptRepository repository;
     private final java.util.function.Supplier<ActionExecutor> actionExecutorSupplier;
-    private final Map<String, ScriptSource> sourceCache = new LinkedHashMap<>();
+    private final Map<String, ScriptSource> sourceCache = new ConcurrentHashMap<>();
     private final Engine engine;
     private boolean closed;
 

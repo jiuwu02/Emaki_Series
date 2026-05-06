@@ -41,7 +41,7 @@ public final class RunJavaScriptAction extends BaseAction {
 
     @Override
     public ActionExecutionMode executionMode() {
-        return ActionExecutionMode.SYNC;
+        return ActionExecutionMode.ASYNC_IO;
     }
 
     @Override

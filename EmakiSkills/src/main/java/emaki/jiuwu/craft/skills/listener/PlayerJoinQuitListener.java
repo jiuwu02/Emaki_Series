@@ -43,9 +43,22 @@ public final class PlayerJoinQuitListener implements Listener {
     public void onJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
 
-        // Load player data
-        PlayerSkillProfile profile = dataStore.load(player);
+        // Asynchronously load player data, then apply on main thread
+        dataStore.loadAsync(player).thenAccept(profile -> {
+            // loadAsync may complete on async thread; schedule back to main thread
+            if (!player.isOnline()) {
+                return;
+            }
+            plugin.getServer().getScheduler().runTask(plugin, () -> {
+                if (!player.isOnline()) {
+                    return;
+                }
+                applyJoinState(player, profile);
+            });
+        });
+    }
 
+    private void applyJoinState(Player player, PlayerSkillProfile profile) {
         // Restore cast mode if configured
         AppConfig config = configSupplier.get();
         if (config != null && config.castMode().restoreLastStateOnJoin()) {
@@ -67,8 +80,7 @@ public final class PlayerJoinQuitListener implements Listener {
     public void onQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
 
-        // Save and unload
-        dataStore.save(player);
-        dataStore.unload(player.getUniqueId());
+        // Asynchronously save and unload — no need to block the main thread
+        dataStore.unloadAsync(player.getUniqueId());
     }
 }

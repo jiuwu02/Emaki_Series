@@ -18,6 +18,7 @@ import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
 import emaki.jiuwu.craft.corelib.service.MessageService;
+import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
@@ -93,9 +94,11 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
         TriggerRegistry triggerRegistry = new TriggerRegistry();
         TriggerConflictResolver triggerConflictResolver = new TriggerConflictResolver();
         SkillRegistryService skillRegistryService = new SkillRegistryService(plugin, () -> skillDefinitionLoader.all());
+        AsyncYamlFiles asyncYamlFiles = new AsyncYamlFiles(coreLibPlugin.asyncFileService());
         PlayerSkillDataStore playerSkillDataStore = new PlayerSkillDataStore(
                 plugin,
-                appConfigLoader.current().defaultSlotCount()
+                appConfigLoader.current().defaultSlotCount(),
+                () -> asyncYamlFiles
         );
         EaBridge eaBridge = new EaBridge(plugin, messageService);
         eaBridge.init();
@@ -205,13 +208,56 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
         plugin.actionBarService().startRefreshTask();
     }
 
+    /**
+     * Asynchronous reload: file I/O stages run on the async thread pool,
+     * final registration and player sync run on the main thread.
+     */
+    public java.util.concurrent.CompletableFuture<Void> reloadAsync(EmakiSkillsPlugin plugin, boolean closeInventories, java.util.function.Consumer<String> progressListener) {
+        emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler scheduler = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).asyncTaskScheduler();
+        if (scheduler == null) {
+            reload(plugin, closeInventories);
+            return java.util.concurrent.CompletableFuture.completedFuture(null);
+        }
+
+        // Step 1: Close inventories on main thread (already on main thread when called from command)
+        if (closeInventories) {
+            Bukkit.getOnlinePlayers().forEach(player -> player.closeInventory());
+        }
+        notifyProgress(progressListener, "Loading configuration files...");
+
+        // Step 2: Async file I/O — load all config/definition files
+        return runReloadStageAsync(scheduler, new ReloadStageConfig<>(
+                "skills", "config-load", "Loading configs...", progressListener,
+                () -> {
+                    plugin.languageLoader().load();
+                    plugin.appConfigLoader().load();
+                    plugin.skillDefinitionLoader().load();
+                    plugin.localResourceDefinitionLoader().load();
+                    plugin.guiTemplateLoader().load();
+                },
+                null, (stage, ex) -> plugin.getLogger().warning("[Reload] Stage " + stage + " failed: " + ex.getMessage())
+        )).thenCompose(_ -> {
+            // Step 3: Back to main thread — apply config and sync players
+            notifyProgress(progressListener, "Applying configuration...");
+            return scheduler.callSync("skills-reload-apply", () -> {
+                plugin.languageLoader().setLanguage(plugin.appConfig().language());
+                loadTriggersIntoRegistry(plugin);
+                plugin.triggerConflictResolver().buildFromDefinitions(plugin.triggerRegistry().all());
+                Bukkit.getOnlinePlayers().forEach(player -> plugin.playerSkillStateService().validateBindings(player));
+                plugin.actionBarService().startRefreshTask();
+                notifyProgress(progressListener, "Reload complete.");
+                return null;
+            });
+        });
+    }
+
     public void shutdown(EmakiSkillsPlugin plugin) {
         if (plugin.actionBarService() != null) {
             plugin.actionBarService().stopRefreshTask();
         }
         if (plugin.playerSkillDataStore() != null) {
-            plugin.playerSkillDataStore().saveAll();
-            plugin.playerSkillDataStore().unloadAll();
+            plugin.playerSkillDataStore().saveAllAsync().join();
+            plugin.playerSkillDataStore().waitForPendingSaves();
         }
         if (plugin.eaBridge() != null) {
             plugin.eaBridge().shutdown();
