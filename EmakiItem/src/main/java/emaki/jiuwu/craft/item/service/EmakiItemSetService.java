@@ -22,6 +22,7 @@ import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
 import emaki.jiuwu.craft.item.model.EquippedSetState;
 import emaki.jiuwu.craft.item.model.ItemSetDefinition;
 import emaki.jiuwu.craft.item.model.ItemSetMembership;
+import emaki.jiuwu.craft.item.model.ItemSetPieceDefinition;
 import emaki.jiuwu.craft.item.model.ItemSetThreshold;
 
 public final class EmakiItemSetService {
@@ -64,7 +65,16 @@ public final class EmakiItemSetService {
         List<EquippedItem> equippedItems = readEquippedItems(player);
         Map<String, Set<String>> equippedPiecesBySet = collectEquippedPieces(equippedItems);
         Map<String, Set<String>> allPiecesBySet = collectAllPieces(player, equippedPiecesBySet);
-        Map<String, EquippedSetState> states = buildStates(allPiecesBySet);
+        // 套装状态基于真实装备槽（决定 ✔/✘ 和激活加成）
+        Map<String, EquippedSetState> states = buildStates(equippedPiecesBySet);
+        // 确保背包中存在套装件的 setId 也有对应 state（用于渲染 lore，但 activeCount 基于装备槽）
+        for (String setId : allPiecesBySet.keySet()) {
+            states.computeIfAbsent(setId, id -> {
+                ItemSetDefinition definition = setLoader.get(id);
+                return definition != null ? new EquippedSetState(definition, Set.of()) : null;
+            });
+        }
+        states.values().removeIf(java.util.Objects::isNull);
         int changed = 0;
         for (EquippedItem equippedItem : equippedItems) {
             ItemStack original = equippedItem.itemStack();
@@ -224,10 +234,48 @@ public final class EmakiItemSetService {
                 continue;
             }
             ItemSetMembership membership = definition.setMembership();
+            // 验证物品是否在正确的穿戴槽位
+            ItemSetDefinition setDefinition = setLoader.get(membership.setId());
+            if (setDefinition != null) {
+                String pieceId = membership.effectivePieceId(definition.id());
+                ItemSetPieceDefinition pieceDefinition = setDefinition.pieces().get(pieceId);
+                if (pieceDefinition != null && Texts.isNotBlank(pieceDefinition.slot())) {
+                    // 如果套装件定义了 slot，则必须在对应槽位才算装备
+                    if (!isSlotMatch(equippedItem.slot(), pieceDefinition.slot())) {
+                        continue;
+                    }
+                }
+            }
             result.computeIfAbsent(membership.setId(), ignored -> new LinkedHashSet<>())
                     .add(membership.effectivePieceId(definition.id()));
         }
         return result;
+    }
+
+    /**
+     * 判断物品实际所在的装备槽是否匹配套装件定义的 slot。
+     * 例如：头盔必须在 helmet 槽，胸甲必须在 chestplate 槽。
+     * 如果套装件的 slot 是 "any" 或与 pieceId 相同（未显式配置），则任何装备槽都算匹配。
+     */
+    private boolean isSlotMatch(String actualSlot, String requiredSlot) {
+        if (Texts.isBlank(requiredSlot) || Texts.isBlank(actualSlot)) {
+            return true;
+        }
+        String normalizedRequired = Texts.normalizeId(requiredSlot);
+        String normalizedActual = Texts.normalizeId(actualSlot);
+        // "any" 表示任何槽位都可以
+        if ("any".equals(normalizedRequired)) {
+            return true;
+        }
+        // 直接匹配
+        if (normalizedRequired.equals(normalizedActual)) {
+            return true;
+        }
+        // 支持 "hand" 匹配 main_hand 和 off_hand
+        if ("hand".equals(normalizedRequired)) {
+            return "main_hand".equals(normalizedActual) || "off_hand".equals(normalizedActual);
+        }
+        return false;
     }
 
     /**
