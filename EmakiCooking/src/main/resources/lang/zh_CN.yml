@@ -92,3 +92,28 @@ steamer:
     <yellow>{progress}</yellow></gray>"
   progress_not_started: "未开始"
   progress_completed: "已完成"
+
+juicer:
+  in_use: "<yellow>这个榨汁机正在被其他玩家使用，请稍后再试。</yellow>"
+  opened: "<gray>榨汁机已打开。</gray>"
+  open_failed: "<red>榨汁机 GUI 打开失败。</red>"
+  no_item: "<yellow>榨汁机里没有可处理的食材。</yellow>"
+  no_recipe: "<red>当前食材没有可用的榨汁配方。</red>"
+  pressed: "<gray>榨汁进度：<yellow>{current}</yellow>/<yellow>{required}</yellow></gray>"
+  need_container: "<yellow>需要手持容器才能收取果汁。</yellow>"
+  completed: "<green>榨汁完成：<yellow>{recipe}</yellow></green>"
+  info: "<gray>榨汁进度：<yellow>{progress}</yellow></gray>"
+  progress_not_started: "未开始"
+
+fermentation_barrel:
+  in_use: "<yellow>这个发酵桶正在被其他玩家使用，请稍后再试。</yellow>"
+  opened: "<gray>发酵桶已打开。</gray>"
+  open_failed: "<red>发酵桶 GUI 打开失败。</red>"
+  no_recipe: "<red>当前食材组合无法发酵。</red>"
+  started: "<gray>发酵已开始，预计 <yellow>{seconds}</yellow> 秒后完成。</gray>"
+  fermenting: "<gray>正在发酵，剩余 <yellow>{seconds}</yellow> 秒。</gray>"
+  collected: "<green>已收取发酵产物。</green>"
+  info: "<gray>发酵状态：<yellow>{status}</yellow> | 剩余时间：<yellow>{seconds}</yellow>秒 | 进度：<yellow>{progress}</yellow></gray>"
+  status_idle: "未开始"
+  status_fermenting: "发酵中"
+  status_completed: "已完成"

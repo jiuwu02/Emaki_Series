@@ -1,0 +1,8 @@
+id: "juicer"
+title: "<dark_gray>榨汁机"
+rows: 1
+slots:
+  ingredient_slots:
+    slots: [ 0, 1, 2, 3, 4 ]
+    type: "ingredient"
+    item: "AIR"

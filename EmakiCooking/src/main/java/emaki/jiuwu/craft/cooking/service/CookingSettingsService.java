@@ -62,6 +62,9 @@ public final class CookingSettingsService {
     private final JavaPlugin plugin;
     private volatile YamlSection configuration = new MapYamlSection();
     private volatile YamlSection steamerGuiConfiguration = new MapYamlSection();
+    private volatile YamlSection ovenGuiConfiguration = new MapYamlSection();
+    private volatile YamlSection juicerGuiConfiguration = new MapYamlSection();
+    private volatile YamlSection fermentationBarrelGuiConfiguration = new MapYamlSection();
     private volatile Map<String, ItemDisplayAdjustmentOverride> itemAdjustments = Map.of();
 
     public CookingSettingsService(JavaPlugin plugin) {
@@ -71,6 +74,9 @@ public final class CookingSettingsService {
     public void reload() {
         configuration = YamlFiles.load(plugin.getDataFolder().toPath().resolve("config.yml").toFile());
         steamerGuiConfiguration = YamlFiles.load(plugin.getDataFolder().toPath().resolve("gui").resolve("steamer.yml").toFile());
+        ovenGuiConfiguration = YamlFiles.load(plugin.getDataFolder().toPath().resolve("gui").resolve("oven.yml").toFile());
+        juicerGuiConfiguration = YamlFiles.load(plugin.getDataFolder().toPath().resolve("gui").resolve("juicer.yml").toFile());
+        fermentationBarrelGuiConfiguration = YamlFiles.load(plugin.getDataFolder().toPath().resolve("gui").resolve("fermentation_barrel.yml").toFile());
         itemAdjustments = loadItemAdjustments();
     }
 
@@ -323,6 +329,145 @@ public final class CookingSettingsService {
         return Math.max(0, configuration.getInt("stations.steamer.steam_consumption_efficiency", 1));
     }
 
+    public boolean ovenDropResult() {
+        return configuration.getBoolean("stations.oven.drop_result", true);
+    }
+
+    public String ovenInventoryTitle() {
+        return ovenGuiConfiguration.getString("title", "<dark_gray>烤炉");
+    }
+
+    public int ovenInventoryRows() {
+        int rows = ovenGuiConfiguration.getInt("rows", 1);
+        return Math.max(1, Math.min(6, rows));
+    }
+
+    public List<Integer> ovenIngredientSlots() {
+        int inventorySize = ovenInventoryRows() * 9;
+        LinkedHashSet<Integer> slots = new LinkedHashSet<>();
+        YamlSection slotsSection = ovenGuiConfiguration.getSection("slots");
+        if (slotsSection != null && !slotsSection.isEmpty()) {
+            for (String key : slotsSection.getKeys(false)) {
+                YamlSection slotSection = slotsSection.getSection(key);
+                if (slotSection == null || slotSection.isEmpty()) {
+                    addSlotIndexes(slots, slotsSection.get(key), inventorySize);
+                    continue;
+                }
+                String type = Texts.lower(slotSection.getString("type", ""));
+                if (Texts.isNotBlank(type) && !"ingredient".equals(type)) {
+                    continue;
+                }
+                addSlotIndexes(slots, slotSection.get("slots"), inventorySize);
+            }
+        }
+        if (slots.isEmpty()) {
+            for (int slot = 0; slot < Math.min(5, inventorySize); slot++) {
+                slots.add(slot);
+            }
+        }
+        return List.copyOf(slots);
+    }
+
+    public List<OvenFuelRule> ovenFuels() {
+        List<OvenFuelRule> result = new ArrayList<>();
+        for (Map<?, ?> entry : configuration.getMapList("stations.oven.fuels")) {
+            Map<String, Object> normalized = MapYamlSection.normalizeMap(entry);
+            ItemSource source = ItemSourceUtil.parse(normalized.get("item_sources"));
+            if (source == null) {
+                continue;
+            }
+            Integer duration = configurationValueToInt(normalized.get("duration_seconds"), 0);
+            Integer heat = configurationValueToInt(normalized.get("heat"), 0);
+            result.add(new OvenFuelRule(
+                    source,
+                    duration == null ? 0 : Math.max(0, duration),
+                    heat == null ? 0 : Math.max(0, heat)
+            ));
+        }
+        return result.isEmpty() ? List.of() : List.copyOf(result);
+    }
+
+    public int ovenHeatMin() {
+        return Math.max(0, configuration.getInt("stations.oven.heat.min", 20));
+    }
+
+    public int ovenHeatMax() {
+        return Math.max(ovenHeatMin(), configuration.getInt("stations.oven.heat.max", 80));
+    }
+
+    public int ovenHeatDecayPerSecond() {
+        return Math.max(0, configuration.getInt("stations.oven.heat.decay_per_second", 5));
+    }
+
+    public boolean juicerDropResult() {
+        return configuration.getBoolean("stations.juicer.drop_result", true);
+    }
+
+    public boolean juicerRequireContainer() {
+        return configuration.getBoolean("stations.juicer.require_container", true);
+    }
+
+    public List<ItemSource> juicerContainerSources() {
+        return parseSources(configuration.get("stations.juicer.container_item_sources"));
+    }
+
+    public String juicerInventoryTitle() {
+        return juicerGuiConfiguration.getString("title", "<dark_gray>榨汁机");
+    }
+
+    public int juicerInventoryRows() {
+        return Math.max(1, Math.min(6, juicerGuiConfiguration.getInt("rows", 1)));
+    }
+
+    public List<Integer> juicerIngredientSlots() {
+        return ingredientSlots(juicerGuiConfiguration, juicerInventoryRows() * 9, 5);
+    }
+
+    public boolean fermentationBarrelDropResult() {
+        return configuration.getBoolean("stations.fermentation_barrel.drop_result", true);
+    }
+
+    public boolean fermentationBarrelPauseWhenOpen() {
+        return configuration.getBoolean("stations.fermentation_barrel.pause_when_open", true);
+    }
+
+    public String fermentationBarrelInventoryTitle() {
+        return fermentationBarrelGuiConfiguration.getString("title", "<dark_gray>发酵桶");
+    }
+
+    public int fermentationBarrelInventoryRows() {
+        return Math.max(1, Math.min(6, fermentationBarrelGuiConfiguration.getInt("rows", 3)));
+    }
+
+    public List<Integer> fermentationBarrelIngredientSlots() {
+        return ingredientSlots(fermentationBarrelGuiConfiguration, fermentationBarrelInventoryRows() * 9, 7);
+    }
+
+    private List<Integer> ingredientSlots(YamlSection guiConfiguration, int inventorySize, int fallbackCount) {
+        LinkedHashSet<Integer> slots = new LinkedHashSet<>();
+        YamlSection slotsSection = guiConfiguration.getSection("slots");
+        if (slotsSection != null && !slotsSection.isEmpty()) {
+            for (String key : slotsSection.getKeys(false)) {
+                YamlSection slotSection = slotsSection.getSection(key);
+                if (slotSection == null || slotSection.isEmpty()) {
+                    addSlotIndexes(slots, slotsSection.get(key), inventorySize);
+                    continue;
+                }
+                String type = Texts.lower(slotSection.getString("type", ""));
+                if (Texts.isNotBlank(type) && !"ingredient".equals(type)) {
+                    continue;
+                }
+                addSlotIndexes(slots, slotSection.get("slots"), inventorySize);
+            }
+        }
+        if (slots.isEmpty()) {
+            for (int slot = 0; slot < Math.min(fallbackCount, inventorySize); slot++) {
+                slots.add(slot);
+            }
+        }
+        return List.copyOf(slots);
+    }
+
     private List<ItemSource> parseSources(Object raw) {
         List<ItemSource> result = new ArrayList<>();
         for (Object token : ConfigNodes.asObjectList(raw)) {
@@ -360,6 +505,23 @@ public final class CookingSettingsService {
             case STEAMER -> switch (operation) {
                 case INTERACTION_OPEN -> StationInteractionType.SHIFT_RIGHT_CLICK;
                 case INTERACTION_FUEL, INTERACTION_MOISTURE -> StationInteractionType.RIGHT_CLICK;
+                default -> null;
+            };
+            case OVEN -> switch (operation) {
+                case INTERACTION_OPEN -> StationInteractionType.SHIFT_RIGHT_CLICK;
+                case INTERACTION_FUEL, INTERACTION_INSPECT -> StationInteractionType.SHIFT_LEFT_CLICK;
+                default -> null;
+            };
+            case JUICER -> switch (operation) {
+                case INTERACTION_OPEN -> StationInteractionType.SHIFT_RIGHT_CLICK;
+                case INTERACTION_PROCESS, INTERACTION_SERVE -> StationInteractionType.SHIFT_LEFT_CLICK;
+                case INTERACTION_INSPECT -> StationInteractionType.LEFT_CLICK;
+                default -> null;
+            };
+            case FERMENTATION_BARREL -> switch (operation) {
+                case INTERACTION_OPEN -> StationInteractionType.SHIFT_RIGHT_CLICK;
+                case INTERACTION_START, INTERACTION_SERVE -> StationInteractionType.SHIFT_LEFT_CLICK;
+                case INTERACTION_INSPECT -> StationInteractionType.LEFT_CLICK;
                 default -> null;
             };
         };
@@ -570,6 +732,9 @@ public final class CookingSettingsService {
     }
 
     public record SteamerMoistureRule(ItemSource inputSource, ItemSource outputSource, int moisture) {
+    }
+
+    public record OvenFuelRule(ItemSource source, int durationSeconds, int heat) {
     }
 
     private enum DisplayAdjustmentKind {

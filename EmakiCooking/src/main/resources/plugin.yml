@@ -42,3 +42,19 @@ permissions:
     default: true
   emakicooking.station.steamer.moisture:
     default: true
+  emakicooking.station.oven.use:
+    default: true
+  emakicooking.station.oven.fuel:
+    default: true
+  emakicooking.station.juicer.use:
+    default: true
+  emakicooking.station.juicer.press:
+    default: true
+  emakicooking.station.juicer.collect:
+    default: true
+  emakicooking.station.fermentation_barrel.use:
+    default: true
+  emakicooking.station.fermentation_barrel.start:
+    default: true
+  emakicooking.station.fermentation_barrel.collect:
+    default: true

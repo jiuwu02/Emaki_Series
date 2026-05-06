@@ -19,7 +19,10 @@ import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 import emaki.jiuwu.craft.cooking.config.AppConfig;
 import emaki.jiuwu.craft.cooking.loader.ChoppingBoardRecipeLoader;
+import emaki.jiuwu.craft.cooking.loader.FermentationBarrelRecipeLoader;
 import emaki.jiuwu.craft.cooking.loader.GrinderRecipeLoader;
+import emaki.jiuwu.craft.cooking.loader.JuicerRecipeLoader;
+import emaki.jiuwu.craft.cooking.loader.OvenRecipeLoader;
 import emaki.jiuwu.craft.cooking.loader.SteamerRecipeLoader;
 import emaki.jiuwu.craft.cooking.loader.WokRecipeLoader;
 import emaki.jiuwu.craft.cooking.service.ChoppingBoardRuntimeService;
@@ -28,7 +31,10 @@ import emaki.jiuwu.craft.cooking.service.CookingInspectService;
 import emaki.jiuwu.craft.cooking.service.CookingRecipeService;
 import emaki.jiuwu.craft.cooking.service.CookingRewardService;
 import emaki.jiuwu.craft.cooking.service.CookingSettingsService;
+import emaki.jiuwu.craft.cooking.service.FermentationBarrelRuntimeService;
 import emaki.jiuwu.craft.cooking.service.GrinderRuntimeService;
+import emaki.jiuwu.craft.cooking.service.JuicerRuntimeService;
+import emaki.jiuwu.craft.cooking.service.OvenRuntimeService;
 import emaki.jiuwu.craft.cooking.service.StationStateStore;
 import emaki.jiuwu.craft.cooking.service.SteamerRuntimeService;
 import emaki.jiuwu.craft.cooking.service.WokRuntimeService;
@@ -44,6 +50,9 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
             "recipes/wok",
             "recipes/grinder",
             "recipes/steamer",
+            "recipes/oven",
+            "recipes/juicer",
+            "recipes/fermentation_barrel",
             "item_adjustments",
             "data/stations"
     );
@@ -64,6 +73,9 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
         WokRecipeLoader wokRecipeLoader = new WokRecipeLoader(plugin);
         GrinderRecipeLoader grinderRecipeLoader = new GrinderRecipeLoader(plugin);
         SteamerRecipeLoader steamerRecipeLoader = new SteamerRecipeLoader(plugin);
+        OvenRecipeLoader ovenRecipeLoader = new OvenRecipeLoader(plugin);
+        JuicerRecipeLoader juicerRecipeLoader = new JuicerRecipeLoader(plugin);
+        FermentationBarrelRecipeLoader fermentationBarrelRecipeLoader = new FermentationBarrelRecipeLoader(plugin);
         MessageService messageService = new MessageService(plugin, languageLoader, DEFAULT_PREFIX, false);
         BootstrapService bootstrapService = new BootstrapService(
                 plugin,
@@ -139,6 +151,36 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 rewardService,
                 coreLibPlugin.itemSourceService()
         );
+        OvenRuntimeService ovenRuntimeService = new OvenRuntimeService(
+                plugin,
+                messageService,
+                settingsService,
+                blockMatcher,
+                stationStateStore,
+                recipeService,
+                rewardService,
+                coreLibPlugin.itemSourceService()
+        );
+        JuicerRuntimeService juicerRuntimeService = new JuicerRuntimeService(
+                plugin,
+                messageService,
+                settingsService,
+                blockMatcher,
+                stationStateStore,
+                recipeService,
+                rewardService,
+                coreLibPlugin.itemSourceService()
+        );
+        FermentationBarrelRuntimeService fermentationBarrelRuntimeService = new FermentationBarrelRuntimeService(
+                plugin,
+                messageService,
+                settingsService,
+                blockMatcher,
+                stationStateStore,
+                recipeService,
+                rewardService,
+                coreLibPlugin.itemSourceService()
+        );
         return new CookingRuntimeComponents(
                 appConfigLoader,
                 languageLoader,
@@ -146,6 +188,9 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 wokRecipeLoader,
                 grinderRecipeLoader,
                 steamerRecipeLoader,
+                ovenRecipeLoader,
+                juicerRecipeLoader,
+                fermentationBarrelRecipeLoader,
                 messageService,
                 bootstrapService,
                 coreActionExecutor,
@@ -163,7 +208,10 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 choppingBoardRuntimeService,
                 wokRuntimeService,
                 grinderRuntimeService,
-                steamerRuntimeService
+                steamerRuntimeService,
+                ovenRuntimeService,
+                juicerRuntimeService,
+                fermentationBarrelRuntimeService
         );
     }
 
@@ -175,11 +223,17 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
         plugin.wokRecipeLoader().load();
         plugin.grinderRecipeLoader().load();
         plugin.steamerRecipeLoader().load();
+        plugin.ovenRecipeLoader().load();
+        plugin.juicerRecipeLoader().load();
+        plugin.fermentationBarrelRecipeLoader().load();
         plugin.settingsService().reload();
         plugin.choppingBoardRuntimeService().reload();
         plugin.wokRuntimeService().reload();
         plugin.grinderRuntimeService().reload();
         plugin.steamerRuntimeService().reload();
+        plugin.ovenRuntimeService().reload();
+        plugin.juicerRuntimeService().reload();
+        plugin.fermentationBarrelRuntimeService().reload();
     }
 
     private AppConfig parseAppConfig(YamlSection configuration) {

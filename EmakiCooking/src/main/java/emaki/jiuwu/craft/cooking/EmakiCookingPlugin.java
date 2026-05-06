@@ -17,7 +17,10 @@ import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.cooking.config.AppConfig;
 import emaki.jiuwu.craft.cooking.loader.ChoppingBoardRecipeLoader;
+import emaki.jiuwu.craft.cooking.loader.FermentationBarrelRecipeLoader;
 import emaki.jiuwu.craft.cooking.loader.GrinderRecipeLoader;
+import emaki.jiuwu.craft.cooking.loader.JuicerRecipeLoader;
+import emaki.jiuwu.craft.cooking.loader.OvenRecipeLoader;
 import emaki.jiuwu.craft.cooking.loader.SteamerRecipeLoader;
 import emaki.jiuwu.craft.cooking.loader.WokRecipeLoader;
 import emaki.jiuwu.craft.cooking.service.ChoppingBoardRuntimeService;
@@ -26,7 +29,10 @@ import emaki.jiuwu.craft.cooking.service.CookingInspectService;
 import emaki.jiuwu.craft.cooking.service.CookingRecipeService;
 import emaki.jiuwu.craft.cooking.service.CookingRewardService;
 import emaki.jiuwu.craft.cooking.service.CookingSettingsService;
+import emaki.jiuwu.craft.cooking.service.FermentationBarrelRuntimeService;
 import emaki.jiuwu.craft.cooking.service.GrinderRuntimeService;
+import emaki.jiuwu.craft.cooking.service.JuicerRuntimeService;
+import emaki.jiuwu.craft.cooking.service.OvenRuntimeService;
 import emaki.jiuwu.craft.cooking.service.StationStateStore;
 import emaki.jiuwu.craft.cooking.service.SteamerRuntimeService;
 import emaki.jiuwu.craft.cooking.service.WokRuntimeService;
@@ -54,6 +60,9 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
     private WokRecipeLoader wokRecipeLoader;
     private GrinderRecipeLoader grinderRecipeLoader;
     private SteamerRecipeLoader steamerRecipeLoader;
+    private OvenRecipeLoader ovenRecipeLoader;
+    private JuicerRecipeLoader juicerRecipeLoader;
+    private FermentationBarrelRecipeLoader fermentationBarrelRecipeLoader;
     private MessageService messageService;
     private BootstrapService bootstrapService;
     private ActionExecutor coreActionExecutor;
@@ -72,6 +81,9 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
     private WokRuntimeService wokRuntimeService;
     private GrinderRuntimeService grinderRuntimeService;
     private SteamerRuntimeService steamerRuntimeService;
+    private OvenRuntimeService ovenRuntimeService;
+    private JuicerRuntimeService juicerRuntimeService;
+    private FermentationBarrelRuntimeService fermentationBarrelRuntimeService;
 
     public EmakiCookingPlugin() {
         super(AppConfig::defaults);
@@ -97,6 +109,15 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         if (steamerRuntimeService != null) {
             steamerRuntimeService.shutdown();
         }
+        if (ovenRuntimeService != null) {
+            ovenRuntimeService.shutdown();
+        }
+        if (juicerRuntimeService != null) {
+            juicerRuntimeService.shutdown();
+        }
+        if (fermentationBarrelRuntimeService != null) {
+            fermentationBarrelRuntimeService.shutdown();
+        }
         if (displayService != null) {
             displayService.shutdown();
         }
@@ -117,6 +138,9 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         wokRecipeLoader = components.wokRecipeLoader();
         grinderRecipeLoader = components.grinderRecipeLoader();
         steamerRecipeLoader = components.steamerRecipeLoader();
+        ovenRecipeLoader = components.ovenRecipeLoader();
+        juicerRecipeLoader = components.juicerRecipeLoader();
+        fermentationBarrelRecipeLoader = components.fermentationBarrelRecipeLoader();
         messageService = components.messageService();
         bootstrapService = components.bootstrapService();
         coreActionExecutor = components.coreActionExecutor();
@@ -135,7 +159,10 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         wokRuntimeService = components.wokRuntimeService();
         grinderRuntimeService = components.grinderRuntimeService();
         steamerRuntimeService = components.steamerRuntimeService();
-        stationListener = new CookingStationListener(choppingBoardRuntimeService, wokRuntimeService, grinderRuntimeService, steamerRuntimeService);
+        ovenRuntimeService = components.ovenRuntimeService();
+        juicerRuntimeService = components.juicerRuntimeService();
+        fermentationBarrelRuntimeService = components.fermentationBarrelRuntimeService();
+        stationListener = new CookingStationListener(choppingBoardRuntimeService, wokRuntimeService, grinderRuntimeService, steamerRuntimeService, ovenRuntimeService, juicerRuntimeService, fermentationBarrelRuntimeService);
         registerServices(components);
     }
 
@@ -155,6 +182,15 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         getServer().getPluginManager().registerEvents(stationListener, this);
         if (steamerRuntimeService != null) {
             getServer().getPluginManager().registerEvents(steamerRuntimeService, this);
+        }
+        if (ovenRuntimeService != null) {
+            getServer().getPluginManager().registerEvents(ovenRuntimeService, this);
+        }
+        if (juicerRuntimeService != null) {
+            getServer().getPluginManager().registerEvents(juicerRuntimeService, this);
+        }
+        if (fermentationBarrelRuntimeService != null) {
+            getServer().getPluginManager().registerEvents(fermentationBarrelRuntimeService, this);
         }
         registerCraftEngineEventHandlers();
         registerItemsAdderEventHandlers();
@@ -217,6 +253,18 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
 
     public SteamerRecipeLoader steamerRecipeLoader() {
         return steamerRecipeLoader;
+    }
+
+    public OvenRecipeLoader ovenRecipeLoader() {
+        return ovenRecipeLoader;
+    }
+
+    public JuicerRecipeLoader juicerRecipeLoader() {
+        return juicerRecipeLoader;
+    }
+
+    public FermentationBarrelRecipeLoader fermentationBarrelRecipeLoader() {
+        return fermentationBarrelRecipeLoader;
     }
 
     @Override
@@ -290,5 +338,17 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
 
     public SteamerRuntimeService steamerRuntimeService() {
         return steamerRuntimeService;
+    }
+
+    public OvenRuntimeService ovenRuntimeService() {
+        return ovenRuntimeService;
+    }
+
+    public JuicerRuntimeService juicerRuntimeService() {
+        return juicerRuntimeService;
+    }
+
+    public FermentationBarrelRuntimeService fermentationBarrelRuntimeService() {
+        return fermentationBarrelRuntimeService;
     }
 }

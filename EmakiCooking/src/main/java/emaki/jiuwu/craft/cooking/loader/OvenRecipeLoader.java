@@ -1,0 +1,19 @@
+package emaki.jiuwu.craft.cooking.loader;
+
+import java.util.List;
+
+import org.bukkit.plugin.java.JavaPlugin;
+
+import emaki.jiuwu.craft.cooking.model.StationType;
+
+public final class OvenRecipeLoader extends BaseRecipeLoader {
+
+    public OvenRecipeLoader(JavaPlugin plugin) {
+        super(plugin, StationType.OVEN, List.of(
+                "id",
+                "display_name",
+                "input.item_sources",
+                "bake_time_seconds"
+        ));
+    }
+}

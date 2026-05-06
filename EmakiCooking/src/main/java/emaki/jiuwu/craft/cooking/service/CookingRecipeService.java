@@ -93,6 +93,46 @@ public final class CookingRecipeService {
         return recipe == null ? 0 : Math.max(0, recipe.configuration().getInt("required_steam", 0));
     }
 
+    public RecipeDocument findOvenRecipe(String inputSource, Player player) {
+        return findByInput(plugin.ovenRecipeLoader().all().values(), inputSource, player);
+    }
+
+    public int ovenBakeTimeSeconds(RecipeDocument recipe) {
+        return recipe == null ? 0 : Math.max(0, recipe.configuration().getInt("bake_time_seconds", 0));
+    }
+
+    public RecipeDocument findJuicerRecipe(String inputSource, Player player) {
+        return findByInput(plugin.juicerRecipeLoader().all().values(), inputSource, player);
+    }
+
+    public int juicerPressesRequired(RecipeDocument recipe) {
+        return recipe == null ? 0 : Math.max(0, recipe.configuration().getInt("presses_required", 0));
+    }
+
+    public List<ItemSource> juicerContainerSources(RecipeDocument recipe) {
+        if (recipe == null) {
+            return List.of();
+        }
+        return parseItemSources(recipe.configuration().get("container.item_sources"));
+    }
+
+    public Collection<RecipeDocument> fermentationBarrelRecipes() {
+        Collection<RecipeDocument> recipes = plugin.fermentationBarrelRecipeLoader().all().values();
+        return recipes == null || recipes.isEmpty() ? List.of() : List.copyOf(recipes);
+    }
+
+    public RecipeDocument fermentationBarrelRecipeById(String recipeId) {
+        return Texts.isBlank(recipeId) ? null : plugin.fermentationBarrelRecipeLoader().get(recipeId);
+    }
+
+    public int fermentationTimeSeconds(RecipeDocument recipe) {
+        return recipe == null ? 0 : Math.max(0, recipe.configuration().getInt("fermentation_time_seconds", 0));
+    }
+
+    public List<Map<String, Object>> fermentationInputs(RecipeDocument recipe) {
+        return recipe == null ? List.of() : mapList(recipe.configuration().getMapList("inputs"));
+    }
+
     public List<Map<String, Object>> wokIngredients(RecipeDocument recipe) {
         return recipe == null ? List.of() : mapList(recipe.configuration().getMapList("ingredients"));
     }
@@ -284,6 +324,17 @@ public final class CookingRecipeService {
         ItemSource source = ItemSourceUtil.parse(raw);
         String shorthand = ItemSourceUtil.toShorthand(source);
         return shorthand == null ? "" : shorthand;
+    }
+
+    private List<ItemSource> parseItemSources(Object raw) {
+        List<ItemSource> sources = new ArrayList<>();
+        for (Object token : emaki.jiuwu.craft.corelib.config.ConfigNodes.asObjectList(raw)) {
+            ItemSource source = ItemSourceUtil.parse(token);
+            if (source != null) {
+                sources.add(source);
+            }
+        }
+        return sources.isEmpty() ? List.of() : List.copyOf(sources);
     }
 
     public void clearCaches() {

@@ -103,3 +103,28 @@ steamer:
     <yellow>{progress}</yellow></gray>"
   progress_not_started: "Not Started"
   progress_completed: "Completed"
+
+juicer:
+  in_use: "<yellow>This juicer is being used by another player, please try again later.</yellow>"
+  opened: "<gray>Juicer opened.</gray>"
+  open_failed: "<red>Failed to open juicer GUI.</red>"
+  no_item: "<yellow>There are no ingredients in the juicer.</yellow>"
+  no_recipe: "<red>No available juicer recipe for the current ingredient.</red>"
+  pressed: "<gray>Juicing progress: <yellow>{current}</yellow>/<yellow>{required}</yellow></gray>"
+  need_container: "<yellow>You need to hold a container to collect juice.</yellow>"
+  completed: "<green>Juicing complete: <yellow>{recipe}</yellow></green>"
+  info: "<gray>Juicing progress: <yellow>{progress}</yellow></gray>"
+  progress_not_started: "Not Started"
+
+fermentation_barrel:
+  in_use: "<yellow>This fermentation barrel is being used by another player, please try again later.</yellow>"
+  opened: "<gray>Fermentation barrel opened.</gray>"
+  open_failed: "<red>Failed to open fermentation barrel GUI.</red>"
+  no_recipe: "<red>The current ingredient combination cannot ferment.</red>"
+  started: "<gray>Fermentation started, estimated <yellow>{seconds}</yellow> seconds to complete.</gray>"
+  fermenting: "<gray>Fermenting, <yellow>{seconds}</yellow> seconds remaining.</gray>"
+  collected: "<green>Collected fermented output.</green>"
+  info: "<gray>Fermentation status: <yellow>{status}</yellow> | Remaining: <yellow>{seconds}</yellow>s | Progress: <yellow>{progress}</yellow></gray>"
+  status_idle: "Idle"
+  status_fermenting: "Fermenting"
+  status_completed: "Completed"

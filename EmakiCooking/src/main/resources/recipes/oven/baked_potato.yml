@@ -1,0 +1,21 @@
+id: "baked_potato"
+
+display_name: "烤马铃薯"
+
+input:
+  item_sources:
+    - "minecraft-potato"
+
+bake_time_seconds: 20
+
+permission: "emakicooking.recipe.baked_potato"
+
+result:
+  output:
+    item_sources:
+      - "minecraft-baked_potato"
+    amount: 1
+    actions:
+      - "sendmessage text=\"<gold>烤制完成。</gold>\""
+
+structured_presentation: {}

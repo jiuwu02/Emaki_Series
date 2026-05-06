@@ -14,6 +14,17 @@ public final class CookingPermissions {
     public static final String STEAMER_MOISTURE = "emakicooking.station.steamer.moisture";
     public static final String STEAMER_FUEL = "emakicooking.station.steamer.fuel";
 
+    public static final String OVEN_USE = "emakicooking.station.oven.use";
+    public static final String OVEN_FUEL = "emakicooking.station.oven.fuel";
+
+    public static final String JUICER_USE = "emakicooking.station.juicer.use";
+    public static final String JUICER_PRESS = "emakicooking.station.juicer.press";
+    public static final String JUICER_COLLECT = "emakicooking.station.juicer.collect";
+
+    public static final String FERMENTATION_BARREL_USE = "emakicooking.station.fermentation_barrel.use";
+    public static final String FERMENTATION_BARREL_START = "emakicooking.station.fermentation_barrel.start";
+    public static final String FERMENTATION_BARREL_COLLECT = "emakicooking.station.fermentation_barrel.collect";
+
     public static final String CHOPPING_BOARD_USE = "emakicooking.station.chopping_board.use";
     public static final String CHOPPING_BOARD_CUT = "emakicooking.station.chopping_board.cut";
 

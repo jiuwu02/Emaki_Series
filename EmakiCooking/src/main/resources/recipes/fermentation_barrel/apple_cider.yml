@@ -1,0 +1,25 @@
+id: "apple_cider"
+
+display_name: "苹果酒"
+
+inputs:
+  - item_sources:
+      - "minecraft-apple"
+    amount: 3
+  - item_sources:
+      - "minecraft-sugar"
+    amount: 1
+
+fermentation_time_seconds: 300
+
+permission: "emakicooking.recipe.apple_cider"
+
+result:
+  output:
+    item_sources:
+      - "minecraft-honey_bottle"
+    amount: 1
+    actions:
+      - "sendmessage text=\"<gold>发酵完成。</gold>\""
+
+structured_presentation: {}

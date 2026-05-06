@@ -186,3 +186,62 @@ stations:
     steam_conversion_efficiency: 1
     # 每个周期的基础 steam 消耗量
     steam_consumption_efficiency: 1
+
+  oven:
+    # 烤炉主体方块来源；GUI 细节在 gui/oven.yml
+    block_item_sources:
+      - minecraft-smoker
+    interactions:
+      open: shift_right_click
+      fuel: shift_left_click
+      inspect: shift_left_click
+    drop_result: true
+    # 火力处于 min-max 时才推进烤制计时；过低或过高都会暂停
+    heat:
+      min: 20
+      max: 80
+      decay_per_second: 5
+    # 烤炉燃料；一次潜行左键会同时增加燃烧时间和火力
+    fuels:
+      - item_sources:
+          - minecraft-stick
+        duration_seconds: 5
+        heat: 10
+      - item_sources:
+          - minecraft-coal
+        duration_seconds: 80
+        heat: 35
+      - item_sources:
+          - minecraft-charcoal
+        duration_seconds: 80
+        heat: 35
+
+  juicer:
+    # 榨汁机方块来源；GUI 细节在 gui/juicer.yml
+    block_item_sources:
+      - minecraft-cauldron
+    interactions:
+      open: shift_right_click
+      process: shift_left_click
+      inspect: left_click
+      serve: shift_left_click
+    drop_result: true
+    only_recipe_items: true
+    require_container: true
+    container_item_sources:
+      - minecraft-glass_bottle
+    drop_completed_result_on_break: false
+
+  fermentation_barrel:
+    # 发酵桶方块来源；GUI 细节在 gui/fermentation_barrel.yml
+    block_item_sources:
+      - minecraft-barrel
+    interactions:
+      open: shift_right_click
+      start: shift_left_click
+      inspect: left_click
+      serve: shift_left_click
+    drop_result: true
+    pause_when_open: true
+    require_sealed: true
+    only_recipe_items: true

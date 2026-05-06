@@ -13,7 +13,10 @@ import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.cooking.config.AppConfig;
 import emaki.jiuwu.craft.cooking.loader.ChoppingBoardRecipeLoader;
+import emaki.jiuwu.craft.cooking.loader.FermentationBarrelRecipeLoader;
 import emaki.jiuwu.craft.cooking.loader.GrinderRecipeLoader;
+import emaki.jiuwu.craft.cooking.loader.JuicerRecipeLoader;
+import emaki.jiuwu.craft.cooking.loader.OvenRecipeLoader;
 import emaki.jiuwu.craft.cooking.loader.SteamerRecipeLoader;
 import emaki.jiuwu.craft.cooking.loader.WokRecipeLoader;
 import emaki.jiuwu.craft.cooking.service.ChoppingBoardRuntimeService;
@@ -22,7 +25,10 @@ import emaki.jiuwu.craft.cooking.service.CookingInspectService;
 import emaki.jiuwu.craft.cooking.service.CookingRecipeService;
 import emaki.jiuwu.craft.cooking.service.CookingRewardService;
 import emaki.jiuwu.craft.cooking.service.CookingSettingsService;
+import emaki.jiuwu.craft.cooking.service.FermentationBarrelRuntimeService;
 import emaki.jiuwu.craft.cooking.service.GrinderRuntimeService;
+import emaki.jiuwu.craft.cooking.service.JuicerRuntimeService;
+import emaki.jiuwu.craft.cooking.service.OvenRuntimeService;
 import emaki.jiuwu.craft.cooking.service.StationStateStore;
 import emaki.jiuwu.craft.cooking.service.SteamerRuntimeService;
 import emaki.jiuwu.craft.cooking.service.WokRuntimeService;
@@ -34,6 +40,9 @@ record CookingRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
         WokRecipeLoader wokRecipeLoader,
         GrinderRecipeLoader grinderRecipeLoader,
         SteamerRecipeLoader steamerRecipeLoader,
+        OvenRecipeLoader ovenRecipeLoader,
+        JuicerRecipeLoader juicerRecipeLoader,
+        FermentationBarrelRecipeLoader fermentationBarrelRecipeLoader,
         MessageService messageService,
         BootstrapService bootstrapService,
         ActionExecutor coreActionExecutor,
@@ -51,7 +60,10 @@ record CookingRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
         ChoppingBoardRuntimeService choppingBoardRuntimeService,
         WokRuntimeService wokRuntimeService,
         GrinderRuntimeService grinderRuntimeService,
-        SteamerRuntimeService steamerRuntimeService) implements RuntimeComponents {
+        SteamerRuntimeService steamerRuntimeService,
+        OvenRuntimeService ovenRuntimeService,
+        JuicerRuntimeService juicerRuntimeService,
+        FermentationBarrelRuntimeService fermentationBarrelRuntimeService) implements RuntimeComponents {
 
     @Override
     public Map<Class<?>, Object> services() {
@@ -62,6 +74,9 @@ record CookingRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
                 RuntimeComponents.component(WokRecipeLoader.class, wokRecipeLoader),
                 RuntimeComponents.component(GrinderRecipeLoader.class, grinderRecipeLoader),
                 RuntimeComponents.component(SteamerRecipeLoader.class, steamerRecipeLoader),
+                RuntimeComponents.component(OvenRecipeLoader.class, ovenRecipeLoader),
+                RuntimeComponents.component(JuicerRecipeLoader.class, juicerRecipeLoader),
+                RuntimeComponents.component(FermentationBarrelRecipeLoader.class, fermentationBarrelRecipeLoader),
                 RuntimeComponents.component(MessageService.class, messageService),
                 RuntimeComponents.component(BootstrapService.class, bootstrapService),
                 RuntimeComponents.component(ActionExecutor.class, coreActionExecutor),
@@ -78,7 +93,10 @@ record CookingRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
                 RuntimeComponents.component(ChoppingBoardRuntimeService.class, choppingBoardRuntimeService),
                 RuntimeComponents.component(WokRuntimeService.class, wokRuntimeService),
                 RuntimeComponents.component(GrinderRuntimeService.class, grinderRuntimeService),
-                RuntimeComponents.component(SteamerRuntimeService.class, steamerRuntimeService)
+                RuntimeComponents.component(SteamerRuntimeService.class, steamerRuntimeService),
+                RuntimeComponents.component(OvenRuntimeService.class, ovenRuntimeService),
+                RuntimeComponents.component(JuicerRuntimeService.class, juicerRuntimeService),
+                RuntimeComponents.component(FermentationBarrelRuntimeService.class, fermentationBarrelRuntimeService)
         );
     }
 }
