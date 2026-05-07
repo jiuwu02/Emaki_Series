@@ -82,7 +82,6 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                 itemLoader,
                 itemFactory,
                 identifier,
-                pdcWriter,
                 pdcAttributeGateway::copyPayloads,
                 plugin::appConfig
         );

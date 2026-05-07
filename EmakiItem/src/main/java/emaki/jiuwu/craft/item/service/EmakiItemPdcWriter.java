@@ -36,7 +36,7 @@ public final class EmakiItemPdcWriter {
         }
         ItemMeta itemMeta = itemStack.getItemMeta();
         if (itemMeta != null) {
-            identifier.writeIdentity(itemMeta, definition.id(), definition.definitionSignature());
+            identifier.writeIdentity(itemMeta, definition.id(), definition.definitionSignature(), definition.updatePolicy().version());
             itemStack.setItemMeta(itemMeta);
         }
         if (!definition.attributes().isEmpty()
@@ -56,6 +56,7 @@ public final class EmakiItemPdcWriter {
             int activeCount,
             int totalCount,
             List<Integer> activeThresholds,
+            int setLoreLines,
             Map<String, Double> setAttributes,
             List<String> setSkills,
             String setSignature) {
@@ -64,7 +65,7 @@ public final class EmakiItemPdcWriter {
         }
         ItemMeta itemMeta = itemStack.getItemMeta();
         if (itemMeta != null) {
-            identifier.writeSetState(itemMeta, setId, setPiece, activeCount, totalCount, thresholds(activeThresholds), setSignature);
+            identifier.writeSetState(itemMeta, setId, setPiece, activeCount, totalCount, thresholds(activeThresholds), setLoreLines, setSignature);
             itemStack.setItemMeta(itemMeta);
         }
         if (Bukkit.getPluginManager().isPluginEnabled("EmakiAttribute")) {

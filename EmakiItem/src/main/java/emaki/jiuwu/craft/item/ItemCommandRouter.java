@@ -145,6 +145,7 @@ final class ItemCommandRouter implements TabExecutor {
         Map<Integer, ItemStack> leftovers = target.getInventory().addItem(itemStack);
         leftovers.values().forEach(left -> target.getWorld().dropItemNaturally(target.getLocation(), left));
         plugin.actionService().execute(target, definition, "give", Map.of("amount", amount));
+        plugin.updateService().updatePlayerItems(target, "give");
         plugin.setService().refreshEquippedSets(target, "give");
         plugin.messageService().send(sender, "general.give_success", Map.of(
                 "player", target.getName(),
@@ -170,6 +171,7 @@ final class ItemCommandRouter implements TabExecutor {
         plugin.messageService().sendRaw(sender, plugin.messageService().message("command.inspect.line", Map.of("key", "id", "value", Texts.isBlank(id) ? "-" : id)));
         Integer schemaVersion = plugin.identifier().schemaVersion(held);
         plugin.messageService().sendRaw(sender, plugin.messageService().message("command.inspect.line", Map.of("key", "schema_version", "value", schemaVersion == null ? "-" : schemaVersion)));
+        plugin.messageService().sendRaw(sender, plugin.messageService().message("command.inspect.line", Map.of("key", "update_version", "value", plugin.identifier().updateVersion(held))));
         EmakiItemDefinition definition = Texts.isBlank(id) ? null : plugin.itemLoader().get(id);
         plugin.messageService().sendRaw(sender, plugin.messageService().message("command.inspect.line", Map.of("key", "exists", "value", definition != null)));
         plugin.messageService().sendRaw(sender, plugin.messageService().message("command.inspect.line", Map.of("key", "attributes", "value", inspectAttributes(held))));
@@ -194,7 +196,8 @@ final class ItemCommandRouter implements TabExecutor {
             plugin.messageService().send(sender, "general.player_not_found");
             return true;
         }
-        int changed = plugin.setService().refreshEquippedSets(target, "command");
+        int changed = plugin.updateService().updatePlayerItems(target, "command");
+        changed += plugin.setService().refreshEquippedSets(target, "command");
         plugin.messageService().send(sender, "general.update_success", Map.of("player", target.getName(), "count", changed));
         return true;
     }

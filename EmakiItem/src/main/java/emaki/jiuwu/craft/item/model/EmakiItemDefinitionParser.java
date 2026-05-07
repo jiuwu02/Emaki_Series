@@ -55,6 +55,7 @@ public final class EmakiItemDefinitionParser {
                 parseSetMembership(root.getSection("set")),
                 parseConditions(root.getSection("conditions")),
                 parseActions(root.getSection("actions")),
+                parseUpdate(root.getSection("update"), id, source),
                 random
         );
     }
@@ -124,6 +125,44 @@ public final class EmakiItemDefinitionParser {
             }
         }
         return actions;
+    }
+
+    private ItemUpdatePolicy parseUpdate(YamlSection section, String itemId, String source) {
+        if (section == null) {
+            return ItemUpdatePolicy.defaults();
+        }
+        int version = 1;
+        if (section.contains("version")) {
+            Integer configuredVersion = section.getInt("version", null);
+            if (configuredVersion == null || configuredVersion < 1) {
+                warning("Item definition " + source + " uses invalid update.version for '" + itemId + "', falling back to 1.");
+            } else {
+                version = configuredVersion;
+            }
+        }
+        return new ItemUpdatePolicy(
+                version,
+                section.getBoolean("enabled", null),
+                section.getBoolean("preserve_amount", null),
+                section.getBoolean("preserve_damage", null),
+                section.getBoolean("preserve_unknown_attribute_sources", null),
+                parseUpdateTriggers(section.getSection("triggers"))
+        );
+    }
+
+    private ItemUpdatePolicy.TriggerPolicy parseUpdateTriggers(YamlSection section) {
+        if (section == null) {
+            return ItemUpdatePolicy.TriggerPolicy.empty();
+        }
+        return new ItemUpdatePolicy.TriggerPolicy(
+                section.getBoolean("join", null),
+                section.getBoolean("held_change", null),
+                section.getBoolean("inventory_click", null),
+                section.getBoolean("inventory_drag", null),
+                section.getBoolean("pickup", null),
+                section.getBoolean("interact", null),
+                section.getBoolean("command", null)
+        );
     }
 
     private ItemSetMembership parseSetMembership(YamlSection section) {

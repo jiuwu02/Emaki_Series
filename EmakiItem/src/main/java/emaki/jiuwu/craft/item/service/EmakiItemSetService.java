@@ -87,17 +87,19 @@ public final class EmakiItemSetService {
                 continue;
             }
             ItemSetMembership membership = definition.setMembership();
-            ItemStack updated = updateService.forceUpdate(original);
+            String existingSignature = identifier.setSignature(original);
+            Integer existingLoreLines = identifier.setLoreLines(original);
+            ItemStack updated = prepareForSetRendering(original, definition);
             if (membership.configured()) {
                 EquippedSetState state = states.get(membership.setId());
                 ItemStack rendered = renderSetItem(updated, definition, membership, state);
-                if (rendered != original) {
+                if (rendered != original || setPresentationChanged(existingSignature, existingLoreLines, rendered)) {
                     equippedItem.write(player.getInventory(), rendered);
                     changed++;
                 }
-            } else if (Texts.isNotBlank(identifier.setSignature(original))) {
-                pdcWriter.clearDynamicSet(updated, definition);
-                equippedItem.write(player.getInventory(), updated);
+            } else if (hasSetPresentation(original)) {
+                ItemStack cleared = clearSetPresentation(updated, definition);
+                equippedItem.write(player.getInventory(), cleared);
                 changed++;
             } else if (updated != original) {
                 equippedItem.write(player.getInventory(), updated);
@@ -137,31 +139,81 @@ public final class EmakiItemSetService {
                 if (state != null) {
                     // 背包中的套装物品也应该显示套装 lore（与装备槽一致）
                     String existingSignature = identifier.setSignature(original);
-                    ItemStack updated = updateService.forceUpdate(original);
+                    Integer existingLoreLines = identifier.setLoreLines(original);
+                    ItemStack updated = prepareForSetRendering(original, definition);
                     ItemStack rendered = renderSetItem(updated, definition, membership, state);
-                    String newSignature = identifier.setSignature(rendered);
-                    if (!newSignature.equals(existingSignature)) {
+                    if (rendered != original || setPresentationChanged(existingSignature, existingLoreLines, rendered)) {
                         inventory.setItem(slot, rendered);
                         changed++;
                     }
                 } else {
                     // 套装定义不存在或没有任何装备件数，清除残留套装 lore
-                    if (Texts.isNotBlank(identifier.setSignature(original))) {
-                        ItemStack updated = updateService.forceUpdate(original);
-                        pdcWriter.clearDynamicSet(updated, definition);
-                        inventory.setItem(slot, updated);
+                    if (hasSetPresentation(original)) {
+                        ItemStack cleared = clearSetPresentation(original, definition);
+                        inventory.setItem(slot, cleared);
                         changed++;
                     }
                 }
-            } else if (Texts.isNotBlank(identifier.setSignature(original))) {
+            } else if (hasSetPresentation(original)) {
                 // 物品不再是套装成员但仍有套装签名，清除
-                ItemStack updated = updateService.forceUpdate(original);
-                pdcWriter.clearDynamicSet(updated, definition);
-                inventory.setItem(slot, updated);
+                ItemStack cleared = clearSetPresentation(original, definition);
+                inventory.setItem(slot, cleared);
                 changed++;
             }
         }
         return changed;
+    }
+
+    private ItemStack prepareForSetRendering(ItemStack itemStack, EmakiItemDefinition definition) {
+        if (needsLegacySetNormalization(itemStack)) {
+            return updateService.forceUpdate(itemStack);
+        }
+        return itemStack;
+    }
+
+    private ItemStack clearSetPresentation(ItemStack itemStack, EmakiItemDefinition definition) {
+        ItemStack updated = prepareForSetRendering(itemStack, definition);
+        if (updated == itemStack) {
+            stripSetLore(updated);
+        }
+        pdcWriter.clearDynamicSet(updated, definition);
+        return updated;
+    }
+
+    private boolean needsLegacySetNormalization(ItemStack itemStack) {
+        return Texts.isNotBlank(identifier.setSignature(itemStack)) && identifier.setLoreLines(itemStack) == null;
+    }
+
+    private boolean hasSetPresentation(ItemStack itemStack) {
+        return Texts.isNotBlank(identifier.setSignature(itemStack)) || identifier.setLoreLines(itemStack) != null;
+    }
+
+    private boolean setPresentationChanged(String previousSignature, Integer previousLoreLines, ItemStack itemStack) {
+        return !java.util.Objects.equals(previousSignature == null ? "" : previousSignature, identifier.setSignature(itemStack))
+                || !java.util.Objects.equals(previousLoreLines, identifier.setLoreLines(itemStack));
+    }
+
+    private void stripSetLore(ItemStack itemStack) {
+        if (itemStack == null || itemStack.getType().isAir()) {
+            return;
+        }
+        ItemMeta itemMeta = itemStack.getItemMeta();
+        if (itemMeta == null) {
+            return;
+        }
+        List<String> strippedLore = stripPreviousSetLore(ItemTextBridge.loreLines(itemMeta), identifier.setLoreLines(itemStack));
+        ItemTextBridge.setLoreLines(itemMeta, strippedLore);
+        itemStack.setItemMeta(itemMeta);
+    }
+
+    private List<String> stripPreviousSetLore(List<String> lore, Integer setLoreLines) {
+        List<String> result = lore == null || lore.isEmpty() ? new ArrayList<>() : new ArrayList<>(lore);
+        int lines = setLoreLines == null ? 0 : Math.max(0, setLoreLines);
+        if (lines <= 0 || result.isEmpty()) {
+            return result;
+        }
+        int keep = Math.max(0, result.size() - lines);
+        return new ArrayList<>(result.subList(0, keep));
     }
 
     private ItemStack renderSetItem(ItemStack itemStack,
@@ -173,8 +225,9 @@ public final class EmakiItemSetService {
         }
         List<String> setLore = loreRenderer.render(state);
         ItemMeta itemMeta = itemStack.getItemMeta();
+        int appendedLoreLines = 0;
         if (itemMeta != null) {
-            List<String> lore = ItemTextBridge.loreLines(itemMeta);
+            List<String> lore = stripPreviousSetLore(ItemTextBridge.loreLines(itemMeta), identifier.setLoreLines(itemStack));
             List<String> mergedLore = new ArrayList<>();
             if (lore != null && !lore.isEmpty()) {
                 mergedLore.addAll(lore);
@@ -182,8 +235,10 @@ public final class EmakiItemSetService {
             if (!setLore.isEmpty()) {
                 if (!mergedLore.isEmpty()) {
                     mergedLore.add("");
+                    appendedLoreLines++;
                 }
                 mergedLore.addAll(setLore);
+                appendedLoreLines += setLore.size();
             }
             ItemTextBridge.setLoreLines(itemMeta, mergedLore);
             itemStack.setItemMeta(itemMeta);
@@ -206,6 +261,7 @@ public final class EmakiItemSetService {
                 state.activeCount(),
                 state.definition().totalPieces(),
                 activeThresholdNumbers,
+                appendedLoreLines,
                 state.mergedAttributes(),
                 state.mergedSkills(),
                 setSignature

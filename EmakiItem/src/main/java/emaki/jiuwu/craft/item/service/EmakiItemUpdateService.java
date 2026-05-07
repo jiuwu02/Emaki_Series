@@ -2,33 +2,33 @@ package emaki.jiuwu.craft.item.service;
 
 import java.util.Set;
 
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import emaki.jiuwu.craft.item.config.AppConfig;
 import emaki.jiuwu.craft.item.loader.EmakiItemLoader;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
+import emaki.jiuwu.craft.item.model.ItemUpdateConfig;
 
 public final class EmakiItemUpdateService {
 
     private final EmakiItemLoader itemLoader;
     private final EmakiItemFactory itemFactory;
     private final EmakiItemIdentifier identifier;
-    private final EmakiItemPdcWriter pdcWriter;
     private final PdcAttributeGatewayAdapter attributeGateway;
     private final java.util.function.Supplier<AppConfig> configSupplier;
 
     public EmakiItemUpdateService(EmakiItemLoader itemLoader,
             EmakiItemFactory itemFactory,
             EmakiItemIdentifier identifier,
-            EmakiItemPdcWriter pdcWriter,
             PdcAttributeGatewayAdapter attributeGateway,
             java.util.function.Supplier<AppConfig> configSupplier) {
         this.itemLoader = itemLoader;
         this.itemFactory = itemFactory;
         this.identifier = identifier;
-        this.pdcWriter = pdcWriter;
         this.attributeGateway = attributeGateway;
         this.configSupplier = configSupplier;
     }
@@ -38,9 +38,6 @@ public final class EmakiItemUpdateService {
             return original;
         }
         AppConfig config = configSupplier.get();
-        if (config != null && !config.itemUpdate().triggerEnabled(trigger)) {
-            return original;
-        }
         String id = identifier.identify(original);
         if (id.isBlank()) {
             return original;
@@ -49,14 +46,14 @@ public final class EmakiItemUpdateService {
         if (definition == null) {
             return original;
         }
-        Integer schemaVersion = identifier.schemaVersion(original);
-        String storedSignature = identifier.definitionSignature(original);
-        if (schemaVersion != null
-                && schemaVersion == EmakiItemIdentifier.SCHEMA_VERSION
-                && definition.definitionSignature().equals(storedSignature)) {
+        ItemUpdateConfig updateConfig = resolvedUpdateConfig(definition, config);
+        if (!updateConfig.triggerEnabled(trigger)) {
             return original;
         }
-        return rebuild(original, definition, config == null ? AppConfig.defaults() : config);
+        if (identifier.updateVersion(original) >= definition.updatePolicy().version()) {
+            return original;
+        }
+        return rebuild(original, definition, updateConfig);
     }
 
     public ItemStack forceUpdate(ItemStack original) {
@@ -65,23 +62,45 @@ public final class EmakiItemUpdateService {
         }
         String id = identifier.identify(original);
         EmakiItemDefinition definition = id.isBlank() ? null : itemLoader.get(id);
-        return definition == null ? original : rebuild(original, definition, configSupplier.get() == null ? AppConfig.defaults() : configSupplier.get());
+        return definition == null ? original : rebuild(original, definition, resolvedUpdateConfig(definition, configSupplier.get()));
     }
 
-    private ItemStack rebuild(ItemStack original, EmakiItemDefinition definition, AppConfig config) {
-        int amount = config.itemUpdate().preserveAmount() ? original.getAmount() : 1;
+    public int updatePlayerItems(Player player, String trigger) {
+        if (player == null) {
+            return 0;
+        }
+        PlayerInventory inventory = player.getInventory();
+        int changed = 0;
+        for (int slot = 0; slot < inventory.getSize(); slot++) {
+            ItemStack original = inventory.getItem(slot);
+            ItemStack updated = updateIfNeeded(original, trigger);
+            if (updated != original) {
+                inventory.setItem(slot, updated);
+                changed++;
+            }
+        }
+        return changed;
+    }
+
+    private ItemStack rebuild(ItemStack original, EmakiItemDefinition definition, ItemUpdateConfig updateConfig) {
+        int amount = updateConfig.preserveAmount() ? original.getAmount() : 1;
         int oldDamage = readDamage(original);
         ItemStack rebuilt = itemFactory.rebuildBase(definition, amount);
         if (rebuilt == null) {
             return original;
         }
-        if (config.itemUpdate().preserveDamage()) {
+        if (updateConfig.preserveDamage()) {
             applyDamage(rebuilt, oldDamage);
         }
-        if (config.itemUpdate().preserveUnknownAttributeSources()) {
+        if (updateConfig.preserveUnknownAttributeSources()) {
             attributeGateway.copyPayloads(original, rebuilt, Set.of("emakiitem", EmakiItemPdcWriter.SET_ATTRIBUTE_SOURCE_ID));
         }
         return rebuilt;
+    }
+
+    private ItemUpdateConfig resolvedUpdateConfig(EmakiItemDefinition definition, AppConfig config) {
+        AppConfig effectiveConfig = config == null ? AppConfig.defaults() : config;
+        return definition.updatePolicy().resolve(effectiveConfig.itemUpdate());
     }
 
     private int readDamage(ItemStack itemStack) {

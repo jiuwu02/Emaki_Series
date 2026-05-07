@@ -1,5 +1,16 @@
 id: "example_blade"
 material: "diamond_sword"
+update:
+  enabled: true
+  version: 1
+  triggers:
+    join: true
+    held_change: true
+    inventory_click: true
+    inventory_drag: true
+    pickup: true
+    interact: true
+    command: true
 display_name: "<gold>示例之刃</gold>"
 lore:
   - "<gray>一把用于演示的钻石剑</gray>"

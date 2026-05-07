@@ -53,10 +53,15 @@ public final class ItemUpdateListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onInteract(PlayerInteractEvent event) {
-        plugin.setService().refreshEquippedSets(event.getPlayer(), "interact");
+        refresh(event.getPlayer(), "interact");
     }
 
     private void delayed(Player player, String trigger) {
-        plugin.getServer().getScheduler().runTask(plugin, () -> plugin.setService().refreshEquippedSets(player, trigger));
+        plugin.getServer().getScheduler().runTask(plugin, () -> refresh(player, trigger));
+    }
+
+    private int refresh(Player player, String trigger) {
+        int changed = plugin.updateService().updatePlayerItems(player, trigger);
+        return changed + plugin.setService().refreshEquippedSets(player, trigger);
     }
 }

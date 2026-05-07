@@ -13,6 +13,8 @@ release_default_data: true
 
 # 物品自动更新设置。
 # EmakiItem 会根据物品 PDC 中记录的 item id，尝试把玩家身上的旧版物品刷新为当前 items/*.yml 中的定义。
+# 每个 items/*.yml 可配置 update.version 与 update.triggers，局部覆盖这里的全局设置。
+# 物品只会在自身 update.version 大于物品 PDC 中记录的 update_version 时重建。
 item_update:
   # 是否启用自动更新。
   enabled: true

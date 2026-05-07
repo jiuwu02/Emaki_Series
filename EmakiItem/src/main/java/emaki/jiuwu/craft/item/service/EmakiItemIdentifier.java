@@ -13,6 +13,7 @@ public final class EmakiItemIdentifier {
     static final String PARTITION = "emakiitem";
     static final String FIELD_ID = "id";
     static final String FIELD_SCHEMA_VERSION = "schema_version";
+    static final String FIELD_UPDATE_VERSION = "update_version";
     static final String FIELD_DEFINITION_SIGNATURE = "definition_signature";
     static final String FIELD_UPDATED_AT = "updated_at";
     static final String FIELD_SET_ID = "set_id";
@@ -21,6 +22,7 @@ public final class EmakiItemIdentifier {
     static final String FIELD_SET_TOTAL_COUNT = "set_total_count";
     static final String FIELD_SET_ACTIVE_THRESHOLDS = "set_active_thresholds";
     static final String FIELD_SET_SIGNATURE = "set_signature";
+    static final String FIELD_SET_LORE_LINES = "set_lore_lines";
     static final int SCHEMA_VERSION = 1;
 
     private final PdcService pdcService;
@@ -41,6 +43,11 @@ public final class EmakiItemIdentifier {
 
     public Integer schemaVersion(ItemStack itemStack) {
         return pdcService.get(itemStack, partition, FIELD_SCHEMA_VERSION, PersistentDataType.INTEGER);
+    }
+
+    public int updateVersion(ItemStack itemStack) {
+        Integer version = pdcService.get(itemStack, partition, FIELD_UPDATE_VERSION, PersistentDataType.INTEGER);
+        return version == null ? 0 : Math.max(0, version);
     }
 
     public String definitionSignature(ItemStack itemStack) {
@@ -76,12 +83,18 @@ public final class EmakiItemIdentifier {
         return value == null ? "" : value;
     }
 
-    void writeIdentity(ItemMeta itemMeta, String id, String definitionSignature) {
+    public Integer setLoreLines(ItemStack itemStack) {
+        Integer value = pdcService.get(itemStack, partition, FIELD_SET_LORE_LINES, PersistentDataType.INTEGER);
+        return value == null ? null : Math.max(0, value);
+    }
+
+    void writeIdentity(ItemMeta itemMeta, String id, String definitionSignature, int updateVersion) {
         if (itemMeta == null || Texts.isBlank(id)) {
             return;
         }
         pdcService.set(itemMeta, partition, FIELD_ID, PersistentDataType.STRING, Texts.normalizeId(id));
         pdcService.set(itemMeta, partition, FIELD_SCHEMA_VERSION, PersistentDataType.INTEGER, SCHEMA_VERSION);
+        pdcService.set(itemMeta, partition, FIELD_UPDATE_VERSION, PersistentDataType.INTEGER, Math.max(1, updateVersion));
         pdcService.set(itemMeta, partition, FIELD_DEFINITION_SIGNATURE, PersistentDataType.STRING, definitionSignature == null ? "" : definitionSignature);
         pdcService.set(itemMeta, partition, FIELD_UPDATED_AT, PersistentDataType.LONG, System.currentTimeMillis());
     }
@@ -92,6 +105,7 @@ public final class EmakiItemIdentifier {
             int activeCount,
             int totalCount,
             String activeThresholds,
+            int setLoreLines,
             String setSignature) {
         if (itemMeta == null) {
             return;
@@ -101,6 +115,7 @@ public final class EmakiItemIdentifier {
         pdcService.set(itemMeta, partition, FIELD_SET_ACTIVE_COUNT, PersistentDataType.INTEGER, Math.max(0, activeCount));
         pdcService.set(itemMeta, partition, FIELD_SET_TOTAL_COUNT, PersistentDataType.INTEGER, Math.max(0, totalCount));
         pdcService.set(itemMeta, partition, FIELD_SET_ACTIVE_THRESHOLDS, PersistentDataType.STRING, activeThresholds == null ? "" : activeThresholds);
+        pdcService.set(itemMeta, partition, FIELD_SET_LORE_LINES, PersistentDataType.INTEGER, Math.max(0, setLoreLines));
         pdcService.set(itemMeta, partition, FIELD_SET_SIGNATURE, PersistentDataType.STRING, setSignature == null ? "" : setSignature);
     }
 
@@ -114,5 +129,6 @@ public final class EmakiItemIdentifier {
         pdcService.remove(itemMeta, partition, FIELD_SET_TOTAL_COUNT);
         pdcService.remove(itemMeta, partition, FIELD_SET_ACTIVE_THRESHOLDS);
         pdcService.remove(itemMeta, partition, FIELD_SET_SIGNATURE);
+        pdcService.remove(itemMeta, partition, FIELD_SET_LORE_LINES);
     }
 }
