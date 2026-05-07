@@ -292,18 +292,21 @@ final class SteamerTickProcessor {
         if (heatSourceBlock == null) {
             return;
         }
+        boolean directStateChanged = false;
         BlockData blockData = heatSourceBlock.getBlockData();
         if (blockData instanceof Lightable lightable) {
             lightable.setLit(true);
             heatSourceBlock.setBlockData(lightable);
+            directStateChanged = true;
         }
         if (heatSourceBlock.getState() instanceof Furnace furnace) {
             long remainingTicks = Math.max(0L, (burningUntilMs - now) / 50L);
             furnace.setBurnTime((short) Math.min(Short.MAX_VALUE, remainingTicks));
             furnace.update();
+            directStateChanged = true;
         }
-        if (!applyConfiguredHeatSourceTransition(heatSourceBlock, true)) {
-            blockMatcher.setCustomLit(heatSourceBlock, true);
+        if (!directStateChanged && !blockMatcher.setCustomLit(heatSourceBlock, true)) {
+            applyConfiguredHeatSourceTransition(heatSourceBlock, true);
         }
     }
 
@@ -311,17 +314,20 @@ final class SteamerTickProcessor {
         if (heatSourceBlock == null) {
             return;
         }
+        boolean directStateChanged = false;
         BlockData blockData = heatSourceBlock.getBlockData();
         if (blockData instanceof Lightable lightable) {
             lightable.setLit(false);
             heatSourceBlock.setBlockData(lightable);
+            directStateChanged = true;
         }
         if (heatSourceBlock.getState() instanceof Furnace furnace) {
             furnace.setBurnTime((short) 0);
             furnace.update();
+            directStateChanged = true;
         }
-        if (!applyConfiguredHeatSourceTransition(heatSourceBlock, false)) {
-            blockMatcher.setCustomLit(heatSourceBlock, false);
+        if (!directStateChanged && !blockMatcher.setCustomLit(heatSourceBlock, false)) {
+            applyConfiguredHeatSourceTransition(heatSourceBlock, false);
         }
     }
 

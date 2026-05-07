@@ -29,6 +29,9 @@ import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.block.Furnace;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.Lightable;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.Damageable;
@@ -231,6 +234,7 @@ public final class WokRuntimeService {
                 )), 0, 0L, 0L);
                 saveState(coordinates, created);
                 refreshDisplays(coordinates, created);
+                setWokHeatSourceLit(block, true);
                 CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "wok.ingredient_added", Map.of("item", itemDisplayName(source)));
                 interaction.cancel();
                 return true;
@@ -262,6 +266,7 @@ public final class WokRuntimeService {
             WokState updated = new WokState(updatedIngredients, state.totalStirCount(), state.lastStirTimeMs(), state.lastStirActionMs());
             saveState(coordinates, updated);
             refreshDisplays(coordinates, updated);
+            setWokHeatSourceLit(block, true);
             CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "wok.ingredient_added", Map.of("item", itemDisplayName(source)));
             interaction.cancel();
             return true;
@@ -573,11 +578,72 @@ public final class WokRuntimeService {
             if (rule == null || rule.source() == null) {
                 continue;
             }
-            if (blockMatcher.matches(block, rule.source())) {
+            if (matchesHeatLevelRule(block, rule)) {
                 resolved = Math.max(resolved, rule.level());
             }
         }
         return resolved;
+    }
+
+    private boolean matchesHeatLevelRule(Block block, CookingSettingsService.HeatLevelRule rule) {
+        return rule != null
+                && (matchesSource(block, rule.source())
+                || matchesSource(block, rule.litSource())
+                || matchesSource(block, rule.unlitSource()));
+    }
+
+    private void setWokHeatSourceLit(Block wokBlock, boolean lit) {
+        if (!settingsService.wokIgniteHeatSource() || wokBlock == null) {
+            return;
+        }
+        Block heatSourceBlock = wokBlock.getRelative(BlockFace.DOWN);
+        if (heatSourceBlock == null || resolveHeatLevel(heatSourceBlock) <= 0) {
+            return;
+        }
+        boolean directStateChanged = false;
+        BlockData blockData = heatSourceBlock.getBlockData();
+        if (blockData instanceof Lightable lightable) {
+            lightable.setLit(lit);
+            heatSourceBlock.setBlockData(lightable);
+            directStateChanged = true;
+        }
+        if (heatSourceBlock.getState() instanceof Furnace furnace) {
+            furnace.setBurnTime((short) (lit ? Short.MAX_VALUE : 0));
+            furnace.update();
+            directStateChanged = true;
+        }
+        if (!directStateChanged && !blockMatcher.setCustomLit(heatSourceBlock, lit)) {
+            applyConfiguredHeatSourceTransition(heatSourceBlock, lit);
+        }
+    }
+
+    private boolean applyConfiguredHeatSourceTransition(Block block, boolean lit) {
+        if (block == null) {
+            return false;
+        }
+        for (CookingSettingsService.HeatLevelRule rule : settingsService.wokHeatLevels()) {
+            if (rule == null) {
+                continue;
+            }
+            ItemSource target = lit ? rule.litSource() : rule.unlitSource();
+            if (target == null) {
+                continue;
+            }
+            if (blockMatcher.matches(block, target)) {
+                return true;
+            }
+            if (lit && (matchesSource(block, rule.source()) || matchesSource(block, rule.unlitSource()))) {
+                return blockMatcher.place(block, target);
+            }
+            if (!lit && matchesSource(block, rule.litSource())) {
+                return blockMatcher.place(block, target);
+            }
+        }
+        return false;
+    }
+
+    private boolean matchesSource(Block block, ItemSource source) {
+        return block != null && source != null && blockMatcher.matches(block, source);
     }
 
     private boolean isSpatula(ItemStack itemStack) {
@@ -754,6 +820,8 @@ public final class WokRuntimeService {
     }
 
     private void clearState(StationCoordinates coordinates) {
+        Block block = coordinates == null ? null : coordinates.block();
+        setWokHeatSourceLit(block, false);
         displayService.removeStation(StationType.WOK, coordinates);
         stateStore.deleteAsync(coordinates);
     }

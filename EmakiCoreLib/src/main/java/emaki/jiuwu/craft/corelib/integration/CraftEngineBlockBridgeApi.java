@@ -84,6 +84,7 @@ final class CraftEngineBlockBridgeApi implements CraftEngineBlockBridge {
                 return false;
             }
             ImmutableBlockState updated = state.with(property, Boolean.valueOf(lit));
+            // CraftEngine applies custom block state updates through its place API.
             return CraftEngineBlocks.place(block.getLocation(), updated, true);
         } catch (RuntimeException | LinkageError exception) {
             return false;

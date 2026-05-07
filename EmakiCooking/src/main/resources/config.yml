@@ -104,6 +104,8 @@ stations:
     stir_delay_ms: 5000
     # 锅状态超时后按过火处理，单位毫秒
     timeout_ms: 30000
+    # 放入食材时是否点亮下方热源外观；锅清空后会尝试熄灭
+    ignite_heat_source: true
     # 未命中配方或结果无效时的默认产物来源
     invalid_result_item_sources:
       - minecraft-stone
@@ -111,6 +113,7 @@ stations:
     spatula_item_sources:
       - minecraft-iron_shovel
     # 下方方块命中 source 后，解析为对应火候等级
+    # 自定义热源没有可直接切换的 lit 状态时，可增加 lit_item_sources 作为替换兜底
     heat_levels:
       - item_sources:
           - minecraft-campfire
@@ -149,7 +152,7 @@ stations:
       fuel: right_click
       moisture: right_click
     drop_result: true
-    # 热源方块来源。自定义方块需要点燃/熄灭外观时，可使用对象写法：
+    # 热源方块来源。自定义方块没有可直接切换的 lit 状态时，可使用对象写法作为替换兜底：
     # - item_sources: [craftengine-emaki:heater]
     #   lit_item_sources: [craftengine-emaki:heater_lit]
     # - item_sources: [itemsadder-emaki:heater]
