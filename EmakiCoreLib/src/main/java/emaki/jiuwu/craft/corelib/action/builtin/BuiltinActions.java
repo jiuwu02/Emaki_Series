@@ -1,6 +1,8 @@
 package emaki.jiuwu.craft.corelib.action.builtin;
 
 import emaki.jiuwu.craft.corelib.action.ActionRegistry;
+import emaki.jiuwu.craft.corelib.api.integration.CraftEngineBlockBridge;
+import emaki.jiuwu.craft.corelib.api.integration.CustomBlockBridge;
 import emaki.jiuwu.craft.corelib.economy.EconomyManager;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 
@@ -12,6 +14,15 @@ public final class BuiltinActions {
     public static void registerAll(ActionRegistry registry,
             EconomyManager economyManager,
             ItemSourceService itemSourceService) {
+        registerAll(registry, economyManager, itemSourceService, null, null, null);
+    }
+
+    public static void registerAll(ActionRegistry registry,
+            EconomyManager economyManager,
+            ItemSourceService itemSourceService,
+            CraftEngineBlockBridge craftEngineBlockBridge,
+            CustomBlockBridge itemsAdderBlockBridge,
+            CustomBlockBridge nexoBlockBridge) {
         registry.register(new SendMessageAction());
         registry.register(new SendTitleAction());
         registry.register(new SendActionBarAction());
@@ -24,6 +35,8 @@ public final class BuiltinActions {
         registry.register(new CreateItemAction(itemSourceService));
         registry.register(new SendItemAction());
         registry.register(new ClearItemAction(itemSourceService));
+        registry.register(new DropItemAction(itemSourceService));
+        registry.register(new PlaceBlockAction(itemSourceService, craftEngineBlockBridge, itemsAdderBlockBridge, nexoBlockBridge));
         registry.register(new TeleportAction());
         registry.register(new HealAction());
         registry.register(new DamageAction());

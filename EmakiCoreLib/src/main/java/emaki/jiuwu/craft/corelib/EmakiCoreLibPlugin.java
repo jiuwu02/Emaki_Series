@@ -142,7 +142,14 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         for (var entry : configModel.actionTemplates().entrySet()) {
             actionTemplateRegistry.register(entry.getKey(), entry.getValue());
         }
-        BuiltinActions.registerAll(actionRegistry, economyManager, itemSourceService);
+        BuiltinActions.registerAll(
+                actionRegistry,
+                economyManager,
+                itemSourceService,
+                craftEngineBlockBridge,
+                itemsAdderBlockBridge,
+                nexoBlockBridge
+        );
         if (javaScriptService != null && javaScriptService.enabled()) {
             for (RunJavaScriptAction action : RunJavaScriptAction.createAll(javaScriptService, configModel.scriptConfig())) {
                 actionRegistry.register(action);
