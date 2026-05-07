@@ -124,7 +124,11 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
         plugin.recipeLoader().load();
         plugin.guiTemplateLoader().load();
         syncPdcAttributeRegistration(plugin.pdcAttributeGateway(), PDC_ATTRIBUTE_SOURCE_ID);
+        plugin.messageService().info("console.pdc_source_registered", Map.of("source", PDC_ATTRIBUTE_SOURCE_ID));
         plugin.refreshService().refreshOnlinePlayers();
+        plugin.messageService().info("console.recipes_loaded", Map.of(
+                "count", String.valueOf(plugin.recipeLoader().all().size())
+        ));
     }
 
     public void shutdown(EmakiStrengthenPlugin plugin) {

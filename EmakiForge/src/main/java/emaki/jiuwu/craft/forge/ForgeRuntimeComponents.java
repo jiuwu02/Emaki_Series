@@ -8,8 +8,6 @@ import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.runtime.RuntimeComponents;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
-import emaki.jiuwu.craft.forge.loader.BlueprintLoader;
-import emaki.jiuwu.craft.forge.loader.MaterialLoader;
 import emaki.jiuwu.craft.forge.loader.PlayerDataStore;
 import emaki.jiuwu.craft.forge.loader.RecipeLoader;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
@@ -23,8 +21,6 @@ import emaki.jiuwu.craft.corelib.integration.PdcAttributeGateway;
 
 record ForgeRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
         LanguageLoader languageLoader,
-        BlueprintLoader blueprintLoader,
-        MaterialLoader materialLoader,
         RecipeLoader recipeLoader,
         GuiTemplateLoader guiTemplateLoader,
         PlayerDataStore playerDataStore,
@@ -43,8 +39,6 @@ record ForgeRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
         return RuntimeComponents.services(
                 RuntimeComponents.component(YamlConfigLoader.class, appConfigLoader),
                 RuntimeComponents.component(LanguageLoader.class, languageLoader),
-                RuntimeComponents.component(BlueprintLoader.class, blueprintLoader),
-                RuntimeComponents.component(MaterialLoader.class, materialLoader),
                 RuntimeComponents.component(RecipeLoader.class, recipeLoader),
                 RuntimeComponents.component(GuiTemplateLoader.class, guiTemplateLoader),
                 RuntimeComponents.component(PlayerDataStore.class, playerDataStore),

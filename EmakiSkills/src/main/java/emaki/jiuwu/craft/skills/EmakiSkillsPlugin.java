@@ -249,6 +249,7 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
         placeholderExpansion = new SkillsPlaceholderExpansion(
                 this, playerSkillDataStore, skillRegistryService, localResourceDefinitionLoader);
         placeholderExpansion.register();
+        messageService.info("console.papi_registered");
     }
 
     public YamlConfigLoader<AppConfig> appConfigLoader() {

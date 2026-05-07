@@ -164,6 +164,10 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
         plugin.guiTemplateLoader().load();
         plugin.itemMatcher().refresh();
         syncPdcAttributeRegistration(plugin.pdcAttributeGateway(), PDC_ATTRIBUTE_SOURCE_ID);
+        plugin.messageService().info("console.pdc_source_registered", Map.of("source", PDC_ATTRIBUTE_SOURCE_ID));
+        plugin.messageService().info("console.gems_loaded", Map.of(
+                "count", String.valueOf(plugin.gemLoader().all().size())
+        ));
     }
 
     public void shutdown(EmakiGemPlugin plugin) {

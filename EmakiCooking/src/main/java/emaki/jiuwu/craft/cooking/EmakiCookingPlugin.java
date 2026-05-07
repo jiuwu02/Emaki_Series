@@ -1,5 +1,7 @@
 package emaki.jiuwu.craft.cooking;
 
+import java.util.Map;
+
 import org.bukkit.command.PluginCommand;
 
 import emaki.jiuwu.craft.corelib.action.ActionExecutor;
@@ -203,8 +205,9 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         }
         try {
             getServer().getPluginManager().registerEvents(new CraftEngineCookingStationListener(stationListener), this);
+            messageService.info("console.block_source_bridge_ready", Map.of("provider", "CraftEngine"));
         } catch (LinkageError exception) {
-            getLogger().warning("CraftEngine API listener is unavailable: " + exception.getMessage());
+            messageService.warning("console.block_source_bridge_unavailable", Map.of("provider", "CraftEngine", "error", String.valueOf(exception.getMessage())));
         }
     }
 
@@ -214,8 +217,9 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         }
         try {
             getServer().getPluginManager().registerEvents(new ItemsAdderCookingStationListener(stationListener), this);
+            messageService.info("console.block_source_bridge_ready", Map.of("provider", "ItemsAdder"));
         } catch (LinkageError exception) {
-            getLogger().warning("ItemsAdder API listener is unavailable: " + exception.getMessage());
+            messageService.warning("console.block_source_bridge_unavailable", Map.of("provider", "ItemsAdder", "error", String.valueOf(exception.getMessage())));
         }
     }
 
@@ -225,8 +229,9 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         }
         try {
             getServer().getPluginManager().registerEvents(new NexoCookingStationListener(stationListener), this);
+            messageService.info("console.block_source_bridge_ready", Map.of("provider", "Nexo"));
         } catch (LinkageError exception) {
-            getLogger().warning("Nexo API listener is unavailable: " + exception.getMessage());
+            messageService.warning("console.block_source_bridge_unavailable", Map.of("provider", "Nexo", "error", String.valueOf(exception.getMessage())));
         }
     }
 

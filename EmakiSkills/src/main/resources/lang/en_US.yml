@@ -12,8 +12,8 @@ general:
   reload_summary: "<gray>Skills: {skills} | Resources: {resources} | GUI: {guis}</gray>"
 
 console:
-  plugin_starting: "Starting EmakiSkills..."
-  plugin_started: "EmakiSkills started successfully."
+  plugin_starting: "<gray>Starting...</gray>"
+  plugin_started: "<green>Started</green>"
   bootstrap_start: "Checking default files..."
   bootstrap_complete: "Default file check complete."
   bootstrap_skip: "Skipped default data generation."
@@ -37,6 +37,8 @@ console:
   mythic_bridge_init_failed: "Failed to initialize MythicMobs skill bridge: {error}"
   mythic_bridge_skill_lookup_failed: "Failed to look up Mythic skill: {skill} ({error})"
   mythic_bridge_cast_failed: "Failed to cast Mythic skill: {skill} ({error})"
+  skills_loaded: "<gray>Loaded {skills} skill(s), {triggers} trigger(s)</gray>"
+  papi_registered: "<gray>PlaceholderAPI expansion registered</gray>"
 
 loader:
   lang_directory_create_failed: "Unable to create language directory: {path}"

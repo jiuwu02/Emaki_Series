@@ -173,14 +173,20 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
             javaScriptService = null;
         }
         if (configModel == null || configModel.scriptConfig() == null || !configModel.scriptConfig().enabled()) {
+            messageService.info("console.script_engine_disabled");
             return;
         }
-        javaScriptService = new GraalJavaScriptService(
-                this,
-                configModel.scriptConfig(),
-                dataPath(configModel.scriptConfig().paths().root()),
-                () -> actionExecutor
-        );
+        try {
+            javaScriptService = new GraalJavaScriptService(
+                    this,
+                    configModel.scriptConfig(),
+                    dataPath(configModel.scriptConfig().paths().root()),
+                    () -> actionExecutor
+            );
+            messageService.info("console.script_engine_ready");
+        } catch (Exception exception) {
+            messageService.warning("console.script_engine_failed", Map.of("error", String.valueOf(exception.getMessage())));
+        }
     }
 
     private void logStartupAudit() {
@@ -189,6 +195,11 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         }
         for (String providerId : economyManager.availableProviderIds()) {
             messageService.info("console.economy_bridge_ready", Map.of("provider", providerId));
+        }
+        for (String blockProvider : new String[]{"CraftEngine", "ItemsAdder", "Nexo"}) {
+            if (getServer().getPluginManager().isPluginEnabled(blockProvider)) {
+                messageService.info("console.block_source_bridge_ready", Map.of("provider", blockProvider));
+            }
         }
     }
 

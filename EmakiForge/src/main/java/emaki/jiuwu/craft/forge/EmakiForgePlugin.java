@@ -17,8 +17,6 @@ import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.forge.config.AppConfig;
-import emaki.jiuwu.craft.forge.loader.BlueprintLoader;
-import emaki.jiuwu.craft.forge.loader.MaterialLoader;
 import emaki.jiuwu.craft.forge.loader.PlayerDataStore;
 import emaki.jiuwu.craft.forge.loader.RecipeLoader;
 import emaki.jiuwu.craft.forge.papi.ForgePlaceholderExpansion;
@@ -47,8 +45,6 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
 
     private YamlConfigLoader<AppConfig> appConfigLoader;
     private LanguageLoader languageLoader;
-    private BlueprintLoader blueprintLoader;
-    private MaterialLoader materialLoader;
     private RecipeLoader recipeLoader;
     private GuiTemplateLoader guiTemplateLoader;
     private PlayerDataStore playerDataStore;
@@ -99,8 +95,6 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     private void applyRuntimeComponents(ForgeRuntimeComponents components) {
         appConfigLoader = components.appConfigLoader();
         languageLoader = components.languageLoader();
-        blueprintLoader = components.blueprintLoader();
-        materialLoader = components.materialLoader();
         recipeLoader = components.recipeLoader();
         guiTemplateLoader = components.guiTemplateLoader();
         playerDataStore = components.playerDataStore();
@@ -140,6 +134,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         }
         placeholderExpansion = new ForgePlaceholderExpansion(this, playerDataStore);
         placeholderExpansion.register();
+        messageService.info("console.papi_registered");
     }
 
     public YamlConfigLoader<AppConfig> appConfigLoader() {
@@ -148,14 +143,6 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
 
     public LanguageLoader languageLoader() {
         return languageLoader;
-    }
-
-    public BlueprintLoader blueprintLoader() {
-        return blueprintLoader;
-    }
-
-    public MaterialLoader materialLoader() {
-        return materialLoader;
     }
 
     public RecipeLoader recipeLoader() {

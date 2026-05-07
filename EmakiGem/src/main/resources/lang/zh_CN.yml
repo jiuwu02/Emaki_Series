@@ -12,8 +12,8 @@ general:
   reload_summary: "<gray>已加载宝石 {gems} 个、装备 {items} 个、GUI 模板 {guis} 个。</gray>"
 
 console:
-  plugin_starting: "<gray>正在启动 EmakiGem...</gray>"
-  plugin_started: "<green>EmakiGem 启动完成。</green>"
+  plugin_starting: "<gray>正在启动...</gray>"
+  plugin_started: "<green>启动完成</green>"
   bootstrap_start: "<white>开始检查默认文件...</white>"
   bootstrap_skip: "<gray>release_default_data=false，跳过默认数据文件生成。</gray>"
   bootstrap_complete: "<green>默认文件检查完成。</green>"
@@ -22,6 +22,9 @@ console:
   bootstrap_save_failed: "<yellow>保存默认资源失败: <red>{path}</red> <gray>({error})</gray></yellow>"
   directory_create_failed: "<yellow>无法创建目录: <red>{path}</red></yellow>"
   loader_config_load_error: "<red>加载配置失败: {path} ({error})</red>"
+  pdc_source_registered: "<gray>PDC 属性源已注册: {source}</gray>"
+  gems_loaded: "<gray>已加载 {count} 个宝石</gray>"
+  papi_registered: "<gray>PlaceholderAPI 扩展已注册</gray>"
 
 loader:
   lang_directory_create_failed: "<red>无法创建语言目录: {path}</red>"

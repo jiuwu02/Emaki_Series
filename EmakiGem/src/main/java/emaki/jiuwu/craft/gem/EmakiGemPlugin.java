@@ -160,6 +160,7 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         }
         placeholderExpansion = new GemPlaceholderExpansion(this, stateService, gemItemLoader);
         placeholderExpansion.register();
+        messageService.info("console.papi_registered");
     }
 
     public YamlConfigLoader<AppConfig> appConfigLoader() {

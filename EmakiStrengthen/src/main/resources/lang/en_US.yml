@@ -47,9 +47,9 @@ command:
   admin_state_failed: "<red>Failed to write strengthen state back to main-hand item.</red>"
 
 console:
-  plugin_starting: "<gray>Starting EmakiStrengthen...</gray>"
-  plugin_started: "<green>EmakiStrengthen started.</green>"
-  plugin_stopped: "<green>EmakiStrengthen stopped.</green>"
+  plugin_starting: "<gray>Starting...</gray>"
+  plugin_started: "<green>Started</green>"
+  plugin_stopped: "<yellow>Stopped</yellow>"
   bootstrap_start: "<white>Checking default files...</white>"
   bootstrap_complete: "<green>Default file check complete.</green>"
   bootstrap_copy_failed: "<yellow>Failed to copy default resource:
@@ -63,6 +63,9 @@ console:
   recipe_action_failed: "<yellow>Strengthen action chain failed:
     <red>{recipe}</red> <gray>phase {phase} star {star}
     ({error})</gray></yellow>"
+  pdc_source_registered: "<gray>PDC attribute source registered: {source}</gray>"
+  recipes_loaded: "<gray>Loaded {count} strengthen recipe(s)</gray>"
+  papi_registered: "<gray>PlaceholderAPI expansion registered</gray>"
 
 loader:
   lang_directory_create_failed: "<yellow>Failed to create language directory: <red>{path}</red></yellow>"

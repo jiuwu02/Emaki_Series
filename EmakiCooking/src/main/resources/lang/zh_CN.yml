@@ -22,9 +22,9 @@ command:
     line: "<yellow>{key}</yellow> <gray>- {value}</gray>"
 
 console:
-  plugin_starting: "<gray>正在启动 EmakiCooking...</gray>"
-  plugin_started: "<green>EmakiCooking 启动完成。</green>"
-  plugin_stopped: "<green>EmakiCooking 已关闭。</green>"
+  plugin_starting: "<gray>正在启动...</gray>"
+  plugin_started: "<green>启动完成</green>"
+  plugin_stopped: "<yellow>已关闭</yellow>"
   bootstrap_start: "<white>开始检查默认文件...</white>"
   bootstrap_complete: "<green>默认文件检查完成。</green>"
   bootstrap_skip: "<yellow>已跳过默认数据写入。</yellow>"
@@ -34,6 +34,9 @@ console:
   directory_create_failed: "<yellow>创建目录失败: <red>{path}</red></yellow>"
   loader_config_load_error: "<yellow>读取 EmakiCooking 配置失败: <red>{path}</red>
     <gray>({error})</gray></yellow>"
+  station_recipes_loaded: "<gray>已加载{station} {count} 个配方</gray>"
+  block_source_bridge_ready: "<gray>已接入方块源: {provider}</gray>"
+  block_source_bridge_unavailable: "<yellow>方块源不可用: {provider} ({error})</yellow>"
 
 loader:
   lang_directory_create_failed: "<yellow>无法创建语言目录: <red>{path}</red></yellow>"

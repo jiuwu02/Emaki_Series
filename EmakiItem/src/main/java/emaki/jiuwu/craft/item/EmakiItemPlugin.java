@@ -131,6 +131,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         }
         placeholderExpansion = new ItemPlaceholderExpansion(this);
         placeholderExpansion.register();
+        messageService.info("console.papi_registered");
     }
 
     @Override

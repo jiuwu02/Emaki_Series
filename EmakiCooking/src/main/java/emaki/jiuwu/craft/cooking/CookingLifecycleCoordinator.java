@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.cooking;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -234,6 +235,22 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
         plugin.ovenRuntimeService().reload();
         plugin.juicerRuntimeService().reload();
         plugin.fermentationBarrelRuntimeService().reload();
+        logStationRecipeCounts(plugin);
+    }
+
+    private void logStationRecipeCounts(EmakiCookingPlugin plugin) {
+        MessageService ms = plugin.messageService();
+        logStationCount(ms, "砧板", plugin.choppingBoardRecipeLoader().all().size());
+        logStationCount(ms, "炒锅", plugin.wokRecipeLoader().all().size());
+        logStationCount(ms, "研磨机", plugin.grinderRecipeLoader().all().size());
+        logStationCount(ms, "蒸锅", plugin.steamerRecipeLoader().all().size());
+        logStationCount(ms, "烤箱", plugin.ovenRecipeLoader().all().size());
+        logStationCount(ms, "榨汁机", plugin.juicerRecipeLoader().all().size());
+        logStationCount(ms, "发酵桶", plugin.fermentationBarrelRecipeLoader().all().size());
+    }
+
+    private void logStationCount(MessageService ms, String station, int count) {
+        ms.info("console.station_recipes_loaded", Map.of("station", station, "count", String.valueOf(count)));
     }
 
     private AppConfig parseAppConfig(YamlSection configuration) {

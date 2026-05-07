@@ -6,10 +6,14 @@ general:
   prefix: "<gray>[<gold>EmakiCoreLib</gold>]</gray>"
 
 console:
-  plugin_starting: "<gray>Starting core library...</gray>"
-  plugin_started: "<green>Core library started</green>"
-  plugin_stopped: "<yellow>Core library stopped</yellow>"
+  plugin_starting: "<gray>Starting...</gray>"
+  plugin_started: "<green>Started</green>"
+  plugin_stopped: "<yellow>Stopped</yellow>"
   economy_bridge_ready: "<gray>Economy bridge connected: {provider}</gray>"
+  block_source_bridge_ready: "<gray>Block source connected: {provider}</gray>"
+  script_engine_disabled: "<gray>Script engine disabled</gray>"
+  script_engine_ready: "<gray>Script engine enabled (GraalJS)</gray>"
+  script_engine_failed: "<red>Script engine initialization failed: {error}</red>"
   action_config_load_failed: "<red>Failed to load action config: {error}</red>"
   item_source_bridge_ready: "<gray>Item source connected: {library}</gray>"
   item_source_bridge_waiting: "<gray>Detected {library}, waiting for item registration: {detail}</gray>"

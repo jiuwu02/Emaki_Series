@@ -42,9 +42,9 @@ command:
 # Console logs
 console:
   plugin_starting: "<gray>Starting...</gray>"
-  plugin_started: "<green>Started successfully.</green>"
+  plugin_started: "<green>Started</green>"
   plugin_stopping: "<gray>Shutting down...</gray>"
-  plugin_stopped: "<green>Shut down.</green>"
+  plugin_stopped: "<yellow>Stopped</yellow>"
   config_load_failed: "<red>Failed to load config: {error}</red>"
   checking_config: "<white>Checking default config files...</white>"
   data_folder_error: "<yellow>Unable to access data directory, skipped default
@@ -59,7 +59,7 @@ console:
   registering_listeners: "<white>Registering event listeners...</white>"
   listeners_registered: "<green>Event listeners registered.</green>"
   saving_player_data: "<white>Saving player data...</white>"
-  player_data_saved: "<green>Saved <yellow>{count}</yellow> <gray>player data entries</gray>"
+  player_data_saved: "<gray>Saved {count} player data entries</gray>"
   bootstrap_start: "<white>Checking default files...</white>"
   bootstrap_skip: "<gray>release_default_data=false, skipped default data generation</gray>"
   bootstrap_complete: "<green>Default file check complete.</green>"
@@ -85,10 +85,9 @@ console:
     <red>{path}</red> <gray>({error})</gray></yellow>"
   bootstrap_save_failed: "<yellow>Failed to save merged config: <red>{path}</red>
     <gray>({error})</gray></yellow>"
-  blueprints_loaded: "<gray>Loaded <yellow>{count}</yellow> blueprints</gray>"
-  materials_loaded: "<gray>Loaded <yellow>{count}</yellow> materials</gray>"
-  recipes_loaded: "<gray>Loaded <yellow>{count}</yellow> recipes</gray>"
-  guis_loaded: "<gray>Loaded <yellow>{count}</yellow> GUI templates</gray>"
+  pdc_source_registered: "<gray>PDC attribute source registered: {source}</gray>"
+  recipes_loaded: "<gray>Loaded {count} recipe(s)</gray>"
+  guis_loaded: "<gray>Loaded {count} GUI template(s)</gray>"
   player_data_directory_create_failed: "<yellow>Unable to create player data directory: <red>{path}</red></yellow>"
   player_data_save_failed: "<yellow>Failed to save player data: <red>{uuid}</red>
     <gray>({error})</gray></yellow>"
@@ -153,6 +152,7 @@ console:
   lore_invalid_search_insert_config: "<yellow>Invalid lore search insert config:
     source <red>{source}</red>, action <red>{action}</red>
     <gray>({error})</gray></yellow>"
+  papi_registered: "<gray>PlaceholderAPI expansion registered</gray>"
 
 loader:
   lang_directory_create_failed: "<red>Unable to create language directory: {path}</red>"

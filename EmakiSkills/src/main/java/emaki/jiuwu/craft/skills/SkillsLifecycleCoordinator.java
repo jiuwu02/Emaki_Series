@@ -206,6 +206,10 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
         plugin.triggerConflictResolver().buildFromDefinitions(plugin.triggerRegistry().all());
         Bukkit.getOnlinePlayers().forEach(player -> plugin.playerSkillStateService().validateBindings(player));
         plugin.actionBarService().startRefreshTask();
+        plugin.messageService().info("console.skills_loaded", Map.of(
+                "skills", String.valueOf(plugin.skillDefinitionLoader().all().size()),
+                "triggers", String.valueOf(plugin.triggerRegistry().all().size())
+        ));
     }
 
     /**

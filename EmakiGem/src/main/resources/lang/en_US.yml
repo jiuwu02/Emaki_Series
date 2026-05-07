@@ -14,8 +14,8 @@ general:
     templates.</gray>"
 
 console:
-  plugin_starting: "<gray>Starting EmakiGem...</gray>"
-  plugin_started: "<green>EmakiGem started successfully.</green>"
+  plugin_starting: "<gray>Starting...</gray>"
+  plugin_started: "<green>Started</green>"
   bootstrap_start: "<white>Checking default files...</white>"
   bootstrap_skip: "<gray>release_default_data=false, skipped default data file
     generation.</gray>"
@@ -28,6 +28,9 @@ console:
     <red>{path}</red> <gray>({error})</gray></yellow>"
   directory_create_failed: "<yellow>Unable to create directory: <red>{path}</red></yellow>"
   loader_config_load_error: "<red>Failed to load config: {path} ({error})</red>"
+  pdc_source_registered: "<gray>PDC attribute source registered: {source}</gray>"
+  gems_loaded: "<gray>Loaded {count} gem(s)</gray>"
+  papi_registered: "<gray>PlaceholderAPI expansion registered</gray>"
 
 loader:
   lang_directory_create_failed: "<red>Unable to create language directory: {path}</red>"

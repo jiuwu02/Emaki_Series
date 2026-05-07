@@ -12,8 +12,8 @@ general:
   reload_summary: "<gray>技能: {skills} | 资源: {resources} | GUI: {guis}</gray>"
 
 console:
-  plugin_starting: "正在启动 EmakiSkills..."
-  plugin_started: "EmakiSkills 启动完成。"
+  plugin_starting: "<gray>正在启动...</gray>"
+  plugin_started: "<green>启动完成</green>"
   bootstrap_start: "开始检查默认文件..."
   bootstrap_complete: "默认文件检查完成。"
   bootstrap_skip: "已跳过默认数据写入。"
@@ -36,6 +36,8 @@ console:
   mythic_bridge_init_failed: "初始化 MythicMobs 技能桥接失败: {error}"
   mythic_bridge_skill_lookup_failed: "查询 Mythic 技能失败: {skill} ({error})"
   mythic_bridge_cast_failed: "释放 Mythic 技能失败: {skill} ({error})"
+  skills_loaded: "<gray>已加载 {skills} 个技能, {triggers} 个触发器</gray>"
+  papi_registered: "<gray>PlaceholderAPI 扩展已注册</gray>"
 
 loader:
   lang_directory_create_failed: "无法创建语言目录: {path}"

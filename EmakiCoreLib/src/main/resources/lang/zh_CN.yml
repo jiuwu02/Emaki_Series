@@ -6,10 +6,14 @@ general:
   prefix: "<gray>[<gold>EmakiCoreLib</gold>]</gray>"
 
 console:
-  plugin_starting: "<gray>正在启动核心库...</gray>"
-  plugin_started: "<green>核心库已启动</green>"
-  plugin_stopped: "<yellow>核心库已关闭</yellow>"
+  plugin_starting: "<gray>正在启动...</gray>"
+  plugin_started: "<green>启动完成</green>"
+  plugin_stopped: "<yellow>已关闭</yellow>"
   economy_bridge_ready: "<gray>经济桥接已接入: {provider}</gray>"
+  block_source_bridge_ready: "<gray>已接入方块源: {provider}</gray>"
+  script_engine_disabled: "<gray>脚本引擎已禁用</gray>"
+  script_engine_ready: "<gray>脚本引擎已启用 (GraalJS)</gray>"
+  script_engine_failed: "<red>脚本引擎初始化失败: {error}</red>"
   action_config_load_failed: "<red>加载动作配置失败: {error}</red>"
   item_source_bridge_ready: "<gray>已接入物品源: {library}</gray>"
   item_source_bridge_waiting: "<gray>已检测到 {library}，等待物品注册完成: {detail}</gray>"

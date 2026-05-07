@@ -4,8 +4,9 @@ general:
   prefix: "<gray>[ <gradient:#66D9EF:#7B7BFF>EmakiAttribute</gradient> ]</gray>"
 
 console:
-  plugin_started: "<green>EmakiAttribute 已启动。</green>"
-  plugin_stopped: "<yellow>EmakiAttribute 已关闭。</yellow>"
+  plugin_starting: "<gray>正在启动...</gray>"
+  plugin_started: "<green>启动完成</green>"
+  plugin_stopped: "<yellow>已关闭</yellow>"
   config_load_failed: "<red>配置读取失败: {error}</red>"
   reload_stage_failed: "<yellow>重载阶段 {stage} 失败: <red>{error}</red></yellow>"
   vanilla_attribute_resolve_failed: "<yellow>无法解析原版属性映射: <red>{attribute}</red> -> <red>{target}</red></yellow>"
@@ -21,14 +22,15 @@ console:
     <aqua>{attribute}</aqua> -> <red>{stat}</red></yellow>"
   mmoitems_stat_read_failed: "<yellow>MMOItems 属性映射读取失败: 属性
     <aqua>{attribute}</aqua> -> <red>{stat}</red> (<red>{error}</red>)</yellow>"
-  attribute_registry_empty: "<yellow>[属性注册] 未加载到任何属性定义。</yellow>"
-  attribute_registry_summary: "<green>[属性注册] 已加载 {count} 项属性定义。</green>"
+  attribute_registry_empty: "<yellow>未加载到任何属性</yellow>"
+  attribute_registry_summary: "<gray>已加载 {count} 个属性</gray>"
   attribute_registry_entry: "<gray>[属性注册]</gray> <white>{index}</white>
     <dark_gray>|</dark_gray> <aqua>{display_name}</aqua>
     <dark_gray>(</dark_gray><white>{id}</white><dark_gray>)</dark_gray>
     <dark_gray>|</dark_gray> <gray>默认值</gray> <yellow>{default_value}</yellow>
     <dark_gray>|</dark_gray> <gray>战力系数</gray>
     <light_purple>{attribute_power}</light_purple>"
+  papi_registered: "<gray>PlaceholderAPI 扩展已注册</gray>"
 
 loader:
   lang_directory_create_failed: "<red>无法创建语言目录: {path}</red>"

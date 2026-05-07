@@ -43,9 +43,9 @@ command:
 # 控制台日志
 console:
   plugin_starting: "<gray>正在启动...</gray>"
-  plugin_started: "<green>启动完成。</green>"
+  plugin_started: "<green>启动完成</green>"
   plugin_stopping: "<gray>正在关闭...</gray>"
-  plugin_stopped: "<green>已关闭。</green>"
+  plugin_stopped: "<yellow>已关闭</yellow>"
   config_load_failed: "<red>配置读取失败: {error}</red>"
   checking_config: "<white>正在检查默认配置文件...</white>"
   data_folder_error: "<yellow>无法获取数据目录，已跳过默认文件检查。</yellow>"
@@ -59,7 +59,7 @@ console:
   registering_listeners: "<white>正在注册事件监听器...</white>"
   listeners_registered: "<green>事件监听器注册完成。</green>"
   saving_player_data: "<white>正在保存玩家数据...</white>"
-  player_data_saved: "<green>已保存 <yellow>{count}</yellow> <gray>份玩家数据</gray>"
+  player_data_saved: "<gray>已保存 {count} 份玩家数据</gray>"
   bootstrap_start: "<white>开始检查默认文件...</white>"
   bootstrap_skip: "<gray>release_default_data=false，已跳过默认数据生成</gray>"
   bootstrap_complete: "<green>默认文件检查完成。</green>"
@@ -82,10 +82,9 @@ console:
   data_folder_not_init: "<yellow>数据目录尚未初始化。</yellow>"
   bootstrap_copy_failed: "<yellow>复制默认资源失败: <red>{path}</red> <gray>({error})</gray></yellow>"
   bootstrap_save_failed: "<yellow>保存合并后的配置失败: <red>{path}</red> <gray>({error})</gray></yellow>"
-  blueprints_loaded: "<gray>已加载 <yellow>{count}</yellow> 个图纸</gray>"
-  materials_loaded: "<gray>已加载 <yellow>{count}</yellow> 个材料</gray>"
-  recipes_loaded: "<gray>已加载 <yellow>{count}</yellow> 个配方</gray>"
-  guis_loaded: "<gray>已加载 <yellow>{count}</yellow> 个 GUI 模板</gray>"
+  pdc_source_registered: "<gray>PDC 属性源已注册: {source}</gray>"
+  recipes_loaded: "<gray>已加载 {count} 个配方</gray>"
+  guis_loaded: "<gray>已加载 {count} 个 GUI 模板</gray>"
   player_data_directory_create_failed: "<yellow>无法创建玩家数据目录: <red>{path}</red></yellow>"
   player_data_save_failed: "<yellow>保存玩家数据失败: <red>{uuid}</red> <gray>({error})</gray></yellow>"
   item_unknown_vanilla_material_source: "<yellow>未知的原版材料来源: <red>{identifier}</red></yellow>"
@@ -130,6 +129,7 @@ console:
     <gray>({error})</gray></yellow>"
   lore_invalid_search_insert_config: "<yellow>Lore 搜索插入配置无效: 来源
     <red>{source}</red>，动作 <red>{action}</red> <gray>({error})</gray></yellow>"
+  papi_registered: "<gray>PlaceholderAPI 扩展已注册</gray>"
 
 loader:
   lang_directory_create_failed: "<red>无法创建语言目录: {path}</red>"

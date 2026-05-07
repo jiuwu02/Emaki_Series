@@ -105,7 +105,7 @@ public final class GraalJavaScriptService implements JavaScriptService {
             sourceCache.clear();
             List<String> scripts = repository.scan();
             if (config.debug().logScriptLoad()) {
-                log("Loaded script repository: " + scripts.size() + " script(s) under " + repository.root());
+                log("已加载 " + scripts.size() + " 个脚本");
             }
             return ScriptReloadResult.success(scripts);
         } catch (IOException | RuntimeException exception) {

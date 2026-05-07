@@ -122,6 +122,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         }
         placeholderExpansion = new AttributePlaceholderExpansion(this, attributeService);
         placeholderExpansion.register();
+        messageService.info("console.papi_registered");
     }
 
     public void reloadPluginState(boolean resyncPlayers) {

@@ -46,9 +46,9 @@ command:
   admin_state_failed: "<red>无法将主手物品写回强化状态。</red>"
 
 console:
-  plugin_starting: "<gray>正在启动装备强化...</gray>"
-  plugin_started: "<green>装备强化启动完成。</green>"
-  plugin_stopped: "<green>装备强化已关闭。</green>"
+  plugin_starting: "<gray>正在启动...</gray>"
+  plugin_started: "<green>启动完成</green>"
+  plugin_stopped: "<yellow>已关闭</yellow>"
   bootstrap_start: "<white>开始检查默认文件...</white>"
   bootstrap_complete: "<green>默认文件检查完成。</green>"
   bootstrap_copy_failed: "<yellow>复制默认资源失败: <red>{path}</red> <gray>({error})</gray></yellow>"
@@ -58,6 +58,9 @@ console:
   loader_config_load_error: "<yellow>读取强化配置失败: <red>{path}</red> <gray>({error})</gray></yellow>"
   recipe_action_failed: "<yellow>强化动作链执行失败: <red>{recipe}</red> <gray>阶段 {phase}
     星级 {star} ({error})</gray></yellow>"
+  pdc_source_registered: "<gray>PDC 属性源已注册: {source}</gray>"
+  recipes_loaded: "<gray>已加载 {count} 个强化配方</gray>"
+  papi_registered: "<gray>PlaceholderAPI 扩展已注册</gray>"
 
 loader:
   lang_directory_create_failed: "<yellow>无法创建语言目录: <red>{path}</red></yellow>"

@@ -13,12 +13,12 @@ general:
   update_success: "<green>Refreshed <white>{player}</white>'s equipped set items,
     processed <white>{count}</white> items.</green>"
 console:
-  plugin_starting: "Starting EmakiItem..."
-  plugin_started: "EmakiItem started."
+  plugin_starting: "<gray>Starting...</gray>"
+  plugin_started: "<green>Started</green>"
   plugin_stopping: "Stopping EmakiItem..."
-  plugin_stopped: "EmakiItem stopped."
-  items_loaded: "Loaded {count} EmakiItem item definitions."
-  sets_loaded: "Loaded {count} EmakiItem set definitions."
+  plugin_stopped: "<yellow>Stopped</yellow>"
+  items_loaded: "<gray>Loaded {count} item(s)</gray>"
+  sets_loaded: "<gray>Loaded {count} set(s)</gray>"
   bootstrap_start: "Syncing bundled resources..."
   bootstrap_complete: "Bundled resources synced."
   bootstrap_skip: "Skipped default data release by config."
@@ -26,6 +26,7 @@ console:
   bootstrap_copy_failed: "Failed to copy default resource: {path} ({error})"
   bootstrap_save_failed: "Failed to save versioned resource: {path} ({error})"
   directory_create_failed: "Failed to create directory: {path}"
+  papi_registered: "<gray>PlaceholderAPI expansion registered</gray>"
 command:
   help:
     header: "<gold>EmakiItem Commands</gold>"

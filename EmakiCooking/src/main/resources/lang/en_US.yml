@@ -22,9 +22,9 @@ command:
     line: "<yellow>{key}</yellow> <gray>- {value}</gray>"
 
 console:
-  plugin_starting: "<gray>Starting EmakiCooking...</gray>"
-  plugin_started: "<green>EmakiCooking started successfully.</green>"
-  plugin_stopped: "<green>EmakiCooking shut down.</green>"
+  plugin_starting: "<gray>Starting...</gray>"
+  plugin_started: "<green>Started</green>"
+  plugin_stopped: "<yellow>Stopped</yellow>"
   bootstrap_start: "<white>Checking default files...</white>"
   bootstrap_complete: "<green>Default file check complete.</green>"
   bootstrap_skip: "<yellow>Skipped default data generation.</yellow>"
@@ -36,6 +36,9 @@ console:
   directory_create_failed: "<yellow>Failed to create directory: <red>{path}</red></yellow>"
   loader_config_load_error: "<yellow>Failed to load EmakiCooking config:
     <red>{path}</red> <gray>({error})</gray></yellow>"
+  station_recipes_loaded: "<gray>Loaded {station} {count} recipe(s)</gray>"
+  block_source_bridge_ready: "<gray>Block source connected: {provider}</gray>"
+  block_source_bridge_unavailable: "<yellow>Block source unavailable: {provider} ({error})</yellow>"
 
 loader:
   lang_directory_create_failed: "<yellow>Unable to create language directory: <red>{path}</red></yellow>"

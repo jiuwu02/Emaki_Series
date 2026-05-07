@@ -4,8 +4,9 @@ general:
   prefix: "<gray>[ <gradient:#66D9EF:#7B7BFF>EmakiAttribute</gradient> ]</gray>"
 
 console:
-  plugin_started: "<green>EmakiAttribute started.</green>"
-  plugin_stopped: "<yellow>EmakiAttribute stopped.</yellow>"
+  plugin_starting: "<gray>Starting...</gray>"
+  plugin_started: "<green>Started</green>"
+  plugin_stopped: "<yellow>Stopped</yellow>"
   config_load_failed: "<red>Config load failed: {error}</red>"
   reload_stage_failed: "<yellow>Reload stage {stage} failed: <red>{error}</red></yellow>"
   vanilla_attribute_resolve_failed: "<yellow>Failed to resolve vanilla attribute
@@ -23,14 +24,15 @@ console:
   mmoitems_stat_read_failed: "<yellow>MMOItems attribute mapping read failed:
     attribute <aqua>{attribute}</aqua> -> <red>{stat}</red>
     (<red>{error}</red>)</yellow>"
-  attribute_registry_empty: "<yellow>[Attribute Registry] No attribute definitions loaded.</yellow>"
-  attribute_registry_summary: "<green>[Attribute Registry] Loaded {count} attribute definitions.</green>"
+  attribute_registry_empty: "<yellow>No attributes loaded</yellow>"
+  attribute_registry_summary: "<gray>Loaded {count} attribute(s)</gray>"
   attribute_registry_entry: "<gray>[Attribute Registry]</gray>
     <white>{index}</white> <dark_gray>|</dark_gray> <aqua>{display_name}</aqua>
     <dark_gray>(</dark_gray><white>{id}</white><dark_gray>)</dark_gray>
     <dark_gray>|</dark_gray> <gray>Default</gray>
     <yellow>{default_value}</yellow> <dark_gray>|</dark_gray> <gray>Power</gray>
     <light_purple>{attribute_power}</light_purple>"
+  papi_registered: "<gray>PlaceholderAPI expansion registered</gray>"
 
 loader:
   lang_directory_create_failed: "<red>Failed to create language directory: {path}</red>"
