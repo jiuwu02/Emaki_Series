@@ -131,18 +131,18 @@ public final class EmakiItemDefinitionParser {
         if (section == null) {
             return ItemUpdatePolicy.defaults();
         }
-        int version = 1;
-        if (section.contains("version")) {
-            Integer configuredVersion = section.getInt("version", null);
-            if (configuredVersion == null || configuredVersion < 1) {
-                warning("Item definition " + source + " uses invalid update.version for '" + itemId + "', falling back to 1.");
-            } else {
-                version = configuredVersion;
-            }
+        boolean enabled = Boolean.TRUE.equals(section.getBoolean("enabled", null));
+        Integer configuredVersion = section.getInt("version", null);
+        if (!enabled) {
+            return ItemUpdatePolicy.defaults();
+        }
+        if (configuredVersion == null || configuredVersion < 1) {
+            warning("Item definition " + source + " enables update for '" + itemId + "' but has no valid update.version; item updates are disabled.");
+            return ItemUpdatePolicy.defaults();
         }
         return new ItemUpdatePolicy(
-                version,
-                section.getBoolean("enabled", null),
+                configuredVersion,
+                true,
                 section.getBoolean("preserve_amount", null),
                 section.getBoolean("preserve_damage", null),
                 section.getBoolean("preserve_unknown_attribute_sources", null),

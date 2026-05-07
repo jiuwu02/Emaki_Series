@@ -36,7 +36,8 @@ public final class EmakiItemPdcWriter {
         }
         ItemMeta itemMeta = itemStack.getItemMeta();
         if (itemMeta != null) {
-            identifier.writeIdentity(itemMeta, definition.id(), definition.definitionSignature(), definition.updatePolicy().version());
+            Integer updateVersion = definition.updatePolicy().updateEnabled() ? definition.updatePolicy().version() : null;
+            identifier.writeIdentity(itemMeta, definition.id(), definition.definitionSignature(), updateVersion);
             itemStack.setItemMeta(itemMeta);
         }
         if (!definition.attributes().isEmpty()

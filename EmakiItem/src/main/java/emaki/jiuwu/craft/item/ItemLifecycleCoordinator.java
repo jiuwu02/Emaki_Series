@@ -68,6 +68,13 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                     public boolean shouldInstallDefaultData() {
                         return shouldReleaseDefaultData(plugin);
                     }
+
+                    @Override
+                    public void afterVersionedMerge(String relativePath, YamlSection runtime, YamlSection bundled) {
+                        if ("config.yml".equals(relativePath) && runtime != null) {
+                            runtime.set("item_update", null);
+                        }
+                    }
                 }
         );
         EmakiItemLoader itemLoader = new EmakiItemLoader(plugin);
@@ -82,8 +89,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                 itemLoader,
                 itemFactory,
                 identifier,
-                pdcAttributeGateway::copyPayloads,
-                plugin::appConfig
+                pdcAttributeGateway::copyPayloads
         );
         EmakiItemSetService setService = new EmakiItemSetService(
                 itemLoader,
@@ -165,23 +171,9 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
         }
         return new AppConfig(
                 configuration.getString("language", "zh_CN"),
-                configuration.getString("version", "1.0.0"),
+                configuration.getString("version", "2.1.0"),
                 configuration.getBoolean("release_default_data", true),
-                parseItemUpdate(configuration.getSection("item_update")),
                 parseSetBonus(configuration.getSection("set_bonus"))
-        );
-    }
-
-    private ItemUpdateConfig parseItemUpdate(YamlSection section) {
-        if (section == null) {
-            return ItemUpdateConfig.defaults();
-        }
-        return new ItemUpdateConfig(
-                section.getBoolean("enabled", true),
-                section.getBoolean("preserve_amount", true),
-                section.getBoolean("preserve_damage", true),
-                section.getBoolean("preserve_unknown_attribute_sources", true),
-                parseTriggers(section.getSection("triggers"))
         );
     }
 

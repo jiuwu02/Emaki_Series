@@ -11,22 +11,25 @@ public record ItemUpdatePolicy(int version,
         TriggerPolicy triggers) {
 
     public ItemUpdatePolicy {
-        version = Math.max(1, version);
+        version = Math.max(0, version);
         triggers = triggers == null ? TriggerPolicy.empty() : triggers;
     }
 
     public static ItemUpdatePolicy defaults() {
-        return new ItemUpdatePolicy(1, null, null, null, null, TriggerPolicy.empty());
+        return new ItemUpdatePolicy(0, false, null, null, null, TriggerPolicy.empty());
     }
 
-    public ItemUpdateConfig resolve(ItemUpdateConfig global) {
-        ItemUpdateConfig base = global == null ? ItemUpdateConfig.defaults() : global;
+    public boolean updateEnabled() {
+        return Boolean.TRUE.equals(enabled) && version > 0;
+    }
+
+    public ItemUpdateConfig resolve() {
         return new ItemUpdateConfig(
-                enabled == null ? base.enabled() : enabled,
-                preserveAmount == null ? base.preserveAmount() : preserveAmount,
-                preserveDamage == null ? base.preserveDamage() : preserveDamage,
-                preserveUnknownAttributeSources == null ? base.preserveUnknownAttributeSources() : preserveUnknownAttributeSources,
-                triggers.resolve(base.triggers())
+                updateEnabled(),
+                preserveAmount == null ? true : preserveAmount,
+                preserveDamage == null ? true : preserveDamage,
+                preserveUnknownAttributeSources == null ? true : preserveUnknownAttributeSources,
+                triggers.resolve()
         );
     }
 
@@ -61,16 +64,15 @@ public record ItemUpdatePolicy(int version,
             return new TriggerPolicy(null, null, null, null, null, null, null);
         }
 
-        public ItemUpdateConfig.TriggerConfig resolve(ItemUpdateConfig.TriggerConfig global) {
-            ItemUpdateConfig.TriggerConfig base = global == null ? ItemUpdateConfig.TriggerConfig.defaults() : global;
+        public ItemUpdateConfig.TriggerConfig resolve() {
             return new ItemUpdateConfig.TriggerConfig(
-                    join == null ? base.join() : join,
-                    heldChange == null ? base.heldChange() : heldChange,
-                    inventoryClick == null ? base.inventoryClick() : inventoryClick,
-                    inventoryDrag == null ? base.inventoryDrag() : inventoryDrag,
-                    pickup == null ? base.pickup() : pickup,
-                    interact == null ? base.interact() : interact,
-                    command == null ? base.command() : command
+                    join == null ? true : join,
+                    heldChange == null ? true : heldChange,
+                    inventoryClick == null ? true : inventoryClick,
+                    inventoryDrag == null ? true : inventoryDrag,
+                    pickup == null ? true : pickup,
+                    interact == null ? true : interact,
+                    command == null ? true : command
             );
         }
 

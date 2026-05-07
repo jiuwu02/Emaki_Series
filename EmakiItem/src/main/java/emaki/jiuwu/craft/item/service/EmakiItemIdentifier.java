@@ -88,13 +88,17 @@ public final class EmakiItemIdentifier {
         return value == null ? null : Math.max(0, value);
     }
 
-    void writeIdentity(ItemMeta itemMeta, String id, String definitionSignature, int updateVersion) {
+    void writeIdentity(ItemMeta itemMeta, String id, String definitionSignature, Integer updateVersion) {
         if (itemMeta == null || Texts.isBlank(id)) {
             return;
         }
         pdcService.set(itemMeta, partition, FIELD_ID, PersistentDataType.STRING, Texts.normalizeId(id));
         pdcService.set(itemMeta, partition, FIELD_SCHEMA_VERSION, PersistentDataType.INTEGER, SCHEMA_VERSION);
-        pdcService.set(itemMeta, partition, FIELD_UPDATE_VERSION, PersistentDataType.INTEGER, Math.max(1, updateVersion));
+        if (updateVersion != null && updateVersion > 0) {
+            pdcService.set(itemMeta, partition, FIELD_UPDATE_VERSION, PersistentDataType.INTEGER, updateVersion);
+        } else {
+            pdcService.remove(itemMeta, partition, FIELD_UPDATE_VERSION);
+        }
         pdcService.set(itemMeta, partition, FIELD_DEFINITION_SIGNATURE, PersistentDataType.STRING, definitionSignature == null ? "" : definitionSignature);
         pdcService.set(itemMeta, partition, FIELD_UPDATED_AT, PersistentDataType.LONG, System.currentTimeMillis());
     }

@@ -8,7 +8,6 @@ import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import emaki.jiuwu.craft.item.config.AppConfig;
 import emaki.jiuwu.craft.item.loader.EmakiItemLoader;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
 import emaki.jiuwu.craft.item.model.ItemUpdateConfig;
@@ -19,25 +18,21 @@ public final class EmakiItemUpdateService {
     private final EmakiItemFactory itemFactory;
     private final EmakiItemIdentifier identifier;
     private final PdcAttributeGatewayAdapter attributeGateway;
-    private final java.util.function.Supplier<AppConfig> configSupplier;
 
     public EmakiItemUpdateService(EmakiItemLoader itemLoader,
             EmakiItemFactory itemFactory,
             EmakiItemIdentifier identifier,
-            PdcAttributeGatewayAdapter attributeGateway,
-            java.util.function.Supplier<AppConfig> configSupplier) {
+            PdcAttributeGatewayAdapter attributeGateway) {
         this.itemLoader = itemLoader;
         this.itemFactory = itemFactory;
         this.identifier = identifier;
         this.attributeGateway = attributeGateway;
-        this.configSupplier = configSupplier;
     }
 
     public ItemStack updateIfNeeded(ItemStack original, String trigger) {
         if (original == null || original.getType().isAir()) {
             return original;
         }
-        AppConfig config = configSupplier.get();
         String id = identifier.identify(original);
         if (id.isBlank()) {
             return original;
@@ -46,7 +41,7 @@ public final class EmakiItemUpdateService {
         if (definition == null) {
             return original;
         }
-        ItemUpdateConfig updateConfig = resolvedUpdateConfig(definition, config);
+        ItemUpdateConfig updateConfig = definition.updatePolicy().resolve();
         if (!updateConfig.triggerEnabled(trigger)) {
             return original;
         }
@@ -62,7 +57,11 @@ public final class EmakiItemUpdateService {
         }
         String id = identifier.identify(original);
         EmakiItemDefinition definition = id.isBlank() ? null : itemLoader.get(id);
-        return definition == null ? original : rebuild(original, definition, resolvedUpdateConfig(definition, configSupplier.get()));
+        if (definition == null) {
+            return original;
+        }
+        ItemUpdateConfig updateConfig = definition.updatePolicy().resolve();
+        return updateConfig.enabled() ? rebuild(original, definition, updateConfig) : original;
     }
 
     public int updatePlayerItems(Player player, String trigger) {
@@ -96,11 +95,6 @@ public final class EmakiItemUpdateService {
             attributeGateway.copyPayloads(original, rebuilt, Set.of("emakiitem", EmakiItemPdcWriter.SET_ATTRIBUTE_SOURCE_ID));
         }
         return rebuilt;
-    }
-
-    private ItemUpdateConfig resolvedUpdateConfig(EmakiItemDefinition definition, AppConfig config) {
-        AppConfig effectiveConfig = config == null ? AppConfig.defaults() : config;
-        return definition.updatePolicy().resolve(effectiveConfig.itemUpdate());
     }
 
     private int readDamage(ItemStack itemStack) {
