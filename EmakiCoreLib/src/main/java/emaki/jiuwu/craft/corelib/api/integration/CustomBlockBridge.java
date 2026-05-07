@@ -11,4 +11,8 @@ public interface CustomBlockBridge {
     String identifyBlock(Block block);
 
     boolean matches(Block block, String identifier);
+
+    boolean setLit(Block block, boolean lit);
+
+    boolean placeBlock(Block block, String identifier);
 }

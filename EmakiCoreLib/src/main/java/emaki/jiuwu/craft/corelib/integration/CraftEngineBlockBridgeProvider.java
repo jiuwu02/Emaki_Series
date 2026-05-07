@@ -43,6 +43,16 @@ public final class CraftEngineBlockBridgeProvider implements CraftEngineBlockBri
         return resolveDelegate().matches(block, identifier);
     }
 
+    @Override
+    public boolean setLit(Block block, boolean lit) {
+        return resolveDelegate().setLit(block, lit);
+    }
+
+    @Override
+    public boolean placeBlock(Block block, String identifier) {
+        return resolveDelegate().placeBlock(block, identifier);
+    }
+
     private CraftEngineBlockBridge resolveDelegate() {
         CraftEngineBlockBridge current = delegate;
         if (current != null) {

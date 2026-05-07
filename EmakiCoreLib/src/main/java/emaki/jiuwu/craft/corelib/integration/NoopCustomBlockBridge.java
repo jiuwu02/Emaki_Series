@@ -25,4 +25,14 @@ class NoopCustomBlockBridge implements CustomBlockBridge {
     public boolean matches(Block block, String identifier) {
         return false;
     }
+
+    @Override
+    public boolean setLit(Block block, boolean lit) {
+        return false;
+    }
+
+    @Override
+    public boolean placeBlock(Block block, String identifier) {
+        return false;
+    }
 }

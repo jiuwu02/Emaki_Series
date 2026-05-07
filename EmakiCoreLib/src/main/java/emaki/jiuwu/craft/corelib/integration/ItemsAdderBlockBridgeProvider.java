@@ -42,6 +42,16 @@ public final class ItemsAdderBlockBridgeProvider implements CustomBlockBridge {
         return resolveDelegate().matches(block, identifier);
     }
 
+    @Override
+    public boolean setLit(Block block, boolean lit) {
+        return resolveDelegate().setLit(block, lit);
+    }
+
+    @Override
+    public boolean placeBlock(Block block, String identifier) {
+        return resolveDelegate().placeBlock(block, identifier);
+    }
+
     private CustomBlockBridge resolveDelegate() {
         CustomBlockBridge current = delegate;
         if (current != null) {

@@ -149,6 +149,13 @@ stations:
       fuel: right_click
       moisture: right_click
     drop_result: true
+    # 热源方块来源。自定义方块需要点燃/熄灭外观时，可使用对象写法：
+    # - item_sources: [craftengine-emaki:heater]
+    #   lit_item_sources: [craftengine-emaki:heater_lit]
+    # - item_sources: [itemsadder-emaki:heater]
+    #   lit_item_sources: [itemsadder-emaki:heater_lit]
+    # - item_sources: [nexo-heater]
+    #   lit_item_sources: [nexo-heater_lit]
     heat_item_sources:
       - minecraft-furnace
       - minecraft-smoker

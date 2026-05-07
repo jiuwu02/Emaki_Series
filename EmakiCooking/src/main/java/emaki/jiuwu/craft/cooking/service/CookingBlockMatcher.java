@@ -48,9 +48,47 @@ public final class CookingBlockMatcher {
         };
     }
 
+    public boolean place(Block block, ItemSource source) {
+        if (block == null || source == null || source.getType() == null) {
+            return false;
+        }
+        return switch (source.getType()) {
+            case VANILLA -> placeVanilla(block, source.getIdentifier());
+            case CRAFTENGINE -> craftEngineBlockBridge != null && craftEngineBlockBridge.placeBlock(block, source.getIdentifier());
+            case ITEMSADDER -> itemsAdderBlockBridge != null && itemsAdderBlockBridge.placeBlock(block, source.getIdentifier());
+            case NEXO -> nexoBlockBridge != null && nexoBlockBridge.placeBlock(block, source.getIdentifier());
+            default -> false;
+        };
+    }
+
+    public boolean setCustomLit(Block block, boolean lit) {
+        if (block == null) {
+            return false;
+        }
+        if (craftEngineBlockBridge != null && craftEngineBlockBridge.isCustomBlock(block)) {
+            return craftEngineBlockBridge.setLit(block, lit);
+        }
+        if (itemsAdderBlockBridge != null && itemsAdderBlockBridge.isCustomBlock(block)) {
+            return itemsAdderBlockBridge.setLit(block, lit);
+        }
+        if (nexoBlockBridge != null && nexoBlockBridge.isCustomBlock(block)) {
+            return nexoBlockBridge.setLit(block, lit);
+        }
+        return false;
+    }
+
     private boolean matchesVanilla(Block block, String identifier) {
         Material expected = resolveMaterial(identifier);
         return expected != null && block.getType() == expected;
+    }
+
+    private boolean placeVanilla(Block block, String identifier) {
+        Material material = resolveMaterial(identifier);
+        if (material == null || material == Material.AIR) {
+            return false;
+        }
+        block.setType(material);
+        return block.getType() == material;
     }
 
     private Material resolveMaterial(String identifier) {

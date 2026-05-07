@@ -207,10 +207,32 @@ public final class CookingSettingsService {
             if (source == null) {
                 continue;
             }
+            ItemSource litSource = ItemSourceUtil.parse(firstPresent(
+                    normalized,
+                    "lit_item_sources",
+                    "lit_source",
+                    "ignited_item_sources",
+                    "ignited_source",
+                    "on_item_sources",
+                    "on_source"
+            ));
+            ItemSource unlitSource = ItemSourceUtil.parse(firstPresent(
+                    normalized,
+                    "unlit_item_sources",
+                    "unlit_source",
+                    "extinguished_item_sources",
+                    "extinguished_source",
+                    "off_item_sources",
+                    "off_source"
+            ));
             Integer level = configurationValueToInt(normalized.get("level"), 0);
-            result.add(new HeatLevelRule(source, level == null ? 0 : Math.max(0, level)));
+            result.add(new HeatLevelRule(source, litSource, unlitSource == null ? source : unlitSource, level == null ? 0 : Math.max(0, level)));
         }
         return result.isEmpty() ? List.of() : List.copyOf(result);
+    }
+
+    public boolean wokIgniteHeatSource() {
+        return configuration.getBoolean("stations.wok.ignite_heat_source", true);
     }
 
     public boolean wokScaldDamageEnabled() {
@@ -278,6 +300,10 @@ public final class CookingSettingsService {
 
     public List<ItemSource> steamerHeatSources() {
         return parseSources(configuration.get("stations.steamer.heat_item_sources"));
+    }
+
+    public List<HeatSourceIgnitionRule> steamerHeatSourceIgnitionRules() {
+        return parseHeatSourceIgnitionRules(configuration.get("stations.steamer.heat_item_sources"));
     }
 
     public boolean steamerIgniteHeatSource() {
@@ -485,6 +511,61 @@ public final class CookingSettingsService {
             }
         }
         return List.copyOf(result);
+    }
+
+    private List<HeatSourceIgnitionRule> parseHeatSourceIgnitionRules(Object raw) {
+        List<HeatSourceIgnitionRule> result = new ArrayList<>();
+        for (Object token : ConfigNodes.asObjectList(raw)) {
+            if (token instanceof Map<?, ?> map) {
+                Map<String, Object> normalized = MapYamlSection.normalizeMap(map);
+                ItemSource source = ItemSourceUtil.parse(firstPresent(
+                        normalized,
+                        "item_sources",
+                        "source",
+                        "item"
+                ));
+                if (source == null) {
+                    continue;
+                }
+                ItemSource litSource = ItemSourceUtil.parse(firstPresent(
+                        normalized,
+                        "lit_item_sources",
+                        "lit_source",
+                        "ignited_item_sources",
+                        "ignited_source",
+                        "on_item_sources",
+                        "on_source"
+                ));
+                ItemSource unlitSource = ItemSourceUtil.parse(firstPresent(
+                        normalized,
+                        "unlit_item_sources",
+                        "unlit_source",
+                        "extinguished_item_sources",
+                        "extinguished_source",
+                        "off_item_sources",
+                        "off_source"
+                ));
+                result.add(new HeatSourceIgnitionRule(source, litSource, unlitSource == null ? source : unlitSource));
+                continue;
+            }
+            ItemSource source = ItemSourceUtil.parse(token);
+            if (source != null) {
+                result.add(new HeatSourceIgnitionRule(source, null, source));
+            }
+        }
+        return List.copyOf(result);
+    }
+
+    private Object firstPresent(Map<String, Object> values, String... keys) {
+        if (values == null || keys == null) {
+            return null;
+        }
+        for (String key : keys) {
+            if (values.containsKey(key)) {
+                return values.get(key);
+            }
+        }
+        return null;
     }
 
     private String firstSourceShorthand(Object raw) {
@@ -733,7 +814,10 @@ public final class CookingSettingsService {
         return Numbers.tryParseDouble(raw, fallback);
     }
 
-    public record HeatLevelRule(ItemSource source, int level) {
+    public record HeatLevelRule(ItemSource source, ItemSource litSource, ItemSource unlitSource, int level) {
+    }
+
+    public record HeatSourceIgnitionRule(ItemSource source, ItemSource litSource, ItemSource unlitSource) {
     }
 
     public record SteamerFuelRule(ItemSource source, int durationSeconds) {

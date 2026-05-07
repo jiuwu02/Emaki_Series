@@ -58,6 +58,31 @@ final class NexoBlockBridgeApi implements CustomBlockBridge {
         return Texts.isNotBlank(actual) && actual.equals(expected);
     }
 
+    @Override
+    public boolean setLit(Block block, boolean lit) {
+        return false;
+    }
+
+    @Override
+    public boolean placeBlock(Block block, String identifier) {
+        if (block == null) {
+            return false;
+        }
+        String normalized = normalizeId(identifier);
+        if (Texts.isBlank(normalized)) {
+            return false;
+        }
+        try {
+            if (!NexoBlocks.isCustomBlock(normalized)) {
+                return false;
+            }
+            NexoBlocks.place(normalized, block.getLocation());
+            return matches(block, normalized);
+        } catch (RuntimeException | LinkageError exception) {
+            return false;
+        }
+    }
+
     private String normalizeId(String raw) {
         String text = Texts.trim(raw);
         if (Texts.isBlank(text)) {
