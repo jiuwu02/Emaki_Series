@@ -14,7 +14,7 @@ public final class MessageService extends AbstractMessageService {
     private static final String DEFAULT_PREFIX = "<gray>[<gold>Emaki CoreLib</gold>]</gray>";
 
     public MessageService(EmakiCoreLibPlugin plugin, LanguageLoader languageLoader) {
-        this(plugin, languageLoader, DEFAULT_PREFIX, true);
+        this(plugin, languageLoader, DEFAULT_PREFIX, false);
     }
 
     public MessageService(JavaPlugin plugin, LanguageLoader languageLoader, String defaultPrefix) {
