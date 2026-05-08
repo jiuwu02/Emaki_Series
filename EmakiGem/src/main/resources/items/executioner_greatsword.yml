@@ -33,7 +33,7 @@ gui:
   gem_template: "gem/default"
   open_template: "open/default"
 
-name_modifications:
+name_actions:
   - action: "prepend_prefix"
     value: "<gold>✦</gold> "
 

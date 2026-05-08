@@ -39,7 +39,7 @@ match:
   stats_any:
     - "spell_attack"
 
-name_modifications:
+name_actions:
   - action: "append_suffix"
     value: " <aqua>[+{star}]</aqua>"
 

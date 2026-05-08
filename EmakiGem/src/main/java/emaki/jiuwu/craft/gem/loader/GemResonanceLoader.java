@@ -90,9 +90,9 @@ public final class GemResonanceLoader extends YamlDirectoryLoader<GemResonanceDe
             return new ResonanceEffects(null, null, null, null, null);
         }
         List<String> actions = section.getStringList("actions");
-        Map<String, Double> stats = parseStatMap(section.getSection("stats"));
+        Map<String, Double> stats = parseStatMap(section.getSection("variables"));
         List<String> skills = section.getStringList("skills");
-        ResonanceNameModification nameModification = parseNameModification(section.getSection("name_modification"));
+        ResonanceNameModification nameModification = parseNameActions(section.getMapList("name_actions"));
         ResonanceLoreSection loreSection = parseLoreSection(section.getSection("lore_section"));
         return new ResonanceEffects(actions, stats, skills, nameModification, loreSection);
     }
@@ -111,16 +111,18 @@ public final class GemResonanceLoader extends YamlDirectoryLoader<GemResonanceDe
         return stats;
     }
 
-    private ResonanceNameModification parseNameModification(YamlSection section) {
-        if (section == null) {
+    private ResonanceNameModification parseNameActions(List<Map<?, ?>> list) {
+        if (list == null || list.isEmpty()) {
             return null;
         }
-        String position = section.getString("position", "prefix");
-        String template = section.getString("template", "");
-        if (Texts.isBlank(template)) {
+        Map<?, ?> first = list.get(0);
+        String action = ConfigNodes.string(first, "action", "");
+        String value = ConfigNodes.string(first, "value", "");
+        if (Texts.isBlank(value)) {
             return null;
         }
-        return new ResonanceNameModification(position, template);
+        String position = action.contains("suffix") ? "suffix" : "prefix";
+        return new ResonanceNameModification(position, value);
     }
 
     private ResonanceLoreSection parseLoreSection(YamlSection section) {

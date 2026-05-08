@@ -15,14 +15,10 @@ materials:
     amount: 3
     capacity_cost: 5
     effects:
-      - type: "stat_contribution"
-        stats:
-          physical_damage:
-            type: "constant"
-            value: 5
-          max_health:
-            type: "constant"
-            value: 2
+      - type: "variables"
+        variables:
+          physical_damage: 5
+          max_health: 2
       - type: "lore_action"
         lore_actions:
           - action: "append"
@@ -35,16 +31,12 @@ materials:
     amount: 1
     capacity_cost: 10
     effects:
-      - type: "stat_contribution"
-        stats:
-          fire_damage:
-            type: "constant"
-            value: 10
-          critical_chance:
-            type: "constant"
-            value: 5
-      - type: "name_modification"
-        name_modifications:
+      - type: "variables"
+        variables:
+          fire_damage: 10
+          critical_chance: 5
+      - type: "name_action"
+        name_actions:
           - action: "append_suffix"
             value: "<red> [烈焰]"
       - type: "lore_action"
@@ -60,14 +52,10 @@ materials:
     optional: true
     capacity_cost: 12
     effects:
-      - type: "stat_contribution"
-        stats:
-          fire_damage:
-            type: "constant"
-            value: 12
-          critical_chance:
-            type: "constant"
-            value: 4
+      - type: "variables"
+        variables:
+          fire_damage: 12
+          critical_chance: 4
       - type: "lore_action"
         lore_actions:
           - action: "append"
@@ -81,14 +69,10 @@ materials:
     optional: true
     capacity_cost: 8
     effects:
-      - type: "stat_contribution"
-        stats:
-          movement_speed:
-            type: "constant"
-            value: 3
-          dodge_chance:
-            type: "constant"
-            value: 2
+      - type: "variables"
+        variables:
+          movement_speed: 3
+          dodge_chance: 2
 
   - item_sources:
       - "minecraft-echo_shard"
@@ -96,14 +80,10 @@ materials:
     optional: true
     capacity_cost: 15
     effects:
-      - type: "stat_contribution"
-        stats:
-          magic_penetration:
-            type: "constant"
-            value: 6
-          spell_crit_rate:
-            type: "constant"
-            value: 3
+      - type: "variables"
+        variables:
+          magic_penetration: 6
+          spell_crit_rate: 3
 
   - item_sources:
       - "minecraft-nether_star"
@@ -132,7 +112,7 @@ result:
   item_sources:
     - "minecraft-diamond_sword"
   meta_actions:
-    name_modifications:
+    name_actions:
       - action: "replace"
         value: "<gold>烈焰锻剑</gold>"
     lore_actions:
@@ -141,12 +121,12 @@ result:
           - "<gray>锻造属性:"
           - "<dark_gray>由 EmakiForge 示例配方锻造"
   actions:
-    - "sendmessage text=\"<green>锻造成功! 获得了 {forge_result_item_name}</green>\""
+    - 'sendmessage text="<green>锻造成功! 获得了 {forge_result_item_name}</green>"'
     - "playsound sound=minecraft:block.anvil.use volume=1 pitch=1"
 
 actions:
   pre:
-    - "sendactionbar text=\"<gray>烈焰之力正在熔铸...</gray>\""
+    - 'sendactionbar text="<gray>烈焰之力正在熔铸...</gray>"'
   success: []
   failure:
-    - "sendmessage text=\"<red>锻造前置操作失败: {forge_failure_reason}</red>\""
+    - 'sendmessage text="<red>锻造前置操作失败: {forge_failure_reason}</red>"'

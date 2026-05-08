@@ -128,10 +128,10 @@ public final class ForgeMaterial {
     public Map<String, Double> statContributions() {
         Map<String, Double> result = new LinkedHashMap<>();
         for (MaterialEffect effect : effects) {
-            if (!"stat_contribution".equals(Texts.lower(effect.type()))) {
+            if (!"variables".equals(Texts.lower(effect.type()))) {
                 continue;
             }
-            for (Map.Entry<String, Object> entry : ConfigNodes.entries(effect.get("stats")).entrySet()) {
+            for (Map.Entry<String, Object> entry : ConfigNodes.entries(effect.get("variables")).entrySet()) {
                 double value = resolveStatValue(entry.getValue());
                 result.merge(entry.getKey(), value, Double::sum);
             }
@@ -193,7 +193,24 @@ public final class ForgeMaterial {
     public List<Map<String, Object>> nameModifications() {
         List<Map<String, Object>> result = new ArrayList<>();
         for (MaterialEffect effect : effects) {
-            if ("name_modify".equals(Texts.lower(effect.type()))) {
+            if (!"name_action".equals(Texts.lower(effect.type()))) {
+                continue;
+            }
+            Object actions = effect.get("name_actions");
+            if (actions != null) {
+                for (Object raw : ConfigNodes.asObjectList(actions)) {
+                    Object plain = ConfigNodes.toPlainData(raw);
+                    if (plain instanceof Map<?, ?> map) {
+                        Map<String, Object> normalized = new LinkedHashMap<>();
+                        for (Map.Entry<?, ?> entry : map.entrySet()) {
+                            if (entry.getKey() != null) {
+                                normalized.put(String.valueOf(entry.getKey()), entry.getValue());
+                            }
+                        }
+                        result.add(normalized);
+                    }
+                }
+            } else {
                 result.add(effect.data());
             }
         }
@@ -217,17 +234,6 @@ public final class ForgeMaterial {
                 }
                 result.add(normalized);
             }
-        }
-        return result;
-    }
-
-    public List<Object> structuredPresentations() {
-        List<Object> result = new ArrayList<>();
-        for (MaterialEffect effect : effects) {
-            if (!"structured_presentation".equals(Texts.lower(effect.type()))) {
-                continue;
-            }
-            result.add(ConfigNodes.toPlainData(effect.data()));
         }
         return result;
     }

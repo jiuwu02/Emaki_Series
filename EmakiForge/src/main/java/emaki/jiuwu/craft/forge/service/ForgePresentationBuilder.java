@@ -5,14 +5,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import emaki.jiuwu.craft.corelib.assembly.BaseNamePolicy;
 import emaki.jiuwu.craft.corelib.assembly.EmakiLoreSectionContribution;
 import emaki.jiuwu.craft.corelib.assembly.EmakiNameContribution;
 import emaki.jiuwu.craft.corelib.assembly.EmakiStatContribution;
 import emaki.jiuwu.craft.corelib.assembly.EmakiStructuredPresentation;
 import emaki.jiuwu.craft.corelib.assembly.LocalNameState;
 import emaki.jiuwu.craft.corelib.assembly.NamePosition;
-import emaki.jiuwu.craft.corelib.assembly.StructuredPresentationTemplateResolver;
 import emaki.jiuwu.craft.corelib.assembly.StructuredPresentationValidator;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.forge.model.ForgeMaterial;
@@ -28,18 +26,15 @@ final class ForgePresentationBuilder {
     private final TextTemplateRenderer templateRenderer;
     private final NameModificationRegistry nameModifications;
     private final LoreActionRegistry loreActions;
-    private final StructuredPresentationTemplateResolver structuredResolver;
     private final StructuredPresentationValidator structuredValidator;
 
     ForgePresentationBuilder(TextTemplateRenderer templateRenderer,
             NameModificationRegistry nameModifications,
             LoreActionRegistry loreActions,
-            StructuredPresentationTemplateResolver structuredResolver,
             StructuredPresentationValidator structuredValidator) {
         this.templateRenderer = templateRenderer;
         this.nameModifications = nameModifications;
         this.loreActions = loreActions;
-        this.structuredResolver = structuredResolver;
         this.structuredValidator = structuredValidator;
     }
 
@@ -52,52 +47,28 @@ final class ForgePresentationBuilder {
         Map<String, Double> aggregatedStats = aggregateStats(stats);
         Map<String, Object> variables = templateRenderer.buildVariables(aggregatedStats, qualityTier, multiplier);
         LocalNameState nameState = new LocalNameState();
-        ConfiguredStructuredState configuredState = new ConfiguredStructuredState();
         QualitySettings effectiveSettings = safeSettings(settings);
 
-        EmakiStructuredPresentation recipePresentation = applyRecipePresentation(
-                recipe,
-                variables,
-                configuredState,
-                nameState
-        );
-        applyMaterialPresentations(materials, variables, configuredState, nameState);
-        applyQualityPresentation(qualityTier, effectiveSettings, variables, configuredState, nameState);
+        applyRecipePresentation(recipe, variables, nameState);
+        applyMaterialPresentations(materials, variables, nameState);
 
-        List<String> loreLines = buildLoreLines(
-                recipe,
-                materials,
-                qualityTier,
-                effectiveSettings,
-                variables,
-                recipePresentation
-        );
-        return assemblePresentation(configuredState, nameState, loreLines);
+        List<String> loreLines = buildLoreLines(recipe, materials, variables);
+        applyQualityPresentation(qualityTier, effectiveSettings, variables, nameState, loreLines);
+
+        return assemblePresentation(nameState, loreLines);
     }
 
-    private EmakiStructuredPresentation applyRecipePresentation(Recipe recipe,
+    private void applyRecipePresentation(Recipe recipe,
             Map<String, Object> variables,
-            ConfiguredStructuredState configuredState,
             LocalNameState nameState) {
         if (recipe == null || recipe.result() == null) {
-            return null;
+            return;
         }
-        EmakiStructuredPresentation recipePresentation = resolveStructuredPresentation(
-                recipe.result().structuredPresentation(),
-                variables
-        );
-        if (shouldMergeLegacyPresentation(recipePresentation)) {
-            configuredState.merge(recipePresentation);
-        }
-        if (shouldApplyLegacyNameActions(recipePresentation)) {
-            nameModifications.apply(nameState, recipe.result().nameModifications(), variables);
-        }
-        return recipePresentation;
+        nameModifications.apply(nameState, recipe.result().nameModifications(), variables);
     }
 
     private void applyMaterialPresentations(List<ForgeMaterialContribution> materials,
             Map<String, Object> variables,
-            ConfiguredStructuredState configuredState,
             LocalNameState nameState) {
         if (materials == null) {
             return;
@@ -107,15 +78,6 @@ final class ForgePresentationBuilder {
                 continue;
             }
             ForgeMaterial forgeMaterial = material.material();
-            List<Object> structuredFragments = forgeMaterial.structuredPresentations();
-            if (!structuredFragments.isEmpty()) {
-                for (Object rawStructured : structuredFragments) {
-                    EmakiStructuredPresentation configuredPresentation = resolveStructuredPresentation(rawStructured, variables);
-                    if (configuredPresentation != null) {
-                        configuredState.merge(configuredPresentation);
-                    }
-                }
-            }
             nameModifications.apply(nameState, forgeMaterial.nameModifications(), variables);
         }
     }
@@ -123,34 +85,21 @@ final class ForgePresentationBuilder {
     private void applyQualityPresentation(QualitySettings.QualityTier qualityTier,
             QualitySettings settings,
             Map<String, Object> variables,
-            ConfiguredStructuredState configuredState,
-            LocalNameState nameState) {
+            LocalNameState nameState,
+            List<String> loreLines) {
         if (qualityTier == null || !settings.itemMetaEnabled()) {
             return;
         }
-        EmakiStructuredPresentation configuredPresentation = resolveStructuredPresentation(
-                settings.itemMetaStructuredPresentation(qualityTier.name()),
-                variables
-        );
-        if (shouldMergeLegacyPresentation(configuredPresentation)) {
-            configuredState.merge(configuredPresentation);
-        }
-        if (shouldApplyLegacyNameActions(configuredPresentation)) {
-            nameModifications.apply(nameState, settings.itemMetaNameModifications(qualityTier.name()), variables);
-        }
+        nameModifications.apply(nameState, settings.itemMetaNameActions(qualityTier.name()), variables);
+        loreActions.apply(loreLines, settings.itemMetaLoreActions(qualityTier.name()), variables);
     }
 
     private List<String> buildLoreLines(Recipe recipe,
             List<ForgeMaterialContribution> materials,
-            QualitySettings.QualityTier qualityTier,
-            QualitySettings settings,
-            Map<String, Object> variables,
-            EmakiStructuredPresentation recipePresentation) {
+            Map<String, Object> variables) {
         List<String> loreLines = new ArrayList<>();
         if (recipe != null && recipe.result() != null) {
-            if (recipePresentation == null || recipePresentation.loreSections().isEmpty()) {
-                loreActions.apply(loreLines, recipe.result().loreActions(), variables);
-            }
+            loreActions.apply(loreLines, recipe.result().loreActions(), variables);
         }
         if (materials != null) {
             for (ForgeMaterialContribution material : materials) {
@@ -160,28 +109,17 @@ final class ForgePresentationBuilder {
                 loreActions.apply(loreLines, material.material().loreActions(), variables);
             }
         }
-        if (qualityTier != null && settings.itemMetaEnabled()) {
-            EmakiStructuredPresentation configuredPresentation = resolveStructuredPresentation(
-                    settings.itemMetaStructuredPresentation(qualityTier.name()),
-                    variables
-            );
-            if (configuredPresentation == null || configuredPresentation.loreSections().isEmpty()) {
-                loreActions.apply(loreLines, settings.itemMetaLoreActions(qualityTier.name()), variables);
-            }
-        }
         return loreLines;
     }
 
-    private EmakiStructuredPresentation assemblePresentation(ConfiguredStructuredState configuredState,
-            LocalNameState nameState,
+    private EmakiStructuredPresentation assemblePresentation(LocalNameState nameState,
             List<String> loreLines) {
-        List<EmakiNameContribution> nameContributions = new ArrayList<>(configuredState.nameContributions());
-        nameContributions.addAll(buildNameContributions(nameState));
-        List<EmakiLoreSectionContribution> loreSections = new ArrayList<>(configuredState.loreSections());
+        List<EmakiNameContribution> nameContributions = new ArrayList<>(buildNameContributions(nameState));
+        List<EmakiLoreSectionContribution> loreSections = new ArrayList<>();
         addSection(loreSections, "forge.display", LORE_SECTION_ORDER, loreLines);
         StructuredPresentationValidator.ValidationResult validation = structuredValidator.sanitize(new EmakiStructuredPresentation(
-                configuredState.baseNamePolicyOr(nameState.baseNamePolicy()),
-                configuredState.baseNameTemplateOr(nameState.baseNameTemplate()),
+                nameState.baseNamePolicy(),
+                nameState.baseNameTemplate(),
                 nameContributions,
                 loreSections
         ));
@@ -236,13 +174,6 @@ final class ForgePresentationBuilder {
         return index <= 0 ? NAMESPACE_ID + "." + role : NAMESPACE_ID + "." + role + "." + index;
     }
 
-    private EmakiStructuredPresentation resolveStructuredPresentation(Object raw, Map<String, ?> variables) {
-        StructuredPresentationValidator.ValidationResult validation = structuredValidator.sanitize(
-                structuredResolver.fromConfig(raw, variables, NAMESPACE_ID)
-        );
-        return validation.presentation();
-    }
-
     private void addSection(List<EmakiLoreSectionContribution> sections,
             String sectionId,
             int order,
@@ -251,19 +182,6 @@ final class ForgePresentationBuilder {
             return;
         }
         sections.add(new EmakiLoreSectionContribution(sectionId, order, List.copyOf(lines), NAMESPACE_ID));
-    }
-
-    private boolean shouldMergeLegacyPresentation(EmakiStructuredPresentation presentation) {
-        return presentation != null
-                && (presentation.baseNamePolicy() == BaseNamePolicy.EXPLICIT_TEMPLATE
-                || !presentation.nameContributions().isEmpty()
-                || !presentation.loreSections().isEmpty());
-    }
-
-    private boolean shouldApplyLegacyNameActions(EmakiStructuredPresentation presentation) {
-        return presentation == null
-                || (presentation.baseNamePolicy() != BaseNamePolicy.EXPLICIT_TEMPLATE
-                && presentation.nameContributions().isEmpty());
     }
 
     private QualitySettings safeSettings(QualitySettings settings) {

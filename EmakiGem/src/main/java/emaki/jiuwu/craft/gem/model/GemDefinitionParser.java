@@ -51,7 +51,7 @@ final class GemDefinitionParser {
                 section.getInt("tier", 1),
                 itemSource,
                 Numbers.tryParseInt(section.get("custom_model_data"), null),
-                parseStatMap(section.getSection("stats")),
+                parseStatMap(section.getSection("variables")),
                 parseStatMap(section.getSection("attributes")),
                 parseSkillEffects(section.getMapList("effects")),
                 socketCompatibility,
@@ -200,7 +200,7 @@ final class GemDefinitionParser {
         return new GemUpgradeLevel(
                 targetLevel,
                 section.getString("display_name", ""),
-                parseStatMap(section.getSection("stats")),
+                parseStatMap(section.getSection("variables")),
                 parseStatMap(section.getSection("attributes")),
                 parseSkillEffects(section.getMapList("effects")),
                 section.get("structured_presentation"),

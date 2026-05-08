@@ -29,8 +29,7 @@ public final class Recipe {
     public record ResultConfig(ItemSource outputItem,
             List<String> action,
             List<Map<String, Object>> nameModifications,
-            List<Map<String, Object>> loreActions,
-            Object structuredPresentation) {
+            List<Map<String, Object>> loreActions) {
 
     }
 
@@ -160,7 +159,7 @@ public final class Recipe {
 
     private static ResultConfig parseResult(Object raw) {
         if (raw == null) {
-            return new ResultConfig(null, List.of(), List.of(), List.of(), null);
+            return new ResultConfig(null, List.of(), List.of(), List.of());
         }
         Object outputItem = ConfigNodes.get(raw, "item_sources");
         ItemSource parsedOutputItem = ItemSourceUtil.parse(outputItem);
@@ -168,12 +167,12 @@ public final class Recipe {
             return null;
         }
         Object metaActions = ConfigNodes.get(raw, "meta_actions");
+        Object nameActions = ConfigNodes.get(metaActions, "name_actions");
         return new ResultConfig(
                 parsedOutputItem,
                 List.copyOf(Texts.asStringList(ConfigNodes.get(raw, "actions"))),
-                toActionList(ConfigNodes.get(metaActions, "name_modifications")),
-                toActionList(ConfigNodes.get(metaActions, "lore_actions")),
-                ConfigNodes.toPlainData(ConfigNodes.get(metaActions, "structured_presentation"))
+                toActionList(nameActions),
+                toActionList(ConfigNodes.get(metaActions, "lore_actions"))
         );
     }
 

@@ -33,7 +33,7 @@ success_rates:
   11: 8.0
   12: 4.0
 
-name_modifications:
+name_actions:
   - action: "append_suffix"
     value: " <gray>[+{star}]</gray>"
 

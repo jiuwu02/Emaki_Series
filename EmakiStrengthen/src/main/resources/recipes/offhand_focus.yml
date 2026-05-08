@@ -37,7 +37,7 @@ match:
   slot_groups:
     - "offhand"
 
-name_modifications:
+name_actions:
   - action: "append_suffix"
     value: " <light_purple>[+{star}]</light_purple>"
 

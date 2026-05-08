@@ -8,15 +8,12 @@ item_sources:
 variables:
   physical_defense: 6
   max_health: 10
-attributes:
-  physical_defense: 6.0
-  max_health: 10.0
 
 socket_compatibility:
   - "defense"
   - "universal"
 
-name_modifications:
+name_actions:
   - action: "append_suffix"
     value: " <blue>[{display_name}]</blue>"
 
@@ -69,10 +66,7 @@ upgrade:
       variables:
         physical_defense: 9
         max_health: 14
-      attributes:
-        physical_defense: 9.0
-        max_health: 14.0
-      name_modifications:
+      name_actions:
         - action: "append_suffix"
           value: " <blue>[{display_name}]</blue>"
       lore_actions:
@@ -92,10 +86,7 @@ upgrade:
       variables:
         physical_defense: 13
         max_health: 20
-      attributes:
-        physical_defense: 13.0
-        max_health: 20.0
-      name_modifications:
+      name_actions:
         - action: "append_suffix"
           value: " <blue>[{display_name}]</blue>"
       lore_actions:

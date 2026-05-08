@@ -37,7 +37,7 @@ match:
   slot_groups:
     - "armor"
 
-name_modifications:
+name_actions:
   - action: "append_suffix"
     value: " <yellow>[+{star}]</yellow>"
 

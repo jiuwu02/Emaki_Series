@@ -38,9 +38,8 @@ public final class QualitySettings {
     private final String guaranteeMinimum;
     private final boolean itemMetaEnabled;
     private final Map<String, List<String>> itemMetaActions;
-    private final Map<String, List<Map<String, Object>>> itemMetaNameModifications;
-    private final Map<String, List<Map<String, Object>>> itemMetaLoreActions;
-    private final Map<String, Object> itemMetaStructuredPresentations;
+    private final Map<String, Object> itemMetaNameActions;
+    private final Map<String, Object> itemMetaLoreActions;
 
     public QualitySettings(List<QualityTier> tiers,
             String defaultTier,
@@ -49,9 +48,8 @@ public final class QualitySettings {
             String guaranteeMinimum,
             boolean itemMetaEnabled,
             Map<String, List<String>> itemMetaActions,
-            Map<String, List<Map<String, Object>>> itemMetaNameModifications,
-            Map<String, List<Map<String, Object>>> itemMetaLoreActions,
-            Map<String, Object> itemMetaStructuredPresentations) {
+            Map<String, Object> itemMetaNameActions,
+            Map<String, Object> itemMetaLoreActions) {
         this.tiers = List.copyOf(tiers);
         this.defaultTier = defaultTier;
         this.guaranteeEnabled = guaranteeEnabled;
@@ -59,14 +57,13 @@ public final class QualitySettings {
         this.guaranteeMinimum = guaranteeMinimum;
         this.itemMetaEnabled = itemMetaEnabled;
         this.itemMetaActions = Map.copyOf(itemMetaActions);
-        this.itemMetaNameModifications = Map.copyOf(itemMetaNameModifications);
+        this.itemMetaNameActions = Map.copyOf(itemMetaNameActions);
         this.itemMetaLoreActions = Map.copyOf(itemMetaLoreActions);
-        this.itemMetaStructuredPresentations = Map.copyOf(itemMetaStructuredPresentations);
     }
 
     public static QualitySettings defaults() {
         QualityTier normal = QualityTier.fromString("普通-100-1.0");
-        return new QualitySettings(List.of(normal), "普通", false, 10, "普通", false, Map.of(), Map.of(), Map.of(), Map.of());
+        return new QualitySettings(List.of(normal), "普通", false, 10, "普通", false, Map.of(), Map.of(), Map.of());
     }
 
     public static QualitySettings fromConfig(Object raw) {
@@ -86,16 +83,14 @@ public final class QualitySettings {
         Object guarantee = ConfigNodes.get(raw, "guarantee");
         Object itemMeta = ConfigNodes.get(raw, "item_meta");
         Map<String, List<String>> actions = new LinkedHashMap<>();
-        Map<String, List<Map<String, Object>>> nameMods = new LinkedHashMap<>();
-        Map<String, List<Map<String, Object>>> loreOps = new LinkedHashMap<>();
-        Map<String, Object> structuredPresentations = new LinkedHashMap<>();
+        Map<String, Object> nameActions = new LinkedHashMap<>();
+        Map<String, Object> loreActions = new LinkedHashMap<>();
         for (Map.Entry<String, Object> entry : ConfigNodes.entries(ConfigNodes.get(itemMeta, "tiers")).entrySet()) {
             String key = Texts.lower(entry.getKey());
             Object tierConfig = entry.getValue();
             actions.put(key, List.copyOf(Texts.asStringList(ConfigNodes.get(tierConfig, "action"))));
-            nameMods.put(key, toActionList(ConfigNodes.get(tierConfig, "name_modifications"), ConfigNodes.get(tierConfig, "name_actions")));
-            loreOps.put(key, toActionList(ConfigNodes.get(tierConfig, "lore_actions")));
-            structuredPresentations.put(key, ConfigNodes.toPlainData(ConfigNodes.get(tierConfig, "structured_presentation")));
+            nameActions.put(key, ConfigNodes.get(tierConfig, "name_actions"));
+            loreActions.put(key, ConfigNodes.get(tierConfig, "lore_actions"));
         }
         return new QualitySettings(
                 tiers,
@@ -105,28 +100,9 @@ public final class QualitySettings {
                 ConfigNodes.string(guarantee, "minimum", "普通"),
                 ConfigNodes.bool(itemMeta, "enabled", false),
                 actions,
-                nameMods,
-                loreOps,
-                structuredPresentations
+                nameActions,
+                loreActions
         );
-    }
-
-    private static List<Map<String, Object>> toActionList(Object... values) {
-        List<Map<String, Object>> result = new ArrayList<>();
-        for (Object value : values) {
-            for (Object entry : ConfigNodes.asObjectList(value)) {
-                Object plain = ConfigNodes.toPlainData(entry);
-                if (!(plain instanceof Map<?, ?> map)) {
-                    continue;
-                }
-                Map<String, Object> normalized = new LinkedHashMap<>();
-                for (Map.Entry<?, ?> mapEntry : map.entrySet()) {
-                    normalized.put(String.valueOf(mapEntry.getKey()), mapEntry.getValue());
-                }
-                result.add(normalized);
-            }
-        }
-        return result;
     }
 
     public QualityTier defaultTier() {
@@ -186,20 +162,16 @@ public final class QualitySettings {
         return tierIndex(second) > tierIndex(first) ? second : first;
     }
 
-    public List<Map<String, Object>> itemMetaNameModifications(String tierName) {
-        return itemMetaNameModifications.getOrDefault(Texts.lower(tierName), List.of());
+    public Object itemMetaNameActions(String tierName) {
+        return itemMetaNameActions.get(Texts.lower(tierName));
     }
 
-    public List<Map<String, Object>> itemMetaLoreActions(String tierName) {
-        return itemMetaLoreActions.getOrDefault(Texts.lower(tierName), List.of());
+    public Object itemMetaLoreActions(String tierName) {
+        return itemMetaLoreActions.get(Texts.lower(tierName));
     }
 
     public List<String> itemMetaActions(String tierName) {
         return itemMetaActions.getOrDefault(Texts.lower(tierName), List.of());
-    }
-
-    public Object itemMetaStructuredPresentation(String tierName) {
-        return itemMetaStructuredPresentations.get(Texts.lower(tierName));
     }
 
     public List<QualityTier> tiers() {

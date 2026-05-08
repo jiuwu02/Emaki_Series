@@ -148,7 +148,7 @@ public final class StrengthenRecipe {
     private final String conditionType;
     private final int conditionRequiredCount;
     private final StrengthenBranchNode branchTree;
-    private final Object nameModifications;
+    private final Object nameActions;
     private final Object loreActions;
 
     public StrengthenRecipe(String id,
@@ -200,7 +200,7 @@ public final class StrengthenRecipe {
             String conditionType,
             int conditionRequiredCount,
             StrengthenBranchNode branchTree,
-            Object nameModifications,
+            Object nameActions,
             Object loreActions) {
         this.id = Texts.trim(id);
         this.displayName = Texts.toStringSafe(displayName);
@@ -216,7 +216,7 @@ public final class StrengthenRecipe {
         this.conditionType = Texts.isBlank(conditionType) ? "all_of" : Texts.lower(conditionType);
         this.conditionRequiredCount = Math.max(0, conditionRequiredCount);
         this.branchTree = branchTree;
-        this.nameModifications = ConfigNodes.toPlainData(nameModifications);
+        this.nameActions = ConfigNodes.toPlainData(nameActions);
         this.loreActions = ConfigNodes.toPlainData(loreActions);
     }
 
@@ -380,8 +380,8 @@ public final class StrengthenRecipe {
         return branchTree != null && !branchTree.children().isEmpty();
     }
 
-    public Object nameModifications() {
-        return nameModifications;
+    public Object nameActions() {
+        return nameActions;
     }
 
     public Object loreActions() {

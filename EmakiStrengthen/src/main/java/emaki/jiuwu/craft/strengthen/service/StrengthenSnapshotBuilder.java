@@ -99,10 +99,10 @@ public final class StrengthenSnapshotBuilder {
             loreSections.addAll(configuredPresentation.loreSections());
         }
 
-        // Apply name_modifications operations (CoreLib operation system)
+        // Apply name_actions operations (CoreLib operation system)
         LocalNameState nameState = new LocalNameState();
-        if (recipe.nameModifications() != null) {
-            nameOperations.apply(nameState, recipe.nameModifications(), variables);
+        if (recipe.nameActions() != null) {
+            nameOperations.apply(nameState, recipe.nameActions(), variables);
             if (nameState.baseNamePolicy() == BaseNamePolicy.EXPLICIT_TEMPLATE) {
                 baseNamePolicy = nameState.baseNamePolicy();
                 baseNameTemplate = nameState.baseNameTemplate();

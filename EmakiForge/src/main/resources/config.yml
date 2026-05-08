@@ -32,53 +32,35 @@ quality:
     enabled: true
     tiers:
       有缺:
-        structured_presentation:
-          name_contributions:
-            - slot_id: "forge.quality.prefix"
-              position: "PREFIX"
-              order: 100
-              content_template: "<color:#733333>[有缺]</color>"
+        name_actions:
+          - action: "prepend_prefix"
+            value: "<color:#733333>[有缺] </color>"
       平庸:
-        structured_presentation:
-          name_contributions:
-            - slot_id: "forge.quality.prefix"
-              position: "PREFIX"
-              order: 100
-              content_template: "<color:#999999>[平庸]</color>"
+        name_actions:
+          - action: "prepend_prefix"
+            value: "<color:#999999>[平庸] </color>"
       精良:
-        structured_presentation:
-          name_contributions:
-            - slot_id: "forge.quality.prefix"
-              position: "PREFIX"
-              order: 100
-              content_template: "<color:#1F871F>[精良]</color>"
+        name_actions:
+          - action: "prepend_prefix"
+            value: "<color:#1F871F>[精良] </color>"
       优质:
-        structured_presentation:
-          name_contributions:
-            - slot_id: "forge.quality.prefix"
-              position: "PREFIX"
-              order: 100
-              content_template: "<color:#00FF00>[优质]</color>"
+        name_actions:
+          - action: "prepend_prefix"
+            value: "<color:#00FF00>[优质] </color>"
       无暇:
-        structured_presentation:
-          name_contributions:
-            - slot_id: "forge.quality.prefix"
-              position: "PREFIX"
-              order: 100
-              content_template: "<color:#4B64C8>[无暇]</color>"
+        name_actions:
+          - action: "prepend_prefix"
+            value: "<color:#4B64C8>[无暇] </color>"
         action:
-          - "broadcastmessage
-            text=\"<color:#4B64C8>{player_name}锻造出了一个无暇品质的<show_item></color>\""
+          - 'broadcastmessage
+            text="<color:#4B64C8>{player_name}锻造出了一个无暇品质的<show_item></color>"'
       完美:
-        structured_presentation:
-          name_contributions:
-            - slot_id: "forge.quality.prefix"
-              position: "PREFIX"
-              order: 100
-              content_template: "<color:#FFD700>[完美]</color>"
+        name_actions:
+          - action: "prepend_prefix"
+            value: "<color:#FFD700>[完美] </color>"
         action:
-          - "broadcastmessage
-            text=\"<color:#FFD700>{player_name}锻造出了一个完美品质的<show_item></color>\""
+          - 'broadcastmessage
+            text="<color:#FFD700>{player_name}锻造出了一个完美品质的<show_item></color>"'
 
 number_format:
   default: "0.##"

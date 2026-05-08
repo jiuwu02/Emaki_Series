@@ -6,7 +6,6 @@ import java.util.Map;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerSnapshot;
 import emaki.jiuwu.craft.corelib.assembly.EmakiStatContribution;
 import emaki.jiuwu.craft.corelib.assembly.EmakiStructuredPresentation;
-import emaki.jiuwu.craft.corelib.assembly.StructuredPresentationTemplateResolver;
 import emaki.jiuwu.craft.corelib.assembly.StructuredPresentationValidator;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.model.ForgeMaterial;
@@ -35,7 +34,6 @@ final class ForgeLayerSnapshotBuilder {
                 templateRenderer,
                 nameModifications,
                 loreActions,
-                new StructuredPresentationTemplateResolver(),
                 new StructuredPresentationValidator()
         );
         this.auditBuilder = new ForgeAuditBuilder();

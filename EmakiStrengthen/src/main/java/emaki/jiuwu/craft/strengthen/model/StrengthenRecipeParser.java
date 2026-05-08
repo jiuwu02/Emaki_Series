@@ -48,7 +48,10 @@ final class StrengthenRecipeParser {
                 section.get("structured_presentation"),
                 ConditionGroup.fromConfig(section, section.getString("condition_type", "all_of"), Numbers.tryParseInt(section.get("condition_required_count"), 0)),
                 section.getString("condition_type", "all_of"),
-                Numbers.tryParseInt(section.get("condition_required_count"), 0)
+                Numbers.tryParseInt(section.get("condition_required_count"), 0),
+                null,
+                section.get("name_actions"),
+                section.get("lore_actions")
         );
     }
 

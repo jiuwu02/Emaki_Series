@@ -39,7 +39,7 @@ match:
   stats_any:
     - "projectile_attack"
 
-name_modifications:
+name_actions:
   - action: "append_suffix"
     value: " <green>[+{star}]</green>"
 
