@@ -22,6 +22,7 @@ public record EmakiItemDefinition(String id,
         ItemConditions conditions,
         Map<String, List<String>> actions,
         ItemUpdatePolicy updatePolicy,
+        RepairConfig repair,
         boolean hasRandomElements) {
 
     public EmakiItemDefinition {
@@ -38,6 +39,7 @@ public record EmakiItemDefinition(String id,
         conditions = conditions == null ? ItemConditions.empty() : conditions;
         actions = actions == null ? Map.of() : copyActions(actions);
         updatePolicy = updatePolicy == null ? ItemUpdatePolicy.defaults() : updatePolicy;
+        repair = repair == null ? RepairConfig.disabled() : repair;
     }
 
     public String definitionSignature() {
@@ -56,6 +58,7 @@ public record EmakiItemDefinition(String id,
         signatureData.put("conditions", conditions);
         signatureData.put("actions", actions);
         signatureData.put("update", updatePolicy.signatureData());
+        signatureData.put("repair_enabled", repair.enabled());
         return SignatureUtil.stableSignature(signatureData);
     }
 

@@ -5,7 +5,7 @@ tier: 1
 item_sources:
   - "minecraft-lapis_lazuli"
 
-stats:
+variables:
   physical_defense: 6
   max_health: 10
 attributes:
@@ -16,18 +16,14 @@ socket_compatibility:
   - "defense"
   - "universal"
 
-structured_presentation:
-  name_contributions:
-    - slot_id: "gem.slot.{slot_index}.badge"
-      position: "POSTFIX"
-      order: 300
-      content_template: " <blue>[{display_name}]</blue>"
-  lore_sections:
-    - section_id: "gem.slot.{slot_index}.detail"
-      order: 200
-      lines:
-        - "<blue>◆ {display_name}: 物理防御+{physical_defense}
-          生命+{max_health}</blue>"
+name_modifications:
+  - action: "append_suffix"
+    value: " <blue>[{display_name}]</blue>"
+
+lore_actions:
+  - action: "append"
+    content:
+      - "<blue>◆ {display_name}: 物理防御+{physical_defense} 生命+{max_health}</blue>"
 
 inlay_cost:
   currencies:
@@ -70,24 +66,19 @@ upgrade:
   failure_penalty: "none"
   levels:
     2:
-      stats:
+      variables:
         physical_defense: 9
         max_health: 14
       attributes:
         physical_defense: 9.0
         max_health: 14.0
-      structured_presentation:
-        name_contributions:
-          - slot_id: "gem.slot.{slot_index}.badge"
-            position: "POSTFIX"
-            order: 300
-            content_template: " <blue>[{display_name}]</blue>"
-        lore_sections:
-          - section_id: "gem.slot.{slot_index}.detail"
-            order: 200
-            lines:
-              - "<blue>◆ {display_name}: 物理防御+{physical_defense}
-                生命+{max_health}</blue>"
+      name_modifications:
+        - action: "append_suffix"
+          value: " <blue>[{display_name}]</blue>"
+      lore_actions:
+        - action: "append"
+          content:
+            - "<blue>◆ {display_name}: 物理防御+{physical_defense} 生命+{max_health}</blue>"
       materials:
         - item_sources:
             - "minecraft-lapis_lazuli"
@@ -98,24 +89,19 @@ upgrade:
         failure: []
 
     3:
-      stats:
+      variables:
         physical_defense: 13
         max_health: 20
       attributes:
         physical_defense: 13.0
         max_health: 20.0
-      structured_presentation:
-        name_contributions:
-          - slot_id: "gem.slot.{slot_index}.badge"
-            position: "POSTFIX"
-            order: 300
-            content_template: " <blue>[{display_name}]</blue>"
-        lore_sections:
-          - section_id: "gem.slot.{slot_index}.detail"
-            order: 200
-            lines:
-              - "<blue>◆ {display_name}: 物理防御+{physical_defense}
-                生命+{max_health}</blue>"
+      name_modifications:
+        - action: "append_suffix"
+          value: " <blue>[{display_name}]</blue>"
+      lore_actions:
+        - action: "append"
+          content:
+            - "<blue>◆ {display_name}: 物理防御+{physical_defense} 生命+{max_health}</blue>"
       materials:
         - item_sources:
             - "minecraft-diamond"

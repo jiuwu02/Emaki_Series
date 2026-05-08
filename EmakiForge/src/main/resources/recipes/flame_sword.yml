@@ -23,11 +23,10 @@ materials:
           max_health:
             type: "constant"
             value: 2
-      - type: "structured_presentation"
-        lore_sections:
-          - section_id: "forge.material.iron_ingot"
-            order: 120
-            lines:
+      - type: "lore_action"
+        lore_actions:
+          - action: "append"
+            content:
               - "<gray>物理伤害: <red>+{physical_damage}"
               - "<gray>生命值: <green>+{max_health}"
 
@@ -44,16 +43,14 @@ materials:
           critical_chance:
             type: "constant"
             value: 5
-      - type: "structured_presentation"
-        name_contributions:
-          - slot_id: "forge.material.blaze_powder.badge"
-            position: "POSTFIX"
-            order: 130
-            content_template: "<red> [烈焰]"
-        lore_sections:
-          - section_id: "forge.material.blaze_powder"
-            order: 130
-            lines:
+      - type: "name_modification"
+        name_modifications:
+          - action: "append_suffix"
+            value: "<red> [烈焰]"
+      - type: "lore_action"
+        lore_actions:
+          - action: "append"
+            content:
               - "<red>火焰伤害: +{fire_damage}"
               - "<yellow>暴击率: +{critical_chance}%"
 
@@ -71,11 +68,10 @@ materials:
           critical_chance:
             type: "constant"
             value: 4
-      - type: "structured_presentation"
-        lore_sections:
-          - section_id: "forge.material.fire_charge"
-            order: 131
-            lines:
+      - type: "lore_action"
+        lore_actions:
+          - action: "append"
+            content:
               - "<red>火焰伤害: +{fire_damage}"
               - "<yellow>暴击率: +{critical_chance}%"
 
@@ -136,15 +132,14 @@ result:
   item_sources:
     - "minecraft-diamond_sword"
   meta_actions:
-    structured_presentation:
-      base_name_policy: "EXPLICIT_TEMPLATE"
-      base_name_template: "<gold>烈焰锻剑</gold>"
-      lore_sections:
-        - section_id: "forge.result.summary"
-          order: 100
-          lines:
-            - "<gray>锻造属性:"
-            - "<dark_gray>由 EmakiForge 示例配方锻造"
+    name_modifications:
+      - action: "replace"
+        value: "<gold>烈焰锻剑</gold>"
+    lore_actions:
+      - action: "append"
+        content:
+          - "<gray>锻造属性:"
+          - "<dark_gray>由 EmakiForge 示例配方锻造"
   actions:
     - "sendmessage text=\"<green>锻造成功! 获得了 {forge_result_item_name}</green>\""
     - "playsound sound=minecraft:block.anvil.use volume=1 pitch=1"

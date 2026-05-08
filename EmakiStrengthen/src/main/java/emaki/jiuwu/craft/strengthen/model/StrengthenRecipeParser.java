@@ -169,7 +169,7 @@ final class StrengthenRecipeParser {
             result.put(targetStar, new StarStage(
                     targetStar,
                     stageSection.getString("name", ""),
-                    parseDoubleMap(stageSection.getSection("stats")),
+                    parseVariablesMap(stageSection.getSection("variables")),
                     parseDoubleMap(stageSection.getSection("attributes")),
                     parseSkillEffects(stageSection.getMapList("effects")),
                     parseStageMaterials(stageSection.getMapList("materials")),
@@ -244,6 +244,35 @@ final class StrengthenRecipeParser {
             Double value = Numbers.tryParseDouble(section.get(key), null);
             if (value != null) {
                 values.put(Texts.lower(key), value);
+            }
+        }
+        return values;
+    }
+
+    /**
+     * Parse a variables map that accepts both plain numbers and expression strings.
+     * Values are stored as-is (Number or String) for later resolution by ExpressionEngine.
+     */
+    static Map<String, Object> parseVariablesMap(YamlSection section) {
+        if (section == null) {
+            return Map.of();
+        }
+        Map<String, Object> values = new LinkedHashMap<>();
+        for (String key : section.getKeys(false)) {
+            Object raw = section.get(key);
+            if (raw == null) {
+                continue;
+            }
+            String normalizedKey = Texts.lower(key);
+            if (raw instanceof Number) {
+                values.put(normalizedKey, raw);
+            } else {
+                String text = Texts.toStringSafe(raw).trim();
+                if (Texts.isNotBlank(text)) {
+                    // Try parsing as plain number first
+                    Double numericValue = Numbers.tryParseDouble(text, null);
+                    values.put(normalizedKey, numericValue != null ? numericValue : text);
+                }
             }
         }
         return values;

@@ -56,6 +56,7 @@ public final class EmakiItemDefinitionParser {
                 parseConditions(root.getSection("conditions")),
                 parseActions(root.getSection("actions")),
                 parseUpdate(root.getSection("update"), id, source),
+                parseRepair(root.getSection("repair")),
                 random
         );
     }
@@ -170,6 +171,42 @@ public final class EmakiItemDefinitionParser {
             return ItemSetMembership.empty();
         }
         return new ItemSetMembership(section.getString("id", ""), section.getString("piece", ""));
+    }
+
+    private RepairConfig parseRepair(YamlSection section) {
+        if (section == null) {
+            return RepairConfig.disabled();
+        }
+        boolean enabled = Boolean.TRUE.equals(section.getBoolean("enabled", false));
+        if (!enabled) {
+            return RepairConfig.disabled();
+        }
+        List<RepairMaterial> materials = new ArrayList<>();
+        for (Map<?, ?> entry : section.getMapList("materials")) {
+            if (entry == null) {
+                continue;
+            }
+            String item = Texts.toStringSafe(ConfigNodes.get(entry, "item"));
+            int amount = Numbers.tryParseInt(ConfigNodes.get(entry, "amount"), 1);
+            String restore = Texts.toStringSafe(ConfigNodes.get(entry, "restore"));
+            if (Texts.isNotBlank(item) && Texts.isNotBlank(restore)) {
+                materials.add(new RepairMaterial(item, amount, restore));
+            }
+        }
+        DisabledDisplay disabledDisplay = parseDisabledDisplay(section.getSection("disabled_display"));
+        List<String> onDisabled = normalizedList(section.get("on_disabled"));
+        List<String> onRepaired = normalizedList(section.get("on_repaired"));
+        return new RepairConfig(true, materials, disabledDisplay, onDisabled, onRepaired);
+    }
+
+    private DisabledDisplay parseDisabledDisplay(YamlSection section) {
+        if (section == null) {
+            return DisabledDisplay.empty();
+        }
+        return new DisabledDisplay(
+                section.getString("name_prefix", ""),
+                normalizedList(section.get("lore_append"))
+        );
     }
 
     private Map<String, Object> toPlainMap(Object raw) {

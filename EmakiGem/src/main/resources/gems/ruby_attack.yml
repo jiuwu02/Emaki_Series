@@ -5,7 +5,7 @@ tier: 1
 item_sources:
   - "minecraft-redstone"
 
-stats:
+variables:
   physical_attack: 8
   physical_crit_rate: 3
 attributes:
@@ -16,18 +16,14 @@ socket_compatibility:
   - "attack"
   - "universal"
 
-structured_presentation:
-  name_contributions:
-    - slot_id: "gem.slot.{slot_index}.badge"
-      position: "POSTFIX"
-      order: 300
-      content_template: " <red>[{display_name}]</red>"
-  lore_sections:
-    - section_id: "gem.slot.{slot_index}.detail"
-      order: 200
-      lines:
-        - "<red>◆ {display_name}: 物理攻击+{physical_attack}
-          暴击率+{physical_crit_rate}%</red>"
+name_modifications:
+  - action: "append_suffix"
+    value: " <red>[{display_name}]</red>"
+
+lore_actions:
+  - action: "append"
+    content:
+      - "<red>◆ {display_name}: 物理攻击+{physical_attack} 暴击率+{physical_crit_rate}%</red>"
 
 inlay_cost:
   currencies:
@@ -75,24 +71,19 @@ upgrade:
   failure_penalty: "none"
   levels:
     2:
-      stats:
+      variables:
         physical_attack: 12
         physical_crit_rate: 4
       attributes:
         physical_attack: 12.0
         physical_crit_rate: 4.0
-      structured_presentation:
-        name_contributions:
-          - slot_id: "gem.slot.{slot_index}.badge"
-            position: "POSTFIX"
-            order: 300
-            content_template: " <red>[{display_name}]</red>"
-        lore_sections:
-          - section_id: "gem.slot.{slot_index}.detail"
-            order: 200
-            lines:
-              - "<red>◆ {display_name}: 物理攻击+{physical_attack}
-                暴击率+{physical_crit_rate}%</red>"
+      name_modifications:
+        - action: "append_suffix"
+          value: " <red>[{display_name}]</red>"
+      lore_actions:
+        - action: "append"
+          content:
+            - "<red>◆ {display_name}: 物理攻击+{physical_attack} 暴击率+{physical_crit_rate}%</red>"
       materials:
         - item_sources:
             - "minecraft-gold_nugget"
@@ -106,24 +97,19 @@ upgrade:
         failure: []
 
     3:
-      stats:
+      variables:
         physical_attack: 16
         physical_crit_rate: 5
       attributes:
         physical_attack: 16.0
         physical_crit_rate: 5.0
-      structured_presentation:
-        name_contributions:
-          - slot_id: "gem.slot.{slot_index}.badge"
-            position: "POSTFIX"
-            order: 300
-            content_template: " <red>[{display_name}]</red>"
-        lore_sections:
-          - section_id: "gem.slot.{slot_index}.detail"
-            order: 200
-            lines:
-              - "<red>◆ {display_name}: 物理攻击+{physical_attack}
-                暴击率+{physical_crit_rate}%</red>"
+      name_modifications:
+        - action: "append_suffix"
+          value: " <red>[{display_name}]</red>"
+      lore_actions:
+        - action: "append"
+          content:
+            - "<red>◆ {display_name}: 物理攻击+{physical_attack} 暴击率+{physical_crit_rate}%</red>"
       materials:
         - item_sources:
             - "minecraft-gold_ingot"
@@ -136,24 +122,19 @@ upgrade:
         failure: []
 
     4:
-      stats:
+      variables:
         physical_attack: 22
         physical_crit_rate: 7
       attributes:
         physical_attack: 22.0
         physical_crit_rate: 7.0
-      structured_presentation:
-        name_contributions:
-          - slot_id: "gem.slot.{slot_index}.badge"
-            position: "POSTFIX"
-            order: 300
-            content_template: " <red>[{display_name}]</red>"
-        lore_sections:
-          - section_id: "gem.slot.{slot_index}.detail"
-            order: 200
-            lines:
-              - "<red>◆ {display_name}: 物理攻击+{physical_attack}
-                暴击率+{physical_crit_rate}%</red>"
+      name_modifications:
+        - action: "append_suffix"
+          value: " <red>[{display_name}]</red>"
+      lore_actions:
+        - action: "append"
+          content:
+            - "<red>◆ {display_name}: 物理攻击+{physical_attack} 暴击率+{physical_crit_rate}%</red>"
       materials:
         - item_sources:
             - "minecraft-netherite_ingot"
@@ -172,8 +153,7 @@ upgrade:
       success_rate: 60.0
       actions:
         success:
-          - "sendmessage text=\"<gold>{player}</gold> <yellow>成功将红宝石升级至
-            IV！</yellow>\""
+          - "sendmessage text=\"<gold>{player}</gold> <yellow>成功将红宝石升级至 IV！</yellow>\""
         failure: []
 
 actions:

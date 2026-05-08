@@ -37,42 +37,23 @@ match:
   slot_groups:
     - "armor"
 
-stat_lines:
-  physical_defense:
-    template: "<gray>物理防御: <gold>{sign}{value}</gold></gray>"
-    section_id: "strengthen.stats.primary"
-    section_order: 210
-  projectile_defense:
-    template: "<gray>投射物防御: <gold>{sign}{value}</gold></gray>"
-    section_id: "strengthen.stats.secondary"
-    section_order: 240
-  spell_defense:
-    template: "<gray>法术防御: <gold>{sign}{value}</gold></gray>"
-    section_id: "strengthen.stats.secondary"
-    section_order: 240
-  health:
-    template: "<gray>生命值: <gold>{sign}{value}</gold></gray>"
-    section_id: "strengthen.stats.secondary"
-    section_order: 240
-  health_regen:
-    template: "<gray>生命回复: <gold>{sign}{value}</gold></gray>"
-    section_id: "strengthen.stats.secondary"
-    section_order: 240
-  dodge_chance:
-    template: "<gray>闪避率: <gold>{sign}{value}</gold></gray>"
-    section_id: "strengthen.stats.secondary"
-    section_order: 240
+name_modifications:
+  - action: "append_suffix"
+    value: " <yellow>[+{star}]</yellow>"
+
+lore_actions:
+  - action: "append"
+    content:
+      - ""
+      - "<gradient:#F2C46D:#C9703D>强化等级 +{star}</gradient>"
+      - "<gray>锻印: {temper_color}{temper}/{max_temper}</gray>"
 
 stars:
   1:
-    stats:
+    variables:
       physical_defense: 2
       projectile_defense: 2
       spell_defense: 2
-    attributes:
-      physical_defense: 2.0
-      projectile_defense: 2.0
-      spell_defense: 2.0
     materials:
       - item_sources:
           - "copper_ingot"
@@ -81,14 +62,10 @@ stars:
           - "gunpowder"
         amount: 2
   2:
-    stats:
+    variables:
       physical_defense: 2
       projectile_defense: 2
       spell_defense: 2
-    attributes:
-      physical_defense: 2.0
-      projectile_defense: 2.0
-      spell_defense: 2.0
     materials:
       - item_sources:
           - "copper_ingot"
@@ -97,11 +74,7 @@ stars:
           - "gunpowder"
         amount: 3
   3:
-    stats:
-      physical_defense: 2.5
-      projectile_defense: 2.5
-      spell_defense: 2.5
-    attributes:
+    variables:
       physical_defense: 2.5
       projectile_defense: 2.5
       spell_defense: 2.5
@@ -113,14 +86,10 @@ stars:
           - "gunpowder"
         amount: 4
   4:
-    stats:
+    variables:
       physical_defense: 3
       projectile_defense: 3
       spell_defense: 3
-    attributes:
-      physical_defense: 3.0
-      projectile_defense: 3.0
-      spell_defense: 3.0
     materials:
       - item_sources:
           - "copper_ingot"
@@ -135,16 +104,11 @@ stars:
         protection: true
   5:
     name: "<yellow>生命值提升</yellow>"
-    stats:
+    variables:
       physical_defense: 3
       projectile_defense: 3
       spell_defense: 3
       health: 20
-    attributes:
-      physical_defense: 3.0
-      projectile_defense: 3.0
-      spell_defense: 3.0
-      health: 20.0
     materials:
       - item_sources:
           - "copper_ingot"
@@ -157,21 +121,15 @@ stars:
         amount: -1
         optional: true
         protection: true
-    structured_presentation:
-      lore_sections:
-        - section_id: "strengthen.effects"
-          order: 230
-          lines:
-            - "<gray>强化达到 +5 后，防具会额外提供生命值。</gray>"
+    lore_actions:
+      - action: "append"
+        content:
+          - "<gray>强化达到 +5 后，防具会额外提供生命值。</gray>"
     actions:
       success:
         - "sendmessage text=\"<yellow>强化达到 +5，解锁额外生命值。</yellow>\""
   6:
-    stats:
-      physical_defense: 3.5
-      projectile_defense: 3.5
-      spell_defense: 3.5
-    attributes:
+    variables:
       physical_defense: 3.5
       projectile_defense: 3.5
       spell_defense: 3.5
@@ -188,14 +146,10 @@ stars:
         optional: true
         protection: true
   7:
-    stats:
+    variables:
       physical_defense: 4
       projectile_defense: 4
       spell_defense: 4
-    attributes:
-      physical_defense: 4.0
-      projectile_defense: 4.0
-      spell_defense: 4.0
     materials:
       - item_sources:
           - "copper_ingot"
@@ -210,16 +164,11 @@ stars:
         protection: true
   8:
     name: "<yellow>额外生命值</yellow>"
-    stats:
+    variables:
       physical_defense: 4.5
       projectile_defense: 4.5
       spell_defense: 4.5
       health: 30
-    attributes:
-      physical_defense: 4.5
-      projectile_defense: 4.5
-      spell_defense: 4.5
-      health: 30.0
     materials:
       - item_sources:
           - "copper_ingot"
@@ -235,25 +184,19 @@ stars:
         amount: -1
         optional: true
         protection: true
-    structured_presentation:
-      lore_sections:
-        - section_id: "strengthen.effects"
-          order: 230
-          lines:
-            - "<gray>强化达到 +8 后，防具会继续提升生命值。</gray>"
+    lore_actions:
+      - action: "append"
+        content:
+          - "<gray>强化达到 +8 后，防具会继续提升生命值。</gray>"
     actions:
       success:
         - "sendtitle title=\"<yellow><bold>+8 生命值提升</bold></yellow>\"
           subtitle=\"<white>额外生命值已解锁</white>\""
   9:
-    stats:
+    variables:
       physical_defense: 5
       projectile_defense: 5
       spell_defense: 5
-    attributes:
-      physical_defense: 5.0
-      projectile_defense: 5.0
-      spell_defense: 5.0
     materials:
       - item_sources:
           - "copper_ingot"
@@ -271,16 +214,11 @@ stars:
         protection: true
   10:
     name: "<yellow>生命回复提升</yellow>"
-    stats:
+    variables:
       physical_defense: 6
       projectile_defense: 6
       spell_defense: 6
       health_regen: 4
-    attributes:
-      physical_defense: 6.0
-      projectile_defense: 6.0
-      spell_defense: 6.0
-      health_regen: 4.0
     materials:
       - item_sources:
           - "copper_ingot"
@@ -296,25 +234,19 @@ stars:
         amount: -1
         optional: true
         protection: true
-    structured_presentation:
-      lore_sections:
-        - section_id: "strengthen.effects"
-          order: 230
-          lines:
-            - "<gray>强化达到 +10 后，防具会额外提供生命回复。</gray>"
+    lore_actions:
+      - action: "append"
+        content:
+          - "<gray>强化达到 +10 后，防具会额外提供生命回复。</gray>"
     actions:
       success:
         - "sendtitle title=\"<yellow><bold>+10 生命回复提升</bold></yellow>\"
           subtitle=\"<white>生命回复已解锁</white>\""
   11:
-    stats:
+    variables:
       physical_defense: 7
       projectile_defense: 7
       spell_defense: 7
-    attributes:
-      physical_defense: 7.0
-      projectile_defense: 7.0
-      spell_defense: 7.0
     materials:
       - item_sources:
           - "copper_ingot"
@@ -332,16 +264,11 @@ stars:
         protection: true
   12:
     name: "<yellow>闪避提升</yellow>"
-    stats:
+    variables:
       physical_defense: 8
       projectile_defense: 8
       spell_defense: 8
       dodge_chance: 4
-    attributes:
-      physical_defense: 8.0
-      projectile_defense: 8.0
-      spell_defense: 8.0
-      dodge_chance: 4.0
     materials:
       - item_sources:
           - "copper_ingot"
@@ -362,29 +289,11 @@ stars:
         amount: -1
         optional: true
         temper_boost: 1
-    structured_presentation:
-      lore_sections:
-        - section_id: "strengthen.effects"
-          order: 230
-          lines:
-            - "<gray>强化达到 +12 后，防具会额外提供闪避率。</gray>"
+    lore_actions:
+      - action: "append"
+        content:
+          - "<gray>强化达到 +12 后，防具会额外提供闪避率。</gray>"
     actions:
       success:
         - "sendtitle title=\"<yellow><bold>+12 闪避提升</bold></yellow>\"
           subtitle=\"<white>闪避率已解锁</white>\""
-
-structured_presentation:
-  name_contributions:
-    - slot_id: "strengthen.badge"
-      position: "POSTFIX"
-      order: 200
-      content_template: " [+{star}]"
-  lore_sections:
-    - section_id: "strengthen.header.primary"
-      order: 200
-      lines:
-        - "<gradient:#F2C46D:#C9703D>强化等级 +{star}</gradient>"
-    - section_id: "strengthen.header.secondary"
-      order: 220
-      lines:
-        - "<gray>锻印: {temper_color}{temper}/{max_temper}</gray>"

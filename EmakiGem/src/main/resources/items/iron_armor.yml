@@ -36,14 +36,11 @@ gui:
   gem_template: "gem/default"
   open_template: "open/default"
 
-structured_presentation:
-  name_contributions:
-    - slot_id: "gem.item.prefix"
-      position: "PREFIX"
-      order: 100
-      content_template: "<blue>✦</blue> "
-  lore_sections:
-    - section_id: "gem.overview"
-      order: 101
-      lines:
-        - "<dark_gray>─────────────</dark_gray>"
+name_modifications:
+  - action: "prepend_prefix"
+    value: "<blue>✦</blue> "
+
+lore_actions:
+  - action: "append"
+    content:
+      - "<dark_gray>─────────────</dark_gray>"

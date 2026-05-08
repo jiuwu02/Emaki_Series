@@ -4,11 +4,13 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 import org.bukkit.Bukkit;
+import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
 
 import emaki.jiuwu.craft.attribute.action.AttributeActions;
+import emaki.jiuwu.craft.attribute.action.AttributeDamageSkillAction;
 import emaki.jiuwu.craft.attribute.api.PdcAttributeApi;
 import emaki.jiuwu.craft.attribute.bridge.MmoItemsBridge;
 import emaki.jiuwu.craft.attribute.bridge.MythicBridge;
@@ -78,6 +80,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         lifecycleCoordinator.registerCommand(this);
         lifecycleCoordinator.registerListener(this);
         ensurePlaceholderExpansion();
+        registerSkillScriptActions();
         messageService.info("console.plugin_started");
     }
 
@@ -279,6 +282,30 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
             return;
         }
         AttributeActions.unregisterAll(coreLibPlugin.actionRegistry());
+    }
+
+    private void registerSkillScriptActions() {
+        if (attributeService == null) {
+            return;
+        }
+        if (!Bukkit.getPluginManager().isPluginEnabled("EmakiSkills")) {
+            return;
+        }
+        try {
+            RegisteredServiceProvider<?> provider = Bukkit.getServicesManager().getRegistration(
+                    Class.forName("emaki.jiuwu.craft.skills.api.SkillScriptActionRegistry"));
+            if (provider == null || provider.getProvider() == null) {
+                return;
+            }
+            Object registry = provider.getProvider();
+            java.lang.reflect.Method registerMethod = registry.getClass().getMethod(
+                    "register", org.bukkit.plugin.Plugin.class,
+                    Class.forName("emaki.jiuwu.craft.skills.api.SkillScriptAction"));
+            registerMethod.invoke(registry, this, new AttributeDamageSkillAction(attributeService));
+            messageService.info("console.skill_action_registered");
+        } catch (Exception exception) {
+            getLogger().warning("Failed to register attribute_damage skill action: " + exception.getMessage());
+        }
     }
 
 }

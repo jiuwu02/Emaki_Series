@@ -48,6 +48,25 @@ skills:
 set:
   id: "example_guardian"
   piece: "blade"
+repair:
+  enabled: true
+  materials:
+    - item_sources:
+        - "minecraft-diamond"
+      amount: 1
+      repair_amount: 250
+    - item_sources:
+        - "minecraft-netherite_ingot"
+      amount: 1
+      repair_amount: 500
+  economy:
+    enabled: true
+    currencies:
+      - provider: "vault"
+        currency_id: ""
+        base_cost: 100
+        cost_formula: "{base_cost} * {damage_percent}"
+        display_name: "<gold>金币</gold>"
 actions:
   give:
     - "playsound sound=entity.player.levelup volume=1.0 pitch=1.2"

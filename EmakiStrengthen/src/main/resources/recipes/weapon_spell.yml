@@ -39,34 +39,21 @@ match:
   stats_any:
     - "spell_attack"
 
-stat_lines:
-  spell_attack:
-    template: "<gray>法术伤害: <gold>{sign}{value}</gold></gray>"
-    section_id: "strengthen.stats.primary"
-    section_order: 210
-  spell_crit_rate:
-    template: "<gray>法术暴击率: <gold>{sign}{value}</gold></gray>"
-    section_id: "strengthen.stats.secondary"
-    section_order: 240
-  spell_damage_bonus:
-    template: "<gray>法术增伤: <gold>{sign}{value}</gold></gray>"
-    section_id: "strengthen.stats.secondary"
-    section_order: 240
-  spell_crit_damage:
-    template: "<gray>法术暴伤: <gold>{sign}{value}</gold></gray>"
-    section_id: "strengthen.stats.secondary"
-    section_order: 240
-  magic_penetration:
-    template: "<gray>法术穿透: <gold>{sign}{value}</gold></gray>"
-    section_id: "strengthen.stats.secondary"
-    section_order: 240
+name_modifications:
+  - action: "append_suffix"
+    value: " <aqua>[+{star}]</aqua>"
+
+lore_actions:
+  - action: "append"
+    content:
+      - ""
+      - "<gradient:#7DD3FC:#3B82F6>强化等级 +{star}</gradient>"
+      - "<gray>锻印: {temper_color}{temper}/{max_temper}</gray>"
 
 stars:
   1:
-    stats:
+    variables:
       spell_attack: 4
-    attributes:
-      spell_attack: 4.0
     materials:
       - item_sources:
           - "copper_ingot"
@@ -75,10 +62,8 @@ stars:
           - "gunpowder"
         amount: 2
   2:
-    stats:
+    variables:
       spell_attack: 4
-    attributes:
-      spell_attack: 4.0
     materials:
       - item_sources:
           - "copper_ingot"
@@ -87,10 +72,8 @@ stars:
           - "gunpowder"
         amount: 3
   3:
-    stats:
+    variables:
       spell_attack: 5
-    attributes:
-      spell_attack: 5.0
     materials:
       - item_sources:
           - "copper_ingot"
@@ -99,10 +82,8 @@ stars:
           - "gunpowder"
         amount: 4
   4:
-    stats:
+    variables:
       spell_attack: 6
-    attributes:
-      spell_attack: 6.0
     materials:
       - item_sources:
           - "copper_ingot"
@@ -117,12 +98,9 @@ stars:
         protection: true
   5:
     name: "<aqua>暴击率提升</aqua>"
-    stats:
+    variables:
       spell_attack: 6
       spell_crit_rate: 2
-    attributes:
-      spell_attack: 6.0
-      spell_crit_rate: 2.0
     materials:
       - item_sources:
           - "copper_ingot"
@@ -135,12 +113,10 @@ stars:
         amount: -1
         optional: true
         protection: true
-    structured_presentation:
-      lore_sections:
-        - section_id: "strengthen.effects"
-          order: 230
-          lines:
-            - "<gray>强化达到 +5 后，法术武器会额外提供暴击率。</gray>"
+    lore_actions:
+      - action: "append"
+        content:
+          - "<gray>强化达到 +5 后，法术武器会额外提供暴击率。</gray>"
     actions:
       success:
         - "sendmessage text=\"<aqua>强化达到 +5，解锁额外法术暴击率。</aqua>\""
@@ -149,10 +125,8 @@ stars:
       failure:
         - "sendmessage text=\"<red>强化失败，锻印加深。</red>\""
   6:
-    stats:
+    variables:
       spell_attack: 7
-    attributes:
-      spell_attack: 7.0
     materials:
       - item_sources:
           - "copper_ingot"
@@ -166,10 +140,8 @@ stars:
         optional: true
         protection: true
   7:
-    stats:
+    variables:
       spell_attack: 8
-    attributes:
-      spell_attack: 8.0
     materials:
       - item_sources:
           - "copper_ingot"
@@ -184,12 +156,9 @@ stars:
         protection: true
   8:
     name: "<aqua>伤害提升</aqua>"
-    stats:
+    variables:
       spell_attack: 9
       spell_damage_bonus: 4
-    attributes:
-      spell_attack: 9.0
-      spell_damage_bonus: 4.0
     materials:
       - item_sources:
           - "copper_ingot"
@@ -205,12 +174,10 @@ stars:
         amount: -1
         optional: true
         protection: true
-    structured_presentation:
-      lore_sections:
-        - section_id: "strengthen.effects"
-          order: 230
-          lines:
-            - "<gray>强化达到 +8 后，法术武器会额外提供增伤。</gray>"
+    lore_actions:
+      - action: "append"
+        content:
+          - "<gray>强化达到 +8 后，法术武器会额外提供增伤。</gray>"
     actions:
       success:
         - "sendtitle title=\"<aqua><bold>+8 法术增伤提升</bold></aqua>\"
@@ -220,10 +187,8 @@ stars:
         - "sendtitle title=\"<red><bold>强化失败</bold></red>\"
           subtitle=\"<gray>增伤未能解锁</gray>\""
   9:
-    stats:
+    variables:
       spell_attack: 10
-    attributes:
-      spell_attack: 10.0
     materials:
       - item_sources:
           - "copper_ingot"
@@ -241,12 +206,9 @@ stars:
         protection: true
   10:
     name: "<aqua>暴击伤害提升</aqua>"
-    stats:
+    variables:
       spell_attack: 12
       spell_crit_damage: 6
-    attributes:
-      spell_attack: 12.0
-      spell_crit_damage: 6.0
     materials:
       - item_sources:
           - "copper_ingot"
@@ -262,12 +224,10 @@ stars:
         amount: -1
         optional: true
         protection: true
-    structured_presentation:
-      lore_sections:
-        - section_id: "strengthen.effects"
-          order: 230
-          lines:
-            - "<gray>强化达到 +10 后，法术武器会额外提供暴击伤害。</gray>"
+    lore_actions:
+      - action: "append"
+        content:
+          - "<gray>强化达到 +10 后，法术武器会额外提供暴击伤害。</gray>"
     actions:
       success:
         - "sendtitle title=\"<aqua><bold>+10 法术暴伤提升</bold></aqua>\"
@@ -275,10 +235,8 @@ stars:
         - "playsound sound=minecraft:entity.evoker.prepare_attack volume=1
           pitch=1"
   11:
-    stats:
+    variables:
       spell_attack: 14
-    attributes:
-      spell_attack: 14.0
     materials:
       - item_sources:
           - "copper_ingot"
@@ -296,12 +254,9 @@ stars:
         protection: true
   12:
     name: "<aqua>穿透提升</aqua>"
-    stats:
+    variables:
       spell_attack: 16
       magic_penetration: 8
-    attributes:
-      spell_attack: 16.0
-      magic_penetration: 8.0
     materials:
       - item_sources:
           - "copper_ingot"
@@ -322,12 +277,10 @@ stars:
         amount: -1
         optional: true
         temper_boost: 1
-    structured_presentation:
-      lore_sections:
-        - section_id: "strengthen.effects"
-          order: 230
-          lines:
-            - "<gray>强化达到 +12 后，法术武器会额外提供穿透。</gray>"
+    lore_actions:
+      - action: "append"
+        content:
+          - "<gray>强化达到 +12 后，法术武器会额外提供穿透。</gray>"
     actions:
       success:
         - "sendtitle title=\"<aqua><bold>+12 法术穿透提升</bold></aqua>\"
@@ -337,19 +290,3 @@ stars:
       failure:
         - "sendtitle title=\"<red><bold>满星梦碎</bold></red>\""
         - "broadcastmessage text=\"<red>{player} 在 +12 强化中失败了！</red>\""
-
-structured_presentation:
-  name_contributions:
-    - slot_id: "strengthen.badge"
-      position: "POSTFIX"
-      order: 200
-      content_template: " [+{star}]"
-  lore_sections:
-    - section_id: "strengthen.header.primary"
-      order: 200
-      lines:
-        - "<gradient:#F2C46D:#C9703D>强化等级 +{star}</gradient>"
-    - section_id: "strengthen.header.secondary"
-      order: 220
-      lines:
-        - "<gray>锻印: {temper_color}{temper}/{max_temper}</gray>"

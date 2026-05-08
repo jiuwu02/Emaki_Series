@@ -1,5 +1,8 @@
 package emaki.jiuwu.craft.attribute.bridge;
 
+import java.util.Map;
+
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.attribute.model.AttributeSnapshot;
@@ -67,6 +70,15 @@ public final class ServiceBackedEmakiAttributeBridge implements EmakiAttributeBr
         AttributeSnapshot snapshot = attributeService.collectPlayerCombatSnapshot(player);
         Double value = attributeService.resolveAttributeValue(snapshot, attributeId);
         return value == null ? 0D : value;
+    }
+
+    @Override
+    public boolean applyDamage(LivingEntity attacker, LivingEntity target, String damageTypeId, double baseDamage, Map<String, Object> context) {
+        if (target == null || attributeService == null) {
+            return false;
+        }
+        String resolvedType = Texts.isBlank(damageTypeId) ? attributeService.defaultDamageTypeId() : damageTypeId;
+        return attributeService.applyDamage(attacker, target, resolvedType, baseDamage, context);
     }
 
     private ResourceState readResourceState(Player player, String resourceId) {

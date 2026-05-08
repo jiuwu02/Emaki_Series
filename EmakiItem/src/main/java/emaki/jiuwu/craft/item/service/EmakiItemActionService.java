@@ -29,7 +29,7 @@ public final class EmakiItemActionService {
         executeLines(player, definition, trigger, definition.actions(trigger), extraPlaceholders);
     }
 
-    void executeLines(Player player,
+    public void executeLines(Player player,
             EmakiItemDefinition definition,
             String trigger,
             List<String> lines,

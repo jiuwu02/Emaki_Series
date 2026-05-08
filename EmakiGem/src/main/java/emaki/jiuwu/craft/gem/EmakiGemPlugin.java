@@ -21,6 +21,7 @@ import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.gem.config.AppConfig;
 import emaki.jiuwu.craft.gem.loader.GemItemLoader;
 import emaki.jiuwu.craft.gem.loader.GemLoader;
+import emaki.jiuwu.craft.gem.loader.GemResonanceLoader;
 import emaki.jiuwu.craft.gem.papi.GemPlaceholderExpansion;
 import emaki.jiuwu.craft.gem.service.GemActionCoordinator;
 import emaki.jiuwu.craft.gem.service.GemEconomyService;
@@ -32,6 +33,7 @@ import emaki.jiuwu.craft.gem.service.GemItemMatcher;
 import emaki.jiuwu.craft.gem.service.GemPdcAttributeWriter;
 import emaki.jiuwu.craft.gem.service.GemSnapshotBuilder;
 import emaki.jiuwu.craft.gem.service.GemStateService;
+import emaki.jiuwu.craft.gem.service.GemResonanceService;
 import emaki.jiuwu.craft.gem.service.GemUpgradeService;
 import emaki.jiuwu.craft.gem.service.SocketOpenerService;
 
@@ -72,6 +74,8 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
     private GemExtractService extractService;
     private GemUpgradeService upgradeService;
     private GemGuiService gemGuiService;
+    private GemResonanceLoader resonanceLoader;
+    private GemResonanceService resonanceService;
     private GemPlaceholderExpansion placeholderExpansion;
 
     public EmakiGemPlugin() {
@@ -254,5 +258,21 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
 
     public GemGuiService gemGuiService() {
         return gemGuiService;
+    }
+
+    public GemResonanceLoader resonanceLoader() {
+        return resonanceLoader;
+    }
+
+    public GemResonanceService resonanceService() {
+        return resonanceService;
+    }
+
+    public void setResonanceLoader(GemResonanceLoader resonanceLoader) {
+        this.resonanceLoader = resonanceLoader;
+    }
+
+    public void setResonanceService(GemResonanceService resonanceService) {
+        this.resonanceService = resonanceService;
     }
 }

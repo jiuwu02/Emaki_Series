@@ -4,6 +4,7 @@ import java.util.Map;
 import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -116,6 +117,21 @@ public final class EaBridge {
                     "error", errorMessage(exception)
             ), exception);
             return 0D;
+        }
+    }
+
+    public boolean applyDamage(LivingEntity attacker, LivingEntity target, String damageTypeId, double baseDamage, Map<String, Object> context) {
+        if (!isAvailable()) {
+            return false;
+        }
+        try {
+            return bridge.applyDamage(attacker, target, damageTypeId, baseDamage, context);
+        } catch (Exception exception) {
+            warning("console.ea_bridge_apply_damage_failed", Map.of(
+                    "damage_type", String.valueOf(damageTypeId),
+                    "error", errorMessage(exception)
+            ), exception);
+            return false;
         }
     }
 

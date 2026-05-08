@@ -21,6 +21,7 @@ import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
@@ -246,6 +247,17 @@ public final class ItemTriggerListener implements Listener {
         }
     }
 
+    @EventHandler(ignoreCancelled = true)
+    public void onConsume(PlayerItemConsumeEvent event) {
+        EmakiItemDefinition definition = definition(event.getItem());
+        if (definition == null || !passes(event.getPlayer(), definition, "consume")) {
+            return;
+        }
+        run(event.getPlayer(), definition, "consume", Map.of(
+                "consumed_item", event.getItem().getType().name()
+        ));
+    }
+
     private EmakiItemDefinition held(Player player) {
         return player == null ? null : definition(player.getInventory().getItemInMainHand());
     }
@@ -256,7 +268,24 @@ public final class ItemTriggerListener implements Listener {
     }
 
     private boolean passes(Player player, EmakiItemDefinition definition, String trigger) {
+        if (definition.repair().enabled() && isHeldItemDisabled(player)) {
+            return false;
+        }
         return plugin.conditionChecker().passes(player, definition, trigger);
+    }
+
+    private boolean isHeldItemDisabled(Player player) {
+        if (player == null) {
+            return false;
+        }
+        ItemStack held = player.getInventory().getItemInMainHand();
+        if (held == null || !held.hasItemMeta()) {
+            return false;
+        }
+        org.bukkit.persistence.PersistentDataContainer pdc = held.getItemMeta().getPersistentDataContainer();
+        org.bukkit.NamespacedKey key = new org.bukkit.NamespacedKey("emakiitem", "disabled");
+        Byte value = pdc.get(key, org.bukkit.persistence.PersistentDataType.BYTE);
+        return value != null && value == 1;
     }
 
     private void run(Player player, EmakiItemDefinition definition, String trigger, Map<String, ?> placeholders) {

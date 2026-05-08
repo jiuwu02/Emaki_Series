@@ -11,6 +11,11 @@ import emaki.jiuwu.craft.corelib.assembly.EmakiLoreSectionContribution;
 import emaki.jiuwu.craft.corelib.assembly.EmakiNameContribution;
 import emaki.jiuwu.craft.corelib.assembly.EmakiStatContribution;
 import emaki.jiuwu.craft.corelib.assembly.EmakiStructuredPresentation;
+import emaki.jiuwu.craft.corelib.assembly.LocalNameState;
+import emaki.jiuwu.craft.corelib.assembly.LoreOperationRegistry;
+import emaki.jiuwu.craft.corelib.assembly.NameOperationRegistry;
+import emaki.jiuwu.craft.corelib.assembly.NamePosition;
+import emaki.jiuwu.craft.corelib.assembly.OperationTemplateRenderer;
 import emaki.jiuwu.craft.corelib.assembly.StructuredPresentationTemplateResolver;
 import emaki.jiuwu.craft.corelib.assembly.StructuredPresentationValidator;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -18,7 +23,11 @@ import emaki.jiuwu.craft.gem.EmakiGemPlugin;
 import emaki.jiuwu.craft.gem.model.GemDefinition;
 import emaki.jiuwu.craft.gem.model.GemItemDefinition;
 import emaki.jiuwu.craft.gem.model.GemItemInstance;
+import emaki.jiuwu.craft.gem.model.GemResonanceDefinition;
 import emaki.jiuwu.craft.gem.model.GemState;
+import emaki.jiuwu.craft.gem.model.ResonanceEffects;
+import emaki.jiuwu.craft.gem.model.ResonanceLoreSection;
+import emaki.jiuwu.craft.gem.model.ResonanceNameModification;
 
 public final class GemSnapshotBuilder {
 
@@ -30,12 +39,18 @@ public final class GemSnapshotBuilder {
     private final GemLoreBuilder loreBuilder;
     private final StructuredPresentationTemplateResolver structuredResolver;
     private final StructuredPresentationValidator structuredValidator;
+    private final OperationTemplateRenderer operationRenderer;
+    private final LoreOperationRegistry loreOperations;
+    private final NameOperationRegistry nameOperations;
 
     public GemSnapshotBuilder(EmakiGemPlugin plugin) {
         this.plugin = plugin;
         this.loreBuilder = new GemLoreBuilder(plugin);
         this.structuredResolver = new StructuredPresentationTemplateResolver();
         this.structuredValidator = new StructuredPresentationValidator();
+        this.operationRenderer = new OperationTemplateRenderer();
+        this.loreOperations = new LoreOperationRegistry(operationRenderer);
+        this.nameOperations = new NameOperationRegistry(operationRenderer);
     }
 
     public EmakiItemLayerSnapshot build(GemItemDefinition itemDefinition, GemState state) {
@@ -114,6 +129,49 @@ public final class GemSnapshotBuilder {
                 STATUS_SECTION_ORDER,
                 loreBuilder.buildSlotStatusLines(itemDefinition, state)
         );
+
+        // Resonance evaluation
+        GemResonanceService resonanceService = plugin.resonanceService();
+        if (resonanceService != null) {
+            List<GemDefinition> inlaidGems = collectInlaidGems(state);
+            List<GemResonanceDefinition> activeResonances = resonanceService.evaluate(inlaidGems);
+            for (GemResonanceDefinition resonance : activeResonances) {
+                ResonanceEffects effects = resonance.effects();
+                if (effects == null) {
+                    continue;
+                }
+                // Add resonance stats
+                for (Map.Entry<String, Double> statEntry : effects.stats().entrySet()) {
+                    stats.add(new EmakiStatContribution(
+                            statEntry.getKey(),
+                            statEntry.getValue(),
+                            "resonance:" + resonance.id(),
+                            sequence++
+                    ));
+                }
+                // Add resonance name modification
+                ResonanceNameModification nameMod = effects.nameModification();
+                if (nameMod != null && Texts.isNotBlank(nameMod.template())) {
+                    nameContributions.add(new EmakiNameContribution(
+                            nameMod.template(),
+                            "suffix".equals(nameMod.position())
+                                    ? emaki.jiuwu.craft.corelib.assembly.NamePosition.SUFFIX
+                                    : emaki.jiuwu.craft.corelib.assembly.NamePosition.PREFIX,
+                            sequence++
+                    ));
+                }
+                // Add resonance lore section
+                ResonanceLoreSection loreSec = effects.loreSection();
+                if (loreSec != null && loreSec.lines() != null && !loreSec.lines().isEmpty()) {
+                    addSection(
+                            loreSections,
+                            Texts.isNotBlank(loreSec.sectionId()) ? loreSec.sectionId() : "gem.resonance." + resonance.id(),
+                            loreSec.order(),
+                            loreSec.lines()
+                    );
+                }
+            }
+        }
 
         StructuredPresentationValidator.ValidationResult validation = structuredValidator.sanitize(new EmakiStructuredPresentation(
                 baseNamePolicy,
@@ -202,5 +260,22 @@ public final class GemSnapshotBuilder {
             int order,
             List<String> lines) {
         loreBuilder.addSection(sections, sectionId, order, lines);
+    }
+
+    private List<GemDefinition> collectInlaidGems(GemState state) {
+        List<GemDefinition> gems = new ArrayList<>();
+        if (state == null) {
+            return gems;
+        }
+        for (GemItemInstance instance : state.socketAssignments().values()) {
+            if (instance == null) {
+                continue;
+            }
+            GemDefinition definition = plugin.gemLoader().get(instance.gemId());
+            if (definition != null) {
+                gems.add(definition);
+            }
+        }
+        return gems;
     }
 }

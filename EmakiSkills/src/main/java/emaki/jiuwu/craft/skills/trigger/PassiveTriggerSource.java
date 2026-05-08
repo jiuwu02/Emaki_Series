@@ -22,6 +22,7 @@ import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
+import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
@@ -160,6 +161,11 @@ public final class PassiveTriggerSource {
             @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
             public void onTeleport(PlayerTeleportEvent event) {
                 trigger(event.getPlayer(), "teleport", event, null, event.getTo(), null);
+            }
+
+            @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+            public void onConsume(PlayerItemConsumeEvent event) {
+                trigger(event.getPlayer(), "consume", event, null, event.getPlayer().getLocation(), null);
             }
 
             private void trigger(Player player,

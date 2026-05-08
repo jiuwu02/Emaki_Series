@@ -233,6 +233,10 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
         }
         getServer().getServicesManager().register(EmakiSkillsApi.class, emakiSkillsApi, this,
                 org.bukkit.plugin.ServicePriority.Normal);
+        if (skillScriptActionRegistry != null) {
+            getServer().getServicesManager().register(SkillScriptActionRegistry.class, skillScriptActionRegistry, this,
+                    org.bukkit.plugin.ServicePriority.Normal);
+        }
     }
 
     private void unregisterCoreLibActions() {

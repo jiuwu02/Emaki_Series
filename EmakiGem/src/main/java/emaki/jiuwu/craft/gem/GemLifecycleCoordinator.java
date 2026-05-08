@@ -25,6 +25,7 @@ import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 import emaki.jiuwu.craft.gem.config.AppConfig;
 import emaki.jiuwu.craft.gem.loader.GemItemLoader;
 import emaki.jiuwu.craft.gem.loader.GemLoader;
+import emaki.jiuwu.craft.gem.loader.GemResonanceLoader;
 import emaki.jiuwu.craft.gem.model.SocketOpenerConfig;
 import emaki.jiuwu.craft.gem.service.GemActionCoordinator;
 import emaki.jiuwu.craft.gem.service.GemEconomyService;
@@ -35,6 +36,7 @@ import emaki.jiuwu.craft.gem.service.GemInlayService;
 import emaki.jiuwu.craft.gem.service.GemItemFactory;
 import emaki.jiuwu.craft.gem.service.GemItemMatcher;
 import emaki.jiuwu.craft.gem.service.GemPdcAttributeWriter;
+import emaki.jiuwu.craft.gem.service.GemResonanceService;
 import emaki.jiuwu.craft.gem.service.GemSnapshotBuilder;
 import emaki.jiuwu.craft.gem.service.GemStateService;
 import emaki.jiuwu.craft.gem.service.GemUpgradeService;
@@ -163,6 +165,7 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
         plugin.gemItemLoader().load();
         plugin.guiTemplateLoader().load();
         plugin.itemMatcher().refresh();
+        loadResonances(plugin);
         syncPdcAttributeRegistration(plugin.pdcAttributeGateway(), PDC_ATTRIBUTE_SOURCE_ID);
         plugin.messageService().info("console.pdc_source_registered", Map.of("source", PDC_ATTRIBUTE_SOURCE_ID));
         plugin.messageService().info("console.gems_loaded", Map.of(
@@ -176,6 +179,22 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
         }
         if (plugin.gemGuiService() != null) {
             plugin.gemGuiService().clearAllSessions();
+        }
+    }
+
+    private void loadResonances(EmakiGemPlugin plugin) {
+        GemResonanceLoader loader = plugin.resonanceLoader();
+        if (loader == null) {
+            loader = new GemResonanceLoader(plugin);
+            plugin.setResonanceLoader(loader);
+        }
+        loader.load();
+        GemResonanceService service = plugin.resonanceService();
+        if (service == null) {
+            service = new GemResonanceService(loader);
+            plugin.setResonanceService(service);
+        } else {
+            service.refresh(loader);
         }
     }
 

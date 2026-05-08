@@ -10,6 +10,7 @@ import emaki.jiuwu.craft.corelib.assembly.EmakiLoreSectionContribution;
 import emaki.jiuwu.craft.corelib.assembly.EmakiNameContribution;
 import emaki.jiuwu.craft.corelib.assembly.EmakiStatContribution;
 import emaki.jiuwu.craft.corelib.assembly.EmakiStructuredPresentation;
+import emaki.jiuwu.craft.corelib.assembly.LocalNameState;
 import emaki.jiuwu.craft.corelib.assembly.NamePosition;
 import emaki.jiuwu.craft.corelib.assembly.StructuredPresentationTemplateResolver;
 import emaki.jiuwu.craft.corelib.assembly.StructuredPresentationValidator;
