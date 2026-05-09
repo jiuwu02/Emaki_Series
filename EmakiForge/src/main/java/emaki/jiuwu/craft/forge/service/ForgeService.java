@@ -358,7 +358,7 @@ public final class ForgeService {
                 guiItems,
                 buildRollKey(buildPreviewFingerprint(player, recipe, guiItems), previewSeed)
         );
-        EmakiItemAssemblyRequest request = resultItemFactory.buildAssemblyRequest(recipe, guiItems, rollPlan.multiplier(), rollPlan.finalTier(), forgedAt);
+        EmakiItemAssemblyRequest request = resultItemFactory.buildAssemblyRequest(recipe, guiItems, rollPlan.multiplier(), rollPlan.finalTier(), forgedAt, player);
         if (request == null) {
             return null;
         }

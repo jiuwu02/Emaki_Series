@@ -105,7 +105,8 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
                 plan.materials(),
                 plan.multiplier(),
                 plan.qualityTier(),
-                plan.forgedAt()
+                plan.forgedAt(),
+                null
         );
         ItemStack rebuilt = itemAssemblyService.preview(new EmakiItemAssemblyRequest(null, 0, itemStack, List.of(snapshot)));
         if (rebuilt == null) {

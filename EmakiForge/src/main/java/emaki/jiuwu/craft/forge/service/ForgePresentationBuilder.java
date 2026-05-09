@@ -21,6 +21,8 @@ import emaki.jiuwu.craft.forge.model.ForgeMaterial;
 import emaki.jiuwu.craft.forge.model.QualitySettings;
 import emaki.jiuwu.craft.forge.model.Recipe;
 
+import org.bukkit.entity.Player;
+
 final class ForgePresentationBuilder {
 
     private static final String NAMESPACE_ID = "forge";
@@ -47,9 +49,10 @@ final class ForgePresentationBuilder {
             QualitySettings.QualityTier qualityTier,
             double multiplier,
             List<EmakiStatContribution> stats,
-            QualitySettings settings) {
+            QualitySettings settings,
+            Player player) {
         Map<String, Double> aggregatedStats = aggregateStats(stats);
-        Map<String, Object> variables = buildVariables(aggregatedStats, qualityTier, multiplier);
+        Map<String, Object> variables = buildVariables(aggregatedStats, qualityTier, multiplier, player);
         LocalNameState nameState = new LocalNameState();
         QualitySettings effectiveSettings = safeSettings(settings);
 
@@ -147,7 +150,8 @@ final class ForgePresentationBuilder {
 
     private Map<String, Object> buildVariables(Map<String, Double> aggregatedStats,
             QualitySettings.QualityTier qualityTier,
-            double multiplier) {
+            double multiplier,
+            Player player) {
         Map<String, Object> variables = new LinkedHashMap<>();
         if (aggregatedStats != null) {
             for (Map.Entry<String, Double> entry : aggregatedStats.entrySet()) {
@@ -162,6 +166,10 @@ final class ForgePresentationBuilder {
         variables.put("quality_name", qualityName);
         variables.put("quality_multiplier", Numbers.formatNumber(multiplier, "0.##"));
         variables.put("multiplier", Numbers.formatNumber(multiplier, "0.##"));
+        if (player != null) {
+            variables.put("player_name", player.getName());
+            variables.put("player_uuid", player.getUniqueId().toString());
+        }
         return variables;
     }
 

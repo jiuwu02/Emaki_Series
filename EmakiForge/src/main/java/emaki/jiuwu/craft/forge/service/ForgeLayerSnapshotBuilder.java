@@ -3,6 +3,8 @@ package emaki.jiuwu.craft.forge.service;
 import java.util.List;
 import java.util.Map;
 
+import org.bukkit.entity.Player;
+
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerSnapshot;
 import emaki.jiuwu.craft.corelib.assembly.EmakiStatContribution;
 import emaki.jiuwu.craft.corelib.assembly.EmakiStructuredPresentation;
@@ -46,15 +48,17 @@ final class ForgeLayerSnapshotBuilder {
             GuiItems guiItems,
             double multiplier,
             QualitySettings.QualityTier qualityTier,
-            long forgedAt) {
-        return buildLayerSnapshot(recipe, collectMaterialContributions(recipe, guiItems), multiplier, qualityTier, forgedAt);
+            long forgedAt,
+            Player player) {
+        return buildLayerSnapshot(recipe, collectMaterialContributions(recipe, guiItems), multiplier, qualityTier, forgedAt, player);
     }
 
     EmakiItemLayerSnapshot buildLayerSnapshot(Recipe recipe,
             List<ForgeMaterialContribution> materials,
             double multiplier,
             QualitySettings.QualityTier qualityTier,
-            long forgedAt) {
+            long forgedAt,
+            Player player) {
         List<ForgeMaterialContribution> contributions = materials == null ? List.of() : List.copyOf(materials);
         List<EmakiStatContribution> stats = statBuilder.buildStatContributions(contributions, multiplier);
         EmakiStructuredPresentation structuredPresentation = presentationBuilder.buildPresentation(
@@ -63,7 +67,8 @@ final class ForgeLayerSnapshotBuilder {
                 qualityTier,
                 multiplier,
                 stats,
-                qualitySettings()
+                qualitySettings(),
+                player
         );
         Map<String, Object> audit = auditBuilder.buildAudit(recipe, contributions, qualityTier, multiplier, forgedAt);
         return new EmakiItemLayerSnapshot(
