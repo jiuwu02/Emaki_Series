@@ -119,7 +119,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
         MythicSkillCastService mythicSkillCastService = new MythicSkillCastService(mythicBridge);
         SkillVariableResolver skillVariableResolver = new SkillVariableResolver(skillLevelService, skillParameterResolver);
         SkillScriptActionRegistry skillScriptActionRegistry = new DefaultSkillScriptActionRegistry();
-        SkillScriptExecutor skillScriptExecutor = new SkillScriptExecutor(skillScriptActionRegistry, coreLibPlugin.actionExecutor());
+        SkillScriptExecutor skillScriptExecutor = new SkillScriptExecutor(skillScriptActionRegistry);
         SkillScriptCastService skillScriptCastService = new SkillScriptCastService(plugin, skillVariableResolver, skillScriptExecutor);
         BuiltinSkillScriptActions.registerAll(skillScriptActionRegistry, plugin, mythicSkillCastService);
         EmakiSkillsApi emakiSkillsApi = new DefaultEmakiSkillsApi(skillScriptActionRegistry, skillScriptCastService);
@@ -369,7 +369,6 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                 boolValue(section.getBoolean("enabled"), defaults.enabled()),
                 section.getString("default_mode", defaults.defaultMode()),
                 boolValue(section.getBoolean("stop_on_failure"), defaults.stopOnFailure()),
-                boolValue(section.getBoolean("fallback_to_corelib_actions"), defaults.fallbackToCoreLibActions()),
                 intValue(section.getInt("max_lines_per_phase"), defaults.maxLinesPerPhase()),
                 intValue(section.getInt("max_targets_per_action"), defaults.maxTargetsPerAction()),
                 boolValue(section.getBoolean("debug"), defaults.debug())

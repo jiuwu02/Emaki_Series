@@ -21,10 +21,10 @@
 
     <modules>
         <module>EmakiCoreLib</module>
-        <module>EmakiAttribute</module>
         <module>EmakiForge</module>
         <module>EmakiStrengthen</module>
         <module>EmakiCooking</module>
+        <module>EmakiAttribute</module>
     </modules>
 
     <profiles>
@@ -36,8 +36,8 @@
                 </file>
             </activation>
             <modules>
-                <module>EmakiGem</module>
                 <module>EmakiSkills</module>
+                <module>EmakiGem</module>
                 <module>EmakiItem</module>
             </modules>
         </profile>

@@ -153,11 +153,13 @@ public final class GemSnapshotBuilder {
                 ResonanceNameModification nameMod = effects.nameModification();
                 if (nameMod != null && Texts.isNotBlank(nameMod.template())) {
                     nameContributions.add(new EmakiNameContribution(
-                            nameMod.template(),
+                            "gem.resonance." + resonance.id(),
                             "suffix".equals(nameMod.position())
-                                    ? emaki.jiuwu.craft.corelib.assembly.NamePosition.SUFFIX
+                                    ? emaki.jiuwu.craft.corelib.assembly.NamePosition.POSTFIX
                                     : emaki.jiuwu.craft.corelib.assembly.NamePosition.PREFIX,
-                            sequence++
+                            sequence++,
+                            nameMod.template(),
+                            NAMESPACE_ID
                     ));
                 }
                 // Add resonance lore section

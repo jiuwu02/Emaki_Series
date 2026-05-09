@@ -25,25 +25,6 @@ public record StrengthenState(boolean eligible,
         branchPath = branchPath == null ? "" : branchPath;
     }
 
-    /**
-     * Backward-compatible constructor without branchPath (defaults to empty).
-     */
-    public StrengthenState(boolean eligible,
-            String eligibleReason,
-            boolean hasLayer,
-            ItemSource baseSource,
-            String baseSourceSignature,
-            String recipeId,
-            int currentStar,
-            int crackLevel,
-            Set<Integer> milestoneFlags,
-            int successCount,
-            int failureCount,
-            long lastAttemptAt) {
-        this(eligible, eligibleReason, hasLayer, baseSource, baseSourceSignature,
-                recipeId, currentStar, crackLevel, milestoneFlags, successCount, failureCount, lastAttemptAt, "");
-    }
-
     public static StrengthenState ineligible(String eligibleReason, ItemSource baseSource, String baseSourceSignature) {
         return new StrengthenState(false, eligibleReason, false, baseSource, baseSourceSignature, "", 0, 0, Set.of(), 0, 0, 0L, "");
     }

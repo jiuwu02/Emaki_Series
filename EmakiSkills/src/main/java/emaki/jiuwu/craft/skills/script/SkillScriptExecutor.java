@@ -8,7 +8,6 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.action.ActionErrorType;
-import emaki.jiuwu.craft.corelib.action.ActionExecutor;
 import emaki.jiuwu.craft.corelib.action.ActionLineParser;
 import emaki.jiuwu.craft.corelib.action.ActionParsers;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
@@ -23,12 +22,10 @@ import emaki.jiuwu.craft.skills.config.AppConfig;
 public final class SkillScriptExecutor {
 
     private final SkillScriptActionRegistry registry;
-    private final ActionExecutor coreActionExecutor;
     private final ActionLineParser lineParser = new ActionLineParser();
 
-    public SkillScriptExecutor(SkillScriptActionRegistry registry, ActionExecutor coreActionExecutor) {
+    public SkillScriptExecutor(SkillScriptActionRegistry registry) {
         this.registry = registry;
-        this.coreActionExecutor = coreActionExecutor;
     }
 
     public CompletableFuture<ActionResult> executePhase(SkillScriptContext context,
@@ -109,11 +106,6 @@ public final class SkillScriptExecutor {
             result = validation.success()
                     ? action.execute(context, arguments)
                     : CompletableFuture.completedFuture(validation);
-        } else if (context.plugin().appConfig().scriptEngine().fallbackToCoreLibActions() && coreActionExecutor != null) {
-            ActionContext actionContext = ActionContext.create(context.plugin(), context.caster(), "skill_script", false)
-                    .withPlaceholders(context.variables())
-                    .withAttributes(Map.of("skill_script_context", context));
-            result = coreActionExecutor.execute(actionContext, parsed.actionId(), arguments);
         } else {
             result = CompletableFuture.completedFuture(ActionResult.failure(ActionErrorType.ACTION_NOT_FOUND,
                     "Skill script action not found: " + parsed.actionId()));

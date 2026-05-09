@@ -89,8 +89,14 @@ public final class QualitySettings {
             String key = Texts.lower(entry.getKey());
             Object tierConfig = entry.getValue();
             actions.put(key, List.copyOf(Texts.asStringList(ConfigNodes.get(tierConfig, "action"))));
-            nameActions.put(key, ConfigNodes.get(tierConfig, "name_actions"));
-            loreActions.put(key, ConfigNodes.get(tierConfig, "lore_actions"));
+            Object nameActionsRaw = ConfigNodes.get(tierConfig, "name_actions");
+            if (nameActionsRaw != null) {
+                nameActions.put(key, nameActionsRaw);
+            }
+            Object loreActionsRaw = ConfigNodes.get(tierConfig, "lore_actions");
+            if (loreActionsRaw != null) {
+                loreActions.put(key, loreActionsRaw);
+            }
         }
         return new QualitySettings(
                 tiers,

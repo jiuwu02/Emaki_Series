@@ -10,8 +10,12 @@ import emaki.jiuwu.craft.corelib.assembly.EmakiNameContribution;
 import emaki.jiuwu.craft.corelib.assembly.EmakiStatContribution;
 import emaki.jiuwu.craft.corelib.assembly.EmakiStructuredPresentation;
 import emaki.jiuwu.craft.corelib.assembly.LocalNameState;
+import emaki.jiuwu.craft.corelib.assembly.LoreOperationRegistry;
+import emaki.jiuwu.craft.corelib.assembly.NameOperationRegistry;
 import emaki.jiuwu.craft.corelib.assembly.NamePosition;
+import emaki.jiuwu.craft.corelib.assembly.OperationTemplateRenderer;
 import emaki.jiuwu.craft.corelib.assembly.StructuredPresentationValidator;
+import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.forge.model.ForgeMaterial;
 import emaki.jiuwu.craft.forge.model.QualitySettings;
@@ -23,18 +27,18 @@ final class ForgePresentationBuilder {
     private static final int NAME_ORDER_BASE = 100;
     private static final int LORE_SECTION_ORDER = 100;
 
-    private final TextTemplateRenderer templateRenderer;
-    private final NameModificationRegistry nameModifications;
-    private final LoreActionRegistry loreActions;
+    private final OperationTemplateRenderer templateRenderer;
+    private final NameOperationRegistry nameOperations;
+    private final LoreOperationRegistry loreOperations;
     private final StructuredPresentationValidator structuredValidator;
 
-    ForgePresentationBuilder(TextTemplateRenderer templateRenderer,
-            NameModificationRegistry nameModifications,
-            LoreActionRegistry loreActions,
+    ForgePresentationBuilder(OperationTemplateRenderer templateRenderer,
+            NameOperationRegistry nameOperations,
+            LoreOperationRegistry loreOperations,
             StructuredPresentationValidator structuredValidator) {
         this.templateRenderer = templateRenderer;
-        this.nameModifications = nameModifications;
-        this.loreActions = loreActions;
+        this.nameOperations = nameOperations;
+        this.loreOperations = loreOperations;
         this.structuredValidator = structuredValidator;
     }
 
@@ -45,7 +49,7 @@ final class ForgePresentationBuilder {
             List<EmakiStatContribution> stats,
             QualitySettings settings) {
         Map<String, Double> aggregatedStats = aggregateStats(stats);
-        Map<String, Object> variables = templateRenderer.buildVariables(aggregatedStats, qualityTier, multiplier);
+        Map<String, Object> variables = buildVariables(aggregatedStats, qualityTier, multiplier);
         LocalNameState nameState = new LocalNameState();
         QualitySettings effectiveSettings = safeSettings(settings);
 
@@ -64,7 +68,7 @@ final class ForgePresentationBuilder {
         if (recipe == null || recipe.result() == null) {
             return;
         }
-        nameModifications.apply(nameState, recipe.result().nameModifications(), variables);
+        nameOperations.apply(nameState, recipe.result().nameModifications(), variables);
     }
 
     private void applyMaterialPresentations(List<ForgeMaterialContribution> materials,
@@ -78,7 +82,7 @@ final class ForgePresentationBuilder {
                 continue;
             }
             ForgeMaterial forgeMaterial = material.material();
-            nameModifications.apply(nameState, forgeMaterial.nameModifications(), variables);
+            nameOperations.apply(nameState, forgeMaterial.nameModifications(), variables);
         }
     }
 
@@ -90,8 +94,8 @@ final class ForgePresentationBuilder {
         if (qualityTier == null || !settings.itemMetaEnabled()) {
             return;
         }
-        nameModifications.apply(nameState, settings.itemMetaNameActions(qualityTier.name()), variables);
-        loreActions.apply(loreLines, settings.itemMetaLoreActions(qualityTier.name()), variables);
+        nameOperations.apply(nameState, settings.itemMetaNameActions(qualityTier.name()), variables);
+        loreOperations.apply(loreLines, settings.itemMetaLoreActions(qualityTier.name()), variables);
     }
 
     private List<String> buildLoreLines(Recipe recipe,
@@ -99,14 +103,14 @@ final class ForgePresentationBuilder {
             Map<String, Object> variables) {
         List<String> loreLines = new ArrayList<>();
         if (recipe != null && recipe.result() != null) {
-            loreActions.apply(loreLines, recipe.result().loreActions(), variables);
+            loreOperations.apply(loreLines, recipe.result().loreActions(), variables);
         }
         if (materials != null) {
             for (ForgeMaterialContribution material : materials) {
                 if (material == null || material.material() == null) {
                     continue;
                 }
-                loreActions.apply(loreLines, material.material().loreActions(), variables);
+                loreOperations.apply(loreLines, material.material().loreActions(), variables);
             }
         }
         return loreLines;
@@ -139,6 +143,26 @@ final class ForgePresentationBuilder {
             aggregated.merge(Texts.lower(contribution.statId()), contribution.amount(), Double::sum);
         }
         return aggregated;
+    }
+
+    private Map<String, Object> buildVariables(Map<String, Double> aggregatedStats,
+            QualitySettings.QualityTier qualityTier,
+            double multiplier) {
+        Map<String, Object> variables = new LinkedHashMap<>();
+        if (aggregatedStats != null) {
+            for (Map.Entry<String, Double> entry : aggregatedStats.entrySet()) {
+                if (entry.getKey() == null || entry.getValue() == null) {
+                    continue;
+                }
+                variables.put(entry.getKey(), Numbers.formatNumber(entry.getValue(), "0.##"));
+            }
+        }
+        String qualityName = qualityTier == null ? "" : qualityTier.name();
+        variables.put("quality", qualityName);
+        variables.put("quality_name", qualityName);
+        variables.put("quality_multiplier", Numbers.formatNumber(multiplier, "0.##"));
+        variables.put("multiplier", Numbers.formatNumber(multiplier, "0.##"));
+        return variables;
     }
 
     private List<EmakiNameContribution> buildNameContributions(LocalNameState state) {

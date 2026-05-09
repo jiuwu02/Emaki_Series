@@ -161,7 +161,6 @@ public final class AppConfig extends BaseAppConfig {
     public record ScriptEngineSettings(boolean enabled,
             String defaultMode,
             boolean stopOnFailure,
-            boolean fallbackToCoreLibActions,
             int maxLinesPerPhase,
             int maxTargetsPerAction,
             boolean debug) {
@@ -173,7 +172,7 @@ public final class AppConfig extends BaseAppConfig {
         }
 
         public static ScriptEngineSettings defaults() {
-            return new ScriptEngineSettings(true, "native", true, true, 64, 16, false);
+            return new ScriptEngineSettings(true, "native", true, 64, 16, false);
         }
     }
 }

@@ -39,7 +39,6 @@ script_engine:
   enabled: true
   default_mode: "native"
   stop_on_failure: true
-  fallback_to_corelib_actions: true
   max_lines_per_phase: 64
   max_targets_per_action: 16
   debug: false

@@ -6,6 +6,9 @@ import java.util.Map;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerSnapshot;
 import emaki.jiuwu.craft.corelib.assembly.EmakiStatContribution;
 import emaki.jiuwu.craft.corelib.assembly.EmakiStructuredPresentation;
+import emaki.jiuwu.craft.corelib.assembly.LoreOperationRegistry;
+import emaki.jiuwu.craft.corelib.assembly.NameOperationRegistry;
+import emaki.jiuwu.craft.corelib.assembly.OperationTemplateRenderer;
 import emaki.jiuwu.craft.corelib.assembly.StructuredPresentationValidator;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.model.ForgeMaterial;
@@ -26,14 +29,14 @@ final class ForgeLayerSnapshotBuilder {
     ForgeLayerSnapshotBuilder(EmakiForgePlugin plugin) {
         this.plugin = plugin;
         this.contributionCollector = new ForgeMaterialContributionCollector(plugin);
-        TextTemplateRenderer templateRenderer = new TextTemplateRenderer();
-        NameModificationRegistry nameModifications = new NameModificationRegistry(templateRenderer);
-        LoreActionRegistry loreActions = new LoreActionRegistry(templateRenderer);
+        OperationTemplateRenderer templateRenderer = new OperationTemplateRenderer();
+        NameOperationRegistry nameOperations = new NameOperationRegistry(templateRenderer);
+        LoreOperationRegistry loreOperations = new LoreOperationRegistry(templateRenderer);
         this.statBuilder = new ForgeStatContributionBuilder();
         this.presentationBuilder = new ForgePresentationBuilder(
                 templateRenderer,
-                nameModifications,
-                loreActions,
+                nameOperations,
+                loreOperations,
                 new StructuredPresentationValidator()
         );
         this.auditBuilder = new ForgeAuditBuilder();

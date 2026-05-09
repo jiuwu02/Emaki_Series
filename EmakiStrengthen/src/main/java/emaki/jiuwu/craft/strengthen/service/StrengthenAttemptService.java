@@ -101,7 +101,8 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
                         stored.firstReachFlags(),
                         stored.successCount(),
                         stored.failureCount(),
-                        stored.lastAttemptAt()
+                        stored.lastAttemptAt(),
+                        ""
                 ),
                 stored
         );
@@ -196,7 +197,8 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
                 progress.updatedFlags(),
                 currentState.successCount() + (success ? 1 : 0),
                 currentState.failureCount() + (success ? 0 : 1),
-                System.currentTimeMillis()
+                System.currentTimeMillis(),
+                currentState.branchPath()
         );
 
         ItemStack rebuilt = rebuildWithState(context == null ? null : context.targetItem(), updated, buildMaterialsSignature(preview));
@@ -247,7 +249,8 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
                 current.milestoneFlags(),
                 current.successCount(),
                 current.failureCount(),
-                System.currentTimeMillis()
+                System.currentTimeMillis(),
+                current.branchPath()
         );
         return rebuildWithState(itemStack, updated, readStoredState(itemStack, current.baseSource(), current.baseSourceSignature()).materialsSignature());
     }
