@@ -122,6 +122,18 @@ final class DamageMessageDispatcher {
         replacements.put("critical_text", critical ? messageOrFallback("damage.critical_text", "critical") : "");
         replacements.put("critical_suffix", critical ? messageOrFallback("damage.critical_suffix", " <red>critical</red>") : "");
         replacements.put("roll", rollText);
+        // Health and distance placeholders
+        double attackerHealth = damageContext.attacker() == null ? 0D : damageContext.attacker().getHealth();
+        double attackerMaxHealth = damageContext.attacker() == null ? 0D : damageContext.attacker().getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH) != null
+                ? damageContext.attacker().getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH).getValue() : 0D;
+        double targetHealth = damageContext.target() == null ? 0D : damageContext.target().getHealth();
+        double targetMaxHealth = damageContext.target() == null ? 0D : damageContext.target().getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH) != null
+                ? damageContext.target().getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH).getValue() : 0D;
+        replacements.put("attacker_health", Numbers.formatNumber(attackerHealth, "0.##"));
+        replacements.put("attacker_max_health", Numbers.formatNumber(attackerMaxHealth, "0.##"));
+        replacements.put("target_health", Numbers.formatNumber(targetHealth, "0.##"));
+        replacements.put("target_max_health", Numbers.formatNumber(targetMaxHealth, "0.##"));
+        replacements.put("distance", resolveDistance(damageContext));
         return replacements;
     }
 
@@ -183,5 +195,16 @@ final class DamageMessageDispatcher {
 
     private String firstNonBlank(String left, String right) {
         return Texts.isBlank(left) ? right : left;
+    }
+
+    private String resolveDistance(DamageContext damageContext) {
+        if (damageContext.attacker() == null || damageContext.target() == null) {
+            return "0";
+        }
+        if (!damageContext.attacker().getWorld().equals(damageContext.target().getWorld())) {
+            return "0";
+        }
+        double distance = damageContext.attacker().getLocation().distance(damageContext.target().getLocation());
+        return Numbers.formatNumber(distance, "0.##");
     }
 }

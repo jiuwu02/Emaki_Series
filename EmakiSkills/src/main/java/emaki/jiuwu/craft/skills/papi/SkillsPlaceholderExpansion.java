@@ -88,6 +88,16 @@ public final class SkillsPlaceholderExpansion extends PlaceholderExpansion {
             return String.valueOf(countUnlocked(profile));
         }
 
+        // %emakiskills_slot_count%
+        if ("slot_count".equals(normalized)) {
+            return String.valueOf(profile.bindings().size());
+        }
+
+        // %emakiskills_level_total%
+        if ("level_total".equals(normalized)) {
+            return String.valueOf(totalLevels(profile));
+        }
+
         // %emakiskills_level_<skill_id>%
         if (normalized.startsWith("level_")) {
             String skillId = normalized.substring("level_".length());
@@ -202,5 +212,15 @@ public final class SkillsPlaceholderExpansion extends PlaceholderExpansion {
             unlocked.add(entry.getKey());
         }
         return unlocked.size();
+    }
+
+    private int totalLevels(PlayerSkillProfile profile) {
+        int total = 0;
+        for (PlayerSkillLevelState levelState : profile.skillLevels().values()) {
+            if (levelState != null) {
+                total += levelState.level();
+            }
+        }
+        return total;
     }
 }

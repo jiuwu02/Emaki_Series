@@ -38,6 +38,7 @@ import emaki.jiuwu.craft.cooking.service.OvenRuntimeService;
 import emaki.jiuwu.craft.cooking.service.StationStateStore;
 import emaki.jiuwu.craft.cooking.service.SteamerRuntimeService;
 import emaki.jiuwu.craft.cooking.service.WokRuntimeService;
+import emaki.jiuwu.craft.cooking.papi.CookingPlaceholderExpansion;
 import emaki.jiuwu.craft.cooking.service.display.CookingDisplayService;
 
 public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider, EmakiServiceRegistry {
@@ -100,6 +101,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         reloadPluginState();
         registerCommandHandler();
         registerEventHandlers();
+        registerPlaceholderExpansion();
         messageService.info("console.plugin_started");
     }
 
@@ -232,6 +234,12 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
             messageService.info("console.block_source_bridge_ready", Map.of("provider", "Nexo"));
         } catch (LinkageError exception) {
             messageService.warning("console.block_source_bridge_unavailable", Map.of("provider", "Nexo", "error", String.valueOf(exception.getMessage())));
+        }
+    }
+
+    private void registerPlaceholderExpansion() {
+        if (getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+            new CookingPlaceholderExpansion(this).register();
         }
     }
 
