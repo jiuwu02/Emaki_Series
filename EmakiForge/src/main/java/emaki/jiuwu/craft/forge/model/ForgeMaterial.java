@@ -223,7 +223,8 @@ public final class ForgeMaterial {
             if (!"lore_action".equals(Texts.lower(effect.type()))) {
                 continue;
             }
-            for (Object raw : ConfigNodes.asObjectList(effect.get("action"))) {
+            Object actionsRaw = effect.get("lore_actions");
+            for (Object raw : ConfigNodes.asObjectList(actionsRaw)) {
                 Object plain = ConfigNodes.toPlainData(raw);
                 if (!(plain instanceof Map<?, ?> map)) {
                     continue;

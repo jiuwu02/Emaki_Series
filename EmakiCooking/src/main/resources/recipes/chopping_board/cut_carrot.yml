@@ -18,7 +18,7 @@ result:
         - "minecraft-golden_carrot"
       amount: 1
   actions:
-    - "sendmessage text=\"<green>砧板处理完成。</green>\""
+    - 'sendmessage text="<green>砧板处理完成。</green>"'
 
 damage_override:
   chance: 5
