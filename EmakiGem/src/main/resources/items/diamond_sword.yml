@@ -18,7 +18,8 @@ slots:
     type: "defense"
     display_name: "<blue>防御插槽</blue>"
 
-default_open_slots: 2
+default_open_slots:
+  - 0
 
 allowed_gem_types:
   - "attack"

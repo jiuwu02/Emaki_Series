@@ -58,7 +58,7 @@ public final class GemItemFactory {
         placeholders.put("old_display_name", resolveGemDisplayName(definition, oldLevel == null ? level : oldLevel));
         placeholders.put("current_level", level);
         placeholders.put("target_level", level);
-        placeholders.put("tier", definition == null ? 1 : definition.tier());
+        placeholders.put("level", definition == null ? 1 : definition.level());
         placeholders.put("gem_type", definition == null ? "universal" : definition.gemType());
         if (definition != null) {
             definition.statsForLevel(level).forEach((key, value) -> placeholders.put(key, Numbers.formatNumber(value, plugin.appConfig().numberFormat())));

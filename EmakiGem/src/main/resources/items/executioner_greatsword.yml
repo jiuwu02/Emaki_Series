@@ -18,7 +18,9 @@ slots:
     type: "attack"
     display_name: "<red>攻击插槽</red>"
 
-default_open_slots: 2
+default_open_slots:
+  - 0
+  - 1
 
 allowed_gem_types:
   - "attack"

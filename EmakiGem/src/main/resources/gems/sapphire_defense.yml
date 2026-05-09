@@ -1,7 +1,7 @@
 # 货币字段仅接受 currency_id。
 id: "sapphire_defense"
 gem_type: "defense"
-tier: 1
+level: 1
 item_sources:
   - "minecraft-lapis_lazuli"
 
@@ -27,7 +27,7 @@ inlay_cost:
     - provider: "vault"
       currency_id: ""
       base_cost: 900
-      cost_formula: "{base_cost} * {tier}"
+      cost_formula: "{base_cost} * {level}"
       display_name: "<gold>金币</gold>"
   materials:
     - item_sources:
@@ -39,7 +39,7 @@ extract_cost:
     - provider: "vault"
       currency_id: ""
       base_cost: 450
-      cost_formula: "{base_cost} * {tier}"
+      cost_formula: "{base_cost} * {level}"
       display_name: "<gold>金币</gold>"
 
 extract_return:

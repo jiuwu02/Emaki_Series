@@ -96,13 +96,13 @@ public final class AppConfig extends BaseAppConfig {
             double defaultChance,
             String rateFormula,
             String failureAction,
-            Map<Integer, Double> tierChances) {
+            Map<Integer, Double> levelChances) {
 
         public InlaySuccessConfig {
             defaultChance = Math.max(0D, Math.min(100D, defaultChance));
             rateFormula = Texts.isBlank(rateFormula) ? "{default_chance}" : rateFormula;
             failureAction = Texts.isBlank(failureAction) ? "return_gem" : Texts.lower(failureAction);
-            tierChances = tierChances == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(tierChances));
+            levelChances = levelChances == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(levelChances));
         }
 
         public static InlaySuccessConfig defaults() {

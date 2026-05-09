@@ -75,7 +75,7 @@ public final class GemExtractService {
         if (!bypassCost) {
             chargeResult = economyService.charge(actor, gemDefinition.extractCost(), costVariables(gemDefinition, instance.level()));
             if (!chargeResult.success()) {
-                return Result.failure(chargeResult.errorKey(), Map.of());
+                return Result.failure(chargeResult.errorKey(), chargeResult.placeholders());
             }
         }
         GemState nextState = currentState.withAssignment(slotIndex, null);
@@ -119,7 +119,7 @@ public final class GemExtractService {
 
     private Map<String, Object> costVariables(GemDefinition definition, int level) {
         Map<String, Object> variables = new LinkedHashMap<>();
-        variables.put("tier", definition == null ? 1 : definition.tier());
+        variables.put("level", definition == null ? 1 : definition.level());
         variables.put("current_level", Math.max(1, level));
         variables.put("target_level", Math.max(1, level));
         return Map.copyOf(variables);

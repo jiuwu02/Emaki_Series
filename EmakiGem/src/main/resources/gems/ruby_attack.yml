@@ -1,7 +1,7 @@
 # 货币字段仅接受 currency_id。
 id: "ruby_attack"
 gem_type: "attack"
-tier: 1
+level: 1
 item_sources:
   - "minecraft-redstone"
 
@@ -27,7 +27,7 @@ inlay_cost:
     - provider: "vault"
       currency_id: ""
       base_cost: 1000
-      cost_formula: "{base_cost} * {tier}"
+      cost_formula: "{base_cost} * {level}"
       display_name: "<gold>金币</gold>"
   materials:
     - item_sources:
@@ -39,7 +39,7 @@ extract_cost:
     - provider: "vault"
       currency_id: ""
       base_cost: 500
-      cost_formula: "{base_cost} * {tier}"
+      cost_formula: "{base_cost} * {level}"
       display_name: "<gold>金币</gold>"
   materials:
     - item_sources:
@@ -141,7 +141,7 @@ upgrade:
       success_rate: 60.0
       actions:
         success:
-          - "sendmessage text=\"<gold>{player}</gold> <yellow>成功将红宝石升级至 IV！</yellow>\""
+          - 'sendmessage text="<gold>{player}</gold> <yellow>成功将红宝石升级至 IV！</yellow>"'
         failure: []
 
 actions:

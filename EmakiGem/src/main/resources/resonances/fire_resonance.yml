@@ -1,0 +1,38 @@
+# 火焰共鸣 - 当装备上同时镶嵌 2 颗攻击型宝石时触发
+# 共鸣效果：额外提供物理攻击加成，并在装备名称上添加前缀
+id: "fire_resonance"
+display_name: "<red>火焰共鸣</red>"
+
+chain:
+  # mode: unordered (无序匹配) / ordered (有序匹配)
+  mode: "unordered"
+  pattern:
+    - type: "attack"
+    - type: "attack"
+
+effects:
+  # 共鸣触发时额外提供的属性变量（会叠加到装备的 PDC 属性上）
+  variables:
+    physical_attack: 5
+    fire_damage: 3
+
+  # 共鸣触发时执行的 action 列表（可选）
+  actions:
+    - 'sendmessage text="<gold>火焰共鸣已激活！</gold>"'
+
+  # 共鸣触发时附加的技能 ID 列表（可选，需要 EmakiSkills 支持）
+  skills: []
+
+  # 共鸣触发时对装备名称的修改（可选）
+  name_actions:
+    - action: "append_prefix"
+      value: "<red>[焰] </red>"
+
+  # 共鸣触发时在装备 Lore 上追加的段落（可选）
+  lore_section:
+    section_id: "gem.resonance.fire"
+    order: 350
+    lines:
+      - "<red>◆ 火焰共鸣</red>"
+      - "<gray>  物理攻击 +5</gray>"
+      - "<gray>  火焰伤害 +3</gray>"

@@ -245,14 +245,14 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
         if (section == null || section.getKeys(false).isEmpty()) {
             return defaults;
         }
-        Map<Integer, Double> perTier = new LinkedHashMap<>();
-        YamlSection byTier = section.getSection("by_tier");
-        if (byTier != null) {
-            for (String key : byTier.getKeys(false)) {
-                Integer tier = Numbers.tryParseInt(key, null);
-                Double chance = Numbers.tryParseDouble(byTier.get(key), null);
-                if (tier != null && chance != null) {
-                    perTier.put(tier, chance);
+        Map<Integer, Double> perLevel = new LinkedHashMap<>();
+        YamlSection byLevel = section.getSection("by_level");
+        if (byLevel != null) {
+            for (String key : byLevel.getKeys(false)) {
+                Integer level = Numbers.tryParseInt(key, null);
+                Double chance = Numbers.tryParseDouble(byLevel.get(key), null);
+                if (level != null && chance != null) {
+                    perLevel.put(level, chance);
                 }
             }
         }
@@ -262,7 +262,7 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
                 defaultChance,
                 section.getString("rate_formula", defaults.rateFormula()),
                 section.getString("failure_action", defaults.failureAction()),
-                perTier
+                perLevel
         );
     }
 
@@ -294,7 +294,6 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
         }
         String configuredMode = section.getString("default_mode", defaults.defaultMode().name());
         GemGuiMode defaultMode = switch (configuredMode == null ? "" : configuredMode.toLowerCase()) {
-            case "extract" -> GemGuiMode.EXTRACT;
             case "open", "open_socket", "socket_open" -> GemGuiMode.OPEN_SOCKET;
             case "upgrade" -> GemGuiMode.UPGRADE;
             default -> GemGuiMode.INLAY;
@@ -335,6 +334,7 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
         List<String> files = new ArrayList<>();
         files.addAll(YamlFiles.listResourcePaths(plugin, "gems"));
         files.addAll(YamlFiles.listResourcePaths(plugin, "items"));
+        files.addAll(YamlFiles.listResourcePaths(plugin, "resonances"));
         return List.copyOf(files);
     }
 

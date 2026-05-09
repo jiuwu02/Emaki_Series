@@ -26,6 +26,6 @@ result:
       - "minecraft-honey_bottle"
     amount: 1
     actions:
-      - "sendmessage text=\"<aqua>榨汁完成。</aqua>\""
+      - 'sendmessage text="<aqua>榨汁完成。</aqua>"'
 
 structured_presentation: {}

@@ -19,10 +19,10 @@ socket_openers:
     consume_on_success: true
     actions:
       success:
-        - "sendmessage text=\"<green>成功为装备开启了攻击宝石插槽！</green>\""
+        - 'sendmessage text="<green>成功为装备开启了攻击宝石插槽！</green>"'
         - "playsound sound=block.anvil.use volume=1.0 pitch=1.1"
       failure:
-        - "sendmessage text=\"<red>该装备没有可由攻击开孔器开启的预留插槽。</red>\""
+        - 'sendmessage text="<red>该装备没有可由攻击开孔器开启的预留插槽。</red>"'
         - "playsound sound=entity.villager.no volume=1.0 pitch=0.8"
 
   # 防御向插槽开孔器
@@ -35,10 +35,10 @@ socket_openers:
     consume_on_success: true
     actions:
       success:
-        - "sendmessage text=\"<green>成功为装备开启了防御宝石插槽！</green>\""
+        - 'sendmessage text="<green>成功为装备开启了防御宝石插槽！</green>"'
         - "playsound sound=block.anvil.use volume=1.0 pitch=1.0"
       failure:
-        - "sendmessage text=\"<red>该装备没有可由防御开孔器开启的预留插槽。</red>\""
+        - 'sendmessage text="<red>该装备没有可由防御开孔器开启的预留插槽。</red>"'
         - "playsound sound=entity.villager.no volume=1.0 pitch=0.8"
 
   # 通用开孔器
@@ -51,10 +51,10 @@ socket_openers:
     consume_on_success: true
     actions:
       success:
-        - "sendmessage text=\"<green>成功为装备开启了一个宝石插槽！</green>\""
+        - 'sendmessage text="<green>成功为装备开启了一个宝石插槽！</green>"'
         - "playsound sound=block.amethyst_block.chime volume=1.0 pitch=1.2"
       failure:
-        - "sendmessage text=\"<red>该装备没有可开启的预留插槽。</red>\""
+        - 'sendmessage text="<red>该装备没有可开启的预留插槽。</red>"'
         - "playsound sound=entity.villager.no volume=1.0 pitch=0.8"
 
 inlay_success:
@@ -63,8 +63,8 @@ inlay_success:
   # 默认成功率（百分比）
   default_chance: 100.0
   # 支持变量:
-  # {default_chance} {tier_chance} {configured_chance} {tier}
-  rate_formula: "{default_chance} - ({tier} - 1) * 5"
+  # {default_chance} {level_chance} {configured_chance} {level}
+  rate_formula: "{default_chance} - ({level} - 1) * 5"
   # 镶嵌失败时的处理：
   # return_gem: 不扣宝石，也不扣镶嵌成本
   # destroy_gem: 扣宝石，并在判定前先扣镶嵌成本
@@ -94,7 +94,7 @@ permission:
   op_bypass: false
 
 gui:
-  # 默认打开模式: inlay | extract
+  # 默认打开模式: inlay | open | upgrade。取出模式在 inlay GUI 内手动切换。
   default_mode: "inlay"
   # 关闭界面时是否自动保存状态
   save_on_close: false

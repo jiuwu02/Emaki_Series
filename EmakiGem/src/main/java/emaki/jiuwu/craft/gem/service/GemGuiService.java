@@ -241,7 +241,7 @@ public final class GemGuiService {
     }
 
     private GemGuiMode normalizeGemMode(GemGuiMode mode) {
-        return mode == GemGuiMode.EXTRACT ? GemGuiMode.EXTRACT : GemGuiMode.INLAY;
+        return GemGuiMode.INLAY;
     }
 
     private ItemStack cloneNonAir(ItemStack itemStack) {

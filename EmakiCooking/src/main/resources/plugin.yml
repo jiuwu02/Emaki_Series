@@ -13,7 +13,7 @@ softdepend:
   - PacketEvents
 commands:
   ecooking:
-    aliases: [ ec ]
+    aliases: [ec]
     permission: emakicooking.use
 permissions:
   emakicooking.use:

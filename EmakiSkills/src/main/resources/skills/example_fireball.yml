@@ -60,11 +60,11 @@ script:
         element={element}"
       - "@if='{level} >= 3' ignite target=target ticks={ignite_ticks}"
       - "@if='{empowered} == true' particle particle=explosion at=target count=1"
-      - "sendmessage target=caster text=\"{impact_message}\""
+      - 'sendmessage target=caster text="{impact_message}"'
 
     miss:
       - "particle particle=smoke at=look count=8 speed=0.01"
-      - "sendmessage target=caster text=\"<gray>火球术没有命中目标。</gray>\""
+      - 'sendmessage target=caster text="<gray>火球术没有命中目标。</gray>"'
 
 upgrade:
   enabled: true
@@ -115,7 +115,7 @@ upgrade:
           decimals: 2
       actions:
         success:
-          - "sendmessage text=\"<yellow>火球术达到 V，爆炸范围进一步扩大。</yellow>\""
+          - 'sendmessage text="<yellow>火球术达到 V，爆炸范围进一步扩大。</yellow>"'
         failure: []
 
     10:
@@ -134,6 +134,6 @@ upgrade:
       success_rate: 40.0
       actions:
         success:
-          - "broadcastmessage text=\"<gold>{player}</gold>
-            <yellow>将火球术提升至满级！</yellow>\""
+          - 'broadcastmessage text="<gold>{player}</gold>
+            <yellow>将火球术提升至满级！</yellow>"'
         failure: []

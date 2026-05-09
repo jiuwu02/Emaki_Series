@@ -11,7 +11,7 @@ softdepend:
   - MMOItems
 commands:
   emakiattribute:
-    aliases: [ eattribute, ea ]
+    aliases: [eattribute, ea]
     permission: emakiattribute.use
 permissions:
   emakiattribute.use:

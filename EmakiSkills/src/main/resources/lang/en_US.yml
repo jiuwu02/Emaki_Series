@@ -23,7 +23,8 @@ console:
   directory_create_failed: "Failed to create directory: {path}"
   loader_config_load_error: "Failed to load EmakiSkills config: {path} ({error})"
   ea_bridge_unavailable: "EmakiAttribute not detected, attribute bridge disabled."
-  ea_bridge_service_unregistered: "EmakiAttribute loaded but skill bridge service
+  ea_bridge_service_unregistered:
+    "EmakiAttribute loaded but skill bridge service
     not exposed, attribute bridge disabled."
   ea_bridge_ready: "EmakiAttribute bridge ready, connection mode: {mode}."
   ea_bridge_init_failed: "Failed to initialize EmakiAttribute bridge: {error}"
@@ -64,7 +65,8 @@ trigger:
   conflict: "<red>Trigger <white>{trigger}</white> conflicts with
     <white>{conflict_trigger}</white> in slot {conflict_slot}.</red>"
   disabled: "<red>Trigger <white>{trigger}</white> is disabled.</red>"
-  conflict_auto_fix: "<yellow>Trigger conflict auto-resolved: cleared binding for
+  conflict_auto_fix:
+    "<yellow>Trigger conflict auto-resolved: cleared binding for
     slot {slot}.</yellow>"
 
 cast:
@@ -119,7 +121,8 @@ slot_names:
 
 command:
   help:
-    header: "<gray>========== <gradient:#4DA6FF:#FF6B6B>EmakiSkills Help</gradient>
+    header:
+      "<gray>========== <gradient:#4DA6FF:#FF6B6B>EmakiSkills Help</gradient>
       ==========</gray>"
     line: "<gold>/{cmd}</gold> <gray>- {desc}</gray>"
     footer: "<gray>==========================================</gray>"

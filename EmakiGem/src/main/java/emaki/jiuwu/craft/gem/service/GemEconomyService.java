@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.gem.service;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -13,6 +14,8 @@ import emaki.jiuwu.craft.corelib.economy.EconomyManager;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
+import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
+import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
 import emaki.jiuwu.craft.gem.model.GemDefinition;
 
@@ -42,23 +45,32 @@ public final class GemEconomyService {
 
     public record ChargeResult(boolean success,
             String errorKey,
+            Map<String, Object> placeholders,
             List<GemDefinition.CurrencyCost> chargedCurrencies,
             List<GemDefinition.MaterialCost> chargedMaterials) {
 
         public ChargeResult {
+            placeholders = placeholders == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(placeholders));
             chargedCurrencies = chargedCurrencies == null ? List.of() : List.copyOf(chargedCurrencies);
             chargedMaterials = chargedMaterials == null ? List.of() : List.copyOf(chargedMaterials);
         }
 
         public static ChargeResult success(List<GemDefinition.CurrencyCost> chargedCurrencies,
                 List<GemDefinition.MaterialCost> chargedMaterials) {
-            return new ChargeResult(true, "", chargedCurrencies, chargedMaterials);
+            return new ChargeResult(true, "", Map.of(), chargedCurrencies, chargedMaterials);
         }
 
         public static ChargeResult failure(String errorKey,
                 List<GemDefinition.CurrencyCost> chargedCurrencies,
                 List<GemDefinition.MaterialCost> chargedMaterials) {
-            return new ChargeResult(false, errorKey, chargedCurrencies, chargedMaterials);
+            return failure(errorKey, Map.of(), chargedCurrencies, chargedMaterials);
+        }
+
+        public static ChargeResult failure(String errorKey,
+                Map<String, Object> placeholders,
+                List<GemDefinition.CurrencyCost> chargedCurrencies,
+                List<GemDefinition.MaterialCost> chargedMaterials) {
+            return new ChargeResult(false, errorKey, placeholders, chargedCurrencies, chargedMaterials);
         }
     }
 
@@ -119,13 +131,15 @@ public final class GemEconomyService {
         List<GemDefinition.CurrencyCost> safeCurrencies = resolveCurrencies(request.currencies(), request.variables());
         List<GemDefinition.MaterialCost> safeMaterials = request.materials();
         for (GemDefinition.CurrencyCost currency : safeCurrencies) {
-            if (!canAfford(player, currency)) {
-                return ChargeResult.failure("gem.error.insufficient_cost", List.of(), List.of());
+            double available = balanceOf(player, currency);
+            if (!canAfford(currency, available)) {
+                return ChargeResult.failure("gem.error.insufficient_currency", currencyPlaceholders(currency, available), List.of(), List.of());
             }
         }
         for (GemDefinition.MaterialCost material : safeMaterials) {
-            if (!canAfford(player, material, request.providedMaterials(), request.allowInventoryFallback())) {
-                return ChargeResult.failure("gem.error.insufficient_cost", List.of(), List.of());
+            long available = availableMaterialAmount(player, material, request.providedMaterials(), request.allowInventoryFallback());
+            if (!canAfford(material, available)) {
+                return ChargeResult.failure("gem.error.insufficient_material", materialPlaceholders(material, available), List.of(), List.of());
             }
         }
         List<GemDefinition.CurrencyCost> chargedCurrencies = new ArrayList<>();
@@ -133,14 +147,14 @@ public final class GemEconomyService {
         for (GemDefinition.CurrencyCost currency : safeCurrencies) {
             if (!chargeCurrency(player, currency)) {
                 refund(player, chargedCurrencies, chargedMaterials);
-                return ChargeResult.failure("gem.error.insufficient_cost", chargedCurrencies, chargedMaterials);
+                return ChargeResult.failure("gem.error.insufficient_currency", currencyPlaceholders(currency, balanceOf(player, currency)), chargedCurrencies, chargedMaterials);
             }
             chargedCurrencies.add(currency);
         }
         for (GemDefinition.MaterialCost material : safeMaterials) {
             if (!removeItemCost(player, material, request.providedMaterials(), request.allowInventoryFallback())) {
                 refund(player, chargedCurrencies, chargedMaterials);
-                return ChargeResult.failure("gem.error.insufficient_cost", chargedCurrencies, chargedMaterials);
+                return ChargeResult.failure("gem.error.insufficient_material", materialPlaceholders(material, availableMaterialAmount(player, material, request.providedMaterials(), request.allowInventoryFallback())), chargedCurrencies, chargedMaterials);
             }
             chargedMaterials.add(material);
         }
@@ -186,27 +200,34 @@ public final class GemEconomyService {
         }
     }
 
-    private boolean canAfford(Player player, GemDefinition.CurrencyCost currency) {
-        if (currency == null || currency.amount() <= 0D) {
-            return true;
-        }
-        EconomyManager economyManager = economyManager();
-        return economyManager != null
-                && economyManager.getBalance(player, currency.provider(), currency.currencyId()) >= currency.amount();
+    private boolean canAfford(GemDefinition.CurrencyCost currency, double available) {
+        return currency == null || currency.amount() <= 0D || available >= currency.amount();
     }
 
-    private boolean canAfford(Player player,
+    private double balanceOf(Player player, GemDefinition.CurrencyCost currency) {
+        if (currency == null || currency.amount() <= 0D) {
+            return Double.MAX_VALUE;
+        }
+        EconomyManager economyManager = economyManager();
+        return economyManager == null ? 0D : economyManager.getBalance(player, currency.provider(), currency.currencyId());
+    }
+
+    private boolean canAfford(GemDefinition.MaterialCost material, long available) {
+        return material == null || material.itemSource() == null || material.amount() <= 0 || available >= material.amount();
+    }
+
+    private long availableMaterialAmount(Player player,
             GemDefinition.MaterialCost material,
             Map<Integer, ItemStack> providedMaterials,
             boolean allowInventoryFallback) {
         if (material == null || material.itemSource() == null || material.amount() <= 0) {
-            return true;
+            return Long.MAX_VALUE;
         }
         long available = countProvidedItemCost(providedMaterials, material.itemSource());
         if (allowInventoryFallback) {
             available += countItemCost(player, material.itemSource());
         }
-        return available >= material.amount();
+        return available;
     }
 
     private boolean chargeCurrency(Player player, GemDefinition.CurrencyCost currency) {
@@ -223,6 +244,33 @@ public final class GemEconomyService {
 
     private long countItemCost(Player player, ItemSource targetSource) {
         return InventoryItemUtil.countItems(player, itemSourceService, targetSource);
+    }
+
+    private Map<String, Object> currencyPlaceholders(GemDefinition.CurrencyCost currency, double available) {
+        Map<String, Object> placeholders = new LinkedHashMap<>();
+        placeholders.put("provider", currency == null ? "" : currency.provider());
+        placeholders.put("currency", currency == null ? "" : currency.currencyId());
+        placeholders.put("currency_id", currency == null ? "" : currency.currencyId());
+        placeholders.put("name", currency == null || Texts.isBlank(currency.displayName()) ? (currency == null ? "" : currency.currencyId()) : currency.displayName());
+        placeholders.put("display_name", placeholders.get("name"));
+        placeholders.put("required", currency == null ? 0D : currency.amount());
+        placeholders.put("available", Math.max(0D, available));
+        return placeholders;
+    }
+
+    private Map<String, Object> materialPlaceholders(GemDefinition.MaterialCost material, long available) {
+        Map<String, Object> placeholders = new LinkedHashMap<>();
+        String item = material == null || material.itemSource() == null ? "" : ItemSourceUtil.toShorthand(material.itemSource());
+        String displayName = "";
+        if (material != null && material.itemSource() != null && itemSourceService != null) {
+            displayName = itemSourceService.displayName(material.itemSource());
+        }
+        placeholders.put("item", Texts.isBlank(item) ? "unknown" : item);
+        placeholders.put("material", Texts.isBlank(displayName) ? placeholders.get("item") : displayName);
+        placeholders.put("display_name", placeholders.get("material"));
+        placeholders.put("required", material == null ? 0 : material.amount());
+        placeholders.put("available", Math.max(0L, available));
+        return placeholders;
     }
 
     private boolean removeItemCost(Player player,

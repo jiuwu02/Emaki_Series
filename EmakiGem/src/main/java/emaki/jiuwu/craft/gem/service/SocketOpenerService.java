@@ -34,6 +34,9 @@ public final class SocketOpenerService {
         }
     }
 
+    public record OpenResult(Result result, ItemStack updatedEquipment, ItemStack updatedOpener) {
+    }
+
     private final EmakiGemPlugin plugin;
     private final GemItemMatcher itemMatcher;
     private final GemItemFactory itemFactory;
@@ -58,6 +61,60 @@ public final class SocketOpenerService {
 
     public Result openAt(Player actor, Player target, String openerId, int slotIndex, boolean bypassRequirement) {
         return open(actor, target, openerId, slotIndex, bypassRequirement);
+    }
+
+    public OpenResult openDirect(Player actor,
+            ItemStack equipment,
+            ItemStack openerItem,
+            String openerId,
+            int slotIndex,
+            boolean bypassRequirement) {
+        return openDirect(actor, equipment, openerItem, openerId, slotIndex, bypassRequirement, true);
+    }
+
+    private OpenResult openDirect(Player actor,
+            ItemStack equipment,
+            ItemStack openerItem,
+            String openerId,
+            Integer preferredSlotIndex,
+            boolean bypassRequirement,
+            boolean direct) {
+        if (actor == null) {
+            return new OpenResult(Result.failure("general.player_not_found", Map.of()), equipment, openerItem);
+        }
+        SocketOpenerConfig opener = plugin.appConfig().socketOpeners().get(Texts.lower(openerId));
+        if (opener == null || !opener.enabled()) {
+            return new OpenResult(Result.failure("command.open.opener_not_found", Map.of("opener", openerId)), equipment, openerItem);
+        }
+        GemItemDefinition itemDefinition = stateService.resolveItemDefinition(equipment);
+        if (itemDefinition == null) {
+            return new OpenResult(Result.failure("gem.error.invalid_equipment", Map.of("player", actor.getName())), equipment, openerItem);
+        }
+        if (!evaluateConditions(actor)) {
+            return new OpenResult(Result.failure("gem.error.condition_not_met", Map.of()), equipment, openerItem);
+        }
+        if (!bypassRequirement && !itemMatcher.matchesOpenerItem(openerItem, opener)) {
+            return new OpenResult(Result.failure("command.open.hold_opener", Map.of("opener", opener.id())), equipment, openerItem);
+        }
+        GemState currentState = stateService.resolveState(equipment, itemDefinition);
+        int resolvedSlotIndex = resolveTargetSlot(itemDefinition, currentState, opener, preferredSlotIndex);
+        if (resolvedSlotIndex == SLOT_ALREADY_OPENED) {
+            return new OpenResult(failureWithActions(actor, opener, itemDefinition, preferredSlotIndex == null ? -1 : preferredSlotIndex,
+                    "command.open.slot_already_opened", Map.of()), equipment, openerItem);
+        }
+        if (resolvedSlotIndex < 0) {
+            return new OpenResult(failureWithActions(actor, opener, itemDefinition, preferredSlotIndex == null ? -1 : preferredSlotIndex,
+                    preferredSlotIndex == null ? "command.open.no_available_slot" : "command.open.slot_unavailable", Map.of()), equipment, openerItem);
+        }
+        GemState nextState = currentState.withOpenedSlots(List.of(resolvedSlotIndex));
+        ItemStack rebuilt = stateService.applyState(equipment, itemDefinition, nextState);
+        if (rebuilt == null) {
+            return new OpenResult(failureWithActions(actor, opener, itemDefinition, resolvedSlotIndex, "command.open.apply_failed", Map.of()), equipment, openerItem);
+        }
+        ItemStack updatedOpener = consumeOne(openerItem, bypassRequirement || !opener.consumeOnSuccess());
+        Map<String, Object> placeholders = basePlaceholders(actor, opener, itemDefinition, resolvedSlotIndex);
+        actionCoordinator.execute(actor, "gem_socket_open", opener.successActions(), placeholders);
+        return new OpenResult(Result.success("command.open.success", placeholders), rebuilt, updatedOpener);
     }
 
     private Result open(Player actor, Player target, String openerId, Integer preferredSlotIndex, boolean bypassRequirement) {
@@ -111,7 +168,7 @@ public final class SocketOpenerService {
         }
         target.getInventory().setItemInMainHand(rebuilt);
         if (!bypassRequirement && opener.consumeOnSuccess()) {
-            consumeOne(actor.getInventory().getItemInOffHand(), actor);
+            consumeOneInOffHand(actor);
         }
         Map<String, Object> placeholders = basePlaceholders(target, opener, itemDefinition, slotIndex);
         actionCoordinator.execute(target, "gem_socket_open", opener.successActions(), placeholders);
@@ -163,16 +220,25 @@ public final class SocketOpenerService {
         return stateService.firstClosedSlot(itemDefinition, currentState, opener::supportsType);
     }
 
-    private void consumeOne(ItemStack itemStack, Player holder) {
-        if (itemStack == null || holder == null) {
+    private ItemStack consumeOne(ItemStack itemStack, boolean skipConsume) {
+        if (itemStack == null || skipConsume) {
+            return itemStack;
+        }
+        ItemStack updated = itemStack.clone();
+        if (updated.getAmount() <= 1) {
+            return null;
+        }
+        updated.setAmount(updated.getAmount() - 1);
+        return updated;
+    }
+
+    private void consumeOneInOffHand(Player holder) {
+        if (holder == null) {
             return;
         }
-        if (itemStack.getAmount() <= 1) {
-            holder.getInventory().setItemInOffHand(null);
-            return;
-        }
-        itemStack.setAmount(itemStack.getAmount() - 1);
-        holder.getInventory().setItemInOffHand(itemStack);
+        ItemStack itemStack = holder.getInventory().getItemInOffHand();
+        ItemStack updated = consumeOne(itemStack, false);
+        holder.getInventory().setItemInOffHand(updated);
     }
 
     private boolean evaluateConditions(Player player) {

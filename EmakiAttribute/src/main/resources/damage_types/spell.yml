@@ -2,7 +2,7 @@ id: spell
 
 display_name: "法术伤害"
 
-aliases: [ magic_damage, magic, spell_damage ]
+aliases: [magic_damage, magic, spell_damage]
 
 allowed_events:
   - MAGIC
@@ -14,30 +14,30 @@ stages:
     kind: FLAT_PERCENT
     source: ATTACKER
     mode: ADD
-    flat_attributes: [ spell_attack ]
-    percent_attributes: [ spell_damage_bonus ]
+    flat_attributes: [spell_attack]
+    percent_attributes: [spell_damage_bonus]
 
   - id: crit
     kind: CUSTOM
     source: ATTACKER
-    chance_attributes: [ spell_crit_rate ]
-    multiplier_attributes: [ spell_crit_damage ]
+    chance_attributes: [spell_crit_rate]
+    multiplier_attributes: [spell_crit_damage]
     expression: "{input} * (1 + ({crit} * ({multiplier} / 100)))"
 
   - id: defense
     kind: FLAT_PERCENT
     source: TARGET
     mode: SUBTRACT
-    flat_attributes: [ spell_defense ]
+    flat_attributes: [spell_defense]
     percent_attributes: []
     expression: "max(0, {input} - {flat})"
 
 recovery:
   source: ATTACKER
   resistance_source: TARGET
-  flat_attributes: [ percentage_lifesteal ]
-  percent_attributes: [ lifesteal ]
-  resistance_attributes: [ lifesteal_resistance ]
+  flat_attributes: [percentage_lifesteal]
+  percent_attributes: [lifesteal]
+  resistance_attributes: [lifesteal_resistance]
 
 attacker_message: "<gray>[<gold>{damage_type}</gold>]</gray> <green>你对
   <white>{target}</white> 造成了 <yellow>{final_damage}</yellow>

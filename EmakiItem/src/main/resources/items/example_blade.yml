@@ -70,4 +70,4 @@ repair:
 actions:
   give:
     - "playsound sound=entity.player.levelup volume=1.0 pitch=1.2"
-    - "sendmessage text=\"<green>你获得了 <gold>{item_name}</gold>！</green>\""
+    - 'sendmessage text="<green>你获得了 <gold>{item_name}</gold>！</green>"'

@@ -73,7 +73,8 @@ wok:
   no_item: "<yellow>There are no ingredients in the wok to work with.</yellow>"
   no_heat: "<red>No valid heat source under the wok, cannot start cooking.</red>"
   too_fast: "<yellow>Stirring too fast, please try again later.</yellow>"
-  wrong_tool: "<yellow>You need to hold the configured spatula to stir or inspect
+  wrong_tool:
+    "<yellow>You need to hold the configured spatula to stir or inspect
     contents.</yellow>"
   burnt_timeout: "<red>Heat was interrupted too long, the food is burnt.</red>"
   stir_count: "<gray>Stir count: <yellow>{count}</yellow></gray>"
@@ -90,9 +91,19 @@ wok:
   info_footer: "<gray>Total stirs: <yellow>{count}</yellow> | Heat:
     <yellow>{heat}</yellow></gray>"
 
+oven:
+  in_use: "<yellow>This oven is being used by another player, please try again later.</yellow>"
+  open_failed: "<red>Failed to open oven GUI.</red>"
+  opened: "<gray>Oven opened.</gray>"
+  add_fuel: "<gray>Added fuel <yellow>{item}</yellow>, estimated duration <yellow>{seconds}</yellow> seconds. Current heat: <yellow>{heat}</yellow></gray>"
+  info: "<gray>Heat: <yellow>{heat}</yellow> | Burn time: <yellow>{burning_time}</yellow>s | Cooking progress: <yellow>{progress}</yellow></gray>"
+  progress_not_started: "Not Started"
+  progress_completed: "Completed"
+
 steamer:
   no_heat_source: "<red>No valid heat source under the steamer, cannot open.</red>"
-  in_use: "<yellow>This steamer is being used by another player, please try again
+  in_use:
+    "<yellow>This steamer is being used by another player, please try again
     later.</yellow>"
   open_failed: "<red>Failed to open steamer GUI.</red>"
   opened: "<gray>Steamer opened.</gray>"

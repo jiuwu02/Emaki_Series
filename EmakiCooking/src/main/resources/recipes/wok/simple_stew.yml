@@ -28,7 +28,7 @@ result:
       - "minecraft-rabbit_stew"
     amount: 1
     actions:
-      - "sendmessage text=\"<green>成功出锅。</green>\""
+      - 'sendmessage text="<green>成功出锅。</green>"'
   undercooked:
     item_sources:
       - "minecraft-mushroom_stew"

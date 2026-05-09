@@ -3,6 +3,6 @@ title: "<dark_gray>发酵桶"
 rows: 3
 slots:
   ingredient_slots:
-    slots: [ 10, 11, 12, 13, 14, 15, 16 ]
+    slots: [10, 11, 12, 13, 14, 15, 16]
     type: "ingredient"
     item: "AIR"

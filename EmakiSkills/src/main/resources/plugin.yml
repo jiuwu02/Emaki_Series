@@ -11,7 +11,7 @@ softdepend:
   - PlaceholderAPI
 commands:
   emakiskills:
-    aliases: [ eskills ]
+    aliases: [eskills]
     permission: emakiskills.use
 permissions:
   emakiskills.use:

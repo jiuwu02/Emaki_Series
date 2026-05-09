@@ -3,6 +3,6 @@ title: "<dark_gray>蒸锅"
 rows: 1
 slots:
   ingredient_slots:
-    slots: [ 0, 1, 2, 3, 4 ]
+    slots: [0, 1, 2, 3, 4]
     type: "ingredient"
     item: "AIR"

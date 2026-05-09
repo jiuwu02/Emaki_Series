@@ -20,14 +20,14 @@ fermentation:
         - "minecraft-potion"
       amount: 1
       actions:
-        - "sendmessage text=\"<yellow>提前收取了半发酵苹果饮。</yellow>\""
+        - 'sendmessage text="<yellow>提前收取了半发酵苹果饮。</yellow>"'
   over_time_seconds: 600
   over_output:
     item_sources:
       - "minecraft-honey_bottle"
     amount: 1
     actions:
-      - "sendmessage text=\"<gold>苹果酒已经继续转化为酸甜果醋。</gold>\""
+      - 'sendmessage text="<gold>苹果酒已经继续转化为酸甜果醋。</gold>"'
 
 permission: "emakicooking.recipe.apple_cider"
 
@@ -37,6 +37,6 @@ result:
       - "minecraft-honey_bottle"
     amount: 1
     actions:
-      - "sendmessage text=\"<gold>发酵完成。</gold>\""
+      - 'sendmessage text="<gold>发酵完成。</gold>"'
 
 structured_presentation: {}

@@ -36,7 +36,8 @@ command:
     materials_header: "<gold>========== Material List ({count} total) ==========</gold>"
     recipe_line: "<yellow>{id}</yellow> <gray>- {name}</gray>"
     blueprint_line: "<yellow>{id}</yellow> <gray>- {name}</gray>"
-    material_line: "<yellow>{id}</yellow> <gray>- {name} (Cost: {capacity}, Bonus:
+    material_line:
+      "<yellow>{id}</yellow> <gray>- {name} (Cost: {capacity}, Bonus:
       +{bonus})</gray>"
 
 # Console logs
@@ -83,13 +84,15 @@ console:
   data_folder_not_init: "<yellow>Data directory not yet initialized.</yellow>"
   bootstrap_copy_failed: "<yellow>Failed to copy default resource:
     <red>{path}</red> <gray>({error})</gray></yellow>"
-  bootstrap_save_failed: "<yellow>Failed to save merged config: <red>{path}</red>
+  bootstrap_save_failed:
+    "<yellow>Failed to save merged config: <red>{path}</red>
     <gray>({error})</gray></yellow>"
   pdc_source_registered: "<gray>PDC attribute source registered: {source}</gray>"
   recipes_loaded: "<gray>Loaded {count} recipe(s)</gray>"
   guis_loaded: "<gray>Loaded {count} GUI template(s)</gray>"
   player_data_directory_create_failed: "<yellow>Unable to create player data directory: <red>{path}</red></yellow>"
-  player_data_save_failed: "<yellow>Failed to save player data: <red>{uuid}</red>
+  player_data_save_failed:
+    "<yellow>Failed to save player data: <red>{uuid}</red>
     <gray>({error})</gray></yellow>"
   item_unknown_vanilla_material_source: "<yellow>Unknown vanilla material source: <red>{identifier}</red></yellow>"
   external_item_source_unavailable: "<yellow>External item source unavailable:
@@ -105,10 +108,12 @@ console:
     recipe <red>{recipe}</red> <gray>({reason})</gray></yellow>"
   forge_quality_execution_failed: "<yellow>Quality action execution failed:
     quality <red>{tier}</red> <gray>({error})</gray></yellow>"
-  forge_quality_failed: "<yellow>Quality action failed: quality <red>{tier}</red>
+  forge_quality_failed:
+    "<yellow>Quality action failed: quality <red>{tier}</red>
     <gray>({reason})</gray></yellow>"
   forge_refresh_failed: "<yellow>Failed to refresh forged item: recipe <red>{recipe}</red></yellow>"
-  forge_refresh_invalid_audit: "<yellow>Detected non-refreshable forge audit data:
+  forge_refresh_invalid_audit:
+    "<yellow>Detected non-refreshable forge audit data:
     <red>{reason}</red></yellow>"
   forge_refresh_missing_recipe: "<yellow>Recipe not found when refreshing forged
     item: <red>{recipe}</red></yellow>"
@@ -124,7 +129,8 @@ console:
   pdc_corrupted_data_detected: "<yellow>Corrupted forge PDC data detected: <red>{reason}</red></yellow>"
   pdc_deserialize_failed: "<yellow>Failed to deserialize forge material data:
     <red>{error}</red></yellow>"
-  pdc_deserialize_unexpected_error: "<yellow>Unexpected error deserializing forge
+  pdc_deserialize_unexpected_error:
+    "<yellow>Unexpected error deserializing forge
     material data: <red>{error}</red></yellow>"
   loader_config_load_error: "<red>Failed to load config file
     <yellow>{path}</yellow>: <gray>{error}</gray>"
@@ -132,7 +138,8 @@ console:
   loader_invalid_config: "<yellow>{type} config invalid <red>{path}</red>"
   loader_duplicate_id: "<yellow>Duplicate {type} ID found <red>{id}</red>
     <gray>source: {path}</gray>"
-  loader_exception: "<red>Exception loading {type} config <yellow>{path}</yellow>:
+  loader_exception:
+    "<red>Exception loading {type} config <yellow>{path}</yellow>:
     <gray>{error}</gray>"
   forge_consume_plan_mismatch: "<yellow>{category} consumption plan mismatch
     <gray>recipe={recipe}, mode={mode}, required={required},
@@ -159,16 +166,19 @@ loader:
   bundled_language_load_failed: "<red>Failed to load bundled language: {error}</red>"
   invalid_config: "<yellow>{type} file {file} has invalid config, skipped loading.</yellow>"
   bundled_resource_missing: "<red>Bundled resource missing: {resource}, cannot write to {path}</red>"
-  recipe_action_validation_skipped: "<yellow>Skipped action validation for recipe
+  recipe_action_validation_skipped:
+    "<yellow>Skipped action validation for recipe
     {file} because EmakiCoreLib is unavailable.</yellow>"
-  recipe_invalid_action_syntax: "<yellow>Invalid action syntax in recipe {recipe}:
+  recipe_invalid_action_syntax:
+    "<yellow>Invalid action syntax in recipe {recipe}:
     {file}, phase {phase}, line {line} <gray>({error})</gray></yellow>"
   recipe_unknown_action: "<yellow>Unknown action <red>{action}</red> in recipe
     {recipe}: {file}, phase {phase}, line {line}{suggestion}</yellow>"
   recipe_invalid_action_arguments: "<yellow>Invalid action arguments in recipe
     {recipe}: {file}, phase {phase}, line {line}
     <gray>({error})</gray></yellow>"
-  recipe_unknown_action_template: "<yellow>Unknown template <red>{template}</red>
+  recipe_unknown_action_template:
+    "<yellow>Unknown template <red>{template}</red>
     in recipe {recipe}: {file}, phase {phase}, line {line}</yellow>"
   recipe_invalid_condition_type: "<yellow>Invalid condition_type in recipe
     {recipe}: {file} -> <red>{value}</red>. Allowed values:

@@ -147,23 +147,14 @@ final class GemUpgradeGuiInteractionController {
             return;
         }
         Player player = state.player();
-        ItemStack currentOffHand = player.getInventory().getItemInOffHand();
-        var hands = InventoryItemUtil.withTemporaryHands(
-                player,
-                state.targetGem(),
-                currentOffHand,
-                () -> {
-                    GemUpgradeService.Result r = plugin.upgradeService().upgradeHeldGemWithGuiMaterials(
-                            player, false, state.mutableMaterialItems()
-                    );
-                    state.mutableMaterialItems().entrySet().removeIf(
-                            entry -> entry.getValue() == null || entry.getValue().getType().isAir()
-                    );
-                    return r;
-                }
+        GemUpgradeService.UpgradeItemResult execution = plugin.upgradeService().upgradeGemItemWithGuiMaterials(
+                player, state.mutableTargetGem(), false, state.mutableMaterialItems()
         );
-        GemUpgradeService.Result result = hands.result();
-        ItemStack updatedGem = hands.updatedMainHand();
+        state.mutableMaterialItems().entrySet().removeIf(
+                entry -> entry.getValue() == null || entry.getValue().getType().isAir()
+        );
+        GemUpgradeService.Result result = execution.result();
+        ItemStack updatedGem = execution.updatedItem();
         plugin.messageService().send(player, result.messageKey(), result.placeholders());
         if (result.success() && updatedGem != null) {
             InventoryItemUtil.giveOrDrop(player, updatedGem);

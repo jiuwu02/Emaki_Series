@@ -116,7 +116,8 @@ combat_debug:
     attackerCooldownTicks={attacker_cooldown_ticks}"
   dodge_triggered: "目标闪避了本次 EA 伤害: dodgeChance={dodge_chance}, dodgeRoll={dodge_roll}"
   event_result_empty: "EA 伤害结果为空，已跳过后续事件与落地。"
-  calc_result: "伤害计算完成: damageType={damage_type}, finalDamage={final_damage},
+  calc_result:
+    "伤害计算完成: damageType={damage_type}, finalDamage={final_damage},
     critical={critical}, roll={roll}, stages={stages}"
   event_blocked: "EmakiAttributeDamageEvent 未通过: cancelled={cancelled},
     finalDamage={final_damage}"
@@ -126,7 +127,8 @@ combat_debug:
     cancelled={cancelled}, finalDamage={final_damage}"
   mythic_on_damaged_adjusted: "synthetic onDamaged 调整了最终伤害: before={before}, after={after}"
   projectile_launch_blocked: "投射物发射被攻击冷却拦截: shooter={shooter}"
-  projectile_launch_snapshot_written: "投射物已写入快照: projectile={projectile},
+  projectile_launch_snapshot_written:
+    "投射物已写入快照: projectile={projectile},
     damageType={damage_type}, signature={signature}"
   synthetic_damage_bypass_entity: "已放行 synthetic 伤害事件，避免 EA 二次接管。"
   projectile_hit_intercept: "拦截原版投射物伤害: shooter={shooter},

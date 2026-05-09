@@ -1,6 +1,5 @@
 package emaki.jiuwu.craft.gem.service;
 
-import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.bukkit.entity.Player;
@@ -20,9 +19,6 @@ import emaki.jiuwu.craft.gem.model.GemItemInstance;
 import emaki.jiuwu.craft.gem.model.GemState;
 
 final class GemGuiInteractionController {
-
-    private static final int HIDDEN_ORIGINAL_MAIN_HAND_KEY = -1;
-    private static final int HIDDEN_ORIGINAL_OFF_HAND_KEY = -2;
 
     private final EmakiGemPlugin plugin;
     private final GemGuiStateManager stateManager;
@@ -88,6 +84,11 @@ final class GemGuiInteractionController {
                 plugin.messageService().send(state.player(), "command.inlay.slot_occupied", Map.of("slot", slotIndex));
                 return;
             }
+            if (isPendingInlaySlot(state, slotIndex) && cursorItem == null) {
+                returnPendingInputToCursor(state, event);
+                renderer.refreshGui(state);
+                return;
+            }
             GemItemInstance instance = plugin.itemMatcher().readGemInstance(cursorItem);
             GemDefinition gemDefinition = instance == null ? null : plugin.gemLoader().get(instance.gemId());
             if (gemDefinition == null) {
@@ -148,113 +149,63 @@ final class GemGuiInteractionController {
             plugin.messageService().send(state.player(), "gui.gem.no_pending_action");
             return;
         }
-        OperationExecution execution = executePending(state, pendingOperation);
-        String messageKey = messageKeyOf(execution.result());
-        Map<String, Object> placeholders = placeholdersOf(execution.result());
-        if (Texts.isNotBlank(messageKey)) {
-            plugin.messageService().send(state.player(), messageKey, placeholders);
-        }
-        if (execution.success()) {
-            if (execution.updatedTarget() != null && !execution.updatedTarget().getType().isAir()) {
-                InventoryItemUtil.giveOrDrop(state.player(), execution.updatedTarget());
-            }
-            state.setTargetItem(null);
-        } else {
-            if (execution.updatedTarget() != null && !execution.updatedTarget().getType().isAir()) {
-                state.setTargetItem(execution.updatedTarget());
-            } else if (execution.updatedTarget() == null || execution.updatedTarget().getType().isAir()) {
-                state.setTargetItem(null);
-            }
-            if (!inputConsumedOf(execution.result())) {
-                ItemStack returnedInput = execution.updatedInput() == null ? pendingOperation.inputItem() : execution.updatedInput();
-                if (returnedInput != null && !returnedInput.getType().isAir()) {
-                    InventoryItemUtil.giveOrDrop(state.player(), returnedInput);
-                }
-            }
-        }
-        state.clearPendingOperation();
-        renderer.refreshGui(state);
-    }
-
-    private OperationExecution executePending(GemGuiSession state, GemGuiSession.PendingOperation pendingOperation) {
         Player player = state.player();
         ItemStack targetItem = state.mutableTargetItem();
         if (player == null || targetItem == null) {
-            return new OperationExecution(false, null, state.targetItem(), pendingOperation.inputItem());
+            plugin.messageService().send(state.player(), "gui.gem.target_required");
+            return;
         }
-        Map<Integer, ItemStack> hiddenHeldItems = buildHiddenHeldItems(player);
-        try {
-            return switch (pendingOperation.type()) {
-                case INLAY -> {
-                    var hands = InventoryItemUtil.withTemporaryHands(
-                            player, targetItem, pendingOperation.inputItem(),
-                            () -> plugin.inlayService().inlay(player, player, pendingOperation.slotIndex(), false, hiddenHeldItems, true)
-                    );
-                    yield new OperationExecution(isSuccess(hands.result()), hands.result(), hands.updatedMainHand(), hands.updatedOffHand());
-                }
-                case EXTRACT -> {
-                    var hands = InventoryItemUtil.withTemporaryHands(
-                            player, targetItem, null,
-                            () -> plugin.extractService().extract(player, player, pendingOperation.slotIndex(), false)
-                    );
-                    yield new OperationExecution(isSuccess(hands.result()), hands.result(), hands.updatedMainHand(), hands.updatedOffHand());
-                }
-                default -> new OperationExecution(false, null, state.targetItem(), pendingOperation.inputItem());
-            };
-        } catch (RuntimeException ex) {
-            plugin.getLogger().warning("Failed to execute gem GUI operation for " + player.getName() + ": " + ex.getMessage());
-            return new OperationExecution(false, null, state.targetItem(), pendingOperation.inputItem());
+        switch (pendingOperation.type()) {
+            case INLAY -> executeInlay(state, pendingOperation, player, targetItem);
+            case EXTRACT -> executeExtract(state, pendingOperation, player, targetItem);
+            default -> plugin.messageService().send(player, "gui.gem.no_pending_action");
         }
     }
 
-    private Map<Integer, ItemStack> buildHiddenHeldItems(Player player) {
-        Map<Integer, ItemStack> hiddenHeldItems = new LinkedHashMap<>();
-        ItemStack originalMainHand = InventoryItemUtil.cloneNonAir(player.getInventory().getItemInMainHand());
-        ItemStack originalOffHand = InventoryItemUtil.cloneNonAir(player.getInventory().getItemInOffHand());
-        if (originalMainHand != null) {
-            hiddenHeldItems.put(HIDDEN_ORIGINAL_MAIN_HAND_KEY, originalMainHand);
+    private void executeInlay(GemGuiSession state, GemGuiSession.PendingOperation pendingOperation, Player player, ItemStack targetItem) {
+        GemInlayService.InlayResult inlayResult = plugin.inlayService().inlayDirect(
+                player, targetItem, pendingOperation.inputItem(), pendingOperation.slotIndex(), false, true);
+        GemInlayService.Result result = inlayResult.result();
+        String messageKey = result.messageKey();
+        if (Texts.isNotBlank(messageKey)) {
+            plugin.messageService().send(player, messageKey, result.placeholders());
         }
-        if (originalOffHand != null) {
-            hiddenHeldItems.put(HIDDEN_ORIGINAL_OFF_HAND_KEY, originalOffHand);
+        if (result.success()) {
+            if (inlayResult.updatedEquipment() != null && !inlayResult.updatedEquipment().getType().isAir()) {
+                InventoryItemUtil.giveOrDrop(player, inlayResult.updatedEquipment());
+            }
+            state.setTargetItem(null);
+            state.clearPendingOperation();
+        } else {
+            state.setTargetItemPreservingPending(inlayResult.updatedEquipment());
+            if (result.inputConsumed()) {
+                state.clearPendingOperation();
+            }
         }
-        return hiddenHeldItems;
+        renderer.refreshGui(state);
     }
 
-    private boolean isSuccess(Object result) {
-        if (result instanceof GemInlayService.Result inlayResult) {
-            return inlayResult.success();
+    private void executeExtract(GemGuiSession state, GemGuiSession.PendingOperation pendingOperation, Player player, ItemStack targetItem) {
+        GemInlayService.ExtractDirectResult extractResult = plugin.inlayService().extractDirect(
+                player, targetItem, pendingOperation.slotIndex(), false);
+        GemExtractService.Result result = extractResult.result();
+        String messageKey = result.messageKey();
+        if (Texts.isNotBlank(messageKey)) {
+            plugin.messageService().send(player, messageKey, result.placeholders());
         }
-        if (result instanceof GemExtractService.Result extractResult) {
-            return extractResult.success();
+        if (result.success()) {
+            if (extractResult.updatedEquipment() != null && !extractResult.updatedEquipment().getType().isAir()) {
+                InventoryItemUtil.giveOrDrop(player, extractResult.updatedEquipment());
+            }
+            state.setTargetItem(null);
+            if (extractResult.returnedGem() != null && !extractResult.returnedGem().getType().isAir()) {
+                InventoryItemUtil.giveOrDrop(player, extractResult.returnedGem());
+            }
+        } else {
+            state.setTargetItem(extractResult.updatedEquipment());
         }
-        return false;
-    }
-
-    private String messageKeyOf(Object result) {
-        if (result instanceof GemInlayService.Result inlayResult) {
-            return inlayResult.messageKey();
-        }
-        if (result instanceof GemExtractService.Result extractResult) {
-            return extractResult.messageKey();
-        }
-        return "";
-    }
-
-    private Map<String, Object> placeholdersOf(Object result) {
-        if (result instanceof GemInlayService.Result inlayResult) {
-            return inlayResult.placeholders();
-        }
-        if (result instanceof GemExtractService.Result extractResult) {
-            return extractResult.placeholders();
-        }
-        return Map.of();
-    }
-
-    private boolean inputConsumedOf(Object result) {
-        if (result instanceof GemInlayService.Result inlayResult) {
-            return inlayResult.inputConsumed();
-        }
-        return false;
+        state.clearPendingOperation();
+        renderer.refreshGui(state);
     }
 
     private void returnPendingInput(GemGuiSession state) {
@@ -266,6 +217,28 @@ final class GemGuiInteractionController {
         state.clearPendingOperation();
         if (inputItem != null && !inputItem.getType().isAir()) {
             InventoryItemUtil.giveOrDrop(state.player(), inputItem);
+        }
+    }
+
+    private boolean isPendingInlaySlot(GemGuiSession state, int slotIndex) {
+        if (state == null) {
+            return false;
+        }
+        GemGuiSession.PendingOperation pendingOperation = state.pendingOperation();
+        return pendingOperation.type() == GemGuiSession.PendingType.INLAY
+                && pendingOperation.slotIndex() == slotIndex
+                && pendingOperation.inputItem() != null;
+    }
+
+    private void returnPendingInputToCursor(GemGuiSession state, InventoryClickEvent event) {
+        if (state == null || event == null) {
+            return;
+        }
+        GemGuiSession.PendingOperation pendingOperation = state.pendingOperation();
+        ItemStack inputItem = pendingOperation.inputItem();
+        state.clearPendingOperation();
+        if (inputItem != null && !inputItem.getType().isAir()) {
+            event.getWhoClicked().setItemOnCursor(inputItem);
         }
     }
 
@@ -356,8 +329,5 @@ final class GemGuiInteractionController {
             }
             stateManager.remove(state);
         }
-    }
-
-    private record OperationExecution(boolean success, Object result, ItemStack updatedTarget, ItemStack updatedInput) {
     }
 }

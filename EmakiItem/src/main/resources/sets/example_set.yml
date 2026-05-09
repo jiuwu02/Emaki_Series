@@ -18,7 +18,8 @@ pieces:
     slot: "boots"
     display: "守护者战靴"
 lore:
-  header: "<dark_gray>—— <aqua>示例守护者套装</aqua> <gray>({active}/{total})</gray>
+  header:
+    "<dark_gray>—— <aqua>示例守护者套装</aqua> <gray>({active}/{total})</gray>
     ——</dark_gray>"
   equipped_format: "<green>✔ {piece}</green>"
   missing_format: "<gray>✘ {piece}</gray>"

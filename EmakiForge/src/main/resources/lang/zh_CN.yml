@@ -37,7 +37,8 @@ command:
     materials_header: "<gold>========== 材料列表 (共 {count} 条) ==========</gold>"
     recipe_line: "<yellow>{id}</yellow> <gray>- {name}</gray>"
     blueprint_line: "<yellow>{id}</yellow> <gray>- {name}</gray>"
-    material_line: "<yellow>{id}</yellow> <gray>- {name} (消耗: {capacity}, 加成:
+    material_line:
+      "<yellow>{id}</yellow> <gray>- {name} (消耗: {capacity}, 加成:
       +{bonus})</gray>"
 
 # 控制台日志
@@ -88,11 +89,13 @@ console:
   player_data_directory_create_failed: "<yellow>无法创建玩家数据目录: <red>{path}</red></yellow>"
   player_data_save_failed: "<yellow>保存玩家数据失败: <red>{uuid}</red> <gray>({error})</gray></yellow>"
   item_unknown_vanilla_material_source: "<yellow>未知的原版材料来源: <red>{identifier}</red></yellow>"
-  external_item_source_unavailable: "<yellow>外部物品来源不可用: <gray>依赖={dependency},
+  external_item_source_unavailable:
+    "<yellow>外部物品来源不可用: <gray>依赖={dependency},
     场景={context}, 来源={source}, 详情={detail}</gray></yellow>"
   item_bridge_unavailable: "<yellow>{dependency} API 桥接不可用: <red>{error}</red></yellow>"
   forge_execution_failed: "<yellow>锻造执行失败: 配方 <red>{recipe}</red> <gray>({error})</gray></yellow>"
-  forge_phase_execution_failed: "<yellow>锻造阶段执行失败: 阶段 <red>{phase}</red>，配方
+  forge_phase_execution_failed:
+    "<yellow>锻造阶段执行失败: 阶段 <red>{phase}</red>，配方
     <red>{recipe}</red> <gray>({error})</gray></yellow>"
   forge_phase_failed: "<yellow>锻造阶段失败: 阶段 <red>{phase}</red>，配方
     <red>{recipe}</red> <gray>({reason})</gray></yellow>"
@@ -101,9 +104,11 @@ console:
   forge_refresh_failed: "<yellow>刷新锻造物品失败: 配方 <red>{recipe}</red></yellow>"
   forge_refresh_invalid_audit: "<yellow>检测到无法刷新的锻造审计数据: <red>{reason}</red></yellow>"
   forge_refresh_missing_recipe: "<yellow>刷新锻造物品时未找到配方: <red>{recipe}</red></yellow>"
-  forge_refresh_missing_material: "<yellow>刷新锻造物品时未找到材料: 配方 <red>{recipe}</red>，材料
+  forge_refresh_missing_material:
+    "<yellow>刷新锻造物品时未找到材料: 配方 <red>{recipe}</red>，材料
     <red>{material}</red></yellow>"
-  forge_refresh_invalid_quality: "<yellow>刷新锻造物品时发现无效品质: 配方 <red>{recipe}</red>，品质
+  forge_refresh_invalid_quality:
+    "<yellow>刷新锻造物品时发现无效品质: 配方 <red>{recipe}</red>，品质
     <red>{quality}</red></yellow>"
   pdc_write_skipped_primary_thread: "<yellow>跳过锻造 PDC 写入: 不在主线程。</yellow>"
   pdc_write_failed: "<yellow>写入锻造 PDC 数据失败: 配方 <red>{recipe}</red>
@@ -116,13 +121,17 @@ console:
   loader_invalid_config: "<yellow>{type}配置无效 <red>{path}</red>"
   loader_duplicate_id: "<yellow>发现重复的{type}ID <red>{id}</red> <gray>来源: {path}</gray>"
   loader_exception: "<red>加载{type}配置时发生异常 <yellow>{path}</yellow>: <gray>{error}</gray>"
-  forge_consume_plan_mismatch: "<yellow>{category}消耗规划异常 <gray>配方={recipe},
+  forge_consume_plan_mismatch:
+    "<yellow>{category}消耗规划异常 <gray>配方={recipe},
     模式={mode}, 需求={required}, 预留={reserved}</gray>"
-  forge_consume_mismatch: "<yellow>{category}消耗数量异常 <gray>配方={recipe}, 标识={id},
+  forge_consume_mismatch:
+    "<yellow>{category}消耗数量异常 <gray>配方={recipe}, 标识={id},
     需求={required}, 实扣={removed}</gray>"
-  lore_search_not_found: "<yellow>Lore 搜索插入未找到目标: 来源 <red>{source}</red>，动作
+  lore_search_not_found:
+    "<yellow>Lore 搜索插入未找到目标: 来源 <red>{source}</red>，动作
     <red>{action}</red>，匹配 <red>{pattern}</red></yellow>"
-  lore_invalid_action_name: "<yellow>Lore 搜索操作名无效: 来源 <red>{source}</red>，动作
+  lore_invalid_action_name:
+    "<yellow>Lore 搜索操作名无效: 来源 <red>{source}</red>，动作
     <red>{action}</red> <gray>({error})</gray></yellow>"
   lore_invalid_regex: "<yellow>Lore 搜索正则无效: 来源 <red>{source}</red>，动作
     <red>{action}</red>，表达式 <red>{pattern}</red>
@@ -137,15 +146,19 @@ loader:
   invalid_config: "<yellow>{type} 文件 {file} 配置无效，已跳过加载。</yellow>"
   bundled_resource_missing: "<red>内置资源缺失: {resource}，无法写入 {path}</red>"
   recipe_action_validation_skipped: "<yellow>跳过配方 {file} 的操作校验，因为 EmakiCoreLib 不可用。</yellow>"
-  recipe_invalid_action_syntax: "<yellow>配方 {recipe} 的操作语法无效: {file}，阶段 {phase}，第
+  recipe_invalid_action_syntax:
+    "<yellow>配方 {recipe} 的操作语法无效: {file}，阶段 {phase}，第
     {line} 行 <gray>({error})</gray></yellow>"
-  recipe_unknown_action: "<yellow>配方 {recipe} 中存在未知操作 <red>{action}</red>:
+  recipe_unknown_action:
+    "<yellow>配方 {recipe} 中存在未知操作 <red>{action}</red>:
     {file}，阶段 {phase}，第 {line} 行{suggestion}</yellow>"
-  recipe_invalid_action_arguments: "<yellow>配方 {recipe} 中的操作参数无效: {file}，阶段
+  recipe_invalid_action_arguments:
+    "<yellow>配方 {recipe} 中的操作参数无效: {file}，阶段
     {phase}，第 {line} 行 <gray>({error})</gray></yellow>"
   recipe_unknown_action_template: "<yellow>配方 {recipe} 中存在未知模板
     <red>{template}</red>: {file}，阶段 {phase}，第 {line} 行</yellow>"
-  recipe_invalid_condition_type: "<yellow>配方 {recipe} 的 condition_type 非法: {file}
+  recipe_invalid_condition_type:
+    "<yellow>配方 {recipe} 的 condition_type 非法: {file}
     -> <red>{value}</red>。允许值: <gray>{allowed}</gray>，已拒绝加载。</yellow>"
 
 # 锻造相关

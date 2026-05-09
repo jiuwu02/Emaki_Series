@@ -122,29 +122,25 @@ final class GemOpenGuiInteractionController {
             return;
         }
         Player player = state.player();
-        Execution execution;
-        if (player == null || state.mutableTargetItem() == null || state.mutableOpenerItem() == null) {
-            execution = new Execution(null, state.mutableTargetItem(), state.mutableOpenerItem());
-        } else {
-            var hands = InventoryItemUtil.withTemporaryHands(
-                    player,
-                    state.mutableTargetItem(),
-                    state.mutableOpenerItem(),
-                    () -> plugin.socketOpenerService().openAt(player, player, opener.id(), state.selectedSlotIndex(), false)
-            );
-            execution = new Execution(hands.result(), hands.updatedMainHand(), hands.updatedOffHand());
-        }
+        SocketOpenerService.OpenResult execution = plugin.socketOpenerService().openDirect(
+                player,
+                state.mutableTargetItem(),
+                state.mutableOpenerItem(),
+                opener.id(),
+                state.selectedSlotIndex(),
+                false
+        );
         if (execution.result() != null) {
             plugin.messageService().send(state.player(), execution.result().messageKey(), execution.result().placeholders());
         }
         if (execution.result() != null && execution.result().success()) {
-            if (execution.updatedTarget() != null) {
-                InventoryItemUtil.giveOrDrop(state.player(), execution.updatedTarget());
+            if (execution.updatedEquipment() != null) {
+                InventoryItemUtil.giveOrDrop(state.player(), execution.updatedEquipment());
             }
             state.setTargetItem(null);
             state.setOpenerItem(execution.updatedOpener());
         } else {
-            state.setTargetItem(execution.updatedTarget());
+            state.setTargetItem(execution.updatedEquipment());
             state.setOpenerItem(execution.updatedOpener());
         }
         state.clearSelectedSlot();
@@ -201,6 +197,4 @@ final class GemOpenGuiInteractionController {
         }
     }
 
-    private record Execution(SocketOpenerService.Result result, ItemStack updatedTarget, ItemStack updatedOpener) {
-    }
 }

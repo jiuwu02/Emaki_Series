@@ -18,7 +18,7 @@ public final class GemDefinition {
     private final String displayName;
     private final List<String> lore;
     private final String gemType;
-    private final int tier;
+    private final int level;
     private final ItemSource itemSource;
     private final Integer customModelData;
     private final Map<String, Double> stats;
@@ -37,7 +37,7 @@ public final class GemDefinition {
             String displayName,
             List<String> lore,
             String gemType,
-            int tier,
+            int level,
             ItemSource itemSource,
             Integer customModelData,
             Map<String, Double> stats,
@@ -55,7 +55,7 @@ public final class GemDefinition {
         this.displayName = Texts.isBlank(displayName) ? this.id : displayName;
         this.lore = lore == null ? List.of() : List.copyOf(lore);
         this.gemType = Texts.isBlank(gemType) ? "universal" : Texts.lower(gemType);
-        this.tier = Math.max(1, tier);
+        this.level = Math.max(1, level);
         this.itemSource = itemSource;
         this.customModelData = customModelData;
         this.stats = stats == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(stats));
@@ -87,8 +87,8 @@ public final class GemDefinition {
         return gemType;
     }
 
-    public int tier() {
-        return tier;
+    public int level() {
+        return level;
     }
 
     public ItemSource itemSource() {

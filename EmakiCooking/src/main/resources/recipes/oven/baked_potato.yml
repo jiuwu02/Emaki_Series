@@ -23,6 +23,6 @@ result:
       - "minecraft-baked_potato"
     amount: 1
     actions:
-      - "sendmessage text=\"<gold>烤制完成。</gold>\""
+      - 'sendmessage text="<gold>烤制完成。</gold>"'
 
 structured_presentation: {}

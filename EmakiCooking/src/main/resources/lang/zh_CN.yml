@@ -32,7 +32,8 @@ console:
   bootstrap_save_failed: "<yellow>保存合并资源失败: <red>{path}</red> <gray>({error})</gray></yellow>"
   default_file_missing: "<yellow>缺少内置默认资源: <red>{path}</red></yellow>"
   directory_create_failed: "<yellow>创建目录失败: <red>{path}</red></yellow>"
-  loader_config_load_error: "<yellow>读取 EmakiCooking 配置失败: <red>{path}</red>
+  loader_config_load_error:
+    "<yellow>读取 EmakiCooking 配置失败: <red>{path}</red>
     <gray>({error})</gray></yellow>"
   station_recipes_loaded: "<gray>已加载{station} {count} 个配方</gray>"
   block_source_bridge_ready: "<gray>已接入方块源: {provider}</gray>"
@@ -81,14 +82,25 @@ wok:
   info_line: "<gray>{index}. {item} x{amount} | 单项翻炒 {stir}</gray>"
   info_footer: "<gray>总翻炒: <yellow>{count}</yellow> | 火候: <yellow>{heat}</yellow></gray>"
 
+oven:
+  in_use: "<yellow>这个烤炉正在被其他玩家使用，请稍后再试。</yellow>"
+  open_failed: "<red>烤炉 GUI 打开失败。</red>"
+  opened: "<gray>烤炉已打开。</gray>"
+  add_fuel: "<gray>已加入燃料 <yellow>{item}</yellow>，预计持续 <yellow>{seconds}</yellow> 秒。当前火力: <yellow>{heat}</yellow></gray>"
+  info: "<gray>火力: <yellow>{heat}</yellow> | 燃烧时间: <yellow>{burning_time}</yellow>秒 | 烹饪进度: <yellow>{progress}</yellow></gray>"
+  progress_not_started: "未开始"
+  progress_completed: "已完成"
+
 steamer:
   no_heat_source: "<red>蒸锅下方缺少有效热源，无法打开。</red>"
   in_use: "<yellow>这口蒸锅正在被其他玩家使用，请稍后再试。</yellow>"
   open_failed: "<red>蒸锅 GUI 打开失败。</red>"
   opened: "<gray>蒸锅已打开。</gray>"
-  add_fuel: "<gray>已加入燃料 <yellow>{item}</yellow>，预计持续 <yellow>{seconds}</yellow>
+  add_fuel:
+    "<gray>已加入燃料 <yellow>{item}</yellow>，预计持续 <yellow>{seconds}</yellow>
     秒。</gray>"
-  add_moisture: "<gray>已加入水分源 <yellow>{item}</yellow>，增加 <aqua>{moisture}</aqua>
+  add_moisture:
+    "<gray>已加入水分源 <yellow>{item}</yellow>，增加 <aqua>{moisture}</aqua>
     点水分，当前总量 <aqua>{total}</aqua>。</gray>"
   info: "<gray>燃烧时间: <yellow>{burning_time}</yellow>秒 | 水分:
     <aqua>{moisture}</aqua> | 蒸汽: <white>{steam}</white> | 烹饪进度:

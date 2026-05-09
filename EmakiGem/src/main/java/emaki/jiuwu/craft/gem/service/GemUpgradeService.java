@@ -76,10 +76,14 @@ public final class GemUpgradeService {
         return upgradeHeldGem(player, bypassCost, providedMaterials, true);
     }
 
-    public Result upgradeHeldGemWithGuiMaterials(Player player,
+    public UpgradeItemResult upgradeGemItemWithGuiMaterials(Player player,
+            ItemStack itemStack,
             boolean bypassCost,
             Map<Integer, ItemStack> providedMaterials) {
-        return upgradeHeldGem(player, bypassCost, providedMaterials, false);
+        return upgradeGemItemDirect(player, itemStack, bypassCost, providedMaterials, false);
+    }
+
+    public record UpgradeItemResult(Result result, ItemStack updatedItem) {
     }
 
     private Result upgradeHeldGem(Player player,
@@ -108,15 +112,27 @@ public final class GemUpgradeService {
             boolean bypassCost,
             Map<Integer, ItemStack> providedMaterials,
             boolean allowInventoryFallback) {
+        UpgradeItemResult direct = upgradeGemItemDirect(player, itemStack, bypassCost, providedMaterials, allowInventoryFallback);
+        if (direct.updatedItem() != itemStack) {
+            player.getInventory().setItemInMainHand(direct.updatedItem() == null || direct.updatedItem().getType().isAir() ? null : direct.updatedItem());
+        }
+        return direct.result();
+    }
+
+    private UpgradeItemResult upgradeGemItemDirect(Player player,
+            ItemStack itemStack,
+            boolean bypassCost,
+            Map<Integer, ItemStack> providedMaterials,
+            boolean allowInventoryFallback) {
         if (player == null) {
-            return Result.failure("general.player_not_found", Map.of());
+            return new UpgradeItemResult(Result.failure("general.player_not_found", Map.of()), itemStack);
         }
         UpgradePreview preview = preview(itemStack);
         if (!preview.eligible()) {
-            return Result.failure(preview.errorKey(), Map.of());
+            return new UpgradeItemResult(Result.failure(preview.errorKey(), Map.of()), itemStack);
         }
         if (!evaluateConditions(player)) {
-            return Result.failure("gem.error.condition_not_met", Map.of());
+            return new UpgradeItemResult(Result.failure("gem.error.condition_not_met", Map.of()), itemStack);
         }
         GemDefinition definition = preview.definition();
         GemItemInstance instance = preview.instance();
@@ -132,7 +148,7 @@ public final class GemUpgradeService {
                     ? economyService.charge(player, currencies, materials, variables, providedMaterials)
                     : economyService.chargeProvidedOnly(player, currencies, materials, variables, providedMaterials);
             if (!chargeResult.success()) {
-                return Result.failure(chargeResult.errorKey(), Map.of());
+                return new UpgradeItemResult(Result.failure(chargeResult.errorKey(), chargeResult.placeholders()), itemStack);
             }
         }
         Map<String, Object> placeholders = new LinkedHashMap<>(itemFactory.gemPlaceholders(definition, targetLevel, instance.level()));
@@ -143,20 +159,18 @@ public final class GemUpgradeService {
         placeholders.put("success_rate", successChance);
         if (ThreadLocalRandom.current().nextDouble(100D) >= successChance) {
             ItemStack penalized = applyFailurePenalty(definition, upgradeLevel, itemStack, instance);
-            player.getInventory().setItemInMainHand(penalized == null || penalized.getType().isAir() ? null : penalized);
             actionCoordinator.execute(player, "gem_upgrade_failure", upgradeLevel.failureActions(), placeholders);
-            return Result.failure("command.upgrade.failed", placeholders);
+            return new UpgradeItemResult(Result.failure("command.upgrade.failed", placeholders), penalized);
         }
         ItemStack rebuilt = itemFactory.createGemItem(definition, targetLevel, Math.max(1, itemStack.getAmount()));
         if (rebuilt == null) {
             if (chargeResult != null) {
                 economyService.refund(player, chargeResult.chargedCurrencies(), chargeResult.chargedMaterials());
             }
-            return Result.failure("command.upgrade.apply_failed", placeholders);
+            return new UpgradeItemResult(Result.failure("command.upgrade.apply_failed", placeholders), itemStack);
         }
-        player.getInventory().setItemInMainHand(rebuilt);
         actionCoordinator.execute(player, "gem_upgrade_success", upgradeLevel.successActions(), placeholders);
-        return Result.success("command.upgrade.success", placeholders);
+        return new UpgradeItemResult(Result.success("command.upgrade.success", placeholders), rebuilt);
     }
 
     public Result upgradeEquippedGem(Player actor, Player target, int slotIndex, boolean bypassCost) {
@@ -191,7 +205,9 @@ public final class GemUpgradeService {
             List<GemDefinition.MaterialCost> materials = new ArrayList<>(upgradeLevel.materials());
             chargeResult = economyService.charge(actor, currencies, materials, costVariables(definition, instance.level(), targetLevel));
             if (!chargeResult.success()) {
-                return Result.failure(chargeResult.errorKey(), Map.of("slot", slotIndex));
+                Map<String, Object> placeholders = new LinkedHashMap<>(chargeResult.placeholders());
+                placeholders.put("slot", slotIndex);
+                return Result.failure(chargeResult.errorKey(), placeholders);
             }
         }
         Map<String, Object> placeholders = new LinkedHashMap<>(itemFactory.gemPlaceholders(definition, targetLevel, instance.level()));
@@ -260,7 +276,7 @@ public final class GemUpgradeService {
 
     private Map<String, Object> costVariables(GemDefinition definition, int currentLevel, int targetLevel) {
         Map<String, Object> variables = new LinkedHashMap<>();
-        variables.put("tier", definition == null ? 1 : definition.tier());
+        variables.put("level", definition == null ? 1 : definition.level());
         variables.put("current_level", Math.max(1, currentLevel));
         variables.put("target_level", Math.max(1, targetLevel));
         return Map.copyOf(variables);

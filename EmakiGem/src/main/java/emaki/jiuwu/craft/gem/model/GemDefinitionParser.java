@@ -48,7 +48,7 @@ final class GemDefinitionParser {
                 section.getString("display_name", id),
                 section.getStringList("lore"),
                 section.getString("gem_type", "universal"),
-                section.getInt("tier", 1),
+                section.getInt("level", 1),
                 itemSource,
                 Numbers.tryParseInt(section.get("custom_model_data"), null),
                 parseStatMap(section.getSection("variables")),

@@ -37,6 +37,13 @@ public final class GemInlayService {
         }
     }
 
+    public record InlayResult(Result result, ItemStack updatedEquipment) {
+
+        public InlayResult {
+            result = result == null ? Result.failure("general.unknown_error", Map.of()) : result;
+        }
+    }
+
     private final EmakiGemPlugin plugin;
     private final GemItemMatcher itemMatcher;
     private final GemStateService stateService;
@@ -55,67 +62,58 @@ public final class GemInlayService {
         this.actionCoordinator = actionCoordinator;
     }
 
-    public Result inlay(Player actor, Player target, int slotIndex, boolean bypassCost) {
-        return inlay(actor, target, slotIndex, bypassCost, Map.of());
-    }
-
-    public Result inlay(Player actor,
-            Player target,
+    /**
+     * GUI 模式镶嵌：直接传入装备和宝石物品，不从主副手读取。
+     * 材料费用只从玩家背包和快捷栏中扣除（不含盔甲栏和副手）。
+     * 不会修改玩家手持物品，调用方负责处理装备和宝石的归还/消耗。
+     */
+    public InlayResult inlayDirect(Player actor,
+            ItemStack equipment,
+            ItemStack gemItem,
             int slotIndex,
             boolean bypassCost,
-            Map<Integer, ItemStack> providedMaterials) {
-        return inlay(actor, target, slotIndex, bypassCost, providedMaterials, false);
-    }
-
-    public Result inlay(Player actor,
-            Player target,
-            int slotIndex,
-            boolean bypassCost,
-            Map<Integer, ItemStack> providedMaterials,
             boolean preserveInputOnFailure) {
-        if (actor == null || target == null) {
-            return Result.failure("general.player_not_found", Map.of());
+        if (actor == null) {
+            return new InlayResult(Result.failure("general.player_not_found", Map.of()), equipment);
         }
-        ItemStack equipment = target.getInventory().getItemInMainHand();
         GemItemDefinition itemDefinition = stateService.resolveItemDefinition(equipment);
         if (itemDefinition == null) {
-            return Result.failure("gem.error.invalid_equipment", Map.of("player", target.getName()));
+            return new InlayResult(Result.failure("gem.error.invalid_equipment", Map.of("player", actor.getName())), equipment);
         }
         GemState currentState = stateService.resolveState(equipment, itemDefinition);
         GemItemDefinition.SocketSlot slot = itemDefinition.slot(slotIndex);
         if (slot == null) {
-            return Result.failure("command.inlay.slot_not_found", Map.of("slot", slotIndex));
+            return new InlayResult(Result.failure("command.inlay.slot_not_found", Map.of("slot", slotIndex)), equipment);
         }
         if (!currentState.isOpened(slotIndex)) {
-            return Result.failure("command.inlay.slot_not_opened", Map.of("slot", slotIndex));
+            return new InlayResult(Result.failure("command.inlay.slot_not_opened", Map.of("slot", slotIndex)), equipment);
         }
         if (currentState.assignment(slotIndex) != null) {
-            return Result.failure("command.inlay.slot_occupied", Map.of("slot", slotIndex));
+            return new InlayResult(Result.failure("command.inlay.slot_occupied", Map.of("slot", slotIndex)), equipment);
         }
-        ItemStack gemItem = actor.getInventory().getItemInOffHand();
         GemItemInstance instance = itemMatcher.readGemInstance(gemItem);
         GemDefinition gemDefinition = instance == null ? null : plugin.gemLoader().get(instance.gemId());
         if (gemDefinition == null) {
-            return Result.failure("command.inlay.hold_gem", Map.of());
+            return new InlayResult(Result.failure("command.inlay.hold_gem", Map.of()), equipment);
         }
         if (!itemDefinition.allowsGemType(gemDefinition.gemType())) {
-            return Result.failure("command.inlay.gem_type_blocked", Map.of("type", gemDefinition.gemType()));
+            return new InlayResult(Result.failure("command.inlay.gem_type_blocked", Map.of("type", gemDefinition.gemType())), equipment);
         }
         if (!gemDefinition.supportsSocketType(slot.type())) {
-            return Result.failure("command.inlay.socket_incompatible", Map.of("slot", slotIndex, "type", slot.type()));
+            return new InlayResult(Result.failure("command.inlay.socket_incompatible", Map.of("slot", slotIndex, "type", slot.type())), equipment);
         }
         if (itemDefinition.maxSameType() > 0
                 && stateService.countAssignmentsByType(itemDefinition, currentState).getOrDefault(gemDefinition.gemType(), 0) >= itemDefinition.maxSameType()) {
-            return Result.failure("command.inlay.max_same_type", Map.of("type", gemDefinition.gemType()));
+            return new InlayResult(Result.failure("command.inlay.max_same_type", Map.of("type", gemDefinition.gemType())), equipment);
         }
         if (stateService.countAssignmentsByGemId(currentState, gemDefinition.id()) >= itemDefinition.maxSameId()) {
-            return Result.failure("command.inlay.max_same_id", Map.of("gem", gemDefinition.id()));
+            return new InlayResult(Result.failure("command.inlay.max_same_id", Map.of("gem", gemDefinition.id())), equipment);
         }
         if (!evaluateConditions(actor)) {
-            return Result.failure("gem.error.condition_not_met", Map.of());
+            return new InlayResult(Result.failure("gem.error.condition_not_met", Map.of()), equipment);
         }
         Map<String, Object> placeholders = new LinkedHashMap<>();
-        placeholders.put("player", target.getName());
+        placeholders.put("player", actor.getName());
         placeholders.put("slot", slotIndex);
         placeholders.put("gem", plugin.itemFactory().resolveGemDisplayName(gemDefinition, instance.level()));
         placeholders.put("gem_id", gemDefinition.id());
@@ -126,9 +124,9 @@ public final class GemInlayService {
         String failureAction = Texts.lower(plugin.appConfig().inlaySuccess().failureAction());
         GemEconomyService.ChargeResult chargeResult = null;
         if (!bypassCost && shouldChargeBeforeRoll(failureAction)) {
-            chargeResult = chargeInlayCost(actor, gemDefinition, instance, providedMaterials);
+            chargeResult = chargeInlayCost(actor, gemDefinition, instance, Map.of());
             if (!chargeResult.success()) {
-                return Result.failure(chargeResult.errorKey(), Map.of());
+                return new InlayResult(Result.failure(chargeResult.errorKey(), chargeResult.placeholders()), equipment);
             }
         }
         if (!rollSuccess(successChance)) {
@@ -136,15 +134,12 @@ public final class GemInlayService {
                 economyService.refund(actor, chargeResult.chargedCurrencies(), chargeResult.chargedMaterials());
             }
             boolean inputConsumed = !preserveInputOnFailure && shouldConsumeGemOnFailure(failureAction);
-            if (inputConsumed) {
-                consumeOne(actor.getInventory().getItemInOffHand(), actor);
-            }
-            return Result.failure("command.inlay.chance_failed", placeholders, inputConsumed);
+            return new InlayResult(Result.failure("command.inlay.chance_failed", placeholders, inputConsumed), equipment);
         }
         if (!bypassCost && chargeResult == null) {
-            chargeResult = chargeInlayCost(actor, gemDefinition, instance, providedMaterials);
+            chargeResult = chargeInlayCost(actor, gemDefinition, instance, Map.of());
             if (!chargeResult.success()) {
-                return Result.failure(chargeResult.errorKey(), Map.of());
+                return new InlayResult(Result.failure(chargeResult.errorKey(), chargeResult.placeholders()), equipment);
             }
         }
         GemState nextState = currentState.withAssignment(slotIndex, instance);
@@ -153,12 +148,85 @@ public final class GemInlayService {
             if (chargeResult != null) {
                 economyService.refund(actor, chargeResult.chargedCurrencies(), chargeResult.chargedMaterials());
             }
-            return Result.failure("command.inlay.apply_failed", Map.of("player", target.getName()));
+            return new InlayResult(Result.failure("command.inlay.apply_failed", Map.of("player", actor.getName())), equipment);
         }
-        target.getInventory().setItemInMainHand(rebuilt);
-        consumeOne(actor.getInventory().getItemInOffHand(), actor);
-        actionCoordinator.execute(target, "gem_inlay_success", gemDefinition.inlaySuccessActions(), placeholders);
-        return Result.success("command.inlay.success", placeholders);
+        actionCoordinator.execute(actor, "gem_inlay_success", gemDefinition.inlaySuccessActions(), placeholders);
+        return new InlayResult(Result.success("command.inlay.success", placeholders), rebuilt);
+    }
+
+    /**
+     * GUI 模式取出：直接传入装备物品，不从主手读取。
+     * 调用方负责处理装备的归还。
+     */
+    public ExtractDirectResult extractDirect(Player actor,
+            ItemStack equipment,
+            int slotIndex,
+            boolean bypassCost) {
+        if (actor == null) {
+            return new ExtractDirectResult(
+                    GemExtractService.Result.failure("general.player_not_found", Map.of()), equipment, null);
+        }
+        GemItemDefinition itemDefinition = stateService.resolveItemDefinition(equipment);
+        if (itemDefinition == null) {
+            return new ExtractDirectResult(
+                    GemExtractService.Result.failure("gem.error.invalid_equipment", Map.of("player", actor.getName())), equipment, null);
+        }
+        GemState currentState = stateService.resolveState(equipment, itemDefinition);
+        GemItemInstance instance = currentState.assignment(slotIndex);
+        GemDefinition gemDefinition = instance == null ? null : plugin.gemLoader().get(instance.gemId());
+        if (instance == null || gemDefinition == null) {
+            return new ExtractDirectResult(
+                    GemExtractService.Result.failure("command.extract.slot_empty", Map.of("slot", slotIndex)), equipment, null);
+        }
+        if (!evaluateConditions(actor)) {
+            return new ExtractDirectResult(
+                    GemExtractService.Result.failure("gem.error.condition_not_met", Map.of()), equipment, null);
+        }
+        GemEconomyService.ChargeResult chargeResult = null;
+        if (!bypassCost) {
+            chargeResult = economyService.charge(actor, gemDefinition.extractCost(), costVariables(gemDefinition, instance.level(), instance.level()));
+            if (!chargeResult.success()) {
+                return new ExtractDirectResult(
+                        GemExtractService.Result.failure(chargeResult.errorKey(), chargeResult.placeholders()), equipment, null);
+            }
+        }
+        GemState nextState = currentState.withAssignment(slotIndex, null);
+        ItemStack rebuilt = stateService.applyState(equipment, itemDefinition, nextState);
+        if (rebuilt == null) {
+            if (chargeResult != null) {
+                economyService.refund(actor, chargeResult.chargedCurrencies(), chargeResult.chargedMaterials());
+            }
+            return new ExtractDirectResult(
+                    GemExtractService.Result.failure("command.extract.apply_failed", Map.of("player", actor.getName())), equipment, null);
+        }
+        ItemStack returned = createReturnedGem(gemDefinition, instance);
+        Map<String, Object> placeholders = new LinkedHashMap<>();
+        placeholders.put("player", actor.getName());
+        placeholders.put("slot", slotIndex);
+        placeholders.put("gem", plugin.itemFactory().resolveGemDisplayName(gemDefinition, instance.level()));
+        placeholders.put("gem_id", gemDefinition.id());
+        actionCoordinator.execute(actor, "gem_extract_success", gemDefinition.extractSuccessActions(), placeholders);
+        return new ExtractDirectResult(
+                GemExtractService.Result.success("command.extract.success", placeholders), rebuilt, returned);
+    }
+
+    public record ExtractDirectResult(GemExtractService.Result result, ItemStack updatedEquipment, ItemStack returnedGem) {
+    }
+
+    private ItemStack createReturnedGem(GemDefinition gemDefinition, GemItemInstance instance) {
+        String mode = gemDefinition.extractReturn().mode();
+        if ("destroy".equalsIgnoreCase(mode)) {
+            return null;
+        }
+        int level = instance.level();
+        if ("downgrade".equalsIgnoreCase(mode)
+                && ThreadLocalRandom.current().nextDouble() < gemDefinition.extractReturn().degradedChance()) {
+            level -= gemDefinition.extractReturn().downgradeLevels();
+            if (level <= 0) {
+                return null;
+            }
+        }
+        return plugin.itemFactory().createGemItem(gemDefinition, level, 1);
     }
 
     private GemEconomyService.ChargeResult chargeInlayCost(Player actor,
@@ -180,8 +248,8 @@ public final class GemInlayService {
         if (!config.enabled()) {
             return 100D;
         }
-        double configuredChance = config.tierChances().getOrDefault(
-                definition.tier(),
+        double configuredChance = config.levelChances().getOrDefault(
+                definition.level(),
                 config.defaultChance()
         );
         if (Texts.isBlank(config.rateFormula())) {
@@ -189,9 +257,9 @@ public final class GemInlayService {
         }
         Map<String, Object> variables = new LinkedHashMap<>();
         variables.put("default_chance", config.defaultChance());
-        variables.put("tier_chance", configuredChance);
+        variables.put("level_chance", configuredChance);
         variables.put("configured_chance", configuredChance);
-        variables.put("tier", definition.tier());
+        variables.put("level", definition.level());
         return clampChance(ExpressionEngine.evaluate(config.rateFormula(), variables));
     }
 
@@ -209,7 +277,7 @@ public final class GemInlayService {
 
     private Map<String, Object> costVariables(GemDefinition definition, int currentLevel, int targetLevel) {
         Map<String, Object> variables = new LinkedHashMap<>();
-        variables.put("tier", definition == null ? 1 : definition.tier());
+        variables.put("level", definition == null ? 1 : definition.level());
         variables.put("current_level", Math.max(1, currentLevel));
         variables.put("target_level", Math.max(1, targetLevel));
         return Map.copyOf(variables);
@@ -240,17 +308,5 @@ public final class GemInlayService {
         } catch (Exception | NoClassDefFoundError _) {
             return text;
         }
-    }
-
-    private void consumeOne(ItemStack itemStack, Player holder) {
-        if (itemStack == null || holder == null) {
-            return;
-        }
-        if (itemStack.getAmount() <= 1) {
-            holder.getInventory().setItemInOffHand(null);
-            return;
-        }
-        itemStack.setAmount(itemStack.getAmount() - 1);
-        holder.getInventory().setItemInOffHand(itemStack);
     }
 }

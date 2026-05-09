@@ -20,7 +20,7 @@ public final class GemItemDefinition {
     private final List<String> slotGroups;
     private final List<String> loreContains;
     private final List<SocketSlot> slots;
-    private final int defaultOpenSlots;
+    private final Set<Integer> defaultOpenSlots;
     private final Set<String> allowedGemTypes;
     private final int maxSameType;
     private final int maxSameId;
@@ -32,7 +32,7 @@ public final class GemItemDefinition {
             List<String> slotGroups,
             List<String> loreContains,
             List<SocketSlot> slots,
-            int defaultOpenSlots,
+            Set<Integer> defaultOpenSlots,
             Set<String> allowedGemTypes,
             int maxSameType,
             int maxSameId,
@@ -46,7 +46,7 @@ public final class GemItemDefinition {
                 .filter(slot -> slot != null && slot.index() >= 0)
                 .sorted(Comparator.comparingInt(SocketSlot::index))
                 .toList();
-        this.defaultOpenSlots = Math.max(0, defaultOpenSlots);
+        this.defaultOpenSlots = defaultOpenSlots == null ? Set.of() : Set.copyOf(defaultOpenSlots);
         this.allowedGemTypes = allowedGemTypes == null ? Set.of() : Set.copyOf(allowedGemTypes);
         this.maxSameType = Math.max(0, maxSameType);
         this.maxSameId = Math.max(1, maxSameId);
@@ -74,8 +74,8 @@ public final class GemItemDefinition {
         return slots;
     }
 
-    public int defaultOpenSlots() {
-        return Math.min(defaultOpenSlots, slots.size());
+    public Set<Integer> defaultOpenSlots() {
+        return defaultOpenSlots;
     }
 
     public Set<String> allowedGemTypes() {
@@ -103,9 +103,15 @@ public final class GemItemDefinition {
     }
 
     public Set<Integer> defaultOpenedSlotIndexes() {
+        Set<Integer> validSlotIndexes = new LinkedHashSet<>();
+        for (SocketSlot slot : slots) {
+            validSlotIndexes.add(slot.index());
+        }
         Set<Integer> indexes = new LinkedHashSet<>();
-        for (int i = 0; i < defaultOpenSlots() && i < slots.size(); i++) {
-            indexes.add(slots.get(i).index());
+        for (Integer idx : defaultOpenSlots) {
+            if (idx != null && validSlotIndexes.contains(idx)) {
+                indexes.add(idx);
+            }
         }
         return Set.copyOf(indexes);
     }
@@ -150,13 +156,20 @@ public final class GemItemDefinition {
                 allowedGemTypes.add(Texts.lower(value));
             }
         }
+        Set<Integer> defaultOpenSlots = new LinkedHashSet<>();
+        for (Object raw : ConfigNodes.asObjectList(section.get("default_open_slots"))) {
+            int idx = Numbers.tryParseInt(raw, -1);
+            if (idx >= 0) {
+                defaultOpenSlots.add(idx);
+            }
+        }
         return new GemItemDefinition(
                 id,
                 itemSources,
                 slotGroups,
                 loreContains,
                 slots,
-                section.getInt("default_open_slots", 0),
+                defaultOpenSlots,
                 allowedGemTypes,
                 section.getInt("max_same_type", Integer.MAX_VALUE),
                 section.getInt("max_same_id", 1),

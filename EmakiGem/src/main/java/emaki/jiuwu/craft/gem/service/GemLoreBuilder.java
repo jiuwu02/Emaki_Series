@@ -20,6 +20,7 @@ final class GemLoreBuilder {
 
     private static final String NAMESPACE_ID = "gem";
     private static final String DEFAULT_SLOT_SEPARATOR = "<dark_gray>─────────────</dark_gray>";
+    private static final String LORE_PREFIX = "lore.";
 
     private final EmakiGemPlugin plugin;
 
@@ -41,8 +42,14 @@ final class GemLoreBuilder {
             return List.of();
         }
         List<String> lines = new ArrayList<>();
-        lines.add("<yellow>宝石插槽 [" + renderSlotIcons(itemDefinition, state) + "] "
-                + countOpenedSlots(itemDefinition, state) + "/" + itemDefinition.slots().size() + "</yellow>");
+        Map<String, Object> placeholders = Map.of(
+                "icons", renderSlotIcons(itemDefinition, state),
+                "opened", countOpenedSlots(itemDefinition, state),
+                "total", itemDefinition.slots().size()
+        );
+        lines.add(loreText("overview_title", placeholders,
+                "<yellow>宝石插槽 [" + placeholders.get("icons") + "] "
+                        + placeholders.get("opened") + "/" + placeholders.get("total") + "</yellow>"));
         List<String> configuredLines = extraLines == null ? List.of() : List.copyOf(extraLines);
         if (configuredLines.isEmpty()) {
             lines.add(DEFAULT_SLOT_SEPARATOR);
@@ -57,30 +64,34 @@ final class GemLoreBuilder {
             return List.of();
         }
         List<String> lines = new ArrayList<>();
-        lines.add("<dark_gray>◆ 宝石槽</dark_gray>");
+        lines.add(loreText("status_header", Map.of(), "<dark_gray>◆ 宝石槽</dark_gray>"));
         for (GemItemDefinition.SocketSlot slot : itemDefinition.slots()) {
             if (slot == null) {
                 continue;
             }
             GemItemInstance instance = state.assignment(slot.index());
             if (!state.isOpened(slot.index())) {
-                lines.add("<gray>[" + slot.index() + "] <dark_gray>未开孔 - " + slot.displayName() + "</dark_gray>");
+                lines.add(loreText("slot_not_opened", Map.of("slot", slot.index(), "name", slot.displayName()),
+                        "<gray>[" + slot.index() + "] <dark_gray>未开孔 - " + slot.displayName() + "</dark_gray>"));
                 continue;
             }
             if (instance == null) {
-                lines.add("<gray>[" + slot.index() + "] <yellow>空槽</yellow> <dark_gray>(" + slot.displayName() + ")</dark_gray>");
+                lines.add(loreText("slot_empty", Map.of("slot", slot.index(), "name", slot.displayName()),
+                        "<gray>[" + slot.index() + "] <yellow>空槽</yellow> <dark_gray>(" + slot.displayName() + ")</dark_gray>"));
                 continue;
             }
             GemDefinition definition = plugin.gemLoader().get(instance.gemId());
             String displayName = definition == null
                     ? instance.gemId()
                     : plugin.itemFactory().resolveGemDisplayName(definition, instance.level());
-            lines.add("<gray>[" + slot.index() + "]</gray> " + displayName + " <dark_gray>Lv." + instance.level() + "</dark_gray>");
+            lines.add(loreText("slot_inlaid", Map.of("slot", slot.index(), "gem", displayName, "level", instance.level()),
+                    "<gray>[" + slot.index() + "]</gray> " + displayName + " <dark_gray>Lv." + instance.level() + "</dark_gray>"));
         }
         return lines;
     }
 
     List<String> extractSafeLoreLines(Object operations, Map<String, ?> placeholders, boolean filterOverviewLine) {
+        String overviewMarker = filterOverviewLine ? loreText("overview_title", Map.of("icons", "", "opened", 0, "total", 0), "宝石插槽") : null;
         List<String> lines = new ArrayList<>();
         for (Map<String, Object> operation : normalizeOperations(replaceTemplates(operations, placeholders))) {
             String action = Texts.lower(operation.get("action"));
@@ -91,7 +102,7 @@ final class GemLoreBuilder {
                 if (Texts.isBlank(line)) {
                     continue;
                 }
-                if (filterOverviewLine && line.contains("宝石插槽")) {
+                if (overviewMarker != null && isOverviewLine(line, overviewMarker)) {
                     continue;
                 }
                 lines.add(line);
@@ -230,5 +241,25 @@ final class GemLoreBuilder {
     private List<String> resolveContent(Map<String, Object> operation) {
         Object raw = operation == null ? null : operation.get("content");
         return ExpressionEngine.evaluateStringLinesConfig(raw);
+    }
+
+    private String loreText(String key, Map<String, ?> placeholders, String fallback) {
+        String value = plugin.messageService().message(LORE_PREFIX + key, placeholders);
+        return Texts.isBlank(value) || (LORE_PREFIX + key).equals(value) ? fallback : value;
+    }
+
+    private boolean isOverviewLine(String line, String marker) {
+        if (Texts.isBlank(line) || Texts.isBlank(marker)) {
+            return false;
+        }
+        // Strip MiniMessage tags for comparison
+        String stripped = line.replaceAll("<[^>]+>", "");
+        String markerStripped = marker.replaceAll("<[^>]+>", "");
+        if (Texts.isBlank(markerStripped)) {
+            return false;
+        }
+        // Use first meaningful segment of the marker as identifier
+        String[] segments = markerStripped.trim().split("\\s+");
+        return segments.length > 0 && stripped.contains(segments[0]);
     }
 }

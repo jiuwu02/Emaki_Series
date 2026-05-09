@@ -16,6 +16,6 @@ result:
         - "minecraft-bone_meal"
       amount: 3
   actions:
-    - "sendmessage text=\"<gray>研磨结束。</gray>\""
+    - 'sendmessage text="<gray>研磨结束。</gray>"'
 
 structured_presentation: {}

@@ -115,7 +115,8 @@ slot_names:
 
 command:
   help:
-    header: "<gray>========== <gradient:#4DA6FF:#FF6B6B>EmakiSkills 帮助</gradient>
+    header:
+      "<gray>========== <gradient:#4DA6FF:#FF6B6B>EmakiSkills 帮助</gradient>
       ==========</gray>"
     line: "<gold>/{cmd}</gold> <gray>- {desc}</gray>"
     footer: "<gray>==========================================</gray>"
@@ -137,7 +138,8 @@ command:
     get: "<gray>玩家 <white>{player}</white> 的 <white>{skill}</white> 等级为
       <gold>{level}</gold><dark_gray>/</dark_gray><yellow>{max_level}</yellow>。\
       </gray>"
-    changed: "<green>已将玩家 <white>{player}</white> 的 <white>{skill}</white> 等级设置为
+    changed:
+      "<green>已将玩家 <white>{player}</white> 的 <white>{skill}</white> 等级设置为
       <gold>{level}</gold><dark_gray>/</dark_gray><yellow>{max_level}</yellow>。\
       </green>"
 
@@ -151,6 +153,7 @@ upgrade:
   economy_unavailable: "<red>经济服务不可用，无法扣除 {cost}。</red>"
   insufficient_funds: "<red>金币不足，需要 {cost}。</red>"
   insufficient_materials: "<red>材料不足，需要 <white>{material}</white> x{required}，当前 {available}。</red>"
-  success: "<green>技能 <white>{skill}</white> 已升级至 <gold>{target_level}</gold>
+  success:
+    "<green>技能 <white>{skill}</white> 已升级至 <gold>{target_level}</gold>
     级。</green>"
   failed: "<red>技能 <white>{skill}</white> 升级失败，成功率 {success_rate}%。</red>"

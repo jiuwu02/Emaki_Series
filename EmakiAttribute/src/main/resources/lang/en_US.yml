@@ -19,7 +19,8 @@ console:
     <white>{higher_key}</white>. Lower priority causes read failure; raise
     priority or change display_name.</yellow>"
   mmoitems_bridge_unavailable: "<yellow>MMOItems attribute bridge init failed: <red>{error}</red></yellow>"
-  mmoitems_stat_resolve_failed: "<yellow>MMOItems attribute mapping cannot resolve
+  mmoitems_stat_resolve_failed:
+    "<yellow>MMOItems attribute mapping cannot resolve
     stat: attribute <aqua>{attribute}</aqua> -> <red>{stat}</red></yellow>"
   mmoitems_stat_read_failed: "<yellow>MMOItems attribute mapping read failed:
     attribute <aqua>{attribute}</aqua> -> <red>{stat}</red>
@@ -158,7 +159,8 @@ combat_debug:
   environment_mapped: "Environment damage mapped to EA damage: target={target},
     cause={cause}, damageType={damage_type}, sourceDamage={source_damage},
     baseDamage={base_damage}"
-  projectile_snapshot_missing_strict: "Projectile hit snapshot not found, aborting
+  projectile_snapshot_missing_strict:
+    "Projectile hit snapshot not found, aborting
     under strict snapshot mode: projectile={projectile}"
   async_damage_failed: "Async damage resolve failed: {error}"
 
@@ -171,7 +173,8 @@ command:
     started: "<gray>Async reload task submitted, progress will follow.</gray>"
     success: "<green>Attribute system reloaded.</green>"
     failed: "<red>Attribute system reload failed: {error}</red>"
-    summary: "<gray>Attributes {attributes}, damage types {damage_types}, default
+    summary:
+      "<gray>Attributes {attributes}, damage types {damage_types}, default
       profiles {profiles}.</gray>"
 
   resync:
@@ -202,7 +205,8 @@ command:
     player: "<green>Viewing attribute snapshot for {player}.</green>"
     signature: "<gray>Signature <dark_gray>(hover to view)</dark_gray></gray>"
     values: "<gray>Attribute values <dark_gray>(hover to view)</dark_gray></gray>"
-    resource_line: "<gray>{resource}: default {default_max}, bonus {bonus_max}, cap
+    resource_line:
+      "<gray>{resource}: default {default_max}, bonus {bonus_max}, cap
       {current_max}, current {current}</gray>"
 
   debug:
@@ -228,11 +232,13 @@ command:
     reload: "<gray>/emakiattribute reload</gray> Reload config and lore."
     resync: "<gray>/emakiattribute resync [player|all]</gray> Re-sync player
       attributes."
-    preview: "<gray>/emakiattribute preview [player] [slot]</gray> Preview attribute
+    preview:
+      "<gray>/emakiattribute preview [player] [slot]</gray> Preview attribute
       snapshot for a slot."
     dump: "<gray>/emakiattribute dump [player]</gray> View combat snapshot and
       resource state."
-    debug: "<gray>/emakiattribute debug [player] [on|off|toggle]</gray> Trace combat
+    debug:
+      "<gray>/emakiattribute debug [player] [on|off|toggle]</gray> Trace combat
       flow and output detailed console logs."
     lint: "<gray>/emakiattribute lint</gray> Check config and resource loading
       issues."

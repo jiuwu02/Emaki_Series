@@ -21,7 +21,8 @@ slots:
     type: "universal"
     display_name: "<white>通用插槽</white>"
 
-default_open_slots: 1
+default_open_slots:
+  - 0
 
 allowed_gem_types:
   - "defense"

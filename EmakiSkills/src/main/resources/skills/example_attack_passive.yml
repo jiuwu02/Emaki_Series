@@ -61,7 +61,7 @@ script:
     hit:
       - "damage target=target amount={echo_damage} damage_type=spell
         element=echo"
-      - "sendmessage target=caster text=\"{echo_message}\""
+      - 'sendmessage target=caster text="{echo_message}"'
 
 upgrade:
   enabled: true
@@ -110,7 +110,7 @@ upgrade:
           decimals: 0
       actions:
         success:
-          - "sendmessage text=\"<aqua>命中回响达到 IV，触发概率获得额外提升。</aqua>\""
+          - 'sendmessage text="<aqua>命中回响达到 IV，触发概率获得额外提升。</aqua>"'
         failure: []
 
     8:
@@ -121,6 +121,6 @@ upgrade:
       success_rate: 50.0
       actions:
         success:
-          - "broadcastmessage text=\"<aqua>{player}</aqua>
-            <gray>将命中回响提升至满级。</gray>\""
+          - 'broadcastmessage text="<aqua>{player}</aqua>
+            <gray>将命中回响提升至满级。</gray>"'
         failure: []

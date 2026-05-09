@@ -66,7 +66,7 @@ final class GemCommandRouter implements TabExecutor {
         if (args.length == 2) {
             switch (args[0].toLowerCase()) {
                 case "gui" -> {
-                    for (String sub : List.of("inlay", "extract", "open", "upgrade")) {
+                    for (String sub : List.of("inlay", "open", "upgrade")) {
                         if (sub.startsWith(args[1].toLowerCase())) {
                             result.add(sub);
                         }
@@ -119,7 +119,6 @@ final class GemCommandRouter implements TabExecutor {
         }
         return switch (args[1].toLowerCase()) {
             case "inlay" -> handleGui(sender, GemGuiMode.INLAY);
-            case "extract" -> handleGui(sender, GemGuiMode.EXTRACT);
             case "open" -> handleGui(sender, GemGuiMode.OPEN_SOCKET);
             case "upgrade" -> handleGui(sender, GemGuiMode.UPGRADE);
             default -> {
@@ -199,7 +198,7 @@ final class GemCommandRouter implements TabExecutor {
         plugin.messageService().sendRaw(sender, plugin.messageService().message("command.help.header"));
         Map<String, String> lines = new LinkedHashMap<>();
         lines.put("help", "显示帮助信息");
-        lines.put("gui [inlay|extract|open|upgrade]", "打开对应的宝石 GUI");
+        lines.put("gui [inlay|open|upgrade]", "打开对应的宝石 GUI");
         lines.put("reload", "重载宝石配置与资源");
         lines.put("inspect [player]", "查看主手装备的宝石状态");
         lines.put("clearstate", "移除主手物品上的宝石层");

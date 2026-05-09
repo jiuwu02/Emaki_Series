@@ -68,8 +68,18 @@ final class GemGuiSession implements GemPlayerGuiSession {
     }
 
     public void setTargetItem(ItemStack targetItem) {
+        setTargetItem(targetItem, true);
+    }
+
+    public void setTargetItemPreservingPending(ItemStack targetItem) {
+        setTargetItem(targetItem, false);
+    }
+
+    private void setTargetItem(ItemStack targetItem, boolean clearPending) {
         this.targetItem = cloneNonAir(targetItem);
-        clearPendingOperation();
+        if (clearPending) {
+            clearPendingOperation();
+        }
     }
 
     public PendingOperation pendingOperation() {

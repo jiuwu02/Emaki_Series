@@ -18,6 +18,9 @@ import emaki.jiuwu.craft.gem.model.GemDefinition;
 
 final class GemUpgradeGuiRenderer {
 
+    private static final String TEXT_PREFIX = "gui_text.upgrade.";
+    private static final String COMMON_PREFIX = "gui_text.common.";
+
     private final EmakiGemPlugin plugin;
 
     GemUpgradeGuiRenderer(EmakiGemPlugin plugin) {
@@ -52,9 +55,9 @@ final class GemUpgradeGuiRenderer {
             String item = resolvedSlot == null || resolvedSlot.definition() == null || Texts.isBlank(resolvedSlot.definition().item())
                     ? Material.RED_STAINED_GLASS_PANE.name()
                     : resolvedSlot.definition().item();
-            return buildItem(item, "<red>放入宝石</red>", List.of(
-                    "<gray>将未镶嵌的宝石物品放入此槽</gray>",
-                    "<gray>支持从光标放入，也可点击取回</gray>"
+            return buildItem(item, text("target_empty_name", "<red>Place Gem</red>"), List.of(
+                    text("target_empty_lore_1", "<gray>Place an uninlaid gem item here</gray>"),
+                    common("click_take_back", "<gray>Supports placing from cursor and clicking to retrieve</gray>")
             ));
         }
         return targetGem.clone();
@@ -64,40 +67,40 @@ final class GemUpgradeGuiRenderer {
         GemUpgradeService.UpgradePreview preview = preview(state);
         List<String> lore = new ArrayList<>();
         if (!preview.eligible()) {
-            lore.add("<gray>请先放入可升级宝石</gray>");
-            return buildItem(Material.BOOK, "<gold>等级信息</gold>", lore);
+            lore.add(text("level_info_empty", "<gray>Please place an upgradeable gem first</gray>"));
+            return buildItem(Material.BOOK, text("level_info_name", "<gold>Level Info</gold>"), lore);
         }
-        lore.add("<gray>宝石: <yellow>"
-                + plugin.itemFactory().resolveGemDisplayName(preview.definition(), preview.instance().level())
-                + "</yellow></gray>");
-        lore.add("<gray>当前等级: <yellow>" + preview.instance().level() + "</yellow></gray>");
-        lore.add("<gray>目标等级: <gold>" + preview.targetLevel() + "</gold></gray>");
-        lore.add("<gray>最高等级: <aqua>" + preview.definition().upgrade().maxLevel() + "</aqua></gray>");
-        return buildItem(Material.BOOK, "<gold>等级信息</gold>", lore);
+        lore.add(text("gem_line", Map.of("gem", plugin.itemFactory().resolveGemDisplayName(preview.definition(), preview.instance().level())), "<gray>Gem: <yellow>{gem}</yellow></gray>"));
+        lore.add(text("current_level", Map.of("level", preview.instance().level()), "<gray>Current level: <yellow>{level}</yellow></gray>"));
+        lore.add(text("target_level", Map.of("level", preview.targetLevel()), "<gray>Target level: <gold>{level}</gold></gray>"));
+        lore.add(text("max_level", Map.of("level", preview.definition().upgrade().maxLevel()), "<gray>Max level: <aqua>{level}</aqua></gray>"));
+        return buildItem(Material.BOOK, text("level_info_name", "<gold>Level Info</gold>"), lore);
     }
 
     private ItemStack renderMaterialSlot(GemUpgradeGuiSession state, int displayIndex) {
         GemUpgradeService.UpgradePreview preview = preview(state);
         if (!preview.eligible() || displayIndex >= preview.upgradeLevel().materials().size()) {
-            return buildItem(Material.GRAY_STAINED_GLASS_PANE, "<dark_gray>材料槽</dark_gray>", List.of("<dark_gray>当前无材料预览</dark_gray>"));
+            return buildItem(Material.GRAY_STAINED_GLASS_PANE, text("material_slot_name", "<dark_gray>Material Slot</dark_gray>"), List.of(
+                    text("material_slot_empty", "<dark_gray>No material preview</dark_gray>")
+            ));
         }
         GemDefinition.MaterialCost material = preview.upgradeLevel().materials().get(displayIndex);
         String itemName = materialDisplayName(material.itemSource());
         ItemStack placedItem = state.materialItem(displayIndex);
         List<String> lore = new ArrayList<>();
-        lore.add("<gray>材料: <yellow>" + itemName + "</yellow></gray>");
-        lore.add("<gray>需要数量: <gold>x" + material.amount() + "</gold></gray>");
+        lore.add(text("material_line", Map.of("material", itemName), "<gray>Material: <yellow>{material}</yellow></gray>"));
+        lore.add(text("material_amount", Map.of("amount", material.amount()), "<gray>Required amount: <gold>x{amount}</gold></gray>"));
         if (placedItem != null) {
             return placedItem.clone();
         }
-        lore.add("<gray>请放入对应物品源的材料</gray>");
-        lore.add("<dark_gray>只有放入本界面的材料才会参与升级扣除</dark_gray>");
+        lore.add(text("material_place", "<gray>Please place matching item source material</gray>"));
+        lore.add(text("material_scope", "<dark_gray>Only materials placed in this GUI are consumed</dark_gray>"));
         ItemStack previewItem = material.itemSource() == null || plugin.coreItemSourceService() == null
                 ? null
                 : plugin.coreItemSourceService().createItem(material.itemSource(), 1);
         if (previewItem != null) {
             return GuiItemBuilder.apply(previewItem, new ItemComponentParser.ItemComponents(
-                    "<aqua>升级材料</aqua>",
+                    text("material_name", "<aqua>Upgrade Material</aqua>"),
                     true,
                     lore,
                     null,
@@ -106,66 +109,66 @@ final class GemUpgradeGuiRenderer {
                     List.of()
             ), Map.of());
         }
-        return buildItem(Material.BLAZE_POWDER, "<aqua>升级材料</aqua>", lore);
+        return buildItem(Material.BLAZE_POWDER, text("material_name", "<aqua>Upgrade Material</aqua>"), lore);
     }
 
     private ItemStack renderPreview(GemUpgradeGuiSession state) {
         GemUpgradeService.UpgradePreview preview = preview(state);
         List<String> lore = new ArrayList<>();
         if (!preview.eligible()) {
-            lore.add("<gray>这里会展示升级预览</gray>");
-            lore.add("<gray>放入宝石后可查看材料与结果</gray>");
-            return buildItem(Material.WRITABLE_BOOK, "<gold>升级预览</gold>", lore);
+            lore.add(text("preview_empty_1", "<gray>Upgrade preview will be shown here</gray>"));
+            lore.add(text("preview_empty_2", "<gray>Place a gem to view materials and result</gray>"));
+            return buildItem(Material.WRITABLE_BOOK, text("preview_name", "<gold>Upgrade Preview</gold>"), lore);
         }
-        lore.add("<gray>升级后物品名: <yellow>"
-                + plugin.itemFactory().resolveGemDisplayName(preview.definition(), preview.targetLevel())
-                + "</yellow></gray>");
+        lore.add(text("result_name", Map.of("gem", plugin.itemFactory().resolveGemDisplayName(preview.definition(), preview.targetLevel())), "<gray>Result item name: <yellow>{gem}</yellow></gray>"));
         List<GemDefinition.CurrencyCost> currencies = !preview.upgradeLevel().currencies().isEmpty()
                 ? preview.upgradeLevel().currencies()
                 : preview.definition().upgrade().currencies();
         if (!currencies.isEmpty()) {
-            lore.add("<gray>经济消耗:</gray>");
+            lore.add(text("economy_cost", "<gray>Economy cost:</gray>"));
             int currentLevel = preview.instance().level();
             for (GemDefinition.CurrencyCost currency : currencies) {
                 double amount = currency.resolveAmount(Map.of(
-                        "tier", preview.definition().tier(),
+                        "level", preview.definition().level(),
                         "current_level", currentLevel,
                         "target_level", preview.targetLevel()
                 ));
-                lore.add("<gold> - " + currency.provider() + ": " + amount + "</gold>");
+                lore.add(text("economy_line", Map.of("provider", currency.provider(), "amount", amount), "<gold> - {provider}: {amount}</gold>"));
             }
         }
-        lore.add("<gray>升级材料必须全部放入本界面的材料槽</gray>");
-        lore.add("<green>确认后将直接更新该宝石物品</green>");
-        return buildItem(Material.WRITABLE_BOOK, "<gold>升级预览</gold>", lore);
+        lore.add(text("material_required_hint", "<gray>All upgrade materials must be placed in material slots</gray>"));
+        lore.add(text("confirm_update_hint", "<green>Confirming will directly update this gem item</green>"));
+        return buildItem(Material.WRITABLE_BOOK, text("preview_name", "<gold>Upgrade Preview</gold>"), lore);
     }
 
     private ItemStack renderSuccessRate(GemUpgradeGuiSession state) {
         GemUpgradeService.UpgradePreview preview = preview(state);
         List<String> lore = new ArrayList<>();
         if (!preview.eligible()) {
-            lore.add("<gray>成功率将在放入宝石后显示</gray>");
-            return buildItem(Material.EXPERIENCE_BOTTLE, "<gold>成功率</gold>", lore);
+            lore.add(text("success_rate_empty", "<gray>Success rate will be shown after placing a gem</gray>"));
+            return buildItem(Material.EXPERIENCE_BOTTLE, text("success_rate_name", "<gold>Success Rate</gold>"), lore);
         }
         double successRate = plugin.upgradeService().effectiveSuccessChance(preview.definition(), preview.targetLevel(), preview.upgradeLevel().successChance());
-        lore.add("<gray>基础成功率: <green>" + successRate + "%</green></gray>");
+        lore.add(text("success_rate_line", Map.of("rate", successRate), "<gray>Base success rate: <green>{rate}%</green></gray>"));
         String failurePenalty = !preview.upgradeLevel().failurePenalty().isBlank()
                 ? preview.upgradeLevel().failurePenalty()
                 : !preview.definition().upgrade().failurePenalty().isBlank()
                         ? preview.definition().upgrade().failurePenalty()
                         : plugin.appConfig().upgrade().globalFailurePenalty();
-        lore.add("<gray>失败惩罚: <yellow>" + failurePenalty + "</yellow></gray>");
-        return buildItem(Material.EXPERIENCE_BOTTLE, "<gold>成功率</gold>", lore);
+        lore.add(text("failure_penalty", Map.of("penalty", failurePenalty), "<gray>Failure penalty: <yellow>{penalty}</yellow></gray>"));
+        return buildItem(Material.EXPERIENCE_BOTTLE, text("success_rate_name", "<gold>Success Rate</gold>"), lore);
     }
 
     private ItemStack renderConfirm(GemUpgradeGuiSession state) {
         GemUpgradeService.UpgradePreview preview = preview(state);
         if (!preview.eligible()) {
-            return buildItem(Material.BARRIER, "<red>无法升级</red>", List.of("<gray>请先满足升级条件</gray>"));
+            return buildItem(Material.BARRIER, text("confirm_disabled_name", "<red>Cannot Upgrade</red>"), List.of(
+                    text("confirm_disabled_lore", "<gray>Please satisfy upgrade requirements first</gray>")
+            ));
         }
-        return buildItem(Material.LIME_STAINED_GLASS_PANE, "<green>确认升级</green>", List.of(
-                "<gray>点击后仅消耗本界面材料槽中的材料并尝试升级</gray>",
-                "<gray>目标等级: <gold>" + preview.targetLevel() + "</gold></gray>"
+        return buildItem(Material.LIME_STAINED_GLASS_PANE, text("confirm_name", "<green>Confirm Upgrade</green>"), List.of(
+                text("confirm_lore", "<gray>Click to consume GUI materials and try upgrading</gray>"),
+                text("target_level", Map.of("level", preview.targetLevel()), "<gray>Target level: <gold>{level}</gold></gray>")
         ));
     }
 
@@ -177,7 +180,7 @@ final class GemUpgradeGuiRenderer {
 
     private String materialDisplayName(ItemSource source) {
         if (source == null) {
-            return "未知材料";
+            return common("unknown_material", "Unknown material");
         }
         if (plugin.coreItemSourceService() != null) {
             String displayName = plugin.coreItemSourceService().displayName(source);
@@ -201,5 +204,26 @@ final class GemUpgradeGuiRenderer {
                 Map.of(),
                 (source, amount) -> plugin.coreItemSourceService() == null ? null : plugin.coreItemSourceService().createItem(source, amount)
         );
+    }
+
+    private String text(String key, String fallback) {
+        return text(key, Map.of(), fallback);
+    }
+
+    private String text(String key, Map<String, ?> placeholders, String fallback) {
+        return resolve(TEXT_PREFIX + key, placeholders, fallback);
+    }
+
+    private String common(String key, String fallback) {
+        return common(key, Map.of(), fallback);
+    }
+
+    private String common(String key, Map<String, ?> placeholders, String fallback) {
+        return resolve(COMMON_PREFIX + key, placeholders, fallback);
+    }
+
+    private String resolve(String key, Map<String, ?> placeholders, String fallback) {
+        String value = plugin.messageService().message(key, placeholders);
+        return Texts.isBlank(value) || key.equals(value) ? fallback : value;
     }
 }
