@@ -127,7 +127,7 @@ stars:
           - "<gray>强化达到 +5 后，防具会额外提供生命值。</gray>"
     actions:
       success:
-        - "sendmessage text=\"<yellow>强化达到 +5，解锁额外生命值。</yellow>\""
+        - 'sendmessage text="<yellow>强化达到 +5，解锁额外生命值。</yellow>"'
   6:
     variables:
       physical_defense: 3.5
@@ -190,8 +190,8 @@ stars:
           - "<gray>强化达到 +8 后，防具会继续提升生命值。</gray>"
     actions:
       success:
-        - "sendtitle title=\"<yellow><bold>+8 生命值提升</bold></yellow>\"
-          subtitle=\"<white>额外生命值已解锁</white>\""
+        - 'sendtitle title="<yellow><bold>+8 生命值提升</bold></yellow>"
+          subtitle="<white>额外生命值已解锁</white>"'
   9:
     variables:
       physical_defense: 5
@@ -240,8 +240,8 @@ stars:
           - "<gray>强化达到 +10 后，防具会额外提供生命回复。</gray>"
     actions:
       success:
-        - "sendtitle title=\"<yellow><bold>+10 生命回复提升</bold></yellow>\"
-          subtitle=\"<white>生命回复已解锁</white>\""
+        - 'sendtitle title="<yellow><bold>+10 生命回复提升</bold></yellow>"
+          subtitle="<white>生命回复已解锁</white>"'
   11:
     variables:
       physical_defense: 7
@@ -295,5 +295,5 @@ stars:
           - "<gray>强化达到 +12 后，防具会额外提供闪避率。</gray>"
     actions:
       success:
-        - "sendtitle title=\"<yellow><bold>+12 闪避提升</bold></yellow>\"
-          subtitle=\"<white>闪避率已解锁</white>\""
+        - 'sendtitle title="<yellow><bold>+12 闪避提升</bold></yellow>"
+          subtitle="<white>闪避率已解锁</white>"'

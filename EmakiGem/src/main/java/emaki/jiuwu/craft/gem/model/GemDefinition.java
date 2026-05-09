@@ -26,6 +26,8 @@ public final class GemDefinition {
     private final List<String> skillIds;
     private final Set<String> socketCompatibility;
     private final Object structuredPresentation;
+    private final Object nameActions;
+    private final Object loreActions;
     private final CostConfig inlayCost;
     private final CostConfig extractCost;
     private final ExtractReturn extractReturn;
@@ -45,6 +47,8 @@ public final class GemDefinition {
             List<String> skillIds,
             Set<String> socketCompatibility,
             Object structuredPresentation,
+            Object nameActions,
+            Object loreActions,
             CostConfig inlayCost,
             CostConfig extractCost,
             ExtractReturn extractReturn,
@@ -63,6 +67,8 @@ public final class GemDefinition {
         this.skillIds = normalizeSkillIds(skillIds);
         this.socketCompatibility = socketCompatibility == null ? Set.of() : Set.copyOf(socketCompatibility);
         this.structuredPresentation = ConfigNodes.toPlainData(structuredPresentation);
+        this.nameActions = ConfigNodes.toPlainData(nameActions);
+        this.loreActions = ConfigNodes.toPlainData(loreActions);
         this.inlayCost = inlayCost == null ? CostConfig.none() : inlayCost;
         this.extractCost = extractCost == null ? CostConfig.none() : extractCost;
         this.extractReturn = extractReturn == null ? ExtractReturn.defaults() : extractReturn;
@@ -117,6 +123,14 @@ public final class GemDefinition {
 
     public Object structuredPresentation() {
         return structuredPresentation;
+    }
+
+    public Object nameActions() {
+        return nameActions;
+    }
+
+    public Object loreActions() {
+        return loreActions;
     }
 
     public CostConfig inlayCost() {
@@ -174,6 +188,16 @@ public final class GemDefinition {
     public Object structuredPresentationForLevel(int level) {
         GemUpgradeLevel upgradeLevel = upgrade.level(level);
         return mergeStructuredPresentations(structuredPresentation, upgradeLevel == null ? null : upgradeLevel.structuredPresentation());
+    }
+
+    public Object nameActionsForLevel(int level) {
+        GemUpgradeLevel upgradeLevel = upgrade.level(level);
+        return upgradeLevel != null && upgradeLevel.nameActions() != null ? upgradeLevel.nameActions() : nameActions;
+    }
+
+    public Object loreActionsForLevel(int level) {
+        GemUpgradeLevel upgradeLevel = upgrade.level(level);
+        return upgradeLevel != null && upgradeLevel.loreActions() != null ? upgradeLevel.loreActions() : loreActions;
     }
 
     public GemUpgradeLevel upgradeLevel(int level) {
@@ -367,6 +391,8 @@ public final class GemDefinition {
             Map<String, Double> attributes,
             List<String> skillIds,
             Object structuredPresentation,
+            Object nameActions,
+            Object loreActions,
             double successChance,
             List<CurrencyCost> currencies,
             String failurePenalty,
@@ -381,6 +407,8 @@ public final class GemDefinition {
             attributes = attributes == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(attributes));
             skillIds = normalizeSkillIds(skillIds);
             structuredPresentation = ConfigNodes.toPlainData(structuredPresentation);
+            nameActions = ConfigNodes.toPlainData(nameActions);
+            loreActions = ConfigNodes.toPlainData(loreActions);
             successChance = successChance < 0D ? -1D : Math.max(0D, Math.min(100D, successChance));
             currencies = currencies == null ? List.of() : List.copyOf(currencies);
             failurePenalty = Texts.toStringSafe(failurePenalty).trim();

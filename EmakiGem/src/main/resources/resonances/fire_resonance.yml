@@ -23,16 +23,15 @@ effects:
   # 共鸣触发时附加的技能 ID 列表（可选，需要 EmakiSkills 支持）
   skills: []
 
-  # 共鸣触发时对装备名称的修改（可选）
+  # 共鸣触发时对装备名称的修改（CoreLib name_actions 标准格式）
   name_actions:
-    - action: "append_prefix"
+    - action: "prepend_prefix"
       value: "<red>[焰] </red>"
 
-  # 共鸣触发时在装备 Lore 上追加的段落（可选）
-  lore_section:
-    section_id: "gem.resonance.fire"
-    order: 350
-    lines:
-      - "<red>◆ 火焰共鸣</red>"
-      - "<gray>  物理攻击 +5</gray>"
-      - "<gray>  火焰伤害 +3</gray>"
+  # 共鸣触发时对装备 Lore 的修改（CoreLib lore_actions 标准格式）
+  lore_actions:
+    - action: "append"
+      content:
+        - "<red>◆ 火焰共鸣</red>"
+        - "<gray>  物理攻击 +5</gray>"
+        - "<gray>  火焰伤害 +3</gray>"

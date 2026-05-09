@@ -11,11 +11,6 @@ import emaki.jiuwu.craft.corelib.assembly.EmakiLoreSectionContribution;
 import emaki.jiuwu.craft.corelib.assembly.EmakiNameContribution;
 import emaki.jiuwu.craft.corelib.assembly.EmakiStatContribution;
 import emaki.jiuwu.craft.corelib.assembly.EmakiStructuredPresentation;
-import emaki.jiuwu.craft.corelib.assembly.LocalNameState;
-import emaki.jiuwu.craft.corelib.assembly.LoreOperationRegistry;
-import emaki.jiuwu.craft.corelib.assembly.NameOperationRegistry;
-import emaki.jiuwu.craft.corelib.assembly.NamePosition;
-import emaki.jiuwu.craft.corelib.assembly.OperationTemplateRenderer;
 import emaki.jiuwu.craft.corelib.assembly.StructuredPresentationTemplateResolver;
 import emaki.jiuwu.craft.corelib.assembly.StructuredPresentationValidator;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
@@ -32,9 +27,6 @@ public final class StrengthenSnapshotBuilder {
     private static final int STATS_SECONDARY_ORDER = 240;
     private final StructuredPresentationTemplateResolver structuredResolver = new StructuredPresentationTemplateResolver();
     private final StructuredPresentationValidator structuredValidator = new StructuredPresentationValidator();
-    private final OperationTemplateRenderer operationRenderer = new OperationTemplateRenderer();
-    private final LoreOperationRegistry loreOperations = new LoreOperationRegistry(operationRenderer);
-    private final NameOperationRegistry nameOperations = new NameOperationRegistry(operationRenderer);
 
     public EmakiItemLayerSnapshot buildLayerSnapshot(StrengthenRecipe recipe,
             StrengthenState state,
@@ -100,42 +92,7 @@ public final class StrengthenSnapshotBuilder {
         }
 
         // Apply name_actions operations (CoreLib operation system)
-        LocalNameState nameState = new LocalNameState();
-        if (recipe.nameActions() != null) {
-            nameOperations.apply(nameState, recipe.nameActions(), variables);
-            if (nameState.baseNamePolicy() == BaseNamePolicy.EXPLICIT_TEMPLATE) {
-                baseNamePolicy = nameState.baseNamePolicy();
-                baseNameTemplate = nameState.baseNameTemplate();
-            }
-            int nameOrder = 200;
-            for (String prefix : nameState.prefixes()) {
-                nameContributions.add(new EmakiNameContribution(
-                        NAMESPACE_ID + ".op.prefix." + nameOrder,
-                        NamePosition.PREFIX,
-                        nameOrder++,
-                        prefix,
-                        NAMESPACE_ID
-                ));
-            }
-            for (String postfix : nameState.postfixes()) {
-                nameContributions.add(new EmakiNameContribution(
-                        NAMESPACE_ID + ".op.postfix." + nameOrder,
-                        NamePosition.POSTFIX,
-                        nameOrder++,
-                        postfix,
-                        NAMESPACE_ID
-                ));
-            }
-        }
-
-        // Apply lore_actions operations (CoreLib operation system)
-        List<String> operationLoreLines = new ArrayList<>();
-        if (recipe.loreActions() != null) {
-            loreOperations.apply(operationLoreLines, recipe.loreActions(), variables);
-        }
-        if (!operationLoreLines.isEmpty()) {
-            addSection(loreSections, "strengthen.operations", EFFECTS_ORDER - 1, operationLoreLines);
-        }
+        // Note: name_actions/lore_actions are now applied via ItemOperationLedger after item rebuild.
 
         List<String> effectLines = new ArrayList<>();
         for (StrengthenRecipe.StarStage stage : recipe.reachedStages(state.currentStar())) {

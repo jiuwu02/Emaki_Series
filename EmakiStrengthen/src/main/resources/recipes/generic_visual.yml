@@ -102,7 +102,7 @@ stars:
           - "<gray>虽然不提供战斗属性，但会开始显示强化标记。</gray>"
     actions:
       success:
-        - "sendmessage text=\"<gray>强化达到 +5，物品开始显示强化标记。</gray>\""
+        - 'sendmessage text="<gray>强化达到 +5，物品开始显示强化标记。</gray>"'
   6:
     materials:
       - item_sources:
@@ -152,8 +152,8 @@ stars:
           - "<gray>高星强化会让物品的展示效果更加明显。</gray>"
     actions:
       success:
-        - "sendtitle title=\"<gray><bold>+8 外观强化 II</bold></gray>\"
-          subtitle=\"<white>外观效果已提升</white>\""
+        - 'sendtitle title="<gray><bold>+8 外观强化 II</bold></gray>"
+          subtitle="<white>外观效果已提升</white>"'
   9:
     materials:
       - item_sources:
@@ -193,8 +193,8 @@ stars:
           - "<gray>强化达到 +10 后，会进一步增强展示效果。</gray>"
     actions:
       success:
-        - "sendtitle title=\"<gray><bold>+10 外观强化 III</bold></gray>\"
-          subtitle=\"<white>外观效果继续提升</white>\""
+        - 'sendtitle title="<gray><bold>+10 外观强化 III</bold></gray>"
+          subtitle="<white>外观效果继续提升</white>"'
   11:
     materials:
       - item_sources:
@@ -239,5 +239,5 @@ stars:
           - "<gray>强化达到 +12 后，会获得最高等级的默认展示效果。</gray>"
     actions:
       success:
-        - "sendtitle title=\"<gray><bold>+12 外观强化 IV</bold></gray>\"
-          subtitle=\"<white>最高外观效果已解锁</white>\""
+        - 'sendtitle title="<gray><bold>+12 外观强化 IV</bold></gray>"
+          subtitle="<white>最高外观效果已解锁</white>"'

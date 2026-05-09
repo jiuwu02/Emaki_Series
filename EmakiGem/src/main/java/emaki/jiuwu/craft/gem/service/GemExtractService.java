@@ -7,6 +7,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import emaki.jiuwu.craft.corelib.assembly.ItemOperationLedger;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
@@ -32,12 +33,15 @@ public final class GemExtractService {
         }
     }
 
+    private static final String OPERATION_NAMESPACE = "gem";
+
     private final EmakiGemPlugin plugin;
     private final GemItemMatcher itemMatcher;
     private final GemItemFactory itemFactory;
     private final GemStateService stateService;
     private final GemEconomyService economyService;
     private final GemActionCoordinator actionCoordinator;
+    private final ItemOperationLedger operationLedger;
 
     public GemExtractService(EmakiGemPlugin plugin,
             GemItemMatcher itemMatcher,
@@ -51,6 +55,7 @@ public final class GemExtractService {
         this.stateService = stateService;
         this.economyService = economyService;
         this.actionCoordinator = actionCoordinator;
+        this.operationLedger = new ItemOperationLedger();
     }
 
     public Result extract(Player actor, Player target, int slotIndex, boolean bypassCost) {
@@ -86,6 +91,8 @@ public final class GemExtractService {
             }
             return Result.failure("command.extract.apply_failed", Map.of("player", target.getName()));
         }
+        // Revert name/lore operations for the extracted gem
+        operationLedger.revert(rebuilt, OPERATION_NAMESPACE + ":slot_" + slotIndex);
         target.getInventory().setItemInMainHand(rebuilt);
         ItemStack returned = createReturnedGem(gemDefinition, instance);
         if (returned != null) {

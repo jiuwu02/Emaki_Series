@@ -119,7 +119,7 @@ stars:
           - "<gray>强化达到 +5 后，投射物武器会额外提供暴击率。</gray>"
     actions:
       success:
-        - "sendmessage text=\"<green>强化达到 +5，解锁额外投射物暴击率。</green>\""
+        - 'sendmessage text="<green>强化达到 +5，解锁额外投射物暴击率。</green>"'
         - "playsound sound=minecraft:item.crossbow.loading_end volume=1 pitch=1.15"
   6:
     variables:
@@ -177,7 +177,7 @@ stars:
           - "<gray>强化达到 +8 后，投射物武器会额外提供增伤。</gray>"
     actions:
       success:
-        - "sendtitle title=\"<green><bold>+8 投射物增伤提升</bold></green>\" subtitle=\"<yellow>额外增伤已解锁</yellow>\""
+        - 'sendtitle title="<green><bold>+8 投射物增伤提升</bold></green>" subtitle="<yellow>额外增伤已解锁</yellow>"'
         - "playsound sound=minecraft:entity.player.levelup volume=1 pitch=1.2"
   9:
     variables:
@@ -223,7 +223,7 @@ stars:
           - "<gray>强化达到 +10 后，投射物武器会额外提供暴击伤害。</gray>"
     actions:
       success:
-        - "sendtitle title=\"<green><bold>+10 投射物暴伤提升</bold></green>\" subtitle=\"<yellow>额外暴伤已解锁</yellow>\""
+        - 'sendtitle title="<green><bold>+10 投射物暴伤提升</bold></green>" subtitle="<yellow>额外暴伤已解锁</yellow>"'
         - "playsound sound=minecraft:entity.arrow.hit_player volume=1 pitch=1"
   11:
     variables:
@@ -274,5 +274,5 @@ stars:
           - "<gray>强化达到 +12 后，投射物武器会额外提供穿透。</gray>"
     actions:
       success:
-        - "sendtitle title=\"<green><bold>+12 投射物穿透提升</bold></green>\" subtitle=\"<yellow>额外穿透已解锁</yellow>\""
+        - 'sendtitle title="<green><bold>+12 投射物穿透提升</bold></green>" subtitle="<yellow>额外穿透已解锁</yellow>"'
         - "playsound sound=minecraft:ui.toast.challenge_complete volume=1 pitch=1"

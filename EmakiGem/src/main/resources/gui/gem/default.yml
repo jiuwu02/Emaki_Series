@@ -31,45 +31,66 @@ slots:
     type: "target_item"
     item: "LIGHT_BLUE_STAINED_GLASS_PANE"
     display_name: "<aqua>放入装备</aqua>"
+    lore:
+      - "<gray>将可镶嵌宝石的装备放入此槽</gray>"
+      - "<gray>支持从光标放入，也可点击取回</gray>"
 
   socket_info:
     slots: [19]
     type: "socket_info"
     item: "book"
     display_name: "<gold>操作说明</gold>"
+    lore:
+      - "<gray>拖着宝石点击已开孔空槽，可进入镶嵌预览</gray>"
+      - "<gray>点击已镶嵌宝石槽，可进入取出确认</gray>"
+      - "<gray>未开孔槽位请使用独立开孔 GUI 处理</gray>"
 
   socket_summary:
     slots: [25]
     type: "socket_summary"
     item: "COMPASS"
     display_name: "<gold>宝石槽统计</gold>"
+    lore:
+      - "<gray>这里会展示当前装备的宝石槽统计</gray>"
+      - "<gray>放入装备后可查看总槽位与已镶嵌数量</gray>"
 
   socket_slots:
     slots: [12, 13, 14, 15, 21, 22, 23]
     type: "socket_slot"
     item: "WHITE_STAINED_GLASS_PANE"
     display_name: "<white>宝石插槽</white>"
+    lore:
+      - "<gray>放入装备后将按实际宝石孔数量展示</gray>"
 
   preview_display:
     slots: [16]
     type: "preview_display"
     item: "writable_book"
     display_name: "<gold>操作预览</gold>"
+    lore:
+      - "<gray>这里会显示待确认操作预览</gray>"
+      - "<gray>按当前模式点击目标插槽后可查看详情</gray>"
 
   confirm:
     slots: [34]
     type: "confirm"
     item: "lime_stained_glass_pane"
     display_name: "<green>确认操作</green>"
+    lore:
+      - "<dark_gray>请先选择一个待执行操作</dark_gray>"
 
   mode_inlay:
     slots: [39]
     type: "mode_inlay"
     item: "GREEN_STAINED_GLASS_PANE"
     display_name: "<green>镶嵌模式</green>"
+    lore:
+      - "<gray>拖着宝石点击已开孔的空槽进入镶嵌预览</gray>"
 
   mode_extract:
     slots: [40]
     type: "mode_extract"
     item: "YELLOW_STAINED_GLASS_PANE"
     display_name: "<yellow>取出模式</yellow>"
+    lore:
+      - "<gray>点击已镶嵌的宝石槽进入取出确认</gray>"

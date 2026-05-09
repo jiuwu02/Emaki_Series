@@ -15,8 +15,6 @@ import emaki.jiuwu.craft.gem.EmakiGemPlugin;
 import emaki.jiuwu.craft.gem.model.GemResonanceDefinition;
 import emaki.jiuwu.craft.gem.model.ResonanceChain;
 import emaki.jiuwu.craft.gem.model.ResonanceEffects;
-import emaki.jiuwu.craft.gem.model.ResonanceLoreSection;
-import emaki.jiuwu.craft.gem.model.ResonanceNameModification;
 import emaki.jiuwu.craft.gem.model.ResonancePatternEntry;
 
 public final class GemResonanceLoader extends YamlDirectoryLoader<GemResonanceDefinition> {
@@ -92,9 +90,9 @@ public final class GemResonanceLoader extends YamlDirectoryLoader<GemResonanceDe
         List<String> actions = section.getStringList("actions");
         Map<String, Double> stats = parseStatMap(section.getSection("variables"));
         List<String> skills = section.getStringList("skills");
-        ResonanceNameModification nameModification = parseNameActions(section.getMapList("name_actions"));
-        ResonanceLoreSection loreSection = parseLoreSection(section.getSection("lore_section"));
-        return new ResonanceEffects(actions, stats, skills, nameModification, loreSection);
+        Object nameActions = section.get("name_actions");
+        Object loreActions = section.get("lore_actions");
+        return new ResonanceEffects(actions, stats, skills, nameActions, loreActions);
     }
 
     private Map<String, Double> parseStatMap(YamlSection section) {
@@ -109,32 +107,5 @@ public final class GemResonanceLoader extends YamlDirectoryLoader<GemResonanceDe
             }
         }
         return stats;
-    }
-
-    private ResonanceNameModification parseNameActions(List<Map<?, ?>> list) {
-        if (list == null || list.isEmpty()) {
-            return null;
-        }
-        Map<?, ?> first = list.get(0);
-        String action = ConfigNodes.string(first, "action", "");
-        String value = ConfigNodes.string(first, "value", "");
-        if (Texts.isBlank(value)) {
-            return null;
-        }
-        String position = action.contains("suffix") ? "suffix" : "prefix";
-        return new ResonanceNameModification(position, value);
-    }
-
-    private ResonanceLoreSection parseLoreSection(YamlSection section) {
-        if (section == null) {
-            return null;
-        }
-        String sectionId = section.getString("section_id", "gem_resonance");
-        int order = section.getInt("order", 90);
-        List<String> lines = section.getStringList("lines");
-        if (lines.isEmpty()) {
-            return null;
-        }
-        return new ResonanceLoreSection(sectionId, order, lines);
     }
 }

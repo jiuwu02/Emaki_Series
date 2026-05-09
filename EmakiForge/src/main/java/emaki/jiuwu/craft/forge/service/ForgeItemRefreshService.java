@@ -15,6 +15,7 @@ import org.bukkit.inventory.PlayerInventory;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerSnapshot;
+import emaki.jiuwu.craft.corelib.assembly.ItemOperationLedger;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.item.PlayerItemRefreshService;
 import emaki.jiuwu.craft.corelib.math.Numbers;
@@ -31,6 +32,7 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
     private final ForgeLayerSnapshotBuilder snapshotBuilder;
     private final ForgePdcAttributeWriter pdcAttributeWriter;
     private final ForgeQualityModifierResolver qualityModifierResolver = new ForgeQualityModifierResolver();
+    private final ItemOperationLedger operationLedger = new ItemOperationLedger();
     private final Set<String> warningCache = new LinkedHashSet<>();
 
     public ForgeItemRefreshService(EmakiForgePlugin plugin, EmakiItemAssemblyService itemAssemblyService) {
@@ -119,6 +121,7 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
         }
         rebuilt.setAmount(Math.max(1, itemStack.getAmount()));
         pdcAttributeWriter.apply(plan.recipe(), plan.materials(), plan.multiplier(), plan.qualityTier(), rebuilt);
+        applyRefreshOperations(rebuilt, plan);
         return rebuilt;
     }
 
@@ -260,6 +263,70 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
             }
         }
         plugin.messageService().warning(messageKey, replacements);
+    }
+
+    private void applyRefreshOperations(ItemStack itemStack, RefreshPlan plan) {
+        if (plan == null || plan.recipe() == null) {
+            return;
+        }
+        Recipe recipe = plan.recipe();
+        List<Object> allNameActions = new ArrayList<>();
+        List<Object> allLoreActions = new ArrayList<>();
+
+        if (recipe.result() != null) {
+            if (recipe.result().nameModifications() != null && !recipe.result().nameModifications().isEmpty()) {
+                allNameActions.add(recipe.result().nameModifications());
+            }
+            if (recipe.result().loreActions() != null && !recipe.result().loreActions().isEmpty()) {
+                allLoreActions.add(recipe.result().loreActions());
+            }
+        }
+        if (plan.materials() != null) {
+            for (ForgeMaterialContribution material : plan.materials()) {
+                if (material == null || material.material() == null) {
+                    continue;
+                }
+                Object matNameActions = material.material().nameModifications();
+                Object matLoreActions = material.material().loreActions();
+                if (matNameActions != null) {
+                    allNameActions.add(matNameActions);
+                }
+                if (matLoreActions != null) {
+                    allLoreActions.add(matLoreActions);
+                }
+            }
+        }
+        QualitySettings settings = plugin.appConfig() == null || plugin.appConfig().qualitySettings() == null
+                ? QualitySettings.defaults()
+                : plugin.appConfig().qualitySettings();
+        if (plan.qualityTier() != null && settings.itemMetaEnabled()) {
+            Object qualityNameActions = settings.itemMetaNameActions(plan.qualityTier().name());
+            Object qualityLoreActions = settings.itemMetaLoreActions(plan.qualityTier().name());
+            if (qualityNameActions != null) {
+                allNameActions.add(qualityNameActions);
+            }
+            if (qualityLoreActions != null) {
+                allLoreActions.add(qualityLoreActions);
+            }
+        }
+        if (allNameActions.isEmpty() && allLoreActions.isEmpty()) {
+            return;
+        }
+        java.util.Map<String, Object> variables = new java.util.LinkedHashMap<>();
+        if (plan.qualityTier() != null) {
+            variables.put("quality", plan.qualityTier().name());
+            variables.put("quality_name", plan.qualityTier().name());
+        }
+        variables.put("quality_multiplier", Numbers.formatNumber(plan.multiplier(), "0.##"));
+        variables.put("multiplier", Numbers.formatNumber(plan.multiplier(), "0.##"));
+
+        String operationId = "forge:" + recipe.id();
+        Object nameActionsToApply = allNameActions.size() == 1 ? allNameActions.get(0) : allNameActions;
+        Object loreActionsToApply = allLoreActions.size() == 1 ? allLoreActions.get(0) : allLoreActions;
+        operationLedger.apply(itemStack, operationId, "forge",
+                allNameActions.isEmpty() ? null : nameActionsToApply,
+                allLoreActions.isEmpty() ? null : loreActionsToApply,
+                variables);
     }
 
     private record RefreshPlan(boolean shouldRefresh,
