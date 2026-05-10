@@ -85,7 +85,7 @@ console:
     exists, skipping creation</gray>"
   material_iron_exists: "<gray>materials/iron_essence.yml already exists, skipping creation</gray>"
   material_flame_exists: "<gray>materials/flame_crystal.yml already exists, skipping creation</gray>"
-  recipe_flame_exists: "<gray>recipes/flame_sword.yml already exists, skipping creation</gray>"
+  recipe_example_exists: "<gray>recipes/example_recipe.yml already exists, skipping creation</gray>"
   file_created_success: "<green>Successfully created <yellow>{name}</yellow>"
   file_create_failed: "<yellow>Failed to create <red>{name}</red> <yellow>: <red>{error}</red>"
   file_create_failed_ext: "<yellow>Failed to create <red>{name}</red> <yellow>: <red>{error}</red>"

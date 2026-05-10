@@ -41,7 +41,7 @@ command:
   help:
     header: "<gold>EmakiItem 命令</gold>"
     line: "<yellow>/ei {cmd}</yellow> <gray>- {desc}</gray>"
-    footer: "<dark_gray>物品源示例: ei-example_blade</dark_gray>"
+    footer: "<dark_gray>物品源示例: ei-example_item</dark_gray>"
     desc:
       help: "显示帮助"
       list: "分页列出物品 ID"

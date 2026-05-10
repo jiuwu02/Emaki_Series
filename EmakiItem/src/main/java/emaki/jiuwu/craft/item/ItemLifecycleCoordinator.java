@@ -39,7 +39,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
     private static final String DEFAULT_PREFIX = "<gray>[ <gradient:#EBD48A:#7FB08A>Emaki Item</gradient> ]</gray>";
     private static final String PDC_ATTRIBUTE_SOURCE_ID = "emakiitem";
     private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml", "lang/en_US.yml");
-    private static final List<String> DEFAULT_DATA_FILES = List.of("items/example_blade.yml", "sets/example_set.yml");
+    private static final List<String> DEFAULT_DATA_FILES = List.of("items/example_item.yml", "sets/example_set.yml");
     private static final List<String> EXTRA_DIRECTORIES = List.of("items", "sets");
 
     @Override
