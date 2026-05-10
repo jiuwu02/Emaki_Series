@@ -132,7 +132,8 @@ branch_tree:
             physical_attack: 6
         - type: "lore_action"
           lore_actions:
-            - action: "append"
+            - action: "replace_line"
+              anchor: "物理伤害:"
               content:
                 - "<gray>物理伤害: <gold>+11</gold></gray>"
       materials:
@@ -150,7 +151,8 @@ branch_tree:
             physical_attack: 7
         - type: "lore_action"
           lore_actions:
-            - action: "append"
+            - action: "replace_line"
+              anchor: "物理伤害:"
               content:
                 - "<gray>物理伤害: <gold>+18</gold></gray>"
       materials:
@@ -169,7 +171,8 @@ branch_tree:
             physical_attack: 8
         - type: "lore_action"
           lore_actions:
-            - action: "append"
+            - action: "replace_line"
+              anchor: "物理伤害:"
               content:
                 - "<gray>物理伤害: <gold>+26</gold></gray>"
                 - ""
@@ -230,9 +233,13 @@ branch_tree:
                 physical_crit_rate: 3
             - type: "lore_action"
               lore_actions:
-                - action: "append"
+                - action: "replace_line"
+                  anchor: "物理伤害:"
                   content:
                     - "<gray>物理伤害: <gold>+39</gold></gray>"
+                - action: "replace_line"
+                  anchor: "物理暴击率:"
+                  content:
                     - "<gray>物理暴击率: <gold>+6%</gold></gray>"
           materials:
             - item_sources:
@@ -251,9 +258,13 @@ branch_tree:
                 physical_crit_rate: 4
             - type: "lore_action"
               lore_actions:
-                - action: "append"
+                - action: "replace_line"
+                  anchor: "物理伤害:"
                   content:
                     - "<gray>物理伤害: <gold>+47</gold></gray>"
+                - action: "replace_line"
+                  anchor: "物理暴击率:"
+                  content:
                     - "<gray>物理暴击率: <gold>+10%</gold></gray>"
                     - ""
                     - "<yellow>★ 达到 +7，请选择进阶方向</yellow>"
@@ -287,10 +298,16 @@ branch_tree:
                     physical_crit_damage: 8
                 - type: "lore_action"
                   lore_actions:
-                    - action: "append"
+                    - action: "replace_line"
+                      anchor: "物理伤害:"
                       content:
                         - "<gray>物理伤害: <gold>+56</gold></gray>"
+                    - action: "replace_line"
+                      anchor: "物理暴击率:"
+                      content:
                         - "<gray>物理暴击率: <gold>+15%</gold></gray>"
+                    - action: "append"
+                      content:
                         - "<gray>物理暴伤: <gold>+8%</gold></gray>"
                         - "<dark_red>◆ 致命路线</dark_red>"
               materials:
@@ -309,10 +326,17 @@ branch_tree:
                     physical_crit_damage: 10
                 - type: "lore_action"
                   lore_actions:
-                    - action: "append"
+                    - action: "replace_line"
+                      anchor: "物理伤害:"
                       content:
                         - "<gray>物理伤害: <gold>+66</gold></gray>"
+                    - action: "replace_line"
+                      anchor: "物理暴击率:"
+                      content:
                         - "<gray>物理暴击率: <gold>+15%</gold></gray>"
+                    - action: "replace_line"
+                      anchor: "物理暴伤:"
+                      content:
                         - "<gray>物理暴伤: <gold>+18%</gold></gray>"
               materials:
                 - item_sources:
@@ -335,10 +359,17 @@ branch_tree:
                     - "lethal_strike"
                 - type: "lore_action"
                   lore_actions:
-                    - action: "append"
+                    - action: "replace_line"
+                      anchor: "物理伤害:"
                       content:
                         - "<gray>物理伤害: <gold>+78</gold></gray>"
+                    - action: "replace_line"
+                      anchor: "物理暴击率:"
+                      content:
                         - "<gray>物理暴击率: <gold>+20%</gold></gray>"
+                    - action: "replace_line"
+                      anchor: "物理暴伤:"
+                      content:
                         - "<gray>物理暴伤: <gold>+33%</gold></gray>"
                         - "<dark_red>★ 解锁终极: 致命一击</dark_red>"
               materials:
@@ -370,10 +401,16 @@ branch_tree:
                     physical_armor_penetration: 4
                 - type: "lore_action"
                   lore_actions:
-                    - action: "append"
+                    - action: "replace_line"
+                      anchor: "物理伤害:"
                       content:
                         - "<gray>物理伤害: <gold>+54</gold></gray>"
+                    - action: "replace_line"
+                      anchor: "物理暴击率:"
+                      content:
                         - "<gray>物理暴击率: <gold>+10%</gold></gray>"
+                    - action: "append"
+                      content:
                         - "<gray>攻击速度: <gold>+5%</gold></gray>"
                         - "<gray>物理穿透: <gold>+4</gold></gray>"
                         - "<aqua>◆ 迅捷路线</aqua>"
@@ -394,11 +431,21 @@ branch_tree:
                     physical_armor_penetration: 5
                 - type: "lore_action"
                   lore_actions:
-                    - action: "append"
+                    - action: "replace_line"
+                      anchor: "物理伤害:"
                       content:
                         - "<gray>物理伤害: <gold>+62</gold></gray>"
+                    - action: "replace_line"
+                      anchor: "物理暴击率:"
+                      content:
                         - "<gray>物理暴击率: <gold>+10%</gold></gray>"
+                    - action: "replace_line"
+                      anchor: "攻击速度:"
+                      content:
                         - "<gray>攻击速度: <gold>+10%</gold></gray>"
+                    - action: "replace_line"
+                      anchor: "物理穿透:"
+                      content:
                         - "<gray>物理穿透: <gold>+9</gold></gray>"
               materials:
                 - item_sources:
@@ -421,11 +468,21 @@ branch_tree:
                     - "swift_assault"
                 - type: "lore_action"
                   lore_actions:
-                    - action: "append"
+                    - action: "replace_line"
+                      anchor: "物理伤害:"
                       content:
                         - "<gray>物理伤害: <gold>+72</gold></gray>"
+                    - action: "replace_line"
+                      anchor: "物理暴击率:"
+                      content:
                         - "<gray>物理暴击率: <gold>+10%</gold></gray>"
+                    - action: "replace_line"
+                      anchor: "攻击速度:"
+                      content:
                         - "<gray>攻击速度: <gold>+18%</gold></gray>"
+                    - action: "replace_line"
+                      anchor: "物理穿透:"
+                      content:
                         - "<gray>物理穿透: <gold>+15</gold></gray>"
                         - "<aqua>★ 解锁终极: 疾风连斩</aqua>"
               materials:
@@ -478,7 +535,8 @@ branch_tree:
                 physical_attack: 14
             - type: "lore_action"
               lore_actions:
-                - action: "append"
+                - action: "replace_line"
+                  anchor: "物理伤害:"
                   content:
                     - "<gray>物理伤害: <gold>+52</gold></gray>"
           materials:
@@ -496,7 +554,8 @@ branch_tree:
                 physical_attack: 16
             - type: "lore_action"
               lore_actions:
-                - action: "append"
+                - action: "replace_line"
+                  anchor: "物理伤害:"
                   content:
                     - "<gray>物理伤害: <gold>+68</gold></gray>"
           materials:
@@ -516,9 +575,12 @@ branch_tree:
                 physical_damage_bonus: 5
             - type: "lore_action"
               lore_actions:
-                - action: "append"
+                - action: "replace_line"
+                  anchor: "物理伤害:"
                   content:
                     - "<gray>物理伤害: <gold>+86</gold></gray>"
+                - action: "append"
+                  content:
                     - "<gray>物理增伤: <gold>+5%</gold></gray>"
           materials:
             - item_sources:
@@ -539,9 +601,13 @@ branch_tree:
                 physical_damage_bonus: 5
             - type: "lore_action"
               lore_actions:
-                - action: "append"
+                - action: "replace_line"
+                  anchor: "物理伤害:"
                   content:
                     - "<gray>物理伤害: <gold>+106</gold></gray>"
+                - action: "replace_line"
+                  anchor: "物理增伤:"
+                  content:
                     - "<gray>物理增伤: <gold>+10%</gold></gray>"
           materials:
             - item_sources:
@@ -563,9 +629,13 @@ branch_tree:
                 - "heavy_smash"
             - type: "lore_action"
               lore_actions:
-                - action: "append"
+                - action: "replace_line"
+                  anchor: "物理伤害:"
                   content:
                     - "<gray>物理伤害: <gold>+130</gold></gray>"
+                - action: "replace_line"
+                  anchor: "物理增伤:"
+                  content:
                     - "<gray>物理增伤: <gold>+18%</gold></gray>"
                     - "<gold>★ 解锁终极: 重锤一击</gold>"
           materials:

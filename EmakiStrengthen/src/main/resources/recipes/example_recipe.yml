@@ -104,7 +104,14 @@ lore_actions:
 #     - type: "name_action"   → 对物品名称的修改
 #   materials: 强化所需材料
 #   actions: 强化成功/失败时执行的动作
+#
+# Lore 操作策略说明:
+#   ★1 首次使用 "append" 添加属性行；
+#   ★2+ 使用 "replace_line" 通过 anchor 匹配已有行并替换为新数值；
+#   里程碑星级解锁新属性时使用 "append" 添加新行。
+#   这样无论强化到多少星，每种属性始终只有一行 Lore。
 stars:
+  # ★1: 首次添加属性行
   1:
     effects:
       - type: "variables"
@@ -112,6 +119,7 @@ stars:
           physical_attack: 4
       - type: "lore_action"
         lore_actions:
+          # 首次使用 append 添加属性行
           - action: "append"
             content:
               - "<gray>物理伤害: <gold>+4</gold></gray>"
@@ -123,6 +131,7 @@ stars:
           - "minecraft-gunpowder"
         amount: 2
 
+  # ★2+: 使用 replace_line 更新已有行
   2:
     effects:
       - type: "variables"
@@ -130,7 +139,9 @@ stars:
           physical_attack: 4
       - type: "lore_action"
         lore_actions:
-          - action: "append"
+          # anchor 匹配包含 "物理伤害:" 的行，替换为 content 第一行
+          - action: "replace_line"
+            anchor: "物理伤害:"
             content:
               - "<gray>物理伤害: <gold>+8</gold></gray>"
     materials:
@@ -148,7 +159,8 @@ stars:
           physical_attack: 5
       - type: "lore_action"
         lore_actions:
-          - action: "append"
+          - action: "replace_line"
+            anchor: "物理伤害:"
             content:
               - "<gray>物理伤害: <gold>+13</gold></gray>"
     materials:
@@ -166,7 +178,8 @@ stars:
           physical_attack: 6
       - type: "lore_action"
         lore_actions:
-          - action: "append"
+          - action: "replace_line"
+            anchor: "物理伤害:"
             content:
               - "<gray>物理伤害: <gold>+19</gold></gray>"
     materials:
@@ -205,9 +218,14 @@ stars:
           - "weapon_crit_passive"
       - type: "lore_action"
         lore_actions:
-          - action: "append"
+          # 更新已有的物理伤害行
+          - action: "replace_line"
+            anchor: "物理伤害:"
             content:
               - "<gray>物理伤害: <gold>+25</gold></gray>"
+          # 首次添加暴击率行（新属性解锁）
+          - action: "append"
+            content:
               - "<gray>物理暴击率: <gold>+2%</gold></gray>"
               - "<gold>★ 解锁被动: 暴击强化</gold>"
     materials:
@@ -234,10 +252,10 @@ stars:
           physical_attack: 7
       - type: "lore_action"
         lore_actions:
-          - action: "append"
+          - action: "replace_line"
+            anchor: "物理伤害:"
             content:
               - "<gray>物理伤害: <gold>+32</gold></gray>"
-              - "<gray>物理暴击率: <gold>+2%</gold></gray>"
     materials:
       - item_sources:
           - "minecraft-copper_ingot"
@@ -258,10 +276,10 @@ stars:
           physical_attack: 8
       - type: "lore_action"
         lore_actions:
-          - action: "append"
+          - action: "replace_line"
+            anchor: "物理伤害:"
             content:
               - "<gray>物理伤害: <gold>+40</gold></gray>"
-              - "<gray>物理暴击率: <gold>+2%</gold></gray>"
     materials:
       - item_sources:
           - "minecraft-copper_ingot"
@@ -285,10 +303,13 @@ stars:
           physical_damage_bonus: 4
       - type: "lore_action"
         lore_actions:
-          - action: "append"
+          - action: "replace_line"
+            anchor: "物理伤害:"
             content:
               - "<gray>物理伤害: <gold>+49</gold></gray>"
-              - "<gray>物理暴击率: <gold>+2%</gold></gray>"
+          # 首次添加增伤行（新属性解锁）
+          - action: "append"
+            content:
               - "<gray>物理增伤: <gold>+4%</gold></gray>"
     materials:
       - item_sources:
@@ -317,11 +338,10 @@ stars:
           physical_attack: 10
       - type: "lore_action"
         lore_actions:
-          - action: "append"
+          - action: "replace_line"
+            anchor: "物理伤害:"
             content:
               - "<gray>物理伤害: <gold>+59</gold></gray>"
-              - "<gray>物理暴击率: <gold>+2%</gold></gray>"
-              - "<gray>物理增伤: <gold>+4%</gold></gray>"
     materials:
       - item_sources:
           - "minecraft-copper_ingot"
@@ -348,11 +368,13 @@ stars:
           physical_crit_damage: 6
       - type: "lore_action"
         lore_actions:
-          - action: "append"
+          - action: "replace_line"
+            anchor: "物理伤害:"
             content:
               - "<gray>物理伤害: <gold>+71</gold></gray>"
-              - "<gray>物理暴击率: <gold>+2%</gold></gray>"
-              - "<gray>物理增伤: <gold>+4%</gold></gray>"
+          # 首次添加暴伤行（新属性解锁）
+          - action: "append"
+            content:
               - "<gray>物理暴伤: <gold>+6%</gold></gray>"
     materials:
       - item_sources:
@@ -381,12 +403,10 @@ stars:
           physical_attack: 14
       - type: "lore_action"
         lore_actions:
-          - action: "append"
+          - action: "replace_line"
+            anchor: "物理伤害:"
             content:
               - "<gray>物理伤害: <gold>+85</gold></gray>"
-              - "<gray>物理暴击率: <gold>+2%</gold></gray>"
-              - "<gray>物理增伤: <gold>+4%</gold></gray>"
-              - "<gray>物理暴伤: <gold>+6%</gold></gray>"
     materials:
       - item_sources:
           - "minecraft-copper_ingot"
@@ -417,12 +437,13 @@ stars:
           - "weapon_penetration_ultimate"
       - type: "lore_action"
         lore_actions:
-          - action: "append"
+          - action: "replace_line"
+            anchor: "物理伤害:"
             content:
               - "<gray>物理伤害: <gold>+101</gold></gray>"
-              - "<gray>物理暴击率: <gold>+2%</gold></gray>"
-              - "<gray>物理增伤: <gold>+4%</gold></gray>"
-              - "<gray>物理暴伤: <gold>+6%</gold></gray>"
+          # 首次添加穿透行（新属性解锁）
+          - action: "append"
+            content:
               - "<gray>物理穿透: <gold>+8</gold></gray>"
               - "<gold>★ 解锁终极: 穿甲一击</gold>"
     materials:
