@@ -1,11 +1,29 @@
+# ============================================================
+# EmakiAttribute 条件源 - 绑定条件（默认禁用）
+# ============================================================
+# 检查物品 PDC 中的 bound_player 字段，
+# 判断当前玩家是否为物品的绑定者。
+# 用于实现"灵魂绑定"类物品，只有绑定者才能激活属性。
+#
+# 文件放置位置: plugins/EmakiAttribute/conditions/
+# ============================================================
+
+# 是否启用此条件源（默认禁用，按需开启）
 enabled: false
 
+# 条件源标识符
 source_id: gem_bind
 
+# 条件组合方式
 condition_type: all_of
 
+# 表达式解析失败时是否视为不满足条件
 invalid_as_failure: true
 
+# 条件列表
+# type: pdc_meta → 从物品 PDC 中读取指定 key 的值
+# key: PDC 中的键名
+# condition: 条件表达式（{value} 为绑定的玩家名）
 conditions:
   - type: pdc_meta
     key: bound_player

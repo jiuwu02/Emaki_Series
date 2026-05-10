@@ -1,4 +1,7 @@
-﻿id: projectile_damage_bonus
+# EmakiAttribute 属性定义 - 投射物伤害加成
+# 详细字段说明参考 physical_attack.yml
+
+id: projectile_damage_bonus
 display_name: "投射物伤害加成"
 value_kind: PERCENT
 target_type: DAMAGE

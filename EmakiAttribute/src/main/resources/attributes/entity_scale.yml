@@ -1,3 +1,6 @@
+# EmakiAttribute 属性定义 - 实体体型
+# 详细字段说明参考 physical_attack.yml
+
 id: entity_scale
 display_name: "实体体型"
 value_kind: PERCENT

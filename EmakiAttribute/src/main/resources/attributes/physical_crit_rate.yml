@@ -1,3 +1,6 @@
+# EmakiAttribute 属性定义 - 暴击率
+# 详细字段说明参考 physical_attack.yml
+
 id: physical_crit_rate
 display_name: "暴击率"
 value_kind: CHANCE

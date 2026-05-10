@@ -1,3 +1,12 @@
+# ============================================================
+# EmakiAttribute 伤害类型定义 - 投射物伤害
+# ============================================================
+# 投射物（弓箭、弩箭等）造成的伤害计算流程。
+# 结构与 physical.yml 相同，参考该文件获取详细字段说明。
+#
+# 文件放置位置: plugins/EmakiAttribute/damage_types/
+# ============================================================
+
 id: projectile
 
 display_name: "投射物伤害"
@@ -39,10 +48,7 @@ recovery:
   percent_attributes: [lifesteal]
   resistance_attributes: [lifesteal_resistance]
 
-attacker_message: "<gray>[<gold>{damage_type}</gold>]</gray> <green>你对
-  <white>{target}</white> 造成了 <yellow>{final_damage}</yellow>
-  点伤害</green>{critical_suffix}"
-target_message: "<gray>[<gold>{damage_type}</gold>]</gray> <red>{attacker}</red>
-  对你造成了 <yellow>{final_damage}</yellow> 点伤害{critical_suffix}"
+attacker_message: "<gray>[<gold>{damage_type}</gold>]</gray> <green>你对 <white>{target}</white> 造成了 <yellow>{final_damage}</yellow> 点伤害</green>{critical_suffix}"
+target_message: "<gray>[<gold>{damage_type}</gold>]</gray> <red>{attacker}</red> 对你造成了 <yellow>{final_damage}</yellow> 点伤害{critical_suffix}"
 
 description: "Projectile damage resolved entirely through Emaki attributes."

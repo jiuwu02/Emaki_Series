@@ -1,11 +1,31 @@
+# ============================================================
+# EmakiAttribute 条件源 - EmakiItem 物品条件
+# ============================================================
+# 读取 EmakiItem 写入物品 PDC 中的条件表达式，
+# 并直接执行这些表达式来判断是否满足装备条件。
+# 这允许 EmakiItem 在物品定义中自由配置条件表达式。
+#
+# 文件放置位置: plugins/EmakiAttribute/conditions/
+# ============================================================
+
+# 是否启用此条件源
 enabled: true
 
+# 条件源标识符（对应 EmakiItem 写入的 PDC 数据）
 source_id: "emakiitem"
 
+# 条件组合方式
 condition_type: "all_of"
 
+# 表达式解析失败时是否视为不满足条件
 invalid_as_failure: true
 
+# 条件列表
+# type: pdc_meta → 从物品 PDC 中读取指定 key 的值
+# key: condition_expressions → EmakiItem 写入的条件表达式字段
+# pattern: 正则匹配（".+" 表示非空即匹配）
+# condition: "{value}" → 直接将读取到的值作为条件表达式执行
+# require_match: false → 如果 key 不存在则跳过（不视为失败）
 conditions:
   - type: pdc_meta
     key: condition_expressions

@@ -1,12 +1,30 @@
-# EmakiItem 套装定义完整示例
-# 展示所有可用字段的用法
-id: "example_guardian"
+# ============================================================
+# EmakiItem 套装定义示例
+# ============================================================
+# 此文件定义了一个装备套装，展示所有可用字段和推荐写法。
+# 当玩家同时装备多件属于同一套装的物品时，
+# 会根据已装备件数激活对应的阈值效果。
+#
+# 文件放置位置: plugins/EmakiItem/sets/
+# 文件名即为套装的内部标识，加载时自动注册。
+# ============================================================
+
+# 套装唯一标识符（必填）
+id: "example_set"
+
+# 套装显示名称（支持 MiniMessage 格式）
 display_name: "<aqua>示例守护者套装</aqua>"
 
+# ============================================================
 # 套装部件定义
+# ============================================================
+# 定义套装包含哪些部件，每个部件对应一个 EmakiItem 物品。
+# item: 对应的物品 ID（items/ 目录下的物品定义）
+# slot: 装备槽位（main_hand/off_hand/helmet/chestplate/leggings/boots）
+# display: 在套装 Lore 中显示的部件名称
 pieces:
   blade:
-    item: "example_blade"
+    item: "example_item"
     slot: "main_hand"
     display: "示例之刃"
   helmet:
@@ -22,7 +40,16 @@ pieces:
     slot: "boots"
     display: "守护者战靴"
 
+# ============================================================
 # 套装 Lore 显示配置
+# ============================================================
+# 控制套装信息在物品 Lore 中的显示格式。
+# header: 套装标题行（{active} = 已装备件数，{total} = 总件数）
+# equipped_format: 已装备部件的显示格式
+# missing_format: 未装备部件的显示格式
+# active_threshold_format: 已激活阈值的显示格式
+# inactive_threshold_format: 未激活阈值的显示格式
+# separator: 部件列表与阈值列表之间的分隔行
 lore:
   header: "<dark_gray>—— <aqua>示例守护者套装</aqua> <gray>({active}/{total})</gray> ——</dark_gray>"
   equipped_format: "<green>✔ {piece}</green>"
@@ -31,23 +58,33 @@ lore:
   inactive_threshold_format: "<dark_gray>{line}</dark_gray>"
   separator: ""
 
-# 套装阈值效果 - 达到指定件数时激活
+# ============================================================
+# 套装阈值效果
+# ============================================================
+# 达到指定装备件数时激活的效果。
+# 统一使用 effects 列表，通过 type 字段区分效果类型。
 thresholds:
   2:
-    # 套装 Lore 描述
+    # 套装 Lore 描述（显示在物品上，告知玩家此阈值的效果）
     lore:
       - "[2件套] 物理攻击 +5，解锁冲刺技能"
-    # EmakiAttribute PDC 属性 - 达到阈值时额外写入物品 PDC
-    ea_attributes:
-      physical_attack: 5.0
-    # EmakiSkills PDC 技能 - 达到阈值时额外写入物品 PDC
-    es_skills:
-      - "guardian_dash"
+    # 阈值效果
+    effects:
+      - type: "ea_attribute"
+        ea_attributes:
+          physical_attack: 5.0
+      - type: "es_skill"
+        es_skills:
+          - "guardian_dash"
+
   4:
     lore:
       - "[4件套] 物理攻击 +15，物理防御 +10，解锁守护者光环"
-    ea_attributes:
-      physical_attack: 15.0
-      physical_defense: 10.0
-    es_skills:
-      - "guardian_aura"
+    effects:
+      - type: "ea_attribute"
+        ea_attributes:
+          physical_attack: 15.0
+          physical_defense: 10.0
+      - type: "es_skill"
+        es_skills:
+          - "guardian_aura"

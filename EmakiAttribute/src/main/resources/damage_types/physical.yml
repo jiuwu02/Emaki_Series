@@ -1,15 +1,48 @@
+# ============================================================
+# EmakiAttribute 伤害类型定义 - 物理伤害
+# ============================================================
+# 此文件定义了一种伤害类型的完整计算流程。
+# 当触发对应事件时，系统按 stages 顺序依次计算伤害。
+#
+# 字段说明:
+#   id: 伤害类型标识符
+#   display_name: 显示名称
+#   aliases: 别名列表（用于命令和配置引用）
+#   allowed_events: 允许触发此伤害类型的事件
+#   hard_lock: 是否锁定为仅允许列出的事件触发
+#   stages: 伤害计算阶段列表
+#   recovery: 吸血/回复配置
+#   attacker_message/target_message: 伤害消息模板
+#
+# 文件放置位置: plugins/EmakiAttribute/damage_types/
+# ============================================================
+
 id: physical
 
 display_name: "物理伤害"
 
 aliases: [physical_damage, phys]
 
+# 允许触发此伤害类型的事件
 allowed_events:
   - ENTITY_ATTACK
   - ENTITY_SWEEP_ATTACK
 
+# 是否锁定（true = 只有 allowed_events 中的事件才能触发）
 hard_lock: true
 
+# ============================================================
+# 伤害计算阶段
+# ============================================================
+# 按顺序执行，每个阶段的输出作为下一阶段的输入。
+# kind: 阶段类型（FLAT_PERCENT / CUSTOM）
+# source: 属性来源（ATTACKER / TARGET）
+# mode: 计算模式（ADD / MULTIPLY）
+# flat_attributes: 固定值属性列表
+# percent_attributes: 百分比属性列表
+# chance_attributes: 概率属性列表（用于暴击）
+# multiplier_attributes: 倍率属性列表（用于暴击伤害）
+# expression: 自定义计算表达式
 stages:
   - id: attack
     kind: FLAT_PERCENT
@@ -31,6 +64,10 @@ stages:
     flat_attributes: [physical_defense]
     expression: "max(0, {input} - {flat})"
 
+# ============================================================
+# 吸血/回复配置
+# ============================================================
+# 伤害造成后，攻击者根据属性回复生命。
 recovery:
   source: ATTACKER
   resistance_source: TARGET
@@ -38,11 +75,9 @@ recovery:
   percent_attributes: [lifesteal]
   resistance_attributes: [lifesteal_resistance]
 
-attacker_message: "<gray>[<gold>{damage_type}</gold>]</gray> <green>你对
-  <white>{target}</white> 造成了 <yellow>{final_damage}</yellow>
-  点伤害</green>{critical_suffix}"
+# 伤害消息模板
+attacker_message: "<gray>[<gold>{damage_type}</gold>]</gray> <green>你对 <white>{target}</white> 造成了 <yellow>{final_damage}</yellow> 点伤害</green>{critical_suffix}"
 
-target_message: "<gray>[<gold>{damage_type}</gold>]</gray> <red>{attacker}</red>
-  对你造成了 <yellow>{final_damage}</yellow> 点伤害{critical_suffix}"
+target_message: "<gray>[<gold>{damage_type}</gold>]</gray> <red>{attacker}</red> 对你造成了 <yellow>{final_damage}</yellow> 点伤害{critical_suffix}"
 
 description: "Physical damage resolved entirely through Emaki attributes."

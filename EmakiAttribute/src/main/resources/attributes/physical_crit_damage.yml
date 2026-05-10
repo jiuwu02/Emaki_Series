@@ -1,3 +1,6 @@
+# EmakiAttribute 属性定义 - 暴击伤害
+# 详细字段说明参考 physical_attack.yml
+
 id: physical_crit_damage
 display_name: "暴击伤害"
 value_kind: PERCENT

@@ -1,3 +1,12 @@
+# ============================================================
+# EmakiGem 语言文件 - English
+# ============================================================
+# 此文件包含插件的所有消息文本，支持 MiniMessage 格式。
+# 修改后使用 reload 命令重载。
+#
+# 文件放置位置: plugins/EmakiGem/lang/
+# ============================================================
+
 # version is maintained by resource sync
 version: "2.0.0"
 
@@ -85,9 +94,11 @@ command:
       <yellow>{type}</yellow>.</red>"
     socket_incompatible: "<red>Gem is incompatible with slot #{slot} of type
       <yellow>{type}</yellow>.</red>"
-    max_same_type: "<red>This equipment has reached the limit for gems of the same
+    max_same_type:
+      "<red>This equipment has reached the limit for gems of the same
       type: {type}</red>"
-    max_same_id: "<red>This equipment has reached the limit for gems with the same
+    max_same_id:
+      "<red>This equipment has reached the limit for gems with the same
       ID: {gem}</red>"
     chance_failed: "<red>Inlay failed, gem was not applied to equipment.</red>"
     apply_failed: "<red>Inlay failed, unable to write back equipment state.</red>"
@@ -102,14 +113,16 @@ command:
 
   clearstate:
     no_layer: "<yellow>The main hand item currently has no removable gem layer.</yellow>"
-    apply_failed: "<red>Failed to clear gem layer, unable to write back equipment
+    apply_failed:
+      "<red>Failed to clear gem layer, unable to write back equipment
       state.</red>"
     success: "<green>Cleared the gem layer on the main hand item.</green>"
 
   upgrade:
     hold_gem: "<red>Please place the gem item to upgrade first.</red>"
     slot_empty: "<red>No upgradeable gem in the specified slot #{slot}.</red>"
-    direct_disabled: "<red>Direct in-equipment upgrade is not enabled, please use
+    direct_disabled:
+      "<red>Direct in-equipment upgrade is not enabled, please use
       the standalone upgrade interface.</red>"
     max_level: "<red>This gem has already reached the maximum upgradeable level.</red>"
     failed: "<red>Upgrade failed, materials consumed but gem was not improved.</red>"
@@ -120,22 +133,26 @@ command:
 gui:
   open_failed: "<red>Unable to open gem main interface, please check if the GUI
     template exists.</red>"
-  open_socket_failed: "<red>Unable to open socket opening interface, please check
+  open_socket_failed:
+    "<red>Unable to open socket opening interface, please check
     if the GUI template exists.</red>"
-  upgrade_open_failed: "<red>Unable to open gem upgrade interface, please check if
+  upgrade_open_failed:
+    "<red>Unable to open gem upgrade interface, please check if
     the GUI template exists.</red>"
   gem:
     target_required: "<red>Please place an inlayable equipment in the left slot first.</red>"
     invalid_target: "<red>The placed item is not an equipment that supports gem inlay.</red>"
     hold_gem: "<red>Please hold a gem item on your cursor and click an empty slot.</red>"
-    hold_opener: "<red>Please hold a socket opener on your cursor and click a locked
+    hold_opener:
+      "<red>Please hold a socket opener on your cursor and click a locked
       slot.</red>"
     open_via_open_gui: "<yellow>This slot has not been opened yet, please use
       <gold>/emakigem gui open</gold> to handle it.</yellow>"
     no_pending_action: "<red>No pending action to confirm.</red>"
   open:
     target_required: "<red>Please place an equipment that supports socket opening first.</red>"
-    invalid_target: "<red>The placed item is not an equipment that supports socket
+    invalid_target:
+      "<red>The placed item is not an equipment that supports socket
       opening.</red>"
     invalid_opener: "<red>The placed item is not a valid socket opener.</red>"
     hold_opener: "<red>Please place a usable socket opener first.</red>"

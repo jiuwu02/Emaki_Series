@@ -1,3 +1,6 @@
+# EmakiAttribute 属性定义 - 法力值
+# 详细字段说明参考 physical_attack.yml
+
 id: mana
 display_name: "法力值"
 value_kind: RESOURCE

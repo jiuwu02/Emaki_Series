@@ -1,3 +1,6 @@
+# EmakiAttribute 属性定义 - 移动速度
+# 详细字段说明参考 physical_attack.yml
+
 id: movement_speed
 
 display_name: "移动速度"

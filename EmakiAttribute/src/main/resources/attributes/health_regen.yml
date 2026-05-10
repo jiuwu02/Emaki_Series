@@ -1,3 +1,6 @@
+# EmakiAttribute 属性定义 - 生命恢复
+# 详细字段说明参考 physical_attack.yml
+
 id: health_regen
 display_name: "生命恢复"
 value_kind: REGEN

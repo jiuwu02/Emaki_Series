@@ -1,3 +1,6 @@
+# EmakiAttribute 属性定义 - 投射物伤害
+# 详细字段说明参考 physical_attack.yml
+
 id: projectile_attack
 display_name: "投射物伤害"
 value_kind: FLAT

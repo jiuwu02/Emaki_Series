@@ -1,3 +1,6 @@
+# EmakiAttribute 属性定义 - 法术防御
+# 详细字段说明参考 physical_attack.yml
+
 id: spell_defense
 display_name: "法术防御"
 value_kind: FLAT

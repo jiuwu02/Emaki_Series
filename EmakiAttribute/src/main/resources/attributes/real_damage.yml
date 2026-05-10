@@ -1,3 +1,6 @@
+# EmakiAttribute 属性定义 - 真实伤害
+# 详细字段说明参考 physical_attack.yml
+
 id: real_damage
 
 display_name: "真实伤害"

@@ -1,3 +1,10 @@
+# ============================================================
+# EmakiStrengthen GUI 配置 - 强化界面
+# ============================================================
+# 玩家进行装备强化操作的主界面
+#
+# 文件放置位置: plugins/EmakiStrengthen/gui/
+# ============================================================
 id: "strengthen_gui"
 
 title: "<dark_gray>装备强化</dark_gray>"
@@ -6,25 +13,25 @@ rows: 5
 
 slots:
   top_frame:
-    slots: [ 0, 1, 2, 3, 4, 5, 6, 7, 8 ]
+    slots: [0, 1, 2, 3, 4, 5, 6, 7, 8]
     item: "gray_stained_glass_pane"
     display_name: "<gray>"
-    hidden_components: [ "tooltip" ]
+    hidden_components: ["tooltip"]
 
   bottom_frame:
-    slots: [ 36, 37, 38, 39, 41, 42, 43, 44 ]
+    slots: [36, 37, 38, 39, 41, 42, 43, 44]
     item: "gray_stained_glass_pane"
     display_name: "<gray>"
-    hidden_components: [ "tooltip" ]
+    hidden_components: ["tooltip"]
 
   side_frame:
-    slots: [ 9, 17, 18, 26, 27, 35 ]
+    slots: [9, 17, 18, 26, 27, 35]
     item: "BLACK_STAINED_GLASS_PANE"
     display_name: "<dark_gray>"
-    hidden_components: [ "tooltip" ]
+    hidden_components: ["tooltip"]
 
   target_item:
-    slots: [ 13 ]
+    slots: [13]
     type: "target_item"
     item: "LIGHT_BLUE_STAINED_GLASS_PANE"
     display_name: "<aqua>放入待强化装备</aqua>"
@@ -33,7 +40,7 @@ slots:
       - "<gray>会叠加 strengthen 层，不覆盖 forge 层"
 
   preview_display:
-    slots: [ 15 ]
+    slots: [15]
     type: "preview_display"
     item: "book"
     display_name: "<gold>强化预览</gold>"
@@ -42,7 +49,7 @@ slots:
       - "<gray>所有强化材料都必须放入 GUI 才会计数和扣除"
 
   temper_display:
-    slots: [ 22 ]
+    slots: [22]
     type: "temper_display"
     item: "INK_SAC"
     display_name: "<gold>锻印状态</gold>"
@@ -50,7 +57,7 @@ slots:
       - "<gray>失败后会累积锻印，提高后续成功率"
 
   material_input_1:
-    slots: [ 19 ]
+    slots: [19]
     type: "material_input_1"
     item: "GOLD_NUGGET"
     display_name: "<yellow>强化材料槽 I</yellow>"
@@ -58,7 +65,7 @@ slots:
       - "<gray>可放入本次强化要消耗的任意材料"
 
   material_input_2:
-    slots: [ 20 ]
+    slots: [20]
     type: "material_input_2"
     item: "PAPER"
     display_name: "<yellow>强化材料槽 II</yellow>"
@@ -66,7 +73,7 @@ slots:
       - "<gray>包括固定材料、保护材料和锻印材料"
 
   material_input_3:
-    slots: [ 29 ]
+    slots: [29]
     type: "material_input_3"
     item: "ECHO_SHARD"
     display_name: "<yellow>强化材料槽 III</yellow>"
@@ -74,7 +81,7 @@ slots:
       - "<gray>支持拆分放置不同材料组合"
 
   material_input_4:
-    slots: [ 30 ]
+    slots: [30]
     type: "material_input_4"
     item: "POTION"
     display_name: "<yellow>强化材料槽 IV</yellow>"
@@ -82,7 +89,7 @@ slots:
       - "<gray>放入后只会从 GUI 槽位中扣除对应数量"
 
   confirm:
-    slots: [ 40 ]
+    slots: [40]
     type: "confirm"
     item: "ANVIL"
     display_name: "<green>确认强化</green>"

@@ -1,4 +1,22 @@
+# ============================================================
+# EmakiAttribute 属性平衡配置
+# ============================================================
+# 此文件定义了所有属性的分组、角色和战力评分。
+# 用于属性系统的内部分类、战力计算和 UI 展示。
+#
+# attributes: 属性元数据定义
+#   group: 属性分组（格式: "大类.子类"）
+#   role: 属性角色（决定属性在战斗公式中的作用）
+#   summary: 属性简要说明
+#
+# scores: 战力评分权重
+#   每点属性值对应的战力分数，用于计算 attribute_power。
+#
+# 文件放置位置: plugins/EmakiAttribute/
+# ============================================================
+
 attributes:
+  # ---- 资源类属性 ----
   health:
     group: resource.health
     role: max_health
@@ -16,6 +34,7 @@ attributes:
     role: regen
     summary: "每秒恢复法力值"
 
+  # ---- 物理攻防属性 ----
   physical_attack:
     group: offense.physical
     role: primary_damage
@@ -49,6 +68,7 @@ attributes:
     role: crit_resistance
     summary: "降低受到的物理暴击倍率"
 
+  # ---- 投射物攻防属性 ----
   projectile_attack:
     group: offense.projectile
     role: primary_damage
@@ -82,6 +102,7 @@ attributes:
     role: crit_resistance
     summary: "降低受到的投射物暴击倍率"
 
+  # ---- 法术攻防属性 ----
   spell_attack:
     group: offense.spell
     role: primary_damage
@@ -115,6 +136,7 @@ attributes:
     role: crit_resistance
     summary: "降低受到的法术暴击倍率"
 
+  # ---- 机动性属性 ----
   speed:
     group: mobility.speed
     role: percent_speed
@@ -128,6 +150,7 @@ attributes:
     role: item_cooldown
     summary: "降低手持物品使用冷却"
 
+  # ---- 功能性属性 ----
   entity_scale:
     group: utility.visual
     role: scale
@@ -137,11 +160,13 @@ attributes:
     role: reach
     summary: "增加实体交互范围"
 
+  # ---- 真实伤害 ----
   real_damage:
     group: offense.true
     role: true_damage
     summary: "直接造成穿透类真实伤害"
 
+  # ---- 续航属性 ----
   lifesteal:
     group: sustain.lifesteal
     role: percent_heal
@@ -155,16 +180,23 @@ attributes:
     role: sustain_resistance
     summary: "降低敌方吸血效果"
 
+  # ---- 闪避属性 ----
   dodge_chance:
     group: defense.evasion
     role: dodge
     summary: "提升闪避概率"
 
+  # ---- 元属性 ----
   attribute_power:
     group: meta.balance
     role: derived_power
     summary: "由其他属性推导出的战斗力"
 
+# ============================================================
+# 战力评分权重
+# ============================================================
+# 每点属性值对应的战力分数。
+# attribute_power = Σ(属性值 × 对应权重)
 scores:
   health: 0.35
   mana: 0.20

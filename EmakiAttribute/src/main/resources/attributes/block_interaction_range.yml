@@ -1,3 +1,6 @@
+# EmakiAttribute 属性定义 - 方块交互距离
+# 详细字段说明参考 physical_attack.yml
+
 id: block_interaction_range
 display_name: "方块交互距离"
 value_kind: FLAT
