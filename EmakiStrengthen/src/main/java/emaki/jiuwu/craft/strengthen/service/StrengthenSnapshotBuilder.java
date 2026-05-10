@@ -5,14 +5,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import emaki.jiuwu.craft.corelib.assembly.BaseNamePolicy;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerSnapshot;
 import emaki.jiuwu.craft.corelib.assembly.EmakiLoreSectionContribution;
-import emaki.jiuwu.craft.corelib.assembly.EmakiNameContribution;
 import emaki.jiuwu.craft.corelib.assembly.EmakiStatContribution;
-import emaki.jiuwu.craft.corelib.assembly.EmakiStructuredPresentation;
-import emaki.jiuwu.craft.corelib.assembly.StructuredPresentationTemplateResolver;
-import emaki.jiuwu.craft.corelib.assembly.StructuredPresentationValidator;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -25,8 +20,6 @@ public final class StrengthenSnapshotBuilder {
     private static final int STATS_PRIMARY_ORDER = 210;
     private static final int EFFECTS_ORDER = 230;
     private static final int STATS_SECONDARY_ORDER = 240;
-    private final StructuredPresentationTemplateResolver structuredResolver = new StructuredPresentationTemplateResolver();
-    private final StructuredPresentationValidator structuredValidator = new StructuredPresentationValidator();
 
     public EmakiItemLayerSnapshot buildLayerSnapshot(StrengthenRecipe recipe,
             StrengthenState state,
@@ -35,14 +28,12 @@ public final class StrengthenSnapshotBuilder {
             return null;
         }
         Map<String, Double> stats = recipe.cumulativeVariables(state.currentStar());
-        Map<String, Object> variables = buildVariables(recipe, state, stats);
-        EmakiStructuredPresentation structuredPresentation = buildStructuredPresentation(recipe, state, stats, variables);
         return new EmakiItemLayerSnapshot(
                 NAMESPACE_ID,
                 1,
                 buildAudit(recipe, state, materialsSignature),
                 buildStatContributions(stats),
-                structuredPresentation == null || structuredPresentation.isEmpty() ? null : structuredPresentation
+                null
         );
     }
 
@@ -73,55 +64,6 @@ public final class StrengthenSnapshotBuilder {
             result.add(new EmakiStatContribution(entry.getKey(), entry.getValue(), NAMESPACE_ID + ":" + entry.getKey(), sequence++));
         }
         return result;
-    }
-
-    private EmakiStructuredPresentation buildStructuredPresentation(StrengthenRecipe recipe,
-            StrengthenState state,
-            Map<String, Double> stats,
-            Map<String, Object> variables) {
-        EmakiStructuredPresentation configuredPresentation = resolveConfiguredPresentation(recipe.structuredPresentation(), variables);
-        BaseNamePolicy baseNamePolicy = configuredPresentation == null
-                ? BaseNamePolicy.SOURCE_EFFECTIVE_NAME
-                : configuredPresentation.baseNamePolicy();
-        String baseNameTemplate = configuredPresentation == null ? "" : configuredPresentation.baseNameTemplate();
-        List<EmakiNameContribution> nameContributions = new ArrayList<>();
-        List<EmakiLoreSectionContribution> loreSections = new ArrayList<>();
-        if (configuredPresentation != null) {
-            nameContributions.addAll(configuredPresentation.nameContributions());
-            loreSections.addAll(configuredPresentation.loreSections());
-        }
-
-        // Apply name_actions operations (CoreLib operation system)
-        // Note: name_actions/lore_actions are now applied via ItemOperationLedger after item rebuild.
-
-        List<String> effectLines = new ArrayList<>();
-        for (StrengthenRecipe.StarStage stage : recipe.reachedStages(state.currentStar())) {
-            if (stage == null) {
-                continue;
-            }
-            if (Texts.isNotBlank(stage.name())) {
-                effectLines.add("<gold>星级效果: " + renderTemplate(stage.name(), variables) + "</gold>");
-            }
-            EmakiStructuredPresentation stagePresentation = resolveConfiguredPresentation(stage.structuredPresentation(), variables);
-            if (stagePresentation == null) {
-                continue;
-            }
-            if (hasExplicitBaseName(stagePresentation)) {
-                baseNamePolicy = stagePresentation.baseNamePolicy();
-                baseNameTemplate = stagePresentation.baseNameTemplate();
-            }
-            nameContributions.addAll(stagePresentation.nameContributions());
-            loreSections.addAll(stagePresentation.loreSections());
-        }
-        addSection(loreSections, "strengthen.effects", EFFECTS_ORDER, effectLines);
-        loreSections.addAll(buildStatSections(recipe, stats, variables));
-        StructuredPresentationValidator.ValidationResult validation = structuredValidator.sanitize(new EmakiStructuredPresentation(
-                baseNamePolicy,
-                baseNameTemplate,
-                nameContributions,
-                loreSections
-        ));
-        return validation.presentation();
     }
 
     private List<EmakiLoreSectionContribution> buildStatSections(StrengthenRecipe recipe,
@@ -209,19 +151,6 @@ public final class StrengthenSnapshotBuilder {
             return;
         }
         sections.add(new EmakiLoreSectionContribution(sectionId, order, List.copyOf(lines), NAMESPACE_ID));
-    }
-
-    private EmakiStructuredPresentation resolveConfiguredPresentation(Object raw, Map<String, ?> variables) {
-        StructuredPresentationValidator.ValidationResult validation = structuredValidator.sanitize(
-                structuredResolver.fromConfig(raw, variables, NAMESPACE_ID)
-        );
-        return validation.presentation();
-    }
-
-    private boolean hasExplicitBaseName(EmakiStructuredPresentation presentation) {
-        return presentation != null
-                && presentation.baseNamePolicy() == BaseNamePolicy.EXPLICIT_TEMPLATE
-                && Texts.isNotBlank(presentation.baseNameTemplate());
     }
 
     private record SectionTarget(String sectionId, int order) implements Comparable<SectionTarget> {

@@ -25,7 +25,6 @@ public final class GemDefinition {
     private final Map<String, Double> attributes;
     private final List<String> skillIds;
     private final Set<String> socketCompatibility;
-    private final Object structuredPresentation;
     private final Object nameActions;
     private final Object loreActions;
     private final CostConfig inlayCost;
@@ -46,7 +45,6 @@ public final class GemDefinition {
             Map<String, Double> attributes,
             List<String> skillIds,
             Set<String> socketCompatibility,
-            Object structuredPresentation,
             Object nameActions,
             Object loreActions,
             CostConfig inlayCost,
@@ -66,7 +64,6 @@ public final class GemDefinition {
         this.attributes = attributes == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(attributes));
         this.skillIds = normalizeSkillIds(skillIds);
         this.socketCompatibility = socketCompatibility == null ? Set.of() : Set.copyOf(socketCompatibility);
-        this.structuredPresentation = ConfigNodes.toPlainData(structuredPresentation);
         this.nameActions = ConfigNodes.toPlainData(nameActions);
         this.loreActions = ConfigNodes.toPlainData(loreActions);
         this.inlayCost = inlayCost == null ? CostConfig.none() : inlayCost;
@@ -119,10 +116,6 @@ public final class GemDefinition {
 
     public Set<String> socketCompatibility() {
         return socketCompatibility;
-    }
-
-    public Object structuredPresentation() {
-        return structuredPresentation;
     }
 
     public Object nameActions() {
@@ -185,11 +178,6 @@ public final class GemDefinition {
         return upgradeLevel == null || upgradeLevel.skillIds().isEmpty() ? skillIds : upgradeLevel.skillIds();
     }
 
-    public Object structuredPresentationForLevel(int level) {
-        GemUpgradeLevel upgradeLevel = upgrade.level(level);
-        return mergeStructuredPresentations(structuredPresentation, upgradeLevel == null ? null : upgradeLevel.structuredPresentation());
-    }
-
     public Object nameActionsForLevel(int level) {
         GemUpgradeLevel upgradeLevel = upgrade.level(level);
         return upgradeLevel != null && upgradeLevel.nameActions() != null ? upgradeLevel.nameActions() : nameActions;
@@ -206,42 +194,6 @@ public final class GemDefinition {
 
     public static GemDefinition fromConfig(YamlSection section) {
         return GemDefinitionParser.parse(section);
-    }
-
-    private static Object mergeStructuredPresentations(Object base, Object override) {
-        Object basePlain = ConfigNodes.toPlainData(base);
-        Object overridePlain = ConfigNodes.toPlainData(override);
-        if (!(basePlain instanceof Map<?, ?>) && !(overridePlain instanceof Map<?, ?>)) {
-            return null;
-        }
-        Map<String, Object> merged = new LinkedHashMap<>();
-        mergeStructuredPresentationMap(merged, basePlain);
-        mergeStructuredPresentationMap(merged, overridePlain);
-        return merged;
-    }
-
-    private static void mergeStructuredPresentationMap(Map<String, Object> target, Object raw) {
-        if (!(raw instanceof Map<?, ?> map)) {
-            return;
-        }
-        Object baseNamePolicy = map.get("base_name_policy");
-        if (baseNamePolicy != null) {
-            target.put("base_name_policy", baseNamePolicy);
-        }
-        Object baseNameTemplate = map.get("base_name_template");
-        if (baseNameTemplate != null) {
-            target.put("base_name_template", baseNameTemplate);
-        }
-        List<Object> existingNames = new ArrayList<>(ConfigNodes.asObjectList(target.get("name_contributions")));
-        existingNames.addAll(ConfigNodes.asObjectList(map.get("name_contributions")));
-        if (!existingNames.isEmpty()) {
-            target.put("name_contributions", existingNames);
-        }
-        List<Object> existingLore = new ArrayList<>(ConfigNodes.asObjectList(target.get("lore_sections")));
-        existingLore.addAll(ConfigNodes.asObjectList(map.get("lore_sections")));
-        if (!existingLore.isEmpty()) {
-            target.put("lore_sections", existingLore);
-        }
     }
 
     static List<String> normalizeSkillIds(List<String> rawSkillIds) {
@@ -390,7 +342,6 @@ public final class GemDefinition {
             Map<String, Double> stats,
             Map<String, Double> attributes,
             List<String> skillIds,
-            Object structuredPresentation,
             Object nameActions,
             Object loreActions,
             double successChance,
@@ -406,7 +357,6 @@ public final class GemDefinition {
             stats = stats == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(stats));
             attributes = attributes == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(attributes));
             skillIds = normalizeSkillIds(skillIds);
-            structuredPresentation = ConfigNodes.toPlainData(structuredPresentation);
             nameActions = ConfigNodes.toPlainData(nameActions);
             loreActions = ConfigNodes.toPlainData(loreActions);
             successChance = successChance < 0D ? -1D : Math.max(0D, Math.min(100D, successChance));

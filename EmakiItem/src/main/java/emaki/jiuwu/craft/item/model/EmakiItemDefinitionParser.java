@@ -34,7 +34,7 @@ public final class EmakiItemDefinitionParser {
             warning("Skipping item definition " + source + ": invalid id or material '" + materialName + "'.");
             return null;
         }
-        Map<String, Object> variables = new LinkedHashMap<>(toPlainMap(root.get("attributes")));
+        Map<String, Object> variables = new LinkedHashMap<>(toPlainMap(root.get("ea_attributes")));
         variables.putAll(toPlainMap(root.get("variables")));
         ItemComponentsConfig components = parseComponents(root.getSection("components"), id);
         boolean random = containsRandom(root.get("lore"))
@@ -49,9 +49,9 @@ public final class EmakiItemDefinitionParser {
                 root.get("lore"),
                 variables,
                 components,
-                toDoubleMap(root.get("attributes")),
-                toStringMap(root.get("attribute_meta")),
-                normalizedList(root.get("skills")),
+                toDoubleMap(root.get("ea_attributes")),
+                toStringMap(root.get("ea_attribute_meta")),
+                normalizedList(root.get("es_skills")),
                 parseSetMembership(root.getSection("set")),
                 parseConditions(root.getSection("conditions")),
                 parseActions(root.getSection("actions")),

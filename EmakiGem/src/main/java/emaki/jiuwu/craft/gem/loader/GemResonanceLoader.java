@@ -88,8 +88,8 @@ public final class GemResonanceLoader extends YamlDirectoryLoader<GemResonanceDe
             return new ResonanceEffects(null, null, null, null, null);
         }
         List<String> actions = section.getStringList("actions");
-        Map<String, Double> stats = parseStatMap(section.getSection("variables"));
-        List<String> skills = section.getStringList("skills");
+        Map<String, Double> stats = parseStatMap(section.getSection("ea_attributes"));
+        List<String> skills = section.getStringList("es_skills");
         Object nameActions = section.get("name_actions");
         Object loreActions = section.get("lore_actions");
         return new ResonanceEffects(actions, stats, skills, nameActions, loreActions);

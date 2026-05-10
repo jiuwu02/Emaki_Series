@@ -1,27 +1,47 @@
-# 货币字段仅接受 currency_id。
+# EmakiGem 宝石定义完整示例
+# 展示所有可用字段的用法
 id: "ruby_attack"
+display_name: "<red>红宝石</red>"
 gem_type: "attack"
 level: 1
+
+# 宝石物品来源（用于识别宝石物品）
 item_sources:
   - "minecraft-redstone"
 
+# 自定义模型数据（可选）
+custom_model_data: 1001
+
+# 表达式引擎变量 - 用于 name_actions/lore_actions 中的 {变量名} 占位符替换
+# 这些变量同时也作为 stats 写入 layer snapshot（叠加到 PDC 属性上）
 variables:
   physical_attack: 8
   physical_crit_rate: 3
 
+# EmakiAttribute PDC 属性 - 独立于 variables 的显式属性定义
+# 如果配置了此字段，PDC 属性将使用此处的值而非 variables
+# 如果未配置或为空，则使用 variables 的值作为属性
+ea_attributes:
+  physical_attack: 8.0
+  physical_crit_rate: 3.0
+
+# 插槽兼容性 - 此宝石可以镶嵌到哪些类型的插槽
 socket_compatibility:
   - "attack"
   - "universal"
 
+# 镶嵌后对装备名称的修改（CoreLib name_actions 标准格式）
 name_actions:
   - action: "append_suffix"
     value: " <red>[{display_name}]</red>"
 
+# 镶嵌后对装备 Lore 的修改（CoreLib lore_actions 标准格式）
 lore_actions:
   - action: "append"
     content:
       - "<red>◆ {display_name}: 物理攻击+{physical_attack} 暴击率+{physical_crit_rate}%</red>"
 
+# 镶嵌费用
 inlay_cost:
   currencies:
     - provider: "vault"
@@ -34,6 +54,7 @@ inlay_cost:
         - "minecraft-gold_nugget"
       amount: 1
 
+# 拆卸费用
 extract_cost:
   currencies:
     - provider: "vault"
@@ -46,13 +67,19 @@ extract_cost:
         - "minecraft-iron_nugget"
       amount: 1
 
+# 拆卸返还模式
 extract_return:
+  # mode: original (原样返还) / destroy (销毁) / downgrade (降级)
   mode: "original"
+  downgrade_levels: 1
+  degraded_chance: 0.0
 
+# 宝石升级配置
 upgrade:
   enabled: true
   max_level: 4
   gui_template: "upgrade/default"
+  failure_penalty: "none"
   economy:
     enabled: true
     currencies:
@@ -65,19 +92,24 @@ upgrade:
     2: 100.0
     3: 80.0
     4: 60.0
-  failure_penalty: "none"
   levels:
     2:
+      display_name: "<red>红宝石 II</red>"
+      # 升级后的变量值（覆盖基础 variables）
       variables:
         physical_attack: 12
         physical_crit_rate: 4
+      # 升级后的 EmakiAttribute PDC 属性（覆盖基础 ea_attributes）
+      ea_attributes:
+        physical_attack: 12.0
+        physical_crit_rate: 4.0
       name_actions:
         - action: "append_suffix"
-          value: " <red>[{display_name}]</red>"
+          value: " <red>[{display_name} II]</red>"
       lore_actions:
         - action: "append"
           content:
-            - "<red>◆ {display_name}: 物理攻击+{physical_attack} 暴击率+{physical_crit_rate}%</red>"
+            - "<red>◆ {display_name} II: 物理攻击+{physical_attack} 暴击率+{physical_crit_rate}%</red>"
       materials:
         - item_sources:
             - "minecraft-gold_nugget"
@@ -87,20 +119,25 @@ upgrade:
           amount: 1
       success_rate: 100.0
       actions:
-        success: []
+        success:
+          - 'sendmessage text="<gold>红宝石升级至 II！</gold>"'
         failure: []
 
     3:
+      display_name: "<red>红宝石 III</red>"
       variables:
         physical_attack: 16
         physical_crit_rate: 5
+      ea_attributes:
+        physical_attack: 16.0
+        physical_crit_rate: 5.0
       name_actions:
         - action: "append_suffix"
-          value: " <red>[{display_name}]</red>"
+          value: " <red>[{display_name} III]</red>"
       lore_actions:
         - action: "append"
           content:
-            - "<red>◆ {display_name}: 物理攻击+{physical_attack} 暴击率+{physical_crit_rate}%</red>"
+            - "<red>◆ {display_name} III: 物理攻击+{physical_attack} 暴击率+{physical_crit_rate}%</red>"
       materials:
         - item_sources:
             - "minecraft-gold_ingot"
@@ -113,16 +150,26 @@ upgrade:
         failure: []
 
     4:
+      display_name: "<red>红宝石 IV</red>"
       variables:
         physical_attack: 22
         physical_crit_rate: 7
+      ea_attributes:
+        physical_attack: 22.0
+        physical_crit_rate: 7.0
+      # 升级后附加的 EmakiSkills 技能效果
+      effects:
+        - type: "es_skill"
+          es_skills:
+            - "ruby_burst"
       name_actions:
         - action: "append_suffix"
-          value: " <red>[{display_name}]</red>"
+          value: " <red>[{display_name} IV]</red>"
       lore_actions:
         - action: "append"
           content:
-            - "<red>◆ {display_name}: 物理攻击+{physical_attack} 暴击率+{physical_crit_rate}%</red>"
+            - "<red>◆ {display_name} IV: 物理攻击+{physical_attack} 暴击率+{physical_crit_rate}%</red>"
+            - "<gold>  ★ 解锁技能: 红宝石爆发</gold>"
       materials:
         - item_sources:
             - "minecraft-netherite_ingot"
@@ -139,11 +186,18 @@ upgrade:
             cost_formula: "{base_cost}"
             display_name: "<gold>金币</gold>"
       success_rate: 60.0
+      failure_penalty: "downgrade"
       actions:
         success:
           - 'sendmessage text="<gold>{player}</gold> <yellow>成功将红宝石升级至 IV！</yellow>"'
-        failure: []
+          - "playsound sound=minecraft:entity.player.levelup volume=1 pitch=1.5"
+        failure:
+          - 'sendmessage text="<red>升级失败，宝石降级了...</red>"'
 
+# 宝石动作
 actions:
-  inlay_success: []
-  extract_success: []
+  inlay_success:
+    - 'sendmessage text="<green>红宝石镶嵌成功！</green>"'
+    - "playsound sound=minecraft:block.enchantment_table.use volume=1 pitch=1.2"
+  extract_success:
+    - 'sendmessage text="<yellow>红宝石已拆卸。</yellow>"'

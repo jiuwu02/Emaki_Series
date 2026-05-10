@@ -51,9 +51,9 @@ public record EmakiItemDefinition(String id,
         signatureData.put("lore", lore);
         signatureData.put("variables", variables);
         signatureData.put("components", components);
-        signatureData.put("attributes", attributes);
-        signatureData.put("attribute_meta", attributeMeta);
-        signatureData.put("skills", skills);
+        signatureData.put("ea_attributes", attributes);
+        signatureData.put("ea_attribute_meta", attributeMeta);
+        signatureData.put("es_skills", skills);
         signatureData.put("set", Map.of("id", setMembership.setId(), "piece", setMembership.pieceId()));
         signatureData.put("conditions", conditions);
         signatureData.put("actions", actions);

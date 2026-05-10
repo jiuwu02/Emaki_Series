@@ -1,24 +1,40 @@
+# EmakiForge 锻造配方完整示例
+# 展示所有可用字段的用法，包括 ea_attribute 和 es_skill 效果类型
 id: "flame_sword"
 
 display_name: "<gold>烈焰之剑锻造配方</gold>"
 
+# 锻造容量上限 - 材料的 capacity_cost 总和不能超过此值
 forge_capacity: 35
 
+# 蓝图需求 - 锻造前必须拥有的物品（不消耗）
 blueprint_requirements:
   - item_sources:
       - "minecraft-enchanted_book"
     amount: 1
 
+# 材料列表
 materials:
+  # 基础材料 - 提供 variables（用于 lore 渲染）和 ea_attribute（写入 PDC）
   - item_sources:
       - "minecraft-iron_ingot"
     amount: 3
     capacity_cost: 5
     effects:
+      # variables 效果 - 提供表达式引擎变量，用于 lore_action 中的占位符渲染
       - type: "variables"
         variables:
           physical_damage: 5
           max_health: 2
+      # ea_attribute 效果 - 直接写入物品 PDC 的 EmakiAttribute 属性
+      - type: "ea_attribute"
+        ea_attributes:
+          physical_attack: 5.0
+          max_health: 2.0
+        # ea_attribute_meta - 属性元数据（可选）
+        ea_attribute_meta:
+          source_material: "iron_ingot"
+      # lore_action 效果 - 修改物品 Lore
       - type: "lore_action"
         lore_actions:
           - action: "insert_below"
@@ -27,6 +43,7 @@ materials:
               - "<gray>物理伤害: <red>+{physical_damage}"
               - "<gray>生命值: <green>+{max_health}"
 
+  # 烈焰粉 - 提供火焰属性和名称修改
   - item_sources:
       - "minecraft-blaze_powder"
     amount: 1
@@ -36,6 +53,17 @@ materials:
         variables:
           fire_damage: 10
           critical_chance: 5
+      - type: "ea_attribute"
+        ea_attributes:
+          fire_damage: 10.0
+          physical_crit_rate: 5.0
+      # es_skill 效果 - 写入物品 PDC 的 EmakiSkills 技能
+      - type: "es_skill"
+        es_skills:
+          - "flame_strike"
+        # 也支持单个技能的简写形式
+        es_skill: "flame_passive"
+      # name_action 效果 - 修改物品名称
       - type: "name_action"
         name_actions:
           - action: "append_suffix"
@@ -48,6 +76,7 @@ materials:
               - "<red>火焰伤害: +{fire_damage}"
               - "<yellow>暴击率: +{critical_chance}%"
 
+  # 可选材料 - 火焰弹
   - item_sources:
       - "minecraft-fire_charge"
     amount: 1
@@ -58,6 +87,10 @@ materials:
         variables:
           fire_damage: 12
           critical_chance: 4
+      - type: "ea_attribute"
+        ea_attributes:
+          fire_damage: 12.0
+          physical_crit_rate: 4.0
       - type: "lore_action"
         lore_actions:
           - action: "append"
@@ -65,6 +98,7 @@ materials:
               - "<red>火焰伤害: +{fire_damage}"
               - "<yellow>暴击率: +{critical_chance}%"
 
+  # 可选材料 - 羽毛（移动速度）
   - item_sources:
       - "minecraft-feather"
     amount: 1
@@ -75,7 +109,12 @@ materials:
         variables:
           movement_speed: 3
           dodge_chance: 2
+      - type: "ea_attribute"
+        ea_attributes:
+          movement_speed: 3.0
+          dodge_chance: 2.0
 
+  # 可选材料 - 回响碎片（魔法穿透）
   - item_sources:
       - "minecraft-echo_shard"
     amount: 1
@@ -86,7 +125,12 @@ materials:
         variables:
           magic_penetration: 6
           spell_crit_rate: 3
+      - type: "ea_attribute"
+        ea_attributes:
+          magic_penetration: 6.0
+          spell_crit_rate: 3.0
 
+  # 可选材料 - 下界之星（扩展锻造容量，不占用容量）
   - item_sources:
       - "minecraft-nether_star"
     amount: 1
@@ -96,12 +140,14 @@ materials:
       - type: "capacity_bonus"
         value: 20
 
+# 可选材料数量限制
 optional_material_limit: 3
 
+# 锻造条件
 condition_type: "all_of"
-
 conditions: []
 
+# 品质系统
 quality:
   enabled: true
   custom_pool: []
@@ -110,6 +156,7 @@ quality:
     attempts: 60
     minimum: "无暇"
 
+# 锻造结果
 result:
   item_sources:
     - "minecraft-diamond_sword"
@@ -128,6 +175,7 @@ result:
     - 'sendmessage text="<green>锻造成功! 获得了 {forge_result_item_name}</green>"'
     - "playsound sound=minecraft:block.anvil.use volume=1 pitch=1"
 
+# 锻造流程动作
 actions:
   pre:
     - 'sendactionbar text="<gray>烈焰之力正在熔铸...</gray>"'

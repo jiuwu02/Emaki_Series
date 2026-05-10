@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Map;
 
 import emaki.jiuwu.craft.corelib.assembly.EmakiLoreSectionContribution;
-import emaki.jiuwu.craft.corelib.assembly.EmakiStructuredPresentation;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -109,42 +108,6 @@ final class GemLoreBuilder {
             }
         }
         return lines;
-    }
-
-    List<String> extractOverviewExtraLines(EmakiStructuredPresentation presentation) {
-        List<String> lines = new ArrayList<>();
-        if (presentation == null) {
-            return lines;
-        }
-        for (EmakiLoreSectionContribution section : presentation.loreSections()) {
-            if (section == null) {
-                continue;
-            }
-            String sectionId = Texts.lower(section.sectionId());
-            if ("gem.overview".equals(sectionId) || sectionId.startsWith("gem.overview.")) {
-                lines.addAll(section.lines());
-            }
-        }
-        return lines;
-    }
-
-    List<EmakiLoreSectionContribution> extractAdditionalSections(EmakiStructuredPresentation presentation, String excludedPrefix) {
-        List<EmakiLoreSectionContribution> sections = new ArrayList<>();
-        if (presentation == null) {
-            return sections;
-        }
-        String normalizedPrefix = Texts.lower(excludedPrefix);
-        for (EmakiLoreSectionContribution section : presentation.loreSections()) {
-            if (section == null) {
-                continue;
-            }
-            String sectionId = Texts.lower(section.sectionId());
-            if (sectionId.equals(normalizedPrefix) || sectionId.startsWith(normalizedPrefix + ".")) {
-                continue;
-            }
-            sections.add(section);
-        }
-        return sections;
     }
 
     void addSection(List<EmakiLoreSectionContribution> sections,

@@ -1,9 +1,12 @@
+# EmakiStrengthen 强化配方完整示例
+# 展示所有可用字段的用法，包括 variables、ea_attributes 和 es_skill effects
 id: "weapon_physical"
 
 display_name: "<gold>物理武器强化</gold>"
 
 gui_template: "strengthen_gui"
 
+# 经济系统配置
 economy:
   enabled: true
   currencies:
@@ -13,12 +16,14 @@ economy:
       cost_formula: "{base_cost} * {star}"
       display_name: "<gold>金币</gold>"
 
+# 强化限制
 limits:
   max_star: 12
   max_temper: 4
   temper_chance_bonus_per_level: 5.0
   success_chance_cap: 90.0
 
+# 各星级成功率
 success_rates:
   1: 100.0
   2: 100.0
@@ -33,9 +38,14 @@ success_rates:
   11: 8.0
   12: 4.0
 
+# 匹配规则 - 哪些物品可以使用此配方
 match:
   slot_groups:
     - "weapon"
+
+# 强化条件
+condition_type: "all_of"
+conditions: []
 
 # stat_lines 定义变量如何渲染为 lore 行
 # template 中可用变量: {id} {sign} {value} 以及所有当前累积变量值
@@ -61,6 +71,10 @@ stat_lines:
     section_id: "strengthen.stats.secondary"
     section_order: 240
 
+# 星级阶段定义
+# variables: 表达式引擎变量，支持表达式字符串（如 "4 + star * 2"），用于 stat_lines 渲染和 PDC 属性
+# ea_attributes: 显式 EmakiAttribute PDC 属性覆盖（可选，如果不配置则使用 variables 解析后的值）
+# effects: 技能效果列表（type: "es_skill"）
 stars:
   1:
     variables:
@@ -113,9 +127,20 @@ stars:
 
   5:
     name: "<gold>暴击率提升</gold>"
+    # variables 支持表达式字符串，可以引用 star 等上下文变量
     variables:
       physical_attack: 6
       physical_crit_rate: 2
+    # ea_attributes 显式覆盖 - 如果配置了此字段，PDC 属性将使用此处的值
+    # 如果不配置，则使用 variables 解析后的累积值
+    ea_attributes:
+      physical_attack: 25.0
+      physical_crit_rate: 2.0
+    # effects 中的 es_skill 类型 - 达到此星级时附加技能
+    effects:
+      - type: "es_skill"
+        es_skills:
+          - "weapon_crit_passive"
     materials:
       - item_sources:
           - "copper_ingot"
@@ -128,12 +153,12 @@ stars:
         amount: -1
         optional: true
         protection: true
-    structured_presentation:
-      lore_sections:
-        - section_id: "strengthen.effects"
-          order: 230
-          lines:
-            - "<gray>强化达到 +5 后，物理武器会额外提供暴击率。</gray>"
+    # lore_actions - 达到此星级时对装备 Lore 的修改（CoreLib lore_actions 标准格式）
+    lore_actions:
+      - action: "append"
+        content:
+          - "<gray>强化达到 +5 后，物理武器会额外提供暴击率。</gray>"
+          - "<gold>★ 解锁被动: 暴击强化</gold>"
     actions:
       success:
         - 'sendmessage text="<gold>强化达到 +5，解锁额外物理暴击率。</gold>"'
@@ -191,12 +216,10 @@ stars:
         amount: -1
         optional: true
         protection: true
-    structured_presentation:
-      lore_sections:
-        - section_id: "strengthen.effects"
-          order: 230
-          lines:
-            - "<gray>强化达到 +8 后，物理武器会额外提供增伤。</gray>"
+    lore_actions:
+      - action: "append"
+        content:
+          - "<gray>强化达到 +8 后，物理武器会额外提供增伤。</gray>"
     actions:
       success:
         - 'sendtitle title="<gold><bold>+8 物理伤害提升</bold></gold>"
@@ -242,12 +265,10 @@ stars:
         amount: -1
         optional: true
         protection: true
-    structured_presentation:
-      lore_sections:
-        - section_id: "strengthen.effects"
-          order: 230
-          lines:
-            - "<gray>强化达到 +10 后，物理武器会额外提供暴击伤害。</gray>"
+    lore_actions:
+      - action: "append"
+        content:
+          - "<gray>强化达到 +10 后，物理武器会额外提供暴击伤害。</gray>"
     actions:
       success:
         - 'sendtitle title="<gold><bold>+10 物理暴伤提升</bold></gold>"
@@ -279,6 +300,11 @@ stars:
     variables:
       physical_attack: 16
       physical_armor_penetration: 8
+    # 满星时附加终极技能
+    effects:
+      - type: "es_skill"
+        es_skills:
+          - "weapon_penetration_ultimate"
     materials:
       - item_sources:
           - "copper_ingot"
@@ -299,12 +325,11 @@ stars:
         amount: -1
         optional: true
         temper_boost: 1
-    structured_presentation:
-      lore_sections:
-        - section_id: "strengthen.effects"
-          order: 230
-          lines:
-            - "<gray>强化达到 +12 后，物理武器会额外提供穿透。</gray>"
+    lore_actions:
+      - action: "append"
+        content:
+          - "<gray>强化达到 +12 后，物理武器会额外提供穿透。</gray>"
+          - "<gold>★ 解锁终极: 穿甲一击</gold>"
     actions:
       success:
         - 'sendtitle title="<gold><bold>+12 物理穿透提升</bold></gold>"
@@ -312,36 +337,14 @@ stars:
         - "playsound sound=minecraft:ui.toast.challenge_complete volume=1
           pitch=1"
 
-# structured_presentation 控制物品名称和 lore 的渲染
-# 这是 CoreLib 统一的展示层系统，所有 Emaki 插件共用
-#
-# name 操作:
-#   base_name_policy: SOURCE_EFFECTIVE_NAME (保持原名) | EXPLICIT_TEMPLATE (覆盖名称)
-#   base_name_template: 当 policy 为 EXPLICIT_TEMPLATE 时的模板
-#   name_contributions: 名称前缀/后缀列表
-#     - slot_id: 唯一标识 (用于去重)
-#       position: PREFIX | POSTFIX
-#       order: 排序权重 (越小越靠前)
-#       content_template: 内容模板 (支持变量如 {star})
-#
-# lore 操作:
-#   lore_sections: lore 段落列表
-#     - section_id: 段落标识 (用于排序和去重)
-#       order: 排序权重 (越小越靠前)
-#       lines: 行列表 (支持 MiniMessage 和变量)
-#
-structured_presentation:
-  name_contributions:
-    - slot_id: "strengthen.badge"
-      position: "POSTFIX"
-      order: 200
-      content_template: " [+{star}]"
-  lore_sections:
-    - section_id: "strengthen.header.primary"
-      order: 200
-      lines:
-        - "<gradient:#F2C46D:#C9703D>强化等级 +{star}</gradient>"
-    - section_id: "strengthen.header.secondary"
-      order: 220
-      lines:
-        - "<gray>锻印: {temper_color}{temper}/{max_temper}</gray>"
+# name_actions 控制物品名称的修改（CoreLib name_actions 标准格式）
+# lore_actions 控制物品 Lore 的修改（CoreLib lore_actions 标准格式）
+name_actions:
+  - action: "append_suffix"
+    value: " [+{star}]"
+
+lore_actions:
+  - action: "prepend"
+    content:
+      - "<gradient:#F2C46D:#C9703D>强化等级 +{star}</gradient>"
+      - "<gray>锻印: {temper_color}{temper}/{max_temper}</gray>"

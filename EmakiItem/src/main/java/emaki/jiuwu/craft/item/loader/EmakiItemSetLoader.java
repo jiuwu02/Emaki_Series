@@ -125,8 +125,8 @@ public final class EmakiItemSetLoader {
             result.add(new ItemSetThreshold(
                     required,
                     normalizedList(threshold.get("lore")),
-                    toDoubleMap(threshold.get("attributes")),
-                    normalizedList(threshold.get("skills"))
+                    toDoubleMap(threshold.get("ea_attributes")),
+                    normalizedList(threshold.get("es_skills"))
             ));
         }
         return result;

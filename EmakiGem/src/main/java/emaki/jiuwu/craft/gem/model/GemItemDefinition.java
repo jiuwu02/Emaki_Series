@@ -25,7 +25,6 @@ public final class GemItemDefinition {
     private final int maxSameType;
     private final int maxSameId;
     private final GuiSettings guiSettings;
-    private final Object structuredPresentation;
 
     public GemItemDefinition(String id,
             List<ItemSource> itemSources,
@@ -36,8 +35,7 @@ public final class GemItemDefinition {
             Set<String> allowedGemTypes,
             int maxSameType,
             int maxSameId,
-            GuiSettings guiSettings,
-            Object structuredPresentation) {
+            GuiSettings guiSettings) {
         this.id = Texts.lower(id);
         this.itemSources = itemSources == null ? List.of() : List.copyOf(itemSources);
         this.slotGroups = slotGroups == null ? List.of() : List.copyOf(slotGroups);
@@ -51,7 +49,6 @@ public final class GemItemDefinition {
         this.maxSameType = Math.max(0, maxSameType);
         this.maxSameId = Math.max(1, maxSameId);
         this.guiSettings = guiSettings == null ? GuiSettings.defaults() : guiSettings;
-        this.structuredPresentation = ConfigNodes.toPlainData(structuredPresentation);
     }
 
     public String id() {
@@ -92,10 +89,6 @@ public final class GemItemDefinition {
 
     public GuiSettings guiSettings() {
         return guiSettings;
-    }
-
-    public Object structuredPresentation() {
-        return structuredPresentation;
     }
 
     public SocketSlot slot(int index) {
@@ -176,8 +169,7 @@ public final class GemItemDefinition {
                 new GuiSettings(
                         gui == null ? "" : gui.getString("gem_template", ""),
                         gui == null ? "" : gui.getString("open_template", "")
-                ),
-                section.get("structured_presentation")
+                )
         );
     }
 

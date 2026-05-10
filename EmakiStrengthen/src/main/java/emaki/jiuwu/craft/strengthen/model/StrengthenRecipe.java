@@ -117,7 +117,6 @@ public final class StrengthenRecipe {
             List<String> skillIds,
             List<StarStageMaterial> materials,
             EconomyOverride economyOverride,
-            Object structuredPresentation,
             List<String> successActions,
             List<String> failureActions) {
 
@@ -128,7 +127,6 @@ public final class StrengthenRecipe {
             skillIds = normalizeList(skillIds).stream().map(Texts::normalizeId).filter(Texts::isNotBlank).distinct().toList();
             materials = materials == null ? List.of() : List.copyOf(materials);
             economyOverride = economyOverride == null ? new EconomyOverride(List.of()) : economyOverride;
-            structuredPresentation = ConfigNodes.toPlainData(structuredPresentation);
             successActions = normalizeList(successActions);
             failureActions = normalizeList(failureActions);
         }
@@ -143,7 +141,6 @@ public final class StrengthenRecipe {
     private final MatchRule matchRule;
     private final Map<String, StatLineDefinition> statLines;
     private final Map<Integer, StarStage> stars;
-    private final Object structuredPresentation;
     private final ConditionGroup conditions;
     private final String conditionType;
     private final int conditionRequiredCount;
@@ -160,12 +157,11 @@ public final class StrengthenRecipe {
             MatchRule matchRule,
             Map<String, StatLineDefinition> statLines,
             Map<Integer, StarStage> stars,
-            Object structuredPresentation,
             ConditionGroup conditions,
             String conditionType,
             int conditionRequiredCount) {
         this(id, displayName, guiTemplate, economy, limits, successRates, matchRule, statLines, stars,
-                structuredPresentation, conditions, conditionType, conditionRequiredCount, null, null, null);
+                conditions, conditionType, conditionRequiredCount, null, null, null);
     }
 
     public StrengthenRecipe(String id,
@@ -177,13 +173,12 @@ public final class StrengthenRecipe {
             MatchRule matchRule,
             Map<String, StatLineDefinition> statLines,
             Map<Integer, StarStage> stars,
-            Object structuredPresentation,
             ConditionGroup conditions,
             String conditionType,
             int conditionRequiredCount,
             StrengthenBranchNode branchTree) {
         this(id, displayName, guiTemplate, economy, limits, successRates, matchRule, statLines, stars,
-                structuredPresentation, conditions, conditionType, conditionRequiredCount, branchTree, null, null);
+                conditions, conditionType, conditionRequiredCount, branchTree, null, null);
     }
 
     public StrengthenRecipe(String id,
@@ -195,7 +190,6 @@ public final class StrengthenRecipe {
             MatchRule matchRule,
             Map<String, StatLineDefinition> statLines,
             Map<Integer, StarStage> stars,
-            Object structuredPresentation,
             ConditionGroup conditions,
             String conditionType,
             int conditionRequiredCount,
@@ -211,7 +205,6 @@ public final class StrengthenRecipe {
         this.matchRule = matchRule == null ? new MatchRule(List.of(), List.of(), List.of(), List.of(), List.of(), List.of()) : matchRule;
         this.statLines = statLines == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(statLines));
         this.stars = stars == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(stars));
-        this.structuredPresentation = ConfigNodes.toPlainData(structuredPresentation);
         this.conditions = conditions == null ? ConditionGroup.empty() : conditions;
         this.conditionType = Texts.isBlank(conditionType) ? "all_of" : Texts.lower(conditionType);
         this.conditionRequiredCount = Math.max(0, conditionRequiredCount);
@@ -354,10 +347,6 @@ public final class StrengthenRecipe {
 
     public Map<Integer, StarStage> stars() {
         return stars;
-    }
-
-    public Object structuredPresentation() {
-        return structuredPresentation;
     }
 
     public ConditionGroup conditions() {

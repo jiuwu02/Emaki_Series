@@ -52,10 +52,9 @@ final class GemDefinitionParser {
                 itemSource,
                 Numbers.tryParseInt(section.get("custom_model_data"), null),
                 parseStatMap(section.getSection("variables")),
-                parseStatMap(section.getSection("attributes")),
+                parseStatMap(section.getSection("ea_attributes")),
                 parseSkillEffects(section.getMapList("effects")),
                 socketCompatibility,
-                section.get("structured_presentation"),
                 section.get("name_actions"),
                 section.get("lore_actions"),
                 parseCostConfig(section.getSection("inlay_cost")),
@@ -203,9 +202,8 @@ final class GemDefinitionParser {
                 targetLevel,
                 section.getString("display_name", ""),
                 parseStatMap(section.getSection("variables")),
-                parseStatMap(section.getSection("attributes")),
+                parseStatMap(section.getSection("ea_attributes")),
                 parseSkillEffects(section.getMapList("effects")),
-                section.get("structured_presentation"),
                 section.get("name_actions"),
                 section.get("lore_actions"),
                 successChance,
@@ -241,16 +239,16 @@ final class GemDefinitionParser {
         }
         List<String> result = new ArrayList<>();
         for (Map<?, ?> rawEffect : rawEffects) {
-            if (!"skill".equals(Texts.lower(ConfigNodes.string(rawEffect, "type", "")))) {
+            if (!"es_skill".equals(Texts.lower(ConfigNodes.string(rawEffect, "type", "")))) {
                 continue;
             }
-            for (Object rawSkill : ConfigNodes.asObjectList(ConfigNodes.get(rawEffect, "skills"))) {
+            for (Object rawSkill : ConfigNodes.asObjectList(ConfigNodes.get(rawEffect, "es_skills"))) {
                 String skillId = Texts.normalizeId(Texts.toStringSafe(rawSkill));
                 if (Texts.isNotBlank(skillId)) {
                     result.add(skillId);
                 }
             }
-            String skillId = Texts.normalizeId(ConfigNodes.string(rawEffect, "skill", ""));
+            String skillId = Texts.normalizeId(ConfigNodes.string(rawEffect, "es_skill", ""));
             if (Texts.isNotBlank(skillId)) {
                 result.add(skillId);
             }

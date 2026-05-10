@@ -45,7 +45,6 @@ final class StrengthenRecipeParser {
                 parseMatchRule(section.getSection("match")),
                 parseStatLines(section.getSection("stat_lines")),
                 parseStars(section.getSection("stars")),
-                section.get("structured_presentation"),
                 ConditionGroup.fromConfig(section, section.getString("condition_type", "all_of"), Numbers.tryParseInt(section.get("condition_required_count"), 0)),
                 section.getString("condition_type", "all_of"),
                 Numbers.tryParseInt(section.get("condition_required_count"), 0),
@@ -173,11 +172,10 @@ final class StrengthenRecipeParser {
                     targetStar,
                     stageSection.getString("name", ""),
                     parseVariablesMap(stageSection.getSection("variables")),
-                    parseDoubleMap(stageSection.getSection("attributes")),
+                    parseDoubleMap(stageSection.getSection("ea_attributes")),
                     parseSkillEffects(stageSection.getMapList("effects")),
                     parseStageMaterials(stageSection.getMapList("materials")),
                     parseEconomyOverride(stageSection.getSection("economy_override")),
-                    stageSection.get("structured_presentation"),
                     parseActionLines(stageSection.getSection("actions"), "success"),
                     parseActionLines(stageSection.getSection("actions"), "failure")
             ));
@@ -221,16 +219,16 @@ final class StrengthenRecipeParser {
         }
         LinkedHashSet<String> result = new LinkedHashSet<>();
         for (Map<?, ?> rawEffect : rawEffects) {
-            if (!"skill".equals(Texts.lower(ConfigNodes.string(rawEffect, "type", "")))) {
+            if (!"es_skill".equals(Texts.lower(ConfigNodes.string(rawEffect, "type", "")))) {
                 continue;
             }
-            for (Object rawSkill : ConfigNodes.asObjectList(ConfigNodes.get(rawEffect, "skills"))) {
+            for (Object rawSkill : ConfigNodes.asObjectList(ConfigNodes.get(rawEffect, "es_skills"))) {
                 String skillId = Texts.normalizeId(Texts.toStringSafe(rawSkill));
                 if (Texts.isNotBlank(skillId)) {
                     result.add(skillId);
                 }
             }
-            String skillId = Texts.normalizeId(ConfigNodes.string(rawEffect, "skill", ""));
+            String skillId = Texts.normalizeId(ConfigNodes.string(rawEffect, "es_skill", ""));
             if (Texts.isNotBlank(skillId)) {
                 result.add(skillId);
             }

@@ -1,5 +1,9 @@
+# EmakiItem 物品定义完整示例
+# 展示所有可用字段的用法
 id: "example_blade"
 material: "diamond_sword"
+
+# 物品更新策略 - 当配置变更时自动更新玩家手中的物品
 update:
   enabled: true
   version: 1
@@ -11,7 +15,14 @@ update:
     pickup: true
     interact: true
     command: true
+
+# 物品显示名称（支持 MiniMessage 格式和 variables 变量引用）
 display_name: "<gold>示例之刃</gold>"
+
+# 物品名称（原版 item_name 组件，不支持变量）
+item_name: "示例之刃"
+
+# 物品 Lore（支持 MiniMessage 格式和 variables 变量引用）
 lore:
   - "<gray>一把用于演示的钻石剑</gray>"
   - ""
@@ -19,35 +30,103 @@ lore:
   - "<yellow>暴击率: <white>+{physical_crit_rate}%</white></yellow>"
   - ""
   - "<dark_gray>品质: 示例</dark_gray>"
+
+# 表达式引擎变量 - 用于 display_name 和 lore 中的 {变量名} 占位符替换
+# 支持纯数字、表达式字符串（如 "10 + star * 2"）和随机配置
+# 这些变量不会直接写入 PDC，仅用于文本渲染
 variables:
   physical_attack: 12
   physical_crit_rate: 5
+
+# 原版物品组件配置
 components:
+  # 自定义模型数据（支持 1.21.4+ 的多字段格式）
+  custom_model_data:
+    floats:
+      - 1.0
+    flags:
+      - true
+    strings:
+      - "example"
+    colors:
+      - "#FF5500"
+  # 物品模型（1.21.4+ item_model 组件）
+  item_model: "minecraft:custom/example_blade"
+  # 提示框样式
+  tooltip_style: "minecraft:custom/rare_tooltip"
+  # 附魔
   enchantments:
     sharpness: 5
+  # 物品标志
   item_flags:
     - "HIDE_ENCHANTS"
     - "HIDE_ATTRIBUTES"
+  # 隐藏提示框
+  hide_tooltip: false
+  # 不可破坏
+  unbreakable: false
+  # 附魔光效覆盖
   enchantment_glint_override: true
+  # 最大堆叠数
   max_stack_size: 1
+  # 稀有度
   rarity: "rare"
+  # 耐久损伤
+  damage: 0
+  # 最大耐久
+  max_damage: 1561
+  # 可附魔等级
+  enchantable: 15
+  # 原版属性修饰符（Minecraft 原生 attribute_modifiers 组件）
   attribute_modifiers:
     - attribute: "attack_damage"
       amount: 12.0
       operation: "add_number"
       slot: "hand"
+      name: "emakiitem:example_blade/attack_damage"
     - attribute: "attack_speed"
       amount: -2.4
       operation: "add_number"
       slot: "hand"
-attributes:
+      name: "emakiitem:example_blade/attack_speed"
+  # 原始物品组件字符串（高级用法，直接传递给 Bukkit.getItemFactory().createItemStack()）
+  # raw: "[minecraft:custom_data={example:1}]"
+
+# EmakiAttribute PDC 属性 - 写入物品 PDC，由 EmakiAttribute 插件读取并应用
+# 这些是最终的数值，不经过表达式引擎
+ea_attributes:
   physical_attack: 12.0
   physical_crit_rate: 5.0
-skills:
+
+# EmakiAttribute PDC 属性元数据 - 附加信息，与 ea_attributes 一起写入 PDC
+# 用于告诉 EmakiAttribute 这些属性的额外行为（如条件生效等）
+ea_attribute_meta:
+  custom_tag: "blade_type"
+
+# EmakiSkills PDC 技能 - 写入物品 PDC，由 EmakiSkills 插件读取
+# 装备此物品时玩家将获得这些技能
+es_skills:
   - "fireball"
+  - "flame_dash"
+
+# 套装归属
 set:
   id: "example_guardian"
   piece: "blade"
+
+# 装备条件 - 不满足条件时 ea_attributes 不生效
+conditions:
+  entries:
+    - "{player_level} >= 10"
+    - "{player_class} == 'warrior'"
+  type: "all_of"
+  required_count: 2
+  invalid_as_failure: true
+  deny_message: "<red>你不满足装备条件！</red>"
+  deny_actions:
+    - 'sendmessage text="<red>需要等级 10 以上的战士才能装备此武器。</red>"'
+
+# 修复配置
 repair:
   enabled: true
   materials:
@@ -67,7 +146,21 @@ repair:
         base_cost: 100
         cost_formula: "{base_cost} * {damage_percent}"
         display_name: "<gold>金币</gold>"
+  disabled_display:
+    name_prefix: "<dark_gray>[已损坏] </dark_gray>"
+    lore_append:
+      - ""
+      - "<red>此物品已损坏，属性不生效</red>"
+  on_disabled:
+    - 'sendmessage text="<red>你的武器已损坏！</red>"'
+  on_repaired:
+    - 'sendmessage text="<green>武器已修复！</green>"'
+    - "playsound sound=minecraft:block.anvil.use volume=1 pitch=1.2"
+
+# 触发动作
 actions:
   give:
     - "playsound sound=entity.player.levelup volume=1.0 pitch=1.2"
     - 'sendmessage text="<green>你获得了 <gold>{item_name}</gold>！</green>"'
+  interact:
+    - 'sendactionbar text="<gray>你挥舞了示例之刃</gray>"'
