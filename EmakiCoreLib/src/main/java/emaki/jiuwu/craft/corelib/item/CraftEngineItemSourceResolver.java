@@ -12,6 +12,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import net.momirealms.craftengine.bukkit.api.CraftEngineItems;
 import net.momirealms.craftengine.bukkit.api.event.CraftEngineReloadEvent;
+import net.momirealms.craftengine.bukkit.item.BukkitItemManager;
 import net.momirealms.craftengine.core.item.CustomItem;
 import net.momirealms.craftengine.core.item.ItemBuildContext;
 import net.momirealms.craftengine.core.util.Key;
@@ -114,10 +115,35 @@ final class CraftEngineItemSourceResolver
                 if (Texts.isBlank(identifier)) {
                     return null;
                 }
-                CustomItem<ItemStack> customItem = CraftEngineItems.byId(Key.of(identifier));
+                Key key = Key.of(identifier);
+                int normalizedAmount = Math.max(1, amount);
+                // Try BukkitItemManager first (dev branch / newer API)
+                ItemStack result = createViaBukkitItemManager(key, normalizedAmount);
+                if (result != null) {
+                    return result;
+                }
+                // Fallback to CustomItem.buildItemStack (stable release API)
+                CustomItem<ItemStack> customItem = CraftEngineItems.byId(key);
                 return customItem == null
                         ? null
-                        : customItem.buildItemStack(ItemBuildContext.empty(), Math.max(1, amount));
+                        : customItem.buildItemStack(ItemBuildContext.empty(), normalizedAmount);
+            } catch (RuntimeException | LinkageError exception) {
+                return null;
+            }
+        }
+
+        private ItemStack createViaBukkitItemManager(Key key, int amount) {
+            try {
+                BukkitItemManager manager = BukkitItemManager.instance();
+                if (manager == null) {
+                    return null;
+                }
+                ItemStack itemStack = manager.buildCustomItemStack(key, null);
+                if (itemStack != null && !itemStack.getType().isAir()) {
+                    itemStack.setAmount(amount);
+                    return itemStack;
+                }
+                return null;
             } catch (RuntimeException | LinkageError exception) {
                 return null;
             }
