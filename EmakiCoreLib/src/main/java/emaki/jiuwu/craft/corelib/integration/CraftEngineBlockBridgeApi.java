@@ -8,9 +8,9 @@ import org.bukkit.block.Block;
 
 import emaki.jiuwu.craft.corelib.text.Texts;
 import net.momirealms.craftengine.bukkit.api.CraftEngineBlocks;
-import net.momirealms.craftengine.core.block.CustomBlock;
+import net.momirealms.craftengine.core.block.BlockDefinition;
 import net.momirealms.craftengine.core.block.ImmutableBlockState;
-import net.momirealms.craftengine.core.block.properties.Property;
+import net.momirealms.craftengine.core.block.property.Property;
 import net.momirealms.craftengine.core.registry.Holder;
 import net.momirealms.craftengine.core.util.Key;
 
@@ -47,9 +47,9 @@ final class CraftEngineBlockBridgeApi implements CraftEngineBlockBridge {
             if (state == null) {
                 return "";
             }
-            Holder<CustomBlock> owner = state.owner();
-            CustomBlock customBlock = owner == null ? null : owner.value();
-            Key key = customBlock == null ? null : customBlock.id();
+            Holder<BlockDefinition> owner = state.owner();
+            BlockDefinition blockDefinition = owner == null ? null : owner.value();
+            Key key = blockDefinition == null ? null : blockDefinition.id();
             return normalizeCraftEngineId(key == null ? "" : key.asString());
         } catch (RuntimeException | LinkageError exception) {
             return "";
@@ -74,17 +74,11 @@ final class CraftEngineBlockBridgeApi implements CraftEngineBlockBridge {
             if (state == null) {
                 return false;
             }
-            Holder<CustomBlock> owner = state.owner();
-            CustomBlock customBlock = owner == null ? null : owner.value();
-            if (customBlock == null) {
-                return false;
-            }
-            Property property = customBlock.getProperty("lit");
+            Property property = state.getProperty("lit");
             if (property == null || !state.contains(property)) {
                 return false;
             }
-            ImmutableBlockState updated = state.with(property, Boolean.valueOf(lit));
-            // CraftEngine applies custom block state updates through its place API.
+            ImmutableBlockState updated = ImmutableBlockState.with(state, property, Boolean.valueOf(lit));
             return CraftEngineBlocks.place(block.getLocation(), updated, true);
         } catch (RuntimeException | LinkageError exception) {
             return false;

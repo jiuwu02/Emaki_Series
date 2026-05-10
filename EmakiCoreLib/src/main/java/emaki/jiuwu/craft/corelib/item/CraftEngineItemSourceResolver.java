@@ -1,6 +1,5 @@
 package emaki.jiuwu.craft.corelib.item;
 
-import java.util.Map;
 import java.util.function.Consumer;
 
 import org.bukkit.event.EventHandler;
@@ -12,9 +11,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import net.momirealms.craftengine.bukkit.api.CraftEngineItems;
 import net.momirealms.craftengine.bukkit.api.event.CraftEngineReloadEvent;
-import net.momirealms.craftengine.bukkit.item.BukkitItemManager;
-import net.momirealms.craftengine.core.item.CustomItem;
-import net.momirealms.craftengine.core.item.ItemBuildContext;
 import net.momirealms.craftengine.core.util.Key;
 
 final class CraftEngineItemSourceResolver
@@ -89,7 +85,7 @@ final class CraftEngineItemSourceResolver
         @Override
         public boolean detectLoaded() {
             try {
-                Map<Key, CustomItem<ItemStack>> items = CraftEngineItems.loadedItems();
+                Object items = CraftEngineItems.loadedItems();
                 return items != null;
             } catch (RuntimeException | LinkageError exception) {
                 failureReason = exception.getMessage() == null
@@ -111,42 +107,10 @@ final class CraftEngineItemSourceResolver
 
         @Override
         public ItemStack createItem(String identifier, int amount) {
-            try {
-                if (Texts.isBlank(identifier)) {
-                    return null;
-                }
-                Key key = Key.of(identifier);
-                int normalizedAmount = Math.max(1, amount);
-                // Try BukkitItemManager first (dev branch / newer API)
-                ItemStack result = createViaBukkitItemManager(key, normalizedAmount);
-                if (result != null) {
-                    return result;
-                }
-                // Fallback to CustomItem.buildItemStack (stable release API)
-                CustomItem<ItemStack> customItem = CraftEngineItems.byId(key);
-                return customItem == null
-                        ? null
-                        : customItem.buildItemStack(ItemBuildContext.empty(), normalizedAmount);
-            } catch (RuntimeException | LinkageError exception) {
+            if (Texts.isBlank(identifier)) {
                 return null;
             }
-        }
-
-        private ItemStack createViaBukkitItemManager(Key key, int amount) {
-            try {
-                BukkitItemManager manager = BukkitItemManager.instance();
-                if (manager == null) {
-                    return null;
-                }
-                ItemStack itemStack = manager.buildCustomItemStack(key, null);
-                if (itemStack != null && !itemStack.getType().isAir()) {
-                    itemStack.setAmount(amount);
-                    return itemStack;
-                }
-                return null;
-            } catch (RuntimeException | LinkageError exception) {
-                return null;
-            }
+            return CraftEngineDevApiAccessor.createItem(Key.of(identifier), Math.max(1, amount));
         }
 
         @Override

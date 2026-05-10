@@ -70,6 +70,7 @@ public final class CookingRewardService {
         }
         ItemSource source = ItemSourceUtil.parse(output.get("item_sources"));
         if (source == null) {
+            plugin.getLogger().warning("[CookingReward] Failed to parse item_sources from output: " + output.get("item_sources"));
             return null;
         }
         int amount = resolveAmount(output);
@@ -77,7 +78,12 @@ public final class CookingRewardService {
             return null;
         }
         if (itemAssemblyService == null) {
-            return itemSourceService.createItem(source, amount);
+            ItemStack directItem = itemSourceService.createItem(source, amount);
+            if (directItem == null) {
+                plugin.getLogger().warning("[CookingReward] itemSourceService.createItem returned null for source="
+                        + ItemSourceUtil.toShorthand(source) + " amount=" + amount);
+            }
+            return directItem;
         }
         Map<String, Object> effectivePlaceholders = buildOutputPlaceholders(recipe, output, player, location, phase, placeholders);
         ItemStack itemStack = itemAssemblyService.preview(new EmakiItemAssemblyRequest(
@@ -86,7 +92,15 @@ public final class CookingRewardService {
                 null,
                 List.of(snapshotBuilder.buildSnapshot(recipe, output, phase, effectivePlaceholders))
         ));
-        return itemStack == null ? itemSourceService.createItem(source, amount) : itemStack;
+        if (itemStack == null) {
+            ItemStack fallbackItem = itemSourceService.createItem(source, amount);
+            if (fallbackItem == null) {
+                plugin.getLogger().warning("[CookingReward] Both assembly preview and direct createItem returned null for source="
+                        + ItemSourceUtil.toShorthand(source) + " type=" + source.getType() + " id=" + source.getIdentifier());
+            }
+            return fallbackItem;
+        }
+        return itemStack;
     }
 
     private void deliverOutput(RecipeDocument recipe,
@@ -101,6 +115,8 @@ public final class CookingRewardService {
         }
         ItemStack itemStack = createOutputItem(recipe, output, player, location, phase, placeholders);
         if (itemStack == null || itemStack.getType().isAir()) {
+            plugin.getLogger().warning("[CookingReward] Output item is null or air. output_map=" + output
+                    + ", recipe=" + (recipe == null ? "null" : recipe.id()));
             return;
         }
         if (!deliverItem(player, location, dropResult, itemStack)) {
