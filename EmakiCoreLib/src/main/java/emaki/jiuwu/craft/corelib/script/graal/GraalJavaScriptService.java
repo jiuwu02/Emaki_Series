@@ -104,9 +104,6 @@ public final class GraalJavaScriptService implements JavaScriptService {
             repository.ensureDirectories(config.paths().createDirectories());
             sourceCache.clear();
             List<String> scripts = repository.scan();
-            if (config.debug().logScriptLoad()) {
-                log("已加载 " + scripts.size() + " 个脚本");
-            }
             return ScriptReloadResult.success(scripts);
         } catch (IOException | RuntimeException exception) {
             warn("Failed to reload script repository: " + exception.getMessage());

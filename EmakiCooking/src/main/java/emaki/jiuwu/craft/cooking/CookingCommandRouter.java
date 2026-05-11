@@ -113,10 +113,10 @@ final class CookingCommandRouter implements TabExecutor {
     private void sendHelp(CommandSender sender) {
         plugin.messageService().sendRaw(sender, plugin.messageService().message("command.help.header"));
         Map<String, String> lines = new LinkedHashMap<>();
-        lines.put("help", "显示帮助信息");
-        lines.put("reload", "重载配置、语言与配方目录");
-        lines.put("inspect hand", "检查主手物品的 CoreLib 来源标识");
-        lines.put("debug [player|module|on|off]", "管理 Debug 模式");
+        lines.put("help", plugin.messageService().message("command.help.desc.help"));
+        lines.put("reload", plugin.messageService().message("command.help.desc.reload"));
+        lines.put("inspect hand", plugin.messageService().message("command.help.desc.inspect"));
+        lines.put("debug [player|module|on|off]", plugin.messageService().message("command.help.desc.debug"));
         lines.forEach((name, description) -> plugin.messageService().sendRaw(
                 sender,
                 plugin.messageService().message("command.help.line", Map.of("cmd", name, "desc", description))

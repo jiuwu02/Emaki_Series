@@ -35,6 +35,7 @@ command:
       book: "Open recipe book"
       reload: "Reload configuration"
       "list <type>": "List configs of specified type"
+      debug: "Manage debug mode"
       editor: "Open forge resource editor"
       "edit recipe <id>": "Edit specified recipe"
       "create recipe [id]": "Create new recipe draft"
@@ -97,9 +98,9 @@ console:
   bootstrap_save_failed:
     "<yellow>Failed to save merged config: <red>{path}</red>
     <gray>({error})</gray></yellow>"
-  pdc_source_registered: "<gray>PDC attribute source registered: {source}</gray>"
-  recipes_loaded: "<gray>Loaded {count} recipe(s)</gray>"
-  guis_loaded: "<gray>Loaded {count} GUI template(s)</gray>"
+  pdc_source_registered: "<gray>PDC attribute source registered: <aqua>{source}</aqua></gray>"
+  recipes_loaded: "<gray>Loaded <yellow>{count}</yellow> recipe(s)</gray>"
+  guis_loaded: "<gray>Loaded <yellow>{count}</yellow> GUI template(s)</gray>"
   player_data_directory_create_failed: "<yellow>Unable to create player data directory: <red>{path}</red></yellow>"
   player_data_save_failed:
     "<yellow>Failed to save player data: <red>{uuid}</red>
@@ -196,6 +197,7 @@ loader:
 
 # Forge related
 forge:
+  fallback_item_name: "Item"
   error:
     no_recipe: "<red>Recipe not found.</red>"
     permission_denied: "<red>You do not have permission to use this recipe.</red>"

@@ -291,13 +291,13 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
 
     private void logStationRecipeCounts(EmakiCookingPlugin plugin) {
         MessageService ms = plugin.messageService();
-        logStationCount(ms, "砧板", plugin.choppingBoardRecipeLoader().all().size());
-        logStationCount(ms, "炒锅", plugin.wokRecipeLoader().all().size());
-        logStationCount(ms, "研磨机", plugin.grinderRecipeLoader().all().size());
-        logStationCount(ms, "蒸锅", plugin.steamerRecipeLoader().all().size());
-        logStationCount(ms, "烤箱", plugin.ovenRecipeLoader().all().size());
-        logStationCount(ms, "榨汁机", plugin.juicerRecipeLoader().all().size());
-        logStationCount(ms, "发酵桶", plugin.fermentationBarrelRecipeLoader().all().size());
+        logStationCount(ms, ms.message("console.station_name.chopping_board"), plugin.choppingBoardRecipeLoader().all().size());
+        logStationCount(ms, ms.message("console.station_name.wok"), plugin.wokRecipeLoader().all().size());
+        logStationCount(ms, ms.message("console.station_name.grinder"), plugin.grinderRecipeLoader().all().size());
+        logStationCount(ms, ms.message("console.station_name.steamer"), plugin.steamerRecipeLoader().all().size());
+        logStationCount(ms, ms.message("console.station_name.oven"), plugin.ovenRecipeLoader().all().size());
+        logStationCount(ms, ms.message("console.station_name.juicer"), plugin.juicerRecipeLoader().all().size());
+        logStationCount(ms, ms.message("console.station_name.fermentation_barrel"), plugin.fermentationBarrelRecipeLoader().all().size());
     }
 
     private void logStationCount(MessageService ms, String station, int count) {

@@ -75,8 +75,8 @@ console:
   recipe_action_failed: "<yellow>Strengthen action chain failed:
     <red>{recipe}</red> <gray>phase {phase} star {star}
     ({error})</gray></yellow>"
-  pdc_source_registered: "<gray>PDC attribute source registered: {source}</gray>"
-  recipes_loaded: "<gray>Loaded {count} strengthen recipe(s)</gray>"
+  pdc_source_registered: "<gray>PDC attribute source registered: <aqua>{source}</aqua></gray>"
+  recipes_loaded: "<gray>Loaded <yellow>{count}</yellow> strengthen recipe(s)</gray>"
   papi_registered: "<gray>PlaceholderAPI expansion registered</gray>"
 
 loader:

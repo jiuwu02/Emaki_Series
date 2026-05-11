@@ -50,7 +50,7 @@ console:
   mythic_bridge_init_failed: "初始化 MythicMobs 技能桥接失败: {error}"
   mythic_bridge_skill_lookup_failed: "查询 Mythic 技能失败: {skill} ({error})"
   mythic_bridge_cast_failed: "释放 Mythic 技能失败: {skill} ({error})"
-  skills_loaded: "<gray>已加载 {skills} 个技能, {triggers} 个触发器</gray>"
+  skills_loaded: "<gray>已加载 <yellow>{skills}</yellow> 个技能, <yellow>{triggers}</yellow> 个触发器</gray>"
   papi_registered: "<gray>PlaceholderAPI 扩展已注册</gray>"
 
 loader:
@@ -96,6 +96,7 @@ gui:
   open_failed: "<red>无法打开技能界面。</red>"
   title: "主动技能"
   slot_empty: "<gray>空技能槽</gray>"
+  slot_empty_short: "<gray>[空]</gray>"
   slot_empty_hint: "<dark_gray>点击装配技能</dark_gray>"
   slot_info_trigger: "<gray>触发器: <white>{trigger}</white></gray>"
   slot_info_cooldown: "<gray>独立冷却: <white>{cooldown}s</white></gray>"
@@ -134,9 +135,21 @@ command:
       ==========</gray>"
     line: "<gold>/{cmd}</gold> <gray>- {desc}</gray>"
     footer: "<gray>==========================================</gray>"
+    desc:
+      help: "显示帮助信息"
+      gui: "打开技能 GUI"
+      reload: "重载技能配置与资源"
+      castmode: "切换施法模式"
+      upgrade: "升级已解锁技能"
+      level: "管理玩家技能等级"
+      debug: "管理 Debug 追踪"
+      inspect: "查看玩家技能槽位状态"
+      clearslot: "清除指定槽位的技能绑定"
+      resync: "重新同步玩家技能池"
   inspect:
     header: "<gray>===== 玩家 <aqua>{player}</aqua> 技能状态 =====</gray>"
     line: "<gray>{key}: <white>{value}</white></gray>"
+    empty_slot: "[空]"
   debug:
     header: "<gray>===== 调试信息: <aqua>{player}</aqua> =====</gray>"
     line: "<gray>{key}: <white>{value}</white></gray>"

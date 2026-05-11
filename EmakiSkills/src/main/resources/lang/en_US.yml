@@ -52,7 +52,7 @@ console:
   mythic_bridge_init_failed: "Failed to initialize MythicMobs skill bridge: {error}"
   mythic_bridge_skill_lookup_failed: "Failed to look up Mythic skill: {skill} ({error})"
   mythic_bridge_cast_failed: "Failed to cast Mythic skill: {skill} ({error})"
-  skills_loaded: "<gray>Loaded {skills} skill(s), {triggers} trigger(s)</gray>"
+  skills_loaded: "<gray>Loaded <yellow>{skills}</yellow> skill(s), <yellow>{triggers}</yellow> trigger(s)</gray>"
   papi_registered: "<gray>PlaceholderAPI expansion registered</gray>"
 
 loader:
@@ -102,6 +102,7 @@ gui:
   open_failed: "<red>Unable to open skill interface.</red>"
   title: "Active Skills"
   slot_empty: "<gray>Empty Skill Slot</gray>"
+  slot_empty_short: "<gray>[Empty]</gray>"
   slot_empty_hint: "<dark_gray>Click to equip skill</dark_gray>"
   slot_info_trigger: "<gray>Trigger: <white>{trigger}</white></gray>"
   slot_info_cooldown: "<gray>Cooldown: <white>{cooldown}s</white></gray>"
@@ -140,9 +141,21 @@ command:
       ==========</gray>"
     line: "<gold>/{cmd}</gold> <gray>- {desc}</gray>"
     footer: "<gray>==========================================</gray>"
+    desc:
+      help: "Show help"
+      gui: "Open skills GUI"
+      reload: "Reload skills config and resources"
+      castmode: "Toggle cast mode"
+      upgrade: "Upgrade unlocked skill"
+      level: "Manage player skill levels"
+      debug: "Manage debug tracking"
+      inspect: "View player skill slot status"
+      clearslot: "Clear skill binding from slot"
+      resync: "Resync player skill pool"
   inspect:
     header: "<gray>===== Player <aqua>{player}</aqua> Skill Status =====</gray>"
     line: "<gray>{key}: <white>{value}</white></gray>"
+    empty_slot: "[Empty]"
   debug:
     header: "<gray>===== Debug Info: <aqua>{player}</aqua> =====</gray>"
     line: "<gray>{key}: <white>{value}</white></gray>"

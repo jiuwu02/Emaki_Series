@@ -35,13 +35,13 @@ console:
     attribute <aqua>{attribute}</aqua> -> <red>{stat}</red>
     (<red>{error}</red>)</yellow>"
   attribute_registry_empty: "<yellow>No attributes loaded</yellow>"
-  attribute_registry_summary: "<gray>Loaded {count} attribute(s)</gray>"
+  attribute_registry_summary: "<gray>Loaded <yellow>{count}</yellow> attribute(s)</gray>"
   attribute_registry_entry: "<gray>[Attribute Registry]</gray>
     <white>{index}</white> <dark_gray>|</dark_gray> <aqua>{display_name}</aqua>
     <dark_gray>(</dark_gray><white>{id}</white><dark_gray>)</dark_gray>
     <dark_gray>|</dark_gray> <gray>Default</gray>
     <yellow>{default_value}</yellow> <dark_gray>|</dark_gray> <gray>Power</gray>
-    <light_purple>{attribute_power}</light_purple>"
+    <yellow>{attribute_power}</yellow>"
   papi_registered: "<gray>PlaceholderAPI expansion registered</gray>"
 
 loader:

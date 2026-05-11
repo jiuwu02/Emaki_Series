@@ -311,7 +311,7 @@ final class SkillsCommandRouter implements TabExecutor {
             SkillSlotBinding binding = profile.getBinding(i);
             String slotInfo;
             if (binding == null || binding.isEmpty()) {
-                slotInfo = "[空]";
+                slotInfo = plugin.messageService().message("command.inspect.empty_slot");
             } else {
                 String skillName = binding.skillId() != null ? binding.skillId() : "-";
                 String triggerName = binding.triggerId() != null ? binding.triggerId() : "-";
@@ -412,20 +412,21 @@ final class SkillsCommandRouter implements TabExecutor {
     }
 
     private void sendHelp(CommandSender sender) {
-        plugin.messageService().sendRaw(sender, plugin.messageService().message("command.help.header"));
-        Map<String, String> lines = new LinkedHashMap<>();
-        lines.put("help", "显示帮助信息");
-        lines.put("gui", "打开技能 GUI");
-        lines.put("reload", "重载技能配置与资源");
-        lines.put("castmode <on|off|toggle>", "切换施法模式");
-        lines.put("upgrade <skill>", "升级已解锁技能");
-        lines.put("level get|set|add <player> <skill> [value]", "管理玩家技能等级");
-        lines.put("debug <status|player|module|all> [...]", "管理 Debug 追踪");
-        lines.put("inspect [player]", "查看玩家技能槽位状态");
-        lines.put("clearslot <player> <slot>", "清除指定槽位的技能绑定");
-        lines.put("resync [player]", "重新同步玩家技能池");
-        lines.forEach((name, description) -> plugin.messageService().sendRaw(sender,
-                plugin.messageService().message("command.help.line", Map.of("cmd", name, "desc", description))));
-        plugin.messageService().sendRaw(sender, plugin.messageService().message("command.help.footer"));
+        var ms = plugin.messageService();
+        ms.sendRaw(sender, ms.message("command.help.header"));
+        Map<String, String> commands = new LinkedHashMap<>();
+        commands.put("help", "command.help.desc.help");
+        commands.put("gui", "command.help.desc.gui");
+        commands.put("reload", "command.help.desc.reload");
+        commands.put("castmode <on|off|toggle>", "command.help.desc.castmode");
+        commands.put("upgrade <skill>", "command.help.desc.upgrade");
+        commands.put("level get|set|add <player> <skill> [value]", "command.help.desc.level");
+        commands.put("debug <status|player|module|all> [...]", "command.help.desc.debug");
+        commands.put("inspect [player]", "command.help.desc.inspect");
+        commands.put("clearslot <player> <slot>", "command.help.desc.clearslot");
+        commands.put("resync [player]", "command.help.desc.resync");
+        commands.forEach((cmd, descKey) -> ms.sendRaw(sender,
+                ms.message("command.help.line", Map.of("cmd", cmd, "desc", ms.message(descKey)))));
+        ms.sendRaw(sender, ms.message("command.help.footer"));
     }
 }

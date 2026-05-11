@@ -34,8 +34,9 @@ command:
       help: "显示帮助信息"
       forge: "打开独立锻造台"
       book: "打开配方图鉴"
-      reload: "重载配置"
+      reload: "重载配置文件"
       "list <type>": "列出指定类型配置"
+      debug: "管理 Debug 模式"
       editor: "打开锻造资源编辑器"
       "edit recipe <id>": "编辑指定配方"
       "create recipe [id]": "创建新配方草稿"
@@ -93,9 +94,9 @@ console:
   data_folder_not_init: "<yellow>数据目录尚未初始化。</yellow>"
   bootstrap_copy_failed: "<yellow>复制默认资源失败: <red>{path}</red> <gray>({error})</gray></yellow>"
   bootstrap_save_failed: "<yellow>保存合并后的配置失败: <red>{path}</red> <gray>({error})</gray></yellow>"
-  pdc_source_registered: "<gray>PDC 属性源已注册: {source}</gray>"
-  recipes_loaded: "<gray>已加载 {count} 个配方</gray>"
-  guis_loaded: "<gray>已加载 {count} 个 GUI 模板</gray>"
+  pdc_source_registered: "<gray>PDC 属性源已注册: <aqua>{source}</aqua></gray>"
+  recipes_loaded: "<gray>已加载 <yellow>{count}</yellow> 个配方</gray>"
+  guis_loaded: "<gray>已加载 <yellow>{count}</yellow> 个 GUI 模板</gray>"
   player_data_directory_create_failed: "<yellow>无法创建玩家数据目录: <red>{path}</red></yellow>"
   player_data_save_failed: "<yellow>保存玩家数据失败: <red>{uuid}</red> <gray>({error})</gray></yellow>"
   item_unknown_vanilla_material_source: "<yellow>未知的原版材料来源: <red>{identifier}</red></yellow>"
@@ -207,6 +208,7 @@ loader:
 
 # 锻造相关
 forge:
+  fallback_item_name: "物品"
   error:
     no_recipe: "<red>未找到配方。</red>"
     permission_denied: "<red>你没有权限使用该配方。</red>"

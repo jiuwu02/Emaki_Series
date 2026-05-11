@@ -28,8 +28,8 @@ console:
   plugin_started: "<green>Started</green>"
   plugin_stopping: "Stopping EmakiItem..."
   plugin_stopped: "<yellow>Stopped</yellow>"
-  items_loaded: "<gray>Loaded {count} item(s)</gray>"
-  sets_loaded: "<gray>Loaded {count} set(s)</gray>"
+  items_loaded: "<gray>Loaded <yellow>{count}</yellow> item(s)</gray>"
+  sets_loaded: "<gray>Loaded <yellow>{count}</yellow> set(s)</gray>"
   bootstrap_start: "Syncing bundled resources..."
   bootstrap_complete: "Bundled resources synced."
   bootstrap_skip: "Skipped default data release by config."
@@ -50,6 +50,7 @@ command:
       inspect: "Inspect held EmakiItem"
       update: "Refresh item updates and set lore"
       reload: "Reload config and items"
+      debug: "Manage debug tracking"
   list:
     header: "<gold>EmakiItem Items</gold> <gray>({page}/{pages}, {count} total)</gray>"
     line: "<gray>- <white>{id}</white> <dark_gray>{name}</dark_gray>"

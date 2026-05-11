@@ -27,6 +27,11 @@ command:
     header: "<gold>========== EmakiCooking Help ==========</gold>"
     footer: "<gold>=======================================</gold>"
     line: "<yellow>{cmd}</yellow> <gray>- {desc}</gray>"
+    desc:
+      help: "Show help information"
+      reload: "Reload configuration, language and recipe directories"
+      inspect: "Inspect main-hand item CoreLib source identifier"
+      debug: "Manage Debug mode"
   inspect:
     header: "<gold>========== Held Item Inspection ==========</gold>"
     line: "<yellow>{key}</yellow> <gray>- {value}</gray>"
@@ -46,9 +51,17 @@ console:
   directory_create_failed: "<yellow>Failed to create directory: <red>{path}</red></yellow>"
   loader_config_load_error: "<yellow>Failed to load EmakiCooking config:
     <red>{path}</red> <gray>({error})</gray></yellow>"
-  station_recipes_loaded: "<gray>Loaded {station} {count} recipe(s)</gray>"
-  block_source_bridge_ready: "<gray>Block source connected: {provider}</gray>"
+  station_recipes_loaded: "<gray>Loaded {station} <yellow>{count}</yellow> recipe(s)</gray>"
+  block_source_bridge_ready: "<gray>Block source connected: <aqua>{provider}</aqua></gray>"
   block_source_bridge_unavailable: "<yellow>Block source unavailable: {provider} ({error})</yellow>"
+  station_name:
+    chopping_board: "Chopping Board"
+    wok: "Wok"
+    grinder: "Grinder"
+    steamer: "Steamer"
+    oven: "Oven"
+    juicer: "Juicer"
+    fermentation_barrel: "Fermentation Barrel"
 
 loader:
   lang_directory_create_failed: "<yellow>Unable to create language directory: <red>{path}</red></yellow>"

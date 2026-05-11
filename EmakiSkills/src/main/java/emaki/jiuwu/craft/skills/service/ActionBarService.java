@@ -8,6 +8,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
 
+import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.AdventureSupport;
 import emaki.jiuwu.craft.skills.config.AppConfig;
 import emaki.jiuwu.craft.skills.model.PlayerCastTimingState;
@@ -24,6 +25,7 @@ public final class ActionBarService {
     private final Supplier<AppConfig> configSupplier;
     private final TriggerRegistry triggerRegistry;
     private final Supplier<Map<String, SkillDefinition>> skillDefsSupplier;
+    private final MessageService messageService;
     private BukkitTask refreshTask;
 
     public ActionBarService(JavaPlugin plugin,
@@ -31,13 +33,15 @@ public final class ActionBarService {
             CastModeService castModeService,
             Supplier<AppConfig> configSupplier,
             TriggerRegistry triggerRegistry,
-            Supplier<Map<String, SkillDefinition>> skillDefsSupplier) {
+            Supplier<Map<String, SkillDefinition>> skillDefsSupplier,
+            MessageService messageService) {
         this.plugin = plugin;
         this.dataStore = dataStore;
         this.castModeService = castModeService;
         this.configSupplier = configSupplier;
         this.triggerRegistry = triggerRegistry;
         this.skillDefsSupplier = skillDefsSupplier;
+        this.messageService = messageService;
     }
 
     public void startRefreshTask() {
@@ -110,7 +114,7 @@ public final class ActionBarService {
                 slotDisplay.append(" ");
             }
             if (binding == null || binding.isEmpty()) {
-                slotDisplay.append("<gray>[空]");
+                slotDisplay.append(messageService.message("gui.slot_empty_short"));
             } else {
                 String skillName = resolveSkillName(binding.skillId(), defs);
                 String triggerName = triggerRegistry.getDisplayName(
@@ -123,7 +127,7 @@ public final class ActionBarService {
             if (template.contains(slotPlaceholder)) {
                 String slotText;
                 if (binding == null || binding.isEmpty()) {
-                    slotText = "<gray>[空]";
+                    slotText = messageService.message("gui.slot_empty_short");
                 } else {
                     String skillName = resolveSkillName(binding.skillId(), defs);
                     String triggerName = triggerRegistry.getDisplayName(

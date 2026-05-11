@@ -28,8 +28,8 @@ console:
   plugin_started: "<green>启动完成</green>"
   plugin_stopping: "EmakiItem 正在关闭..."
   plugin_stopped: "<yellow>已关闭</yellow>"
-  items_loaded: "<gray>已加载 {count} 个物品</gray>"
-  sets_loaded: "<gray>已加载 {count} 个套装</gray>"
+  items_loaded: "<gray>已加载 <yellow>{count}</yellow> 个物品</gray>"
+  sets_loaded: "<gray>已加载 <yellow>{count}</yellow> 个套装</gray>"
   bootstrap_start: "正在同步默认资源..."
   bootstrap_complete: "默认资源同步完成。"
   bootstrap_skip: "已按配置跳过默认数据释放。"
@@ -50,6 +50,7 @@ command:
       inspect: "检查主手 EmakiItem"
       update: "刷新玩家物品更新和套装 Lore"
       reload: "重载配置和物品定义"
+      debug: "管理 Debug 模式"
   list:
     header: "<gold>EmakiItem 物品列表</gold> <gray>({page}/{pages}, 共 {count} 个)</gray>"
     line: "<gray>- <white>{id}</white> <dark_gray>{name}</dark_gray>"

@@ -38,8 +38,8 @@ console:
     <red>{path}</red> <gray>({error})</gray></yellow>"
   directory_create_failed: "<yellow>Unable to create directory: <red>{path}</red></yellow>"
   loader_config_load_error: "<red>Failed to load config: {path} ({error})</red>"
-  pdc_source_registered: "<gray>PDC attribute source registered: {source}</gray>"
-  gems_loaded: "<gray>Loaded {count} gem(s)</gray>"
+  pdc_source_registered: "<gray>PDC attribute source registered: <aqua>{source}</aqua></gray>"
+  gems_loaded: "<gray>Loaded <yellow>{count}</yellow> gem(s)</gray>"
   papi_registered: "<gray>PlaceholderAPI expansion registered</gray>"
 
 loader:
@@ -70,6 +70,13 @@ command:
     footer: "<dark_gray>For inlay/extraction, socket opening and upgrade
       interfaces, use <gray>/emakigem gui [inlay|open|upgrade]</gray> to
       open.</dark_gray>"
+    desc:
+      help: "Show help information"
+      gui: "Open the corresponding gem GUI"
+      reload: "Reload gem configuration and resources"
+      inspect: "View gem status of main hand equipment"
+      clearstate: "Remove gem layer from main hand item"
+      debug: "Manage debug mode"
 
   inspect:
     header: "<gold>Gem Status Check - {player}</gold>"

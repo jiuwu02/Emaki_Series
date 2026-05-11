@@ -32,13 +32,13 @@ console:
   mmoitems_stat_read_failed: "<yellow>MMOItems 属性映射读取失败: 属性
     <aqua>{attribute}</aqua> -> <red>{stat}</red> (<red>{error}</red>)</yellow>"
   attribute_registry_empty: "<yellow>未加载到任何属性</yellow>"
-  attribute_registry_summary: "<gray>已加载 {count} 个属性</gray>"
+  attribute_registry_summary: "<gray>已加载 <yellow>{count}</yellow> 个属性</gray>"
   attribute_registry_entry: "<gray>[属性注册]</gray>
     <aqua>{display_name}</aqua>
     <dark_gray>(</dark_gray><white>{id}</white><dark_gray>)</dark_gray>
     <dark_gray>|</dark_gray> <gray>默认值</gray> <yellow>{default_value}</yellow>
     <dark_gray>|</dark_gray> <gray>战力系数</gray>
-    <light_purple>{attribute_power}</light_purple>"
+    <yellow>{attribute_power}</yellow>"
   papi_registered: "<gray>PlaceholderAPI 扩展已注册</gray>"
 
 loader:

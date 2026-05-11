@@ -146,12 +146,12 @@ final class ForgeCommandRouter implements TabExecutor {
     private void sendHelp(CommandSender sender) {
         plugin.messageService().sendRaw(sender, plugin.messageService().message("command.help.header"));
         Map<String, String> lines = new LinkedHashMap<>();
-        lines.put("help", "显示帮助信息");
-        lines.put("forge", "打开独立锻造台");
-        lines.put("book", "打开配方图鉴");
-        lines.put("reload", "重载配置文件");
-        lines.put("list <type>", "列出配方配置项");
-        lines.put("debug [player|module|on|off]", "管理 Debug 模式");
+        lines.put("help", plugin.messageService().message("command.help.commands.help"));
+        lines.put("forge", plugin.messageService().message("command.help.commands.forge"));
+        lines.put("book", plugin.messageService().message("command.help.commands.book"));
+        lines.put("reload", plugin.messageService().message("command.help.commands.reload"));
+        lines.put("list <type>", plugin.messageService().message("command.help.commands.list <type>"));
+        lines.put("debug [player|module|on|off]", plugin.messageService().message("command.help.commands.debug"));
         lines.forEach((commandName, description)
                 -> plugin.messageService().sendRaw(sender, plugin.messageService().message("command.help.line", Map.of("cmd", commandName, "desc", description))));
         plugin.messageService().sendRaw(sender, plugin.messageService().message("command.help.footer"));

@@ -32,8 +32,8 @@ console:
   bootstrap_save_failed: "<yellow>保存默认资源失败: <red>{path}</red> <gray>({error})</gray></yellow>"
   directory_create_failed: "<yellow>无法创建目录: <red>{path}</red></yellow>"
   loader_config_load_error: "<red>加载配置失败: {path} ({error})</red>"
-  pdc_source_registered: "<gray>PDC 属性源已注册: {source}</gray>"
-  gems_loaded: "<gray>已加载 {count} 个宝石</gray>"
+  pdc_source_registered: "<gray>PDC 属性源已注册: <aqua>{source}</aqua></gray>"
+  gems_loaded: "<gray>已加载 <yellow>{count}</yellow> 个宝石</gray>"
   papi_registered: "<gray>PlaceholderAPI 扩展已注册</gray>"
 
 loader:
@@ -62,6 +62,13 @@ command:
       {desc}</gray>"
     footer: "<dark_gray>镶嵌/取出、开孔和升级界面请使用 <gray>/emakigem gui
       [inlay|open|upgrade]</gray> 打开。</dark_gray>"
+    desc:
+      help: "显示帮助信息"
+      gui: "打开对应的宝石 GUI"
+      reload: "重载宝石配置与资源"
+      inspect: "查看主手装备的宝石状态"
+      clearstate: "移除主手物品上的宝石层"
+      debug: "管理 Debug 模式"
 
   inspect:
     header: "<gold>宝石状态检查 - {player}</gold>"

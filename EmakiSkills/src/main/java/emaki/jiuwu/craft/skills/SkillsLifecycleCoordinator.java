@@ -151,7 +151,8 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                 castModeService,
                 plugin::appConfig,
                 triggerRegistry,
-                () -> skillDefinitionLoader.all()
+                () -> skillDefinitionLoader.all(),
+                messageService
         );
         SkillsGuiService skillsGuiService = new SkillsGuiService(
                 plugin, guiService, guiTemplateLoader,

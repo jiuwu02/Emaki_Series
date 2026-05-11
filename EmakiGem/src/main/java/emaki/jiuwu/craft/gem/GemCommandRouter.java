@@ -203,17 +203,18 @@ final class GemCommandRouter implements TabExecutor {
     }
 
     private void sendHelp(CommandSender sender) {
-        plugin.messageService().sendRaw(sender, plugin.messageService().message("command.help.header"));
+        var ms = plugin.messageService();
+        ms.sendRaw(sender, ms.message("command.help.header"));
         Map<String, String> lines = new LinkedHashMap<>();
-        lines.put("help", "显示帮助信息");
-        lines.put("gui [inlay|open|upgrade]", "打开对应的宝石 GUI");
-        lines.put("reload", "重载宝石配置与资源");
-        lines.put("inspect [player]", "查看主手装备的宝石状态");
-        lines.put("clearstate", "移除主手物品上的宝石层");
-        lines.put("debug [player|module|on|off]", "管理 Debug 模式");
-        lines.forEach((name, description) -> plugin.messageService().sendRaw(sender,
-                plugin.messageService().message("command.help.line", Map.of("cmd", name, "desc", description))));
-        plugin.messageService().sendRaw(sender, plugin.messageService().message("command.help.footer"));
+        lines.put("help", ms.message("command.help.desc.help"));
+        lines.put("gui [inlay|open|upgrade]", ms.message("command.help.desc.gui"));
+        lines.put("reload", ms.message("command.help.desc.reload"));
+        lines.put("inspect [player]", ms.message("command.help.desc.inspect"));
+        lines.put("clearstate", ms.message("command.help.desc.clearstate"));
+        lines.put("debug [player|module|on|off]", ms.message("command.help.desc.debug"));
+        lines.forEach((name, description) -> ms.sendRaw(sender,
+                ms.message("command.help.line", Map.of("cmd", name, "desc", description))));
+        ms.sendRaw(sender, ms.message("command.help.footer"));
     }
 
     private boolean handleDebug(CommandSender sender, String[] args) {

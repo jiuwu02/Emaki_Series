@@ -70,8 +70,8 @@ console:
   recipe_action_failed:
     "<yellow>强化动作链执行失败: <red>{recipe}</red> <gray>阶段 {phase}
     星级 {star} ({error})</gray></yellow>"
-  pdc_source_registered: "<gray>PDC 属性源已注册: {source}</gray>"
-  recipes_loaded: "<gray>已加载 {count} 个强化配方</gray>"
+  pdc_source_registered: "<gray>PDC 属性源已注册: <aqua>{source}</aqua></gray>"
+  recipes_loaded: "<gray>已加载 <yellow>{count}</yellow> 个强化配方</gray>"
   papi_registered: "<gray>PlaceholderAPI 扩展已注册</gray>"
 
 loader:

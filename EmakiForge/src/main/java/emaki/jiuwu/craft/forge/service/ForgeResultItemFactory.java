@@ -68,7 +68,7 @@ final class ForgeResultItemFactory {
                 return displayName;
             }
         }
-        return "物品";
+        return plugin.messageService().message("forge.fallback_item_name");
     }
 
     String resolveSourceItemName(GuiItems guiItems, ItemStack resultItem, Recipe recipe) {

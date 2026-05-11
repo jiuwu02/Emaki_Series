@@ -269,7 +269,7 @@ final class ItemCommandRouter implements TabExecutor {
         lines.put("inspect [player]", plugin.messageService().message("command.help.desc.inspect"));
         lines.put("update [player]", plugin.messageService().message("command.help.desc.update"));
         lines.put("reload", plugin.messageService().message("command.help.desc.reload"));
-        lines.put("debug [player|module|on|off]", "管理 Debug 模式");
+        lines.put("debug [player|module|on|off]", plugin.messageService().message("command.help.desc.debug"));
         lines.forEach((name, description) -> plugin.messageService().sendRaw(sender,
                 plugin.messageService().message("command.help.line", Map.of("cmd", name, "desc", description))));
         plugin.messageService().sendRaw(sender, plugin.messageService().message("command.help.footer"));

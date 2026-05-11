@@ -197,6 +197,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
                     () -> actionExecutor
             );
             messageService.info("console.script_engine_ready");
+            messageService.info("console.scripts_loaded", Map.of("count", String.valueOf(javaScriptService.loadedScripts().size())));
         } catch (Exception exception) {
             messageService.warning("console.script_engine_failed", Map.of("error", String.valueOf(exception.getMessage())));
         }

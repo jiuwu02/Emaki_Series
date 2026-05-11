@@ -27,6 +27,11 @@ command:
     header: "<gold>========== EmakiCooking 帮助 ==========</gold>"
     footer: "<gold>=======================================</gold>"
     line: "<yellow>{cmd}</yellow> <gray>- {desc}</gray>"
+    desc:
+      help: "显示帮助信息"
+      reload: "重载配置、语言与配方目录"
+      inspect: "检查主手物品的 CoreLib 来源标识"
+      debug: "管理 Debug 模式"
   inspect:
     header: "<gold>========== 手持物品检查 ==========</gold>"
     line: "<yellow>{key}</yellow> <gray>- {value}</gray>"
@@ -45,9 +50,17 @@ console:
   loader_config_load_error:
     "<yellow>读取 EmakiCooking 配置失败: <red>{path}</red>
     <gray>({error})</gray></yellow>"
-  station_recipes_loaded: "<gray>已加载{station} {count} 个配方</gray>"
-  block_source_bridge_ready: "<gray>已接入方块源: {provider}</gray>"
+  station_recipes_loaded: "<gray>已加载{station} <yellow>{count}</yellow> 个配方</gray>"
+  block_source_bridge_ready: "<gray>已接入方块源: <aqua>{provider}</aqua></gray>"
   block_source_bridge_unavailable: "<yellow>方块源不可用: {provider} ({error})</yellow>"
+  station_name:
+    chopping_board: "砧板"
+    wok: "炒锅"
+    grinder: "研磨机"
+    steamer: "蒸锅"
+    oven: "烤箱"
+    juicer: "榨汁机"
+    fermentation_barrel: "发酵桶"
 
 loader:
   lang_directory_create_failed: "<yellow>无法创建语言目录: <red>{path}</red></yellow>"
