@@ -122,6 +122,7 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
         plugin.appConfigLoader().load();
         plugin.languageLoader().setLanguage(plugin.appConfig().language());
         plugin.recipeLoader().load();
+        StrengthenRecipeResolver.clearPatternCache();
         plugin.guiTemplateLoader().load();
         syncPdcAttributeRegistration(plugin.pdcAttributeGateway(), PDC_ATTRIBUTE_SOURCE_ID);
         plugin.messageService().info("console.pdc_source_registered", Map.of("source", PDC_ATTRIBUTE_SOURCE_ID));

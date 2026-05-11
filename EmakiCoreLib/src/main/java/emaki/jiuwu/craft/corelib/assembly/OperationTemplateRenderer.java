@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -16,6 +17,9 @@ import emaki.jiuwu.craft.corelib.text.Texts;
  * Extracted from EmakiForge's TextTemplateRenderer as a public CoreLib service.
  */
 public final class OperationTemplateRenderer {
+
+    // 正则编译缓存：配置中的 regex 数量有限且固定，避免每次 lore 渲染都重新编译
+    private static final Map<String, Pattern> REGEX_CACHE = new ConcurrentHashMap<>();
 
     public List<Map<String, Object>> normalizeOperations(Object raw) {
         List<Map<String, Object>> normalized = new ArrayList<>();
@@ -98,7 +102,7 @@ public final class OperationTemplateRenderer {
             return Texts.toStringSafe(text);
         }
         try {
-            Pattern pattern = Pattern.compile(regex);
+            Pattern pattern = REGEX_CACHE.computeIfAbsent(regex, Pattern::compile);
             Matcher matcher = pattern.matcher(Texts.toStringSafe(text));
             return matcher.replaceAll(Matcher.quoteReplacement(Texts.formatTemplate(
                     Texts.toStringSafe(replacement),
@@ -107,5 +111,12 @@ public final class OperationTemplateRenderer {
         } catch (Exception _) {
             return Texts.toStringSafe(text);
         }
+    }
+
+    /**
+     * 清理正则编译缓存。应在插件 reload 或 disable 时调用。
+     */
+    public static void clearRegexCache() {
+        REGEX_CACHE.clear();
     }
 }

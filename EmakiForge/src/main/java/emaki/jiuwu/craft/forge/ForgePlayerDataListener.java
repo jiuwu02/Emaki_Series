@@ -26,5 +26,6 @@ final class ForgePlayerDataListener implements Listener {
         if (plugin.recipeBookGuiService() != null) {
             plugin.recipeBookGuiService().removeRecipeBook(event.getPlayer());
         }
+        plugin.playerDataStore().saveAndClearAsync(event.getPlayer().getUniqueId());
     }
 }

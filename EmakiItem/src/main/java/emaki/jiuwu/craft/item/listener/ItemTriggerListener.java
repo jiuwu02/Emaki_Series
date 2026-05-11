@@ -33,6 +33,9 @@ import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
 
 public final class ItemTriggerListener implements Listener {
 
+    // 预分配不可变 NamespacedKey，避免在高频事件中反复创建临时对象
+    private static final org.bukkit.NamespacedKey DISABLED_KEY = new org.bukkit.NamespacedKey("emakiitem", "disabled");
+
     private final EmakiItemPlugin plugin;
 
     public ItemTriggerListener(EmakiItemPlugin plugin) {
@@ -283,8 +286,7 @@ public final class ItemTriggerListener implements Listener {
             return false;
         }
         org.bukkit.persistence.PersistentDataContainer pdc = held.getItemMeta().getPersistentDataContainer();
-        org.bukkit.NamespacedKey key = new org.bukkit.NamespacedKey("emakiitem", "disabled");
-        Byte value = pdc.get(key, org.bukkit.persistence.PersistentDataType.BYTE);
+        Byte value = pdc.get(DISABLED_KEY, org.bukkit.persistence.PersistentDataType.BYTE);
         return value != null && value == 1;
     }
 

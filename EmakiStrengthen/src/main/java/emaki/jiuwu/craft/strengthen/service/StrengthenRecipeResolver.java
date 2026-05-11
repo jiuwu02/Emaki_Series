@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 import java.util.function.Predicate;
 
@@ -25,6 +26,9 @@ import emaki.jiuwu.craft.strengthen.model.StrengthenRecipe;
 public final class StrengthenRecipeResolver {
 
     private static final double EPSILON = 1.0E-9D;
+
+    // 正则编译缓存：配置中的 pattern 字符串数量有限，避免每次匹配都重新编译
+    private static final Map<String, Pattern> PATTERN_CACHE = new ConcurrentHashMap<>();
 
     private final EmakiStrengthenPlugin plugin;
     private final EmakiItemAssemblyService itemAssemblyService;
@@ -140,7 +144,9 @@ public final class StrengthenRecipeResolver {
                 if (Texts.isBlank(pattern)) {
                     continue;
                 }
-                if (Pattern.compile(pattern, Pattern.CASE_INSENSITIVE).matcher(value).find()) {
+                Pattern compiled = PATTERN_CACHE.computeIfAbsent(pattern,
+                        p -> Pattern.compile(p, Pattern.CASE_INSENSITIVE));
+                if (compiled.matcher(value).find()) {
                     matched = true;
                     break;
                 }
@@ -290,5 +296,12 @@ public final class StrengthenRecipeResolver {
             stats = stats == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(stats));
             loreLines = loreLines == null ? List.of() : List.copyOf(loreLines);
         }
+    }
+
+    /**
+     * 清理正则编译缓存。应在 reload 时调用。
+     */
+    public static void clearPatternCache() {
+        PATTERN_CACHE.clear();
     }
 }

@@ -48,6 +48,10 @@ public final class CookingSettingsService {
     public static final String INTERACTION_MOISTURE = "moisture";
 
     private static final Pattern RANGE_PATTERN = Pattern.compile("^\\s*(-?\\d+(?:\\.\\d+)?)\\s*-\\s*(-?\\d+(?:\\.\\d+)?)\\s*$");
+
+    // 配置中"点燃状态"和"熄灭状态"的兼容 key 列表，在 wokHeatLevels 和 parseHeatSourceIgnitionRules 中复用
+    private static final String[] LIT_SOURCE_KEYS = {"lit_item_sources", "lit_source", "ignited_item_sources", "ignited_source", "on_item_sources", "on_source"};
+    private static final String[] UNLIT_SOURCE_KEYS = {"unlit_item_sources", "unlit_source", "extinguished_item_sources", "extinguished_source", "off_item_sources", "off_source"};
     private static final DisplayAdjustmentProfile DEFAULT_ITEM_DISPLAY_ADJUSTMENT = new DisplayAdjustmentProfile(
             new Vector3(0.5D, 1.02D, 0.5D),
             new RotationProfile(AxisRotation.fixed(90D), AxisRotation.fixed(0D), AxisRotation.fixed(0D)),
@@ -209,21 +213,11 @@ public final class CookingSettingsService {
             }
             ItemSource litSource = ItemSourceUtil.parse(firstPresent(
                     normalized,
-                    "lit_item_sources",
-                    "lit_source",
-                    "ignited_item_sources",
-                    "ignited_source",
-                    "on_item_sources",
-                    "on_source"
+                    LIT_SOURCE_KEYS
             ));
             ItemSource unlitSource = ItemSourceUtil.parse(firstPresent(
                     normalized,
-                    "unlit_item_sources",
-                    "unlit_source",
-                    "extinguished_item_sources",
-                    "extinguished_source",
-                    "off_item_sources",
-                    "off_source"
+                    UNLIT_SOURCE_KEYS
             ));
             Integer level = configurationValueToInt(normalized.get("level"), 0);
             result.add(new HeatLevelRule(source, litSource, unlitSource == null ? source : unlitSource, level == null ? 0 : Math.max(0, level)));
@@ -273,29 +267,7 @@ public final class CookingSettingsService {
     }
 
     public List<Integer> steamerIngredientSlots() {
-        int inventorySize = steamerInventoryRows() * 9;
-        LinkedHashSet<Integer> slots = new LinkedHashSet<>();
-        YamlSection slotsSection = steamerGuiConfiguration.getSection("slots");
-        if (slotsSection != null && !slotsSection.isEmpty()) {
-            for (String key : slotsSection.getKeys(false)) {
-                YamlSection slotSection = slotsSection.getSection(key);
-                if (slotSection == null || slotSection.isEmpty()) {
-                    addSlotIndexes(slots, slotsSection.get(key), inventorySize);
-                    continue;
-                }
-                String type = Texts.lower(slotSection.getString("type", ""));
-                if (Texts.isNotBlank(type) && !"ingredient".equals(type)) {
-                    continue;
-                }
-                addSlotIndexes(slots, slotSection.get("slots"), inventorySize);
-            }
-        }
-        if (slots.isEmpty()) {
-            for (int slot = 0; slot < Math.min(5, inventorySize); slot++) {
-                slots.add(slot);
-            }
-        }
-        return List.copyOf(slots);
+        return ingredientSlots(steamerGuiConfiguration, steamerInventoryRows() * 9, 5);
     }
 
     public List<ItemSource> steamerHeatSources() {
@@ -369,29 +341,7 @@ public final class CookingSettingsService {
     }
 
     public List<Integer> ovenIngredientSlots() {
-        int inventorySize = ovenInventoryRows() * 9;
-        LinkedHashSet<Integer> slots = new LinkedHashSet<>();
-        YamlSection slotsSection = ovenGuiConfiguration.getSection("slots");
-        if (slotsSection != null && !slotsSection.isEmpty()) {
-            for (String key : slotsSection.getKeys(false)) {
-                YamlSection slotSection = slotsSection.getSection(key);
-                if (slotSection == null || slotSection.isEmpty()) {
-                    addSlotIndexes(slots, slotsSection.get(key), inventorySize);
-                    continue;
-                }
-                String type = Texts.lower(slotSection.getString("type", ""));
-                if (Texts.isNotBlank(type) && !"ingredient".equals(type)) {
-                    continue;
-                }
-                addSlotIndexes(slots, slotSection.get("slots"), inventorySize);
-            }
-        }
-        if (slots.isEmpty()) {
-            for (int slot = 0; slot < Math.min(5, inventorySize); slot++) {
-                slots.add(slot);
-            }
-        }
-        return List.copyOf(slots);
+        return ingredientSlots(ovenGuiConfiguration, ovenInventoryRows() * 9, 5);
     }
 
     public List<OvenFuelRule> ovenFuels() {
@@ -529,21 +479,11 @@ public final class CookingSettingsService {
                 }
                 ItemSource litSource = ItemSourceUtil.parse(firstPresent(
                         normalized,
-                        "lit_item_sources",
-                        "lit_source",
-                        "ignited_item_sources",
-                        "ignited_source",
-                        "on_item_sources",
-                        "on_source"
+                        LIT_SOURCE_KEYS
                 ));
                 ItemSource unlitSource = ItemSourceUtil.parse(firstPresent(
                         normalized,
-                        "unlit_item_sources",
-                        "unlit_source",
-                        "extinguished_item_sources",
-                        "extinguished_source",
-                        "off_item_sources",
-                        "off_source"
+                        UNLIT_SOURCE_KEYS
                 ));
                 result.add(new HeatSourceIgnitionRule(source, litSource, unlitSource == null ? source : unlitSource));
                 continue;
