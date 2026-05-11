@@ -2,9 +2,14 @@ package emaki.jiuwu.craft.corelib.library;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
+import java.lang.reflect.Field;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
+import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -17,26 +22,20 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.bukkit.plugin.java.JavaPlugin;
+import sun.misc.Unsafe;
 
 /**
- * 运行时依赖库预下载器。
+ * 运行时依赖库加载器。
  * <p>
- * 在 {@code onLoad()} 阶段将依赖库预下载到服务端的 Maven 本地仓库缓存目录
- * ({@code ./libraries/})，使服务端内置的 LibraryLoader 在后续启动时可以直接
- * 使用本地缓存而无需从远程仓库下载。
- * </p>
- * <p>
- * 工作流程：
- * <ol>
- *   <li>首次启动：服务端内置 LibraryLoader 从 Maven Central 下载（可能慢）；
- *       同时本加载器在 onLoad() 中将文件预下载到缓存目录</li>
- *   <li>后续启动：服务端内置 LibraryLoader 发现本地缓存已存在，直接使用，无需联网</li>
- *   <li>如果首次启动因网络问题失败：用户重启后，本加载器已将文件放入缓存，
- *       服务端内置 LibraryLoader 即可成功加载</li>
- * </ol>
+ * 在 {@code onLoad()} 阶段自行从 Maven 仓库下载依赖并注入 ClassLoader，
+ * 替代 Spigot 内置的 {@code plugin.yml libraries} 机制。
  * </p>
  * <p>
  * 支持双仓库延迟探测：优先使用阿里云 Maven 镜像，延迟过高或不可用时回退到 Maven Central。
+ * </p>
+ * <p>
+ * ClassLoader 注入通过 {@code sun.misc.Unsafe} 获取 trusted {@code MethodHandles.Lookup}，
+ * 绕过 Java 模块系统对 {@code URLClassLoader.addURL()} 的访问限制。
  * </p>
  */
 public final class RuntimeLibraryLoader {
@@ -49,8 +48,7 @@ public final class RuntimeLibraryLoader {
     private static final int DOWNLOAD_READ_TIMEOUT_MS = 30000;
 
     /**
-     * 需要预下载的依赖库列表。
-     * 与 plugin.yml 中的 libraries 声明保持一致。
+     * 需要在运行时下载的依赖库列表。
      * 更新依赖版本时同步修改此处。
      */
     private static final List<LibraryCoordinate> LIBRARIES = List.of(
@@ -65,74 +63,118 @@ public final class RuntimeLibraryLoader {
             new LibraryCoordinate("org.graalvm.shadowed", "icu4j", "24.2.1")
     );
 
+    private static final MethodHandle ADD_URL_HANDLE;
+
+    static {
+        MethodHandle handle = null;
+        try {
+            // 通过 Unsafe 获取 trusted MethodHandles.Lookup（IMPL_LOOKUP），绕过模块系统限制
+            Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+            unsafeField.setAccessible(true);
+            Unsafe unsafe = (Unsafe) unsafeField.get(null);
+
+            Field implLookupField = MethodHandles.Lookup.class.getDeclaredField("IMPL_LOOKUP");
+            long offset = unsafe.staticFieldOffset(implLookupField);
+            MethodHandles.Lookup trustedLookup = (MethodHandles.Lookup) unsafe.getObject(MethodHandles.Lookup.class, offset);
+
+            handle = trustedLookup.findVirtual(URLClassLoader.class, "addURL", MethodType.methodType(void.class, URL.class));
+        } catch (Throwable ignored) {
+            // 如果 Unsafe 方式失败，handle 保持 null，后续会尝试 fallback
+        }
+        ADD_URL_HANDLE = handle;
+    }
+
+    private final JavaPlugin plugin;
     private final Logger logger;
     private final Path cacheDirectory;
 
     public RuntimeLibraryLoader(JavaPlugin plugin) {
+        this.plugin = plugin;
         this.logger = plugin.getLogger();
-        // 服务端的 libraries 缓存目录（Maven 本地仓库格式）
-        this.cacheDirectory = Path.of("libraries");
+        this.cacheDirectory = plugin.getDataFolder().toPath().resolve("libraries");
     }
 
     /**
-     * 预下载依赖库到服务端缓存目录。在 onLoad() 中调用。
-     * <p>
-     * 如果所有文件已存在则直接跳过，不产生任何网络请求。
-     * </p>
+     * 执行依赖库加载。在 onLoad() 中调用。
      */
     public void load() {
         if (LIBRARIES.isEmpty()) {
             return;
         }
-
-        // 快速检查：所有库是否都已缓存
-        boolean allCached = LIBRARIES.stream().allMatch(lib -> Files.exists(resolveLocalPath(lib)));
-        if (allCached) {
+        if (ADD_URL_HANDLE == null) {
+            logger.warning("[LibraryLoader] ClassLoader 注入不可用，跳过自定义库加载。");
             return;
         }
 
         ensureCacheDirectory();
 
-        String preferredRepo = probePreferredRepository();
-        String fallbackRepo = preferredRepo.equals(ALIYUN_REPO) ? CENTRAL_REPO : ALIYUN_REPO;
+        // 快速检查：所有库是否都已缓存
+        boolean allCached = LIBRARIES.stream().allMatch(lib -> Files.exists(resolveLocalPath(lib)));
+        String preferredRepo;
+        String fallbackRepo;
+        if (allCached) {
+            preferredRepo = ALIYUN_REPO;
+            fallbackRepo = CENTRAL_REPO;
+        } else {
+            preferredRepo = probePreferredRepository();
+            fallbackRepo = preferredRepo.equals(ALIYUN_REPO) ? CENTRAL_REPO : ALIYUN_REPO;
+        }
+
+        // ===== 阶段1：下载缺失的库 =====
+        List<LibraryCoordinate> toDownload = LIBRARIES.stream()
+                .filter(lib -> !Files.exists(resolveLocalPath(lib)) || !Files.isRegularFile(resolveLocalPath(lib)))
+                .toList();
 
         int downloaded = 0;
-        int skipped = 0;
-        int failed = 0;
+        int downloadFailed = 0;
+
+        if (!toDownload.isEmpty()) {
+            logger.info("[LibraryLoader] 正在下载依赖库 (共 " + toDownload.size() + " 个)...");
+            for (LibraryCoordinate library : toDownload) {
+                Path localFile = resolveLocalPath(library);
+                boolean success = downloadLibrary(library, localFile, preferredRepo);
+                if (!success) {
+                    success = downloadLibrary(library, localFile, fallbackRepo);
+                }
+                if (success) {
+                    downloaded++;
+                    long sizeKb = 0;
+                    try {
+                        sizeKb = Files.size(localFile) / 1024;
+                    } catch (IOException ignored) {
+                    }
+                    logger.info("[LibraryLoader]   \u2713 " + library + " (" + formatSize(sizeKb) + ")");
+                } else {
+                    downloadFailed++;
+                    logger.warning("[LibraryLoader]   \u2717 " + library + " (下载失败)");
+                }
+            }
+            logger.info("[LibraryLoader] 下载完成 (成功=" + downloaded
+                    + (downloadFailed > 0 ? ", 失败=" + downloadFailed : "") + ")");
+        }
+
+        // ===== 阶段2：加载所有库到 ClassLoader =====
+        logger.info("[LibraryLoader] 正在加载依赖库 (共 " + LIBRARIES.size() + " 个)...");
+        int loaded = 0;
+        int loadFailed = 0;
 
         for (LibraryCoordinate library : LIBRARIES) {
             Path localFile = resolveLocalPath(library);
-            if (Files.exists(localFile) && Files.isRegularFile(localFile)) {
-                skipped++;
+            if (!Files.exists(localFile) || !Files.isRegularFile(localFile)) {
+                loadFailed++;
                 continue;
             }
-
-            boolean success = downloadLibrary(library, localFile, preferredRepo);
-            if (!success) {
-                success = downloadLibrary(library, localFile, fallbackRepo);
-            }
-
-            if (success) {
-                downloaded++;
-                long sizeKb = 0;
-                try {
-                    sizeKb = Files.size(localFile) / 1024;
-                } catch (IOException ignored) {
-                }
-                logger.info("[LibraryLoader] \u2713 " + library + " (" + formatSize(sizeKb) + ")");
+            if (injectToClassLoader(localFile)) {
+                loaded++;
+                logger.info("[LibraryLoader]   \u2713 " + library);
             } else {
-                failed++;
-                logger.warning("[LibraryLoader] \u2717 " + library + " (预下载失败)");
+                loadFailed++;
+                logger.warning("[LibraryLoader]   \u2717 " + library + " (注入失败)");
             }
         }
 
-        if (downloaded > 0 || failed > 0) {
-            logger.info("[LibraryLoader] 预下载完成 (已缓存=" + skipped + ", 新下载=" + downloaded
-                    + (failed > 0 ? ", 失败=" + failed : "") + ")");
-            if (downloaded > 0) {
-                logger.info("[LibraryLoader] 新下载的依赖库将在下次启动时由服务端自动加载。");
-            }
-        }
+        logger.info("[LibraryLoader] 依赖库加载完成 (" + loaded + "/" + LIBRARIES.size()
+                + (loadFailed > 0 ? ", 失败=" + loadFailed : "") + ")");
     }
 
     private String probePreferredRepository() {
@@ -232,6 +274,24 @@ public final class RuntimeLibraryLoader {
             return true;
         } catch (Exception exception) {
             logger.log(Level.FINE, "[LibraryLoader] 下载失败: " + downloadUrl, exception);
+            return false;
+        }
+    }
+
+    /**
+     * 通过 trusted MethodHandle 将 jar 注入到插件的 ClassLoader。
+     */
+    private boolean injectToClassLoader(Path jarPath) {
+        try {
+            ClassLoader classLoader = plugin.getClass().getClassLoader();
+            if (!(classLoader instanceof URLClassLoader urlClassLoader)) {
+                logger.warning("[LibraryLoader] ClassLoader 不是 URLClassLoader: " + classLoader.getClass().getName());
+                return false;
+            }
+            ADD_URL_HANDLE.invoke(urlClassLoader, jarPath.toUri().toURL());
+            return true;
+        } catch (Throwable throwable) {
+            logger.log(Level.WARNING, "[LibraryLoader] ClassLoader 注入失败: " + jarPath.getFileName(), throwable);
             return false;
         }
     }
