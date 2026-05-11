@@ -8,7 +8,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "2.0.0"
+version: "2.1.0"
 
 general:
   prefix: "<gray>[ <gradient:#B84DFF:#FF8A3D>装备宝石</gradient> ]</gray>"
@@ -274,3 +274,36 @@ gui_text:
     confirm_disabled_lore: "<gray>请先满足升级条件</gray>"
     confirm_name: "<green>确认升级</green>"
     confirm_lore: "<gray>点击后仅消耗本界面材料槽中的材料并尝试升级</gray>"
+
+# Debug 模式消息
+debug:
+  command:
+    status_header: "<gold>========== EmakiGem Debug 状态 ==========</gold>"
+    status_enabled: "<green>Debug 已开启</green>"
+    status_disabled: "<gray>Debug 已关闭</gray>"
+    tracked_players: "<gray>追踪玩家: <yellow>{players}</yellow></gray>"
+    tracked_modules: "<gray>追踪模块: <yellow>{modules}</yellow></gray>"
+    player_added: "<green>已开始追踪玩家: <yellow>{player}</yellow></green>"
+    player_removed: "<yellow>已停止追踪玩家: <gray>{player}</gray></yellow>"
+    module_enabled: "<green>已开启模块追踪: <yellow>{module}</yellow></green>"
+    module_disabled: "<yellow>已关闭模块追踪: <gray>{module}</gray></yellow>"
+    all_enabled: "<green>已开启全局 Debug（所有玩家+所有模块）</green>"
+    all_disabled: "<yellow>已关闭所有 Debug 追踪</yellow>"
+    player_not_found: "<red>找不到在线玩家: {player}</red>"
+    available_modules: "<gray>可用模块: <yellow>{modules}</yellow></gray>"
+  inlay:
+    start: "开始镶嵌 | 玩家={player} | 宝石={gem} | 槽位={slot}"
+    check: "镶嵌检查 | 条件={condition} | 结果={result}"
+    success: "镶嵌成功 | 宝石={gem} | 槽位={slot}"
+    failed: "镶嵌失败 | 原因={reason}"
+  socket:
+    open_start: "开始开孔 | 玩家={player} | 当前孔数={current}"
+    open_success: "开孔成功 | 新孔数={count}"
+    open_failed: "开孔失败 | 原因={reason}"
+  state:
+    read: "读取宝石状态 | 物品={item} | 已开孔={slots} | 已镶嵌={gems}"
+    write: "写入宝石状态 | 物品={item} | 变更={change}"
+  gui:
+    open: "打开 GUI | 玩家={player} | 模式={mode}"
+    click: "GUI 点击 | 玩家={player} | 槽位={slot} | 动作={action}"
+    close: "关闭 GUI | 玩家={player}"

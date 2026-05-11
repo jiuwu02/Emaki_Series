@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.gem;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,6 +24,7 @@ final class GemCommandRouter implements TabExecutor {
     private static final String PERMISSION_USE = PERMISSION_ROOT + ".use";
     private static final String PERMISSION_RELOAD = PERMISSION_ROOT + ".reload";
     private static final String PERMISSION_ADMIN = PERMISSION_ROOT + ".admin";
+    private static final String PERMISSION_DEBUG = PERMISSION_ROOT + ".debug";
 
     private final EmakiGemPlugin plugin;
 
@@ -45,6 +47,7 @@ final class GemCommandRouter implements TabExecutor {
             case "reload" -> handleReload(sender);
             case "inspect" -> handleInspect(sender, args);
             case "clearstate" -> handleClearState(sender);
+            case "debug" -> handleDebug(sender, args);
             default -> {
                 plugin.messageService().send(sender, "general.unknown_command");
                 yield true;
@@ -56,12 +59,15 @@ final class GemCommandRouter implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            for (String sub : List.of("help", "gui", "reload", "inspect", "clearstate")) {
+            for (String sub : List.of("help", "gui", "reload", "inspect", "clearstate", "debug")) {
                 if (sub.startsWith(args[0].toLowerCase())) {
                     result.add(sub);
                 }
             }
             return result;
+        }
+        if (args.length >= 2 && "debug".equalsIgnoreCase(args[0])) {
+            return plugin.debugCommand().tabComplete(Arrays.copyOfRange(args, 1, args.length));
         }
         if (args.length == 2) {
             switch (args[0].toLowerCase()) {
@@ -202,8 +208,17 @@ final class GemCommandRouter implements TabExecutor {
         lines.put("reload", "重载宝石配置与资源");
         lines.put("inspect [player]", "查看主手装备的宝石状态");
         lines.put("clearstate", "移除主手物品上的宝石层");
+        lines.put("debug [player|module|on|off]", "管理 Debug 模式");
         lines.forEach((name, description) -> plugin.messageService().sendRaw(sender,
                 plugin.messageService().message("command.help.line", Map.of("cmd", name, "desc", description))));
         plugin.messageService().sendRaw(sender, plugin.messageService().message("command.help.footer"));
+    }
+
+    private boolean handleDebug(CommandSender sender, String[] args) {
+        if (!sender.hasPermission(PERMISSION_DEBUG) && !sender.hasPermission(PERMISSION_ADMIN)) {
+            plugin.messageService().send(sender, "general.no_permission");
+            return true;
+        }
+        return plugin.debugCommand().handle(sender, Arrays.copyOfRange(args, 1, args.length), plugin.messageService());
     }
 }

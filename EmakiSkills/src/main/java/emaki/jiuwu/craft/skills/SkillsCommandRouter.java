@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.skills;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -71,6 +72,9 @@ final class SkillsCommandRouter implements TabExecutor {
             }
             return result;
         }
+        if (args.length >= 2 && "debug".equalsIgnoreCase(args[0])) {
+            return plugin.debugCommand().tabComplete(Arrays.copyOfRange(args, 1, args.length));
+        }
         if (args.length == 2) {
             switch (args[0].toLowerCase()) {
                 case "castmode" -> {
@@ -82,7 +86,7 @@ final class SkillsCommandRouter implements TabExecutor {
                 }
                 case "upgrade" -> completeUpgradeableSkills(sender, result, args[1]);
                 case "level" -> completeLiteral(result, args[1], "get", "set", "add");
-                case "debug", "inspect", "resync" -> completePlayers(result, args[1]);
+                case "inspect", "resync" -> completePlayers(result, args[1]);
                 case "clearslot" -> completePlayers(result, args[1]);
                 default -> {
                 }
@@ -282,41 +286,7 @@ final class SkillsCommandRouter implements TabExecutor {
             plugin.messageService().send(sender, "general.no_permission");
             return true;
         }
-        Player target = args.length >= 2 ? Bukkit.getPlayerExact(args[1]) : (sender instanceof Player self ? self : null);
-        if (target == null) {
-            plugin.messageService().send(sender, "general.player_not_found");
-            return true;
-        }
-        PlayerSkillProfile profile = plugin.playerSkillDataStore().get(target);
-        plugin.messageService().sendRaw(sender, plugin.messageService().message("command.debug.header", Map.of("player", target.getName())));
-        plugin.messageService().sendRaw(sender, plugin.messageService().message("command.debug.line", Map.of(
-                "key", "cast_mode",
-                "value", profile != null && profile.castModeEnabled() ? "ON" : "OFF"
-        )));
-        plugin.messageService().sendRaw(sender, plugin.messageService().message("command.debug.line", Map.of(
-                "key", "slot_count",
-                "value", profile != null ? profile.bindings().size() : 0
-        )));
-        List<UnlockedSkillEntry> unlocked = plugin.playerSkillStateService().getUnlockedSkills(target);
-        plugin.messageService().sendRaw(sender, plugin.messageService().message("command.debug.line", Map.of(
-                "key", "unlocked_skills",
-                "value", unlocked.size()
-        )));
-        plugin.messageService().sendRaw(sender, plugin.messageService().message("command.debug.line", Map.of(
-                "key", "ea_bridge",
-                "value", plugin.eaBridge() != null && plugin.eaBridge().isAvailable() ? "CONNECTED" : "DISABLED"
-        )));
-        plugin.messageService().sendRaw(sender, plugin.messageService().message("command.debug.line", Map.of(
-                "key", "ea_bridge_mode",
-                "value", plugin.eaBridge() != null && plugin.eaBridge().isAvailable()
-                        ? plugin.eaBridge().providerMode()
-                        : "DISABLED"
-        )));
-        plugin.messageService().sendRaw(sender, plugin.messageService().message("command.debug.line", Map.of(
-                "key", "mythic_bridge",
-                "value", plugin.mythicBridge() != null && plugin.mythicBridge().isAvailable() ? "CONNECTED" : "DISABLED"
-        )));
-        return true;
+        return plugin.debugCommand().handle(sender, Arrays.copyOfRange(args, 1, args.length), plugin.messageService());
     }
 
     private boolean handleInspect(CommandSender sender, String[] args) {
@@ -450,7 +420,7 @@ final class SkillsCommandRouter implements TabExecutor {
         lines.put("castmode <on|off|toggle>", "切换施法模式");
         lines.put("upgrade <skill>", "升级已解锁技能");
         lines.put("level get|set|add <player> <skill> [value]", "管理玩家技能等级");
-        lines.put("debug [player]", "查看调试信息");
+        lines.put("debug <status|player|module|all> [...]", "管理 Debug 追踪");
         lines.put("inspect [player]", "查看玩家技能槽位状态");
         lines.put("clearslot <player> <slot>", "清除指定槽位的技能绑定");
         lines.put("resync [player]", "重新同步玩家技能池");

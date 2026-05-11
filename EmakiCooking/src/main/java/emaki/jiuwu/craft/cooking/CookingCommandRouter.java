@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.cooking;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +17,7 @@ final class CookingCommandRouter implements TabExecutor {
     private static final String PERMISSION_RELOAD = CookingPermissions.RELOAD;
     private static final String PERMISSION_INSPECT = CookingPermissions.INSPECT;
     private static final String PERMISSION_ADMIN = CookingPermissions.ADMIN;
+    private static final String PERMISSION_DEBUG = "emakicooking.debug";
 
     private final EmakiCookingPlugin plugin;
 
@@ -36,6 +38,7 @@ final class CookingCommandRouter implements TabExecutor {
             }
             case "reload" -> handleReload(sender);
             case "inspect" -> handleInspect(sender, args);
+            case "debug" -> handleDebug(sender, args);
             default -> {
                 plugin.messageService().send(sender, "general.unknown_command");
                 yield true;
@@ -47,12 +50,15 @@ final class CookingCommandRouter implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            for (String sub : List.of("help", "reload", "inspect")) {
+            for (String sub : List.of("help", "reload", "inspect", "debug")) {
                 if (sub.startsWith(args[0].toLowerCase())) {
                     result.add(sub);
                 }
             }
             return result;
+        }
+        if (args.length >= 2 && "debug".equalsIgnoreCase(args[0])) {
+            return plugin.debugCommand().tabComplete(Arrays.copyOfRange(args, 1, args.length));
         }
         if (args.length == 2) {
             if ("inspect".equalsIgnoreCase(args[0]) && "hand".startsWith(args[1].toLowerCase())) {
@@ -108,10 +114,19 @@ final class CookingCommandRouter implements TabExecutor {
         lines.put("help", "显示帮助信息");
         lines.put("reload", "重载配置、语言与配方目录");
         lines.put("inspect hand", "检查主手物品的 CoreLib 来源标识");
+        lines.put("debug [player|module|on|off]", "管理 Debug 模式");
         lines.forEach((name, description) -> plugin.messageService().sendRaw(
                 sender,
                 plugin.messageService().message("command.help.line", Map.of("cmd", name, "desc", description))
         ));
         plugin.messageService().sendRaw(sender, plugin.messageService().message("command.help.footer"));
+    }
+
+    private boolean handleDebug(CommandSender sender, String[] args) {
+        if (!sender.hasPermission(PERMISSION_DEBUG) && !sender.hasPermission(PERMISSION_ADMIN)) {
+            plugin.messageService().send(sender, "general.no_permission");
+            return true;
+        }
+        return plugin.debugCommand().handle(sender, Arrays.copyOfRange(args, 1, args.length), plugin.messageService());
     }
 }

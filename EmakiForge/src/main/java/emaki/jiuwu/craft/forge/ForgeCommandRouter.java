@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.forge;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +17,7 @@ final class ForgeCommandRouter implements TabExecutor {
     private static final String PERMISSION_BOOK = PERMISSION_ROOT + ".book";
     private static final String PERMISSION_RELOAD = PERMISSION_ROOT + ".reload";
     private static final String PERMISSION_ADMIN = PERMISSION_ROOT + ".admin";
+    private static final String PERMISSION_DEBUG = PERMISSION_ROOT + ".debug";
 
     private final EmakiForgePlugin plugin;
 
@@ -42,6 +44,8 @@ final class ForgeCommandRouter implements TabExecutor {
                 handleReload(sender);
             case "list" ->
                 handleList(sender, args);
+            case "debug" ->
+                handleDebug(sender, args);
             default -> {
                 plugin.messageService().send(sender, "general.unknown_command");
                 yield true;
@@ -53,12 +57,15 @@ final class ForgeCommandRouter implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            for (String sub : List.of("help", "forge", "book", "reload", "list")) {
+            for (String sub : List.of("help", "forge", "book", "reload", "list", "debug")) {
                 if (sub.startsWith(args[0].toLowerCase())) {
                     result.add(sub);
                 }
             }
             return result;
+        }
+        if (args.length >= 2 && "debug".equalsIgnoreCase(args[0])) {
+            return plugin.debugCommand().tabComplete(Arrays.copyOfRange(args, 1, args.length));
         }
         if (args.length == 2 && "list".equalsIgnoreCase(args[0])) {
             for (String sub : List.of("recipe")) {
@@ -126,6 +133,14 @@ final class ForgeCommandRouter implements TabExecutor {
         return true;
     }
 
+    private boolean handleDebug(CommandSender sender, String[] args) {
+        if (!sender.hasPermission(PERMISSION_DEBUG) && !sender.hasPermission(PERMISSION_ADMIN)) {
+            plugin.messageService().send(sender, "general.no_permission");
+            return true;
+        }
+        return plugin.debugCommand().handle(sender, Arrays.copyOfRange(args, 1, args.length), plugin.messageService());
+    }
+
     private void sendHelp(CommandSender sender) {
         plugin.messageService().sendRaw(sender, plugin.messageService().message("command.help.header"));
         Map<String, String> lines = new LinkedHashMap<>();
@@ -134,6 +149,7 @@ final class ForgeCommandRouter implements TabExecutor {
         lines.put("book", "打开配方图鉴");
         lines.put("reload", "重载配置文件");
         lines.put("list <type>", "列出配方配置项");
+        lines.put("debug [player|module|on|off]", "管理 Debug 模式");
         lines.forEach((commandName, description)
                 -> plugin.messageService().sendRaw(sender, plugin.messageService().message("command.help.line", Map.of("cmd", commandName, "desc", description))));
         plugin.messageService().sendRaw(sender, plugin.messageService().message("command.help.footer"));

@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.strengthen;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,6 +24,7 @@ final class StrengthenCommandRouter implements TabExecutor {
     private static final String PERMISSION_USE = PERMISSION_ROOT + ".use";
     private static final String PERMISSION_RELOAD = PERMISSION_ROOT + ".reload";
     private static final String PERMISSION_ADMIN = PERMISSION_ROOT + ".admin";
+    private static final String PERMISSION_DEBUG = PERMISSION_ROOT + ".debug";
 
     private final EmakiStrengthenPlugin plugin;
 
@@ -49,6 +51,7 @@ final class StrengthenCommandRouter implements TabExecutor {
             case "clearstate" -> handleClearState(sender);
             case "clearcrack" -> handleClearCrack(sender);
             case "givecatalyst" -> handleGiveCatalyst(sender, args);
+            case "debug" -> handleDebug(sender, args);
             default -> {
                 plugin.messageService().send(sender, "general.unknown_command");
                 yield true;
@@ -60,12 +63,15 @@ final class StrengthenCommandRouter implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            for (String sub : List.of("help", "open", "reload", "inspect", "refresh", "setstar", "clearstate", "clearcrack", "givecatalyst")) {
+            for (String sub : List.of("help", "open", "reload", "inspect", "refresh", "setstar", "clearstate", "clearcrack", "givecatalyst", "debug")) {
                 if (sub.startsWith(args[0].toLowerCase())) {
                     result.add(sub);
                 }
             }
             return result;
+        }
+        if (args.length >= 2 && "debug".equalsIgnoreCase(args[0])) {
+            return plugin.debugCommand().tabComplete(Arrays.copyOfRange(args, 1, args.length));
         }
         if (args.length == 2) {
             switch (args[0].toLowerCase()) {
@@ -307,6 +313,14 @@ final class StrengthenCommandRouter implements TabExecutor {
         return true;
     }
 
+    private boolean handleDebug(CommandSender sender, String[] args) {
+        if (!sender.hasPermission(PERMISSION_DEBUG) && !sender.hasPermission(PERMISSION_ADMIN)) {
+            plugin.messageService().send(sender, "general.no_permission");
+            return true;
+        }
+        return plugin.debugCommand().handle(sender, Arrays.copyOfRange(args, 1, args.length), plugin.messageService());
+    }
+
     private ItemStack createMaterialItem(String materialToken, int amount) {
         return plugin.coreItemFactory().create(ItemSourceUtil.parse(materialToken), Math.max(1, amount));
     }
@@ -330,6 +344,7 @@ final class StrengthenCommandRouter implements TabExecutor {
         lines.put("clearstate", plugin.messageService().message("command.help.desc.clearstate"));
         lines.put("clearcrack", plugin.messageService().message("command.help.desc.clearcrack"));
         lines.put("givecatalyst <id> [amount] [player]", plugin.messageService().message("command.help.desc.givecatalyst"));
+        lines.put("debug <status|player|module|all> [...]", plugin.messageService().message("command.help.desc.debug"));
         lines.forEach((name, description) -> plugin.messageService().sendRaw(sender,
                 plugin.messageService().message("command.help.line", Map.of("cmd", name, "desc", description))));
         plugin.messageService().sendRaw(sender, plugin.messageService().message("command.help.footer"));

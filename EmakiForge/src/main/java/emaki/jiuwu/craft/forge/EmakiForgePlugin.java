@@ -1,10 +1,14 @@
 package emaki.jiuwu.craft.forge;
 
+import java.util.Set;
+
 import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.scheduler.BukkitTask;
 
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.debug.DebugCommand;
+import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.integration.PdcAttributeGateway;
@@ -59,6 +63,9 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     private RecipeBookGuiService recipeBookGuiService;
     private ForgePlaceholderExpansion placeholderExpansion;
     private BukkitTask autoSaveTask;
+    private DebugCommand debugCommand;
+
+    private static final Set<String> DEBUG_MODULES = Set.of("recipe", "forge", "gui");
 
     public EmakiForgePlugin() {
         super(AppConfig::defaults);
@@ -107,6 +114,8 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         forgeService = components.forgeService();
         forgeGuiService = components.forgeGuiService();
         recipeBookGuiService = components.recipeBookGuiService();
+        setDebugLogger(new DebugLogger(getLogger(), languageLoader));
+        debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES);
         registerServices(components);
     }
 
@@ -191,5 +200,9 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
 
     public RecipeBookGuiService recipeBookGuiService() {
         return recipeBookGuiService;
+    }
+
+    public DebugCommand debugCommand() {
+        return debugCommand;
     }
 }

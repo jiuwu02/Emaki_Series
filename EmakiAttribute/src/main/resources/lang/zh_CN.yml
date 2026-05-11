@@ -8,7 +8,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "4.0.0"
+version: "4.1.0"
 general:
   prefix: "<gray>[ <gradient:#66D9EF:#7B7BFF>EmakiAttribute</gradient> ]</gray>"
 
@@ -229,6 +229,39 @@ command:
     resync: "<gray>/emakiattribute resync [玩家|all]</gray> 重新同步玩家属性。"
     preview: "<gray>/emakiattribute preview [玩家] [槽位]</gray> 预览某个槽位的属性快照。"
     dump: "<gray>/emakiattribute dump [玩家]</gray> 查看当前战斗快照与资源状态。"
-    debug: "<gray>/emakiattribute debug [玩家] [on|off|toggle]</gray>
-      跟踪该玩家的战斗流程并输出详细控制台日志。"
+    debug: "<gray>/emakiattribute debug <status|player|module|all> [...]</gray>
+      管理 Debug 追踪。"
     lint: "<gray>/emakiattribute lint</gray> 检查配置与资源加载问题。"
+
+# Debug 模式消息
+debug:
+  command:
+    status_header: "<gold>========== EmakiAttribute Debug 状态 ==========</gold>"
+    status_enabled: "<green>Debug 已开启</green>"
+    status_disabled: "<gray>Debug 已关闭</gray>"
+    tracked_players: "<gray>追踪玩家: <yellow>{players}</yellow></gray>"
+    tracked_modules: "<gray>追踪模块: <yellow>{modules}</yellow></gray>"
+    player_added: "<green>已开始追踪玩家: <yellow>{player}</yellow></green>"
+    player_removed: "<yellow>已停止追踪玩家: <gray>{player}</gray></yellow>"
+    module_enabled: "<green>已开启模块追踪: <yellow>{module}</yellow></green>"
+    module_disabled: "<yellow>已关闭模块追踪: <gray>{module}</gray></yellow>"
+    all_enabled: "<green>已开启全局 Debug（所有玩家+所有模块）</green>"
+    all_disabled: "<yellow>已关闭所有 Debug 追踪</yellow>"
+    player_not_found: "<red>找不到在线玩家: {player}</red>"
+    available_modules: "<gray>可用模块: <yellow>{modules}</yellow></gray>"
+  combat:
+    damage_start: "伤害计算开始 | 攻击者={attacker} | 目标={target} | 原始伤害={damage}"
+    snapshot_collect: "收集属性快照 | 实体={entity} | 属性数={count}"
+    damage_stage: "伤害阶段 | 阶段={stage} | 值={values}"
+    damage_result: "伤害计算完成 | 最终伤害={damage} | 类型={type}"
+  resync:
+    start: "开始属性重同步 | 玩家={player}"
+    slot_scan: "扫描装备槽 | 槽位={slot} | 物品={item} | 来源={source}"
+    applied: "属性已应用 | 玩家={player} | 属性数={count}"
+  snapshot:
+    collect_start: "开始收集快照 | 来源={source}"
+    layer_read: "读取属性层 | 层={layer} | 属性={attributes}"
+    merge: "合并快照 | 来源数={sources} | 最终属性数={count}"
+  resource:
+    change: "资源值变化 | 玩家={player} | 资源={resource} | 旧值={old} | 新值={new}"
+    max_update: "资源上限更新 | 玩家={player} | 资源={resource} | 上限={max}"

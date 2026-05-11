@@ -13,6 +13,7 @@ import emaki.jiuwu.craft.corelib.action.ActionRegistry;
 import emaki.jiuwu.craft.corelib.action.ActionTemplateRegistry;
 import emaki.jiuwu.craft.corelib.action.builtin.BuiltinActions;
 import emaki.jiuwu.craft.corelib.action.builtin.RunJavaScriptAction;
+import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerCodecRegistry;
 import emaki.jiuwu.craft.corelib.assembly.EmakiNamespaceDefinition;
@@ -81,6 +82,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private final EmakiItemAssemblyService itemAssemblyService
             = new EmakiItemAssemblyService(namespaceRegistry, itemLayerCodecRegistry, itemSourceService);
     private final Map<Class<?>, Object> serviceRegistry = new ConcurrentHashMap<>();
+    private DebugLogger debugLogger;
 
     @Override
     public void onEnable() {
@@ -211,6 +213,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private void initializeServices() {
         languageLoader = new LanguageLoader(this);
         messageService = new MessageService(this, languageLoader);
+        debugLogger = new DebugLogger(getLogger(), languageLoader);
         itemSourceIntegrationCoordinator = new ItemSourceIntegrationCoordinator(this, messageService, itemSourceService);
         performanceMonitor = new PerformanceMonitor();
         asyncTaskScheduler = AsyncTaskScheduler.forPlugin(this, "emaki-corelib-async", performanceMonitor);
@@ -331,6 +334,10 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
 
     public CustomBlockBridge nexoBlockBridge() {
         return nexoBlockBridge;
+    }
+
+    public DebugLogger debugLogger() {
+        return debugLogger;
     }
 
     private void refreshServiceRegistry() {

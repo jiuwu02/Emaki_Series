@@ -8,7 +8,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "4.0.0"
+version: "4.1.0"
 
 general:
   prefix: "<gray>[ <gradient:#F2C46D:#C9703D>装备强化</gradient> ]</gray>"
@@ -35,6 +35,7 @@ command:
       clearstate: "移除主手物品上的强化层"
       clearcrack: "清除主手物品裂痕"
       givecatalyst: "发放强化材料"
+      debug: "管理 Debug 追踪"
   inspect:
     header: "<gold>========== {player} 的强化状态 ==========</gold>"
     line: "<yellow>{key}</yellow> <gray>- {value}</gray>"
@@ -137,3 +138,34 @@ gui:
     title: "<green>确认强化</green>"
     ineligible_title: "<red>无法强化</red>"
     ineligible_hint: "<gray>请先满足所有强化条件</gray>"
+
+# Debug 模式消息
+debug:
+  command:
+    status_header: "<gold>========== EmakiStrengthen Debug 状态 ==========</gold>"
+    status_enabled: "<green>Debug 已开启</green>"
+    status_disabled: "<gray>Debug 已关闭</gray>"
+    tracked_players: "<gray>追踪玩家: <yellow>{players}</yellow></gray>"
+    tracked_modules: "<gray>追踪模块: <yellow>{modules}</yellow></gray>"
+    player_added: "<green>已开始追踪玩家: <yellow>{player}</yellow></green>"
+    player_removed: "<yellow>已停止追踪玩家: <gray>{player}</gray></yellow>"
+    module_enabled: "<green>已开启模块追踪: <yellow>{module}</yellow></green>"
+    module_disabled: "<yellow>已关闭模块追踪: <gray>{module}</gray></yellow>"
+    all_enabled: "<green>已开启全局 Debug（所有玩家+所有模块）</green>"
+    all_disabled: "<yellow>已关闭所有 Debug 追踪</yellow>"
+    player_not_found: "<red>找不到在线玩家: {player}</red>"
+    available_modules: "<gray>可用模块: <yellow>{modules}</yellow></gray>"
+  attempt:
+    start: "开始强化 | 玩家={player} | 物品={item} | 当前星级={star}"
+    probability: "概率计算 | 基础={base} | 加成={bonus} | 最终={final}"
+    roll: "随机结果 | 随机值={roll} | 阈值={threshold} | 成功={success}"
+    success: "强化成功 | 新星级={star}"
+    failed: "强化失败 | 类型={type} | 裂纹={crack}"
+    destroyed: "强化破碎 | 物品={item}"
+  state:
+    read: "读取强化状态 | 物品={item} | 星级={star} | 裂纹={crack} | 配方={recipe}"
+    write: "写入强化状态 | 物品={item} | 变更={change}"
+  gui:
+    open: "打开 GUI | 玩家={player}"
+    slot_update: "GUI 槽位更新 | 玩家={player} | 槽位={slot} | 物品={item}"
+    close: "关闭 GUI | 玩家={player}"

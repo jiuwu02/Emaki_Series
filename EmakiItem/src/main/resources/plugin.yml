@@ -24,3 +24,7 @@ permissions:
     default: op
   emakiitem.reload:
     default: op
+  emakiitem.debug:
+    default: op
+  emakiitem.admin:
+    default: op

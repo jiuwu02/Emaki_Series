@@ -20,6 +20,7 @@ import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
 import emaki.jiuwu.craft.corelib.assembly.ItemOperationLedger;
 import emaki.jiuwu.craft.corelib.cache.CacheManager;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
+import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.math.Numbers;
@@ -178,8 +179,19 @@ public final class ForgeService {
     }
 
     public ValidationResult canForge(Player player, Recipe recipe, GuiItems guiItems) {
+        DebugLogger debug = plugin.debugLogger();
+        UUID playerId = player == null ? null : player.getUniqueId();
         if (recipe == null) {
+            if (debug != null) {
+                debug.log("recipe", playerId, "recipe.no_match", Map.of("items", describeGuiItems(guiItems)));
+            }
             return ValidationResult.fail("forge.error.no_recipe");
+        }
+        if (debug != null) {
+            debug.log("recipe", playerId, "recipe.match_check", Map.of(
+                    "recipe_id", recipe.id(),
+                    "result", "checking"
+            ));
         }
         AppConfig config = plugin.appConfig();
         if (recipe.requiresPermission()
@@ -353,6 +365,14 @@ public final class ForgeService {
         if (recipe == null) {
             return null;
         }
+        DebugLogger debug = plugin.debugLogger();
+        UUID playerId = player == null ? null : player.getUniqueId();
+        if (debug != null) {
+            debug.log("forge", playerId, "forge.start", Map.of(
+                    "player", player == null ? "-" : player.getName(),
+                    "recipe_id", recipe.id()
+            ));
+        }
         String cacheKey = buildPreparationCacheKey(player, recipe, guiItems, previewSeed, forgedAt);
         PreparedForge cached = preparedForgeCache.get(cacheKey);
         if (cached != null) {
@@ -364,8 +384,17 @@ public final class ForgeService {
                 guiItems,
                 buildRollKey(buildPreviewFingerprint(player, recipe, guiItems), previewSeed)
         );
+        if (debug != null) {
+            debug.log("forge", playerId, "forge.quality_roll", Map.of(
+                    "quality", rollPlan.qualityName(),
+                    "multiplier", Numbers.formatNumber(rollPlan.multiplier(), "0.##")
+            ));
+        }
         EmakiItemAssemblyRequest request = resultItemFactory.buildAssemblyRequest(recipe, guiItems, rollPlan.multiplier(), rollPlan.finalTier(), forgedAt, player);
         if (request == null) {
+            if (debug != null) {
+                debug.log("forge", playerId, "forge.failed", Map.of("reason", "assembly_request_null"));
+            }
             return null;
         }
         PreparedForge preparedForge = new PreparedForge(
@@ -496,5 +525,41 @@ public final class ForgeService {
     private interface SupplierWithException<T> {
 
         T get() throws Exception;
+    }
+
+    private String describeGuiItems(GuiItems guiItems) {
+        if (guiItems == null) {
+            return "[]";
+        }
+        List<String> parts = new ArrayList<>();
+        if (guiItems.targetItem() != null && !guiItems.targetItem().getType().isAir()) {
+            ItemSource source = plugin.itemIdentifierService().identifyItem(guiItems.targetItem());
+            parts.add("target=" + (source == null ? guiItems.targetItem().getType().name() : ItemSourceUtil.toShorthand(source)));
+        }
+        if (guiItems.blueprints() != null) {
+            guiItems.blueprints().values().stream()
+                    .filter(item -> item != null && !item.getType().isAir())
+                    .forEach(item -> {
+                        ItemSource source = plugin.itemIdentifierService().identifyItem(item);
+                        parts.add("blueprint=" + (source == null ? item.getType().name() : ItemSourceUtil.toShorthand(source)));
+                    });
+        }
+        if (guiItems.requiredMaterials() != null) {
+            guiItems.requiredMaterials().values().stream()
+                    .filter(item -> item != null && !item.getType().isAir())
+                    .forEach(item -> {
+                        ItemSource source = plugin.itemIdentifierService().identifyItem(item);
+                        parts.add("required=" + (source == null ? item.getType().name() : ItemSourceUtil.toShorthand(source)) + " x" + item.getAmount());
+                    });
+        }
+        if (guiItems.optionalMaterials() != null) {
+            guiItems.optionalMaterials().values().stream()
+                    .filter(item -> item != null && !item.getType().isAir())
+                    .forEach(item -> {
+                        ItemSource source = plugin.itemIdentifierService().identifyItem(item);
+                        parts.add("optional=" + (source == null ? item.getType().name() : ItemSourceUtil.toShorthand(source)) + " x" + item.getAmount());
+                    });
+        }
+        return parts.isEmpty() ? "[]" : "[" + String.join(", ", parts) + "]";
     }
 }

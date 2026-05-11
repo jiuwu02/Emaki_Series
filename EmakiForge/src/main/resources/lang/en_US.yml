@@ -9,7 +9,7 @@
 
 # version is maintained by resource sync
 
-version: "4.0.0"
+version: "4.1.0"
 
 # General messages
 general:
@@ -255,3 +255,37 @@ gui:
     prev_page: "<gray>Previous Page</gray>"
     next_page: "<gray>Next Page</gray>"
     close: "<red>Close</red>"
+
+# Debug mode messages
+debug:
+  command:
+    status_header: "<gold>========== EmakiForge Debug Status ==========</gold>"
+    status_enabled: "<green>Debug is enabled</green>"
+    status_disabled: "<gray>Debug is disabled</gray>"
+    tracked_players: "<gray>Tracked players: <yellow>{players}</yellow></gray>"
+    tracked_modules: "<gray>Tracked modules: <yellow>{modules}</yellow></gray>"
+    player_added: "<green>Now tracking player: <yellow>{player}</yellow></green>"
+    player_removed: "<yellow>Stopped tracking player: <gray>{player}</gray></yellow>"
+    module_enabled: "<green>Module tracking enabled: <yellow>{module}</yellow></green>"
+    module_disabled: "<yellow>Module tracking disabled: <gray>{module}</gray></yellow>"
+    all_enabled: "<green>Global debug enabled (all players + all modules)</green>"
+    all_disabled: "<yellow>All debug tracking disabled</yellow>"
+    player_not_found: "<red>Online player not found: {player}</red>"
+    available_modules: "<gray>Available modules: <yellow>{modules}</yellow></gray>"
+  recipe:
+    match_start: "Recipe matching start | player={player} | input={items}"
+    match_check: "Check recipe {recipe_id} | match={result}"
+    match_result: "Recipe match complete | result={recipe_id}"
+    no_match: "No matching recipe | input={items}"
+  forge:
+    start: "Forge start | player={player} | recipe={recipe_id}"
+    quality_roll: "Quality roll | quality={quality} | multiplier={multiplier}"
+    success: "Forge success | output={output} | quality={quality}"
+    failed: "Forge failed | reason={reason}"
+    consume_material: "Consume material | material={material} | amount={amount}"
+    produce_item: "Produce item | item={item} | amount={amount}"
+    action_execute: "Execute forge action | phase={phase} | action={action}"
+  gui:
+    open: "Open GUI | player={player} | type={type}"
+    click: "GUI click | player={player} | slot={slot} | action={action}"
+    close: "Close GUI | player={player}"

@@ -1,11 +1,15 @@
 package emaki.jiuwu.craft.gem;
 
+import java.util.Set;
+
 import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.debug.DebugCommand;
+import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.integration.PdcAttributeGateway;
@@ -40,6 +44,8 @@ import emaki.jiuwu.craft.gem.service.SocketOpenerService;
 public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider, EmakiServiceRegistry {
 
     private static final String ROOT_COMMAND = "emakigem";
+
+    private static final Set<String> DEBUG_MODULES = Set.of("inlay", "socket", "state", "gui");
 
     private static final String STARTUP_ASCII = """
  ______  __    __  ______  __  __   __  ______  ______  __    __
@@ -77,6 +83,7 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
     private GemResonanceLoader resonanceLoader;
     private GemResonanceService resonanceService;
     private GemPlaceholderExpansion placeholderExpansion;
+    private DebugCommand debugCommand;
 
     public EmakiGemPlugin() {
         super(AppConfig::defaults);
@@ -137,6 +144,8 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         extractService = components.extractService();
         upgradeService = components.upgradeService();
         gemGuiService = components.gemGuiService();
+        setDebugLogger(new DebugLogger(getLogger(), languageLoader));
+        debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES);
         registerServices(components);
     }
 
@@ -274,5 +283,9 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
 
     public void setResonanceService(GemResonanceService resonanceService) {
         this.resonanceService = resonanceService;
+    }
+
+    public DebugCommand debugCommand() {
+        return debugCommand;
     }
 }

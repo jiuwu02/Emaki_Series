@@ -1,9 +1,13 @@
 package emaki.jiuwu.craft.item;
 
+import java.util.Set;
+
 import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
 
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.debug.DebugCommand;
+import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.integration.PdcAttributeGateway;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
@@ -31,6 +35,7 @@ import emaki.jiuwu.craft.item.service.EmakiItemUpdateService;
 public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider {
 
     private static final String ROOT_COMMAND = "emakiitem";
+    private static final Set<String> DEBUG_MODULES = Set.of("create", "update", "identify");
     private static final String STARTUP_ASCII = """
  ______  __    __  ______  __  __   __  __  ______  ______  __    __  ______
 /\\  ___\\/\\ "-./  \\/\\  __ \\/\\ \\/ /  /\\ \\/\\ \\/\\__  _\\/\\  ___\\/\\ "-./  \\/\\  ___\\
@@ -42,6 +47,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     private final ItemLifecycleCoordinator lifecycleCoordinator = new ItemLifecycleCoordinator();
     private final ItemCommandRouter commandRouter = new ItemCommandRouter(this);
     private ItemPlaceholderExpansion placeholderExpansion;
+    private DebugCommand debugCommand;
 
     private YamlConfigLoader<AppConfig> appConfigLoader;
     private LanguageLoader languageLoader;
@@ -109,6 +115,8 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         itemApi = components.itemApi();
         itemSourceService = components.itemSourceService();
         pdcAttributeGateway = components.pdcAttributeGateway();
+        setDebugLogger(new DebugLogger(getLogger(), languageLoader));
+        debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES);
         registerServices(components);
     }
 
@@ -197,5 +205,9 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
 
     public PdcAttributeGateway pdcAttributeGateway() {
         return pdcAttributeGateway;
+    }
+
+    public DebugCommand debugCommand() {
+        return debugCommand;
     }
 }

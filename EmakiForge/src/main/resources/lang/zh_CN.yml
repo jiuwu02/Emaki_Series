@@ -10,7 +10,7 @@
 # Emaki Forge 中文语言文件
 
 # version 由资源同步维护
-version: "4.0.0"
+version: "4.1.0"
 
 # 通用消息
 general:
@@ -148,6 +148,40 @@ console:
   lore_invalid_search_insert_config: "<yellow>Lore 搜索插入配置无效: 来源
     <red>{source}</red>，动作 <red>{action}</red> <gray>({error})</gray></yellow>"
   papi_registered: "<gray>PlaceholderAPI 扩展已注册</gray>"
+
+# Debug 模式消息
+debug:
+  command:
+    status_header: "<gold>========== EmakiForge Debug 状态 ==========</gold>"
+    status_enabled: "<green>Debug 已开启</green>"
+    status_disabled: "<gray>Debug 已关闭</gray>"
+    tracked_players: "<gray>追踪玩家: <yellow>{players}</yellow></gray>"
+    tracked_modules: "<gray>追踪模块: <yellow>{modules}</yellow></gray>"
+    player_added: "<green>已开始追踪玩家: <yellow>{player}</yellow></green>"
+    player_removed: "<yellow>已停止追踪玩家: <gray>{player}</gray></yellow>"
+    module_enabled: "<green>已开启模块追踪: <yellow>{module}</yellow></green>"
+    module_disabled: "<yellow>已关闭模块追踪: <gray>{module}</gray></yellow>"
+    all_enabled: "<green>已开启全局 Debug（所有玩家+所有模块）</green>"
+    all_disabled: "<yellow>已关闭所有 Debug 追踪</yellow>"
+    player_not_found: "<red>找不到在线玩家: {player}</red>"
+    available_modules: "<gray>可用模块: <yellow>{modules}</yellow></gray>"
+  recipe:
+    match_start: "开始配方匹配 | 玩家={player} | 输入物品={items}"
+    match_check: "检查配方 {recipe_id} | 匹配={result}"
+    match_result: "配方匹配完成 | 结果={recipe_id}"
+    no_match: "无匹配配方 | 输入={items}"
+  forge:
+    start: "开始锻造 | 玩家={player} | 配方={recipe_id}"
+    quality_roll: "品质抽取 | 品质={quality} | 倍率={multiplier}"
+    success: "锻造成功 | 产出={output} | 品质={quality}"
+    failed: "锻造失败 | 原因={reason}"
+    consume_material: "消耗材料 | 材料={material} | 数量={amount}"
+    produce_item: "产出物品 | 物品={item} | 数量={amount}"
+    action_execute: "执行锻造动作 | 阶段={phase} | 动作={action}"
+  gui:
+    open: "打开 GUI | 玩家={player} | 类型={type}"
+    click: "GUI 点击 | 玩家={player} | 槽位={slot} | 动作={action}"
+    close: "关闭 GUI | 玩家={player}"
 
 loader:
   lang_directory_create_failed: "<red>无法创建语言目录: {path}</red>"

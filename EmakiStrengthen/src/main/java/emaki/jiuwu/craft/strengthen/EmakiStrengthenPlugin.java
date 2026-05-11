@@ -1,10 +1,14 @@
 package emaki.jiuwu.craft.strengthen;
 
+import java.util.Set;
+
 import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.ServicePriority;
 
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.debug.DebugCommand;
+import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.gui.GuiItemBuilder;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
@@ -34,6 +38,7 @@ import emaki.jiuwu.craft.strengthen.service.StrengthenSnapshotBuilder;
 public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider, EmakiServiceRegistry {
 
     private static final String ROOT_COMMAND = "emakistrengthen";
+    private static final Set<String> DEBUG_MODULES = Set.of("attempt", "state", "gui");
 
     private static final String STARTUP_ASCII = """
  ______  __    __  ______  __  __   __  ______  ______  ______  ______  __   __  ______  ______  __  __  ______  __   __    
@@ -47,6 +52,7 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     private final StrengthenCommandRouter commandRouter = new StrengthenCommandRouter(this);
     private final StrengthenItemRefreshListener itemRefreshListener = new StrengthenItemRefreshListener(this);
     private ItemSourceService coreItemSourceService;
+    private DebugCommand debugCommand;
     private final GuiItemBuilder.ItemFactory coreItemFactory = (source, amount) -> {
         return coreItemSourceService == null ? null : coreItemSourceService.createItem(source, amount);
     };
@@ -120,6 +126,8 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         attemptService = components.attemptService();
         refreshService = components.refreshService();
         strengthenGuiService = components.strengthenGuiService();
+        setDebugLogger(new DebugLogger(getLogger(), languageLoader));
+        debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES);
         registerServices(components);
     }
 
@@ -224,5 +232,9 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
 
     public ItemSourceService coreItemSourceService() {
         return coreItemSourceService;
+    }
+
+    public DebugCommand debugCommand() {
+        return debugCommand;
     }
 }

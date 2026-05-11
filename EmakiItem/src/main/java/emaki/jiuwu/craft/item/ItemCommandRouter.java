@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.item;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +28,8 @@ final class ItemCommandRouter implements TabExecutor {
     private static final String PERMISSION_INSPECT = "emakiitem.inspect";
     private static final String PERMISSION_RELOAD = "emakiitem.reload";
     private static final String PERMISSION_UPDATE = "emakiitem.update";
+    private static final String PERMISSION_DEBUG = "emakiitem.debug";
+    private static final String PERMISSION_ADMIN = "emakiitem.admin";
     private static final NamespacedKey SKILL_IDS_KEY = new NamespacedKey("emaki_skills", "item.skills.ids");
 
     private final EmakiItemPlugin plugin;
@@ -51,6 +54,7 @@ final class ItemCommandRouter implements TabExecutor {
             case "inspect" -> handleInspect(sender, args);
             case "update" -> handleUpdate(sender, args);
             case "reload" -> handleReload(sender);
+            case "debug" -> handleDebug(sender, args);
             default -> {
                 plugin.messageService().send(sender, "general.unknown_command");
                 yield true;
@@ -62,12 +66,15 @@ final class ItemCommandRouter implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            for (String sub : List.of("help", "list", "give", "inspect", "update", "reload")) {
+            for (String sub : List.of("help", "list", "give", "inspect", "update", "reload", "debug")) {
                 if (sub.startsWith(args[0].toLowerCase())) {
                     result.add(sub);
                 }
             }
             return result;
+        }
+        if (args.length >= 2 && "debug".equalsIgnoreCase(args[0])) {
+            return plugin.debugCommand().tabComplete(Arrays.copyOfRange(args, 1, args.length));
         }
         if (args.length == 2) {
             switch (args[0].toLowerCase()) {
@@ -260,8 +267,17 @@ final class ItemCommandRouter implements TabExecutor {
         lines.put("inspect [player]", plugin.messageService().message("command.help.desc.inspect"));
         lines.put("update [player]", plugin.messageService().message("command.help.desc.update"));
         lines.put("reload", plugin.messageService().message("command.help.desc.reload"));
+        lines.put("debug [player|module|on|off]", "管理 Debug 模式");
         lines.forEach((name, description) -> plugin.messageService().sendRaw(sender,
                 plugin.messageService().message("command.help.line", Map.of("cmd", name, "desc", description))));
         plugin.messageService().sendRaw(sender, plugin.messageService().message("command.help.footer"));
+    }
+
+    private boolean handleDebug(CommandSender sender, String[] args) {
+        if (!sender.hasPermission(PERMISSION_DEBUG) && !sender.hasPermission(PERMISSION_ADMIN)) {
+            plugin.messageService().send(sender, "general.no_permission");
+            return true;
+        }
+        return plugin.debugCommand().handle(sender, Arrays.copyOfRange(args, 1, args.length), plugin.messageService());
     }
 }

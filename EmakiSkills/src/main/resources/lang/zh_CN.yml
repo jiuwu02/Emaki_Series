@@ -8,7 +8,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "2.0.0"
+version: "2.1.0"
 
 general:
   prefix: "<gray>[ <gradient:#4DA6FF:#FF6B6B>主动技能</gradient> ]</gray>"
@@ -166,3 +166,37 @@ upgrade:
     "<green>技能 <white>{skill}</white> 已升级至 <gold>{target_level}</gold>
     级。</green>"
   failed: "<red>技能 <white>{skill}</white> 升级失败，成功率 {success_rate}%。</red>"
+
+# Debug 模式消息
+debug:
+  command:
+    status_header: "<gold>========== EmakiSkills Debug 状态 ==========</gold>"
+    status_enabled: "<green>Debug 已开启</green>"
+    status_disabled: "<gray>Debug 已关闭</gray>"
+    tracked_players: "<gray>追踪玩家: <yellow>{players}</yellow></gray>"
+    tracked_modules: "<gray>追踪模块: <yellow>{modules}</yellow></gray>"
+    player_added: "<green>已开始追踪玩家: <yellow>{player}</yellow></green>"
+    player_removed: "<yellow>已停止追踪玩家: <gray>{player}</gray></yellow>"
+    module_enabled: "<green>已开启模块追踪: <yellow>{module}</yellow></green>"
+    module_disabled: "<yellow>已关闭模块追踪: <gray>{module}</gray></yellow>"
+    all_enabled: "<green>已开启全局 Debug（所有玩家+所有模块）</green>"
+    all_disabled: "<yellow>已关闭所有 Debug 追踪</yellow>"
+    player_not_found: "<red>找不到在线玩家: {player}</red>"
+    available_modules: "<gray>可用模块: <yellow>{modules}</yellow></gray>"
+  cast:
+    trigger: "技能触发 | 玩家={player} | 技能={skill} | 触发器={trigger}"
+    condition_check: "条件检查 | 条件={condition} | 结果={result}"
+    cooldown: "冷却检查 | 技能={skill} | 剩余={remaining}ms"
+    execute: "技能执行 | 技能={skill} | 等级={level} | 效果={effects}"
+    failed: "技能释放失败 | 技能={skill} | 原因={reason}"
+  unlock:
+    check: "解锁检查 | 玩家={player} | 技能={skill} | 条件={conditions}"
+    unlocked: "技能已解锁 | 玩家={player} | 技能={skill}"
+  upgrade:
+    start: "开始升级 | 玩家={player} | 技能={skill} | 当前等级={level}"
+    cost_check: "消耗检查 | 需要={cost} | 拥有={have}"
+    success: "升级成功 | 技能={skill} | 新等级={level}"
+    failed: "升级失败 | 原因={reason}"
+  slot:
+    bind: "槽位绑定 | 玩家={player} | 槽位={slot} | 技能={skill} | 触发器={trigger}"
+    unbind: "槽位解绑 | 玩家={player} | 槽位={slot}"

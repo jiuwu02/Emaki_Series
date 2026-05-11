@@ -7,7 +7,7 @@
 # 文件放置位置: plugins/EmakiItem/lang/
 # ============================================================
 
-version: "2.0.0"
+version: "2.1.0"
 general:
   prefix: "<gray>[ <gradient:#EBD48A:#7FB08A>Emaki Item</gradient> ]</gray>"
   no_permission: "<red>You do not have permission.</red>"
@@ -55,3 +55,33 @@ command:
   inspect:
     header: "<gold>{player}</gold><gray> held item</gray>"
     line: "<gray>{key}: <white>{value}</white></gray>"
+
+# Debug mode messages
+debug:
+  command:
+    status_header: "<gold>========== EmakiItem Debug Status ==========</gold>"
+    status_enabled: "<green>Debug enabled</green>"
+    status_disabled: "<gray>Debug disabled</gray>"
+    tracked_players: "<gray>Tracked players: <yellow>{players}</yellow></gray>"
+    tracked_modules: "<gray>Tracked modules: <yellow>{modules}</yellow></gray>"
+    player_added: "<green>Now tracking player: <yellow>{player}</yellow></green>"
+    player_removed: "<yellow>Stopped tracking player: <gray>{player}</gray></yellow>"
+    module_enabled: "<green>Module tracking enabled: <yellow>{module}</yellow></green>"
+    module_disabled: "<yellow>Module tracking disabled: <gray>{module}</gray></yellow>"
+    all_enabled: "<green>Global debug enabled (all players + all modules)</green>"
+    all_disabled: "<yellow>All debug tracking disabled</yellow>"
+    player_not_found: "<red>Online player not found: {player}</red>"
+    available_modules: "<gray>Available modules: <yellow>{modules}</yellow></gray>"
+  create:
+    start: "Item creation start | ID={id} | Amount={amount}"
+    definition_found: "Item definition found | ID={id} | Version={version}"
+    definition_not_found: "Item definition not found | ID={id}"
+    layer_apply: "Layer applied | Layer={layer} | Namespace={namespace}"
+    result: "Item creation complete | ID={id} | Material={material}"
+  update:
+    check: "Item update check | ID={id} | Current version={current} | Latest version={latest}"
+    updated: "Item updated | ID={id} | Changes={changes}"
+    skipped: "Item update skipped | ID={id}"
+  identify:
+    start: "Item identify | Material={material} | PDC={pdc}"
+    result: "Identify result | ID={id}"

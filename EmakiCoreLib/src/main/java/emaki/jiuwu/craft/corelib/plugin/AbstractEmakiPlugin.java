@@ -6,12 +6,14 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.bukkit.plugin.java.JavaPlugin;
 
+import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.runtime.RuntimeComponents;
 import emaki.jiuwu.craft.corelib.service.EmakiServiceRegistry;
 
 public abstract class AbstractEmakiPlugin extends JavaPlugin implements EmakiServiceRegistry {
 
     private final Map<Class<?>, Object> serviceRegistry = new ConcurrentHashMap<>();
+    private DebugLogger debugLogger;
 
     public Path dataPath(String first, String... more) {
         return getDataFolder().toPath().resolve(Path.of(first, more));
@@ -35,5 +37,19 @@ public abstract class AbstractEmakiPlugin extends JavaPlugin implements EmakiSer
 
     protected final void registerServices(RuntimeComponents components) {
         registerServices(components == null ? Map.of() : components.services());
+    }
+
+    /**
+     * 获取此插件的 DebugLogger 实例。
+     */
+    public DebugLogger debugLogger() {
+        return debugLogger;
+    }
+
+    /**
+     * 设置此插件的 DebugLogger 实例。子类在初始化时调用。
+     */
+    protected final void setDebugLogger(DebugLogger debugLogger) {
+        this.debugLogger = debugLogger;
     }
 }

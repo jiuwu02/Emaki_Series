@@ -1,10 +1,14 @@
 package emaki.jiuwu.craft.skills;
 
+import java.util.Set;
+
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.debug.DebugCommand;
+import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
@@ -65,8 +69,11 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
   \\/_____/\\/_/  \\/_/\\/_/\\/_/\\/_/\\/_/ \\/_/\\/_____/\\/_/\\/_/ \\/_/\\/_____/\\/_____/\\/_____/
 """;
 
+    private static final Set<String> DEBUG_MODULES = Set.of("cast", "unlock", "upgrade", "slot");
+
     private final SkillsLifecycleCoordinator lifecycleCoordinator = new SkillsLifecycleCoordinator();
     private final SkillsCommandRouter commandRouter = new SkillsCommandRouter(this);
+    private DebugCommand debugCommand;
 
     private YamlConfigLoader<AppConfig> appConfigLoader;
     private LanguageLoader languageLoader;
@@ -182,6 +189,8 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
         skillsGuiService = components.skillsGuiService();
         eaBridge = components.eaBridge();
         mythicBridge = components.mythicBridge();
+        setDebugLogger(new DebugLogger(getLogger(), languageLoader));
+        debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES);
         registerServices(components);
     }
 
@@ -391,5 +400,9 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
 
     public PassiveTriggerDispatcher passiveTriggerDispatcher() {
         return passiveTriggerDispatcher;
+    }
+
+    public DebugCommand debugCommand() {
+        return debugCommand;
     }
 }

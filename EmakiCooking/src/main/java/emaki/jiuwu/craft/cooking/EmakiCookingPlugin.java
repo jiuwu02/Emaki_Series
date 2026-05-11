@@ -1,11 +1,14 @@
 package emaki.jiuwu.craft.cooking;
 
 import java.util.Map;
+import java.util.Set;
 
 import org.bukkit.command.PluginCommand;
 
 import emaki.jiuwu.craft.corelib.action.ActionExecutor;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.debug.DebugCommand;
+import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.api.integration.CraftEngineBlockBridge;
 import emaki.jiuwu.craft.corelib.api.integration.CustomBlockBridge;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
@@ -53,9 +56,12 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
   \\/_____/\\/_/  \\/_/\\/_/\\/_/\\/_/\\/_/ \\/_/\\/_____/\\/_____/\\/_____/\\/_/\\/_/ \\/_/\\/_/ \\/_/\\/_____/ 
 """;
 
+    private static final Set<String> DEBUG_MODULES = Set.of("recipe", "stir", "display", "station");
+
     private final CookingLifecycleCoordinator lifecycleCoordinator = new CookingLifecycleCoordinator();
     private final CookingCommandRouter commandRouter = new CookingCommandRouter(this);
     private CookingStationListener stationListener;
+    private DebugCommand debugCommand;
 
     private YamlConfigLoader<AppConfig> appConfigLoader;
     private LanguageLoader languageLoader;
@@ -167,6 +173,8 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         juicerRuntimeService = components.juicerRuntimeService();
         fermentationBarrelRuntimeService = components.fermentationBarrelRuntimeService();
         stationListener = new CookingStationListener(choppingBoardRuntimeService, wokRuntimeService, grinderRuntimeService, steamerRuntimeService, ovenRuntimeService, juicerRuntimeService, fermentationBarrelRuntimeService);
+        setDebugLogger(new DebugLogger(getLogger(), languageLoader));
+        debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES);
         registerServices(components);
     }
 
@@ -363,5 +371,9 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
 
     public FermentationBarrelRuntimeService fermentationBarrelRuntimeService() {
         return fermentationBarrelRuntimeService;
+    }
+
+    public DebugCommand debugCommand() {
+        return debugCommand;
     }
 }

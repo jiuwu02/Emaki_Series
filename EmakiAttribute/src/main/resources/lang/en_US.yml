@@ -8,7 +8,7 @@
 # ============================================================
 
 # version is maintained by resource sync
-version: "4.0.0"
+version: "4.1.0"
 general:
   prefix: "<gray>[ <gradient:#66D9EF:#7B7BFF>EmakiAttribute</gradient> ]</gray>"
 
@@ -247,7 +247,40 @@ command:
     dump: "<gray>/emakiattribute dump [player]</gray> View combat snapshot and
       resource state."
     debug:
-      "<gray>/emakiattribute debug [player] [on|off|toggle]</gray> Trace combat
-      flow and output detailed console logs."
+      "<gray>/emakiattribute debug <status|player|module|all> [...]</gray> Manage
+      debug tracking."
     lint: "<gray>/emakiattribute lint</gray> Check config and resource loading
       issues."
+
+# Debug mode messages
+debug:
+  command:
+    status_header: "<gold>========== EmakiAttribute Debug Status ==========</gold>"
+    status_enabled: "<green>Debug enabled</green>"
+    status_disabled: "<gray>Debug disabled</gray>"
+    tracked_players: "<gray>Tracked players: <yellow>{players}</yellow></gray>"
+    tracked_modules: "<gray>Tracked modules: <yellow>{modules}</yellow></gray>"
+    player_added: "<green>Now tracking player: <yellow>{player}</yellow></green>"
+    player_removed: "<yellow>Stopped tracking player: <gray>{player}</gray></yellow>"
+    module_enabled: "<green>Module tracking enabled: <yellow>{module}</yellow></green>"
+    module_disabled: "<yellow>Module tracking disabled: <gray>{module}</gray></yellow>"
+    all_enabled: "<green>Global debug enabled (all players + all modules)</green>"
+    all_disabled: "<yellow>All debug tracking disabled</yellow>"
+    player_not_found: "<red>Online player not found: {player}</red>"
+    available_modules: "<gray>Available modules: <yellow>{modules}</yellow></gray>"
+  combat:
+    damage_start: "Damage calc start | attacker={attacker} | target={target} | raw_damage={damage}"
+    snapshot_collect: "Collect attribute snapshot | entity={entity} | count={count}"
+    damage_stage: "Damage stage | stage={stage} | values={values}"
+    damage_result: "Damage calc complete | final_damage={damage} | type={type}"
+  resync:
+    start: "Attribute resync start | player={player}"
+    slot_scan: "Scan equipment slot | slot={slot} | item={item} | source={source}"
+    applied: "Attributes applied | player={player} | count={count}"
+  snapshot:
+    collect_start: "Start collecting snapshot | source={source}"
+    layer_read: "Read attribute layer | layer={layer} | attributes={attributes}"
+    merge: "Merge snapshot | sources={sources} | final_count={count}"
+  resource:
+    change: "Resource value change | player={player} | resource={resource} | old={old} | new={new}"
+    max_update: "Resource max update | player={player} | resource={resource} | max={max}"

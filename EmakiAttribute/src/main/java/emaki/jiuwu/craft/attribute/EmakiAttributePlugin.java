@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.attribute;
 
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
@@ -30,6 +31,8 @@ import emaki.jiuwu.craft.attribute.service.AttributeService;
 import emaki.jiuwu.craft.attribute.service.MessageService;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.api.integration.EmakiAttributeBridge;
+import emaki.jiuwu.craft.corelib.debug.DebugCommand;
+import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.plugin.AbstractEmakiPlugin;
 import emaki.jiuwu.craft.corelib.service.EmakiServiceRegistry;
 import emaki.jiuwu.craft.corelib.text.AdventureSupport;
@@ -47,6 +50,10 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
 """;
 
     private final AttributeLifecycleCoordinator lifecycleCoordinator = new AttributeLifecycleCoordinator();
+
+    private static final Set<String> DEBUG_MODULES = Set.of("combat", "resync", "snapshot", "resource");
+
+    private DebugCommand debugCommand;
 
     private AttributeConfig configModel = AttributeConfig.defaults();
     private AttributeRegistry attributeRegistry;
@@ -169,7 +176,16 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         listener = components.listener();
         command = components.command();
         mythicBridge = components.mythicBridge();
+        initDebugLogger();
         registerServices(components);
+    }
+
+    private void initDebugLogger() {
+        emaki.jiuwu.craft.corelib.loader.LanguageLoader coreLanguageLoader =
+                new emaki.jiuwu.craft.corelib.loader.LanguageLoader(this);
+        coreLanguageLoader.load();
+        setDebugLogger(new DebugLogger(getLogger(), coreLanguageLoader));
+        debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES);
     }
 
     private void registerPdcAttributeApi() {
@@ -266,6 +282,10 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
 
     public AttributePlaceholderExpansion placeholderExpansion() {
         return placeholderExpansion;
+    }
+
+    public DebugCommand debugCommand() {
+        return debugCommand;
     }
 
     private void registerCoreLibActions() {

@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.attribute.command;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -104,22 +105,8 @@ public final class AttributeCommand implements TabExecutor {
             }
             return result;
         }
-        if (args.length == 2 && "debug".equalsIgnoreCase(args[0])) {
-            for (String candidate : List.of("toggle", "on", "off")) {
-                if (candidate.startsWith(args[1].toLowerCase(Locale.ROOT))) {
-                    result.add(candidate);
-                }
-            }
-            completePlayerNames(result, args[1]);
-            return result;
-        }
-        if (args.length == 3 && "debug".equalsIgnoreCase(args[0]) && Bukkit.getPlayerExact(args[1]) != null) {
-            for (String candidate : List.of("toggle", "on", "off")) {
-                if (candidate.startsWith(args[2].toLowerCase(Locale.ROOT))) {
-                    result.add(candidate);
-                }
-            }
-            return result;
+        if (args.length >= 2 && "debug".equalsIgnoreCase(args[0])) {
+            return plugin.debugCommand().tabComplete(Arrays.copyOfRange(args, 1, args.length));
         }
         return result;
     }
@@ -243,44 +230,7 @@ public final class AttributeCommand implements TabExecutor {
             messages().send(sender, "command.debug.no_permission");
             return true;
         }
-        Player target = null;
-        String action = "toggle";
-        if (args.length >= 2) {
-            Player namedTarget = Bukkit.getPlayerExact(args[1]);
-            if (namedTarget != null) {
-                target = namedTarget;
-                if (args.length >= 3) {
-                    action = args[2];
-                }
-            } else if (sender instanceof Player player && isDebugAction(args[1])) {
-                target = player;
-                action = args[1];
-            } else if (sender instanceof Player player && args.length == 2 && player.getName().equalsIgnoreCase(args[1])) {
-                target = player;
-            } else {
-                messages().send(sender, sender instanceof Player ? "command.debug.player_not_found" : "command.debug.console_usage", Map.of("player", args[1]));
-                return true;
-            }
-        } else if (sender instanceof Player player) {
-            target = player;
-        } else {
-            messages().send(sender, "command.debug.console_usage");
-            return true;
-        }
-        if (target == null) {
-            messages().send(sender, "command.debug.console_usage");
-            return true;
-        }
-        boolean enabled;
-        if ("on".equalsIgnoreCase(action) || "enable".equalsIgnoreCase(action) || "true".equalsIgnoreCase(action)) {
-            enabled = attributeService.setCombatDebug(target, true);
-        } else if ("off".equalsIgnoreCase(action) || "disable".equalsIgnoreCase(action) || "false".equalsIgnoreCase(action)) {
-            enabled = attributeService.setCombatDebug(target, false);
-        } else {
-            enabled = attributeService.toggleCombatDebug(target);
-        }
-        messages().send(sender, enabled ? "command.debug.enabled" : "command.debug.disabled", Map.of("player", target.getName()));
-        return true;
+        return plugin.debugCommand().handle(sender, Arrays.copyOfRange(args, 1, args.length), plugin.messageService());
     }
 
     private boolean handleLint(CommandSender sender) {
@@ -398,20 +348,6 @@ public final class AttributeCommand implements TabExecutor {
                 result.add(player.getName());
             }
         }
-    }
-
-    private boolean isDebugAction(String value) {
-        if (value == null) {
-            return false;
-        }
-        String normalized = value.toLowerCase(Locale.ROOT);
-        return "toggle".equals(normalized)
-                || "on".equals(normalized)
-                || "off".equals(normalized)
-                || "enable".equals(normalized)
-                || "disable".equals(normalized)
-                || "true".equals(normalized)
-                || "false".equals(normalized);
     }
 
     private PreviewRequest resolvePreviewRequest(CommandSender sender, String[] args) {

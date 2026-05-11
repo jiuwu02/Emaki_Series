@@ -19,3 +19,5 @@ permissions:
     default: op
   emakigem.admin:
     default: op
+  emakigem.debug:
+    default: op
