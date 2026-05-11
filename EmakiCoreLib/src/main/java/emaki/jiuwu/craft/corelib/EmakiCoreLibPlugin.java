@@ -14,6 +14,7 @@ import emaki.jiuwu.craft.corelib.action.ActionTemplateRegistry;
 import emaki.jiuwu.craft.corelib.action.builtin.BuiltinActions;
 import emaki.jiuwu.craft.corelib.action.builtin.RunJavaScriptAction;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
+import emaki.jiuwu.craft.corelib.library.RuntimeLibraryLoader;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerCodecRegistry;
 import emaki.jiuwu.craft.corelib.assembly.EmakiNamespaceDefinition;
@@ -83,6 +84,11 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
             = new EmakiItemAssemblyService(namespaceRegistry, itemLayerCodecRegistry, itemSourceService);
     private final Map<Class<?>, Object> serviceRegistry = new ConcurrentHashMap<>();
     private DebugLogger debugLogger;
+
+    @Override
+    public void onLoad() {
+        new RuntimeLibraryLoader(this).load();
+    }
 
     @Override
     public void onEnable() {

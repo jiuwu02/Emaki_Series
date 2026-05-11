@@ -5,18 +5,6 @@ version: ${project.version}
 api-version: "1.21"
 author: JiuWu
 description: Shared native Java core library for Emaki plugins
-libraries:
-  - net.kyori:adventure-platform-bukkit:${adventure.platform.version}
-  - net.kyori:adventure-text-minimessage:${adventure.version}
-  - net.kyori:adventure-text-serializer-plain:${adventure.version}
-  - net.objecthunter:exp4j:${exp4j.version}
-  - dev.dejvokep:boosted-yaml:${boosted.yaml.version}
-  - com.github.ben-manes.caffeine:caffeine:${caffeine.version}
-  - org.graalvm.polyglot:polyglot:${graalvm.polyglot.version}
-  - org.graalvm.js:js-language:${graalvm.polyglot.version}
-  - org.graalvm.regex:regex:${graalvm.polyglot.version}
-  - org.graalvm.truffle:truffle-api:${graalvm.polyglot.version}
-  - org.graalvm.shadowed:icu4j:${graalvm.polyglot.version}
 softdepend:
   - Vault
   - ExcellentEconomy
