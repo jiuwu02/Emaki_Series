@@ -147,14 +147,19 @@ public final class AppConfig extends BaseAppConfig {
         }
     }
 
-    public record PassiveTriggerSettings(long timerIntervalTicks) {
+    public record PassiveTriggerSettings(long timerIntervalTicks, long comboTimeoutTicks) {
 
         public PassiveTriggerSettings {
             timerIntervalTicks = Math.max(1L, timerIntervalTicks);
+            comboTimeoutTicks = Math.max(1L, comboTimeoutTicks);
+        }
+
+        public PassiveTriggerSettings(long timerIntervalTicks) {
+            this(timerIntervalTicks, 60L);
         }
 
         public static PassiveTriggerSettings defaults() {
-            return new PassiveTriggerSettings(20L);
+            return new PassiveTriggerSettings(20L, 60L);
         }
     }
 

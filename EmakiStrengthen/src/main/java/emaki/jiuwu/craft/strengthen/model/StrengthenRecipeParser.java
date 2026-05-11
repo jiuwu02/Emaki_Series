@@ -48,7 +48,7 @@ final class StrengthenRecipeParser {
                 ConditionGroup.fromConfig(section, section.getString("condition_type", "all_of"), Numbers.tryParseInt(section.get("condition_required_count"), 0)),
                 section.getString("condition_type", "all_of"),
                 Numbers.tryParseInt(section.get("condition_required_count"), 0),
-                null,
+                parseBranchTree(section.getSection("branch_tree")),
                 section.get("name_actions"),
                 section.get("lore_actions")
         );
@@ -277,5 +277,40 @@ final class StrengthenRecipeParser {
             }
         }
         return values;
+    }
+
+    static StrengthenBranchNode parseBranchTree(YamlSection section) {
+        if (section == null) {
+            return null;
+        }
+        return parseBranchNode(section, "root");
+    }
+
+    private static StrengthenBranchNode parseBranchNode(YamlSection section, String defaultId) {
+        if (section == null) {
+            return null;
+        }
+        String branchId = section.getString("branch_id", defaultId);
+        String displayName = section.getString("display_name", "");
+        int forkAfterStar = Numbers.tryParseInt(section.get("fork_after_star"), -1);
+        Map<Integer, StarStage> stages = parseStars(section.getSection("stages"));
+        Map<String, StrengthenBranchNode> children = new LinkedHashMap<>();
+        YamlSection childrenSection = section.getSection("children");
+        if (childrenSection != null) {
+            for (String childKey : childrenSection.getKeys(false)) {
+                YamlSection childSection = childrenSection.getSection(childKey);
+                if (childSection == null) {
+                    continue;
+                }
+                StrengthenBranchNode childNode = parseBranchNode(childSection, childKey);
+                if (childNode != null) {
+                    children.put(childKey, childNode);
+                }
+            }
+        }
+        if (stages.isEmpty() && children.isEmpty()) {
+            return null;
+        }
+        return new StrengthenBranchNode(branchId, displayName, stages, forkAfterStar, children);
     }
 }

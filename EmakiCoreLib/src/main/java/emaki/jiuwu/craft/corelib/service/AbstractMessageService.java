@@ -14,6 +14,7 @@ import emaki.jiuwu.craft.corelib.text.LogMessages;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import net.kyori.adventure.text.Component;
+import org.bukkit.Bukkit;
 
 public class AbstractMessageService implements LogMessages {
 
@@ -160,7 +161,12 @@ public class AbstractMessageService implements LogMessages {
         if (Texts.isBlank(text)) {
             return;
         }
-        String loggedText = includePrefixInLogs() ? withPrefix(text) : text;
-        plugin.getLogger().log(level, MiniMessages.plain(render(loggedText)));
+        if (includePrefixInLogs()) {
+            // 使用 Adventure 直接输出到控制台，避免 Spigot 默认的 [PluginName] 前缀
+            String loggedText = withPrefix(text);
+            AdventureSupport.sendMessage(plugin, Bukkit.getConsoleSender(), render(loggedText));
+        } else {
+            plugin.getLogger().log(level, MiniMessages.plain(render(text)));
+        }
     }
 }

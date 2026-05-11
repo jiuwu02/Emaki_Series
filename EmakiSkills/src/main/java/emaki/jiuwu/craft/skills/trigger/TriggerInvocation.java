@@ -1,5 +1,9 @@
 package emaki.jiuwu.craft.skills.trigger;
 
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -20,6 +24,7 @@ public final class TriggerInvocation {
     private final Entity targetEntity;
     private final Location targetLocation;
     private final Entity sourceEntity;
+    private final Map<String, Object> extraVariables;
 
     private boolean cancelOriginalAction;
 
@@ -29,7 +34,7 @@ public final class TriggerInvocation {
                              boolean sneaking,
                              boolean cancelOriginalAction,
                              long occurredAt) {
-        this(player, triggerId, rawEvent, sneaking, cancelOriginalAction, occurredAt, null, null, null);
+        this(player, triggerId, rawEvent, sneaking, cancelOriginalAction, occurredAt, null, null, null, null);
     }
 
     public TriggerInvocation(Player player,
@@ -41,6 +46,19 @@ public final class TriggerInvocation {
                              Entity targetEntity,
                              Location targetLocation,
                              Entity sourceEntity) {
+        this(player, triggerId, rawEvent, sneaking, cancelOriginalAction, occurredAt, targetEntity, targetLocation, sourceEntity, null);
+    }
+
+    public TriggerInvocation(Player player,
+                             String triggerId,
+                             Event rawEvent,
+                             boolean sneaking,
+                             boolean cancelOriginalAction,
+                             long occurredAt,
+                             Entity targetEntity,
+                             Location targetLocation,
+                             Entity sourceEntity,
+                             Map<String, Object> extraVariables) {
         this.player = player;
         this.triggerId = triggerId;
         this.rawEvent = rawEvent;
@@ -50,6 +68,9 @@ public final class TriggerInvocation {
         this.targetEntity = targetEntity;
         this.targetLocation = targetLocation;
         this.sourceEntity = sourceEntity;
+        this.extraVariables = extraVariables == null || extraVariables.isEmpty()
+                ? Map.of()
+                : Collections.unmodifiableMap(new LinkedHashMap<>(extraVariables));
     }
 
     public Player player() {
@@ -90,5 +111,13 @@ public final class TriggerInvocation {
 
     public Entity sourceEntity() {
         return sourceEntity;
+    }
+
+    /**
+     * Extra variables carried by this invocation (e.g. combo_count).
+     * Returns an unmodifiable map, never null.
+     */
+    public Map<String, Object> extraVariables() {
+        return extraVariables;
     }
 }

@@ -69,6 +69,40 @@ synthetic_hit_feedback:
   knockback_strength: 0.4
   hurt_sound: true
 
+# ============================================================
+# 属性衰减曲线（Scaling Curves）
+# ============================================================
+# 当属性值超过阈值时，超出部分按衰减函数折算，防止数值无限膨胀。
+# 每个条目定义一个属性的衰减规则:
+#   attribute: 属性 ID
+#   threshold: 衰减起始阈值（低于此值不受影响）
+#   curve_type: 衰减函数类型
+#     - "logarithmic": 对数衰减（推荐，平滑且直觉）
+#     - "sqrt": 平方根衰减（比对数更激进）
+#     - "piecewise_linear": 线性折扣（超出部分乘以 factor）
+#   factor: 衰减系数
+#     - logarithmic/sqrt: 控制曲线陡峭程度（越大越平缓）
+#     - piecewise_linear: 超出部分的保留比例（如 0.5 = 保留 50%）
+#
+# 示例: 物理攻击超过 500 后对数衰减
+# scaling_curves:
+#   physical_attack_cap:
+#     attribute: "physical_attack"
+#     threshold: 500
+#     curve_type: "logarithmic"
+#     factor: 100
+#   physical_defense_cap:
+#     attribute: "physical_defense"
+#     threshold: 400
+#     curve_type: "sqrt"
+#     factor: 80
+#   crit_rate_cap:
+#     attribute: "physical_crit_rate"
+#     threshold: 80
+#     curve_type: "piecewise_linear"
+#     factor: 0.3
+scaling_curves: {}
+
 # 允许进入 EA 结算的 DamageCause 白名单
 # cause: Bukkit DamageCause
 # damage_type: 对应 damage_types/ 下的伤害类型 ID

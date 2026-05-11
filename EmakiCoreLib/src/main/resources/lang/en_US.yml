@@ -12,7 +12,7 @@
 version: "4.1.0"
 
 general:
-  prefix: "<gray>[<gold>EmakiCoreLib</gold>]</gray>"
+  prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiCoreLib</gradient> ]</gray>"
 
 console:
   plugin_starting: "<gray>Starting...</gray>"
@@ -51,8 +51,8 @@ debug:
     status_disabled: "<gray>Debug is disabled</gray>"
     tracked_players: "<gray>Tracked players: <yellow>{players}</yellow></gray>"
     tracked_modules: "<gray>Tracked modules: <yellow>{modules}</yellow></gray>"
-    player_added: "<green>Now tracking player: <yellow>{player}</yellow></green>"
-    player_removed: "<yellow>Stopped tracking player: <gray>{player}</gray></yellow>"
+    player_added: "<green>Now tracking player: <aqua>{player}</aqua></green>"
+    player_removed: "<yellow>Stopped tracking player: <aqua>{player}</aqua></yellow>"
     module_enabled: "<green>Module tracking enabled: <yellow>{module}</yellow></green>"
     module_disabled: "<yellow>Module tracking disabled: <gray>{module}</gray></yellow>"
     all_enabled: "<green>Global debug enabled (all players + all modules)</green>"

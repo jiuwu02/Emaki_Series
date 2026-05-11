@@ -131,6 +131,9 @@ triggers:
 passive_trigger_settings:
   # timer 被动触发器的检查间隔，单位 tick
   timer_interval_ticks: 20
+  # combo_attack 连击触发器的超时间隔，单位 tick
+  # 超过此间隔未攻击则连击计数重置
+  combo_timeout_ticks: 60
 
 # 被动触发器配置
 # 这些触发器由技能配置 passive_triggers 固定声明，玩家不能在 GUI 中修改。
@@ -242,5 +245,10 @@ passive_triggers:
 
   timer:
     display_name: "[定时]"
+    enabled: true
+    incompatible_with: []
+
+  combo_attack:
+    display_name: "[连击]"
     enabled: true
     incompatible_with: []

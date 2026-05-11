@@ -47,7 +47,7 @@ import emaki.jiuwu.craft.cooking.service.display.CookingDisplayServiceFactory;
 
 final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiCookingPlugin, CookingRuntimeComponents> {
 
-    private static final String DEFAULT_PREFIX = "<gray>[ <gradient:#D8792E:#F6D16E>Emaki Cooking</gradient> ]</gray>";
+    private static final String DEFAULT_PREFIX = "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiCooking</gradient> ]</gray>";
     private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml", "lang/en_US.yml");
     private static final List<String> EXTRA_DIRECTORIES = List.of(
             "recipes/chopping_board",
@@ -80,7 +80,7 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
         OvenRecipeLoader ovenRecipeLoader = new OvenRecipeLoader(plugin);
         JuicerRecipeLoader juicerRecipeLoader = new JuicerRecipeLoader(plugin);
         FermentationBarrelRecipeLoader fermentationBarrelRecipeLoader = new FermentationBarrelRecipeLoader(plugin);
-        MessageService messageService = new MessageService(plugin, languageLoader, DEFAULT_PREFIX, false);
+        MessageService messageService = new MessageService(plugin, languageLoader, DEFAULT_PREFIX, true);
         BootstrapService bootstrapService = new BootstrapService(
                 plugin,
                 messageService,

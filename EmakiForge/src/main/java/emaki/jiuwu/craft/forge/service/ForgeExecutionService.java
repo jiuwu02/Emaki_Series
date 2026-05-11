@@ -4,6 +4,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ThreadLocalRandom;
 
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -25,6 +26,7 @@ final class ForgeExecutionService {
     private final ResultItemGiver resultItemGiver;
     private final CraftRecorder craftRecorder;
     private final ResultItemPostProcessor resultItemPostProcessor;
+    private final ForgeFailureResolver forgeFailureResolver;
 
     ForgeExecutionService(ForgeActionCoordinator actionCoordinator,
             QualityCalculationService qualityCalculationService,
@@ -32,12 +34,23 @@ final class ForgeExecutionService {
             ResultItemGiver resultItemGiver,
             CraftRecorder craftRecorder,
             ResultItemPostProcessor resultItemPostProcessor) {
+        this(actionCoordinator, qualityCalculationService, forgePlanResolver, resultItemGiver, craftRecorder, resultItemPostProcessor, new ForgeFailureResolver());
+    }
+
+    ForgeExecutionService(ForgeActionCoordinator actionCoordinator,
+            QualityCalculationService qualityCalculationService,
+            ForgePlanResolver forgePlanResolver,
+            ResultItemGiver resultItemGiver,
+            CraftRecorder craftRecorder,
+            ResultItemPostProcessor resultItemPostProcessor,
+            ForgeFailureResolver forgeFailureResolver) {
         this.actionCoordinator = actionCoordinator;
         this.qualityCalculationService = qualityCalculationService;
         this.forgePlanResolver = forgePlanResolver;
         this.resultItemGiver = resultItemGiver;
         this.craftRecorder = craftRecorder;
         this.resultItemPostProcessor = resultItemPostProcessor;
+        this.forgeFailureResolver = forgeFailureResolver;
     }
 
     CompletableFuture<ForgeResult> execute(Player player,
@@ -55,6 +68,17 @@ final class ForgeExecutionService {
                 .thenApply(preBatch -> {
                     if (!preBatch.success()) {
                         return buildActionFailure(player, recipe, guiItems, result, preBatch);
+                    }
+                    // Success rate check — if recipe has failure mechanism, roll before proceeding
+                    if (recipe.hasFailureMechanism()) {
+                        double roll = ThreadLocalRandom.current().nextDouble(100D);
+                        if (roll >= recipe.successRate()) {
+                            ForgeFailureResolver.ForgeFailureResult failureResult = forgeFailureResolver.resolve(recipe, guiItems, player);
+                            result.setErrorKey("forge.craft.failed");
+                            result.setReplacements(Map.of("outcome_type", failureResult.outcomeType()));
+                            actionCoordinator.triggerPhase(player, recipe, guiItems, "failure", null, null, 1D, result.errorKey(), failureResult.outcomeType());
+                            return result;
+                        }
                     }
                     ForgeService.PreparedForge forgePlan = forgePlanResolver.resolve(player, recipe, guiItems, preparedForge);
                     if (forgePlan == null || forgePlan.request() == null) {

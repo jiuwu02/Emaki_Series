@@ -14,12 +14,23 @@ record ForgeMaterialContribution(ForgeMaterial material,
         int slot,
         String category,
         int sequence,
-        ItemSource source) {
+        ItemSource source,
+        double qualityScore) {
+
+    ForgeMaterialContribution(ForgeMaterial material,
+            int amount,
+            int slot,
+            String category,
+            int sequence,
+            ItemSource source) {
+        this(material, amount, slot, category, sequence, source, 0D);
+    }
 
     ForgeMaterialContribution      {
         amount = Math.max(0, amount);
         category = Texts.toStringSafe(category);
         sequence = Math.max(0, sequence);
+        qualityScore = Math.max(0D, qualityScore);
     }
 
     List<ForgeMaterial.QualityModifier> qualityModifiers() {

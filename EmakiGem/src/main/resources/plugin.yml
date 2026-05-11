@@ -1,5 +1,4 @@
 name: EmakiGem
-prefix: ${project.name}
 main: emaki.jiuwu.craft.gem.EmakiGemPlugin
 version: ${project.version}
 api-version: "1.21"

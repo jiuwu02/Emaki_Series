@@ -1,0 +1,46 @@
+# ============================================================
+# EmakiSkills 技能示例 - 投射物技能
+# ============================================================
+# 此文件展示了 projectile 脚本 action 的用法。
+# 发射一颗自定义投射物，支持追踪、穿透和粒子效果。
+#
+# projectile action 参数:
+#   speed: 每 tick 移动的格数（默认 1.5）
+#   gravity: 每 tick 的重力加速度（默认 0.05，设为 0 则直线飞行）
+#   lifetime: 最大存活 tick 数（默认 60）
+#   hit_radius: 碰撞检测半径（默认 0.5）
+#   pierce: 穿透次数（默认 0 = 不穿透）
+#   homing: 是否追踪目标（默认 false）
+#   homing_strength: 追踪转向强度（默认 0.1）
+#   particle: 尾迹粒子类型（默认 FLAME）
+#   damage: 命中伤害（默认 0 = 不造成伤害，由后续 action 处理）
+#   direction: 初始方向 look/target（默认 look）
+#
+# 文件放置位置: plugins/EmakiSkills/skills/
+# ============================================================
+
+id: "homing_fireball"
+
+display_name: "<gradient:#FF6B35:#FF4500>追踪火球</gradient>"
+
+description:
+  - "<gray>发射一颗追踪火球</gray>"
+  - "<gray>火球会自动追踪最近的敌人</gray>"
+  - "<gray>命中后造成范围火焰伤害</gray>"
+
+icon_material: "fire_charge"
+
+trigger_type: "active"
+enabled: true
+
+cooldown: 3.0
+
+# 技能脚本
+script:
+  cast:
+    # 发射追踪火球
+    - "projectile speed=1.2 gravity=0 lifetime=80 hit_radius=0.8 pierce=0 homing=true homing_strength=0.15 particle=FLAME damage=15 direction=look"
+    # 命中后的范围爆炸（projectile 命中时会设置 context target）
+    - "aoe_damage amount=8 radius=3 center=target shape=sphere filter=hostile"
+    - "particle type=EXPLOSION_LARGE at=target count=3"
+    - "sound sound=minecraft:entity.generic.explode at=target volume=0.8 pitch=1.2"

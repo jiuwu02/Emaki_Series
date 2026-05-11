@@ -18,6 +18,8 @@ public final class BuiltinSkillScriptActions {
         registry.register(owner, new ParticleSkillAction());
         registry.register(owner, new RaySkillAction());
         registry.register(owner, new DamageSkillAction());
+        registry.register(owner, new AoeDamageSkillAction());
+        registry.register(owner, new ProjectileSkillAction());
         registry.register(owner, new IgniteSkillAction());
         registry.register(owner, new HealSkillAction());
         registry.register(owner, new MythicSkillAction(mythicSkillCastService));

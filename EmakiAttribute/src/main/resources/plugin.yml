@@ -1,5 +1,4 @@
 name: EmakiAttribute
-prefix: ${project.name}
 main: emaki.jiuwu.craft.attribute.EmakiAttributePlugin
 version: ${project.version}
 api-version: "1.21"

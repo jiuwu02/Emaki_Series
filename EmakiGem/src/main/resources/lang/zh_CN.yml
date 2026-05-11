@@ -11,12 +11,13 @@
 version: "2.1.0"
 
 general:
-  prefix: "<gray>[ <gradient:#B84DFF:#FF8A3D>装备宝石</gradient> ]</gray>"
+  prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiGem</gradient> ]</gray>"
   unknown_command: "<red>未知命令，请使用 <yellow>/emakigem help</yellow> 查看帮助。</red>"
   player_only: "<red>这个命令只能由玩家执行。</red>"
   no_permission: "<red>你没有权限执行这个命令。</red>"
   invalid_args: "<red>参数错误，请检查命令格式。</red>"
   player_not_found: "<red>找不到目标玩家。</red>"
+  reloading: "<gray>正在重载配置...</gray>"
   reload_success: "<green>配置已重载。</green>"
   reload_summary: "<gray>已加载宝石 {gems} 个、装备 {items} 个、GUI 模板 {guis} 个。</gray>"
 
@@ -73,7 +74,7 @@ command:
     slot_already_opened: "<yellow>当前孔位已开启。</yellow>"
     slot_unavailable: "<red>指定插槽当前不可开启。</red>"
     apply_failed: "<red>开孔失败，无法写回装备状态。</red>"
-    success: "<green>已为 <yellow>{player}</yellow> 开启插槽 <gold>#{slot}</gold>。</green>"
+    success: "<green>已为 <aqua>{player}</aqua> 开启插槽 <gold>#{slot}</gold>。</green>"
 
   inlay:
     slot_not_found: "<red>找不到插槽 #{slot}。</red>"
@@ -283,8 +284,8 @@ debug:
     status_disabled: "<gray>Debug 已关闭</gray>"
     tracked_players: "<gray>追踪玩家: <yellow>{players}</yellow></gray>"
     tracked_modules: "<gray>追踪模块: <yellow>{modules}</yellow></gray>"
-    player_added: "<green>已开始追踪玩家: <yellow>{player}</yellow></green>"
-    player_removed: "<yellow>已停止追踪玩家: <gray>{player}</gray></yellow>"
+    player_added: "<green>已开始追踪玩家: <aqua>{player}</aqua></green>"
+    player_removed: "<yellow>已停止追踪玩家: <aqua>{player}</aqua></yellow>"
     module_enabled: "<green>已开启模块追踪: <yellow>{module}</yellow></green>"
     module_disabled: "<yellow>已关闭模块追踪: <gray>{module}</gray></yellow>"
     all_enabled: "<green>已开启全局 Debug（所有玩家+所有模块）</green>"

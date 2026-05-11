@@ -39,7 +39,7 @@ import emaki.jiuwu.craft.item.service.ItemSetLoreRenderer;
 
 final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiItemPlugin, ItemRuntimeComponents> {
 
-    private static final String DEFAULT_PREFIX = "<gray>[ <gradient:#EBD48A:#7FB08A>Emaki Item</gradient> ]</gray>";
+    private static final String DEFAULT_PREFIX = "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiItem</gradient> ]</gray>";
     private static final String PDC_ATTRIBUTE_SOURCE_ID = "emakiitem";
     private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml", "lang/en_US.yml");
     private static final List<String> DEFAULT_DATA_FILES = List.of("items/example_item.yml", "sets/example_set.yml");
@@ -56,7 +56,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
         );
         appConfigLoader.load();
         LanguageLoader languageLoader = new LanguageLoader(plugin, "lang", "lang", "zh_CN", "zh_CN");
-        MessageService messageService = new MessageService(plugin, languageLoader, DEFAULT_PREFIX, false);
+        MessageService messageService = new MessageService(plugin, languageLoader, DEFAULT_PREFIX, true);
         languageLoader.load();
         languageLoader.setLanguage(appConfigLoader.current().language());
         BootstrapService bootstrapService = new BootstrapService(

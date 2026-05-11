@@ -106,7 +106,7 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
                         stored.successCount(),
                         stored.failureCount(),
                         stored.lastAttemptAt(),
-                        ""
+                        stored.branchPath()
                 ),
                 stored
         );
@@ -362,7 +362,8 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
                 Texts.toStringSafe(audit.get("materials_signature")),
                 Texts.isBlank(Texts.toStringSafe(audit.get("base_source_signature")))
                         ? fallbackSignature
-                        : Texts.toStringSafe(audit.get("base_source_signature"))
+                        : Texts.toStringSafe(audit.get("base_source_signature")),
+                Texts.toStringSafe(audit.get("branch_path"))
         );
     }
 
@@ -419,7 +420,7 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
         }
         String operationId = OPERATION_NAMESPACE + ":" + recipe.id() + ":star_" + state.currentStar();
         Map<String, Object> variables = new LinkedHashMap<>();
-        Map<String, Double> stats = recipe.cumulativeVariables(state.currentStar());
+        Map<String, Double> stats = recipe.cumulativeVariables(state.currentStar(), state.branchPath());
         if (stats != null) {
             variables.putAll(stats);
         }
@@ -521,11 +522,12 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
             int failureCount,
             long lastAttemptAt,
             String materialsSignature,
-            String baseSourceSignature) {
+            String baseSourceSignature,
+            String branchPath) {
 
         private static StoredState empty(ItemSource baseSource, String fallbackSignature) {
             String signature = Texts.isBlank(fallbackSignature) ? ItemSourceUtil.toShorthand(baseSource) : fallbackSignature;
-            return new StoredState(false, "", 0, 0, Set.of(), 0, 0, 0L, "", signature);
+            return new StoredState(false, "", 0, 0, Set.of(), 0, 0, 0L, "", signature, "");
         }
 
         private StoredState withBaseSourceSignature(String fallbackSignature) {
@@ -543,7 +545,8 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
                     failureCount,
                     lastAttemptAt,
                     materialsSignature,
-                    resolvedSignature
+                    resolvedSignature,
+                    branchPath
             );
         }
     }

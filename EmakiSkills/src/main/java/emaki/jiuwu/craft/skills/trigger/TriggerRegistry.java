@@ -126,6 +126,7 @@ public final class TriggerRegistry {
         defs.add(passive("sneak", "[潜行]"));
         defs.add(passive("teleport", "[传送]"));
         defs.add(passive("timer", "[定时]"));
+        defs.add(passive("combo_attack", "[连击]"));
 
         return Collections.unmodifiableList(defs);
     }

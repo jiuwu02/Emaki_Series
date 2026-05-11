@@ -12,7 +12,7 @@ import emaki.jiuwu.craft.corelib.service.AbstractMessageService;
 
 public final class MessageService extends AbstractMessageService {
 
-    private static final String DEFAULT_PREFIX = "<gray>[ <gradient:#66D9EF:#7B7BFF>Emaki Attribute</gradient> ]</gray>";
+    private static final String DEFAULT_PREFIX = "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiAttribute</gradient> ]</gray>";
 
     private final LanguageLoader languageLoader;
     private final Supplier<AttributeConfig> configSupplier;
@@ -20,7 +20,7 @@ public final class MessageService extends AbstractMessageService {
     public MessageService(EmakiAttributePlugin plugin,
             LanguageLoader languageLoader,
             Supplier<AttributeConfig> configSupplier) {
-        super(plugin, DEFAULT_PREFIX);
+        super(plugin, DEFAULT_PREFIX, null, null, true);
         this.languageLoader = languageLoader;
         this.configSupplier = configSupplier;
     }

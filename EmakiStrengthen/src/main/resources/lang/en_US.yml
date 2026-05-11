@@ -11,12 +11,13 @@
 version: "4.1.0"
 
 general:
-  prefix: "<gray>[ <gradient:#F2C46D:#C9703D>EmakiStrengthen</gradient> ]</gray>"
+  prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiStrengthen</gradient> ]</gray>"
   no_permission: "<red>You do not have permission to perform this action.</red>"
   player_only: "<red>This command can only be executed by a player.</red>"
   player_not_found: "<red>Target player not found.</red>"
   unknown_command: "<red>Unknown command.</red>"
   invalid_args: "<red>Invalid arguments.</red>"
+  reloading: "<gray>Reloading configuration...</gray>"
   reload_success: "<green>Config reloaded.</green>"
   reload_summary:
     "<gray>Reloaded {recipes} recipes, {materials} materials, {guis}
@@ -42,7 +43,7 @@ command:
     header: "<gold>========== {player} Strengthen State ==========</gold>"
     line: "<yellow>{key}</yellow> <gray>- {value}</gray>"
   refresh:
-    success: "<green>Refreshed strengthen layers for <yellow>{player}</yellow>.</green>"
+    success: "<green>Refreshed strengthen layers for <aqua>{player}</aqua>.</green>"
   setstar:
     success: "<green>Main-hand item set to <gold>+{star}</gold>.</green>"
   clearstate:
@@ -52,7 +53,7 @@ command:
     success: "<green>Main-hand item crack cleared.</green>"
   givecatalyst:
     success: "<green>Gave <gold>{amount}</gold> {material} to
-      <yellow>{player}</yellow>.</green>"
+      <aqua>{player}</aqua>.</green>"
   catalyst_not_found: "<red>Strengthen material ID not found.</red>"
   catalyst_create_failed: "<red>Failed to create strengthen material item.</red>"
   admin_state_failed: "<red>Failed to write strengthen state back to main-hand item.</red>"
@@ -108,9 +109,9 @@ strengthen:
     failure_drop: "<red>On failure, drop 1 star and accumulate crack.</red>"
     failure_drop_protected: "<gold>On failure, protection material consumed, no star drop.</gold>"
   broadcast:
-    local_reach: "<gold>{player}</gold> <yellow>strengthened {show_item} to
+    local_reach: "<aqua>{player}</aqua> <yellow>strengthened {show_item} to
       <gold>+{star}</gold>.</yellow>"
-    global_reach: "<gold>{player}</gold> <yellow>successfully strengthened
+    global_reach: "<aqua>{player}</aqua> <yellow>successfully strengthened
       {show_item} to <gold>+{star}</gold>.</yellow>"
 
 gui:
@@ -154,8 +155,8 @@ debug:
     status_disabled: "<gray>Debug disabled</gray>"
     tracked_players: "<gray>Tracked players: <yellow>{players}</yellow></gray>"
     tracked_modules: "<gray>Tracked modules: <yellow>{modules}</yellow></gray>"
-    player_added: "<green>Now tracking player: <yellow>{player}</yellow></green>"
-    player_removed: "<yellow>Stopped tracking player: <gray>{player}</gray></yellow>"
+    player_added: "<green>Now tracking player: <aqua>{player}</aqua></green>"
+    player_removed: "<yellow>Stopped tracking player: <aqua>{player}</aqua></yellow>"
     module_enabled: "<green>Module tracking enabled: <yellow>{module}</yellow></green>"
     module_disabled: "<yellow>Module tracking disabled: <gray>{module}</gray></yellow>"
     all_enabled: "<green>Global debug enabled (all players + all modules)</green>"

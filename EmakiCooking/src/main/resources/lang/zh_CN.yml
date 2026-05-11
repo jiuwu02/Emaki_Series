@@ -11,13 +11,14 @@
 version: "3.1.0"
 
 general:
-  prefix: "<gray>[ <gradient:#D8792E:#F6D16E>Emaki Cooking</gradient> ]</gray>"
+  prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiCooking</gradient> ]</gray>"
   no_permission: "<red>你没有权限执行此操作。</red>"
   player_only: "<red>此命令只能由玩家执行。</red>"
   unknown_command: "<red>未知命令。</red>"
   invalid_args: "<red>参数错误。</red>"
   no_item_in_hand: "<red>你的主手当前没有可检查的物品。</red>"
   input_rejected: "<red>该物品不是此工位可用配方输入。</red>"
+  reloading: "<gray>正在重载配置...</gray>"
   reload_success: "<green>配置已重载。</green>"
   reload_summary: "<gray>已重载配方 {recipes} 个，GUI 资源 {resources} 个。</gray>"
 
@@ -161,8 +162,8 @@ debug:
     status_disabled: "<gray>Debug 已关闭</gray>"
     tracked_players: "<gray>追踪玩家: <yellow>{players}</yellow></gray>"
     tracked_modules: "<gray>追踪模块: <yellow>{modules}</yellow></gray>"
-    player_added: "<green>已开始追踪玩家: <yellow>{player}</yellow></green>"
-    player_removed: "<yellow>已停止追踪玩家: <gray>{player}</gray></yellow>"
+    player_added: "<green>已开始追踪玩家: <aqua>{player}</aqua></green>"
+    player_removed: "<yellow>已停止追踪玩家: <aqua>{player}</aqua></yellow>"
     module_enabled: "<green>已开启模块追踪: <yellow>{module}</yellow></green>"
     module_disabled: "<yellow>已关闭模块追踪: <gray>{module}</gray></yellow>"
     all_enabled: "<green>已开启全局 Debug（所有玩家+所有模块）</green>"

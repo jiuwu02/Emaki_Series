@@ -1,5 +1,4 @@
 name: EmakiSkills
-prefix: ${project.name}
 main: emaki.jiuwu.craft.skills.EmakiSkillsPlugin
 version: ${project.version}
 api-version: "1.21"

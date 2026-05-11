@@ -40,6 +40,15 @@ public final class Recipe {
         }
     }
 
+    public record FailureOutcome(String type, int weight, Map<String, Object> params) {
+
+        public FailureOutcome {
+            type = Texts.isBlank(type) ? "return_materials" : Texts.lower(type);
+            weight = Math.max(1, weight);
+            params = params == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(params));
+        }
+    }
+
     private final String id;
     private final String displayName;
     private final List<BlueprintRequirement> blueprintRequirements;
@@ -53,6 +62,8 @@ public final class Recipe {
     private final ResultConfig result;
     private final ActionPhases action;
     private final String permission;
+    private final double successRate;
+    private final List<FailureOutcome> failureOutcomes;
 
     public Recipe(String id,
             String displayName,
@@ -67,6 +78,25 @@ public final class Recipe {
             ResultConfig result,
             ActionPhases action,
             String permission) {
+        this(id, displayName, blueprintRequirements, materials, forgeCapacity, optionalMaterialLimit,
+                conditionType, conditionRequiredCount, conditions, quality, result, action, permission, 100D, List.of());
+    }
+
+    public Recipe(String id,
+            String displayName,
+            List<BlueprintRequirement> blueprintRequirements,
+            List<ForgeMaterial> materials,
+            int forgeCapacity,
+            int optionalMaterialLimit,
+            String conditionType,
+            int conditionRequiredCount,
+            ConditionGroup conditions,
+            QualityConfig quality,
+            ResultConfig result,
+            ActionPhases action,
+            String permission,
+            double successRate,
+            List<FailureOutcome> failureOutcomes) {
         this.id = id;
         this.displayName = displayName;
         this.blueprintRequirements = List.copyOf(blueprintRequirements);
@@ -80,6 +110,8 @@ public final class Recipe {
         this.result = result;
         this.action = action == null ? ActionPhases.empty() : action;
         this.permission = permission;
+        this.successRate = Math.max(0D, Math.min(100D, successRate));
+        this.failureOutcomes = failureOutcomes == null ? List.of() : List.copyOf(failureOutcomes);
     }
 
     public static Recipe fromConfig(YamlSection section) {
@@ -115,7 +147,9 @@ public final class Recipe {
                 parseQuality(section.get("quality")),
                 result,
                 parseAction(ConfigNodes.get(section, "actions")),
-                section.getString("permission")
+                section.getString("permission"),
+                Numbers.tryParseDouble(section.get("success_rate"), 100D),
+                parseFailureOutcomes(section.get("failure_outcomes"))
         );
     }
 
@@ -208,6 +242,26 @@ public final class Recipe {
             }
         }
         return result;
+    }
+
+    private static List<FailureOutcome> parseFailureOutcomes(Object raw) {
+        List<FailureOutcome> outcomes = new ArrayList<>();
+        for (Object entry : ConfigNodes.asObjectList(raw)) {
+            if (entry == null) {
+                continue;
+            }
+            String type = ConfigNodes.string(entry, "type", "return_materials");
+            int weight = Numbers.tryParseInt(ConfigNodes.get(entry, "weight"), 1);
+            Map<String, Object> params = new LinkedHashMap<>();
+            Object rawParams = ConfigNodes.get(entry, "params");
+            if (rawParams instanceof Map<?, ?> paramsMap) {
+                for (Map.Entry<?, ?> paramEntry : paramsMap.entrySet()) {
+                    params.put(String.valueOf(paramEntry.getKey()), paramEntry.getValue());
+                }
+            }
+            outcomes.add(new FailureOutcome(type, weight, params));
+        }
+        return outcomes;
     }
 
     public ForgeMaterial findMaterialBySource(ItemSource source) {
@@ -329,5 +383,17 @@ public final class Recipe {
 
     public String permission() {
         return permission;
+    }
+
+    public double successRate() {
+        return successRate;
+    }
+
+    public List<FailureOutcome> failureOutcomes() {
+        return failureOutcomes;
+    }
+
+    public boolean hasFailureMechanism() {
+        return successRate < 100D;
     }
 }

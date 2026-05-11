@@ -1,5 +1,4 @@
 name: EmakiStrengthen
-prefix: ${project.name}
 main: emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin
 version: ${project.version}
 api-version: "1.21"

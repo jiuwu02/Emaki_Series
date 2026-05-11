@@ -253,6 +253,14 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
         return damageCalculationService.resolveDamageApplicationAsync(damageContext);
     }
 
+    /**
+     * Returns the configured scaling curves for attribute diminishing returns.
+     * Returns an empty list if no curves are configured.
+     */
+    List<ScalingCurveConfig> scalingCurves() {
+        return plugin.scalingCurves();
+    }
+
     @Override
     public void refreshCaches() {
         super.refreshCaches();

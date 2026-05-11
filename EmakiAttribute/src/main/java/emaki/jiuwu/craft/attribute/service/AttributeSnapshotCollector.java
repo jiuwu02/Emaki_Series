@@ -48,6 +48,7 @@ final class AttributeSnapshotCollector {
     };
 
     private final AttributeService service;
+    private final ScalingCurveProcessor scalingCurveProcessor = new ScalingCurveProcessor();
     private volatile FusionRuleCache fusionRuleCache = new FusionRuleCache("", List.of());
 
     AttributeSnapshotCollector(AttributeService service) {
@@ -180,6 +181,7 @@ final class AttributeSnapshotCollector {
             mergeValues(values, service.temporaryAttributeService().additiveValues(playerOrNull));
             overlayValues(values, service.temporaryAttributeService().setValues(playerOrNull));
         }
+        scalingCurveProcessor.apply(values, service.scalingCurves());
         applyDerivedValues(values);
         AttributeSnapshot snapshot = new AttributeSnapshot(
                 AttributeFusionMath.FUSED_COMBAT_SNAPSHOT_SCHEMA_VERSION,

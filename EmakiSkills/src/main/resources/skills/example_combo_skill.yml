@@ -1,0 +1,46 @@
+# ============================================================
+# EmakiSkills 被动技能示例 - 连击终结技
+# ============================================================
+# 此文件展示了 combo_attack 被动触发器的用法。
+# 当玩家连续攻击达到指定次数后，自动触发终结技。
+#
+# combo_attack 触发器特性:
+#   - 每次攻击递增连击计数
+#   - 超过 combo_timeout_ticks（默认 60 tick = 3 秒）未攻击则重置
+#   - 触发时携带 {combo_count} 变量，可在条件中引用
+#
+# 文件放置位置: plugins/EmakiSkills/skills/
+# ============================================================
+
+id: "combo_finisher"
+
+display_name: "<red>连击终结</red>"
+
+description:
+  - "<gray>连续攻击 5 次后自动触发终结技</gray>"
+  - "<gray>对目标造成大量范围伤害</gray>"
+
+icon_material: "iron_sword"
+
+# 被动技能配置
+trigger_type: "passive"
+enabled: true
+
+# 绑定 combo_attack 被动触发器
+passive_triggers:
+  - "combo_attack"
+
+# 触发条件: 连击次数 >= 5
+conditions:
+  - "{combo_count} >= 5"
+
+# 冷却时间（秒）
+cooldown: 5.0
+
+# 技能脚本
+script:
+  cast:
+    - "aoe_damage amount=20 radius=4 center=target shape=sphere filter=hostile"
+    - "particle type=EXPLOSION_LARGE at=target count=5"
+    - "sound sound=minecraft:entity.generic.explode volume=1 pitch=0.8"
+    - "message text='<red>连击终结！命中 {aoe_hit_count} 个目标</red>'"

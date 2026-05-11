@@ -45,13 +45,15 @@ public final class GemResonanceLoader extends YamlDirectoryLoader<GemResonanceDe
             return null;
         }
         String displayName = configuration.getString("display_name", id);
+        int priority = Numbers.tryParseInt(configuration.get("priority"), 0);
+        String exclusiveGroup = configuration.getString("exclusive_group", "");
         ResonanceChain chain = parseChain(configuration.getSection("chain"));
         if (chain == null || chain.pattern().isEmpty()) {
             issue("loader.invalid_config", Map.of("type", typeName(), "file", file.getName()));
             return null;
         }
         ResonanceEffects effects = parseEffects(configuration.getSection("effects"));
-        return new GemResonanceDefinition(id, displayName, chain, effects);
+        return new GemResonanceDefinition(id, displayName, priority, exclusiveGroup, chain, effects);
     }
 
     @Override
@@ -80,7 +82,8 @@ public final class GemResonanceLoader extends YamlDirectoryLoader<GemResonanceDe
         }
         String id = ConfigNodes.string(map, "id", "");
         String type = ConfigNodes.string(map, "type", "");
-        return new ResonancePatternEntry(id, type);
+        int minLevel = Numbers.tryParseInt(ConfigNodes.get(map, "min_level"), 0);
+        return new ResonancePatternEntry(id, type, minLevel);
     }
 
     private ResonanceEffects parseEffects(YamlSection section) {

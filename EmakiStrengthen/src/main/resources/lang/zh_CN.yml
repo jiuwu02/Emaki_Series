@@ -11,12 +11,13 @@
 version: "4.1.0"
 
 general:
-  prefix: "<gray>[ <gradient:#F2C46D:#C9703D>装备强化</gradient> ]</gray>"
+  prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiStrengthen</gradient> ]</gray>"
   no_permission: "<red>你没有权限执行此操作。</red>"
   player_only: "<red>此命令只能由玩家执行。</red>"
   player_not_found: "<red>未找到目标玩家。</red>"
   unknown_command: "<red>未知命令。</red>"
   invalid_args: "<red>参数错误。</red>"
+  reloading: "<gray>正在重载配置...</gray>"
   reload_success: "<green>配置已重载。</green>"
   reload_summary: "<gray>已重载配方 {recipes} 个、材料 {materials} 个、GUI {guis} 个。</gray>"
 
@@ -40,7 +41,7 @@ command:
     header: "<gold>========== {player} 的强化状态 ==========</gold>"
     line: "<yellow>{key}</yellow> <gray>- {value}</gray>"
   refresh:
-    success: "<green>已刷新 <yellow>{player}</yellow> 背包中的强化层。</green>"
+    success: "<green>已刷新 <aqua>{player}</aqua> 背包中的强化层。</green>"
   setstar:
     success: "<green>主手物品已设置为 <gold>+{star}</gold>。</green>"
   clearstate:
@@ -49,8 +50,7 @@ command:
   clearcrack:
     success: "<green>主手物品的锻印已清零。</green>"
   givecatalyst:
-    success:
-      "<green>已向 <yellow>{player}</yellow> 发放 <gold>{amount}</gold> 个
+    success: "<green>已向 <aqua>{player}</aqua> 发放 <gold>{amount}</gold> 个
       {material}。</green>"
   catalyst_not_found: "<red>未找到该强化材料 ID。</red>"
   catalyst_create_failed: "<red>无法创建该强化材料物品。</red>"
@@ -102,9 +102,9 @@ strengthen:
     failure_drop: "<red>失败后掉落 1 星，并累积锻印。</red>"
     failure_drop_protected: "<gold>失败后消耗保护材料，不会掉星。</gold>"
   broadcast:
-    local_reach: "<gold>{player}</gold> <yellow>将 {show_item} 强化到
+    local_reach: "<aqua>{player}</aqua> <yellow>将 {show_item} 强化到
       <gold>+{star}</gold>。</yellow>"
-    global_reach: "<gold>{player}</gold> <yellow>成功将 {show_item} 强化到
+    global_reach: "<aqua>{player}</aqua> <yellow>成功将 {show_item} 强化到
       <gold>+{star}</gold>。</yellow>"
 
 gui:
@@ -147,8 +147,8 @@ debug:
     status_disabled: "<gray>Debug 已关闭</gray>"
     tracked_players: "<gray>追踪玩家: <yellow>{players}</yellow></gray>"
     tracked_modules: "<gray>追踪模块: <yellow>{modules}</yellow></gray>"
-    player_added: "<green>已开始追踪玩家: <yellow>{player}</yellow></green>"
-    player_removed: "<yellow>已停止追踪玩家: <gray>{player}</gray></yellow>"
+    player_added: "<green>已开始追踪玩家: <aqua>{player}</aqua></green>"
+    player_removed: "<yellow>已停止追踪玩家: <aqua>{player}</aqua></yellow>"
     module_enabled: "<green>已开启模块追踪: <yellow>{module}</yellow></green>"
     module_disabled: "<yellow>已关闭模块追踪: <gray>{module}</gray></yellow>"
     all_enabled: "<green>已开启全局 Debug（所有玩家+所有模块）</green>"

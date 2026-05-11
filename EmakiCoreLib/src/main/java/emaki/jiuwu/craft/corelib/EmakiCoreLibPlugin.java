@@ -82,6 +82,10 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private final CustomBlockBridge nexoBlockBridge = new NexoBlockBridgeProvider(this);
     private final EmakiItemAssemblyService itemAssemblyService
             = new EmakiItemAssemblyService(namespaceRegistry, itemLayerCodecRegistry, itemSourceService);
+    private final emaki.jiuwu.craft.corelib.assembly.LayerMigrationRegistry layerMigrationRegistry
+            = new emaki.jiuwu.craft.corelib.assembly.LayerMigrationRegistry();
+    private final emaki.jiuwu.craft.corelib.event.EmakiEventBus eventBus
+            = new emaki.jiuwu.craft.corelib.event.EmakiEventBus();
     private final Map<Class<?>, Object> serviceRegistry = new ConcurrentHashMap<>();
     private DebugLogger debugLogger;
 
@@ -369,6 +373,8 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         registerService(ItemsAdderBlockBridgeProvider.class, (ItemsAdderBlockBridgeProvider) itemsAdderBlockBridge);
         registerService(NexoBlockBridgeProvider.class, (NexoBlockBridgeProvider) nexoBlockBridge);
         registerService(EmakiItemAssemblyService.class, itemAssemblyService);
+        registerService(emaki.jiuwu.craft.corelib.assembly.LayerMigrationRegistry.class, layerMigrationRegistry);
+        registerService(emaki.jiuwu.craft.corelib.event.EmakiEventBus.class, eventBus);
     }
 
     private <T> void registerService(Class<T> type, T service) {

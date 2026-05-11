@@ -1,5 +1,8 @@
 package emaki.jiuwu.craft.skills.trigger;
 
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
 import org.bukkit.Location;
@@ -34,7 +37,11 @@ import emaki.jiuwu.craft.skills.config.AppConfig;
 
 public final class PassiveTriggerSource {
 
+    private static final long DEFAULT_COMBO_TIMEOUT_TICKS = 60L;
+
     private final Supplier<AppConfig> configSupplier;
+    private final Map<UUID, ComboState> comboStates = new ConcurrentHashMap<>();
+    private PassiveTriggerDispatcher dispatcher_ref;
     private long lastTimerDispatchAt;
 
     public PassiveTriggerSource(Supplier<AppConfig> configSupplier) {
@@ -42,6 +49,7 @@ public final class PassiveTriggerSource {
     }
 
     public void register(JavaPlugin plugin, PassiveTriggerDispatcher dispatcher) {
+        this.dispatcher_ref = dispatcher;
         plugin.getServer().getPluginManager().registerEvents(new Listener() {
 
             @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -49,6 +57,7 @@ public final class PassiveTriggerSource {
                 Player attacker = playerFromDamager(event.getDamager());
                 if (attacker != null) {
                     trigger(attacker, "attack", event, event.getEntity(), event.getEntity().getLocation(), event.getDamager());
+                    dispatchComboAttack(attacker, event, event.getEntity());
                 }
 
                 if (event.getEntity() instanceof Player damagedPlayer) {
@@ -229,5 +238,45 @@ public final class PassiveTriggerSource {
     private Player playerFromProjectile(Projectile projectile) {
         ProjectileSource shooter = projectile.getShooter();
         return shooter instanceof Player player ? player : null;
+    }
+
+    private void dispatchComboAttack(Player attacker, Event event, Entity target) {
+        UUID playerId = attacker.getUniqueId();
+        long currentTick = attacker.getWorld().getFullTime();
+        long comboTimeout = comboTimeoutTicks();
+
+        ComboState state = comboStates.get(playerId);
+        int newCount;
+        if (state == null || (currentTick - state.lastHitTick()) > comboTimeout) {
+            newCount = 1;
+        } else {
+            newCount = state.count() + 1;
+        }
+        comboStates.put(playerId, new ComboState(newCount, currentTick));
+
+        Map<String, Object> extras = Map.of("combo_count", newCount);
+        dispatcher_ref.dispatch(new TriggerInvocation(
+                attacker,
+                "combo_attack",
+                event,
+                attacker.isSneaking(),
+                false,
+                System.currentTimeMillis(),
+                target,
+                target == null ? attacker.getLocation() : target.getLocation(),
+                attacker,
+                extras
+        ));
+    }
+
+    private long comboTimeoutTicks() {
+        AppConfig config = configSupplier.get();
+        if (config == null) {
+            return DEFAULT_COMBO_TIMEOUT_TICKS;
+        }
+        return config.passiveTriggerSettings().comboTimeoutTicks();
+    }
+
+    private record ComboState(int count, long lastHitTick) {
     }
 }

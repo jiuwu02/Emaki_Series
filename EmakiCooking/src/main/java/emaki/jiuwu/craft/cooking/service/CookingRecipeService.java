@@ -440,6 +440,56 @@ public final class CookingRecipeService {
         parsedSourceCache.clear();
     }
 
+    /**
+     * Check if the input item satisfies the recipe's {@code requires_previous_step} constraint.
+     * <p>
+     * If the recipe has no such constraint, returns true.
+     * Otherwise, checks the item's PDC for a processing history tag matching the required step.
+     *
+     * @param recipe    the recipe to check
+     * @param itemStack the input item
+     * @return true if the prerequisite is satisfied or not configured
+     */
+    public boolean satisfiesPreviousStep(RecipeDocument recipe, org.bukkit.inventory.ItemStack itemStack) {
+        if (recipe == null || itemStack == null || itemStack.getType().isAir()) {
+            return true;
+        }
+        String requiredStep = recipe.configuration().getString("requires_previous_step", "");
+        if (Texts.isBlank(requiredStep)) {
+            return true;
+        }
+        org.bukkit.inventory.meta.ItemMeta meta = itemStack.getItemMeta();
+        if (meta == null) {
+            return false;
+        }
+        org.bukkit.NamespacedKey key = new org.bukkit.NamespacedKey(plugin, "cooking_history");
+        org.bukkit.persistence.PersistentDataContainer pdc = meta.getPersistentDataContainer();
+        String history = pdc.getOrDefault(key, org.bukkit.persistence.PersistentDataType.STRING, "");
+        return history.contains(requiredStep);
+    }
+
+    /**
+     * Write a processing history tag to the output item's PDC.
+     *
+     * @param itemStack the output item
+     * @param recipeId  the recipe id to record as processing history
+     */
+    public void writeProcessingHistory(org.bukkit.inventory.ItemStack itemStack, String recipeId) {
+        if (itemStack == null || itemStack.getType().isAir() || Texts.isBlank(recipeId)) {
+            return;
+        }
+        org.bukkit.inventory.meta.ItemMeta meta = itemStack.getItemMeta();
+        if (meta == null) {
+            return;
+        }
+        org.bukkit.NamespacedKey key = new org.bukkit.NamespacedKey(plugin, "cooking_history");
+        org.bukkit.persistence.PersistentDataContainer pdc = meta.getPersistentDataContainer();
+        String existing = pdc.getOrDefault(key, org.bukkit.persistence.PersistentDataType.STRING, "");
+        String updated = existing.isEmpty() ? recipeId : existing + "," + recipeId;
+        pdc.set(key, org.bukkit.persistence.PersistentDataType.STRING, updated);
+        itemStack.setItemMeta(meta);
+    }
+
     private List<Map<String, Object>> mapList(List<Map<?, ?>> raw) {
         if (raw == null || raw.isEmpty()) {
             return List.of();

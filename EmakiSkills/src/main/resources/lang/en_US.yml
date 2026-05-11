@@ -11,18 +11,23 @@
 version: "2.1.0"
 
 general:
-  prefix: "<gray>[ <gradient:#4DA6FF:#FF6B6B>Active Skills</gradient> ]</gray>"
+  prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiSkills</gradient> ]</gray>"
   no_permission: "<red>You do not have permission to perform this action.</red>"
   player_only: "<red>This command can only be executed by a player.</red>"
   player_not_found: "<red>Target player not found.</red>"
   unknown_command: "<red>Unknown command, use /eskills help to view help.</red>"
   invalid_args: "<red>Invalid arguments.</red>"
+  reloading: "<gray>Reloading configuration...</gray>"
   reload_success: "<green>Configuration reloaded.</green>"
   reload_summary: "<gray>Skills: {skills} | Resources: {resources} | GUI: {guis}</gray>"
 
 console:
   plugin_starting: "<gray>Starting...</gray>"
   plugin_started: "<green>Started</green>"
+  reload_loading_files: "<gray>Loading configuration files...</gray>"
+  reload_loading_configs: "<gray>Loading configs...</gray>"
+  reload_applying: "<gray>Applying configuration...</gray>"
+  reload_complete: "<green>Reload complete.</green>"
   bootstrap_start: "Checking default files..."
   bootstrap_complete: "Default file check complete."
   bootstrap_skip: "Skipped default data generation."
@@ -131,15 +136,15 @@ slot_names:
 command:
   help:
     header:
-      "<gray>========== <gradient:#4DA6FF:#FF6B6B>EmakiSkills Help</gradient>
+      "<gray>========== <gradient:#A78BFA:#60A5FA>EmakiSkills Help</gradient>
       ==========</gray>"
     line: "<gold>/{cmd}</gold> <gray>- {desc}</gray>"
     footer: "<gray>==========================================</gray>"
   inspect:
-    header: "<gray>===== Player <white>{player}</white> Skill Status =====</gray>"
+    header: "<gray>===== Player <aqua>{player}</aqua> Skill Status =====</gray>"
     line: "<gray>{key}: <white>{value}</white></gray>"
   debug:
-    header: "<gray>===== Debug Info: <white>{player}</white> =====</gray>"
+    header: "<gray>===== Debug Info: <aqua>{player}</aqua> =====</gray>"
     line: "<gray>{key}: <white>{value}</white></gray>"
   castmode:
     enabled: "<green>Cast mode enabled.</green>"
@@ -150,10 +155,10 @@ command:
   resync:
     success: "<green>Player skill pool re-synced.</green>"
   level:
-    get: "<gray>Player <white>{player}</white>'s <white>{skill}</white> level is
+    get: "<gray>Player <aqua>{player}</aqua>'s <white>{skill}</white> level is
       <gold>{level}</gold><dark_gray>/</dark_gray><yellow>{max_level}</yellow>.\
       </gray>"
-    changed: "<green>Set player <white>{player}</white>'s <white>{skill}</white>
+    changed: "<green>Set player <aqua>{player}</aqua>'s <white>{skill}</white>
       level to
       <gold>{level}</gold><dark_gray>/</dark_gray><yellow>{max_level}</yellow>.\
       </green>"
@@ -182,8 +187,8 @@ debug:
     status_disabled: "<gray>Debug disabled</gray>"
     tracked_players: "<gray>Tracked players: <yellow>{players}</yellow></gray>"
     tracked_modules: "<gray>Tracked modules: <yellow>{modules}</yellow></gray>"
-    player_added: "<green>Now tracking player: <yellow>{player}</yellow></green>"
-    player_removed: "<yellow>Stopped tracking player: <gray>{player}</gray></yellow>"
+    player_added: "<green>Now tracking player: <aqua>{player}</aqua></green>"
+    player_removed: "<yellow>Stopped tracking player: <aqua>{player}</aqua></yellow>"
     module_enabled: "<green>Module tracking enabled: <yellow>{module}</yellow></green>"
     module_disabled: "<yellow>Module tracking disabled: <gray>{module}</gray></yellow>"
     all_enabled: "<green>Global debug enabled (all players + all modules)</green>"

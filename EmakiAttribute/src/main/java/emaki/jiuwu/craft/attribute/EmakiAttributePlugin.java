@@ -288,6 +288,37 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         return debugCommand;
     }
 
+    /**
+     * Returns the configured scaling curves for attribute diminishing returns.
+     * Loaded from the {@code scaling_curves} section of the attribute config.
+     */
+    public java.util.List<emaki.jiuwu.craft.attribute.service.ScalingCurveConfig> scalingCurves() {
+        return scalingCurves;
+    }
+
+    private volatile java.util.List<emaki.jiuwu.craft.attribute.service.ScalingCurveConfig> scalingCurves = java.util.List.of();
+
+    public void loadScalingCurves(emaki.jiuwu.craft.corelib.yaml.YamlSection section) {
+        if (section == null) {
+            this.scalingCurves = java.util.List.of();
+            return;
+        }
+        java.util.List<emaki.jiuwu.craft.attribute.service.ScalingCurveConfig> curves = new java.util.ArrayList<>();
+        for (String key : section.getKeys(false)) {
+            emaki.jiuwu.craft.corelib.yaml.YamlSection curveSection = section.getSection(key);
+            if (curveSection == null) {
+                continue;
+            }
+            String attributeId = curveSection.getString("attribute", key);
+            double threshold = curveSection.getDouble("threshold", 0D);
+            String curveType = curveSection.getString("curve_type", "logarithmic");
+            double factor = curveSection.getDouble("factor", 1D);
+            curves.add(new emaki.jiuwu.craft.attribute.service.ScalingCurveConfig(
+                    attributeId, threshold, curveType, factor));
+        }
+        this.scalingCurves = java.util.List.copyOf(curves);
+    }
+
     private void registerCoreLibActions() {
         EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
         if (coreLibPlugin.actionRegistry() == null || attributeService == null) {

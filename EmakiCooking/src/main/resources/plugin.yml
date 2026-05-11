@@ -1,5 +1,4 @@
 name: EmakiCooking
-prefix: ${project.name}
 main: emaki.jiuwu.craft.cooking.EmakiCookingPlugin
 version: ${project.version}
 api-version: "1.21"

@@ -230,3 +230,38 @@ actions:
   success: []
   failure:
     - 'sendmessage text="<red>锻造前置操作失败: {forge_failure_reason}</red>"'
+
+# ============================================================
+# 锻造成功率（可选）
+# ============================================================
+# 默认 100 表示必定成功（不启用失败机制）。
+# 设为低于 100 的值时，锻造有概率失败。
+# success_rate: 70
+
+# ============================================================
+# 失败结果方案（可选，仅在 success_rate < 100 时生效）
+# ============================================================
+# 锻造失败时按权重随机选取一个结果方案执行。
+# 支持的 type:
+#   - return_materials: 返还材料（params.return_rate 控制返还概率，默认 1.0 = 全额返还）
+#   - consume_materials: 全部消耗，不返还任何材料
+#   - partial_consume: 部分返还（params.return_rate 控制返还比例）
+#   - fixed_quality: 强制以指定品质产出（params.quality 指定品质名）
+#   - byproduct: 产出副产品（params.item_sources 指定副产品）
+#   - economy_penalty: 额外扣除金币（params.amount 指定金额）
+#   - downgrade_quality: 正常产出但品质降低 N 档（params.levels 指定降档数）
+#
+# 未配置 failure_outcomes 时默认行为是 return_materials（全额返还）。
+#
+# 示例:
+# failure_outcomes:
+#   - type: "return_materials"
+#     weight: 50
+#     params:
+#       return_rate: 1.0
+#   - type: "partial_consume"
+#     weight: 30
+#     params:
+#       return_rate: 0.5
+#   - type: "consume_materials"
+#     weight: 20

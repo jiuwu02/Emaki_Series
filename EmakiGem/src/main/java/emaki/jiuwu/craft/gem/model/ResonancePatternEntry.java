@@ -4,11 +4,17 @@ import emaki.jiuwu.craft.corelib.text.Texts;
 
 public record ResonancePatternEntry(
         String id,
-        String type) {
+        String type,
+        int minLevel) {
+
+    public ResonancePatternEntry(String id, String type) {
+        this(id, type, 0);
+    }
 
     public ResonancePatternEntry {
         id = Texts.isBlank(id) ? "" : Texts.lower(id);
         type = Texts.isBlank(type) ? "" : Texts.lower(type);
+        minLevel = Math.max(0, minLevel);
     }
 
     public boolean matchesAny() {
@@ -16,7 +22,14 @@ public record ResonancePatternEntry(
     }
 
     public boolean matches(GemDefinition gem) {
+        return matches(gem, Integer.MAX_VALUE);
+    }
+
+    public boolean matches(GemDefinition gem, int gemLevel) {
         if (gem == null) {
+            return false;
+        }
+        if (minLevel > 0 && gemLevel < minLevel) {
             return false;
         }
         if (!id.isEmpty()) {

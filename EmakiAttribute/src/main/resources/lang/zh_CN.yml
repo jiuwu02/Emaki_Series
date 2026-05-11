@@ -10,7 +10,7 @@
 # version 由资源同步维护
 version: "4.1.0"
 general:
-  prefix: "<gray>[ <gradient:#66D9EF:#7B7BFF>EmakiAttribute</gradient> ]</gray>"
+  prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiAttribute</gradient> ]</gray>"
 
 console:
   plugin_starting: "<gray>正在启动...</gray>"
@@ -33,8 +33,8 @@ console:
     <aqua>{attribute}</aqua> -> <red>{stat}</red> (<red>{error}</red>)</yellow>"
   attribute_registry_empty: "<yellow>未加载到任何属性</yellow>"
   attribute_registry_summary: "<gray>已加载 {count} 个属性</gray>"
-  attribute_registry_entry: "<gray>[属性注册]</gray> <white>{index}</white>
-    <dark_gray>|</dark_gray> <aqua>{display_name}</aqua>
+  attribute_registry_entry: "<gray>[属性注册]</gray>
+    <aqua>{display_name}</aqua>
     <dark_gray>(</dark_gray><white>{id}</white><dark_gray>)</dark_gray>
     <dark_gray>|</dark_gray> <gray>默认值</gray> <yellow>{default_value}</yellow>
     <dark_gray>|</dark_gray> <gray>战力系数</gray>
@@ -241,8 +241,8 @@ debug:
     status_disabled: "<gray>Debug 已关闭</gray>"
     tracked_players: "<gray>追踪玩家: <yellow>{players}</yellow></gray>"
     tracked_modules: "<gray>追踪模块: <yellow>{modules}</yellow></gray>"
-    player_added: "<green>已开始追踪玩家: <yellow>{player}</yellow></green>"
-    player_removed: "<yellow>已停止追踪玩家: <gray>{player}</gray></yellow>"
+    player_added: "<green>已开始追踪玩家: <aqua>{player}</aqua></green>"
+    player_removed: "<yellow>已停止追踪玩家: <aqua>{player}</aqua></yellow>"
     module_enabled: "<green>已开启模块追踪: <yellow>{module}</yellow></green>"
     module_disabled: "<yellow>已关闭模块追踪: <gray>{module}</gray></yellow>"
     all_enabled: "<green>已开启全局 Debug（所有玩家+所有模块）</green>"

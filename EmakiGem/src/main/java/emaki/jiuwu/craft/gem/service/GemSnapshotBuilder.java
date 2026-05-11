@@ -73,8 +73,8 @@ public final class GemSnapshotBuilder {
         // Only stats are still contributed to the layer snapshot here.
         GemResonanceService resonanceService = plugin.resonanceService();
         if (resonanceService != null) {
-            List<GemDefinition> inlaidGems = collectInlaidGems(state);
-            List<GemResonanceDefinition> activeResonances = resonanceService.evaluate(inlaidGems);
+            List<GemResonanceService.GemEntry> inlaidGems = collectInlaidGemsWithLevels(state);
+            List<GemResonanceDefinition> activeResonances = resonanceService.evaluateWithLevels(inlaidGems);
             for (GemResonanceDefinition resonance : activeResonances) {
                 ResonanceEffects effects = resonance.effects();
                 if (effects == null) {
@@ -172,6 +172,23 @@ public final class GemSnapshotBuilder {
             GemDefinition definition = plugin.gemLoader().get(instance.gemId());
             if (definition != null) {
                 gems.add(definition);
+            }
+        }
+        return gems;
+    }
+
+    private List<GemResonanceService.GemEntry> collectInlaidGemsWithLevels(GemState state) {
+        List<GemResonanceService.GemEntry> gems = new ArrayList<>();
+        if (state == null) {
+            return gems;
+        }
+        for (GemItemInstance instance : state.socketAssignments().values()) {
+            if (instance == null) {
+                continue;
+            }
+            GemDefinition definition = plugin.gemLoader().get(instance.gemId());
+            if (definition != null) {
+                gems.add(new GemResonanceService.GemEntry(definition, instance.level()));
             }
         }
         return gems;

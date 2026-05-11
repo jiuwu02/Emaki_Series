@@ -54,7 +54,7 @@ import emaki.jiuwu.craft.skills.trigger.TriggerRegistry;
 
 final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiSkillsPlugin, SkillsRuntimeComponents> {
 
-    private static final String DEFAULT_PREFIX = "<gray>[ <gradient:#4DA6FF:#FF6B6B>主动技能</gradient> ]</gray>";
+    private static final String DEFAULT_PREFIX = "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiSkills</gradient> ]</gray>";
     private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml", "lang/en_US.yml");
     private static final List<String> EXTRA_DIRECTORIES = List.of("data");
 
@@ -73,7 +73,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
         SkillDefinitionLoader skillDefinitionLoader = new SkillDefinitionLoader(plugin);
         LocalResourceDefinitionLoader localResourceDefinitionLoader = new LocalResourceDefinitionLoader(plugin);
         GuiTemplateLoader guiTemplateLoader = new GuiTemplateLoader(plugin);
-        MessageService messageService = new MessageService(plugin, languageLoader, DEFAULT_PREFIX, false);
+        MessageService messageService = new MessageService(plugin, languageLoader, DEFAULT_PREFIX, true);
         BootstrapService bootstrapService = new BootstrapService(
                 plugin,
                 messageService,
@@ -227,11 +227,11 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
         if (closeInventories) {
             Bukkit.getOnlinePlayers().forEach(player -> player.closeInventory());
         }
-        notifyProgress(progressListener, "Loading configuration files...");
+        notifyProgress(progressListener, plugin.messageService().message("console.reload_loading_files"));
 
         // Step 2: Async file I/O — load all config/definition files
         return runReloadStageAsync(scheduler, new ReloadStageConfig<>(
-                "skills", "config-load", "Loading configs...", progressListener,
+                "skills", "config-load", plugin.messageService().message("console.reload_loading_configs"), progressListener,
                 () -> {
                     plugin.languageLoader().load();
                     plugin.appConfigLoader().load();
@@ -242,14 +242,14 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                 null, (stage, ex) -> plugin.getLogger().warning("[Reload] Stage " + stage + " failed: " + ex.getMessage())
         )).thenCompose(_ -> {
             // Step 3: Back to main thread — apply config and sync players
-            notifyProgress(progressListener, "Applying configuration...");
+            notifyProgress(progressListener, plugin.messageService().message("console.reload_applying"));
             return scheduler.callSync("skills-reload-apply", () -> {
                 plugin.languageLoader().setLanguage(plugin.appConfig().language());
                 loadTriggersIntoRegistry(plugin);
                 plugin.triggerConflictResolver().buildFromDefinitions(plugin.triggerRegistry().all());
                 Bukkit.getOnlinePlayers().forEach(player -> plugin.playerSkillStateService().validateBindings(player));
                 plugin.actionBarService().startRefreshTask();
-                notifyProgress(progressListener, "Reload complete.");
+                notifyProgress(progressListener, plugin.messageService().message("console.reload_complete"));
                 return null;
             });
         });

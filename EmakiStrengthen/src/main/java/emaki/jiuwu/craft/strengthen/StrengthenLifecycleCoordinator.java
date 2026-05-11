@@ -36,7 +36,7 @@ import emaki.jiuwu.craft.strengthen.service.StrengthenSnapshotBuilder;
 
 final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiStrengthenPlugin, StrengthenRuntimeComponents> {
 
-    private static final String DEFAULT_PREFIX = "<gray>[ <gradient:#F2C46D:#C9703D>装备强化</gradient> ]</gray>";
+    private static final String DEFAULT_PREFIX = "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiStrengthen</gradient> ]</gray>";
     private static final String PDC_ATTRIBUTE_SOURCE_ID = "strengthen";
     private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml", "lang/en_US.yml");
 
@@ -53,7 +53,7 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
         LanguageLoader languageLoader = new LanguageLoader(plugin, "lang", "lang", "zh_CN", "zh_CN");
         StrengthenRecipeLoader recipeLoader = new StrengthenRecipeLoader(plugin);
         GuiTemplateLoader guiTemplateLoader = new GuiTemplateLoader(plugin);
-        MessageService messageService = new MessageService(plugin, languageLoader, DEFAULT_PREFIX, false);
+        MessageService messageService = new MessageService(plugin, languageLoader, DEFAULT_PREFIX, true);
         BootstrapService bootstrapService = new BootstrapService(
                 plugin,
                 messageService,

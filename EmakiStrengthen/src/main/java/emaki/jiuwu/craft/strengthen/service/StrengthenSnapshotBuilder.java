@@ -27,7 +27,10 @@ public final class StrengthenSnapshotBuilder {
         if (recipe == null || state == null) {
             return null;
         }
-        Map<String, Double> stats = recipe.cumulativeVariables(state.currentStar());
+        Map<String, Double> stats = recipe.cumulativeVariables(state.currentStar(), state.branchPath());
+        if (state.fractureLevel() > 0) {
+            stats = applyFractureDecay(stats, state.fractureLevel());
+        }
         return new EmakiItemLayerSnapshot(
                 NAMESPACE_ID,
                 1,
@@ -51,6 +54,8 @@ public final class StrengthenSnapshotBuilder {
         audit.put("last_attempt_at", state.lastAttemptAt());
         audit.put("materials_signature", Texts.toStringSafe(materialsSignature));
         audit.put("base_source_signature", state.baseSourceSignature());
+        audit.put("branch_path", state.branchPath());
+        audit.put("fracture_level", state.fractureLevel());
         return audit;
     }
 
@@ -65,6 +70,23 @@ public final class StrengthenSnapshotBuilder {
         }
         return result;
     }
+
+    /**
+     * Apply fracture decay to stats. Each fracture level reduces effective stats by 5%.
+     */
+    private Map<String, Double> applyFractureDecay(Map<String, Double> stats, int fractureLevel) {
+        if (stats == null || stats.isEmpty() || fractureLevel <= 0) {
+            return stats;
+        }
+        double decayFactor = Math.max(0D, 1D - fractureLevel * FRACTURE_PENALTY_RATE);
+        Map<String, Double> decayed = new java.util.LinkedHashMap<>();
+        for (Map.Entry<String, Double> entry : stats.entrySet()) {
+            decayed.put(entry.getKey(), entry.getValue() * decayFactor);
+        }
+        return decayed;
+    }
+
+    private static final double FRACTURE_PENALTY_RATE = 0.05D;
 
     private List<EmakiLoreSectionContribution> buildStatSections(StrengthenRecipe recipe,
             Map<String, Double> stats,
