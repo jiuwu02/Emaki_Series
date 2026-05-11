@@ -1,11 +1,14 @@
 package emaki.jiuwu.craft.item;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 
 import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.integration.PdcAttributeGateway;
@@ -137,6 +140,46 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
             plugin.messageService().info("console.items_loaded", java.util.Map.of("count", loadedItems));
             plugin.messageService().info("console.sets_loaded", java.util.Map.of("count", loadedSets));
         }
+    }
+
+    /**
+     * Asynchronous reload: file I/O stages run on the async thread pool,
+     * final registration and cache clearing run on the main thread.
+     */
+    public CompletableFuture<Void> reloadAsync(EmakiItemPlugin plugin, Consumer<String> progressListener) {
+        AsyncTaskScheduler scheduler = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).asyncTaskScheduler();
+        if (scheduler == null) {
+            reload(plugin);
+            return CompletableFuture.completedFuture(null);
+        }
+
+        notifyProgress(progressListener, "Loading configuration files...");
+
+        // 异步阶段：文件 I/O
+        return runReloadStageAsync(scheduler, new ReloadStageConfig<>(
+                "item", "config-load", "Loading configs...", progressListener,
+                () -> {
+                    plugin.languageLoader().load();
+                    plugin.appConfigLoader().load();
+                    plugin.itemLoader().load();
+                    plugin.setLoader().load();
+                },
+                null, (stage, ex) -> plugin.getLogger().warning("[Reload] Stage " + stage + " failed: " + ex.getMessage())
+        )).thenCompose(_ -> {
+            // 同步阶段：应用配置、刷新缓存
+            notifyProgress(progressListener, "Applying configuration...");
+            return scheduler.callSync("item-reload-apply", () -> {
+                plugin.languageLoader().setLanguage(plugin.appConfig().language());
+                syncPdcAttributeRegistration(plugin.pdcAttributeGateway(), PDC_ATTRIBUTE_SOURCE_ID);
+                plugin.itemFactory().clearCache();
+                if (plugin.messageService() != null) {
+                    plugin.messageService().info("console.items_loaded", java.util.Map.of("count", plugin.itemLoader().all().size()));
+                    plugin.messageService().info("console.sets_loaded", java.util.Map.of("count", plugin.setLoader().all().size()));
+                }
+                notifyProgress(progressListener, "Reload complete.");
+                return null;
+            });
+        });
     }
 
     public void registerServices(EmakiItemPlugin plugin) {

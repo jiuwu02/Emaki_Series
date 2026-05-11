@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.strengthen;
 
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
@@ -106,6 +107,10 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
 
     public void reloadPluginState(boolean closeOpenInventories) {
         lifecycleCoordinator.reload(this, closeOpenInventories);
+    }
+
+    public CompletableFuture<Void> reloadPluginStateAsync(boolean closeOpenInventories) {
+        return lifecycleCoordinator.reloadAsync(this, closeOpenInventories, null);
     }
 
     private void applyRuntimeComponents(StrengthenRuntimeComponents components) {

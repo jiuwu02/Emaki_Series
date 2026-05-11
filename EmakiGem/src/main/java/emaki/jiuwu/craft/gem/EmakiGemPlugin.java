@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.gem;
 
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
@@ -119,6 +120,10 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
 
     public void reloadPluginState(boolean closeOpenInventories) {
         lifecycleCoordinator.reload(this, closeOpenInventories);
+    }
+
+    public CompletableFuture<Void> reloadPluginStateAsync(boolean closeOpenInventories) {
+        return lifecycleCoordinator.reloadAsync(this, closeOpenInventories, null);
     }
 
     private void applyRuntimeComponents(GemRuntimeComponents components) {

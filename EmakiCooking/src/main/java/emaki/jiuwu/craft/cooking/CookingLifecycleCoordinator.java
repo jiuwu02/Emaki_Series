@@ -3,11 +3,14 @@ package emaki.jiuwu.craft.cooking;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.action.ActionExecutor;
+import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.api.integration.CraftEngineBlockBridge;
@@ -236,6 +239,54 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
         plugin.juicerRuntimeService().reload();
         plugin.fermentationBarrelRuntimeService().reload();
         logStationRecipeCounts(plugin);
+    }
+
+    /**
+     * Asynchronous reload: file I/O stages run on the async thread pool,
+     * final registration and runtime service reload run on the main thread.
+     */
+    public CompletableFuture<Void> reloadAsync(EmakiCookingPlugin plugin, Consumer<String> progressListener) {
+        AsyncTaskScheduler scheduler = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).asyncTaskScheduler();
+        if (scheduler == null) {
+            reload(plugin);
+            return CompletableFuture.completedFuture(null);
+        }
+
+        notifyProgress(progressListener, "Loading configuration files...");
+
+        // 异步阶段：文件 I/O（配方加载可并行）
+        return runReloadStageAsync(scheduler, new ReloadStageConfig<>(
+                "cooking", "config-load", "Loading configs...", progressListener,
+                () -> {
+                    plugin.languageLoader().load();
+                    plugin.appConfigLoader().load();
+                    plugin.choppingBoardRecipeLoader().load();
+                    plugin.wokRecipeLoader().load();
+                    plugin.grinderRecipeLoader().load();
+                    plugin.steamerRecipeLoader().load();
+                    plugin.ovenRecipeLoader().load();
+                    plugin.juicerRecipeLoader().load();
+                    plugin.fermentationBarrelRecipeLoader().load();
+                },
+                null, (stage, ex) -> plugin.getLogger().warning("[Reload] Stage " + stage + " failed: " + ex.getMessage())
+        )).thenCompose(_ -> {
+            // 同步阶段：应用配置、刷新运行时服务
+            notifyProgress(progressListener, "Applying configuration...");
+            return scheduler.callSync("cooking-reload-apply", () -> {
+                plugin.languageLoader().setLanguage(plugin.appConfig().language());
+                plugin.settingsService().reload();
+                plugin.choppingBoardRuntimeService().reload();
+                plugin.wokRuntimeService().reload();
+                plugin.grinderRuntimeService().reload();
+                plugin.steamerRuntimeService().reload();
+                plugin.ovenRuntimeService().reload();
+                plugin.juicerRuntimeService().reload();
+                plugin.fermentationBarrelRuntimeService().reload();
+                logStationRecipeCounts(plugin);
+                notifyProgress(progressListener, "Reload complete.");
+                return null;
+            });
+        });
     }
 
     private void logStationRecipeCounts(EmakiCookingPlugin plugin) {

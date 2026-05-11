@@ -79,11 +79,7 @@ public final class DefaultTriggerDispatcher implements TriggerDispatcher {
         if (profile == null) {
             return null;
         }
-        for (SkillSlotBinding binding : profile.bindings()) {
-            if (!binding.isEmpty() && triggerId.equals(binding.triggerId())) {
-                return binding;
-            }
-        }
-        return null;
+        // 使用 profile 内部的 trigger 索引做 O(1) 查找，避免线性扫描
+        return profile.findBindingByTrigger(triggerId);
     }
 }

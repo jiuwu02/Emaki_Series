@@ -994,17 +994,27 @@ public final class ExpressionEngine {
             Map<String, Double> resolvedVariables,
             List<String> resolvingVariables) {
 
+        // 无变量时的零分配快速路径：使用不可变空集合，避免每次求值都分配 LinkedHashMap + ArrayList
+        private static final NumericEvaluationScope EMPTY_SCOPE = new NumericEvaluationScope(
+                Map.of(), Map.of(), List.of());
+
         static NumericEvaluationScope of(Map<String, ?> variables) {
+            if (variables == null || variables.isEmpty()) {
+                return EMPTY_SCOPE;
+            }
             return new NumericEvaluationScope(
-                    variables == null || variables.isEmpty() ? Map.of() : variables,
+                    variables,
                     new LinkedHashMap<>(),
                     new ArrayList<>()
             );
         }
 
         NumericEvaluationScope withVariables(Map<String, ?> variables) {
+            if (variables == null || variables.isEmpty()) {
+                return EMPTY_SCOPE;
+            }
             return new NumericEvaluationScope(
-                    variables == null || variables.isEmpty() ? Map.of() : variables,
+                    variables,
                     new LinkedHashMap<>(),
                     resolvingVariables
             );

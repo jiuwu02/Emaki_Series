@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.cooking;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 import org.bukkit.command.PluginCommand;
 
@@ -141,6 +142,10 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
 
     public void reloadPluginState() {
         lifecycleCoordinator.reload(this);
+    }
+
+    public CompletableFuture<Void> reloadPluginStateAsync() {
+        return lifecycleCoordinator.reloadAsync(this, null);
     }
 
     private void applyRuntimeComponents(CookingRuntimeComponents components) {

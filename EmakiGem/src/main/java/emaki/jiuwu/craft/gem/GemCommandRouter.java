@@ -93,13 +93,15 @@ final class GemCommandRouter implements TabExecutor {
             return true;
         }
         plugin.bootstrapService().bootstrap();
-        plugin.reloadPluginState(true);
-        plugin.messageService().send(sender, "general.reload_success");
-        plugin.messageService().sendRaw(sender, plugin.messageService().message("general.reload_summary", Map.of(
-                "gems", plugin.gemLoader().all().size(),
-                "items", plugin.gemItemLoader().all().size(),
-                "guis", plugin.guiTemplateLoader().all().size()
-        )));
+        plugin.messageService().send(sender, "general.reloading");
+        plugin.reloadPluginStateAsync(true).thenRun(() -> {
+            plugin.messageService().send(sender, "general.reload_success");
+            plugin.messageService().sendRaw(sender, plugin.messageService().message("general.reload_summary", Map.of(
+                    "gems", plugin.gemLoader().all().size(),
+                    "items", plugin.gemItemLoader().all().size(),
+                    "guis", plugin.guiTemplateLoader().all().size()
+            )));
+        });
         return true;
     }
 

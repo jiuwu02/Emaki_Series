@@ -42,6 +42,10 @@ final class DamageCalculationService {
     private final DamageMessageDispatcher messageDispatcher;
     private final SyntheticDamageDispatcher syntheticDamageDispatcher;
 
+    // 缓存：在 refreshCaches() 时更新，避免每次伤害事件都重新查找
+    private volatile String cachedDefaultDamageTypeId;
+    private volatile String cachedDefaultProjectileDamageTypeId;
+
     DamageCalculationService(AttributeService service) {
         this.service = service;
         this.recoveryCalculator = new DamageRecoveryCalculator(service);
@@ -51,9 +55,22 @@ final class DamageCalculationService {
 
     void refreshCaches() {
         messageDispatcher.refreshCaches();
+        // 预计算并缓存默认伤害类型 ID，避免每次命中都做 registry 查找
+        cachedDefaultDamageTypeId = computeDefaultDamageTypeId();
+        cachedDefaultProjectileDamageTypeId = computeDefaultProjectileDamageTypeId();
     }
 
     public String defaultDamageTypeId() {
+        String cached = cachedDefaultDamageTypeId;
+        return cached != null ? cached : computeDefaultDamageTypeId();
+    }
+
+    public String defaultProjectileDamageTypeId() {
+        String cached = cachedDefaultProjectileDamageTypeId;
+        return cached != null ? cached : computeDefaultProjectileDamageTypeId();
+    }
+
+    private String computeDefaultDamageTypeId() {
         if (service.config().defaultDamageType() != null && !service.config().defaultDamageType().isBlank()) {
             DamageTypeDefinition definition = service.damageTypeRegistry().resolve(service.config().defaultDamageType());
             if (definition != null) {
@@ -66,12 +83,12 @@ final class DamageCalculationService {
         return "physical";
     }
 
-    public String defaultProjectileDamageTypeId() {
+    private String computeDefaultProjectileDamageTypeId() {
         DamageTypeDefinition projectile = service.damageTypeRegistry().resolve("projectile");
         if (projectile != null) {
             return projectile.id();
         }
-        return defaultDamageTypeId();
+        return computeDefaultDamageTypeId();
     }
 
     public DamageTypeDefinition resolveDamageType(String damageTypeId) {

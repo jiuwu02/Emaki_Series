@@ -3,11 +3,14 @@ package emaki.jiuwu.craft.strengthen;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
@@ -130,6 +133,57 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
         plugin.messageService().info("console.recipes_loaded", Map.of(
                 "count", String.valueOf(plugin.recipeLoader().all().size())
         ));
+    }
+
+    /**
+     * Asynchronous reload: file I/O stages run on the async thread pool,
+     * final registration and player sync run on the main thread.
+     */
+    public CompletableFuture<Void> reloadAsync(EmakiStrengthenPlugin plugin, boolean closeInventories, Consumer<String> progressListener) {
+        AsyncTaskScheduler scheduler = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).asyncTaskScheduler();
+        if (scheduler == null) {
+            reload(plugin, closeInventories);
+            return CompletableFuture.completedFuture(null);
+        }
+
+        // 主线程前置：关闭 GUI
+        if (closeInventories && plugin.strengthenGuiService() != null) {
+            for (var player : Bukkit.getOnlinePlayers()) {
+                if (plugin.strengthenGuiService().getSession(player) != null) {
+                    player.closeInventory();
+                }
+            }
+            plugin.strengthenGuiService().clearAllSessions();
+        }
+
+        notifyProgress(progressListener, "Loading configuration files...");
+
+        // 异步阶段：文件 I/O
+        return runReloadStageAsync(scheduler, new ReloadStageConfig<>(
+                "strengthen", "config-load", "Loading configs...", progressListener,
+                () -> {
+                    plugin.languageLoader().load();
+                    plugin.appConfigLoader().load();
+                    plugin.recipeLoader().load();
+                    plugin.guiTemplateLoader().load();
+                },
+                null, (stage, ex) -> plugin.getLogger().warning("[Reload] Stage " + stage + " failed: " + ex.getMessage())
+        )).thenCompose(_ -> {
+            // 同步阶段：应用配置、刷新缓存
+            notifyProgress(progressListener, "Applying configuration...");
+            return scheduler.callSync("strengthen-reload-apply", () -> {
+                plugin.languageLoader().setLanguage(plugin.appConfig().language());
+                StrengthenRecipeResolver.clearPatternCache();
+                syncPdcAttributeRegistration(plugin.pdcAttributeGateway(), PDC_ATTRIBUTE_SOURCE_ID);
+                plugin.messageService().info("console.pdc_source_registered", Map.of("source", PDC_ATTRIBUTE_SOURCE_ID));
+                plugin.refreshService().refreshOnlinePlayers();
+                plugin.messageService().info("console.recipes_loaded", Map.of(
+                        "count", String.valueOf(plugin.recipeLoader().all().size())
+                ));
+                notifyProgress(progressListener, "Reload complete.");
+                return null;
+            });
+        });
     }
 
     public void shutdown(EmakiStrengthenPlugin plugin) {

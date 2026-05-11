@@ -245,9 +245,11 @@ final class ItemCommandRouter implements TabExecutor {
             return true;
         }
         plugin.bootstrapService().bootstrap();
-        plugin.reloadPluginState();
-        plugin.messageService().send(sender, "general.reload_success");
-        plugin.messageService().sendRaw(sender, plugin.messageService().message("general.reload_summary", Map.of("items", plugin.itemLoader().all().size())));
+        plugin.messageService().send(sender, "general.reloading");
+        plugin.reloadPluginStateAsync().thenRun(() -> {
+            plugin.messageService().send(sender, "general.reload_success");
+            plugin.messageService().sendRaw(sender, plugin.messageService().message("general.reload_summary", Map.of("items", plugin.itemLoader().all().size())));
+        });
         return true;
     }
 

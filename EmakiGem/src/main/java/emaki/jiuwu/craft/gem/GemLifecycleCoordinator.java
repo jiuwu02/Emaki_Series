@@ -4,11 +4,14 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.condition.ConditionGroup;
@@ -171,6 +174,53 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
         plugin.messageService().info("console.gems_loaded", Map.of(
                 "count", String.valueOf(plugin.gemLoader().all().size())
         ));
+    }
+
+    /**
+     * Asynchronous reload: file I/O stages run on the async thread pool,
+     * final registration and player sync run on the main thread.
+     */
+    public CompletableFuture<Void> reloadAsync(EmakiGemPlugin plugin, boolean closeInventories, Consumer<String> progressListener) {
+        AsyncTaskScheduler scheduler = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).asyncTaskScheduler();
+        if (scheduler == null) {
+            reload(plugin, closeInventories);
+            return CompletableFuture.completedFuture(null);
+        }
+
+        // 主线程前置：关闭 GUI
+        if (closeInventories) {
+            Bukkit.getOnlinePlayers().forEach(player -> player.closeInventory());
+        }
+
+        notifyProgress(progressListener, "Loading configuration files...");
+
+        // 异步阶段：文件 I/O
+        return runReloadStageAsync(scheduler, new ReloadStageConfig<>(
+                "gem", "config-load", "Loading configs...", progressListener,
+                () -> {
+                    plugin.languageLoader().load();
+                    plugin.appConfigLoader().load();
+                    plugin.gemLoader().load();
+                    plugin.gemItemLoader().load();
+                    plugin.guiTemplateLoader().load();
+                },
+                null, (stage, ex) -> plugin.getLogger().warning("[Reload] Stage " + stage + " failed: " + ex.getMessage())
+        )).thenCompose(_ -> {
+            // 同步阶段：应用配置、刷新缓存
+            notifyProgress(progressListener, "Applying configuration...");
+            return scheduler.callSync("gem-reload-apply", () -> {
+                plugin.languageLoader().setLanguage(plugin.appConfig().language());
+                plugin.itemMatcher().refresh();
+                loadResonances(plugin);
+                syncPdcAttributeRegistration(plugin.pdcAttributeGateway(), PDC_ATTRIBUTE_SOURCE_ID);
+                plugin.messageService().info("console.pdc_source_registered", Map.of("source", PDC_ATTRIBUTE_SOURCE_ID));
+                plugin.messageService().info("console.gems_loaded", Map.of(
+                        "count", String.valueOf(plugin.gemLoader().all().size())
+                ));
+                notifyProgress(progressListener, "Reload complete.");
+                return null;
+            });
+        });
     }
 
     public void shutdown(EmakiGemPlugin plugin) {

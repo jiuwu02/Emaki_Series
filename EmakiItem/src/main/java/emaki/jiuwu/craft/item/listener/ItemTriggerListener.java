@@ -36,6 +36,9 @@ public final class ItemTriggerListener implements Listener {
     // 预分配不可变 NamespacedKey，避免在高频事件中反复创建临时对象
     private static final org.bukkit.NamespacedKey DISABLED_KEY = new org.bukkit.NamespacedKey("emakiitem", "disabled");
 
+    // 预分配空 Map 常量，避免在高频触发器调用中反复创建空 Map 实例
+    private static final Map<String, Object> EMPTY_PLACEHOLDERS = Map.of();
+
     private final EmakiItemPlugin plugin;
 
     public ItemTriggerListener(EmakiItemPlugin plugin) {
@@ -51,30 +54,30 @@ public final class ItemTriggerListener implements Listener {
         }
         switch (event.getAction()) {
             case LEFT_CLICK_AIR -> {
-                run(player, definition, "left_click", Map.of());
-                run(player, definition, "left_click_air", Map.of());
+                run(player, definition, "left_click", EMPTY_PLACEHOLDERS);
+                run(player, definition, "left_click_air", EMPTY_PLACEHOLDERS);
                 if (player.isSneaking()) {
-                    run(player, definition, "shift_left_click", Map.of());
+                    run(player, definition, "shift_left_click", EMPTY_PLACEHOLDERS);
                 }
             }
             case LEFT_CLICK_BLOCK -> {
-                run(player, definition, "left_click", Map.of());
+                run(player, definition, "left_click", EMPTY_PLACEHOLDERS);
                 if (player.isSneaking()) {
-                    run(player, definition, "shift_left_click", Map.of());
+                    run(player, definition, "shift_left_click", EMPTY_PLACEHOLDERS);
                 }
             }
             case RIGHT_CLICK_AIR -> {
-                run(player, definition, "right_click", Map.of());
-                run(player, definition, "right_click_air", Map.of());
+                run(player, definition, "right_click", EMPTY_PLACEHOLDERS);
+                run(player, definition, "right_click_air", EMPTY_PLACEHOLDERS);
                 if (player.isSneaking()) {
-                    run(player, definition, "shift_right_click", Map.of());
+                    run(player, definition, "shift_right_click", EMPTY_PLACEHOLDERS);
                 }
             }
             case RIGHT_CLICK_BLOCK -> {
-                run(player, definition, "right_click", Map.of());
-                run(player, definition, "right_click_block", Map.of());
+                run(player, definition, "right_click", EMPTY_PLACEHOLDERS);
+                run(player, definition, "right_click_block", EMPTY_PLACEHOLDERS);
                 if (player.isSneaking()) {
-                    run(player, definition, "shift_right_click", Map.of());
+                    run(player, definition, "shift_right_click", EMPTY_PLACEHOLDERS);
                 }
             }
             default -> {
@@ -88,9 +91,9 @@ public final class ItemTriggerListener implements Listener {
         if (definition == null || !passes(event.getPlayer(), definition, "drop")) {
             return;
         }
-        run(event.getPlayer(), definition, "drop", Map.of());
+        run(event.getPlayer(), definition, "drop", EMPTY_PLACEHOLDERS);
         if (event.getPlayer().isSneaking()) {
-            run(event.getPlayer(), definition, "shift_drop", Map.of());
+            run(event.getPlayer(), definition, "shift_drop", EMPTY_PLACEHOLDERS);
         }
     }
 
@@ -100,9 +103,9 @@ public final class ItemTriggerListener implements Listener {
         if (definition == null || !passes(event.getPlayer(), definition, "swap_hand")) {
             return;
         }
-        run(event.getPlayer(), definition, "swap_hand", Map.of());
+        run(event.getPlayer(), definition, "swap_hand", EMPTY_PLACEHOLDERS);
         if (event.getPlayer().isSneaking()) {
-            run(event.getPlayer(), definition, "shift_swap_hand", Map.of());
+            run(event.getPlayer(), definition, "shift_swap_hand", EMPTY_PLACEHOLDERS);
         }
     }
 
@@ -113,7 +116,7 @@ public final class ItemTriggerListener implements Listener {
         }
         EmakiItemDefinition definition = held(event.getPlayer());
         if (definition != null && passes(event.getPlayer(), definition, "sneak")) {
-            run(event.getPlayer(), definition, "sneak", Map.of());
+            run(event.getPlayer(), definition, "sneak", EMPTY_PLACEHOLDERS);
         }
     }
 
@@ -177,7 +180,7 @@ public final class ItemTriggerListener implements Listener {
         Player player = event.getEntity();
         EmakiItemDefinition definition = held(player);
         if (definition != null && passes(player, definition, "death")) {
-            run(player, definition, "death", Map.of());
+            run(player, definition, "death", EMPTY_PLACEHOLDERS);
         }
     }
 

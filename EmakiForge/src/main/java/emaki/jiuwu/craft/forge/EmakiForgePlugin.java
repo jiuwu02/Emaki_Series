@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.forge;
 
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
@@ -97,6 +98,11 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
 
     public void reloadPluginState(boolean closeOpenInventories) {
         autoSaveTask = lifecycleCoordinator.reload(this, autoSaveTask, closeOpenInventories);
+    }
+
+    public CompletableFuture<Void> reloadPluginStateAsync(boolean closeOpenInventories) {
+        return lifecycleCoordinator.reloadAsync(this, autoSaveTask, closeOpenInventories, null)
+                .thenAccept(task -> autoSaveTask = task);
     }
 
     private void applyRuntimeComponents(ForgeRuntimeComponents components) {

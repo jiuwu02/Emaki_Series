@@ -75,12 +75,14 @@ final class CookingCommandRouter implements TabExecutor {
             return true;
         }
         plugin.bootstrapService().bootstrap();
-        plugin.reloadPluginState();
-        plugin.messageService().send(sender, "general.reload_success");
-        plugin.messageService().sendRaw(sender, plugin.messageService().message("general.reload_summary", Map.of(
-                "recipes", totalRecipeCount(),
-                "resources", 1
-        )));
+        plugin.messageService().send(sender, "general.reloading");
+        plugin.reloadPluginStateAsync().thenRun(() -> {
+            plugin.messageService().send(sender, "general.reload_success");
+            plugin.messageService().sendRaw(sender, plugin.messageService().message("general.reload_summary", Map.of(
+                    "recipes", totalRecipeCount(),
+                    "resources", 1
+            )));
+        });
         return true;
     }
 
