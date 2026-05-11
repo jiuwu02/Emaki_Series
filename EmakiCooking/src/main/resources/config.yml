@@ -136,9 +136,9 @@ stations:
     stir_animation:
       enabled: true
       # 动画总时长，单位 tick（20 tick = 1 秒）
-      duration_ticks: 10
+      duration_ticks: 20
       # 食材抛起高度，单位格
-      height: 0.4
+      height: 1.0
       # 旋转轴：x / y / z
       rotation_axis: x
       # 旋转角度（度）

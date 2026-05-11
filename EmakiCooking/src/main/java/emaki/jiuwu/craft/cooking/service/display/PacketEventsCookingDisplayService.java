@@ -136,34 +136,67 @@ public final class PacketEventsCookingDisplayService implements CookingDisplaySe
             return;
         }
         animatingStations.add(stationKey);
-        int halfDuration = Math.max(1, durationTicks / 2);
 
-        // 阶段1：上升 + 旋转
-        for (String key : Set.copyOf(keys)) {
-            VirtualDisplay display = displays.get(key);
-            if (display == null) {
-                continue;
+        // 将旋转拆分为多段，每段 ≤ 180°，以支持任意角度（含多圈）
+        int segments = Math.max(1, (int) Math.ceil(Math.abs(rotationDegrees) / 180.0D));
+        int halfTicks = Math.max(segments, durationTicks / 2);
+        int ticksPerSegment = Math.max(1, halfTicks / segments);
+        double degreesPerSegment = rotationDegrees / segments;
+        double heightPerSegment = heightOffset / segments;
+
+        // 上升阶段：分段递增旋转和高度
+        for (int segment = 0; segment < segments; segment++) {
+            int delay = segment * ticksPerSegment;
+            int segmentIndex = segment + 1;
+            Runnable segmentTask = () -> {
+                Set<String> currentKeys = displaysByStation.get(stationKey);
+                if (currentKeys == null || currentKeys.isEmpty()) {
+                    return;
+                }
+                double cumulativeDegrees = degreesPerSegment * segmentIndex;
+                double cumulativeHeight = heightPerSegment * segmentIndex;
+                for (String key : Set.copyOf(currentKeys)) {
+                    VirtualDisplay display = displays.get(key);
+                    if (display == null) {
+                        continue;
+                    }
+                    sendAnimationMetadata(display, ticksPerSegment, cumulativeHeight, rotationAxis, cumulativeDegrees);
+                }
+            };
+            if (delay == 0) {
+                segmentTask.run();
+            } else {
+                Bukkit.getScheduler().runTaskLater(plugin, segmentTask, delay);
             }
-            sendAnimationMetadata(display, halfDuration, heightOffset, rotationAxis, rotationDegrees);
         }
 
-        // 阶段2：下降回位（回到原始 transformation）
-        Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            Set<String> currentKeys = displaysByStation.get(stationKey);
-            if (currentKeys == null || currentKeys.isEmpty()) {
-                animatingStations.remove(stationKey);
-                return;
-            }
-            for (String key : Set.copyOf(currentKeys)) {
-                VirtualDisplay display = displays.get(key);
-                if (display == null) {
-                    continue;
+        // 下降阶段：分段从最高点旋转回原位
+        int riseEndTick = segments * ticksPerSegment;
+        for (int segment = 0; segment < segments; segment++) {
+            int delay = riseEndTick + segment * ticksPerSegment;
+            int segmentIndex = segment + 1;
+            Runnable segmentTask = () -> {
+                Set<String> currentKeys = displaysByStation.get(stationKey);
+                if (currentKeys == null || currentKeys.isEmpty()) {
+                    return;
                 }
-                sendAnimationMetadata(display, halfDuration, 0.0D, null, 0.0D);
-            }
-            // 动画结束后清除标记
-            Bukkit.getScheduler().runTaskLater(plugin, () -> animatingStations.remove(stationKey), halfDuration);
-        }, halfDuration);
+                double remainingFraction = 1.0D - ((double) segmentIndex / segments);
+                double currentDegrees = rotationDegrees * remainingFraction;
+                double currentHeight = heightOffset * remainingFraction;
+                for (String key : Set.copyOf(currentKeys)) {
+                    VirtualDisplay display = displays.get(key);
+                    if (display == null) {
+                        continue;
+                    }
+                    sendAnimationMetadata(display, ticksPerSegment, currentHeight, rotationAxis, currentDegrees);
+                }
+            };
+            Bukkit.getScheduler().runTaskLater(plugin, segmentTask, delay);
+        }
+
+        // 动画结束后清除标记
+        int totalTicks = riseEndTick + segments * ticksPerSegment;
+        Bukkit.getScheduler().runTaskLater(plugin, () -> animatingStations.remove(stationKey), totalTicks);
     }
 
     @Override
