@@ -314,6 +314,7 @@ public final class SteamerRuntimeService implements Listener {
                 "item", itemDisplayName(hand),
                 "seconds", Math.max(0L, (newBurning - now) / 1000L)
         ));
+        plugin.effectService().playActions(StationType.STEAMER, "fuel", player);
         return true;
     }
 
@@ -344,6 +345,7 @@ public final class SteamerRuntimeService implements Listener {
                 "moisture", Math.max(0, rule.moisture()),
                 "total", state.moisture()
         ));
+        plugin.effectService().playActions(StationType.STEAMER, "moisture", player);
         return true;
     }
 

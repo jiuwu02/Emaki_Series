@@ -253,8 +253,8 @@ public final class RuntimeLibraryLoader {
             }
             addUrlViaReflection(classLoader, jarPath.toUri().toURL());
             return true;
-        } catch (Exception exception) {
-            logger.log(Level.WARNING, "[LibraryLoader] ClassLoader 注入失败: " + jarPath.getFileName(), exception);
+        } catch (Throwable throwable) {
+            logger.log(Level.WARNING, "[LibraryLoader] ClassLoader 注入失败: " + jarPath.getFileName(), throwable);
             return false;
         }
     }

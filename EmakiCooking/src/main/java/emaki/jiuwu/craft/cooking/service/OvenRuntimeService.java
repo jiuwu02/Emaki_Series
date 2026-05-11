@@ -220,6 +220,7 @@ public final class OvenRuntimeService implements Listener {
                 "seconds", Math.max(0L, (newBurning - now) / 1000L),
                 "heat", state.heat()
         ));
+        plugin.effectService().playActions(StationType.OVEN, "fuel", player);
         return true;
     }
 

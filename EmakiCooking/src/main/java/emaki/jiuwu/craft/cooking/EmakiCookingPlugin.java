@@ -30,6 +30,7 @@ import emaki.jiuwu.craft.cooking.loader.SteamerRecipeLoader;
 import emaki.jiuwu.craft.cooking.loader.WokRecipeLoader;
 import emaki.jiuwu.craft.cooking.service.ChoppingBoardRuntimeService;
 import emaki.jiuwu.craft.cooking.service.CookingBlockMatcher;
+import emaki.jiuwu.craft.cooking.service.CookingEffectService;
 import emaki.jiuwu.craft.cooking.service.CookingInspectService;
 import emaki.jiuwu.craft.cooking.service.CookingRecipeService;
 import emaki.jiuwu.craft.cooking.service.CookingRewardService;
@@ -86,6 +87,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
     private CookingRewardService rewardService;
     private CookingInspectService inspectService;
     private CookingDisplayService displayService;
+    private CookingEffectService effectService;
     private ChoppingBoardRuntimeService choppingBoardRuntimeService;
     private WokRuntimeService wokRuntimeService;
     private GrinderRuntimeService grinderRuntimeService;
@@ -165,6 +167,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         rewardService = components.rewardService();
         inspectService = components.inspectService();
         displayService = components.displayService();
+        effectService = new CookingEffectService(this, coreActionExecutor, settingsService);
         choppingBoardRuntimeService = components.choppingBoardRuntimeService();
         wokRuntimeService = components.wokRuntimeService();
         grinderRuntimeService = components.grinderRuntimeService();
@@ -343,6 +346,10 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
 
     public CookingDisplayService displayService() {
         return displayService;
+    }
+
+    public CookingEffectService effectService() {
+        return effectService;
     }
 
     public ChoppingBoardRuntimeService choppingBoardRuntimeService() {

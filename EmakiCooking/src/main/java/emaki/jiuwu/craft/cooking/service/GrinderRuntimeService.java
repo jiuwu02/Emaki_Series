@@ -130,6 +130,7 @@ public final class GrinderRuntimeService {
         activeStations.add(coordinates.runtimeKey());
         ensureTicker();
         CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "grinder.started", Map.of("seconds", recipeService.grinderTimeSeconds(recipe)));
+        plugin.effectService().playActions(StationType.GRINDER, "start", player);
         interaction.cancel();
         return true;
     }
@@ -232,6 +233,7 @@ public final class GrinderRuntimeService {
         );
         if (player != null && player.isOnline()) {
             CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "grinder.completed", Map.of("recipe", recipe.displayName()));
+            plugin.effectService().playActions(StationType.GRINDER, "complete", player);
         }
         activeStations.remove(coordinates.runtimeKey());
         stateStore.deleteAsync(coordinates);

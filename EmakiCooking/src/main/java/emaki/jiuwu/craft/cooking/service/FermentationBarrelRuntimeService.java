@@ -157,6 +157,7 @@ public final class FermentationBarrelRuntimeService implements Listener {
             removeState(coordinates, true);
             activeStations.remove(coordinates);
             CookingRuntimeUtil.sendActionBar(plugin, player, messageService, collectionMessage(stage), Map.of());
+            plugin.effectService().playActions(StationType.FERMENTATION_BARREL, "collect", player);
             return true;
         }
         if (state.fermenting()) {
@@ -173,6 +174,7 @@ public final class FermentationBarrelRuntimeService implements Listener {
                 removeState(coordinates, true);
                 activeStations.remove(coordinates);
                 CookingRuntimeUtil.sendActionBar(plugin, player, messageService, collectionMessage(stage), Map.of());
+                plugin.effectService().playActions(StationType.FERMENTATION_BARREL, "collect", player);
                 return true;
             }
             long seconds = Math.max(0L, (state.finishAtMs() - now) / 1000L);
@@ -200,6 +202,7 @@ public final class FermentationBarrelRuntimeService implements Listener {
         activeStations.add(coordinates);
         ensureTicker();
         CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "fermentation_barrel.started", Map.of("seconds", seconds));
+        plugin.effectService().playActions(StationType.FERMENTATION_BARREL, "start", player);
         return true;
     }
 

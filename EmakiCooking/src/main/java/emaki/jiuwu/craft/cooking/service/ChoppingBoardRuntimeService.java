@@ -176,6 +176,7 @@ public final class ChoppingBoardRuntimeService {
             int nextCutCount = state.cutCount() + 1;
             applyToolDamage(player, hand, recipeService.choppingToolDamage(recipe));
             maybeDamagePlayer(player, recipeService.choppingDamageChance(recipe), recipeService.choppingDamageValue(recipe));
+            plugin.effectService().playActions(StationType.CHOPPING_BOARD, "cut", player);
 
             if (nextCutCount >= cutsRequired) {
                 clearDisplay(coordinates, state.displayEntityId(), state.inputSource());
@@ -194,6 +195,7 @@ public final class ChoppingBoardRuntimeService {
                         )
                 );
                 CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "chopping_board.completed", Map.of("recipe", recipe.displayName()));
+                plugin.effectService().playActions(StationType.CHOPPING_BOARD, "complete", player);
                 interaction.cancel();
                 return true;
             }
@@ -252,6 +254,7 @@ public final class ChoppingBoardRuntimeService {
         ChoppingBoardState updated = new ChoppingBoardState(shorthand, itemData, 0, now, null);
         saveState(coordinates, updated);
         CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "chopping_board.item_placed", Map.of());
+        plugin.effectService().playActions(StationType.CHOPPING_BOARD, "place", player);
         interaction.cancel();
         return true;
     }

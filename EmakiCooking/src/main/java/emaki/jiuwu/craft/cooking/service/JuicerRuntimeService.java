@@ -162,6 +162,7 @@ public final class JuicerRuntimeService implements Listener {
                 state.setPlayerContext(player.getUniqueId(), player.getName());
                 saveState(coordinates, state);
                 CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "juicer.pressed", Map.of("current", next, "required", required));
+                plugin.effectService().playActions(StationType.JUICER, "press", player);
                 return true;
             }
             state.setProgress(slot, required);
@@ -278,6 +279,7 @@ public final class JuicerRuntimeService implements Listener {
                 "current", state.fluidAmountMl(),
                 "max", settingsService.juicerMaxFluidMl()
         ));
+        plugin.effectService().playActions(StationType.JUICER, "serve", player);
         return true;
     }
 

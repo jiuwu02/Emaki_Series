@@ -166,6 +166,7 @@ public final class WokRuntimeService {
             if (particleLocation.getWorld() != null) {
                 particleLocation.getWorld().spawnParticle(Particle.CLOUD, particleLocation, 4, 0.15D, 0.1D, 0.15D, 0.01D);
             }
+            plugin.effectService().playActions(StationType.WOK, "stir", player);
             if (settingsService.wokStirAnimationEnabled() && !displayService.isAnimating(StationType.WOK, coordinates)) {
                 displayService.playStirAnimation(
                         StationType.WOK,
@@ -246,6 +247,7 @@ public final class WokRuntimeService {
                 refreshDisplays(coordinates, created);
                 setWokHeatSourceLit(block, true);
                 CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "wok.ingredient_added", Map.of("item", itemDisplayName(source)));
+                plugin.effectService().playActions(StationType.WOK, "add_ingredient", player);
                 interaction.cancel();
                 return true;
             }
@@ -278,6 +280,7 @@ public final class WokRuntimeService {
             refreshDisplays(coordinates, updated);
             setWokHeatSourceLit(block, true);
             CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "wok.ingredient_added", Map.of("item", itemDisplayName(source)));
+            plugin.effectService().playActions(StationType.WOK, "add_ingredient", player);
             interaction.cancel();
             return true;
         }
@@ -423,6 +426,7 @@ public final class WokRuntimeService {
             case "overcooked" -> CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "wok.completed_overcooked", Map.of("recipe", recipe.displayName()));
             default -> CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "wok.completed_invalid", Map.of("recipe", recipe.displayName()));
         }
+        plugin.effectService().playActions(StationType.WOK, "serve", player);
         return true;
     }
 

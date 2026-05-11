@@ -928,4 +928,23 @@ public final class CookingSettingsService {
             return shared == null ? fallback : shared.resolve(fallback);
         }
     }
+
+    // ========== 工位操作动作 ==========
+
+    /**
+     * 获取指定工位操作的动作列表。
+     * 配置路径: {@code stations.<type>.actions.<operation>}
+     *
+     * @param stationType 工位类型
+     * @param operation   操作名（如 "stir", "cut", "complete" 等）
+     * @return 动作行列表，如果未配置则返回空列表
+     */
+    public List<String> getStationActions(StationType stationType, String operation) {
+        if (stationType == null || Texts.isBlank(operation)) {
+            return List.of();
+        }
+        String path = "stations." + stationType.folderName() + ".actions." + operation;
+        List<String> actions = configuration.getStringList(path);
+        return actions == null ? List.of() : actions;
+    }
 }
