@@ -38,6 +38,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Transformation;
+import org.joml.Quaternionf;
 
 public final class PacketEventsCookingDisplayService implements CookingDisplayService {
 
@@ -48,6 +49,7 @@ public final class PacketEventsCookingDisplayService implements CookingDisplaySe
     private final CookingSettingsService settingsService;
     private final Map<String, VirtualDisplay> displays = new LinkedHashMap<>();
     private final Map<String, Set<String>> displaysByStation = new LinkedHashMap<>();
+    private final Set<String> animatingStations = new LinkedHashSet<>();
     private final DisplayVisibilityListener listener = new DisplayVisibilityListener();
     private final BukkitTask refreshTask;
 
@@ -99,7 +101,9 @@ public final class PacketEventsCookingDisplayService implements CookingDisplaySe
         if (stationType == null || coordinates == null) {
             return;
         }
-        removeStationKey(stationType.folderName() + ":" + coordinates.runtimeKey());
+        String stationKey = stationType.folderName() + ":" + coordinates.runtimeKey();
+        animatingStations.remove(stationKey);
+        removeStationKey(stationKey);
     }
 
     @Override
@@ -110,9 +114,64 @@ public final class PacketEventsCookingDisplayService implements CookingDisplaySe
         String prefix = stationType.folderName() + ":";
         for (String stationKey : Set.copyOf(displaysByStation.keySet())) {
             if (stationKey.startsWith(prefix)) {
+                animatingStations.remove(stationKey);
                 removeStationKey(stationKey);
             }
         }
+    }
+
+    @Override
+    public void playStirAnimation(StationType stationType, StationCoordinates coordinates,
+                                  double heightOffset, String rotationAxis,
+                                  double rotationDegrees, int durationTicks) {
+        if (stationType == null || coordinates == null) {
+            return;
+        }
+        String stationKey = stationType.folderName() + ":" + coordinates.runtimeKey();
+        if (animatingStations.contains(stationKey)) {
+            return;
+        }
+        Set<String> keys = displaysByStation.get(stationKey);
+        if (keys == null || keys.isEmpty()) {
+            return;
+        }
+        animatingStations.add(stationKey);
+        int halfDuration = Math.max(1, durationTicks / 2);
+
+        // 阶段1：上升 + 旋转
+        for (String key : Set.copyOf(keys)) {
+            VirtualDisplay display = displays.get(key);
+            if (display == null) {
+                continue;
+            }
+            sendAnimationMetadata(display, halfDuration, heightOffset, rotationAxis, rotationDegrees);
+        }
+
+        // 阶段2：下降回位（回到原始 transformation）
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            Set<String> currentKeys = displaysByStation.get(stationKey);
+            if (currentKeys == null || currentKeys.isEmpty()) {
+                animatingStations.remove(stationKey);
+                return;
+            }
+            for (String key : Set.copyOf(currentKeys)) {
+                VirtualDisplay display = displays.get(key);
+                if (display == null) {
+                    continue;
+                }
+                sendAnimationMetadata(display, halfDuration, 0.0D, null, 0.0D);
+            }
+            // 动画结束后清除标记
+            Bukkit.getScheduler().runTaskLater(plugin, () -> animatingStations.remove(stationKey), halfDuration);
+        }, halfDuration);
+    }
+
+    @Override
+    public boolean isAnimating(StationType stationType, StationCoordinates coordinates) {
+        if (stationType == null || coordinates == null) {
+            return false;
+        }
+        return animatingStations.contains(stationType.folderName() + ":" + coordinates.runtimeKey());
     }
 
     @Override
@@ -124,11 +183,77 @@ public final class PacketEventsCookingDisplayService implements CookingDisplaySe
         }
         displays.clear();
         displaysByStation.clear();
+        animatingStations.clear();
     }
 
     @Override
     public String backendName() {
         return "packet_events";
+    }
+
+    private void sendAnimationMetadata(VirtualDisplay display, int interpolationDuration,
+                                       double heightOffset, String rotationAxis, double rotationDegrees) {
+        ServerVersion version = PacketEvents.getAPI().getServerManager().getVersion();
+        boolean hasPositionRotationInterpolation = version.isNewerThanOrEquals(ServerVersion.V_1_20_2);
+
+        int interpolationStartIndex = ENTITY_METADATA_BASE;
+        int interpolationDurationIndex = ENTITY_METADATA_BASE + 1;
+        int translationIndex = hasPositionRotationInterpolation ? ENTITY_METADATA_BASE + 3 : ENTITY_METADATA_BASE + 2;
+
+        Transformation transformation = display.spec.transformation();
+        org.joml.Vector3f originalTranslation = transformation.getTranslation();
+        org.joml.Quaternionf originalLeftRotation = transformation.getLeftRotation();
+        org.joml.Vector3f scale = transformation.getScale();
+        org.joml.Quaternionf rightRotation = transformation.getRightRotation();
+
+        // 计算动画后的 translation 和 rotation
+        Vector3f animatedTranslation = new Vector3f(
+                originalTranslation.x(),
+                originalTranslation.y() + (float) heightOffset,
+                originalTranslation.z()
+        );
+
+        Quaternionf animatedLeftRotation = new Quaternionf(originalLeftRotation);
+        Quaternionf deltaRotation = buildAxisRotation(rotationAxis, rotationDegrees);
+        animatedLeftRotation.mul(deltaRotation);
+
+        List<EntityData<?>> metadata = new ArrayList<>();
+        // 设置 interpolation start = 0（立即开始）
+        metadata.add(new EntityData<>(interpolationStartIndex, EntityDataTypes.INT, 0));
+        // 设置 interpolation duration
+        metadata.add(new EntityData<>(interpolationDurationIndex, EntityDataTypes.INT, interpolationDuration));
+        if (hasPositionRotationInterpolation) {
+            metadata.add(new EntityData<>(ENTITY_METADATA_BASE + 2, EntityDataTypes.INT, 0));
+        }
+        // 设置 translation
+        metadata.add(new EntityData<>(translationIndex, EntityDataTypes.VECTOR3F, animatedTranslation));
+        // 设置 scale（保持不变）
+        metadata.add(new EntityData<>(translationIndex + 1, EntityDataTypes.VECTOR3F,
+                new Vector3f(scale.x(), scale.y(), scale.z())));
+        // 设置 left_rotation
+        metadata.add(new EntityData<>(translationIndex + 2, EntityDataTypes.QUATERNION,
+                new Quaternion4f(animatedLeftRotation.x(), animatedLeftRotation.y(),
+                        animatedLeftRotation.z(), animatedLeftRotation.w())));
+        // 设置 right_rotation（保持不变）
+        metadata.add(new EntityData<>(translationIndex + 3, EntityDataTypes.QUATERNION,
+                new Quaternion4f(rightRotation.x(), rightRotation.y(), rightRotation.z(), rightRotation.w())));
+
+        WrapperPlayServerEntityMetadata packet = new WrapperPlayServerEntityMetadata(display.entityId, metadata);
+        for (UUID playerId : Set.copyOf(display.visiblePlayers)) {
+            Player player = Bukkit.getPlayer(playerId);
+            if (player != null && player.isOnline()) {
+                PacketEvents.getAPI().getPlayerManager().sendPacket(player, packet);
+            }
+        }
+    }
+
+    private Quaternionf buildAxisRotation(String axis, double degrees) {
+        float radians = (float) Math.toRadians(degrees);
+        return switch (axis == null ? "x" : axis) {
+            case "y" -> new Quaternionf().rotateY(radians);
+            case "z" -> new Quaternionf().rotateZ(radians);
+            default -> new Quaternionf().rotateX(radians);
+        };
     }
 
     private void refreshAll() {

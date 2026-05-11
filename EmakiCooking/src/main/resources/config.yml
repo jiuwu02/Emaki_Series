@@ -132,6 +132,17 @@ stations:
       - item_sources:
           - minecraft-lava
         level: 3
+    # 翻炒动画配置
+    stir_animation:
+      enabled: true
+      # 动画总时长，单位 tick（20 tick = 1 秒）
+      duration_ticks: 10
+      # 食材抛起高度，单位格
+      height: 0.4
+      # 旋转轴：x / y / z
+      rotation_axis: x
+      # 旋转角度（度）
+      rotation_degrees: 360.0
     scald_damage:
       enabled: true
       value: 2

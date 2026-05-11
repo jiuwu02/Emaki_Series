@@ -7,16 +7,21 @@ import java.util.Set;
 
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationType;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.util.Transformation;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
 
 public final class BukkitCookingDisplayService implements CookingDisplayService {
 
     private final JavaPlugin plugin;
     private final Map<String, ItemDisplay> displays = new LinkedHashMap<>();
     private final Map<String, Set<String>> displaysByStation = new LinkedHashMap<>();
+    private final Set<String> animatingStations = new LinkedHashSet<>();
 
     public BukkitCookingDisplayService(JavaPlugin plugin) {
         this.plugin = plugin;
@@ -60,7 +65,9 @@ public final class BukkitCookingDisplayService implements CookingDisplayService 
         if (stationType == null || coordinates == null) {
             return;
         }
-        removeStationKey(stationType.folderName() + ":" + coordinates.runtimeKey());
+        String stationKey = stationType.folderName() + ":" + coordinates.runtimeKey();
+        animatingStations.remove(stationKey);
+        removeStationKey(stationKey);
     }
 
     @Override
@@ -71,9 +78,75 @@ public final class BukkitCookingDisplayService implements CookingDisplayService 
         String prefix = stationType.folderName() + ":";
         for (String stationKey : Set.copyOf(displaysByStation.keySet())) {
             if (stationKey.startsWith(prefix)) {
+                animatingStations.remove(stationKey);
                 removeStationKey(stationKey);
             }
         }
+    }
+
+    @Override
+    public void playStirAnimation(StationType stationType, StationCoordinates coordinates,
+                                  double heightOffset, String rotationAxis,
+                                  double rotationDegrees, int durationTicks) {
+        if (stationType == null || coordinates == null) {
+            return;
+        }
+        String stationKey = stationType.folderName() + ":" + coordinates.runtimeKey();
+        if (animatingStations.contains(stationKey)) {
+            return;
+        }
+        Set<String> keys = displaysByStation.get(stationKey);
+        if (keys == null || keys.isEmpty()) {
+            return;
+        }
+        animatingStations.add(stationKey);
+        int halfDuration = Math.max(1, durationTicks / 2);
+
+        for (String key : Set.copyOf(keys)) {
+            ItemDisplay display = displays.get(key);
+            if (display == null || display.isDead()) {
+                continue;
+            }
+            Transformation original = display.getTransformation();
+
+            // 阶段1：上升 + 旋转
+            Transformation riseTransformation = buildAnimatedTransformation(
+                    original, heightOffset, rotationAxis, rotationDegrees);
+            display.setInterpolationDuration(halfDuration);
+            display.setInterpolationDelay(0);
+            display.setTransformation(riseTransformation);
+        }
+
+        // 阶段2：下降回位
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            Set<String> currentKeys = displaysByStation.get(stationKey);
+            if (currentKeys == null || currentKeys.isEmpty()) {
+                animatingStations.remove(stationKey);
+                return;
+            }
+            for (String key : Set.copyOf(currentKeys)) {
+                ItemDisplay display = displays.get(key);
+                if (display == null || display.isDead()) {
+                    continue;
+                }
+                Transformation current = display.getTransformation();
+                Transformation fallTransformation = buildAnimatedTransformation(
+                        current, -heightOffset, rotationAxis, -rotationDegrees);
+                display.setInterpolationDuration(halfDuration);
+                display.setInterpolationDelay(0);
+                display.setTransformation(fallTransformation);
+            }
+            // 动画结束后清除标记
+            Bukkit.getScheduler().runTaskLater(plugin, () -> animatingStations.remove(stationKey), halfDuration);
+        }, halfDuration);
+    }
+
+    @Override
+    public boolean isAnimating(StationType stationType, StationCoordinates coordinates) {
+        if (stationType == null || coordinates == null) {
+            return false;
+        }
+        return animatingStations.contains(stationType.folderName() + ":" + coordinates.runtimeKey());
     }
 
     @Override
@@ -85,6 +158,7 @@ public final class BukkitCookingDisplayService implements CookingDisplayService 
         }
         displays.clear();
         displaysByStation.clear();
+        animatingStations.clear();
     }
 
     @Override
@@ -92,10 +166,40 @@ public final class BukkitCookingDisplayService implements CookingDisplayService 
         return "bukkit";
     }
 
+    private Transformation buildAnimatedTransformation(Transformation base,
+                                                       double heightOffset,
+                                                       String rotationAxis,
+                                                       double rotationDegrees) {
+        Vector3f translation = new Vector3f(base.getTranslation());
+        translation.y += (float) heightOffset;
+
+        Quaternionf leftRotation = new Quaternionf(base.getLeftRotation());
+        Quaternionf deltaRotation = buildAxisRotation(rotationAxis, rotationDegrees);
+        leftRotation.mul(deltaRotation);
+
+        return new Transformation(
+                translation,
+                leftRotation,
+                new Vector3f(base.getScale()),
+                new Quaternionf(base.getRightRotation())
+        );
+    }
+
+    private Quaternionf buildAxisRotation(String axis, double degrees) {
+        float radians = (float) Math.toRadians(degrees);
+        return switch (axis == null ? "x" : axis) {
+            case "y" -> new Quaternionf().rotateY(radians);
+            case "z" -> new Quaternionf().rotateZ(radians);
+            default -> new Quaternionf().rotateX(radians);
+        };
+    }
+
     private void apply(ItemDisplay display, CookingDisplaySpec spec) {
         ItemStack itemStack = spec.itemStack().clone();
         itemStack.setAmount(1);
         display.setItemStack(itemStack);
+        display.setInterpolationDuration(0);
+        display.setInterpolationDelay(0);
         display.setTransformation(spec.transformation());
         display.setInvulnerable(true);
         display.setPersistent(false);

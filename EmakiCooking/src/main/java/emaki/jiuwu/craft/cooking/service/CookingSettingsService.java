@@ -237,6 +237,30 @@ public final class CookingSettingsService {
         return Math.max(0, configuration.getInt("stations.wok.scald_damage.value", 2));
     }
 
+    public boolean wokStirAnimationEnabled() {
+        return configuration.getBoolean("stations.wok.stir_animation.enabled", true);
+    }
+
+    public int wokStirAnimationDurationTicks() {
+        return Math.max(2, configuration.getInt("stations.wok.stir_animation.duration_ticks", 10));
+    }
+
+    public double wokStirAnimationHeight() {
+        return Math.max(0.0D, configuration.getDouble("stations.wok.stir_animation.height", 0.4D));
+    }
+
+    public String wokStirAnimationAxis() {
+        String axis = Texts.lower(configuration.getString("stations.wok.stir_animation.rotation_axis", "x"));
+        return switch (axis) {
+            case "x", "y", "z" -> axis;
+            default -> "x";
+        };
+    }
+
+    public double wokStirAnimationRotation() {
+        return configuration.getDouble("stations.wok.stir_animation.rotation_degrees", 360.0D);
+    }
+
     public boolean wokFailureEnabled() {
         return configuration.getBoolean("stations.wok.failure.enabled", true);
     }

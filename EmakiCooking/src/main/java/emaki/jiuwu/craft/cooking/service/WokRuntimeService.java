@@ -166,6 +166,16 @@ public final class WokRuntimeService {
             if (particleLocation.getWorld() != null) {
                 particleLocation.getWorld().spawnParticle(Particle.CLOUD, particleLocation, 4, 0.15D, 0.1D, 0.15D, 0.01D);
             }
+            if (settingsService.wokStirAnimationEnabled() && !displayService.isAnimating(StationType.WOK, coordinates)) {
+                displayService.playStirAnimation(
+                        StationType.WOK,
+                        coordinates,
+                        settingsService.wokStirAnimationHeight(),
+                        settingsService.wokStirAnimationAxis(),
+                        settingsService.wokStirAnimationRotation(),
+                        settingsService.wokStirAnimationDurationTicks()
+                );
+            }
             CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "wok.stir_count", Map.of("count", updated.totalStirCount()));
             interaction.cancel();
             return true;
