@@ -525,7 +525,7 @@ public final class WokRuntimeService {
             boolean matches = true;
             for (int index = 0; index < expected.size(); index++) {
                 Map<String, Object> ingredient = expected.get(index);
-                String expectedSource = String.valueOf(ingredient.getOrDefault("source", ""));
+                String expectedSource = resolveIngredientSource(ingredient);
                 int expectedAmount = CookingRuntimeUtil.parseInteger(ingredient.get("amount"), 1);
                 WokIngredientState actual = state.ingredients().get(index);
                 if (!sourceMatches(expectedSource, actual.source()) || expectedAmount != actual.amount()) {
@@ -869,6 +869,19 @@ public final class WokRuntimeService {
         ItemSource leftSource = ItemSourceUtil.parse(left);
         ItemSource rightSource = ItemSourceUtil.parse(right);
         return ItemSourceUtil.matches(leftSource, rightSource);
+    }
+
+    private String resolveIngredientSource(Map<String, Object> ingredient) {
+        if (ingredient == null) {
+            return "";
+        }
+        Object itemSources = ingredient.get("item_sources");
+        if (itemSources == null) {
+            return "";
+        }
+        ItemSource source = ItemSourceUtil.parse(itemSources);
+        String shorthand = source == null ? null : ItemSourceUtil.toShorthand(source);
+        return shorthand == null ? "" : shorthand;
     }
 
     private List<CookingRecipeService.WokIngredientInput> candidateIngredients(WokState state, String source) {

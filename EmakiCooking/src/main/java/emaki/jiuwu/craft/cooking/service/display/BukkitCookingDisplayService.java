@@ -113,8 +113,8 @@ public final class BukkitCookingDisplayService implements CookingDisplayService 
             Transformation riseTransformation = buildAnimatedTransformation(
                     original, heightOffset, rotationAxis, rotationDegrees);
             display.setInterpolationDuration(halfDuration);
-            display.setInterpolationDelay(0);
             display.setTransformation(riseTransformation);
+            display.setInterpolationDelay(0);
         }
 
         // 阶段2：下降回位
@@ -133,8 +133,8 @@ public final class BukkitCookingDisplayService implements CookingDisplayService 
                 Transformation fallTransformation = buildAnimatedTransformation(
                         current, -heightOffset, rotationAxis, -rotationDegrees);
                 display.setInterpolationDuration(halfDuration);
-                display.setInterpolationDelay(0);
                 display.setTransformation(fallTransformation);
+                display.setInterpolationDelay(0);
             }
             // 动画结束后清除标记
             Bukkit.getScheduler().runTaskLater(plugin, () -> animatingStations.remove(stationKey), halfDuration);
