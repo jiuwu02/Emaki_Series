@@ -4,6 +4,9 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
+import emaki.jiuwu.craft.corelib.api.integration.PdcAttributeApi;
+import emaki.jiuwu.craft.corelib.api.integration.PdcAttributePayloadSnapshot;
+
 import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;

@@ -2,6 +2,8 @@ package emaki.jiuwu.craft.corelib.integration;
 
 import java.util.Locale;
 
+import emaki.jiuwu.craft.corelib.api.integration.CustomBlockBridge;
+
 import org.bukkit.block.Block;
 
 import com.nexomc.nexo.api.NexoBlocks;
@@ -54,6 +56,31 @@ final class NexoBlockBridgeApi implements CustomBlockBridge {
         String actual = identifyBlock(block);
         String expected = normalizeId(identifier);
         return Texts.isNotBlank(actual) && actual.equals(expected);
+    }
+
+    @Override
+    public boolean setLit(Block block, boolean lit) {
+        return false;
+    }
+
+    @Override
+    public boolean placeBlock(Block block, String identifier) {
+        if (block == null) {
+            return false;
+        }
+        String normalized = normalizeId(identifier);
+        if (Texts.isBlank(normalized)) {
+            return false;
+        }
+        try {
+            if (!NexoBlocks.isCustomBlock(normalized)) {
+                return false;
+            }
+            NexoBlocks.place(normalized, block.getLocation());
+            return matches(block, normalized);
+        } catch (RuntimeException | LinkageError exception) {
+            return false;
+        }
     }
 
     private String normalizeId(String raw) {

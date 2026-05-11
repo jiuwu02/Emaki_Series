@@ -1,0 +1,161 @@
+package emaki.jiuwu.craft.corelib.assembly;
+
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import emaki.jiuwu.craft.corelib.text.Texts;
+
+/**
+ * 一条物品操作记录，记录对物品 Name/Lore 的一次修改。
+ * <p>
+ * 每次镶嵌宝石、强化装备等操作都会生成一条记录，存储在物品 PDC 中。
+ * 回退时根据 operationId 精确撤销对应的修改。
+ */
+public record ItemOperationEntry(
+        String operationId,
+        String sourceNamespace,
+        long timestamp,
+        List<NameOperationRecord> nameRecords,
+        List<LoreOperationRecord> loreRecords) {
+
+    public ItemOperationEntry {
+        operationId = Texts.toStringSafe(operationId);
+        sourceNamespace = Texts.toStringSafe(sourceNamespace);
+        timestamp = Math.max(0L, timestamp);
+        nameRecords = nameRecords == null ? List.of() : List.copyOf(nameRecords);
+        loreRecords = loreRecords == null ? List.of() : List.copyOf(loreRecords);
+    }
+
+    public boolean isEmpty() {
+        return nameRecords.isEmpty() && loreRecords.isEmpty();
+    }
+
+    public Map<String, Object> toMap() {
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("id", operationId);
+        map.put("ns", sourceNamespace);
+        map.put("ts", timestamp);
+        if (!nameRecords.isEmpty()) {
+            List<Map<String, Object>> names = new ArrayList<>();
+            for (NameOperationRecord record : nameRecords) {
+                names.add(record.toMap());
+            }
+            map.put("name", names);
+        }
+        if (!loreRecords.isEmpty()) {
+            List<Map<String, Object>> lores = new ArrayList<>();
+            for (LoreOperationRecord record : loreRecords) {
+                lores.add(record.toMap());
+            }
+            map.put("lore", lores);
+        }
+        return map;
+    }
+
+    /**
+     * 名称操作记录。
+     * <p>
+     * 记录对物品名称的一次修改，包含操作类型、渲染后的实际值，以及回退所需的原始值。
+     */
+    public record NameOperationRecord(
+            String action,
+            String renderedValue,
+            String originalValue) {
+
+        public NameOperationRecord {
+            action = Texts.lower(action);
+            renderedValue = Texts.toStringSafe(renderedValue);
+            originalValue = Texts.toStringSafe(originalValue);
+        }
+
+        public Map<String, Object> toMap() {
+            Map<String, Object> map = new LinkedHashMap<>();
+            map.put("action", action);
+            map.put("value", renderedValue);
+            if (Texts.isNotBlank(originalValue)) {
+                map.put("original", originalValue);
+            }
+            return map;
+        }
+
+        public static NameOperationRecord fromMap(Map<?, ?> map) {
+            if (map == null || map.isEmpty()) {
+                return null;
+            }
+            String action = Texts.toStringSafe(map.get("action"));
+            String value = Texts.toStringSafe(map.get("value"));
+            String original = Texts.toStringSafe(map.get("original"));
+            if (Texts.isBlank(action)) {
+                return null;
+            }
+            return new NameOperationRecord(action, value, original);
+        }
+    }
+
+    /**
+     * Lore 操作记录。
+     * <p>
+     * 记录对物品 Lore 的一次修改，包含操作类型、渲染后的实际行内容，以及回退所需的原始行内容。
+     */
+    public record LoreOperationRecord(
+            String action,
+            List<String> renderedLines,
+            String anchor,
+            List<String> originalLines) {
+
+        public LoreOperationRecord {
+            action = Texts.lower(action);
+            renderedLines = renderedLines == null ? List.of() : List.copyOf(renderedLines);
+            anchor = Texts.toStringSafe(anchor);
+            originalLines = originalLines == null ? List.of() : List.copyOf(originalLines);
+        }
+
+        public Map<String, Object> toMap() {
+            Map<String, Object> map = new LinkedHashMap<>();
+            map.put("action", action);
+            if (!renderedLines.isEmpty()) {
+                map.put("lines", new ArrayList<>(renderedLines));
+            }
+            if (Texts.isNotBlank(anchor)) {
+                map.put("anchor", anchor);
+            }
+            if (!originalLines.isEmpty()) {
+                map.put("original", new ArrayList<>(originalLines));
+            }
+            return map;
+        }
+
+        public static LoreOperationRecord fromMap(Map<?, ?> map) {
+            if (map == null || map.isEmpty()) {
+                return null;
+            }
+            String action = Texts.toStringSafe(map.get("action"));
+            List<String> lines = toStringList(map.get("lines"));
+            String anchor = Texts.toStringSafe(map.get("anchor"));
+            List<String> original = toStringList(map.get("original"));
+            if (Texts.isBlank(action)) {
+                return null;
+            }
+            return new LoreOperationRecord(action, lines, anchor, original);
+        }
+
+        private static List<String> toStringList(Object raw) {
+            if (raw == null) {
+                return List.of();
+            }
+            if (raw instanceof List<?> list) {
+                List<String> result = new ArrayList<>();
+                for (Object item : list) {
+                    result.add(Texts.toStringSafe(item));
+                }
+                return result;
+            }
+            if (raw instanceof String text) {
+                return List.of(text);
+            }
+            return List.of();
+        }
+    }
+}

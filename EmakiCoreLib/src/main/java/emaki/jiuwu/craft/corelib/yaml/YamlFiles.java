@@ -15,6 +15,7 @@ import java.util.Enumeration;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Consumer;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.stream.Stream;
@@ -55,8 +56,10 @@ public final class YamlFiles {
         }
         try (InputStream inputStream = Files.newInputStream(file.toPath())) {
             return BoostedYamlSupport.load(inputStream);
+        } catch (YamlLoadException exception) {
+            throw new YamlLoadException("Failed to load YAML file '" + file.getPath() + "': " + safeMessage(exception), exception);
         } catch (Exception exception) {
-            return new MapYamlSection();
+            throw new YamlLoadException("Failed to read YAML file '" + file.getPath() + "': " + safeMessage(exception), exception);
         }
     }
 
@@ -73,9 +76,14 @@ public final class YamlFiles {
             return new MapYamlSection();
         }
         try (InputStream inputStream = plugin.getResource(resourcePath)) {
+            if (inputStream == null) {
+                return new MapYamlSection();
+            }
             return load(inputStream);
+        } catch (YamlLoadException exception) {
+            throw new YamlLoadException("Failed to load YAML resource '" + resourcePath + "': " + safeMessage(exception), exception);
         } catch (Exception exception) {
-            return new MapYamlSection();
+            throw new YamlLoadException("Failed to read YAML resource '" + resourcePath + "': " + safeMessage(exception), exception);
         }
     }
 
@@ -96,7 +104,7 @@ public final class YamlFiles {
             );
             return new VersionedYamlFile(null, resourcePath, document);
         } catch (Exception exception) {
-            return null;
+            throw new YamlLoadException("Failed to load versioned YAML resource '" + resourcePath + "': " + safeMessage(exception), exception);
         }
     }
 
@@ -107,6 +115,39 @@ public final class YamlFiles {
             copyResource(plugin, resourcePath, target, false);
         }
         return openVersioned(plugin, target, resourcePath);
+    }
+
+    public static VersionedYamlFile syncVersionedResource(JavaPlugin plugin,
+            File target,
+            String resourcePath,
+            String versionKey) throws IOException {
+        return syncVersionedResource(plugin, target, resourcePath, versionKey, null);
+    }
+
+    public static VersionedYamlFile syncVersionedResource(JavaPlugin plugin,
+            File target,
+            String resourcePath,
+            String versionKey,
+            Consumer<VersionedYamlFile> afterUpdate) throws IOException {
+        VersionedYamlFile versionedFile = openVersioned(plugin, target, resourcePath);
+        if (versionedFile == null || Texts.isBlank(versionKey)) {
+            return versionedFile;
+        }
+        String bundledVersion = Texts.toStringSafe(versionedFile.bundledVersion(versionKey)).trim();
+        if (bundledVersion.isBlank()) {
+            return versionedFile;
+        }
+        String runtimeVersion = Texts.toStringSafe(versionedFile.version(versionKey)).trim();
+        if (!runtimeVersion.isBlank() && compareVersions(runtimeVersion, bundledVersion) >= 0) {
+            return versionedFile;
+        }
+        versionedFile.document().update(BOOSTED_UPDATER_SETTINGS);
+        if (afterUpdate != null) {
+            afterUpdate.accept(versionedFile);
+        }
+        versionedFile.root().set(versionKey, bundledVersion);
+        versionedFile.save();
+        return versionedFile;
     }
 
     public static void save(File file, YamlSection section) throws IOException {
@@ -200,6 +241,13 @@ public final class YamlFiles {
         return true;
     }
 
+    public static int mergeMissingValues(YamlSection runtime, YamlSection defaults) {
+        if (runtime == null || defaults == null) {
+            return 0;
+        }
+        return mergeMissingValues(runtime, defaults, "");
+    }
+
     private static VersionedYamlFile openVersioned(JavaPlugin plugin, File target, String resourcePath) throws IOException {
         if (plugin == null || target == null || Texts.isBlank(resourcePath)) {
             return null;
@@ -226,12 +274,68 @@ public final class YamlFiles {
         }
     }
 
+    private static int mergeMissingValues(YamlSection runtime, YamlSection defaults, String parentPath) {
+        int merged = 0;
+        for (String key : defaults.getKeys(false)) {
+            String fullPath = parentPath == null || parentPath.isBlank() ? key : parentPath + "." + key;
+            YamlSection nested = defaults.getSection(key);
+            if (nested != null) {
+                merged += mergeMissingValues(runtime, nested, fullPath);
+                continue;
+            }
+            if (!runtime.contains(fullPath)) {
+                runtime.set(fullPath, defaults.get(key));
+                merged++;
+            }
+        }
+        return merged;
+    }
+
+    private static int compareVersions(String current, String latest) {
+        if (Texts.isBlank(current)) {
+            return -1;
+        }
+        if (Texts.isBlank(latest)) {
+            return 0;
+        }
+        if (current.equals(latest)) {
+            return 0;
+        }
+        String[] currentParts = current.split("[.-]");
+        String[] latestParts = latest.split("[.-]");
+        int length = Math.max(currentParts.length, latestParts.length);
+        for (int index = 0; index < length; index++) {
+            String currentPart = index < currentParts.length ? currentParts[index] : "0";
+            String latestPart = index < latestParts.length ? latestParts[index] : "0";
+            int comparison = compareVersionPart(currentPart, latestPart);
+            if (comparison != 0) {
+                return comparison;
+            }
+        }
+        return current.compareToIgnoreCase(latest);
+    }
+
+    private static int compareVersionPart(String current, String latest) {
+        try {
+            return Integer.compare(Integer.parseInt(current), Integer.parseInt(latest));
+        } catch (NumberFormatException ignored) {
+            return Texts.toStringSafe(current).compareToIgnoreCase(Texts.toStringSafe(latest));
+        }
+    }
+
     private static void moveReplacing(Path source, Path target) throws IOException {
         try {
             Files.move(source, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
         } catch (AtomicMoveNotSupportedException _) {
             Files.move(source, target, StandardCopyOption.REPLACE_EXISTING);
         }
+    }
+
+    private static String safeMessage(Throwable throwable) {
+        if (throwable == null || throwable.getMessage() == null || throwable.getMessage().isBlank()) {
+            return throwable == null ? "unknown error" : throwable.getClass().getSimpleName();
+        }
+        return throwable.getMessage();
     }
 
     private static void scanResourceLocation(URL location, String normalizedDirectory, LinkedHashSet<String> resourcePaths) throws Exception {

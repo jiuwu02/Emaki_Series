@@ -5,23 +5,35 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.stream.Stream;
 
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationType;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.async.AsyncFileService;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
 public final class StationStateStore {
 
     private final JavaPlugin plugin;
+    private final AsyncFileService asyncFileService;
 
     public StationStateStore(JavaPlugin plugin) {
-        this.plugin = plugin;
+        this(plugin, null);
     }
+
+    public StationStateStore(JavaPlugin plugin, AsyncFileService asyncFileService) {
+        this.plugin = plugin;
+        this.asyncFileService = asyncFileService;
+    }
+
+    // ------------------------------------------------------------------
+    // Synchronous API (used during startup loadAll and single-point reads)
+    // ------------------------------------------------------------------
 
     public Map<StationCoordinates, YamlSection> loadAll(StationType stationType) {
         Map<StationCoordinates, YamlSection> states = new LinkedHashMap<>();
@@ -59,10 +71,16 @@ public final class StationStateStore {
         return Files.exists(file) ? YamlFiles.load(file.toFile()) : null;
     }
 
+    /**
+     * Synchronous save. Prefer {@link #saveAsync(StationCoordinates, Map)} for non-blocking operation.
+     */
     public void save(StationCoordinates coordinates, Map<String, Object> state) {
         trySave(coordinates, state);
     }
 
+    /**
+     * Synchronous save with result. Prefer {@link #saveAsync(StationCoordinates, Map)}.
+     */
     public boolean trySave(StationCoordinates coordinates, Map<String, Object> state) {
         if (coordinates == null || state == null || state.isEmpty()) {
             return false;
@@ -76,6 +94,9 @@ public final class StationStateStore {
         }
     }
 
+    /**
+     * Synchronous delete. Prefer {@link #deleteAsync(StationCoordinates)} for non-blocking operation.
+     */
     public void delete(StationCoordinates coordinates) {
         tryDelete(coordinates);
     }
@@ -95,6 +116,72 @@ public final class StationStateStore {
         }
     }
 
+    // ------------------------------------------------------------------
+    // Async API
+    // ------------------------------------------------------------------
+
+    /**
+     * Asynchronously saves station state to disk.
+     * Uses path-keyed serialization to prevent concurrent writes to the same file.
+     */
+    public CompletableFuture<Boolean> saveAsync(StationCoordinates coordinates, Map<String, Object> state) {
+        if (coordinates == null || state == null || state.isEmpty()) {
+            return CompletableFuture.completedFuture(false);
+        }
+        if (asyncFileService == null) {
+            return CompletableFuture.completedFuture(trySave(coordinates, state));
+        }
+        Path path = pathFor(coordinates);
+        return asyncFileService.write(path, "station-save:" + coordinates.runtimeKey(), () -> {
+            try {
+                YamlFiles.save(path.toFile(), state);
+            } catch (IOException exception) {
+                throw new CompletionException(exception);
+            }
+        }).thenApply(_ -> true).exceptionally(throwable -> {
+            plugin.getLogger().warning("Async save failed for station " + coordinates.runtimeKey() + ": " + rootCauseMessage(throwable));
+            return false;
+        });
+    }
+
+    /**
+     * Asynchronously deletes station state from disk.
+     */
+    public CompletableFuture<Boolean> deleteAsync(StationCoordinates coordinates) {
+        if (coordinates == null) {
+            return CompletableFuture.completedFuture(false);
+        }
+        if (asyncFileService == null) {
+            return CompletableFuture.completedFuture(tryDelete(coordinates));
+        }
+        Path path = pathFor(coordinates);
+        return asyncFileService.write(path, "station-delete:" + coordinates.runtimeKey(), () -> {
+            try {
+                Files.deleteIfExists(path);
+                cleanupParents(path.getParent());
+            } catch (IOException exception) {
+                throw new CompletionException(exception);
+            }
+        }).thenApply(_ -> true).exceptionally(throwable -> {
+            plugin.getLogger().warning("Async delete failed for station " + coordinates.runtimeKey() + ": " + rootCauseMessage(throwable));
+            return false;
+        });
+    }
+
+    /**
+     * Waits for all pending async writes to complete.
+     */
+    public CompletableFuture<Void> waitForIdle() {
+        if (asyncFileService == null) {
+            return CompletableFuture.completedFuture(null);
+        }
+        return asyncFileService.waitForIdle();
+    }
+
+    // ------------------------------------------------------------------
+    // Internal
+    // ------------------------------------------------------------------
+
     private Path pathFor(StationCoordinates coordinates) {
         return plugin.getDataFolder().toPath().resolve(coordinates.relativeDataPath());
     }
@@ -111,5 +198,13 @@ public final class StationStateStore {
             Files.deleteIfExists(current);
             current = current.getParent();
         }
+    }
+
+    private String rootCauseMessage(Throwable throwable) {
+        Throwable cause = throwable;
+        while (cause instanceof CompletionException ce && ce.getCause() != null) {
+            cause = ce.getCause();
+        }
+        return cause == null ? "unknown" : String.valueOf(cause.getMessage());
     }
 }

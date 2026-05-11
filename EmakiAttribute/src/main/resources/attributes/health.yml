@@ -1,3 +1,6 @@
+# EmakiAttribute 属性定义 - 生命值
+# 详细字段说明参考 physical_attack.yml
+
 id: health
 
 display_name: "生命值"

@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
 
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
@@ -19,6 +20,8 @@ import emaki.jiuwu.craft.cooking.model.StationBreakContext;
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationInteraction;
 import emaki.jiuwu.craft.cooking.model.StationType;
+import emaki.jiuwu.craft.cooking.service.display.CookingDisplayService;
+import emaki.jiuwu.craft.cooking.service.display.CookingDisplaySpec;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.yaml.MapYamlSection;
 import org.bukkit.Location;
@@ -26,6 +29,9 @@ import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.block.Furnace;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.Lightable;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.Damageable;
@@ -43,6 +49,7 @@ public final class WokRuntimeService {
     private final CookingRecipeService recipeService;
     private final CookingRewardService rewardService;
     private final ItemSourceService itemSourceService;
+    private final CookingDisplayService displayService;
 
     public WokRuntimeService(EmakiCookingPlugin plugin,
             MessageService messageService,
@@ -51,7 +58,8 @@ public final class WokRuntimeService {
             StationStateStore stateStore,
             CookingRecipeService recipeService,
             CookingRewardService rewardService,
-            ItemSourceService itemSourceService) {
+            ItemSourceService itemSourceService,
+            CookingDisplayService displayService) {
         this.plugin = plugin;
         this.messageService = messageService;
         this.settingsService = settingsService;
@@ -60,16 +68,21 @@ public final class WokRuntimeService {
         this.recipeService = recipeService;
         this.rewardService = rewardService;
         this.itemSourceService = itemSourceService;
+        this.displayService = Objects.requireNonNull(displayService, "displayService");
     }
 
     public void reload() {
+        displayService.removeStationType(StationType.WOK);
         for (Map.Entry<StationCoordinates, emaki.jiuwu.craft.corelib.yaml.YamlSection> entry : stateStore.loadAll(StationType.WOK).entrySet()) {
             StationCoordinates coordinates = entry.getKey();
             WokState state = readState(entry.getValue());
             Block block = coordinates.block();
             if (state == null || block == null || !blockMatcher.matches(block, StationType.WOK) || !state.hasIngredients()) {
-                stateStore.delete(coordinates);
+                stateStore.deleteAsync(coordinates);
+                displayService.removeStation(StationType.WOK, coordinates);
+                continue;
             }
+            refreshDisplays(coordinates, state);
         }
     }
 
@@ -220,6 +233,8 @@ public final class WokRuntimeService {
                         List.of(StoredItemCodec.serialize(consumed))
                 )), 0, 0L, 0L);
                 saveState(coordinates, created);
+                refreshDisplays(coordinates, created);
+                setWokHeatSourceLit(block, true);
                 CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "wok.ingredient_added", Map.of("item", itemDisplayName(source)));
                 interaction.cancel();
                 return true;
@@ -248,7 +263,10 @@ public final class WokRuntimeService {
             } else {
                 updatedIngredients.add(new WokIngredientState(source, 1, 0, List.of(StoredItemCodec.serialize(consumed))));
             }
-            saveState(coordinates, new WokState(updatedIngredients, state.totalStirCount(), state.lastStirTimeMs(), state.lastStirActionMs()));
+            WokState updated = new WokState(updatedIngredients, state.totalStirCount(), state.lastStirTimeMs(), state.lastStirActionMs());
+            saveState(coordinates, updated);
+            refreshDisplays(coordinates, updated);
+            setWokHeatSourceLit(block, true);
             CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "wok.ingredient_added", Map.of("item", itemDisplayName(source)));
             interaction.cancel();
             return true;
@@ -312,7 +330,7 @@ public final class WokRuntimeService {
                 }
             }
         }
-        stateStore.delete(coordinates);
+        clearState(coordinates);
         return true;
     }
 
@@ -544,7 +562,9 @@ public final class WokRuntimeService {
         if (updatedIngredients.isEmpty()) {
             clearState(coordinates);
         } else {
-            saveState(coordinates, new WokState(updatedIngredients, state.totalStirCount(), state.lastStirTimeMs(), state.lastStirActionMs()));
+            WokState updated = new WokState(updatedIngredients, state.totalStirCount(), state.lastStirTimeMs(), state.lastStirActionMs());
+            saveState(coordinates, updated);
+            refreshDisplays(coordinates, updated);
         }
         return last;
     }
@@ -558,11 +578,72 @@ public final class WokRuntimeService {
             if (rule == null || rule.source() == null) {
                 continue;
             }
-            if (blockMatcher.matches(block, rule.source())) {
+            if (matchesHeatLevelRule(block, rule)) {
                 resolved = Math.max(resolved, rule.level());
             }
         }
         return resolved;
+    }
+
+    private boolean matchesHeatLevelRule(Block block, CookingSettingsService.HeatLevelRule rule) {
+        return rule != null
+                && (matchesSource(block, rule.source())
+                || matchesSource(block, rule.litSource())
+                || matchesSource(block, rule.unlitSource()));
+    }
+
+    private void setWokHeatSourceLit(Block wokBlock, boolean lit) {
+        if (!settingsService.wokIgniteHeatSource() || wokBlock == null) {
+            return;
+        }
+        Block heatSourceBlock = wokBlock.getRelative(BlockFace.DOWN);
+        if (heatSourceBlock == null || resolveHeatLevel(heatSourceBlock) <= 0) {
+            return;
+        }
+        boolean directStateChanged = false;
+        BlockData blockData = heatSourceBlock.getBlockData();
+        if (blockData instanceof Lightable lightable) {
+            lightable.setLit(lit);
+            heatSourceBlock.setBlockData(lightable);
+            directStateChanged = true;
+        }
+        if (heatSourceBlock.getState() instanceof Furnace furnace) {
+            furnace.setBurnTime((short) (lit ? Short.MAX_VALUE : 0));
+            furnace.update();
+            directStateChanged = true;
+        }
+        if (!directStateChanged && !blockMatcher.setCustomLit(heatSourceBlock, lit)) {
+            applyConfiguredHeatSourceTransition(heatSourceBlock, lit);
+        }
+    }
+
+    private boolean applyConfiguredHeatSourceTransition(Block block, boolean lit) {
+        if (block == null) {
+            return false;
+        }
+        for (CookingSettingsService.HeatLevelRule rule : settingsService.wokHeatLevels()) {
+            if (rule == null) {
+                continue;
+            }
+            ItemSource target = lit ? rule.litSource() : rule.unlitSource();
+            if (target == null) {
+                continue;
+            }
+            if (blockMatcher.matches(block, target)) {
+                return true;
+            }
+            if (lit && (matchesSource(block, rule.source()) || matchesSource(block, rule.unlitSource()))) {
+                return blockMatcher.place(block, target);
+            }
+            if (!lit && matchesSource(block, rule.litSource())) {
+                return blockMatcher.place(block, target);
+            }
+        }
+        return false;
+    }
+
+    private boolean matchesSource(Block block, ItemSource source) {
+        return block != null && source != null && blockMatcher.matches(block, source);
     }
 
     private boolean isSpatula(ItemStack itemStack) {
@@ -641,11 +722,108 @@ public final class WokRuntimeService {
                 "last_stir_time_ms", state.lastStirTimeMs(),
                 "stir_fried_time_ms", state.lastStirActionMs()
         ));
-        stateStore.save(coordinates, root);
+        stateStore.saveAsync(coordinates, root);
+    }
+
+    private void refreshDisplays(StationCoordinates coordinates, WokState state) {
+        displayService.removeStation(StationType.WOK, coordinates);
+        if (coordinates == null || state == null || !state.hasIngredients()) {
+            return;
+        }
+        Location baseLocation = coordinates.location(0D, 0D, 0D);
+        if (baseLocation == null || baseLocation.getWorld() == null) {
+            return;
+        }
+        List<WokIngredientDisplay> displayIngredients = displayIngredients(state);
+        int count = displayIngredients.size();
+        if (count <= 0) {
+            return;
+        }
+        for (int index = 0; index < count; index++) {
+            WokIngredientDisplay ingredient = displayIngredients.get(index);
+            ItemStack itemStack = ingredient.itemStack();
+            if (itemStack == null || itemStack.getType().isAir()) {
+                continue;
+            }
+            ItemSource source = ItemSourceUtil.parse(ingredient.source());
+            if (source == null) {
+                source = itemSourceService.identifyItem(itemStack);
+            }
+            if (source == null) {
+                continue;
+            }
+            CookingSettingsService.DisplayAdjustmentProfile adjustment = settingsService.displayAdjustment(
+                    StationType.WOK,
+                    source,
+                    itemStack.getType().isBlock()
+            );
+            displayService.upsert(new CookingDisplaySpec(
+                    StationType.WOK,
+                    coordinates,
+                    "ingredient_" + index,
+                    itemStack,
+                    baseLocation,
+                    adjustment,
+                    layoutOffset(index, count)
+            ));
+        }
+    }
+
+    private List<WokIngredientDisplay> displayIngredients(WokState state) {
+        Map<String, WokIngredientDisplay> grouped = new LinkedHashMap<>();
+        for (WokIngredientState ingredient : state.ingredients()) {
+            String key = displayGroupKey(ingredient.source());
+            ItemStack itemStack = displayItem(ingredient);
+            WokIngredientDisplay existing = grouped.get(key);
+            if (existing == null || !isDisplayable(existing.itemStack())) {
+                grouped.put(key, new WokIngredientDisplay(ingredient.source(), itemStack));
+            }
+        }
+        return grouped.values().stream()
+                .filter(ingredient -> isDisplayable(ingredient.itemStack()))
+                .toList();
+    }
+
+    private String displayGroupKey(String source) {
+        ItemSource parsed = ItemSourceUtil.parse(source);
+        String shorthand = parsed == null ? source : ItemSourceUtil.toShorthand(parsed);
+        return Texts.normalizeId(shorthand);
+    }
+
+    private ItemStack displayItem(WokIngredientState ingredient) {
+        for (Map<String, Object> itemData : ingredient.itemData()) {
+            ItemStack storedItem = StoredItemCodec.deserialize(itemData);
+            if (isDisplayable(storedItem)) {
+                storedItem.setAmount(1);
+                return storedItem;
+            }
+        }
+        ItemSource source = ItemSourceUtil.parse(ingredient.source());
+        ItemStack itemStack = source == null ? null : itemSourceService.createItem(source, 1);
+        if (isDisplayable(itemStack)) {
+            itemStack.setAmount(1);
+        }
+        return itemStack;
+    }
+
+    private boolean isDisplayable(ItemStack itemStack) {
+        return itemStack != null && !itemStack.getType().isAir();
+    }
+
+    private CookingSettingsService.Vector3 layoutOffset(int index, int count) {
+        if (count <= 1) {
+            return null;
+        }
+        double radius = settingsService.wokDisplayLayoutRadius();
+        double angle = (Math.PI * 2D * index) / count;
+        return new CookingSettingsService.Vector3(Math.cos(angle) * radius, 0D, Math.sin(angle) * radius);
     }
 
     private void clearState(StationCoordinates coordinates) {
-        stateStore.delete(coordinates);
+        Block block = coordinates == null ? null : coordinates.block();
+        setWokHeatSourceLit(block, false);
+        displayService.removeStation(StationType.WOK, coordinates);
+        stateStore.deleteAsync(coordinates);
     }
 
     private WokState readState(emaki.jiuwu.craft.corelib.yaml.YamlSection section) {
@@ -741,6 +919,8 @@ public final class WokRuntimeService {
     }
 
 
+    private record WokIngredientDisplay(String source, ItemStack itemStack) {
+    }
 
 
     private record WokState(List<WokIngredientState> ingredients,

@@ -1,5 +1,14 @@
+# ============================================================
+# EmakiCooking 语言文件 - 简体中文
+# ============================================================
+# 此文件包含插件的所有消息文本，支持 MiniMessage 格式。
+# 修改后使用 reload 命令重载。
+#
+# 文件放置位置: plugins/EmakiCooking/lang/
+# ============================================================
+
 # version 由资源同步维护
-version: "2.3.0"
+version: "3.0.0"
 
 general:
   prefix: "<gray>[ <gradient:#D8792E:#F6D16E>Emaki Cooking</gradient> ]</gray>"
@@ -22,9 +31,9 @@ command:
     line: "<yellow>{key}</yellow> <gray>- {value}</gray>"
 
 console:
-  plugin_starting: "<gray>正在启动 EmakiCooking...</gray>"
-  plugin_started: "<green>EmakiCooking 启动完成。</green>"
-  plugin_stopped: "<green>EmakiCooking 已关闭。</green>"
+  plugin_starting: "<gray>正在启动...</gray>"
+  plugin_started: "<green>启动完成</green>"
+  plugin_stopped: "<yellow>已关闭</yellow>"
   bootstrap_start: "<white>开始检查默认文件...</white>"
   bootstrap_complete: "<green>默认文件检查完成。</green>"
   bootstrap_skip: "<yellow>已跳过默认数据写入。</yellow>"
@@ -32,8 +41,12 @@ console:
   bootstrap_save_failed: "<yellow>保存合并资源失败: <red>{path}</red> <gray>({error})</gray></yellow>"
   default_file_missing: "<yellow>缺少内置默认资源: <red>{path}</red></yellow>"
   directory_create_failed: "<yellow>创建目录失败: <red>{path}</red></yellow>"
-  loader_config_load_error: "<yellow>读取 EmakiCooking 配置失败: <red>{path}</red>
+  loader_config_load_error:
+    "<yellow>读取 EmakiCooking 配置失败: <red>{path}</red>
     <gray>({error})</gray></yellow>"
+  station_recipes_loaded: "<gray>已加载{station} {count} 个配方</gray>"
+  block_source_bridge_ready: "<gray>已接入方块源: {provider}</gray>"
+  block_source_bridge_unavailable: "<yellow>方块源不可用: {provider} ({error})</yellow>"
 
 loader:
   lang_directory_create_failed: "<yellow>无法创建语言目录: <red>{path}</red></yellow>"
@@ -78,17 +91,64 @@ wok:
   info_line: "<gray>{index}. {item} x{amount} | 单项翻炒 {stir}</gray>"
   info_footer: "<gray>总翻炒: <yellow>{count}</yellow> | 火候: <yellow>{heat}</yellow></gray>"
 
+oven:
+  in_use: "<yellow>这个烤炉正在被其他玩家使用，请稍后再试。</yellow>"
+  open_failed: "<red>烤炉 GUI 打开失败。</red>"
+  opened: "<gray>烤炉已打开。</gray>"
+  add_fuel: "<gray>已加入燃料 <yellow>{item}</yellow>，预计持续 <yellow>{seconds}</yellow> 秒。当前火力: <yellow>{heat}</yellow></gray>"
+  info: "<gray>火力: <yellow>{heat}</yellow> | 燃烧时间: <yellow>{burning_time}</yellow>秒 | 烹饪进度: <yellow>{progress}</yellow></gray>"
+  progress_not_started: "未开始"
+  progress_completed: "已完成"
+
 steamer:
   no_heat_source: "<red>蒸锅下方缺少有效热源，无法打开。</red>"
   in_use: "<yellow>这口蒸锅正在被其他玩家使用，请稍后再试。</yellow>"
   open_failed: "<red>蒸锅 GUI 打开失败。</red>"
   opened: "<gray>蒸锅已打开。</gray>"
-  add_fuel: "<gray>已加入燃料 <yellow>{item}</yellow>，预计持续 <yellow>{seconds}</yellow>
+  add_fuel:
+    "<gray>已加入燃料 <yellow>{item}</yellow>，预计持续 <yellow>{seconds}</yellow>
     秒。</gray>"
-  add_moisture: "<gray>已加入水分源 <yellow>{item}</yellow>，增加 <aqua>{moisture}</aqua>
+  add_moisture:
+    "<gray>已加入水分源 <yellow>{item}</yellow>，增加 <aqua>{moisture}</aqua>
     点水分，当前总量 <aqua>{total}</aqua>。</gray>"
   info: "<gray>燃烧时间: <yellow>{burning_time}</yellow>秒 | 水分:
     <aqua>{moisture}</aqua> | 蒸汽: <white>{steam}</white> | 烹饪进度:
     <yellow>{progress}</yellow></gray>"
   progress_not_started: "未开始"
   progress_completed: "已完成"
+
+juicer:
+  in_use: "<yellow>这个榨汁机正在被其他玩家使用，请稍后再试。</yellow>"
+  opened: "<gray>榨汁机已打开。</gray>"
+  open_failed: "<red>榨汁机 GUI 打开失败。</red>"
+  no_item: "<yellow>榨汁机里没有可处理的食材。</yellow>"
+  no_recipe: "<red>当前食材没有可用的榨汁配方。</red>"
+  pressed: "<gray>榨汁进度：<yellow>{current}</yellow>/<yellow>{required}</yellow></gray>"
+  need_container: "<yellow>需要手持容器才能收取果汁。</yellow>"
+  completed: "<green>榨汁完成：<yellow>{recipe}</yellow></green>"
+  info: "<gray>榨汁进度：<yellow>{progress}</yellow> | 流体：<aqua>{fluid}</aqua></gray>"
+  progress_not_started: "未开始"
+  fluid_none: "无"
+  fluid_added: "<aqua>已榨出 {fluid} {amount}ml，当前 {current}/{max}ml。</aqua>"
+  fluid_mismatch: "<red>榨汁机内已有 {current_fluid}，不能加入 {new_fluid}。</red>"
+  fluid_full: "<yellow>榨汁机容量不足，当前 {current}/{max}ml。</yellow>"
+  fluid_empty: "<yellow>榨汁机内没有可盛取的流体。</yellow>"
+  fluid_not_enough: "<yellow>{fluid} 不足，需要 {required}ml，当前 {current}ml。</yellow>"
+  served: "<green>已盛取 {fluid} {amount}ml，剩余 {current}/{max}ml。</green>"
+
+fermentation_barrel:
+  in_use: "<yellow>这个发酵桶正在被其他玩家使用，请稍后再试。</yellow>"
+  opened: "<gray>发酵桶已打开。</gray>"
+  open_failed: "<red>发酵桶 GUI 打开失败。</red>"
+  no_recipe: "<red>当前食材组合无法发酵。</red>"
+  started: "<gray>发酵已开始，预计 <yellow>{seconds}</yellow> 秒后完成。</gray>"
+  fermenting: "<gray>正在发酵，剩余 <yellow>{seconds}</yellow> 秒。</gray>"
+  collected: "<green>已收取发酵产物。</green>"
+  info: "<gray>发酵状态：<yellow>{status}</yellow> | 剩余时间：<yellow>{seconds}</yellow>秒 | 进度：<yellow>{progress}</yellow></gray>"
+  status_idle: "未开始"
+  status_fermenting: "发酵中"
+  status_early_ready: "可提前收取"
+  status_completed: "已完成"
+  status_over: "过度发酵"
+  collected_early: "<yellow>已提前收取发酵产物。</yellow>"
+  collected_over: "<gold>已收取过度发酵产物。</gold>"

@@ -1,0 +1,71 @@
+# ============================================================
+# EmakiCooking 发酵桶配方示例
+# ============================================================
+# 此文件定义了一个发酵桶（Fermentation Barrel）配方，展示所有可用字段。
+# 发酵桶是长时间型加工设备，支持提前收取（半成品）和过度发酵（变质品）。
+#
+# 文件放置位置: plugins/EmakiCooking/recipes/fermentation_barrel/
+# 文件名即为配方的内部标识，加载时自动注册。
+# ============================================================
+
+# 配方唯一标识符（必填）
+id: "example_recipe"
+
+# 配方显示名称
+display_name: "苹果酒"
+
+# ============================================================
+# 输入食材
+# ============================================================
+# 放入发酵桶的原料物品列表（支持多种原料）。
+inputs:
+  - item_sources:
+      - "minecraft-apple"
+    amount: 3
+  - item_sources:
+      - "minecraft-sugar"
+    amount: 1
+
+# ============================================================
+# 发酵参数
+# ============================================================
+# fermentation_time_seconds: 正常发酵完成时间（秒）
+# fermentation: 发酵过程控制
+#   early_collect: 提前收取配置
+#     min_progress_ratio: 最早可收取的进度比例（0.0-1.0）
+#     output: 提前收取时的产出（半成品）
+#   over_time_seconds: 超时多少秒后视为过度发酵
+#   over_output: 过度发酵时的产出（变质品）
+fermentation_time_seconds: 300
+
+fermentation:
+  early_collect:
+    min_progress_ratio: 0.5
+    output:
+      item_sources:
+        - "minecraft-potion"
+      amount: 1
+      actions:
+        - 'sendmessage text="<yellow>提前收取了半发酵苹果饮。</yellow>"'
+  over_time_seconds: 600
+  over_output:
+    item_sources:
+      - "minecraft-honey_bottle"
+    amount: 1
+    actions:
+      - 'sendmessage text="<gold>苹果酒已经继续转化为酸甜果醋。</gold>"'
+
+# 使用此配方所需的权限节点
+permission: "emakicooking.recipe.apple_cider"
+
+# ============================================================
+# 发酵结果
+# ============================================================
+# output: 正常发酵完成后的产出物品
+result:
+  output:
+    item_sources:
+      - "minecraft-honey_bottle"
+    amount: 1
+    actions:
+      - 'sendmessage text="<gold>发酵完成。</gold>"'

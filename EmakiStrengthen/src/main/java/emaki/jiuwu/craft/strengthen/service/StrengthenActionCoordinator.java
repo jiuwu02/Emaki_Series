@@ -12,6 +12,7 @@ import emaki.jiuwu.craft.corelib.action.ActionBatchResult;
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.action.ActionExecutor;
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
+import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
 import emaki.jiuwu.craft.strengthen.model.StrengthenRecipe;
 
@@ -77,15 +78,19 @@ public final class StrengthenActionCoordinator {
         placeholders.put("dropped", Boolean.toString(dropped));
         placeholders.put("protected", Boolean.toString(protectionApplied));
         placeholders.put("was_star", Integer.toString(wasStar));
-        ActionContext context = new ActionContext(plugin, player, phase, false, placeholders, Map.of(
-                "recipe_id", recipe.id(),
-                "star", star,
-                "temper", temper,
-                "result_slot", resultSlotId == null ? "" : resultSlotId,
-                "dropped", dropped,
-                "protected", protectionApplied,
-                "was_star", wasStar
-        ));
+        placeholders.put("strengthen_max_star", Integer.toString(recipe.limits().maxStar()));
+        placeholders.put("strengthen_success_rate", resolveSuccessRate(recipe, wasStar, temper));
+        Map<String, Object> attributes = new LinkedHashMap<>();
+        attributes.put("recipe", recipe);
+        attributes.put("recipe_id", recipe.id());
+        attributes.put("resultItem", resultItem);
+        attributes.put("star", star);
+        attributes.put("temper", temper);
+        attributes.put("result_slot", resultSlotId == null ? "" : resultSlotId);
+        attributes.put("dropped", dropped);
+        attributes.put("protected", protectionApplied);
+        attributes.put("was_star", wasStar);
+        ActionContext context = new ActionContext(plugin, player, phase, false, placeholders, attributes);
         actionExecutor.executeAll(context, actions, true)
                 .whenComplete((result, throwable) -> logActionResult(recipe, phase, star, result, throwable));
     }
@@ -134,5 +139,14 @@ public final class StrengthenActionCoordinator {
                 ? ""
                 : plugin.messageService().message("strengthen.misc.default_item_name");
         return emaki.jiuwu.craft.corelib.text.Texts.isBlank(message) ? "物品" : message;
+    }
+
+    private String resolveSuccessRate(StrengthenRecipe recipe, int currentStar, int temper) {
+        ChanceCalculator calculator = plugin.chanceCalculator();
+        if (calculator == null) {
+            return "0";
+        }
+        double rate = calculator.calculateSuccessRate(plugin.appConfig(), recipe, currentStar, temper, 0);
+        return Numbers.formatNumber(rate, "0.##");
     }
 }

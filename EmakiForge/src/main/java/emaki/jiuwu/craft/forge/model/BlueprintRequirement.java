@@ -22,12 +22,9 @@ public final class BlueprintRequirement {
         if (raw == null) {
             return null;
         }
-        String item = ConfigNodes.string(raw, "item", null);
+        ItemSource source = ItemSourceUtil.parse(ConfigNodes.get(raw, "item_sources"));
+        String item = ItemSourceUtil.toShorthand(source);
         if (Texts.isBlank(item)) {
-            return null;
-        }
-        ItemSource source = ItemSourceUtil.parseShorthand(item);
-        if (source == null) {
             return null;
         }
         int amount = Numbers.tryParseInt(ConfigNodes.get(raw, "amount"), 1);

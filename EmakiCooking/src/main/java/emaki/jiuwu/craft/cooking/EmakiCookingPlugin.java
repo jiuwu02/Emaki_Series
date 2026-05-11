@@ -1,11 +1,13 @@
 package emaki.jiuwu.craft.cooking;
 
+import java.util.Map;
+
 import org.bukkit.command.PluginCommand;
 
 import emaki.jiuwu.craft.corelib.action.ActionExecutor;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
-import emaki.jiuwu.craft.corelib.integration.CraftEngineBlockBridge;
-import emaki.jiuwu.craft.corelib.integration.CustomBlockBridge;
+import emaki.jiuwu.craft.corelib.api.integration.CraftEngineBlockBridge;
+import emaki.jiuwu.craft.corelib.api.integration.CustomBlockBridge;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.plugin.AbstractConfigurableEmakiPlugin;
@@ -17,7 +19,10 @@ import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.cooking.config.AppConfig;
 import emaki.jiuwu.craft.cooking.loader.ChoppingBoardRecipeLoader;
+import emaki.jiuwu.craft.cooking.loader.FermentationBarrelRecipeLoader;
 import emaki.jiuwu.craft.cooking.loader.GrinderRecipeLoader;
+import emaki.jiuwu.craft.cooking.loader.JuicerRecipeLoader;
+import emaki.jiuwu.craft.cooking.loader.OvenRecipeLoader;
 import emaki.jiuwu.craft.cooking.loader.SteamerRecipeLoader;
 import emaki.jiuwu.craft.cooking.loader.WokRecipeLoader;
 import emaki.jiuwu.craft.cooking.service.ChoppingBoardRuntimeService;
@@ -26,10 +31,15 @@ import emaki.jiuwu.craft.cooking.service.CookingInspectService;
 import emaki.jiuwu.craft.cooking.service.CookingRecipeService;
 import emaki.jiuwu.craft.cooking.service.CookingRewardService;
 import emaki.jiuwu.craft.cooking.service.CookingSettingsService;
+import emaki.jiuwu.craft.cooking.service.FermentationBarrelRuntimeService;
 import emaki.jiuwu.craft.cooking.service.GrinderRuntimeService;
+import emaki.jiuwu.craft.cooking.service.JuicerRuntimeService;
+import emaki.jiuwu.craft.cooking.service.OvenRuntimeService;
 import emaki.jiuwu.craft.cooking.service.StationStateStore;
 import emaki.jiuwu.craft.cooking.service.SteamerRuntimeService;
 import emaki.jiuwu.craft.cooking.service.WokRuntimeService;
+import emaki.jiuwu.craft.cooking.papi.CookingPlaceholderExpansion;
+import emaki.jiuwu.craft.cooking.service.display.CookingDisplayService;
 
 public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider, EmakiServiceRegistry {
 
@@ -53,6 +63,9 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
     private WokRecipeLoader wokRecipeLoader;
     private GrinderRecipeLoader grinderRecipeLoader;
     private SteamerRecipeLoader steamerRecipeLoader;
+    private OvenRecipeLoader ovenRecipeLoader;
+    private JuicerRecipeLoader juicerRecipeLoader;
+    private FermentationBarrelRecipeLoader fermentationBarrelRecipeLoader;
     private MessageService messageService;
     private BootstrapService bootstrapService;
     private ActionExecutor coreActionExecutor;
@@ -66,10 +79,14 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
     private CookingRecipeService recipeService;
     private CookingRewardService rewardService;
     private CookingInspectService inspectService;
+    private CookingDisplayService displayService;
     private ChoppingBoardRuntimeService choppingBoardRuntimeService;
     private WokRuntimeService wokRuntimeService;
     private GrinderRuntimeService grinderRuntimeService;
     private SteamerRuntimeService steamerRuntimeService;
+    private OvenRuntimeService ovenRuntimeService;
+    private JuicerRuntimeService juicerRuntimeService;
+    private FermentationBarrelRuntimeService fermentationBarrelRuntimeService;
 
     public EmakiCookingPlugin() {
         super(AppConfig::defaults);
@@ -84,6 +101,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         reloadPluginState();
         registerCommandHandler();
         registerEventHandlers();
+        registerPlaceholderExpansion();
         messageService.info("console.plugin_started");
     }
 
@@ -94,6 +112,18 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         }
         if (steamerRuntimeService != null) {
             steamerRuntimeService.shutdown();
+        }
+        if (ovenRuntimeService != null) {
+            ovenRuntimeService.shutdown();
+        }
+        if (juicerRuntimeService != null) {
+            juicerRuntimeService.shutdown();
+        }
+        if (fermentationBarrelRuntimeService != null) {
+            fermentationBarrelRuntimeService.shutdown();
+        }
+        if (displayService != null) {
+            displayService.shutdown();
         }
         if (messageService != null) {
             messageService.info("console.plugin_stopped");
@@ -112,6 +142,9 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         wokRecipeLoader = components.wokRecipeLoader();
         grinderRecipeLoader = components.grinderRecipeLoader();
         steamerRecipeLoader = components.steamerRecipeLoader();
+        ovenRecipeLoader = components.ovenRecipeLoader();
+        juicerRecipeLoader = components.juicerRecipeLoader();
+        fermentationBarrelRecipeLoader = components.fermentationBarrelRecipeLoader();
         messageService = components.messageService();
         bootstrapService = components.bootstrapService();
         coreActionExecutor = components.coreActionExecutor();
@@ -125,11 +158,15 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         recipeService = components.recipeService();
         rewardService = components.rewardService();
         inspectService = components.inspectService();
+        displayService = components.displayService();
         choppingBoardRuntimeService = components.choppingBoardRuntimeService();
         wokRuntimeService = components.wokRuntimeService();
         grinderRuntimeService = components.grinderRuntimeService();
         steamerRuntimeService = components.steamerRuntimeService();
-        stationListener = new CookingStationListener(choppingBoardRuntimeService, wokRuntimeService, grinderRuntimeService, steamerRuntimeService);
+        ovenRuntimeService = components.ovenRuntimeService();
+        juicerRuntimeService = components.juicerRuntimeService();
+        fermentationBarrelRuntimeService = components.fermentationBarrelRuntimeService();
+        stationListener = new CookingStationListener(choppingBoardRuntimeService, wokRuntimeService, grinderRuntimeService, steamerRuntimeService, ovenRuntimeService, juicerRuntimeService, fermentationBarrelRuntimeService);
         registerServices(components);
     }
 
@@ -150,6 +187,15 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         if (steamerRuntimeService != null) {
             getServer().getPluginManager().registerEvents(steamerRuntimeService, this);
         }
+        if (ovenRuntimeService != null) {
+            getServer().getPluginManager().registerEvents(ovenRuntimeService, this);
+        }
+        if (juicerRuntimeService != null) {
+            getServer().getPluginManager().registerEvents(juicerRuntimeService, this);
+        }
+        if (fermentationBarrelRuntimeService != null) {
+            getServer().getPluginManager().registerEvents(fermentationBarrelRuntimeService, this);
+        }
         registerCraftEngineEventHandlers();
         registerItemsAdderEventHandlers();
         registerNexoEventHandlers();
@@ -161,8 +207,9 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         }
         try {
             getServer().getPluginManager().registerEvents(new CraftEngineCookingStationListener(stationListener), this);
+            messageService.info("console.block_source_bridge_ready", Map.of("provider", "CraftEngine"));
         } catch (LinkageError exception) {
-            getLogger().warning("CraftEngine API listener is unavailable: " + exception.getMessage());
+            messageService.warning("console.block_source_bridge_unavailable", Map.of("provider", "CraftEngine", "error", String.valueOf(exception.getMessage())));
         }
     }
 
@@ -172,8 +219,9 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         }
         try {
             getServer().getPluginManager().registerEvents(new ItemsAdderCookingStationListener(stationListener), this);
+            messageService.info("console.block_source_bridge_ready", Map.of("provider", "ItemsAdder"));
         } catch (LinkageError exception) {
-            getLogger().warning("ItemsAdder API listener is unavailable: " + exception.getMessage());
+            messageService.warning("console.block_source_bridge_unavailable", Map.of("provider", "ItemsAdder", "error", String.valueOf(exception.getMessage())));
         }
     }
 
@@ -183,8 +231,15 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         }
         try {
             getServer().getPluginManager().registerEvents(new NexoCookingStationListener(stationListener), this);
+            messageService.info("console.block_source_bridge_ready", Map.of("provider", "Nexo"));
         } catch (LinkageError exception) {
-            getLogger().warning("Nexo API listener is unavailable: " + exception.getMessage());
+            messageService.warning("console.block_source_bridge_unavailable", Map.of("provider", "Nexo", "error", String.valueOf(exception.getMessage())));
+        }
+    }
+
+    private void registerPlaceholderExpansion() {
+        if (getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+            new CookingPlaceholderExpansion(this).register();
         }
     }
 
@@ -211,6 +266,18 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
 
     public SteamerRecipeLoader steamerRecipeLoader() {
         return steamerRecipeLoader;
+    }
+
+    public OvenRecipeLoader ovenRecipeLoader() {
+        return ovenRecipeLoader;
+    }
+
+    public JuicerRecipeLoader juicerRecipeLoader() {
+        return juicerRecipeLoader;
+    }
+
+    public FermentationBarrelRecipeLoader fermentationBarrelRecipeLoader() {
+        return fermentationBarrelRecipeLoader;
     }
 
     @Override
@@ -266,6 +333,10 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         return inspectService;
     }
 
+    public CookingDisplayService displayService() {
+        return displayService;
+    }
+
     public ChoppingBoardRuntimeService choppingBoardRuntimeService() {
         return choppingBoardRuntimeService;
     }
@@ -280,5 +351,17 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
 
     public SteamerRuntimeService steamerRuntimeService() {
         return steamerRuntimeService;
+    }
+
+    public OvenRuntimeService ovenRuntimeService() {
+        return ovenRuntimeService;
+    }
+
+    public JuicerRuntimeService juicerRuntimeService() {
+        return juicerRuntimeService;
+    }
+
+    public FermentationBarrelRuntimeService fermentationBarrelRuntimeService() {
+        return fermentationBarrelRuntimeService;
     }
 }

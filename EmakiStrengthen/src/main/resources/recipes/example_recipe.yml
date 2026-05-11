@@ -1,0 +1,473 @@
+# ============================================================
+# EmakiStrengthen 强化配方示例
+# ============================================================
+# 此文件定义了一个完整的强化配方，展示所有可用字段和推荐写法。
+# 强化系统允许玩家通过消耗材料和金币来提升装备的星级，
+# 每个星级可以提供不同的属性加成、技能效果和外观变化。
+#
+# 文件放置位置: plugins/EmakiStrengthen/recipes/
+# 文件名即为配方的内部标识，加载时自动注册。
+# ============================================================
+
+# 配方唯一标识符（必填）
+id: "example_recipe"
+
+# 配方显示名称（支持 MiniMessage 格式）
+display_name: "<gold>物理武器强化</gold>"
+
+# GUI 模板引用（对应 gui/ 目录下的模板文件名，不含 .yml 后缀）
+gui_template: "strengthen_gui"
+
+# ============================================================
+# 经济系统配置
+# ============================================================
+# 每次强化时扣除的货币费用。
+# cost_formula 支持表达式，可引用 {base_cost}、{star} 等变量。
+economy:
+  enabled: true
+  currencies:
+    - provider: "vault"
+      currency_id: ""
+      base_cost: 320
+      cost_formula: "{base_cost} * {star}"
+      display_name: "<gold>金币</gold>"
+
+# ============================================================
+# 强化限制
+# ============================================================
+# max_star: 最大可强化星级
+# max_temper: 最大锻印等级（失败时累积，提升下次成功率）
+# temper_chance_bonus_per_level: 每级锻印提供的成功率加成（百分比）
+# success_chance_cap: 成功率上限（含锻印加成后不超过此值）
+limits:
+  max_star: 12
+  max_temper: 4
+  temper_chance_bonus_per_level: 5.0
+  success_chance_cap: 90.0
+
+# ============================================================
+# 各星级基础成功率（百分比）
+# ============================================================
+# 键为目标星级，值为基础成功率。
+# 实际成功率 = 基础成功率 + 锻印加成，但不超过 success_chance_cap。
+success_rates:
+  1: 100.0
+  2: 100.0
+  3: 95.0
+  4: 85.0
+  5: 75.0
+  6: 60.0
+  7: 45.0
+  8: 32.0
+  9: 22.0
+  10: 14.0
+  11: 8.0
+  12: 4.0
+
+# ============================================================
+# 匹配规则
+# ============================================================
+# 定义哪些物品可以使用此配方进行强化。
+# slot_groups: 按装备槽位组匹配（weapon/armor/offhand）
+# 也支持 lore_contains（Lore 包含指定文本）和 stats_any（拥有指定属性）
+match:
+  slot_groups:
+    - "weapon"
+
+# ============================================================
+# 全局名称与 Lore 修改
+# ============================================================
+# 这些 actions 在每次强化成功后都会应用到物品上。
+# name_actions: 修改物品显示名称
+# lore_actions: 修改物品 Lore
+# 支持 {star}、{temper}、{max_temper}、{temper_color} 等占位符。
+name_actions:
+  - action: "append_suffix"
+    value: " [+{star}]"
+
+lore_actions:
+  - action: "prepend"
+    content:
+      - "<gradient:#F2C46D:#C9703D>强化等级 +{star}</gradient>"
+      - "<gray>锻印: {temper_color}{temper}/{max_temper}</gray>"
+
+# ============================================================
+# 星级阶段定义
+# ============================================================
+# 每个星级可以包含:
+#   name: 该星级的里程碑名称（可选，用于 GUI 展示）
+#   effects: 效果列表，统一使用 type 字段区分类型
+#     - type: "variables"     → 表达式引擎变量（用于 Lore 渲染和属性计算）
+#     - type: "ea_attribute"  → EmakiAttribute PDC 属性（显式覆盖）
+#     - type: "es_skill"      → EmakiSkills 技能附加
+#     - type: "lore_action"   → 对物品 Lore 的修改
+#     - type: "name_action"   → 对物品名称的修改
+#   materials: 强化所需材料
+#   actions: 强化成功/失败时执行的动作
+#
+# Lore 操作策略说明:
+#   ★1 首次使用 "append" 添加属性行；
+#   ★2+ 使用 "replace_line" 通过 anchor 匹配已有行并替换为新数值；
+#   里程碑星级解锁新属性时使用 "append" 添加新行。
+#   这样无论强化到多少星，每种属性始终只有一行 Lore。
+stars:
+  # ★1: 首次添加属性行
+  1:
+    effects:
+      - type: "variables"
+        variables:
+          physical_attack: 4
+      - type: "lore_action"
+        lore_actions:
+          # 首次使用 append 添加属性行
+          - action: "append"
+            content:
+              - "<gray>物理伤害: <gold>+4</gold></gray>"
+    materials:
+      - item_sources:
+          - "minecraft-copper_ingot"
+        amount: 1
+      - item_sources:
+          - "minecraft-gunpowder"
+        amount: 2
+
+  # ★2+: 使用 replace_line 更新已有行
+  2:
+    effects:
+      - type: "variables"
+        variables:
+          physical_attack: 4
+      - type: "lore_action"
+        lore_actions:
+          # anchor 匹配包含 "物理伤害:" 的行，替换为 content 第一行
+          - action: "replace_line"
+            anchor: "物理伤害:"
+            content:
+              - "<gray>物理伤害: <gold>+8</gold></gray>"
+    materials:
+      - item_sources:
+          - "minecraft-copper_ingot"
+        amount: 1
+      - item_sources:
+          - "minecraft-gunpowder"
+        amount: 3
+
+  3:
+    effects:
+      - type: "variables"
+        variables:
+          physical_attack: 5
+      - type: "lore_action"
+        lore_actions:
+          - action: "replace_line"
+            anchor: "物理伤害:"
+            content:
+              - "<gray>物理伤害: <gold>+13</gold></gray>"
+    materials:
+      - item_sources:
+          - "minecraft-copper_ingot"
+        amount: 2
+      - item_sources:
+          - "minecraft-gunpowder"
+        amount: 4
+
+  4:
+    effects:
+      - type: "variables"
+        variables:
+          physical_attack: 6
+      - type: "lore_action"
+        lore_actions:
+          - action: "replace_line"
+            anchor: "物理伤害:"
+            content:
+              - "<gray>物理伤害: <gold>+19</gold></gray>"
+    materials:
+      - item_sources:
+          - "minecraft-copper_ingot"
+        amount: 2
+      - item_sources:
+          - "minecraft-gunpowder"
+        amount: 5
+      # amount: -1 表示不消耗，仅检测是否持有
+      # optional: true 表示此材料为可选（不放也能强化）
+      # protection: true 表示放入后可提供保护效果（失败不降星）
+      - item_sources:
+          - "minecraft-gold_nugget"
+        amount: -1
+        optional: true
+        protection: true
+
+  # ---- 里程碑星级：+5 解锁暴击率 ----
+  5:
+    name: "<gold>暴击率提升</gold>"
+    effects:
+      - type: "variables"
+        variables:
+          physical_attack: 6
+          physical_crit_rate: 2
+      # 显式 EA 属性覆盖（可选）
+      # 如果配置了此字段，PDC 属性将使用此处的累积值而非 variables 解析值
+      - type: "ea_attribute"
+        ea_attributes:
+          physical_attack: 25.0
+          physical_crit_rate: 2.0
+      # 达到此星级时附加技能
+      - type: "es_skill"
+        es_skills:
+          - "weapon_crit_passive"
+      - type: "lore_action"
+        lore_actions:
+          # 更新已有的物理伤害行
+          - action: "replace_line"
+            anchor: "物理伤害:"
+            content:
+              - "<gray>物理伤害: <gold>+25</gold></gray>"
+          # 首次添加暴击率行（新属性解锁）
+          - action: "append"
+            content:
+              - "<gray>物理暴击率: <gold>+2%</gold></gray>"
+              - "<gold>★ 解锁被动: 暴击强化</gold>"
+    materials:
+      - item_sources:
+          - "minecraft-copper_ingot"
+        amount: 3
+      - item_sources:
+          - "minecraft-gunpowder"
+        amount: 6
+      - item_sources:
+          - "minecraft-gold_nugget"
+        amount: -1
+        optional: true
+        protection: true
+    actions:
+      success:
+        - 'sendmessage text="<gold>强化达到 +5，解锁额外物理暴击率。</gold>"'
+        - "playsound sound=minecraft:block.anvil.use volume=1 pitch=1.15"
+
+  6:
+    effects:
+      - type: "variables"
+        variables:
+          physical_attack: 7
+      - type: "lore_action"
+        lore_actions:
+          - action: "replace_line"
+            anchor: "物理伤害:"
+            content:
+              - "<gray>物理伤害: <gold>+32</gold></gray>"
+    materials:
+      - item_sources:
+          - "minecraft-copper_ingot"
+        amount: 4
+      - item_sources:
+          - "minecraft-gunpowder"
+        amount: 8
+      - item_sources:
+          - "minecraft-gold_nugget"
+        amount: -1
+        optional: true
+        protection: true
+
+  7:
+    effects:
+      - type: "variables"
+        variables:
+          physical_attack: 8
+      - type: "lore_action"
+        lore_actions:
+          - action: "replace_line"
+            anchor: "物理伤害:"
+            content:
+              - "<gray>物理伤害: <gold>+40</gold></gray>"
+    materials:
+      - item_sources:
+          - "minecraft-copper_ingot"
+        amount: 5
+      - item_sources:
+          - "minecraft-gunpowder"
+        amount: 10
+      - item_sources:
+          - "minecraft-gold_nugget"
+        amount: -1
+        optional: true
+        protection: true
+
+  # ---- 里程碑星级：+8 解锁增伤 ----
+  8:
+    name: "<gold>伤害提升</gold>"
+    effects:
+      - type: "variables"
+        variables:
+          physical_attack: 9
+          physical_damage_bonus: 4
+      - type: "lore_action"
+        lore_actions:
+          - action: "replace_line"
+            anchor: "物理伤害:"
+            content:
+              - "<gray>物理伤害: <gold>+49</gold></gray>"
+          # 首次添加增伤行（新属性解锁）
+          - action: "append"
+            content:
+              - "<gray>物理增伤: <gold>+4%</gold></gray>"
+    materials:
+      - item_sources:
+          - "minecraft-copper_ingot"
+        amount: 6
+      - item_sources:
+          - "minecraft-gunpowder"
+        amount: 12
+      - item_sources:
+          - "minecraft-paper"
+        amount: 2
+      - item_sources:
+          - "minecraft-gold_nugget"
+        amount: -1
+        optional: true
+        protection: true
+    actions:
+      success:
+        - 'sendtitle title="<gold><bold>+8 物理伤害提升</bold></gold>" subtitle="<yellow>额外增伤已解锁</yellow>"'
+        - "playsound sound=minecraft:entity.player.levelup volume=1.1 pitch=1.2"
+
+  9:
+    effects:
+      - type: "variables"
+        variables:
+          physical_attack: 10
+      - type: "lore_action"
+        lore_actions:
+          - action: "replace_line"
+            anchor: "物理伤害:"
+            content:
+              - "<gray>物理伤害: <gold>+59</gold></gray>"
+    materials:
+      - item_sources:
+          - "minecraft-copper_ingot"
+        amount: 8
+      - item_sources:
+          - "minecraft-gunpowder"
+        amount: 16
+      - item_sources:
+          - "minecraft-paper"
+        amount: 2
+      - item_sources:
+          - "minecraft-gold_nugget"
+        amount: -1
+        optional: true
+        protection: true
+
+  # ---- 里程碑星级：+10 解锁暴击伤害 ----
+  10:
+    name: "<gold>暴击伤害提升</gold>"
+    effects:
+      - type: "variables"
+        variables:
+          physical_attack: 12
+          physical_crit_damage: 6
+      - type: "lore_action"
+        lore_actions:
+          - action: "replace_line"
+            anchor: "物理伤害:"
+            content:
+              - "<gray>物理伤害: <gold>+71</gold></gray>"
+          # 首次添加暴伤行（新属性解锁）
+          - action: "append"
+            content:
+              - "<gray>物理暴伤: <gold>+6%</gold></gray>"
+    materials:
+      - item_sources:
+          - "minecraft-copper_ingot"
+        amount: 10
+      - item_sources:
+          - "minecraft-gunpowder"
+        amount: 20
+      - item_sources:
+          - "minecraft-echo_shard"
+        amount: 2
+      - item_sources:
+          - "minecraft-gold_nugget"
+        amount: -1
+        optional: true
+        protection: true
+    actions:
+      success:
+        - 'sendtitle title="<gold><bold>+10 物理暴伤提升</bold></gold>" subtitle="<yellow>额外暴伤已解锁</yellow>"'
+        - "playsound sound=minecraft:entity.firework_rocket.twinkle_far volume=1 pitch=1"
+
+  11:
+    effects:
+      - type: "variables"
+        variables:
+          physical_attack: 14
+      - type: "lore_action"
+        lore_actions:
+          - action: "replace_line"
+            anchor: "物理伤害:"
+            content:
+              - "<gray>物理伤害: <gold>+85</gold></gray>"
+    materials:
+      - item_sources:
+          - "minecraft-copper_ingot"
+        amount: 13
+      - item_sources:
+          - "minecraft-gunpowder"
+        amount: 26
+      - item_sources:
+          - "minecraft-echo_shard"
+        amount: 3
+      - item_sources:
+          - "minecraft-gold_nugget"
+        amount: -1
+        optional: true
+        protection: true
+
+  # ---- 满星里程碑：+12 解锁穿透 + 终极技能 ----
+  12:
+    name: "<gold>穿透提升</gold>"
+    effects:
+      - type: "variables"
+        variables:
+          physical_attack: 16
+          physical_armor_penetration: 8
+      # 满星时附加终极技能
+      - type: "es_skill"
+        es_skills:
+          - "weapon_penetration_ultimate"
+      - type: "lore_action"
+        lore_actions:
+          - action: "replace_line"
+            anchor: "物理伤害:"
+            content:
+              - "<gray>物理伤害: <gold>+101</gold></gray>"
+          # 首次添加穿透行（新属性解锁）
+          - action: "append"
+            content:
+              - "<gray>物理穿透: <gold>+8</gold></gray>"
+              - "<gold>★ 解锁终极: 穿甲一击</gold>"
+    materials:
+      - item_sources:
+          - "minecraft-copper_ingot"
+        amount: 16
+      - item_sources:
+          - "minecraft-gunpowder"
+        amount: 32
+      - item_sources:
+          - "minecraft-echo_shard"
+        amount: 4
+      - item_sources:
+          - "minecraft-gold_nugget"
+        amount: -1
+        optional: true
+        protection: true
+      # temper_boost: 放入此材料可额外增加锻印等级
+      - item_sources:
+          - "minecraft-potion"
+        amount: -1
+        optional: true
+        temper_boost: 1
+    actions:
+      success:
+        - 'sendtitle title="<gold><bold>+12 物理穿透提升</bold></gold>" subtitle="<yellow>额外穿透已解锁</yellow>"'
+        - "playsound sound=minecraft:ui.toast.challenge_complete volume=1 pitch=1"

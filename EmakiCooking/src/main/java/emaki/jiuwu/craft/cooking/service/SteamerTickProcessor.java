@@ -270,8 +270,8 @@ final class SteamerTickProcessor {
         if (isBuiltinFurnaceHeatSource(block)) {
             return true;
         }
-        for (ItemSource source : settingsService.steamerHeatSources()) {
-            if (blockMatcher.matches(block, source)) {
+        for (CookingSettingsService.HeatSourceIgnitionRule rule : settingsService.steamerHeatSourceIgnitionRules()) {
+            if (matchesHeatSourceRule(block, rule)) {
                 return true;
             }
         }
@@ -292,15 +292,21 @@ final class SteamerTickProcessor {
         if (heatSourceBlock == null) {
             return;
         }
+        boolean directStateChanged = false;
         BlockData blockData = heatSourceBlock.getBlockData();
         if (blockData instanceof Lightable lightable) {
             lightable.setLit(true);
             heatSourceBlock.setBlockData(lightable);
+            directStateChanged = true;
         }
         if (heatSourceBlock.getState() instanceof Furnace furnace) {
             long remainingTicks = Math.max(0L, (burningUntilMs - now) / 50L);
             furnace.setBurnTime((short) Math.min(Short.MAX_VALUE, remainingTicks));
             furnace.update();
+            directStateChanged = true;
+        }
+        if (!directStateChanged && !blockMatcher.setCustomLit(heatSourceBlock, true)) {
+            applyConfiguredHeatSourceTransition(heatSourceBlock, true);
         }
     }
 
@@ -308,15 +314,57 @@ final class SteamerTickProcessor {
         if (heatSourceBlock == null) {
             return;
         }
+        boolean directStateChanged = false;
         BlockData blockData = heatSourceBlock.getBlockData();
         if (blockData instanceof Lightable lightable) {
             lightable.setLit(false);
             heatSourceBlock.setBlockData(lightable);
+            directStateChanged = true;
         }
         if (heatSourceBlock.getState() instanceof Furnace furnace) {
             furnace.setBurnTime((short) 0);
             furnace.update();
+            directStateChanged = true;
         }
+        if (!directStateChanged && !blockMatcher.setCustomLit(heatSourceBlock, false)) {
+            applyConfiguredHeatSourceTransition(heatSourceBlock, false);
+        }
+    }
+
+    private boolean matchesHeatSourceRule(Block block, CookingSettingsService.HeatSourceIgnitionRule rule) {
+        return rule != null
+                && (matchesSource(block, rule.source())
+                || matchesSource(block, rule.litSource())
+                || matchesSource(block, rule.unlitSource()));
+    }
+
+    private boolean applyConfiguredHeatSourceTransition(Block block, boolean lit) {
+        if (block == null) {
+            return false;
+        }
+        for (CookingSettingsService.HeatSourceIgnitionRule rule : settingsService.steamerHeatSourceIgnitionRules()) {
+            if (rule == null) {
+                continue;
+            }
+            ItemSource target = lit ? rule.litSource() : rule.unlitSource();
+            if (target == null) {
+                continue;
+            }
+            if (blockMatcher.matches(block, target)) {
+                return true;
+            }
+            if (lit && (matchesSource(block, rule.source()) || matchesSource(block, rule.unlitSource()))) {
+                return blockMatcher.place(block, target);
+            }
+            if (!lit && matchesSource(block, rule.litSource())) {
+                return blockMatcher.place(block, target);
+            }
+        }
+        return false;
+    }
+
+    private boolean matchesSource(Block block, ItemSource source) {
+        return block != null && source != null && blockMatcher.matches(block, source);
     }
 
     void dropStoredItems(Block steamerBlock, SteamerState state) {

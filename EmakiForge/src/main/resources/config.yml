@@ -1,6 +1,14 @@
+# ============================================================
+# EmakiForge 主配置文件
+# ============================================================
+# 此文件包含插件的全局设置。修改后使用 reload 命令重载。
+#
+# 文件放置位置: plugins/EmakiForge/config.yml
+# ============================================================
+
 # 锻造系统主配置
 # version 由资源同步维护
-version: "3.5.0"
+version: "4.0.0"
 
 # 语言文件 ID
 language: "zh_CN"
@@ -32,53 +40,35 @@ quality:
     enabled: true
     tiers:
       有缺:
-        structured_presentation:
-          name_contributions:
-            - slot_id: "forge.quality.prefix"
-              position: "PREFIX"
-              order: 100
-              content_template: "<color:#733333>[有缺]</color>"
+        name_actions:
+          - action: "prepend_prefix"
+            value: "<color:#733333>[有缺] </color>"
       平庸:
-        structured_presentation:
-          name_contributions:
-            - slot_id: "forge.quality.prefix"
-              position: "PREFIX"
-              order: 100
-              content_template: "<color:#999999>[平庸]</color>"
+        name_actions:
+          - action: "prepend_prefix"
+            value: "<color:#999999>[平庸] </color>"
       精良:
-        structured_presentation:
-          name_contributions:
-            - slot_id: "forge.quality.prefix"
-              position: "PREFIX"
-              order: 100
-              content_template: "<color:#1F871F>[精良]</color>"
+        name_actions:
+          - action: "prepend_prefix"
+            value: "<color:#1F871F>[精良] </color>"
       优质:
-        structured_presentation:
-          name_contributions:
-            - slot_id: "forge.quality.prefix"
-              position: "PREFIX"
-              order: 100
-              content_template: "<color:#00FF00>[优质]</color>"
+        name_actions:
+          - action: "prepend_prefix"
+            value: "<color:#00FF00>[优质] </color>"
       无暇:
-        structured_presentation:
-          name_contributions:
-            - slot_id: "forge.quality.prefix"
-              position: "PREFIX"
-              order: 100
-              content_template: "<color:#4B64C8>[无暇]</color>"
+        name_actions:
+          - action: "prepend_prefix"
+            value: "<color:#4B64C8>[无暇] </color>"
         action:
-          - "broadcastmessage
-            text=\"<color:#4B64C8>%player_name%锻造出了一个无暇品质的<show_item></color>\""
+          - 'broadcastmessage
+            text="<color:#4B64C8>{player_name}锻造出了一个无暇品质的<show_item></color>"'
       完美:
-        structured_presentation:
-          name_contributions:
-            - slot_id: "forge.quality.prefix"
-              position: "PREFIX"
-              order: 100
-              content_template: "<color:#FFD700>[完美]</color>"
+        name_actions:
+          - action: "prepend_prefix"
+            value: "<color:#FFD700>[完美] </color>"
         action:
-          - "broadcastmessage
-            text=\"<color:#FFD700>%player_name%锻造出了一个完美品质的<show_item></color>\""
+          - 'broadcastmessage
+            text="<color:#FFD700>{player_name}锻造出了一个完美品质的<show_item></color>"'
 
 number_format:
   default: "0.##"

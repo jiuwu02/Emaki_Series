@@ -1,5 +1,14 @@
+# ============================================================
+# EmakiCooking 语言文件 - English
+# ============================================================
+# 此文件包含插件的所有消息文本，支持 MiniMessage 格式。
+# 修改后使用 reload 命令重载。
+#
+# 文件放置位置: plugins/EmakiCooking/lang/
+# ============================================================
+
 # version is maintained by resource sync
-version: "2.3.0"
+version: "3.0.0"
 
 general:
   prefix: "<gray>[ <gradient:#D8792E:#F6D16E>Emaki Cooking</gradient> ]</gray>"
@@ -22,9 +31,9 @@ command:
     line: "<yellow>{key}</yellow> <gray>- {value}</gray>"
 
 console:
-  plugin_starting: "<gray>Starting EmakiCooking...</gray>"
-  plugin_started: "<green>EmakiCooking started successfully.</green>"
-  plugin_stopped: "<green>EmakiCooking shut down.</green>"
+  plugin_starting: "<gray>Starting...</gray>"
+  plugin_started: "<green>Started</green>"
+  plugin_stopped: "<yellow>Stopped</yellow>"
   bootstrap_start: "<white>Checking default files...</white>"
   bootstrap_complete: "<green>Default file check complete.</green>"
   bootstrap_skip: "<yellow>Skipped default data generation.</yellow>"
@@ -36,6 +45,9 @@ console:
   directory_create_failed: "<yellow>Failed to create directory: <red>{path}</red></yellow>"
   loader_config_load_error: "<yellow>Failed to load EmakiCooking config:
     <red>{path}</red> <gray>({error})</gray></yellow>"
+  station_recipes_loaded: "<gray>Loaded {station} {count} recipe(s)</gray>"
+  block_source_bridge_ready: "<gray>Block source connected: {provider}</gray>"
+  block_source_bridge_unavailable: "<yellow>Block source unavailable: {provider} ({error})</yellow>"
 
 loader:
   lang_directory_create_failed: "<yellow>Unable to create language directory: <red>{path}</red></yellow>"
@@ -70,7 +82,8 @@ wok:
   no_item: "<yellow>There are no ingredients in the wok to work with.</yellow>"
   no_heat: "<red>No valid heat source under the wok, cannot start cooking.</red>"
   too_fast: "<yellow>Stirring too fast, please try again later.</yellow>"
-  wrong_tool: "<yellow>You need to hold the configured spatula to stir or inspect
+  wrong_tool:
+    "<yellow>You need to hold the configured spatula to stir or inspect
     contents.</yellow>"
   burnt_timeout: "<red>Heat was interrupted too long, the food is burnt.</red>"
   stir_count: "<gray>Stir count: <yellow>{count}</yellow></gray>"
@@ -87,9 +100,19 @@ wok:
   info_footer: "<gray>Total stirs: <yellow>{count}</yellow> | Heat:
     <yellow>{heat}</yellow></gray>"
 
+oven:
+  in_use: "<yellow>This oven is being used by another player, please try again later.</yellow>"
+  open_failed: "<red>Failed to open oven GUI.</red>"
+  opened: "<gray>Oven opened.</gray>"
+  add_fuel: "<gray>Added fuel <yellow>{item}</yellow>, estimated duration <yellow>{seconds}</yellow> seconds. Current heat: <yellow>{heat}</yellow></gray>"
+  info: "<gray>Heat: <yellow>{heat}</yellow> | Burn time: <yellow>{burning_time}</yellow>s | Cooking progress: <yellow>{progress}</yellow></gray>"
+  progress_not_started: "Not Started"
+  progress_completed: "Completed"
+
 steamer:
   no_heat_source: "<red>No valid heat source under the steamer, cannot open.</red>"
-  in_use: "<yellow>This steamer is being used by another player, please try again
+  in_use:
+    "<yellow>This steamer is being used by another player, please try again
     later.</yellow>"
   open_failed: "<red>Failed to open steamer GUI.</red>"
   opened: "<gray>Steamer opened.</gray>"
@@ -103,3 +126,39 @@ steamer:
     <yellow>{progress}</yellow></gray>"
   progress_not_started: "Not Started"
   progress_completed: "Completed"
+
+juicer:
+  in_use: "<yellow>This juicer is being used by another player, please try again later.</yellow>"
+  opened: "<gray>Juicer opened.</gray>"
+  open_failed: "<red>Failed to open juicer GUI.</red>"
+  no_item: "<yellow>There are no ingredients in the juicer.</yellow>"
+  no_recipe: "<red>No available juicer recipe for the current ingredient.</red>"
+  pressed: "<gray>Juicing progress: <yellow>{current}</yellow>/<yellow>{required}</yellow></gray>"
+  need_container: "<yellow>You need to hold a container to collect juice.</yellow>"
+  completed: "<green>Juicing complete: <yellow>{recipe}</yellow></green>"
+  info: "<gray>Juicing progress: <yellow>{progress}</yellow> | Fluid: <aqua>{fluid}</aqua></gray>"
+  progress_not_started: "Not Started"
+  fluid_none: "None"
+  fluid_added: "<aqua>Pressed {amount}ml of {fluid}, now {current}/{max}ml.</aqua>"
+  fluid_mismatch: "<red>The juicer already contains {current_fluid}; cannot add {new_fluid}.</red>"
+  fluid_full: "<yellow>The juicer does not have enough capacity, currently {current}/{max}ml.</yellow>"
+  fluid_empty: "<yellow>There is no fluid to serve.</yellow>"
+  fluid_not_enough: "<yellow>Not enough {fluid}; requires {required}ml, currently {current}ml.</yellow>"
+  served: "<green>Served {amount}ml of {fluid}, remaining {current}/{max}ml.</green>"
+
+fermentation_barrel:
+  in_use: "<yellow>This fermentation barrel is being used by another player, please try again later.</yellow>"
+  opened: "<gray>Fermentation barrel opened.</gray>"
+  open_failed: "<red>Failed to open fermentation barrel GUI.</red>"
+  no_recipe: "<red>The current ingredient combination cannot ferment.</red>"
+  started: "<gray>Fermentation started, estimated <yellow>{seconds}</yellow> seconds to complete.</gray>"
+  fermenting: "<gray>Fermenting, <yellow>{seconds}</yellow> seconds remaining.</gray>"
+  collected: "<green>Collected fermented output.</green>"
+  info: "<gray>Fermentation status: <yellow>{status}</yellow> | Remaining: <yellow>{seconds}</yellow>s | Progress: <yellow>{progress}</yellow></gray>"
+  status_idle: "Idle"
+  status_fermenting: "Fermenting"
+  status_early_ready: "Early Collect Ready"
+  status_completed: "Completed"
+  status_over: "Over-fermented"
+  collected_early: "<yellow>Collected an early fermentation output.</yellow>"
+  collected_over: "<gold>Collected an over-fermented output.</gold>"

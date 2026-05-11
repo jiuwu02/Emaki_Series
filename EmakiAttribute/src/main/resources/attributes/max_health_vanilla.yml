@@ -1,3 +1,6 @@
+# EmakiAttribute 属性定义 - 原版生命上限
+# 详细字段说明参考 physical_attack.yml
+
 id: max_health_vanilla
 display_name: "原版生命上限"
 value_kind: FLAT

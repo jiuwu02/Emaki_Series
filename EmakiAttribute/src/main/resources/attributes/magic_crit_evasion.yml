@@ -1,3 +1,6 @@
+# EmakiAttribute 属性定义 - 法术暴击闪避
+# 详细字段说明参考 physical_attack.yml
+
 id: magic_crit_evasion
 display_name: "法术暴击闪避"
 value_kind: CHANCE

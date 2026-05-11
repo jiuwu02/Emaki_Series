@@ -1,5 +1,8 @@
 package emaki.jiuwu.craft.corelib.integration;
 
+import emaki.jiuwu.craft.corelib.api.integration.CraftEngineBlockBridge;
+import emaki.jiuwu.craft.corelib.api.integration.CustomBlockBridge;
+
 import org.bukkit.Bukkit;
 import org.bukkit.block.Block;
 import org.bukkit.plugin.Plugin;
@@ -38,6 +41,16 @@ public final class CraftEngineBlockBridgeProvider implements CraftEngineBlockBri
     @Override
     public boolean matches(Block block, String identifier) {
         return resolveDelegate().matches(block, identifier);
+    }
+
+    @Override
+    public boolean setLit(Block block, boolean lit) {
+        return resolveDelegate().setLit(block, lit);
+    }
+
+    @Override
+    public boolean placeBlock(Block block, String identifier) {
+        return resolveDelegate().placeBlock(block, identifier);
     }
 
     private CraftEngineBlockBridge resolveDelegate() {

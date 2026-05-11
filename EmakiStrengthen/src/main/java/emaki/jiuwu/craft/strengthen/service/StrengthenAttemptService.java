@@ -15,6 +15,7 @@ import org.bukkit.inventory.ItemStack;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerSnapshot;
+import emaki.jiuwu.craft.corelib.assembly.ItemOperationLedger;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
@@ -34,6 +35,7 @@ import emaki.jiuwu.craft.strengthen.model.StrengthenState;
 public final class StrengthenAttemptService implements EmakiStrengthenApi {
 
     private static final String PDC_ATTRIBUTE_SOURCE_ID = "strengthen";
+    private static final String OPERATION_NAMESPACE = "strengthen";
 
     private final EmakiStrengthenPlugin plugin;
     private final StrengthenRecipeResolver recipeResolver;
@@ -44,6 +46,7 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
     private final StrengthenActionCoordinator actionCoordinator;
     private final EmakiItemAssemblyService itemAssemblyService;
     private final StrengthenPdcAttributeWriter pdcAttributeWriter;
+    private final ItemOperationLedger operationLedger;
 
     public StrengthenAttemptService(EmakiStrengthenPlugin plugin,
             StrengthenRecipeResolver recipeResolver,
@@ -61,6 +64,7 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
         this.actionCoordinator = actionCoordinator;
         this.itemAssemblyService = itemAssemblyService;
         this.pdcAttributeWriter = new StrengthenPdcAttributeWriter(plugin, PDC_ATTRIBUTE_SOURCE_ID);
+        this.operationLedger = new ItemOperationLedger();
     }
 
     @Override
@@ -101,7 +105,8 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
                         stored.firstReachFlags(),
                         stored.successCount(),
                         stored.failureCount(),
-                        stored.lastAttemptAt()
+                        stored.lastAttemptAt(),
+                        ""
                 ),
                 stored
         );
@@ -167,11 +172,9 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
         }
 
         StrengthenRecipe recipe = preview.recipe();
-        if (recipe != null && !recipe.conditions().isEmpty()) {
+        if (recipe != null && !recipe.conditions().emptyGroup()) {
             boolean conditionsPassed = ConditionEvaluator.evaluate(
                     recipe.conditions(),
-                    recipe.conditionType(),
-                    recipe.conditionRequiredCount(),
                     text -> resolvePlaceholders(player, text),
                     true
             );
@@ -198,7 +201,8 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
                 progress.updatedFlags(),
                 currentState.successCount() + (success ? 1 : 0),
                 currentState.failureCount() + (success ? 0 : 1),
-                System.currentTimeMillis()
+                System.currentTimeMillis(),
+                currentState.branchPath()
         );
 
         ItemStack rebuilt = rebuildWithState(context == null ? null : context.targetItem(), updated, buildMaterialsSignature(preview));
@@ -249,7 +253,8 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
                 current.milestoneFlags(),
                 current.successCount(),
                 current.failureCount(),
-                System.currentTimeMillis()
+                System.currentTimeMillis(),
+                current.branchPath()
         );
         return rebuildWithState(itemStack, updated, readStoredState(itemStack, current.baseSource(), current.baseSourceSignature()).materialsSignature());
     }
@@ -401,8 +406,27 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
             rebuilt.setAmount(Math.max(1, itemStack.getAmount()));
             pdcAttributeWriter.preserveOtherAttributePayloads(itemStack, rebuilt);
             pdcAttributeWriter.applyPdcAttributes(rebuilt, recipe, state);
+            applyStrengthenOperations(rebuilt, recipe, state);
         }
         return rebuilt;
+    }
+
+    private void applyStrengthenOperations(ItemStack itemStack, StrengthenRecipe recipe, StrengthenState state) {
+        Object nameActions = recipe.nameActions();
+        Object loreActions = recipe.loreActions();
+        if (nameActions == null && loreActions == null) {
+            return;
+        }
+        String operationId = OPERATION_NAMESPACE + ":" + recipe.id() + ":star_" + state.currentStar();
+        Map<String, Object> variables = new LinkedHashMap<>();
+        Map<String, Double> stats = recipe.cumulativeVariables(state.currentStar());
+        if (stats != null) {
+            variables.putAll(stats);
+        }
+        variables.put("star", state.currentStar());
+        variables.put("temper", state.temperLevel());
+        variables.put("max_temper", recipe.limits().maxTemper());
+        operationLedger.apply(itemStack, operationId, OPERATION_NAMESPACE, nameActions, loreActions, variables);
     }
 
     private String buildMaterialsSignature(AttemptPreview preview) {

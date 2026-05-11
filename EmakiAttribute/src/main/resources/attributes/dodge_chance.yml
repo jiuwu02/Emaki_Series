@@ -1,3 +1,6 @@
+# EmakiAttribute 属性定义 - 闪避率
+# 详细字段说明参考 physical_attack.yml
+
 id: dodge_chance
 
 display_name: "闪避率"

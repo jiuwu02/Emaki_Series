@@ -7,7 +7,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import emaki.jiuwu.craft.corelib.condition.ConditionGroup;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
@@ -110,12 +112,11 @@ public final class StrengthenRecipe {
 
     public record StarStage(int targetStar,
             String name,
-            Map<String, Double> stats,
+            Map<String, Object> stats,
             Map<String, Double> attributes,
             List<String> skillIds,
             List<StarStageMaterial> materials,
             EconomyOverride economyOverride,
-            Object structuredPresentation,
             List<String> successActions,
             List<String> failureActions) {
 
@@ -126,7 +127,6 @@ public final class StrengthenRecipe {
             skillIds = normalizeList(skillIds).stream().map(Texts::normalizeId).filter(Texts::isNotBlank).distinct().toList();
             materials = materials == null ? List.of() : List.copyOf(materials);
             economyOverride = economyOverride == null ? new EconomyOverride(List.of()) : economyOverride;
-            structuredPresentation = ConfigNodes.toPlainData(structuredPresentation);
             successActions = normalizeList(successActions);
             failureActions = normalizeList(failureActions);
         }
@@ -141,10 +141,12 @@ public final class StrengthenRecipe {
     private final MatchRule matchRule;
     private final Map<String, StatLineDefinition> statLines;
     private final Map<Integer, StarStage> stars;
-    private final Object structuredPresentation;
-    private final List<String> conditions;
+    private final ConditionGroup conditions;
     private final String conditionType;
     private final int conditionRequiredCount;
+    private final StrengthenBranchNode branchTree;
+    private final Object nameActions;
+    private final Object loreActions;
 
     public StrengthenRecipe(String id,
             String displayName,
@@ -155,10 +157,45 @@ public final class StrengthenRecipe {
             MatchRule matchRule,
             Map<String, StatLineDefinition> statLines,
             Map<Integer, StarStage> stars,
-            Object structuredPresentation,
-            List<String> conditions,
+            ConditionGroup conditions,
             String conditionType,
             int conditionRequiredCount) {
+        this(id, displayName, guiTemplate, economy, limits, successRates, matchRule, statLines, stars,
+                conditions, conditionType, conditionRequiredCount, null, null, null);
+    }
+
+    public StrengthenRecipe(String id,
+            String displayName,
+            String guiTemplate,
+            EconomyConfig economy,
+            Limits limits,
+            Map<Integer, Double> successRates,
+            MatchRule matchRule,
+            Map<String, StatLineDefinition> statLines,
+            Map<Integer, StarStage> stars,
+            ConditionGroup conditions,
+            String conditionType,
+            int conditionRequiredCount,
+            StrengthenBranchNode branchTree) {
+        this(id, displayName, guiTemplate, economy, limits, successRates, matchRule, statLines, stars,
+                conditions, conditionType, conditionRequiredCount, branchTree, null, null);
+    }
+
+    public StrengthenRecipe(String id,
+            String displayName,
+            String guiTemplate,
+            EconomyConfig economy,
+            Limits limits,
+            Map<Integer, Double> successRates,
+            MatchRule matchRule,
+            Map<String, StatLineDefinition> statLines,
+            Map<Integer, StarStage> stars,
+            ConditionGroup conditions,
+            String conditionType,
+            int conditionRequiredCount,
+            StrengthenBranchNode branchTree,
+            Object nameActions,
+            Object loreActions) {
         this.id = Texts.trim(id);
         this.displayName = Texts.toStringSafe(displayName);
         this.guiTemplate = Texts.isBlank(guiTemplate) ? "strengthen_gui" : Texts.toStringSafe(guiTemplate);
@@ -168,25 +205,27 @@ public final class StrengthenRecipe {
         this.matchRule = matchRule == null ? new MatchRule(List.of(), List.of(), List.of(), List.of(), List.of(), List.of()) : matchRule;
         this.statLines = statLines == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(statLines));
         this.stars = stars == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(stars));
-        this.structuredPresentation = ConfigNodes.toPlainData(structuredPresentation);
-        this.conditions = normalizeList(conditions);
+        this.conditions = conditions == null ? ConditionGroup.empty() : conditions;
         this.conditionType = Texts.isBlank(conditionType) ? "all_of" : Texts.lower(conditionType);
         this.conditionRequiredCount = Math.max(0, conditionRequiredCount);
+        this.branchTree = branchTree;
+        this.nameActions = ConfigNodes.toPlainData(nameActions);
+        this.loreActions = ConfigNodes.toPlainData(loreActions);
     }
 
     public static StrengthenRecipe fromConfig(YamlSection section) {
         return StrengthenRecipeParser.parse(section);
     }
 
-    public Map<String, Double> cumulativeStats(int currentStar) {
-        Map<String, Double> values = new LinkedHashMap<>();
+    public Map<String, Double> cumulativeVariables(int currentStar) {
+        Map<String, Object> rawValues = new LinkedHashMap<>();
         for (Map.Entry<Integer, StarStage> entry : stars.entrySet()) {
             if (entry.getKey() > currentStar || entry.getValue() == null) {
                 continue;
             }
-            merge(values, entry.getValue().stats());
+            mergeRaw(rawValues, entry.getValue().stats());
         }
-        return values;
+        return resolveExpressions(rawValues, Map.of("star", (double) currentStar));
     }
 
     public Map<String, Double> cumulativeAttributes(int currentStar) {
@@ -196,6 +235,10 @@ public final class StrengthenRecipe {
                 continue;
             }
             merge(values, entry.getValue().attributes());
+        }
+        // If no explicit attributes configured, use resolved variables as attributes
+        if (values.isEmpty()) {
+            return cumulativeVariables(currentStar);
         }
         return values;
     }
@@ -213,8 +256,8 @@ public final class StrengthenRecipe {
 
     public Map<String, Double> deltaStats(int fromStar, int toStar) {
         Map<String, Double> delta = new LinkedHashMap<>();
-        Map<String, Double> from = cumulativeStats(fromStar);
-        Map<String, Double> to = cumulativeStats(toStar);
+        Map<String, Double> from = cumulativeVariables(fromStar);
+        Map<String, Double> to = cumulativeVariables(toStar);
         Set<String> ids = new LinkedHashSet<>();
         ids.addAll(from.keySet());
         ids.addAll(to.keySet());
@@ -306,11 +349,7 @@ public final class StrengthenRecipe {
         return stars;
     }
 
-    public Object structuredPresentation() {
-        return structuredPresentation;
-    }
-
-    public List<String> conditions() {
+    public ConditionGroup conditions() {
         return conditions;
     }
 
@@ -320,6 +359,74 @@ public final class StrengthenRecipe {
 
     public int conditionRequiredCount() {
         return conditionRequiredCount;
+    }
+
+    public StrengthenBranchNode branchTree() {
+        return branchTree;
+    }
+
+    public boolean hasBranchTree() {
+        return branchTree != null && !branchTree.children().isEmpty();
+    }
+
+    public Object nameActions() {
+        return nameActions;
+    }
+
+    public Object loreActions() {
+        return loreActions;
+    }
+
+    /**
+     * Cumulative variables considering branch path.
+     * Falls back to flat stars if no branch tree is configured.
+     */
+    public Map<String, Double> cumulativeVariables(int currentStar, String branchPath) {
+        if (branchTree != null) {
+            Map<String, Object> rawValues = new LinkedHashMap<>();
+            Map<Integer, StarStage> collected = branchTree.collectStages(branchPath, currentStar);
+            for (StarStage stage : collected.values()) {
+                if (stage != null) {
+                    mergeRaw(rawValues, stage.stats());
+                }
+            }
+            return resolveExpressions(rawValues, Map.of("star", (double) currentStar));
+        }
+        return cumulativeVariables(currentStar);
+    }
+
+    /**
+     * Cumulative attributes considering branch path.
+     */
+    public Map<String, Double> cumulativeAttributes(int currentStar, String branchPath) {
+        if (branchTree != null) {
+            Map<String, Double> values = new LinkedHashMap<>();
+            Map<Integer, StarStage> collected = branchTree.collectStages(branchPath, currentStar);
+            for (StarStage stage : collected.values()) {
+                if (stage != null) {
+                    merge(values, stage.attributes());
+                }
+            }
+            return values;
+        }
+        return cumulativeAttributes(currentStar);
+    }
+
+    /**
+     * Cumulative skill ids considering branch path.
+     */
+    public List<String> cumulativeSkillIds(int currentStar, String branchPath) {
+        if (branchTree != null) {
+            LinkedHashSet<String> values = new LinkedHashSet<>();
+            Map<Integer, StarStage> collected = branchTree.collectStages(branchPath, currentStar);
+            for (StarStage stage : collected.values()) {
+                if (stage != null) {
+                    values.addAll(stage.skillIds());
+                }
+            }
+            return List.copyOf(values);
+        }
+        return cumulativeSkillIds(currentStar);
     }
 
     private static void merge(Map<String, Double> target, Map<String, Double> source) {
@@ -332,6 +439,48 @@ public final class StrengthenRecipe {
             }
             target.merge(Texts.lower(entry.getKey()), entry.getValue(), Double::sum);
         }
+    }
+
+    private static void mergeRaw(Map<String, Object> target, Map<String, Object> source) {
+        if (target == null || source == null) {
+            return;
+        }
+        for (Map.Entry<String, Object> entry : source.entrySet()) {
+            if (entry.getKey() == null || entry.getValue() == null) {
+                continue;
+            }
+            String key = Texts.lower(entry.getKey());
+            Object existing = target.get(key);
+            Object incoming = entry.getValue();
+            // If both are pure numbers, sum them
+            Double existingNum = toDouble(existing);
+            Double incomingNum = toDouble(incoming);
+            if (existingNum != null && incomingNum != null) {
+                target.put(key, existingNum + incomingNum);
+            } else {
+                // Expression or first value — store as-is (last wins for expressions)
+                target.put(key, incoming);
+            }
+        }
+    }
+
+    /**
+     * Resolve a raw variables map (which may contain expressions or plain numbers)
+     * into a final Map of Double values using the ExpressionEngine.
+     * Variables can reference each other and the provided context.
+     */
+    static Map<String, Double> resolveExpressions(Map<String, Object> rawValues, Map<String, ?> context) {
+        return ExpressionEngine.resolveVariables(rawValues, context);
+    }
+
+    private static Double toDouble(Object value) {
+        if (value instanceof Number number) {
+            return number.doubleValue();
+        }
+        if (value instanceof String text) {
+            return Numbers.tryParseDouble(text, null);
+        }
+        return null;
     }
 
     static List<String> normalizeLower(List<String> values) {

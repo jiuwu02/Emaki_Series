@@ -4,6 +4,7 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.text.Texts;
 
 public record StrengthenState(boolean eligible,
         String eligibleReason,
@@ -16,14 +17,16 @@ public record StrengthenState(boolean eligible,
         Set<Integer> milestoneFlags,
         int successCount,
         int failureCount,
-        long lastAttemptAt) {
+        long lastAttemptAt,
+        String branchPath) {
 
     public StrengthenState {
         milestoneFlags = milestoneFlags == null ? Set.of() : Set.copyOf(new LinkedHashSet<>(milestoneFlags));
+        branchPath = branchPath == null ? "" : branchPath;
     }
 
     public static StrengthenState ineligible(String eligibleReason, ItemSource baseSource, String baseSourceSignature) {
-        return new StrengthenState(false, eligibleReason, false, baseSource, baseSourceSignature, "", 0, 0, Set.of(), 0, 0, 0L);
+        return new StrengthenState(false, eligibleReason, false, baseSource, baseSourceSignature, "", 0, 0, Set.of(), 0, 0, 0L, "");
     }
 
     public String profileId() {
@@ -36,5 +39,9 @@ public record StrengthenState(boolean eligible,
 
     public int temperLevel() {
         return crackLevel;
+    }
+
+    public boolean hasBranch() {
+        return Texts.isNotBlank(branchPath);
     }
 }

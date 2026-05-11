@@ -6,7 +6,7 @@
 
     <groupId>emaki.jiuwu.craft</groupId>
     <artifactId>emaki-parent</artifactId>
-    <version>3.0.0</version>
+    <version>4.0.0</version>
     <packaging>pom</packaging>
 
     <name>Emaki Parent</name>
@@ -21,10 +21,10 @@
 
     <modules>
         <module>EmakiCoreLib</module>
-        <module>EmakiAttribute</module>
         <module>EmakiForge</module>
         <module>EmakiStrengthen</module>
         <module>EmakiCooking</module>
+        <module>EmakiAttribute</module>
     </modules>
 
     <profiles>
@@ -36,8 +36,8 @@
                 </file>
             </activation>
             <modules>
-                <module>EmakiGem</module>
                 <module>EmakiSkills</module>
+                <module>EmakiGem</module>
                 <module>EmakiItem</module>
             </modules>
         </profile>
@@ -46,7 +46,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>25</maven.compiler.release>
-        <emaki.corelib.version>3.5.0</emaki.corelib.version>
+        <emaki.corelib.version>4.0.0</emaki.corelib.version>
         <spigot.api.version>1.21.11-R0.1-SNAPSHOT</spigot.api.version>
         <adventure.version>4.26.1</adventure.version>
         <adventure.platform.version>4.4.1</adventure.platform.version>
@@ -60,11 +60,13 @@
         <nightcore.version>2.14.0</nightcore.version>
         <placeholderapi.version>2.12.2</placeholderapi.version>
         <mmoitems.version>6.10.1-SNAPSHOT</mmoitems.version>
-        <craftengine.version>0.0.67.11</craftengine.version>
+        <craftengine.version>26.5-SNAPSHOT</craftengine.version>
         <itemsadder.version>4.0.10</itemsadder.version>
         <nexo.version>1.21.0</nexo.version>
         <neigeitems.version>1.21.142</neigeitems.version>
+        <packetevents.version>2.12.1</packetevents.version>
         <caffeine.version>3.1.8</caffeine.version>
+        <graalvm.polyglot.version>24.2.1</graalvm.polyglot.version>
     </properties>
 
     <dependencyManagement>
@@ -109,6 +111,11 @@
             <dependency>
                 <groupId>net.kyori</groupId>
                 <artifactId>adventure-text-serializer-plain</artifactId>
+                <version>${adventure.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>net.kyori</groupId>
+                <artifactId>adventure-text-serializer-legacy</artifactId>
                 <version>${adventure.version}</version>
             </dependency>
             <dependency>
@@ -160,13 +167,7 @@
             </dependency>
             <dependency>
                 <groupId>net.momirealms</groupId>
-                <artifactId>craft-engine-bukkit</artifactId>
-                <version>${craftengine.version}</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>net.momirealms</groupId>
-                <artifactId>craft-engine-core</artifactId>
+                <artifactId>craft-engine-dev</artifactId>
                 <version>${craftengine.version}</version>
                 <scope>provided</scope>
             </dependency>
@@ -195,9 +196,26 @@
                 <scope>provided</scope>
             </dependency>
             <dependency>
+                <groupId>com.github.retrooper</groupId>
+                <artifactId>packetevents-spigot</artifactId>
+                <version>${packetevents.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
                 <groupId>com.github.ben-manes.caffeine</groupId>
                 <artifactId>caffeine</artifactId>
                 <version>${caffeine.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.graalvm.polyglot</groupId>
+                <artifactId>polyglot</artifactId>
+                <version>${graalvm.polyglot.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.graalvm.polyglot</groupId>
+                <artifactId>js</artifactId>
+                <version>${graalvm.polyglot.version}</version>
+                <type>pom</type>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -242,6 +260,10 @@
         <repository>
             <id>nexo-releases</id>
             <url>https://repo.nexomc.com/releases/</url>
+        </repository>
+        <repository>
+            <id>codemc-releases</id>
+            <url>https://repo.codemc.io/repository/maven-releases/</url>
         </repository>
         <repository>
             <id>maven-central</id>

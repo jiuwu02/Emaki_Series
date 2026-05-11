@@ -1,3 +1,6 @@
+# EmakiAttribute 属性定义 - 法术伤害
+# 详细字段说明参考 physical_attack.yml
+
 id: spell_attack
 display_name: "法术伤害"
 value_kind: FLAT

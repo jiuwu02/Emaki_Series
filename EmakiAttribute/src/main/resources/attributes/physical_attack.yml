@@ -1,3 +1,26 @@
+# ============================================================
+# EmakiAttribute 属性定义 - 物理伤害
+# ============================================================
+# 此文件定义了一个属性的完整配置，展示所有可用字段。
+# 每个属性文件定义了属性的数值范围、显示格式和战斗关联。
+#
+# 字段说明:
+#   id: 属性唯一标识符
+#   display_name: 属性显示名称
+#   value_kind: 数值类型（FLAT = 固定值 / PERCENT = 百分比）
+#   target_type: 关联目标类型（DAMAGE = 伤害类型 / NONE = 无关联）
+#   target_id: 关联的伤害类型 ID
+#   default_value: 默认值
+#   min_value / max_value: 数值范围
+#   allow_negative: 是否允许负值
+#   priority: 属性优先级（影响计算顺序）
+#   lore_format_id: Lore 显示格式（对应 lore_formats/ 下的定义）
+#   attribute_power: 战力权重
+#   description: 属性描述
+#
+# 文件放置位置: plugins/EmakiAttribute/attributes/
+# ============================================================
+
 id: physical_attack
 
 display_name: "物理伤害"

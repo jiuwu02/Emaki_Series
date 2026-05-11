@@ -2,11 +2,13 @@ package emaki.jiuwu.craft.attribute.papi;
 
 import java.util.Arrays;
 import java.util.Locale;
+import java.util.Map;
 
 import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.attribute.model.AttributeSnapshot;
+import emaki.jiuwu.craft.attribute.model.ResourceDefinition;
 import emaki.jiuwu.craft.attribute.model.ResourceState;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
 import emaki.jiuwu.craft.corelib.math.Numbers;
@@ -62,6 +64,9 @@ public final class AttributePlaceholderExpansion extends PlaceholderExpansion {
         if (Texts.isBlank(query.resourceId())) {
             return "";
         }
+        if ("regen".equals(query.field())) {
+            return resolveResourceRegen(query.resourceId());
+        }
         ResourceState state = attributeService.readResourceState(player, query.resourceId());
         if (state == null) {
             return "0";
@@ -80,6 +85,18 @@ public final class AttributePlaceholderExpansion extends PlaceholderExpansion {
             default ->
                 "0";
         };
+    }
+
+    private String resolveResourceRegen(String resourceId) {
+        Map<String, ResourceDefinition> definitions = attributeService.resourceDefinitions();
+        if (definitions == null) {
+            return "0";
+        }
+        ResourceDefinition definition = definitions.get(resourceId);
+        if (definition == null) {
+            return "0";
+        }
+        return Numbers.formatNumber(definition.regenPerSecond(), "0.##");
     }
 
     static String canonicalAttributePlaceholder(String params) {
@@ -112,7 +129,7 @@ public final class AttributePlaceholderExpansion extends PlaceholderExpansion {
     private static String canonicalResourceField(String field) {
         String normalized = normalizeToken(field);
         return switch (normalized) {
-            case "current", "max", "default", "bonus", "percent" ->
+            case "current", "max", "default", "bonus", "percent", "regen" ->
                 normalized;
             default ->
                 "";

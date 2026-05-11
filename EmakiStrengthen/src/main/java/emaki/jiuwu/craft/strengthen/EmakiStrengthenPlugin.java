@@ -150,6 +150,7 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         }
         placeholderExpansion = new StrengthenPlaceholderExpansion(this, attemptService);
         placeholderExpansion.register();
+        messageService.info("console.papi_registered");
     }
 
     public YamlConfigLoader<AppConfig> appConfigLoader() {

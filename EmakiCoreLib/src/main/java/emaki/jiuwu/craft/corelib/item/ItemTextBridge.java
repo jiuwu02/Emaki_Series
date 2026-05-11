@@ -29,15 +29,15 @@ public final class ItemTextBridge {
             return null;
         }
         return itemMeta.hasDisplayName()
-                ? MiniMessages.read(itemMeta.getDisplayName())
-                : MiniMessages.read(itemMeta.getItemName());
+                ? MiniMessages.legacyRead(itemMeta.getDisplayName())
+                : MiniMessages.legacyRead(itemMeta.getItemName());
     }
 
     public static void customName(ItemMeta itemMeta, Component name) {
         if (itemMeta == null) {
             return;
         }
-        itemMeta.setDisplayName(name == null ? null : MiniMessages.serialize(name));
+        itemMeta.setDisplayName(name == null ? null : MiniMessages.legacy(name));
     }
 
     public static void customNameText(ItemMeta itemMeta, String name) {
@@ -57,7 +57,7 @@ public final class ItemTextBridge {
         }
         List<Component> lore = new ArrayList<>(rawLore.size());
         for (String line : rawLore) {
-            lore.add(MiniMessages.read(line));
+            lore.add(MiniMessages.legacyRead(line));
         }
         return lore;
     }
@@ -72,7 +72,7 @@ public final class ItemTextBridge {
         }
         List<String> lines = new ArrayList<>(lore.size());
         for (Component line : lore) {
-            lines.add(MiniMessages.serialize(line));
+            lines.add(MiniMessages.legacy(line));
         }
         itemMeta.setLore(lines);
     }

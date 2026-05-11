@@ -4,11 +4,13 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 import org.bukkit.Bukkit;
+import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
 
 import emaki.jiuwu.craft.attribute.action.AttributeActions;
+import emaki.jiuwu.craft.attribute.action.AttributeDamageSkillAction;
 import emaki.jiuwu.craft.attribute.api.PdcAttributeApi;
 import emaki.jiuwu.craft.attribute.bridge.MmoItemsBridge;
 import emaki.jiuwu.craft.attribute.bridge.MythicBridge;
@@ -27,7 +29,7 @@ import emaki.jiuwu.craft.attribute.papi.AttributePlaceholderExpansion;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
 import emaki.jiuwu.craft.attribute.service.MessageService;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
-import emaki.jiuwu.craft.corelib.integration.EmakiAttributeBridge;
+import emaki.jiuwu.craft.corelib.api.integration.EmakiAttributeBridge;
 import emaki.jiuwu.craft.corelib.plugin.AbstractEmakiPlugin;
 import emaki.jiuwu.craft.corelib.service.EmakiServiceRegistry;
 import emaki.jiuwu.craft.corelib.text.AdventureSupport;
@@ -78,6 +80,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         lifecycleCoordinator.registerCommand(this);
         lifecycleCoordinator.registerListener(this);
         ensurePlaceholderExpansion();
+        registerSkillScriptActions();
         messageService.info("console.plugin_started");
     }
 
@@ -122,6 +125,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         }
         placeholderExpansion = new AttributePlaceholderExpansion(this, attributeService);
         placeholderExpansion.register();
+        messageService.info("console.papi_registered");
     }
 
     public void reloadPluginState(boolean resyncPlayers) {
@@ -174,10 +178,10 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         }
         Bukkit.getServicesManager().unregister(PdcAttributeApi.class, pdcAttributeApi);
         Bukkit.getServicesManager().register(PdcAttributeApi.class, pdcAttributeApi, this, ServicePriority.Normal);
-        emaki.jiuwu.craft.corelib.integration.PdcAttributeApi coreApi =
-                (emaki.jiuwu.craft.corelib.integration.PdcAttributeApi) pdcAttributeApi;
-        Bukkit.getServicesManager().unregister(emaki.jiuwu.craft.corelib.integration.PdcAttributeApi.class, coreApi);
-        Bukkit.getServicesManager().register(emaki.jiuwu.craft.corelib.integration.PdcAttributeApi.class, coreApi, this, ServicePriority.Normal);
+        emaki.jiuwu.craft.corelib.api.integration.PdcAttributeApi coreApi =
+                (emaki.jiuwu.craft.corelib.api.integration.PdcAttributeApi) pdcAttributeApi;
+        Bukkit.getServicesManager().unregister(emaki.jiuwu.craft.corelib.api.integration.PdcAttributeApi.class, coreApi);
+        Bukkit.getServicesManager().register(emaki.jiuwu.craft.corelib.api.integration.PdcAttributeApi.class, coreApi, this, ServicePriority.Normal);
     }
 
     private void registerAttributeBridgeService() {
@@ -278,6 +282,30 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
             return;
         }
         AttributeActions.unregisterAll(coreLibPlugin.actionRegistry());
+    }
+
+    private void registerSkillScriptActions() {
+        if (attributeService == null) {
+            return;
+        }
+        if (!Bukkit.getPluginManager().isPluginEnabled("EmakiSkills")) {
+            return;
+        }
+        try {
+            RegisteredServiceProvider<?> provider = Bukkit.getServicesManager().getRegistration(
+                    Class.forName("emaki.jiuwu.craft.skills.api.SkillScriptActionRegistry"));
+            if (provider == null || provider.getProvider() == null) {
+                return;
+            }
+            Object registry = provider.getProvider();
+            java.lang.reflect.Method registerMethod = registry.getClass().getMethod(
+                    "register", org.bukkit.plugin.Plugin.class,
+                    Class.forName("emaki.jiuwu.craft.skills.api.SkillScriptAction"));
+            registerMethod.invoke(registry, this, new AttributeDamageSkillAction(attributeService));
+            messageService.info("console.skill_action_registered");
+        } catch (Exception exception) {
+            getLogger().warning("Failed to register attribute_damage skill action: " + exception.getMessage());
+        }
     }
 
 }

@@ -6,7 +6,10 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 
+import emaki.jiuwu.craft.corelib.condition.ConditionGroup;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
@@ -42,10 +45,12 @@ final class StrengthenRecipeParser {
                 parseMatchRule(section.getSection("match")),
                 parseStatLines(section.getSection("stat_lines")),
                 parseStars(section.getSection("stars")),
-                section.get("structured_presentation"),
-                section.getStringList("conditions"),
+                ConditionGroup.fromConfig(section, section.getString("condition_type", "all_of"), Numbers.tryParseInt(section.get("condition_required_count"), 0)),
                 section.getString("condition_type", "all_of"),
-                Numbers.tryParseInt(section.get("condition_required_count"), 0)
+                Numbers.tryParseInt(section.get("condition_required_count"), 0),
+                null,
+                section.get("name_actions"),
+                section.get("lore_actions")
         );
     }
 
@@ -166,14 +171,13 @@ final class StrengthenRecipeParser {
             result.put(targetStar, new StarStage(
                     targetStar,
                     stageSection.getString("name", ""),
-                    parseDoubleMap(stageSection.getSection("stats")),
-                    parseDoubleMap(stageSection.getSection("attributes")),
+                    parseVariablesMap(stageSection.getSection("variables")),
+                    parseDoubleMap(stageSection.getSection("ea_attributes")),
                     parseSkillEffects(stageSection.getMapList("effects")),
                     parseStageMaterials(stageSection.getMapList("materials")),
                     parseEconomyOverride(stageSection.getSection("economy_override")),
-                    stageSection.get("structured_presentation"),
-                    stageSection.getStringList("success_actions"),
-                    stageSection.getStringList("failure_actions")
+                    parseActionLines(stageSection.getSection("actions"), "success"),
+                    parseActionLines(stageSection.getSection("actions"), "failure")
             ));
         }
         return result;
@@ -189,7 +193,7 @@ final class StrengthenRecipeParser {
                 continue;
             }
             result.add(new StarStageMaterial(
-                    ConfigNodes.string(rawEntry, "item", ""),
+                    parseMaterialItem(rawEntry),
                     Numbers.tryParseInt(ConfigNodes.get(rawEntry, "amount"), 1),
                     ConfigNodes.bool(rawEntry, "optional", false),
                     ConfigNodes.bool(rawEntry, "protection", false),
@@ -199,22 +203,32 @@ final class StrengthenRecipeParser {
         return List.copyOf(result);
     }
 
+    static List<String> parseActionLines(YamlSection section, String key) {
+        return section == null ? List.of() : section.getStringList(key);
+    }
+
+    static String parseMaterialItem(Object rawEntry) {
+        ItemSource source = ItemSourceUtil.parse(ConfigNodes.get(rawEntry, "item_sources"));
+        String shorthand = ItemSourceUtil.toShorthand(source);
+        return shorthand == null ? "" : shorthand;
+    }
+
     static List<String> parseSkillEffects(List<Map<?, ?>> rawEffects) {
         if (rawEffects == null || rawEffects.isEmpty()) {
             return List.of();
         }
         LinkedHashSet<String> result = new LinkedHashSet<>();
         for (Map<?, ?> rawEffect : rawEffects) {
-            if (!"skill".equals(Texts.lower(ConfigNodes.string(rawEffect, "type", "")))) {
+            if (!"es_skill".equals(Texts.lower(ConfigNodes.string(rawEffect, "type", "")))) {
                 continue;
             }
-            for (Object rawSkill : ConfigNodes.asObjectList(ConfigNodes.get(rawEffect, "skills"))) {
+            for (Object rawSkill : ConfigNodes.asObjectList(ConfigNodes.get(rawEffect, "es_skills"))) {
                 String skillId = Texts.normalizeId(Texts.toStringSafe(rawSkill));
                 if (Texts.isNotBlank(skillId)) {
                     result.add(skillId);
                 }
             }
-            String skillId = Texts.normalizeId(ConfigNodes.string(rawEffect, "skill", ""));
+            String skillId = Texts.normalizeId(ConfigNodes.string(rawEffect, "es_skill", ""));
             if (Texts.isNotBlank(skillId)) {
                 result.add(skillId);
             }
@@ -231,6 +245,35 @@ final class StrengthenRecipeParser {
             Double value = Numbers.tryParseDouble(section.get(key), null);
             if (value != null) {
                 values.put(Texts.lower(key), value);
+            }
+        }
+        return values;
+    }
+
+    /**
+     * Parse a variables map that accepts both plain numbers and expression strings.
+     * Values are stored as-is (Number or String) for later resolution by ExpressionEngine.
+     */
+    static Map<String, Object> parseVariablesMap(YamlSection section) {
+        if (section == null) {
+            return Map.of();
+        }
+        Map<String, Object> values = new LinkedHashMap<>();
+        for (String key : section.getKeys(false)) {
+            Object raw = section.get(key);
+            if (raw == null) {
+                continue;
+            }
+            String normalizedKey = Texts.lower(key);
+            if (raw instanceof Number) {
+                values.put(normalizedKey, raw);
+            } else {
+                String text = Texts.toStringSafe(raw).trim();
+                if (Texts.isNotBlank(text)) {
+                    // Try parsing as plain number first
+                    Double numericValue = Numbers.tryParseDouble(text, null);
+                    values.put(normalizedKey, numericValue != null ? numericValue : text);
+                }
             }
         }
         return values;

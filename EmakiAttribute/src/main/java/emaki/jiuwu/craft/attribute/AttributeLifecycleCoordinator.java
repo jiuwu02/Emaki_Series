@@ -1,7 +1,11 @@
 package emaki.jiuwu.craft.attribute;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
@@ -14,6 +18,7 @@ import emaki.jiuwu.craft.attribute.bridge.ServiceBackedEmakiAttributeBridge;
 import emaki.jiuwu.craft.attribute.bridge.MythicBridge;
 import emaki.jiuwu.craft.attribute.command.AttributeCommand;
 import emaki.jiuwu.craft.attribute.config.AttributeConfig;
+import emaki.jiuwu.craft.attribute.config.DamageCauseRule;
 import emaki.jiuwu.craft.attribute.listener.AttributeListener;
 import emaki.jiuwu.craft.attribute.loader.AttributeBalanceRegistry;
 import emaki.jiuwu.craft.attribute.loader.AttributePresetRegistry;
@@ -28,7 +33,8 @@ import emaki.jiuwu.craft.attribute.service.MessageService;
 import emaki.jiuwu.craft.attribute.service.PdcAttributeService;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
-import emaki.jiuwu.craft.corelib.integration.EmakiAttributeBridge;
+import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.api.integration.EmakiAttributeBridge;
 import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
 import emaki.jiuwu.craft.corelib.yaml.VersionedYamlFile;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
@@ -281,7 +287,13 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
     private AttributeConfig loadConfigModel(EmakiAttributePlugin plugin) {
         try {
             File file = new File(plugin.getDataFolder(), "config.yml");
-            VersionedYamlFile versionedFile = YamlFiles.loadCurrentResource(plugin, file, "config.yml");
+            VersionedYamlFile versionedFile = YamlFiles.syncVersionedResource(
+                    plugin,
+                    file,
+                    "config.yml",
+                    "version",
+                    document -> mergeBundledConfig(document.root(), document.defaults())
+            );
             if (!file.exists()) {
                 plugin.messageService().warning("loader.bundled_resource_missing", Map.of(
                         "type", "配置",
@@ -296,5 +308,64 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
             ));
             return AttributeConfig.defaults();
         }
+    }
+
+    private void mergeBundledConfig(emaki.jiuwu.craft.corelib.yaml.YamlSection runtime,
+            emaki.jiuwu.craft.corelib.yaml.YamlSection bundled) {
+        boolean changed = mergeDefaultProfile(runtime, bundled);
+        if (mergeAllowedDamageCauses(runtime, bundled)) {
+            changed = true;
+        }
+        if (changed) {
+            runtime.set("version", bundled.get("version"));
+        }
+    }
+
+    private boolean mergeDefaultProfile(emaki.jiuwu.craft.corelib.yaml.YamlSection runtime,
+            emaki.jiuwu.craft.corelib.yaml.YamlSection bundled) {
+        if (runtime == null || bundled == null || runtime.contains("default_profile")) {
+            return false;
+        }
+        Object bundledProfile = ConfigNodes.toPlainData(bundled.get("default_profile"));
+        if (bundledProfile == null) {
+            return false;
+        }
+        runtime.set("default_profile", bundledProfile);
+        return true;
+    }
+
+    private boolean mergeAllowedDamageCauses(emaki.jiuwu.craft.corelib.yaml.YamlSection runtime,
+            emaki.jiuwu.craft.corelib.yaml.YamlSection bundled) {
+        if (runtime == null || bundled == null) {
+            return false;
+        }
+        List<Object> runtimeEntries = new ArrayList<>(ConfigNodes.asObjectList(runtime.get("allowed_damage_causes")));
+        List<Object> bundledEntries = ConfigNodes.asObjectList(bundled.get("allowed_damage_causes"));
+        if (bundledEntries.isEmpty()) {
+            return false;
+        }
+        String defaultDamageType = ConfigNodes.string(bundled, "default_damage_type", "physical");
+        Set<String> existingCauses = new LinkedHashSet<>();
+        for (Object entry : runtimeEntries) {
+            DamageCauseRule rule = DamageCauseRule.fromMap(entry, defaultDamageType);
+            if (rule != null) {
+                existingCauses.add(rule.cause());
+            }
+        }
+        boolean changed = false;
+        for (Object entry : bundledEntries) {
+            DamageCauseRule rule = DamageCauseRule.fromMap(entry, defaultDamageType);
+            if (rule == null || existingCauses.contains(rule.cause())) {
+                continue;
+            }
+            runtimeEntries.add(ConfigNodes.toPlainData(entry));
+            existingCauses.add(rule.cause());
+            changed = true;
+        }
+        if (!changed) {
+            return false;
+        }
+        runtime.set("allowed_damage_causes", runtimeEntries);
+        return true;
     }
 }

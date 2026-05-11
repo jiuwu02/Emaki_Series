@@ -1,6 +1,5 @@
 package emaki.jiuwu.craft.corelib.item;
 
-import java.util.Map;
 import java.util.function.Consumer;
 
 import org.bukkit.event.EventHandler;
@@ -12,8 +11,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import net.momirealms.craftengine.bukkit.api.CraftEngineItems;
 import net.momirealms.craftengine.bukkit.api.event.CraftEngineReloadEvent;
-import net.momirealms.craftengine.core.item.CustomItem;
-import net.momirealms.craftengine.core.item.ItemBuildContext;
 import net.momirealms.craftengine.core.util.Key;
 
 final class CraftEngineItemSourceResolver
@@ -88,7 +85,7 @@ final class CraftEngineItemSourceResolver
         @Override
         public boolean detectLoaded() {
             try {
-                Map<Key, CustomItem<ItemStack>> items = CraftEngineItems.loadedItems();
+                Object items = CraftEngineItems.loadedItems();
                 return items != null;
             } catch (RuntimeException | LinkageError exception) {
                 failureReason = exception.getMessage() == null
@@ -110,17 +107,10 @@ final class CraftEngineItemSourceResolver
 
         @Override
         public ItemStack createItem(String identifier, int amount) {
-            try {
-                if (Texts.isBlank(identifier)) {
-                    return null;
-                }
-                CustomItem<ItemStack> customItem = CraftEngineItems.byId(Key.of(identifier));
-                return customItem == null
-                        ? null
-                        : customItem.buildItemStack(ItemBuildContext.empty(), Math.max(1, amount));
-            } catch (RuntimeException | LinkageError exception) {
+            if (Texts.isBlank(identifier)) {
                 return null;
             }
+            return CraftEngineDevApiAccessor.createItem(Key.of(identifier), Math.max(1, amount));
         }
 
         @Override

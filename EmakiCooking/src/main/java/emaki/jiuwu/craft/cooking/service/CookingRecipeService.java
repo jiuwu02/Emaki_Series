@@ -9,6 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 import emaki.jiuwu.craft.cooking.model.RecipeDocument;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
+import emaki.jiuwu.craft.corelib.condition.ConditionGroup;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.math.Numbers;
@@ -92,6 +93,145 @@ public final class CookingRecipeService {
         return recipe == null ? 0 : Math.max(0, recipe.configuration().getInt("required_steam", 0));
     }
 
+    public RecipeDocument findOvenRecipe(String inputSource, Player player) {
+        return findByInput(plugin.ovenRecipeLoader().all().values(), inputSource, player);
+    }
+
+    public int ovenBakeTimeSeconds(RecipeDocument recipe) {
+        return recipe == null ? 0 : Math.max(0, recipe.configuration().getInt("bake_time_seconds", 0));
+    }
+
+    public int ovenPerfectHeatMin(RecipeDocument recipe) {
+        return recipe == null ? settingsService.ovenHeatMin()
+                : Math.max(0, recipe.configuration().getInt("baking.perfect_heat.min", settingsService.ovenHeatMin()));
+    }
+
+    public int ovenPerfectHeatMax(RecipeDocument recipe) {
+        return recipe == null ? settingsService.ovenHeatMax()
+                : Math.max(ovenPerfectHeatMin(recipe), recipe.configuration().getInt("baking.perfect_heat.max", settingsService.ovenHeatMax()));
+    }
+
+    public double ovenPerfectRequiredRatio(RecipeDocument recipe) {
+        if (recipe == null) {
+            return 1.0D;
+        }
+        double value = recipe.configuration().getDouble("baking.perfect_required_ratio", 1.0D);
+        return Math.max(0.0D, Math.min(1.0D, value));
+    }
+
+    public int ovenOverbakeSeconds(RecipeDocument recipe) {
+        return recipe == null ? 0 : Math.max(0, recipe.configuration().getInt("baking.overbake_seconds", 0));
+    }
+
+    public Map<String, Object> ovenOutcomeForStage(RecipeDocument recipe, OvenBakeStage stage) {
+        if (stage == OvenBakeStage.PERFECT) {
+            Map<String, Object> outcome = outcome(recipe, "result.perfect_output");
+            return outcome.isEmpty() ? outcome(recipe, "result.output") : outcome;
+        }
+        if (stage == OvenBakeStage.OVERBAKED) {
+            Map<String, Object> outcome = outcome(recipe, "result.overbaked_output");
+            return outcome.isEmpty() ? outcome(recipe, "result.output") : outcome;
+        }
+        return outcome(recipe, "result.output");
+    }
+
+    public RecipeDocument findJuicerRecipe(String inputSource, Player player) {
+        return findByInput(plugin.juicerRecipeLoader().all().values(), inputSource, player);
+    }
+
+    public int juicerPressesRequired(RecipeDocument recipe) {
+        return recipe == null ? 0 : Math.max(0, recipe.configuration().getInt("presses_required", 0));
+    }
+
+    public boolean juicerHasFluidMode(RecipeDocument recipe) {
+        return Texts.isNotBlank(juicerFluidId(recipe));
+    }
+
+    public String juicerFluidId(RecipeDocument recipe) {
+        return recipe == null ? "" : Texts.toStringSafe(recipe.configuration().getString("fluid.id", "")).trim();
+    }
+
+    public String juicerFluidDisplayName(RecipeDocument recipe) {
+        if (recipe == null) {
+            return "";
+        }
+        String displayName = recipe.configuration().getString("fluid.display_name", "");
+        return Texts.isBlank(displayName) ? juicerFluidId(recipe) : displayName;
+    }
+
+    public int juicerFluidAmountMl(RecipeDocument recipe) {
+        return recipe == null ? 0 : Math.max(0, recipe.configuration().getInt("fluid.amount_ml", 0));
+    }
+
+    public int juicerServingMl(RecipeDocument recipe) {
+        return recipe == null ? settingsService.juicerDefaultServingMl()
+                : Math.max(1, recipe.configuration().getInt("container.serving_ml", settingsService.juicerDefaultServingMl()));
+    }
+
+    public RecipeDocument findJuicerRecipeByFluidId(String fluidId, Player player) {
+        if (Texts.isBlank(fluidId)) {
+            return null;
+        }
+        for (RecipeDocument recipe : plugin.juicerRecipeLoader().all().values()) {
+            if (recipe == null || !fluidId.equalsIgnoreCase(juicerFluidId(recipe)) || !canUseRecipe(recipe, player)) {
+                continue;
+            }
+            return recipe;
+        }
+        return null;
+    }
+
+    public List<ItemSource> juicerContainerSources(RecipeDocument recipe) {
+        if (recipe == null) {
+            return List.of();
+        }
+        return parseItemSources(recipe.configuration().get("container.item_sources"));
+    }
+
+    public Collection<RecipeDocument> fermentationBarrelRecipes() {
+        Collection<RecipeDocument> recipes = plugin.fermentationBarrelRecipeLoader().all().values();
+        return recipes == null || recipes.isEmpty() ? List.of() : List.copyOf(recipes);
+    }
+
+    public RecipeDocument fermentationBarrelRecipeById(String recipeId) {
+        return Texts.isBlank(recipeId) ? null : plugin.fermentationBarrelRecipeLoader().get(recipeId);
+    }
+
+    public int fermentationTimeSeconds(RecipeDocument recipe) {
+        return recipe == null ? 0 : Math.max(0, recipe.configuration().getInt("fermentation_time_seconds", 0));
+    }
+
+    public double fermentationEarlyMinProgressRatio(RecipeDocument recipe) {
+        if (recipe == null || outcome(recipe, "fermentation.early_collect.output").isEmpty()) {
+            return -1.0D;
+        }
+        double value = recipe.configuration().getDouble("fermentation.early_collect.min_progress_ratio", 1.0D);
+        return Math.max(0.0D, Math.min(1.0D, value));
+    }
+
+    public int fermentationOverTimeSeconds(RecipeDocument recipe) {
+        if (recipe == null || outcome(recipe, "fermentation.over_output").isEmpty()) {
+            return 0;
+        }
+        return Math.max(0, recipe.configuration().getInt("fermentation.over_time_seconds", 0));
+    }
+
+    public Map<String, Object> fermentationOutcomeForStage(RecipeDocument recipe, FermentationStage stage) {
+        if (stage == FermentationStage.EARLY) {
+            Map<String, Object> outcome = outcome(recipe, "fermentation.early_collect.output");
+            return outcome.isEmpty() ? outcome(recipe, "result.output") : outcome;
+        }
+        if (stage == FermentationStage.OVER) {
+            Map<String, Object> outcome = outcome(recipe, "fermentation.over_output");
+            return outcome.isEmpty() ? outcome(recipe, "result.output") : outcome;
+        }
+        return outcome(recipe, "result.output");
+    }
+
+    public List<Map<String, Object>> fermentationInputs(RecipeDocument recipe) {
+        return recipe == null ? List.of() : mapList(recipe.configuration().getMapList("inputs"));
+    }
+
     public List<Map<String, Object>> wokIngredients(RecipeDocument recipe) {
         return recipe == null ? List.of() : mapList(recipe.configuration().getMapList("ingredients"));
     }
@@ -112,13 +252,10 @@ public final class CookingRecipeService {
         if (player != null && Texts.isNotBlank(permission) && !player.hasPermission(permission)) {
             return false;
         }
-        List<String> conditions = recipe.configuration().getStringList("conditions");
-        if (player != null && !conditions.isEmpty()) {
-            String conditionType = recipe.configuration().getString("condition_type", "all_of");
+        ConditionGroup conditions = ConditionGroup.fromConfig(recipe.configuration(), recipe.configuration().getString("condition_type", "all_of"), 0);
+        if (player != null && !conditions.emptyGroup()) {
             return ConditionEvaluator.evaluate(
                     conditions,
-                    conditionType,
-                    null,
                     text -> resolvePlaceholders(player, text),
                     true
             );
@@ -177,7 +314,7 @@ public final class CookingRecipeService {
             }
             return normalized.isEmpty() ? List.of() : List.copyOf(normalized);
         }
-        if (ItemSourceUtil.parse(outcome.get("source")) == null) {
+        if (ItemSourceUtil.parse(outcome.get("item_sources")) == null) {
             return List.of();
         }
         Map<String, Object> singleOutput = new java.util.LinkedHashMap<>(outcome);
@@ -244,7 +381,7 @@ public final class CookingRecipeService {
                 continue;
             }
             ItemSource configured = parsedSourceCache.computeIfAbsent(recipe,
-                    r -> ItemSourceUtil.parse(r.configuration().getString("input.source", "")));
+                    r -> ItemSourceUtil.parse(r.configuration().get("input.item_sources")));
             if (configured == null || !ItemSourceUtil.matches(configured, expected)) {
                 continue;
             }
@@ -267,7 +404,7 @@ public final class CookingRecipeService {
                 return false;
             }
             Map<String, Object> expected = expectedIngredients.get(index);
-            String expectedSource = String.valueOf(expected.getOrDefault("source", ""));
+            String expectedSource = firstSourceShorthand(expected.get("item_sources"));
             int expectedAmount = Math.max(1, Numbers.tryParseInt(expected.get("amount"), 1));
             if (!ItemSourceUtil.matches(ItemSourceUtil.parse(expectedSource), ItemSourceUtil.parse(actual.source()))) {
                 return false;
@@ -280,6 +417,23 @@ public final class CookingRecipeService {
             }
         }
         return true;
+    }
+
+    private String firstSourceShorthand(Object raw) {
+        ItemSource source = ItemSourceUtil.parse(raw);
+        String shorthand = ItemSourceUtil.toShorthand(source);
+        return shorthand == null ? "" : shorthand;
+    }
+
+    private List<ItemSource> parseItemSources(Object raw) {
+        List<ItemSource> sources = new ArrayList<>();
+        for (Object token : emaki.jiuwu.craft.corelib.config.ConfigNodes.asObjectList(raw)) {
+            ItemSource source = ItemSourceUtil.parse(token);
+            if (source != null) {
+                sources.add(source);
+            }
+        }
+        return sources.isEmpty() ? List.of() : List.copyOf(sources);
     }
 
     public void clearCaches() {

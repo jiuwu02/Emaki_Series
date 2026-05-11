@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.forge.papi;
 
 import java.util.Locale;
+import java.util.Map;
 
 import org.bukkit.entity.Player;
 
@@ -46,6 +47,11 @@ public final class ForgePlaceholderExpansion extends PlaceholderExpansion {
             return "";
         }
         String normalized = params.trim().toLowerCase(Locale.ROOT);
+
+        if ("recipe_count".equals(normalized)) {
+            return String.valueOf(plugin.recipeLoader().all().size());
+        }
+
         if (normalized.startsWith("craft_count_")) {
             String recipeId = normalized.substring("craft_count_".length());
             if (Texts.isBlank(recipeId)) {
@@ -64,6 +70,9 @@ public final class ForgePlaceholderExpansion extends PlaceholderExpansion {
             PlayerData data = playerDataStore.get(player.getUniqueId());
             return String.valueOf(data.totalCraftCount());
         }
+        if ("last_crafted".equals(normalized)) {
+            return resolveLastCrafted(player);
+        }
         if (normalized.startsWith("guarantee_")) {
             String key = normalized.substring("guarantee_".length());
             if (Texts.isBlank(key)) {
@@ -72,5 +81,35 @@ public final class ForgePlaceholderExpansion extends PlaceholderExpansion {
             return String.valueOf(playerDataStore.guaranteeCounter(player.getUniqueId(), key));
         }
         return "";
+    }
+
+    private String resolveLastCrafted(Player player) {
+        PlayerData data = playerDataStore.get(player.getUniqueId());
+        if (data == null) {
+            return "";
+        }
+        // Find the recipe with the most recent lastCraftedAt timestamp
+        String lastRecipeId = "";
+        String latestTimestamp = "";
+        for (Map.Entry<String, Object> entry : data.toMap().entrySet()) {
+            if (!"recipes".equals(entry.getKey()) || !(entry.getValue() instanceof Map<?, ?> recipes)) {
+                continue;
+            }
+            for (Map.Entry<?, ?> recipeEntry : recipes.entrySet()) {
+                if (!(recipeEntry.getValue() instanceof Map<?, ?> historyMap)) {
+                    continue;
+                }
+                Object lastAt = historyMap.get("last_crafted_at");
+                if (lastAt == null) {
+                    continue;
+                }
+                String timestamp = String.valueOf(lastAt);
+                if (timestamp.compareTo(latestTimestamp) > 0) {
+                    latestTimestamp = timestamp;
+                    lastRecipeId = String.valueOf(recipeEntry.getKey());
+                }
+            }
+        }
+        return lastRecipeId;
     }
 }

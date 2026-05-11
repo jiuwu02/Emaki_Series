@@ -1,0 +1,651 @@
+# ============================================================
+# EmakiStrengthen 强化分支配方示例
+# ============================================================
+# 此文件展示了带有分支选择的强化配方。
+# 与线性强化不同，分支强化允许玩家在达到特定星级后
+# 选择不同的强化路线，每条路线提供不同的属性和技能方向。
+#
+# 分支系统核心概念:
+#   - branch_tree: 分支树结构，定义所有可能的强化路线
+#   - fork_after_star: 在哪个星级后出现分叉选择
+#   - branch_path: 玩家选择的路径（如 "sharp/lethal"）
+#   - 分支可以嵌套（分支中还可以再分叉）
+#
+# 文件放置位置: plugins/EmakiStrengthen/recipes/
+# 文件名即为配方的内部标识，加载时自动注册。
+# ============================================================
+
+# 配方唯一标识符（必填）
+id: "example_branch_recipe"
+
+# 配方显示名称（支持 MiniMessage 格式）
+display_name: "<gradient:#FFD700:#FF4500>武器精炼（分支）</gradient>"
+
+# GUI 模板引用
+gui_template: "strengthen_gui"
+
+# ============================================================
+# 经济系统配置
+# ============================================================
+economy:
+  enabled: true
+  currencies:
+    - provider: "vault"
+      currency_id: ""
+      base_cost: 500
+      cost_formula: "{base_cost} * {star}"
+      display_name: "<gold>金币</gold>"
+
+# ============================================================
+# 强化限制
+# ============================================================
+limits:
+  max_star: 10
+  max_temper: 4
+  temper_chance_bonus_per_level: 5.0
+  success_chance_cap: 90.0
+
+# ============================================================
+# 各星级基础成功率
+# ============================================================
+success_rates:
+  1: 100.0
+  2: 100.0
+  3: 95.0
+  4: 85.0
+  5: 75.0
+  6: 60.0
+  7: 45.0
+  8: 32.0
+  9: 22.0
+  10: 14.0
+
+# ============================================================
+# 匹配规则
+# ============================================================
+match:
+  slot_groups:
+    - "weapon"
+
+# ============================================================
+# 全局名称与 Lore 修改
+# ============================================================
+name_actions:
+  - action: "append_suffix"
+    value: " <gradient:#FFD700:#FF4500>[+{star}]</gradient>"
+
+lore_actions:
+  - action: "prepend"
+    content:
+      - "<gradient:#FFD700:#FF4500>精炼等级 +{star}</gradient>"
+      - "<gray>锻印: {temper_color}{temper}/{max_temper}</gray>"
+
+# ============================================================
+# 分支树定义
+# ============================================================
+# 分支树是一个嵌套结构，定义了所有可能的强化路线。
+#
+# 结构说明:
+#   branch_id: 分支标识符（根节点使用 "root"）
+#   display_name: 分支显示名称（用于 GUI 中的选择界面）
+#   fork_after_star: 在此星级完成后弹出分支选择（-1 = 不分叉）
+#   stars: 此分支内的星级阶段定义（与线性配方的 stars 格式相同）
+#   children: 子分支列表（fork_after_star 之后可选的路线）
+#
+# 本示例的分支结构:
+#   root (★1-4) → fork_after_star: 4
+#     ├── sharp (锋锐路线 ★5-7) → fork_after_star: 7
+#     │     ├── lethal (致命路线 ★8-10): 极致暴击
+#     │     └── swift (迅捷路线 ★8-10): 攻速 + 穿透
+#     └── heavy (重击路线 ★5-10): 纯粹高伤害
+#
+branch_tree:
+  branch_id: "root"
+  display_name: "<white>基础精炼</white>"
+  # 在 +4 完成后，玩家需要选择分支
+  fork_after_star: 4
+
+  # ---- 根节点的星级（所有路线共享 ★1-4）----
+  stars:
+    1:
+      effects:
+        - type: "variables"
+          variables:
+            physical_attack: 5
+        - type: "lore_action"
+          lore_actions:
+            - action: "append"
+              content:
+                - "<gray>物理伤害: <gold>+5</gold></gray>"
+      materials:
+        - item_sources:
+            - "minecraft-copper_ingot"
+          amount: 2
+        - item_sources:
+            - "minecraft-gunpowder"
+          amount: 3
+
+    2:
+      effects:
+        - type: "variables"
+          variables:
+            physical_attack: 6
+        - type: "lore_action"
+          lore_actions:
+            - action: "replace_line"
+              anchor: "物理伤害:"
+              content:
+                - "<gray>物理伤害: <gold>+11</gold></gray>"
+      materials:
+        - item_sources:
+            - "minecraft-copper_ingot"
+          amount: 2
+        - item_sources:
+            - "minecraft-gunpowder"
+          amount: 4
+
+    3:
+      effects:
+        - type: "variables"
+          variables:
+            physical_attack: 7
+        - type: "lore_action"
+          lore_actions:
+            - action: "replace_line"
+              anchor: "物理伤害:"
+              content:
+                - "<gray>物理伤害: <gold>+18</gold></gray>"
+      materials:
+        - item_sources:
+            - "minecraft-copper_ingot"
+          amount: 3
+        - item_sources:
+            - "minecraft-gunpowder"
+          amount: 5
+
+    4:
+      name: "<yellow>分支选择</yellow>"
+      effects:
+        - type: "variables"
+          variables:
+            physical_attack: 8
+        - type: "lore_action"
+          lore_actions:
+            - action: "replace_line"
+              anchor: "物理伤害:"
+              content:
+                - "<gray>物理伤害: <gold>+26</gold></gray>"
+                - ""
+                - "<yellow>★ 达到 +4，请选择精炼方向</yellow>"
+      materials:
+        - item_sources:
+            - "minecraft-copper_ingot"
+          amount: 4
+        - item_sources:
+            - "minecraft-gunpowder"
+          amount: 6
+      actions:
+        success:
+          - 'sendmessage text="<yellow>精炼达到 +4，请选择你的强化方向！</yellow>"'
+
+  # ============================================================
+  # 子分支定义
+  # ============================================================
+  children:
+    # ---- 分支 A: 锋锐路线（暴击方向，★5-7 后再次分叉）----
+    sharp:
+      branch_id: "sharp"
+      display_name: "<red>锋锐路线</red>"
+      # 锋锐路线在 +7 后再次分叉
+      fork_after_star: 7
+
+      stars:
+        5:
+          name: "<red>锋锐 I</red>"
+          effects:
+            - type: "variables"
+              variables:
+                physical_attack: 6
+                physical_crit_rate: 3
+            - type: "lore_action"
+              lore_actions:
+                - action: "append"
+                  content:
+                    - "<gray>物理伤害: <gold>+32</gold></gray>"
+                    - "<gray>物理暴击率: <gold>+3%</gold></gray>"
+                    - "<red>◆ 锋锐路线</red>"
+          materials:
+            - item_sources:
+                - "minecraft-copper_ingot"
+              amount: 5
+            - item_sources:
+                - "minecraft-flint"
+              amount: 3
+          actions:
+            success:
+              - 'sendmessage text="<red>选择了锋锐路线，暴击率开始提升。</red>"'
+
+        6:
+          effects:
+            - type: "variables"
+              variables:
+                physical_attack: 7
+                physical_crit_rate: 3
+            - type: "lore_action"
+              lore_actions:
+                - action: "replace_line"
+                  anchor: "物理伤害:"
+                  content:
+                    - "<gray>物理伤害: <gold>+39</gold></gray>"
+                - action: "replace_line"
+                  anchor: "物理暴击率:"
+                  content:
+                    - "<gray>物理暴击率: <gold>+6%</gold></gray>"
+          materials:
+            - item_sources:
+                - "minecraft-copper_ingot"
+              amount: 6
+            - item_sources:
+                - "minecraft-flint"
+              amount: 4
+
+        7:
+          name: "<red>锋锐 II - 二次分叉</red>"
+          effects:
+            - type: "variables"
+              variables:
+                physical_attack: 8
+                physical_crit_rate: 4
+            - type: "lore_action"
+              lore_actions:
+                - action: "replace_line"
+                  anchor: "物理伤害:"
+                  content:
+                    - "<gray>物理伤害: <gold>+47</gold></gray>"
+                - action: "replace_line"
+                  anchor: "物理暴击率:"
+                  content:
+                    - "<gray>物理暴击率: <gold>+10%</gold></gray>"
+                    - ""
+                    - "<yellow>★ 达到 +7，请选择进阶方向</yellow>"
+          materials:
+            - item_sources:
+                - "minecraft-copper_ingot"
+              amount: 7
+            - item_sources:
+                - "minecraft-flint"
+              amount: 5
+          actions:
+            success:
+              - 'sendmessage text="<yellow>锋锐路线达到 +7，请选择进阶方向！</yellow>"'
+
+      # ---- 锋锐路线的子分支 ----
+      children:
+        # 子分支 A-1: 致命路线（极致暴击伤害）
+        lethal:
+          branch_id: "lethal"
+          display_name: "<dark_red>致命路线</dark_red>"
+          fork_after_star: -1
+
+          stars:
+            8:
+              name: "<dark_red>致命 I</dark_red>"
+              effects:
+                - type: "variables"
+                  variables:
+                    physical_attack: 9
+                    physical_crit_rate: 5
+                    physical_crit_damage: 8
+                - type: "lore_action"
+                  lore_actions:
+                    - action: "replace_line"
+                      anchor: "物理伤害:"
+                      content:
+                        - "<gray>物理伤害: <gold>+56</gold></gray>"
+                    - action: "replace_line"
+                      anchor: "物理暴击率:"
+                      content:
+                        - "<gray>物理暴击率: <gold>+15%</gold></gray>"
+                    - action: "append"
+                      content:
+                        - "<gray>物理暴伤: <gold>+8%</gold></gray>"
+                        - "<dark_red>◆ 致命路线</dark_red>"
+              materials:
+                - item_sources:
+                    - "minecraft-echo_shard"
+                  amount: 2
+                - item_sources:
+                    - "minecraft-flint"
+                  amount: 6
+
+            9:
+              effects:
+                - type: "variables"
+                  variables:
+                    physical_attack: 10
+                    physical_crit_damage: 10
+                - type: "lore_action"
+                  lore_actions:
+                    - action: "replace_line"
+                      anchor: "物理伤害:"
+                      content:
+                        - "<gray>物理伤害: <gold>+66</gold></gray>"
+                    - action: "replace_line"
+                      anchor: "物理暴击率:"
+                      content:
+                        - "<gray>物理暴击率: <gold>+15%</gold></gray>"
+                    - action: "replace_line"
+                      anchor: "物理暴伤:"
+                      content:
+                        - "<gray>物理暴伤: <gold>+18%</gold></gray>"
+              materials:
+                - item_sources:
+                    - "minecraft-echo_shard"
+                  amount: 3
+                - item_sources:
+                    - "minecraft-flint"
+                  amount: 8
+
+            10:
+              name: "<dark_red>致命 III - 终极</dark_red>"
+              effects:
+                - type: "variables"
+                  variables:
+                    physical_attack: 12
+                    physical_crit_rate: 5
+                    physical_crit_damage: 15
+                - type: "es_skill"
+                  es_skills:
+                    - "lethal_strike"
+                - type: "lore_action"
+                  lore_actions:
+                    - action: "replace_line"
+                      anchor: "物理伤害:"
+                      content:
+                        - "<gray>物理伤害: <gold>+78</gold></gray>"
+                    - action: "replace_line"
+                      anchor: "物理暴击率:"
+                      content:
+                        - "<gray>物理暴击率: <gold>+20%</gold></gray>"
+                    - action: "replace_line"
+                      anchor: "物理暴伤:"
+                      content:
+                        - "<gray>物理暴伤: <gold>+33%</gold></gray>"
+                        - "<dark_red>★ 解锁终极: 致命一击</dark_red>"
+              materials:
+                - item_sources:
+                    - "minecraft-netherite_ingot"
+                  amount: 1
+                - item_sources:
+                    - "minecraft-echo_shard"
+                  amount: 4
+              actions:
+                success:
+                  - 'sendtitle title="<dark_red><bold>致命一击</bold></dark_red>" subtitle="<gray>终极暴击技能已解锁</gray>"'
+                  - "playsound sound=minecraft:ui.toast.challenge_complete volume=1 pitch=1"
+
+        # 子分支 A-2: 迅捷路线（攻速 + 穿透）
+        swift:
+          branch_id: "swift"
+          display_name: "<aqua>迅捷路线</aqua>"
+          fork_after_star: -1
+
+          stars:
+            8:
+              name: "<aqua>迅捷 I</aqua>"
+              effects:
+                - type: "variables"
+                  variables:
+                    physical_attack: 7
+                    attack_speed: 5
+                    physical_armor_penetration: 4
+                - type: "lore_action"
+                  lore_actions:
+                    - action: "replace_line"
+                      anchor: "物理伤害:"
+                      content:
+                        - "<gray>物理伤害: <gold>+54</gold></gray>"
+                    - action: "replace_line"
+                      anchor: "物理暴击率:"
+                      content:
+                        - "<gray>物理暴击率: <gold>+10%</gold></gray>"
+                    - action: "append"
+                      content:
+                        - "<gray>攻击速度: <gold>+5%</gold></gray>"
+                        - "<gray>物理穿透: <gold>+4</gold></gray>"
+                        - "<aqua>◆ 迅捷路线</aqua>"
+              materials:
+                - item_sources:
+                    - "minecraft-feather"
+                  amount: 4
+                - item_sources:
+                    - "minecraft-flint"
+                  amount: 6
+
+            9:
+              effects:
+                - type: "variables"
+                  variables:
+                    physical_attack: 8
+                    attack_speed: 5
+                    physical_armor_penetration: 5
+                - type: "lore_action"
+                  lore_actions:
+                    - action: "replace_line"
+                      anchor: "物理伤害:"
+                      content:
+                        - "<gray>物理伤害: <gold>+62</gold></gray>"
+                    - action: "replace_line"
+                      anchor: "物理暴击率:"
+                      content:
+                        - "<gray>物理暴击率: <gold>+10%</gold></gray>"
+                    - action: "replace_line"
+                      anchor: "攻击速度:"
+                      content:
+                        - "<gray>攻击速度: <gold>+10%</gold></gray>"
+                    - action: "replace_line"
+                      anchor: "物理穿透:"
+                      content:
+                        - "<gray>物理穿透: <gold>+9</gold></gray>"
+              materials:
+                - item_sources:
+                    - "minecraft-feather"
+                  amount: 6
+                - item_sources:
+                    - "minecraft-flint"
+                  amount: 8
+
+            10:
+              name: "<aqua>迅捷 III - 终极</aqua>"
+              effects:
+                - type: "variables"
+                  variables:
+                    physical_attack: 10
+                    attack_speed: 8
+                    physical_armor_penetration: 6
+                - type: "es_skill"
+                  es_skills:
+                    - "swift_assault"
+                - type: "lore_action"
+                  lore_actions:
+                    - action: "replace_line"
+                      anchor: "物理伤害:"
+                      content:
+                        - "<gray>物理伤害: <gold>+72</gold></gray>"
+                    - action: "replace_line"
+                      anchor: "物理暴击率:"
+                      content:
+                        - "<gray>物理暴击率: <gold>+10%</gold></gray>"
+                    - action: "replace_line"
+                      anchor: "攻击速度:"
+                      content:
+                        - "<gray>攻击速度: <gold>+18%</gold></gray>"
+                    - action: "replace_line"
+                      anchor: "物理穿透:"
+                      content:
+                        - "<gray>物理穿透: <gold>+15</gold></gray>"
+                        - "<aqua>★ 解锁终极: 疾风连斩</aqua>"
+              materials:
+                - item_sources:
+                    - "minecraft-netherite_ingot"
+                  amount: 1
+                - item_sources:
+                    - "minecraft-feather"
+                  amount: 8
+              actions:
+                success:
+                  - 'sendtitle title="<aqua><bold>疾风连斩</bold></aqua>" subtitle="<gray>终极攻速技能已解锁</gray>"'
+                  - "playsound sound=minecraft:ui.toast.challenge_complete volume=1 pitch=1"
+
+    # ---- 分支 B: 重击路线（纯粹高伤害，无二次分叉）----
+    heavy:
+      branch_id: "heavy"
+      display_name: "<gold>重击路线</gold>"
+      # fork_after_star: -1 表示此分支不再分叉
+      fork_after_star: -1
+
+      stars:
+        5:
+          name: "<gold>重击 I</gold>"
+          effects:
+            - type: "variables"
+              variables:
+                physical_attack: 12
+            - type: "lore_action"
+              lore_actions:
+                - action: "append"
+                  content:
+                    - "<gray>物理伤害: <gold>+38</gold></gray>"
+                    - "<gold>◆ 重击路线</gold>"
+          materials:
+            - item_sources:
+                - "minecraft-iron_ingot"
+              amount: 4
+            - item_sources:
+                - "minecraft-gunpowder"
+              amount: 8
+          actions:
+            success:
+              - 'sendmessage text="<gold>选择了重击路线，伤害大幅提升。</gold>"'
+
+        6:
+          effects:
+            - type: "variables"
+              variables:
+                physical_attack: 14
+            - type: "lore_action"
+              lore_actions:
+                - action: "replace_line"
+                  anchor: "物理伤害:"
+                  content:
+                    - "<gray>物理伤害: <gold>+52</gold></gray>"
+          materials:
+            - item_sources:
+                - "minecraft-iron_ingot"
+              amount: 5
+            - item_sources:
+                - "minecraft-gunpowder"
+              amount: 10
+
+        7:
+          effects:
+            - type: "variables"
+              variables:
+                physical_attack: 16
+            - type: "lore_action"
+              lore_actions:
+                - action: "replace_line"
+                  anchor: "物理伤害:"
+                  content:
+                    - "<gray>物理伤害: <gold>+68</gold></gray>"
+          materials:
+            - item_sources:
+                - "minecraft-iron_ingot"
+              amount: 6
+            - item_sources:
+                - "minecraft-gunpowder"
+              amount: 12
+
+        8:
+          name: "<gold>重击 II</gold>"
+          effects:
+            - type: "variables"
+              variables:
+                physical_attack: 18
+                physical_damage_bonus: 5
+            - type: "lore_action"
+              lore_actions:
+                - action: "replace_line"
+                  anchor: "物理伤害:"
+                  content:
+                    - "<gray>物理伤害: <gold>+86</gold></gray>"
+                - action: "append"
+                  content:
+                    - "<gray>物理增伤: <gold>+5%</gold></gray>"
+          materials:
+            - item_sources:
+                - "minecraft-iron_ingot"
+              amount: 8
+            - item_sources:
+                - "minecraft-gunpowder"
+              amount: 16
+          actions:
+            success:
+              - 'sendtitle title="<gold><bold>+8 重击强化</bold></gold>" subtitle="<yellow>增伤已解锁</yellow>"'
+
+        9:
+          effects:
+            - type: "variables"
+              variables:
+                physical_attack: 20
+                physical_damage_bonus: 5
+            - type: "lore_action"
+              lore_actions:
+                - action: "replace_line"
+                  anchor: "物理伤害:"
+                  content:
+                    - "<gray>物理伤害: <gold>+106</gold></gray>"
+                - action: "replace_line"
+                  anchor: "物理增伤:"
+                  content:
+                    - "<gray>物理增伤: <gold>+10%</gold></gray>"
+          materials:
+            - item_sources:
+                - "minecraft-iron_ingot"
+              amount: 10
+            - item_sources:
+                - "minecraft-gunpowder"
+              amount: 20
+
+        10:
+          name: "<gold>重击 III - 终极</gold>"
+          effects:
+            - type: "variables"
+              variables:
+                physical_attack: 24
+                physical_damage_bonus: 8
+            - type: "es_skill"
+              es_skills:
+                - "heavy_smash"
+            - type: "lore_action"
+              lore_actions:
+                - action: "replace_line"
+                  anchor: "物理伤害:"
+                  content:
+                    - "<gray>物理伤害: <gold>+130</gold></gray>"
+                - action: "replace_line"
+                  anchor: "物理增伤:"
+                  content:
+                    - "<gray>物理增伤: <gold>+18%</gold></gray>"
+                    - "<gold>★ 解锁终极: 重锤一击</gold>"
+          materials:
+            - item_sources:
+                - "minecraft-netherite_ingot"
+              amount: 1
+            - item_sources:
+                - "minecraft-iron_ingot"
+              amount: 12
+          actions:
+            success:
+              - 'sendtitle title="<gold><bold>重锤一击</bold></gold>" subtitle="<gray>终极重击技能已解锁</gray>"'
+              - "playsound sound=minecraft:ui.toast.challenge_complete volume=1 pitch=1"

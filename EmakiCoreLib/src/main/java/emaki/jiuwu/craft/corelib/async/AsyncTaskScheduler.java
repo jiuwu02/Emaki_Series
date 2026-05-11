@@ -245,12 +245,14 @@ public final class AsyncTaskScheduler implements AutoCloseable {
 
     public void shutdown(long timeoutMillis) {
         // 在关闭线程池前，向每个工作线程提交 ThreadLocal 清理任务
-        int poolSize = executor.getCorePoolSize();
-        for (int i = 0; i < poolSize; i++) {
-            try {
-                executor.execute(ExpressionEngine::clearThreadLocalCache);
-            } catch (java.util.concurrent.RejectedExecutionException _) {
-                break;
+        if (!executor.isShutdown()) {
+            int poolSize = executor.getCorePoolSize();
+            for (int i = 0; i < poolSize; i++) {
+                try {
+                    executor.execute(new ComparableRunnable(ExpressionEngine::clearThreadLocalCache));
+                } catch (java.util.concurrent.RejectedExecutionException | ClassCastException _) {
+                    break;
+                }
             }
         }
         executor.shutdown();
@@ -379,6 +381,30 @@ public final class AsyncTaskScheduler implements AutoCloseable {
             Thread thread = new Thread(runnable, prefix + "-" + counter.incrementAndGet());
             thread.setDaemon(true);
             return thread;
+        }
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private static final class ComparableRunnable implements Runnable, Comparable {
+
+        private final Runnable delegate;
+
+        private ComparableRunnable(Runnable delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public void run() {
+            delegate.run();
+        }
+
+        @Override
+        public int compareTo(Object other) {
+            // 清理任务优先级最低，排在所有正常任务之后
+            if (other instanceof ComparableRunnable) {
+                return 0;
+            }
+            return 1;
         }
     }
 }

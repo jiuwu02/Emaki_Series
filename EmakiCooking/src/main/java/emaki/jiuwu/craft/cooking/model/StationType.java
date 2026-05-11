@@ -5,7 +5,10 @@ public enum StationType {
     CHOPPING_BOARD("chopping_board", "砧板"),
     WOK("wok", "炒锅"),
     GRINDER("grinder", "研磨机"),
-    STEAMER("steamer", "蒸锅");
+    STEAMER("steamer", "蒸锅"),
+    OVEN("oven", "烤炉"),
+    JUICER("juicer", "榨汁机"),
+    FERMENTATION_BARREL("fermentation_barrel", "发酵桶");
 
     private final String folderName;
     private final String displayName;

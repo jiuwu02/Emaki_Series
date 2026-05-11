@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.forge.service;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -16,10 +17,12 @@ import emaki.jiuwu.craft.corelib.action.ActionExecutor;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
+import emaki.jiuwu.craft.corelib.assembly.ItemOperationLedger;
 import emaki.jiuwu.craft.corelib.cache.CacheManager;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
+import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.monitor.PerformanceMonitor;
 import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -39,6 +42,7 @@ public final class ForgeService {
 
     private static final int PREPARED_FORGE_CACHE_SIZE = 128;
     private static final long PREPARED_FORGE_CACHE_TTL_MILLIS = 30_000L;
+    private static final String OPERATION_NAMESPACE = "forge";
 
     public record PreparedForge(EmakiItemAssemblyRequest request,
             QualitySettings.QualityTier rolledQualityTier,
@@ -68,6 +72,7 @@ public final class ForgeService {
     private final EmakiItemAssemblyService itemAssemblyService;
     private final AsyncTaskScheduler asyncTaskScheduler;
     private final PerformanceMonitor performanceMonitor;
+    private final ItemOperationLedger operationLedger;
 
     public ForgeService(EmakiForgePlugin plugin,
             AsyncTaskScheduler asyncTaskScheduler,
@@ -78,6 +83,7 @@ public final class ForgeService {
         this.asyncTaskScheduler = asyncTaskScheduler;
         this.performanceMonitor = performanceMonitor;
         this.itemAssemblyService = itemAssemblyService;
+        this.operationLedger = new ItemOperationLedger();
         this.layerSnapshotBuilder = new ForgeLayerSnapshotBuilder(plugin);
         this.resultItemFactory = new ForgeResultItemFactory(plugin);
         this.pdcAttributeWriter = new ForgePdcAttributeWriter(plugin);
@@ -181,11 +187,9 @@ public final class ForgeService {
                 && !player.hasPermission(recipe.permission())) {
             return ValidationResult.fail("forge.error.permission_denied");
         }
-        if (!recipe.conditions().isEmpty()) {
+        if (!recipe.conditions().emptyGroup()) {
             boolean conditionsPassed = ConditionEvaluator.evaluate(
                     recipe.conditions(),
-                    recipe.conditionType(),
-                    recipe.conditionRequiredCount(),
                     text -> replacePlaceholders(player, text),
                     config.invalidAsFailure()
             );
@@ -360,7 +364,7 @@ public final class ForgeService {
                 guiItems,
                 buildRollKey(buildPreviewFingerprint(player, recipe, guiItems), previewSeed)
         );
-        EmakiItemAssemblyRequest request = resultItemFactory.buildAssemblyRequest(recipe, guiItems, rollPlan.multiplier(), rollPlan.finalTier(), forgedAt);
+        EmakiItemAssemblyRequest request = resultItemFactory.buildAssemblyRequest(recipe, guiItems, rollPlan.multiplier(), rollPlan.finalTier(), forgedAt, player);
         if (request == null) {
             return null;
         }
@@ -391,6 +395,83 @@ public final class ForgeService {
                 preparedForge.qualityTier(),
                 resultItem
         );
+        applyForgeOperations(recipe, guiItems, preparedForge, resultItem);
+    }
+
+    private void applyForgeOperations(Recipe recipe,
+            GuiItems guiItems,
+            PreparedForge preparedForge,
+            ItemStack resultItem) {
+        if (recipe == null || resultItem == null) {
+            return;
+        }
+        // Collect all name/lore actions from recipe, materials, and quality tier
+        List<Object> allNameActions = new ArrayList<>();
+        List<Object> allLoreActions = new ArrayList<>();
+
+        // Recipe result name/lore actions
+        if (recipe.result() != null) {
+            if (recipe.result().nameModifications() != null && !recipe.result().nameModifications().isEmpty()) {
+                allNameActions.add(recipe.result().nameModifications());
+            }
+            if (recipe.result().loreActions() != null && !recipe.result().loreActions().isEmpty()) {
+                allLoreActions.add(recipe.result().loreActions());
+            }
+        }
+
+        // Material name/lore actions
+        List<ForgeMaterialContribution> materials = layerSnapshotBuilder.collectMaterialContributions(recipe, guiItems);
+        if (materials != null) {
+            for (ForgeMaterialContribution material : materials) {
+                if (material == null || material.material() == null) {
+                    continue;
+                }
+                Object matNameActions = material.material().nameModifications();
+                Object matLoreActions = material.material().loreActions();
+                if (matNameActions != null) {
+                    allNameActions.add(matNameActions);
+                }
+                if (matLoreActions != null) {
+                    allLoreActions.add(matLoreActions);
+                }
+            }
+        }
+
+        // Quality tier name/lore actions
+        QualitySettings settings = plugin.appConfig() == null || plugin.appConfig().qualitySettings() == null
+                ? QualitySettings.defaults()
+                : plugin.appConfig().qualitySettings();
+        if (preparedForge.qualityTier() != null && settings.itemMetaEnabled()) {
+            Object qualityNameActions = settings.itemMetaNameActions(preparedForge.qualityTier().name());
+            Object qualityLoreActions = settings.itemMetaLoreActions(preparedForge.qualityTier().name());
+            if (qualityNameActions != null) {
+                allNameActions.add(qualityNameActions);
+            }
+            if (qualityLoreActions != null) {
+                allLoreActions.add(qualityLoreActions);
+            }
+        }
+
+        if (allNameActions.isEmpty() && allLoreActions.isEmpty()) {
+            return;
+        }
+
+        // Build variables
+        Map<String, Object> variables = new LinkedHashMap<>();
+        if (preparedForge.qualityTier() != null) {
+            variables.put("quality", preparedForge.qualityTier().name());
+            variables.put("quality_name", preparedForge.qualityTier().name());
+        }
+        variables.put("quality_multiplier", Numbers.formatNumber(preparedForge.multiplier(), "0.##"));
+        variables.put("multiplier", Numbers.formatNumber(preparedForge.multiplier(), "0.##"));
+
+        String operationId = OPERATION_NAMESPACE + ":" + recipe.id();
+        Object nameActionsToApply = allNameActions.size() == 1 ? allNameActions.get(0) : allNameActions;
+        Object loreActionsToApply = allLoreActions.size() == 1 ? allLoreActions.get(0) : allLoreActions;
+        operationLedger.apply(resultItem, operationId, OPERATION_NAMESPACE,
+                allNameActions.isEmpty() ? null : nameActionsToApply,
+                allLoreActions.isEmpty() ? null : loreActionsToApply,
+                variables);
     }
 
     private <T> T measure(String metricKey, SupplierWithException<T> supplier) {

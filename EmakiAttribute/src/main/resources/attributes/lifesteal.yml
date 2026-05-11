@@ -1,3 +1,6 @@
+# EmakiAttribute 属性定义 - 百分比吸血
+# 详细字段说明参考 physical_attack.yml
+
 id: lifesteal
 display_name: "百分比吸血"
 value_kind: PERCENT

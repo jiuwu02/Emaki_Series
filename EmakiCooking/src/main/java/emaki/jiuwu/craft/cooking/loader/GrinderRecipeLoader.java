@@ -12,7 +12,7 @@ public final class GrinderRecipeLoader extends BaseRecipeLoader {
         super(plugin, StationType.GRINDER, List.of(
                 "id",
                 "display_name",
-                "input.source",
+                "input.item_sources",
                 "grind_time_seconds"
         ));
     }

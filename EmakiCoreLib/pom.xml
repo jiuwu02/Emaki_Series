@@ -7,12 +7,12 @@
     <parent>
         <groupId>emaki.jiuwu.craft</groupId>
         <artifactId>emaki-parent</artifactId>
-        <version>3.0.0</version>
+        <version>4.0.0</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>emaki-corelib</artifactId>
-    <version>3.5.0</version>
+    <version>4.0.0</version>
     <name>EmakiCoreLib</name>
     <packaging>jar</packaging>
 
@@ -37,6 +37,10 @@
         <dependency>
             <groupId>net.kyori</groupId>
             <artifactId>adventure-text-serializer-plain</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>net.kyori</groupId>
+            <artifactId>adventure-text-serializer-legacy</artifactId>
         </dependency>
         <dependency>
             <groupId>net.objecthunter</groupId>
@@ -80,12 +84,7 @@
         </dependency>
         <dependency>
             <groupId>net.momirealms</groupId>
-            <artifactId>craft-engine-bukkit</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>net.momirealms</groupId>
-            <artifactId>craft-engine-core</artifactId>
+            <artifactId>craft-engine-dev</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -123,6 +122,15 @@
             <groupId>com.github.ben-manes.caffeine</groupId>
             <artifactId>caffeine</artifactId>
             <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.graalvm.polyglot</groupId>
+            <artifactId>polyglot</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.graalvm.polyglot</groupId>
+            <artifactId>js</artifactId>
+            <type>pom</type>
         </dependency>
     </dependencies>
 

@@ -5,9 +5,12 @@ import java.util.Locale;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
+import emaki.jiuwu.craft.strengthen.model.StrengthenRecipe;
 import emaki.jiuwu.craft.strengthen.model.StrengthenState;
+import emaki.jiuwu.craft.strengthen.service.ChanceCalculator;
 import emaki.jiuwu.craft.strengthen.service.StrengthenAttemptService;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 
@@ -60,7 +63,40 @@ public final class StrengthenPlaceholderExpansion extends PlaceholderExpansion {
             case "eligible" -> String.valueOf(state.eligible());
             case "success_count" -> String.valueOf(state.successCount());
             case "failure_count" -> String.valueOf(state.failureCount());
+            case "max_star" -> resolveMaxStar(state);
+            case "success_rate" -> resolveSuccessRate(state);
+            case "crack_level" -> String.valueOf(state.crackLevel());
             default -> "";
         };
+    }
+
+    private String resolveMaxStar(StrengthenState state) {
+        if (!state.eligible() || Texts.isBlank(state.recipeId())) {
+            return "0";
+        }
+        StrengthenRecipe recipe = plugin.recipeLoader().get(state.recipeId());
+        if (recipe == null) {
+            return "0";
+        }
+        return String.valueOf(recipe.limits().maxStar());
+    }
+
+    private String resolveSuccessRate(StrengthenState state) {
+        if (!state.eligible() || Texts.isBlank(state.recipeId())) {
+            return "0";
+        }
+        StrengthenRecipe recipe = plugin.recipeLoader().get(state.recipeId());
+        ChanceCalculator calculator = plugin.chanceCalculator();
+        if (recipe == null || calculator == null) {
+            return "0";
+        }
+        double rate = calculator.calculateSuccessRate(
+                plugin.appConfig(),
+                recipe,
+                state.currentStar(),
+                state.temperLevel(),
+                0
+        );
+        return Numbers.formatNumber(rate, "0.##");
     }
 }

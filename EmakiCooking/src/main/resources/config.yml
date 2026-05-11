@@ -1,9 +1,17 @@
+# ============================================================
+# EmakiCooking 主配置文件
+# ============================================================
+# 此文件包含插件的全局设置。修改后使用 reload 命令重载。
+#
+# 文件放置位置: plugins/EmakiCooking/config.yml
+# ============================================================
+
 # 烹饪系统主配置
 # 原版物品 / 方块来源支持以下写法：
 # minecraft-iron_axe / mc-iron_axe / v-iron_axe / iron_axe
 # 不再接受 minecraft:iron_axe
 # version 由资源同步维护
-version: "2.3.0"
+version: "3.0.0"
 
 # 语言文件 ID
 language: "zh_CN"
@@ -14,6 +22,16 @@ release_default_data: true
 input_rules:
   # 严格模式：只允许能继续匹配当前工位配方的物品进入工位输入。
   only_recipe_items: true
+
+display_entities:
+  # auto: 有 PacketEvents 时使用虚拟展示实体；不可用时回退 Bukkit 真实 ItemDisplay
+  # packet_events: 优先使用 PacketEvents，加载失败仍回退 Bukkit
+  # bukkit: 始终使用 Bukkit 真实 ItemDisplay
+  backend: auto
+  view_distance_blocks: 48
+  refresh_interval_ticks: 20
+  wok:
+    layout_radius: 0.26
 
 display_adjustments:
   defaults:
@@ -55,7 +73,8 @@ display_adjustments:
 stations:
   chopping_board:
     # 砧板方块来源
-    block_source: minecraft-oak_log
+    block_item_sources:
+      - minecraft-oak_log
     # 省略时继承 input_rules.only_recipe_items
     only_recipe_items: true
     interactions:
@@ -69,7 +88,7 @@ stations:
     # 交互最小间隔，单位毫秒
     interaction_delay_ms: 1000
     # 识别为厨刀的物品来源
-    tool_sources:
+    tool_item_sources:
       - minecraft-iron_axe
     cut_damage:
       enabled: true
@@ -78,7 +97,8 @@ stations:
 
   wok:
     # 炒锅方块来源
-    block_source: minecraft-iron_block
+    block_item_sources:
+      - minecraft-iron_block
     interactions:
       add_ingredient: shift_left_click
       stir: shift_left_click
@@ -92,18 +112,25 @@ stations:
     stir_delay_ms: 5000
     # 锅状态超时后按过火处理，单位毫秒
     timeout_ms: 30000
-    # 未命中配方或无效结果时的默认产物
-    invalid_result_source: minecraft-stone
+    # 放入食材时是否点亮下方热源外观；锅清空后会尝试熄灭
+    ignite_heat_source: true
+    # 未命中配方或结果无效时的默认产物来源
+    invalid_result_item_sources:
+      - minecraft-stone
     # 识别为锅铲的物品来源
-    spatula_sources:
+    spatula_item_sources:
       - minecraft-iron_shovel
     # 下方方块命中 source 后，解析为对应火候等级
+    # 自定义热源没有可直接切换的 lit 状态时，可增加 lit_item_sources 作为替换兜底
     heat_levels:
-      - source: minecraft-campfire
+      - item_sources:
+          - minecraft-campfire
         level: 1
-      - source: minecraft-magma_block
+      - item_sources:
+          - minecraft-magma_block
         level: 2
-      - source: minecraft-lava
+      - item_sources:
+          - minecraft-lava
         level: 3
     scald_damage:
       enabled: true
@@ -111,11 +138,13 @@ stations:
     failure:
       enabled: true
       chance: 5
-      output_source: minecraft-bone_meal
+      item_sources:
+        - minecraft-bone_meal
 
   grinder:
     # 研磨机方块来源
-    block_source: minecraft-grindstone
+    block_item_sources:
+      - minecraft-grindstone
     interactions:
       start: shift_left_click
     drop_result: true
@@ -124,13 +153,21 @@ stations:
 
   steamer:
     # 蒸锅主体方块来源；GUI 细节在 gui/steamer.yml
-    block_source: minecraft-barrel
+    block_item_sources:
+      - minecraft-barrel
     interactions:
       open: shift_right_click
       fuel: right_click
       moisture: right_click
     drop_result: true
-    heat_sources:
+    # 热源方块来源。自定义方块没有可直接切换的 lit 状态时，可使用对象写法作为替换兜底：
+    # - item_sources: [craftengine-emaki:heater]
+    #   lit_item_sources: [craftengine-emaki:heater_lit]
+    # - item_sources: [itemsadder-emaki:heater]
+    #   lit_item_sources: [itemsadder-emaki:heater_lit]
+    # - item_sources: [nexo-heater]
+    #   lit_item_sources: [nexo-heater_lit]
+    heat_item_sources:
       - minecraft-furnace
       - minecraft-smoker
       - minecraft-blast_furnace
@@ -138,19 +175,26 @@ stations:
     ignite_heat_source: true
     # 蒸锅燃料；duration_seconds 为增加的燃烧时间
     fuels:
-      - source: minecraft-stick
+      - item_sources:
+          - minecraft-stick
         duration_seconds: 5
-      - source: minecraft-coal
+      - item_sources:
+          - minecraft-coal
         duration_seconds: 80
-      - source: minecraft-charcoal
+      - item_sources:
+          - minecraft-charcoal
         duration_seconds: 80
     # 水分输入规则
-    moisture_sources:
-      - input_source: minecraft-water_bucket
-        output_source: minecraft-bucket
+    moisture_rules:
+      - input_item_sources:
+          - minecraft-water_bucket
+        item_sources:
+          - minecraft-bucket
         moisture: 120
-      - input_source: minecraft-potion
-        output_source: minecraft-glass_bottle
+      - input_item_sources:
+          - minecraft-potion
+        item_sources:
+          - minecraft-glass_bottle
         moisture: 40
     # 蒸汽耗尽时是否重置全部进度
     reset_progress_when_steam_empty: true
@@ -160,3 +204,66 @@ stations:
     steam_conversion_efficiency: 1
     # 每个周期的基础 steam 消耗量
     steam_consumption_efficiency: 1
+
+  oven:
+    # 烤炉主体方块来源；GUI 细节在 gui/oven.yml
+    block_item_sources:
+      - minecraft-smoker
+    interactions:
+      open: shift_right_click
+      fuel: shift_left_click
+      inspect: shift_left_click
+    drop_result: true
+    # 火力处于 min-max 时才推进烤制计时；过低或过高都会暂停
+    heat:
+      min: 20
+      max: 80
+      decay_per_second: 5
+    # 烤炉燃料；一次潜行左键会同时增加燃烧时间和火力
+    fuels:
+      - item_sources:
+          - minecraft-stick
+        duration_seconds: 5
+        heat: 10
+      - item_sources:
+          - minecraft-coal
+        duration_seconds: 80
+        heat: 35
+      - item_sources:
+          - minecraft-charcoal
+        duration_seconds: 80
+        heat: 35
+
+  juicer:
+    # 榨汁机方块来源；GUI 细节在 gui/juicer.yml
+    block_item_sources:
+      - minecraft-cauldron
+    interactions:
+      open: shift_right_click
+      process: shift_left_click
+      inspect: left_click
+      serve: shift_left_click
+    drop_result: true
+    only_recipe_items: true
+    require_container: true
+    # 榨汁机内部默认最大流体容量，单位 ml
+    max_fluid_ml: 1000
+    # 默认每次容器盛取需要的流体量，单位 ml
+    default_serving_ml: 250
+    container_item_sources:
+      - minecraft-glass_bottle
+    drop_completed_result_on_break: false
+
+  fermentation_barrel:
+    # 发酵桶方块来源；GUI 细节在 gui/fermentation_barrel.yml
+    block_item_sources:
+      - minecraft-barrel
+    interactions:
+      open: shift_right_click
+      start: shift_left_click
+      inspect: left_click
+      serve: shift_left_click
+    drop_result: true
+    pause_when_open: true
+    require_sealed: true
+    only_recipe_items: true

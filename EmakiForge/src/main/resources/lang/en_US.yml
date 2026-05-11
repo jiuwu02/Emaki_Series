@@ -1,6 +1,15 @@
+# ============================================================
+# EmakiForge 语言文件 - English
+# ============================================================
+# 此文件包含插件的所有消息文本，支持 MiniMessage 格式。
+# 修改后使用 reload 命令重载。
+#
+# 文件放置位置: plugins/EmakiForge/lang/
+# ============================================================
+
 # version is maintained by resource sync
 
-version: "3.5.0"
+version: "4.0.0"
 
 # General messages
 general:
@@ -36,15 +45,16 @@ command:
     materials_header: "<gold>========== Material List ({count} total) ==========</gold>"
     recipe_line: "<yellow>{id}</yellow> <gray>- {name}</gray>"
     blueprint_line: "<yellow>{id}</yellow> <gray>- {name}</gray>"
-    material_line: "<yellow>{id}</yellow> <gray>- {name} (Cost: {capacity}, Bonus:
+    material_line:
+      "<yellow>{id}</yellow> <gray>- {name} (Cost: {capacity}, Bonus:
       +{bonus})</gray>"
 
 # Console logs
 console:
   plugin_starting: "<gray>Starting...</gray>"
-  plugin_started: "<green>Started successfully.</green>"
+  plugin_started: "<green>Started</green>"
   plugin_stopping: "<gray>Shutting down...</gray>"
-  plugin_stopped: "<green>Shut down.</green>"
+  plugin_stopped: "<yellow>Stopped</yellow>"
   config_load_failed: "<red>Failed to load config: {error}</red>"
   checking_config: "<white>Checking default config files...</white>"
   data_folder_error: "<yellow>Unable to access data directory, skipped default
@@ -59,7 +69,7 @@ console:
   registering_listeners: "<white>Registering event listeners...</white>"
   listeners_registered: "<green>Event listeners registered.</green>"
   saving_player_data: "<white>Saving player data...</white>"
-  player_data_saved: "<green>Saved <yellow>{count}</yellow> <gray>player data entries</gray>"
+  player_data_saved: "<gray>Saved {count} player data entries</gray>"
   bootstrap_start: "<white>Checking default files...</white>"
   bootstrap_skip: "<gray>release_default_data=false, skipped default data generation</gray>"
   bootstrap_complete: "<green>Default file check complete.</green>"
@@ -75,7 +85,7 @@ console:
     exists, skipping creation</gray>"
   material_iron_exists: "<gray>materials/iron_essence.yml already exists, skipping creation</gray>"
   material_flame_exists: "<gray>materials/flame_crystal.yml already exists, skipping creation</gray>"
-  recipe_flame_exists: "<gray>recipes/flame_sword.yml already exists, skipping creation</gray>"
+  recipe_example_exists: "<gray>recipes/example_recipe.yml already exists, skipping creation</gray>"
   file_created_success: "<green>Successfully created <yellow>{name}</yellow>"
   file_create_failed: "<yellow>Failed to create <red>{name}</red> <yellow>: <red>{error}</red>"
   file_create_failed_ext: "<yellow>Failed to create <red>{name}</red> <yellow>: <red>{error}</red>"
@@ -83,14 +93,15 @@ console:
   data_folder_not_init: "<yellow>Data directory not yet initialized.</yellow>"
   bootstrap_copy_failed: "<yellow>Failed to copy default resource:
     <red>{path}</red> <gray>({error})</gray></yellow>"
-  bootstrap_save_failed: "<yellow>Failed to save merged config: <red>{path}</red>
+  bootstrap_save_failed:
+    "<yellow>Failed to save merged config: <red>{path}</red>
     <gray>({error})</gray></yellow>"
-  blueprints_loaded: "<gray>Loaded <yellow>{count}</yellow> blueprints</gray>"
-  materials_loaded: "<gray>Loaded <yellow>{count}</yellow> materials</gray>"
-  recipes_loaded: "<gray>Loaded <yellow>{count}</yellow> recipes</gray>"
-  guis_loaded: "<gray>Loaded <yellow>{count}</yellow> GUI templates</gray>"
+  pdc_source_registered: "<gray>PDC attribute source registered: {source}</gray>"
+  recipes_loaded: "<gray>Loaded {count} recipe(s)</gray>"
+  guis_loaded: "<gray>Loaded {count} GUI template(s)</gray>"
   player_data_directory_create_failed: "<yellow>Unable to create player data directory: <red>{path}</red></yellow>"
-  player_data_save_failed: "<yellow>Failed to save player data: <red>{uuid}</red>
+  player_data_save_failed:
+    "<yellow>Failed to save player data: <red>{uuid}</red>
     <gray>({error})</gray></yellow>"
   item_unknown_vanilla_material_source: "<yellow>Unknown vanilla material source: <red>{identifier}</red></yellow>"
   external_item_source_unavailable: "<yellow>External item source unavailable:
@@ -106,10 +117,12 @@ console:
     recipe <red>{recipe}</red> <gray>({reason})</gray></yellow>"
   forge_quality_execution_failed: "<yellow>Quality action execution failed:
     quality <red>{tier}</red> <gray>({error})</gray></yellow>"
-  forge_quality_failed: "<yellow>Quality action failed: quality <red>{tier}</red>
+  forge_quality_failed:
+    "<yellow>Quality action failed: quality <red>{tier}</red>
     <gray>({reason})</gray></yellow>"
   forge_refresh_failed: "<yellow>Failed to refresh forged item: recipe <red>{recipe}</red></yellow>"
-  forge_refresh_invalid_audit: "<yellow>Detected non-refreshable forge audit data:
+  forge_refresh_invalid_audit:
+    "<yellow>Detected non-refreshable forge audit data:
     <red>{reason}</red></yellow>"
   forge_refresh_missing_recipe: "<yellow>Recipe not found when refreshing forged
     item: <red>{recipe}</red></yellow>"
@@ -125,7 +138,8 @@ console:
   pdc_corrupted_data_detected: "<yellow>Corrupted forge PDC data detected: <red>{reason}</red></yellow>"
   pdc_deserialize_failed: "<yellow>Failed to deserialize forge material data:
     <red>{error}</red></yellow>"
-  pdc_deserialize_unexpected_error: "<yellow>Unexpected error deserializing forge
+  pdc_deserialize_unexpected_error:
+    "<yellow>Unexpected error deserializing forge
     material data: <red>{error}</red></yellow>"
   loader_config_load_error: "<red>Failed to load config file
     <yellow>{path}</yellow>: <gray>{error}</gray>"
@@ -133,7 +147,8 @@ console:
   loader_invalid_config: "<yellow>{type} config invalid <red>{path}</red>"
   loader_duplicate_id: "<yellow>Duplicate {type} ID found <red>{id}</red>
     <gray>source: {path}</gray>"
-  loader_exception: "<red>Exception loading {type} config <yellow>{path}</yellow>:
+  loader_exception:
+    "<red>Exception loading {type} config <yellow>{path}</yellow>:
     <gray>{error}</gray>"
   forge_consume_plan_mismatch: "<yellow>{category} consumption plan mismatch
     <gray>recipe={recipe}, mode={mode}, required={required},
@@ -153,22 +168,26 @@ console:
   lore_invalid_search_insert_config: "<yellow>Invalid lore search insert config:
     source <red>{source}</red>, action <red>{action}</red>
     <gray>({error})</gray></yellow>"
+  papi_registered: "<gray>PlaceholderAPI expansion registered</gray>"
 
 loader:
   lang_directory_create_failed: "<red>Unable to create language directory: {path}</red>"
   bundled_language_load_failed: "<red>Failed to load bundled language: {error}</red>"
   invalid_config: "<yellow>{type} file {file} has invalid config, skipped loading.</yellow>"
   bundled_resource_missing: "<red>Bundled resource missing: {resource}, cannot write to {path}</red>"
-  recipe_action_validation_skipped: "<yellow>Skipped action validation for recipe
+  recipe_action_validation_skipped:
+    "<yellow>Skipped action validation for recipe
     {file} because EmakiCoreLib is unavailable.</yellow>"
-  recipe_invalid_action_syntax: "<yellow>Invalid action syntax in recipe {recipe}:
+  recipe_invalid_action_syntax:
+    "<yellow>Invalid action syntax in recipe {recipe}:
     {file}, phase {phase}, line {line} <gray>({error})</gray></yellow>"
   recipe_unknown_action: "<yellow>Unknown action <red>{action}</red> in recipe
     {recipe}: {file}, phase {phase}, line {line}{suggestion}</yellow>"
   recipe_invalid_action_arguments: "<yellow>Invalid action arguments in recipe
     {recipe}: {file}, phase {phase}, line {line}
     <gray>({error})</gray></yellow>"
-  recipe_unknown_action_template: "<yellow>Unknown template <red>{template}</red>
+  recipe_unknown_action_template:
+    "<yellow>Unknown template <red>{template}</red>
     in recipe {recipe}: {file}, phase {phase}, line {line}</yellow>"
   recipe_invalid_condition_type: "<yellow>Invalid condition_type in recipe
     {recipe}: {file} -> <red>{value}</red>. Allowed values:

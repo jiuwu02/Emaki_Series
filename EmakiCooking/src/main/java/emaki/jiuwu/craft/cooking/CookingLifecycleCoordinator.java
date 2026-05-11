@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.cooking;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -9,8 +10,8 @@ import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.action.ActionExecutor;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
-import emaki.jiuwu.craft.corelib.integration.CraftEngineBlockBridge;
-import emaki.jiuwu.craft.corelib.integration.CustomBlockBridge;
+import emaki.jiuwu.craft.corelib.api.integration.CraftEngineBlockBridge;
+import emaki.jiuwu.craft.corelib.api.integration.CustomBlockBridge;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
 import emaki.jiuwu.craft.corelib.service.MessageService;
@@ -19,7 +20,10 @@ import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 import emaki.jiuwu.craft.cooking.config.AppConfig;
 import emaki.jiuwu.craft.cooking.loader.ChoppingBoardRecipeLoader;
+import emaki.jiuwu.craft.cooking.loader.FermentationBarrelRecipeLoader;
 import emaki.jiuwu.craft.cooking.loader.GrinderRecipeLoader;
+import emaki.jiuwu.craft.cooking.loader.JuicerRecipeLoader;
+import emaki.jiuwu.craft.cooking.loader.OvenRecipeLoader;
 import emaki.jiuwu.craft.cooking.loader.SteamerRecipeLoader;
 import emaki.jiuwu.craft.cooking.loader.WokRecipeLoader;
 import emaki.jiuwu.craft.cooking.service.ChoppingBoardRuntimeService;
@@ -28,20 +32,28 @@ import emaki.jiuwu.craft.cooking.service.CookingInspectService;
 import emaki.jiuwu.craft.cooking.service.CookingRecipeService;
 import emaki.jiuwu.craft.cooking.service.CookingRewardService;
 import emaki.jiuwu.craft.cooking.service.CookingSettingsService;
+import emaki.jiuwu.craft.cooking.service.FermentationBarrelRuntimeService;
 import emaki.jiuwu.craft.cooking.service.GrinderRuntimeService;
+import emaki.jiuwu.craft.cooking.service.JuicerRuntimeService;
+import emaki.jiuwu.craft.cooking.service.OvenRuntimeService;
 import emaki.jiuwu.craft.cooking.service.StationStateStore;
 import emaki.jiuwu.craft.cooking.service.SteamerRuntimeService;
 import emaki.jiuwu.craft.cooking.service.WokRuntimeService;
+import emaki.jiuwu.craft.cooking.service.display.CookingDisplayService;
+import emaki.jiuwu.craft.cooking.service.display.CookingDisplayServiceFactory;
 
 final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiCookingPlugin, CookingRuntimeComponents> {
 
     private static final String DEFAULT_PREFIX = "<gray>[ <gradient:#D8792E:#F6D16E>Emaki Cooking</gradient> ]</gray>";
-    private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml");
+    private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml", "lang/en_US.yml");
     private static final List<String> EXTRA_DIRECTORIES = List.of(
             "recipes/chopping_board",
             "recipes/wok",
             "recipes/grinder",
             "recipes/steamer",
+            "recipes/oven",
+            "recipes/juicer",
+            "recipes/fermentation_barrel",
             "item_adjustments",
             "data/stations"
     );
@@ -62,6 +74,9 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
         WokRecipeLoader wokRecipeLoader = new WokRecipeLoader(plugin);
         GrinderRecipeLoader grinderRecipeLoader = new GrinderRecipeLoader(plugin);
         SteamerRecipeLoader steamerRecipeLoader = new SteamerRecipeLoader(plugin);
+        OvenRecipeLoader ovenRecipeLoader = new OvenRecipeLoader(plugin);
+        JuicerRecipeLoader juicerRecipeLoader = new JuicerRecipeLoader(plugin);
+        FermentationBarrelRecipeLoader fermentationBarrelRecipeLoader = new FermentationBarrelRecipeLoader(plugin);
         MessageService messageService = new MessageService(plugin, languageLoader, DEFAULT_PREFIX, false);
         BootstrapService bootstrapService = new BootstrapService(
                 plugin,
@@ -83,7 +98,7 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
         CookingSettingsService settingsService = new CookingSettingsService(plugin);
         settingsService.reload();
         CookingBlockMatcher blockMatcher = new CookingBlockMatcher(settingsService, craftEngineBlockBridge, itemsAdderBlockBridge, nexoBlockBridge);
-        StationStateStore stationStateStore = new StationStateStore(plugin);
+        StationStateStore stationStateStore = new StationStateStore(plugin, coreLibPlugin.asyncFileService());
         CookingRecipeService recipeService = new CookingRecipeService(plugin, settingsService);
         ActionExecutor coreActionExecutor = coreLibPlugin.actionExecutor();
         CookingRewardService rewardService = new CookingRewardService(
@@ -94,6 +109,7 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 coreLibPlugin.itemAssemblyService()
         );
         CookingInspectService inspectService = new CookingInspectService(messageService, coreLibPlugin.itemSourceService());
+        CookingDisplayService displayService = CookingDisplayServiceFactory.create(plugin, settingsService);
         ChoppingBoardRuntimeService choppingBoardRuntimeService = new ChoppingBoardRuntimeService(
                 plugin,
                 messageService,
@@ -102,7 +118,8 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 stationStateStore,
                 recipeService,
                 rewardService,
-                coreLibPlugin.itemSourceService()
+                coreLibPlugin.itemSourceService(),
+                displayService
         );
         WokRuntimeService wokRuntimeService = new WokRuntimeService(
                 plugin,
@@ -112,7 +129,8 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 stationStateStore,
                 recipeService,
                 rewardService,
-                coreLibPlugin.itemSourceService()
+                coreLibPlugin.itemSourceService(),
+                displayService
         );
         GrinderRuntimeService grinderRuntimeService = new GrinderRuntimeService(
                 plugin,
@@ -134,6 +152,36 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 rewardService,
                 coreLibPlugin.itemSourceService()
         );
+        OvenRuntimeService ovenRuntimeService = new OvenRuntimeService(
+                plugin,
+                messageService,
+                settingsService,
+                blockMatcher,
+                stationStateStore,
+                recipeService,
+                rewardService,
+                coreLibPlugin.itemSourceService()
+        );
+        JuicerRuntimeService juicerRuntimeService = new JuicerRuntimeService(
+                plugin,
+                messageService,
+                settingsService,
+                blockMatcher,
+                stationStateStore,
+                recipeService,
+                rewardService,
+                coreLibPlugin.itemSourceService()
+        );
+        FermentationBarrelRuntimeService fermentationBarrelRuntimeService = new FermentationBarrelRuntimeService(
+                plugin,
+                messageService,
+                settingsService,
+                blockMatcher,
+                stationStateStore,
+                recipeService,
+                rewardService,
+                coreLibPlugin.itemSourceService()
+        );
         return new CookingRuntimeComponents(
                 appConfigLoader,
                 languageLoader,
@@ -141,6 +189,9 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 wokRecipeLoader,
                 grinderRecipeLoader,
                 steamerRecipeLoader,
+                ovenRecipeLoader,
+                juicerRecipeLoader,
+                fermentationBarrelRecipeLoader,
                 messageService,
                 bootstrapService,
                 coreActionExecutor,
@@ -154,10 +205,14 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 recipeService,
                 rewardService,
                 inspectService,
+                displayService,
                 choppingBoardRuntimeService,
                 wokRuntimeService,
                 grinderRuntimeService,
-                steamerRuntimeService
+                steamerRuntimeService,
+                ovenRuntimeService,
+                juicerRuntimeService,
+                fermentationBarrelRuntimeService
         );
     }
 
@@ -169,11 +224,33 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
         plugin.wokRecipeLoader().load();
         plugin.grinderRecipeLoader().load();
         plugin.steamerRecipeLoader().load();
+        plugin.ovenRecipeLoader().load();
+        plugin.juicerRecipeLoader().load();
+        plugin.fermentationBarrelRecipeLoader().load();
         plugin.settingsService().reload();
         plugin.choppingBoardRuntimeService().reload();
         plugin.wokRuntimeService().reload();
         plugin.grinderRuntimeService().reload();
         plugin.steamerRuntimeService().reload();
+        plugin.ovenRuntimeService().reload();
+        plugin.juicerRuntimeService().reload();
+        plugin.fermentationBarrelRuntimeService().reload();
+        logStationRecipeCounts(plugin);
+    }
+
+    private void logStationRecipeCounts(EmakiCookingPlugin plugin) {
+        MessageService ms = plugin.messageService();
+        logStationCount(ms, "砧板", plugin.choppingBoardRecipeLoader().all().size());
+        logStationCount(ms, "炒锅", plugin.wokRecipeLoader().all().size());
+        logStationCount(ms, "研磨机", plugin.grinderRecipeLoader().all().size());
+        logStationCount(ms, "蒸锅", plugin.steamerRecipeLoader().all().size());
+        logStationCount(ms, "烤箱", plugin.ovenRecipeLoader().all().size());
+        logStationCount(ms, "榨汁机", plugin.juicerRecipeLoader().all().size());
+        logStationCount(ms, "发酵桶", plugin.fermentationBarrelRecipeLoader().all().size());
+    }
+
+    private void logStationCount(MessageService ms, String station, int count) {
+        ms.info("console.station_recipes_loaded", Map.of("station", station, "count", String.valueOf(count)));
     }
 
     private AppConfig parseAppConfig(YamlSection configuration) {

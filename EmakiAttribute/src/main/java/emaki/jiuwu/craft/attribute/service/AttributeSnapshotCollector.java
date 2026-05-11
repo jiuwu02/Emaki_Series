@@ -195,69 +195,33 @@ final class AttributeSnapshotCollector {
             Player player,
             Map<String, Double> values,
             List<String> signatureParts) {
-        if (itemResolver == null) {
-            return;
-        }
-        for (int index = 0; index < EQUIPMENT_SLOT_NAMES.length; index++) {
-            org.bukkit.inventory.ItemStack itemStack = itemResolver.apply(index);
-            PdcAttributeService.PdcAttributeViews views = player == null
-                    ? null
-                    : service.pdcAttributeService().collectContributionViews(player, itemStack);
-            AttributeSnapshot itemSnapshot = player == null
-                    ? collectItemSnapshot(itemStack)
-                    : collectItemSnapshot(itemStack, views.raw());
-            if (itemSnapshot == null) {
-                continue;
-            }
-            if (player == null) {
-                mergeValues(values, itemSnapshot.values());
-                signatureParts.add(EQUIPMENT_SLOT_NAMES[index] + ":" + itemSnapshot.sourceSignature());
-                continue;
-            }
-            Map<String, Double> effectiveValues = new LinkedHashMap<>(itemSnapshot.values());
-            replacePdcValues(effectiveValues, views.raw().values(), views.filtered().values());
-            mergeValues(values, effectiveValues);
-            signatureParts.add(EQUIPMENT_SLOT_NAMES[index] + ":" + SignatureUtil.combine(
-                    itemSnapshot.sourceSignature(),
-                    views.filtered().sourceSignature()
-            ));
-        }
+        collectEquipment(itemResolver, player, values, signatureParts);
     }
 
     // 仅收集装备签名，不构建 values（用于缓存命中前的轻量签名计算）
     private void collectEquipmentSignatures(IntFunction<org.bukkit.inventory.ItemStack> itemResolver,
             Player playerOrNull,
             List<String> signatureParts) {
-        if (itemResolver == null) {
-            return;
-        }
-        for (int index = 0; index < EQUIPMENT_SLOT_NAMES.length; index++) {
-            org.bukkit.inventory.ItemStack itemStack = itemResolver.apply(index);
-            PdcAttributeService.PdcAttributeViews views = playerOrNull == null
-                    ? null
-                    : service.pdcAttributeService().collectContributionViews(playerOrNull, itemStack);
-            AttributeSnapshot itemSnapshot = playerOrNull == null
-                    ? collectItemSnapshot(itemStack)
-                    : collectItemSnapshot(itemStack, views.raw());
-            if (itemSnapshot == null) {
-                continue;
-            }
-            if (playerOrNull == null) {
-                signatureParts.add(EQUIPMENT_SLOT_NAMES[index] + ":" + itemSnapshot.sourceSignature());
-            } else {
-                signatureParts.add(EQUIPMENT_SLOT_NAMES[index] + ":" + SignatureUtil.combine(
-                        itemSnapshot.sourceSignature(),
-                        views.filtered().sourceSignature()
-                ));
-            }
-        }
+        collectEquipment(itemResolver, playerOrNull, null, signatureParts);
     }
 
     // 仅收集 values，不收集签名（用于缓存未命中后的全量计算）
     private void collectEquipmentSnapshots(IntFunction<org.bukkit.inventory.ItemStack> itemResolver,
             Player playerOrNull,
             Map<String, Double> values) {
+        collectEquipment(itemResolver, playerOrNull, values, null);
+    }
+
+    private void collectEquipment(IntFunction<org.bukkit.inventory.ItemStack> itemResolver,
+            Player playerOrNull,
+            Map<String, Double> values,
+            List<String> signatureParts) {
         if (itemResolver == null) {
+            return;
+        }
+        boolean collectValues = values != null;
+        boolean collectSignatures = signatureParts != null;
+        if (!collectValues && !collectSignatures) {
             return;
         }
         for (int index = 0; index < EQUIPMENT_SLOT_NAMES.length; index++) {
@@ -272,13 +236,37 @@ final class AttributeSnapshotCollector {
                 continue;
             }
             if (playerOrNull == null) {
-                mergeValues(values, itemSnapshot.values());
-            } else {
+                if (collectValues) {
+                    mergeValues(values, itemSnapshot.values());
+                }
+                addEquipmentSignature(signatureParts, index, itemSnapshot.sourceSignature(), null, collectSignatures);
+                continue;
+            }
+            if (collectValues) {
                 Map<String, Double> effectiveValues = new LinkedHashMap<>(itemSnapshot.values());
                 replacePdcValues(effectiveValues, views.raw().values(), views.filtered().values());
                 mergeValues(values, effectiveValues);
             }
+            addEquipmentSignature(signatureParts, index, itemSnapshot.sourceSignature(), views, collectSignatures);
         }
+    }
+
+    private void addEquipmentSignature(List<String> signatureParts,
+            int slotIndex,
+            String itemSignature,
+            PdcAttributeService.PdcAttributeViews views,
+            boolean collectSignatures) {
+        if (!collectSignatures) {
+            return;
+        }
+        if (views == null) {
+            signatureParts.add(EQUIPMENT_SLOT_NAMES[slotIndex] + ":" + itemSignature);
+            return;
+        }
+        signatureParts.add(EQUIPMENT_SLOT_NAMES[slotIndex] + ":" + SignatureUtil.combine(
+                itemSignature,
+                views.filtered().sourceSignature()
+        ));
     }
 
     private void mergeValues(Map<String, Double> target, Map<String, Double> source) {
@@ -314,59 +302,30 @@ final class AttributeSnapshotCollector {
     private void mergeContributionProviders(LivingEntity entity,
             Map<String, Double> target,
             List<String> signatureParts) {
-        if (entity == null) {
-            return;
-        }
-        List<AttributeContributionProvider> providers = service.registryService().orderedContributionProviders();
-        for (AttributeContributionProvider provider : providers) {
-            Collection<AttributeContribution> contributions = provider.collect(entity);
-            if (contributions == null || contributions.isEmpty()) {
-                continue;
-            }
-            Map<String, Double> providerValues = new LinkedHashMap<>();
-            for (AttributeContribution contribution : contributions) {
-                if (contribution == null || contribution.attributeId() == null || contribution.attributeId().isBlank()) {
-                    continue;
-                }
-                String id = Texts.normalizeId(contribution.attributeId());
-                providerValues.merge(id, contribution.value(), Double::sum);
-                target.merge(id, contribution.value(), Double::sum);
-            }
-            if (!providerValues.isEmpty()) {
-                signatureParts.add(Texts.normalizeId(provider.id()) + ":" + SignatureUtil.stableSignature(providerValues));
-            }
-        }
+        collectContributionProviders(entity, target, signatureParts);
     }
 
     // 仅收集 contribution provider 签名（用于缓存命中前的轻量签名计算）
     private void collectContributionProviderSignatures(LivingEntity entity,
             List<String> signatureParts) {
-        if (entity == null) {
-            return;
-        }
-        List<AttributeContributionProvider> providers = service.registryService().orderedContributionProviders();
-        for (AttributeContributionProvider provider : providers) {
-            Collection<AttributeContribution> contributions = provider.collect(entity);
-            if (contributions == null || contributions.isEmpty()) {
-                continue;
-            }
-            Map<String, Double> providerValues = new LinkedHashMap<>();
-            for (AttributeContribution contribution : contributions) {
-                if (contribution == null || contribution.attributeId() == null || contribution.attributeId().isBlank()) {
-                    continue;
-                }
-                providerValues.merge(Texts.normalizeId(contribution.attributeId()), contribution.value(), Double::sum);
-            }
-            if (!providerValues.isEmpty()) {
-                signatureParts.add(Texts.normalizeId(provider.id()) + ":" + SignatureUtil.stableSignature(providerValues));
-            }
-        }
+        collectContributionProviders(entity, null, signatureParts);
     }
 
     // 仅合并 contribution provider values（用于缓存未命中后的全量计算）
     private void mergeContributionProviders(LivingEntity entity,
             Map<String, Double> target) {
+        collectContributionProviders(entity, target, null);
+    }
+
+    private void collectContributionProviders(LivingEntity entity,
+            Map<String, Double> target,
+            List<String> signatureParts) {
         if (entity == null) {
+            return;
+        }
+        boolean mergeToTarget = target != null;
+        boolean collectSignatures = signatureParts != null;
+        if (!mergeToTarget && !collectSignatures) {
             return;
         }
         List<AttributeContributionProvider> providers = service.registryService().orderedContributionProviders();
@@ -375,13 +334,37 @@ final class AttributeSnapshotCollector {
             if (contributions == null || contributions.isEmpty()) {
                 continue;
             }
-            for (AttributeContribution contribution : contributions) {
-                if (contribution == null || contribution.attributeId() == null || contribution.attributeId().isBlank()) {
-                    continue;
-                }
-                target.merge(Texts.normalizeId(contribution.attributeId()), contribution.value(), Double::sum);
+            Map<String, Double> providerValues = collectProviderValues(
+                    contributions,
+                    target,
+                    mergeToTarget,
+                    collectSignatures
+            );
+            if (providerValues != null && !providerValues.isEmpty()) {
+                signatureParts.add(Texts.normalizeId(provider.id()) + ":" + SignatureUtil.stableSignature(providerValues));
             }
         }
+    }
+
+    private Map<String, Double> collectProviderValues(Collection<AttributeContribution> contributions,
+            Map<String, Double> target,
+            boolean mergeToTarget,
+            boolean collectSignatures) {
+        Map<String, Double> providerValues = collectSignatures ? new LinkedHashMap<>() : null;
+        for (AttributeContribution contribution : contributions) {
+            if (contribution == null || contribution.attributeId() == null || contribution.attributeId().isBlank()) {
+                continue;
+            }
+            String id = Texts.normalizeId(contribution.attributeId());
+            double value = contribution.value();
+            if (providerValues != null) {
+                providerValues.merge(id, value, Double::sum);
+            }
+            if (mergeToTarget) {
+                target.merge(id, value, Double::sum);
+            }
+        }
+        return providerValues;
     }
 
     private void applyDerivedValues(Map<String, Double> values) {

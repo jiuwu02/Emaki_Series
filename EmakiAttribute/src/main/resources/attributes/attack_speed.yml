@@ -1,3 +1,6 @@
+# EmakiAttribute 属性定义 - 攻击速度
+# 详细字段说明参考 physical_attack.yml
+
 id: attack_speed
 
 display_name: "攻击速度"

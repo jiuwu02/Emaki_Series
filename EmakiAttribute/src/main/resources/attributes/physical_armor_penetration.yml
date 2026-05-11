@@ -1,3 +1,6 @@
+# EmakiAttribute 属性定义 - 物理护甲穿透
+# 详细字段说明参考 physical_attack.yml
+
 id: physical_armor_penetration
 display_name: "物理护甲穿透"
 value_kind: PERCENT

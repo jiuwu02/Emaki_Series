@@ -1,5 +1,7 @@
 package emaki.jiuwu.craft.corelib.integration;
 
+import emaki.jiuwu.craft.corelib.api.integration.CustomBlockBridge;
+
 import org.bukkit.block.Block;
 
 class NoopCustomBlockBridge implements CustomBlockBridge {
@@ -21,6 +23,16 @@ class NoopCustomBlockBridge implements CustomBlockBridge {
 
     @Override
     public boolean matches(Block block, String identifier) {
+        return false;
+    }
+
+    @Override
+    public boolean setLit(Block block, boolean lit) {
+        return false;
+    }
+
+    @Override
+    public boolean placeBlock(Block block, String identifier) {
         return false;
     }
 }

@@ -26,8 +26,6 @@ import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.forge.config.AppConfig;
-import emaki.jiuwu.craft.forge.loader.BlueprintLoader;
-import emaki.jiuwu.craft.forge.loader.MaterialLoader;
 import emaki.jiuwu.craft.forge.loader.PlayerDataStore;
 import emaki.jiuwu.craft.forge.loader.RecipeLoader;
 import emaki.jiuwu.craft.forge.service.ForgeItemRefreshService;
@@ -40,9 +38,9 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
 
     private static final String DEFAULT_PREFIX = "<gray>[ <gradient:#F2C46D:#C9703D>Emaki Forge</gradient> ]</gray>";
     private static final String PDC_ATTRIBUTE_SOURCE_ID = "forge";
-    private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml");
+    private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml", "lang/en_US.yml");
     private static final List<String> STATIC_FILES = List.of("gui/forge_gui.yml", "gui/recipe_book.yml");
-    private static final List<String> DEFAULT_DATA_FILES = List.of("recipes/flame_sword.yml");
+    private static final List<String> DEFAULT_DATA_FILES = List.of("recipes/example_recipe.yml");
     private static final List<String> EXTRA_DIRECTORIES = List.of("data");
 
     @Override
@@ -56,8 +54,6 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         );
         appConfigLoader.load();
         LanguageLoader languageLoader = new LanguageLoader(plugin, "lang", "lang", "zh_CN", "zh_CN");
-        BlueprintLoader blueprintLoader = new BlueprintLoader(plugin);
-        MaterialLoader materialLoader = new MaterialLoader(plugin);
         RecipeLoader recipeLoader = new RecipeLoader(plugin, coreLibPlugin::actionRegistry, coreLibPlugin::actionTemplateRegistry);
         GuiTemplateLoader guiTemplateLoader = new GuiTemplateLoader(plugin);
         PlayerDataStore playerDataStore = new PlayerDataStore(plugin, coreLibPlugin::asyncYamlFiles);
@@ -97,8 +93,6 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         return new ForgeRuntimeComponents(
                 appConfigLoader,
                 languageLoader,
-                blueprintLoader,
-                materialLoader,
                 recipeLoader,
                 guiTemplateLoader,
                 playerDataStore,
@@ -125,12 +119,16 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         plugin.guiTemplateLoader().load();
         plugin.playerDataStore().load();
         syncPdcAttributeRegistration(plugin.pdcAttributeGateway(), PDC_ATTRIBUTE_SOURCE_ID);
+        plugin.messageService().info("console.pdc_source_registered", Map.of("source", PDC_ATTRIBUTE_SOURCE_ID));
         plugin.itemIdentifierService().refresh();
         plugin.forgeService().refreshIndexes();
         validateConfiguredExternalSources(plugin);
         if (plugin.itemRefreshService() != null) {
             plugin.itemRefreshService().refreshOnlinePlayers();
         }
+        plugin.messageService().info("console.recipes_loaded", Map.of(
+                "count", String.valueOf(plugin.recipeLoader().all().size())
+        ));
         return rescheduleAutoSave(plugin, currentTask);
     }
 
@@ -192,12 +190,6 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
     }
 
     private void validateConfiguredExternalSources(EmakiForgePlugin plugin) {
-        for (var entry : plugin.blueprintLoader().all().entrySet()) {
-            validateSource(plugin, entry.getValue().source(), "blueprint:" + entry.getKey() + ".source");
-        }
-        for (var entry : plugin.materialLoader().all().entrySet()) {
-            validateSource(plugin, entry.getValue().source(), "material:" + entry.getKey() + ".source");
-        }
         for (var entry : plugin.recipeLoader().all().entrySet()) {
             validateSource(plugin, entry.getValue().configuredOutputSource(), "recipe:" + entry.getKey() + ".result.output_item");
         }

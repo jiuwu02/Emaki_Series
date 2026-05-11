@@ -12,6 +12,7 @@ import emaki.jiuwu.craft.corelib.action.ActionLineParser;
 import emaki.jiuwu.craft.corelib.action.ActionRegistry;
 import emaki.jiuwu.craft.corelib.action.ActionTemplateRegistry;
 import emaki.jiuwu.craft.corelib.action.builtin.BuiltinActions;
+import emaki.jiuwu.craft.corelib.action.builtin.RunJavaScriptAction;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerCodecRegistry;
 import emaki.jiuwu.craft.corelib.assembly.EmakiNamespaceDefinition;
@@ -20,9 +21,9 @@ import emaki.jiuwu.craft.corelib.async.AsyncFileService;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.economy.EconomyManager;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
-import emaki.jiuwu.craft.corelib.integration.CraftEngineBlockBridge;
+import emaki.jiuwu.craft.corelib.api.integration.CraftEngineBlockBridge;
 import emaki.jiuwu.craft.corelib.integration.CraftEngineBlockBridgeProvider;
-import emaki.jiuwu.craft.corelib.integration.CustomBlockBridge;
+import emaki.jiuwu.craft.corelib.api.integration.CustomBlockBridge;
 import emaki.jiuwu.craft.corelib.integration.ItemsAdderBlockBridgeProvider;
 import emaki.jiuwu.craft.corelib.integration.NexoBlockBridgeProvider;
 import emaki.jiuwu.craft.corelib.item.ItemSourceIntegrationCoordinator;
@@ -34,6 +35,9 @@ import emaki.jiuwu.craft.corelib.placeholder.ActionContextPlaceholderResolver;
 import emaki.jiuwu.craft.corelib.placeholder.ActionInlineTokenResolver;
 import emaki.jiuwu.craft.corelib.placeholder.PlaceholderApiResolver;
 import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRegistry;
+import emaki.jiuwu.craft.corelib.script.JavaScriptService;
+import emaki.jiuwu.craft.corelib.script.ScriptService;
+import emaki.jiuwu.craft.corelib.script.graal.GraalJavaScriptService;
 import emaki.jiuwu.craft.corelib.service.EmakiServiceRegistry;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
@@ -65,6 +69,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private PlaceholderRegistry placeholderRegistry;
     private EconomyManager economyManager;
     private ActionExecutor actionExecutor;
+    private JavaScriptService javaScriptService;
     private final PdcService pdcService = new PdcService("emaki_corelib");
     private final ItemSourceService itemSourceService = new ItemSourceService();
     private ItemSourceIntegrationCoordinator itemSourceIntegrationCoordinator;
@@ -93,6 +98,9 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     public void onDisable() {
         if (messageService != null) {
             messageService.info("console.plugin_stopped");
+        }
+        if (javaScriptService != null) {
+            javaScriptService.close();
         }
         if (asyncTaskScheduler != null) {
             asyncTaskScheduler.shutdown(5_000L);
@@ -123,6 +131,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
 
     public void reloadActionSystem() {
         configModel = loadConfigModel();
+        reloadScriptSystem();
         actionRegistry = new ActionRegistry();
         actionTemplateRegistry = new ActionTemplateRegistry();
         placeholderRegistry = new PlaceholderRegistry();
@@ -133,7 +142,19 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         for (var entry : configModel.actionTemplates().entrySet()) {
             actionTemplateRegistry.register(entry.getKey(), entry.getValue());
         }
-        BuiltinActions.registerAll(actionRegistry, economyManager, itemSourceService);
+        BuiltinActions.registerAll(
+                actionRegistry,
+                economyManager,
+                itemSourceService,
+                craftEngineBlockBridge,
+                itemsAdderBlockBridge,
+                nexoBlockBridge
+        );
+        if (javaScriptService != null && javaScriptService.enabled()) {
+            for (RunJavaScriptAction action : RunJavaScriptAction.createAll(javaScriptService, configModel.scriptConfig())) {
+                actionRegistry.register(action);
+            }
+        }
         actionExecutor = new ActionExecutor(
                 this,
                 actionRegistry,
@@ -146,12 +167,39 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         refreshServiceRegistry();
     }
 
+    private void reloadScriptSystem() {
+        if (javaScriptService != null) {
+            javaScriptService.close();
+            javaScriptService = null;
+        }
+        if (configModel == null || configModel.scriptConfig() == null || !configModel.scriptConfig().enabled()) {
+            messageService.info("console.script_engine_disabled");
+            return;
+        }
+        try {
+            javaScriptService = new GraalJavaScriptService(
+                    this,
+                    configModel.scriptConfig(),
+                    dataPath(configModel.scriptConfig().paths().root()),
+                    () -> actionExecutor
+            );
+            messageService.info("console.script_engine_ready");
+        } catch (Exception exception) {
+            messageService.warning("console.script_engine_failed", Map.of("error", String.valueOf(exception.getMessage())));
+        }
+    }
+
     private void logStartupAudit() {
         if (economyManager == null) {
             return;
         }
         for (String providerId : economyManager.availableProviderIds()) {
             messageService.info("console.economy_bridge_ready", Map.of("provider", providerId));
+        }
+        for (String blockProvider : new String[]{"CraftEngine", "ItemsAdder", "Nexo"}) {
+            if (getServer().getPluginManager().isPluginEnabled(blockProvider)) {
+                messageService.info("console.block_source_bridge_ready", Map.of("provider", blockProvider));
+            }
         }
     }
 
@@ -198,7 +246,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private CoreLibConfig loadConfigModel() {
         try {
             File file = new File(getDataFolder(), "config.yml");
-            VersionedYamlFile versionedFile = YamlFiles.loadCurrentResource(this, file, "config.yml");
+            VersionedYamlFile versionedFile = YamlFiles.syncVersionedResource(this, file, "config.yml", "version");
             return CoreLibConfig.fromConfig(versionedFile == null ? YamlFiles.load(file) : versionedFile.root());
         } catch (Exception exception) {
             messageService.warning("console.action_config_load_failed", java.util.Map.of(
@@ -230,6 +278,10 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
 
     public ActionExecutor actionExecutor() {
         return actionExecutor;
+    }
+
+    public JavaScriptService javaScriptService() {
+        return javaScriptService;
     }
 
     public AsyncTaskScheduler asyncTaskScheduler() {
@@ -293,6 +345,8 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         registerService(PlaceholderRegistry.class, placeholderRegistry);
         registerService(EconomyManager.class, economyManager);
         registerService(ActionExecutor.class, actionExecutor);
+        registerService(JavaScriptService.class, javaScriptService);
+        registerService(ScriptService.class, javaScriptService);
         registerService(PdcService.class, pdcService);
         registerService(ItemSourceService.class, itemSourceService);
         registerService(EmakiNamespaceRegistry.class, namespaceRegistry);

@@ -27,6 +27,22 @@ public final class ItemSourceUtil {
         if (raw instanceof String text) {
             return parseShorthand(text);
         }
+        for (Object entry : ConfigNodes.asObjectList(raw)) {
+            if (entry == raw) {
+                continue;
+            }
+            ItemSource source = parse(entry);
+            if (source != null) {
+                return source;
+            }
+        }
+        Object itemSources = ConfigNodes.get(raw, "item_sources");
+        for (Object entry : ConfigNodes.asObjectList(itemSources)) {
+            ItemSource source = parse(entry);
+            if (source != null) {
+                return source;
+            }
+        }
         String item = ConfigNodes.string(raw, "item", null);
         if (Texts.isNotBlank(item)) {
             return parseShorthand(item);

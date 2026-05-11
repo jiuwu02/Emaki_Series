@@ -1,3 +1,10 @@
+# ============================================================
+# EmakiForge GUI 配置 - 锻造编辑器界面
+# ============================================================
+# 管理员编辑锻造配方的界面
+#
+# 文件放置位置: plugins/EmakiForge/gui/
+# ============================================================
 id: "editor_gui"
 title: "<gold>{title}</gold>"
 rows: 6
@@ -5,7 +12,7 @@ rows: 6
 slots:
   background:
     slots: ["0-53"]
-    item: "GRAY_STAINED_GLASS_PANE"
+    item: "gray_stained_glass_pane"
     display_name: "<gray>"
     hidden_components: ["tooltip"]
 
@@ -15,7 +22,7 @@ pages:
     buttons:
       recipe:
         slots: [22]
-        item: "BOOK"
+        item: "book"
         display_name: "<gold>{type_name}</gold>"
         lore:
           - "<gray>打开最新配方资源列表。</gray>"
@@ -30,7 +37,7 @@ pages:
     title: "{type_name}列表"
     content_slots: ["0-44"]
     content_item:
-      item: "BOOK"
+      item: "book"
       display_name: "<gold>{entry_id}</gold>"
       lore:
         - "<gray>{entry_name}</gray>"
@@ -56,7 +63,7 @@ pages:
           - "<gray>创建新的资源草稿。</gray>"
       summary:
         slots: [49]
-        item: "BOOK"
+        item: "book"
         display_name: "<gold>{type_name}列表</gold>"
         lore:
           - "<gray>总数: {count}</gray>"
@@ -149,7 +156,7 @@ pages:
           - "<gray>保存当前资源。</gray>"
       context:
         slots: [49]
-        item: "WRITABLE_BOOK"
+        item: "writable_book"
         display_name: "<gold>当前节点</gold>"
         lore:
           - "<gray>{path}</gray>"
@@ -189,12 +196,12 @@ pages:
     content_slots: ["0-44"]
     content_templates:
       enabled:
-        item: "LIME_STAINED_GLASS_PANE"
+        item: "lime_stained_glass_pane"
         display_name: "<green>槽位 {slot} 已启用</green>"
         lore:
           - "<gray>左键切换该槽位。</gray>"
       disabled:
-        item: "GRAY_STAINED_GLASS_PANE"
+        item: "gray_stained_glass_pane"
         display_name: "<gray>槽位 {slot} 未启用</gray>"
         lore:
           - "<gray>左键切换该槽位。</gray>"
@@ -219,7 +226,7 @@ pages:
           - "<gray>直接保存当前配方。</gray>"
       summary:
         slots: [49]
-        item: "BOOK"
+        item: "book"
         display_name: "<gold>槽位数量: {count}</gold>"
         lore:
           - "<gray>{path}</gray>"

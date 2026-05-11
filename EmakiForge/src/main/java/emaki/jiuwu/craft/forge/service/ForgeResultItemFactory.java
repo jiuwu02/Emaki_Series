@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.forge.service;
 
 import org.bukkit.Material;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
@@ -27,11 +28,12 @@ final class ForgeResultItemFactory {
             GuiItems guiItems,
             double multiplier,
             QualitySettings.QualityTier qualityTier,
-            long forgedAt) {
+            long forgedAt,
+            Player player) {
         if (recipe == null) {
             return null;
         }
-        EmakiItemLayerSnapshot forgeLayer = snapshotBuilder.buildLayerSnapshot(recipe, guiItems, multiplier, qualityTier, forgedAt);
+        EmakiItemLayerSnapshot forgeLayer = snapshotBuilder.buildLayerSnapshot(recipe, guiItems, multiplier, qualityTier, forgedAt, player);
         ItemSource baseSource = resolveConfiguredOutputSource(recipe);
         ItemStack existingItem = baseSource == null ? cloneNonAir(guiItems == null ? null : guiItems.targetItem()) : null;
         if (baseSource == null && existingItem == null) {

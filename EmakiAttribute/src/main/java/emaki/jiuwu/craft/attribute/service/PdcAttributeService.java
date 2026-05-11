@@ -30,12 +30,12 @@ import emaki.jiuwu.craft.corelib.pdc.PdcPartition;
 import emaki.jiuwu.craft.corelib.pdc.PdcService;
 import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
 import emaki.jiuwu.craft.corelib.pdc.SnapshotCodec;
-import emaki.jiuwu.craft.corelib.integration.PdcAttributePayloadSnapshot;
+import emaki.jiuwu.craft.corelib.api.integration.PdcAttributePayloadSnapshot;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import me.clip.placeholderapi.PlaceholderAPI;
 
-public final class PdcAttributeService implements PdcAttributeApi, emaki.jiuwu.craft.corelib.integration.PdcAttributeApi {
+public final class PdcAttributeService implements PdcAttributeApi, emaki.jiuwu.craft.corelib.api.integration.PdcAttributeApi {
 
     private static final Pattern SOURCE_META_PATTERN = Pattern.compile("%source_meta_([a-zA-Z0-9_\\-.]+)%");
     private static final Pattern SOURCE_ATTRIBUTE_PATTERN = Pattern.compile("%source_(?:attr|attribute)_([a-zA-Z0-9_\\-.]+)%");

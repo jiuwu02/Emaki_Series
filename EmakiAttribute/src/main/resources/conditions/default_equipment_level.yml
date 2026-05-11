@@ -1,12 +1,30 @@
+# ============================================================
+# EmakiAttribute 条件源 - 装备等级条件（默认禁用）
+# ============================================================
+# 通过正则匹配物品 Lore 中的等级需求文本，
+# 提取等级数值并与玩家等级比较。
+# 适用于非 EmakiItem 的第三方物品（如 NeigeItems）。
+#
+# 文件放置位置: plugins/EmakiAttribute/conditions/
+# ============================================================
+
+# 是否启用此条件源（默认禁用，按需开启）
 enabled: false
 
+# 条件源标识符
 source_id: gem_equipment_level
 
+# 条件组合方式
 condition_type: all_of
 
+# 表达式解析失败时是否视为不满足条件
 invalid_as_failure: true
 
+# 条件列表
+# type: lore_regex → 通过正则表达式匹配物品 Lore
+# pattern: 正则表达式（捕获组 1 的值作为 {value}）
+# condition: 条件表达式
 conditions:
   - type: lore_regex
     pattern: "装备等级需求: Lv\\.(\\d+)"
-    condition: "$1 <= %player_level%"
+    condition: "{value} <= {player_level}"

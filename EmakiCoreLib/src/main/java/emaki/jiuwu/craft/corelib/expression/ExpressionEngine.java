@@ -76,6 +76,46 @@ public final class ExpressionEngine {
         return value == null ? 0D : value;
     }
 
+    /**
+     * Resolve a map of raw variable values (which may contain plain numbers or expression strings)
+     * into a final Map of resolved Double values.
+     * <p>
+     * Variables are resolved in iteration order, so later variables can reference earlier ones.
+     * Expression strings use the standard expression syntax and can reference:
+     * <ul>
+     *   <li>The provided context variables</li>
+     *   <li>Previously resolved variables from the same map</li>
+     * </ul>
+     *
+     * @param rawValues map of variable id to raw value (Number or String expression)
+     * @param context   external context variables (e.g. star, level)
+     * @return resolved map of variable id to computed double value
+     */
+    public static Map<String, Double> resolveVariables(Map<String, Object> rawValues, Map<String, ?> context) {
+        Map<String, Double> resolved = new java.util.LinkedHashMap<>();
+        if (rawValues == null || rawValues.isEmpty()) {
+            return resolved;
+        }
+        Map<String, Object> evalContext = new java.util.LinkedHashMap<>();
+        if (context != null) {
+            evalContext.putAll(context);
+        }
+        for (Map.Entry<String, Object> entry : rawValues.entrySet()) {
+            String key = entry.getKey();
+            Object raw = entry.getValue();
+            double value;
+            if (raw instanceof Number number) {
+                value = number.doubleValue();
+            } else {
+                String expression = raw == null ? "0" : String.valueOf(raw).trim();
+                value = evaluate(expression, evalContext);
+            }
+            resolved.put(key, value);
+            evalContext.put(key, value);
+        }
+        return resolved;
+    }
+
     public static NumericEvaluationResult evaluateNumericDetailed(String expression) {
         return evaluateNumericDetailed(expression, Map.of());
     }
