@@ -49,38 +49,30 @@ chain:
 # ============================================================
 # 共鸣效果
 # ============================================================
-# 统一使用 effects 列表，通过 type 字段区分效果类型。
+# effects 是对象结构，不是带 type 字段的列表。
 # 共鸣激活时，这些效果会叠加到装备上。
 effects:
+  # 共鸣触发动作（音效、消息等）
+  actions:
+    - 'sendmessage text="<gold>火焰共鸣已激活！</gold>"'
+    - "playsound sound=minecraft:item.firecharge.use volume=0.5 pitch=1.2"
   # 额外属性加成
-  - type: "ea_attribute"
-    ea_attributes:
-      physical_attack: 5
-      fire_damage: 3
+  ea_attributes:
+    physical_attack: 5
+    fire_damage: 3
   # 附加技能
-  - type: "es_skill"
-    es_skills:
-      - "fire_resonance_passive"
+  es_skills:
+    - "fire_resonance_passive"
   # 修改装备名称
-  - type: "name_action"
-    name_actions:
-      - action: "prepend_prefix"
-        value: "<red>[焰] </red>"
+  name_actions:
+    - action: "prepend_prefix"
+      value: "<red>[焰] </red>"
   # 修改装备 Lore
-  - type: "lore_action"
-    lore_actions:
-      - action: "append"
-        content:
-          - ""
-          - "<red>◆ 火焰共鸣</red>"
-          - "<gray>  物理攻击 +5</gray>"
-          - "<gray>  火焰伤害 +3</gray>"
-          - "<gray>  技能: 火焰共鸣被动</gray>"
-
-# ============================================================
-# 共鸣触发动作
-# ============================================================
-# 共鸣激活时执行的动作列表（音效、消息等）。
-actions:
-  - 'sendmessage text="<gold>火焰共鸣已激活！</gold>"'
-  - "playsound sound=minecraft:item.firecharge.use volume=0.5 pitch=1.2"
+  lore_actions:
+    - action: "append"
+      content:
+        - ""
+        - "<red>◆ 火焰共鸣</red>"
+        - "<gray>  物理攻击 +5</gray>"
+        - "<gray>  火焰伤害 +3</gray>"
+        - "<gray>  技能: 火焰共鸣被动</gray>"

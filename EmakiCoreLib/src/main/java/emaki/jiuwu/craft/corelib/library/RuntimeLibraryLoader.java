@@ -52,15 +52,25 @@ public final class RuntimeLibraryLoader {
      * 更新依赖版本时同步修改此处。
      */
     private static final List<LibraryCoordinate> LIBRARIES = List.of(
+            new LibraryCoordinate("net.kyori", "adventure-api", "4.26.1"),
+            new LibraryCoordinate("net.kyori", "adventure-key", "4.26.1"),
+            new LibraryCoordinate("net.kyori", "examination-api", "1.3.0"),
+            new LibraryCoordinate("net.kyori", "examination-string", "1.3.0"),
+            new LibraryCoordinate("net.kyori", "adventure-platform-api", "4.4.1"),
             new LibraryCoordinate("net.kyori", "adventure-platform-bukkit", "4.4.1"),
             new LibraryCoordinate("net.kyori", "adventure-text-minimessage", "4.26.1"),
             new LibraryCoordinate("net.kyori", "adventure-text-serializer-plain", "4.26.1"),
+            new LibraryCoordinate("net.kyori", "adventure-text-serializer-legacy", "4.26.1"),
             new LibraryCoordinate("dev.dejvokep", "boosted-yaml", "1.3.7"),
             new LibraryCoordinate("org.graalvm.polyglot", "polyglot", "24.2.1"),
+            new LibraryCoordinate("org.graalvm.sdk", "collections", "24.2.1"),
+            new LibraryCoordinate("org.graalvm.sdk", "nativeimage", "24.2.1"),
+            new LibraryCoordinate("org.graalvm.sdk", "word", "24.2.1"),
             new LibraryCoordinate("org.graalvm.js", "js-language", "24.2.1"),
             new LibraryCoordinate("org.graalvm.regex", "regex", "24.2.1"),
             new LibraryCoordinate("org.graalvm.truffle", "truffle-api", "24.2.1"),
-            new LibraryCoordinate("org.graalvm.shadowed", "icu4j", "24.2.1")
+            new LibraryCoordinate("org.graalvm.shadowed", "icu4j", "24.2.1"),
+            new LibraryCoordinate("org.graalvm.shadowed", "xz", "24.2.1")
     );
 
     private static final MethodHandle ADD_URL_HANDLE;
