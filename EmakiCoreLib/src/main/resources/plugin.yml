@@ -4,6 +4,26 @@ version: ${project.version}
 api-version: "1.21"
 author: JiuWu
 description: Shared native Java core library for Emaki plugins
+commands:
+  emakicorelib:
+    description: EmakiCoreLib management command
+    usage: /emakicorelib <help|web|reload>
+    aliases:
+      - corelib
+      - emakicore
+permissions:
+  emakicorelib.admin:
+    description: Allows all EmakiCoreLib administrative commands
+    default: op
+    children:
+      emakicorelib.web: true
+      emakicorelib.reload: true
+  emakicorelib.web:
+    description: Allows viewing the clickable Web Console link
+    default: op
+  emakicorelib.reload:
+    description: Allows reloading EmakiCoreLib configuration and Web Console
+    default: op
 softdepend:
   - Vault
   - ExcellentEconomy

@@ -5,6 +5,7 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.action.ActionExecutor;
@@ -21,6 +22,7 @@ import emaki.jiuwu.craft.corelib.assembly.EmakiNamespaceDefinition;
 import emaki.jiuwu.craft.corelib.assembly.EmakiNamespaceRegistry;
 import emaki.jiuwu.craft.corelib.async.AsyncFileService;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
+import emaki.jiuwu.craft.corelib.command.CoreLibCommandRouter;
 import emaki.jiuwu.craft.corelib.economy.EconomyManager;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.api.integration.CraftEngineBlockBridge;
@@ -45,6 +47,7 @@ import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.text.AdventureSupport;
+import emaki.jiuwu.craft.corelib.web.WebConsoleService;
 import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.VersionedYamlFile;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
@@ -88,6 +91,8 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
             = new emaki.jiuwu.craft.corelib.event.EmakiEventBus();
     private final Map<Class<?>, Object> serviceRegistry = new ConcurrentHashMap<>();
     private DebugLogger debugLogger;
+    private WebConsoleService webConsoleService;
+    private CoreLibCommandRouter commandRouter;
 
     @Override
     public void onLoad() {
@@ -100,8 +105,10 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII);
         messageService.info("console.plugin_starting");
         ensureBundledFile("config.yml");
+        configModel = loadConfigModel();
         itemSourceIntegrationCoordinator.initialize();
         reloadActionSystem();
+        registerCommandHandler();
         logStartupAudit();
         messageService.info("console.plugin_started");
     }
@@ -110,6 +117,9 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     public void onDisable() {
         if (messageService != null) {
             messageService.info("console.plugin_stopped");
+        }
+        if (webConsoleService != null) {
+            webConsoleService.stop();
         }
         if (javaScriptService != null) {
             javaScriptService.close();
@@ -144,6 +154,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
 
     public void reloadActionSystem() {
         configModel = loadConfigModel();
+        reloadWebConsole();
         reloadScriptSystem();
         actionRegistry = new ActionRegistry();
         actionTemplateRegistry = new ActionTemplateRegistry();
@@ -203,6 +214,15 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         }
     }
 
+    private void reloadWebConsole() {
+        if (webConsoleService == null) {
+            webConsoleService = new WebConsoleService(this, configModel.webConsoleConfig());
+        }
+        webConsoleService.stop();
+        webConsoleService.restart(configModel.webConsoleConfig());
+        refreshServiceRegistry();
+    }
+
     private void logStartupAudit() {
         if (economyManager == null) {
             return;
@@ -219,6 +239,15 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
 
     public Path dataPath(String first, String... more) {
         return getDataFolder().toPath().resolve(Path.of(first, more));
+    }
+
+    private void registerCommandHandler() {
+        commandRouter = new CoreLibCommandRouter(this);
+        PluginCommand pluginCommand = getCommand("emakicorelib");
+        if (pluginCommand != null) {
+            pluginCommand.setExecutor(commandRouter);
+            pluginCommand.setTabCompleter(commandRouter);
+        }
     }
 
     private void initializeServices() {
@@ -366,6 +395,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         registerService(ActionExecutor.class, actionExecutor);
         registerService(JavaScriptService.class, javaScriptService);
         registerService(ScriptService.class, javaScriptService);
+        registerService(WebConsoleService.class, webConsoleService);
         registerService(PdcService.class, pdcService);
         registerService(ItemSourceService.class, itemSourceService);
         registerService(EmakiNamespaceRegistry.class, namespaceRegistry);

@@ -5,12 +5,17 @@ import java.util.List;
 import java.util.Map;
 
 import emaki.jiuwu.craft.corelib.script.ScriptConfig;
+import emaki.jiuwu.craft.corelib.web.WebConsoleConfig;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
-public record CoreLibConfig(Map<String, List<String>> actionTemplates, ScriptConfig scriptConfig) {
+public record CoreLibConfig(
+        Map<String, List<String>> actionTemplates,
+        ScriptConfig scriptConfig,
+        WebConsoleConfig webConsoleConfig
+) {
 
     public static CoreLibConfig defaults() {
-        return new CoreLibConfig(Map.of(), ScriptConfig.defaults());
+        return new CoreLibConfig(Map.of(), ScriptConfig.defaults(), WebConsoleConfig.defaults());
     }
 
     public static CoreLibConfig fromConfig(YamlSection configuration) {
@@ -25,6 +30,10 @@ public record CoreLibConfig(Map<String, List<String>> actionTemplates, ScriptCon
                 templates.put(key, List.copyOf(templatesSection.getStringList(key)));
             }
         }
-        return new CoreLibConfig(Map.copyOf(templates), ScriptConfig.fromConfig(configuration.getSection("script")));
+        return new CoreLibConfig(
+                Map.copyOf(templates),
+                ScriptConfig.fromConfig(configuration.getSection("script")),
+                WebConsoleConfig.fromConfig(configuration.getSection("web_console"))
+        );
     }
 }

@@ -95,7 +95,7 @@ public record ScriptConfig(boolean enabled,
     public record Paths(String root, List<String> createDirectories) {
 
         public static Paths defaults() {
-            return new Paths("scripts", List.of("global", "forge", "strengthen", "cooking", "gem", "skills", "item", "attribute", "templates", "examples"));
+            return new Paths("scripts", List.of("global", "templates", "examples"));
         }
 
         public static Paths fromConfig(YamlSection section) {

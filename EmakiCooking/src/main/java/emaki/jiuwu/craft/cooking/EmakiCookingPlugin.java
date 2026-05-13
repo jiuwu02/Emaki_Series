@@ -20,6 +20,7 @@ import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.AdventureSupport;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
+import emaki.jiuwu.craft.corelib.web.WebConsoleRegistry;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.cooking.config.AppConfig;
 import emaki.jiuwu.craft.cooking.loader.ChoppingBoardRecipeLoader;
@@ -110,12 +111,14 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         reloadPluginState();
         registerCommandHandler();
         registerEventHandlers();
+        registerWebConsole();
         registerPlaceholderExpansion();
         messageService.info("console.plugin_started");
     }
 
     @Override
     public void onDisable() {
+        WebConsoleRegistry.unregisterModule(this);
         if (grinderRuntimeService != null) {
             grinderRuntimeService.shutdown();
         }
@@ -215,6 +218,37 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         registerCraftEngineEventHandlers();
         registerItemsAdderEventHandlers();
         registerNexoEventHandlers();
+    }
+
+    private void registerWebConsole() {
+        WebConsoleRegistry.registerModule(getName(), "Cooking 烹饪", "工位、展示实体、输入规则", "cooking");
+        WebConsoleRegistry.registerConfigFile(getName(), "烹饪系统配置", "config.yml", "烹饪系统主配置，包含工位、展示实体和输入规则。");
+        WebConsoleRegistry.registerGuiFile(getName(), "烹饪 GUI 模板", "gui/**/*.yml", "烹饪工位 GUI 模板文件。");
+        WebConsoleRegistry.registerCommonConfigComments(getName());
+
+        // input_rules
+        WebConsoleRegistry.registerNodeComment(getName(), "input_rules", "输入规则", "工位物品输入的限制规则。", "object");
+        WebConsoleRegistry.registerNodeComment(getName(), "input_rules.only_recipe_items", "严格模式", "是否只允许配方中定义的物品进入工位。", "boolean");
+
+        // display_entities
+        WebConsoleRegistry.registerNodeComment(getName(), "display_entities", "展示实体", "工位上方食材展示实体的全局配置。", "object");
+        WebConsoleRegistry.registerNodeComment(getName(), "display_entities.backend", "渲染后端", "展示实体后端实现（auto/packet_events/bukkit）。", "text");
+        WebConsoleRegistry.registerNodeComment(getName(), "display_entities.view_distance_blocks", "可视距离", "展示实体的最大可视距离（格）。", "number");
+        WebConsoleRegistry.registerNodeComment(getName(), "display_entities.refresh_interval_ticks", "刷新间隔", "展示实体状态刷新间隔 tick 数。", "number");
+        WebConsoleRegistry.registerNodeComment(getName(), "display_entities.wok.layout_radius", "炒锅半径", "炒锅食材展示实体的布局半径。", "number");
+
+        // display_adjustments
+        WebConsoleRegistry.registerNodeComment(getName(), "display_adjustments", "展示调整", "各工位展示实体的位置和缩放微调配置。", "object");
+
+        // stations
+        WebConsoleRegistry.registerNodeComment(getName(), "stations", "工位配置", "砧板、炒锅、研磨机、蒸锅等工位运行配置。", "object");
+        WebConsoleRegistry.registerNodeComment(getName(), "stations.chopping_board", "砧板", "砧板工位的方块匹配与交互配置。", "object");
+        WebConsoleRegistry.registerNodeComment(getName(), "stations.wok", "炒锅", "炒锅工位的方块匹配与翻炒配置。", "object");
+        WebConsoleRegistry.registerNodeComment(getName(), "stations.grinder", "研磨机", "研磨机工位的方块匹配与研磨配置。", "object");
+        WebConsoleRegistry.registerNodeComment(getName(), "stations.steamer", "蒸锅", "蒸锅工位的方块匹配与蒸制配置。", "object");
+        WebConsoleRegistry.registerNodeComment(getName(), "stations.oven", "烤炉", "烤炉工位的方块匹配与烘烤配置。", "object");
+        WebConsoleRegistry.registerNodeComment(getName(), "stations.juicer", "榨汁机", "榨汁机工位的方块匹配与榨汁配置。", "object");
+        WebConsoleRegistry.registerNodeComment(getName(), "stations.fermentation_barrel", "发酵桶", "发酵桶工位的方块匹配与发酵配置。", "object");
     }
 
     private void registerCraftEngineEventHandlers() {

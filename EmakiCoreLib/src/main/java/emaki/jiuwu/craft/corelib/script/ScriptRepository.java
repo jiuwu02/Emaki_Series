@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.corelib.script;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -11,6 +12,8 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
+
+import org.bukkit.plugin.Plugin;
 
 import emaki.jiuwu.craft.corelib.text.Texts;
 
@@ -36,6 +39,45 @@ public final class ScriptRepository {
         for (String directory : directories) {
             Path resolved = resolveSafeDirectory(directory);
             Files.createDirectories(resolved);
+        }
+    }
+
+    public void releaseDefaultScripts(Plugin plugin) {
+        Path examplesDir = root.resolve("examples");
+        try {
+            Files.createDirectories(examplesDir);
+        } catch (IOException ignored) {
+            return;
+        }
+        // 只在 examples 目录为空时释放
+        try (Stream<Path> stream = Files.list(examplesDir)) {
+            if (stream.findAny().isPresent()) {
+                return;
+            }
+        } catch (IOException ignored) {
+            return;
+        }
+        // 释放默认示例脚本
+        String[] examples = {
+            "attribute_buff.js",
+            "cooking_reward.js",
+            "forge_success.js",
+            "hello.js",
+            "item_right_click.js",
+            "skills_upgrade_success.js",
+            "strengthen_success.js"
+        };
+        for (String name : examples) {
+            String resourcePath = "scripts/examples/" + name;
+            try (InputStream input = plugin.getResource(resourcePath)) {
+                if (input == null) continue;
+                Path target = examplesDir.resolve(name);
+                if (!Files.exists(target)) {
+                    Files.copy(input, target);
+                }
+            } catch (IOException ignored) {
+                // 单个文件释放失败不影响其他
+            }
         }
     }
 

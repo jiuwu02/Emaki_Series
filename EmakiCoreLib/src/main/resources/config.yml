@@ -10,6 +10,20 @@
 # version 由资源同步维护
 version: "4.1.0"
 
+web_console:
+  # 内置 Web 管理台，默认关闭。启用前请修改 auth.password。
+  enabled: false
+  host: "127.0.0.1"
+  port: 38765
+  public_access_warning: true
+  auth:
+    username: "EmakiAdmin"
+    password: "EmakiAdminPassword"
+    session_timeout_minutes: 60
+  security:
+    allow_config_write: false
+    max_request_body_kb: 256
+
 action:
   # 在配方或动作列表中通过 @template=名称 引用
   templates:
@@ -35,13 +49,6 @@ script:
     root: "scripts"
     create_directories:
       - "global"
-      - "forge"
-      - "strengthen"
-      - "cooking"
-      - "gem"
-      - "skills"
-      - "item"
-      - "attribute"
       - "templates"
       - "examples"
   action:

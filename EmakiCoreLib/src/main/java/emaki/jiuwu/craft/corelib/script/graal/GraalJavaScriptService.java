@@ -102,6 +102,7 @@ public final class GraalJavaScriptService implements JavaScriptService {
     public ScriptReloadResult reload() {
         try {
             repository.ensureDirectories(config.paths().createDirectories());
+            repository.releaseDefaultScripts(plugin);
             sourceCache.clear();
             List<String> scripts = repository.scan();
             return ScriptReloadResult.success(scripts);

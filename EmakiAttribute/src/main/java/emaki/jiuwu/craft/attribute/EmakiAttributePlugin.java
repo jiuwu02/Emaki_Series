@@ -37,6 +37,7 @@ import emaki.jiuwu.craft.corelib.plugin.AbstractEmakiPlugin;
 import emaki.jiuwu.craft.corelib.service.EmakiServiceRegistry;
 import emaki.jiuwu.craft.corelib.text.AdventureSupport;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
+import emaki.jiuwu.craft.corelib.web.WebConsoleRegistry;
 
 public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements EmakiServiceRegistry {
 
@@ -88,12 +89,14 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         lifecycleCoordinator.registerListener(this);
         ensurePlaceholderExpansion();
         registerSkillScriptActions();
+        registerWebConsole();
         messageService.info("console.plugin_started");
     }
 
     @Override
     public void onDisable() {
         unregisterCoreLibActions();
+        WebConsoleRegistry.unregisterModule(this);
         Bukkit.getServicesManager().unregisterAll(this);
         lifecycleCoordinator.shutdown(this, regenTask);
         AdventureSupport.close(this);
@@ -357,6 +360,41 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         } catch (Exception exception) {
             getLogger().warning("Failed to register attribute_damage skill action: " + exception.getMessage());
         }
+    }
+
+    private void registerWebConsole() {
+        WebConsoleRegistry.registerModule(getName(), "Attribute 属性", "属性、资源、伤害接管与曲线", "attribute");
+        WebConsoleRegistry.registerConfigFile(getName(), "属性系统配置", "config.yml", "属性系统主配置，包含伤害接管、资源恢复和属性曲线。");
+        WebConsoleRegistry.registerCommonConfigComments(getName());
+
+        // 顶层字段
+        WebConsoleRegistry.registerNodeComment(getName(), "hard_lock_damage", "接管原版伤害", "是否接管未命中白名单的原版伤害，true 时所有伤害进入 EA 结算。", "boolean");
+        WebConsoleRegistry.registerNodeComment(getName(), "default_damage_type", "默认伤害类型", "未指定伤害类型时使用的默认伤害类型 ID。", "text");
+        WebConsoleRegistry.registerNodeComment(getName(), "regen_interval_ticks", "回复间隔", "资源（生命、法力等）自然回复的间隔 tick 数。", "number");
+        WebConsoleRegistry.registerNodeComment(getName(), "sync_delay_ticks", "同步延迟", "属性计算完成后同步到 Bukkit 原生属性的延迟 tick 数。", "number");
+        WebConsoleRegistry.registerNodeComment(getName(), "allowed_damage_causes", "伤害白名单", "允许进入 EA 伤害结算的 DamageCause 白名单列表。", "list");
+
+        // default_profile
+        WebConsoleRegistry.registerNodeComment(getName(), "default_profile", "默认档案", "玩家默认属性与资源基础值配置。", "object");
+        WebConsoleRegistry.registerNodeComment(getName(), "default_profile.resources", "资源定义", "默认资源（生命、法力等）的基础配置。", "object");
+        WebConsoleRegistry.registerNodeComment(getName(), "default_profile.attributes", "属性基础值", "玩家默认属性基础数值配置。", "object");
+
+        // default_profile.resources 通用 key 匹配
+        WebConsoleRegistry.registerNodeKeyComment(getName(), "display_name", "显示名称", "资源在界面中显示的名称。", "text");
+        WebConsoleRegistry.registerNodeKeyComment(getName(), "default_max", "默认最大值", "资源的默认最大值。", "number");
+        WebConsoleRegistry.registerNodeKeyComment(getName(), "min_max", "最大值下限", "资源最大值允许的最低值。", "number");
+        WebConsoleRegistry.registerNodeKeyComment(getName(), "max_max", "最大值上限", "资源最大值允许的最高值。", "number");
+        WebConsoleRegistry.registerNodeKeyComment(getName(), "sync_to_bukkit", "同步Bukkit", "是否将该资源同步到 Bukkit 原生属性。", "boolean");
+        WebConsoleRegistry.registerNodeKeyComment(getName(), "full_on_init", "初始满值", "初始化时是否将资源填充至最大值。", "boolean");
+
+        // synthetic_hit_feedback
+        WebConsoleRegistry.registerNodeComment(getName(), "synthetic_hit_feedback", "击中反馈", "接管伤害后的击退和音效补发配置。", "object");
+        WebConsoleRegistry.registerNodeComment(getName(), "synthetic_hit_feedback.knockback", "补发击退", "是否在接管伤害后补发击退效果。", "boolean");
+        WebConsoleRegistry.registerNodeComment(getName(), "synthetic_hit_feedback.knockback_strength", "击退强度", "补发击退的力度系数。", "number");
+        WebConsoleRegistry.registerNodeComment(getName(), "synthetic_hit_feedback.hurt_sound", "受伤音效", "是否在接管伤害后补发受伤音效。", "boolean");
+
+        // scaling_curves
+        WebConsoleRegistry.registerNodeComment(getName(), "scaling_curves", "衰减曲线", "属性超过阈值后的衰减曲线配置。", "object");
     }
 
 }
