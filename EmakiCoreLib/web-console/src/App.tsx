@@ -3,7 +3,7 @@ import { ApiClient } from './api';
 import { GuiEditorSurface } from './GuiEditorSurface';
 import type { WebConfigNode, WebRegistry, WebRegistryFile, WebRegistryModule } from './types';
 
-type Selection = { moduleId: string; fileId: string; scriptPath?: string };
+type Selection = { moduleId: string; fileId: string; scriptPath?: string; refreshKey?: number };
 type DraftMap = Record<string, unknown>;
 
 type Toast = { tone: 'ok' | 'bad'; text: string } | null;
@@ -82,7 +82,7 @@ export default function App() {
           <div><strong>绘卷核心库</strong><small>配置控制台</small></div>
         </div>
         <div className="tree-caption">模块树</div>
-        <WorkspaceTree registry={registry} selected={selected} expanded={expanded} setExpanded={setExpanded} onSelect={setSelected} />
+        <WorkspaceTree registry={registry} selected={selected} expanded={expanded} setExpanded={setExpanded} onSelect={(next) => setSelected((current) => sameSelection(current, next) ? { ...next, refreshKey: (current?.refreshKey ?? 0) + 1 } : next)} />
         <button className="rail-action quiet" onClick={() => { sessionStorage.removeItem('emaki-web-token'); setToken(null); }}>退出登录</button>
       </ResizableRail>
       <main className="stage">
@@ -98,7 +98,7 @@ export default function App() {
           </div>
         </header>
         <section className="editor-shell single">
-          <ConfigSurface module={selectedModule} file={selectedFile} drafts={drafts} setDrafts={setDrafts} api={api} scriptPath={selected?.scriptPath} />
+          <ConfigSurface module={selectedModule} file={selectedFile} drafts={drafts} setDrafts={setDrafts} api={api} scriptPath={selected?.scriptPath} refreshKey={selected?.refreshKey ?? 0} />
         </section>
       </main>
     </div>
@@ -179,17 +179,20 @@ function WorkspaceTree({ registry, selected, expanded, setExpanded, onSelect }: 
         <button className={`tree-file folder-toggle ${selected?.moduleId === m.id && selected.fileId === f.id ? 'active' : ''}`} onClick={() => toggle(folderId)}>
           <span className="folder-arrow">{expanded[folderId] ? '⌄' : '›'}</span> {fileKindLabel(f.kind)} · {f.title}
         </button>
-        {expanded[folderId] && <div className="tree-children">{f.children!.map((child) => <button key={child.relativePath} className="tree-child" onClick={() => onSelect({ moduleId: m.id, fileId: f.id, scriptPath: child.fullPath ?? child.relativePath })}>{child.name}</button>)}</div>}
+        {expanded[folderId] && <div className="tree-children">{f.children!.map((child) => {
+          const childPath = isKind(f.kind, 'SCRIPT') ? child.relativePath : (child.fullPath ?? child.relativePath);
+          return <button key={child.relativePath} className="tree-child" onClick={() => onSelect({ moduleId: m.id, fileId: f.id, scriptPath: childPath })}>{child.name}</button>;
+        })}</div>}
       </div>;
     }
     return <button key={f.id} className={`tree-file ${selected?.moduleId === m.id && selected.fileId === f.id ? 'active' : ''}`} onClick={() => onSelect({ moduleId: m.id, fileId: f.id })}>{fileKindLabel(f.kind)} · {f.title}</button>;
   })}</div>)}</div>;
 }
 
-function ConfigSurface({ module, file, drafts, setDrafts, api, scriptPath }: { module: WebRegistryModule | null; file: WebRegistryFile | null; drafts: DraftMap; setDrafts: React.Dispatch<React.SetStateAction<DraftMap>>; api: ApiClient; scriptPath?: string }) {
+function ConfigSurface({ module, file, drafts, setDrafts, api, scriptPath, refreshKey }: { module: WebRegistryModule | null; file: WebRegistryFile | null; drafts: DraftMap; setDrafts: React.Dispatch<React.SetStateAction<DraftMap>>; api: ApiClient; scriptPath?: string; refreshKey: number }) {
   if (!module || !file) return <section className="config-surface empty">选择左侧配置文件。</section>;
   if (isKind(file.kind, 'SCRIPT')) return <section className="config-surface script-surface"><div className="surface-head"><div><h2>{file.title}</h2><p>{file.comment}</p></div><span className="file-kind script">{fileKindLabel(file.kind)}</span></div>{scriptPath ? <ScriptEditor api={api} scriptPath={scriptPath} /> : <div className="script-placeholder">点击左侧脚本文件开始编辑。</div>}</section>;
-  if (isKind(file.kind, 'GUI')) return <GuiEditorSurface module={module} file={file} api={api} childPath={scriptPath} />;
+  if (isKind(file.kind, 'GUI')) return <GuiEditorSurface module={module} file={file} api={api} childPath={scriptPath} refreshKey={refreshKey} />;
   return <section className="config-surface"><div className="surface-head"><div><h2>{file.title}</h2><p>{file.comment}</p></div><span className={`file-kind ${String(file.kind).toLowerCase()}`}>{fileKindLabel(file.kind)}</span></div><ConfigNodeTree moduleId={module.id} nodes={file.nodes} drafts={drafts} setDrafts={setDrafts} /></section>;
 }
 
@@ -570,6 +573,7 @@ function getCompletions(prefix: string): string[] {
   return KEYWORD_COMPLETIONS.filter(k => k.toLowerCase().startsWith(lower) && k.toLowerCase() !== lower).slice(0, 12);
 }
 
+function sameSelection(a: Selection | null, b: Selection) { return a?.moduleId === b.moduleId && a.fileId === b.fileId && (a.scriptPath ?? '') === (b.scriptPath ?? ''); }
 function Icon({ svg }: { svg: string }) { return <span className="module-icon" dangerouslySetInnerHTML={{ __html: svg }} />; }
 function normalizeKind(kind: string) { return String(kind).toUpperCase(); }
 function isKind(kind: string, expected: string) { return normalizeKind(kind) === expected; }

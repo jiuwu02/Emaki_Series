@@ -22,12 +22,12 @@
 * { box-sizing: border-box; margin: 0; }
 body { min-height: 100vh; background: var(--bg); }
 button, input, textarea { font: inherit; color: inherit; }
-button { cursor: pointer; border: 0; background: none; transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.15s ease; }
-button:active:not(:disabled) { transform: scale(0.93); }
+button { cursor: pointer; border: 0; background: none; transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.15s ease; }
+button:active:not(:disabled) { transform: scale(0.95); }
 button:disabled { opacity: .45; cursor: not-allowed; }
 button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
-input, textarea { border: 1px solid var(--line); background: oklch(14.5% 0.01 260); border-radius: 6px; padding: 7px 9px; width: 100%; color: var(--text); transition: border-color 0.2s ease, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); }
-input:focus, textarea:focus { border-color: var(--line-2); transform: scale(1.01); }
+input, textarea { border: 1px solid var(--line); background: oklch(14.5% 0.01 260); border-radius: 6px; padding: 7px 9px; width: 100%; color: var(--text); transition: border-color 0.15s ease; }
+input:focus, textarea:focus { border-color: var(--line-2); }
 textarea { min-height: 96px; resize: vertical; font-family: ui-monospace, "Cascadia Code", monospace; font-size: 12px; line-height: 1.5; }
 
 .workbench { min-height: 100vh; display: grid; grid-template-columns: var(--rail-width, 272px) minmax(0, 1fr); }
@@ -246,41 +246,74 @@ textarea { min-height: 96px; resize: vertical; font-family: ui-monospace, "Casca
 .completion-item.selected, .completion-item:hover { background: oklch(0.25 0.04 250); color: oklch(0.9 0.01 250); }
 
 /* GUI editor */
-.gui-surface { min-height: calc(100vh - 140px); }
-.gui-head .dirty-inline { margin-left: 8px; color: var(--amber); }
+.gui-surface { min-height: calc(100vh - 140px); background: oklch(14.5% 0.01 260); }
+.gui-head .dirty-inline { margin-left: 10px; color: var(--amber); font-weight: 700; }
 .gui-error { padding: 8px 16px; border-bottom: 1px solid oklch(38% 0.1 28); color: var(--red); background: oklch(18% 0.035 28); font-size: 12px; }
 .gui-loading { min-height: 420px; display: grid; place-items: center; color: var(--faint); }
 .gui-source { margin: 0; padding: 16px; min-height: 520px; overflow: auto; background: oklch(13.5% 0.01 260); color: var(--muted); font-family: ui-monospace, "Cascadia Code", monospace; font-size: 12px; line-height: 1.55; }
-.gui-workbench { display: grid; grid-template-columns: minmax(460px, 1fr) 360px; gap: 16px; padding: 16px; align-items: start; }
-.minecraft-window { position: relative; justify-self: center; border: 1px solid oklch(32% 0.012 260); background: oklch(24% 0.008 260); padding: 14px; box-shadow: inset 0 1px 0 oklch(48% 0.01 260), 0 18px 42px oklch(0% 0 0 / .24); }
-.minecraft-titlebar { height: 30px; color: oklch(91% 0.01 260); font-size: 15px; display: flex; align-items: center; padding: 0 3px; text-shadow: 1px 1px 0 oklch(8% 0.01 260); }
-.minecraft-grid { display: grid; grid-template-columns: repeat(9, 44px); gap: 2px; padding: 8px; background: oklch(18% 0.008 260); border: 2px solid oklch(34% 0.01 260); }
-.minecraft-slot { position: relative; width: 44px; height: 44px; display: grid; place-items: center; border-radius: 0; border: 1px solid oklch(14% 0.006 260); background: linear-gradient(135deg, oklch(31% 0.008 260), oklch(23% 0.008 260)); box-shadow: inset 2px 2px 0 oklch(38% 0.008 260), inset -2px -2px 0 oklch(15% 0.008 260); transition: border-color 0.15s ease, filter 0.15s ease; }
-.minecraft-slot:hover { filter: brightness(1.18); }
-.minecraft-slot.occupied { background: linear-gradient(135deg, oklch(34% 0.01 260), oklch(25% 0.01 260)); }
-.minecraft-slot.selected { border-color: var(--accent); box-shadow: inset 2px 2px 0 oklch(46% 0.025 255), inset -2px -2px 0 oklch(15% 0.008 260), 0 0 0 1px var(--accent); }
-.minecraft-slot.conflict { border-color: var(--red); }
-.slot-index { position: absolute; right: 3px; bottom: 2px; color: oklch(70% 0.01 260 / .42); font-size: 9px; font-family: ui-monospace, "Cascadia Code", monospace; }
-.material-icon { width: 30px; height: 30px; image-rendering: pixelated; object-fit: contain; filter: drop-shadow(1px 2px 0 oklch(0% 0 0 / .35)); }
-.material-fallback { width: 30px; height: 30px; display: grid; place-items: center; border: 1px solid oklch(42% 0.012 260); background: oklch(28% 0.02 255); color: oklch(82% 0.04 255); font-size: 10px; font-weight: 800; font-family: ui-monospace, "Cascadia Code", monospace; }
-.minecraft-tooltip { position: absolute; left: 18px; top: 58px; z-index: 8; min-width: 220px; max-width: 360px; display: grid; gap: 3px; padding: 8px 10px; border: 1px solid oklch(42% 0.08 285); background: oklch(12% 0.03 285 / .96); box-shadow: 3px 3px 0 oklch(0% 0 0 / .45); font-family: ui-monospace, "Cascadia Code", monospace; font-size: 12px; line-height: 1.35; pointer-events: none; }
+.gui-workbench { --mc-slot: clamp(48px, 4.4vw, 64px); display: grid; grid-template-columns: minmax(680px, 1fr) 380px; gap: 22px; padding: 20px; align-items: start; }
+.minecraft-window { position: relative; justify-self: center; border: 3px solid oklch(43% 0.006 260); background: oklch(32% 0.005 260); padding: 34px 36px 38px; box-shadow: inset 3px 3px 0 oklch(60% 0.005 260), inset -3px -3px 0 oklch(17% 0.005 260), 0 24px 64px oklch(0% 0 0 / .34); max-width: 100%; overflow-x: auto; }
+.minecraft-window::before { content: ''; position: absolute; inset: 12px; border: 3px solid oklch(19% 0.005 260); box-shadow: inset 2px 2px 0 oklch(45% 0.005 260), inset -2px -2px 0 oklch(12% 0.005 260); pointer-events: none; }
+.minecraft-titlebar { height: 42px; color: oklch(91% 0.01 260); font-size: 18px; display: flex; align-items: center; padding: 0 14px; text-shadow: 2px 2px 0 oklch(8% 0.01 260); font-family: ui-monospace, "Cascadia Code", monospace; position: relative; z-index: 1; }
+.minecraft-grid { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(9, var(--mc-slot)); gap: 4px; padding: 14px; background: oklch(7.5% 0.004 260); border: 3px solid oklch(17% 0.005 260); box-shadow: inset 3px 3px 0 oklch(4% 0.004 260), inset -3px -3px 0 oklch(36% 0.005 260); }
+.minecraft-slot { position: relative; width: var(--mc-slot); height: var(--mc-slot); display: grid; place-items: center; border-radius: 0; border: 0; background: oklch(22% 0.006 260); box-shadow: inset 4px 4px 0 oklch(13% 0.005 260), inset -4px -4px 0 oklch(34% 0.006 260); transition: filter 0.12s ease, box-shadow 0.12s ease; }
+.minecraft-slot::before { content: ''; position: absolute; inset: 8px; background: oklch(19% 0.006 260 / .7); box-shadow: inset 2px 2px 0 oklch(15% 0.005 260), inset -1px -1px 0 oklch(27% 0.005 260); pointer-events: none; }
+.minecraft-slot:hover { filter: brightness(1.22); }
+.minecraft-slot.occupied { background: oklch(24% 0.008 260); }
+.minecraft-slot.selected { box-shadow: inset 4px 4px 0 oklch(13% 0.005 260), inset -4px -4px 0 oklch(34% 0.006 260), 0 0 0 3px oklch(72% 0.16 255), 0 0 0 5px oklch(12% 0.04 255); }
+.minecraft-slot.conflict { box-shadow: inset 4px 4px 0 oklch(13% 0.005 260), inset -4px -4px 0 oklch(34% 0.006 260), 0 0 0 3px var(--red); }
+.slot-index { position: absolute; right: 4px; bottom: 2px; color: oklch(86% 0.01 260 / .20); font-size: 10px; font-family: ui-monospace, "Cascadia Code", monospace; z-index: 2; }
+.material-icon { width: calc(var(--mc-slot) * .62); height: calc(var(--mc-slot) * .62); image-rendering: pixelated; object-fit: contain; filter: drop-shadow(3px 3px 0 oklch(0% 0 0 / .42)); position: relative; z-index: 2; }
+.material-fallback { width: calc(var(--mc-slot) * .58); height: calc(var(--mc-slot) * .58); display: grid; place-items: center; border: 1px solid oklch(47% 0.012 260); background: radial-gradient(circle at 35% 30%, oklch(36% 0.03 255), oklch(23% 0.014 260)); color: oklch(83% 0.04 255); font-size: 11px; font-weight: 800; font-family: ui-monospace, "Cascadia Code", monospace; position: relative; z-index: 2; }
+.material-fallback[data-empty="true"] { opacity: .42; background: transparent; border-color: transparent; }
+.minecraft-tooltip { position: fixed; z-index: 80; min-width: 240px; max-width: 380px; display: grid; gap: 3px; padding: 9px 11px; border: 2px solid oklch(36% 0.12 305); background: oklch(10% 0.035 295 / .97); box-shadow: 4px 4px 0 oklch(0% 0 0 / .5); font-family: ui-monospace, "Cascadia Code", monospace; font-size: 12px; line-height: 1.35; pointer-events: none; }
 .minecraft-tooltip strong { font-weight: 650; margin-bottom: 2px; }
 .minecraft-tooltip small { color: var(--faint); }
 .muted-tooltip { color: var(--faint); }
 .mini-token { border: 1px solid oklch(32% 0.03 255); border-radius: 3px; padding: 0 3px; margin: 0 1px; }
 .gui-inspector { display: grid; gap: 12px; }
-.inspector-section { border: 1px solid var(--line); background: oklch(15.5% 0.011 260); padding: 12px; display: grid; gap: 10px; }
+.inspector-section { border: 1px solid var(--line); background: oklch(16% 0.011 260); padding: 12px; display: grid; gap: 10px; box-shadow: inset 0 1px 0 oklch(24% 0.01 260); }
 .inspector-section h3 { font-size: 13px; color: var(--text); }
 .inspector-section label { display: grid; gap: 5px; color: var(--muted); font-size: 11px; }
-.slot-form { display: grid; gap: 9px; }
+.slot-form { display: grid; gap: 10px; }
 .slot-key { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .slot-key code { color: var(--accent); font-family: ui-monospace, "Cascadia Code", monospace; font-size: 12px; }
 .slot-key button { color: var(--red); border: 1px solid oklch(34% 0.06 28); border-radius: 5px; padding: 4px 8px; font-size: 12px; }
+.slot-form-section { display: grid; gap: 8px; border: 1px solid var(--line); background: oklch(14% 0.01 260); padding: 0; overflow: hidden; }
+.slot-form-section h4 { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.slot-form-section small { color: var(--faint); font-size: 11px; }
+.slot-section-toggle { width: 100%; display: flex; align-items: center; gap: 7px; text-align: left; padding: 9px 10px; color: var(--muted); border-bottom: 1px solid var(--line); }
+.slot-form-section.collapsed .slot-section-toggle { border-bottom: 0; }
+.slot-section-toggle:hover { background: oklch(17% 0.011 260); color: var(--text); }
+.slot-section-toggle span { width: 12px; color: var(--faint); }
+.slot-section-body { display: grid; gap: 8px; padding: 10px; }
+.mini-grid-2 { display: grid; grid-template-columns: 1fr 120px; gap: 8px; }
+.sub-editor { display: grid; gap: 6px; }
+.sub-editor-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--faint); font-size: 11px; }
+.sub-editor-head button, .field-row button, .sound-row button { border: 1px solid var(--line); border-radius: 5px; padding: 4px 7px; color: var(--muted); font-size: 11px; }
+.field-row { display: grid; grid-template-columns: 1fr 64px 38px; gap: 6px; }
+.chip-list { display: flex; gap: 5px; flex-wrap: wrap; }
+.chip { border: 1px solid var(--line); border-radius: 999px; padding: 3px 8px; color: var(--faint); font-size: 11px; }
+.chip.active { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.inline-switch { display: inline-flex !important; grid-template-columns: none !important; align-items: center; gap: 5px !important; white-space: nowrap; }
+.inline-switch input { width: auto; }
+.sound-row { display: grid; grid-template-columns: 72px 1fr 58px 58px 42px; gap: 6px; align-items: center; }
+.sound-row strong { color: var(--muted); font-size: 11px; }
+.advanced-json { min-height: 100px; font-size: 11px; }
+.json-error { color: var(--red); font-size: 11px; }
 .wide-action { width: 100%; border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; color: var(--accent); background: var(--accent-soft); }
 .muted-copy { color: var(--faint); font-size: 12px; line-height: 1.5; }
-.material-list { display: grid; gap: 5px; max-height: 230px; overflow: auto; }
-.material-list button { display: grid; grid-template-columns: 28px 1fr; align-items: center; gap: 8px; text-align: left; border: 1px solid var(--line); background: oklch(17% 0.01 260); border-radius: 6px; padding: 5px 7px; color: var(--muted); font-size: 11px; }
-.material-list button:hover { border-color: var(--line-2); color: var(--text); }
-.material-list .material-icon, .material-list .material-fallback { width: 24px; height: 24px; font-size: 8px; }
-@media (max-width: 1180px) { .gui-workbench { grid-template-columns: 1fr; } .gui-inspector { grid-template-columns: repeat(2, minmax(0, 1fr)); } .material-palette { grid-column: 1 / -1; } }
-@media (max-width: 720px) { .minecraft-grid { grid-template-columns: repeat(9, 32px); grid-template-rows: none !important; } .minecraft-slot { width: 32px; height: 32px; } .gui-inspector { grid-template-columns: 1fr; } }
+.material-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.material-head span, .material-limit { color: var(--faint); font-size: 11px; }
+.material-tabs { display: flex; gap: 5px; flex-wrap: wrap; }
+.material-tabs button { border: 1px solid var(--line); color: var(--faint); border-radius: 999px; padding: 3px 8px; font-size: 11px; }
+.material-tabs button.active, .material-tabs button:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.material-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; max-height: 390px; overflow: auto; padding-right: 2px; }
+.material-list button { min-width: 0; display: grid; grid-template-columns: 30px minmax(0, 1fr); align-items: center; gap: 8px; text-align: left; border: 1px solid var(--line); background: oklch(18% 0.01 260); border-radius: 6px; padding: 6px 7px; color: var(--muted); font-size: 11px; }
+.material-list button:hover { border-color: var(--line-2); color: var(--text); background: oklch(20% 0.012 260); }
+.material-list .material-icon, .material-list .material-fallback { width: 26px; height: 26px; font-size: 8px; }
+.material-list span { min-width: 0; display: grid; gap: 1px; }
+.material-list strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; font-size: 10px; }
+.material-list small { color: var(--faint); font-size: 10px; }
+@media (max-width: 1280px) { .gui-workbench { --mc-slot: 52px; grid-template-columns: 1fr; } .gui-inspector { grid-template-columns: repeat(2, minmax(0, 1fr)); } .material-palette { grid-column: 1 / -1; } }
+@media (max-width: 760px) { .gui-workbench { --mc-slot: 34px; padding: 12px; } .minecraft-window { padding: 22px 18px 20px; } .minecraft-titlebar { height: 32px; font-size: 14px; } .minecraft-grid { grid-template-rows: none !important; gap: 2px; padding: 8px; } .minecraft-slot::before { inset: 5px; } .gui-inspector { grid-template-columns: 1fr; } .material-list { grid-template-columns: 1fr; } }

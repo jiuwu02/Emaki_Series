@@ -1,16 +1,18 @@
-import { useEffect, useMemo, useState } from 'react';
+import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ApiClient } from './api';
 import type { GuiSlotDefinition, GuiTemplateData, WebRegistryFile, WebRegistryModule } from './types';
-import { buildOccupancy, clampRows, COMMON_MATERIALS, loreLines, materialShortName, materialUrl, parseSlotList, renderMiniMessageParts, serializeGuiYaml, textValue } from './guiEditor';
+import { buildOccupancy, clampRows, loreLines, materialShortName, materialUrls, parseSlotList, renderMiniMessageParts, serializeGuiYaml, textValue } from './guiEditor';
+import { MATERIAL_CATEGORIES, MINECRAFT_MATERIAL_VERSION, type MaterialCategory, materialCategory, searchMaterials } from './minecraftMaterials';
 
 type Props = {
   module: WebRegistryModule;
   file: WebRegistryFile;
   api: ApiClient;
   childPath?: string;
+  refreshKey?: number;
 };
 
-export function GuiEditorSurface({ module, file, api, childPath }: Props) {
+export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0 }: Props) {
   const [data, setData] = useState<GuiTemplateData | null>(null);
   const [originalText, setOriginalText] = useState('');
   const [loading, setLoading] = useState(false);
@@ -18,23 +20,45 @@ export function GuiEditorSurface({ module, file, api, childPath }: Props) {
   const [error, setError] = useState('');
   const [selected, setSelected] = useState<number[]>([]);
   const [hovered, setHovered] = useState<number | null>(null);
+  const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number } | null>(null);
   const [query, setQuery] = useState('');
+  const [category, setCategory] = useState<MaterialCategory | '全部'>('全部');
   const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
   const [mode, setMode] = useState<'preview' | 'source'>('preview');
+  const tooltipRef = useRef<HTMLDivElement>(null);
 
   const path = childPath ?? '';
 
+  const handleSlotMouseMove = useCallback((event: React.MouseEvent) => {
+    if (tooltipRef.current) {
+      const { clientX, clientY } = event;
+      const pos = nextTooltipPosition(clientX, clientY);
+      tooltipRef.current.style.left = `${pos.x}px`;
+      tooltipRef.current.style.top = `${pos.y}px`;
+    }
+  }, []);
+
   useEffect(() => {
+    void reloadGui();
+  }, [api, module.id, path, refreshKey]);
+
+  async function reloadGui() {
     if (!path) return;
     setLoading(true);
     setError('');
-    api.readGui(module.id, path).then((doc) => {
+    try {
+      const doc = await api.readGui(module.id, path);
       setData(doc.data ?? {});
       setOriginalText(doc.content ?? '');
       setSelected([]);
-    }).catch((err) => setError(err instanceof Error ? err.message : 'GUI 文件加载失败'))
-      .finally(() => setLoading(false));
-  }, [api, module.id, path]);
+      setHovered(null);
+      setTooltipPosition(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'GUI 文件加载失败');
+    } finally {
+      setLoading(false);
+    }
+  }
 
   const rows = clampRows(data?.rows);
   const occupancy = useMemo(() => data ? buildOccupancy(data) : [], [data]);
@@ -42,6 +66,8 @@ export function GuiEditorSurface({ module, file, api, childPath }: Props) {
   const selectedSlot = selectedKey && data?.slots ? data.slots[selectedKey] ?? null : null;
   const draftText = data ? serializeGuiYaml(data) : '';
   const dirty = data != null && draftText !== originalText;
+  const materialResults = useMemo(() => searchMaterials(query, category), [query, category]);
+  const visibleMaterials = materialResults.slice(0, 80);
 
   async function save() {
     if (!data || !path) return;
@@ -99,7 +125,7 @@ export function GuiEditorSurface({ module, file, api, childPath }: Props) {
       </div>
       <div className="head-actions">
         <button onClick={() => setMode(mode === 'preview' ? 'source' : 'preview')}>{mode === 'preview' ? '源码' : '预览'}</button>
-        <button onClick={() => setData(null)} disabled={saving}>重载</button>
+        <button onClick={() => { if (dirty && !window.confirm('有未保存的更改，确定重载？')) return; void reloadGui(); }} disabled={saving || loading}>重载</button>
         <button className="primary" onClick={() => void save()} disabled={!dirty || saving}>{saving ? '保存中' : '保存 GUI'}</button>
       </div>
     </div>
@@ -107,16 +133,19 @@ export function GuiEditorSurface({ module, file, api, childPath }: Props) {
     {mode === 'source' ? <pre className="gui-source">{draftText}</pre> : <div className="gui-workbench">
       <div className="minecraft-window">
         <div className="minecraft-titlebar"><MiniText value={data.title ?? 'GUI'} /></div>
-        <div className="minecraft-grid" style={{ gridTemplateRows: `repeat(${rows}, 44px)` }}>
+        <div className="minecraft-grid" style={{ gridTemplateRows: `repeat(${rows}, var(--mc-slot))` }}>
           {occupancy.map((cell) => <button
             key={cell.index}
             className={`minecraft-slot ${cell.key ? 'occupied' : ''} ${selected.includes(cell.index) ? 'selected' : ''} ${cell.conflicts.length ? 'conflict' : ''}`}
+            aria-label={`槽位 ${cell.index}${cell.key ? `，${cell.key}` : '，空槽'}`}
+            aria-selected={selected.includes(cell.index)}
             onClick={(event) => {
               if (event.ctrlKey || event.shiftKey) setSelected((current) => current.includes(cell.index) ? current.filter((n) => n !== cell.index) : [...current, cell.index]);
               else setSelected([cell.index]);
             }}
-            onMouseEnter={() => setHovered(cell.index)}
-            onMouseLeave={() => setHovered(null)}
+            onMouseEnter={(event) => { setHovered(cell.index); setTooltipPosition(nextTooltipPosition(event.clientX, event.clientY)); }}
+            onMouseMove={handleSlotMouseMove}
+            onMouseLeave={() => { setHovered(null); setTooltipPosition(null); }}
             onDragOver={(event) => event.preventDefault()}
             onDrop={(event) => { event.preventDefault(); const material = event.dataTransfer.getData('text/material'); if (material) { setSelected([cell.index]); cell.key ? updateSlot(cell.key, { item: material }) : createSlot(cell.index, material); } }}
           >
@@ -124,7 +153,7 @@ export function GuiEditorSurface({ module, file, api, childPath }: Props) {
             <span className="slot-index">{cell.index}</span>
           </button>)}
         </div>
-        {hoveredCell?.slot && <MinecraftTooltip slot={hoveredCell.slot} slotKey={hoveredCell.key ?? ''} />}
+        {hoveredCell?.slot && tooltipPosition && <MinecraftTooltip ref={tooltipRef} slot={hoveredCell.slot} slotKey={hoveredCell.key ?? ''} position={tooltipPosition} />}
       </div>
       <aside className="gui-inspector">
         <div className="inspector-section">
@@ -138,14 +167,18 @@ export function GuiEditorSurface({ module, file, api, childPath }: Props) {
           {selectedSlot && selectedKey ? <SlotInspector slotKey={selectedKey} slot={selectedSlot} updateSlot={updateSlot} removeSlot={() => updateData((draft) => { const next = { ...(draft.slots ?? {}) }; delete next[selectedKey]; return { ...draft, slots: next }; })} /> : selected.length ? <button className="wide-action" onClick={() => createSlot(selected[0])}>在 {selected[0]} 创建 slot</button> : <p className="muted-copy">点击网格槽位编辑，或从材料面板拖入物品。</p>}
         </div>
         <div className="inspector-section material-palette">
-          <h3>材料源</h3>
-          <input placeholder="搜索 material" value={query} onChange={(e) => setQuery(e.target.value)} />
+          <div className="material-head"><h3>材料源</h3><span>MC {MINECRAFT_MATERIAL_VERSION} · {materialResults.length} 项</span></div>
+          <input placeholder="搜索 material，例如 sword、glass pane、diamond" value={query} onChange={(e) => setQuery(e.target.value)} />
+          <div className="material-tabs">
+            {(['全部', ...MATERIAL_CATEGORIES] as const).map((entry) => <button key={entry} className={category === entry ? 'active' : ''} onClick={() => setCategory(entry)}>{entry}</button>)}
+          </div>
           <div className="material-list">
-            {COMMON_MATERIALS.filter((item) => item.toLowerCase().includes(query.toLowerCase())).map((material) => <button key={material} draggable onDragStart={(e) => e.dataTransfer.setData('text/material', material)} onClick={() => assignMaterial(material)}>
+            {visibleMaterials.map((material) => <button key={material} draggable onDragStart={(e) => e.dataTransfer.setData('text/material', material)} onClick={() => assignMaterial(material)} title={material}>
               <SlotIcon slot={{ item: material }} failed={failedImages} setFailed={setFailedImages} />
-              <span>{material.toLowerCase()}</span>
+              <span><strong>minecraft:{material.toLowerCase()}</strong><small>{materialCategory(material)}</small></span>
             </button>)}
           </div>
+          {materialResults.length > visibleMaterials.length && <p className="material-limit">仅显示前 {visibleMaterials.length} 项，继续输入缩小范围。</p>}
         </div>
       </aside>
     </div>}
@@ -154,34 +187,107 @@ export function GuiEditorSurface({ module, file, api, childPath }: Props) {
 
 function SlotInspector({ slotKey, slot, updateSlot, removeSlot }: { slotKey: string; slot: GuiSlotDefinition; updateSlot: (key: string, patch: Partial<GuiSlotDefinition>) => void; removeSlot: () => void }) {
   const slotsText = parseSlotList(slot.slots).join(', ');
+  const setField = (field: string, value: unknown) => updateSlot(slotKey, { [field]: value === '' || value == null ? undefined : value });
   return <div className="slot-form">
     <div className="slot-key"><code>{slotKey}</code><button onClick={removeSlot}>删除</button></div>
-    <label>type<input value={textValue(slot.type)} onChange={(e) => updateSlot(slotKey, { type: e.target.value })} /></label>
-    <label>item<input value={textValue(slot.item)} onChange={(e) => updateSlot(slotKey, { item: e.target.value })} /></label>
-    <label>display_name<input value={textValue(slot.display_name)} onChange={(e) => updateSlot(slotKey, { display_name: e.target.value })} /></label>
-    <label>slots<input value={slotsText} onChange={(e) => updateSlot(slotKey, { slots: e.target.value.split(/[ ,]+/).map((part) => Number(part)).filter(Number.isFinite) })} /></label>
-    <label>lore<textarea value={loreLines(slot.lore).join('\n')} onChange={(e) => updateSlot(slotKey, { lore: e.target.value.split('\n') })} /></label>
+    <InspectorPanel title="槽位定义" storageKey="slot-identity"><label>type<input value={textValue(slot.type)} onChange={(e) => setField('type', e.target.value)} /></label><label>slots<input value={slotsText} onChange={(e) => setField('slots', e.target.value.split(/[ ,]+/).map((part) => Number(part)).filter(Number.isFinite))} /></label><small>{parseSlotList(slot.slots).length} 个槽位</small></InspectorPanel>
+    <InspectorPanel title="物品来源" storageKey="slot-item"><label>item<input value={textValue(slot.item)} onChange={(e) => setField('item', e.target.value)} /></label></InspectorPanel>
+    <InspectorPanel title="显示文本" storageKey="slot-display"><label>display_name<input value={textValue(slot.display_name)} onChange={(e) => setField('display_name', e.target.value)} /></label><label>lore<textarea value={loreLines(slot.lore).join('\n')} onChange={(e) => setField('lore', e.target.value.split('\n'))} /></label></InspectorPanel>
+    <InspectorPanel title="模型与组件" storageKey="slot-model" defaultCollapsed><div className="mini-grid-2"><label>item_model<input value={textValue(slot.item_model ?? slot['item-model'])} onChange={(e) => setField('item_model', e.target.value)} /></label><label>custom_model_data<input type="number" value={textValue(slot.custom_model_data ?? slot.custommodeldata)} onChange={(e) => setField('custom_model_data', e.target.value === '' ? undefined : Number(e.target.value))} /></label></div><EnchantmentsEditor value={slot.enchantments} onChange={(value) => setField('enchantments', value)} /><HiddenComponentsEditor slot={slot} onChange={(patch) => updateSlot(slotKey, patch)} /></InspectorPanel>
+    <InspectorPanel title="声音" storageKey="slot-sounds" defaultCollapsed><SoundsEditor value={slot.sounds} onChange={(value) => setField('sounds', value)} /></InspectorPanel>
+    <InspectorPanel title="高级字段" storageKey="slot-advanced" defaultCollapsed><AdvancedFieldsEditor slot={slot} onChange={(patch) => updateSlot(slotKey, patch)} /></InspectorPanel>
   </div>;
+}
+
+function InspectorPanel({ title, storageKey, defaultCollapsed = false, children }: { title: string; storageKey: string; defaultCollapsed?: boolean; children: React.ReactNode }) {
+  const key = `emaki-gui-inspector:${storageKey}`;
+  const [collapsed, setCollapsed] = useState(() => localStorage.getItem(key) ? localStorage.getItem(key) === '1' : defaultCollapsed);
+  const toggle = () => setCollapsed((current) => {
+    localStorage.setItem(key, current ? '0' : '1');
+    return !current;
+  });
+  return <div className={`slot-form-section ${collapsed ? 'collapsed' : ''}`}><button type="button" className="slot-section-toggle" onClick={toggle} aria-expanded={!collapsed}><span>{collapsed ? '›' : '⌄'}</span><h4>{title}</h4></button>{!collapsed && <div className="slot-section-body">{children}</div>}</div>;
+}
+
+function EnchantmentsEditor({ value, onChange }: { value: unknown; onChange: (value: Record<string, number> | undefined) => void }) {
+  const entries = enchantEntries(value);
+  const update = (index: number, key: string, level: number) => onChange(entries.map((entry, i) => i === index ? { key, level } : entry).filter((entry) => entry.key.trim()).reduce((map, entry) => ({ ...map, [entry.key.trim()]: entry.level || 1 }), {} as Record<string, number>));
+  const remove = (index: number) => onChange(entries.filter((_, i) => i !== index).reduce((map, entry) => ({ ...map, [entry.key]: entry.level }), {} as Record<string, number>));
+  return <div className="sub-editor"><div className="sub-editor-head"><span>enchantments</span><button onClick={() => onChange({ ...entries.reduce((map, entry) => ({ ...map, [entry.key]: entry.level }), {} as Record<string, number>), sharpness: 1 })}>添加</button></div>{entries.map((entry, index) => <div className="field-row" key={index}><input value={entry.key} onChange={(e) => update(index, e.target.value, entry.level)} placeholder="minecraft:sharpness" /><input type="number" value={entry.level} onChange={(e) => update(index, entry.key, Number(e.target.value))} /><button onClick={() => remove(index)}>删</button></div>)}</div>;
+}
+
+function enchantEntries(value: unknown): { key: string; level: number }[] {
+  if (value && typeof value === 'object' && !Array.isArray(value)) return Object.entries(value as Record<string, unknown>).map(([key, level]) => ({ key, level: Number(level) || 1 }));
+  if (Array.isArray(value)) return value.map((entry) => String(entry)).map((entry) => { const [key, level] = entry.split(':'); return { key, level: Number(level) || 1 }; });
+  return [];
+}
+
+const HIDDEN_COMPONENTS = ['tooltip', 'enchantments', 'attributes', 'unbreakable', 'can_destroy', 'can_place_on', 'trim', 'dye', '*'];
+
+function HiddenComponentsEditor({ slot, onChange }: { slot: GuiSlotDefinition; onChange: (patch: Partial<GuiSlotDefinition>) => void }) {
+  const list = Array.isArray(slot.hidden_components) ? slot.hidden_components.map(String) : [];
+  const toggle = (entry: string) => onChange({ hidden_components: list.includes(entry) ? list.filter((item) => item !== entry) : [...list, entry] });
+  return <div className="sub-editor"><div className="sub-editor-head"><span>hidden_components</span><label className="inline-switch"><input type="checkbox" checked={slot.hide_tooltip === true || slot['hide-tooltip'] === true} onChange={(e) => onChange({ hide_tooltip: e.target.checked || undefined })} /> hide tooltip</label></div><div className="chip-list">{HIDDEN_COMPONENTS.map((entry) => <button key={entry} className={list.includes(entry) ? 'chip active' : 'chip'} onClick={() => toggle(entry)}>{entry}</button>)}</div></div>;
+}
+
+const SOUND_KEYS = ['click', 'left_click', 'right_click'] as const;
+
+function SoundsEditor({ value, onChange }: { value: unknown; onChange: (value: Record<string, unknown> | undefined) => void }) {
+  const sounds = normalizeSounds(value);
+  const update = (key: string, patch: Record<string, unknown>) => onChange(cleanMap({ ...sounds, [key]: cleanMap({ ...(sounds[key] as Record<string, unknown> ?? {}), ...patch }) }));
+  return <div className="sub-editor sound-editor">{SOUND_KEYS.map((key) => {
+    const sound = (sounds[key] ?? {}) as Record<string, unknown>;
+    return <div className="sound-row" key={key}><strong>{key}</strong><input value={textValue(sound.sound ?? sound.key ?? sound.type)} onChange={(e) => update(key, { sound: e.target.value })} placeholder="ui.button.click" /><input type="number" step="0.1" value={textValue(sound.volume, '1')} onChange={(e) => update(key, { volume: Number(e.target.value) })} /><input type="number" step="0.1" value={textValue(sound.pitch, '1')} onChange={(e) => update(key, { pitch: Number(e.target.value) })} /><button onClick={() => onChange(cleanMap({ ...sounds, [key]: undefined }))}>清空</button></div>;
+  })}</div>;
+}
+
+function normalizeSounds(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? { ...(value as Record<string, unknown>) } : {};
+}
+
+const STANDARD_SLOT_FIELDS = new Set(['type', 'slots', 'item', 'display_name', 'lore', 'item_model', 'item-model', 'custom_model_data', 'custommodeldata', 'enchantments', 'hidden_components', 'hide_tooltip', 'hide-tooltip', 'tooltip_display', 'sounds']);
+
+function AdvancedFieldsEditor({ slot, onChange }: { slot: GuiSlotDefinition; onChange: (patch: Partial<GuiSlotDefinition>) => void }) {
+  const extras = Object.fromEntries(Object.entries(slot).filter(([key]) => !STANDARD_SLOT_FIELDS.has(key)));
+  const [text, setText] = useState(() => JSON.stringify(extras, null, 2));
+  const [jsonError, setJsonError] = useState('');
+  useEffect(() => { setText(JSON.stringify(extras, null, 2)); setJsonError(''); }, [JSON.stringify(extras)]);
+  return <div className="sub-editor"><textarea className="advanced-json" value={text} onChange={(e) => { setText(e.target.value); setJsonError(''); }} spellCheck={false} aria-invalid={!!jsonError} />{jsonError && <small className="json-error">{jsonError}</small>}<button className="wide-action" onClick={() => { try { const parsed = JSON.parse(text || '{}'); onChange({ ...Object.fromEntries(Object.keys(extras).map((key) => [key, undefined])), ...parsed }); setJsonError(''); } catch (err) { setJsonError(err instanceof Error ? err.message : 'JSON 解析失败'); } }}>应用高级字段</button></div>;
+}
+
+function cleanMap<T extends Record<string, unknown>>(value: T): T | undefined {
+  const next = Object.fromEntries(Object.entries(value).filter(([, entry]) => entry !== undefined && entry !== '' && !(entry && typeof entry === 'object' && !Array.isArray(entry) && Object.keys(entry).length === 0))) as T;
+  return Object.keys(next).length ? next : undefined;
 }
 
 function SlotIcon({ slot, failed, setFailed }: { slot?: GuiSlotDefinition | null; failed: Record<string, boolean>; setFailed: React.Dispatch<React.SetStateAction<Record<string, boolean>>> }) {
   const material = slot?.item ?? 'AIR';
-  const normalized = String(material).toLowerCase();
-  const url = materialUrl(material);
-  if (!slot || !url || failed[normalized]) return <span className="material-fallback">{materialShortName(material)}</span>;
-  return <img className="material-icon" src={url} alt="" draggable={false} onError={() => setFailed((current) => ({ ...current, [normalized]: true }))} />;
+  const urls = materialUrls(material);
+  const failedCount = urls.filter((url) => failed[url]).length;
+  const url = urls.find((entry) => !failed[entry]);
+  if (!slot || !url) return <span className="material-fallback" data-empty={!slot || !urls.length ? 'true' : undefined}>{materialShortName(material)}</span>;
+  return <img className="material-icon" src={url} alt="" loading="lazy" draggable={false} data-attempt={failedCount} onError={() => setFailed((current) => ({ ...current, [url]: true }))} />;
 }
 
-function MinecraftTooltip({ slot, slotKey }: { slot: GuiSlotDefinition; slotKey: string }) {
+function nextTooltipPosition(clientX: number, clientY: number) {
+  const width = 340;
+  const height = 180;
+  const margin = 14;
+  const x = Math.min(clientX + 18, window.innerWidth - width - margin);
+  const y = Math.min(clientY + 18, window.innerHeight - height - margin);
+  return { x: Math.max(margin, x), y: Math.max(margin, y) };
+}
+
+const MinecraftTooltip = forwardRef<HTMLDivElement, { slot: GuiSlotDefinition; slotKey: string; position: { x: number; y: number } }>(function MinecraftTooltip({ slot, slotKey, position }, ref) {
   const hidden = String(slot.hidden_components ?? '').includes('tooltip') || slot.hide_tooltip === true;
-  if (hidden) return <div className="minecraft-tooltip muted-tooltip">Tooltip 已隐藏 · {slotKey}</div>;
-  return <div className="minecraft-tooltip">
+  if (hidden) return <div ref={ref} className="minecraft-tooltip muted-tooltip" style={{ left: position.x, top: position.y }}>Tooltip 已隐藏 · {slotKey}</div>;
+  return <div ref={ref} className="minecraft-tooltip" style={{ left: position.x, top: position.y }}>
     <strong><MiniText value={slot.display_name ?? slot.item ?? slotKey} /></strong>
     {loreLines(slot.lore).map((line, index) => <span key={index}><MiniText value={line} /></span>)}
     {slot.item_model ? <small>item_model: {String(slot.item_model)}</small> : null}
     {slot.custom_model_data ? <small>custom_model_data: {String(slot.custom_model_data)}</small> : null}
   </div>;
-}
+});
 
 function MiniText({ value }: { value: unknown }) {
   return <>{renderMiniMessageParts(value).map((part, index) => <span key={index} style={{ color: part.color }} className={part.token ? 'mini-token' : undefined}>{part.text}</span>)}</>;
