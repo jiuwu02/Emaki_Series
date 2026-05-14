@@ -104,7 +104,6 @@ export default function App() {
       <main className="stage">
         <header className="stage-head">
           <div>
-            <p className="eyebrow">{selectedModule?.id ?? 'Emaki'}</p>
             <h1>{selectedModule ? selectedModule.name : '配置控制台'}</h1>
             <p>{selectedFile ? `${selectedFile.title}，${selectedFile.path}` : '选择左侧文件开始编辑。'}</p>
           </div>
@@ -209,7 +208,82 @@ function ConfigSurface({ module, file, drafts, setDrafts, api, scriptPath, refre
   if (!module || !file) return <section className="config-surface empty">选择左侧配置文件。</section>;
   if (isKind(file.kind, 'SCRIPT')) return <section className="config-surface script-surface"><div className="surface-head"><div><h2>{file.title}</h2><p>{file.comment}</p></div><span className="file-kind script">{fileKindLabel(file.kind)}</span></div>{scriptPath ? <ScriptEditor api={api} scriptPath={scriptPath} /> : <div className="script-placeholder">点击左侧脚本文件开始编辑。</div>}</section>;
   if (isKind(file.kind, 'GUI')) return <GuiEditorSurface module={module} file={file} api={api} childPath={scriptPath} refreshKey={refreshKey} />;
+  // CONFIG 类型：如果有子文件路径，按需加载子文件内容
+  if (isKind(file.kind, 'CONFIG') && scriptPath) return <ConfigChildSurface module={module} file={file} childPath={scriptPath} drafts={drafts} setDrafts={setDrafts} api={api} refreshKey={refreshKey} />;
+  // CONFIG 类型 glob 文件无子文件选中时，显示提示
+  if (isKind(file.kind, 'CONFIG') && file.children && file.children.length > 0 && file.nodes.length === 0) return <section className="config-surface"><div className="surface-head"><div><h2>{file.title}</h2><p>{file.comment}</p></div><span className={`file-kind ${String(file.kind).toLowerCase()}`}>{fileKindLabel(file.kind)}</span></div><div className="script-placeholder">点击左侧文件开始编辑。</div></section>;
   return <section className="config-surface"><div className="surface-head"><div><h2>{file.title}</h2><p>{file.comment}</p></div><span className={`file-kind ${String(file.kind).toLowerCase()}`}>{fileKindLabel(file.kind)}</span></div><ConfigNodeTree moduleId={module.id} nodes={file.nodes} drafts={drafts} setDrafts={setDrafts} /></section>;
+}
+
+function ConfigChildSurface({ module, file, childPath, drafts, setDrafts, api, refreshKey }: { module: WebRegistryModule; file: WebRegistryFile; childPath: string; drafts: DraftMap; setDrafts: React.Dispatch<React.SetStateAction<DraftMap>>; api: ApiClient; refreshKey: number }) {
+  const [nodes, setNodes] = useState<WebConfigNode[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState<{ tone: 'ok' | 'bad'; text: string } | null>(null);
+
+  useEffect(() => {
+    setLoading(true);
+    setError('');
+    setNodes([]);
+    api.registryFileNodes(module.id, childPath).then(result => {
+      setNodes(result);
+    }).catch(err => {
+      setError(err instanceof Error ? err.message : '加载失败');
+    }).finally(() => setLoading(false));
+  }, [module.id, childPath, refreshKey]);
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = window.setTimeout(() => setToast(null), 2600);
+    return () => window.clearTimeout(timer);
+  }, [toast]);
+
+  const changedNodes = nodes.filter(n => n.type !== 'object' && draftKey(module.id, n.path) in drafts);
+
+  async function saveChild() {
+    if (!changedNodes.length) {
+      setToast({ tone: 'ok', text: '没有需要保存的改动。' });
+      return;
+    }
+    setSaving(true);
+    try {
+      for (const node of changedNodes) {
+        await api.saveRegistryValue(module.id, childPath, node.path, drafts[draftKey(module.id, node.path)]);
+      }
+      setToast({ tone: 'ok', text: `已保存 ${changedNodes.length} 项配置，执行 reload 后生效。` });
+      // 清除已保存的 drafts
+      setDrafts(prev => {
+        const copy = { ...prev };
+        for (const node of changedNodes) {
+          delete copy[draftKey(module.id, node.path)];
+        }
+        return copy;
+      });
+      // 重新加载节点
+      const refreshed = await api.registryFileNodes(module.id, childPath);
+      setNodes(refreshed);
+    } catch (err) {
+      setToast({ tone: 'bad', text: err instanceof Error ? err.message : '保存失败。' });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const fileName = childPath.split('/').pop() ?? childPath;
+
+  return <section className="config-surface">
+    {toast && <div className={`toast ${toast.tone}`} style={{ position: 'absolute', top: 12, right: 12 }}>{toast.text}</div>}
+    <div className="surface-head">
+      <div><h2>{fileName}</h2><p>{file.title} · {childPath}</p></div>
+      <div className="head-actions">
+        <button className={`primary ${changedNodes.length ? 'save-ready' : ''}`} onClick={() => void saveChild()} disabled={saving || changedNodes.length === 0}>保存{changedNodes.length ? ` ${changedNodes.length}` : ''}</button>
+      </div>
+    </div>
+    {loading && <div className="script-loading">加载中...</div>}
+    {error && <div className="inline-error">{error}</div>}
+    {!loading && !error && <ConfigNodeTree moduleId={module.id} nodes={nodes} drafts={drafts} setDrafts={setDrafts} />}
+  </section>;
 }
 
 function ConfigNodeTree({ moduleId, nodes, drafts, setDrafts }: { moduleId: string; nodes: WebConfigNode[]; drafts: DraftMap; setDrafts: React.Dispatch<React.SetStateAction<DraftMap>> }) {
@@ -298,6 +372,7 @@ function ConfigNodeView({ moduleId, node, drafts, setDrafts }: { moduleId: strin
 
 function renderControl(node: WebConfigNode, value: unknown, setValue: (v: unknown) => void) {
   if (node.type === 'boolean') return <button type="button" className={`switch ${value ? 'on' : ''}`} onClick={() => setValue(!value)}><span />{value ? '开启' : '关闭'}</button>;
+  if (node.type === 'enum' && node.options) return <select value={str(value)} onChange={(e) => setValue(e.target.value)}>{node.options.map(opt => <option key={opt} value={opt}>{opt}</option>)}</select>;
   if (node.type === 'number') return <input type="number" value={String(value ?? 0)} onChange={(e) => setValue(Number(e.target.value))} />;
   if (node.type === 'dynamic_map') return <DynamicMapEditor value={value} setValue={setValue} />;
   if (node.type === 'list') {

@@ -235,7 +235,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
 
         // display_entities
         WebConsoleRegistry.registerNodeComment(getName(), "display_entities", "展示实体", "工位上方食材展示实体的全局配置。", "object");
-        WebConsoleRegistry.registerNodeComment(getName(), "display_entities.backend", "渲染后端", "展示实体后端实现（auto/packet_events/bukkit）。", "text");
+        WebConsoleRegistry.registerNodeComment(getName(), "display_entities.backend", "渲染后端", "展示实体后端实现。", "enum:auto,packet_events,bukkit");
         WebConsoleRegistry.registerNodeComment(getName(), "display_entities.view_distance_blocks", "可视距离", "展示实体的最大可视距离（格）。", "number");
         WebConsoleRegistry.registerNodeComment(getName(), "display_entities.refresh_interval_ticks", "刷新间隔", "展示实体状态刷新间隔 tick 数。", "number");
         WebConsoleRegistry.registerNodeComment(getName(), "display_entities.wok.layout_radius", "炒锅半径", "炒锅食材展示实体的布局半径。", "number");

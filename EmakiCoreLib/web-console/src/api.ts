@@ -1,4 +1,4 @@
-import type { ConfigFile, GuiDocument, ModuleStatus, RuntimeLibrary, WebRegistry } from './types';
+import type { ConfigFile, GuiDocument, ModuleStatus, RuntimeLibrary, WebConfigNode, WebRegistry } from './types';
 
 export class ApiClient {
   constructor(private token: string | null, private onUnauthorized: () => void) {}
@@ -35,6 +35,11 @@ export class ApiClient {
       method: 'POST',
       body: JSON.stringify({ moduleId, filePath, path, value })
     });
+  }
+
+  async registryFileNodes(moduleId: string, path: string): Promise<WebConfigNode[]> {
+    const data = await this.request(`/api/registry/file?module=${encodeURIComponent(moduleId)}&path=${encodeURIComponent(path)}`);
+    return data.nodes;
   }
 
   async configTree(module: string): Promise<ConfigFile[]> {

@@ -62,6 +62,7 @@ public final class WebConsoleService {
             server.createContext("/api/session", this::handleSession);
             server.createContext("/api/modules", this::handleModules);
             server.createContext("/api/registry", this::handleRegistry);
+            server.createContext("/api/registry/file", this::handleRegistryFile);
             server.createContext("/api/registry/save", this::handleRegistrySave);
             server.createContext("/api/configs/tree", this::handleConfigTree);
             server.createContext("/api/configs/read", this::handleConfigRead);
@@ -141,6 +142,26 @@ public final class WebConsoleService {
             return;
         }
         WebResponse.json(exchange, 200, Map.of("success", true, "registry", consoleRegistry.snapshot()));
+    }
+
+    private void handleRegistryFile(HttpExchange exchange) throws IOException {
+        if (requireAuth(exchange) == null) {
+            return;
+        }
+        String module = query(exchange, "module");
+        String path = query(exchange, "path");
+        if (module.isBlank() || path.isBlank()) {
+            WebResponse.json(exchange, 400, Map.of("success", false, "error", "缺少 module 或 path 参数"));
+            return;
+        }
+        try {
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("success", true);
+            payload.putAll(consoleRegistry.fileNodes(module, path));
+            WebResponse.json(exchange, 200, payload);
+        } catch (IOException exception) {
+            WebResponse.json(exchange, 400, Map.of("success", false, "error", exception.getMessage()));
+        }
     }
 
     private void handleRegistrySave(HttpExchange exchange) throws IOException {

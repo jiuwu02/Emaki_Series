@@ -117,6 +117,28 @@ public final class WebConsoleRegistry {
         NODE_RULES.add(new NodeMetaRule(moduleId, MatchType.KEY, keyName, label, comment, type));
     }
 
+    /**
+     * 按需加载单个子文件的结构化 YAML 节点列表。
+     * 用于 glob 路径注册的 CONFIG 文件，前端点击子文件时调用。
+     */
+    public Map<String, Object> fileNodes(String moduleId, String relativePath) throws IOException {
+        if (Texts.isBlank(moduleId) || Texts.isBlank(relativePath)) {
+            throw new IOException("缺少 moduleId 或 path 参数");
+        }
+        File file = moduleFile(moduleId, relativePath);
+        if (!file.exists() || !file.isFile()) {
+            throw new IOException("文件不存在: " + relativePath);
+        }
+        YamlSection yaml = YamlFiles.load(file);
+        List<Map<String, Object>> nodes = new ArrayList<>();
+        flattenConfig(moduleId, "", yaml.asMap(), nodes);
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("moduleId", moduleId);
+        result.put("path", relativePath);
+        result.put("nodes", nodes);
+        return result;
+    }
+
     public Map<String, Object> snapshot() {
         List<Map<String, Object>> modules = new ArrayList<>();
         List<Map<String, Object>> tree = new ArrayList<>();
@@ -169,11 +191,25 @@ public final class WebConsoleRegistry {
         if (registration == null) {
             throw new IOException("模块未注册");
         }
-        FileRegistration config = Texts.isBlank(filePath) ? primaryConfig(registration) : configByPath(registration, filePath);
-        if (config == null) {
-            throw new IOException("模块未注册可写配置文件");
+        File file;
+        if (!Texts.isBlank(filePath)) {
+            FileRegistration config = configByPath(registration, filePath);
+            if (config != null) {
+                file = moduleFile(moduleId, config.relativePath());
+            } else {
+                // 支持 glob 子文件的直接路径保存
+                file = moduleFile(moduleId, filePath);
+                if (!file.exists() || !file.isFile()) {
+                    throw new IOException("文件不存在: " + filePath);
+                }
+            }
+        } else {
+            FileRegistration config = primaryConfig(registration);
+            if (config == null) {
+                throw new IOException("模块未注册可写配置文件");
+            }
+            file = moduleFile(moduleId, config.relativePath());
         }
-        File file = moduleFile(moduleId, config.relativePath());
         YamlSection yaml = YamlFiles.load(file);
         Object current = yaml.get(path);
         if (current instanceof YamlSection || current instanceof Map<?, ?>) {
@@ -274,10 +310,61 @@ public final class WebConsoleRegistry {
         node.put("path", path);
         node.put("label", meta.label());
         node.put("comment", meta.comment());
-        node.put("type", Texts.isBlank(meta.type()) ? detectedType : meta.type());
+        String resolvedType = Texts.isBlank(meta.type()) ? detectedType : meta.type();
+        // 支持 enum:OPT1,OPT2,OPT3 格式（静态枚举）
+        if (resolvedType.startsWith("enum:")) {
+            node.put("type", "enum");
+            String[] options = resolvedType.substring(5).split(",");
+            node.put("options", java.util.Arrays.asList(options));
+        }
+        // 支持 dynamic_enum:目录路径 格式（动态枚举，扫描目录下 YAML 文件的 id 字段）
+        else if (resolvedType.startsWith("dynamic_enum:")) {
+            node.put("type", "enum");
+            String dirPath = resolvedType.substring("dynamic_enum:".length());
+            node.put("options", scanDynamicEnumOptions(moduleId, dirPath));
+        } else {
+            node.put("type", resolvedType);
+        }
         node.put("editable", editable);
         node.put("value", value);
         return node;
+    }
+
+    private List<String> scanDynamicEnumOptions(String moduleId, String dirPath) {
+        List<String> options = new ArrayList<>();
+        File dir = moduleFile(moduleId, dirPath);
+        if (!dir.exists() || !dir.isDirectory()) {
+            return options;
+        }
+        collectYamlIds(dir, options);
+        options.sort(String::compareTo);
+        return options;
+    }
+
+    private void collectYamlIds(File dir, List<String> result) {
+        File[] entries = dir.listFiles();
+        if (entries == null) return;
+        for (File entry : entries) {
+            if (entry.isDirectory()) {
+                collectYamlIds(entry, result);
+            } else if (entry.getName().endsWith(".yml") || entry.getName().endsWith(".yaml")) {
+                try {
+                    YamlSection yaml = YamlFiles.load(entry);
+                    String id = yaml.getString("id", null);
+                    if (id != null && !id.isBlank()) {
+                        result.add(id);
+                    } else {
+                        // 没有 id 字段时，使用文件名（去掉扩展名）
+                        String name = entry.getName();
+                        result.add(name.substring(0, name.lastIndexOf('.')));
+                    }
+                } catch (Exception ignored) {
+                    // 解析失败时使用文件名
+                    String name = entry.getName();
+                    result.add(name.substring(0, name.lastIndexOf('.')));
+                }
+            }
+        }
     }
 
     private NodeMeta resolveMeta(String moduleId, String path, String detectedType) {

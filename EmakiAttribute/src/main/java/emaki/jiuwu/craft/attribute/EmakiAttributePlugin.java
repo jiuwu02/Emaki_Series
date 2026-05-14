@@ -372,7 +372,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         WebConsoleRegistry.registerConfigFile(getName(), "属性系统配置", "config.yml", "属性系统主配置，包含伤害接管、资源恢复和属性曲线。");
         WebConsoleRegistry.registerCommonConfigComments(getName());
         WebConsoleRegistry.registerNodeComment(getName(), "hard_lock_damage", "接管原版伤害", "是否接管未命中白名单的原版伤害，true 时所有伤害进入 EA 结算。", "boolean");
-        WebConsoleRegistry.registerNodeComment(getName(), "default_damage_type", "默认伤害类型", "未指定伤害类型时使用的默认伤害类型 ID。", "text");
+        WebConsoleRegistry.registerNodeComment(getName(), "default_damage_type", "默认伤害类型", "未指定伤害类型时使用的默认伤害类型 ID。", "dynamic_enum:damage_types");
         WebConsoleRegistry.registerNodeComment(getName(), "regen_interval_ticks", "回复间隔", "资源（生命、法力等）自然回复的间隔 tick 数。", "number");
         WebConsoleRegistry.registerNodeComment(getName(), "sync_delay_ticks", "同步延迟", "属性计算完成后同步到 Bukkit 原生属性的延迟 tick 数。", "number");
         WebConsoleRegistry.registerNodeComment(getName(), "allowed_damage_causes", "伤害白名单", "允许进入 EA 伤害结算的 DamageCause 白名单列表。", "list");
@@ -404,8 +404,8 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         // ─── attributes/**/*.yml ───
         WebConsoleRegistry.registerConfigFile(getName(), "属性定义", "attributes/**/*.yml", "属性定义文件目录，每个文件定义一个属性的 ID、类型、范围和词条格式。");
         WebConsoleRegistry.registerNodeKeyComment(getName(), "id", "属性ID", "属性的唯一标识符，全局不可重复。", "text");
-        WebConsoleRegistry.registerNodeKeyComment(getName(), "value_kind", "数值类型", "属性数值类型：FLAT（固定值）或 PERCENT（百分比）。", "text");
-        WebConsoleRegistry.registerNodeKeyComment(getName(), "target_type", "目标类型", "属性作用目标：GENERIC（通用）、VANILLA（原版映射）或 RESOURCE（资源）。", "text");
+        WebConsoleRegistry.registerNodeKeyComment(getName(), "value_kind", "数值类型", "属性数值类型。", "enum:FLAT,PERCENT,CHANCE,REGEN,RESOURCE");
+        WebConsoleRegistry.registerNodeKeyComment(getName(), "target_type", "目标类型", "属性作用目标类型。", "enum:GENERIC,VANILLA,RESOURCE,DAMAGE");
         WebConsoleRegistry.registerNodeKeyComment(getName(), "target_id", "目标ID", "当 target_type 为 VANILLA 或 RESOURCE 时，映射到的原版属性或资源 ID。", "text");
         WebConsoleRegistry.registerNodeKeyComment(getName(), "default_value", "默认值", "属性的默认基础数值。", "number");
         WebConsoleRegistry.registerNodeKeyComment(getName(), "min_value", "最小值", "属性允许的最小值，低于此值会被钳制。", "number");
@@ -427,17 +427,17 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         WebConsoleRegistry.registerNodeKeyComment(getName(), "attacker_message", "攻击者消息", "伤害结算后发送给攻击者的消息模板。", "text");
         WebConsoleRegistry.registerNodeKeyComment(getName(), "target_message", "受击者消息", "伤害结算后发送给受击者的消息模板。", "text");
         // damage_types stages 子字段
-        WebConsoleRegistry.registerNodeSuffixComment(getName(), "stages.kind", "阶段类型", "结算阶段类型：FLAT_PERCENT（固定+百分比）或 CUSTOM（自定义表达式）。", "text");
-        WebConsoleRegistry.registerNodeSuffixComment(getName(), "stages.source", "数据来源", "属性数据来源：ATTACKER（攻击者）或 TARGET（目标）。", "text");
-        WebConsoleRegistry.registerNodeSuffixComment(getName(), "stages.mode", "运算模式", "数值运算模式：ADD（加算）或 SUBTRACT（减算）。", "text");
+        WebConsoleRegistry.registerNodeSuffixComment(getName(), "stages.kind", "阶段类型", "结算阶段类型。", "enum:FLAT_PERCENT,CUSTOM");
+        WebConsoleRegistry.registerNodeSuffixComment(getName(), "stages.source", "数据来源", "属性数据来源。", "enum:ATTACKER,TARGET");
+        WebConsoleRegistry.registerNodeSuffixComment(getName(), "stages.mode", "运算模式", "数值运算模式。", "enum:ADD,SUBTRACT,MULTIPLY");
         WebConsoleRegistry.registerNodeSuffixComment(getName(), "stages.flat_attributes", "固定属性", "参与固定值计算的属性 ID 列表。", "list");
         WebConsoleRegistry.registerNodeSuffixComment(getName(), "stages.percent_attributes", "百分比属性", "参与百分比计算的属性 ID 列表。", "list");
         WebConsoleRegistry.registerNodeSuffixComment(getName(), "stages.chance_attributes", "概率属性", "决定该阶段是否触发的概率属性 ID 列表（如暴击率）。", "list");
         WebConsoleRegistry.registerNodeSuffixComment(getName(), "stages.multiplier_attributes", "倍率属性", "触发后的倍率属性 ID 列表（如暴击伤害）。", "list");
         WebConsoleRegistry.registerNodeSuffixComment(getName(), "stages.expression", "计算表达式", "自定义伤害计算表达式，支持 {input}、{flat}、{percent}、{crit}、{multiplier} 变量。", "text");
         // damage_types recovery 子字段
-        WebConsoleRegistry.registerNodeSuffixComment(getName(), "recovery.source", "恢复来源", "恢复数值的属性来源：ATTACKER 或 TARGET。", "text");
-        WebConsoleRegistry.registerNodeSuffixComment(getName(), "recovery.resistance_source", "抗性来源", "吸血抗性属性的来源：ATTACKER 或 TARGET。", "text");
+        WebConsoleRegistry.registerNodeSuffixComment(getName(), "recovery.source", "恢复来源", "恢复数值的属性来源。", "enum:ATTACKER,TARGET");
+        WebConsoleRegistry.registerNodeSuffixComment(getName(), "recovery.resistance_source", "抗性来源", "吸血抗性属性的来源。", "enum:ATTACKER,TARGET");
         WebConsoleRegistry.registerNodeSuffixComment(getName(), "recovery.flat_attributes", "固定恢复", "参与固定恢复计算的属性 ID 列表。", "list");
         WebConsoleRegistry.registerNodeSuffixComment(getName(), "recovery.percent_attributes", "百分比恢复", "参与百分比恢复计算的属性 ID 列表。", "list");
         WebConsoleRegistry.registerNodeSuffixComment(getName(), "recovery.resistance_attributes", "抗性属性", "降低恢复效果的抗性属性 ID 列表。", "list");
@@ -452,10 +452,10 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         // ─── conditions/**/*.yml ───
         WebConsoleRegistry.registerConfigFile(getName(), "PDC读取条件", "conditions/**/*.yml", "PDC 属性读取条件定义文件目录，控制物品属性在何种条件下生效。");
         WebConsoleRegistry.registerNodeKeyComment(getName(), "source_id", "来源ID", "条件规则的来源标识，用于日志和调试追踪。", "text");
-        WebConsoleRegistry.registerNodeKeyComment(getName(), "condition_type", "条件逻辑", "多条件组合逻辑：all_of（全部满足）或 any_of（任一满足）。", "text");
+        WebConsoleRegistry.registerNodeKeyComment(getName(), "condition_type", "条件逻辑", "多条件组合逻辑。", "enum:all_of,any_of");
         WebConsoleRegistry.registerNodeKeyComment(getName(), "invalid_as_failure", "解析失败", "条件表达式解析失败时是否视为不通过。", "boolean");
         WebConsoleRegistry.registerNodeKeyComment(getName(), "conditions", "条件列表", "具体条件项列表，每项包含 type、key/pattern 和 condition 表达式。", "list");
-        WebConsoleRegistry.registerNodeSuffixComment(getName(), "conditions.type", "条件类型", "条件匹配类型：pdc_key（PDC 键值匹配）或 lore_pattern（Lore 正则匹配）。", "text");
+        WebConsoleRegistry.registerNodeSuffixComment(getName(), "conditions.type", "条件类型", "条件匹配类型。", "enum:pdc_meta,lore_regex");
         WebConsoleRegistry.registerNodeSuffixComment(getName(), "conditions.key", "PDC键名", "要匹配的 PDC 数据键名。", "text");
         WebConsoleRegistry.registerNodeSuffixComment(getName(), "conditions.pattern", "正则模式", "用于从 Lore 中提取数值的正则表达式。", "text");
         WebConsoleRegistry.registerNodeSuffixComment(getName(), "conditions.condition", "判定表达式", "条件判定表达式，支持 {value}、{player_level}、{player_name} 等变量。", "text");

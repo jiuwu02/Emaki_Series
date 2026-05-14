@@ -271,7 +271,7 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
         // script_engine
         WebConsoleRegistry.registerNodeComment(getName(), "script_engine", "脚本引擎", "原生技能脚本引擎配置。", "object");
         WebConsoleRegistry.registerNodeComment(getName(), "script_engine.enabled", "启用引擎", "是否启用原生脚本引擎。", "boolean");
-        WebConsoleRegistry.registerNodeComment(getName(), "script_engine.default_mode", "默认模式", "脚本引擎的默认执行模式。", "text");
+        WebConsoleRegistry.registerNodeComment(getName(), "script_engine.default_mode", "默认模式", "脚本引擎的默认执行模式。", "enum:native,mythic,hybrid");
         WebConsoleRegistry.registerNodeComment(getName(), "script_engine.stop_on_failure", "失败停止", "脚本执行失败时是否停止后续动作。", "boolean");
         WebConsoleRegistry.registerNodeComment(getName(), "script_engine.max_lines_per_phase", "阶段行数", "每个脚本阶段允许的最大行数。", "number");
         WebConsoleRegistry.registerNodeComment(getName(), "script_engine.max_targets_per_action", "目标上限", "每个动作允许的最大目标数量。", "number");

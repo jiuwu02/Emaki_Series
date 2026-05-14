@@ -35,6 +35,7 @@ export type WebConfigNode = {
   type: ConfigNodeType;
   editable: boolean;
   value: unknown;
+  options?: string[];
 };
 
 export type WebRegistryFile = {

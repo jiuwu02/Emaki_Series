@@ -190,12 +190,12 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         WebConsoleRegistry.registerNodeComment(getName(), "inlay_success.enabled", "启用成功率", "是否启用镶嵌成功率机制（关闭则必定成功）。", "boolean");
         WebConsoleRegistry.registerNodeComment(getName(), "inlay_success.default_chance", "默认成功率", "未单独配置时的默认镶嵌成功率百分比。", "number");
         WebConsoleRegistry.registerNodeComment(getName(), "inlay_success.rate_formula", "成功率公式", "镶嵌成功率的计算公式表达式。", "text");
-        WebConsoleRegistry.registerNodeComment(getName(), "inlay_success.failure_action", "失败处理", "镶嵌失败时的处理方式（destroy/keep/downgrade）。", "text");
+        WebConsoleRegistry.registerNodeComment(getName(), "inlay_success.failure_action", "失败处理", "镶嵌失败时的处理方式。", "enum:return_gem,destroy_gem,destroy_both");
 
         // upgrade
         WebConsoleRegistry.registerNodeComment(getName(), "upgrade", "升级配置", "宝石升级成功率与失败惩罚配置。", "object");
         WebConsoleRegistry.registerNodeComment(getName(), "upgrade.global_success_rates", "升级成功率", "各等级宝石升级的全局成功率配置。", "object");
-        WebConsoleRegistry.registerNodeComment(getName(), "upgrade.global_failure_penalty", "失败惩罚", "宝石升级失败时的全局惩罚方式。", "text");
+        WebConsoleRegistry.registerNodeComment(getName(), "upgrade.global_failure_penalty", "失败惩罚", "宝石升级失败时的全局惩罚方式。", "enum:none,downgrade,destroy");
 
         // number_format
         WebConsoleRegistry.registerNodeComment(getName(), "number_format", "数值格式", "宝石属性数值的格式化配置。", "object");
@@ -206,7 +206,7 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
 
         // gui
         WebConsoleRegistry.registerNodeComment(getName(), "gui", "GUI", "宝石 GUI 默认模式和关闭保存策略。", "object");
-        WebConsoleRegistry.registerNodeComment(getName(), "gui.default_mode", "默认模式", "打开宝石 GUI 时的默认显示模式。", "text");
+        WebConsoleRegistry.registerNodeComment(getName(), "gui.default_mode", "默认模式", "打开宝石 GUI 时的默认显示模式。", "enum:inlay,open,upgrade");
         WebConsoleRegistry.registerNodeComment(getName(), "gui.save_on_close", "关闭保存", "关闭 GUI 时是否自动保存当前操作。", "boolean");
     }
 
