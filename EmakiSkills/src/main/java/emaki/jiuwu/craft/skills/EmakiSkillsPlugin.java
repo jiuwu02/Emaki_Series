@@ -61,6 +61,9 @@ import org.bukkit.Bukkit;
 public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider, EmakiServiceRegistry {
 
     private static final String ROOT_COMMAND = "emakiskills";
+    private static final String WEB_ICON = """
+            <svg viewBox="0 0 38 38" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M19 8a8 8 0 110 16 8 8 0 010-16zM19 11v5l4 3M19 2v4M19 32v4M7 19H3M35 19h-4M9 9l3 3M29 9l-3 3M13 26l-3 3M25 26l3 3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            """;
 
     private static final String STARTUP_ASCII = """
  ______  __    __  ______  __  __   __  ______  __  __   __  __      __      ______
@@ -240,7 +243,7 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
     }
 
     private void registerWebConsole() {
-        WebConsoleRegistry.registerModule(getName(), "Skills 技能", "槽位、施法模式、触发器", "skills");
+        WebConsoleRegistry.registerModule(getName(), "Skills 技能", "槽位、施法模式、触发器", "skills", WEB_ICON);
         WebConsoleRegistry.registerConfigFile(getName(), "技能系统配置", "config.yml", "技能系统主配置，包含触发器、施法模式、资源和升级设置。");
         WebConsoleRegistry.registerGuiFile(getName(), "技能 GUI 模板", "gui/**/*.yml", "技能面板与触发器选择 GUI 模板文件。");
         WebConsoleRegistry.registerCommonConfigComments(getName());

@@ -18,6 +18,9 @@ import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
 public final class WebConsoleRegistry {
 
+    private static final String DEFAULT_ICON_SVG = svgPath("M8 8h22v22H8zM13 13h12v12H13z");
+    private static final String CORE_ICON_SVG = svgPath("M19 4l1.5 3.5L24 9l-3.5 1.5L19 14l-1.5-3.5L14 9l3.5-1.5L19 4zM19 14v4m-6 2h12a2 2 0 012 2v8a2 2 0 01-2 2H13a2 2 0 01-2-2v-8a2 2 0 012-2zm2 4h3m-3 3h5");
+
     private static final Map<String, ModuleRegistration> MODULES = new LinkedHashMap<>();
     private static final Map<String, NodeMeta> NODE_META = new LinkedHashMap<>();
     private static final List<NodeMetaRule> NODE_RULES = new ArrayList<>();
@@ -36,11 +39,24 @@ public final class WebConsoleRegistry {
      * 注册一个 Web Console 模块入口。其他插件只需要在启用阶段调用一次，后续文件和字段注释都挂到这个模块下。
      */
     public static synchronized void registerModule(String id, String name, String summary, String tone) {
-        MODULES.computeIfAbsent(id, key -> new ModuleRegistration(id, name, summary, tone, new ArrayList<>()));
+        registerModule(id, name, summary, tone, DEFAULT_ICON_SVG);
+    }
+
+    /**
+     * 注册一个带插件自有 SVG 的 Web Console 模块入口。SVG 必须由模块所有者提供，CoreLib 不内置外部插件图标。
+     */
+    public static synchronized void registerModule(String id, String name, String summary, String tone, String iconSvg) {
+        ModuleRegistration existing = MODULES.get(id);
+        List<FileRegistration> files = existing == null ? new ArrayList<>() : existing.files();
+        MODULES.put(id, new ModuleRegistration(id, name, summary, tone, normalizeIcon(iconSvg), files));
     }
 
     public static synchronized void registerModule(JavaPlugin plugin, String name, String summary, String tone) {
         registerModule(plugin.getName(), name, summary, tone);
+    }
+
+    public static synchronized void registerModule(JavaPlugin plugin, String name, String summary, String tone, String iconSvg) {
+        registerModule(plugin.getName(), name, summary, tone, iconSvg);
     }
 
     /**
@@ -118,7 +134,7 @@ public final class WebConsoleRegistry {
             module.put("name", registration.name());
             module.put("summary", registration.summary());
             module.put("tone", registration.tone());
-            module.put("icon", icon(registration.tone()));
+            module.put("icon", registration.iconSvg());
             module.put("present", true);
             module.put("enabled", true);
             module.put("version", installed == null ? "" : installed.getDescription().getVersion());
@@ -144,11 +160,15 @@ public final class WebConsoleRegistry {
     }
 
     public void saveValue(String moduleId, String path, Object value) throws IOException {
+        saveValue(moduleId, null, path, value);
+    }
+
+    public void saveValue(String moduleId, String filePath, String path, Object value) throws IOException {
         ModuleRegistration registration = module(moduleId);
         if (registration == null) {
             throw new IOException("模块未注册");
         }
-        FileRegistration config = primaryConfig(registration);
+        FileRegistration config = Texts.isBlank(filePath) ? primaryConfig(registration) : configByPath(registration, filePath);
         if (config == null) {
             throw new IOException("模块未注册可写配置文件");
         }
@@ -355,6 +375,13 @@ public final class WebConsoleRegistry {
                 .orElse(null);
     }
 
+    private static FileRegistration configByPath(ModuleRegistration registration, String relativePath) {
+        return registration.files().stream()
+                .filter(file -> file.type() == WebConsoleFileType.CONFIG && file.structuredYaml() && file.relativePath().equals(relativePath))
+                .findFirst()
+                .orElse(primaryConfig(registration));
+    }
+
     private static void registerDefaults() {
         defaultModule("EmakiCoreLib", "CoreLib 框架", "Web Console、Action、脚本与公共运行库", "core", "CoreLib 主配置");
         registerScriptFile("EmakiCoreLib", "CoreLib JS 脚本", "scripts/**/*.js", "CoreLib JavaScript 脚本目录，当前仅保留文本预览入口。");
@@ -364,7 +391,7 @@ public final class WebConsoleRegistry {
     }
 
     private static void defaultModule(String id, String name, String summary, String tone, String configTitle) {
-        registerModule(id, name, summary, tone);
+        registerModule(id, name, summary, tone, CORE_ICON_SVG);
         registerConfigFile(id, configTitle, "config.yml", "完整 config.yml 结构化配置注册。所有字段均通过 CoreLib 注释注册器补充说明。");
         registerCommonConfigComments(id);
     }
@@ -463,28 +490,14 @@ public final class WebConsoleRegistry {
         return moduleId + ":" + path;
     }
 
-    private static String icon(String tone) {
-        String d = switch (tone) {
-            // CoreLib: 齿轮+代码括号，代表核心框架引擎
-            case "core" -> "M19 4l1.5 3.5L24 9l-3.5 1.5L19 14l-1.5-3.5L14 9l3.5-1.5L19 4zM19 14v4m-6 2h12a2 2 0 012 2v8a2 2 0 01-2 2H13a2 2 0 01-2 2v-8a2 2 0 012-2zm2 4h3m-3 3h5";
-            // Attribute: 六边形雷达图+数值线，代表属性面板
-            case "attribute" -> "M19 5l10 6v12l-10 6-10-6V11l10-6zm0 6v12m-8.5-9H27.5M12 14l7 9m0-9l7 9";
-            // Cooking: 炒锅+蒸汽+火焰，代表烹饪工位
-            case "cooking" -> "M8 22c0-5 4-8 11-8s11 3 11 8M8 22c0 4 5 7 11 7s11-3 11-7M12 14c1-2 0-4 1.5-6m5.5 6c1-2 0-4 1.5-6m5.5 6c1-2 0-4 1.5-6M6 22h26";
-            // Forge: 铁砧+锤子，代表锻造
-            case "forge" -> "M10 28h18M13 28v-4h12v4M16 24v-3a3 3 0 013-3h0a3 3 0 013 3v3M25 7l4 4-8 8-4-4 8-8zM25 7l2-2m-2 6l-2 2";
-            // Gem: 切割宝石多面体，代表宝石镶嵌
-            case "gem" -> "M9 14l10-8 10 8-10 18L9 14zm10-8l0 26M9 14h20M13 10l6 22m0-22l6 22";
-            // Item: 剑+盾牌轮廓，代表装备物品
-            case "item" -> "M24 5l-9 9m4 4l-9 9M15 14l-2 2m11-5a7 7 0 11-7 7M8 26l3 3m-1-5l5 5M27 9l2 2";
-            // Skills: 手掌+能量环，代表技能释放
-            case "skills" -> "M19 32v-6m-5.5-2.5L11 26m13.5-2.5L27 26M19 8a8 8 0 110 16 8 8 0 010-16zm0 3v5l3 3m-3-12V2m8 4l-2 2M9 6l2 2";
-            // Strengthen: 向上箭头+星星，代表强化升级
-            case "strengthen" -> "M19 30V12m-6 6l6-6 6 6M12 8l1.5 3 3.5.5-2.5 2.5.5 3.5-3-1.5L9 17.5l.5-3.5L7 11.5l3.5-.5L12 8zm14 0l1.5 3 3.5.5-2.5 2.5.5 3.5-3-1.5-3 1.5.5-3.5-2.5-2.5 3.5-.5L26 8z";
-            default -> "M7 7h24v24H7z";
-        };
+    private static String normalizeIcon(String iconSvg) {
+        return Texts.isBlank(iconSvg) ? DEFAULT_ICON_SVG : iconSvg;
+    }
+
+    private static String svgPath(String d) {
         return "<svg viewBox='0 0 38 38' xmlns='http://www.w3.org/2000/svg'><path d='" + d + "' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/></svg>";
     }
+
 
     public enum WebConsoleFileType {
         CONFIG,
@@ -499,7 +512,7 @@ public final class WebConsoleRegistry {
         KEY
     }
 
-    private record ModuleRegistration(String id, String name, String summary, String tone, List<FileRegistration> files) {}
+    private record ModuleRegistration(String id, String name, String summary, String tone, String iconSvg, List<FileRegistration> files) {}
     private record FileRegistration(String title, String relativePath, WebConsoleFileType type, String comment, boolean structuredYaml) {}
     private record NodeMeta(String label, String comment, String type) {}
 

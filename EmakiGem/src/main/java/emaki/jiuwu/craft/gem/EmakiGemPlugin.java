@@ -46,6 +46,9 @@ import emaki.jiuwu.craft.gem.service.SocketOpenerService;
 public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider, EmakiServiceRegistry {
 
     private static final String ROOT_COMMAND = "emakigem";
+    private static final String WEB_ICON = """
+            <svg viewBox="0 0 38 38" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M9 14l10-8 10 8-10 18L9 14zM13 10h12M9 14h20M14 14l5 18 5-18M19 6v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            """;
 
     private static final Set<String> DEBUG_MODULES = Set.of("inlay", "socket", "state", "gui");
 
@@ -173,7 +176,7 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
     }
 
     private void registerWebConsole() {
-        WebConsoleRegistry.registerModule(getName(), "Gem 宝石", "开孔、镶嵌、升级与 GUI", "gem");
+        WebConsoleRegistry.registerModule(getName(), "Gem 宝石", "开孔、镶嵌、升级与 GUI", "gem", WEB_ICON);
         WebConsoleRegistry.registerConfigFile(getName(), "宝石系统配置", "config.yml", "宝石系统主配置，包含开孔器、镶嵌、升级和 GUI 入口设置。");
         WebConsoleRegistry.registerGuiFile(getName(), "宝石 GUI 模板", "gui/**/*.yml", "宝石镶嵌、开孔、升级 GUI 模板文件。");
         WebConsoleRegistry.registerItemFile(getName(), "宝石物品定义", "items/**/*.yml", "宝石插件物品定义文件。");

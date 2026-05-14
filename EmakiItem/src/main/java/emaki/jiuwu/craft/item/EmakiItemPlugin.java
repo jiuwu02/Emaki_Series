@@ -37,6 +37,9 @@ import emaki.jiuwu.craft.item.service.EmakiItemUpdateService;
 public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider {
 
     private static final String ROOT_COMMAND = "emakiitem";
+    private static final String WEB_ICON = """
+            <svg viewBox="0 0 38 38" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M21 5l-8 8m4 4l-8 8M13 13l5 5M9 29l5-5M24 10l4 4M25 18l5 3v6c0 3-2 5-5 6-3-1-5-3-5-6v-6l5-3z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            """;
     private static final Set<String> DEBUG_MODULES = Set.of("create", "update", "identify");
     private static final String STARTUP_ASCII = """
  ______  __    __  ______  __  __   __  __  ______  ______  __    __  ______
@@ -142,7 +145,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     }
 
     private void registerWebConsole() {
-        WebConsoleRegistry.registerModule(getName(), "Item 物品", "物品定义、套装刷新与触发", "item");
+        WebConsoleRegistry.registerModule(getName(), "Item 物品", "物品定义、套装刷新与触发", "item", WEB_ICON);
         WebConsoleRegistry.registerConfigFile(getName(), "物品系统配置", "config.yml", "物品系统主配置，包含套装、刷新、耐久和修复等设置。");
         WebConsoleRegistry.registerItemFile(getName(), "物品定义", "items/**/*.yml", "EmakiItem 自定义物品定义文件。");
         WebConsoleRegistry.registerCommonConfigComments(getName());

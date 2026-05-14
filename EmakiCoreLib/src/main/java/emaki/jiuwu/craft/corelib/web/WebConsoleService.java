@@ -153,10 +153,11 @@ public final class WebConsoleService {
         }
         String body = readBody(exchange);
         String module = WebJson.extractString(body, "moduleId");
+        String filePath = WebJson.extractString(body, "filePath");
         String path = WebJson.extractString(body, "path");
         Object value = WebJson.extractValue(body, "value");
         try {
-            consoleRegistry.saveValue(module, path, value);
+            consoleRegistry.saveValue(module, filePath, path, value);
             WebResponse.json(exchange, 200, Map.of("success", true));
         } catch (IOException exception) {
             WebResponse.json(exchange, 400, Map.of("success", false, "error", exception.getMessage()));

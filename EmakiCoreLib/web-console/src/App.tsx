@@ -7,6 +7,12 @@ type Selection = { moduleId: string; fileId: string; scriptPath?: string; refres
 type DraftMap = Record<string, unknown>;
 
 type Toast = { tone: 'ok' | 'bad'; text: string } | null;
+type ColorTheme = 'dark' | 'light';
+
+const COLOR_THEMES: { id: ColorTheme; label: string }[] = [
+  { id: 'dark', label: '深色' },
+  { id: 'light', label: '浅色' }
+];
 
 export default function App() {
   const [token, setToken] = useState(() => sessionStorage.getItem('emaki-web-token'));
@@ -15,6 +21,7 @@ export default function App() {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [drafts, setDrafts] = useState<DraftMap>({});
   const [toast, setToast] = useState<Toast>(null);
+  const [theme, setTheme] = useState<ColorTheme>(() => readTheme());
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -24,6 +31,10 @@ export default function App() {
   }), [token]);
 
   useEffect(() => { if (token) void loadRegistry(true); }, [token]);
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem('emaki-color-theme', theme);
+  }, [theme]);
   useEffect(() => {
     if (!toast) return;
     const timer = window.setTimeout(() => setToast(null), 2600);
@@ -56,7 +67,7 @@ export default function App() {
     setSaving(true);
     try {
       for (const node of changes) {
-        await api.saveRegistryValue(selectedModule.id, node.path, drafts[draftKey(selectedModule.id, node.path)]);
+        await api.saveRegistryValue(selectedModule.id, selectedFile.path, node.path, drafts[draftKey(selectedModule.id, node.path)]);
       }
       setToast({ tone: 'ok', text: `已保存 ${changes.length} 项配置，执行 reload 后生效。` });
       await loadRegistry(true);
@@ -72,14 +83,19 @@ export default function App() {
   const selectedModule = selected && registry ? registry.modules.find((m) => m.id === selected.moduleId) ?? null : null;
   const selectedFile = selectedModule && selected ? selectedModule.files.find((f) => f.id === selected.fileId) ?? null : null;
   const changedCount = selectedModule && selectedFile ? selectedFile.nodes.filter((n) => n.type !== 'object' && draftKey(selectedModule.id, n.path) in drafts).length : 0;
+  const activeTheme = COLOR_THEMES.find((entry) => entry.id === theme) ?? COLOR_THEMES[0];
+  const nextTheme = () => setTheme((current) => COLOR_THEMES[(COLOR_THEMES.findIndex((entry) => entry.id === current) + 1) % COLOR_THEMES.length].id);
 
   return (
     <div className="workbench">
       {toast && <div className={`toast ${toast.tone}`}>{toast.text}</div>}
       <ResizableRail>
         <div className="brand-block">
-          <span className="sigil">绘</span>
-          <div><strong>绘卷核心库</strong><small>配置控制台</small></div>
+          <div className="brand-main"><span className="sigil">绘</span><div><strong>绘卷核心库</strong><small>配置控制台</small></div></div>
+          <button type="button" className={`theme-toggle ${theme}`} onClick={nextTheme} title={`切换颜色主题：${activeTheme.label}`} aria-label={`当前颜色主题 ${activeTheme.label}，点击切换`}>
+            <ThemeIcon key={theme} theme={theme} />
+            <span>{activeTheme.label}</span>
+          </button>
         </div>
         <div className="tree-caption">模块树</div>
         <WorkspaceTree registry={registry} selected={selected} expanded={expanded} setExpanded={setExpanded} onSelect={(next) => setSelected((current) => sameSelection(current, next) ? { ...next, refreshKey: (current?.refreshKey ?? 0) + 1 } : next)} />
@@ -94,7 +110,7 @@ export default function App() {
           </div>
           <div className="head-actions">
             <button onClick={() => void loadRegistry()} disabled={loading}>刷新</button>
-            <button className="primary" onClick={() => void saveCurrent()} disabled={saving || changedCount === 0}>保存{changedCount ? ` ${changedCount}` : ''}</button>
+            <button className={`primary ${changedCount ? 'save-ready' : ''}`} onClick={() => void saveCurrent()} disabled={saving || changedCount === 0}>保存{changedCount ? ` ${changedCount}` : ''}</button>
           </div>
         </header>
         <section className="editor-shell single">
@@ -574,7 +590,14 @@ function getCompletions(prefix: string): string[] {
 }
 
 function sameSelection(a: Selection | null, b: Selection) { return a?.moduleId === b.moduleId && a.fileId === b.fileId && (a.scriptPath ?? '') === (b.scriptPath ?? ''); }
+function readTheme(): ColorTheme { const saved = localStorage.getItem('emaki-color-theme'); return COLOR_THEMES.some((entry) => entry.id === saved) ? saved as ColorTheme : 'dark'; }
 function Icon({ svg }: { svg: string }) { return <span className="module-icon" dangerouslySetInnerHTML={{ __html: svg }} />; }
+function ThemeIcon({ theme }: { theme: ColorTheme }) {
+  if (theme === 'light') {
+    return <svg className="theme-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path fillRule="evenodd" d="M8 1.2a.7.7 0 0 1 .7.7v1.02a.7.7 0 1 1-1.4 0V1.9a.7.7 0 0 1 .7-.7Zm4.81 1.99a.7.7 0 0 1 0 .99l-.72.72a.7.7 0 1 1-.99-.99l.72-.72a.7.7 0 0 1 .99 0ZM5.08 8a2.92 2.92 0 1 1 5.84 0 2.92 2.92 0 0 1-5.84 0Zm8 .7a.7.7 0 1 0 0-1.4h-1.02a.7.7 0 1 0 0 1.4h1.02Zm-.27 3.12a.7.7 0 0 1-.99.99l-.72-.72a.7.7 0 1 1 .99-.99l.72.72ZM8 12.38a.7.7 0 0 1 .7.7v1.02a.7.7 0 1 1-1.4 0v-1.02a.7.7 0 0 1 .7-.7ZM4.9 12.09a.7.7 0 1 0-.99-.99l-.72.72a.7.7 0 1 0 .99.99l.72-.72ZM3.94 8.7a.7.7 0 0 0 0-1.4H2.92a.7.7 0 0 0 0 1.4h1.02Zm.96-3.8a.7.7 0 0 1-.99 0l-.72-.72a.7.7 0 1 1 .99-.99l.72.72a.7.7 0 0 1 0 .99Z" /></svg>;
+  }
+  return <svg className="theme-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M12.92 9.66a.64.64 0 0 1 .78.8A6.28 6.28 0 1 1 5.54 2.3a.64.64 0 0 1 .8.78 5.32 5.32 0 0 0 6.58 6.58Z" /></svg>;
+}
 function normalizeKind(kind: string) { return String(kind).toUpperCase(); }
 function isKind(kind: string, expected: string) { return normalizeKind(kind) === expected; }
 function fileKindLabel(kind: string) {

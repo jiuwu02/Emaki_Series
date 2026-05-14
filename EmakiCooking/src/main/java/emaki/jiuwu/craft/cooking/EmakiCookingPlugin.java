@@ -50,6 +50,9 @@ import emaki.jiuwu.craft.cooking.service.display.CookingDisplayService;
 public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider, EmakiServiceRegistry {
 
     private static final String ROOT_COMMAND = "ecooking";
+    private static final String WEB_ICON = """
+            <svg viewBox="0 0 38 38" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M10 21h18l-2 8H12l-2-8zM8 21h22M13 16c-1.5-2 .8-3.5-.3-5M19 16c-1.5-2 .8-3.5-.3-5M25 16c-1.5-2 .8-3.5-.3-5M14 29l-2 3M24 29l2 3M15 21c1.2 2 6.8 2 8 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            """;
 
     private static final String STARTUP_ASCII = """
  ______  __    __  ______  __  __   __  ______  ______  ______  __  __   __  __   __  ______    
@@ -221,7 +224,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
     }
 
     private void registerWebConsole() {
-        WebConsoleRegistry.registerModule(getName(), "Cooking 烹饪", "工位、展示实体、输入规则", "cooking");
+        WebConsoleRegistry.registerModule(getName(), "Cooking 烹饪", "工位、展示实体、输入规则", "cooking", WEB_ICON);
         WebConsoleRegistry.registerConfigFile(getName(), "烹饪系统配置", "config.yml", "烹饪系统主配置，包含工位、展示实体和输入规则。");
         WebConsoleRegistry.registerGuiFile(getName(), "烹饪 GUI 模板", "gui/**/*.yml", "烹饪工位 GUI 模板文件。");
         WebConsoleRegistry.registerCommonConfigComments(getName());

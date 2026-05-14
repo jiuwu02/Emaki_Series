@@ -30,10 +30,10 @@ export class ApiClient {
     return data.registry;
   }
 
-  async saveRegistryValue(moduleId: string, path: string, value: unknown): Promise<void> {
+  async saveRegistryValue(moduleId: string, filePath: string, path: string, value: unknown): Promise<void> {
     await this.request('/api/registry/save', {
       method: 'POST',
-      body: JSON.stringify({ moduleId, path, value })
+      body: JSON.stringify({ moduleId, filePath, path, value })
     });
   }
 

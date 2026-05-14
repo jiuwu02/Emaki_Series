@@ -25,6 +25,7 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0 
   const [category, setCategory] = useState<MaterialCategory | '全部'>('全部');
   const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
   const [mode, setMode] = useState<'preview' | 'source'>('preview');
+  const [reloadConfirmOpen, setReloadConfirmOpen] = useState(false);
   const tooltipRef = useRef<HTMLDivElement>(null);
 
   const path = childPath ?? '';
@@ -42,14 +43,24 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0 
     void reloadGui();
   }, [api, module.id, path, refreshKey]);
 
+  useEffect(() => {
+    if (!reloadConfirmOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setReloadConfirmOpen(false);
+    };
+    document.addEventListener('keydown', closeOnEscape);
+    return () => document.removeEventListener('keydown', closeOnEscape);
+  }, [reloadConfirmOpen]);
+
   async function reloadGui() {
     if (!path) return;
     setLoading(true);
     setError('');
     try {
       const doc = await api.readGui(module.id, path);
-      setData(doc.data ?? {});
-      setOriginalText(doc.content ?? '');
+      const normalizedData = doc.data ?? {};
+      setData(normalizedData);
+      setOriginalText(serializeGuiYaml(normalizedData));
       setSelected([]);
       setHovered(null);
       setTooltipPosition(null);
@@ -69,8 +80,21 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0 
   const materialResults = useMemo(() => searchMaterials(query, category), [query, category]);
   const visibleMaterials = materialResults.slice(0, 80);
 
+  function requestReload() {
+    if (dirty) {
+      setReloadConfirmOpen(true);
+      return;
+    }
+    void reloadGui();
+  }
+
+  function confirmReload() {
+    setReloadConfirmOpen(false);
+    void reloadGui();
+  }
+
   async function save() {
-    if (!data || !path) return;
+    if (!data || !path || !dirty) return;
     setSaving(true);
     setError('');
     try {
@@ -117,7 +141,7 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0 
 
   const hoveredCell = hovered == null ? null : occupancy.find((cell) => cell.index === hovered);
 
-  return <section className="config-surface gui-surface">
+  return <section className="config-surface gui-surface" data-dirty={dirty ? 'true' : undefined}>
     <div className="surface-head gui-head">
       <div>
         <h2>{file.title}</h2>
@@ -125,10 +149,11 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0 
       </div>
       <div className="head-actions">
         <button onClick={() => setMode(mode === 'preview' ? 'source' : 'preview')}>{mode === 'preview' ? '源码' : '预览'}</button>
-        <button onClick={() => { if (dirty && !window.confirm('有未保存的更改，确定重载？')) return; void reloadGui(); }} disabled={saving || loading}>重载</button>
-        <button className="primary" onClick={() => void save()} disabled={!dirty || saving}>{saving ? '保存中' : '保存 GUI'}</button>
+        <button onClick={requestReload} disabled={saving || loading}>重载</button>
+        <button className={`primary ${dirty ? 'save-ready' : ''}`} onClick={() => void save()} disabled={!dirty || saving}>{saving ? '保存中' : '保存 GUI'}</button>
       </div>
     </div>
+    {reloadConfirmOpen && <ReloadConfirmDialog fileTitle={file.title} filePath={`${module.id}/${path}`} onConfirm={confirmReload} onCancel={() => setReloadConfirmOpen(false)} />}
     {error && <div className="gui-error">{error}</div>}
     {mode === 'source' ? <pre className="gui-source">{draftText}</pre> : <div className="gui-workbench">
       <div className="minecraft-window">
@@ -183,6 +208,25 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0 
       </aside>
     </div>}
   </section>;
+}
+
+function ReloadConfirmDialog({ fileTitle, filePath, onConfirm, onCancel }: { fileTitle: string; filePath: string; onConfirm: () => void; onCancel: () => void }) {
+  return <div className="reload-confirm-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onCancel(); }}>
+    <div className="reload-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="reload-confirm-title" aria-describedby="reload-confirm-desc">
+      <div className="reload-confirm-head">
+        <span>未保存更改</span>
+        <h3 id="reload-confirm-title">重载会丢弃当前修改</h3>
+      </div>
+      <div className="reload-confirm-body">
+        <p id="reload-confirm-desc">{fileTitle} 已被修改但尚未保存。继续重载会重新从服务器读取 GUI 文件，并覆盖当前本地编辑内容。</p>
+        <code>{filePath}</code>
+      </div>
+      <div className="reload-confirm-actions">
+        <button type="button" onClick={onCancel} autoFocus>取消</button>
+        <button type="button" className="danger" onClick={onConfirm}>继续重载</button>
+      </div>
+    </div>
+  </div>;
 }
 
 function SlotInspector({ slotKey, slot, updateSlot, removeSlot }: { slotKey: string; slot: GuiSlotDefinition; updateSlot: (key: string, patch: Partial<GuiSlotDefinition>) => void; removeSlot: () => void }) {

@@ -40,6 +40,9 @@ import emaki.jiuwu.craft.strengthen.service.StrengthenSnapshotBuilder;
 public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider, EmakiServiceRegistry {
 
     private static final String ROOT_COMMAND = "emakistrengthen";
+    private static final String WEB_ICON = """
+            <svg viewBox="0 0 38 38" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M19 30V12M13 18l6-6 6 6M12 8l1.6 3.2 3.4.5-2.5 2.4.6 3.4-3.1-1.6-3.1 1.6.6-3.4-2.5-2.4 3.4-.5L12 8zM27 7l1.2 2.5 2.8.4-2 1.9.5 2.7-2.5-1.3-2.5 1.3.5-2.7-2-1.9 2.8-.4L27 7zM11 31h16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            """;
     private static final Set<String> DEBUG_MODULES = Set.of("attempt", "state", "gui");
 
     private static final String STARTUP_ASCII = """
@@ -158,7 +161,7 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     }
 
     private void registerWebConsole() {
-        WebConsoleRegistry.registerModule(getName(), "Strengthen 强化", "星级、广播、成功率", "strengthen");
+        WebConsoleRegistry.registerModule(getName(), "Strengthen 强化", "星级、广播、成功率", "strengthen", WEB_ICON);
         WebConsoleRegistry.registerConfigFile(getName(), "强化系统配置", "config.yml", "强化系统主配置，包含成功率、材料、经济和显示策略。 ");
         WebConsoleRegistry.registerGuiFile(getName(), "强化 GUI 模板", "gui/**/*.yml", "强化界面 GUI 模板文件。");
         WebConsoleRegistry.registerCommonConfigComments(getName());
