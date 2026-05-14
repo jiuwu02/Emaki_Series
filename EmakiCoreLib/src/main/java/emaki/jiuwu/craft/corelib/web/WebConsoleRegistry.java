@@ -73,7 +73,8 @@ public final class WebConsoleRegistry {
      * 注册普通配置文件。CONFIG 是默认文件类型，前端后续可按类型渲染不同编辑体验。
      */
     public static synchronized void registerConfigFile(String moduleId, String title, String relativePath, String comment) {
-        registerFile(moduleId, title, relativePath, WebConsoleFileType.CONFIG, comment, true);
+        boolean structured = !relativePath.contains("*");
+        registerFile(moduleId, title, relativePath, WebConsoleFileType.CONFIG, comment, structured);
     }
 
     /**
