@@ -22,6 +22,7 @@ public final class WebConsoleRegistry {
     private static final String CORE_ICON_SVG = svgPath("M19 4l1.5 3.5L24 9l-3.5 1.5L19 14l-1.5-3.5L14 9l3.5-1.5L19 4zM19 14v4m-6 2h12a2 2 0 012 2v8a2 2 0 01-2 2H13a2 2 0 01-2-2v-8a2 2 0 012-2zm2 4h3m-3 3h5");
 
     private static final Map<String, ModuleRegistration> MODULES = new LinkedHashMap<>();
+    private static final Map<String, EditorRegistration> EDITORS = new LinkedHashMap<>();
     private static final Map<String, NodeMeta> NODE_META = new LinkedHashMap<>();
     private static final List<NodeMetaRule> NODE_RULES = new ArrayList<>();
 
@@ -65,6 +66,7 @@ public final class WebConsoleRegistry {
     public static synchronized void unregisterModule(JavaPlugin plugin) {
         String moduleId = plugin.getName();
         MODULES.remove(moduleId);
+        EDITORS.values().removeIf(editor -> moduleId.equals(editor.moduleId()));
         NODE_META.keySet().removeIf(key -> key.startsWith(moduleId + ":"));
         NODE_RULES.removeIf(rule -> moduleId.equals(rule.moduleId()));
     }
@@ -85,10 +87,27 @@ public final class WebConsoleRegistry {
     }
 
     /**
-     * 注册物品定义文件或物品目录。暂时只统一类型，专属前端显示后续再接入。
+     * 注册物品定义文件或物品目录。未指定 editorId 时前端使用 CoreLib 的通用 ITEM 编辑器。
      */
     public static synchronized void registerItemFile(String moduleId, String title, String relativePath, String comment) {
-        registerFile(moduleId, title, relativePath, WebConsoleFileType.ITEM, comment, false);
+        registerItemFile(moduleId, title, relativePath, comment, "");
+    }
+
+    /**
+     * 注册带专属编辑器的物品定义文件。editorId 由子插件命名，例如 emakigem:gem。
+     */
+    public static synchronized void registerItemFile(String moduleId, String title, String relativePath, String comment, String editorId) {
+        registerFile(moduleId, title, relativePath, WebConsoleFileType.ITEM, comment, false, editorId);
+    }
+
+    public static synchronized void registerEditorDescriptor(String moduleId, String editorId, Map<String, Object> descriptor) {
+        if (Texts.isBlank(moduleId) || Texts.isBlank(editorId) || descriptor == null) {
+            return;
+        }
+        Map<String, Object> copy = new LinkedHashMap<>(descriptor);
+        copy.putIfAbsent("id", editorId);
+        copy.putIfAbsent("moduleId", moduleId);
+        EDITORS.put(editorId, new EditorRegistration(moduleId, editorId, copy));
     }
 
     public static synchronized void registerScriptFile(String moduleId, String title, String relativePath, String comment) {
@@ -179,6 +198,7 @@ public final class WebConsoleRegistry {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("modules", modules);
         result.put("tree", tree);
+        result.put("editors", editorDescriptors());
         return result;
     }
 
@@ -227,6 +247,9 @@ public final class WebConsoleRegistry {
         entry.put("title", registration.title());
         entry.put("kind", registration.type().name());
         entry.put("comment", registration.comment());
+        if (Texts.isNotBlank(registration.editorId())) {
+            entry.put("editorId", registration.editorId());
+        }
         List<Map<String, Object>> nodes = new ArrayList<>();
         if (registration.structuredYaml()) {
             YamlSection config = YamlFiles.load(moduleFile(moduleId, registration.relativePath()));
@@ -456,6 +479,14 @@ public final class WebConsoleRegistry {
         return MODULES.get(moduleId);
     }
 
+    private static synchronized Map<String, Object> editorDescriptors() {
+        Map<String, Object> result = new LinkedHashMap<>();
+        for (EditorRegistration editor : EDITORS.values()) {
+            result.put(editor.editorId(), new LinkedHashMap<>(editor.descriptor()));
+        }
+        return result;
+    }
+
     private static FileRegistration primaryConfig(ModuleRegistration registration) {
         return registration.files().stream()
                 .filter(file -> file.type() == WebConsoleFileType.CONFIG && file.structuredYaml())
@@ -485,12 +516,16 @@ public final class WebConsoleRegistry {
     }
 
     private static void registerFile(String moduleId, String title, String relativePath, WebConsoleFileType type, String comment, boolean structuredYaml) {
+        registerFile(moduleId, title, relativePath, type, comment, structuredYaml, "");
+    }
+
+    private static void registerFile(String moduleId, String title, String relativePath, WebConsoleFileType type, String comment, boolean structuredYaml, String editorId) {
         ModuleRegistration module = MODULES.get(moduleId);
         if (module == null) {
             registerModule(moduleId, moduleId, "外部插件注册的 Web Console 模块", "default");
             module = MODULES.get(moduleId);
         }
-        FileRegistration next = new FileRegistration(title, relativePath, type, comment, structuredYaml);
+        FileRegistration next = new FileRegistration(title, relativePath, type, comment, structuredYaml, Texts.toStringSafe(editorId));
         boolean exists = module.files().stream().anyMatch(file -> file.relativePath().equals(relativePath) && file.type() == type);
         if (!exists) {
             module.files().add(next);
@@ -601,7 +636,8 @@ public final class WebConsoleRegistry {
     }
 
     private record ModuleRegistration(String id, String name, String summary, String tone, String iconSvg, List<FileRegistration> files) {}
-    private record FileRegistration(String title, String relativePath, WebConsoleFileType type, String comment, boolean structuredYaml) {}
+    private record EditorRegistration(String moduleId, String editorId, Map<String, Object> descriptor) {}
+    private record FileRegistration(String title, String relativePath, WebConsoleFileType type, String comment, boolean structuredYaml, String editorId) {}
     private record NodeMeta(String label, String comment, String type) {}
 
     private record NodeMetaRule(String moduleId, MatchType matchType, String pattern, String label, String comment, String type) {

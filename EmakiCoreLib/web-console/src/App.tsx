@@ -1,7 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ApiClient } from './api';
 import { GuiEditorSurface } from './GuiEditorSurface';
+import { ItemEditorSurface } from './ItemEditorSurface';
+import { getSurface, isKind, registerSurface } from './registry';
+import type { SurfaceProps } from './registry';
 import type { WebConfigNode, WebRegistry, WebRegistryFile, WebRegistryModule } from './types';
+
+// Register built-in surfaces
+registerSurface({ kind: 'GUI', component: GuiEditorSurface as React.ComponentType<SurfaceProps>, label: 'GUI' });
+registerSurface({ kind: 'ITEM', component: ItemEditorSurface as React.ComponentType<SurfaceProps>, label: '物品' });
 
 type Selection = { moduleId: string; fileId: string; scriptPath?: string; refreshKey?: number };
 type DraftMap = Record<string, unknown>;
@@ -85,6 +92,7 @@ export default function App() {
   const changedCount = selectedModule && selectedFile ? selectedFile.nodes.filter((n) => n.type !== 'object' && draftKey(selectedModule.id, n.path) in drafts).length : 0;
   const activeTheme = COLOR_THEMES.find((entry) => entry.id === theme) ?? COLOR_THEMES[0];
   const nextTheme = () => setTheme((current) => COLOR_THEMES[(COLOR_THEMES.findIndex((entry) => entry.id === current) + 1) % COLOR_THEMES.length].id);
+  const hideStageHead = selectedFile && (getSurface(selectedFile.kind) != null && !isKind(selectedFile.kind, 'CONFIG') && !isKind(selectedFile.kind, 'SCRIPT'));
 
   return (
     <div className="workbench">
@@ -102,7 +110,7 @@ export default function App() {
         <button className="rail-action quiet" onClick={() => { sessionStorage.removeItem('emaki-web-token'); setToken(null); }}>退出登录</button>
       </ResizableRail>
       <main className="stage">
-        <header className="stage-head">
+        {!hideStageHead && <header className="stage-head">
           <div>
             <h1>{selectedModule ? selectedModule.name : '配置控制台'}</h1>
             <p>{selectedFile ? `${selectedFile.title}，${selectedFile.path}` : '选择左侧文件开始编辑。'}</p>
@@ -111,9 +119,9 @@ export default function App() {
             <button onClick={() => void loadRegistry()} disabled={loading}>刷新</button>
             <button className={`primary ${changedCount ? 'save-ready' : ''}`} onClick={() => void saveCurrent()} disabled={saving || changedCount === 0}>保存{changedCount ? ` ${changedCount}` : ''}</button>
           </div>
-        </header>
+        </header>}
         <section className="editor-shell single">
-          <ConfigSurface module={selectedModule} file={selectedFile} drafts={drafts} setDrafts={setDrafts} api={api} scriptPath={selected?.scriptPath} refreshKey={selected?.refreshKey ?? 0} />
+          <ConfigSurface registry={registry} module={selectedModule} file={selectedFile} drafts={drafts} setDrafts={setDrafts} api={api} scriptPath={selected?.scriptPath} refreshKey={selected?.refreshKey ?? 0} onReload={() => void loadRegistry()} />
         </section>
       </main>
     </div>
@@ -204,10 +212,18 @@ function WorkspaceTree({ registry, selected, expanded, setExpanded, onSelect }: 
   })}</div>)}</div>;
 }
 
-function ConfigSurface({ module, file, drafts, setDrafts, api, scriptPath, refreshKey }: { module: WebRegistryModule | null; file: WebRegistryFile | null; drafts: DraftMap; setDrafts: React.Dispatch<React.SetStateAction<DraftMap>>; api: ApiClient; scriptPath?: string; refreshKey: number }) {
+function ConfigSurface({ registry, module, file, drafts, setDrafts, api, scriptPath, refreshKey, onReload }: { registry: WebRegistry | null; module: WebRegistryModule | null; file: WebRegistryFile | null; drafts: DraftMap; setDrafts: React.Dispatch<React.SetStateAction<DraftMap>>; api: ApiClient; scriptPath?: string; refreshKey: number; onReload?: () => void }) {
   if (!module || !file) return <section className="config-surface empty">选择左侧配置文件。</section>;
+  const editor = file.editorId ? registry?.editors?.[file.editorId] : undefined;
+
+  // Check registry for a custom surface first
+  const registeredSurface = getSurface(file.kind);
+  if (registeredSurface && !isKind(file.kind, 'CONFIG') && !isKind(file.kind, 'SCRIPT')) {
+    const SurfaceComponent = registeredSurface.component;
+    return <SurfaceComponent module={module} file={file} api={api} childPath={scriptPath} refreshKey={refreshKey} editor={editor} onReload={onReload} />;
+  }
+
   if (isKind(file.kind, 'SCRIPT')) return <section className="config-surface script-surface"><div className="surface-head"><div><h2>{file.title}</h2><p>{file.comment}</p></div><span className="file-kind script">{fileKindLabel(file.kind)}</span></div>{scriptPath ? <ScriptEditor api={api} scriptPath={scriptPath} /> : <div className="script-placeholder">点击左侧脚本文件开始编辑。</div>}</section>;
-  if (isKind(file.kind, 'GUI')) return <GuiEditorSurface module={module} file={file} api={api} childPath={scriptPath} refreshKey={refreshKey} />;
   // CONFIG 类型：如果有子文件路径，按需加载子文件内容
   if (isKind(file.kind, 'CONFIG') && scriptPath) return <ConfigChildSurface module={module} file={file} childPath={scriptPath} drafts={drafts} setDrafts={setDrafts} api={api} refreshKey={refreshKey} />;
   // CONFIG 类型 glob 文件无子文件选中时，显示提示
@@ -287,16 +303,7 @@ function ConfigChildSurface({ module, file, childPath, drafts, setDrafts, api, r
 }
 
 function ConfigNodeTree({ moduleId, nodes, drafts, setDrafts }: { moduleId: string; nodes: WebConfigNode[]; drafts: DraftMap; setDrafts: React.Dispatch<React.SetStateAction<DraftMap>> }) {
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => {
-    // 默认全部折叠
-    const initial: Record<string, boolean> = {};
-    for (const node of nodes) {
-      if (node.type === 'object' && !node.path.includes('.')) {
-        initial[node.path] = true;
-      }
-    }
-    return initial;
-  });
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const toggle = (path: string) => setCollapsed(c => ({ ...c, [path]: !c[path] }));
 
   // 构建树结构：顶级节点是 path 中不含 "." 的节点，或者 object 节点作为分组
@@ -674,7 +681,6 @@ function ThemeIcon({ theme }: { theme: ColorTheme }) {
   return <svg className="theme-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M12.92 9.66a.64.64 0 0 1 .78.8A6.28 6.28 0 1 1 5.54 2.3a.64.64 0 0 1 .8.78 5.32 5.32 0 0 0 6.58 6.58Z" /></svg>;
 }
 function normalizeKind(kind: string) { return String(kind).toUpperCase(); }
-function isKind(kind: string, expected: string) { return normalizeKind(kind) === expected; }
 function fileKindLabel(kind: string) {
   const normalized = normalizeKind(kind);
   if (normalized === 'CONFIG') return '配置';

@@ -160,12 +160,12 @@ upgrade:
         - type: "name_action"
           name_actions:
             - action: "append_suffix"
-              value: " <red>[{display_name} II]</red>"
+              value: " <red>[{display_name}]</red>"
         - type: "lore_action"
           lore_actions:
             - action: "append"
               content:
-                - "<red>◆ {display_name} II: 物理攻击+{physical_attack} 暴击率+{physical_crit_rate}%</red>"
+                - "<red>◆ {display_name}: 物理攻击+{physical_attack} 暴击率+{physical_crit_rate}%</red>"
       # 升级所需材料
       materials:
         - item_sources:
@@ -194,12 +194,12 @@ upgrade:
         - type: "name_action"
           name_actions:
             - action: "append_suffix"
-              value: " <red>[{display_name} III]</red>"
+              value: " <red>[{display_name}]</red>"
         - type: "lore_action"
           lore_actions:
             - action: "append"
               content:
-                - "<red>◆ {display_name} III: 物理攻击+{physical_attack} 暴击率+{physical_crit_rate}%</red>"
+                - "<red>◆ {display_name}: 物理攻击+{physical_attack} 暴击率+{physical_crit_rate}%</red>"
       materials:
         - item_sources:
             - "minecraft-gold_ingot"
@@ -230,12 +230,12 @@ upgrade:
         - type: "name_action"
           name_actions:
             - action: "append_suffix"
-              value: " <red>[{display_name} IV]</red>"
+              value: " <red>[{display_name}]</red>"
         - type: "lore_action"
           lore_actions:
             - action: "append"
               content:
-                - "<red>◆ {display_name} IV: 物理攻击+{physical_attack} 暴击率+{physical_crit_rate}%</red>"
+                - "<red>◆ {display_name}: 物理攻击+{physical_attack} 暴击率+{physical_crit_rate}%</red>"
                 - "<gold>  ★ 解锁技能: 红宝石爆发</gold>"
       materials:
         - item_sources:

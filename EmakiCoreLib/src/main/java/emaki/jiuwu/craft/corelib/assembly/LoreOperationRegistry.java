@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.corelib.assembly;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import emaki.jiuwu.craft.corelib.text.Texts;
 
@@ -64,6 +65,10 @@ public final class LoreOperationRegistry {
 
     public OperationTemplateRenderer templateRenderer() {
         return templateRenderer;
+    }
+
+    public Set<String> registeredActions() {
+        return Set.copyOf(processors.keySet());
     }
 
     // --- Built-in processors ---

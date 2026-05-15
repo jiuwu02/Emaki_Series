@@ -29,6 +29,7 @@ public final class WebConsoleService {
     private WebConfigBrowserService configBrowserService;
     private WebRuntimeLibraryService runtimeLibraryService;
     private WebConsoleRegistry consoleRegistry;
+    private WebItemPreviewService itemPreviewService;
     private final WebStaticAssets staticAssets = new WebStaticAssets();
 
     public WebConsoleService(JavaPlugin plugin, WebConsoleConfig config) {
@@ -51,6 +52,7 @@ public final class WebConsoleService {
             configBrowserService = new WebConfigBrowserService(plugin, config);
             runtimeLibraryService = new WebRuntimeLibraryService(plugin);
             consoleRegistry = new WebConsoleRegistry(plugin);
+            itemPreviewService = new WebItemPreviewService();
             server = HttpServer.create(new InetSocketAddress(config.host(), config.port()), 0);
             executor = Executors.newFixedThreadPool(4, runnable -> {
                 Thread thread = new Thread(runnable, "emaki-web-console");
@@ -71,6 +73,10 @@ public final class WebConsoleService {
             server.createContext("/api/scripts/save", this::handleScriptSave);
             server.createContext("/api/gui/read", this::handleGuiRead);
             server.createContext("/api/gui/save", this::handleGuiSave);
+            server.createContext("/api/items/read", this::handleItemRead);
+            server.createContext("/api/items/save", this::handleItemSave);
+            server.createContext("/api/items/preview", this::handleItemPreview);
+            server.createContext("/api/items/action-types", this::handleItemActionTypes);
             server.createContext("/", this::handleStatic);
             server.start();
             plugin.getLogger().info("[WebConsole] 已启动: http://" + config.host() + ":" + config.port());
@@ -99,6 +105,7 @@ public final class WebConsoleService {
             executor = null;
         }
         consoleRegistry = null;
+        itemPreviewService = null;
     }
 
     private void handleLogin(HttpExchange exchange) throws IOException {
@@ -326,6 +333,97 @@ public final class WebConsoleService {
             java.nio.file.Files.createDirectories(target.toPath().getParent());
             java.nio.file.Files.writeString(target.toPath(), content == null ? "" : content, StandardCharsets.UTF_8);
             WebResponse.json(exchange, 200, Map.of("success", true));
+        } catch (Exception e) {
+            WebResponse.json(exchange, 500, Map.of("success", false, "error", e.getMessage()));
+        }
+    }
+
+    private void handleItemRead(HttpExchange exchange) throws IOException {
+        if (requireAuth(exchange) == null) return;
+        String module = query(exchange, "module");
+        String path = query(exchange, "path");
+        if (module.isBlank() || path.isBlank()) {
+            WebResponse.json(exchange, 400, Map.of("success", false, "error", "缺少 module 或 path 参数"));
+            return;
+        }
+        try {
+            java.io.File target = safeModuleFile(module, path);
+            if (!target.exists() || !target.isFile()) {
+                WebResponse.json(exchange, 404, Map.of("success", false, "error", "ITEM 文件不存在"));
+                return;
+            }
+            String content = java.nio.file.Files.readString(target.toPath(), StandardCharsets.UTF_8);
+            YamlSection yaml = YamlFiles.load(content);
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("success", true);
+            payload.put("moduleId", module);
+            payload.put("path", path);
+            payload.put("content", content);
+            payload.put("data", ConfigNodes.toPlainData(yaml));
+            WebResponse.json(exchange, 200, payload);
+        } catch (Exception e) {
+            WebResponse.json(exchange, 500, Map.of("success", false, "error", e.getMessage()));
+        }
+    }
+
+    private void handleItemSave(HttpExchange exchange) throws IOException {
+        if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+            WebResponse.json(exchange, 405, Map.of("success", false, "error", "Method not allowed"));
+            return;
+        }
+        if (requireAuth(exchange) == null) return;
+        String body = readBody(exchange);
+        String module = WebJson.extractString(body, "moduleId");
+        String path = WebJson.extractString(body, "path");
+        String content = WebJson.extractString(body, "content");
+        if (module.isBlank() || path.isBlank()) {
+            WebResponse.json(exchange, 400, Map.of("success", false, "error", "缺少 moduleId 或 path"));
+            return;
+        }
+        try {
+            java.io.File target = safeModuleFile(module, path);
+            YamlFiles.load(content == null ? "" : content);
+            java.nio.file.Files.createDirectories(target.toPath().getParent());
+            java.nio.file.Files.writeString(target.toPath(), content == null ? "" : content, StandardCharsets.UTF_8);
+            WebResponse.json(exchange, 200, Map.of("success", true));
+        } catch (Exception e) {
+            WebResponse.json(exchange, 500, Map.of("success", false, "error", e.getMessage()));
+        }
+    }
+
+    private void handleItemPreview(HttpExchange exchange) throws IOException {
+        if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+            WebResponse.json(exchange, 405, Map.of("success", false, "error", "Method not allowed"));
+            return;
+        }
+        if (requireAuth(exchange) == null) return;
+        String body = readBody(exchange);
+        String content = WebJson.extractString(body, "content");
+        Object previewLevelValue = WebJson.extractValue(body, "previewLevel");
+        int previewLevel = Math.max(1, previewLevelValue instanceof Number number ? number.intValue() : 1);
+        String baseName = WebJson.extractString(body, "baseName");
+        Object baseLoreValue = WebJson.extractValue(body, "baseLore");
+        java.util.List<String> baseLore = baseLoreValue instanceof java.util.List<?> list
+                ? list.stream().map(String::valueOf).toList()
+                : java.util.List.of();
+        try {
+            Map<String, Object> preview = itemPreviewService.preview(content, previewLevel, baseName, baseLore);
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("success", true);
+            payload.put("preview", preview);
+            WebResponse.json(exchange, 200, payload);
+        } catch (Exception e) {
+            WebResponse.json(exchange, 400, Map.of("success", false, "error", e.getMessage()));
+        }
+    }
+
+    private void handleItemActionTypes(HttpExchange exchange) throws IOException {
+        if (requireAuth(exchange) == null) return;
+        try {
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("success", true);
+            payload.putAll(itemPreviewService.actionTypes());
+            WebResponse.json(exchange, 200, payload);
         } catch (Exception e) {
             WebResponse.json(exchange, 500, Map.of("success", false, "error", e.getMessage()));
         }

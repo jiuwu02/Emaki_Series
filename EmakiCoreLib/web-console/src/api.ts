@@ -1,6 +1,10 @@
-import type { ConfigFile, GuiDocument, ModuleStatus, RuntimeLibrary, WebConfigNode, WebRegistry } from './types';
+import type { ConfigFile, GuiDocument, ItemDocument, ItemPreviewResult, ModuleStatus, RuntimeLibrary, WebConfigNode, WebRegistry } from './types';
+
+export type ActionTypesResult = { nameActions: string[]; loreActions: string[] };
 
 export class ApiClient {
+  private actionTypesCache: ActionTypesResult | null = null;
+
   constructor(private token: string | null, private onUnauthorized: () => void) {}
 
   setToken(token: string | null) {
@@ -79,6 +83,33 @@ export class ApiClient {
       method: 'POST',
       body: JSON.stringify({ moduleId, path, content })
     });
+  }
+
+  async readItem(moduleId: string, path: string): Promise<ItemDocument> {
+    const data = await this.request(`/api/items/read?module=${encodeURIComponent(moduleId)}&path=${encodeURIComponent(path)}`);
+    return { moduleId: data.moduleId, path: data.path, content: data.content, data: data.data } as ItemDocument;
+  }
+
+  async saveItem(moduleId: string, path: string, content: string): Promise<void> {
+    await this.request('/api/items/save', {
+      method: 'POST',
+      body: JSON.stringify({ moduleId, path, content })
+    });
+  }
+
+  async previewItem(content: string, previewLevel: number, baseName = '', baseLore: string[] = []): Promise<ItemPreviewResult> {
+    const data = await this.request('/api/items/preview', {
+      method: 'POST',
+      body: JSON.stringify({ content, previewLevel, baseName, baseLore })
+    });
+    return data.preview as ItemPreviewResult;
+  }
+
+  async actionTypes(): Promise<ActionTypesResult> {
+    if (this.actionTypesCache) return this.actionTypesCache;
+    const data = await this.request('/api/items/action-types');
+    this.actionTypesCache = { nameActions: data.nameActions ?? [], loreActions: data.loreActions ?? [] };
+    return this.actionTypesCache;
   }
 
   private async request(path: string, init: RequestInit = {}): Promise<any> {

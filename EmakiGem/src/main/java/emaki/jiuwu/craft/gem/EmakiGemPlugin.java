@@ -1,5 +1,8 @@
 package emaki.jiuwu.craft.gem;
 
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
@@ -179,7 +182,10 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         WebConsoleRegistry.registerModule(getName(), "Gem 宝石", "开孔、镶嵌、升级与 GUI", "gem", WEB_ICON);
         WebConsoleRegistry.registerConfigFile(getName(), "宝石系统配置", "config.yml", "宝石系统主配置，包含开孔器、镶嵌、升级和 GUI 入口设置。");
         WebConsoleRegistry.registerGuiFile(getName(), "宝石 GUI 模板", "gui/**/*.yml", "宝石镶嵌、开孔、升级 GUI 模板文件。");
-        WebConsoleRegistry.registerItemFile(getName(), "宝石物品定义", "items/**/*.yml", "宝石插件物品定义文件。");
+        WebConsoleRegistry.registerEditorDescriptor(getName(), "emakigem:socket-item", socketItemEditorDescriptor());
+        WebConsoleRegistry.registerEditorDescriptor(getName(), "emakigem:gem", gemEditorDescriptor());
+        WebConsoleRegistry.registerItemFile(getName(), "宝石物品定义", "items/**/*.yml", "宝石插件物品定义文件。", "emakigem:socket-item");
+        WebConsoleRegistry.registerItemFile(getName(), "宝石定义", "gems/**/*.yml", "宝石定义文件，包含宝石物品来源、效果、插槽兼容和升级配置。", "emakigem:gem");
         WebConsoleRegistry.registerCommonConfigComments(getName());
 
         // socket_openers
@@ -208,6 +214,98 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         WebConsoleRegistry.registerNodeComment(getName(), "gui", "GUI", "宝石 GUI 默认模式和关闭保存策略。", "object");
         WebConsoleRegistry.registerNodeComment(getName(), "gui.default_mode", "默认模式", "打开宝石 GUI 时的默认显示模式。", "enum:inlay,open,upgrade");
         WebConsoleRegistry.registerNodeComment(getName(), "gui.save_on_close", "关闭保存", "关闭 GUI 时是否自动保存当前操作。", "boolean");
+    }
+
+    private Map<String, Object> gemEditorDescriptor() {
+        Map<String, Object> descriptor = editorDescriptor("emakigem:gem", "宝石定义", "宝石定义");
+        descriptor.put("baseName", "<gray>预览装备</gray>");
+        descriptor.put("baseLore", List.of("<gray>原始装备 Lore</gray>"));
+        descriptor.put("sections", List.of(
+                section("基础字段", "宝石识别、显示、类型和物品来源。", List.of(
+                        field("id", "ID", "text", "宝石唯一标识。", false),
+                        field("display_name", "显示名", "text", "支持 MiniMessage。", false),
+                        field("gem_type", "宝石类型", "enum", "用于插槽兼容匹配。", false, List.of("attack", "defense", "utility", "universal")),
+                        field("level", "基础等级", "number", "未升级时的初始等级。", false),
+                        field("item_sources", "物品来源", "stringList", "每行一个 ItemSource，例如 minecraft-redstone。", true),
+                        field("custom_model_data", "Custom Model Data", "number", "可选资源包模型数据。", false),
+                        field("socket_compatibility", "插槽兼容", "stringList", "每行一个可镶嵌插槽类型。", true)
+                )),
+                section("效果与展示动作", "effects 是宝石实际写入属性、技能和 Name/Lore 动作的主结构。", List.of(
+                        field("effects", "effects", "json", "完整 effects 列表，支持 variables、ea_attribute、es_skill、name_action、lore_action。", true),
+                        field("name_actions", "顶层 Name Actions", "actions", "兼容旧结构；推荐使用 effects[type=name_action]。", true),
+                        field("lore_actions", "顶层 Lore Actions", "actions", "兼容旧结构；推荐使用 effects[type=lore_action]。", true)
+                )),
+                section("费用与返还", "镶嵌、拆卸和返还规则。", List.of(
+                        field("inlay_cost", "镶嵌费用", "json", "货币与材料消耗。", true),
+                        field("extract_cost", "拆卸费用", "json", "货币与材料消耗。", true),
+                        field("extract_return", "拆卸返还", "json", "original、destroy 或 downgrade。", true)
+                )),
+                section("升级配置", "各等级成功率、材料、经济、效果与动作。", List.of(
+                        field("upgrade", "upgrade", "json", "完整升级配置，包含 levels 下每级覆盖。", true),
+                        field("actions", "成功动作", "json", "镶嵌/拆卸成功后执行的 Action 分组。", true)
+                ))
+        ));
+        return descriptor;
+    }
+
+    private Map<String, Object> socketItemEditorDescriptor() {
+        Map<String, Object> descriptor = editorDescriptor("emakigem:socket-item", "宝石插槽物品", "宝石物品定义");
+        descriptor.put("baseName", "<gray>预览装备</gray>");
+        descriptor.put("baseLore", List.of("<gray>原始装备 Lore</gray>"));
+        descriptor.put("sections", List.of(
+                section("匹配与限制", "定义哪些装备会被识别为可镶嵌物品。", List.of(
+                        field("id", "ID", "text", "物品定义唯一标识。", false),
+                        field("match.item_sources", "匹配物品来源", "stringList", "每行一个 ItemSource。", true),
+                        field("allowed_gem_types", "允许宝石类型", "stringList", "每行一个宝石类型。", true),
+                        field("max_same_type", "同类型上限", "number", "0 表示不限制。", false),
+                        field("max_same_id", "同 ID 上限", "number", "同一宝石 ID 可镶嵌数量。", false)
+                )),
+                section("插槽结构", "定义插槽索引、类型、显示名和默认开放状态。", List.of(
+                        field("slots", "slots", "json", "插槽数组，每项包含 index、type、display_name。", true),
+                        field("default_open_slots", "默认开放插槽", "json", "默认开放的 slot index 列表。", true)
+                )),
+                section("GUI 与展示动作", "打开模板和插槽激活后的 Name/Lore 修改。", List.of(
+                        field("gui", "GUI", "json", "gem/open/upgrade 模板关联配置。", true),
+                        field("name_actions", "Name Actions", "actions", "插槽激活后对装备名的修改。", true),
+                        field("lore_actions", "Lore Actions", "actions", "插槽激活后对装备 Lore 的修改。", true)
+                ))
+        ));
+        return descriptor;
+    }
+
+    private Map<String, Object> editorDescriptor(String id, String title, String kindLabel) {
+        Map<String, Object> descriptor = new LinkedHashMap<>();
+        descriptor.put("id", id);
+        descriptor.put("title", title);
+        descriptor.put("kindLabel", kindLabel);
+        return descriptor;
+    }
+
+    private Map<String, Object> section(String title, String comment, List<Map<String, Object>> fields) {
+        Map<String, Object> section = new LinkedHashMap<>();
+        section.put("title", title);
+        section.put("comment", comment);
+        section.put("fields", fields);
+        return section;
+    }
+
+    private Map<String, Object> field(String path, String label, String type, String comment, boolean wide) {
+        return field(path, label, type, comment, wide, List.of());
+    }
+
+    private Map<String, Object> field(String path, String label, String type, String comment, boolean wide, List<String> options) {
+        Map<String, Object> field = new LinkedHashMap<>();
+        field.put("path", path);
+        field.put("label", label);
+        field.put("type", type);
+        field.put("comment", comment);
+        if (wide) {
+            field.put("wide", true);
+        }
+        if (options != null && !options.isEmpty()) {
+            field.put("options", options);
+        }
+        return field;
     }
 
     public void ensurePlaceholderExpansion() {

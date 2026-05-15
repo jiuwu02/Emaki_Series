@@ -38,6 +38,37 @@ export type WebConfigNode = {
   options?: string[];
 };
 
+export type WebEditorFieldType = 'text' | 'number' | 'boolean' | 'textarea' | 'stringList' | 'enum' | 'json' | 'actions' | string;
+
+export type WebEditorField = {
+  path: string;
+  label: string;
+  type: WebEditorFieldType;
+  comment?: string;
+  placeholder?: string;
+  options?: string[];
+  rows?: number;
+  wide?: boolean;
+};
+
+export type WebEditorSection = {
+  title: string;
+  comment?: string;
+  fields: WebEditorField[];
+};
+
+export type WebEditorDescriptor = {
+  id: string;
+  moduleId?: string;
+  title?: string;
+  kindLabel?: string;
+  baseName?: string;
+  baseLore?: string[];
+  sections?: WebEditorSection[];
+  preview?: Record<string, unknown>;
+  [key: string]: unknown;
+};
+
 export type WebRegistryFile = {
   id: string;
   moduleId: string;
@@ -45,6 +76,7 @@ export type WebRegistryFile = {
   title: string;
   kind: 'CONFIG' | 'GUI' | 'ITEM' | 'SCRIPT' | 'config' | 'script' | string;
   comment: string;
+  editorId?: string;
   nodes: WebConfigNode[];
   children?: { name: string; relativePath: string; fullPath?: string }[];
 };
@@ -72,6 +104,7 @@ export type RegistryTreeNode = {
 export type WebRegistry = {
   modules: WebRegistryModule[];
   tree: RegistryTreeNode[];
+  editors?: Record<string, WebEditorDescriptor>;
 };
 
 export type GuiDocument = {
@@ -79,6 +112,61 @@ export type GuiDocument = {
   path: string;
   content: string;
   data: GuiTemplateData;
+};
+
+export type ItemDocument = {
+  moduleId: string;
+  path: string;
+  content: string;
+  data: ItemDocumentData;
+};
+
+export type ItemDocumentData = Record<string, unknown>;
+
+export type ItemPreviewStep = {
+  action: string;
+  value?: string;
+  anchor?: string;
+  result?: string;
+  before?: string[];
+  after?: string[];
+  [key: string]: unknown;
+};
+
+export type ItemPreviewEffect = {
+  type: string;
+  source?: string;
+  payload?: Record<string, unknown>;
+  resolved?: Record<string, unknown>;
+  attributes?: Record<string, unknown>;
+  skills?: unknown;
+};
+
+export type ItemPreviewResult = {
+  kind: 'gem' | 'gem_socket_item' | 'generic_item' | string;
+  id?: string;
+  material?: string;
+  displayName?: string;
+  lore?: string[];
+  variables?: Record<string, unknown>;
+  nameSteps?: ItemPreviewStep[];
+  loreSteps?: ItemPreviewStep[];
+  effects?: ItemPreviewEffect[];
+  level?: number;
+  levels?: number[];
+  gemType?: string;
+  socketCompatibility?: unknown[];
+  upgrade?: Record<string, unknown>;
+  costs?: Record<string, unknown>;
+  extractReturn?: unknown;
+  match?: Record<string, unknown>;
+  slots?: unknown;
+  defaultOpenSlots?: unknown[];
+  allowedGemTypes?: unknown[];
+  maxSameType?: unknown;
+  maxSameId?: unknown;
+  gui?: unknown;
+  [key: string]: unknown;
 };
 
 export type GuiTemplateData = {

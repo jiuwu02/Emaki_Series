@@ -51,12 +51,12 @@ final class GemDefinitionParser {
                 section.getInt("level", 1),
                 itemSource,
                 Numbers.tryParseInt(section.get("custom_model_data"), null),
-                parseStatMap(section.getSection("variables")),
-                parseStatMap(section.getSection("ea_attributes")),
+                parseVariables(section),
+                parseAttributes(section),
                 parseSkillEffects(section.getMapList("effects")),
                 socketCompatibility,
-                section.get("name_actions"),
-                section.get("lore_actions"),
+                parseNameActions(section),
+                parseLoreActions(section),
                 parseCostConfig(section.getSection("inlay_cost")),
                 parseCostConfig(section.getSection("extract_cost")),
                 parseExtractReturn(section.getSection("extract_return")),
@@ -201,11 +201,11 @@ final class GemDefinitionParser {
         return new GemUpgradeLevel(
                 targetLevel,
                 section.getString("display_name", ""),
-                parseStatMap(section.getSection("variables")),
-                parseStatMap(section.getSection("ea_attributes")),
+                parseVariables(section),
+                parseAttributes(section),
                 parseSkillEffects(section.getMapList("effects")),
-                section.get("name_actions"),
-                section.get("lore_actions"),
+                parseNameActions(section),
+                parseLoreActions(section),
                 successChance,
                 currencies,
                 section.getString("failure_penalty", ""),
@@ -213,6 +213,40 @@ final class GemDefinitionParser {
                 parseActionLines(section.getSection("actions"), "success"),
                 parseActionLines(section.getSection("actions"), "failure")
         );
+    }
+
+    static Object parseNameActions(YamlSection section) {
+        if (section == null) {
+            return null;
+        }
+        Object topLevel = section.get("name_actions");
+        return topLevel != null ? topLevel : firstEffectPayload(section.getMapList("effects"), "name_action", "name_actions");
+    }
+
+    static Object parseLoreActions(YamlSection section) {
+        if (section == null) {
+            return null;
+        }
+        Object topLevel = section.get("lore_actions");
+        return topLevel != null ? topLevel : firstEffectPayload(section.getMapList("effects"), "lore_action", "lore_actions");
+    }
+
+    static Map<String, Double> parseVariables(YamlSection section) {
+        if (section == null) {
+            return Map.of();
+        }
+        Map<String, Double> result = new LinkedHashMap<>(parseStatMap(section.getSection("variables")));
+        result.putAll(parseEffectStatMap(section.getMapList("effects"), "variables", "variables"));
+        return Map.copyOf(result);
+    }
+
+    static Map<String, Double> parseAttributes(YamlSection section) {
+        if (section == null) {
+            return Map.of();
+        }
+        Map<String, Double> result = new LinkedHashMap<>(parseStatMap(section.getSection("ea_attributes")));
+        result.putAll(parseEffectStatMap(section.getMapList("effects"), "ea_attribute", "ea_attributes"));
+        return Map.copyOf(result);
     }
 
     static List<String> parseActionLines(YamlSection section, String key) {
@@ -231,6 +265,37 @@ final class GemDefinitionParser {
             }
         }
         return Map.copyOf(stats);
+    }
+
+    static Map<String, Double> parseEffectStatMap(List<Map<?, ?>> rawEffects, String type, String key) {
+        if (rawEffects == null || rawEffects.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, Double> result = new LinkedHashMap<>();
+        for (Map<?, ?> rawEffect : rawEffects) {
+            if (!type.equals(Texts.lower(ConfigNodes.string(rawEffect, "type", "")))) {
+                continue;
+            }
+            for (Map.Entry<String, Object> entry : ConfigNodes.entries(ConfigNodes.get(rawEffect, key)).entrySet()) {
+                Double value = Numbers.tryParseDouble(entry.getValue(), null);
+                if (value != null) {
+                    result.put(Texts.lower(entry.getKey()), value);
+                }
+            }
+        }
+        return Map.copyOf(result);
+    }
+
+    static Object firstEffectPayload(List<Map<?, ?>> rawEffects, String type, String key) {
+        if (rawEffects == null || rawEffects.isEmpty()) {
+            return null;
+        }
+        for (Map<?, ?> rawEffect : rawEffects) {
+            if (type.equals(Texts.lower(ConfigNodes.string(rawEffect, "type", "")))) {
+                return ConfigNodes.get(rawEffect, key);
+            }
+        }
+        return null;
     }
 
     static List<String> parseSkillEffects(List<Map<?, ?>> rawEffects) {
