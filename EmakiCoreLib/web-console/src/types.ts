@@ -98,6 +98,13 @@ export type RegistryTreeNode = {
   label: string;
   type: string;
   moduleId?: string;
+  fileId?: string;
+  kind?: string;
+  path?: string;
+  childPath?: string;
+  icon?: string;
+  tone?: string;
+  comment?: string;
   children?: RegistryTreeNode[];
 };
 

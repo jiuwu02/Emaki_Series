@@ -179,42 +179,42 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
     }
 
     private void registerWebConsole() {
-        WebConsoleRegistry.registerModule(getName(), "Gem 宝石", "开孔、镶嵌、升级与 GUI", "gem", WEB_ICON);
-        WebConsoleRegistry.registerConfigFile(getName(), "宝石系统配置", "config.yml", "宝石系统主配置，包含开孔器、镶嵌、升级和 GUI 入口设置。");
-        WebConsoleRegistry.registerGuiFile(getName(), "宝石 GUI 模板", "gui/**/*.yml", "宝石镶嵌、开孔、升级 GUI 模板文件。");
+        WebConsoleRegistry.registerModule(this, "Gem 宝石", "开孔、镶嵌、升级与 GUI", "gem", WEB_ICON);
+        WebConsoleRegistry.registerConfigFile(this, "宝石系统配置", "config.yml", "宝石系统主配置，包含开孔器、镶嵌、升级和 GUI 入口设置。");
+        WebConsoleRegistry.registerGuiFile(this, "宝石 GUI 模板", "gui/**/*.yml", "宝石镶嵌、开孔、升级 GUI 模板文件。");
         WebConsoleRegistry.registerWebExtension(this, "emakigem:item-surface", "web-extensions/emakigem-item-surface.js");
-        WebConsoleRegistry.registerEditorDescriptor(getName(), "emakigem:socket-item", socketItemEditorDescriptor());
-        WebConsoleRegistry.registerEditorDescriptor(getName(), "emakigem:gem", gemEditorDescriptor());
-        WebConsoleRegistry.registerItemFile(getName(), "宝石物品定义", "items/**/*.yml", "宝石插件物品定义文件。", "emakigem:socket-item");
-        WebConsoleRegistry.registerItemFile(getName(), "宝石定义", "gems/**/*.yml", "宝石定义文件，包含宝石物品来源、效果、插槽兼容和升级配置。", "emakigem:gem");
-        WebConsoleRegistry.registerCommonConfigComments(getName());
+        WebConsoleRegistry.registerEditorDescriptor(this, "emakigem:socket-item", socketItemEditorDescriptor());
+        WebConsoleRegistry.registerEditorDescriptor(this, "emakigem:gem", gemEditorDescriptor());
+        WebConsoleRegistry.registerItemFile(this, "宝石物品定义", "items/**/*.yml", "宝石插件物品定义文件。", "emakigem:socket-item");
+        WebConsoleRegistry.registerItemFile(this, "宝石定义", "gems/**/*.yml", "宝石定义文件，包含宝石物品来源、效果、插槽兼容和升级配置。", "emakigem:gem");
+        WebConsoleRegistry.registerCommonConfigComments(this);
 
         // socket_openers
-        WebConsoleRegistry.registerNodeComment(getName(), "socket_openers", "开孔器", "攻击、防御、通用等开孔器的物品与规则配置。", "object");
+        WebConsoleRegistry.registerNodeComment(this, "socket_openers", "开孔器", "攻击、防御、通用等开孔器的物品与规则配置。", "object");
 
         // inlay_success
-        WebConsoleRegistry.registerNodeComment(getName(), "inlay_success", "镶嵌成功率", "宝石镶嵌成功率、公式与失败处理策略。", "object");
-        WebConsoleRegistry.registerNodeComment(getName(), "inlay_success.enabled", "启用成功率", "是否启用镶嵌成功率机制（关闭则必定成功）。", "boolean");
-        WebConsoleRegistry.registerNodeComment(getName(), "inlay_success.default_chance", "默认成功率", "未单独配置时的默认镶嵌成功率百分比。", "number");
-        WebConsoleRegistry.registerNodeComment(getName(), "inlay_success.rate_formula", "成功率公式", "镶嵌成功率的计算公式表达式。", "text");
-        WebConsoleRegistry.registerNodeComment(getName(), "inlay_success.failure_action", "失败处理", "镶嵌失败时的处理方式。", "enum:return_gem,destroy_gem,destroy_both");
+        WebConsoleRegistry.registerNodeComment(this, "inlay_success", "镶嵌成功率", "宝石镶嵌成功率、公式与失败处理策略。", "object");
+        WebConsoleRegistry.registerNodeComment(this, "inlay_success.enabled", "启用成功率", "是否启用镶嵌成功率机制（关闭则必定成功）。", "boolean");
+        WebConsoleRegistry.registerNodeComment(this, "inlay_success.default_chance", "默认成功率", "未单独配置时的默认镶嵌成功率百分比。", "number");
+        WebConsoleRegistry.registerNodeComment(this, "inlay_success.rate_formula", "成功率公式", "镶嵌成功率的计算公式表达式。", "text");
+        WebConsoleRegistry.registerNodeComment(this, "inlay_success.failure_action", "失败处理", "镶嵌失败时的处理方式。", "enum:return_gem,destroy_gem,destroy_both");
 
         // upgrade
-        WebConsoleRegistry.registerNodeComment(getName(), "upgrade", "升级配置", "宝石升级成功率与失败惩罚配置。", "object");
-        WebConsoleRegistry.registerNodeComment(getName(), "upgrade.global_success_rates", "升级成功率", "各等级宝石升级的全局成功率配置。", "object");
-        WebConsoleRegistry.registerNodeComment(getName(), "upgrade.global_failure_penalty", "失败惩罚", "宝石升级失败时的全局惩罚方式。", "enum:none,downgrade,destroy");
+        WebConsoleRegistry.registerNodeComment(this, "upgrade", "升级配置", "宝石升级成功率与失败惩罚配置。", "object");
+        WebConsoleRegistry.registerNodeComment(this, "upgrade.global_success_rates", "升级成功率", "各等级宝石升级的全局成功率配置。", "object");
+        WebConsoleRegistry.registerNodeComment(this, "upgrade.global_failure_penalty", "失败惩罚", "宝石升级失败时的全局惩罚方式。", "enum:none,downgrade,destroy");
 
         // number_format
-        WebConsoleRegistry.registerNodeComment(getName(), "number_format", "数值格式", "宝石属性数值的格式化配置。", "object");
-        WebConsoleRegistry.registerNodeComment(getName(), "number_format.default", "默认格式", "默认数值显示格式（如 #.##）。", "text");
+        WebConsoleRegistry.registerNodeComment(this, "number_format", "数值格式", "宝石属性数值的格式化配置。", "object");
+        WebConsoleRegistry.registerNodeComment(this, "number_format.default", "默认格式", "默认数值显示格式（如 #.##）。", "text");
 
         // permission
-        WebConsoleRegistry.registerNodeComment(getName(), "permission.op_bypass", "OP跳过", "OP 是否跳过宝石操作的条件检查。", "boolean");
+        WebConsoleRegistry.registerNodeComment(this, "permission.op_bypass", "OP跳过", "OP 是否跳过宝石操作的条件检查。", "boolean");
 
         // gui
-        WebConsoleRegistry.registerNodeComment(getName(), "gui", "GUI", "宝石 GUI 默认模式和关闭保存策略。", "object");
-        WebConsoleRegistry.registerNodeComment(getName(), "gui.default_mode", "默认模式", "打开宝石 GUI 时的默认显示模式。", "enum:inlay,open,upgrade");
-        WebConsoleRegistry.registerNodeComment(getName(), "gui.save_on_close", "关闭保存", "关闭 GUI 时是否自动保存当前操作。", "boolean");
+        WebConsoleRegistry.registerNodeComment(this, "gui", "GUI", "宝石 GUI 默认模式和关闭保存策略。", "object");
+        WebConsoleRegistry.registerNodeComment(this, "gui.default_mode", "默认模式", "打开宝石 GUI 时的默认显示模式。", "enum:inlay,open,upgrade");
+        WebConsoleRegistry.registerNodeComment(this, "gui.save_on_close", "关闭保存", "关闭 GUI 时是否自动保存当前操作。", "boolean");
     }
 
     private Map<String, Object> gemEditorDescriptor() {

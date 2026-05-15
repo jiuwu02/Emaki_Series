@@ -147,41 +147,41 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     }
 
     private void registerWebConsole() {
-        WebConsoleRegistry.registerModule(getName(), "Forge 锻造", "品质池、保底、历史与条件", "forge", WEB_ICON);
-        WebConsoleRegistry.registerConfigFile(getName(), "锻造系统配置", "config.yml", "锻造系统主配置，包含品质、配方、GUI 和玩家数据策略。 ");
-        WebConsoleRegistry.registerGuiFile(getName(), "锻造 GUI 模板", "gui/**/*.yml", "锻造、配方书与编辑器 GUI 模板文件。");
-        WebConsoleRegistry.registerCommonConfigComments(getName());
+        WebConsoleRegistry.registerModule(this, "Forge 锻造", "品质池、保底、历史与条件", "forge", WEB_ICON);
+        WebConsoleRegistry.registerConfigFile(this, "锻造系统配置", "config.yml", "锻造系统主配置，包含品质、配方、GUI 和玩家数据策略。 ");
+        WebConsoleRegistry.registerGuiFile(this, "锻造 GUI 模板", "gui/**/*.yml", "锻造、配方书与编辑器 GUI 模板文件。");
+        WebConsoleRegistry.registerCommonConfigComments(this);
 
         // quality
-        WebConsoleRegistry.registerNodeComment(getName(), "quality", "品质配置", "品质池、保底和物品显示规则。", "object");
-        WebConsoleRegistry.registerNodeComment(getName(), "quality.tiers", "品质池", "品质列表，格式为 \"名称-权重-倍率\"。", "list");
-        WebConsoleRegistry.registerNodeComment(getName(), "quality.default_tier", "回退品质", "随机未命中任何品质时使用的回退品质名称。", "text");
-        WebConsoleRegistry.registerNodeComment(getName(), "quality.guarantee", "保底配置", "品质保底触发条件与最低品质设置。", "object");
-        WebConsoleRegistry.registerNodeComment(getName(), "quality.guarantee.enabled", "启用保底", "是否启用品质保底机制。", "boolean");
-        WebConsoleRegistry.registerNodeComment(getName(), "quality.guarantee.threshold", "保底阈值", "连续未出高品质达到此次数后触发保底。", "number");
-        WebConsoleRegistry.registerNodeComment(getName(), "quality.guarantee.minimum", "保底品质", "保底触发时给予的最低品质名称。", "text");
-        WebConsoleRegistry.registerNodeComment(getName(), "quality.item_meta", "物品显示", "品质写入物品名称和 Lore 的配置。", "object");
-        WebConsoleRegistry.registerNodeComment(getName(), "quality.item_meta.enabled", "启用写入", "是否将品质信息写入物品名称和 Lore。", "boolean");
-        WebConsoleRegistry.registerNodeComment(getName(), "quality.item_meta.tiers", "品质显示", "各品质的名称动作和广播配置。", "object");
+        WebConsoleRegistry.registerNodeComment(this, "quality", "品质配置", "品质池、保底和物品显示规则。", "object");
+        WebConsoleRegistry.registerNodeComment(this, "quality.tiers", "品质池", "品质列表，格式为 \"名称-权重-倍率\"。", "list");
+        WebConsoleRegistry.registerNodeComment(this, "quality.default_tier", "回退品质", "随机未命中任何品质时使用的回退品质名称。", "text");
+        WebConsoleRegistry.registerNodeComment(this, "quality.guarantee", "保底配置", "品质保底触发条件与最低品质设置。", "object");
+        WebConsoleRegistry.registerNodeComment(this, "quality.guarantee.enabled", "启用保底", "是否启用品质保底机制。", "boolean");
+        WebConsoleRegistry.registerNodeComment(this, "quality.guarantee.threshold", "保底阈值", "连续未出高品质达到此次数后触发保底。", "number");
+        WebConsoleRegistry.registerNodeComment(this, "quality.guarantee.minimum", "保底品质", "保底触发时给予的最低品质名称。", "text");
+        WebConsoleRegistry.registerNodeComment(this, "quality.item_meta", "物品显示", "品质写入物品名称和 Lore 的配置。", "object");
+        WebConsoleRegistry.registerNodeComment(this, "quality.item_meta.enabled", "启用写入", "是否将品质信息写入物品名称和 Lore。", "boolean");
+        WebConsoleRegistry.registerNodeComment(this, "quality.item_meta.tiers", "品质显示", "各品质的名称动作和广播配置。", "object");
 
         // number_format
-        WebConsoleRegistry.registerNodeComment(getName(), "number_format", "数值格式", "锻造结果数值的格式化配置。", "object");
-        WebConsoleRegistry.registerNodeComment(getName(), "number_format.default", "默认格式", "默认数值显示格式（如 #.##）。", "text");
-        WebConsoleRegistry.registerNodeComment(getName(), "number_format.integer", "整数格式", "整数数值显示格式。", "text");
-        WebConsoleRegistry.registerNodeComment(getName(), "number_format.percentage", "百分比格式", "百分比数值显示格式。", "text");
+        WebConsoleRegistry.registerNodeComment(this, "number_format", "数值格式", "锻造结果数值的格式化配置。", "object");
+        WebConsoleRegistry.registerNodeComment(this, "number_format.default", "默认格式", "默认数值显示格式（如 #.##）。", "text");
+        WebConsoleRegistry.registerNodeComment(this, "number_format.integer", "整数格式", "整数数值显示格式。", "text");
+        WebConsoleRegistry.registerNodeComment(this, "number_format.percentage", "百分比格式", "百分比数值显示格式。", "text");
 
         // permission
-        WebConsoleRegistry.registerNodeComment(getName(), "permission.op_bypass", "OP跳过", "OP 是否跳过锻造条件检查。", "boolean");
+        WebConsoleRegistry.registerNodeComment(this, "permission.op_bypass", "OP跳过", "OP 是否跳过锻造条件检查。", "boolean");
 
         // condition
-        WebConsoleRegistry.registerNodeComment(getName(), "condition", "条件配置", "锻造条件表达式解析与判定配置。", "object");
-        WebConsoleRegistry.registerNodeComment(getName(), "condition.invalid_as_failure", "解析失败", "条件表达式解析失败时是否视为不通过。", "boolean");
+        WebConsoleRegistry.registerNodeComment(this, "condition", "条件配置", "锻造条件表达式解析与判定配置。", "object");
+        WebConsoleRegistry.registerNodeComment(this, "condition.invalid_as_failure", "解析失败", "条件表达式解析失败时是否视为不通过。", "boolean");
 
         // history
-        WebConsoleRegistry.registerNodeComment(getName(), "history", "锻造历史", "玩家锻造历史记录与自动保存配置。", "object");
-        WebConsoleRegistry.registerNodeComment(getName(), "history.enabled", "启用历史", "是否启用锻造历史记录功能。", "boolean");
-        WebConsoleRegistry.registerNodeComment(getName(), "history.auto_save", "自动保存", "是否定时自动保存锻造历史。", "boolean");
-        WebConsoleRegistry.registerNodeComment(getName(), "history.save_interval", "保存间隔", "自动保存锻造历史的间隔 tick 数。", "number");
+        WebConsoleRegistry.registerNodeComment(this, "history", "锻造历史", "玩家锻造历史记录与自动保存配置。", "object");
+        WebConsoleRegistry.registerNodeComment(this, "history.enabled", "启用历史", "是否启用锻造历史记录功能。", "boolean");
+        WebConsoleRegistry.registerNodeComment(this, "history.auto_save", "自动保存", "是否定时自动保存锻造历史。", "boolean");
+        WebConsoleRegistry.registerNodeComment(this, "history.save_interval", "保存间隔", "自动保存锻造历史的间隔 tick 数。", "number");
     }
 
     private void ensurePlaceholderExpansion() {

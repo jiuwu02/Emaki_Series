@@ -1,15 +1,17 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { ComponentType } from 'react';
 import { ApiClient } from './api';
 import { GuiEditorSurface } from './GuiEditorSurface';
 import { ItemEditorSurface } from './ItemEditorSurface';
 import { loadWebExtensions } from './extensions';
 import { getSurface, isKind, registerSurface } from './registry';
+import { Login, ResizableRail, WorkspaceTree, fileKindLabel } from './shell';
 import type { SurfaceProps } from './registry';
 import type { WebConfigNode, WebRegistry, WebRegistryFile, WebRegistryModule } from './types';
 
-// Register built-in surfaces
-registerSurface({ kind: 'GUI', component: GuiEditorSurface as React.ComponentType<SurfaceProps>, label: 'GUI' });
-registerSurface({ kind: 'ITEM', component: ItemEditorSurface as React.ComponentType<SurfaceProps>, label: '物品' });
+// Register CoreLib's built-in surfaces through the same registry used by plugin extensions.
+registerSurface({ kind: 'GUI', component: GuiEditorSurface as ComponentType<SurfaceProps>, label: 'GUI' });
+registerSurface({ kind: 'ITEM', component: ItemEditorSurface as ComponentType<SurfaceProps>, label: '物品' });
 
 type Selection = { moduleId: string; fileId: string; scriptPath?: string; refreshKey?: number };
 type DraftMap = Record<string, unknown>;
@@ -129,90 +131,6 @@ export default function App() {
       </main>
     </div>
   );
-}
-
-function Login({ onLogin }: { onLogin: (token: string) => void }) {
-  const [username, setUsername] = useState('EmakiAdmin');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [busy, setBusy] = useState(false);
-  const api = new ApiClient(null, () => {});
-  async function submit(e: React.FormEvent) {
-    e.preventDefault(); setBusy(true); setError('');
-    try { onLogin((await api.login(username, password)).token); }
-    catch (err) { setError(err instanceof Error ? err.message : '登录失败'); }
-    finally { setBusy(false); }
-  }
-  return <main className="login-scene"><section className="login-panel"><div className="login-kicker">绘卷核心库</div><h1>配置控制台</h1><p>面向管理员团队的深度配置编辑工具。保存后执行 reload 使运行时生效。</p><form onSubmit={submit}><label>账号<input value={username} onChange={(e) => setUsername(e.target.value)} /></label><label>密码<input type="password" value={password} onChange={(e) => setPassword(e.target.value)} /></label>{error && <div className="inline-error">{error}</div>}<button type="submit" disabled={busy}>{busy ? '验证中' : '登录'}</button></form></section></main>;
-}
-
-function ResizableRail({ children }: { children: React.ReactNode }) {
-  const [width, setWidth] = useState(() => {
-    const saved = localStorage.getItem('emaki-rail-width');
-    return saved ? Math.max(180, Math.min(600, Number(saved))) : 272;
-  });
-  const [dragging, setDragging] = useState(false);
-  const startX = useRef(0);
-  const startW = useRef(272);
-
-  const onMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    startX.current = e.clientX;
-    startW.current = width;
-    setDragging(true);
-  }, [width]);
-
-  useEffect(() => {
-    if (!dragging) return;
-    const onMove = (e: MouseEvent) => {
-      const next = Math.max(180, Math.min(600, startW.current + (e.clientX - startX.current)));
-      setWidth(next);
-    };
-    const onUp = () => {
-      setDragging(false);
-      localStorage.setItem('emaki-rail-width', String(width));
-    };
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-    return () => {
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-    };
-  }, [dragging, width]);
-
-  useEffect(() => {
-    document.documentElement.style.setProperty('--rail-width', `${width}px`);
-  }, [width]);
-
-  return <aside className="tree-rail">
-    {children}
-    <div className={`rail-resize ${dragging ? 'active' : ''}`} onMouseDown={onMouseDown} />
-  </aside>;
-}
-
-function WorkspaceTree({ registry, selected, expanded, setExpanded, onSelect }: { registry: WebRegistry | null; selected: Selection | null; expanded: Record<string, boolean>; setExpanded: React.Dispatch<React.SetStateAction<Record<string, boolean>>>; onSelect: (v: Selection) => void }) {
-  if (!registry) return <div className="tree-empty">载入中</div>;
-  const toggle = (id: string) => setExpanded((c) => ({ ...c, [id]: !c[id] }));
-  return <div className="tree">{registry.modules.map((m) => <div key={m.id} className="tree-module"><button className="tree-folder" onClick={() => toggle(m.id)}><Icon svg={m.icon} /> <span>{expanded[m.id] ? '⌄' : '›'}</span> {m.name}</button>{expanded[m.id] && m.files.map((f) => {
-    const hasChildren = f.children && f.children.length > 0;
-    if (hasChildren) {
-      const folderId = `folder:${f.id}`;
-      return <div key={f.id} className="tree-file-folder">
-        <button className={`tree-file folder-toggle ${selected?.moduleId === m.id && selected.fileId === f.id ? 'active' : ''}`} onClick={() => toggle(folderId)}>
-          <span className="folder-arrow">{expanded[folderId] ? '⌄' : '›'}</span> {fileKindLabel(f.kind)} · {f.title}
-        </button>
-        {expanded[folderId] && <div className="tree-children">{f.children!.map((child) => {
-          const childPath = isKind(f.kind, 'SCRIPT') ? child.relativePath : (child.fullPath ?? child.relativePath);
-          return <button key={child.relativePath} className="tree-child" onClick={() => onSelect({ moduleId: m.id, fileId: f.id, scriptPath: childPath })}>{child.name}</button>;
-        })}</div>}
-      </div>;
-    }
-    return <button key={f.id} className={`tree-file ${selected?.moduleId === m.id && selected.fileId === f.id ? 'active' : ''}`} onClick={() => onSelect({ moduleId: m.id, fileId: f.id })}>{fileKindLabel(f.kind)} · {f.title}</button>;
-  })}</div>)}</div>;
 }
 
 function ConfigSurface({ registry, module, file, drafts, setDrafts, api, scriptPath, refreshKey, onReload }: { registry: WebRegistry | null; module: WebRegistryModule | null; file: WebRegistryFile | null; drafts: DraftMap; setDrafts: React.Dispatch<React.SetStateAction<DraftMap>>; api: ApiClient; scriptPath?: string; refreshKey: number; onReload?: () => void }) {
@@ -676,21 +594,11 @@ function getCompletions(prefix: string): string[] {
 
 function sameSelection(a: Selection | null, b: Selection) { return a?.moduleId === b.moduleId && a.fileId === b.fileId && (a.scriptPath ?? '') === (b.scriptPath ?? ''); }
 function readTheme(): ColorTheme { const saved = localStorage.getItem('emaki-color-theme'); return COLOR_THEMES.some((entry) => entry.id === saved) ? saved as ColorTheme : 'dark'; }
-function Icon({ svg }: { svg: string }) { return <span className="module-icon" dangerouslySetInnerHTML={{ __html: svg }} />; }
 function ThemeIcon({ theme }: { theme: ColorTheme }) {
   if (theme === 'light') {
     return <svg className="theme-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path fillRule="evenodd" d="M8 1.2a.7.7 0 0 1 .7.7v1.02a.7.7 0 1 1-1.4 0V1.9a.7.7 0 0 1 .7-.7Zm4.81 1.99a.7.7 0 0 1 0 .99l-.72.72a.7.7 0 1 1-.99-.99l.72-.72a.7.7 0 0 1 .99 0ZM5.08 8a2.92 2.92 0 1 1 5.84 0 2.92 2.92 0 0 1-5.84 0Zm8 .7a.7.7 0 1 0 0-1.4h-1.02a.7.7 0 1 0 0 1.4h1.02Zm-.27 3.12a.7.7 0 0 1-.99.99l-.72-.72a.7.7 0 1 1 .99-.99l.72.72ZM8 12.38a.7.7 0 0 1 .7.7v1.02a.7.7 0 1 1-1.4 0v-1.02a.7.7 0 0 1 .7-.7ZM4.9 12.09a.7.7 0 1 0-.99-.99l-.72.72a.7.7 0 1 0 .99.99l.72-.72ZM3.94 8.7a.7.7 0 0 0 0-1.4H2.92a.7.7 0 0 0 0 1.4h1.02Zm.96-3.8a.7.7 0 0 1-.99 0l-.72-.72a.7.7 0 1 1 .99-.99l.72.72a.7.7 0 0 1 0 .99Z" /></svg>;
   }
   return <svg className="theme-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M12.92 9.66a.64.64 0 0 1 .78.8A6.28 6.28 0 1 1 5.54 2.3a.64.64 0 0 1 .8.78 5.32 5.32 0 0 0 6.58 6.58Z" /></svg>;
-}
-function normalizeKind(kind: string) { return String(kind).toUpperCase(); }
-function fileKindLabel(kind: string) {
-  const normalized = normalizeKind(kind);
-  if (normalized === 'CONFIG') return '配置';
-  if (normalized === 'GUI') return 'GUI';
-  if (normalized === 'ITEM') return '物品';
-  if (normalized === 'SCRIPT') return '脚本';
-  return '文件';
 }
 function draftKey(moduleId: string, path: string) { return `${moduleId}::${path}`; }
 function valuesEqual(a: unknown, b: unknown): boolean {

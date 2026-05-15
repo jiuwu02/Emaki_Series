@@ -56,10 +56,21 @@ public final class WebConfigBrowserService {
     }
 
     private Path moduleRoot(String moduleId) throws IOException {
-        if (moduleId == null || !config.security().allowedModules().contains(moduleId)) {
+        if (!isAllowedModule(moduleId)) {
             throw new IOException("模块不在允许访问列表中");
         }
         return plugin.getDataFolder().toPath().getParent().resolve(moduleId).toAbsolutePath().normalize();
+    }
+
+    private boolean isAllowedModule(String moduleId) {
+        if (moduleId == null || moduleId.isBlank()) {
+            return false;
+        }
+        List<String> configuredModules = config.security().allowedModules();
+        if (configuredModules == null || configuredModules.isEmpty()) {
+            return WebConsoleRegistry.isModuleRegistered(moduleId);
+        }
+        return configuredModules.contains(moduleId);
     }
 
     private Map<String, Object> fileEntry(Path root, Path path) {

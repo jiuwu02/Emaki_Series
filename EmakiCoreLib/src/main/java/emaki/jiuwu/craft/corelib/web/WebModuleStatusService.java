@@ -11,14 +11,15 @@ import org.bukkit.plugin.PluginDescriptionFile;
 
 public final class WebModuleStatusService {
 
-    private final List<String> modules;
+    private final List<String> configuredModules;
 
     public WebModuleStatusService(List<String> modules) {
-        this.modules = modules == null ? List.of() : List.copyOf(modules);
+        this.configuredModules = modules == null ? List.of() : List.copyOf(modules);
     }
 
     public List<Map<String, Object>> modules() {
         List<Map<String, Object>> result = new ArrayList<>();
+        List<String> modules = configuredModules.isEmpty() ? WebConsoleRegistry.registeredModuleIds() : configuredModules;
         for (String moduleId : modules) {
             Plugin plugin = Bukkit.getPluginManager().getPlugin(moduleId);
             Map<String, Object> entry = new LinkedHashMap<>();

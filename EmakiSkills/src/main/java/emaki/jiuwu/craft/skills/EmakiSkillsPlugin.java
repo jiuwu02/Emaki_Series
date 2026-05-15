@@ -243,49 +243,49 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
     }
 
     private void registerWebConsole() {
-        WebConsoleRegistry.registerModule(getName(), "Skills 技能", "槽位、施法模式、触发器", "skills", WEB_ICON);
-        WebConsoleRegistry.registerConfigFile(getName(), "技能系统配置", "config.yml", "技能系统主配置，包含触发器、施法模式、资源和升级设置。");
-        WebConsoleRegistry.registerGuiFile(getName(), "技能 GUI 模板", "gui/**/*.yml", "技能面板与触发器选择 GUI 模板文件。");
-        WebConsoleRegistry.registerCommonConfigComments(getName());
+        WebConsoleRegistry.registerModule(this, "Skills 技能", "槽位、施法模式、触发器", "skills", WEB_ICON);
+        WebConsoleRegistry.registerConfigFile(this, "技能系统配置", "config.yml", "技能系统主配置，包含触发器、施法模式、资源和升级设置。");
+        WebConsoleRegistry.registerGuiFile(this, "技能 GUI 模板", "gui/**/*.yml", "技能面板与触发器选择 GUI 模板文件。");
+        WebConsoleRegistry.registerCommonConfigComments(this);
 
         // slots
-        WebConsoleRegistry.registerNodeComment(getName(), "slots", "技能槽", "技能槽位数量与分配配置。", "object");
-        WebConsoleRegistry.registerNodeComment(getName(), "slots.default_count", "默认槽数", "玩家默认可用的技能槽数量。", "number");
+        WebConsoleRegistry.registerNodeComment(this, "slots", "技能槽", "技能槽位数量与分配配置。", "object");
+        WebConsoleRegistry.registerNodeComment(this, "slots.default_count", "默认槽数", "玩家默认可用的技能槽数量。", "number");
 
         // cast_mode
-        WebConsoleRegistry.registerNodeComment(getName(), "cast_mode", "施法模式", "施法模式切换、快捷键和状态恢复配置。", "object");
-        WebConsoleRegistry.registerNodeComment(getName(), "cast_mode.entry_key", "切换按键", "进入/退出施法模式的按键绑定。", "text");
-        WebConsoleRegistry.registerNodeComment(getName(), "cast_mode.restore_last_state_on_join", "恢复状态", "重新登录后是否恢复上次的施法模式状态。", "boolean");
+        WebConsoleRegistry.registerNodeComment(this, "cast_mode", "施法模式", "施法模式切换、快捷键和状态恢复配置。", "object");
+        WebConsoleRegistry.registerNodeComment(this, "cast_mode.entry_key", "切换按键", "进入/退出施法模式的按键绑定。", "text");
+        WebConsoleRegistry.registerNodeComment(this, "cast_mode.restore_last_state_on_join", "恢复状态", "重新登录后是否恢复上次的施法模式状态。", "boolean");
 
         // cast_timing
-        WebConsoleRegistry.registerNodeComment(getName(), "cast_timing", "施法时序", "施法全局延迟与冷却配置。", "object");
-        WebConsoleRegistry.registerNodeComment(getName(), "cast_timing.forced_global_cast_delay_ticks", "全局延迟", "任意技能施放后的全局冷却 tick 数。", "number");
+        WebConsoleRegistry.registerNodeComment(this, "cast_timing", "施法时序", "施法全局延迟与冷却配置。", "object");
+        WebConsoleRegistry.registerNodeComment(this, "cast_timing.forced_global_cast_delay_ticks", "全局延迟", "任意技能施放后的全局冷却 tick 数。", "number");
 
         // actionbar
-        WebConsoleRegistry.registerNodeComment(getName(), "actionbar", "ActionBar", "ActionBar 技能状态显示配置。", "object");
-        WebConsoleRegistry.registerNodeComment(getName(), "actionbar.enabled", "启用显示", "是否启用 ActionBar 技能状态显示。", "boolean");
-        WebConsoleRegistry.registerNodeComment(getName(), "actionbar.refresh_interval_ticks", "刷新间隔", "ActionBar 内容刷新间隔 tick 数。", "number");
-        WebConsoleRegistry.registerNodeComment(getName(), "actionbar.template_cast_mode", "施法模板", "施法模式下 ActionBar 显示模板。", "text");
-        WebConsoleRegistry.registerNodeComment(getName(), "actionbar.template_idle", "待机模板", "非施法模式下 ActionBar 显示模板。", "text");
+        WebConsoleRegistry.registerNodeComment(this, "actionbar", "ActionBar", "ActionBar 技能状态显示配置。", "object");
+        WebConsoleRegistry.registerNodeComment(this, "actionbar.enabled", "启用显示", "是否启用 ActionBar 技能状态显示。", "boolean");
+        WebConsoleRegistry.registerNodeComment(this, "actionbar.refresh_interval_ticks", "刷新间隔", "ActionBar 内容刷新间隔 tick 数。", "number");
+        WebConsoleRegistry.registerNodeComment(this, "actionbar.template_cast_mode", "施法模板", "施法模式下 ActionBar 显示模板。", "text");
+        WebConsoleRegistry.registerNodeComment(this, "actionbar.template_idle", "待机模板", "非施法模式下 ActionBar 显示模板。", "text");
 
         // script_engine
-        WebConsoleRegistry.registerNodeComment(getName(), "script_engine", "脚本引擎", "原生技能脚本引擎配置。", "object");
-        WebConsoleRegistry.registerNodeComment(getName(), "script_engine.enabled", "启用引擎", "是否启用原生脚本引擎。", "boolean");
-        WebConsoleRegistry.registerNodeComment(getName(), "script_engine.default_mode", "默认模式", "脚本引擎的默认执行模式。", "enum:native,mythic,hybrid");
-        WebConsoleRegistry.registerNodeComment(getName(), "script_engine.stop_on_failure", "失败停止", "脚本执行失败时是否停止后续动作。", "boolean");
-        WebConsoleRegistry.registerNodeComment(getName(), "script_engine.max_lines_per_phase", "阶段行数", "每个脚本阶段允许的最大行数。", "number");
-        WebConsoleRegistry.registerNodeComment(getName(), "script_engine.max_targets_per_action", "目标上限", "每个动作允许的最大目标数量。", "number");
+        WebConsoleRegistry.registerNodeComment(this, "script_engine", "脚本引擎", "原生技能脚本引擎配置。", "object");
+        WebConsoleRegistry.registerNodeComment(this, "script_engine.enabled", "启用引擎", "是否启用原生脚本引擎。", "boolean");
+        WebConsoleRegistry.registerNodeComment(this, "script_engine.default_mode", "默认模式", "脚本引擎的默认执行模式。", "enum:native,mythic,hybrid");
+        WebConsoleRegistry.registerNodeComment(this, "script_engine.stop_on_failure", "失败停止", "脚本执行失败时是否停止后续动作。", "boolean");
+        WebConsoleRegistry.registerNodeComment(this, "script_engine.max_lines_per_phase", "阶段行数", "每个脚本阶段允许的最大行数。", "number");
+        WebConsoleRegistry.registerNodeComment(this, "script_engine.max_targets_per_action", "目标上限", "每个动作允许的最大目标数量。", "number");
 
         // triggers
-        WebConsoleRegistry.registerNodeComment(getName(), "triggers", "主动触发器", "左键、右键、Shift 与数字键等主动触发器配置。", "object");
+        WebConsoleRegistry.registerNodeComment(this, "triggers", "主动触发器", "左键、右键、Shift 与数字键等主动触发器配置。", "object");
 
         // passive_trigger_settings
-        WebConsoleRegistry.registerNodeComment(getName(), "passive_trigger_settings", "被动触发设置", "被动触发器的全局参数配置。", "object");
-        WebConsoleRegistry.registerNodeComment(getName(), "passive_trigger_settings.timer_interval_ticks", "定时间隔", "timer 被动触发器的检查间隔 tick 数。", "number");
-        WebConsoleRegistry.registerNodeComment(getName(), "passive_trigger_settings.combo_timeout_ticks", "连击超时", "连击判定的超时间隔 tick 数。", "number");
+        WebConsoleRegistry.registerNodeComment(this, "passive_trigger_settings", "被动触发设置", "被动触发器的全局参数配置。", "object");
+        WebConsoleRegistry.registerNodeComment(this, "passive_trigger_settings.timer_interval_ticks", "定时间隔", "timer 被动触发器的检查间隔 tick 数。", "number");
+        WebConsoleRegistry.registerNodeComment(this, "passive_trigger_settings.combo_timeout_ticks", "连击超时", "连击判定的超时间隔 tick 数。", "number");
 
         // passive_triggers
-        WebConsoleRegistry.registerNodeComment(getName(), "passive_triggers", "被动触发器", "受击、击杀、定时等被动触发器配置。", "object");
+        WebConsoleRegistry.registerNodeComment(this, "passive_triggers", "被动触发器", "受击、击杀、定时等被动触发器配置。", "object");
     }
 
     private void registerPublicApi() {

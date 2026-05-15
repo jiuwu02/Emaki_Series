@@ -19,7 +19,6 @@ import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 public final class WebConsoleRegistry {
 
     private static final String DEFAULT_ICON_SVG = svgPath("M8 8h22v22H8zM13 13h12v12H13z");
-    private static final String CORE_ICON_SVG = svgPath("M19 4l1.5 3.5L24 9l-3.5 1.5L19 14l-1.5-3.5L14 9l3.5-1.5L19 4zM19 14v4m-6 2h12a2 2 0 012 2v8a2 2 0 01-2 2H13a2 2 0 01-2-2v-8a2 2 0 012-2zm2 4h3m-3 3h5");
 
     private static final Map<String, ModuleRegistration> MODULES = new LinkedHashMap<>();
     private static final Map<String, EditorRegistration> EDITORS = new LinkedHashMap<>();
@@ -28,7 +27,7 @@ public final class WebConsoleRegistry {
     private static final List<NodeMetaRule> NODE_RULES = new ArrayList<>();
 
     static {
-        registerDefaults();
+        registerCommonComments();
     }
 
     private final JavaPlugin plugin;
@@ -81,11 +80,25 @@ public final class WebConsoleRegistry {
         registerFile(moduleId, title, relativePath, WebConsoleFileType.CONFIG, comment, structured);
     }
 
+    public static synchronized void registerConfigFile(JavaPlugin plugin, String title, String relativePath, String comment) {
+        if (plugin == null) {
+            return;
+        }
+        registerConfigFile(plugin.getName(), title, relativePath, comment);
+    }
+
     /**
      * 注册 GUI 模板文件或模板目录。暂时只统一类型，专属前端显示后续再接入。
      */
     public static synchronized void registerGuiFile(String moduleId, String title, String relativePath, String comment) {
         registerFile(moduleId, title, relativePath, WebConsoleFileType.GUI, comment, false);
+    }
+
+    public static synchronized void registerGuiFile(JavaPlugin plugin, String title, String relativePath, String comment) {
+        if (plugin == null) {
+            return;
+        }
+        registerGuiFile(plugin.getName(), title, relativePath, comment);
     }
 
     /**
@@ -95,11 +108,25 @@ public final class WebConsoleRegistry {
         registerItemFile(moduleId, title, relativePath, comment, "");
     }
 
+    public static synchronized void registerItemFile(JavaPlugin plugin, String title, String relativePath, String comment) {
+        if (plugin == null) {
+            return;
+        }
+        registerItemFile(plugin.getName(), title, relativePath, comment);
+    }
+
     /**
      * 注册带专属编辑器的物品定义文件。editorId 由子插件命名，例如 emakigem:gem。
      */
     public static synchronized void registerItemFile(String moduleId, String title, String relativePath, String comment, String editorId) {
         registerFile(moduleId, title, relativePath, WebConsoleFileType.ITEM, comment, false, editorId);
+    }
+
+    public static synchronized void registerItemFile(JavaPlugin plugin, String title, String relativePath, String comment, String editorId) {
+        if (plugin == null) {
+            return;
+        }
+        registerItemFile(plugin.getName(), title, relativePath, comment, editorId);
     }
 
     public static synchronized void registerEditorDescriptor(String moduleId, String editorId, Map<String, Object> descriptor) {
@@ -110,6 +137,13 @@ public final class WebConsoleRegistry {
         copy.putIfAbsent("id", editorId);
         copy.putIfAbsent("moduleId", moduleId);
         EDITORS.put(editorId, new EditorRegistration(moduleId, editorId, copy));
+    }
+
+    public static synchronized void registerEditorDescriptor(JavaPlugin plugin, String editorId, Map<String, Object> descriptor) {
+        if (plugin == null) {
+            return;
+        }
+        registerEditorDescriptor(plugin.getName(), editorId, descriptor);
     }
 
     /**
@@ -138,8 +172,22 @@ public final class WebConsoleRegistry {
         registerFile(moduleId, title, relativePath, WebConsoleFileType.SCRIPT, comment, false);
     }
 
+    public static synchronized void registerScriptFile(JavaPlugin plugin, String title, String relativePath, String comment) {
+        if (plugin == null) {
+            return;
+        }
+        registerScriptFile(plugin.getName(), title, relativePath, comment);
+    }
+
     public static synchronized void registerNodeComment(String moduleId, String path, String label, String comment, String type) {
         NODE_META.put(key(moduleId, path), new NodeMeta(label, comment, type));
+    }
+
+    public static synchronized void registerNodeComment(JavaPlugin plugin, String path, String label, String comment, String type) {
+        if (plugin == null) {
+            return;
+        }
+        registerNodeComment(plugin.getName(), path, label, comment, type);
     }
 
     public static synchronized void registerCommonConfigComments(String moduleId) {
@@ -148,16 +196,44 @@ public final class WebConsoleRegistry {
         registerNodeComment(moduleId, "release_default_data", "释放默认资源", "首次启动或缺失数据时写入默认资源。", "boolean");
     }
 
+    public static synchronized void registerCommonConfigComments(JavaPlugin plugin) {
+        if (plugin == null) {
+            return;
+        }
+        registerCommonConfigComments(plugin.getName());
+    }
+
     public static synchronized void registerNodeSuffixComment(String moduleId, String suffix, String label, String comment, String type) {
         NODE_RULES.add(new NodeMetaRule(moduleId, MatchType.SUFFIX, suffix, label, comment, type));
+    }
+
+    public static synchronized void registerNodeSuffixComment(JavaPlugin plugin, String suffix, String label, String comment, String type) {
+        if (plugin == null) {
+            return;
+        }
+        registerNodeSuffixComment(plugin.getName(), suffix, label, comment, type);
     }
 
     public static synchronized void registerNodeContainsComment(String moduleId, String fragment, String label, String comment, String type) {
         NODE_RULES.add(new NodeMetaRule(moduleId, MatchType.CONTAINS, fragment, label, comment, type));
     }
 
+    public static synchronized void registerNodeContainsComment(JavaPlugin plugin, String fragment, String label, String comment, String type) {
+        if (plugin == null) {
+            return;
+        }
+        registerNodeContainsComment(plugin.getName(), fragment, label, comment, type);
+    }
+
     public static synchronized void registerNodeKeyComment(String moduleId, String keyName, String label, String comment, String type) {
         NODE_RULES.add(new NodeMetaRule(moduleId, MatchType.KEY, keyName, label, comment, type));
+    }
+
+    public static synchronized void registerNodeKeyComment(JavaPlugin plugin, String keyName, String label, String comment, String type) {
+        if (plugin == null) {
+            return;
+        }
+        registerNodeKeyComment(plugin.getName(), keyName, label, comment, type);
     }
 
     /**
@@ -207,17 +283,7 @@ public final class WebConsoleRegistry {
             module.put("files", files);
             modules.add(module);
 
-            tree.add(Map.of(
-                    "id", registration.id(),
-                    "label", registration.name(),
-                    "type", "module",
-                    "children", files.stream().map(file -> Map.of(
-                            "id", file.get("id"),
-                            "label", file.get("title"),
-                            "type", file.get("kind"),
-                            "moduleId", registration.id()
-                    )).toList()
-            ));
+            tree.add(moduleTreeNode(registration, files));
         }
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("modules", modules);
@@ -285,6 +351,67 @@ public final class WebConsoleRegistry {
             entry.put("children", scanGlobChildren(moduleId, registration.relativePath()));
         }
         return entry;
+    }
+
+    private Map<String, Object> moduleTreeNode(ModuleRegistration registration, List<Map<String, Object>> files) {
+        Map<String, Object> node = new LinkedHashMap<>();
+        node.put("id", registration.id());
+        node.put("label", registration.name());
+        node.put("type", "module");
+        node.put("moduleId", registration.id());
+        node.put("icon", registration.iconSvg());
+        node.put("tone", registration.tone());
+        node.put("children", files.stream().map(this::fileTreeNode).toList());
+        return node;
+    }
+
+    private Map<String, Object> fileTreeNode(Map<String, Object> file) {
+        Map<String, Object> node = new LinkedHashMap<>();
+        String fileId = stringValue(file.get("id"));
+        String moduleId = stringValue(file.get("moduleId"));
+        String kind = stringValue(file.get("kind"));
+        node.put("id", fileId);
+        node.put("label", stringValue(file.get("title")));
+        node.put("type", "file");
+        node.put("moduleId", moduleId);
+        node.put("fileId", fileId);
+        node.put("kind", kind);
+        node.put("path", stringValue(file.get("path")));
+        node.put("comment", stringValue(file.get("comment")));
+        Object childrenValue = file.get("children");
+        if (childrenValue instanceof List<?> children && !children.isEmpty()) {
+            List<Map<String, Object>> childNodes = new ArrayList<>();
+            for (Object childValue : children) {
+                if (childValue instanceof Map<?, ?> child) {
+                    childNodes.add(childTreeNode(file, child));
+                }
+            }
+            node.put("children", childNodes);
+        }
+        return node;
+    }
+
+    private Map<String, Object> childTreeNode(Map<String, Object> file, Map<?, ?> child) {
+        String fileId = stringValue(file.get("id"));
+        String moduleId = stringValue(file.get("moduleId"));
+        String kind = stringValue(file.get("kind"));
+        String relativePath = stringValue(child.get("relativePath"));
+        String fullPath = stringValue(child.get("fullPath"));
+        String childPath = "SCRIPT".equalsIgnoreCase(kind) || Texts.isBlank(fullPath) ? relativePath : fullPath;
+        Map<String, Object> node = new LinkedHashMap<>();
+        node.put("id", fileId + ":" + childPath);
+        node.put("label", stringValue(child.get("name")));
+        node.put("type", "child");
+        node.put("moduleId", moduleId);
+        node.put("fileId", fileId);
+        node.put("kind", kind);
+        node.put("path", childPath);
+        node.put("childPath", childPath);
+        return node;
+    }
+
+    private static String stringValue(Object value) {
+        return value == null ? "" : String.valueOf(value);
     }
 
     private List<Map<String, String>> scanGlobChildren(String moduleId, String globPath) {
@@ -496,6 +623,14 @@ public final class WebConsoleRegistry {
         return plugin.getDataFolder().toPath().getParent().resolve(moduleId).resolve(relativePath).toFile();
     }
 
+    public static synchronized List<String> registeredModuleIds() {
+        return List.copyOf(MODULES.keySet());
+    }
+
+    public static synchronized boolean isModuleRegistered(String moduleId) {
+        return MODULES.containsKey(moduleId);
+    }
+
     private static synchronized List<ModuleRegistration> registeredModules() {
         return List.copyOf(MODULES.values());
     }
@@ -551,20 +686,6 @@ public final class WebConsoleRegistry {
                 .orElse(primaryConfig(registration));
     }
 
-    private static void registerDefaults() {
-        defaultModule("EmakiCoreLib", "CoreLib 框架", "Web Console、Action、脚本与公共运行库", "core", "CoreLib 主配置");
-        registerScriptFile("EmakiCoreLib", "CoreLib JS 脚本", "scripts/**/*.js", "CoreLib JavaScript 脚本目录，当前仅保留文本预览入口。");
-
-        registerCommonComments();
-        registerCoreLibComments();
-    }
-
-    private static void defaultModule(String id, String name, String summary, String tone, String configTitle) {
-        registerModule(id, name, summary, tone, CORE_ICON_SVG);
-        registerConfigFile(id, configTitle, "config.yml", "完整 config.yml 结构化配置注册。所有字段均通过 CoreLib 注释注册器补充说明。");
-        registerCommonConfigComments(id);
-    }
-
     private static void registerFile(String moduleId, String title, String relativePath, WebConsoleFileType type, String comment, boolean structuredYaml) {
         registerFile(moduleId, title, relativePath, type, comment, structuredYaml, "");
     }
@@ -607,27 +728,6 @@ public final class WebConsoleRegistry {
         registerNodeSuffixComment("*", ".default_chance", "默认概率", "未单独配置时使用的默认概率。", "number");
         registerNodeSuffixComment("*", ".op_bypass", "OP 绕过", "开启后 OP 可跳过对应消耗、权限或条件检查。", "boolean");
         registerNodeContainsComment("*", ".actions.", "动作配置", "CoreLib Action 动作配置，支持模板、延迟和内联变量。", "list");
-    }
-
-    private static void registerCoreLibComments() {
-        registerNodeComment("EmakiCoreLib", "web_console", "Web Console", "内置前端控制台开放策略与鉴权配置。", "object");
-        registerNodeComment("EmakiCoreLib", "web_console.enabled", "启用前端", "开启后监听 host:port，reload 会先关闭再按新配置启动。", "boolean");
-        registerNodeComment("EmakiCoreLib", "web_console.host", "监听地址", "127.0.0.1 仅本机，0.0.0.0 表示所有网卡。", "text");
-        registerNodeComment("EmakiCoreLib", "web_console.port", "监听端口", "Web Console HTTP 端口。", "number");
-        registerNodeComment("EmakiCoreLib", "web_console.public_access_warning", "公网提示", "当监听地址可能对外开放时，在登录响应中提示风险。", "boolean");
-        registerNodeComment("EmakiCoreLib", "web_console.auth", "登录鉴权", "Web Console 登录账号、密码和会话有效期。", "object");
-        registerNodeComment("EmakiCoreLib", "web_console.auth.username", "账号", "Web Console 登录账号。", "text");
-        registerNodeComment("EmakiCoreLib", "web_console.auth.password", "密码", "Web Console 登录密码，启用前必须修改默认值。", "text");
-        registerNodeComment("EmakiCoreLib", "web_console.auth.session_timeout_minutes", "会话分钟", "登录 Token 的有效分钟数。", "number");
-        registerNodeComment("EmakiCoreLib", "web_console.security", "安全限制", "Web Console 请求体、写入权限等安全限制。", "object");
-        registerNodeComment("EmakiCoreLib", "web_console.security.allow_config_write", "允许写配置", "开启后 Web Console 才允许保存配置变更。", "boolean");
-        registerNodeComment("EmakiCoreLib", "web_console.security.max_request_body_kb", "请求体上限", "单次 Web 请求体大小上限，单位 KB。", "number");
-        registerNodeComment("EmakiCoreLib", "action", "Action", "CoreLib 动作系统配置。", "object");
-        registerNodeComment("EmakiCoreLib", "action.templates", "动作模板", "可在配方或动作列表中通过 @template=名称 引用的动作模板。每个子键为模板名称，值为动作列表。", "dynamic_map");
-        registerNodeComment("EmakiCoreLib", "script", "CoreLib JS", "CoreLib JavaScript 引擎与脚本安全配置。", "object");
-        registerNodeComment("EmakiCoreLib", "script.enabled", "启用脚本", "是否启用 CoreLib JavaScript 动作能力。", "boolean");
-        registerNodeComment("EmakiCoreLib", "script.engine", "脚本引擎", "GraalJS 引擎、超时、缓存和宿主访问配置。", "object");
-        registerNodeComment("EmakiCoreLib", "script.security", "脚本安全", "脚本路径、动作派发和调用深度限制。", "object");
     }
 
 

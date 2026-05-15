@@ -22,16 +22,7 @@ public record WebConsoleConfig(
                 38765,
                 true,
                 new Auth("admin", "change-me", 60),
-                new Security(false, 256, List.of(
-                        "EmakiCoreLib",
-                        "EmakiAttribute",
-                        "EmakiForge",
-                        "EmakiStrengthen",
-                        "EmakiCooking",
-                        "EmakiGem",
-                        "EmakiSkills",
-                        "EmakiItem"
-                )),
+                new Security(false, 256, List.of()),
                 new ConfigBrowser(512, List.of(".yml", ".yaml", ".json", ".txt"))
         );
     }
