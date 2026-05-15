@@ -101,10 +101,17 @@ export type RegistryTreeNode = {
   children?: RegistryTreeNode[];
 };
 
+export type WebConsoleExtension = {
+  moduleId: string;
+  id: string;
+  url: string;
+};
+
 export type WebRegistry = {
   modules: WebRegistryModule[];
   tree: RegistryTreeNode[];
   editors?: Record<string, WebEditorDescriptor>;
+  extensions?: WebConsoleExtension[];
 };
 
 export type GuiDocument = {

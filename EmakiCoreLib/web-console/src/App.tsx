@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ApiClient } from './api';
 import { GuiEditorSurface } from './GuiEditorSurface';
 import { ItemEditorSurface } from './ItemEditorSurface';
+import { loadWebExtensions } from './extensions';
 import { getSurface, isKind, registerSurface } from './registry';
 import type { SurfaceProps } from './registry';
 import type { WebConfigNode, WebRegistry, WebRegistryFile, WebRegistryModule } from './types';
@@ -52,6 +53,7 @@ export default function App() {
     setLoading(true);
     try {
       const next = await api.registry();
+      await loadWebExtensions(next.extensions);
       setRegistry(next);
       if (initial) setExpanded(Object.fromEntries(next.modules.map((m) => [m.id, true])));
       setSelected((c) => c ?? firstSelection(next));
@@ -92,7 +94,8 @@ export default function App() {
   const changedCount = selectedModule && selectedFile ? selectedFile.nodes.filter((n) => n.type !== 'object' && draftKey(selectedModule.id, n.path) in drafts).length : 0;
   const activeTheme = COLOR_THEMES.find((entry) => entry.id === theme) ?? COLOR_THEMES[0];
   const nextTheme = () => setTheme((current) => COLOR_THEMES[(COLOR_THEMES.findIndex((entry) => entry.id === current) + 1) % COLOR_THEMES.length].id);
-  const hideStageHead = selectedFile && (getSurface(selectedFile.kind) != null && !isKind(selectedFile.kind, 'CONFIG') && !isKind(selectedFile.kind, 'SCRIPT'));
+  const selectedEditor = selectedFile?.editorId ? registry?.editors?.[selectedFile.editorId] : undefined;
+  const hideStageHead = selectedFile && (getSurface(selectedFile, selectedEditor) != null && !isKind(selectedFile.kind, 'CONFIG') && !isKind(selectedFile.kind, 'SCRIPT'));
 
   return (
     <div className="workbench">
@@ -217,7 +220,7 @@ function ConfigSurface({ registry, module, file, drafts, setDrafts, api, scriptP
   const editor = file.editorId ? registry?.editors?.[file.editorId] : undefined;
 
   // Check registry for a custom surface first
-  const registeredSurface = getSurface(file.kind);
+  const registeredSurface = getSurface(file, editor);
   if (registeredSurface && !isKind(file.kind, 'CONFIG') && !isKind(file.kind, 'SCRIPT')) {
     const SurfaceComponent = registeredSurface.component;
     return <SurfaceComponent module={module} file={file} api={api} childPath={scriptPath} refreshKey={refreshKey} editor={editor} onReload={onReload} />;

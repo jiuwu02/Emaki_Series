@@ -1,12 +1,17 @@
 /**
  * Surface Registry — allows plugins to register custom editor surfaces.
  *
- * Each surface is matched by `kind` (from WebRegistryFile.kind).
- * CoreLib registers built-in surfaces (CONFIG, GUI, ITEM, SCRIPT).
- * External plugins can call `registerSurface()` to add their own.
+ * Matching order:
+ * 1. editorId exact match
+ * 2. moduleId + kind match
+ * 3. kind match
+ *
+ * External extension scripts can access this through window.EmakiWebConsole.
  */
-import type { ComponentType } from 'react';
+import React, { type ComponentType } from 'react';
 import type { ApiClient } from './api';
+import * as components from './components';
+import * as lib from './lib';
 import type { WebEditorDescriptor, WebRegistryFile, WebRegistryModule } from './types';
 
 /** Props passed to every registered surface component. */
@@ -21,28 +26,78 @@ export type SurfaceProps = {
 };
 
 export type SurfaceRegistration = {
-  /** Match against WebRegistryFile.kind (case-insensitive). */
-  kind: string;
+  /** Match against WebRegistryFile.kind (case-insensitive). Optional when editorId is provided. */
+  kind?: string;
+  /** Match against WebRegistryFile.moduleId or owning module id. */
+  moduleId?: string;
+  /** Exact match against WebRegistryFile.editorId / editor.id. Best for plugin-specific pages. */
+  editorId?: string;
   /** The React component to render for this surface. */
   component: ComponentType<SurfaceProps>;
   /** Optional label shown in the tree (e.g. "GUI", "物品"). */
   label?: string;
-  /** Priority: higher wins when multiple registrations match the same kind. Default 0. */
+  /** Priority: higher wins when multiple registrations match the same scope. Default 0. */
   priority?: number;
+};
+
+export type EmakiWebConsoleHost = {
+  React: typeof React;
+  registerSurface: typeof registerSurface;
+  getSurface: typeof getSurface;
+  getAllSurfaces: typeof getAllSurfaces;
+  isKind: typeof isKind;
+  components: typeof components;
+  lib: typeof lib;
 };
 
 const _registry: SurfaceRegistration[] = [];
 
+declare global {
+  interface Window {
+    EmakiWebConsole?: EmakiWebConsoleHost;
+  }
+}
+
+function normalize(value: string | undefined): string {
+  return String(value ?? '').toUpperCase();
+}
+
 /** Register a surface. Later registrations with higher priority override earlier ones. */
 export function registerSurface(reg: SurfaceRegistration): void {
-  _registry.push(reg);
+  if (!reg || !reg.component || (!reg.kind && !reg.editorId)) return;
+  const next = {
+    ...reg,
+    kind: reg.kind ? normalize(reg.kind) : undefined,
+    moduleId: reg.moduleId ? normalize(reg.moduleId) : undefined,
+    editorId: reg.editorId ? String(reg.editorId) : undefined,
+  };
+  const duplicate = _registry.findIndex(existing =>
+    normalize(existing.kind) === normalize(next.kind)
+    && normalize(existing.moduleId) === normalize(next.moduleId)
+    && String(existing.editorId ?? '') === String(next.editorId ?? '')
+  );
+  if (duplicate >= 0) _registry.splice(duplicate, 1);
+  _registry.push(next);
   _registry.sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
 }
 
-/** Find the best surface for a given file kind. */
-export function getSurface(kind: string): SurfaceRegistration | undefined {
-  const normalized = kind.toUpperCase();
-  return _registry.find(r => r.kind.toUpperCase() === normalized);
+/** Find the best surface for a file/editor pair. */
+export function getSurface(fileOrKind: WebRegistryFile | string | undefined, editor?: WebEditorDescriptor): SurfaceRegistration | undefined {
+  if (!fileOrKind) return undefined;
+  const file = typeof fileOrKind === 'string' ? undefined : fileOrKind;
+  const kind = normalize(typeof fileOrKind === 'string' ? fileOrKind : fileOrKind.kind);
+  const moduleId = normalize(file?.moduleId);
+  const editorId = String(file?.editorId ?? editor?.id ?? '');
+
+  if (editorId) {
+    const byEditor = _registry.find(r => String(r.editorId ?? '') === editorId);
+    if (byEditor) return byEditor;
+  }
+  if (moduleId) {
+    const byModuleKind = _registry.find(r => normalize(r.kind) === kind && normalize(r.moduleId) === moduleId);
+    if (byModuleKind) return byModuleKind;
+  }
+  return _registry.find(r => normalize(r.kind) === kind && !r.moduleId && !r.editorId);
 }
 
 /** Get all registered surfaces. */
@@ -52,5 +107,15 @@ export function getAllSurfaces(): SurfaceRegistration[] {
 
 /** Check if a kind string matches (case-insensitive). */
 export function isKind(fileKind: string | undefined, target: string): boolean {
-  return fileKind?.toUpperCase() === target.toUpperCase();
+  return normalize(fileKind) === normalize(target);
 }
+
+/** Install the browser global used by plugin extension scripts. */
+export function installWebConsoleHost(): EmakiWebConsoleHost {
+  const host: EmakiWebConsoleHost = { React, registerSurface, getSurface, getAllSurfaces, isKind, components, lib };
+  (window as any).React = React;
+  window.EmakiWebConsole = host;
+  return host;
+}
+
+installWebConsoleHost();

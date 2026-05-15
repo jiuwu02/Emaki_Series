@@ -23,6 +23,7 @@ public final class WebConsoleRegistry {
 
     private static final Map<String, ModuleRegistration> MODULES = new LinkedHashMap<>();
     private static final Map<String, EditorRegistration> EDITORS = new LinkedHashMap<>();
+    private static final Map<String, WebExtensionRegistration> EXTENSIONS = new LinkedHashMap<>();
     private static final Map<String, NodeMeta> NODE_META = new LinkedHashMap<>();
     private static final List<NodeMetaRule> NODE_RULES = new ArrayList<>();
 
@@ -67,6 +68,7 @@ public final class WebConsoleRegistry {
         String moduleId = plugin.getName();
         MODULES.remove(moduleId);
         EDITORS.values().removeIf(editor -> moduleId.equals(editor.moduleId()));
+        EXTENSIONS.values().removeIf(extension -> moduleId.equals(extension.moduleId()));
         NODE_META.keySet().removeIf(key -> key.startsWith(moduleId + ":"));
         NODE_RULES.removeIf(rule -> moduleId.equals(rule.moduleId()));
     }
@@ -108,6 +110,28 @@ public final class WebConsoleRegistry {
         copy.putIfAbsent("id", editorId);
         copy.putIfAbsent("moduleId", moduleId);
         EDITORS.put(editorId, new EditorRegistration(moduleId, editorId, copy));
+    }
+
+    /**
+     * 注册一个前端扩展脚本。resourcePath 是插件 jar 内的资源路径，例如 web-extensions/emakigem-item-surface.js。
+     * 脚本会在 Web Console 获取 registry 后动态加载，并通过 window.EmakiWebConsole.registerSurface 注册页面。
+     */
+    public static synchronized void registerWebExtension(String moduleId, String id, String resourcePath) {
+        if (Texts.isBlank(moduleId) || Texts.isBlank(id) || Texts.isBlank(resourcePath)) {
+            return;
+        }
+        String safePath = resourcePath.replace('\\', '/');
+        if (safePath.startsWith("/") || safePath.contains("..")) {
+            return;
+        }
+        EXTENSIONS.put(id, new WebExtensionRegistration(moduleId, id, safePath));
+    }
+
+    public static synchronized void registerWebExtension(JavaPlugin plugin, String id, String resourcePath) {
+        if (plugin == null) {
+            return;
+        }
+        registerWebExtension(plugin.getName(), id, resourcePath);
     }
 
     public static synchronized void registerScriptFile(String moduleId, String title, String relativePath, String comment) {
@@ -199,6 +223,7 @@ public final class WebConsoleRegistry {
         result.put("modules", modules);
         result.put("tree", tree);
         result.put("editors", editorDescriptors());
+        result.put("extensions", webExtensions());
         return result;
     }
 
@@ -487,6 +512,31 @@ public final class WebConsoleRegistry {
         return result;
     }
 
+    private static synchronized List<Map<String, Object>> webExtensions() {
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (WebExtensionRegistration extension : EXTENSIONS.values()) {
+            Plugin installed = Bukkit.getPluginManager().getPlugin(extension.moduleId());
+            if (installed == null || !installed.isEnabled()) {
+                continue;
+            }
+            Map<String, Object> entry = new LinkedHashMap<>();
+            entry.put("moduleId", extension.moduleId());
+            entry.put("id", extension.id());
+            entry.put("url", "/extensions/" + extension.moduleId() + "/" + extension.resourcePath());
+            result.add(entry);
+        }
+        return result;
+    }
+
+    public static synchronized String registeredExtensionResourcePath(String moduleId, String resourcePath) {
+        for (WebExtensionRegistration extension : EXTENSIONS.values()) {
+            if (extension.moduleId().equals(moduleId) && extension.resourcePath().equals(resourcePath)) {
+                return extension.resourcePath();
+            }
+        }
+        return null;
+    }
+
     private static FileRegistration primaryConfig(ModuleRegistration registration) {
         return registration.files().stream()
                 .filter(file -> file.type() == WebConsoleFileType.CONFIG && file.structuredYaml())
@@ -637,6 +687,7 @@ public final class WebConsoleRegistry {
 
     private record ModuleRegistration(String id, String name, String summary, String tone, String iconSvg, List<FileRegistration> files) {}
     private record EditorRegistration(String moduleId, String editorId, Map<String, Object> descriptor) {}
+    private record WebExtensionRegistration(String moduleId, String id, String resourcePath) {}
     private record FileRegistration(String title, String relativePath, WebConsoleFileType type, String comment, boolean structuredYaml, String editorId) {}
     private record NodeMeta(String label, String comment, String type) {}
 

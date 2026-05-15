@@ -13,6 +13,8 @@ import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
 
+import org.bukkit.Bukkit;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import com.sun.net.httpserver.HttpExchange;
@@ -77,6 +79,7 @@ public final class WebConsoleService {
             server.createContext("/api/items/save", this::handleItemSave);
             server.createContext("/api/items/preview", this::handleItemPreview);
             server.createContext("/api/items/action-types", this::handleItemActionTypes);
+            server.createContext("/extensions/", this::handleExtensionAsset);
             server.createContext("/", this::handleStatic);
             server.start();
             plugin.getLogger().info("[WebConsole] 已启动: http://" + config.host() + ":" + config.port());
@@ -436,6 +439,51 @@ public final class WebConsoleService {
             throw new IOException("路径不合法");
         }
         return target;
+    }
+
+    private void handleExtensionAsset(HttpExchange exchange) throws IOException {
+        String path = exchange.getRequestURI().getPath();
+        String prefix = "/extensions/";
+        if (!path.startsWith(prefix)) {
+            WebResponse.json(exchange, 404, Map.of("success", false, "error", "Not found"));
+            return;
+        }
+        String rest = path.substring(prefix.length());
+        int slash = rest.indexOf('/');
+        if (slash <= 0 || slash >= rest.length() - 1) {
+            WebResponse.json(exchange, 404, Map.of("success", false, "error", "扩展路径不完整"));
+            return;
+        }
+        String moduleId = urlDecode(rest.substring(0, slash));
+        String resourcePath = urlDecode(rest.substring(slash + 1)).replace('\\', '/');
+        if (moduleId.isBlank() || resourcePath.isBlank() || resourcePath.startsWith("/") || resourcePath.contains("..")) {
+            WebResponse.json(exchange, 400, Map.of("success", false, "error", "扩展路径不合法"));
+            return;
+        }
+        String registeredPath = WebConsoleRegistry.registeredExtensionResourcePath(moduleId, resourcePath);
+        if (registeredPath == null) {
+            WebResponse.json(exchange, 404, Map.of("success", false, "error", "扩展未注册"));
+            return;
+        }
+        Plugin owner = Bukkit.getPluginManager().getPlugin(moduleId);
+        if (owner == null || !owner.isEnabled()) {
+            WebResponse.json(exchange, 404, Map.of("success", false, "error", "扩展插件未启用"));
+            return;
+        }
+        try (java.io.InputStream input = owner.getClass().getClassLoader().getResourceAsStream(registeredPath)) {
+            if (input == null) {
+                WebResponse.json(exchange, 404, Map.of("success", false, "error", "扩展资源不存在"));
+                return;
+            }
+            WebResponse.bytes(exchange, 200, extensionContentType(registeredPath), input.readAllBytes());
+        }
+    }
+
+    private String extensionContentType(String path) {
+        if (path.endsWith(".js")) return "text/javascript; charset=utf-8";
+        if (path.endsWith(".css")) return "text/css; charset=utf-8";
+        if (path.endsWith(".json")) return "application/json; charset=utf-8";
+        return "application/octet-stream";
     }
 
     private void handleStatic(HttpExchange exchange) throws IOException {

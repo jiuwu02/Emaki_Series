@@ -182,6 +182,7 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         WebConsoleRegistry.registerModule(getName(), "Gem 宝石", "开孔、镶嵌、升级与 GUI", "gem", WEB_ICON);
         WebConsoleRegistry.registerConfigFile(getName(), "宝石系统配置", "config.yml", "宝石系统主配置，包含开孔器、镶嵌、升级和 GUI 入口设置。");
         WebConsoleRegistry.registerGuiFile(getName(), "宝石 GUI 模板", "gui/**/*.yml", "宝石镶嵌、开孔、升级 GUI 模板文件。");
+        WebConsoleRegistry.registerWebExtension(this, "emakigem:item-surface", "web-extensions/emakigem-item-surface.js");
         WebConsoleRegistry.registerEditorDescriptor(getName(), "emakigem:socket-item", socketItemEditorDescriptor());
         WebConsoleRegistry.registerEditorDescriptor(getName(), "emakigem:gem", gemEditorDescriptor());
         WebConsoleRegistry.registerItemFile(getName(), "宝石物品定义", "items/**/*.yml", "宝石插件物品定义文件。", "emakigem:socket-item");
