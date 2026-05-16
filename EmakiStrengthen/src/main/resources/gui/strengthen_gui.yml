@@ -7,6 +7,7 @@
 # ============================================================
 id: "strengthen_gui"
 
+gui_type: CHEST
 title: "<dark_gray>装备强化</dark_gray>"
 
 rows: 5

@@ -6,6 +6,7 @@
 # 文件放置位置: plugins/EmakiGem/gui/
 # ============================================================
 id: "gem/default"
+gui_type: CHEST
 title: "<dark_gray>宝石工坊 - 装备宝石界面</dark_gray>"
 rows: 5
 slots:

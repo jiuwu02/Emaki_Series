@@ -1,0 +1,33 @@
+{
+  "name": "emaki-web-workspace",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "EmakiCoreLib/web-console",
+    "EmakiGem/web-console",
+    "EmakiForge/web-console",
+    "EmakiSkills/web-console",
+    "EmakiStrengthen/web-console",
+    "EmakiCooking/web-console"
+  ],
+  "scripts": {
+    "build:web": "npm run build --workspaces --if-present",
+    "build:web:core": "npm run build -w emaki-web-console",
+    "build:web:gem": "npm run build -w emakigem-web-console-extension",
+    "build:web:forge": "npm run build -w emakiforge-web-console-extension",
+    "build:web:skills": "npm run build -w emakiskills-web-console-extension",
+    "build:web:strengthen": "npm run build -w emakistrengthen-web-console-extension",
+    "build:web:cooking": "npm run build -w emakicooking-web-console-extension"
+  },
+  "dependencies": {
+    "react": "latest",
+    "react-dom": "latest"
+  },
+  "devDependencies": {
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "@vitejs/plugin-react": "latest",
+    "typescript": "latest",
+    "vite": "latest"
+  }
+}

@@ -6,6 +6,7 @@
 # 文件放置位置: plugins/EmakiForge/gui/
 # ============================================================
 id: "editor_gui"
+gui_type: CHEST
 title: "<gold>{title}</gold>"
 rows: 6
 

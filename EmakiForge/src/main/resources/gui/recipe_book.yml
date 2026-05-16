@@ -6,6 +6,7 @@
 # 文件放置位置: plugins/EmakiForge/gui/
 # ============================================================
 id: "recipe_book"
+gui_type: CHEST
 title: "<dark_gray>配方图鉴</dark_gray>"
 rows: 6
 

@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.Collections;
 
 import org.bukkit.Bukkit;
+import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
@@ -44,7 +45,28 @@ public final class GuiSession implements InventoryHolder {
             this.replacements.putAll(replacements);
         }
         String title = resolveTitle(template, this.replacements);
-        this.inventory = Bukkit.createInventory(this, template.rows() * 9, MiniMessages.plain(MiniMessages.parse(title)));
+        this.inventory = createInventory(template, MiniMessages.plain(MiniMessages.parse(title)));
+    }
+
+    private Inventory createInventory(GuiTemplate template, String title) {
+        InventoryType type = template.inventoryType();
+        if (template.isChest()) {
+            return Bukkit.createInventory(this, template.rows() * 9, title);
+        }
+        if (!isCreatable(type)) {
+            return Bukkit.createInventory(this, Math.max(9, template.slotCount()), title);
+        }
+        return Bukkit.createInventory(this, type, title);
+    }
+
+    private static boolean isCreatable(InventoryType type) {
+        if (type == null || type == InventoryType.CHEST) {
+            return false;
+        }
+        return switch (type) {
+            case CRAFTING, CREATIVE, PLAYER, MERCHANT -> false;
+            default -> type.getDefaultSize() > 0;
+        };
     }
 
     private static String resolveTitle(GuiTemplate template, Map<String, ?> replacements) {

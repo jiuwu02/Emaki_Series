@@ -1,27 +1,11 @@
-import type { ComponentType } from 'react';
 import { EmakiGemItemSurface } from './EmakiGemItemSurface';
-
-type Host = {
-  registerSurface: (registration: {
-    kind?: string;
-    moduleId?: string;
-    editorId?: string;
-    component: ComponentType<any>;
-    label?: string;
-    priority?: number;
-  }) => void;
-};
-
-declare global {
-  interface Window {
-    EmakiWebConsole?: Host;
-  }
-}
+import { PluginGuiSurface } from './PluginGuiSurface';
 
 const host = window.EmakiWebConsole;
 if (host) {
-  host.registerSurface({ editorId: 'emakigem:gem', component: EmakiGemItemSurface, label: '宝石定义', priority: 100 });
-  host.registerSurface({ editorId: 'emakigem:socket-item', component: EmakiGemItemSurface, label: '宝石插槽物品', priority: 100 });
+  host.registerSurface({ kind: 'ITEM', moduleId: 'EmakiGem', editorId: 'emakigem:gem', component: EmakiGemItemSurface, label: '宝石定义', priority: 100 });
+  host.registerSurface({ kind: 'ITEM', moduleId: 'EmakiGem', editorId: 'emakigem:socket-item', component: EmakiGemItemSurface, label: '宝石插槽物品', priority: 100 });
+  host.registerSurface({ kind: 'GUI', moduleId: 'EmakiGem', editorId: 'emakigem:gui', component: PluginGuiSurface, label: '宝石 GUI', priority: 100 });
 } else {
   console.warn('[EmakiGem] EmakiWebConsole host is not available; item surface was not registered.');
 }

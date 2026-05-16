@@ -1,16 +1,43 @@
+# Node / npm workspaces
+node_modules/
+**/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Java / Maven / IDE build output
+target/
+*.class
+
+# IDE / OS local files
 .idea/
-.key
-.vscode/
-**/target/
 *.iml
-*.log
-Thumbs.db
-.DS_Store
-__pycache__/
-*.pyc
-wiki/
-emaki_manager.py
-*.md
-docs/
+.vscode/
 .codex/
-.github/
+.narrafork/
+.DS_Store
+Thumbs.db
+
+# Python local cache
+__pycache__/
+*.py[cod]
+
+# Local environment / secrets
+.env
+.env.*
+!.env.example
+.key
+*.key
+
+# Local project notes / generated helper docs
+CHANGELOG.md
+**/CHANGELOG.md
+Plugin Description.md
+**/Plugin Description.md
+PRODUCT.md
+docs/
+release version/
+release-notes.md
+emaki_manager.py
+PROJECT_OVERVIEW.md

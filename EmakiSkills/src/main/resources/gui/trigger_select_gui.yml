@@ -6,6 +6,7 @@
 # 文件放置位置: plugins/EmakiSkills/gui/
 # ============================================================
 id: trigger_select_gui
+gui_type: CHEST
 title: "<gradient:#4DA6FF:#FF6B6B>选择触发器</gradient>"
 rows: 4
 

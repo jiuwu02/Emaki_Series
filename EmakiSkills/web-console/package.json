@@ -1,0 +1,9 @@
+{
+  "name": "emakiskills-web-console-extension",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "build": "tsc && vite build"
+  }
+}

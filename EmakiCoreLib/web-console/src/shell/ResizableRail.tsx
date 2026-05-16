@@ -8,6 +8,7 @@ export function ResizableRail({ children }: { children: React.ReactNode }) {
   const [dragging, setDragging] = useState(false);
   const startX = useRef(0);
   const startW = useRef(272);
+  const latestWidth = useRef(width);
 
   const onMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -20,11 +21,12 @@ export function ResizableRail({ children }: { children: React.ReactNode }) {
     if (!dragging) return;
     const onMove = (e: MouseEvent) => {
       const next = Math.max(180, Math.min(600, startW.current + (e.clientX - startX.current)));
+      latestWidth.current = next;
       setWidth(next);
     };
     const onUp = () => {
       setDragging(false);
-      localStorage.setItem('emaki-rail-width', String(width));
+      localStorage.setItem('emaki-rail-width', String(latestWidth.current));
     };
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
@@ -36,9 +38,10 @@ export function ResizableRail({ children }: { children: React.ReactNode }) {
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
     };
-  }, [dragging, width]);
+  }, [dragging]);
 
   useEffect(() => {
+    latestWidth.current = width;
     document.documentElement.style.setProperty('--rail-width', `${width}px`);
   }, [width]);
 

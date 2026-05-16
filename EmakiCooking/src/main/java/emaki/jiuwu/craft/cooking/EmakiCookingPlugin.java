@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.cooking;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -226,7 +227,10 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
     private void registerWebConsole() {
         WebConsoleRegistry.registerModule(this, "Cooking 烹饪", "工位、展示实体、输入规则", "cooking", WEB_ICON);
         WebConsoleRegistry.registerConfigFile(this, "烹饪系统配置", "config.yml", "烹饪系统主配置，包含工位、展示实体和输入规则。");
-        WebConsoleRegistry.registerGuiFile(this, "烹饪 GUI 模板", "gui/**/*.yml", "烹饪工位 GUI 模板文件。");
+        WebConsoleRegistry.registerGuiFile(this, "烹饪 GUI 模板", "gui/**/*.yml", "烹饪工位 GUI 模板文件。", "emakicooking:gui");
+        WebConsoleRegistry.registerWebExtension(this, "emakicooking:gui-surface", "web-extensions/emakicooking-gui-surface.js");
+        WebConsoleRegistry.registerGuiEditorDescriptor(this, "emakicooking:gui", editorDescriptor("emakicooking:gui", "烹饪 GUI", "烹饪 GUI 模板"));
+        registerGuiEditorFields("emakicooking:gui");
         WebConsoleRegistry.registerCommonConfigComments(this);
 
         // input_rules
@@ -288,6 +292,33 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         } catch (LinkageError exception) {
             messageService.warning("console.block_source_bridge_unavailable", Map.of("provider", "Nexo", "error", String.valueOf(exception.getMessage())));
         }
+    }
+
+    private void registerGuiEditorFields(String editorId) {
+        guiField(editorId, "id", "ID", "GUI 模板唯一标识。", "text");
+        guiField(editorId, "gui_type", "GUI 类型", "Bukkit InventoryType。只有 CHEST 支持行数。", "enum");
+        guiField(editorId, "title", "标题", "GUI 窗口标题，支持 MiniMessage。", "text");
+        guiField(editorId, "rows", "箱子行数", "仅 CHEST 类型可用，范围 1-6。", "number");
+        guiField(editorId, "type", "槽位类型", "烹饪工位槽位语义。", "text");
+        guiField(editorId, "slots", "槽位", "槽位索引列表。", "list");
+        guiField(editorId, "item", "物品", "槽位显示物品。", "text");
+        guiField(editorId, "display_name", "显示名", "槽位物品显示名称。", "text");
+        guiField(editorId, "lore", "Lore", "槽位物品描述。", "stringList");
+        guiField(editorId, "ingredient", "原料槽", "放入烹饪原料的槽位。", "text");
+        guiField(editorId, "result", "产物槽", "展示或取出产物的槽位。", "text");
+        guiField(editorId, "fuel", "燃料槽", "放入燃料的槽位。", "text");
+    }
+
+    private void guiField(String editorId, String path, String label, String comment, String type) {
+        WebConsoleRegistry.registerGuiEditorField(this, editorId, path, label, comment, type);
+    }
+
+    private Map<String, Object> editorDescriptor(String id, String title, String kindLabel) {
+        Map<String, Object> descriptor = new LinkedHashMap<>();
+        descriptor.put("id", id);
+        descriptor.put("title", title);
+        descriptor.put("kindLabel", kindLabel);
+        return descriptor;
     }
 
     private void registerPlaceholderExpansion() {

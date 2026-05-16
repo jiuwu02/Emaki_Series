@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.bukkit.Bukkit;
+import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -88,10 +89,10 @@ public final class WebConsoleRegistry {
     }
 
     /**
-     * 注册 GUI 模板文件或模板目录。暂时只统一类型，专属前端显示后续再接入。
+     * 注册 GUI 模板文件或模板目录。未指定 editorId 时前端使用 CoreLib 的通用 GUI 编辑器。
      */
     public static synchronized void registerGuiFile(String moduleId, String title, String relativePath, String comment) {
-        registerFile(moduleId, title, relativePath, WebConsoleFileType.GUI, comment, false);
+        registerGuiFile(moduleId, title, relativePath, comment, "");
     }
 
     public static synchronized void registerGuiFile(JavaPlugin plugin, String title, String relativePath, String comment) {
@@ -99,6 +100,20 @@ public final class WebConsoleRegistry {
             return;
         }
         registerGuiFile(plugin.getName(), title, relativePath, comment);
+    }
+
+    /**
+     * 注册带专属编辑器的 GUI 模板文件。editorId 由子插件命名，例如 emakigem:gui。
+     */
+    public static synchronized void registerGuiFile(String moduleId, String title, String relativePath, String comment, String editorId) {
+        registerFile(moduleId, title, relativePath, WebConsoleFileType.GUI, comment, false, editorId);
+    }
+
+    public static synchronized void registerGuiFile(JavaPlugin plugin, String title, String relativePath, String comment, String editorId) {
+        if (plugin == null) {
+            return;
+        }
+        registerGuiFile(plugin.getName(), title, relativePath, comment, editorId);
     }
 
     /**
@@ -133,7 +148,15 @@ public final class WebConsoleRegistry {
         if (Texts.isBlank(moduleId) || Texts.isBlank(editorId) || descriptor == null) {
             return;
         }
-        Map<String, Object> copy = new LinkedHashMap<>(descriptor);
+        EditorRegistration existing = EDITORS.get(editorId);
+        Object existingFields = existing == null ? null : existing.descriptor().get("fields");
+        Object incomingFields = descriptor.get("fields");
+        Map<String, Object> copy = existing == null ? new LinkedHashMap<>() : new LinkedHashMap<>(existing.descriptor());
+        copy.putAll(descriptor);
+        Map<String, Object> fields = mergeEditorFields(existingFields, incomingFields);
+        if (!fields.isEmpty()) {
+            copy.put("fields", fields);
+        }
         copy.putIfAbsent("id", editorId);
         copy.putIfAbsent("moduleId", moduleId);
         EDITORS.put(editorId, new EditorRegistration(moduleId, editorId, copy));
@@ -144,6 +167,43 @@ public final class WebConsoleRegistry {
             return;
         }
         registerEditorDescriptor(plugin.getName(), editorId, descriptor);
+    }
+
+    public static synchronized void registerGuiEditorDescriptor(String moduleId, String editorId, Map<String, Object> descriptor) {
+        registerEditorDescriptor(moduleId, editorId, descriptor);
+    }
+
+    public static synchronized void registerGuiEditorDescriptor(JavaPlugin plugin, String editorId, Map<String, Object> descriptor) {
+        registerEditorDescriptor(plugin, editorId, descriptor);
+    }
+
+    public static synchronized void registerEditorField(String moduleId, String editorId, String path, String label, String comment, String type) {
+        if (Texts.isBlank(moduleId) || Texts.isBlank(editorId) || Texts.isBlank(path) || Texts.isBlank(label)) {
+            return;
+        }
+        EditorRegistration existing = EDITORS.get(editorId);
+        Map<String, Object> descriptor = existing == null ? new LinkedHashMap<>() : new LinkedHashMap<>(existing.descriptor());
+        Map<String, Object> fields = mergeEditorFields(descriptor.get("fields"), null);
+        fields.put(path, editorField(path, label, comment, type));
+        descriptor.putIfAbsent("id", editorId);
+        descriptor.putIfAbsent("moduleId", moduleId);
+        descriptor.put("fields", fields);
+        EDITORS.put(editorId, new EditorRegistration(moduleId, editorId, descriptor));
+    }
+
+    public static synchronized void registerEditorField(JavaPlugin plugin, String editorId, String path, String label, String comment, String type) {
+        if (plugin == null) {
+            return;
+        }
+        registerEditorField(plugin.getName(), editorId, path, label, comment, type);
+    }
+
+    public static synchronized void registerGuiEditorField(String moduleId, String editorId, String path, String label, String comment, String type) {
+        registerEditorField(moduleId, editorId, path, label, comment, type);
+    }
+
+    public static synchronized void registerGuiEditorField(JavaPlugin plugin, String editorId, String path, String label, String comment, String type) {
+        registerEditorField(plugin, editorId, path, label, comment, type);
     }
 
     /**
@@ -289,6 +349,7 @@ public final class WebConsoleRegistry {
         result.put("modules", modules);
         result.put("tree", tree);
         result.put("editors", editorDescriptors());
+        result.put("guiTypes", guiTypes());
         result.put("extensions", webExtensions());
         return result;
     }
@@ -647,6 +708,30 @@ public final class WebConsoleRegistry {
         return result;
     }
 
+    private static List<Map<String, Object>> guiTypes() {
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (InventoryType type : InventoryType.values()) {
+            Map<String, Object> entry = new LinkedHashMap<>();
+            entry.put("id", type.name());
+            entry.put("defaultTitle", type.getDefaultTitle());
+            entry.put("defaultSize", type.getDefaultSize());
+            entry.put("supportsRows", type == InventoryType.CHEST);
+            entry.put("creatable", isCreatableInventoryType(type));
+            result.add(entry);
+        }
+        return result;
+    }
+
+    private static boolean isCreatableInventoryType(InventoryType type) {
+        if (type == null || type == InventoryType.CHEST) {
+            return false;
+        }
+        return switch (type) {
+            case CRAFTING, CREATIVE, PLAYER, MERCHANT -> false;
+            default -> type.getDefaultSize() > 0;
+        };
+    }
+
     private static synchronized List<Map<String, Object>> webExtensions() {
         List<Map<String, Object>> result = new ArrayList<>();
         for (WebExtensionRegistration extension : EXTENSIONS.values()) {
@@ -661,6 +746,38 @@ public final class WebConsoleRegistry {
             result.add(entry);
         }
         return result;
+    }
+
+    private static Map<String, Object> mergeEditorFields(Object existingFields, Object incomingFields) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        copyEditorFields(result, existingFields);
+        copyEditorFields(result, incomingFields);
+        return result;
+    }
+
+    private static void copyEditorFields(Map<String, Object> target, Object fieldsValue) {
+        if (!(fieldsValue instanceof Map<?, ?> fields)) {
+            return;
+        }
+        for (Map.Entry<?, ?> entry : fields.entrySet()) {
+            if (entry.getKey() == null) {
+                continue;
+            }
+            target.put(String.valueOf(entry.getKey()), entry.getValue());
+        }
+    }
+
+    private static Map<String, Object> editorField(String path, String label, String comment, String type) {
+        Map<String, Object> field = new LinkedHashMap<>();
+        field.put("path", path);
+        field.put("label", label);
+        if (Texts.isNotBlank(comment)) {
+            field.put("comment", comment);
+        }
+        if (Texts.isNotBlank(type)) {
+            field.put("type", type);
+        }
+        return field;
     }
 
     public static synchronized String registeredExtensionResourcePath(String moduleId, String resourcePath) {

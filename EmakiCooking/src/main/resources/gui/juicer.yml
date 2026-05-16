@@ -6,6 +6,7 @@
 # 文件放置位置: plugins/EmakiCooking/gui/
 # ============================================================
 id: "juicer"
+gui_type: CHEST
 title: "<dark_gray>榨汁机"
 rows: 1
 slots:

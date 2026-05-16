@@ -192,7 +192,7 @@ textarea { min-height: 96px; resize: vertical; font-family: ui-monospace, "Casca
 .module-icon { width: 18px; height: 18px; display: inline-flex; color: currentColor; opacity: .95; }
 .module-icon svg { width: 100%; height: 100%; display: block; }
 
-.stage { padding: 0; overflow-y: auto; overflow-x: hidden; scrollbar-width: thin; }
+.stage { padding: 0; overflow-y: auto; overflow-x: hidden; scrollbar-width: thin; min-width: 0; }
 .stage-head { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 14px 18px; border-bottom: 1px solid var(--line); }
 .stage-head h1 { font-size: 20px; font-weight: 700; letter-spacing: -.02em; }
 .stage-head p { color: var(--faint); font-size: 12px; margin-top: 4px; }
@@ -207,7 +207,7 @@ textarea { min-height: 96px; resize: vertical; font-family: ui-monospace, "Casca
 .head-actions button.primary:hover:not(:disabled) { background: var(--accent-strong); border-color: var(--accent-strong); color: var(--bg); }
 @keyframes save-ready-pop { 0% { transform: scale(.94); } 60% { transform: scale(1.045); } 100% { transform: scale(1); } }
 
-.editor-shell.single { display: block; }
+.editor-shell.single { display: block; min-width: 0; }
 .config-surface { background: var(--surface); }
 .config-surface.empty { min-height: 380px; display: grid; place-items: center; color: var(--faint); }
 .surface-head { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; border-bottom: 1px solid var(--line); }
@@ -246,7 +246,7 @@ textarea { min-height: 96px; resize: vertical; font-family: ui-monospace, "Casca
 .section-arrow { width: 12px; font-size: 11px; color: var(--faint); flex-shrink: 0; }
 .node-section-header strong { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
 .node-section-header code { font-size: 10px; color: var(--faint); font-family: ui-monospace, "Cascadia Code", monospace; }
-.section-comment { flex: 1; text-align: right; color: var(--faint); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.section-comment { flex: 1; text-align: left; color: var(--faint); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .section-meta { font-size: 10px; color: var(--faint); white-space: nowrap; }
 .section-badge { display: inline-block; background: var(--changed-soft); color: var(--changed-ink); border-radius: 3px; padding: 1px 5px; font-size: 10px; margin-right: 4px; }
 .node-section-body { padding-left: 4px; }
@@ -329,7 +329,7 @@ textarea { min-height: 96px; resize: vertical; font-family: ui-monospace, "Casca
 
 .editor-container { display: flex; flex: 1; min-height: 0; overflow: hidden; position: relative; background: var(--input); }
 .line-numbers {
-  width: 3rem; padding: 12px 8px; text-align: right;
+  width: 3rem; padding: 12px 8px; text-align: left;
   font-family: ui-monospace, "Cascadia Code", monospace; font-size: 12px; line-height: 1.5;
   color: var(--faint); background: var(--code-gutter); border-right: 1px solid var(--line);
   overflow: hidden; user-select: none; flex-shrink: 0;
@@ -372,7 +372,7 @@ textarea { min-height: 96px; resize: vertical; font-family: ui-monospace, "Casca
 .completion-item.selected, .completion-item:hover { background: var(--accent-soft); color: var(--accent-strong); }
 
 /* GUI editor */
-.gui-surface { min-height: calc(100vh - 140px); background: var(--gui-surface-bg); }
+.gui-surface { min-height: 100vh; background: var(--gui-surface-bg); }
 .gui-surface[data-dirty="true"] .gui-head { box-shadow: inset 0 -1px 0 var(--changed-line); }
 .gui-head .dirty-inline { margin-left: 10px; color: var(--amber); font-weight: 700; }
 .gui-error { padding: 8px 16px; border-bottom: 1px solid var(--danger-line); color: var(--red); background: var(--danger-soft); font-size: 12px; }
@@ -391,11 +391,17 @@ textarea { min-height: 96px; resize: vertical; font-family: ui-monospace, "Casca
 @keyframes reload-confirm-in { from { opacity: 0; transform: translateY(8px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
 .gui-loading { min-height: 420px; display: grid; place-items: center; color: var(--faint); }
 .gui-source { margin: 0; padding: 16px; min-height: 520px; overflow: auto; background: var(--input); color: var(--muted); font-family: ui-monospace, "Cascadia Code", monospace; font-size: 12px; line-height: 1.55; }
-.gui-workbench { --mc-slot: clamp(48px, 4.4vw, 64px); display: grid; grid-template-columns: minmax(680px, 1fr) 380px; gap: 22px; padding: 20px; align-items: start; background: var(--gui-workbench-texture); background-size: 18px 18px, 18px 18px, auto; transition: background 0.22s ease; }
-.minecraft-window { position: relative; justify-self: center; display: inline-block; border: 3px solid var(--mc-panel-border); background: var(--mc-panel-bg); padding: 34px 28px 28px; box-shadow: inset 3px 3px 0 var(--mc-panel-highlight), inset -3px -3px 0 var(--mc-panel-shadow), 0 24px 64px var(--mc-elevation); max-width: 100%; overflow-x: auto; transition: background 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease; }
+.gui-workbench { --mc-slot: clamp(44px, 3.7vw, 64px); --gui-inspector-width: 380px; display: grid; grid-template-columns: minmax(0, 1fr) 8px var(--gui-inspector-width); gap: 0; height: calc(100vh - 67px); min-height: 520px; padding: 20px; align-items: stretch; background: var(--gui-workbench-texture); background-size: 18px 18px, 18px 18px, auto; transition: background 0.22s ease; overflow: hidden; }
+.gui-workbench.is-resizing { cursor: col-resize; }
+.gui-preview-pane { min-width: 0; min-height: 0; display: grid; place-items: start center; overflow: auto; padding-right: 18px; scrollbar-width: none; }
+.gui-preview-pane::-webkit-scrollbar { display: none; }
+.gui-inspector-resize { width: 8px; height: 100%; cursor: col-resize; position: relative; align-self: stretch; }
+.gui-inspector-resize::before { content: ''; position: absolute; top: 0; bottom: 0; left: 3px; width: 1px; background: var(--line); transition: background 0.15s ease, box-shadow 0.15s ease; }
+.gui-inspector-resize:hover::before, .gui-inspector-resize.active::before { background: var(--accent); box-shadow: 0 0 0 1px var(--accent-soft); }
+.minecraft-window { position: relative; justify-self: center; align-self: start; display: inline-block; border: 3px solid var(--mc-panel-border); background: var(--mc-panel-bg); padding: 34px 28px 28px; box-shadow: inset 3px 3px 0 var(--mc-panel-highlight), inset -3px -3px 0 var(--mc-panel-shadow), 0 24px 64px var(--mc-elevation); max-width: 100%; overflow-x: auto; transition: background 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease; }
 .minecraft-window::before { content: ''; position: absolute; inset: 10px; border: 3px solid var(--mc-panel-inner-border); box-shadow: inset 2px 2px 0 var(--mc-panel-inner-highlight), inset -2px -2px 0 var(--mc-panel-inner-shadow); pointer-events: none; }
 .minecraft-titlebar { height: 38px; color: var(--mc-title); font-size: 16px; display: flex; align-items: center; padding: 0 10px; text-shadow: 2px 2px 0 var(--mc-title-shadow); font-family: ui-monospace, "Cascadia Code", monospace; position: relative; z-index: 1; }
-.minecraft-grid { position: relative; z-index: 1; display: inline-grid; grid-template-columns: repeat(9, var(--mc-slot)); gap: 2px; padding: 6px; background: var(--mc-grid-bg); border: 3px solid var(--mc-grid-border); box-shadow: inset 3px 3px 0 var(--mc-grid-shadow), inset -3px -3px 0 var(--mc-grid-highlight); }
+.minecraft-grid { position: relative; z-index: 1; display: inline-grid; gap: 2px; padding: 6px; background: var(--mc-grid-bg); border: 3px solid var(--mc-grid-border); box-shadow: inset 3px 3px 0 var(--mc-grid-shadow), inset -3px -3px 0 var(--mc-grid-highlight); }
 .minecraft-slot { position: relative; width: var(--mc-slot); height: var(--mc-slot); display: grid; place-items: center; border-radius: 0; border: 0; background: var(--mc-slot-bg); box-shadow: inset 3px 3px 0 var(--mc-slot-shadow), inset -3px -3px 0 var(--mc-slot-highlight); transition: filter 0.12s ease, box-shadow 0.12s ease, background 0.18s ease; }
 .minecraft-slot::before { content: ''; position: absolute; inset: 6px; background: var(--mc-slot-inner-bg); box-shadow: inset 2px 2px 0 var(--mc-slot-inner-shadow), inset -1px -1px 0 var(--mc-slot-inner-highlight); pointer-events: none; }
 .minecraft-slot:hover { filter: brightness(1.22); }
@@ -412,7 +418,8 @@ textarea { min-height: 96px; resize: vertical; font-family: ui-monospace, "Casca
 .minecraft-tooltip small { color: var(--faint); }
 .muted-tooltip { color: var(--faint); }
 .mini-token { border: 1px solid var(--mini-token-line); border-radius: 3px; padding: 0 3px; margin: 0 1px; }
-.gui-inspector { display: grid; gap: 12px; }
+.gui-inspector { min-width: 0; height: 100%; min-height: 0; overflow-y: auto; overflow-x: hidden; display: grid; gap: 12px; align-content: start; padding-left: 14px; scrollbar-width: none; }
+.gui-inspector::-webkit-scrollbar { display: none; }
 .inspector-section { border: 1px solid var(--line); background: var(--surface); padding: 12px; display: grid; gap: 10px; box-shadow: inset 0 1px 0 var(--surface-3); }
 .inspector-section h3 { font-size: 13px; color: var(--text); }
 .inspector-section label { display: grid; gap: 5px; color: var(--muted); font-size: 11px; }
@@ -457,7 +464,7 @@ textarea { min-height: 96px; resize: vertical; font-family: ui-monospace, "Casca
 .material-list strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; font-size: 10px; }
 .material-list small { color: var(--faint); font-size: 10px; }
 /* ─── Item Editor: Surface & Layout ─── */
-.ie-surface { min-height: calc(100vh - 140px); background: var(--gui-surface-bg); }
+.ie-surface { min-height: calc(100vh - 140px); background: var(--gui-surface-bg); text-align: left; }
 .ie-surface[data-dirty] .ie-header { box-shadow: inset 0 -1px 0 var(--changed-line); }
 .ie-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--line); background: var(--surface); }
 .ie-header-left { display: flex; align-items: center; gap: 10px; }
@@ -514,10 +521,10 @@ textarea { min-height: 96px; resize: vertical; font-family: ui-monospace, "Casca
 .prop-row { display: grid; grid-template-columns: 90px minmax(0, 1fr); gap: 8px; align-items: start; padding: 5px 0; min-height: 32px; }
 .prop-row--wide { grid-template-columns: 1fr; }
 .prop-row--wide .prop-label { margin-bottom: 3px; }
-.prop-label { display: block; font-size: 11px; color: var(--faint); padding-top: 7px; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: default; }
+.prop-label { display: block; font-size: 11px; color: var(--faint); padding-top: 7px; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: default; }
 .prop-row--wide .prop-label { text-align: left; padding-top: 0; }
-.prop-value { min-width: 0; }
-.prop-value input, .prop-value textarea, .prop-value select { width: 100%; font-size: 12px; padding: 5px 8px; }
+.prop-value { min-width: 0; text-align: left; }
+.prop-value input, .prop-value textarea, .prop-value select { width: 100%; font-size: 12px; padding: 5px 8px; text-align: left; }
 .prop-value textarea { min-height: 52px; font-family: ui-monospace, "Cascadia Code", monospace; font-size: 11px; line-height: 1.5; resize: vertical; }
 
 /* KV table */
@@ -527,8 +534,8 @@ textarea { min-height: 96px; resize: vertical; font-family: ui-monospace, "Casca
 .prop-kv-row input { font-size: 11px; padding: 4px 7px; }
 .prop-kv-del { width: 28px; height: 28px; display: grid; place-items: center; color: var(--red); font-size: 12px; border-radius: 3px; opacity: .6; }
 .prop-kv-del:hover { opacity: 1; background: var(--danger-soft); }
-.prop-add { color: var(--accent); font-size: 11px; padding: 4px 0; margin-top: 4px; text-align: left; }
-.prop-add:hover { text-decoration: underline; }
+.prop-add { justify-self: start; color: var(--accent); font-size: 12px; padding: 7px 10px; margin-top: 4px; text-align: left; border: 1px solid transparent; border-radius: 6px; min-height: 32px; }
+.prop-add:hover { text-decoration: none; border-color: var(--accent); background: var(--accent-soft); }
 
 /* Actions editor */
 .prop-actions { display: grid; gap: 4px; padding: 6px 0; }
@@ -549,11 +556,12 @@ textarea { min-height: 96px; resize: vertical; font-family: ui-monospace, "Casca
 /* Level / Slot items */
 .prop-levels { display: grid; gap: 3px; padding: 6px 0; }
 .prop-level-item { border: 1px solid var(--line); background: var(--input); overflow: hidden; }
-.prop-level-head { display: flex; align-items: center; gap: 8px; padding: 6px 9px; cursor: pointer; font-size: 12px; width: 100%; text-align: left; background: transparent; border: 0; }
-.prop-level-head:hover { background: var(--surface-2); }
-.prop-level-badge { font-size: 11px; font-weight: 700; color: var(--accent); min-width: 36px; }
-.prop-level-summary { flex: 1; color: var(--text); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.prop-level-rate { color: var(--faint); font-size: 11px; font-family: ui-monospace, "Cascadia Code", monospace; }
+.prop-level-head { display: flex; align-items: center; gap: 8px; padding: 9px 10px; cursor: pointer; font-size: 12px; width: 100%; text-align: left; background: transparent; border: 0; user-select: none; }
+.prop-level-head:hover, .prop-level-head:focus-visible { background: var(--surface-2); outline: none; }
+.prop-level-badge { font-size: 11px; font-weight: 700; color: var(--accent); min-width: 48px; text-align: left; display: inline-block; }
+.prop-level-summary { flex: 1; color: var(--text); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; min-width: 0; }
+button.prop-level-summary { border: 0; background: transparent; padding: 0; cursor: pointer; }
+.prop-level-rate { color: var(--faint); font-size: 11px; font-family: ui-monospace, "Cascadia Code", monospace; text-align: left; }
 .prop-level-body { padding: 8px 10px; border-top: 1px solid var(--line); display: grid; gap: 2px; }
 
 /* Cost editor */
@@ -564,7 +572,7 @@ textarea { min-height: 96px; resize: vertical; font-family: ui-monospace, "Casca
 .prop-cost-group-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--faint); padding: 4px 0 2px; }
 .prop-cost-entry { border: 1px solid var(--line); background: var(--input); padding: 6px 8px; display: grid; gap: 2px; }
 .prop-cost-entry-head { display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: var(--accent); font-weight: 600; margin-bottom: 2px; }
-.prop-cost-actions { display: flex; gap: 10px; }
+.prop-cost-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: flex-start; }
 .prop-cost-fields { display: grid; gap: 2px; }
 .prop-level-subsection { padding: 4px 0; display: grid; gap: 4px; }
 
@@ -574,7 +582,7 @@ textarea { min-height: 96px; resize: vertical; font-family: ui-monospace, "Casca
 /* (legacy styles removed — replaced by ie-* and prop-* classes above) */
 
 .chip-list.dense { gap: 6px; }
-@media (max-width: 1280px) { .gui-workbench { --mc-slot: 52px; grid-template-columns: 1fr; } .gui-inspector { grid-template-columns: repeat(2, minmax(0, 1fr)); } .material-palette { grid-column: 1 / -1; } }
+@media (max-width: 1280px) { .gui-workbench { --mc-slot: 52px; grid-template-columns: 1fr; height: auto; min-height: calc(100vh - 67px); overflow: visible; } .gui-preview-pane { overflow: visible; padding-right: 0; } .gui-inspector-resize { display: none; } .gui-inspector { height: auto; overflow: visible; padding-left: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); } .material-palette { grid-column: 1 / -1; } }
 @media (max-width: 760px) { .gui-workbench { --mc-slot: 34px; padding: 12px; } .minecraft-window { padding: 22px 18px 20px; } .minecraft-titlebar { height: 32px; font-size: 14px; } .minecraft-grid { grid-template-rows: none !important; gap: 2px; padding: 8px; } .minecraft-slot::before { inset: 5px; } .gui-inspector { grid-template-columns: 1fr; } .material-list { grid-template-columns: 1fr; } }
 
 @media (prefers-reduced-motion: reduce) {

@@ -181,10 +181,14 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
     private void registerWebConsole() {
         WebConsoleRegistry.registerModule(this, "Gem 宝石", "开孔、镶嵌、升级与 GUI", "gem", WEB_ICON);
         WebConsoleRegistry.registerConfigFile(this, "宝石系统配置", "config.yml", "宝石系统主配置，包含开孔器、镶嵌、升级和 GUI 入口设置。");
-        WebConsoleRegistry.registerGuiFile(this, "宝石 GUI 模板", "gui/**/*.yml", "宝石镶嵌、开孔、升级 GUI 模板文件。");
+        WebConsoleRegistry.registerGuiFile(this, "宝石 GUI 模板", "gui/**/*.yml", "宝石镶嵌、开孔、升级 GUI 模板文件。", "emakigem:gui");
         WebConsoleRegistry.registerWebExtension(this, "emakigem:item-surface", "web-extensions/emakigem-item-surface.js");
+        WebConsoleRegistry.registerGuiEditorDescriptor(this, "emakigem:gui", editorDescriptor("emakigem:gui", "宝石 GUI", "宝石 GUI 模板"));
+        registerGuiEditorFields("emakigem:gui");
         WebConsoleRegistry.registerEditorDescriptor(this, "emakigem:socket-item", socketItemEditorDescriptor());
         WebConsoleRegistry.registerEditorDescriptor(this, "emakigem:gem", gemEditorDescriptor());
+        registerGemEditorFields();
+        registerSocketItemEditorFields();
         WebConsoleRegistry.registerItemFile(this, "宝石物品定义", "items/**/*.yml", "宝石插件物品定义文件。", "emakigem:socket-item");
         WebConsoleRegistry.registerItemFile(this, "宝石定义", "gems/**/*.yml", "宝石定义文件，包含宝石物品来源、效果、插槽兼容和升级配置。", "emakigem:gem");
         WebConsoleRegistry.registerCommonConfigComments(this);
@@ -217,35 +221,111 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         WebConsoleRegistry.registerNodeComment(this, "gui.save_on_close", "关闭保存", "关闭 GUI 时是否自动保存当前操作。", "boolean");
     }
 
+    private void registerGuiEditorFields(String editorId) {
+        editorField(editorId, "id", "ID", "GUI 模板唯一标识。", "text");
+        editorField(editorId, "gui_type", "GUI 类型", "Bukkit InventoryType。只有 CHEST 支持行数。", "enum");
+        editorField(editorId, "title", "标题", "GUI 窗口标题，支持 MiniMessage。", "text");
+        editorField(editorId, "rows", "箱子行数", "仅 CHEST 类型可用，范围 1-6。", "number");
+        editorField(editorId, "slots", "槽位定义", "GUI 中所有可渲染槽位配置。", "object");
+        editorField(editorId, "type", "槽位类型", "插件业务识别的槽位语义，例如 target_item、confirm。", "text");
+        editorField(editorId, "item", "物品", "槽位显示物品，支持原版材料或 ItemSource。", "text");
+        editorField(editorId, "display_name", "显示名", "槽位物品显示名称，支持 MiniMessage。", "text");
+        editorField(editorId, "lore", "Lore", "槽位物品描述，每行一条。", "stringList");
+        editorField(editorId, "hidden_components", "隐藏组件", "隐藏 tooltip、附魔、属性等原版组件。", "stringList");
+        editorField(editorId, "item_model", "物品模型", "资源包 item model 标识。", "text");
+        editorField(editorId, "custom_model_data", "模型数据", "Custom Model Data 数值。", "number");
+        editorField(editorId, "sounds", "声音", "点击槽位时播放的声音配置。", "object");
+        editorField(editorId, "target_item", "目标装备槽", "放入待镶嵌或查看的装备。", "text");
+        editorField(editorId, "socket_slot", "宝石槽位", "展示或操作装备上的宝石槽。", "text");
+        editorField(editorId, "confirm", "确认按钮", "确认当前宝石操作。", "text");
+    }
+
+    private void registerGemEditorFields() {
+        String editorId = "emakigem:gem";
+        editorField(editorId, "id", "ID", "宝石唯一标识。", "text");
+        editorField(editorId, "display_name", "显示名", "宝石在物品与 GUI 中显示的名称，支持 MiniMessage。", "text");
+        editorField(editorId, "lore", "描述 Lore", "宝石自身说明，每行一条。", "stringList");
+        editorField(editorId, "gem_type", "宝石类型", "用于插槽兼容匹配。", "enum");
+        editorField(editorId, "level", "基础等级", "宝石初始等级。", "number");
+        editorField(editorId, "item_sources", "物品来源", "识别这颗宝石的 ItemSource 列表。", "stringList");
+        editorField(editorId, "custom_model_data", "模型数据", "资源包使用的 Custom Model Data。", "number");
+        editorField(editorId, "socket_compatibility", "兼容插槽", "允许镶嵌到的插槽类型。", "stringList");
+        editorField(editorId, "effects", "宝石效果", "实际写入属性、技能和名称/Lore 动作的效果列表。", "list");
+        editorField(editorId, "type", "效果类型", "当前效果条目的类型。", "enum");
+        editorField(editorId, "variables", "变量", "表达式引擎与 Lore 占位符使用的变量。", "object");
+        editorField(editorId, "ea_attributes", "属性", "写入 EmakiAttribute 的属性数值。", "object");
+        editorField(editorId, "es_skills", "技能", "附加的 EmakiSkills 技能 ID。", "stringList");
+        editorField(editorId, "name_actions", "名称动作", "镶嵌后对装备名称执行的动作。", "actions");
+        editorField(editorId, "lore_actions", "Lore 动作", "镶嵌后对装备 Lore 执行的动作。", "actions");
+        editorField(editorId, "inlay_cost", "镶嵌费用", "镶嵌宝石时消耗的货币与材料。", "object");
+        editorField(editorId, "extract_cost", "拆卸费用", "拆卸宝石时消耗的货币与材料。", "object");
+        editorField(editorId, "extract_return", "拆卸返还", "拆卸后宝石原样返还、销毁或降级返还。", "object");
+        editorField(editorId, "mode", "返还模式", "拆卸后宝石处理方式。", "enum");
+        editorField(editorId, "downgrade_levels", "降级等级", "降级返还时降低的等级数。", "number");
+        editorField(editorId, "degraded_chance", "降级概率", "拆卸返还降级概率。", "number");
+        editorField(editorId, "upgrade", "升级配置", "宝石升级开关、费用、成功率和等级覆盖。", "object");
+        editorField(editorId, "enabled", "启用", "是否启用此配置。", "boolean");
+        editorField(editorId, "max_level", "最高等级", "宝石可升级到的最高等级。", "number");
+        editorField(editorId, "gui_template", "GUI 模板", "升级 GUI 模板路径。", "text");
+        editorField(editorId, "failure_penalty", "失败惩罚", "升级失败后的惩罚方式。", "enum");
+        editorField(editorId, "economy", "经济消耗", "升级使用的货币和材料消耗。", "object");
+        editorField(editorId, "success_rates", "成功率", "各目标等级的升级成功率。", "object");
+        editorField(editorId, "levels", "等级配置", "每个等级的显示、效果、材料和动作覆盖。", "object");
+        editorField(editorId, "success_rate", "成功率", "升级到该等级的成功率。", "number");
+        editorField(editorId, "materials", "材料消耗", "升级或操作所需材料。", "list");
+        editorField(editorId, "currencies", "货币消耗", "Vault 或其他经济提供者的货币消耗。", "list");
+        editorField(editorId, "provider", "经济提供者", "货币提供者，例如 vault。", "text");
+        editorField(editorId, "currency_id", "货币 ID", "多货币系统中的货币标识。", "text");
+        editorField(editorId, "amount", "数量", "材料数量或货币数量。", "number");
+        editorField(editorId, "base_cost", "基础费用", "费用公式中使用的基础值。", "number");
+        editorField(editorId, "cost_formula", "费用公式", "根据等级等变量计算最终费用。", "text");
+        editorField(editorId, "actions", "动作", "操作成功或失败时执行的 Action 列表。", "object");
+        editorField(editorId, "inlay_success", "镶嵌成功动作", "宝石镶嵌成功后执行的动作。", "list");
+        editorField(editorId, "extract_success", "拆卸成功动作", "宝石拆卸成功后执行的动作。", "list");
+        editorField(editorId, "success", "成功动作", "升级成功时执行的动作。", "list");
+        editorField(editorId, "failure", "失败动作", "升级失败时执行的动作。", "list");
+        editorField(editorId, "action", "动作类型", "名称或 Lore 操作类型。", "enum");
+        editorField(editorId, "value", "文本值", "动作使用的文本值。", "text");
+        editorField(editorId, "content", "内容", "Lore 动作追加、插入或替换的内容。", "stringList");
+        editorField(editorId, "target_pattern", "目标匹配", "Lore 动作查找目标行的匹配文本。", "text");
+        editorField(editorId, "anchor", "锚点", "插入动作使用的锚点。", "text");
+    }
+
+    private void registerSocketItemEditorFields() {
+        String editorId = "emakigem:socket-item";
+        editorField(editorId, "id", "ID", "插槽物品定义唯一标识。", "text");
+        editorField(editorId, "match", "匹配规则", "决定哪些物品会拥有宝石插槽。", "object");
+        editorField(editorId, "match.item_sources", "匹配物品来源", "按 ItemSource 匹配装备。", "stringList");
+        editorField(editorId, "match.slot_groups", "装备分组", "按 weapon、armor、offhand 等槽位组匹配。", "stringList");
+        editorField(editorId, "match.lore_contains", "Lore 包含", "仅匹配 Lore 包含指定文本的物品。", "stringList");
+        editorField(editorId, "slots", "插槽列表", "该物品拥有的宝石插槽。", "list");
+        editorField(editorId, "index", "插槽索引", "从 0 开始的唯一插槽编号。", "number");
+        editorField(editorId, "type", "插槽类型", "决定哪些宝石可以镶嵌。", "text");
+        editorField(editorId, "display_name", "显示名", "插槽在 GUI 中显示的名称。", "text");
+        editorField(editorId, "default_open_slots", "默认开放插槽", "物品初始已开放的插槽索引。", "list");
+        editorField(editorId, "allowed_gem_types", "允许宝石类型", "该物品允许镶嵌的宝石类型白名单。", "stringList");
+        editorField(editorId, "max_same_type", "同类型上限", "同类型宝石最大数量，0 表示不限制。", "number");
+        editorField(editorId, "max_same_id", "同 ID 上限", "同一宝石 ID 可镶嵌数量。", "number");
+        editorField(editorId, "gui", "GUI 模板", "宝石镶嵌和开槽界面模板。", "object");
+        editorField(editorId, "gui.gem_template", "镶嵌模板", "宝石镶嵌/查看界面模板。", "text");
+        editorField(editorId, "gui.open_template", "开槽模板", "开槽界面模板。", "text");
+        editorField(editorId, "name_actions", "名称动作", "插槽激活后对物品名称执行的动作。", "actions");
+        editorField(editorId, "lore_actions", "Lore 动作", "插槽激活后对物品 Lore 执行的动作。", "actions");
+        editorField(editorId, "action", "动作类型", "名称或 Lore 操作类型。", "enum");
+        editorField(editorId, "value", "文本值", "动作使用的文本值。", "text");
+        editorField(editorId, "content", "内容", "Lore 动作追加、插入或替换的内容。", "stringList");
+        editorField(editorId, "target_pattern", "目标匹配", "Lore 动作查找目标行的匹配文本。", "text");
+        editorField(editorId, "anchor", "锚点", "插入动作使用的锚点。", "text");
+    }
+
+    private void editorField(String editorId, String path, String label, String comment, String type) {
+        WebConsoleRegistry.registerEditorField(this, editorId, path, label, comment, type);
+    }
+
     private Map<String, Object> gemEditorDescriptor() {
         Map<String, Object> descriptor = editorDescriptor("emakigem:gem", "宝石定义", "宝石定义");
         descriptor.put("baseName", "<gray>预览装备</gray>");
         descriptor.put("baseLore", List.of("<gray>原始装备 Lore</gray>"));
-        descriptor.put("sections", List.of(
-                section("基础字段", "宝石识别、显示、类型和物品来源。", List.of(
-                        field("id", "ID", "text", "宝石唯一标识。", false),
-                        field("display_name", "显示名", "text", "支持 MiniMessage。", false),
-                        field("gem_type", "宝石类型", "enum", "用于插槽兼容匹配。", false, List.of("attack", "defense", "utility", "universal")),
-                        field("level", "基础等级", "number", "未升级时的初始等级。", false),
-                        field("item_sources", "物品来源", "stringList", "每行一个 ItemSource，例如 minecraft-redstone。", true),
-                        field("custom_model_data", "Custom Model Data", "number", "可选资源包模型数据。", false),
-                        field("socket_compatibility", "插槽兼容", "stringList", "每行一个可镶嵌插槽类型。", true)
-                )),
-                section("效果与展示动作", "effects 是宝石实际写入属性、技能和 Name/Lore 动作的主结构。", List.of(
-                        field("effects", "effects", "json", "完整 effects 列表，支持 variables、ea_attribute、es_skill、name_action、lore_action。", true),
-                        field("name_actions", "顶层 Name Actions", "actions", "兼容旧结构；推荐使用 effects[type=name_action]。", true),
-                        field("lore_actions", "顶层 Lore Actions", "actions", "兼容旧结构；推荐使用 effects[type=lore_action]。", true)
-                )),
-                section("费用与返还", "镶嵌、拆卸和返还规则。", List.of(
-                        field("inlay_cost", "镶嵌费用", "json", "货币与材料消耗。", true),
-                        field("extract_cost", "拆卸费用", "json", "货币与材料消耗。", true),
-                        field("extract_return", "拆卸返还", "json", "original、destroy 或 downgrade。", true)
-                )),
-                section("升级配置", "各等级成功率、材料、经济、效果与动作。", List.of(
-                        field("upgrade", "upgrade", "json", "完整升级配置，包含 levels 下每级覆盖。", true),
-                        field("actions", "成功动作", "json", "镶嵌/拆卸成功后执行的 Action 分组。", true)
-                ))
-        ));
         return descriptor;
     }
 
@@ -253,24 +333,6 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         Map<String, Object> descriptor = editorDescriptor("emakigem:socket-item", "宝石插槽物品", "宝石物品定义");
         descriptor.put("baseName", "<gray>预览装备</gray>");
         descriptor.put("baseLore", List.of("<gray>原始装备 Lore</gray>"));
-        descriptor.put("sections", List.of(
-                section("匹配与限制", "定义哪些装备会被识别为可镶嵌物品。", List.of(
-                        field("id", "ID", "text", "物品定义唯一标识。", false),
-                        field("match.item_sources", "匹配物品来源", "stringList", "每行一个 ItemSource。", true),
-                        field("allowed_gem_types", "允许宝石类型", "stringList", "每行一个宝石类型。", true),
-                        field("max_same_type", "同类型上限", "number", "0 表示不限制。", false),
-                        field("max_same_id", "同 ID 上限", "number", "同一宝石 ID 可镶嵌数量。", false)
-                )),
-                section("插槽结构", "定义插槽索引、类型、显示名和默认开放状态。", List.of(
-                        field("slots", "slots", "json", "插槽数组，每项包含 index、type、display_name。", true),
-                        field("default_open_slots", "默认开放插槽", "json", "默认开放的 slot index 列表。", true)
-                )),
-                section("GUI 与展示动作", "打开模板和插槽激活后的 Name/Lore 修改。", List.of(
-                        field("gui", "GUI", "json", "gem/open/upgrade 模板关联配置。", true),
-                        field("name_actions", "Name Actions", "actions", "插槽激活后对装备名的修改。", true),
-                        field("lore_actions", "Lore Actions", "actions", "插槽激活后对装备 Lore 的修改。", true)
-                ))
-        ));
         return descriptor;
     }
 
@@ -280,33 +342,6 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         descriptor.put("title", title);
         descriptor.put("kindLabel", kindLabel);
         return descriptor;
-    }
-
-    private Map<String, Object> section(String title, String comment, List<Map<String, Object>> fields) {
-        Map<String, Object> section = new LinkedHashMap<>();
-        section.put("title", title);
-        section.put("comment", comment);
-        section.put("fields", fields);
-        return section;
-    }
-
-    private Map<String, Object> field(String path, String label, String type, String comment, boolean wide) {
-        return field(path, label, type, comment, wide, List.of());
-    }
-
-    private Map<String, Object> field(String path, String label, String type, String comment, boolean wide, List<String> options) {
-        Map<String, Object> field = new LinkedHashMap<>();
-        field.put("path", path);
-        field.put("label", label);
-        field.put("type", type);
-        field.put("comment", comment);
-        if (wide) {
-            field.put("wide", true);
-        }
-        if (options != null && !options.isEmpty()) {
-            field.put("options", options);
-        }
-        return field;
     }
 
     public void ensurePlaceholderExpansion() {

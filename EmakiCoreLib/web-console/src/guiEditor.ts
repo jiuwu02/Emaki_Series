@@ -4,6 +4,6 @@
  */
 export type { SlotOccupancy } from './lib/guiUtils';
 export { MINECRAFT_ASSET_VERSION, MATERIAL_TEXTURE_SOURCES, getTextureBases, MATERIAL_TEXTURE_BASES, materialUrls, materialUrl, materialShortName, normalizeMaterial } from './lib/materials';
-export { clampRows, parseSlotList, buildOccupancy, loreLines, serializeGuiYaml, COMMON_MATERIALS } from './lib/guiUtils';
+export { BUKKIT_GUI_TYPES, DEFAULT_GUI_TYPE, clampRows, guiColumns, guiField, guiSlotCount, guiTypeOptions, normalizeGuiType, parseSlotList, buildOccupancy, loreLines, serializeGuiYaml, supportsRows, COMMON_MATERIALS } from './lib/guiUtils';
 export { textValue, renderMiniMessageParts } from './lib/miniMessage';
 export { serializeYaml } from './lib/yaml';

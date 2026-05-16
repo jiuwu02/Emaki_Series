@@ -6,16 +6,5 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "tsc && vite build --outDir ../src/main/resources/web --emptyOutDir"
-  },
-  "dependencies": {
-    "@vitejs/plugin-react": "latest",
-    "vite": "latest",
-    "typescript": "latest",
-    "react": "latest",
-    "react-dom": "latest"
-  },
-  "devDependencies": {
-    "@types/react": "latest",
-    "@types/react-dom": "latest"
   }
 }

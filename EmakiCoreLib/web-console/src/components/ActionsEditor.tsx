@@ -31,9 +31,9 @@ export function ActionsEditor({ actions, onChange, actionTypes, mode }: { action
               {!actionTypes.includes(action.type) && action.type && <option value={action.type}>{action.type}</option>}
             </select>
             <span className="prop-action-controls">
-              <button onClick={() => moveUp(i)} disabled={i === 0} aria-label="上移">↑</button>
-              <button onClick={() => moveDown(i)} disabled={i === actions.length - 1} aria-label="下移">↓</button>
-              <button className="prop-action-del" onClick={() => remove(i)} aria-label="删除">×</button>
+              <button type="button" onClick={() => moveUp(i)} disabled={i === 0} aria-label="上移">↑</button>
+              <button type="button" onClick={() => moveDown(i)} disabled={i === actions.length - 1} aria-label="下移">↓</button>
+              <button type="button" className="prop-action-del" onClick={() => remove(i)} aria-label="删除">×</button>
             </span>
           </div>
           <div className="prop-action-params">
@@ -62,7 +62,7 @@ export function ActionsEditor({ actions, onChange, actionTypes, mode }: { action
           </div>
         </div>
       ))}
-      <button className="prop-add" onClick={add}>+ 添加动作</button>
+      <button type="button" className="prop-add" onClick={add}>+ 添加动作</button>
     </div>
   );
 }

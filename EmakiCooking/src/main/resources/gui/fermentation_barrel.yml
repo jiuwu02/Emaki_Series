@@ -6,6 +6,7 @@
 # 文件放置位置: plugins/EmakiCooking/gui/
 # ============================================================
 id: "fermentation_barrel"
+gui_type: CHEST
 title: "<dark_gray>发酵桶"
 rows: 3
 slots:

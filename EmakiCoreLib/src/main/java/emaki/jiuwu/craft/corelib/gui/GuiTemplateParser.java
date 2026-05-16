@@ -4,6 +4,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.bukkit.event.inventory.InventoryType;
+
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
@@ -26,6 +28,8 @@ public final class GuiTemplateParser {
         }
         Object titleRaw = section.get("title");
         boolean titleIsTextConfig = titleRaw instanceof Map<?, ?> || titleRaw instanceof YamlSection;
+        InventoryType inventoryType = parseInventoryType(section);
+        int rows = GuiTemplate.supportsRows(inventoryType) ? Numbers.clamp(Numbers.tryParseInt(section.get("rows"), 3), 1, 6) : 0;
         Map<String, GuiSlot> slots = new LinkedHashMap<>();
         YamlSection slotsSection = section.getSection("slots");
         if (slotsSection != null) {
@@ -40,9 +44,22 @@ public final class GuiTemplateParser {
                 id,
                 titleIsTextConfig ? "GUI" : section.getString("title", "GUI"),
                 titleIsTextConfig ? titleRaw : null,
-                Numbers.clamp(Numbers.tryParseInt(section.get("rows"), 3), 1, 6),
+                inventoryType,
+                rows,
                 slots
         );
+    }
+
+    private static InventoryType parseInventoryType(YamlSection section) {
+        String configured = section.getString("gui_type", section.getString("inventory_type", "CHEST"));
+        if (Texts.isBlank(configured)) {
+            return InventoryType.CHEST;
+        }
+        try {
+            return InventoryType.valueOf(configured.trim().toUpperCase());
+        } catch (IllegalArgumentException ignored) {
+            return InventoryType.CHEST;
+        }
     }
 
     private static GuiSlot parseSlot(String key, Object raw) {

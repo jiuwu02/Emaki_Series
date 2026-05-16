@@ -5,6 +5,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.bukkit.event.inventory.InventoryType;
+
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
@@ -17,24 +19,35 @@ public final class GuiTemplate {
     private final String id;
     private final String title;
     private final Object titleConfig;
+    private final InventoryType inventoryType;
     private final int rows;
     private final Map<String, GuiSlot> slots;
     private final Map<Integer, ResolvedSlot> resolvedSlots;
 
     public GuiTemplate(String id, String title, int rows, Map<String, GuiSlot> slots) {
-        this(id, title, null, rows, slots);
+        this(id, title, null, InventoryType.CHEST, rows, slots);
     }
 
     public GuiTemplate(String id, String title, Object titleConfig, int rows, Map<String, GuiSlot> slots) {
+        this(id, title, titleConfig, InventoryType.CHEST, rows, slots);
+    }
+
+    public GuiTemplate(String id, String title, Object titleConfig, InventoryType inventoryType, int rows, Map<String, GuiSlot> slots) {
         this.id = id;
         this.title = Texts.toStringSafe(title);
         this.titleConfig = ConfigNodes.toPlainData(titleConfig);
-        this.rows = rows;
-        this.slots = Map.copyOf(slots);
+        this.inventoryType = inventoryType == null ? InventoryType.CHEST : inventoryType;
+        this.rows = supportsRows(this.inventoryType) ? Math.max(1, Math.min(6, rows)) : 0;
+        this.slots = Map.copyOf(slots == null ? Map.of() : slots);
         Map<Integer, ResolvedSlot> resolved = new LinkedHashMap<>();
-        for (GuiSlot slot : slots.values()) {
+        int count = slotCount();
+        for (GuiSlot slot : this.slots.values()) {
             for (int index = 0; index < slot.slots().size(); index++) {
-                resolved.put(slot.slots().get(index), new ResolvedSlot(slot, slot.slots().get(index), index));
+                int inventorySlot = slot.slots().get(index);
+                if (inventorySlot < 0 || inventorySlot >= count) {
+                    continue;
+                }
+                resolved.put(inventorySlot, new ResolvedSlot(slot, inventorySlot, index));
             }
         }
         this.resolvedSlots = Map.copyOf(resolved);
@@ -78,7 +91,27 @@ public final class GuiTemplate {
         return titleConfig;
     }
 
+    public InventoryType inventoryType() {
+        return inventoryType;
+    }
+
+    public boolean isChest() {
+        return inventoryType == InventoryType.CHEST;
+    }
+
+    public boolean supportsRows() {
+        return supportsRows(inventoryType);
+    }
+
     public int rows() {
         return rows;
+    }
+
+    public int slotCount() {
+        return supportsRows(inventoryType) ? rows * 9 : Math.max(0, inventoryType.getDefaultSize());
+    }
+
+    public static boolean supportsRows(InventoryType type) {
+        return type == null || type == InventoryType.CHEST;
     }
 }

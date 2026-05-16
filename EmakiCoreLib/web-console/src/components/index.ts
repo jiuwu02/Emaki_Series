@@ -5,3 +5,4 @@ export { KvTable } from './KvTable';
 export { StringListEditor } from './StringListEditor';
 export { NumberListEditor } from './NumberListEditor';
 export { ActionsEditor, parseNameActions, parseLoreActions, serializeActions, type ActionEntry } from './ActionsEditor';
+export { GuiEditorSurface } from '../GuiEditorSurface';

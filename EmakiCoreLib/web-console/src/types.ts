@@ -65,6 +65,7 @@ export type WebEditorDescriptor = {
   baseName?: string;
   baseLore?: string[];
   sections?: WebEditorSection[];
+  fields?: Record<string, WebEditorField>;
   preview?: Record<string, unknown>;
   [key: string]: unknown;
 };
@@ -114,10 +115,19 @@ export type WebConsoleExtension = {
   url: string;
 };
 
+export type WebGuiType = {
+  id: string;
+  defaultTitle?: string;
+  defaultSize: number;
+  supportsRows: boolean;
+  creatable?: boolean;
+};
+
 export type WebRegistry = {
   modules: WebRegistryModule[];
   tree: RegistryTreeNode[];
   editors?: Record<string, WebEditorDescriptor>;
+  guiTypes?: WebGuiType[];
   extensions?: WebConsoleExtension[];
 };
 
@@ -185,6 +195,8 @@ export type ItemPreviewResult = {
 
 export type GuiTemplateData = {
   id?: string;
+  gui_type?: string;
+  inventory_type?: string;
   title?: unknown;
   rows?: number;
   slots?: Record<string, GuiSlotDefinition>;

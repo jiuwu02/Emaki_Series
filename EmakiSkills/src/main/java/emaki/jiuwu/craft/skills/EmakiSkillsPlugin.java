@@ -1,5 +1,7 @@
 package emaki.jiuwu.craft.skills;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Set;
 
 import org.bukkit.command.PluginCommand;
@@ -245,7 +247,10 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
     private void registerWebConsole() {
         WebConsoleRegistry.registerModule(this, "Skills 技能", "槽位、施法模式、触发器", "skills", WEB_ICON);
         WebConsoleRegistry.registerConfigFile(this, "技能系统配置", "config.yml", "技能系统主配置，包含触发器、施法模式、资源和升级设置。");
-        WebConsoleRegistry.registerGuiFile(this, "技能 GUI 模板", "gui/**/*.yml", "技能面板与触发器选择 GUI 模板文件。");
+        WebConsoleRegistry.registerGuiFile(this, "技能 GUI 模板", "gui/**/*.yml", "技能面板与触发器选择 GUI 模板文件。", "emakiskills:gui");
+        WebConsoleRegistry.registerWebExtension(this, "emakiskills:gui-surface", "web-extensions/emakiskills-gui-surface.js");
+        WebConsoleRegistry.registerGuiEditorDescriptor(this, "emakiskills:gui", editorDescriptor("emakiskills:gui", "技能 GUI", "技能 GUI 模板"));
+        registerGuiEditorFields("emakiskills:gui");
         WebConsoleRegistry.registerCommonConfigComments(this);
 
         // slots
@@ -302,6 +307,35 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
 
     private void unregisterCoreLibActions() {
         coreLib().actionRegistry().unregister("castskill");
+    }
+
+    private void registerGuiEditorFields(String editorId) {
+        guiField(editorId, "id", "ID", "GUI 模板唯一标识。", "text");
+        guiField(editorId, "gui_type", "GUI 类型", "Bukkit InventoryType。只有 CHEST 支持行数。", "enum");
+        guiField(editorId, "title", "标题", "GUI 窗口标题，支持 MiniMessage。", "text");
+        guiField(editorId, "rows", "箱子行数", "仅 CHEST 类型可用，范围 1-6。", "number");
+        guiField(editorId, "type", "槽位类型", "技能业务槽位语义。", "text");
+        guiField(editorId, "slots", "槽位", "槽位索引列表。", "list");
+        guiField(editorId, "item", "物品", "槽位显示物品。", "text");
+        guiField(editorId, "display_name", "显示名", "槽位物品显示名称。", "text");
+        guiField(editorId, "lore", "Lore", "槽位物品描述。", "stringList");
+        guiField(editorId, "active_slot", "主动技能槽", "玩家主动技能槽位。", "text");
+        guiField(editorId, "skill_pool", "技能池", "可装配技能列表区域。", "text");
+        guiField(editorId, "cast_mode_toggle", "施法模式", "切换技能施法模式。", "text");
+        guiField(editorId, "page_prev", "上一页", "向前翻页按钮。", "text");
+        guiField(editorId, "page_next", "下一页", "向后翻页按钮。", "text");
+    }
+
+    private void guiField(String editorId, String path, String label, String comment, String type) {
+        WebConsoleRegistry.registerGuiEditorField(this, editorId, path, label, comment, type);
+    }
+
+    private Map<String, Object> editorDescriptor(String id, String title, String kindLabel) {
+        Map<String, Object> descriptor = new LinkedHashMap<>();
+        descriptor.put("id", id);
+        descriptor.put("title", title);
+        descriptor.put("kindLabel", kindLabel);
+        return descriptor;
     }
 
     private void ensurePlaceholderExpansion() {

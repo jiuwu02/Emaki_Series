@@ -112,7 +112,10 @@ function materialAliases(material: string): string[] {
     potted_oak_sapling: ['oak_sapling'], potted_spruce_sapling: ['spruce_sapling'], potted_birch_sapling: ['birch_sapling'],
     potted_jungle_sapling: ['jungle_sapling'], potted_acacia_sapling: ['acacia_sapling'], potted_dark_oak_sapling: ['dark_oak_sapling'],
     potted_mangrove_propagule: ['mangrove_propagule'], potted_cherry_sapling: ['cherry_sapling'],
-    suspicious_sand: ['sand'], suspicious_gravel: ['gravel']
+    suspicious_sand: ['sand'], suspicious_gravel: ['gravel'],
+    bamboo_boat: ['bamboo_raft', 'bamboo'], bamboo_chest_boat: ['bamboo_chest_raft', 'bamboo_raft', 'bamboo'],
+    bamboo_log: ['bamboo_block', 'stripped_bamboo_block', 'bamboo_planks'], bamboo_wood: ['bamboo_block', 'stripped_bamboo_block', 'bamboo_planks'],
+    bamboo_leaves: ['bamboo_large_leaves', 'bamboo_small_leaves', 'bamboo'], bamboo_sapling: ['bamboo']
   };
   aliases.push(...(direct[material] ?? []));
   if (material.endsWith('_stained_glass_pane')) aliases.push(material.replace('_stained_glass_pane', '_stained_glass'));
@@ -120,8 +123,12 @@ function materialAliases(material: string): string[] {
   if (material.endsWith('_wall_hanging_sign')) aliases.push(material.replace('_wall_hanging_sign', '_hanging_sign'));
   if (material.endsWith('_wall_banner')) aliases.push(material.replace('_wall_banner', '_banner'));
   if (material.endsWith('_bed')) aliases.push(material);
-  if (material.endsWith('_door')) aliases.push(material);
-  if (material.endsWith('_trapdoor')) aliases.push(material);
+  if (material.endsWith('_door')) aliases.push(material, material.replace('_door', '_planks'));
+  if (material.endsWith('_trapdoor')) aliases.push(material, material.replace('_trapdoor', '_planks'));
+  if (material.endsWith('_fence')) aliases.push(material.replace('_fence', '_planks'));
+  if (material.endsWith('_fence_gate')) aliases.push(material.replace('_fence_gate', '_planks'));
+  if (material.endsWith('_stairs')) aliases.push(material.replace('_stairs', '_planks'));
+  if (material.endsWith('_slab')) aliases.push(material.replace('_slab', '_planks'));
   if (material.endsWith('_boat') || material.endsWith('_chest_boat')) aliases.push(material);
   if (material.endsWith('_spawn_egg')) aliases.push(material);
   if (material.endsWith('_candle_cake')) aliases.push(material.replace('_candle_cake', '_candle'), 'cake');
@@ -131,7 +138,7 @@ function materialAliases(material: string): string[] {
 }
 
 function forceItemFirst(material: string): boolean {
-  return /(_door|_boat|_chest_boat|_spawn_egg|_bucket|_sword|_pickaxe|_axe|_shovel|_hoe|_helmet|_chestplate|_leggings|_boots|_sign|_banner|potion|arrow|book|map|compass|clock|elytra|shield|trident|bow|crossbow|template|sherd|disc)$/.test(material);
+  return /(_door|_boat|_chest_boat|_spawn_egg|_bucket|_sword|_pickaxe|_axe|_shovel|_hoe|_helmet|_chestplate|_leggings|_boots|_sign|_hanging_sign|_banner|barrier|light|structure_void|potion|arrow|book|map|compass|clock|elytra|shield|trident|bow|crossbow|template|sherd|disc)$/.test(material);
 }
 
 function isLikelyBlock(material: string): boolean {

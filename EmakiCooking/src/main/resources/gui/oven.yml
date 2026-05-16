@@ -6,6 +6,7 @@
 # 文件放置位置: plugins/EmakiCooking/gui/
 # ============================================================
 id: "oven"
+gui_type: CHEST
 title: "<dark_gray>烤炉"
 rows: 1
 slots:

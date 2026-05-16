@@ -1,5 +1,7 @@
 package emaki.jiuwu.craft.strengthen;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
@@ -163,7 +165,10 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     private void registerWebConsole() {
         WebConsoleRegistry.registerModule(this, "Strengthen 强化", "星级、广播、成功率", "strengthen", WEB_ICON);
         WebConsoleRegistry.registerConfigFile(this, "强化系统配置", "config.yml", "强化系统主配置，包含成功率、材料、经济和显示策略。 ");
-        WebConsoleRegistry.registerGuiFile(this, "强化 GUI 模板", "gui/**/*.yml", "强化界面 GUI 模板文件。");
+        WebConsoleRegistry.registerGuiFile(this, "强化 GUI 模板", "gui/**/*.yml", "强化界面 GUI 模板文件。", "emakistrengthen:gui");
+        WebConsoleRegistry.registerWebExtension(this, "emakistrengthen:gui-surface", "web-extensions/emakistrengthen-gui-surface.js");
+        WebConsoleRegistry.registerGuiEditorDescriptor(this, "emakistrengthen:gui", editorDescriptor("emakistrengthen:gui", "强化 GUI", "强化 GUI 模板"));
+        registerGuiEditorFields("emakistrengthen:gui");
         WebConsoleRegistry.registerCommonConfigComments(this);
 
         // 顶层字段
@@ -176,6 +181,33 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
 
         // success_rates
         WebConsoleRegistry.registerNodeComment(this, "success_rates", "成功率", "全局成功率配置，key 为星级，value 为成功率百分比。", "object");
+    }
+
+    private void registerGuiEditorFields(String editorId) {
+        guiField(editorId, "id", "ID", "GUI 模板唯一标识。", "text");
+        guiField(editorId, "gui_type", "GUI 类型", "Bukkit InventoryType。只有 CHEST 支持行数。", "enum");
+        guiField(editorId, "title", "标题", "GUI 窗口标题，支持 MiniMessage。", "text");
+        guiField(editorId, "rows", "箱子行数", "仅 CHEST 类型可用，范围 1-6。", "number");
+        guiField(editorId, "type", "槽位类型", "强化业务槽位语义。", "text");
+        guiField(editorId, "slots", "槽位", "槽位索引列表。", "list");
+        guiField(editorId, "item", "物品", "槽位显示物品。", "text");
+        guiField(editorId, "display_name", "显示名", "槽位物品显示名称。", "text");
+        guiField(editorId, "lore", "Lore", "槽位物品描述。", "stringList");
+        guiField(editorId, "target_item", "目标物品", "放入待强化物品的槽位。", "text");
+        guiField(editorId, "material", "强化材料", "放入强化材料的槽位。", "text");
+        guiField(editorId, "confirm", "确认强化", "执行强化操作按钮。", "text");
+    }
+
+    private void guiField(String editorId, String path, String label, String comment, String type) {
+        WebConsoleRegistry.registerGuiEditorField(this, editorId, path, label, comment, type);
+    }
+
+    private Map<String, Object> editorDescriptor(String id, String title, String kindLabel) {
+        Map<String, Object> descriptor = new LinkedHashMap<>();
+        descriptor.put("id", id);
+        descriptor.put("title", title);
+        descriptor.put("kindLabel", kindLabel);
+        return descriptor;
     }
 
     private void ensurePlaceholderExpansion() {
