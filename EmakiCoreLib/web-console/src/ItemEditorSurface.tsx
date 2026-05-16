@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import type { ApiClient, ActionTypesResult } from './api';
-import { ActionGroup, Button, ActionsEditor, InlineError, MiniText, PropRow, SectionHead, StringListEditor } from './components';
+import { ActionsEditor, Button, EditorChrome, InlineError, MiniText, PropRow, SectionHead, StringListEditor, type EditorChange } from './components';
 import { asList, asRecord, asStringList, displaySource, firstItemSource, materialFromItemSource, setDeepValue, type AnyMap } from './itemEditor';
 import { t } from './i18n';
 import { materialShortName, materialUrls, subscribeTextureBases, textValue } from './lib';
@@ -20,13 +20,13 @@ const GEM_TYPES = ['attack', 'defense', 'utility', 'universal'];
 
 export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0, editor, onReload }: Props) {
   const [data, setData] = useState<AnyMap>({});
+  const [originalData, setOriginalData] = useState<AnyMap>({});
   const [originalContent, setOriginalContent] = useState('');
   const [preview, setPreview] = useState<ItemPreviewResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [viewSource, setViewSource] = useState(false);
-  const [sourceText, setSourceText] = useState('');
+
   const [actionTypesResult, setActionTypesResult] = useState<ActionTypesResult | null>(null);
   const [dirty, setDirty] = useState(false);
 
@@ -42,8 +42,8 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
     api.readItem(module.id, filePath).then(doc => {
       if (cancelled) return;
       setData(doc.data as AnyMap);
+      setOriginalData(doc.data as AnyMap);
       setOriginalContent(doc.content);
-      setSourceText(doc.content);
       setDirty(false);
       setLoading(false);
     }).catch(err => {
@@ -60,12 +60,12 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
 
   useEffect(() => {
     if (loading) return;
-    const content = viewSource ? sourceText : serializeItemYaml(data);
+    const content = serializeItemYaml(data);
     const timer = setTimeout(() => {
       api.previewItem(content, 1, baseName, baseLore as string[]).then(setPreview).catch(() => setPreview(null));
     }, 300);
     return () => clearTimeout(timer);
-  }, [api, data, sourceText, viewSource, loading, baseName, baseLore]);
+  }, [api, data, loading, baseName, baseLore]);
 
   const setField = (path: string, value: unknown) => {
     setData(prev => setDeepValue(prev, path.split('.'), value));
@@ -73,13 +73,14 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
   };
 
   const handleSave = async () => {
-    if (saving || !dirty) return;
+    if (saving || serializeItemYaml(data) === originalContent) return;
     setSaving(true);
     setError(null);
     try {
-      const content = viewSource ? sourceText : serializeItemYaml(data);
+      const content = serializeItemYaml(data);
       await api.saveItem(module.id, filePath, content);
       setOriginalContent(content);
+      setOriginalData(data);
       setDirty(false);
     } catch (err: any) {
       setError(err?.message ?? t('core.toast.saveFailed'));
@@ -88,36 +89,31 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
     }
   };
 
-  const switchToSource = () => {
-    if (!viewSource) setSourceText(serializeItemYaml(data));
-    setViewSource(!viewSource);
-  };
+  const draftContent = serializeItemYaml(data);
+  const sourceContent = draftContent;
+  const actualDirty = sourceContent !== originalContent;
+  const changes = useMemo(() => diffRecords(data, originalData, '', 18), [data, originalData]);
 
   if (loading) return <div className="ie-surface"><div className="ie-loading" role="status"><div className="ie-skeleton" aria-label={t('core.item.loadingAria')}><div className="ie-skeleton-line" style={{ width: '60%' }} /><div className="ie-skeleton-line" style={{ width: '80%' }} /><div className="ie-skeleton-line" style={{ width: '45%' }} /><div className="ie-skeleton-line" style={{ width: '70%' }} /></div></div></div>;
   if (error && !data) return <div className="ie-surface"><InlineError>{error}</InlineError>{onReload && <Button size="sm" onClick={onReload}>{t('core.action.retry')}</Button>}</div>;
 
   return (
-    <div className="ie-surface" data-dirty={dirty || undefined} data-original-size={originalContent.length || undefined}>
-      <div className="ie-header">
-        <div className="ie-header-left">
-          <h1 className="ie-title">{editor?.title ?? file.title ?? t('core.item.editorTitle')}</h1>
-          {dirty && <span className="ie-dirty-badge">{t('core.item.unsaved')}</span>}
-        </div>
-        <ActionGroup>
-          {onReload && <Button size="sm" onClick={onReload}>{t('core.action.refresh')}</Button>}
-          <Button size="sm" onClick={switchToSource}>{viewSource ? t('core.item.visual') : t('core.item.source')}</Button>
-          <Button size="sm" variant="primary" ready={dirty} onClick={handleSave} disabled={saving || !dirty}>{saving ? t('core.item.saving') : t('core.action.save')}</Button>
-        </ActionGroup>
-      </div>
+    <div className="ie-surface" data-dirty={actualDirty || undefined} data-original-size={originalContent.length || undefined}>
+      <EditorChrome
+        className="ie-header"
+        title={editor?.title ?? file.title ?? t('core.item.editorTitle')}
+        subtitle={`${module.id}/${filePath}`}
+        dirty={actualDirty}
+        changes={changes}
+        source={sourceContent}
+        saving={saving}
+        onReload={onReload}
+        onSave={handleSave}
+      />
 
       {error && <InlineError>{error}</InlineError>}
 
-      {viewSource ? (
-        <div className="ie-source-wrap">
-          <textarea className="ie-source" value={sourceText} onChange={e => { setSourceText(e.target.value); setDirty(true); }} rows={28} spellCheck={false} />
-        </div>
-      ) : (
-        <div className="ie-workbench">
+      <div className="ie-workbench">
           <GenericPreviewPane data={data} preview={preview} />
           <div className="ie-props-scroll">
             <div className="ie-props">
@@ -125,40 +121,40 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
                 <div key={section.title}>
                   <SectionHead title={section.title} />
                   {section.comment && <p className="muted-copy">{section.comment}</p>}
-                  {section.fields.map(field => <FieldEditor key={field.path} field={field} data={data} setField={setField} actionTypesResult={actionTypesResult} />)}
+                  {section.fields.map(field => <FieldEditor key={field.path} field={field} data={data} originalData={originalData} setField={setField} actionTypesResult={actionTypesResult} />)}
                 </div>
               ))}
             </div>
           </div>
         </div>
-      )}
     </div>
   );
 }
 
-function FieldEditor({ field, data, setField, actionTypesResult }: { field: WebEditorField; data: AnyMap; setField: (path: string, value: unknown) => void; actionTypesResult: ActionTypesResult | null }) {
+function FieldEditor({ field, data, originalData, setField, actionTypesResult }: { field: WebEditorField; data: AnyMap; originalData: AnyMap; setField: (path: string, value: unknown) => void; actionTypesResult: ActionTypesResult | null }) {
   const value = getDeepValue(data, field.path);
+  const changed = !valuesEqual(value, getDeepValue(originalData, field.path));
   const label = field.label || field.path;
   const type = field.type || 'text';
 
-  if (type === 'number') return <PropRow label={label} wide={field.wide}><NumberInput value={value} onChange={next => setField(field.path, next)} /></PropRow>;
-  if (type === 'boolean') return <PropRow label={label} wide={field.wide}><ToggleButton checked={value === true} onChange={next => setField(field.path, next)} /></PropRow>;
-  if (type === 'enum' && field.options?.length) return <PropRow label={label} wide={field.wide}><SelectInput value={value} options={field.options} onChange={next => setField(field.path, next)} /></PropRow>;
-  if (type === 'textarea') return <PropRow label={label} wide><textarea rows={field.rows ?? 4} value={textValue(value)} onChange={e => setField(field.path, e.target.value)} placeholder={field.placeholder} /></PropRow>;
-  if (type === 'stringList') return <PropRow label={label} wide><StringListEditor items={asStringList(value)} onChange={items => setField(field.path, items)} placeholder={field.placeholder} /></PropRow>;
-  if (type === 'numberList') return <PropRow label={label} wide><NumberListEditor items={asList(value).map(item => Number(item) || 0)} onChange={items => setField(field.path, items)} /></PropRow>;
-  if (type === 'map' || type === 'dynamicMap' || type === 'objectMap') return <PropRow label={label} wide><MapEditor value={value} onChange={next => setField(field.path, next)} /></PropRow>;
+  if (type === 'number') return <PropRow label={label} changed={changed} wide={field.wide}><NumberInput value={value} onChange={next => setField(field.path, next)} /></PropRow>;
+  if (type === 'boolean') return <PropRow label={label} changed={changed} wide={field.wide}><ToggleButton checked={value === true} onChange={next => setField(field.path, next)} /></PropRow>;
+  if (type === 'enum' && field.options?.length) return <PropRow label={label} changed={changed} wide={field.wide}><SelectInput value={value} options={field.options} onChange={next => setField(field.path, next)} /></PropRow>;
+  if (type === 'textarea') return <PropRow label={label} changed={changed} wide><textarea rows={field.rows ?? 4} value={textValue(value)} onChange={e => setField(field.path, e.target.value)} placeholder={field.placeholder} /></PropRow>;
+  if (type === 'stringList') return <PropRow label={label} changed={changed} wide><StringListEditor items={asStringList(value)} onChange={items => setField(field.path, items)} placeholder={field.placeholder} /></PropRow>;
+  if (type === 'numberList') return <PropRow label={label} changed={changed} wide><NumberListEditor items={asList(value).map(item => Number(item) || 0)} onChange={items => setField(field.path, items)} /></PropRow>;
+  if (type === 'map' || type === 'dynamicMap' || type === 'objectMap') return <PropRow label={label} changed={changed} wide><MapEditor value={value} onChange={next => setField(field.path, next)} /></PropRow>;
   if (type === 'actions') {
     const mode = field.path.toLowerCase().includes('lore') ? 'lore' : 'name';
-    return <PropRow label={label} wide><ActionsEditor actions={parseActionList(value)} onChange={actions => setField(field.path, serializeActionList(actions))} actionTypes={mode === 'lore' ? actionTypesResult?.loreActions ?? [] : actionTypesResult?.nameActions ?? []} mode={mode} /></PropRow>;
+    return <PropRow label={label} changed={changed} wide><ActionsEditor actions={parseActionList(value)} onChange={actions => setField(field.path, serializeActionList(actions))} actionTypes={mode === 'lore' ? actionTypesResult?.loreActions ?? [] : actionTypesResult?.nameActions ?? []} mode={mode} /></PropRow>;
   }
-  if (type === 'effects') return <PropRow label={label} wide><EffectsEditor value={value} onChange={next => setField(field.path, next)} actionTypesResult={actionTypesResult} /></PropRow>;
+  if (type === 'effects') return <PropRow label={label} changed={changed} wide><EffectsEditor value={value} onChange={next => setField(field.path, next)} actionTypesResult={actionTypesResult} /></PropRow>;
   if (type === 'cost') return <CostEditor label={label} value={value ?? { currencies: [], materials: [] }} onChange={next => setField(field.path, next)} />;
   if (type === 'extractReturn') return <ExtractReturnEditor value={value} onChange={next => setField(field.path, next)} />;
   if (type === 'gemUpgrade') return <UpgradeEditor value={value ?? { enabled: false, levels: {} }} onChange={next => setField(field.path, next)} actionTypesResult={actionTypesResult} />;
-  if (type === 'gemSlots') return <PropRow label={label} wide><GemSlotsEditor value={value} onChange={next => setField(field.path, next)} /></PropRow>;
-  if (type === 'json') return <PropRow label={label} wide><GenericObjectEditor value={value} onChange={next => setField(field.path, next)} /></PropRow>;
-  return <PropRow label={label} wide={field.wide}><input type="text" value={textValue(value)} onChange={e => setField(field.path, e.target.value)} placeholder={field.placeholder} /></PropRow>;
+  if (type === 'gemSlots') return <PropRow label={label} changed={changed} wide><GemSlotsEditor value={value} onChange={next => setField(field.path, next)} /></PropRow>;
+  if (type === 'json') return <PropRow label={label} changed={changed} wide><GenericObjectEditor value={value} onChange={next => setField(field.path, next)} /></PropRow>;
+  return <PropRow label={label} changed={changed} wide={field.wide}><input type="text" value={textValue(value)} onChange={e => setField(field.path, e.target.value)} placeholder={field.placeholder} /></PropRow>;
 }
 
 function ToggleButton({ checked, onChange }: { checked: boolean; onChange: (next: boolean) => void }) {
@@ -465,6 +461,30 @@ function serializeActionList(actions: ActionEntry[]): unknown[] {
 
 function getDeepValue(source: AnyMap, path: string): unknown {
   return path.split('.').reduce<unknown>((current, key) => asRecord(current)[key], source);
+}
+
+function diffRecords(after: unknown, before: unknown, prefix = '', limit = 18): EditorChange[] {
+  if (limit <= 0) return [];
+  if (!isPlainObject(after) || !isPlainObject(before)) return valuesEqual(after, before) ? [] : [{ path: prefix || 'root', before, after }];
+  const keys = [...new Set([...Object.keys(before), ...Object.keys(after)])];
+  const changes: EditorChange[] = [];
+  for (const key of keys) {
+    if (changes.length >= limit) break;
+    const path = prefix ? `${prefix}.${key}` : key;
+    const left = (before as Record<string, unknown>)[key];
+    const right = (after as Record<string, unknown>)[key];
+    if (isPlainObject(left) && isPlainObject(right)) changes.push(...diffRecords(right, left, path, limit - changes.length));
+    else if (!valuesEqual(left, right)) changes.push({ path, before: left, after: right });
+  }
+  return changes;
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value));
+}
+
+function valuesEqual(left: unknown, right: unknown): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
 }
 
 function defaultSections(): WebEditorSection[] {

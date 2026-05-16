@@ -2,7 +2,7 @@ import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from 'r
 import type { ApiClient } from './api';
 import type { GuiSlotDefinition, GuiTemplateData, WebRegistryFile, WebRegistryModule } from './types';
 import { buildOccupancy, clampRows, guiColumns, guiField, guiSlotCount, guiTypeOptions, loreLines, materialShortName, materialUrls, normalizeGuiType, parseSlotList, renderMiniMessageParts, serializeGuiYaml, subscribeTextureBases, supportsRows, textValue } from './guiEditor';
-import { ActionGroup, Button, InlineError, InspectorSection, ToggleChip } from './components';
+import { Button, EditorChrome, InlineError, InspectorSection, ToggleChip, type EditorChange } from './components';
 import { t } from './i18n';
 import { MATERIAL_CATEGORIES, MINECRAFT_MATERIAL_VERSION, type MaterialCategory, materialCategory, searchMaterials } from './minecraftMaterials';
 
@@ -21,6 +21,7 @@ const INSPECTOR_STEP = 16;
 
 export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0, editor }: Props) {
   const [data, setData] = useState<GuiTemplateData | null>(null);
+  const [originalData, setOriginalData] = useState<GuiTemplateData | null>(null);
   const [originalText, setOriginalText] = useState('');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -32,8 +33,6 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
   const [category, setCategory] = useState<MaterialCategory | '全部'>('全部');
   const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
   const [, refreshTextureOrder] = useState(0);
-  const [mode, setMode] = useState<'preview' | 'source'>('preview');
-  const [reloadConfirmOpen, setReloadConfirmOpen] = useState(false);
   const [inspectorWidth, setInspectorWidth] = useState(() => {
     const saved = localStorage.getItem('emaki-gui-inspector-width');
     return saved ? clampInspectorWidth(Number(saved)) : 380;
@@ -114,15 +113,6 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
     void reloadGui();
   }, [api, module.id, path, refreshKey]);
 
-  useEffect(() => {
-    if (!reloadConfirmOpen) return;
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setReloadConfirmOpen(false);
-    };
-    document.addEventListener('keydown', closeOnEscape);
-    return () => document.removeEventListener('keydown', closeOnEscape);
-  }, [reloadConfirmOpen]);
-
   async function reloadGui() {
     if (!path) return;
     setLoading(true);
@@ -131,6 +121,7 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
       const doc = await api.readGui(module.id, path);
       const normalizedData = doc.data ?? {};
       setData(normalizedData);
+      setOriginalData(normalizedData);
       setOriginalText(serializeGuiYaml(normalizedData));
       setSelected([]);
       setHovered(null);
@@ -152,21 +143,9 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
   const selectedSlot = selectedKey && data?.slots ? data.slots[selectedKey] ?? null : null;
   const draftText = data ? serializeGuiYaml(data) : '';
   const dirty = data != null && draftText !== originalText;
+  const changes = useMemo(() => diffRecords(data ?? {}, originalData ?? {}, '', 18), [data, originalData]);
   const materialResults = useMemo(() => searchMaterials(query, category), [query, category]);
   const visibleMaterials = materialResults.slice(0, 80);
-
-  function requestReload() {
-    if (dirty) {
-      setReloadConfirmOpen(true);
-      return;
-    }
-    void reloadGui();
-  }
-
-  function confirmReload() {
-    setReloadConfirmOpen(false);
-    void reloadGui();
-  }
 
   async function save() {
     if (!data || !path || !dirty) return;
@@ -176,6 +155,7 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
       const content = serializeGuiYaml(data);
       await api.saveGui(module.id, path, content);
       setOriginalText(content);
+      setOriginalData(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : t('core.gui.saveFailed'));
     } finally {
@@ -243,20 +223,21 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
   const hoveredCell = hovered == null ? null : occupancy.find((cell) => cell.index === hovered);
 
   return <section className="config-surface gui-surface" data-dirty={dirty ? 'true' : undefined}>
-    <div className="surface-head gui-head">
-      <div>
-        <h2>{file.title}</h2>
-        <p>{module.id}/{path} · {guiType}{rowSupported ? ` · ${t('core.gui.metaRows', { count: rows })}` : ''} · {t('core.gui.metaSlots', { count: slotCount })} · {t('core.gui.metaSlotDefinitions', { count: Object.keys(data.slots ?? {}).length })} {dirty && <span className="dirty-inline">{t('core.item.unsaved')}</span>}</p>
-      </div>
-      <ActionGroup>
-        <Button onClick={() => setMode(mode === 'preview' ? 'source' : 'preview')}>{mode === 'preview' ? t('core.item.source') : t('core.gui.preview')}</Button>
-        <Button onClick={requestReload} disabled={saving || loading}>{t('core.gui.reload')}</Button>
-        <Button variant="primary" ready={dirty} onClick={() => void save()} disabled={!dirty || saving}>{saving ? t('core.script.saving') : t('core.gui.save')}</Button>
-      </ActionGroup>
-    </div>
-    {reloadConfirmOpen && <ReloadConfirmDialog fileTitle={file.title} filePath={`${module.id}/${path}`} onConfirm={confirmReload} onCancel={() => setReloadConfirmOpen(false)} />}
+    <EditorChrome
+      className="surface-head gui-head"
+      title={file.title}
+      subtitle={`${module.id}/${path} · ${guiType}${rowSupported ? ` · ${t('core.gui.metaRows', { count: rows })}` : ''} · ${t('core.gui.metaSlots', { count: slotCount })} · ${t('core.gui.metaSlotDefinitions', { count: Object.keys(data.slots ?? {}).length })}`}
+      dirty={dirty}
+      changes={changes}
+      source={draftText}
+      saving={saving}
+      loading={loading}
+      saveLabel={t('core.gui.save')}
+      onReload={() => void reloadGui()}
+      onSave={() => void save()}
+    />
     {error && <InlineError className="gui-error">{error}</InlineError>}
-    {mode === 'source' ? <pre className="gui-source" aria-label={t('core.gui.sourcePreview')}>{draftText}</pre> : <div className={`gui-workbench ${resizingInspector ? 'is-resizing' : ''}`} style={{ '--gui-inspector-width': `${inspectorWidth}px` } as React.CSSProperties}>
+    <div className={`gui-workbench ${resizingInspector ? 'is-resizing' : ''}`} style={{ '--gui-inspector-width': `${inspectorWidth}px` } as React.CSSProperties}>
       <div className="gui-preview-pane">
         <div className="minecraft-window">
           <div className="minecraft-titlebar"><MiniText value={data.title ?? 'GUI'} /></div>
@@ -321,27 +302,33 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
           {materialResults.length > visibleMaterials.length && <p className="material-limit">{t('core.gui.materialLimit', { count: visibleMaterials.length })}</p>}
         </InspectorSection>
       </aside>
-    </div>}
+    </div>
   </section>;
 }
 
-function ReloadConfirmDialog({ fileTitle, filePath, onConfirm, onCancel }: { fileTitle: string; filePath: string; onConfirm: () => void; onCancel: () => void }) {
-  return <div className="reload-confirm-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onCancel(); }}>
-    <div className="reload-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="reload-confirm-title" aria-describedby="reload-confirm-desc">
-      <div className="reload-confirm-head">
-        <span>{t('core.gui.unsavedChanges')}</span>
-        <h3 id="reload-confirm-title">{t('core.gui.reloadDropsChanges')}</h3>
-      </div>
-      <div className="reload-confirm-body">
-        <p id="reload-confirm-desc">{t('core.gui.reloadDesc', { title: fileTitle })}</p>
-        <code>{filePath}</code>
-      </div>
-      <ActionGroup className="reload-confirm-actions">
-        <Button onClick={onCancel} autoFocus>{t('core.gui.cancel')}</Button>
-        <Button variant="danger" onClick={onConfirm}>{t('core.gui.continueReload')}</Button>
-      </ActionGroup>
-    </div>
-  </div>;
+
+function diffRecords(after: unknown, before: unknown, prefix = '', limit = 18): EditorChange[] {
+  if (limit <= 0) return [];
+  if (!isPlainObject(after) || !isPlainObject(before)) return valuesEqual(after, before) ? [] : [{ path: prefix || 'root', before, after }];
+  const keys = [...new Set([...Object.keys(before), ...Object.keys(after)])];
+  const changes: EditorChange[] = [];
+  for (const key of keys) {
+    if (changes.length >= limit) break;
+    const path = prefix ? `${prefix}.${key}` : key;
+    const left = (before as Record<string, unknown>)[key];
+    const right = (after as Record<string, unknown>)[key];
+    if (isPlainObject(left) && isPlainObject(right)) changes.push(...diffRecords(right, left, path, limit - changes.length));
+    else if (!valuesEqual(left, right)) changes.push({ path, before: left, after: right });
+  }
+  return changes;
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value));
+}
+
+function valuesEqual(left: unknown, right: unknown): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
 }
 
 function GuiLabel({ editor, path, fallback, children }: { editor?: import('./types').WebEditorDescriptor; path: string; fallback: string; children: React.ReactNode }) {

@@ -13,6 +13,9 @@ import {
   serializeItemYaml,
   setDeepValue,
   textValue,
+  t,
+  EditorChrome,
+  type EditorChange,
   type ActionTypesResult,
   type AnyMap,
   type ApiClient,
@@ -44,6 +47,7 @@ const FAILURE_PENALTIES = ['none', 'downgrade', 'destroy'];
 const GEM_TYPES = ['attack', 'defense', 'utility', 'universal'];
 
 const FieldMetaContext = React.createContext<Record<string, WebEditorField>>({});
+const ChangedPathContext = React.createContext<Set<string>>(new Set());
 
 function MiniText({ value }: { value: unknown }) {
   return <>{renderMiniMessageParts(value).map((part, index) => <span key={index} style={{ color: part.color }} className={part.token ? 'mini-token' : undefined}>{part.text}</span>)}</>;
@@ -59,14 +63,16 @@ function SectionHead({ title, count, actions }: { title: string; count?: number;
   );
 }
 
-function PropRow({ label, children, wide }: { label: string; children: React.ReactNode; wide?: boolean }) {
+function PropRow({ label, children, wide, changed }: { label: string; children: React.ReactNode; wide?: boolean; changed?: boolean }) {
   const id = useId();
   const fields = useContext(FieldMetaContext);
+  const changedPaths = useContext(ChangedPathContext);
   const meta = fieldMeta(fields, label);
-  const displayLabel = meta?.label || humanizeFieldLabel(label);
+  const displayLabel = translateFieldLabel(label, meta?.label);
+  const isChanged = changed ?? isChangedPath(label, changedPaths);
   const title = meta?.comment ? `${label}\n${meta.comment}` : label;
   return (
-    <div className={`prop-row${wide ? ' prop-row--wide' : ''}`}>
+    <div className={`prop-row${wide ? ' prop-row--wide' : ''}${isChanged ? ' changed' : ''}`}>
       <label className="prop-label" htmlFor={id} title={title}>{displayLabel}</label>
       <span className="prop-value" id={`${id}-wrap`}>{children}</span>
     </div>
@@ -85,10 +91,10 @@ function NumberInput({ value, onChange, step }: { value: unknown; onChange: (val
   return <input type="number" step={step} value={value == null ? '' : textValue(value)} onChange={event => onChange(event.target.value === '' ? undefined : Number(event.target.value))} />;
 }
 
-function SelectInput({ value, options, onChange }: { value: unknown; options: string[]; onChange: (value: string) => void }) {
+function SelectInput({ value, options, onChange, labelPrefix }: { value: unknown; options: string[]; onChange: (value: string) => void; labelPrefix?: string }) {
   const current = textValue(value);
   const merged = current && !options.includes(current) ? [...options, current] : options;
-  return <select value={current} onChange={event => onChange(event.target.value)}>{merged.map(option => <option key={option} value={option}>{option}</option>)}</select>;
+  return <select value={current} onChange={event => onChange(event.target.value)}>{merged.map(option => <option key={option} value={option}>{translateOption(labelPrefix, option)}</option>)}</select>;
 }
 
 function KvTable({ entries, onChange, valuePlaceholder = '值' }: { entries: Array<{ key: string; value: unknown }>; onChange: (entries: Array<{ key: string; value: unknown }>) => void; valuePlaceholder?: string }) {
@@ -111,7 +117,7 @@ function KvTable({ entries, onChange, valuePlaceholder = '值' }: { entries: Arr
           <button type="button" className="prop-kv-del" onClick={() => remove(index)} aria-label={`删除第 ${index + 1} 项`}>×</button>
         </div>
       ))}
-      <button type="button" className="prop-add" onClick={add}>+ 添加</button>
+      <button type="button" className="prop-add" onClick={add}>{t('emakigem.action.add')}</button>
     </div>
   );
 }
@@ -139,7 +145,7 @@ function StringListEditor({ items, onChange, placeholder }: { items: string[]; o
           <button type="button" className="prop-kv-del" onClick={() => remove(index)} aria-label={`删除第 ${index + 1} 项`}>×</button>
         </div>
       ))}
-      <button type="button" className="prop-add" onClick={add}>+ 添加</button>
+      <button type="button" className="prop-add" onClick={add}>{t('emakigem.action.add')}</button>
     </div>
   );
 }
@@ -156,7 +162,7 @@ function NumberListEditor({ items, onChange }: { items: number[]; onChange: (ite
           <button type="button" className="prop-kv-del" onClick={() => remove(index)} aria-label={`删除第 ${index + 1} 项`}>×</button>
         </div>
       ))}
-      <button type="button" className="prop-add" onClick={add}>+ 添加</button>
+      <button type="button" className="prop-add" onClick={add}>{t('emakigem.action.add')}</button>
     </div>
   );
 }
@@ -190,7 +196,7 @@ function ActionsEditor({ actions, onChange, actionTypes, mode }: { actions: Acti
           <div className="prop-action-head">
             <span className="prop-action-grip">≡</span>
             <select value={action.action} onChange={event => update(index, { action: event.target.value, params: {} })} aria-label={`动作类型 ${index + 1}`}>
-              {options.map(type => <option key={type} value={type}>{type}</option>)}
+              {options.map(type => <option key={type} value={type}>{translateOption('actionType', type)}</option>)}
               {!options.length && <option value="">未选择</option>}
             </select>
             <span className="prop-action-controls">
@@ -201,23 +207,33 @@ function ActionsEditor({ actions, onChange, actionTypes, mode }: { actions: Acti
           </div>
           <div className="prop-action-params">
             {mode === 'name' && <>
-              <input type="text" value={textValue(action.params.value)} onChange={event => updateParam(index, 'value', event.target.value)} placeholder="value" aria-label="value" />
+              <LabeledParamInput paramKey="value" value={textValue(action.params.value)} onChange={value => updateParam(index, 'value', value)} />
               {action.action === 'regex_replace' && <>
-                <input type="text" value={textValue(action.params.regex_pattern)} onChange={event => updateParam(index, 'regex_pattern', event.target.value)} placeholder="regex_pattern" aria-label="regex_pattern" />
-                <input type="text" value={textValue(action.params.replacement)} onChange={event => updateParam(index, 'replacement', event.target.value)} placeholder="replacement" aria-label="replacement" />
+                <LabeledParamInput paramKey="regex_pattern" value={textValue(action.params.regex_pattern)} onChange={value => updateParam(index, 'regex_pattern', value)} />
+                <LabeledParamInput paramKey="replacement" value={textValue(action.params.replacement)} onChange={value => updateParam(index, 'replacement', value)} />
               </>}
             </>}
             {mode === 'lore' && <>
-              <textarea rows={2} value={asStringList(action.params.content).join('\n')} onChange={event => updateParam(index, 'content', splitLines(event.target.value))} placeholder="content (每行一个)" aria-label="content" />
-              <input type="text" value={textValue(action.params.target_pattern)} onChange={event => updateParam(index, 'target_pattern', event.target.value)} placeholder="target_pattern" aria-label="target_pattern" />
-              <input type="text" value={textValue(action.params.anchor)} onChange={event => updateParam(index, 'anchor', event.target.value)} placeholder="anchor" aria-label="anchor" />
+              <LabeledParamTextarea paramKey="content" rows={2} value={asStringList(action.params.content).join('\n')} onChange={value => updateParam(index, 'content', splitLines(value))} />
+              <LabeledParamInput paramKey="target_pattern" value={textValue(action.params.target_pattern)} onChange={value => updateParam(index, 'target_pattern', value)} />
+              <LabeledParamInput paramKey="anchor" value={textValue(action.params.anchor)} onChange={value => updateParam(index, 'anchor', value)} />
             </>}
           </div>
         </div>;
       })}
-      <button type="button" className="prop-add" onClick={add}>+ 添加动作</button>
+      <button type="button" className="prop-add" onClick={add}>{t('emakigem.action.addAction')}</button>
     </div>
   );
+}
+
+function LabeledParamInput({ paramKey, value, onChange }: { paramKey: string; value: string; onChange: (value: string) => void }) {
+  const label = t(`emakigem.actionParam.${paramKey}`, undefined, paramKey);
+  return <label className="prop-param-field"><span>{label}</span><input type="text" value={value} onChange={event => onChange(event.target.value)} placeholder={label} aria-label={label} /></label>;
+}
+
+function LabeledParamTextarea({ paramKey, value, onChange, rows = 2 }: { paramKey: string; value: string; onChange: (value: string) => void; rows?: number }) {
+  const label = t(`emakigem.actionParam.${paramKey}`, undefined, paramKey);
+  return <label className="prop-param-field prop-param-field--wide"><span>{label}</span><textarea rows={rows} value={value} onChange={event => onChange(event.target.value)} placeholder={label} aria-label={label} /></label>;
 }
 
 function EffectsEditor({ value, onChange, actionTypesResult }: { value: unknown; onChange: (effects: unknown[]) => void; actionTypesResult: ActionTypesResult | null }) {
@@ -262,7 +278,7 @@ function EffectsEditor({ value, onChange, actionTypesResult }: { value: unknown;
             </span>
           </div>
           {opened && <div className="prop-level-body" id={`effect-body-${index}`}>
-            <PropRow label="type"><SelectInput value={type} options={EFFECT_TYPES} onChange={nextType => updateEffect(index, defaultEffect(nextType as EffectType))} /></PropRow>
+            <PropRow label="type"><SelectInput value={type} options={EFFECT_TYPES} labelPrefix="effect" onChange={nextType => updateEffect(index, defaultEffect(nextType as EffectType))} /></PropRow>
             <EffectPayloadEditor effect={effect} onChange={nextEffect => updateEffect(index, nextEffect)} actionTypesResult={actionTypesResult} />
           </div>}
         </div>;
@@ -319,7 +335,7 @@ function CostEditor({ label, value, onChange, showEnabled }: { label: string; va
     return (
       <div className="prop-cost-empty">
         <span className="prop-label">{label}</span>
-        <button type="button" className="prop-add" onClick={() => onChange(showEnabled ? { enabled: true, currencies: [], materials: [] } : { currencies: [], materials: [] })}>+ 设置{label}</button>
+        <button type="button" className="prop-add" onClick={() => onChange(showEnabled ? { enabled: true, currencies: [], materials: [] } : { currencies: [], materials: [] })}>{t('emakigem.action.setCost', { label })}</button>
       </div>
     );
   }
@@ -341,7 +357,7 @@ function CurrencyCostList({ items, onChange }: { items: AnyMap[]; onChange: (ite
 
   return (
     <div className="prop-cost-group">
-      <span className="prop-cost-group-title">货币</span>
+      <span className="prop-cost-group-title">{t('emakigem.cost.currency')}</span>
       {items.map((currency, index) => (
         <div className="prop-cost-entry" key={index}>
           <div className="prop-cost-entry-head">
@@ -356,7 +372,7 @@ function CurrencyCostList({ items, onChange }: { items: AnyMap[]; onChange: (ite
           <PropRow label="display_name"><TextInput value={currency.display_name} onChange={value => update(index, { display_name: value })} /></PropRow>
         </div>
       ))}
-      <button type="button" className="prop-add" onClick={add}>+ 货币</button>
+      <button type="button" className="prop-add" onClick={add}>{t('emakigem.action.addCurrency')}</button>
     </div>
   );
 }
@@ -368,7 +384,7 @@ function MaterialCostList({ items, onChange }: { items: AnyMap[]; onChange: (ite
 
   return (
     <div className="prop-cost-group">
-      <span className="prop-cost-group-title">材料</span>
+      <span className="prop-cost-group-title">{t('emakigem.cost.material')}</span>
       {items.map((material, index) => (
         <div className="prop-cost-entry" key={index}>
           <div className="prop-cost-entry-head">
@@ -379,7 +395,7 @@ function MaterialCostList({ items, onChange }: { items: AnyMap[]; onChange: (ite
           <PropRow label="amount"><NumberInput value={material.amount} onChange={value => update(index, { amount: value ?? 1 })} /></PropRow>
         </div>
       ))}
-      <button type="button" className="prop-add" onClick={add}>+ 材料</button>
+      <button type="button" className="prop-add" onClick={add}>{t('emakigem.action.addMaterial')}</button>
     </div>
   );
 }
@@ -389,8 +405,8 @@ function ExtractReturnEditor({ value, onChange }: { value: unknown; onChange: (v
   const update = (patch: AnyMap) => onChange(cleanObject({ mode: 'original', downgrade_levels: 1, degraded_chance: 0, ...data, ...patch }));
   return (
     <div className="prop-cost-section">
-      <span className="prop-cost-label">拆卸返还</span>
-      <PropRow label="mode"><SelectInput value={data.mode ?? 'original'} options={EXTRACT_RETURN_MODES} onChange={mode => update({ mode })} /></PropRow>
+      <span className="prop-cost-label">{t('emakigem.cost.extractReturn')}</span>
+      <PropRow label="mode"><SelectInput value={data.mode ?? 'original'} options={EXTRACT_RETURN_MODES} labelPrefix="extract" onChange={mode => update({ mode })} /></PropRow>
       <PropRow label="downgrade_levels"><NumberInput value={data.downgrade_levels ?? 1} onChange={value => update({ downgrade_levels: value ?? 1 })} /></PropRow>
       <PropRow label="degraded_chance"><NumberInput value={data.degraded_chance ?? 0} step="0.01" onChange={value => update({ degraded_chance: value ?? 0 })} /></PropRow>
     </div>
@@ -437,13 +453,13 @@ function UpgradeEditor({ value, onChange, actionTypesResult }: { value: unknown;
       <PropRow label="enabled"><ToggleButton checked={upgrade.enabled === true} onChange={enabled => updateUpgrade({ enabled })} /></PropRow>
       <PropRow label="max_level"><NumberInput value={upgrade.max_level ?? 1} onChange={value => updateUpgrade({ max_level: value ?? 1 })} /></PropRow>
       <PropRow label="gui_template"><TextInput value={upgrade.gui_template} onChange={gui_template => updateUpgrade({ gui_template })} placeholder="upgrade/default" /></PropRow>
-      <PropRow label="failure_penalty"><SelectInput value={upgrade.failure_penalty ?? 'none'} options={FAILURE_PENALTIES} onChange={failure_penalty => updateUpgrade({ failure_penalty })} /></PropRow>
-      <CostEditor label="全局升级经济" value={upgrade.economy ?? { enabled: true, currencies: [], materials: [] }} onChange={economy => updateUpgrade({ economy })} showEnabled />
+      <PropRow label="failure_penalty"><SelectInput value={upgrade.failure_penalty ?? 'none'} options={FAILURE_PENALTIES} labelPrefix="failure" onChange={failure_penalty => updateUpgrade({ failure_penalty })} /></PropRow>
+      <CostEditor label={t('emakigem.cost.globalUpgrade')} value={upgrade.economy ?? { enabled: true, currencies: [], materials: [] }} onChange={economy => updateUpgrade({ economy })} showEnabled />
       <div className="prop-level-subsection">
         <span className="prop-cost-group-title">success_rates</span>
         <MapEditor value={upgrade.success_rates} valuePlaceholder="成功率" onChange={success_rates => updateUpgrade({ success_rates })} />
       </div>
-      <SectionHead title="升级等级" count={levelEntries.length} actions={<button type="button" className="prop-add-inline" onClick={addLevel}>+</button>} />
+      <SectionHead title={t('emakigem.section.levels')} count={levelEntries.length} actions={<button type="button" className="prop-add-inline" onClick={addLevel}>+</button>} />
       <div className="prop-levels" role="list">
         {levelEntries.map(([levelKey, level]) => {
           const opened = expandedLevels.has(levelKey);
@@ -460,12 +476,12 @@ function UpgradeEditor({ value, onChange, actionTypesResult }: { value: unknown;
             {opened && <div className="prop-level-body" id={`level-body-${levelKey}`}>
               <PropRow label="display_name"><TextInput value={level.display_name} onChange={display_name => updateLevel(levelKey, { display_name })} /></PropRow>
               <PropRow label="success_rate"><NumberInput value={level.success_rate ?? level.success_chance} onChange={success_rate => updateLevel(levelKey, { success_rate })} /></PropRow>
-              <PropRow label="failure_penalty"><SelectInput value={level.failure_penalty ?? ''} options={['', ...FAILURE_PENALTIES]} onChange={failure_penalty => updateLevel(levelKey, { failure_penalty })} /></PropRow>
-              <SectionHead title="等级效果" count={asList(level.effects).length} />
+              <PropRow label="failure_penalty"><SelectInput value={level.failure_penalty ?? ''} options={['', ...FAILURE_PENALTIES]} labelPrefix="failure" onChange={failure_penalty => updateLevel(levelKey, { failure_penalty })} /></PropRow>
+              <SectionHead title={t('emakigem.section.levelEffects')} count={asList(level.effects).length} />
               <EffectsEditor value={level.effects} onChange={effects => updateLevel(levelKey, { effects })} actionTypesResult={actionTypesResult} />
-              <SectionHead title="升级材料" count={asList(level.materials).length} />
+              <SectionHead title={t('emakigem.section.upgradeMaterials')} count={asList(level.materials).length} />
               <MaterialCostList items={asList(level.materials).map(material => asRecord(material))} onChange={materials => updateLevel(levelKey, { materials })} />
-              <CostEditor label="等级经济覆盖" value={level.economy} onChange={economy => updateLevel(levelKey, { economy })} showEnabled />
+              <CostEditor label={t('emakigem.cost.levelOverride')} value={level.economy} onChange={economy => updateLevel(levelKey, { economy })} showEnabled />
               <ActionLinesEditor label="actions.success" value={actions.success} onChange={success => updateLevel(levelKey, { actions: cleanObject({ ...actions, success }) })} />
               <ActionLinesEditor label="actions.failure" value={actions.failure} onChange={failure => updateLevel(levelKey, { actions: cleanObject({ ...actions, failure }) })} />
             </div>}
@@ -480,16 +496,18 @@ function ActionLinesEditor({ label, value, onChange }: { label: string; value: u
   return <PropRow label={label} wide><StringListEditor items={asStringList(value)} onChange={onChange} placeholder="sendmessage text=&quot;...&quot;" /></PropRow>;
 }
 
-function PreviewPane({ preview, kind, previewLevel, setPreviewLevel }: { preview: ItemPreviewResult | null; kind: string; previewLevel: number; setPreviewLevel: (level: number) => void }) {
+function PreviewPane({ preview, kind, previewLevel, setPreviewLevel, loading, error }: { preview: ItemPreviewResult | null; kind: string; previewLevel: number; setPreviewLevel: (level: number) => void; loading?: boolean; error?: string | null }) {
   const source = firstItemSource(preview?.match?.item_sources ?? (preview as any)?.item_sources);
   const material = materialFromItemSource(source || preview?.material);
   const urls = materialUrls(material);
   const levels = preview?.levels ?? [];
+  const hasLevels = levels.length > 0;
+  const statusKey = error ? 'failed' : loading ? 'syncing' : 'live';
   const [imgFailed, setImgFailed] = useState(false);
   useEffect(() => { setImgFailed(false); }, [material]);
 
   return (
-    <div className="ie-preview" role="complementary" aria-label="物品预览">
+    <div className="ie-preview" role="complementary" aria-label={t('emakigem.preview.aria')}>
       <div className="ie-preview-icon">
         {urls.length > 0 && !imgFailed ? (
           <img src={urls[0]} alt={material || '物品图标'} onError={event => {
@@ -501,17 +519,25 @@ function PreviewPane({ preview, kind, previewLevel, setPreviewLevel }: { preview
         ) : <span className="ie-preview-fallback">{materialShortName(material) || '?'}</span>}
       </div>
       <div className="ie-preview-meta">
-        <span className="ie-preview-kind">{kind === 'gem' ? '宝石' : kind === 'socket' ? '插槽物品' : '物品'}</span>
+        <span className="ie-preview-kind">{t(`emakigem.preview.kind.${kind}`, undefined, kind)}</span>
         {preview?.id && <code className="ie-preview-id">{preview.id}</code>}
         <span className="ie-preview-source">{displaySource(source || material)}</span>
+        <span className={`ie-preview-status ${statusKey}`}>{t(`emakigem.preview.status.${statusKey}`)}</span>
       </div>
-      {levels.length > 1 && <div className="ie-level-rail">
-        {levels.map(level => <button key={level} type="button" className={level === previewLevel ? 'active' : ''} onClick={() => setPreviewLevel(level)}>Lv.{level}</button>)}
-      </div>}
-      <div className="ie-tooltip">
+      <div className="ie-level-panel">
+        <div className="ie-level-head">
+          <span>{t('emakigem.preview.levelTitle')}</span>
+          <code>{hasLevels ? t('emakigem.preview.levelCurrent', { level: previewLevel }) : t('emakigem.preview.levelBase')}</code>
+        </div>
+        {hasLevels ? <div className="ie-level-rail">
+          {levels.map(level => <button key={level} type="button" className={level === previewLevel ? 'active' : ''} onClick={() => setPreviewLevel(level)} aria-pressed={level === previewLevel}>Lv.{level}</button>)}
+        </div> : <p className="ie-level-empty">{t('emakigem.preview.levelHint')}</p>}
+        {hasLevels && <p className="ie-level-hint">{t('emakigem.preview.levelHint')}</p>}
+      </div>
+      <div className={`ie-tooltip ${loading ? 'is-refreshing' : ''}`}>
         {preview?.displayName && <div className="ie-tooltip-name"><MiniText value={preview.displayName} /></div>}
         {(preview?.lore ?? []).map((line, index) => <div className="ie-tooltip-line" key={index}><MiniText value={line} /></div>)}
-        {!preview?.displayName && !preview?.lore?.length && <span className="ie-tooltip-empty">暂无预览</span>}
+        {!preview?.displayName && !preview?.lore?.length && <span className="ie-tooltip-empty">{error || t('emakigem.preview.empty')}</span>}
       </div>
     </div>
   );
@@ -521,21 +547,21 @@ function GemPanel({ data, setField, actionTypesResult }: { data: AnyMap; setFiel
   const legacyVisible = ['variables', 'ea_attributes', 'skills', 'name_actions', 'lore_actions'].some(key => data[key] != null);
   return (
     <div className="ie-props">
-      <SectionHead title="基础字段" />
+      <SectionHead title={t('emakigem.section.basic')} />
       <PropRow label="id"><TextInput value={data.id} onChange={value => setField(['id'], value)} /></PropRow>
       <PropRow label="display_name"><TextInput value={data.display_name} onChange={value => setField(['display_name'], value)} /></PropRow>
       <PropRow label="lore" wide><StringListEditor items={asStringList(data.lore)} onChange={items => setField(['lore'], items)} placeholder="宝石自身 Lore 行" /></PropRow>
-      <PropRow label="gem_type"><SelectInput value={data.gem_type ?? 'universal'} options={GEM_TYPES} onChange={value => setField(['gem_type'], value)} /></PropRow>
+      <PropRow label="gem_type"><SelectInput value={data.gem_type ?? 'universal'} options={GEM_TYPES} labelPrefix="gemType" onChange={value => setField(['gem_type'], value)} /></PropRow>
       <PropRow label="level"><NumberInput value={data.level ?? 1} onChange={value => setField(['level'], value ?? 1)} /></PropRow>
       <PropRow label="item_sources" wide><StringListEditor items={asStringList(data.item_sources)} onChange={items => setField(['item_sources'], items)} placeholder="minecraft-redstone" /></PropRow>
       <PropRow label="custom_model_data"><NumberInput value={data.custom_model_data} onChange={value => setField(['custom_model_data'], value)} /></PropRow>
       <PropRow label="socket_compatibility" wide><StringListEditor items={asStringList(data.socket_compatibility)} onChange={items => setField(['socket_compatibility'], items)} placeholder="attack / universal" /></PropRow>
 
-      <SectionHead title="effects 效果" count={asList(data.effects).length} />
+      <SectionHead title={t('emakigem.section.effects')} count={asList(data.effects).length} />
       <EffectsEditor value={data.effects} onChange={effects => setField(['effects'], effects)} actionTypesResult={actionTypesResult} />
 
       {legacyVisible && <>
-        <SectionHead title="兼容旧字段" />
+        <SectionHead title={t('emakigem.section.legacy')} />
         {data.variables != null && <PropRow label="variables" wide><MapEditor value={data.variables} onChange={value => setField(['variables'], value)} /></PropRow>}
         {data.ea_attributes != null && <PropRow label="ea_attributes" wide><MapEditor value={data.ea_attributes} onChange={value => setField(['ea_attributes'], value)} /></PropRow>}
         {data.skills != null && <PropRow label="skills" wide><StringListEditor items={asStringList(data.skills)} onChange={items => setField(['skills'], items)} placeholder="技能 ID" /></PropRow>}
@@ -543,15 +569,15 @@ function GemPanel({ data, setField, actionTypesResult }: { data: AnyMap; setFiel
         {data.lore_actions != null && <PropRow label="lore_actions" wide><ActionsEditor actions={parseActionList(data.lore_actions)} onChange={actions => setField(['lore_actions'], serializeActionList(actions))} actionTypes={actionTypesResult?.loreActions ?? []} mode="lore" /></PropRow>}
       </>}
 
-      <SectionHead title="费用与返还" />
-      <CostEditor label="镶嵌费用" value={data.inlay_cost ?? { currencies: [], materials: [] }} onChange={value => setField(['inlay_cost'], value)} />
-      <CostEditor label="拆卸费用" value={data.extract_cost ?? { currencies: [], materials: [] }} onChange={value => setField(['extract_cost'], value)} />
+      <SectionHead title={t('emakigem.section.costReturn')} />
+      <CostEditor label={t('emakigem.cost.inlay')} value={data.inlay_cost ?? { currencies: [], materials: [] }} onChange={value => setField(['inlay_cost'], value)} />
+      <CostEditor label={t('emakigem.cost.extract')} value={data.extract_cost ?? { currencies: [], materials: [] }} onChange={value => setField(['extract_cost'], value)} />
       <ExtractReturnEditor value={data.extract_return} onChange={value => setField(['extract_return'], value)} />
 
-      <SectionHead title="upgrade 升级配置" />
+      <SectionHead title={t('emakigem.section.upgrade')} />
       <UpgradeEditor value={data.upgrade ?? { enabled: false, levels: {} }} onChange={value => setField(['upgrade'], value)} actionTypesResult={actionTypesResult} />
 
-      <SectionHead title="宝石动作" />
+      <SectionHead title={t('emakigem.section.gemActions')} />
       <ActionLinesEditor label="inlay_success" value={asRecord(data.actions).inlay_success} onChange={items => setField(['actions', 'inlay_success'], items)} />
       <ActionLinesEditor label="extract_success" value={asRecord(data.actions).extract_success} onChange={items => setField(['actions', 'extract_success'], items)} />
     </div>
@@ -589,12 +615,12 @@ function SlotsEditor({ value, onChange }: { value: unknown; onChange: (value: un
           </div>
           {opened && <div className="prop-level-body" id={`slot-body-${index}`}>
             <PropRow label="index"><NumberInput value={slot.index ?? index} onChange={value => updateSlot(index, { index: value ?? index })} /></PropRow>
-            <PropRow label="type"><TextInput value={slot.type} onChange={type => updateSlot(index, { type })} /></PropRow>
+            <PropRow label="type"><SelectInput value={slot.type ?? 'universal'} options={GEM_TYPES} labelPrefix="gemType" onChange={type => updateSlot(index, { type })} /></PropRow>
             <PropRow label="display_name"><TextInput value={slot.display_name} onChange={display_name => updateSlot(index, { display_name })} /></PropRow>
           </div>}
         </div>;
       })}
-      <button type="button" className="prop-add" onClick={addSlot}>+ 插槽</button>
+      <button type="button" className="prop-add" onClick={addSlot}>{t('emakigem.action.addSlot')}</button>
     </div>
   );
 }
@@ -603,26 +629,26 @@ function SocketPanel({ data, setField, actionTypesResult }: { data: AnyMap; setF
   const match = asRecord(data.match);
   return (
     <div className="ie-props">
-      <SectionHead title="匹配规则" />
+      <SectionHead title={t('emakigem.section.matchRules')} />
       <PropRow label="id"><TextInput value={data.id} onChange={value => setField(['id'], value)} /></PropRow>
       <PropRow label="match.item_sources" wide><StringListEditor items={asStringList(match.item_sources)} onChange={items => setField(['match', 'item_sources'], items)} placeholder="minecraft-diamond_sword" /></PropRow>
       <PropRow label="match.slot_groups" wide><StringListEditor items={asStringList(match.slot_groups)} onChange={items => setField(['match', 'slot_groups'], items)} placeholder="weapon / armor / offhand" /></PropRow>
       <PropRow label="match.lore_contains" wide><StringListEditor items={asStringList(match.lore_contains)} onChange={items => setField(['match', 'lore_contains'], items)} placeholder="Lore 包含文本" /></PropRow>
 
-      <SectionHead title="插槽结构" count={asList(data.slots).length} />
+      <SectionHead title={t('emakigem.section.slots')} count={asList(data.slots).length} />
       <SlotsEditor value={data.slots} onChange={slots => setField(['slots'], slots)} />
       <PropRow label="default_open_slots" wide><NumberListEditor items={asList(data.default_open_slots).map(entry => Number(entry) || 0)} onChange={items => setField(['default_open_slots'], items)} /></PropRow>
 
-      <SectionHead title="宝石限制" />
+      <SectionHead title={t('emakigem.section.gemLimit')} />
       <PropRow label="allowed_gem_types" wide><StringListEditor items={asStringList(data.allowed_gem_types)} onChange={items => setField(['allowed_gem_types'], items)} placeholder="attack / defense / utility / universal" /></PropRow>
       <PropRow label="max_same_type"><NumberInput value={data.max_same_type ?? 0} onChange={value => setField(['max_same_type'], value ?? 0)} /></PropRow>
       <PropRow label="max_same_id"><NumberInput value={data.max_same_id ?? 1} onChange={value => setField(['max_same_id'], value ?? 1)} /></PropRow>
 
-      <SectionHead title="GUI 模板" />
+      <SectionHead title={t('emakigem.section.guiTemplate')} />
       <PropRow label="gui.gem_template"><TextInput value={asRecord(data.gui).gem_template} onChange={value => setField(['gui', 'gem_template'], value)} placeholder="gem/default" /></PropRow>
       <PropRow label="gui.open_template"><TextInput value={asRecord(data.gui).open_template} onChange={value => setField(['gui', 'open_template'], value)} placeholder="open/default" /></PropRow>
 
-      <SectionHead title="展示动作" />
+      <SectionHead title={t('emakigem.section.displayActions')} />
       <PropRow label="name_actions" wide><ActionsEditor actions={parseActionList(data.name_actions)} onChange={actions => setField(['name_actions'], serializeActionList(actions))} actionTypes={actionTypesResult?.nameActions ?? []} mode="name" /></PropRow>
       <PropRow label="lore_actions" wide><ActionsEditor actions={parseActionList(data.lore_actions)} onChange={actions => setField(['lore_actions'], serializeActionList(actions))} actionTypes={actionTypesResult?.loreActions ?? []} mode="lore" /></PropRow>
     </div>
@@ -632,12 +658,12 @@ function SocketPanel({ data, setField, actionTypesResult }: { data: AnyMap; setF
 function GenericPanel({ data, setField, actionTypesResult }: { data: AnyMap; setField: (path: string[], value: unknown) => void; actionTypesResult: ActionTypesResult | null }) {
   return (
     <div className="ie-props">
-      <SectionHead title="基础" />
+      <SectionHead title={t('emakigem.section.genericBasic')} />
       <PropRow label="id"><TextInput value={data.id} onChange={value => setField(['id'], value)} /></PropRow>
       <PropRow label="material"><TextInput value={data.material} onChange={value => setField(['material'], value)} /></PropRow>
       <PropRow label="display_name"><TextInput value={data.display_name} onChange={value => setField(['display_name'], value)} /></PropRow>
       <PropRow label="lore" wide><StringListEditor items={asStringList(data.lore)} onChange={items => setField(['lore'], items)} placeholder="每行一个" /></PropRow>
-      <SectionHead title="展示动作" />
+      <SectionHead title={t('emakigem.section.displayActions')} />
       <PropRow label="name_actions" wide><ActionsEditor actions={parseActionList(data.name_actions)} onChange={actions => setField(['name_actions'], serializeActionList(actions))} actionTypes={actionTypesResult?.nameActions ?? []} mode="name" /></PropRow>
       <PropRow label="lore_actions" wide><ActionsEditor actions={parseActionList(data.lore_actions)} onChange={actions => setField(['lore_actions'], serializeActionList(actions))} actionTypes={actionTypesResult?.loreActions ?? []} mode="lore" /></PropRow>
     </div>
@@ -646,13 +672,16 @@ function GenericPanel({ data, setField, actionTypesResult }: { data: AnyMap; set
 
 export function EmakiGemItemSurface({ module, file, api, childPath, refreshKey = 0, editor, onReload }: Props) {
   const [data, setData] = useState<AnyMap>({});
+  const [originalData, setOriginalData] = useState<AnyMap>({});
+  const [originalContent, setOriginalContent] = useState('');
   const [preview, setPreview] = useState<ItemPreviewResult | null>(null);
   const [previewLevel, setPreviewLevel] = useState(1);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [viewSource, setViewSource] = useState(false);
-  const [sourceText, setSourceText] = useState('');
+
   const [actionTypesResult, setActionTypesResult] = useState<ActionTypesResult | null>(null);
   const [dirty, setDirty] = useState(false);
 
@@ -670,7 +699,8 @@ export function EmakiGemItemSurface({ module, file, api, childPath, refreshKey =
     api.readItem(module.id, filePath).then(doc => {
       if (cancelled) return;
       setData(doc.data as AnyMap);
-      setSourceText(doc.content);
+      setOriginalData(doc.data as AnyMap);
+      setOriginalContent(doc.content);
       setDirty(false);
       setLoading(false);
     }).catch(err => {
@@ -688,12 +718,26 @@ export function EmakiGemItemSurface({ module, file, api, childPath, refreshKey =
 
   useEffect(() => {
     if (loading) return;
-    const content = viewSource ? sourceText : serializeItemYaml(data);
+    const content = serializeItemYaml(data);
+    setPreviewLoading(true);
+    setPreviewError(null);
     const timer = window.setTimeout(() => {
-      api.previewItem(content, previewLevel, String(baseName), baseLore).then(setPreview).catch(() => setPreview(null));
+      api.previewItem(content, previewLevel, String(baseName), baseLore)
+        .then(nextPreview => {
+          setPreview(nextPreview);
+          setPreviewError(null);
+        })
+        .catch(err => {
+          setPreview(null);
+          setPreviewError(String(err?.message ?? err ?? t('emakigem.preview.status.failed')));
+        })
+        .finally(() => setPreviewLoading(false));
     }, 300);
-    return () => window.clearTimeout(timer);
-  }, [api, data, sourceText, viewSource, previewLevel, loading, baseName, baseLore]);
+    return () => {
+      window.clearTimeout(timer);
+      setPreviewLoading(false);
+    };
+  }, [api, data, previewLevel, loading, baseName, baseLore]);
 
   const setField = (path: string[], value: unknown) => {
     setData(previous => setDeepValue(previous, path, value));
@@ -701,11 +745,14 @@ export function EmakiGemItemSurface({ module, file, api, childPath, refreshKey =
   };
 
   const handleSave = async () => {
+    if (!actualDirty || saving) return;
     setSaving(true);
     setError(null);
     try {
-      const content = viewSource ? sourceText : serializeItemYaml(data);
+      const content = serializeItemYaml(data);
       await api.saveItem(module.id, filePath, content);
+      setOriginalContent(content);
+      setOriginalData(data);
       setDirty(false);
     } catch (err: any) {
       setError(err?.message ?? '保存失败');
@@ -714,46 +761,42 @@ export function EmakiGemItemSurface({ module, file, api, childPath, refreshKey =
     }
   };
 
-  const switchToSource = () => {
-    if (!viewSource) setSourceText(serializeItemYaml(data));
-    setViewSource(!viewSource);
-  };
+  const draftContent = serializeItemYaml(data);
+  const actualDirty = draftContent !== originalContent;
+  const changes = useMemo(() => diffRecords(data, originalData, '', 24), [data, originalData]);
+  const changedPaths = useMemo(() => new Set(changes.map(change => change.path)), [changes]);
 
   if (loading) return <div className="ie-surface"><div className="ie-loading"><div className="ie-skeleton" aria-label="加载中"><div className="ie-skeleton-line" style={{ width: '60%' }} /><div className="ie-skeleton-line" style={{ width: '80%' }} /><div className="ie-skeleton-line" style={{ width: '45%' }} /><div className="ie-skeleton-line" style={{ width: '70%' }} /></div></div></div>;
   if (error && Object.keys(data).length === 0) return <div className="ie-surface"><div className="ie-error" role="alert">{error}</div></div>;
 
   return (
-    <div className="ie-surface" data-dirty={dirty || undefined}>
-      <div className="ie-header">
-        <div className="ie-header-left">
-          <h1 className="ie-title">{editor?.title ?? file.title ?? 'EmakiGem 物品编辑器'}</h1>
-          {dirty && <span className="ie-dirty-badge">未保存</span>}
-        </div>
-        <div className="ie-header-actions">
-          {onReload && <button type="button" className="ie-btn" onClick={onReload}>刷新</button>}
-          <button type="button" className="ie-btn" onClick={switchToSource}>{viewSource ? '可视化' : '源码'}</button>
-          <button type="button" className={`ie-btn ie-btn--primary${dirty ? ' ie-btn--ready' : ''}`} onClick={handleSave} disabled={saving}>{saving ? '保存中...' : '保存'}</button>
-        </div>
-      </div>
+    <div className="ie-surface" data-dirty={actualDirty || undefined}>
+      <EditorChrome
+        className="ie-header"
+        title={editor?.title ?? file.title ?? 'EmakiGem 物品编辑器'}
+        subtitle={`${module.id}/${filePath}`}
+        dirty={actualDirty}
+        changes={changes}
+        source={draftContent}
+        saving={saving}
+        onReload={onReload}
+        onSave={handleSave}
+      />
 
       {error && <div className="ie-error" role="alert">{error}</div>}
 
-      {viewSource ? (
-        <div className="ie-source-wrap">
-          <textarea className="ie-source" value={sourceText} onChange={event => { setSourceText(event.target.value); setDirty(true); }} rows={28} spellCheck={false} />
-        </div>
-      ) : (
-        <FieldMetaContext.Provider value={editorFields}>
+      <FieldMetaContext.Provider value={editorFields}>
+        <ChangedPathContext.Provider value={changedPaths}>
           <div className="ie-workbench">
-            <PreviewPane preview={preview} kind={kind} previewLevel={previewLevel} setPreviewLevel={setPreviewLevel} />
+            <PreviewPane preview={preview} kind={kind} previewLevel={previewLevel} setPreviewLevel={setPreviewLevel} loading={previewLoading} error={previewError} />
             <div className="ie-props-scroll">
               {kind === 'gem' && <GemPanel data={data} setField={setField} actionTypesResult={actionTypesResult} />}
               {kind === 'socket' && <SocketPanel data={data} setField={setField} actionTypesResult={actionTypesResult} />}
               {kind === 'generic' && <GenericPanel data={data} setField={setField} actionTypesResult={actionTypesResult} />}
             </div>
           </div>
-        </FieldMetaContext.Provider>
-      )}
+        </ChangedPathContext.Provider>
+      </FieldMetaContext.Provider>
     </div>
   );
 }
@@ -775,6 +818,48 @@ function fieldMeta(fields: Record<string, WebEditorField>, path: string): WebEdi
   const key = lastPathKey(path);
   if (fields[key]) return fields[key];
   return undefined;
+}
+
+function diffRecords(after: unknown, before: unknown, prefix = '', limit = 24): EditorChange[] {
+  if (limit <= 0) return [];
+  if (!isPlainObject(after) || !isPlainObject(before)) return valuesEqual(after, before) ? [] : [{ path: prefix || 'root', before, after }];
+  const keys = [...new Set([...Object.keys(before), ...Object.keys(after)])];
+  const changes: EditorChange[] = [];
+  for (const key of keys) {
+    if (changes.length >= limit) break;
+    const path = prefix ? `${prefix}.${key}` : key;
+    const left = (before as Record<string, unknown>)[key];
+    const right = (after as Record<string, unknown>)[key];
+    if (isPlainObject(left) && isPlainObject(right)) changes.push(...diffRecords(right, left, path, limit - changes.length));
+    else if (!valuesEqual(left, right)) changes.push({ path, label: translateFieldLabel(path), before: left, after: right });
+  }
+  return changes;
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value));
+}
+
+function valuesEqual(left: unknown, right: unknown): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function isChangedPath(path: string, changedPaths: Set<string>): boolean {
+  return changedPaths.has(path) || [...changedPaths].some(changed => changed === path || changed.startsWith(`${path}.`) || path.startsWith(`${changed}.`));
+}
+
+function translateFieldLabel(path: string, fallback?: string): string {
+  const exact = t(`emakigem.item.field.${path}`, undefined, '');
+  if (exact) return exact;
+  const key = lastPathKey(path);
+  const byKey = t(`emakigem.item.field.${key}`, undefined, '');
+  return byKey || fallback || humanizeFieldLabel(path);
+}
+
+function translateOption(prefix: string | undefined, option: string): string {
+  if (!option) return option;
+  if (!prefix) return option;
+  return t(`emakigem.option.${prefix}.${option}`, undefined, option);
 }
 
 function humanizeFieldLabel(path: string): string {

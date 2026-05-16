@@ -6,7 +6,7 @@ import { ItemEditorSurface } from './ItemEditorSurface';
 import { loadWebExtensions } from './extensions';
 import { getSurface, isKind, registerSurface } from './registry';
 import { getLocale, getRegisteredLocales, setLocale, t } from './i18n';
-import { ActionGroup, Button, InlineError, ToastNotice } from './components';
+import { ActionGroup, Button, EditorChrome, InlineError, ToastNotice, type EditorChange } from './components';
 import { I18nBundleModal, type I18nTarget } from './I18nBundleModal';
 import { Login, ResizableRail, WorkspaceTree, fileKindLabel } from './shell';
 import type { SurfaceProps } from './registry';
@@ -134,16 +134,19 @@ export default function App() {
         <button className="rail-action quiet" onClick={() => { sessionStorage.removeItem('emaki-web-token'); setToken(null); }}>{t('core.auth.logout')}</button>
       </ResizableRail>
       <main className="stage">
-        {!hideStageHead && <header className="stage-head">
-          <div>
-            <h1>{selectedModule ? selectedModule.name : t('core.stage.defaultTitle')}</h1>
-            <p>{selectedFile ? `${selectedFile.title}，${selectedFile.path}` : t('core.stage.defaultHint')}</p>
-          </div>
-          <ActionGroup>
-            <Button onClick={() => void loadRegistry()} disabled={loading}>{t('core.action.refresh')}</Button>
-            <Button variant="primary" ready={changedCount > 0} onClick={() => void saveCurrent()} disabled={saving || changedCount === 0}>{changedCount ? t('core.action.saveCount', { count: changedCount }) : t('core.action.save')}</Button>
-          </ActionGroup>
-        </header>}
+        {!hideStageHead && <EditorChrome
+          className="stage-head"
+          title={selectedModule ? selectedModule.name : t('core.stage.defaultTitle')}
+          subtitle={selectedFile ? `${selectedFile.title}，${selectedFile.path}` : t('core.stage.defaultHint')}
+          dirty={changedCount > 0}
+          changedCount={changedCount}
+          changes={selectedModule && selectedFile ? configChanges(selectedModule.id, selectedFile.nodes, drafts) : []}
+          source={selectedFile ? configSourcePreview(selectedFile.nodes, selectedModule?.id ?? '', drafts) : ''}
+          saving={saving}
+          loading={loading}
+          onReload={() => void loadRegistry()}
+          onSave={() => void saveCurrent()}
+        />}
         <section className="editor-shell single">
           <ConfigSurface registry={registry} module={selectedModule} file={selectedFile} drafts={drafts} setDrafts={setDrafts} api={api} scriptPath={selected?.scriptPath} refreshKey={selected?.refreshKey ?? 0} onReload={() => void loadRegistry()} />
         </section>
@@ -244,16 +247,41 @@ function ConfigChildSurface({ module, file, childPath, drafts, setDrafts, api, r
 
   return <section className="config-surface">
     {toast && <ToastNotice tone={toast.tone} style={{ position: 'absolute', top: 12, right: 12 }}>{toast.text}</ToastNotice>}
-    <div className="surface-head">
-      <div><h2>{fileName}</h2><p>{file.title} · {childPath}</p></div>
-      <ActionGroup>
-        <Button variant="primary" ready={changedNodes.length > 0} onClick={() => void saveChild()} disabled={saving || changedNodes.length === 0}>{changedNodes.length ? t('core.action.saveCount', { count: changedNodes.length }) : t('core.action.save')}</Button>
-      </ActionGroup>
-    </div>
+    <EditorChrome
+      className="surface-head"
+      title={fileName}
+      subtitle={`${file.title} · ${childPath}`}
+      dirty={changedNodes.length > 0}
+      changedCount={changedNodes.length}
+      changes={configChanges(module.id, nodes, drafts)}
+      source={configSourcePreview(nodes, module.id, drafts)}
+      saving={saving}
+      loading={loading}
+      onReload={() => void reloadChildNodes()}
+      onSave={() => void saveChild()}
+    />
     {loading && <div className="script-loading" role="status">{t('core.state.loading')}</div>}
     {error && <InlineError><span>{error}</span><Button size="sm" onClick={() => void reloadChildNodes()}>{t('core.action.retry')}</Button></InlineError>}
     {!loading && !error && <ConfigNodeTree moduleId={module.id} nodes={nodes} drafts={drafts} setDrafts={setDrafts} />}
   </section>;
+}
+
+function configChanges(moduleId: string, nodes: WebConfigNode[], drafts: DraftMap): EditorChange[] {
+  return nodes
+    .filter(node => node.type !== 'object' && draftKey(moduleId, node.path) in drafts)
+    .map(node => ({ path: node.path, label: node.label, before: node.value, after: drafts[draftKey(moduleId, node.path)] }));
+}
+
+function configSourcePreview(nodes: WebConfigNode[], moduleId: string, drafts: DraftMap): string {
+  return nodes
+    .filter(node => node.type !== 'object')
+    .map(node => `${node.path}: ${formatPreviewValue(draftKey(moduleId, node.path) in drafts ? drafts[draftKey(moduleId, node.path)] : node.value)}`)
+    .join('\n');
+}
+
+function formatPreviewValue(value: unknown): string {
+  if (typeof value === 'string') return JSON.stringify(value);
+  try { return JSON.stringify(value); } catch { return String(value); }
 }
 
 function ConfigNodeTree({ moduleId, nodes, drafts, setDrafts }: { moduleId: string; nodes: WebConfigNode[]; drafts: DraftMap; setDrafts: React.Dispatch<React.SetStateAction<DraftMap>> }) {

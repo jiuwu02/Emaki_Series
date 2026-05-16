@@ -1,4 +1,5 @@
 export { ActionGroup } from './ActionGroup';
+export { EditorChrome, type EditorChange, type EditorChromeProps } from './EditorChrome';
 export { Button, type ButtonSize, type ButtonVariant } from './Button';
 export { InlineError, ToastNotice, type NoticeTone } from './Notice';
 export { InspectorSection } from './Panel';
