@@ -7,3 +7,4 @@ export { asRecord, asList, asStringList, setDeepValue, cleanMap, itemKind, first
 
 // serializeItemYaml delegates to serializeGuiYaml
 export { serializeGuiYaml as serializeItemYaml } from './lib/guiUtils';
+export { parseYaml } from './lib/yaml';

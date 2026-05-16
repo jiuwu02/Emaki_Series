@@ -17,6 +17,8 @@ export type EditorChromeProps = {
   changes?: EditorChange[];
   changedCount?: number;
   source?: string;
+  sourceEditable?: boolean;
+  sourceError?: string | null;
   saving?: boolean;
   loading?: boolean;
   saveLabel?: string;
@@ -24,6 +26,7 @@ export type EditorChromeProps = {
   reloadLabel?: string;
   onSave?: () => void;
   onReload?: () => void;
+  onSourceChange?: (source: string) => void;
   className?: string;
   children?: ReactNode;
 };
@@ -35,6 +38,8 @@ export function EditorChrome({
   changes = [],
   changedCount,
   source = '',
+  sourceEditable,
+  sourceError,
   saving = false,
   loading = false,
   saveLabel,
@@ -42,6 +47,7 @@ export function EditorChrome({
   reloadLabel,
   onSave,
   onReload,
+  onSourceChange,
   className = '',
   children
 }: EditorChromeProps) {
@@ -93,7 +99,7 @@ export function EditorChrome({
         </span>
       </ActionGroup>
     </div>
-    {sourceOpen && <SourceModal source={source} onClose={() => setSourceOpen(false)} />}
+    {sourceOpen && <SourceModal source={source} editable={sourceEditable ?? Boolean(onSourceChange)} error={sourceError} onChange={onSourceChange} onClose={() => setSourceOpen(false)} />}
     {reloadOpen && <ReloadModal onCancel={() => setReloadOpen(false)} onConfirm={confirmReload} />}
   </>;
 }
@@ -111,14 +117,15 @@ function ChangePopover({ changes, count }: { changes: EditorChange[]; count: num
   </div>;
 }
 
-function SourceModal({ source, onClose }: { source: string; onClose: () => void }) {
+function SourceModal({ source, editable, error, onChange, onClose }: { source: string; editable?: boolean; error?: string | null; onChange?: (source: string) => void; onClose: () => void }) {
   return <div className="editor-modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) onClose(); }}>
     <section className="editor-source-modal" role="dialog" aria-modal="true" aria-labelledby="editor-source-title">
       <header className="editor-modal-head">
         <div><span>{t('core.item.source')}</span><h3 id="editor-source-title">{t('core.editor.sourceTitle')}</h3></div>
         <Button size="sm" onClick={onClose}>{t('core.i18n.close')}</Button>
       </header>
-      <pre className="editor-source-code">{source}</pre>
+      {editable ? <textarea className="editor-source-code editor-source-textarea" value={source} onChange={event => onChange?.(event.target.value)} spellCheck={false} /> : <pre className="editor-source-code">{source}</pre>}
+      {error && <p className="editor-source-error" role="alert">{error}</p>}
     </section>
   </div>;
 }

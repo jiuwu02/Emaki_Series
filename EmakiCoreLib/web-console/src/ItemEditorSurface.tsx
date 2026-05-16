@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import type { ApiClient, ActionTypesResult } from './api';
 import { ActionsEditor, Button, EditorChrome, InlineError, MiniText, PropRow, SectionHead, StringListEditor, type EditorChange } from './components';
-import { asList, asRecord, asStringList, displaySource, firstItemSource, materialFromItemSource, setDeepValue, type AnyMap } from './itemEditor';
+import { asList, asRecord, asStringList, displaySource, firstItemSource, materialFromItemSource, setDeepValue, parseYaml, type AnyMap } from './itemEditor';
 import { t } from './i18n';
 import { materialShortName, materialUrls, subscribeTextureBases, textValue } from './lib';
 import type { ItemPreviewResult, WebEditorDescriptor, WebEditorField, WebEditorSection, WebRegistryFile, WebRegistryModule } from './types';
@@ -26,6 +26,8 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sourceText, setSourceText] = useState('');
+  const [sourceError, setSourceError] = useState<string | null>(null);
 
   const [actionTypesResult, setActionTypesResult] = useState<ActionTypesResult | null>(null);
   const [dirty, setDirty] = useState(false);
@@ -44,6 +46,8 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
       setData(doc.data as AnyMap);
       setOriginalData(doc.data as AnyMap);
       setOriginalContent(doc.content);
+      setSourceText(doc.content);
+      setSourceError(null);
       setDirty(false);
       setLoading(false);
     }).catch(err => {
@@ -68,19 +72,38 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
   }, [api, data, loading, baseName, baseLore]);
 
   const setField = (path: string, value: unknown) => {
-    setData(prev => setDeepValue(prev, path.split('.'), value));
+    setData(prev => {
+      const next = setDeepValue(prev, path.split('.'), value);
+      setSourceText(serializeItemYaml(next));
+      setSourceError(null);
+      return next;
+    });
     setDirty(true);
   };
 
+  const updateSource = (nextSource: string) => {
+    setSourceText(nextSource);
+    try {
+      const parsed = parseYaml(nextSource) as AnyMap;
+      setData(parsed);
+      setSourceError(null);
+      setDirty(true);
+    } catch (err) {
+      setSourceError(err instanceof Error ? err.message : String(err));
+      setDirty(true);
+    }
+  };
+
   const handleSave = async () => {
-    if (saving || serializeItemYaml(data) === originalContent) return;
+    if (saving || sourceError || sourceContent === originalContent) return;
     setSaving(true);
     setError(null);
     try {
-      const content = serializeItemYaml(data);
+      const content = sourceContent;
       await api.saveItem(module.id, filePath, content);
       setOriginalContent(content);
       setOriginalData(data);
+      setSourceText(content);
       setDirty(false);
     } catch (err: any) {
       setError(err?.message ?? t('core.toast.saveFailed'));
@@ -89,7 +112,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
     }
   };
 
-  const draftContent = serializeItemYaml(data);
+  const draftContent = sourceError ? sourceText : serializeItemYaml(data);
   const sourceContent = draftContent;
   const actualDirty = sourceContent !== originalContent;
   const changes = useMemo(() => diffRecords(data, originalData, '', 18), [data, originalData]);
@@ -106,8 +129,11 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
         dirty={actualDirty}
         changes={changes}
         source={sourceContent}
+        sourceEditable
+        sourceError={sourceError}
         saving={saving}
         onReload={onReload}
+        onSourceChange={updateSource}
         onSave={handleSave}
       />
 

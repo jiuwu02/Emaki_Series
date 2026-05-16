@@ -276,6 +276,8 @@ textarea { min-height: 96px; resize: vertical; font-family: ui-monospace, "Casca
 .editor-modal-head span { color: var(--accent); font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
 .editor-modal-head h3 { margin-top: 3px; color: var(--text); font-size: 15px; }
 .editor-source-code { margin: 0; padding: 14px 16px; min-height: 420px; overflow: auto; color: var(--muted); background: var(--input); font-family: ui-monospace, "Cascadia Code", monospace; font-size: 12px; line-height: 1.55; white-space: pre; }
+.editor-source-textarea { border: 0; border-radius: 0; resize: none; width: 100%; min-height: 520px; outline: none; }
+.editor-source-error { border-top: 1px solid var(--danger-line); background: var(--danger-soft); color: var(--red); padding: 8px 16px; font-size: 11px; }
 .file-kind { border: 1px solid var(--line); color: var(--muted); padding: 4px 8px; border-radius: 999px; font-size: 12px; }
 .file-kind.script { color: var(--green); border-color: var(--success-line); }
 .node-grid { display: grid; padding: 0 16px 16px; }

@@ -15,6 +15,10 @@ import {
   textValue,
   t,
   EditorChrome,
+  fieldLabel,
+  optionLabel,
+  parseYaml,
+  lastPathKey,
   type EditorChange,
   type ActionTypesResult,
   type AnyMap,
@@ -68,7 +72,7 @@ function PropRow({ label, children, wide, changed }: { label: string; children: 
   const fields = useContext(FieldMetaContext);
   const changedPaths = useContext(ChangedPathContext);
   const meta = fieldMeta(fields, label);
-  const displayLabel = translateFieldLabel(label, meta?.label);
+  const displayLabel = fieldLabel(label, { namespace: 'emakigem', moduleId: 'EmakiGem', editorFields: fields, fallback: meta?.label });
   const isChanged = changed ?? isChangedPath(label, changedPaths);
   const title = meta?.comment ? `${label}\n${meta.comment}` : label;
   return (
@@ -94,7 +98,7 @@ function NumberInput({ value, onChange, step }: { value: unknown; onChange: (val
 function SelectInput({ value, options, onChange, labelPrefix }: { value: unknown; options: string[]; onChange: (value: string) => void; labelPrefix?: string }) {
   const current = textValue(value);
   const merged = current && !options.includes(current) ? [...options, current] : options;
-  return <select value={current} onChange={event => onChange(event.target.value)}>{merged.map(option => <option key={option} value={option}>{translateOption(labelPrefix, option)}</option>)}</select>;
+  return <select value={current} onChange={event => onChange(event.target.value)}>{merged.map(option => <option key={option} value={option}>{labelPrefix ? optionLabel(labelPrefix, option, { namespace: 'emakigem', moduleId: 'EmakiGem' }) : option}</option>)}</select>;
 }
 
 function KvTable({ entries, onChange, valuePlaceholder = '值' }: { entries: Array<{ key: string; value: unknown }>; onChange: (entries: Array<{ key: string; value: unknown }>) => void; valuePlaceholder?: string }) {
@@ -196,7 +200,7 @@ function ActionsEditor({ actions, onChange, actionTypes, mode }: { actions: Acti
           <div className="prop-action-head">
             <span className="prop-action-grip">≡</span>
             <select value={action.action} onChange={event => update(index, { action: event.target.value, params: {} })} aria-label={`动作类型 ${index + 1}`}>
-              {options.map(type => <option key={type} value={type}>{translateOption('actionType', type)}</option>)}
+              {options.map(type => <option key={type} value={type}>{optionLabel('actionType', type, { namespace: 'emakigem', moduleId: 'EmakiGem' })}</option>)}
               {!options.length && <option value="">未选择</option>}
             </select>
             <span className="prop-action-controls">
@@ -227,12 +231,12 @@ function ActionsEditor({ actions, onChange, actionTypes, mode }: { actions: Acti
 }
 
 function LabeledParamInput({ paramKey, value, onChange }: { paramKey: string; value: string; onChange: (value: string) => void }) {
-  const label = t(`emakigem.actionParam.${paramKey}`, undefined, paramKey);
+  const label = fieldLabel(paramKey, { namespace: 'emakigem', moduleId: 'EmakiGem', fallback: paramKey });
   return <label className="prop-param-field"><span>{label}</span><input type="text" value={value} onChange={event => onChange(event.target.value)} placeholder={label} aria-label={label} /></label>;
 }
 
 function LabeledParamTextarea({ paramKey, value, onChange, rows = 2 }: { paramKey: string; value: string; onChange: (value: string) => void; rows?: number }) {
-  const label = t(`emakigem.actionParam.${paramKey}`, undefined, paramKey);
+  const label = fieldLabel(paramKey, { namespace: 'emakigem', moduleId: 'EmakiGem', fallback: paramKey });
   return <label className="prop-param-field prop-param-field--wide"><span>{label}</span><textarea rows={rows} value={value} onChange={event => onChange(event.target.value)} placeholder={label} aria-label={label} /></label>;
 }
 
@@ -681,6 +685,8 @@ export function EmakiGemItemSurface({ module, file, api, childPath, refreshKey =
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sourceText, setSourceText] = useState('');
+  const [sourceError, setSourceError] = useState<string | null>(null);
 
   const [actionTypesResult, setActionTypesResult] = useState<ActionTypesResult | null>(null);
   const [dirty, setDirty] = useState(false);
@@ -701,6 +707,8 @@ export function EmakiGemItemSurface({ module, file, api, childPath, refreshKey =
       setData(doc.data as AnyMap);
       setOriginalData(doc.data as AnyMap);
       setOriginalContent(doc.content);
+      setSourceText(doc.content);
+      setSourceError(null);
       setDirty(false);
       setLoading(false);
     }).catch(err => {
@@ -740,19 +748,38 @@ export function EmakiGemItemSurface({ module, file, api, childPath, refreshKey =
   }, [api, data, previewLevel, loading, baseName, baseLore]);
 
   const setField = (path: string[], value: unknown) => {
-    setData(previous => setDeepValue(previous, path, value));
+    setData(previous => {
+      const next = setDeepValue(previous, path, value);
+      setSourceText(serializeItemYaml(next));
+      setSourceError(null);
+      return next;
+    });
     setDirty(true);
   };
 
+  const updateSource = (nextSource: string) => {
+    setSourceText(nextSource);
+    try {
+      const parsed = parseYaml(nextSource) as AnyMap;
+      setData(parsed);
+      setSourceError(null);
+      setDirty(true);
+    } catch (err) {
+      setSourceError(err instanceof Error ? err.message : String(err));
+      setDirty(true);
+    }
+  };
+
   const handleSave = async () => {
-    if (!actualDirty || saving) return;
+    if (!actualDirty || saving || sourceError) return;
     setSaving(true);
     setError(null);
     try {
-      const content = serializeItemYaml(data);
+      const content = draftContent;
       await api.saveItem(module.id, filePath, content);
       setOriginalContent(content);
       setOriginalData(data);
+      setSourceText(content);
       setDirty(false);
     } catch (err: any) {
       setError(err?.message ?? '保存失败');
@@ -761,7 +788,7 @@ export function EmakiGemItemSurface({ module, file, api, childPath, refreshKey =
     }
   };
 
-  const draftContent = serializeItemYaml(data);
+  const draftContent = sourceError ? sourceText : serializeItemYaml(data);
   const actualDirty = draftContent !== originalContent;
   const changes = useMemo(() => diffRecords(data, originalData, '', 24), [data, originalData]);
   const changedPaths = useMemo(() => new Set(changes.map(change => change.path)), [changes]);
@@ -778,8 +805,11 @@ export function EmakiGemItemSurface({ module, file, api, childPath, refreshKey =
         dirty={actualDirty}
         changes={changes}
         source={draftContent}
+        sourceEditable
+        sourceError={sourceError}
         saving={saving}
         onReload={onReload}
+        onSourceChange={updateSource}
         onSave={handleSave}
       />
 
@@ -831,7 +861,7 @@ function diffRecords(after: unknown, before: unknown, prefix = '', limit = 24): 
     const left = (before as Record<string, unknown>)[key];
     const right = (after as Record<string, unknown>)[key];
     if (isPlainObject(left) && isPlainObject(right)) changes.push(...diffRecords(right, left, path, limit - changes.length));
-    else if (!valuesEqual(left, right)) changes.push({ path, label: translateFieldLabel(path), before: left, after: right });
+    else if (!valuesEqual(left, right)) changes.push({ path, label: fieldLabel(path, { namespace: 'emakigem', moduleId: 'EmakiGem' }), before: left, after: right });
   }
   return changes;
 }
@@ -848,28 +878,7 @@ function isChangedPath(path: string, changedPaths: Set<string>): boolean {
   return changedPaths.has(path) || [...changedPaths].some(changed => changed === path || changed.startsWith(`${path}.`) || path.startsWith(`${changed}.`));
 }
 
-function translateFieldLabel(path: string, fallback?: string): string {
-  const exact = t(`emakigem.item.field.${path}`, undefined, '');
-  if (exact) return exact;
-  const key = lastPathKey(path);
-  const byKey = t(`emakigem.item.field.${key}`, undefined, '');
-  return byKey || fallback || humanizeFieldLabel(path);
-}
 
-function translateOption(prefix: string | undefined, option: string): string {
-  if (!option) return option;
-  if (!prefix) return option;
-  return t(`emakigem.option.${prefix}.${option}`, undefined, option);
-}
-
-function humanizeFieldLabel(path: string): string {
-  if (/[^\u0000-\u00ff]/.test(path)) return path;
-  return lastPathKey(path).replace(/_/g, ' ');
-}
-
-function lastPathKey(path: string): string {
-  return path.includes('.') ? path.slice(path.lastIndexOf('.') + 1) : path;
-}
 
 function stopEvent(event: React.SyntheticEvent) {
   event.stopPropagation();

@@ -1,7 +1,7 @@
 import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ApiClient } from './api';
 import type { GuiSlotDefinition, GuiTemplateData, WebRegistryFile, WebRegistryModule } from './types';
-import { buildOccupancy, clampRows, guiColumns, guiField, guiSlotCount, guiTypeOptions, loreLines, materialShortName, materialUrls, normalizeGuiType, parseSlotList, renderMiniMessageParts, serializeGuiYaml, subscribeTextureBases, supportsRows, textValue } from './guiEditor';
+import { buildOccupancy, clampRows, fieldLabel, guiColumns, guiField, guiSlotCount, guiTypeOptions, loreLines, materialShortName, materialUrls, normalizeGuiType, parseSlotList, parseYaml, renderMiniMessageParts, serializeGuiYaml, subscribeTextureBases, supportsRows, textValue } from './guiEditor';
 import { Button, EditorChrome, InlineError, InspectorSection, ToggleChip, type EditorChange } from './components';
 import { t } from './i18n';
 import { MATERIAL_CATEGORIES, MINECRAFT_MATERIAL_VERSION, type MaterialCategory, materialCategory, searchMaterials } from './minecraftMaterials';
@@ -26,6 +26,8 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [sourceText, setSourceText] = useState('');
+  const [sourceError, setSourceError] = useState<string | null>(null);
   const [selected, setSelected] = useState<number[]>([]);
   const [hovered, setHovered] = useState<number | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number } | null>(null);
@@ -122,7 +124,10 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
       const normalizedData = doc.data ?? {};
       setData(normalizedData);
       setOriginalData(normalizedData);
-      setOriginalText(serializeGuiYaml(normalizedData));
+      const serialized = serializeGuiYaml(normalizedData);
+      setOriginalText(serialized);
+      setSourceText(serialized);
+      setSourceError(null);
       setSelected([]);
       setHovered(null);
       setTooltipPosition(null);
@@ -141,7 +146,7 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
   const occupancy = useMemo(() => data ? buildOccupancy(data) : [], [data]);
   const selectedKey = selected.length === 1 ? occupancy.find((cell) => cell.index === selected[0])?.key ?? null : null;
   const selectedSlot = selectedKey && data?.slots ? data.slots[selectedKey] ?? null : null;
-  const draftText = data ? serializeGuiYaml(data) : '';
+  const draftText = sourceError ? sourceText : data ? serializeGuiYaml(data) : '';
   const dirty = data != null && draftText !== originalText;
   const changes = useMemo(() => diffRecords(data ?? {}, originalData ?? {}, '', 18), [data, originalData]);
   const materialResults = useMemo(() => searchMaterials(query, category), [query, category]);
@@ -152,10 +157,12 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
     setSaving(true);
     setError('');
     try {
-      const content = serializeGuiYaml(data);
+      if (sourceError) return;
+      const content = draftText;
       await api.saveGui(module.id, path, content);
       setOriginalText(content);
       setOriginalData(data);
+      setSourceText(content);
     } catch (err) {
       setError(err instanceof Error ? err.message : t('core.gui.saveFailed'));
     } finally {
@@ -163,8 +170,24 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
     }
   }
 
+  function updateSource(nextSource: string) {
+    setSourceText(nextSource);
+    try {
+      const parsed = parseYaml(nextSource) as GuiTemplateData;
+      setData(parsed);
+      setSourceError(null);
+    } catch (err) {
+      setSourceError(err instanceof Error ? err.message : String(err));
+    }
+  }
+
   function updateData(mutator: (draft: GuiTemplateData) => GuiTemplateData) {
-    setData((current) => mutator({ ...(current ?? {}), slots: { ...((current ?? {}).slots ?? {}) } }));
+    setData((current) => {
+      const next = mutator({ ...(current ?? {}), slots: { ...((current ?? {}).slots ?? {}) } });
+      setSourceText(serializeGuiYaml(next));
+      setSourceError(null);
+      return next;
+    });
   }
 
   function updateSlot(key: string, patch: Partial<GuiSlotDefinition>) {
@@ -230,10 +253,13 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
       dirty={dirty}
       changes={changes}
       source={draftText}
+      sourceEditable
+      sourceError={sourceError}
       saving={saving}
       loading={loading}
       saveLabel={t('core.gui.save')}
       onReload={() => void reloadGui()}
+      onSourceChange={updateSource}
       onSave={() => void save()}
     />
     {error && <InlineError className="gui-error">{error}</InlineError>}
@@ -333,7 +359,7 @@ function valuesEqual(left: unknown, right: unknown): boolean {
 
 function GuiLabel({ editor, path, fallback, children }: { editor?: import('./types').WebEditorDescriptor; path: string; fallback: string; children: React.ReactNode }) {
   const field = guiField(editor, path, fallback);
-  return <label title={field.comment ? `${field.path}\n${field.comment}` : field.path}>{field.label}{children}</label>;
+  return <label title={field.comment ? `${field.path}\n${field.comment}` : field.path}>{fieldLabel(path, { moduleId: editor?.moduleId, namespace: editor?.moduleId, editorFields: editor?.fields, fallback: field.label })}{children}</label>;
 }
 
 function SlotInspector({ slotKey, slot, updateSlot, removeSlot, editor }: { slotKey: string; slot: GuiSlotDefinition; updateSlot: (key: string, patch: Partial<GuiSlotDefinition>) => void; removeSlot: () => void; editor?: import('./types').WebEditorDescriptor }) {

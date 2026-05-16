@@ -141,7 +141,7 @@ export default function App() {
           dirty={changedCount > 0}
           changedCount={changedCount}
           changes={selectedModule && selectedFile ? configChanges(selectedModule.id, selectedFile.nodes, drafts) : []}
-          source={selectedFile ? configSourcePreview(selectedFile.nodes, selectedModule?.id ?? '', drafts) : ''}
+          source=""
           saving={saving}
           loading={loading}
           onReload={() => void loadRegistry()}
@@ -254,7 +254,7 @@ function ConfigChildSurface({ module, file, childPath, drafts, setDrafts, api, r
       dirty={changedNodes.length > 0}
       changedCount={changedNodes.length}
       changes={configChanges(module.id, nodes, drafts)}
-      source={configSourcePreview(nodes, module.id, drafts)}
+      source=""
       saving={saving}
       loading={loading}
       onReload={() => void reloadChildNodes()}
