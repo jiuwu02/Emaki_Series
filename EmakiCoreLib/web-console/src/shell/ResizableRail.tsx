@@ -1,14 +1,25 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+const RAIL_MIN = 180;
+const RAIL_MAX = 600;
+const RAIL_STEP = 16;
+
 export function ResizableRail({ children }: { children: React.ReactNode }) {
   const [width, setWidth] = useState(() => {
     const saved = localStorage.getItem('emaki-rail-width');
-    return saved ? Math.max(180, Math.min(600, Number(saved))) : 272;
+    return saved ? clampRailWidth(Number(saved)) : 272;
   });
   const [dragging, setDragging] = useState(false);
   const startX = useRef(0);
   const startW = useRef(272);
   const latestWidth = useRef(width);
+
+  const commitWidth = useCallback((next: number) => {
+    const clamped = clampRailWidth(next);
+    latestWidth.current = clamped;
+    setWidth(clamped);
+    localStorage.setItem('emaki-rail-width', String(clamped));
+  }, []);
 
   const onMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -17,10 +28,18 @@ export function ResizableRail({ children }: { children: React.ReactNode }) {
     setDragging(true);
   }, [width]);
 
+  const onKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
+    e.preventDefault();
+    if (e.key === 'Home') commitWidth(RAIL_MIN);
+    else if (e.key === 'End') commitWidth(RAIL_MAX);
+    else commitWidth(width + (e.key === 'ArrowRight' ? RAIL_STEP : -RAIL_STEP));
+  }, [commitWidth, width]);
+
   useEffect(() => {
     if (!dragging) return;
     const onMove = (e: MouseEvent) => {
-      const next = Math.max(180, Math.min(600, startW.current + (e.clientX - startX.current)));
+      const next = clampRailWidth(startW.current + (e.clientX - startX.current));
       latestWidth.current = next;
       setWidth(next);
     };
@@ -48,7 +67,22 @@ export function ResizableRail({ children }: { children: React.ReactNode }) {
   return (
     <aside className="tree-rail">
       {children}
-      <div className={`rail-resize ${dragging ? 'active' : ''}`} onMouseDown={onMouseDown} />
+      <div
+        className={`rail-resize ${dragging ? 'active' : ''}`}
+        role="separator"
+        tabIndex={0}
+        aria-orientation="vertical"
+        aria-label="调整配置树侧栏宽度"
+        aria-valuemin={RAIL_MIN}
+        aria-valuemax={RAIL_MAX}
+        aria-valuenow={width}
+        onMouseDown={onMouseDown}
+        onKeyDown={onKeyDown}
+      />
     </aside>
   );
+}
+
+function clampRailWidth(value: number): number {
+  return Math.max(RAIL_MIN, Math.min(RAIL_MAX, Number.isFinite(value) ? value : 272));
 }

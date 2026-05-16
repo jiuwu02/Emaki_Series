@@ -5,6 +5,7 @@ import { GuiEditorSurface } from './GuiEditorSurface';
 import { ItemEditorSurface } from './ItemEditorSurface';
 import { loadWebExtensions } from './extensions';
 import { getSurface, isKind, registerSurface } from './registry';
+import { ActionGroup, Button, InlineError, ToastNotice } from './components';
 import { Login, ResizableRail, WorkspaceTree, fileKindLabel } from './shell';
 import type { SurfaceProps } from './registry';
 import type { WebConfigNode, WebRegistry, WebRegistryFile, WebRegistryModule } from './types';
@@ -101,7 +102,7 @@ export default function App() {
 
   return (
     <div className="workbench">
-      {toast && <div className={`toast ${toast.tone}`}>{toast.text}</div>}
+      {toast && <ToastNotice tone={toast.tone}>{toast.text}</ToastNotice>}
       <ResizableRail>
         <div className="brand-block">
           <div className="brand-main"><span className="sigil">绘</span><div><strong>绘卷核心库</strong><small>配置控制台</small></div></div>
@@ -120,10 +121,10 @@ export default function App() {
             <h1>{selectedModule ? selectedModule.name : '配置控制台'}</h1>
             <p>{selectedFile ? `${selectedFile.title}，${selectedFile.path}` : '选择左侧文件开始编辑。'}</p>
           </div>
-          <div className="head-actions">
-            <button onClick={() => void loadRegistry()} disabled={loading}>刷新</button>
-            <button className={`primary ${changedCount ? 'save-ready' : ''}`} onClick={() => void saveCurrent()} disabled={saving || changedCount === 0}>保存{changedCount ? ` ${changedCount}` : ''}</button>
-          </div>
+          <ActionGroup>
+            <Button onClick={() => void loadRegistry()} disabled={loading}>刷新</Button>
+            <Button variant="primary" ready={changedCount > 0} onClick={() => void saveCurrent()} disabled={saving || changedCount === 0}>保存{changedCount ? ` ${changedCount}` : ''}</Button>
+          </ActionGroup>
         </header>}
         <section className="editor-shell single">
           <ConfigSurface registry={registry} module={selectedModule} file={selectedFile} drafts={drafts} setDrafts={setDrafts} api={api} scriptPath={selected?.scriptPath} refreshKey={selected?.refreshKey ?? 0} onReload={() => void loadRegistry()} />
@@ -210,15 +211,15 @@ function ConfigChildSurface({ module, file, childPath, drafts, setDrafts, api, r
   const fileName = childPath.split('/').pop() ?? childPath;
 
   return <section className="config-surface">
-    {toast && <div className={`toast ${toast.tone}`} style={{ position: 'absolute', top: 12, right: 12 }}>{toast.text}</div>}
+    {toast && <ToastNotice tone={toast.tone} style={{ position: 'absolute', top: 12, right: 12 }}>{toast.text}</ToastNotice>}
     <div className="surface-head">
       <div><h2>{fileName}</h2><p>{file.title} · {childPath}</p></div>
-      <div className="head-actions">
-        <button className={`primary ${changedNodes.length ? 'save-ready' : ''}`} onClick={() => void saveChild()} disabled={saving || changedNodes.length === 0}>保存{changedNodes.length ? ` ${changedNodes.length}` : ''}</button>
-      </div>
+      <ActionGroup>
+        <Button variant="primary" ready={changedNodes.length > 0} onClick={() => void saveChild()} disabled={saving || changedNodes.length === 0}>保存{changedNodes.length ? ` ${changedNodes.length}` : ''}</Button>
+      </ActionGroup>
     </div>
     {loading && <div className="script-loading">加载中...</div>}
-    {error && <div className="inline-error">{error}</div>}
+    {error && <InlineError>{error}</InlineError>}
     {!loading && !error && <ConfigNodeTree moduleId={module.id} nodes={nodes} drafts={drafts} setDrafts={setDrafts} />}
   </section>;
 }
@@ -488,7 +489,8 @@ function ScriptEditor({ api, scriptPath }: { api: ApiClient; scriptPath: string 
       <div className="line-numbers">{lines.map((_, i) => <div key={i}>{i + 1}</div>)}</div>
       <div className="editor-wrapper">
         <pre ref={highlightRef} className="editor-highlight" aria-hidden="true"><code dangerouslySetInnerHTML={{ __html: highlightJS(content) }} /></pre>
-        <textarea ref={textareaRef} className="editor-input" value={content} onChange={handleInput} onKeyDown={handleKeyDown} onScroll={handleScroll} spellCheck={false} autoComplete="off" autoCorrect="off" autoCapitalize="off" />
+        <textarea ref={textareaRef} className="editor-input" value={content} onChange={handleInput} onKeyDown={handleKeyDown} onScroll={handleScroll} spellCheck={false} autoComplete="off" autoCorrect="off" autoCapitalize="off" aria-label={`编辑脚本 ${scriptPath}`} aria-describedby="script-editor-help" />
+        <span id="script-editor-help" className="sr-only">Tab 插入缩进，Ctrl 加空格打开补全，方向键选择补全项。</span>
         {completions.length > 0 && completionPos && <div className="completion-popup" style={{ top: completionPos.top + 24, left: completionPos.left + 48 }}>
           {completions.map((item, i) => <div key={item} className={`completion-item ${i === selectedCompletion ? 'selected' : ''}`} onMouseDown={(e) => { e.preventDefault(); applyCompletion(item); }}>{item}</div>)}
         </div>}

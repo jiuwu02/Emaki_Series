@@ -1,3 +1,8 @@
+export { ActionGroup } from './ActionGroup';
+export { Button, type ButtonSize, type ButtonVariant } from './Button';
+export { InlineError, ToastNotice, type NoticeTone } from './Notice';
+export { InspectorSection } from './Panel';
+export { ToggleChip } from './ToggleChip';
 export { MiniText } from './MiniText';
 export { PropRow } from './PropRow';
 export { SectionHead } from './SectionHead';

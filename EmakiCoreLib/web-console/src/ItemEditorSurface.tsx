@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ApiClient, ActionTypesResult } from './api';
-import { ActionsEditor, MiniText, PropRow, SectionHead, StringListEditor, parseLoreActions, parseNameActions, serializeActions } from './components';
+import { ActionGroup, Button, ActionsEditor, MiniText, PropRow, SectionHead, StringListEditor, parseLoreActions, parseNameActions, serializeActions } from './components';
 import { asList, asRecord, asStringList, displaySource, firstItemSource, materialFromItemSource, setDeepValue, type AnyMap } from './itemEditor';
 import { materialShortName, materialUrls, textValue } from './lib';
 import type { ItemPreviewResult, WebEditorDescriptor, WebEditorField, WebEditorSection, WebRegistryFile, WebRegistryModule } from './types';
@@ -94,11 +94,11 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
           <h1 className="ie-title">{editor?.title ?? file.title ?? '物品编辑器'}</h1>
           {dirty && <span className="ie-dirty-badge">未保存</span>}
         </div>
-        <div className="ie-header-actions">
-          {onReload && <button className="ie-btn" onClick={onReload}>刷新</button>}
-          <button className="ie-btn" onClick={switchToSource}>{viewSource ? '可视化' : '源码'}</button>
-          <button className={`ie-btn ie-btn--primary${dirty ? ' ie-btn--ready' : ''}`} onClick={handleSave} disabled={saving}>{saving ? '保存中...' : '保存'}</button>
-        </div>
+        <ActionGroup>
+          {onReload && <Button size="sm" onClick={onReload}>刷新</Button>}
+          <Button size="sm" onClick={switchToSource}>{viewSource ? '可视化' : '源码'}</Button>
+          <Button size="sm" variant="primary" ready={dirty} onClick={handleSave} disabled={saving}>{saving ? '保存中...' : '保存'}</Button>
+        </ActionGroup>
       </div>
 
       {error && <div className="ie-error" role="alert">{error}</div>}

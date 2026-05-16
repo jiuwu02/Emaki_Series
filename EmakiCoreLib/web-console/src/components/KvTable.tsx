@@ -1,17 +1,8 @@
-import { useRef } from 'react';
-
-type StableEntry<T> = { _id: number; data: T };
-let _nextId = 1;
-function nextId() { return _nextId++; }
+import { useStableEntries } from './useStableEntries';
 
 /** Editable key-value pair table with stable keys for React reconciliation. */
 export function KvTable({ entries, onChange }: { entries: Array<{ key: string; value: unknown }>; onChange: (entries: Array<{ key: string; value: unknown }>) => void }) {
-  const stableRef = useRef<StableEntry<{ key: string; value: unknown }>[]>([]);
-  if (stableRef.current.length !== entries.length) {
-    stableRef.current = entries.map((e, i) => stableRef.current[i] ? { ...stableRef.current[i], data: e } : { _id: nextId(), data: e });
-  } else {
-    stableRef.current = stableRef.current.map((s, i) => ({ ...s, data: entries[i] }));
-  }
+  const stableRef = useStableEntries(entries);
   const stable = stableRef.current;
 
   const update = (i: number, field: 'key' | 'value', v: string) => {
@@ -24,7 +15,7 @@ export function KvTable({ entries, onChange }: { entries: Array<{ key: string; v
     onChange(next);
   };
   const remove = (i: number) => { stableRef.current.splice(i, 1); onChange(entries.filter((_, idx) => idx !== i)); };
-  const add = () => { stableRef.current.push({ _id: nextId(), data: { key: '', value: 0 } }); onChange([...entries, { key: '', value: 0 }]); };
+  const add = () => onChange([...entries, { key: '', value: 0 }]);
 
   return (
     <div className="prop-kv" role="list" aria-label="键值对列表">

@@ -2,6 +2,7 @@ import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from 'r
 import type { ApiClient } from './api';
 import type { GuiSlotDefinition, GuiTemplateData, WebRegistryFile, WebRegistryModule } from './types';
 import { buildOccupancy, clampRows, guiColumns, guiField, guiSlotCount, guiTypeOptions, loreLines, materialShortName, materialUrls, normalizeGuiType, parseSlotList, renderMiniMessageParts, serializeGuiYaml, supportsRows, textValue } from './guiEditor';
+import { ActionGroup, Button, InspectorSection, ToggleChip } from './components';
 import { MATERIAL_CATEGORIES, MINECRAFT_MATERIAL_VERSION, type MaterialCategory, materialCategory, searchMaterials } from './minecraftMaterials';
 
 type Props = {
@@ -12,6 +13,10 @@ type Props = {
   refreshKey?: number;
   editor?: import('./types').WebEditorDescriptor;
 };
+
+const INSPECTOR_MIN = 300;
+const INSPECTOR_MAX = 620;
+const INSPECTOR_STEP = 16;
 
 export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0, editor }: Props) {
   const [data, setData] = useState<GuiTemplateData | null>(null);
@@ -29,7 +34,7 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
   const [reloadConfirmOpen, setReloadConfirmOpen] = useState(false);
   const [inspectorWidth, setInspectorWidth] = useState(() => {
     const saved = localStorage.getItem('emaki-gui-inspector-width');
-    return saved ? Math.max(300, Math.min(620, Number(saved))) : 380;
+    return saved ? clampInspectorWidth(Number(saved)) : 380;
   });
   const [resizingInspector, setResizingInspector] = useState(false);
   const tooltipRef = useRef<HTMLDivElement>(null);
@@ -46,7 +51,7 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
   useEffect(() => {
     if (!resizingInspector) return;
     const onMove = (event: MouseEvent) => {
-      const next = Math.max(300, Math.min(620, inspectorResizeStartW.current - (event.clientX - inspectorResizeStartX.current)));
+      const next = clampInspectorWidth(inspectorResizeStartW.current - (event.clientX - inspectorResizeStartX.current));
       latestInspectorWidth.current = next;
       setInspectorWidth(next);
     };
@@ -66,6 +71,13 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
     };
   }, [resizingInspector]);
 
+  const setCommittedInspectorWidth = useCallback((next: number) => {
+    const clamped = clampInspectorWidth(next);
+    latestInspectorWidth.current = clamped;
+    setInspectorWidth(clamped);
+    localStorage.setItem('emaki-gui-inspector-width', String(clamped));
+  }, []);
+
   const startInspectorResize = useCallback((event: React.MouseEvent) => {
     event.preventDefault();
     inspectorResizeStartX.current = event.clientX;
@@ -73,6 +85,14 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
     latestInspectorWidth.current = inspectorWidth;
     setResizingInspector(true);
   }, [inspectorWidth]);
+
+  const handleInspectorResizeKeyDown = useCallback((event: React.KeyboardEvent) => {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+    event.preventDefault();
+    if (event.key === 'Home') setCommittedInspectorWidth(INSPECTOR_MIN);
+    else if (event.key === 'End') setCommittedInspectorWidth(INSPECTOR_MAX);
+    else setCommittedInspectorWidth(inspectorWidth + (event.key === 'ArrowLeft' ? INSPECTOR_STEP : -INSPECTOR_STEP));
+  }, [inspectorWidth, setCommittedInspectorWidth]);
 
   const handleSlotMouseMove = useCallback((event: React.MouseEvent) => {
     if (tooltipRef.current) {
@@ -183,6 +203,32 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
     createSlot(selected[0], material);
   }
 
+  function selectSlot(index: number, additive = false) {
+    if (additive) setSelected((current) => current.includes(index) ? current.filter((n) => n !== index) : [...current, index]);
+    else setSelected([index]);
+  }
+
+  function handleSlotKeyDown(event: React.KeyboardEvent<HTMLButtonElement>, index: number) {
+    const navigation: Record<string, number> = {
+      ArrowLeft: index - 1,
+      ArrowRight: index + 1,
+      ArrowUp: index - columns,
+      ArrowDown: index + columns,
+      Home: 0,
+      End: Math.max(0, occupancy.length - 1),
+    };
+    if (event.key === ' ' || event.key === 'Enter') {
+      event.preventDefault();
+      selectSlot(index, event.ctrlKey || event.metaKey || event.shiftKey);
+      return;
+    }
+    if (!(event.key in navigation)) return;
+    event.preventDefault();
+    const nextIndex = Math.max(0, Math.min(occupancy.length - 1, navigation[event.key]));
+    document.querySelector<HTMLButtonElement>(`[data-gui-slot="${nextIndex}"]`)?.focus();
+    if (event.shiftKey) selectSlot(nextIndex, true);
+  }
+
   if (!path) return <section className="config-surface empty">从左侧选择一个 GUI 模板文件开始预览。</section>;
   if (loading) return <section className="config-surface gui-surface"><div className="gui-loading">正在载入 Minecraft GUI 预览...</div></section>;
   if (!data) return <section className="config-surface empty">{error || '无法加载 GUI 文件。'}</section>;
@@ -195,28 +241,29 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
         <h2>{file.title}</h2>
         <p>{module.id}/{path} · {guiType}{rowSupported ? ` · ${rows} 行` : ''} · {slotCount} 槽位 · {Object.keys(data.slots ?? {}).length} 个 slot 定义 {dirty && <span className="dirty-inline">未保存</span>}</p>
       </div>
-      <div className="head-actions">
-        <button onClick={() => setMode(mode === 'preview' ? 'source' : 'preview')}>{mode === 'preview' ? '源码' : '预览'}</button>
-        <button onClick={requestReload} disabled={saving || loading}>重载</button>
-        <button className={`primary ${dirty ? 'save-ready' : ''}`} onClick={() => void save()} disabled={!dirty || saving}>{saving ? '保存中' : '保存 GUI'}</button>
-      </div>
+      <ActionGroup>
+        <Button onClick={() => setMode(mode === 'preview' ? 'source' : 'preview')}>{mode === 'preview' ? '源码' : '预览'}</Button>
+        <Button onClick={requestReload} disabled={saving || loading}>重载</Button>
+        <Button variant="primary" ready={dirty} onClick={() => void save()} disabled={!dirty || saving}>{saving ? '保存中' : '保存 GUI'}</Button>
+      </ActionGroup>
     </div>
     {reloadConfirmOpen && <ReloadConfirmDialog fileTitle={file.title} filePath={`${module.id}/${path}`} onConfirm={confirmReload} onCancel={() => setReloadConfirmOpen(false)} />}
-    {error && <div className="gui-error">{error}</div>}
-    {mode === 'source' ? <pre className="gui-source">{draftText}</pre> : <div className={`gui-workbench ${resizingInspector ? 'is-resizing' : ''}`} style={{ '--gui-inspector-width': `${inspectorWidth}px` } as React.CSSProperties}>
+    {error && <div className="gui-error" role="alert">{error}</div>}
+    {mode === 'source' ? <pre className="gui-source" aria-label="GUI YAML 源码预览">{draftText}</pre> : <div className={`gui-workbench ${resizingInspector ? 'is-resizing' : ''}`} style={{ '--gui-inspector-width': `${inspectorWidth}px` } as React.CSSProperties}>
       <div className="gui-preview-pane">
         <div className="minecraft-window">
           <div className="minecraft-titlebar"><MiniText value={data.title ?? 'GUI'} /></div>
-          <div className="minecraft-grid" data-gui-type={guiType} style={{ gridTemplateColumns: `repeat(${columns}, var(--mc-slot))` }}>
+          <p className="slot-grid-help" id="gui-slot-help">方向键移动槽位，Enter 或空格选择，按住 Shift 可追加选择。</p>
+          <div className="minecraft-grid" role="grid" aria-label={`${file.title} 槽位网格`} aria-describedby="gui-slot-help" aria-multiselectable="true" data-gui-type={guiType} style={{ gridTemplateColumns: `repeat(${columns}, var(--mc-slot))` }}>
             {occupancy.map((cell) => <button
               key={cell.index}
               className={`minecraft-slot ${cell.key ? 'occupied' : ''} ${selected.includes(cell.index) ? 'selected' : ''} ${cell.conflicts.length ? 'conflict' : ''}`}
+              role="gridcell"
+              data-gui-slot={cell.index}
               aria-label={`槽位 ${cell.index}${cell.key ? `，${cell.key}` : '，空槽'}`}
               aria-selected={selected.includes(cell.index)}
-              onClick={(event) => {
-                if (event.ctrlKey || event.shiftKey) setSelected((current) => current.includes(cell.index) ? current.filter((n) => n !== cell.index) : [...current, cell.index]);
-                else setSelected([cell.index]);
-              }}
+              onClick={(event) => selectSlot(cell.index, event.ctrlKey || event.metaKey || event.shiftKey)}
+              onKeyDown={(event) => handleSlotKeyDown(event, cell.index)}
               onMouseEnter={(event) => { setHovered(cell.index); setTooltipPosition(nextTooltipPosition(event.clientX, event.clientY)); }}
               onMouseMove={handleSlotMouseMove}
               onMouseLeave={() => { setHovered(null); setTooltipPosition(null); }}
@@ -230,22 +277,30 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
           {hoveredCell?.slot && tooltipPosition && <MinecraftTooltip ref={tooltipRef} slot={hoveredCell.slot} slotKey={hoveredCell.key ?? ''} position={tooltipPosition} />}
         </div>
       </div>
-      <div className={`gui-inspector-resize ${resizingInspector ? 'active' : ''}`} role="separator" aria-orientation="vertical" aria-label="调整 GUI 预览与编辑区宽度" onMouseDown={startInspectorResize} />
+      <div
+        className={`gui-inspector-resize ${resizingInspector ? 'active' : ''}`}
+        role="separator"
+        tabIndex={0}
+        aria-orientation="vertical"
+        aria-label="调整 GUI 预览与编辑区宽度"
+        aria-valuemin={INSPECTOR_MIN}
+        aria-valuemax={INSPECTOR_MAX}
+        aria-valuenow={inspectorWidth}
+        onMouseDown={startInspectorResize}
+        onKeyDown={handleInspectorResizeKeyDown}
+      />
       <aside className="gui-inspector">
-        <div className="inspector-section">
-          <h3>容器</h3>
+        <InspectorSection title="容器">
           <GuiLabel editor={editor} path="id" fallback="ID"><input value={textValue(data.id)} onChange={(e) => updateData((draft) => ({ ...draft, id: e.target.value }))} /></GuiLabel>
           <GuiLabel editor={editor} path="gui_type" fallback="GUI 类型"><select value={guiType} onChange={(e) => updateData((draft) => ({ ...draft, gui_type: e.target.value, inventory_type: undefined, rows: supportsRows(e.target.value) ? clampRows(draft.rows) : undefined }))}>{guiTypeOptions().map((type) => <option key={type} value={type}>{type}</option>)}</select></GuiLabel>
           <GuiLabel editor={editor} path="title" fallback="标题"><input value={textValue(data.title)} onChange={(e) => updateData((draft) => ({ ...draft, title: e.target.value }))} /></GuiLabel>
           {rowSupported && <GuiLabel editor={editor} path="rows" fallback="行数"><input type="number" min={1} max={6} value={rows} onChange={(e) => updateData((draft) => ({ ...draft, rows: clampRows(e.target.value) }))} /></GuiLabel>}
-        </div>
-        <div className="inspector-section">
-          <h3>槽位 {selected.length ? selected.join(', ') : '未选择'}</h3>
-          {selectedSlot && selectedKey ? <SlotInspector slotKey={selectedKey} slot={selectedSlot} editor={editor} updateSlot={updateSlot} removeSlot={() => updateData((draft) => { const next = { ...(draft.slots ?? {}) }; delete next[selectedKey]; return { ...draft, slots: next }; })} /> : selected.length ? <button className="wide-action" onClick={() => createSlot(selected[0])}>在 {selected[0]} 创建 slot</button> : <p className="muted-copy">点击网格槽位编辑，或从材料面板拖入物品。</p>}
-        </div>
-        <div className="inspector-section material-palette">
-          <div className="material-head"><h3>材料源</h3><span>MC {MINECRAFT_MATERIAL_VERSION} · {materialResults.length} 项</span></div>
-          <input placeholder="搜索 material，例如 sword、glass pane、diamond" value={query} onChange={(e) => setQuery(e.target.value)} />
+        </InspectorSection>
+        <InspectorSection title={`槽位 ${selected.length ? selected.join(', ') : '未选择'}`}>
+          {selectedSlot && selectedKey ? <SlotInspector slotKey={selectedKey} slot={selectedSlot} editor={editor} updateSlot={updateSlot} removeSlot={() => updateData((draft) => { const next = { ...(draft.slots ?? {}) }; delete next[selectedKey]; return { ...draft, slots: next }; })} /> : selected.length ? <Button variant="soft" fullWidth onClick={() => createSlot(selected[0])}>在 {selected[0]} 创建 slot</Button> : <p className="muted-copy">点击网格槽位编辑，或从材料面板拖入物品。</p>}
+        </InspectorSection>
+        <InspectorSection className="material-palette" title="材料源" meta={`MC ${MINECRAFT_MATERIAL_VERSION} · ${materialResults.length} 项`}>
+          <input aria-label="搜索材料" placeholder="搜索 material，例如 sword、glass pane、diamond" value={query} onChange={(e) => setQuery(e.target.value)} />
           <div className="material-tabs">
             {(['全部', ...MATERIAL_CATEGORIES] as const).map((entry) => <button key={entry} className={category === entry ? 'active' : ''} onClick={() => setCategory(entry)}>{entry}</button>)}
           </div>
@@ -256,7 +311,7 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
             </button>)}
           </div>
           {materialResults.length > visibleMaterials.length && <p className="material-limit">仅显示前 {visibleMaterials.length} 项，继续输入缩小范围。</p>}
-        </div>
+        </InspectorSection>
       </aside>
     </div>}
   </section>;
@@ -273,10 +328,10 @@ function ReloadConfirmDialog({ fileTitle, filePath, onConfirm, onCancel }: { fil
         <p id="reload-confirm-desc">{fileTitle} 已被修改但尚未保存。继续重载会重新从服务器读取 GUI 文件，并覆盖当前本地编辑内容。</p>
         <code>{filePath}</code>
       </div>
-      <div className="reload-confirm-actions">
-        <button type="button" onClick={onCancel} autoFocus>取消</button>
-        <button type="button" className="danger" onClick={onConfirm}>继续重载</button>
-      </div>
+      <ActionGroup className="reload-confirm-actions">
+        <Button onClick={onCancel} autoFocus>取消</Button>
+        <Button variant="danger" onClick={onConfirm}>继续重载</Button>
+      </ActionGroup>
     </div>
   </div>;
 }
@@ -328,7 +383,7 @@ const HIDDEN_COMPONENTS = ['tooltip', 'enchantments', 'attributes', 'unbreakable
 function HiddenComponentsEditor({ slot, onChange }: { slot: GuiSlotDefinition; onChange: (patch: Partial<GuiSlotDefinition>) => void }) {
   const list = Array.isArray(slot.hidden_components) ? slot.hidden_components.map(String) : [];
   const toggle = (entry: string) => onChange({ hidden_components: list.includes(entry) ? list.filter((item) => item !== entry) : [...list, entry] });
-  return <div className="sub-editor"><div className="sub-editor-head"><span>hidden_components</span><label className="inline-switch"><input type="checkbox" checked={slot.hide_tooltip === true || slot['hide-tooltip'] === true} onChange={(e) => onChange({ hide_tooltip: e.target.checked || undefined })} /> hide tooltip</label></div><div className="chip-list">{HIDDEN_COMPONENTS.map((entry) => <button key={entry} className={list.includes(entry) ? 'chip active' : 'chip'} onClick={() => toggle(entry)}>{entry}</button>)}</div></div>;
+  return <div className="sub-editor"><div className="sub-editor-head"><span>hidden_components</span><label className="inline-switch"><input type="checkbox" checked={slot.hide_tooltip === true || slot['hide-tooltip'] === true} onChange={(e) => onChange({ hide_tooltip: e.target.checked || undefined })} /> hide tooltip</label></div><div className="chip-list">{HIDDEN_COMPONENTS.map((entry) => <ToggleChip key={entry} active={list.includes(entry)} onClick={() => toggle(entry)}>{entry}</ToggleChip>)}</div></div>;
 }
 
 const SOUND_KEYS = ['click', 'left_click', 'right_click'] as const;
@@ -353,7 +408,7 @@ function AdvancedFieldsEditor({ slot, onChange }: { slot: GuiSlotDefinition; onC
   const [text, setText] = useState(() => JSON.stringify(extras, null, 2));
   const [jsonError, setJsonError] = useState('');
   useEffect(() => { setText(JSON.stringify(extras, null, 2)); setJsonError(''); }, [JSON.stringify(extras)]);
-  return <div className="sub-editor"><textarea className="advanced-json" value={text} onChange={(e) => { setText(e.target.value); setJsonError(''); }} spellCheck={false} aria-invalid={!!jsonError} />{jsonError && <small className="json-error">{jsonError}</small>}<button className="wide-action" onClick={() => { try { const parsed = JSON.parse(text || '{}'); onChange({ ...Object.fromEntries(Object.keys(extras).map((key) => [key, undefined])), ...parsed }); setJsonError(''); } catch (err) { setJsonError(err instanceof Error ? err.message : 'JSON 解析失败'); } }}>应用高级字段</button></div>;
+  return <div className="sub-editor"><textarea className="advanced-json" value={text} onChange={(e) => { setText(e.target.value); setJsonError(''); }} spellCheck={false} aria-invalid={!!jsonError} />{jsonError && <small className="json-error">{jsonError}</small>}<Button variant="soft" fullWidth onClick={() => { try { const parsed = JSON.parse(text || '{}'); onChange({ ...Object.fromEntries(Object.keys(extras).map((key) => [key, undefined])), ...parsed }); setJsonError(''); } catch (err) { setJsonError(err instanceof Error ? err.message : 'JSON 解析失败'); } }}>应用高级字段</Button></div>;
 }
 
 function cleanMap<T extends Record<string, unknown>>(value: T): T | undefined {
@@ -368,6 +423,10 @@ function SlotIcon({ slot, failed, setFailed }: { slot?: GuiSlotDefinition | null
   const url = urls.find((entry) => !failed[entry]);
   if (!slot || !url) return <span className="material-fallback" data-empty={!slot || !urls.length ? 'true' : undefined}>{materialShortName(material)}</span>;
   return <img className="material-icon" src={url} alt="" loading="lazy" draggable={false} data-attempt={failedCount} onError={() => setFailed((current) => ({ ...current, [url]: true }))} />;
+}
+
+function clampInspectorWidth(value: number): number {
+  return Math.max(INSPECTOR_MIN, Math.min(INSPECTOR_MAX, Number.isFinite(value) ? value : 380));
 }
 
 function nextTooltipPosition(clientX: number, clientY: number) {

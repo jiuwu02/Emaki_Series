@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ApiClient } from '../api';
+import { Button, InlineError } from '../components';
 
 export function Login({ onLogin }: { onLogin: (token: string) => void }) {
   const [username, setUsername] = useState('EmakiAdmin');
@@ -24,8 +25,8 @@ export function Login({ onLogin }: { onLogin: (token: string) => void }) {
         <form onSubmit={submit}>
           <label>账号<input value={username} onChange={(e) => setUsername(e.target.value)} /></label>
           <label>密码<input type="password" value={password} onChange={(e) => setPassword(e.target.value)} /></label>
-          {error && <div className="inline-error" role="alert">{error}</div>}
-          <button type="submit" disabled={busy}>{busy ? '验证中' : '登录'}</button>
+          {error && <InlineError>{error}</InlineError>}
+          <Button type="submit" variant="primary" disabled={busy}>{busy ? '验证中' : '登录'}</Button>
         </form>
       </section>
     </main>

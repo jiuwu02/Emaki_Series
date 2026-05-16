@@ -3,6 +3,12 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./components": "./src/components/index.ts",
+    "./lib": "./src/lib/index.ts",
+    "./registry": "./src/registry.ts"
+  },
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "tsc && vite build --outDir ../src/main/resources/web --emptyOutDir"

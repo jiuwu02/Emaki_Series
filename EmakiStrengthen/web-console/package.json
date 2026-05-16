@@ -5,5 +5,8 @@
   "type": "module",
   "scripts": {
     "build": "tsc && vite build"
+  },
+  "dependencies": {
+    "emaki-web-console": "0.1.0"
   }
 }

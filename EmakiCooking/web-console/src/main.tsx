@@ -1,6 +1,5 @@
 import React from 'react';
-import type { SurfaceProps } from '../../../EmakiCoreLib/web-console/src/registry';
-import { GuiEditorSurface } from '../../../EmakiCoreLib/web-console/src/GuiEditorSurface';
+import { GuiEditorSurface, type SurfaceProps } from 'emaki-web-console';
 
 function EmakiCookingGuiSurface(props: SurfaceProps) { return <GuiEditorSurface {...props} />; }
 

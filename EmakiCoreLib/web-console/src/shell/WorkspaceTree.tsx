@@ -10,12 +10,12 @@ export function WorkspaceTree({ registry, selected, expanded, setExpanded, onSel
   setExpanded: Dispatch<SetStateAction<Record<string, boolean>>>;
   onSelect: (v: TreeSelection) => void;
 }) {
-  if (!registry) return <div className="tree-empty">载入中</div>;
+  if (!registry) return <div className="tree-empty" role="status">载入中</div>;
   const roots = registry.tree?.length ? registry.tree : modulesToTree(registry.modules);
   const toggle = (id: string) => setExpanded((current) => ({ ...current, [id]: !current[id] }));
 
   return (
-    <div className="tree">
+    <div className="tree" role="tree" aria-label="配置模块与文件">
       {roots.map((node) => (
         <TreeNodeView key={node.id} node={node} selected={selected} expanded={expanded} toggle={toggle} onSelect={onSelect} level={0} />
       ))}
@@ -35,29 +35,44 @@ function TreeNodeView({ node, selected, expanded, toggle, onSelect, level }: {
   const hasChildren = children.length > 0;
   const isModule = node.type === 'module';
   const isOpen = expanded[node.id] ?? isModule;
+  const kindLabel = fileKindLabel(node.kind ?? node.type);
   const active = Boolean(node.moduleId && node.fileId && selected?.moduleId === node.moduleId && selected.fileId === node.fileId && (selected.scriptPath ?? '') === (node.childPath ?? ''));
 
   if (isModule) {
     return (
-      <div className="tree-module">
-        <button className="tree-folder" onClick={() => toggle(node.id)}>
-          <Icon svg={node.icon} /> <span>{isOpen ? '⌄' : '›'}</span> {node.label}
+      <div className="tree-module" role="none">
+        <button
+          className="tree-folder"
+          role="treeitem"
+          aria-level={level + 1}
+          aria-expanded={isOpen}
+          onClick={() => toggle(node.id)}
+        >
+          <Icon svg={node.icon} /> <span aria-hidden="true">{isOpen ? '⌄' : '›'}</span> {node.label}
         </button>
-        {isOpen && children.map((child) => (
+        {isOpen && <div role="group">{children.map((child) => (
           <TreeNodeView key={child.id} node={child} selected={selected} expanded={expanded} toggle={toggle} onSelect={onSelect} level={level + 1} />
-        ))}
+        ))}</div>}
       </div>
     );
   }
 
   if (hasChildren) {
     return (
-      <div className="tree-file-folder">
-        <button className={`tree-file folder-toggle ${active ? 'active' : ''}`} onClick={() => toggle(node.id)} style={indentStyle(level)}>
-          <span className="folder-arrow">{isOpen ? '⌄' : '›'}</span> {fileKindLabel(node.kind ?? node.type)} · {node.label}
+      <div className="tree-file-folder" role="none">
+        <button
+          className={`tree-file folder-toggle ${active ? 'active' : ''}`}
+          role="treeitem"
+          aria-level={level + 1}
+          aria-expanded={isOpen}
+          aria-selected={active || undefined}
+          onClick={() => toggle(node.id)}
+          style={indentStyle(level)}
+        >
+          <span className="folder-arrow" aria-hidden="true">{isOpen ? '⌄' : '›'}</span> {kindLabel} · {node.label}
         </button>
         {isOpen && (
-          <div className="tree-children">
+          <div className="tree-children" role="group">
             {children.map((child) => (
               <TreeNodeView key={child.id} node={child} selected={selected} expanded={expanded} toggle={toggle} onSelect={onSelect} level={level + 1} />
             ))}
@@ -71,6 +86,10 @@ function TreeNodeView({ node, selected, expanded, toggle, onSelect, level }: {
   return (
     <button
       className={level > 1 ? `tree-child ${active ? 'active' : ''}` : `tree-file ${active ? 'active' : ''}`}
+      role="treeitem"
+      aria-level={level + 1}
+      aria-selected={active}
+      aria-label={level > 1 ? `${node.label}，${kindLabel}` : `${kindLabel}，${node.label}`}
       style={level > 1 ? undefined : indentStyle(level)}
       onClick={() => {
         if (!canSelect || !node.moduleId || !node.fileId) return;
@@ -78,7 +97,7 @@ function TreeNodeView({ node, selected, expanded, toggle, onSelect, level }: {
       }}
       disabled={!canSelect}
     >
-      {level > 1 ? node.label : `${fileKindLabel(node.kind ?? node.type)} · ${node.label}`}
+      {level > 1 ? node.label : `${kindLabel} · ${node.label}`}
     </button>
   );
 }
@@ -96,7 +115,15 @@ export function fileKindLabel(kind: string | undefined): string {
 
 function Icon({ svg }: { svg?: string }) {
   if (!svg) return null;
-  return <span className="module-icon" dangerouslySetInnerHTML={{ __html: svg }} />;
+  return <span className="module-icon" aria-hidden="true" dangerouslySetInnerHTML={{ __html: sanitizeSvg(svg) }} />;
+}
+
+function sanitizeSvg(svg: string): string {
+  if (!svg.trim().startsWith('<svg')) return '';
+  return svg
+    .replace(/<\/?(?:script|foreignObject|iframe|object|embed|link|meta)[\s\S]*?>/gi, '')
+    .replace(/\s+on[a-z]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+    .replace(/\s+(?:href|xlink:href)\s*=\s*("|')\s*javascript:[\s\S]*?\1/gi, '');
 }
 
 function indentStyle(level: number) {

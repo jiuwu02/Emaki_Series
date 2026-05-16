@@ -1,8 +1,27 @@
 import React, { useContext, useEffect, useId, useMemo, useState } from 'react';
-import type { ApiClient, ActionTypesResult } from '../../../EmakiCoreLib/web-console/src/api';
-import type { ItemPreviewResult, WebEditorDescriptor, WebEditorField, WebRegistryFile, WebRegistryModule } from '../../../EmakiCoreLib/web-console/src/types';
-import { materialShortName, materialUrls, renderMiniMessageParts, textValue } from '../../../EmakiCoreLib/web-console/src/guiEditor';
-import { asList, asRecord, asStringList, displaySource, firstItemSource, itemKind, materialFromItemSource, serializeItemYaml, setDeepValue, type AnyMap } from '../../../EmakiCoreLib/web-console/src/itemEditor';
+import {
+  asList,
+  asRecord,
+  asStringList,
+  displaySource,
+  firstItemSource,
+  itemKind,
+  materialFromItemSource,
+  materialShortName,
+  materialUrls,
+  renderMiniMessageParts,
+  serializeItemYaml,
+  setDeepValue,
+  textValue,
+  type ActionTypesResult,
+  type AnyMap,
+  type ApiClient,
+  type ItemPreviewResult,
+  type WebEditorDescriptor,
+  type WebEditorField,
+  type WebRegistryFile,
+  type WebRegistryModule,
+} from 'emaki-web-console';
 
 type Props = {
   module: WebRegistryModule;
