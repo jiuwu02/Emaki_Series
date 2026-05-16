@@ -7,7 +7,8 @@
     ".": "./src/index.ts",
     "./components": "./src/components/index.ts",
     "./lib": "./src/lib/index.ts",
-    "./registry": "./src/registry.ts"
+    "./registry": "./src/registry.ts",
+    "./i18n": "./src/i18n.ts"
   },
   "scripts": {
     "dev": "vite --host 127.0.0.1",

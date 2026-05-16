@@ -137,6 +137,7 @@
 * { box-sizing: border-box; margin: 0; }
 body { min-height: 100vh; background: var(--bg); }
 button, input, textarea { font: inherit; color: inherit; }
+button, input, textarea, select, label, strong, small, span, p, h1, h2, h3, h4, code { min-width: 0; }
 button { cursor: pointer; border: 0; background: none; transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.15s ease, border-color 0.15s ease, background 0.15s ease, color 0.15s ease; }
 button:active:not(:disabled) { transform: scale(0.95); }
 button:disabled { opacity: .45; cursor: not-allowed; }
@@ -185,13 +186,20 @@ textarea { min-height: 96px; resize: vertical; font-family: ui-monospace, "Casca
 .brand-block { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 6px 8px 14px; border-bottom: 1px solid var(--line); }
 .brand-main { min-width: 0; display: flex; gap: 10px; align-items: center; }
 .sigil { width: 30px; height: 30px; border-radius: 7px; display: grid; place-items: center; background: var(--text); color: var(--bg); font-weight: 800; box-shadow: inset 0 -1px 0 oklch(72% 0.01 var(--hue)); }
-.brand-block strong { display: block; font-size: 14px; }
-.brand-block small { display: block; color: var(--faint); font-size: 11px; margin-top: 2px; }
-.theme-toggle { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 999px; padding: 5px 8px; color: var(--muted); background: var(--surface); font-size: 11px; white-space: nowrap; }
-.theme-toggle:hover { color: var(--text); border-color: var(--line-2); background: var(--surface-2); }
-.theme-icon { width: 14px; height: 14px; display: block; flex: 0 0 auto; fill: currentColor; transform-origin: 50% 50%; animation: theme-icon-in 0.22s cubic-bezier(0.16, 1, 0.3, 1); }
+.emaki-mark { width: 22px; height: 22px; display: block; }
+.brand-block strong { display: block; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.brand-block small { display: block; color: var(--faint); font-size: 11px; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rail-controls { display: inline-flex; align-items: center; gap: 6px; }
+.theme-toggle, .locale-toggle { min-height: 28px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 999px; padding: 5px 8px; color: var(--muted); background: var(--surface); font-size: 11px; white-space: nowrap; }
+.theme-toggle.icon-only { width: 30px; justify-content: center; padding: 0; }
+.theme-toggle:hover, .locale-toggle:hover { color: var(--text); border-color: var(--line-2); background: var(--surface-2); }
+.theme-icon, .locale-icon { width: 14px; height: 14px; display: block; flex: 0 0 auto; fill: currentColor; transform-origin: 50% 50%; animation: theme-icon-in 0.22s cubic-bezier(0.16, 1, 0.3, 1); }
+.locale-icon { fill: none; }
 .theme-toggle:hover .theme-icon { transform: rotate(-12deg) scale(1.08); }
 .theme-toggle.light .theme-icon { color: var(--amber); }
+.locale-toggle.icon-only { position: relative; width: 30px; justify-content: center; padding: 0; }
+.locale-toggle.icon-only select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.locale-toggle select { width: 66px; border: 0; background: transparent; padding: 0; color: inherit; font-size: 11px; outline: none; }
 @keyframes theme-icon-in { from { opacity: 0; transform: rotate(-18deg) scale(.72); } to { opacity: 1; transform: rotate(0) scale(1); } }
 .tree-caption { color: var(--faint); font-size: 11px; font-weight: 700; padding: 0 8px; }
 .tree { overflow-y: auto; overflow-x: hidden; flex: 1; font-size: 13px; scrollbar-width: none; }
@@ -200,16 +208,22 @@ textarea { min-height: 96px; resize: vertical; font-family: ui-monospace, "Casca
 .tree-folder { width: 100%; display: flex; align-items: center; gap: 7px; text-align: left; padding: 6px 8px; color: var(--muted); border-radius: 6px; font-weight: 600; transition: background 0.15s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
 .tree-folder:hover { background: var(--surface-2); color: var(--text); }
 .tree-folder:active { transform: scale(0.97); }
-.tree-file { width: calc(100% - 18px); margin-left: 18px; display: block; text-align: left; padding: 5px 8px; color: var(--faint); border-radius: 6px; font-size: 12px; transition: background 0.15s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
+.tree-file { width: calc(100% - 18px); margin-left: 18px; display: flex; align-items: center; gap: 6px; text-align: left; padding: 5px 8px; color: var(--faint); border-radius: 6px; font-size: 12px; transition: background 0.15s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
 .tree-file:hover { background: var(--surface-2); color: var(--muted); }
 .tree-file:active { transform: scale(0.96); }
 .tree-file.active { background: var(--accent-soft); color: var(--accent); }
 .tree-empty { color: var(--faint); padding: 8px; }
 .tree-file-folder { margin-left: 18px; }
 .tree-file.folder-toggle { display: flex; align-items: center; gap: 4px; width: 100%; margin-left: 0; }
-.folder-arrow { display: inline-block; width: 12px; text-align: center; font-size: 11px; color: var(--faint); }
+.folder-arrow { display: inline-block; width: 12px; text-align: center; font-size: 11px; color: var(--faint); flex: 0 0 auto; }
+.tree-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tree-i18n-button { flex: 0 0 auto; min-width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; gap: 3px; border: 1px solid transparent; border-radius: 5px; color: var(--faint); opacity: .55; }
+.tree-i18n-button svg { width: 15px; height: 15px; display: block; }
+.tree-i18n-button small { font-size: 9px; font-family: ui-monospace, "Cascadia Code", monospace; }
+.tree-i18n-button.has-bundle { opacity: .9; color: var(--accent); border-color: var(--accent-soft); background: var(--accent-dim); }
+.tree-i18n-button:hover, .tree-i18n-button:focus-visible { opacity: 1; color: var(--accent-strong); border-color: var(--accent); background: var(--accent-soft); outline: none; }
 .tree-children { padding-left: 16px; }
-.tree-child { width: 100%; display: block; text-align: left; padding: 3px 8px; color: var(--faint); border-radius: 5px; font-size: 11px; opacity: .82; font-family: ui-monospace, "Cascadia Code", monospace; }
+.tree-child { width: 100%; display: flex; align-items: center; gap: 6px; text-align: left; padding: 3px 8px; color: var(--faint); border-radius: 5px; font-size: 11px; opacity: .82; font-family: ui-monospace, "Cascadia Code", monospace; }
 .tree-child:hover { background: var(--surface-2); color: var(--muted); opacity: 1; }
 .rail-action { width: 100%; text-align: left; padding: 7px 8px; border-radius: 6px; color: var(--faint); font-size: 13px; }
 .rail-action:hover { background: var(--surface-2); color: var(--text); }
@@ -607,6 +621,28 @@ button.prop-level-summary { border: 0; background: transparent; padding: 0; curs
 .prop-cost-fields { display: grid; gap: 2px; }
 .prop-level-subsection { padding: 4px 0; display: grid; gap: 4px; }
 
+/* i18n bundle modal */
+.i18n-modal-backdrop { position: fixed; inset: 0; z-index: 130; display: grid; place-items: center; padding: 24px; background: var(--overlay); }
+.i18n-modal { width: min(860px, calc(100vw - 32px)); max-height: min(760px, calc(100vh - 32px)); display: grid; grid-template-rows: auto auto auto minmax(0, 1fr) auto auto; border: 1px solid var(--line-2); border-radius: 10px; background: var(--surface); box-shadow: var(--shadow); overflow: hidden; animation: reload-confirm-in 0.16s cubic-bezier(0.16, 1, 0.3, 1); }
+.i18n-modal-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 16px 18px 12px; border-bottom: 1px solid var(--line); background: var(--input); }
+.i18n-modal-head span { color: var(--accent); font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+.i18n-modal-head h2 { margin-top: 3px; font-size: 16px; line-height: 1.35; color: var(--text); }
+.i18n-modal-head p { margin-top: 3px; color: var(--faint); font-size: 12px; }
+.i18n-modal-toolbar { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 10px; padding: 12px 18px; border-bottom: 1px solid var(--line); }
+.i18n-modal-toolbar label { display: grid; gap: 5px; color: var(--faint); font-size: 11px; font-weight: 700; }
+.i18n-search { min-width: 0; }
+.i18n-hint { padding: 8px 18px; color: var(--faint); font-size: 11px; border-bottom: 1px solid var(--line); }
+.i18n-empty { min-height: 220px; display: grid; place-items: center; color: var(--faint); font-size: 13px; }
+.i18n-table { min-height: 0; overflow: auto; scrollbar-width: thin; }
+.i18n-table-head, .i18n-row { display: grid; grid-template-columns: minmax(180px, 280px) minmax(0, 1fr) 58px; gap: 8px; align-items: start; padding: 7px 18px; border-bottom: 1px solid var(--line); }
+.i18n-table-head { position: sticky; top: 0; z-index: 1; background: var(--surface-2); color: var(--faint); font-size: 11px; font-weight: 700; }
+.i18n-row code { padding-top: 7px; color: var(--accent); font-family: ui-monospace, "Cascadia Code", monospace; font-size: 11px; overflow-wrap: anywhere; }
+.i18n-row textarea { min-height: 32px; resize: vertical; font-size: 12px; line-height: 1.45; }
+.i18n-row-delete { margin-top: 2px; color: var(--red); border: 1px solid var(--danger-line); border-radius: 5px; padding: 6px 7px; font-size: 11px; }
+.i18n-row-delete:hover { background: var(--danger-soft); color: var(--danger-ink); }
+.i18n-add-row { display: grid; grid-template-columns: minmax(160px, 260px) minmax(0, 1fr) auto; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--line); background: var(--input); }
+.i18n-modal-actions { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 18px 16px; border-top: 1px solid var(--line); }
+
 /* ─── Responsive ─── */
 @media (max-width: 960px) { .ie-workbench { grid-template-columns: 1fr; } .ie-preview { position: static; border-right: 0; border-bottom: 1px solid var(--line); } }
 
@@ -614,7 +650,7 @@ button.prop-level-summary { border: 0; background: transparent; padding: 0; curs
 
 .chip-list.dense { gap: 6px; }
 @media (max-width: 1280px) { .gui-workbench { --mc-slot: 52px; grid-template-columns: 1fr; height: auto; min-height: calc(100vh - 67px); overflow: visible; } .gui-preview-pane { overflow: auto; padding-right: 0; scrollbar-width: thin; } .gui-inspector-resize { display: none; } .gui-inspector { height: auto; overflow: visible; padding-left: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); } .material-palette { grid-column: 1 / -1; } }
-@media (max-width: 760px) { .surface-head, .ie-header { align-items: flex-start; flex-direction: column; gap: 10px; } .head-actions, .ie-header-actions, .ui-actions { width: 100%; flex-wrap: wrap; } .head-actions button, .ie-btn, .ui-button { min-height: 44px; } .gui-workbench { --mc-slot: 44px; padding: 12px; overflow-x: hidden; } .gui-preview-pane { justify-content: start; } .minecraft-window { max-width: none; padding: 22px 18px 20px; } .minecraft-titlebar { height: 32px; font-size: 14px; } .minecraft-grid { grid-template-rows: none !important; gap: 2px; padding: 8px; } .minecraft-slot::before { inset: 5px; } .gui-inspector { grid-template-columns: 1fr; } .material-list { grid-template-columns: 1fr; } .material-list button, .material-tabs button, .wide-action, .ui-button--full { min-height: 44px; } }
+@media (max-width: 760px) { .brand-block { grid-template-columns: 1fr; align-items: stretch; } .rail-controls { justify-content: flex-start; } .surface-head, .ie-header { align-items: flex-start; flex-direction: column; gap: 10px; } .head-actions, .ie-header-actions, .ui-actions { width: 100%; flex-wrap: wrap; } .head-actions button, .ie-btn, .ui-button { min-height: 44px; } .gui-workbench { --mc-slot: 44px; padding: 12px; overflow-x: hidden; } .gui-preview-pane { justify-content: start; } .minecraft-window { max-width: none; padding: 22px 18px 20px; } .minecraft-titlebar { height: 32px; font-size: 14px; } .minecraft-grid { grid-template-rows: none !important; gap: 2px; padding: 8px; } .minecraft-slot::before { inset: 5px; } .gui-inspector { grid-template-columns: 1fr; } .material-list { grid-template-columns: 1fr; } .material-list button, .material-tabs button, .wide-action, .ui-button--full { min-height: 44px; } .i18n-modal-toolbar, .i18n-add-row, .i18n-table-head, .i18n-row { grid-template-columns: 1fr; } .i18n-row-delete { justify-self: start; } }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }

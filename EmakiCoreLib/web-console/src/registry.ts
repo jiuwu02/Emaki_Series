@@ -12,6 +12,7 @@ import React, { type ComponentType } from 'react';
 import type { ApiClient } from './api';
 import * as components from './components';
 import * as lib from './lib';
+import * as i18n from './i18n';
 import type { WebEditorDescriptor, WebRegistryFile, WebRegistryModule } from './types';
 
 /** Props passed to every registered surface component. */
@@ -40,7 +41,7 @@ export type SurfaceRegistration = {
   priority?: number;
 };
 
-export type EmakiWebConsoleHost = {
+export type EmakiWebConsoleHost = typeof lib & typeof components & typeof i18n & {
   React: typeof React;
   registerSurface: typeof registerSurface;
   getSurface: typeof getSurface;
@@ -48,6 +49,10 @@ export type EmakiWebConsoleHost = {
   isKind: typeof isKind;
   components: typeof components;
   lib: typeof lib;
+  i18n: typeof i18n;
+  t: typeof i18n.t;
+  registerLocale: typeof i18n.registerLocale;
+  registerModuleLocale: typeof i18n.registerModuleLocale;
 };
 
 const _registry: SurfaceRegistration[] = [];
@@ -112,10 +117,8 @@ export function isKind(fileKind: string | undefined, target: string): boolean {
 
 /** Install the browser global used by plugin extension scripts. */
 export function installWebConsoleHost(): EmakiWebConsoleHost {
-  const host: EmakiWebConsoleHost = { React, registerSurface, getSurface, getAllSurfaces, isKind, components, lib };
+  const host: EmakiWebConsoleHost = { ...lib, ...components, ...i18n, React, registerSurface, getSurface, getAllSurfaces, isKind, components, lib, i18n, t: i18n.t, registerLocale: i18n.registerLocale, registerModuleLocale: i18n.registerModuleLocale };
   (window as any).React = React;
   window.EmakiWebConsole = host;
   return host;
 }
-
-installWebConsoleHost();

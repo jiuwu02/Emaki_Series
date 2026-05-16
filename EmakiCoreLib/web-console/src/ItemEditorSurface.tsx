@@ -1,15 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ApiClient, ActionTypesResult } from './api';
-import { ActionGroup, Button, ActionsEditor, MiniText, PropRow, SectionHead, StringListEditor, parseLoreActions, parseNameActions, serializeActions } from './components';
+import { ActionGroup, Button, ActionsEditor, InlineError, MiniText, PropRow, SectionHead, StringListEditor, parseLoreActions, parseNameActions, serializeActions } from './components';
 import { asList, asRecord, asStringList, displaySource, firstItemSource, materialFromItemSource, setDeepValue, type AnyMap } from './itemEditor';
-import { materialShortName, materialUrls, textValue } from './lib';
+import { t } from './i18n';
+import { materialShortName, materialUrls, subscribeTextureBases, textValue } from './lib';
 import type { ItemPreviewResult, WebEditorDescriptor, WebEditorField, WebEditorSection, WebRegistryFile, WebRegistryModule } from './types';
 import { serializeItemYaml } from './itemEditor';
 
 type Props = { module: WebRegistryModule; file: WebRegistryFile; api: ApiClient; childPath?: string; refreshKey?: number; editor?: WebEditorDescriptor; onReload?: () => void };
 
-const DEFAULT_BASE_NAME = '<gray>预览装备</gray>';
-const DEFAULT_BASE_LORE = '<gray>原始装备 Lore</gray>';
+const DEFAULT_BASE_NAME = t('core.item.defaultBaseName');
+const DEFAULT_BASE_LORE = t('core.item.defaultBaseLore');
 
 export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0, editor, onReload }: Props) {
   const [data, setData] = useState<AnyMap>({});
@@ -66,14 +67,16 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
   };
 
   const handleSave = async () => {
+    if (saving || !dirty) return;
     setSaving(true);
+    setError(null);
     try {
       const content = viewSource ? sourceText : serializeItemYaml(data);
       await api.saveItem(module.id, filePath, content);
       setOriginalContent(content);
       setDirty(false);
     } catch (err: any) {
-      setError(err?.message ?? '保存失败');
+      setError(err?.message ?? t('core.toast.saveFailed'));
     } finally {
       setSaving(false);
     }
@@ -84,24 +87,24 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
     setViewSource(!viewSource);
   };
 
-  if (loading) return <div className="ie-surface"><div className="ie-loading"><div className="ie-skeleton" aria-label="加载中"><div className="ie-skeleton-line" style={{ width: '60%' }} /><div className="ie-skeleton-line" style={{ width: '80%' }} /><div className="ie-skeleton-line" style={{ width: '45%' }} /><div className="ie-skeleton-line" style={{ width: '70%' }} /></div></div></div>;
-  if (error && !data) return <div className="ie-surface"><div className="ie-error" role="alert">{error}</div></div>;
+  if (loading) return <div className="ie-surface"><div className="ie-loading" role="status"><div className="ie-skeleton" aria-label={t('core.item.loadingAria')}><div className="ie-skeleton-line" style={{ width: '60%' }} /><div className="ie-skeleton-line" style={{ width: '80%' }} /><div className="ie-skeleton-line" style={{ width: '45%' }} /><div className="ie-skeleton-line" style={{ width: '70%' }} /></div></div></div>;
+  if (error && !data) return <div className="ie-surface"><InlineError>{error}</InlineError>{onReload && <Button size="sm" onClick={onReload}>{t('core.action.retry')}</Button>}</div>;
 
   return (
     <div className="ie-surface" data-dirty={dirty || undefined}>
       <div className="ie-header">
         <div className="ie-header-left">
-          <h1 className="ie-title">{editor?.title ?? file.title ?? '物品编辑器'}</h1>
-          {dirty && <span className="ie-dirty-badge">未保存</span>}
+          <h1 className="ie-title">{editor?.title ?? file.title ?? t('core.item.editorTitle')}</h1>
+          {dirty && <span className="ie-dirty-badge">{t('core.item.unsaved')}</span>}
         </div>
         <ActionGroup>
-          {onReload && <Button size="sm" onClick={onReload}>刷新</Button>}
-          <Button size="sm" onClick={switchToSource}>{viewSource ? '可视化' : '源码'}</Button>
-          <Button size="sm" variant="primary" ready={dirty} onClick={handleSave} disabled={saving}>{saving ? '保存中...' : '保存'}</Button>
+          {onReload && <Button size="sm" onClick={onReload}>{t('core.action.refresh')}</Button>}
+          <Button size="sm" onClick={switchToSource}>{viewSource ? t('core.item.visual') : t('core.item.source')}</Button>
+          <Button size="sm" variant="primary" ready={dirty} onClick={handleSave} disabled={saving || !dirty}>{saving ? t('core.item.saving') : t('core.action.save')}</Button>
         </ActionGroup>
       </div>
 
-      {error && <div className="ie-error" role="alert">{error}</div>}
+      {error && <InlineError>{error}</InlineError>}
 
       {viewSource ? (
         <div className="ie-source-wrap">
@@ -158,24 +161,26 @@ function FieldEditor({ field, data, setField, actionTypesResult }: { field: WebE
 function GenericPreviewPane({ data, preview }: { data: AnyMap; preview: ItemPreviewResult | null }) {
   const source = firstItemSource(data.item_sources ?? asRecord(data.match).item_sources ?? preview?.material);
   const material = materialFromItemSource(source || data.material || preview?.material);
+  const [, refreshTextureOrder] = useState(0);
   const urls = materialUrls(material);
   const [imgFailed, setImgFailed] = useState(false);
   useEffect(() => setImgFailed(false), [material]);
+  useEffect(() => subscribeTextureBases(() => { setImgFailed(false); refreshTextureOrder((version) => version + 1); }), []);
 
   return (
-    <div className="ie-preview" role="complementary" aria-label="物品预览">
+    <div className="ie-preview" role="complementary" aria-label={t('core.item.previewAria')}>
       <div className="ie-preview-icon">
-        {urls.length > 0 && !imgFailed ? <img src={urls[0]} alt={material || '物品图标'} onError={e => { const t = e.currentTarget; const next = urls[urls.indexOf(t.src) + 1]; if (next) t.src = next; else setImgFailed(true); }} /> : <span className="ie-preview-fallback">{materialShortName(material) || '?'}</span>}
+        {urls.length > 0 && !imgFailed ? <img src={urls[0]} alt={material || t('core.item.iconAlt')} onError={e => { const target = e.currentTarget; const next = urls[urls.indexOf(target.src) + 1]; if (next) target.src = next; else setImgFailed(true); }} /> : <span className="ie-preview-fallback">{materialShortName(material) || '?'}</span>}
       </div>
       <div className="ie-preview-meta">
-        <span className="ie-preview-kind">通用物品</span>
+        <span className="ie-preview-kind">{t('core.item.genericKind')}</span>
         {Boolean(preview?.id || data.id) && <code className="ie-preview-id">{textValue(preview?.id ?? data.id)}</code>}
         <span className="ie-preview-source">{displaySource(source || material)}</span>
       </div>
       <div className="ie-tooltip">
         {Boolean(preview?.displayName || data.display_name) && <div className="ie-tooltip-name"><MiniText value={preview?.displayName ?? data.display_name} /></div>}
         {(preview?.lore ?? asStringList(data.lore)).map((line, i) => <div className="ie-tooltip-line" key={i}><MiniText value={line} /></div>)}
-        {!preview?.displayName && !data.display_name && !(preview?.lore ?? asList(data.lore)).length && <span className="ie-tooltip-empty">暂无预览</span>}
+        {!preview?.displayName && !data.display_name && !(preview?.lore ?? asList(data.lore)).length && <span className="ie-tooltip-empty">{t('core.item.noPreview')}</span>}
       </div>
     </div>
   );
@@ -187,11 +192,11 @@ function getDeepValue(source: AnyMap, path: string): unknown {
 
 function defaultSections(): WebEditorSection[] {
   return [{
-    title: '基础',
+    title: t('core.item.basic'),
     fields: [
       { path: 'id', label: 'ID', type: 'text' },
-      { path: 'material', label: '材质', type: 'text' },
-      { path: 'display_name', label: '显示名称', type: 'text' },
+      { path: 'material', label: t('core.item.material'), type: 'text' },
+      { path: 'display_name', label: t('core.item.displayName'), type: 'text' },
       { path: 'lore', label: 'Lore', type: 'stringList', wide: true },
       { path: 'name_actions', label: 'Name Actions', type: 'actions', wide: true },
       { path: 'lore_actions', label: 'Lore Actions', type: 'actions', wide: true }

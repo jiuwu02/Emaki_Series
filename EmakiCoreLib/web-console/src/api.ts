@@ -1,3 +1,4 @@
+import { t } from './i18n';
 import type { ConfigFile, GuiDocument, ItemDocument, ItemPreviewResult, ModuleStatus, RuntimeLibrary, WebConfigNode, WebRegistry } from './types';
 
 export type ActionTypesResult = { nameActions: string[]; loreActions: string[] };
@@ -17,9 +18,9 @@ export class ApiClient {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password })
     });
-    const data = await response.json();
+    const data = await parseResponseJson(response);
     if (!response.ok || !data.success) {
-      throw new Error(data.error || '登录失败');
+      throw new Error(readApiError(response, data, t('core.login.failed')));
     }
     return data;
   }
@@ -113,22 +114,48 @@ export class ApiClient {
   }
 
   private async request(path: string, init: RequestInit = {}): Promise<any> {
-    const response = await fetch(path, {
-      ...init,
-      headers: {
-        ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
-        ...(init.body ? { 'Content-Type': 'application/json' } : {}),
-        ...init.headers
-      }
-    });
-    const data = await response.json();
+    let response: Response;
+    try {
+      response = await fetch(path, {
+        ...init,
+        headers: {
+          ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
+          ...(init.body ? { 'Content-Type': 'application/json' } : {}),
+          ...init.headers
+        }
+      });
+    } catch {
+      throw new Error(t('core.api.network'));
+    }
+
+    const data = await parseResponseJson(response);
     if (response.status === 401) {
       this.onUnauthorized();
-      throw new Error('会话已过期');
+      throw new Error(t('core.api.unauthorized'));
     }
     if (!response.ok || !data.success) {
-      throw new Error(data.error || '请求失败');
+      throw new Error(readApiError(response, data));
     }
     return data;
   }
+}
+
+async function parseResponseJson(response: Response): Promise<any> {
+  const text = await response.text();
+  if (!text.trim()) return {};
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error(t('core.api.invalidJson'));
+  }
+}
+
+function readApiError(response: Response, data: any, fallback = t('core.api.requestFailed')): string {
+  if (typeof data?.error === 'string' && data.error.trim()) return data.error;
+  if (typeof data?.message === 'string' && data.message.trim()) return data.message;
+  if (response.status === 403) return t('core.api.forbidden');
+  if (response.status === 404) return t('core.api.notFound');
+  if (response.status === 429) return t('core.api.rateLimited');
+  if (response.status >= 500) return t('core.api.serverError');
+  return fallback;
 }

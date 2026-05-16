@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ApiClient } from '../api';
+import { t } from '../i18n';
 import { Button, InlineError } from '../components';
 
 export function Login({ onLogin }: { onLogin: (token: string) => void }) {
@@ -12,21 +13,21 @@ export function Login({ onLogin }: { onLogin: (token: string) => void }) {
   async function submit(e: React.FormEvent) {
     e.preventDefault(); setBusy(true); setError('');
     try { onLogin((await api.login(username, password)).token); }
-    catch (err) { setError(err instanceof Error ? err.message : '登录失败'); }
+    catch (err) { setError(err instanceof Error ? err.message : t('core.login.failed')); }
     finally { setBusy(false); }
   }
 
   return (
     <main className="login-scene">
       <section className="login-panel">
-        <div className="login-kicker">绘卷核心库</div>
-        <h1>配置控制台</h1>
-        <p>面向管理员团队的深度配置编辑工具。保存后执行 reload 使运行时生效。</p>
+        <div className="login-kicker">{t('core.login.kicker')}</div>
+        <h1>{t('core.login.title')}</h1>
+        <p>{t('core.login.description')}</p>
         <form onSubmit={submit}>
-          <label>账号<input value={username} onChange={(e) => setUsername(e.target.value)} /></label>
-          <label>密码<input type="password" value={password} onChange={(e) => setPassword(e.target.value)} /></label>
+          <label>{t('core.login.username')}<input value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" /></label>
+          <label>{t('core.login.password')}<input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" /></label>
           {error && <InlineError>{error}</InlineError>}
-          <Button type="submit" variant="primary" disabled={busy}>{busy ? '验证中' : '登录'}</Button>
+          <Button type="submit" variant="primary" disabled={busy || !username.trim() || !password}>{busy ? t('core.login.busy') : t('core.login.submit')}</Button>
         </form>
       </section>
     </main>

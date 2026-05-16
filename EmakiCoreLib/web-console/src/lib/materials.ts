@@ -4,55 +4,121 @@
  */
 
 export const MINECRAFT_ASSET_VERSION = '26.1.2';
+export const MINECRAFT_TEXTURE_VERSION = MINECRAFT_ASSET_VERSION;
 
-export const MATERIAL_TEXTURE_SOURCES = [
-  { id: 'jsdelivr-inventive', base: `https://cdn.jsdelivr.net/gh/InventivetalentDev/minecraft-assets@${MINECRAFT_ASSET_VERSION}/assets/minecraft/textures` },
-  { id: 'jsdelivr-mcmeta', base: `https://cdn.jsdelivr.net/gh/misode/mcmeta@1.21.4-assets/assets/minecraft/textures` },
-  { id: 'jsdelivr-pixigeko', base: `https://cdn.jsdelivr.net/gh/PixiGeko/Minecraft-default-assets@latest/assets/minecraft/textures` },
-  { id: 'github-inventive', base: `https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/${MINECRAFT_ASSET_VERSION}/assets/minecraft/textures` },
-  { id: 'github-mcmeta', base: `https://raw.githubusercontent.com/misode/mcmeta/1.21.4-assets/assets/minecraft/textures` },
+export type MaterialTextureSource = {
+  id: string;
+  base: string;
+  region?: 'cn' | 'global';
+  priority: number;
+};
+
+export const MATERIAL_TEXTURE_SOURCES: MaterialTextureSource[] = [
+  // mcasset.cloud proxies the official InventivetalentDev asset tree and serves real PNGs without a GitHub raw redirect.
+  // It was the only tested public source that stayed usable when raw.githubusercontent.com could not be resolved.
+  { id: 'mcasset-proxy', region: 'global', priority: 10, base: `https://assets.mcasset.cloud/${MINECRAFT_TEXTURE_VERSION}/assets/minecraft/textures` },
+  // Mainland-friendly GitHub raw proxies. Kept after mcasset so cache misses do not block first paint.
+  { id: 'ghfast-inventive', region: 'cn', priority: 20, base: `https://ghfast.top/https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/${MINECRAFT_TEXTURE_VERSION}/assets/minecraft/textures` },
+  { id: 'gh-proxy-inventive', region: 'cn', priority: 30, base: `https://gh-proxy.com/raw.githubusercontent.com/InventivetalentDev/minecraft-assets/${MINECRAFT_TEXTURE_VERSION}/assets/minecraft/textures` },
+  // jsDelivr can be quick when it is warm, but this repository redirects misses to raw.githubusercontent.com.
+  { id: 'jsdelivr-inventive', region: 'global', priority: 80, base: `https://cdn.jsdelivr.net/gh/InventivetalentDev/minecraft-assets@${MINECRAFT_ASSET_VERSION}/assets/minecraft/textures` },
+  // Direct GitHub raw stays as last-resort only. In China mainland it commonly fails DNS or stalls.
+  { id: 'github-inventive', region: 'global', priority: 500, base: `https://raw.githubusercontent.com/InventivetalentDev/minecraft-assets/${MINECRAFT_TEXTURE_VERSION}/assets/minecraft/textures` },
 ];
 
-// Latency probe: test each source once and reorder
-let _resolvedBases: string[] | null = null;
+const TEXTURE_SOURCE_STORAGE_KEY = 'emaki-material-texture-bases:v2';
+const PROBE_TIMEOUT_MS = 1800;
+const PROBE_TEST_FILES = ['/item/diamond.png', '/block/acacia_planks.png'];
+
+let _resolvedBases: string[] | null = readCachedBases();
 let _probePromise: Promise<string[]> | null = null;
+let _listeners: Array<() => void> = [];
+
+function notifyTextureBasesChanged() {
+  _listeners.forEach((listener) => listener());
+}
+
+export function subscribeTextureBases(listener: () => void): () => void {
+  _listeners = [..._listeners, listener];
+  return () => { _listeners = _listeners.filter((entry) => entry !== listener); };
+}
+
+function readCachedBases(): string[] | null {
+  if (typeof localStorage === 'undefined') return null;
+  try {
+    const cached = JSON.parse(localStorage.getItem(TEXTURE_SOURCE_STORAGE_KEY) || 'null') as { bases?: string[]; savedAt?: number } | null;
+    if (!cached?.bases?.length || !cached.savedAt) return null;
+    if (Date.now() - cached.savedAt > 1000 * 60 * 60 * 24 * 7) return null;
+    const known = new Set(MATERIAL_TEXTURE_SOURCES.map((source) => source.base));
+    const valid = cached.bases.filter((base) => known.has(base));
+    return valid.length ? valid : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedBases(bases: string[]) {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    localStorage.setItem(TEXTURE_SOURCE_STORAGE_KEY, JSON.stringify({ bases, savedAt: Date.now() }));
+  } catch {
+    // Ignore storage quota or private-mode failures. The default source order remains safe.
+  }
+}
+
+async function probeSource(source: MaterialTextureSource): Promise<{ base: string; score: number }> {
+  const start = performance.now();
+  try {
+    const results = await Promise.all(PROBE_TEST_FILES.map((file) => loadProbeImage(source.base + file, PROBE_TIMEOUT_MS).then(() => true, () => false)));
+    if (!results.some(Boolean)) throw new Error('texture source unavailable');
+    return { base: source.base, score: performance.now() - start + source.priority };
+  } catch {
+    return { base: source.base, score: 100000 + source.priority };
+  }
+}
+
+function loadProbeImage(url: string, timeoutMs: number): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    const timer = window.setTimeout(() => {
+      image.onload = null;
+      image.onerror = null;
+      image.src = '';
+      reject(new Error('texture probe timeout'));
+    }, timeoutMs);
+    image.onload = () => { window.clearTimeout(timer); resolve(); };
+    image.onerror = () => { window.clearTimeout(timer); reject(new Error('texture probe failed')); };
+    image.decoding = 'async';
+    image.referrerPolicy = 'no-referrer';
+    image.src = url;
+  });
+}
 
 function probeLatency(): Promise<string[]> {
-  if (_resolvedBases) return Promise.resolve(_resolvedBases);
   if (_probePromise) return _probePromise;
 
   _probePromise = (async () => {
-    const testFile = '/item/diamond.png';
-    const results: Array<{ base: string; time: number }> = [];
-
-    const probes = MATERIAL_TEXTURE_SOURCES.map(async (source) => {
-      const start = performance.now();
-      try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 4000);
-        await fetch(source.base + testFile, { method: 'HEAD', signal: controller.signal });
-        clearTimeout(timeout);
-        results.push({ base: source.base, time: performance.now() - start });
-      } catch {
-        results.push({ base: source.base, time: 9999 });
-      }
-    });
-
-    await Promise.allSettled(probes);
-    results.sort((a, b) => a.time - b.time);
-    _resolvedBases = results.map(r => r.base);
+    const results = await Promise.all(MATERIAL_TEXTURE_SOURCES.map(probeSource));
+    results.sort((a, b) => a.score - b.score);
+    _resolvedBases = results.map((result) => result.base);
+    writeCachedBases(_resolvedBases);
+    notifyTextureBasesChanged();
     return _resolvedBases;
   })();
 
   return _probePromise;
 }
 
-// Start probe immediately on module load
-probeLatency();
+if (typeof window !== 'undefined') {
+  window.setTimeout(() => { void probeLatency(); }, 0);
+}
 
-/** Get texture base URLs ordered by latency (fastest first). */
+/** Get texture base URLs ordered by measured image load speed. */
 export function getTextureBases(): string[] {
-  return _resolvedBases ?? MATERIAL_TEXTURE_SOURCES.map(s => s.base);
+  return _resolvedBases ?? MATERIAL_TEXTURE_SOURCES
+    .slice()
+    .sort((a, b) => a.priority - b.priority)
+    .map(s => s.base);
 }
 
 /** Legacy export for compatibility. */

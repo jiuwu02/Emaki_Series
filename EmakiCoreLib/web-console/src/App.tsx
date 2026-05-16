@@ -5,14 +5,16 @@ import { GuiEditorSurface } from './GuiEditorSurface';
 import { ItemEditorSurface } from './ItemEditorSurface';
 import { loadWebExtensions } from './extensions';
 import { getSurface, isKind, registerSurface } from './registry';
+import { getLocale, getRegisteredLocales, setLocale, t } from './i18n';
 import { ActionGroup, Button, InlineError, ToastNotice } from './components';
+import { I18nBundleModal, type I18nTarget } from './I18nBundleModal';
 import { Login, ResizableRail, WorkspaceTree, fileKindLabel } from './shell';
 import type { SurfaceProps } from './registry';
 import type { WebConfigNode, WebRegistry, WebRegistryFile, WebRegistryModule } from './types';
 
 // Register CoreLib's built-in surfaces through the same registry used by plugin extensions.
-registerSurface({ kind: 'GUI', component: GuiEditorSurface as ComponentType<SurfaceProps>, label: 'GUI' });
-registerSurface({ kind: 'ITEM', component: ItemEditorSurface as ComponentType<SurfaceProps>, label: '物品' });
+registerSurface({ kind: 'GUI', component: GuiEditorSurface as ComponentType<SurfaceProps>, label: t('core.surface.gui.label') });
+registerSurface({ kind: 'ITEM', component: ItemEditorSurface as ComponentType<SurfaceProps>, label: t('core.surface.item.label') });
 
 type Selection = { moduleId: string; fileId: string; scriptPath?: string; refreshKey?: number };
 type DraftMap = Record<string, unknown>;
@@ -20,10 +22,11 @@ type DraftMap = Record<string, unknown>;
 type Toast = { tone: 'ok' | 'bad'; text: string } | null;
 type ColorTheme = 'dark' | 'light';
 
-const COLOR_THEMES: { id: ColorTheme; label: string }[] = [
-  { id: 'dark', label: '深色' },
-  { id: 'light', label: '浅色' }
+const COLOR_THEMES: { id: ColorTheme; labelKey: string }[] = [
+  { id: 'dark', labelKey: 'core.theme.dark' },
+  { id: 'light', labelKey: 'core.theme.light' }
 ];
+const LOCALE_LABELS: Record<string, string> = { 'zh-CN': '简体中文', zh_CN: '简体中文', zh: '简体中文', 'en-US': 'English', en_US: 'English' };
 
 export default function App() {
   const [token, setToken] = useState(() => sessionStorage.getItem('emaki-web-token'));
@@ -33,6 +36,8 @@ export default function App() {
   const [drafts, setDrafts] = useState<DraftMap>({});
   const [toast, setToast] = useState<Toast>(null);
   const [theme, setTheme] = useState<ColorTheme>(() => readTheme());
+  const [localeVersion, setLocaleVersion] = useState(0);
+  const [i18nTarget, setI18nTarget] = useState<I18nTarget | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -61,9 +66,9 @@ export default function App() {
       if (initial) setExpanded(Object.fromEntries(next.modules.map((m) => [m.id, true])));
       setSelected((c) => c ?? firstSelection(next));
       setDrafts({});
-      if (!initial) setToast({ tone: 'ok', text: '已刷新配置注册表。' });
+      if (!initial) setToast({ tone: 'ok', text: t('core.toast.registryRefreshed') });
     } catch (err) {
-      setToast({ tone: 'bad', text: err instanceof Error ? err.message : '刷新失败。' });
+      setToast({ tone: 'bad', text: err instanceof Error ? err.message : t('core.toast.refreshFailed') });
     } finally {
       setLoading(false);
     }
@@ -73,7 +78,7 @@ export default function App() {
     if (!selectedModule || !selectedFile) return;
     const changes = selectedFile.nodes.filter((n) => n.type !== 'object' && draftKey(selectedModule.id, n.path) in drafts);
     if (!changes.length) {
-      setToast({ tone: 'ok', text: '没有需要保存的改动。' });
+      setToast({ tone: 'ok', text: t('core.toast.noChanges') });
       return;
     }
     setSaving(true);
@@ -81,10 +86,10 @@ export default function App() {
       for (const node of changes) {
         await api.saveRegistryValue(selectedModule.id, selectedFile.path, node.path, drafts[draftKey(selectedModule.id, node.path)]);
       }
-      setToast({ tone: 'ok', text: `已保存 ${changes.length} 项配置，执行 reload 后生效。` });
+      setToast({ tone: 'ok', text: t('core.toast.savedConfig', { count: changes.length }) });
       await loadRegistry(true);
     } catch (err) {
-      setToast({ tone: 'bad', text: err instanceof Error ? err.message : '保存失败。' });
+      setToast({ tone: 'bad', text: err instanceof Error ? err.message : t('core.toast.saveFailed') });
     } finally {
       setSaving(false);
     }
@@ -96,34 +101,47 @@ export default function App() {
   const selectedFile = selectedModule && selected ? selectedModule.files.find((f) => f.id === selected.fileId) ?? null : null;
   const changedCount = selectedModule && selectedFile ? selectedFile.nodes.filter((n) => n.type !== 'object' && draftKey(selectedModule.id, n.path) in drafts).length : 0;
   const activeTheme = COLOR_THEMES.find((entry) => entry.id === theme) ?? COLOR_THEMES[0];
+  const activeThemeLabel = t(activeTheme.labelKey);
   const nextTheme = () => setTheme((current) => COLOR_THEMES[(COLOR_THEMES.findIndex((entry) => entry.id === current) + 1) % COLOR_THEMES.length].id);
   const selectedEditor = selectedFile?.editorId ? registry?.editors?.[selectedFile.editorId] : undefined;
   const hideStageHead = selectedFile && (getSurface(selectedFile, selectedEditor) != null && !isKind(selectedFile.kind, 'CONFIG') && !isKind(selectedFile.kind, 'SCRIPT'));
+  const locales = getRegisteredLocales();
+  const currentLocale = getLocale();
+  const currentLocaleLabel = localeLabel(currentLocale);
+  const changeLocale = (next: string) => { setLocale(next); setLocaleVersion((version) => version + 1); };
 
   return (
-    <div className="workbench">
+    <div className="workbench" data-locale-version={localeVersion}>
       {toast && <ToastNotice tone={toast.tone}>{toast.text}</ToastNotice>}
+      {i18nTarget && <I18nBundleModal target={i18nTarget} onClose={() => setI18nTarget(null)} onSaved={() => { setLocaleVersion((version) => version + 1); setToast({ tone: 'ok', text: t('core.i18n.saved') }); }} />}
       <ResizableRail>
         <div className="brand-block">
-          <div className="brand-main"><span className="sigil">绘</span><div><strong>绘卷核心库</strong><small>配置控制台</small></div></div>
-          <button type="button" className={`theme-toggle ${theme}`} onClick={nextTheme} title={`切换颜色主题：${activeTheme.label}`} aria-label={`当前颜色主题 ${activeTheme.label}，点击切换`}>
-            <ThemeIcon key={theme} theme={theme} />
-            <span>{activeTheme.label}</span>
-          </button>
+          <div className="brand-main"><span className="sigil"><EmakiMark /></span><div><strong>{t('core.brand.name')}</strong><small>{t('core.brand.console')}</small></div></div>
+          <div className="rail-controls">
+            <button type="button" className={`theme-toggle icon-only ${theme}`} onClick={nextTheme} title={t('core.theme.switchTitle', { theme: activeThemeLabel })} aria-label={t('core.theme.switchAria', { theme: activeThemeLabel })}>
+              <ThemeIcon key={theme} theme={theme} />
+            </button>
+            <label className="locale-toggle icon-only" title={currentLocaleLabel} aria-label={t('core.locale.switchAria', { locale: currentLocaleLabel })}>
+              <LocaleIcon />
+              <select value={currentLocale} onChange={(event) => changeLocale(event.target.value)} disabled={!locales.length}>
+                {locales.length ? locales.map((locale) => <option key={locale} value={locale}>{localeLabel(locale)}</option>) : <option>{t('core.i18n.noLocales')}</option>}
+              </select>
+            </label>
+          </div>
         </div>
-        <div className="tree-caption">模块树</div>
-        <WorkspaceTree registry={registry} selected={selected} expanded={expanded} setExpanded={setExpanded} onSelect={(next) => setSelected((current) => sameSelection(current, next) ? { ...next, refreshKey: (current?.refreshKey ?? 0) + 1 } : next)} />
-        <button className="rail-action quiet" onClick={() => { sessionStorage.removeItem('emaki-web-token'); setToken(null); }}>退出登录</button>
+        <div className="tree-caption">{t('core.tree.caption')}</div>
+        <WorkspaceTree registry={registry} selected={selected} expanded={expanded} setExpanded={setExpanded} onOpenI18n={setI18nTarget} onSelect={(next) => setSelected((current) => sameSelection(current, next) ? { ...next, refreshKey: (current?.refreshKey ?? 0) + 1 } : next)} />
+        <button className="rail-action quiet" onClick={() => { sessionStorage.removeItem('emaki-web-token'); setToken(null); }}>{t('core.auth.logout')}</button>
       </ResizableRail>
       <main className="stage">
         {!hideStageHead && <header className="stage-head">
           <div>
-            <h1>{selectedModule ? selectedModule.name : '配置控制台'}</h1>
-            <p>{selectedFile ? `${selectedFile.title}，${selectedFile.path}` : '选择左侧文件开始编辑。'}</p>
+            <h1>{selectedModule ? selectedModule.name : t('core.stage.defaultTitle')}</h1>
+            <p>{selectedFile ? `${selectedFile.title}，${selectedFile.path}` : t('core.stage.defaultHint')}</p>
           </div>
           <ActionGroup>
-            <Button onClick={() => void loadRegistry()} disabled={loading}>刷新</Button>
-            <Button variant="primary" ready={changedCount > 0} onClick={() => void saveCurrent()} disabled={saving || changedCount === 0}>保存{changedCount ? ` ${changedCount}` : ''}</Button>
+            <Button onClick={() => void loadRegistry()} disabled={loading}>{t('core.action.refresh')}</Button>
+            <Button variant="primary" ready={changedCount > 0} onClick={() => void saveCurrent()} disabled={saving || changedCount === 0}>{changedCount ? t('core.action.saveCount', { count: changedCount }) : t('core.action.save')}</Button>
           </ActionGroup>
         </header>}
         <section className="editor-shell single">
@@ -135,7 +153,8 @@ export default function App() {
 }
 
 function ConfigSurface({ registry, module, file, drafts, setDrafts, api, scriptPath, refreshKey, onReload }: { registry: WebRegistry | null; module: WebRegistryModule | null; file: WebRegistryFile | null; drafts: DraftMap; setDrafts: React.Dispatch<React.SetStateAction<DraftMap>>; api: ApiClient; scriptPath?: string; refreshKey: number; onReload?: () => void }) {
-  if (!module || !file) return <section className="config-surface empty">选择左侧配置文件。</section>;
+  if (registry && registry.modules.length === 0) return <section className="config-surface empty" role="status">{t('core.empty.noRegistry')}</section>;
+  if (!module || !file) return <section className="config-surface empty" role="status">{t('core.empty.selectConfig')}</section>;
   const editor = file.editorId ? registry?.editors?.[file.editorId] : undefined;
 
   // Check registry for a custom surface first
@@ -145,11 +164,11 @@ function ConfigSurface({ registry, module, file, drafts, setDrafts, api, scriptP
     return <SurfaceComponent module={module} file={file} api={api} childPath={scriptPath} refreshKey={refreshKey} editor={editor} onReload={onReload} />;
   }
 
-  if (isKind(file.kind, 'SCRIPT')) return <section className="config-surface script-surface"><div className="surface-head"><div><h2>{file.title}</h2><p>{file.comment}</p></div><span className="file-kind script">{fileKindLabel(file.kind)}</span></div>{scriptPath ? <ScriptEditor api={api} scriptPath={scriptPath} /> : <div className="script-placeholder">点击左侧脚本文件开始编辑。</div>}</section>;
+  if (isKind(file.kind, 'SCRIPT')) return <section className="config-surface script-surface"><div className="surface-head"><div><h2>{file.title}</h2><p>{file.comment}</p></div><span className="file-kind script">{fileKindLabel(file.kind)}</span></div>{scriptPath ? <ScriptEditor api={api} scriptPath={scriptPath} /> : <div className="script-placeholder" role="status">{t('core.empty.selectScript')}</div>}</section>;
   // CONFIG 类型：如果有子文件路径，按需加载子文件内容
   if (isKind(file.kind, 'CONFIG') && scriptPath) return <ConfigChildSurface module={module} file={file} childPath={scriptPath} drafts={drafts} setDrafts={setDrafts} api={api} refreshKey={refreshKey} />;
   // CONFIG 类型 glob 文件无子文件选中时，显示提示
-  if (isKind(file.kind, 'CONFIG') && file.children && file.children.length > 0 && file.nodes.length === 0) return <section className="config-surface"><div className="surface-head"><div><h2>{file.title}</h2><p>{file.comment}</p></div><span className={`file-kind ${String(file.kind).toLowerCase()}`}>{fileKindLabel(file.kind)}</span></div><div className="script-placeholder">点击左侧文件开始编辑。</div></section>;
+  if (isKind(file.kind, 'CONFIG') && file.children && file.children.length > 0 && file.nodes.length === 0) return <section className="config-surface"><div className="surface-head"><div><h2>{file.title}</h2><p>{file.comment}</p></div><span className={`file-kind ${String(file.kind).toLowerCase()}`}>{fileKindLabel(file.kind)}</span></div><div className="script-placeholder" role="status">{t('core.empty.selectFile')}</div></section>;
   return <section className="config-surface"><div className="surface-head"><div><h2>{file.title}</h2><p>{file.comment}</p></div><span className={`file-kind ${String(file.kind).toLowerCase()}`}>{fileKindLabel(file.kind)}</span></div><ConfigNodeTree moduleId={module.id} nodes={file.nodes} drafts={drafts} setDrafts={setDrafts} /></section>;
 }
 
@@ -167,7 +186,7 @@ function ConfigChildSurface({ module, file, childPath, drafts, setDrafts, api, r
     api.registryFileNodes(module.id, childPath).then(result => {
       setNodes(result);
     }).catch(err => {
-      setError(err instanceof Error ? err.message : '加载失败');
+      setError(err instanceof Error ? err.message : t('core.config.childLoadFailed'));
     }).finally(() => setLoading(false));
   }, [module.id, childPath, refreshKey]);
 
@@ -179,9 +198,22 @@ function ConfigChildSurface({ module, file, childPath, drafts, setDrafts, api, r
 
   const changedNodes = nodes.filter(n => n.type !== 'object' && draftKey(module.id, n.path) in drafts);
 
+  async function reloadChildNodes() {
+    setNodes([]);
+    setError('');
+    setLoading(true);
+    try {
+      setNodes(await api.registryFileNodes(module.id, childPath));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('core.config.childLoadFailed'));
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function saveChild() {
     if (!changedNodes.length) {
-      setToast({ tone: 'ok', text: '没有需要保存的改动。' });
+      setToast({ tone: 'ok', text: t('core.toast.noChanges') });
       return;
     }
     setSaving(true);
@@ -189,7 +221,7 @@ function ConfigChildSurface({ module, file, childPath, drafts, setDrafts, api, r
       for (const node of changedNodes) {
         await api.saveRegistryValue(module.id, childPath, node.path, drafts[draftKey(module.id, node.path)]);
       }
-      setToast({ tone: 'ok', text: `已保存 ${changedNodes.length} 项配置，执行 reload 后生效。` });
+      setToast({ tone: 'ok', text: t('core.toast.savedConfig', { count: changedNodes.length }) });
       // 清除已保存的 drafts
       setDrafts(prev => {
         const copy = { ...prev };
@@ -202,7 +234,7 @@ function ConfigChildSurface({ module, file, childPath, drafts, setDrafts, api, r
       const refreshed = await api.registryFileNodes(module.id, childPath);
       setNodes(refreshed);
     } catch (err) {
-      setToast({ tone: 'bad', text: err instanceof Error ? err.message : '保存失败。' });
+      setToast({ tone: 'bad', text: err instanceof Error ? err.message : t('core.toast.saveFailed') });
     } finally {
       setSaving(false);
     }
@@ -215,11 +247,11 @@ function ConfigChildSurface({ module, file, childPath, drafts, setDrafts, api, r
     <div className="surface-head">
       <div><h2>{fileName}</h2><p>{file.title} · {childPath}</p></div>
       <ActionGroup>
-        <Button variant="primary" ready={changedNodes.length > 0} onClick={() => void saveChild()} disabled={saving || changedNodes.length === 0}>保存{changedNodes.length ? ` ${changedNodes.length}` : ''}</Button>
+        <Button variant="primary" ready={changedNodes.length > 0} onClick={() => void saveChild()} disabled={saving || changedNodes.length === 0}>{changedNodes.length ? t('core.action.saveCount', { count: changedNodes.length }) : t('core.action.save')}</Button>
       </ActionGroup>
     </div>
-    {loading && <div className="script-loading">加载中...</div>}
-    {error && <InlineError>{error}</InlineError>}
+    {loading && <div className="script-loading" role="status">{t('core.state.loading')}</div>}
+    {error && <InlineError><span>{error}</span><Button size="sm" onClick={() => void reloadChildNodes()}>{t('core.action.retry')}</Button></InlineError>}
     {!loading && !error && <ConfigNodeTree moduleId={module.id} nodes={nodes} drafts={drafts} setDrafts={setDrafts} />}
   </section>;
 }
@@ -230,6 +262,8 @@ function ConfigNodeTree({ moduleId, nodes, drafts, setDrafts }: { moduleId: stri
 
   // 构建树结构：顶级节点是 path 中不含 "." 的节点，或者 object 节点作为分组
   const groups = buildNodeGroups(nodes);
+
+  if (!nodes.length) return <div className="script-placeholder" role="status">{t('core.empty.noConfigNodes')}</div>;
 
   return <div className="node-grid">{groups.map(group => {
     if (group.type === 'leaf') {
@@ -244,7 +278,7 @@ function ConfigNodeTree({ moduleId, nodes, drafts, setDrafts }: { moduleId: stri
         <strong>{group.node.label}</strong>
         <code>{group.node.path}</code>
         <span className="section-comment">{group.node.comment}</span>
-        <span className="section-meta">{changedInGroup > 0 && <span className="section-badge">{changedInGroup}</span>}{childCount} 项</span>
+        <span className="section-meta">{changedInGroup > 0 && <span className="section-badge">{changedInGroup}</span>}{t('core.config.groupItems', { count: childCount })}</span>
       </button>
       {!isCollapsed && <div className="node-section-body">{group.children.map(child =>
         child.type === 'object'
@@ -300,14 +334,14 @@ function ConfigNodeView({ moduleId, node, drafts, setDrafts }: { moduleId: strin
 }
 
 function renderControl(node: WebConfigNode, value: unknown, setValue: (v: unknown) => void) {
-  if (node.type === 'boolean') return <button type="button" className={`switch ${value ? 'on' : ''}`} onClick={() => setValue(!value)}><span />{value ? '开启' : '关闭'}</button>;
+  if (node.type === 'boolean') return <button type="button" className={`switch ${value ? 'on' : ''}`} onClick={() => setValue(!value)}><span />{value ? t('core.config.booleanOn') : t('core.config.booleanOff')}</button>;
   if (node.type === 'enum' && node.options) return <select value={str(value)} onChange={(e) => setValue(e.target.value)}>{node.options.map(opt => <option key={opt} value={opt}>{opt}</option>)}</select>;
-  if (node.type === 'number') return <input type="number" value={String(value ?? 0)} onChange={(e) => setValue(Number(e.target.value))} />;
+  if (node.type === 'number') return <input type="number" value={value == null ? '' : String(value)} onChange={(e) => setValue(e.target.value === '' ? undefined : Number(e.target.value))} />;
   if (node.type === 'dynamic_map') return <DynamicMapEditor value={value} setValue={setValue} />;
   if (node.type === 'list') {
     const items = Array.isArray(value) ? value : [];
     const update = (i: number, v: string) => setValue(items.map((x, j) => j === i ? parseListValue(x, v) : x));
-    return <div className="list-editor">{items.map((item, i) => <div className="list-row" key={i}>{isObjectLike(item) ? <textarea value={str(item)} onChange={(e) => update(i, e.target.value)} /> : <input value={str(item)} onChange={(e) => update(i, e.target.value)} />}<button type="button" onClick={() => setValue(items.filter((_, j) => j !== i))}>删除</button></div>)}<button type="button" className="add-row" onClick={() => setValue([...items, ''])}>添加一项</button></div>;
+    return <div className="list-editor">{items.map((item, i) => <div className="list-row" key={i}>{isObjectLike(item) ? <textarea value={str(item)} onChange={(e) => update(i, e.target.value)} /> : <input value={str(item)} onChange={(e) => update(i, e.target.value)} />}<button type="button" onClick={() => setValue(items.filter((_, j) => j !== i))}>{t('core.config.delete')}</button></div>)}<button type="button" className="add-row" onClick={() => setValue([...items, ''])}>{t('core.config.addItem')}</button></div>;
   }
   return <input value={str(value)} onChange={(e) => setValue(e.target.value)} />;
 }
@@ -350,19 +384,19 @@ function DynamicMapEditor({ value, setValue }: { value: unknown; setValue: (v: u
     {keys.map(k => <div key={k} className="dmap-entry">
       <div className="dmap-header">
         <code>{k}</code>
-        <button type="button" className="dmap-remove" onClick={() => removeKey(k)}>移除</button>
+        <button type="button" className="dmap-remove" onClick={() => removeKey(k)}>{t('core.config.remove')}</button>
       </div>
       <div className="dmap-list">
         {(Array.isArray(map[k]) ? map[k] : []).map((item, i) => <div key={i} className="dmap-row">
           <input value={String(item)} onChange={(e) => updateItem(k, i, e.target.value)} />
-          <button type="button" onClick={() => removeItem(k, i)}>删除</button>
+          <button type="button" onClick={() => removeItem(k, i)}>{t('core.config.delete')}</button>
         </div>)}
-        <button type="button" className="add-row" onClick={() => addItem(k)}>添加动作行</button>
+        <button type="button" className="add-row" onClick={() => addItem(k)}>{t('core.config.addActionRow')}</button>
       </div>
     </div>)}
     <div className="dmap-add">
-      <input value={newKey} onChange={(e) => setNewKey(e.target.value)} placeholder="新模板名称" onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addKey(); } }} />
-      <button type="button" onClick={addKey} disabled={!newKey.trim()}>添加模板</button>
+      <input value={newKey} onChange={(e) => setNewKey(e.target.value)} placeholder={t('core.config.newTemplateName')} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addKey(); } }} />
+      <button type="button" onClick={addKey} disabled={!newKey.trim()}>{t('core.config.addTemplate')}</button>
     </div>
   </div>;
 }
@@ -375,6 +409,7 @@ function ScriptEditor({ api, scriptPath }: { api: ApiClient; scriptPath: string 
   const [completions, setCompletions] = useState<string[]>([]);
   const [completionPos, setCompletionPos] = useState<{ top: number; left: number } | null>(null);
   const [selectedCompletion, setSelectedCompletion] = useState(0);
+  const [error, setError] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const highlightRef = useRef<HTMLPreElement>(null);
 
@@ -382,20 +417,26 @@ function ScriptEditor({ api, scriptPath }: { api: ApiClient; scriptPath: string 
 
   useEffect(() => {
     setLoading(true);
+    setError('');
     api.readScript(scriptPath).then(res => {
       setContent(res.content);
       setSavedContent(res.content);
-    }).catch(() => {
-      setContent('// 无法加载文件');
+    }).catch((err) => {
+      setError(err instanceof Error ? err.message : t('core.config.childLoadFailed'));
+      setContent(t('core.script.loadFallback'));
       setSavedContent('');
     }).finally(() => setLoading(false));
   }, [scriptPath]);
 
   async function save() {
+    if (saving || !isDirty) return;
     setSaving(true);
+    setError('');
     try {
       await api.saveScript(scriptPath, content);
       setSavedContent(content);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('core.script.saveFailed'));
     } finally {
       setSaving(false);
     }
@@ -478,19 +519,20 @@ function ScriptEditor({ api, scriptPath }: { api: ApiClient; scriptPath: string 
 
   const lines = content.split('\n');
 
-  if (loading) return <div className="script-loading">加载中...</div>;
+  if (loading) return <div className="script-loading" role="status">{t('core.script.loading')}</div>;
 
   return <div className="script-editor">
     <div className="script-toolbar">
       <span className="script-path">{scriptPath}{isDirty && <span className="dirty-dot">●</span>}</span>
-      <button onClick={save} disabled={saving || !isDirty}>{saving ? '保存中' : '保存'}</button>
+      <button onClick={save} disabled={saving || !isDirty}>{saving ? t('core.script.saving') : t('core.action.save')}</button>
     </div>
+    {error && <InlineError>{error}</InlineError>}
     <div className="editor-container">
       <div className="line-numbers">{lines.map((_, i) => <div key={i}>{i + 1}</div>)}</div>
       <div className="editor-wrapper">
         <pre ref={highlightRef} className="editor-highlight" aria-hidden="true"><code dangerouslySetInnerHTML={{ __html: highlightJS(content) }} /></pre>
-        <textarea ref={textareaRef} className="editor-input" value={content} onChange={handleInput} onKeyDown={handleKeyDown} onScroll={handleScroll} spellCheck={false} autoComplete="off" autoCorrect="off" autoCapitalize="off" aria-label={`编辑脚本 ${scriptPath}`} aria-describedby="script-editor-help" />
-        <span id="script-editor-help" className="sr-only">Tab 插入缩进，Ctrl 加空格打开补全，方向键选择补全项。</span>
+        <textarea ref={textareaRef} className="editor-input" value={content} onChange={handleInput} onKeyDown={handleKeyDown} onScroll={handleScroll} spellCheck={false} autoComplete="off" autoCorrect="off" autoCapitalize="off" aria-label={t('core.script.editAria', { path: scriptPath })} aria-describedby="script-editor-help" />
+        <span id="script-editor-help" className="sr-only">{t('core.script.help')}</span>
         {completions.length > 0 && completionPos && <div className="completion-popup" style={{ top: completionPos.top + 24, left: completionPos.left + 48 }}>
           {completions.map((item, i) => <div key={item} className={`completion-item ${i === selectedCompletion ? 'selected' : ''}`} onMouseDown={(e) => { e.preventDefault(); applyCompletion(item); }}>{item}</div>)}
         </div>}
@@ -596,6 +638,19 @@ function getCompletions(prefix: string): string[] {
 
 function sameSelection(a: Selection | null, b: Selection) { return a?.moduleId === b.moduleId && a.fileId === b.fileId && (a.scriptPath ?? '') === (b.scriptPath ?? ''); }
 function readTheme(): ColorTheme { const saved = localStorage.getItem('emaki-color-theme'); return COLOR_THEMES.some((entry) => entry.id === saved) ? saved as ColorTheme : 'dark'; }
+function localeLabel(locale: string): string { return LOCALE_LABELS[locale] ?? LOCALE_LABELS[locale.replace('-', '_')] ?? LOCALE_LABELS[locale.replace('_', '-')] ?? locale; }
+function EmakiMark() {
+  return <svg className="emaki-mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+    <path d="M7 8.5c2.8-2.7 6-4 9.4-4 3.7 0 6.5 1.3 8.6 3.8-2.5.2-4.7.9-6.5 2.1 2.8.3 5 1.6 6.7 3.9-3.4-.2-6.1.6-8.1 2.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M15.6 7.2c-1.3 4.2-1.7 8-.9 11.5.7 3.2 2.5 5.7 5.3 7.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+    <path d="M8.2 18.3c4.7-.5 9.1-.2 13.2.9M6.2 24.8c5.6-1.4 11.5-1.6 17.6-.6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" opacity=".72"/>
+  </svg>;
+}
+
+function LocaleIcon() {
+  return <svg className="locale-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.6a6.4 6.4 0 1 0 0 12.8A6.4 6.4 0 0 0 8 1.6Zm0 0c1.65 1.6 2.45 3.72 2.4 6.4-.05 2.68-.85 4.8-2.4 6.4M8 1.6C6.35 3.2 5.55 5.32 5.6 8c.05 2.68.85 4.8 2.4 6.4M2.4 8h11.2M3.7 4.8h8.6M3.7 11.2h8.6" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/></svg>;
+}
+
 function ThemeIcon({ theme }: { theme: ColorTheme }) {
   if (theme === 'light') {
     return <svg className="theme-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path fillRule="evenodd" d="M8 1.2a.7.7 0 0 1 .7.7v1.02a.7.7 0 1 1-1.4 0V1.9a.7.7 0 0 1 .7-.7Zm4.81 1.99a.7.7 0 0 1 0 .99l-.72.72a.7.7 0 1 1-.99-.99l.72-.72a.7.7 0 0 1 .99 0ZM5.08 8a2.92 2.92 0 1 1 5.84 0 2.92 2.92 0 0 1-5.84 0Zm8 .7a.7.7 0 1 0 0-1.4h-1.02a.7.7 0 1 0 0 1.4h1.02Zm-.27 3.12a.7.7 0 0 1-.99.99l-.72-.72a.7.7 0 1 1 .99-.99l.72.72ZM8 12.38a.7.7 0 0 1 .7.7v1.02a.7.7 0 1 1-1.4 0v-1.02a.7.7 0 0 1 .7-.7ZM4.9 12.09a.7.7 0 1 0-.99-.99l-.72.72a.7.7 0 1 0 .99.99l.72-.72ZM3.94 8.7a.7.7 0 0 0 0-1.4H2.92a.7.7 0 0 0 0 1.4h1.02Zm.96-3.8a.7.7 0 0 1-.99 0l-.72-.72a.7.7 0 1 1 .99-.99l.72.72a.7.7 0 0 1 0 .99Z" /></svg>;

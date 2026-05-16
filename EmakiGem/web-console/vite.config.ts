@@ -13,10 +13,11 @@ export default defineConfig({
       fileName: () => 'emakigem-item-surface.js'
     },
     rollupOptions: {
-      external: ['react'],
+      external: ['react', 'emaki-web-console'],
       output: {
         globals: {
-          react: 'React'
+          react: 'React',
+          'emaki-web-console': 'EmakiWebConsole'
         }
       }
     }

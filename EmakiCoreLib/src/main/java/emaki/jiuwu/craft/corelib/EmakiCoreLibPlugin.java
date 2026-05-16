@@ -88,8 +88,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private final CraftEngineBlockBridge craftEngineBlockBridge = new CraftEngineBlockBridgeProvider(this);
     private final CustomBlockBridge itemsAdderBlockBridge = new ItemsAdderBlockBridgeProvider(this);
     private final CustomBlockBridge nexoBlockBridge = new NexoBlockBridgeProvider(this);
-    private final EmakiItemAssemblyService itemAssemblyService
-            = new EmakiItemAssemblyService(namespaceRegistry, itemLayerCodecRegistry, itemSourceService);
+    private EmakiItemAssemblyService itemAssemblyService;
     private final emaki.jiuwu.craft.corelib.assembly.LayerMigrationRegistry layerMigrationRegistry
             = new emaki.jiuwu.craft.corelib.assembly.LayerMigrationRegistry();
     private final emaki.jiuwu.craft.corelib.event.EmakiEventBus eventBus
@@ -301,6 +300,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         namespaceRegistry.register(new EmakiNamespaceDefinition("strengthen", 200, "Strengthen"));
         namespaceRegistry.register(new EmakiNamespaceDefinition("gem", 300, "Gem"));
         namespaceRegistry.register(new EmakiNamespaceDefinition("cooking", 10000, "Cooking"));
+        itemAssemblyService = new EmakiItemAssemblyService(namespaceRegistry, itemLayerCodecRegistry, itemSourceService);
         itemAssemblyService.configureAsync(asyncTaskScheduler, performanceMonitor);
         refreshServiceRegistry();
     }

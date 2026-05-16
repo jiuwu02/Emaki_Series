@@ -1,8 +1,9 @@
 import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ApiClient } from './api';
 import type { GuiSlotDefinition, GuiTemplateData, WebRegistryFile, WebRegistryModule } from './types';
-import { buildOccupancy, clampRows, guiColumns, guiField, guiSlotCount, guiTypeOptions, loreLines, materialShortName, materialUrls, normalizeGuiType, parseSlotList, renderMiniMessageParts, serializeGuiYaml, supportsRows, textValue } from './guiEditor';
-import { ActionGroup, Button, InspectorSection, ToggleChip } from './components';
+import { buildOccupancy, clampRows, guiColumns, guiField, guiSlotCount, guiTypeOptions, loreLines, materialShortName, materialUrls, normalizeGuiType, parseSlotList, renderMiniMessageParts, serializeGuiYaml, subscribeTextureBases, supportsRows, textValue } from './guiEditor';
+import { ActionGroup, Button, InlineError, InspectorSection, ToggleChip } from './components';
+import { t } from './i18n';
 import { MATERIAL_CATEGORIES, MINECRAFT_MATERIAL_VERSION, type MaterialCategory, materialCategory, searchMaterials } from './minecraftMaterials';
 
 type Props = {
@@ -30,6 +31,7 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<MaterialCategory | '全部'>('全部');
   const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
+  const [, refreshTextureOrder] = useState(0);
   const [mode, setMode] = useState<'preview' | 'source'>('preview');
   const [reloadConfirmOpen, setReloadConfirmOpen] = useState(false);
   const [inspectorWidth, setInspectorWidth] = useState(() => {
@@ -47,6 +49,11 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
   useEffect(() => {
     latestInspectorWidth.current = inspectorWidth;
   }, [inspectorWidth]);
+
+  useEffect(() => subscribeTextureBases(() => {
+    setFailedImages({});
+    refreshTextureOrder((version) => version + 1);
+  }), []);
 
   useEffect(() => {
     if (!resizingInspector) return;
@@ -129,7 +136,7 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
       setHovered(null);
       setTooltipPosition(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'GUI 文件加载失败');
+      setError(err instanceof Error ? err.message : t('core.gui.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -170,7 +177,7 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
       await api.saveGui(module.id, path, content);
       setOriginalText(content);
     } catch (err) {
-      setError(err instanceof Error ? err.message : '保存失败');
+      setError(err instanceof Error ? err.message : t('core.gui.saveFailed'));
     } finally {
       setSaving(false);
     }
@@ -229,9 +236,9 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
     if (event.shiftKey) selectSlot(nextIndex, true);
   }
 
-  if (!path) return <section className="config-surface empty">从左侧选择一个 GUI 模板文件开始预览。</section>;
-  if (loading) return <section className="config-surface gui-surface"><div className="gui-loading">正在载入 Minecraft GUI 预览...</div></section>;
-  if (!data) return <section className="config-surface empty">{error || '无法加载 GUI 文件。'}</section>;
+  if (!path) return <section className="config-surface empty" role="status">{t('core.gui.selectFile')}</section>;
+  if (loading) return <section className="config-surface gui-surface"><div className="gui-loading" role="status">{t('core.gui.loading')}</div></section>;
+  if (!data) return <section className="config-surface empty"><InlineError>{error || t('core.gui.unavailable')}</InlineError><Button size="sm" onClick={() => void reloadGui()}>{t('core.action.retry')}</Button></section>;
 
   const hoveredCell = hovered == null ? null : occupancy.find((cell) => cell.index === hovered);
 
@@ -239,28 +246,28 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
     <div className="surface-head gui-head">
       <div>
         <h2>{file.title}</h2>
-        <p>{module.id}/{path} · {guiType}{rowSupported ? ` · ${rows} 行` : ''} · {slotCount} 槽位 · {Object.keys(data.slots ?? {}).length} 个 slot 定义 {dirty && <span className="dirty-inline">未保存</span>}</p>
+        <p>{module.id}/{path} · {guiType}{rowSupported ? ` · ${t('core.gui.metaRows', { count: rows })}` : ''} · {t('core.gui.metaSlots', { count: slotCount })} · {t('core.gui.metaSlotDefinitions', { count: Object.keys(data.slots ?? {}).length })} {dirty && <span className="dirty-inline">{t('core.item.unsaved')}</span>}</p>
       </div>
       <ActionGroup>
-        <Button onClick={() => setMode(mode === 'preview' ? 'source' : 'preview')}>{mode === 'preview' ? '源码' : '预览'}</Button>
-        <Button onClick={requestReload} disabled={saving || loading}>重载</Button>
-        <Button variant="primary" ready={dirty} onClick={() => void save()} disabled={!dirty || saving}>{saving ? '保存中' : '保存 GUI'}</Button>
+        <Button onClick={() => setMode(mode === 'preview' ? 'source' : 'preview')}>{mode === 'preview' ? t('core.item.source') : t('core.gui.preview')}</Button>
+        <Button onClick={requestReload} disabled={saving || loading}>{t('core.gui.reload')}</Button>
+        <Button variant="primary" ready={dirty} onClick={() => void save()} disabled={!dirty || saving}>{saving ? t('core.script.saving') : t('core.gui.save')}</Button>
       </ActionGroup>
     </div>
     {reloadConfirmOpen && <ReloadConfirmDialog fileTitle={file.title} filePath={`${module.id}/${path}`} onConfirm={confirmReload} onCancel={() => setReloadConfirmOpen(false)} />}
-    {error && <div className="gui-error" role="alert">{error}</div>}
-    {mode === 'source' ? <pre className="gui-source" aria-label="GUI YAML 源码预览">{draftText}</pre> : <div className={`gui-workbench ${resizingInspector ? 'is-resizing' : ''}`} style={{ '--gui-inspector-width': `${inspectorWidth}px` } as React.CSSProperties}>
+    {error && <InlineError className="gui-error">{error}</InlineError>}
+    {mode === 'source' ? <pre className="gui-source" aria-label={t('core.gui.sourcePreview')}>{draftText}</pre> : <div className={`gui-workbench ${resizingInspector ? 'is-resizing' : ''}`} style={{ '--gui-inspector-width': `${inspectorWidth}px` } as React.CSSProperties}>
       <div className="gui-preview-pane">
         <div className="minecraft-window">
           <div className="minecraft-titlebar"><MiniText value={data.title ?? 'GUI'} /></div>
-          <p className="slot-grid-help" id="gui-slot-help">方向键移动槽位，Enter 或空格选择，按住 Shift 可追加选择。</p>
-          <div className="minecraft-grid" role="grid" aria-label={`${file.title} 槽位网格`} aria-describedby="gui-slot-help" aria-multiselectable="true" data-gui-type={guiType} style={{ gridTemplateColumns: `repeat(${columns}, var(--mc-slot))` }}>
+          <p className="slot-grid-help" id="gui-slot-help">{t('core.gui.gridHelp')}</p>
+          <div className="minecraft-grid" role="grid" aria-label={t('core.gui.gridAria', { title: file.title })} aria-describedby="gui-slot-help" aria-multiselectable="true" data-gui-type={guiType} style={{ gridTemplateColumns: `repeat(${columns}, var(--mc-slot))` }}>
             {occupancy.map((cell) => <button
               key={cell.index}
               className={`minecraft-slot ${cell.key ? 'occupied' : ''} ${selected.includes(cell.index) ? 'selected' : ''} ${cell.conflicts.length ? 'conflict' : ''}`}
               role="gridcell"
               data-gui-slot={cell.index}
-              aria-label={`槽位 ${cell.index}${cell.key ? `，${cell.key}` : '，空槽'}`}
+              aria-label={t('core.gui.slotAria', { index: cell.index, suffix: cell.key ? `，${cell.key}` : t('core.gui.slotEmpty') })}
               aria-selected={selected.includes(cell.index)}
               onClick={(event) => selectSlot(cell.index, event.ctrlKey || event.metaKey || event.shiftKey)}
               onKeyDown={(event) => handleSlotKeyDown(event, cell.index)}
@@ -282,7 +289,7 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
         role="separator"
         tabIndex={0}
         aria-orientation="vertical"
-        aria-label="调整 GUI 预览与编辑区宽度"
+        aria-label={t('core.gui.resizeAria')}
         aria-valuemin={INSPECTOR_MIN}
         aria-valuemax={INSPECTOR_MAX}
         aria-valuenow={inspectorWidth}
@@ -290,19 +297,19 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
         onKeyDown={handleInspectorResizeKeyDown}
       />
       <aside className="gui-inspector">
-        <InspectorSection title="容器">
+        <InspectorSection title={t('core.gui.container')}>
           <GuiLabel editor={editor} path="id" fallback="ID"><input value={textValue(data.id)} onChange={(e) => updateData((draft) => ({ ...draft, id: e.target.value }))} /></GuiLabel>
-          <GuiLabel editor={editor} path="gui_type" fallback="GUI 类型"><select value={guiType} onChange={(e) => updateData((draft) => ({ ...draft, gui_type: e.target.value, inventory_type: undefined, rows: supportsRows(e.target.value) ? clampRows(draft.rows) : undefined }))}>{guiTypeOptions().map((type) => <option key={type} value={type}>{type}</option>)}</select></GuiLabel>
-          <GuiLabel editor={editor} path="title" fallback="标题"><input value={textValue(data.title)} onChange={(e) => updateData((draft) => ({ ...draft, title: e.target.value }))} /></GuiLabel>
-          {rowSupported && <GuiLabel editor={editor} path="rows" fallback="行数"><input type="number" min={1} max={6} value={rows} onChange={(e) => updateData((draft) => ({ ...draft, rows: clampRows(e.target.value) }))} /></GuiLabel>}
+          <GuiLabel editor={editor} path="gui_type" fallback={t('core.gui.type')}><select value={guiType} onChange={(e) => updateData((draft) => ({ ...draft, gui_type: e.target.value, inventory_type: undefined, rows: supportsRows(e.target.value) ? clampRows(draft.rows) : undefined }))}>{guiTypeOptions().map((type) => <option key={type} value={type}>{type}</option>)}</select></GuiLabel>
+          <GuiLabel editor={editor} path="title" fallback={t('core.gui.title')}><input value={textValue(data.title)} onChange={(e) => updateData((draft) => ({ ...draft, title: e.target.value }))} /></GuiLabel>
+          {rowSupported && <GuiLabel editor={editor} path="rows" fallback={t('core.gui.rows')}><input type="number" min={1} max={6} value={rows} onChange={(e) => updateData((draft) => ({ ...draft, rows: clampRows(e.target.value) }))} /></GuiLabel>}
         </InspectorSection>
-        <InspectorSection title={`槽位 ${selected.length ? selected.join(', ') : '未选择'}`}>
-          {selectedSlot && selectedKey ? <SlotInspector slotKey={selectedKey} slot={selectedSlot} editor={editor} updateSlot={updateSlot} removeSlot={() => updateData((draft) => { const next = { ...(draft.slots ?? {}) }; delete next[selectedKey]; return { ...draft, slots: next }; })} /> : selected.length ? <Button variant="soft" fullWidth onClick={() => createSlot(selected[0])}>在 {selected[0]} 创建 slot</Button> : <p className="muted-copy">点击网格槽位编辑，或从材料面板拖入物品。</p>}
+        <InspectorSection title={t('core.gui.slotInspector', { value: selected.length ? selected.join(', ') : t('core.gui.noSlotSelected') })}>
+          {selectedSlot && selectedKey ? <SlotInspector slotKey={selectedKey} slot={selectedSlot} editor={editor} updateSlot={updateSlot} removeSlot={() => updateData((draft) => { const next = { ...(draft.slots ?? {}) }; delete next[selectedKey]; return { ...draft, slots: next }; })} /> : selected.length ? <Button variant="soft" fullWidth onClick={() => createSlot(selected[0])}>{t('core.gui.createSlot', { slot: selected[0] })}</Button> : <p className="muted-copy">{t('core.gui.slotHint')}</p>}
         </InspectorSection>
-        <InspectorSection className="material-palette" title="材料源" meta={`MC ${MINECRAFT_MATERIAL_VERSION} · ${materialResults.length} 项`}>
-          <input aria-label="搜索材料" placeholder="搜索 material，例如 sword、glass pane、diamond" value={query} onChange={(e) => setQuery(e.target.value)} />
+        <InspectorSection className="material-palette" title={t('core.gui.materialSource')} meta={`MC ${MINECRAFT_MATERIAL_VERSION} · ${t('core.config.groupItems', { count: materialResults.length })}`}>
+          <input aria-label={t('core.gui.materialSearch')} placeholder={t('core.gui.materialPlaceholder')} value={query} onChange={(e) => setQuery(e.target.value)} />
           <div className="material-tabs">
-            {(['全部', ...MATERIAL_CATEGORIES] as const).map((entry) => <button key={entry} className={category === entry ? 'active' : ''} onClick={() => setCategory(entry)}>{entry}</button>)}
+            {(['全部', ...MATERIAL_CATEGORIES] as const).map((entry) => <button key={entry} className={category === entry ? 'active' : ''} onClick={() => setCategory(entry)}>{entry === '全部' ? t('core.gui.materialAll') : entry}</button>)}
           </div>
           <div className="material-list">
             {visibleMaterials.map((material) => <button key={material} draggable onDragStart={(e) => e.dataTransfer.setData('text/material', material)} onClick={() => assignMaterial(material)} title={material}>
@@ -310,7 +317,8 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
               <span><strong>minecraft:{material.toLowerCase()}</strong><small>{materialCategory(material)}</small></span>
             </button>)}
           </div>
-          {materialResults.length > visibleMaterials.length && <p className="material-limit">仅显示前 {visibleMaterials.length} 项，继续输入缩小范围。</p>}
+          {!materialResults.length && <p className="material-limit">{t('core.gui.materialEmpty')}</p>}
+          {materialResults.length > visibleMaterials.length && <p className="material-limit">{t('core.gui.materialLimit', { count: visibleMaterials.length })}</p>}
         </InspectorSection>
       </aside>
     </div>}
@@ -321,16 +329,16 @@ function ReloadConfirmDialog({ fileTitle, filePath, onConfirm, onCancel }: { fil
   return <div className="reload-confirm-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onCancel(); }}>
     <div className="reload-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="reload-confirm-title" aria-describedby="reload-confirm-desc">
       <div className="reload-confirm-head">
-        <span>未保存更改</span>
-        <h3 id="reload-confirm-title">重载会丢弃当前修改</h3>
+        <span>{t('core.gui.unsavedChanges')}</span>
+        <h3 id="reload-confirm-title">{t('core.gui.reloadDropsChanges')}</h3>
       </div>
       <div className="reload-confirm-body">
-        <p id="reload-confirm-desc">{fileTitle} 已被修改但尚未保存。继续重载会重新从服务器读取 GUI 文件，并覆盖当前本地编辑内容。</p>
+        <p id="reload-confirm-desc">{t('core.gui.reloadDesc', { title: fileTitle })}</p>
         <code>{filePath}</code>
       </div>
       <ActionGroup className="reload-confirm-actions">
-        <Button onClick={onCancel} autoFocus>取消</Button>
-        <Button variant="danger" onClick={onConfirm}>继续重载</Button>
+        <Button onClick={onCancel} autoFocus>{t('core.gui.cancel')}</Button>
+        <Button variant="danger" onClick={onConfirm}>{t('core.gui.continueReload')}</Button>
       </ActionGroup>
     </div>
   </div>;
@@ -345,13 +353,13 @@ function SlotInspector({ slotKey, slot, updateSlot, removeSlot, editor }: { slot
   const slotsText = parseSlotList(slot.slots).join(', ');
   const setField = (field: string, value: unknown) => updateSlot(slotKey, { [field]: value === '' || value == null ? undefined : value });
   return <div className="slot-form">
-    <div className="slot-key"><code>{slotKey}</code><button onClick={removeSlot}>删除</button></div>
-    <InspectorPanel title="槽位定义" storageKey="slot-identity"><GuiLabel editor={editor} path="type" fallback="槽位类型"><input value={textValue(slot.type)} onChange={(e) => setField('type', e.target.value)} /></GuiLabel><GuiLabel editor={editor} path="slots" fallback="槽位"><input value={slotsText} onChange={(e) => setField('slots', e.target.value.split(/[ ,]+/).map((part) => Number(part)).filter(Number.isFinite))} /></GuiLabel><small>{parseSlotList(slot.slots).length} 个槽位</small></InspectorPanel>
-    <InspectorPanel title="物品来源" storageKey="slot-item"><GuiLabel editor={editor} path="item" fallback="物品"><input value={textValue(slot.item)} onChange={(e) => setField('item', e.target.value)} /></GuiLabel></InspectorPanel>
-    <InspectorPanel title="显示文本" storageKey="slot-display"><GuiLabel editor={editor} path="display_name" fallback="显示名"><input value={textValue(slot.display_name)} onChange={(e) => setField('display_name', e.target.value)} /></GuiLabel><GuiLabel editor={editor} path="lore" fallback="Lore"><textarea value={loreLines(slot.lore).join('\n')} onChange={(e) => setField('lore', e.target.value.split('\n'))} /></GuiLabel></InspectorPanel>
-    <InspectorPanel title="模型与组件" storageKey="slot-model" defaultCollapsed><div className="mini-grid-2"><GuiLabel editor={editor} path="item_model" fallback="物品模型"><input value={textValue(slot.item_model ?? slot['item-model'])} onChange={(e) => setField('item_model', e.target.value)} /></GuiLabel><GuiLabel editor={editor} path="custom_model_data" fallback="模型数据"><input type="number" value={textValue(slot.custom_model_data ?? slot.custommodeldata)} onChange={(e) => setField('custom_model_data', e.target.value === '' ? undefined : Number(e.target.value))} /></GuiLabel></div><EnchantmentsEditor value={slot.enchantments} onChange={(value) => setField('enchantments', value)} /><HiddenComponentsEditor slot={slot} onChange={(patch) => updateSlot(slotKey, patch)} /></InspectorPanel>
-    <InspectorPanel title="声音" storageKey="slot-sounds" defaultCollapsed><SoundsEditor value={slot.sounds} onChange={(value) => setField('sounds', value)} /></InspectorPanel>
-    <InspectorPanel title="高级字段" storageKey="slot-advanced" defaultCollapsed><AdvancedFieldsEditor slot={slot} onChange={(patch) => updateSlot(slotKey, patch)} /></InspectorPanel>
+    <div className="slot-key"><code>{slotKey}</code><button onClick={removeSlot}>{t('core.config.delete')}</button></div>
+    <InspectorPanel title={t('core.gui.slotDefinition')} storageKey="slot-identity"><GuiLabel editor={editor} path="type" fallback={t('core.gui.slotType')}><input value={textValue(slot.type)} onChange={(e) => setField('type', e.target.value)} /></GuiLabel><GuiLabel editor={editor} path="slots" fallback={t('core.gui.slot')}><input value={slotsText} onChange={(e) => setField('slots', e.target.value.split(/[ ,]+/).map((part) => Number(part)).filter(Number.isFinite))} /></GuiLabel><small>{t('core.gui.slotCount', { count: parseSlotList(slot.slots).length })}</small></InspectorPanel>
+    <InspectorPanel title={t('core.gui.itemSource')} storageKey="slot-item"><GuiLabel editor={editor} path="item" fallback={t('core.gui.item')}><input value={textValue(slot.item)} onChange={(e) => setField('item', e.target.value)} /></GuiLabel></InspectorPanel>
+    <InspectorPanel title={t('core.gui.displayText')} storageKey="slot-display"><GuiLabel editor={editor} path="display_name" fallback={t('core.gui.displayName')}><input value={textValue(slot.display_name)} onChange={(e) => setField('display_name', e.target.value)} /></GuiLabel><GuiLabel editor={editor} path="lore" fallback="Lore"><textarea value={loreLines(slot.lore).join('\n')} onChange={(e) => setField('lore', e.target.value.split('\n'))} /></GuiLabel></InspectorPanel>
+    <InspectorPanel title={t('core.gui.modelComponents')} storageKey="slot-model" defaultCollapsed><div className="mini-grid-2"><GuiLabel editor={editor} path="item_model" fallback={t('core.gui.itemModel')}><input value={textValue(slot.item_model ?? slot['item-model'])} onChange={(e) => setField('item_model', e.target.value)} /></GuiLabel><GuiLabel editor={editor} path="custom_model_data" fallback={t('core.gui.modelData')}><input type="number" value={textValue(slot.custom_model_data ?? slot.custommodeldata)} onChange={(e) => setField('custom_model_data', e.target.value === '' ? undefined : Number(e.target.value))} /></GuiLabel></div><EnchantmentsEditor value={slot.enchantments} onChange={(value) => setField('enchantments', value)} /><HiddenComponentsEditor slot={slot} onChange={(patch) => updateSlot(slotKey, patch)} /></InspectorPanel>
+    <InspectorPanel title={t('core.gui.sounds')} storageKey="slot-sounds" defaultCollapsed><SoundsEditor value={slot.sounds} onChange={(value) => setField('sounds', value)} /></InspectorPanel>
+    <InspectorPanel title={t('core.gui.advancedFields')} storageKey="slot-advanced" defaultCollapsed><AdvancedFieldsEditor slot={slot} onChange={(patch) => updateSlot(slotKey, patch)} /></InspectorPanel>
   </div>;
 }
 
@@ -369,7 +377,7 @@ function EnchantmentsEditor({ value, onChange }: { value: unknown; onChange: (va
   const entries = enchantEntries(value);
   const update = (index: number, key: string, level: number) => onChange(entries.map((entry, i) => i === index ? { key, level } : entry).filter((entry) => entry.key.trim()).reduce((map, entry) => ({ ...map, [entry.key.trim()]: entry.level || 1 }), {} as Record<string, number>));
   const remove = (index: number) => onChange(entries.filter((_, i) => i !== index).reduce((map, entry) => ({ ...map, [entry.key]: entry.level }), {} as Record<string, number>));
-  return <div className="sub-editor"><div className="sub-editor-head"><span>enchantments</span><button onClick={() => onChange({ ...entries.reduce((map, entry) => ({ ...map, [entry.key]: entry.level }), {} as Record<string, number>), sharpness: 1 })}>添加</button></div>{entries.map((entry, index) => <div className="field-row" key={index}><input value={entry.key} onChange={(e) => update(index, e.target.value, entry.level)} placeholder="minecraft:sharpness" /><input type="number" value={entry.level} onChange={(e) => update(index, entry.key, Number(e.target.value))} /><button onClick={() => remove(index)}>删</button></div>)}</div>;
+  return <div className="sub-editor"><div className="sub-editor-head"><span>enchantments</span><button onClick={() => onChange({ ...entries.reduce((map, entry) => ({ ...map, [entry.key]: entry.level }), {} as Record<string, number>), sharpness: 1 })}>{t('core.gui.add')}</button></div>{entries.map((entry, index) => <div className="field-row" key={index}><input value={entry.key} onChange={(e) => update(index, e.target.value, entry.level)} placeholder="minecraft:sharpness" /><input type="number" value={entry.level} onChange={(e) => update(index, entry.key, Number(e.target.value))} /><button onClick={() => remove(index)}>{t('core.config.delete')}</button></div>)}</div>;
 }
 
 function enchantEntries(value: unknown): { key: string; level: number }[] {
@@ -393,7 +401,7 @@ function SoundsEditor({ value, onChange }: { value: unknown; onChange: (value: R
   const update = (key: string, patch: Record<string, unknown>) => onChange(cleanMap({ ...sounds, [key]: cleanMap({ ...(sounds[key] as Record<string, unknown> ?? {}), ...patch }) }));
   return <div className="sub-editor sound-editor">{SOUND_KEYS.map((key) => {
     const sound = (sounds[key] ?? {}) as Record<string, unknown>;
-    return <div className="sound-row" key={key}><strong>{key}</strong><input value={textValue(sound.sound ?? sound.key ?? sound.type)} onChange={(e) => update(key, { sound: e.target.value })} placeholder="ui.button.click" /><input type="number" step="0.1" value={textValue(sound.volume, '1')} onChange={(e) => update(key, { volume: Number(e.target.value) })} /><input type="number" step="0.1" value={textValue(sound.pitch, '1')} onChange={(e) => update(key, { pitch: Number(e.target.value) })} /><button onClick={() => onChange(cleanMap({ ...sounds, [key]: undefined }))}>清空</button></div>;
+    return <div className="sound-row" key={key}><strong>{key}</strong><input value={textValue(sound.sound ?? sound.key ?? sound.type)} onChange={(e) => update(key, { sound: e.target.value })} placeholder="ui.button.click" /><input type="number" step="0.1" value={textValue(sound.volume, '1')} onChange={(e) => update(key, { volume: Number(e.target.value) })} /><input type="number" step="0.1" value={textValue(sound.pitch, '1')} onChange={(e) => update(key, { pitch: Number(e.target.value) })} /><button onClick={() => onChange(cleanMap({ ...sounds, [key]: undefined }))}>{t('core.gui.clear')}</button></div>;
   })}</div>;
 }
 
@@ -408,7 +416,7 @@ function AdvancedFieldsEditor({ slot, onChange }: { slot: GuiSlotDefinition; onC
   const [text, setText] = useState(() => JSON.stringify(extras, null, 2));
   const [jsonError, setJsonError] = useState('');
   useEffect(() => { setText(JSON.stringify(extras, null, 2)); setJsonError(''); }, [JSON.stringify(extras)]);
-  return <div className="sub-editor"><textarea className="advanced-json" value={text} onChange={(e) => { setText(e.target.value); setJsonError(''); }} spellCheck={false} aria-invalid={!!jsonError} />{jsonError && <small className="json-error">{jsonError}</small>}<Button variant="soft" fullWidth onClick={() => { try { const parsed = JSON.parse(text || '{}'); onChange({ ...Object.fromEntries(Object.keys(extras).map((key) => [key, undefined])), ...parsed }); setJsonError(''); } catch (err) { setJsonError(err instanceof Error ? err.message : 'JSON 解析失败'); } }}>应用高级字段</Button></div>;
+  return <div className="sub-editor"><textarea className="advanced-json" value={text} onChange={(e) => { setText(e.target.value); setJsonError(''); }} spellCheck={false} aria-invalid={!!jsonError} />{jsonError && <small className="json-error">{jsonError}</small>}<Button variant="soft" fullWidth onClick={() => { try { const parsed = JSON.parse(text || '{}'); onChange({ ...Object.fromEntries(Object.keys(extras).map((key) => [key, undefined])), ...parsed }); setJsonError(''); } catch (err) { setJsonError(err instanceof Error ? err.message : t('core.gui.jsonParseFailed')); } }}>{t('core.gui.applyAdvanced')}</Button></div>;
 }
 
 function cleanMap<T extends Record<string, unknown>>(value: T): T | undefined {
@@ -440,7 +448,7 @@ function nextTooltipPosition(clientX: number, clientY: number) {
 
 const MinecraftTooltip = forwardRef<HTMLDivElement, { slot: GuiSlotDefinition; slotKey: string; position: { x: number; y: number } }>(function MinecraftTooltip({ slot, slotKey, position }, ref) {
   const hidden = String(slot.hidden_components ?? '').includes('tooltip') || slot.hide_tooltip === true;
-  if (hidden) return <div ref={ref} className="minecraft-tooltip muted-tooltip" style={{ left: position.x, top: position.y }}>Tooltip 已隐藏 · {slotKey}</div>;
+  if (hidden) return <div ref={ref} className="minecraft-tooltip muted-tooltip" style={{ left: position.x, top: position.y }}>{t('core.gui.tooltipHidden')} · {slotKey}</div>;
   return <div ref={ref} className="minecraft-tooltip" style={{ left: position.x, top: position.y }}>
     <strong><MiniText value={slot.display_name ?? slot.item ?? slotKey} /></strong>
     {loreLines(slot.lore).map((line, index) => <span key={index}><MiniText value={line} /></span>)}

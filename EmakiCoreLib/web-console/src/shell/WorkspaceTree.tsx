@@ -1,34 +1,37 @@
 import type { Dispatch, SetStateAction } from 'react';
+import { getModuleLocaleBundles, t } from '../i18n';
 import type { RegistryTreeNode, WebRegistry, WebRegistryModule } from '../types';
 
 export type TreeSelection = { moduleId: string; fileId: string; scriptPath?: string; refreshKey?: number };
 
-export function WorkspaceTree({ registry, selected, expanded, setExpanded, onSelect }: {
+export function WorkspaceTree({ registry, selected, expanded, setExpanded, onSelect, onOpenI18n }: {
   registry: WebRegistry | null;
   selected: TreeSelection | null;
   expanded: Record<string, boolean>;
   setExpanded: Dispatch<SetStateAction<Record<string, boolean>>>;
   onSelect: (v: TreeSelection) => void;
+  onOpenI18n?: (target: { moduleId: string; fileId?: string }) => void;
 }) {
-  if (!registry) return <div className="tree-empty" role="status">载入中</div>;
+  if (!registry) return <div className="tree-empty" role="status">{t('core.tree.loading')}</div>;
   const roots = registry.tree?.length ? registry.tree : modulesToTree(registry.modules);
   const toggle = (id: string) => setExpanded((current) => ({ ...current, [id]: !current[id] }));
 
   return (
-    <div className="tree" role="tree" aria-label="配置模块与文件">
+    <div className="tree" role="tree" aria-label={t('core.tree.aria')}>
       {roots.map((node) => (
-        <TreeNodeView key={node.id} node={node} selected={selected} expanded={expanded} toggle={toggle} onSelect={onSelect} level={0} />
+        <TreeNodeView key={node.id} node={node} selected={selected} expanded={expanded} toggle={toggle} onSelect={onSelect} onOpenI18n={onOpenI18n} level={0} />
       ))}
     </div>
   );
 }
 
-function TreeNodeView({ node, selected, expanded, toggle, onSelect, level }: {
+function TreeNodeView({ node, selected, expanded, toggle, onSelect, onOpenI18n, level }: {
   node: RegistryTreeNode;
   selected: TreeSelection | null;
   expanded: Record<string, boolean>;
   toggle: (id: string) => void;
   onSelect: (v: TreeSelection) => void;
+  onOpenI18n?: (target: { moduleId: string; fileId?: string }) => void;
   level: number;
 }) {
   const children = node.children ?? [];
@@ -37,6 +40,7 @@ function TreeNodeView({ node, selected, expanded, toggle, onSelect, level }: {
   const isOpen = expanded[node.id] ?? isModule;
   const kindLabel = fileKindLabel(node.kind ?? node.type);
   const active = Boolean(node.moduleId && node.fileId && selected?.moduleId === node.moduleId && selected.fileId === node.fileId && (selected.scriptPath ?? '') === (node.childPath ?? ''));
+  const i18nCount = node.moduleId ? getModuleLocaleBundles(node.moduleId).reduce((sum, bundle) => sum + bundle.count, 0) : 0;
 
   if (isModule) {
     return (
@@ -69,12 +73,13 @@ function TreeNodeView({ node, selected, expanded, toggle, onSelect, level }: {
           onClick={() => toggle(node.id)}
           style={indentStyle(level)}
         >
-          <span className="folder-arrow" aria-hidden="true">{isOpen ? '⌄' : '›'}</span> {kindLabel} · {node.label}
+          <span className="folder-arrow" aria-hidden="true">{isOpen ? '⌄' : '›'}</span><span className="tree-label">{kindLabel} · {node.label}</span>
+          <I18nTreeButton moduleId={node.moduleId} fileId={node.fileId} count={i18nCount} onOpen={onOpenI18n} />
         </button>
         {isOpen && (
           <div className="tree-children" role="group">
             {children.map((child) => (
-              <TreeNodeView key={child.id} node={child} selected={selected} expanded={expanded} toggle={toggle} onSelect={onSelect} level={level + 1} />
+              <TreeNodeView key={child.id} node={child} selected={selected} expanded={expanded} toggle={toggle} onSelect={onSelect} onOpenI18n={onOpenI18n} level={level + 1} />
             ))}
           </div>
         )}
@@ -97,20 +102,43 @@ function TreeNodeView({ node, selected, expanded, toggle, onSelect, level }: {
       }}
       disabled={!canSelect}
     >
-      {level > 1 ? node.label : `${kindLabel} · ${node.label}`}
+      <span className="tree-label">{level > 1 ? node.label : `${kindLabel} · ${node.label}`}</span>
+      <I18nTreeButton moduleId={node.moduleId} fileId={node.fileId} count={i18nCount} onOpen={onOpenI18n} />
     </button>
   );
 }
 
 export function fileKindLabel(kind: string | undefined): string {
-  if (!kind) return '配置';
+  if (!kind) return t('core.kind.config');
   const upper = kind.toUpperCase();
-  if (upper === 'CONFIG') return '配置';
-  if (upper === 'GUI') return 'GUI';
-  if (upper === 'ITEM') return '物品';
-  if (upper === 'SCRIPT') return '脚本';
-  if (upper === 'FILE') return '文件';
+  if (upper === 'CONFIG') return t('core.kind.config');
+  if (upper === 'GUI') return t('core.kind.gui');
+  if (upper === 'ITEM') return t('core.kind.item');
+  if (upper === 'SCRIPT') return t('core.kind.script');
+  if (upper === 'FILE') return t('core.kind.file');
   return kind;
+}
+
+function I18nTreeButton({ moduleId, fileId, count, onOpen }: { moduleId?: string; fileId?: string; count: number; onOpen?: (target: { moduleId: string; fileId?: string }) => void }) {
+  if (!moduleId || !onOpen) return null;
+  return <span
+    role="button"
+    tabIndex={0}
+    className={`tree-i18n-button ${count > 0 ? 'has-bundle' : ''}`}
+    title={t('core.i18n.openAria', { module: moduleId })}
+    aria-label={t('core.i18n.openAria', { module: moduleId })}
+    onClick={(event) => { event.stopPropagation(); onOpen({ moduleId, fileId }); }}
+    onKeyDown={(event) => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      event.stopPropagation();
+      onOpen({ moduleId, fileId });
+    }}
+  ><LanguageFileIcon />{count > 0 && <small>{count}</small>}</span>;
+}
+
+function LanguageFileIcon() {
+  return <svg viewBox="0 0 18 18" aria-hidden="true"><path d="M4.5 2.5h5.9l3.1 3.1v9.9h-9z" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/><path d="M10.2 2.8v3.1h3" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/><path d="M6.2 8.4h5.4M6.2 10.8h3.6" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>;
 }
 
 function Icon({ svg }: { svg?: string }) {
