@@ -657,7 +657,8 @@ export function EmakiGemItemSurface({ module, file, api, childPath, refreshKey =
   const [dirty, setDirty] = useState(false);
 
   const filePath = childPath || file.path;
-  const kind = useMemo(() => itemKind(filePath, preview), [filePath, preview]);
+  const surfaceEditorId = editor?.id ?? file.editorId;
+  const kind = useMemo(() => resolveSurfaceKind(surfaceEditorId, filePath, preview), [surfaceEditorId, filePath, preview]);
   const baseName = editor?.baseName ?? DEFAULT_BASE_NAME;
   const baseLore = Array.isArray(editor?.baseLore) ? editor.baseLore as string[] : [DEFAULT_BASE_LORE];
   const editorFields = useMemo(() => editorFieldMap(editor), [editor]);
@@ -755,6 +756,12 @@ export function EmakiGemItemSurface({ module, file, api, childPath, refreshKey =
       )}
     </div>
   );
+}
+
+function resolveSurfaceKind(editorId: string | undefined, path: string, preview?: ItemPreviewResult | null): 'gem' | 'socket' | 'generic' {
+  if (editorId === 'emakigem:gem') return 'gem';
+  if (editorId === 'emakigem:socket-item') return 'socket';
+  return itemKind(path, preview);
 }
 
 function editorFieldMap(editor: WebEditorDescriptor | undefined): Record<string, WebEditorField> {

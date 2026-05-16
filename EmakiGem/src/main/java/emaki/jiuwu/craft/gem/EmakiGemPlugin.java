@@ -326,6 +326,33 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         Map<String, Object> descriptor = editorDescriptor("emakigem:gem", "宝石定义", "宝石定义");
         descriptor.put("baseName", "<gray>预览装备</gray>");
         descriptor.put("baseLore", List.of("<gray>原始装备 Lore</gray>"));
+        descriptor.put("sections", List.of(
+                editorSection("基础字段",
+                        editorFieldDescriptor("id", "ID", "text", false),
+                        editorFieldDescriptor("display_name", "显示名称", "text", false),
+                        editorFieldDescriptor("lore", "Lore", "stringList", true),
+                        editorEnumFieldDescriptor("gem_type", "宝石类型", List.of("attack", "defense", "utility", "universal"), false),
+                        editorFieldDescriptor("level", "基础等级", "number", false),
+                        editorFieldDescriptor("item_sources", "物品来源", "stringList", true),
+                        editorFieldDescriptor("custom_model_data", "模型数据", "number", false),
+                        editorFieldDescriptor("socket_compatibility", "兼容插槽", "stringList", true)
+                ),
+                editorSection("effects 效果",
+                        editorFieldDescriptor("effects", "宝石效果", "effects", true)
+                ),
+                editorSection("费用与返还",
+                        editorFieldDescriptor("inlay_cost", "镶嵌费用", "cost", true),
+                        editorFieldDescriptor("extract_cost", "拆卸费用", "cost", true),
+                        editorFieldDescriptor("extract_return", "拆卸返还", "extractReturn", true)
+                ),
+                editorSection("upgrade 升级配置",
+                        editorFieldDescriptor("upgrade", "升级配置", "gemUpgrade", true)
+                ),
+                editorSection("宝石动作",
+                        editorFieldDescriptor("actions.inlay_success", "镶嵌成功动作", "stringList", true),
+                        editorFieldDescriptor("actions.extract_success", "拆卸成功动作", "stringList", true)
+                )
+        ));
         return descriptor;
     }
 
@@ -333,6 +360,31 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         Map<String, Object> descriptor = editorDescriptor("emakigem:socket-item", "宝石插槽物品", "宝石物品定义");
         descriptor.put("baseName", "<gray>预览装备</gray>");
         descriptor.put("baseLore", List.of("<gray>原始装备 Lore</gray>"));
+        descriptor.put("sections", List.of(
+                editorSection("匹配规则",
+                        editorFieldDescriptor("id", "ID", "text", false),
+                        editorFieldDescriptor("match.item_sources", "匹配物品来源", "stringList", true),
+                        editorFieldDescriptor("match.slot_groups", "装备分组", "stringList", true),
+                        editorFieldDescriptor("match.lore_contains", "Lore 包含", "stringList", true)
+                ),
+                editorSection("插槽结构",
+                        editorFieldDescriptor("slots", "插槽列表", "gemSlots", true),
+                        editorFieldDescriptor("default_open_slots", "默认开放插槽", "numberList", true)
+                ),
+                editorSection("宝石限制",
+                        editorFieldDescriptor("allowed_gem_types", "允许宝石类型", "stringList", true),
+                        editorFieldDescriptor("max_same_type", "同类型上限", "number", false),
+                        editorFieldDescriptor("max_same_id", "同 ID 上限", "number", false)
+                ),
+                editorSection("GUI 模板",
+                        editorFieldDescriptor("gui.gem_template", "镶嵌模板", "text", false),
+                        editorFieldDescriptor("gui.open_template", "开槽模板", "text", false)
+                ),
+                editorSection("展示动作",
+                        editorFieldDescriptor("name_actions", "名称动作", "actions", true),
+                        editorFieldDescriptor("lore_actions", "Lore 动作", "actions", true)
+                )
+        ));
         return descriptor;
     }
 
@@ -342,6 +394,30 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         descriptor.put("title", title);
         descriptor.put("kindLabel", kindLabel);
         return descriptor;
+    }
+
+    private Map<String, Object> editorSection(String title, Map<String, Object>... fields) {
+        Map<String, Object> section = new LinkedHashMap<>();
+        section.put("title", title);
+        section.put("fields", List.of(fields));
+        return section;
+    }
+
+    private Map<String, Object> editorFieldDescriptor(String path, String label, String type, boolean wide) {
+        Map<String, Object> field = new LinkedHashMap<>();
+        field.put("path", path);
+        field.put("label", label);
+        field.put("type", type);
+        if (wide) {
+            field.put("wide", true);
+        }
+        return field;
+    }
+
+    private Map<String, Object> editorEnumFieldDescriptor(String path, String label, List<String> options, boolean wide) {
+        Map<String, Object> field = editorFieldDescriptor(path, label, "enum", wide);
+        field.put("options", options);
+        return field;
     }
 
     public void ensurePlaceholderExpansion() {
