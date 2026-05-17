@@ -79,6 +79,7 @@ export type WebRegistryFile = {
   title: string;
   kind: 'CONFIG' | 'GUI' | 'ITEM' | 'SCRIPT' | 'config' | 'script' | string;
   comment: string;
+  revision?: number;
   editorId?: string;
   nodes: WebConfigNode[];
   children?: { name: string; relativePath: string; fullPath?: string }[];

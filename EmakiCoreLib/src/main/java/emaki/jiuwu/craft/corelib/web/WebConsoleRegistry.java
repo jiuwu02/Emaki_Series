@@ -335,6 +335,7 @@ public final class WebConsoleRegistry {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("moduleId", moduleId);
         result.put("path", relativePath);
+        result.put("revision", fileRevision(file));
         result.put("nodes", nodes);
         return result;
     }
@@ -375,11 +376,15 @@ public final class WebConsoleRegistry {
         return result;
     }
 
-    public void saveValue(String moduleId, String path, Object value) throws IOException {
-        saveValue(moduleId, null, path, value);
+    public long saveValue(String moduleId, String path, Object value) throws IOException {
+        return saveValue(moduleId, null, path, value, null);
     }
 
-    public void saveValue(String moduleId, String filePath, String path, Object value) throws IOException {
+    public long saveValue(String moduleId, String filePath, String path, Object value) throws IOException {
+        return saveValue(moduleId, filePath, path, value, null);
+    }
+
+    public long saveValue(String moduleId, String filePath, String path, Object value, Long expectedRevision) throws IOException {
         ModuleRegistration registration = module(moduleId);
         if (registration == null) {
             throw new IOException("模块未注册");
@@ -403,6 +408,10 @@ public final class WebConsoleRegistry {
             }
             file = moduleFile(moduleId, config.relativePath());
         }
+        long currentRevision = fileRevision(file);
+        if (expectedRevision != null && currentRevision != expectedRevision) {
+            throw new RevisionConflictException("文件已被其他管理员修改，请重载后再保存。", currentRevision);
+        }
         YamlSection yaml = YamlFiles.load(file);
         Object current = yaml.get(path);
         if (current instanceof YamlSection || current instanceof Map<?, ?>) {
@@ -410,6 +419,7 @@ public final class WebConsoleRegistry {
         }
         yaml.set(path, normalizeIncomingValue(current, value));
         YamlFiles.save(file, yaml);
+        return fileRevision(file);
     }
 
     private Map<String, Object> fileSnapshot(String moduleId, FileRegistration registration) {
@@ -417,6 +427,7 @@ public final class WebConsoleRegistry {
         entry.put("id", fileId(moduleId, registration));
         entry.put("moduleId", moduleId);
         entry.put("path", registration.relativePath());
+        entry.put("revision", fileRegistrationRevision(moduleId, registration));
         entry.put("title", registration.title());
         entry.put("kind", registration.type().name());
         entry.put("comment", registration.comment());
@@ -490,6 +501,36 @@ public final class WebConsoleRegistry {
         node.put("path", childPath);
         node.put("childPath", childPath);
         return node;
+    }
+
+    private long fileRegistrationRevision(String moduleId, FileRegistration registration) {
+        String path = registration.relativePath();
+        if (path.contains("*") || path.contains("?")) {
+            return 0L;
+        }
+        return fileRevision(moduleFile(moduleId, path));
+    }
+
+    private long fileRevision(File file) {
+        if (!file.exists()) return 0L;
+        try {
+            return java.nio.file.Files.getLastModifiedTime(file.toPath()).toMillis();
+        } catch (IOException ignored) {
+            return 0L;
+        }
+    }
+
+    public static final class RevisionConflictException extends IOException {
+        private final long currentRevision;
+
+        public RevisionConflictException(String message, long currentRevision) {
+            super(message);
+            this.currentRevision = currentRevision;
+        }
+
+        public long currentRevision() {
+            return currentRevision;
+        }
     }
 
     private static String stringValue(Object value) {

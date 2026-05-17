@@ -202,6 +202,11 @@ textarea { min-height: 96px; resize: vertical; font-family: ui-monospace, "Casca
 .locale-toggle select { width: 66px; border: 0; background: transparent; padding: 0; color: inherit; font-size: 11px; outline: none; }
 @keyframes theme-icon-in { from { opacity: 0; transform: rotate(-18deg) scale(.72); } to { opacity: 1; transform: rotate(0) scale(1); } }
 .tree-caption { color: var(--faint); font-size: 11px; font-weight: 700; padding: 0 8px; }
+.tree-search { position: relative; display: flex; align-items: center; min-height: 30px; border: 1px solid var(--line); border-radius: 6px; background: var(--input); color: var(--faint); padding: 0 8px; gap: 6px; }
+.tree-search:focus-within { border-color: var(--line-2); color: var(--accent); outline: 1px solid var(--accent-soft); outline-offset: 1px; }
+.tree-search svg { width: 14px; height: 14px; flex: 0 0 auto; }
+.tree-search input { min-width: 0; width: 100%; border: 0; background: transparent; color: var(--text); padding: 5px 0; font-size: 12px; outline: none; }
+.tree-search input::placeholder { color: var(--faint); }
 .tree { overflow-y: auto; overflow-x: hidden; flex: 1; font-size: 13px; scrollbar-width: none; }
 .tree::-webkit-scrollbar { display: none; }
 .tree-module { margin-bottom: 2px; }
@@ -212,11 +217,16 @@ textarea { min-height: 96px; resize: vertical; font-family: ui-monospace, "Casca
 .tree-file:hover { background: var(--surface-2); color: var(--muted); }
 .tree-file:active { transform: scale(0.96); }
 .tree-file.active { background: var(--accent-soft); color: var(--accent); }
+.tree-folder.dirty, .tree-file.dirty, .tree-child.dirty { color: var(--muted); }
 .tree-empty { color: var(--faint); padding: 8px; }
 .tree-file-folder { margin-left: 18px; }
+.tree-file-row, .tree-child-row { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.tree-file-row .tree-file { flex: 1 1 auto; width: auto; margin-left: 0; min-width: 0; }
+.tree-child-row .tree-child { flex: 1 1 auto; min-width: 0; }
 .tree-file.folder-toggle { display: flex; align-items: center; gap: 4px; width: 100%; margin-left: 0; }
 .folder-arrow { display: inline-block; width: 12px; text-align: center; font-size: 11px; color: var(--faint); flex: 0 0 auto; }
 .tree-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tree-dirty-dot { flex: 0 0 auto; width: 6px; height: 6px; border-radius: 50%; background: var(--amber); box-shadow: 0 0 0 2px var(--changed-bg); }
 .tree-i18n-button { flex: 0 0 auto; min-width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; gap: 3px; border: 1px solid transparent; border-radius: 5px; color: var(--faint); opacity: .55; }
 .tree-i18n-button svg { width: 15px; height: 15px; display: block; }
 .tree-i18n-button small { font-size: 9px; font-family: ui-monospace, "Cascadia Code", monospace; }
@@ -225,6 +235,7 @@ textarea { min-height: 96px; resize: vertical; font-family: ui-monospace, "Casca
 .tree-children { padding-left: 16px; }
 .tree-child { width: 100%; display: flex; align-items: center; gap: 6px; text-align: left; padding: 3px 8px; color: var(--faint); border-radius: 5px; font-size: 11px; opacity: .82; font-family: ui-monospace, "Cascadia Code", monospace; }
 .tree-child:hover { background: var(--surface-2); color: var(--muted); opacity: 1; }
+.tree-child.active { background: var(--accent-soft); color: var(--accent); opacity: 1; }
 .rail-action { width: 100%; text-align: left; padding: 7px 8px; border-radius: 6px; color: var(--faint); font-size: 13px; }
 .rail-action:hover { background: var(--surface-2); color: var(--text); }
 .rail-action.quiet { margin-top: auto; }
@@ -448,6 +459,10 @@ textarea { min-height: 96px; resize: vertical; font-family: ui-monospace, "Casca
 .reload-confirm-head h3 { font-size: 15px; line-height: 1.35; color: var(--text); }
 .reload-confirm-body { display: grid; gap: 10px; padding: 14px 18px; color: var(--muted); font-size: 13px; line-height: 1.55; }
 .reload-confirm-body code { display: block; padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px; color: var(--faint); background: var(--input); font-family: ui-monospace, "Cascadia Code", monospace; font-size: 11px; word-break: break-all; }
+.reload-change-summary { display: grid; gap: 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--input); padding: 9px; }
+.reload-change-summary > strong { color: var(--text); font-size: 12px; }
+.reload-change-summary .editor-change-list { max-height: 220px; }
+.reload-change-summary .editor-change-row { background: var(--surface); }
 .reload-confirm-actions { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 18px 16px; border-top: 1px solid var(--line); }
 .reload-confirm-actions button { border: 1px solid var(--line); border-radius: 6px; padding: 7px 12px; color: var(--muted); background: var(--surface-2); font-size: 13px; }
 .reload-confirm-actions button:hover { border-color: var(--line-2); color: var(--text); }

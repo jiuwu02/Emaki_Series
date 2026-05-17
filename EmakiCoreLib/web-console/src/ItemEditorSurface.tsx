@@ -226,23 +226,23 @@ function ScopedActionsEditor(props: { actions: ReturnType<typeof parseActionList
   return <ActionsEditor {...props} moduleId={context.moduleId} namespace={context.moduleId} editorFields={context.editorFields} />;
 }
 
-function ToggleButton({ checked, onChange }: { checked: boolean; onChange: (next: boolean) => void }) {
-  return <button type="button" className={`switch ${checked ? 'on' : ''}`} onClick={() => onChange(!checked)}><span />{checked ? '开启' : '关闭'}</button>;
+function ToggleButton({ id, checked, onChange }: { id?: string; checked: boolean; onChange: (next: boolean) => void }) {
+  return <button id={id} type="button" className={`switch ${checked ? 'on' : ''}`} aria-pressed={checked} onClick={() => onChange(!checked)}><span />{checked ? t('core.config.booleanOn') : t('core.config.booleanOff')}</button>;
 }
 
-function NumberInput({ value, onChange, step }: { value: unknown; onChange: (value: number | undefined) => void; step?: number | string }) {
-  return <input type="number" step={step} value={value == null ? '' : textValue(value)} onChange={event => onChange(event.target.value === '' ? undefined : Number(event.target.value))} />;
+function NumberInput({ id, value, onChange, step }: { id?: string; value: unknown; onChange: (value: number | undefined) => void; step?: number | string }) {
+  return <input id={id} type="number" step={step} value={value == null ? '' : textValue(value)} onChange={event => onChange(event.target.value === '' ? undefined : Number(event.target.value))} />;
 }
 
-function SelectInput({ value, options, onChange, labelPrefix }: { value: unknown; options: string[]; onChange: (value: string) => void; labelPrefix?: string }) {
+function SelectInput({ id, value, options, onChange, labelPrefix }: { id?: string; value: unknown; options: string[]; onChange: (value: string) => void; labelPrefix?: string }) {
   const context = React.useContext(EditorContext);
   const current = textValue(value);
   const merged = current && !options.includes(current) ? [...options, current] : options;
-  return <select value={current} onChange={event => onChange(event.target.value)}>{merged.map(option => <option key={option} value={option}>{labelPrefix ? optionLabel(labelPrefix, option, { moduleId: context.moduleId, namespace: context.moduleId, fallback: option }) : option}</option>)}</select>;
+  return <select id={id} value={current} onChange={event => onChange(event.target.value)}>{merged.map(option => <option key={option} value={option}>{labelPrefix ? optionLabel(labelPrefix, option, { moduleId: context.moduleId, namespace: context.moduleId, fallback: option }) : option}</option>)}</select>;
 }
 
-function TextInput({ value, onChange, placeholder }: { value: unknown; onChange: (value: string) => void; placeholder?: string }) {
-  return <input type="text" value={textValue(value)} onChange={event => onChange(event.target.value)} placeholder={placeholder} />;
+function TextInput({ id, value, onChange, placeholder }: { id?: string; value: unknown; onChange: (value: string) => void; placeholder?: string }) {
+  return <input id={id} type="text" value={textValue(value)} onChange={event => onChange(event.target.value)} placeholder={placeholder} />;
 }
 
 function KvTable({ entries, onChange, valuePlaceholder = '值', addKeyPrefix = 'key' }: { entries: Array<{ key: string; value: unknown }>; onChange: (entries: Array<{ key: string; value: unknown }>) => void; valuePlaceholder?: string; addKeyPrefix?: string }) {

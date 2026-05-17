@@ -66,26 +66,26 @@ public final class WebConsoleService {
                 return thread;
             });
             server.setExecutor(executor);
-            server.createContext("/api/auth/login", this::handleLogin);
-            server.createContext("/api/session", this::handleSession);
-            server.createContext("/api/modules", this::handleModules);
-            server.createContext("/api/registry", this::handleRegistry);
-            server.createContext("/api/registry/file", this::handleRegistryFile);
-            server.createContext("/api/registry/save", this::handleRegistrySave);
-            server.createContext("/api/configs/tree", this::handleConfigTree);
-            server.createContext("/api/configs/read", this::handleConfigRead);
-            server.createContext("/api/libraries", this::handleLibraries);
-            server.createContext("/api/scripts/read", this::handleScriptRead);
-            server.createContext("/api/scripts/save", this::handleScriptSave);
-            server.createContext("/api/gui/read", this::handleGuiRead);
-            server.createContext("/api/gui/save", this::handleGuiSave);
-            server.createContext("/api/items/read", this::handleItemRead);
-            server.createContext("/api/items/save", this::handleItemSave);
-            server.createContext("/api/items/preview", this::handleItemPreview);
-            server.createContext("/api/items/action-types", this::handleItemActionTypes);
-            server.createContext("/api/economy/providers", this::handleEconomyProviders);
-            server.createContext("/extensions/", this::handleExtensionAsset);
-            server.createContext("/", this::handleStatic);
+            createContext("/api/auth/login", this::handleLogin);
+            createContext("/api/session", this::handleSession);
+            createContext("/api/modules", this::handleModules);
+            createContext("/api/registry", this::handleRegistry);
+            createContext("/api/registry/file", this::handleRegistryFile);
+            createContext("/api/registry/save", this::handleRegistrySave);
+            createContext("/api/configs/tree", this::handleConfigTree);
+            createContext("/api/configs/read", this::handleConfigRead);
+            createContext("/api/libraries", this::handleLibraries);
+            createContext("/api/scripts/read", this::handleScriptRead);
+            createContext("/api/scripts/save", this::handleScriptSave);
+            createContext("/api/gui/read", this::handleGuiRead);
+            createContext("/api/gui/save", this::handleGuiSave);
+            createContext("/api/items/read", this::handleItemRead);
+            createContext("/api/items/save", this::handleItemSave);
+            createContext("/api/items/preview", this::handleItemPreview);
+            createContext("/api/items/action-types", this::handleItemActionTypes);
+            createContext("/api/economy/providers", this::handleEconomyProviders);
+            createContext("/extensions/", this::handleExtensionAsset);
+            createContext("/", this::handleStatic);
             server.start();
             plugin.getLogger().info("[WebConsole] 已启动: http://" + config.host() + ":" + config.port());
         } catch (IOException exception) {
@@ -97,6 +97,26 @@ public final class WebConsoleService {
     public synchronized void restart(WebConsoleConfig nextConfig) {
         this.config = nextConfig;
         start();
+    }
+
+    private void createContext(String path, WebRoute route) {
+        server.createContext(path, exchange -> {
+            try {
+                route.handle(exchange);
+            } catch (Throwable throwable) {
+                plugin.getLogger().log(Level.WARNING, "[WebConsole] 请求处理失败: " + exchange.getRequestURI(), throwable);
+                try {
+                    WebResponse.json(exchange, 500, Map.of("success", false, "error", "Web Console 请求处理失败，请查看服务器控制台日志。"));
+                } catch (IOException ignored) {
+                    // 响应可能已经开始发送，此时只保留服务器日志。
+                }
+            }
+        });
+    }
+
+    @FunctionalInterface
+    private interface WebRoute {
+        void handle(HttpExchange exchange) throws IOException;
     }
 
     public synchronized void stop() {
@@ -192,9 +212,13 @@ public final class WebConsoleService {
         String filePath = WebJson.extractString(body, "filePath");
         String path = WebJson.extractString(body, "path");
         Object value = WebJson.extractValue(body, "value");
+        Object revisionValue = WebJson.extractValue(body, "revision");
+        Long revision = revisionValue instanceof Number number ? number.longValue() : null;
         try {
-            consoleRegistry.saveValue(module, filePath, path, value);
-            WebResponse.json(exchange, 200, Map.of("success", true));
+            long nextRevision = consoleRegistry.saveValue(module, filePath, path, value, revision);
+            WebResponse.json(exchange, 200, Map.of("success", true, "revision", nextRevision));
+        } catch (WebConsoleRegistry.RevisionConflictException exception) {
+            WebResponse.json(exchange, 409, Map.of("success", false, "error", exception.getMessage(), "revision", exception.currentRevision()));
         } catch (IOException exception) {
             WebResponse.json(exchange, 400, Map.of("success", false, "error", exception.getMessage()));
         }

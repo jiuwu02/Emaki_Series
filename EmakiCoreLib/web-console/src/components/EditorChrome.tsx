@@ -24,6 +24,10 @@ export type EditorChromeProps = {
   saveLabel?: string;
   sourceLabel?: string;
   reloadLabel?: string;
+  canUndo?: boolean;
+  canRedo?: boolean;
+  onUndo?: () => void;
+  onRedo?: () => void;
   onSave?: () => void;
   onReload?: () => void;
   onSourceChange?: (source: string) => void;
@@ -45,6 +49,10 @@ export function EditorChrome({
   saveLabel,
   sourceLabel,
   reloadLabel,
+  canUndo = false,
+  canRedo = false,
+  onUndo,
+  onRedo,
   onSave,
   onReload,
   onSourceChange,
@@ -92,6 +100,8 @@ export function EditorChrome({
       </div>
       <ActionGroup className="editor-chrome-actions">
         {children}
+        {onUndo && <Button size="sm" onClick={onUndo} disabled={!canUndo || saving || loading} title={t('core.editor.undoHint')}>{t('core.editor.undo')}</Button>}
+        {onRedo && <Button size="sm" onClick={onRedo} disabled={!canRedo || saving || loading} title={t('core.editor.redoHint')}>{t('core.editor.redo')}</Button>}
         <Button size="sm" onClick={() => setSourceOpen(true)} disabled={!source}>{sourceLabel ?? t('core.item.source')}</Button>
         {onReload && <Button size="sm" onClick={requestReload} disabled={loading || saving}>{reloadLabel ?? t('core.gui.reload')}</Button>}
         <span className="editor-save-wrap" onMouseEnter={() => setChangesOpen(true)} onMouseLeave={() => setChangesOpen(false)} onFocus={() => setChangesOpen(true)} onBlur={() => setChangesOpen(false)}>
@@ -101,21 +111,28 @@ export function EditorChrome({
       </ActionGroup>
     </div>
     {sourceOpen && <SourceModal source={source} editable={sourceEditable ?? Boolean(onSourceChange)} error={sourceError} onChange={onSourceChange} onClose={() => setSourceOpen(false)} />}
-    {reloadOpen && <ReloadModal onCancel={() => setReloadOpen(false)} onConfirm={confirmReload} />}
+    {reloadOpen && <ReloadModal changes={previewChanges} count={count} onCancel={() => setReloadOpen(false)} onConfirm={confirmReload} />}
   </>;
 }
 
 function ChangePopover({ changes, count }: { changes: EditorChange[]; count: number }) {
   return <div className="editor-change-popover" role="status">
     <strong>{t('core.editor.changesTitle', { count })}</strong>
-    {changes.length ? <div className="editor-change-list">
+    <ChangeList changes={changes} count={count} />
+  </div>;
+}
+
+function ChangeList({ changes, count }: { changes: EditorChange[]; count: number }) {
+  return changes.length ? <>
+    <div className="editor-change-list">
       {changes.map(change => <div className="editor-change-row" key={change.path}>
         <code>{change.path}</code>
         <span>{change.label || change.path}</span>
         <small>{formatChangeValue(change.before)} → {formatChangeValue(change.after)}</small>
       </div>)}
-    </div> : <p>{t('core.editor.changedSource')}</p>}
-  </div>;
+    </div>
+    {count > changes.length && <p>{t('core.editor.changesMore', { count: count - changes.length })}</p>}
+  </> : <p>{t('core.editor.changedSource')}</p>;
 }
 
 function SourceModal({ source, editable, error, onChange, onClose }: { source: string; editable?: boolean; error?: string | null; onChange?: (source: string) => void; onClose: () => void }) {
@@ -131,14 +148,20 @@ function SourceModal({ source, editable, error, onChange, onClose }: { source: s
   </div>;
 }
 
-function ReloadModal({ onCancel, onConfirm }: { onCancel: () => void; onConfirm: () => void }) {
+function ReloadModal({ changes, count, onCancel, onConfirm }: { changes: EditorChange[]; count: number; onCancel: () => void; onConfirm: () => void }) {
   return <div className="editor-modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) onCancel(); }}>
     <section className="reload-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="editor-reload-title" aria-describedby="editor-reload-desc">
       <div className="reload-confirm-head">
         <span>{t('core.gui.unsavedChanges')}</span>
         <h3 id="editor-reload-title">{t('core.gui.reloadDropsChanges')}</h3>
       </div>
-      <div className="reload-confirm-body"><p id="editor-reload-desc">{t('core.editor.reloadDesc')}</p></div>
+      <div className="reload-confirm-body">
+        <p id="editor-reload-desc">{t('core.editor.reloadDesc')}</p>
+        {count > 0 && <div className="reload-change-summary" aria-label={t('core.editor.reloadChangesAria', { count })}>
+          <strong>{t('core.editor.changesTitle', { count })}</strong>
+          <ChangeList changes={changes} count={count} />
+        </div>}
+      </div>
       <ActionGroup className="reload-confirm-actions">
         <Button onClick={onCancel} autoFocus>{t('core.gui.cancel')}</Button>
         <Button variant="danger" onClick={onConfirm}>{t('core.gui.continueReload')}</Button>

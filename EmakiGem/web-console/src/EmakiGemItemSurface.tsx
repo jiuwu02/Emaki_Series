@@ -85,12 +85,19 @@ function PropRow({ label, path, children, wide, changed }: { label: string; path
   const displayLabel = fieldLabel(path ?? label, { namespace: 'emakigem', moduleId: 'EmakiGem', editorFields: fields, fallback: meta?.label || fieldLabel(label, { namespace: 'emakigem', moduleId: 'EmakiGem', editorFields: fields }) });
   const isChanged = changed ?? isChangedFieldPath(path ?? label, changedPaths);
   const title = meta?.comment ? `${label}\n${meta.comment}` : label;
+  const control = bindControlId(children, id);
   return (
     <div className={`prop-row${wide ? ' prop-row--wide' : ''}${isChanged ? ' changed' : ''}`}>
       <label className="prop-label" htmlFor={id} title={title}>{displayLabel}</label>
-      <span className="prop-value" id={`${id}-wrap`}>{children}</span>
+      <span className="prop-value" id={`${id}-wrap`}>{control}</span>
     </div>
   );
+}
+
+function bindControlId(children: React.ReactNode, id: string): React.ReactNode {
+  if (!React.isValidElement(children)) return children;
+  const element = children as React.ReactElement<{ id?: string }>;
+  return React.cloneElement(element, { id: element.props.id ?? id });
 }
 
 function ScopedActionsEditor(props: { actions: ReturnType<typeof parseActionList>; onChange: (actions: ReturnType<typeof parseActionList>) => void; actionTypes: string[]; mode: 'name' | 'lore' }) {
@@ -98,22 +105,22 @@ function ScopedActionsEditor(props: { actions: ReturnType<typeof parseActionList
   return <ActionsEditor {...props} namespace="emakigem" moduleId="EmakiGem" editorFields={fields} />;
 }
 
-function ToggleButton({ checked, onChange }: { checked: boolean; onChange: (next: boolean) => void }) {
-  return <button type="button" className={`switch ${checked ? 'on' : ''}`} onClick={() => onChange(!checked)}><span />{checked ? '开启' : '关闭'}</button>;
+function ToggleButton({ id, checked, onChange }: { id?: string; checked: boolean; onChange: (next: boolean) => void }) {
+  return <button id={id} type="button" className={`switch ${checked ? 'on' : ''}`} aria-pressed={checked} onClick={() => onChange(!checked)}><span />{checked ? t('core.config.booleanOn') : t('core.config.booleanOff')}</button>;
 }
 
-function TextInput({ value, onChange, placeholder }: { value: unknown; onChange: (value: string) => void; placeholder?: string }) {
-  return <input type="text" value={textValue(value)} onChange={event => onChange(event.target.value)} placeholder={placeholder} />;
+function TextInput({ id, value, onChange, placeholder }: { id?: string; value: unknown; onChange: (value: string) => void; placeholder?: string }) {
+  return <input id={id} type="text" value={textValue(value)} onChange={event => onChange(event.target.value)} placeholder={placeholder} />;
 }
 
-function NumberInput({ value, onChange, step }: { value: unknown; onChange: (value: number | undefined) => void; step?: number | string }) {
-  return <input type="number" step={step} value={value == null ? '' : textValue(value)} onChange={event => onChange(event.target.value === '' ? undefined : Number(event.target.value))} />;
+function NumberInput({ id, value, onChange, step }: { id?: string; value: unknown; onChange: (value: number | undefined) => void; step?: number | string }) {
+  return <input id={id} type="number" step={step} value={value == null ? '' : textValue(value)} onChange={event => onChange(event.target.value === '' ? undefined : Number(event.target.value))} />;
 }
 
-function SelectInput({ value, options, onChange, labelPrefix }: { value: unknown; options: string[]; onChange: (value: string) => void; labelPrefix?: string }) {
+function SelectInput({ id, value, options, onChange, labelPrefix }: { id?: string; value: unknown; options: string[]; onChange: (value: string) => void; labelPrefix?: string }) {
   const current = textValue(value);
   const merged = current && !options.includes(current) ? [...options, current] : options;
-  return <select value={current} onChange={event => onChange(event.target.value)}>{merged.map(option => <option key={option} value={option}>{labelPrefix ? optionLabel(labelPrefix, option, { namespace: 'emakigem', moduleId: 'EmakiGem' }) : option}</option>)}</select>;
+  return <select id={id} value={current} onChange={event => onChange(event.target.value)}>{merged.map(option => <option key={option} value={option}>{labelPrefix ? optionLabel(labelPrefix, option, { namespace: 'emakigem', moduleId: 'EmakiGem' }) : option}</option>)}</select>;
 }
 
 function KvTable({ entries, onChange, valuePlaceholder = '值', addKeyPrefix = 'key' }: { entries: Array<{ key: string; value: unknown }>; onChange: (entries: Array<{ key: string; value: unknown }>) => void; valuePlaceholder?: string; addKeyPrefix?: string }) {

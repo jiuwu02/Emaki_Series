@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { t } from '../i18n';
 
 const RAIL_MIN = 180;
 const RAIL_MAX = 600;
@@ -72,7 +73,7 @@ export function ResizableRail({ children }: { children: React.ReactNode }) {
         role="separator"
         tabIndex={0}
         aria-orientation="vertical"
-        aria-label="调整配置树侧栏宽度"
+        aria-label={t('core.tree.resizeAria')}
         aria-valuemin={RAIL_MIN}
         aria-valuemax={RAIL_MAX}
         aria-valuenow={width}

@@ -3,6 +3,8 @@ import type { ConfigFile, GuiDocument, ItemDocument, ItemPreviewResult, ModuleSt
 
 export type ActionTypesResult = { nameActions: string[]; loreActions: string[] };
 export type EconomyProvidersResult = { providers: string[]; availableProviders: string[] };
+export type RegistrySaveResult = { revision?: number };
+export type RegistryFileNodesResult = { nodes: WebConfigNode[]; revision?: number; path?: string };
 
 export class ApiClient {
   private actionTypesCache: ActionTypesResult | null = null;
@@ -37,16 +39,17 @@ export class ApiClient {
     return data.registry;
   }
 
-  async saveRegistryValue(moduleId: string, filePath: string, path: string, value: unknown): Promise<void> {
-    await this.request('/api/registry/save', {
+  async saveRegistryValue(moduleId: string, filePath: string, path: string, value: unknown, revision?: number): Promise<RegistrySaveResult> {
+    const data = await this.request('/api/registry/save', {
       method: 'POST',
-      body: JSON.stringify({ moduleId, filePath, path, value })
+      body: JSON.stringify({ moduleId, filePath, path, value, revision })
     });
+    return { revision: typeof data.revision === 'number' ? data.revision : undefined };
   }
 
-  async registryFileNodes(moduleId: string, path: string): Promise<WebConfigNode[]> {
+  async registryFileNodes(moduleId: string, path: string): Promise<RegistryFileNodesResult> {
     const data = await this.request(`/api/registry/file?module=${encodeURIComponent(moduleId)}&path=${encodeURIComponent(path)}`);
-    return data.nodes;
+    return { nodes: data.nodes ?? [], revision: typeof data.revision === 'number' ? data.revision : undefined, path: data.path };
   }
 
   async configTree(module: string): Promise<ConfigFile[]> {

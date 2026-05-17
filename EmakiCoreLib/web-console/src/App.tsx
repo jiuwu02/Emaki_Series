@@ -19,6 +19,13 @@ registerSurface({ kind: 'ITEM', component: ItemEditorSurface as ComponentType<Su
 
 type Selection = { moduleId: string; fileId: string; scriptPath?: string; refreshKey?: number };
 type DraftMap = Record<string, unknown>;
+type ConfigDraftScope = { moduleId: string; fileId: string; filePath: string };
+type DraftHistoryEntry = { before: DraftMap; after: DraftMap };
+type DraftScopeHistory = { undo: DraftHistoryEntry[]; redo: DraftHistoryEntry[] };
+type DraftHistoryMap = Record<string, DraftScopeHistory>;
+type DraftValueSetter = (scope: ConfigDraftScope, node: WebConfigNode, next: unknown) => void;
+type DraftScopeAction = (scope: ConfigDraftScope) => void;
+type RegistryLoadOptions = { initial?: boolean; clearDrafts?: boolean; announceRefresh?: boolean };
 
 type Toast = { tone: 'ok' | 'bad'; text: string } | null;
 type ColorTheme = 'dark' | 'light';
@@ -35,6 +42,7 @@ export default function App() {
   const [selected, setSelected] = useState<Selection | null>(null);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [drafts, setDrafts] = useState<DraftMap>({});
+  const [draftHistory, setDraftHistory] = useState<DraftHistoryMap>({});
   const [toast, setToast] = useState<Toast>(null);
   const [theme, setTheme] = useState<ColorTheme>(() => readTheme());
   const [localeVersion, setLocaleVersion] = useState(0);
@@ -47,7 +55,7 @@ export default function App() {
     setToken(null);
   }), [token]);
 
-  useEffect(() => { if (token) void loadRegistry(true); }, [token]);
+  useEffect(() => { if (token) void loadRegistry({ initial: true, clearDrafts: true }); }, [token]);
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
     localStorage.setItem('emaki-color-theme', theme);
@@ -58,7 +66,57 @@ export default function App() {
     return () => window.clearTimeout(timer);
   }, [toast]);
 
-  async function loadRegistry(initial = false): Promise<WebRegistry | null> {
+  function setDraftValue(scope: ConfigDraftScope, node: WebConfigNode, nextValue: unknown) {
+    const key = draftKey(scope, node.path);
+    const before = draftScopeSnapshot(drafts, scope);
+    const next = { ...drafts };
+    if (valuesEqual(nextValue, node.value)) delete next[key];
+    else next[key] = nextValue;
+    const after = draftScopeSnapshot(next, scope);
+    if (valuesEqual(before, after)) return;
+    setDrafts(next);
+    rememberDraftHistory(scope, before, after);
+  }
+
+  function rememberDraftHistory(scope: ConfigDraftScope, before: DraftMap, after: DraftMap) {
+    const id = draftScopeId(scope);
+    setDraftHistory(current => {
+      const history = current[id] ?? emptyDraftHistory();
+      return { ...current, [id]: { undo: [...history.undo, { before, after }].slice(-20), redo: [] } };
+    });
+  }
+
+  function undoDraftScope(scope: ConfigDraftScope) {
+    const id = draftScopeId(scope);
+    const history = draftHistory[id];
+    const entry = history?.undo[history.undo.length - 1];
+    if (!history || !entry) return;
+    setDrafts(draftState => applyDraftScopeSnapshot(draftState, scope, entry.before));
+    setDraftHistory(current => {
+      const latest = current[id] ?? emptyDraftHistory();
+      return { ...current, [id]: { undo: latest.undo.slice(0, -1), redo: [entry, ...latest.redo].slice(0, 20) } };
+    });
+  }
+
+  function redoDraftScope(scope: ConfigDraftScope) {
+    const id = draftScopeId(scope);
+    const history = draftHistory[id];
+    const entry = history?.redo[0];
+    if (!history || !entry) return;
+    setDrafts(draftState => applyDraftScopeSnapshot(draftState, scope, entry.after));
+    setDraftHistory(current => {
+      const latest = current[id] ?? emptyDraftHistory();
+      return { ...current, [id]: { undo: [...latest.undo, entry].slice(-20), redo: latest.redo.slice(1) } };
+    });
+  }
+
+  function clearDraftScope(scope: ConfigDraftScope) {
+    setDrafts(current => removeDraftScope(current, scope));
+    setDraftHistory(current => removeDraftHistoryScope(current, scope));
+  }
+
+  async function loadRegistry(options: RegistryLoadOptions = {}): Promise<WebRegistry | null> {
+    const { initial = false, clearDrafts = false, announceRefresh = !initial } = options;
     setLoading(true);
     try {
       const next = await api.registry();
@@ -66,8 +124,11 @@ export default function App() {
       setRegistry(next);
       if (initial) setExpanded(Object.fromEntries(next.modules.map((m) => [m.id, true])));
       setSelected((c) => c ?? firstSelection(next));
-      setDrafts({});
-      if (!initial) setToast({ tone: 'ok', text: t('core.toast.registryRefreshed') });
+      if (clearDrafts) {
+        setDrafts({});
+        setDraftHistory({});
+      }
+      if (announceRefresh) setToast({ tone: 'ok', text: t('core.toast.registryRefreshed') });
       return next;
     } catch (err) {
       setToast({ tone: 'bad', text: err instanceof Error ? err.message : t('core.toast.refreshFailed') });
@@ -78,25 +139,31 @@ export default function App() {
   }
 
   async function reloadCurrentSurface() {
-    const next = await loadRegistry(false);
+    const scope = selectedModule && selectedFile && isKind(selectedFile.kind, 'CONFIG') ? configDraftScope(selectedModule, selectedFile, selected?.scriptPath) : null;
+    const next = await loadRegistry({ clearDrafts: false, announceRefresh: false });
     if (!next) return;
+    if (scope) clearDraftScope(scope);
     setSelected(current => current ? { ...current, refreshKey: (current.refreshKey ?? 0) + 1 } : firstSelection(next));
   }
 
   async function saveCurrent() {
     if (!selectedModule || !selectedFile) return;
-    const changes = selectedFile.nodes.filter((n) => n.type !== 'object' && draftKey(selectedModule.id, n.path) in drafts);
+    const scope = configDraftScope(selectedModule, selectedFile, selected?.scriptPath);
+    const changes = selectedFile.nodes.filter((n) => n.type !== 'object' && draftKey(scope, n.path) in drafts);
     if (!changes.length) {
       setToast({ tone: 'ok', text: t('core.toast.noChanges') });
       return;
     }
     setSaving(true);
     try {
+      let revision = selectedFile.revision;
       for (const node of changes) {
-        await api.saveRegistryValue(selectedModule.id, selectedFile.path, node.path, drafts[draftKey(selectedModule.id, node.path)]);
+        const result = await api.saveRegistryValue(selectedModule.id, scope.filePath, node.path, drafts[draftKey(scope, node.path)], revision);
+        revision = result.revision ?? revision;
       }
+      clearDraftScope(scope);
       setToast({ tone: 'ok', text: t('core.toast.savedConfig', { count: changes.length }) });
-      await loadRegistry(true);
+      await loadRegistry({ clearDrafts: false, announceRefresh: false });
     } catch (err) {
       setToast({ tone: 'bad', text: err instanceof Error ? err.message : t('core.toast.saveFailed') });
     } finally {
@@ -104,11 +171,12 @@ export default function App() {
     }
   }
 
-  if (!token) return <Login onLogin={(t) => { sessionStorage.setItem('emaki-web-token', t); setToken(t); }} />;
-
   const selectedModule = selected && registry ? registry.modules.find((m) => m.id === selected.moduleId) ?? null : null;
   const selectedFile = selectedModule && selected ? selectedModule.files.find((f) => f.id === selected.fileId) ?? null : null;
-  const changedCount = selectedModule && selectedFile ? selectedFile.nodes.filter((n) => n.type !== 'object' && draftKey(selectedModule.id, n.path) in drafts).length : 0;
+  const selectedDraftScope = selectedModule && selectedFile && isKind(selectedFile.kind, 'CONFIG') ? configDraftScope(selectedModule, selectedFile, selected?.scriptPath) : null;
+  const selectedScopeHistory = selectedDraftScope ? draftHistory[draftScopeId(selectedDraftScope)] ?? emptyDraftHistory() : emptyDraftHistory();
+  const changedCount = selectedDraftScope && selectedFile ? selectedFile.nodes.filter((n) => n.type !== 'object' && draftKey(selectedDraftScope, n.path) in drafts).length : 0;
+  const dirtyTreeKeys = dirtyTreeKeysFromDrafts(drafts);
   const activeTheme = COLOR_THEMES.find((entry) => entry.id === theme) ?? COLOR_THEMES[0];
   const activeThemeLabel = t(activeTheme.labelKey);
   const nextTheme = () => setTheme((current) => COLOR_THEMES[(COLOR_THEMES.findIndex((entry) => entry.id === current) + 1) % COLOR_THEMES.length].id);
@@ -118,6 +186,26 @@ export default function App() {
   const currentLocale = getLocale();
   const currentLocaleLabel = localeLabel(currentLocale);
   const changeLocale = (next: string) => { setLocale(next); setLocaleVersion((version) => version + 1); };
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!selectedDraftScope || saving || loading || sourceEditingElement(event.target)) return;
+      const mod = event.ctrlKey || event.metaKey;
+      if (!mod) return;
+      const key = event.key.toLowerCase();
+      if (key === 'z' && !event.shiftKey && selectedScopeHistory.undo.length > 0) {
+        event.preventDefault();
+        undoDraftScope(selectedDraftScope);
+      } else if ((key === 'y' || (key === 'z' && event.shiftKey)) && selectedScopeHistory.redo.length > 0) {
+        event.preventDefault();
+        redoDraftScope(selectedDraftScope);
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [selectedDraftScope, selectedScopeHistory.undo.length, selectedScopeHistory.redo.length, saving, loading]);
+
+  if (!token) return <Login onLogin={(t) => { sessionStorage.setItem('emaki-web-token', t); setToken(t); }} />;
 
   return (
     <div className="workbench" data-locale-version={localeVersion}>
@@ -139,7 +227,7 @@ export default function App() {
           </div>
         </div>
         <div className="tree-caption">{t('core.tree.caption')}</div>
-        <WorkspaceTree registry={registry} selected={selected} expanded={expanded} setExpanded={setExpanded} onOpenI18n={setI18nTarget} onSelect={(next) => setSelected((current) => sameSelection(current, next) ? { ...next, refreshKey: (current?.refreshKey ?? 0) + 1 } : next)} />
+        <WorkspaceTree registry={registry} selected={selected} expanded={expanded} dirtyKeys={dirtyTreeKeys} setExpanded={setExpanded} onOpenI18n={setI18nTarget} onSelect={(next) => setSelected((current) => sameSelection(current, next) ? { ...next, refreshKey: (current?.refreshKey ?? 0) + 1 } : next)} />
         <button className="rail-action quiet" onClick={() => { sessionStorage.removeItem('emaki-web-token'); setToken(null); }}>{t('core.auth.logout')}</button>
       </ResizableRail>
       <main className="stage">
@@ -149,22 +237,26 @@ export default function App() {
           subtitle={selectedFile ? `${selectedFile.title}，${selectedFile.path}` : t('core.stage.defaultHint')}
           dirty={changedCount > 0}
           changedCount={changedCount}
-          changes={selectedModule && selectedFile ? configChanges(selectedModule.id, selectedFile.nodes, drafts) : []}
+          changes={selectedDraftScope && selectedFile ? configChanges(selectedDraftScope, selectedFile.nodes, drafts) : []}
           source=""
           saving={saving}
           loading={loading}
+          canUndo={selectedScopeHistory.undo.length > 0}
+          canRedo={selectedScopeHistory.redo.length > 0}
+          onUndo={selectedDraftScope ? () => undoDraftScope(selectedDraftScope) : undefined}
+          onRedo={selectedDraftScope ? () => redoDraftScope(selectedDraftScope) : undefined}
           onReload={() => void reloadCurrentSurface()}
           onSave={() => void saveCurrent()}
         />}
         <section className="editor-shell single">
-          <ConfigSurface registry={registry} module={selectedModule} file={selectedFile} drafts={drafts} setDrafts={setDrafts} api={api} scriptPath={selected?.scriptPath} refreshKey={selected?.refreshKey ?? 0} onReload={() => void reloadCurrentSurface()} />
+          <ConfigSurface registry={registry} module={selectedModule} file={selectedFile} drafts={drafts} draftHistory={draftHistory} setDraftValue={setDraftValue} clearDraftScope={clearDraftScope} undoDraftScope={undoDraftScope} redoDraftScope={redoDraftScope} api={api} scriptPath={selected?.scriptPath} refreshKey={selected?.refreshKey ?? 0} onReload={() => void reloadCurrentSurface()} />
         </section>
       </main>
     </div>
   );
 }
 
-function ConfigSurface({ registry, module, file, drafts, setDrafts, api, scriptPath, refreshKey, onReload }: { registry: WebRegistry | null; module: WebRegistryModule | null; file: WebRegistryFile | null; drafts: DraftMap; setDrafts: React.Dispatch<React.SetStateAction<DraftMap>>; api: ApiClient; scriptPath?: string; refreshKey: number; onReload?: () => void }) {
+function ConfigSurface({ registry, module, file, drafts, draftHistory, setDraftValue, clearDraftScope, undoDraftScope, redoDraftScope, api, scriptPath, refreshKey, onReload }: { registry: WebRegistry | null; module: WebRegistryModule | null; file: WebRegistryFile | null; drafts: DraftMap; draftHistory: DraftHistoryMap; setDraftValue: DraftValueSetter; clearDraftScope: DraftScopeAction; undoDraftScope: DraftScopeAction; redoDraftScope: DraftScopeAction; api: ApiClient; scriptPath?: string; refreshKey: number; onReload?: () => void }) {
   if (registry && registry.modules.length === 0) return <section className="config-surface empty" role="status">{t('core.empty.noRegistry')}</section>;
   if (!module || !file) return <section className="config-surface empty" role="status">{t('core.empty.selectConfig')}</section>;
   const editor = file.editorId ? registry?.editors?.[file.editorId] : undefined;
@@ -178,16 +270,17 @@ function ConfigSurface({ registry, module, file, drafts, setDrafts, api, scriptP
 
   if (isKind(file.kind, 'SCRIPT')) return <section className="config-surface script-surface"><div className="surface-head"><div><h2>{file.title}</h2><p>{file.comment}</p></div><span className="file-kind script">{fileKindLabel(file.kind)}</span></div>{scriptPath ? <ScriptEditor api={api} scriptPath={scriptPath} /> : <div className="script-placeholder" role="status">{t('core.empty.selectScript')}</div>}</section>;
   // CONFIG 类型：如果有子文件路径，按需加载子文件内容
-  if (isKind(file.kind, 'CONFIG') && scriptPath) return <ConfigChildSurface module={module} file={file} childPath={scriptPath} drafts={drafts} setDrafts={setDrafts} api={api} refreshKey={refreshKey} />;
+  if (isKind(file.kind, 'CONFIG') && scriptPath) return <ConfigChildSurface module={module} file={file} childPath={scriptPath} drafts={drafts} draftHistory={draftHistory} setDraftValue={setDraftValue} clearDraftScope={clearDraftScope} undoDraftScope={undoDraftScope} redoDraftScope={redoDraftScope} api={api} refreshKey={refreshKey} />;
   // CONFIG 类型 glob 文件无子文件选中时，显示提示
   if (isKind(file.kind, 'CONFIG') && file.children && file.children.length > 0 && file.nodes.length === 0) return <section className="config-surface"><div className="surface-head"><div><h2>{file.title}</h2><p>{file.comment}</p></div><span className={`file-kind ${String(file.kind).toLowerCase()}`}>{fileKindLabel(file.kind)}</span></div><div className="script-placeholder" role="status">{t('core.empty.selectFile')}</div></section>;
-  return <section className="config-surface"><div className="surface-head"><div><h2>{file.title}</h2><p>{file.comment}</p></div><span className={`file-kind ${String(file.kind).toLowerCase()}`}>{fileKindLabel(file.kind)}</span></div><ConfigNodeTree moduleId={module.id} nodes={file.nodes} drafts={drafts} setDrafts={setDrafts} /></section>;
+  return <section className="config-surface"><div className="surface-head"><div><h2>{file.title}</h2><p>{file.comment}</p></div><span className={`file-kind ${String(file.kind).toLowerCase()}`}>{fileKindLabel(file.kind)}</span></div><ConfigNodeTree scope={configDraftScope(module, file)} nodes={file.nodes} drafts={drafts} setDraftValue={setDraftValue} /></section>;
 }
 
-function ConfigChildSurface({ module, file, childPath, drafts, setDrafts, api, refreshKey }: { module: WebRegistryModule; file: WebRegistryFile; childPath: string; drafts: DraftMap; setDrafts: React.Dispatch<React.SetStateAction<DraftMap>>; api: ApiClient; refreshKey: number }) {
+function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, setDraftValue, clearDraftScope, undoDraftScope, redoDraftScope, api, refreshKey }: { module: WebRegistryModule; file: WebRegistryFile; childPath: string; drafts: DraftMap; draftHistory: DraftHistoryMap; setDraftValue: DraftValueSetter; clearDraftScope: DraftScopeAction; undoDraftScope: DraftScopeAction; redoDraftScope: DraftScopeAction; api: ApiClient; refreshKey: number }) {
   const [nodes, setNodes] = useState<WebConfigNode[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [revision, setRevision] = useState<number | undefined>(undefined);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ tone: 'ok' | 'bad'; text: string } | null>(null);
 
@@ -195,8 +288,10 @@ function ConfigChildSurface({ module, file, childPath, drafts, setDrafts, api, r
     setLoading(true);
     setError('');
     setNodes([]);
+    setRevision(undefined);
     api.registryFileNodes(module.id, childPath).then(result => {
-      setNodes(result);
+      setNodes(result.nodes);
+      setRevision(result.revision);
     }).catch(err => {
       setError(err instanceof Error ? err.message : t('core.config.childLoadFailed'));
     }).finally(() => setLoading(false));
@@ -208,14 +303,19 @@ function ConfigChildSurface({ module, file, childPath, drafts, setDrafts, api, r
     return () => window.clearTimeout(timer);
   }, [toast]);
 
-  const changedNodes = nodes.filter(n => n.type !== 'object' && draftKey(module.id, n.path) in drafts);
+  const scope = configDraftScope(module, file, childPath);
+  const changedNodes = nodes.filter(n => n.type !== 'object' && draftKey(scope, n.path) in drafts);
+  const scopeHistory = draftHistory[draftScopeId(scope)] ?? emptyDraftHistory();
 
   async function reloadChildNodes() {
     setNodes([]);
     setError('');
     setLoading(true);
     try {
-      setNodes(await api.registryFileNodes(module.id, childPath));
+      const refreshed = await api.registryFileNodes(module.id, childPath);
+      setNodes(refreshed.nodes);
+      setRevision(refreshed.revision);
+      clearDraftScope(scope);
     } catch (err) {
       setError(err instanceof Error ? err.message : t('core.config.childLoadFailed'));
     } finally {
@@ -230,21 +330,19 @@ function ConfigChildSurface({ module, file, childPath, drafts, setDrafts, api, r
     }
     setSaving(true);
     try {
+      let nextRevision = revision;
       for (const node of changedNodes) {
-        await api.saveRegistryValue(module.id, childPath, node.path, drafts[draftKey(module.id, node.path)]);
+        const result = await api.saveRegistryValue(module.id, scope.filePath, node.path, drafts[draftKey(scope, node.path)], nextRevision);
+        nextRevision = result.revision ?? nextRevision;
       }
+      setRevision(nextRevision);
       setToast({ tone: 'ok', text: t('core.toast.savedConfig', { count: changedNodes.length }) });
-      // 清除已保存的 drafts
-      setDrafts(prev => {
-        const copy = { ...prev };
-        for (const node of changedNodes) {
-          delete copy[draftKey(module.id, node.path)];
-        }
-        return copy;
-      });
+      // 清除当前子文件 scope 下已保存的 drafts
+      clearDraftScope(scope);
       // 重新加载节点
       const refreshed = await api.registryFileNodes(module.id, childPath);
-      setNodes(refreshed);
+      setNodes(refreshed.nodes);
+      setRevision(refreshed.revision);
     } catch (err) {
       setToast({ tone: 'bad', text: err instanceof Error ? err.message : t('core.toast.saveFailed') });
     } finally {
@@ -262,29 +360,33 @@ function ConfigChildSurface({ module, file, childPath, drafts, setDrafts, api, r
       subtitle={`${file.title} · ${childPath}`}
       dirty={changedNodes.length > 0}
       changedCount={changedNodes.length}
-      changes={configChanges(module.id, nodes, drafts)}
+      changes={configChanges(scope, nodes, drafts)}
       source=""
       saving={saving}
       loading={loading}
+      canUndo={scopeHistory.undo.length > 0}
+      canRedo={scopeHistory.redo.length > 0}
+      onUndo={() => undoDraftScope(scope)}
+      onRedo={() => redoDraftScope(scope)}
       onReload={() => void reloadChildNodes()}
       onSave={() => void saveChild()}
     />
     {loading && <div className="script-loading" role="status">{t('core.state.loading')}</div>}
     {error && <InlineError><span>{error}</span><Button size="sm" onClick={() => void reloadChildNodes()}>{t('core.action.retry')}</Button></InlineError>}
-    {!loading && !error && <ConfigNodeTree moduleId={module.id} nodes={nodes} drafts={drafts} setDrafts={setDrafts} />}
+    {!loading && !error && <ConfigNodeTree scope={scope} nodes={nodes} drafts={drafts} setDraftValue={setDraftValue} />}
   </section>;
 }
 
-function configChanges(moduleId: string, nodes: WebConfigNode[], drafts: DraftMap): EditorChange[] {
+function configChanges(scope: ConfigDraftScope, nodes: WebConfigNode[], drafts: DraftMap): EditorChange[] {
   return nodes
-    .filter(node => node.type !== 'object' && draftKey(moduleId, node.path) in drafts)
-    .map(node => ({ path: node.path, label: node.label, before: node.value, after: drafts[draftKey(moduleId, node.path)] }));
+    .filter(node => node.type !== 'object' && draftKey(scope, node.path) in drafts)
+    .map(node => ({ path: node.path, label: node.label, before: node.value, after: drafts[draftKey(scope, node.path)] }));
 }
 
-function configSourcePreview(nodes: WebConfigNode[], moduleId: string, drafts: DraftMap): string {
+function configSourcePreview(nodes: WebConfigNode[], scope: ConfigDraftScope, drafts: DraftMap): string {
   return nodes
     .filter(node => node.type !== 'object')
-    .map(node => `${node.path}: ${formatPreviewValue(draftKey(moduleId, node.path) in drafts ? drafts[draftKey(moduleId, node.path)] : node.value)}`)
+    .map(node => `${node.path}: ${formatPreviewValue(draftKey(scope, node.path) in drafts ? drafts[draftKey(scope, node.path)] : node.value)}`)
     .join('\n');
 }
 
@@ -293,7 +395,7 @@ function formatPreviewValue(value: unknown): string {
   try { return JSON.stringify(value); } catch { return String(value); }
 }
 
-function ConfigNodeTree({ moduleId, nodes, drafts, setDrafts }: { moduleId: string; nodes: WebConfigNode[]; drafts: DraftMap; setDrafts: React.Dispatch<React.SetStateAction<DraftMap>> }) {
+function ConfigNodeTree({ scope, nodes, drafts, setDraftValue }: { scope: ConfigDraftScope; nodes: WebConfigNode[]; drafts: DraftMap; setDraftValue: DraftValueSetter }) {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const toggle = (path: string) => setCollapsed(c => ({ ...c, [path]: !c[path] }));
 
@@ -304,11 +406,11 @@ function ConfigNodeTree({ moduleId, nodes, drafts, setDrafts }: { moduleId: stri
 
   return <div className="node-grid">{groups.map(group => {
     if (group.type === 'leaf') {
-      return <ConfigNodeView key={group.node.path} moduleId={moduleId} node={group.node} drafts={drafts} setDrafts={setDrafts} />;
+      return <ConfigNodeView key={group.node.path} scope={scope} node={group.node} drafts={drafts} setDraftValue={setDraftValue} />;
     }
     const isCollapsed = collapsed[group.node.path] === true;
     const childCount = group.children.length;
-    const changedInGroup = group.children.filter(n => n.type !== 'object' && draftKey(moduleId, n.path) in drafts).length;
+    const changedInGroup = group.children.filter(n => n.type !== 'object' && draftKey(scope, n.path) in drafts).length;
     return <div key={group.node.path} className="node-section">
       <button className={`node-section-header ${isCollapsed ? 'collapsed' : ''}`} onClick={() => toggle(group.node.path)}>
         <span className="section-arrow">{isCollapsed ? '›' : '⌄'}</span>
@@ -320,7 +422,7 @@ function ConfigNodeTree({ moduleId, nodes, drafts, setDrafts }: { moduleId: stri
       {!isCollapsed && <div className="node-section-body">{group.children.map(child =>
         child.type === 'object'
           ? <div key={child.path} className="node-group-inner"><strong>{child.label}</strong><code>{child.path}</code><span>{child.comment}</span></div>
-          : <ConfigNodeView key={child.path} moduleId={moduleId} node={child} drafts={drafts} setDrafts={setDrafts} />
+          : <ConfigNodeView key={child.path} scope={scope} node={child} drafts={drafts} setDraftValue={setDraftValue} />
       )}</div>}
     </div>;
   })}</div>;
@@ -355,32 +457,25 @@ function buildNodeGroups(nodes: WebConfigNode[]): NodeGroup[] {
   return groups;
 }
 
-function ConfigNodeView({ moduleId, node, drafts, setDrafts }: { moduleId: string; node: WebConfigNode; drafts: DraftMap; setDrafts: React.Dispatch<React.SetStateAction<DraftMap>> }) {
-  const key = draftKey(moduleId, node.path);
+function ConfigNodeView({ scope, node, drafts, setDraftValue }: { scope: ConfigDraftScope; node: WebConfigNode; drafts: DraftMap; setDraftValue: DraftValueSetter }) {
+  const key = draftKey(scope, node.path);
   const value = key in drafts ? drafts[key] : node.value;
-  const setValue = (next: unknown) => setDrafts((c) => {
-    if (valuesEqual(next, node.value)) {
-      const copy = { ...c };
-      delete copy[key];
-      return copy;
-    }
-    return { ...c, [key]: next };
-  });
+  const setValue = (next: unknown) => setDraftValue(scope, node, next);
   const isWide = node.type === 'dynamic_map' || node.type === 'list';
   return <div className={`node ${key in drafts ? 'changed' : ''} ${isWide ? 'node-wide' : ''}`}><div className="node-meta"><strong>{node.label}</strong><code>{node.path}</code><p>{node.comment}</p></div><div className="node-control">{renderControl(node, value, setValue)}</div></div>;
 }
 
 function renderControl(node: WebConfigNode, value: unknown, setValue: (v: unknown) => void) {
-  if (node.type === 'boolean') return <button type="button" className={`switch ${value ? 'on' : ''}`} onClick={() => setValue(!value)}><span />{value ? t('core.config.booleanOn') : t('core.config.booleanOff')}</button>;
-  if (node.type === 'enum' && node.options) return <select value={str(value)} onChange={(e) => setValue(e.target.value)}>{node.options.map(opt => <option key={opt} value={opt}>{opt}</option>)}</select>;
-  if (node.type === 'number') return <input type="number" value={value == null ? '' : String(value)} onChange={(e) => setValue(e.target.value === '' ? undefined : Number(e.target.value))} />;
+  if (node.type === 'boolean') return <button type="button" className={`switch ${value ? 'on' : ''}`} aria-pressed={value === true} aria-label={`${node.label}: ${value ? t('core.config.booleanOn') : t('core.config.booleanOff')}`} onClick={() => setValue(!value)}><span />{value ? t('core.config.booleanOn') : t('core.config.booleanOff')}</button>;
+  if (node.type === 'enum' && node.options) return <select value={str(value)} aria-label={node.label} onChange={(e) => setValue(e.target.value)}>{node.options.map(opt => <option key={opt} value={opt}>{opt}</option>)}</select>;
+  if (node.type === 'number') return <input type="number" aria-label={node.label} value={value == null ? '' : String(value)} onChange={(e) => setValue(e.target.value === '' ? undefined : Number(e.target.value))} />;
   if (node.type === 'dynamic_map') return <DynamicMapEditor value={value} setValue={setValue} />;
   if (node.type === 'list') {
     const items = Array.isArray(value) ? value : [];
     const update = (i: number, v: string) => setValue(items.map((x, j) => j === i ? parseListValue(x, v) : x));
     return <div className="list-editor">{items.map((item, i) => <div className="list-row" key={i}>{isObjectLike(item) ? <textarea value={str(item)} onChange={(e) => update(i, e.target.value)} /> : <input value={str(item)} onChange={(e) => update(i, e.target.value)} />}<button type="button" onClick={() => setValue(items.filter((_, j) => j !== i))}>{t('core.config.delete')}</button></div>)}<button type="button" className="add-row" onClick={() => setValue([...items, ''])}>{t('core.config.addItem')}</button></div>;
   }
-  return <input value={str(value)} onChange={(e) => setValue(e.target.value)} />;
+  return <input aria-label={node.label} value={str(value)} onChange={(e) => setValue(e.target.value)} />;
 }
 
 function DynamicMapEditor({ value, setValue }: { value: unknown; setValue: (v: unknown) => void }) {
@@ -694,7 +789,84 @@ function ThemeIcon({ theme }: { theme: ColorTheme }) {
   }
   return <svg className="theme-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M12.92 9.66a.64.64 0 0 1 .78.8A6.28 6.28 0 1 1 5.54 2.3a.64.64 0 0 1 .8.78 5.32 5.32 0 0 0 6.58 6.58Z" /></svg>;
 }
-function draftKey(moduleId: string, path: string) { return `${moduleId}::${path}`; }
+function configDraftScope(module: WebRegistryModule, file: WebRegistryFile, childPath?: string): ConfigDraftScope {
+  return { moduleId: module.id, fileId: file.id, filePath: normalizeDraftPath(childPath || file.path) };
+}
+
+function draftScopeId(scope: ConfigDraftScope) {
+  return JSON.stringify([scope.moduleId, scope.fileId, normalizeDraftPath(scope.filePath)]);
+}
+
+function draftKey(scope: ConfigDraftScope, path: string) {
+  return JSON.stringify([scope.moduleId, scope.fileId, normalizeDraftPath(scope.filePath), path]);
+}
+
+function draftScopePrefix(scope: ConfigDraftScope) {
+  return `${draftScopeId(scope).slice(0, -1)},`;
+}
+
+function emptyDraftHistory(): DraftScopeHistory { return { undo: [], redo: [] }; }
+
+function draftScopeSnapshot(drafts: DraftMap, scope: ConfigDraftScope): DraftMap {
+  const prefix = draftScopePrefix(scope);
+  return Object.fromEntries(Object.entries(drafts).filter(([key]) => key.startsWith(prefix)));
+}
+
+function applyDraftScopeSnapshot(drafts: DraftMap, scope: ConfigDraftScope, snapshot: DraftMap): DraftMap {
+  return { ...removeDraftScope(drafts, scope), ...snapshot };
+}
+
+function removeDraftScope(drafts: DraftMap, scope: ConfigDraftScope): DraftMap {
+  const prefix = draftScopePrefix(scope);
+  let changed = false;
+  const next = { ...drafts };
+  for (const key of Object.keys(next)) {
+    if (!key.startsWith(prefix)) continue;
+    delete next[key];
+    changed = true;
+  }
+  return changed ? next : drafts;
+}
+
+function removeDraftHistoryScope(history: DraftHistoryMap, scope: ConfigDraftScope): DraftHistoryMap {
+  const id = draftScopeId(scope);
+  if (!(id in history)) return history;
+  const next = { ...history };
+  delete next[id];
+  return next;
+}
+
+function dirtyTreeKeysFromDrafts(drafts: DraftMap): Set<string> {
+  const keys = new Set<string>();
+  for (const key of Object.keys(drafts)) {
+    const parts = parseDraftKey(key);
+    if (!parts) continue;
+    keys.add(treeDirtyKey(parts.moduleId, parts.fileId, parts.filePath));
+  }
+  return keys;
+}
+
+function parseDraftKey(key: string): ConfigDraftScope | null {
+  try {
+    const value = JSON.parse(key);
+    if (!Array.isArray(value) || value.length < 4) return null;
+    return { moduleId: String(value[0]), fileId: String(value[1]), filePath: normalizeDraftPath(String(value[2])) };
+  } catch {
+    return null;
+  }
+}
+
+function treeDirtyKey(moduleId: string, fileId: string, filePath: string) {
+  return JSON.stringify([moduleId, fileId, normalizeDraftPath(filePath)]);
+}
+
+function sourceEditingElement(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  const tag = target.tagName.toLowerCase();
+  return tag === 'input' || tag === 'textarea' || tag === 'select' || target.isContentEditable;
+}
+
+function normalizeDraftPath(path: string) { return path.replace(/\\/g, '/'); }
 function isObjectLike(v: unknown) { return typeof v === 'object' && v !== null; }
 function parseListValue(original: unknown, text: string) { if (isObjectLike(original)) { try { return JSON.parse(text); } catch { return text; } } return text; }
 function str(v: unknown): string { if (v == null) return ''; if (typeof v === 'object') try { return JSON.stringify(v, null, 2); } catch { return ''; } return String(v); }

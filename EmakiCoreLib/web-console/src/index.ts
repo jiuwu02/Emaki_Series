@@ -4,5 +4,5 @@ export { registerSurface, getSurface, getAllSurfaces, installWebConsoleHost, isK
 export * from './components';
 export * from './lib';
 export * from './i18n';
-export type { ApiClient, ActionTypesResult, EconomyProvidersResult } from './api';
+export type { ApiClient, ActionTypesResult, EconomyProvidersResult, RegistryFileNodesResult, RegistrySaveResult } from './api';
 export type { ItemPreviewResult, WebEditorDescriptor, WebEditorField, WebRegistry, WebRegistryFile, WebRegistryModule } from './types';
