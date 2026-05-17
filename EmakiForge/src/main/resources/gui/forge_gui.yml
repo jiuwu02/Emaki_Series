@@ -14,25 +14,62 @@ rows: 5
 
 slots:
   top_frame:
-    slots: [0, 1, 2, 3, 4, 5, 6, 7, 8]
+    slots:
+      - 0
+      - 1
+      - 2
+      - 3
+      - 4
+      - 5
+      - 6
+      - 7
+      - 8
     item: "BLACK_STAINED_GLASS_PANE"
     display_name: "<gray>"
-    hidden_components: ["tooltip"]
+    hidden_components:
+      - "tooltip"
 
   side_frame:
-    slots: [36, 37, 38, 39, 40, 41, 42, 43, 44]
+    slots:
+      - 36
+      - 37
+      - 38
+      - 39
+      - 40
+      - 41
+      - 42
+      - 43
+      - 44
     item: "BLACK_STAINED_GLASS_PANE"
     display_name: "<gray>"
-    hidden_components: ["tooltip"]
+    hidden_components:
+      - "tooltip"
 
   core_frame:
-    slots: [9, 12, 15, 17, 18, 21, 24, 25, 26, 27, 28, 30, 33, 35]
+    slots:
+      - 9
+      - 12
+      - 15
+      - 17
+      - 18
+      - 21
+      - 24
+      - 25
+      - 26
+      - 27
+      - 28
+      - 30
+      - 33
+      - 35
     item: "gray_stained_glass_pane"
     display_name: "<dark_gray>"
-    hidden_components: ["tooltip"]
+    hidden_components:
+      - "tooltip"
 
   blueprint_inputs:
-    slots: [10, 19]
+    slots:
+      - 10
+      - 19
     type: "blueprint_inputs"
     item: "guster_banner_pattern"
     display_name: "<light_purple>放入图纸</light_purple>"
@@ -40,7 +77,8 @@ slots:
       - "<gray>配方会按图纸物品源自动匹配"
 
   capacity_display:
-    slots: [16]
+    slots:
+      - 16
     type: "capacity_display"
     item: "BLAST_FURNACE"
     display_name: "<gray>锻造容量</gray>"
@@ -50,7 +88,10 @@ slots:
       - "<gray>状态: {capacity_state}</gray>"
 
   required_materials:
-    slots: [20, 11, 29]
+    slots:
+      - 20
+      - 11
+      - 29
     type: "required_materials"
     item: "BARRIER"
     display_name: "<gold>放入必需材料</gold>"
@@ -58,7 +99,13 @@ slots:
       - "<gray>这里会接收配方固定材料"
 
   optional_materials:
-    slots: [13, 14, 22, 23, 31, 32]
+    slots:
+      - 13
+      - 14
+      - 22
+      - 23
+      - 31
+      - 32
     type: "optional_materials"
     item: "BARRIER"
     display_name: "<green>放入可选材料</green>"
@@ -66,7 +113,8 @@ slots:
       - "<gray>可选材料会按配方生效并消耗容量"
 
   confirm:
-    slots: [34]
+    slots:
+      - 34
     type: "confirm"
     item: "ANVIL"
     display_name: "<green>确认锻造</green>"

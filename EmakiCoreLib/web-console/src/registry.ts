@@ -13,7 +13,7 @@ import type { ApiClient } from './api';
 import * as components from './components';
 import * as lib from './lib';
 import * as i18n from './i18n';
-import type { WebEditorDescriptor, WebRegistryFile, WebRegistryModule } from './types';
+import type { WebEditorDescriptor, WebEditorField, WebRegistry, WebRegistryFile, WebRegistryModule } from './types';
 
 /** Props passed to every registered surface component. */
 export type SurfaceProps = {
@@ -49,6 +49,10 @@ export type EmakiWebConsoleHost = typeof lib & typeof components & typeof i18n &
   isKind: typeof isKind;
   registerPluginGuiSurface: typeof registerPluginGuiSurface;
   registerPluginSurfaces: typeof registerPluginSurfaces;
+  registerEditorDescriptor: typeof registerEditorDescriptor;
+  registerEditorField: typeof registerEditorField;
+  registerGuiEditorDescriptor: typeof registerGuiEditorDescriptor;
+  registerGuiEditorField: typeof registerGuiEditorField;
   components: typeof components;
   lib: typeof lib;
   i18n: typeof i18n;
@@ -58,6 +62,7 @@ export type EmakiWebConsoleHost = typeof lib & typeof components & typeof i18n &
 };
 
 const _registry: SurfaceRegistration[] = [];
+const _editorOverrides: Record<string, WebEditorDescriptor> = {};
 
 declare global {
   interface Window {
@@ -119,7 +124,7 @@ export function isKind(fileKind: string | undefined, target: string): boolean {
 
 /** Install the browser global used by plugin extension scripts. */
 export function installWebConsoleHost(): EmakiWebConsoleHost {
-  const host: EmakiWebConsoleHost = { ...lib, ...components, ...i18n, React, registerSurface, getSurface, getAllSurfaces, isKind, registerPluginGuiSurface, registerPluginSurfaces, components, lib, i18n, t: i18n.t, registerLocale: i18n.registerLocale, registerModuleLocale: i18n.registerModuleLocale };
+  const host: EmakiWebConsoleHost = { ...lib, ...components, ...i18n, React, registerSurface, getSurface, getAllSurfaces, isKind, registerPluginGuiSurface, registerPluginSurfaces, registerEditorDescriptor, registerEditorField, registerGuiEditorDescriptor, registerGuiEditorField, components, lib, i18n, t: i18n.t, registerLocale: i18n.registerLocale, registerModuleLocale: i18n.registerModuleLocale };
   (window as any).React = React;
   window.EmakiWebConsole = host;
   return host;
@@ -132,6 +137,54 @@ export function installWebConsoleHost(): EmakiWebConsoleHost {
 export function registerPluginGuiSurface(moduleId: string, editorId: string, label: string): void {
   const { GuiEditorSurface } = components;
   registerSurface({ kind: 'GUI', moduleId, editorId, component: GuiEditorSurface as any, label, priority: 100 });
+  registerSurface({ kind: 'GUI', moduleId, component: GuiEditorSurface as any, label, priority: 90 });
+}
+
+export function registerEditorDescriptor(moduleId: string, editorId: string, descriptor: WebEditorDescriptor): void {
+  if (!moduleId || !editorId || !descriptor) return;
+  const existing = _editorOverrides[editorId];
+  _editorOverrides[editorId] = mergeEditorDescriptor(existing, { ...descriptor, id: descriptor.id ?? editorId, moduleId: descriptor.moduleId ?? moduleId });
+}
+
+export function registerEditorField(moduleId: string, editorId: string, field: WebEditorField): void {
+  if (!moduleId || !editorId || !field?.path || !field.label) return;
+  const existing = _editorOverrides[editorId] ?? { id: editorId, moduleId, fields: {} };
+  registerEditorDescriptor(moduleId, editorId, {
+    ...existing,
+    fields: {
+      ...(existing.fields ?? {}),
+      [field.path]: field
+    }
+  });
+}
+
+export function registerGuiEditorDescriptor(moduleId: string, editorId: string, descriptor: WebEditorDescriptor): void {
+  registerEditorDescriptor(moduleId, editorId, descriptor);
+}
+
+export function registerGuiEditorField(moduleId: string, editorId: string, path: string, label: string, comment = '', type = 'text'): void {
+  registerEditorField(moduleId, editorId, { path, label, comment, type });
+}
+
+export function applyEditorDescriptorOverrides(registry: WebRegistry): WebRegistry {
+  const overrideEntries = Object.entries(_editorOverrides);
+  if (!overrideEntries.length) return registry;
+  const editors = { ...(registry.editors ?? {}) };
+  for (const [editorId, override] of overrideEntries) {
+    editors[editorId] = mergeEditorDescriptor(editors[editorId], override);
+  }
+  return { ...registry, editors };
+}
+
+function mergeEditorDescriptor(base: WebEditorDescriptor | undefined, override: WebEditorDescriptor): WebEditorDescriptor {
+  return {
+    ...(base ?? {}),
+    ...override,
+    fields: {
+      ...((base?.fields ?? {}) as Record<string, WebEditorField>),
+      ...((override.fields ?? {}) as Record<string, WebEditorField>)
+    }
+  };
 }
 
 /**

@@ -11,31 +11,67 @@ title: "<dark_gray>宝石工坊 - 装备宝石界面</dark_gray>"
 rows: 5
 slots:
   top_frame:
-    slots: [0, 1, 2, 3, 4, 5, 6, 7, 8]
+    slots:
+      - 0
+      - 1
+      - 2
+      - 3
+      - 4
+      - 5
+      - 6
+      - 7
+      - 8
     item: "gray_stained_glass_pane"
     display_name: "<gray>"
-    hidden_components: ["tooltip"]
+    hidden_components:
+      - "tooltip"
 
   bottom_frame:
-    slots: [36, 37, 38, 41, 42, 43, 44]
+    slots:
+      - 36
+      - 37
+      - 38
+      - 41
+      - 42
+      - 43
+      - 44
     item: "gray_stained_glass_pane"
     display_name: "<gray>"
-    hidden_components: ["tooltip"]
+    hidden_components:
+      - "tooltip"
 
   side_frame:
-    slots: [9, 17, 18, 26, 27, 35]
+    slots:
+      - 9
+      - 17
+      - 18
+      - 26
+      - 27
+      - 35
     item: "BLACK_STAINED_GLASS_PANE"
     display_name: "<dark_gray>"
-    hidden_components: ["tooltip"]
+    hidden_components:
+      - "tooltip"
 
   filler_frame:
-    slots: [11, 20, 24, 28, 29, 30, 31, 32, 33]
+    slots:
+      - 11
+      - 20
+      - 24
+      - 28
+      - 29
+      - 30
+      - 31
+      - 32
+      - 33
     item: "BLACK_STAINED_GLASS_PANE"
     display_name: "<dark_gray>"
-    hidden_components: ["tooltip"]
+    hidden_components:
+      - "tooltip"
 
   target_item:
-    slots: [10]
+    slots:
+      - 10
     type: "target_item"
     item: "LIGHT_BLUE_STAINED_GLASS_PANE"
     display_name: "<aqua>放入装备</aqua>"
@@ -44,7 +80,8 @@ slots:
       - "<gray>支持从光标放入，也可点击取回</gray>"
 
   socket_info:
-    slots: [19]
+    slots:
+      - 19
     type: "socket_info"
     item: "book"
     display_name: "<gold>操作说明</gold>"
@@ -54,7 +91,8 @@ slots:
       - "<gray>未开孔槽位请使用独立开孔 GUI 处理</gray>"
 
   socket_summary:
-    slots: [25]
+    slots:
+      - 25
     type: "socket_summary"
     item: "COMPASS"
     display_name: "<gold>宝石槽统计</gold>"
@@ -63,7 +101,14 @@ slots:
       - "<gray>放入装备后可查看总槽位与已镶嵌数量</gray>"
 
   socket_slots:
-    slots: [12, 13, 14, 15, 21, 22, 23]
+    slots:
+      - 12
+      - 13
+      - 14
+      - 15
+      - 21
+      - 22
+      - 23
     type: "socket_slot"
     item: "WHITE_STAINED_GLASS_PANE"
     display_name: "<white>宝石插槽</white>"
@@ -71,7 +116,8 @@ slots:
       - "<gray>放入装备后将按实际宝石孔数量展示</gray>"
 
   preview_display:
-    slots: [16]
+    slots:
+      - 16
     type: "preview_display"
     item: "writable_book"
     display_name: "<gold>操作预览</gold>"
@@ -80,7 +126,8 @@ slots:
       - "<gray>按当前模式点击目标插槽后可查看详情</gray>"
 
   confirm:
-    slots: [34]
+    slots:
+      - 34
     type: "confirm"
     item: "lime_stained_glass_pane"
     display_name: "<green>确认操作</green>"
@@ -88,7 +135,8 @@ slots:
       - "<dark_gray>请先选择一个待执行操作</dark_gray>"
 
   mode_inlay:
-    slots: [39]
+    slots:
+      - 39
     type: "mode_inlay"
     item: "GREEN_STAINED_GLASS_PANE"
     display_name: "<green>镶嵌模式</green>"
@@ -96,7 +144,8 @@ slots:
       - "<gray>拖着宝石点击已开孔的空槽进入镶嵌预览</gray>"
 
   mode_extract:
-    slots: [40]
+    slots:
+      - 40
     type: "mode_extract"
     item: "YELLOW_STAINED_GLASS_PANE"
     display_name: "<yellow>取出模式</yellow>"

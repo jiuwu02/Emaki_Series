@@ -4,7 +4,7 @@ import { ApiClient } from './api';
 import { GuiEditorSurface } from './GuiEditorSurface';
 import { ItemEditorSurface } from './ItemEditorSurface';
 import { loadWebExtensions } from './extensions';
-import { getSurface, isKind, registerSurface } from './registry';
+import { applyEditorDescriptorOverrides, getSurface, isKind, registerSurface } from './registry';
 import { getLocale, getRegisteredLocales, setLocale, t } from './i18n';
 import { ActionGroup, Button, EditorChrome, InlineError, ToastNotice, type EditorChange } from './components';
 import { I18nBundleModal, type I18nTarget } from './I18nBundleModal';
@@ -121,15 +121,16 @@ export default function App() {
     try {
       const next = await api.registry();
       await loadWebExtensions(next.extensions);
-      setRegistry(next);
-      if (initial) setExpanded(Object.fromEntries(next.modules.map((m) => [m.id, true])));
-      setSelected((c) => c ?? firstSelection(next));
+      const merged = applyEditorDescriptorOverrides(next);
+      setRegistry(merged);
+      if (initial) setExpanded(Object.fromEntries(merged.modules.map((m) => [m.id, true])));
+      setSelected((c) => c ?? firstSelection(merged));
       if (clearDrafts) {
         setDrafts({});
         setDraftHistory({});
       }
       if (announceRefresh) setToast({ tone: 'ok', text: t('core.toast.registryRefreshed') });
-      return next;
+      return merged;
     } catch (err) {
       setToast({ tone: 'bad', text: err instanceof Error ? err.message : t('core.toast.refreshFailed') });
       return null;

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import type { ApiClient, ActionTypesResult } from './api';
-import { ActionsEditor, Button, CollapsibleSection, EditorChrome, InlineError, MiniText, PropRow as BasePropRow, SectionHead, StringListEditor, parseActionList, serializeActionList } from './components';
+import { ActionsEditor, Button, CollapsibleSection, EditorChrome, InlineError, MiniText, PropRow as BasePropRow, SectionHead, StringListEditor, ToastNotice, parseActionList, serializeActionList } from './components';
 import { asList, asRecord, asStringList, displaySource, firstItemSource, materialFromItemSource, setDeepValue, parseYaml, type AnyMap } from './itemEditor';
 import { t } from './i18n';
 import { changedPathSet, diffRecords, getDeepValue, isChangedFieldPath, materialShortName, materialUrls, optionLabel, subscribeTextureBases, textValue, valuesEqual } from './lib';
@@ -36,6 +36,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
   const [error, setError] = useState<string | null>(null);
   const [sourceText, setSourceText] = useState('');
   const [sourceError, setSourceError] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ tone: 'ok' | 'bad'; text: string } | null>(null);
 
   const [actionTypesResult, setActionTypesResult] = useState<ActionTypesResult | null>(null);
   const [economyProviders, setEconomyProviders] = useState<string[]>(DEFAULT_ECONOMY_PROVIDERS);
@@ -45,6 +46,12 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
   const baseLore = useMemo(() => editor?.baseLore ?? [DEFAULT_BASE_LORE], [editor?.baseLore]);
   const sections = useMemo(() => editor?.sections?.length ? editor.sections : defaultSections(), [editor]);
   const editorFields = useMemo(() => editorFieldMap(editor), [editor]);
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = window.setTimeout(() => setToast(null), 2600);
+    return () => window.clearTimeout(timer);
+  }, [toast]);
 
   useEffect(() => {
     let cancelled = false;
@@ -120,6 +127,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
       setOriginalContent(content);
       setOriginalData(data);
       setSourceText(content);
+      setToast({ tone: 'ok', text: t('core.toast.savedItem') });
     } catch (err: any) {
       setError(err?.message ?? t('core.toast.saveFailed'));
     } finally {
@@ -139,6 +147,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
 
   return (
     <div className="ie-surface" data-dirty={semanticDirty || undefined} data-original-size={originalContent.length || undefined}>
+      {toast && <ToastNotice tone={toast.tone} style={{ position: 'absolute', top: 12, right: 12, zIndex: 50 }}>{toast.text}</ToastNotice>}
       <EditorChrome
         className="ie-header"
         title={editor?.title ?? file.title ?? t('core.item.editorTitle')}

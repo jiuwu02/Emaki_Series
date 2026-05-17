@@ -2,54 +2,107 @@
  * YAML serialization for GUI templates and item data.
  */
 
+type ParsedLine = { line: number; indent: number; trimmed: string };
+
 export function serializeYaml(data: Record<string, unknown>): string {
   return dumpYaml(data).trimEnd() + '\n';
 }
 
 export function parseYaml(content: string): Record<string, unknown> {
-  const root: Record<string, unknown> = {};
-  const stack: Array<{ indent: number; value: Record<string, unknown> }> = [{ indent: -1, value: root }];
-  const lines = content.replace(/\r\n?/g, '\n').split('\n');
-  for (let index = 0; index < lines.length; index++) {
-    const raw = lines[index];
-    if (!raw.trim() || raw.trimStart().startsWith('#')) continue;
-    const indent = raw.match(/^\s*/)?.[0].length ?? 0;
-    const trimmed = raw.trim();
-    const match = trimmed.match(/^([^:#][^:]*):(?:\s*(.*))?$/);
-    if (!match) throw new Error(`YAML 第 ${index + 1} 行无法解析：${trimmed}`);
+  const lines = content.replace(/\r\n?/g, '\n').split('\n')
+    .map((raw, index) => ({ line: index + 1, indent: raw.match(/^\s*/)?.[0].length ?? 0, trimmed: raw.trim() }))
+    .filter((line) => line.trimmed && !line.trimmed.startsWith('#'));
+  if (!lines.length) return {};
+  const [value] = parseBlock(lines, 0, lines[0].indent);
+  if (value && typeof value === 'object' && !Array.isArray(value)) return value as Record<string, unknown>;
+  throw new Error('YAML 根节点必须是对象');
+}
+
+function parseBlock(lines: ParsedLine[], start: number, indent: number): [unknown, number] {
+  if (lines[start]?.trimmed.startsWith('- ')) return parseList(lines, start, indent);
+  return parseMap(lines, start, indent);
+}
+
+function parseMap(lines: ParsedLine[], start: number, indent: number): [Record<string, unknown>, number] {
+  const result: Record<string, unknown> = {};
+  let index = start;
+  while (index < lines.length) {
+    const line = lines[index];
+    if (line.indent < indent) break;
+    if (line.indent > indent) throw new Error(`YAML 第 ${line.line} 行缩进无法解析：${line.trimmed}`);
+    if (line.trimmed.startsWith('- ')) break;
+    const match = line.trimmed.match(/^([^:#][^:]*):(\s*(.*))?$/);
+    if (!match) throw new Error(`YAML 第 ${line.line} 行无法解析：${line.trimmed}`);
     const key = match[1].trim();
-    const rest = match[2] ?? '';
-    while (stack.length > 1 && indent <= stack[stack.length - 1].indent) stack.pop();
-    const parent = stack[stack.length - 1].value;
+    const rest = match[3] ?? '';
     if (rest === '') {
-      const child: Record<string, unknown> = {};
-      parent[key] = child;
-      stack.push({ indent, value: child });
+      const next = lines[index + 1];
+      if (!next || next.indent <= line.indent) {
+        result[key] = {};
+        index += 1;
+      } else {
+        const [child, nextIndex] = parseBlock(lines, index + 1, next.indent);
+        result[key] = child;
+        index = nextIndex;
+      }
     } else {
-      parent[key] = parseScalar(rest.trim());
+      result[key] = parseScalar(rest.trim());
+      index += 1;
     }
   }
-  return root;
+  return [result, index];
+}
+
+function parseList(lines: ParsedLine[], start: number, indent: number): [unknown[], number] {
+  const result: unknown[] = [];
+  let index = start;
+  while (index < lines.length) {
+    const line = lines[index];
+    if (line.indent < indent) break;
+    if (line.indent > indent) throw new Error(`YAML 第 ${line.line} 行缩进无法解析：${line.trimmed}`);
+    if (!line.trimmed.startsWith('- ')) break;
+    const rest = line.trimmed.slice(2).trim();
+    if (rest === '') {
+      const next = lines[index + 1];
+      if (!next || next.indent <= line.indent) {
+        result.push(null);
+        index += 1;
+      } else {
+        const [child, nextIndex] = parseBlock(lines, index + 1, next.indent);
+        result.push(child);
+        index = nextIndex;
+      }
+    } else if (rest.includes(':') && /^([^:#][^:]*):(\s*(.*))?$/.test(rest)) {
+      const [inlineMap] = parseMap([{ line: line.line, indent, trimmed: rest }], 0, indent);
+      result.push(inlineMap);
+      index += 1;
+    } else {
+      result.push(parseScalar(rest));
+      index += 1;
+    }
+  }
+  return [result, index];
 }
 
 function dumpYaml(value: unknown, indent = 0): string {
   const space = ' '.repeat(indent);
   if (Array.isArray(value)) {
     if (value.length === 0) return '[]';
-    if (value.every((entry) => typeof entry !== 'object' || entry == null)) return `[${value.map(formatScalar).join(', ')}]`;
-    return value.map((entry) => `${space}- ${dumpYaml(entry, indent + 2).trimStart()}`).join('\n');
+    return value.map((entry) => {
+      if (entry && typeof entry === 'object') return `${space}-\n${dumpYaml(entry, indent + 2)}`;
+      return `${space}- ${formatScalar(entry)}`;
+    }).join('\n');
   }
   if (value && typeof value === 'object') {
     const entries = Object.entries(value as Record<string, unknown>).filter(([, entry]) => entry !== undefined && entry !== null);
     if (entries.length === 0) return '{}';
     return entries.map(([key, entry]) => {
-      if (entry && typeof entry === 'object' && !Array.isArray(entry)) {
-        const childEntries = Object.entries(entry as Record<string, unknown>).filter(([, child]) => child !== undefined && child !== null);
-        if (childEntries.length === 0) return `${space}${key}: {}`;
+      if (entry && typeof entry === 'object') {
+        const childEntries = Array.isArray(entry) ? entry : Object.entries(entry as Record<string, unknown>).filter(([, child]) => child !== undefined && child !== null);
+        if (childEntries.length === 0) return `${space}${key}: ${Array.isArray(entry) ? '[]' : '{}'}`;
         return `${space}${key}:\n${dumpYaml(entry, indent + 2)}`;
       }
-      if (Array.isArray(entry) && entry.length > 0 && !entry.every((item) => typeof item !== 'object' || item == null)) return `${space}${key}:\n${dumpYaml(entry, indent + 2)}`;
-      return `${space}${key}: ${dumpYaml(entry, indent + 2).trimStart()}`;
+      return `${space}${key}: ${formatScalar(entry)}`;
     }).join('\n');
   }
   return formatScalar(value);

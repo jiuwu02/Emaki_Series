@@ -11,6 +11,14 @@ title: "<dark_gray>榨汁机"
 rows: 1
 slots:
   ingredient_slots:
-    slots: [0, 1, 2, 3, 4]
+    slots:
+      - 0
+      - 1
+      - 2
+      - 3
+      - 4
     type: "ingredient"
     item: "AIR"
+    display_name: "<gray>食材槽</gray>"
+    lore:
+      - "<dark_gray>放入榨汁食材</dark_gray>"

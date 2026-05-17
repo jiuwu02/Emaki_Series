@@ -26,6 +26,7 @@ import {
   parseYaml,
   serializeActionList,
   lastPathKey,
+  ToastNotice,
   type ActionTypesResult,
   type AnyMap,
   type ApiClient,
@@ -669,6 +670,7 @@ export function EmakiGemItemSurface({ module, file, api, childPath, refreshKey =
   const [error, setError] = useState<string | null>(null);
   const [sourceText, setSourceText] = useState('');
   const [sourceError, setSourceError] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ tone: 'ok' | 'bad'; text: string } | null>(null);
 
   const [actionTypesResult, setActionTypesResult] = useState<ActionTypesResult | null>(null);
   const [economyProviders, setEconomyProviders] = useState<string[]>(DEFAULT_ECONOMY_PROVIDERS);
@@ -679,6 +681,12 @@ export function EmakiGemItemSurface({ module, file, api, childPath, refreshKey =
   const baseName = editor?.baseName ?? DEFAULT_BASE_NAME;
   const baseLore = useMemo(() => Array.isArray(editor?.baseLore) ? editor.baseLore as string[] : [DEFAULT_BASE_LORE], [editor?.baseLore]);
   const editorFields = useMemo(() => editorFieldMap(editor), [editor]);
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = window.setTimeout(() => setToast(null), 2600);
+    return () => window.clearTimeout(timer);
+  }, [toast]);
 
   useEffect(() => {
     let cancelled = false;
@@ -769,6 +777,7 @@ export function EmakiGemItemSurface({ module, file, api, childPath, refreshKey =
       setOriginalContent(content);
       setOriginalData(data);
       setSourceText(content);
+      setToast({ tone: 'ok', text: t('core.toast.savedItem') });
     } catch (err: any) {
       setError(err?.message ?? '保存失败');
     } finally {
@@ -786,6 +795,7 @@ export function EmakiGemItemSurface({ module, file, api, childPath, refreshKey =
 
   return (
     <div className="ie-surface" data-dirty={semanticDirty || undefined}>
+      {toast && <ToastNotice tone={toast.tone} style={{ position: 'absolute', top: 12, right: 12, zIndex: 50 }}>{toast.text}</ToastNotice>}
       <EditorChrome
         className="ie-header"
         title={editor?.title ?? file.title ?? 'EmakiGem 物品编辑器'}

@@ -9,6 +9,7 @@ export type SlotOccupancy = {
   key: string | null;
   slot: GuiSlotDefinition | null;
   conflicts: string[];
+  overlays: Array<{ key: string; slot: GuiSlotDefinition }>;
 };
 
 export const DEFAULT_GUI_TYPE = 'CHEST';
@@ -110,17 +111,33 @@ export function parseSlotList(value: unknown): number[] {
 
 export function buildOccupancy(data: GuiTemplateData): SlotOccupancy[] {
   const count = guiSlotCount(data);
-  const occupancy: SlotOccupancy[] = Array.from({ length: count }, (_, index) => ({ index, key: null, slot: null, conflicts: [] }));
+  const occupancy: SlotOccupancy[] = Array.from({ length: count }, (_, index) => ({ index, key: null, slot: null, conflicts: [], overlays: [] }));
   const slots = data.slots ?? {};
   for (const [key, slot] of Object.entries(slots)) {
+    const isDynamic = Boolean(slot?.type);
     for (const index of parseSlotList(slot?.slots)) {
       if (index < 0 || index >= count) continue;
       const cell = occupancy[index];
-      if (cell.key) {
-        cell.conflicts = [...cell.conflicts, cell.key, key].filter((entry, i, arr) => arr.indexOf(entry) === i);
+      if (isDynamic || cell.key == null) {
+        // Dynamic slots always go into overlays; first static slot becomes primary
+        cell.overlays.push({ key, slot });
+        if (cell.key == null) {
+          cell.key = key;
+          cell.slot = slot;
+        }
       } else {
-        cell.key = key;
-        cell.slot = slot;
+        // Non-dynamic slot conflicting with existing non-dynamic primary
+        const existingIsDynamic = Boolean(cell.slot?.type);
+        if (existingIsDynamic) {
+          // Existing primary is dynamic, new one is static — swap: static becomes primary
+          cell.overlays.push({ key, slot });
+          cell.key = key;
+          cell.slot = slot;
+        } else {
+          // Both non-dynamic — real conflict
+          cell.conflicts = [...cell.conflicts, cell.key, key].filter((entry, i, arr) => arr.indexOf(entry) === i);
+          cell.overlays.push({ key, slot });
+        }
       }
     }
   }

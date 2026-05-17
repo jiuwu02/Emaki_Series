@@ -183,8 +183,6 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         WebConsoleRegistry.registerConfigFile(this, "宝石系统配置", "config.yml", "宝石系统主配置，包含开孔器、镶嵌、升级和 GUI 入口设置。");
         WebConsoleRegistry.registerGuiFile(this, "宝石 GUI 模板", "gui/**/*.yml", "宝石镶嵌、开孔、升级 GUI 模板文件。", "emakigem:gui");
         WebConsoleRegistry.registerWebExtension(this, "emakigem:item-surface", "web-extensions/emakigem-item-surface.js");
-        WebConsoleRegistry.registerGuiEditorDescriptor(this, "emakigem:gui", editorDescriptor("emakigem:gui", "宝石 GUI", "宝石 GUI 模板"));
-        registerGuiEditorFields("emakigem:gui");
         WebConsoleRegistry.registerEditorDescriptor(this, "emakigem:socket-item", socketItemEditorDescriptor());
         WebConsoleRegistry.registerEditorDescriptor(this, "emakigem:gem", gemEditorDescriptor());
         registerGemEditorFields();
@@ -219,25 +217,6 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         WebConsoleRegistry.registerNodeComment(this, "gui", "GUI", "宝石 GUI 默认模式和关闭保存策略。", "object");
         WebConsoleRegistry.registerNodeComment(this, "gui.default_mode", "默认模式", "打开宝石 GUI 时的默认显示模式。", "enum:inlay,open,upgrade");
         WebConsoleRegistry.registerNodeComment(this, "gui.save_on_close", "关闭保存", "关闭 GUI 时是否自动保存当前操作。", "boolean");
-    }
-
-    private void registerGuiEditorFields(String editorId) {
-        editorField(editorId, "id", "ID", "GUI 模板唯一标识。", "text");
-        editorField(editorId, "gui_type", "GUI 类型", "Bukkit InventoryType。只有 CHEST 支持行数。", "enum");
-        editorField(editorId, "title", "标题", "GUI 窗口标题，支持 MiniMessage。", "text");
-        editorField(editorId, "rows", "箱子行数", "仅 CHEST 类型可用，范围 1-6。", "number");
-        editorField(editorId, "slots", "槽位定义", "GUI 中所有可渲染槽位配置。", "object");
-        editorField(editorId, "type", "槽位类型", "插件业务识别的槽位语义，例如 target_item、confirm。", "text");
-        editorField(editorId, "item", "物品", "槽位显示物品，支持原版材料或 ItemSource。", "text");
-        editorField(editorId, "display_name", "显示名", "槽位物品显示名称，支持 MiniMessage。", "text");
-        editorField(editorId, "lore", "Lore", "槽位物品描述，每行一条。", "stringList");
-        editorField(editorId, "hidden_components", "隐藏组件", "隐藏 tooltip、附魔、属性等原版组件。", "stringList");
-        editorField(editorId, "item_model", "物品模型", "资源包 item model 标识。", "text");
-        editorField(editorId, "custom_model_data", "模型数据", "Custom Model Data 数值。", "number");
-        editorField(editorId, "sounds", "声音", "点击槽位时播放的声音配置。", "object");
-        editorField(editorId, "target_item", "目标装备槽", "放入待镶嵌或查看的装备。", "text");
-        editorField(editorId, "socket_slot", "宝石槽位", "展示或操作装备上的宝石槽。", "text");
-        editorField(editorId, "confirm", "确认按钮", "确认当前宝石操作。", "text");
     }
 
     private void registerGemEditorFields() {

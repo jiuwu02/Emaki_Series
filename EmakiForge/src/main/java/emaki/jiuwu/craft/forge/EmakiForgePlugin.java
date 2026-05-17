@@ -1,6 +1,5 @@
 package emaki.jiuwu.craft.forge;
 
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -153,8 +152,6 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         WebConsoleRegistry.registerConfigFile(this, "锻造系统配置", "config.yml", "锻造系统主配置，包含品质、配方、GUI 和玩家数据策略。 ");
         WebConsoleRegistry.registerGuiFile(this, "锻造 GUI 模板", "gui/**/*.yml", "锻造、配方书与编辑器 GUI 模板文件。", "emakiforge:gui");
         WebConsoleRegistry.registerWebExtension(this, "emakiforge:gui-surface", "web-extensions/emakiforge-gui-surface.js");
-        WebConsoleRegistry.registerGuiEditorDescriptor(this, "emakiforge:gui", editorDescriptor("emakiforge:gui", "锻造 GUI", "锻造 GUI 模板"));
-        registerGuiEditorFields("emakiforge:gui");
         WebConsoleRegistry.registerCommonConfigComments(this);
 
         // quality
@@ -187,36 +184,6 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         WebConsoleRegistry.registerNodeComment(this, "history.enabled", "启用历史", "是否启用锻造历史记录功能。", "boolean");
         WebConsoleRegistry.registerNodeComment(this, "history.auto_save", "自动保存", "是否定时自动保存锻造历史。", "boolean");
         WebConsoleRegistry.registerNodeComment(this, "history.save_interval", "保存间隔", "自动保存锻造历史的间隔 tick 数。", "number");
-    }
-
-    private void registerGuiEditorFields(String editorId) {
-        guiField(editorId, "id", "ID", "GUI 模板唯一标识。", "text");
-        guiField(editorId, "gui_type", "GUI 类型", "Bukkit InventoryType。只有 CHEST 支持行数。", "enum");
-        guiField(editorId, "title", "标题", "GUI 窗口标题，支持 MiniMessage。", "text");
-        guiField(editorId, "rows", "箱子行数", "仅 CHEST 类型可用，范围 1-6。", "number");
-        guiField(editorId, "type", "槽位类型", "锻造业务槽位语义。", "text");
-        guiField(editorId, "slots", "槽位", "槽位索引列表。", "list");
-        guiField(editorId, "item", "物品", "槽位显示物品。", "text");
-        guiField(editorId, "display_name", "显示名", "槽位物品显示名称。", "text");
-        guiField(editorId, "lore", "Lore", "槽位物品描述。", "stringList");
-        guiField(editorId, "hidden_components", "隐藏组件", "隐藏原版组件。", "stringList");
-        guiField(editorId, "sounds", "声音", "槽位交互声音。", "object");
-        guiField(editorId, "blueprint_inputs", "图纸输入", "放入锻造图纸的槽位。", "text");
-        guiField(editorId, "required_materials", "必需材料", "配方必需材料槽位。", "text");
-        guiField(editorId, "optional_materials", "可选材料", "可选加成材料槽位。", "text");
-        guiField(editorId, "confirm", "确认锻造", "执行锻造操作按钮。", "text");
-    }
-
-    private void guiField(String editorId, String path, String label, String comment, String type) {
-        WebConsoleRegistry.registerGuiEditorField(this, editorId, path, label, comment, type);
-    }
-
-    private Map<String, Object> editorDescriptor(String id, String title, String kindLabel) {
-        Map<String, Object> descriptor = new LinkedHashMap<>();
-        descriptor.put("id", id);
-        descriptor.put("title", title);
-        descriptor.put("kindLabel", kindLabel);
-        return descriptor;
     }
 
     private void ensurePlaceholderExpansion() {

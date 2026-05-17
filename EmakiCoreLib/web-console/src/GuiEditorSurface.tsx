@@ -2,7 +2,7 @@ import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from 'r
 import type { ApiClient } from './api';
 import type { GuiSlotDefinition, GuiTemplateData, WebRegistryFile, WebRegistryModule } from './types';
 import { buildOccupancy, clampRows, fieldLabel, guiColumns, guiField, guiSlotCount, guiTypeOptions, loreLines, materialShortName, materialUrls, normalizeGuiType, parseSlotList, parseYaml, renderMiniMessageParts, serializeGuiYaml, subscribeTextureBases, supportsRows, textValue } from './guiEditor';
-import { Button, EditorChrome, InlineError, InspectorSection, ToggleChip } from './components';
+import { Button, EditorChrome, InlineError, InspectorSection, ToastNotice, ToggleChip } from './components';
 import { t } from './i18n';
 import { diffRecords } from './lib';
 import { MATERIAL_CATEGORIES, MINECRAFT_MATERIAL_VERSION, type MaterialCategory, materialCategory, searchMaterials } from './minecraftMaterials';
@@ -41,12 +41,20 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
     return saved ? clampInspectorWidth(Number(saved)) : 380;
   });
   const [resizingInspector, setResizingInspector] = useState(false);
+  const [toast, setToast] = useState<{ tone: 'ok' | 'bad'; text: string } | null>(null);
+  const [visibleOverlay, setVisibleOverlay] = useState<Record<number, string>>({});
   const tooltipRef = useRef<HTMLDivElement>(null);
   const inspectorResizeStartX = useRef(0);
   const inspectorResizeStartW = useRef(380);
   const latestInspectorWidth = useRef(inspectorWidth);
 
   const path = childPath ?? '';
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = window.setTimeout(() => setToast(null), 2600);
+    return () => window.clearTimeout(timer);
+  }, [toast]);
 
   useEffect(() => {
     latestInspectorWidth.current = inspectorWidth;
@@ -145,13 +153,32 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
   const slotCount = guiSlotCount(data ?? undefined);
   const columns = guiColumns(data ?? undefined);
   const occupancy = useMemo(() => data ? buildOccupancy(data) : [], [data]);
-  const selectedKey = selected.length === 1 ? occupancy.find((cell) => cell.index === selected[0])?.key ?? null : null;
+  const selectedAnchor = selected[0];
+  const selectedCell = selectedAnchor == null ? null : occupancy.find((cell) => cell.index === selectedAnchor) ?? null;
+  const selectedVisible = selectedCell ? visibleSlotForCell(selectedCell) : null;
+  const selectedOverlays = selectedCell?.overlays ?? [];
+  const selectedKey = selectedVisible?.key ?? selectedCell?.key ?? null;
   const selectedSlot = selectedKey && data?.slots ? data.slots[selectedKey] ?? null : null;
+  const hasOverlays = selectedOverlays.length > 1;
   const draftText = sourceError ? sourceText : data ? serializeGuiYaml(data) : '';
   const changes = useMemo(() => diffRecords(data ?? {}, originalData ?? {}, '', 18), [data, originalData]);
   const dirty = data != null && !sourceError && changes.length > 0;
   const materialResults = useMemo(() => searchMaterials(query, category), [query, category]);
   const visibleMaterials = materialResults.slice(0, 80);
+
+  function visibleSlotForCell(cell: typeof occupancy[number]): { key: string; slot: import('./types').GuiSlotDefinition } | null {
+    if (cell.overlays.length === 0) return cell.key ? { key: cell.key, slot: cell.slot! } : null;
+    const visKey = visibleOverlay[cell.index];
+    if (visKey === '') return null; // explicitly none visible
+    const found = cell.overlays.find((o) => o.key === visKey);
+    if (found) return found;
+    // default: first overlay
+    return cell.overlays[0] ?? null;
+  }
+
+  function setOverlayVisible(slotIndex: number, key: string | null) {
+    setVisibleOverlay((current) => ({ ...current, [slotIndex]: key ?? '' }));
+  }
 
   async function save() {
     if (!data || !path || !dirty) return;
@@ -164,6 +191,7 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
       setOriginalText(content);
       setOriginalData(data);
       setSourceText(content);
+      setToast({ tone: 'ok', text: t('core.toast.savedGui') });
     } catch (err) {
       setError(err instanceof Error ? err.message : t('core.gui.saveFailed'));
     } finally {
@@ -216,16 +244,19 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
 
   function assignMaterial(material: string) {
     if (!selected.length) return;
-    if (selectedKey) {
-      updateSlot(selectedKey, { item: material });
+    const visible = selectedCell ? visibleSlotForCell(selectedCell) : null;
+    if (visible?.key) {
+      updateSlot(visible.key, { item: material });
       return;
     }
     createSlot(selected[0], material);
   }
 
-  function selectSlot(index: number, additive = false) {
-    if (additive) setSelected((current) => current.includes(index) ? current.filter((n) => n !== index) : [...current, index]);
-    else setSelected([index]);
+  function selectSlot(index: number) {
+    const cell = occupancy.find((entry) => entry.index === index);
+    const visible = cell ? visibleSlotForCell(cell) : null;
+    const group = visible ? parseSlotList(visible.slot.slots).filter((slotIndex) => slotIndex >= 0 && slotIndex < occupancy.length) : [];
+    setSelected(uniqueNumbers([index, ...group]));
   }
 
   function handleSlotKeyDown(event: React.KeyboardEvent<HTMLButtonElement>, index: number) {
@@ -239,14 +270,13 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
     };
     if (event.key === ' ' || event.key === 'Enter') {
       event.preventDefault();
-      selectSlot(index, event.ctrlKey || event.metaKey || event.shiftKey);
+      selectSlot(index);
       return;
     }
     if (!(event.key in navigation)) return;
     event.preventDefault();
     const nextIndex = Math.max(0, Math.min(occupancy.length - 1, navigation[event.key]));
     document.querySelector<HTMLButtonElement>(`[data-gui-slot="${nextIndex}"]`)?.focus();
-    if (event.shiftKey) selectSlot(nextIndex, true);
   }
 
   if (!path) return <section className="config-surface empty" role="status">{t('core.gui.selectFile')}</section>;
@@ -256,6 +286,7 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
   const hoveredCell = hovered == null ? null : occupancy.find((cell) => cell.index === hovered);
 
   return <section className="config-surface gui-surface" data-dirty={dirty ? 'true' : undefined}>
+    {toast && <ToastNotice tone={toast.tone} style={{ position: 'absolute', top: 12, right: 12, zIndex: 50 }}>{toast.text}</ToastNotice>}
     <EditorChrome
       className="surface-head gui-head"
       title={file.title}
@@ -278,7 +309,7 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
         <div className="minecraft-window">
           <div className="minecraft-titlebar"><MiniText value={data.title ?? 'GUI'} /></div>
           <p className="slot-grid-help" id="gui-slot-help">{t('core.gui.gridHelp')}</p>
-          <div className="minecraft-grid" role="grid" aria-label={t('core.gui.gridAria', { title: file.title })} aria-describedby="gui-slot-help" aria-multiselectable="true" data-gui-type={guiType} style={{ gridTemplateColumns: `repeat(${columns}, var(--mc-slot))` }}>
+          <div className="minecraft-grid" role="grid" aria-label={t('core.gui.gridAria', { title: file.title })} aria-describedby="gui-slot-help" data-gui-type={guiType} style={{ gridTemplateColumns: `repeat(${columns}, var(--mc-slot))` }}>
             {occupancy.map((cell) => <button
               key={cell.index}
               className={`minecraft-slot ${cell.key ? 'occupied' : ''} ${selected.includes(cell.index) ? 'selected' : ''} ${cell.conflicts.length ? 'conflict' : ''}`}
@@ -286,15 +317,15 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
               data-gui-slot={cell.index}
               aria-label={t('core.gui.slotAria', { index: cell.index, suffix: cell.key ? `，${cell.key}` : t('core.gui.slotEmpty') })}
               aria-selected={selected.includes(cell.index)}
-              onClick={(event) => selectSlot(cell.index, event.ctrlKey || event.metaKey || event.shiftKey)}
+              onClick={() => selectSlot(cell.index)}
               onKeyDown={(event) => handleSlotKeyDown(event, cell.index)}
               onMouseEnter={(event) => { setHovered(cell.index); setTooltipPosition(nextTooltipPosition(event.clientX, event.clientY)); }}
               onMouseMove={handleSlotMouseMove}
               onMouseLeave={() => { setHovered(null); setTooltipPosition(null); }}
               onDragOver={(event) => event.preventDefault()}
-              onDrop={(event) => { event.preventDefault(); const material = event.dataTransfer.getData('text/material'); if (material) { setSelected([cell.index]); cell.key ? updateSlot(cell.key, { item: material }) : createSlot(cell.index, material); } }}
+              onDrop={(event) => { event.preventDefault(); const material = event.dataTransfer.getData('text/material'); if (material) { selectSlot(cell.index); const visible = visibleSlotForCell(cell); visible?.key ? updateSlot(visible.key, { item: material }) : createSlot(cell.index, material); } }}
             >
-              <SlotIcon slot={cell.slot} failed={failedImages} setFailed={setFailedImages} />
+              <SlotIcon slot={visibleSlotForCell(cell)?.slot ?? null} failed={failedImages} setFailed={setFailedImages} />
               <span className="slot-index">{cell.index}</span>
             </button>)}
           </div>
@@ -321,7 +352,14 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
           {rowSupported && <GuiLabel editor={editor} path="rows" fallback={t('core.gui.rows')}><input type="number" min={1} max={6} value={rows} onChange={(e) => updateData((draft) => ({ ...draft, rows: clampRows(e.target.value) }))} /></GuiLabel>}
         </InspectorSection>
         <InspectorSection title={t('core.gui.slotInspector', { value: selected.length ? selected.join(', ') : t('core.gui.noSlotSelected') })}>
-          {selectedSlot && selectedKey ? <SlotInspector slotKey={selectedKey} slot={selectedSlot} editor={editor} updateSlot={updateSlot} removeSlot={() => updateData((draft) => { const next = { ...(draft.slots ?? {}) }; delete next[selectedKey]; return { ...draft, slots: next }; })} /> : selected.length ? <Button variant="soft" fullWidth onClick={() => createSlot(selected[0])}>{t('core.gui.createSlot', { slot: selected[0] })}</Button> : <p className="muted-copy">{t('core.gui.slotHint')}</p>}
+          {hasOverlays && selectedCell ? <OverlaySlotInspector
+            cell={selectedCell}
+            visibleKey={visibleOverlay[selectedCell.index] ?? selectedOverlays[0]?.key ?? ''}
+            onVisibilityChange={(key) => setOverlayVisible(selectedCell.index, key)}
+            editor={editor}
+            updateSlot={updateSlot}
+            removeSlot={(key) => updateData((draft) => { const next = { ...(draft.slots ?? {}) }; delete next[key]; return { ...draft, slots: next }; })}
+          /> : selectedSlot && selectedKey ? <SlotInspector slotKey={selectedKey} slot={selectedSlot} editor={editor} updateSlot={updateSlot} removeSlot={() => updateData((draft) => { const next = { ...(draft.slots ?? {}) }; delete next[selectedKey]; return { ...draft, slots: next }; })} /> : selected.length ? <Button variant="soft" fullWidth onClick={() => createSlot(selected[0])}>{t('core.gui.createSlot', { slot: selected[0] })}</Button> : <p className="muted-copy">{t('core.gui.slotHint')}</p>}
         </InspectorSection>
         <InspectorSection className="material-palette" title={t('core.gui.materialSource')} meta={`MC ${MINECRAFT_MATERIAL_VERSION} · ${t('core.config.groupItems', { count: materialResults.length })}`}>
           <input aria-label={t('core.gui.materialSearch')} placeholder={t('core.gui.materialPlaceholder')} value={query} onChange={(e) => setQuery(e.target.value)} />
@@ -343,22 +381,66 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
 }
 
 
-function GuiLabel({ editor, path, fallback, children }: { editor?: import('./types').WebEditorDescriptor; path: string; fallback: string; children: React.ReactNode }) {
-  const field = guiField(editor, path, fallback);
-  return <label title={field.comment ? `${field.path}\n${field.comment}` : field.path}>{fieldLabel(path, { moduleId: editor?.moduleId, namespace: editor?.moduleId, editorFields: editor?.fields, fallback: field.label })}{children}</label>;
+function OverlaySlotInspector({ cell, visibleKey, onVisibilityChange, editor, updateSlot, removeSlot }: {
+  cell: import('./lib/guiUtils').SlotOccupancy;
+  visibleKey: string;
+  onVisibilityChange: (key: string | null) => void;
+  editor?: import('./types').WebEditorDescriptor;
+  updateSlot: (key: string, patch: Partial<import('./types').GuiSlotDefinition>) => void;
+  removeSlot: (key: string) => void;
+}) {
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const toggle = (key: string) => setCollapsed((c) => ({ ...c, [key]: !c[key] }));
+
+  return <div className="overlay-inspector">
+    {cell.overlays.map((overlay) => {
+      const isVisible = visibleKey === overlay.key;
+      const isCollapsed = collapsed[overlay.key] === true;
+      return <div key={overlay.key} className={`overlay-entry ${isVisible ? 'is-visible' : ''}`}>
+        <div className="overlay-entry-head">
+          <button
+            type="button"
+            className={`overlay-visibility ${isVisible ? 'active' : ''}`}
+            title={isVisible ? t('core.gui.overlayHide') : t('core.gui.overlayShow')}
+            aria-pressed={isVisible}
+            onClick={() => onVisibilityChange(isVisible ? null : overlay.key)}
+          />
+          <button type="button" className="overlay-toggle" onClick={() => toggle(overlay.key)} aria-expanded={!isCollapsed}>
+            <span>{isCollapsed ? '›' : '⌄'}</span>
+            <code>{overlay.key}</code>
+            {overlay.slot?.type && <small className="overlay-type">{overlay.slot.type}</small>}
+          </button>
+          <button type="button" className="overlay-delete" onClick={() => removeSlot(overlay.key)}>{t('core.config.delete')}</button>
+        </div>
+        {!isCollapsed && <div className="overlay-entry-body">
+          <SlotInspector slotKey={overlay.key} slot={overlay.slot} editor={editor} updateSlot={updateSlot} removeSlot={() => removeSlot(overlay.key)} hideHeader />
+        </div>}
+      </div>;
+    })}
+  </div>;
 }
 
-function SlotInspector({ slotKey, slot, updateSlot, removeSlot, editor }: { slotKey: string; slot: GuiSlotDefinition; updateSlot: (key: string, patch: Partial<GuiSlotDefinition>) => void; removeSlot: () => void; editor?: import('./types').WebEditorDescriptor }) {
+
+function GuiLabel({ editor, path, fallback, children }: { editor?: import('./types').WebEditorDescriptor; path: string; fallback: string; children: React.ReactNode }) {
+  const field = guiField(editor, path, fallback);
+  const label = fieldLabel(path, { moduleId: editor?.moduleId, namespace: editor?.moduleId, editorFields: editor?.fields, fallback: field.label });
+  return <label className="gui-prop-row" title={field.comment ? `${field.path}\n${field.comment}` : field.path}>
+    <span className="gui-prop-label">{label}</span>
+    <span className="gui-prop-value">{children}</span>
+  </label>;
+}
+
+function SlotInspector({ slotKey, slot, updateSlot, removeSlot, editor, hideHeader = false }: { slotKey: string; slot: GuiSlotDefinition; updateSlot: (key: string, patch: Partial<GuiSlotDefinition>) => void; removeSlot: () => void; editor?: import('./types').WebEditorDescriptor; hideHeader?: boolean }) {
   const slotsText = parseSlotList(slot.slots).join(', ');
   const setField = (field: string, value: unknown) => updateSlot(slotKey, { [field]: value === '' || value == null ? undefined : value });
   return <div className="slot-form">
-    <div className="slot-key"><code>{slotKey}</code><button onClick={removeSlot}>{t('core.config.delete')}</button></div>
+    {!hideHeader && <div className="slot-key"><code>{slotKey}</code><button onClick={removeSlot}>{t('core.config.delete')}</button></div>}
     <InspectorPanel title={t('core.gui.slotDefinition')} storageKey="slot-identity"><GuiLabel editor={editor} path="type" fallback={t('core.gui.slotType')}><input value={textValue(slot.type)} onChange={(e) => setField('type', e.target.value)} /></GuiLabel><GuiLabel editor={editor} path="slots" fallback={t('core.gui.slot')}><input value={slotsText} onChange={(e) => setField('slots', e.target.value.split(/[ ,]+/).map((part) => Number(part)).filter(Number.isFinite))} /></GuiLabel><small>{t('core.gui.slotCount', { count: parseSlotList(slot.slots).length })}</small></InspectorPanel>
     <InspectorPanel title={t('core.gui.itemSource')} storageKey="slot-item"><GuiLabel editor={editor} path="item" fallback={t('core.gui.item')}><input value={textValue(slot.item)} onChange={(e) => setField('item', e.target.value)} /></GuiLabel></InspectorPanel>
     <InspectorPanel title={t('core.gui.displayText')} storageKey="slot-display"><GuiLabel editor={editor} path="display_name" fallback={t('core.gui.displayName')}><input value={textValue(slot.display_name)} onChange={(e) => setField('display_name', e.target.value)} /></GuiLabel><GuiLabel editor={editor} path="lore" fallback="Lore"><textarea value={loreLines(slot.lore).join('\n')} onChange={(e) => setField('lore', e.target.value.split('\n'))} /></GuiLabel></InspectorPanel>
     <InspectorPanel title={t('core.gui.modelComponents')} storageKey="slot-model" defaultCollapsed><div className="mini-grid-2"><GuiLabel editor={editor} path="item_model" fallback={t('core.gui.itemModel')}><input value={textValue(slot.item_model ?? slot['item-model'])} onChange={(e) => setField('item_model', e.target.value)} /></GuiLabel><GuiLabel editor={editor} path="custom_model_data" fallback={t('core.gui.modelData')}><input type="number" value={textValue(slot.custom_model_data ?? slot.custommodeldata)} onChange={(e) => setField('custom_model_data', e.target.value === '' ? undefined : Number(e.target.value))} /></GuiLabel></div><EnchantmentsEditor value={slot.enchantments} onChange={(value) => setField('enchantments', value)} /><HiddenComponentsEditor slot={slot} onChange={(patch) => updateSlot(slotKey, patch)} /></InspectorPanel>
     <InspectorPanel title={t('core.gui.sounds')} storageKey="slot-sounds" defaultCollapsed><SoundsEditor value={slot.sounds} onChange={(value) => setField('sounds', value)} /></InspectorPanel>
-    <InspectorPanel title={t('core.gui.advancedFields')} storageKey="slot-advanced" defaultCollapsed><AdvancedFieldsEditor slot={slot} onChange={(patch) => updateSlot(slotKey, patch)} /></InspectorPanel>
+    <InspectorPanel title={t('core.gui.advancedFields')} storageKey="slot-advanced" defaultCollapsed><AdvancedFieldsEditor slot={slot} editor={editor} onChange={(patch) => updateSlot(slotKey, patch)} /></InspectorPanel>
   </div>;
 }
 
@@ -369,7 +451,15 @@ function InspectorPanel({ title, storageKey, defaultCollapsed = false, children 
     localStorage.setItem(key, current ? '0' : '1');
     return !current;
   });
-  return <div className={`slot-form-section ${collapsed ? 'collapsed' : ''}`}><button type="button" className="slot-section-toggle" onClick={toggle} aria-expanded={!collapsed}><span>{collapsed ? '›' : '⌄'}</span><h4>{title}</h4></button>{!collapsed && <div className="slot-section-body">{children}</div>}</div>;
+  return <section className={`slot-form-section prop-section ${collapsed ? 'collapsed' : ''}`}>
+    <div className="prop-section-head prop-section-head--collapsible slot-section-head">
+      <button type="button" className="prop-section-toggle slot-section-toggle" onClick={toggle} aria-expanded={!collapsed}>
+        <span className="prop-section-arrow">{collapsed ? '›' : '⌄'}</span>
+        <span className="prop-section-title">{title}</span>
+      </button>
+    </div>
+    {!collapsed && <div className="prop-section-body slot-section-body">{children}</div>}
+  </section>;
 }
 
 function EnchantmentsEditor({ value, onChange }: { value: unknown; onChange: (value: Record<string, number> | undefined) => void }) {
@@ -410,12 +500,57 @@ function normalizeSounds(value: unknown): Record<string, unknown> {
 
 const STANDARD_SLOT_FIELDS = new Set(['type', 'slots', 'item', 'display_name', 'lore', 'item_model', 'item-model', 'custom_model_data', 'custommodeldata', 'enchantments', 'hidden_components', 'hide_tooltip', 'hide-tooltip', 'tooltip_display', 'sounds']);
 
-function AdvancedFieldsEditor({ slot, onChange }: { slot: GuiSlotDefinition; onChange: (patch: Partial<GuiSlotDefinition>) => void }) {
-  const extras = Object.fromEntries(Object.entries(slot).filter(([key]) => !STANDARD_SLOT_FIELDS.has(key)));
-  const [text, setText] = useState(() => JSON.stringify(extras, null, 2));
+function AdvancedFieldsEditor({ slot, editor, onChange }: { slot: GuiSlotDefinition; editor?: import('./types').WebEditorDescriptor; onChange: (patch: Partial<GuiSlotDefinition>) => void }) {
+  const extras = Object.entries(slot).filter(([key]) => !STANDARD_SLOT_FIELDS.has(key));
+  if (!extras.length) return <p className="muted-copy">{t('core.gui.noAdvancedFields')}</p>;
+  return <div className="sub-editor advanced-field-list">
+    {extras.map(([key, value]) => <AdvancedFieldRow key={key} fieldKey={key} value={value} editor={editor} onChange={(next) => onChange({ [key]: next })} />)}
+  </div>;
+}
+
+function AdvancedFieldRow({ fieldKey, value, editor, onChange }: { fieldKey: string; value: unknown; editor?: import('./types').WebEditorDescriptor; onChange: (value: unknown) => void }) {
+  const field = guiField(editor, fieldKey, fieldKey);
+  const label = fieldLabel(fieldKey, { moduleId: editor?.moduleId, namespace: editor?.moduleId, editorFields: editor?.fields, fallback: field.label });
+  return <div className="gui-prop-row advanced-field-row" title={field.comment ? `${field.path}\n${field.comment}` : field.path}>
+    <span className="gui-prop-label">{label}</span>
+    <span className="gui-prop-value advanced-field-control">
+      <AdvancedFieldControl value={value} onChange={onChange} />
+      <button type="button" className="advanced-field-delete" onClick={() => onChange(undefined)}>{t('core.config.delete')}</button>
+    </span>
+  </div>;
+}
+
+function AdvancedFieldControl({ value, onChange }: { value: unknown; onChange: (value: unknown) => void }) {
+  if (typeof value === 'boolean') return <label className="inline-switch"><input type="checkbox" checked={value} onChange={(event) => onChange(event.target.checked)} /> {value ? 'true' : 'false'}</label>;
+  if (typeof value === 'number') return <input type="number" value={Number.isFinite(value) ? value : 0} onChange={(event) => onChange(event.target.value === '' ? undefined : Number(event.target.value))} />;
+  if (Array.isArray(value) && value.every((entry) => ['string', 'number', 'boolean'].includes(typeof entry))) {
+    return <textarea value={value.map(String).join('\n')} onChange={(event) => onChange(event.target.value.split('\n').map(parsePrimitiveLine).filter((entry) => entry !== ''))} />;
+  }
+  if (typeof value === 'string' || value == null) return <input value={textValue(value)} onChange={(event) => onChange(event.target.value)} />;
+  return <JsonFieldEditor value={value} onChange={onChange} />;
+}
+
+function JsonFieldEditor({ value, onChange }: { value: unknown; onChange: (value: unknown) => void }) {
+  const [text, setText] = useState(() => JSON.stringify(value, null, 2));
   const [jsonError, setJsonError] = useState('');
-  useEffect(() => { setText(JSON.stringify(extras, null, 2)); setJsonError(''); }, [JSON.stringify(extras)]);
-  return <div className="sub-editor"><textarea className="advanced-json" value={text} onChange={(e) => { setText(e.target.value); setJsonError(''); }} spellCheck={false} aria-invalid={!!jsonError} />{jsonError && <small className="json-error">{jsonError}</small>}<Button variant="soft" fullWidth onClick={() => { try { const parsed = JSON.parse(text || '{}'); onChange({ ...Object.fromEntries(Object.keys(extras).map((key) => [key, undefined])), ...parsed }); setJsonError(''); } catch (err) { setJsonError(err instanceof Error ? err.message : t('core.gui.jsonParseFailed')); } }}>{t('core.gui.applyAdvanced')}</Button></div>;
+  useEffect(() => { setText(JSON.stringify(value, null, 2)); setJsonError(''); }, [JSON.stringify(value)]);
+  return <div className="advanced-json-field">
+    <textarea className="advanced-json" value={text} onChange={(event) => { setText(event.target.value); setJsonError(''); }} spellCheck={false} aria-invalid={!!jsonError} />
+    {jsonError && <small className="json-error">{jsonError}</small>}
+    <Button variant="soft" fullWidth onClick={() => { try { onChange(JSON.parse(text || 'null')); setJsonError(''); } catch (err) { setJsonError(err instanceof Error ? err.message : t('core.gui.jsonParseFailed')); } }}>{t('core.gui.applyAdvanced')}</Button>
+  </div>;
+}
+
+function parsePrimitiveLine(value: string): string | number | boolean {
+  const trimmed = value.trim();
+  if (trimmed === 'true') return true;
+  if (trimmed === 'false') return false;
+  if (trimmed !== '' && Number.isFinite(Number(trimmed))) return Number(trimmed);
+  return value;
+}
+
+function uniqueNumbers(values: number[]): number[] {
+  return values.filter((value, index, array) => Number.isFinite(value) && array.indexOf(value) === index);
 }
 
 function cleanMap<T extends Record<string, unknown>>(value: T): T | undefined {

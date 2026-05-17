@@ -13,53 +13,51 @@ rows: 6
 slots:
   recipe_list:
     slots:
-      [
-        0,
-        1,
-        2,
-        3,
-        4,
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12,
-        13,
-        14,
-        15,
-        16,
-        17,
-        18,
-        19,
-        20,
-        21,
-        22,
-        23,
-        24,
-        25,
-        26,
-        27,
-        28,
-        29,
-        30,
-        31,
-        32,
-        33,
-        34,
-        35,
-        36,
-        37,
-        38,
-        39,
-        40,
-        41,
-        42,
-        43,
-        44,
-      ]
+      - 0
+      - 1
+      - 2
+      - 3
+      - 4
+      - 5
+      - 6
+      - 7
+      - 8
+      - 9
+      - 10
+      - 11
+      - 12
+      - 13
+      - 14
+      - 15
+      - 16
+      - 17
+      - 18
+      - 19
+      - 20
+      - 21
+      - 22
+      - 23
+      - 24
+      - 25
+      - 26
+      - 27
+      - 28
+      - 29
+      - 30
+      - 31
+      - 32
+      - 33
+      - 34
+      - 35
+      - 36
+      - 37
+      - 38
+      - 39
+      - 40
+      - 41
+      - 42
+      - 43
+      - 44
     type: "recipe_list"
     item: "book"
     display_name: "<gray>暂无配方</gray>"
@@ -67,13 +65,21 @@ slots:
       - "<gray>这一页没有更多配方了"
 
   footer_fill:
-    slots: [46, 47, 48, 50, 51, 52]
+    slots:
+      - 46
+      - 47
+      - 48
+      - 50
+      - 51
+      - 52
     item: "gray_stained_glass_pane"
     display_name: "<gray>"
-    hidden_components: ["tooltip"]
+    hidden_components:
+      - "tooltip"
 
   prev_page:
-    slots: [45]
+    slots:
+      - 45
     type: "prev_page"
     item: "ARROW"
     display_name: "<gray>上一页</gray>"
@@ -86,7 +92,8 @@ slots:
         pitch: 1.0
 
   close:
-    slots: [49]
+    slots:
+      - 49
     type: "close"
     item: "BARRIER"
     display_name: "<red>关闭</red>"
@@ -99,7 +106,8 @@ slots:
         pitch: 1.0
 
   next_page:
-    slots: [53]
+    slots:
+      - 53
     type: "next_page"
     item: "ARROW"
     display_name: "<gray>下一页</gray>"
