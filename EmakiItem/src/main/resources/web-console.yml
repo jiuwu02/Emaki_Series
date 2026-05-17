@@ -1,0 +1,58 @@
+# EmakiItem Web Console 声明式注册
+
+module:
+  name: "Item 物品"
+  summary: "物品定义、套装刷新与触发"
+  tone: item
+
+files:
+  - title: "物品系统配置"
+    path: "config.yml"
+    kind: CONFIG
+    comment: "物品系统主配置，包含套装、刷新、耐久和修复等设置。"
+  - title: "物品定义"
+    path: "items/**/*.yml"
+    kind: ITEM
+    comment: "EmakiItem 自定义物品定义文件。"
+
+comments:
+  set_bonus:
+    label: "套装加成"
+    comment: "套装加成系统与刷新触发器配置。"
+    type: object
+  set_bonus.enabled:
+    label: "启用套装"
+    comment: "是否启用套装加成系统。"
+    type: boolean
+  set_bonus.refresh_triggers:
+    label: "刷新触发"
+    comment: "触发套装状态重新计算的事件配置。"
+    type: object
+  set_bonus.refresh_triggers.join:
+    label: "进服刷新"
+    comment: "玩家进入服务器时是否刷新套装状态。"
+    type: boolean
+  set_bonus.refresh_triggers.held_change:
+    label: "切换手持"
+    comment: "切换手持物品时是否刷新套装状态。"
+    type: boolean
+  set_bonus.refresh_triggers.inventory_click:
+    label: "背包点击"
+    comment: "点击背包时是否刷新套装状态。"
+    type: boolean
+  set_bonus.refresh_triggers.inventory_drag:
+    label: "背包拖拽"
+    comment: "拖拽物品时是否刷新套装状态。"
+    type: boolean
+  set_bonus.refresh_triggers.pickup:
+    label: "拾取物品"
+    comment: "拾取物品时是否刷新套装状态。"
+    type: boolean
+  set_bonus.refresh_triggers.interact:
+    label: "交互刷新"
+    comment: "玩家交互时是否刷新套装状态。"
+    type: boolean
+  set_bonus.refresh_triggers.command:
+    label: "命令刷新"
+    comment: "执行命令时是否刷新套装状态。"
+    type: boolean

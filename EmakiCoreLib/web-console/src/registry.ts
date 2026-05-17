@@ -47,6 +47,8 @@ export type EmakiWebConsoleHost = typeof lib & typeof components & typeof i18n &
   getSurface: typeof getSurface;
   getAllSurfaces: typeof getAllSurfaces;
   isKind: typeof isKind;
+  registerPluginGuiSurface: typeof registerPluginGuiSurface;
+  registerPluginSurfaces: typeof registerPluginSurfaces;
   components: typeof components;
   lib: typeof lib;
   i18n: typeof i18n;
@@ -117,8 +119,24 @@ export function isKind(fileKind: string | undefined, target: string): boolean {
 
 /** Install the browser global used by plugin extension scripts. */
 export function installWebConsoleHost(): EmakiWebConsoleHost {
-  const host: EmakiWebConsoleHost = { ...lib, ...components, ...i18n, React, registerSurface, getSurface, getAllSurfaces, isKind, components, lib, i18n, t: i18n.t, registerLocale: i18n.registerLocale, registerModuleLocale: i18n.registerModuleLocale };
+  const host: EmakiWebConsoleHost = { ...lib, ...components, ...i18n, React, registerSurface, getSurface, getAllSurfaces, isKind, registerPluginGuiSurface, registerPluginSurfaces, components, lib, i18n, t: i18n.t, registerLocale: i18n.registerLocale, registerModuleLocale: i18n.registerModuleLocale };
   (window as any).React = React;
   window.EmakiWebConsole = host;
   return host;
+}
+
+/**
+ * 一行注册一个直接复用 GuiEditorSurface 的 GUI surface。
+ * 适用于只需要通用 GUI 编辑器的插件（如 EmakiSkills、EmakiForge、EmakiStrengthen）。
+ */
+export function registerPluginGuiSurface(moduleId: string, editorId: string, label: string): void {
+  const { GuiEditorSurface } = components;
+  registerSurface({ kind: 'GUI', moduleId, editorId, component: GuiEditorSurface as any, label, priority: 100 });
+}
+
+/**
+ * 批量注册多个 surface。
+ */
+export function registerPluginSurfaces(surfaces: SurfaceRegistration[]): void {
+  surfaces.forEach(registerSurface);
 }

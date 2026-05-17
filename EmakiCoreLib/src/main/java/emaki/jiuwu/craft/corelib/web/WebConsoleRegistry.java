@@ -341,6 +341,8 @@ public final class WebConsoleRegistry {
     }
 
     public Map<String, Object> snapshot() {
+        // 懒加载：扫描所有插件的声明式 web-console.yml 注册
+        WebConsoleYamlRegistrar.scanAll();
         List<Map<String, Object>> modules = new ArrayList<>();
         List<Map<String, Object>> tree = new ArrayList<>();
         for (ModuleRegistration registration : registeredModules()) {

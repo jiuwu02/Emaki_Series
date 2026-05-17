@@ -67,40 +67,43 @@ export class ApiClient {
     return data.runtime;
   }
 
-  async readScript(path: string): Promise<{ content: string }> {
+  async readScript(path: string): Promise<{ content: string; revision?: number }> {
     const data = await this.request(`/api/scripts/read?path=${encodeURIComponent(path)}`);
-    return data as { content: string };
+    return { content: data.content, revision: typeof data.revision === 'number' ? data.revision : undefined };
   }
 
-  async saveScript(path: string, content: string): Promise<void> {
-    await this.request('/api/scripts/save', {
+  async saveScript(path: string, content: string, revision?: number): Promise<{ revision?: number }> {
+    const data = await this.request('/api/scripts/save', {
       method: 'POST',
-      body: JSON.stringify({ path, content })
+      body: JSON.stringify({ path, content, revision })
     });
+    return { revision: typeof data.revision === 'number' ? data.revision : undefined };
   }
 
   async readGui(moduleId: string, path: string): Promise<GuiDocument> {
     const data = await this.request(`/api/gui/read?module=${encodeURIComponent(moduleId)}&path=${encodeURIComponent(path)}`);
-    return { moduleId: data.moduleId, path: data.path, content: data.content, data: data.data } as GuiDocument;
+    return { moduleId: data.moduleId, path: data.path, content: data.content, data: data.data, revision: data.revision } as GuiDocument;
   }
 
-  async saveGui(moduleId: string, path: string, content: string): Promise<void> {
-    await this.request('/api/gui/save', {
+  async saveGui(moduleId: string, path: string, content: string, revision?: number): Promise<{ revision?: number }> {
+    const data = await this.request('/api/gui/save', {
       method: 'POST',
-      body: JSON.stringify({ moduleId, path, content })
+      body: JSON.stringify({ moduleId, path, content, revision })
     });
+    return { revision: typeof data.revision === 'number' ? data.revision : undefined };
   }
 
   async readItem(moduleId: string, path: string): Promise<ItemDocument> {
     const data = await this.request(`/api/items/read?module=${encodeURIComponent(moduleId)}&path=${encodeURIComponent(path)}`);
-    return { moduleId: data.moduleId, path: data.path, content: data.content, data: data.data } as ItemDocument;
+    return { moduleId: data.moduleId, path: data.path, content: data.content, data: data.data, revision: data.revision } as ItemDocument;
   }
 
-  async saveItem(moduleId: string, path: string, content: string): Promise<void> {
-    await this.request('/api/items/save', {
+  async saveItem(moduleId: string, path: string, content: string, revision?: number): Promise<{ revision?: number }> {
+    const data = await this.request('/api/items/save', {
       method: 'POST',
-      body: JSON.stringify({ moduleId, path, content })
+      body: JSON.stringify({ moduleId, path, content, revision })
     });
+    return { revision: typeof data.revision === 'number' ? data.revision : undefined };
   }
 
   async previewItem(content: string, previewLevel: number, baseName = '', baseLore: string[] = []): Promise<ItemPreviewResult> {

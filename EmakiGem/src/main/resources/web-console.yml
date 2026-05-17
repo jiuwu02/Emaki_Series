@@ -1,0 +1,95 @@
+# EmakiGem Web Console 声明式注册
+# 此文件由 CoreLib 的 WebConsoleYamlRegistrar 自动扫描，无需在 Java 代码中手动注册以下内容。
+# 注意：editorDescriptor 和 editorField 仍需通过命令式 API 注册（结构复杂不适合 YAML 声明）。
+
+module:
+  name: "Gem 宝石"
+  summary: "开孔、镶嵌、升级与 GUI"
+  tone: gem
+
+files:
+  - title: "宝石系统配置"
+    path: "config.yml"
+    kind: CONFIG
+    comment: "宝石系统主配置，包含开孔器、镶嵌、升级和 GUI 入口设置。"
+  - title: "宝石 GUI 模板"
+    path: "gui/**/*.yml"
+    kind: GUI
+    editor: "emakigem:gui"
+    comment: "宝石镶嵌、开孔、升级 GUI 模板文件。"
+  - title: "宝石物品定义"
+    path: "items/**/*.yml"
+    kind: ITEM
+    editor: "emakigem:socket-item"
+    comment: "宝石插件物品定义文件。"
+  - title: "宝石定义"
+    path: "gems/**/*.yml"
+    kind: ITEM
+    editor: "emakigem:gem"
+    comment: "宝石定义文件，包含宝石物品来源、效果、插槽兼容和升级配置。"
+
+extensions:
+  - id: "emakigem:item-surface"
+    resource: "web-extensions/emakigem-item-surface.js"
+
+comments:
+  socket_openers:
+    label: "开孔器"
+    comment: "攻击、防御、通用等开孔器的物品与规则配置。"
+    type: object
+  inlay_success:
+    label: "镶嵌成功率"
+    comment: "宝石镶嵌成功率、公式与失败处理策略。"
+    type: object
+  inlay_success.enabled:
+    label: "启用成功率"
+    comment: "是否启用镶嵌成功率机制（关闭则必定成功）。"
+    type: boolean
+  inlay_success.default_chance:
+    label: "默认成功率"
+    comment: "未单独配置时的默认镶嵌成功率百分比。"
+    type: number
+  inlay_success.rate_formula:
+    label: "成功率公式"
+    comment: "镶嵌成功率的计算公式表达式。"
+    type: text
+  inlay_success.failure_action:
+    label: "失败处理"
+    comment: "镶嵌失败时的处理方式。"
+    type: "enum:return_gem,destroy_gem,destroy_both"
+  upgrade:
+    label: "升级配置"
+    comment: "宝石升级成功率与失败惩罚配置。"
+    type: object
+  upgrade.global_success_rates:
+    label: "升级成功率"
+    comment: "各等级宝石升级的全局成功率配置。"
+    type: object
+  upgrade.global_failure_penalty:
+    label: "失败惩罚"
+    comment: "宝石升级失败时的全局惩罚方式。"
+    type: "enum:none,downgrade,destroy"
+  number_format:
+    label: "数值格式"
+    comment: "宝石属性数值的格式化配置。"
+    type: object
+  number_format.default:
+    label: "默认格式"
+    comment: "默认数值显示格式（如 #.##）。"
+    type: text
+  permission.op_bypass:
+    label: "OP跳过"
+    comment: "OP 是否跳过宝石操作的条件检查。"
+    type: boolean
+  gui:
+    label: "GUI"
+    comment: "宝石 GUI 默认模式和关闭保存策略。"
+    type: object
+  gui.default_mode:
+    label: "默认模式"
+    comment: "打开宝石 GUI 时的默认显示模式。"
+    type: "enum:inlay,open,upgrade"
+  gui.save_on_close:
+    label: "关闭保存"
+    comment: "关闭 GUI 时是否自动保存当前操作。"
+    type: boolean

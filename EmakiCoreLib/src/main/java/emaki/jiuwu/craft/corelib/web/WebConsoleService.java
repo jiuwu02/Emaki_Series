@@ -278,11 +278,12 @@ public final class WebConsoleService {
                 WebResponse.json(exchange, 403, Map.of("success", false, "error", "路径不合法"));
                 return;
             }
-            String content = java.nio.file.Files.readString(target.toPath(), java.nio.charset.StandardCharsets.UTF_8);
+            String content = java.nio.file.Files.readString(target.toPath(), StandardCharsets.UTF_8);
             Map<String, Object> payload = new LinkedHashMap<>();
             payload.put("success", true);
             payload.put("path", path);
             payload.put("content", content);
+            payload.put("revision", fileRevision(target));
             WebResponse.json(exchange, 200, payload);
         } catch (Exception e) {
             WebResponse.json(exchange, 500, Map.of("success", false, "error", e.getMessage()));
@@ -298,6 +299,8 @@ public final class WebConsoleService {
         String body = readBody(exchange);
         String path = WebJson.extractString(body, "path");
         String content = WebJson.extractString(body, "content");
+        Object revisionValue = WebJson.extractValue(body, "revision");
+        Long expectedRevision = revisionValue instanceof Number n ? n.longValue() : null;
         if (path == null || path.isBlank()) {
             WebResponse.json(exchange, 400, Map.of("success", false, "error", "缺少 path"));
             return;
@@ -309,15 +312,29 @@ public final class WebConsoleService {
                 WebResponse.json(exchange, 403, Map.of("success", false, "error", "路径不合法"));
                 return;
             }
+            if (expectedRevision != null && target.exists()) {
+                long current = fileRevision(target);
+                if (current != 0 && current != expectedRevision) {
+                    WebResponse.json(exchange, 409, Map.of("success", false, "error", "文件已被其他管理员修改，请重载后再保存。", "revision", current));
+                    return;
+                }
+            }
             java.nio.file.Files.createDirectories(target.toPath().getParent());
-            java.nio.file.Files.writeString(target.toPath(), content == null ? "" : content, java.nio.charset.StandardCharsets.UTF_8);
-            WebResponse.json(exchange, 200, Map.of("success", true));
+            java.nio.file.Files.writeString(target.toPath(), content == null ? "" : content, StandardCharsets.UTF_8);
+            WebResponse.json(exchange, 200, Map.of("success", true, "revision", fileRevision(target)));
         } catch (Exception e) {
             WebResponse.json(exchange, 500, Map.of("success", false, "error", e.getMessage()));
         }
     }
 
-    private void handleGuiRead(HttpExchange exchange) throws IOException {
+    // --- 通用 YAML 文件读写（GUI / ITEM 共用） ---
+
+    private void handleGuiRead(HttpExchange exchange) throws IOException { handleYamlRead(exchange, "GUI"); }
+    private void handleGuiSave(HttpExchange exchange) throws IOException { handleYamlSave(exchange, "GUI"); }
+    private void handleItemRead(HttpExchange exchange) throws IOException { handleYamlRead(exchange, "ITEM"); }
+    private void handleItemSave(HttpExchange exchange) throws IOException { handleYamlSave(exchange, "ITEM"); }
+
+    private void handleYamlRead(HttpExchange exchange, String kind) throws IOException {
         if (requireAuth(exchange) == null) return;
         String module = query(exchange, "module");
         String path = query(exchange, "path");
@@ -328,7 +345,7 @@ public final class WebConsoleService {
         try {
             java.io.File target = safeModuleFile(module, path);
             if (!target.exists() || !target.isFile()) {
-                WebResponse.json(exchange, 404, Map.of("success", false, "error", "GUI 文件不存在"));
+                WebResponse.json(exchange, 404, Map.of("success", false, "error", kind + " 文件不存在"));
                 return;
             }
             String content = java.nio.file.Files.readString(target.toPath(), StandardCharsets.UTF_8);
@@ -339,13 +356,14 @@ public final class WebConsoleService {
             payload.put("path", path);
             payload.put("content", content);
             payload.put("data", ConfigNodes.toPlainData(yaml));
+            payload.put("revision", fileRevision(target));
             WebResponse.json(exchange, 200, payload);
         } catch (Exception e) {
             WebResponse.json(exchange, 500, Map.of("success", false, "error", e.getMessage()));
         }
     }
 
-    private void handleGuiSave(HttpExchange exchange) throws IOException {
+    private void handleYamlSave(HttpExchange exchange, String kind) throws IOException {
         if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
             WebResponse.json(exchange, 405, Map.of("success", false, "error", "Method not allowed"));
             return;
@@ -355,71 +373,36 @@ public final class WebConsoleService {
         String module = WebJson.extractString(body, "moduleId");
         String path = WebJson.extractString(body, "path");
         String content = WebJson.extractString(body, "content");
+        Object revisionValue = WebJson.extractValue(body, "revision");
+        Long expectedRevision = revisionValue instanceof Number n ? n.longValue() : null;
         if (module.isBlank() || path.isBlank()) {
             WebResponse.json(exchange, 400, Map.of("success", false, "error", "缺少 moduleId 或 path"));
             return;
         }
         try {
             java.io.File target = safeModuleFile(module, path);
-            YamlFiles.load(content == null ? "" : content);
-            java.nio.file.Files.createDirectories(target.toPath().getParent());
-            java.nio.file.Files.writeString(target.toPath(), content == null ? "" : content, StandardCharsets.UTF_8);
-            WebResponse.json(exchange, 200, Map.of("success", true));
-        } catch (Exception e) {
-            WebResponse.json(exchange, 500, Map.of("success", false, "error", e.getMessage()));
-        }
-    }
-
-    private void handleItemRead(HttpExchange exchange) throws IOException {
-        if (requireAuth(exchange) == null) return;
-        String module = query(exchange, "module");
-        String path = query(exchange, "path");
-        if (module.isBlank() || path.isBlank()) {
-            WebResponse.json(exchange, 400, Map.of("success", false, "error", "缺少 module 或 path 参数"));
-            return;
-        }
-        try {
-            java.io.File target = safeModuleFile(module, path);
-            if (!target.exists() || !target.isFile()) {
-                WebResponse.json(exchange, 404, Map.of("success", false, "error", "ITEM 文件不存在"));
-                return;
+            if (expectedRevision != null && target.exists()) {
+                long current = fileRevision(target);
+                if (current != 0 && current != expectedRevision) {
+                    WebResponse.json(exchange, 409, Map.of("success", false, "error", "文件已被其他管理员修改，请重载后再保存。", "revision", current));
+                    return;
+                }
             }
-            String content = java.nio.file.Files.readString(target.toPath(), StandardCharsets.UTF_8);
-            YamlSection yaml = YamlFiles.load(content);
-            Map<String, Object> payload = new LinkedHashMap<>();
-            payload.put("success", true);
-            payload.put("moduleId", module);
-            payload.put("path", path);
-            payload.put("content", content);
-            payload.put("data", ConfigNodes.toPlainData(yaml));
-            WebResponse.json(exchange, 200, payload);
+            YamlFiles.load(content == null ? "" : content);
+            java.nio.file.Files.createDirectories(target.toPath().getParent());
+            java.nio.file.Files.writeString(target.toPath(), content == null ? "" : content, StandardCharsets.UTF_8);
+            WebResponse.json(exchange, 200, Map.of("success", true, "revision", fileRevision(target)));
         } catch (Exception e) {
             WebResponse.json(exchange, 500, Map.of("success", false, "error", e.getMessage()));
         }
     }
 
-    private void handleItemSave(HttpExchange exchange) throws IOException {
-        if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
-            WebResponse.json(exchange, 405, Map.of("success", false, "error", "Method not allowed"));
-            return;
-        }
-        if (requireAuth(exchange) == null) return;
-        String body = readBody(exchange);
-        String module = WebJson.extractString(body, "moduleId");
-        String path = WebJson.extractString(body, "path");
-        String content = WebJson.extractString(body, "content");
-        if (module.isBlank() || path.isBlank()) {
-            WebResponse.json(exchange, 400, Map.of("success", false, "error", "缺少 moduleId 或 path"));
-            return;
-        }
+    private long fileRevision(java.io.File file) {
+        if (!file.exists()) return 0L;
         try {
-            java.io.File target = safeModuleFile(module, path);
-            YamlFiles.load(content == null ? "" : content);
-            java.nio.file.Files.createDirectories(target.toPath().getParent());
-            java.nio.file.Files.writeString(target.toPath(), content == null ? "" : content, StandardCharsets.UTF_8);
-            WebResponse.json(exchange, 200, Map.of("success", true));
-        } catch (Exception e) {
-            WebResponse.json(exchange, 500, Map.of("success", false, "error", e.getMessage()));
+            return java.nio.file.Files.getLastModifiedTime(file.toPath()).toMillis();
+        } catch (IOException ignored) {
+            return 0L;
         }
     }
 

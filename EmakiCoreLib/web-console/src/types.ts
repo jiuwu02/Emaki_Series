@@ -139,6 +139,7 @@ export type GuiDocument = {
   path: string;
   content: string;
   data: GuiTemplateData;
+  revision?: number;
 };
 
 export type ItemDocument = {
@@ -146,6 +147,7 @@ export type ItemDocument = {
   path: string;
   content: string;
   data: ItemDocumentData;
+  revision?: number;
 };
 
 export type ItemDocumentData = Record<string, unknown>;
