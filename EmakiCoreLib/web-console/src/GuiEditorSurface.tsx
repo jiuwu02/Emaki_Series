@@ -184,7 +184,8 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
 
   function updateData(mutator: (draft: GuiTemplateData) => GuiTemplateData) {
     setData((current) => {
-      const next = mutator({ ...(current ?? {}), slots: { ...((current ?? {}).slots ?? {}) } });
+      const mutated = mutator({ ...(current ?? {}), slots: { ...((current ?? {}).slots ?? {}) } });
+      const next = pruneUndefined(mutated) as GuiTemplateData;
       setSourceText(serializeGuiYaml(next));
       setSourceError(null);
       return next;
@@ -192,7 +193,15 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
   }
 
   function updateSlot(key: string, patch: Partial<GuiSlotDefinition>) {
-    updateData((draft) => ({ ...draft, slots: { ...(draft.slots ?? {}), [key]: { ...((draft.slots ?? {})[key] ?? {}), ...patch } } }));
+    updateData((draft) => {
+      const currentSlot = (draft.slots ?? {})[key] ?? {};
+      const merged: Record<string, unknown> = { ...currentSlot };
+      for (const [field, value] of Object.entries(patch)) {
+        if (value === undefined) delete merged[field];
+        else merged[field] = value;
+      }
+      return { ...draft, slots: { ...(draft.slots ?? {}), [key]: merged as GuiSlotDefinition } };
+    });
   }
 
   function createSlot(index: number, material = 'STONE') {
@@ -425,6 +434,19 @@ function SlotIcon({ slot, failed, setFailed }: { slot?: GuiSlotDefinition | null
 
 function clampInspectorWidth(value: number): number {
   return Math.max(INSPECTOR_MIN, Math.min(INSPECTOR_MAX, Number.isFinite(value) ? value : 380));
+}
+
+function pruneUndefined(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(pruneUndefined);
+  if (value && typeof value === 'object') {
+    const result: Record<string, unknown> = {};
+    for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+      if (entry === undefined) continue;
+      result[key] = pruneUndefined(entry);
+    }
+    return result;
+  }
+  return value;
 }
 
 function nextTooltipPosition(clientX: number, clientY: number) {

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Button } from './components';
 import { getLocale, getModuleLocaleBundles, getRegisteredLocales, replaceLocaleMessages, t, type LocaleMessages } from './i18n';
 
-export type I18nTarget = { moduleId: string; fileId?: string };
+export type I18nTarget = { moduleId: string };
 
 export function I18nBundleModal({ target, onClose, onSaved }: { target: I18nTarget; onClose: () => void; onSaved?: (locale: string) => void }) {
   const bundles = useMemo(() => getModuleLocaleBundles(target.moduleId), [target.moduleId]);
@@ -57,6 +57,7 @@ export function I18nBundleModal({ target, onClose, onSaved }: { target: I18nTarg
   function save() {
     replaceLocaleMessages(locale, { ...draft }, { persist: true, moduleId: target.moduleId });
     onSaved?.(locale);
+    onClose();
   }
 
   return (

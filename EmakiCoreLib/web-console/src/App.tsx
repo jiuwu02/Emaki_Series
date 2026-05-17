@@ -8,7 +8,7 @@ import { getSurface, isKind, registerSurface } from './registry';
 import { getLocale, getRegisteredLocales, setLocale, t } from './i18n';
 import { ActionGroup, Button, EditorChrome, InlineError, ToastNotice, type EditorChange } from './components';
 import { I18nBundleModal, type I18nTarget } from './I18nBundleModal';
-import { valuesEqual } from './lib';
+import { fieldLabel, valuesEqual } from './lib';
 import { Login, ResizableRail, WorkspaceTree, fileKindLabel } from './shell';
 import type { SurfaceProps } from './registry';
 import type { WebConfigNode, WebRegistry, WebRegistryFile, WebRegistryModule } from './types';
@@ -226,7 +226,6 @@ export default function App() {
             </label>
           </div>
         </div>
-        <div className="tree-caption">{t('core.tree.caption')}</div>
         <WorkspaceTree registry={registry} selected={selected} expanded={expanded} dirtyKeys={dirtyTreeKeys} setExpanded={setExpanded} onOpenI18n={setI18nTarget} onSelect={(next) => setSelected((current) => sameSelection(current, next) ? { ...next, refreshKey: (current?.refreshKey ?? 0) + 1 } : next)} />
         <button className="rail-action quiet" onClick={() => { sessionStorage.removeItem('emaki-web-token'); setToken(null); }}>{t('core.auth.logout')}</button>
       </ResizableRail>
@@ -380,7 +379,7 @@ function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, set
 function configChanges(scope: ConfigDraftScope, nodes: WebConfigNode[], drafts: DraftMap): EditorChange[] {
   return nodes
     .filter(node => node.type !== 'object' && draftKey(scope, node.path) in drafts)
-    .map(node => ({ path: node.path, label: node.label, before: node.value, after: drafts[draftKey(scope, node.path)] }));
+    .map(node => ({ path: node.path, label: configNodeDisplayLabel(scope, node), before: node.value, after: drafts[draftKey(scope, node.path)] }));
 }
 
 function configSourcePreview(nodes: WebConfigNode[], scope: ConfigDraftScope, drafts: DraftMap): string {
@@ -393,6 +392,10 @@ function configSourcePreview(nodes: WebConfigNode[], scope: ConfigDraftScope, dr
 function formatPreviewValue(value: unknown): string {
   if (typeof value === 'string') return JSON.stringify(value);
   try { return JSON.stringify(value); } catch { return String(value); }
+}
+
+function configNodeDisplayLabel(scope: ConfigDraftScope, node: WebConfigNode): string {
+  return fieldLabel(node.path, { moduleId: scope.moduleId, namespace: scope.moduleId, fallback: node.label });
 }
 
 function ConfigNodeTree({ scope, nodes, drafts, setDraftValue }: { scope: ConfigDraftScope; nodes: WebConfigNode[]; drafts: DraftMap; setDraftValue: DraftValueSetter }) {
@@ -411,17 +414,18 @@ function ConfigNodeTree({ scope, nodes, drafts, setDraftValue }: { scope: Config
     const isCollapsed = collapsed[group.node.path] === true;
     const childCount = group.children.length;
     const changedInGroup = group.children.filter(n => n.type !== 'object' && draftKey(scope, n.path) in drafts).length;
+    const groupLabel = configNodeDisplayLabel(scope, group.node);
     return <div key={group.node.path} className="node-section">
       <button className={`node-section-header ${isCollapsed ? 'collapsed' : ''}`} onClick={() => toggle(group.node.path)}>
         <span className="section-arrow">{isCollapsed ? '›' : '⌄'}</span>
-        <strong>{group.node.label}</strong>
+        <strong>{groupLabel}</strong>
         <code>{group.node.path}</code>
         <span className="section-comment">{group.node.comment}</span>
         <span className="section-meta">{changedInGroup > 0 && <span className="section-badge">{changedInGroup}</span>}{t('core.config.groupItems', { count: childCount })}</span>
       </button>
       {!isCollapsed && <div className="node-section-body">{group.children.map(child =>
         child.type === 'object'
-          ? <div key={child.path} className="node-group-inner"><strong>{child.label}</strong><code>{child.path}</code><span>{child.comment}</span></div>
+          ? <div key={child.path} className="node-group-inner"><strong>{configNodeDisplayLabel(scope, child)}</strong><code>{child.path}</code><span>{child.comment}</span></div>
           : <ConfigNodeView key={child.path} scope={scope} node={child} drafts={drafts} setDraftValue={setDraftValue} />
       )}</div>}
     </div>;
@@ -462,20 +466,21 @@ function ConfigNodeView({ scope, node, drafts, setDraftValue }: { scope: ConfigD
   const value = key in drafts ? drafts[key] : node.value;
   const setValue = (next: unknown) => setDraftValue(scope, node, next);
   const isWide = node.type === 'dynamic_map' || node.type === 'list';
-  return <div className={`node ${key in drafts ? 'changed' : ''} ${isWide ? 'node-wide' : ''}`}><div className="node-meta"><strong>{node.label}</strong><code>{node.path}</code><p>{node.comment}</p></div><div className="node-control">{renderControl(node, value, setValue)}</div></div>;
+  const label = configNodeDisplayLabel(scope, node);
+  return <div className={`node ${key in drafts ? 'changed' : ''} ${isWide ? 'node-wide' : ''}`}><div className="node-meta"><strong>{label}</strong><code>{node.path}</code><p>{node.comment}</p></div><div className="node-control">{renderControl(node, value, setValue, label)}</div></div>;
 }
 
-function renderControl(node: WebConfigNode, value: unknown, setValue: (v: unknown) => void) {
-  if (node.type === 'boolean') return <button type="button" className={`switch ${value ? 'on' : ''}`} aria-pressed={value === true} aria-label={`${node.label}: ${value ? t('core.config.booleanOn') : t('core.config.booleanOff')}`} onClick={() => setValue(!value)}><span />{value ? t('core.config.booleanOn') : t('core.config.booleanOff')}</button>;
-  if (node.type === 'enum' && node.options) return <select value={str(value)} aria-label={node.label} onChange={(e) => setValue(e.target.value)}>{node.options.map(opt => <option key={opt} value={opt}>{opt}</option>)}</select>;
-  if (node.type === 'number') return <input type="number" aria-label={node.label} value={value == null ? '' : String(value)} onChange={(e) => setValue(e.target.value === '' ? undefined : Number(e.target.value))} />;
+function renderControl(node: WebConfigNode, value: unknown, setValue: (v: unknown) => void, label: string) {
+  if (node.type === 'boolean') return <button type="button" className={`switch ${value ? 'on' : ''}`} aria-pressed={value === true} aria-label={`${label}: ${value ? t('core.config.booleanOn') : t('core.config.booleanOff')}`} onClick={() => setValue(!value)}><span />{value ? t('core.config.booleanOn') : t('core.config.booleanOff')}</button>;
+  if (node.type === 'enum' && node.options) return <select value={str(value)} aria-label={label} onChange={(e) => setValue(e.target.value)}>{node.options.map(opt => <option key={opt} value={opt}>{opt}</option>)}</select>;
+  if (node.type === 'number') return <input type="number" aria-label={label} value={value == null ? '' : String(value)} onChange={(e) => setValue(e.target.value === '' ? undefined : Number(e.target.value))} />;
   if (node.type === 'dynamic_map') return <DynamicMapEditor value={value} setValue={setValue} />;
   if (node.type === 'list') {
     const items = Array.isArray(value) ? value : [];
     const update = (i: number, v: string) => setValue(items.map((x, j) => j === i ? parseListValue(x, v) : x));
     return <div className="list-editor">{items.map((item, i) => <div className="list-row" key={i}>{isObjectLike(item) ? <textarea value={str(item)} onChange={(e) => update(i, e.target.value)} /> : <input value={str(item)} onChange={(e) => update(i, e.target.value)} />}<button type="button" onClick={() => setValue(items.filter((_, j) => j !== i))}>{t('core.config.delete')}</button></div>)}<button type="button" className="add-row" onClick={() => setValue([...items, ''])}>{t('core.config.addItem')}</button></div>;
   }
-  return <input aria-label={node.label} value={str(value)} onChange={(e) => setValue(e.target.value)} />;
+  return <input aria-label={label} value={str(value)} onChange={(e) => setValue(e.target.value)} />;
 }
 
 function DynamicMapEditor({ value, setValue }: { value: unknown; setValue: (v: unknown) => void }) {

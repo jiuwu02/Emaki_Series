@@ -35,13 +35,20 @@ export function parseYaml(content: string): Record<string, unknown> {
 function dumpYaml(value: unknown, indent = 0): string {
   const space = ' '.repeat(indent);
   if (Array.isArray(value)) {
+    if (value.length === 0) return '[]';
     if (value.every((entry) => typeof entry !== 'object' || entry == null)) return `[${value.map(formatScalar).join(', ')}]`;
     return value.map((entry) => `${space}- ${dumpYaml(entry, indent + 2).trimStart()}`).join('\n');
   }
   if (value && typeof value === 'object') {
-    return Object.entries(value as Record<string, unknown>).map(([key, entry]) => {
-      if (entry && typeof entry === 'object' && !Array.isArray(entry)) return `${space}${key}:\n${dumpYaml(entry, indent + 2)}`;
-      if (Array.isArray(entry) && !entry.every((item) => typeof item !== 'object' || item == null)) return `${space}${key}:\n${dumpYaml(entry, indent + 2)}`;
+    const entries = Object.entries(value as Record<string, unknown>).filter(([, entry]) => entry !== undefined && entry !== null);
+    if (entries.length === 0) return '{}';
+    return entries.map(([key, entry]) => {
+      if (entry && typeof entry === 'object' && !Array.isArray(entry)) {
+        const childEntries = Object.entries(entry as Record<string, unknown>).filter(([, child]) => child !== undefined && child !== null);
+        if (childEntries.length === 0) return `${space}${key}: {}`;
+        return `${space}${key}:\n${dumpYaml(entry, indent + 2)}`;
+      }
+      if (Array.isArray(entry) && entry.length > 0 && !entry.every((item) => typeof item !== 'object' || item == null)) return `${space}${key}:\n${dumpYaml(entry, indent + 2)}`;
       return `${space}${key}: ${dumpYaml(entry, indent + 2).trimStart()}`;
     }).join('\n');
   }

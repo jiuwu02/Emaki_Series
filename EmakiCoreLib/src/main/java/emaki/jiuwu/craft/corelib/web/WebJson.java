@@ -121,7 +121,7 @@ public final class WebJson {
         }
         try {
             return raw.contains(".") ? Double.parseDouble(raw) : Integer.parseInt(raw);
-        } catch (Exception _) {
+        } catch (Exception ignored) {
             return raw;
         }
     }
@@ -155,40 +155,61 @@ public final class WebJson {
 
     private static String readString(String json, int start) {
         StringBuilder builder = new StringBuilder();
-        boolean escaped = false;
-        for (int i = start + 1; i < json.length(); i++) {
+        int i = start + 1;
+        while (i < json.length()) {
             char c = json.charAt(i);
-            if (escaped) {
-                builder.append(switch (c) {
-                    case 'n' -> '\n';
-                    case 'r' -> '\r';
-                    case 't' -> '\t';
-                    case 'b' -> '\b';
-                    case 'f' -> '\f';
-                    default -> c;
-                });
-                escaped = false;
-            } else if (c == '\\') {
-                escaped = true;
+            if (c == '\\') {
+                if (i + 1 >= json.length()) {
+                    return "";
+                }
+                char next = json.charAt(i + 1);
+                switch (next) {
+                    case 'n' -> { builder.append('\n'); i += 2; }
+                    case 'r' -> { builder.append('\r'); i += 2; }
+                    case 't' -> { builder.append('\t'); i += 2; }
+                    case 'b' -> { builder.append('\b'); i += 2; }
+                    case 'f' -> { builder.append('\f'); i += 2; }
+                    case '"' -> { builder.append('"'); i += 2; }
+                    case '\\' -> { builder.append('\\'); i += 2; }
+                    case '/' -> { builder.append('/'); i += 2; }
+                    case 'u' -> {
+                        if (i + 6 > json.length()) {
+                            return "";
+                        }
+                        try {
+                            int codePoint = Integer.parseInt(json.substring(i + 2, i + 6), 16);
+                            builder.append((char) codePoint);
+                        } catch (NumberFormatException ignored) {
+                            builder.append(next);
+                        }
+                        i += 6;
+                    }
+                    default -> { builder.append(next); i += 2; }
+                }
             } else if (c == '"') {
                 return builder.toString();
             } else {
                 builder.append(c);
+                i++;
             }
         }
         return "";
     }
 
     private static int nextStringEnd(String json, int start) {
-        boolean escaped = false;
-        for (int i = start + 1; i < json.length(); i++) {
+        int i = start + 1;
+        while (i < json.length()) {
             char c = json.charAt(i);
-            if (escaped) {
-                escaped = false;
-            } else if (c == '\\') {
-                escaped = true;
+            if (c == '\\') {
+                if (i + 1 < json.length() && json.charAt(i + 1) == 'u') {
+                    i += 6; // skip unicode escape
+                } else {
+                    i += 2; // skip escape pair
+                }
             } else if (c == '"') {
                 return i;
+            } else {
+                i++;
             }
         }
         return json.length() - 1;

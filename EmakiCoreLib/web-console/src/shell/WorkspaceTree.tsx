@@ -11,7 +11,7 @@ export function WorkspaceTree({ registry, selected, expanded, dirtyKeys = new Se
   dirtyKeys?: ReadonlySet<string>;
   setExpanded: Dispatch<SetStateAction<Record<string, boolean>>>;
   onSelect: (v: TreeSelection) => void;
-  onOpenI18n?: (target: { moduleId: string; fileId?: string }) => void;
+  onOpenI18n?: (target: { moduleId: string }) => void;
 }) {
   const [query, setQuery] = useState('');
   const normalizedQuery = normalizeQuery(query);
@@ -22,6 +22,9 @@ export function WorkspaceTree({ registry, selected, expanded, dirtyKeys = new Se
   if (!registry) return <div className="tree-empty" role="status">{t('core.tree.loading')}</div>;
 
   return <>
+    <div className="tree-toolbar">
+      <div className="tree-caption">{t('core.tree.caption')}</div>
+    </div>
     <label className="tree-search">
       <span className="sr-only">{t('core.tree.search')}</span>
       <SearchIcon />
@@ -44,7 +47,7 @@ function TreeNodeView({ node, selected, expanded, dirtyKeys, queryActive, toggle
   queryActive: boolean;
   toggle: (id: string) => void;
   onSelect: (v: TreeSelection) => void;
-  onOpenI18n?: (target: { moduleId: string; fileId?: string }) => void;
+  onOpenI18n?: (target: { moduleId: string }) => void;
   level: number;
 }) {
   const children = node.children ?? [];
@@ -54,20 +57,23 @@ function TreeNodeView({ node, selected, expanded, dirtyKeys, queryActive, toggle
   const kindLabel = fileKindLabel(node.kind ?? node.type);
   const active = Boolean(node.moduleId && node.fileId && selected?.moduleId === node.moduleId && selected.fileId === node.fileId && (selected.scriptPath ?? '') === (node.childPath ?? ''));
   const dirty = isNodeDirty(node, dirtyKeys) || children.some(child => isNodeOrDescendantDirty(child, dirtyKeys));
-  const i18nCount = node.moduleId ? getModuleLocaleBundles(node.moduleId).reduce((sum, bundle) => sum + bundle.count, 0) : 0;
 
   if (isModule) {
+    const i18nCount = moduleI18nCount(node.id);
     return (
       <div className="tree-module" role="none">
-        <button
-          className={`tree-folder ${dirty ? 'dirty' : ''}`}
-          role="treeitem"
-          aria-level={level + 1}
-          aria-expanded={isOpen}
-          onClick={() => toggle(node.id)}
-        >
-          <Icon svg={node.icon} /> <span aria-hidden="true">{isOpen ? '⌄' : '›'}</span> <span className="tree-label">{node.label}</span><DirtyDot dirty={dirty} />
-        </button>
+        <div className="tree-module-row">
+          <button
+            className={`tree-folder ${dirty ? 'dirty' : ''}`}
+            role="treeitem"
+            aria-level={level + 1}
+            aria-expanded={isOpen}
+            onClick={() => toggle(node.id)}
+          >
+            <Icon svg={node.icon} /> <span aria-hidden="true">{isOpen ? '⌄' : '›'}</span> <span className="tree-label">{node.label}</span><DirtyDot dirty={dirty} />
+          </button>
+          {onOpenI18n && node.id && <ModuleI18nButton moduleId={node.id} moduleName={node.label} count={i18nCount} onOpen={onOpenI18n} />}
+        </div>
         {isOpen && <div role="group">{children.map((child) => (
           <TreeNodeView key={child.id} node={child} selected={selected} expanded={expanded} dirtyKeys={dirtyKeys} queryActive={queryActive} toggle={toggle} onSelect={onSelect} onOpenI18n={onOpenI18n} level={level + 1} />
         ))}</div>}
@@ -89,7 +95,6 @@ function TreeNodeView({ node, selected, expanded, dirtyKeys, queryActive, toggle
           >
             <span className="folder-arrow" aria-hidden="true">{isOpen ? '⌄' : '›'}</span><span className="tree-label">{kindLabel} · {node.label}</span><DirtyDot dirty={dirty} />
           </button>
-          <I18nTreeButton moduleId={node.moduleId} fileId={node.fileId} count={i18nCount} onOpen={onOpenI18n} />
         </div>
         {isOpen && (
           <div className="tree-children" role="group">
@@ -120,7 +125,6 @@ function TreeNodeView({ node, selected, expanded, dirtyKeys, queryActive, toggle
       >
         <span className="tree-label">{level > 1 ? node.label : `${kindLabel} · ${node.label}`}</span><DirtyDot dirty={dirty} />
       </button>
-      <I18nTreeButton moduleId={node.moduleId} fileId={node.fileId} count={i18nCount} onOpen={onOpenI18n} />
     </div>
   );
 }
@@ -136,14 +140,19 @@ export function fileKindLabel(kind: string | undefined): string {
   return kind;
 }
 
-function I18nTreeButton({ moduleId, fileId, count, onOpen }: { moduleId?: string; fileId?: string; count: number; onOpen?: (target: { moduleId: string; fileId?: string }) => void }) {
-  if (!moduleId || !onOpen) return null;
+function moduleI18nCount(moduleId?: string): number {
+  if (!moduleId) return 0;
+  return getModuleLocaleBundles(moduleId).reduce((sum, bundle) => sum + bundle.count, 0);
+}
+
+function ModuleI18nButton({ moduleId, moduleName, count, onOpen }: { moduleId: string; moduleName: string; count: number; onOpen: (target: { moduleId: string }) => void }) {
+  const label = t('core.i18n.openAria', { module: moduleName || moduleId });
   return <button
     type="button"
-    className={`tree-i18n-button ${count > 0 ? 'has-bundle' : ''}`}
-    title={t('core.i18n.openAria', { module: moduleId })}
-    aria-label={t('core.i18n.openAria', { module: moduleId })}
-    onClick={(event) => { event.stopPropagation(); onOpen({ moduleId, fileId }); }}
+    className={`tree-i18n-button tree-i18n-button--module ${count > 0 ? 'has-bundle' : ''}`}
+    title={label}
+    aria-label={label}
+    onClick={(event) => { event.stopPropagation(); onOpen({ moduleId }); }}
   ><LanguageFileIcon />{count > 0 && <small>{count}</small>}</button>;
 }
 

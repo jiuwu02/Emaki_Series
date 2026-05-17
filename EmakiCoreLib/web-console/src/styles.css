@@ -201,7 +201,8 @@ textarea { min-height: 96px; resize: vertical; font-family: ui-monospace, "Casca
 .locale-toggle.icon-only select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
 .locale-toggle select { width: 66px; border: 0; background: transparent; padding: 0; color: inherit; font-size: 11px; outline: none; }
 @keyframes theme-icon-in { from { opacity: 0; transform: rotate(-18deg) scale(.72); } to { opacity: 1; transform: rotate(0) scale(1); } }
-.tree-caption { color: var(--faint); font-size: 11px; font-weight: 700; padding: 0 8px; }
+.tree-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 2px 0 8px; min-height: 26px; }
+.tree-caption { color: var(--faint); font-size: 11px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tree-search { position: relative; display: flex; align-items: center; min-height: 30px; border: 1px solid var(--line); border-radius: 6px; background: var(--input); color: var(--faint); padding: 0 8px; gap: 6px; }
 .tree-search:focus-within { border-color: var(--line-2); color: var(--accent); outline: 1px solid var(--accent-soft); outline-offset: 1px; }
 .tree-search svg { width: 14px; height: 14px; flex: 0 0 auto; }
@@ -210,7 +211,9 @@ textarea { min-height: 96px; resize: vertical; font-family: ui-monospace, "Casca
 .tree { overflow-y: auto; overflow-x: hidden; flex: 1; font-size: 13px; scrollbar-width: none; }
 .tree::-webkit-scrollbar { display: none; }
 .tree-module { margin-bottom: 2px; }
-.tree-folder { width: 100%; display: flex; align-items: center; gap: 7px; text-align: left; padding: 6px 8px; color: var(--muted); border-radius: 6px; font-weight: 600; transition: background 0.15s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
+.tree-module-row { display: flex; align-items: center; gap: 4px; }
+.tree-module-row .tree-folder { flex: 1; min-width: 0; }
+.tree-folder { display: flex; align-items: center; gap: 7px; text-align: left; padding: 6px 8px; color: var(--muted); border-radius: 6px; font-weight: 600; transition: background 0.15s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
 .tree-folder:hover { background: var(--surface-2); color: var(--text); }
 .tree-folder:active { transform: scale(0.97); }
 .tree-file { width: calc(100% - 18px); margin-left: 18px; display: flex; align-items: center; gap: 6px; text-align: left; padding: 5px 8px; color: var(--faint); border-radius: 6px; font-size: 12px; transition: background 0.15s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
@@ -227,10 +230,11 @@ textarea { min-height: 96px; resize: vertical; font-family: ui-monospace, "Casca
 .folder-arrow { display: inline-block; width: 12px; text-align: center; font-size: 11px; color: var(--faint); flex: 0 0 auto; }
 .tree-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tree-dirty-dot { flex: 0 0 auto; width: 6px; height: 6px; border-radius: 50%; background: var(--amber); box-shadow: 0 0 0 2px var(--changed-bg); }
-.tree-i18n-button { flex: 0 0 auto; min-width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; gap: 3px; border: 1px solid transparent; border-radius: 5px; color: var(--faint); opacity: .55; }
+.tree-i18n-button { flex: 0 0 auto; min-width: 28px; height: 24px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; border: 1px solid transparent; border-radius: 6px; color: var(--faint); opacity: .65; padding: 0 6px; }
+.tree-i18n-button--module { margin-right: 4px; }
 .tree-i18n-button svg { width: 15px; height: 15px; display: block; }
-.tree-i18n-button small { font-size: 9px; font-family: ui-monospace, "Cascadia Code", monospace; }
-.tree-i18n-button.has-bundle { opacity: .9; color: var(--accent); border-color: var(--accent-soft); background: var(--accent-dim); }
+.tree-i18n-button small { font-size: 9px; font-family: ui-monospace, "Cascadia Code", monospace; line-height: 1; }
+.tree-i18n-button.has-bundle { opacity: .92; color: var(--accent); border-color: var(--accent-soft); background: var(--accent-dim); }
 .tree-i18n-button:hover, .tree-i18n-button:focus-visible { opacity: 1; color: var(--accent-strong); border-color: var(--accent); background: var(--accent-soft); outline: none; }
 .tree-children { padding-left: 16px; }
 .tree-child { width: 100%; display: flex; align-items: center; gap: 6px; text-align: left; padding: 3px 8px; color: var(--faint); border-radius: 5px; font-size: 11px; opacity: .82; font-family: ui-monospace, "Cascadia Code", monospace; }
