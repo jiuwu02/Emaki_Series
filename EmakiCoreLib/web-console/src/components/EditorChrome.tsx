@@ -55,8 +55,9 @@ export function EditorChrome({
   const [reloadOpen, setReloadOpen] = useState(false);
   const [changesOpen, setChangesOpen] = useState(false);
   const count = changedCount ?? changes.length;
-  const canSave = Boolean(onSave) && dirty && !saving && !loading;
-  const finalSaveLabel = saveLabel ?? (count > 0 ? t('core.action.saveCount', { count }) : t('core.action.save'));
+  const hasTrackedChanges = count > 0;
+  const canSave = Boolean(onSave) && dirty && hasTrackedChanges && !saving && !loading;
+  const finalSaveLabel = saveLabel ?? (hasTrackedChanges ? t('core.action.saveCount', { count }) : t('core.action.save'));
 
   useEffect(() => {
     if (!sourceOpen && !reloadOpen) return;
@@ -94,8 +95,8 @@ export function EditorChrome({
         <Button size="sm" onClick={() => setSourceOpen(true)} disabled={!source}>{sourceLabel ?? t('core.item.source')}</Button>
         {onReload && <Button size="sm" onClick={requestReload} disabled={loading || saving}>{reloadLabel ?? t('core.gui.reload')}</Button>}
         <span className="editor-save-wrap" onMouseEnter={() => setChangesOpen(true)} onMouseLeave={() => setChangesOpen(false)} onFocus={() => setChangesOpen(true)} onBlur={() => setChangesOpen(false)}>
-          <Button size="sm" variant="primary" ready={dirty} onClick={onSave} disabled={!canSave}>{saving ? t('core.script.saving') : finalSaveLabel}</Button>
-          {dirty && changesOpen && <ChangePopover changes={previewChanges} count={count} />}
+          <Button size="sm" variant="primary" ready={dirty && hasTrackedChanges} onClick={onSave} disabled={!canSave}>{saving ? t('core.script.saving') : finalSaveLabel}</Button>
+          {dirty && hasTrackedChanges && changesOpen && <ChangePopover changes={previewChanges} count={count} />}
         </span>
       </ActionGroup>
     </div>

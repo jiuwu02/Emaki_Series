@@ -272,9 +272,10 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         editorField(editorId, "success_rates", "成功率", "各目标等级的升级成功率。", "object");
         editorField(editorId, "levels", "等级配置", "每个等级的显示、效果、材料和动作覆盖。", "object");
         editorField(editorId, "success_rate", "成功率", "升级到该等级的成功率。", "number");
+        editorField(editorId, "success_chance", "成功概率", "兼容字段：升级到该等级的成功概率。", "number");
         editorField(editorId, "materials", "材料消耗", "升级或操作所需材料。", "list");
         editorField(editorId, "currencies", "货币消耗", "Vault 或其他经济提供者的货币消耗。", "list");
-        editorField(editorId, "provider", "经济提供者", "货币提供者，例如 vault。", "text");
+        editorField(editorId, "provider", "经济提供者", "从 EmakiCoreLib 已注册的经济提供器中选择，auto 会按 currency_id 自动推断。", "enum");
         editorField(editorId, "currency_id", "货币 ID", "多货币系统中的货币标识。", "text");
         editorField(editorId, "amount", "数量", "材料数量或货币数量。", "number");
         editorField(editorId, "base_cost", "基础费用", "费用公式中使用的基础值。", "number");
@@ -397,10 +398,7 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
     }
 
     private Map<String, Object> editorSection(String title, Map<String, Object>... fields) {
-        Map<String, Object> section = new LinkedHashMap<>();
-        section.put("title", title);
-        section.put("fields", List.of(fields));
-        return section;
+        return WebConsoleRegistry.editorSection(title, true, false, fields);
     }
 
     private Map<String, Object> editorFieldDescriptor(String path, String label, String type, boolean wide) {

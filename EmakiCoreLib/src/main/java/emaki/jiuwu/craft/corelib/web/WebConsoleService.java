@@ -3,11 +3,15 @@ package emaki.jiuwu.craft.corelib.web;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
+import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.economy.EconomyManager;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 import java.util.concurrent.Executors;
@@ -79,6 +83,7 @@ public final class WebConsoleService {
             server.createContext("/api/items/save", this::handleItemSave);
             server.createContext("/api/items/preview", this::handleItemPreview);
             server.createContext("/api/items/action-types", this::handleItemActionTypes);
+            server.createContext("/api/economy/providers", this::handleEconomyProviders);
             server.createContext("/extensions/", this::handleExtensionAsset);
             server.createContext("/", this::handleStatic);
             server.start();
@@ -430,6 +435,34 @@ public final class WebConsoleService {
         } catch (Exception e) {
             WebResponse.json(exchange, 500, Map.of("success", false, "error", e.getMessage()));
         }
+    }
+
+    private void handleEconomyProviders(HttpExchange exchange) throws IOException {
+        if (requireAuth(exchange) == null) return;
+        try {
+            EconomyManager economyManager = economyManager();
+            List<String> providers = new ArrayList<>();
+            providers.add("auto");
+            if (economyManager != null) {
+                providers.addAll(economyManager.providerIds());
+            }
+            List<String> availableProviders = new ArrayList<>();
+            availableProviders.add("auto");
+            if (economyManager != null) {
+                availableProviders.addAll(economyManager.availableProviderIds());
+            }
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("success", true);
+            payload.put("providers", providers.stream().map(String::toLowerCase).distinct().toList());
+            payload.put("availableProviders", availableProviders.stream().map(String::toLowerCase).distinct().toList());
+            WebResponse.json(exchange, 200, payload);
+        } catch (Exception e) {
+            WebResponse.json(exchange, 500, Map.of("success", false, "error", e.getMessage()));
+        }
+    }
+
+    private EconomyManager economyManager() {
+        return plugin instanceof EmakiCoreLibPlugin coreLib ? coreLib.economyManager() : null;
     }
 
     private java.io.File safeModuleFile(String module, String path) throws IOException {

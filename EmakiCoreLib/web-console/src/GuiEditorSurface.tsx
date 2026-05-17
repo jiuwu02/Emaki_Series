@@ -2,8 +2,9 @@ import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from 'r
 import type { ApiClient } from './api';
 import type { GuiSlotDefinition, GuiTemplateData, WebRegistryFile, WebRegistryModule } from './types';
 import { buildOccupancy, clampRows, fieldLabel, guiColumns, guiField, guiSlotCount, guiTypeOptions, loreLines, materialShortName, materialUrls, normalizeGuiType, parseSlotList, parseYaml, renderMiniMessageParts, serializeGuiYaml, subscribeTextureBases, supportsRows, textValue } from './guiEditor';
-import { Button, EditorChrome, InlineError, InspectorSection, ToggleChip, type EditorChange } from './components';
+import { Button, EditorChrome, InlineError, InspectorSection, ToggleChip } from './components';
 import { t } from './i18n';
+import { diffRecords } from './lib';
 import { MATERIAL_CATEGORIES, MINECRAFT_MATERIAL_VERSION, type MaterialCategory, materialCategory, searchMaterials } from './minecraftMaterials';
 
 type Props = {
@@ -147,8 +148,8 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
   const selectedKey = selected.length === 1 ? occupancy.find((cell) => cell.index === selected[0])?.key ?? null : null;
   const selectedSlot = selectedKey && data?.slots ? data.slots[selectedKey] ?? null : null;
   const draftText = sourceError ? sourceText : data ? serializeGuiYaml(data) : '';
-  const dirty = data != null && draftText !== originalText;
   const changes = useMemo(() => diffRecords(data ?? {}, originalData ?? {}, '', 18), [data, originalData]);
+  const dirty = data != null && !sourceError && changes.length > 0;
   const materialResults = useMemo(() => searchMaterials(query, category), [query, category]);
   const visibleMaterials = materialResults.slice(0, 80);
 
@@ -332,30 +333,6 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
   </section>;
 }
 
-
-function diffRecords(after: unknown, before: unknown, prefix = '', limit = 18): EditorChange[] {
-  if (limit <= 0) return [];
-  if (!isPlainObject(after) || !isPlainObject(before)) return valuesEqual(after, before) ? [] : [{ path: prefix || 'root', before, after }];
-  const keys = [...new Set([...Object.keys(before), ...Object.keys(after)])];
-  const changes: EditorChange[] = [];
-  for (const key of keys) {
-    if (changes.length >= limit) break;
-    const path = prefix ? `${prefix}.${key}` : key;
-    const left = (before as Record<string, unknown>)[key];
-    const right = (after as Record<string, unknown>)[key];
-    if (isPlainObject(left) && isPlainObject(right)) changes.push(...diffRecords(right, left, path, limit - changes.length));
-    else if (!valuesEqual(left, right)) changes.push({ path, before: left, after: right });
-  }
-  return changes;
-}
-
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return Boolean(value && typeof value === 'object' && !Array.isArray(value));
-}
-
-function valuesEqual(left: unknown, right: unknown): boolean {
-  return JSON.stringify(left) === JSON.stringify(right);
-}
 
 function GuiLabel({ editor, path, fallback, children }: { editor?: import('./types').WebEditorDescriptor; path: string; fallback: string; children: React.ReactNode }) {
   const field = guiField(editor, path, fallback);

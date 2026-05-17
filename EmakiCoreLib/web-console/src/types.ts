@@ -55,6 +55,8 @@ export type WebEditorSection = {
   title: string;
   comment?: string;
   fields: WebEditorField[];
+  collapsible?: boolean;
+  defaultCollapsed?: boolean;
 };
 
 export type WebEditorDescriptor = {

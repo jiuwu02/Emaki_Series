@@ -8,6 +8,7 @@ import { getSurface, isKind, registerSurface } from './registry';
 import { getLocale, getRegisteredLocales, setLocale, t } from './i18n';
 import { ActionGroup, Button, EditorChrome, InlineError, ToastNotice, type EditorChange } from './components';
 import { I18nBundleModal, type I18nTarget } from './I18nBundleModal';
+import { valuesEqual } from './lib';
 import { Login, ResizableRail, WorkspaceTree, fileKindLabel } from './shell';
 import type { SurfaceProps } from './registry';
 import type { WebConfigNode, WebRegistry, WebRegistryFile, WebRegistryModule } from './types';
@@ -57,7 +58,7 @@ export default function App() {
     return () => window.clearTimeout(timer);
   }, [toast]);
 
-  async function loadRegistry(initial = false) {
+  async function loadRegistry(initial = false): Promise<WebRegistry | null> {
     setLoading(true);
     try {
       const next = await api.registry();
@@ -67,11 +68,19 @@ export default function App() {
       setSelected((c) => c ?? firstSelection(next));
       setDrafts({});
       if (!initial) setToast({ tone: 'ok', text: t('core.toast.registryRefreshed') });
+      return next;
     } catch (err) {
       setToast({ tone: 'bad', text: err instanceof Error ? err.message : t('core.toast.refreshFailed') });
+      return null;
     } finally {
       setLoading(false);
     }
+  }
+
+  async function reloadCurrentSurface() {
+    const next = await loadRegistry(false);
+    if (!next) return;
+    setSelected(current => current ? { ...current, refreshKey: (current.refreshKey ?? 0) + 1 } : firstSelection(next));
   }
 
   async function saveCurrent() {
@@ -144,11 +153,11 @@ export default function App() {
           source=""
           saving={saving}
           loading={loading}
-          onReload={() => void loadRegistry()}
+          onReload={() => void reloadCurrentSurface()}
           onSave={() => void saveCurrent()}
         />}
         <section className="editor-shell single">
-          <ConfigSurface registry={registry} module={selectedModule} file={selectedFile} drafts={drafts} setDrafts={setDrafts} api={api} scriptPath={selected?.scriptPath} refreshKey={selected?.refreshKey ?? 0} onReload={() => void loadRegistry()} />
+          <ConfigSurface registry={registry} module={selectedModule} file={selectedFile} drafts={drafts} setDrafts={setDrafts} api={api} scriptPath={selected?.scriptPath} refreshKey={selected?.refreshKey ?? 0} onReload={() => void reloadCurrentSurface()} />
         </section>
       </main>
     </div>
@@ -686,13 +695,6 @@ function ThemeIcon({ theme }: { theme: ColorTheme }) {
   return <svg className="theme-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M12.92 9.66a.64.64 0 0 1 .78.8A6.28 6.28 0 1 1 5.54 2.3a.64.64 0 0 1 .8.78 5.32 5.32 0 0 0 6.58 6.58Z" /></svg>;
 }
 function draftKey(moduleId: string, path: string) { return `${moduleId}::${path}`; }
-function valuesEqual(a: unknown, b: unknown): boolean {
-  if (a === b) return true;
-  if (typeof a !== typeof b) return false;
-  if (Array.isArray(a) && Array.isArray(b)) return a.length === b.length && a.every((v, i) => valuesEqual(v, b[i]));
-  if (isObjectLike(a) && isObjectLike(b)) return JSON.stringify(a) === JSON.stringify(b);
-  return String(a) === String(b);
-}
 function isObjectLike(v: unknown) { return typeof v === 'object' && v !== null; }
 function parseListValue(original: unknown, text: string) { if (isObjectLike(original)) { try { return JSON.parse(text); } catch { return text; } } return text; }
 function str(v: unknown): string { if (v == null) return ''; if (typeof v === 'object') try { return JSON.stringify(v, null, 2); } catch { return ''; } return String(v); }

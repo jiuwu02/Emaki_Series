@@ -43,7 +43,7 @@ final class WebItemPreviewService {
     }
 
     private Map<String, Object> previewGem(Map<String, Object> data, int previewLevel, String baseName, List<String> baseLore) {
-        int level = Math.max(1, previewLevel);
+        int level = previewGemLevel(data, previewLevel);
         Map<String, Object> levelData = gemLevelData(data, level);
         Map<String, Object> variables = new LinkedHashMap<>();
         variables.put("id", Texts.toStringSafe(data.get("id")));
@@ -273,16 +273,37 @@ final class WebItemPreviewService {
     }
 
     private List<Integer> gemLevels(Map<String, Object> data) {
+        Map<String, Object> upgrade = ConfigNodes.entries(data.get("upgrade"));
+        if (!truthy(upgrade.get("enabled"))) {
+            return List.of();
+        }
+        int maxLevel = configuredMaxLevel(data, upgrade);
         List<Integer> levels = new ArrayList<>();
-        levels.add(Math.max(1, number(data.get("level"), 1)));
-        Map<String, Object> levelMap = ConfigNodes.entries(ConfigNodes.get(data.get("upgrade"), "levels"));
-        for (String key : levelMap.keySet()) {
-            try {
-                levels.add(Integer.parseInt(key));
-            } catch (NumberFormatException ignored) {
+        for (int level = 1; level <= maxLevel; level++) {
+            levels.add(level);
+        }
+        return levels;
+    }
+
+    private int previewGemLevel(Map<String, Object> data, int requestedLevel) {
+        int baseLevel = Math.max(1, number(data.get("level"), 1));
+        Map<String, Object> upgrade = ConfigNodes.entries(data.get("upgrade"));
+        if (!truthy(upgrade.get("enabled"))) {
+            return baseLevel;
+        }
+        int maxLevel = configuredMaxLevel(data, upgrade);
+        return Math.max(1, Math.min(maxLevel, requestedLevel));
+    }
+
+    private int configuredMaxLevel(Map<String, Object> data, Map<String, Object> upgrade) {
+        int baseLevel = Math.max(1, number(data.get("level"), 1));
+        int maxLevel = number(upgrade.get("max_level"), 0);
+        if (maxLevel <= 0) {
+            for (String key : ConfigNodes.entries(upgrade.get("levels")).keySet()) {
+                maxLevel = Math.max(maxLevel, number(key, 0));
             }
         }
-        return levels.stream().distinct().sorted().toList();
+        return Math.max(baseLevel, maxLevel);
     }
 
     private Map<String, Object> gemLevelData(Map<String, Object> data, int level) {
@@ -366,6 +387,14 @@ final class WebItemPreviewService {
         } catch (Exception ignored) {
             return fallback;
         }
+    }
+
+    private boolean truthy(Object value) {
+        if (value instanceof Boolean flag) {
+            return flag;
+        }
+        String text = Texts.toStringSafe(value).trim();
+        return "true".equalsIgnoreCase(text) || "yes".equalsIgnoreCase(text) || "1".equals(text) || "on".equalsIgnoreCase(text);
     }
 
     private record PreviewText(String name, List<String> lore, List<Map<String, Object>> nameSteps, List<Map<String, Object>> loreSteps) {}

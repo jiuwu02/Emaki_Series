@@ -589,10 +589,18 @@ textarea { min-height: 96px; resize: vertical; font-family: ui-monospace, "Casca
 .ie-props > div + div { padding-top: 2px; }
 
 /* Section headers */
+.prop-section { min-width: 0; display: grid; gap: 6px; }
 .prop-section-head { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 8px; padding: 9px 0 7px; margin-top: 0; border-bottom: 1px solid var(--line); background: color-mix(in oklch, var(--gui-surface-bg) 92%, transparent); backdrop-filter: blur(0); }
+.prop-section-head--collapsible { padding: 0; }
+.prop-section-toggle { min-width: 0; flex: 1; display: flex; align-items: center; gap: 7px; padding: 9px 0 7px; border: 0; background: transparent; color: inherit; text-align: left; cursor: pointer; }
+.prop-section-toggle:hover .prop-section-title, .prop-section-toggle:focus-visible .prop-section-title { color: var(--text); }
+.prop-section-toggle:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
+.prop-section-arrow { width: 14px; color: var(--accent); font-family: ui-monospace, "Cascadia Code", monospace; font-size: 13px; font-weight: 800; text-align: center; }
 .prop-section-title { font-size: 11px; font-weight: 750; text-transform: uppercase; letter-spacing: .055em; color: var(--muted); }
 .prop-section-count { min-width: 18px; text-align: center; font-family: ui-monospace, "Cascadia Code", monospace; font-size: 10px; color: var(--faint); background: var(--surface-3); border: 1px solid var(--line); border-radius: 3px; padding: 1px 5px; font-weight: 650; }
 .prop-section-actions { margin-left: auto; }
+.prop-section-body { min-width: 0; display: grid; gap: 3px; }
+.prop-section.collapsed { gap: 0; }
 .prop-add-inline { width: 28px; height: 28px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 4px; color: var(--accent); font-size: 13px; font-weight: 700; line-height: 1; }
 .prop-add-inline:hover { border-color: var(--accent); background: var(--accent-soft); }
 
@@ -602,7 +610,8 @@ textarea { min-height: 96px; resize: vertical; font-family: ui-monospace, "Casca
 .prop-row--wide .prop-label { margin-bottom: 0; }
 .prop-label { display: block; font-size: 11px; color: var(--faint); padding-top: 7px; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: default; }
 .prop-row:focus-within .prop-label { color: var(--muted); }
-.prop-row.changed { background: var(--changed-bg); border: 1px solid var(--changed-line); border-radius: 4px; margin: 0 -8px; padding: 6px 8px; }
+.prop-row.changed { background: var(--changed-bg); border-radius: 4px; margin: 0 -8px; padding: 6px 8px; overflow: hidden; }
+.prop-row.changed::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(90deg, transparent, var(--changed-scan), transparent); transform: translateX(-110%); animation: node-scan 0.7s cubic-bezier(0.16, 1, 0.3, 1); }
 .prop-row.changed .prop-label { color: var(--changed-ink); }
 .prop-row--wide .prop-label { text-align: left; padding-top: 0; }
 .prop-value { min-width: 0; text-align: left; }
@@ -626,7 +635,8 @@ textarea { min-height: 96px; resize: vertical; font-family: ui-monospace, "Casca
 .prop-action-item:focus-within, .prop-action-item:hover { border-color: var(--line-2); }
 .prop-action-head { display: flex; align-items: center; gap: 6px; }
 .prop-action-grip { color: var(--faint); font-size: 12px; cursor: grab; user-select: none; }
-.prop-action-head select { flex: 1; max-width: 168px; font-size: 11px; padding: 3px 6px; }
+.prop-action-head .prop-param-field { flex: 1; margin: 0; }
+.prop-action-head .prop-param-field select { width: 100%; max-width: none; font-size: 11px; padding: 4px 7px; }
 .prop-action-controls { display: flex; gap: 2px; margin-left: auto; }
 .prop-action-controls button { width: 28px; height: 28px; display: grid; place-items: center; color: var(--faint); font-size: 11px; border-radius: 3px; }
 .prop-action-controls button:hover:not(:disabled) { background: var(--surface-3); color: var(--text); }
@@ -636,9 +646,11 @@ textarea { min-height: 96px; resize: vertical; font-family: ui-monospace, "Casca
 .prop-action-params { display: grid; gap: 5px; margin-top: 6px; }
 .prop-action-params input, .prop-action-params textarea { font-size: 11px; padding: 4px 7px; }
 .prop-action-params textarea { min-height: 40px; font-family: ui-monospace, "Cascadia Code", monospace; font-size: 11px; resize: vertical; }
-.prop-param-field { display: grid; gap: 3px; color: var(--faint); font-size: 10px; font-weight: 700; }
-.prop-param-field span { color: var(--faint); }
+.prop-param-field { display: grid; grid-template-columns: minmax(96px, 12ch) minmax(0, 1fr); gap: 8px; align-items: start; color: var(--faint); font-size: 10px; font-weight: 700; }
+.prop-param-field span { color: var(--faint); padding-top: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .prop-param-field:focus-within span { color: var(--muted); }
+.prop-param-field input, .prop-param-field textarea, .prop-param-field select { min-width: 0; }
+.prop-param-field--wide textarea { min-height: 44px; }
 
 /* Level / Slot items */
 .prop-levels { display: grid; gap: 5px; padding: 6px 0; }
@@ -701,5 +713,5 @@ button.prop-level-summary { border: 0; background: transparent; padding: 0; curs
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
-  .node.changed::after { display: none; }
+  .node.changed::after, .prop-row.changed::after { display: none; }
 }

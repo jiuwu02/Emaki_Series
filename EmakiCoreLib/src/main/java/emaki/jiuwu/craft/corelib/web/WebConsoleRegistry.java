@@ -169,6 +169,27 @@ public final class WebConsoleRegistry {
         registerEditorDescriptor(plugin.getName(), editorId, descriptor);
     }
 
+    /**
+     * 创建标准 Web Edit 顶级分组描述。默认启用前端折叠能力，用于各插件统一注册页面 section。
+     */
+    @SafeVarargs
+    public static Map<String, Object> editorSection(String title, Map<String, Object>... fields) {
+        return editorSection(title, true, false, fields);
+    }
+
+    /**
+     * 创建可配置折叠行为的 Web Edit 顶级分组描述。
+     */
+    @SafeVarargs
+    public static Map<String, Object> editorSection(String title, boolean collapsible, boolean defaultCollapsed, Map<String, Object>... fields) {
+        Map<String, Object> section = new LinkedHashMap<>();
+        section.put("title", title);
+        section.put("fields", List.of(fields));
+        section.put("collapsible", collapsible);
+        section.put("defaultCollapsed", defaultCollapsed);
+        return section;
+    }
+
     public static synchronized void registerGuiEditorDescriptor(String moduleId, String editorId, Map<String, Object> descriptor) {
         registerEditorDescriptor(moduleId, editorId, descriptor);
     }

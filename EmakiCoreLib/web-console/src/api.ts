@@ -2,9 +2,11 @@ import { t } from './i18n';
 import type { ConfigFile, GuiDocument, ItemDocument, ItemPreviewResult, ModuleStatus, RuntimeLibrary, WebConfigNode, WebRegistry } from './types';
 
 export type ActionTypesResult = { nameActions: string[]; loreActions: string[] };
+export type EconomyProvidersResult = { providers: string[]; availableProviders: string[] };
 
 export class ApiClient {
   private actionTypesCache: ActionTypesResult | null = null;
+  private economyProvidersCache: EconomyProvidersResult | null = null;
 
   constructor(private token: string | null, private onUnauthorized: () => void) {}
 
@@ -113,6 +115,16 @@ export class ApiClient {
     return this.actionTypesCache;
   }
 
+  async economyProviders(): Promise<EconomyProvidersResult> {
+    if (this.economyProvidersCache) return this.economyProvidersCache;
+    const data = await this.request('/api/economy/providers');
+    this.economyProvidersCache = {
+      providers: normalizeOptions(data.providers, ['auto', 'vault', 'excellenteconomy']),
+      availableProviders: normalizeOptions(data.availableProviders, ['auto'])
+    };
+    return this.economyProvidersCache;
+  }
+
   private async request(path: string, init: RequestInit = {}): Promise<any> {
     let response: Response;
     try {
@@ -138,6 +150,12 @@ export class ApiClient {
     }
     return data;
   }
+}
+
+function normalizeOptions(value: unknown, fallback: string[]): string[] {
+  const raw = Array.isArray(value) ? value : fallback;
+  const merged = ['auto', ...raw.map(option => String(option ?? '').trim().toLowerCase()).filter(Boolean)];
+  return [...new Set(merged)];
 }
 
 async function parseResponseJson(response: Response): Promise<any> {
