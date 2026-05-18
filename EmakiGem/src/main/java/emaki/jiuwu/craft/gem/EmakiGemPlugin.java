@@ -49,9 +49,6 @@ import emaki.jiuwu.craft.gem.service.SocketOpenerService;
 public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider, EmakiServiceRegistry {
 
     private static final String ROOT_COMMAND = "emakigem";
-    private static final String WEB_ICON = """
-            <svg viewBox="0 0 38 38" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M9 14l10-8 10 8-10 18L9 14zM13 10h12M9 14h20M14 14l5 18 5-18M19 6v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            """;
 
     private static final Set<String> DEBUG_MODULES = Set.of("inlay", "socket", "state", "gui");
 

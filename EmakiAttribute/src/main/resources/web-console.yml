@@ -5,6 +5,7 @@ module:
   name: "Attribute 属性"
   summary: "属性、资源、伤害接管与曲线"
   tone: attribute
+  icon: '<svg viewBox="0 0 38 38" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M19 5l10 6v16l-10 6-10-6V11l10-6zM19 10v18M11.5 15.5l15 9M26.5 15.5l-15 9M14 20h10M19 14l4 6-4 4-4-4 4-6z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 
 files:
   - title: "属性系统配置"

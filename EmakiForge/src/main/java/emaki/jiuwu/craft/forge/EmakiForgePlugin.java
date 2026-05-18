@@ -36,9 +36,6 @@ import emaki.jiuwu.craft.forge.service.RecipeBookGuiService;
 public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider, EmakiServiceRegistry {
 
     private static final String ROOT_COMMAND = "emakiforge";
-    private static final String WEB_ICON = """
-            <svg viewBox="0 0 38 38" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M9 28h20M12 28v-4h14v4M15 24l2-6h4l2 6M13 18h12M25 7l5 5-9 9-5-5 9-9zM25 7l-2-2M30 12l2 2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            """;
 
     private static final String STARTUP_ASCII = """
  ______  __    __  ______  __  __   __  ______  ______  ______  ______  ______

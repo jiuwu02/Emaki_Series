@@ -64,7 +64,7 @@ public final class WebConsoleYamlRegistrar {
             YamlSection yaml = YamlFiles.load(content);
             applyRegistration(plugin, moduleId, yaml);
         } catch (Exception e) {
-            plugin.getLogger().log(Level.WARNING, "[WebConsole] 解析 web-console.yml 失败", e);
+            plugin.getLogger().log(Level.WARNING, "[WebConsole] Failed to parse web-console.yml for " + moduleId, e);
         }
     }
 

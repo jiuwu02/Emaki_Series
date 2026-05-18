@@ -2,27 +2,24 @@ package emaki.jiuwu.craft.corelib.command;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
-import emaki.jiuwu.craft.corelib.text.AdventureSupport;
+import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.web.WebConsoleConfig;
 import emaki.jiuwu.craft.corelib.web.WebConsoleService;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.event.ClickEvent;
-import net.kyori.adventure.text.event.HoverEvent;
-import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.TextDecoration;
 
 public final class CoreLibCommandRouter implements TabExecutor {
 
     private static final String PERMISSION_WEB = "emakicorelib.web";
     private static final String PERMISSION_RELOAD = "emakicorelib.reload";
     private static final List<String> SUB_COMMANDS = List.of("help", "web", "webconsole", "url", "link", "reload", "webdebug");
+    private static final List<String> WEBDEBUG_MODES = List.of("frontend", "backend", "all");
 
     private final EmakiCoreLibPlugin plugin;
 
@@ -43,7 +40,7 @@ public final class CoreLibCommandRouter implements TabExecutor {
             }
             case "web", "webconsole", "url", "link" -> handleWebConsoleLink(sender);
             case "reload" -> handleReload(sender);
-            case "webdebug" -> handleWebDebug(sender);
+            case "webdebug" -> handleWebDebug(sender, args);
             default -> {
                 sendHelp(sender, label);
                 yield true;
@@ -61,74 +58,98 @@ public final class CoreLibCommandRouter implements TabExecutor {
                     result.add(subCommand);
                 }
             }
+        } else if (args.length == 2 && "webdebug".equalsIgnoreCase(args[0])) {
+            String prefix = args[1].toLowerCase();
+            for (String mode : WEBDEBUG_MODES) {
+                if (mode.startsWith(prefix)) {
+                    result.add(mode);
+                }
+            }
         }
         return result;
     }
 
     private boolean handleWebConsoleLink(CommandSender sender) {
         if (!sender.hasPermission(PERMISSION_WEB)) {
-            sendLine(sender, Component.text("你没有权限查看 Web Console 链接。", NamedTextColor.RED));
+            sendLang(sender, "command.no_permission_web");
             return true;
         }
         WebConsoleConfig config = plugin.configModel().webConsoleConfig();
         String configuredUrl = webConsoleUrl(config.host(), config.port());
         String clickableUrl = clickableUrl(config.host(), config.port());
-        sendLine(sender, Component.text("Web Console 地址：", NamedTextColor.AQUA)
-                .append(Component.text(configuredUrl, NamedTextColor.WHITE)));
+        sendLang(sender, "command.web_address", Map.of("url", configuredUrl));
         if (!configuredUrl.equals(clickableUrl)) {
-            sendLine(sender, Component.text("当前 host 是绑定地址，客户端通常不能直接访问；下面提供本机回退链接。", NamedTextColor.YELLOW));
+            sendLang(sender, "command.web_bind_hint");
         }
-        sendLine(sender, Component.text("点击打开：", NamedTextColor.AQUA)
-                .append(Component.text(clickableUrl, NamedTextColor.GREEN, TextDecoration.UNDERLINED)
-                        .clickEvent(ClickEvent.openUrl(clickableUrl))
-                        .hoverEvent(HoverEvent.showText(Component.text("点击在浏览器中打开 Web Console", NamedTextColor.YELLOW)))));
+        sendLang(sender, "command.web_click_open", Map.of("url", clickableUrl));
         if (!config.enabled()) {
-            sendLine(sender, Component.text("提示：web_console.enabled 当前为 false，链接可能无法连接。", NamedTextColor.YELLOW));
+            sendLang(sender, "command.web_disabled_hint");
         }
         if (config.hasUnsafeDefaultPassword()) {
-            sendLine(sender, Component.text("提示：Web Console 密码为空或仍为默认值，服务会拒绝启动。请修改 web_console.auth.password。", NamedTextColor.YELLOW));
+            sendLang(sender, "command.web_unsafe_password");
         }
         return true;
     }
 
     private boolean handleReload(CommandSender sender) {
         if (!sender.hasPermission(PERMISSION_RELOAD)) {
-            sendLine(sender, Component.text("你没有权限重载 EmakiCoreLib。", NamedTextColor.RED));
+            sendLang(sender, "command.no_permission_reload");
             return true;
         }
         plugin.reloadActionSystem();
-        sendLine(sender, Component.text("EmakiCoreLib 已重载，Web Console 已按新配置重新启动。", NamedTextColor.GREEN));
+        sendLang(sender, "command.reload_success");
         return true;
     }
 
-    private boolean handleWebDebug(CommandSender sender) {
+    private boolean handleWebDebug(CommandSender sender, String[] args) {
         if (!sender.hasPermission(PERMISSION_RELOAD)) {
-            sendLine(sender, Component.text("你没有权限操作 Web Console 调试模式。", NamedTextColor.RED));
+            sendLang(sender, "web_debug.no_permission");
             return true;
         }
         WebConsoleService service = plugin.webConsoleService();
         if (service == null) {
-            sendLine(sender, Component.text("Web Console 未启动。", NamedTextColor.RED));
+            sendLang(sender, "web_debug.not_running");
             return true;
         }
-        boolean nowEnabled = service.toggleDebug();
-        if (nowEnabled) {
-            sendLine(sender, Component.text("Web Console 调试模式已开启，所有 HTTP 请求/响应将输出到服务器日志。", NamedTextColor.GREEN));
-        } else {
-            sendLine(sender, Component.text("Web Console 调试模式已关闭。", NamedTextColor.YELLOW));
+        String mode = args.length >= 2 ? args[1].toLowerCase() : "all";
+        switch (mode) {
+            case "frontend" -> {
+                boolean enabled = service.toggleDebugFrontend();
+                sendLang(sender, enabled ? "web_debug.enabled_frontend" : "web_debug.disabled_frontend");
+            }
+            case "backend" -> {
+                boolean enabled = service.toggleDebugBackend();
+                sendLang(sender, enabled ? "web_debug.enabled_backend" : "web_debug.disabled_backend");
+            }
+            default -> {
+                boolean enabled = service.toggleDebug();
+                sendLang(sender, enabled ? "web_debug.enabled_all" : "web_debug.disabled_all");
+            }
         }
         return true;
     }
 
+    private void sendLang(CommandSender sender, String key) {
+        MessageService messageService = plugin.messageService();
+        messageService.sendRaw(sender, messageService.message(key));
+    }
+
     private void sendHelp(CommandSender sender, String label) {
         String root = "/" + (label == null || label.isBlank() ? "emakicorelib" : label);
-        sendLine(sender, Component.text("EmakiCoreLib 命令：", NamedTextColor.AQUA));
-        sendLine(sender, Component.text(root + " web", NamedTextColor.GREEN)
-                .append(Component.text(" - 输出可点击的 Web Console 链接", NamedTextColor.GRAY)));
-        sendLine(sender, Component.text(root + " reload", NamedTextColor.GREEN)
-                .append(Component.text(" - 重载 CoreLib 配置与 Web Console", NamedTextColor.GRAY)));
-        sendLine(sender, Component.text(root + " webdebug", NamedTextColor.GREEN)
-                .append(Component.text(" - 开关 Web Console HTTP 调试日志", NamedTextColor.GRAY)));
+        sendLang(sender, "command.help_header");
+        sendLang(sender, "command.help_web", Map.of("root", root));
+        sendLang(sender, "command.help_reload", Map.of("root", root));
+        sendLang(sender, "command.help_webdebug", Map.of("root", root));
+    }
+
+    private void sendLang(CommandSender sender, String key) {
+        MessageService messageService = plugin.messageService();
+        messageService.sendRaw(sender, messageService.message(key));
+    }
+
+    private void sendLang(CommandSender sender, String key, Map<String, ?> replacements) {
+        MessageService messageService = plugin.messageService();
+        messageService.sendRaw(sender, messageService.message(key, replacements));
     }
 
     private void sendLine(CommandSender sender, Component component) {

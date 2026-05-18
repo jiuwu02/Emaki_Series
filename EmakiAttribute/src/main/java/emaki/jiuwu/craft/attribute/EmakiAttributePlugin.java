@@ -44,10 +44,6 @@ import emaki.jiuwu.craft.corelib.web.WebConsoleRegistry;
 
 public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements EmakiServiceRegistry {
 
-    private static final String WEB_ICON = """
-            <svg viewBox="0 0 38 38" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M19 5l10 6v16l-10 6-10-6V11l10-6zM19 10v18M11.5 15.5l15 9M26.5 15.5l-15 9M14 20h10M19 14l4 6-4 4-4-4 4-6z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            """;
-
     private static final String STARTUP_ASCII = """
   ______  __    __  ______  __  __   __  ______  ______  ______  ______  __  ______  __  __  ______  ______
  /\\  ___\\/\\ "-./  \\/\\  __ \\/\\ \\/ /  /\\ \\/\\  __ \\/\\__  _\\/\\__  _\\/\\  == \\/\\ \\/\\  == \\/\\ \\/\\ \\/\\__  _\\/\\  ___\\   

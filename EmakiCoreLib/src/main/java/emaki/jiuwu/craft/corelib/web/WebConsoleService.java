@@ -39,6 +39,8 @@ public final class WebConsoleService {
     private WebItemPreviewService itemPreviewService;
     private final WebStaticAssets staticAssets = new WebStaticAssets();
     private volatile boolean debugEnabled;
+    private volatile boolean debugFrontend;
+    private volatile boolean debugBackend;
 
     public WebConsoleService(JavaPlugin plugin, WebConsoleConfig config) {
         this.plugin = plugin;
@@ -51,7 +53,7 @@ public final class WebConsoleService {
             return;
         }
         if (config.hasUnsafeDefaultPassword()) {
-            plugin.getLogger().warning("[WebConsole] 已启用但密码仍为默认值 change-me，Web Console 拒绝启动。请修改 config.yml 的 web_console.auth.password。");
+            plugin.messageService().warning("web_console.unsafe_password");
             return;
         }
         try {
@@ -92,9 +94,10 @@ public final class WebConsoleService {
             createContext("/extensions/", this::handleExtensionAsset);
             createContext("/", this::handleStatic);
             server.start();
-            plugin.getLogger().info("[WebConsole] 已启动: http://" + config.host() + ":" + config.port());
+            plugin.messageService().info("web_console.started", Map.of("url", "http://" + config.host() + ":" + config.port()));
         } catch (IOException exception) {
-            plugin.getLogger().log(Level.WARNING, "[WebConsole] 启动失败", exception);
+            plugin.messageService().warning("web_console.start_failed");
+            plugin.getLogger().log(Level.WARNING, exception.getMessage(), exception);
             stop();
         }
     }
@@ -108,30 +111,55 @@ public final class WebConsoleService {
         return debugEnabled;
     }
 
+    public boolean isDebugFrontend() {
+        return debugFrontend;
+    }
+
+    public boolean isDebugBackend() {
+        return debugBackend;
+    }
+
     public boolean toggleDebug() {
         debugEnabled = !debugEnabled;
+        debugFrontend = debugEnabled;
+        debugBackend = debugEnabled;
         return debugEnabled;
     }
 
+    public boolean toggleDebugFrontend() {
+        debugFrontend = !debugFrontend;
+        debugEnabled = debugFrontend || debugBackend;
+        return debugFrontend;
+    }
+
+    public boolean toggleDebugBackend() {
+        debugBackend = !debugBackend;
+        debugEnabled = debugFrontend || debugBackend;
+        return debugBackend;
+    }
+
     private void createContext(String path, WebRoute route) {
+        boolean isBackendApi = path.startsWith("/api/");
         server.createContext(path, exchange -> {
-            long startTime = debugEnabled ? System.currentTimeMillis() : 0;
+            boolean shouldDebug = isBackendApi ? debugBackend : debugFrontend;
+            long startTime = shouldDebug ? System.currentTimeMillis() : 0;
             try {
-                if (debugEnabled) {
+                if (shouldDebug) {
                     exchange.setAttribute("emaki.debug.startTime", startTime);
                 }
                 route.handle(exchange);
             } catch (RequestBodyTooLargeException exception) {
                 WebResponse.json(exchange, 413, Map.of("success", false, "error", exception.getMessage()));
             } catch (Throwable throwable) {
-                plugin.getLogger().log(Level.WARNING, "[WebConsole] 请求处理失败: " + exchange.getRequestURI(), throwable);
+                plugin.messageService().warning("web_console.request_failed", Map.of("uri", String.valueOf(exchange.getRequestURI())));
+                plugin.getLogger().log(Level.WARNING, throwable.getMessage(), throwable);
                 try {
                     WebResponse.json(exchange, 500, Map.of("success", false, "error", "Web Console 请求处理失败，请查看服务器控制台日志。"));
                 } catch (IOException ignored) {
                     // 响应可能已经开始发送，此时只保留服务器日志。
                 }
             } finally {
-                if (debugEnabled) {
+                if (shouldDebug) {
                     logDebugRequest(exchange, startTime);
                 }
             }
@@ -763,7 +791,13 @@ public final class WebConsoleService {
             String uri = exchange.getRequestURI().toString();
             String remote = exchange.getRemoteAddress() != null ? exchange.getRemoteAddress().getAddress().getHostAddress() : "unknown";
             int responseCode = exchange.getResponseCode();
-            plugin.getLogger().info("[WebDebug] " + method + " " + uri + " → " + responseCode + " (" + elapsed + "ms) from " + remote);
+            plugin.messageService().info("web_debug.request", Map.of(
+                    "method", method,
+                    "uri", uri,
+                    "status", String.valueOf(responseCode),
+                    "elapsed", String.valueOf(elapsed),
+                    "remote", remote
+            ));
         } catch (Exception ignored) {
             // debug 日志不应影响正常请求处理
         }

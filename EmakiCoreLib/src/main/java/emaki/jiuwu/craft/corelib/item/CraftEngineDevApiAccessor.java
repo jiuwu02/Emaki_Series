@@ -7,7 +7,7 @@ import net.momirealms.craftengine.bukkit.item.BukkitItemDefinition;
 import net.momirealms.craftengine.core.util.Key;
 
 /**
- * CraftEngine item creation accessor targeting the dev branch API (26.x-SNAPSHOT+).
+ * CraftEngine item creation accessor targeting the stable API (26.5+).
  * <p>
  * Uses {@link CraftEngineItems#byId(Key)} which returns {@link BukkitItemDefinition},
  * then calls {@link BukkitItemDefinition#buildBukkitItem()} to produce an {@link ItemStack}.

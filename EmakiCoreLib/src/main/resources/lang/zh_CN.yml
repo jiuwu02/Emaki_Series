@@ -72,3 +72,38 @@ debug:
   item_source:
     resolve: "解析物品来源 | 输入={input} | 结果={result}"
     create: "创建物品 | 来源={source} | 数量={amount} | 成功={success}"
+
+# Web Console 调试命令
+web_debug:
+  request: "[WebDebug] {method} {uri} → {status} ({elapsed}ms) from {remote}"
+  enabled_all: "<green>Web Console 调试模式已开启（前端+后端）</green>"
+  enabled_frontend: "<green>Web Console 前端调试已开启（静态资源与扩展脚本）</green>"
+  enabled_backend: "<green>Web Console 后端调试已开启（API 请求）</green>"
+  disabled_all: "<yellow>Web Console 调试模式已关闭</yellow>"
+  disabled_frontend: "<yellow>Web Console 前端调试已关闭</yellow>"
+  disabled_backend: "<yellow>Web Console 后端调试已关闭</yellow>"
+  not_running: "<red>Web Console 未启动</red>"
+  no_permission: "<red>你没有权限操作 Web Console 调试模式</red>"
+
+# 命令消息
+command:
+  no_permission_web: "<red>你没有权限查看 Web Console 链接</red>"
+  no_permission_reload: "<red>你没有权限重载 EmakiCoreLib</red>"
+  reload_success: "<green>EmakiCoreLib 已重载，Web Console 已按新配置重新启动</green>"
+  web_address: "<aqua>Web Console 地址：</aqua><white>{url}</white>"
+  web_bind_hint: "<yellow>当前 host 是绑定地址，客户端通常不能直接访问；下面提供本机回退链接</yellow>"
+  web_click_open: "<aqua>点击打开：</aqua><click:open_url:'{url}'><hover:show_text:'<yellow>点击在浏览器中打开 Web Console</yellow>'><green><underlined>{url}</underlined></green></hover></click>"
+  web_disabled_hint: "<yellow>提示：web_console.enabled 当前为 false，链接可能无法连接</yellow>"
+  web_unsafe_password: "<yellow>提示：Web Console 密码为空或仍为默认值，服务会拒绝启动。请修改 web_console.auth.password</yellow>"
+  help_header: "<aqua>EmakiCoreLib 命令：</aqua>"
+  help_web: "<green>{root} web</green><gray> - 输出可点击的 Web Console 链接</gray>"
+  help_reload: "<green>{root} reload</green><gray> - 重载 CoreLib 配置与 Web Console</gray>"
+  help_webdebug: "<green>{root} webdebug [frontend|backend|all]</green><gray> - 开关 Web Console 调试日志</gray>"
+
+# Web Console 服务日志
+web_console:
+  started: "<gray>Web Console 已启动: <aqua>{url}</aqua></gray>"
+  start_failed: "<red>Web Console 启动失败</red>"
+  unsafe_password: "<red>已启用但密码仍为默认值 change-me，Web Console 拒绝启动。请修改 config.yml 的 web_console.auth.password</red>"
+  request_failed: "<red>请求处理失败: {uri}</red>"
+  yaml_parse_failed: "<red>解析 web-console.yml 失败</red>"
