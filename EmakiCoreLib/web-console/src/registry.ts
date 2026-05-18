@@ -8,12 +8,51 @@
  *
  * External extension scripts can access this through window.EmakiWebConsole.
  */
-import React, { type ComponentType } from 'react';
-import type { ApiClient } from './api';
+import React, { type ComponentType, type ReactNode } from 'react';
+import type { ApiClient, TextDocument } from './api';
 import * as components from './components';
 import * as lib from './lib';
 import * as i18n from './i18n';
-import type { WebEditorDescriptor, WebEditorField, WebRegistry, WebRegistryFile, WebRegistryModule } from './types';
+import type { EditorChange } from './components';
+import type { WebEditorDescriptor, WebEditorField, WebRegistry, WebRegistryFile, WebRegistryModule, WebConsoleExtensionStatus } from './types';
+
+export type SourceDocumentAdapterContext = {
+  module: WebRegistryModule;
+  file: WebRegistryFile;
+  childPath?: string;
+  editor?: WebEditorDescriptor;
+};
+
+export type SourceDocumentAdapter = {
+  read: (api: ApiClient, context: SourceDocumentAdapterContext) => Promise<TextDocument>;
+  save: (api: ApiClient, context: SourceDocumentAdapterContext, content: string, revision?: number) => Promise<{ revision?: number }>;
+  parse?: (content: string) => unknown;
+  serialize?: (data: unknown) => string;
+  language?: 'yaml' | 'javascript' | 'text' | string;
+};
+
+export type SurfaceToolbarState = {
+  title?: ReactNode;
+  subtitle?: ReactNode;
+  dirty: boolean;
+  changes?: EditorChange[];
+  changedCount?: number;
+  source?: string;
+  sourceEditable?: boolean;
+  sourceError?: string | null;
+  saving?: boolean;
+  loading?: boolean;
+  saveLabel?: string;
+  sourceLabel?: string;
+  reloadLabel?: string;
+  canUndo?: boolean;
+  canRedo?: boolean;
+  onUndo?: () => void;
+  onRedo?: () => void;
+  onSave?: () => void;
+  onReload?: () => void;
+  onSourceChange?: (source: string) => void;
+};
 
 /** Props passed to every registered surface component. */
 export type SurfaceProps = {
@@ -24,6 +63,8 @@ export type SurfaceProps = {
   refreshKey?: number;
   editor?: WebEditorDescriptor;
   onReload?: () => void;
+  setToolbar?: (state: SurfaceToolbarState | null) => void;
+  showLocalChrome?: boolean;
 };
 
 export type SurfaceRegistration = {
@@ -41,18 +82,37 @@ export type SurfaceRegistration = {
   priority?: number;
 };
 
+export type StandardGuiFieldEntry = [path: string, label: string, comment: string, type: string];
+
+export type PluginGuiEditorRegistration = {
+  moduleId: string;
+  editorId: string;
+  label: string;
+  title?: string;
+  kindLabel?: string;
+  fields?: StandardGuiFieldEntry[];
+  descriptor?: Partial<WebEditorDescriptor>;
+};
+
 export type EmakiWebConsoleHost = typeof lib & typeof components & typeof i18n & {
+  apiVersion: string;
   React: typeof React;
   registerSurface: typeof registerSurface;
   getSurface: typeof getSurface;
   getAllSurfaces: typeof getAllSurfaces;
   isKind: typeof isKind;
   registerPluginGuiSurface: typeof registerPluginGuiSurface;
+  registerPluginGuiEditor: typeof registerPluginGuiEditor;
   registerPluginSurfaces: typeof registerPluginSurfaces;
+  standardGuiFields: typeof standardGuiFields;
   registerEditorDescriptor: typeof registerEditorDescriptor;
   registerEditorField: typeof registerEditorField;
+  registerSourceDocumentAdapter: typeof registerSourceDocumentAdapter;
+  getSourceDocumentAdapter: typeof getSourceDocumentAdapter;
   registerGuiEditorDescriptor: typeof registerGuiEditorDescriptor;
   registerGuiEditorField: typeof registerGuiEditorField;
+  recordExtensionStatus: typeof recordExtensionStatus;
+  getExtensionStatuses: typeof getExtensionStatuses;
   components: typeof components;
   lib: typeof lib;
   i18n: typeof i18n;
@@ -61,8 +121,14 @@ export type EmakiWebConsoleHost = typeof lib & typeof components & typeof i18n &
   registerModuleLocale: typeof i18n.registerModuleLocale;
 };
 
+export const EMAKI_WEB_CONSOLE_API_VERSION = '1.1.0';
+
 const _registry: SurfaceRegistration[] = [];
 const _editorOverrides: Record<string, WebEditorDescriptor> = {};
+const _sourceAdapters: SourceAdapterRegistration[] = [];
+const _extensionStatuses: WebConsoleExtensionStatus[] = [];
+
+type SourceAdapterRegistration = { kind?: string; moduleId?: string; editorId?: string; adapter: SourceDocumentAdapter; priority: number };
 
 declare global {
   interface Window {
@@ -117,6 +183,67 @@ export function getAllSurfaces(): SurfaceRegistration[] {
   return [..._registry];
 }
 
+export function recordExtensionStatus(status: WebConsoleExtensionStatus): void {
+  const index = _extensionStatuses.findIndex(entry => entry.id === status.id && entry.moduleId === status.moduleId && entry.url === status.url);
+  if (index >= 0) _extensionStatuses.splice(index, 1, status);
+  else _extensionStatuses.push(status);
+}
+
+export function getExtensionStatuses(): WebConsoleExtensionStatus[] {
+  return [..._extensionStatuses];
+}
+
+export function standardGuiFields(entries: StandardGuiFieldEntry[] = []): Record<string, WebEditorField> {
+  const base: StandardGuiFieldEntry[] = [
+    ['id', 'ID', 'GUI 模板唯一标识。', 'text'],
+    ['gui_type', 'GUI 类型', 'Bukkit InventoryType。只有 CHEST 支持行数。', 'enum'],
+    ['title', '标题', 'GUI 窗口标题，支持 MiniMessage。', 'text'],
+    ['rows', '箱子行数', '仅 CHEST 类型可用，范围 1-6。', 'number'],
+    ['type', '槽位类型', '插件业务识别的槽位语义。', 'text'],
+    ['slots', '槽位', '槽位索引列表或槽位定义。', 'list'],
+    ['item', '物品', '槽位显示物品，支持原版材料或 ItemSource。', 'text'],
+    ['display_name', '显示名', '槽位物品显示名称，支持 MiniMessage。', 'text'],
+    ['lore', 'Lore', '槽位物品描述，每行一条。', 'stringList']
+  ];
+  return Object.fromEntries([...base, ...entries].map(([path, label, comment, type]) => [path, { path, label, comment, type }]));
+}
+
+export function registerSourceDocumentAdapter(reg: { kind?: string; moduleId?: string; editorId?: string; adapter: SourceDocumentAdapter; priority?: number }): void {
+  if (!reg?.adapter || (!reg.kind && !reg.editorId)) return;
+  const next: SourceAdapterRegistration = {
+    kind: reg.kind ? normalize(reg.kind) : undefined,
+    moduleId: reg.moduleId ? normalize(reg.moduleId) : undefined,
+    editorId: reg.editorId ? String(reg.editorId) : undefined,
+    adapter: reg.adapter,
+    priority: reg.priority ?? 0
+  };
+  const duplicate = _sourceAdapters.findIndex(existing =>
+    normalize(existing.kind) === normalize(next.kind)
+    && normalize(existing.moduleId) === normalize(next.moduleId)
+    && String(existing.editorId ?? '') === String(next.editorId ?? '')
+  );
+  if (duplicate >= 0) _sourceAdapters.splice(duplicate, 1);
+  _sourceAdapters.push(next);
+  _sourceAdapters.sort((a, b) => b.priority - a.priority);
+}
+
+export function getSourceDocumentAdapter(fileOrKind: WebRegistryFile | string | undefined, editor?: WebEditorDescriptor): SourceDocumentAdapter | undefined {
+  if (!fileOrKind) return undefined;
+  const file = typeof fileOrKind === 'string' ? undefined : fileOrKind;
+  const kind = normalize(typeof fileOrKind === 'string' ? fileOrKind : fileOrKind.kind);
+  const moduleId = normalize(file?.moduleId);
+  const editorId = String(file?.editorId ?? editor?.id ?? '');
+  if (editorId) {
+    const byEditor = _sourceAdapters.find(r => String(r.editorId ?? '') === editorId);
+    if (byEditor) return byEditor.adapter;
+  }
+  if (moduleId) {
+    const byModuleKind = _sourceAdapters.find(r => normalize(r.kind) === kind && normalize(r.moduleId) === moduleId);
+    if (byModuleKind) return byModuleKind.adapter;
+  }
+  return _sourceAdapters.find(r => normalize(r.kind) === kind && !r.moduleId && !r.editorId)?.adapter;
+}
+
 /** Check if a kind string matches (case-insensitive). */
 export function isKind(fileKind: string | undefined, target: string): boolean {
   return normalize(fileKind) === normalize(target);
@@ -124,7 +251,7 @@ export function isKind(fileKind: string | undefined, target: string): boolean {
 
 /** Install the browser global used by plugin extension scripts. */
 export function installWebConsoleHost(): EmakiWebConsoleHost {
-  const host: EmakiWebConsoleHost = { ...lib, ...components, ...i18n, React, registerSurface, getSurface, getAllSurfaces, isKind, registerPluginGuiSurface, registerPluginSurfaces, registerEditorDescriptor, registerEditorField, registerGuiEditorDescriptor, registerGuiEditorField, components, lib, i18n, t: i18n.t, registerLocale: i18n.registerLocale, registerModuleLocale: i18n.registerModuleLocale };
+  const host: EmakiWebConsoleHost = { ...lib, ...components, ...i18n, apiVersion: EMAKI_WEB_CONSOLE_API_VERSION, React, registerSurface, getSurface, getAllSurfaces, isKind, registerPluginGuiSurface, registerPluginGuiEditor, registerPluginSurfaces, standardGuiFields, registerEditorDescriptor, registerEditorField, registerSourceDocumentAdapter, getSourceDocumentAdapter, registerGuiEditorDescriptor, registerGuiEditorField, recordExtensionStatus, getExtensionStatuses, components, lib, i18n, t: i18n.t, registerLocale: i18n.registerLocale, registerModuleLocale: i18n.registerModuleLocale };
   (window as any).React = React;
   window.EmakiWebConsole = host;
   return host;
@@ -138,6 +265,24 @@ export function registerPluginGuiSurface(moduleId: string, editorId: string, lab
   const { GuiEditorSurface } = components;
   registerSurface({ kind: 'GUI', moduleId, editorId, component: GuiEditorSurface as any, label, priority: 100 });
   registerSurface({ kind: 'GUI', moduleId, component: GuiEditorSurface as any, label, priority: 90 });
+}
+
+export function registerPluginGuiEditor(registration: PluginGuiEditorRegistration): void {
+  if (!registration?.moduleId || !registration.editorId || !registration.label) return;
+  const { moduleId, editorId, label, title, kindLabel, fields = [], descriptor = {} } = registration;
+  const descriptorFields = {
+    ...standardGuiFields(fields),
+    ...((descriptor.fields ?? {}) as Record<string, WebEditorField>)
+  };
+  registerPluginGuiSurface(moduleId, editorId, label);
+  registerGuiEditorDescriptor(moduleId, editorId, {
+    ...descriptor,
+    id: descriptor.id ?? editorId,
+    moduleId: descriptor.moduleId ?? moduleId,
+    title: descriptor.title ?? title ?? label,
+    kindLabel: descriptor.kindLabel ?? kindLabel ?? label,
+    fields: descriptorFields
+  });
 }
 
 export function registerEditorDescriptor(moduleId: string, editorId: string, descriptor: WebEditorDescriptor): void {

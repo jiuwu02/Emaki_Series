@@ -1,4 +1,4 @@
-import { useMemo, useState, type CSSProperties, type Dispatch, type SetStateAction } from 'react';
+import { useMemo, useRef, useState, type CSSProperties, type Dispatch, type KeyboardEvent, type SetStateAction } from 'react';
 import { getModuleLocaleBundles, t } from '../i18n';
 import type { RegistryTreeNode, WebRegistry, WebRegistryModule } from '../types';
 
@@ -17,7 +17,10 @@ export function WorkspaceTree({ registry, selected, expanded, dirtyKeys = new Se
   const normalizedQuery = normalizeQuery(query);
   const roots = useMemo(() => registry ? (registry.tree?.length ? registry.tree : modulesToTree(registry.modules)) : [], [registry]);
   const visibleRoots = useMemo(() => filterTree(roots, normalizedQuery), [roots, normalizedQuery]);
+  const treeRef = useRef<HTMLDivElement | null>(null);
   const toggle = (id: string) => setExpanded((current) => ({ ...current, [id]: !current[id] }));
+  const openNode = (id: string) => setExpanded((current) => ({ ...current, [id]: true }));
+  const closeNode = (id: string) => setExpanded((current) => ({ ...current, [id]: false }));
 
   if (!registry) return <div className="tree-empty" role="status">{t('core.tree.loading')}</div>;
 
@@ -30,7 +33,7 @@ export function WorkspaceTree({ registry, selected, expanded, dirtyKeys = new Se
       <SearchIcon />
       <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t('core.tree.search')} />
     </label>
-    <div className="tree" role="tree" aria-label={t('core.tree.aria')}>
+    <div ref={treeRef} className="tree" role="tree" aria-label={t('core.tree.aria')} onKeyDown={(event) => handleTreeKeyDown(event, treeRef.current, openNode, closeNode)}>
       {visibleRoots.map((node) => (
         <TreeNodeView key={node.id} node={node} selected={selected} expanded={expanded} dirtyKeys={dirtyKeys} queryActive={Boolean(normalizedQuery)} toggle={toggle} onSelect={onSelect} onOpenI18n={onOpenI18n} level={0} />
       ))}
@@ -68,6 +71,7 @@ function TreeNodeView({ node, selected, expanded, dirtyKeys, queryActive, toggle
             role="treeitem"
             aria-level={level + 1}
             aria-expanded={isOpen}
+            data-tree-node-id={node.id}
             onClick={() => toggle(node.id)}
           >
             <Icon svg={node.icon} /> <span aria-hidden="true">{isOpen ? '⌄' : '›'}</span> <span className="tree-label">{node.label}</span><DirtyDot dirty={dirty} />
@@ -91,6 +95,7 @@ function TreeNodeView({ node, selected, expanded, dirtyKeys, queryActive, toggle
             aria-level={level + 1}
             aria-expanded={isOpen}
             aria-selected={active || undefined}
+            data-tree-node-id={node.id}
             onClick={() => toggle(node.id)}
           >
             <span className="folder-arrow" aria-hidden="true">{isOpen ? '⌄' : '›'}</span><span className="tree-label">{kindLabel} · {node.label}</span><DirtyDot dirty={dirty} />
@@ -117,6 +122,7 @@ function TreeNodeView({ node, selected, expanded, dirtyKeys, queryActive, toggle
         aria-level={level + 1}
         aria-selected={active}
         aria-label={level > 1 ? `${node.label}，${kindLabel}${dirty ? `，${t('core.tree.dirty')}` : ''}` : `${kindLabel}，${node.label}${dirty ? `，${t('core.tree.dirty')}` : ''}`}
+        data-tree-node-id={node.id}
         onClick={() => {
           if (!canSelect || !node.moduleId || !node.fileId) return;
           onSelect({ moduleId: node.moduleId, fileId: node.fileId, scriptPath: node.childPath });
@@ -127,6 +133,39 @@ function TreeNodeView({ node, selected, expanded, dirtyKeys, queryActive, toggle
       </button>
     </div>
   );
+}
+
+function handleTreeKeyDown(event: KeyboardEvent<HTMLDivElement>, tree: HTMLDivElement | null, openNode: (id: string) => void, closeNode: (id: string) => void) {
+  if (!tree) return;
+  const current = event.target instanceof HTMLElement ? event.target.closest<HTMLElement>('[role="treeitem"]') : null;
+  if (!current || !tree.contains(current)) return;
+  const items = Array.from(tree.querySelectorAll<HTMLElement>('[role="treeitem"]')).filter(item => !item.hasAttribute('disabled'));
+  const index = items.indexOf(current);
+  if (index < 0) return;
+  const focusAt = (nextIndex: number) => items[Math.max(0, Math.min(items.length - 1, nextIndex))]?.focus();
+  if (event.key === 'ArrowDown') {
+    event.preventDefault();
+    focusAt(index + 1);
+  } else if (event.key === 'ArrowUp') {
+    event.preventDefault();
+    focusAt(index - 1);
+  } else if (event.key === 'Home') {
+    event.preventDefault();
+    focusAt(0);
+  } else if (event.key === 'End') {
+    event.preventDefault();
+    focusAt(items.length - 1);
+  } else if (event.key === 'ArrowRight' && current.getAttribute('aria-expanded') === 'false') {
+    const id = current.dataset.treeNodeId;
+    if (!id) return;
+    event.preventDefault();
+    openNode(id);
+  } else if (event.key === 'ArrowLeft' && current.getAttribute('aria-expanded') === 'true') {
+    const id = current.dataset.treeNodeId;
+    if (!id) return;
+    event.preventDefault();
+    closeNode(id);
+  }
 }
 
 export function fileKindLabel(kind: string | undefined): string {

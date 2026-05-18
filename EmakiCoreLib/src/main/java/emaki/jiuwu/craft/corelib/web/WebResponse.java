@@ -28,6 +28,7 @@ public final class WebResponse {
         byte[] payload = bytes == null ? new byte[0] : bytes;
         exchange.getResponseHeaders().set("Content-Type", contentType == null ? "application/octet-stream" : contentType);
         exchange.getResponseHeaders().set("Cache-Control", "no-store");
+        exchange.getResponseHeaders().set("X-Content-Type-Options", "nosniff");
         exchange.sendResponseHeaders(status, payload.length);
         try (OutputStream output = exchange.getResponseBody()) {
             output.write(payload);
@@ -38,6 +39,7 @@ public final class WebResponse {
         byte[] payload = body.getBytes(StandardCharsets.UTF_8);
         exchange.getResponseHeaders().set("Content-Type", contentType);
         exchange.getResponseHeaders().set("Cache-Control", "no-store");
+        exchange.getResponseHeaders().set("X-Content-Type-Options", "nosniff");
         exchange.sendResponseHeaders(status, payload.length);
         try (OutputStream output = exchange.getResponseBody()) {
             output.write(payload);

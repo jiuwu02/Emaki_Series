@@ -4,10 +4,12 @@ import { ActionsEditor, Button, CollapsibleSection, EditorChrome, InlineError, M
 import { asList, asRecord, asStringList, displaySource, firstItemSource, materialFromItemSource, setDeepValue, parseYaml, type AnyMap } from './itemEditor';
 import { t } from './i18n';
 import { changedPathSet, diffRecords, getDeepValue, isChangedFieldPath, materialShortName, materialUrls, optionLabel, subscribeTextureBases, textValue, valuesEqual } from './lib';
+import { getSourceDocumentAdapter, type SurfaceToolbarState } from './registry';
 import type { ItemPreviewResult, WebEditorDescriptor, WebEditorField, WebEditorSection, WebRegistryFile, WebRegistryModule } from './types';
 import { serializeItemYaml } from './itemEditor';
 
-type Props = { module: WebRegistryModule; file: WebRegistryFile; api: ApiClient; childPath?: string; refreshKey?: number; editor?: WebEditorDescriptor; onReload?: () => void };
+type Props = { module: WebRegistryModule; file: WebRegistryFile; api: ApiClient; childPath?: string; refreshKey?: number; editor?: WebEditorDescriptor; onReload?: () => void; setToolbar?: (state: SurfaceToolbarState | null) => void; showLocalChrome?: boolean };
+type SnapshotHistory = { undo: AnyMap[]; redo: AnyMap[] };
 type EffectType = 'variables' | 'ea_attribute' | 'es_skill' | 'name_action' | 'lore_action';
 
 const DEFAULT_BASE_NAME = t('core.item.defaultBaseName');
@@ -25,7 +27,7 @@ const EditorContext = React.createContext<{
   economyProviders: string[];
 }>({ moduleId: '', editorFields: {}, changedPaths: new Set(), economyProviders: DEFAULT_ECONOMY_PROVIDERS });
 
-export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0, editor, onReload }: Props) {
+export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0, editor, onReload, setToolbar, showLocalChrome = true }: Props) {
   const [data, setData] = useState<AnyMap>({});
   const [originalData, setOriginalData] = useState<AnyMap>({});
   const [originalContent, setOriginalContent] = useState('');
@@ -37,6 +39,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
   const [sourceText, setSourceText] = useState('');
   const [sourceError, setSourceError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ tone: 'ok' | 'bad'; text: string } | null>(null);
+  const [history, setHistory] = useState<SnapshotHistory>({ undo: [], redo: [] });
 
   const [actionTypesResult, setActionTypesResult] = useState<ActionTypesResult | null>(null);
   const [economyProviders, setEconomyProviders] = useState<string[]>(DEFAULT_ECONOMY_PROVIDERS);
@@ -46,6 +49,8 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
   const baseLore = useMemo(() => editor?.baseLore ?? [DEFAULT_BASE_LORE], [editor?.baseLore]);
   const sections = useMemo(() => editor?.sections?.length ? editor.sections : defaultSections(), [editor]);
   const editorFields = useMemo(() => editorFieldMap(editor), [editor]);
+  const sourceAdapter = getSourceDocumentAdapter(file, editor);
+  const sourceContext = useMemo(() => ({ module, file, childPath, editor }), [module, file, childPath, editor]);
 
   useEffect(() => {
     if (!toast) return;
@@ -64,6 +69,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
       setOriginalContent(doc.content);
       setSourceText(doc.content);
       setSourceError(null);
+      setHistory({ undo: [], redo: [] });
       setLoading(false);
     }).catch(err => {
       if (cancelled) return;
@@ -100,6 +106,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
   const setField = (path: string, value: unknown) => {
     setData(prev => {
       const next = setDeepValue(prev, path.split('.'), value);
+      if (!valuesEqual(prev, next)) rememberHistory(prev);
       setSourceText(serializeItemYaml(next));
       setSourceError(null);
       return next;
@@ -110,6 +117,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
     setSourceText(nextSource);
     try {
       const parsed = parseYaml(nextSource) as AnyMap;
+      if (!valuesEqual(data, parsed)) rememberHistory(data);
       setData(parsed);
       setSourceError(null);
     } catch (err) {
@@ -117,16 +125,41 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
     }
   };
 
+  function rememberHistory(snapshot: AnyMap) {
+    setHistory(current => ({ undo: [...current.undo, snapshot].slice(-20), redo: [] }));
+  }
+
+  function applySnapshot(snapshot: AnyMap) {
+    setData(snapshot);
+    setSourceText(serializeItemYaml(snapshot));
+    setSourceError(null);
+  }
+
+  function undo() {
+    const snapshot = history.undo[history.undo.length - 1];
+    if (!snapshot) return;
+    setHistory(current => ({ undo: current.undo.slice(0, -1), redo: [data, ...current.redo].slice(0, 20) }));
+    applySnapshot(snapshot);
+  }
+
+  function redo() {
+    const snapshot = history.redo[0];
+    if (!snapshot) return;
+    setHistory(current => ({ undo: [...current.undo, data].slice(-20), redo: current.redo.slice(1) }));
+    applySnapshot(snapshot);
+  }
+
   const handleSave = async () => {
     if (saving || sourceError || !semanticDirty) return;
     setSaving(true);
     setError(null);
     try {
       const content = sourceContent;
-      await api.saveItem(module.id, filePath, content);
+      await (sourceAdapter?.save(api, sourceContext, content) ?? api.saveItem(module.id, filePath, content));
       setOriginalContent(content);
       setOriginalData(data);
       setSourceText(content);
+      setHistory({ undo: [], redo: [] });
       setToast({ tone: 'ok', text: t('core.toast.savedItem') });
     } catch (err: any) {
       setError(err?.message ?? t('core.toast.saveFailed'));
@@ -142,13 +175,36 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
   const semanticDirty = !sourceError && changes.length > 0;
   const editorContext = useMemo(() => ({ moduleId: module.id, editorFields, changedPaths, economyProviders }), [module.id, editorFields, changedPaths, economyProviders]);
 
+  useEffect(() => {
+    if (!setToolbar) return;
+    setToolbar({
+      title: editor?.title ?? file.title ?? t('core.item.editorTitle'),
+      subtitle: `${module.id}/${filePath}`,
+      dirty: semanticDirty,
+      changes,
+      source: sourceContent,
+      sourceEditable: true,
+      sourceError,
+      saving,
+      loading,
+      canUndo: history.undo.length > 0,
+      canRedo: history.redo.length > 0,
+      onUndo: undo,
+      onRedo: redo,
+      onReload,
+      onSourceChange: updateSource,
+      onSave: handleSave
+    });
+    return () => setToolbar(null);
+  }, [setToolbar, editor?.title, file.title, module.id, filePath, semanticDirty, changes, sourceContent, sourceError, saving, loading, history.undo.length, history.redo.length, onReload]);
+
   if (loading) return <div className="ie-surface"><div className="ie-loading" role="status"><div className="ie-skeleton" aria-label={t('core.item.loadingAria')}><div className="ie-skeleton-line" style={{ width: '60%' }} /><div className="ie-skeleton-line" style={{ width: '80%' }} /><div className="ie-skeleton-line" style={{ width: '45%' }} /><div className="ie-skeleton-line" style={{ width: '70%' }} /></div></div></div>;
   if (error && !data) return <div className="ie-surface"><InlineError>{error}</InlineError>{onReload && <Button size="sm" onClick={onReload}>{t('core.action.retry')}</Button>}</div>;
 
   return (
     <div className="ie-surface" data-dirty={semanticDirty || undefined} data-original-size={originalContent.length || undefined}>
       {toast && <ToastNotice tone={toast.tone} style={{ position: 'absolute', top: 12, right: 12, zIndex: 50 }}>{toast.text}</ToastNotice>}
-      <EditorChrome
+      {showLocalChrome && <EditorChrome
         className="ie-header"
         title={editor?.title ?? file.title ?? t('core.item.editorTitle')}
         subtitle={`${module.id}/${filePath}`}
@@ -158,10 +214,14 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
         sourceEditable
         sourceError={sourceError}
         saving={saving}
+        canUndo={history.undo.length > 0}
+        canRedo={history.redo.length > 0}
+        onUndo={undo}
+        onRedo={redo}
         onReload={onReload}
         onSourceChange={updateSource}
         onSave={handleSave}
-      />
+      />}
 
       {error && <InlineError>{error}</InlineError>}
 

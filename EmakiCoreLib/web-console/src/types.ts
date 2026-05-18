@@ -116,6 +116,15 @@ export type WebConsoleExtension = {
   moduleId: string;
   id: string;
   url: string;
+  apiVersion?: string;
+};
+
+export type WebConsoleExtensionStatus = {
+  moduleId: string;
+  id: string;
+  url: string;
+  status: 'loaded' | 'failed';
+  error?: string;
 };
 
 export type WebGuiType = {

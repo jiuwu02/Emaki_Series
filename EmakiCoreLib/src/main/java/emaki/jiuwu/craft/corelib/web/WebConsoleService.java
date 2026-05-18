@@ -74,6 +74,7 @@ public final class WebConsoleService {
             createContext("/api/registry/save", this::handleRegistrySave);
             createContext("/api/configs/tree", this::handleConfigTree);
             createContext("/api/configs/read", this::handleConfigRead);
+            createContext("/api/configs/save", this::handleConfigSave);
             createContext("/api/libraries", this::handleLibraries);
             createContext("/api/scripts/read", this::handleScriptRead);
             createContext("/api/scripts/save", this::handleScriptSave);
@@ -103,6 +104,8 @@ public final class WebConsoleService {
         server.createContext(path, exchange -> {
             try {
                 route.handle(exchange);
+            } catch (RequestBodyTooLargeException exception) {
+                WebResponse.json(exchange, 413, Map.of("success", false, "error", exception.getMessage()));
             } catch (Throwable throwable) {
                 plugin.getLogger().log(Level.WARNING, "[WebConsole] 请求处理失败: " + exchange.getRequestURI(), throwable);
                 try {
@@ -137,8 +140,7 @@ public final class WebConsoleService {
     }
 
     private void handleLogin(HttpExchange exchange) throws IOException {
-        if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
-            WebResponse.json(exchange, 405, Map.of("success", false, "error", "Method not allowed"));
+        if (!requirePost(exchange)) {
             return;
         }
         String body = readBody(exchange);
@@ -200,8 +202,7 @@ public final class WebConsoleService {
     }
 
     private void handleRegistrySave(HttpExchange exchange) throws IOException {
-        if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
-            WebResponse.json(exchange, 405, Map.of("success", false, "error", "Method not allowed"));
+        if (!requirePost(exchange)) {
             return;
         }
         if (requireAuth(exchange) == null) {
@@ -212,13 +213,12 @@ public final class WebConsoleService {
         String filePath = WebJson.extractString(body, "filePath");
         String path = WebJson.extractString(body, "path");
         Object value = WebJson.extractValue(body, "value");
-        Object revisionValue = WebJson.extractValue(body, "revision");
-        Long revision = revisionValue instanceof Number number ? number.longValue() : null;
+        Long revision = revisionFromBody(body);
         try {
             long nextRevision = consoleRegistry.saveValue(module, filePath, path, value, revision);
             WebResponse.json(exchange, 200, Map.of("success", true, "revision", nextRevision));
         } catch (WebConsoleRegistry.RevisionConflictException exception) {
-            WebResponse.json(exchange, 409, Map.of("success", false, "error", exception.getMessage(), "revision", exception.currentRevision()));
+            writeRevisionConflict(exchange, exception);
         } catch (IOException exception) {
             WebResponse.json(exchange, 400, Map.of("success", false, "error", exception.getMessage()));
         }
@@ -249,6 +249,35 @@ public final class WebConsoleService {
             payload.put("file", configBrowserService.read(module, path));
             WebResponse.json(exchange, 200, payload);
         } catch (IOException exception) {
+            WebResponse.json(exchange, 400, Map.of("success", false, "error", exception.getMessage()));
+        }
+    }
+
+    private void handleConfigSave(HttpExchange exchange) throws IOException {
+        if (!requirePost(exchange)) {
+            return;
+        }
+        if (requireAuth(exchange) == null) {
+            return;
+        }
+        String body = readBody(exchange);
+        String module = WebJson.extractString(body, "moduleId");
+        String path = WebJson.extractString(body, "path");
+        String content = WebJson.extractString(body, "content");
+        Long expectedRevision = revisionFromBody(body);
+        if (module == null || module.isBlank() || path == null || path.isBlank()) {
+            WebResponse.json(exchange, 400, Map.of("success", false, "error", "缺少 moduleId 或 path"));
+            return;
+        }
+        try {
+            YamlFiles.load(content == null ? "" : content);
+            long revision = configBrowserService.save(module, path, content, expectedRevision);
+            WebResponse.json(exchange, 200, Map.of("success", true, "revision", revision));
+        } catch (WebConsoleRegistry.RevisionConflictException exception) {
+            writeRevisionConflict(exchange, exception);
+        } catch (IOException exception) {
+            WebResponse.json(exchange, 400, Map.of("success", false, "error", exception.getMessage()));
+        } catch (Exception exception) {
             WebResponse.json(exchange, 400, Map.of("success", false, "error", exception.getMessage()));
         }
     }
@@ -291,16 +320,14 @@ public final class WebConsoleService {
     }
 
     private void handleScriptSave(HttpExchange exchange) throws IOException {
-        if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
-            WebResponse.json(exchange, 405, Map.of("success", false, "error", "Method not allowed"));
+        if (!requirePost(exchange)) {
             return;
         }
         if (requireAuth(exchange) == null) return;
         String body = readBody(exchange);
         String path = WebJson.extractString(body, "path");
         String content = WebJson.extractString(body, "content");
-        Object revisionValue = WebJson.extractValue(body, "revision");
-        Long expectedRevision = revisionValue instanceof Number n ? n.longValue() : null;
+        Long expectedRevision = revisionFromBody(body);
         if (path == null || path.isBlank()) {
             WebResponse.json(exchange, 400, Map.of("success", false, "error", "缺少 path"));
             return;
@@ -315,7 +342,7 @@ public final class WebConsoleService {
             if (expectedRevision != null && target.exists()) {
                 long current = fileRevision(target);
                 if (current != 0 && current != expectedRevision) {
-                    WebResponse.json(exchange, 409, Map.of("success", false, "error", "文件已被其他管理员修改，请重载后再保存。", "revision", current));
+                    writeRevisionConflict(exchange, current);
                     return;
                 }
             }
@@ -364,8 +391,7 @@ public final class WebConsoleService {
     }
 
     private void handleYamlSave(HttpExchange exchange, String kind) throws IOException {
-        if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
-            WebResponse.json(exchange, 405, Map.of("success", false, "error", "Method not allowed"));
+        if (!requirePost(exchange)) {
             return;
         }
         if (requireAuth(exchange) == null) return;
@@ -373,8 +399,7 @@ public final class WebConsoleService {
         String module = WebJson.extractString(body, "moduleId");
         String path = WebJson.extractString(body, "path");
         String content = WebJson.extractString(body, "content");
-        Object revisionValue = WebJson.extractValue(body, "revision");
-        Long expectedRevision = revisionValue instanceof Number n ? n.longValue() : null;
+        Long expectedRevision = revisionFromBody(body);
         if (module.isBlank() || path.isBlank()) {
             WebResponse.json(exchange, 400, Map.of("success", false, "error", "缺少 moduleId 或 path"));
             return;
@@ -384,7 +409,7 @@ public final class WebConsoleService {
             if (expectedRevision != null && target.exists()) {
                 long current = fileRevision(target);
                 if (current != 0 && current != expectedRevision) {
-                    WebResponse.json(exchange, 409, Map.of("success", false, "error", "文件已被其他管理员修改，请重载后再保存。", "revision", current));
+                    writeRevisionConflict(exchange, current);
                     return;
                 }
             }
@@ -407,8 +432,7 @@ public final class WebConsoleService {
     }
 
     private void handleItemPreview(HttpExchange exchange) throws IOException {
-        if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
-            WebResponse.json(exchange, 405, Map.of("success", false, "error", "Method not allowed"));
+        if (!requirePost(exchange)) {
             return;
         }
         if (requireAuth(exchange) == null) return;
@@ -473,6 +497,9 @@ public final class WebConsoleService {
     }
 
     private java.io.File safeModuleFile(String module, String path) throws IOException {
+        if (!WebConsoleRegistry.isModuleRegistered(module)) {
+            throw new IOException("模块未注册");
+        }
         java.io.File moduleRoot = plugin.getDataFolder().toPath().getParent().resolve(module).toFile();
         java.io.File target = new java.io.File(moduleRoot, path.replace('/', java.io.File.separatorChar));
         if (!target.getCanonicalPath().startsWith(moduleRoot.getCanonicalPath())) {
@@ -482,41 +509,40 @@ public final class WebConsoleService {
     }
 
     private void handleExtensionAsset(HttpExchange exchange) throws IOException {
-        String path = exchange.getRequestURI().getPath();
-        String prefix = "/extensions/";
-        if (!path.startsWith(prefix)) {
-            WebResponse.json(exchange, 404, Map.of("success", false, "error", "Not found"));
+        // Extension 脚本是静态资源，不含敏感数据，无需认证。
+        // <script> 标签无法携带 Authorization header，因此此处不做 requireAuth 检查。
+        ExtensionAsset asset;
+        try {
+            asset = resolveExtensionAsset(exchange.getRequestURI().getPath());
+        } catch (ExtensionAssetException exception) {
+            WebResponse.json(exchange, exception.status(), Map.of("success", false, "error", exception.getMessage()));
             return;
         }
-        String rest = path.substring(prefix.length());
-        int slash = rest.indexOf('/');
-        if (slash <= 0 || slash >= rest.length() - 1) {
-            WebResponse.json(exchange, 404, Map.of("success", false, "error", "扩展路径不完整"));
-            return;
-        }
-        String moduleId = urlDecode(rest.substring(0, slash));
-        String resourcePath = urlDecode(rest.substring(slash + 1)).replace('\\', '/');
-        if (moduleId.isBlank() || resourcePath.isBlank() || resourcePath.startsWith("/") || resourcePath.contains("..")) {
-            WebResponse.json(exchange, 400, Map.of("success", false, "error", "扩展路径不合法"));
-            return;
-        }
-        String registeredPath = WebConsoleRegistry.registeredExtensionResourcePath(moduleId, resourcePath);
-        if (registeredPath == null) {
-            WebResponse.json(exchange, 404, Map.of("success", false, "error", "扩展未注册"));
-            return;
-        }
-        Plugin owner = Bukkit.getPluginManager().getPlugin(moduleId);
-        if (owner == null || !owner.isEnabled()) {
-            WebResponse.json(exchange, 404, Map.of("success", false, "error", "扩展插件未启用"));
-            return;
-        }
-        try (java.io.InputStream input = owner.getClass().getClassLoader().getResourceAsStream(registeredPath)) {
+        try (java.io.InputStream input = asset.owner().getClass().getClassLoader().getResourceAsStream(asset.resourcePath())) {
             if (input == null) {
                 WebResponse.json(exchange, 404, Map.of("success", false, "error", "扩展资源不存在"));
                 return;
             }
-            WebResponse.bytes(exchange, 200, extensionContentType(registeredPath), input.readAllBytes());
+            WebResponse.bytes(exchange, 200, asset.contentType(), input.readAllBytes());
         }
+    }
+
+    private ExtensionAsset resolveExtensionAsset(String path) throws ExtensionAssetException {
+        String prefix = "/extensions/";
+        if (!path.startsWith(prefix)) throw new ExtensionAssetException(404, "Not found");
+        String rest = path.substring(prefix.length());
+        int slash = rest.indexOf('/');
+        if (slash <= 0 || slash >= rest.length() - 1) throw new ExtensionAssetException(404, "扩展路径不完整");
+        String moduleId = urlDecode(rest.substring(0, slash));
+        String resourcePath = urlDecode(rest.substring(slash + 1)).replace('\\', '/');
+        if (moduleId.isBlank() || resourcePath.isBlank() || resourcePath.startsWith("/") || resourcePath.contains("..")) {
+            throw new ExtensionAssetException(400, "扩展路径不合法");
+        }
+        String registeredPath = WebConsoleRegistry.registeredExtensionResourcePath(moduleId, resourcePath);
+        if (registeredPath == null) throw new ExtensionAssetException(404, "扩展未注册");
+        Plugin owner = Bukkit.getPluginManager().getPlugin(moduleId);
+        if (owner == null || !owner.isEnabled()) throw new ExtensionAssetException(404, "扩展插件未启用");
+        return new ExtensionAsset(owner, registeredPath, extensionContentType(registeredPath));
     }
 
     private String extensionContentType(String path) {
@@ -531,6 +557,27 @@ public final class WebConsoleService {
         WebResponse.bytes(exchange, 200, asset.contentType(), asset.bytes());
     }
 
+    private boolean requirePost(HttpExchange exchange) throws IOException {
+        if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+            return true;
+        }
+        WebResponse.json(exchange, 405, Map.of("success", false, "error", "Method not allowed"));
+        return false;
+    }
+
+    private Long revisionFromBody(String body) {
+        Object revisionValue = WebJson.extractValue(body, "revision");
+        return revisionValue instanceof Number number ? number.longValue() : null;
+    }
+
+    private void writeRevisionConflict(HttpExchange exchange, WebConsoleRegistry.RevisionConflictException exception) throws IOException {
+        WebResponse.json(exchange, 409, Map.of("success", false, "error", exception.getMessage(), "revision", exception.currentRevision()));
+    }
+
+    private void writeRevisionConflict(HttpExchange exchange, long currentRevision) throws IOException {
+        WebResponse.json(exchange, 409, Map.of("success", false, "error", "文件已被其他管理员修改，请重载后再保存。", "revision", currentRevision));
+    }
+
     private WebAuthService.Session requireAuth(HttpExchange exchange) throws IOException {
         WebAuthService.Session session = authService.session(exchange);
         if (session == null) {
@@ -543,7 +590,7 @@ public final class WebConsoleService {
         int maxBytes = config.security().maxRequestBodyKb() * 1024;
         byte[] bytes = exchange.getRequestBody().readNBytes(maxBytes + 1);
         if (bytes.length > maxBytes) {
-            return "";
+            throw new RequestBodyTooLargeException("请求体超过 Web Console 限制: " + config.security().maxRequestBodyKb() + "KB");
         }
         return new String(bytes, StandardCharsets.UTF_8);
     }
@@ -561,6 +608,27 @@ public final class WebConsoleService {
             }
         }
         return "";
+    }
+
+    private record ExtensionAsset(Plugin owner, String resourcePath, String contentType) {}
+
+    private static final class ExtensionAssetException extends IOException {
+        private final int status;
+
+        private ExtensionAssetException(int status, String message) {
+            super(message);
+            this.status = status;
+        }
+
+        private int status() {
+            return status;
+        }
+    }
+
+    private static final class RequestBodyTooLargeException extends IOException {
+        private RequestBodyTooLargeException(String message) {
+            super(message);
+        }
     }
 
     private String urlDecode(String value) {

@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { t } from '../i18n';
 import { ActionGroup } from './ActionGroup';
 import { Button } from './Button';
+import { useDialogFocus } from './useDialogFocus';
 
 export type EditorChange = {
   path: string;
@@ -64,20 +65,9 @@ export function EditorChrome({
   const [changesOpen, setChangesOpen] = useState(false);
   const count = changedCount ?? changes.length;
   const hasTrackedChanges = count > 0;
-  const canSave = Boolean(onSave) && dirty && hasTrackedChanges && !saving && !loading;
-  const finalSaveLabel = saveLabel ?? (hasTrackedChanges ? t('core.action.saveCount', { count }) : t('core.action.save'));
-
-  useEffect(() => {
-    if (!sourceOpen && !reloadOpen) return;
-    const close = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setSourceOpen(false);
-        setReloadOpen(false);
-      }
-    };
-    document.addEventListener('keydown', close);
-    return () => document.removeEventListener('keydown', close);
-  }, [sourceOpen, reloadOpen]);
+  const canSave = Boolean(onSave) && dirty && !saving && !loading;
+  const sourceDirtyOnly = dirty && !hasTrackedChanges;
+  const finalSaveLabel = saveLabel ?? (hasTrackedChanges ? t('core.action.saveCount', { count }) : sourceDirtyOnly ? t('core.action.saveSource') : t('core.action.save'));
 
   const previewChanges = useMemo(() => changes.slice(0, 12), [changes]);
 
@@ -98,7 +88,7 @@ export function EditorChrome({
         <h2>{title}</h2>
         {subtitle && <p>{subtitle}{dirty && <span className="dirty-inline">{t('core.item.unsaved')}</span>}</p>}
       </div>
-      <ActionGroup className="editor-chrome-actions">
+      <ActionGroup className="editor-chrome-actions" role="toolbar" aria-label={t('core.editor.toolbarAria')}>
         {children}
         {onUndo && <Button size="sm" onClick={onUndo} disabled={!canUndo || saving || loading} title={t('core.editor.undoHint')}>{t('core.editor.undo')}</Button>}
         {onRedo && <Button size="sm" onClick={onRedo} disabled={!canRedo || saving || loading} title={t('core.editor.redoHint')}>{t('core.editor.redo')}</Button>}
@@ -128,7 +118,10 @@ function ChangeList({ changes, count }: { changes: EditorChange[]; count: number
       {changes.map(change => <div className="editor-change-row" key={change.path}>
         <code>{change.path}</code>
         <span>{change.label || change.path}</span>
-        <small>{formatChangeValue(change.before)} → {formatChangeValue(change.after)}</small>
+        <div className="editor-change-diff">
+          <span className="editor-change-value before"><b>−</b><code>{formatChangeValue(change.before)}</code></span>
+          <span className="editor-change-value after"><b>+</b><code>{formatChangeValue(change.after)}</code></span>
+        </div>
       </div>)}
     </div>
     {count > changes.length && <p>{t('core.editor.changesMore', { count: count - changes.length })}</p>}
@@ -136,21 +129,25 @@ function ChangeList({ changes, count }: { changes: EditorChange[]; count: number
 }
 
 function SourceModal({ source, editable, error, onChange, onClose }: { source: string; editable?: boolean; error?: string | null; onChange?: (source: string) => void; onClose: () => void }) {
+  const dialogRef = useRef<HTMLElement | null>(null);
+  useDialogFocus(dialogRef, onClose);
   return <div className="editor-modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) onClose(); }}>
-    <section className="editor-source-modal" role="dialog" aria-modal="true" aria-labelledby="editor-source-title">
+    <section ref={dialogRef} className="editor-source-modal" role="dialog" aria-modal="true" aria-labelledby="editor-source-title" tabIndex={-1}>
       <header className="editor-modal-head">
         <div><span>{t('core.item.source')}</span><h3 id="editor-source-title">{t('core.editor.sourceTitle')}</h3></div>
         <Button size="sm" onClick={onClose}>{t('core.i18n.close')}</Button>
       </header>
-      {editable ? <textarea className="editor-source-code editor-source-textarea" value={source} onChange={event => onChange?.(event.target.value)} spellCheck={false} /> : <pre className="editor-source-code">{source}</pre>}
+      {editable ? <textarea className="editor-source-code editor-source-textarea" value={source} onChange={event => onChange?.(event.target.value)} spellCheck={false} aria-label={t('core.editor.sourceTitle')} /> : <pre className="editor-source-code">{source}</pre>}
       {error && <p className="editor-source-error" role="alert">{error}</p>}
     </section>
   </div>;
 }
 
 function ReloadModal({ changes, count, onCancel, onConfirm }: { changes: EditorChange[]; count: number; onCancel: () => void; onConfirm: () => void }) {
+  const dialogRef = useRef<HTMLElement | null>(null);
+  useDialogFocus(dialogRef, onCancel);
   return <div className="editor-modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) onCancel(); }}>
-    <section className="reload-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="editor-reload-title" aria-describedby="editor-reload-desc">
+    <section ref={dialogRef} className="reload-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="editor-reload-title" aria-describedby="editor-reload-desc" tabIndex={-1}>
       <div className="reload-confirm-head">
         <span>{t('core.gui.unsavedChanges')}</span>
         <h3 id="editor-reload-title">{t('core.gui.reloadDropsChanges')}</h3>

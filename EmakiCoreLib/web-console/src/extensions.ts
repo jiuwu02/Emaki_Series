@@ -1,14 +1,22 @@
-import type { WebConsoleExtension } from './types';
-import { installWebConsoleHost } from './registry';
+import type { WebConsoleExtension, WebConsoleExtensionStatus } from './types';
+import { installWebConsoleHost, recordExtensionStatus } from './registry';
 
 const loaded = new Set<string>();
 const loading = new Map<string, Promise<void>>();
 
 /** Dynamically load Web Console extension scripts registered by server-side plugins. */
-export async function loadWebExtensions(extensions: WebConsoleExtension[] | undefined): Promise<void> {
+export async function loadWebExtensions(extensions: WebConsoleExtension[] | undefined): Promise<WebConsoleExtensionStatus[]> {
   installWebConsoleHost();
-  if (!extensions?.length) return;
-  await Promise.all(extensions.map(loadWebExtension));
+  if (!extensions?.length) return [];
+  const results = await Promise.allSettled(extensions.map(loadWebExtension));
+  return results.map((result, index) => {
+    const extension = extensions[index];
+    const status: WebConsoleExtensionStatus = result.status === 'fulfilled'
+      ? { moduleId: extension.moduleId, id: extension.id, url: extension.url, status: 'loaded' }
+      : { moduleId: extension.moduleId, id: extension.id, url: extension.url, status: 'failed', error: result.reason instanceof Error ? result.reason.message : String(result.reason) };
+    recordExtensionStatus(status);
+    return status;
+  });
 }
 
 function loadWebExtension(extension: WebConsoleExtension): Promise<void> {
@@ -23,6 +31,7 @@ function loadWebExtension(extension: WebConsoleExtension): Promise<void> {
     script.async = false;
     script.dataset.emakiExtensionId = extension.id;
     script.dataset.emakiModuleId = extension.moduleId;
+    if (extension.apiVersion) script.dataset.emakiApiVersion = extension.apiVersion;
     script.onload = () => {
       loaded.add(url);
       loading.delete(url);

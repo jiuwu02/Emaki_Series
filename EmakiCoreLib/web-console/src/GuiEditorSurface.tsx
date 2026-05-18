@@ -1,5 +1,6 @@
 import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ApiClient } from './api';
+import { getSourceDocumentAdapter, type SurfaceToolbarState } from './registry';
 import type { GuiSlotDefinition, GuiTemplateData, WebRegistryFile, WebRegistryModule } from './types';
 import { buildOccupancy, clampRows, fieldLabel, guiColumns, guiField, guiSlotCount, guiTypeOptions, loreLines, materialShortName, materialUrls, normalizeGuiType, parseSlotList, parseYaml, renderMiniMessageParts, serializeGuiYaml, subscribeTextureBases, supportsRows, textValue } from './guiEditor';
 import { Button, EditorChrome, InlineError, InspectorSection, ToastNotice, ToggleChip } from './components';
@@ -14,13 +15,18 @@ type Props = {
   childPath?: string;
   refreshKey?: number;
   editor?: import('./types').WebEditorDescriptor;
+  onReload?: () => void;
+  setToolbar?: (state: SurfaceToolbarState | null) => void;
+  showLocalChrome?: boolean;
 };
+
+type SnapshotHistory = { undo: GuiTemplateData[]; redo: GuiTemplateData[] };
 
 const INSPECTOR_MIN = 300;
 const INSPECTOR_MAX = 620;
 const INSPECTOR_STEP = 16;
 
-export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0, editor }: Props) {
+export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0, editor, onReload, setToolbar, showLocalChrome = true }: Props) {
   const [data, setData] = useState<GuiTemplateData | null>(null);
   const [originalData, setOriginalData] = useState<GuiTemplateData | null>(null);
   const [originalText, setOriginalText] = useState('');
@@ -42,6 +48,7 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
   });
   const [resizingInspector, setResizingInspector] = useState(false);
   const [toast, setToast] = useState<{ tone: 'ok' | 'bad'; text: string } | null>(null);
+  const [history, setHistory] = useState<SnapshotHistory>({ undo: [], redo: [] });
   const [visibleOverlay, setVisibleOverlay] = useState<Record<number, string>>({});
   const tooltipRef = useRef<HTMLDivElement>(null);
   const inspectorResizeStartX = useRef(0);
@@ -49,6 +56,8 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
   const latestInspectorWidth = useRef(inspectorWidth);
 
   const path = childPath ?? '';
+  const sourceAdapter = getSourceDocumentAdapter(file, editor);
+  const sourceContext = useMemo(() => ({ module, file, childPath, editor }), [module, file, childPath, editor]);
 
   useEffect(() => {
     if (!toast) return;
@@ -137,6 +146,7 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
       setOriginalText(serialized);
       setSourceText(serialized);
       setSourceError(null);
+      setHistory({ undo: [], redo: [] });
       setSelected([]);
       setHovered(null);
       setTooltipPosition(null);
@@ -187,10 +197,11 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
     try {
       if (sourceError) return;
       const content = draftText;
-      await api.saveGui(module.id, path, content);
+      await (sourceAdapter?.save(api, sourceContext, content) ?? api.saveGui(module.id, path, content));
       setOriginalText(content);
       setOriginalData(data);
       setSourceText(content);
+      setHistory({ undo: [], redo: [] });
       setToast({ tone: 'ok', text: t('core.toast.savedGui') });
     } catch (err) {
       setError(err instanceof Error ? err.message : t('core.gui.saveFailed'));
@@ -203,6 +214,7 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
     setSourceText(nextSource);
     try {
       const parsed = parseYaml(nextSource) as GuiTemplateData;
+      if (data && !recordsEqual(data, parsed)) rememberHistory(data);
       setData(parsed);
       setSourceError(null);
     } catch (err) {
@@ -210,10 +222,38 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
     }
   }
 
+  function rememberHistory(snapshot: GuiTemplateData) {
+    setHistory(current => ({ undo: [...current.undo, snapshot].slice(-20), redo: [] }));
+  }
+
+  function applySnapshot(snapshot: GuiTemplateData) {
+    setData(snapshot);
+    setSourceText(serializeGuiYaml(snapshot));
+    setSourceError(null);
+  }
+
+  function undo() {
+    if (!data) return;
+    const snapshot = history.undo[history.undo.length - 1];
+    if (!snapshot) return;
+    setHistory(current => ({ undo: current.undo.slice(0, -1), redo: [data, ...current.redo].slice(0, 20) }));
+    applySnapshot(snapshot);
+  }
+
+  function redo() {
+    if (!data) return;
+    const snapshot = history.redo[0];
+    if (!snapshot) return;
+    setHistory(current => ({ undo: [...current.undo, data].slice(-20), redo: current.redo.slice(1) }));
+    applySnapshot(snapshot);
+  }
+
   function updateData(mutator: (draft: GuiTemplateData) => GuiTemplateData) {
     setData((current) => {
-      const mutated = mutator({ ...(current ?? {}), slots: { ...((current ?? {}).slots ?? {}) } });
+      const base = current ?? {};
+      const mutated = mutator({ ...base, slots: { ...(base.slots ?? {}) } });
       const next = pruneUndefined(mutated) as GuiTemplateData;
+      if (!recordsEqual(base, next)) rememberHistory(base);
       setSourceText(serializeGuiYaml(next));
       setSourceError(null);
       return next;
@@ -279,6 +319,36 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
     document.querySelector<HTMLButtonElement>(`[data-gui-slot="${nextIndex}"]`)?.focus();
   }
 
+  const subtitle = data ? `${module.id}/${path} · ${guiType}${rowSupported ? ` · ${t('core.gui.metaRows', { count: rows })}` : ''} · ${t('core.gui.metaSlots', { count: slotCount })} · ${t('core.gui.metaSlotDefinitions', { count: Object.keys(data.slots ?? {}).length })}` : `${module.id}/${path}`;
+
+  useEffect(() => {
+    if (!setToolbar) return;
+    if (!path || !data) {
+      setToolbar(null);
+      return;
+    }
+    setToolbar({
+      title: file.title,
+      subtitle,
+      dirty,
+      changes,
+      source: draftText,
+      sourceEditable: true,
+      sourceError,
+      saving,
+      loading,
+      saveLabel: t('core.gui.save'),
+      canUndo: history.undo.length > 0,
+      canRedo: history.redo.length > 0,
+      onUndo: undo,
+      onRedo: redo,
+      onReload: () => void (onReload ? onReload() : reloadGui()),
+      onSourceChange: updateSource,
+      onSave: () => void save()
+    });
+    return () => setToolbar(null);
+  }, [setToolbar, path, data, file.title, subtitle, dirty, changes, draftText, sourceError, saving, loading, history.undo.length, history.redo.length, onReload]);
+
   if (!path) return <section className="config-surface empty" role="status">{t('core.gui.selectFile')}</section>;
   if (loading) return <section className="config-surface gui-surface"><div className="gui-loading" role="status">{t('core.gui.loading')}</div></section>;
   if (!data) return <section className="config-surface empty"><InlineError>{error || t('core.gui.unavailable')}</InlineError><Button size="sm" onClick={() => void reloadGui()}>{t('core.action.retry')}</Button></section>;
@@ -287,10 +357,10 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
 
   return <section className="config-surface gui-surface" data-dirty={dirty ? 'true' : undefined}>
     {toast && <ToastNotice tone={toast.tone} style={{ position: 'absolute', top: 12, right: 12, zIndex: 50 }}>{toast.text}</ToastNotice>}
-    <EditorChrome
+    {showLocalChrome && <EditorChrome
       className="surface-head gui-head"
       title={file.title}
-      subtitle={`${module.id}/${path} · ${guiType}${rowSupported ? ` · ${t('core.gui.metaRows', { count: rows })}` : ''} · ${t('core.gui.metaSlots', { count: slotCount })} · ${t('core.gui.metaSlotDefinitions', { count: Object.keys(data.slots ?? {}).length })}`}
+      subtitle={subtitle}
       dirty={dirty}
       changes={changes}
       source={draftText}
@@ -299,10 +369,14 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
       saving={saving}
       loading={loading}
       saveLabel={t('core.gui.save')}
+      canUndo={history.undo.length > 0}
+      canRedo={history.redo.length > 0}
+      onUndo={undo}
+      onRedo={redo}
       onReload={() => void reloadGui()}
       onSourceChange={updateSource}
       onSave={() => void save()}
-    />
+    />}
     {error && <InlineError className="gui-error">{error}</InlineError>}
     <div className={`gui-workbench ${resizingInspector ? 'is-resizing' : ''}`} style={{ '--gui-inspector-width': `${inspectorWidth}px` } as React.CSSProperties}>
       <div className="gui-preview-pane">
@@ -569,6 +643,14 @@ function SlotIcon({ slot, failed, setFailed }: { slot?: GuiSlotDefinition | null
 
 function clampInspectorWidth(value: number): number {
   return Math.max(INSPECTOR_MIN, Math.min(INSPECTOR_MAX, Number.isFinite(value) ? value : 380));
+}
+
+function recordsEqual(a: unknown, b: unknown): boolean {
+  try {
+    return JSON.stringify(a) === JSON.stringify(b);
+  } catch {
+    return Object.is(a, b);
+  }
 }
 
 function pruneUndefined(value: unknown): unknown {

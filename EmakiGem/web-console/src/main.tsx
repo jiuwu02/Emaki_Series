@@ -1,6 +1,4 @@
-import { registerModuleLocale } from 'emaki-web-console';
-import { EmakiGemItemSurface } from './EmakiGemItemSurface';
-import { PluginGuiSurface } from './PluginGuiSurface';
+import { registerModuleLocale, registerPluginGuiEditor } from 'emaki-web-console';
 
 registerModuleLocale('EmakiGem', 'zh-CN', {
   'emakigem.surface.gem': '宝石',
@@ -178,40 +176,20 @@ registerModuleLocale('EmakiGem', 'zh-CN', {
   'emakigem.actionParam.anchor': '锚点'
 });
 
-const host = window.EmakiWebConsole;
-if (host) {
-  host.registerSurface({ kind: 'ITEM', moduleId: 'EmakiGem', editorId: 'emakigem:gem', component: EmakiGemItemSurface, label: '宝石', priority: 100 });
-  host.registerSurface({ kind: 'ITEM', moduleId: 'EmakiGem', editorId: 'emakigem:socket-item', component: EmakiGemItemSurface, label: '插槽物品', priority: 100 });
-  host.registerSurface({ kind: 'GUI', moduleId: 'EmakiGem', editorId: 'emakigem:gui', component: PluginGuiSurface, label: '宝石 GUI', priority: 100 });
-  host.registerSurface({ kind: 'GUI', moduleId: 'EmakiGem', component: PluginGuiSurface, label: '宝石 GUI', priority: 90 });
-  host.registerGuiEditorDescriptor('EmakiGem', 'emakigem:gui', {
-    id: 'emakigem:gui',
-    moduleId: 'EmakiGem',
-    title: '宝石 GUI',
-    kindLabel: '宝石 GUI',
-    fields: guiFields([
-      ['id', 'ID', 'GUI 模板唯一标识。', 'text'],
-      ['gui_type', 'GUI 类型', 'Bukkit InventoryType。只有 CHEST 支持行数。', 'enum'],
-      ['title', '标题', 'GUI 窗口标题，支持 MiniMessage。', 'text'],
-      ['rows', '箱子行数', '仅 CHEST 类型可用，范围 1-6。', 'number'],
-      ['slots', '槽位', 'GUI 中所有可渲染槽位配置。', 'object'],
-      ['type', '槽位类型', '插件业务识别的槽位语义，例如 target_item、confirm。', 'text'],
-      ['item', '物品', '槽位显示物品，支持原版材料或 ItemSource。', 'text'],
-      ['display_name', '显示名', '槽位物品显示名称，支持 MiniMessage。', 'text'],
-      ['lore', 'Lore', '槽位物品描述，每行一条。', 'stringList'],
-      ['hidden_components', '隐藏组件', '隐藏 tooltip、附魔、属性等原版组件。', 'stringList'],
-      ['item_model', '物品模型', '资源包 item model 标识。', 'text'],
-      ['custom_model_data', '模型数据', 'Custom Model Data 数值。', 'number'],
-      ['sounds', '声音', '点击槽位时播放的声音配置。', 'object'],
-      ['target_item', '目标装备槽', '放入待镶嵌或查看的装备。', 'text'],
-      ['socket_slot', '宝石槽位', '展示或操作装备上的宝石槽。', 'text'],
-      ['confirm', '确认按钮', '确认当前宝石操作。', 'text']
-    ])
-  });
-} else {
-  console.warn('[EmakiGem] EmakiWebConsole host is not available; item surface was not registered.');
-}
+registerPluginGuiEditor({
+  moduleId: 'EmakiGem',
+  editorId: 'emakigem:gui',
+  label: '宝石 GUI',
+  fields: [
+    ['slots', '槽位', 'GUI 中所有可渲染槽位配置。', 'object'],
+    ['type', '槽位类型', '插件业务识别的槽位语义，例如 target_item、confirm。', 'text'],
+    ['hidden_components', '隐藏组件', '隐藏 tooltip、附魔、属性等原版组件。', 'stringList'],
+    ['item_model', '物品模型', '资源包 item model 标识。', 'text'],
+    ['custom_model_data', '模型数据', 'Custom Model Data 数值。', 'number'],
+    ['sounds', '声音', '点击槽位时播放的声音配置。', 'object'],
+    ['target_item', '目标装备槽', '放入待镶嵌或查看的装备。', 'text'],
+    ['socket_slot', '宝石槽位', '展示或操作装备上的宝石槽。', 'text'],
+    ['confirm', '确认按钮', '确认当前宝石操作。', 'text']
+  ]
+});
 
-function guiFields(entries: Array<[string, string, string, string]>) {
-  return Object.fromEntries(entries.map(([path, label, comment, type]) => [path, { path, label, comment, type }]));
-}

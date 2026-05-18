@@ -807,6 +807,7 @@ public final class WebConsoleRegistry {
             entry.put("moduleId", extension.moduleId());
             entry.put("id", extension.id());
             entry.put("url", "/extensions/" + extension.moduleId() + "/" + extension.resourcePath());
+            entry.put("apiVersion", "1.1.0");
             result.add(entry);
         }
         return result;
@@ -864,7 +865,7 @@ public final class WebConsoleRegistry {
         return registration.files().stream()
                 .filter(file -> file.type() == WebConsoleFileType.CONFIG && file.structuredYaml() && file.relativePath().equals(relativePath))
                 .findFirst()
-                .orElse(primaryConfig(registration));
+                .orElse(null);
     }
 
     private static void registerFile(String moduleId, String title, String relativePath, WebConsoleFileType type, String comment, boolean structuredYaml) {

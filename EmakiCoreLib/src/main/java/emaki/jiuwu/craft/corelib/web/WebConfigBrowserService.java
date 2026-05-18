@@ -41,6 +41,30 @@ public final class WebConfigBrowserService {
 
     public Map<String, Object> read(String moduleId, String relativePath) throws IOException {
         Path root = moduleRoot(moduleId);
+        Path target = readableFile(root, relativePath);
+        Map<String, Object> result = fileEntry(root, target);
+        result.put("content", Files.readString(target, StandardCharsets.UTF_8));
+        return result;
+    }
+
+    public long save(String moduleId, String relativePath, String content, Long expectedRevision) throws IOException {
+        Path root = moduleRoot(moduleId);
+        Path target = WebPathSecurity.resolveInside(root, relativePath);
+        if (target == null || !isAllowedFile(target)) {
+            throw new IOException("文件不在允许访问范围内");
+        }
+        if (expectedRevision != null && Files.exists(target)) {
+            long current = Files.getLastModifiedTime(target).toMillis();
+            if (current != 0L && current != expectedRevision) {
+                throw new WebConsoleRegistry.RevisionConflictException("文件已被其他管理员修改，请重载后再保存。", current);
+            }
+        }
+        Files.createDirectories(target.getParent());
+        Files.writeString(target, content == null ? "" : content, StandardCharsets.UTF_8);
+        return Files.getLastModifiedTime(target).toMillis();
+    }
+
+    private Path readableFile(Path root, String relativePath) throws IOException {
         Path target = WebPathSecurity.resolveInside(root, relativePath);
         if (target == null || !Files.isRegularFile(target) || !isAllowedFile(target)) {
             throw new IOException("文件不在允许访问范围内");
@@ -50,9 +74,7 @@ public final class WebConfigBrowserService {
         if (size > maxBytes) {
             throw new IOException("文件超过 Web Console 读取上限: " + config.configBrowser().maxFileSizeKb() + "KB");
         }
-        Map<String, Object> result = fileEntry(root, target);
-        result.put("content", Files.readString(target, StandardCharsets.UTF_8));
-        return result;
+        return target;
     }
 
     private Path moduleRoot(String moduleId) throws IOException {

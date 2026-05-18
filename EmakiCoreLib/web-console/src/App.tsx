@@ -1,21 +1,31 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import type { ComponentType } from 'react';
 import { ApiClient } from './api';
 import { GuiEditorSurface } from './GuiEditorSurface';
 import { ItemEditorSurface } from './ItemEditorSurface';
 import { loadWebExtensions } from './extensions';
-import { applyEditorDescriptorOverrides, getSurface, isKind, registerSurface } from './registry';
+import { applyEditorDescriptorOverrides, getSourceDocumentAdapter, getSurface, isKind, registerSourceDocumentAdapter, registerSurface } from './registry';
 import { getLocale, getRegisteredLocales, setLocale, t } from './i18n';
 import { ActionGroup, Button, EditorChrome, InlineError, ToastNotice, type EditorChange } from './components';
 import { I18nBundleModal, type I18nTarget } from './I18nBundleModal';
 import { fieldLabel, valuesEqual } from './lib';
 import { Login, ResizableRail, WorkspaceTree, fileKindLabel } from './shell';
-import type { SurfaceProps } from './registry';
+import type { SurfaceProps, SurfaceToolbarState } from './registry';
 import type { WebConfigNode, WebRegistry, WebRegistryFile, WebRegistryModule } from './types';
 
 // Register CoreLib's built-in surfaces through the same registry used by plugin extensions.
 registerSurface({ kind: 'GUI', component: GuiEditorSurface as ComponentType<SurfaceProps>, label: t('core.surface.gui.label') });
 registerSurface({ kind: 'ITEM', component: ItemEditorSurface as ComponentType<SurfaceProps>, label: t('core.surface.item.label') });
+for (const kind of ['CONFIG', 'GUI', 'ITEM', 'SCRIPT']) {
+  registerSourceDocumentAdapter({
+    kind,
+    adapter: {
+      read: (api, context) => api.readTextDocument({ kind, moduleId: context.module.id, path: context.childPath || context.file.path }),
+      save: (api, context, content, revision) => api.saveTextDocument({ kind, moduleId: context.module.id, path: context.childPath || context.file.path }, content, revision),
+      language: kind === 'SCRIPT' ? 'javascript' : 'yaml'
+    }
+  });
+}
 
 type Selection = { moduleId: string; fileId: string; scriptPath?: string; refreshKey?: number };
 type DraftMap = Record<string, unknown>;
@@ -38,6 +48,7 @@ const LOCALE_LABELS: Record<string, string> = { 'zh-CN': '简体中文', zh_CN: 
 
 export default function App() {
   const [token, setToken] = useState(() => sessionStorage.getItem('emaki-web-token'));
+  const [sessionExpired, setSessionExpired] = useState(false);
   const [registry, setRegistry] = useState<WebRegistry | null>(null);
   const [selected, setSelected] = useState<Selection | null>(null);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
@@ -49,9 +60,11 @@ export default function App() {
   const [i18nTarget, setI18nTarget] = useState<I18nTarget | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [surfaceToolbar, setSurfaceToolbar] = useState<SurfaceToolbarState | null>(null);
 
   const api = useMemo(() => new ApiClient(token, () => {
     sessionStorage.removeItem('emaki-web-token');
+    setSessionExpired(true);
     setToken(null);
   }), [token]);
 
@@ -115,12 +128,17 @@ export default function App() {
     setDraftHistory(current => removeDraftHistoryScope(current, scope));
   }
 
+  function clearDraftValues(scope: ConfigDraftScope) {
+    setDrafts(current => removeDraftScope(current, scope));
+  }
+
   async function loadRegistry(options: RegistryLoadOptions = {}): Promise<WebRegistry | null> {
     const { initial = false, clearDrafts = false, announceRefresh = !initial } = options;
     setLoading(true);
     try {
       const next = await api.registry();
-      await loadWebExtensions(next.extensions);
+      const extensionStatuses = await loadWebExtensions(next.extensions);
+      const failedExtensions = extensionStatuses.filter(status => status.status === 'failed');
       const merged = applyEditorDescriptorOverrides(next);
       setRegistry(merged);
       if (initial) setExpanded(Object.fromEntries(merged.modules.map((m) => [m.id, true])));
@@ -129,7 +147,8 @@ export default function App() {
         setDrafts({});
         setDraftHistory({});
       }
-      if (announceRefresh) setToast({ tone: 'ok', text: t('core.toast.registryRefreshed') });
+      if (failedExtensions.length) setToast({ tone: 'bad', text: t('core.toast.extensionLoadFailed', { count: failedExtensions.length }) });
+      else if (announceRefresh) setToast({ tone: 'ok', text: t('core.toast.registryRefreshed') });
       return merged;
     } catch (err) {
       setToast({ tone: 'bad', text: err instanceof Error ? err.message : t('core.toast.refreshFailed') });
@@ -145,6 +164,7 @@ export default function App() {
     if (!next) return;
     if (scope) clearDraftScope(scope);
     setSelected(current => current ? { ...current, refreshKey: (current.refreshKey ?? 0) + 1 } : firstSelection(next));
+    setToast({ tone: 'ok', text: t('core.toast.reloaded') });
   }
 
   async function saveCurrent() {
@@ -162,11 +182,11 @@ export default function App() {
         const result = await api.saveRegistryValue(selectedModule.id, scope.filePath, node.path, drafts[draftKey(scope, node.path)], revision);
         revision = result.revision ?? revision;
       }
-      clearDraftScope(scope);
+      clearDraftValues(scope);
       setToast({ tone: 'ok', text: t('core.toast.savedConfig', { count: changes.length }) });
       await loadRegistry({ clearDrafts: false, announceRefresh: false });
     } catch (err) {
-      setToast({ tone: 'bad', text: err instanceof Error ? err.message : t('core.toast.saveFailed') });
+      setToast({ tone: 'bad', text: userFacingSaveError(err) });
     } finally {
       setSaving(false);
     }
@@ -182,7 +202,24 @@ export default function App() {
   const activeThemeLabel = t(activeTheme.labelKey);
   const nextTheme = () => setTheme((current) => COLOR_THEMES[(COLOR_THEMES.findIndex((entry) => entry.id === current) + 1) % COLOR_THEMES.length].id);
   const selectedEditor = selectedFile?.editorId ? registry?.editors?.[selectedFile.editorId] : undefined;
-  const hideStageHead = selectedFile && (getSurface(selectedFile, selectedEditor) != null && !isKind(selectedFile.kind, 'CONFIG') && !isKind(selectedFile.kind, 'SCRIPT'));
+  const selectedSource = '';
+  const fallbackToolbar: SurfaceToolbarState = {
+    title: selectedModule ? selectedModule.name : t('core.stage.defaultTitle'),
+    subtitle: selectedFile ? `${selectedFile.title}，${selectedFile.path}` : t('core.stage.defaultHint'),
+    dirty: changedCount > 0,
+    changedCount,
+    changes: selectedDraftScope && selectedFile ? configChanges(selectedDraftScope, selectedFile.nodes, drafts) : [],
+    source: selectedSource,
+    saving,
+    loading,
+    canUndo: selectedScopeHistory.undo.length > 0,
+    canRedo: selectedScopeHistory.redo.length > 0,
+    onUndo: selectedDraftScope ? () => undoDraftScope(selectedDraftScope) : undefined,
+    onRedo: selectedDraftScope ? () => redoDraftScope(selectedDraftScope) : undefined,
+    onReload: () => void reloadCurrentSurface(),
+    onSave: () => void saveCurrent()
+  };
+  const toolbar = surfaceToolbar ?? fallbackToolbar;
   const locales = getRegisteredLocales();
   const currentLocale = getLocale();
   const currentLocaleLabel = localeLabel(currentLocale);
@@ -206,7 +243,7 @@ export default function App() {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [selectedDraftScope, selectedScopeHistory.undo.length, selectedScopeHistory.redo.length, saving, loading]);
 
-  if (!token) return <Login onLogin={(t) => { sessionStorage.setItem('emaki-web-token', t); setToken(t); }} />;
+  if (!token) return <Login sessionExpired={sessionExpired} onLogin={(t) => { sessionStorage.setItem('emaki-web-token', t); setSessionExpired(false); setToken(t); }} />;
 
   return (
     <div className="workbench" data-locale-version={localeVersion}>
@@ -231,32 +268,43 @@ export default function App() {
         <button className="rail-action quiet" onClick={() => { sessionStorage.removeItem('emaki-web-token'); setToken(null); }}>{t('core.auth.logout')}</button>
       </ResizableRail>
       <main className="stage">
-        {!hideStageHead && <EditorChrome
+        <EditorChrome
           className="stage-head"
-          title={selectedModule ? selectedModule.name : t('core.stage.defaultTitle')}
-          subtitle={selectedFile ? `${selectedFile.title}，${selectedFile.path}` : t('core.stage.defaultHint')}
-          dirty={changedCount > 0}
-          changedCount={changedCount}
-          changes={selectedDraftScope && selectedFile ? configChanges(selectedDraftScope, selectedFile.nodes, drafts) : []}
-          source=""
-          saving={saving}
-          loading={loading}
-          canUndo={selectedScopeHistory.undo.length > 0}
-          canRedo={selectedScopeHistory.redo.length > 0}
-          onUndo={selectedDraftScope ? () => undoDraftScope(selectedDraftScope) : undefined}
-          onRedo={selectedDraftScope ? () => redoDraftScope(selectedDraftScope) : undefined}
-          onReload={() => void reloadCurrentSurface()}
-          onSave={() => void saveCurrent()}
-        />}
+          title={toolbar.title ?? (selectedModule ? selectedModule.name : t('core.stage.defaultTitle'))}
+          subtitle={toolbar.subtitle ?? (selectedFile ? `${selectedFile.title}，${selectedFile.path}` : t('core.stage.defaultHint'))}
+          dirty={toolbar.dirty}
+          changedCount={toolbar.changedCount}
+          changes={toolbar.changes ?? []}
+          source={toolbar.source ?? ''}
+          sourceEditable={toolbar.sourceEditable}
+          sourceError={toolbar.sourceError}
+          saving={toolbar.saving ?? false}
+          loading={toolbar.loading ?? false}
+          saveLabel={toolbar.saveLabel}
+          sourceLabel={toolbar.sourceLabel}
+          reloadLabel={toolbar.reloadLabel}
+          canUndo={toolbar.canUndo}
+          canRedo={toolbar.canRedo}
+          onUndo={toolbar.onUndo}
+          onRedo={toolbar.onRedo}
+          onReload={toolbar.onReload}
+          onSourceChange={toolbar.onSourceChange}
+          onSave={toolbar.onSave}
+        />
         <section className="editor-shell single">
-          <ConfigSurface registry={registry} module={selectedModule} file={selectedFile} drafts={drafts} draftHistory={draftHistory} setDraftValue={setDraftValue} clearDraftScope={clearDraftScope} undoDraftScope={undoDraftScope} redoDraftScope={redoDraftScope} api={api} scriptPath={selected?.scriptPath} refreshKey={selected?.refreshKey ?? 0} onReload={() => void reloadCurrentSurface()} />
+          <ConfigSurface registry={registry} module={selectedModule} file={selectedFile} drafts={drafts} draftHistory={draftHistory} setDraftValue={setDraftValue} clearDraftScope={clearDraftScope} clearDraftValues={clearDraftValues} undoDraftScope={undoDraftScope} redoDraftScope={redoDraftScope} api={api} scriptPath={selected?.scriptPath} refreshKey={selected?.refreshKey ?? 0} onReload={() => void reloadCurrentSurface()} onRefreshRegistry={() => loadRegistry({ clearDrafts: false, announceRefresh: false })} setSurfaceToolbar={setSurfaceToolbar} setToast={setToast} />
         </section>
       </main>
     </div>
   );
 }
 
-function ConfigSurface({ registry, module, file, drafts, draftHistory, setDraftValue, clearDraftScope, undoDraftScope, redoDraftScope, api, scriptPath, refreshKey, onReload }: { registry: WebRegistry | null; module: WebRegistryModule | null; file: WebRegistryFile | null; drafts: DraftMap; draftHistory: DraftHistoryMap; setDraftValue: DraftValueSetter; clearDraftScope: DraftScopeAction; undoDraftScope: DraftScopeAction; redoDraftScope: DraftScopeAction; api: ApiClient; scriptPath?: string; refreshKey: number; onReload?: () => void }) {
+function ConfigSurface({ registry, module, file, drafts, draftHistory, setDraftValue, clearDraftScope, clearDraftValues, undoDraftScope, redoDraftScope, api, scriptPath, refreshKey, onReload, onRefreshRegistry, setSurfaceToolbar, setToast }: { registry: WebRegistry | null; module: WebRegistryModule | null; file: WebRegistryFile | null; drafts: DraftMap; draftHistory: DraftHistoryMap; setDraftValue: DraftValueSetter; clearDraftScope: DraftScopeAction; clearDraftValues: DraftScopeAction; undoDraftScope: DraftScopeAction; redoDraftScope: DraftScopeAction; api: ApiClient; scriptPath?: string; refreshKey: number; onReload?: () => void; onRefreshRegistry: () => Promise<WebRegistry | null>; setSurfaceToolbar: (state: SurfaceToolbarState | null) => void; setToast: (toast: Toast) => void }) {
+  useEffect(() => {
+    setSurfaceToolbar(null);
+    return () => setSurfaceToolbar(null);
+  }, [module?.id, file?.id, scriptPath]);
+
   if (registry && registry.modules.length === 0) return <section className="config-surface empty" role="status">{t('core.empty.noRegistry')}</section>;
   if (!module || !file) return <section className="config-surface empty" role="status">{t('core.empty.selectConfig')}</section>;
   const editor = file.editorId ? registry?.editors?.[file.editorId] : undefined;
@@ -265,24 +313,79 @@ function ConfigSurface({ registry, module, file, drafts, draftHistory, setDraftV
   const registeredSurface = getSurface(file, editor);
   if (registeredSurface && !isKind(file.kind, 'CONFIG') && !isKind(file.kind, 'SCRIPT')) {
     const SurfaceComponent = registeredSurface.component;
-    return <SurfaceComponent module={module} file={file} api={api} childPath={scriptPath} refreshKey={refreshKey} editor={editor} onReload={onReload} />;
+    return <SurfaceComponent module={module} file={file} api={api} childPath={scriptPath} refreshKey={refreshKey} editor={editor} onReload={onReload} setToolbar={setSurfaceToolbar} showLocalChrome={false} />;
   }
 
-  if (isKind(file.kind, 'SCRIPT')) return <section className="config-surface script-surface"><div className="surface-head"><div><h2>{file.title}</h2><p>{file.comment}</p></div><span className="file-kind script">{fileKindLabel(file.kind)}</span></div>{scriptPath ? <ScriptEditor api={api} scriptPath={scriptPath} /> : <div className="script-placeholder" role="status">{t('core.empty.selectScript')}</div>}</section>;
+  if (isKind(file.kind, 'SCRIPT')) return <section className="config-surface script-surface"><div className="surface-head"><div><h2>{file.title}</h2><p>{file.comment}</p></div><span className="file-kind script">{fileKindLabel(file.kind)}</span></div>{scriptPath ? <ScriptEditor api={api} scriptPath={scriptPath} module={module} file={file} setSurfaceToolbar={setSurfaceToolbar} setToast={setToast} /> : <div className="script-placeholder" role="status">{t('core.empty.selectScript')}</div>}</section>;
   // CONFIG 类型：如果有子文件路径，按需加载子文件内容
-  if (isKind(file.kind, 'CONFIG') && scriptPath) return <ConfigChildSurface module={module} file={file} childPath={scriptPath} drafts={drafts} draftHistory={draftHistory} setDraftValue={setDraftValue} clearDraftScope={clearDraftScope} undoDraftScope={undoDraftScope} redoDraftScope={redoDraftScope} api={api} refreshKey={refreshKey} />;
+  if (isKind(file.kind, 'CONFIG') && scriptPath) return <ConfigChildSurface module={module} file={file} childPath={scriptPath} drafts={drafts} draftHistory={draftHistory} setDraftValue={setDraftValue} clearDraftScope={clearDraftScope} clearDraftValues={clearDraftValues} undoDraftScope={undoDraftScope} redoDraftScope={redoDraftScope} api={api} refreshKey={refreshKey} setSurfaceToolbar={setSurfaceToolbar} setToast={setToast} />;
   // CONFIG 类型 glob 文件无子文件选中时，显示提示
   if (isKind(file.kind, 'CONFIG') && file.children && file.children.length > 0 && file.nodes.length === 0) return <section className="config-surface"><div className="surface-head"><div><h2>{file.title}</h2><p>{file.comment}</p></div><span className={`file-kind ${String(file.kind).toLowerCase()}`}>{fileKindLabel(file.kind)}</span></div><div className="script-placeholder" role="status">{t('core.empty.selectFile')}</div></section>;
-  return <section className="config-surface"><div className="surface-head"><div><h2>{file.title}</h2><p>{file.comment}</p></div><span className={`file-kind ${String(file.kind).toLowerCase()}`}>{fileKindLabel(file.kind)}</span></div><ConfigNodeTree scope={configDraftScope(module, file)} nodes={file.nodes} drafts={drafts} setDraftValue={setDraftValue} /></section>;
+  return <ConfigStructuredSurface module={module} file={file} drafts={drafts} draftHistory={draftHistory} setDraftValue={setDraftValue} clearDraftScope={clearDraftScope} clearDraftValues={clearDraftValues} undoDraftScope={undoDraftScope} redoDraftScope={redoDraftScope} api={api} refreshKey={refreshKey} onRefreshRegistry={onRefreshRegistry} setSurfaceToolbar={setSurfaceToolbar} setToast={setToast} />;
 }
 
-function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, setDraftValue, clearDraftScope, undoDraftScope, redoDraftScope, api, refreshKey }: { module: WebRegistryModule; file: WebRegistryFile; childPath: string; drafts: DraftMap; draftHistory: DraftHistoryMap; setDraftValue: DraftValueSetter; clearDraftScope: DraftScopeAction; undoDraftScope: DraftScopeAction; redoDraftScope: DraftScopeAction; api: ApiClient; refreshKey: number }) {
+function ConfigStructuredSurface({ module, file, drafts, draftHistory, setDraftValue, clearDraftScope, clearDraftValues, undoDraftScope, redoDraftScope, api, refreshKey, onRefreshRegistry, setSurfaceToolbar, setToast }: { module: WebRegistryModule; file: WebRegistryFile; drafts: DraftMap; draftHistory: DraftHistoryMap; setDraftValue: DraftValueSetter; clearDraftScope: DraftScopeAction; clearDraftValues: DraftScopeAction; undoDraftScope: DraftScopeAction; redoDraftScope: DraftScopeAction; api: ApiClient; refreshKey: number; onRefreshRegistry: () => Promise<WebRegistry | null>; setSurfaceToolbar: (state: SurfaceToolbarState | null) => void; setToast: (toast: Toast) => void }) {
+  const scope = configDraftScope(module, file);
+  const scopeHistory = draftHistory[draftScopeId(scope)] ?? emptyDraftHistory();
+  const changedNodes = file.nodes.filter(n => n.type !== 'object' && draftKey(scope, n.path) in drafts);
+  const source = useConfigSourceDocument({ module, file, api, refreshKey, setToast });
+  const [savingNodes, setSavingNodes] = useState(false);
+
+  async function saveNodes() {
+    if (!changedNodes.length) {
+      setToast({ tone: 'ok', text: t('core.toast.noChanges') });
+      return;
+    }
+    setSavingNodes(true);
+    try {
+      let nextRevision = file.revision;
+      for (const node of changedNodes) {
+        const result = await api.saveRegistryValue(module.id, scope.filePath, node.path, drafts[draftKey(scope, node.path)], nextRevision);
+        nextRevision = result.revision ?? nextRevision;
+      }
+      clearDraftValues(scope);
+      await onRefreshRegistry();
+      await source.reload(false);
+      setToast({ tone: 'ok', text: t('core.toast.savedConfig', { count: changedNodes.length }) });
+    } catch (err) {
+      setToast({ tone: 'bad', text: userFacingSaveError(err) });
+    } finally {
+      setSavingNodes(false);
+    }
+  }
+
+  useEffect(() => {
+    setSurfaceToolbar({
+      title: module.name,
+      subtitle: `${file.title}，${file.path}`,
+      dirty: changedNodes.length > 0 || source.dirty,
+      changedCount: source.dirty ? Math.max(changedNodes.length, 1) : changedNodes.length,
+      changes: source.dirty ? [] : configChanges(scope, file.nodes, drafts),
+      source: source.content,
+      sourceEditable: true,
+      sourceError: source.error,
+      saving: source.saving || savingNodes,
+      loading: source.loading,
+      canUndo: scopeHistory.undo.length > 0,
+      canRedo: scopeHistory.redo.length > 0,
+      onUndo: () => undoDraftScope(scope),
+      onRedo: () => redoDraftScope(scope),
+      onReload: () => void source.reload(),
+      onSourceChange: source.update,
+      onSave: source.dirty ? () => void source.save(async () => { clearDraftValues(scope); await onRefreshRegistry(); }) : () => void saveNodes()
+    });
+    return () => setSurfaceToolbar(null);
+  }, [module.name, file.title, file.path, changedNodes.length, file.nodes, drafts, source.content, source.dirty, source.error, source.saving, source.loading, savingNodes, scopeHistory.undo.length, scopeHistory.redo.length]);
+
+  return <section className="config-surface"><div className="surface-head"><div><h2>{file.title}</h2><p>{file.comment}</p></div><span className={`file-kind ${String(file.kind).toLowerCase()}`}>{fileKindLabel(file.kind)}</span></div><ConfigNodeTree scope={scope} nodes={file.nodes} drafts={drafts} setDraftValue={setDraftValue} /></section>;
+}
+
+function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, setDraftValue, clearDraftScope, clearDraftValues, undoDraftScope, redoDraftScope, api, refreshKey, setSurfaceToolbar, setToast }: { module: WebRegistryModule; file: WebRegistryFile; childPath: string; drafts: DraftMap; draftHistory: DraftHistoryMap; setDraftValue: DraftValueSetter; clearDraftScope: DraftScopeAction; clearDraftValues: DraftScopeAction; undoDraftScope: DraftScopeAction; redoDraftScope: DraftScopeAction; api: ApiClient; refreshKey: number; setSurfaceToolbar: (state: SurfaceToolbarState | null) => void; setToast: (toast: Toast) => void }) {
   const [nodes, setNodes] = useState<WebConfigNode[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [revision, setRevision] = useState<number | undefined>(undefined);
   const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState<{ tone: 'ok' | 'bad'; text: string } | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -297,17 +400,12 @@ function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, set
     }).finally(() => setLoading(false));
   }, [module.id, childPath, refreshKey]);
 
-  useEffect(() => {
-    if (!toast) return;
-    const timer = window.setTimeout(() => setToast(null), 2600);
-    return () => window.clearTimeout(timer);
-  }, [toast]);
-
   const scope = configDraftScope(module, file, childPath);
   const changedNodes = nodes.filter(n => n.type !== 'object' && draftKey(scope, n.path) in drafts);
   const scopeHistory = draftHistory[draftScopeId(scope)] ?? emptyDraftHistory();
+  const source = useConfigSourceDocument({ module, file, childPath, api, refreshKey, setToast });
 
-  async function reloadChildNodes() {
+  async function reloadChildNodes(announce = true) {
     setNodes([]);
     setError('');
     setLoading(true);
@@ -316,8 +414,10 @@ function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, set
       setNodes(refreshed.nodes);
       setRevision(refreshed.revision);
       clearDraftScope(scope);
+      if (announce) setToast({ tone: 'ok', text: t('core.toast.reloaded') });
     } catch (err) {
       setError(err instanceof Error ? err.message : t('core.config.childLoadFailed'));
+      setToast({ tone: 'bad', text: err instanceof Error ? err.message : t('core.toast.refreshFailed') });
     } finally {
       setLoading(false);
     }
@@ -332,19 +432,17 @@ function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, set
     try {
       let nextRevision = revision;
       for (const node of changedNodes) {
-        const result = await api.saveRegistryValue(module.id, scope.filePath, node.path, drafts[draftKey(scope, node.path)], nextRevision);
+        const result = await api.saveRegistryValue(module.id, childPath, node.path, drafts[draftKey(scope, node.path)], nextRevision);
         nextRevision = result.revision ?? nextRevision;
       }
       setRevision(nextRevision);
-      setToast({ tone: 'ok', text: t('core.toast.savedConfig', { count: changedNodes.length }) });
-      // 清除当前子文件 scope 下已保存的 drafts
-      clearDraftScope(scope);
-      // 重新加载节点
       const refreshed = await api.registryFileNodes(module.id, childPath);
       setNodes(refreshed.nodes);
       setRevision(refreshed.revision);
+      clearDraftValues(scope);
+      setToast({ tone: 'ok', text: t('core.toast.savedConfig', { count: changedNodes.length }) });
     } catch (err) {
-      setToast({ tone: 'bad', text: err instanceof Error ? err.message : t('core.toast.saveFailed') });
+      setToast({ tone: 'bad', text: userFacingSaveError(err) });
     } finally {
       setSaving(false);
     }
@@ -352,29 +450,111 @@ function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, set
 
   const fileName = childPath.split('/').pop() ?? childPath;
 
+  useEffect(() => {
+    setSurfaceToolbar({
+      title: fileName,
+      subtitle: `${file.title} · ${childPath}`,
+      dirty: changedNodes.length > 0 || source.dirty,
+      changedCount: source.dirty ? Math.max(changedNodes.length, 1) : changedNodes.length,
+      changes: source.dirty ? [] : configChanges(scope, nodes, drafts),
+      source: source.content,
+      sourceEditable: true,
+      sourceError: source.error,
+      saving: saving || source.saving,
+      loading: loading || source.loading,
+      canUndo: scopeHistory.undo.length > 0,
+      canRedo: scopeHistory.redo.length > 0,
+      onUndo: () => undoDraftScope(scope),
+      onRedo: () => redoDraftScope(scope),
+      onReload: () => void (source.dirty ? source.reload() : reloadChildNodes()),
+      onSourceChange: source.update,
+      onSave: source.dirty ? () => void source.save(async () => { clearDraftValues(scope); await reloadChildNodes(false); }) : () => void saveChild()
+    });
+    return () => setSurfaceToolbar(null);
+  }, [fileName, file.title, childPath, changedNodes.length, nodes, drafts, saving, loading, source.content, source.dirty, source.error, source.saving, source.loading, scopeHistory.undo.length, scopeHistory.redo.length, revision]);
+
   return <section className="config-surface">
-    {toast && <ToastNotice tone={toast.tone} style={{ position: 'absolute', top: 12, right: 12 }}>{toast.text}</ToastNotice>}
-    <EditorChrome
-      className="surface-head"
-      title={fileName}
-      subtitle={`${file.title} · ${childPath}`}
-      dirty={changedNodes.length > 0}
-      changedCount={changedNodes.length}
-      changes={configChanges(scope, nodes, drafts)}
-      source=""
-      saving={saving}
-      loading={loading}
-      canUndo={scopeHistory.undo.length > 0}
-      canRedo={scopeHistory.redo.length > 0}
-      onUndo={() => undoDraftScope(scope)}
-      onRedo={() => redoDraftScope(scope)}
-      onReload={() => void reloadChildNodes()}
-      onSave={() => void saveChild()}
-    />
     {loading && <div className="script-loading" role="status">{t('core.state.loading')}</div>}
     {error && <InlineError><span>{error}</span><Button size="sm" onClick={() => void reloadChildNodes()}>{t('core.action.retry')}</Button></InlineError>}
     {!loading && !error && <ConfigNodeTree scope={scope} nodes={nodes} drafts={drafts} setDraftValue={setDraftValue} />}
   </section>;
+}
+
+function useConfigSourceDocument({ module, file, childPath, api, refreshKey, setToast }: { module: WebRegistryModule; file: WebRegistryFile; childPath?: string; api: ApiClient; refreshKey: number; setToast: (toast: Toast) => void }) {
+  const [content, setContent] = useState('');
+  const [original, setOriginal] = useState('');
+  const [revision, setRevision] = useState<number | undefined>(undefined);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const editor = file.editorId ? { id: file.editorId } : undefined;
+  const adapter = getSourceDocumentAdapter(file, editor);
+  const context = useMemo(() => ({ module, file, childPath, editor }), [module, file, childPath, editor?.id]);
+
+  async function reload(announce = true) {
+    if (!adapter) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const doc = await adapter.read(api, context);
+      setContent(doc.content);
+      setOriginal(doc.content);
+      setRevision(doc.revision);
+      if (announce) setToast({ tone: 'ok', text: t('core.toast.reloaded') });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : t('core.toast.refreshFailed');
+      setError(message);
+      setToast({ tone: 'bad', text: message });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function save(afterSave?: () => void | Promise<void>) {
+    if (!adapter || error) return;
+    setSaving(true);
+    try {
+      const result = await adapter.save(api, context, content, revision);
+      setOriginal(content);
+      setRevision(result.revision ?? revision);
+      await afterSave?.();
+      setToast({ tone: 'ok', text: t('core.toast.savedConfig', { count: 1 }) });
+    } catch (err) {
+      const message = userFacingSaveError(err);
+      setError(message);
+      setToast({ tone: 'bad', text: message });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  useEffect(() => {
+    void reload(false);
+  }, [api, module.id, file.id, childPath, refreshKey]);
+
+  return {
+    content,
+    dirty: content !== original,
+    loading,
+    saving,
+    error,
+    update: (next: string) => {
+      setContent(next);
+      setError(null);
+    },
+    reload,
+    save
+  };
+}
+
+const INTERNAL_ERROR_PATTERNS = ['.tmp', 'FileSystemException', 'AccessDeniedException', 'AtomicMoveNotSupportedException', 'NoSuchFileException', 'DirectoryNotEmptyException'];
+
+function userFacingSaveError(err: unknown): string {
+  const raw = err instanceof Error ? err.message : String(err ?? '');
+  if (INTERNAL_ERROR_PATTERNS.some(pattern => raw.includes(pattern))) {
+    return t('core.toast.saveFailed');
+  }
+  return raw || t('core.toast.saveFailed');
 }
 
 function configChanges(scope: ConfigDraftScope, nodes: WebConfigNode[], drafts: DraftMap): EditorChange[] {
@@ -415,51 +595,51 @@ function ConfigNodeTree({ scope, nodes, drafts, setDraftValue }: { scope: Config
     const isCollapsed = collapsed[group.node.path] === true;
     const childCount = group.children.length;
     const changedInGroup = group.children.filter(n => n.type !== 'object' && draftKey(scope, n.path) in drafts).length;
-    const groupLabel = configNodeDisplayLabel(scope, group.node);
-    return <div key={group.node.path} className="node-section">
-      <button className={`node-section-header ${isCollapsed ? 'collapsed' : ''}`} onClick={() => toggle(group.node.path)}>
-        <span className="section-arrow">{isCollapsed ? '›' : '⌄'}</span>
-        <strong>{groupLabel}</strong>
-        <code>{group.node.path}</code>
-        <span className="section-comment">{group.node.comment}</span>
-        <span className="section-meta">{changedInGroup > 0 && <span className="section-badge">{changedInGroup}</span>}{t('core.config.groupItems', { count: childCount })}</span>
-      </button>
-      {!isCollapsed && <div className="node-section-body">{group.children.map(child =>
-        child.type === 'object'
-          ? <div key={child.path} className="node-group-inner"><strong>{configNodeDisplayLabel(scope, child)}</strong><code>{child.path}</code><span>{child.comment}</span></div>
-          : <ConfigNodeView key={child.path} scope={scope} node={child} drafts={drafts} setDraftValue={setDraftValue} />
-      )}</div>}
-    </div>;
+    return <ConfigNodeSection key={group.node.path} scope={scope} node={group.node} childrenNodes={group.children} drafts={drafts} setDraftValue={setDraftValue} collapsed={collapsed} toggle={toggle} />;
   })}</div>;
 }
 
 type NodeGroup = { type: 'section'; node: WebConfigNode; children: WebConfigNode[] } | { type: 'leaf'; node: WebConfigNode };
 
-function buildNodeGroups(nodes: WebConfigNode[]): NodeGroup[] {
+function buildNodeGroups(nodes: WebConfigNode[], parentPath = ''): NodeGroup[] {
   const groups: NodeGroup[] = [];
-  let i = 0;
-  while (i < nodes.length) {
-    const node = nodes[i];
-    if (node.type === 'object' && !node.path.includes('.')) {
-      // 顶级 object：收集其下所有子节点（path 以 node.path + "." 开头的）
-      const prefix = node.path + '.';
-      const children: WebConfigNode[] = [];
-      i++;
-      while (i < nodes.length && nodes[i].path.startsWith(prefix)) {
-        children.push(nodes[i]);
-        i++;
-      }
-      groups.push({ type: 'section', node, children });
-    } else if (node.type === 'object') {
-      // 非顶级 object：跳过（会被父级 section 收集）
-      i++;
+  const prefix = parentPath ? `${parentPath}.` : '';
+  for (const node of nodes) {
+    if (!isDirectChildPath(node.path, parentPath)) continue;
+    if (node.type === 'object') {
+      const childPrefix = `${node.path}.`;
+      groups.push({ type: 'section', node, children: nodes.filter(child => child.path.startsWith(childPrefix)) });
     } else {
-      // 顶级叶子节点（如 version, language）
       groups.push({ type: 'leaf', node });
-      i++;
     }
   }
-  return groups;
+  return groups.filter(group => group.type === 'leaf' || group.children.length > 0 || !prefix);
+}
+
+function isDirectChildPath(path: string, parentPath: string): boolean {
+  if (!parentPath) return !path.includes('.');
+  if (!path.startsWith(`${parentPath}.`)) return false;
+  return !path.slice(parentPath.length + 1).includes('.');
+}
+
+function ConfigNodeSection({ scope, node, childrenNodes, drafts, setDraftValue, collapsed, toggle }: { scope: ConfigDraftScope; node: WebConfigNode; childrenNodes: WebConfigNode[]; drafts: DraftMap; setDraftValue: DraftValueSetter; collapsed: Record<string, boolean>; toggle: (path: string) => void }) {
+  const isCollapsed = collapsed[node.path] === true;
+  const groups = buildNodeGroups(childrenNodes, node.path);
+  const changedInGroup = childrenNodes.filter(n => n.type !== 'object' && draftKey(scope, n.path) in drafts).length;
+  const groupLabel = configNodeDisplayLabel(scope, node);
+  return <div className="node-section">
+    <button type="button" className={`node-section-header ${isCollapsed ? 'collapsed' : ''}`} onClick={() => toggle(node.path)} aria-expanded={!isCollapsed}>
+      <span className="section-arrow" aria-hidden="true">{isCollapsed ? '›' : '⌄'}</span>
+      <strong>{groupLabel}</strong>
+      <code>{node.path}</code>
+      <span className="section-comment">{node.comment}</span>
+      <span className="section-meta">{changedInGroup > 0 && <span className="section-badge">{changedInGroup}</span>}{t('core.config.groupItems', { count: groups.length })}</span>
+    </button>
+    {!isCollapsed && <div className="node-section-body">{groups.map(group => group.type === 'section'
+      ? <ConfigNodeSection key={group.node.path} scope={scope} node={group.node} childrenNodes={group.children} drafts={drafts} setDraftValue={setDraftValue} collapsed={collapsed} toggle={toggle} />
+      : <ConfigNodeView key={group.node.path} scope={scope} node={group.node} drafts={drafts} setDraftValue={setDraftValue} />
+    )}</div>}
+  </div>;
 }
 
 function ConfigNodeView({ scope, node, drafts, setDraftValue }: { scope: ConfigDraftScope; node: WebConfigNode; drafts: DraftMap; setDraftValue: DraftValueSetter }) {
@@ -479,7 +659,7 @@ function renderControl(node: WebConfigNode, value: unknown, setValue: (v: unknow
   if (node.type === 'list') {
     const items = Array.isArray(value) ? value : [];
     const update = (i: number, v: string) => setValue(items.map((x, j) => j === i ? parseListValue(x, v) : x));
-    return <div className="list-editor">{items.map((item, i) => <div className="list-row" key={i}>{isObjectLike(item) ? <textarea value={str(item)} onChange={(e) => update(i, e.target.value)} /> : <input value={str(item)} onChange={(e) => update(i, e.target.value)} />}<button type="button" onClick={() => setValue(items.filter((_, j) => j !== i))}>{t('core.config.delete')}</button></div>)}<button type="button" className="add-row" onClick={() => setValue([...items, ''])}>{t('core.config.addItem')}</button></div>;
+    return <div className="list-editor">{items.map((item, i) => <div className="list-row" key={i}>{isObjectLike(item) ? <textarea value={str(item)} onChange={(e) => update(i, e.target.value)} aria-label={t('core.config.itemIndex', { index: i + 1 })} /> : <input value={str(item)} onChange={(e) => update(i, e.target.value)} aria-label={t('core.config.itemIndex', { index: i + 1 })} />}<button type="button" onClick={() => setValue(items.filter((_, j) => j !== i))} aria-label={t('core.config.deleteItem', { index: i + 1 })}>{t('core.config.delete')}</button></div>)}<button type="button" className="add-row" onClick={() => setValue([...items, ''])}>{t('core.config.addItem')}</button></div>;
   }
   return <input aria-label={label} value={str(value)} onChange={(e) => setValue(e.target.value)} />;
 }
@@ -522,12 +702,12 @@ function DynamicMapEditor({ value, setValue }: { value: unknown; setValue: (v: u
     {keys.map(k => <div key={k} className="dmap-entry">
       <div className="dmap-header">
         <code>{k}</code>
-        <button type="button" className="dmap-remove" onClick={() => removeKey(k)}>{t('core.config.remove')}</button>
+        <button type="button" className="dmap-remove" onClick={() => removeKey(k)} aria-label={t('core.config.removeGroup', { group: k })}>{t('core.config.remove')}</button>
       </div>
       <div className="dmap-list">
         {(Array.isArray(map[k]) ? map[k] : []).map((item, i) => <div key={i} className="dmap-row">
-          <input value={String(item)} onChange={(e) => updateItem(k, i, e.target.value)} />
-          <button type="button" onClick={() => removeItem(k, i)}>{t('core.config.delete')}</button>
+          <input value={String(item)} onChange={(e) => updateItem(k, i, e.target.value)} aria-label={`${k} ${t('core.config.itemIndex', { index: i + 1 })}`} />
+          <button type="button" onClick={() => removeItem(k, i)} aria-label={t('core.config.deleteItemInGroup', { group: k, index: i + 1 })}>{t('core.config.delete')}</button>
         </div>)}
         <button type="button" className="add-row" onClick={() => addItem(k)}>{t('core.config.addActionRow')}</button>
       </div>
@@ -539,7 +719,7 @@ function DynamicMapEditor({ value, setValue }: { value: unknown; setValue: (v: u
   </div>;
 }
 
-function ScriptEditor({ api, scriptPath }: { api: ApiClient; scriptPath: string }) {
+function ScriptEditor({ api, scriptPath, module, file, setSurfaceToolbar, setToast }: { api: ApiClient; scriptPath: string; module: WebRegistryModule; file: WebRegistryFile; setSurfaceToolbar: (state: SurfaceToolbarState | null) => void; setToast: (toast: Toast) => void }) {
   const [content, setContent] = useState('');
   const [savedContent, setSavedContent] = useState('');
   const [loading, setLoading] = useState(true);
@@ -552,6 +732,10 @@ function ScriptEditor({ api, scriptPath }: { api: ApiClient; scriptPath: string 
   const highlightRef = useRef<HTMLPreElement>(null);
 
   const isDirty = content !== savedContent;
+  const fileName = scriptPath.split('/').pop() ?? scriptPath;
+  const deferredContent = useDeferredValue(content);
+  const highlightDisabled = content.length > 60000;
+  const highlightedContent = useMemo(() => highlightDisabled ? '' : highlightJS(deferredContent), [deferredContent, highlightDisabled]);
 
   useEffect(() => {
     setLoading(true);
@@ -573,12 +757,52 @@ function ScriptEditor({ api, scriptPath }: { api: ApiClient; scriptPath: string 
     try {
       await api.saveScript(scriptPath, content);
       setSavedContent(content);
+      setToast({ tone: 'ok', text: t('core.toast.savedConfig', { count: 1 }) });
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('core.script.saveFailed'));
+      const message = err instanceof Error ? err.message : t('core.script.saveFailed');
+      setError(message);
+      setToast({ tone: 'bad', text: userFacingSaveError(err) });
     } finally {
       setSaving(false);
     }
   }
+
+  async function reload() {
+    setLoading(true);
+    setError('');
+    try {
+      const res = await api.readScript(scriptPath);
+      setContent(res.content);
+      setSavedContent(res.content);
+      setToast({ tone: 'ok', text: t('core.toast.reloaded') });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('core.config.childLoadFailed'));
+      setToast({ tone: 'bad', text: err instanceof Error ? err.message : t('core.toast.refreshFailed') });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    setSurfaceToolbar({
+      title: fileName,
+      subtitle: `${file.title} · ${scriptPath}`,
+      dirty: isDirty,
+      changedCount: isDirty ? 1 : 0,
+      changes: [],
+      source: content,
+      sourceEditable: true,
+      sourceError: error || null,
+      saving,
+      loading,
+      canUndo: false,
+      canRedo: false,
+      onReload: () => void reload(),
+      onSourceChange: (next: string) => { setContent(next); setError(''); },
+      onSave: () => void save()
+    });
+    return () => setSurfaceToolbar(null);
+  }, [fileName, file.title, scriptPath, isDirty, content, error, saving, loading]);
 
   function handleInput(e: React.ChangeEvent<HTMLTextAreaElement>) {
     const value = e.target.value;
@@ -660,15 +884,11 @@ function ScriptEditor({ api, scriptPath }: { api: ApiClient; scriptPath: string 
   if (loading) return <div className="script-loading" role="status">{t('core.script.loading')}</div>;
 
   return <div className="script-editor">
-    <div className="script-toolbar">
-      <span className="script-path">{scriptPath}{isDirty && <span className="dirty-dot">●</span>}</span>
-      <button onClick={save} disabled={saving || !isDirty}>{saving ? t('core.script.saving') : t('core.action.save')}</button>
-    </div>
     {error && <InlineError>{error}</InlineError>}
     <div className="editor-container">
       <div className="line-numbers">{lines.map((_, i) => <div key={i}>{i + 1}</div>)}</div>
       <div className="editor-wrapper">
-        <pre ref={highlightRef} className="editor-highlight" aria-hidden="true"><code dangerouslySetInnerHTML={{ __html: highlightJS(content) }} /></pre>
+        <pre ref={highlightRef} className="editor-highlight" aria-hidden="true"><code dangerouslySetInnerHTML={{ __html: highlightedContent }} /></pre>
         <textarea ref={textareaRef} className="editor-input" value={content} onChange={handleInput} onKeyDown={handleKeyDown} onScroll={handleScroll} spellCheck={false} autoComplete="off" autoCorrect="off" autoCapitalize="off" aria-label={t('core.script.editAria', { path: scriptPath })} aria-describedby="script-editor-help" />
         <span id="script-editor-help" className="sr-only">{t('core.script.help')}</span>
         {completions.length > 0 && completionPos && <div className="completion-popup" style={{ top: completionPos.top + 24, left: completionPos.left + 48 }}>

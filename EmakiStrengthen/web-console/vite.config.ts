@@ -13,8 +13,13 @@ export default defineConfig({
       fileName: () => 'emakistrengthen-gui-surface.js'
     },
     rollupOptions: {
-      external: ['react'],
-      output: { globals: { react: 'React' } }
+      external: ['react', 'emaki-web-console'],
+      output: {
+        globals: {
+          react: 'React',
+          'emaki-web-console': 'EmakiWebConsole'
+        }
+      }
     }
   }
 });

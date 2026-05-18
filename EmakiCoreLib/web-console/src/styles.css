@@ -35,6 +35,12 @@
   --changed-soft: oklch(35% 0.1 80);
   --changed-ink: oklch(85% 0.1 80);
   --changed-scan: oklch(82% 0.12 80 / .28);
+  --diff-remove-bg: oklch(19% 0.035 28);
+  --diff-remove-line: oklch(32% 0.06 28);
+  --diff-remove-text: oklch(82% 0.1 28);
+  --diff-add-bg: oklch(19% 0.035 150);
+  --diff-add-line: oklch(32% 0.06 150);
+  --diff-add-text: oklch(82% 0.1 150);
   --code-gutter: oklch(12.5% 0.01 var(--hue));
   --overlay: oklch(8% 0.012 var(--hue) / .78);
   --gui-surface-bg: oklch(14.5% 0.01 var(--hue));
@@ -100,6 +106,12 @@
   --changed-soft: oklch(87% 0.08 80);
   --changed-ink: oklch(39% 0.11 80);
   --changed-scan: oklch(70% 0.12 80 / .28);
+  --diff-remove-bg: oklch(95% 0.025 28);
+  --diff-remove-line: oklch(82% 0.06 28);
+  --diff-remove-text: oklch(42% 0.12 28);
+  --diff-add-bg: oklch(94% 0.03 150);
+  --diff-add-line: oklch(78% 0.06 150);
+  --diff-add-text: oklch(36% 0.11 150);
   --code-gutter: oklch(94.5% 0.01 var(--hue));
   --overlay: oklch(22% 0.014 var(--hue) / .28);
   --gui-surface-bg: oklch(95.5% 0.01 var(--hue));
@@ -282,9 +294,14 @@ textarea { min-height: 96px; resize: vertical; font-family: ui-monospace, "Casca
 .editor-change-popover p { color: var(--faint); font-size: 11px; }
 .editor-change-list { display: grid; gap: 5px; max-height: 260px; overflow: auto; }
 .editor-change-row { display: grid; gap: 2px; border: 1px solid var(--line); background: var(--input); border-radius: 5px; padding: 6px 7px; }
-.editor-change-row code { color: var(--accent); font-family: ui-monospace, "Cascadia Code", monospace; font-size: 10px; overflow-wrap: anywhere; }
-.editor-change-row span { color: var(--muted); font-size: 11px; }
-.editor-change-row small { color: var(--faint); font-family: ui-monospace, "Cascadia Code", monospace; font-size: 10px; overflow-wrap: anywhere; }
+.editor-change-row > code { color: var(--accent); font-family: ui-monospace, "Cascadia Code", monospace; font-size: 10px; overflow-wrap: anywhere; }
+.editor-change-row > span { color: var(--muted); font-size: 11px; }
+.editor-change-diff { display: grid; gap: 2px; margin-top: 2px; }
+.editor-change-value { display: flex; align-items: baseline; gap: 4px; border-radius: 3px; padding: 2px 5px; font-family: ui-monospace, "Cascadia Code", monospace; font-size: 10px; overflow-wrap: anywhere; }
+.editor-change-value b { font-weight: 700; flex-shrink: 0; width: 10px; text-align: center; }
+.editor-change-value code { font-size: inherit; color: inherit; }
+.editor-change-value.before { background: var(--diff-remove-bg); border: 1px solid var(--diff-remove-line); color: var(--diff-remove-text); }
+.editor-change-value.after { background: var(--diff-add-bg); border: 1px solid var(--diff-add-line); color: var(--diff-add-text); }
 .editor-modal-backdrop { position: fixed; inset: 0; z-index: 130; display: grid; place-items: center; padding: 24px; background: var(--overlay); }
 .editor-source-modal { width: min(900px, calc(100vw - 32px)); max-height: min(760px, calc(100vh - 32px)); display: grid; grid-template-rows: auto minmax(0, 1fr); border: 1px solid var(--line-2); border-radius: 10px; background: var(--surface); box-shadow: var(--shadow); overflow: hidden; }
 .editor-modal-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 14px 16px 11px; border-bottom: 1px solid var(--line); background: var(--input); }
@@ -754,7 +771,7 @@ button.prop-level-summary { border: 0; background: transparent; padding: 0; curs
 
 .chip-list.dense { gap: 6px; }
 @media (max-width: 1280px) { .gui-workbench { --mc-slot: 52px; grid-template-columns: 1fr; height: auto; min-height: calc(100vh - 67px); overflow: visible; } .gui-preview-pane { overflow: auto; padding-right: 0; scrollbar-width: thin; } .gui-inspector-resize { display: none; } .gui-inspector { height: auto; overflow: visible; padding-left: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); } .material-palette { grid-column: 1 / -1; } }
-@media (max-width: 760px) { .brand-block { grid-template-columns: 1fr; align-items: stretch; } .rail-controls { justify-content: flex-start; } .surface-head, .ie-header { align-items: flex-start; flex-direction: column; gap: 10px; } .head-actions, .ie-header-actions, .ui-actions { width: 100%; flex-wrap: wrap; } .head-actions button, .ie-btn, .ui-button { min-height: 44px; } .gui-workbench { --mc-slot: 44px; padding: 12px; overflow-x: hidden; } .gui-preview-pane { justify-content: start; } .minecraft-window { max-width: none; padding: 22px 18px 20px; } .minecraft-titlebar { height: 32px; font-size: 14px; } .minecraft-grid { grid-template-rows: none !important; gap: 2px; padding: 8px; } .minecraft-slot::before { inset: 5px; } .gui-inspector { grid-template-columns: 1fr; } .material-list { grid-template-columns: 1fr; } .material-list button, .material-tabs button, .wide-action, .ui-button--full { min-height: 44px; } .i18n-modal-toolbar, .i18n-add-row, .i18n-table-head, .i18n-row { grid-template-columns: 1fr; } .i18n-row-delete { justify-self: start; } }
+@media (max-width: 760px) { .brand-block { grid-template-columns: 1fr; align-items: stretch; } .rail-controls { justify-content: flex-start; } .surface-head, .ie-header { align-items: flex-start; flex-direction: column; gap: 10px; } .head-actions, .ie-header-actions, .ui-actions { width: 100%; flex-wrap: wrap; } .head-actions button, .ie-btn, .ui-button { min-height: 44px; } .gui-workbench { --mc-slot: 44px; padding: 12px; overflow-x: hidden; } .gui-preview-pane { justify-content: start; } .minecraft-window { max-width: none; padding: 22px 18px 20px; } .minecraft-titlebar { height: 32px; font-size: 14px; } .minecraft-grid { grid-template-rows: none !important; gap: 2px; padding: 8px; } .minecraft-slot::before { inset: 5px; } .gui-inspector { grid-template-columns: 1fr; } .material-list { grid-template-columns: 1fr; } .material-list button, .material-tabs button, .wide-action, .ui-button--full { min-height: 44px; } .i18n-modal-toolbar, .i18n-add-row, .i18n-table-head, .i18n-row { grid-template-columns: 1fr; } .i18n-row-delete { justify-self: start; } .editor-source-modal { max-width: calc(100vw - 16px); max-height: calc(100vh - 16px); } .editor-source-textarea { min-height: 200px; } .node-section-header { flex-wrap: wrap; gap: 4px; } .node-section-header code { font-size: 10px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; } }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }

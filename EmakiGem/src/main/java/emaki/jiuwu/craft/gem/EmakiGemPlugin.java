@@ -317,18 +317,18 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
                         editorFieldDescriptor("custom_model_data", "模型数据", "number", false),
                         editorFieldDescriptor("socket_compatibility", "兼容插槽", "stringList", true)
                 ),
-                editorSection("effects 效果",
+                editorSectionCollapsed("effects 效果",
                         editorFieldDescriptor("effects", "宝石效果", "effects", true)
                 ),
-                editorSection("费用与返还",
+                editorSectionCollapsed("费用与返还",
                         editorFieldDescriptor("inlay_cost", "镶嵌费用", "cost", true),
                         editorFieldDescriptor("extract_cost", "拆卸费用", "cost", true),
                         editorFieldDescriptor("extract_return", "拆卸返还", "extractReturn", true)
                 ),
-                editorSection("upgrade 升级配置",
+                editorSectionCollapsed("upgrade 升级配置",
                         editorFieldDescriptor("upgrade", "升级配置", "gemUpgrade", true)
                 ),
-                editorSection("宝石动作",
+                editorSectionCollapsed("宝石动作",
                         editorFieldDescriptor("actions.inlay_success", "镶嵌成功动作", "stringList", true),
                         editorFieldDescriptor("actions.extract_success", "拆卸成功动作", "stringList", true)
                 )
@@ -347,20 +347,20 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
                         editorFieldDescriptor("match.slot_groups", "装备分组", "stringList", true),
                         editorFieldDescriptor("match.lore_contains", "Lore 包含", "stringList", true)
                 ),
-                editorSection("插槽结构",
+                editorSectionCollapsed("插槽结构",
                         editorFieldDescriptor("slots", "插槽列表", "gemSlots", true),
                         editorFieldDescriptor("default_open_slots", "默认开放插槽", "numberList", true)
                 ),
-                editorSection("宝石限制",
+                editorSectionCollapsed("宝石限制",
                         editorFieldDescriptor("allowed_gem_types", "允许宝石类型", "stringList", true),
                         editorFieldDescriptor("max_same_type", "同类型上限", "number", false),
                         editorFieldDescriptor("max_same_id", "同 ID 上限", "number", false)
                 ),
-                editorSection("GUI 模板",
+                editorSectionCollapsed("GUI 模板",
                         editorFieldDescriptor("gui.gem_template", "镶嵌模板", "text", false),
                         editorFieldDescriptor("gui.open_template", "开槽模板", "text", false)
                 ),
-                editorSection("展示动作",
+                editorSectionCollapsed("展示动作",
                         editorFieldDescriptor("name_actions", "名称动作", "actions", true),
                         editorFieldDescriptor("lore_actions", "Lore 动作", "actions", true)
                 )
@@ -378,6 +378,10 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
 
     private Map<String, Object> editorSection(String title, Map<String, Object>... fields) {
         return WebConsoleRegistry.editorSection(title, true, false, fields);
+    }
+
+    private Map<String, Object> editorSectionCollapsed(String title, Map<String, Object>... fields) {
+        return WebConsoleRegistry.editorSection(title, true, true, fields);
     }
 
     private Map<String, Object> editorFieldDescriptor(String path, String label, String type, boolean wide) {

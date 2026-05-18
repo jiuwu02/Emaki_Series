@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from './components';
+import { useDialogFocus } from './components/useDialogFocus';
 import { getLocale, getModuleLocaleBundles, getRegisteredLocales, replaceLocaleMessages, t, type LocaleMessages } from './i18n';
 
 export type I18nTarget = { moduleId: string };
@@ -13,19 +14,14 @@ export function I18nBundleModal({ target, onClose, onSaved }: { target: I18nTarg
   const [draft, setDraft] = useState<LocaleMessages>(() => ({ ...sourceMessages }));
   const [newKey, setNewKey] = useState('');
   const [newValue, setNewValue] = useState('');
+  const dialogRef = useRef<HTMLElement | null>(null);
+  useDialogFocus(dialogRef, onClose);
 
   useEffect(() => {
     setDraft({ ...(bundles.find((bundle) => bundle.locale === locale)?.messages ?? {}) });
     setQuery('');
   }, [locale, target.moduleId]);
 
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
-  }, [onClose]);
 
   const entries = Object.entries(draft).sort(([left], [right]) => left.localeCompare(right));
   const visibleEntries = entries.filter(([key, value]) => {
@@ -62,7 +58,7 @@ export function I18nBundleModal({ target, onClose, onSaved }: { target: I18nTarg
 
   return (
     <div className="i18n-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-      <section className="i18n-modal" role="dialog" aria-modal="true" aria-labelledby="i18n-modal-title">
+      <section ref={dialogRef} className="i18n-modal" role="dialog" aria-modal="true" aria-labelledby="i18n-modal-title" tabIndex={-1}>
         <header className="i18n-modal-head">
           <div>
             <span>{t('core.i18n.title')}</span>
@@ -94,15 +90,15 @@ export function I18nBundleModal({ target, onClose, onSaved }: { target: I18nTarg
             {visibleEntries.map(([key, value]) => (
               <div className="i18n-row" role="row" key={key}>
                 <code title={key}>{key}</code>
-                <textarea value={value} onChange={(event) => updateValue(key, event.target.value)} rows={value.length > 72 ? 3 : 1} />
-                <button type="button" className="i18n-row-delete" onClick={() => removeKey(key)}>{t('core.i18n.delete')}</button>
+                <textarea value={value} onChange={(event) => updateValue(key, event.target.value)} rows={value.length > 72 ? 3 : 1} aria-label={t('core.i18n.valueForKey', { key })} />
+                <button type="button" className="i18n-row-delete" onClick={() => removeKey(key)} aria-label={t('core.i18n.deleteKey', { key })}>{t('core.i18n.delete')}</button>
               </div>
             ))}
           </div>
         )}
         <div className="i18n-add-row">
-          <input value={newKey} onChange={(event) => setNewKey(event.target.value)} placeholder={t('core.i18n.addKey')} />
-          <input value={newValue} onChange={(event) => setNewValue(event.target.value)} placeholder={t('core.i18n.addValue')} />
+          <input value={newKey} onChange={(event) => setNewKey(event.target.value)} placeholder={t('core.i18n.addKey')} aria-label={t('core.i18n.addKey')} />
+          <input value={newValue} onChange={(event) => setNewValue(event.target.value)} placeholder={t('core.i18n.addValue')} aria-label={t('core.i18n.addValue')} />
           <Button size="sm" onClick={addEntry} disabled={!newKey.trim()}>{t('core.i18n.add')}</Button>
         </div>
         <footer className="i18n-modal-actions">
