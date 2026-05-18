@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.corelib.web;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -73,6 +74,8 @@ public final class WebConsoleService {
             createContext("/api/registry", this::handleRegistry);
             createContext("/api/registry/file", this::handleRegistryFile);
             createContext("/api/registry/save", this::handleRegistrySave);
+            createContext("/api/files/create", this::handleFileCreate);
+            createContext("/api/files/delete", this::handleFileDelete);
             createContext("/api/configs/tree", this::handleConfigTree);
             createContext("/api/configs/read", this::handleConfigRead);
             createContext("/api/configs/save", this::handleConfigSave);
@@ -238,6 +241,71 @@ public final class WebConsoleService {
         } catch (WebConsoleRegistry.RevisionConflictException exception) {
             writeRevisionConflict(exchange, exception);
         } catch (IOException exception) {
+            WebResponse.json(exchange, 400, Map.of("success", false, "error", exception.getMessage()));
+        }
+    }
+
+    private void handleFileCreate(HttpExchange exchange) throws IOException {
+        if (!requirePost(exchange)) return;
+        if (requireAuth(exchange) == null) return;
+        String body = readBody(exchange);
+        String moduleId = WebJson.extractString(body, "moduleId");
+        String fileId = WebJson.extractString(body, "fileId");
+        String name = WebJson.extractString(body, "name");
+        if (moduleId.isBlank() || fileId.isBlank() || name.isBlank()) {
+            WebResponse.json(exchange, 400, Map.of("success", false, "error", "缺少 moduleId、fileId 或 name"));
+            return;
+        }
+        try {
+            WebConsoleRegistry.FileCreationTarget creation = consoleRegistry.creationTarget(moduleId, fileId);
+            String relative = normalizeNewFilePath(creation.baseDir(), creation.extension(), name);
+            java.io.File target = safeModuleFile(moduleId, relative);
+            if (target.exists()) {
+                WebResponse.json(exchange, 409, Map.of("success", false, "error", "文件已存在"));
+                return;
+            }
+            Files.createDirectories(target.toPath().getParent());
+            Files.writeString(target.toPath(), defaultFileContent(creation.type()), StandardCharsets.UTF_8);
+            String treePath = creation.type() == WebConsoleRegistry.WebConsoleFileType.SCRIPT && relative.startsWith(creation.baseDir() + "/")
+                    ? relative.substring(creation.baseDir().length() + 1)
+                    : relative;
+            WebResponse.json(exchange, 200, Map.of("success", true, "path", treePath, "name", treePath.substring(treePath.lastIndexOf('/') + 1), "revision", fileRevision(target)));
+        } catch (Exception exception) {
+            WebResponse.json(exchange, 400, Map.of("success", false, "error", exception.getMessage()));
+        }
+    }
+
+    private void handleFileDelete(HttpExchange exchange) throws IOException {
+        if (!requirePost(exchange)) return;
+        if (requireAuth(exchange) == null) return;
+        String body = readBody(exchange);
+        String moduleId = WebJson.extractString(body, "moduleId");
+        String fileId = WebJson.extractString(body, "fileId");
+        String path = WebJson.extractString(body, "path");
+        String confirmPath = WebJson.extractString(body, "confirmPath");
+        if (moduleId.isBlank() || path.isBlank() || confirmPath.isBlank()) {
+            WebResponse.json(exchange, 400, Map.of("success", false, "error", "缺少 moduleId、path 或 confirmPath"));
+            return;
+        }
+        String normalizedPath = path.replace('\\', '/');
+        if (!normalizedPath.equals(confirmPath.replace('\\', '/'))) {
+            WebResponse.json(exchange, 400, Map.of("success", false, "error", "确认文本不匹配"));
+            return;
+        }
+        try {
+            String resolvedPath = resolveTreeFilePath(moduleId, fileId, normalizedPath);
+            java.io.File target = safeModuleFile(moduleId, resolvedPath);
+            if (!target.exists() || !target.isFile()) {
+                WebResponse.json(exchange, 404, Map.of("success", false, "error", "文件不存在"));
+                return;
+            }
+            if (!isDeletableFileName(target.getName())) {
+                WebResponse.json(exchange, 403, Map.of("success", false, "error", "此文件类型不允许删除"));
+                return;
+            }
+            Files.delete(target.toPath());
+            WebResponse.json(exchange, 200, Map.of("success", true, "path", normalizedPath));
+        } catch (Exception exception) {
             WebResponse.json(exchange, 400, Map.of("success", false, "error", exception.getMessage()));
         }
     }
@@ -512,6 +580,41 @@ public final class WebConsoleService {
 
     private EconomyManager economyManager() {
         return plugin instanceof EmakiCoreLibPlugin coreLib ? coreLib.economyManager() : null;
+    }
+
+    private String resolveTreeFilePath(String moduleId, String fileId, String path) throws IOException {
+        if (fileId == null || fileId.isBlank()) return path;
+        WebConsoleRegistry.FileCreationTarget creation = consoleRegistry.creationTarget(moduleId, fileId);
+        if (creation.type() == WebConsoleRegistry.WebConsoleFileType.SCRIPT) {
+            String base = creation.baseDir();
+            return (base == null || base.isBlank()) ? path : base + "/" + path;
+        }
+        return path;
+    }
+
+    private String normalizeNewFilePath(String baseDir, String extension, String name) throws IOException {
+        String cleanName = name.trim().replace('\\', '/');
+        if (cleanName.startsWith("/") || cleanName.contains("..") || cleanName.endsWith("/")) {
+            throw new IOException("文件名不合法");
+        }
+        String cleanExtension = extension == null ? "" : extension.trim();
+        if (!cleanExtension.isBlank() && !cleanName.toLowerCase(java.util.Locale.ROOT).endsWith(cleanExtension.toLowerCase(java.util.Locale.ROOT))) {
+            cleanName += cleanExtension;
+        }
+        String cleanBase = baseDir == null ? "" : baseDir.trim().replace('\\', '/');
+        return cleanBase.isBlank() ? cleanName : cleanBase + "/" + cleanName;
+    }
+
+    private String defaultFileContent(WebConsoleRegistry.WebConsoleFileType type) {
+        return switch (type) {
+            case SCRIPT -> "// Created by Emaki Web Console\n";
+            case GUI, ITEM, CONFIG -> "{}\n";
+        };
+    }
+
+    private boolean isDeletableFileName(String name) {
+        String lower = name == null ? "" : name.toLowerCase(java.util.Locale.ROOT);
+        return lower.endsWith(".yml") || lower.endsWith(".yaml") || lower.endsWith(".js") || lower.endsWith(".kts");
     }
 
     private java.io.File safeModuleFile(String module, String path) throws IOException {

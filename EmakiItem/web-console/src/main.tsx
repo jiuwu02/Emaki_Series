@@ -1,0 +1,57 @@
+import { registerConfigNodeMeta, registerConfigNodeRule, registerModuleLocale } from 'emaki-web-console';
+
+const MODULE = 'EmakiItem';
+
+type ConfigSpec = [path: string, label: string, comment: string, type: string];
+
+const configFields: ConfigSpec[] = [
+  ['version', '配置版本', '默认配置结构版本，通常不建议手动修改。', 'text'],
+  ['language', '语言', '语言文件 ID，对应 lang/<language>.yml。', 'text'],
+  ['release_default_data', '释放默认数据', '首次启动或缺失 items/、sets/ 等示例数据时是否释放默认文件。', 'boolean'],
+  ['set_bonus', '套装加成', '套装定义和物品所属套装/部位联动后的加成系统配置。', 'object'],
+  ['set_bonus.enabled', '启用套装', '是否启用套装加成系统。关闭后物品仍可加载，但不会计算套装件数和加成。', 'boolean'],
+  ['set_bonus.refresh_triggers', '刷新触发', '玩家装备、背包、拾取、交互或命令变化时重新计算套装状态的触发开关。', 'object'],
+  ['set_bonus.refresh_triggers.join', '进服刷新', '玩家进入服务器时刷新套装状态。', 'boolean'],
+  ['set_bonus.refresh_triggers.held_change', '切换手持', '玩家切换手持物品时刷新套装状态。', 'boolean'],
+  ['set_bonus.refresh_triggers.inventory_click', '背包点击', '玩家点击背包时刷新套装状态。', 'boolean'],
+  ['set_bonus.refresh_triggers.inventory_drag', '背包拖拽', '玩家拖拽物品时刷新套装状态。', 'boolean'],
+  ['set_bonus.refresh_triggers.pickup', '拾取物品', '玩家拾取物品时刷新套装状态。', 'boolean'],
+  ['set_bonus.refresh_triggers.interact', '交互刷新', '玩家交互时刷新套装状态。', 'boolean'],
+  ['set_bonus.refresh_triggers.command', '命令刷新', '执行 EmakiItem 相关命令时允许触发套装刷新。', 'boolean']
+];
+
+const commonItemFields: Record<string, [string, string, string]> = {
+  id: ['物品 ID', '物品定义的唯一标识。', 'text'],
+  material: ['材质', '原版 Material 或由物品来源解析出的材质。', 'text'],
+  display_name: ['显示名称', '物品名称，支持 MiniMessage。', 'text'],
+  lore: ['Lore', '物品说明文本，每行一条。', 'list'],
+  custom_model_data: ['模型数据', '资源包使用的 Custom Model Data。', 'number'],
+  item_model: ['物品模型', '资源包 item model 标识。', 'text'],
+  hidden_components: ['隐藏组件', '隐藏 tooltip、附魔、属性等原版组件。', 'list'],
+  enchantments: ['附魔', '物品附魔列表。', 'object'],
+  attributes: ['属性', '写入物品或交给 EmakiAttribute 读取的属性数据。', 'object'],
+  actions: ['动作', '物品使用、触发或刷新时执行的动作。', 'object'],
+  set: ['所属套装', '物品所属套装 ID。', 'text'],
+  set_part: ['套装部位', '物品在套装中的部位 ID。', 'text'],
+  item_sources: ['物品来源', '可识别为该物品的来源列表。', 'list']
+};
+
+registerModuleLocale(MODULE, 'zh-CN', {
+  ...Object.fromEntries(configFields.flatMap(([path, label, comment]) => [[`emakiitem.field.${path}`, label], [`emakiitem.comment.${path}`, comment]])),
+  ...Object.fromEntries(Object.entries(commonItemFields).flatMap(([key, [label, comment]]) => [[`emakiitem.field.${key}`, label], [`emakiitem.comment.${key}`, comment]]))
+});
+
+registerModuleLocale(MODULE, 'en-US', {
+  'emakiitem.field.version': 'Config Version',
+  'emakiitem.field.language': 'Language',
+  'emakiitem.field.release_default_data': 'Release Default Data',
+  'emakiitem.field.set_bonus': 'Set Bonuses',
+  'emakiitem.field.set_bonus.enabled': 'Enable Sets',
+  'emakiitem.field.set_bonus.refresh_triggers': 'Refresh Triggers',
+  'emakiitem.field.display_name': 'Display Name',
+  'emakiitem.field.lore': 'Lore',
+  'emakiitem.field.item_sources': 'Item Sources'
+});
+
+configFields.forEach(([path, label, comment, type]) => registerConfigNodeMeta(MODULE, path, { label, comment, type }));
+Object.entries(commonItemFields).forEach(([key, [label, comment, type]]) => registerConfigNodeRule(MODULE, { key }, { label, comment, type }));

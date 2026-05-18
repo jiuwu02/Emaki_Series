@@ -162,22 +162,7 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     }
 
     private void registerWebConsole() {
-        WebConsoleRegistry.registerModule(this, "Strengthen 强化", "星级、广播、成功率", "strengthen", WEB_ICON);
-        WebConsoleRegistry.registerConfigFile(this, "强化系统配置", "config.yml", "强化系统主配置，包含成功率、材料、经济和显示策略。 ");
-        WebConsoleRegistry.registerGuiFile(this, "强化 GUI 模板", "gui/**/*.yml", "强化界面 GUI 模板文件。", "emakistrengthen:gui");
-        WebConsoleRegistry.registerWebExtension(this, "emakistrengthen:gui-surface", "web-extensions/emakistrengthen-gui-surface.js");
-        WebConsoleRegistry.registerCommonConfigComments(this);
-
-        // 顶层字段
-        WebConsoleRegistry.registerNodeComment(this, "local_broadcast_radius", "广播半径", "本地广播的可见半径（格数）。", "number");
-
-        // broadcast
-        WebConsoleRegistry.registerNodeComment(this, "broadcast", "广播", "强化成功时的本地和全服广播设置。", "object");
-        WebConsoleRegistry.registerNodeComment(this, "broadcast.local_stars", "本地广播星级", "触发本地广播的星级列表。", "list");
-        WebConsoleRegistry.registerNodeComment(this, "broadcast.global_stars", "全服广播星级", "触发全服广播的星级列表。", "list");
-
-        // success_rates
-        WebConsoleRegistry.registerCreatableNode(this, "success_rates", "成功率", "全局成功率配置，key 为星级，value 为成功率百分比。", "object");
+        WebConsoleRegistry.registerFromYaml(this);
     }
 
     private void ensurePlaceholderExpansion() {

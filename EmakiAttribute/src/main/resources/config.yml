@@ -111,63 +111,84 @@ allowed_damage_causes:
   - cause: CONTACT
     damage_type: physical
     damage: 1
+    enabled: true
   - cause: SUFFOCATION
     damage_type: physical
     damage: 1
+    enabled: true
   - cause: FALL
     damage_type: physical
     damage: 1
+    enabled: true
   - cause: FLY_INTO_WALL
     damage_type: physical
     damage: 1
+    enabled: true
   - cause: FALLING_BLOCK
     damage_type: physical
     damage: 1
+    enabled: true
   - cause: FIRE
     damage_type: physical
     damage: 1
+    enabled: true
   - cause: FIRE_TICK
     damage_type: physical
     damage: 1
+    enabled: true
   - cause: MELTING
     damage_type: physical
     damage: 1
+    enabled: true
   - cause: LAVA
     damage_type: physical
     damage: 1
+    enabled: true
   - cause: DROWNING
     damage_type: physical
     damage: 1
+    enabled: true
   - cause: DRYOUT
     damage_type: physical
     damage: 1
+    enabled: true
   - cause: BLOCK_EXPLOSION
     damage_type: physical
     damage: 1
+    enabled: true
   - cause: ENTITY_EXPLOSION
     damage_type: physical
     damage: 1
+    enabled: true
   - cause: VOID
     damage_type: physical
     damage: 1
+    enabled: true
   - cause: LIGHTNING
     damage_type: physical
     damage: 1
+    enabled: true
   - cause: WORLD_BORDER
     damage_type: physical
     damage: 1
+    enabled: true
   - cause: HOT_FLOOR
     damage_type: physical
     damage: 1
+    enabled: true
   - cause: CAMPFIRE
     damage_type: physical
     damage: 1
+    enabled: true
   - cause: CRAMMING
     damage_type: physical
     damage: 1
+    enabled: true
   - cause: FREEZE
     damage_type: physical
     damage: 1
+    enabled: true
   - cause: STARVATION
     damage_type: physical
     damage: 1
+    enabled: true

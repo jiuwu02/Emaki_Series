@@ -14,7 +14,7 @@ import * as components from './components';
 import * as lib from './lib';
 import * as i18n from './i18n';
 import type { EditorChange } from './components';
-import type { WebEditorDescriptor, WebEditorField, WebRegistry, WebRegistryFile, WebRegistryModule, WebConsoleExtensionStatus } from './types';
+import type { WebConfigCreateTemplate, WebConfigFieldSchema, WebConfigNode, WebEditorDescriptor, WebEditorField, WebRegistry, WebRegistryFile, WebRegistryModule, WebConsoleExtensionStatus } from './types';
 
 export type SourceDocumentAdapterContext = {
   module: WebRegistryModule;
@@ -95,6 +95,32 @@ export type PluginGuiEditorRegistration = {
   descriptor?: Partial<WebEditorDescriptor>;
 };
 
+export type ConfigNodeMetaOverride = {
+  label?: string;
+  comment?: string;
+  type?: string;
+  options?: string[];
+  optionLabelPrefix?: string;
+  creatableChildren?: boolean;
+  createTemplates?: WebConfigCreateTemplate[];
+  itemFields?: WebConfigFieldSchema[];
+  uniqueBy?: string;
+};
+
+export type ConfigNodeRuleMatcher = {
+  path?: string;
+  key?: string;
+  prefix?: string;
+  suffix?: string;
+  contains?: string;
+} | ((path: string, node: WebConfigNode) => boolean);
+
+type ConfigNodeRuleRegistration = {
+  moduleId: string;
+  matcher: ConfigNodeRuleMatcher;
+  meta: ConfigNodeMetaOverride;
+};
+
 export type EmakiWebConsoleHost = typeof lib & typeof components & typeof i18n & {
   apiVersion: string;
   React: typeof React;
@@ -112,6 +138,12 @@ export type EmakiWebConsoleHost = typeof lib & typeof components & typeof i18n &
   getSourceDocumentAdapter: typeof getSourceDocumentAdapter;
   registerGuiEditorDescriptor: typeof registerGuiEditorDescriptor;
   registerGuiEditorField: typeof registerGuiEditorField;
+  getRuntimeEnum: typeof getRuntimeEnum;
+  registerConfigNodeMeta: typeof registerConfigNodeMeta;
+  registerConfigNodeRule: typeof registerConfigNodeRule;
+  registerConfigCreateTemplate: typeof registerConfigCreateTemplate;
+  registerConfigListItemSchema: typeof registerConfigListItemSchema;
+  registerUniqueListField: typeof registerUniqueListField;
   recordExtensionStatus: typeof recordExtensionStatus;
   getExtensionStatuses: typeof getExtensionStatuses;
   components: typeof components;
@@ -128,6 +160,12 @@ const _registry: SurfaceRegistration[] = [];
 const _editorOverrides: Record<string, WebEditorDescriptor> = {};
 const _sourceAdapters: SourceAdapterRegistration[] = [];
 const _extensionStatuses: WebConsoleExtensionStatus[] = [];
+const _configNodeMeta: Record<string, ConfigNodeMetaOverride> = {};
+const _configCreateTemplates: Record<string, WebConfigCreateTemplate[]> = {};
+const _configListItemFields: Record<string, WebConfigFieldSchema[]> = {};
+const _configUniqueListFields: Record<string, string> = {};
+const _configNodeRules: ConfigNodeRuleRegistration[] = [];
+let _runtimeEnums: Record<string, string[]> = {};
 
 type SourceAdapterRegistration = { kind?: string; moduleId?: string; editorId?: string; adapter: SourceDocumentAdapter; priority: number };
 
@@ -194,6 +232,65 @@ export function getExtensionStatuses(): WebConsoleExtensionStatus[] {
   return [..._extensionStatuses];
 }
 
+export function setRuntimeEnums(enums: Record<string, string[]> | undefined): void {
+  _runtimeEnums = { ...(enums ?? {}) };
+}
+
+export function getRuntimeEnum(id: string): string[] {
+  return [...(_runtimeEnums[String(id ?? '')] ?? [])];
+}
+
+export function registerConfigNodeMeta(moduleId: string, path: string, meta: ConfigNodeMetaOverride): void {
+  if (!moduleId || !path || !meta) return;
+  const key = configOverrideKey(moduleId, path);
+  _configNodeMeta[key] = mergeConfigNodeMeta(_configNodeMeta[key], meta);
+}
+
+export function registerConfigNodeRule(moduleId: string, matcher: ConfigNodeRuleMatcher, meta: ConfigNodeMetaOverride): void {
+  if (!moduleId || !matcher || !meta) return;
+  _configNodeRules.push({ moduleId: normalizeConfigModuleId(moduleId), matcher, meta });
+}
+
+export function registerConfigCreateTemplate(moduleId: string, nodePath: string, template: WebConfigCreateTemplate): void {
+  if (!moduleId || !nodePath || !template?.id) return;
+  const key = configOverrideKey(moduleId, nodePath);
+  const next = { ...template, fields: [...(template.fields ?? [])] };
+  const existing = _configCreateTemplates[key] ?? [];
+  const duplicate = existing.findIndex(entry => entry.id === next.id);
+  if (duplicate >= 0) existing.splice(duplicate, 1, next);
+  else existing.push(next);
+  _configCreateTemplates[key] = existing;
+}
+
+export function registerConfigListItemSchema(moduleId: string, listPath: string, fields: WebConfigFieldSchema[], options: { uniqueBy?: string } = {}): void {
+  if (!moduleId || !listPath || !Array.isArray(fields)) return;
+  const key = configOverrideKey(moduleId, listPath);
+  _configListItemFields[key] = fields.filter(field => field?.path).map(field => ({ ...field, options: field.options ? [...field.options] : undefined }));
+  if (options.uniqueBy) registerUniqueListField(moduleId, listPath, options.uniqueBy);
+}
+
+export function registerUniqueListField(moduleId: string, listPath: string, fieldPath: string): void {
+  if (!moduleId || !listPath || !fieldPath) return;
+  _configUniqueListFields[configOverrideKey(moduleId, listPath)] = fieldPath;
+}
+
+export function applyConfigRegistryOverrides(registry: WebRegistry): WebRegistry {
+  return {
+    ...registry,
+    modules: registry.modules.map(module => ({
+      ...module,
+      files: module.files.map(file => ({
+        ...file,
+        nodes: applyConfigNodeOverrides(module.id, file.nodes ?? [])
+      }))
+    }))
+  };
+}
+
+export function applyConfigNodeOverrides(moduleId: string, nodes: WebConfigNode[]): WebConfigNode[] {
+  return nodes.map(node => applySingleConfigNodeOverride(moduleId, node));
+}
+
 export function standardGuiFields(entries: StandardGuiFieldEntry[] = []): Record<string, WebEditorField> {
   const base: StandardGuiFieldEntry[] = [
     ['id', 'ID', 'GUI 模板唯一标识。', 'text'],
@@ -252,7 +349,7 @@ export function isKind(fileKind: string | undefined, target: string): boolean {
 
 /** Install the browser global used by plugin extension scripts. */
 export function installWebConsoleHost(): EmakiWebConsoleHost {
-  const host: EmakiWebConsoleHost = { ...lib, ...components, ...i18n, apiVersion: EMAKI_WEB_CONSOLE_API_VERSION, React, registerSurface, getSurface, getAllSurfaces, isKind, registerPluginGuiSurface, registerPluginGuiEditor, registerPluginSurfaces, standardGuiFields, registerEditorDescriptor, registerEditorField, registerSourceDocumentAdapter, getSourceDocumentAdapter, registerGuiEditorDescriptor, registerGuiEditorField, recordExtensionStatus, getExtensionStatuses, components, lib, i18n, t: i18n.t, registerLocale: i18n.registerLocale, registerModuleLocale: i18n.registerModuleLocale };
+  const host: EmakiWebConsoleHost = { ...lib, ...components, ...i18n, apiVersion: EMAKI_WEB_CONSOLE_API_VERSION, React, registerSurface, getSurface, getAllSurfaces, isKind, registerPluginGuiSurface, registerPluginGuiEditor, registerPluginSurfaces, standardGuiFields, registerEditorDescriptor, registerEditorField, registerSourceDocumentAdapter, getSourceDocumentAdapter, registerGuiEditorDescriptor, registerGuiEditorField, getRuntimeEnum, registerConfigNodeMeta, registerConfigNodeRule, registerConfigCreateTemplate, registerConfigListItemSchema, registerUniqueListField, recordExtensionStatus, getExtensionStatuses, components, lib, i18n, t: i18n.t, registerLocale: i18n.registerLocale, registerModuleLocale: i18n.registerModuleLocale };
   (window as any).React = React;
   window.EmakiWebConsole = host;
   return host;
@@ -331,6 +428,74 @@ function mergeEditorDescriptor(base: WebEditorDescriptor | undefined, override: 
       ...((override.fields ?? {}) as Record<string, WebEditorField>)
     }
   };
+}
+
+function applySingleConfigNodeOverride(moduleId: string, node: WebConfigNode): WebConfigNode {
+  const exact = _configNodeMeta[configOverrideKey(moduleId, node.path)];
+  const ruleMeta = _configNodeRules
+    .filter(rule => rule.moduleId === normalizeConfigModuleId(moduleId) && configRuleMatches(rule.matcher, node.path, node))
+    .reduce<ConfigNodeMetaOverride>((merged, rule) => mergeConfigNodeMeta(merged, rule.meta), {});
+  const key = configOverrideKey(moduleId, node.path);
+  const templates = _configCreateTemplates[key];
+  const itemFields = _configListItemFields[key];
+  const uniqueBy = _configUniqueListFields[key];
+  const meta = mergeConfigNodeMeta(ruleMeta, exact);
+  const next: WebConfigNode = { ...node };
+  if (meta.label !== undefined) next.label = meta.label;
+  if (meta.comment !== undefined) next.comment = meta.comment;
+  if (meta.type !== undefined) next.type = meta.type;
+  if (meta.options !== undefined) next.options = [...meta.options];
+  if (meta.optionLabelPrefix !== undefined) next.optionLabelPrefix = meta.optionLabelPrefix;
+  if (meta.creatableChildren !== undefined) next.creatableChildren = meta.creatableChildren;
+  if (meta.createTemplates !== undefined) next.createTemplates = meta.createTemplates.map(copyCreateTemplate);
+  if (meta.itemFields !== undefined) next.itemFields = meta.itemFields.map(copyFieldSchema);
+  if (meta.uniqueBy !== undefined) next.uniqueBy = meta.uniqueBy;
+  if (templates !== undefined) next.createTemplates = templates.map(copyCreateTemplate);
+  if (itemFields !== undefined) next.itemFields = itemFields.map(copyFieldSchema);
+  if (uniqueBy !== undefined) next.uniqueBy = uniqueBy;
+  return next;
+}
+
+function mergeConfigNodeMeta(base: ConfigNodeMetaOverride | undefined, override: ConfigNodeMetaOverride | undefined): ConfigNodeMetaOverride {
+  if (!base && !override) return {};
+  return {
+    ...(base ?? {}),
+    ...(override ?? {}),
+    options: override?.options ? [...override.options] : base?.options ? [...base.options] : undefined,
+    createTemplates: override?.createTemplates ? override.createTemplates.map(copyCreateTemplate) : base?.createTemplates?.map(copyCreateTemplate),
+    itemFields: override?.itemFields ? override.itemFields.map(copyFieldSchema) : base?.itemFields?.map(copyFieldSchema)
+  };
+}
+
+function copyCreateTemplate(template: WebConfigCreateTemplate): WebConfigCreateTemplate {
+  return { ...template, fields: (template.fields ?? []).map(copyFieldSchema) };
+}
+
+function copyFieldSchema(field: WebConfigFieldSchema): WebConfigFieldSchema {
+  return { ...field, options: field.options ? [...field.options] : undefined };
+}
+
+function configRuleMatches(matcher: ConfigNodeRuleMatcher, path: string, node: WebConfigNode): boolean {
+  if (typeof matcher === 'function') return matcher(path, node);
+  if (matcher.path && matcher.path !== path) return false;
+  if (matcher.key && lastConfigPathKey(path) !== matcher.key) return false;
+  if (matcher.prefix && !path.startsWith(matcher.prefix)) return false;
+  if (matcher.suffix && !path.endsWith(matcher.suffix)) return false;
+  if (matcher.contains && !path.includes(matcher.contains)) return false;
+  return Boolean(matcher.path || matcher.key || matcher.prefix || matcher.suffix || matcher.contains);
+}
+
+function configOverrideKey(moduleId: string, path: string): string {
+  return `${normalizeConfigModuleId(moduleId)}:${String(path ?? '')}`;
+}
+
+function normalizeConfigModuleId(moduleId: string): string {
+  return String(moduleId ?? '').trim().toLowerCase();
+}
+
+function lastConfigPathKey(path: string): string {
+  const text = String(path ?? '');
+  return text.includes('.') ? text.slice(text.lastIndexOf('.') + 1) : text;
 }
 
 /**

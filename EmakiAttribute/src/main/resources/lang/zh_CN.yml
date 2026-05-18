@@ -75,8 +75,10 @@ damage:
   cause:
     environment: "环境"
     unknown: "未知来源"
+    kill: "击杀"
     contact: "接触"
     entity_attack: "攻击"
+    entity_sweep_attack: "横扫攻击"
     projectile: "弹射物"
     suffocation: "窒息"
     fall: "摔落"
@@ -89,12 +91,14 @@ damage:
     entity_explosion: "爆炸"
     void: "虚空"
     lightning: "雷击"
+    suicide: "自杀"
     world_border: "世界边界"
     starvation: "饥饿"
     poison: "中毒"
     magic: "魔法"
     wither: "凋零"
     falling_block: "落块"
+    thorns: "荆棘反伤"
     dragon_breath: "龙息"
     fly_into_wall: "碰撞"
     hot_floor: "高温"
@@ -103,6 +107,7 @@ damage:
     dryout: "脱水"
     freeze: "冻结"
     sonic_boom: "音爆"
+    custom: "自定义"
 
 combat_debug:
   projectile_snapshot_write: "投射物快照已写入: projectile={projectile},

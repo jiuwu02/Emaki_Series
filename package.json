@@ -8,7 +8,9 @@
     "EmakiForge/web-console",
     "EmakiSkills/web-console",
     "EmakiStrengthen/web-console",
-    "EmakiCooking/web-console"
+    "EmakiCooking/web-console",
+    "EmakiAttribute/web-console",
+    "EmakiItem/web-console"
   ],
   "scripts": {
     "build:web": "npm run build --workspaces --if-present",
@@ -17,7 +19,9 @@
     "build:web:forge": "npm run build -w emakiforge-web-console-extension",
     "build:web:skills": "npm run build -w emakiskills-web-console-extension",
     "build:web:strengthen": "npm run build -w emakistrengthen-web-console-extension",
-    "build:web:cooking": "npm run build -w emakicooking-web-console-extension"
+    "build:web:cooking": "npm run build -w emakicooking-web-console-extension",
+    "build:web:attribute": "npm run build -w emakiattribute-web-console-extension",
+    "build:web:item": "npm run build -w emakiitem-web-console-extension"
   },
   "dependencies": {
     "react": "latest",

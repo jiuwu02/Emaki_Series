@@ -1,4 +1,4 @@
-import { registerModuleLocale, registerPluginGuiEditor } from 'emaki-web-console';
+import { registerConfigCreateTemplate, registerConfigNodeMeta, registerConfigNodeRule, registerEditorDescriptor, registerEditorField, registerModuleLocale, registerPluginGuiEditor } from 'emaki-web-console';
 
 registerModuleLocale('EmakiGem', 'zh-CN', {
   'emakigem.surface.gem': '宝石',
@@ -192,4 +192,185 @@ registerPluginGuiEditor({
     ['confirm', '确认按钮', '确认当前宝石操作。', 'text']
   ]
 });
+
+const MODULE = 'EmakiGem';
+
+type ConfigSpec = [path: string, label: string, comment: string, type: string, extra?: Record<string, unknown>];
+
+const configFields: ConfigSpec[] = [
+  ['socket_openers', '开孔器', '按插槽类型配置开孔器物品、开孔消耗和默认开放插槽规则。', 'object', { creatableChildren: true }],
+  ['inlay_success', '镶嵌成功率', '宝石镶嵌成功率、公式变量和失败处理策略。', 'object'],
+  ['inlay_success.enabled', '启用成功率', '关闭后镶嵌默认必定成功。', 'boolean'],
+  ['inlay_success.default_chance', '默认成功率', '未在宝石或插槽上覆盖时使用的默认成功率百分比。', 'number'],
+  ['inlay_success.rate_formula', '成功率公式', '根据宝石等级、插槽、玩家等变量计算最终成功率的表达式。', 'text'],
+  ['inlay_success.failure_action', '失败处理', '镶嵌失败时对宝石和装备的处理方式。', 'enum', { options: ['return_gem', 'destroy_gem', 'destroy_both'], optionLabelPrefix: 'inlay_success.failure_action' }],
+  ['upgrade', '升级配置', '宝石升级全局成功率、失败惩罚与等级覆盖。', 'object'],
+  ['upgrade.global_success_rates', '全局升级成功率', '按目标等级配置的全局升级成功率表。', 'object', { creatableChildren: true }],
+  ['upgrade.global_failure_penalty', '全局失败惩罚', '宝石升级失败时默认使用的惩罚方式。', 'enum', { options: ['none', 'downgrade', 'destroy'], optionLabelPrefix: 'upgrade.global_failure_penalty' }],
+  ['number_format', '数值格式', '宝石属性、概率和消耗数值在 Lore 与预览中的格式化规则。', 'object'],
+  ['number_format.default', '默认格式', '普通数值的默认格式，例如 0.##。', 'text'],
+  ['permission', '权限', '宝石操作权限和 OP 绕过策略。', 'object'],
+  ['permission.op_bypass', 'OP 跳过', '开启后 OP 可跳过宝石操作条件。', 'boolean'],
+  ['gui', 'GUI', '宝石 GUI 默认模式、关闭保存和模板入口。', 'object'],
+  ['gui.default_mode', '默认模式', '打开宝石 GUI 时的默认页面。', 'enum', { options: ['inlay', 'open', 'upgrade'], optionLabelPrefix: 'gui.default_mode' }],
+  ['gui.save_on_close', '关闭保存', '关闭 GUI 时是否自动保存未提交的宝石操作。', 'boolean']
+];
+
+const dynamicFields: Record<string, [string, string, string]> = {
+  item_sources: ['物品来源', '识别物品、材料或开孔器的 ItemSource 列表。', 'list'],
+  name_actions: ['名称动作', '镶嵌、开槽或品质变化后对物品名称执行的动作列表。', 'actions'],
+  lore_actions: ['Lore 动作', '镶嵌、开槽或品质变化后对物品 Lore 执行的动作列表。', 'actions'],
+  actions: ['动作', '操作成功、失败或展示时执行的 Action 配置。', 'object'],
+  materials: ['材料消耗', '升级、镶嵌或开孔所需材料列表。', 'list'],
+  currencies: ['货币消耗', 'Vault 或其他经济提供器消耗列表。', 'list'],
+  provider: ['经济提供器', '经济消耗使用的提供器，auto 会按 currency_id 自动推断。', 'enum'],
+  currency_id: ['货币 ID', '多货币系统中的货币标识。', 'text'],
+  amount: ['数量', '材料数量、货币数量或当前条目的数值。', 'number'],
+  base_cost: ['基础费用', '费用公式中的基础值。', 'number'],
+  cost_formula: ['费用公式', '根据等级、品质或上下文计算最终费用的表达式。', 'text'],
+  enabled: ['启用', '是否启用当前功能或条目。', 'boolean'],
+  max_level: ['最高等级', '宝石可升级到的最高等级。', 'number'],
+  success_rate: ['成功率', '升级到该等级或执行该操作的成功率。', 'number'],
+  success_chance: ['成功概率', '兼容字段：升级到该等级的成功概率。', 'number'],
+  failure_penalty: ['失败惩罚', '升级失败后的惩罚方式。', 'enum'],
+  default_open_slots: ['默认开放插槽', '物品初始已开放的插槽索引列表。', 'list'],
+  allowed_gem_types: ['允许宝石类型', '该物品允许镶嵌的宝石类型白名单。', 'stringList'],
+  max_same_type: ['同类型上限', '同类型宝石最大数量；0 表示不限制。', 'number'],
+  max_same_id: ['同 ID 上限', '同一宝石 ID 可镶嵌数量；0 表示不限制。', 'number']
+};
+
+registerModuleLocale(MODULE, 'zh-CN', {
+  ...Object.fromEntries(configFields.flatMap(([path, label, comment]) => [[`emakigem.field.${path}`, label], [`emakigem.comment.${path}`, comment]])),
+  ...Object.fromEntries(Object.entries(dynamicFields).flatMap(([key, [label, comment]]) => [[`emakigem.field.${key}`, label], [`emakigem.comment.${key}`, comment]])),
+  'emakigem.option.inlay_success.failure_action.return_gem': '返还宝石',
+  'emakigem.option.inlay_success.failure_action.destroy_gem': '销毁宝石',
+  'emakigem.option.inlay_success.failure_action.destroy_both': '销毁宝石和装备',
+  'emakigem.option.upgrade.global_failure_penalty.none': '无惩罚',
+  'emakigem.option.upgrade.global_failure_penalty.downgrade': '降级',
+  'emakigem.option.upgrade.global_failure_penalty.destroy': '销毁',
+  'emakigem.option.gui.default_mode.inlay': '镶嵌',
+  'emakigem.option.gui.default_mode.open': '开槽',
+  'emakigem.option.gui.default_mode.upgrade': '升级'
+});
+
+registerModuleLocale(MODULE, 'en-US', {
+  'emakigem.field.socket_openers': 'Socket Openers',
+  'emakigem.field.inlay_success': 'Inlay Success',
+  'emakigem.field.upgrade': 'Upgrade',
+  'emakigem.field.number_format': 'Number Format',
+  'emakigem.field.permission.op_bypass': 'OP Bypass',
+  'emakigem.field.gui.default_mode': 'Default Mode',
+  'emakigem.option.inlay_success.failure_action.return_gem': 'Return gem',
+  'emakigem.option.inlay_success.failure_action.destroy_gem': 'Destroy gem',
+  'emakigem.option.inlay_success.failure_action.destroy_both': 'Destroy both',
+  'emakigem.option.gui.default_mode.inlay': 'Inlay',
+  'emakigem.option.gui.default_mode.open': 'Open socket',
+  'emakigem.option.gui.default_mode.upgrade': 'Upgrade'
+});
+
+configFields.forEach(([path, label, comment, type, extra]) => registerConfigNodeMeta(MODULE, path, { label, comment, type, ...(extra ?? {}) }));
+Object.entries(dynamicFields).forEach(([key, [label, comment, type]]) => registerConfigNodeRule(MODULE, { key }, { label, comment, type }));
+registerConfigCreateTemplate(MODULE, 'socket_openers', {
+  id: 'socket-opener',
+  label: '开孔器',
+  fields: [
+    { path: 'item_sources', label: '物品来源', comment: '识别为该开孔器的物品来源。', type: 'stringList', defaultValue: [] },
+    { path: 'socket_type', label: '插槽类型', comment: '开出的插槽类型。', type: 'text', defaultValue: 'universal' },
+    { path: 'consume', label: '消耗物品', comment: '开孔成功后是否消耗开孔器。', type: 'boolean', defaultValue: true }
+  ]
+});
+registerConfigCreateTemplate(MODULE, 'upgrade.global_success_rates', {
+  id: 'upgrade-rate',
+  label: '目标等级成功率',
+  fields: [
+    { path: 'value', label: '成功率', comment: '该目标等级的升级成功率百分比。', type: 'number', defaultValue: 100 }
+  ]
+});
+
+registerEditorDescriptor(MODULE, 'emakigem:gem', {
+  id: 'emakigem:gem',
+  moduleId: MODULE,
+  title: '宝石定义',
+  kindLabel: '宝石定义',
+  baseName: '<gray>预览装备</gray>',
+  baseLore: ['<gray>原始装备 Lore</gray>'],
+  sections: [
+    {
+      title: '基础字段', fields: [
+        { path: 'id', label: 'ID', type: 'text' },
+        { path: 'display_name', label: '显示名称', type: 'text' },
+        { path: 'lore', label: 'Lore', type: 'stringList', wide: true },
+        { path: 'gem_type', label: '宝石类型', type: 'enum', options: ['attack', 'defense', 'utility', 'universal'] },
+        { path: 'level', label: '基础等级', type: 'number' },
+        { path: 'item_sources', label: '物品来源', type: 'stringList', wide: true },
+        { path: 'custom_model_data', label: '模型数据', type: 'number' },
+        { path: 'socket_compatibility', label: '兼容插槽', type: 'stringList', wide: true }
+      ]
+    },
+    { title: 'effects 效果', collapsible: true, defaultCollapsed: true, fields: [{ path: 'effects', label: '宝石效果', type: 'effects', wide: true }] },
+    {
+      title: '费用与返还', collapsible: true, defaultCollapsed: true, fields: [
+        { path: 'inlay_cost', label: '镶嵌费用', type: 'cost', wide: true },
+        { path: 'extract_cost', label: '拆卸费用', type: 'cost', wide: true },
+        { path: 'extract_return', label: '拆卸返还', type: 'extractReturn', wide: true }
+      ]
+    },
+    { title: 'upgrade 升级配置', collapsible: true, defaultCollapsed: true, fields: [{ path: 'upgrade', label: '升级配置', type: 'gemUpgrade', wide: true }] },
+    {
+      title: '宝石动作', collapsible: true, defaultCollapsed: true, fields: [
+        { path: 'actions.inlay_success', label: '镶嵌成功动作', type: 'stringList', wide: true },
+        { path: 'actions.extract_success', label: '拆卸成功动作', type: 'stringList', wide: true }
+      ]
+    }
+  ]
+});
+
+registerEditorDescriptor(MODULE, 'emakigem:socket-item', {
+  id: 'emakigem:socket-item',
+  moduleId: MODULE,
+  title: '宝石插槽物品',
+  kindLabel: '宝石物品定义',
+  baseName: '<gray>预览装备</gray>',
+  baseLore: ['<gray>原始装备 Lore</gray>'],
+  sections: [
+    {
+      title: '匹配规则', fields: [
+        { path: 'id', label: 'ID', type: 'text' },
+        { path: 'match.item_sources', label: '匹配物品来源', type: 'stringList', wide: true },
+        { path: 'match.slot_groups', label: '装备分组', type: 'stringList', wide: true },
+        { path: 'match.lore_contains', label: 'Lore 包含', type: 'stringList', wide: true }
+      ]
+    },
+    { title: '插槽结构', collapsible: true, defaultCollapsed: true, fields: [{ path: 'slots', label: '插槽列表', type: 'gemSlots', wide: true }] },
+    {
+      title: '宝石限制', collapsible: true, defaultCollapsed: true, fields: [
+        { path: 'allowed_gem_types', label: '允许宝石类型', type: 'stringList', wide: true },
+        { path: 'max_same_type', label: '同类型上限', type: 'number' },
+        { path: 'max_same_id', label: '同 ID 上限', type: 'number' }
+      ]
+    },
+    {
+      title: 'GUI 模板', collapsible: true, defaultCollapsed: true, fields: [
+        { path: 'gui.gem_template', label: '镶嵌模板', type: 'text' },
+        { path: 'gui.open_template', label: '开槽模板', type: 'text' }
+      ]
+    },
+    {
+      title: '展示动作', collapsible: true, defaultCollapsed: true, fields: [
+        { path: 'name_actions', label: '名称动作', type: 'actions', wide: true },
+        { path: 'lore_actions', label: 'Lore 动作', type: 'actions', wide: true }
+      ]
+    }
+  ]
+});
+
+[
+  ['emakigem:gem', 'effects', '宝石效果', '实际写入属性、技能和名称/Lore 动作的效果列表。', 'list'],
+  ['emakigem:gem', 'inlay_cost', '镶嵌费用', '镶嵌宝石时消耗的货币与材料。', 'object'],
+  ['emakigem:gem', 'extract_cost', '拆卸费用', '拆卸宝石时消耗的货币与材料。', 'object'],
+  ['emakigem:gem', 'extract_return', '拆卸返还', '拆卸后宝石原样返还、销毁或降级返还。', 'object'],
+  ['emakigem:socket-item', 'slots', '插槽列表', '该物品拥有的宝石插槽。', 'list'],
+  ['emakigem:socket-item', 'name_actions', '名称动作', '插槽激活后对物品名称执行的动作。', 'actions'],
+  ['emakigem:socket-item', 'lore_actions', 'Lore 动作', '插槽激活后对物品 Lore 执行的动作。', 'actions']
+].forEach(([editorId, path, label, comment, type]) => registerEditorField(MODULE, editorId, { path, label, comment, type }));
 

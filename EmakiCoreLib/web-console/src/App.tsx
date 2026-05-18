@@ -1,18 +1,18 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import type { Completion, CompletionContext, CompletionResult, CompletionSource } from '@codemirror/autocomplete';
 import type { ComponentType } from 'react';
 import { ApiClient } from './api';
 import { GuiEditorSurface } from './GuiEditorSurface';
 import { ItemEditorSurface } from './ItemEditorSurface';
 import { loadWebExtensions } from './extensions';
-import { applyEditorDescriptorOverrides, getSourceDocumentAdapter, getSurface, isKind, registerSourceDocumentAdapter, registerSurface } from './registry';
+import { applyConfigNodeOverrides, applyConfigRegistryOverrides, applyEditorDescriptorOverrides, getSourceDocumentAdapter, getSurface, isKind, registerSourceDocumentAdapter, registerSurface, setRuntimeEnums } from './registry';
 import { getLocale, getRegisteredLocales, setLocale, t } from './i18n';
 import { ActionGroup, Button, CodeEditor, EditorChrome, InlineError, ToastNotice, type EditorChange } from './components';
 import { I18nBundleModal, type I18nTarget } from './I18nBundleModal';
-import { fieldLabel, parseYaml, serializeYaml, setDeepValue, valuesEqual } from './lib';
+import { fieldLabel, optionLabel, parseYaml, serializeYaml, setDeepValue, valuesEqual } from './lib';
 import { Login, ResizableRail, WorkspaceTree, fileKindLabel } from './shell';
 import type { SurfaceProps, SurfaceToolbarState } from './registry';
-import type { WebConfigNode, WebRegistry, WebRegistryFile, WebRegistryModule } from './types';
+import type { RegistryTreeNode, WebConfigCreateTemplate, WebConfigFieldSchema, WebConfigNode, WebRegistry, WebRegistryFile, WebRegistryModule } from './types';
 
 // Register CoreLib's built-in surfaces through the same registry used by plugin extensions.
 registerSurface({ kind: 'GUI', component: GuiEditorSurface as ComponentType<SurfaceProps>, label: t('core.surface.gui.label') });
@@ -59,9 +59,12 @@ export default function App() {
   const [theme, setTheme] = useState<ColorTheme>(() => readTheme());
   const [localeVersion, setLocaleVersion] = useState(0);
   const [i18nTarget, setI18nTarget] = useState<I18nTarget | null>(null);
+  const [createTarget, setCreateTarget] = useState<RegistryTreeNode | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<RegistryTreeNode | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [surfaceToolbar, setSurfaceToolbar] = useState<SurfaceToolbarState | null>(null);
+  const [surfaceDirtyKeys, setSurfaceDirtyKeys] = useState<Set<string>>(() => new Set());
 
   const api = useMemo(() => new ApiClient(token, () => {
     sessionStorage.removeItem('emaki-web-token');
@@ -138,9 +141,10 @@ export default function App() {
     setLoading(true);
     try {
       const next = await api.registry();
+      setRuntimeEnums(next.runtimeEnums);
       const extensionStatuses = await loadWebExtensions(next.extensions);
       const failedExtensions = extensionStatuses.filter(status => status.status === 'failed');
-      const merged = applyEditorDescriptorOverrides(next);
+      const merged = applyConfigRegistryOverrides(applyEditorDescriptorOverrides(next));
       setRegistry(merged);
       if (initial) setExpanded(Object.fromEntries(merged.modules.map((m) => [m.id, true])));
       setSelected((c) => c ?? firstSelection(merged));
@@ -169,27 +173,55 @@ export default function App() {
   }
 
   async function saveCurrent() {
-    if (!selectedModule || !selectedFile) return;
-    const scope = configDraftScope(selectedModule, selectedFile, selected?.scriptPath);
-    const changes = selectedFile.nodes.filter((n) => n.type !== 'object' && draftKey(scope, n.path) in drafts);
-    if (!changes.length) {
-      setToast({ tone: 'ok', text: t('core.toast.noChanges') });
-      return;
-    }
+    if (!selectedModule || !selectedFile || !selectedDraftScope) return;
+    const changes = configChanges(selectedDraftScope, selectedFile.nodes, drafts);
+    if (!changes.length) return;
     setSaving(true);
     try {
       let revision = selectedFile.revision;
       for (const node of changes) {
-        const result = await api.saveRegistryValue(selectedModule.id, scope.filePath, node.path, drafts[draftKey(scope, node.path)], revision);
+        const result = await api.saveRegistryValue(selectedModule.id, selectedDraftScope.filePath, node.path, drafts[draftKey(selectedDraftScope, node.path)], revision);
         revision = result.revision ?? revision;
       }
-      clearDraftValues(scope);
+      clearDraftValues(selectedDraftScope);
       setToast({ tone: 'ok', text: t('core.toast.savedConfig', { count: changes.length }) });
       await loadRegistry({ clearDrafts: false, announceRefresh: false });
     } catch (err) {
       setToast({ tone: 'bad', text: userFacingSaveError(err) });
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function createFileFromTree(target: RegistryTreeNode, name: string) {
+    if (!target.moduleId || !target.fileId) return;
+    try {
+      const created = await api.createFile(target.moduleId, target.fileId, name);
+      setCreateTarget(null);
+      const next = await loadRegistry({ clearDrafts: false, announceRefresh: false });
+      setSelected({ moduleId: target.moduleId, fileId: target.fileId, scriptPath: created.path, refreshKey: Date.now() });
+      setToast({ tone: 'ok', text: t('core.file.created', { path: created.path }) });
+      if (next) setExpanded(current => ({ ...current, [target.id]: true }));
+    } catch (err) {
+      setToast({ tone: 'bad', text: err instanceof Error ? err.message : t('core.file.createFailed') });
+    }
+  }
+
+  async function deleteFileFromTree(target: RegistryTreeNode, confirmPath: string) {
+    if (!target.moduleId || !target.childPath) return;
+    try {
+      await api.deleteFile(target.moduleId, target.fileId, target.childPath, confirmPath);
+      setDeleteTarget(null);
+      setSurfaceDirtyKeys(current => {
+        const next = new Set(current);
+        if (target.fileId) next.delete(treeDirtyKey(target.moduleId!, target.fileId, target.childPath!));
+        return next;
+      });
+      await loadRegistry({ clearDrafts: false, announceRefresh: false });
+      if (selected?.moduleId === target.moduleId && selected.fileId === target.fileId && selected.scriptPath === target.childPath) setSelected(null);
+      setToast({ tone: 'ok', text: t('core.file.deleted', { path: target.childPath }) });
+    } catch (err) {
+      setToast({ tone: 'bad', text: err instanceof Error ? err.message : t('core.file.deleteFailed') });
     }
   }
 
@@ -204,6 +236,7 @@ export default function App() {
   const nextTheme = () => setTheme((current) => COLOR_THEMES[(COLOR_THEMES.findIndex((entry) => entry.id === current) + 1) % COLOR_THEMES.length].id);
   const selectedEditor = selectedFile?.editorId ? registry?.editors?.[selectedFile.editorId] : undefined;
   const selectedSource = '';
+  const selectedDirtyKey = selectedModule && selectedFile ? treeDirtyKey(selectedModule.id, selectedFile.id, selected?.scriptPath ?? selectedFile.path) : null;
   const fallbackToolbar: SurfaceToolbarState = {
     title: selectedModule ? selectedModule.name : t('core.stage.defaultTitle'),
     subtitle: selectedFile ? `${selectedFile.title}，${selectedFile.path}` : t('core.stage.defaultHint'),
@@ -221,10 +254,21 @@ export default function App() {
     onSave: () => void saveCurrent()
   };
   const toolbar = surfaceToolbar ?? fallbackToolbar;
+  const mergedDirtyKeys = useMemo(() => new Set([...dirtyTreeKeys, ...surfaceDirtyKeys]), [dirtyTreeKeys, surfaceDirtyKeys]);
   const locales = getRegisteredLocales();
   const currentLocale = getLocale();
   const currentLocaleLabel = localeLabel(currentLocale);
   const changeLocale = (next: string) => { setLocale(next); setLocaleVersion((version) => version + 1); };
+
+  useEffect(() => {
+    if (!selectedDirtyKey) return;
+    setSurfaceDirtyKeys(current => {
+      const next = new Set(current);
+      if (toolbar.dirty) next.add(selectedDirtyKey);
+      else next.delete(selectedDirtyKey);
+      return next;
+    });
+  }, [selectedDirtyKey, toolbar.dirty]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -249,6 +293,8 @@ export default function App() {
   return (
     <div className="workbench" data-locale-version={localeVersion}>
       {toast && <ToastNotice tone={toast.tone}>{toast.text}</ToastNotice>}
+      {createTarget && <CreateFileModal target={createTarget} onCancel={() => setCreateTarget(null)} onCreate={createFileFromTree} />}
+      {deleteTarget && <DeleteFileModal target={deleteTarget} onCancel={() => setDeleteTarget(null)} onDelete={deleteFileFromTree} />}
       {i18nTarget && <I18nBundleModal target={i18nTarget} onClose={() => setI18nTarget(null)} onSaved={() => { setLocaleVersion((version) => version + 1); setToast({ tone: 'ok', text: t('core.i18n.saved') }); }} />}
       <ResizableRail>
         <div className="brand-block">
@@ -265,7 +311,7 @@ export default function App() {
             </label>
           </div>
         </div>
-        <WorkspaceTree registry={registry} selected={selected} expanded={expanded} dirtyKeys={dirtyTreeKeys} setExpanded={setExpanded} onOpenI18n={setI18nTarget} onSelect={(next) => setSelected((current) => sameSelection(current, next) ? { ...next, refreshKey: (current?.refreshKey ?? 0) + 1 } : next)} />
+        <WorkspaceTree registry={registry} selected={selected} expanded={expanded} dirtyKeys={mergedDirtyKeys} setExpanded={setExpanded} onOpenI18n={setI18nTarget} onCreateFile={setCreateTarget} onDeleteFile={setDeleteTarget} onSelect={(next) => setSelected((current) => sameSelection(current, next) ? { ...next, refreshKey: (current?.refreshKey ?? 0) + 1 } : next)} />
         <button className="rail-action quiet" onClick={() => { sessionStorage.removeItem('emaki-web-token'); setToken(null); }}>{t('core.auth.logout')}</button>
       </ResizableRail>
       <main className="stage">
@@ -299,6 +345,39 @@ export default function App() {
       </main>
     </div>
   );
+}
+
+function CreateFileModal({ target, onCancel, onCreate }: { target: RegistryTreeNode; onCancel: () => void; onCreate: (target: RegistryTreeNode, name: string) => void | Promise<void> }) {
+  const [name, setName] = useState('');
+  function submit(event: FormEvent) {
+    event.preventDefault();
+    if (!name.trim()) return;
+    void onCreate(target, name.trim());
+  }
+  return <div className="editor-modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) onCancel(); }}>
+    <form className="file-action-dialog" role="dialog" aria-modal="true" aria-labelledby="file-create-title" onSubmit={submit}>
+      <div className="reload-confirm-head"><span>{fileKindLabel(target.kind)}</span><h3 id="file-create-title">{t('core.file.createTitle')}</h3></div>
+      <div className="reload-confirm-body"><p>{t('core.file.createDesc')}</p><label className="file-confirm-field"><span>{t('core.file.createName')}</span><input autoFocus value={name} onChange={event => setName(event.target.value)} placeholder={t('core.file.createPlaceholder')} /></label></div>
+      <ActionGroup className="reload-confirm-actions"><Button type="button" onClick={onCancel}>{t('core.gui.cancel')}</Button><Button type="submit" variant="primary" disabled={!name.trim()}>{t('core.file.create')}</Button></ActionGroup>
+    </form>
+  </div>;
+}
+
+function DeleteFileModal({ target, onCancel, onDelete }: { target: RegistryTreeNode; onCancel: () => void; onDelete: (target: RegistryTreeNode, confirmPath: string) => void | Promise<void> }) {
+  const expected = target.childPath ?? target.path ?? '';
+  const [confirmPath, setConfirmPath] = useState('');
+  function submit(event: FormEvent) {
+    event.preventDefault();
+    if (confirmPath !== expected) return;
+    void onDelete(target, confirmPath);
+  }
+  return <div className="editor-modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) onCancel(); }}>
+    <form className="file-action-dialog danger" role="dialog" aria-modal="true" aria-labelledby="file-delete-title" onSubmit={submit}>
+      <div className="reload-confirm-head"><span>{t('core.tree.deleteFile')}</span><h3 id="file-delete-title">{t('core.file.deleteTitle')}</h3></div>
+      <div className="reload-confirm-body"><p>{t('core.file.deleteDesc', { path: expected })}</p><code className="file-delete-path">{expected}</code><label className="file-confirm-field"><span>{t('core.file.deleteConfirmLabel')}</span><input autoFocus value={confirmPath} onChange={event => setConfirmPath(event.target.value)} placeholder={expected} /></label></div>
+      <ActionGroup className="reload-confirm-actions"><Button type="button" onClick={onCancel}>{t('core.gui.cancel')}</Button><Button type="submit" variant="danger" disabled={confirmPath !== expected}>{t('core.file.delete')}</Button></ActionGroup>
+    </form>
+  </div>;
 }
 
 function ConfigSurface({ registry, module, file, drafts, draftHistory, setDraftValue, clearDraftScope, clearDraftValues, undoDraftScope, redoDraftScope, api, scriptPath, refreshKey, onReload, onRefreshRegistry, setSurfaceToolbar, setToast }: { registry: WebRegistry | null; module: WebRegistryModule | null; file: WebRegistryFile | null; drafts: DraftMap; draftHistory: DraftHistoryMap; setDraftValue: DraftValueSetter; clearDraftScope: DraftScopeAction; clearDraftValues: DraftScopeAction; undoDraftScope: DraftScopeAction; redoDraftScope: DraftScopeAction; api: ApiClient; scriptPath?: string; refreshKey: number; onReload?: () => void; onRefreshRegistry: () => Promise<WebRegistry | null>; setSurfaceToolbar: (state: SurfaceToolbarState | null) => void; setToast: (toast: Toast) => void }) {
@@ -387,7 +466,8 @@ function ConfigStructuredSurface({ module, file, drafts, draftHistory, setDraftV
     return () => setSurfaceToolbar(null);
   }, [module.name, file.title, file.path, changedNodes.length, file.nodes, drafts, source.content, source.dirty, source.error, source.saving, source.loading, savingNodes, scopeHistory.undo.length, scopeHistory.redo.length]);
 
-  return <section className="config-surface"><div className="surface-head"><div><h2>{file.title}</h2><p>{file.comment}</p></div><span className={`file-kind ${String(file.kind).toLowerCase()}`}>{fileKindLabel(file.kind)}</span></div><ConfigNodeTree scope={scope} nodes={file.nodes} drafts={drafts} setDraftValue={setDraftValue} onCreateChild={node => createConfigChild(node, source)} /></section>;
+  const [createNode, setCreateNode] = useState<WebConfigNode | null>(null);
+  return <section className="config-surface"><div className="surface-head"><div><h2>{file.title}</h2><p>{file.comment}</p></div><span className={`file-kind ${String(file.kind).toLowerCase()}`}>{fileKindLabel(file.kind)}</span></div><ConfigNodeTree scope={scope} nodes={file.nodes} drafts={drafts} setDraftValue={setDraftValue} onCreateChild={setCreateNode} />{createNode && <ConfigCreateChildModal scope={scope} node={createNode} source={source} onCancel={() => setCreateNode(null)} onCreated={() => setCreateNode(null)} setToast={setToast} />}</section>;
 }
 
 function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, setDraftValue, clearDraftScope, clearDraftValues, undoDraftScope, redoDraftScope, api, refreshKey, setSurfaceToolbar, setToast }: { module: WebRegistryModule; file: WebRegistryFile; childPath: string; drafts: DraftMap; draftHistory: DraftHistoryMap; setDraftValue: DraftValueSetter; clearDraftScope: DraftScopeAction; clearDraftValues: DraftScopeAction; undoDraftScope: DraftScopeAction; redoDraftScope: DraftScopeAction; api: ApiClient; refreshKey: number; setSurfaceToolbar: (state: SurfaceToolbarState | null) => void; setToast: (toast: Toast) => void }) {
@@ -403,7 +483,7 @@ function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, set
     setNodes([]);
     setRevision(undefined);
     api.registryFileNodes(module.id, childPath).then(result => {
-      setNodes(result.nodes);
+      setNodes(applyConfigNodeOverrides(module.id, result.nodes));
       setRevision(result.revision);
     }).catch(err => {
       setError(err instanceof Error ? err.message : t('core.config.childLoadFailed'));
@@ -421,7 +501,7 @@ function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, set
     setLoading(true);
     try {
       const refreshed = await api.registryFileNodes(module.id, childPath);
-      setNodes(refreshed.nodes);
+      setNodes(applyConfigNodeOverrides(module.id, refreshed.nodes));
       setRevision(refreshed.revision);
       clearDraftScope(scope);
       if (announce) setToast({ tone: 'ok', text: t('core.toast.reloaded') });
@@ -453,7 +533,7 @@ function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, set
       }
       setRevision(nextRevision);
       const refreshed = await api.registryFileNodes(module.id, childPath);
-      setNodes(refreshed.nodes);
+      setNodes(applyConfigNodeOverrides(module.id, refreshed.nodes));
       setRevision(refreshed.revision);
       clearDraftValues(scope);
       setToast({ tone: 'ok', text: t('core.toast.savedConfig', { count: changedNodes.length }) });
@@ -490,10 +570,12 @@ function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, set
     return () => setSurfaceToolbar(null);
   }, [fileName, file.title, childPath, changedNodes.length, nodes, drafts, saving, loading, source.content, source.dirty, source.error, source.saving, source.loading, scopeHistory.undo.length, scopeHistory.redo.length, revision]);
 
+  const [createNode, setCreateNode] = useState<WebConfigNode | null>(null);
   return <section className="config-surface">
     {loading && <div className="script-loading" role="status">{t('core.state.loading')}</div>}
     {error && <InlineError><span>{error}</span><Button size="sm" onClick={() => void reloadChildNodes()}>{t('core.action.retry')}</Button></InlineError>}
-    {!loading && !error && <ConfigNodeTree scope={scope} nodes={nodes} drafts={drafts} setDraftValue={setDraftValue} onCreateChild={node => createConfigChild(node, source)} />}
+    {!loading && !error && <ConfigNodeTree scope={scope} nodes={nodes} drafts={drafts} setDraftValue={setDraftValue} onCreateChild={setCreateNode} />}
+    {createNode && <ConfigCreateChildModal scope={scope} node={createNode} source={source} onCancel={() => setCreateNode(null)} onCreated={() => setCreateNode(null)} setToast={setToast} />}
   </section>;
 }
 
@@ -564,18 +646,83 @@ function useConfigSourceDocument({ module, file, childPath, api, refreshKey, set
   };
 }
 
-function createConfigChild(node: WebConfigNode, source: ReturnType<typeof useConfigSourceDocument>) {
-  if (!node.creatableChildren || source.error) return;
+function ConfigCreateChildModal({ scope, node, source, onCancel, onCreated, setToast }: { scope: ConfigDraftScope; node: WebConfigNode; source: ReturnType<typeof useConfigSourceDocument>; onCancel: () => void; onCreated: () => void; setToast: (toast: Toast) => void }) {
+  const templates = node.createTemplates?.length ? node.createTemplates : [emptyCreateTemplate(node)];
+  const [templateId, setTemplateId] = useState(templates[0]?.id ?? 'empty');
+  const template = templates.find(entry => entry.id === templateId) ?? templates[0];
+  const [keyName, setKeyName] = useState('');
+  const [values, setValues] = useState<Record<string, unknown>>(() => defaultTemplateValues(template));
+
+  useEffect(() => setValues(defaultTemplateValues(template)), [template?.id]);
+
+  function submit(event: FormEvent) {
+    event.preventDefault();
+    const key = keyName.trim().replace(/\s+/g, '_');
+    if (!key) return;
+    createConfigChild(node, source, key, values, setToast, onCreated);
+  }
+
+  return <div className="editor-modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) onCancel(); }}>
+    <form className="config-create-dialog" role="dialog" aria-modal="true" aria-labelledby="config-create-title" onSubmit={submit}>
+      <div className="reload-confirm-head"><span>{t('core.config.createKicker')}</span><h3 id="config-create-title">{t('core.config.createTitle')}</h3></div>
+      <div className="reload-confirm-body config-create-body">
+        <p>{t('core.config.createDesc', { path: node.path })}</p>
+        <label className="file-confirm-field"><span>{t('core.config.createKey')}</span><input autoFocus value={keyName} onChange={event => setKeyName(event.target.value)} placeholder={nextConfigChildKey(getConfigObject(parseSafeYaml(source.content), node.path.split('.')))} /></label>
+        {templates.length > 1 && <label className="file-confirm-field"><span>{t('core.config.createTemplate')}</span><select value={template.id} onChange={event => setTemplateId(event.target.value)}>{templates.map(entry => <option key={entry.id} value={entry.id}>{entry.label}</option>)}</select></label>}
+        {template.fields.length === 0 && <p className="config-create-hint">{t('core.config.createNoTemplate')}</p>}
+        <div className="config-create-fields">{template.fields.map(field => <div className="object-list-field" key={field.path}><label>{fieldLabel(field.path, { moduleId: scope.moduleId, namespace: scope.moduleId, fallback: field.label || field.path })}</label>{renderSchemaField(field, values[field.path], next => setValues(current => ({ ...current, [field.path]: next })), scope.moduleId, field.path)}</div>)}</div>
+      </div>
+      <ActionGroup className="reload-confirm-actions"><Button type="button" onClick={onCancel}>{t('core.gui.cancel')}</Button><Button type="submit" variant="primary" disabled={!keyName.trim() || source.loading || !!source.error}>{t('core.config.create')}</Button></ActionGroup>
+    </form>
+  </div>;
+}
+
+function createConfigChild(node: WebConfigNode, source: ReturnType<typeof useConfigSourceDocument>, key: string, values: Record<string, unknown>, setToast: (toast: Toast) => void, onCreated?: () => void) {
+  if (!node.creatableChildren) return;
+  if (source.loading) {
+    setToast({ tone: 'bad', text: t('core.config.sourceLoading') });
+    return;
+  }
+  if (source.error) {
+    setToast({ tone: 'bad', text: source.error });
+    return;
+  }
   try {
-    const data = parseYaml(source.content);
+    const data = parseYaml(source.content || '{}');
     const parent = getConfigObject(data, node.path.split('.'));
-    const key = nextConfigChildKey(parent);
-    const nextParent = { ...parent, [key]: node.type === 'dynamic_map' ? [] : {} };
+    if (key in parent) {
+      setToast({ tone: 'bad', text: t('core.config.createDuplicate', { key }) });
+      return;
+    }
+    const nextParent = { ...parent, [key]: values };
     const nextData = setDeepValue(data, node.path.split('.'), nextParent);
     source.update(serializeYaml(nextData));
+    setToast({ tone: 'ok', text: t('core.config.createdSourceField', { key }) });
+    onCreated?.();
   } catch (err) {
     source.update(`${source.content.replace(/\s*$/, '')}\n# ${err instanceof Error ? err.message : t('core.toast.refreshFailed')}\n`);
+    setToast({ tone: 'bad', text: err instanceof Error ? err.message : t('core.toast.refreshFailed') });
   }
+}
+
+function emptyCreateTemplate(node: WebConfigNode): WebConfigCreateTemplate {
+  return { id: 'empty', label: t('core.config.createEmptyTemplate'), fields: node.type === 'dynamic_map' ? [] : [] };
+}
+
+function defaultTemplateValues(template: WebConfigCreateTemplate): Record<string, unknown> {
+  return Object.fromEntries(template.fields.map(field => [field.path, field.defaultValue ?? defaultSchemaFieldValue(field)]));
+}
+
+function defaultSchemaFieldValue(field: WebConfigFieldSchema): unknown {
+  if (field.type === 'number') return 0;
+  if (field.type === 'boolean') return false;
+  if (field.type === 'list' || field.type === 'stringList') return [];
+  if (field.type === 'enum') return field.options?.[0] ?? '';
+  return '';
+}
+
+function parseSafeYaml(content: string): Record<string, unknown> {
+  try { return parseYaml(content || '{}'); } catch { return {}; }
 }
 
 function getConfigObject(data: Record<string, unknown>, path: string[]): Record<string, unknown> {
@@ -624,6 +771,11 @@ function formatPreviewValue(value: unknown): string {
 
 function configNodeDisplayLabel(scope: ConfigDraftScope, node: WebConfigNode): string {
   return fieldLabel(node.path, { moduleId: scope.moduleId, namespace: scope.moduleId, fallback: node.label });
+}
+
+function configNodeDisplayComment(scope: ConfigDraftScope, node: WebConfigNode): string {
+  const namespace = scope.moduleId.trim().replace(/[^a-zA-Z0-9_.-]+/g, '').toLowerCase();
+  return t(`${namespace}.comment.${node.path}`, undefined, node.comment);
 }
 
 function ConfigNodeTree({ scope, nodes, drafts, setDraftValue, onCreateChild }: { scope: ConfigDraftScope; nodes: WebConfigNode[]; drafts: DraftMap; setDraftValue: DraftValueSetter; onCreateChild: (node: WebConfigNode) => void }) {
@@ -680,7 +832,7 @@ function ConfigNodeSection({ scope, node, childrenNodes, drafts, setDraftValue, 
         <span className="section-arrow" aria-hidden="true">{isCollapsed ? '›' : '⌄'}</span>
         <strong>{groupLabel}</strong>
         <code>{node.path}</code>
-        <span className="section-comment">{node.comment}</span>
+        <span className="section-comment">{configNodeDisplayComment(scope, node)}</span>
       </button>
       {node.creatableChildren && <button type="button" className="node-section-create" onClick={() => onCreateChild(node)}>+ 新建</button>}
       <span className="section-meta">{changedInGroup > 0 && <span className="section-badge">{changedInGroup}</span>}{t('core.config.groupItems', { count: groups.length })}</span>
@@ -698,25 +850,25 @@ function ConfigNodeView({ scope, node, drafts, setDraftValue }: { scope: ConfigD
   const setValue = (next: unknown) => setDraftValue(scope, node, next);
   const isWide = node.type === 'dynamic_map' || node.type === 'list';
   const label = configNodeDisplayLabel(scope, node);
-  return <div className={`node ${key in drafts ? 'changed' : ''} ${isWide ? 'node-wide' : ''}`}><div className="node-meta"><strong>{label}</strong><code>{node.path}</code><p>{node.comment}</p></div><div className="node-control">{renderControl(node, value, setValue, label)}</div></div>;
+  return <div className={`node ${key in drafts ? 'changed' : ''} ${isWide ? 'node-wide' : ''}`}><div className="node-meta"><strong>{label}</strong><code>{node.path}</code><p>{configNodeDisplayComment(scope, node)}</p></div><div className="node-control">{renderControl(node, value, setValue, label, scope.moduleId)}</div></div>;
 }
 
-function renderControl(node: WebConfigNode, value: unknown, setValue: (v: unknown) => void, label: string) {
+function renderControl(node: WebConfigNode, value: unknown, setValue: (v: unknown) => void, label: string, moduleId: string) {
   if (node.type === 'boolean') return <button type="button" className={`switch ${value ? 'on' : ''}`} aria-pressed={value === true} aria-label={`${label}: ${value ? t('core.config.booleanOn') : t('core.config.booleanOff')}`} onClick={() => setValue(!value)}><span />{value ? t('core.config.booleanOn') : t('core.config.booleanOff')}</button>;
-  if (node.type === 'enum' && node.options) return <select value={str(value)} aria-label={label} onChange={(e) => setValue(e.target.value)}>{node.options.map(opt => <option key={opt} value={opt}>{opt}</option>)}</select>;
+  if (node.type === 'enum' && node.options) return <select value={str(value)} aria-label={label} onChange={(e) => setValue(e.target.value)}>{node.options.map(opt => <option key={opt} value={opt}>{optionLabel(node.optionLabelPrefix || node.path, opt, { moduleId })}</option>)}</select>;
   if (node.type === 'number') return <input type="number" aria-label={label} value={value == null ? '' : String(value)} onChange={(e) => setValue(e.target.value === '' ? undefined : Number(e.target.value))} />;
   if (node.type === 'dynamic_map') return <DynamicMapEditor value={value} setValue={setValue} />;
   if (node.type === 'list') {
     const items = Array.isArray(value) ? value : [];
     const hasObjectItems = node.path === 'allowed_damage_causes' || items.some(isPlainObject);
-    if (hasObjectItems) return <ObjectListEditor node={node} items={items} setValue={setValue} />;
+    if (hasObjectItems) return <ObjectListEditor node={node} items={items} setValue={setValue} moduleId={moduleId} />;
     const update = (i: number, v: string) => setValue(items.map((x, j) => j === i ? parseListValue(x, v) : x));
     return <div className="list-editor">{items.map((item, i) => <div className="list-row" key={i}><input value={str(item)} onChange={(e) => update(i, e.target.value)} aria-label={t('core.config.itemIndex', { index: i + 1 })} /><button type="button" onClick={() => setValue(items.filter((_, j) => j !== i))} aria-label={t('core.config.deleteItem', { index: i + 1 })}>{t('core.config.delete')}</button></div>)}<button type="button" className="add-row" onClick={() => setValue([...items, ''])}>{t('core.config.addItem')}</button></div>;
   }
   return <input aria-label={label} value={str(value)} onChange={(e) => setValue(e.target.value)} />;
 }
 
-function ObjectListEditor({ node, items, setValue }: { node: WebConfigNode; items: unknown[]; setValue: (v: unknown) => void }) {
+function ObjectListEditor({ node, items, setValue, moduleId }: { node: WebConfigNode; items: unknown[]; setValue: (v: unknown) => void; moduleId: string }) {
   const objectItems: Record<string, unknown>[] = items.map(item => isPlainObject(item) ? item : {});
   const keys = objectListKeys(node, objectItems);
 
@@ -725,7 +877,7 @@ function ObjectListEditor({ node, items, setValue }: { node: WebConfigNode; item
   }
 
   function addEntry() {
-    setValue([...items, objectListTemplate(node, objectItems[0])]);
+    setValue([...items, objectListTemplate({ ...node, value: items }, objectItems[0])]);
   }
 
   return <div className="object-list-editor">
@@ -737,8 +889,8 @@ function ObjectListEditor({ node, items, setValue }: { node: WebConfigNode; item
       </div>
       <div className="object-list-fields">
         {keys.map(key => <div className="object-list-field" key={key}>
-          <label>{fieldLabel(key, { moduleId: node.path, namespace: node.path, fallback: key.replace(/_/g, ' ') })}</label>
-          {renderObjectListField(item[key], next => updateField(index, key, next), `${node.path}.${index}.${key}`)}
+          <label>{fieldLabel(`${node.path}.${key}`, { moduleId, namespace: moduleId, fallback: fieldSchemaForKey(node, key)?.label || key.replace(/_/g, ' ') })}</label>
+          {renderSchemaField(fieldSchemaForKey(node, key), item[key], next => updateField(index, key, next), moduleId, `${node.path}.${index}.${key}`, objectItems, index)}
         </div>)}
       </div>
     </div>)}
@@ -746,22 +898,41 @@ function ObjectListEditor({ node, items, setValue }: { node: WebConfigNode; item
   </div>;
 }
 
-function renderObjectListField(value: unknown, onChange: (value: unknown) => void, ariaLabel: string) {
-  if (typeof value === 'boolean') return <button type="button" className={`switch ${value ? 'on' : ''}`} aria-pressed={value === true} aria-label={ariaLabel} onClick={() => onChange(!value)}><span />{value ? t('core.config.booleanOn') : t('core.config.booleanOff')}</button>;
-  if (typeof value === 'number') return <input type="number" aria-label={ariaLabel} value={Number.isFinite(value) ? String(value) : ''} onChange={(e) => onChange(e.target.value === '' ? undefined : Number(e.target.value))} />;
+function renderSchemaField(field: WebConfigFieldSchema | undefined, value: unknown, onChange: (value: unknown) => void, moduleId: string, ariaLabel: string, siblingItems: Record<string, unknown>[] = [], currentIndex = -1) {
+  const type = field?.type;
+  if (type === 'boolean' || typeof value === 'boolean') return <button type="button" className={`switch ${value ? 'on' : ''}`} aria-pressed={value === true} aria-label={ariaLabel} onClick={() => onChange(!value)}><span />{value ? t('core.config.booleanOn') : t('core.config.booleanOff')}</button>;
+  if (type === 'number' || typeof value === 'number') return <input type="number" aria-label={ariaLabel} value={Number.isFinite(value as number) ? String(value) : ''} onChange={(e) => onChange(e.target.value === '' ? undefined : Number(e.target.value))} />;
+  if (type === 'enum' && field?.options) {
+    const used = new Set(siblingItems.map((item, index) => index === currentIndex ? '' : String(item[field.path] ?? '')).filter(Boolean));
+    const current = str(value);
+    const options = field.options.filter(option => option === current || !used.has(option));
+    return <select aria-label={ariaLabel} value={current} onChange={(e) => onChange(e.target.value)}>{options.map(option => <option key={option} value={option}>{optionLabel(field.optionLabelPrefix || field.path, option, { moduleId })}</option>)}</select>;
+  }
   return <input aria-label={ariaLabel} value={value == null ? '' : String(value)} onChange={(e) => onChange(e.target.value)} />;
 }
 
 function objectListKeys(node: WebConfigNode, items: Record<string, unknown>[]) {
   const keys = Array.from(new Set(items.flatMap(item => Object.keys(item))));
-  if (node.path === 'allowed_damage_causes') return mergeKeys(['cause', 'damage_type', 'damage'], keys);
-  return keys.length ? keys : ['key'];
+  const schemaKeys = node.itemFields?.map(field => field.path) ?? [];
+  return schemaKeys.length ? mergeKeys(schemaKeys, keys) : (keys.length ? keys : ['key']);
+}
+
+function fieldSchemaForKey(node: WebConfigNode, key: string): WebConfigFieldSchema | undefined {
+  return node.itemFields?.find(field => field.path === key);
 }
 
 function objectListTemplate(node: WebConfigNode, sample: Record<string, unknown> | undefined) {
-  if (node.path === 'allowed_damage_causes') return { cause: '', damage_type: '', damage: 1 };
+  if (node.itemFields?.length) return Object.fromEntries(node.itemFields.map(field => [field.path, defaultListFieldValue(node, field, sample)]));
   const keys = objectListKeys(node, sample ? [sample] : []);
   return Object.fromEntries(keys.map(key => [key, defaultObjectListValue(sample?.[key])]));
+}
+
+function defaultListFieldValue(node: WebConfigNode, field: WebConfigFieldSchema, sample: Record<string, unknown> | undefined) {
+  if (field.type === 'enum' && field.options?.length) {
+    const used = new Set((Array.isArray(node.value) ? node.value : []).map(item => isPlainObject(item) ? String(item[field.path] ?? '') : '').filter(Boolean));
+    return field.options.find(option => !used.has(option)) ?? field.options[0] ?? '';
+  }
+  return field.defaultValue ?? defaultObjectListValue(sample?.[field.path]);
 }
 
 function defaultObjectListValue(sample: unknown) {

@@ -263,6 +263,9 @@ textarea { min-height: 96px; resize: vertical; font-family: ui-monospace, "Casca
 .folder-arrow { display: inline-block; width: 12px; text-align: center; font-size: 11px; color: var(--faint); flex: 0 0 auto; }
 .tree-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tree-dirty-dot { flex: 0 0 auto; width: 6px; height: 6px; border-radius: 50%; background: var(--amber); box-shadow: 0 0 0 2px var(--changed-bg); }
+.tree-file-action { flex: 0 0 auto; width: 22px; height: 22px; display: inline-grid; place-items: center; border: 1px solid transparent; border-radius: 5px; color: var(--faint); font-size: 13px; opacity: .55; }
+.tree-file-action:hover, .tree-file-action:focus-visible { opacity: 1; color: var(--accent); border-color: var(--accent-soft); background: var(--accent-dim); outline: none; }
+.tree-file-action.danger:hover, .tree-file-action.danger:focus-visible { color: var(--red); border-color: var(--danger-line); background: var(--danger-soft); }
 .tree-i18n-button { flex: 0 0 auto; min-width: 28px; height: 24px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; border: 1px solid transparent; border-radius: 6px; color: var(--faint); opacity: .65; padding: 0 6px; }
 .tree-i18n-button--module { margin-right: 4px; }
 .tree-i18n-button svg { width: 15px; height: 15px; display: block; }
@@ -519,7 +522,15 @@ textarea { min-height: 96px; resize: vertical; font-family: ui-monospace, "Casca
 .gui-head .dirty-inline { margin-left: 10px; color: var(--amber); font-weight: 700; }
 .gui-error { padding: 8px 16px; border-bottom: 1px solid var(--danger-line); color: var(--red); background: var(--danger-soft); font-size: 12px; }
 .reload-confirm-backdrop { position: fixed; inset: 0; z-index: 120; display: grid; place-items: center; padding: 24px; background: var(--overlay); }
-.reload-confirm-dialog { width: min(430px, calc(100vw - 32px)); border: 1px solid var(--line-2); border-radius: 10px; background: var(--surface); box-shadow: var(--shadow); overflow: hidden; animation: reload-confirm-in 0.16s cubic-bezier(0.16, 1, 0.3, 1); }
+.reload-confirm-dialog, .file-action-dialog, .config-create-dialog { width: min(430px, calc(100vw - 32px)); border: 1px solid var(--line-2); border-radius: 10px; background: var(--surface); box-shadow: var(--shadow); overflow: hidden; animation: reload-confirm-in 0.16s cubic-bezier(0.16, 1, 0.3, 1); }
+.config-create-dialog { width: min(560px, calc(100vw - 32px)); }
+.config-create-body { display: grid; gap: 10px; }
+.config-create-fields { display: grid; gap: 6px; padding-top: 2px; }
+.config-create-hint { margin: 0; color: var(--faint); font-size: 12px; }
+.file-action-dialog.danger { border-color: var(--danger-line); }
+.file-confirm-field { display: grid; gap: 6px; margin-top: 12px; }
+.file-confirm-field span { color: var(--muted); font-size: 11px; font-weight: 700; }
+.file-delete-path { display: block; margin-top: 8px; padding: 7px 8px; border: 1px solid var(--line); border-radius: 5px; background: var(--input); color: var(--danger-ink); font-family: ui-monospace, "Cascadia Code", monospace; font-size: 11px; overflow-wrap: anywhere; }
 .reload-confirm-head { display: grid; gap: 5px; padding: 16px 18px 11px; border-bottom: 1px solid var(--line); background: var(--input); }
 .reload-confirm-head span { color: var(--amber); font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
 .reload-confirm-head h3 { font-size: 15px; line-height: 1.35; color: var(--text); }

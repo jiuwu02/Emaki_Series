@@ -78,8 +78,10 @@ damage:
   cause:
     environment: "Environment"
     unknown: "Unknown"
+    kill: "Kill"
     contact: "Contact"
     entity_attack: "Attack"
+    entity_sweep_attack: "Sweep Attack"
     projectile: "Projectile"
     suffocation: "Suffocation"
     fall: "Fall"
@@ -92,12 +94,14 @@ damage:
     entity_explosion: "Explosion"
     void: "Void"
     lightning: "Lightning"
+    suicide: "Suicide"
     world_border: "World Border"
     starvation: "Starvation"
     poison: "Poison"
     magic: "Magic"
     wither: "Wither"
     falling_block: "Falling Block"
+    thorns: "Thorns"
     dragon_breath: "Dragon Breath"
     fly_into_wall: "Collision"
     hot_floor: "Hot Floor"
@@ -106,6 +110,7 @@ damage:
     dryout: "Dryout"
     freeze: "Freeze"
     sonic_boom: "Sonic Boom"
+    custom: "Custom"
 
 combat_debug:
   projectile_snapshot_write: "Projectile snapshot written:

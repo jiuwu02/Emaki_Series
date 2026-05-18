@@ -73,9 +73,16 @@ function parseList(lines: ParsedLine[], start: number, indent: number): [unknown
         index = nextIndex;
       }
     } else if (rest.includes(':') && /^([^:#][^:]*):(\s*(.*))?$/.test(rest)) {
-      const [inlineMap] = parseMap([{ line: line.line, indent, trimmed: rest }], 0, indent);
-      result.push(inlineMap);
-      index += 1;
+      const [inlineMap] = parseMap([{ line: line.line, indent: indent + 2, trimmed: rest }], 0, indent + 2);
+      const next = lines[index + 1];
+      if (next && next.indent > line.indent) {
+        const [nestedMap, nextIndex] = parseMap(lines, index + 1, next.indent);
+        result.push({ ...inlineMap, ...nestedMap });
+        index = nextIndex;
+      } else {
+        result.push(inlineMap);
+        index += 1;
+      }
     } else {
       result.push(parseScalar(rest));
       index += 1;
@@ -89,7 +96,8 @@ function dumpYaml(value: unknown, indent = 0): string {
   if (Array.isArray(value)) {
     if (value.length === 0) return '[]';
     return value.map((entry) => {
-      if (entry && typeof entry === 'object') return `${space}-\n${dumpYaml(entry, indent + 2)}`;
+      if (entry && typeof entry === 'object' && !Array.isArray(entry)) return dumpYamlListObject(entry as Record<string, unknown>, indent);
+      if (Array.isArray(entry)) return `${space}-\n${dumpYaml(entry, indent + 2)}`;
       return `${space}- ${formatScalar(entry)}`;
     }).join('\n');
   }
@@ -106,6 +114,30 @@ function dumpYaml(value: unknown, indent = 0): string {
     }).join('\n');
   }
   return formatScalar(value);
+}
+
+function dumpYamlListObject(value: Record<string, unknown>, indent: number): string {
+  const space = ' '.repeat(indent);
+  const childSpace = ' '.repeat(indent + 2);
+  const entries = Object.entries(value).filter(([, entry]) => entry !== undefined && entry !== null);
+  if (entries.length === 0) return `${space}- {}`;
+  const [firstKey, firstValue] = entries[0];
+  const lines: string[] = [];
+  if (firstValue && typeof firstValue === 'object') {
+    const childEntries = Array.isArray(firstValue) ? firstValue : Object.entries(firstValue as Record<string, unknown>).filter(([, child]) => child !== undefined && child !== null);
+    lines.push(childEntries.length === 0 ? `${space}- ${firstKey}: ${Array.isArray(firstValue) ? '[]' : '{}'}` : `${space}- ${firstKey}:\n${dumpYaml(firstValue, indent + 4)}`);
+  } else {
+    lines.push(`${space}- ${firstKey}: ${formatScalar(firstValue)}`);
+  }
+  for (const [key, entry] of entries.slice(1)) {
+    if (entry && typeof entry === 'object') {
+      const childEntries = Array.isArray(entry) ? entry : Object.entries(entry as Record<string, unknown>).filter(([, child]) => child !== undefined && child !== null);
+      lines.push(childEntries.length === 0 ? `${childSpace}${key}: ${Array.isArray(entry) ? '[]' : '{}'}` : `${childSpace}${key}:\n${dumpYaml(entry, indent + 4)}`);
+    } else {
+      lines.push(`${childSpace}${key}: ${formatScalar(entry)}`);
+    }
+  }
+  return lines.join('\n');
 }
 
 function parseScalar(value: string): unknown {

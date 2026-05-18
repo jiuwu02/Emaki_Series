@@ -1,7 +1,77 @@
-import { registerPluginGuiEditor } from 'emaki-web-console';
+import { registerConfigNodeMeta, registerConfigNodeRule, registerModuleLocale, registerPluginGuiEditor } from 'emaki-web-console';
+
+const MODULE = 'EmakiSkills';
+
+type FieldSpec = [path: string, label: string, comment: string, type: string, extra?: Record<string, unknown>];
+
+const fields: FieldSpec[] = [
+  ['slots', '技能槽', '玩家主动技能槽位数量与默认分配。', 'object'],
+  ['slots.default_count', '默认槽数', '新玩家或未初始化玩家默认拥有的主动技能槽数量。', 'number'],
+  ['cast_mode', '施法模式', '进入/退出施法模式的按键、状态恢复与客户端限制说明。', 'object'],
+  ['cast_mode.entry_key', '切换按键', '进入或退出施法模式的按键标识。Spigot 服务端不能监听所有客户端本地键位。', 'text'],
+  ['cast_mode.restore_last_state_on_join', '登录恢复状态', '玩家重新登录后是否恢复上次退出时的施法模式状态。', 'boolean'],
+  ['cast_timing', '施法时序', '技能释放后的全局延迟与冷却节奏。', 'object'],
+  ['cast_timing.forced_global_cast_delay_ticks', '全局施法延迟', '任意技能成功释放后强制施加的全局冷却，单位 tick；0 表示关闭。', 'number'],
+  ['actionbar', 'ActionBar', '施法模式和普通状态下的 ActionBar 技能栏显示。', 'object'],
+  ['actionbar.enabled', '启用显示', '是否启用技能 ActionBar 状态显示。', 'boolean'],
+  ['actionbar.refresh_interval_ticks', '刷新间隔', 'ActionBar 内容刷新间隔，单位 tick。', 'number'],
+  ['actionbar.template_cast_mode', '施法模板', '施法模式下的 ActionBar 模板，支持技能槽和冷却占位符。', 'text'],
+  ['actionbar.template_idle', '待机模板', '非施法模式下的 ActionBar 模板；空字符串表示不显示。', 'text'],
+  ['script_engine', '脚本引擎', '原生技能脚本执行模式、错误处理和单阶段安全限制。', 'object'],
+  ['script_engine.enabled', '启用脚本引擎', '是否启用 EmakiSkills 原生脚本执行器。', 'boolean'],
+  ['script_engine.default_mode', '默认模式', '技能未声明模式时使用的执行模式。', 'enum', { options: ['native', 'mythic', 'hybrid'], optionLabelPrefix: 'script_engine.default_mode' }],
+  ['script_engine.stop_on_failure', '失败停止', '某一行动失败时是否停止后续动作。', 'boolean'],
+  ['script_engine.max_lines_per_phase', '阶段最大行数', '每个脚本阶段允许的最大行数，防止过长脚本拖慢主线程。', 'number'],
+  ['script_engine.max_targets_per_action', '动作目标上限', '单个动作最多处理的目标数量。', 'number'],
+  ['script_engine.debug', '脚本调试', '是否输出脚本执行调试信息，生产环境建议关闭。', 'boolean'],
+  ['triggers', '主动触发器', '左键、右键、Shift 与数字键等可由玩家主动绑定的触发器。', 'object'],
+  ['passive_trigger_settings', '被动触发设置', '被动触发器的全局检查间隔和连击判定时间。', 'object'],
+  ['passive_trigger_settings.timer_interval_ticks', '定时间隔', 'timer 被动触发器的检查间隔，单位 tick。', 'number'],
+  ['passive_trigger_settings.combo_timeout_ticks', '连击超时', 'combo_attack 连击触发器的重置超时时间，单位 tick。', 'number'],
+  ['passive_triggers', '被动触发器', '攻击、受伤、击杀、射箭、方块、登录、潜行、定时等由事件自动触发的技能触发器。', 'object']
+];
+
+const triggerFields: Record<string, [string, string, string]> = {
+  display_name: ['显示名称', '触发器在 GUI、ActionBar 或提示文本中显示的名称。', 'text'],
+  enabled: ['启用', '是否启用当前触发器或功能项。', 'boolean'],
+  incompatible_with: ['互斥触发器', '与当前触发器不能同时绑定或同时生效的触发器 ID 列表。', 'list']
+};
+
+const localeMessages: Record<string, string> = Object.fromEntries([
+  ...fields.flatMap(([path, label, comment]) => [[`emakiskills.field.${path}`, label], [`emakiskills.comment.${path}`, comment]]),
+  ...Object.entries(triggerFields).flatMap(([key, [label, comment]]) => [[`emakiskills.field.${key}`, label], [`emakiskills.comment.${key}`, comment]])
+]);
+
+registerModuleLocale(MODULE, 'zh-CN', {
+  ...localeMessages,
+  'emakiskills.surface.gui': '技能 GUI',
+  'emakiskills.option.script_engine.default_mode.native': '原生脚本',
+  'emakiskills.option.script_engine.default_mode.mythic': 'Mythic 技能',
+  'emakiskills.option.script_engine.default_mode.hybrid': '混合模式'
+});
+
+registerModuleLocale(MODULE, 'en-US', {
+  'emakiskills.surface.gui': 'Skills GUI',
+  'emakiskills.field.slots': 'Skill Slots',
+  'emakiskills.field.cast_mode': 'Cast Mode',
+  'emakiskills.field.cast_timing': 'Cast Timing',
+  'emakiskills.field.actionbar': 'ActionBar',
+  'emakiskills.field.script_engine': 'Script Engine',
+  'emakiskills.field.triggers': 'Active Triggers',
+  'emakiskills.field.passive_trigger_settings': 'Passive Trigger Settings',
+  'emakiskills.field.passive_triggers': 'Passive Triggers',
+  'emakiskills.field.display_name': 'Display Name',
+  'emakiskills.field.incompatible_with': 'Incompatible With',
+  'emakiskills.option.script_engine.default_mode.native': 'Native',
+  'emakiskills.option.script_engine.default_mode.mythic': 'Mythic',
+  'emakiskills.option.script_engine.default_mode.hybrid': 'Hybrid'
+});
+
+fields.forEach(([path, label, comment, type, extra]) => registerConfigNodeMeta(MODULE, path, { label, comment, type, ...(extra ?? {}) }));
+Object.entries(triggerFields).forEach(([key, [label, comment, type]]) => registerConfigNodeRule(MODULE, { key }, { label, comment, type }));
 
 registerPluginGuiEditor({
-  moduleId: 'EmakiSkills',
+  moduleId: MODULE,
   editorId: 'emakiskills:gui',
   label: '技能 GUI',
   fields: [
@@ -9,6 +79,7 @@ registerPluginGuiEditor({
     ['active_slot', '主动技能槽', '玩家主动技能槽位。', 'text'],
     ['skill_pool', '技能池', '可装配技能列表区域。', 'text'],
     ['cast_mode_toggle', '施法模式', '切换技能施法模式。', 'text'],
+    ['trigger_selector', '触发器选择', '用于选择主动触发器的槽位。', 'text'],
     ['page_prev', '上一页', '向前翻页按钮。', 'text'],
     ['page_next', '下一页', '向后翻页按钮。', 'text']
   ]

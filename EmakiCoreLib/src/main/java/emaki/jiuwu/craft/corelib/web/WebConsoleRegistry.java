@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.bukkit.Bukkit;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -25,6 +26,9 @@ public final class WebConsoleRegistry {
     private static final Map<String, EditorRegistration> EDITORS = new LinkedHashMap<>();
     private static final Map<String, WebExtensionRegistration> EXTENSIONS = new LinkedHashMap<>();
     private static final Map<String, NodeMeta> NODE_META = new LinkedHashMap<>();
+    private static final Map<String, List<Map<String, Object>>> CREATE_TEMPLATES = new LinkedHashMap<>();
+    private static final Map<String, List<Map<String, Object>>> LIST_ITEM_FIELDS = new LinkedHashMap<>();
+    private static final Map<String, String> UNIQUE_LIST_FIELDS = new LinkedHashMap<>();
     private static final List<NodeMetaRule> NODE_RULES = new ArrayList<>();
 
     static {
@@ -35,6 +39,13 @@ public final class WebConsoleRegistry {
 
     public WebConsoleRegistry(JavaPlugin plugin) {
         this.plugin = plugin;
+    }
+
+    /**
+     * 从插件自带的 web-console.yml 执行声明式注册，让插件 Java 入口只保留发现动作。
+     */
+    public static void registerFromYaml(JavaPlugin plugin) {
+        WebConsoleYamlRegistrar.scanPlugin(plugin);
     }
 
     /**
@@ -66,10 +77,14 @@ public final class WebConsoleRegistry {
      */
     public static synchronized void unregisterModule(JavaPlugin plugin) {
         String moduleId = plugin.getName();
+        WebConsoleYamlRegistrar.unmarkScanned(moduleId);
         MODULES.remove(moduleId);
         EDITORS.values().removeIf(editor -> moduleId.equals(editor.moduleId()));
         EXTENSIONS.values().removeIf(extension -> moduleId.equals(extension.moduleId()));
         NODE_META.keySet().removeIf(key -> key.startsWith(moduleId + ":"));
+        CREATE_TEMPLATES.keySet().removeIf(key -> key.startsWith(moduleId + ":"));
+        LIST_ITEM_FIELDS.keySet().removeIf(key -> key.startsWith(moduleId + ":"));
+        UNIQUE_LIST_FIELDS.keySet().removeIf(key -> key.startsWith(moduleId + ":"));
         NODE_RULES.removeIf(rule -> moduleId.equals(rule.moduleId()));
     }
 
@@ -328,6 +343,72 @@ public final class WebConsoleRegistry {
         registerNodeKeyComment(plugin.getName(), keyName, label, comment, type);
     }
 
+    public static Map<String, Object> createTemplateField(String path, String label, String comment, String type, Object defaultValue) {
+        return createTemplateField(path, label, comment, type, defaultValue, List.of(), "");
+    }
+
+    public static Map<String, Object> createTemplateField(String path, String label, String comment, String type, Object defaultValue, List<String> options, String optionLabelPrefix) {
+        Map<String, Object> field = new LinkedHashMap<>();
+        field.put("path", path);
+        field.put("label", label);
+        field.put("comment", comment);
+        field.put("type", type);
+        field.put("defaultValue", defaultValue);
+        if (options != null && !options.isEmpty()) {
+            field.put("options", List.copyOf(options));
+        }
+        if (Texts.isNotBlank(optionLabelPrefix)) {
+            field.put("optionLabelPrefix", optionLabelPrefix);
+        }
+        return field;
+    }
+
+    public static synchronized void registerCreateTemplate(String moduleId, String nodePath, String templateId, String label, List<Map<String, Object>> fields) {
+        if (Texts.isBlank(moduleId) || Texts.isBlank(nodePath) || Texts.isBlank(templateId)) {
+            return;
+        }
+        Map<String, Object> template = new LinkedHashMap<>();
+        template.put("id", templateId);
+        template.put("label", Texts.isBlank(label) ? templateId : label);
+        template.put("fields", fields == null ? List.of() : List.copyOf(fields));
+        CREATE_TEMPLATES.computeIfAbsent(key(moduleId, nodePath), ignored -> new ArrayList<>()).add(template);
+    }
+
+    public static synchronized void registerCreateTemplate(JavaPlugin plugin, String nodePath, String templateId, String label, List<Map<String, Object>> fields) {
+        if (plugin == null) {
+            return;
+        }
+        registerCreateTemplate(plugin.getName(), nodePath, templateId, label, fields);
+    }
+
+    public static synchronized void registerListItemField(String moduleId, String listPath, Map<String, Object> field) {
+        if (Texts.isBlank(moduleId) || Texts.isBlank(listPath) || field == null || Texts.isBlank(String.valueOf(field.get("path")))) {
+            return;
+        }
+        LIST_ITEM_FIELDS.computeIfAbsent(key(moduleId, listPath), ignored -> new ArrayList<>()).add(new LinkedHashMap<>(field));
+    }
+
+    public static synchronized void registerListItemField(JavaPlugin plugin, String listPath, Map<String, Object> field) {
+        if (plugin == null) {
+            return;
+        }
+        registerListItemField(plugin.getName(), listPath, field);
+    }
+
+    public static synchronized void registerUniqueListField(String moduleId, String listPath, String fieldPath) {
+        if (Texts.isBlank(moduleId) || Texts.isBlank(listPath) || Texts.isBlank(fieldPath)) {
+            return;
+        }
+        UNIQUE_LIST_FIELDS.put(key(moduleId, listPath), fieldPath);
+    }
+
+    public static synchronized void registerUniqueListField(JavaPlugin plugin, String listPath, String fieldPath) {
+        if (plugin == null) {
+            return;
+        }
+        registerUniqueListField(plugin.getName(), listPath, fieldPath);
+    }
+
     /**
      * 按需加载单个子文件的结构化 YAML 节点列表。
      * 用于 glob 路径注册的 CONFIG 文件，前端点击子文件时调用。
@@ -385,6 +466,7 @@ public final class WebConsoleRegistry {
         result.put("tree", tree);
         result.put("editors", editorDescriptors());
         result.put("guiTypes", guiTypes());
+        result.put("runtimeEnums", runtimeEnums());
         result.put("extensions", webExtensions());
         return result;
     }
@@ -550,6 +632,24 @@ public final class WebConsoleRegistry {
         return value == null ? "" : String.valueOf(value);
     }
 
+    public FileCreationTarget creationTarget(String moduleId, String fileId) throws IOException {
+        ModuleRegistration registration = module(moduleId);
+        if (registration == null) {
+            throw new IOException("模块未注册");
+        }
+        FileRegistration file = registration.files().stream()
+                .filter(candidate -> fileId(moduleId, candidate).equals(fileId))
+                .findFirst()
+                .orElseThrow(() -> new IOException("文件入口不存在"));
+        String globPath = file.relativePath();
+        if (!globPath.contains("*")) {
+            throw new IOException("此文件入口不支持新建文件");
+        }
+        return new FileCreationTarget(file.type(), extractBaseDir(globPath), extractExtension(globPath));
+    }
+
+    public record FileCreationTarget(WebConsoleFileType type, String baseDir, String extension) {}
+
     private List<Map<String, String>> scanGlobChildren(String moduleId, String globPath) {
         List<Map<String, String>> children = new ArrayList<>();
         String baseDir = extractBaseDir(globPath);
@@ -641,7 +741,39 @@ public final class WebConsoleRegistry {
         if (meta.creatableChildren()) {
             node.put("creatableChildren", true);
         }
+        List<Map<String, Object>> templates = nodeCreateTemplates(moduleId, path);
+        if (!templates.isEmpty()) {
+            node.put("createTemplates", templates);
+        }
+        List<Map<String, Object>> itemFields = nodeListItemFields(moduleId, path);
+        if (!itemFields.isEmpty()) {
+            node.put("itemFields", itemFields);
+        }
+        String uniqueBy = nodeUniqueBy(moduleId, path);
+        if (Texts.isNotBlank(uniqueBy)) {
+            node.put("uniqueBy", uniqueBy);
+        }
         return node;
+    }
+
+    private static synchronized List<Map<String, Object>> nodeCreateTemplates(String moduleId, String path) {
+        return copySchemaList(CREATE_TEMPLATES.getOrDefault(key(moduleId, path), CREATE_TEMPLATES.getOrDefault(key("*", path), List.of())));
+    }
+
+    private static synchronized List<Map<String, Object>> nodeListItemFields(String moduleId, String path) {
+        return copySchemaList(LIST_ITEM_FIELDS.getOrDefault(key(moduleId, path), LIST_ITEM_FIELDS.getOrDefault(key("*", path), List.of())));
+    }
+
+    private static synchronized String nodeUniqueBy(String moduleId, String path) {
+        return UNIQUE_LIST_FIELDS.getOrDefault(key(moduleId, path), UNIQUE_LIST_FIELDS.getOrDefault(key("*", path), ""));
+    }
+
+    private static List<Map<String, Object>> copySchemaList(List<Map<String, Object>> entries) {
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Map<String, Object> entry : entries) {
+            result.add(new LinkedHashMap<>(entry));
+        }
+        return result;
     }
 
     private List<String> scanDynamicEnumOptions(String moduleId, String dirPath) {
@@ -800,6 +932,12 @@ public final class WebConsoleRegistry {
         return result;
     }
 
+    private static Map<String, List<String>> runtimeEnums() {
+        Map<String, List<String>> result = new LinkedHashMap<>();
+        result.put("bukkit.damageCause", Arrays.stream(EntityDamageEvent.DamageCause.values()).map(Enum::name).toList());
+        return result;
+    }
+
     private static boolean isCreatableInventoryType(InventoryType type) {
         if (type == null || type == InventoryType.CHEST) {
             return false;
@@ -820,7 +958,8 @@ public final class WebConsoleRegistry {
             Map<String, Object> entry = new LinkedHashMap<>();
             entry.put("moduleId", extension.moduleId());
             entry.put("id", extension.id());
-            entry.put("url", "/extensions/" + extension.moduleId() + "/" + extension.resourcePath());
+            String version = installed.getDescription().getVersion();
+            entry.put("url", "/extensions/" + extension.moduleId() + "/" + extension.resourcePath() + "?v=" + version);
             entry.put("apiVersion", "1.1.0");
             result.add(entry);
         }

@@ -145,22 +145,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     }
 
     private void registerWebConsole() {
-        WebConsoleRegistry.registerModule(this, "Item 物品", "物品定义、套装刷新与触发", "item", WEB_ICON);
-        WebConsoleRegistry.registerConfigFile(this, "物品系统配置", "config.yml", "物品系统主配置，包含套装、刷新、耐久和修复等设置。");
-        WebConsoleRegistry.registerItemFile(this, "物品定义", "items/**/*.yml", "EmakiItem 自定义物品定义文件。");
-        WebConsoleRegistry.registerCommonConfigComments(this);
-
-        // set_bonus
-        WebConsoleRegistry.registerNodeComment(this, "set_bonus", "套装加成", "套装加成系统与刷新触发器配置。", "object");
-        WebConsoleRegistry.registerNodeComment(this, "set_bonus.enabled", "启用套装", "是否启用套装加成系统。", "boolean");
-        WebConsoleRegistry.registerNodeComment(this, "set_bonus.refresh_triggers", "刷新触发", "触发套装状态重新计算的事件配置。", "object");
-        WebConsoleRegistry.registerNodeComment(this, "set_bonus.refresh_triggers.join", "进服刷新", "玩家进入服务器时是否刷新套装状态。", "boolean");
-        WebConsoleRegistry.registerNodeComment(this, "set_bonus.refresh_triggers.held_change", "切换手持", "切换手持物品时是否刷新套装状态。", "boolean");
-        WebConsoleRegistry.registerNodeComment(this, "set_bonus.refresh_triggers.inventory_click", "背包点击", "点击背包时是否刷新套装状态。", "boolean");
-        WebConsoleRegistry.registerNodeComment(this, "set_bonus.refresh_triggers.inventory_drag", "背包拖拽", "拖拽物品时是否刷新套装状态。", "boolean");
-        WebConsoleRegistry.registerNodeComment(this, "set_bonus.refresh_triggers.pickup", "拾取物品", "拾取物品时是否刷新套装状态。", "boolean");
-        WebConsoleRegistry.registerNodeComment(this, "set_bonus.refresh_triggers.interact", "交互刷新", "玩家交互时是否刷新套装状态。", "boolean");
-        WebConsoleRegistry.registerNodeComment(this, "set_bonus.refresh_triggers.command", "命令刷新", "执行命令时是否刷新套装状态。", "boolean");
+        WebConsoleRegistry.registerFromYaml(this);
     }
 
     private void ensurePlaceholderExpansion() {

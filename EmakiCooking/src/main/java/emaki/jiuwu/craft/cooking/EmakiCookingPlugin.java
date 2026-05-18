@@ -224,35 +224,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
     }
 
     private void registerWebConsole() {
-        WebConsoleRegistry.registerModule(this, "Cooking 烹饪", "工位、展示实体、输入规则", "cooking", WEB_ICON);
-        WebConsoleRegistry.registerConfigFile(this, "烹饪系统配置", "config.yml", "烹饪系统主配置，包含工位、展示实体和输入规则。");
-        WebConsoleRegistry.registerGuiFile(this, "烹饪 GUI 模板", "gui/**/*.yml", "烹饪工位 GUI 模板文件。", "emakicooking:gui");
-        WebConsoleRegistry.registerWebExtension(this, "emakicooking:gui-surface", "web-extensions/emakicooking-gui-surface.js");
-        WebConsoleRegistry.registerCommonConfigComments(this);
-
-        // input_rules
-        WebConsoleRegistry.registerNodeComment(this, "input_rules", "输入规则", "工位物品输入的限制规则。", "object");
-        WebConsoleRegistry.registerNodeComment(this, "input_rules.only_recipe_items", "严格模式", "是否只允许配方中定义的物品进入工位。", "boolean");
-
-        // display_entities
-        WebConsoleRegistry.registerNodeComment(this, "display_entities", "展示实体", "工位上方食材展示实体的全局配置。", "object");
-        WebConsoleRegistry.registerNodeComment(this, "display_entities.backend", "渲染后端", "展示实体后端实现。", "enum:auto,packet_events,bukkit");
-        WebConsoleRegistry.registerNodeComment(this, "display_entities.view_distance_blocks", "可视距离", "展示实体的最大可视距离（格）。", "number");
-        WebConsoleRegistry.registerNodeComment(this, "display_entities.refresh_interval_ticks", "刷新间隔", "展示实体状态刷新间隔 tick 数。", "number");
-        WebConsoleRegistry.registerNodeComment(this, "display_entities.wok.layout_radius", "炒锅半径", "炒锅食材展示实体的布局半径。", "number");
-
-        // display_adjustments
-        WebConsoleRegistry.registerNodeComment(this, "display_adjustments", "展示调整", "各工位展示实体的位置和缩放微调配置。", "object");
-
-        // stations
-        WebConsoleRegistry.registerNodeComment(this, "stations", "工位配置", "砧板、炒锅、研磨机、蒸锅等工位运行配置。", "object");
-        WebConsoleRegistry.registerNodeComment(this, "stations.chopping_board", "砧板", "砧板工位的方块匹配与交互配置。", "object");
-        WebConsoleRegistry.registerNodeComment(this, "stations.wok", "炒锅", "炒锅工位的方块匹配与翻炒配置。", "object");
-        WebConsoleRegistry.registerNodeComment(this, "stations.grinder", "研磨机", "研磨机工位的方块匹配与研磨配置。", "object");
-        WebConsoleRegistry.registerNodeComment(this, "stations.steamer", "蒸锅", "蒸锅工位的方块匹配与蒸制配置。", "object");
-        WebConsoleRegistry.registerNodeComment(this, "stations.oven", "烤炉", "烤炉工位的方块匹配与烘烤配置。", "object");
-        WebConsoleRegistry.registerNodeComment(this, "stations.juicer", "榨汁机", "榨汁机工位的方块匹配与榨汁配置。", "object");
-        WebConsoleRegistry.registerNodeComment(this, "stations.fermentation_barrel", "发酵桶", "发酵桶工位的方块匹配与发酵配置。", "object");
+        WebConsoleRegistry.registerFromYaml(this);
     }
 
     private void registerCraftEngineEventHandlers() {

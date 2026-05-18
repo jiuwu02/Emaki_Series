@@ -29,6 +29,12 @@ public final class WebConsoleYamlRegistrar {
 
     private WebConsoleYamlRegistrar() {}
 
+    static void unmarkScanned(String moduleId) {
+        if (Texts.isNotBlank(moduleId)) {
+            SCANNED.remove(moduleId);
+        }
+    }
+
     /**
      * 扫描所有已启用插件，对尚未通过命令式 API 注册的模块执行 YAML 声明式注册。
      * 此方法幂等，同一个插件只会被扫描一次。
@@ -52,7 +58,7 @@ public final class WebConsoleYamlRegistrar {
         // 已通过命令式 API 注册的模块跳过
         if (WebConsoleRegistry.isModuleRegistered(moduleId)) return;
 
-        try (InputStream input = plugin.getClass().getClassLoader().getResourceAsStream(RESOURCE_NAME)) {
+        try (InputStream input = plugin.getResource(RESOURCE_NAME)) {
             if (input == null) return;
             String content = new String(input.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
             YamlSection yaml = YamlFiles.load(content);

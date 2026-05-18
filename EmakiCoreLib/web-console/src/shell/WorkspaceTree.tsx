@@ -4,7 +4,7 @@ import type { RegistryTreeNode, WebRegistry, WebRegistryModule } from '../types'
 
 export type TreeSelection = { moduleId: string; fileId: string; scriptPath?: string; refreshKey?: number };
 
-export function WorkspaceTree({ registry, selected, expanded, dirtyKeys = new Set<string>(), setExpanded, onSelect, onOpenI18n }: {
+export function WorkspaceTree({ registry, selected, expanded, dirtyKeys = new Set<string>(), setExpanded, onSelect, onOpenI18n, onCreateFile, onDeleteFile }: {
   registry: WebRegistry | null;
   selected: TreeSelection | null;
   expanded: Record<string, boolean>;
@@ -12,6 +12,8 @@ export function WorkspaceTree({ registry, selected, expanded, dirtyKeys = new Se
   setExpanded: Dispatch<SetStateAction<Record<string, boolean>>>;
   onSelect: (v: TreeSelection) => void;
   onOpenI18n?: (target: { moduleId: string }) => void;
+  onCreateFile?: (node: RegistryTreeNode) => void;
+  onDeleteFile?: (node: RegistryTreeNode) => void;
 }) {
   const [query, setQuery] = useState('');
   const normalizedQuery = normalizeQuery(query);
@@ -35,14 +37,14 @@ export function WorkspaceTree({ registry, selected, expanded, dirtyKeys = new Se
     </label>
     <div ref={treeRef} className="tree" role="tree" aria-label={t('core.tree.aria')} onKeyDown={(event) => handleTreeKeyDown(event, treeRef.current, openNode, closeNode)}>
       {visibleRoots.map((node) => (
-        <TreeNodeView key={node.id} node={node} selected={selected} expanded={expanded} dirtyKeys={dirtyKeys} queryActive={Boolean(normalizedQuery)} toggle={toggle} onSelect={onSelect} onOpenI18n={onOpenI18n} level={0} />
+        <TreeNodeView key={node.id} node={node} selected={selected} expanded={expanded} dirtyKeys={dirtyKeys} queryActive={Boolean(normalizedQuery)} toggle={toggle} onSelect={onSelect} onOpenI18n={onOpenI18n} onCreateFile={onCreateFile} onDeleteFile={onDeleteFile} level={0} />
       ))}
     </div>
     {normalizedQuery && visibleRoots.length === 0 && <div className="tree-empty" role="status">{t('core.tree.noResults')}</div>}
   </>;
 }
 
-function TreeNodeView({ node, selected, expanded, dirtyKeys, queryActive, toggle, onSelect, onOpenI18n, level }: {
+function TreeNodeView({ node, selected, expanded, dirtyKeys, queryActive, toggle, onSelect, onOpenI18n, onCreateFile, onDeleteFile, level }: {
   node: RegistryTreeNode;
   selected: TreeSelection | null;
   expanded: Record<string, boolean>;
@@ -51,6 +53,8 @@ function TreeNodeView({ node, selected, expanded, dirtyKeys, queryActive, toggle
   toggle: (id: string) => void;
   onSelect: (v: TreeSelection) => void;
   onOpenI18n?: (target: { moduleId: string }) => void;
+  onCreateFile?: (node: RegistryTreeNode) => void;
+  onDeleteFile?: (node: RegistryTreeNode) => void;
   level: number;
 }) {
   const children = node.children ?? [];
@@ -79,7 +83,7 @@ function TreeNodeView({ node, selected, expanded, dirtyKeys, queryActive, toggle
           {onOpenI18n && node.id && <ModuleI18nButton moduleId={node.id} moduleName={node.label} count={i18nCount} onOpen={onOpenI18n} />}
         </div>
         {isOpen && <div role="group">{children.map((child) => (
-          <TreeNodeView key={child.id} node={child} selected={selected} expanded={expanded} dirtyKeys={dirtyKeys} queryActive={queryActive} toggle={toggle} onSelect={onSelect} onOpenI18n={onOpenI18n} level={level + 1} />
+          <TreeNodeView key={child.id} node={child} selected={selected} expanded={expanded} dirtyKeys={dirtyKeys} queryActive={queryActive} toggle={toggle} onSelect={onSelect} onOpenI18n={onOpenI18n} onCreateFile={onCreateFile} onDeleteFile={onDeleteFile} level={level + 1} />
         ))}</div>}
       </div>
     );
@@ -100,11 +104,12 @@ function TreeNodeView({ node, selected, expanded, dirtyKeys, queryActive, toggle
           >
             <span className="folder-arrow" aria-hidden="true">{isOpen ? '⌄' : '›'}</span><span className="tree-label">{kindLabel} · {node.label}</span><DirtyDot dirty={dirty} />
           </button>
+          {onCreateFile && <button type="button" className="tree-file-action" title={t('core.tree.createFile')} aria-label={t('core.tree.createFile')} onClick={(event) => { event.stopPropagation(); onCreateFile(node); }}>+</button>}
         </div>
         {isOpen && (
           <div className="tree-children" role="group">
             {children.map((child) => (
-              <TreeNodeView key={child.id} node={child} selected={selected} expanded={expanded} dirtyKeys={dirtyKeys} queryActive={queryActive} toggle={toggle} onSelect={onSelect} onOpenI18n={onOpenI18n} level={level + 1} />
+              <TreeNodeView key={child.id} node={child} selected={selected} expanded={expanded} dirtyKeys={dirtyKeys} queryActive={queryActive} toggle={toggle} onSelect={onSelect} onOpenI18n={onOpenI18n} onCreateFile={onCreateFile} onDeleteFile={onDeleteFile} level={level + 1} />
             ))}
           </div>
         )}
@@ -131,6 +136,7 @@ function TreeNodeView({ node, selected, expanded, dirtyKeys, queryActive, toggle
       >
         <span className="tree-label">{level > 1 ? node.label : `${kindLabel} · ${node.label}`}</span><DirtyDot dirty={dirty} />
       </button>
+      {onDeleteFile && node.childPath && <button type="button" className="tree-file-action danger" title={t('core.tree.deleteFile')} aria-label={t('core.tree.deleteFile')} onClick={(event) => { event.stopPropagation(); onDeleteFile(node); }}>×</button>}
     </div>
   );
 }

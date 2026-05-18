@@ -1,0 +1,22 @@
+# EmakiForge Web Console 声明式注册
+# 仅声明后端发现信息；字段文案、表单 schema 与编辑器描述由前端扩展注册。
+
+module:
+  name: "Forge 锻造"
+  summary: "品质池、保底、历史与条件"
+  tone: forge
+
+files:
+  - title: "锻造系统配置"
+    path: "config.yml"
+    kind: CONFIG
+    comment: "锻造系统主配置，包含品质、配方、GUI 和玩家数据策略。"
+  - title: "锻造 GUI 模板"
+    path: "gui/**/*.yml"
+    kind: GUI
+    editor: "emakiforge:gui"
+    comment: "锻造、配方书与编辑器 GUI 模板文件。"
+
+extensions:
+  - id: "emakiforge:gui-surface"
+    resource: "web-extensions/emakiforge-gui-surface.js"

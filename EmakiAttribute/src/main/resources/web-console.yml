@@ -1,0 +1,37 @@
+# EmakiAttribute Web Console 声明式注册
+# 仅声明后端发现信息；字段文案、表单 schema 与动态枚举消费由前端扩展注册。
+
+module:
+  name: "Attribute 属性"
+  summary: "属性、资源、伤害接管与曲线"
+  tone: attribute
+
+files:
+  - title: "属性系统配置"
+    path: "config.yml"
+    kind: CONFIG
+    comment: "属性系统主配置，包含伤害接管、资源恢复和属性曲线。"
+  - title: "属性权重配置"
+    path: "attribute_balance.yml"
+    kind: CONFIG
+    comment: "属性语义分组、角色定位与评分权重配置。"
+  - title: "属性定义"
+    path: "attributes/**/*.yml"
+    kind: CONFIG
+    comment: "属性定义文件目录，每个文件定义一个属性的 ID、类型、范围和词条格式。"
+  - title: "伤害类型定义"
+    path: "damage_types/**/*.yml"
+    kind: CONFIG
+    comment: "伤害类型定义文件目录，每个文件定义一种伤害的结算阶段和恢复规则。"
+  - title: "词条格式定义"
+    path: "lore_formats/**/*.yml"
+    kind: CONFIG
+    comment: "词条格式定义文件目录，每个文件定义一种属性在物品 Lore 中的显示模板。"
+  - title: "PDC读取条件"
+    path: "conditions/**/*.yml"
+    kind: CONFIG
+    comment: "PDC 属性读取条件定义文件目录，控制物品属性在何种条件下生效。"
+
+extensions:
+  - id: "emakiattribute:locale"
+    resource: "web-extensions/emakiattribute-locale.js"

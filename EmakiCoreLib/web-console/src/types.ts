@@ -28,6 +28,22 @@ export type RuntimeLibrary = {
 
 export type ConfigNodeType = 'boolean' | 'text' | 'number' | 'list' | 'object' | 'scriptText' | string;
 
+export type WebConfigFieldSchema = {
+  path: string;
+  label?: string;
+  comment?: string;
+  type?: WebEditorFieldType | ConfigNodeType;
+  defaultValue?: unknown;
+  options?: string[];
+  optionLabelPrefix?: string;
+};
+
+export type WebConfigCreateTemplate = {
+  id: string;
+  label: string;
+  fields: WebConfigFieldSchema[];
+};
+
 export type WebConfigNode = {
   path: string;
   label: string;
@@ -36,7 +52,11 @@ export type WebConfigNode = {
   editable: boolean;
   value: unknown;
   options?: string[];
+  optionLabelPrefix?: string;
   creatableChildren?: boolean;
+  createTemplates?: WebConfigCreateTemplate[];
+  itemFields?: WebConfigFieldSchema[];
+  uniqueBy?: string;
 };
 
 export type WebEditorFieldType = 'text' | 'number' | 'boolean' | 'textarea' | 'stringList' | 'enum' | 'json' | 'actions' | string;
@@ -141,6 +161,7 @@ export type WebRegistry = {
   tree: RegistryTreeNode[];
   editors?: Record<string, WebEditorDescriptor>;
   guiTypes?: WebGuiType[];
+  runtimeEnums?: Record<string, string[]>;
   extensions?: WebConsoleExtension[];
 };
 

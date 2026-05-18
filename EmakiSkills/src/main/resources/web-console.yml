@@ -1,4 +1,5 @@
 # EmakiSkills Web Console 声明式注册
+# 仅声明后端发现信息；字段文案、表单 schema 与编辑器描述由前端扩展注册。
 
 module:
   name: "Skills 技能"
@@ -19,69 +20,3 @@ files:
 extensions:
   - id: "emakiskills:gui-surface"
     resource: "web-extensions/emakiskills-gui-surface.js"
-
-comments:
-  slots:
-    label: "技能槽"
-    comment: "技能槽位数量与分配配置。"
-    type: object
-  slots.default_count:
-    label: "默认槽数"
-    comment: "玩家默认可用的技能槽数量。"
-    type: number
-  cast_mode:
-    label: "施法模式"
-    comment: "施法模式切换、快捷键和状态恢复配置。"
-    type: object
-  cast_mode.entry_key:
-    label: "切换按键"
-    comment: "进入/退出施法模式的按键绑定。"
-    type: text
-  cast_mode.restore_last_state_on_join:
-    label: "恢复状态"
-    comment: "重新登录后是否恢复上次的施法模式状态。"
-    type: boolean
-  cast_timing:
-    label: "施法时序"
-    comment: "施法全局延迟与冷却配置。"
-    type: object
-  cast_timing.forced_global_cast_delay_ticks:
-    label: "全局延迟"
-    comment: "任意技能施放后的全局冷却 tick 数。"
-    type: number
-  actionbar:
-    label: "ActionBar"
-    comment: "ActionBar 技能状态显示配置。"
-    type: object
-  actionbar.enabled:
-    label: "启用显示"
-    comment: "是否启用 ActionBar 技能状态显示。"
-    type: boolean
-  actionbar.refresh_interval_ticks:
-    label: "刷新间隔"
-    comment: "ActionBar 内容刷新间隔 tick 数。"
-    type: number
-  script_engine:
-    label: "脚本引擎"
-    comment: "原生技能脚本引擎配置。"
-    type: object
-  script_engine.enabled:
-    label: "启用引擎"
-    comment: "是否启用原生脚本引擎。"
-    type: boolean
-  script_engine.default_mode:
-    label: "默认模式"
-    comment: "脚本引擎的默认执行模式。"
-    type: "enum:native,mythic,hybrid"
-  triggers:
-    label: "主动触发器"
-    comment: "左键、右键、Shift 与数字键等主动触发器配置。"
-    type: object
-  passive_trigger_settings:
-    label: "被动触发设置"
-    comment: "被动触发器的全局参数配置。"
-    type: object
-  passive_triggers:
-    label: "被动触发器"
-    comment: "受击、击杀、定时等被动触发器配置。"
-    type: object

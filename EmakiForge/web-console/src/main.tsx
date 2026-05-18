@@ -1,7 +1,83 @@
-import { registerPluginGuiEditor } from 'emaki-web-console';
+import { registerConfigCreateTemplate, registerConfigNodeMeta, registerConfigNodeRule, registerModuleLocale, registerPluginGuiEditor } from 'emaki-web-console';
+
+const MODULE = 'EmakiForge';
+
+type FieldSpec = [path: string, label: string, comment: string, type: string, extra?: Record<string, unknown>];
+
+const fields: FieldSpec[] = [
+  ['quality', '品质配置', '锻造结果的品质池、随机回退、保底与品质写入物品显示的全局设置。', 'object'],
+  ['quality.tiers', '品质池', '品质列表，格式为“名称-权重-倍率”。权重影响抽取概率，倍率影响最终锻造数值。', 'list'],
+  ['quality.default_tier', '回退品质', '随机抽取没有命中任何品质时使用的默认品质名称。', 'text'],
+  ['quality.guarantee', '保底配置', '连续未出高品质后的品质保底触发条件与最低品质设置。', 'object'],
+  ['quality.guarantee.enabled', '启用保底', '是否启用品质保底机制。关闭后 threshold/minimum 不生效。', 'boolean'],
+  ['quality.guarantee.threshold', '保底阈值', '连续锻造达到该次数后触发保底。', 'number'],
+  ['quality.guarantee.minimum', '保底品质', '保底触发时至少给到的品质名称，需要与 quality.tiers 中的名称一致。', 'text'],
+  ['quality.item_meta', '物品显示', '是否把品质写入物品名称、Lore，以及每个品质对应的展示动作。', 'object'],
+  ['quality.item_meta.enabled', '启用写入', '开启后锻造完成会按品质配置修改物品显示。', 'boolean'],
+  ['quality.item_meta.tiers', '品质显示', '每个品质名称对应的 name_actions、lore_actions 或广播动作配置。', 'object', { creatableChildren: true }],
+  ['number_format', '数值格式', '锻造结果数值在名称、Lore 和日志中的格式化规则。', 'object'],
+  ['number_format.default', '默认格式', '普通小数的默认格式，例如 0.##。', 'text'],
+  ['number_format.integer', '整数格式', '整数数值的显示格式，例如 0。', 'text'],
+  ['number_format.percentage', '百分比格式', '百分比数值的显示格式，例如 0.##%。', 'text'],
+  ['permission', '权限', '锻造条件和权限绕过相关设置。', 'object'],
+  ['permission.op_bypass', 'OP 跳过', '开启后 OP 可跳过锻造条件检查。', 'boolean'],
+  ['condition', '条件配置', '锻造条件表达式的解析与失败处理策略。', 'object'],
+  ['condition.invalid_as_failure', '解析失败视为失败', '条件表达式解析失败时是否视为条件不通过。', 'boolean'],
+  ['history', '锻造历史', '玩家锻造历史记录、自动保存与保存间隔。', 'object'],
+  ['history.enabled', '启用历史', '是否记录玩家锻造历史。', 'boolean'],
+  ['history.auto_save', '自动保存', '是否定时把玩家锻造历史写入数据文件。', 'boolean'],
+  ['history.save_interval', '保存间隔', '自动保存历史记录的间隔，单位 tick。', 'number']
+];
+
+const ruleFields: Record<string, [string, string, string]> = {
+  name_actions: ['名称动作', '对物品显示名称执行的 CoreLib Action 列表，例如前缀、后缀或替换。', 'list'],
+  lore_actions: ['Lore 动作', '对物品 Lore 执行的 CoreLib Action 列表。', 'list'],
+  action: ['动作', '达成某品质或锻造事件后执行的动作列表。', 'list'],
+  value: ['文本值', '动作使用的文本值或格式参数。', 'text'],
+  enabled: ['启用', '是否启用当前功能、分支或条目。', 'boolean'],
+  threshold: ['阈值', '触发保底、条件或区间逻辑的数值阈值。', 'number'],
+  minimum: ['最低品质', '保底或条件要求的最低品质。', 'text']
+};
+
+const localeMessages: Record<string, string> = Object.fromEntries([
+  ...fields.flatMap(([path, label, comment]) => [[`emakiforge.field.${path}`, label], [`emakiforge.comment.${path}`, comment]]),
+  ...Object.entries(ruleFields).flatMap(([key, [label, comment]]) => [[`emakiforge.field.${key}`, label], [`emakiforge.comment.${key}`, comment]])
+]);
+
+registerModuleLocale(MODULE, 'zh-CN', {
+  ...localeMessages,
+  'emakiforge.surface.gui': '锻造 GUI'
+});
+
+registerModuleLocale(MODULE, 'en-US', {
+  'emakiforge.surface.gui': 'Forge GUI',
+  'emakiforge.field.quality': 'Quality',
+  'emakiforge.field.quality.tiers': 'Quality Pool',
+  'emakiforge.field.quality.default_tier': 'Fallback Tier',
+  'emakiforge.field.quality.guarantee': 'Guarantee',
+  'emakiforge.field.quality.item_meta': 'Item Display',
+  'emakiforge.field.quality.item_meta.tiers': 'Tier Display',
+  'emakiforge.field.number_format': 'Number Format',
+  'emakiforge.field.permission.op_bypass': 'OP Bypass',
+  'emakiforge.field.condition.invalid_as_failure': 'Invalid as Failure',
+  'emakiforge.field.history': 'History'
+});
+
+fields.forEach(([path, label, comment, type, extra]) => registerConfigNodeMeta(MODULE, path, { label, comment, type, ...(extra ?? {}) }));
+Object.entries(ruleFields).forEach(([key, [label, comment, type]]) => registerConfigNodeRule(MODULE, { key }, { label, comment, type }));
+
+registerConfigCreateTemplate(MODULE, 'quality.item_meta.tiers', {
+  id: 'quality-tier-display',
+  label: '品质显示',
+  fields: [
+    { path: 'name_actions', label: '名称动作', comment: '给该品质物品名称追加前缀、后缀或执行替换动作。', type: 'list', defaultValue: ['action: "prepend_prefix"', 'value: "<gray>[新品质] </gray>"'] },
+    { path: 'lore_actions', label: 'Lore 动作', comment: '给该品质物品 Lore 执行的动作列表。', type: 'list', defaultValue: [] },
+    { path: 'action', label: '广播动作', comment: '该品质达成时执行的广播或提示动作。', type: 'list', defaultValue: [] }
+  ]
+});
 
 registerPluginGuiEditor({
-  moduleId: 'EmakiForge',
+  moduleId: MODULE,
   editorId: 'emakiforge:gui',
   label: '锻造 GUI',
   fields: [
@@ -11,6 +87,7 @@ registerPluginGuiEditor({
     ['blueprint_inputs', '图纸输入', '放入锻造图纸的槽位。', 'text'],
     ['required_materials', '必需材料', '配方必需材料槽位。', 'text'],
     ['optional_materials', '可选材料', '可选加成材料槽位。', 'text'],
+    ['result_preview', '结果预览', '展示锻造后可能结果的槽位。', 'text'],
     ['confirm', '确认锻造', '执行锻造操作按钮。', 'text']
   ]
 });
