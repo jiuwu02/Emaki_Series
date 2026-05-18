@@ -252,7 +252,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         WebConsoleRegistry.registerNodeComment(this, "web_console.security.allow_config_write", "允许写配置", "开启后 Web Console 才允许保存配置变更。", "boolean");
         WebConsoleRegistry.registerNodeComment(this, "web_console.security.max_request_body_kb", "请求体上限", "单次 Web 请求体大小上限，单位 KB。", "number");
         WebConsoleRegistry.registerNodeComment(this, "action", "Action", "CoreLib 动作系统配置。", "object");
-        WebConsoleRegistry.registerNodeComment(this, "action.templates", "动作模板", "可在配方或动作列表中通过 @template=名称 引用的动作模板。每个子键为模板名称，值为动作列表。", "dynamic_map");
+        WebConsoleRegistry.registerCreatableNode(this, "action.templates", "动作模板", "可在配方或动作列表中通过 @template=名称 引用的动作模板。每个子键为模板名称，值为动作列表。", "dynamic_map");
         WebConsoleRegistry.registerNodeComment(this, "script", "CoreLib JS", "CoreLib JavaScript 引擎与脚本安全配置。", "object");
         WebConsoleRegistry.registerNodeComment(this, "script.enabled", "启用脚本", "是否启用 CoreLib JavaScript 动作能力。", "boolean");
         WebConsoleRegistry.registerNodeComment(this, "script.engine", "脚本引擎", "GraalJS 引擎、超时、缓存和宿主访问配置。", "object");

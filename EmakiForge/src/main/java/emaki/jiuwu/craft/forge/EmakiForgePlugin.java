@@ -164,7 +164,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         WebConsoleRegistry.registerNodeComment(this, "quality.guarantee.minimum", "保底品质", "保底触发时给予的最低品质名称。", "text");
         WebConsoleRegistry.registerNodeComment(this, "quality.item_meta", "物品显示", "品质写入物品名称和 Lore 的配置。", "object");
         WebConsoleRegistry.registerNodeComment(this, "quality.item_meta.enabled", "启用写入", "是否将品质信息写入物品名称和 Lore。", "boolean");
-        WebConsoleRegistry.registerNodeComment(this, "quality.item_meta.tiers", "品质显示", "各品质的名称动作和广播配置。", "object");
+        WebConsoleRegistry.registerCreatableNode(this, "quality.item_meta.tiers", "品质显示", "各品质的名称动作和广播配置。", "object");
 
         // number_format
         WebConsoleRegistry.registerNodeComment(this, "number_format", "数值格式", "锻造结果数值的格式化配置。", "object");

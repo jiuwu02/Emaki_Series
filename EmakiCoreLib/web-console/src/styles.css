@@ -370,15 +370,23 @@ textarea { min-height: 96px; resize: vertical; font-family: ui-monospace, "Casca
 .node-section:last-child { border-bottom: 0; }
 .node-section-header {
   width: 100%; display: flex; align-items: center; gap: 8px; padding: 10px 0;
-  text-align: left; border: none; cursor: pointer; background: transparent;
+  text-align: left; border: none; background: transparent;
   transition: color 0.15s ease;
 }
 .node-section-header:hover { color: var(--text); }
+.node-section-toggle {
+  min-width: 0; flex: 1; display: flex; align-items: center; gap: 8px;
+  padding: 0; text-align: left; border: 0; background: transparent; color: inherit;
+  cursor: pointer;
+}
+.node-section-toggle:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
 .section-arrow { width: 12px; font-size: 11px; color: var(--faint); flex-shrink: 0; }
 .node-section-header strong { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
 .node-section-header code { font-size: 10px; color: var(--faint); font-family: ui-monospace, "Cascadia Code", monospace; }
-.section-comment { flex: 1; text-align: left; color: var(--faint); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.section-meta { font-size: 10px; color: var(--faint); white-space: nowrap; }
+.section-comment { flex: 1; min-width: 0; text-align: left; color: var(--faint); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.section-meta { flex: 0 0 auto; font-size: 10px; color: var(--faint); white-space: nowrap; }
+.node-section-create { flex: 0 0 auto; border: 1px solid var(--line); border-radius: 4px; padding: 3px 7px; color: var(--accent); background: transparent; font-size: 10px; font-weight: 700; white-space: nowrap; cursor: pointer; }
+.node-section-create:hover, .node-section-create:focus-visible { border-color: var(--accent); background: var(--accent-soft); outline: none; }
 .section-badge { display: inline-block; background: var(--changed-soft); color: var(--changed-ink); border-radius: 3px; padding: 1px 5px; font-size: 10px; margin-right: 4px; }
 .node-section-body { padding-left: 4px; }
 .node-group-inner { display: flex; align-items: baseline; gap: 8px; padding: 5px 0 5px 12px; color: var(--muted); font-size: 11px; }
@@ -395,6 +403,18 @@ textarea { min-height: 96px; resize: vertical; font-family: ui-monospace, "Casca
 .list-row { display: grid; grid-template-columns: 1fr 52px; gap: 6px; }
 .list-row button { color: var(--red); border-radius: 6px; font-size: 12px; }
 .list-row button:hover { background: var(--danger-soft); }
+.object-list-editor { width: 100%; display: grid; gap: 8px; }
+.object-list-entry { border: 1px solid var(--line); border-radius: 6px; background: var(--surface); overflow: hidden; }
+.object-list-head { display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: var(--input); border-bottom: 1px solid var(--line); }
+.object-list-head strong { color: var(--muted); font-size: 11px; font-weight: 700; }
+.object-list-head code { min-width: 0; flex: 1; color: var(--accent); font: 400 11px/1.4 ui-monospace, "Cascadia Code", monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.object-list-head button { flex: 0 0 auto; color: var(--red); border: 1px solid transparent; border-radius: 5px; padding: 3px 7px; font-size: 11px; }
+.object-list-head button:hover, .object-list-head button:focus-visible { border-color: var(--danger-line); background: var(--danger-soft); color: var(--danger-ink); outline: none; }
+.object-list-fields { display: grid; gap: 5px; padding: 8px 10px 10px; }
+.object-list-field { display: grid; grid-template-columns: minmax(104px, 13ch) minmax(0, 1fr); gap: 10px; align-items: center; }
+.object-list-field label { color: var(--faint); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.object-list-field input { width: 100%; }
+.object-list-field .switch { justify-self: start; }
 .add-row { justify-self: start; color: var(--accent); font-size: 12px; padding: 4px 0; }
 .add-row:hover { text-decoration: underline; }
 
@@ -744,12 +764,15 @@ textarea { min-height: 96px; resize: vertical; font-family: ui-monospace, "Casca
 .prop-level-item { border: 1px solid var(--line); background: var(--input); overflow: hidden; box-shadow: inset 0 1px 0 var(--surface-2); animation: prop-block-in 0.16s cubic-bezier(0.16, 1, 0.3, 1); }
 .prop-level-item:hover, .prop-level-item:focus-within { border-color: var(--line-2); }
 .prop-level-item.expanded { background: color-mix(in oklch, var(--input) 84%, var(--surface) 16%); }
-.prop-level-head { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 8px; padding: 8px 10px; cursor: pointer; font-size: 12px; width: 100%; text-align: left; background: transparent; border: 0; user-select: none; }
+.prop-level-head { display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; align-items: center; gap: 8px; padding: 8px 10px; cursor: pointer; font-size: 12px; width: 100%; text-align: left; background: transparent; border: 0; user-select: none; }
 .prop-level-head:hover, .prop-level-head:focus-visible { background: var(--surface-2); outline: none; }
 .prop-level-badge { font-family: ui-monospace, "Cascadia Code", monospace; font-size: 11px; font-weight: 700; color: var(--accent); min-width: 52px; text-align: left; display: inline-block; }
 .prop-level-summary { color: var(--text); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; min-width: 0; }
 button.prop-level-summary { border: 0; background: transparent; padding: 0; cursor: pointer; }
 .prop-level-rate { color: var(--faint); font-size: 11px; font-family: ui-monospace, "Cascadia Code", monospace; text-align: left; white-space: nowrap; }
+.prop-slot-open { flex: 0 0 auto; border: 1px solid var(--line); border-radius: 999px; padding: 2px 7px; color: var(--faint); font-size: 10px; font-weight: 700; white-space: nowrap; }
+.prop-slot-open.active { border-color: var(--success-line); color: var(--green); background: var(--success-soft); }
+.prop-slot-open:hover { border-color: var(--line-2); color: var(--text); }
 .prop-level-body { padding: 8px 10px 10px; border-top: 1px solid var(--line); display: grid; gap: 3px; animation: prop-block-in 0.14s cubic-bezier(0.16, 1, 0.3, 1); }
 
 /* Cost editor */
@@ -796,7 +819,7 @@ button.prop-level-summary { border: 0; background: transparent; padding: 0; curs
 
 .chip-list.dense { gap: 6px; }
 @media (max-width: 1280px) { .gui-workbench { --mc-slot: 52px; grid-template-columns: 1fr; height: auto; min-height: calc(100vh - 67px); overflow: visible; } .gui-preview-pane { overflow: auto; padding-right: 0; scrollbar-width: thin; } .gui-inspector-resize { display: none; } .gui-inspector { height: auto; overflow: visible; padding-left: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); } .material-palette { grid-column: 1 / -1; } }
-@media (max-width: 760px) { .brand-block { grid-template-columns: 1fr; align-items: stretch; } .rail-controls { justify-content: flex-start; } .surface-head, .ie-header { align-items: flex-start; flex-direction: column; gap: 10px; } .head-actions, .ie-header-actions, .ui-actions { width: 100%; flex-wrap: wrap; } .head-actions button, .ie-btn, .ui-button { min-height: 44px; } .gui-workbench { --mc-slot: 44px; padding: 12px; overflow-x: hidden; } .gui-preview-pane { justify-content: start; } .minecraft-window { max-width: none; padding: 22px 18px 20px; } .minecraft-titlebar { height: 32px; font-size: 14px; } .minecraft-grid { grid-template-rows: none !important; gap: 2px; padding: 8px; } .minecraft-slot::before { inset: 5px; } .gui-inspector { grid-template-columns: 1fr; } .material-list { grid-template-columns: 1fr; } .material-list button, .material-tabs button, .wide-action, .ui-button--full { min-height: 44px; } .i18n-modal-toolbar, .i18n-add-row, .i18n-table-head, .i18n-row { grid-template-columns: 1fr; } .i18n-row-delete { justify-self: start; } .editor-source-modal { max-width: calc(100vw - 16px); max-height: calc(100vh - 16px); } .source-code-editor { min-height: 200px; } .code-editor .cm-lineNumbers .cm-gutterElement { min-width: 2rem; padding: 0 4px; } .node-section-header { flex-wrap: wrap; gap: 4px; } .node-section-header code { font-size: 10px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; } }
+@media (max-width: 760px) { .brand-block { grid-template-columns: 1fr; align-items: stretch; } .rail-controls { justify-content: flex-start; } .surface-head, .ie-header { align-items: flex-start; flex-direction: column; gap: 10px; } .head-actions, .ie-header-actions, .ui-actions { width: 100%; flex-wrap: wrap; } .head-actions button, .ie-btn, .ui-button { min-height: 44px; } .gui-workbench { --mc-slot: 44px; padding: 12px; overflow-x: hidden; } .gui-preview-pane { justify-content: start; } .minecraft-window { max-width: none; padding: 22px 18px 20px; } .minecraft-titlebar { height: 32px; font-size: 14px; } .minecraft-grid { grid-template-rows: none !important; gap: 2px; padding: 8px; } .minecraft-slot::before { inset: 5px; } .gui-inspector { grid-template-columns: 1fr; } .material-list { grid-template-columns: 1fr; } .material-list button, .material-tabs button, .wide-action, .ui-button--full { min-height: 44px; } .i18n-modal-toolbar, .i18n-add-row, .i18n-table-head, .i18n-row { grid-template-columns: 1fr; } .i18n-row-delete { justify-self: start; } .editor-source-modal { max-width: calc(100vw - 16px); max-height: calc(100vh - 16px); } .source-code-editor { min-height: 200px; } .code-editor .cm-lineNumbers .cm-gutterElement { min-width: 2rem; padding: 0 4px; } .node-section-header { flex-wrap: wrap; gap: 4px; } .node-section-toggle { flex-basis: 100%; } .node-section-header code { font-size: 10px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; } .object-list-field { grid-template-columns: 1fr; gap: 4px; } }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }

@@ -273,7 +273,7 @@ function FieldEditor({ field, data, originalData, setField, actionTypesResult }:
   if (type === 'cost') return <CostEditor label={label} path={field.path} value={value ?? { currencies: [], materials: [] }} onChange={next => setField(field.path, next)} />;
   if (type === 'extractReturn') return <ExtractReturnEditor path={field.path} value={value} onChange={next => setField(field.path, next)} />;
   if (type === 'gemUpgrade') return <UpgradeEditor path={field.path} value={value ?? { enabled: false, levels: {} }} onChange={next => setField(field.path, next)} actionTypesResult={actionTypesResult} />;
-  if (type === 'gemSlots') return <PropRow label={label} path={field.path} changed={false} wide><GemSlotsEditor value={value} path={field.path} onChange={next => setField(field.path, next)} /></PropRow>;
+  if (type === 'gemSlots') return <PropRow label={label} path={field.path} changed={false} wide><GemSlotsEditor data={data} value={value} path={field.path} setField={setField} onChange={next => setField(field.path, next)} /></PropRow>;
   if (type === 'json') return <PropRow label={label} path={field.path} changed={changed} wide><GenericObjectEditor value={value} onChange={next => setField(field.path, next)} /></PropRow>;
   return <PropRow label={label} path={field.path} changed={changed} wide={field.wide}><input type="text" value={textValue(value)} onChange={e => setField(field.path, e.target.value)} placeholder={field.placeholder} /></PropRow>;
 }
@@ -519,19 +519,47 @@ function UpgradeEditor({ value, onChange, actionTypesResult, path = 'upgrade' }:
   </div>;
 }
 
-function GemSlotsEditor({ value, onChange, path }: { value: unknown; onChange: (value: unknown[]) => void; path?: string }) {
+function GemSlotsEditor({ data, value, onChange, setField, path }: { data: AnyMap; value: unknown; onChange: (value: unknown[]) => void; setField: (path: string, value: unknown) => void; path?: string }) {
   const slots = asList(value).map(slot => asRecord(slot));
+  const openSlots = normalizedNumberSet(data.default_open_slots);
   const [expanded, setExpanded] = useState<Set<number>>(() => new Set(slots.map((_, index) => index)));
-  const updateSlot = (index: number, patch: AnyMap) => onChange(slots.map((slot, itemIndex) => itemIndex === index ? cleanObject({ ...slot, ...patch }) : slot));
-  const removeSlot = (index: number) => onChange(slots.filter((_, itemIndex) => itemIndex !== index));
+  const setOpenSlots = (next: Set<number>) => setField('default_open_slots', Array.from(next).sort((left, right) => left - right));
+  const updateSlot = (index: number, patch: AnyMap) => {
+    const oldIndex = toNumber(slots[index]?.index, index);
+    const nextIndex = 'index' in patch ? toNumber(patch.index, oldIndex) : oldIndex;
+    onChange(slots.map((slot, itemIndex) => itemIndex === index ? cleanObject({ ...slot, ...patch }) : slot));
+    if (oldIndex !== nextIndex && openSlots.has(oldIndex)) {
+      const nextOpen = new Set(openSlots);
+      nextOpen.delete(oldIndex);
+      nextOpen.add(nextIndex);
+      setOpenSlots(nextOpen);
+    }
+  };
+  const removeSlot = (index: number) => {
+    const removedIndex = toNumber(slots[index]?.index, index);
+    onChange(slots.filter((_, itemIndex) => itemIndex !== index));
+    if (openSlots.has(removedIndex)) {
+      const nextOpen = new Set(openSlots);
+      nextOpen.delete(removedIndex);
+      setOpenSlots(nextOpen);
+    }
+  };
+  const toggleOpen = (slotIndex: number) => {
+    const nextOpen = new Set(openSlots);
+    nextOpen.has(slotIndex) ? nextOpen.delete(slotIndex) : nextOpen.add(slotIndex);
+    setOpenSlots(nextOpen);
+  };
   const addSlot = () => { const next = [...slots, { index: nextSlotIndex(slots), type: 'universal', display_name: '' }]; onChange(next); setExpanded(previous => new Set([...previous, next.length - 1])); };
   const toggle = (index: number) => setExpanded(previous => { const next = new Set(previous); next.has(index) ? next.delete(index) : next.add(index); return next; });
   return <div className="prop-levels" role="list">
     {slots.map((slot, index) => {
       const opened = expanded.has(index);
+      const slotIndex = toNumber(slot.index, index);
+      const isOpen = openSlots.has(slotIndex);
       return <div className={`prop-level-item${opened ? ' expanded' : ''}`} key={index} role="listitem">
         <div className="prop-level-head" role="button" tabIndex={0} onClick={() => toggle(index)} onKeyDown={event => toggleByKeyboard(event, () => toggle(index))} aria-expanded={opened} aria-controls={`slot-body-${index}`}>
           <span className="prop-level-summary"><span className="prop-level-badge">{opened ? '⌄' : '›'} #{textValue(slot.index, String(index))}</span>{textValue(slot.type, 'universal')}</span>
+          <button type="button" className={`prop-slot-open${isOpen ? ' active' : ''}`} onClick={event => { event.stopPropagation(); toggleOpen(slotIndex); }} onKeyDown={stopEvent} aria-pressed={isOpen}>{isOpen ? '默认开放' : '默认关闭'}</button>
           <span className="prop-level-rate">{textValue(slot.display_name) || '未命名'}</span>
           <button type="button" className="prop-kv-del" onClick={event => { event.stopPropagation(); removeSlot(index); }} onKeyDown={stopEvent} aria-label={`删除插槽 ${index + 1}`}>×</button>
         </div>
@@ -573,6 +601,7 @@ function GenericPreviewPane({ data, preview, previewLevel, setPreviewLevel }: { 
   const [, refreshTextureOrder] = useState(0);
   const urls = materialUrls(material);
   const [imgFailed, setImgFailed] = useState(false);
+  const tooltipName = previewTooltipName(data, preview, previewLevel);
   useEffect(() => setImgFailed(false), [material]);
   useEffect(() => subscribeTextureBases(() => { setImgFailed(false); refreshTextureOrder((version) => version + 1); }), []);
 
@@ -594,9 +623,9 @@ function GenericPreviewPane({ data, preview, previewLevel, setPreviewLevel }: { 
         <p className="ie-level-hint">根据当前草稿的 upgrade.enabled 和 upgrade.max_level 生成。</p>
       </div>}
       <div className="ie-tooltip">
-        {Boolean(preview?.displayName || data.display_name) && <div className="ie-tooltip-name"><MiniText value={preview?.displayName ?? data.display_name} /></div>}
+        {tooltipName ? <div className="ie-tooltip-name"><MiniText value={tooltipName} /></div> : null}
         {(preview?.lore ?? asStringList(data.lore)).map((line, i) => <div className="ie-tooltip-line" key={i}><MiniText value={line} /></div>)}
-        {!preview?.displayName && !data.display_name && !(preview?.lore ?? asList(data.lore)).length && <span className="ie-tooltip-empty">{t('core.item.noPreview')}</span>}
+        {!tooltipName && !(preview?.lore ?? asList(data.lore)).length && <span className="ie-tooltip-empty">{t('core.item.noPreview')}</span>}
       </div>
     </div>
   );
@@ -606,6 +635,16 @@ function editorFieldMap(editor: WebEditorDescriptor | undefined): Record<string,
   const fields = editor?.fields;
   if (!fields || typeof fields !== 'object' || Array.isArray(fields)) return {};
   return fields as Record<string, WebEditorField>;
+}
+
+function previewTooltipName(data: AnyMap, preview: ItemPreviewResult | null, previewLevel: number): string {
+  if (preview?.kind !== 'gem') return textValue(preview?.displayName ?? data.display_name);
+  return firstGemName(data, preview, previewLevel);
+}
+
+function firstGemName(data: AnyMap, preview: ItemPreviewResult | null, previewLevel: number): string {
+  const levelName = textValue(levelMap(asRecord(data.upgrade).levels)[String(previewLevel)]?.display_name);
+  return levelName || textValue(preview?.displayName ?? data.display_name ?? data.id);
 }
 
 function configuredPreviewLevels(data: AnyMap, preview: ItemPreviewResult | null): number[] {
@@ -691,6 +730,10 @@ function nextUniqueKey(keys: string[], prefix: string): string {
 function nextSlotIndex(slots: AnyMap[]): number {
   const indexes = slots.map(slot => Number(slot.index)).filter(index => Number.isFinite(index));
   return indexes.length ? Math.max(...indexes) + 1 : 0;
+}
+
+function normalizedNumberSet(value: unknown): Set<number> {
+  return new Set(asList(value).map(entry => Number(entry)).filter(entry => Number.isFinite(entry)));
 }
 
 function toNumber(value: unknown, fallback: number): number {

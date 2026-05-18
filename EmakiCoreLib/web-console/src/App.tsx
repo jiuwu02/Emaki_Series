@@ -9,7 +9,7 @@ import { applyEditorDescriptorOverrides, getSourceDocumentAdapter, getSurface, i
 import { getLocale, getRegisteredLocales, setLocale, t } from './i18n';
 import { ActionGroup, Button, CodeEditor, EditorChrome, InlineError, ToastNotice, type EditorChange } from './components';
 import { I18nBundleModal, type I18nTarget } from './I18nBundleModal';
-import { fieldLabel, valuesEqual } from './lib';
+import { fieldLabel, parseYaml, serializeYaml, setDeepValue, valuesEqual } from './lib';
 import { Login, ResizableRail, WorkspaceTree, fileKindLabel } from './shell';
 import type { SurfaceProps, SurfaceToolbarState } from './registry';
 import type { WebConfigNode, WebRegistry, WebRegistryFile, WebRegistryModule } from './types';
@@ -356,6 +356,13 @@ function ConfigStructuredSurface({ module, file, drafts, draftHistory, setDraftV
     }
   }
 
+  async function reloadStructured() {
+    clearDraftScope(scope);
+    await onRefreshRegistry();
+    await source.reload(false);
+    setToast({ tone: 'ok', text: t('core.toast.reloaded') });
+  }
+
   useEffect(() => {
     setSurfaceToolbar({
       title: module.name,
@@ -373,14 +380,14 @@ function ConfigStructuredSurface({ module, file, drafts, draftHistory, setDraftV
       canRedo: scopeHistory.redo.length > 0,
       onUndo: () => undoDraftScope(scope),
       onRedo: () => redoDraftScope(scope),
-      onReload: () => void source.reload(),
+      onReload: () => void reloadStructured(),
       onSourceChange: source.update,
       onSave: source.dirty ? () => void source.save(async () => { clearDraftValues(scope); await onRefreshRegistry(); }) : () => void saveNodes()
     });
     return () => setSurfaceToolbar(null);
   }, [module.name, file.title, file.path, changedNodes.length, file.nodes, drafts, source.content, source.dirty, source.error, source.saving, source.loading, savingNodes, scopeHistory.undo.length, scopeHistory.redo.length]);
 
-  return <section className="config-surface"><div className="surface-head"><div><h2>{file.title}</h2><p>{file.comment}</p></div><span className={`file-kind ${String(file.kind).toLowerCase()}`}>{fileKindLabel(file.kind)}</span></div><ConfigNodeTree scope={scope} nodes={file.nodes} drafts={drafts} setDraftValue={setDraftValue} /></section>;
+  return <section className="config-surface"><div className="surface-head"><div><h2>{file.title}</h2><p>{file.comment}</p></div><span className={`file-kind ${String(file.kind).toLowerCase()}`}>{fileKindLabel(file.kind)}</span></div><ConfigNodeTree scope={scope} nodes={file.nodes} drafts={drafts} setDraftValue={setDraftValue} onCreateChild={node => createConfigChild(node, source)} /></section>;
 }
 
 function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, setDraftValue, clearDraftScope, clearDraftValues, undoDraftScope, redoDraftScope, api, refreshKey, setSurfaceToolbar, setToast }: { module: WebRegistryModule; file: WebRegistryFile; childPath: string; drafts: DraftMap; draftHistory: DraftHistoryMap; setDraftValue: DraftValueSetter; clearDraftScope: DraftScopeAction; clearDraftValues: DraftScopeAction; undoDraftScope: DraftScopeAction; redoDraftScope: DraftScopeAction; api: ApiClient; refreshKey: number; setSurfaceToolbar: (state: SurfaceToolbarState | null) => void; setToast: (toast: Toast) => void }) {
@@ -424,6 +431,12 @@ function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, set
     } finally {
       setLoading(false);
     }
+  }
+
+  async function reloadChildSurface() {
+    clearDraftScope(scope);
+    await Promise.all([reloadChildNodes(false), source.reload(false)]);
+    setToast({ tone: 'ok', text: t('core.toast.reloaded') });
   }
 
   async function saveChild() {
@@ -470,7 +483,7 @@ function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, set
       canRedo: scopeHistory.redo.length > 0,
       onUndo: () => undoDraftScope(scope),
       onRedo: () => redoDraftScope(scope),
-      onReload: () => void (source.dirty ? source.reload() : reloadChildNodes()),
+      onReload: () => void reloadChildSurface(),
       onSourceChange: source.update,
       onSave: source.dirty ? () => void source.save(async () => { clearDraftValues(scope); await reloadChildNodes(false); }) : () => void saveChild()
     });
@@ -480,7 +493,7 @@ function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, set
   return <section className="config-surface">
     {loading && <div className="script-loading" role="status">{t('core.state.loading')}</div>}
     {error && <InlineError><span>{error}</span><Button size="sm" onClick={() => void reloadChildNodes()}>{t('core.action.retry')}</Button></InlineError>}
-    {!loading && !error && <ConfigNodeTree scope={scope} nodes={nodes} drafts={drafts} setDraftValue={setDraftValue} />}
+    {!loading && !error && <ConfigNodeTree scope={scope} nodes={nodes} drafts={drafts} setDraftValue={setDraftValue} onCreateChild={node => createConfigChild(node, source)} />}
   </section>;
 }
 
@@ -551,6 +564,36 @@ function useConfigSourceDocument({ module, file, childPath, api, refreshKey, set
   };
 }
 
+function createConfigChild(node: WebConfigNode, source: ReturnType<typeof useConfigSourceDocument>) {
+  if (!node.creatableChildren || source.error) return;
+  try {
+    const data = parseYaml(source.content);
+    const parent = getConfigObject(data, node.path.split('.'));
+    const key = nextConfigChildKey(parent);
+    const nextParent = { ...parent, [key]: node.type === 'dynamic_map' ? [] : {} };
+    const nextData = setDeepValue(data, node.path.split('.'), nextParent);
+    source.update(serializeYaml(nextData));
+  } catch (err) {
+    source.update(`${source.content.replace(/\s*$/, '')}\n# ${err instanceof Error ? err.message : t('core.toast.refreshFailed')}\n`);
+  }
+}
+
+function getConfigObject(data: Record<string, unknown>, path: string[]): Record<string, unknown> {
+  let current: unknown = data;
+  for (const part of path) {
+    current = current && typeof current === 'object' && !Array.isArray(current) ? (current as Record<string, unknown>)[part] : undefined;
+  }
+  return current && typeof current === 'object' && !Array.isArray(current) ? current as Record<string, unknown> : {};
+}
+
+function nextConfigChildKey(parent: Record<string, unknown>): string {
+  const used = new Set(Object.keys(parent));
+  if (!used.has('new_field')) return 'new_field';
+  let index = 1;
+  while (used.has(`new_field_${index}`)) index += 1;
+  return `new_field_${index}`;
+}
+
 const INTERNAL_ERROR_PATTERNS = ['.tmp', 'FileSystemException', 'AccessDeniedException', 'AtomicMoveNotSupportedException', 'NoSuchFileException', 'DirectoryNotEmptyException'];
 
 function userFacingSaveError(err: unknown): string {
@@ -583,7 +626,7 @@ function configNodeDisplayLabel(scope: ConfigDraftScope, node: WebConfigNode): s
   return fieldLabel(node.path, { moduleId: scope.moduleId, namespace: scope.moduleId, fallback: node.label });
 }
 
-function ConfigNodeTree({ scope, nodes, drafts, setDraftValue }: { scope: ConfigDraftScope; nodes: WebConfigNode[]; drafts: DraftMap; setDraftValue: DraftValueSetter }) {
+function ConfigNodeTree({ scope, nodes, drafts, setDraftValue, onCreateChild }: { scope: ConfigDraftScope; nodes: WebConfigNode[]; drafts: DraftMap; setDraftValue: DraftValueSetter; onCreateChild: (node: WebConfigNode) => void }) {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const toggle = (path: string) => setCollapsed(c => ({ ...c, [path]: !c[path] }));
 
@@ -599,7 +642,7 @@ function ConfigNodeTree({ scope, nodes, drafts, setDraftValue }: { scope: Config
     const isCollapsed = collapsed[group.node.path] === true;
     const childCount = group.children.length;
     const changedInGroup = group.children.filter(n => n.type !== 'object' && draftKey(scope, n.path) in drafts).length;
-    return <ConfigNodeSection key={group.node.path} scope={scope} node={group.node} childrenNodes={group.children} drafts={drafts} setDraftValue={setDraftValue} collapsed={collapsed} toggle={toggle} />;
+    return <ConfigNodeSection key={group.node.path} scope={scope} node={group.node} childrenNodes={group.children} drafts={drafts} setDraftValue={setDraftValue} collapsed={collapsed} toggle={toggle} onCreateChild={onCreateChild} />;
   })}</div>;
 }
 
@@ -626,21 +669,24 @@ function isDirectChildPath(path: string, parentPath: string): boolean {
   return !path.slice(parentPath.length + 1).includes('.');
 }
 
-function ConfigNodeSection({ scope, node, childrenNodes, drafts, setDraftValue, collapsed, toggle }: { scope: ConfigDraftScope; node: WebConfigNode; childrenNodes: WebConfigNode[]; drafts: DraftMap; setDraftValue: DraftValueSetter; collapsed: Record<string, boolean>; toggle: (path: string) => void }) {
+function ConfigNodeSection({ scope, node, childrenNodes, drafts, setDraftValue, collapsed, toggle, onCreateChild }: { scope: ConfigDraftScope; node: WebConfigNode; childrenNodes: WebConfigNode[]; drafts: DraftMap; setDraftValue: DraftValueSetter; collapsed: Record<string, boolean>; toggle: (path: string) => void; onCreateChild: (node: WebConfigNode) => void }) {
   const isCollapsed = collapsed[node.path] === true;
   const groups = buildNodeGroups(childrenNodes, node.path);
   const changedInGroup = childrenNodes.filter(n => n.type !== 'object' && draftKey(scope, n.path) in drafts).length;
   const groupLabel = configNodeDisplayLabel(scope, node);
   return <div className="node-section">
-    <button type="button" className={`node-section-header ${isCollapsed ? 'collapsed' : ''}`} onClick={() => toggle(node.path)} aria-expanded={!isCollapsed}>
-      <span className="section-arrow" aria-hidden="true">{isCollapsed ? '›' : '⌄'}</span>
-      <strong>{groupLabel}</strong>
-      <code>{node.path}</code>
-      <span className="section-comment">{node.comment}</span>
+    <div className={`node-section-header ${isCollapsed ? 'collapsed' : ''}`}>
+      <button type="button" className="node-section-toggle" onClick={() => toggle(node.path)} aria-expanded={!isCollapsed}>
+        <span className="section-arrow" aria-hidden="true">{isCollapsed ? '›' : '⌄'}</span>
+        <strong>{groupLabel}</strong>
+        <code>{node.path}</code>
+        <span className="section-comment">{node.comment}</span>
+      </button>
+      {node.creatableChildren && <button type="button" className="node-section-create" onClick={() => onCreateChild(node)}>+ 新建</button>}
       <span className="section-meta">{changedInGroup > 0 && <span className="section-badge">{changedInGroup}</span>}{t('core.config.groupItems', { count: groups.length })}</span>
-    </button>
+    </div>
     {!isCollapsed && <div className="node-section-body">{groups.map(group => group.type === 'section'
-      ? <ConfigNodeSection key={group.node.path} scope={scope} node={group.node} childrenNodes={group.children} drafts={drafts} setDraftValue={setDraftValue} collapsed={collapsed} toggle={toggle} />
+      ? <ConfigNodeSection key={group.node.path} scope={scope} node={group.node} childrenNodes={group.children} drafts={drafts} setDraftValue={setDraftValue} collapsed={collapsed} toggle={toggle} onCreateChild={onCreateChild} />
       : <ConfigNodeView key={group.node.path} scope={scope} node={group.node} drafts={drafts} setDraftValue={setDraftValue} />
     )}</div>}
   </div>;
@@ -662,10 +708,75 @@ function renderControl(node: WebConfigNode, value: unknown, setValue: (v: unknow
   if (node.type === 'dynamic_map') return <DynamicMapEditor value={value} setValue={setValue} />;
   if (node.type === 'list') {
     const items = Array.isArray(value) ? value : [];
+    const hasObjectItems = node.path === 'allowed_damage_causes' || items.some(isPlainObject);
+    if (hasObjectItems) return <ObjectListEditor node={node} items={items} setValue={setValue} />;
     const update = (i: number, v: string) => setValue(items.map((x, j) => j === i ? parseListValue(x, v) : x));
-    return <div className="list-editor">{items.map((item, i) => <div className="list-row" key={i}>{isObjectLike(item) ? <textarea value={str(item)} onChange={(e) => update(i, e.target.value)} aria-label={t('core.config.itemIndex', { index: i + 1 })} /> : <input value={str(item)} onChange={(e) => update(i, e.target.value)} aria-label={t('core.config.itemIndex', { index: i + 1 })} />}<button type="button" onClick={() => setValue(items.filter((_, j) => j !== i))} aria-label={t('core.config.deleteItem', { index: i + 1 })}>{t('core.config.delete')}</button></div>)}<button type="button" className="add-row" onClick={() => setValue([...items, ''])}>{t('core.config.addItem')}</button></div>;
+    return <div className="list-editor">{items.map((item, i) => <div className="list-row" key={i}><input value={str(item)} onChange={(e) => update(i, e.target.value)} aria-label={t('core.config.itemIndex', { index: i + 1 })} /><button type="button" onClick={() => setValue(items.filter((_, j) => j !== i))} aria-label={t('core.config.deleteItem', { index: i + 1 })}>{t('core.config.delete')}</button></div>)}<button type="button" className="add-row" onClick={() => setValue([...items, ''])}>{t('core.config.addItem')}</button></div>;
   }
   return <input aria-label={label} value={str(value)} onChange={(e) => setValue(e.target.value)} />;
+}
+
+function ObjectListEditor({ node, items, setValue }: { node: WebConfigNode; items: unknown[]; setValue: (v: unknown) => void }) {
+  const objectItems: Record<string, unknown>[] = items.map(item => isPlainObject(item) ? item : {});
+  const keys = objectListKeys(node, objectItems);
+
+  function updateField(index: number, key: string, nextValue: unknown) {
+    setValue(items.map((item, itemIndex) => itemIndex === index ? { ...(isPlainObject(item) ? item : {}), [key]: nextValue } : item));
+  }
+
+  function addEntry() {
+    setValue([...items, objectListTemplate(node, objectItems[0])]);
+  }
+
+  return <div className="object-list-editor">
+    {objectItems.map((item, index) => <div className="object-list-entry" key={index}>
+      <div className="object-list-head">
+        <strong>#{index + 1}</strong>
+        <code>{objectListSummary(item, index)}</code>
+        <button type="button" onClick={() => setValue(items.filter((_, itemIndex) => itemIndex !== index))} aria-label={t('core.config.deleteItem', { index: index + 1 })}>{t('core.config.delete')}</button>
+      </div>
+      <div className="object-list-fields">
+        {keys.map(key => <div className="object-list-field" key={key}>
+          <label>{fieldLabel(key, { moduleId: node.path, namespace: node.path, fallback: key.replace(/_/g, ' ') })}</label>
+          {renderObjectListField(item[key], next => updateField(index, key, next), `${node.path}.${index}.${key}`)}
+        </div>)}
+      </div>
+    </div>)}
+    <button type="button" className="add-row" onClick={addEntry}>{t('core.config.addItem')}</button>
+  </div>;
+}
+
+function renderObjectListField(value: unknown, onChange: (value: unknown) => void, ariaLabel: string) {
+  if (typeof value === 'boolean') return <button type="button" className={`switch ${value ? 'on' : ''}`} aria-pressed={value === true} aria-label={ariaLabel} onClick={() => onChange(!value)}><span />{value ? t('core.config.booleanOn') : t('core.config.booleanOff')}</button>;
+  if (typeof value === 'number') return <input type="number" aria-label={ariaLabel} value={Number.isFinite(value) ? String(value) : ''} onChange={(e) => onChange(e.target.value === '' ? undefined : Number(e.target.value))} />;
+  return <input aria-label={ariaLabel} value={value == null ? '' : String(value)} onChange={(e) => onChange(e.target.value)} />;
+}
+
+function objectListKeys(node: WebConfigNode, items: Record<string, unknown>[]) {
+  const keys = Array.from(new Set(items.flatMap(item => Object.keys(item))));
+  if (node.path === 'allowed_damage_causes') return mergeKeys(['cause', 'damage_type', 'damage'], keys);
+  return keys.length ? keys : ['key'];
+}
+
+function objectListTemplate(node: WebConfigNode, sample: Record<string, unknown> | undefined) {
+  if (node.path === 'allowed_damage_causes') return { cause: '', damage_type: '', damage: 1 };
+  const keys = objectListKeys(node, sample ? [sample] : []);
+  return Object.fromEntries(keys.map(key => [key, defaultObjectListValue(sample?.[key])]));
+}
+
+function defaultObjectListValue(sample: unknown) {
+  if (typeof sample === 'number') return 0;
+  if (typeof sample === 'boolean') return false;
+  return '';
+}
+
+function objectListSummary(item: Record<string, unknown>, index: number) {
+  const primary = item.cause ?? item.id ?? item.key ?? item.name ?? item.type;
+  return primary == null || primary === '' ? t('core.config.itemIndex', { index: index + 1 }) : String(primary);
+}
+
+function mergeKeys(preferred: string[], keys: string[]) {
+  return [...preferred, ...keys.filter(key => !preferred.includes(key))];
 }
 
 function DynamicMapEditor({ value, setValue }: { value: unknown; setValue: (v: unknown) => void }) {
@@ -726,6 +837,7 @@ function DynamicMapEditor({ value, setValue }: { value: unknown; setValue: (v: u
 function ScriptEditor({ api, scriptPath, module, file, setSurfaceToolbar, setToast }: { api: ApiClient; scriptPath: string; module: WebRegistryModule; file: WebRegistryFile; setSurfaceToolbar: (state: SurfaceToolbarState | null) => void; setToast: (toast: Toast) => void }) {
   const [content, setContent] = useState('');
   const [savedContent, setSavedContent] = useState('');
+  const [history, setHistory] = useState<{ undo: string[]; redo: string[] }>({ undo: [], redo: [] });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -739,6 +851,7 @@ function ScriptEditor({ api, scriptPath, module, file, setSurfaceToolbar, setToa
     api.readScript(scriptPath).then(res => {
       setContent(res.content);
       setSavedContent(res.content);
+      setHistory({ undo: [], redo: [] });
     }).catch((err) => {
       setError(err instanceof Error ? err.message : t('core.config.childLoadFailed'));
       setContent(t('core.script.loadFallback'));
@@ -753,6 +866,7 @@ function ScriptEditor({ api, scriptPath, module, file, setSurfaceToolbar, setToa
     try {
       await api.saveScript(scriptPath, content);
       setSavedContent(content);
+      setHistory({ undo: [], redo: [] });
       setToast({ tone: 'ok', text: t('core.toast.savedConfig', { count: 1 }) });
     } catch (err) {
       const message = err instanceof Error ? err.message : t('core.script.saveFailed');
@@ -763,6 +877,35 @@ function ScriptEditor({ api, scriptPath, module, file, setSurfaceToolbar, setToa
     }
   }
 
+  function updateScriptContent(next: string) {
+    setContent(current => {
+      if (current === next) return current;
+      setHistory(previous => ({ undo: [...previous.undo, current].slice(-20), redo: [] }));
+      return next;
+    });
+    setError('');
+  }
+
+  function undoScript() {
+    const snapshot = history.undo[history.undo.length - 1];
+    if (snapshot === undefined) return;
+    setContent(current => {
+      setHistory(previous => ({ undo: previous.undo.slice(0, -1), redo: [current, ...previous.redo].slice(0, 20) }));
+      return snapshot;
+    });
+    setError('');
+  }
+
+  function redoScript() {
+    const snapshot = history.redo[0];
+    if (snapshot === undefined) return;
+    setContent(current => {
+      setHistory(previous => ({ undo: [...previous.undo, current].slice(-20), redo: previous.redo.slice(1) }));
+      return snapshot;
+    });
+    setError('');
+  }
+
   async function reload() {
     setLoading(true);
     setError('');
@@ -770,6 +913,7 @@ function ScriptEditor({ api, scriptPath, module, file, setSurfaceToolbar, setToa
       const res = await api.readScript(scriptPath);
       setContent(res.content);
       setSavedContent(res.content);
+      setHistory({ undo: [], redo: [] });
       setToast({ tone: 'ok', text: t('core.toast.reloaded') });
     } catch (err) {
       setError(err instanceof Error ? err.message : t('core.config.childLoadFailed'));
@@ -792,17 +936,19 @@ function ScriptEditor({ api, scriptPath, module, file, setSurfaceToolbar, setToa
       sourceLanguage: 'javascript',
       saving,
       loading,
-      canUndo: false,
-      canRedo: false,
+      canUndo: history.undo.length > 0,
+      canRedo: history.redo.length > 0,
+      onUndo: undoScript,
+      onRedo: redoScript,
       onReload: () => void reload(),
-      onSourceChange: (next: string) => { setContent(next); setError(''); },
+      onSourceChange: updateScriptContent,
       onSave: () => void save()
     });
     return () => setSurfaceToolbar(null);
-  }, [fileName, file.title, scriptPath, isDirty, content, error, saving, loading]);
+  }, [fileName, file.title, scriptPath, isDirty, content, error, saving, loading, history.undo.length, history.redo.length]);
 
   function handleInput(value: string) {
-    setContent(value);
+    updateScriptContent(value);
   }
 
   if (loading) return <div className="script-loading" role="status">{t('core.script.loading')}</div>;
@@ -976,6 +1122,7 @@ function sourceEditingElement(target: EventTarget | null): boolean {
 
 function normalizeDraftPath(path: string) { return path.replace(/\\/g, '/'); }
 function isObjectLike(v: unknown) { return typeof v === 'object' && v !== null; }
+function isPlainObject(v: unknown): v is Record<string, unknown> { return typeof v === 'object' && v !== null && !Array.isArray(v); }
 function parseListValue(original: unknown, text: string) { if (isObjectLike(original)) { try { return JSON.parse(text); } catch { return text; } } return text; }
 function str(v: unknown): string { if (v == null) return ''; if (typeof v === 'object') try { return JSON.stringify(v, null, 2); } catch { return ''; } return String(v); }
 function firstSelection(r: WebRegistry): Selection | null { const m = r.modules[0]; return m?.files[0] ? { moduleId: m.id, fileId: m.files[0].id } : null; }

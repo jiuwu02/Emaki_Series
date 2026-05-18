@@ -192,7 +192,7 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         WebConsoleRegistry.registerCommonConfigComments(this);
 
         // socket_openers
-        WebConsoleRegistry.registerNodeComment(this, "socket_openers", "开孔器", "攻击、防御、通用等开孔器的物品与规则配置。", "object");
+        WebConsoleRegistry.registerCreatableNode(this, "socket_openers", "开孔器", "攻击、防御、通用等开孔器的物品与规则配置。", "object");
 
         // inlay_success
         WebConsoleRegistry.registerNodeComment(this, "inlay_success", "镶嵌成功率", "宝石镶嵌成功率、公式与失败处理策略。", "object");
@@ -203,7 +203,7 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
 
         // upgrade
         WebConsoleRegistry.registerNodeComment(this, "upgrade", "升级配置", "宝石升级成功率与失败惩罚配置。", "object");
-        WebConsoleRegistry.registerNodeComment(this, "upgrade.global_success_rates", "升级成功率", "各等级宝石升级的全局成功率配置。", "object");
+        WebConsoleRegistry.registerCreatableNode(this, "upgrade.global_success_rates", "升级成功率", "各等级宝石升级的全局成功率配置。", "object");
         WebConsoleRegistry.registerNodeComment(this, "upgrade.global_failure_penalty", "失败惩罚", "宝石升级失败时的全局惩罚方式。", "enum:none,downgrade,destroy");
 
         // number_format
@@ -348,8 +348,7 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
                         editorFieldDescriptor("match.lore_contains", "Lore 包含", "stringList", true)
                 ),
                 editorSectionCollapsed("插槽结构",
-                        editorFieldDescriptor("slots", "插槽列表", "gemSlots", true),
-                        editorFieldDescriptor("default_open_slots", "默认开放插槽", "numberList", true)
+                        editorFieldDescriptor("slots", "插槽列表", "gemSlots", true)
                 ),
                 editorSectionCollapsed("宝石限制",
                         editorFieldDescriptor("allowed_gem_types", "允许宝石类型", "stringList", true),

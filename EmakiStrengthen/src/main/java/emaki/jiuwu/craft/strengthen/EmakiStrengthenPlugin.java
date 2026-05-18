@@ -177,7 +177,7 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         WebConsoleRegistry.registerNodeComment(this, "broadcast.global_stars", "全服广播星级", "触发全服广播的星级列表。", "list");
 
         // success_rates
-        WebConsoleRegistry.registerNodeComment(this, "success_rates", "成功率", "全局成功率配置，key 为星级，value 为成功率百分比。", "object");
+        WebConsoleRegistry.registerCreatableNode(this, "success_rates", "成功率", "全局成功率配置，key 为星级，value 为成功率百分比。", "object");
     }
 
     private void ensurePlaceholderExpansion() {

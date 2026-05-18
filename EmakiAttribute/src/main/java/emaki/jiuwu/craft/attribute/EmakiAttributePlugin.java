@@ -377,13 +377,13 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         WebConsoleRegistry.registerNodeComment(this, "sync_delay_ticks", "同步延迟", "属性计算完成后同步到 Bukkit 原生属性的延迟 tick 数。", "number");
         WebConsoleRegistry.registerNodeComment(this, "allowed_damage_causes", "伤害白名单", "允许进入 EA 伤害结算的 DamageCause 白名单列表。", "list");
         WebConsoleRegistry.registerNodeComment(this, "default_profile", "默认档案", "玩家默认属性与资源基础值配置。", "object");
-        WebConsoleRegistry.registerNodeComment(this, "default_profile.resources", "资源定义", "默认资源（生命、法力等）的基础配置。", "object");
-        WebConsoleRegistry.registerNodeComment(this, "default_profile.attributes", "属性基础值", "玩家默认属性基础数值配置。", "object");
+        WebConsoleRegistry.registerCreatableNode(this, "default_profile.resources", "资源定义", "默认资源（生命、法力等）的基础配置。", "object");
+        WebConsoleRegistry.registerCreatableNode(this, "default_profile.attributes", "属性基础值", "玩家默认属性基础数值配置。", "object");
         WebConsoleRegistry.registerNodeComment(this, "synthetic_hit_feedback", "击中反馈", "接管伤害后的击退和音效补发配置。", "object");
         WebConsoleRegistry.registerNodeComment(this, "synthetic_hit_feedback.knockback", "补发击退", "是否在接管伤害后补发击退效果。", "boolean");
         WebConsoleRegistry.registerNodeComment(this, "synthetic_hit_feedback.knockback_strength", "击退强度", "补发击退的力度系数。", "number");
         WebConsoleRegistry.registerNodeComment(this, "synthetic_hit_feedback.hurt_sound", "受伤音效", "是否在接管伤害后补发受伤音效。", "boolean");
-        WebConsoleRegistry.registerNodeComment(this, "scaling_curves", "衰减曲线", "属性超过阈值后的衰减曲线配置。", "object");
+        WebConsoleRegistry.registerCreatableNode(this, "scaling_curves", "衰减曲线", "属性超过阈值后的衰减曲线配置。", "object");
 
         // config.yml - default_profile.resources 通用 key 匹配
         WebConsoleRegistry.registerNodeKeyComment(this, "display_name", "显示名称", "资源或属性在界面中显示的名称。", "text");
@@ -395,8 +395,8 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
 
         // ─── attribute_balance.yml ───
         WebConsoleRegistry.registerConfigFile(this, "属性权重配置", "attribute_balance.yml", "属性语义分组、角色定位与评分权重配置。");
-        WebConsoleRegistry.registerNodeComment(this, "attributes", "属性语义", "每个属性的分组、角色和描述定义。", "object");
-        WebConsoleRegistry.registerNodeComment(this, "scores", "评分权重", "各属性在装备评分中的权重系数。", "object");
+        WebConsoleRegistry.registerCreatableNode(this, "attributes", "属性语义", "每个属性的分组、角色和描述定义。", "object");
+        WebConsoleRegistry.registerCreatableNode(this, "scores", "评分权重", "各属性在装备评分中的权重系数。", "object");
         WebConsoleRegistry.registerNodeKeyComment(this, "group", "分组", "属性所属的功能分组（如 physical、spell、utility）。", "text");
         WebConsoleRegistry.registerNodeKeyComment(this, "role", "角色", "属性在战斗中的角色定位（如 offense、defense、sustain）。", "text");
         WebConsoleRegistry.registerNodeKeyComment(this, "summary", "描述", "属性的简短功能描述，用于前端和文档展示。", "text");

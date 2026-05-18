@@ -261,7 +261,18 @@ public final class WebConsoleRegistry {
     }
 
     public static synchronized void registerNodeComment(String moduleId, String path, String label, String comment, String type) {
-        NODE_META.put(key(moduleId, path), new NodeMeta(label, comment, type));
+        NODE_META.put(key(moduleId, path), new NodeMeta(label, comment, type, false));
+    }
+
+    public static synchronized void registerCreatableNode(String moduleId, String path, String label, String comment, String type) {
+        NODE_META.put(key(moduleId, path), new NodeMeta(label, comment, type, true));
+    }
+
+    public static synchronized void registerCreatableNode(JavaPlugin plugin, String path, String label, String comment, String type) {
+        if (plugin == null) {
+            return;
+        }
+        registerCreatableNode(plugin.getName(), path, label, comment, type);
     }
 
     public static synchronized void registerNodeComment(JavaPlugin plugin, String path, String label, String comment, String type) {
@@ -627,6 +638,9 @@ public final class WebConsoleRegistry {
         }
         node.put("editable", editable);
         node.put("value", value);
+        if (meta.creatableChildren()) {
+            node.put("creatableChildren", true);
+        }
         return node;
     }
 
@@ -693,7 +707,7 @@ public final class WebConsoleRegistry {
             case "list" -> "列表配置，每一项会按顺序参与对应功能处理。";
             default -> "文本配置，来自 " + moduleId + "/config.yml。";
         };
-        return new NodeMeta(label, comment, detectedType);
+        return new NodeMeta(label, comment, detectedType, false);
     }
 
     private String typeOf(Object value) {
@@ -971,7 +985,7 @@ public final class WebConsoleRegistry {
     private record EditorRegistration(String moduleId, String editorId, Map<String, Object> descriptor) {}
     private record WebExtensionRegistration(String moduleId, String id, String resourcePath) {}
     private record FileRegistration(String title, String relativePath, WebConsoleFileType type, String comment, boolean structuredYaml, String editorId) {}
-    private record NodeMeta(String label, String comment, String type) {}
+    private record NodeMeta(String label, String comment, String type, boolean creatableChildren) {}
 
     private record NodeMetaRule(String moduleId, MatchType matchType, String pattern, String label, String comment, String type) {
         private boolean matches(String currentModuleId, String path) {
@@ -986,7 +1000,7 @@ public final class WebConsoleRegistry {
         }
 
         private NodeMeta toMeta() {
-            return new NodeMeta(label, comment, type);
+            return new NodeMeta(label, comment, type, false);
         }
     }
 }

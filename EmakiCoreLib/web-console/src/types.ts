@@ -36,6 +36,7 @@ export type WebConfigNode = {
   editable: boolean;
   value: unknown;
   options?: string[];
+  creatableChildren?: boolean;
 };
 
 export type WebEditorFieldType = 'text' | 'number' | 'boolean' | 'textarea' | 'stringList' | 'enum' | 'json' | 'actions' | string;
