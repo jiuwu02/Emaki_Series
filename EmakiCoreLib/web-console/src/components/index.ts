@@ -1,4 +1,5 @@
 export { ActionGroup } from './ActionGroup';
+export { CodeEditor, type CodeEditorLanguage, type CodeEditorProps } from './CodeEditor';
 export { EditorChrome, type EditorChange, type EditorChromeProps } from './EditorChrome';
 export { Button, type ButtonSize, type ButtonVariant } from './Button';
 export { InlineError, ToastNotice, type NoticeTone } from './Notice';

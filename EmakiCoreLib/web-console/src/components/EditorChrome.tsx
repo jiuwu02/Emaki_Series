@@ -1,6 +1,6 @@
-import { useDeferredValue, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { t } from '../i18n';
-import { highlightJS, highlightYAML } from '../lib/highlight';
+import { CodeEditor } from './CodeEditor';
 import { ActionGroup } from './ActionGroup';
 import { Button } from './Button';
 import { useDialogFocus } from './useDialogFocus';
@@ -133,62 +133,21 @@ function ChangeList({ changes, count }: { changes: EditorChange[]; count: number
 
 function SourceModal({ source, editable, error, language, onChange, onSave, onClose }: { source: string; editable?: boolean; error?: string | null; language?: string; onChange?: (source: string) => void; onSave?: () => void; onClose: () => void }) {
   const dialogRef = useRef<HTMLElement | null>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const highlightRef = useRef<HTMLPreElement>(null);
-  const lineNumbersRef = useRef<HTMLDivElement>(null);
   const [localSource, setLocalSource] = useState(source);
-  useDialogFocus(dialogRef, onClose);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+  const stableOnClose = useMemo(() => () => onCloseRef.current(), []);
+  useDialogFocus(dialogRef, stableOnClose);
 
-  // Sync from external source when it changes (e.g. after save/reload)
-  useEffect(() => {
-    setLocalSource(source);
-  }, [source]);
+  useEffect(() => { setLocalSource(source); }, [source]);
 
-  const deferredSource = useDeferredValue(localSource);
-  const highlightDisabled = localSource.length > 80000;
-  const highlightedContent = useMemo(() => {
-    if (highlightDisabled) return '';
-    if (language === 'javascript') return highlightJS(deferredSource);
-    if (language === 'yaml') return highlightYAML(deferredSource);
-    return '';
-  }, [deferredSource, highlightDisabled, language]);
-
-  const lines = localSource.split('\n');
-
-  function handleInput(e: React.ChangeEvent<HTMLTextAreaElement>) {
-    const value = e.target.value;
+  function handleInput(value: string) {
     setLocalSource(value);
     onChange?.(value);
   }
 
-  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === 'Tab') {
-      e.preventDefault();
-      const ta = e.currentTarget;
-      const start = ta.selectionStart;
-      const end = ta.selectionEnd;
-      const newValue = localSource.substring(0, start) + '  ' + localSource.substring(end);
-      setLocalSource(newValue);
-      onChange?.(newValue);
-      requestAnimationFrame(() => { ta.selectionStart = ta.selectionEnd = start + 2; });
-    }
-    if (e.key === 's' && (e.ctrlKey || e.metaKey)) {
-      e.preventDefault();
-      onSave?.();
-    }
-    if (e.key === 'Escape') {
-      onClose();
-    }
-  }
-
-  function handleScroll() {
-    if (highlightRef.current && textareaRef.current) {
-      highlightRef.current.scrollTop = textareaRef.current.scrollTop;
-      highlightRef.current.scrollLeft = textareaRef.current.scrollLeft;
-    }
-    if (lineNumbersRef.current && textareaRef.current) {
-      lineNumbersRef.current.scrollTop = textareaRef.current.scrollTop;
-    }
+  function handleTab() {
+    // CodeMirror owns indentation and cursor placement; keeping Tab handled inside the editor avoids browser focus jumps.
   }
 
   return <div className="editor-modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) onClose(); }}>
@@ -197,26 +156,16 @@ function SourceModal({ source, editable, error, language, onChange, onSave, onCl
         <div><span>{t('core.item.source')}</span><h3 id="editor-source-title">{t('core.editor.sourceTitle')}</h3></div>
         <Button size="sm" onClick={onClose}>{t('core.i18n.close')}</Button>
       </header>
-      <div className="source-editor-container">
-        <div ref={lineNumbersRef} className="source-line-numbers">{lines.map((_, i) => <div key={i}>{i + 1}</div>)}</div>
-        <div className="source-editor-wrapper">
-          {highlightedContent && <pre ref={highlightRef} className="source-editor-highlight" aria-hidden="true"><code dangerouslySetInnerHTML={{ __html: highlightedContent }} /></pre>}
-          <textarea
-            ref={textareaRef}
-            className="source-editor-input"
-            value={localSource}
-            onChange={handleInput}
-            onKeyDown={handleKeyDown}
-            onScroll={handleScroll}
-            readOnly={!editable}
-            spellCheck={false}
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="off"
-            aria-label={t('core.editor.sourceTitle')}
-          />
-        </div>
-      </div>
+      <CodeEditor
+        className="source-code-editor"
+        value={localSource}
+        language={language}
+        readOnly={!editable}
+        ariaLabel={t('core.editor.sourceTitle')}
+        onChange={handleInput}
+        onSave={onSave}
+        onTab={handleTab}
+      />
       {error && <p className="editor-source-error" role="alert">{error}</p>}
     </section>
   </div>;

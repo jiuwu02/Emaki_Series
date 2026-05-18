@@ -1,4 +1,5 @@
-import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import type { Completion, CompletionContext, CompletionResult, CompletionSource } from '@codemirror/autocomplete';
 import type { ComponentType } from 'react';
 import { ApiClient } from './api';
 import { GuiEditorSurface } from './GuiEditorSurface';
@@ -6,9 +7,8 @@ import { ItemEditorSurface } from './ItemEditorSurface';
 import { loadWebExtensions } from './extensions';
 import { applyEditorDescriptorOverrides, getSourceDocumentAdapter, getSurface, isKind, registerSourceDocumentAdapter, registerSurface } from './registry';
 import { getLocale, getRegisteredLocales, setLocale, t } from './i18n';
-import { ActionGroup, Button, EditorChrome, InlineError, ToastNotice, type EditorChange } from './components';
+import { ActionGroup, Button, CodeEditor, EditorChrome, InlineError, ToastNotice, type EditorChange } from './components';
 import { I18nBundleModal, type I18nTarget } from './I18nBundleModal';
-import { highlightJS } from './lib/highlight';
 import { fieldLabel, valuesEqual } from './lib';
 import { Login, ResizableRail, WorkspaceTree, fileKindLabel } from './shell';
 import type { SurfaceProps, SurfaceToolbarState } from './registry';
@@ -728,19 +728,10 @@ function ScriptEditor({ api, scriptPath, module, file, setSurfaceToolbar, setToa
   const [savedContent, setSavedContent] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [completions, setCompletions] = useState<string[]>([]);
-  const [completionPos, setCompletionPos] = useState<{ top: number; left: number } | null>(null);
-  const [selectedCompletion, setSelectedCompletion] = useState(0);
   const [error, setError] = useState('');
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const highlightRef = useRef<HTMLPreElement>(null);
-  const lineNumbersRef = useRef<HTMLDivElement>(null);
 
   const isDirty = content !== savedContent;
   const fileName = scriptPath.split('/').pop() ?? scriptPath;
-  const deferredContent = useDeferredValue(content);
-  const highlightDisabled = content.length > 60000;
-  const highlightedContent = useMemo(() => highlightDisabled ? '' : highlightJS(deferredContent), [deferredContent, highlightDisabled]);
 
   useEffect(() => {
     setLoading(true);
@@ -810,141 +801,80 @@ function ScriptEditor({ api, scriptPath, module, file, setSurfaceToolbar, setToa
     return () => setSurfaceToolbar(null);
   }, [fileName, file.title, scriptPath, isDirty, content, error, saving, loading]);
 
-  function handleInput(e: React.ChangeEvent<HTMLTextAreaElement>) {
-    const value = e.target.value;
+  function handleInput(value: string) {
     setContent(value);
-    tryComplete(value, e.target.selectionStart);
   }
-
-  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (completions.length > 0) {
-      if (e.key === 'ArrowDown') { e.preventDefault(); setSelectedCompletion(i => Math.min(i + 1, completions.length - 1)); return; }
-      if (e.key === 'ArrowUp') { e.preventDefault(); setSelectedCompletion(i => Math.max(i - 1, 0)); return; }
-      if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); applyCompletion(completions[selectedCompletion]); return; }
-      if (e.key === 'Escape') { setCompletions([]); return; }
-    }
-    if (e.key === 'Tab' && completions.length === 0) {
-      e.preventDefault();
-      const ta = e.currentTarget;
-      const start = ta.selectionStart;
-      const end = ta.selectionEnd;
-      const newValue = content.substring(0, start) + '  ' + content.substring(end);
-      setContent(newValue);
-      requestAnimationFrame(() => { ta.selectionStart = ta.selectionEnd = start + 2; });
-    }
-    if (e.key === 's' && (e.ctrlKey || e.metaKey)) {
-      e.preventDefault();
-      save();
-    }
-  }
-
-  function tryComplete(value: string, cursor: number) {
-    const before = value.substring(0, cursor);
-    const match = before.match(/([a-zA-Z_$][\w$.]*)\s*$/);
-    if (!match) { setCompletions([]); return; }
-    const prefix = match[1];
-    const items = getCompletions(prefix);
-    if (items.length > 0) {
-      setCompletions(items);
-      setSelectedCompletion(0);
-      const lines = before.split('\n');
-      const line = lines.length;
-      const col = lines[lines.length - 1].length;
-      setCompletionPos({ top: line * 20, left: col * 8.4 });
-    } else {
-      setCompletions([]);
-    }
-  }
-
-  function applyCompletion(item: string) {
-    const ta = textareaRef.current;
-    if (!ta) return;
-    const cursor = ta.selectionStart;
-    const before = content.substring(0, cursor);
-    const after = content.substring(cursor);
-    const match = before.match(/\.([a-zA-Z_$][\w]*)$/);
-    const keywordMatch = before.match(/([a-zA-Z_$][\w]*)$/);
-    let replaceStart = cursor;
-    if (match) {
-      replaceStart = cursor - match[1].length;
-    } else if (keywordMatch) {
-      replaceStart = cursor - keywordMatch[1].length;
-    }
-    const insertText = item;
-    const newContent = content.substring(0, replaceStart) + insertText + after;
-    setContent(newContent);
-    setCompletions([]);
-    const newCursor = replaceStart + insertText.length;
-    requestAnimationFrame(() => { ta.selectionStart = ta.selectionEnd = newCursor; ta.focus(); });
-  }
-
-  function handleScroll() {
-    if (highlightRef.current && textareaRef.current) {
-      highlightRef.current.scrollTop = textareaRef.current.scrollTop;
-      highlightRef.current.scrollLeft = textareaRef.current.scrollLeft;
-    }
-    if (lineNumbersRef.current && textareaRef.current) {
-      lineNumbersRef.current.scrollTop = textareaRef.current.scrollTop;
-    }
-  }
-
-  const lines = content.split('\n');
 
   if (loading) return <div className="script-loading" role="status">{t('core.script.loading')}</div>;
 
   return <div className="script-editor">
     {error && <InlineError>{error}</InlineError>}
-    <div className="editor-container">
-      <div ref={lineNumbersRef} className="line-numbers">{lines.map((_, i) => <div key={i}>{i + 1}</div>)}</div>
-      <div className="editor-wrapper">
-        <pre ref={highlightRef} className="editor-highlight" aria-hidden="true"><code dangerouslySetInnerHTML={{ __html: highlightedContent }} /></pre>
-        <textarea ref={textareaRef} className="editor-input" value={content} onChange={handleInput} onKeyDown={handleKeyDown} onScroll={handleScroll} spellCheck={false} autoComplete="off" autoCorrect="off" autoCapitalize="off" aria-label={t('core.script.editAria', { path: scriptPath })} aria-describedby="script-editor-help" />
-        <span id="script-editor-help" className="sr-only">{t('core.script.help')}</span>
-        {completions.length > 0 && completionPos && <div className="completion-popup" style={{ top: completionPos.top + 24, left: completionPos.left + 48 }}>
-          {completions.map((item, i) => <div key={item} className={`completion-item ${i === selectedCompletion ? 'selected' : ''}`} onMouseDown={(e) => { e.preventDefault(); applyCompletion(item); }}>{item}</div>)}
-        </div>}
-      </div>
+    <div className="editor-wrapper">
+      <CodeEditor
+        className="script-code-editor"
+        value={content}
+        language="javascript"
+        ariaLabel={t('core.script.editAria', { path: scriptPath })}
+        completionSource={scriptCompletionSource}
+        onChange={handleInput}
+        onSave={save}
+      />
+      <span id="script-editor-help" className="sr-only">{t('core.script.help')}</span>
     </div>
   </div>;
 }
 
 
-const COMPLETIONS: Record<string, string[]> = {
-  'emaki': ['logger', 'player', 'item', 'state', 'text', 'random', 'action', 'context'],
-  'emaki.logger': ['info(msg)', 'warn(msg)', 'error(msg)'],
-  'emaki.player': ['exists()', 'name()', 'sendMessage(msg)', 'health()', 'setHealth(value)', 'location()', 'hasPermission(perm)', 'uuid()'],
-  'emaki.item': ['id()', 'amount()', 'hasTag(key)', 'getTag(key)', 'setTag(key, value)', 'type()'],
-  'emaki.state': ['get(key)', 'set(key, value)', 'has(key)', 'remove(key)'],
-  'emaki.context': ['phase()', 'plugin()', 'trigger()'],
-  'emaki.text': ['color(text)', 'strip(text)'],
-  'emaki.random': ['nextInt(bound)', 'nextDouble()', 'chance(percent)'],
-  'emaki.action': ['dispatch(actionLine)'],
-  'console': ['log(msg)', 'warn(msg)', 'error(msg)', 'info(msg)'],
-  'Math': ['abs(x)', 'ceil(x)', 'floor(x)', 'round(x)', 'max(...values)', 'min(...values)', 'random()', 'pow(base, exp)', 'sqrt(x)', 'PI', 'E'],
-  'JSON': ['parse(text)', 'stringify(value)', 'stringify(value, null, 2)'],
-  'Object': ['keys(obj)', 'values(obj)', 'entries(obj)', 'assign(target, ...sources)', 'freeze(obj)'],
-  'Array': ['isArray(value)', 'from(arrayLike)'],
-  'String': ['fromCharCode(code)'],
-  'Number': ['parseInt(str)', 'parseFloat(str)', 'isNaN(value)', 'isFinite(value)'],
+type ScriptCompletionScope = Record<string, Completion[]>;
+
+const SCRIPT_COMPLETION_SCOPES: ScriptCompletionScope = {
+  global: [
+    keywordCompletion('function'), keywordCompletion('const'), keywordCompletion('let'), keywordCompletion('var'), keywordCompletion('if'), keywordCompletion('else'), keywordCompletion('for'), keywordCompletion('while'), keywordCompletion('do'), keywordCompletion('switch'), keywordCompletion('case'), keywordCompletion('break'), keywordCompletion('continue'), keywordCompletion('return'), keywordCompletion('try'), keywordCompletion('catch'), keywordCompletion('finally'), keywordCompletion('throw'), keywordCompletion('new'), keywordCompletion('typeof'), keywordCompletion('instanceof'), keywordCompletion('class'), keywordCompletion('extends'), keywordCompletion('async'), keywordCompletion('await'), keywordCompletion('true'), keywordCompletion('false'), keywordCompletion('null'), keywordCompletion('undefined'), keywordCompletion('this'),
+    variableCompletion('emaki', 'EmakiScriptApi'), variableCompletion('args', 'Map<String, Object>'), variableCompletion('console', 'Console'), variableCompletion('Math', 'Math'), variableCompletion('JSON', 'JSON'), variableCompletion('Object', 'Object'), variableCompletion('Array', 'Array'), variableCompletion('String', 'String'), variableCompletion('Number', 'Number'), variableCompletion('Date', 'Date'), variableCompletion('RegExp', 'RegExp'), variableCompletion('Map', 'Map'), variableCompletion('Set', 'Set'), variableCompletion('Promise', 'Promise'),
+    functionCompletion('parseInt(str)', 'parseInt'), functionCompletion('parseFloat(str)', 'parseFloat'), functionCompletion('isNaN(value)', 'isNaN'), functionCompletion('isFinite(value)', 'isFinite')
+  ],
+  emaki: [
+    propertyCompletion('context', 'ScriptContextApi'), propertyCompletion('player', 'ScriptPlayerApi'), propertyCompletion('item', 'ScriptItemApi'), propertyCompletion('action', 'ScriptActionApi'), propertyCompletion('logger', 'ScriptLoggerApi'), propertyCompletion('random', 'ScriptRandomApi'), propertyCompletion('state', 'ScriptSharedStateApi'), propertyCompletion('text', 'ScriptTextApi'),
+    functionCompletion('runSync(task)', 'runSync'), functionCompletion('runSyncAndWait(task)', 'runSyncAndWait')
+  ],
+  'emaki.context': [functionCompletion('phase()', 'phase'), functionCompletion('plugin()', 'plugin'), functionCompletion('placeholder(key)', 'placeholder'), functionCompletion('attribute(key)', 'attribute'), functionCompletion('arg(key)', 'arg'), functionCompletion('placeholders()', 'placeholders'), functionCompletion('attributes()', 'attributes'), functionCompletion('args()', 'args')],
+  'emaki.player': [functionCompletion('exists()', 'exists'), functionCompletion('name()', 'name'), functionCompletion('uuid()', 'uuid'), functionCompletion('world()', 'world'), functionCompletion('hasPermission(permission)', 'hasPermission'), functionCompletion('sendMessage(message)', 'sendMessage')],
+  'emaki.item': [functionCompletion('has(attributeKey)', 'has'), functionCompletion('type(attributeKey)', 'type'), functionCompletion('amount(attributeKey)', 'amount'), functionCompletion('displayName(attributeKey)', 'displayName')],
+  'emaki.action': [functionCompletion('run(actionId, arguments)', 'run'), functionCompletion('runLine(line)', 'runLine')],
+  'emaki.logger': [functionCompletion('info(message)', 'info'), functionCompletion('warn(message)', 'warn'), functionCompletion('error(message)', 'error')],
+  'emaki.random': [functionCompletion('integer(min, max)', 'integer'), functionCompletion('decimal()', 'decimal'), functionCompletion('chance(percent)', 'chance'), functionCompletion('pick(values)', 'pick')],
+  'emaki.state': [functionCompletion('set(key, value)', 'set'), functionCompletion('get(key)', 'get'), functionCompletion('has(key)', 'has'), functionCompletion('remove(key)', 'remove')],
+  'emaki.text': [functionCompletion('string(value)', 'string'), functionCompletion('blank(value)', 'blank'), functionCompletion('notBlank(value)', 'notBlank'), functionCompletion('lower(value)', 'lower'), functionCompletion('normalizeId(value)', 'normalizeId')],
+  console: [functionCompletion('log(message)', 'log'), functionCompletion('warn(message)', 'warn'), functionCompletion('error(message)', 'error'), functionCompletion('info(message)', 'info'), functionCompletion('debug(message)', 'debug')],
+  Math: [functionCompletion('abs(x)', 'abs'), functionCompletion('ceil(x)', 'ceil'), functionCompletion('floor(x)', 'floor'), functionCompletion('round(x)', 'round'), functionCompletion('max(...values)', 'max'), functionCompletion('min(...values)', 'min'), functionCompletion('random()', 'random'), functionCompletion('pow(base, exp)', 'pow'), functionCompletion('sqrt(x)', 'sqrt'), propertyCompletion('PI', 'number'), propertyCompletion('E', 'number')],
+  JSON: [functionCompletion('parse(text)', 'parse'), functionCompletion('stringify(value)', 'stringify'), functionCompletion('stringify(value, null, 2)', 'stringify')],
+  Object: [functionCompletion('keys(obj)', 'keys'), functionCompletion('values(obj)', 'values'), functionCompletion('entries(obj)', 'entries'), functionCompletion('assign(target, ...sources)', 'assign'), functionCompletion('freeze(obj)', 'freeze')],
+  Array: [functionCompletion('isArray(value)', 'isArray'), functionCompletion('from(arrayLike)', 'from')],
+  String: [functionCompletion('fromCharCode(code)', 'fromCharCode')],
+  Number: [functionCompletion('parseInt(str)', 'parseInt'), functionCompletion('parseFloat(str)', 'parseFloat'), functionCompletion('isNaN(value)', 'isNaN'), functionCompletion('isFinite(value)', 'isFinite')]
 };
 
-const KEYWORD_COMPLETIONS = ['function', 'const', 'let', 'var', 'if', 'else', 'for', 'while', 'do', 'switch', 'case', 'break', 'continue', 'return', 'try', 'catch', 'finally', 'throw', 'new', 'typeof', 'instanceof', 'class', 'extends', 'import', 'export', 'async', 'await', 'yield', 'true', 'false', 'null', 'undefined', 'this', 'console', 'Math', 'JSON', 'Object', 'Array', 'String', 'Number', 'Date', 'RegExp', 'Map', 'Set', 'Promise', 'parseInt', 'parseFloat', 'isNaN', 'isFinite', 'setTimeout', 'clearTimeout', 'emaki'];
+const scriptCompletionSource: CompletionSource = (context: CompletionContext): CompletionResult | null => {
+  const token = context.matchBefore(/[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*\.?/);
+  if (!token || (token.from === token.to && !context.explicit)) return null;
+  const expression = token.text;
+  const dotIndex = expression.lastIndexOf('.');
+  const scopeName = dotIndex >= 0 ? expression.slice(0, dotIndex) : 'global';
+  const partial = dotIndex >= 0 ? expression.slice(dotIndex + 1) : expression;
+  if (!context.explicit && scopeName === 'global' && partial.length < 2) return null;
+  const options = SCRIPT_COMPLETION_SCOPES[scopeName];
+  if (!options) return null;
+  return {
+    from: token.to - partial.length,
+    validFor: /^[A-Za-z_$][\w$]*$/,
+    options: options.filter(option => option.label.toLowerCase().startsWith(partial.toLowerCase()))
+  };
+};
 
-function getCompletions(prefix: string): string[] {
-  const dotIndex = prefix.lastIndexOf('.');
-  if (dotIndex > 0) {
-    const obj = prefix.substring(0, dotIndex);
-    const partial = prefix.substring(dotIndex + 1).toLowerCase();
-    const methods = COMPLETIONS[obj];
-    if (methods) {
-      return partial ? methods.filter(m => m.toLowerCase().startsWith(partial)) : methods;
-    }
-    return [];
-  }
-  const lower = prefix.toLowerCase();
-  if (lower.length < 2) return [];
-  return KEYWORD_COMPLETIONS.filter(k => k.toLowerCase().startsWith(lower) && k.toLowerCase() !== lower).slice(0, 12);
-}
+function keywordCompletion(label: string): Completion { return { label, type: 'keyword' }; }
+function variableCompletion(label: string, detail: string): Completion { return { label, type: 'variable', detail }; }
+function propertyCompletion(label: string, detail: string): Completion { return { label, type: 'property', detail }; }
+function functionCompletion(label: string, apply: string): Completion { return { label: apply, type: 'function', detail: label, apply: label }; }
 
 function sameSelection(a: Selection | null, b: Selection) { return a?.moduleId === b.moduleId && a.fileId === b.fileId && (a.scriptPath ?? '') === (b.scriptPath ?? ''); }
 function readTheme(): ColorTheme { const saved = localStorage.getItem('emaki-color-theme'); return COLOR_THEMES.some((entry) => entry.id === saved) ? saved as ColorTheme : 'dark'; }
