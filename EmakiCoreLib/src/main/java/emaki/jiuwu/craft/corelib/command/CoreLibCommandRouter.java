@@ -11,6 +11,7 @@ import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.text.AdventureSupport;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.web.WebConsoleConfig;
+import emaki.jiuwu.craft.corelib.web.WebConsoleService;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
@@ -21,7 +22,7 @@ public final class CoreLibCommandRouter implements TabExecutor {
 
     private static final String PERMISSION_WEB = "emakicorelib.web";
     private static final String PERMISSION_RELOAD = "emakicorelib.reload";
-    private static final List<String> SUB_COMMANDS = List.of("help", "web", "webconsole", "url", "link", "reload");
+    private static final List<String> SUB_COMMANDS = List.of("help", "web", "webconsole", "url", "link", "reload", "webdebug");
 
     private final EmakiCoreLibPlugin plugin;
 
@@ -42,6 +43,7 @@ public final class CoreLibCommandRouter implements TabExecutor {
             }
             case "web", "webconsole", "url", "link" -> handleWebConsoleLink(sender);
             case "reload" -> handleReload(sender);
+            case "webdebug" -> handleWebDebug(sender);
             default -> {
                 sendHelp(sender, label);
                 yield true;
@@ -99,6 +101,25 @@ public final class CoreLibCommandRouter implements TabExecutor {
         return true;
     }
 
+    private boolean handleWebDebug(CommandSender sender) {
+        if (!sender.hasPermission(PERMISSION_RELOAD)) {
+            sendLine(sender, Component.text("你没有权限操作 Web Console 调试模式。", NamedTextColor.RED));
+            return true;
+        }
+        WebConsoleService service = plugin.webConsoleService();
+        if (service == null) {
+            sendLine(sender, Component.text("Web Console 未启动。", NamedTextColor.RED));
+            return true;
+        }
+        boolean nowEnabled = service.toggleDebug();
+        if (nowEnabled) {
+            sendLine(sender, Component.text("Web Console 调试模式已开启，所有 HTTP 请求/响应将输出到服务器日志。", NamedTextColor.GREEN));
+        } else {
+            sendLine(sender, Component.text("Web Console 调试模式已关闭。", NamedTextColor.YELLOW));
+        }
+        return true;
+    }
+
     private void sendHelp(CommandSender sender, String label) {
         String root = "/" + (label == null || label.isBlank() ? "emakicorelib" : label);
         sendLine(sender, Component.text("EmakiCoreLib 命令：", NamedTextColor.AQUA));
@@ -106,6 +127,8 @@ public final class CoreLibCommandRouter implements TabExecutor {
                 .append(Component.text(" - 输出可点击的 Web Console 链接", NamedTextColor.GRAY)));
         sendLine(sender, Component.text(root + " reload", NamedTextColor.GREEN)
                 .append(Component.text(" - 重载 CoreLib 配置与 Web Console", NamedTextColor.GRAY)));
+        sendLine(sender, Component.text(root + " webdebug", NamedTextColor.GREEN)
+                .append(Component.text(" - 开关 Web Console HTTP 调试日志", NamedTextColor.GRAY)));
     }
 
     private void sendLine(CommandSender sender, Component component) {

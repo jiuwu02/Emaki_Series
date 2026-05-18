@@ -335,6 +335,7 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
       source: draftText,
       sourceEditable: true,
       sourceError,
+      sourceLanguage: 'yaml',
       saving,
       loading,
       saveLabel: t('core.gui.save'),
@@ -366,6 +367,7 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
       source={draftText}
       sourceEditable
       sourceError={sourceError}
+      sourceLanguage="yaml"
       saving={saving}
       loading={loading}
       saveLabel={t('core.gui.save')}

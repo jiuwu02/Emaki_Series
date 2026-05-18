@@ -417,6 +417,10 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         return debugLogger;
     }
 
+    public WebConsoleService webConsoleService() {
+        return webConsoleService;
+    }
+
     private void refreshServiceRegistry() {
         serviceRegistry.clear();
         registerService(LanguageLoader.class, languageLoader);

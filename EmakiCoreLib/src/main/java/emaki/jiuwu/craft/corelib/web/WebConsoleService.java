@@ -37,6 +37,7 @@ public final class WebConsoleService {
     private WebConsoleRegistry consoleRegistry;
     private WebItemPreviewService itemPreviewService;
     private final WebStaticAssets staticAssets = new WebStaticAssets();
+    private volatile boolean debugEnabled;
 
     public WebConsoleService(JavaPlugin plugin, WebConsoleConfig config) {
         this.plugin = plugin;
@@ -100,9 +101,22 @@ public final class WebConsoleService {
         start();
     }
 
+    public boolean isDebugEnabled() {
+        return debugEnabled;
+    }
+
+    public boolean toggleDebug() {
+        debugEnabled = !debugEnabled;
+        return debugEnabled;
+    }
+
     private void createContext(String path, WebRoute route) {
         server.createContext(path, exchange -> {
+            long startTime = debugEnabled ? System.currentTimeMillis() : 0;
             try {
+                if (debugEnabled) {
+                    exchange.setAttribute("emaki.debug.startTime", startTime);
+                }
                 route.handle(exchange);
             } catch (RequestBodyTooLargeException exception) {
                 WebResponse.json(exchange, 413, Map.of("success", false, "error", exception.getMessage()));
@@ -112,6 +126,10 @@ public final class WebConsoleService {
                     WebResponse.json(exchange, 500, Map.of("success", false, "error", "Web Console 请求处理失败，请查看服务器控制台日志。"));
                 } catch (IOException ignored) {
                     // 响应可能已经开始发送，此时只保留服务器日志。
+                }
+            } finally {
+                if (debugEnabled) {
+                    logDebugRequest(exchange, startTime);
                 }
             }
         });
@@ -633,5 +651,18 @@ public final class WebConsoleService {
 
     private String urlDecode(String value) {
         return java.net.URLDecoder.decode(value, StandardCharsets.UTF_8);
+    }
+
+    private void logDebugRequest(HttpExchange exchange, long startTime) {
+        try {
+            long elapsed = System.currentTimeMillis() - startTime;
+            String method = exchange.getRequestMethod();
+            String uri = exchange.getRequestURI().toString();
+            String remote = exchange.getRemoteAddress() != null ? exchange.getRemoteAddress().getAddress().getHostAddress() : "unknown";
+            int responseCode = exchange.getResponseCode();
+            plugin.getLogger().info("[WebDebug] " + method + " " + uri + " → " + responseCode + " (" + elapsed + "ms) from " + remote);
+        } catch (Exception ignored) {
+            // debug 日志不应影响正常请求处理
+        }
     }
 }

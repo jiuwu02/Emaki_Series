@@ -185,6 +185,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
       source: sourceContent,
       sourceEditable: true,
       sourceError,
+      sourceLanguage: 'yaml',
       saving,
       loading,
       canUndo: history.undo.length > 0,
@@ -213,6 +214,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
         source={sourceContent}
         sourceEditable
         sourceError={sourceError}
+        sourceLanguage="yaml"
         saving={saving}
         canUndo={history.undo.length > 0}
         canRedo={history.redo.length > 0}

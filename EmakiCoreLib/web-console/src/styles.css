@@ -303,13 +303,40 @@ textarea { min-height: 96px; resize: vertical; font-family: ui-monospace, "Casca
 .editor-change-value.before { background: var(--diff-remove-bg); border: 1px solid var(--diff-remove-line); color: var(--diff-remove-text); }
 .editor-change-value.after { background: var(--diff-add-bg); border: 1px solid var(--diff-add-line); color: var(--diff-add-text); }
 .editor-modal-backdrop { position: fixed; inset: 0; z-index: 130; display: grid; place-items: center; padding: 24px; background: var(--overlay); }
-.editor-source-modal { width: min(900px, calc(100vw - 32px)); max-height: min(760px, calc(100vh - 32px)); display: grid; grid-template-rows: auto minmax(0, 1fr); border: 1px solid var(--line-2); border-radius: 10px; background: var(--surface); box-shadow: var(--shadow); overflow: hidden; }
+.editor-source-modal { width: min(900px, calc(100vw - 32px)); max-height: min(760px, calc(100vh - 32px)); display: grid; grid-template-rows: auto minmax(0, 1fr) auto; border: 1px solid var(--line-2); border-radius: 10px; background: var(--surface); box-shadow: var(--shadow); overflow: hidden; }
 .editor-modal-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 14px 16px 11px; border-bottom: 1px solid var(--line); background: var(--input); }
 .editor-modal-head span { color: var(--accent); font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
 .editor-modal-head h3 { margin-top: 3px; color: var(--text); font-size: 15px; }
-.editor-source-code { margin: 0; padding: 14px 16px; min-height: 420px; overflow: auto; color: var(--muted); background: var(--input); font-family: ui-monospace, "Cascadia Code", monospace; font-size: 12px; line-height: 1.55; white-space: pre; }
+.editor-source-code { margin: 0; padding: 0; min-height: 0; overflow: hidden; color: var(--muted); background: var(--input); font-family: ui-monospace, "Cascadia Code", monospace; font-size: 12px; line-height: 1.55; white-space: pre; }
 .editor-source-textarea { border: 0; border-radius: 0; resize: none; width: 100%; min-height: 520px; outline: none; }
 .editor-source-error { border-top: 1px solid var(--danger-line); background: var(--danger-soft); color: var(--red); padding: 8px 16px; font-size: 11px; }
+
+/* Source modal editor */
+.source-editor-container { display: flex; min-height: 0; overflow: hidden; background: var(--input); }
+.source-line-numbers {
+  width: 3rem; padding: 12px 8px; text-align: left;
+  font-family: ui-monospace, "Cascadia Code", monospace; font-size: 12px; line-height: 1.55;
+  color: var(--faint); background: var(--code-gutter); border-right: 1px solid var(--line);
+  overflow: hidden; user-select: none; flex-shrink: 0;
+}
+.source-editor-wrapper { position: relative; flex: 1; overflow: auto; }
+.source-editor-highlight, .source-editor-input {
+  position: absolute; top: 0; left: 0; width: 100%; min-height: 100%;
+  font-family: ui-monospace, "Cascadia Code", monospace; font-size: 12px; line-height: 1.55;
+  padding: 12px; margin: 0; border: none; white-space: pre; word-wrap: normal;
+  tab-size: 2;
+}
+.source-editor-highlight {
+  color: var(--muted); background: var(--input);
+  pointer-events: none; z-index: 0; overflow: hidden;
+}
+.source-editor-highlight code { color: inherit; }
+.source-editor-input {
+  color: transparent; caret-color: var(--text);
+  background: transparent; resize: none; outline: none; z-index: 1;
+  overflow: auto;
+}
+.source-editor-input::selection { background: oklch(69% 0.14 255 / 0.3); }
 .file-kind { border: 1px solid var(--line); color: var(--muted); padding: 4px 8px; border-radius: 999px; font-size: 12px; }
 .file-kind.script { color: var(--green); border-color: var(--success-line); }
 .node-grid { display: grid; padding: 0 16px 16px; }
@@ -433,20 +460,22 @@ textarea { min-height: 96px; resize: vertical; font-family: ui-monospace, "Casca
 }
 .editor-wrapper { position: relative; flex: 1; overflow: auto; }
 .editor-highlight, .editor-input {
-  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  position: absolute; top: 0; left: 0; width: 100%; min-height: 100%;
   font-family: ui-monospace, "Cascadia Code", monospace; font-size: 12px; line-height: 1.5;
   padding: 12px; margin: 0; border: none; white-space: pre; word-wrap: normal;
-  overflow: auto; tab-size: 2;
+  tab-size: 2;
 }
 .editor-highlight {
   color: var(--muted); background: var(--input);
-  pointer-events: none; z-index: 0;
+  pointer-events: none; z-index: 0; overflow: hidden;
 }
 .editor-highlight code { color: inherit; }
 .editor-input {
   color: transparent; caret-color: var(--text);
   background: transparent; resize: none; outline: none; z-index: 1;
+  overflow: auto;
 }
+.editor-input::selection { background: oklch(69% 0.14 255 / 0.3); }
 
 /* Syntax highlighting */
 .hl-keyword { color: oklch(76% 0.15 var(--accent-hue)); }
@@ -454,6 +483,7 @@ textarea { min-height: 96px; resize: vertical; font-family: ui-monospace, "Casca
 .hl-number { color: var(--amber); }
 .hl-comment { color: var(--faint); font-style: italic; }
 .hl-emaki { color: var(--accent-strong); font-weight: 600; }
+.hl-key { color: oklch(76% 0.15 var(--accent-hue)); }
 
 /* Completion popup */
 .completion-popup {
@@ -771,7 +801,7 @@ button.prop-level-summary { border: 0; background: transparent; padding: 0; curs
 
 .chip-list.dense { gap: 6px; }
 @media (max-width: 1280px) { .gui-workbench { --mc-slot: 52px; grid-template-columns: 1fr; height: auto; min-height: calc(100vh - 67px); overflow: visible; } .gui-preview-pane { overflow: auto; padding-right: 0; scrollbar-width: thin; } .gui-inspector-resize { display: none; } .gui-inspector { height: auto; overflow: visible; padding-left: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); } .material-palette { grid-column: 1 / -1; } }
-@media (max-width: 760px) { .brand-block { grid-template-columns: 1fr; align-items: stretch; } .rail-controls { justify-content: flex-start; } .surface-head, .ie-header { align-items: flex-start; flex-direction: column; gap: 10px; } .head-actions, .ie-header-actions, .ui-actions { width: 100%; flex-wrap: wrap; } .head-actions button, .ie-btn, .ui-button { min-height: 44px; } .gui-workbench { --mc-slot: 44px; padding: 12px; overflow-x: hidden; } .gui-preview-pane { justify-content: start; } .minecraft-window { max-width: none; padding: 22px 18px 20px; } .minecraft-titlebar { height: 32px; font-size: 14px; } .minecraft-grid { grid-template-rows: none !important; gap: 2px; padding: 8px; } .minecraft-slot::before { inset: 5px; } .gui-inspector { grid-template-columns: 1fr; } .material-list { grid-template-columns: 1fr; } .material-list button, .material-tabs button, .wide-action, .ui-button--full { min-height: 44px; } .i18n-modal-toolbar, .i18n-add-row, .i18n-table-head, .i18n-row { grid-template-columns: 1fr; } .i18n-row-delete { justify-self: start; } .editor-source-modal { max-width: calc(100vw - 16px); max-height: calc(100vh - 16px); } .editor-source-textarea { min-height: 200px; } .node-section-header { flex-wrap: wrap; gap: 4px; } .node-section-header code { font-size: 10px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; } }
+@media (max-width: 760px) { .brand-block { grid-template-columns: 1fr; align-items: stretch; } .rail-controls { justify-content: flex-start; } .surface-head, .ie-header { align-items: flex-start; flex-direction: column; gap: 10px; } .head-actions, .ie-header-actions, .ui-actions { width: 100%; flex-wrap: wrap; } .head-actions button, .ie-btn, .ui-button { min-height: 44px; } .gui-workbench { --mc-slot: 44px; padding: 12px; overflow-x: hidden; } .gui-preview-pane { justify-content: start; } .minecraft-window { max-width: none; padding: 22px 18px 20px; } .minecraft-titlebar { height: 32px; font-size: 14px; } .minecraft-grid { grid-template-rows: none !important; gap: 2px; padding: 8px; } .minecraft-slot::before { inset: 5px; } .gui-inspector { grid-template-columns: 1fr; } .material-list { grid-template-columns: 1fr; } .material-list button, .material-tabs button, .wide-action, .ui-button--full { min-height: 44px; } .i18n-modal-toolbar, .i18n-add-row, .i18n-table-head, .i18n-row { grid-template-columns: 1fr; } .i18n-row-delete { justify-self: start; } .editor-source-modal { max-width: calc(100vw - 16px); max-height: calc(100vh - 16px); } .source-editor-input { min-height: 200px; } .source-line-numbers { width: 2.5rem; padding: 12px 4px; } .node-section-header { flex-wrap: wrap; gap: 4px; } .node-section-header code { font-size: 10px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; } }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }

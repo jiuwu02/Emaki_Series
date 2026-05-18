@@ -8,6 +8,7 @@ import { applyEditorDescriptorOverrides, getSourceDocumentAdapter, getSurface, i
 import { getLocale, getRegisteredLocales, setLocale, t } from './i18n';
 import { ActionGroup, Button, EditorChrome, InlineError, ToastNotice, type EditorChange } from './components';
 import { I18nBundleModal, type I18nTarget } from './I18nBundleModal';
+import { highlightJS } from './lib/highlight';
 import { fieldLabel, valuesEqual } from './lib';
 import { Login, ResizableRail, WorkspaceTree, fileKindLabel } from './shell';
 import type { SurfaceProps, SurfaceToolbarState } from './registry';
@@ -278,6 +279,7 @@ export default function App() {
           source={toolbar.source ?? ''}
           sourceEditable={toolbar.sourceEditable}
           sourceError={toolbar.sourceError}
+          sourceLanguage={toolbar.sourceLanguage}
           saving={toolbar.saving ?? false}
           loading={toolbar.loading ?? false}
           saveLabel={toolbar.saveLabel}
@@ -364,6 +366,7 @@ function ConfigStructuredSurface({ module, file, drafts, draftHistory, setDraftV
       source: source.content,
       sourceEditable: true,
       sourceError: source.error,
+      sourceLanguage: 'yaml',
       saving: source.saving || savingNodes,
       loading: source.loading,
       canUndo: scopeHistory.undo.length > 0,
@@ -460,6 +463,7 @@ function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, set
       source: source.content,
       sourceEditable: true,
       sourceError: source.error,
+      sourceLanguage: 'yaml',
       saving: saving || source.saving,
       loading: loading || source.loading,
       canUndo: scopeHistory.undo.length > 0,
@@ -730,6 +734,7 @@ function ScriptEditor({ api, scriptPath, module, file, setSurfaceToolbar, setToa
   const [error, setError] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const highlightRef = useRef<HTMLPreElement>(null);
+  const lineNumbersRef = useRef<HTMLDivElement>(null);
 
   const isDirty = content !== savedContent;
   const fileName = scriptPath.split('/').pop() ?? scriptPath;
@@ -793,6 +798,7 @@ function ScriptEditor({ api, scriptPath, module, file, setSurfaceToolbar, setToa
       source: content,
       sourceEditable: true,
       sourceError: error || null,
+      sourceLanguage: 'javascript',
       saving,
       loading,
       canUndo: false,
@@ -877,6 +883,9 @@ function ScriptEditor({ api, scriptPath, module, file, setSurfaceToolbar, setToa
       highlightRef.current.scrollTop = textareaRef.current.scrollTop;
       highlightRef.current.scrollLeft = textareaRef.current.scrollLeft;
     }
+    if (lineNumbersRef.current && textareaRef.current) {
+      lineNumbersRef.current.scrollTop = textareaRef.current.scrollTop;
+    }
   }
 
   const lines = content.split('\n');
@@ -886,7 +895,7 @@ function ScriptEditor({ api, scriptPath, module, file, setSurfaceToolbar, setToa
   return <div className="script-editor">
     {error && <InlineError>{error}</InlineError>}
     <div className="editor-container">
-      <div className="line-numbers">{lines.map((_, i) => <div key={i}>{i + 1}</div>)}</div>
+      <div ref={lineNumbersRef} className="line-numbers">{lines.map((_, i) => <div key={i}>{i + 1}</div>)}</div>
       <div className="editor-wrapper">
         <pre ref={highlightRef} className="editor-highlight" aria-hidden="true"><code dangerouslySetInnerHTML={{ __html: highlightedContent }} /></pre>
         <textarea ref={textareaRef} className="editor-input" value={content} onChange={handleInput} onKeyDown={handleKeyDown} onScroll={handleScroll} spellCheck={false} autoComplete="off" autoCorrect="off" autoCapitalize="off" aria-label={t('core.script.editAria', { path: scriptPath })} aria-describedby="script-editor-help" />
@@ -899,63 +908,6 @@ function ScriptEditor({ api, scriptPath, module, file, setSurfaceToolbar, setToa
   </div>;
 }
 
-function highlightJS(code: string): string {
-  const tokens: { start: number; end: number; cls: string }[] = [];
-  const src = code;
-
-  // 多行注释
-  for (const m of src.matchAll(/\/\*[\s\S]*?\*\//g)) {
-    tokens.push({ start: m.index!, end: m.index! + m[0].length, cls: 'hl-comment' });
-  }
-  // 单行注释
-  for (const m of src.matchAll(/\/\/[^\n]*/g)) {
-    if (!tokens.some(t => m.index! >= t.start && m.index! < t.end)) {
-      tokens.push({ start: m.index!, end: m.index! + m[0].length, cls: 'hl-comment' });
-    }
-  }
-  // 字符串
-  for (const m of src.matchAll(/(["'`])(?:(?!\1|\\).|\\.)*?\1/g)) {
-    if (!tokens.some(t => m.index! >= t.start && m.index! < t.end)) {
-      tokens.push({ start: m.index!, end: m.index! + m[0].length, cls: 'hl-string' });
-    }
-  }
-  // 数字
-  for (const m of src.matchAll(/\b(\d+\.?\d*)\b/g)) {
-    if (!tokens.some(t => m.index! >= t.start && m.index! < t.end)) {
-      tokens.push({ start: m.index!, end: m.index! + m[0].length, cls: 'hl-number' });
-    }
-  }
-  // 关键字
-  const kwRe = /\b(function|const|let|var|if|else|return|for|while|do|switch|case|break|continue|try|catch|finally|throw|new|typeof|instanceof|in|of|class|extends|import|export|default|this|true|false|null|undefined|void|delete|yield|await|async)\b/g;
-  for (const m of src.matchAll(kwRe)) {
-    if (!tokens.some(t => m.index! >= t.start && m.index! < t.end)) {
-      tokens.push({ start: m.index!, end: m.index! + m[0].length, cls: 'hl-keyword' });
-    }
-  }
-  // emaki
-  for (const m of src.matchAll(/\b(emaki)\b/g)) {
-    if (!tokens.some(t => m.index! >= t.start && m.index! < t.end)) {
-      tokens.push({ start: m.index!, end: m.index! + m[0].length, cls: 'hl-emaki' });
-    }
-  }
-
-  tokens.sort((a, b) => a.start - b.start);
-
-  let result = '';
-  let cursor = 0;
-  for (const t of tokens) {
-    if (t.start < cursor) continue;
-    if (t.start > cursor) result += esc(src.substring(cursor, t.start));
-    result += `<span class="${t.cls}">${esc(src.substring(t.start, t.end))}</span>`;
-    cursor = t.end;
-  }
-  if (cursor < src.length) result += esc(src.substring(cursor));
-  return result;
-}
-
-function esc(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
 
 const COMPLETIONS: Record<string, string[]> = {
   'emaki': ['logger', 'player', 'item', 'state', 'text', 'random', 'action', 'context'],

@@ -40,6 +40,7 @@ export type SurfaceToolbarState = {
   source?: string;
   sourceEditable?: boolean;
   sourceError?: string | null;
+  sourceLanguage?: string;
   saving?: boolean;
   loading?: boolean;
   saveLabel?: string;
