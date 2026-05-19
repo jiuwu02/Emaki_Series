@@ -75,7 +75,8 @@ debug:
 
 # Web Console 调试命令
 web_debug:
-  request: "[WebDebug] {method} {uri} → {status} ({elapsed}ms) from {remote}"
+  request: "[WebDebug][{label}] {method} {uri} → {status} ({elapsed}ms) from {remote}"
+  frontend_error: "[WebDebug][前端][ERROR] {message} | source={source} | detail={detail} | url={url} | stack={stack}"
   enabled_all: "<green>Web Console 调试模式已开启（前端+后端）</green>"
   enabled_frontend: "<green>Web Console 前端调试已开启（静态资源与扩展脚本）</green>"
   enabled_backend: "<green>Web Console 后端调试已开启（API 请求）</green>"

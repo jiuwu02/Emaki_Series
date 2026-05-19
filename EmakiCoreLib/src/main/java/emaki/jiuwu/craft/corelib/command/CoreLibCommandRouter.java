@@ -129,11 +129,6 @@ public final class CoreLibCommandRouter implements TabExecutor {
         return true;
     }
 
-    private void sendLang(CommandSender sender, String key) {
-        MessageService messageService = plugin.messageService();
-        messageService.sendRaw(sender, messageService.message(key));
-    }
-
     private void sendHelp(CommandSender sender, String label) {
         String root = "/" + (label == null || label.isBlank() ? "emakicorelib" : label);
         sendLang(sender, "command.help_header");
@@ -150,11 +145,6 @@ public final class CoreLibCommandRouter implements TabExecutor {
     private void sendLang(CommandSender sender, String key, Map<String, ?> replacements) {
         MessageService messageService = plugin.messageService();
         messageService.sendRaw(sender, messageService.message(key, replacements));
-    }
-
-    private void sendLine(CommandSender sender, Component component) {
-        AdventureSupport.sendMessage(plugin, sender, Component.text("[EmakiCoreLib] ", NamedTextColor.DARK_AQUA)
-                .append(component));
     }
 
     private String clickableUrl(String host, int port) {

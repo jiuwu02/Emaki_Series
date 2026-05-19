@@ -100,6 +100,7 @@ public final class WebConsoleYamlRegistrar {
                     case "GUI" -> WebConsoleRegistry.registerGuiFile(moduleId, title, path, comment, editor);
                     case "ITEM" -> WebConsoleRegistry.registerItemFile(moduleId, title, path, comment, editor);
                     case "SCRIPT" -> WebConsoleRegistry.registerScriptFile(moduleId, title, path, comment);
+                    default -> WebConsoleRegistry.registerResourceFile(moduleId, title, path, kind, comment, editor);
                 }
             }
         }

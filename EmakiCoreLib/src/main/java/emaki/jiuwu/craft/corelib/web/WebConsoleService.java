@@ -27,7 +27,7 @@ import com.sun.net.httpserver.HttpServer;
 
 public final class WebConsoleService {
 
-    private final JavaPlugin plugin;
+    private final EmakiCoreLibPlugin plugin;
     private WebConsoleConfig config;
     private HttpServer server;
     private ExecutorService executor;
@@ -42,7 +42,7 @@ public final class WebConsoleService {
     private volatile boolean debugFrontend;
     private volatile boolean debugBackend;
 
-    public WebConsoleService(JavaPlugin plugin, WebConsoleConfig config) {
+    public WebConsoleService(EmakiCoreLibPlugin plugin, WebConsoleConfig config) {
         this.plugin = plugin;
         this.config = config;
     }
@@ -82,12 +82,15 @@ public final class WebConsoleService {
             createContext("/api/configs/read", this::handleConfigRead);
             createContext("/api/configs/save", this::handleConfigSave);
             createContext("/api/libraries", this::handleLibraries);
+            createContext("/api/debug/frontend-error", this::handleFrontendError);
             createContext("/api/scripts/read", this::handleScriptRead);
             createContext("/api/scripts/save", this::handleScriptSave);
             createContext("/api/gui/read", this::handleGuiRead);
             createContext("/api/gui/save", this::handleGuiSave);
             createContext("/api/items/read", this::handleItemRead);
             createContext("/api/items/save", this::handleItemSave);
+            createContext("/api/resources/read", this::handleResourceRead);
+            createContext("/api/resources/save", this::handleResourceSave);
             createContext("/api/items/preview", this::handleItemPreview);
             createContext("/api/items/action-types", this::handleItemActionTypes);
             createContext("/api/economy/providers", this::handleEconomyProviders);
@@ -142,6 +145,7 @@ public final class WebConsoleService {
         boolean isBackendApi = path.startsWith("/api/");
         server.createContext(path, exchange -> {
             boolean shouldDebug = isBackendApi ? debugBackend : debugFrontend;
+            String debugSide = isBackendApi ? "backend" : "frontend";
             long startTime = shouldDebug ? System.currentTimeMillis() : 0;
             try {
                 if (shouldDebug) {
@@ -160,7 +164,7 @@ public final class WebConsoleService {
                 }
             } finally {
                 if (shouldDebug) {
-                    logDebugRequest(exchange, startTime);
+                    logDebugRequest(exchange, startTime, debugSide);
                 }
             }
         });
@@ -403,6 +407,23 @@ public final class WebConsoleService {
         WebResponse.json(exchange, 200, Map.of("success", true, "runtime", runtimeLibraryService.snapshot()));
     }
 
+    private void handleFrontendError(HttpExchange exchange) throws IOException {
+        if (!requirePost(exchange)) {
+            return;
+        }
+        if (requireAuth(exchange) == null) {
+            return;
+        }
+        String body = readBody(exchange);
+        String message = WebJson.extractString(body, "message");
+        String source = WebJson.extractString(body, "source");
+        String detail = WebJson.extractString(body, "detail");
+        String stack = WebJson.extractString(body, "stack");
+        String url = WebJson.extractString(body, "url");
+        logFrontendDebugError(source, message, detail, stack, url);
+        WebResponse.json(exchange, 200, Map.of("success", true));
+    }
+
     private void handleScriptRead(HttpExchange exchange) throws IOException {
         if (requireAuth(exchange) == null) return;
         String path = query(exchange, "path");
@@ -474,6 +495,8 @@ public final class WebConsoleService {
     private void handleGuiSave(HttpExchange exchange) throws IOException { handleYamlSave(exchange, "GUI"); }
     private void handleItemRead(HttpExchange exchange) throws IOException { handleYamlRead(exchange, "ITEM"); }
     private void handleItemSave(HttpExchange exchange) throws IOException { handleYamlSave(exchange, "ITEM"); }
+    private void handleResourceRead(HttpExchange exchange) throws IOException { handleYamlRead(exchange, "资源"); }
+    private void handleResourceSave(HttpExchange exchange) throws IOException { handleYamlSave(exchange, "资源"); }
 
     private void handleYamlRead(HttpExchange exchange, String kind) throws IOException {
         if (requireAuth(exchange) == null) return;
@@ -634,10 +657,10 @@ public final class WebConsoleService {
     }
 
     private String defaultFileContent(WebConsoleRegistry.WebConsoleFileType type) {
-        return switch (type) {
-            case SCRIPT -> "// Created by Emaki Web Console\n";
-            case GUI, ITEM, CONFIG -> "{}\n";
-        };
+        if (type != null && type.is("SCRIPT")) {
+            return "// Created by Emaki Web Console\n";
+        }
+        return "{}\n";
     }
 
     private boolean isDeletableFileName(String name) {
@@ -784,7 +807,7 @@ public final class WebConsoleService {
         return java.net.URLDecoder.decode(value, StandardCharsets.UTF_8);
     }
 
-    private void logDebugRequest(HttpExchange exchange, long startTime) {
+    private void logDebugRequest(HttpExchange exchange, long startTime, String side) {
         try {
             long elapsed = System.currentTimeMillis() - startTime;
             String method = exchange.getRequestMethod();
@@ -792,6 +815,8 @@ public final class WebConsoleService {
             String remote = exchange.getRemoteAddress() != null ? exchange.getRemoteAddress().getAddress().getHostAddress() : "unknown";
             int responseCode = exchange.getResponseCode();
             plugin.messageService().info("web_debug.request", Map.of(
+                    "side", side,
+                    "label", debugSideLabel(side),
                     "method", method,
                     "uri", uri,
                     "status", String.valueOf(responseCode),
@@ -801,5 +826,29 @@ public final class WebConsoleService {
         } catch (Exception ignored) {
             // debug 日志不应影响正常请求处理
         }
+    }
+
+    private void logFrontendDebugError(String source, String message, String detail, String stack, String url) {
+        if (!debugFrontend) {
+            return;
+        }
+        plugin.messageService().warning("web_debug.frontend_error", Map.of(
+                "source", safeLogValue(source, "unknown"),
+                "message", safeLogValue(message, "无错误信息"),
+                "detail", safeLogValue(detail, "-"),
+                "stack", safeLogValue(stack, "-"),
+                "url", safeLogValue(url, "-")
+        ));
+    }
+
+    private String debugSideLabel(String side) {
+        return "backend".equals(side) ? "后端" : "前端";
+    }
+
+    private String safeLogValue(String value, String fallback) {
+        if (value == null || value.isBlank()) {
+            return fallback;
+        }
+        return value.replace('\n', ' ').replace('\r', ' ');
     }
 }

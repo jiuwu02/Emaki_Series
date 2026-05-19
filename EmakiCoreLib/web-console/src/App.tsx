@@ -74,6 +74,25 @@ export default function App() {
 
   useEffect(() => { if (token) void loadRegistry({ initial: true, clearDrafts: true }); }, [token]);
   useEffect(() => {
+    if (!token) return;
+    const report = (message: string, source: string, detail?: string, stack?: string) => {
+      void api.reportFrontendError({ message, source, detail, stack });
+    };
+    const handleError = (event: ErrorEvent) => {
+      report(event.message || 'Unhandled frontend error', 'window.error', `${event.filename ?? ''}:${event.lineno ?? 0}:${event.colno ?? 0}`, event.error?.stack);
+    };
+    const handleRejection = (event: PromiseRejectionEvent) => {
+      const reason = event.reason;
+      report(reason instanceof Error ? reason.message : String(reason ?? 'Unhandled promise rejection'), 'unhandledrejection', undefined, reason instanceof Error ? reason.stack : undefined);
+    };
+    window.addEventListener('error', handleError);
+    window.addEventListener('unhandledrejection', handleRejection);
+    return () => {
+      window.removeEventListener('error', handleError);
+      window.removeEventListener('unhandledrejection', handleRejection);
+    };
+  }, [api, token]);
+  useEffect(() => {
     document.documentElement.dataset.theme = theme;
     localStorage.setItem('emaki-color-theme', theme);
   }, [theme]);

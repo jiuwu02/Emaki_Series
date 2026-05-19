@@ -4,7 +4,8 @@ import { ActionsEditor, Button, CollapsibleSection, EditorChrome, InlineError, M
 import { asList, asRecord, asStringList, displaySource, firstItemSource, materialFromItemSource, setDeepValue, parseYaml, type AnyMap } from './itemEditor';
 import { t } from './i18n';
 import { changedPathSet, diffRecords, getDeepValue, isChangedFieldPath, materialShortName, materialUrls, optionLabel, subscribeTextureBases, textValue, valuesEqual } from './lib';
-import { getSourceDocumentAdapter, type SurfaceToolbarState } from './registry';
+import { MINECRAFT_MATERIALS, searchMaterials } from './minecraftMaterials';
+import { getSourceDocumentAdapter, isKind, type SurfaceToolbarState } from './registry';
 import type { ItemPreviewResult, WebEditorDescriptor, WebEditorField, WebEditorSection, WebRegistryFile, WebRegistryModule } from './types';
 import { serializeItemYaml } from './itemEditor';
 
@@ -19,6 +20,8 @@ const EXTRACT_RETURN_MODES = ['original', 'destroy', 'downgrade'];
 const FAILURE_PENALTIES = ['none', 'downgrade', 'destroy'];
 const GEM_TYPES = ['attack', 'defense', 'utility', 'universal'];
 const DEFAULT_ECONOMY_PROVIDERS = ['auto', 'vault', 'excellenteconomy'];
+const CORE_FIELD_TYPES = new Set(['text', 'number', 'boolean', 'enum', 'multiEnum', 'material', 'textarea', 'stringList', 'numberList', 'map', 'dynamicMap', 'objectMap', 'json', 'actions']);
+const MODULE_FIELD_TYPES = new Set(['effects', 'attributeModifiers', 'repairMaterials', 'setPieces', 'setThresholds', 'cost', 'extractReturn', 'gemUpgrade', 'gemSlots']);
 
 const EditorContext = React.createContext<{
   moduleId: string;
@@ -62,13 +65,24 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
     let cancelled = false;
     setLoading(true);
     setError(null);
-    api.readItem(module.id, filePath).then(doc => {
+    api.readTextDocument({ kind: file.kind, moduleId: module.id, path: filePath }).then(doc => {
       if (cancelled) return;
-      setData(doc.data as AnyMap);
-      setOriginalData(doc.data as AnyMap);
-      setOriginalContent(doc.content);
-      setSourceText(doc.content);
-      setSourceError(null);
+      try {
+        const parsed = parseYaml(doc.content) as AnyMap;
+        setData(parsed);
+        setOriginalData(parsed);
+        setOriginalContent(doc.content);
+        setSourceText(doc.content);
+        setSourceError(null);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        setData({});
+        setOriginalData({});
+        setOriginalContent(doc.content);
+        setSourceText(doc.content);
+        setSourceError(message);
+        void api.reportFrontendError({ message, source: 'item-yaml-parse', detail: `${module.id}/${filePath}` });
+      }
       setHistory({ undo: [], redo: [] });
       setLoading(false);
     }).catch(err => {
@@ -86,13 +100,17 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
 
   useEffect(() => {
     if (loading) return;
+    if (!isKind(file.kind, 'ITEM')) {
+      setPreview(null);
+      return;
+    }
     const content = serializeItemYaml(data);
     const previewBaseLore = resolvePreviewBaseLore(data, baseLore as string[]);
     const timer = setTimeout(() => {
       api.previewItem(content, previewLevel, baseName, previewBaseLore).then(setPreview).catch(() => setPreview(null));
     }, 300);
     return () => clearTimeout(timer);
-  }, [api, data, previewLevel, loading, baseName, baseLore]);
+  }, [api, data, previewLevel, loading, baseName, baseLore, file.kind]);
 
   useEffect(() => {
     const levels = configuredPreviewLevels(data, preview);
@@ -121,7 +139,9 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
       setData(parsed);
       setSourceError(null);
     } catch (err) {
-      setSourceError(err instanceof Error ? err.message : String(err));
+      const message = err instanceof Error ? err.message : String(err);
+      setSourceError(message);
+      void api.reportFrontendError({ message, source: 'item-source-yaml-parse', detail: `${module.id}/${filePath}` });
     }
   };
 
@@ -155,7 +175,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
     setError(null);
     try {
       const content = sourceContent;
-      await (sourceAdapter?.save(api, sourceContext, content) ?? api.saveItem(module.id, filePath, content));
+      await (sourceAdapter?.save(api, sourceContext, content) ?? api.saveTextDocument({ kind: file.kind, moduleId: module.id, path: filePath }, content));
       setOriginalContent(content);
       setOriginalData(data);
       setSourceText(content);
@@ -253,14 +273,22 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
 }
 
 function FieldEditor({ field, data, originalData, setField, actionTypesResult }: { field: WebEditorField; data: AnyMap; originalData: AnyMap; setField: (path: string, value: unknown) => void; actionTypesResult: ActionTypesResult | null }) {
+  const context = React.useContext(EditorContext);
   const value = getDeepValue(data, field.path);
   const changed = !valuesEqual(value, getDeepValue(originalData, field.path));
   const label = field.label || field.path;
   const type = field.type || 'text';
+  const editorMeta = (context.editorFields as AnyMap).__meta as AnyMap | undefined;
+  const allowedFieldTypes = asStringList((field as AnyMap).allowedFieldTypes ?? editorMeta?.allowedFieldTypes);
+  const moduleTypeAllowed = CORE_FIELD_TYPES.has(type) || allowedFieldTypes.includes(type);
+
+  if (!moduleTypeAllowed && MODULE_FIELD_TYPES.has(type)) return <PropRow label={label} path={field.path} changed={changed} wide><GenericObjectEditor value={value} onChange={next => setField(field.path, next)} /></PropRow>;
 
   if (type === 'number') return <PropRow label={label} path={field.path} changed={changed} wide={field.wide}><NumberInput value={value} onChange={next => setField(field.path, next)} /></PropRow>;
   if (type === 'boolean') return <PropRow label={label} path={field.path} changed={changed} wide={field.wide}><ToggleButton checked={value === true} onChange={next => setField(field.path, next)} /></PropRow>;
-  if (type === 'enum' && field.options?.length) return <PropRow label={label} path={field.path} changed={changed} wide={field.wide}><SelectInput value={value} options={field.options} onChange={next => setField(field.path, next)} /></PropRow>;
+  if (type === 'enum' && field.options?.length) return <PropRow label={label} path={field.path} changed={changed} wide={field.wide}><SelectInput value={value} options={field.options} labelPrefix={field.optionLabelPrefix} onChange={next => setField(field.path, next)} /></PropRow>;
+  if (type === 'multiEnum' && field.options?.length) return <PropRow label={label} path={field.path} changed={changed} wide={field.wide ?? true}><MultiEnumEditor value={value} options={field.options} labelPrefix={field.optionLabelPrefix} onChange={next => setField(field.path, next)} /></PropRow>;
+  if (type === 'material') return <PropRow label={label} path={field.path} changed={changed} wide={field.wide}><MaterialInput value={value} onChange={next => setField(field.path, next)} /></PropRow>;
   if (type === 'textarea') return <PropRow label={label} path={field.path} changed={changed} wide><textarea rows={field.rows ?? 4} value={textValue(value)} onChange={e => setField(field.path, e.target.value)} placeholder={field.placeholder} /></PropRow>;
   if (type === 'stringList') return <PropRow label={label} path={field.path} changed={changed} wide><StringListEditor items={asStringList(value)} onChange={items => setField(field.path, items)} placeholder={field.placeholder} /></PropRow>;
   if (type === 'numberList') return <PropRow label={label} path={field.path} changed={changed} wide><NumberListEditor items={asList(value).map(item => Number(item) || 0)} onChange={items => setField(field.path, items)} /></PropRow>;
@@ -270,6 +298,10 @@ function FieldEditor({ field, data, originalData, setField, actionTypesResult }:
     return <PropRow label={label} path={field.path} changed={changed} wide><ScopedActionsEditor actions={parseActionList(value)} onChange={actions => setField(field.path, serializeActionList(actions))} actionTypes={mode === 'lore' ? actionTypesResult?.loreActions ?? [] : actionTypesResult?.nameActions ?? []} mode={mode} /></PropRow>;
   }
   if (type === 'effects') return <PropRow label={label} path={field.path} changed={false} wide><EffectsEditor value={value} path={field.path} onChange={next => setField(field.path, next)} actionTypesResult={actionTypesResult} /></PropRow>;
+  if (type === 'attributeModifiers') return <PropRow label={label} path={field.path} changed={changed} wide><AttributeModifiersEditor value={value} path={field.path} onChange={next => setField(field.path, next)} /></PropRow>;
+  if (type === 'repairMaterials') return <PropRow label={label} path={field.path} changed={changed} wide><RepairMaterialsEditor value={value} path={field.path} onChange={next => setField(field.path, next)} /></PropRow>;
+  if (type === 'setPieces') return <PropRow label={label} path={field.path} changed={changed} wide><SetPiecesEditor value={value} path={field.path} onChange={next => setField(field.path, next)} /></PropRow>;
+  if (type === 'setThresholds') return <PropRow label={label} path={field.path} changed={changed} wide><SetThresholdsEditor value={value} path={field.path} onChange={next => setField(field.path, next)} /></PropRow>;
   if (type === 'cost') return <CostEditor label={label} path={field.path} value={value ?? { currencies: [], materials: [] }} onChange={next => setField(field.path, next)} />;
   if (type === 'extractReturn') return <ExtractReturnEditor path={field.path} value={value} onChange={next => setField(field.path, next)} />;
   if (type === 'gemUpgrade') return <UpgradeEditor path={field.path} value={value ?? { enabled: false, levels: {} }} onChange={next => setField(field.path, next)} actionTypesResult={actionTypesResult} />;
@@ -310,6 +342,37 @@ function SelectInput({ id, value, options, onChange, labelPrefix }: { id?: strin
   const current = textValue(value);
   const merged = current && !options.includes(current) ? [...options, current] : options;
   return <select id={id} value={current} onChange={event => onChange(event.target.value)}>{merged.map(option => <option key={option} value={option}>{labelPrefix ? optionLabel(labelPrefix, option, { moduleId: context.moduleId, namespace: context.moduleId, fallback: option }) : option}</option>)}</select>;
+}
+
+function MultiEnumEditor({ value, options, onChange, labelPrefix }: { value: unknown; options: string[]; onChange: (value: string[]) => void; labelPrefix?: string }) {
+  const context = React.useContext(EditorContext);
+  const selected = new Set(asStringList(value).map(entry => entry.trim()).filter(Boolean));
+  const unknown = Array.from(selected).filter(entry => !options.includes(entry));
+  const toggle = (option: string) => {
+    const next = new Set(selected);
+    next.has(option) ? next.delete(option) : next.add(option);
+    onChange(Array.from(next));
+  };
+  return <div className="prop-enum-grid" role="group">
+    {[...options, ...unknown].map(option => <button key={option} type="button" className={`prop-enum-chip${selected.has(option) ? ' active' : ''}${unknown.includes(option) ? ' unknown' : ''}`} aria-pressed={selected.has(option)} onClick={() => toggle(option)}>
+      {labelPrefix ? optionLabel(labelPrefix, option, { moduleId: context.moduleId, namespace: context.moduleId, fallback: option }) : option}
+    </button>)}
+  </div>;
+}
+
+function MaterialInput({ id, value, onChange }: { id?: string; value: unknown; onChange: (value: string) => void }) {
+  const current = textValue(value).toUpperCase();
+  const [query, setQuery] = useState(current.toLowerCase());
+  const suggestions = useMemo(() => searchMaterials(query || current, '全部').slice(0, 80), [query, current]);
+  useEffect(() => setQuery(current.toLowerCase()), [current]);
+  return <div className="prop-material-picker">
+    <input id={id} type="text" value={query} onChange={event => setQuery(event.target.value)} onBlur={() => { if (query.trim()) onChange(query.trim().toUpperCase()); }} placeholder="diamond_sword" list="ie-material-options" />
+    <datalist id="ie-material-options">{suggestions.map(material => <option key={material} value={material.toLowerCase()} />)}</datalist>
+    <select value={MINECRAFT_MATERIALS.includes(current) ? current : ''} onChange={event => { if (event.target.value) onChange(event.target.value); }} aria-label="Material enum">
+      <option value="">{current && !MINECRAFT_MATERIALS.includes(current) ? current : '选择 Material'}</option>
+      {suggestions.map(material => <option key={material} value={material}>{material}</option>)}
+    </select>
+  </div>;
 }
 
 function TextInput({ id, value, onChange, placeholder }: { id?: string; value: unknown; onChange: (value: string) => void; placeholder?: string }) {
@@ -410,6 +473,81 @@ function EffectPayloadEditor({ effect, onChange, actionTypesResult, path }: { ef
   if (type === 'name_action') return <PropRow label="name_actions" path={joinPath(path, 'name_actions')} wide><ScopedActionsEditor actions={parseActionList(effect.name_actions)} onChange={actions => setPayload('name_actions', serializeActionList(actions))} actionTypes={actionTypesResult?.nameActions ?? []} mode="name" /></PropRow>;
   if (type === 'lore_action') return <PropRow label="lore_actions" path={joinPath(path, 'lore_actions')} wide><ScopedActionsEditor actions={parseActionList(effect.lore_actions)} onChange={actions => setPayload('lore_actions', serializeActionList(actions))} actionTypes={actionTypesResult?.loreActions ?? []} mode="lore" /></PropRow>;
   return <GenericObjectEditor value={effect} reservedKeys={['type']} onChange={next => onChange({ type, ...next })} />;
+}
+
+function SetPiecesEditor({ value, onChange, path }: { value: unknown; onChange: (value: AnyMap) => void; path?: string }) {
+  const pieces = Object.entries(asRecord(value)).map(([key, entry]) => ({ key, value: asRecord(entry) }));
+  const slots = ['main_hand', 'off_hand', 'helmet', 'chestplate', 'leggings', 'boots'];
+  const update = (index: number, key: string, patch: AnyMap) => {
+    const nextEntries = pieces.map((piece, itemIndex) => itemIndex === index ? { key, value: cleanObject({ ...piece.value, ...patch }) } : piece);
+    onChange(Object.fromEntries(nextEntries.filter(piece => piece.key.trim()).map(piece => [piece.key.trim(), piece.value])));
+  };
+  const remove = (index: number) => onChange(Object.fromEntries(pieces.filter((_, itemIndex) => itemIndex !== index).map(piece => [piece.key, piece.value])));
+  const add = () => onChange({ ...asRecord(value), [nextUniqueKey(pieces.map(piece => piece.key), 'piece')]: { item: '', slot: 'main_hand', display: '' } });
+  return <div className="prop-levels" role="list">
+    {pieces.map((piece, index) => <div className="prop-cost-entry" key={index} role="listitem">
+      <div className="prop-cost-entry-head"><span>{piece.key}</span><button type="button" className="prop-kv-del" onClick={() => remove(index)} aria-label={`删除套装部件 ${index + 1}`}>×</button></div>
+      <PropRow label="piece_id" path={joinPath(path, piece.key)}><TextInput value={piece.key} onChange={nextKey => update(index, nextKey, {})} /></PropRow>
+      <PropRow label="item" path={joinPath(path, piece.key, 'item')}><TextInput value={piece.value.item} onChange={item => update(index, piece.key, { item })} placeholder="example_item" /></PropRow>
+      <PropRow label="slot" path={joinPath(path, piece.key, 'slot')}><SelectInput value={piece.value.slot ?? 'main_hand'} options={slots} labelPrefix="setSlot" onChange={slot => update(index, piece.key, { slot })} /></PropRow>
+      <PropRow label="display" path={joinPath(path, piece.key, 'display')}><TextInput value={piece.value.display} onChange={display => update(index, piece.key, { display })} placeholder={piece.key} /></PropRow>
+    </div>)}
+    <button type="button" className="prop-add" onClick={add}>+ 套装部件</button>
+  </div>;
+}
+
+function SetThresholdsEditor({ value, onChange, path }: { value: unknown; onChange: (value: AnyMap) => void; path?: string }) {
+  const thresholds = Object.entries(asRecord(value)).map(([key, entry]) => ({ key, value: asRecord(entry) })).sort((left, right) => Number(left.key) - Number(right.key));
+  const update = (index: number, key: string, patch: AnyMap) => {
+    const nextEntries = thresholds.map((threshold, itemIndex) => itemIndex === index ? { key, value: cleanObject({ ...threshold.value, ...patch }) } : threshold);
+    onChange(Object.fromEntries(nextEntries.filter(threshold => threshold.key.trim()).map(threshold => [threshold.key.trim(), threshold.value])));
+  };
+  const remove = (index: number) => onChange(Object.fromEntries(thresholds.filter((_, itemIndex) => itemIndex !== index).map(threshold => [threshold.key, threshold.value])));
+  const add = () => onChange({ ...asRecord(value), [nextNumericKey(thresholds.map(threshold => threshold.key), 2)]: { lore: [], ea_attributes: {}, es_skills: [] } });
+  return <div className="prop-levels" role="list">
+    {thresholds.map((threshold, index) => <div className="prop-cost-entry" key={index} role="listitem">
+      <div className="prop-cost-entry-head"><span>{threshold.key} 件套</span><button type="button" className="prop-kv-del" onClick={() => remove(index)} aria-label={`删除阈值 ${threshold.key}`}>×</button></div>
+      <PropRow label="required" path={joinPath(path, threshold.key)}><NumberInput value={Number(threshold.key)} onChange={required => update(index, String(Math.max(1, required ?? 1)), {})} /></PropRow>
+      <PropRow label="lore" path={joinPath(path, threshold.key, 'lore')} wide><StringListEditor items={asStringList(threshold.value.lore)} onChange={lore => update(index, threshold.key, { lore })} placeholder="[2件套] 物理攻击 +5" /></PropRow>
+      <PropRow label="ea_attributes" path={joinPath(path, threshold.key, 'ea_attributes')} wide><MapEditor value={threshold.value.ea_attributes} valuePlaceholder="属性值" addKeyPrefix="attribute" onChange={ea_attributes => update(index, threshold.key, { ea_attributes })} /></PropRow>
+      <PropRow label="es_skills" path={joinPath(path, threshold.key, 'es_skills')} wide><StringListEditor items={asStringList(threshold.value.es_skills)} onChange={es_skills => update(index, threshold.key, { es_skills })} placeholder="guardian_aura" /></PropRow>
+    </div>)}
+    <button type="button" className="prop-add" onClick={add}>+ 阈值</button>
+  </div>;
+}
+
+function AttributeModifiersEditor({ value, onChange, path }: { value: unknown; onChange: (value: AnyMap[]) => void; path?: string }) {
+  const modifiers = asList(value).map(entry => asRecord(entry));
+  const operations = ['add_number', 'add_scalar', 'multiply_scalar_1'];
+  const slots = ['any', 'hand', 'mainhand', 'offhand', 'head', 'chest', 'legs', 'feet', 'body'];
+  const update = (index: number, patch: AnyMap) => onChange(modifiers.map((modifier, itemIndex) => itemIndex === index ? cleanObject({ ...modifier, ...patch }) : modifier));
+  const remove = (index: number) => onChange(modifiers.filter((_, itemIndex) => itemIndex !== index));
+  return <div className="prop-levels" role="list">
+    {modifiers.map((modifier, index) => <div className="prop-cost-entry" key={index} role="listitem">
+      <div className="prop-cost-entry-head"><span>{textValue(modifier.attribute, `attribute_${index + 1}`)}</span><button type="button" className="prop-kv-del" onClick={() => remove(index)} aria-label={`删除属性修饰符 ${index + 1}`}>×</button></div>
+      <PropRow label="attribute" path={joinPath(path, index, 'attribute')}><TextInput value={modifier.attribute} onChange={attribute => update(index, { attribute })} placeholder="attack_damage" /></PropRow>
+      <PropRow label="amount" path={joinPath(path, index, 'amount')}><TextInput value={modifier.amount} onChange={amount => update(index, { amount: parseLooseScalar(amount) })} placeholder="12.0 或 {range}" /></PropRow>
+      <PropRow label="operation" path={joinPath(path, index, 'operation')}><SelectInput value={modifier.operation ?? 'add_number'} options={operations} labelPrefix="attributeOperation" onChange={operation => update(index, { operation })} /></PropRow>
+      <PropRow label="slot" path={joinPath(path, index, 'slot')}><SelectInput value={modifier.slot ?? 'any'} options={slots} labelPrefix="equipmentSlot" onChange={slot => update(index, { slot })} /></PropRow>
+      <PropRow label="name" path={joinPath(path, index, 'name')}><TextInput value={modifier.name} onChange={name => update(index, { name })} placeholder="emakiitem:item/attribute" /></PropRow>
+    </div>)}
+    <button type="button" className="prop-add" onClick={() => onChange([...modifiers, { attribute: 'attack_damage', amount: 1, operation: 'add_number', slot: 'any', name: '' }])}>+ 属性修饰符</button>
+  </div>;
+}
+
+function RepairMaterialsEditor({ value, onChange, path }: { value: unknown; onChange: (value: AnyMap[]) => void; path?: string }) {
+  const materials = asList(value).map(entry => asRecord(entry));
+  const update = (index: number, patch: AnyMap) => onChange(materials.map((material, itemIndex) => itemIndex === index ? cleanObject({ ...material, ...patch }) : material));
+  const remove = (index: number) => onChange(materials.filter((_, itemIndex) => itemIndex !== index));
+  return <div className="prop-levels" role="list">
+    {materials.map((material, index) => <div className="prop-cost-entry" key={index} role="listitem">
+      <div className="prop-cost-entry-head"><span>{textValue(material.item) || firstItemSource(material.item_sources) || `material_${index + 1}`}</span><button type="button" className="prop-kv-del" onClick={() => remove(index)} aria-label={`删除修复材料 ${index + 1}`}>×</button></div>
+      <PropRow label="item" path={joinPath(path, index, 'item')}><TextInput value={material.item} onChange={item => update(index, { item })} placeholder="minecraft-diamond" /></PropRow>
+      <PropRow label="amount" path={joinPath(path, index, 'amount')}><NumberInput value={material.amount ?? 1} onChange={amount => update(index, { amount: amount ?? 1 })} /></PropRow>
+      <PropRow label="restore" path={joinPath(path, index, 'restore')}><TextInput value={material.restore ?? material.repair_amount} onChange={restore => update(index, { restore, repair_amount: undefined })} placeholder="250 或 {max_damage} * .25" /></PropRow>
+    </div>)}
+    <button type="button" className="prop-add" onClick={() => onChange([...materials, { item: 'minecraft-diamond', amount: 1, restore: 100 }])}>+ 修复材料</button>
+  </div>;
 }
 
 function CostEditor({ label, value, onChange, showEnabled, path }: { label: string; value: unknown; onChange: (value: AnyMap) => void; showEnabled?: boolean; path?: string }) {
@@ -633,8 +771,12 @@ function GenericPreviewPane({ data, preview, previewLevel, setPreviewLevel }: { 
 
 function editorFieldMap(editor: WebEditorDescriptor | undefined): Record<string, WebEditorField> {
   const fields = editor?.fields;
-  if (!fields || typeof fields !== 'object' || Array.isArray(fields)) return {};
-  return fields as Record<string, WebEditorField>;
+  const result = !fields || typeof fields !== 'object' || Array.isArray(fields) ? {} : { ...(fields as Record<string, WebEditorField>) };
+  const allowedFieldTypes = asStringList(editor?.allowedFieldTypes);
+  if (allowedFieldTypes.length) {
+    (result as AnyMap).__meta = { path: '__meta', label: '__meta', type: 'json', allowedFieldTypes };
+  }
+  return result;
 }
 
 function previewTooltipName(data: AnyMap, preview: ItemPreviewResult | null, previewLevel: number): string {

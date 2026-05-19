@@ -15,7 +15,13 @@ files:
   - title: "物品定义"
     path: "items/**/*.yml"
     kind: ITEM
+    editor: "emakiitem:item"
     comment: "EmakiItem 自定义物品定义文件。"
+  - title: "套装定义"
+    path: "sets/**/*.yml"
+    kind: SET
+    editor: "emakiitem:set"
+    comment: "EmakiItem 套装定义文件。"
 
 extensions:
   - id: "emakiitem:locale"

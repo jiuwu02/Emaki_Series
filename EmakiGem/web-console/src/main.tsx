@@ -294,6 +294,7 @@ registerEditorDescriptor(MODULE, 'emakigem:gem', {
   kindLabel: '宝石定义',
   baseName: '<gray>预览装备</gray>',
   baseLore: ['<gray>原始装备 Lore</gray>'],
+  allowedFieldTypes: ['effects', 'cost', 'extractReturn', 'gemUpgrade'],
   sections: [
     {
       title: '基础字段', fields: [
@@ -332,6 +333,7 @@ registerEditorDescriptor(MODULE, 'emakigem:socket-item', {
   kindLabel: '宝石物品定义',
   baseName: '<gray>预览装备</gray>',
   baseLore: ['<gray>原始装备 Lore</gray>'],
+  allowedFieldTypes: ['gemSlots'],
   sections: [
     {
       title: '匹配规则', fields: [

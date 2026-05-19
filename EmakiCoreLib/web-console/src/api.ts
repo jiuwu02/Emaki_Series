@@ -8,12 +8,30 @@ export type RegistryFileNodesResult = { nodes: WebConfigNode[]; revision?: numbe
 export type TextDocumentKind = 'CONFIG' | 'GUI' | 'ITEM' | 'SCRIPT' | string;
 export type TextDocumentTarget = { kind: TextDocumentKind; moduleId?: string; path: string };
 export type TextDocument = { moduleId?: string; path: string; content: string; revision?: number };
+export type FrontendErrorReport = { message: string; source: string; detail?: string; stack?: string; url?: string };
 
 export class ApiClient {
   private actionTypesCache: ActionTypesResult | null = null;
   private economyProvidersCache: EconomyProvidersResult | null = null;
 
   constructor(private token: string | null, private onUnauthorized: () => void) {}
+
+  async reportFrontendError(error: FrontendErrorReport): Promise<void> {
+    try {
+      await this.request('/api/debug/frontend-error', {
+        method: 'POST',
+        body: JSON.stringify({
+          message: trimLogText(error.message, 1000),
+          source: trimLogText(error.source, 180),
+          detail: trimLogText(error.detail, 2000),
+          stack: trimLogText(error.stack, 3000),
+          url: trimLogText(error.url ?? window.location.href, 500)
+        })
+      });
+    } catch {
+      // 前端错误上报不能制造新的页面错误或递归噪声。
+    }
+  }
 
   setToken(token: string | null) {
     this.token = token;
@@ -79,6 +97,7 @@ export class ApiClient {
     if (!target.moduleId) throw new Error(t('core.api.missingModule'));
     if (kind === 'GUI') return this.readGui(target.moduleId, target.path);
     if (kind === 'ITEM') return this.readItem(target.moduleId, target.path);
+    if (kind !== 'CONFIG') return this.readResource(target.moduleId, target.path);
     const data = await this.request(`/api/configs/read?module=${encodeURIComponent(target.moduleId)}&path=${encodeURIComponent(target.path)}`);
     const file = data.file ?? {};
     return { moduleId: target.moduleId, path: file.path ?? target.path, content: file.content ?? '', revision: typeof file.lastModified === 'number' ? file.lastModified : undefined };
@@ -90,6 +109,7 @@ export class ApiClient {
     if (!target.moduleId) throw new Error(t('core.api.missingModule'));
     if (kind === 'GUI') return this.saveGui(target.moduleId, target.path, content, revision);
     if (kind === 'ITEM') return this.saveItem(target.moduleId, target.path, content, revision);
+    if (kind !== 'CONFIG') return this.saveResource(target.moduleId, target.path, content, revision);
     const data = await this.request('/api/configs/save', {
       method: 'POST',
       body: JSON.stringify({ moduleId: target.moduleId, path: target.path, content, revision })
@@ -145,6 +165,19 @@ export class ApiClient {
 
   async saveItem(moduleId: string, path: string, content: string, revision?: number): Promise<{ revision?: number }> {
     const data = await this.request('/api/items/save', {
+      method: 'POST',
+      body: JSON.stringify({ moduleId, path, content, revision })
+    });
+    return { revision: typeof data.revision === 'number' ? data.revision : undefined };
+  }
+
+  async readResource(moduleId: string, path: string): Promise<ItemDocument> {
+    const data = await this.request(`/api/resources/read?module=${encodeURIComponent(moduleId)}&path=${encodeURIComponent(path)}`);
+    return { moduleId: data.moduleId, path: data.path, content: data.content, data: data.data, revision: data.revision } as ItemDocument;
+  }
+
+  async saveResource(moduleId: string, path: string, content: string, revision?: number): Promise<{ revision?: number }> {
+    const data = await this.request('/api/resources/save', {
       method: 'POST',
       body: JSON.stringify({ moduleId, path, content, revision })
     });
@@ -221,6 +254,11 @@ async function parseResponseJson(response: Response): Promise<any> {
   } catch {
     throw new Error(t('core.api.invalidJson'));
   }
+}
+
+function trimLogText(value: unknown, maxLength: number): string {
+  const text = String(value ?? '');
+  return text.length > maxLength ? `${text.slice(0, maxLength)}…` : text;
 }
 
 function readApiError(response: Response, data: any, fallback = t('core.api.requestFailed')): string {

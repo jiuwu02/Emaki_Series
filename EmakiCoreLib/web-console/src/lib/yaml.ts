@@ -73,22 +73,49 @@ function parseList(lines: ParsedLine[], start: number, indent: number): [unknown
         index = nextIndex;
       }
     } else if (rest.includes(':') && /^([^:#][^:]*):(\s*(.*))?$/.test(rest)) {
-      const [inlineMap] = parseMap([{ line: line.line, indent: indent + 2, trimmed: rest }], 0, indent + 2);
-      const next = lines[index + 1];
-      if (next && next.indent > line.indent) {
-        const [nestedMap, nextIndex] = parseMap(lines, index + 1, next.indent);
-        result.push({ ...inlineMap, ...nestedMap });
-        index = nextIndex;
-      } else {
-        result.push(inlineMap);
-        index += 1;
-      }
+      const [inlineMap, nextIndex] = parseListMapItem(lines, index, indent);
+      result.push(inlineMap);
+      index = nextIndex;
     } else {
       result.push(parseScalar(rest));
       index += 1;
     }
   }
   return [result, index];
+}
+
+function parseListMapItem(lines: ParsedLine[], index: number, indent: number): [Record<string, unknown>, number] {
+  const line = lines[index];
+  const rest = line.trimmed.slice(2).trim();
+  const [inlineMap] = parseMap([{ line: line.line, indent: indent + 2, trimmed: rest }], 0, indent + 2);
+  const result = { ...inlineMap };
+  index += 1;
+
+  while (index < lines.length) {
+    const next = lines[index];
+    if (next.indent <= line.indent) break;
+    if (next.indent < indent + 2) break;
+    if (next.indent > indent + 2) {
+      const previousKey = lastKey(result);
+      if (!previousKey) throw new Error(`YAML 第 ${next.line} 行缩进无法解析：${next.trimmed}`);
+      const [nestedValue, nextIndex] = parseBlock(lines, index, next.indent);
+      result[previousKey] = nestedValue;
+      index = nextIndex;
+      continue;
+    }
+    if (next.trimmed.startsWith('- ')) break;
+
+    const [nestedMap, nextIndex] = parseMap(lines, index, indent + 2);
+    Object.assign(result, nestedMap);
+    index = nextIndex;
+  }
+
+  return [result, index];
+}
+
+function lastKey(value: Record<string, unknown>): string | undefined {
+  const keys = Object.keys(value);
+  return keys[keys.length - 1];
 }
 
 function dumpYaml(value: unknown, indent = 0): string {

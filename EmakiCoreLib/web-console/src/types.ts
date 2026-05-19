@@ -68,6 +68,7 @@ export type WebEditorField = {
   comment?: string;
   placeholder?: string;
   options?: string[];
+  optionLabelPrefix?: string;
   rows?: number;
   wide?: boolean;
 };

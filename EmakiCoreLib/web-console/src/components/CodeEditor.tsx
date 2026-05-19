@@ -194,7 +194,7 @@ function buildExtensions(language: CodeEditorLanguage, readOnly: boolean, comple
       }
     }),
     EditorView.updateListener.of((update) => {
-      if (update.docChanged) handlers.onChange(update.state.doc.toString());
+      if (update.docChanged && update.transactions.some(transaction => transaction.isUserEvent('input'))) handlers.onChange(update.state.doc.toString());
       if (update.selectionSet || update.docChanged) handlers.onCursorChange(update.state.selection.main.head);
     })
   ];

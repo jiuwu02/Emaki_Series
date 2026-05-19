@@ -72,3 +72,16 @@ debug:
   item_source:
     resolve: "Resolve item source | input={input} | result={result}"
     create: "Create item | source={source} | amount={amount} | success={success}"
+
+# Web Console debug command
+web_debug:
+  request: "[WebDebug][{side}] {method} {uri} → {status} ({elapsed}ms) from {remote}"
+  frontend_error: "[WebDebug][frontend][ERROR] {message} | source={source} | detail={detail} | url={url} | stack={stack}"
+  enabled_all: "<green>Web Console debug enabled (frontend + backend)</green>"
+  enabled_frontend: "<green>Web Console frontend debug enabled (static assets and extension scripts)</green>"
+  enabled_backend: "<green>Web Console backend debug enabled (API requests)</green>"
+  disabled_all: "<yellow>Web Console debug disabled</yellow>"
+  disabled_frontend: "<yellow>Web Console frontend debug disabled</yellow>"
+  disabled_backend: "<yellow>Web Console backend debug disabled</yellow>"
+  not_running: "<red>Web Console is not running</red>"
+  no_permission: "<red>You do not have permission to change Web Console debug mode</red>"

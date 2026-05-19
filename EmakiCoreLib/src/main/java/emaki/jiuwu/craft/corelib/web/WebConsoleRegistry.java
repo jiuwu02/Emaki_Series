@@ -159,6 +159,20 @@ public final class WebConsoleRegistry {
         registerItemFile(plugin.getName(), title, relativePath, comment, editorId);
     }
 
+    /**
+     * 注册插件自定义资源文件或资源目录。kind 会原样暴露给前端 surface registry。
+     */
+    public static synchronized void registerResourceFile(String moduleId, String title, String relativePath, String kind, String comment, String editorId) {
+        registerFile(moduleId, title, relativePath, WebConsoleFileType.resource(kind), comment, false, editorId);
+    }
+
+    public static synchronized void registerResourceFile(JavaPlugin plugin, String title, String relativePath, String kind, String comment, String editorId) {
+        if (plugin == null) {
+            return;
+        }
+        registerResourceFile(plugin.getName(), title, relativePath, kind, comment, editorId);
+    }
+
     public static synchronized void registerEditorDescriptor(String moduleId, String editorId, Map<String, Object> descriptor) {
         if (Texts.isBlank(moduleId) || Texts.isBlank(editorId) || descriptor == null) {
             return;
@@ -524,7 +538,7 @@ public final class WebConsoleRegistry {
         entry.put("path", registration.relativePath());
         entry.put("revision", fileRegistrationRevision(moduleId, registration));
         entry.put("title", registration.title());
-        entry.put("kind", registration.type().name());
+        entry.put("kind", registration.type().kind());
         entry.put("comment", registration.comment());
         if (Texts.isNotBlank(registration.editorId())) {
             entry.put("editorId", registration.editorId());
@@ -1009,14 +1023,14 @@ public final class WebConsoleRegistry {
 
     private static FileRegistration primaryConfig(ModuleRegistration registration) {
         return registration.files().stream()
-                .filter(file -> file.type() == WebConsoleFileType.CONFIG && file.structuredYaml())
+                .filter(file -> file.type().is("CONFIG") && file.structuredYaml())
                 .findFirst()
                 .orElse(null);
     }
 
     private static FileRegistration configByPath(ModuleRegistration registration, String relativePath) {
         return registration.files().stream()
-                .filter(file -> file.type() == WebConsoleFileType.CONFIG && file.structuredYaml() && file.relativePath().equals(relativePath))
+                .filter(file -> file.type().is("CONFIG") && file.structuredYaml() && file.relativePath().equals(relativePath))
                 .findFirst()
                 .orElse(null);
     }
@@ -1032,7 +1046,7 @@ public final class WebConsoleRegistry {
             module = MODULES.get(moduleId);
         }
         FileRegistration next = new FileRegistration(title, relativePath, type, comment, structuredYaml, Texts.toStringSafe(editorId));
-        boolean exists = module.files().stream().anyMatch(file -> file.relativePath().equals(relativePath) && file.type() == type);
+        boolean exists = module.files().stream().anyMatch(file -> file.relativePath().equals(relativePath) && file.type().equals(type));
         if (!exists) {
             module.files().add(next);
         }
@@ -1067,7 +1081,7 @@ public final class WebConsoleRegistry {
 
 
     private static String fileId(String moduleId, FileRegistration registration) {
-        return (moduleId + "-" + registration.type().name() + "-" + registration.relativePath())
+        return (moduleId + "-" + registration.type().kind() + "-" + registration.relativePath())
                 .toLowerCase()
                 .replace("**/", "")
                 .replace("*", "all")
@@ -1107,11 +1121,29 @@ public final class WebConsoleRegistry {
     }
 
 
-    public enum WebConsoleFileType {
-        CONFIG,
-        GUI,
-        ITEM,
-        SCRIPT
+    public record WebConsoleFileType(String kind) {
+        public static final WebConsoleFileType CONFIG = new WebConsoleFileType("CONFIG");
+        public static final WebConsoleFileType GUI = new WebConsoleFileType("GUI");
+        public static final WebConsoleFileType ITEM = new WebConsoleFileType("ITEM");
+        public static final WebConsoleFileType SCRIPT = new WebConsoleFileType("SCRIPT");
+
+        public WebConsoleFileType {
+            kind = Texts.isBlank(kind) ? "CONFIG" : kind.trim().toUpperCase(java.util.Locale.ROOT);
+        }
+
+        public static WebConsoleFileType resource(String kind) {
+            return switch (Texts.toStringSafe(kind).trim().toUpperCase(java.util.Locale.ROOT)) {
+                case "CONFIG" -> CONFIG;
+                case "GUI" -> GUI;
+                case "ITEM" -> ITEM;
+                case "SCRIPT" -> SCRIPT;
+                default -> new WebConsoleFileType(kind);
+            };
+        }
+
+        public boolean is(String expected) {
+            return kind.equalsIgnoreCase(Texts.toStringSafe(expected));
+        }
     }
 
     private enum MatchType {
