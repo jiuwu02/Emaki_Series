@@ -19,7 +19,7 @@ const configFields: ConfigSpec[] = [
   ['synthetic_hit_feedback.knockback_strength', '击退强度', '补发击退力度系数。', 'number'],
   ['synthetic_hit_feedback.hurt_sound', '受伤音效', '接管伤害后是否补发受伤音效。', 'boolean'],
   ['scaling_curves', '衰减曲线', '属性超过阈值后按曲线衰减，防止数值无限膨胀。', 'object', { creatableChildren: true }],
-  ['allowed_damage_causes', '伤害白名单', '允许进入 EmakiAttribute 结算的 Bukkit DamageCause 列表。', 'list']
+  ['allowed_damage_causes', '伤害来源白名单', '允许进入 EmakiAttribute 结算的 Bukkit DamageCause 列表。', 'list']
 ];
 
 const commonFields: Record<string, [string, string, string]> = {
@@ -121,7 +121,7 @@ registerConfigNodeRule(MODULE, { key: 'value_kind' }, { label: '数值类型', c
 registerConfigNodeRule(MODULE, { key: 'target_type' }, { label: '目标类型', comment: '属性作用目标类型。', type: 'enum', options: ['GENERIC', 'VANILLA', 'RESOURCE', 'DAMAGE'], optionLabelPrefix: 'target_type' });
 registerConfigNodeRule(MODULE, { key: 'condition_type' }, { label: '条件逻辑', comment: '多条件组合逻辑。', type: 'enum', options: ['all_of', 'any_of'], optionLabelPrefix: 'condition_type' });
 
-registerConfigCreateTemplate(MODULE, 'default_profile.resources', { id: 'resource', label: '资源', fields: [
+registerConfigCreateTemplate(MODULE, 'default_profile.resources', { id: 'resource', label: '资源模板', fields: [
   { path: 'display_name', label: '显示名称', comment: '资源在界面中显示的名称。', type: 'text', defaultValue: '新资源' },
   { path: 'default_max', label: '默认最大值', comment: '资源默认最大值。', type: 'number', defaultValue: 100 },
   { path: 'min_max', label: '最大值下限', comment: '资源最大值允许的最低值。', type: 'number', defaultValue: 0 },
@@ -129,13 +129,13 @@ registerConfigCreateTemplate(MODULE, 'default_profile.resources', { id: 'resourc
   { path: 'sync_to_bukkit', label: '同步 Bukkit', comment: '是否同步到 Bukkit 原生属性。', type: 'boolean', defaultValue: false },
   { path: 'full_on_init', label: '初始满值', comment: '初始化时是否填充至最大值。', type: 'boolean', defaultValue: true }
 ] });
-registerConfigCreateTemplate(MODULE, 'default_profile.attributes', { id: 'attribute', label: '属性基础值', fields: [
+registerConfigCreateTemplate(MODULE, 'default_profile.attributes', { id: 'attribute', label: '属性默认值', fields: [
   { path: 'default_value', label: '默认值', comment: '属性默认基础数值。', type: 'number', defaultValue: 0 }
 ] });
-registerConfigCreateTemplate(MODULE, 'scaling_curves', { id: 'curve', label: '衰减曲线', fields: [
+registerConfigCreateTemplate(MODULE, 'scaling_curves', { id: 'curve', label: '衰减曲线模板', fields: [
   { path: 'attribute', label: '属性 ID', comment: '需要应用衰减的属性 ID。', type: 'text', defaultValue: 'physical_attack' },
   { path: 'threshold', label: '阈值', comment: '超过该值后开始衰减。', type: 'number', defaultValue: 100 },
-  { path: 'curve_type', label: '曲线类型', comment: '衰减函数类型。', type: 'enum', options: ['logarithmic', 'sqrt', 'piecewise_linear'], defaultValue: 'logarithmic' },
+  { path: 'curve_type', label: '曲线类型', comment: '超过阈值后使用的衰减函数类型。', type: 'enum', options: ['logarithmic', 'sqrt', 'piecewise_linear'], defaultValue: 'logarithmic' },
   { path: 'factor', label: '系数', comment: '衰减计算系数。', type: 'number', defaultValue: 1 }
 ] });
 

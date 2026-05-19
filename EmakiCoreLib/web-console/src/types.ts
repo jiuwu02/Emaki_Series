@@ -188,9 +188,10 @@ export type ItemPreviewStep = {
   action: string;
   value?: string;
   anchor?: string;
+  content?: string[];
   result?: string;
-  before?: string[];
-  after?: string[];
+  before?: string | string[];
+  after?: string | string[];
   [key: string]: unknown;
 };
 
@@ -207,6 +208,8 @@ export type ItemPreviewResult = {
   kind: 'gem' | 'gem_socket_item' | 'generic_item' | string;
   id?: string;
   material?: string;
+  baseName?: string;
+  baseLore?: string[];
   displayName?: string;
   lore?: string[];
   variables?: Record<string, unknown>;

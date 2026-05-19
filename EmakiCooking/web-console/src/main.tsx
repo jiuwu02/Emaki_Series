@@ -5,7 +5,7 @@ const MODULE = 'EmakiCooking';
 type FieldSpec = [path: string, label: string, comment: string, type: string, extra?: Record<string, unknown>];
 
 const fields: FieldSpec[] = [
-  ['input_rules', '输入规则', '控制工位输入物品是否必须继续匹配当前配方，避免玩家把无关物品塞入工位。', 'object'],
+  ['input_rules', '输入限制', '控制工位输入物品是否必须继续匹配当前配方，避免玩家把无关物品塞入工位。', 'object'],
   ['input_rules.only_recipe_items', '严格模式', '开启后只允许当前工位配方可继续匹配的原料进入输入槽；关闭后允许更宽松的放入逻辑。', 'boolean'],
   ['display_entities', '展示实体', '工位上方食材展示实体的全局渲染策略、可视距离和刷新节奏。', 'object'],
   ['display_entities.backend', '渲染后端', '展示实体使用的后端。auto 会优先尝试 PacketEvents，不可用时回退 Bukkit。', 'enum', { options: ['auto', 'packet_events', 'bukkit'], optionLabelPrefix: 'display_entities.backend' }],
@@ -13,10 +13,10 @@ const fields: FieldSpec[] = [
   ['display_entities.refresh_interval_ticks', '刷新间隔', '展示实体位置、旋转、可见性与状态刷新间隔，单位 tick。', 'number'],
   ['display_entities.wok', '炒锅展示', '炒锅食材环形展示的专用布局参数。', 'object'],
   ['display_entities.wok.layout_radius', '炒锅半径', '炒锅中多份食材围绕中心摆放的半径，单位方块格。', 'number'],
-  ['display_adjustments', '展示调整', '默认展示实体的偏移、旋转、缩放，以及各工位专用覆盖。', 'object'],
+  ['display_adjustments', '展示变换', '默认展示实体的偏移、旋转、缩放，以及各工位专用覆盖。', 'object'],
   ['display_adjustments.defaults', '默认展示', '普通物品和方块展示实体的默认变换参数。', 'object'],
   ['display_adjustments.station_defaults', '工位覆盖', '按工位类型覆盖展示实体变换，例如炒锅食材翻转角度。', 'object'],
-  ['stations', '工位配置', '砧板、炒锅、研磨机、蒸锅、烤炉、榨汁机和发酵桶的运行规则。', 'object'],
+  ['stations', '工位设置', '砧板、炒锅、研磨机、蒸锅、烤炉、榨汁机和发酵桶的运行规则。', 'object'],
   ['stations.chopping_board', '砧板', '砧板方块匹配、交互、厨刀识别、切割伤害与动作反馈。', 'object'],
   ['stations.wok', '炒锅', '炒锅方块匹配、翻炒、火候、失败产物、动画与烫伤规则。', 'object'],
   ['stations.grinder', '研磨机', '研磨机方块匹配、启动交互、检查周期和运行反馈。', 'object'],
@@ -51,7 +51,7 @@ const fieldComments: Record<string, [string, string, string]> = {
   rotation_degrees: ['旋转角度', '动画旋转角度，单位度。', 'number'],
   failure: ['失败规则', '工位处理失败时的概率、产物与反馈配置。', 'object'],
   item_sources: ['物品来源', '参与匹配、消耗、返还或产出的 ItemSource 列表。', 'list'],
-  actions: ['动作反馈', '工位流程中各阶段触发的 CoreLib Action 列表。', 'object'],
+  actions: ['阶段动作', '工位流程中各阶段触发的 CoreLib Action 列表。', 'object'],
   check_delay_ticks: ['检查周期', '后台运行工位的检查间隔，单位 tick。', 'number'],
   heat_item_sources: ['热源来源', '识别为热源的方块 ItemSource 列表。', 'list'],
   fuels: ['燃料', '可投入燃料及其燃烧时间、火力等参数列表。', 'list'],
@@ -126,6 +126,6 @@ registerPluginGuiEditor({
     ['fuel', '燃料槽', '放入燃料的槽位。', 'text'],
     ['moisture', '水分槽', '蒸锅水分输入或展示槽位。', 'text'],
     ['container', '容器槽', '榨汁机盛取容器槽位。', 'text'],
-    ['progress', '进度显示', '显示烹饪、蒸制、烘烤或发酵进度的槽位。', 'text']
+    ['progress', '进度槽', '显示烹饪、蒸制、烘烤或发酵进度的槽位。', 'text']
   ]
 });

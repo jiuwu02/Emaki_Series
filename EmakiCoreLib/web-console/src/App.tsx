@@ -853,7 +853,7 @@ function ConfigNodeSection({ scope, node, childrenNodes, drafts, setDraftValue, 
         <code>{node.path}</code>
         <span className="section-comment">{configNodeDisplayComment(scope, node)}</span>
       </button>
-      {node.creatableChildren && <button type="button" className="node-section-create" onClick={() => onCreateChild(node)}>+ 新建</button>}
+      {node.creatableChildren && <button type="button" className="node-section-create" onClick={() => onCreateChild(node)}>+ {t('core.config.create')}</button>}
       <span className="section-meta">{changedInGroup > 0 && <span className="section-badge">{changedInGroup}</span>}{t('core.config.groupItems', { count: groups.length })}</span>
     </div>
     {!isCollapsed && <div className="node-section-body">{groups.map(group => group.type === 'section'

@@ -5,14 +5,14 @@ const MODULE = 'EmakiForge';
 type FieldSpec = [path: string, label: string, comment: string, type: string, extra?: Record<string, unknown>];
 
 const fields: FieldSpec[] = [
-  ['quality', '品质配置', '锻造结果的品质池、随机回退、保底与品质写入物品显示的全局设置。', 'object'],
+  ['quality', '品质设置', '锻造结果的品质池、随机回退、保底与品质写入物品显示的全局设置。', 'object'],
   ['quality.tiers', '品质池', '品质列表，格式为“名称-权重-倍率”。权重影响抽取概率，倍率影响最终锻造数值。', 'list'],
   ['quality.default_tier', '回退品质', '随机抽取没有命中任何品质时使用的默认品质名称。', 'text'],
   ['quality.guarantee', '保底配置', '连续未出高品质后的品质保底触发条件与最低品质设置。', 'object'],
   ['quality.guarantee.enabled', '启用保底', '是否启用品质保底机制。关闭后 threshold/minimum 不生效。', 'boolean'],
   ['quality.guarantee.threshold', '保底阈值', '连续锻造达到该次数后触发保底。', 'number'],
   ['quality.guarantee.minimum', '保底品质', '保底触发时至少给到的品质名称，需要与 quality.tiers 中的名称一致。', 'text'],
-  ['quality.item_meta', '物品显示', '是否把品质写入物品名称、Lore，以及每个品质对应的展示动作。', 'object'],
+  ['quality.item_meta', '显示写入', '是否把品质写入物品名称、Lore，以及每个品质对应的显示动作。', 'object'],
   ['quality.item_meta.enabled', '启用写入', '开启后锻造完成会按品质配置修改物品显示。', 'boolean'],
   ['quality.item_meta.tiers', '品质显示', '每个品质名称对应的 name_actions、lore_actions 或广播动作配置。', 'object', { creatableChildren: true }],
   ['number_format', '数值格式', '锻造结果数值在名称、Lore 和日志中的格式化规则。', 'object'],
@@ -30,8 +30,8 @@ const fields: FieldSpec[] = [
 ];
 
 const ruleFields: Record<string, [string, string, string]> = {
-  name_actions: ['名称动作', '对物品显示名称执行的 CoreLib Action 列表，例如前缀、后缀或替换。', 'list'],
-  lore_actions: ['Lore 动作', '对物品 Lore 执行的 CoreLib Action 列表。', 'list'],
+  name_actions: ['名称动作链', '对物品显示名称执行的 CoreLib Action 列表，例如前缀、后缀或替换。', 'list'],
+  lore_actions: ['Lore 动作链', '对物品 Lore 执行的 CoreLib Action 列表。', 'list'],
   action: ['动作', '达成某品质或锻造事件后执行的动作列表。', 'list'],
   value: ['文本值', '动作使用的文本值或格式参数。', 'text'],
   enabled: ['启用', '是否启用当前功能、分支或条目。', 'boolean'],
@@ -68,10 +68,10 @@ Object.entries(ruleFields).forEach(([key, [label, comment, type]]) => registerCo
 
 registerConfigCreateTemplate(MODULE, 'quality.item_meta.tiers', {
   id: 'quality-tier-display',
-  label: '品质显示',
+  label: '品质显示规则',
   fields: [
-    { path: 'name_actions', label: '名称动作', comment: '给该品质物品名称追加前缀、后缀或执行替换动作。', type: 'list', defaultValue: ['action: "prepend_prefix"', 'value: "<gray>[新品质] </gray>"'] },
-    { path: 'lore_actions', label: 'Lore 动作', comment: '给该品质物品 Lore 执行的动作列表。', type: 'list', defaultValue: [] },
+    { path: 'name_actions', label: '名称动作链', comment: '给该品质物品名称追加前缀、后缀或执行替换动作。', type: 'list', defaultValue: ['action: "prepend_prefix"', 'value: "<gray>[新品质] </gray>"'] },
+    { path: 'lore_actions', label: 'Lore 动作链', comment: '给该品质物品 Lore 执行的动作列表。', type: 'list', defaultValue: [] },
     { path: 'action', label: '广播动作', comment: '该品质达成时执行的广播或提示动作。', type: 'list', defaultValue: [] }
   ]
 });
@@ -87,7 +87,7 @@ registerPluginGuiEditor({
     ['blueprint_inputs', '图纸输入', '放入锻造图纸的槽位。', 'text'],
     ['required_materials', '必需材料', '配方必需材料槽位。', 'text'],
     ['optional_materials', '可选材料', '可选加成材料槽位。', 'text'],
-    ['result_preview', '结果预览', '展示锻造后可能结果的槽位。', 'text'],
-    ['confirm', '确认锻造', '执行锻造操作按钮。', 'text']
+    ['result_preview', '结果预览', '展示锻造后可能产物的槽位。', 'text'],
+    ['confirm', '确认按钮', '执行锻造操作的按钮槽位。', 'text']
   ]
 });

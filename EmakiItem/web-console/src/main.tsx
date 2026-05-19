@@ -83,12 +83,12 @@ const setEditorFields: ItemFieldSpec[] = [
 
 const itemEditorFields: ItemFieldSpec[] = [
   ['id', 'ID', '物品定义唯一标识，加载时会 normalize。', 'text'],
-  ['material', 'Material', 'Bukkit Material，必须是原版物品。', 'material'],
+  ['material', '材质', 'Bukkit Material，必须是原版物品。', 'material'],
   ['display_name', '显示名称', '支持 MiniMessage 与 {变量} 占位。', 'text'],
   ['item_name', '原版 item_name', '原版 item_name 组件，不参与变量渲染。', 'text'],
   ['lore', 'Lore', '支持 MiniMessage 与 {变量} 占位。', 'stringList', { wide: true }],
-  ['name_actions', '名称动作', '生成显示名称时执行的标准动作链。', 'actions', { wide: true }],
-  ['lore_actions', 'Lore 动作', '生成 Lore 时执行的标准动作链。', 'actions', { wide: true }],
+  ['name_actions', '名称动作链', '生成显示名称时执行的标准动作链。', 'actions', { wide: true }],
+  ['lore_actions', 'Lore 动作链', '生成 Lore 时执行的标准动作链。', 'actions', { wide: true }],
   ['update.enabled', '启用更新', '关闭时其余 update 字段不会生效。', 'boolean'],
   ['update.version', '配置版本', '启用更新时必须大于 0。', 'number'],
   ['update.preserve_amount', '保留数量', '更新已有物品时是否保留堆叠数量。', 'boolean'],
@@ -101,16 +101,16 @@ const itemEditorFields: ItemFieldSpec[] = [
   ['update.triggers.pickup', '拾取物品', '拾取物品时检测更新。', 'boolean'],
   ['update.triggers.interact', '交互', '交互时检测更新。', 'boolean'],
   ['update.triggers.command', '命令', '执行相关命令时检测更新。', 'boolean'],
-  ['effects', 'effects', '兼容效果列表，按 type 分流为变量、属性、技能和名称/Lore 动作。', 'effects', { wide: true }],
+  ['effects', '效果', '兼容效果列表，按 type 分流为变量、属性、技能和名称/Lore 动作。', 'effects', { wide: true }],
   ['variables', '变量', '表达式变量映射。', 'map', { wide: true }],
   ['ea_attributes', 'EA 属性', 'EmakiAttribute 属性数值映射。', 'map', { wide: true }],
   ['ea_attribute_meta', 'EA 属性元数据', '属性元数据映射。', 'map', { wide: true }],
   ['es_skills', 'ES 技能', 'EmakiSkills 技能 ID 列表。', 'stringList', { wide: true }],
-  ['components.custom_model_data', 'Custom Model Data', '数字或 1.21.4+ floats、flags、strings、colors 复合结构。', 'json', { wide: true }],
-  ['components.item_model', 'Item Model', '资源包 item model 标识。', 'text'],
-  ['components.tooltip_style', 'Tooltip Style', '资源包 tooltip_style 标识。', 'text'],
+  ['components.custom_model_data', '模型数据', '数字或 1.21.4+ floats、flags、strings、colors 复合结构。', 'json', { wide: true }],
+  ['components.item_model', '物品模型', '资源包 item model 标识。', 'text'],
+  ['components.tooltip_style', 'Tooltip 样式', '资源包 tooltip_style 标识。', 'text'],
   ['components.enchantments', '附魔', '附魔 ID 到等级的映射。', 'map', { wide: true }],
-  ['components.item_flags', 'ItemFlags', 'Bukkit ItemFlag 固定值。', 'multiEnum', { options: ITEM_FLAGS, optionLabelPrefix: 'itemFlag', wide: true }],
+  ['components.item_flags', '物品标志', 'Bukkit ItemFlag 固定值。', 'multiEnum', { options: ITEM_FLAGS, optionLabelPrefix: 'itemFlag', wide: true }],
   ['components.hide_tooltip', '隐藏 Tooltip', '写入 hide_tooltip 组件。', 'boolean'],
   ['components.unbreakable', '不可破坏', '写入 unbreakable 组件。', 'boolean'],
   ['components.enchantment_glint_override', '附魔光效', '覆盖附魔光效。', 'boolean'],
@@ -143,7 +143,7 @@ registerModuleLocale(MODULE, 'zh-CN', {
   'emakiitem.surface.item': 'EmakiItem 物品',
   'emakiitem.preview.aria': 'EmakiItem 物品预览',
   'emakiitem.preview.kind': '自定义物品',
-  'emakiitem.section.basic': '基础字段',
+  'emakiitem.section.basic': '基础信息',
   'emakiitem.section.update': '更新策略',
   'emakiitem.section.effects': '效果与变量',
   'emakiitem.section.components': '原版组件',
@@ -211,11 +211,11 @@ registerEditorDescriptor(MODULE, EDITOR_ID, {
   title: 'EmakiItem 物品定义',
   kindLabel: '物品定义',
   baseName: '<gray>EmakiItem 预览</gray>',
-  baseLore: ['<dark_gray>当前 YAML 草稿生成的物品预览</dark_gray>'],
+  baseLore: ['<dark_gray>根据当前 YAML 草稿生成的物品预览</dark_gray>'],
   allowedFieldTypes: ['effects', 'attributeModifiers', 'repairMaterials'],
   sections: [
-    { title: '基础字段', fields: fields(['id', 'material', 'display_name', 'item_name', 'lore']) },
-    { title: '显示动作', collapsible: true, defaultCollapsed: true, fields: fields(['name_actions', 'lore_actions']) },
+    { title: '基础信息', fields: fields(['id', 'material', 'display_name', 'item_name', 'lore']) },
+    { title: '显示动作链', collapsible: true, defaultCollapsed: true, fields: fields(['name_actions', 'lore_actions']) },
     { title: '更新策略', collapsible: true, defaultCollapsed: true, fields: fields(['update.enabled', 'update.version', 'update.preserve_amount', 'update.preserve_damage', 'update.preserve_unknown_attribute_sources', 'update.triggers.join', 'update.triggers.held_change', 'update.triggers.inventory_click', 'update.triggers.inventory_drag', 'update.triggers.pickup', 'update.triggers.interact', 'update.triggers.command']) },
     { title: '效果与变量', collapsible: true, defaultCollapsed: true, fields: fields(['effects', 'variables', 'ea_attributes', 'ea_attribute_meta', 'es_skills']) },
     { title: '原版组件', collapsible: true, defaultCollapsed: true, fields: fields(['components.custom_model_data', 'components.item_model', 'components.tooltip_style', 'components.enchantments', 'components.item_flags', 'components.hide_tooltip', 'components.unbreakable', 'components.enchantment_glint_override', 'components.max_stack_size', 'components.rarity', 'components.damage', 'components.max_damage', 'components.enchantable', 'components.attribute_modifiers', 'components.raw']) },
@@ -233,9 +233,9 @@ registerEditorDescriptor(MODULE, SET_EDITOR_ID, {
   kindLabel: '套装定义',
   allowedFieldTypes: ['setPieces', 'setThresholds'],
   sections: [
-    { title: '基础字段', fields: setFields(['id', 'display_name']) },
+    { title: '基础信息', fields: setFields(['id', 'display_name']) },
     { title: '套装部件', collapsible: true, fields: setFields(['pieces']) },
-    { title: 'Lore 显示', collapsible: true, defaultCollapsed: true, fields: setFields(['lore.header', 'lore.equipped_format', 'lore.missing_format', 'lore.active_threshold_format', 'lore.inactive_threshold_format', 'lore.separator']) },
+    { title: '套装 Lore', collapsible: true, defaultCollapsed: true, fields: setFields(['lore.header', 'lore.equipped_format', 'lore.missing_format', 'lore.active_threshold_format', 'lore.inactive_threshold_format', 'lore.separator']) },
     { title: '阈值效果', collapsible: true, fields: setFields(['thresholds']) }
   ]
 });
@@ -318,11 +318,11 @@ function ItemMapRow({ label, path, value, onChange, valuePlaceholder = '值', ad
   const add = () => onChange({ ...asRecord(value), [nextUniqueKey(entries.map(entry => entry.key), addKeyPrefix)]: 0 });
   return <ItemFormRow label={label} path={path} wide><div className="prop-kv">
     {entries.map((entry, index) => <div className="prop-kv-row" key={index}>
-      <input value={entry.key} onChange={event => update(index, 'key', event.target.value)} placeholder="键" />
+      <input value={entry.key} onChange={event => update(index, 'key', event.target.value)} placeholder="键名" />
       <input value={entry.value == null ? '' : String(entry.value)} onChange={event => update(index, 'value', event.target.value)} placeholder={valuePlaceholder} />
       <button type="button" className="prop-kv-del" onClick={() => remove(index)}>×</button>
     </div>)}
-    <button type="button" className="prop-add" onClick={add}>+ 添加</button>
+    <button type="button" className="prop-add" onClick={add}>+ 添加键值</button>
   </div></ItemFormRow>;
 }
 

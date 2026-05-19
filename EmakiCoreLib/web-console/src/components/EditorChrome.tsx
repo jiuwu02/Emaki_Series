@@ -153,7 +153,7 @@ function SourceModal({ source, editable, error, language, onChange, onSave, onCl
   return <div className="editor-modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) onClose(); }}>
     <section ref={dialogRef} className="editor-source-modal" role="dialog" aria-modal="true" aria-labelledby="editor-source-title" tabIndex={-1}>
       <header className="editor-modal-head">
-        <div><span>{t('core.item.source')}</span><h3 id="editor-source-title">{t('core.editor.sourceTitle')}</h3></div>
+        <div><span>{t('core.editor.sourceKicker')}</span><h3 id="editor-source-title">{t('core.editor.sourceTitle')}</h3></div>
         <Button size="sm" onClick={onClose}>{t('core.i18n.close')}</Button>
       </header>
       <CodeEditor
@@ -198,10 +198,10 @@ function ReloadModal({ changes, count, onCancel, onConfirm }: { changes: EditorC
 function formatChangeValue(value: unknown): string {
   if (value === undefined) return '∅';
   if (value === null) return 'null';
-  if (typeof value === 'string') return value.length > 42 ? `${value.slice(0, 39)}...` : value;
+  if (typeof value === 'string') return value.length > 42 ? `${value.slice(0, 39)}…` : value;
   try {
     const text = JSON.stringify(value);
-    return text.length > 42 ? `${text.slice(0, 39)}...` : text;
+    return text.length > 42 ? `${text.slice(0, 39)}…` : text;
   } catch {
     return String(value);
   }

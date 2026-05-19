@@ -556,7 +556,7 @@ const HIDDEN_COMPONENTS = ['tooltip', 'enchantments', 'attributes', 'unbreakable
 function HiddenComponentsEditor({ slot, onChange }: { slot: GuiSlotDefinition; onChange: (patch: Partial<GuiSlotDefinition>) => void }) {
   const list = Array.isArray(slot.hidden_components) ? slot.hidden_components.map(String) : [];
   const toggle = (entry: string) => onChange({ hidden_components: list.includes(entry) ? list.filter((item) => item !== entry) : [...list, entry] });
-  return <div className="sub-editor"><div className="sub-editor-head"><span>hidden_components</span><label className="inline-switch"><input type="checkbox" checked={slot.hide_tooltip === true || slot['hide-tooltip'] === true} onChange={(e) => onChange({ hide_tooltip: e.target.checked || undefined })} /> hide tooltip</label></div><div className="chip-list">{HIDDEN_COMPONENTS.map((entry) => <ToggleChip key={entry} active={list.includes(entry)} onClick={() => toggle(entry)}>{entry}</ToggleChip>)}</div></div>;
+  return <div className="sub-editor"><div className="sub-editor-head"><span>hidden_components</span><label className="inline-switch"><input type="checkbox" checked={slot.hide_tooltip === true || slot['hide-tooltip'] === true} onChange={(e) => onChange({ hide_tooltip: e.target.checked || undefined })} /> 隐藏 Tooltip</label></div><div className="chip-list">{HIDDEN_COMPONENTS.map((entry) => <ToggleChip key={entry} active={list.includes(entry)} onClick={() => toggle(entry)}>{entry}</ToggleChip>)}</div></div>;
 }
 
 const SOUND_KEYS = ['click', 'left_click', 'right_click'] as const;

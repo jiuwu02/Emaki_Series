@@ -7,6 +7,8 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import emaki.jiuwu.craft.corelib.assembly.BaseNamePolicy;
+import emaki.jiuwu.craft.corelib.assembly.LocalNameState;
 import emaki.jiuwu.craft.corelib.assembly.LoreOperationRegistry;
 import emaki.jiuwu.craft.corelib.assembly.NameOperationRegistry;
 import emaki.jiuwu.craft.corelib.assembly.OperationTemplateRenderer;
@@ -54,8 +56,8 @@ final class WebItemPreviewService {
         variables.putAll(resolveVariables(extractVariables(data, levelData), variables));
 
         List<Map<String, Object>> effectSummary = summarizeEffects(data, levelData, variables);
-        Object nameActions = firstNonNull(levelData.get("name_actions"), data.get("name_actions"), effectsPayload(data, levelData, "name_action", "name_actions"));
-        Object loreActions = firstNonNull(levelData.get("lore_actions"), data.get("lore_actions"), effectsPayload(data, levelData, "lore_action", "lore_actions"));
+        Object nameActions = firstNonNull(sectionActions(levelData, "name_action", "name_actions"), sectionActions(data, "name_action", "name_actions"));
+        Object loreActions = firstNonNull(sectionActions(levelData, "lore_action", "lore_actions"), sectionActions(data, "lore_action", "lore_actions"));
         String initialName = Texts.isBlank(baseName) ? Texts.toStringSafe(variables.get("display_name")) : baseName;
         List<String> initialLore = baseLore == null || baseLore.isEmpty()
                 ? ConfigNodes.asObjectList(data.get("lore")).stream().map(Texts::toStringSafe).toList()
@@ -120,6 +122,8 @@ final class WebItemPreviewService {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("kind", kind);
         result.put("id", Texts.toStringSafe(data.get("id")));
+        result.put("baseName", previewText.baseName());
+        result.put("baseLore", previewText.baseLore());
         result.put("displayName", previewText.name());
         result.put("lore", previewText.lore());
         result.put("variables", variables);
@@ -132,43 +136,55 @@ final class WebItemPreviewService {
         String safeBaseName = Texts.toStringSafe(baseName);
         List<String> safeLore = new ArrayList<>(baseLore == null ? List.of() : baseLore);
         List<Map<String, Object>> nameSteps = new ArrayList<>();
+        LocalNameState nameState = new LocalNameState();
         String currentName = safeBaseName;
         for (Map<String, Object> operation : templateRenderer.normalizeOperations(nameActions)) {
             String action = Texts.lower(operation.get("action"));
             Object rawValue = templateRenderer.resolveOperationValue(operation);
             String value = templateRenderer.renderTemplate(rawValue, variables);
-            currentName = applyNamePreviewStep(currentName, action, value, operation, variables);
-            nameSteps.add(Map.of("action", action, "value", value, "result", currentName));
+            String before = currentName;
+            nameOperations.apply(nameState, List.of(operation), variables);
+            currentName = previewNameFromState(nameState, safeBaseName);
+            Map<String, Object> step = new LinkedHashMap<>();
+            step.put("action", action);
+            step.put("value", value);
+            step.put("before", before);
+            step.put("after", currentName);
+            step.put("result", currentName);
+            nameSteps.add(step);
         }
         List<Map<String, Object>> loreSteps = new ArrayList<>();
         List<String> currentLore = new ArrayList<>(safeLore);
         for (Map<String, Object> operation : templateRenderer.normalizeOperations(loreActions)) {
             String action = Texts.lower(operation.get("action"));
             List<String> before = List.copyOf(currentLore);
+            List<String> content = templateRenderer.renderContent(operation, variables);
             loreOperations.apply(currentLore, List.of(operation), variables);
-            loreSteps.add(Map.of(
-                    "action", action,
-                    "anchor", templateRenderer.renderTemplate(templateRenderer.resolveSearchPattern(operation), variables),
-                    "before", before,
-                    "after", List.copyOf(currentLore)
-            ));
+            Map<String, Object> step = new LinkedHashMap<>();
+            step.put("action", action);
+            step.put("anchor", templateRenderer.renderTemplate(templateRenderer.resolveSearchPattern(operation), variables));
+            step.put("content", content);
+            step.put("before", before);
+            step.put("after", List.copyOf(currentLore));
+            loreSteps.add(step);
         }
-        return new PreviewText(currentName, currentLore, nameSteps, loreSteps);
+        return new PreviewText(safeBaseName, List.copyOf(safeLore), currentName, currentLore, nameSteps, loreSteps);
     }
 
-    private String applyNamePreviewStep(String currentName, String action, String value, Map<String, Object> operation, Map<String, Object> variables) {
-        return switch (Texts.lower(action)) {
-            case "replace" -> Texts.toStringSafe(value);
-            case "prepend_prefix" -> Texts.toStringSafe(value) + Texts.toStringSafe(currentName);
-            case "append_suffix" -> Texts.toStringSafe(currentName) + Texts.toStringSafe(value);
-            case "regex_replace" -> OperationTemplateRenderer.replaceRegex(
-                    Texts.toStringSafe(currentName),
-                    Texts.toStringSafe(operation.get("regex_pattern")),
-                    Texts.toStringSafe(operation.get("replacement")),
-                    variables
-            );
-            default -> Texts.toStringSafe(currentName);
-        };
+    private String previewNameFromState(LocalNameState nameState, String originalName) {
+        StringBuilder finalName = new StringBuilder();
+        for (String prefix : nameState.prefixes()) {
+            finalName.append(prefix);
+        }
+        if (nameState.baseNamePolicy() == BaseNamePolicy.EXPLICIT_TEMPLATE && Texts.isNotBlank(nameState.baseNameTemplate())) {
+            finalName.append(nameState.baseNameTemplate());
+        } else {
+            finalName.append(Texts.toStringSafe(originalName));
+        }
+        for (String postfix : nameState.postfixes()) {
+            finalName.append(postfix);
+        }
+        return finalName.toString();
     }
 
     private Map<String, Object> extractVariables(Map<String, Object> baseData, Map<String, Object> levelData) {
@@ -306,9 +322,9 @@ final class WebItemPreviewService {
         return ConfigNodes.entries(ConfigNodes.get(levels, Integer.toString(level)));
     }
 
-    private Object effectsPayload(Map<String, Object> baseData, Map<String, Object> levelData, String type, String key) {
-        Object level = firstEffectPayload(levelData, type, key);
-        return level == null ? firstEffectPayload(baseData, type, key) : level;
+    private Object sectionActions(Map<String, Object> data, String type, String key) {
+        Object topLevel = data.get(key);
+        return topLevel == null ? firstEffectPayload(data, type, key) : topLevel;
     }
 
     private Object firstEffectPayload(Map<String, Object> data, String type, String key) {
@@ -392,5 +408,10 @@ final class WebItemPreviewService {
         return "true".equalsIgnoreCase(text) || "yes".equalsIgnoreCase(text) || "1".equals(text) || "on".equalsIgnoreCase(text);
     }
 
-    private record PreviewText(String name, List<String> lore, List<Map<String, Object>> nameSteps, List<Map<String, Object>> loreSteps) {}
+    private record PreviewText(String baseName,
+            List<String> baseLore,
+            String name,
+            List<String> lore,
+            List<Map<String, Object>> nameSteps,
+            List<Map<String, Object>> loreSteps) {}
 }

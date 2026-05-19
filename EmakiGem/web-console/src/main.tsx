@@ -9,29 +9,29 @@ registerModuleLocale('EmakiGem', 'zh-CN', {
   'emakigem.preview.kind.gem': '宝石',
   'emakigem.preview.kind.socket': '插槽物品',
   'emakigem.preview.kind.generic': '物品',
-  'emakigem.preview.levelTitle': '升级等级预览',
-  'emakigem.preview.levelHint': '切换等级会用当前草稿重新生成 Lore 与效果。',
+  'emakigem.preview.levelTitle': '等级预览',
+  'emakigem.preview.levelHint': '切换等级会用当前草稿重新生成名称、Lore 与效果。',
   'emakigem.preview.levelCurrent': '当前 Lv.{level}',
   'emakigem.preview.levelBase': '基础等级',
   'emakigem.preview.status.syncing': '同步中',
   'emakigem.preview.status.live': '实时',
   'emakigem.preview.status.failed': '预览失败',
   'emakigem.preview.empty': '暂无预览',
-  'emakigem.section.basic': '基础字段',
-  'emakigem.section.effects': 'effects 效果',
+  'emakigem.section.basic': '基础信息',
+  'emakigem.section.effects': '效果与变量',
   'emakigem.section.legacy': '兼容旧字段',
   'emakigem.section.costReturn': '费用与返还',
-  'emakigem.section.upgrade': 'upgrade 升级配置',
-  'emakigem.section.gemActions': '宝石动作',
+  'emakigem.section.upgrade': '升级设置',
+  'emakigem.section.gemActions': '触发动作',
   'emakigem.section.levels': '升级等级',
   'emakigem.section.levelEffects': '等级效果',
   'emakigem.section.upgradeMaterials': '升级材料',
   'emakigem.section.slots': '插槽结构',
   'emakigem.section.gemLimit': '宝石限制',
   'emakigem.section.guiTemplate': 'GUI 模板',
-  'emakigem.section.displayActions': '展示动作',
+  'emakigem.section.displayActions': '显示动作链',
   'emakigem.section.matchRules': '匹配规则',
-  'emakigem.section.genericBasic': '基础',
+  'emakigem.section.genericBasic': '基础信息',
   'emakigem.cost.globalUpgrade': '全局升级经济',
   'emakigem.cost.levelOverride': '等级经济覆盖',
   'emakigem.cost.inlay': '镶嵌费用',
@@ -51,8 +51,8 @@ registerModuleLocale('EmakiGem', 'zh-CN', {
   'emakigem.option.effect.variables': '变量',
   'emakigem.option.effect.ea_attribute': 'EA 属性',
   'emakigem.option.effect.es_skill': 'ES 技能',
-  'emakigem.option.effect.name_action': '名称动作',
-  'emakigem.option.effect.lore_action': 'Lore 动作',
+  'emakigem.option.effect.name_action': '名称动作链',
+  'emakigem.option.effect.lore_action': 'Lore 动作链',
   'emakigem.option.extract.original': '原样返还',
   'emakigem.option.extract.destroy': '销毁',
   'emakigem.option.extract.downgrade': '降级返还',
@@ -78,8 +78,8 @@ registerModuleLocale('EmakiGem', 'zh-CN', {
   'emakigem.field.variables': '变量',
   'emakigem.field.ea_attributes': 'EA 属性',
   'emakigem.field.es_skills': 'ES 技能',
-  'emakigem.field.name_actions': '名称动作',
-  'emakigem.field.lore_actions': 'Lore 动作',
+  'emakigem.field.name_actions': '名称动作链',
+  'emakigem.field.lore_actions': 'Lore 动作链',
   'emakigem.field.value': '文本',
   'emakigem.field.regex_pattern': '正则表达式',
   'emakigem.field.replacement': '替换为',
@@ -123,7 +123,7 @@ registerModuleLocale('EmakiGem', 'zh-CN', {
   'emakigem.field.max_same_type': '同类型上限',
   'emakigem.field.max_same_id': '同 ID 上限',
   'emakigem.field.gui.gem_template': '宝石 GUI 模板',
-  'emakigem.field.gui.open_template': '开孔 GUI 模板',
+  'emakigem.field.gui.open_template': '开槽 GUI 模板',
   'emakigem.field.material': '材质',
   'emakigem.item.field.id': 'ID',
   'emakigem.item.field.display_name': '显示名称',
@@ -137,8 +137,8 @@ registerModuleLocale('EmakiGem', 'zh-CN', {
   'emakigem.item.field.variables': '变量',
   'emakigem.item.field.ea_attributes': 'EA 属性',
   'emakigem.item.field.es_skills': 'ES 技能',
-  'emakigem.item.field.name_actions': '名称动作',
-  'emakigem.item.field.lore_actions': 'Lore 动作',
+  'emakigem.item.field.name_actions': '名称动作链',
+  'emakigem.item.field.lore_actions': 'Lore 动作链',
   'emakigem.item.field.enabled': '启用',
   'emakigem.item.field.max_level': '最大等级',
   'emakigem.item.field.gui_template': 'GUI 模板',
@@ -162,17 +162,17 @@ registerModuleLocale('EmakiGem', 'zh-CN', {
   'emakigem.item.field.match.item_sources': '匹配物品来源',
   'emakigem.item.field.match.slot_groups': '匹配插槽组',
   'emakigem.item.field.match.lore_contains': 'Lore 包含',
-  'emakigem.item.field.default_open_slots': '默认开启插槽',
+  'emakigem.item.field.default_open_slots': '默认开放插槽',
   'emakigem.item.field.allowed_gem_types': '允许宝石类型',
   'emakigem.item.field.max_same_type': '同类型上限',
   'emakigem.item.field.max_same_id': '同 ID 上限',
   'emakigem.item.field.gui.gem_template': '宝石 GUI 模板',
-  'emakigem.item.field.gui.open_template': '开孔 GUI 模板',
+  'emakigem.item.field.gui.open_template': '开槽 GUI 模板',
   'emakigem.item.field.material': '材质',
   'emakigem.actionParam.value': '文本',
   'emakigem.actionParam.regex_pattern': '正则表达式',
   'emakigem.actionParam.replacement': '替换为',
-  'emakigem.actionParam.content': '内容（每行一个）',
+  'emakigem.actionParam.content': '内容，每行一条',
   'emakigem.actionParam.target_pattern': '目标匹配',
   'emakigem.actionParam.anchor': '锚点'
 });
@@ -203,7 +203,7 @@ const GEM_EFFECT_TYPES = [...CORE_EFFECT_TYPES, 'ea_attribute', 'es_skill'];
 type ConfigSpec = [path: string, label: string, comment: string, type: string, extra?: Record<string, unknown>];
 
 const configFields: ConfigSpec[] = [
-  ['socket_openers', '开孔器', '按插槽类型配置开孔器物品、开孔消耗和默认开放插槽规则。', 'object', { creatableChildren: true }],
+  ['socket_openers', '开槽道具', '按插槽类型配置开槽道具、开槽消耗和默认开放插槽规则。', 'object', { creatableChildren: true }],
   ['inlay_success', '镶嵌成功率', '宝石镶嵌成功率、公式变量和失败处理策略。', 'object'],
   ['inlay_success.enabled', '启用成功率', '关闭后镶嵌默认必定成功。', 'boolean'],
   ['inlay_success.default_chance', '默认成功率', '未在宝石或插槽上覆盖时使用的默认成功率百分比。', 'number'],
@@ -217,14 +217,14 @@ const configFields: ConfigSpec[] = [
   ['permission', '权限', '宝石操作权限和 OP 绕过策略。', 'object'],
   ['permission.op_bypass', 'OP 跳过', '开启后 OP 可跳过宝石操作条件。', 'boolean'],
   ['gui', 'GUI', '宝石 GUI 默认模式、关闭保存和模板入口。', 'object'],
-  ['gui.default_mode', '默认模式', '打开宝石 GUI 时的默认页面。', 'enum', { options: ['inlay', 'open', 'upgrade'], optionLabelPrefix: 'gui.default_mode' }],
+  ['gui.default_mode', '默认页面', '打开宝石 GUI 时默认显示的页面。', 'enum', { options: ['inlay', 'open', 'upgrade'], optionLabelPrefix: 'gui.default_mode' }],
   ['gui.save_on_close', '关闭保存', '关闭 GUI 时是否自动保存未提交的宝石操作。', 'boolean']
 ];
 
 const dynamicFields: Record<string, [string, string, string]> = {
-  item_sources: ['物品来源', '识别物品、材料或开孔器的 ItemSource 列表。', 'list'],
-  name_actions: ['名称动作', '镶嵌、开槽或品质变化后对物品名称执行的动作列表。', 'actions'],
-  lore_actions: ['Lore 动作', '镶嵌、开槽或品质变化后对物品 Lore 执行的动作列表。', 'actions'],
+  item_sources: ['物品来源', '识别物品、材料或开槽道具的 ItemSource 列表。', 'list'],
+  name_actions: ['名称动作链', '镶嵌、开槽或品质变化后对物品名称执行的动作列表。', 'actions'],
+  lore_actions: ['Lore 动作链', '镶嵌、开槽或品质变化后对物品 Lore 执行的动作列表。', 'actions'],
   actions: ['动作', '操作成功、失败或展示时执行的 Action 配置。', 'object'],
   materials: ['材料消耗', '升级、镶嵌或开孔所需材料列表。', 'list'],
   currencies: ['货币消耗', 'Vault 或其他经济提供器消耗列表。', 'list'],
@@ -277,11 +277,11 @@ configFields.forEach(([path, label, comment, type, extra]) => registerConfigNode
 Object.entries(dynamicFields).forEach(([key, [label, comment, type]]) => registerConfigNodeRule(MODULE, { key }, { label, comment, type }));
 registerConfigCreateTemplate(MODULE, 'socket_openers', {
   id: 'socket-opener',
-  label: '开孔器',
+  label: '开槽道具',
   fields: [
-    { path: 'item_sources', label: '物品来源', comment: '识别为该开孔器的物品来源。', type: 'stringList', defaultValue: [] },
-    { path: 'socket_type', label: '插槽类型', comment: '开出的插槽类型。', type: 'text', defaultValue: 'universal' },
-    { path: 'consume', label: '消耗物品', comment: '开孔成功后是否消耗开孔器。', type: 'boolean', defaultValue: true }
+    { path: 'item_sources', label: '物品来源', comment: '识别为该开槽道具的物品来源。', type: 'stringList', defaultValue: [] },
+    { path: 'socket_type', label: '插槽类型', comment: '成功开槽后写入的插槽类型。', type: 'text', defaultValue: 'universal' },
+    { path: 'consume', label: '消耗物品', comment: '开槽成功后是否消耗此道具。', type: 'boolean', defaultValue: true }
   ]
 });
 registerConfigCreateTemplate(MODULE, 'upgrade.global_success_rates', {
@@ -304,7 +304,7 @@ registerEditorDescriptor(MODULE, 'emakigem:gem', {
   allowedFieldTypes: ['effects', 'cost', 'extractReturn', 'gemUpgrade'],
   sections: [
     {
-      title: '基础字段', fields: [
+      title: '基础信息', fields: [
         { path: 'id', label: 'ID', type: 'text' },
         { path: 'display_name', label: '显示名称', type: 'text' },
         { path: 'lore', label: 'Lore', type: 'stringList', wide: true },
@@ -315,11 +315,11 @@ registerEditorDescriptor(MODULE, 'emakigem:gem', {
         { path: 'socket_compatibility', label: '兼容插槽', type: 'stringList', wide: true }
       ]
     },
-    { title: 'effects 效果', collapsible: true, defaultCollapsed: true, fields: [{ path: 'effects', label: '宝石效果', type: 'effects', wide: true }] },
+    { title: '效果与变量', collapsible: true, defaultCollapsed: true, fields: [{ path: 'effects', label: '宝石效果', type: 'effects', wide: true }] },
     {
-      title: '展示动作', collapsible: true, defaultCollapsed: true, fields: [
-        { path: 'name_actions', label: '名称动作', type: 'actions', wide: true },
-        { path: 'lore_actions', label: 'Lore 动作', type: 'actions', wide: true }
+      title: '显示动作链', collapsible: true, defaultCollapsed: true, fields: [
+        { path: 'name_actions', label: '名称动作链', type: 'actions', wide: true },
+        { path: 'lore_actions', label: 'Lore 动作链', type: 'actions', wide: true }
       ]
     },
     {
@@ -329,9 +329,9 @@ registerEditorDescriptor(MODULE, 'emakigem:gem', {
         { path: 'extract_return', label: '拆卸返还', type: 'extractReturn', wide: true }
       ]
     },
-    { title: 'upgrade 升级配置', collapsible: true, defaultCollapsed: true, fields: [{ path: 'upgrade', label: '升级配置', type: 'gemUpgrade', wide: true }] },
+    { title: '升级设置', collapsible: true, defaultCollapsed: true, fields: [{ path: 'upgrade', label: '升级配置', type: 'gemUpgrade', wide: true }] },
     {
-      title: '宝石动作', collapsible: true, defaultCollapsed: true, fields: [
+      title: '触发动作', collapsible: true, defaultCollapsed: true, fields: [
         { path: 'actions.inlay_success', label: '镶嵌成功动作', type: 'stringList', wide: true },
         { path: 'actions.extract_success', label: '拆卸成功动作', type: 'stringList', wide: true }
       ]
@@ -371,9 +371,9 @@ registerEditorDescriptor(MODULE, 'emakigem:socket-item', {
       ]
     },
     {
-      title: '展示动作', collapsible: true, defaultCollapsed: true, fields: [
-        { path: 'name_actions', label: '名称动作', type: 'actions', wide: true },
-        { path: 'lore_actions', label: 'Lore 动作', type: 'actions', wide: true }
+      title: '显示动作链', collapsible: true, defaultCollapsed: true, fields: [
+        { path: 'name_actions', label: '名称动作链', type: 'actions', wide: true },
+        { path: 'lore_actions', label: 'Lore 动作链', type: 'actions', wide: true }
       ]
     }
   ]
@@ -381,14 +381,14 @@ registerEditorDescriptor(MODULE, 'emakigem:socket-item', {
 
 [
   ['emakigem:gem', 'effects', '宝石效果', '实际写入属性、技能和名称/Lore 动作的效果列表。', 'list'],
-  ['emakigem:gem', 'name_actions', '名称动作', '宝石展示时对名称执行的标准动作链。', 'actions'],
-  ['emakigem:gem', 'lore_actions', 'Lore 动作', '宝石展示时对 Lore 执行的标准动作链。', 'actions'],
+  ['emakigem:gem', 'name_actions', '名称动作链', '宝石展示时对名称执行的标准动作链。', 'actions'],
+  ['emakigem:gem', 'lore_actions', 'Lore 动作链', '宝石展示时对 Lore 执行的标准动作链。', 'actions'],
   ['emakigem:gem', 'inlay_cost', '镶嵌费用', '镶嵌宝石时消耗的货币与材料。', 'object'],
   ['emakigem:gem', 'extract_cost', '拆卸费用', '拆卸宝石时消耗的货币与材料。', 'object'],
   ['emakigem:gem', 'extract_return', '拆卸返还', '拆卸后宝石原样返还、销毁或降级返还。', 'object'],
   ['emakigem:socket-item', 'slots', '插槽列表', '该物品拥有的宝石插槽。', 'list'],
-  ['emakigem:socket-item', 'name_actions', '名称动作', '插槽激活后对物品名称执行的动作。', 'actions'],
-  ['emakigem:socket-item', 'lore_actions', 'Lore 动作', '插槽激活后对物品 Lore 执行的动作。', 'actions']
+  ['emakigem:socket-item', 'name_actions', '名称动作链', '插槽激活后对物品名称执行的动作。', 'actions'],
+  ['emakigem:socket-item', 'lore_actions', 'Lore 动作链', '插槽激活后对物品 Lore 执行的动作。', 'actions']
 ].forEach(([editorId, path, label, comment, type]) => registerEditorField(MODULE, editorId, { path, label, comment, type }));
 
 function registerEmakiGemItemRenderers() {
@@ -643,7 +643,7 @@ function MapRow({ label, path, value, onChange, valuePlaceholder = '值', addKey
       <input value={entry.value == null ? '' : String(entry.value)} onChange={event => update(index, 'value', event.target.value)} placeholder={valuePlaceholder} />
       <button type="button" className="prop-kv-del" onClick={() => remove(index)}>×</button>
     </div>)}
-    <button type="button" className="prop-add" onClick={add}>+ 添加</button>
+    <button type="button" className="prop-add" onClick={add}>+ 添加键值</button>
   </div></FormRow>;
 }
 

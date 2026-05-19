@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { ApiClient, ActionTypesResult } from './api';
 import { ActionsEditor, Button, CollapsibleSection, EditorChrome, InlineError, MiniText, PropRow as BasePropRow, SectionHead, StringListEditor, ToastNotice, parseActionList, serializeActionList } from './components';
 import { asList, asRecord, asStringList, displaySource, firstItemSource, materialFromItemSource, setDeepValue, parseYaml, type AnyMap } from './itemEditor';
@@ -30,6 +30,8 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
   const [originalContent, setOriginalContent] = useState('');
   const [preview, setPreview] = useState<ItemPreviewResult | null>(null);
   const [previewLevel, setPreviewLevel] = useState(1);
+  const [previewPending, setPreviewPending] = useState(false);
+  const previewRequestId = useRef(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -95,15 +97,34 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
   useEffect(() => {
     if (loading) return;
     if (!isKind(file.kind, 'ITEM')) {
+      previewRequestId.current += 1;
       setPreview(null);
+      setPreviewPending(false);
       return;
     }
     const content = serializeItemYaml(data);
     const previewBaseLore = resolvePreviewBaseLore(data, baseLore as string[]);
-    const timer = setTimeout(() => {
-      api.previewItem(content, previewLevel, baseName, previewBaseLore).then(setPreview).catch(() => setPreview(null));
+    const requestedLevel = previewLevel;
+    const requestId = previewRequestId.current + 1;
+    previewRequestId.current = requestId;
+    setPreview(null);
+    setPreviewPending(true);
+    let active = true;
+    const timer = window.setTimeout(() => {
+      api.previewItem(content, requestedLevel, baseName, previewBaseLore)
+        .then(nextPreview => {
+          if (!active || previewRequestId.current !== requestId) return;
+          setPreview(nextPreview);
+        })
+        .catch(() => {
+          if (!active || previewRequestId.current !== requestId) return;
+          setPreview(null);
+        })
+        .finally(() => {
+          if (active && previewRequestId.current === requestId) setPreviewPending(false);
+        });
     }, 300);
-    return () => clearTimeout(timer);
+    return () => { active = false; window.clearTimeout(timer); };
   }, [api, data, previewLevel, loading, baseName, baseLore, file.kind]);
 
   useEffect(() => {
@@ -243,7 +264,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
 
       <EditorContext.Provider value={editorContext}>
         <div className="ie-workbench">
-          <GenericPreviewPane data={data} preview={preview} previewLevel={previewLevel} setPreviewLevel={setPreviewLevel} />
+          <GenericPreviewPane data={data} preview={preview} previewPending={previewPending} previewLevel={previewLevel} setPreviewLevel={setPreviewLevel} baseName={baseName} baseLore={baseLore as string[]} />
           <div className="ie-props-scroll">
             <div className="ie-props">
               {sections.map(section => (
@@ -371,8 +392,8 @@ function MaterialInput({ id, value, onChange }: { id?: string; value: unknown; o
   return <div className="prop-material-picker">
     <input id={id} type="text" value={query} onChange={event => setQuery(event.target.value)} onBlur={() => { if (query.trim()) onChange(query.trim().toUpperCase()); }} placeholder="diamond_sword" list="ie-material-options" />
     <datalist id="ie-material-options">{suggestions.map(material => <option key={material} value={material.toLowerCase()} />)}</datalist>
-    <select value={MINECRAFT_MATERIALS.includes(current) ? current : ''} onChange={event => { if (event.target.value) onChange(event.target.value); }} aria-label="Material enum">
-      <option value="">{current && !MINECRAFT_MATERIALS.includes(current) ? current : '选择 Material'}</option>
+    <select value={MINECRAFT_MATERIALS.includes(current) ? current : ''} onChange={event => { if (event.target.value) onChange(event.target.value); }} aria-label="材质枚举选择">
+      <option value="">{current && !MINECRAFT_MATERIALS.includes(current) ? current : '选择材质'}</option>
       {suggestions.map(material => <option key={material} value={material}>{material}</option>)}
     </select>
   </div>;
@@ -382,7 +403,7 @@ function TextInput({ id, value, onChange, placeholder }: { id?: string; value: u
   return <input id={id} type="text" value={textValue(value)} onChange={event => onChange(event.target.value)} placeholder={placeholder} />;
 }
 
-function KvTable({ entries, onChange, valuePlaceholder = '值', addKeyPrefix = 'key' }: { entries: Array<{ key: string; value: unknown }>; onChange: (entries: Array<{ key: string; value: unknown }>) => void; valuePlaceholder?: string; addKeyPrefix?: string }) {
+function KvTable({ entries, onChange, valuePlaceholder = t('core.kv.value'), addKeyPrefix = 'key' }: { entries: Array<{ key: string; value: unknown }>; onChange: (entries: Array<{ key: string; value: unknown }>) => void; valuePlaceholder?: string; addKeyPrefix?: string }) {
   const update = (index: number, field: 'key' | 'value', value: string) => {
     const next = [...entries];
     next[index] = field === 'key' ? { ...next[index], key: value } : { ...next[index], value: parseLooseScalar(value) };
@@ -390,13 +411,13 @@ function KvTable({ entries, onChange, valuePlaceholder = '值', addKeyPrefix = '
   };
   const remove = (index: number) => onChange(entries.filter((_, itemIndex) => itemIndex !== index));
   const add = () => onChange([...entries, { key: nextUniqueKey(entries.map(entry => entry.key), addKeyPrefix), value: 0 }]);
-  return <div className="prop-kv" role="list" aria-label="键值对列表">
+  return <div className="prop-kv" role="list" aria-label={t('core.kv.aria')}>
     {entries.map((entry, index) => <div className="prop-kv-row" key={index} role="listitem">
-      <input type="text" value={entry.key} onChange={event => update(index, 'key', event.target.value)} placeholder="键" aria-label={`键 ${index + 1}`} />
-      <input type="text" value={entry.value == null ? '' : String(entry.value)} onChange={event => update(index, 'value', event.target.value)} placeholder={valuePlaceholder} aria-label={`值 ${index + 1}`} />
-      <button type="button" className="prop-kv-del" onClick={() => remove(index)} aria-label={`删除第 ${index + 1} 项`}>×</button>
+      <input type="text" value={entry.key} onChange={event => update(index, 'key', event.target.value)} placeholder={t('core.kv.key')} aria-label={`${t('core.kv.key')} ${index + 1}`} />
+      <input type="text" value={entry.value == null ? '' : String(entry.value)} onChange={event => update(index, 'value', event.target.value)} placeholder={valuePlaceholder} aria-label={`${t('core.kv.value')} ${index + 1}`} />
+      <button type="button" className="prop-kv-del" onClick={() => remove(index)} aria-label={t('core.kv.delete', { index: index + 1 })}>×</button>
     </div>)}
-    <button type="button" className="prop-add" onClick={add}>+ 添加</button>
+    <button type="button" className="prop-add" onClick={add}>+ {t('core.kv.add')}</button>
   </div>;
 }
 
@@ -414,10 +435,10 @@ function NumberListEditor({ items, onChange }: { items: number[]; onChange: (ite
   const remove = (index: number) => onChange(items.filter((_, itemIndex) => itemIndex !== index));
   return <div className="prop-kv" role="list">
     {items.map((item, index) => <div className="prop-kv-row prop-kv-row--single" key={index} role="listitem">
-      <input type="number" value={String(item)} onChange={event => update(index, event.target.value === '' ? undefined : Number(event.target.value))} aria-label={`数值 ${index + 1}`} />
-      <button type="button" className="prop-kv-del" onClick={() => remove(index)} aria-label={`删除第 ${index + 1} 项`}>×</button>
+      <input type="number" value={String(item)} onChange={event => update(index, event.target.value === '' ? undefined : Number(event.target.value))} aria-label={t('core.list.numberAria', { index: index + 1 })} />
+      <button type="button" className="prop-kv-del" onClick={() => remove(index)} aria-label={t('core.config.deleteItem', { index: index + 1 })}>×</button>
     </div>)}
-    <button type="button" className="prop-add" onClick={() => onChange([...items, 0])}>+ 添加</button>
+    <button type="button" className="prop-add" onClick={() => onChange([...items, 0])}>+ {t('core.config.addItem')}</button>
   </div>;
 }
 
@@ -454,9 +475,9 @@ function EffectsEditor({ value, onChange, actionTypesResult, path }: { value: un
           <span className="prop-level-summary"><span className="prop-level-badge">{opened ? '⌄' : '›'} #{index + 1}</span>{coreEffectTypeLabel(type)}</span>
           <span className="prop-level-rate">{effectSummary(effect)}</span>
           <span className="prop-action-controls" onClick={stopEvent} onKeyDown={stopEvent}>
-            <button type="button" onClick={() => moveEffect(index, -1)} disabled={index === 0} aria-label="上移">↑</button>
-            <button type="button" onClick={() => moveEffect(index, 1)} disabled={index === effects.length - 1} aria-label="下移">↓</button>
-            <button type="button" className="prop-action-del" onClick={() => removeEffect(index)} aria-label="删除">×</button>
+            <button type="button" onClick={() => moveEffect(index, -1)} disabled={index === 0} aria-label={t('core.field.move_up')}>↑</button>
+            <button type="button" onClick={() => moveEffect(index, 1)} disabled={index === effects.length - 1} aria-label={t('core.field.move_down')}>↓</button>
+            <button type="button" className="prop-action-del" onClick={() => removeEffect(index)} aria-label={t('core.field.delete')}>×</button>
           </span>
         </div>
         {opened && <div className="prop-level-body" id={`effect-body-${index}`}>
@@ -495,7 +516,7 @@ function SetPiecesEditor({ value, onChange, path }: { value: unknown; onChange: 
       <PropRow label="slot" path={joinPath(path, piece.key, 'slot')}><SelectInput value={piece.value.slot ?? 'main_hand'} options={slots} labelPrefix="setSlot" onChange={slot => update(index, piece.key, { slot })} /></PropRow>
       <PropRow label="display" path={joinPath(path, piece.key, 'display')}><TextInput value={piece.value.display} onChange={display => update(index, piece.key, { display })} placeholder={piece.key} /></PropRow>
     </div>)}
-    <button type="button" className="prop-add" onClick={add}>+ 套装部件</button>
+    <button type="button" className="prop-add" onClick={add}>+ {t('core.item.setPieces.add')}</button>
   </div>;
 }
 
@@ -515,7 +536,7 @@ function SetThresholdsEditor({ value, onChange, path }: { value: unknown; onChan
       <PropRow label="ea_attributes" path={joinPath(path, threshold.key, 'ea_attributes')} wide><MapEditor value={threshold.value.ea_attributes} valuePlaceholder="属性值" addKeyPrefix="attribute" onChange={ea_attributes => update(index, threshold.key, { ea_attributes })} /></PropRow>
       <PropRow label="es_skills" path={joinPath(path, threshold.key, 'es_skills')} wide><StringListEditor items={asStringList(threshold.value.es_skills)} onChange={es_skills => update(index, threshold.key, { es_skills })} placeholder="guardian_aura" /></PropRow>
     </div>)}
-    <button type="button" className="prop-add" onClick={add}>+ 阈值</button>
+    <button type="button" className="prop-add" onClick={add}>+ {t('core.item.setThresholds.add')}</button>
   </div>;
 }
 
@@ -534,7 +555,7 @@ function AttributeModifiersEditor({ value, onChange, path }: { value: unknown; o
       <PropRow label="slot" path={joinPath(path, index, 'slot')}><SelectInput value={modifier.slot ?? 'any'} options={slots} labelPrefix="equipmentSlot" onChange={slot => update(index, { slot })} /></PropRow>
       <PropRow label="name" path={joinPath(path, index, 'name')}><TextInput value={modifier.name} onChange={name => update(index, { name })} placeholder="emakiitem:item/attribute" /></PropRow>
     </div>)}
-    <button type="button" className="prop-add" onClick={() => onChange([...modifiers, { attribute: 'attack_damage', amount: 1, operation: 'add_number', slot: 'any', name: '' }])}>+ 属性修饰符</button>
+    <button type="button" className="prop-add" onClick={() => onChange([...modifiers, { attribute: 'attack_damage', amount: 1, operation: 'add_number', slot: 'any', name: '' }])}>+ {t('core.item.attributeModifiers.add')}</button>
   </div>;
 }
 
@@ -549,7 +570,7 @@ function RepairMaterialsEditor({ value, onChange, path }: { value: unknown; onCh
       <PropRow label="amount" path={joinPath(path, index, 'amount')}><NumberInput value={material.amount ?? 1} onChange={amount => update(index, { amount: amount ?? 1 })} /></PropRow>
       <PropRow label="restore" path={joinPath(path, index, 'restore')}><TextInput value={material.restore ?? material.repair_amount} onChange={restore => update(index, { restore, repair_amount: undefined })} placeholder="250 或 {max_damage} * .25" /></PropRow>
     </div>)}
-    <button type="button" className="prop-add" onClick={() => onChange([...materials, { item: 'minecraft-diamond', amount: 1, restore: 100 }])}>+ 修复材料</button>
+    <button type="button" className="prop-add" onClick={() => onChange([...materials, { item: 'minecraft-diamond', amount: 1, restore: 100 }])}>+ {t('core.item.repairMaterials.add')}</button>
   </div>;
 }
 
@@ -572,7 +593,7 @@ function resolvePreviewBaseLore(data: AnyMap, fallback: string[]): string[] {
   return configuredLore.length > 0 ? configuredLore : fallback;
 }
 
-function GenericPreviewPane({ data, preview, previewLevel, setPreviewLevel }: { data: AnyMap; preview: ItemPreviewResult | null; previewLevel: number; setPreviewLevel: (level: number) => void }) {
+function GenericPreviewPane({ data, preview, previewPending, previewLevel, setPreviewLevel, baseName, baseLore }: { data: AnyMap; preview: ItemPreviewResult | null; previewPending: boolean; previewLevel: number; setPreviewLevel: (level: number) => void; baseName: string; baseLore: string[] }) {
   const source = firstItemSource(data.item_sources ?? asRecord(data.match).item_sources ?? preview?.material);
   const material = materialFromItemSource(source || data.material || preview?.material);
   const levels = configuredPreviewLevels(data, preview);
@@ -580,7 +601,13 @@ function GenericPreviewPane({ data, preview, previewLevel, setPreviewLevel }: { 
   const [, refreshTextureOrder] = useState(0);
   const urls = materialUrls(material);
   const [imgFailed, setImgFailed] = useState(false);
-  const tooltipName = previewTooltipName(data, preview, previewLevel);
+  const previewMatchesLevel = preview?.kind !== 'gem' || Number(preview.level) === previewLevel;
+  const livePreview = previewMatchesLevel ? preview : null;
+  const originalName = textValue(livePreview?.baseName) || baseName;
+  const originalLore = previewStringList(livePreview?.baseLore, resolvePreviewBaseLore(data, baseLore));
+  const resultName = textValue(livePreview?.displayName);
+  const resultLore = livePreview ? asStringList(livePreview.lore) : [];
+  const status = previewStatus(livePreview, previewPending);
   useEffect(() => setImgFailed(false), [material]);
   useEffect(() => subscribeTextureBases(() => { setImgFailed(false); refreshTextureOrder((version) => version + 1); }), []);
 
@@ -590,25 +617,53 @@ function GenericPreviewPane({ data, preview, previewLevel, setPreviewLevel }: { 
         {urls.length > 0 && !imgFailed ? <img src={urls[0]} alt={material || t('core.item.iconAlt')} onError={e => { const target = e.currentTarget; const next = urls[urls.indexOf(target.src) + 1]; if (next) target.src = next; else setImgFailed(true); }} /> : <span className="ie-preview-fallback">{materialShortName(material) || '?'}</span>}
       </div>
       <div className="ie-preview-meta">
-        <span className="ie-preview-kind">{t('core.item.genericKind')}</span>
-        {Boolean(preview?.id || data.id) && <code className="ie-preview-id">{textValue(preview?.id ?? data.id)}</code>}
+        <span className="ie-preview-kind">{previewKindLabel(livePreview)}</span>
+        {Boolean(livePreview?.id || data.id) && <code className="ie-preview-id">{textValue(livePreview?.id ?? data.id)}</code>}
         <span className="ie-preview-source">{displaySource(source || material)}</span>
+        <span className={`ie-preview-status ${status.tone}`}>{status.text}</span>
       </div>
       {hasLevels && <div className="ie-level-panel">
-        <div className="ie-level-head"><span>升级等级预览</span><code>当前 Lv.{previewLevel}</code></div>
+        <div className="ie-level-head"><span>{t('core.item.preview.levelTitle')}</span><code>{t('core.item.preview.upgradeLevel', { level: previewLevel })}</code></div>
         <div className="ie-level-rail">
           {levels.map(level => <button key={level} type="button" className={level === previewLevel ? 'active' : ''} onClick={() => setPreviewLevel(level)} aria-pressed={level === previewLevel}>Lv.{level}</button>)}
         </div>
-        <p className="ie-level-hint">根据当前草稿的 upgrade.enabled 和 upgrade.max_level 生成。</p>
+        <p className="ie-level-hint">{t('core.item.preview.levelHint')}</p>
       </div>}
-      <div className="ie-tooltip">
-        {tooltipName ? <div className="ie-tooltip-name"><MiniText value={tooltipName} /></div> : null}
-        {(preview?.lore ?? asStringList(data.lore)).map((line, i) => <div className="ie-tooltip-line" key={i}><MiniText value={line} /></div>)}
-        {!tooltipName && !(preview?.lore ?? asList(data.lore)).length && <span className="ie-tooltip-empty">{t('core.item.noPreview')}</span>}
+      <div className="ie-preview-compare">
+        <PreviewTooltipBlock title={t('core.item.preview.original')} name={originalName} lore={originalLore} emptyText={t('core.item.preview.emptyLore')} />
+        <PreviewTooltipBlock title={hasLevels ? t('core.item.preview.resultForLevel', { level: previewLevel }) : t('core.item.preview.result')} name={resultName} lore={resultLore} refreshing={previewPending} emptyText={previewPending ? t('core.item.preview.syncing') : t('core.item.preview.emptyResult')} />
       </div>
-      <PreviewPipelineSummary preview={preview} />
+      <PreviewPipelineSummary preview={livePreview} />
     </div>
   );
+}
+
+function PreviewTooltipBlock({ title, name, lore, emptyText, refreshing }: { title: string; name: string; lore: string[]; emptyText: string; refreshing?: boolean }) {
+  return <div className="ie-preview-tooltip-block">
+    <div className="ie-tooltip-label">{title}</div>
+    <div className={`ie-tooltip${refreshing ? ' is-refreshing' : ''}`}>
+      {name ? <div className="ie-tooltip-name"><MiniText value={name} /></div> : null}
+      {lore.map((line, i) => <div className="ie-tooltip-line" key={i}><MiniText value={line} /></div>)}
+      {!name && !lore.length && <span className="ie-tooltip-empty">{emptyText}</span>}
+    </div>
+  </div>;
+}
+
+function previewStringList(value: unknown, fallback: string[]): string[] {
+  const lines = asStringList(value);
+  return lines.length ? lines : fallback;
+}
+
+function previewStatus(preview: ItemPreviewResult | null, pending: boolean): { tone: 'live' | 'syncing' | 'failed'; text: string } {
+  if (pending) return { tone: 'syncing', text: t('core.item.previewStatus.syncing') };
+  if (preview) return { tone: 'live', text: t('core.item.previewStatus.live') };
+  return { tone: 'failed', text: t('core.item.previewStatus.failed') };
+}
+
+function previewKindLabel(preview: ItemPreviewResult | null): string {
+  if (preview?.kind === 'gem') return '宝石';
+  if (preview?.kind === 'gem_socket_item') return '插槽物品';
+  return t('core.item.genericKind');
 }
 
 function PreviewPipelineSummary({ preview }: { preview: ItemPreviewResult | null }) {
@@ -616,19 +671,19 @@ function PreviewPipelineSummary({ preview }: { preview: ItemPreviewResult | null
   const nameSteps = preview?.nameSteps ?? [];
   const loreSteps = preview?.loreSteps ?? [];
   if (!variables.length && !nameSteps.length && !loreSteps.length) return null;
-  return <div className="ie-preview-debug" aria-label="变量与动作预览">
+  return <div className="ie-preview-debug" aria-label={t('core.item.preview.debugAria')}>
     {variables.length > 0 && <PreviewVariableList entries={variables} />}
-    {nameSteps.length > 0 && <PreviewStepList title="名称动作" steps={nameSteps} />}
-    {loreSteps.length > 0 && <PreviewStepList title="Lore 动作" steps={loreSteps} />}
+    {nameSteps.length > 0 && <PreviewStepList title={t('core.item.preview.nameSteps')} steps={nameSteps} />}
+    {loreSteps.length > 0 && <PreviewStepList title={t('core.item.preview.loreSteps')} steps={loreSteps} />}
   </div>;
 }
 
 function PreviewVariableList({ entries }: { entries: [string, unknown][] }) {
   return <div className="ie-preview-debug-block">
-    <div className="ie-preview-debug-head"><span>变量解析</span><code>{entries.length}</code></div>
+    <div className="ie-preview-debug-head"><span>{t('core.item.preview.variables')}</span><code>{entries.length}</code></div>
     <div className="ie-preview-vars">
       {entries.slice(0, 6).map(([key, value]) => <div className="ie-preview-var" key={key}><code>{key}</code><span>{previewValue(value)}</span></div>)}
-      {entries.length > 6 && <span className="ie-preview-more">+{entries.length - 6} 个变量</span>}
+      {entries.length > 6 && <span className="ie-preview-more">{t('core.item.preview.moreVariables', { count: entries.length - 6 })}</span>}
     </div>
   </div>;
 }
@@ -639,11 +694,26 @@ function PreviewStepList({ title, steps }: { title: string; steps: ItemPreviewSt
     <div className="ie-preview-steps">
       {steps.slice(0, 5).map((step, index) => <div className="ie-preview-step" key={`${step.action}-${index}`}>
         <code>{step.action || `#${index + 1}`}</code>
-        {step.result ? <span>{step.result}</span> : step.value ? <span>{step.value}</span> : null}
+        <span>{previewStepSummary(step)}</span>
       </div>)}
-      {steps.length > 5 && <span className="ie-preview-more">+{steps.length - 5} 个步骤</span>}
+      {steps.length > 5 && <span className="ie-preview-more">{t('core.item.preview.moreSteps', { count: steps.length - 5 })}</span>}
     </div>
   </div>;
+}
+
+function previewStepSummary(step: ItemPreviewStep): string {
+  if (Array.isArray(step.before) || Array.isArray(step.after)) {
+    const before = Array.isArray(step.before) ? step.before.length : 0;
+    const after = Array.isArray(step.after) ? step.after.length : 0;
+    const content = Array.isArray(step.content) && step.content.length ? t('core.item.preview.writeLines', { count: step.content.length }) : '';
+    const anchorValue = textValue(step.anchor);
+    const anchor = anchorValue ? t('core.item.preview.anchor', { anchor: anchorValue }) : '';
+    return `${t('core.item.preview.lineChange', { before, after })}${content}${anchor}`;
+  }
+  const after = textValue(step.after ?? step.result);
+  const before = textValue(step.before);
+  if (before || after) return before ? `${before} → ${after}` : after;
+  return textValue(step.value, t('core.item.preview.executed'));
 }
 
 function previewValue(value: unknown): string {
@@ -664,16 +734,6 @@ function editorFieldMap(editor: WebEditorDescriptor | undefined): Record<string,
     (result as AnyMap).__meta = { path: '__meta', label: '__meta', type: 'json', allowedFieldTypes };
   }
   return result;
-}
-
-function previewTooltipName(data: AnyMap, preview: ItemPreviewResult | null, previewLevel: number): string {
-  if (preview?.kind !== 'gem') return textValue(preview?.displayName ?? data.display_name);
-  return firstGemName(data, preview, previewLevel);
-}
-
-function firstGemName(data: AnyMap, preview: ItemPreviewResult | null, previewLevel: number): string {
-  const levelName = textValue(levelMap(asRecord(data.upgrade).levels)[String(previewLevel)]?.display_name);
-  return levelName || textValue(preview?.displayName ?? data.display_name ?? data.id);
 }
 
 function configuredPreviewLevels(data: AnyMap, preview: ItemPreviewResult | null): number[] {
@@ -703,15 +763,10 @@ function defaultSections(): WebEditorSection[] {
 
 function effectSummary(effect: AnyMap): string {
   const type = textValue(effect.type);
-  if (type === 'variables') return `${Object.keys(asRecord(effect.variables)).length} 变量`;
-  if (type === 'name_action') return `${asList(effect.name_actions).length} 动作`;
-  if (type === 'lore_action') return `${asList(effect.lore_actions).length} 动作`;
-  return `${Math.max(0, Object.keys(effect).length - 1)} 字段`;
-}
-
-function levelMap(value: unknown): Record<string, AnyMap> {
-  if (Array.isArray(value)) return Object.fromEntries(value.map((entry, index) => [String(index + 2), asRecord(entry)]));
-  return Object.fromEntries(Object.entries(asRecord(value)).map(([key, entry]) => [key, asRecord(entry)]));
+  if (type === 'variables') return `${Object.keys(asRecord(effect.variables)).length} 个变量`;
+  if (type === 'name_action') return `${asList(effect.name_actions).length} 个名称动作`;
+  if (type === 'lore_action') return `${asList(effect.lore_actions).length} 个 Lore 动作`;
+  return `${Math.max(0, Object.keys(effect).length - 1)} 个字段`;
 }
 
 function nextNumericKey(keys: string[], fallback: number): string {

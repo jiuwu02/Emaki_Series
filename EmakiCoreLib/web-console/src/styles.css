@@ -695,9 +695,13 @@ textarea { min-height: 96px; resize: vertical; font-family: ui-monospace, "Casca
 .ie-level-rail button.active { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
 .ie-level-rail button:hover:not(.active) { border-color: var(--line-2); color: var(--text); }
 .ie-level-hint, .ie-level-empty { color: var(--faint); font-size: 10px; line-height: 1.45; }
+.ie-preview-compare { display: grid; gap: 8px; }
+.ie-preview-tooltip-block { display: grid; gap: 4px; min-width: 0; }
+.ie-tooltip-label { color: var(--faint); font-size: 10px; font-weight: 750; letter-spacing: .045em; text-transform: uppercase; }
 .ie-tooltip { display: grid; gap: 2px; padding: 10px; border: 2px solid var(--mc-tooltip-border); background: var(--mc-tooltip-bg); box-shadow: 3px 3px 0 var(--mc-tooltip-shadow); font-family: ui-monospace, "Cascadia Code", monospace; font-size: 11px; line-height: 1.4; transition: opacity .16s, filter .16s; }
 .ie-tooltip.is-refreshing { opacity: .72; filter: saturate(.85); }
 .ie-tooltip-name { font-weight: 650; margin-bottom: 2px; }
+.ie-tooltip-line { overflow-wrap: anywhere; }
 .ie-tooltip-empty { color: var(--faint); font-style: italic; }
 .ie-preview-debug { display: grid; gap: 7px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
 .ie-preview-debug-block { display: grid; gap: 5px; }
@@ -707,6 +711,7 @@ textarea { min-height: 96px; resize: vertical; font-family: ui-monospace, "Casca
 .ie-preview-var, .ie-preview-step { min-width: 0; display: grid; grid-template-columns: minmax(64px, .42fr) minmax(0, 1fr); gap: 6px; align-items: baseline; border: 1px solid var(--line); background: var(--input); padding: 4px 6px; }
 .ie-preview-var code, .ie-preview-step code { color: var(--accent); font-family: ui-monospace, "Cascadia Code", monospace; font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ie-preview-var span, .ie-preview-step span { color: var(--faint); font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ie-preview-step span { white-space: normal; overflow-wrap: anywhere; }
 .ie-preview-more { color: var(--faint); font-size: 10px; }
 
 /* ─── Item Editor: Property Panel ─── */

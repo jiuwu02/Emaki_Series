@@ -1,6 +1,6 @@
 import { fieldLabel, optionLabel, type FieldLabelOptions, type OptionLabelOptions } from '../lib/fieldI18n';
 import { textValue } from '../lib/miniMessage';
-import { asList, asStringList } from '../lib/itemUtils';
+import { asList } from '../lib/itemUtils';
 import type { WebEditorField } from '../types';
 
 /** Structured editor for CoreLib Name/Lore action lists. */
@@ -75,7 +75,7 @@ export function ActionsEditor({
           </div>
         );
       })}
-      <button type="button" className="prop-add" onClick={add}>+ {fieldLabel(`${mode}_actions.add`, { ...labelOptions, fallback: '添加动作' })}</button>
+      <button type="button" className="prop-add" onClick={add}>+ {fieldLabel(`${mode}_actions.add`, { ...labelOptions, fallback: mode === 'name' ? '添加名称动作' : '添加 Lore 动作' })}</button>
     </div>
   );
 }
@@ -86,13 +86,14 @@ function renderNameParams(
   updateParam: (index: number, key: string, value: unknown) => void,
   labelOptions: FieldLabelOptions
 ) {
+  const updateTextParam = (key: string) => (value: string) => updateParam(index, key, updateTextConfig(action.params[key], value));
   if (action.type === 'regex_replace') {
     return <>
-      <ParamInput paramKey="regex_pattern" value={textValue(action.params.regex_pattern)} labelOptions={labelOptions} onChange={value => updateParam(index, 'regex_pattern', value)} />
-      <ParamInput paramKey="replacement" value={textValue(action.params.replacement)} labelOptions={labelOptions} onChange={value => updateParam(index, 'replacement', value)} />
+      <ParamInput paramKey="regex_pattern" value={actionTextValue(action.params.regex_pattern)} labelOptions={labelOptions} onChange={updateTextParam('regex_pattern')} />
+      <ParamInput paramKey="replacement" value={actionTextValue(action.params.replacement)} labelOptions={labelOptions} onChange={updateTextParam('replacement')} />
     </>;
   }
-  return <ParamInput paramKey="value" value={textValue(action.params.value)} labelOptions={labelOptions} onChange={value => updateParam(index, 'value', value)} />;
+  return <ParamInput paramKey="value" value={actionTextValue(action.params.value)} labelOptions={labelOptions} onChange={updateTextParam('value')} />;
 }
 
 function renderLoreParams(
@@ -101,20 +102,73 @@ function renderLoreParams(
   updateParam: (index: number, key: string, value: unknown) => void,
   labelOptions: FieldLabelOptions
 ) {
+  const updateTextParam = (key: string) => (value: string) => updateParam(index, key, updateTextConfig(action.params[key], value));
   if (action.type === 'regex_replace') {
     return <>
-      <ParamInput paramKey="regex_pattern" value={textValue(action.params.regex_pattern)} labelOptions={labelOptions} onChange={value => updateParam(index, 'regex_pattern', value)} />
-      <ParamInput paramKey="replacement" value={textValue(action.params.replacement)} labelOptions={labelOptions} onChange={value => updateParam(index, 'replacement', value)} />
+      <ParamInput paramKey="regex_pattern" value={actionTextValue(action.params.regex_pattern)} labelOptions={labelOptions} onChange={updateTextParam('regex_pattern')} />
+      <ParamInput paramKey="replacement" value={actionTextValue(action.params.replacement)} labelOptions={labelOptions} onChange={updateTextParam('replacement')} />
     </>;
   }
   const search = requiresSearchPattern(action.type);
   return <>
-    {action.type !== 'delete_line' && <ParamTextarea paramKey="content" rows={2} value={asStringList(action.params.content).join('\n')} labelOptions={labelOptions} onChange={value => updateParam(index, 'content', splitLines(value))} />}
+    {action.type !== 'delete_line' && <ParamTextarea paramKey="content" rows={2} value={actionTextLines(action.params.content).join('\n')} labelOptions={labelOptions} onChange={value => updateParam(index, 'content', updateTextConfig(action.params.content, value, true))} />}
     {search && <>
-      <ParamInput paramKey="target_pattern" value={textValue(action.params.target_pattern)} labelOptions={labelOptions} onChange={value => updateParam(index, 'target_pattern', value)} />
-      <ParamInput paramKey="anchor" value={textValue(action.params.anchor)} labelOptions={labelOptions} onChange={value => updateParam(index, 'anchor', value)} />
+      <ParamInput paramKey="target_pattern" value={actionTextValue(action.params.target_pattern)} labelOptions={labelOptions} onChange={updateTextParam('target_pattern')} />
+      <ParamInput paramKey="anchor" value={actionTextValue(action.params.anchor)} labelOptions={labelOptions} onChange={updateTextParam('anchor')} />
     </>}
   </>;
+}
+
+const TEXT_VALUE_KEYS = ['value', 'text', 'template', 'expression', 'formula'];
+const TEXT_LINE_KEYS = ['lines', 'values', 'candidates'];
+
+function actionTextLines(value: unknown): string[] {
+  if (value == null || value === '') return [];
+  if (Array.isArray(value)) return value.flatMap(entry => actionTextLines(entry));
+  if (isRecord(value)) {
+    const lineKey = firstExistingKey(value, TEXT_LINE_KEYS);
+    if (lineKey) return actionTextLines(value[lineKey]);
+  }
+  const text = actionTextValue(value);
+  return text.includes('\n') ? text.split('\n') : [text];
+}
+
+function actionTextValue(value: unknown): string {
+  const scalar = textValue(value);
+  if (scalar || value == null) return scalar;
+  if (Array.isArray(value)) return actionTextLines(value).join('\n');
+  if (isRecord(value)) {
+    const valueKey = firstExistingKey(value, TEXT_VALUE_KEYS);
+    if (valueKey) return actionTextValue(value[valueKey]);
+    const lineKey = firstExistingKey(value, TEXT_LINE_KEYS);
+    if (lineKey) return actionTextLines(value[lineKey]).join('\n');
+    return '';
+  }
+  return String(value);
+}
+
+function updateTextConfig(previous: unknown, text: string, multiline = false): unknown {
+  const lines = splitLines(text);
+  if (Array.isArray(previous)) {
+    return multiline ? lines.map((line, index) => updateTextConfig(previous[index], line)) : text;
+  }
+  if (isRecord(previous)) {
+    const valueKey = firstExistingKey(previous, TEXT_VALUE_KEYS);
+    if (valueKey) return { ...previous, [valueKey]: text };
+    const lineKey = firstExistingKey(previous, TEXT_LINE_KEYS);
+    if (lineKey) return { ...previous, [lineKey]: lines };
+    if (multiline) return { ...previous, lines };
+  }
+  if (multiline) return typeof previous === 'string' && lines.length <= 1 ? text : lines;
+  return text;
+}
+
+function firstExistingKey(record: Record<string, unknown>, keys: string[]): string | undefined {
+  return keys.find(key => Object.prototype.hasOwnProperty.call(record, key));
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value));
 }
 
 function ParamSelect({ paramKey, value, options, onChange, labelOptions, optionPrefix, optionOptions }: {

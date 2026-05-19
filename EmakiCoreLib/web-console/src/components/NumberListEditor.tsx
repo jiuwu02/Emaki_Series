@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import { useStableEntries } from './useStableEntries';
 
 /** Editable number list with stable keys. */
@@ -13,11 +14,11 @@ export function NumberListEditor({ items, onChange }: { items: number[]; onChang
     <div className="prop-kv" role="list">
       {stable.map((entry, i) => (
         <div className="prop-kv-row prop-kv-row--single" key={entry._id} role="listitem">
-          <input type="number" value={String(entry.data)} onChange={e => update(i, e.target.value)} aria-label={`数值 ${i + 1}`} />
-          <button type="button" className="prop-kv-del" onClick={() => remove(i)} aria-label={`删除第 ${i + 1} 项`}>×</button>
+          <input type="number" value={String(entry.data)} onChange={e => update(i, e.target.value)} aria-label={t('core.list.numberAria', { index: i + 1 })} />
+          <button type="button" className="prop-kv-del" onClick={() => remove(i)} aria-label={t('core.config.deleteItem', { index: i + 1 })}>×</button>
         </div>
       ))}
-      <button type="button" className="prop-add" onClick={add}>+ 添加</button>
+      <button type="button" className="prop-add" onClick={add}>+ {t('core.config.addItem')}</button>
     </div>
   );
 }

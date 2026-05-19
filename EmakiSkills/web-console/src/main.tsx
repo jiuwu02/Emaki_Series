@@ -5,14 +5,14 @@ const MODULE = 'EmakiSkills';
 type FieldSpec = [path: string, label: string, comment: string, type: string, extra?: Record<string, unknown>];
 
 const fields: FieldSpec[] = [
-  ['slots', '技能槽', '玩家主动技能槽位数量与默认分配。', 'object'],
+  ['slots', '技能槽位', '玩家主动技能槽位数量与默认分配。', 'object'],
   ['slots.default_count', '默认槽数', '新玩家或未初始化玩家默认拥有的主动技能槽数量。', 'number'],
   ['cast_mode', '施法模式', '进入/退出施法模式的按键、状态恢复与客户端限制说明。', 'object'],
   ['cast_mode.entry_key', '切换按键', '进入或退出施法模式的按键标识。Spigot 服务端不能监听所有客户端本地键位。', 'text'],
   ['cast_mode.restore_last_state_on_join', '登录恢复状态', '玩家重新登录后是否恢复上次退出时的施法模式状态。', 'boolean'],
   ['cast_timing', '施法时序', '技能释放后的全局延迟与冷却节奏。', 'object'],
   ['cast_timing.forced_global_cast_delay_ticks', '全局施法延迟', '任意技能成功释放后强制施加的全局冷却，单位 tick；0 表示关闭。', 'number'],
-  ['actionbar', 'ActionBar', '施法模式和普通状态下的 ActionBar 技能栏显示。', 'object'],
+  ['actionbar', '技能 ActionBar', '施法模式和普通状态下的 ActionBar 技能栏显示。', 'object'],
   ['actionbar.enabled', '启用显示', '是否启用技能 ActionBar 状态显示。', 'boolean'],
   ['actionbar.refresh_interval_ticks', '刷新间隔', 'ActionBar 内容刷新间隔，单位 tick。', 'number'],
   ['actionbar.template_cast_mode', '施法模板', '施法模式下的 ActionBar 模板，支持技能槽和冷却占位符。', 'text'],
@@ -76,10 +76,10 @@ registerPluginGuiEditor({
   label: '技能 GUI',
   fields: [
     ['type', '槽位类型', '技能业务槽位语义。', 'text'],
-    ['active_slot', '主动技能槽', '玩家主动技能槽位。', 'text'],
+    ['active_slot', '主动技能槽位', '玩家主动技能槽位。', 'text'],
     ['skill_pool', '技能池', '可装配技能列表区域。', 'text'],
-    ['cast_mode_toggle', '施法模式', '切换技能施法模式。', 'text'],
-    ['trigger_selector', '触发器选择', '用于选择主动触发器的槽位。', 'text'],
+    ['cast_mode_toggle', '施法模式按钮', '切换技能施法模式的按钮槽位。', 'text'],
+    ['trigger_selector', '触发器选择槽', '用于选择主动触发器的槽位。', 'text'],
     ['page_prev', '上一页', '向前翻页按钮。', 'text'],
     ['page_next', '下一页', '向后翻页按钮。', 'text']
   ]

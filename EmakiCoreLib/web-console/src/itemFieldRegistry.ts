@@ -19,7 +19,7 @@ export function createCoreEffect(type: CoreEffectType): AnyMap {
 }
 
 export function coreEffectTypeLabel(type: string): string {
-  return { variables: '变量', name_action: '名称动作', lore_action: 'Lore 动作' }[type] ?? type;
+  return { variables: '变量', name_action: '名称动作链', lore_action: 'Lore 动作链' }[type] ?? type;
 }
 
 export type ItemFieldRendererContext = {
