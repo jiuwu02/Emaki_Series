@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState, type CSSProperties, type Dispatch, type KeyboardEvent, type SetStateAction } from 'react';
 import { getModuleLocaleBundles, t } from '../i18n';
+import { treeNodeDisplayComment, treeNodeDisplayLabel } from '../lib';
 import type { RegistryTreeNode, WebRegistry, WebRegistryModule } from '../types';
 
 export type TreeSelection = { moduleId: string; fileId: string; scriptPath?: string; refreshKey?: number };
@@ -64,6 +65,8 @@ function TreeNodeView({ node, selected, expanded, dirtyKeys, queryActive, toggle
   const kindLabel = fileKindLabel(node.kind ?? node.type);
   const active = Boolean(node.moduleId && node.fileId && selected?.moduleId === node.moduleId && selected.fileId === node.fileId && (selected.scriptPath ?? '') === (node.childPath ?? ''));
   const dirty = isNodeDirty(node, dirtyKeys) || children.some(child => isNodeOrDescendantDirty(child, dirtyKeys));
+  const displayLabel = treeNodeDisplayLabel(node);
+  const displayComment = treeNodeDisplayComment(node);
 
   if (isModule) {
     const i18nCount = moduleI18nCount(node.id);
@@ -78,9 +81,9 @@ function TreeNodeView({ node, selected, expanded, dirtyKeys, queryActive, toggle
             data-tree-node-id={node.id}
             onClick={() => toggle(node.id)}
           >
-            <Icon svg={node.icon} /> <span aria-hidden="true">{isOpen ? '⌄' : '›'}</span> <span className="tree-label">{node.label}</span><DirtyDot dirty={dirty} />
+            <Icon svg={node.icon} /> <span aria-hidden="true">{isOpen ? '⌄' : '›'}</span> <span className="tree-label">{displayLabel}</span><DirtyDot dirty={dirty} />
           </button>
-          {onOpenI18n && node.id && <ModuleI18nButton moduleId={node.id} moduleName={node.label} count={i18nCount} onOpen={onOpenI18n} />}
+          {onOpenI18n && node.id && <ModuleI18nButton moduleId={node.id} moduleName={displayLabel} count={i18nCount} onOpen={onOpenI18n} />}
         </div>
         {isOpen && <div role="group">{children.map((child) => (
           <TreeNodeView key={child.id} node={child} selected={selected} expanded={expanded} dirtyKeys={dirtyKeys} queryActive={queryActive} toggle={toggle} onSelect={onSelect} onOpenI18n={onOpenI18n} onCreateFile={onCreateFile} onDeleteFile={onDeleteFile} level={level + 1} />
@@ -99,10 +102,11 @@ function TreeNodeView({ node, selected, expanded, dirtyKeys, queryActive, toggle
             aria-level={level + 1}
             aria-expanded={isOpen}
             aria-selected={active || undefined}
+            aria-label={`${displayLabel}，${kindLabel}${displayComment ? `，${displayComment}` : ''}${dirty ? `，${t('core.tree.dirty')}` : ''}`}
             data-tree-node-id={node.id}
             onClick={() => toggle(node.id)}
           >
-            <span className="folder-arrow" aria-hidden="true">{isOpen ? '⌄' : '›'}</span><span className="tree-label">{kindLabel} · {node.label}</span><DirtyDot dirty={dirty} />
+            <span className="folder-arrow" aria-hidden="true">{isOpen ? '⌄' : '›'}</span><span className="tree-label">{displayLabel}</span><DirtyDot dirty={dirty} />
           </button>
           {onCreateFile && <button type="button" className="tree-file-action" title={t('core.tree.createFile')} aria-label={t('core.tree.createFile')} onClick={(event) => { event.stopPropagation(); onCreateFile(node); }}>+</button>}
         </div>
@@ -126,7 +130,8 @@ function TreeNodeView({ node, selected, expanded, dirtyKeys, queryActive, toggle
         role="treeitem"
         aria-level={level + 1}
         aria-selected={active}
-        aria-label={level > 1 ? `${node.label}，${kindLabel}${dirty ? `，${t('core.tree.dirty')}` : ''}` : `${kindLabel}，${node.label}${dirty ? `，${t('core.tree.dirty')}` : ''}`}
+            aria-label={`${displayLabel}，${kindLabel}${displayComment ? `，${displayComment}` : ''}${dirty ? `，${t('core.tree.dirty')}` : ''}`}
+
         data-tree-node-id={node.id}
         onClick={() => {
           if (!canSelect || !node.moduleId || !node.fileId) return;
@@ -134,7 +139,7 @@ function TreeNodeView({ node, selected, expanded, dirtyKeys, queryActive, toggle
         }}
         disabled={!canSelect}
       >
-        <span className="tree-label">{level > 1 ? node.label : `${kindLabel} · ${node.label}`}</span><DirtyDot dirty={dirty} />
+        <span className="tree-label">{displayLabel}</span><DirtyDot dirty={dirty} />
       </button>
       {onDeleteFile && node.childPath && <button type="button" className="tree-file-action danger" title={t('core.tree.deleteFile')} aria-label={t('core.tree.deleteFile')} onClick={(event) => { event.stopPropagation(); onDeleteFile(node); }}>×</button>}
     </div>
@@ -180,6 +185,7 @@ export function fileKindLabel(kind: string | undefined): string {
   if (upper === 'CONFIG') return t('core.kind.config');
   if (upper === 'GUI') return t('core.kind.gui');
   if (upper === 'ITEM') return t('core.kind.item');
+  if (upper === 'SET') return t('core.kind.set');
   if (upper === 'SCRIPT') return t('core.kind.script');
   if (upper === 'FILE') return t('core.kind.file');
   return kind;
@@ -238,7 +244,7 @@ function filterTree(nodes: RegistryTreeNode[], query: string): RegistryTreeNode[
 }
 
 function matchesNode(node: RegistryTreeNode, query: string): boolean {
-  const haystack = [node.label, node.path, node.childPath, node.kind, node.type, node.moduleId, node.comment].map(value => String(value ?? '').toLowerCase()).join(' ');
+  const haystack = [treeNodeDisplayLabel(node), treeNodeDisplayComment(node), node.path, node.childPath, node.kind, node.type, node.moduleId].map(value => String(value ?? '').toLowerCase()).join(' ');
   return haystack.includes(query);
 }
 

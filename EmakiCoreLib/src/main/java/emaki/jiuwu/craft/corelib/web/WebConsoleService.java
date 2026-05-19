@@ -188,6 +188,7 @@ public final class WebConsoleService {
             executor.shutdownNow();
             executor = null;
         }
+        WebConsoleRegistry.unregisterModule(plugin);
         consoleRegistry = null;
         itemPreviewService = null;
     }

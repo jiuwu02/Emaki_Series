@@ -2,6 +2,16 @@ import React, { useState } from 'react';
 import { ActionsEditor, CORE_EFFECT_TYPES, PropRow, SectionHead, StringListEditor, asList, asRecord, asStringList, coreEffectTypeLabel, createCoreEffect, firstItemSource, isCoreEffectType, registerConfigCreateTemplate, registerConfigNodeMeta, registerConfigNodeRule, registerEditorDescriptor, registerEditorField, registerItemFieldRenderer, registerModuleLocale, registerPluginGuiEditor, serializeActionList, parseActionList, textValue, type AnyMap, type CoreEffectType, type ItemFieldRendererContext } from 'emaki-web-console';
 
 registerModuleLocale('EmakiGem', 'zh-CN', {
+  'emakigem.module.name': 'Gem',
+  'emakigem.module.summary': '开槽、镶嵌、升级与 GUI',
+  'emakigem.file.config.title': '主配置',
+  'emakigem.file.config.comment': '宝石系统主配置，包含开槽道具、镶嵌、升级和 GUI 入口设置。',
+  'emakigem.file.gui.title': 'GUI 模板',
+  'emakigem.file.gui.comment': '宝石镶嵌、开槽、升级 GUI 模板文件。',
+  'emakigem.file.items.title': '插槽物品',
+  'emakigem.file.items.comment': '宝石插件物品定义文件。',
+  'emakigem.file.gems.title': '宝石定义',
+  'emakigem.file.gems.comment': '宝石定义文件，包含宝石物品来源、效果、插槽兼容和升级配置。',
   'emakigem.surface.gem': '宝石',
   'emakigem.surface.socketItem': '插槽物品',
   'emakigem.surface.gui': '宝石 GUI',
@@ -245,6 +255,16 @@ const dynamicFields: Record<string, [string, string, string]> = {
 };
 
 registerModuleLocale(MODULE, 'zh-CN', {
+  'emakigem.module.name': 'Gem',
+  'emakigem.module.summary': '开槽、镶嵌、升级与 GUI',
+  'emakigem.file.config.title': '主配置',
+  'emakigem.file.config.comment': '宝石系统主配置，包含开槽道具、镶嵌、升级和 GUI 入口设置。',
+  'emakigem.file.gui.title': 'GUI 模板',
+  'emakigem.file.gui.comment': '宝石镶嵌、开槽、升级 GUI 模板文件。',
+  'emakigem.file.items.title': '插槽物品',
+  'emakigem.file.items.comment': '宝石插件物品定义文件。',
+  'emakigem.file.gems.title': '宝石定义',
+  'emakigem.file.gems.comment': '宝石定义文件，包含宝石物品来源、效果、插槽兼容和升级配置。',
   ...Object.fromEntries(configFields.flatMap(([path, label, comment]) => [[`emakigem.field.${path}`, label], [`emakigem.comment.${path}`, comment]])),
   ...Object.fromEntries(Object.entries(dynamicFields).flatMap(([key, [label, comment]]) => [[`emakigem.field.${key}`, label], [`emakigem.comment.${key}`, comment]])),
   'emakigem.option.inlay_success.failure_action.return_gem': '返还宝石',
@@ -259,6 +279,16 @@ registerModuleLocale(MODULE, 'zh-CN', {
 });
 
 registerModuleLocale(MODULE, 'en-US', {
+  'emakigem.module.name': 'Gem',
+  'emakigem.module.summary': 'Socketing, inlay, upgrade, and GUI',
+  'emakigem.file.config.title': 'Main Config',
+  'emakigem.file.config.comment': 'Main gem system configuration covering socket items, inlay, upgrades, and GUI entry points.',
+  'emakigem.file.gui.title': 'GUI Templates',
+  'emakigem.file.gui.comment': 'Gem inlay, socketing, and upgrade GUI template files.',
+  'emakigem.file.items.title': 'Socket Items',
+  'emakigem.file.items.comment': 'Item definition files for the gem plugin.',
+  'emakigem.file.gems.title': 'Gem Definitions',
+  'emakigem.file.gems.comment': 'Gem definition files covering item sources, effects, socket compatibility, and upgrade settings.',
   'emakigem.field.socket_openers': 'Socket Openers',
   'emakigem.field.inlay_success': 'Inlay Success',
   'emakigem.field.upgrade': 'Upgrade',

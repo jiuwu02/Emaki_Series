@@ -40,6 +40,12 @@ const ruleFields: Record<string, [string, string, string]> = {
 };
 
 const localeMessages: Record<string, string> = Object.fromEntries([
+  ['emakiforge.module.name', 'Forge'],
+  ['emakiforge.module.summary', '品质池、保底、历史与条件'],
+  ['emakiforge.file.config.title', '主配置'],
+  ['emakiforge.file.config.comment', '锻造系统主配置，包含品质、配方、GUI 和玩家数据策略。'],
+  ['emakiforge.file.gui.title', 'GUI 模板'],
+  ['emakiforge.file.gui.comment', '锻造、配方书与编辑器 GUI 模板文件。'],
   ...fields.flatMap(([path, label, comment]) => [[`emakiforge.field.${path}`, label], [`emakiforge.comment.${path}`, comment]]),
   ...Object.entries(ruleFields).flatMap(([key, [label, comment]]) => [[`emakiforge.field.${key}`, label], [`emakiforge.comment.${key}`, comment]])
 ]);
@@ -50,6 +56,12 @@ registerModuleLocale(MODULE, 'zh-CN', {
 });
 
 registerModuleLocale(MODULE, 'en-US', {
+  'emakiforge.module.name': 'Forge',
+  'emakiforge.module.summary': 'Tier pool, guarantees, history, and conditions',
+  'emakiforge.file.config.title': 'Main Config',
+  'emakiforge.file.config.comment': 'Main forge configuration covering tiers, recipes, GUI, and player data strategy.',
+  'emakiforge.file.gui.title': 'GUI Templates',
+  'emakiforge.file.gui.comment': 'Forge, recipe book, and editor GUI templates.',
   'emakiforge.surface.gui': 'Forge GUI',
   'emakiforge.field.quality': 'Quality',
   'emakiforge.field.quality.tiers': 'Quality Pool',

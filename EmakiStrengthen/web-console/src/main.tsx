@@ -10,10 +10,18 @@ const fields = [
   ['success_rates', '全局成功率', '配方未单独覆盖时使用的全局强化成功率表，键为目标星级，值为百分比。', 'object']
 ] as const;
 
-const localeMessages: Record<string, string> = Object.fromEntries(fields.flatMap(([path, label, comment]) => [
-  [`emakistrengthen.field.${path}`, label],
-  [`emakistrengthen.comment.${path}`, comment]
-]));
+const localeMessages: Record<string, string> = Object.fromEntries([
+  ['emakistrengthen.module.name', 'Strengthen'],
+  ['emakistrengthen.module.summary', '星级、广播、成功率'],
+  ['emakistrengthen.file.config.title', '主配置'],
+  ['emakistrengthen.file.config.comment', '强化系统主配置，包含成功率、材料、经济和显示策略。'],
+  ['emakistrengthen.file.gui.title', 'GUI 模板'],
+  ['emakistrengthen.file.gui.comment', '强化界面 GUI 模板文件。'],
+  ...fields.flatMap(([path, label, comment]) => [
+    [`emakistrengthen.field.${path}`, label],
+    [`emakistrengthen.comment.${path}`, comment]
+  ])
+]);
 
 registerModuleLocale(MODULE, 'zh-CN', {
   ...localeMessages,
@@ -24,6 +32,12 @@ registerModuleLocale(MODULE, 'zh-CN', {
 });
 
 registerModuleLocale(MODULE, 'en-US', {
+  'emakistrengthen.module.name': 'Strengthen',
+  'emakistrengthen.module.summary': 'Stars, broadcasts, and success rates',
+  'emakistrengthen.file.config.title': 'Main Config',
+  'emakistrengthen.file.config.comment': 'Main strengthen configuration covering success rates, materials, economy, and display strategy.',
+  'emakistrengthen.file.gui.title': 'GUI Templates',
+  'emakistrengthen.file.gui.comment': 'Strengthen GUI template files.',
   'emakistrengthen.surface.gui': 'Strengthen GUI',
   'emakistrengthen.field.local_broadcast_radius': 'Local Broadcast Radius',
   'emakistrengthen.field.broadcast': 'Broadcast',

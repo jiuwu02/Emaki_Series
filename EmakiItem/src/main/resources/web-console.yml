@@ -1,27 +1,19 @@
 # EmakiItem Web Console 声明式注册
-# 仅声明后端发现信息；字段文案与表单 schema 由前端扩展注册。
+# 仅声明结构信息与资源入口，不承载展示文案。
 
 module:
-  name: "Item 物品"
-  summary: "物品定义、套装刷新与触发"
   tone: item
   icon: '<svg viewBox="0 0 38 38" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M21 5l-8 8m4 4l-8 8M13 13l5 5M9 29l5-5M24 10l4 4M25 18l5 3v6c0 3-2 5-5 6-3-1-5-3-5-6v-6l5-3z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 
 files:
-  - title: "物品系统配置"
-    path: "config.yml"
+  - path: "config.yml"
     kind: CONFIG
-    comment: "物品系统主配置，包含套装、刷新、耐久和修复等设置。"
-  - title: "物品定义"
-    path: "items/**/*.yml"
+  - path: "items/**/*.yml"
     kind: ITEM
     editor: "emakiitem:item"
-    comment: "EmakiItem 自定义物品定义文件。"
-  - title: "套装定义"
-    path: "sets/**/*.yml"
+  - path: "sets/**/*.yml"
     kind: SET
     editor: "emakiitem:set"
-    comment: "EmakiItem 套装定义文件。"
 
 extensions:
   - id: "emakiitem:locale"

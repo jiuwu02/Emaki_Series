@@ -47,7 +47,6 @@ import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.text.AdventureSupport;
-import emaki.jiuwu.craft.corelib.web.WebConsoleRegistry;
 import emaki.jiuwu.craft.corelib.web.WebConsoleService;
 import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.VersionedYamlFile;
@@ -62,10 +61,6 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
  \\ \\_____\\ \\_\\ \\ \\_\\ \\_\\ \\_\\ \\_\\ \\_\\\\ \\_\\ \\_____\\ \\_____\\ \\_\\ \\_\\ \\_____\\ \\_____\\ \\_\\ \\_____\\
   \\/_____/\\/_/  \\/_/\\/_/\\/_/\\/_/\\/_/ \\/_/\\/_____/\\/_____/\\/_/ /_/\\/_____/\\/_____/\\/_/\\/_____/
 """;
-
-    private static final String WEB_ICON = """
-            <svg viewBox="0 0 38 38" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M19 4l1.5 3.5L24 9l-3.5 1.5L19 14l-1.5-3.5L14 9l3.5-1.5L19 4zM19 14v4m-6 2h12a2 2 0 012 2v8a2 2 0 01-2 2H13a2 2 0 01-2-2v-8a2 2 0 012-2zm2 4h3m-3 3h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            """;
 
     private LanguageLoader languageLoader;
     private MessageService messageService;
@@ -124,8 +119,8 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         }
         if (webConsoleService != null) {
             webConsoleService.stop();
+            webConsoleService = null;
         }
-        WebConsoleRegistry.unregisterModule(this);
         if (javaScriptService != null) {
             javaScriptService.close();
         }
@@ -220,43 +215,12 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     }
 
     private void reloadWebConsole() {
-        registerWebConsole();
         if (webConsoleService == null) {
             webConsoleService = new WebConsoleService(this, configModel.webConsoleConfig());
         }
         webConsoleService.stop();
         webConsoleService.restart(configModel.webConsoleConfig());
         refreshServiceRegistry();
-    }
-
-    private void registerWebConsole() {
-        WebConsoleRegistry.unregisterModule(this);
-        WebConsoleRegistry.registerModule(this, "CoreLib 框架", "Web Console、Action、脚本与公共运行库", "core", WEB_ICON);
-        WebConsoleRegistry.registerConfigFile(this, "CoreLib 主配置", "config.yml", "完整 config.yml 结构化配置注册。所有字段均通过 CoreLib 注释注册器补充说明。");
-        WebConsoleRegistry.registerScriptFile(this, "CoreLib JS 脚本", "scripts/**/*.js", "CoreLib JavaScript 脚本目录，当前仅保留文本预览入口。");
-        WebConsoleRegistry.registerCommonConfigComments(this);
-        registerCoreLibWebComments();
-    }
-
-    private void registerCoreLibWebComments() {
-        WebConsoleRegistry.registerNodeComment(this, "web_console", "Web Console", "内置前端控制台开放策略与鉴权配置。", "object");
-        WebConsoleRegistry.registerNodeComment(this, "web_console.enabled", "启用前端", "开启后监听 host:port，reload 会先关闭再按新配置启动。", "boolean");
-        WebConsoleRegistry.registerNodeComment(this, "web_console.host", "监听地址", "127.0.0.1 仅本机，0.0.0.0 表示所有网卡。", "text");
-        WebConsoleRegistry.registerNodeComment(this, "web_console.port", "监听端口", "Web Console HTTP 端口。", "number");
-        WebConsoleRegistry.registerNodeComment(this, "web_console.public_access_warning", "公网提示", "当监听地址可能对外开放时，在登录响应中提示风险。", "boolean");
-        WebConsoleRegistry.registerNodeComment(this, "web_console.auth", "登录鉴权", "Web Console 登录账号、密码和会话有效期。", "object");
-        WebConsoleRegistry.registerNodeComment(this, "web_console.auth.username", "账号", "Web Console 登录账号。", "text");
-        WebConsoleRegistry.registerNodeComment(this, "web_console.auth.password", "密码", "Web Console 登录密码，启用前必须修改默认值。", "text");
-        WebConsoleRegistry.registerNodeComment(this, "web_console.auth.session_timeout_minutes", "会话分钟", "登录 Token 的有效分钟数。", "number");
-        WebConsoleRegistry.registerNodeComment(this, "web_console.security", "安全限制", "Web Console 请求体、写入权限等安全限制。", "object");
-        WebConsoleRegistry.registerNodeComment(this, "web_console.security.allow_config_write", "允许写配置", "开启后 Web Console 才允许保存配置变更。", "boolean");
-        WebConsoleRegistry.registerNodeComment(this, "web_console.security.max_request_body_kb", "请求体上限", "单次 Web 请求体大小上限，单位 KB。", "number");
-        WebConsoleRegistry.registerNodeComment(this, "action", "Action", "CoreLib 动作系统配置。", "object");
-        WebConsoleRegistry.registerCreatableNode(this, "action.templates", "动作模板", "可在配方或动作列表中通过 @template=名称 引用的动作模板。每个子键为模板名称，值为动作列表。", "dynamic_map");
-        WebConsoleRegistry.registerNodeComment(this, "script", "CoreLib JS", "CoreLib JavaScript 引擎与脚本安全配置。", "object");
-        WebConsoleRegistry.registerNodeComment(this, "script.enabled", "启用脚本", "是否启用 CoreLib JavaScript 动作能力。", "boolean");
-        WebConsoleRegistry.registerNodeComment(this, "script.engine", "脚本引擎", "GraalJS 引擎、超时、缓存和宿主访问配置。", "object");
-        WebConsoleRegistry.registerNodeComment(this, "script.security", "脚本安全", "脚本路径、动作派发和调用深度限制。", "object");
     }
 
     private void logStartupAudit() {

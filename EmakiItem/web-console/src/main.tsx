@@ -140,6 +140,14 @@ const itemEditorFields: ItemFieldSpec[] = [
 ];
 
 registerModuleLocale(MODULE, 'zh-CN', {
+  'emakiitem.module.name': 'Item',
+  'emakiitem.module.summary': '物品定义、套装刷新与触发',
+  'emakiitem.file.config.title': '主配置',
+  'emakiitem.file.config.comment': '物品系统主配置，包含套装、刷新、耐久和修复等设置。',
+  'emakiitem.file.items.title': '物品定义',
+  'emakiitem.file.items.comment': 'EmakiItem 自定义物品定义文件。',
+  'emakiitem.file.sets.title': '套装定义',
+  'emakiitem.file.sets.comment': 'EmakiItem 套装定义文件。',
   'emakiitem.surface.item': 'EmakiItem 物品',
   'emakiitem.preview.aria': 'EmakiItem 物品预览',
   'emakiitem.preview.kind': '自定义物品',
@@ -182,6 +190,14 @@ registerModuleLocale(MODULE, 'zh-CN', {
 });
 
 registerModuleLocale(MODULE, 'en-US', {
+  'emakiitem.module.name': 'Item',
+  'emakiitem.module.summary': 'Item definitions, set refresh, and triggers',
+  'emakiitem.file.config.title': 'Main Config',
+  'emakiitem.file.config.comment': 'Main item system configuration covering sets, refresh, durability, and repair settings.',
+  'emakiitem.file.items.title': 'Item Definitions',
+  'emakiitem.file.items.comment': 'Custom item definition files for EmakiItem.',
+  'emakiitem.file.sets.title': 'Set Definitions',
+  'emakiitem.file.sets.comment': 'EmakiItem set definition files.',
   'emakiitem.surface.item': 'EmakiItem Item',
   'emakiitem.field.version': 'Config Version',
   'emakiitem.field.language': 'Language',

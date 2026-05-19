@@ -1,0 +1,17 @@
+# EmakiCoreLib Web Console 声明式注册
+# 仅声明结构信息与资源入口，不承载展示文案。
+
+module:
+  tone: core
+  icon: '<svg viewBox="0 0 38 38" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M19 4l1.5 3.5L24 9l-3.5 1.5L19 14l-1.5-3.5L14 9l3.5-1.5L19 4zM19 14v4m-6 2h12a2 2 0 012 2v8a2 2 0 01-2 2H13a2 2 0 01-2-2v-8a2 2 0 012-2zm2 4h3m-3 3h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+
+files:
+  - path: "config.yml"
+    kind: CONFIG
+  - path: "scripts/**/*.js"
+    kind: SCRIPT
+
+nodes:
+  - path: "action.templates"
+    type: dynamic_map
+    creatableChildren: true

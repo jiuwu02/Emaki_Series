@@ -73,7 +73,7 @@ public final class WebConsoleYamlRegistrar {
         // --- module ---
         YamlSection moduleSection = yaml.getSection("module");
         if (moduleSection != null) {
-            String name = moduleSection.getString("name", moduleId);
+            String name = defaultString(moduleSection.getString("name", ""), moduleId);
             String summary = moduleSection.getString("summary", "");
             String tone = moduleSection.getString("tone", "default");
             String icon = moduleSection.getString("icon", "");
@@ -89,12 +89,12 @@ public final class WebConsoleYamlRegistrar {
         if (files != null) {
             for (Object entry : files) {
                 if (!(entry instanceof Map<?, ?> fileMap)) continue;
-                String title = stringVal(fileMap.get("title"));
                 String path = stringVal(fileMap.get("path"));
+                String title = defaultString(stringVal(fileMap.get("title")), path);
                 String kind = stringVal(fileMap.get("kind")).toUpperCase();
                 String comment = stringVal(fileMap.get("comment"));
                 String editor = stringVal(fileMap.get("editor"));
-                if (Texts.isBlank(title) || Texts.isBlank(path)) continue;
+                if (Texts.isBlank(path)) continue;
                 switch (kind) {
                     case "CONFIG" -> WebConsoleRegistry.registerConfigFile(moduleId, title, path, comment);
                     case "GUI" -> WebConsoleRegistry.registerGuiFile(moduleId, title, path, comment, editor);
@@ -118,14 +118,37 @@ public final class WebConsoleYamlRegistrar {
             }
         }
 
-        // --- comments ---
+        // --- nodes ---
+        List<?> nodes = yaml.getList("nodes");
+        if (nodes != null) {
+            registerNodes(moduleId, nodes);
+        }
+
+        // --- comments（旧格式兼容；新注册文件不再在此承载展示文案） ---
         YamlSection comments = yaml.getSection("comments");
         if (comments != null) {
             registerCommentsRecursive(moduleId, "", comments.asMap());
         }
 
-        // --- 自动注册通用配置注释 ---
+        // --- 自动注册通用配置结构 ---
         WebConsoleRegistry.registerCommonConfigComments(moduleId);
+    }
+
+    private static void registerNodes(String moduleId, List<?> nodes) {
+        for (Object entry : nodes) {
+            if (!(entry instanceof Map<?, ?> nodeMap)) continue;
+            String path = stringVal(nodeMap.get("path"));
+            String type = stringVal(nodeMap.get("type"));
+            String label = stringVal(nodeMap.get("label"));
+            String comment = stringVal(nodeMap.get("comment"));
+            boolean creatableChildren = booleanVal(nodeMap.get("creatableChildren"));
+            if (Texts.isBlank(path)) continue;
+            if (creatableChildren) {
+                WebConsoleRegistry.registerCreatableNode(moduleId, path, label, comment, type);
+            } else {
+                WebConsoleRegistry.registerNodeComment(moduleId, path, label, comment, type);
+            }
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -148,6 +171,17 @@ public final class WebConsoleYamlRegistrar {
                 registerCommentsRecursive(moduleId, path, (Map<String, Object>) nested);
             }
         }
+    }
+
+    private static String defaultString(String value, String fallback) {
+        return Texts.isBlank(value) ? stringVal(fallback) : value;
+    }
+
+    private static boolean booleanVal(Object value) {
+        if (value instanceof Boolean bool) {
+            return bool;
+        }
+        return Boolean.parseBoolean(stringVal(value));
     }
 
     private static String stringVal(Object value) {

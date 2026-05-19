@@ -3,6 +3,7 @@ import type { ApiClient } from './api';
 import { getSourceDocumentAdapter, type SurfaceToolbarState } from './registry';
 import type { GuiSlotDefinition, GuiTemplateData, WebRegistryFile, WebRegistryModule } from './types';
 import { buildOccupancy, clampRows, fieldLabel, guiColumns, guiField, guiSlotCount, guiTypeOptions, loreLines, materialShortName, materialUrls, normalizeGuiType, parseSlotList, parseYaml, renderMiniMessageParts, serializeGuiYaml, subscribeTextureBases, supportsRows, textValue } from './guiEditor';
+import { fileDisplayTitle } from './lib';
 import { Button, EditorChrome, InlineError, InspectorSection, ToastNotice, ToggleChip } from './components';
 import { t } from './i18n';
 import { diffRecords } from './lib';
@@ -56,6 +57,7 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
   const latestInspectorWidth = useRef(inspectorWidth);
 
   const path = childPath ?? '';
+  const fileTitle = fileDisplayTitle(file);
   const sourceAdapter = getSourceDocumentAdapter(file, editor);
   const sourceContext = useMemo(() => ({ module, file, childPath, editor }), [module, file, childPath, editor]);
 
@@ -328,7 +330,7 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
       return;
     }
     setToolbar({
-      title: file.title,
+      title: fileTitle,
       subtitle,
       dirty,
       changes,
@@ -348,7 +350,7 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
       onSave: () => void save()
     });
     return () => setToolbar(null);
-  }, [setToolbar, path, data, file.title, subtitle, dirty, changes, draftText, sourceError, saving, loading, history.undo.length, history.redo.length, onReload]);
+  }, [setToolbar, path, data, fileTitle, subtitle, dirty, changes, draftText, sourceError, saving, loading, history.undo.length, history.redo.length, onReload]);
 
   if (!path) return <section className="config-surface empty" role="status">{t('core.gui.selectFile')}</section>;
   if (loading) return <section className="config-surface gui-surface"><div className="gui-loading" role="status">{t('core.gui.loading')}</div></section>;
@@ -360,7 +362,7 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
     {toast && <ToastNotice tone={toast.tone} style={{ position: 'absolute', top: 12, right: 12, zIndex: 50 }}>{toast.text}</ToastNotice>}
     {showLocalChrome && <EditorChrome
       className="surface-head gui-head"
-      title={file.title}
+      title={fileTitle}
       subtitle={subtitle}
       dirty={dirty}
       changes={changes}
@@ -385,7 +387,7 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
         <div className="minecraft-window">
           <div className="minecraft-titlebar"><MiniText value={data.title ?? 'GUI'} /></div>
           <p className="slot-grid-help" id="gui-slot-help">{t('core.gui.gridHelp')}</p>
-          <div className="minecraft-grid" role="grid" aria-label={t('core.gui.gridAria', { title: file.title })} aria-describedby="gui-slot-help" data-gui-type={guiType} style={{ gridTemplateColumns: `repeat(${columns}, var(--mc-slot))` }}>
+          <div className="minecraft-grid" role="grid" aria-label={t('core.gui.gridAria', { title: fileTitle })} aria-describedby="gui-slot-help" data-gui-type={guiType} style={{ gridTemplateColumns: `repeat(${columns}, var(--mc-slot))` }}>
             {occupancy.map((cell) => <button
               key={cell.index}
               className={`minecraft-slot ${cell.key ? 'occupied' : ''} ${selected.includes(cell.index) ? 'selected' : ''} ${cell.conflicts.length ? 'conflict' : ''}`}

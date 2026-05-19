@@ -83,6 +83,12 @@ const fieldComments: Record<string, [string, string, string]> = {
 };
 
 const localeMessages: Record<string, string> = Object.fromEntries([
+  ['emakicooking.module.name', 'Cooking'],
+  ['emakicooking.module.summary', '工位、展示实体、输入规则'],
+  ['emakicooking.file.config.title', '主配置'],
+  ['emakicooking.file.config.comment', '烹饪系统主配置，包含工位、展示实体和输入规则。'],
+  ['emakicooking.file.gui.title', 'GUI 模板'],
+  ['emakicooking.file.gui.comment', '烹饪工位 GUI 模板文件。'],
   ...fields.flatMap(([path, label, comment]) => [[`emakicooking.field.${path}`, label], [`emakicooking.comment.${path}`, comment]]),
   ...Object.entries(fieldComments).flatMap(([key, [label, comment]]) => [[`emakicooking.field.${key}`, label], [`emakicooking.comment.${key}`, comment]])
 ]);
@@ -96,6 +102,12 @@ registerModuleLocale(MODULE, 'zh-CN', {
 });
 
 registerModuleLocale(MODULE, 'en-US', {
+  'emakicooking.module.name': 'Cooking',
+  'emakicooking.module.summary': 'Stations, display entities, and input rules',
+  'emakicooking.file.config.title': 'Main Config',
+  'emakicooking.file.config.comment': 'Main cooking configuration covering stations, display entities, and input rules.',
+  'emakicooking.file.gui.title': 'GUI Templates',
+  'emakicooking.file.gui.comment': 'Cooking station GUI template files.',
   'emakicooking.surface.gui': 'Cooking GUI',
   'emakicooking.field.input_rules': 'Input Rules',
   'emakicooking.field.display_entities': 'Display Entities',

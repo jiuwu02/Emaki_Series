@@ -312,9 +312,9 @@ public final class WebConsoleRegistry {
     }
 
     public static synchronized void registerCommonConfigComments(String moduleId) {
-        registerNodeComment(moduleId, "version", "配置版本", "配置结构版本，通常不建议手动修改。", "text");
-        registerNodeComment(moduleId, "language", "语言", "语言文件 ID，对应 lang/<language>.yml。", "text");
-        registerNodeComment(moduleId, "release_default_data", "释放默认资源", "首次启动或缺失数据时写入默认资源。", "boolean");
+        registerNodeComment(moduleId, "version", "", "", "text");
+        registerNodeComment(moduleId, "language", "", "", "text");
+        registerNodeComment(moduleId, "release_default_data", "", "", "boolean");
     }
 
     public static synchronized void registerCommonConfigComments(JavaPlugin plugin) {
@@ -845,15 +845,7 @@ public final class WebConsoleRegistry {
     }
 
     private NodeMeta fallbackMeta(String moduleId, String path, String detectedType) {
-        String label = labelFor(path);
-        String comment = switch (detectedType) {
-            case "object" -> "配置分组节点，来自 " + moduleId + "/config.yml，用于归类其下方子配置。";
-            case "boolean" -> "布尔开关配置，true 表示开启，false 表示关闭。";
-            case "number" -> "数值配置，请按该字段语义填写整数或小数。";
-            case "list" -> "列表配置，每一项会按顺序参与对应功能处理。";
-            default -> "文本配置，来自 " + moduleId + "/config.yml。";
-        };
-        return new NodeMeta(label, comment, detectedType, false);
+        return new NodeMeta(lastKey(path).replace('_', ' '), "", detectedType, false);
     }
 
     private String typeOf(Object value) {
@@ -1042,7 +1034,7 @@ public final class WebConsoleRegistry {
     private static void registerFile(String moduleId, String title, String relativePath, WebConsoleFileType type, String comment, boolean structuredYaml, String editorId) {
         ModuleRegistration module = MODULES.get(moduleId);
         if (module == null) {
-            registerModule(moduleId, moduleId, "外部插件注册的 Web Console 模块", "default");
+            registerModule(moduleId, moduleId, "", "default");
             module = MODULES.get(moduleId);
         }
         FileRegistration next = new FileRegistration(title, relativePath, type, comment, structuredYaml, Texts.toStringSafe(editorId));
@@ -1053,30 +1045,30 @@ public final class WebConsoleRegistry {
     }
 
     private static void registerCommonComments() {
-        registerNodeComment("*", "version", "配置版本", "配置结构版本，通常不建议手动修改。", "text");
-        registerNodeComment("*", "language", "语言", "语言文件 ID，对应 lang/<language>.yml。", "text");
-        registerNodeComment("*", "release_default_data", "释放默认资源", "首次启动或缺失数据时写入默认资源。", "boolean");
+        registerNodeComment("*", "version", "", "", "text");
+        registerNodeComment("*", "language", "", "", "text");
+        registerNodeComment("*", "release_default_data", "", "", "boolean");
 
-        registerNodeKeyComment("*", "enabled", "启用", "控制该功能、条目或子系统是否启用。", "boolean");
-        registerNodeKeyComment("*", "debug", "调试", "调试输出相关配置，生产环境通常建议关闭。", "object");
-        registerNodeKeyComment("*", "permission", "权限", "权限与 OP 绕过等访问控制设置。", "object");
-        registerNodeKeyComment("*", "gui", "GUI", "GUI 入口或模板相关配置，具体模板文件会注册为 GUI 文件类型。", "object");
-        registerNodeKeyComment("*", "actions", "动作", "CoreLib Action 动作列表或动作分组，按顺序执行。", "object");
-        registerNodeKeyComment("*", "success", "成功动作", "功能成功时触发的动作列表或成功分支配置。", "list");
-        registerNodeKeyComment("*", "failure", "失败动作", "功能失败时触发的动作列表或失败分支配置。", "list");
-        registerNodeKeyComment("*", "item_sources", "物品来源", "支持 minecraft、CraftEngine、ItemsAdder、Nexo、MMOItems 等来源格式的物品 ID 列表。", "list");
-        registerNodeKeyComment("*", "material", "材料", "Minecraft 原版材料或物品来源 ID。", "text");
-        registerNodeKeyComment("*", "amount", "数量", "消耗、产出或显示用的数量。", "number");
-        registerNodeKeyComment("*", "title", "标题", "GUI、消息或显示标题文本。", "text");
-        registerNodeKeyComment("*", "size", "大小", "GUI 行数、槽位数或集合容量等数值。", "number");
-        registerNodeKeyComment("*", "slots", "槽位", "GUI 槽位列表或槽位规则。", "list");
-        registerNodeKeyComment("*", "items", "物品", "物品配置分组；物品定义文件会统一标记为 ITEM 类型。", "object");
-        registerNodeKeyComment("*", "commands", "命令", "命令列表，通常按顺序执行。", "list");
-        registerNodeKeyComment("*", "chance", "概率", "成功率、触发率或权重概率，按该字段上下文解释。", "number");
-        registerNodeSuffixComment("*", ".enabled", "启用", "控制该子项是否启用。", "boolean");
-        registerNodeSuffixComment("*", ".default_chance", "默认概率", "未单独配置时使用的默认概率。", "number");
-        registerNodeSuffixComment("*", ".op_bypass", "OP 绕过", "开启后 OP 可跳过对应消耗、权限或条件检查。", "boolean");
-        registerNodeContainsComment("*", ".actions.", "动作配置", "CoreLib Action 动作配置，支持模板、延迟和内联变量。", "list");
+        registerNodeKeyComment("*", "enabled", "", "", "boolean");
+        registerNodeKeyComment("*", "debug", "", "", "object");
+        registerNodeKeyComment("*", "permission", "", "", "object");
+        registerNodeKeyComment("*", "gui", "", "", "object");
+        registerNodeKeyComment("*", "actions", "", "", "object");
+        registerNodeKeyComment("*", "success", "", "", "list");
+        registerNodeKeyComment("*", "failure", "", "", "list");
+        registerNodeKeyComment("*", "item_sources", "", "", "list");
+        registerNodeKeyComment("*", "material", "", "", "text");
+        registerNodeKeyComment("*", "amount", "", "", "number");
+        registerNodeKeyComment("*", "title", "", "", "text");
+        registerNodeKeyComment("*", "size", "", "", "number");
+        registerNodeKeyComment("*", "slots", "", "", "list");
+        registerNodeKeyComment("*", "items", "", "", "object");
+        registerNodeKeyComment("*", "commands", "", "", "list");
+        registerNodeKeyComment("*", "chance", "", "", "number");
+        registerNodeSuffixComment("*", ".enabled", "", "", "boolean");
+        registerNodeSuffixComment("*", ".default_chance", "", "", "number");
+        registerNodeSuffixComment("*", ".op_bypass", "", "", "boolean");
+        registerNodeContainsComment("*", ".actions.", "", "", "list");
     }
 
 
@@ -1088,20 +1080,6 @@ public final class WebConsoleRegistry {
                 .replace('/', '-')
                 .replace('\\', '-')
                 .replace('.', '-');
-    }
-
-    private static String labelFor(String path) {
-        String key = lastKey(path);
-        return switch (key) {
-            case "enabled" -> "启用";
-            case "language" -> "语言";
-            case "version" -> "配置版本";
-            case "host" -> "监听地址";
-            case "port" -> "监听端口";
-            case "username" -> "账号";
-            case "password" -> "密码";
-            default -> key.replace('_', ' ');
-        };
     }
 
     private static String lastKey(String path) {

@@ -9,7 +9,7 @@ import { applyConfigNodeOverrides, applyConfigRegistryOverrides, applyEditorDesc
 import { getLocale, getRegisteredLocales, setLocale, t } from './i18n';
 import { ActionGroup, Button, CodeEditor, EditorChrome, InlineError, ToastNotice, type EditorChange } from './components';
 import { I18nBundleModal, type I18nTarget } from './I18nBundleModal';
-import { fieldLabel, optionLabel, parseYaml, serializeYaml, setDeepValue, valuesEqual } from './lib';
+import { configNodeDisplayComment as resolveConfigNodeComment, fieldLabel, fileDisplayComment, fileDisplayTitle, moduleDisplayName, optionLabel, parseYaml, serializeYaml, setDeepValue, valuesEqual } from './lib';
 import { Login, ResizableRail, WorkspaceTree, fileKindLabel } from './shell';
 import type { SurfaceProps, SurfaceToolbarState } from './registry';
 import type { RegistryTreeNode, WebConfigCreateTemplate, WebConfigFieldSchema, WebConfigNode, WebRegistry, WebRegistryFile, WebRegistryModule } from './types';
@@ -257,8 +257,8 @@ export default function App() {
   const selectedSource = '';
   const selectedDirtyKey = selectedModule && selectedFile ? treeDirtyKey(selectedModule.id, selectedFile.id, selected?.scriptPath ?? selectedFile.path) : null;
   const fallbackToolbar: SurfaceToolbarState = {
-    title: selectedModule ? selectedModule.name : t('core.stage.defaultTitle'),
-    subtitle: selectedFile ? `${selectedFile.title}，${selectedFile.path}` : t('core.stage.defaultHint'),
+    title: selectedModule ? moduleDisplayName(selectedModule) : t('core.stage.defaultTitle'),
+    subtitle: selectedFile ? `${fileDisplayTitle(selectedFile)}，${selectedFile.path}` : t('core.stage.defaultHint'),
     dirty: changedCount > 0,
     changedCount,
     changes: selectedDraftScope && selectedFile ? configChanges(selectedDraftScope, selectedFile.nodes, drafts) : [],
@@ -336,8 +336,8 @@ export default function App() {
       <main className="stage">
         <EditorChrome
           className="stage-head"
-          title={toolbar.title ?? (selectedModule ? selectedModule.name : t('core.stage.defaultTitle'))}
-          subtitle={toolbar.subtitle ?? (selectedFile ? `${selectedFile.title}，${selectedFile.path}` : t('core.stage.defaultHint'))}
+          title={toolbar.title ?? (selectedModule ? moduleDisplayName(selectedModule) : t('core.stage.defaultTitle'))}
+          subtitle={toolbar.subtitle ?? (selectedFile ? `${fileDisplayTitle(selectedFile)}，${selectedFile.path}` : t('core.stage.defaultHint'))}
           dirty={toolbar.dirty}
           changedCount={toolbar.changedCount}
           changes={toolbar.changes ?? []}
@@ -416,11 +416,11 @@ function ConfigSurface({ registry, module, file, drafts, draftHistory, setDraftV
     return <SurfaceComponent module={module} file={file} api={api} childPath={scriptPath} refreshKey={refreshKey} editor={editor} onReload={onReload} setToolbar={setSurfaceToolbar} showLocalChrome={false} />;
   }
 
-  if (isKind(file.kind, 'SCRIPT')) return <section className="config-surface script-surface"><div className="surface-head"><div><h2>{file.title}</h2><p>{file.comment}</p></div><span className="file-kind script">{fileKindLabel(file.kind)}</span></div>{scriptPath ? <ScriptEditor api={api} scriptPath={scriptPath} module={module} file={file} setSurfaceToolbar={setSurfaceToolbar} setToast={setToast} /> : <div className="script-placeholder" role="status">{t('core.empty.selectScript')}</div>}</section>;
+  if (isKind(file.kind, 'SCRIPT')) return <section className="config-surface script-surface"><div className="surface-head"><div><h2>{fileDisplayTitle(file)}</h2><p>{fileDisplayComment(file)}</p></div><span className="file-kind script">{fileKindLabel(file.kind)}</span></div>{scriptPath ? <ScriptEditor api={api} scriptPath={scriptPath} module={module} file={file} setSurfaceToolbar={setSurfaceToolbar} setToast={setToast} /> : <div className="script-placeholder" role="status">{t('core.empty.selectScript')}</div>}</section>;
   // CONFIG 类型：如果有子文件路径，按需加载子文件内容
   if (isKind(file.kind, 'CONFIG') && scriptPath) return <ConfigChildSurface module={module} file={file} childPath={scriptPath} drafts={drafts} draftHistory={draftHistory} setDraftValue={setDraftValue} clearDraftScope={clearDraftScope} clearDraftValues={clearDraftValues} undoDraftScope={undoDraftScope} redoDraftScope={redoDraftScope} api={api} refreshKey={refreshKey} setSurfaceToolbar={setSurfaceToolbar} setToast={setToast} />;
   // CONFIG 类型 glob 文件无子文件选中时，显示提示
-  if (isKind(file.kind, 'CONFIG') && file.children && file.children.length > 0 && file.nodes.length === 0) return <section className="config-surface"><div className="surface-head"><div><h2>{file.title}</h2><p>{file.comment}</p></div><span className={`file-kind ${String(file.kind).toLowerCase()}`}>{fileKindLabel(file.kind)}</span></div><div className="script-placeholder" role="status">{t('core.empty.selectFile')}</div></section>;
+  if (isKind(file.kind, 'CONFIG') && file.children && file.children.length > 0 && file.nodes.length === 0) return <section className="config-surface"><div className="surface-head"><div><h2>{fileDisplayTitle(file)}</h2><p>{fileDisplayComment(file)}</p></div><span className={`file-kind ${String(file.kind).toLowerCase()}`}>{fileKindLabel(file.kind)}</span></div><div className="script-placeholder" role="status">{t('core.empty.selectFile')}</div></section>;
   return <ConfigStructuredSurface module={module} file={file} drafts={drafts} draftHistory={draftHistory} setDraftValue={setDraftValue} clearDraftScope={clearDraftScope} clearDraftValues={clearDraftValues} undoDraftScope={undoDraftScope} redoDraftScope={redoDraftScope} api={api} refreshKey={refreshKey} onRefreshRegistry={onRefreshRegistry} setSurfaceToolbar={setSurfaceToolbar} setToast={setToast} />;
 }
 
@@ -430,6 +430,9 @@ function ConfigStructuredSurface({ module, file, drafts, draftHistory, setDraftV
   const changedNodes = file.nodes.filter(n => n.type !== 'object' && draftKey(scope, n.path) in drafts);
   const source = useConfigSourceDocument({ module, file, api, refreshKey, setToast });
   const [savingNodes, setSavingNodes] = useState(false);
+  const moduleTitle = moduleDisplayName(module);
+  const fileTitle = fileDisplayTitle(file);
+  const fileComment = fileDisplayComment(file);
 
   async function saveNodes() {
     if (!changedNodes.length) {
@@ -463,8 +466,8 @@ function ConfigStructuredSurface({ module, file, drafts, draftHistory, setDraftV
 
   useEffect(() => {
     setSurfaceToolbar({
-      title: module.name,
-      subtitle: `${file.title}，${file.path}`,
+      title: moduleTitle,
+      subtitle: `${fileTitle}，${file.path}`,
       dirty: changedNodes.length > 0 || source.dirty,
       changedCount: source.dirty ? Math.max(changedNodes.length, 1) : changedNodes.length,
       changes: source.dirty ? [] : configChanges(scope, file.nodes, drafts),
@@ -483,10 +486,10 @@ function ConfigStructuredSurface({ module, file, drafts, draftHistory, setDraftV
       onSave: source.dirty ? () => void source.save(async () => { clearDraftValues(scope); await onRefreshRegistry(); }) : () => void saveNodes()
     });
     return () => setSurfaceToolbar(null);
-  }, [module.name, file.title, file.path, changedNodes.length, file.nodes, drafts, source.content, source.dirty, source.error, source.saving, source.loading, savingNodes, scopeHistory.undo.length, scopeHistory.redo.length]);
+  }, [moduleTitle, fileTitle, file.path, changedNodes.length, file.nodes, drafts, source.content, source.dirty, source.error, source.saving, source.loading, savingNodes, scopeHistory.undo.length, scopeHistory.redo.length]);
 
   const [createNode, setCreateNode] = useState<WebConfigNode | null>(null);
-  return <section className="config-surface"><div className="surface-head"><div><h2>{file.title}</h2><p>{file.comment}</p></div><span className={`file-kind ${String(file.kind).toLowerCase()}`}>{fileKindLabel(file.kind)}</span></div><ConfigNodeTree scope={scope} nodes={file.nodes} drafts={drafts} setDraftValue={setDraftValue} onCreateChild={setCreateNode} />{createNode && <ConfigCreateChildModal scope={scope} node={createNode} source={source} onCancel={() => setCreateNode(null)} onCreated={() => setCreateNode(null)} setToast={setToast} />}</section>;
+  return <section className="config-surface"><div className="surface-head"><div><h2>{fileTitle}</h2><p>{fileComment}</p></div><span className={`file-kind ${String(file.kind).toLowerCase()}`}>{fileKindLabel(file.kind)}</span></div><ConfigNodeTree scope={scope} nodes={file.nodes} drafts={drafts} setDraftValue={setDraftValue} onCreateChild={setCreateNode} />{createNode && <ConfigCreateChildModal scope={scope} node={createNode} source={source} onCancel={() => setCreateNode(null)} onCreated={() => setCreateNode(null)} setToast={setToast} />}</section>;
 }
 
 function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, setDraftValue, clearDraftScope, clearDraftValues, undoDraftScope, redoDraftScope, api, refreshKey, setSurfaceToolbar, setToast }: { module: WebRegistryModule; file: WebRegistryFile; childPath: string; drafts: DraftMap; draftHistory: DraftHistoryMap; setDraftValue: DraftValueSetter; clearDraftScope: DraftScopeAction; clearDraftValues: DraftScopeAction; undoDraftScope: DraftScopeAction; redoDraftScope: DraftScopeAction; api: ApiClient; refreshKey: number; setSurfaceToolbar: (state: SurfaceToolbarState | null) => void; setToast: (toast: Toast) => void }) {
@@ -495,6 +498,7 @@ function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, set
   const [error, setError] = useState('');
   const [revision, setRevision] = useState<number | undefined>(undefined);
   const [saving, setSaving] = useState(false);
+  const fileTitle = fileDisplayTitle(file);
 
   useEffect(() => {
     setLoading(true);
@@ -568,7 +572,7 @@ function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, set
   useEffect(() => {
     setSurfaceToolbar({
       title: fileName,
-      subtitle: `${file.title} · ${childPath}`,
+      subtitle: `${fileTitle} · ${childPath}`,
       dirty: changedNodes.length > 0 || source.dirty,
       changedCount: source.dirty ? Math.max(changedNodes.length, 1) : changedNodes.length,
       changes: source.dirty ? [] : configChanges(scope, nodes, drafts),
@@ -587,7 +591,7 @@ function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, set
       onSave: source.dirty ? () => void source.save(async () => { clearDraftValues(scope); await reloadChildNodes(false); }) : () => void saveChild()
     });
     return () => setSurfaceToolbar(null);
-  }, [fileName, file.title, childPath, changedNodes.length, nodes, drafts, saving, loading, source.content, source.dirty, source.error, source.saving, source.loading, scopeHistory.undo.length, scopeHistory.redo.length, revision]);
+  }, [fileName, fileTitle, childPath, changedNodes.length, nodes, drafts, saving, loading, source.content, source.dirty, source.error, source.saving, source.loading, scopeHistory.undo.length, scopeHistory.redo.length, revision]);
 
   const [createNode, setCreateNode] = useState<WebConfigNode | null>(null);
   return <section className="config-surface">
@@ -793,8 +797,7 @@ function configNodeDisplayLabel(scope: ConfigDraftScope, node: WebConfigNode): s
 }
 
 function configNodeDisplayComment(scope: ConfigDraftScope, node: WebConfigNode): string {
-  const namespace = scope.moduleId.trim().replace(/[^a-zA-Z0-9_.-]+/g, '').toLowerCase();
-  return t(`${namespace}.comment.${node.path}`, undefined, node.comment);
+  return resolveConfigNodeComment(scope.moduleId, node.path, node.comment);
 }
 
 function ConfigNodeTree({ scope, nodes, drafts, setDraftValue, onCreateChild }: { scope: ConfigDraftScope; nodes: WebConfigNode[]; drafts: DraftMap; setDraftValue: DraftValueSetter; onCreateChild: (node: WebConfigNode) => void }) {
@@ -1031,49 +1034,53 @@ function ScriptEditor({ api, scriptPath, module, file, setSurfaceToolbar, setToa
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-
-  const isDirty = content !== savedContent;
   const fileName = scriptPath.split('/').pop() ?? scriptPath;
+  const fileTitle = fileDisplayTitle(file);
+  const isDirty = content !== savedContent;
+  const sourceEditingElement = (target: EventTarget | null) => target instanceof HTMLElement && ['INPUT', 'TEXTAREA'].includes(target.tagName);
 
   useEffect(() => {
+    let active = true;
     setLoading(true);
     setError('');
-    api.readScript(scriptPath).then(res => {
-      setContent(res.content);
-      setSavedContent(res.content);
+    api.readScript(scriptPath).then(result => {
+      if (!active) return;
+      setContent(result.content);
+      setSavedContent(result.content);
       setHistory({ undo: [], redo: [] });
-    }).catch((err) => {
+    }).catch(err => {
+      if (!active) return;
       setError(err instanceof Error ? err.message : t('core.config.childLoadFailed'));
-      setContent(t('core.script.loadFallback'));
-      setSavedContent('');
-    }).finally(() => setLoading(false));
-  }, [scriptPath]);
+    }).finally(() => {
+      if (active) setLoading(false);
+    });
+    return () => { active = false; };
+  }, [api, scriptPath]);
+
+  function updateScriptContent(next: string) {
+    setContent(previous => {
+      setHistory(current => ({ undo: [...current.undo, previous].slice(-20), redo: [] }));
+      return next;
+    });
+  }
 
   async function save() {
-    if (saving || !isDirty) return;
+    if (!isDirty) {
+      setToast({ tone: 'ok', text: t('core.toast.noChanges') });
+      return;
+    }
     setSaving(true);
-    setError('');
     try {
       await api.saveScript(scriptPath, content);
       setSavedContent(content);
       setHistory({ undo: [], redo: [] });
       setToast({ tone: 'ok', text: t('core.toast.savedConfig', { count: 1 }) });
     } catch (err) {
-      const message = err instanceof Error ? err.message : t('core.script.saveFailed');
-      setError(message);
-      setToast({ tone: 'bad', text: userFacingSaveError(err) });
+      setError(err instanceof Error ? err.message : t('core.file.createFailed'));
+      setToast({ tone: 'bad', text: err instanceof Error ? err.message : t('core.file.createFailed') });
     } finally {
       setSaving(false);
     }
-  }
-
-  function updateScriptContent(next: string) {
-    setContent(current => {
-      if (current === next) return current;
-      setHistory(previous => ({ undo: [...previous.undo, current].slice(-20), redo: [] }));
-      return next;
-    });
-    setError('');
   }
 
   function undoScript() {
@@ -1116,7 +1123,7 @@ function ScriptEditor({ api, scriptPath, module, file, setSurfaceToolbar, setToa
   useEffect(() => {
     setSurfaceToolbar({
       title: fileName,
-      subtitle: `${file.title} · ${scriptPath}`,
+      subtitle: `${fileTitle} · ${scriptPath}`,
       dirty: isDirty,
       changedCount: isDirty ? 1 : 0,
       changes: [],
@@ -1135,7 +1142,7 @@ function ScriptEditor({ api, scriptPath, module, file, setSurfaceToolbar, setToa
       onSave: () => void save()
     });
     return () => setSurfaceToolbar(null);
-  }, [fileName, file.title, scriptPath, isDirty, content, error, saving, loading, history.undo.length, history.redo.length]);
+  }, [fileName, fileTitle, scriptPath, isDirty, content, error, saving, loading, history.undo.length, history.redo.length]);
 
   function handleInput(value: string) {
     updateScriptContent(value);
@@ -1159,7 +1166,6 @@ function ScriptEditor({ api, scriptPath, module, file, setSurfaceToolbar, setToa
     </div>
   </div>;
 }
-
 
 type ScriptCompletionScope = Record<string, Completion[]>;
 

@@ -83,6 +83,20 @@ const damageCauseLabels: Record<string, string> = {
 };
 
 registerModuleLocale(MODULE, 'zh-CN', {
+  'emakiattribute.module.name': 'Attribute',
+  'emakiattribute.module.summary': '属性、资源、伤害接管与曲线',
+  'emakiattribute.file.config.title': '主配置',
+  'emakiattribute.file.config.comment': '属性系统主配置，包含伤害接管、资源恢复和属性曲线。',
+  'emakiattribute.file.attribute_balance.title': '属性权重',
+  'emakiattribute.file.attribute_balance.comment': '属性语义分组、角色定位与评分权重配置。',
+  'emakiattribute.file.attributes.title': '属性定义',
+  'emakiattribute.file.attributes.comment': '属性定义文件目录，每个文件定义一个属性的 ID、类型、范围和词条格式。',
+  'emakiattribute.file.damage_types.title': '伤害类型',
+  'emakiattribute.file.damage_types.comment': '伤害类型定义文件目录，每个文件定义一种伤害的结算阶段和恢复规则。',
+  'emakiattribute.file.lore_formats.title': '词条格式',
+  'emakiattribute.file.lore_formats.comment': '词条格式定义文件目录，每个文件定义一种属性在物品 Lore 中的显示模板。',
+  'emakiattribute.file.conditions.title': 'PDC 条件',
+  'emakiattribute.file.conditions.comment': 'PDC 属性读取条件定义文件目录，控制物品属性在何种条件下生效。',
   ...Object.fromEntries(configFields.flatMap(([path, label, comment]) => [[`emakiattribute.field.${path}`, label], [`emakiattribute.comment.${path}`, comment]])),
   ...Object.fromEntries(Object.entries(commonFields).flatMap(([key, [label, comment]]) => [[`emakiattribute.field.${key}`, label], [`emakiattribute.comment.${key}`, comment]])),
   'emakiattribute.field.allowed_damage_causes.cause': '伤害来源',
@@ -104,6 +118,20 @@ registerModuleLocale(MODULE, 'zh-CN', {
 });
 
 registerModuleLocale(MODULE, 'en-US', {
+  'emakiattribute.module.name': 'Attribute',
+  'emakiattribute.module.summary': 'Attributes, resources, hard damage handling, and curves',
+  'emakiattribute.file.config.title': 'Main Config',
+  'emakiattribute.file.config.comment': 'Main attribute system configuration covering damage handling, resource recovery, and scaling curves.',
+  'emakiattribute.file.attribute_balance.title': 'Attribute Weights',
+  'emakiattribute.file.attribute_balance.comment': 'Semantic grouping, role positioning, and scoring weights for attributes.',
+  'emakiattribute.file.attributes.title': 'Attribute Definitions',
+  'emakiattribute.file.attributes.comment': 'Directory of attribute definition files. Each file defines an attribute ID, type, range, and lore format.',
+  'emakiattribute.file.damage_types.title': 'Damage Types',
+  'emakiattribute.file.damage_types.comment': 'Directory of damage type definition files. Each file defines a damage settlement stage and recovery rules.',
+  'emakiattribute.file.lore_formats.title': 'Lore Formats',
+  'emakiattribute.file.lore_formats.comment': 'Directory of lore format files. Each file defines the display template for an attribute in item lore.',
+  'emakiattribute.file.conditions.title': 'PDC Conditions',
+  'emakiattribute.file.conditions.comment': 'Directory of PDC attribute read conditions that control when item attributes take effect.',
   'emakiattribute.field.hard_lock_damage': 'Hard-lock Damage',
   'emakiattribute.field.default_damage_type': 'Default Damage Type',
   'emakiattribute.field.default_profile': 'Default Profile',

@@ -38,6 +38,12 @@ const triggerFields: Record<string, [string, string, string]> = {
 };
 
 const localeMessages: Record<string, string> = Object.fromEntries([
+  ['emakiskills.module.name', 'Skills'],
+  ['emakiskills.module.summary', '槽位、施法模式、触发器'],
+  ['emakiskills.file.config.title', '主配置'],
+  ['emakiskills.file.config.comment', '技能系统主配置，包含触发器、施法模式、资源和升级设置。'],
+  ['emakiskills.file.gui.title', 'GUI 模板'],
+  ['emakiskills.file.gui.comment', '技能面板与触发器选择 GUI 模板文件。'],
   ...fields.flatMap(([path, label, comment]) => [[`emakiskills.field.${path}`, label], [`emakiskills.comment.${path}`, comment]]),
   ...Object.entries(triggerFields).flatMap(([key, [label, comment]]) => [[`emakiskills.field.${key}`, label], [`emakiskills.comment.${key}`, comment]])
 ]);
@@ -51,6 +57,12 @@ registerModuleLocale(MODULE, 'zh-CN', {
 });
 
 registerModuleLocale(MODULE, 'en-US', {
+  'emakiskills.module.name': 'Skills',
+  'emakiskills.module.summary': 'Slots, cast modes, and triggers',
+  'emakiskills.file.config.title': 'Main Config',
+  'emakiskills.file.config.comment': 'Main skill system configuration covering triggers, cast modes, resources, and progression.',
+  'emakiskills.file.gui.title': 'GUI Templates',
+  'emakiskills.file.gui.comment': 'Skill panel and trigger selection GUI templates.',
   'emakiskills.surface.gui': 'Skills GUI',
   'emakiskills.field.slots': 'Skill Slots',
   'emakiskills.field.cast_mode': 'Cast Mode',

@@ -6,6 +6,7 @@ import { t } from './i18n';
 import { changedPathSet, diffRecords, getDeepValue, isChangedFieldPath, materialShortName, materialUrls, optionLabel, subscribeTextureBases, textValue, valuesEqual } from './lib';
 import { MINECRAFT_MATERIALS, searchMaterials } from './minecraftMaterials';
 import { getSourceDocumentAdapter, isKind, type SurfaceToolbarState } from './registry';
+import { fileDisplayTitle } from './lib';
 import { CORE_ITEM_FIELD_TYPE_SET, standardDisplayActionFields } from './itemFieldKit';
 import { CORE_EFFECT_TYPES, coreEffectTypeLabel, createCoreEffect, getItemFieldRenderer, isCoreEffectType, type CoreEffectType } from './itemFieldRegistry';
 import type { ItemPreviewResult, ItemPreviewStep, WebEditorDescriptor, WebEditorField, WebEditorSection, WebRegistryFile, WebRegistryModule } from './types';
@@ -44,6 +45,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
   const [economyProviders, setEconomyProviders] = useState<string[]>(DEFAULT_ECONOMY_PROVIDERS);
 
   const filePath = childPath || file.path;
+  const fileTitle = fileDisplayTitle(file);
   const baseName = editor?.baseName ?? DEFAULT_BASE_NAME;
   const baseLore = useMemo(() => editor?.baseLore ?? [DEFAULT_BASE_LORE], [editor?.baseLore]);
   const sections = useMemo(() => editor?.sections?.length ? editor.sections : defaultSections(), [editor]);
@@ -213,7 +215,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
   useEffect(() => {
     if (!setToolbar) return;
     setToolbar({
-      title: editor?.title ?? file.title ?? t('core.item.editorTitle'),
+      title: editor?.title ?? fileTitle ?? t('core.item.editorTitle'),
       subtitle: `${module.id}/${filePath}`,
       dirty: semanticDirty,
       changes,
@@ -232,7 +234,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
       onSave: handleSave
     });
     return () => setToolbar(null);
-  }, [setToolbar, editor?.title, file.title, module.id, filePath, semanticDirty, changes, sourceContent, sourceError, saving, loading, history.undo.length, history.redo.length, onReload]);
+  }, [setToolbar, editor?.title, fileTitle, module.id, filePath, semanticDirty, changes, sourceContent, sourceError, saving, loading, history.undo.length, history.redo.length, onReload]);
 
   if (loading) return <div className="ie-surface"><div className="ie-loading" role="status"><div className="ie-skeleton" aria-label={t('core.item.loadingAria')}><div className="ie-skeleton-line" style={{ width: '60%' }} /><div className="ie-skeleton-line" style={{ width: '80%' }} /><div className="ie-skeleton-line" style={{ width: '45%' }} /><div className="ie-skeleton-line" style={{ width: '70%' }} /></div></div></div>;
   if (error && !data) return <div className="ie-surface"><InlineError>{error}</InlineError>{onReload && <Button size="sm" onClick={onReload}>{t('core.action.retry')}</Button>}</div>;
@@ -242,7 +244,8 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
       {toast && <ToastNotice tone={toast.tone} style={{ position: 'absolute', top: 12, right: 12, zIndex: 50 }}>{toast.text}</ToastNotice>}
       {showLocalChrome && <EditorChrome
         className="ie-header"
-        title={editor?.title ?? file.title ?? t('core.item.editorTitle')}
+        title={editor?.title ?? fileTitle ?? t('core.item.editorTitle')}
+
         subtitle={`${module.id}/${filePath}`}
         dirty={semanticDirty}
         changes={changes}

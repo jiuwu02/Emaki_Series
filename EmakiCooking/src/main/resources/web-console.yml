@@ -1,22 +1,16 @@
 # EmakiCooking Web Console 声明式注册
-# 仅声明后端发现信息；字段文案、表单 schema 与编辑器描述由前端扩展注册。
+# 仅声明结构信息与资源入口，不承载展示文案。
 
 module:
-  name: "Cooking 烹饪"
-  summary: "工位、展示实体、输入规则"
   tone: cooking
   icon: '<svg viewBox="0 0 38 38" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M10 21h18l-2 8H12l-2-8zM8 21h22M13 16c-1.5-2 .8-3.5-.3-5M19 16c-1.5-2 .8-3.5-.3-5M25 16c-1.5-2 .8-3.5-.3-5M14 29l-2 3M24 29l2 3M15 21c1.2 2 6.8 2 8 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 
 files:
-  - title: "烹饪系统配置"
-    path: "config.yml"
+  - path: "config.yml"
     kind: CONFIG
-    comment: "烹饪系统主配置，包含工位、展示实体和输入规则。"
-  - title: "烹饪 GUI 模板"
-    path: "gui/**/*.yml"
+  - path: "gui/**/*.yml"
     kind: GUI
     editor: "emakicooking:gui"
-    comment: "烹饪工位 GUI 模板文件。"
 
 extensions:
   - id: "emakicooking:gui-surface"

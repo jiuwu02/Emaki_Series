@@ -5,6 +5,7 @@
 export { materialUrls, materialUrl, materialShortName, normalizeMaterial, getTextureBases, subscribeTextureBases, MATERIAL_TEXTURE_SOURCES, MATERIAL_TEXTURE_BASES, MINECRAFT_ASSET_VERSION, MINECRAFT_TEXTURE_VERSION } from './materials';
 export { serializeYaml, parseYaml } from './yaml';
 export { fieldLabel, optionLabel, humanizeFieldLabel, lastPathKey, type FieldLabelOptions, type OptionLabelOptions } from './fieldI18n';
+export { moduleDisplayName, moduleDisplaySummary, fileDisplayTitle, fileDisplayComment, treeNodeDisplayLabel, treeNodeDisplayComment, configNodeDisplayComment, registryFileKey, moduleRegistryNamespace } from './registryI18n';
 export { diffRecords, changedPathSet, isChangedPath, isChangedFieldPath, getDeepValue, valuesEqual, type ChangePathInput, type ChangePathMatchMode } from './changeTracking';
 export { renderMiniMessageParts, textValue, type MiniMessagePart } from './miniMessage';
 export { asRecord, asList, asStringList, setDeepValue, cleanMap, itemKind, firstItemSource, materialFromItemSource, displaySource, effectsByType, mapEntries, variableEntries, slotRows, markOpenSlots, upgradeLevels, concise, type AnyMap } from './itemUtils';
