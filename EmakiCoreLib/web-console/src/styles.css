@@ -699,6 +699,15 @@ textarea { min-height: 96px; resize: vertical; font-family: ui-monospace, "Casca
 .ie-tooltip.is-refreshing { opacity: .72; filter: saturate(.85); }
 .ie-tooltip-name { font-weight: 650; margin-bottom: 2px; }
 .ie-tooltip-empty { color: var(--faint); font-style: italic; }
+.ie-preview-debug { display: grid; gap: 7px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+.ie-preview-debug-block { display: grid; gap: 5px; }
+.ie-preview-debug-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--muted); font-size: 10px; font-weight: 750; text-transform: uppercase; letter-spacing: .045em; }
+.ie-preview-debug-head code { border: 1px solid var(--line); border-radius: 3px; padding: 1px 5px; color: var(--accent); background: var(--input); font-family: ui-monospace, "Cascadia Code", monospace; font-size: 10px; }
+.ie-preview-vars, .ie-preview-steps { display: grid; gap: 4px; }
+.ie-preview-var, .ie-preview-step { min-width: 0; display: grid; grid-template-columns: minmax(64px, .42fr) minmax(0, 1fr); gap: 6px; align-items: baseline; border: 1px solid var(--line); background: var(--input); padding: 4px 6px; }
+.ie-preview-var code, .ie-preview-step code { color: var(--accent); font-family: ui-monospace, "Cascadia Code", monospace; font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ie-preview-var span, .ie-preview-step span { color: var(--faint); font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ie-preview-more { color: var(--faint); font-size: 10px; }
 
 /* ─── Item Editor: Property Panel ─── */
 .ie-props-scroll { min-width: 0; padding: 0; }

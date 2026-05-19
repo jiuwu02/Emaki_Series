@@ -1,4 +1,5 @@
-import { ItemEditorSurface, registerConfigNodeMeta, registerConfigNodeRule, registerEditorDescriptor, registerEditorField, registerModuleLocale, registerPluginSurfaces } from 'emaki-web-console';
+import React from 'react';
+import { ActionsEditor, CORE_EFFECT_TYPES, ItemEditorSurface, PropRow, StringListEditor, asList, asRecord, asStringList, coreEffectTypeLabel, createCoreEffect, isCoreEffectType, parseActionList, registerConfigNodeMeta, registerConfigNodeRule, registerEditorDescriptor, registerEditorField, registerItemFieldRenderer, registerModuleLocale, registerPluginSurfaces, serializeActionList, textValue, type AnyMap, type CoreEffectType, type ItemFieldRendererContext } from 'emaki-web-console';
 
 const MODULE = 'EmakiItem';
 const EDITOR_ID = 'emakiitem:item';
@@ -13,6 +14,7 @@ const ATTRIBUTE_OPERATIONS = ['add_number', 'add_scalar', 'multiply_scalar_1'];
 const EQUIPMENT_SLOTS = ['any', 'hand', 'mainhand', 'offhand', 'head', 'chest', 'legs', 'feet', 'body'];
 const ITEM_FLAGS = ['HIDE_ENCHANTS', 'HIDE_ATTRIBUTES', 'HIDE_UNBREAKABLE', 'HIDE_DESTROYS', 'HIDE_PLACED_ON', 'HIDE_ADDITIONAL_TOOLTIP', 'HIDE_DYE', 'HIDE_ARMOR_TRIM'];
 const SET_SLOTS = ['main_hand', 'off_hand', 'helmet', 'chestplate', 'leggings', 'boots'];
+const ITEM_EFFECT_TYPES = [...CORE_EFFECT_TYPES, 'ea_attribute', 'es_skill'];
 
 const configFields: ConfigSpec[] = [
   ['version', '配置版本', '默认配置结构版本，通常不建议手动修改。', 'text'],
@@ -85,6 +87,8 @@ const itemEditorFields: ItemFieldSpec[] = [
   ['display_name', '显示名称', '支持 MiniMessage 与 {变量} 占位。', 'text'],
   ['item_name', '原版 item_name', '原版 item_name 组件，不参与变量渲染。', 'text'],
   ['lore', 'Lore', '支持 MiniMessage 与 {变量} 占位。', 'stringList', { wide: true }],
+  ['name_actions', '名称动作', '生成显示名称时执行的标准动作链。', 'actions', { wide: true }],
+  ['lore_actions', 'Lore 动作', '生成 Lore 时执行的标准动作链。', 'actions', { wide: true }],
   ['update.enabled', '启用更新', '关闭时其余 update 字段不会生效。', 'boolean'],
   ['update.version', '配置版本', '启用更新时必须大于 0。', 'number'],
   ['update.preserve_amount', '保留数量', '更新已有物品时是否保留堆叠数量。', 'boolean'],
@@ -199,6 +203,8 @@ registerPluginSurfaces([
   { kind: 'SET', moduleId: MODULE, component: ItemEditorSurface, label: 'EmakiItem 套装', priority: 110 }
 ]);
 
+registerEmakiItemRenderers();
+
 registerEditorDescriptor(MODULE, EDITOR_ID, {
   id: EDITOR_ID,
   moduleId: MODULE,
@@ -209,6 +215,7 @@ registerEditorDescriptor(MODULE, EDITOR_ID, {
   allowedFieldTypes: ['effects', 'attributeModifiers', 'repairMaterials'],
   sections: [
     { title: '基础字段', fields: fields(['id', 'material', 'display_name', 'item_name', 'lore']) },
+    { title: '显示动作', collapsible: true, defaultCollapsed: true, fields: fields(['name_actions', 'lore_actions']) },
     { title: '更新策略', collapsible: true, defaultCollapsed: true, fields: fields(['update.enabled', 'update.version', 'update.preserve_amount', 'update.preserve_damage', 'update.preserve_unknown_attribute_sources', 'update.triggers.join', 'update.triggers.held_change', 'update.triggers.inventory_click', 'update.triggers.inventory_drag', 'update.triggers.pickup', 'update.triggers.interact', 'update.triggers.command']) },
     { title: '效果与变量', collapsible: true, defaultCollapsed: true, fields: fields(['effects', 'variables', 'ea_attributes', 'ea_attribute_meta', 'es_skills']) },
     { title: '原版组件', collapsible: true, defaultCollapsed: true, fields: fields(['components.custom_model_data', 'components.item_model', 'components.tooltip_style', 'components.enchantments', 'components.item_flags', 'components.hide_tooltip', 'components.unbreakable', 'components.enchantment_glint_override', 'components.max_stack_size', 'components.rarity', 'components.damage', 'components.max_damage', 'components.enchantable', 'components.attribute_modifiers', 'components.raw']) },
@@ -235,6 +242,125 @@ registerEditorDescriptor(MODULE, SET_EDITOR_ID, {
 
 itemEditorFields.forEach(([path, label, comment, type, extra]) => registerEditorField(MODULE, EDITOR_ID, { path, label, comment, type, ...(extra ?? {}) }));
 setEditorFields.forEach(([path, label, comment, type, extra]) => registerEditorField(MODULE, SET_EDITOR_ID, { path, label, comment, type, ...(extra ?? {}) }));
+
+function registerEmakiItemRenderers() {
+  registerItemFieldRenderer('effects', context => <ItemEffectsEditor context={context} />, { moduleId: MODULE, editorId: EDITOR_ID, priority: 100 });
+}
+
+function ItemEffectsEditor({ context }: { context: ItemFieldRendererContext }) {
+  return <PropRow label={context.field.label} path={context.field.path} moduleId={MODULE} namespace={MODULE} editorFields={context.editorFields} changed={context.changed} wide>
+    <ItemEffectList value={context.value} path={context.field.path} onChange={effects => context.setField(context.field.path, effects)} actionTypesResult={context.actionTypesResult} />
+  </PropRow>;
+}
+
+function ItemEffectList({ value, onChange, actionTypesResult, path }: { value: unknown; onChange: (value: unknown[]) => void; actionTypesResult: ItemFieldRendererContext['actionTypesResult']; path?: string }) {
+  const effects = asList(value).map(effect => asRecord(effect));
+  const update = (index: number, nextEffect: AnyMap) => onChange(effects.map((entry, itemIndex) => itemIndex === index ? cleanObject(nextEffect) : entry));
+  const remove = (index: number) => onChange(effects.filter((_, itemIndex) => itemIndex !== index));
+  const move = (index: number, delta: number) => {
+    const target = index + delta;
+    if (target < 0 || target >= effects.length) return;
+    const next = [...effects];
+    [next[index], next[target]] = [next[target], next[index]];
+    onChange(next);
+  };
+  const add = (type: string) => onChange([...effects, defaultItemEffect(type)]);
+  return <div className="prop-levels" role="list">
+    {effects.map((effect, index) => {
+      const type = textValue(effect.type) || 'variables';
+      const options = ITEM_EFFECT_TYPES.includes(type) ? ITEM_EFFECT_TYPES : [...ITEM_EFFECT_TYPES, type];
+      return <div className="prop-cost-entry" key={index} role="listitem">
+        <div className="prop-cost-entry-head"><span>{itemEffectTypeLabel(type)}</span><span className="prop-action-controls"><button type="button" onClick={() => move(index, -1)} disabled={index === 0} aria-label="上移">↑</button><button type="button" onClick={() => move(index, 1)} disabled={index === effects.length - 1} aria-label="下移">↓</button><button type="button" className="prop-kv-del" onClick={() => remove(index)} aria-label={`删除效果 ${index + 1}`}>×</button></span></div>
+        <ItemFormRow label="type" path={joinPath(path, index, 'type')}><ItemSelectInput value={type} options={options} onChange={nextType => update(index, defaultItemEffect(nextType))} /></ItemFormRow>
+        <ItemEffectPayload effect={effect} type={type} path={joinPath(path, index)} onChange={nextEffect => update(index, nextEffect)} actionTypesResult={actionTypesResult} />
+      </div>;
+    })}
+    <div className="prop-cost-actions">{ITEM_EFFECT_TYPES.map(type => <button key={type} type="button" className="prop-add" onClick={() => add(type)}>+ {itemEffectTypeLabel(type)}</button>)}</div>
+  </div>;
+}
+
+function ItemEffectPayload({ effect, type, path, onChange, actionTypesResult }: { effect: AnyMap; type: string; path?: string; onChange: (value: AnyMap) => void; actionTypesResult: ItemFieldRendererContext['actionTypesResult'] }) {
+  const setPayload = (key: string, value: unknown) => onChange(cleanObject({ ...effect, [key]: value }));
+  if (type === 'variables') return <ItemMapRow label="variables" path={joinPath(path, 'variables')} value={effect.variables} valuePlaceholder="数值/公式" addKeyPrefix="variable" onChange={variables => setPayload('variables', variables)} />;
+  if (type === 'ea_attribute') return <ItemMapRow label="ea_attributes" path={joinPath(path, 'ea_attributes')} value={effect.ea_attributes} valuePlaceholder="属性值" addKeyPrefix="attribute" onChange={ea_attributes => setPayload('ea_attributes', ea_attributes)} />;
+  if (type === 'es_skill') return <ItemFormRow label="es_skills" path={joinPath(path, 'es_skills')} wide><StringListEditor items={itemSkillList(effect)} onChange={items => onChange(cleanObject({ ...effect, es_skills: items, es_skill: undefined }))} placeholder="技能 ID" /></ItemFormRow>;
+  if (type === 'name_action') return <ItemFormRow label="name_actions" path={joinPath(path, 'name_actions')} wide><ActionsEditor actions={parseActionList(effect.name_actions)} onChange={actions => setPayload('name_actions', serializeActionList(actions))} actionTypes={actionTypesResult?.nameActions ?? []} mode="name" moduleId={MODULE} namespace={MODULE} /></ItemFormRow>;
+  if (type === 'lore_action') return <ItemFormRow label="lore_actions" path={joinPath(path, 'lore_actions')} wide><ActionsEditor actions={parseActionList(effect.lore_actions)} onChange={actions => setPayload('lore_actions', serializeActionList(actions))} actionTypes={actionTypesResult?.loreActions ?? []} mode="lore" moduleId={MODULE} namespace={MODULE} /></ItemFormRow>;
+  const payload = Object.fromEntries(Object.entries(effect).filter(([key]) => key !== 'type'));
+  return <ItemMapRow label="fields" path={path} value={payload} onChange={fields => onChange(cleanObject({ type, ...fields }))} />;
+}
+
+function defaultItemEffect(type: string): AnyMap {
+  if (isCoreEffectType(type)) return createCoreEffect(type as CoreEffectType);
+  if (type === 'ea_attribute') return { type, ea_attributes: {} };
+  if (type === 'es_skill') return { type, es_skills: [] };
+  return { type };
+}
+
+function itemEffectTypeLabel(type: string): string {
+  return { ea_attribute: 'EA 属性', es_skill: 'ES 技能' }[type] ?? coreEffectTypeLabel(type);
+}
+
+function itemSkillList(effect: AnyMap): string[] {
+  const skills = asStringList(effect.es_skills);
+  const single = textValue(effect.es_skill);
+  return single ? [...skills, single] : skills;
+}
+
+function ItemMapRow({ label, path, value, onChange, valuePlaceholder = '值', addKeyPrefix = 'key' }: { label: string; path?: string; value: unknown; onChange: (value: AnyMap) => void; valuePlaceholder?: string; addKeyPrefix?: string }) {
+  const entries = Object.entries(asRecord(value)).map(([key, entry]) => ({ key, value: entry }));
+  const update = (index: number, field: 'key' | 'value', nextValue: string) => {
+    const next = [...entries];
+    next[index] = field === 'key' ? { ...next[index], key: nextValue } : { ...next[index], value: parseLooseScalar(nextValue) };
+    onChange(Object.fromEntries(next.filter(entry => entry.key.trim()).map(entry => [entry.key.trim(), entry.value])));
+  };
+  const remove = (index: number) => onChange(Object.fromEntries(entries.filter((_, itemIndex) => itemIndex !== index).map(entry => [entry.key, entry.value])));
+  const add = () => onChange({ ...asRecord(value), [nextUniqueKey(entries.map(entry => entry.key), addKeyPrefix)]: 0 });
+  return <ItemFormRow label={label} path={path} wide><div className="prop-kv">
+    {entries.map((entry, index) => <div className="prop-kv-row" key={index}>
+      <input value={entry.key} onChange={event => update(index, 'key', event.target.value)} placeholder="键" />
+      <input value={entry.value == null ? '' : String(entry.value)} onChange={event => update(index, 'value', event.target.value)} placeholder={valuePlaceholder} />
+      <button type="button" className="prop-kv-del" onClick={() => remove(index)}>×</button>
+    </div>)}
+    <button type="button" className="prop-add" onClick={add}>+ 添加</button>
+  </div></ItemFormRow>;
+}
+
+function ItemFormRow({ label, path, children, wide }: { label: string; path?: string; children: React.ReactNode; wide?: boolean }) {
+  return <PropRow label={label} path={path ?? label} moduleId={MODULE} namespace={MODULE} wide={wide}>{children}</PropRow>;
+}
+
+function ItemSelectInput({ value, options, onChange }: { value: unknown; options: string[]; onChange: (value: string) => void }) {
+  const current = textValue(value);
+  const merged = current && !options.includes(current) ? [...options, current] : options;
+  return <select value={current} onChange={event => onChange(event.target.value)}>{merged.map(option => <option key={option} value={option}>{itemEffectTypeLabel(option)}</option>)}</select>;
+}
+
+function parseLooseScalar(value: string): unknown {
+  const trimmed = value.trim();
+  if (trimmed === '') return '';
+  if (trimmed === 'true') return true;
+  if (trimmed === 'false') return false;
+  if (/^-?\d+(\.\d+)?$/.test(trimmed)) return Number(trimmed);
+  return value;
+}
+
+function cleanObject<T extends Record<string, unknown>>(value: T): T {
+  return Object.fromEntries(Object.entries(value).filter(([, entry]) => entry !== undefined && entry !== '' && !(Array.isArray(entry) && entry.length === 0))) as T;
+}
+
+function joinPath(...parts: Array<string | number | undefined>): string | undefined {
+  const filtered = parts.filter(part => part !== undefined && part !== '').map(String);
+  return filtered.length ? filtered.join('.') : undefined;
+}
+
+function nextUniqueKey(keys: string[], prefix: string): string {
+  const normalizedPrefix = prefix.trim() || 'key';
+  let index = keys.length + 1;
+  let key = `${normalizedPrefix}_${index}`;
+  while (keys.includes(key)) key = `${normalizedPrefix}_${++index}`;
+  return key;
+}
 
 function setFields(paths: string[]) {
   return paths.map(path => {

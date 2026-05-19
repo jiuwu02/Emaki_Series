@@ -6,22 +6,16 @@ import { t } from './i18n';
 import { changedPathSet, diffRecords, getDeepValue, isChangedFieldPath, materialShortName, materialUrls, optionLabel, subscribeTextureBases, textValue, valuesEqual } from './lib';
 import { MINECRAFT_MATERIALS, searchMaterials } from './minecraftMaterials';
 import { getSourceDocumentAdapter, isKind, type SurfaceToolbarState } from './registry';
-import type { ItemPreviewResult, WebEditorDescriptor, WebEditorField, WebEditorSection, WebRegistryFile, WebRegistryModule } from './types';
+import { CORE_ITEM_FIELD_TYPE_SET, standardDisplayActionFields } from './itemFieldKit';
+import { CORE_EFFECT_TYPES, coreEffectTypeLabel, createCoreEffect, getItemFieldRenderer, isCoreEffectType, type CoreEffectType } from './itemFieldRegistry';
+import type { ItemPreviewResult, ItemPreviewStep, WebEditorDescriptor, WebEditorField, WebEditorSection, WebRegistryFile, WebRegistryModule } from './types';
 import { serializeItemYaml } from './itemEditor';
 
 type Props = { module: WebRegistryModule; file: WebRegistryFile; api: ApiClient; childPath?: string; refreshKey?: number; editor?: WebEditorDescriptor; onReload?: () => void; setToolbar?: (state: SurfaceToolbarState | null) => void; showLocalChrome?: boolean };
 type SnapshotHistory = { undo: AnyMap[]; redo: AnyMap[] };
-type EffectType = 'variables' | 'ea_attribute' | 'es_skill' | 'name_action' | 'lore_action';
-
 const DEFAULT_BASE_NAME = t('core.item.defaultBaseName');
 const DEFAULT_BASE_LORE = t('core.item.defaultBaseLore');
-const EFFECT_TYPES: EffectType[] = ['variables', 'ea_attribute', 'es_skill', 'name_action', 'lore_action'];
-const EXTRACT_RETURN_MODES = ['original', 'destroy', 'downgrade'];
-const FAILURE_PENALTIES = ['none', 'downgrade', 'destroy'];
-const GEM_TYPES = ['attack', 'defense', 'utility', 'universal'];
 const DEFAULT_ECONOMY_PROVIDERS = ['auto', 'vault', 'excellenteconomy'];
-const CORE_FIELD_TYPES = new Set(['text', 'number', 'boolean', 'enum', 'multiEnum', 'material', 'textarea', 'stringList', 'numberList', 'map', 'dynamicMap', 'objectMap', 'json', 'actions']);
-const MODULE_FIELD_TYPES = new Set(['effects', 'attributeModifiers', 'repairMaterials', 'setPieces', 'setThresholds', 'cost', 'extractReturn', 'gemUpgrade', 'gemSlots']);
 
 const EditorContext = React.createContext<{
   moduleId: string;
@@ -261,7 +255,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
                   defaultCollapsed={section.defaultCollapsed}
                   storageKey={`core:item-section:${editor?.id ?? file.editorId ?? file.kind}:${section.title}`}
                 >
-                  {section.fields.map(field => <FieldEditor key={field.path} field={field} data={data} originalData={originalData} setField={setField} actionTypesResult={actionTypesResult} />)}
+                  {section.fields.map(field => <FieldEditor key={field.path} field={field} data={data} originalData={originalData} setField={setField} actionTypesResult={actionTypesResult} editorId={editor?.id ?? file.editorId} />)}
                 </CollapsibleSection>
               ))}
             </div>
@@ -272,7 +266,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
   );
 }
 
-function FieldEditor({ field, data, originalData, setField, actionTypesResult }: { field: WebEditorField; data: AnyMap; originalData: AnyMap; setField: (path: string, value: unknown) => void; actionTypesResult: ActionTypesResult | null }) {
+function FieldEditor({ field, data, originalData, setField, actionTypesResult, editorId }: { field: WebEditorField; data: AnyMap; originalData: AnyMap; setField: (path: string, value: unknown) => void; actionTypesResult: ActionTypesResult | null; editorId?: string }) {
   const context = React.useContext(EditorContext);
   const value = getDeepValue(data, field.path);
   const changed = !valuesEqual(value, getDeepValue(originalData, field.path));
@@ -280,9 +274,22 @@ function FieldEditor({ field, data, originalData, setField, actionTypesResult }:
   const type = field.type || 'text';
   const editorMeta = (context.editorFields as AnyMap).__meta as AnyMap | undefined;
   const allowedFieldTypes = asStringList((field as AnyMap).allowedFieldTypes ?? editorMeta?.allowedFieldTypes);
-  const moduleTypeAllowed = CORE_FIELD_TYPES.has(type) || allowedFieldTypes.includes(type);
+  const customRenderer = getItemFieldRenderer(type, context.moduleId, editorId);
+  const renderDefault = () => <DefaultFieldEditor field={field} data={data} value={value} changed={changed} setField={setField} actionTypesResult={actionTypesResult} />;
+  if (customRenderer) return <>{customRenderer({ data, originalData, field, value, changed, actionTypesResult, economyProviders: context.economyProviders, editorFields: context.editorFields, moduleId: context.moduleId, setField, renderDefault })}</>;
 
-  if (!moduleTypeAllowed && MODULE_FIELD_TYPES.has(type)) return <PropRow label={label} path={field.path} changed={changed} wide><GenericObjectEditor value={value} onChange={next => setField(field.path, next)} /></PropRow>;
+  return renderDefault();
+}
+
+function DefaultFieldEditor({ field, data, value, changed, setField, actionTypesResult }: { field: WebEditorField; data: AnyMap; value: unknown; changed: boolean; setField: (path: string, value: unknown) => void; actionTypesResult: ActionTypesResult | null }) {
+  const label = field.label || field.path;
+  const type = field.type || 'text';
+  const context = React.useContext(EditorContext);
+  const editorMeta = (context.editorFields as AnyMap).__meta as AnyMap | undefined;
+  const allowedFieldTypes = asStringList((field as AnyMap).allowedFieldTypes ?? editorMeta?.allowedFieldTypes);
+  const moduleTypeAllowed = CORE_ITEM_FIELD_TYPE_SET.has(type) || allowedFieldTypes.includes(type);
+
+  if (!moduleTypeAllowed) return <PropRow label={label} path={field.path} changed={changed} wide><GenericObjectEditor value={value} onChange={next => setField(field.path, next)} /></PropRow>;
 
   if (type === 'number') return <PropRow label={label} path={field.path} changed={changed} wide={field.wide}><NumberInput value={value} onChange={next => setField(field.path, next)} /></PropRow>;
   if (type === 'boolean') return <PropRow label={label} path={field.path} changed={changed} wide={field.wide}><ToggleButton checked={value === true} onChange={next => setField(field.path, next)} /></PropRow>;
@@ -302,10 +309,6 @@ function FieldEditor({ field, data, originalData, setField, actionTypesResult }:
   if (type === 'repairMaterials') return <PropRow label={label} path={field.path} changed={changed} wide><RepairMaterialsEditor value={value} path={field.path} onChange={next => setField(field.path, next)} /></PropRow>;
   if (type === 'setPieces') return <PropRow label={label} path={field.path} changed={changed} wide><SetPiecesEditor value={value} path={field.path} onChange={next => setField(field.path, next)} /></PropRow>;
   if (type === 'setThresholds') return <PropRow label={label} path={field.path} changed={changed} wide><SetThresholdsEditor value={value} path={field.path} onChange={next => setField(field.path, next)} /></PropRow>;
-  if (type === 'cost') return <CostEditor label={label} path={field.path} value={value ?? { currencies: [], materials: [] }} onChange={next => setField(field.path, next)} />;
-  if (type === 'extractReturn') return <ExtractReturnEditor path={field.path} value={value} onChange={next => setField(field.path, next)} />;
-  if (type === 'gemUpgrade') return <UpgradeEditor path={field.path} value={value ?? { enabled: false, levels: {} }} onChange={next => setField(field.path, next)} actionTypesResult={actionTypesResult} />;
-  if (type === 'gemSlots') return <PropRow label={label} path={field.path} changed={false} wide><GemSlotsEditor data={data} value={value} path={field.path} setField={setField} onChange={next => setField(field.path, next)} /></PropRow>;
   if (type === 'json') return <PropRow label={label} path={field.path} changed={changed} wide><GenericObjectEditor value={value} onChange={next => setField(field.path, next)} /></PropRow>;
   return <PropRow label={label} path={field.path} changed={changed} wide={field.wide}><input type="text" value={textValue(value)} onChange={e => setField(field.path, e.target.value)} placeholder={field.placeholder} /></PropRow>;
 }
@@ -423,8 +426,8 @@ function EffectsEditor({ value, onChange, actionTypesResult, path }: { value: un
   const [expanded, setExpanded] = useState<Set<number>>(() => new Set(effects.map((_, index) => index)));
   const updateEffect = (index: number, nextEffect: AnyMap) => onChange(effects.map((effect, itemIndex) => itemIndex === index ? cleanObject(nextEffect) : effect));
   const removeEffect = (index: number) => onChange(effects.filter((_, itemIndex) => itemIndex !== index));
-  const addEffect = (type: EffectType) => {
-    const next = [...effects, defaultEffect(type)];
+  const addEffect = (type: CoreEffectType) => {
+    const next = [...effects, createCoreEffect(type)];
     onChange(next);
     setExpanded(previous => new Set([...previous, next.length - 1]));
   };
@@ -443,10 +446,12 @@ function EffectsEditor({ value, onChange, actionTypesResult, path }: { value: un
   return <div className="prop-levels" role="list">
     {effects.map((effect, index) => {
       const type = textValue(effect.type) || 'variables';
+      const coreType = isCoreEffectType(type) ? type : 'variables';
+      const typeOptions = isCoreEffectType(type) ? CORE_EFFECT_TYPES : [...CORE_EFFECT_TYPES, type];
       const opened = expanded.has(index);
       return <div className={`prop-level-item${opened ? ' expanded' : ''}`} key={index} role="listitem">
         <div className="prop-level-head" role="button" tabIndex={0} onClick={() => toggle(index)} onKeyDown={event => toggleByKeyboard(event, () => toggle(index))} aria-expanded={opened} aria-controls={`effect-body-${index}`}>
-          <span className="prop-level-summary"><span className="prop-level-badge">{opened ? '⌄' : '›'} #{index + 1}</span>{effectTypeLabel(type)}</span>
+          <span className="prop-level-summary"><span className="prop-level-badge">{opened ? '⌄' : '›'} #{index + 1}</span>{coreEffectTypeLabel(type)}</span>
           <span className="prop-level-rate">{effectSummary(effect)}</span>
           <span className="prop-action-controls" onClick={stopEvent} onKeyDown={stopEvent}>
             <button type="button" onClick={() => moveEffect(index, -1)} disabled={index === 0} aria-label="上移">↑</button>
@@ -455,21 +460,19 @@ function EffectsEditor({ value, onChange, actionTypesResult, path }: { value: un
           </span>
         </div>
         {opened && <div className="prop-level-body" id={`effect-body-${index}`}>
-          <PropRow label="type" path={joinPath(path, index, 'type')}><SelectInput value={type} options={EFFECT_TYPES} labelPrefix="effect" onChange={nextType => updateEffect(index, defaultEffect(nextType as EffectType))} /></PropRow>
-          <EffectPayloadEditor effect={effect} path={joinPath(path, index)} onChange={nextEffect => updateEffect(index, nextEffect)} actionTypesResult={actionTypesResult} />
+          <PropRow label="type" path={joinPath(path, index, 'type')}><SelectInput value={type} options={typeOptions} labelPrefix="effect" onChange={nextType => updateEffect(index, createCoreEffect(nextType as CoreEffectType))} /></PropRow>
+          <EffectPayloadEditor effect={effect} type={coreType} originalType={type} path={joinPath(path, index)} onChange={nextEffect => updateEffect(index, nextEffect)} actionTypesResult={actionTypesResult} />
         </div>}
       </div>;
     })}
-    <div className="prop-cost-actions">{EFFECT_TYPES.map(type => <button key={type} type="button" className="prop-add" onClick={() => addEffect(type)}>+ {effectTypeLabel(type)}</button>)}</div>
+    <div className="prop-cost-actions">{CORE_EFFECT_TYPES.map(type => <button key={type} type="button" className="prop-add" onClick={() => addEffect(type)}>+ {coreEffectTypeLabel(type)}</button>)}</div>
   </div>;
 }
 
-function EffectPayloadEditor({ effect, onChange, actionTypesResult, path }: { effect: AnyMap; onChange: (effect: AnyMap) => void; actionTypesResult: ActionTypesResult | null; path?: string }) {
-  const type = textValue(effect.type) || 'variables';
+function EffectPayloadEditor({ effect, type, originalType, onChange, actionTypesResult, path }: { effect: AnyMap; type: CoreEffectType; originalType: string; onChange: (effect: AnyMap) => void; actionTypesResult: ActionTypesResult | null; path?: string }) {
   const setPayload = (key: string, value: unknown) => onChange(cleanObject({ ...effect, [key]: value }));
+  if (!isCoreEffectType(originalType)) return <GenericObjectEditor value={effect} reservedKeys={['type']} onChange={next => onChange({ type: originalType, ...next })} />;
   if (type === 'variables') return <PropRow label="variables" path={joinPath(path, 'variables')} wide><MapEditor value={effect.variables} valuePlaceholder="数值/公式" addKeyPrefix="variable" onChange={value => setPayload('variables', value)} /></PropRow>;
-  if (type === 'ea_attribute') return <PropRow label="ea_attributes" path={joinPath(path, 'ea_attributes')} wide><MapEditor value={effect.ea_attributes} valuePlaceholder="属性值" addKeyPrefix="attribute" onChange={value => setPayload('ea_attributes', value)} /></PropRow>;
-  if (type === 'es_skill') return <PropRow label="es_skills" path={joinPath(path, 'es_skills')} wide><StringListEditor items={skillList(effect)} onChange={items => onChange(cleanObject({ ...effect, es_skills: items, es_skill: undefined }))} placeholder="技能 ID" /></PropRow>;
   if (type === 'name_action') return <PropRow label="name_actions" path={joinPath(path, 'name_actions')} wide><ScopedActionsEditor actions={parseActionList(effect.name_actions)} onChange={actions => setPayload('name_actions', serializeActionList(actions))} actionTypes={actionTypesResult?.nameActions ?? []} mode="name" /></PropRow>;
   if (type === 'lore_action') return <PropRow label="lore_actions" path={joinPath(path, 'lore_actions')} wide><ScopedActionsEditor actions={parseActionList(effect.lore_actions)} onChange={actions => setPayload('lore_actions', serializeActionList(actions))} actionTypes={actionTypesResult?.loreActions ?? []} mode="lore" /></PropRow>;
   return <GenericObjectEditor value={effect} reservedKeys={['type']} onChange={next => onChange({ type, ...next })} />;
@@ -550,168 +553,6 @@ function RepairMaterialsEditor({ value, onChange, path }: { value: unknown; onCh
   </div>;
 }
 
-function CostEditor({ label, value, onChange, showEnabled, path }: { label: string; value: unknown; onChange: (value: AnyMap) => void; showEnabled?: boolean; path?: string }) {
-  const context = React.useContext(EditorContext);
-  const cost = asRecord(value);
-  const currencies = asList(cost.currencies).map(currency => asRecord(currency));
-  const materials = asList(cost.materials).map(material => asRecord(material));
-  const setCost = (patch: AnyMap) => onChange(cleanObject({ ...cost, ...patch }));
-  return <div className="prop-cost-section">
-    <span className="prop-cost-label">{label}</span>
-    {showEnabled && <PropRow label="enabled" path={joinPath(path, 'enabled')}><ToggleButton checked={cost.enabled !== false} onChange={enabled => setCost({ enabled })} /></PropRow>}
-    <CurrencyCostList items={currencies} path={joinPath(path, 'currencies')} economyProviders={context.economyProviders} onChange={items => setCost({ currencies: items })} />
-    <MaterialCostList items={materials} path={joinPath(path, 'materials')} onChange={items => setCost({ materials: items })} />
-  </div>;
-}
-
-function CurrencyCostList({ items, onChange, path, economyProviders = DEFAULT_ECONOMY_PROVIDERS }: { items: AnyMap[]; onChange: (items: AnyMap[]) => void; path?: string; economyProviders?: string[] }) {
-  const update = (index: number, patch: AnyMap) => onChange(items.map((item, itemIndex) => itemIndex === index ? cleanObject({ ...item, ...patch }) : item));
-  const remove = (index: number) => onChange(items.filter((_, itemIndex) => itemIndex !== index));
-  return <div className="prop-cost-group">
-    <span className="prop-cost-group-title">货币</span>
-    {items.map((currency, index) => <div className="prop-cost-entry" key={index}>
-      <div className="prop-cost-entry-head"><span>{textValue(currency.display_name) || textValue(currency.provider, 'vault')}</span><button type="button" className="prop-kv-del" onClick={() => remove(index)} aria-label={`删除货币 ${index + 1}`}>×</button></div>
-      <PropRow label="provider" path={joinPath(path, index, 'provider')}><SelectInput value={currency.provider ?? 'auto'} options={economyProviders} labelPrefix="economyProvider" onChange={provider => update(index, { provider })} /></PropRow>
-      <PropRow label="currency_id" path={joinPath(path, index, 'currency_id')}><TextInput value={currency.currency_id} onChange={currency_id => update(index, { currency_id })} /></PropRow>
-      <PropRow label="amount" path={joinPath(path, index, 'amount')}><NumberInput value={currency.amount} onChange={amount => update(index, { amount })} /></PropRow>
-      <PropRow label="base_cost" path={joinPath(path, index, 'base_cost')}><NumberInput value={currency.base_cost} onChange={base_cost => update(index, { base_cost })} /></PropRow>
-      <PropRow label="cost_formula" path={joinPath(path, index, 'cost_formula')}><TextInput value={currency.cost_formula} onChange={cost_formula => update(index, { cost_formula })} placeholder="{base_cost} * {level}" /></PropRow>
-      <PropRow label="display_name" path={joinPath(path, index, 'display_name')}><TextInput value={currency.display_name} onChange={display_name => update(index, { display_name })} /></PropRow>
-    </div>)}
-    <button type="button" className="prop-add" onClick={() => onChange([...items, { provider: 'vault', currency_id: '', base_cost: 0, cost_formula: '', display_name: '' }])}>+ 货币</button>
-  </div>;
-}
-
-function MaterialCostList({ items, onChange, path }: { items: AnyMap[]; onChange: (items: AnyMap[]) => void; path?: string }) {
-  const update = (index: number, patch: AnyMap) => onChange(items.map((item, itemIndex) => itemIndex === index ? cleanObject({ ...item, ...patch }) : item));
-  const remove = (index: number) => onChange(items.filter((_, itemIndex) => itemIndex !== index));
-  return <div className="prop-cost-group">
-    <span className="prop-cost-group-title">材料</span>
-    {items.map((material, index) => <div className="prop-cost-entry" key={index}>
-      <div className="prop-cost-entry-head"><span>{firstItemSource(material.item_sources) || textValue(material.item, '未设置材料')}</span><button type="button" className="prop-kv-del" onClick={() => remove(index)} aria-label={`删除材料 ${index + 1}`}>×</button></div>
-      <PropRow label="item_sources" path={joinPath(path, index, 'item_sources')} wide><StringListEditor items={materialSources(material)} onChange={item_sources => update(index, cleanObject({ item_sources, item: undefined, material: undefined }))} placeholder="minecraft-gold_nugget" /></PropRow>
-      <PropRow label="amount" path={joinPath(path, index, 'amount')}><NumberInput value={material.amount} onChange={amount => update(index, { amount: amount ?? 1 })} /></PropRow>
-    </div>)}
-    <button type="button" className="prop-add" onClick={() => onChange([...items, { item_sources: ['minecraft-stone'], amount: 1 }])}>+ 材料</button>
-  </div>;
-}
-
-function ExtractReturnEditor({ value, onChange, path }: { value: unknown; onChange: (value: AnyMap) => void; path?: string }) {
-  const data = asRecord(value);
-  const update = (patch: AnyMap) => onChange(cleanObject({ mode: 'original', downgrade_levels: 1, degraded_chance: 0, ...data, ...patch }));
-  return <div className="prop-cost-section">
-    <span className="prop-cost-label">拆卸返还</span>
-    <PropRow label="mode" path={joinPath(path, 'mode')}><SelectInput value={data.mode ?? 'original'} options={EXTRACT_RETURN_MODES} labelPrefix="extract" onChange={mode => update({ mode })} /></PropRow>
-    <PropRow label="downgrade_levels" path={joinPath(path, 'downgrade_levels')}><NumberInput value={data.downgrade_levels ?? 1} onChange={downgrade_levels => update({ downgrade_levels: downgrade_levels ?? 1 })} /></PropRow>
-    <PropRow label="degraded_chance" path={joinPath(path, 'degraded_chance')}><NumberInput value={data.degraded_chance ?? 0} step="0.01" onChange={degraded_chance => update({ degraded_chance: degraded_chance ?? 0 })} /></PropRow>
-  </div>;
-}
-
-function UpgradeEditor({ value, onChange, actionTypesResult, path = 'upgrade' }: { value: unknown; onChange: (value: AnyMap) => void; actionTypesResult: ActionTypesResult | null; path?: string }) {
-  const upgrade = asRecord(value);
-  const levels = levelMap(upgrade.levels);
-  const levelEntries = Object.entries(levels).sort(([left], [right]) => Number(left) - Number(right));
-  const [expandedLevels, setExpandedLevels] = useState<Set<string>>(() => new Set(levelEntries.map(([key]) => key)));
-  const updateUpgrade = (patch: AnyMap) => onChange(cleanObject({ ...upgrade, ...patch }));
-  const updateLevel = (levelKey: string, patch: AnyMap) => updateUpgrade({ levels: { ...levels, [levelKey]: cleanObject({ ...levels[levelKey], ...patch }) } });
-  const removeLevel = (levelKey: string) => { const next = { ...levels }; delete next[levelKey]; updateUpgrade({ levels: next }); };
-  const addLevel = () => {
-    const nextLevel = nextNumericKey(Object.keys(levels), 2);
-    updateUpgrade({ max_level: Math.max(toNumber(upgrade.max_level, 1), Number(nextLevel)), levels: { ...levels, [nextLevel]: { display_name: '', effects: [], materials: [], success_rate: 100, actions: { success: [], failure: [] } } } });
-    setExpandedLevels(previous => new Set([...previous, nextLevel]));
-  };
-  const toggleLevel = (levelKey: string) => setExpandedLevels(previous => { const next = new Set(previous); next.has(levelKey) ? next.delete(levelKey) : next.add(levelKey); return next; });
-  return <div className="prop-cost-section">
-    <PropRow label="enabled" path={joinPath(path, 'enabled')}><ToggleButton checked={upgrade.enabled === true} onChange={enabled => updateUpgrade({ enabled })} /></PropRow>
-    <PropRow label="max_level" path={joinPath(path, 'max_level')}><NumberInput value={upgrade.max_level ?? 1} onChange={max_level => updateUpgrade({ max_level: max_level ?? 1 })} /></PropRow>
-    <PropRow label="gui_template" path={joinPath(path, 'gui_template')}><TextInput value={upgrade.gui_template} onChange={gui_template => updateUpgrade({ gui_template })} placeholder="upgrade/default" /></PropRow>
-    <PropRow label="failure_penalty" path={joinPath(path, 'failure_penalty')}><SelectInput value={upgrade.failure_penalty ?? 'none'} options={FAILURE_PENALTIES} labelPrefix="failure" onChange={failure_penalty => updateUpgrade({ failure_penalty })} /></PropRow>
-    <CostEditor label="全局升级经济" path={joinPath(path, 'economy')} value={upgrade.economy ?? { enabled: true, currencies: [], materials: [] }} onChange={economy => updateUpgrade({ economy })} showEnabled />
-    <div className="prop-level-subsection"><PropRow label="success_rates" path={joinPath(path, 'success_rates')} wide><MapEditor value={upgrade.success_rates} valuePlaceholder="成功率" addKeyPrefix="2" onChange={success_rates => updateUpgrade({ success_rates })} /></PropRow></div>
-    <SectionHead title="升级等级" count={levelEntries.length} actions={<button type="button" className="prop-add-inline" onClick={addLevel}>+</button>} />
-    <div className="prop-levels" role="list">
-      {levelEntries.map(([levelKey, level]) => {
-        const opened = expandedLevels.has(levelKey);
-        const actions = asRecord(level.actions);
-        return <div className={`prop-level-item${opened ? ' expanded' : ''}`} key={levelKey} role="listitem">
-          <div className="prop-level-head" role="button" tabIndex={0} onClick={() => toggleLevel(levelKey)} onKeyDown={event => toggleByKeyboard(event, () => toggleLevel(levelKey))} aria-expanded={opened} aria-controls={`level-body-${levelKey}`}>
-            <span className="prop-level-summary"><span className="prop-level-badge">{opened ? '⌄' : '›'} Lv.{levelKey}</span>{textValue(level.display_name) || '未命名'}</span>
-            <span className="prop-level-rate">{textValue(level.success_rate ?? level.success_chance, '继承')}%</span>
-            <button type="button" className="prop-kv-del" onClick={event => { event.stopPropagation(); removeLevel(levelKey); }} onKeyDown={stopEvent} aria-label={`删除等级 ${levelKey}`}>×</button>
-          </div>
-          {opened && <div className="prop-level-body" id={`level-body-${levelKey}`}>
-            <PropRow label="display_name" path={joinPath(path, 'levels', levelKey, 'display_name')}><TextInput value={level.display_name} onChange={display_name => updateLevel(levelKey, { display_name })} /></PropRow>
-            <PropRow label="success_rate" path={joinPath(path, 'levels', levelKey, 'success_rate')}><NumberInput value={level.success_rate ?? level.success_chance} onChange={success_rate => updateLevel(levelKey, { success_rate })} /></PropRow>
-            <PropRow label="failure_penalty" path={joinPath(path, 'levels', levelKey, 'failure_penalty')}><SelectInput value={level.failure_penalty ?? ''} options={['', ...FAILURE_PENALTIES]} labelPrefix="failure" onChange={failure_penalty => updateLevel(levelKey, { failure_penalty })} /></PropRow>
-            <SectionHead title="等级效果" count={asList(level.effects).length} />
-            <EffectsEditor value={level.effects} path={joinPath(path, 'levels', levelKey, 'effects')} onChange={effects => updateLevel(levelKey, { effects })} actionTypesResult={actionTypesResult} />
-            <SectionHead title="升级材料" count={asList(level.materials).length} />
-            <MaterialCostList items={asList(level.materials).map(material => asRecord(material))} path={joinPath(path, 'levels', levelKey, 'materials')} onChange={materials => updateLevel(levelKey, { materials })} />
-            <CostEditor label="等级经济覆盖" path={joinPath(path, 'levels', levelKey, 'economy')} value={level.economy ?? { currencies: [] }} onChange={economy => updateLevel(levelKey, { economy })} showEnabled />
-            <ActionLinesEditor label="actions.success" path={joinPath(path, 'levels', levelKey, 'actions', 'success')} value={actions.success} onChange={success => updateLevel(levelKey, { actions: cleanObject({ ...actions, success }) })} />
-            <ActionLinesEditor label="actions.failure" path={joinPath(path, 'levels', levelKey, 'actions', 'failure')} value={actions.failure} onChange={failure => updateLevel(levelKey, { actions: cleanObject({ ...actions, failure }) })} />
-          </div>}
-        </div>;
-      })}
-    </div>
-  </div>;
-}
-
-function GemSlotsEditor({ data, value, onChange, setField, path }: { data: AnyMap; value: unknown; onChange: (value: unknown[]) => void; setField: (path: string, value: unknown) => void; path?: string }) {
-  const slots = asList(value).map(slot => asRecord(slot));
-  const openSlots = normalizedNumberSet(data.default_open_slots);
-  const [expanded, setExpanded] = useState<Set<number>>(() => new Set(slots.map((_, index) => index)));
-  const setOpenSlots = (next: Set<number>) => setField('default_open_slots', Array.from(next).sort((left, right) => left - right));
-  const updateSlot = (index: number, patch: AnyMap) => {
-    const oldIndex = toNumber(slots[index]?.index, index);
-    const nextIndex = 'index' in patch ? toNumber(patch.index, oldIndex) : oldIndex;
-    onChange(slots.map((slot, itemIndex) => itemIndex === index ? cleanObject({ ...slot, ...patch }) : slot));
-    if (oldIndex !== nextIndex && openSlots.has(oldIndex)) {
-      const nextOpen = new Set(openSlots);
-      nextOpen.delete(oldIndex);
-      nextOpen.add(nextIndex);
-      setOpenSlots(nextOpen);
-    }
-  };
-  const removeSlot = (index: number) => {
-    const removedIndex = toNumber(slots[index]?.index, index);
-    onChange(slots.filter((_, itemIndex) => itemIndex !== index));
-    if (openSlots.has(removedIndex)) {
-      const nextOpen = new Set(openSlots);
-      nextOpen.delete(removedIndex);
-      setOpenSlots(nextOpen);
-    }
-  };
-  const toggleOpen = (slotIndex: number) => {
-    const nextOpen = new Set(openSlots);
-    nextOpen.has(slotIndex) ? nextOpen.delete(slotIndex) : nextOpen.add(slotIndex);
-    setOpenSlots(nextOpen);
-  };
-  const addSlot = () => { const next = [...slots, { index: nextSlotIndex(slots), type: 'universal', display_name: '' }]; onChange(next); setExpanded(previous => new Set([...previous, next.length - 1])); };
-  const toggle = (index: number) => setExpanded(previous => { const next = new Set(previous); next.has(index) ? next.delete(index) : next.add(index); return next; });
-  return <div className="prop-levels" role="list">
-    {slots.map((slot, index) => {
-      const opened = expanded.has(index);
-      const slotIndex = toNumber(slot.index, index);
-      const isOpen = openSlots.has(slotIndex);
-      return <div className={`prop-level-item${opened ? ' expanded' : ''}`} key={index} role="listitem">
-        <div className="prop-level-head" role="button" tabIndex={0} onClick={() => toggle(index)} onKeyDown={event => toggleByKeyboard(event, () => toggle(index))} aria-expanded={opened} aria-controls={`slot-body-${index}`}>
-          <span className="prop-level-summary"><span className="prop-level-badge">{opened ? '⌄' : '›'} #{textValue(slot.index, String(index))}</span>{textValue(slot.type, 'universal')}</span>
-          <button type="button" className={`prop-slot-open${isOpen ? ' active' : ''}`} onClick={event => { event.stopPropagation(); toggleOpen(slotIndex); }} onKeyDown={stopEvent} aria-pressed={isOpen}>{isOpen ? '默认开放' : '默认关闭'}</button>
-          <span className="prop-level-rate">{textValue(slot.display_name) || '未命名'}</span>
-          <button type="button" className="prop-kv-del" onClick={event => { event.stopPropagation(); removeSlot(index); }} onKeyDown={stopEvent} aria-label={`删除插槽 ${index + 1}`}>×</button>
-        </div>
-        {opened && <div className="prop-level-body" id={`slot-body-${index}`}>
-          <PropRow label="index" path={joinPath(path, index, 'index')}><NumberInput value={slot.index ?? index} onChange={slotIndex => updateSlot(index, { index: slotIndex ?? index })} /></PropRow>
-          <PropRow label="type" path={joinPath(path, index, 'type')}><TextInput value={slot.type} onChange={slotType => updateSlot(index, { type: slotType })} /></PropRow>
-          <PropRow label="display_name" path={joinPath(path, index, 'display_name')}><TextInput value={slot.display_name} onChange={display_name => updateSlot(index, { display_name })} /></PropRow>
-        </div>}
-      </div>;
-    })}
-    <button type="button" className="prop-add" onClick={addSlot}>+ 插槽</button>
-  </div>;
-}
-
 function ActionLinesEditor({ label, value, onChange, path }: { label: string; value: unknown; onChange: (value: string[]) => void; path?: string }) {
   return <PropRow label={label} path={path} wide><StringListEditor items={asStringList(value)} onChange={onChange} placeholder="sendmessage text=&quot;...&quot;" /></PropRow>;
 }
@@ -765,8 +606,54 @@ function GenericPreviewPane({ data, preview, previewLevel, setPreviewLevel }: { 
         {(preview?.lore ?? asStringList(data.lore)).map((line, i) => <div className="ie-tooltip-line" key={i}><MiniText value={line} /></div>)}
         {!tooltipName && !(preview?.lore ?? asList(data.lore)).length && <span className="ie-tooltip-empty">{t('core.item.noPreview')}</span>}
       </div>
+      <PreviewPipelineSummary preview={preview} />
     </div>
   );
+}
+
+function PreviewPipelineSummary({ preview }: { preview: ItemPreviewResult | null }) {
+  const variables = Object.entries(preview?.variables ?? {});
+  const nameSteps = preview?.nameSteps ?? [];
+  const loreSteps = preview?.loreSteps ?? [];
+  if (!variables.length && !nameSteps.length && !loreSteps.length) return null;
+  return <div className="ie-preview-debug" aria-label="变量与动作预览">
+    {variables.length > 0 && <PreviewVariableList entries={variables} />}
+    {nameSteps.length > 0 && <PreviewStepList title="名称动作" steps={nameSteps} />}
+    {loreSteps.length > 0 && <PreviewStepList title="Lore 动作" steps={loreSteps} />}
+  </div>;
+}
+
+function PreviewVariableList({ entries }: { entries: [string, unknown][] }) {
+  return <div className="ie-preview-debug-block">
+    <div className="ie-preview-debug-head"><span>变量解析</span><code>{entries.length}</code></div>
+    <div className="ie-preview-vars">
+      {entries.slice(0, 6).map(([key, value]) => <div className="ie-preview-var" key={key}><code>{key}</code><span>{previewValue(value)}</span></div>)}
+      {entries.length > 6 && <span className="ie-preview-more">+{entries.length - 6} 个变量</span>}
+    </div>
+  </div>;
+}
+
+function PreviewStepList({ title, steps }: { title: string; steps: ItemPreviewStep[] }) {
+  return <div className="ie-preview-debug-block">
+    <div className="ie-preview-debug-head"><span>{title}</span><code>{steps.length}</code></div>
+    <div className="ie-preview-steps">
+      {steps.slice(0, 5).map((step, index) => <div className="ie-preview-step" key={`${step.action}-${index}`}>
+        <code>{step.action || `#${index + 1}`}</code>
+        {step.result ? <span>{step.result}</span> : step.value ? <span>{step.value}</span> : null}
+      </div>)}
+      {steps.length > 5 && <span className="ie-preview-more">+{steps.length - 5} 个步骤</span>}
+    </div>
+  </div>;
+}
+
+function previewValue(value: unknown): string {
+  if (value == null) return '';
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return String(value);
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
 }
 
 function editorFieldMap(editor: WebEditorDescriptor | undefined): Record<string, WebEditorField> {
@@ -809,45 +696,17 @@ function defaultSections(): WebEditorSection[] {
       { path: 'material', label: t('core.item.material'), type: 'text' },
       { path: 'display_name', label: t('core.item.displayName'), type: 'text' },
       { path: 'lore', label: 'Lore', type: 'stringList', wide: true },
-      { path: 'name_actions', label: 'Name Actions', type: 'actions', wide: true },
-      { path: 'lore_actions', label: 'Lore Actions', type: 'actions', wide: true }
+      ...standardDisplayActionFields()
     ]
   }];
-}
-
-function defaultEffect(type: EffectType): AnyMap {
-  if (type === 'variables') return { type, variables: {} };
-  if (type === 'ea_attribute') return { type, ea_attributes: {} };
-  if (type === 'es_skill') return { type, es_skills: [] };
-  if (type === 'name_action') return { type, name_actions: [] };
-  if (type === 'lore_action') return { type, lore_actions: [] };
-  return { type };
-}
-
-function effectTypeLabel(type: string): string {
-  return { variables: '变量', ea_attribute: '属性', es_skill: '技能', name_action: '名称动作', lore_action: 'Lore 动作' }[type] ?? type;
 }
 
 function effectSummary(effect: AnyMap): string {
   const type = textValue(effect.type);
   if (type === 'variables') return `${Object.keys(asRecord(effect.variables)).length} 变量`;
-  if (type === 'ea_attribute') return `${Object.keys(asRecord(effect.ea_attributes)).length} 属性`;
-  if (type === 'es_skill') return `${skillList(effect).length} 技能`;
   if (type === 'name_action') return `${asList(effect.name_actions).length} 动作`;
   if (type === 'lore_action') return `${asList(effect.lore_actions).length} 动作`;
   return `${Math.max(0, Object.keys(effect).length - 1)} 字段`;
-}
-
-function skillList(effect: AnyMap): string[] {
-  const skills = asStringList(effect.es_skills);
-  const single = textValue(effect.es_skill);
-  return single ? [...skills, single] : skills;
-}
-
-function materialSources(material: AnyMap): string[] {
-  const sources = asStringList(material.item_sources);
-  const legacy = textValue(material.item || material.material);
-  return sources.length > 0 ? sources : legacy ? [legacy] : [];
 }
 
 function levelMap(value: unknown): Record<string, AnyMap> {
@@ -857,25 +716,15 @@ function levelMap(value: unknown): Record<string, AnyMap> {
 
 function nextNumericKey(keys: string[], fallback: number): string {
   const numeric = keys.map(key => Number(key)).filter(value => Number.isFinite(value));
-  return String(numeric.length ? Math.max(...numeric) + 1 : fallback);
+  return String(Math.max(fallback - 1, ...numeric) + 1);
 }
 
 function nextUniqueKey(keys: string[], prefix: string): string {
   const normalizedPrefix = prefix.trim() || 'key';
-  const used = new Set(keys.map(key => key.trim()).filter(Boolean));
-  if (!used.has(normalizedPrefix)) return normalizedPrefix;
-  let index = 1;
-  while (used.has(`${normalizedPrefix}_${index}`)) index++;
-  return `${normalizedPrefix}_${index}`;
-}
-
-function nextSlotIndex(slots: AnyMap[]): number {
-  const indexes = slots.map(slot => Number(slot.index)).filter(index => Number.isFinite(index));
-  return indexes.length ? Math.max(...indexes) + 1 : 0;
-}
-
-function normalizedNumberSet(value: unknown): Set<number> {
-  return new Set(asList(value).map(entry => Number(entry)).filter(entry => Number.isFinite(entry)));
+  let index = keys.length + 1;
+  let key = `${normalizedPrefix}_${index}`;
+  while (keys.includes(key)) key = `${normalizedPrefix}_${++index}`;
+  return key;
 }
 
 function toNumber(value: unknown, fallback: number): number {
@@ -901,9 +750,9 @@ function mergeOptions(options: string[], fallback: string[]): string[] {
 function parseLooseScalar(value: string): unknown {
   const trimmed = value.trim();
   if (trimmed === '') return '';
-  if (/^-?\d+(\.\d+)?$/.test(trimmed)) return Number(trimmed);
   if (trimmed === 'true') return true;
   if (trimmed === 'false') return false;
+  if (/^-?\d+(\.\d+)?$/.test(trimmed)) return Number(trimmed);
   return value;
 }
 

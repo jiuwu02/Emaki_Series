@@ -218,12 +218,7 @@ final class WebItemPreviewService {
             summary.put("source", source);
             summary.put("payload", ConfigNodes.toPlainData(effect));
             if ("variables".equals(type)) summary.put("resolved", resolveVariables(ConfigNodes.entries(effect.get("variables")), variables));
-            if ("ea_attribute".equals(type)) summary.put("attributes", ConfigNodes.toPlainData(effect.get("ea_attributes")));
-            if ("es_skill".equals(type)) summary.put("skills", firstNonNull(effect.get("es_skills"), effect.get("es_skill")));
             result.add(summary);
-        }
-        if (data.get("ea_attributes") != null) {
-            result.add(Map.of("type", "ea_attribute", "source", source, "attributes", ConfigNodes.toPlainData(data.get("ea_attributes"))));
         }
     }
 

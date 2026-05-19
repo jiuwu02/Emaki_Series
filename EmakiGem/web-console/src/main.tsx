@@ -1,4 +1,5 @@
-import { registerConfigCreateTemplate, registerConfigNodeMeta, registerConfigNodeRule, registerEditorDescriptor, registerEditorField, registerModuleLocale, registerPluginGuiEditor } from 'emaki-web-console';
+import React, { useState } from 'react';
+import { ActionsEditor, CORE_EFFECT_TYPES, PropRow, SectionHead, StringListEditor, asList, asRecord, asStringList, coreEffectTypeLabel, createCoreEffect, firstItemSource, isCoreEffectType, registerConfigCreateTemplate, registerConfigNodeMeta, registerConfigNodeRule, registerEditorDescriptor, registerEditorField, registerItemFieldRenderer, registerModuleLocale, registerPluginGuiEditor, serializeActionList, parseActionList, textValue, type AnyMap, type CoreEffectType, type ItemFieldRendererContext } from 'emaki-web-console';
 
 registerModuleLocale('EmakiGem', 'zh-CN', {
   'emakigem.surface.gem': '宝石',
@@ -194,6 +195,10 @@ registerPluginGuiEditor({
 });
 
 const MODULE = 'EmakiGem';
+const EXTRACT_RETURN_MODES = ['original', 'destroy', 'downgrade'];
+const FAILURE_PENALTIES = ['none', 'downgrade', 'destroy'];
+const DEFAULT_ECONOMY_PROVIDERS = ['auto', 'vault', 'excellenteconomy'];
+const GEM_EFFECT_TYPES = [...CORE_EFFECT_TYPES, 'ea_attribute', 'es_skill'];
 
 type ConfigSpec = [path: string, label: string, comment: string, type: string, extra?: Record<string, unknown>];
 
@@ -287,6 +292,8 @@ registerConfigCreateTemplate(MODULE, 'upgrade.global_success_rates', {
   ]
 });
 
+registerEmakiGemItemRenderers();
+
 registerEditorDescriptor(MODULE, 'emakigem:gem', {
   id: 'emakigem:gem',
   moduleId: MODULE,
@@ -309,6 +316,12 @@ registerEditorDescriptor(MODULE, 'emakigem:gem', {
       ]
     },
     { title: 'effects 效果', collapsible: true, defaultCollapsed: true, fields: [{ path: 'effects', label: '宝石效果', type: 'effects', wide: true }] },
+    {
+      title: '展示动作', collapsible: true, defaultCollapsed: true, fields: [
+        { path: 'name_actions', label: '名称动作', type: 'actions', wide: true },
+        { path: 'lore_actions', label: 'Lore 动作', type: 'actions', wide: true }
+      ]
+    },
     {
       title: '费用与返还', collapsible: true, defaultCollapsed: true, fields: [
         { path: 'inlay_cost', label: '镶嵌费用', type: 'cost', wide: true },
@@ -368,6 +381,8 @@ registerEditorDescriptor(MODULE, 'emakigem:socket-item', {
 
 [
   ['emakigem:gem', 'effects', '宝石效果', '实际写入属性、技能和名称/Lore 动作的效果列表。', 'list'],
+  ['emakigem:gem', 'name_actions', '名称动作', '宝石展示时对名称执行的标准动作链。', 'actions'],
+  ['emakigem:gem', 'lore_actions', 'Lore 动作', '宝石展示时对 Lore 执行的标准动作链。', 'actions'],
   ['emakigem:gem', 'inlay_cost', '镶嵌费用', '镶嵌宝石时消耗的货币与材料。', 'object'],
   ['emakigem:gem', 'extract_cost', '拆卸费用', '拆卸宝石时消耗的货币与材料。', 'object'],
   ['emakigem:gem', 'extract_return', '拆卸返还', '拆卸后宝石原样返还、销毁或降级返还。', 'object'],
@@ -375,4 +390,348 @@ registerEditorDescriptor(MODULE, 'emakigem:socket-item', {
   ['emakigem:socket-item', 'name_actions', '名称动作', '插槽激活后对物品名称执行的动作。', 'actions'],
   ['emakigem:socket-item', 'lore_actions', 'Lore 动作', '插槽激活后对物品 Lore 执行的动作。', 'actions']
 ].forEach(([editorId, path, label, comment, type]) => registerEditorField(MODULE, editorId, { path, label, comment, type }));
+
+function registerEmakiGemItemRenderers() {
+  registerItemFieldRenderer('effects', context => <GemEffectsEditor context={context} />, { moduleId: MODULE, editorId: 'emakigem:gem', priority: 100 });
+  registerItemFieldRenderer('cost', context => <CostEditor label={context.field.label} path={context.field.path} value={context.value ?? { currencies: [], materials: [] }} economyProviders={context.economyProviders} onChange={next => context.setField(context.field.path, next)} />, { moduleId: MODULE, priority: 100 });
+  registerItemFieldRenderer('extractReturn', context => <ExtractReturnEditor path={context.field.path} value={context.value} onChange={next => context.setField(context.field.path, next)} />, { moduleId: MODULE, priority: 100 });
+  registerItemFieldRenderer('gemUpgrade', context => <UpgradeEditor context={context} />, { moduleId: MODULE, editorId: 'emakigem:gem', priority: 100 });
+  registerItemFieldRenderer('gemSlots', context => <GemSlotsEditor context={context} />, { moduleId: MODULE, editorId: 'emakigem:socket-item', priority: 100 });
+}
+
+function CostEditor({ label, value, onChange, showEnabled, path, economyProviders = DEFAULT_ECONOMY_PROVIDERS }: { label: string; value: unknown; onChange: (value: AnyMap) => void; showEnabled?: boolean; path?: string; economyProviders?: string[] }) {
+  const cost = asRecord(value);
+  const currencies = asList(cost.currencies).map(currency => asRecord(currency));
+  const materials = asList(cost.materials).map(material => asRecord(material));
+  const setCost = (patch: AnyMap) => onChange(cleanObject({ ...cost, ...patch }));
+  return <div className="prop-cost-section">
+    <span className="prop-cost-label">{label}</span>
+    {showEnabled && <FormRow label="enabled" path={joinPath(path, 'enabled')}><ToggleButton checked={cost.enabled !== false} onChange={enabled => setCost({ enabled })} /></FormRow>}
+    <CurrencyCostList items={currencies} path={joinPath(path, 'currencies')} economyProviders={economyProviders} onChange={items => setCost({ currencies: items })} />
+    <MaterialCostList items={materials} path={joinPath(path, 'materials')} onChange={items => setCost({ materials: items })} />
+  </div>;
+}
+
+function CurrencyCostList({ items, onChange, path, economyProviders = DEFAULT_ECONOMY_PROVIDERS }: { items: AnyMap[]; onChange: (items: AnyMap[]) => void; path?: string; economyProviders?: string[] }) {
+  const update = (index: number, patch: AnyMap) => onChange(items.map((item, itemIndex) => itemIndex === index ? cleanObject({ ...item, ...patch }) : item));
+  const remove = (index: number) => onChange(items.filter((_, itemIndex) => itemIndex !== index));
+  return <div className="prop-cost-group">
+    <span className="prop-cost-group-title">货币</span>
+    {items.map((currency, index) => <div className="prop-cost-entry" key={index}>
+      <div className="prop-cost-entry-head"><span>{textValue(currency.display_name) || textValue(currency.provider, 'vault')}</span><button type="button" className="prop-kv-del" onClick={() => remove(index)} aria-label={`删除货币 ${index + 1}`}>×</button></div>
+      <FormRow label="provider" path={joinPath(path, index, 'provider')}><SelectInput value={currency.provider ?? 'auto'} options={economyProviders} labelPrefix="economyProvider" onChange={provider => update(index, { provider })} /></FormRow>
+      <FormRow label="currency_id" path={joinPath(path, index, 'currency_id')}><TextInput value={currency.currency_id} onChange={currency_id => update(index, { currency_id })} /></FormRow>
+      <FormRow label="amount" path={joinPath(path, index, 'amount')}><NumberInput value={currency.amount} onChange={amount => update(index, { amount })} /></FormRow>
+      <FormRow label="base_cost" path={joinPath(path, index, 'base_cost')}><NumberInput value={currency.base_cost} onChange={base_cost => update(index, { base_cost })} /></FormRow>
+      <FormRow label="cost_formula" path={joinPath(path, index, 'cost_formula')}><TextInput value={currency.cost_formula} onChange={cost_formula => update(index, { cost_formula })} placeholder="{base_cost} * {level}" /></FormRow>
+      <FormRow label="display_name" path={joinPath(path, index, 'display_name')}><TextInput value={currency.display_name} onChange={display_name => update(index, { display_name })} /></FormRow>
+    </div>)}
+    <button type="button" className="prop-add" onClick={() => onChange([...items, { provider: 'vault', currency_id: '', base_cost: 0, cost_formula: '', display_name: '' }])}>+ 货币</button>
+  </div>;
+}
+
+function MaterialCostList({ items, onChange, path }: { items: AnyMap[]; onChange: (items: AnyMap[]) => void; path?: string }) {
+  const update = (index: number, patch: AnyMap) => onChange(items.map((item, itemIndex) => itemIndex === index ? cleanObject({ ...item, ...patch }) : item));
+  const remove = (index: number) => onChange(items.filter((_, itemIndex) => itemIndex !== index));
+  return <div className="prop-cost-group">
+    <span className="prop-cost-group-title">材料</span>
+    {items.map((material, index) => <div className="prop-cost-entry" key={index}>
+      <div className="prop-cost-entry-head"><span>{firstItemSource(material.item_sources) || textValue(material.item, '未设置材料')}</span><button type="button" className="prop-kv-del" onClick={() => remove(index)} aria-label={`删除材料 ${index + 1}`}>×</button></div>
+      <FormRow label="item_sources" path={joinPath(path, index, 'item_sources')} wide><StringListEditor items={materialSources(material)} onChange={item_sources => update(index, cleanObject({ item_sources, item: undefined, material: undefined }))} placeholder="minecraft-gold_nugget" /></FormRow>
+      <FormRow label="amount" path={joinPath(path, index, 'amount')}><NumberInput value={material.amount} onChange={amount => update(index, { amount: amount ?? 1 })} /></FormRow>
+    </div>)}
+    <button type="button" className="prop-add" onClick={() => onChange([...items, { item_sources: ['minecraft-stone'], amount: 1 }])}>+ 材料</button>
+  </div>;
+}
+
+function ExtractReturnEditor({ value, onChange, path }: { value: unknown; onChange: (value: AnyMap) => void; path?: string }) {
+  const data = asRecord(value);
+  const update = (patch: AnyMap) => onChange(cleanObject({ mode: 'original', downgrade_levels: 1, degraded_chance: 0, ...data, ...patch }));
+  return <div className="prop-cost-section">
+    <span className="prop-cost-label">拆卸返还</span>
+    <FormRow label="mode" path={joinPath(path, 'mode')}><SelectInput value={data.mode ?? 'original'} options={EXTRACT_RETURN_MODES} labelPrefix="extract" onChange={mode => update({ mode })} /></FormRow>
+    <FormRow label="downgrade_levels" path={joinPath(path, 'downgrade_levels')}><NumberInput value={data.downgrade_levels ?? 1} onChange={downgrade_levels => update({ downgrade_levels: downgrade_levels ?? 1 })} /></FormRow>
+    <FormRow label="degraded_chance" path={joinPath(path, 'degraded_chance')}><NumberInput value={data.degraded_chance ?? 0} step="0.01" onChange={degraded_chance => update({ degraded_chance: degraded_chance ?? 0 })} /></FormRow>
+  </div>;
+}
+
+function UpgradeEditor({ context }: { context: ItemFieldRendererContext }) {
+  const path = context.field.path;
+  const upgrade = asRecord(context.value);
+  const levels = levelMap(upgrade.levels);
+  const levelEntries = Object.entries(levels).sort(([left], [right]) => Number(left) - Number(right));
+  const [expandedLevels, setExpandedLevels] = useState<Set<string>>(() => new Set(levelEntries.map(([key]) => key)));
+  const updateUpgrade = (patch: AnyMap) => context.setField(path, cleanObject({ ...upgrade, ...patch }));
+  const updateLevel = (levelKey: string, patch: AnyMap) => updateUpgrade({ levels: { ...levels, [levelKey]: cleanObject({ ...levels[levelKey], ...patch }) } });
+  const removeLevel = (levelKey: string) => { const next = { ...levels }; delete next[levelKey]; updateUpgrade({ levels: next }); };
+  const addLevel = () => {
+    const nextLevel = nextNumericKey(Object.keys(levels), 2);
+    updateUpgrade({ max_level: Math.max(toNumber(upgrade.max_level, 1), Number(nextLevel)), levels: { ...levels, [nextLevel]: { display_name: '', effects: [], materials: [], success_rate: 100, actions: { success: [], failure: [] } } } });
+    setExpandedLevels(previous => new Set([...previous, nextLevel]));
+  };
+  const toggleLevel = (levelKey: string) => setExpandedLevels(previous => { const next = new Set(previous); next.has(levelKey) ? next.delete(levelKey) : next.add(levelKey); return next; });
+  return <div className="prop-cost-section">
+    <FormRow label="enabled" path={joinPath(path, 'enabled')}><ToggleButton checked={upgrade.enabled === true} onChange={enabled => updateUpgrade({ enabled })} /></FormRow>
+    <FormRow label="max_level" path={joinPath(path, 'max_level')}><NumberInput value={upgrade.max_level ?? 1} onChange={max_level => updateUpgrade({ max_level: max_level ?? 1 })} /></FormRow>
+    <FormRow label="gui_template" path={joinPath(path, 'gui_template')}><TextInput value={upgrade.gui_template} onChange={gui_template => updateUpgrade({ gui_template })} placeholder="upgrade/default" /></FormRow>
+    <FormRow label="failure_penalty" path={joinPath(path, 'failure_penalty')}><SelectInput value={upgrade.failure_penalty ?? 'none'} options={FAILURE_PENALTIES} labelPrefix="failure" onChange={failure_penalty => updateUpgrade({ failure_penalty })} /></FormRow>
+    <CostEditor label="全局升级经济" path={joinPath(path, 'economy')} value={upgrade.economy ?? { enabled: true, currencies: [], materials: [] }} onChange={economy => updateUpgrade({ economy })} showEnabled economyProviders={context.economyProviders} />
+    <MapRow label="success_rates" path={joinPath(path, 'success_rates')} value={upgrade.success_rates} valuePlaceholder="成功率" addKeyPrefix="2" onChange={success_rates => updateUpgrade({ success_rates })} />
+    <SectionHead title="升级等级" count={levelEntries.length} actions={<button type="button" className="prop-add-inline" onClick={addLevel}>+</button>} />
+    <div className="prop-levels" role="list">
+      {levelEntries.map(([levelKey, level]) => {
+        const opened = expandedLevels.has(levelKey);
+        const actions = asRecord(level.actions);
+        return <div className={`prop-level-item${opened ? ' expanded' : ''}`} key={levelKey} role="listitem">
+          <div className="prop-level-head" role="button" tabIndex={0} onClick={() => toggleLevel(levelKey)} onKeyDown={event => toggleByKeyboard(event, () => toggleLevel(levelKey))} aria-expanded={opened} aria-controls={`level-body-${levelKey}`}>
+            <span className="prop-level-summary"><span className="prop-level-badge">{opened ? '⌄' : '›'} Lv.{levelKey}</span>{textValue(level.display_name) || '未命名'}</span>
+            <span className="prop-level-rate">{textValue(level.success_rate ?? level.success_chance, '继承')}%</span>
+            <button type="button" className="prop-kv-del" onClick={event => { event.stopPropagation(); removeLevel(levelKey); }} onKeyDown={stopEvent} aria-label={`删除等级 ${levelKey}`}>×</button>
+          </div>
+          {opened && <div className="prop-level-body" id={`level-body-${levelKey}`}>
+            <FormRow label="display_name" path={joinPath(path, 'levels', levelKey, 'display_name')}><TextInput value={level.display_name} onChange={display_name => updateLevel(levelKey, { display_name })} /></FormRow>
+            <FormRow label="success_rate" path={joinPath(path, 'levels', levelKey, 'success_rate')}><NumberInput value={level.success_rate ?? level.success_chance} onChange={success_rate => updateLevel(levelKey, { success_rate })} /></FormRow>
+            <FormRow label="failure_penalty" path={joinPath(path, 'levels', levelKey, 'failure_penalty')}><SelectInput value={level.failure_penalty ?? ''} options={['', ...FAILURE_PENALTIES]} labelPrefix="failure" onChange={failure_penalty => updateLevel(levelKey, { failure_penalty })} /></FormRow>
+            <SectionHead title="等级效果" count={asList(level.effects).length} />
+            <ActionEffectList value={level.effects} onChange={effects => updateLevel(levelKey, { effects })} actionTypesResult={context.actionTypesResult} path={joinPath(path, 'levels', levelKey, 'effects')} />
+            <SectionHead title="升级材料" count={asList(level.materials).length} />
+            <MaterialCostList items={asList(level.materials).map(material => asRecord(material))} path={joinPath(path, 'levels', levelKey, 'materials')} onChange={materials => updateLevel(levelKey, { materials })} />
+            <CostEditor label="等级经济覆盖" path={joinPath(path, 'levels', levelKey, 'economy')} value={level.economy ?? { currencies: [] }} onChange={economy => updateLevel(levelKey, { economy })} showEnabled economyProviders={context.economyProviders} />
+            <ActionLinesEditor label="actions.success" path={joinPath(path, 'levels', levelKey, 'actions', 'success')} value={actions.success} onChange={success => updateLevel(levelKey, { actions: cleanObject({ ...actions, success }) })} />
+            <ActionLinesEditor label="actions.failure" path={joinPath(path, 'levels', levelKey, 'actions', 'failure')} value={actions.failure} onChange={failure => updateLevel(levelKey, { actions: cleanObject({ ...actions, failure }) })} />
+          </div>}
+        </div>;
+      })}
+    </div>
+  </div>;
+}
+
+function GemSlotsEditor({ context }: { context: ItemFieldRendererContext }) {
+  const path = context.field.path;
+  const slots = asList(context.value).map(slot => asRecord(slot));
+  const openSlots = normalizedNumberSet(context.data.default_open_slots);
+  const [expanded, setExpanded] = useState<Set<number>>(() => new Set(slots.map((_, index) => index)));
+  const setOpenSlots = (next: Set<number>) => context.setField('default_open_slots', Array.from(next).sort((left, right) => left - right));
+  const updateSlot = (index: number, patch: AnyMap) => {
+    const oldIndex = toNumber(slots[index]?.index, index);
+    const nextIndex = 'index' in patch ? toNumber(patch.index, oldIndex) : oldIndex;
+    context.setField(path, slots.map((slot, itemIndex) => itemIndex === index ? cleanObject({ ...slot, ...patch }) : slot));
+    if (oldIndex !== nextIndex && openSlots.has(oldIndex)) {
+      const nextOpen = new Set(openSlots);
+      nextOpen.delete(oldIndex);
+      nextOpen.add(nextIndex);
+      setOpenSlots(nextOpen);
+    }
+  };
+  const removeSlot = (index: number) => {
+    const removedIndex = toNumber(slots[index]?.index, index);
+    context.setField(path, slots.filter((_, itemIndex) => itemIndex !== index));
+    if (openSlots.has(removedIndex)) {
+      const nextOpen = new Set(openSlots);
+      nextOpen.delete(removedIndex);
+      setOpenSlots(nextOpen);
+    }
+  };
+  const toggleOpen = (slotIndex: number) => {
+    const nextOpen = new Set(openSlots);
+    nextOpen.has(slotIndex) ? nextOpen.delete(slotIndex) : nextOpen.add(slotIndex);
+    setOpenSlots(nextOpen);
+  };
+  const addSlot = () => { const next = [...slots, { index: nextSlotIndex(slots), type: 'universal', display_name: '' }]; context.setField(path, next); setExpanded(previous => new Set([...previous, next.length - 1])); };
+  const toggle = (index: number) => setExpanded(previous => { const next = new Set(previous); next.has(index) ? next.delete(index) : next.add(index); return next; });
+  return <PropRow label={context.field.label} path={path} moduleId={MODULE} namespace={MODULE} editorFields={context.editorFields} changed={context.changed} wide>
+    <div className="prop-levels" role="list">
+      {slots.map((slot, index) => {
+        const opened = expanded.has(index);
+        const slotIndex = toNumber(slot.index, index);
+        const isOpen = openSlots.has(slotIndex);
+        return <div className={`prop-level-item${opened ? ' expanded' : ''}`} key={index} role="listitem">
+          <div className="prop-level-head" role="button" tabIndex={0} onClick={() => toggle(index)} onKeyDown={event => toggleByKeyboard(event, () => toggle(index))} aria-expanded={opened} aria-controls={`slot-body-${index}`}>
+            <span className="prop-level-summary"><span className="prop-level-badge">{opened ? '⌄' : '›'} #{textValue(slot.index, String(index))}</span>{textValue(slot.type, 'universal')}</span>
+            <button type="button" className={`prop-slot-open${isOpen ? ' active' : ''}`} onClick={event => { event.stopPropagation(); toggleOpen(slotIndex); }} onKeyDown={stopEvent} aria-pressed={isOpen}>{isOpen ? '默认开放' : '默认关闭'}</button>
+            <span className="prop-level-rate">{textValue(slot.display_name) || '未命名'}</span>
+            <button type="button" className="prop-kv-del" onClick={event => { event.stopPropagation(); removeSlot(index); }} onKeyDown={stopEvent} aria-label={`删除插槽 ${index + 1}`}>×</button>
+          </div>
+          {opened && <div className="prop-level-body" id={`slot-body-${index}`}>
+            <FormRow label="index" path={joinPath(path, index, 'index')}><NumberInput value={slot.index ?? index} onChange={slotIndexValue => updateSlot(index, { index: slotIndexValue ?? index })} /></FormRow>
+            <FormRow label="type" path={joinPath(path, index, 'type')}><TextInput value={slot.type} onChange={slotType => updateSlot(index, { type: slotType })} /></FormRow>
+            <FormRow label="display_name" path={joinPath(path, index, 'display_name')}><TextInput value={slot.display_name} onChange={display_name => updateSlot(index, { display_name })} /></FormRow>
+          </div>}
+        </div>;
+      })}
+      <button type="button" className="prop-add" onClick={addSlot}>+ 插槽</button>
+    </div>
+  </PropRow>;
+}
+
+function GemEffectsEditor({ context }: { context: ItemFieldRendererContext }) {
+  return <PropRow label={context.field.label} path={context.field.path} moduleId={MODULE} namespace={MODULE} editorFields={context.editorFields} changed={context.changed} wide>
+    <ActionEffectList value={context.value} onChange={effects => context.setField(context.field.path, effects)} actionTypesResult={context.actionTypesResult} path={context.field.path} />
+  </PropRow>;
+}
+
+function ActionEffectList({ value, onChange, actionTypesResult, path }: { value: unknown; onChange: (value: unknown[]) => void; actionTypesResult: ItemFieldRendererContext['actionTypesResult']; path?: string }) {
+  const effects = asList(value).map(effect => asRecord(effect));
+  const update = (index: number, nextEffect: AnyMap) => onChange(effects.map((entry, itemIndex) => itemIndex === index ? cleanObject(nextEffect) : entry));
+  const remove = (index: number) => onChange(effects.filter((_, itemIndex) => itemIndex !== index));
+  const move = (index: number, delta: number) => {
+    const target = index + delta;
+    if (target < 0 || target >= effects.length) return;
+    const next = [...effects];
+    [next[index], next[target]] = [next[target], next[index]];
+    onChange(next);
+  };
+  const add = (type: string) => onChange([...effects, defaultGemEffect(type)]);
+  return <div className="prop-levels" role="list">
+    {effects.map((effect, index) => {
+      const type = textValue(effect.type) || 'variables';
+      const options = GEM_EFFECT_TYPES.includes(type) ? GEM_EFFECT_TYPES : [...GEM_EFFECT_TYPES, type];
+      return <div className="prop-cost-entry" key={index} role="listitem">
+        <div className="prop-cost-entry-head"><span>{gemEffectTypeLabel(type)}</span><span className="prop-action-controls"><button type="button" onClick={() => move(index, -1)} disabled={index === 0} aria-label="上移">↑</button><button type="button" onClick={() => move(index, 1)} disabled={index === effects.length - 1} aria-label="下移">↓</button><button type="button" className="prop-kv-del" onClick={() => remove(index)} aria-label={`删除效果 ${index + 1}`}>×</button></span></div>
+        <FormRow label="type" path={joinPath(path, index, 'type')}><SelectInput value={type} options={options} onChange={nextType => update(index, defaultGemEffect(nextType))} /></FormRow>
+        <GemEffectPayload effect={effect} type={type} path={joinPath(path, index)} onChange={nextEffect => update(index, nextEffect)} actionTypesResult={actionTypesResult} />
+      </div>;
+    })}
+    <div className="prop-cost-actions">{GEM_EFFECT_TYPES.map(type => <button key={type} type="button" className="prop-add" onClick={() => add(type)}>+ {gemEffectTypeLabel(type)}</button>)}</div>
+  </div>;
+}
+
+function GemEffectPayload({ effect, type, path, onChange, actionTypesResult }: { effect: AnyMap; type: string; path?: string; onChange: (value: AnyMap) => void; actionTypesResult: ItemFieldRendererContext['actionTypesResult'] }) {
+  const setPayload = (key: string, value: unknown) => onChange(cleanObject({ ...effect, [key]: value }));
+  if (type === 'variables') return <MapRow label="variables" path={joinPath(path, 'variables')} value={effect.variables} valuePlaceholder="数值/公式" addKeyPrefix="variable" onChange={variables => setPayload('variables', variables)} />;
+  if (type === 'ea_attribute') return <MapRow label="ea_attributes" path={joinPath(path, 'ea_attributes')} value={effect.ea_attributes} valuePlaceholder="属性值" addKeyPrefix="attribute" onChange={ea_attributes => setPayload('ea_attributes', ea_attributes)} />;
+  if (type === 'es_skill') return <FormRow label="es_skills" path={joinPath(path, 'es_skills')} wide><StringListEditor items={gemSkillList(effect)} onChange={items => onChange(cleanObject({ ...effect, es_skills: items, es_skill: undefined }))} placeholder="技能 ID" /></FormRow>;
+  if (type === 'name_action') return <FormRow label="name_actions" path={joinPath(path, 'name_actions')} wide><ActionsEditor actions={parseActionList(effect.name_actions)} onChange={actions => setPayload('name_actions', serializeActionList(actions))} actionTypes={actionTypesResult?.nameActions ?? []} mode="name" moduleId={MODULE} namespace={MODULE} /></FormRow>;
+  if (type === 'lore_action') return <FormRow label="lore_actions" path={joinPath(path, 'lore_actions')} wide><ActionsEditor actions={parseActionList(effect.lore_actions)} onChange={actions => setPayload('lore_actions', serializeActionList(actions))} actionTypes={actionTypesResult?.loreActions ?? []} mode="lore" moduleId={MODULE} namespace={MODULE} /></FormRow>;
+  const payload = Object.fromEntries(Object.entries(effect).filter(([key]) => key !== 'type'));
+  return <MapRow label="fields" path={path} value={payload} onChange={fields => onChange(cleanObject({ type, ...fields }))} />;
+}
+
+function defaultGemEffect(type: string): AnyMap {
+  if (isCoreEffectType(type)) return createCoreEffect(type as CoreEffectType);
+  if (type === 'ea_attribute') return { type, ea_attributes: {} };
+  if (type === 'es_skill') return { type, es_skills: [] };
+  return { type };
+}
+
+function gemEffectTypeLabel(type: string): string {
+  return { ea_attribute: 'EA 属性', es_skill: 'ES 技能' }[type] ?? coreEffectTypeLabel(type);
+}
+
+function gemSkillList(effect: AnyMap): string[] {
+  const skills = asStringList(effect.es_skills);
+  const single = textValue(effect.es_skill);
+  return single ? [...skills, single] : skills;
+}
+
+function ActionLinesEditor({ label, value, onChange, path }: { label: string; value: unknown; onChange: (value: string[]) => void; path?: string }) {
+  return <FormRow label={label} path={path} wide><StringListEditor items={asStringList(value)} onChange={onChange} placeholder="sendmessage text=&quot;...&quot;" /></FormRow>;
+}
+
+function MapRow({ label, path, value, onChange, valuePlaceholder = '值', addKeyPrefix = 'key' }: { label: string; path?: string; value: unknown; onChange: (value: AnyMap) => void; valuePlaceholder?: string; addKeyPrefix?: string }) {
+  const entries = Object.entries(asRecord(value)).map(([key, entry]) => ({ key, value: entry }));
+  const update = (index: number, field: 'key' | 'value', nextValue: string) => {
+    const next = [...entries];
+    next[index] = field === 'key' ? { ...next[index], key: nextValue } : { ...next[index], value: parseLooseScalar(nextValue) };
+    onChange(Object.fromEntries(next.filter(entry => entry.key.trim()).map(entry => [entry.key.trim(), entry.value])));
+  };
+  const remove = (index: number) => onChange(Object.fromEntries(entries.filter((_, itemIndex) => itemIndex !== index).map(entry => [entry.key, entry.value])));
+  const add = () => onChange({ ...asRecord(value), [nextUniqueKey(entries.map(entry => entry.key), addKeyPrefix)]: 0 });
+  return <FormRow label={label} path={path} wide><div className="prop-kv">
+    {entries.map((entry, index) => <div className="prop-kv-row" key={index}>
+      <input value={entry.key} onChange={event => update(index, 'key', event.target.value)} placeholder="键" />
+      <input value={entry.value == null ? '' : String(entry.value)} onChange={event => update(index, 'value', event.target.value)} placeholder={valuePlaceholder} />
+      <button type="button" className="prop-kv-del" onClick={() => remove(index)}>×</button>
+    </div>)}
+    <button type="button" className="prop-add" onClick={add}>+ 添加</button>
+  </div></FormRow>;
+}
+
+function FormRow({ label, path, children, wide }: { label: string; path?: string; children: React.ReactNode; wide?: boolean }) {
+  return <PropRow label={label} path={path ?? label} moduleId={MODULE} namespace={MODULE} wide={wide}>{children}</PropRow>;
+}
+
+function ToggleButton({ checked, onChange }: { checked: boolean; onChange: (next: boolean) => void }) {
+  return <button type="button" className={`switch ${checked ? 'on' : ''}`} aria-pressed={checked} onClick={() => onChange(!checked)}><span />{checked ? '开启' : '关闭'}</button>;
+}
+
+function NumberInput({ value, onChange, step }: { value: unknown; onChange: (value: number | undefined) => void; step?: number | string }) {
+  return <input type="number" step={step} value={value == null ? '' : textValue(value)} onChange={event => onChange(event.target.value === '' ? undefined : Number(event.target.value))} />;
+}
+
+function SelectInput({ value, options, onChange }: { value: unknown; options: string[]; labelPrefix?: string; onChange: (value: string) => void }) {
+  const current = textValue(value);
+  const merged = current && !options.includes(current) ? [...options, current] : options;
+  return <select value={current} onChange={event => onChange(event.target.value)}>{merged.map(option => <option key={option} value={option}>{option}</option>)}</select>;
+}
+
+function TextInput({ value, onChange, placeholder }: { value: unknown; onChange: (value: string) => void; placeholder?: string }) {
+  return <input type="text" value={textValue(value)} onChange={event => onChange(event.target.value)} placeholder={placeholder} />;
+}
+
+function joinPath(...parts: Array<string | number | undefined>): string | undefined {
+  const filtered = parts.filter(part => part !== undefined && part !== '').map(String);
+  return filtered.length ? filtered.join('.') : undefined;
+}
+
+function materialSources(material: AnyMap): string[] {
+  const sources = asStringList(material.item_sources);
+  const legacy = textValue(material.item || material.material);
+  return sources.length > 0 ? sources : legacy ? [legacy] : [];
+}
+
+function levelMap(value: unknown): Record<string, AnyMap> {
+  if (Array.isArray(value)) return Object.fromEntries(value.map((entry, index) => [String(index + 2), asRecord(entry)]));
+  return Object.fromEntries(Object.entries(asRecord(value)).map(([key, entry]) => [key, asRecord(entry)]));
+}
+
+function nextNumericKey(keys: string[], fallback: number): string {
+  const numeric = keys.map(key => Number(key)).filter(value => Number.isFinite(value));
+  return String(Math.max(fallback - 1, ...numeric) + 1);
+}
+
+function nextUniqueKey(keys: string[], prefix: string): string {
+  const normalizedPrefix = prefix.trim() || 'key';
+  let index = keys.length + 1;
+  let key = `${normalizedPrefix}_${index}`;
+  while (keys.includes(key)) key = `${normalizedPrefix}_${++index}`;
+  return key;
+}
+
+function nextSlotIndex(slots: AnyMap[]): number {
+  const indexes = slots.map(slot => Number(slot.index)).filter(index => Number.isFinite(index));
+  return Math.max(-1, ...indexes) + 1;
+}
+
+function normalizedNumberSet(value: unknown): Set<number> {
+  return new Set(asList(value).map(entry => Number(entry)).filter(entry => Number.isFinite(entry)));
+}
+
+function toNumber(value: unknown, fallback: number): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function parseLooseScalar(value: string): unknown {
+  const trimmed = value.trim();
+  if (trimmed === '') return '';
+  if (trimmed === 'true') return true;
+  if (trimmed === 'false') return false;
+  if (/^-?\d+(\.\d+)?$/.test(trimmed)) return Number(trimmed);
+  return value;
+}
+
+function cleanObject<T extends Record<string, unknown>>(value: T): T {
+  return Object.fromEntries(Object.entries(value).filter(([, entry]) => entry !== undefined && entry !== '' && !(Array.isArray(entry) && entry.length === 0))) as T;
+}
+
+function stopEvent(event: React.SyntheticEvent) {
+  event.stopPropagation();
+}
+
+function toggleByKeyboard(event: React.KeyboardEvent, action: () => void) {
+  if (event.key !== 'Enter' && event.key !== ' ') return;
+  event.preventDefault();
+  action();
+}
 
