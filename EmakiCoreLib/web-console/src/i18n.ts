@@ -159,8 +159,7 @@ const CORE_ZH_CN: LocaleMessages = {
   'core.toast.savedGui': '已保存 GUI 文件。执行插件 reload 后生效。',
   'core.toast.savedItem': '已保存物品文件。执行插件 reload 后生效。',
   'core.brand.name': 'emaki-parent',
-  'core.brand.subtitle': 'WebUIEdit · Emaki 系列统一网页版编辑器',
-  'core.brand.sigil': 'EP',
+  'core.brand.subtitle': 'Emaki 系列编辑器',
   'core.theme.switchTitle': '切换主题：当前 {theme}',
   'core.theme.switchAria': '当前主题为 {theme}，点击切换',
   'core.tree.caption': '模块树',
@@ -510,7 +509,7 @@ export function getModuleLocaleBundles(moduleId: string): ModuleLocaleBundle[] {
 export function setLocale(locale: string): void {
   const normalized = normalizeLocale(locale);
   currentLocale = normalized || DEFAULT_LOCALE;
-  try { localStorage.setItem('emaki-locale', currentLocale); } catch {}
+  try { localStorage.setItem('emaki-locale', currentLocale); } catch { }
   if (typeof document !== 'undefined') {
     document.documentElement.lang = currentLocale;
     document.documentElement.dir = isRtlLocale(currentLocale) ? 'rtl' : 'ltr';
@@ -562,21 +561,28 @@ function mergeModuleMessages(moduleId: string, locale: string, messages: LocaleM
 }
 
 function persistLocale(locale: string, messages: LocaleMessages): void {
-  try { localStorage.setItem(`${STORAGE_PREFIX}${locale}`, JSON.stringify(messages)); } catch {}
+  try { localStorage.setItem(`${STORAGE_PREFIX}${locale}`, JSON.stringify(messages)); } catch { }
 }
 
 function loadPersistedLocales(): void {
   try {
-    for (let index = 0; index < localStorage.length; index++) {
-      const key = localStorage.key(index);
-      if (!key?.startsWith(STORAGE_PREFIX)) continue;
+    const storageKeys = Array.from({ length: localStorage.length }, (_, index) => localStorage.key(index)).filter((key): key is string => Boolean(key?.startsWith(STORAGE_PREFIX)));
+    for (const key of storageKeys) {
       const locale = key.substring(STORAGE_PREFIX.length);
       const raw = localStorage.getItem(key);
       if (!raw) continue;
       const parsed = JSON.parse(raw) as LocaleMessages;
-      stores.set(locale, { ...(stores.get(locale) ?? {}), ...parsed });
+      const filteredEntries = Object.entries(parsed).filter(([messageKey]) => !isLockedCoreCopyKey(messageKey));
+      const filtered = Object.fromEntries(filteredEntries);
+      if (filteredEntries.length !== Object.keys(parsed).length) {
+        if (filteredEntries.length === 0) localStorage.removeItem(key);
+        else localStorage.setItem(key, JSON.stringify(filtered));
+      }
+      if (filteredEntries.length > 0) {
+        stores.set(locale, { ...(stores.get(locale) ?? {}), ...filtered });
+      }
     }
-  } catch {}
+  } catch { }
 }
 
 function lookup(key: string): string | undefined {
@@ -594,6 +600,14 @@ function localeFallbacks(locale: string): string[] {
   return [...new Set([normalized, language, FALLBACK_LOCALE, DEFAULT_LOCALE])];
 }
 
+function isLockedCoreCopyKey(key: string): boolean {
+  return key.startsWith('core.brand.')
+    || key === 'core.login.kicker'
+    || key === 'core.login.title'
+    || key === 'core.login.description'
+    || key === 'core.stage.defaultTitle';
+}
+
 function interpolate(template: string, params?: TranslationParams): string {
   if (!params) return template;
   return template.replace(/\{([\w.-]+)\}/g, (_, name: string) => {
@@ -606,7 +620,7 @@ function readInitialLocale(): string {
   try {
     const saved = localStorage.getItem('emaki-locale');
     if (saved) return normalizeLocale(saved) || DEFAULT_LOCALE;
-  } catch {}
+  } catch { }
   if (typeof navigator !== 'undefined') return normalizeLocale(navigator.language) || DEFAULT_LOCALE;
   return DEFAULT_LOCALE;
 }

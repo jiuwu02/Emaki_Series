@@ -1229,23 +1229,13 @@ function readTheme(): ColorTheme { const saved = localStorage.getItem('emaki-col
 function localeLabel(locale: string): string { return LOCALE_LABELS[locale] ?? LOCALE_LABELS[locale.replace('-', '_')] ?? LOCALE_LABELS[locale.replace('_', '-')] ?? locale; }
 function EmakiParentMark() {
   return <svg className="emaki-mark" viewBox="0 0 40 40" aria-hidden="true" focusable="false">
-    <rect x="3.5" y="3.5" width="33" height="33" rx="9" fill="none" stroke="currentColor" strokeWidth="1.5" />
-    <text
-      x="20"
-      y="20.5"
-      textAnchor="middle"
-      dominantBaseline="middle"
-      fill="currentColor"
-      fontFamily="Inter, -apple-system, BlinkMacSystemFont, Segoe UI, system-ui, sans-serif"
-      fontSize="13.5"
-      fontWeight="800"
-      letterSpacing="-0.08em"
-    >EP</text>
+    <path d="M12.2 11.8v16.4m0-16.4h8.8m-8.8 6.9h7.4m-7.4 6.6h8.2" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M24.5 11.8h3.4c4.1 0 6.9 2.1 6.9 5.1 0 2.4-1.8 4.2-4.9 4.9l4.2 6.4h-3.7l-3.7-6h-2.2v6h-3.4V11.8Zm3.4 2.9v4.4h3.2c2.1 0 3.6-.8 3.6-2.1 0-1.4-1.5-2.3-3.6-2.3h-3.2Z" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
   </svg>;
 }
 
 function LocaleIcon() {
-  return <svg className="locale-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.6a6.4 6.4 0 1 0 0 12.8A6.4 6.4 0 0 0 8 1.6Zm0 0c1.65 1.6 2.45 3.72 2.4 6.4-.05 2.68-.85 4.8-2.4 6.4M8 1.6C6.35 3.2 5.55 5.32 5.6 8c.05 2.68.85 4.8 2.4 6.4M2.4 8h11.2M3.7 4.8h8.6M3.7 11.2h8.6" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/></svg>;
+  return <svg className="locale-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 1.6a6.4 6.4 0 1 0 0 12.8A6.4 6.4 0 0 0 8 1.6Zm0 0c1.65 1.6 2.45 3.72 2.4 6.4-.05 2.68-.85 4.8-2.4 6.4M8 1.6C6.35 3.2 5.55 5.32 5.6 8c.05 2.68.85 4.8 2.4 6.4M2.4 8h11.2M3.7 4.8h8.6M3.7 11.2h8.6" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" /></svg>;
 }
 
 function ThemeIcon({ theme }: { theme: ColorTheme }) {

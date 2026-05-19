@@ -14,7 +14,7 @@ export class ApiClient {
   private actionTypesCache: ActionTypesResult | null = null;
   private economyProvidersCache: EconomyProvidersResult | null = null;
 
-  constructor(private token: string | null, private onUnauthorized: () => void) {}
+  constructor(private token: string | null, private onUnauthorized: () => void) { }
 
   async reportFrontendError(error: FrontendErrorReport): Promise<void> {
     try {

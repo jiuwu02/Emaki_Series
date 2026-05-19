@@ -92,7 +92,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
   }, [api, module.id, filePath, refreshKey]);
 
   useEffect(() => {
-    api.actionTypes().then(setActionTypesResult).catch(() => {});
+    api.actionTypes().then(setActionTypesResult).catch(() => { });
     api.economyProviders().then(result => setEconomyProviders(mergeOptions(result.providers, DEFAULT_ECONOMY_PROVIDERS))).catch(() => setEconomyProviders(DEFAULT_ECONOMY_PROVIDERS));
   }, [api]);
 
