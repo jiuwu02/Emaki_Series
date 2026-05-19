@@ -317,7 +317,13 @@ export default function App() {
       {i18nTarget && <I18nBundleModal target={i18nTarget} onClose={() => setI18nTarget(null)} onSaved={() => { setLocaleVersion((version) => version + 1); setToast({ tone: 'ok', text: t('core.i18n.saved') }); }} />}
       <ResizableRail>
         <div className="brand-block">
-          <div className="brand-main"><span className="sigil"><EmakiMark /></span><div><strong>{t('core.brand.name')}</strong><small>{t('core.brand.console')}</small></div></div>
+          <div className="brand-main">
+            <span className="brand-mark" aria-hidden="true"><EmakiParentMark /></span>
+            <div className="brand-copy">
+              <strong>{t('core.brand.name')}</strong>
+              <small>{t('core.brand.subtitle')}</small>
+            </div>
+          </div>
           <div className="rail-controls">
             <button type="button" className={`theme-toggle icon-only ${theme}`} onClick={nextTheme} title={t('core.theme.switchTitle', { theme: activeThemeLabel })} aria-label={t('core.theme.switchAria', { theme: activeThemeLabel })}>
               <ThemeIcon key={theme} theme={theme} />
@@ -1221,11 +1227,20 @@ function functionCompletion(label: string, apply: string): Completion { return {
 function sameSelection(a: Selection | null, b: Selection) { return a?.moduleId === b.moduleId && a.fileId === b.fileId && (a.scriptPath ?? '') === (b.scriptPath ?? ''); }
 function readTheme(): ColorTheme { const saved = localStorage.getItem('emaki-color-theme'); return COLOR_THEMES.some((entry) => entry.id === saved) ? saved as ColorTheme : 'dark'; }
 function localeLabel(locale: string): string { return LOCALE_LABELS[locale] ?? LOCALE_LABELS[locale.replace('-', '_')] ?? LOCALE_LABELS[locale.replace('_', '-')] ?? locale; }
-function EmakiMark() {
-  return <svg className="emaki-mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
-    <path d="M7 8.5c2.8-2.7 6-4 9.4-4 3.7 0 6.5 1.3 8.6 3.8-2.5.2-4.7.9-6.5 2.1 2.8.3 5 1.6 6.7 3.9-3.4-.2-6.1.6-8.1 2.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M15.6 7.2c-1.3 4.2-1.7 8-.9 11.5.7 3.2 2.5 5.7 5.3 7.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-    <path d="M8.2 18.3c4.7-.5 9.1-.2 13.2.9M6.2 24.8c5.6-1.4 11.5-1.6 17.6-.6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" opacity=".72"/>
+function EmakiParentMark() {
+  return <svg className="emaki-mark" viewBox="0 0 40 40" aria-hidden="true" focusable="false">
+    <rect x="3.5" y="3.5" width="33" height="33" rx="9" fill="none" stroke="currentColor" strokeWidth="1.5" />
+    <text
+      x="20"
+      y="20.5"
+      textAnchor="middle"
+      dominantBaseline="middle"
+      fill="currentColor"
+      fontFamily="Inter, -apple-system, BlinkMacSystemFont, Segoe UI, system-ui, sans-serif"
+      fontSize="13.5"
+      fontWeight="800"
+      letterSpacing="-0.08em"
+    >EP</text>
   </svg>;
 }
 

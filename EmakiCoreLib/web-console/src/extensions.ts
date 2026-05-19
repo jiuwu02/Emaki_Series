@@ -39,7 +39,7 @@ function loadWebExtension(extension: WebConsoleExtension): Promise<void> {
     };
     script.onerror = () => {
       loading.delete(url);
-      reject(new Error(`Web Console 扩展加载失败: ${extension.id} (${url})`));
+      reject(new Error(`WebUIEdit 扩展加载失败: ${extension.id} (${url})`));
     };
     document.head.appendChild(script);
   });

@@ -28,9 +28,6 @@ export function WorkspaceTree({ registry, selected, expanded, dirtyKeys = new Se
   if (!registry) return <div className="tree-empty" role="status">{t('core.tree.loading')}</div>;
 
   return <>
-    <div className="tree-toolbar">
-      <div className="tree-caption">{t('core.tree.caption')}</div>
-    </div>
     <label className="tree-search">
       <span className="sr-only">{t('core.tree.search')}</span>
       <SearchIcon />

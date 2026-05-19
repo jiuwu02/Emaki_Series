@@ -214,11 +214,12 @@ textarea { min-height: 96px; resize: vertical; font-family: ui-monospace, "Casca
 
 .tree-rail { background: var(--rail); border-right: 1px solid var(--line); padding: 14px 10px; display: flex; flex-direction: column; gap: 12px; min-width: 0; overflow: hidden; position: relative; }
 .brand-block { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 6px 8px 14px; border-bottom: 1px solid var(--line); }
-.brand-main { min-width: 0; display: flex; gap: 10px; align-items: center; }
-.sigil { width: 30px; height: 30px; border-radius: 7px; display: grid; place-items: center; background: var(--text); color: var(--bg); font-weight: 800; box-shadow: inset 0 -1px 0 oklch(72% 0.01 var(--hue)); }
-.emaki-mark { width: 22px; height: 22px; display: block; }
-.brand-block strong { display: block; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.brand-block small { display: block; color: var(--faint); font-size: 11px; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.brand-main { min-width: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: center; }
+.brand-mark { width: 40px; height: 40px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); color: var(--accent-strong); box-shadow: inset 0 1px 0 var(--surface-3); display: grid; place-items: center; flex: none; }
+.brand-mark .emaki-mark { width: 24px; height: 24px; display: block; }
+.brand-copy { min-width: 0; display: grid; gap: 2px; }
+.brand-copy strong { display: block; color: var(--text); font-size: 14px; line-height: 1.2; letter-spacing: -.02em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.brand-copy small { display: -webkit-box; color: var(--faint); font-size: 11px; line-height: 1.35; overflow: hidden; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .rail-controls { display: inline-flex; align-items: center; gap: 6px; }
 .theme-toggle, .locale-toggle { min-height: 28px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 999px; padding: 5px 8px; color: var(--muted); background: var(--surface); font-size: 11px; white-space: nowrap; }
 .theme-toggle.icon-only, .locale-toggle.icon-only { width: 30px; justify-content: center; padding: 0; }
@@ -234,8 +235,6 @@ textarea { min-height: 96px; resize: vertical; font-family: ui-monospace, "Casca
 .locale-toggle.icon-only select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
 .locale-toggle select { width: 66px; border: 0; background: transparent; padding: 0; color: inherit; font-size: 11px; outline: none; }
 @keyframes theme-icon-in { from { opacity: 0; transform: rotate(-18deg) scale(.72); } to { opacity: 1; transform: rotate(0) scale(1); } }
-.tree-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 2px 0 8px; min-height: 26px; }
-.tree-caption { color: var(--faint); font-size: 11px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tree-search { position: relative; display: flex; align-items: center; min-height: 30px; border: 1px solid var(--line); border-radius: 6px; background: var(--input); color: var(--faint); padding: 0 8px; gap: 6px; }
 .tree-search:focus-within { border-color: var(--line-2); color: var(--accent); outline: 1px solid var(--accent-soft); outline-offset: 1px; }
 .tree-search svg { width: 14px; height: 14px; flex: 0 0 auto; }
