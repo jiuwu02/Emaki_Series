@@ -439,7 +439,7 @@ public final class WokRuntimeService {
             return Map.of("item_sources", List.of(settingsService.wokInvalidResultSource()), "amount", 1);
         }
         if (Texts.isNotBlank(settingsService.wokFailureOutputSource())) {
-            return Map.of("source", settingsService.wokFailureOutputSource(), "amount", 1);
+            return Map.of("item_sources", List.of(settingsService.wokFailureOutputSource()), "amount", 1);
         }
         return Map.of();
     }
