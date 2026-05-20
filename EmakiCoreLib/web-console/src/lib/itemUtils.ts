@@ -17,7 +17,27 @@ export function asList(value: unknown): unknown[] {
 }
 
 export function asStringList(value: unknown): string[] {
-  return asList(value).map((entry) => String(entry));
+  return asList(value).flatMap(stringListEntry).filter(entry => entry !== '');
+}
+
+function stringListEntry(value: unknown): string[] {
+  if (Array.isArray(value)) return value.flatMap(stringListEntry);
+  if (typeof value === 'string') return [value];
+  if (value == null) return [];
+  if (typeof value === 'number' || typeof value === 'boolean') return [String(value)];
+  if (typeof value === 'object') {
+    const record = value as Record<string, unknown>;
+    for (const key of ['text', 'value', 'content', 'line', 'display_name', 'display']) {
+      const nested = record[key];
+      if (typeof nested === 'string' || typeof nested === 'number' || typeof nested === 'boolean') return [String(nested)];
+    }
+    try {
+      return [JSON.stringify(value)];
+    } catch {
+      return [];
+    }
+  }
+  return [String(value)];
 }
 
 export function setDeepValue(source: AnyMap, path: string[], value: unknown): AnyMap {

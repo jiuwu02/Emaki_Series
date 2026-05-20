@@ -3,9 +3,9 @@ import type { ApiClient } from './api';
 import { getSourceDocumentAdapter, type SurfaceToolbarState } from './registry';
 import type { GuiSlotDefinition, GuiTemplateData, WebRegistryFile, WebRegistryModule } from './types';
 import { buildOccupancy, clampRows, fieldLabel, guiColumns, guiField, guiSlotCount, guiTypeOptions, loreLines, materialShortName, materialUrls, normalizeGuiType, parseSlotList, parseYaml, renderMiniMessageParts, serializeGuiYaml, subscribeTextureBases, supportsRows, textValue } from './guiEditor';
-import { fileDisplayTitle } from './lib';
+import { fileDisplayTitle, humanizeFieldLabel } from './lib';
 import { Button, EditorChrome, InlineError, InspectorSection, ToastNotice, ToggleChip } from './components';
-import { t } from './i18n';
+import { getLocale, t } from './i18n';
 import { diffRecords } from './lib';
 import { MATERIAL_CATEGORIES, MINECRAFT_MATERIAL_VERSION, type MaterialCategory, materialCategory, searchMaterials } from './minecraftMaterials';
 
@@ -335,6 +335,7 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
       dirty,
       changes,
       source: draftText,
+      sourceOriginal: originalText,
       sourceEditable: true,
       sourceError,
       sourceLanguage: 'yaml',
@@ -501,7 +502,7 @@ function OverlaySlotInspector({ cell, visibleKey, onVisibilityChange, editor, up
 
 function GuiLabel({ editor, path, fallback, children }: { editor?: import('./types').WebEditorDescriptor; path: string; fallback: string; children: React.ReactNode }) {
   const field = guiField(editor, path, fallback);
-  const label = fieldLabel(path, { moduleId: editor?.moduleId, namespace: editor?.moduleId, editorFields: editor?.fields, fallback: field.label });
+  const label = fieldLabel(path, { moduleId: editor?.moduleId, namespace: editor?.moduleId, editorFields: editor?.fields, fallback: getLocale().startsWith('zh') ? field.label : humanizeFieldLabel(path) });
   return <label className="gui-prop-row" title={field.comment ? `${field.path}\n${field.comment}` : field.path}>
     <span className="gui-prop-label">{label}</span>
     <span className="gui-prop-value">{children}</span>
@@ -558,7 +559,7 @@ const HIDDEN_COMPONENTS = ['tooltip', 'enchantments', 'attributes', 'unbreakable
 function HiddenComponentsEditor({ slot, onChange }: { slot: GuiSlotDefinition; onChange: (patch: Partial<GuiSlotDefinition>) => void }) {
   const list = Array.isArray(slot.hidden_components) ? slot.hidden_components.map(String) : [];
   const toggle = (entry: string) => onChange({ hidden_components: list.includes(entry) ? list.filter((item) => item !== entry) : [...list, entry] });
-  return <div className="sub-editor"><div className="sub-editor-head"><span>hidden_components</span><label className="inline-switch"><input type="checkbox" checked={slot.hide_tooltip === true || slot['hide-tooltip'] === true} onChange={(e) => onChange({ hide_tooltip: e.target.checked || undefined })} /> 隐藏 Tooltip</label></div><div className="chip-list">{HIDDEN_COMPONENTS.map((entry) => <ToggleChip key={entry} active={list.includes(entry)} onClick={() => toggle(entry)}>{entry}</ToggleChip>)}</div></div>;
+  return <div className="sub-editor"><div className="sub-editor-head"><span>hidden_components</span><label className="inline-switch"><input type="checkbox" checked={slot.hide_tooltip === true || slot['hide-tooltip'] === true} onChange={(e) => onChange({ hide_tooltip: e.target.checked || undefined })} /> {getLocale().startsWith('zh') ? '隐藏 Tooltip' : 'Hide Tooltip'}</label></div><div className="chip-list">{HIDDEN_COMPONENTS.map((entry) => <ToggleChip key={entry} active={list.includes(entry)} onClick={() => toggle(entry)}>{entry}</ToggleChip>)}</div></div>;
 }
 
 const SOUND_KEYS = ['click', 'left_click', 'right_click'] as const;

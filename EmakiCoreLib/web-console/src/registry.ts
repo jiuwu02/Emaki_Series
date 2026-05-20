@@ -39,6 +39,7 @@ export type SurfaceToolbarState = {
   changes?: EditorChange[];
   changedCount?: number;
   source?: string;
+  sourceOriginal?: string;
   sourceEditable?: boolean;
   sourceError?: string | null;
   sourceLanguage?: string;

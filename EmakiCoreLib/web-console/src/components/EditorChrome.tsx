@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { forwardRef, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { t } from '../i18n';
 import { CodeEditor } from './CodeEditor';
 import { ActionGroup } from './ActionGroup';
@@ -19,6 +19,7 @@ export type EditorChromeProps = {
   changes?: EditorChange[];
   changedCount?: number;
   source?: string;
+  sourceOriginal?: string;
   sourceEditable?: boolean;
   sourceError?: string | null;
   sourceLanguage?: string;
@@ -45,6 +46,7 @@ export function EditorChrome({
   changes = [],
   changedCount,
   source = '',
+  sourceOriginal,
   sourceEditable,
   sourceError,
   sourceLanguage,
@@ -65,17 +67,21 @@ export function EditorChrome({
 }: EditorChromeProps) {
   const [sourceOpen, setSourceOpen] = useState(false);
   const [reloadOpen, setReloadOpen] = useState(false);
+  const [saveOpen, setSaveOpen] = useState(false);
   const [changesOpen, setChangesOpen] = useState(false);
   const count = changedCount ?? changes.length;
-  const hasTrackedChanges = count > 0;
+  const sourceChanged = sourceOriginal !== undefined && sourceOriginal !== source;
+  const fieldChangeCount = changes.length ? count : 0;
+  const sourceDirtyOnly = dirty && changes.length === 0 && (sourceChanged || count > 0);
+  const hasTrackedChanges = fieldChangeCount > 0 || sourceDirtyOnly;
   const canSave = Boolean(onSave) && dirty && !saving && !loading;
-  const sourceDirtyOnly = dirty && !hasTrackedChanges;
-  const finalSaveLabel = saveLabel ?? (hasTrackedChanges ? t('core.action.saveCount', { count }) : sourceDirtyOnly ? t('core.action.saveSource') : t('core.action.save'));
+  const finalSaveLabel = saveLabel ?? (fieldChangeCount > 0 ? t('core.action.saveCount', { count: fieldChangeCount }, 'Save {count} changes') : sourceDirtyOnly ? t('core.action.saveSource', undefined, 'Save source') : t('core.action.save', undefined, 'Save'));
 
   const previewChanges = useMemo(() => changes.slice(0, 12), [changes]);
 
   function requestReload() {
     if (!onReload || loading || saving) return;
+    setSourceOpen(false);
     if (dirty) setReloadOpen(true);
     else onReload();
   }
@@ -85,38 +91,51 @@ export function EditorChrome({
     onReload?.();
   }
 
+  function requestSave() {
+    if (!canSave) return;
+    setSourceOpen(false);
+    setSaveOpen(true);
+  }
+
+  function confirmSave() {
+    setSaveOpen(false);
+    onSave?.();
+  }
+
   return <>
     <div className={`editor-chrome ${className}`.trim()}>
       <div className="editor-chrome-title">
         <h2>{title}</h2>
-        {subtitle && <p>{subtitle}{dirty && <span className="dirty-inline">{t('core.item.unsaved')}</span>}</p>}
+        {subtitle && <p>{subtitle}{dirty && <span className="dirty-inline">{t('core.item.unsaved', undefined, 'Unsaved')}</span>}</p>}
       </div>
-      <ActionGroup className="editor-chrome-actions" role="toolbar" aria-label={t('core.editor.toolbarAria')}>
+      <ActionGroup className="editor-chrome-actions" role="toolbar" aria-label={t('core.editor.toolbarAria', undefined, 'Editor actions')}>
         {children}
-        {onUndo && <Button size="sm" onClick={onUndo} disabled={!canUndo || saving || loading} title={t('core.editor.undoHint')}>{t('core.editor.undo')}</Button>}
-        {onRedo && <Button size="sm" onClick={onRedo} disabled={!canRedo || saving || loading} title={t('core.editor.redoHint')}>{t('core.editor.redo')}</Button>}
-        <Button size="sm" onClick={() => setSourceOpen(true)} disabled={!source}>{sourceLabel ?? t('core.item.source')}</Button>
-        {onReload && <Button size="sm" onClick={requestReload} disabled={loading || saving}>{reloadLabel ?? t('core.gui.reload')}</Button>}
+        {onUndo && <Button size="sm" onClick={onUndo} disabled={!canUndo || saving || loading} title={t('core.editor.undoHint', undefined, 'Undo last change')}>{t('core.editor.undo')}</Button>}
+        {onRedo && <Button size="sm" onClick={onRedo} disabled={!canRedo || saving || loading} title={t('core.editor.redoHint', undefined, 'Redo last change')}>{t('core.editor.redo')}</Button>}
+        <Button size="sm" onClick={() => setSourceOpen(true)} disabled={!source}>{sourceLabel ?? t('core.item.source', undefined, 'Source')}</Button>
+        {onReload && <Button size="sm" onClick={requestReload} disabled={loading || saving}>{reloadLabel ?? t('core.gui.reload', undefined, 'Reload')}</Button>}
         <span className="editor-save-wrap" onMouseEnter={() => setChangesOpen(true)} onMouseLeave={() => setChangesOpen(false)} onFocus={() => setChangesOpen(true)} onBlur={() => setChangesOpen(false)}>
-          <Button size="sm" variant="primary" ready={dirty && hasTrackedChanges} onClick={onSave} disabled={!canSave}>{saving ? t('core.script.saving') : finalSaveLabel}</Button>
-          {dirty && hasTrackedChanges && changesOpen && <ChangePopover changes={previewChanges} count={count} />}
+          <Button size="sm" variant="primary" ready={dirty && hasTrackedChanges} onClick={requestSave} disabled={!canSave}>{saving ? t('core.script.saving', undefined, 'Saving...') : finalSaveLabel}</Button>
+          {dirty && hasTrackedChanges && changesOpen && <ChangePopover changes={previewChanges} count={fieldChangeCount || count} source={source} sourceOriginal={sourceOriginal} />}
         </span>
       </ActionGroup>
     </div>
-    {sourceOpen && <SourceModal source={source} editable={sourceEditable ?? Boolean(onSourceChange)} error={sourceError} language={sourceLanguage} onChange={onSourceChange} onSave={onSave} onClose={() => setSourceOpen(false)} />}
-    {reloadOpen && <ReloadModal changes={previewChanges} count={count} onCancel={() => setReloadOpen(false)} onConfirm={confirmReload} />}
+    {sourceOpen && <SourceModal source={source} editable={sourceEditable ?? Boolean(onSourceChange)} error={sourceError} language={sourceLanguage} onChange={onSourceChange} onSave={requestSave} onClose={() => setSourceOpen(false)} />}
+    {saveOpen && <SaveModal changes={previewChanges} count={fieldChangeCount || count} source={source} sourceOriginal={sourceOriginal} onCancel={() => setSaveOpen(false)} onConfirm={confirmSave} />}
+    {reloadOpen && <ReloadModal changes={previewChanges} count={fieldChangeCount || count} source={source} sourceOriginal={sourceOriginal} onCancel={() => setReloadOpen(false)} onConfirm={confirmReload} />}
   </>;
 }
 
-function ChangePopover({ changes, count }: { changes: EditorChange[]; count: number }) {
+function ChangePopover({ changes, count, source, sourceOriginal }: { changes: EditorChange[]; count: number; source?: string; sourceOriginal?: string }) {
   return <div className="editor-change-popover" role="status">
-    <strong>{t('core.editor.changesTitle', { count })}</strong>
-    <ChangeList changes={changes} count={count} />
+    <strong>{changes.length ? t('core.editor.changesTitle', { count }, 'Changes ({count})') : t('core.editor.sourceDiffTitle')}</strong>
+    <ChangeList changes={changes} count={count} source={source} sourceOriginal={sourceOriginal} />
   </div>;
 }
 
-function ChangeList({ changes, count }: { changes: EditorChange[]; count: number }) {
-  return changes.length ? <>
+function ChangeList({ changes, count, source, sourceOriginal }: { changes: EditorChange[]; count: number; source?: string; sourceOriginal?: string }) {
+  if (!changes.length) return <SourceDiff before={sourceOriginal ?? ''} after={source ?? ''} compact />;
+  return <>
     <div className="editor-change-list">
       {changes.map(change => <div className="editor-change-row" key={change.path}>
         <code>{change.path}</code>
@@ -127,8 +146,8 @@ function ChangeList({ changes, count }: { changes: EditorChange[]; count: number
         </div>
       </div>)}
     </div>
-    {count > changes.length && <p>{t('core.editor.changesMore', { count: count - changes.length })}</p>}
-  </> : <p>{t('core.editor.changedSource')}</p>;
+    {count > changes.length && <p>{t('core.editor.changesMore', { count: count - changes.length }, 'Another {count} changes are hidden.')}</p>}
+  </>;
 }
 
 function SourceModal({ source, editable, error, language, onChange, onSave, onClose }: { source: string; editable?: boolean; error?: string | null; language?: string; onChange?: (source: string) => void; onSave?: () => void; onClose: () => void }) {
@@ -153,15 +172,15 @@ function SourceModal({ source, editable, error, language, onChange, onSave, onCl
   return <div className="editor-modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) onClose(); }}>
     <section ref={dialogRef} className="editor-source-modal" role="dialog" aria-modal="true" aria-labelledby="editor-source-title" tabIndex={-1}>
       <header className="editor-modal-head">
-        <div><span>{t('core.editor.sourceKicker')}</span><h3 id="editor-source-title">{t('core.editor.sourceTitle')}</h3></div>
-        <Button size="sm" onClick={onClose}>{t('core.i18n.close')}</Button>
+        <div><span>{t('core.editor.sourceKicker', undefined, 'Source')}</span><h3 id="editor-source-title">{t('core.editor.sourceTitle', undefined, 'Source editor')}</h3></div>
+        <Button size="sm" onClick={onClose}>{t('core.i18n.close', undefined, 'Close')}</Button>
       </header>
       <CodeEditor
         className="source-code-editor"
         value={localSource}
         language={language}
         readOnly={!editable}
-        ariaLabel={t('core.editor.sourceTitle')}
+        ariaLabel={t('core.editor.sourceTitle', undefined, 'Source editor')}
         onChange={handleInput}
         onSave={onSave}
         onTab={handleTab}
@@ -171,28 +190,146 @@ function SourceModal({ source, editable, error, language, onChange, onSave, onCl
   </div>;
 }
 
-function ReloadModal({ changes, count, onCancel, onConfirm }: { changes: EditorChange[]; count: number; onCancel: () => void; onConfirm: () => void }) {
+function SaveModal({ changes, count, source, sourceOriginal, onCancel, onConfirm }: { changes: EditorChange[]; count: number; source?: string; sourceOriginal?: string; onCancel: () => void; onConfirm: () => void }) {
   const dialogRef = useRef<HTMLElement | null>(null);
   useDialogFocus(dialogRef, onCancel);
+  return <DiffDecisionModal
+    ref={dialogRef}
+    titleId="editor-save-title"
+    descId="editor-save-desc"
+    kicker={t('core.gui.unsavedChanges')}
+    title={t('core.editor.saveTitle')}
+    desc={t('core.editor.saveDesc')}
+    changes={changes}
+    count={count}
+    source={source}
+    sourceOriginal={sourceOriginal}
+    confirmLabel={t('core.editor.saveConfirm')}
+    confirmVariant="primary"
+    onCancel={onCancel}
+    onConfirm={onConfirm}
+  />;
+}
+
+function ReloadModal({ changes, count, source, sourceOriginal, onCancel, onConfirm }: { changes: EditorChange[]; count: number; source?: string; sourceOriginal?: string; onCancel: () => void; onConfirm: () => void }) {
+  const dialogRef = useRef<HTMLElement | null>(null);
+  useDialogFocus(dialogRef, onCancel);
+  return <DiffDecisionModal
+    ref={dialogRef}
+    titleId="editor-reload-title"
+    descId="editor-reload-desc"
+    kicker={t('core.gui.unsavedChanges')}
+    title={t('core.gui.reloadDropsChanges')}
+    desc={t('core.editor.reloadDesc')}
+    changes={changes}
+    count={count}
+    source={source}
+    sourceOriginal={sourceOriginal}
+    confirmLabel={t('core.gui.continueReload')}
+    confirmVariant="danger"
+    onCancel={onCancel}
+    onConfirm={onConfirm}
+  />;
+}
+
+const DiffDecisionModal = forwardRef<HTMLElement, { titleId: string; descId: string; kicker: string; title: string; desc: string; changes: EditorChange[]; count: number; source?: string; sourceOriginal?: string; confirmLabel: string; confirmVariant: 'primary' | 'danger'; onCancel: () => void; onConfirm: () => void }>(function DiffDecisionModal({ titleId, descId, kicker, title, desc, changes, count, source, sourceOriginal, confirmLabel, confirmVariant, onCancel, onConfirm }, dialogRef) {
   return <div className="editor-modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) onCancel(); }}>
-    <section ref={dialogRef} className="reload-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="editor-reload-title" aria-describedby="editor-reload-desc" tabIndex={-1}>
-      <div className="reload-confirm-head">
-        <span>{t('core.gui.unsavedChanges')}</span>
-        <h3 id="editor-reload-title">{t('core.gui.reloadDropsChanges')}</h3>
+    <section ref={dialogRef} className="reload-confirm-dialog diff-dialog" role="dialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={descId} tabIndex={-1}>
+      <div className="reload-confirm-head diff-dialog-head">
+        <span>{kicker}</span>
+        <h3 id={titleId}>{title}</h3>
       </div>
-      <div className="reload-confirm-body">
-        <p id="editor-reload-desc">{t('core.editor.reloadDesc')}</p>
-        {count > 0 && <div className="reload-change-summary" aria-label={t('core.editor.reloadChangesAria', { count })}>
-          <strong>{t('core.editor.changesTitle', { count })}</strong>
-          <ChangeList changes={changes} count={count} />
-        </div>}
+      <div className="reload-confirm-body diff-dialog-body">
+        <p id={descId}>{desc}</p>
+        <div className="reload-change-summary" aria-label={t('core.editor.reloadChangesAria', { count })}>
+          <strong>{changes.length ? t('core.editor.changesTitle', { count }, 'Changes ({count})') : t('core.editor.sourceDiffTitle')}</strong>
+          <ChangeList changes={changes} count={count} source={source} sourceOriginal={sourceOriginal} />
+        </div>
       </div>
-      <ActionGroup className="reload-confirm-actions">
+      <ActionGroup className="reload-confirm-actions diff-dialog-actions">
         <Button onClick={onCancel} autoFocus>{t('core.gui.cancel')}</Button>
-        <Button variant="danger" onClick={onConfirm}>{t('core.gui.continueReload')}</Button>
+        <Button variant={confirmVariant} onClick={onConfirm}>{confirmLabel}</Button>
       </ActionGroup>
     </section>
   </div>;
+});
+
+function SourceDiff({ before, after, compact = false }: { before: string; after: string; compact?: boolean }) {
+  const diff = useMemo(() => buildLineDiff(before, after), [before, after]);
+  const visible = compact ? diff.lines.slice(0, 24) : diff.lines.slice(0, 120);
+  const omitted = Math.max(0, diff.lines.length - visible.length);
+  if (!diff.changed) return <p>{t('core.editor.sourceDiffEmpty')}</p>;
+  return <div className={`source-diff ${compact ? 'compact' : ''}`} role="list" aria-label={t('core.editor.sourceDiffTitle')}>
+    {visible.map((line, index) => <div className={`source-diff-line ${line.type}`} key={`${line.type}-${line.beforeLine ?? ''}-${line.afterLine ?? ''}-${index}`} role="listitem">
+      <code className="source-diff-no">{line.type === 'add' ? line.afterLine : line.beforeLine}</code>
+      <code className="source-diff-sign">{line.type === 'add' ? '+' : line.type === 'remove' ? '−' : ' '}</code>
+      <code className="source-diff-text">{line.text || ' '}</code>
+    </div>)}
+    {omitted > 0 && <p className="source-diff-more">{t('core.editor.sourceDiffMore', { count: omitted })}</p>}
+  </div>;
+}
+
+type DiffLine = { type: 'context' | 'add' | 'remove'; text: string; beforeLine?: number; afterLine?: number };
+
+function buildLineDiff(before: string, after: string): { changed: boolean; lines: DiffLine[] } {
+  if (before === after) return { changed: false, lines: [] };
+  const beforeLines = before.split('\n');
+  const afterLines = after.split('\n');
+  if (beforeLines.length * afterLines.length > 12000) return buildCompactLineDiff(beforeLines, afterLines);
+  const table = Array.from({ length: beforeLines.length + 1 }, () => Array(afterLines.length + 1).fill(0));
+  for (let i = beforeLines.length - 1; i >= 0; i--) {
+    for (let j = afterLines.length - 1; j >= 0; j--) {
+      table[i][j] = beforeLines[i] === afterLines[j] ? table[i + 1][j + 1] + 1 : Math.max(table[i + 1][j], table[i][j + 1]);
+    }
+  }
+  const lines: DiffLine[] = [];
+  let i = 0;
+  let j = 0;
+  while (i < beforeLines.length && j < afterLines.length) {
+    if (beforeLines[i] === afterLines[j]) {
+      pushContext(lines, { type: 'context', text: beforeLines[i], beforeLine: i + 1, afterLine: j + 1 });
+      i++;
+      j++;
+    } else if (table[i + 1][j] >= table[i][j + 1]) {
+      lines.push({ type: 'remove', text: beforeLines[i], beforeLine: i + 1 });
+      i++;
+    } else {
+      lines.push({ type: 'add', text: afterLines[j], afterLine: j + 1 });
+      j++;
+    }
+  }
+  while (i < beforeLines.length) lines.push({ type: 'remove', text: beforeLines[i], beforeLine: ++i });
+  while (j < afterLines.length) lines.push({ type: 'add', text: afterLines[j], afterLine: ++j });
+  return { changed: true, lines };
+}
+
+function buildCompactLineDiff(beforeLines: string[], afterLines: string[]): { changed: boolean; lines: DiffLine[] } {
+  let start = 0;
+  while (start < beforeLines.length && start < afterLines.length && beforeLines[start] === afterLines[start]) start++;
+  let beforeEnd = beforeLines.length - 1;
+  let afterEnd = afterLines.length - 1;
+  while (beforeEnd >= start && afterEnd >= start && beforeLines[beforeEnd] === afterLines[afterEnd]) {
+    beforeEnd--;
+    afterEnd--;
+  }
+  const lines: DiffLine[] = [];
+  for (let i = Math.max(0, start - 3); i < start; i++) lines.push({ type: 'context', text: beforeLines[i], beforeLine: i + 1, afterLine: i + 1 });
+  for (let i = start; i <= beforeEnd; i++) lines.push({ type: 'remove', text: beforeLines[i], beforeLine: i + 1 });
+  for (let i = start; i <= afterEnd; i++) lines.push({ type: 'add', text: afterLines[i], afterLine: i + 1 });
+  for (let i = beforeEnd + 1; i <= Math.min(beforeLines.length - 1, beforeEnd + 3); i++) {
+    const afterLine = afterEnd + 1 + (i - beforeEnd - 1);
+    lines.push({ type: 'context', text: beforeLines[i], beforeLine: i + 1, afterLine: afterLine + 1 });
+  }
+  return { changed: true, lines };
+}
+
+function pushContext(lines: DiffLine[], line: DiffLine) {
+  const previous = lines[lines.length - 1];
+  if (previous?.type === 'context') {
+    const contextRun = lines.slice(Math.max(0, lines.length - 3)).filter(entry => entry.type === 'context').length;
+    if (contextRun >= 3) return;
+  }
+  lines.push(line);
 }
 
 function formatChangeValue(value: unknown): string {

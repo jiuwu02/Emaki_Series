@@ -2,6 +2,7 @@
  * GUI template data utilities.
  */
 import type { GuiSlotDefinition, GuiTemplateData, WebEditorDescriptor, WebEditorField } from '../types';
+import { getLocale } from '../i18n';
 import { serializeYaml } from './yaml';
 
 export type SlotOccupancy = {
@@ -147,7 +148,7 @@ export function buildOccupancy(data: GuiTemplateData): SlotOccupancy[] {
 export function loreLines(value: unknown): string[] {
   if (Array.isArray(value)) return value.map((entry) => String(entry));
   if (typeof value === 'string') return value ? [value] : [];
-  if (value && typeof value === 'object') return ['<dark_gray>复杂 Lore 配置，请在源码中编辑</dark_gray>'];
+  if (value && typeof value === 'object') return [getLocale().startsWith('zh') ? '<dark_gray>复杂 Lore 配置，请在源码中编辑</dark_gray>' : '<dark_gray>Complex lore config. Edit it in source mode.</dark_gray>'];
   return [];
 }
 

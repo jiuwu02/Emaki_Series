@@ -1288,6 +1288,78 @@ textarea {
   color: var(--diff-add-text);
 }
 
+.source-diff {
+  display: grid;
+  max-height: 320px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--code-gutter);
+  font-family: ui-monospace, "Cascadia Code", monospace;
+  font-size: 11px;
+}
+
+.source-diff.compact {
+  max-height: 220px;
+  font-size: 10px;
+}
+
+.source-diff-line {
+  display: grid;
+  grid-template-columns: 46px 18px minmax(0, 1fr);
+  min-width: 0;
+  border-bottom: 1px solid color-mix(in oklch, var(--line) 65%, transparent);
+}
+
+.source-diff-line:last-child {
+  border-bottom: 0;
+}
+
+.source-diff-line.add {
+  background: var(--diff-add-bg);
+  color: var(--diff-add-text);
+}
+
+.source-diff-line.remove {
+  background: var(--diff-remove-bg);
+  color: var(--diff-remove-text);
+}
+
+.source-diff-line.context {
+  color: var(--faint);
+}
+
+.source-diff-no,
+.source-diff-sign,
+.source-diff-text {
+  min-width: 0;
+  padding: 2px 6px;
+  color: inherit;
+  font-size: inherit;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.source-diff-no,
+.source-diff-sign {
+  color: var(--faint);
+  text-align: right;
+  background: color-mix(in oklch, var(--input) 70%, transparent);
+  user-select: none;
+}
+
+.source-diff-text {
+  text-align: left;
+}
+
+.source-diff-more {
+  margin: 0;
+  padding: 6px 8px;
+  color: var(--faint);
+  background: var(--input);
+  font-size: 11px;
+}
+
 .editor-modal-backdrop {
   position: fixed;
   inset: 0;
@@ -1560,6 +1632,19 @@ textarea {
   color: var(--text);
 }
 
+.node-section-header.changed strong,
+.node-section-header.changed code,
+.node-section-header.changed .section-comment {
+  color: var(--changed-ink);
+}
+
+.node-section-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
 .node-section-toggle {
   min-width: 0;
   flex: 1;
@@ -1636,6 +1721,27 @@ textarea {
 .node-section-create:focus-visible {
   border-color: var(--accent);
   background: var(--accent-soft);
+  outline: none;
+}
+
+.node-section-delete {
+  flex: 0 0 auto;
+  border: 1px solid var(--danger-line);
+  border-radius: 4px;
+  padding: 3px 7px;
+  color: var(--red);
+  background: var(--danger-soft);
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.node-section-delete:hover,
+.node-section-delete:focus-visible {
+  border-color: var(--red);
+  color: var(--danger-ink);
+  background: var(--danger-hover);
   outline: none;
 }
 
@@ -2245,6 +2351,7 @@ textarea {
 .file-action-dialog,
 .config-create-dialog {
   width: min(430px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
   border: 1px solid var(--line-2);
   border-radius: 10px;
   background: var(--surface);
@@ -2255,6 +2362,22 @@ textarea {
 
 .config-create-dialog {
   width: min(560px, calc(100vw - 32px));
+}
+
+.diff-dialog {
+  width: min(520px, calc(100vw - 32px));
+}
+
+.diff-dialog-body {
+  gap: 8px;
+}
+
+.diff-dialog .reload-change-summary {
+  max-height: 260px;
+}
+
+.diff-dialog-actions {
+  padding-top: 10px;
 }
 
 .config-create-body {

@@ -1,8 +1,10 @@
-import { registerConfigCreateTemplate, registerConfigNodeMeta, registerConfigNodeRule, registerModuleLocale, registerPluginGuiEditor } from 'emaki-web-console';
+import { getLocale, registerConfigCreateTemplate, registerConfigNodeMeta, registerConfigNodeRule, registerModuleLocale, registerPluginGuiEditor } from 'emaki-web-console';
 
 const MODULE = 'EmakiForge';
 
 type FieldSpec = [path: string, label: string, comment: string, type: string, extra?: Record<string, unknown>];
+
+const copy = (zh: string, en: string) => getLocale().startsWith('zh') ? zh : en;
 
 const fields: FieldSpec[] = [
   ['quality', '品质设置', '锻造结果的品质池、随机回退、保底与品质写入物品显示的全局设置。', 'object'],
@@ -80,7 +82,7 @@ Object.entries(ruleFields).forEach(([key, [label, comment, type]]) => registerCo
 
 registerConfigCreateTemplate(MODULE, 'quality.item_meta.tiers', {
   id: 'quality-tier-display',
-  label: '品质显示规则',
+  label: copy('品质显示规则', 'Quality display rule'),
   fields: [
     { path: 'name_actions', label: '名称动作链', comment: '给该品质物品名称追加前缀、后缀或执行替换动作。', type: 'list', defaultValue: ['action: "prepend_prefix"', 'value: "<gray>[新品质] </gray>"'] },
     { path: 'lore_actions', label: 'Lore 动作链', comment: '给该品质物品 Lore 执行的动作列表。', type: 'list', defaultValue: [] },
@@ -91,7 +93,7 @@ registerConfigCreateTemplate(MODULE, 'quality.item_meta.tiers', {
 registerPluginGuiEditor({
   moduleId: MODULE,
   editorId: 'emakiforge:gui',
-  label: '锻造 GUI',
+  label: copy('锻造 GUI', 'Forge GUI'),
   fields: [
     ['type', '槽位类型', '锻造业务槽位语义。', 'text'],
     ['hidden_components', '隐藏组件', '隐藏原版组件。', 'stringList'],

@@ -1,5 +1,5 @@
-import { t } from '../i18n';
-import { lastPathKey } from './fieldI18n';
+import { getLocale, getLocaleMessages, t } from '../i18n';
+import { humanizeFieldLabel, lastPathKey } from './fieldI18n';
 import type { RegistryTreeNode, WebRegistryFile, WebRegistryModule } from '../types';
 
 export function moduleRegistryNamespace(moduleId: string | undefined): string {
@@ -75,9 +75,31 @@ export function configNodeDisplayComment(moduleId: string | undefined, path: str
     `core.comment.${exactPath}`,
     `core.comment.${last}`
   ].filter(Boolean) as string[];
+  const currentValue = lookupCurrentLocale(keys);
+  if (currentValue) return currentValue;
+  if (!getLocale().toLowerCase().startsWith('zh')) return englishCommentFallback(exactPath, fallback);
   for (const key of keys) {
     const value = t(key, undefined, '');
     if (value) return value;
   }
   return fallback;
+}
+
+function lookupCurrentLocale(keys: string[]): string | undefined {
+  const locale = getLocale();
+  const language = locale.split('-')[0];
+  const messages = [getLocaleMessages(locale), language && language !== locale ? getLocaleMessages(language) : undefined].filter(Boolean) as Record<string, string>[];
+  for (const key of keys) {
+    for (const bundle of messages) {
+      const value = bundle[key];
+      if (value) return value;
+    }
+  }
+  return undefined;
+}
+
+function englishCommentFallback(path: string, fallback: string): string {
+  if (fallback && !/[^\u0000-\u00ff]/.test(fallback)) return fallback;
+  const label = humanizeFieldLabel(path);
+  return label ? `Configure ${label}.` : '';
 }

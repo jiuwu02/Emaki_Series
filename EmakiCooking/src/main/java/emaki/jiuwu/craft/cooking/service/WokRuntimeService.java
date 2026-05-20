@@ -436,7 +436,7 @@ public final class WokRuntimeService {
             return configured;
         }
         if (Texts.isNotBlank(settingsService.wokInvalidResultSource())) {
-            return Map.of("source", settingsService.wokInvalidResultSource(), "amount", 1);
+            return Map.of("item_sources", List.of(settingsService.wokInvalidResultSource()), "amount", 1);
         }
         if (Texts.isNotBlank(settingsService.wokFailureOutputSource())) {
             return Map.of("source", settingsService.wokFailureOutputSource(), "amount", 1);
@@ -458,7 +458,7 @@ public final class WokRuntimeService {
                 player,
                 block.getLocation().add(0.5D, 1.0D, 0.5D),
                 dropResult,
-                List.of(Map.of("source", source, "amount", 1)),
+                List.of(Map.of("item_sources", List.of(source), "amount", 1)),
                 List.of(),
                 phase,
                 Map.of("station_type", StationType.WOK.folderName())

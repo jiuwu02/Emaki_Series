@@ -1,8 +1,10 @@
-import { registerConfigNodeMeta, registerConfigNodeRule, registerModuleLocale, registerPluginGuiEditor } from 'emaki-web-console';
+import { getLocale, registerConfigNodeMeta, registerConfigNodeRule, registerModuleLocale, registerPluginGuiEditor } from 'emaki-web-console';
 
 const MODULE = 'EmakiSkills';
 
 type FieldSpec = [path: string, label: string, comment: string, type: string, extra?: Record<string, unknown>];
+
+const copy = (zh: string, en: string) => getLocale().startsWith('zh') ? zh : en;
 
 const fields: FieldSpec[] = [
   ['slots', '技能槽位', '玩家主动技能槽位数量与默认分配。', 'object'],
@@ -85,7 +87,7 @@ Object.entries(triggerFields).forEach(([key, [label, comment, type]]) => registe
 registerPluginGuiEditor({
   moduleId: MODULE,
   editorId: 'emakiskills:gui',
-  label: '技能 GUI',
+  label: copy('技能 GUI', 'Skills GUI'),
   fields: [
     ['type', '槽位类型', '技能业务槽位语义。', 'text'],
     ['active_slot', '主动技能槽位', '玩家主动技能槽位。', 'text'],

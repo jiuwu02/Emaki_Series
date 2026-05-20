@@ -1,5 +1,5 @@
 import type { WebEditorField } from '../types';
-import { t } from '../i18n';
+import { getLocale, getLocaleMessages, t } from '../i18n';
 
 export type FieldLabelOptions = {
   moduleId?: string;
@@ -32,6 +32,11 @@ export function fieldLabel(path: string, options: FieldLabelOptions = {}): strin
     `core.field.${last}`
   ].filter(Boolean) as string[];
 
+  const currentValue = lookupCurrentLocale(keys);
+  if (currentValue) return currentValue;
+
+  if (!isZhLocale()) return englishFallback(exactPath, options.fallback);
+
   for (const key of keys) {
     const value = t(key, undefined, '');
     if (value) return value;
@@ -56,11 +61,36 @@ export function optionLabel(prefix: string, value: string, options: OptionLabelO
     moduleNamespace && `${moduleNamespace}.option.${prefix}.${text}`,
     `core.option.${prefix}.${text}`
   ].filter(Boolean) as string[];
+  const currentValue = lookupCurrentLocale(keys);
+  if (currentValue) return currentValue;
+  if (!isZhLocale()) return options.fallback || text;
   for (const key of keys) {
     const translated = t(key, undefined, '');
     if (translated) return translated;
   }
   return options.fallback || text;
+}
+
+function lookupCurrentLocale(keys: string[]): string | undefined {
+  const locale = getLocale();
+  const language = locale.split('-')[0];
+  const messages = [getLocaleMessages(locale), language && language !== locale ? getLocaleMessages(language) : undefined].filter(Boolean) as Record<string, string>[];
+  for (const key of keys) {
+    for (const bundle of messages) {
+      const value = bundle[key];
+      if (value) return value;
+    }
+  }
+  return undefined;
+}
+
+function isZhLocale(): boolean {
+  return getLocale().toLowerCase().startsWith('zh');
+}
+
+function englishFallback(path: string, fallback: string | undefined): string {
+  if (fallback && !/[^\u0000-\u00ff]/.test(fallback)) return fallback;
+  return humanizeFieldLabel(path);
 }
 
 export function humanizeFieldLabel(path: string): string {

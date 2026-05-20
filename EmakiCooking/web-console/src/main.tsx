@@ -1,8 +1,10 @@
-import { registerConfigNodeMeta, registerConfigNodeRule, registerModuleLocale, registerPluginGuiEditor } from 'emaki-web-console';
+import { getLocale, registerConfigNodeMeta, registerConfigNodeRule, registerModuleLocale, registerPluginGuiEditor } from 'emaki-web-console';
 
 const MODULE = 'EmakiCooking';
 
 type FieldSpec = [path: string, label: string, comment: string, type: string, extra?: Record<string, unknown>];
+
+const copy = (zh: string, en: string) => getLocale().startsWith('zh') ? zh : en;
 
 const fields: FieldSpec[] = [
   ['input_rules', '输入限制', '控制工位输入物品是否必须继续匹配当前配方，避免玩家把无关物品塞入工位。', 'object'],
@@ -130,7 +132,7 @@ registerConfigNodeRule(MODULE, { key: 'rotation_axis' }, { label: '旋转轴', c
 registerPluginGuiEditor({
   moduleId: MODULE,
   editorId: 'emakicooking:gui',
-  label: '烹饪 GUI',
+  label: copy('烹饪 GUI', 'Cooking GUI'),
   fields: [
     ['type', '槽位类型', '烹饪工位槽位语义。', 'text'],
     ['ingredient', '原料槽', '放入烹饪原料的槽位。', 'text'],

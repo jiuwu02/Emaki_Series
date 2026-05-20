@@ -1,6 +1,8 @@
-import { registerConfigCreateTemplate, registerConfigNodeMeta, registerModuleLocale, registerPluginGuiEditor } from 'emaki-web-console';
+import { getLocale, registerConfigCreateTemplate, registerConfigNodeMeta, registerModuleLocale, registerPluginGuiEditor } from 'emaki-web-console';
 
 const MODULE = 'EmakiStrengthen';
+
+const copy = (zh: string, en: string) => getLocale().startsWith('zh') ? zh : en;
 
 const fields = [
   ['local_broadcast_radius', '本地广播半径', '强化达到本地广播星级时，附近玩家可收到提示的半径，单位方块格。', 'number'],
@@ -58,7 +60,7 @@ fields.forEach(([path, label, comment, type]) => registerConfigNodeMeta(MODULE, 
 
 registerConfigCreateTemplate(MODULE, 'success_rates', {
   id: 'star-success-rate',
-  label: '目标星级成功率',
+  label: copy('目标星级成功率', 'Target star success rate'),
   fields: [
     { path: 'value', label: '成功率', comment: '该目标星级的强化成功率百分比，例如 75.0。', type: 'number', defaultValue: 100 }
   ]
@@ -67,7 +69,7 @@ registerConfigCreateTemplate(MODULE, 'success_rates', {
 registerPluginGuiEditor({
   moduleId: MODULE,
   editorId: 'emakistrengthen:gui',
-  label: '强化 GUI',
+  label: copy('强化 GUI', 'Strengthen GUI'),
   fields: [
     ['type', '槽位类型', '强化业务槽位语义。', 'text'],
     ['target_item', '目标物品', '放入待强化物品的槽位。', 'text'],

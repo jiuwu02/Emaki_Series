@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import type { Completion, CompletionContext, CompletionResult, CompletionSource } from '@codemirror/autocomplete';
 import type { ComponentType } from 'react';
 import { ApiClient } from './api';
@@ -8,8 +8,9 @@ import { loadWebExtensions } from './extensions';
 import { applyConfigNodeOverrides, applyConfigRegistryOverrides, applyEditorDescriptorOverrides, getSourceDocumentAdapter, getSurface, isKind, registerSourceDocumentAdapter, registerSurface, setRuntimeEnums } from './registry';
 import { getLocale, getRegisteredLocales, setLocale, t } from './i18n';
 import { ActionGroup, Button, CodeEditor, EditorChrome, InlineError, ToastNotice, type EditorChange } from './components';
+import { useDialogFocus } from './components/useDialogFocus';
 import { I18nBundleModal, type I18nTarget } from './I18nBundleModal';
-import { configNodeDisplayComment as resolveConfigNodeComment, fieldLabel, fileDisplayComment, fileDisplayTitle, moduleDisplayName, optionLabel, parseYaml, serializeYaml, setDeepValue, valuesEqual } from './lib';
+import { configNodeDisplayComment as resolveConfigNodeComment, fieldLabel, fileDisplayComment, fileDisplayTitle, humanizeFieldLabel, moduleDisplayName, optionLabel, parseYaml, serializeYaml, setDeepValue, valuesEqual } from './lib';
 import { Login, ResizableRail, WorkspaceTree, fileKindLabel } from './shell';
 import type { SurfaceProps, SurfaceToolbarState } from './registry';
 import type { RegistryTreeNode, WebConfigCreateTemplate, WebConfigFieldSchema, WebConfigNode, WebRegistry, WebRegistryFile, WebRegistryModule } from './types';
@@ -37,6 +38,8 @@ type DraftHistoryMap = Record<string, DraftScopeHistory>;
 type DraftValueSetter = (scope: ConfigDraftScope, node: WebConfigNode, next: unknown) => void;
 type DraftScopeAction = (scope: ConfigDraftScope) => void;
 type RegistryLoadOptions = { initial?: boolean; clearDrafts?: boolean; announceRefresh?: boolean };
+type ConfigSourceDocument = ReturnType<typeof useConfigSourceDocument>;
+type SourceEditController = { paths: Set<string>; update: (node: WebConfigNode, next: unknown) => void };
 
 type Toast = { tone: 'ok' | 'bad'; text: string } | null;
 type ColorTheme = 'dark' | 'light';
@@ -348,6 +351,7 @@ export default function App() {
           changedCount={toolbar.changedCount}
           changes={toolbar.changes ?? []}
           source={toolbar.source ?? ''}
+          sourceOriginal={toolbar.sourceOriginal}
           sourceEditable={toolbar.sourceEditable}
           sourceError={toolbar.sourceError}
           sourceLanguage={toolbar.sourceLanguage}
@@ -433,12 +437,26 @@ function ConfigSurface({ registry, module, file, drafts, draftHistory, setDraftV
 function ConfigStructuredSurface({ module, file, drafts, draftHistory, setDraftValue, clearDraftScope, clearDraftValues, undoDraftScope, redoDraftScope, api, refreshKey, onRefreshRegistry, setSurfaceToolbar, setToast }: { module: WebRegistryModule; file: WebRegistryFile; drafts: DraftMap; draftHistory: DraftHistoryMap; setDraftValue: DraftValueSetter; clearDraftScope: DraftScopeAction; clearDraftValues: DraftScopeAction; undoDraftScope: DraftScopeAction; redoDraftScope: DraftScopeAction; api: ApiClient; refreshKey: number; onRefreshRegistry: () => Promise<WebRegistry | null>; setSurfaceToolbar: (state: SurfaceToolbarState | null) => void; setToast: (toast: Toast) => void }) {
   const scope = configDraftScope(module, file);
   const scopeHistory = draftHistory[draftScopeId(scope)] ?? emptyDraftHistory();
-  const changedNodes = file.nodes.filter(n => n.type !== 'object' && draftKey(scope, n.path) in drafts);
   const source = useConfigSourceDocument({ module, file, api, refreshKey, setToast });
   const [savingNodes, setSavingNodes] = useState(false);
+  useEffect(() => {
+    setOptimisticNodes([]);
+    setDeletedObjectPaths(new Set());
+  }, [file.id, refreshKey]);
+  const [optimisticNodes, setOptimisticNodes] = useState<WebConfigNode[]>([]);
+  const [deletedObjectPaths, setDeletedObjectPaths] = useState<Set<string>>(() => new Set());
   const moduleTitle = moduleDisplayName(module);
   const fileTitle = fileDisplayTitle(file);
   const fileComment = fileDisplayComment(file);
+  const visibleNodes = useMemo(() => mergeConfigNodes(file.nodes, optimisticNodes, deletedObjectPaths), [file.nodes, optimisticNodes, deletedObjectPaths]);
+  const optimisticPathSet = useMemo(() => new Set(optimisticNodes.map(node => node.path)), [optimisticNodes]);
+  const changedNodes = file.nodes.filter(n => n.type !== 'object' && draftKey(scope, n.path) in drafts && !isDeletedPath(n.path, deletedObjectPaths));
+
+  const updateSourceNodeValue = (node: WebConfigNode, nextValue: unknown) => {
+    updateConfigSourceValue(source, node.path, nextValue, setToast);
+    setOptimisticNodes(current => current.map(entry => entry.path === node.path ? { ...entry, value: nextValue } : entry));
+  };
+  const sourceEdit: SourceEditController = { paths: optimisticPathSet, update: updateSourceNodeValue };
 
   async function saveNodes() {
     if (!changedNodes.length) {
@@ -465,6 +483,8 @@ function ConfigStructuredSurface({ module, file, drafts, draftHistory, setDraftV
 
   async function reloadStructured() {
     clearDraftScope(scope);
+    setOptimisticNodes([]);
+    setDeletedObjectPaths(new Set());
     await onRefreshRegistry();
     await source.reload(false);
     setToast({ tone: 'ok', text: t('core.toast.reloaded') });
@@ -478,6 +498,7 @@ function ConfigStructuredSurface({ module, file, drafts, draftHistory, setDraftV
       changedCount: source.dirty ? Math.max(changedNodes.length, 1) : changedNodes.length,
       changes: source.dirty ? [] : configChanges(scope, file.nodes, drafts),
       source: source.content,
+      sourceOriginal: source.original,
       sourceEditable: true,
       sourceError: source.error,
       sourceLanguage: 'yaml',
@@ -489,13 +510,14 @@ function ConfigStructuredSurface({ module, file, drafts, draftHistory, setDraftV
       onRedo: () => redoDraftScope(scope),
       onReload: () => void reloadStructured(),
       onSourceChange: source.update,
-      onSave: source.dirty ? () => void source.save(async () => { clearDraftValues(scope); await onRefreshRegistry(); }) : () => void saveNodes()
+      onSave: source.dirty ? () => void source.save(async () => { setOptimisticNodes([]); setDeletedObjectPaths(new Set()); await onRefreshRegistry(); }) : () => void saveNodes()
     });
     return () => setSurfaceToolbar(null);
   }, [moduleTitle, fileTitle, file.path, changedNodes.length, file.nodes, drafts, source.content, source.dirty, source.error, source.saving, source.loading, savingNodes, scopeHistory.undo.length, scopeHistory.redo.length]);
 
   const [createNode, setCreateNode] = useState<WebConfigNode | null>(null);
-  return <section className="config-surface"><div className="surface-head"><div><h2>{fileTitle}</h2><p>{fileComment}</p></div><span className={`file-kind ${String(file.kind).toLowerCase()}`}>{fileKindLabel(file.kind)}</span></div><ConfigNodeTree scope={scope} nodes={file.nodes} drafts={drafts} setDraftValue={setDraftValue} onCreateChild={setCreateNode} />{createNode && <ConfigCreateChildModal scope={scope} node={createNode} source={source} onCancel={() => setCreateNode(null)} onCreated={() => setCreateNode(null)} setToast={setToast} />}</section>;
+  const [deleteNode, setDeleteNode] = useState<WebConfigNode | null>(null);
+  return <section className="config-surface"><div className="surface-head"><div><h2>{fileTitle}</h2><p>{fileComment}</p></div><span className={`file-kind ${String(file.kind).toLowerCase()}`}>{fileKindLabel(file.kind)}</span></div><ConfigNodeTree scope={scope} nodes={visibleNodes} drafts={drafts} setDraftValue={setDraftValue} onCreateChild={setCreateNode} onDeleteObject={setDeleteNode} sourceEdit={sourceEdit} deletedPaths={deletedObjectPaths} />{createNode && <ConfigCreateChildModal scope={scope} node={createNode} source={source} onCancel={() => setCreateNode(null)} onCreated={nodes => { setOptimisticNodes(current => mergeConfigNodes(current, nodes, new Set())); setCreateNode(null); }} setToast={setToast} />}{deleteNode && <ConfigDeleteObjectModal node={deleteNode} source={source} onCancel={() => setDeleteNode(null)} onDeleted={path => { setDeletedObjectPaths(current => new Set([...current, path])); setOptimisticNodes(current => current.filter(entry => !entry.path.startsWith(`${path}.`) && entry.path !== path)); setDeleteNode(null); }} setToast={setToast} />}</section>;
 }
 
 function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, setDraftValue, clearDraftScope, clearDraftValues, undoDraftScope, redoDraftScope, api, refreshKey, setSurfaceToolbar, setToast }: { module: WebRegistryModule; file: WebRegistryFile; childPath: string; drafts: DraftMap; draftHistory: DraftHistoryMap; setDraftValue: DraftValueSetter; clearDraftScope: DraftScopeAction; clearDraftValues: DraftScopeAction; undoDraftScope: DraftScopeAction; redoDraftScope: DraftScopeAction; api: ApiClient; refreshKey: number; setSurfaceToolbar: (state: SurfaceToolbarState | null) => void; setToast: (toast: Toast) => void }) {
@@ -520,9 +542,24 @@ function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, set
   }, [module.id, childPath, refreshKey]);
 
   const scope = configDraftScope(module, file, childPath);
-  const changedNodes = nodes.filter(n => n.type !== 'object' && draftKey(scope, n.path) in drafts);
+  const [optimisticNodes, setOptimisticNodes] = useState<WebConfigNode[]>([]);
+  const [deletedObjectPaths, setDeletedObjectPaths] = useState<Set<string>>(() => new Set());
+  const visibleNodes = useMemo(() => mergeConfigNodes(nodes, optimisticNodes, deletedObjectPaths), [nodes, optimisticNodes, deletedObjectPaths]);
+  const optimisticPathSet = useMemo(() => new Set(optimisticNodes.map(node => node.path)), [optimisticNodes]);
+  const changedNodes = nodes.filter(n => n.type !== 'object' && draftKey(scope, n.path) in drafts && !isDeletedPath(n.path, deletedObjectPaths));
   const scopeHistory = draftHistory[draftScopeId(scope)] ?? emptyDraftHistory();
   const source = useConfigSourceDocument({ module, file, childPath, api, refreshKey, setToast });
+
+  useEffect(() => {
+    setOptimisticNodes([]);
+    setDeletedObjectPaths(new Set());
+  }, [childPath, refreshKey]);
+
+  const updateSourceNodeValue = (node: WebConfigNode, nextValue: unknown) => {
+    updateConfigSourceValue(source, node.path, nextValue, setToast);
+    setOptimisticNodes(current => current.map(entry => entry.path === node.path ? { ...entry, value: nextValue } : entry));
+  };
+  const sourceEdit: SourceEditController = { paths: optimisticPathSet, update: updateSourceNodeValue };
 
   async function reloadChildNodes(announce = true) {
     setNodes([]);
@@ -533,6 +570,8 @@ function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, set
       setNodes(applyConfigNodeOverrides(module.id, refreshed.nodes));
       setRevision(refreshed.revision);
       clearDraftScope(scope);
+      setOptimisticNodes([]);
+      setDeletedObjectPaths(new Set());
       if (announce) setToast({ tone: 'ok', text: t('core.toast.reloaded') });
     } catch (err) {
       setError(err instanceof Error ? err.message : t('core.config.childLoadFailed'));
@@ -583,6 +622,7 @@ function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, set
       changedCount: source.dirty ? Math.max(changedNodes.length, 1) : changedNodes.length,
       changes: source.dirty ? [] : configChanges(scope, nodes, drafts),
       source: source.content,
+      sourceOriginal: source.original,
       sourceEditable: true,
       sourceError: source.error,
       sourceLanguage: 'yaml',
@@ -594,17 +634,19 @@ function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, set
       onRedo: () => redoDraftScope(scope),
       onReload: () => void reloadChildSurface(),
       onSourceChange: source.update,
-      onSave: source.dirty ? () => void source.save(async () => { clearDraftValues(scope); await reloadChildNodes(false); }) : () => void saveChild()
+      onSave: source.dirty ? () => void source.save(async () => { clearDraftValues(scope); setOptimisticNodes([]); setDeletedObjectPaths(new Set()); await reloadChildNodes(false); }) : () => void saveChild()
     });
     return () => setSurfaceToolbar(null);
   }, [fileName, fileTitle, childPath, changedNodes.length, nodes, drafts, saving, loading, source.content, source.dirty, source.error, source.saving, source.loading, scopeHistory.undo.length, scopeHistory.redo.length, revision]);
 
   const [createNode, setCreateNode] = useState<WebConfigNode | null>(null);
+  const [deleteNode, setDeleteNode] = useState<WebConfigNode | null>(null);
   return <section className="config-surface">
     {loading && <div className="script-loading" role="status">{t('core.state.loading')}</div>}
     {error && <InlineError><span>{error}</span><Button size="sm" onClick={() => void reloadChildNodes()}>{t('core.action.retry')}</Button></InlineError>}
-    {!loading && !error && <ConfigNodeTree scope={scope} nodes={nodes} drafts={drafts} setDraftValue={setDraftValue} onCreateChild={setCreateNode} />}
-    {createNode && <ConfigCreateChildModal scope={scope} node={createNode} source={source} onCancel={() => setCreateNode(null)} onCreated={() => setCreateNode(null)} setToast={setToast} />}
+    {!loading && !error && <ConfigNodeTree scope={scope} nodes={visibleNodes} drafts={drafts} setDraftValue={setDraftValue} onCreateChild={setCreateNode} onDeleteObject={setDeleteNode} sourceEdit={sourceEdit} deletedPaths={deletedObjectPaths} />}
+    {createNode && <ConfigCreateChildModal scope={scope} node={createNode} source={source} onCancel={() => setCreateNode(null)} onCreated={nodes => { setOptimisticNodes(current => mergeConfigNodes(current, nodes, new Set())); setCreateNode(null); }} setToast={setToast} />}
+    {deleteNode && <ConfigDeleteObjectModal node={deleteNode} source={source} onCancel={() => setDeleteNode(null)} onDeleted={path => { setDeletedObjectPaths(current => new Set([...current, path])); setOptimisticNodes(current => current.filter(entry => !entry.path.startsWith(`${path}.`) && entry.path !== path)); setDeleteNode(null); }} setToast={setToast} />}
   </section>;
 }
 
@@ -662,6 +704,7 @@ function useConfigSourceDocument({ module, file, childPath, api, refreshKey, set
 
   return {
     content,
+    original,
     dirty: content !== original,
     loading,
     saving,
@@ -675,7 +718,9 @@ function useConfigSourceDocument({ module, file, childPath, api, refreshKey, set
   };
 }
 
-function ConfigCreateChildModal({ scope, node, source, onCancel, onCreated, setToast }: { scope: ConfigDraftScope; node: WebConfigNode; source: ReturnType<typeof useConfigSourceDocument>; onCancel: () => void; onCreated: () => void; setToast: (toast: Toast) => void }) {
+function ConfigCreateChildModal({ scope, node, source, onCancel, onCreated, setToast }: { scope: ConfigDraftScope; node: WebConfigNode; source: ConfigSourceDocument; onCancel: () => void; onCreated: (nodes: WebConfigNode[]) => void; setToast: (toast: Toast) => void }) {
+  const dialogRef = useRef<HTMLFormElement | null>(null);
+  useDialogFocus(dialogRef, onCancel);
   const templates = node.createTemplates?.length ? node.createTemplates : [emptyCreateTemplate(node)];
   const [templateId, setTemplateId] = useState(templates[0]?.id ?? 'empty');
   const template = templates.find(entry => entry.id === templateId) ?? templates[0];
@@ -688,25 +733,25 @@ function ConfigCreateChildModal({ scope, node, source, onCancel, onCreated, setT
     event.preventDefault();
     const key = keyName.trim().replace(/\s+/g, '_');
     if (!key) return;
-    createConfigChild(node, source, key, values, setToast, onCreated);
+    createConfigChild(node, source, key, values, template, setToast, onCreated);
   }
 
   return <div className="editor-modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) onCancel(); }}>
-    <form className="config-create-dialog" role="dialog" aria-modal="true" aria-labelledby="config-create-title" onSubmit={submit}>
+    <form ref={dialogRef} className="config-create-dialog" role="dialog" aria-modal="true" aria-labelledby="config-create-title" onSubmit={submit}>
       <div className="reload-confirm-head"><span>{t('core.config.createKicker')}</span><h3 id="config-create-title">{t('core.config.createTitle')}</h3></div>
       <div className="reload-confirm-body config-create-body">
         <p>{t('core.config.createDesc', { path: node.path })}</p>
         <label className="file-confirm-field"><span>{t('core.config.createKey')}</span><input autoFocus value={keyName} onChange={event => setKeyName(event.target.value)} placeholder={nextConfigChildKey(getConfigObject(parseSafeYaml(source.content), node.path.split('.')))} /></label>
         {templates.length > 1 && <label className="file-confirm-field"><span>{t('core.config.createTemplate')}</span><select value={template.id} onChange={event => setTemplateId(event.target.value)}>{templates.map(entry => <option key={entry.id} value={entry.id}>{entry.label}</option>)}</select></label>}
         {template.fields.length === 0 && <p className="config-create-hint">{t('core.config.createNoTemplate')}</p>}
-        <div className="config-create-fields">{template.fields.map(field => <div className="object-list-field" key={field.path}><label>{fieldLabel(field.path, { moduleId: scope.moduleId, namespace: scope.moduleId, fallback: field.label || field.path })}</label>{renderSchemaField(field, values[field.path], next => setValues(current => ({ ...current, [field.path]: next })), scope.moduleId, field.path)}</div>)}</div>
+        <div className="config-create-fields">{template.fields.map(field => <div className="object-list-field" key={field.path}><label>{fieldLabel(field.path, { moduleId: scope.moduleId, namespace: scope.moduleId, fallback: getLocale().startsWith('zh') ? (field.label || field.path) : humanizeFieldLabel(field.path) })}</label>{renderSchemaField(field, values[field.path], next => setValues(current => ({ ...current, [field.path]: next })), scope.moduleId, field.path)}</div>)}</div>
       </div>
       <ActionGroup className="reload-confirm-actions"><Button type="button" onClick={onCancel}>{t('core.gui.cancel')}</Button><Button type="submit" variant="primary" disabled={!keyName.trim() || source.loading || !!source.error}>{t('core.config.create')}</Button></ActionGroup>
     </form>
   </div>;
 }
 
-function createConfigChild(node: WebConfigNode, source: ReturnType<typeof useConfigSourceDocument>, key: string, values: Record<string, unknown>, setToast: (toast: Toast) => void, onCreated?: () => void) {
+function createConfigChild(node: WebConfigNode, source: ConfigSourceDocument, key: string, values: Record<string, unknown>, template: WebConfigCreateTemplate, setToast: (toast: Toast) => void, onCreated?: (nodes: WebConfigNode[]) => void) {
   if (!node.creatableChildren) return;
   if (source.loading) {
     setToast({ tone: 'bad', text: t('core.config.sourceLoading') });
@@ -723,15 +768,150 @@ function createConfigChild(node: WebConfigNode, source: ReturnType<typeof useCon
       setToast({ tone: 'bad', text: t('core.config.createDuplicate', { key }) });
       return;
     }
-    const nextParent = { ...parent, [key]: values };
+    const childValue = templateValuesToObject(values);
+    const nextParent = { ...parent, [key]: childValue };
     const nextData = setDeepValue(data, node.path.split('.'), nextParent);
     source.update(serializeYaml(nextData));
     setToast({ tone: 'ok', text: t('core.config.createdSourceField', { key }) });
-    onCreated?.();
+    onCreated?.(createOptimisticConfigNodes(node, key, childValue, template));
   } catch (err) {
     source.update(`${source.content.replace(/\s*$/, '')}\n# ${err instanceof Error ? err.message : t('core.toast.refreshFailed')}\n`);
     setToast({ tone: 'bad', text: err instanceof Error ? err.message : t('core.toast.refreshFailed') });
   }
+}
+
+function ConfigDeleteObjectModal({ node, source, onCancel, onDeleted, setToast }: { node: WebConfigNode; source: ConfigSourceDocument; onCancel: () => void; onDeleted: (path: string) => void; setToast: (toast: Toast) => void }) {
+  const dialogRef = useRef<HTMLFormElement | null>(null);
+  useDialogFocus(dialogRef, onCancel);
+  const [confirmPath, setConfirmPath] = useState('');
+  function submit(event: FormEvent) {
+    event.preventDefault();
+    if (confirmPath !== node.path) return;
+    deleteConfigObject(node, source, setToast, onDeleted);
+  }
+  return <div className="editor-modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) onCancel(); }}>
+    <form ref={dialogRef} className="file-action-dialog danger config-delete-dialog" role="dialog" aria-modal="true" aria-labelledby="config-delete-title" onSubmit={submit}>
+      <div className="reload-confirm-head"><span>{t('core.config.deleteObjectKicker')}</span><h3 id="config-delete-title">{t('core.config.deleteObjectTitle')}</h3></div>
+      <div className="reload-confirm-body"><p>{t('core.config.deleteObjectDesc', { path: node.path })}</p><code className="file-delete-path">{node.path}</code><label className="file-confirm-field"><span>{t('core.config.deleteObjectConfirmLabel')}</span><input autoFocus value={confirmPath} onChange={event => setConfirmPath(event.target.value)} placeholder={node.path} /></label></div>
+      <ActionGroup className="reload-confirm-actions"><Button type="button" onClick={onCancel}>{t('core.gui.cancel')}</Button><Button type="submit" variant="danger" disabled={confirmPath !== node.path || source.loading || !!source.error}>{t('core.config.deleteObjectConfirm')}</Button></ActionGroup>
+    </form>
+  </div>;
+}
+
+function deleteConfigObject(node: WebConfigNode, source: ConfigSourceDocument, setToast: (toast: Toast) => void, onDeleted: (path: string) => void) {
+  if (source.loading) {
+    setToast({ tone: 'bad', text: t('core.config.sourceLoading') });
+    return;
+  }
+  if (source.error) {
+    setToast({ tone: 'bad', text: source.error });
+    return;
+  }
+  try {
+    const data = parseYaml(source.content || '{}');
+    const nextData = deleteDeepValue(data, node.path.split('.'));
+    source.update(serializeYaml(nextData));
+    setToast({ tone: 'ok', text: t('core.config.deletedSourceObject', { path: node.path }) });
+    onDeleted(node.path);
+  } catch (err) {
+    setToast({ tone: 'bad', text: err instanceof Error ? err.message : t('core.toast.refreshFailed') });
+  }
+}
+
+function updateConfigSourceValue(source: ConfigSourceDocument, path: string, nextValue: unknown, setToast: (toast: Toast) => void) {
+  if (source.loading) {
+    setToast({ tone: 'bad', text: t('core.config.sourceLoading') });
+    return;
+  }
+  if (source.error) {
+    setToast({ tone: 'bad', text: source.error });
+    return;
+  }
+  try {
+    const data = parseYaml(source.content || '{}');
+    const nextData = setDeepValue(data, path.split('.'), nextValue);
+    source.update(serializeYaml(nextData));
+  } catch (err) {
+    setToast({ tone: 'bad', text: err instanceof Error ? err.message : t('core.toast.refreshFailed') });
+  }
+}
+
+function templateValuesToObject(values: Record<string, unknown>): Record<string, unknown> {
+  return Object.entries(values).reduce<Record<string, unknown>>((result, [path, value]) => setDeepValue(result, path.split('.'), value), {});
+}
+
+function createOptimisticConfigNodes(parent: WebConfigNode, key: string, value: Record<string, unknown>, template: WebConfigCreateTemplate): WebConfigNode[] {
+  const rootPath = `${parent.path}.${key}`;
+  const root: WebConfigNode = {
+    path: rootPath,
+    label: key,
+    comment: template.label || key,
+    type: 'object',
+    editable: true,
+    value,
+    creatableChildren: false,
+    createTemplates: [],
+  };
+  const fields = template.fields.length ? template.fields : Object.keys(value).map(fieldKey => ({ path: fieldKey, label: fieldKey, type: inferConfigFieldType(value[fieldKey]) } as WebConfigFieldSchema));
+  return [root, ...fields.map(field => optimisticFieldNode(rootPath, field, getDeepConfigValue(value, field.path.split('.'))))];
+}
+
+function optimisticFieldNode(rootPath: string, field: WebConfigFieldSchema, value: unknown): WebConfigNode {
+  return {
+    path: `${rootPath}.${field.path}`,
+    label: field.label || field.path,
+    comment: field.comment || '',
+    type: field.type || inferConfigFieldType(value),
+    editable: true,
+    value,
+    options: field.options,
+    optionLabelPrefix: field.optionLabelPrefix,
+  };
+}
+
+function inferConfigFieldType(value: unknown): string {
+  if (typeof value === 'boolean') return 'boolean';
+  if (typeof value === 'number') return 'number';
+  if (Array.isArray(value)) return 'list';
+  if (value && typeof value === 'object') return 'object';
+  return 'text';
+}
+
+function getDeepConfigValue(source: Record<string, unknown>, path: string[]): unknown {
+  return path.reduce<unknown>((current, part) => current && typeof current === 'object' && !Array.isArray(current) ? (current as Record<string, unknown>)[part] : undefined, source);
+}
+
+function deleteDeepValue(source: Record<string, unknown>, path: string[]): Record<string, unknown> {
+  if (!path.length) return source;
+  const [head, ...tail] = path;
+  if (!tail.length) {
+    const next = { ...source };
+    delete next[head];
+    return next;
+  }
+  return setDeepValue(source, [head], deleteDeepValue(getConfigObject(source, [head]), tail));
+}
+
+function mergeConfigNodes(baseNodes: WebConfigNode[], optimisticNodes: WebConfigNode[], deletedPaths: Set<string>): WebConfigNode[] {
+  const byPath = new Map<string, WebConfigNode>();
+  for (const node of baseNodes) if (!isDeletedPath(node.path, deletedPaths)) byPath.set(node.path, node);
+  for (const node of optimisticNodes) if (!isDeletedPath(node.path, deletedPaths)) byPath.set(node.path, node);
+  return Array.from(byPath.values()).sort((left, right) => compareConfigPath(left.path, right.path));
+}
+
+function isDeletedPath(path: string, deletedPaths: Set<string>): boolean {
+  for (const deletedPath of deletedPaths) if (path === deletedPath || path.startsWith(`${deletedPath}.`)) return true;
+  return false;
+}
+
+function compareConfigPath(left: string, right: string): number {
+  const leftParts = left.split('.');
+  const rightParts = right.split('.');
+  for (let index = 0; index < Math.min(leftParts.length, rightParts.length); index++) {
+    if (leftParts[index] === rightParts[index]) continue;
+    return leftParts[index].localeCompare(rightParts[index], undefined, { numeric: true });
+  }
+  return leftParts.length - rightParts.length;
 }
 
 function emptyCreateTemplate(node: WebConfigNode): WebConfigCreateTemplate {
@@ -799,14 +979,14 @@ function formatPreviewValue(value: unknown): string {
 }
 
 function configNodeDisplayLabel(scope: ConfigDraftScope, node: WebConfigNode): string {
-  return fieldLabel(node.path, { moduleId: scope.moduleId, namespace: scope.moduleId, fallback: node.label });
+  return fieldLabel(node.path, { moduleId: scope.moduleId, namespace: scope.moduleId, fallback: getLocale().startsWith('zh') ? node.label : humanizeFieldLabel(node.path) });
 }
 
 function configNodeDisplayComment(scope: ConfigDraftScope, node: WebConfigNode): string {
   return resolveConfigNodeComment(scope.moduleId, node.path, node.comment);
 }
 
-function ConfigNodeTree({ scope, nodes, drafts, setDraftValue, onCreateChild }: { scope: ConfigDraftScope; nodes: WebConfigNode[]; drafts: DraftMap; setDraftValue: DraftValueSetter; onCreateChild: (node: WebConfigNode) => void }) {
+function ConfigNodeTree({ scope, nodes, drafts, setDraftValue, onCreateChild, onDeleteObject, sourceEdit, deletedPaths }: { scope: ConfigDraftScope; nodes: WebConfigNode[]; drafts: DraftMap; setDraftValue: DraftValueSetter; onCreateChild: (node: WebConfigNode) => void; onDeleteObject: (node: WebConfigNode) => void; sourceEdit?: SourceEditController; deletedPaths?: Set<string> }) {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const toggle = (path: string) => setCollapsed(c => ({ ...c, [path]: !c[path] }));
 
@@ -817,12 +997,9 @@ function ConfigNodeTree({ scope, nodes, drafts, setDraftValue, onCreateChild }: 
 
   return <div className="node-grid">{groups.map(group => {
     if (group.type === 'leaf') {
-      return <ConfigNodeView key={group.node.path} scope={scope} node={group.node} drafts={drafts} setDraftValue={setDraftValue} />;
+      return <ConfigNodeView key={group.node.path} scope={scope} node={group.node} drafts={drafts} setDraftValue={setDraftValue} sourceEdit={sourceEdit} />;
     }
-    const isCollapsed = collapsed[group.node.path] === true;
-    const childCount = group.children.length;
-    const changedInGroup = group.children.filter(n => n.type !== 'object' && draftKey(scope, n.path) in drafts).length;
-    return <ConfigNodeSection key={group.node.path} scope={scope} node={group.node} childrenNodes={group.children} drafts={drafts} setDraftValue={setDraftValue} collapsed={collapsed} toggle={toggle} onCreateChild={onCreateChild} />;
+    return <ConfigNodeSection key={group.node.path} scope={scope} node={group.node} childrenNodes={group.children} drafts={drafts} setDraftValue={setDraftValue} collapsed={collapsed} toggle={toggle} onCreateChild={onCreateChild} onDeleteObject={onDeleteObject} sourceEdit={sourceEdit} deletedPaths={deletedPaths} deletable={false} />;
   })}</div>;
 }
 
@@ -849,36 +1026,41 @@ function isDirectChildPath(path: string, parentPath: string): boolean {
   return !path.slice(parentPath.length + 1).includes('.');
 }
 
-function ConfigNodeSection({ scope, node, childrenNodes, drafts, setDraftValue, collapsed, toggle, onCreateChild }: { scope: ConfigDraftScope; node: WebConfigNode; childrenNodes: WebConfigNode[]; drafts: DraftMap; setDraftValue: DraftValueSetter; collapsed: Record<string, boolean>; toggle: (path: string) => void; onCreateChild: (node: WebConfigNode) => void }) {
+function ConfigNodeSection({ scope, node, childrenNodes, drafts, setDraftValue, collapsed, toggle, onCreateChild, onDeleteObject, sourceEdit, deletedPaths, deletable }: { scope: ConfigDraftScope; node: WebConfigNode; childrenNodes: WebConfigNode[]; drafts: DraftMap; setDraftValue: DraftValueSetter; collapsed: Record<string, boolean>; toggle: (path: string) => void; onCreateChild: (node: WebConfigNode) => void; onDeleteObject: (node: WebConfigNode) => void; sourceEdit?: SourceEditController; deletedPaths?: Set<string>; deletable: boolean }) {
   const isCollapsed = collapsed[node.path] === true;
   const groups = buildNodeGroups(childrenNodes, node.path);
-  const changedInGroup = childrenNodes.filter(n => n.type !== 'object' && draftKey(scope, n.path) in drafts).length;
+  const sectionChanged = draftKey(scope, node.path) in drafts || sourceEdit?.paths.has(node.path) === true || deletedPaths?.has(node.path) === true;
+  const changedInGroup = childrenNodes.filter(n => n.type !== 'object' && (draftKey(scope, n.path) in drafts || sourceEdit?.paths.has(n.path))).length;
   const groupLabel = configNodeDisplayLabel(scope, node);
   return <div className="node-section">
-    <div className={`node-section-header ${isCollapsed ? 'collapsed' : ''}`}>
+    <div className={`node-section-header ${isCollapsed ? 'collapsed' : ''} ${sectionChanged ? 'changed' : ''}`}>
       <button type="button" className="node-section-toggle" onClick={() => toggle(node.path)} aria-expanded={!isCollapsed}>
         <span className="section-arrow" aria-hidden="true">{isCollapsed ? '›' : '⌄'}</span>
         <strong>{groupLabel}</strong>
         <code>{node.path}</code>
         <span className="section-comment">{configNodeDisplayComment(scope, node)}</span>
       </button>
-      {node.creatableChildren && <button type="button" className="node-section-create" onClick={() => onCreateChild(node)}>+ {t('core.config.create')}</button>}
-      <span className="section-meta">{changedInGroup > 0 && <span className="section-badge">{changedInGroup}</span>}{t('core.config.groupItems', { count: groups.length })}</span>
+      <div className="node-section-actions">
+        {node.creatableChildren && <button type="button" className="node-section-create" onClick={() => onCreateChild(node)}>+ {t('core.config.create')}</button>}
+        {deletable && <button type="button" className="node-section-delete" onClick={() => onDeleteObject(node)}>{t('core.config.deleteObject')}</button>}
+      </div>
+      <span className="section-meta">{(sectionChanged || changedInGroup > 0) && <span className="section-badge">{Math.max(changedInGroup, sectionChanged ? 1 : 0)}</span>}{t('core.config.groupItems', { count: groups.length })}</span>
     </div>
     {!isCollapsed && <div className="node-section-body">{groups.map(group => group.type === 'section'
-      ? <ConfigNodeSection key={group.node.path} scope={scope} node={group.node} childrenNodes={group.children} drafts={drafts} setDraftValue={setDraftValue} collapsed={collapsed} toggle={toggle} onCreateChild={onCreateChild} />
-      : <ConfigNodeView key={group.node.path} scope={scope} node={group.node} drafts={drafts} setDraftValue={setDraftValue} />
+      ? <ConfigNodeSection key={group.node.path} scope={scope} node={group.node} childrenNodes={group.children} drafts={drafts} setDraftValue={setDraftValue} collapsed={collapsed} toggle={toggle} onCreateChild={onCreateChild} onDeleteObject={onDeleteObject} sourceEdit={sourceEdit} deletedPaths={deletedPaths} deletable={node.creatableChildren === true} />
+      : <ConfigNodeView key={group.node.path} scope={scope} node={group.node} drafts={drafts} setDraftValue={setDraftValue} sourceEdit={sourceEdit} />
     )}</div>}
   </div>;
 }
 
-function ConfigNodeView({ scope, node, drafts, setDraftValue }: { scope: ConfigDraftScope; node: WebConfigNode; drafts: DraftMap; setDraftValue: DraftValueSetter }) {
+function ConfigNodeView({ scope, node, drafts, setDraftValue, sourceEdit }: { scope: ConfigDraftScope; node: WebConfigNode; drafts: DraftMap; setDraftValue: DraftValueSetter; sourceEdit?: SourceEditController }) {
   const key = draftKey(scope, node.path);
+  const sourceEdited = sourceEdit?.paths.has(node.path) === true;
   const value = key in drafts ? drafts[key] : node.value;
-  const setValue = (next: unknown) => setDraftValue(scope, node, next);
+  const setValue = (next: unknown) => sourceEdited ? sourceEdit?.update(node, next) : setDraftValue(scope, node, next);
   const isWide = node.type === 'dynamic_map' || node.type === 'list';
   const label = configNodeDisplayLabel(scope, node);
-  return <div className={`node ${key in drafts ? 'changed' : ''} ${isWide ? 'node-wide' : ''}`}><div className="node-meta"><strong>{label}</strong><code>{node.path}</code><p>{configNodeDisplayComment(scope, node)}</p></div><div className="node-control">{renderControl(node, value, setValue, label, scope.moduleId)}</div></div>;
+  return <div className={`node ${key in drafts || sourceEdited ? 'changed' : ''} ${isWide ? 'node-wide' : ''}`}><div className="node-meta"><strong>{label}</strong><code>{node.path}</code><p>{configNodeDisplayComment(scope, node)}</p></div><div className="node-control">{renderControl(node, value, setValue, label, scope.moduleId)}</div></div>;
 }
 
 function renderControl(node: WebConfigNode, value: unknown, setValue: (v: unknown) => void, label: string, moduleId: string) {
@@ -917,7 +1099,7 @@ function ObjectListEditor({ node, items, setValue, moduleId }: { node: WebConfig
       </div>
       <div className="object-list-fields">
         {keys.map(key => <div className="object-list-field" key={key}>
-          <label>{fieldLabel(`${node.path}.${key}`, { moduleId, namespace: moduleId, fallback: fieldSchemaForKey(node, key)?.label || key.replace(/_/g, ' ') })}</label>
+          <label>{fieldLabel(`${node.path}.${key}`, { moduleId, namespace: moduleId, fallback: getLocale().startsWith('zh') ? (fieldSchemaForKey(node, key)?.label || key.replace(/_/g, ' ')) : humanizeFieldLabel(key) })}</label>
           {renderSchemaField(fieldSchemaForKey(node, key), item[key], next => updateField(index, key, next), moduleId, `${node.path}.${index}.${key}`, objectItems, index)}
         </div>)}
       </div>
@@ -1134,6 +1316,7 @@ function ScriptEditor({ api, scriptPath, module, file, setSurfaceToolbar, setToa
       changedCount: isDirty ? 1 : 0,
       changes: [],
       source: content,
+      sourceOriginal: savedContent,
       sourceEditable: true,
       sourceError: error || null,
       sourceLanguage: 'javascript',
