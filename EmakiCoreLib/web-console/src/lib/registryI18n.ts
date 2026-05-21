@@ -134,6 +134,9 @@ export function treeNodeDisplayLabel(node: RegistryTreeNode): string {
   if (node.type === 'module') {
     return t(`${moduleRegistryNamespace(node.moduleId || node.id)}.module.name`, undefined, node.label || node.moduleId || node.id);
   }
+  if (node.type === 'child') {
+    return childFileLabel(node.path, node.label || node.id);
+  }
   if (node.fileId && node.moduleId) {
     return resolveFileDisplayText(node.moduleId, node.path, node.label || node.path || node.id, 'title');
   }
@@ -230,6 +233,13 @@ function fallbackFileLabel(path: string | undefined, fallback: string): string {
   const preferred = String(fallback ?? '').trim();
   if (preferred && !/[\\/]/.test(preferred) && !/\.(ya?ml|json|js|kts|txt)$/i.test(preferred)) return preferred;
   return humanizeFilePath(path) || preferred;
+}
+
+function childFileLabel(path: string | undefined, fallback: string): string {
+  const preferred = String(fallback ?? '').trim();
+  const leaf = String(path ?? '').trim().replace(/\\/g, '/').split('/').filter(Boolean).pop() ?? '';
+  const cleanLeaf = leaf.replace(/\.(ya?ml|json|js|kts|txt)$/i, '');
+  return cleanLeaf || preferred;
 }
 
 function humanizeFilePath(path: string | undefined): string {

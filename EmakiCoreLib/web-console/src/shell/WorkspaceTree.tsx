@@ -275,7 +275,7 @@ function modulesToTree(modules: WebRegistryModule[]): RegistryTreeNode[] {
     moduleId: module.id,
     icon: module.icon,
     tone: module.tone,
-    children: module.files.map((file) => ({
+    children: module.files.filter(file => !isLanguageFilePath(file.path)).map((file) => ({
       id: file.id,
       label: file.title,
       type: 'file',
@@ -284,11 +284,11 @@ function modulesToTree(modules: WebRegistryModule[]): RegistryTreeNode[] {
       kind: file.kind,
       path: file.path,
       comment: file.comment,
-      children: file.children?.map((child) => {
+      children: file.children?.filter(child => !isLanguageFilePath(child.fullPath ?? child.relativePath)).map((child) => {
         const childPath = file.kind?.toUpperCase() === 'SCRIPT' ? child.relativePath : (child.fullPath ?? child.relativePath);
         return {
           id: `${file.id}:${childPath}`,
-          label: child.name,
+          label: child.name || leafFileName(childPath),
           type: 'child',
           moduleId: module.id,
           fileId: file.id,
@@ -299,4 +299,13 @@ function modulesToTree(modules: WebRegistryModule[]): RegistryTreeNode[] {
       })
     }))
   }));
+}
+
+function isLanguageFilePath(path: string | undefined): boolean {
+  return String(path ?? '').replace(/\\/g, '/').toLowerCase().startsWith('lang/');
+}
+
+function leafFileName(path: string | undefined): string {
+  const leaf = String(path ?? '').replace(/\\/g, '/').split('/').filter(Boolean).pop() ?? '';
+  return leaf.replace(/\.(ya?ml|json|js|kts|txt)$/i, '') || String(path ?? '');
 }

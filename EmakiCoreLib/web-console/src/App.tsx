@@ -1055,6 +1055,10 @@ function configNodeDisplayLabel(scope: ConfigDraftScope, node: WebConfigNode): s
   return fieldLabel(node.path, { moduleId: scope.moduleId, namespace: scope.moduleId, fallback: getLocale().startsWith('zh') ? node.label : humanizeFieldLabel(node.path) });
 }
 
+function scopeFromModuleId(moduleId: string): ConfigDraftScope {
+  return { moduleId, fileId: '', filePath: '' };
+}
+
 function configNodeDisplayComment(scope: ConfigDraftScope, node: WebConfigNode): string {
   return resolveConfigNodeComment(scope.moduleId, node.path, node.comment);
 }
@@ -1157,6 +1161,7 @@ function ObjectListEditor({ node, items, setValue, moduleId }: { node: WebConfig
   const stableRef = useStableEntries(objectItems);
   const stable = stableRef.current;
   const [collapsed, setCollapsed] = useState<Set<number>>(() => new Set());
+  const [emptyExpanded, setEmptyExpanded] = useState(false);
   const keys = objectListKeys(node, objectItems);
   const duplicateValues = duplicateUniqueValues(node, objectItems);
 
@@ -1179,8 +1184,19 @@ function ObjectListEditor({ node, items, setValue, moduleId }: { node: WebConfig
   }
 
   function addEntry() {
+    setEmptyExpanded(true);
     setValue([...items, objectListTemplate({ ...node, value: items }, objectItems[0])]);
   }
+
+  if (!stable.length) return <div className="object-list-editor object-list-editor--empty">
+    <button type="button" className={`object-list-empty ${emptyExpanded ? 'expanded' : ''}`} onClick={() => setEmptyExpanded(current => !current)} aria-expanded={emptyExpanded}>
+      <DisclosureChevron open={emptyExpanded} className="object-list-arrow" />
+      <strong>{t('core.config.emptyListTitle')}</strong>
+      <span>{configNodeDisplayLabel(scopeFromModuleId(moduleId), node)}</span>
+    </button>
+    {emptyExpanded && <div className="object-list-empty-body"><p>{t('core.config.emptyListHint')}</p><button type="button" className="add-row" onClick={addEntry}>{t('core.config.addItem')}</button></div>}
+    {!emptyExpanded && <button type="button" className="add-row" onClick={addEntry}>{t('core.config.addItem')}</button>}
+  </div>;
 
   return <div className="object-list-editor">
     {stable.map((entry, index) => {

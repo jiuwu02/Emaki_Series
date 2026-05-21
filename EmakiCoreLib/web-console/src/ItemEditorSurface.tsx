@@ -731,7 +731,7 @@ function GenericPreviewPane({ moduleId, editorId, data, preview, previewPending,
         <PreviewTooltipBlock title={t('core.item.preview.original')} name={originalName} lore={originalLore} emptyText={t('core.item.preview.emptyLore')} />
         <PreviewTooltipBlock title={hasLevels ? t('core.item.preview.resultForLevel', { level: previewLevel }) : t('core.item.preview.result')} name={resultName} lore={resultLore} refreshing={previewPending} emptyText={previewPending ? t('core.item.preview.syncing') : t('core.item.preview.emptyResult')} />
       </div>
-      <PreviewPipelineSummary preview={livePreview} />
+      <PreviewPipelineSummary preview={livePreview} editorId={editorId} />
     </div>
   );
 }
@@ -765,7 +765,8 @@ function previewKindLabel(preview: ItemPreviewResult | null, moduleId: string, e
   return t('core.item.genericKind');
 }
 
-function PreviewPipelineSummary({ preview }: { preview: ItemPreviewResult | null }) {
+function PreviewPipelineSummary({ preview, editorId }: { preview: ItemPreviewResult | null; editorId?: string }) {
+  if (editorId?.startsWith('emakigem:')) return null;
   const variables = Object.entries(preview?.variables ?? {});
   const nameSteps = preview?.nameSteps ?? [];
   const loreSteps = preview?.loreSteps ?? [];

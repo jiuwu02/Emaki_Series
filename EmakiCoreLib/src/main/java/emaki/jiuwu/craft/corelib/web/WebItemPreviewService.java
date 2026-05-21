@@ -56,8 +56,8 @@ final class WebItemPreviewService {
         variables.putAll(resolveVariables(extractVariables(data, levelData), variables));
 
         List<Map<String, Object>> effectSummary = summarizeEffects(data, levelData, variables);
-        Object nameActions = firstNonNull(sectionActions(levelData, "name_action", "name_actions"), sectionActions(data, "name_action", "name_actions"));
-        Object loreActions = firstNonNull(sectionActions(levelData, "lore_action", "lore_actions"), sectionActions(data, "lore_action", "lore_actions"));
+        Object nameActions = mergeActions(sectionActions(data, "name_action", "name_actions"), sectionActions(levelData, "name_action", "name_actions"));
+        Object loreActions = mergeActions(sectionActions(data, "lore_action", "lore_actions"), sectionActions(levelData, "lore_action", "lore_actions"));
         String initialName = Texts.isBlank(baseName) ? Texts.toStringSafe(variables.get("display_name")) : baseName;
         List<String> initialLore = baseLore == null || baseLore.isEmpty()
                 ? ConfigNodes.asObjectList(data.get("lore")).stream().map(Texts::toStringSafe).toList()
@@ -325,6 +325,13 @@ final class WebItemPreviewService {
     private Object sectionActions(Map<String, Object> data, String type, String key) {
         Object topLevel = data.get(key);
         return topLevel == null ? firstEffectPayload(data, type, key) : topLevel;
+    }
+
+    private List<Object> mergeActions(Object baseActions, Object levelActions) {
+        List<Object> merged = new ArrayList<>();
+        merged.addAll(ConfigNodes.asObjectList(baseActions));
+        merged.addAll(ConfigNodes.asObjectList(levelActions));
+        return merged;
     }
 
     private Object firstEffectPayload(Map<String, Object> data, String type, String key) {

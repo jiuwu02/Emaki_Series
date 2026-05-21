@@ -20,7 +20,7 @@ public final class WebStaticAssets {
                 code { color: oklch(82% 0.12 210); }
               </style>
             </head>
-            <body><main><h1>Emaki Web Console</h1><p>React 前端资源尚未构建。请在 <code>EmakiCoreLib/web-console</code> 中执行 <code>npm install</code> 与 <code>npm run build</code>，并将 dist 输出复制到 <code>src/main/resources/web</code>。</p></main></body>
+            <body><main><h1>Emaki Web Console</h1><p>React 前端资源尚未构建。请在仓库根目录执行 <code>npm install</code>，然后执行 <code>npm run build:web:core</code>；构建产物会直接输出到 <code>EmakiCoreLib/src/main/resources/web</code>。</p></main></body>
             </html>
             """;
 

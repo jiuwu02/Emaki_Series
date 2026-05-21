@@ -777,8 +777,8 @@ textarea {
 }
 
 .tree-file {
-  width: calc(100% - 18px);
-  margin-left: 18px;
+  width: 100%;
+  margin-left: 0;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -816,7 +816,7 @@ textarea {
 }
 
 .tree-file-folder {
-  margin-left: 18px;
+  margin-left: 0;
 }
 
 .tree-file-row,
@@ -2102,6 +2102,59 @@ textarea {
   background: transparent;
   overflow: visible;
   transition: background 0.18s ease, border-color 0.18s ease;
+}
+
+.object-list-editor--empty {
+  gap: 8px;
+}
+
+.object-list-empty {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 18px auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--muted);
+  background: color-mix(in oklch, var(--surface) 90%, var(--input) 10%);
+  text-align: left;
+}
+
+.object-list-empty.expanded {
+  border-color: var(--accent-soft);
+  background: color-mix(in oklch, var(--accent-dim) 46%, var(--surface) 54%);
+}
+
+.object-list-empty strong {
+  font-size: 11px;
+  color: var(--text);
+}
+
+.object-list-empty span:last-child {
+  min-width: 0;
+  color: var(--faint);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.object-list-empty-body {
+  display: grid;
+  gap: 8px;
+  padding: 11px 12px;
+  border: 1px dashed var(--line-2);
+  border-radius: 6px;
+  background: var(--input);
+  animation: prop-block-in 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.object-list-empty-body p {
+  margin: 0;
+  color: var(--faint);
+  font-size: 12px;
 }
 
 .object-list-entry:last-child {
