@@ -14,7 +14,7 @@ import { I18nBundleModal, type I18nTarget } from './I18nBundleModal';
 import { configNodeDisplayComment as resolveConfigNodeComment, fieldLabel, fileDisplayComment, fileDisplayTitle, humanizeFieldLabel, moduleDisplayName, optionLabel, parseYaml, serializeYaml, setDeepValue, valuesEqual } from './lib';
 import { Login, ResizableRail, WorkspaceTree, fileKindLabel } from './shell';
 import type { SurfaceProps, SurfaceToolbarState } from './registry';
-import type { RegistryTreeNode, WebConfigCreateTemplate, WebConfigFieldSchema, WebConfigNode, WebRegistry, WebRegistryFile, WebRegistryModule } from './types';
+import type { RegistryTreeNode, WebConfigCreateTemplate, WebConfigFieldSchema, WebConfigNode, WebConsoleExtensionStatus, WebEditorDescriptor, WebRegistry, WebRegistryFile, WebRegistryModule } from './types';
 
 // Register CoreLib's built-in surfaces through the same registry used by plugin extensions.
 registerSurface({ kind: 'GUI', component: GuiEditorSurface as ComponentType<SurfaceProps>, label: t('core.surface.gui.label') });
@@ -69,6 +69,8 @@ export default function App() {
   const [saving, setSaving] = useState(false);
   const [surfaceToolbar, setSurfaceToolbar] = useState<SurfaceToolbarState | null>(null);
   const [surfaceDirtyKeys, setSurfaceDirtyKeys] = useState<Set<string>>(() => new Set());
+  const [extensionStatuses, setExtensionStatuses] = useState<WebConsoleExtensionStatus[]>([]);
+  const [extensionHealth, setExtensionHealth] = useState<'idle' | 'loading' | 'ok' | 'failed'>('idle');
 
   const api = useMemo(() => new ApiClient(token, () => {
     sessionStorage.removeItem('emaki-web-token');
@@ -162,13 +164,17 @@ export default function App() {
   async function loadRegistry(options: RegistryLoadOptions = {}): Promise<WebRegistry | null> {
     const { initial = false, clearDrafts = false, announceRefresh = !initial } = options;
     setLoading(true);
+    setExtensionHealth('loading');
+    setExtensionStatuses([]);
     try {
       const next = await api.registry();
       setRuntimeEnums(next.runtimeEnums);
-      const extensionStatuses = await loadWebExtensions(next.extensions);
-      const failedExtensions = extensionStatuses.filter(status => status.status === 'failed');
+      const nextExtensionStatuses = await loadWebExtensions(next.extensions);
+      const failedExtensions = nextExtensionStatuses.filter(status => status.status === 'failed');
       const merged = applyConfigRegistryOverrides(applyEditorDescriptorOverrides(next));
       setRegistry(merged);
+      setExtensionStatuses(nextExtensionStatuses);
+      setExtensionHealth(failedExtensions.length ? 'failed' : 'ok');
       if (initial) setExpanded(Object.fromEntries(merged.modules.map((m) => [m.id, true])));
       setSelected((c) => c ?? firstSelection(merged));
       if (clearDrafts) {
@@ -179,6 +185,7 @@ export default function App() {
       else if (announceRefresh) setToast({ tone: 'ok', text: t('core.toast.registryRefreshed') });
       return merged;
     } catch (err) {
+      setExtensionHealth('failed');
       setToast({ tone: 'bad', text: err instanceof Error ? err.message : t('core.toast.refreshFailed') });
       return null;
     } finally {
@@ -340,10 +347,16 @@ export default function App() {
             </label>
           </div>
         </div>
+        <ExtensionHealthBanner
+          health={extensionHealth}
+          statuses={extensionStatuses}
+          onRetry={() => void loadRegistry({ clearDrafts: false, announceRefresh: false })}
+        />
         <WorkspaceTree registry={registry} selected={selected} expanded={expanded} dirtyKeys={mergedDirtyKeys} setExpanded={setExpanded} onOpenI18n={setI18nTarget} onCreateFile={setCreateTarget} onDeleteFile={setDeleteTarget} onSelect={(next) => setSelected((current) => sameSelection(current, next) ? { ...next, refreshKey: (current?.refreshKey ?? 0) + 1 } : next)} />
         <button className="rail-action quiet" onClick={() => { sessionStorage.removeItem('emaki-web-token'); setToken(null); }}>{t('core.auth.logout')}</button>
       </ResizableRail>
       <main className="stage">
+        <SurfaceSummaryStrip module={selectedModule} file={selectedFile} editor={selectedEditor} toolbar={toolbar} loading={loading} />
         <EditorChrome
           className="stage-head"
           title={toolbar.title ?? (selectedModule ? moduleDisplayName(selectedModule) : t('core.stage.defaultTitle'))}
@@ -375,6 +388,65 @@ export default function App() {
       </main>
     </div>
   );
+}
+
+function SurfaceSummaryStrip({ module, file, editor, toolbar, loading }: { module: WebRegistryModule | null; file: WebRegistryFile | null; editor?: WebEditorDescriptor; toolbar: SurfaceToolbarState; loading: boolean }) {
+  const moduleName = module ? moduleDisplayName(module) : t('core.stage.defaultTitle');
+  const moduleSummary = module?.summary?.trim() || '';
+  const fileComment = file ? fileDisplayComment(file).trim() : '';
+  const filePath = file?.path || '';
+  const fileKind = fileKindLabel(file?.kind);
+  const fileNodeCount = file?.nodes?.length ?? 0;
+  const fileChildCount = file?.children?.length ?? 0;
+  const chips = [
+    fileKind,
+    editor?.kindLabel || editor?.title || '',
+    fileNodeCount ? t('core.stage.nodeCount', { count: fileNodeCount }, '{count} nodes') : '',
+    fileChildCount ? t('core.stage.childCount', { count: fileChildCount }, '{count} children') : '',
+    toolbar.dirty ? t('core.item.unsaved', undefined, 'Unsaved') : '',
+    toolbar.saving ? t('core.script.saving', undefined, 'Saving...') : '',
+    loading ? t('core.state.loading') : ''
+  ].filter(Boolean);
+
+  return <section className={`surface-summary${toolbar.dirty ? ' dirty' : ''}`.trim()} aria-label={t('core.stage.summaryAria', undefined, 'Current surface summary')}>
+    <div className="surface-summary-copy">
+      <strong>{moduleName}</strong>
+      <p>{moduleSummary || fileComment || t('core.stage.defaultHint')}</p>
+      <code>{fileComment ? `${fileComment}${filePath ? ` · ${filePath}` : ''}` : filePath || t('core.stage.defaultHint')}</code>
+    </div>
+    <div className="surface-summary-meta" aria-live="polite">
+      {chips.map((chip, index) => <span key={`${chip}-${index}`} className={`surface-summary-chip${chip === fileKind ? ' kind' : ''}`}>{chip}</span>)}
+    </div>
+  </section>;
+}
+
+function ExtensionHealthBanner({ health, statuses, onRetry }: { health: 'idle' | 'loading' | 'ok' | 'failed'; statuses: WebConsoleExtensionStatus[]; onRetry: () => void }) {
+  if (health === 'idle') return null;
+  const failed = statuses.filter(status => status.status === 'failed');
+  const loadedCount = Math.max(0, statuses.length - failed.length);
+  const label = health === 'loading'
+    ? t('core.state.loading')
+    : health === 'failed'
+      ? t('core.toast.extensionLoadFailed', { count: failed.length || statuses.length || 1 })
+      : t('core.extension.loaded', { count: statuses.length }, '{count} extensions loaded');
+
+  return <aside className={`extension-health extension-health--${health}`} aria-live="polite">
+    <div className="extension-health-copy">
+      <strong>{health === 'loading' ? t('core.extension.loading', undefined, 'Loading extensions') : health === 'failed' ? t('core.extension.failed', undefined, 'Extension issues') : t('core.extension.ok', undefined, 'Extensions ready')}</strong>
+      <p>{health === 'loading' ? t('core.extension.loadingDesc', undefined, 'Loading plugin extensions and host bridges.') : health === 'failed' ? t('core.extension.failedDesc', { count: failed.length || statuses.length || 1 }, '{count} extension(s) failed to load.') : label}</p>
+    </div>
+    <div className="extension-health-meta">
+      {health === 'failed' ? <>
+        <div className="extension-health-list" aria-label={t('core.extension.failedList', undefined, 'Failed extensions')}>
+          {(failed.length || statuses.length)
+            ? (failed.length ? failed : statuses).slice(0, 3).map(status => <code key={`${status.moduleId}:${status.id}`}>{status.moduleId}/{status.id}{status.error ? ` · ${status.error}` : ''}</code>)
+            : <code>{t('core.extension.failedFallback', undefined, 'Extension status unavailable')}</code>}
+          {(failed.length || statuses.length) > 3 && <span className="extension-health-more">+{(failed.length || statuses.length) - 3}</span>}
+        </div>
+        <Button size="sm" variant="soft" onClick={onRetry}>{t('core.action.retry')}</Button>
+      </> : <span className="extension-health-count">{health === 'loading' ? t('core.extension.loadingShort', undefined, 'Loading...') : t('core.extension.loaded', { count: loadedCount }, '{count} loaded')}</span>}
+    </div>
+  </aside>;
 }
 
 function CreateFileModal({ target, onCancel, onCreate }: { target: RegistryTreeNode; onCancel: () => void; onCreate: (target: RegistryTreeNode, name: string) => void | Promise<void> }) {
