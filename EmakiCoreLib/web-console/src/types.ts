@@ -59,7 +59,7 @@ export type WebConfigNode = {
   uniqueBy?: string;
 };
 
-export type WebEditorFieldType = 'text' | 'number' | 'boolean' | 'textarea' | 'stringList' | 'enum' | 'json' | 'actions' | string;
+export type WebEditorFieldType = 'text' | 'number' | 'boolean' | 'textarea' | 'stringList' | 'numberList' | 'enum' | 'json' | 'actions' | string;
 
 export type WebEditorField = {
   path: string;

@@ -7,7 +7,7 @@ export { InspectorSection } from './Panel';
 export { ToggleChip } from './ToggleChip';
 export { MiniText } from './MiniText';
 export { PropRow } from './PropRow';
-export { SectionHead, CollapsibleSection, type CollapsibleSectionProps } from './SectionHead';
+export { SectionHead, CollapsibleSection, DisclosureChevron, type CollapsibleSectionProps, type DisclosureChevronProps } from './SectionHead';
 export { KvTable } from './KvTable';
 export { StringListEditor } from './StringListEditor';
 export { NumberListEditor } from './NumberListEditor';

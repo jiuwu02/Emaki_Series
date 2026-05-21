@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState, type CSSProperties, type Dispatch, type KeyboardEvent, type SetStateAction } from 'react';
 import { getModuleLocaleBundles, t } from '../i18n';
 import { treeNodeDisplayComment, treeNodeDisplayLabel } from '../lib';
+import { DisclosureChevron } from '../components';
 import type { RegistryTreeNode, WebRegistry, WebRegistryModule } from '../types';
 
 export type TreeSelection = { moduleId: string; fileId: string; scriptPath?: string; refreshKey?: number };
@@ -78,7 +79,7 @@ function TreeNodeView({ node, selected, expanded, dirtyKeys, queryActive, toggle
             data-tree-node-id={node.id}
             onClick={() => toggle(node.id)}
           >
-            <Icon svg={node.icon} /> <span aria-hidden="true">{isOpen ? '⌄' : '›'}</span> <span className="tree-label">{displayLabel}</span><DirtyDot dirty={dirty} />
+            <Icon svg={node.icon} /> <DisclosureChevron open={isOpen} className="folder-arrow" /> <span className="tree-label">{displayLabel}</span><DirtyDot dirty={dirty} />
           </button>
           {onOpenI18n && node.id && <ModuleI18nButton moduleId={node.id} moduleName={displayLabel} count={i18nCount} onOpen={onOpenI18n} />}
         </div>
@@ -103,7 +104,7 @@ function TreeNodeView({ node, selected, expanded, dirtyKeys, queryActive, toggle
             data-tree-node-id={node.id}
             onClick={() => toggle(node.id)}
           >
-            <span className="folder-arrow" aria-hidden="true">{isOpen ? '⌄' : '›'}</span><span className="tree-label">{displayLabel}</span><DirtyDot dirty={dirty} />
+            <DisclosureChevron open={isOpen} className="folder-arrow" /><span className="tree-label">{displayLabel}</span><DirtyDot dirty={dirty} />
           </button>
           {onCreateFile && <button type="button" className="tree-file-action" title={t('core.tree.createFile')} aria-label={t('core.tree.createFile')} onClick={(event) => { event.stopPropagation(); onCreateFile(node); }}>+</button>}
         </div>
@@ -121,14 +122,13 @@ function TreeNodeView({ node, selected, expanded, dirtyKeys, queryActive, toggle
   const canSelect = Boolean(node.moduleId && node.fileId);
   const rowClass = level > 1 ? 'tree-child-row' : 'tree-file-row';
   return (
-    <div className={rowClass} role="none" style={level > 1 ? undefined : indentStyle(level)}>
+    <div className={rowClass} role="none" style={indentStyle(level)}>
       <button
         className={level > 1 ? `tree-child ${active ? 'active' : ''} ${dirty ? 'dirty' : ''}` : `tree-file ${active ? 'active' : ''} ${dirty ? 'dirty' : ''}`}
         role="treeitem"
         aria-level={level + 1}
         aria-selected={active}
-            aria-label={`${displayLabel}，${kindLabel}${displayComment ? `，${displayComment}` : ''}${dirty ? `，${t('core.tree.dirty')}` : ''}`}
-
+        aria-label={`${displayLabel}，${kindLabel}${displayComment ? `，${displayComment}` : ''}${dirty ? `，${t('core.tree.dirty')}` : ''}`}
         data-tree-node-id={node.id}
         onClick={() => {
           if (!canSelect || !node.moduleId || !node.fileId) return;
@@ -264,7 +264,7 @@ function treeDirtyKey(moduleId: string, fileId: string, filePath: string) {
 }
 
 function indentStyle(level: number): CSSProperties | undefined {
-  return level > 1 ? { paddingLeft: `${level * 12}px` } : undefined;
+  return level > 0 ? { paddingLeft: `${level * 12}px` } : undefined;
 }
 
 function modulesToTree(modules: WebRegistryModule[]): RegistryTreeNode[] {

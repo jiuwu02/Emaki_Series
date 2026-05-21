@@ -1,4 +1,4 @@
-import { getLocale, registerConfigNodeMeta, registerConfigNodeRule, registerModuleLocale, registerPluginGuiEditor } from 'emaki-web-console';
+import { getLocale, registerConfigListItemSchema, registerConfigNodeMeta, registerConfigNodeRule, registerModuleLocale, registerPluginGuiEditor } from 'emaki-web-console';
 
 const MODULE = 'EmakiCooking';
 
@@ -56,6 +56,7 @@ const fieldComments: Record<string, [string, string, string]> = {
   actions: ['阶段动作', '工位流程中各阶段触发的 CoreLib Action 列表。', 'object'],
   check_delay_ticks: ['检查周期', '后台运行工位的检查间隔，单位 tick。', 'number'],
   heat_item_sources: ['热源来源', '识别为热源的方块 ItemSource 列表。', 'list'],
+  ingredients: ['食材列表', '炒锅配方需要的食材记录列表，包含物品来源、数量和翻炒规则。', 'list'],
   fuels: ['燃料', '可投入燃料及其燃烧时间、火力等参数列表。', 'list'],
   duration_seconds: ['持续秒数', '燃料增加的燃烧时间，单位秒。', 'number'],
   moisture_rules: ['水分规则', '可转化为水分的输入物和返还物配置。', 'list'],
@@ -91,6 +92,16 @@ const localeMessages: Record<string, string> = Object.fromEntries([
   ['emakicooking.file.config.comment', '烹饪系统主配置，包含工位、展示实体和输入规则。'],
   ['emakicooking.file.gui.title', 'GUI 模板'],
   ['emakicooking.file.gui.comment', '烹饪工位 GUI 模板文件。'],
+  ['emakicooking.file.recipes.title', '配方文件'],
+  ['emakicooking.file.recipes.comment', '烹饪配方定义文件目录。'],
+  ['emakicooking.file.item_adjustments.title', '物品调整'],
+  ['emakicooking.file.item_adjustments.comment', '烹饪插件物品调整文件目录。'],
+  ['emakicooking.file.lang.title', '语言文件'],
+  ['emakicooking.file.lang.comment', 'Cooking 语言资源文件目录。'],
+  ['emakicooking.file.plugin.title', '插件描述'],
+  ['emakicooking.file.plugin.comment', 'plugin.yml 插件描述与依赖声明。'],
+  ['emakicooking.file.web-console.title', 'Web Console 声明'],
+  ['emakicooking.file.web-console.comment', 'Web Console 文件注册与资源入口声明。'],
   ...fields.flatMap(([path, label, comment]) => [[`emakicooking.field.${path}`, label], [`emakicooking.comment.${path}`, comment]]),
   ...Object.entries(fieldComments).flatMap(([key, [label, comment]]) => [[`emakicooking.field.${key}`, label], [`emakicooking.comment.${key}`, comment]])
 ]);
@@ -110,6 +121,16 @@ registerModuleLocale(MODULE, 'en-US', {
   'emakicooking.file.config.comment': 'Main cooking configuration covering stations, display entities, and input rules.',
   'emakicooking.file.gui.title': 'GUI Templates',
   'emakicooking.file.gui.comment': 'Cooking station GUI template files.',
+  'emakicooking.file.recipes.title': 'Recipe Files',
+  'emakicooking.file.recipes.comment': 'Directory for cooking recipe definition files.',
+  'emakicooking.file.item_adjustments.title': 'Item Adjustments',
+  'emakicooking.file.item_adjustments.comment': 'Directory for cooking item adjustment files.',
+  'emakicooking.file.lang.title': 'Language Files',
+  'emakicooking.file.lang.comment': 'Directory for Cooking language resources.',
+  'emakicooking.file.plugin.title': 'Plugin Description',
+  'emakicooking.file.plugin.comment': 'plugin.yml plugin metadata and dependency declaration.',
+  'emakicooking.file.web-console.title': 'Web Console Declaration',
+  'emakicooking.file.web-console.comment': 'Web Console file registration and resource entry declaration.',
   'emakicooking.surface.gui': 'Cooking GUI',
   'emakicooking.field.input_rules': 'Input Rules',
   'emakicooking.field.display_entities': 'Display Entities',
@@ -128,6 +149,12 @@ registerModuleLocale(MODULE, 'en-US', {
 fields.forEach(([path, label, comment, type, extra]) => registerConfigNodeMeta(MODULE, path, { label, comment, type, ...(extra ?? {}) }));
 Object.entries(fieldComments).forEach(([key, [label, comment, type]]) => registerConfigNodeRule(MODULE, { key }, { label, comment, type }));
 registerConfigNodeRule(MODULE, { key: 'rotation_axis' }, { label: '旋转轴', comment: '旋转轴，可选 x、y、z。', type: 'enum', options: ['x', 'y', 'z'], optionLabelPrefix: 'axis' });
+
+registerConfigListItemSchema(MODULE, 'ingredients', [
+  { path: 'item_sources', label: '食材来源', comment: '可匹配该食材的 ItemSource 列表。', type: 'stringList', defaultValue: ['minecraft-carrot'] },
+  { path: 'amount', label: '数量', comment: '此食材需要的数量。', type: 'number', defaultValue: 1 },
+  { path: 'stir_rule', label: '翻炒规则', comment: '炒锅配方加入时机，格式为“最早-最晚”。', type: 'text', defaultValue: '1-1' }
+]);
 
 registerPluginGuiEditor({
   moduleId: MODULE,

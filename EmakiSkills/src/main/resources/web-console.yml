@@ -8,6 +8,12 @@ module:
 files:
   - path: "config.yml"
     kind: CONFIG
+  - path: "skills/**/*.yml"
+    kind: CONFIG
+  - path: "resources/**/*.yml"
+    kind: CONFIG
+  - path: "lang/**/*.yml"
+    kind: CONFIG
   - path: "gui/**/*.yml"
     kind: GUI
     editor: "emakiskills:gui"

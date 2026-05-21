@@ -7,8 +7,9 @@ import { ItemEditorSurface } from './ItemEditorSurface';
 import { loadWebExtensions } from './extensions';
 import { applyConfigNodeOverrides, applyConfigRegistryOverrides, applyEditorDescriptorOverrides, getSourceDocumentAdapter, getSurface, isKind, registerSourceDocumentAdapter, registerSurface, setRuntimeEnums } from './registry';
 import { getLocale, getRegisteredLocales, setLocale, t } from './i18n';
-import { ActionGroup, Button, CodeEditor, EditorChrome, InlineError, ToastNotice, type EditorChange } from './components';
+import { ActionGroup, Button, CodeEditor, EditorChrome, DisclosureChevron, InlineError, NumberListEditor, StringListEditor, ToastNotice, type EditorChange } from './components';
 import { useDialogFocus } from './components/useDialogFocus';
+import { useStableEntries } from './components/useStableEntries';
 import { I18nBundleModal, type I18nTarget } from './I18nBundleModal';
 import { configNodeDisplayComment as resolveConfigNodeComment, fieldLabel, fileDisplayComment, fileDisplayTitle, humanizeFieldLabel, moduleDisplayName, optionLabel, parseYaml, serializeYaml, setDeepValue, valuesEqual } from './lib';
 import { Login, ResizableRail, WorkspaceTree, fileKindLabel } from './shell';
@@ -925,7 +926,7 @@ function defaultTemplateValues(template: WebConfigCreateTemplate): Record<string
 function defaultSchemaFieldValue(field: WebConfigFieldSchema): unknown {
   if (field.type === 'number') return 0;
   if (field.type === 'boolean') return false;
-  if (field.type === 'list' || field.type === 'stringList') return [];
+  if (field.type === 'list' || field.type === 'stringList' || field.type === 'numberList') return [];
   if (field.type === 'enum') return field.options?.[0] ?? '';
   return '';
 }
@@ -1026,16 +1027,17 @@ function isDirectChildPath(path: string, parentPath: string): boolean {
   return !path.slice(parentPath.length + 1).includes('.');
 }
 
-function ConfigNodeSection({ scope, node, childrenNodes, drafts, setDraftValue, collapsed, toggle, onCreateChild, onDeleteObject, sourceEdit, deletedPaths, deletable }: { scope: ConfigDraftScope; node: WebConfigNode; childrenNodes: WebConfigNode[]; drafts: DraftMap; setDraftValue: DraftValueSetter; collapsed: Record<string, boolean>; toggle: (path: string) => void; onCreateChild: (node: WebConfigNode) => void; onDeleteObject: (node: WebConfigNode) => void; sourceEdit?: SourceEditController; deletedPaths?: Set<string>; deletable: boolean }) {
+function ConfigNodeSection({ scope, node, childrenNodes, drafts, setDraftValue, collapsed, toggle, onCreateChild, onDeleteObject, sourceEdit, deletedPaths, deletable, depth = 0 }: { scope: ConfigDraftScope; node: WebConfigNode; childrenNodes: WebConfigNode[]; drafts: DraftMap; setDraftValue: DraftValueSetter; collapsed: Record<string, boolean>; toggle: (path: string) => void; onCreateChild: (node: WebConfigNode) => void; onDeleteObject: (node: WebConfigNode) => void; sourceEdit?: SourceEditController; deletedPaths?: Set<string>; deletable: boolean; depth?: number }) {
   const isCollapsed = collapsed[node.path] === true;
   const groups = buildNodeGroups(childrenNodes, node.path);
   const sectionChanged = draftKey(scope, node.path) in drafts || sourceEdit?.paths.has(node.path) === true || deletedPaths?.has(node.path) === true;
   const changedInGroup = childrenNodes.filter(n => n.type !== 'object' && (draftKey(scope, n.path) in drafts || sourceEdit?.paths.has(n.path))).length;
   const groupLabel = configNodeDisplayLabel(scope, node);
-  return <div className="node-section">
+  const sectionIndent = depth > 0 ? { paddingLeft: `${depth * 14}px` } : undefined;
+  return <div className={`node-section${depth > 0 ? ' node-section--nested' : ''}`} style={sectionIndent}>
     <div className={`node-section-header ${isCollapsed ? 'collapsed' : ''} ${sectionChanged ? 'changed' : ''}`}>
       <button type="button" className="node-section-toggle" onClick={() => toggle(node.path)} aria-expanded={!isCollapsed}>
-        <span className="section-arrow" aria-hidden="true">{isCollapsed ? '›' : '⌄'}</span>
+        <DisclosureChevron open={!isCollapsed} className="section-arrow" />
         <strong>{groupLabel}</strong>
         <code>{node.path}</code>
         <span className="section-comment">{configNodeDisplayComment(scope, node)}</span>
@@ -1047,7 +1049,7 @@ function ConfigNodeSection({ scope, node, childrenNodes, drafts, setDraftValue, 
       <span className="section-meta">{(sectionChanged || changedInGroup > 0) && <span className="section-badge">{Math.max(changedInGroup, sectionChanged ? 1 : 0)}</span>}{t('core.config.groupItems', { count: groups.length })}</span>
     </div>
     {!isCollapsed && <div className="node-section-body">{groups.map(group => group.type === 'section'
-      ? <ConfigNodeSection key={group.node.path} scope={scope} node={group.node} childrenNodes={group.children} drafts={drafts} setDraftValue={setDraftValue} collapsed={collapsed} toggle={toggle} onCreateChild={onCreateChild} onDeleteObject={onDeleteObject} sourceEdit={sourceEdit} deletedPaths={deletedPaths} deletable={node.creatableChildren === true} />
+      ? <ConfigNodeSection key={group.node.path} scope={scope} node={group.node} childrenNodes={group.children} drafts={drafts} setDraftValue={setDraftValue} collapsed={collapsed} toggle={toggle} onCreateChild={onCreateChild} onDeleteObject={onDeleteObject} sourceEdit={sourceEdit} deletedPaths={deletedPaths} deletable={node.creatableChildren === true} depth={depth + 1} />
       : <ConfigNodeView key={group.node.path} scope={scope} node={group.node} drafts={drafts} setDraftValue={setDraftValue} sourceEdit={sourceEdit} />
     )}</div>}
   </div>;
@@ -1070,7 +1072,7 @@ function renderControl(node: WebConfigNode, value: unknown, setValue: (v: unknow
   if (node.type === 'dynamic_map') return <DynamicMapEditor value={value} setValue={setValue} />;
   if (node.type === 'list') {
     const items = Array.isArray(value) ? value : [];
-    const hasObjectItems = node.path === 'allowed_damage_causes' || items.some(isPlainObject);
+    const hasObjectItems = Boolean(node.itemFields?.length) || items.some(isPlainObject);
     if (hasObjectItems) return <ObjectListEditor node={node} items={items} setValue={setValue} moduleId={moduleId} />;
     const update = (i: number, v: string) => setValue(items.map((x, j) => j === i ? parseListValue(x, v) : x));
     return <div className="list-editor">{items.map((item, i) => <div className="list-row" key={i}><input value={str(item)} onChange={(e) => update(i, e.target.value)} aria-label={t('core.config.itemIndex', { index: i + 1 })} /><button type="button" onClick={() => setValue(items.filter((_, j) => j !== i))} aria-label={t('core.config.deleteItem', { index: i + 1 })}>{t('core.config.delete')}</button></div>)}<button type="button" className="add-row" onClick={() => setValue([...items, ''])}>{t('core.config.addItem')}</button></div>;
@@ -1080,10 +1082,28 @@ function renderControl(node: WebConfigNode, value: unknown, setValue: (v: unknow
 
 function ObjectListEditor({ node, items, setValue, moduleId }: { node: WebConfigNode; items: unknown[]; setValue: (v: unknown) => void; moduleId: string }) {
   const objectItems: Record<string, unknown>[] = items.map(item => isPlainObject(item) ? item : {});
+  const stableRef = useStableEntries(objectItems);
+  const stable = stableRef.current;
+  const [collapsed, setCollapsed] = useState<Set<number>>(() => new Set());
   const keys = objectListKeys(node, objectItems);
+  const duplicateValues = duplicateUniqueValues(node, objectItems);
 
   function updateField(index: number, key: string, nextValue: unknown) {
     setValue(items.map((item, itemIndex) => itemIndex === index ? { ...(isPlainObject(item) ? item : {}), [key]: nextValue } : item));
+  }
+
+  function removeEntry(index: number) {
+    stableRef.current.splice(index, 1);
+    setValue(items.filter((_, itemIndex) => itemIndex !== index));
+  }
+
+  function toggleEntry(rowId: number) {
+    setCollapsed(current => {
+      const next = new Set(current);
+      if (next.has(rowId)) next.delete(rowId);
+      else next.add(rowId);
+      return next;
+    });
   }
 
   function addEntry() {
@@ -1091,19 +1111,34 @@ function ObjectListEditor({ node, items, setValue, moduleId }: { node: WebConfig
   }
 
   return <div className="object-list-editor">
-    {objectItems.map((item, index) => <div className="object-list-entry" key={index}>
-      <div className="object-list-head">
-        <strong>#{index + 1}</strong>
-        <code>{objectListSummary(item, index)}</code>
-        <button type="button" onClick={() => setValue(items.filter((_, itemIndex) => itemIndex !== index))} aria-label={t('core.config.deleteItem', { index: index + 1 })}>{t('core.config.delete')}</button>
-      </div>
-      <div className="object-list-fields">
-        {keys.map(key => <div className="object-list-field" key={key}>
-          <label>{fieldLabel(`${node.path}.${key}`, { moduleId, namespace: moduleId, fallback: getLocale().startsWith('zh') ? (fieldSchemaForKey(node, key)?.label || key.replace(/_/g, ' ')) : humanizeFieldLabel(key) })}</label>
-          {renderSchemaField(fieldSchemaForKey(node, key), item[key], next => updateField(index, key, next), moduleId, `${node.path}.${index}.${key}`, objectItems, index)}
-        </div>)}
-      </div>
-    </div>)}
+    {stable.map((entry, index) => {
+      const item = entry.data;
+      const rowId = entry._id;
+      const expanded = !collapsed.has(rowId);
+      const summary = objectListSummary(node, item, index);
+      const duplicate = isDuplicateUniqueValue(node, item, duplicateValues);
+      return <div className={`object-list-entry ${expanded ? 'expanded' : 'collapsed'} ${duplicate ? 'duplicate' : ''}`} key={rowId}>
+        <div className="object-list-head">
+          <button type="button" className="object-list-toggle" onClick={() => toggleEntry(rowId)} aria-expanded={expanded}>
+            <DisclosureChevron open={expanded} className="object-list-arrow" />
+            <strong>#{index + 1}</strong>
+            <code>{summary}</code>
+            {duplicate && <span className="object-list-badge">{configInlineText('重复', 'Duplicate')}</span>}
+          </button>
+          <button type="button" className="object-list-remove" onClick={() => removeEntry(index)} aria-label={t('core.config.deleteItem', { index: index + 1 })}>{t('core.config.delete')}</button>
+        </div>
+        {expanded && <div className="object-list-fields">
+          {keys.map(key => {
+            const field = fieldSchemaForKey(node, key);
+            const wide = isListSchemaField(field, item[key]);
+            return <div className={`object-list-field ${wide ? 'object-list-field--wide' : ''}`} key={key}>
+              <label>{fieldLabel(`${node.path}.${key}`, { moduleId, namespace: moduleId, fallback: getLocale().startsWith('zh') ? (field?.label || key.replace(/_/g, ' ')) : humanizeFieldLabel(key) })}</label>
+              {renderSchemaField(field, item[key], next => updateField(index, key, next), moduleId, `${node.path}.${index}.${key}`, objectItems, index)}
+            </div>;
+          })}
+        </div>}
+      </div>;
+    })}
     <button type="button" className="add-row" onClick={addEntry}>{t('core.config.addItem')}</button>
   </div>;
 }
@@ -1112,6 +1147,8 @@ function renderSchemaField(field: WebConfigFieldSchema | undefined, value: unkno
   const type = field?.type;
   if (type === 'boolean' || typeof value === 'boolean') return <button type="button" className={`switch ${value ? 'on' : ''}`} aria-pressed={value === true} aria-label={ariaLabel} onClick={() => onChange(!value)}><span />{value ? t('core.config.booleanOn') : t('core.config.booleanOff')}</button>;
   if (type === 'number' || typeof value === 'number') return <input type="number" aria-label={ariaLabel} value={Number.isFinite(value as number) ? String(value) : ''} onChange={(e) => onChange(e.target.value === '' ? undefined : Number(e.target.value))} />;
+  if (type === 'list' || type === 'stringList') return <StringListEditor items={asStringListValue(value)} onChange={onChange} />;
+  if (type === 'numberList') return <NumberListEditor items={asNumberListValue(value)} onChange={onChange} />;
   if (type === 'enum' && field?.options) {
     const used = new Set(siblingItems.map((item, index) => index === currentIndex ? '' : String(item[field.path] ?? '')).filter(Boolean));
     const current = str(value);
@@ -1140,20 +1177,90 @@ function objectListTemplate(node: WebConfigNode, sample: Record<string, unknown>
 function defaultListFieldValue(node: WebConfigNode, field: WebConfigFieldSchema, sample: Record<string, unknown> | undefined) {
   if (field.type === 'enum' && field.options?.length) {
     const used = new Set((Array.isArray(node.value) ? node.value : []).map(item => isPlainObject(item) ? String(item[field.path] ?? '') : '').filter(Boolean));
-    return field.options.find(option => !used.has(option)) ?? field.options[0] ?? '';
+    const next = field.options.find(option => !used.has(option)) ?? field.options[0] ?? '';
+    return field.defaultValue !== undefined ? resolveUniqueListDefault(node, field, field.defaultValue) : next;
   }
-  return field.defaultValue ?? defaultObjectListValue(sample?.[field.path]);
+  const baseValue = field.defaultValue !== undefined ? field.defaultValue : (field.type ? defaultSchemaFieldValue(field) : defaultObjectListValue(sample?.[field.path]));
+  return resolveUniqueListDefault(node, field, baseValue);
 }
 
 function defaultObjectListValue(sample: unknown) {
+  if (Array.isArray(sample)) return [];
   if (typeof sample === 'number') return 0;
   if (typeof sample === 'boolean') return false;
+  if (isPlainObject(sample)) return {};
   return '';
 }
 
-function objectListSummary(item: Record<string, unknown>, index: number) {
-  const primary = item.cause ?? item.id ?? item.key ?? item.name ?? item.type;
-  return primary == null || primary === '' ? t('core.config.itemIndex', { index: index + 1 }) : String(primary);
+function objectListSummary(node: WebConfigNode, item: Record<string, unknown>, index: number) {
+  const uniqueValue = node.uniqueBy ? item[node.uniqueBy] : undefined;
+  const primary = uniqueValue ?? item.cause ?? item.target_id ?? item.currency_id ?? item.item ?? item.item_sources ?? item.id ?? item.key ?? item.name ?? item.type;
+  return primary == null || primary === '' ? t('core.config.itemIndex', { index: index + 1 }) : formatListSummaryValue(primary);
+}
+
+function formatListSummaryValue(value: unknown): string {
+  if (Array.isArray(value)) {
+    const text = value.map(entry => entry == null ? '' : String(entry)).filter(Boolean).slice(0, 3).join(', ');
+    return text || '[]';
+  }
+  if (isPlainObject(value)) {
+    const entries = Object.values(value).map(entry => entry == null ? '' : String(entry)).filter(Boolean).slice(0, 2);
+    return entries.join(', ') || '{}';
+  }
+  return String(value);
+}
+
+function resolveUniqueListDefault(node: WebConfigNode, field: WebConfigFieldSchema, baseValue: unknown): unknown {
+  if (!node.uniqueBy || node.uniqueBy !== field.path) return baseValue;
+  if (typeof baseValue !== 'string') return baseValue;
+  const existing = new Set((Array.isArray(node.value) ? node.value : []).map(item => {
+    if (!isPlainObject(item)) return '';
+    return normalizedUniqueValue(item[field.path]);
+  }).filter(Boolean));
+  const candidate = baseValue.trim();
+  if (!candidate) return baseValue;
+  if (!existing.has(normalizedUniqueValue(candidate))) return candidate;
+  let index = 2;
+  while (existing.has(normalizedUniqueValue(`${candidate}_${index}`))) index += 1;
+  return `${candidate}_${index}`;
+}
+
+function isListSchemaField(field: WebConfigFieldSchema | undefined, value: unknown) {
+  return field?.type === 'list' || field?.type === 'stringList' || field?.type === 'numberList' || Array.isArray(value);
+}
+
+function asStringListValue(value: unknown): string[] {
+  if (Array.isArray(value)) return value.map(item => item == null ? '' : String(item));
+  if (value == null) return [];
+  return [String(value)];
+}
+
+function asNumberListValue(value: unknown): number[] {
+  const values = Array.isArray(value) ? value : value == null ? [] : [value];
+  return values.map(item => Number(item) || 0);
+}
+
+function duplicateUniqueValues(node: WebConfigNode, items: Record<string, unknown>[]): Set<string> {
+  if (!node.uniqueBy) return new Set();
+  const counts = new Map<string, number>();
+  for (const item of items) {
+    const key = normalizedUniqueValue(item[node.uniqueBy]);
+    if (!key) continue;
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  return new Set(Array.from(counts.entries()).filter(([, count]) => count > 1).map(([key]) => key));
+}
+
+function isDuplicateUniqueValue(node: WebConfigNode, item: Record<string, unknown>, duplicateValues: Set<string>): boolean {
+  return Boolean(node.uniqueBy && duplicateValues.has(normalizedUniqueValue(item[node.uniqueBy])));
+}
+
+function normalizedUniqueValue(value: unknown): string {
+  return String(value ?? '').trim().toLowerCase();
+}
+
+function configInlineText(zh: string, en: string): string {
+  return getLocale().startsWith('zh') ? zh : en;
 }
 
 function mergeKeys(preferred: string[], keys: string[]) {

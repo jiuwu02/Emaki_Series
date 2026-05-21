@@ -17,14 +17,26 @@ language: "zh_CN"
 release_default_data: true
 
 quality:
-  # 品质池，格式为 "名称-权重-倍率"
+  # 品质池。每项是一个可编辑记录：name 为品质名，weight 为抽取权重，multiplier 为结果倍率。
   tiers:
-    - "平庸-60-1.0"
-    - "精良-30-1.05"
-    - "有缺-10-0.95"
-    - "优质-5-1.1"
-    - "无暇-2-1.15"
-    - "完美-1-1.2"
+    - name: "平庸"
+      weight: 60
+      multiplier: 1.0
+    - name: "精良"
+      weight: 30
+      multiplier: 1.05
+    - name: "有缺"
+      weight: 10
+      multiplier: 0.95
+    - name: "优质"
+      weight: 5
+      multiplier: 1.1
+    - name: "无暇"
+      weight: 2
+      multiplier: 1.15
+    - name: "完美"
+      weight: 1
+      multiplier: 1.2
 
   # 随机失败时的回退品质
   default_tier: "平庸"

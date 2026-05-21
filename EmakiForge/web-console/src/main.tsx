@@ -1,4 +1,4 @@
-import { getLocale, registerConfigCreateTemplate, registerConfigNodeMeta, registerConfigNodeRule, registerModuleLocale, registerPluginGuiEditor } from 'emaki-web-console';
+import { getLocale, registerConfigCreateTemplate, registerConfigListItemSchema, registerConfigNodeMeta, registerConfigNodeRule, registerModuleLocale, registerPluginGuiEditor } from 'emaki-web-console';
 
 const MODULE = 'EmakiForge';
 
@@ -8,7 +8,7 @@ const copy = (zh: string, en: string) => getLocale().startsWith('zh') ? zh : en;
 
 const fields: FieldSpec[] = [
   ['quality', '品质设置', '锻造结果的品质池、随机回退、保底与品质写入物品显示的全局设置。', 'object'],
-  ['quality.tiers', '品质池', '品质列表，格式为“名称-权重-倍率”。权重影响抽取概率，倍率影响最终锻造数值。', 'list'],
+  ['quality.tiers', '品质池', '品质记录列表，每项包含品质名、抽取权重和结果倍率。旧版“名称-权重-倍率”字符串仍可读取。', 'list'],
   ['quality.default_tier', '回退品质', '随机抽取没有命中任何品质时使用的默认品质名称。', 'text'],
   ['quality.guarantee', '保底配置', '连续未出高品质后的品质保底触发条件与最低品质设置。', 'object'],
   ['quality.guarantee.enabled', '启用保底', '是否启用品质保底机制。关闭后 threshold/minimum 不生效。', 'boolean'],
@@ -48,6 +48,14 @@ const localeMessages: Record<string, string> = Object.fromEntries([
   ['emakiforge.file.config.comment', '锻造系统主配置，包含品质、配方、GUI 和玩家数据策略。'],
   ['emakiforge.file.gui.title', 'GUI 模板'],
   ['emakiforge.file.gui.comment', '锻造、配方书与编辑器 GUI 模板文件。'],
+  ['emakiforge.file.recipes.title', '配方文件'],
+  ['emakiforge.file.recipes.comment', '锻造配方定义文件目录。'],
+  ['emakiforge.file.lang.title', '语言文件'],
+  ['emakiforge.file.lang.comment', 'Forge 语言资源文件目录。'],
+  ['emakiforge.file.plugin.title', '插件描述'],
+  ['emakiforge.file.plugin.comment', 'plugin.yml 插件描述与依赖声明。'],
+  ['emakiforge.file.web-console.title', 'Web Console 声明'],
+  ['emakiforge.file.web-console.comment', 'Web Console 文件注册与资源入口声明。'],
   ...fields.flatMap(([path, label, comment]) => [[`emakiforge.field.${path}`, label], [`emakiforge.comment.${path}`, comment]]),
   ...Object.entries(ruleFields).flatMap(([key, [label, comment]]) => [[`emakiforge.field.${key}`, label], [`emakiforge.comment.${key}`, comment]])
 ]);
@@ -64,6 +72,14 @@ registerModuleLocale(MODULE, 'en-US', {
   'emakiforge.file.config.comment': 'Main forge configuration covering tiers, recipes, GUI, and player data strategy.',
   'emakiforge.file.gui.title': 'GUI Templates',
   'emakiforge.file.gui.comment': 'Forge, recipe book, and editor GUI templates.',
+  'emakiforge.file.recipes.title': 'Recipe Files',
+  'emakiforge.file.recipes.comment': 'Directory for forge recipe definition files.',
+  'emakiforge.file.lang.title': 'Language Files',
+  'emakiforge.file.lang.comment': 'Directory for Forge language resources.',
+  'emakiforge.file.plugin.title': 'Plugin Description',
+  'emakiforge.file.plugin.comment': 'plugin.yml plugin metadata and dependency declaration.',
+  'emakiforge.file.web-console.title': 'Web Console Declaration',
+  'emakiforge.file.web-console.comment': 'Web Console file registration and resource entry declaration.',
   'emakiforge.surface.gui': 'Forge GUI',
   'emakiforge.field.quality': 'Quality',
   'emakiforge.field.quality.tiers': 'Quality Pool',
@@ -89,6 +105,12 @@ registerConfigCreateTemplate(MODULE, 'quality.item_meta.tiers', {
     { path: 'action', label: '广播动作', comment: '该品质达成时执行的广播或提示动作。', type: 'list', defaultValue: [] }
   ]
 });
+
+registerConfigListItemSchema(MODULE, 'quality.tiers', [
+  { path: 'name', label: '品质名', comment: '品质名称，会被 default_tier、guarantee.minimum 和品质显示配置引用。', type: 'text', defaultValue: '新品质' },
+  { path: 'weight', label: '权重', comment: '随机抽取权重，数值越高越容易出现。', type: 'number', defaultValue: 1 },
+  { path: 'multiplier', label: '倍率', comment: '该品质对最终锻造数值的倍率。', type: 'number', defaultValue: 1 }
+], { uniqueBy: 'name' });
 
 registerPluginGuiEditor({
   moduleId: MODULE,

@@ -11,6 +11,17 @@ export function SectionHead({ title, count, actions }: { title: string; count?: 
   );
 }
 
+export type DisclosureChevronProps = {
+  open: boolean;
+  className?: string;
+};
+
+export function DisclosureChevron({ open, className = '' }: DisclosureChevronProps) {
+  return <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false" className={`disclosure-chevron ${open ? 'is-open' : 'is-closed'} ${className}`.trim()}>
+    <path d="M5.2 6.2 8 9l2.8-2.8" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>;
+}
+
 export type CollapsibleSectionProps = {
   title: string;
   count?: number;
@@ -56,7 +67,7 @@ export function CollapsibleSection({
   return <section className={`prop-section prop-section--collapsible${collapsed ? ' collapsed' : ''} ${className}`.trim()}>
     <div className="prop-section-head prop-section-head--collapsible">
       <button type="button" className="prop-section-toggle" onClick={toggle} aria-expanded={!collapsed}>
-        <span className="prop-section-arrow" aria-hidden="true">{collapsed ? '›' : '⌄'}</span>
+        <DisclosureChevron open={!collapsed} className="prop-section-arrow" />
         <span className="prop-section-title">{title}</span>
       </button>
       {count !== undefined && <span className="prop-section-count">{count}</span>}

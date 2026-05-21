@@ -1,4 +1,4 @@
-import { getLocale, registerConfigNodeMeta, registerConfigNodeRule, registerModuleLocale, registerPluginGuiEditor } from 'emaki-web-console';
+import { getLocale, registerConfigListItemSchema, registerConfigListItemSchemaRule, registerConfigNodeMeta, registerConfigNodeRule, registerModuleLocale, registerPluginGuiEditor } from 'emaki-web-console';
 
 const MODULE = 'EmakiSkills';
 
@@ -46,6 +46,16 @@ const localeMessages: Record<string, string> = Object.fromEntries([
   ['emakiskills.file.config.comment', '技能系统主配置，包含触发器、施法模式、资源和升级设置。'],
   ['emakiskills.file.gui.title', 'GUI 模板'],
   ['emakiskills.file.gui.comment', '技能面板与触发器选择 GUI 模板文件。'],
+  ['emakiskills.file.skills.title', '技能定义'],
+  ['emakiskills.file.skills.comment', '技能定义文件目录。'],
+  ['emakiskills.file.resources.title', '资源定义'],
+  ['emakiskills.file.resources.comment', '技能资源定义文件目录。'],
+  ['emakiskills.file.lang.title', '语言文件'],
+  ['emakiskills.file.lang.comment', 'Skills 语言资源文件目录。'],
+  ['emakiskills.file.plugin.title', '插件描述'],
+  ['emakiskills.file.plugin.comment', 'plugin.yml 插件描述与依赖声明。'],
+  ['emakiskills.file.web-console.title', 'Web Console 声明'],
+  ['emakiskills.file.web-console.comment', 'Web Console 文件注册与资源入口声明。'],
   ...fields.flatMap(([path, label, comment]) => [[`emakiskills.field.${path}`, label], [`emakiskills.comment.${path}`, comment]]),
   ...Object.entries(triggerFields).flatMap(([key, [label, comment]]) => [[`emakiskills.field.${key}`, label], [`emakiskills.comment.${key}`, comment]])
 ]);
@@ -65,6 +75,16 @@ registerModuleLocale(MODULE, 'en-US', {
   'emakiskills.file.config.comment': 'Main skill system configuration covering triggers, cast modes, resources, and progression.',
   'emakiskills.file.gui.title': 'GUI Templates',
   'emakiskills.file.gui.comment': 'Skill panel and trigger selection GUI templates.',
+  'emakiskills.file.skills.title': 'Skill Definitions',
+  'emakiskills.file.skills.comment': 'Directory for skill definition files.',
+  'emakiskills.file.resources.title': 'Resource Definitions',
+  'emakiskills.file.resources.comment': 'Directory for skill resource files.',
+  'emakiskills.file.lang.title': 'Language Files',
+  'emakiskills.file.lang.comment': 'Directory for Skills language resources.',
+  'emakiskills.file.plugin.title': 'Plugin Description',
+  'emakiskills.file.plugin.comment': 'plugin.yml plugin metadata and dependency declaration.',
+  'emakiskills.file.web-console.title': 'Web Console Declaration',
+  'emakiskills.file.web-console.comment': 'Web Console file registration and resource entry declaration.',
   'emakiskills.surface.gui': 'Skills GUI',
   'emakiskills.field.slots': 'Skill Slots',
   'emakiskills.field.cast_mode': 'Cast Mode',
@@ -83,6 +103,42 @@ registerModuleLocale(MODULE, 'en-US', {
 
 fields.forEach(([path, label, comment, type, extra]) => registerConfigNodeMeta(MODULE, path, { label, comment, type, ...(extra ?? {}) }));
 Object.entries(triggerFields).forEach(([key, [label, comment, type]]) => registerConfigNodeRule(MODULE, { key }, { label, comment, type }));
+
+registerConfigNodeRule(MODULE, { key: 'description' }, { label: '技能描述', comment: '技能说明文本列表。', type: 'stringList' });
+registerConfigNodeRule(MODULE, { key: 'lore_aliases' }, { label: 'Lore 别名', comment: '用于 Lore 匹配识别的别名列表。', type: 'stringList' });
+registerConfigNodeRule(MODULE, { key: 'conditions' }, { label: '释放条件', comment: '技能释放前检查的条件表达式列表。', type: 'stringList' });
+registerConfigNodeRule(MODULE, { key: 'passive_triggers' }, { label: '被动触发器', comment: '被动技能触发器 ID 列表。', type: 'stringList' });
+registerConfigNodeRule(MODULE, { key: 'incompatible_with' }, { label: '互斥触发器', comment: '与当前触发器互斥的触发器 ID 列表。', type: 'stringList' });
+registerConfigNodeRule(MODULE, { key: 'resource_costs' }, { label: '资源消耗', comment: '释放技能时消耗或检查的资源列表。', type: 'list' });
+registerConfigNodeRule(MODULE, { key: 'currencies' }, { label: '升级货币', comment: '升级经济中各币种的成本列表。', type: 'list' });
+registerConfigNodeRule(MODULE, { suffix: '.materials' }, { label: '升级材料', comment: '升级等级所需材料列表。', type: 'list' });
+registerConfigNodeRule(MODULE, { key: 'cast' }, { label: '释放阶段', comment: '旧版脚本中的 cast 动作列表。', type: 'stringList' });
+registerConfigNodeRule(MODULE, { key: 'hit' }, { label: '命中阶段', comment: '旧版脚本中的 hit 动作列表。', type: 'stringList' });
+registerConfigNodeRule(MODULE, { key: 'miss' }, { label: '未命中阶段', comment: '旧版脚本中的 miss 动作列表。', type: 'stringList' });
+registerConfigNodeRule(MODULE, { key: 'fail' }, { label: '失败阶段', comment: '旧版脚本中的 fail 动作列表。', type: 'stringList' });
+
+registerConfigListItemSchema(MODULE, 'resource_costs', [
+  { path: 'type', label: '资源类型', comment: '资源消耗类型。', type: 'enum', options: ['ea-resource', 'attribute-check', 'local-resource'], defaultValue: 'local-resource', optionLabelPrefix: 'skill.resource_cost.type' },
+  { path: 'target_id', label: '目标 ID', comment: '资源或属性标识。', type: 'text', defaultValue: 'mana' },
+  { path: 'amount', label: '数量', comment: '消耗或检查的数量。', type: 'number', defaultValue: 1 },
+  { path: 'operation', label: '操作', comment: 'consume 为消耗，require 为检查。', type: 'enum', options: ['consume', 'require'], defaultValue: 'consume', optionLabelPrefix: 'skill.resource_cost.operation' },
+  { path: 'failure_message', label: '失败提示', comment: '资源不足时显示的提示消息。', type: 'text', defaultValue: '资源不足' }
+], { uniqueBy: 'target_id' });
+
+registerConfigListItemSchema(MODULE, 'upgrade.economy.currencies', [
+  { path: 'provider', label: '提供方', comment: '货币提供方或桥接器。', type: 'text', defaultValue: 'vault' },
+  { path: 'currency_id', label: '货币 ID', comment: '具体货币标识。', type: 'text', defaultValue: 'currency' },
+  { path: 'base_cost', label: '基础成本', comment: '未套公式时的基础数值。', type: 'number', defaultValue: 0 },
+  { path: 'cost_formula', label: '成本公式', comment: '按等级计算成本的公式。', type: 'text', defaultValue: '{base_cost}' },
+  { path: 'display_name', label: '显示名', comment: 'GUI 中显示的货币名称。', type: 'text', defaultValue: '' }
+], { uniqueBy: 'currency_id' });
+
+registerConfigListItemSchemaRule(MODULE, { suffix: 'materials' }, [
+  { path: 'item_sources', label: '物品来源', comment: '作为材料的 ItemSource 列表。', type: 'stringList', defaultValue: ['minecraft-iron_ingot'] },
+  { path: 'amount', label: '数量', comment: '此材料需要的数量。', type: 'number', defaultValue: 1 },
+  { path: 'optional', label: '可选', comment: '是否可选材料。', type: 'boolean', defaultValue: false },
+  { path: 'protection', label: '保护', comment: '是否受保护规则影响。', type: 'boolean', defaultValue: false }
+]);
 
 registerPluginGuiEditor({
   moduleId: MODULE,

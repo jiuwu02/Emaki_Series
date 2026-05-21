@@ -4,7 +4,7 @@ import { getSourceDocumentAdapter, type SurfaceToolbarState } from './registry';
 import type { GuiSlotDefinition, GuiTemplateData, WebRegistryFile, WebRegistryModule } from './types';
 import { buildOccupancy, clampRows, fieldLabel, guiColumns, guiField, guiSlotCount, guiTypeOptions, loreLines, materialShortName, materialUrls, normalizeGuiType, parseSlotList, parseYaml, renderMiniMessageParts, serializeGuiYaml, subscribeTextureBases, supportsRows, textValue } from './guiEditor';
 import { fileDisplayTitle, humanizeFieldLabel } from './lib';
-import { Button, EditorChrome, InlineError, InspectorSection, ToastNotice, ToggleChip } from './components';
+import { Button, DisclosureChevron, EditorChrome, InlineError, InspectorSection, ToastNotice, ToggleChip } from './components';
 import { getLocale, t } from './i18n';
 import { diffRecords } from './lib';
 import { MATERIAL_CATEGORIES, MINECRAFT_MATERIAL_VERSION, type MaterialCategory, materialCategory, searchMaterials } from './minecraftMaterials';
@@ -485,7 +485,7 @@ function OverlaySlotInspector({ cell, visibleKey, onVisibilityChange, editor, up
             onClick={() => onVisibilityChange(isVisible ? null : overlay.key)}
           />
           <button type="button" className="overlay-toggle" onClick={() => toggle(overlay.key)} aria-expanded={!isCollapsed}>
-            <span>{isCollapsed ? '›' : '⌄'}</span>
+            <DisclosureChevron open={!isCollapsed} className="overlay-arrow" />
             <code>{overlay.key}</code>
             {overlay.slot?.type && <small className="overlay-type">{overlay.slot.type}</small>}
           </button>
@@ -533,7 +533,7 @@ function InspectorPanel({ title, storageKey, defaultCollapsed = false, children 
   return <section className={`slot-form-section prop-section ${collapsed ? 'collapsed' : ''}`}>
     <div className="prop-section-head prop-section-head--collapsible slot-section-head">
       <button type="button" className="prop-section-toggle slot-section-toggle" onClick={toggle} aria-expanded={!collapsed}>
-        <span className="prop-section-arrow">{collapsed ? '›' : '⌄'}</span>
+        <DisclosureChevron open={!collapsed} className="prop-section-arrow" />
         <span className="prop-section-title">{title}</span>
       </button>
     </div>

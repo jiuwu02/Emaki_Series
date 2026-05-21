@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { ApiClient, ActionTypesResult } from './api';
-import { ActionsEditor, Button, CollapsibleSection, EditorChrome, InlineError, MiniText, PropRow as BasePropRow, SectionHead, StringListEditor, ToastNotice, parseActionList, serializeActionList } from './components';
+import { ActionsEditor, Button, CollapsibleSection, DisclosureChevron, EditorChrome, InlineError, MiniText, PropRow as BasePropRow, SectionHead, StringListEditor, ToastNotice, parseActionList, serializeActionList } from './components';
 import { asList, asRecord, asStringList, displaySource, firstItemSource, materialFromItemSource, setDeepValue, parseYaml, type AnyMap } from './itemEditor';
 import { t, getLocale } from './i18n';
 import { changedPathSet, diffRecords, fieldLabel, getDeepValue, humanizeFieldLabel, isChangedFieldPath, materialShortName, materialUrls, optionLabel, subscribeTextureBases, textValue, valuesEqual } from './lib';
@@ -518,7 +518,7 @@ function EffectsEditor({ value, onChange, actionTypesResult, path }: { value: un
       const opened = expanded.has(index);
       return <div className={`prop-level-item${opened ? ' expanded' : ''}`} key={index} role="listitem">
         <div className="prop-level-head" role="button" tabIndex={0} onClick={() => toggle(index)} onKeyDown={event => toggleByKeyboard(event, () => toggle(index))} aria-expanded={opened} aria-controls={`effect-body-${index}`}>
-          <span className="prop-level-summary"><span className="prop-level-badge">{opened ? '⌄' : '›'} #{index + 1}</span>{coreEffectTypeLabel(type)}</span>
+          <span className="prop-level-summary"><span className="prop-level-badge"><DisclosureChevron open={opened} className="prop-level-arrow" /> #{index + 1}</span>{coreEffectTypeLabel(type)}</span>
           <span className="prop-level-rate">{effectSummary(effect)}</span>
           <span className="prop-action-controls" onClick={stopEvent} onKeyDown={stopEvent}>
             <button type="button" onClick={() => moveEffect(index, -1)} disabled={index === 0} aria-label={t('core.field.move_up')}>↑</button>

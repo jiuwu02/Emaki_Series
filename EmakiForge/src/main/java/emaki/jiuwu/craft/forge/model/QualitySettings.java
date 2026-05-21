@@ -8,10 +8,24 @@ import java.util.Map;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
 public final class QualitySettings {
 
     public record QualityTier(String name, int weight, double multiplier) {
+
+        public static QualityTier fromConfig(Object raw) {
+            if (raw instanceof Map<?, ?> || raw instanceof YamlSection) {
+                String name = Texts.trim(ConfigNodes.string(raw, "name", ""));
+                int weight = Numbers.tryParseInt(ConfigNodes.get(raw, "weight"), 0);
+                double multiplier = Numbers.tryParseDouble(ConfigNodes.get(raw, "multiplier"), 1D);
+                if (Texts.isBlank(name) || weight <= 0) {
+                    return null;
+                }
+                return new QualityTier(name, weight, multiplier);
+            }
+            return fromString(Texts.toStringSafe(raw));
+        }
 
         public static QualityTier fromString(String raw) {
             if (Texts.isBlank(raw)) {
@@ -72,7 +86,7 @@ public final class QualitySettings {
         }
         List<QualityTier> tiers = new ArrayList<>();
         for (Object entry : ConfigNodes.asObjectList(ConfigNodes.get(raw, "tiers"))) {
-            QualityTier tier = QualityTier.fromString(Texts.toStringSafe(entry));
+            QualityTier tier = QualityTier.fromConfig(entry);
             if (tier != null) {
                 tiers.add(tier);
             }
