@@ -27,6 +27,8 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.event.server.PluginEnableEvent;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.attribute.config.AttributeConfig;
 import emaki.jiuwu.craft.attribute.config.DamageCauseRule;
@@ -171,83 +173,96 @@ public final class AttributeListener implements Listener {
             debugCombat(syntheticAttacker, target, syntheticProjectile, "SYNTHETIC_DAMAGE_BYPASS", "combat_debug.synthetic_damage_bypass_entity");
             return;
         }
-        // Vanilla damage is ignored for combat math; Emaki applies the real health change itself.
-        DamageContextVariables context = CombatSupport.baseContext(event, target);
-        if (damager instanceof Projectile projectile) {
-            Entity shooter = projectile.getShooter() instanceof Entity entity ? entity : null;
-            LivingEntity shootingEntity = shooter instanceof LivingEntity livingEntity ? livingEntity : null;
-            if (shouldDebugCombat(shootingEntity, target, projectile)) {
-                debugCombat(shootingEntity, target, projectile, "PROJECTILE_HIT", "combat_debug.projectile_hit_intercept", Map.of(
-                        "shooter", describeEntity(shootingEntity),
-                        "projectile", describeEntity(projectile),
-                        "target", describeEntity(target),
-                        "cause", event.getCause().name(),
-                        "vanilla_damage", formatNumber(event.getDamage()),
-                        "vanilla_final", formatNumber(event.getFinalDamage())
-                ));
-            }
-            Player playerShooter = shooter instanceof Player player ? player : null;
-            if (isAttackCoolingDown(playerShooter, shootingEntity, target, projectile,
-                    "PROJECTILE_HIT_BLOCKED", "combat_debug.projectile_hit_blocked", "shooter")) {
+        // 只有原生近战 / 横扫 / 投射物继续走战斗属性结算，其余 by-entity 原版伤害按环境伤害分流。
+        EntityDamageEvent.DamageCause cause = event.getCause();
+        if (cause == EntityDamageEvent.DamageCause.PROJECTILE) {
+            if (damager instanceof Projectile projectile) {
+                Entity shooter = projectile.getShooter() instanceof Entity entity ? entity : null;
+                LivingEntity shootingEntity = shooter instanceof LivingEntity livingEntity ? livingEntity : null;
+                if (shouldDebugCombat(shootingEntity, target, projectile)) {
+                    debugCombat(shootingEntity, target, projectile, "PROJECTILE_HIT", "combat_debug.projectile_hit_intercept", Map.of(
+                            "shooter", describeEntity(shootingEntity),
+                            "projectile", describeEntity(projectile),
+                            "target", describeEntity(target),
+                            "cause", cause.name(),
+                            "vanilla_damage", formatNumber(event.getDamage()),
+                            "vanilla_final", formatNumber(event.getFinalDamage())
+                    ));
+                }
+                Player playerShooter = shooter instanceof Player player ? player : null;
+                if (isAttackCoolingDown(playerShooter, shootingEntity, target, projectile,
+                        "PROJECTILE_HIT_BLOCKED", "combat_debug.projectile_hit_blocked", "shooter")) {
+                    event.setCancelled(true);
+                    return;
+                }
                 event.setCancelled(true);
+                DamageContextVariables context = CombatSupport.baseContext(event, target);
+                DamageContext damageContext = createProjectileDamageContext(event, projectile, target, context);
+                if (damageContext == null) {
+                    debugCombat(shootingEntity, target, projectile, "PROJECTILE_RESOLVE_EMPTY", "combat_debug.projectile_resolve_empty");
+                    return;
+                }
+                resolveAndApplyDamage(
+                        attributeService.resolveDamageApplicationAsync(damageContext),
+                        shootingEntity,
+                        target,
+                        projectile,
+                        projectile,
+                        "PROJECTILE_RESOLVE_EMPTY",
+                        "combat_debug.projectile_resolve_empty",
+                        "PROJECTILE_RESOLVED",
+                        "combat_debug.projectile_resolved",
+                        "PROJECTILE_APPLY",
+                        "combat_debug.projectile_apply"
+                );
                 return;
             }
-            event.setCancelled(true);
-            DamageContext damageContext = createProjectileDamageContext(event, projectile, target, context);
-            if (damageContext == null) {
-                debugCombat(shootingEntity, target, projectile, "PROJECTILE_RESOLVE_EMPTY", "combat_debug.projectile_resolve_empty");
+            handleEnvironmentalDamage(event, target, damager instanceof LivingEntity livingEntity ? livingEntity : null);
+            return;
+        }
+        if (cause == EntityDamageEvent.DamageCause.ENTITY_ATTACK || cause == EntityDamageEvent.DamageCause.ENTITY_SWEEP_ATTACK) {
+            if (damager instanceof LivingEntity attacker) {
+                DamageContextVariables context = CombatSupport.baseContext(event, target);
+                if (shouldDebugCombat(attacker, target, null)) {
+                    debugCombat(attacker, target, null, "MELEE_HIT", "combat_debug.melee_hit_intercept", Map.of(
+                            "attacker", describeEntity(attacker),
+                            "target", describeEntity(target),
+                            "cause", cause.name(),
+                            "vanilla_damage", formatNumber(event.getDamage()),
+                            "vanilla_final", formatNumber(event.getFinalDamage())
+                    ));
+                }
+                Player attackingPlayer = attacker instanceof Player player ? player : null;
+                if (isAttackCoolingDown(attackingPlayer, attacker, target, null,
+                        "MELEE_HIT_BLOCKED", "combat_debug.melee_hit_blocked", "attacker")) {
+                    event.setCancelled(true);
+                    return;
+                }
+                event.setCancelled(true);
+                DamageContext damageContext = createMeleeDamageContext(event, attacker, target, context);
+                if (damageContext == null) {
+                    debugCombat(attacker, target, null, "MELEE_RESOLVE_EMPTY", "combat_debug.melee_resolve_empty");
+                    return;
+                }
+                resolveAndApplyDamage(
+                        attributeService.resolveDamageApplicationAsync(damageContext),
+                        attacker,
+                        target,
+                        null,
+                        damager,
+                        "MELEE_RESOLVE_EMPTY",
+                        "combat_debug.melee_resolve_empty",
+                        "MELEE_RESOLVED",
+                        "combat_debug.melee_resolved",
+                        "MELEE_APPLY",
+                        "combat_debug.melee_apply"
+                );
                 return;
             }
-            resolveAndApplyDamage(
-                    attributeService.resolveDamageApplicationAsync(damageContext),
-                    shootingEntity,
-                    target,
-                    projectile,
-                    projectile,
-                    "PROJECTILE_RESOLVE_EMPTY",
-                    "combat_debug.projectile_resolve_empty",
-                    "PROJECTILE_RESOLVED",
-                    "combat_debug.projectile_resolved",
-                    "PROJECTILE_APPLY",
-                    "combat_debug.projectile_apply"
-            );
+            handleEnvironmentalDamage(event, target, null);
             return;
         }
-        LivingEntity attacker = damager instanceof LivingEntity livingEntity ? livingEntity : null;
-        if (shouldDebugCombat(attacker, target, null)) {
-            debugCombat(attacker, target, null, "MELEE_HIT", "combat_debug.melee_hit_intercept", Map.of(
-                    "attacker", describeEntity(attacker),
-                    "target", describeEntity(target),
-                    "cause", event.getCause().name(),
-                    "vanilla_damage", formatNumber(event.getDamage()),
-                    "vanilla_final", formatNumber(event.getFinalDamage())
-            ));
-        }
-        Player attackingPlayer = attacker instanceof Player player ? player : null;
-        if (isAttackCoolingDown(attackingPlayer, attacker, target, null,
-                "MELEE_HIT_BLOCKED", "combat_debug.melee_hit_blocked", "attacker")) {
-            event.setCancelled(true);
-            return;
-        }
-        event.setCancelled(true);
-        DamageContext damageContext = createMeleeDamageContext(event, attacker, target, context);
-        if (damageContext == null) {
-            debugCombat(attacker, target, null, "MELEE_RESOLVE_EMPTY", "combat_debug.melee_resolve_empty");
-            return;
-        }
-        resolveAndApplyDamage(
-                attributeService.resolveDamageApplicationAsync(damageContext),
-                attacker,
-                target,
-                null,
-                damager,
-                "MELEE_RESOLVE_EMPTY",
-                "combat_debug.melee_resolve_empty",
-                "MELEE_RESOLVED",
-                "combat_debug.melee_resolved",
-                "MELEE_APPLY",
-                "combat_debug.melee_apply"
-        );
+        handleEnvironmentalDamage(event, target, damager instanceof LivingEntity livingEntity ? livingEntity : null);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -263,7 +278,7 @@ public final class AttributeListener implements Listener {
             debugCombat(null, target, null, "SYNTHETIC_DAMAGE_BYPASS", "combat_debug.synthetic_damage_bypass_non_entity");
             return;
         }
-        handleEnvironmentalDamage(event, target);
+        handleEnvironmentalDamage(event, target, null);
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -281,7 +296,7 @@ public final class AttributeListener implements Listener {
         }
     }
 
-    private boolean handleEnvironmentalDamage(EntityDamageEvent event, LivingEntity target) {
+    private boolean handleEnvironmentalDamage(EntityDamageEvent event, LivingEntity target, LivingEntity attacker) {
         AttributeConfig config = attributeService.config();
         DamageCauseRule rule = config.damageCauseRule(event.getCause().name());
         if (rule == null) {
@@ -290,27 +305,28 @@ public final class AttributeListener implements Listener {
                     return false;
                 }
                 event.setCancelled(true);
-                if (shouldDebugCombat(null, target, null)) {
-                    debugCombat(null, target, null, "ENVIRONMENT_FALLBACK", "combat_debug.environment_fallback", Map.of(
+                if (shouldDebugCombat(attacker, target, null)) {
+                    debugCombat(attacker, target, null, "ENVIRONMENT_FALLBACK", "combat_debug.environment_fallback", Map.of(
+                            "attacker", describeEntity(attacker),
                             "cause", event.getCause().name()
                     ));
                 }
                 DamageContext damageContext = attributeService.createDamageContext(
-                        null,
+                        attacker,
                         target,
                         null,
                         event.getCause(),
                         config.defaultDamageType(),
                         event.getDamage(),
-                        0D,
+                        event.getDamage(),
                         CombatSupport.baseContext(event, target)
                 );
                 resolveAndApplyDamage(
                         attributeService.resolveDamageApplicationAsync(damageContext),
-                        null,
+                        attacker,
                         target,
                         null,
-                        null,
+                        attacker,
                         "ENVIRONMENT_RESOLVE_EMPTY",
                         "combat_debug.environment_resolve_empty",
                         "ENVIRONMENT_ASYNC_RESOLVED",
@@ -320,8 +336,8 @@ public final class AttributeListener implements Listener {
                 );
                 return true;
             }
-            if (shouldDebugCombat(null, target, null)) {
-                debugCombat(null, target, null, "ENVIRONMENT_IGNORED", "combat_debug.environment_ignored", Map.of(
+            if (shouldDebugCombat(attacker, target, null)) {
+                debugCombat(attacker, target, null, "ENVIRONMENT_IGNORED", "combat_debug.environment_ignored", Map.of(
                         "cause", event.getCause().name()
                 ));
             }
@@ -335,6 +351,9 @@ public final class AttributeListener implements Listener {
         }
         double sourceDamage = event.getDamage();
         double baseDamage = rule.resolveDamage(sourceDamage);
+        if (event.getCause() == EntityDamageEvent.DamageCause.FALL) {
+            applyFallDamageContext(target, context, sourceDamage);
+        }
         context.put("cause", event.getCause().name());
         context.put("damage_cause", event.getCause().name());
         context.put("damage_cause_id", event.getCause().name());
@@ -346,8 +365,9 @@ public final class AttributeListener implements Listener {
         context.put("target_type", target.getType().name());
         String damageTypeId = rule.hasDamageType() ? rule.damageTypeId() : config.defaultDamageType();
         DamageContextVariables resolvedContext = context.build();
-        if (shouldDebugCombat(null, target, null)) {
-            debugCombat(null, target, null, "ENVIRONMENT_RESOLVED", "combat_debug.environment_mapped", Map.of(
+        if (shouldDebugCombat(attacker, target, null)) {
+            debugCombat(attacker, target, null, "ENVIRONMENT_RESOLVED", "combat_debug.environment_mapped", Map.of(
+                    "attacker", describeEntity(attacker),
                     "target", describeEntity(target),
                     "cause", event.getCause().name(),
                     "damage_type", damageTypeId,
@@ -356,7 +376,7 @@ public final class AttributeListener implements Listener {
             ));
         }
         DamageContext damageContext = attributeService.createDamageContext(
-                null,
+                attacker,
                 target,
                 null,
                 event.getCause(),
@@ -367,10 +387,10 @@ public final class AttributeListener implements Listener {
         );
         resolveAndApplyDamage(
                 attributeService.resolveDamageApplicationAsync(damageContext),
-                null,
+                attacker,
                 target,
                 null,
-                null,
+                attacker,
                 "ENVIRONMENT_RESOLVE_EMPTY",
                 "combat_debug.environment_resolve_empty",
                 "ENVIRONMENT_ASYNC_RESOLVED",
@@ -379,6 +399,21 @@ public final class AttributeListener implements Listener {
                 "combat_debug.environment_apply"
         );
         return true;
+    }
+
+    private void applyFallDamageContext(LivingEntity target, DamageContextVariables.Builder context, double vanillaDamage) {
+        if (target == null || context == null) {
+            return;
+        }
+        // 原版服务端已经计算过摔落伤害；这里仅补充高度相关上下文，便于调试和表达式引用。
+        double fallDistance = Math.max(0D, target.getFallDistance());
+        PotionEffect jumpBoost = target.getPotionEffect(PotionEffectType.JUMP_BOOST);
+        int jumpBoostLevel = jumpBoost == null ? 0 : Math.max(0, jumpBoost.getAmplifier() + 1);
+        double fallDamageFormula = Math.max(0D, Math.ceil(fallDistance - 3D - jumpBoostLevel));
+        context.put("fall_distance", fallDistance);
+        context.put("jump_boost_level", jumpBoostLevel);
+        context.put("vanilla_fall_damage", vanillaDamage);
+        context.put("fall_damage_formula", fallDamageFormula);
     }
 
     private void scheduleDamageApplication(Runnable action) {

@@ -106,89 +106,88 @@ scaling_curves: {}
 # 允许进入 EA 结算的 DamageCause 白名单
 # cause: Bukkit DamageCause
 # damage_type: 对应 damage_types/ 下的伤害类型 ID
-# damage: 使用的基础伤害值
+# damage: 可选；留空时直接使用服务端已经计算好的原版事件伤害。
+#         适合摔落、接触、爆炸、燃烧、溺水、虚空、荆棘、龙息、音爆等
+#         会随高度、状态或持续叠加变化的来源。
 allowed_damage_causes:
   - cause: CONTACT
     damage_type: physical
-    damage: 1
     enabled: true
   - cause: SUFFOCATION
     damage_type: physical
-    damage: 1
     enabled: true
   - cause: FALL
     damage_type: physical
-    damage: 1
     enabled: true
   - cause: FLY_INTO_WALL
     damage_type: physical
-    damage: 1
     enabled: true
   - cause: FALLING_BLOCK
     damage_type: physical
-    damage: 1
     enabled: true
   - cause: FIRE
     damage_type: physical
-    damage: 1
     enabled: true
   - cause: FIRE_TICK
     damage_type: physical
-    damage: 1
     enabled: true
   - cause: MELTING
     damage_type: physical
-    damage: 1
     enabled: true
   - cause: LAVA
     damage_type: physical
-    damage: 1
     enabled: true
   - cause: DROWNING
     damage_type: physical
-    damage: 1
     enabled: true
   - cause: DRYOUT
     damage_type: physical
-    damage: 1
     enabled: true
   - cause: BLOCK_EXPLOSION
     damage_type: physical
-    damage: 1
     enabled: true
   - cause: ENTITY_EXPLOSION
     damage_type: physical
-    damage: 1
     enabled: true
   - cause: VOID
     damage_type: physical
-    damage: 1
     enabled: true
   - cause: LIGHTNING
     damage_type: physical
-    damage: 1
     enabled: true
   - cause: WORLD_BORDER
     damage_type: physical
-    damage: 1
     enabled: true
   - cause: HOT_FLOOR
     damage_type: physical
-    damage: 1
     enabled: true
   - cause: CAMPFIRE
     damage_type: physical
-    damage: 1
     enabled: true
   - cause: CRAMMING
     damage_type: physical
-    damage: 1
     enabled: true
   - cause: FREEZE
     damage_type: physical
-    damage: 1
     enabled: true
   - cause: STARVATION
     damage_type: physical
-    damage: 1
+    enabled: true
+  - cause: MAGIC
+    damage_type: physical
+    enabled: true
+  - cause: POISON
+    damage_type: physical
+    enabled: true
+  - cause: WITHER
+    damage_type: physical
+    enabled: true
+  - cause: DRAGON_BREATH
+    damage_type: physical
+    enabled: true
+  - cause: THORNS
+    damage_type: physical
+    enabled: true
+  - cause: SONIC_BOOM
+    damage_type: physical
     enabled: true

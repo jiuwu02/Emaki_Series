@@ -13,7 +13,7 @@ public final class EntityPhysicsSupport {
         if (target == null || source == null || strength <= 0D || !target.isValid() || target.isDead()) {
             return;
         }
-        Vector direction = source.getLocation().toVector().subtract(target.getLocation().toVector());
+        Vector direction = target.getLocation().toVector().subtract(source.getLocation().toVector());
         direction.setY(0D);
         if (direction.lengthSquared() < 1.0E-6D) {
             direction = source.getLocation().getDirection().multiply(-1D).setY(0D);
