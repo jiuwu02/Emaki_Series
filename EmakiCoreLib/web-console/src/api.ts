@@ -73,10 +73,10 @@ export class ApiClient {
     return { nodes: data.nodes ?? [], revision: typeof data.revision === 'number' ? data.revision : undefined, path: data.path };
   }
 
-  async createFile(moduleId: string, fileId: string, name: string): Promise<{ path: string; name: string; revision?: number }> {
+  async createFile(moduleId: string, fileId: string, name: string, content?: string): Promise<{ path: string; name: string; revision?: number }> {
     const data = await this.request('/api/files/create', {
       method: 'POST',
-      body: JSON.stringify({ moduleId, fileId, name })
+      body: JSON.stringify({ moduleId, fileId, name, content })
     });
     return { path: data.path, name: data.name, revision: typeof data.revision === 'number' ? data.revision : undefined };
   }

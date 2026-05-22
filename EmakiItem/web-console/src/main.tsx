@@ -1,5 +1,5 @@
 import React from 'react';
-import { ActionsEditor, CORE_EFFECT_TYPES, ItemEditorSurface, PropRow, StringListEditor, asList, asRecord, asStringList, coreEffectTypeLabel, createCoreEffect, fieldLabel, getLocale, humanizeFieldLabel, isCoreEffectType, parseActionList, registerConfigNodeMeta, registerConfigNodeRule, registerEditorDescriptor, registerEditorField, registerItemFieldRenderer, registerModuleLocale, registerPluginSurfaces, serializeActionList, textValue, type AnyMap, type CoreEffectType, type ItemFieldRendererContext } from 'emaki-web-console';
+import { ActionsEditor, CORE_EFFECT_TYPES, ItemEditorSurface, PropRow, StringListEditor, asList, asRecord, asStringList, coreEffectTypeLabel, createCoreEffect, fieldLabel, getLocale, humanizeFieldLabel, isCoreEffectType, parseActionList, registerConfigNodeMeta, registerConfigNodeRule, registerEditorDescriptor, registerEditorField, registerItemFieldRenderer, registerModuleLocale, registerPluginSurfaces, registerSourceDocumentAdapter, serializeActionList, textValue, type AnyMap, type CoreEffectType, type ItemFieldRendererContext } from 'emaki-web-console';
 
 const MODULE = 'EmakiItem';
 const EDITOR_ID = 'emakiitem:item';
@@ -232,6 +232,19 @@ registerPluginSurfaces([
   { kind: 'SET', moduleId: MODULE, component: ItemEditorSurface, label: copy('EmakiItem 套装', 'EmakiItem Set'), priority: 110 }
 ]);
 
+registerSourceDocumentAdapter({
+  kind: 'SET',
+  moduleId: MODULE,
+  editorId: SET_EDITOR_ID,
+  priority: 120,
+  adapter: {
+    read: (api, context) => api.readTextDocument({ kind: context.file.kind, moduleId: context.module.id, path: context.childPath || context.file.path }),
+    save: (api, context, content, revision) => api.saveTextDocument({ kind: context.file.kind, moduleId: context.module.id, path: context.childPath || context.file.path }, content, revision),
+    language: 'yaml',
+    defaultContent: context => defaultSetContent(context.name)
+  }
+});
+
 registerEmakiItemRenderers();
 
 registerEditorDescriptor(MODULE, EDITOR_ID, {
@@ -271,6 +284,15 @@ registerEditorDescriptor(MODULE, SET_EDITOR_ID, {
 
 itemEditorFields.forEach(([path, label, comment, type, extra]) => registerEditorField(MODULE, EDITOR_ID, { path, label, comment, type, ...(extra ?? {}) }));
 setEditorFields.forEach(([path, label, comment, type, extra]) => registerEditorField(MODULE, SET_EDITOR_ID, { path, label, comment, type, ...(extra ?? {}) }));
+
+function defaultSetContent(name: string): string {
+  const id = name.split('/').pop()?.replace(/\.(ya?ml)$/i, '').trim() || 'new_set';
+  return `id: "${escapeYamlString(id)}"\ndisplay_name: "<aqua>${escapeYamlString(id)}</aqua>"\npieces: {}\nlore:\n  header: "<dark_gray>—— <aqua>{set_name}</aqua> <gray>({active}/{total})</gray> ——</dark_gray>"\n  equipped_format: "<green>✔ {piece}</green>"\n  missing_format: "<gray>✘ {piece}</gray>"\n  active_threshold_format: "<green>{line}</green>"\n  inactive_threshold_format: "<dark_gray>{line}</dark_gray>"\n  separator: ""\nthresholds: {}\n`;
+}
+
+function escapeYamlString(value: string): string {
+  return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+}
 
 function registerEmakiItemRenderers() {
   registerItemFieldRenderer('effects', context => <ItemEffectsEditor context={context} />, { moduleId: MODULE, editorId: EDITOR_ID, priority: 100 });

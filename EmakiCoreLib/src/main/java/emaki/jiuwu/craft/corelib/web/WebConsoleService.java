@@ -363,6 +363,7 @@ public final class WebConsoleService {
         String moduleId = context.bodyString("moduleId");
         String fileId = context.bodyString("fileId");
         String name = context.bodyString("name");
+        String content = context.bodyString("content");
         if (moduleId.isBlank() || fileId.isBlank() || name.isBlank()) {
             context.badRequest("缺少 moduleId、fileId 或 name");
             return;
@@ -376,7 +377,7 @@ public final class WebConsoleService {
                 return;
             }
             Files.createDirectories(target.toPath().getParent());
-            Files.writeString(target.toPath(), defaultFileContent(creation.type()), StandardCharsets.UTF_8);
+            Files.writeString(target.toPath(), content.isBlank() ? defaultFileContent(creation.type()) : content, StandardCharsets.UTF_8);
             String treePath = creation.type() == WebConsoleRegistry.WebConsoleFileType.SCRIPT && relative.startsWith(creation.baseDir() + "/")
                     ? relative.substring(creation.baseDir().length() + 1)
                     : relative;
@@ -387,8 +388,8 @@ public final class WebConsoleService {
     }
 
     private void handleConfigCreate(WebRequestContext context) throws IOException {
-        String moduleId = context.query("module");
-        String path = context.bodyString("path");
+        String moduleId = firstNonBlank(context.query("module"), context.bodyString("module"), context.bodyString("moduleId"));
+        String path = firstNonBlank(context.bodyString("path"), context.query("path"));
         if (moduleId.isBlank() || path.isBlank()) {
             context.badRequest("缺少 module 或 path");
             return;
@@ -462,12 +463,22 @@ public final class WebConsoleService {
     private void handleConfigSave(WebRequestContext context) throws IOException {
         String module = context.bodyString("moduleId");
         String path = context.bodyString("path");
-        String content = context.bodyString("content");
+        String body = context.body();
         Long expectedRevision = context.revision();
         if (module == null || module.isBlank() || path == null || path.isBlank()) {
             context.badRequest("缺少 moduleId 或 path");
             return;
         }
+        if (!jsonHasKey(body, "content")) {
+            Object nodes = WebJson.extractValue(body, "nodes");
+            if (nodes instanceof List<?> list && list.isEmpty()) {
+                context.badRequest("保存内容为空，已阻止覆盖文件");
+                return;
+            }
+            context.badRequest("缺少 content，已阻止覆盖文件");
+            return;
+        }
+        String content = context.bodyString("content");
         try {
             YamlFiles.load(content == null ? "" : content);
             long revision = configBrowserService.save(module, path, content, expectedRevision);
@@ -604,6 +615,18 @@ public final class WebConsoleService {
         }
     }
 
+    private String firstNonBlank(String... values) {
+        if (values == null) return "";
+        for (String value : values) {
+            if (value != null && !value.isBlank()) return value;
+        }
+        return "";
+    }
+
+    private boolean jsonHasKey(String json, String key) {
+        return json != null && key != null && java.util.regex.Pattern.compile(java.util.regex.Pattern.quote(WebJson.quote(key)) + "\\s*:").matcher(json).find();
+    }
+
     private long fileRevision(java.io.File file) {
         if (!file.exists()) return 0L;
         try {
@@ -698,12 +721,37 @@ public final class WebConsoleService {
         if (cleanPath.isBlank() || cleanPath.startsWith("/") || cleanPath.contains("..") || cleanPath.endsWith("/")) {
             throw new IOException("文件名不合法");
         }
+        String illegal = illegalFileNameCharacters(cleanPath);
+        if (!illegal.isBlank()) {
+            throw new IOException("文件名包含非法字符：" + illegal);
+        }
+        if (containsHtmlTag(cleanPath)) {
+            throw new IOException("文件名包含非法 HTML 标签");
+        }
         for (String part : cleanPath.split("/")) {
             if (part.isBlank() || part.equals(".") || part.equals("..")) {
                 throw new IOException("文件名不合法");
             }
         }
         return cleanPath;
+    }
+
+    private String illegalFileNameCharacters(String path) {
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < path.length(); i++) {
+            char character = path.charAt(i);
+            if (character < 32 || "<>:\"|?*".indexOf(character) >= 0) {
+                if (builder.indexOf(String.valueOf(character)) < 0) {
+                    if (!builder.isEmpty()) builder.append(' ');
+                    builder.append(character < 32 ? "控制字符" : character);
+                }
+            }
+        }
+        return builder.toString();
+    }
+
+    private boolean containsHtmlTag(String path) {
+        return java.util.regex.Pattern.compile("<\\s*/?\\s*[a-z][^>]*>", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(path).find();
     }
 
     private String defaultFileContent(WebConsoleRegistry.WebConsoleFileType type) {

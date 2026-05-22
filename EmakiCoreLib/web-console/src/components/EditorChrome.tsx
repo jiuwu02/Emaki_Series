@@ -75,6 +75,7 @@ export function EditorChrome({
   const sourceDirtyOnly = dirty && changes.length === 0 && (sourceChanged || count > 0);
   const hasTrackedChanges = fieldChangeCount > 0 || sourceDirtyOnly;
   const canSave = Boolean(onSave) && dirty && !saving && !loading;
+  const canOpenSource = Boolean(sourceEditable ?? onSourceChange ?? source);
   const finalSaveLabel = saveLabel ?? (fieldChangeCount > 0 ? t('core.action.saveCount', { count: fieldChangeCount }, 'Save {count} changes') : sourceDirtyOnly ? t('core.action.saveSource', undefined, 'Save source') : t('core.action.save', undefined, 'Save'));
 
   const previewChanges = useMemo(() => changes.slice(0, 12), [changes]);
@@ -112,7 +113,7 @@ export function EditorChrome({
         {children}
         {onUndo && <Button size="sm" onClick={onUndo} disabled={!canUndo || saving || loading} title={t('core.editor.undoHint', undefined, 'Undo last change')}>{t('core.editor.undo')}</Button>}
         {onRedo && <Button size="sm" onClick={onRedo} disabled={!canRedo || saving || loading} title={t('core.editor.redoHint', undefined, 'Redo last change')}>{t('core.editor.redo')}</Button>}
-        <Button size="sm" onClick={() => setSourceOpen(true)} disabled={!source}>{sourceLabel ?? t('core.item.source', undefined, 'Source')}</Button>
+        <Button size="sm" onClick={() => setSourceOpen(true)} disabled={!canOpenSource}>{sourceLabel ?? t('core.item.source', undefined, 'Source')}</Button>
         {onReload && <Button size="sm" onClick={requestReload} disabled={loading || saving}>{reloadLabel ?? t('core.gui.reload', undefined, 'Reload')}</Button>}
         <span className="editor-save-wrap" onMouseEnter={() => setChangesOpen(true)} onMouseLeave={() => setChangesOpen(false)} onFocus={() => setChangesOpen(true)} onBlur={() => setChangesOpen(false)}>
           <Button size="sm" variant="primary" ready={dirty && hasTrackedChanges} onClick={requestSave} disabled={!canSave}>{saving ? t('core.script.saving', undefined, 'Saving...') : finalSaveLabel}</Button>

@@ -5,7 +5,7 @@ import { ApiClient } from './api';
 import { GuiEditorSurface } from './GuiEditorSurface';
 import { ItemEditorSurface } from './ItemEditorSurface';
 import { loadWebExtensions } from './extensions';
-import { applyConfigNodeOverrides, applyConfigRegistryOverrides, applyEditorDescriptorOverrides, getSourceDocumentAdapter, getSurface, isKind, registerSourceDocumentAdapter, registerSurface, setRuntimeEnums } from './registry';
+import { applyConfigNodeOverrides, applyConfigRegistryOverrides, applyEditorDescriptorOverrides, getSourceDocumentAdapter, getSurface, isKind, registerSourceDocumentAdapter, registerSurface, setRuntimeEnums, type SourceDocumentAdapterContext } from './registry';
 import { getLocale, getRegisteredLocales, setLocale, t } from './i18n';
 import { ActionGroup, Button, CodeEditor, EditorChrome, DisclosureChevron, InlineError, NumberListEditor, StringListEditor, ToastNotice, type EditorChange } from './components';
 import { useDialogFocus } from './components/useDialogFocus';
@@ -250,7 +250,8 @@ export default function App() {
   async function createFileFromTree(target: RegistryTreeNode, name: string) {
     if (!target.moduleId || !target.fileId) return;
     try {
-      const created = await api.createFile(target.moduleId, target.fileId, name);
+      const content = createFileDefaultContent(registry, target, name);
+      const created = await api.createFile(target.moduleId, target.fileId, name, content);
       setCreateTarget(null);
       const next = await loadRegistry({ clearDrafts: false, announceRefresh: false });
       setSelected({ moduleId: target.moduleId, fileId: target.fileId, scriptPath: created.path, refreshKey: Date.now() });
@@ -475,18 +476,52 @@ function ExtensionHealthBanner({ health, statuses, onRetry }: { health: 'idle' |
 
 function CreateFileModal({ target, onCancel, onCreate }: { target: RegistryTreeNode; onCancel: () => void; onCreate: (target: RegistryTreeNode, name: string) => void | Promise<void> }) {
   const [name, setName] = useState('');
+  const validation = validateCreateFileName(name);
   function submit(event: FormEvent) {
     event.preventDefault();
-    if (!name.trim()) return;
+    if (!validation.ok) return;
     void onCreate(target, name.trim());
   }
   return <div className="editor-modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) onCancel(); }}>
     <form className="file-action-dialog" role="dialog" aria-modal="true" aria-labelledby="file-create-title" onSubmit={submit}>
       <div className="reload-confirm-head"><span>{fileKindLabel(target.kind)}</span><h3 id="file-create-title">{t('core.file.createTitle')}</h3></div>
-      <div className="reload-confirm-body"><p>{t('core.file.createDesc')}</p><label className="file-confirm-field"><span>{t('core.file.createName')}</span><input autoFocus value={name} onChange={event => setName(event.target.value)} placeholder={t('core.file.createPlaceholder')} /></label></div>
-      <ActionGroup className="reload-confirm-actions"><Button type="button" onClick={onCancel}>{t('core.gui.cancel')}</Button><Button type="submit" variant="primary" disabled={!name.trim()}>{t('core.file.create')}</Button></ActionGroup>
+      <div className="reload-confirm-body"><p>{t('core.file.createDesc')}</p><label className="file-confirm-field"><span>{t('core.file.createName')}</span><input autoFocus value={name} onChange={event => setName(event.target.value)} placeholder={t('core.file.createPlaceholder')} />{validation.message && <small className="field-error" role="alert">{validation.message}</small>}</label></div>
+      <ActionGroup className="reload-confirm-actions"><Button type="button" onClick={onCancel}>{t('core.gui.cancel')}</Button><Button type="submit" variant="primary" disabled={!validation.ok}>{t('core.file.create')}</Button></ActionGroup>
     </form>
   </div>;
+}
+
+function createFileDefaultContent(registry: WebRegistry | null, target: RegistryTreeNode, name: string): string | undefined {
+  if (!registry || !target.moduleId || !target.fileId) return undefined;
+  const module = registry.modules.find(entry => entry.id === target.moduleId);
+  const file = module?.files.find(entry => entry.id === target.fileId);
+  if (!module || !file) return undefined;
+  const editor = file.editorId ? registry.editors?.[file.editorId] : undefined;
+  const adapter = getSourceDocumentAdapter(file, editor);
+  if (!adapter?.defaultContent) return undefined;
+  const normalizedName = name.trim().replace(/\\/g, '/');
+  const path = normalizeCreatedFilePath(file, normalizedName);
+  const context: SourceDocumentAdapterContext & { name: string; path: string } = { module, file, editor, name: normalizedName, path };
+  return adapter.defaultContent(context);
+}
+
+function normalizeCreatedFilePath(file: WebRegistryFile, name: string): string {
+  const normalizedName = name.trim().replace(/\\/g, '/');
+  const extension = file.path.match(/\.([a-z0-9]+)$/i)?.[0] ?? '.yml';
+  const leaf = /\.[a-z0-9]+$/i.test(normalizedName) ? normalizedName : `${normalizedName}${extension}`;
+  const globPrefix = file.path.split('**')[0]?.replace(/\/$/, '') ?? '';
+  return globPrefix ? `${globPrefix}/${leaf}` : leaf;
+}
+
+function validateCreateFileName(name: string): { ok: boolean; message?: string } {
+  const value = name.trim().replace(/\\/g, '/');
+  if (!value) return { ok: false };
+  if (value.startsWith('/') || value.endsWith('/') || value.includes('..')) return { ok: false, message: '文件名不合法' };
+  const illegal = Array.from(new Set(Array.from(value).filter(char => /[<>:"|?*]/.test(char) || char.charCodeAt(0) < 32)));
+  if (illegal.length) return { ok: false, message: `文件名包含非法字符：${illegal.join(' ')}` };
+  if (/<\s*\/?\s*[a-z][^>]*>/i.test(value)) return { ok: false, message: '文件名包含非法 HTML 标签' };
+  if (value.split('/').some(part => !part || part === '.' || part === '..')) return { ok: false, message: '文件名不合法' };
+  return { ok: true };
 }
 
 function DeleteFileModal({ target, onCancel, onDelete }: { target: RegistryTreeNode; onCancel: () => void; onDelete: (target: RegistryTreeNode, confirmPath: string) => void | Promise<void> }) {

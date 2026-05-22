@@ -29,6 +29,7 @@ export type SourceDocumentAdapter = {
   save: (api: ApiClient, context: SourceDocumentAdapterContext, content: string, revision?: number) => Promise<{ revision?: number }>;
   parse?: (content: string) => unknown;
   serialize?: (data: unknown) => string;
+  defaultContent?: (context: SourceDocumentAdapterContext & { name: string; path: string }) => string;
   language?: 'yaml' | 'javascript' | 'text' | string;
 };
 
