@@ -444,7 +444,7 @@ function ExtensionHealthBanner({ health, statuses, onRetry }: { health: 'idle' |
           {(failed.length || statuses.length) > 3 && <span className="extension-health-more">+{(failed.length || statuses.length) - 3}</span>}
         </div>
         <Button size="sm" variant="soft" onClick={onRetry}>{t('core.action.retry')}</Button>
-      </> : <span className="extension-health-count">{health === 'loading' ? t('core.extension.loadingShort', undefined, 'Loading...') : t('core.extension.loaded', { count: loadedCount }, '{count} loaded')}</span>}
+      </> : health === 'loading' ? <span className="extension-health-count">{t('core.extension.loadingShort', undefined, 'Loading...')}</span> : null}
     </div>
   </aside>;
 }
@@ -1089,7 +1089,8 @@ function buildNodeGroups(nodes: WebConfigNode[], parentPath = ''): NodeGroup[] {
     if (!isDirectChildPath(node.path, parentPath)) continue;
     if (node.type === 'object') {
       const childPrefix = `${node.path}.`;
-      groups.push({ type: 'section', node, children: nodes.filter(child => child.path.startsWith(childPrefix)) });
+      const childNodes = nodes.filter(child => child.path.startsWith(childPrefix));
+      groups.push(childNodes.length ? { type: 'section', node, children: childNodes } : { type: 'leaf', node });
     } else {
       groups.push({ type: 'leaf', node });
     }
@@ -1110,7 +1111,7 @@ function ConfigNodeSection({ scope, node, childrenNodes, drafts, setDraftValue, 
   const changedInGroup = childrenNodes.filter(n => n.type !== 'object' && (draftKey(scope, n.path) in drafts || sourceEdit?.paths.has(n.path))).length;
   const groupLabel = configNodeDisplayLabel(scope, node);
   const sectionIndent = depth > 0 ? { paddingLeft: `${depth * 14}px` } : undefined;
-  return <div className={`node-section${depth > 0 ? ' node-section--nested' : ''}`} style={sectionIndent}>
+  return <div className={`node-section ${isCollapsed ? 'collapsed' : 'expanded'}${depth > 0 ? ' node-section--nested' : ''}`} style={sectionIndent}>
     <div className={`node-section-header ${isCollapsed ? 'collapsed' : ''} ${sectionChanged ? 'changed' : ''}`}>
       <button type="button" className="node-section-toggle" onClick={() => toggle(node.path)} aria-expanded={!isCollapsed}>
         <DisclosureChevron open={!isCollapsed} className="section-arrow" />
@@ -1136,7 +1137,7 @@ function ConfigNodeView({ scope, node, drafts, setDraftValue, sourceEdit }: { sc
   const sourceEdited = sourceEdit?.paths.has(node.path) === true;
   const value = key in drafts ? drafts[key] : node.value;
   const setValue = (next: unknown) => sourceEdited ? sourceEdit?.update(node, next) : setDraftValue(scope, node, next);
-  const isWide = node.type === 'dynamic_map' || node.type === 'list';
+  const isWide = node.type === 'dynamic_map' || node.type === 'list' || node.type === 'object';
   const label = configNodeDisplayLabel(scope, node);
   return <div className={`node ${key in drafts || sourceEdited ? 'changed' : ''} ${isWide ? 'node-wide' : ''}`}><div className="node-meta"><strong>{label}</strong><code>{node.path}</code><p>{configNodeDisplayComment(scope, node)}</p></div><div className="node-control">{renderControl(node, value, setValue, label, scope.moduleId)}</div></div>;
 }
@@ -1146,6 +1147,7 @@ function renderControl(node: WebConfigNode, value: unknown, setValue: (v: unknow
   if (node.type === 'enum' && node.options) return <select value={str(value)} aria-label={label} onChange={(e) => setValue(e.target.value)}>{node.options.map(opt => <option key={opt} value={opt}>{optionLabel(node.optionLabelPrefix || node.path, opt, { moduleId })}</option>)}</select>;
   if (node.type === 'number') return <input type="number" aria-label={label} value={value == null ? '' : String(value)} onChange={(e) => setValue(e.target.value === '' ? undefined : Number(e.target.value))} />;
   if (node.type === 'dynamic_map') return <DynamicMapEditor value={value} setValue={setValue} />;
+  if (node.type === 'object') return <ObjectValuePreview value={value} />;
   if (node.type === 'list') {
     const items = Array.isArray(value) ? value : [];
     const hasObjectItems = Boolean(node.itemFields?.length) || items.some(isPlainObject);
@@ -1154,6 +1156,14 @@ function renderControl(node: WebConfigNode, value: unknown, setValue: (v: unknow
     return <div className="list-editor">{items.map((item, i) => <div className="list-row" key={i}><input value={str(item)} onChange={(e) => update(i, e.target.value)} aria-label={t('core.config.itemIndex', { index: i + 1 })} /><button type="button" onClick={() => setValue(items.filter((_, j) => j !== i))} aria-label={t('core.config.deleteItem', { index: i + 1 })}>{t('core.config.delete')}</button></div>)}<button type="button" className="add-row" onClick={() => setValue([...items, ''])}>{t('core.config.addItem')}</button></div>;
   }
   return <input aria-label={label} value={str(value)} onChange={(e) => setValue(e.target.value)} />;
+}
+
+function ObjectValuePreview({ value }: { value: unknown }) {
+  const size = isPlainObject(value) ? Object.keys(value).length : 0;
+  return <div className="object-value-preview" aria-label={t('core.config.objectPreview', { count: size }, '{count} nested fields')}>
+    <code>{'{}'}</code>
+    <span>{t('core.config.groupItems', { count: size })}</span>
+  </div>;
 }
 
 function ObjectListEditor({ node, items, setValue, moduleId }: { node: WebConfigNode; items: unknown[]; setValue: (v: unknown) => void; moduleId: string }) {
