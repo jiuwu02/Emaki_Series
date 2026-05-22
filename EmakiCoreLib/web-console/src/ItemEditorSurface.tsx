@@ -18,48 +18,6 @@ const DEFAULT_BASE_NAME = t('core.item.defaultBaseName');
 const DEFAULT_BASE_LORE = t('core.item.defaultBaseLore');
 const DEFAULT_ECONOMY_PROVIDERS = ['auto', 'vault', 'excellenteconomy'];
 
-const ITEM_EDITOR_TITLES: Record<string, string> = {
-  'emakigem:gem': 'Gem Definition',
-  'emakigem:socket-item': 'Gem Socket Item',
-  'emakiitem:item': 'Item Definition',
-  'emakiitem:set': 'Set Definition'
-};
-
-const ITEM_SECTION_TITLES: Record<string, Record<string, string>> = {
-  'emakigem:gem': {
-    '基础信息': 'Basic Info',
-    '效果与变量': 'Effects and Variables',
-    '显示动作链': 'Display Action Chains',
-    '费用与返还': 'Cost and Returns',
-    '升级设置': 'Upgrade Settings',
-    '触发动作': 'Trigger Actions'
-  },
-  'emakigem:socket-item': {
-    '匹配规则': 'Match Rules',
-    '插槽结构': 'Slot Structure',
-    '宝石限制': 'Gem Limits',
-    'GUI 模板': 'GUI Templates',
-    '显示动作链': 'Display Action Chains'
-  },
-  'emakiitem:item': {
-    '基础信息': 'Basic Info',
-    '显示动作链': 'Display Action Chains',
-    '更新策略': 'Update Strategy',
-    '效果与变量': 'Effects and Variables',
-    '原版组件': 'Vanilla Components',
-    '套装归属': 'Set Binding',
-    '装备条件': 'Equip Conditions',
-    '修复配置': 'Repair Settings',
-    '触发动作': 'Trigger Actions'
-  },
-  'emakiitem:set': {
-    '基础信息': 'Basic Info',
-    '套装部件': 'Set Pieces',
-    '套装 Lore': 'Set Lore',
-    '阈值效果': 'Threshold Effects'
-  }
-};
-
 const EditorContext = React.createContext<{
   moduleId: string;
   editorFields: Record<string, WebEditorField>;
@@ -287,7 +245,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
       {toast && <ToastNotice tone={toast.tone} style={{ position: 'absolute', top: 12, right: 12, zIndex: 50 }}>{toast.text}</ToastNotice>}
       {showLocalChrome && <EditorChrome
         className="ie-header"
-        title={localizedEditorTitle(editor?.id, editor?.title ?? fileTitle ?? t('core.item.editorTitle'))}
+        title={localizedEditorTitle(editor, fileTitle ?? t('core.item.editorTitle'))}
 
         subtitle={`${module.id}/${filePath}`}
         dirty={semanticDirty}
@@ -310,14 +268,14 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
 
       <EditorContext.Provider value={editorContext}>
         <div className="ie-workbench">
-          <GenericPreviewPane moduleId={module.id} editorId={editor?.id} data={data} preview={preview} previewPending={previewPending} previewLevel={previewLevel} setPreviewLevel={setPreviewLevel} baseName={baseName} baseLore={baseLore as string[]} />
+          <GenericPreviewPane moduleId={module.id} editor={editor} data={data} preview={preview} previewPending={previewPending} previewLevel={previewLevel} setPreviewLevel={setPreviewLevel} baseName={baseName} baseLore={baseLore as string[]} />
           <div className="ie-props-scroll">
             <div className="ie-props">
               {sections.map(section => (
                 <CollapsibleSection
                   key={section.title}
-                  title={localizedSectionTitle(editor?.id ?? file.editorId, section.title)}
-                  comment={localizedSectionComment(editor?.id ?? file.editorId, section.title, section.comment)}
+                  title={localizedSectionTitle(module.id, section)}
+                  comment={localizedSectionComment(module.id, section)}
                   collapsible={section.collapsible ?? true}
                   defaultCollapsed={section.defaultCollapsed}
                   storageKey={`core:item-section:${editor?.id ?? file.editorId ?? file.kind}:${section.title}`}
@@ -604,7 +562,7 @@ function AttributeModifiersEditor({ value, onChange, path }: { value: unknown; o
       <PropRow label="amount" path={joinPath(path, index, 'amount')}><TextInput value={modifier.amount} onChange={amount => update(index, { amount: parseLooseScalar(amount) })} placeholder={uiCopy('12.0 或 {range}', '12.0 or {range}')} /></PropRow>
       <PropRow label="operation" path={joinPath(path, index, 'operation')}><SelectInput value={modifier.operation ?? 'add_number'} options={operations} labelPrefix="attributeOperation" onChange={operation => update(index, { operation })} /></PropRow>
       <PropRow label="slot" path={joinPath(path, index, 'slot')}><SelectInput value={modifier.slot ?? 'any'} options={slots} labelPrefix="equipmentSlot" onChange={slot => update(index, { slot })} /></PropRow>
-      <PropRow label="name" path={joinPath(path, index, 'name')}><TextInput value={modifier.name} onChange={name => update(index, { name })} placeholder="emakiitem:item/attribute" /></PropRow>
+      <PropRow label="name" path={joinPath(path, index, 'name')}><TextInput value={modifier.name} onChange={name => update(index, { name })} placeholder="namespace:key" /></PropRow>
     </div>)}
     <button type="button" className="prop-add" onClick={() => onChange([...modifiers, { attribute: 'attack_damage', amount: 1, operation: 'add_number', slot: 'any', name: '' }])}>+ {t('core.item.attributeModifiers.add')}</button>
   </div>;
@@ -648,25 +606,19 @@ function uiCopy(zh: string, en: string): string {
   return getLocale().startsWith('zh') ? zh : en;
 }
 
-function localizedEditorTitle(editorId: string | undefined, fallback: string): string {
-  const locale = getLocale();
-  if (locale.startsWith('zh')) return fallback;
-  return editorId ? ITEM_EDITOR_TITLES[editorId] ?? fallback : fallback;
+function localizedEditorTitle(editor: WebEditorDescriptor | undefined, fallback: string): string {
+  return textValue(editor?.titleKey) ? t(textValue(editor?.titleKey), undefined, fallback) : textValue(editor?.title, fallback);
 }
 
-function localizedSectionTitle(editorId: string | undefined, title: string): string {
-  const locale = getLocale();
-  const sectionMap = editorId ? ITEM_SECTION_TITLES[editorId] : undefined;
-  if (locale.startsWith('zh')) return title;
-  return sectionMap?.[title] ?? humanizeFieldLabel(title);
+function localizedSectionTitle(moduleId: string, section: WebEditorSection): string {
+  const key = textValue((section as AnyMap).titleKey);
+  return key ? t(key, undefined, section.title) : fieldLabel(section.title, { moduleId, namespace: moduleId, fallback: section.title });
 }
 
-function localizedSectionComment(editorId: string | undefined, title: string, comment?: string): string | undefined {
-  if (!comment) return undefined;
-  const locale = getLocale();
-  if (locale.startsWith('zh')) return comment;
-  const commentMap: Record<string, string> | undefined = undefined;
-  return commentMap?.[title] ?? humanizeFieldLabel(comment);
+function localizedSectionComment(moduleId: string, section: WebEditorSection): string | undefined {
+  if (!section.comment) return undefined;
+  const key = textValue((section as AnyMap).commentKey);
+  return key ? t(key, undefined, section.comment) : fieldLabel(section.comment, { moduleId, namespace: moduleId, fallback: section.comment });
 }
 
 function localItemPreview(data: AnyMap, previewLevel: number, baseName: string, baseLore: string[]): ItemPreviewResult {
@@ -778,7 +730,7 @@ function inferLocalPreviewKind(data: AnyMap): string {
   return 'generic_item';
 }
 
-function GenericPreviewPane({ moduleId, editorId, data, preview, previewPending, previewLevel, setPreviewLevel, baseName, baseLore }: { moduleId: string; editorId?: string; data: AnyMap; preview: ItemPreviewResult | null; previewPending: boolean; previewLevel: number; setPreviewLevel: (level: number) => void; baseName: string; baseLore: string[] }) {
+function GenericPreviewPane({ moduleId, editor, data, preview, previewPending, previewLevel, setPreviewLevel, baseName, baseLore }: { moduleId: string; editor?: WebEditorDescriptor; data: AnyMap; preview: ItemPreviewResult | null; previewPending: boolean; previewLevel: number; setPreviewLevel: (level: number) => void; baseName: string; baseLore: string[] }) {
   const source = firstItemSource(data.item_sources ?? asRecord(data.match).item_sources ?? preview?.material);
   const material = materialFromItemSource(source || data.material || preview?.material);
   const levels = configuredPreviewLevels(data, preview);
@@ -793,6 +745,7 @@ function GenericPreviewPane({ moduleId, editorId, data, preview, previewPending,
   const resultName = textValue(livePreview?.displayName);
   const resultLore = livePreview ? asStringList(livePreview.lore) : [];
   const status = previewStatus(livePreview, previewPending);
+  const previewOptions = asRecord(editor?.preview);
   useEffect(() => setImgFailed(false), [material]);
   useEffect(() => subscribeTextureBases(() => { setImgFailed(false); refreshTextureOrder((version) => version + 1); }), []);
 
@@ -802,7 +755,7 @@ function GenericPreviewPane({ moduleId, editorId, data, preview, previewPending,
         {urls.length > 0 && !imgFailed ? <img src={urls[0]} alt={material || t('core.item.iconAlt')} onError={e => { const target = e.currentTarget; const next = urls[urls.indexOf(target.src) + 1]; if (next) target.src = next; else setImgFailed(true); }} /> : <span className="ie-preview-fallback">{materialShortName(material) || '?'}</span>}
       </div>
       <div className="ie-preview-meta">
-        <span className="ie-preview-kind">{previewKindLabel(livePreview, moduleId, editorId)}</span>
+        <span className="ie-preview-kind">{previewKindLabel(livePreview, moduleId, editor)}</span>
         {Boolean(livePreview?.id || data.id) && <code className="ie-preview-id">{textValue(livePreview?.id ?? data.id)}</code>}
         <span className="ie-preview-source">{displaySource(source || material)}</span>
         <span className={`ie-preview-status ${status.tone}`}>{status.text}</span>
@@ -818,7 +771,7 @@ function GenericPreviewPane({ moduleId, editorId, data, preview, previewPending,
         <PreviewTooltipBlock title={t('core.item.preview.original')} name={originalName} lore={originalLore} emptyText={t('core.item.preview.emptyLore')} />
         <PreviewTooltipBlock title={hasLevels ? t('core.item.preview.resultForLevel', { level: previewLevel }) : t('core.item.preview.result')} name={resultName} lore={resultLore} refreshing={previewPending} emptyText={previewPending ? t('core.item.preview.syncing') : t('core.item.preview.emptyResult')} />
       </div>
-      <PreviewPipelineSummary preview={livePreview} editorId={editorId} />
+      <PreviewPipelineSummary preview={livePreview} hidden={previewOptions.showPipelineSummary === false} />
     </div>
   );
 }
@@ -851,15 +804,16 @@ function previewStatus(preview: ItemPreviewResult | null, pending: boolean): { t
   return { tone: 'failed', text: t('core.item.previewStatus.failed') };
 }
 
-function previewKindLabel(preview: ItemPreviewResult | null, moduleId: string, editorId?: string): string {
-  if (preview?.kind === 'gem') return t('emakigem.preview.kind.gem', undefined, 'Gem');
-  if (preview?.kind === 'gem_socket_item') return t('emakigem.preview.kind.socket', undefined, 'Socket Item');
-  if (editorId?.startsWith('emakiitem:')) return t('emakiitem.preview.kind', undefined, 'Custom Item');
-  return t('core.item.genericKind');
+function previewKindLabel(preview: ItemPreviewResult | null, moduleId: string, editor?: WebEditorDescriptor): string {
+  const kind = textValue(preview?.kind);
+  const labels = asRecord(asRecord(editor?.preview).kindLabels);
+  const labelKey = textValue(labels[kind] ?? labels.default);
+  if (labelKey) return t(labelKey, undefined, humanizeFieldLabel(kind || 'item'));
+  return kind ? t(`${moduleId.toLowerCase()}.preview.kind.${kind}`, undefined, humanizeFieldLabel(kind)) : t('core.item.genericKind');
 }
 
-function PreviewPipelineSummary({ preview, editorId }: { preview: ItemPreviewResult | null; editorId?: string }) {
-  if (editorId?.startsWith('emakigem:')) return null;
+function PreviewPipelineSummary({ preview, hidden }: { preview: ItemPreviewResult | null; hidden?: boolean }) {
+  if (hidden) return null;
   const variables = Object.entries(preview?.variables ?? {});
   const nameSteps = preview?.nameSteps ?? [];
   const loreSteps = preview?.loreSteps ?? [];

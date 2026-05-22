@@ -75,7 +75,9 @@ export type WebEditorField = {
 
 export type WebEditorSection = {
   title: string;
+  titleKey?: string;
   comment?: string;
+  commentKey?: string;
   fields: WebEditorField[];
   collapsible?: boolean;
   defaultCollapsed?: boolean;
@@ -85,6 +87,7 @@ export type WebEditorDescriptor = {
   id: string;
   moduleId?: string;
   title?: string;
+  titleKey?: string;
   kindLabel?: string;
   baseName?: string;
   baseLore?: string[];

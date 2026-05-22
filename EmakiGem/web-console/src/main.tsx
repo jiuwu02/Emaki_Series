@@ -76,6 +76,8 @@ registerModuleLocale('EmakiGem', 'zh-CN', {
   'emakigem.option.economyProvider.auto': '自动选择',
   'emakigem.option.economyProvider.vault': 'Vault',
   'emakigem.option.economyProvider.excellenteconomy': 'ExcellentEconomy',
+  'emakigem.editor.gem.title': '宝石定义',
+  'emakigem.editor.socketItem.title': '宝石插槽物品',
   'emakigem.field.id': 'ID',
   'emakigem.field.display_name': '显示名称',
   'emakigem.field.lore': 'Lore',
@@ -272,6 +274,20 @@ registerModuleLocale(MODULE, 'zh-CN', {
   'emakigem.file.resonances.comment': '宝石共鸣定义文件目录。',
   'emakigem.file.conditions.title': '条件定义',
   'emakigem.file.conditions.comment': '宝石条件定义文件目录。',
+  'emakigem.filePath.gems_example_gem.title': '示例宝石',
+  'emakigem.filePath.gems_example_gem.comment': '示例宝石定义文件。',
+  'emakigem.filePath.items_example_socket_item.title': '示例插槽物品',
+  'emakigem.filePath.items_example_socket_item.comment': '示例插槽物品定义文件。',
+  'emakigem.filePath.resonances_example_resonance.title': '示例共鸣',
+  'emakigem.filePath.resonances_example_resonance.comment': '示例共鸣定义文件。',
+  'emakigem.filePath.conditions_gem.title': '宝石条件',
+  'emakigem.filePath.conditions_gem.comment': '宝石条件定义文件。',
+  'emakigem.filePath.gui_gem_default.title': '宝石 GUI',
+  'emakigem.filePath.gui_gem_default.comment': '宝石 GUI 模板文件。',
+  'emakigem.filePath.gui_open_default.title': '开槽 GUI',
+  'emakigem.filePath.gui_open_default.comment': '开槽 GUI 模板文件。',
+  'emakigem.filePath.gui_upgrade_default.title': '升级 GUI',
+  'emakigem.filePath.gui_upgrade_default.comment': '升级 GUI 模板文件。',
   'emakigem.file.lang.title': '语言文件',
   'emakigem.file.lang.comment': '宝石插件语言资源文件目录。',
   'emakigem.file.plugin.title': '插件描述',
@@ -306,12 +322,41 @@ registerModuleLocale(MODULE, 'en-US', {
   'emakigem.file.resonances.comment': 'Directory for gem resonance definition files.',
   'emakigem.file.conditions.title': 'Condition Definitions',
   'emakigem.file.conditions.comment': 'Directory for gem condition definition files.',
+  'emakigem.filePath.gems_example_gem.title': 'Sample Gem',
+  'emakigem.filePath.gems_example_gem.comment': 'Sample gem definition file.',
+  'emakigem.filePath.items_example_socket_item.title': 'Sample Socket Item',
+  'emakigem.filePath.items_example_socket_item.comment': 'Sample socket item definition file.',
+  'emakigem.filePath.resonances_example_resonance.title': 'Sample Resonance',
+  'emakigem.filePath.resonances_example_resonance.comment': 'Sample resonance definition file.',
+  'emakigem.filePath.conditions_gem.title': 'Gem Condition',
+  'emakigem.filePath.conditions_gem.comment': 'Gem condition definition file.',
+  'emakigem.filePath.gui_gem_default.title': 'Gem GUI',
+  'emakigem.filePath.gui_gem_default.comment': 'Gem GUI template file.',
+  'emakigem.filePath.gui_open_default.title': 'Socket Opening GUI',
+  'emakigem.filePath.gui_open_default.comment': 'Socket opening GUI template file.',
+  'emakigem.filePath.gui_upgrade_default.title': 'Upgrade GUI',
+  'emakigem.filePath.gui_upgrade_default.comment': 'Upgrade GUI template file.',
   'emakigem.file.lang.title': 'Language Files',
   'emakigem.file.lang.comment': 'Directory for gem language resources.',
   'emakigem.file.plugin.title': 'Plugin Description',
   'emakigem.file.plugin.comment': 'plugin.yml plugin metadata and dependency declaration.',
   'emakigem.file.web-console.title': 'Web Console Declaration',
   'emakigem.file.web-console.comment': 'Web Console file registration and resource entry declaration.',
+  'emakigem.editor.gem.title': 'Gem Definition',
+  'emakigem.editor.socketItem.title': 'Gem Socket Item',
+  'emakigem.section.basic': 'Basic Info',
+  'emakigem.section.effects': 'Effects and Variables',
+  'emakigem.section.displayActions': 'Display Action Chains',
+  'emakigem.section.costReturn': 'Cost and Returns',
+  'emakigem.section.upgrade': 'Upgrade Settings',
+  'emakigem.section.gemActions': 'Trigger Actions',
+  'emakigem.section.matchRules': 'Match Rules',
+  'emakigem.section.slots': 'Slot Structure',
+  'emakigem.section.gemLimit': 'Gem Limits',
+  'emakigem.section.guiTemplate': 'GUI Templates',
+  'emakigem.preview.kind.gem': 'Gem',
+  'emakigem.preview.kind.gem_socket_item': 'Socket Item',
+  'emakigem.preview.kind.generic_item': 'Item',
   'emakigem.field.socket_openers': 'Socket Openers',
   'emakigem.field.inlay_success': 'Inlay Success',
   'emakigem.field.upgrade': 'Upgrade',
@@ -351,13 +396,15 @@ registerEditorDescriptor(MODULE, 'emakigem:gem', {
   id: 'emakigem:gem',
   moduleId: MODULE,
   title: '宝石定义',
+  titleKey: 'emakigem.editor.gem.title',
   kindLabel: '宝石定义',
   baseName: copy('<gray>预览装备</gray>', '<gray>Preview Equipment</gray>'),
   baseLore: [copy('<gray>原始装备 Lore</gray>', '<gray>Original equipment lore</gray>')],
+  preview: { showPipelineSummary: false, kindLabels: { gem: 'emakigem.preview.kind.gem', gem_socket_item: 'emakigem.preview.kind.gem_socket_item', generic_item: 'emakigem.preview.kind.generic_item' } },
   allowedFieldTypes: ['effects', 'cost', 'extractReturn', 'gemUpgrade'],
   sections: [
     {
-      title: '基础信息', fields: [
+      title: '基础信息', titleKey: 'emakigem.section.basic', fields: [
         { path: 'id', label: 'ID', type: 'text' },
         { path: 'display_name', label: '显示名称', type: 'text' },
         { path: 'lore', label: 'Lore', type: 'stringList', wide: true },
@@ -368,23 +415,23 @@ registerEditorDescriptor(MODULE, 'emakigem:gem', {
         { path: 'socket_compatibility', label: '兼容插槽', type: 'stringList', wide: true }
       ]
     },
-    { title: '效果与变量', collapsible: true, defaultCollapsed: true, fields: [{ path: 'effects', label: '宝石效果', type: 'effects', wide: true }] },
+    { title: '效果与变量', titleKey: 'emakigem.section.effects', collapsible: true, defaultCollapsed: true, fields: [{ path: 'effects', label: '宝石效果', type: 'effects', wide: true }] },
     {
-      title: '显示动作链', collapsible: true, defaultCollapsed: true, fields: [
+      title: '显示动作链', titleKey: 'emakigem.section.displayActions', collapsible: true, defaultCollapsed: true, fields: [
         { path: 'name_actions', label: '名称动作链', type: 'actions', wide: true },
         { path: 'lore_actions', label: 'Lore 动作链', type: 'actions', wide: true }
       ]
     },
     {
-      title: '费用与返还', collapsible: true, defaultCollapsed: true, fields: [
+      title: '费用与返还', titleKey: 'emakigem.section.costReturn', collapsible: true, defaultCollapsed: true, fields: [
         { path: 'inlay_cost', label: '镶嵌费用', type: 'cost', wide: true },
         { path: 'extract_cost', label: '拆卸费用', type: 'cost', wide: true },
         { path: 'extract_return', label: '拆卸返还', type: 'extractReturn', wide: true }
       ]
     },
-    { title: '升级设置', collapsible: true, defaultCollapsed: true, fields: [{ path: 'upgrade', label: '升级配置', type: 'gemUpgrade', wide: true }] },
+    { title: '升级设置', titleKey: 'emakigem.section.upgrade', collapsible: true, defaultCollapsed: true, fields: [{ path: 'upgrade', label: '升级配置', type: 'gemUpgrade', wide: true }] },
     {
-      title: '触发动作', collapsible: true, defaultCollapsed: true, fields: [
+      title: '触发动作', titleKey: 'emakigem.section.gemActions', collapsible: true, defaultCollapsed: true, fields: [
         { path: 'actions.inlay_success', label: '镶嵌成功动作', type: 'stringList', wide: true },
         { path: 'actions.extract_success', label: '拆卸成功动作', type: 'stringList', wide: true }
       ]
@@ -396,35 +443,37 @@ registerEditorDescriptor(MODULE, 'emakigem:socket-item', {
   id: 'emakigem:socket-item',
   moduleId: MODULE,
   title: '宝石插槽物品',
+  titleKey: 'emakigem.editor.socketItem.title',
   kindLabel: '宝石物品定义',
   baseName: copy('<gray>预览装备</gray>', '<gray>Preview Equipment</gray>'),
   baseLore: [copy('<gray>原始装备 Lore</gray>', '<gray>Original equipment lore</gray>')],
+  preview: { showPipelineSummary: false, kindLabels: { gem: 'emakigem.preview.kind.gem', gem_socket_item: 'emakigem.preview.kind.gem_socket_item', generic_item: 'emakigem.preview.kind.generic_item' } },
   allowedFieldTypes: ['gemSlots'],
   sections: [
     {
-      title: '匹配规则', fields: [
+      title: '匹配规则', titleKey: 'emakigem.section.matchRules', fields: [
         { path: 'id', label: 'ID', type: 'text' },
         { path: 'match.item_sources', label: '匹配物品来源', type: 'stringList', wide: true },
         { path: 'match.slot_groups', label: '装备分组', type: 'stringList', wide: true },
         { path: 'match.lore_contains', label: 'Lore 包含', type: 'stringList', wide: true }
       ]
     },
-    { title: '插槽结构', collapsible: true, defaultCollapsed: true, fields: [{ path: 'slots', label: '插槽列表', type: 'gemSlots', wide: true }] },
+    { title: '插槽结构', titleKey: 'emakigem.section.slots', collapsible: true, defaultCollapsed: true, fields: [{ path: 'slots', label: '插槽列表', type: 'gemSlots', wide: true }] },
     {
-      title: '宝石限制', collapsible: true, defaultCollapsed: true, fields: [
+      title: '宝石限制', titleKey: 'emakigem.section.gemLimit', collapsible: true, defaultCollapsed: true, fields: [
         { path: 'allowed_gem_types', label: '允许宝石类型', type: 'stringList', wide: true },
         { path: 'max_same_type', label: '同类型上限', type: 'number' },
         { path: 'max_same_id', label: '同 ID 上限', type: 'number' }
       ]
     },
     {
-      title: 'GUI 模板', collapsible: true, defaultCollapsed: true, fields: [
+      title: 'GUI 模板', titleKey: 'emakigem.section.guiTemplate', collapsible: true, defaultCollapsed: true, fields: [
         { path: 'gui.gem_template', label: '镶嵌模板', type: 'text' },
         { path: 'gui.open_template', label: '开槽模板', type: 'text' }
       ]
     },
     {
-      title: '显示动作链', collapsible: true, defaultCollapsed: true, fields: [
+      title: '显示动作链', titleKey: 'emakigem.section.displayActions', collapsible: true, defaultCollapsed: true, fields: [
         { path: 'name_actions', label: '名称动作链', type: 'actions', wide: true },
         { path: 'lore_actions', label: 'Lore 动作链', type: 'actions', wide: true }
       ]
