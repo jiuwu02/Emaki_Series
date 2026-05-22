@@ -8,7 +8,7 @@ export function Login({ onLogin, sessionExpired }: { onLogin: (token: string) =>
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const api = new ApiClient(null, () => {});
+  const api = new ApiClient(null, () => { });
 
   async function submit(e: React.FormEvent) {
     e.preventDefault(); setBusy(true); setError('');

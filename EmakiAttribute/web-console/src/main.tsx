@@ -1,4 +1,4 @@
-import { getLocale, registerConfigCreateTemplate, registerConfigListItemSchema, registerConfigMetaFields, registerConfigNodeRule, registerConfigRuleFields, registerModuleLocale, getRuntimeEnum } from 'emaki-web-console';
+import { getLocale, registerConfigCreateTemplates, registerConfigListItemSchema, registerConfigListItemSchemas, registerConfigMetaFields, registerConfigNodeRule, registerConfigRuleFields, registerModuleLocale, getRuntimeEnum } from 'emaki-web-console';
 
 const MODULE = 'EmakiAttribute';
 
@@ -182,27 +182,37 @@ registerConfigNodeRule(MODULE, { key: 'value_kind' }, { label: copy('数值类�
 registerConfigNodeRule(MODULE, { key: 'target_type' }, { label: copy('目标类型', 'Target type'), comment: '属性作用目标类型。', type: 'enum', options: ['GENERIC', 'VANILLA', 'RESOURCE', 'DAMAGE'], optionLabelPrefix: 'target_type' });
 registerConfigNodeRule(MODULE, { key: 'condition_type' }, { label: copy('条件逻辑', 'Condition logic'), comment: '多条件组合逻辑。', type: 'enum', options: ['all_of', 'any_of'], optionLabelPrefix: 'condition_type' });
 
-registerConfigCreateTemplate(MODULE, 'default_profile.resources', { id: 'resource', label: copy('资源模板', 'Resource template'), fields: [
-  { path: 'display_name', label: '显示名称', comment: '资源在界面中显示的名称。', type: 'text', defaultValue: '新资源' },
-  { path: 'default_max', label: '默认最大值', comment: '资源默认最大值。', type: 'number', defaultValue: 100 },
-  { path: 'min_max', label: '最大值下限', comment: '资源最大值允许的最低值。', type: 'number', defaultValue: 0 },
-  { path: 'max_max', label: '最大值上限', comment: '资源最大值允许的最高值。', type: 'number', defaultValue: 1000 },
-  { path: 'sync_to_bukkit', label: '同步 Bukkit', comment: '是否同步到 Bukkit 原生属性。', type: 'boolean', defaultValue: false },
-  { path: 'full_on_init', label: '初始满值', comment: '初始化时是否填充至最大值。', type: 'boolean', defaultValue: true }
-] });
-registerConfigCreateTemplate(MODULE, 'default_profile.attributes', { id: 'attribute', label: copy('属性默认值', 'Attribute default value'), fields: [
-  { path: 'default_value', label: '默认值', comment: '属性默认基础数值。', type: 'number', defaultValue: 0 }
-] });
-registerConfigCreateTemplate(MODULE, 'scaling_curves', { id: 'curve', label: copy('衰减曲线模板', 'Scaling curve template'), fields: [
-  { path: 'attribute', label: '属性 ID', comment: '需要应用衰减的属性 ID。', type: 'text', defaultValue: 'physical_attack' },
-  { path: 'threshold', label: '阈值', comment: '超过该值后开始衰减。', type: 'number', defaultValue: 100 },
-  { path: 'curve_type', label: '曲线类型', comment: '超过阈值后使用的衰减函数类型。', type: 'enum', options: ['logarithmic', 'sqrt', 'piecewise_linear'], defaultValue: 'logarithmic' },
-  { path: 'factor', label: '系数', comment: '衰减计算系数。', type: 'number', defaultValue: 1 }
-] });
+registerConfigCreateTemplates(MODULE, [
+  ['default_profile.resources', {
+    id: 'resource', label: copy('资源模板', 'Resource template'), fields: [
+      { path: 'display_name', label: '显示名称', comment: '资源在界面中显示的名称。', type: 'text', defaultValue: '新资源' },
+      { path: 'default_max', label: '默认最大值', comment: '资源默认最大值。', type: 'number', defaultValue: 100 },
+      { path: 'min_max', label: '最大值下限', comment: '资源最大值允许的最低值。', type: 'number', defaultValue: 0 },
+      { path: 'max_max', label: '最大值上限', comment: '资源最大值允许的最高值。', type: 'number', defaultValue: 1000 },
+      { path: 'sync_to_bukkit', label: '同步 Bukkit', comment: '是否同步到 Bukkit 原生属性。', type: 'boolean', defaultValue: false },
+      { path: 'full_on_init', label: '初始满值', comment: '初始化时是否填充至最大值。', type: 'boolean', defaultValue: true }
+    ]
+  }],
+  ['default_profile.attributes', {
+    id: 'attribute', label: copy('属性默认值', 'Attribute default value'), fields: [
+      { path: 'default_value', label: '默认值', comment: '属性默认基础数值。', type: 'number', defaultValue: 0 }
+    ]
+  }],
+  ['scaling_curves', {
+    id: 'curve', label: copy('衰减曲线模板', 'Scaling curve template'), fields: [
+      { path: 'attribute', label: '属性 ID', comment: '需要应用衰减的属性 ID。', type: 'text', defaultValue: 'physical_attack' },
+      { path: 'threshold', label: '阈值', comment: '超过该值后开始衰减。', type: 'number', defaultValue: 100 },
+      { path: 'curve_type', label: '曲线类型', comment: '超过阈值后使用的衰减函数类型。', type: 'enum', options: ['logarithmic', 'sqrt', 'piecewise_linear'], defaultValue: 'logarithmic' },
+      { path: 'factor', label: '系数', comment: '衰减计算系数。', type: 'number', defaultValue: 1 }
+    ]
+  }]
+]);
 
-registerConfigListItemSchema(MODULE, 'allowed_damage_causes', [
-  { path: 'cause', label: '伤害来源', comment: 'Bukkit DamageCause，选项来自当前服务端编译期 API。', type: 'enum', options: damageCauses, optionLabelPrefix: 'damageCause' },
-  { path: 'damage_type', label: '伤害类型', comment: '对应 damage_types/ 下的伤害类型 ID。', type: 'text', defaultValue: 'physical' },
-  { path: 'damage', label: '基础伤害', comment: '进入 EmakiAttribute 结算时使用的基础伤害值。', type: 'number', defaultValue: 1 },
-  { path: 'enabled', label: '启用', comment: '是否启用此伤害来源规则。', type: 'boolean', defaultValue: true }
-], { uniqueBy: 'cause' });
+registerConfigListItemSchemas(MODULE, [
+  ['allowed_damage_causes', [
+    { path: 'cause', label: '伤害来源', comment: 'Bukkit DamageCause，选项来自当前服务端编译期 API。', type: 'enum', options: damageCauses, optionLabelPrefix: 'damageCause' },
+    { path: 'damage_type', label: '伤害类型', comment: '对应 damage_types/ 下的伤害类型 ID。', type: 'text', defaultValue: 'physical' },
+    { path: 'damage', label: '基础伤害', comment: '进入 EmakiAttribute 结算时使用的基础伤害值。', type: 'number', defaultValue: 1 },
+    { path: 'enabled', label: '启用', comment: '是否启用此伤害来源规则。', type: 'boolean', defaultValue: true }
+  ], { uniqueBy: 'cause' }]
+]);

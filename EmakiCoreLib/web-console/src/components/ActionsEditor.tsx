@@ -41,8 +41,8 @@ export function ActionsEditor({
   };
   const remove = (i: number) => onChange(actions.filter((_, idx) => idx !== i));
   const add = () => onChange([...actions, { type: actionTypes[0] ?? '', params: {} }]);
-  const moveUp = (i: number) => { if (i <= 0) return; const next = [...actions]; [next[i - 1], next[i]] = [next[i], next[i - 1]]; onChange(next); };
-  const moveDown = (i: number) => { if (i >= actions.length - 1) return; const next = [...actions]; [next[i], next[i + 1]] = [next[i + 1], next[i]]; onChange(next); };
+  const moveUp = (i: number) => { if (i <= 0) return; const next = [...actions];[next[i - 1], next[i]] = [next[i], next[i - 1]]; onChange(next); };
+  const moveDown = (i: number) => { if (i >= actions.length - 1) return; const next = [...actions];[next[i], next[i + 1]] = [next[i + 1], next[i]]; onChange(next); };
 
   return (
     <div className="prop-actions">

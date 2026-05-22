@@ -1,4 +1,4 @@
-import { getLocale, registerConfigCreateTemplate, registerConfigListItemSchema, registerConfigMetaFields, registerConfigRuleFields, registerModuleLocale, registerPluginGuiEditor } from 'emaki-web-console';
+import { getLocale, registerConfigCreateTemplate, registerConfigCreateTemplates, registerConfigListItemSchema, registerConfigListItemSchemas, registerConfigMetaFields, registerConfigRuleFields, registerModuleLocale, registerPluginGuiEditor } from 'emaki-web-console';
 
 const MODULE = 'EmakiForge';
 
@@ -112,21 +112,25 @@ registerModuleLocale(MODULE, 'en-US', {
 registerConfigMetaFields(MODULE, fields);
 registerConfigRuleFields(MODULE, ruleFields);
 
-registerConfigCreateTemplate(MODULE, 'quality.item_meta.tiers', {
-  id: 'quality-tier-display',
-  label: copy('品质显示规则', 'Quality display rule'),
-  fields: [
-    { path: 'name_actions', label: '名称动作链', comment: '给该品质物品名称追加前缀、后缀或执行替换动作。', type: 'list', defaultValue: ['action: "prepend_prefix"', 'value: "<gray>[新品质] </gray>"'] },
-    { path: 'lore_actions', label: 'Lore 动作链', comment: '给该品质物品 Lore 执行的动作列表。', type: 'list', defaultValue: [] },
-    { path: 'action', label: '广播动作', comment: '该品质达成时执行的广播或提示动作。', type: 'list', defaultValue: [] }
-  ]
-});
+registerConfigCreateTemplates(MODULE, [
+  ['quality.item_meta.tiers', {
+    id: 'quality-tier-display',
+    label: copy('品质显示规则', 'Quality display rule'),
+    fields: [
+      { path: 'name_actions', label: '名称动作链', comment: '给该品质物品名称追加前缀、后缀或执行替换动作。', type: 'list', defaultValue: ['action: "prepend_prefix"', 'value: "<gray>[新品质] </gray>"'] },
+      { path: 'lore_actions', label: 'Lore 动作链', comment: '给该品质物品 Lore 执行的动作列表。', type: 'list', defaultValue: [] },
+      { path: 'action', label: '广播动作', comment: '该品质达成时执行的广播或提示动作。', type: 'list', defaultValue: [] }
+    ]
+  }]
+]);
 
-registerConfigListItemSchema(MODULE, 'quality.tiers', [
-  { path: 'name', label: '品质名', comment: '品质名称，会被 default_tier、guarantee.minimum 和品质显示配置引用。', type: 'text', defaultValue: '新品质' },
-  { path: 'weight', label: '权重', comment: '随机抽取权重，数值越高越容易出现。', type: 'number', defaultValue: 1 },
-  { path: 'multiplier', label: '倍率', comment: '该品质对最终锻造数值的倍率。', type: 'number', defaultValue: 1 }
-], { uniqueBy: 'name' });
+registerConfigListItemSchemas(MODULE, [
+  ['quality.tiers', [
+    { path: 'name', label: '品质名', comment: '品质名称，会被 default_tier、guarantee.minimum 和品质显示配置引用。', type: 'text', defaultValue: '新品质' },
+    { path: 'weight', label: '权重', comment: '随机抽取权重，数值越高越容易出现。', type: 'number', defaultValue: 1 },
+    { path: 'multiplier', label: '倍率', comment: '该品质对最终锻造数值的倍率。', type: 'number', defaultValue: 1 }
+  ], { uniqueBy: 'name' }]
+]);
 
 registerPluginGuiEditor({
   moduleId: MODULE,

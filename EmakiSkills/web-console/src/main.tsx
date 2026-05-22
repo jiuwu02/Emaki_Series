@@ -1,4 +1,4 @@
-import { getLocale, registerConfigListItemSchema, registerConfigListItemSchemaRule, registerConfigMetaFields, registerConfigNodeRule, registerConfigRuleFields, registerModuleLocale, registerPluginGuiEditor } from 'emaki-web-console';
+import { getLocale, registerConfigListItemSchema, registerConfigListItemSchemaRule, registerConfigListItemSchemas, registerConfigListItemSchemaRules, registerConfigMetaFields, registerConfigNodeRule, registerConfigRuleFields, registerModuleLocale, registerPluginGuiEditor } from 'emaki-web-console';
 
 const MODULE = 'EmakiSkills';
 
@@ -141,27 +141,30 @@ registerConfigNodeRule(MODULE, { key: 'hit' }, { label: '命中阶段', comment:
 registerConfigNodeRule(MODULE, { key: 'miss' }, { label: '未命中阶段', comment: '旧版脚本中的 miss 动作列表。', type: 'stringList' });
 registerConfigNodeRule(MODULE, { key: 'fail' }, { label: '失败阶段', comment: '旧版脚本中的 fail 动作列表。', type: 'stringList' });
 
-registerConfigListItemSchema(MODULE, 'resource_costs', [
-  { path: 'type', label: '资源类型', comment: '资源消耗类型。', type: 'enum', options: ['ea-resource', 'attribute-check', 'local-resource'], defaultValue: 'local-resource', optionLabelPrefix: 'skill.resource_cost.type' },
-  { path: 'target_id', label: '目标 ID', comment: '资源或属性标识。', type: 'text', defaultValue: 'mana' },
-  { path: 'amount', label: '数量', comment: '消耗或检查的数量。', type: 'number', defaultValue: 1 },
-  { path: 'operation', label: '操作', comment: 'consume 为消耗，require 为检查。', type: 'enum', options: ['consume', 'require'], defaultValue: 'consume', optionLabelPrefix: 'skill.resource_cost.operation' },
-  { path: 'failure_message', label: '失败提示', comment: '资源不足时显示的提示消息。', type: 'text', defaultValue: '资源不足' }
-], { uniqueBy: 'target_id' });
+registerConfigListItemSchemas(MODULE, [
+  ['resource_costs', [
+    { path: 'type', label: '资源类型', comment: '资源消耗类型。', type: 'enum', options: ['ea-resource', 'attribute-check', 'local-resource'], defaultValue: 'local-resource', optionLabelPrefix: 'skill.resource_cost.type' },
+    { path: 'target_id', label: '目标 ID', comment: '资源或属性标识。', type: 'text', defaultValue: 'mana' },
+    { path: 'amount', label: '数量', comment: '消耗或检查的数量。', type: 'number', defaultValue: 1 },
+    { path: 'operation', label: '操作', comment: 'consume 为消耗，require 为检查。', type: 'enum', options: ['consume', 'require'], defaultValue: 'consume', optionLabelPrefix: 'skill.resource_cost.operation' },
+    { path: 'failure_message', label: '失败提示', comment: '资源不足时显示的提示消息。', type: 'text', defaultValue: '资源不足' }
+  ], { uniqueBy: 'target_id' }],
+  ['upgrade.economy.currencies', [
+    { path: 'provider', label: '提供方', comment: '货币提供方或桥接器。', type: 'text', defaultValue: 'vault' },
+    { path: 'currency_id', label: '货币 ID', comment: '具体货币标识。', type: 'text', defaultValue: 'currency' },
+    { path: 'base_cost', label: '基础成本', comment: '未套公式时的基础数值。', type: 'number', defaultValue: 0 },
+    { path: 'cost_formula', label: '成本公式', comment: '按等级计算成本的公式。', type: 'text', defaultValue: '{base_cost}' },
+    { path: 'display_name', label: '显示名', comment: 'GUI 中显示的货币名称。', type: 'text', defaultValue: '' }
+  ], { uniqueBy: 'currency_id' }]
+]);
 
-registerConfigListItemSchema(MODULE, 'upgrade.economy.currencies', [
-  { path: 'provider', label: '提供方', comment: '货币提供方或桥接器。', type: 'text', defaultValue: 'vault' },
-  { path: 'currency_id', label: '货币 ID', comment: '具体货币标识。', type: 'text', defaultValue: 'currency' },
-  { path: 'base_cost', label: '基础成本', comment: '未套公式时的基础数值。', type: 'number', defaultValue: 0 },
-  { path: 'cost_formula', label: '成本公式', comment: '按等级计算成本的公式。', type: 'text', defaultValue: '{base_cost}' },
-  { path: 'display_name', label: '显示名', comment: 'GUI 中显示的货币名称。', type: 'text', defaultValue: '' }
-], { uniqueBy: 'currency_id' });
-
-registerConfigListItemSchemaRule(MODULE, { suffix: 'materials' }, [
-  { path: 'item_sources', label: '物品来源', comment: '作为材料的 ItemSource 列表。', type: 'stringList', defaultValue: ['minecraft-iron_ingot'] },
-  { path: 'amount', label: '数量', comment: '此材料需要的数量。', type: 'number', defaultValue: 1 },
-  { path: 'optional', label: '可选', comment: '是否可选材料。', type: 'boolean', defaultValue: false },
-  { path: 'protection', label: '保护', comment: '是否受保护规则影响。', type: 'boolean', defaultValue: false }
+registerConfigListItemSchemaRules(MODULE, [
+  [{ suffix: 'materials' }, [
+    { path: 'item_sources', label: '物品来源', comment: '作为材料的 ItemSource 列表。', type: 'stringList', defaultValue: ['minecraft-iron_ingot'] },
+    { path: 'amount', label: '数量', comment: '此材料需要的数量。', type: 'number', defaultValue: 1 },
+    { path: 'optional', label: '可选', comment: '是否可选材料。', type: 'boolean', defaultValue: false },
+    { path: 'protection', label: '保护', comment: '是否受保护规则影响。', type: 'boolean', defaultValue: false }
+  ]]
 ]);
 
 registerPluginGuiEditor({

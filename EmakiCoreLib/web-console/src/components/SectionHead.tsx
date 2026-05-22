@@ -97,7 +97,7 @@ function writeCollapsed(storageKey: string | undefined, collapsed: boolean): voi
   if (!storageKey || typeof localStorage === 'undefined') return;
   try {
     localStorage.setItem(storageKey, collapsed ? '1' : '0');
-  } catch {}
+  } catch { }
 }
 
 function stopPropagation(event: SyntheticEvent) {
