@@ -735,7 +735,7 @@ public final class WebConsoleRegistry {
         node.put("path", path);
         node.put("label", meta.label());
         node.put("comment", meta.comment());
-        String resolvedType = Texts.isBlank(meta.type()) ? detectedType : meta.type();
+        String resolvedType = resolveNodeType(detectedType, meta.type());
         // 支持 enum:OPT1,OPT2,OPT3 格式（静态枚举）
         if (resolvedType.startsWith("enum:")) {
             node.put("type", "enum");
@@ -859,6 +859,32 @@ public final class WebConsoleRegistry {
             return "list";
         }
         return "text";
+    }
+
+    private String resolveNodeType(String detectedType, String metaType) {
+        if (Texts.isBlank(metaType)) {
+            return detectedType;
+        }
+        if ("list".equals(detectedType)) {
+            return isListUiType(metaType) ? metaType : detectedType;
+        }
+        if ("boolean".equals(detectedType)) {
+            return "boolean";
+        }
+        if ("number".equals(detectedType)) {
+            return "number";
+        }
+        if ("object".equals(detectedType)) {
+            return "dynamic_map".equals(metaType) ? metaType : "object";
+        }
+        return metaType;
+    }
+
+    private boolean isListUiType(String type) {
+        return "list".equals(type)
+                || "stringList".equals(type)
+                || "numberList".equals(type)
+                || "actions".equals(type);
     }
 
     private Object normalizeValue(Object value) {

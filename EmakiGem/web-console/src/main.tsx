@@ -534,9 +534,11 @@ function UpgradeEditor({ context }: { context: ItemFieldRendererContext }) {
         const opened = expandedLevels.has(levelKey);
         const actions = asRecord(level.actions);
         return <div className={`prop-level-item${opened ? ' expanded' : ''}`} key={levelKey} role="listitem">
-          <div className="prop-level-head" role="button" tabIndex={0} onClick={() => toggleLevel(levelKey)} onKeyDown={event => toggleByKeyboard(event, () => toggleLevel(levelKey))} aria-expanded={opened} aria-controls={`level-body-${levelKey}`}>
-            <span className="prop-level-summary"><span className="prop-level-badge">{opened ? '⌄' : '›'} Lv.{levelKey}</span>{textValue(level.display_name) || copy('未命名', 'Unnamed')}</span>
-            <span className="prop-level-rate">{textValue(level.success_rate ?? level.success_chance, copy('继承', 'Inherited'))}%</span>
+          <div className="prop-level-head">
+            <button type="button" className="prop-level-toggle" onClick={() => toggleLevel(levelKey)} aria-expanded={opened} aria-controls={`level-body-${levelKey}`}>
+              <span className="prop-level-summary"><span className="prop-level-badge">{opened ? '⌄' : '›'} Lv.{levelKey}</span>{textValue(level.display_name) || copy('未命名', 'Unnamed')}</span>
+              <span className="prop-level-rate">{textValue(level.success_rate ?? level.success_chance, copy('继承', 'Inherited'))}%</span>
+            </button>
             <button type="button" className="prop-kv-del" onClick={event => { event.stopPropagation(); removeLevel(levelKey); }} onKeyDown={stopEvent} aria-label={copy(`删除等级 ${levelKey}`, `Delete level ${levelKey}`)}>×</button>
           </div>
           {opened && <div className="prop-level-body" id={`level-body-${levelKey}`}>
@@ -597,10 +599,12 @@ function GemSlotsEditor({ context }: { context: ItemFieldRendererContext }) {
         const slotIndex = toNumber(slot.index, index);
         const isOpen = openSlots.has(slotIndex);
         return <div className={`prop-level-item${opened ? ' expanded' : ''}`} key={index} role="listitem">
-          <div className="prop-level-head" role="button" tabIndex={0} onClick={() => toggle(index)} onKeyDown={event => toggleByKeyboard(event, () => toggle(index))} aria-expanded={opened} aria-controls={`slot-body-${index}`}>
-            <span className="prop-level-summary"><span className="prop-level-badge">{opened ? '⌄' : '›'} #{textValue(slot.index, String(index))}</span>{textValue(slot.type, 'universal')}</span>
+          <div className="prop-level-head">
+            <button type="button" className="prop-level-toggle" onClick={() => toggle(index)} aria-expanded={opened} aria-controls={`slot-body-${index}`}>
+              <span className="prop-level-summary"><span className="prop-level-badge">{opened ? '⌄' : '›'} #{textValue(slot.index, String(index))}</span>{textValue(slot.type, 'universal')}</span>
+              <span className="prop-level-rate">{textValue(slot.display_name) || copy('未命名', 'Unnamed')}</span>
+            </button>
             <button type="button" className={`prop-slot-open${isOpen ? ' active' : ''}`} onClick={event => { event.stopPropagation(); toggleOpen(slotIndex); }} onKeyDown={stopEvent} aria-pressed={isOpen}>{isOpen ? copy('默认开放', 'Open by default') : copy('默认关闭', 'Closed by default')}</button>
-            <span className="prop-level-rate">{textValue(slot.display_name) || copy('未命名', 'Unnamed')}</span>
             <button type="button" className="prop-kv-del" onClick={event => { event.stopPropagation(); removeSlot(index); }} onKeyDown={stopEvent} aria-label={copy(`删除插槽 ${index + 1}`, `Delete slot ${index + 1}`)}>×</button>
           </div>
           {opened && <div className="prop-level-body" id={`slot-body-${index}`}>
@@ -773,16 +777,10 @@ function parseLooseScalar(value: string): unknown {
 }
 
 function cleanObject<T extends Record<string, unknown>>(value: T): T {
-  return Object.fromEntries(Object.entries(value).filter(([, entry]) => entry !== undefined && entry !== '' && !(Array.isArray(entry) && entry.length === 0))) as T;
+  return Object.fromEntries(Object.entries(value).filter(([, entry]) => entry !== undefined && entry !== '')) as T;
 }
 
 function stopEvent(event: React.SyntheticEvent) {
   event.stopPropagation();
-}
-
-function toggleByKeyboard(event: React.KeyboardEvent, action: () => void) {
-  if (event.key !== 'Enter' && event.key !== ' ') return;
-  event.preventDefault();
-  action();
 }
 

@@ -467,7 +467,7 @@ function applySingleConfigNodeOverride(moduleId: string, node: WebConfigNode): W
   const next: WebConfigNode = { ...node };
   if (meta.label !== undefined) next.label = meta.label;
   if (meta.comment !== undefined) next.comment = meta.comment;
-  if (meta.type !== undefined) next.type = meta.type;
+  if (meta.type !== undefined) next.type = resolveConfigNodeType(node.type, meta.type);
   if (meta.options !== undefined) next.options = [...meta.options];
   if (meta.optionLabelPrefix !== undefined) next.optionLabelPrefix = meta.optionLabelPrefix;
   if (meta.creatableChildren !== undefined) next.creatableChildren = meta.creatableChildren;
@@ -480,6 +480,18 @@ function applySingleConfigNodeOverride(moduleId: string, node: WebConfigNode): W
   if (listRule.uniqueBy !== undefined && meta.uniqueBy === undefined) next.uniqueBy = listRule.uniqueBy;
   if (uniqueBy !== undefined) next.uniqueBy = uniqueBy;
   return next;
+}
+
+function resolveConfigNodeType(detectedType: string | undefined, metaType: string): string {
+  if (detectedType === 'list') return isListUiType(metaType) ? metaType : detectedType;
+  if (detectedType === 'boolean') return 'boolean';
+  if (detectedType === 'number') return 'number';
+  if (detectedType === 'object') return metaType === 'dynamic_map' ? metaType : 'object';
+  return metaType;
+}
+
+function isListUiType(type: string): boolean {
+  return type === 'list' || type === 'stringList' || type === 'numberList' || type === 'actions';
 }
 
 function mergeConfigNodeMeta(base: ConfigNodeMetaOverride | undefined, override: ConfigNodeMetaOverride | undefined): ConfigNodeMetaOverride {

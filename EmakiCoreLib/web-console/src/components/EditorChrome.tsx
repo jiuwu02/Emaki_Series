@@ -273,34 +273,7 @@ type DiffLine = { type: 'context' | 'add' | 'remove'; text: string; beforeLine?:
 
 function buildLineDiff(before: string, after: string): { changed: boolean; lines: DiffLine[] } {
   if (before === after) return { changed: false, lines: [] };
-  const beforeLines = before.split('\n');
-  const afterLines = after.split('\n');
-  if (beforeLines.length * afterLines.length > 12000) return buildCompactLineDiff(beforeLines, afterLines);
-  const table = Array.from({ length: beforeLines.length + 1 }, () => Array(afterLines.length + 1).fill(0));
-  for (let i = beforeLines.length - 1; i >= 0; i--) {
-    for (let j = afterLines.length - 1; j >= 0; j--) {
-      table[i][j] = beforeLines[i] === afterLines[j] ? table[i + 1][j + 1] + 1 : Math.max(table[i + 1][j], table[i][j + 1]);
-    }
-  }
-  const lines: DiffLine[] = [];
-  let i = 0;
-  let j = 0;
-  while (i < beforeLines.length && j < afterLines.length) {
-    if (beforeLines[i] === afterLines[j]) {
-      pushContext(lines, { type: 'context', text: beforeLines[i], beforeLine: i + 1, afterLine: j + 1 });
-      i++;
-      j++;
-    } else if (table[i + 1][j] >= table[i][j + 1]) {
-      lines.push({ type: 'remove', text: beforeLines[i], beforeLine: i + 1 });
-      i++;
-    } else {
-      lines.push({ type: 'add', text: afterLines[j], afterLine: j + 1 });
-      j++;
-    }
-  }
-  while (i < beforeLines.length) lines.push({ type: 'remove', text: beforeLines[i], beforeLine: ++i });
-  while (j < afterLines.length) lines.push({ type: 'add', text: afterLines[j], afterLine: ++j });
-  return { changed: true, lines };
+  return buildCompactLineDiff(before.split('\n'), after.split('\n'));
 }
 
 function buildCompactLineDiff(beforeLines: string[], afterLines: string[]): { changed: boolean; lines: DiffLine[] } {

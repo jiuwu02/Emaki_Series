@@ -564,13 +564,14 @@ function ConfigStructuredSurface({ module, file, drafts, draftHistory, setDraftV
   }
 
   useEffect(() => {
+    const previewSource = source.dirty ? source.content : configSourcePreview(source.original, scope, changedNodes, drafts);
     setSurfaceToolbar({
       title: moduleTitle,
       subtitle: `${fileTitle}，${file.path}`,
       dirty: changedNodes.length > 0 || source.dirty,
       changedCount: source.dirty ? Math.max(changedNodes.length, 1) : changedNodes.length,
-      changes: source.dirty ? [] : configChanges(scope, file.nodes, drafts),
-      source: source.content,
+      changes: [],
+      source: previewSource,
       sourceOriginal: source.original,
       sourceEditable: true,
       sourceError: source.error,
@@ -688,13 +689,14 @@ function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, set
   const fileName = childPath.split('/').pop() ?? childPath;
 
   useEffect(() => {
+    const previewSource = source.dirty ? source.content : configSourcePreview(source.original, scope, changedNodes, drafts);
     setSurfaceToolbar({
       title: fileName,
       subtitle: `${fileTitle} · ${childPath}`,
       dirty: changedNodes.length > 0 || source.dirty,
       changedCount: source.dirty ? Math.max(changedNodes.length, 1) : changedNodes.length,
-      changes: source.dirty ? [] : configChanges(scope, nodes, drafts),
-      source: source.content,
+      changes: [],
+      source: previewSource,
       sourceOriginal: source.original,
       sourceEditable: true,
       sourceError: source.error,
@@ -1039,16 +1041,33 @@ function configChanges(scope: ConfigDraftScope, nodes: WebConfigNode[], drafts: 
     .map(node => ({ path: node.path, label: configNodeDisplayLabel(scope, node), before: node.value, after: drafts[draftKey(scope, node.path)] }));
 }
 
-function configSourcePreview(nodes: WebConfigNode[], scope: ConfigDraftScope, drafts: DraftMap): string {
-  return nodes
-    .filter(node => node.type !== 'object')
-    .map(node => `${node.path}: ${formatPreviewValue(draftKey(scope, node.path) in drafts ? drafts[draftKey(scope, node.path)] : node.value)}`)
-    .join('\n');
+function configSourcePreview(original: string, scope: ConfigDraftScope, changedNodes: WebConfigNode[], drafts: DraftMap): string {
+  if (!changedNodes.length) return original;
+  try {
+    let data = parseYaml(original || '{}');
+    for (const node of changedNodes) {
+      data = setDeepValue(data, node.path.split('.'), drafts[draftKey(scope, node.path)]);
+    }
+    return serializeYaml(data);
+  } catch {
+    return changedNodes.reduce((content, node) => replacePreviewLine(content, node.path, drafts[draftKey(scope, node.path)]), original);
+  }
 }
 
-function formatPreviewValue(value: unknown): string {
+function replacePreviewLine(content: string, path: string, value: unknown): string {
+  const lines = content.split('\n');
+  const leaf = path.includes('.') ? path.slice(path.lastIndexOf('.') + 1) : path;
+  const index = lines.findIndex(line => line.trimStart().startsWith(`${leaf}:`));
+  const nextLine = `${index >= 0 ? lines[index].match(/^\s*/)?.[0] ?? '' : ''}${leaf}: ${formatYamlScalarPreview(value)}`;
+  if (index >= 0) lines[index] = nextLine;
+  else lines.push(nextLine);
+  return lines.join('\n');
+}
+
+function formatYamlScalarPreview(value: unknown): string {
   if (typeof value === 'string') return JSON.stringify(value);
-  try { return JSON.stringify(value); } catch { return String(value); }
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  return JSON.stringify(value);
 }
 
 function configNodeDisplayLabel(scope: ConfigDraftScope, node: WebConfigNode): string {

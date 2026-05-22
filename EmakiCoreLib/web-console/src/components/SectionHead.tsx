@@ -1,4 +1,4 @@
-import { useState, type ReactNode, type SyntheticEvent } from 'react';
+import { useEffect, useState, type ReactNode, type SyntheticEvent } from 'react';
 
 /** Section header with optional count badge and action buttons. */
 export function SectionHead({ title, count, actions }: { title: string; count?: number; actions?: ReactNode }) {
@@ -47,6 +47,11 @@ export function CollapsibleSection({
   className = ''
 }: CollapsibleSectionProps) {
   const [collapsed, setCollapsed] = useState(() => readCollapsed(storageKey, defaultCollapsed));
+
+  useEffect(() => {
+    setCollapsed(readCollapsed(storageKey, defaultCollapsed));
+  }, [storageKey, defaultCollapsed]);
+
   const toggle = () => {
     if (!collapsible) return;
     setCollapsed(current => {

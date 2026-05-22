@@ -36,7 +36,7 @@ const fields: FieldSpec[] = [
 const triggerFields: Record<string, [string, string, string]> = {
   display_name: ['显示名称', '触发器在 GUI、ActionBar 或提示文本中显示的名称。', 'text'],
   enabled: ['启用', '是否启用当前触发器或功能项。', 'boolean'],
-  incompatible_with: ['互斥触发器', '与当前触发器不能同时绑定或同时生效的触发器 ID 列表。', 'list']
+  incompatible_with: ['互斥触发器', '与当前触发器不能同时绑定或同时生效的触发器 ID 列表。', 'stringList']
 };
 
 const localeMessages: Record<string, string> = Object.fromEntries([

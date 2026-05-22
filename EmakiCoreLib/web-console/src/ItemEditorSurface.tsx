@@ -912,7 +912,7 @@ function parseLooseScalar(value: string): unknown {
 }
 
 function cleanObject<T extends Record<string, unknown>>(value: T): T {
-  return Object.fromEntries(Object.entries(value).filter(([, entry]) => entry !== undefined && entry !== '' && !(Array.isArray(entry) && entry.length === 0))) as T;
+  return Object.fromEntries(Object.entries(value).filter(([, entry]) => entry !== undefined && entry !== '')) as T;
 }
 
 function stopEvent(event: React.SyntheticEvent) {

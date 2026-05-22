@@ -885,7 +885,7 @@ textarea {
 .overlay-toggle:hover .disclosure-chevron,
 .overlay-toggle:focus-visible .disclosure-chevron,
 .prop-level-head:hover .disclosure-chevron,
-.prop-level-head:focus-visible .disclosure-chevron {
+.prop-level-head:focus-within .disclosure-chevron {
   color: var(--accent);
 }
 
@@ -2022,25 +2022,32 @@ textarea {
 }
 
 .switch {
-  min-width: 64px;
+  --switch-ink: var(--muted);
+  --switch-line: var(--line);
+  --switch-fill: color-mix(in oklch, var(--surface) 78%, var(--input) 22%);
+  --switch-chip: color-mix(in oklch, var(--surface-3) 64%, var(--input) 36%);
+  --switch-mark: var(--faint);
+  min-width: 68px;
   display: inline-flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 5px 8px;
-  color: var(--muted);
-  background: var(--surface);
+  border: 1px solid var(--switch-line);
+  border-radius: 7px;
+  padding: 4px 7px 4px 5px;
+  color: var(--switch-ink);
+  background: var(--switch-fill);
+  box-shadow: inset 0 1px 0 color-mix(in oklch, var(--surface-3) 72%, transparent);
   font-size: 12px;
+  font-weight: 650;
   transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), color 0.18s ease, border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
 }
 
 .switch:hover,
 .switch:focus-visible {
-  border-color: var(--line-2);
-  color: var(--text);
-  background: color-mix(in oklch, var(--surface) 88%, var(--input) 12%);
+  --switch-ink: var(--text);
+  --switch-line: var(--line-2);
+  --switch-fill: color-mix(in oklch, var(--surface) 70%, var(--input) 30%);
 }
 
 .switch:active {
@@ -2048,50 +2055,57 @@ textarea {
 }
 
 .switch span {
-  order: 2;
+  order: -1;
   width: 18px;
-  height: 10px;
-  border: 1px solid var(--line-2);
-  border-radius: 999px;
-  background: var(--input);
-  position: relative;
-  transition: border-color 0.18s ease, background 0.18s ease;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--switch-line);
+  border-radius: 5px;
+  background: var(--switch-chip);
+  color: var(--switch-mark);
+  box-shadow: inset 0 1px 0 color-mix(in oklch, var(--surface-3) 70%, transparent);
+  transition: border-color 0.18s ease, background 0.18s ease, color 0.18s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .switch span::after {
   content: '';
-  position: absolute;
-  top: 50%;
-  left: 2px;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: var(--faint);
-  transform: translateY(-50%);
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background 0.18s ease;
+  width: 7px;
+  height: 2px;
+  border-radius: 999px;
+  background: currentColor;
+  transform: scaleX(.9);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s ease, background 0.18s ease;
 }
 
 .switch.on {
-  color: var(--accent);
-  border-color: var(--accent-soft);
-  background: var(--accent-dim);
+  --switch-ink: var(--green);
+  --switch-line: var(--success-line);
+  --switch-fill: color-mix(in oklch, var(--success-soft) 64%, var(--surface) 36%);
+  --switch-chip: color-mix(in oklch, var(--green) 18%, var(--success-soft) 82%);
+  --switch-mark: var(--green);
+  box-shadow: inset 0 1px 0 color-mix(in oklch, var(--green) 18%, transparent), 0 0 0 1px color-mix(in oklch, var(--success-line) 26%, transparent);
 }
 
 .switch.on:hover,
 .switch.on:focus-visible {
-  border-color: var(--accent);
-  color: var(--accent-strong);
-  background: var(--accent-soft);
+  --switch-ink: color-mix(in oklch, var(--green) 74%, var(--text) 26%);
+  --switch-line: var(--green);
+  --switch-fill: color-mix(in oklch, var(--success-soft) 78%, var(--surface) 22%);
 }
 
 .switch.on span {
-  border-color: var(--accent);
-  background: color-mix(in oklch, var(--accent-dim) 70%, var(--input) 30%);
+  transform: scale(1.03);
 }
 
 .switch.on span::after {
-  background: var(--accent-strong);
-  transform: translate(8px, -50%);
+  width: 8px;
+  height: 5px;
+  border-radius: 0;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  background: transparent;
+  transform: translateY(-1px) rotate(45deg) scale(.9);
 }
 
 .list-editor {
@@ -4645,11 +4659,10 @@ textarea {
 
 .prop-level-head {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 8px;
   padding: 8px 0 8px 10px;
-  cursor: pointer;
   font-size: 12px;
   width: 100%;
   text-align: left;
@@ -4660,9 +4673,27 @@ textarea {
 }
 
 .prop-level-head:hover,
-.prop-level-head:focus-visible {
+.prop-level-head:focus-within {
   background: transparent;
   outline: none;
+}
+
+.prop-level-toggle {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.prop-level-toggle:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+  border-radius: 6px;
 }
 
 .prop-level-badge {
@@ -4690,13 +4721,6 @@ textarea {
   white-space: nowrap;
   text-align: left;
   min-width: 0;
-}
-
-button.prop-level-summary {
-  border: 0;
-  background: transparent;
-  padding: 0;
-  cursor: pointer;
 }
 
 .prop-level-rate {

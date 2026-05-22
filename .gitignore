@@ -11,12 +11,7 @@ target/
 *.class
 
 # IDE / OS local files
-.idea/
 *.iml
-.vscode/
-.codex/
-.narrafork/
-.DS_Store
 Thumbs.db
 
 # Python local cache
@@ -31,15 +26,8 @@ __pycache__/
 *.key
 
 # Local project notes / generated helper docs
-CHANGELOG.md
-**/CHANGELOG.md
-Plugin Description.md
-**/Plugin Description.md
-PRODUCT.md
-DESIGN.md
-.impeccable/
+*.md
+.*/
 docs/
 release version/
-release-notes.md
 emaki_manager.py
-PROJECT_OVERVIEW.md
