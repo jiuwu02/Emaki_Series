@@ -72,13 +72,37 @@ export default function App() {
   const [extensionStatuses, setExtensionStatuses] = useState<WebConsoleExtensionStatus[]>([]);
   const [extensionHealth, setExtensionHealth] = useState<'idle' | 'loading' | 'ok' | 'failed'>('idle');
 
-  const api = useMemo(() => new ApiClient(token, () => {
+  const expireSession = () => {
     sessionStorage.removeItem('emaki-web-token');
     setSessionExpired(true);
     setToken(null);
-  }), [token]);
+    setRegistry(null);
+    setSelected(null);
+    setDrafts({});
+    setDraftHistory({});
+    setSurfaceToolbar(null);
+    setSurfaceDirtyKeys(new Set());
+    setCreateTarget(null);
+    setDeleteTarget(null);
+    setI18nTarget(null);
+    setToast(null);
+  };
+
+  const api = useMemo(() => new ApiClient(token, expireSession), [token]);
 
   useEffect(() => { if (token) void loadRegistry({ initial: true, clearDrafts: true }); }, [token]);
+  useEffect(() => {
+    if (!token) return;
+    const validateStoredToken = () => {
+      if (sessionStorage.getItem('emaki-web-token') !== token) expireSession();
+    };
+    window.addEventListener('focus', validateStoredToken);
+    window.addEventListener('storage', validateStoredToken);
+    return () => {
+      window.removeEventListener('focus', validateStoredToken);
+      window.removeEventListener('storage', validateStoredToken);
+    };
+  }, [token]);
   useEffect(() => {
     if (!token) return;
     const report = (message: string, source: string, detail?: string, stack?: string) => {
@@ -353,7 +377,7 @@ export default function App() {
           onRetry={() => void loadRegistry({ clearDrafts: false, announceRefresh: false })}
         />
         <WorkspaceTree registry={registry} selected={selected} expanded={expanded} dirtyKeys={mergedDirtyKeys} setExpanded={setExpanded} onOpenI18n={setI18nTarget} onCreateFile={setCreateTarget} onDeleteFile={setDeleteTarget} onSelect={(next) => setSelected((current) => sameSelection(current, next) ? { ...next, refreshKey: (current?.refreshKey ?? 0) + 1 } : next)} />
-        <button className="rail-action quiet" onClick={() => { sessionStorage.removeItem('emaki-web-token'); setToken(null); }}>{t('core.auth.logout')}</button>
+        <button className="rail-action quiet" onClick={expireSession}>{t('core.auth.logout')}</button>
       </ResizableRail>
       <main className="stage">
         <SurfaceSummaryStrip module={selectedModule} file={selectedFile} editor={selectedEditor} toolbar={toolbar} loading={loading} />
@@ -1164,7 +1188,9 @@ function ConfigNodeView({ scope, node, drafts, setDraftValue, sourceEdit }: { sc
 function renderControl(node: WebConfigNode, value: unknown, setValue: (v: unknown) => void, label: string, moduleId: string) {
   if (node.type === 'boolean') return <BooleanSwitch checked={value === true} label={`${label}: ${value ? t('core.config.booleanOn') : t('core.config.booleanOff')}`} onToggle={() => setValue(!value)} />;
   if (node.type === 'enum' && node.options) return <select value={str(value)} aria-label={label} onChange={(e) => setValue(e.target.value)}>{node.options.map(opt => <option key={opt} value={opt}>{optionLabel(node.optionLabelPrefix || node.path, opt, { moduleId })}</option>)}</select>;
-  if (node.type === 'number') return <input type="number" aria-label={label} value={value == null ? '' : String(value)} onChange={(e) => setValue(e.target.value === '' ? undefined : Number(e.target.value))} />;
+  if (node.type === 'number') return isNumericInputValue(value)
+    ? <input type="number" aria-label={label} value={numberInputValue(value)} onChange={(e) => setValue(parseNumberInputValue(e.target.value))} />
+    : <input aria-label={label} value={str(value)} onChange={(e) => setValue(e.target.value)} />;
   if (node.type === 'dynamic_map') return <DynamicMapEditor value={value} setValue={setValue} />;
   if (node.type === 'object') return <ObjectValuePreview value={value} />;
   if (node.type === 'list') {
@@ -1272,7 +1298,7 @@ function ObjectListEditor({ node, items, setValue, moduleId }: { node: WebConfig
 function renderSchemaField(field: WebConfigFieldSchema | undefined, value: unknown, onChange: (value: unknown) => void, moduleId: string, ariaLabel: string, siblingItems: Record<string, unknown>[] = [], currentIndex = -1) {
   const type = field?.type;
   if (type === 'boolean' || typeof value === 'boolean') return <BooleanSwitch checked={value === true} label={ariaLabel} onToggle={() => onChange(!value)} />;
-  if (type === 'number' || typeof value === 'number') return <input type="number" aria-label={ariaLabel} value={Number.isFinite(value as number) ? String(value) : ''} onChange={(e) => onChange(e.target.value === '' ? undefined : Number(e.target.value))} />;
+  if ((type === 'number' || typeof value === 'number') && isNumericInputValue(value)) return <input type="number" aria-label={ariaLabel} value={numberInputValue(value)} onChange={(e) => onChange(parseNumberInputValue(e.target.value))} />;
   if (type === 'list' || type === 'stringList') return <StringListEditor items={asStringListValue(value)} onChange={onChange} />;
   if (type === 'numberList') return <NumberListEditor items={asNumberListValue(value)} onChange={onChange} />;
   if (type === 'enum' && field?.options) {
@@ -1741,5 +1767,8 @@ function normalizeDraftPath(path: string) { return path.replace(/\\/g, '/'); }
 function isObjectLike(v: unknown) { return typeof v === 'object' && v !== null; }
 function isPlainObject(v: unknown): v is Record<string, unknown> { return typeof v === 'object' && v !== null && !Array.isArray(v); }
 function parseListValue(original: unknown, text: string) { if (isObjectLike(original)) { try { return JSON.parse(text); } catch { return text; } } return text; }
+function isNumericInputValue(value: unknown): boolean { return value == null || value === '' || (typeof value === 'number' && Number.isFinite(value)); }
+function numberInputValue(value: unknown): string { return typeof value === 'number' && Number.isFinite(value) ? String(value) : ''; }
+function parseNumberInputValue(value: string): number | undefined { if (value === '') return undefined; const parsed = Number(value); return Number.isFinite(parsed) ? parsed : undefined; }
 function str(v: unknown): string { if (v == null) return ''; if (typeof v === 'object') try { return JSON.stringify(v, null, 2); } catch { return ''; } return String(v); }
 function firstSelection(r: WebRegistry): Selection | null { const m = r.modules[0]; return m?.files[0] ? { moduleId: m.id, fileId: m.files[0].id } : null; }
