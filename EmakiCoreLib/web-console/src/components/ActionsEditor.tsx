@@ -120,7 +120,7 @@ function renderLoreParams(
 }
 
 const TEXT_VALUE_KEYS = ['value', 'text', 'template', 'expression', 'formula'];
-const TEXT_LINE_KEYS = ['lines', 'values', 'candidates'];
+const TEXT_LINE_KEYS = ['content', 'lines', 'values', 'candidates'];
 
 function actionTextLines(value: unknown): string[] {
   if (value == null || value === '') return [];

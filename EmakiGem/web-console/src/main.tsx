@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ActionsEditor, CORE_EFFECT_TYPES, PropRow, SectionHead, StringListEditor, asList, asRecord, asStringList, coreEffectTypeLabel, createCoreEffect, fieldLabel, firstItemSource, getLocale, humanizeFieldLabel, isCoreEffectType, registerConfigCreateTemplate, registerConfigNodeMeta, registerConfigNodeRule, registerEditorDescriptor, registerEditorField, registerItemFieldRenderer, registerModuleLocale, registerPluginGuiEditor, serializeActionList, parseActionList, textValue, type AnyMap, type CoreEffectType, type ItemFieldRendererContext } from 'emaki-web-console';
+import { ActionsEditor, CORE_EFFECT_TYPES, PropRow, SectionHead, StringListEditor, asList, asRecord, asStringList, coreEffectTypeLabel, createCoreEffect, fieldLabel, firstItemSource, getLocale, humanizeFieldLabel, registerConfigCreateTemplate, registerConfigNodeMeta, registerConfigNodeRule, registerEditorDescriptor, registerEditorField, registerItemFieldRenderer, registerModuleLocale, registerPluginGuiEditor, serializeActionList, parseActionList, textValue, type AnyMap, type CoreEffectType, type ItemFieldRendererContext } from 'emaki-web-console';
 
 registerModuleLocale('EmakiGem', 'zh-CN', {
   'emakigem.module.name': 'Gem',
@@ -208,6 +208,8 @@ const MODULE = 'EmakiGem';
 const EXTRACT_RETURN_MODES = ['original', 'destroy', 'downgrade'];
 const FAILURE_PENALTIES = ['none', 'downgrade', 'destroy'];
 const DEFAULT_ECONOMY_PROVIDERS = ['auto', 'vault', 'excellenteconomy'];
+const DEFAULT_NAME_ACTIONS = ['replace', 'prepend_prefix', 'append_suffix', 'regex_replace'];
+const DEFAULT_LORE_ACTIONS = ['append', 'prepend', 'replace_line', 'delete_line', 'regex_replace', 'insert_above', 'insert_below', 'search_insert_above', 'search_insert_below'];
 const GEM_EFFECT_TYPES = [...CORE_EFFECT_TYPES, 'ea_attribute', 'es_skill'];
 const copy = (zh: string, en: string) => getLocale().startsWith('zh') ? zh : en;
 
@@ -656,14 +658,16 @@ function GemEffectPayload({ effect, type, path, onChange, actionTypesResult }: {
   if (type === 'variables') return <MapRow label="variables" path={joinPath(path, 'variables')} value={effect.variables} valuePlaceholder={copy('数值/公式', 'Value or formula')} addKeyPrefix="variable" onChange={variables => setPayload('variables', variables)} />;
   if (type === 'ea_attribute') return <MapRow label="ea_attributes" path={joinPath(path, 'ea_attributes')} value={effect.ea_attributes} valuePlaceholder={copy('属性值', 'Attribute value')} addKeyPrefix="attribute" onChange={ea_attributes => setPayload('ea_attributes', ea_attributes)} />;
   if (type === 'es_skill') return <FormRow label="es_skills" path={joinPath(path, 'es_skills')} wide><StringListEditor items={gemSkillList(effect)} onChange={items => onChange(cleanObject({ ...effect, es_skills: items, es_skill: undefined }))} placeholder={copy('技能 ID', 'Skill ID')} /></FormRow>;
-  if (type === 'name_action') return <FormRow label="name_actions" path={joinPath(path, 'name_actions')} wide><ActionsEditor actions={parseActionList(effect.name_actions)} onChange={actions => setPayload('name_actions', serializeActionList(actions))} actionTypes={actionTypesResult?.nameActions ?? []} mode="name" moduleId={MODULE} namespace={MODULE} /></FormRow>;
-  if (type === 'lore_action') return <FormRow label="lore_actions" path={joinPath(path, 'lore_actions')} wide><ActionsEditor actions={parseActionList(effect.lore_actions)} onChange={actions => setPayload('lore_actions', serializeActionList(actions))} actionTypes={actionTypesResult?.loreActions ?? []} mode="lore" moduleId={MODULE} namespace={MODULE} /></FormRow>;
+  if (type === 'name_action') return <FormRow label="name_actions" path={joinPath(path, 'name_actions')} wide><ActionsEditor actions={parseActionList(effect.name_actions)} onChange={actions => setPayload('name_actions', serializeActionList(actions))} actionTypes={actionTypesResult?.nameActions ?? DEFAULT_NAME_ACTIONS} mode="name" moduleId={MODULE} namespace={MODULE} /></FormRow>;
+  if (type === 'lore_action') return <FormRow label="lore_actions" path={joinPath(path, 'lore_actions')} wide><ActionsEditor actions={parseActionList(effect.lore_actions)} onChange={actions => setPayload('lore_actions', serializeActionList(actions))} actionTypes={actionTypesResult?.loreActions ?? DEFAULT_LORE_ACTIONS} mode="lore" moduleId={MODULE} namespace={MODULE} /></FormRow>;
   const payload = Object.fromEntries(Object.entries(effect).filter(([key]) => key !== 'type'));
   return <MapRow label="fields" path={path} value={payload} onChange={fields => onChange(cleanObject({ type, ...fields }))} />;
 }
 
 function defaultGemEffect(type: string): AnyMap {
-  if (isCoreEffectType(type)) return createCoreEffect(type as CoreEffectType);
+  if (type === 'variables') return createCoreEffect(type as CoreEffectType);
+  if (type === 'name_action') return { type, name_actions: [{ action: DEFAULT_NAME_ACTIONS[0], value: '' }] };
+  if (type === 'lore_action') return { type, lore_actions: [{ action: DEFAULT_LORE_ACTIONS[0], content: [''] }] };
   if (type === 'ea_attribute') return { type, ea_attributes: {} };
   if (type === 'es_skill') return { type, es_skills: [] };
   return { type };

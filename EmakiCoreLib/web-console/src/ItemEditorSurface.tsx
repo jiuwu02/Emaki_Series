@@ -763,7 +763,7 @@ function applyLocalLoreActions(originalLore: string[], rawActions: unknown, vari
 }
 
 function localActionLines(value: unknown): string[] {
-  if (Array.isArray(value)) return value.map(entry => textValue(entry)).filter(Boolean);
+  if (Array.isArray(value)) return value.map(entry => textValue(entry));
   const text = textValue(value);
   return text ? text.split('\n') : [];
 }
