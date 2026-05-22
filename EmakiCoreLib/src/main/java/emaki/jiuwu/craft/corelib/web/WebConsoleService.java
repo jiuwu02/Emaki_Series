@@ -70,30 +70,31 @@ public final class WebConsoleService {
                 return thread;
             });
             server.setExecutor(executor);
-            createContext("/api/auth/login", this::handleLogin);
-            createContext("/api/session", this::handleSession);
-            createContext("/api/modules", this::handleModules);
-            createContext("/api/registry", this::handleRegistry);
-            createContext("/api/registry/file", this::handleRegistryFile);
-            createContext("/api/registry/save", this::handleRegistrySave);
-            createContext("/api/files/create", this::handleFileCreate);
-            createContext("/api/files/delete", this::handleFileDelete);
-            createContext("/api/configs/tree", this::handleConfigTree);
-            createContext("/api/configs/read", this::handleConfigRead);
-            createContext("/api/configs/save", this::handleConfigSave);
-            createContext("/api/libraries", this::handleLibraries);
-            createContext("/api/debug/frontend-error", this::handleFrontendError);
-            createContext("/api/scripts/read", this::handleScriptRead);
-            createContext("/api/scripts/save", this::handleScriptSave);
-            createContext("/api/gui/read", this::handleGuiRead);
-            createContext("/api/gui/save", this::handleGuiSave);
-            createContext("/api/items/read", this::handleItemRead);
-            createContext("/api/items/save", this::handleItemSave);
-            createContext("/api/resources/read", this::handleResourceRead);
-            createContext("/api/resources/save", this::handleResourceSave);
-            createContext("/api/items/preview", this::handleItemPreview);
-            createContext("/api/items/action-types", this::handleItemActionTypes);
-            createContext("/api/economy/providers", this::handleEconomyProviders);
+            createContext("/api/auth/login", post(this::handleLogin));
+            createContext("/api/session", auth(this::handleSession));
+            createContext("/api/modules", auth(this::handleModules));
+            createContext("/api/registry", auth(this::handleRegistry));
+            createContext("/api/registry/file", auth(this::handleRegistryFile));
+            createContext("/api/registry/save", postAuth(this::handleRegistrySave));
+            createContext("/api/files/create", postAuth(this::handleFileCreate));
+            createContext("/api/files/delete", postAuth(this::handleFileDelete));
+            createContext("/api/configs/create", postAuth(this::handleConfigCreate));
+            createContext("/api/configs/tree", auth(this::handleConfigTree));
+            createContext("/api/configs/read", auth(this::handleConfigRead));
+            createContext("/api/configs/save", postAuth(this::handleConfigSave));
+            createContext("/api/libraries", auth(this::handleLibraries));
+            createContext("/api/debug/frontend-error", postAuth(this::handleFrontendError));
+            createContext("/api/scripts/read", auth(this::handleScriptRead));
+            createContext("/api/scripts/save", postAuth(this::handleScriptSave));
+            createContext("/api/gui/read", auth(this::handleGuiRead));
+            createContext("/api/gui/save", postAuth(this::handleGuiSave));
+            createContext("/api/items/read", auth(this::handleItemRead));
+            createContext("/api/items/save", postAuth(this::handleItemSave));
+            createContext("/api/resources/read", auth(this::handleResourceRead));
+            createContext("/api/resources/save", postAuth(this::handleResourceSave));
+            createContext("/api/items/preview", postAuth(this::handleItemPreview));
+            createContext("/api/items/action-types", auth(this::handleItemActionTypes));
+            createContext("/api/economy/providers", auth(this::handleEconomyProviders));
             createContext("/extensions/", this::handleExtensionAsset);
             createContext("/", this::handleStatic);
             server.start();
@@ -153,12 +154,12 @@ public final class WebConsoleService {
                 }
                 route.handle(exchange);
             } catch (RequestBodyTooLargeException exception) {
-                WebResponse.json(exchange, 413, Map.of("success", false, "error", exception.getMessage()));
+                error(exchange, 413, exception.getMessage());
             } catch (Throwable throwable) {
                 plugin.messageService().warning("web_console.request_failed", Map.of("uri", String.valueOf(exchange.getRequestURI())));
                 plugin.getLogger().log(Level.WARNING, throwable.getMessage(), throwable);
                 try {
-                    WebResponse.json(exchange, 500, Map.of("success", false, "error", "Web Console 请求处理失败，请查看服务器控制台日志。"));
+                    serverError(exchange, "Web Console 请求处理失败，请查看服务器控制台日志。");
                 } catch (IOException ignored) {
                     // 响应可能已经开始发送，此时只保留服务器日志。
                 }
@@ -173,6 +174,113 @@ public final class WebConsoleService {
     @FunctionalInterface
     private interface WebRoute {
         void handle(HttpExchange exchange) throws IOException;
+    }
+
+    @FunctionalInterface
+    private interface ContextRoute {
+        void handle(WebRequestContext context) throws IOException;
+    }
+
+    private WebRoute post(ContextRoute route) {
+        return exchange -> {
+            if (!requirePost(exchange)) {
+                return;
+            }
+            route.handle(new WebRequestContext(exchange, null));
+        };
+    }
+
+    private WebRoute auth(ContextRoute route) {
+        return exchange -> {
+            WebAuthService.Session session = requireAuth(exchange);
+            if (session == null) {
+                return;
+            }
+            route.handle(new WebRequestContext(exchange, session));
+        };
+    }
+
+    private WebRoute postAuth(ContextRoute route) {
+        return exchange -> {
+            if (!requirePost(exchange)) {
+                return;
+            }
+            WebAuthService.Session session = requireAuth(exchange);
+            if (session == null) {
+                return;
+            }
+            route.handle(new WebRequestContext(exchange, session));
+        };
+    }
+
+    private final class WebRequestContext {
+        private final HttpExchange exchange;
+        private final WebAuthService.Session session;
+        private String body;
+
+        private WebRequestContext(HttpExchange exchange, WebAuthService.Session session) {
+            this.exchange = exchange;
+            this.session = session;
+        }
+
+        private HttpExchange exchange() {
+            return exchange;
+        }
+
+        private WebAuthService.Session session() {
+            return session;
+        }
+
+        private String body() throws IOException {
+            if (body == null) {
+                body = readBody(exchange);
+            }
+            return body;
+        }
+
+        private String bodyString(String key) throws IOException {
+            return WebJson.extractString(body(), key);
+        }
+
+        private Object bodyValue(String key) throws IOException {
+            return WebJson.extractValue(body(), key);
+        }
+
+        private Long revision() throws IOException {
+            return revisionFromBody(body());
+        }
+
+        private String query(String key) {
+            return WebConsoleService.this.query(exchange, key);
+        }
+
+        private void ok(Map<String, ?> body) throws IOException {
+            WebConsoleService.this.ok(exchange, body);
+        }
+
+        private void error(int status, String message) throws IOException {
+            WebConsoleService.this.error(exchange, status, message);
+        }
+
+        private void badRequest(String message) throws IOException {
+            WebConsoleService.this.badRequest(exchange, message);
+        }
+
+        private void notFound(String message) throws IOException {
+            WebConsoleService.this.notFound(exchange, message);
+        }
+
+        private void forbidden(String message) throws IOException {
+            WebConsoleService.this.forbidden(exchange, message);
+        }
+
+        private void conflict(String message) throws IOException {
+            WebConsoleService.this.conflict(exchange, message);
+        }
+
+        private void serverError(String message) throws IOException {
+            WebConsoleService.this.serverError(exchange, message);
+        }
     }
 
     public synchronized void stop() {
@@ -193,100 +301,70 @@ public final class WebConsoleService {
         itemPreviewService = null;
     }
 
-    private void handleLogin(HttpExchange exchange) throws IOException {
-        if (!requirePost(exchange)) {
-            return;
-        }
-        String body = readBody(exchange);
-        String username = WebJson.extractString(body, "username");
-        String password = WebJson.extractString(body, "password");
+    private void handleLogin(WebRequestContext context) throws IOException {
+        String username = context.bodyString("username");
+        String password = context.bodyString("password");
         WebAuthService.LoginResult result = authService.login(username, password);
         if (!result.success()) {
-            WebResponse.json(exchange, 401, Map.of("success", false, "error", "账号或密码错误"));
+            context.error(401, "账号或密码错误");
             return;
         }
-        WebResponse.json(exchange, 200, Map.of(
-                "success", true,
+        context.ok(Map.of(
                 "token", result.token(),
                 "expiresAt", result.expiresAt(),
                 "publicAccessWarning", config.publicAccessWarning()
         ));
     }
 
-    private void handleSession(HttpExchange exchange) throws IOException {
-        WebAuthService.Session session = requireAuth(exchange);
-        if (session == null) {
-            return;
-        }
-        WebResponse.json(exchange, 200, Map.of("success", true, "username", session.username(), "expiresAt", session.expiresAt()));
+    private void handleSession(WebRequestContext context) throws IOException {
+        WebAuthService.Session session = context.session();
+        context.ok(Map.of("username", session.username(), "expiresAt", session.expiresAt()));
     }
 
-    private void handleModules(HttpExchange exchange) throws IOException {
-        if (requireAuth(exchange) == null) {
-            return;
-        }
-        WebResponse.json(exchange, 200, Map.of("success", true, "modules", moduleStatusService.modules()));
+    private void handleModules(WebRequestContext context) throws IOException {
+        context.ok(Map.of("modules", moduleStatusService.modules()));
     }
 
-    private void handleRegistry(HttpExchange exchange) throws IOException {
-        if (requireAuth(exchange) == null) {
-            return;
-        }
-        WebResponse.json(exchange, 200, Map.of("success", true, "registry", consoleRegistry.snapshot()));
+    private void handleRegistry(WebRequestContext context) throws IOException {
+        context.ok(Map.of("registry", consoleRegistry.snapshot()));
     }
 
-    private void handleRegistryFile(HttpExchange exchange) throws IOException {
-        if (requireAuth(exchange) == null) {
-            return;
-        }
-        String module = query(exchange, "module");
-        String path = query(exchange, "path");
+    private void handleRegistryFile(WebRequestContext context) throws IOException {
+        String module = context.query("module");
+        String path = context.query("path");
         if (module.isBlank() || path.isBlank()) {
-            WebResponse.json(exchange, 400, Map.of("success", false, "error", "缺少 module 或 path 参数"));
+            context.badRequest("缺少 module 或 path 参数");
             return;
         }
         try {
-            Map<String, Object> payload = new LinkedHashMap<>();
-            payload.put("success", true);
-            payload.putAll(consoleRegistry.fileNodes(module, path));
-            WebResponse.json(exchange, 200, payload);
+            context.ok(consoleRegistry.fileNodes(module, path));
         } catch (IOException exception) {
-            WebResponse.json(exchange, 400, Map.of("success", false, "error", exception.getMessage()));
+            context.badRequest(exception.getMessage());
         }
     }
 
-    private void handleRegistrySave(HttpExchange exchange) throws IOException {
-        if (!requirePost(exchange)) {
-            return;
-        }
-        if (requireAuth(exchange) == null) {
-            return;
-        }
-        String body = readBody(exchange);
-        String module = WebJson.extractString(body, "moduleId");
-        String filePath = WebJson.extractString(body, "filePath");
-        String path = WebJson.extractString(body, "path");
-        Object value = WebJson.extractValue(body, "value");
-        Long revision = revisionFromBody(body);
+    private void handleRegistrySave(WebRequestContext context) throws IOException {
+        String module = context.bodyString("moduleId");
+        String filePath = context.bodyString("filePath");
+        String path = context.bodyString("path");
+        Object value = context.bodyValue("value");
+        Long revision = context.revision();
         try {
             long nextRevision = consoleRegistry.saveValue(module, filePath, path, value, revision);
-            WebResponse.json(exchange, 200, Map.of("success", true, "revision", nextRevision));
+            context.ok(Map.of("revision", nextRevision));
         } catch (WebConsoleRegistry.RevisionConflictException exception) {
-            writeRevisionConflict(exchange, exception);
+            writeRevisionConflict(context.exchange(), exception);
         } catch (IOException exception) {
-            WebResponse.json(exchange, 400, Map.of("success", false, "error", exception.getMessage()));
+            context.badRequest(exception.getMessage());
         }
     }
 
-    private void handleFileCreate(HttpExchange exchange) throws IOException {
-        if (!requirePost(exchange)) return;
-        if (requireAuth(exchange) == null) return;
-        String body = readBody(exchange);
-        String moduleId = WebJson.extractString(body, "moduleId");
-        String fileId = WebJson.extractString(body, "fileId");
-        String name = WebJson.extractString(body, "name");
+    private void handleFileCreate(WebRequestContext context) throws IOException {
+        String moduleId = context.bodyString("moduleId");
+        String fileId = context.bodyString("fileId");
+        String name = context.bodyString("name");
         if (moduleId.isBlank() || fileId.isBlank() || name.isBlank()) {
-            WebResponse.json(exchange, 400, Map.of("success", false, "error", "缺少 moduleId、fileId 或 name"));
+            context.badRequest("缺少 moduleId、fileId 或 name");
             return;
         }
         try {
@@ -294,7 +372,7 @@ public final class WebConsoleService {
             String relative = normalizeNewFilePath(creation.baseDir(), creation.extension(), name);
             java.io.File target = safeModuleFile(moduleId, relative);
             if (target.exists()) {
-                WebResponse.json(exchange, 409, Map.of("success", false, "error", "文件已存在"));
+                context.conflict("文件已存在");
                 return;
             }
             Files.createDirectories(target.toPath().getParent());
@@ -302,244 +380,210 @@ public final class WebConsoleService {
             String treePath = creation.type() == WebConsoleRegistry.WebConsoleFileType.SCRIPT && relative.startsWith(creation.baseDir() + "/")
                     ? relative.substring(creation.baseDir().length() + 1)
                     : relative;
-            WebResponse.json(exchange, 200, Map.of("success", true, "path", treePath, "name", treePath.substring(treePath.lastIndexOf('/') + 1), "revision", fileRevision(target)));
+            context.ok(Map.of("path", treePath, "name", treePath.substring(treePath.lastIndexOf('/') + 1), "revision", fileRevision(target)));
         } catch (Exception exception) {
-            WebResponse.json(exchange, 400, Map.of("success", false, "error", exception.getMessage()));
+            context.badRequest(exception.getMessage());
         }
     }
 
-    private void handleFileDelete(HttpExchange exchange) throws IOException {
-        if (!requirePost(exchange)) return;
-        if (requireAuth(exchange) == null) return;
-        String body = readBody(exchange);
-        String moduleId = WebJson.extractString(body, "moduleId");
-        String fileId = WebJson.extractString(body, "fileId");
-        String path = WebJson.extractString(body, "path");
-        String confirmPath = WebJson.extractString(body, "confirmPath");
+    private void handleConfigCreate(WebRequestContext context) throws IOException {
+        String moduleId = context.query("module");
+        String path = context.bodyString("path");
+        if (moduleId.isBlank() || path.isBlank()) {
+            context.badRequest("缺少 module 或 path");
+            return;
+        }
+        try {
+            String relative = normalizeConfigCreatePath(path);
+            java.io.File target = safeModuleFile(moduleId, relative);
+            if (target.exists()) {
+                context.conflict("文件已存在");
+                return;
+            }
+            Files.createDirectories(target.toPath().getParent());
+            Files.writeString(target.toPath(), defaultFileContent(WebConsoleRegistry.WebConsoleFileType.CONFIG), StandardCharsets.UTF_8);
+            context.ok(Map.of("path", relative, "name", relative.substring(relative.lastIndexOf('/') + 1), "revision", fileRevision(target)));
+        } catch (Exception exception) {
+            context.badRequest(exception.getMessage());
+        }
+    }
+
+    private void handleFileDelete(WebRequestContext context) throws IOException {
+        String moduleId = context.bodyString("moduleId");
+        String fileId = context.bodyString("fileId");
+        String path = context.bodyString("path");
+        String confirmPath = context.bodyString("confirmPath");
         if (moduleId.isBlank() || path.isBlank() || confirmPath.isBlank()) {
-            WebResponse.json(exchange, 400, Map.of("success", false, "error", "缺少 moduleId、path 或 confirmPath"));
+            context.badRequest("缺少 moduleId、path 或 confirmPath");
             return;
         }
         String normalizedPath = path.replace('\\', '/');
         if (!normalizedPath.equals(confirmPath.replace('\\', '/'))) {
-            WebResponse.json(exchange, 400, Map.of("success", false, "error", "确认文本不匹配"));
+            context.badRequest("确认文本不匹配");
             return;
         }
         try {
             String resolvedPath = resolveTreeFilePath(moduleId, fileId, normalizedPath);
             java.io.File target = safeModuleFile(moduleId, resolvedPath);
             if (!target.exists() || !target.isFile()) {
-                WebResponse.json(exchange, 404, Map.of("success", false, "error", "文件不存在"));
+                context.notFound("文件不存在");
                 return;
             }
             if (!isDeletableFileName(target.getName())) {
-                WebResponse.json(exchange, 403, Map.of("success", false, "error", "此文件类型不允许删除"));
+                context.forbidden("此文件类型不允许删除");
                 return;
             }
             Files.delete(target.toPath());
-            WebResponse.json(exchange, 200, Map.of("success", true, "path", normalizedPath));
+            context.ok(Map.of("path", normalizedPath));
         } catch (Exception exception) {
-            WebResponse.json(exchange, 400, Map.of("success", false, "error", exception.getMessage()));
+            context.badRequest(exception.getMessage());
         }
     }
 
-    private void handleConfigTree(HttpExchange exchange) throws IOException {
-        if (requireAuth(exchange) == null) {
-            return;
-        }
-        String module = query(exchange, "module");
+    private void handleConfigTree(WebRequestContext context) throws IOException {
+        String module = context.query("module");
         try {
-            WebResponse.json(exchange, 200, Map.of("success", true, "module", module, "files", configBrowserService.tree(module)));
+            context.ok(Map.of("module", module, "files", configBrowserService.tree(module)));
         } catch (IOException exception) {
-            WebResponse.json(exchange, 400, Map.of("success", false, "error", exception.getMessage()));
+            context.badRequest(exception.getMessage());
         }
     }
 
-    private void handleConfigRead(HttpExchange exchange) throws IOException {
-        if (requireAuth(exchange) == null) {
-            return;
-        }
-        String module = query(exchange, "module");
-        String path = query(exchange, "path");
+    private void handleConfigRead(WebRequestContext context) throws IOException {
+        String module = context.query("module");
+        String path = context.query("path");
         try {
-            Map<String, Object> payload = new LinkedHashMap<>();
-            payload.put("success", true);
-            payload.put("module", module);
-            payload.put("file", configBrowserService.read(module, path));
-            WebResponse.json(exchange, 200, payload);
+            context.ok(Map.of("module", module, "file", configBrowserService.read(module, path)));
         } catch (IOException exception) {
-            WebResponse.json(exchange, 400, Map.of("success", false, "error", exception.getMessage()));
+            context.badRequest(exception.getMessage());
         }
     }
 
-    private void handleConfigSave(HttpExchange exchange) throws IOException {
-        if (!requirePost(exchange)) {
-            return;
-        }
-        if (requireAuth(exchange) == null) {
-            return;
-        }
-        String body = readBody(exchange);
-        String module = WebJson.extractString(body, "moduleId");
-        String path = WebJson.extractString(body, "path");
-        String content = WebJson.extractString(body, "content");
-        Long expectedRevision = revisionFromBody(body);
+    private void handleConfigSave(WebRequestContext context) throws IOException {
+        String module = context.bodyString("moduleId");
+        String path = context.bodyString("path");
+        String content = context.bodyString("content");
+        Long expectedRevision = context.revision();
         if (module == null || module.isBlank() || path == null || path.isBlank()) {
-            WebResponse.json(exchange, 400, Map.of("success", false, "error", "缺少 moduleId 或 path"));
+            context.badRequest("缺少 moduleId 或 path");
             return;
         }
         try {
             YamlFiles.load(content == null ? "" : content);
             long revision = configBrowserService.save(module, path, content, expectedRevision);
-            WebResponse.json(exchange, 200, Map.of("success", true, "revision", revision));
+            context.ok(Map.of("revision", revision));
         } catch (WebConsoleRegistry.RevisionConflictException exception) {
-            writeRevisionConflict(exchange, exception);
-        } catch (IOException exception) {
-            WebResponse.json(exchange, 400, Map.of("success", false, "error", exception.getMessage()));
+            writeRevisionConflict(context.exchange(), exception);
         } catch (Exception exception) {
-            WebResponse.json(exchange, 400, Map.of("success", false, "error", exception.getMessage()));
+            context.badRequest(exception.getMessage());
         }
     }
 
-    private void handleLibraries(HttpExchange exchange) throws IOException {
-        if (requireAuth(exchange) == null) {
-            return;
-        }
-        WebResponse.json(exchange, 200, Map.of("success", true, "runtime", runtimeLibraryService.snapshot()));
+    private void handleLibraries(WebRequestContext context) throws IOException {
+        context.ok(Map.of("runtime", runtimeLibraryService.snapshot()));
     }
 
-    private void handleFrontendError(HttpExchange exchange) throws IOException {
-        if (!requirePost(exchange)) {
-            return;
-        }
-        if (requireAuth(exchange) == null) {
-            return;
-        }
-        String body = readBody(exchange);
-        String message = WebJson.extractString(body, "message");
-        String source = WebJson.extractString(body, "source");
-        String detail = WebJson.extractString(body, "detail");
-        String stack = WebJson.extractString(body, "stack");
-        String url = WebJson.extractString(body, "url");
+    private void handleFrontendError(WebRequestContext context) throws IOException {
+        String message = context.bodyString("message");
+        String source = context.bodyString("source");
+        String detail = context.bodyString("detail");
+        String stack = context.bodyString("stack");
+        String url = context.bodyString("url");
         logFrontendDebugError(source, message, detail, stack, url);
-        WebResponse.json(exchange, 200, Map.of("success", true));
+        context.ok(Map.of("accepted", true));
     }
 
-    private void handleScriptRead(HttpExchange exchange) throws IOException {
-        if (requireAuth(exchange) == null) return;
-        String path = query(exchange, "path");
+    private void handleScriptRead(WebRequestContext context) throws IOException {
+        String path = context.query("path");
         if (path.isBlank()) {
-            WebResponse.json(exchange, 400, Map.of("success", false, "error", "缺少 path 参数"));
+            context.badRequest("缺少 path 参数");
             return;
         }
         try {
             java.io.File scriptsRoot = plugin.getDataFolder().toPath().resolve("scripts").toFile();
             java.io.File target = new java.io.File(scriptsRoot, path.replace('/', java.io.File.separatorChar));
             if (!target.exists() || !target.isFile()) {
-                WebResponse.json(exchange, 404, Map.of("success", false, "error", "文件不存在"));
+                context.notFound("文件不存在");
                 return;
             }
             if (!target.getCanonicalPath().startsWith(scriptsRoot.getCanonicalPath())) {
-                WebResponse.json(exchange, 403, Map.of("success", false, "error", "路径不合法"));
+                context.forbidden("路径不合法");
                 return;
             }
             String content = java.nio.file.Files.readString(target.toPath(), StandardCharsets.UTF_8);
-            Map<String, Object> payload = new LinkedHashMap<>();
-            payload.put("success", true);
-            payload.put("path", path);
-            payload.put("content", content);
-            payload.put("revision", fileRevision(target));
-            WebResponse.json(exchange, 200, payload);
+            context.ok(Map.of("path", path, "content", content, "revision", fileRevision(target)));
         } catch (Exception e) {
-            WebResponse.json(exchange, 500, Map.of("success", false, "error", e.getMessage()));
+            context.serverError(e.getMessage());
         }
     }
 
-    private void handleScriptSave(HttpExchange exchange) throws IOException {
-        if (!requirePost(exchange)) {
-            return;
-        }
-        if (requireAuth(exchange) == null) return;
-        String body = readBody(exchange);
-        String path = WebJson.extractString(body, "path");
-        String content = WebJson.extractString(body, "content");
-        Long expectedRevision = revisionFromBody(body);
+    private void handleScriptSave(WebRequestContext context) throws IOException {
+        String path = context.bodyString("path");
+        String content = context.bodyString("content");
+        Long expectedRevision = context.revision();
         if (path == null || path.isBlank()) {
-            WebResponse.json(exchange, 400, Map.of("success", false, "error", "缺少 path"));
+            context.badRequest("缺少 path");
             return;
         }
         try {
             java.io.File scriptsRoot = plugin.getDataFolder().toPath().resolve("scripts").toFile();
             java.io.File target = new java.io.File(scriptsRoot, path.replace('/', java.io.File.separatorChar));
             if (!target.getCanonicalPath().startsWith(scriptsRoot.getCanonicalPath())) {
-                WebResponse.json(exchange, 403, Map.of("success", false, "error", "路径不合法"));
+                context.forbidden("路径不合法");
                 return;
             }
             if (expectedRevision != null && target.exists()) {
                 long current = fileRevision(target);
                 if (current != 0 && current != expectedRevision) {
-                    writeRevisionConflict(exchange, current);
+                    writeRevisionConflict(context.exchange(), current);
                     return;
                 }
             }
             java.nio.file.Files.createDirectories(target.toPath().getParent());
             java.nio.file.Files.writeString(target.toPath(), content == null ? "" : content, StandardCharsets.UTF_8);
-            WebResponse.json(exchange, 200, Map.of("success", true, "revision", fileRevision(target)));
+            context.ok(Map.of("revision", fileRevision(target)));
         } catch (Exception e) {
-            WebResponse.json(exchange, 500, Map.of("success", false, "error", e.getMessage()));
+            context.serverError(e.getMessage());
         }
     }
 
     // --- 通用 YAML 文件读写（GUI / ITEM 共用） ---
 
-    private void handleGuiRead(HttpExchange exchange) throws IOException { handleYamlRead(exchange, "GUI"); }
-    private void handleGuiSave(HttpExchange exchange) throws IOException { handleYamlSave(exchange, "GUI"); }
-    private void handleItemRead(HttpExchange exchange) throws IOException { handleYamlRead(exchange, "ITEM"); }
-    private void handleItemSave(HttpExchange exchange) throws IOException { handleYamlSave(exchange, "ITEM"); }
-    private void handleResourceRead(HttpExchange exchange) throws IOException { handleYamlRead(exchange, "资源"); }
-    private void handleResourceSave(HttpExchange exchange) throws IOException { handleYamlSave(exchange, "资源"); }
+    private void handleGuiRead(WebRequestContext context) throws IOException { handleYamlRead(context, "GUI"); }
+    private void handleGuiSave(WebRequestContext context) throws IOException { handleYamlSave(context, "GUI"); }
+    private void handleItemRead(WebRequestContext context) throws IOException { handleYamlRead(context, "ITEM"); }
+    private void handleItemSave(WebRequestContext context) throws IOException { handleYamlSave(context, "ITEM"); }
+    private void handleResourceRead(WebRequestContext context) throws IOException { handleYamlRead(context, "资源"); }
+    private void handleResourceSave(WebRequestContext context) throws IOException { handleYamlSave(context, "资源"); }
 
-    private void handleYamlRead(HttpExchange exchange, String kind) throws IOException {
-        if (requireAuth(exchange) == null) return;
-        String module = query(exchange, "module");
-        String path = query(exchange, "path");
+    private void handleYamlRead(WebRequestContext context, String kind) throws IOException {
+        String module = context.query("module");
+        String path = context.query("path");
         if (module.isBlank() || path.isBlank()) {
-            WebResponse.json(exchange, 400, Map.of("success", false, "error", "缺少 module 或 path 参数"));
+            context.badRequest("缺少 module 或 path 参数");
             return;
         }
         try {
             java.io.File target = safeModuleFile(module, path);
             if (!target.exists() || !target.isFile()) {
-                WebResponse.json(exchange, 404, Map.of("success", false, "error", kind + " 文件不存在"));
+                context.notFound(kind + " 文件不存在");
                 return;
             }
             String content = java.nio.file.Files.readString(target.toPath(), StandardCharsets.UTF_8);
             YamlSection yaml = YamlFiles.load(content);
-            Map<String, Object> payload = new LinkedHashMap<>();
-            payload.put("success", true);
-            payload.put("moduleId", module);
-            payload.put("path", path);
-            payload.put("content", content);
-            payload.put("data", ConfigNodes.toPlainData(yaml));
-            payload.put("revision", fileRevision(target));
-            WebResponse.json(exchange, 200, payload);
+            context.ok(Map.of("moduleId", module, "path", path, "content", content, "data", ConfigNodes.toPlainData(yaml), "revision", fileRevision(target)));
         } catch (Exception e) {
-            WebResponse.json(exchange, 500, Map.of("success", false, "error", e.getMessage()));
+            context.serverError(e.getMessage());
         }
     }
 
-    private void handleYamlSave(HttpExchange exchange, String kind) throws IOException {
-        if (!requirePost(exchange)) {
-            return;
-        }
-        if (requireAuth(exchange) == null) return;
-        String body = readBody(exchange);
-        String module = WebJson.extractString(body, "moduleId");
-        String path = WebJson.extractString(body, "path");
-        String content = WebJson.extractString(body, "content");
-        Long expectedRevision = revisionFromBody(body);
+    private void handleYamlSave(WebRequestContext context, String kind) throws IOException {
+        String module = context.bodyString("moduleId");
+        String path = context.bodyString("path");
+        String content = context.bodyString("content");
+        Long expectedRevision = context.revision();
         if (module.isBlank() || path.isBlank()) {
-            WebResponse.json(exchange, 400, Map.of("success", false, "error", "缺少 moduleId 或 path"));
+            context.badRequest("缺少 moduleId 或 path");
             return;
         }
         try {
@@ -547,16 +591,16 @@ public final class WebConsoleService {
             if (expectedRevision != null && target.exists()) {
                 long current = fileRevision(target);
                 if (current != 0 && current != expectedRevision) {
-                    writeRevisionConflict(exchange, current);
+                    writeRevisionConflict(context.exchange(), current);
                     return;
                 }
             }
             YamlFiles.load(content == null ? "" : content);
             java.nio.file.Files.createDirectories(target.toPath().getParent());
             java.nio.file.Files.writeString(target.toPath(), content == null ? "" : content, StandardCharsets.UTF_8);
-            WebResponse.json(exchange, 200, Map.of("success", true, "revision", fileRevision(target)));
+            context.ok(Map.of("revision", fileRevision(target)));
         } catch (Exception e) {
-            WebResponse.json(exchange, 500, Map.of("success", false, "error", e.getMessage()));
+            context.serverError(e.getMessage());
         }
     }
 
@@ -569,45 +613,32 @@ public final class WebConsoleService {
         }
     }
 
-    private void handleItemPreview(HttpExchange exchange) throws IOException {
-        if (!requirePost(exchange)) {
-            return;
-        }
-        if (requireAuth(exchange) == null) return;
-        String body = readBody(exchange);
-        String content = WebJson.extractString(body, "content");
-        Object previewLevelValue = WebJson.extractValue(body, "previewLevel");
+    private void handleItemPreview(WebRequestContext context) throws IOException {
+        String content = context.bodyString("content");
+        Object previewLevelValue = context.bodyValue("previewLevel");
         int previewLevel = Math.max(1, previewLevelValue instanceof Number number ? number.intValue() : 1);
-        String baseName = WebJson.extractString(body, "baseName");
-        Object baseLoreValue = WebJson.extractValue(body, "baseLore");
+        String baseName = context.bodyString("baseName");
+        Object baseLoreValue = context.bodyValue("baseLore");
         java.util.List<String> baseLore = baseLoreValue instanceof java.util.List<?> list
                 ? list.stream().map(String::valueOf).toList()
                 : java.util.List.of();
         try {
             Map<String, Object> preview = itemPreviewService.preview(content, previewLevel, baseName, baseLore);
-            Map<String, Object> payload = new LinkedHashMap<>();
-            payload.put("success", true);
-            payload.put("preview", preview);
-            WebResponse.json(exchange, 200, payload);
+            context.ok(Map.of("preview", preview));
         } catch (Exception e) {
-            WebResponse.json(exchange, 400, Map.of("success", false, "error", e.getMessage()));
+            context.badRequest(e.getMessage());
         }
     }
 
-    private void handleItemActionTypes(HttpExchange exchange) throws IOException {
-        if (requireAuth(exchange) == null) return;
+    private void handleItemActionTypes(WebRequestContext context) throws IOException {
         try {
-            Map<String, Object> payload = new LinkedHashMap<>();
-            payload.put("success", true);
-            payload.putAll(itemPreviewService.actionTypes());
-            WebResponse.json(exchange, 200, payload);
+            context.ok(itemPreviewService.actionTypes());
         } catch (Exception e) {
-            WebResponse.json(exchange, 500, Map.of("success", false, "error", e.getMessage()));
+            context.serverError(e.getMessage());
         }
     }
 
-    private void handleEconomyProviders(HttpExchange exchange) throws IOException {
-        if (requireAuth(exchange) == null) return;
+    private void handleEconomyProviders(WebRequestContext context) throws IOException {
         try {
             EconomyManager economyManager = economyManager();
             List<String> providers = new ArrayList<>();
@@ -620,13 +651,12 @@ public final class WebConsoleService {
             if (economyManager != null) {
                 availableProviders.addAll(economyManager.availableProviderIds());
             }
-            Map<String, Object> payload = new LinkedHashMap<>();
-            payload.put("success", true);
-            payload.put("providers", providers.stream().map(String::toLowerCase).distinct().toList());
-            payload.put("availableProviders", availableProviders.stream().map(String::toLowerCase).distinct().toList());
-            WebResponse.json(exchange, 200, payload);
+            context.ok(Map.of(
+                    "providers", providers.stream().map(String::toLowerCase).distinct().toList(),
+                    "availableProviders", availableProviders.stream().map(String::toLowerCase).distinct().toList()
+            ));
         } catch (Exception e) {
-            WebResponse.json(exchange, 500, Map.of("success", false, "error", e.getMessage()));
+            context.serverError(e.getMessage());
         }
     }
 
@@ -645,16 +675,35 @@ public final class WebConsoleService {
     }
 
     private String normalizeNewFilePath(String baseDir, String extension, String name) throws IOException {
-        String cleanName = name.trim().replace('\\', '/');
-        if (cleanName.startsWith("/") || cleanName.contains("..") || cleanName.endsWith("/")) {
-            throw new IOException("文件名不合法");
-        }
+        String cleanName = normalizeRelativeCreatePath(name);
         String cleanExtension = extension == null ? "" : extension.trim();
         if (!cleanExtension.isBlank() && !cleanName.toLowerCase(java.util.Locale.ROOT).endsWith(cleanExtension.toLowerCase(java.util.Locale.ROOT))) {
             cleanName += cleanExtension;
         }
         String cleanBase = baseDir == null ? "" : baseDir.trim().replace('\\', '/');
         return cleanBase.isBlank() ? cleanName : cleanBase + "/" + cleanName;
+    }
+
+    private String normalizeConfigCreatePath(String path) throws IOException {
+        String cleanPath = normalizeRelativeCreatePath(path);
+        String lower = cleanPath.toLowerCase(java.util.Locale.ROOT);
+        if (!lower.endsWith(".yml") && !lower.endsWith(".yaml")) {
+            throw new IOException("仅允许创建 YAML 配置文件");
+        }
+        return cleanPath;
+    }
+
+    private String normalizeRelativeCreatePath(String path) throws IOException {
+        String cleanPath = path == null ? "" : path.trim().replace('\\', '/');
+        if (cleanPath.isBlank() || cleanPath.startsWith("/") || cleanPath.contains("..") || cleanPath.endsWith("/")) {
+            throw new IOException("文件名不合法");
+        }
+        for (String part : cleanPath.split("/")) {
+            if (part.isBlank() || part.equals(".") || part.equals("..")) {
+                throw new IOException("文件名不合法");
+            }
+        }
+        return cleanPath;
     }
 
     private String defaultFileContent(WebConsoleRegistry.WebConsoleFileType type) {
@@ -688,12 +737,12 @@ public final class WebConsoleService {
         try {
             asset = resolveExtensionAsset(exchange.getRequestURI().getPath());
         } catch (ExtensionAssetException exception) {
-            WebResponse.json(exchange, exception.status(), Map.of("success", false, "error", exception.getMessage()));
+            error(exchange, exception.status(), exception.getMessage());
             return;
         }
         try (java.io.InputStream input = asset.owner().getClass().getClassLoader().getResourceAsStream(asset.resourcePath())) {
             if (input == null) {
-                WebResponse.json(exchange, 404, Map.of("success", false, "error", "扩展资源不存在"));
+                notFound(exchange, "扩展资源不存在");
                 return;
             }
             WebResponse.bytes(exchange, 200, asset.contentType(), input.readAllBytes());
@@ -726,7 +775,12 @@ public final class WebConsoleService {
     }
 
     private void handleStatic(HttpExchange exchange) throws IOException {
-        WebStaticAssets.Asset asset = staticAssets.load(exchange.getRequestURI().getPath());
+        String path = exchange.getRequestURI().getPath();
+        if (path.startsWith("/api/")) {
+            notFound(exchange, "API endpoint not found");
+            return;
+        }
+        WebStaticAssets.Asset asset = staticAssets.load(path);
         WebResponse.bytes(exchange, 200, asset.contentType(), asset.bytes());
     }
 
@@ -734,8 +788,39 @@ public final class WebConsoleService {
         if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
             return true;
         }
-        WebResponse.json(exchange, 405, Map.of("success", false, "error", "Method not allowed"));
+        error(exchange, 405, "Method not allowed");
         return false;
+    }
+
+    private void ok(HttpExchange exchange, Map<String, ?> body) throws IOException {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("success", true);
+        payload.putAll(body);
+        WebResponse.json(exchange, 200, payload);
+    }
+
+    private void error(HttpExchange exchange, int status, String message) throws IOException {
+        WebResponse.json(exchange, status, Map.of("success", false, "error", message == null ? "" : message));
+    }
+
+    private void badRequest(HttpExchange exchange, String message) throws IOException {
+        error(exchange, 400, message);
+    }
+
+    private void notFound(HttpExchange exchange, String message) throws IOException {
+        error(exchange, 404, message);
+    }
+
+    private void forbidden(HttpExchange exchange, String message) throws IOException {
+        error(exchange, 403, message);
+    }
+
+    private void conflict(HttpExchange exchange, String message) throws IOException {
+        error(exchange, 409, message);
+    }
+
+    private void serverError(HttpExchange exchange, String message) throws IOException {
+        error(exchange, 500, message);
     }
 
     private Long revisionFromBody(String body) {
@@ -754,7 +839,7 @@ public final class WebConsoleService {
     private WebAuthService.Session requireAuth(HttpExchange exchange) throws IOException {
         WebAuthService.Session session = authService.session(exchange);
         if (session == null) {
-            WebResponse.json(exchange, 401, Map.of("success", false, "error", "Unauthorized"));
+            error(exchange, 401, "Unauthorized");
         }
         return session;
     }

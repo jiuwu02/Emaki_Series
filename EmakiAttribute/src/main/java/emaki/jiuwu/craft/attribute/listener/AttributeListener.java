@@ -299,43 +299,7 @@ public final class AttributeListener implements Listener {
     private boolean handleEnvironmentalDamage(EntityDamageEvent event, LivingEntity target, LivingEntity attacker) {
         AttributeConfig config = attributeService.config();
         DamageCauseRule rule = config.damageCauseRule(event.getCause().name());
-        if (rule == null) {
-            if (!config.hasDamageCauseRules()) {
-                if (!config.hardLockDamage()) {
-                    return false;
-                }
-                event.setCancelled(true);
-                if (shouldDebugCombat(attacker, target, null)) {
-                    debugCombat(attacker, target, null, "ENVIRONMENT_FALLBACK", "combat_debug.environment_fallback", Map.of(
-                            "attacker", describeEntity(attacker),
-                            "cause", event.getCause().name()
-                    ));
-                }
-                DamageContext damageContext = attributeService.createDamageContext(
-                        attacker,
-                        target,
-                        null,
-                        event.getCause(),
-                        config.defaultDamageType(),
-                        event.getDamage(),
-                        event.getDamage(),
-                        CombatSupport.baseContext(event, target)
-                );
-                resolveAndApplyDamage(
-                        attributeService.resolveDamageApplicationAsync(damageContext),
-                        attacker,
-                        target,
-                        null,
-                        attacker,
-                        "ENVIRONMENT_RESOLVE_EMPTY",
-                        "combat_debug.environment_resolve_empty",
-                        "ENVIRONMENT_ASYNC_RESOLVED",
-                        "combat_debug.environment_resolved_async",
-                        "ENVIRONMENT_APPLY",
-                        "combat_debug.environment_apply"
-                );
-                return true;
-            }
+        if (rule == null && !config.vanillaEventDamageEnabled()) {
             if (shouldDebugCombat(attacker, target, null)) {
                 debugCombat(attacker, target, null, "ENVIRONMENT_IGNORED", "combat_debug.environment_ignored", Map.of(
                         "cause", event.getCause().name()
@@ -343,14 +307,13 @@ public final class AttributeListener implements Listener {
             }
             return false;
         }
-
         event.setCancelled(true);
         DamageContextVariables.Builder context = CombatSupport.baseContext(event, target).toBuilder();
-        if (rule.context() != null && !rule.context().isEmpty()) {
+        if (rule != null && rule.context() != null && !rule.context().isEmpty()) {
             context.putAll(rule.context());
         }
         double sourceDamage = event.getDamage();
-        double baseDamage = rule.resolveDamage(sourceDamage);
+        double baseDamage = rule == null ? sourceDamage : rule.resolveDamage(sourceDamage);
         if (event.getCause() == EntityDamageEvent.DamageCause.FALL) {
             applyFallDamageContext(target, context, sourceDamage);
         }
@@ -363,7 +326,9 @@ public final class AttributeListener implements Listener {
         context.put("final_damage", event.getFinalDamage());
         context.put("target_uuid", target.getUniqueId().toString());
         context.put("target_type", target.getType().name());
-        String damageTypeId = rule.hasDamageType() ? rule.damageTypeId() : config.defaultDamageType();
+        String damageTypeId = rule == null
+                ? config.vanillaEventDamageType()
+                : (rule.hasDamageType() ? rule.damageTypeId() : config.defaultDamageType());
         DamageContextVariables resolvedContext = context.build();
         if (shouldDebugCombat(attacker, target, null)) {
             debugCombat(attacker, target, null, "ENVIRONMENT_RESOLVED", "combat_debug.environment_mapped", Map.of(

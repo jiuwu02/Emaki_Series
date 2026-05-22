@@ -15,11 +15,19 @@ language: zh_CN
 
 # 是否接管未命中白名单的原版伤害
 # true 时，所有原版伤害都会进入 EA 结算；未命中的环境伤害会回退到默认伤害类型
-# false 时，只有白名单中的伤害原因会进入 EA
+# false 时，只有白名单或 vanilla_event_damage.enabled 接管的伤害原因会进入 EA
 hard_lock_damage: true
 
 # 默认伤害类型 ID
 default_damage_type: physical
+
+# 原版事件伤害接管
+# enabled: true 时，未在 allowed_damage_causes 中单独配置的原版伤害也会进入 EA 结算。
+# damage_type: 这些未单独映射的原版伤害统一使用的 EA 伤害类型。
+# base_damage 会直接使用 Bukkit 事件里的原版伤害值，适合让原版物品、原版生物也有基础伤害。
+vanilla_event_damage:
+  enabled: true
+  damage_type: physical
 
 # 资源自然回复间隔，单位 tick
 regen_interval_ticks: 20

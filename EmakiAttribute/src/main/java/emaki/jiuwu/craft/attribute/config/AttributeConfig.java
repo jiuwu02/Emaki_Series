@@ -10,6 +10,8 @@ import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 public record AttributeConfig(String language,
         boolean hardLockDamage,
         String defaultDamageType,
+        boolean vanillaEventDamageEnabled,
+        String vanillaEventDamageType,
         int regenIntervalTicks,
         int syncDelayTicks,
         DefaultProfile defaultProfile,
@@ -19,7 +21,7 @@ public record AttributeConfig(String language,
         List<DamageCauseRule> allowedDamageCauses) {
 
     public static AttributeConfig defaults() {
-        return new AttributeConfig("zh_CN", true, "physical", 20, 1, defaultProfileDefaults(), true, 0.4D, true, List.of());
+        return new AttributeConfig("zh_CN", true, "physical", true, "physical", 20, 1, defaultProfileDefaults(), true, 0.4D, true, List.of());
     }
 
     public static AttributeConfig fromConfig(YamlSection configuration) {
@@ -30,6 +32,8 @@ public record AttributeConfig(String language,
         String language = ConfigNodes.string(configuration, "language", "zh_CN");
         boolean hardLockDamage = Boolean.TRUE.equals(configuration.getBoolean("hard_lock_damage", true));
         String defaultDamageType = ConfigNodes.string(configuration, "default_damage_type", "physical");
+        boolean vanillaEventDamageEnabled = Boolean.TRUE.equals(configuration.getBoolean("vanilla_event_damage.enabled", true));
+        String vanillaEventDamageType = ConfigNodes.string(configuration, "vanilla_event_damage.damage_type", defaultDamageType);
         int regenIntervalTicks = Math.max(1, configuration.getInt("regen_interval_ticks", 20));
         int syncDelayTicks = Math.max(0, configuration.getInt("sync_delay_ticks", 1));
         DefaultProfile defaultProfile = DefaultProfile.fromMap(configuration.getSection("default_profile"));
@@ -51,6 +55,8 @@ public record AttributeConfig(String language,
                 language,
                 hardLockDamage,
                 defaultDamageType,
+                vanillaEventDamageEnabled,
+                vanillaEventDamageType,
                 regenIntervalTicks,
                 syncDelayTicks,
                 defaultProfile,
