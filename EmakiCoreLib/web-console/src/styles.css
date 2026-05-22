@@ -2054,7 +2054,7 @@ textarea {
   transform: scale(0.94);
 }
 
-.switch span {
+.switch-icon {
   order: -1;
   width: 18px;
   height: 18px;
@@ -2068,14 +2068,18 @@ textarea {
   transition: border-color 0.18s ease, background 0.18s ease, color 0.18s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.switch span::after {
-  content: '';
-  width: 7px;
-  height: 2px;
-  border-radius: 999px;
-  background: currentColor;
-  transform: scaleX(.9);
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s ease, background 0.18s ease;
+.switch-icon svg {
+  width: 12px;
+  height: 12px;
+  display: block;
+}
+
+.switch-icon path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .switch.on {
@@ -2094,18 +2098,8 @@ textarea {
   --switch-fill: color-mix(in oklch, var(--success-soft) 78%, var(--surface) 22%);
 }
 
-.switch.on span {
+.switch.on .switch-icon {
   transform: scale(1.03);
-}
-
-.switch.on span::after {
-  width: 8px;
-  height: 5px;
-  border-radius: 0;
-  border-right: 2px solid currentColor;
-  border-bottom: 2px solid currentColor;
-  background: transparent;
-  transform: translateY(-1px) rotate(45deg) scale(.9);
 }
 
 .list-editor {

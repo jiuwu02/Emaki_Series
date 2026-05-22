@@ -364,7 +364,7 @@ function DefaultFieldEditor({ field, data, value, changed, setField, actionTypes
   if (type === 'multiEnum' && field.options?.length) return <PropRow label={label} path={field.path} changed={changed} wide={field.wide ?? true}><MultiEnumEditor value={value} options={field.options} labelPrefix={field.optionLabelPrefix} onChange={next => setField(field.path, next)} /></PropRow>;
   if (type === 'material') return <PropRow label={label} path={field.path} changed={changed} wide={field.wide}><MaterialInput value={value} onChange={next => setField(field.path, next)} /></PropRow>;
   if (type === 'textarea') return <PropRow label={label} path={field.path} changed={changed} wide><textarea rows={field.rows ?? 4} value={textValue(value)} onChange={e => setField(field.path, e.target.value)} placeholder={field.placeholder} /></PropRow>;
-  if (type === 'stringList') return <PropRow label={label} path={field.path} changed={changed} wide><StringListEditor items={asStringList(value)} onChange={items => setField(field.path, items)} placeholder={field.placeholder} /></PropRow>;
+  if (type === 'stringList') return <PropRow label={label} path={field.path} changed={changed} wide><StringListEditor items={asEditableStringList(value)} onChange={items => setField(field.path, items)} placeholder={field.placeholder} /></PropRow>;
   if (type === 'numberList') return <PropRow label={label} path={field.path} changed={changed} wide><NumberListEditor items={asList(value).map(item => Number(item) || 0)} onChange={items => setField(field.path, items)} /></PropRow>;
   if (type === 'map' || type === 'dynamicMap' || type === 'objectMap') return <PropRow label={label} path={field.path} changed={changed} wide><MapEditor value={value} onChange={next => setField(field.path, next)} /></PropRow>;
   if (type === 'actions') {
@@ -400,7 +400,12 @@ function ScopedActionsEditor(props: { actions: ReturnType<typeof parseActionList
 }
 
 function ToggleButton({ id, checked, onChange }: { id?: string; checked: boolean; onChange: (next: boolean) => void }) {
-  return <button id={id} type="button" className={`switch ${checked ? 'on' : ''}`} aria-pressed={checked} onClick={() => onChange(!checked)}><span />{checked ? t('core.config.booleanOn') : t('core.config.booleanOff')}</button>;
+  return <button id={id} type="button" className={`switch ${checked ? 'on' : ''}`} aria-pressed={checked} onClick={() => onChange(!checked)}>
+    <span className="switch-icon" aria-hidden="true">
+      {checked ? <svg viewBox="0 0 16 16" focusable="false"><path d="M3.5 8.2 6.7 11.2 12.8 4.8" /></svg> : <svg viewBox="0 0 16 16" focusable="false"><path d="M4.7 4.7 11.3 11.3M11.3 4.7 4.7 11.3" /></svg>}
+    </span>
+    {checked ? t('core.config.booleanOn') : t('core.config.booleanOff')}
+  </button>;
 }
 
 function NumberInput({ id, value, onChange, step }: { id?: string; value: unknown; onChange: (value: number | undefined) => void; step?: number | string }) {
@@ -666,6 +671,7 @@ function localizedSectionComment(editorId: string | undefined, title: string, co
 
 function localItemPreview(data: AnyMap, previewLevel: number, baseName: string, baseLore: string[]): ItemPreviewResult {
   const kind = inferLocalPreviewKind(data);
+  if (kind === 'gem') return localGemPreview(data, previewLevel, baseName, baseLore);
   const displayName = textValue(data.display_name ?? data.item_name ?? data.id, baseName);
   const lore = resolvePreviewBaseLore(data, baseLore);
   const material = materialFromItemSource(firstItemSource(data.item_sources ?? asRecord(data.match).item_sources) || data.material || data.item || 'stone');
@@ -680,9 +686,90 @@ function localItemPreview(data: AnyMap, previewLevel: number, baseName: string, 
     variables: asRecord(data.variables),
     nameSteps: [],
     loreSteps: [],
-    level: kind === 'gem' ? previewLevel : undefined,
-    levels: kind === 'gem' ? configuredPreviewLevels(data, null) : []
+    level: undefined,
+    levels: []
   };
+}
+
+function localGemPreview(data: AnyMap, previewLevel: number, baseName: string, baseLore: string[]): ItemPreviewResult {
+  const levels = configuredPreviewLevels(data, null);
+  const level = levels.includes(previewLevel) ? previewLevel : Number(data.level) || 1;
+  const levelData = asRecord(asRecord(asRecord(data.upgrade).levels)[String(level)]);
+  const effectiveData = asList(levelData.effects).length ? levelData : data;
+  const variables = resolveLocalVariables(effectiveData, { id: textValue(data.id), level, current_level: level, target_level: level, display_name: textValue(levelData.display_name ?? data.display_name ?? data.id) });
+  const nameActions = localSectionActions(effectiveData, 'name_action', 'name_actions');
+  const loreActions = localSectionActions(effectiveData, 'lore_action', 'lore_actions');
+  const material = materialFromItemSource(firstItemSource(data.item_sources) || data.material || data.item || 'stone');
+  const initialLore = resolvePreviewBaseLore(data, baseLore);
+  const displayName = applyLocalNameActions(baseName || textValue(variables.display_name), nameActions, variables);
+  const lore = applyLocalLoreActions(initialLore, loreActions, variables);
+  return {
+    kind: 'gem',
+    id: textValue(data.id),
+    material,
+    baseName,
+    baseLore,
+    displayName,
+    lore,
+    variables,
+    nameSteps: [],
+    loreSteps: [],
+    level,
+    levels
+  };
+}
+
+function resolveLocalVariables(data: AnyMap, context: AnyMap): AnyMap {
+  return { ...context, ...asRecord(data.variables), ...localEffectMap(data, 'variables', 'variables') };
+}
+
+function localEffectMap(data: AnyMap, type: string, key: string): AnyMap {
+  return asList(data.effects).map(effect => asRecord(effect)).filter(effect => textValue(effect.type).toLowerCase() === type).reduce<AnyMap>((result, effect) => ({ ...result, ...asRecord(effect[key]) }), {});
+}
+
+function localSectionActions(data: AnyMap, type: string, key: string): unknown {
+  if (data[key] !== undefined) return data[key];
+  const effect = asList(data.effects).map(entry => asRecord(entry)).find(entry => textValue(entry.type).toLowerCase() === type);
+  return effect?.[key] ?? [];
+}
+
+function applyLocalNameActions(originalName: string, rawActions: unknown, variables: AnyMap): string {
+  let current = originalName;
+  for (const action of parseActionList(rawActions)) {
+    const value = renderLocalTemplate(textValue(action.params.value), variables);
+    if (action.type === 'replace') current = value;
+    else if (action.type === 'prepend_prefix') current = `${value}${current}`;
+    else if (action.type === 'append_suffix') current = `${current}${value}`;
+    else if (action.type === 'regex_replace') {
+      try { current = current.replace(new RegExp(textValue(action.params.regex_pattern), 'g'), renderLocalTemplate(textValue(action.params.replacement), variables)); } catch { }
+    }
+  }
+  return current;
+}
+
+function applyLocalLoreActions(originalLore: string[], rawActions: unknown, variables: AnyMap): string[] {
+  let current = [...originalLore];
+  for (const action of parseActionList(rawActions)) {
+    const lines = localActionLines(action.params.content).map(line => renderLocalTemplate(line, variables));
+    if (action.type === 'append') current = [...current, ...lines];
+    else if (action.type === 'prepend') current = [...lines, ...current];
+    else if (action.type === 'replace_line') current = lines;
+    else if (action.type === 'delete_line') current = [];
+    else if (action.type === 'regex_replace') {
+      try { current = current.map(line => line.replace(new RegExp(textValue(action.params.regex_pattern), 'g'), renderLocalTemplate(textValue(action.params.replacement), variables))); } catch { }
+    }
+  }
+  return current;
+}
+
+function localActionLines(value: unknown): string[] {
+  if (Array.isArray(value)) return value.map(entry => textValue(entry)).filter(Boolean);
+  const text = textValue(value);
+  return text ? text.split('\n') : [];
+}
+
+function renderLocalTemplate(template: string, variables: AnyMap): string {
+  return template.replace(/\{([^}]+)\}/g, (_, key) => textValue(variables[String(key).trim()]));
 }
 
 function inferLocalPreviewKind(data: AnyMap): string {
@@ -745,6 +832,12 @@ function PreviewTooltipBlock({ title, name, lore, emptyText, refreshing }: { tit
       {!name && !lore.length && <span className="ie-tooltip-empty">{emptyText}</span>}
     </div>
   </div>;
+}
+
+function asEditableStringList(value: unknown): string[] {
+  if (Array.isArray(value)) return value.map(item => item == null ? '' : String(item));
+  if (value == null) return [];
+  return [String(value)];
 }
 
 function previewStringList(value: unknown, fallback: string[]): string[] {

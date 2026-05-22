@@ -707,7 +707,12 @@ function FormRow({ label, path, children, wide }: { label: string; path?: string
 }
 
 function ToggleButton({ checked, onChange }: { checked: boolean; onChange: (next: boolean) => void }) {
-  return <button type="button" className={`switch ${checked ? 'on' : ''}`} aria-pressed={checked} onClick={() => onChange(!checked)}><span />{checked ? copy('开启', 'On') : copy('关闭', 'Off')}</button>;
+  return <button type="button" className={`switch ${checked ? 'on' : ''}`} aria-pressed={checked} onClick={() => onChange(!checked)}>
+    <span className="switch-icon" aria-hidden="true">
+      {checked ? <svg viewBox="0 0 16 16" focusable="false"><path d="M3.5 8.2 6.7 11.2 12.8 4.8" /></svg> : <svg viewBox="0 0 16 16" focusable="false"><path d="M4.7 4.7 11.3 11.3M11.3 4.7 4.7 11.3" /></svg>}
+    </span>
+    {checked ? copy('开启', 'On') : copy('关闭', 'Off')}
+  </button>;
 }
 
 function NumberInput({ value, onChange, step }: { value: unknown; onChange: (value: number | undefined) => void; step?: number | string }) {
@@ -730,9 +735,15 @@ function joinPath(...parts: Array<string | number | undefined>): string | undefi
 }
 
 function materialSources(material: AnyMap): string[] {
-  const sources = asStringList(material.item_sources);
+  const sources = editableStringList(material.item_sources);
   const legacy = textValue(material.item || material.material);
   return sources.length > 0 ? sources : legacy ? [legacy] : [];
+}
+
+function editableStringList(value: unknown): string[] {
+  if (Array.isArray(value)) return value.map(item => item == null ? '' : String(item));
+  if (value == null) return [];
+  return [String(value)];
 }
 
 function levelMap(value: unknown): Record<string, AnyMap> {

@@ -1162,7 +1162,7 @@ function ConfigNodeView({ scope, node, drafts, setDraftValue, sourceEdit }: { sc
 }
 
 function renderControl(node: WebConfigNode, value: unknown, setValue: (v: unknown) => void, label: string, moduleId: string) {
-  if (node.type === 'boolean') return <button type="button" className={`switch ${value ? 'on' : ''}`} aria-pressed={value === true} aria-label={`${label}: ${value ? t('core.config.booleanOn') : t('core.config.booleanOff')}`} onClick={() => setValue(!value)}><span />{value ? t('core.config.booleanOn') : t('core.config.booleanOff')}</button>;
+  if (node.type === 'boolean') return <BooleanSwitch checked={value === true} label={`${label}: ${value ? t('core.config.booleanOn') : t('core.config.booleanOff')}`} onToggle={() => setValue(!value)} />;
   if (node.type === 'enum' && node.options) return <select value={str(value)} aria-label={label} onChange={(e) => setValue(e.target.value)}>{node.options.map(opt => <option key={opt} value={opt}>{optionLabel(node.optionLabelPrefix || node.path, opt, { moduleId })}</option>)}</select>;
   if (node.type === 'number') return <input type="number" aria-label={label} value={value == null ? '' : String(value)} onChange={(e) => setValue(e.target.value === '' ? undefined : Number(e.target.value))} />;
   if (node.type === 'dynamic_map') return <DynamicMapEditor value={value} setValue={setValue} />;
@@ -1175,6 +1175,15 @@ function renderControl(node: WebConfigNode, value: unknown, setValue: (v: unknow
     return <div className="list-editor">{items.map((item, i) => <div className="list-row" key={i}><input value={str(item)} onChange={(e) => update(i, e.target.value)} aria-label={t('core.config.itemIndex', { index: i + 1 })} /><button type="button" onClick={() => setValue(items.filter((_, j) => j !== i))} aria-label={t('core.config.deleteItem', { index: i + 1 })}>{t('core.config.delete')}</button></div>)}<button type="button" className="add-row" onClick={() => setValue([...items, ''])}>{t('core.config.addItem')}</button></div>;
   }
   return <input aria-label={label} value={str(value)} onChange={(e) => setValue(e.target.value)} />;
+}
+
+function BooleanSwitch({ checked, label, onToggle }: { checked: boolean; label: string; onToggle: () => void }) {
+  return <button type="button" className={`switch ${checked ? 'on' : ''}`} aria-pressed={checked} aria-label={label} onClick={onToggle}>
+    <span className="switch-icon" aria-hidden="true">
+      {checked ? <svg viewBox="0 0 16 16" focusable="false"><path d="M3.5 8.2 6.7 11.2 12.8 4.8" /></svg> : <svg viewBox="0 0 16 16" focusable="false"><path d="M4.7 4.7 11.3 11.3M11.3 4.7 4.7 11.3" /></svg>}
+    </span>
+    {checked ? t('core.config.booleanOn') : t('core.config.booleanOff')}
+  </button>;
 }
 
 function ObjectValuePreview({ value }: { value: unknown }) {
@@ -1262,7 +1271,7 @@ function ObjectListEditor({ node, items, setValue, moduleId }: { node: WebConfig
 
 function renderSchemaField(field: WebConfigFieldSchema | undefined, value: unknown, onChange: (value: unknown) => void, moduleId: string, ariaLabel: string, siblingItems: Record<string, unknown>[] = [], currentIndex = -1) {
   const type = field?.type;
-  if (type === 'boolean' || typeof value === 'boolean') return <button type="button" className={`switch ${value ? 'on' : ''}`} aria-pressed={value === true} aria-label={ariaLabel} onClick={() => onChange(!value)}><span />{value ? t('core.config.booleanOn') : t('core.config.booleanOff')}</button>;
+  if (type === 'boolean' || typeof value === 'boolean') return <BooleanSwitch checked={value === true} label={ariaLabel} onToggle={() => onChange(!value)} />;
   if (type === 'number' || typeof value === 'number') return <input type="number" aria-label={ariaLabel} value={Number.isFinite(value as number) ? String(value) : ''} onChange={(e) => onChange(e.target.value === '' ? undefined : Number(e.target.value))} />;
   if (type === 'list' || type === 'stringList') return <StringListEditor items={asStringListValue(value)} onChange={onChange} />;
   if (type === 'numberList') return <NumberListEditor items={asNumberListValue(value)} onChange={onChange} />;
