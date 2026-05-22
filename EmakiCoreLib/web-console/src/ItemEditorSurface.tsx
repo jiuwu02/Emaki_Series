@@ -8,7 +8,7 @@ import { MINECRAFT_MATERIALS, searchMaterials } from './minecraftMaterials';
 import { getSourceDocumentAdapter, isKind, type SurfaceToolbarState } from './registry';
 import { fileDisplayTitle } from './lib';
 import { CORE_ITEM_FIELD_TYPE_SET, standardDisplayActionFields } from './itemFieldKit';
-import { CORE_EFFECT_TYPES, coreEffectTypeLabel, createCoreEffect, getItemFieldRenderer, isCoreEffectType, type CoreEffectType } from './itemFieldRegistry';
+import { CORE_EFFECT_TYPES, coreEffectTypeLabel, createCoreEffect, getItemFieldRenderer, getItemPreviewFallback, isCoreEffectType, type CoreEffectType } from './itemFieldRegistry';
 import type { ItemPreviewResult, ItemPreviewStep, WebEditorDescriptor, WebEditorField, WebEditorSection, WebRegistryFile, WebRegistryModule } from './types';
 import { serializeItemYaml } from './itemEditor';
 
@@ -120,7 +120,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
         })
         .catch(() => {
           if (!active || previewRequestId.current !== requestId) return;
-          setPreview(localItemPreview(data, requestedLevel, baseName, previewBaseLore));
+          setPreview(localItemPreview(module.id, editor?.id, file.kind, data, requestedLevel, baseName, previewBaseLore));
         })
         .finally(() => {
           if (active && previewRequestId.current === requestId) setPreviewPending(false);
@@ -332,8 +332,6 @@ function DefaultFieldEditor({ field, data, value, changed, setField, actionTypes
   if (type === 'effects') return <PropRow label={label} path={field.path} changed={false} wide><EffectsEditor value={value} path={field.path} onChange={next => setField(field.path, next)} actionTypesResult={actionTypesResult} /></PropRow>;
   if (type === 'attributeModifiers') return <PropRow label={label} path={field.path} changed={changed} wide><AttributeModifiersEditor value={value} path={field.path} onChange={next => setField(field.path, next)} /></PropRow>;
   if (type === 'repairMaterials') return <PropRow label={label} path={field.path} changed={changed} wide><RepairMaterialsEditor value={value} path={field.path} onChange={next => setField(field.path, next)} /></PropRow>;
-  if (type === 'setPieces') return <PropRow label={label} path={field.path} changed={changed} wide><SetPiecesEditor value={value} path={field.path} onChange={next => setField(field.path, next)} /></PropRow>;
-  if (type === 'setThresholds') return <PropRow label={label} path={field.path} changed={changed} wide><SetThresholdsEditor value={value} path={field.path} onChange={next => setField(field.path, next)} /></PropRow>;
   if (type === 'json') return <PropRow label={label} path={field.path} changed={changed} wide><GenericObjectEditor value={value} onChange={next => setField(field.path, next)} /></PropRow>;
   return <PropRow label={label} path={field.path} changed={changed} wide={field.wide}><input type="text" value={textValue(value)} onChange={e => setField(field.path, e.target.value)} placeholder={field.placeholder} /></PropRow>;
 }
@@ -508,47 +506,6 @@ function EffectPayloadEditor({ effect, type, originalType, onChange, actionTypes
   return <GenericObjectEditor value={effect} reservedKeys={['type']} onChange={next => onChange({ type, ...next })} />;
 }
 
-function SetPiecesEditor({ value, onChange, path }: { value: unknown; onChange: (value: AnyMap) => void; path?: string }) {
-  const pieces = Object.entries(asRecord(value)).map(([key, entry]) => ({ key, value: asRecord(entry) }));
-  const slots = ['main_hand', 'off_hand', 'helmet', 'chestplate', 'leggings', 'boots'];
-  const update = (index: number, key: string, patch: AnyMap) => {
-    const nextEntries = pieces.map((piece, itemIndex) => itemIndex === index ? { key, value: cleanObject({ ...piece.value, ...patch }) } : piece);
-    onChange(Object.fromEntries(nextEntries.filter(piece => piece.key.trim()).map(piece => [piece.key.trim(), piece.value])));
-  };
-  const remove = (index: number) => onChange(Object.fromEntries(pieces.filter((_, itemIndex) => itemIndex !== index).map(piece => [piece.key, piece.value])));
-  const add = () => onChange({ ...asRecord(value), [nextUniqueKey(pieces.map(piece => piece.key), 'piece')]: { item: '', slot: 'main_hand', display: '' } });
-  return <div className="prop-levels" role="list">
-    {pieces.map((piece, index) => <div className="prop-cost-entry" key={index} role="listitem">
-      <div className="prop-cost-entry-head"><span>{piece.key}</span><button type="button" className="prop-kv-del" onClick={() => remove(index)} aria-label={`删除套装部件 ${index + 1}`}>×</button></div>
-      <PropRow label="piece_id" path={joinPath(path, piece.key)}><TextInput value={piece.key} onChange={nextKey => update(index, nextKey, {})} /></PropRow>
-      <PropRow label="item" path={joinPath(path, piece.key, 'item')}><TextInput value={piece.value.item} onChange={item => update(index, piece.key, { item })} placeholder="example_item" /></PropRow>
-      <PropRow label="slot" path={joinPath(path, piece.key, 'slot')}><SelectInput value={piece.value.slot ?? 'main_hand'} options={slots} labelPrefix="setSlot" onChange={slot => update(index, piece.key, { slot })} /></PropRow>
-      <PropRow label="display" path={joinPath(path, piece.key, 'display')}><TextInput value={piece.value.display} onChange={display => update(index, piece.key, { display })} placeholder={piece.key} /></PropRow>
-    </div>)}
-    <button type="button" className="prop-add" onClick={add}>+ {t('core.item.setPieces.add')}</button>
-  </div>;
-}
-
-function SetThresholdsEditor({ value, onChange, path }: { value: unknown; onChange: (value: AnyMap) => void; path?: string }) {
-  const thresholds = Object.entries(asRecord(value)).map(([key, entry]) => ({ key, value: asRecord(entry) })).sort((left, right) => Number(left.key) - Number(right.key));
-  const update = (index: number, key: string, patch: AnyMap) => {
-    const nextEntries = thresholds.map((threshold, itemIndex) => itemIndex === index ? { key, value: cleanObject({ ...threshold.value, ...patch }) } : threshold);
-    onChange(Object.fromEntries(nextEntries.filter(threshold => threshold.key.trim()).map(threshold => [threshold.key.trim(), threshold.value])));
-  };
-  const remove = (index: number) => onChange(Object.fromEntries(thresholds.filter((_, itemIndex) => itemIndex !== index).map(threshold => [threshold.key, threshold.value])));
-  const add = () => onChange({ ...asRecord(value), [nextNumericKey(thresholds.map(threshold => threshold.key), 2)]: { lore: [], ea_attributes: {}, es_skills: [] } });
-  return <div className="prop-levels" role="list">
-    {thresholds.map((threshold, index) => <div className="prop-cost-entry" key={index} role="listitem">
-      <div className="prop-cost-entry-head"><span>{threshold.key} 件套</span><button type="button" className="prop-kv-del" onClick={() => remove(index)} aria-label={`删除阈值 ${threshold.key}`}>×</button></div>
-      <PropRow label="required" path={joinPath(path, threshold.key)}><NumberInput value={Number(threshold.key)} onChange={required => update(index, String(Math.max(1, required ?? 1)), {})} /></PropRow>
-      <PropRow label="lore" path={joinPath(path, threshold.key, 'lore')} wide><StringListEditor items={asStringList(threshold.value.lore)} onChange={lore => update(index, threshold.key, { lore })} placeholder={uiCopy('[2件套] 物理攻击 +5', '[2-piece] Physical Attack +5')} /></PropRow>
-      <PropRow label="ea_attributes" path={joinPath(path, threshold.key, 'ea_attributes')} wide><MapEditor value={threshold.value.ea_attributes} valuePlaceholder={uiCopy('属性值', 'Attribute value')} addKeyPrefix="attribute" onChange={ea_attributes => update(index, threshold.key, { ea_attributes })} /></PropRow>
-      <PropRow label="es_skills" path={joinPath(path, threshold.key, 'es_skills')} wide><StringListEditor items={asStringList(threshold.value.es_skills)} onChange={es_skills => update(index, threshold.key, { es_skills })} placeholder="guardian_aura" /></PropRow>
-    </div>)}
-    <button type="button" className="prop-add" onClick={add}>+ {t('core.item.setThresholds.add')}</button>
-  </div>;
-}
-
 function AttributeModifiersEditor({ value, onChange, path }: { value: unknown; onChange: (value: AnyMap[]) => void; path?: string }) {
   const modifiers = asList(value).map(entry => asRecord(entry));
   const operations = ['add_number', 'add_scalar', 'multiply_scalar_1'];
@@ -621,14 +578,15 @@ function localizedSectionComment(moduleId: string, section: WebEditorSection): s
   return key ? t(key, undefined, section.comment) : fieldLabel(section.comment, { moduleId, namespace: moduleId, fallback: section.comment });
 }
 
-function localItemPreview(data: AnyMap, previewLevel: number, baseName: string, baseLore: string[]): ItemPreviewResult {
-  const kind = inferLocalPreviewKind(data);
-  if (kind === 'gem') return localGemPreview(data, previewLevel, baseName, baseLore);
+function localItemPreview(moduleId: string, editorId: string | undefined, kind: string | undefined, data: AnyMap, previewLevel: number, baseName: string, baseLore: string[]): ItemPreviewResult {
+  const pluginFallback = getItemPreviewFallback(moduleId, editorId, kind);
+  const pluginPreview = pluginFallback?.({ data, previewLevel, baseName, baseLore, moduleId, editorId, kind });
+  if (pluginPreview) return pluginPreview;
   const displayName = textValue(data.display_name ?? data.item_name ?? data.id, baseName);
   const lore = resolvePreviewBaseLore(data, baseLore);
   const material = materialFromItemSource(firstItemSource(data.item_sources ?? asRecord(data.match).item_sources) || data.material || data.item || 'stone');
   return {
-    kind,
+    kind: 'generic_item',
     id: textValue(data.id),
     material,
     baseName,
@@ -643,93 +601,6 @@ function localItemPreview(data: AnyMap, previewLevel: number, baseName: string, 
   };
 }
 
-function localGemPreview(data: AnyMap, previewLevel: number, baseName: string, baseLore: string[]): ItemPreviewResult {
-  const levels = configuredPreviewLevels(data, null);
-  const level = levels.includes(previewLevel) ? previewLevel : Number(data.level) || 1;
-  const levelData = asRecord(asRecord(asRecord(data.upgrade).levels)[String(level)]);
-  const effectiveData = asList(levelData.effects).length ? levelData : data;
-  const variables = resolveLocalVariables(effectiveData, { id: textValue(data.id), level, current_level: level, target_level: level, display_name: textValue(levelData.display_name ?? data.display_name ?? data.id) });
-  const nameActions = localSectionActions(effectiveData, 'name_action', 'name_actions');
-  const loreActions = localSectionActions(effectiveData, 'lore_action', 'lore_actions');
-  const material = materialFromItemSource(firstItemSource(data.item_sources) || data.material || data.item || 'stone');
-  const initialLore = resolvePreviewBaseLore(data, baseLore);
-  const displayName = applyLocalNameActions(baseName || textValue(variables.display_name), nameActions, variables);
-  const lore = applyLocalLoreActions(initialLore, loreActions, variables);
-  return {
-    kind: 'gem',
-    id: textValue(data.id),
-    material,
-    baseName,
-    baseLore,
-    displayName,
-    lore,
-    variables,
-    nameSteps: [],
-    loreSteps: [],
-    level,
-    levels
-  };
-}
-
-function resolveLocalVariables(data: AnyMap, context: AnyMap): AnyMap {
-  return { ...context, ...asRecord(data.variables), ...localEffectMap(data, 'variables', 'variables') };
-}
-
-function localEffectMap(data: AnyMap, type: string, key: string): AnyMap {
-  return asList(data.effects).map(effect => asRecord(effect)).filter(effect => textValue(effect.type).toLowerCase() === type).reduce<AnyMap>((result, effect) => ({ ...result, ...asRecord(effect[key]) }), {});
-}
-
-function localSectionActions(data: AnyMap, type: string, key: string): unknown {
-  if (data[key] !== undefined) return data[key];
-  const effect = asList(data.effects).map(entry => asRecord(entry)).find(entry => textValue(entry.type).toLowerCase() === type);
-  return effect?.[key] ?? [];
-}
-
-function applyLocalNameActions(originalName: string, rawActions: unknown, variables: AnyMap): string {
-  let current = originalName;
-  for (const action of parseActionList(rawActions)) {
-    const value = renderLocalTemplate(textValue(action.params.value), variables);
-    if (action.type === 'replace') current = value;
-    else if (action.type === 'prepend_prefix') current = `${value}${current}`;
-    else if (action.type === 'append_suffix') current = `${current}${value}`;
-    else if (action.type === 'regex_replace') {
-      try { current = current.replace(new RegExp(textValue(action.params.regex_pattern), 'g'), renderLocalTemplate(textValue(action.params.replacement), variables)); } catch { }
-    }
-  }
-  return current;
-}
-
-function applyLocalLoreActions(originalLore: string[], rawActions: unknown, variables: AnyMap): string[] {
-  let current = [...originalLore];
-  for (const action of parseActionList(rawActions)) {
-    const lines = localActionLines(action.params.content).map(line => renderLocalTemplate(line, variables));
-    if (action.type === 'append') current = [...current, ...lines];
-    else if (action.type === 'prepend') current = [...lines, ...current];
-    else if (action.type === 'replace_line') current = lines;
-    else if (action.type === 'delete_line') current = [];
-    else if (action.type === 'regex_replace') {
-      try { current = current.map(line => line.replace(new RegExp(textValue(action.params.regex_pattern), 'g'), renderLocalTemplate(textValue(action.params.replacement), variables))); } catch { }
-    }
-  }
-  return current;
-}
-
-function localActionLines(value: unknown): string[] {
-  if (Array.isArray(value)) return value.map(entry => textValue(entry));
-  const text = textValue(value);
-  return text ? text.split('\n') : [];
-}
-
-function renderLocalTemplate(template: string, variables: AnyMap): string {
-  return template.replace(/\{([^}]+)\}/g, (_, key) => textValue(variables[String(key).trim()]));
-}
-
-function inferLocalPreviewKind(data: AnyMap): string {
-  if ('gem_type' in data || 'socket_compatibility' in data || 'inlay_cost' in data) return 'gem';
-  if ('slots' in data && ('default_open_slots' in data || 'allowed_gem_types' in data)) return 'gem_socket_item';
-  return 'generic_item';
-}
-
 function GenericPreviewPane({ moduleId, editor, data, preview, previewPending, previewLevel, setPreviewLevel, baseName, baseLore }: { moduleId: string; editor?: WebEditorDescriptor; data: AnyMap; preview: ItemPreviewResult | null; previewPending: boolean; previewLevel: number; setPreviewLevel: (level: number) => void; baseName: string; baseLore: string[] }) {
   const source = firstItemSource(data.item_sources ?? asRecord(data.match).item_sources ?? preview?.material);
   const material = materialFromItemSource(source || data.material || preview?.material);
@@ -738,7 +609,8 @@ function GenericPreviewPane({ moduleId, editor, data, preview, previewPending, p
   const [, refreshTextureOrder] = useState(0);
   const urls = materialUrls(material);
   const [imgFailed, setImgFailed] = useState(false);
-  const previewMatchesLevel = preview?.kind !== 'gem' || !hasLevels || Number(preview.level) === previewLevel;
+  const previewResultLevel = Number(preview?.level);
+  const previewMatchesLevel = !hasLevels || !Number.isFinite(previewResultLevel) || previewResultLevel === previewLevel;
   const livePreview = previewMatchesLevel ? preview : null;
   const originalName = textValue(livePreview?.baseName) || baseName;
   const originalLore = previewStringList(livePreview?.baseLore, resolvePreviewBaseLore(data, baseLore));
@@ -914,11 +786,6 @@ function effectSummary(effect: AnyMap): string {
   if (type === 'name_action') return `${asList(effect.name_actions).length} 个名称动作`;
   if (type === 'lore_action') return `${asList(effect.lore_actions).length} 个 Lore 动作`;
   return `${Math.max(0, Object.keys(effect).length - 1)} 个字段`;
-}
-
-function nextNumericKey(keys: string[], fallback: number): string {
-  const numeric = keys.map(key => Number(key)).filter(value => Number.isFinite(value));
-  return String(Math.max(fallback - 1, ...numeric) + 1);
 }
 
 function nextUniqueKey(keys: string[], prefix: string): string {

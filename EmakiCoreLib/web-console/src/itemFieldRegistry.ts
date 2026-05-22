@@ -1,7 +1,7 @@
 import React from 'react';
 import type { ActionTypesResult } from './api';
 import type { AnyMap } from './itemEditor';
-import type { WebEditorField } from './types';
+import type { ItemPreviewResult, WebEditorField } from './types';
 
 export type CoreEffectType = 'variables' | 'name_action' | 'lore_action';
 
@@ -46,7 +46,28 @@ type RendererRegistration = {
   priority: number;
 };
 
+export type ItemPreviewFallbackContext = {
+  data: AnyMap;
+  previewLevel: number;
+  baseName: string;
+  baseLore: string[];
+  moduleId: string;
+  editorId?: string;
+  kind?: string;
+};
+
+export type ItemPreviewFallback = (context: ItemPreviewFallbackContext) => ItemPreviewResult | null | undefined;
+
+type PreviewFallbackRegistration = {
+  moduleId?: string;
+  editorId?: string;
+  kind?: string;
+  fallback: ItemPreviewFallback;
+  priority: number;
+};
+
 const renderers: RendererRegistration[] = [];
+const previewFallbacks: PreviewFallbackRegistration[] = [];
 
 export function registerItemFieldRenderer(type: string, renderer: ItemFieldRenderer, options: { moduleId?: string; editorId?: string; priority?: number } = {}): void {
   if (!type || !renderer) return;
@@ -59,4 +80,17 @@ export function registerItemFieldRenderer(type: string, renderer: ItemFieldRende
 
 export function getItemFieldRenderer(type: string, moduleId?: string, editorId?: string): ItemFieldRenderer | undefined {
   return renderers.find(entry => entry.type === type && (!entry.moduleId || entry.moduleId === moduleId) && (!entry.editorId || entry.editorId === editorId))?.renderer;
+}
+
+export function registerItemPreviewFallback(fallback: ItemPreviewFallback, options: { moduleId?: string; editorId?: string; kind?: string; priority?: number } = {}): void {
+  if (!fallback) return;
+  const registration = { fallback, moduleId: options.moduleId, editorId: options.editorId, kind: options.kind, priority: options.priority ?? 0 };
+  const duplicateIndex = previewFallbacks.findIndex(entry => entry.moduleId === registration.moduleId && entry.editorId === registration.editorId && entry.kind === registration.kind);
+  if (duplicateIndex >= 0) previewFallbacks.splice(duplicateIndex, 1, registration);
+  else previewFallbacks.push(registration);
+  previewFallbacks.sort((left, right) => right.priority - left.priority);
+}
+
+export function getItemPreviewFallback(moduleId?: string, editorId?: string, kind?: string): ItemPreviewFallback | undefined {
+  return previewFallbacks.find(entry => (!entry.moduleId || entry.moduleId === moduleId) && (!entry.editorId || entry.editorId === editorId) && (!entry.kind || entry.kind === kind))?.fallback;
 }

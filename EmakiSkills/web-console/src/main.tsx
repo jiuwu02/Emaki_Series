@@ -1,4 +1,4 @@
-import { getLocale, registerConfigListItemSchema, registerConfigListItemSchemaRule, registerConfigNodeMeta, registerConfigNodeRule, registerModuleLocale, registerPluginGuiEditor } from 'emaki-web-console';
+import { getLocale, registerConfigListItemSchema, registerConfigListItemSchemaRule, registerConfigMetaFields, registerConfigNodeRule, registerConfigRuleFields, registerModuleLocale, registerPluginGuiEditor } from 'emaki-web-console';
 
 const MODULE = 'EmakiSkills';
 
@@ -125,8 +125,8 @@ registerModuleLocale(MODULE, 'en-US', {
   'emakiskills.option.script_engine.default_mode.hybrid': 'Hybrid'
 });
 
-fields.forEach(([path, label, comment, type, extra]) => registerConfigNodeMeta(MODULE, path, { label, comment, type, ...(extra ?? {}) }));
-Object.entries(triggerFields).forEach(([key, [label, comment, type]]) => registerConfigNodeRule(MODULE, { key }, { label, comment, type }));
+registerConfigMetaFields(MODULE, fields);
+registerConfigRuleFields(MODULE, triggerFields);
 
 registerConfigNodeRule(MODULE, { key: 'description' }, { label: '技能描述', comment: '技能说明文本列表。', type: 'stringList' });
 registerConfigNodeRule(MODULE, { key: 'lore_aliases' }, { label: 'Lore 别名', comment: '用于 Lore 匹配识别的别名列表。', type: 'stringList' });

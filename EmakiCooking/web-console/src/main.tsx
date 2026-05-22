@@ -1,4 +1,4 @@
-import { getLocale, registerConfigListItemSchema, registerConfigNodeMeta, registerConfigNodeRule, registerModuleLocale, registerPluginGuiEditor } from 'emaki-web-console';
+import { getLocale, registerConfigListItemSchema, registerConfigMetaFields, registerConfigNodeRule, registerConfigRuleFields, registerModuleLocale, registerPluginGuiEditor } from 'emaki-web-console';
 
 const MODULE = 'EmakiCooking';
 
@@ -194,8 +194,8 @@ registerModuleLocale(MODULE, 'en-US', {
   'emakicooking.option.display_entities.backend.bukkit': 'Bukkit'
 });
 
-fields.forEach(([path, label, comment, type, extra]) => registerConfigNodeMeta(MODULE, path, { label, comment, type, ...(extra ?? {}) }));
-Object.entries(fieldComments).forEach(([key, [label, comment, type]]) => registerConfigNodeRule(MODULE, { key }, { label, comment, type }));
+registerConfigMetaFields(MODULE, fields);
+registerConfigRuleFields(MODULE, fieldComments);
 registerConfigNodeRule(MODULE, { key: 'rotation_axis' }, { label: '旋转轴', comment: '旋转轴，可选 x、y、z。', type: 'enum', options: ['x', 'y', 'z'], optionLabelPrefix: 'axis' });
 
 registerConfigListItemSchema(MODULE, 'ingredients', [

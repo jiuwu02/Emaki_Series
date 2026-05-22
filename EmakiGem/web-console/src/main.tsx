@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ActionsEditor, CORE_EFFECT_TYPES, PropRow, SectionHead, StringListEditor, asList, asRecord, asStringList, coreEffectTypeLabel, createCoreEffect, fieldLabel, firstItemSource, getLocale, humanizeFieldLabel, registerConfigCreateTemplate, registerConfigNodeMeta, registerConfigNodeRule, registerEditorDescriptor, registerEditorField, registerItemFieldRenderer, registerModuleLocale, registerPluginGuiEditor, serializeActionList, parseActionList, textValue, type AnyMap, type CoreEffectType, type ItemFieldRendererContext } from 'emaki-web-console';
+import { ActionsEditor, CORE_EFFECT_TYPES, PropRow, SectionHead, StringListEditor, asList, asRecord, asStringList, coreEffectTypeLabel, createCoreEffect, fieldLabel, firstItemSource, getLocale, humanizeFieldLabel, materialFromItemSource, registerConfigCreateTemplate, registerConfigMetaFields, registerConfigRuleFields, registerEditorDescriptor, registerEditorField, registerItemFieldRenderer, registerItemPreviewFallback, registerModuleLocale, registerPluginGuiEditor, serializeActionList, parseActionList, textValue, type AnyMap, type CoreEffectType, type ItemFieldRendererContext, type ItemPreviewResult } from 'emaki-web-console';
 
 registerModuleLocale('EmakiGem', 'zh-CN', {
   'emakigem.module.name': 'Gem',
@@ -371,8 +371,8 @@ registerModuleLocale(MODULE, 'en-US', {
   'emakigem.option.gui.default_mode.upgrade': 'Upgrade'
 });
 
-configFields.forEach(([path, label, comment, type, extra]) => registerConfigNodeMeta(MODULE, path, { label, comment, type, ...(extra ?? {}) }));
-Object.entries(dynamicFields).forEach(([key, [label, comment, type]]) => registerConfigNodeRule(MODULE, { key }, { label, comment, type }));
+registerConfigMetaFields(MODULE, configFields);
+registerConfigRuleFields(MODULE, dynamicFields);
 registerConfigCreateTemplate(MODULE, 'socket_openers', {
   id: 'socket-opener',
   label: copy('开槽道具', 'Socket opener'),
@@ -391,6 +391,7 @@ registerConfigCreateTemplate(MODULE, 'upgrade.global_success_rates', {
 });
 
 registerEmakiGemItemRenderers();
+registerEmakiGemPreviewFallbacks();
 
 registerEditorDescriptor(MODULE, 'emakigem:gem', {
   id: 'emakigem:gem',
@@ -499,6 +500,120 @@ function registerEmakiGemItemRenderers() {
   registerItemFieldRenderer('extractReturn', context => <ExtractReturnEditor path={context.field.path} value={context.value} onChange={next => context.setField(context.field.path, next)} />, { moduleId: MODULE, priority: 100 });
   registerItemFieldRenderer('gemUpgrade', context => <UpgradeEditor context={context} />, { moduleId: MODULE, editorId: 'emakigem:gem', priority: 100 });
   registerItemFieldRenderer('gemSlots', context => <GemSlotsEditor context={context} />, { moduleId: MODULE, editorId: 'emakigem:socket-item', priority: 100 });
+}
+
+function registerEmakiGemPreviewFallbacks() {
+  registerItemPreviewFallback(context => localGemPreview(context.data, context.previewLevel, context.baseName, context.baseLore), { moduleId: MODULE, editorId: 'emakigem:gem', priority: 100 });
+  registerItemPreviewFallback(context => localSocketItemPreview(context.data, context.baseName, context.baseLore), { moduleId: MODULE, editorId: 'emakigem:socket-item', priority: 100 });
+}
+
+function localGemPreview(data: AnyMap, previewLevel: number, baseName: string, baseLore: string[]): ItemPreviewResult {
+  const levels = configuredPreviewLevels(data, null);
+  const level = levels.includes(previewLevel) ? previewLevel : Number(data.level) || 1;
+  const levelData = asRecord(asRecord(asRecord(data.upgrade).levels)[String(level)]);
+  const effectiveData = asList(levelData.effects).length ? levelData : data;
+  const variables = resolveLocalVariables(effectiveData, { id: textValue(data.id), level, current_level: level, target_level: level, display_name: textValue(levelData.display_name ?? data.display_name ?? data.id) });
+  const nameActions = localSectionActions(effectiveData, 'name_action', 'name_actions');
+  const loreActions = localSectionActions(effectiveData, 'lore_action', 'lore_actions');
+  const material = materialFromItemSource(firstItemSource(data.item_sources) || data.material || data.item || 'stone');
+  const initialLore = previewBaseLore(data, baseLore);
+  const displayName = applyLocalNameActions(baseName || textValue(variables.display_name), nameActions, variables);
+  const lore = applyLocalLoreActions(initialLore, loreActions, variables);
+  return { kind: 'gem', id: textValue(data.id), material, baseName, baseLore, displayName, lore, variables, nameSteps: [], loreSteps: [], level, levels };
+}
+
+function localSocketItemPreview(data: AnyMap, baseName: string, baseLore: string[]): ItemPreviewResult {
+  const material = materialFromItemSource(firstItemSource(data.item_sources ?? asRecord(data.match).item_sources) || data.material || data.item || 'stone');
+  return {
+    kind: 'gem_socket_item',
+    id: textValue(data.id),
+    material,
+    baseName,
+    baseLore,
+    displayName: textValue(data.display_name ?? data.item_name ?? data.id, baseName),
+    lore: previewBaseLore(data, baseLore),
+    variables: asRecord(data.variables),
+    nameSteps: [],
+    loreSteps: [],
+    levels: [],
+    match: asRecord(data.match),
+    slots: data.slots,
+    defaultOpenSlots: asList(data.default_open_slots),
+    allowedGemTypes: asList(data.allowed_gem_types),
+    maxSameType: data.max_same_type,
+    maxSameId: data.max_same_id,
+    gui: data.gui
+  };
+}
+
+function resolveLocalVariables(data: AnyMap, context: AnyMap): AnyMap {
+  return { ...context, ...asRecord(data.variables), ...localEffectMap(data, 'variables', 'variables') };
+}
+
+function localEffectMap(data: AnyMap, type: string, key: string): AnyMap {
+  return asList(data.effects).map(effect => asRecord(effect)).filter(effect => textValue(effect.type).toLowerCase() === type).reduce<AnyMap>((result, effect) => ({ ...result, ...asRecord(effect[key]) }), {});
+}
+
+function localSectionActions(data: AnyMap, type: string, key: string): unknown {
+  if (data[key] !== undefined) return data[key];
+  const effect = asList(data.effects).map(entry => asRecord(entry)).find(entry => textValue(entry.type).toLowerCase() === type);
+  return effect?.[key] ?? [];
+}
+
+function applyLocalNameActions(originalName: string, rawActions: unknown, variables: AnyMap): string {
+  let current = originalName;
+  for (const action of parseActionList(rawActions)) {
+    const value = renderLocalTemplate(textValue(action.params.value), variables);
+    if (action.type === 'replace') current = value;
+    else if (action.type === 'prepend_prefix') current = `${value}${current}`;
+    else if (action.type === 'append_suffix') current = `${current}${value}`;
+    else if (action.type === 'regex_replace') {
+      try { current = current.replace(new RegExp(textValue(action.params.regex_pattern), 'g'), renderLocalTemplate(textValue(action.params.replacement), variables)); } catch { }
+    }
+  }
+  return current;
+}
+
+function applyLocalLoreActions(originalLore: string[], rawActions: unknown, variables: AnyMap): string[] {
+  let current = [...originalLore];
+  for (const action of parseActionList(rawActions)) {
+    const lines = localActionLines(action.params.content).map(line => renderLocalTemplate(line, variables));
+    if (action.type === 'append') current = [...current, ...lines];
+    else if (action.type === 'prepend') current = [...lines, ...current];
+    else if (action.type === 'replace_line') current = lines;
+    else if (action.type === 'delete_line') current = [];
+    else if (action.type === 'regex_replace') {
+      try { current = current.map(line => line.replace(new RegExp(textValue(action.params.regex_pattern), 'g'), renderLocalTemplate(textValue(action.params.replacement), variables))); } catch { }
+    }
+  }
+  return current;
+}
+
+function localActionLines(value: unknown): string[] {
+  if (Array.isArray(value)) return value.map(entry => textValue(entry));
+  const text = textValue(value);
+  return text ? text.split('\n') : [];
+}
+
+function renderLocalTemplate(template: string, variables: AnyMap): string {
+  return template.replace(/\{([^}]+)\}/g, (_, key) => textValue(variables[String(key).trim()]));
+}
+
+function previewBaseLore(data: AnyMap, fallback: string[]): string[] {
+  const lore = asStringList(data.lore);
+  return lore.length ? lore : fallback;
+}
+
+function configuredPreviewLevels(data: AnyMap, preview: ItemPreviewResult | null): number[] {
+  const upgrade = asRecord(data.upgrade);
+  if (!truthy(upgrade.enabled)) return [];
+  const previewLevels = (preview?.levels ?? []).map(level => Number(level)).filter(level => Number.isFinite(level) && level > 0);
+  const maxLevel = Math.max(1, toNumber(upgrade.max_level, Math.max(1, ...previewLevels)));
+  return Array.from({ length: maxLevel }, (_, index) => index + 1);
+}
+
+function truthy(value: unknown): boolean {
+  return value === true || value === 'true' || value === 1 || value === '1';
 }
 
 function CostEditor({ label, value, onChange, showEnabled, path, economyProviders = DEFAULT_ECONOMY_PROVIDERS }: { label: string; value: unknown; onChange: (value: AnyMap) => void; showEnabled?: boolean; path?: string; economyProviders?: string[] }) {

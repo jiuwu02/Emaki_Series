@@ -208,7 +208,7 @@ export type ItemPreviewEffect = {
 };
 
 export type ItemPreviewResult = {
-  kind: 'gem' | 'gem_socket_item' | 'generic_item' | string;
+  kind: string;
   id?: string;
   material?: string;
   baseName?: string;
@@ -221,17 +221,11 @@ export type ItemPreviewResult = {
   effects?: ItemPreviewEffect[];
   level?: number;
   levels?: number[];
-  gemType?: string;
-  socketCompatibility?: unknown[];
   upgrade?: Record<string, unknown>;
   costs?: Record<string, unknown>;
   extractReturn?: unknown;
   match?: Record<string, unknown>;
   slots?: unknown;
-  defaultOpenSlots?: unknown[];
-  allowedGemTypes?: unknown[];
-  maxSameType?: unknown;
-  maxSameId?: unknown;
   gui?: unknown;
   [key: string]: unknown;
 };

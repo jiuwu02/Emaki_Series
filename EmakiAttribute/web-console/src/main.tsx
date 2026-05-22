@@ -1,4 +1,4 @@
-import { getLocale, registerConfigCreateTemplate, registerConfigListItemSchema, registerConfigNodeMeta, registerConfigNodeRule, registerModuleLocale, getRuntimeEnum } from 'emaki-web-console';
+import { getLocale, registerConfigCreateTemplate, registerConfigListItemSchema, registerConfigMetaFields, registerConfigNodeRule, registerConfigRuleFields, registerModuleLocale, getRuntimeEnum } from 'emaki-web-console';
 
 const MODULE = 'EmakiAttribute';
 
@@ -176,8 +176,8 @@ registerModuleLocale(MODULE, 'en-US', {
   'emakiattribute.field.allowed_damage_causes.enabled': 'Enabled'
 });
 
-configFields.forEach(([path, label, comment, type, extra]) => registerConfigNodeMeta(MODULE, path, { label, comment, type, ...(extra ?? {}) }));
-Object.entries(commonFields).forEach(([key, [label, comment, type]]) => registerConfigNodeRule(MODULE, { key }, { label, comment, type }));
+registerConfigMetaFields(MODULE, configFields);
+registerConfigRuleFields(MODULE, commonFields);
 registerConfigNodeRule(MODULE, { key: 'value_kind' }, { label: copy('数值类型', 'Value kind'), comment: '属性数值语义。', type: 'enum', options: ['FLAT', 'PERCENT', 'CHANCE', 'REGEN', 'RESOURCE'], optionLabelPrefix: 'value_kind' });
 registerConfigNodeRule(MODULE, { key: 'target_type' }, { label: copy('目标类型', 'Target type'), comment: '属性作用目标类型。', type: 'enum', options: ['GENERIC', 'VANILLA', 'RESOURCE', 'DAMAGE'], optionLabelPrefix: 'target_type' });
 registerConfigNodeRule(MODULE, { key: 'condition_type' }, { label: copy('条件逻辑', 'Condition logic'), comment: '多条件组合逻辑。', type: 'enum', options: ['all_of', 'any_of'], optionLabelPrefix: 'condition_type' });

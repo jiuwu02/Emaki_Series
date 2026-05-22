@@ -1,4 +1,4 @@
-import { getLocale, registerConfigCreateTemplate, registerConfigListItemSchema, registerConfigNodeMeta, registerConfigNodeRule, registerModuleLocale, registerPluginGuiEditor } from 'emaki-web-console';
+import { getLocale, registerConfigCreateTemplate, registerConfigListItemSchema, registerConfigMetaFields, registerConfigRuleFields, registerModuleLocale, registerPluginGuiEditor } from 'emaki-web-console';
 
 const MODULE = 'EmakiForge';
 
@@ -109,8 +109,8 @@ registerModuleLocale(MODULE, 'en-US', {
   'emakiforge.field.history': 'History'
 });
 
-fields.forEach(([path, label, comment, type, extra]) => registerConfigNodeMeta(MODULE, path, { label, comment, type, ...(extra ?? {}) }));
-Object.entries(ruleFields).forEach(([key, [label, comment, type]]) => registerConfigNodeRule(MODULE, { key }, { label, comment, type }));
+registerConfigMetaFields(MODULE, fields);
+registerConfigRuleFields(MODULE, ruleFields);
 
 registerConfigCreateTemplate(MODULE, 'quality.item_meta.tiers', {
   id: 'quality-tier-display',

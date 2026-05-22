@@ -87,6 +87,8 @@ export type SurfaceRegistration = {
 };
 
 export type StandardGuiFieldEntry = [path: string, label: string, comment: string, type: string];
+export type ConfigMetaFieldEntry = [path: string, label: string, comment: string, type?: string, extra?: ConfigNodeMetaOverride];
+export type ConfigRuleFieldEntry = [label: string, comment: string, type?: string, extra?: ConfigNodeMetaOverride];
 
 export type PluginGuiEditorRegistration = {
   moduleId: string;
@@ -154,6 +156,8 @@ export type EmakiWebConsoleHost = typeof lib & typeof components & typeof i18n &
   registerConfigNodeMeta: typeof registerConfigNodeMeta;
   registerConfigNodeRule: typeof registerConfigNodeRule;
   registerConfigCreateTemplate: typeof registerConfigCreateTemplate;
+  registerConfigMetaFields: typeof registerConfigMetaFields;
+  registerConfigRuleFields: typeof registerConfigRuleFields;
   registerConfigListItemSchema: typeof registerConfigListItemSchema;
   registerConfigListItemSchemaRule: typeof registerConfigListItemSchemaRule;
   registerUniqueListField: typeof registerUniqueListField;
@@ -265,6 +269,16 @@ export function registerConfigNodeRule(moduleId: string, matcher: ConfigNodeRule
   _configNodeRules.push({ moduleId: normalizeConfigModuleId(moduleId), matcher, meta });
 }
 
+export function registerConfigMetaFields(moduleId: string, fields: ConfigMetaFieldEntry[]): void {
+  if (!moduleId || !Array.isArray(fields)) return;
+  fields.forEach(([path, label, comment, type, extra]) => registerConfigNodeMeta(moduleId, path, { label, comment, type, ...(extra ?? {}) }));
+}
+
+export function registerConfigRuleFields(moduleId: string, fields: Record<string, ConfigRuleFieldEntry>): void {
+  if (!moduleId || !fields) return;
+  Object.entries(fields).forEach(([key, [label, comment, type, extra]]) => registerConfigNodeRule(moduleId, { key }, { label, comment, type, ...(extra ?? {}) }));
+}
+
 export function registerConfigCreateTemplate(moduleId: string, nodePath: string, template: WebConfigCreateTemplate): void {
   if (!moduleId || !nodePath || !template?.id) return;
   const key = configOverrideKey(moduleId, nodePath);
@@ -368,7 +382,7 @@ export function isKind(fileKind: string | undefined, target: string): boolean {
 
 /** Install the browser global used by plugin extension scripts. */
 export function installWebConsoleHost(): EmakiWebConsoleHost {
-  const host: EmakiWebConsoleHost = { ...lib, ...components, ...i18n, ...itemFieldRegistry, apiVersion: EMAKI_WEB_CONSOLE_API_VERSION, React, registerSurface, getSurface, getAllSurfaces, isKind, registerPluginGuiSurface, registerPluginGuiEditor, registerPluginSurfaces, standardGuiFields, registerEditorDescriptor, registerEditorField, registerSourceDocumentAdapter, getSourceDocumentAdapter, registerGuiEditorDescriptor, registerGuiEditorField, getRuntimeEnum, registerConfigNodeMeta, registerConfigNodeRule, registerConfigCreateTemplate, registerConfigListItemSchema, registerConfigListItemSchemaRule, registerUniqueListField, recordExtensionStatus, getExtensionStatuses, components, lib, i18n, t: i18n.t, registerLocale: i18n.registerLocale, registerModuleLocale: i18n.registerModuleLocale };
+  const host: EmakiWebConsoleHost = { ...lib, ...components, ...i18n, ...itemFieldRegistry, apiVersion: EMAKI_WEB_CONSOLE_API_VERSION, React, registerSurface, getSurface, getAllSurfaces, isKind, registerPluginGuiSurface, registerPluginGuiEditor, registerPluginSurfaces, standardGuiFields, registerEditorDescriptor, registerEditorField, registerSourceDocumentAdapter, getSourceDocumentAdapter, registerGuiEditorDescriptor, registerGuiEditorField, getRuntimeEnum, registerConfigNodeMeta, registerConfigNodeRule, registerConfigCreateTemplate, registerConfigMetaFields, registerConfigRuleFields, registerConfigListItemSchema, registerConfigListItemSchemaRule, registerUniqueListField, recordExtensionStatus, getExtensionStatuses, components, lib, i18n, t: i18n.t, registerLocale: i18n.registerLocale, registerModuleLocale: i18n.registerModuleLocale };
   (window as any).React = React;
   window.EmakiWebConsole = host;
   return host;
@@ -376,7 +390,7 @@ export function installWebConsoleHost(): EmakiWebConsoleHost {
 
 /**
  * 一行注册一个直接复用 GuiEditorSurface 的 GUI surface。
- * 适用于只需要通用 GUI 编辑器的插件（如 EmakiSkills、EmakiForge、EmakiStrengthen）。
+ * 适用于只需要通用 GUI 编辑器的扩展。
  */
 export function registerPluginGuiSurface(moduleId: string, editorId: string, label: string): void {
   const { GuiEditorSurface } = components;

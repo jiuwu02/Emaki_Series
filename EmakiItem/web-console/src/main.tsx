@@ -1,5 +1,5 @@
 import React from 'react';
-import { ActionsEditor, CORE_EFFECT_TYPES, ItemEditorSurface, PropRow, StringListEditor, asList, asRecord, asStringList, coreEffectTypeLabel, createCoreEffect, fieldLabel, getLocale, humanizeFieldLabel, isCoreEffectType, parseActionList, registerConfigNodeMeta, registerConfigNodeRule, registerEditorDescriptor, registerEditorField, registerItemFieldRenderer, registerModuleLocale, registerPluginSurfaces, registerSourceDocumentAdapter, serializeActionList, textValue, type AnyMap, type CoreEffectType, type ItemFieldRendererContext } from 'emaki-web-console';
+import { ActionsEditor, CORE_EFFECT_TYPES, ItemEditorSurface, PropRow, StringListEditor, asList, asRecord, asStringList, coreEffectTypeLabel, createCoreEffect, fieldLabel, getLocale, humanizeFieldLabel, isCoreEffectType, optionLabel, parseActionList, registerConfigNodeMeta, registerConfigNodeRule, registerEditorDescriptor, registerEditorField, registerItemFieldRenderer, registerModuleLocale, registerPluginSurfaces, registerSourceDocumentAdapter, serializeActionList, textValue, type AnyMap, type CoreEffectType, type ItemFieldRendererContext } from 'emaki-web-console';
 
 const MODULE = 'EmakiItem';
 const EDITOR_ID = 'emakiitem:item';
@@ -177,6 +177,8 @@ registerModuleLocale(MODULE, 'zh-CN', {
   'emakiitem.preview.aria': 'EmakiItem 物品预览',
   'emakiitem.preview.kind': '自定义物品',
   'emakiitem.preview.kind.generic_item': '自定义物品',
+  'emakiitem.action.addSetPiece': '添加套装部件',
+  'emakiitem.action.addThreshold': '添加阈值',
   ...Object.fromEntries(configFields.flatMap(([path, label, comment]) => [[`emakiitem.field.${path}`, label], [`emakiitem.comment.${path}`, comment]])),
   ...Object.fromEntries(Object.entries(commonItemFields).flatMap(([key, [label, comment]]) => [[`emakiitem.field.${key}`, label], [`emakiitem.comment.${key}`, comment]])),
   ...Object.fromEntries(itemEditorFields.flatMap(([path, label, comment]) => [[`emakiitem.field.${path}`, label], [`emakiitem.comment.${path}`, comment]])),
@@ -242,6 +244,8 @@ registerModuleLocale(MODULE, 'en-US', {
   'emakiitem.section.setLore': 'Set Lore',
   'emakiitem.section.thresholds': 'Threshold Effects',
   'emakiitem.preview.kind.generic_item': 'Custom Item',
+  'emakiitem.action.addSetPiece': 'Add set piece',
+  'emakiitem.action.addThreshold': 'Add threshold',
   'emakiitem.field.version': 'Config Version',
   'emakiitem.field.language': 'Language',
   'emakiitem.field.release_default_data': 'Release Default Data',
@@ -329,12 +333,80 @@ function escapeYamlString(value: string): string {
 
 function registerEmakiItemRenderers() {
   registerItemFieldRenderer('effects', context => <ItemEffectsEditor context={context} />, { moduleId: MODULE, editorId: EDITOR_ID, priority: 100 });
+  registerItemFieldRenderer('setPieces', context => <ItemSetPiecesEditor context={context} />, { moduleId: MODULE, editorId: SET_EDITOR_ID, priority: 100 });
+  registerItemFieldRenderer('setThresholds', context => <ItemSetThresholdsEditor context={context} />, { moduleId: MODULE, editorId: SET_EDITOR_ID, priority: 100 });
 }
 
 function ItemEffectsEditor({ context }: { context: ItemFieldRendererContext }) {
   return <PropRow label={fieldLabel(context.field.path, { moduleId: MODULE, namespace: MODULE, fallback: getLocale().startsWith('zh') ? context.field.label : humanizeFieldLabel(context.field.path) })} path={context.field.path} moduleId={MODULE} namespace={MODULE} editorFields={context.editorFields} changed={context.changed} wide>
     <ItemEffectList value={context.value} path={context.field.path} onChange={effects => context.setField(context.field.path, effects)} actionTypesResult={context.actionTypesResult} />
   </PropRow>;
+}
+
+function ItemSetPiecesEditor({ context }: { context: ItemFieldRendererContext }) {
+  return <PropRow label={fieldLabel(context.field.path, { moduleId: MODULE, namespace: MODULE, fallback: getLocale().startsWith('zh') ? context.field.label : humanizeFieldLabel(context.field.path) })} path={context.field.path} moduleId={MODULE} namespace={MODULE} editorFields={context.editorFields} changed={context.changed} wide>
+    <SetPiecesEditor value={context.value} path={context.field.path} onChange={pieces => context.setField(context.field.path, pieces)} />
+  </PropRow>;
+}
+
+function ItemSetThresholdsEditor({ context }: { context: ItemFieldRendererContext }) {
+  return <PropRow label={fieldLabel(context.field.path, { moduleId: MODULE, namespace: MODULE, fallback: getLocale().startsWith('zh') ? context.field.label : humanizeFieldLabel(context.field.path) })} path={context.field.path} moduleId={MODULE} namespace={MODULE} editorFields={context.editorFields} changed={context.changed} wide>
+    <SetThresholdsEditor value={context.value} path={context.field.path} onChange={thresholds => context.setField(context.field.path, thresholds)} />
+  </PropRow>;
+}
+
+function SetPiecesEditor({ value, onChange, path }: { value: unknown; onChange: (value: AnyMap) => void; path?: string }) {
+  const pieces = Object.entries(asRecord(value)).map(([key, entry]) => ({ key, value: asRecord(entry) }));
+  const update = (index: number, key: string, patch: AnyMap) => {
+    const nextEntries = pieces.map((piece, itemIndex) => itemIndex === index ? { key, value: cleanObject({ ...piece.value, ...patch }) } : piece);
+    onChange(Object.fromEntries(nextEntries.filter(piece => piece.key.trim()).map(piece => [piece.key.trim(), piece.value])));
+  };
+  const remove = (index: number) => onChange(Object.fromEntries(pieces.filter((_, itemIndex) => itemIndex !== index).map(piece => [piece.key, piece.value])));
+  const add = () => onChange({ ...asRecord(value), [nextUniqueKey(pieces.map(piece => piece.key), 'piece')]: { item: '', slot: 'main_hand', display: '' } });
+  return <div className="prop-levels" role="list">
+    {pieces.map((piece, index) => <div className="prop-cost-entry" key={index} role="listitem">
+      <div className="prop-cost-entry-head"><span>{piece.key}</span><button type="button" className="prop-kv-del" onClick={() => remove(index)} aria-label={copy(`删除套装部件 ${index + 1}`, `Delete set piece ${index + 1}`)}>×</button></div>
+      <ItemFormRow label="piece_id" path={joinPath(path, piece.key)}><TextInput value={piece.key} onChange={nextKey => update(index, nextKey, {})} /></ItemFormRow>
+      <ItemFormRow label="item" path={joinPath(path, piece.key, 'item')}><TextInput value={piece.value.item} onChange={item => update(index, piece.key, { item })} placeholder="example_item" /></ItemFormRow>
+      <ItemFormRow label="slot" path={joinPath(path, piece.key, 'slot')}><SetSlotSelectInput value={piece.value.slot ?? 'main_hand'} onChange={slot => update(index, piece.key, { slot })} /></ItemFormRow>
+      <ItemFormRow label="display" path={joinPath(path, piece.key, 'display')}><TextInput value={piece.value.display} onChange={display => update(index, piece.key, { display })} placeholder={piece.key} /></ItemFormRow>
+    </div>)}
+    <button type="button" className="prop-add" onClick={add}>+ {copy('添加套装部件', 'Add set piece')}</button>
+  </div>;
+}
+
+function SetThresholdsEditor({ value, onChange, path }: { value: unknown; onChange: (value: AnyMap) => void; path?: string }) {
+  const thresholds = Object.entries(asRecord(value)).map(([key, entry]) => ({ key, value: asRecord(entry) })).sort((left, right) => Number(left.key) - Number(right.key));
+  const update = (index: number, key: string, patch: AnyMap) => {
+    const nextEntries = thresholds.map((threshold, itemIndex) => itemIndex === index ? { key, value: cleanObject({ ...threshold.value, ...patch }) } : threshold);
+    onChange(Object.fromEntries(nextEntries.filter(threshold => threshold.key.trim()).map(threshold => [threshold.key.trim(), threshold.value])));
+  };
+  const remove = (index: number) => onChange(Object.fromEntries(thresholds.filter((_, itemIndex) => itemIndex !== index).map(threshold => [threshold.key, threshold.value])));
+  const add = () => onChange({ ...asRecord(value), [nextNumericKey(thresholds.map(threshold => threshold.key), 2)]: { lore: [], ea_attributes: {}, es_skills: [] } });
+  return <div className="prop-levels" role="list">
+    {thresholds.map((threshold, index) => <div className="prop-cost-entry" key={index} role="listitem">
+      <div className="prop-cost-entry-head"><span>{copy(`${threshold.key} 件套`, `${threshold.key}-piece`)}</span><button type="button" className="prop-kv-del" onClick={() => remove(index)} aria-label={copy(`删除阈值 ${threshold.key}`, `Delete threshold ${threshold.key}`)}>×</button></div>
+      <ItemFormRow label="required" path={joinPath(path, threshold.key)}><NumberInput value={Number(threshold.key)} onChange={required => update(index, String(Math.max(1, required ?? 1)), {})} /></ItemFormRow>
+      <ItemFormRow label="lore" path={joinPath(path, threshold.key, 'lore')} wide><StringListEditor items={asStringList(threshold.value.lore)} onChange={lore => update(index, threshold.key, { lore })} placeholder={copy('[2件套] 物理攻击 +5', '[2-piece] Physical Attack +5')} /></ItemFormRow>
+      <ItemMapRow label="ea_attributes" path={joinPath(path, threshold.key, 'ea_attributes')} value={threshold.value.ea_attributes} valuePlaceholder={copy('属性值', 'Attribute value')} addKeyPrefix="attribute" onChange={ea_attributes => update(index, threshold.key, { ea_attributes })} />
+      <ItemFormRow label="es_skills" path={joinPath(path, threshold.key, 'es_skills')} wide><StringListEditor items={asStringList(threshold.value.es_skills)} onChange={es_skills => update(index, threshold.key, { es_skills })} placeholder="guardian_aura" /></ItemFormRow>
+    </div>)}
+    <button type="button" className="prop-add" onClick={add}>+ {copy('添加阈值', 'Add threshold')}</button>
+  </div>;
+}
+
+function SetSlotSelectInput({ value, onChange }: { value: unknown; onChange: (value: string) => void }) {
+  const current = textValue(value);
+  const merged = current && !SET_SLOTS.includes(current) ? [...SET_SLOTS, current] : SET_SLOTS;
+  return <select value={current} onChange={event => onChange(event.target.value)}>{merged.map(slot => <option key={slot} value={slot}>{optionLabel('setSlot', slot, { moduleId: MODULE, namespace: MODULE, fallback: slot })}</option>)}</select>;
+}
+
+function TextInput({ value, onChange, placeholder }: { value: unknown; onChange: (value: string) => void; placeholder?: string }) {
+  return <input type="text" value={textValue(value)} onChange={event => onChange(event.target.value)} placeholder={placeholder} />;
+}
+
+function NumberInput({ value, onChange }: { value: unknown; onChange: (value: number | undefined) => void }) {
+  return <input type="number" value={value == null ? '' : textValue(value)} onChange={event => onChange(event.target.value === '' ? undefined : Number(event.target.value))} />;
 }
 
 function ItemEffectList({ value, onChange, actionTypesResult, path }: { value: unknown; onChange: (value: unknown[]) => void; actionTypesResult: ItemFieldRendererContext['actionTypesResult']; path?: string }) {
@@ -444,6 +516,11 @@ function nextUniqueKey(keys: string[], prefix: string): string {
   let key = `${normalizedPrefix}_${index}`;
   while (keys.includes(key)) key = `${normalizedPrefix}_${++index}`;
   return key;
+}
+
+function nextNumericKey(keys: string[], fallback: number): string {
+  const numeric = keys.map(key => Number(key)).filter(value => Number.isFinite(value));
+  return String(Math.max(fallback - 1, ...numeric) + 1);
 }
 
 function setFields(paths: string[]) {

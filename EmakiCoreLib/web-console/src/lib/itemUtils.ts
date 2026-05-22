@@ -51,12 +51,8 @@ export function cleanMap(map: AnyMap): AnyMap {
   return Object.fromEntries(Object.entries(map).filter(([, value]) => value !== undefined)) as AnyMap;
 }
 
-export function itemKind(path: string, preview?: ItemPreviewResult | null): 'gem' | 'socket' | 'generic' {
-  if (preview?.kind === 'gem') return 'gem';
-  if (preview?.kind === 'gem_socket_item') return 'socket';
-  if (path.includes('/gems/') || path.startsWith('gems/')) return 'gem';
-  if (path.includes('/items/') || path.startsWith('items/')) return 'socket';
-  return 'generic';
+export function itemKind(_path: string, preview?: ItemPreviewResult | null): string {
+  return preview?.kind || 'generic_item';
 }
 
 export function firstItemSource(value: unknown): string {
