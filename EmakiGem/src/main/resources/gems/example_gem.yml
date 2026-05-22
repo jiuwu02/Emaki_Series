@@ -62,7 +62,7 @@ effects:
         index: 1
         content:
           - "■"
-      # 全量替换，适合把整个槽位行从空槽状态切到已镶嵌状态。
+      # 全量替换，适合把一行里所有空槽字符一次性改成已镶嵌字符。
       - action: "replace_text_all"
         anchor: "□"
         content:

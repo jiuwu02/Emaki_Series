@@ -26,8 +26,50 @@ final class GemLoreBuilder {
         return placeholders;
     }
 
-    private Object replaceTemplates(Object raw, Map<String, ?> placeholders) {
+    List<String> extractSafeLoreLines(Object operations, Map<String, ?> placeholders) {
+        List<String> lines = new ArrayList<>();
+        for (Map<String, Object> operation : normalizeOperations(replaceTemplates(operations, placeholders))) {
+            String action = Texts.lower(operation.get("action"));
+            if (!isSafeLoreAction(action)) {
+                continue;
+            }
+            for (String line : resolveContent(operation)) {
+                if (Texts.isBlank(line)) {
+                    continue;
+                }
+                lines.add(line);
+            }
+        }
+        return lines;
+    }
 
+    private int countOpenedSlots(GemItemDefinition itemDefinition, GemState state) {
+        int opened = 0;
+        if (itemDefinition == null || state == null) {
+            return opened;
+        }
+        for (GemItemDefinition.SocketSlot slot : itemDefinition.slots()) {
+            if (slot != null && state.isOpened(slot.index())) {
+                opened++;
+            }
+        }
+        return opened;
+    }
+
+    private int countInlaidSlots(GemState state) {
+        int inlaid = 0;
+        if (state == null) {
+            return inlaid;
+        }
+        for (GemItemInstance instance : state.socketAssignments().values()) {
+            if (instance != null) {
+                inlaid++;
+            }
+        }
+        return inlaid;
+    }
+
+    private Object replaceTemplates(Object raw, Map<String, ?> placeholders) {
         if (raw == null) {
             return List.of();
         }
