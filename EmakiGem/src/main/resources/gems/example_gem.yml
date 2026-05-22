@@ -56,6 +56,17 @@ effects:
         value: " <red>[{display_name}]</red>"
   - type: "lore_action"
     lore_actions:
+      # 第 1 个匹配替换成 ■；如果匹配数更少，会替换最后一个匹配。
+      - action: "replace_text"
+        anchor: "□"
+        index: 1
+        content:
+          - "■"
+      # 全量替换，适合把整个槽位行从空槽状态切到已镶嵌状态。
+      - action: "replace_text_all"
+        anchor: "□"
+        content:
+          - "■"
       - action: "append"
         content:
           - "<red>◆ {display_name}: 物理攻击+{physical_attack} 暴击率+{physical_crit_rate}%</red>"

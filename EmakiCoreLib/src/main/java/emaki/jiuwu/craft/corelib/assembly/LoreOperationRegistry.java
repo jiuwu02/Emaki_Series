@@ -36,6 +36,8 @@ public final class LoreOperationRegistry {
         register("insert_above", new InsertProcessor(false));
         register("search_insert_above", new InsertProcessor(false));
         register("replace_line", new ReplaceLineProcessor());
+        register("replace_text", new ReplaceTextProcessor(false));
+        register("replace_text_all", new ReplaceTextProcessor(true));
         register("delete_line", new DeleteLineProcessor());
         register("regex_replace", new RegexReplaceProcessor());
     }
@@ -133,6 +135,65 @@ public final class LoreOperationRegistry {
                     return;
                 }
             }
+        }
+    }
+
+    private static final class ReplaceTextProcessor implements LoreOperationProcessor {
+
+        private final boolean replaceAll;
+
+        private ReplaceTextProcessor(boolean replaceAll) {
+            this.replaceAll = replaceAll;
+        }
+
+        @Override
+        public void process(List<String> lines, Context context) {
+            if (lines == null || Texts.isBlank(context.anchor())) {
+                return;
+            }
+            String replacement = context.content().isEmpty() ? "" : context.content().get(0);
+            int requestedIndex = parseRequestedIndex(context.operation().get("index"));
+            if (replaceAll) {
+                replaceAll(lines, context.anchor(), replacement);
+                return;
+            }
+            replaceNthOrLast(lines, context.anchor(), replacement, requestedIndex);
+        }
+
+        private void replaceAll(List<String> lines, String anchor, String replacement) {
+            for (int index = 0; index < lines.size(); index++) {
+                String current = Texts.toStringSafe(lines.get(index));
+                if (current.contains(anchor)) {
+                    lines.set(index, current.replace(anchor, replacement));
+                }
+            }
+        }
+
+        private void replaceNthOrLast(List<String> lines, String anchor, String replacement, int requestedIndex) {
+            List<Integer> matches = new java.util.ArrayList<>();
+            for (int index = 0; index < lines.size(); index++) {
+                if (Texts.toStringSafe(lines.get(index)).contains(anchor)) {
+                    matches.add(index);
+                }
+            }
+            if (matches.isEmpty()) {
+                return;
+            }
+            int targetIndex;
+            if (requestedIndex <= 0) {
+                targetIndex = matches.get(0);
+            } else if (requestedIndex <= matches.size()) {
+                targetIndex = matches.get(requestedIndex - 1);
+            } else {
+                targetIndex = matches.get(matches.size() - 1);
+            }
+            String current = Texts.toStringSafe(lines.get(targetIndex));
+            lines.set(targetIndex, current.replace(anchor, replacement));
+        }
+
+        private int parseRequestedIndex(Object rawIndex) {
+            Integer parsed = emaki.jiuwu.craft.corelib.math.Numbers.tryParseInt(rawIndex, null);
+            return parsed == null ? 0 : Math.max(0, parsed);
         }
     }
 

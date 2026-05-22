@@ -21,6 +21,7 @@ export type SourceDocumentAdapterContext = {
   module: WebRegistryModule;
   file: WebRegistryFile;
   childPath?: string;
+  path: string;
   editor?: WebEditorDescriptor;
 };
 
@@ -92,6 +93,15 @@ export type ConfigRuleFieldEntry = [label: string, comment: string, type?: strin
 export type ConfigCreateTemplateEntry = [nodePath: string, template: WebConfigCreateTemplate];
 export type ConfigListItemSchemaEntry = [listPath: string, fields: WebConfigFieldSchema[], options?: { uniqueBy?: string }];
 export type ConfigListItemSchemaRuleEntry = [matcher: ConfigListItemSchemaRuleMatcher, fields: WebConfigFieldSchema[], options?: { uniqueBy?: string }];
+export type PluginConfigRegistration = {
+  moduleId: string;
+  metaFields?: ConfigMetaFieldEntry[];
+  ruleFields?: Record<string, ConfigRuleFieldEntry>;
+  rules?: Array<[matcher: ConfigNodeRuleMatcher, meta: ConfigNodeMetaOverride]>;
+  createTemplates?: ConfigCreateTemplateEntry[];
+  listItemSchemas?: ConfigListItemSchemaEntry[];
+  listItemSchemaRules?: ConfigListItemSchemaRuleEntry[];
+};
 
 export type PluginGuiEditorRegistration = {
   moduleId: string;
@@ -156,6 +166,8 @@ export type EmakiWebConsoleHost = typeof lib & typeof components & typeof i18n &
   registerGuiEditorDescriptor: typeof registerGuiEditorDescriptor;
   registerGuiEditorField: typeof registerGuiEditorField;
   getRuntimeEnum: typeof getRuntimeEnum;
+  registerFileKindLabel: typeof registerFileKindLabel;
+  getFileKindLabel: typeof getFileKindLabel;
   registerConfigNodeMeta: typeof registerConfigNodeMeta;
   registerConfigNodeRule: typeof registerConfigNodeRule;
   registerConfigCreateTemplate: typeof registerConfigCreateTemplate;
@@ -166,6 +178,7 @@ export type EmakiWebConsoleHost = typeof lib & typeof components & typeof i18n &
   registerConfigListItemSchemaRules: typeof registerConfigListItemSchemaRules;
   registerConfigListItemSchema: typeof registerConfigListItemSchema;
   registerConfigListItemSchemaRule: typeof registerConfigListItemSchemaRule;
+  registerPluginConfig: typeof registerPluginConfig;
   registerUniqueListField: typeof registerUniqueListField;
   recordExtensionStatus: typeof recordExtensionStatus;
   getExtensionStatuses: typeof getExtensionStatuses;
@@ -189,6 +202,7 @@ const _configListItemFields: Record<string, WebConfigFieldSchema[]> = {};
 const _configUniqueListFields: Record<string, string> = {};
 const _configNodeRules: ConfigNodeRuleRegistration[] = [];
 const _configListItemSchemaRules: ConfigListItemSchemaRuleRegistration[] = [];
+const _fileKindLabels: Record<string, string> = {};
 let _runtimeEnums: Record<string, string[]> = {};
 
 type SourceAdapterRegistration = { kind?: string; moduleId?: string; editorId?: string; adapter: SourceDocumentAdapter; priority: number };
@@ -264,6 +278,17 @@ export function getRuntimeEnum(id: string): string[] {
   return [...(_runtimeEnums[String(id ?? '')] ?? [])];
 }
 
+export function registerFileKindLabel(kind: string, label: string): void {
+  const normalized = normalize(kind);
+  if (!normalized || !label) return;
+  _fileKindLabels[normalized] = label;
+}
+
+export function getFileKindLabel(kind: string | undefined): string | undefined {
+  const normalized = normalize(kind);
+  return normalized ? _fileKindLabels[normalized] : undefined;
+}
+
 export function registerConfigNodeMeta(moduleId: string, path: string, meta: ConfigNodeMetaOverride): void {
   if (!moduleId || !path || !meta) return;
   const key = configOverrideKey(moduleId, path);
@@ -321,6 +346,17 @@ export function registerConfigListItemSchemaRule(moduleId: string, matcher: Conf
 export function registerConfigListItemSchemaRules(moduleId: string, entries: ConfigListItemSchemaRuleEntry[]): void {
   if (!moduleId || !Array.isArray(entries)) return;
   entries.forEach(([matcher, fields, options]) => registerConfigListItemSchemaRule(moduleId, matcher, fields, options));
+}
+
+export function registerPluginConfig(registration: PluginConfigRegistration): void {
+  if (!registration?.moduleId) return;
+  const { moduleId } = registration;
+  registerConfigMetaFields(moduleId, registration.metaFields ?? []);
+  registerConfigRuleFields(moduleId, registration.ruleFields ?? {});
+  (registration.rules ?? []).forEach(([matcher, meta]) => registerConfigNodeRule(moduleId, matcher, meta));
+  registerConfigCreateTemplates(moduleId, registration.createTemplates ?? []);
+  registerConfigListItemSchemas(moduleId, registration.listItemSchemas ?? []);
+  registerConfigListItemSchemaRules(moduleId, registration.listItemSchemaRules ?? []);
 }
 
 export function registerUniqueListField(moduleId: string, listPath: string, fieldPath: string): void {
@@ -403,7 +439,7 @@ export function isKind(fileKind: string | undefined, target: string): boolean {
 
 /** Install the browser global used by plugin extension scripts. */
 export function installWebConsoleHost(): EmakiWebConsoleHost {
-  const host: EmakiWebConsoleHost = { ...lib, ...components, ...i18n, ...itemFieldRegistry, apiVersion: EMAKI_WEB_CONSOLE_API_VERSION, React, registerSurface, getSurface, getAllSurfaces, isKind, registerPluginGuiSurface, registerPluginGuiEditor, registerPluginSurfaces, standardGuiFields, registerEditorDescriptor, registerEditorField, registerSourceDocumentAdapter, getSourceDocumentAdapter, registerGuiEditorDescriptor, registerGuiEditorField, getRuntimeEnum, registerConfigNodeMeta, registerConfigNodeRule, registerConfigCreateTemplate, registerConfigMetaFields, registerConfigRuleFields, registerConfigCreateTemplates, registerConfigListItemSchemas, registerConfigListItemSchemaRules, registerConfigListItemSchema, registerConfigListItemSchemaRule, registerUniqueListField, recordExtensionStatus, getExtensionStatuses, components, lib, i18n, t: i18n.t, registerLocale: i18n.registerLocale, registerModuleLocale: i18n.registerModuleLocale };
+  const host: EmakiWebConsoleHost = { ...lib, ...components, ...i18n, ...itemFieldRegistry, apiVersion: EMAKI_WEB_CONSOLE_API_VERSION, React, registerSurface, getSurface, getAllSurfaces, isKind, registerPluginGuiSurface, registerPluginGuiEditor, registerPluginSurfaces, standardGuiFields, registerEditorDescriptor, registerEditorField, registerSourceDocumentAdapter, getSourceDocumentAdapter, registerGuiEditorDescriptor, registerGuiEditorField, getRuntimeEnum, registerFileKindLabel, getFileKindLabel, registerConfigNodeMeta, registerConfigNodeRule, registerConfigCreateTemplate, registerConfigMetaFields, registerConfigRuleFields, registerConfigCreateTemplates, registerConfigListItemSchemas, registerConfigListItemSchemaRules, registerConfigListItemSchema, registerConfigListItemSchemaRule, registerPluginConfig, registerUniqueListField, recordExtensionStatus, getExtensionStatuses, components, lib, i18n, t: i18n.t, registerLocale: i18n.registerLocale, registerModuleLocale: i18n.registerModuleLocale };
   (window as any).React = React;
   window.EmakiWebConsole = host;
   return host;

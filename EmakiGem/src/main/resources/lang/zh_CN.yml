@@ -136,13 +136,6 @@ gui:
     invalid_gem: "<red>放入的物品不是有效的宝石物品。</red>"
     invalid_material: "<red>该材料槽只接受 <yellow>{material}</yellow> 对应的物品。</red>"
 
-lore:
-  overview_title: "<yellow>宝石插槽 [{icons}] {opened}/{total}</yellow>"
-  status_header: "<dark_gray>◆ 宝石槽</dark_gray>"
-  slot_not_opened: "<gray>[{slot}] <dark_gray>未开孔 - {name}</dark_gray>"
-  slot_empty: "<gray>[{slot}] <yellow>空槽</yellow> <dark_gray>({name})</dark_gray>"
-  slot_inlaid: "<gray>[{slot}]</gray> {gem} <dark_gray>Lv.{level}</dark_gray>"
-
 gui_text:
   common:
     unknown: "未知"

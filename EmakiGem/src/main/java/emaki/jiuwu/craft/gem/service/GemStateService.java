@@ -4,6 +4,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
@@ -55,6 +56,31 @@ public final class GemStateService {
             current = current.withOpenedSlots(itemDefinition.defaultOpenedSlotIndexes());
         }
         return current;
+    }
+
+    public ItemStack applyInitialState(ItemStack original, GemItemDefinition itemDefinition) {
+        return applyInitialState(null, original, itemDefinition);
+    }
+
+    public ItemStack applyInitialState(Player player, ItemStack original, GemItemDefinition itemDefinition) {
+        if (original == null || itemDefinition == null || hasStoredLayer(original)) {
+            return original;
+        }
+        GemState state = GemState.empty(itemDefinition.id()).withOpenedSlots(itemDefinition.defaultOpenedSlotIndexes());
+        ItemStack rebuilt = applyState(original, itemDefinition, state);
+        if (rebuilt != null && player != null && plugin.actionCoordinator() != null && !itemDefinition.obtainConfig().actions().isEmpty()) {
+            plugin.actionCoordinator().execute(player, "gem_item_obtain", itemDefinition.obtainConfig().actions(), itemPlaceholders(itemDefinition, state));
+        }
+        return rebuilt == null ? original : rebuilt;
+    }
+
+    private Map<String, Object> itemPlaceholders(GemItemDefinition itemDefinition, GemState state) {
+        Map<String, Object> placeholders = new LinkedHashMap<>();
+        placeholders.put("item_definition_id", itemDefinition.id());
+        placeholders.put("opened_slots", state.openedSlotIndexes().size());
+        placeholders.put("inlaid_slots", state.socketAssignments().size());
+        placeholders.put("total_slots", itemDefinition.slots().size());
+        return placeholders;
     }
 
     public GemState readStoredState(ItemStack itemStack) {

@@ -32,6 +32,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
   const [preview, setPreview] = useState<ItemPreviewResult | null>(null);
   const [previewLevel, setPreviewLevel] = useState(1);
   const [previewPending, setPreviewPending] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
   const previewRequestId = useRef(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -51,7 +52,8 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
   const sections = useMemo(() => editor?.sections?.length ? editor.sections : defaultSections(), [editor]);
   const editorFields = useMemo(() => editorFieldMap(editor), [editor]);
   const sourceAdapter = getSourceDocumentAdapter(file, editor);
-  const sourceContext = useMemo(() => ({ module, file, childPath, editor }), [module, file, childPath, editor]);
+  const sourcePath = childPath || file.path;
+  const sourceContext = useMemo(() => ({ module, file, childPath, path: sourcePath, editor }), [module, file, childPath, sourcePath, editor?.id]);
 
   useEffect(() => {
     if (!toast) return;
@@ -110,6 +112,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
     const requestId = previewRequestId.current + 1;
     previewRequestId.current = requestId;
     setPreview(null);
+    setPreviewError(null);
     setPreviewPending(true);
     let active = true;
     const timer = window.setTimeout(() => {
@@ -118,8 +121,10 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
           if (!active || previewRequestId.current !== requestId) return;
           setPreview(nextPreview);
         })
-        .catch(() => {
+        .catch(err => {
           if (!active || previewRequestId.current !== requestId) return;
+          const message = err instanceof Error ? err.message : t('core.item.preview.failedRequest');
+          setPreviewError(message);
           setPreview(localItemPreview(module.id, editor?.id, file.kind, data, requestedLevel, baseName, previewBaseLore));
         })
         .finally(() => {
@@ -268,7 +273,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
 
       <EditorContext.Provider value={editorContext}>
         <div className="ie-workbench">
-          <GenericPreviewPane moduleId={module.id} editor={editor} data={data} preview={preview} previewPending={previewPending} previewLevel={previewLevel} setPreviewLevel={setPreviewLevel} baseName={baseName} baseLore={baseLore as string[]} />
+          <GenericPreviewPane moduleId={module.id} editor={editor} data={data} preview={preview} previewPending={previewPending} previewError={previewError} previewLevel={previewLevel} setPreviewLevel={setPreviewLevel} baseName={baseName} baseLore={baseLore as string[]} />
           <div className="ie-props-scroll">
             <div className="ie-props">
               {sections.map(section => (
@@ -601,7 +606,7 @@ function localItemPreview(moduleId: string, editorId: string | undefined, kind: 
   };
 }
 
-function GenericPreviewPane({ moduleId, editor, data, preview, previewPending, previewLevel, setPreviewLevel, baseName, baseLore }: { moduleId: string; editor?: WebEditorDescriptor; data: AnyMap; preview: ItemPreviewResult | null; previewPending: boolean; previewLevel: number; setPreviewLevel: (level: number) => void; baseName: string; baseLore: string[] }) {
+function GenericPreviewPane({ moduleId, editor, data, preview, previewPending, previewError, previewLevel, setPreviewLevel, baseName, baseLore }: { moduleId: string; editor?: WebEditorDescriptor; data: AnyMap; preview: ItemPreviewResult | null; previewPending: boolean; previewError: string | null; previewLevel: number; setPreviewLevel: (level: number) => void; baseName: string; baseLore: string[] }) {
   const source = firstItemSource(data.item_sources ?? asRecord(data.match).item_sources ?? preview?.material);
   const material = materialFromItemSource(source || data.material || preview?.material);
   const levels = configuredPreviewLevels(data, preview);
@@ -630,7 +635,7 @@ function GenericPreviewPane({ moduleId, editor, data, preview, previewPending, p
         <span className="ie-preview-kind">{previewKindLabel(livePreview, moduleId, editor)}</span>
         {Boolean(livePreview?.id || data.id) && <code className="ie-preview-id">{textValue(livePreview?.id ?? data.id)}</code>}
         <span className="ie-preview-source">{displaySource(source || material)}</span>
-        <span className={`ie-preview-status ${status.tone}`}>{status.text}</span>
+        <span className={`ie-preview-status ${status.tone}`}>{previewError ?? status.text}</span>
       </div>
       {hasLevels && <div className="ie-level-panel">
         <div className="ie-level-head"><span>{t('core.item.preview.levelTitle')}</span><code>{t('core.item.preview.upgradeLevel', { level: previewLevel })}</code></div>

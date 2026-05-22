@@ -23,8 +23,8 @@ for (const kind of ['CONFIG', 'GUI', 'ITEM', 'SCRIPT']) {
   registerSourceDocumentAdapter({
     kind,
     adapter: {
-      read: (api, context) => api.readTextDocument({ kind, moduleId: context.module.id, path: context.childPath || context.file.path }),
-      save: (api, context, content, revision) => api.saveTextDocument({ kind, moduleId: context.module.id, path: context.childPath || context.file.path }, content, revision),
+      read: (api, context) => api.readTextDocument({ kind, moduleId: context.module.id, path: context.path }),
+      save: (api, context, content, revision) => api.saveTextDocument({ kind, moduleId: context.module.id, path: context.path }, content, revision),
       language: kind === 'SCRIPT' ? 'javascript' : 'yaml'
     }
   });
@@ -501,7 +501,7 @@ function createFileDefaultContent(registry: WebRegistry | null, target: Registry
   if (!adapter?.defaultContent) return undefined;
   const normalizedName = name.trim().replace(/\\/g, '/');
   const path = normalizeCreatedFilePath(file, normalizedName);
-  const context: SourceDocumentAdapterContext & { name: string; path: string } = { module, file, editor, name: normalizedName, path };
+  const context: SourceDocumentAdapterContext & { name: string; path: string } = { module, file, childPath: path, path, editor, name: normalizedName };
   return adapter.defaultContent(context);
 }
 
@@ -628,14 +628,14 @@ function ConfigStructuredSurface({ module, file, drafts, draftHistory, setDraftV
       title: moduleTitle,
       subtitle: `${fileTitle}，${file.path}`,
       dirty: changedNodes.length > 0 || source.dirty,
-      changedCount: source.dirty ? Math.max(changedNodes.length, 1) : changedNodes.length,
-      changes: [],
+      changedCount: changedNodes.length + (source.dirty ? 1 : 0),
+      changes: configChanges(scope, changedNodes, drafts),
       source: previewSource,
       sourceOriginal: source.original,
       sourceEditable: true,
       sourceError: source.error,
       sourceLanguage: 'yaml',
-      saving: source.saving || savingNodes,
+      saving: savingNodes || source.saving,
       loading: source.loading,
       canUndo: scopeHistory.undo.length > 0,
       canRedo: scopeHistory.redo.length > 0,
@@ -643,142 +643,17 @@ function ConfigStructuredSurface({ module, file, drafts, draftHistory, setDraftV
       onRedo: () => redoDraftScope(scope),
       onReload: () => void reloadStructured(),
       onSourceChange: source.update,
-      onSave: source.dirty ? () => void source.save(async () => { setOptimisticNodes([]); setDeletedObjectPaths(new Set()); await onRefreshRegistry(); }) : () => void saveNodes()
+      onSave: source.dirty ? () => void source.save(async () => { clearDraftValues(scope); setOptimisticNodes([]); setDeletedObjectPaths(new Set()); await onRefreshRegistry(); await source.reload(false); }) : () => void saveNodes()
     });
     return () => setSurfaceToolbar(null);
-  }, [moduleTitle, fileTitle, file.path, changedNodes.length, file.nodes, drafts, source.content, source.dirty, source.error, source.saving, source.loading, savingNodes, scopeHistory.undo.length, scopeHistory.redo.length]);
-
-  const [createNode, setCreateNode] = useState<WebConfigNode | null>(null);
-  const [deleteNode, setDeleteNode] = useState<WebConfigNode | null>(null);
-  return <section className="config-surface"><div className="surface-head"><div><h2>{fileTitle}</h2><p>{fileComment}</p></div><span className={`file-kind ${String(file.kind).toLowerCase()}`}>{fileKindLabel(file.kind)}</span></div><ConfigNodeTree scope={scope} nodes={visibleNodes} drafts={drafts} setDraftValue={setDraftValue} onCreateChild={setCreateNode} onDeleteObject={setDeleteNode} sourceEdit={sourceEdit} deletedPaths={deletedObjectPaths} />{createNode && <ConfigCreateChildModal scope={scope} node={createNode} source={source} onCancel={() => setCreateNode(null)} onCreated={nodes => { setOptimisticNodes(current => mergeConfigNodes(current, nodes, new Set())); setCreateNode(null); }} setToast={setToast} />}{deleteNode && <ConfigDeleteObjectModal node={deleteNode} source={source} onCancel={() => setDeleteNode(null)} onDeleted={path => { setDeletedObjectPaths(current => new Set([...current, path])); setOptimisticNodes(current => current.filter(entry => !entry.path.startsWith(`${path}.`) && entry.path !== path)); setDeleteNode(null); }} setToast={setToast} />}</section>;
-}
-
-function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, setDraftValue, clearDraftScope, clearDraftValues, undoDraftScope, redoDraftScope, api, refreshKey, setSurfaceToolbar, setToast }: { module: WebRegistryModule; file: WebRegistryFile; childPath: string; drafts: DraftMap; draftHistory: DraftHistoryMap; setDraftValue: DraftValueSetter; clearDraftScope: DraftScopeAction; clearDraftValues: DraftScopeAction; undoDraftScope: DraftScopeAction; redoDraftScope: DraftScopeAction; api: ApiClient; refreshKey: number; setSurfaceToolbar: (state: SurfaceToolbarState | null) => void; setToast: (toast: Toast) => void }) {
-  const [nodes, setNodes] = useState<WebConfigNode[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [revision, setRevision] = useState<number | undefined>(undefined);
-  const [saving, setSaving] = useState(false);
-  const fileTitle = fileDisplayTitle(file);
-
-  useEffect(() => {
-    setLoading(true);
-    setError('');
-    setNodes([]);
-    setRevision(undefined);
-    api.registryFileNodes(module.id, childPath).then(result => {
-      setNodes(applyConfigNodeOverrides(module.id, result.nodes));
-      setRevision(result.revision);
-    }).catch(err => {
-      setError(err instanceof Error ? err.message : t('core.config.childLoadFailed'));
-    }).finally(() => setLoading(false));
-  }, [module.id, childPath, refreshKey]);
-
-  const scope = configDraftScope(module, file, childPath);
-  const [optimisticNodes, setOptimisticNodes] = useState<WebConfigNode[]>([]);
-  const [deletedObjectPaths, setDeletedObjectPaths] = useState<Set<string>>(() => new Set());
-  const visibleNodes = useMemo(() => mergeConfigNodes(nodes, optimisticNodes, deletedObjectPaths), [nodes, optimisticNodes, deletedObjectPaths]);
-  const optimisticPathSet = useMemo(() => new Set(optimisticNodes.map(node => node.path)), [optimisticNodes]);
-  const changedNodes = nodes.filter(n => n.type !== 'object' && draftKey(scope, n.path) in drafts && !isDeletedPath(n.path, deletedObjectPaths));
-  const scopeHistory = draftHistory[draftScopeId(scope)] ?? emptyDraftHistory();
-  const source = useConfigSourceDocument({ module, file, childPath, api, refreshKey, setToast });
-
-  useEffect(() => {
-    setOptimisticNodes([]);
-    setDeletedObjectPaths(new Set());
-  }, [childPath, refreshKey]);
-
-  const updateSourceNodeValue = (node: WebConfigNode, nextValue: unknown) => {
-    updateConfigSourceValue(source, node.path, nextValue, setToast);
-    setOptimisticNodes(current => current.map(entry => entry.path === node.path ? { ...entry, value: nextValue } : entry));
-  };
-  const sourceEdit: SourceEditController = { paths: optimisticPathSet, update: updateSourceNodeValue };
-
-  async function reloadChildNodes(announce = true) {
-    setNodes([]);
-    setError('');
-    setLoading(true);
-    try {
-      const refreshed = await api.registryFileNodes(module.id, childPath);
-      setNodes(applyConfigNodeOverrides(module.id, refreshed.nodes));
-      setRevision(refreshed.revision);
-      clearDraftScope(scope);
-      setOptimisticNodes([]);
-      setDeletedObjectPaths(new Set());
-      if (announce) setToast({ tone: 'ok', text: t('core.toast.reloaded') });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t('core.config.childLoadFailed'));
-      setToast({ tone: 'bad', text: err instanceof Error ? err.message : t('core.toast.refreshFailed') });
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function reloadChildSurface() {
-    clearDraftScope(scope);
-    await Promise.all([reloadChildNodes(false), source.reload(false)]);
-    setToast({ tone: 'ok', text: t('core.toast.reloaded') });
-  }
-
-  async function saveChild() {
-    if (!changedNodes.length) {
-      setToast({ tone: 'ok', text: t('core.toast.noChanges') });
-      return;
-    }
-    setSaving(true);
-    try {
-      let nextRevision = revision;
-      for (const node of changedNodes) {
-        const result = await api.saveRegistryValue(module.id, childPath, node.path, drafts[draftKey(scope, node.path)], nextRevision);
-        nextRevision = result.revision ?? nextRevision;
-      }
-      setRevision(nextRevision);
-      const refreshed = await api.registryFileNodes(module.id, childPath);
-      setNodes(applyConfigNodeOverrides(module.id, refreshed.nodes));
-      setRevision(refreshed.revision);
-      clearDraftValues(scope);
-      setToast({ tone: 'ok', text: t('core.toast.savedConfig', { count: changedNodes.length }) });
-    } catch (err) {
-      setToast({ tone: 'bad', text: userFacingSaveError(err) });
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  const fileName = childPath.split('/').pop() ?? childPath;
-
-  useEffect(() => {
-    const previewSource = source.dirty ? source.content : configSourcePreview(source.original, scope, changedNodes, drafts);
-    setSurfaceToolbar({
-      title: fileName,
-      subtitle: `${fileTitle} · ${childPath}`,
-      dirty: changedNodes.length > 0 || source.dirty,
-      changedCount: source.dirty ? Math.max(changedNodes.length, 1) : changedNodes.length,
-      changes: [],
-      source: previewSource,
-      sourceOriginal: source.original,
-      sourceEditable: true,
-      sourceError: source.error,
-      sourceLanguage: 'yaml',
-      saving: saving || source.saving,
-      loading: loading || source.loading,
-      canUndo: scopeHistory.undo.length > 0,
-      canRedo: scopeHistory.redo.length > 0,
-      onUndo: () => undoDraftScope(scope),
-      onRedo: () => redoDraftScope(scope),
-      onReload: () => void reloadChildSurface(),
-      onSourceChange: source.update,
-      onSave: source.dirty ? () => void source.save(async () => { clearDraftValues(scope); setOptimisticNodes([]); setDeletedObjectPaths(new Set()); await reloadChildNodes(false); }) : () => void saveChild()
-    });
-    return () => setSurfaceToolbar(null);
-  }, [fileName, fileTitle, childPath, changedNodes.length, nodes, drafts, saving, loading, source.content, source.dirty, source.error, source.saving, source.loading, scopeHistory.undo.length, scopeHistory.redo.length, revision]);
+  }, [moduleTitle, fileTitle, file.path, changedNodes.length, drafts, savingNodes, source.content, source.dirty, source.error, source.saving, source.loading, scopeHistory.undo.length, scopeHistory.redo.length]);
 
   const [createNode, setCreateNode] = useState<WebConfigNode | null>(null);
   const [deleteNode, setDeleteNode] = useState<WebConfigNode | null>(null);
   return <section className="config-surface">
-    {loading && <div className="script-loading" role="status">{t('core.state.loading')}</div>}
-    {error && <InlineError><span>{error}</span><Button size="sm" onClick={() => void reloadChildNodes()}>{t('core.action.retry')}</Button></InlineError>}
-    {!loading && !error && <ConfigNodeTree scope={scope} nodes={visibleNodes} drafts={drafts} setDraftValue={setDraftValue} onCreateChild={setCreateNode} onDeleteObject={setDeleteNode} sourceEdit={sourceEdit} deletedPaths={deletedObjectPaths} />}
+    {source.loading && <div className="script-loading" role="status">{t('core.state.loading')}</div>}
+    {source.error && <InlineError><span>{source.error}</span><Button size="sm" onClick={() => void reloadStructured()}>{t('core.action.retry')}</Button></InlineError>}
+    {!source.loading && !source.error && <ConfigNodeTree scope={scope} nodes={visibleNodes} drafts={drafts} setDraftValue={setDraftValue} onCreateChild={setCreateNode} onDeleteObject={setDeleteNode} sourceEdit={sourceEdit} deletedPaths={deletedObjectPaths} />}
     {createNode && <ConfigCreateChildModal scope={scope} node={createNode} source={source} onCancel={() => setCreateNode(null)} onCreated={nodes => { setOptimisticNodes(current => mergeConfigNodes(current, nodes, new Set())); setCreateNode(null); }} setToast={setToast} />}
     {deleteNode && <ConfigDeleteObjectModal node={deleteNode} source={source} onCancel={() => setDeleteNode(null)} onDeleted={path => { setDeletedObjectPaths(current => new Set([...current, path])); setOptimisticNodes(current => current.filter(entry => !entry.path.startsWith(`${path}.`) && entry.path !== path)); setDeleteNode(null); }} setToast={setToast} />}
   </section>;
@@ -793,7 +668,8 @@ function useConfigSourceDocument({ module, file, childPath, api, refreshKey, set
   const [error, setError] = useState<string | null>(null);
   const editor = file.editorId ? { id: file.editorId } : undefined;
   const adapter = getSourceDocumentAdapter(file, editor);
-  const context = useMemo(() => ({ module, file, childPath, editor }), [module, file, childPath, editor?.id]);
+  const sourcePath = childPath || file.path;
+  const context = useMemo(() => ({ module, file, childPath, path: sourcePath, editor }), [module, file, childPath, sourcePath, editor?.id]);
 
   async function reload(announce = true) {
     if (!adapter) return;
@@ -850,6 +726,118 @@ function useConfigSourceDocument({ module, file, childPath, api, refreshKey, set
     reload,
     save
   };
+}
+
+function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, setDraftValue, clearDraftScope, clearDraftValues, undoDraftScope, redoDraftScope, api, refreshKey, setSurfaceToolbar, setToast }: { module: WebRegistryModule; file: WebRegistryFile; childPath: string; drafts: DraftMap; draftHistory: DraftHistoryMap; setDraftValue: DraftValueSetter; clearDraftScope: DraftScopeAction; clearDraftValues: DraftScopeAction; undoDraftScope: DraftScopeAction; redoDraftScope: DraftScopeAction; api: ApiClient; refreshKey: number; setSurfaceToolbar: (state: SurfaceToolbarState | null) => void; setToast: (toast: Toast) => void }) {
+  const scope = configDraftScope(module, file, childPath);
+  const scopeHistory = draftHistory[draftScopeId(scope)] ?? emptyDraftHistory();
+  const source = useConfigSourceDocument({ module, file, childPath, api, refreshKey, setToast });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [revision, setRevision] = useState<number | undefined>(undefined);
+  const [saving, setSaving] = useState(false);
+  const [optimisticNodes, setOptimisticNodes] = useState<WebConfigNode[]>([]);
+  const [deletedObjectPaths, setDeletedObjectPaths] = useState<Set<string>>(() => new Set());
+  const fileTitle = fileDisplayTitle(file);
+  const fileName = childPath.split('/').pop() ?? childPath;
+  const visibleNodes = useMemo(() => mergeConfigNodes([], optimisticNodes, deletedObjectPaths), [optimisticNodes, deletedObjectPaths]);
+  const optimisticPathSet = useMemo(() => new Set(optimisticNodes.map(node => node.path)), [optimisticNodes]);
+  const changedNodes = optimisticNodes.filter(n => n.type !== 'object' && draftKey(scope, n.path) in drafts && !isDeletedPath(n.path, deletedObjectPaths));
+  const updateSourceNodeValue = (node: WebConfigNode, nextValue: unknown) => {
+    updateConfigSourceValue(source, node.path, nextValue, setToast);
+    setOptimisticNodes(current => current.map(entry => entry.path === node.path ? { ...entry, value: nextValue } : entry));
+  };
+  const sourceEdit: SourceEditController = { paths: optimisticPathSet, update: updateSourceNodeValue };
+
+  async function reloadChildNodes(announce = true) {
+    setLoading(true);
+    setError('');
+    try {
+      const refreshed = await api.registryFileNodes(module.id, childPath);
+      setOptimisticNodes(applyConfigNodeOverrides(module.id, refreshed.nodes));
+      setRevision(refreshed.revision);
+      clearDraftScope(scope);
+      setDeletedObjectPaths(new Set());
+      if (announce) setToast({ tone: 'ok', text: t('core.toast.reloaded') });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('core.config.childLoadFailed'));
+      setToast({ tone: 'bad', text: err instanceof Error ? err.message : t('core.toast.refreshFailed') });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function reloadChildSurface() {
+    clearDraftScope(scope);
+    setDeletedObjectPaths(new Set());
+    setOptimisticNodes([]);
+    await Promise.all([reloadChildNodes(false), source.reload(false)]);
+    setToast({ tone: 'ok', text: t('core.toast.reloaded') });
+  }
+
+  async function saveChild() {
+    const changed = changedNodes.filter(node => draftKey(scope, node.path) in drafts);
+    if (!changed.length) {
+      setToast({ tone: 'ok', text: t('core.toast.noChanges') });
+      return;
+    }
+    setSaving(true);
+    try {
+      let nextRevision = revision;
+      for (const node of changed) {
+        const result = await api.saveRegistryValue(module.id, childPath, node.path, drafts[draftKey(scope, node.path)], nextRevision);
+        nextRevision = result.revision ?? nextRevision;
+      }
+      setRevision(nextRevision);
+      await reloadChildNodes(false);
+      clearDraftValues(scope);
+      setToast({ tone: 'ok', text: t('core.toast.savedConfig', { count: changed.length }) });
+    } catch (err) {
+      setToast({ tone: 'bad', text: userFacingSaveError(err) });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  useEffect(() => {
+    void reloadChildNodes(false);
+  }, [module.id, childPath, refreshKey]);
+
+  useEffect(() => {
+    const previewSource = source.dirty ? source.content : configSourcePreview(source.original, scope, changedNodes, drafts);
+    setSurfaceToolbar({
+      title: fileName,
+      subtitle: `${fileTitle} · ${childPath}`,
+      dirty: changedNodes.length > 0 || source.dirty,
+      changedCount: changedNodes.length + (source.dirty ? 1 : 0),
+      changes: configChanges(scope, changedNodes, drafts),
+      source: previewSource,
+      sourceOriginal: source.original,
+      sourceEditable: true,
+      sourceError: source.error,
+      sourceLanguage: 'yaml',
+      saving: saving || source.saving,
+      loading: loading || source.loading,
+      canUndo: scopeHistory.undo.length > 0,
+      canRedo: scopeHistory.redo.length > 0,
+      onUndo: () => undoDraftScope(scope),
+      onRedo: () => redoDraftScope(scope),
+      onReload: () => void reloadChildSurface(),
+      onSourceChange: source.update,
+      onSave: source.dirty ? () => void source.save(async () => { clearDraftValues(scope); setDeletedObjectPaths(new Set()); setOptimisticNodes([]); await reloadChildNodes(false); }) : () => void saveChild()
+    });
+    return () => setSurfaceToolbar(null);
+  }, [fileName, fileTitle, childPath, changedNodes.length, drafts, saving, loading, source.content, source.dirty, source.error, source.saving, source.loading, scopeHistory.undo.length, scopeHistory.redo.length, revision]);
+
+  const [createNode, setCreateNode] = useState<WebConfigNode | null>(null);
+  const [deleteNode, setDeleteNode] = useState<WebConfigNode | null>(null);
+  return <section className="config-surface">
+    {loading && <div className="script-loading" role="status">{t('core.state.loading')}</div>}
+    {error && <InlineError><span>{error}</span><Button size="sm" onClick={() => void reloadChildNodes()}>{t('core.action.retry')}</Button></InlineError>}
+    {!loading && !error && <ConfigNodeTree scope={scope} nodes={visibleNodes} drafts={drafts} setDraftValue={setDraftValue} onCreateChild={setCreateNode} onDeleteObject={setDeleteNode} sourceEdit={sourceEdit} deletedPaths={deletedObjectPaths} />}
+    {createNode && <ConfigCreateChildModal scope={scope} node={createNode} source={source} onCancel={() => setCreateNode(null)} onCreated={nodes => { setOptimisticNodes(current => mergeConfigNodes(current, nodes, new Set())); setCreateNode(null); }} setToast={setToast} />}
+    {deleteNode && <ConfigDeleteObjectModal node={deleteNode} source={source} onCancel={() => setDeleteNode(null)} onDeleted={path => { setDeletedObjectPaths(current => new Set([...current, path])); setOptimisticNodes(current => current.filter(entry => !entry.path.startsWith(`${path}.`) && entry.path !== path)); setDeleteNode(null); }} setToast={setToast} />}
+  </section>;
 }
 
 function ConfigCreateChildModal({ scope, node, source, onCancel, onCreated, setToast }: { scope: ConfigDraftScope; node: WebConfigNode; source: ConfigSourceDocument; onCancel: () => void; onCreated: (nodes: WebConfigNode[]) => void; setToast: (toast: Toast) => void }) {
@@ -1223,9 +1211,7 @@ function ConfigNodeView({ scope, node, drafts, setDraftValue, sourceEdit }: { sc
 function renderControl(node: WebConfigNode, value: unknown, setValue: (v: unknown) => void, label: string, moduleId: string) {
   if (node.type === 'boolean') return <BooleanSwitch checked={value === true} label={`${label}: ${value ? t('core.config.booleanOn') : t('core.config.booleanOff')}`} onToggle={() => setValue(!value)} />;
   if (node.type === 'enum' && node.options) return <select value={str(value)} aria-label={label} onChange={(e) => setValue(e.target.value)}>{node.options.map(opt => <option key={opt} value={opt}>{optionLabel(node.optionLabelPrefix || node.path, opt, { moduleId })}</option>)}</select>;
-  if (node.type === 'number') return isNumericInputValue(value)
-    ? <input type="number" aria-label={label} value={numberInputValue(value)} onChange={(e) => setValue(parseNumberInputValue(e.target.value))} />
-    : <input aria-label={label} value={str(value)} onChange={(e) => setValue(e.target.value)} />;
+  if (node.type === 'number') return <NumberField value={value} onChange={setValue} ariaLabel={label} />;
   if (node.type === 'dynamic_map') return <DynamicMapEditor value={value} setValue={setValue} />;
   if (node.type === 'object') return <ObjectValuePreview value={value} />;
   if (node.type === 'list') {
@@ -1333,7 +1319,7 @@ function ObjectListEditor({ node, items, setValue, moduleId }: { node: WebConfig
 function renderSchemaField(field: WebConfigFieldSchema | undefined, value: unknown, onChange: (value: unknown) => void, moduleId: string, ariaLabel: string, siblingItems: Record<string, unknown>[] = [], currentIndex = -1) {
   const type = field?.type;
   if (type === 'boolean' || typeof value === 'boolean') return <BooleanSwitch checked={value === true} label={ariaLabel} onToggle={() => onChange(!value)} />;
-  if ((type === 'number' || typeof value === 'number') && isNumericInputValue(value)) return <input type="number" aria-label={ariaLabel} value={numberInputValue(value)} onChange={(e) => onChange(parseNumberInputValue(e.target.value))} />;
+  if (type === 'number' || typeof value === 'number') return <NumberField value={value} onChange={onChange} ariaLabel={ariaLabel} />;
   if (type === 'list' || type === 'stringList') return <StringListEditor items={asStringListValue(value)} onChange={onChange} />;
   if (type === 'numberList') return <NumberListEditor items={asNumberListValue(value)} onChange={onChange} />;
   if (type === 'enum' && field?.options) {
@@ -1375,44 +1361,39 @@ function defaultObjectListValue(sample: unknown) {
   if (Array.isArray(sample)) return [];
   if (typeof sample === 'number') return 0;
   if (typeof sample === 'boolean') return false;
-  if (isPlainObject(sample)) return {};
   return '';
 }
 
-function objectListSummary(node: WebConfigNode, item: Record<string, unknown>, index: number) {
-  const uniqueValue = node.uniqueBy ? item[node.uniqueBy] : undefined;
-  const primary = uniqueValue ?? item.cause ?? item.target_id ?? item.currency_id ?? item.item ?? item.item_sources ?? item.id ?? item.key ?? item.name ?? item.type;
-  return primary == null || primary === '' ? t('core.config.itemIndex', { index: index + 1 }) : formatListSummaryValue(primary);
-}
-
-function formatListSummaryValue(value: unknown): string {
-  if (Array.isArray(value)) {
-    const text = value.map(entry => entry == null ? '' : String(entry)).filter(Boolean).slice(0, 3).join(', ');
-    return text || '[]';
+function duplicateUniqueValues(node: WebConfigNode, items: Record<string, unknown>[]): Set<string> {
+  const uniqueField = uniqueListField(node);
+  if (!uniqueField) return new Set();
+  const counts = new Map<string, number>();
+  for (const item of items) {
+    const value = String(item[uniqueField] ?? '');
+    if (!value) continue;
+    counts.set(value, (counts.get(value) ?? 0) + 1);
   }
-  if (isPlainObject(value)) {
-    const entries = Object.values(value).map(entry => entry == null ? '' : String(entry)).filter(Boolean).slice(0, 2);
-    return entries.join(', ') || '{}';
-  }
-  return String(value);
+  return new Set([...counts.entries()].filter(([, count]) => count > 1).map(([value]) => value));
 }
 
-function resolveUniqueListDefault(node: WebConfigNode, field: WebConfigFieldSchema, baseValue: unknown): unknown {
-  if (!node.uniqueBy || node.uniqueBy !== field.path) return baseValue;
-  if (typeof baseValue !== 'string') return baseValue;
-  const existing = new Set((Array.isArray(node.value) ? node.value : []).map(item => {
-    if (!isPlainObject(item)) return '';
-    return normalizedUniqueValue(item[field.path]);
-  }).filter(Boolean));
-  const candidate = baseValue.trim();
-  if (!candidate) return baseValue;
-  if (!existing.has(normalizedUniqueValue(candidate))) return candidate;
-  let index = 2;
-  while (existing.has(normalizedUniqueValue(`${candidate}_${index}`))) index += 1;
-  return `${candidate}_${index}`;
+function objectListSummary(node: WebConfigNode, item: Record<string, unknown>, index: number): string {
+  const uniqueField = uniqueListField(node);
+  if (uniqueField) return String(item[uniqueField] ?? `${index + 1}`);
+  const entries = Object.entries(item).slice(0, 2).map(([key, value]) => `${key}: ${String(value ?? '')}`);
+  return entries.length ? entries.join(' · ') : `#${index + 1}`;
 }
 
-function isListSchemaField(field: WebConfigFieldSchema | undefined, value: unknown) {
+function isDuplicateUniqueValue(node: WebConfigNode, item: Record<string, unknown>, duplicates: Set<string>): boolean {
+  const uniqueField = uniqueListField(node);
+  if (!uniqueField) return false;
+  return duplicates.has(String(item[uniqueField] ?? ''));
+}
+
+function configInlineText(zh: string, en: string): string {
+  return getLocale().startsWith('zh') ? zh : en;
+}
+
+function isListSchemaField(field: WebConfigFieldSchema | undefined, value: unknown): boolean {
   return field?.type === 'list' || field?.type === 'stringList' || field?.type === 'numberList' || Array.isArray(value);
 }
 
@@ -1423,31 +1404,51 @@ function asStringListValue(value: unknown): string[] {
 }
 
 function asNumberListValue(value: unknown): number[] {
-  const values = Array.isArray(value) ? value : value == null ? [] : [value];
-  return values.map(item => Number(item) || 0);
+  if (!Array.isArray(value)) return [];
+  return value.map(item => Number(item)).filter(item => Number.isFinite(item));
 }
 
-function duplicateUniqueValues(node: WebConfigNode, items: Record<string, unknown>[]): Set<string> {
-  if (!node.uniqueBy) return new Set();
-  const counts = new Map<string, number>();
-  for (const item of items) {
-    const key = normalizedUniqueValue(item[node.uniqueBy]);
-    if (!key) continue;
-    counts.set(key, (counts.get(key) ?? 0) + 1);
+function resolveUniqueListDefault(node: WebConfigNode, field: WebConfigFieldSchema, value: unknown): unknown {
+  const uniqueField = uniqueListField(node);
+  if (!uniqueField || field.path !== uniqueField || typeof value !== 'string') return value;
+  const used = new Set((Array.isArray(node.value) ? node.value : []).map(item => isPlainObject(item) ? String(item[uniqueField] ?? '') : '').filter(Boolean));
+  if (!used.has(value)) return value;
+  let index = 1;
+  while (used.has(`${value}_${index}`)) index += 1;
+  return `${value}_${index}`;
+}
+
+function uniqueListField(node: WebConfigNode): string | null {
+  return node.itemFields?.find(field => Boolean((field as any).unique))?.path ?? null;
+}
+
+function NumberField({ value, onChange, ariaLabel }: { value: unknown; onChange: (value: unknown) => void; ariaLabel: string }) {
+  const [text, setText] = useState(() => numberFieldText(value));
+  const [error, setError] = useState('');
+
+  useEffect(() => { setText(numberFieldText(value)); setError(''); }, [value]);
+
+  function handleChange(nextText: string) {
+    setText(nextText);
+    if (nextText.trim() === '') {
+      setError('');
+      onChange(undefined);
+      return;
+    }
+    const parsed = Number(nextText);
+    if (!Number.isFinite(parsed)) {
+      setError(t('core.config.numberInvalid'));
+      return;
+    }
+    setError('');
+    onChange(parsed);
   }
-  return new Set(Array.from(counts.entries()).filter(([, count]) => count > 1).map(([key]) => key));
+
+  return <div className="number-field"><input type="text" inputMode="decimal" aria-label={ariaLabel} value={text} onChange={(e) => handleChange(e.target.value)} aria-invalid={error ? 'true' : undefined} /><small className="field-error" role="alert">{error}</small></div>;
 }
 
-function isDuplicateUniqueValue(node: WebConfigNode, item: Record<string, unknown>, duplicateValues: Set<string>): boolean {
-  return Boolean(node.uniqueBy && duplicateValues.has(normalizedUniqueValue(item[node.uniqueBy])));
-}
-
-function normalizedUniqueValue(value: unknown): string {
-  return String(value ?? '').trim().toLowerCase();
-}
-
-function configInlineText(zh: string, en: string): string {
-  return getLocale().startsWith('zh') ? zh : en;
+function numberFieldText(value: unknown): string {
+  return typeof value === 'number' && Number.isFinite(value) ? String(value) : '';
 }
 
 function mergeKeys(preferred: string[], keys: string[]) {

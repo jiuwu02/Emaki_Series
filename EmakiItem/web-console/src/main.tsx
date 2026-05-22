@@ -1,9 +1,11 @@
 import React from 'react';
-import { ActionsEditor, CORE_EFFECT_TYPES, ItemEditorSurface, PropRow, StringListEditor, asList, asRecord, asStringList, coreEffectTypeLabel, createCoreEffect, fieldLabel, getLocale, humanizeFieldLabel, isCoreEffectType, optionLabel, parseActionList, registerConfigNodeMeta, registerConfigNodeRule, registerEditorDescriptor, registerEditorField, registerItemFieldRenderer, registerModuleLocale, registerPluginSurfaces, registerSourceDocumentAdapter, serializeActionList, textValue, type AnyMap, type CoreEffectType, type ItemFieldRendererContext } from 'emaki-web-console';
+import { ActionsEditor, CORE_EFFECT_TYPES, ItemEditorSurface, PropRow, StringListEditor, asList, asRecord, asStringList, coreEffectTypeLabel, createCoreEffect, fieldLabel, getLocale, humanizeFieldLabel, isCoreEffectType, optionLabel, parseActionList, registerFileKindLabel, registerConfigNodeMeta, registerConfigNodeRule, registerEditorDescriptor, registerEditorField, registerItemFieldRenderer, registerModuleLocale, registerPluginSurfaces, registerSourceDocumentAdapter, serializeActionList, textValue, type AnyMap, type CoreEffectType, type ItemFieldRendererContext } from 'emaki-web-console';
 
 const MODULE = 'EmakiItem';
 const EDITOR_ID = 'emakiitem:item';
 const SET_EDITOR_ID = 'emakiitem:set';
+
+registerFileKindLabel('SET', getLocale().startsWith('zh') ? '套装' : 'Set');
 
 type ConfigSpec = [path: string, label: string, comment: string, type: string];
 type ItemFieldSpec = [path: string, label: string, comment: string, type: string, extra?: Record<string, unknown>];
@@ -153,8 +155,6 @@ registerModuleLocale(MODULE, 'zh-CN', {
   'emakiitem.filePath.items_example_item.comment': '示例物品定义文件。',
   'emakiitem.filePath.sets_example_set.title': '示例套装',
   'emakiitem.filePath.sets_example_set.comment': '示例套装定义文件。',
-  'emakiitem.file.lang.title': '语言文件',
-  'emakiitem.file.lang.comment': 'EmakiItem 语言资源文件目录。',
   'emakiitem.file.plugin.title': '插件描述',
   'emakiitem.file.plugin.comment': 'plugin.yml 插件描述与依赖声明。',
   'emakiitem.file.web-console.title': 'Web Console 声明',
@@ -222,8 +222,6 @@ registerModuleLocale(MODULE, 'en-US', {
   'emakiitem.filePath.items_example_item.comment': 'Sample item definition file.',
   'emakiitem.filePath.sets_example_set.title': 'Sample Set',
   'emakiitem.filePath.sets_example_set.comment': 'Sample set definition file.',
-  'emakiitem.file.lang.title': 'Language Files',
-  'emakiitem.file.lang.comment': 'Directory for EmakiItem language resources.',
   'emakiitem.file.plugin.title': 'Plugin Description',
   'emakiitem.file.plugin.comment': 'plugin.yml plugin metadata and dependency declaration.',
   'emakiitem.file.web-console.title': 'Web Console Declaration',

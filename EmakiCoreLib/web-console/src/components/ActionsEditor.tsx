@@ -93,6 +93,13 @@ function renderNameParams(
       <ParamInput paramKey="replacement" value={actionTextValue(action.params.replacement)} labelOptions={labelOptions} onChange={updateTextParam('replacement')} />
     </>;
   }
+  if (action.type === 'replace_text' || action.type === 'replace_text_all') {
+    return <>
+      <ParamInput paramKey="anchor" value={actionTextValue(action.params.anchor)} labelOptions={labelOptions} onChange={updateTextParam('anchor')} />
+      {action.type === 'replace_text' && <ParamInput paramKey="index" value={actionTextValue(action.params.index)} labelOptions={labelOptions} onChange={updateTextParam('index')} />}
+      <ParamInput paramKey="replacement" value={actionTextValue(action.params.replacement)} labelOptions={labelOptions} onChange={updateTextParam('replacement')} />
+    </>;
+  }
   return <ParamInput paramKey="value" value={actionTextValue(action.params.value)} labelOptions={labelOptions} onChange={updateTextParam('value')} />;
 }
 
@@ -199,7 +206,7 @@ function ParamTextarea({ paramKey, value, onChange, labelOptions, rows = 2 }: { 
 
 function requiresSearchPattern(type: string): boolean {
   const normalized = String(type || '').toLowerCase();
-  return normalized.includes('insert') || normalized.includes('search') || normalized === 'replace_line' || normalized === 'delete_line';
+  return normalized.includes('insert') || normalized.includes('search') || normalized === 'replace_line' || normalized === 'replace_text' || normalized === 'replace_text_all' || normalized === 'delete_line';
 }
 
 function splitLines(value: string): string[] {

@@ -59,7 +59,8 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
   const path = childPath ?? '';
   const fileTitle = fileDisplayTitle(file);
   const sourceAdapter = getSourceDocumentAdapter(file, editor);
-  const sourceContext = useMemo(() => ({ module, file, childPath, editor }), [module, file, childPath, editor]);
+  const sourcePath = childPath || file.path;
+  const sourceContext = useMemo(() => ({ module, file, childPath, path: sourcePath, editor }), [module, file, childPath, sourcePath, editor?.id]);
 
   useEffect(() => {
     if (!toast) return;

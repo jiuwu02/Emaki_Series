@@ -288,8 +288,6 @@ registerModuleLocale(MODULE, 'zh-CN', {
   'emakigem.filePath.gui_open_default.comment': '开槽 GUI 模板文件。',
   'emakigem.filePath.gui_upgrade_default.title': '升级 GUI',
   'emakigem.filePath.gui_upgrade_default.comment': '升级 GUI 模板文件。',
-  'emakigem.file.lang.title': '语言文件',
-  'emakigem.file.lang.comment': '宝石插件语言资源文件目录。',
   'emakigem.file.plugin.title': '插件描述',
   'emakigem.file.plugin.comment': 'plugin.yml 插件描述与依赖声明。',
   'emakigem.file.web-console.title': 'Web Console 声明',
@@ -336,8 +334,6 @@ registerModuleLocale(MODULE, 'en-US', {
   'emakigem.filePath.gui_open_default.comment': 'Socket opening GUI template file.',
   'emakigem.filePath.gui_upgrade_default.title': 'Upgrade GUI',
   'emakigem.filePath.gui_upgrade_default.comment': 'Upgrade GUI template file.',
-  'emakigem.file.lang.title': 'Language Files',
-  'emakigem.file.lang.comment': 'Directory for gem language resources.',
   'emakigem.file.plugin.title': 'Plugin Description',
   'emakigem.file.plugin.comment': 'plugin.yml plugin metadata and dependency declaration.',
   'emakigem.file.web-console.title': 'Web Console Declaration',
@@ -474,9 +470,10 @@ registerEditorDescriptor(MODULE, 'emakigem:socket-item', {
       ]
     },
     {
-      title: '显示动作链', titleKey: 'emakigem.section.displayActions', collapsible: true, defaultCollapsed: true, fields: [
-        { path: 'name_actions', label: '名称动作链', type: 'actions', wide: true },
-        { path: 'lore_actions', label: 'Lore 动作链', type: 'actions', wide: true }
+      title: '获得装备时', titleKey: 'emakigem.section.displayActions', collapsible: true, defaultCollapsed: true, fields: [
+        { path: 'obtain.name_actions', label: '名称动作链', type: 'actions', wide: true },
+        { path: 'obtain.lore_actions', label: 'Lore 动作链', type: 'actions', wide: true },
+        { path: 'obtain.actions', label: '获得动作', type: 'stringList', wide: true }
       ]
     }
   ]
@@ -490,8 +487,9 @@ registerEditorDescriptor(MODULE, 'emakigem:socket-item', {
   ['emakigem:gem', 'extract_cost', '拆卸费用', '拆卸宝石时消耗的货币与材料。', 'object'],
   ['emakigem:gem', 'extract_return', '拆卸返还', '拆卸后宝石原样返还、销毁或降级返还。', 'object'],
   ['emakigem:socket-item', 'slots', '插槽列表', '该物品拥有的宝石插槽。', 'list'],
-  ['emakigem:socket-item', 'name_actions', '名称动作链', '插槽激活后对物品名称执行的动作。', 'actions'],
-  ['emakigem:socket-item', 'lore_actions', 'Lore 动作链', '插槽激活后对物品 Lore 执行的动作。', 'actions']
+  ['emakigem:socket-item', 'obtain.name_actions', '名称动作链', '获得该装备时对名称执行的动作。', 'actions'],
+  ['emakigem:socket-item', 'obtain.lore_actions', 'Lore 动作链', '获得该装备时对 Lore 执行的动作。', 'actions'],
+  ['emakigem:socket-item', 'obtain.actions', '获得动作', '首次识别并写入宝石层时执行的动作。', 'list']
 ].forEach(([editorId, path, label, comment, type]) => registerEditorField(MODULE, editorId, { path, label, comment, type }));
 
 function registerEmakiGemItemRenderers() {
@@ -524,21 +522,31 @@ function localGemPreview(data: AnyMap, previewLevel: number, baseName: string, b
 
 function localSocketItemPreview(data: AnyMap, baseName: string, baseLore: string[]): ItemPreviewResult {
   const material = materialFromItemSource(firstItemSource(data.item_sources ?? asRecord(data.match).item_sources) || data.material || data.item || 'stone');
+  const defaultOpenSlots = asList(data.default_open_slots).map(value => Number(value)).filter(value => Number.isFinite(value));
+  const variables: AnyMap = {
+    item_definition_id: textValue(data.id),
+    opened_slots: defaultOpenSlots.length,
+    inlaid_slots: 0,
+    total_slots: asList(data.slots).length
+  };
+  const obtain = asRecord(data.obtain);
+  const nameActions = obtain.name_actions ?? [];
+  const loreActions = obtain.lore_actions ?? [];
   return {
     kind: 'gem_socket_item',
     id: textValue(data.id),
     material,
     baseName,
     baseLore,
-    displayName: textValue(data.display_name ?? data.item_name ?? data.id, baseName),
-    lore: previewBaseLore(data, baseLore),
-    variables: asRecord(data.variables),
+    displayName: applyLocalNameActions(textValue(data.display_name ?? data.item_name ?? data.id, baseName), nameActions, variables),
+    lore: applyLocalLoreActions(previewBaseLore(data, baseLore), loreActions, variables),
+    variables,
     nameSteps: [],
     loreSteps: [],
     levels: [],
     match: asRecord(data.match),
     slots: data.slots,
-    defaultOpenSlots: asList(data.default_open_slots),
+    defaultOpenSlots,
     allowedGemTypes: asList(data.allowed_gem_types),
     maxSameType: data.max_same_type,
     maxSameId: data.max_same_id,

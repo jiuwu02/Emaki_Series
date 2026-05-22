@@ -574,6 +574,10 @@ public final class WebConsoleService {
             context.badRequest("缺少 module 或 path 参数");
             return;
         }
+        if (isGlobPath(path)) {
+            context.badRequest("不能直接读取 glob 路径，请选择具体文件");
+            return;
+        }
         try {
             java.io.File target = safeModuleFile(module, path);
             if (!target.exists() || !target.isFile()) {
@@ -595,6 +599,10 @@ public final class WebConsoleService {
         Long expectedRevision = context.revision();
         if (module.isBlank() || path.isBlank()) {
             context.badRequest("缺少 moduleId 或 path");
+            return;
+        }
+        if (isGlobPath(path)) {
+            context.badRequest("不能直接保存 glob 路径，请选择具体文件");
             return;
         }
         try {
@@ -685,6 +693,10 @@ public final class WebConsoleService {
 
     private EconomyManager economyManager() {
         return plugin instanceof EmakiCoreLibPlugin coreLib ? coreLib.economyManager() : null;
+    }
+
+    private static boolean isGlobPath(String path) {
+        return path != null && (path.contains("*") || path.contains("?"));
     }
 
     private String resolveTreeFilePath(String moduleId, String fileId, String path) throws IOException {

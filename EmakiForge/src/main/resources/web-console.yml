@@ -10,8 +10,6 @@ files:
     kind: CONFIG
   - path: "recipes/**/*.yml"
     kind: CONFIG
-  - path: "lang/**/*.yml"
-    kind: CONFIG
   - path: "item_adjustments/**/*.yml"
     kind: CONFIG
   - path: "gui/**/*.yml"

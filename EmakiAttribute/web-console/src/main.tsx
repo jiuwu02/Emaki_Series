@@ -1,8 +1,16 @@
-import { getLocale, registerConfigCreateTemplates, registerConfigListItemSchema, registerConfigListItemSchemas, registerConfigMetaFields, registerConfigNodeRule, registerConfigRuleFields, registerModuleLocale, getRuntimeEnum } from 'emaki-web-console';
+import { getLocale, registerModuleLocale, registerPluginConfig, getRuntimeEnum } from 'emaki-web-console';
 
 const MODULE = 'EmakiAttribute';
 
-const damageCauses = getRuntimeEnum('bukkit.damageCause');
+const DAMAGE_CAUSES_1_21_11 = [
+  'KILL', 'WORLD_BORDER', 'CONTACT', 'ENTITY_ATTACK', 'ENTITY_SWEEP_ATTACK', 'PROJECTILE',
+  'SUFFOCATION', 'FALL', 'FIRE', 'FIRE_TICK', 'MELTING', 'LAVA', 'DROWNING',
+  'BLOCK_EXPLOSION', 'ENTITY_EXPLOSION', 'VOID', 'LIGHTNING', 'SUICIDE', 'STARVATION',
+  'POISON', 'MAGIC', 'WITHER', 'FALLING_BLOCK', 'THORNS', 'DRAGON_BREATH',
+  'FLY_INTO_WALL', 'HOT_FLOOR', 'CAMPFIRE', 'CRAMMING', 'DRYOUT', 'FREEZE',
+  'SONIC_BOOM', 'CUSTOM'
+];
+const damageCauses = [...new Set([...getRuntimeEnum('bukkit.damageCause'), ...DAMAGE_CAUSES_1_21_11])];
 const copy = (zh: string, en: string) => getLocale().startsWith('zh') ? zh : en;
 
 type ConfigSpec = [path: string, label: string, comment: string, type: string, extra?: Record<string, unknown>];
@@ -108,8 +116,6 @@ registerModuleLocale(MODULE, 'zh-CN', {
   'emakiattribute.filePath.conditions_forge.comment': '锻造条件定义文件。',
   'emakiattribute.filePath.conditions_strengthen.title': '强化条件',
   'emakiattribute.filePath.conditions_strengthen.comment': '强化条件定义文件。',
-  'emakiattribute.file.lang.title': '语言文件',
-  'emakiattribute.file.lang.comment': 'Attribute 语言资源文件目录。',
   'emakiattribute.file.plugin.title': '插件描述',
   'emakiattribute.file.plugin.comment': 'plugin.yml 插件描述与依赖声明。',
   'emakiattribute.file.web-console.title': 'Web Console 声明',
@@ -159,8 +165,6 @@ registerModuleLocale(MODULE, 'en-US', {
   'emakiattribute.filePath.conditions_forge.comment': 'Forge condition definition file.',
   'emakiattribute.filePath.conditions_strengthen.title': 'Strengthen Condition',
   'emakiattribute.filePath.conditions_strengthen.comment': 'Strengthen condition definition file.',
-  'emakiattribute.file.lang.title': 'Language Files',
-  'emakiattribute.file.lang.comment': 'Directory for Attribute language resources.',
   'emakiattribute.file.plugin.title': 'Plugin Description',
   'emakiattribute.file.plugin.comment': 'plugin.yml plugin metadata and dependency declaration.',
   'emakiattribute.file.web-console.title': 'Web Console Declaration',
@@ -176,43 +180,40 @@ registerModuleLocale(MODULE, 'en-US', {
   'emakiattribute.field.allowed_damage_causes.enabled': 'Enabled'
 });
 
-registerConfigMetaFields(MODULE, configFields);
-registerConfigRuleFields(MODULE, commonFields);
-registerConfigNodeRule(MODULE, { key: 'value_kind' }, { label: copy('数值类型', 'Value kind'), comment: '属性数值语义。', type: 'enum', options: ['FLAT', 'PERCENT', 'CHANCE', 'REGEN', 'RESOURCE'], optionLabelPrefix: 'value_kind' });
-registerConfigNodeRule(MODULE, { key: 'target_type' }, { label: copy('目标类型', 'Target type'), comment: '属性作用目标类型。', type: 'enum', options: ['GENERIC', 'VANILLA', 'RESOURCE', 'DAMAGE'], optionLabelPrefix: 'target_type' });
-registerConfigNodeRule(MODULE, { key: 'condition_type' }, { label: copy('条件逻辑', 'Condition logic'), comment: '多条件组合逻辑。', type: 'enum', options: ['all_of', 'any_of'], optionLabelPrefix: 'condition_type' });
-
-registerConfigCreateTemplates(MODULE, [
-  ['default_profile.resources', {
-    id: 'resource', label: copy('资源模板', 'Resource template'), fields: [
+registerPluginConfig({
+  moduleId: MODULE,
+  metaFields: configFields,
+  ruleFields: commonFields,
+  rules: [
+    [{ key: 'value_kind' }, { label: copy('数值类型', 'Value kind'), comment: '属性数值语义。', type: 'enum', options: ['FLAT', 'PERCENT', 'CHANCE', 'REGEN', 'RESOURCE'], optionLabelPrefix: 'value_kind' }],
+    [{ key: 'target_type' }, { label: copy('目标类型', 'Target type'), comment: '属性作用目标类型。', type: 'enum', options: ['GENERIC', 'VANILLA', 'RESOURCE', 'DAMAGE'], optionLabelPrefix: 'target_type' }],
+    [{ key: 'condition_type' }, { label: copy('条件逻辑', 'Condition logic'), comment: '多条件组合逻辑。', type: 'enum', options: ['all_of', 'any_of'], optionLabelPrefix: 'condition_type' }]
+  ],
+  createTemplates: [
+    ['default_profile.resources', { id: 'resource', label: copy('资源模板', 'Resource template'), fields: [
       { path: 'display_name', label: '显示名称', comment: '资源在界面中显示的名称。', type: 'text', defaultValue: '新资源' },
       { path: 'default_max', label: '默认最大值', comment: '资源默认最大值。', type: 'number', defaultValue: 100 },
       { path: 'min_max', label: '最大值下限', comment: '资源最大值允许的最低值。', type: 'number', defaultValue: 0 },
       { path: 'max_max', label: '最大值上限', comment: '资源最大值允许的最高值。', type: 'number', defaultValue: 1000 },
       { path: 'sync_to_bukkit', label: '同步 Bukkit', comment: '是否同步到 Bukkit 原生属性。', type: 'boolean', defaultValue: false },
       { path: 'full_on_init', label: '初始满值', comment: '初始化时是否填充至最大值。', type: 'boolean', defaultValue: true }
-    ]
-  }],
-  ['default_profile.attributes', {
-    id: 'attribute', label: copy('属性默认值', 'Attribute default value'), fields: [
+    ] }],
+    ['default_profile.attributes', { id: 'attribute', label: copy('属性默认值', 'Attribute default value'), fields: [
       { path: 'default_value', label: '默认值', comment: '属性默认基础数值。', type: 'number', defaultValue: 0 }
-    ]
-  }],
-  ['scaling_curves', {
-    id: 'curve', label: copy('衰减曲线模板', 'Scaling curve template'), fields: [
+    ] }],
+    ['scaling_curves', { id: 'curve', label: copy('衰减曲线模板', 'Scaling curve template'), fields: [
       { path: 'attribute', label: '属性 ID', comment: '需要应用衰减的属性 ID。', type: 'text', defaultValue: 'physical_attack' },
       { path: 'threshold', label: '阈值', comment: '超过该值后开始衰减。', type: 'number', defaultValue: 100 },
       { path: 'curve_type', label: '曲线类型', comment: '超过阈值后使用的衰减函数类型。', type: 'enum', options: ['logarithmic', 'sqrt', 'piecewise_linear'], defaultValue: 'logarithmic' },
       { path: 'factor', label: '系数', comment: '衰减计算系数。', type: 'number', defaultValue: 1 }
-    ]
-  }]
-]);
-
-registerConfigListItemSchemas(MODULE, [
-  ['allowed_damage_causes', [
-    { path: 'cause', label: '伤害来源', comment: 'Bukkit DamageCause，选项来自当前服务端编译期 API。', type: 'enum', options: damageCauses, optionLabelPrefix: 'damageCause' },
-    { path: 'damage_type', label: '伤害类型', comment: '对应 damage_types/ 下的伤害类型 ID。', type: 'text', defaultValue: 'physical' },
-    { path: 'damage', label: '基础伤害', comment: '进入 EmakiAttribute 结算时使用的基础伤害值。', type: 'number', defaultValue: 1 },
-    { path: 'enabled', label: '启用', comment: '是否启用此伤害来源规则。', type: 'boolean', defaultValue: true }
-  ], { uniqueBy: 'cause' }]
-]);
+    ] }]
+  ],
+  listItemSchemas: [
+    ['allowed_damage_causes', [
+      { path: 'cause', label: '伤害来源', comment: 'Bukkit DamageCause，选项来自当前服务端编译期 API。', type: 'enum', options: damageCauses, optionLabelPrefix: 'damageCause' },
+      { path: 'damage_type', label: '伤害类型', comment: '对应 damage_types/ 下的伤害类型 ID。', type: 'text', defaultValue: 'physical' },
+      { path: 'damage', label: '基础伤害', comment: '进入 EmakiAttribute 结算时使用的基础伤害值。', type: 'number', defaultValue: 1 },
+      { path: 'enabled', label: '启用', comment: '是否启用此伤害来源规则。', type: 'boolean', defaultValue: true }
+    ], { uniqueBy: 'cause' }]
+  ]
+});

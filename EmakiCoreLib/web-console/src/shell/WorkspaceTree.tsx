@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState, type CSSProperties, type Dispatch, type KeyboardEvent, type SetStateAction } from 'react';
 import { getModuleLocaleBundles, t } from '../i18n';
+import { getFileKindLabel } from '../registry';
 import { treeNodeDisplayComment, treeNodeDisplayLabel } from '../lib';
 import { DisclosureChevron } from '../components';
 import type { RegistryTreeNode, WebRegistry, WebRegistryModule } from '../types';
@@ -182,7 +183,8 @@ export function fileKindLabel(kind: string | undefined): string {
   if (upper === 'CONFIG') return t('core.kind.config');
   if (upper === 'GUI') return t('core.kind.gui');
   if (upper === 'ITEM') return t('core.kind.item');
-  if (upper === 'SET') return t('core.kind.set');
+  const registered = getFileKindLabel(upper);
+  if (registered) return registered;
   if (upper === 'SCRIPT') return t('core.kind.script');
   if (upper === 'FILE') return t('core.kind.file');
   return kind;

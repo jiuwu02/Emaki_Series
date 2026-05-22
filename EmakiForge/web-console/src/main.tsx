@@ -1,4 +1,4 @@
-import { getLocale, registerConfigCreateTemplate, registerConfigCreateTemplates, registerConfigListItemSchema, registerConfigListItemSchemas, registerConfigMetaFields, registerConfigRuleFields, registerModuleLocale, registerPluginGuiEditor } from 'emaki-web-console';
+import { getLocale, registerModuleLocale, registerPluginConfig, registerPluginGuiEditor } from 'emaki-web-console';
 
 const MODULE = 'EmakiForge';
 
@@ -58,8 +58,6 @@ const localeMessages: Record<string, string> = Object.fromEntries([
   ['emakiforge.filePath.gui_forge_gui.comment', '锻造 GUI 模板文件。'],
   ['emakiforge.filePath.gui_recipe_book.title', '配方书 GUI'],
   ['emakiforge.filePath.gui_recipe_book.comment', '配方书 GUI 模板文件。'],
-  ['emakiforge.file.lang.title', '语言文件'],
-  ['emakiforge.file.lang.comment', 'Forge 语言资源文件目录。'],
   ['emakiforge.file.plugin.title', '插件描述'],
   ['emakiforge.file.plugin.comment', 'plugin.yml 插件描述与依赖声明。'],
   ['emakiforge.file.web-console.title', 'Web Console 声明'],
@@ -90,8 +88,6 @@ registerModuleLocale(MODULE, 'en-US', {
   'emakiforge.filePath.gui_forge_gui.comment': 'Forge GUI template file.',
   'emakiforge.filePath.gui_recipe_book.title': 'Recipe Book GUI',
   'emakiforge.filePath.gui_recipe_book.comment': 'Recipe book GUI template file.',
-  'emakiforge.file.lang.title': 'Language Files',
-  'emakiforge.file.lang.comment': 'Directory for Forge language resources.',
   'emakiforge.file.plugin.title': 'Plugin Description',
   'emakiforge.file.plugin.comment': 'plugin.yml plugin metadata and dependency declaration.',
   'emakiforge.file.web-console.title': 'Web Console Declaration',
@@ -109,28 +105,29 @@ registerModuleLocale(MODULE, 'en-US', {
   'emakiforge.field.history': 'History'
 });
 
-registerConfigMetaFields(MODULE, fields);
-registerConfigRuleFields(MODULE, ruleFields);
-
-registerConfigCreateTemplates(MODULE, [
-  ['quality.item_meta.tiers', {
-    id: 'quality-tier-display',
-    label: copy('品质显示规则', 'Quality display rule'),
-    fields: [
-      { path: 'name_actions', label: '名称动作链', comment: '给该品质物品名称追加前缀、后缀或执行替换动作。', type: 'list', defaultValue: ['action: "prepend_prefix"', 'value: "<gray>[新品质] </gray>"'] },
-      { path: 'lore_actions', label: 'Lore 动作链', comment: '给该品质物品 Lore 执行的动作列表。', type: 'list', defaultValue: [] },
-      { path: 'action', label: '广播动作', comment: '该品质达成时执行的广播或提示动作。', type: 'list', defaultValue: [] }
-    ]
-  }]
-]);
-
-registerConfigListItemSchemas(MODULE, [
-  ['quality.tiers', [
-    { path: 'name', label: '品质名', comment: '品质名称，会被 default_tier、guarantee.minimum 和品质显示配置引用。', type: 'text', defaultValue: '新品质' },
-    { path: 'weight', label: '权重', comment: '随机抽取权重，数值越高越容易出现。', type: 'number', defaultValue: 1 },
-    { path: 'multiplier', label: '倍率', comment: '该品质对最终锻造数值的倍率。', type: 'number', defaultValue: 1 }
-  ], { uniqueBy: 'name' }]
-]);
+registerPluginConfig({
+  moduleId: MODULE,
+  metaFields: fields,
+  ruleFields,
+  createTemplates: [
+    ['quality.item_meta.tiers', {
+      id: 'quality-tier-display',
+      label: copy('品质显示规则', 'Quality display rule'),
+      fields: [
+        { path: 'name_actions', label: '名称动作链', comment: '给该品质物品名称追加前缀、后缀或执行替换动作。', type: 'list', defaultValue: ['action: "prepend_prefix"', 'value: "<gray>[新品质] </gray>"'] },
+        { path: 'lore_actions', label: 'Lore 动作链', comment: '给该品质物品 Lore 执行的动作列表。', type: 'list', defaultValue: [] },
+        { path: 'action', label: '广播动作', comment: '该品质达成时执行的广播或提示动作。', type: 'list', defaultValue: [] }
+      ]
+    }]
+  ],
+  listItemSchemas: [
+    ['quality.tiers', [
+      { path: 'name', label: '品质名', comment: '品质名称，会被 default_tier、guarantee.minimum 和品质显示配置引用。', type: 'text', defaultValue: '新品质' },
+      { path: 'weight', label: '权重', comment: '随机抽取权重，数值越高越容易出现。', type: 'number', defaultValue: 1 },
+      { path: 'multiplier', label: '倍率', comment: '该品质对最终锻造数值的倍率。', type: 'number', defaultValue: 1 }
+    ], { uniqueBy: 'name' }]
+  ]
+});
 
 registerPluginGuiEditor({
   moduleId: MODULE,

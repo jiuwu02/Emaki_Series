@@ -1,4 +1,4 @@
-import { getLocale, registerConfigListItemSchema, registerConfigMetaFields, registerConfigNodeRule, registerConfigRuleFields, registerModuleLocale, registerPluginGuiEditor } from 'emaki-web-console';
+import { getLocale, registerModuleLocale, registerPluginConfig, registerPluginGuiEditor } from 'emaki-web-console';
 
 const MODULE = 'EmakiCooking';
 
@@ -120,8 +120,6 @@ const localeMessages: Record<string, string> = Object.fromEntries([
   ['emakicooking.filePath.gui_oven.comment', '烤炉 GUI 模板文件。'],
   ['emakicooking.filePath.gui_steamer.title', '蒸锅 GUI'],
   ['emakicooking.filePath.gui_steamer.comment', '蒸锅 GUI 模板文件。'],
-  ['emakicooking.file.lang.title', '语言文件'],
-  ['emakicooking.file.lang.comment', 'Cooking 语言资源文件目录。'],
   ['emakicooking.file.plugin.title', '插件描述'],
   ['emakicooking.file.plugin.comment', 'plugin.yml 插件描述与依赖声明。'],
   ['emakicooking.file.web-console.title', 'Web Console 声明'],
@@ -173,8 +171,6 @@ registerModuleLocale(MODULE, 'en-US', {
   'emakicooking.filePath.gui_oven.comment': 'Oven GUI template file.',
   'emakicooking.filePath.gui_steamer.title': 'Steamer GUI',
   'emakicooking.filePath.gui_steamer.comment': 'Steamer GUI template file.',
-  'emakicooking.file.lang.title': 'Language Files',
-  'emakicooking.file.lang.comment': 'Directory for Cooking language resources.',
   'emakicooking.file.plugin.title': 'Plugin Description',
   'emakicooking.file.plugin.comment': 'plugin.yml plugin metadata and dependency declaration.',
   'emakicooking.file.web-console.title': 'Web Console Declaration',
@@ -194,15 +190,21 @@ registerModuleLocale(MODULE, 'en-US', {
   'emakicooking.option.display_entities.backend.bukkit': 'Bukkit'
 });
 
-registerConfigMetaFields(MODULE, fields);
-registerConfigRuleFields(MODULE, fieldComments);
-registerConfigNodeRule(MODULE, { key: 'rotation_axis' }, { label: '旋转轴', comment: '旋转轴，可选 x、y、z。', type: 'enum', options: ['x', 'y', 'z'], optionLabelPrefix: 'axis' });
-
-registerConfigListItemSchema(MODULE, 'ingredients', [
-  { path: 'item_sources', label: '食材来源', comment: '可匹配该食材的 ItemSource 列表。', type: 'stringList', defaultValue: ['minecraft-carrot'] },
-  { path: 'amount', label: '数量', comment: '此食材需要的数量。', type: 'number', defaultValue: 1 },
-  { path: 'stir_rule', label: '翻炒规则', comment: '炒锅配方加入时机，格式为“最早-最晚”。', type: 'text', defaultValue: '1-1' }
-]);
+registerPluginConfig({
+  moduleId: MODULE,
+  metaFields: fields,
+  ruleFields: fieldComments,
+  rules: [
+    [{ key: 'rotation_axis' }, { label: '旋转轴', comment: '旋转轴，可选 x、y、z。', type: 'enum', options: ['x', 'y', 'z'], optionLabelPrefix: 'axis' }]
+  ],
+  listItemSchemas: [
+    ['ingredients', [
+      { path: 'item_sources', label: '食材来源', comment: '可匹配该食材的 ItemSource 列表。', type: 'stringList', defaultValue: ['minecraft-carrot'] },
+      { path: 'amount', label: '数量', comment: '此食材需要的数量。', type: 'number', defaultValue: 1 },
+      { path: 'stir_rule', label: '翻炒规则', comment: '炒锅配方加入时机，格式为“最早-最晚”。', type: 'text', defaultValue: '1-1' }
+    ]]
+  ]
+});
 
 registerPluginGuiEditor({
   moduleId: MODULE,

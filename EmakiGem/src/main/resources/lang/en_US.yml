@@ -170,13 +170,6 @@ gui:
     invalid_material: "<red>This material slot only accepts items matching
       <yellow>{material}</yellow>.</red>"
 
-lore:
-  overview_title: "<yellow>Gem Sockets [{icons}] {opened}/{total}</yellow>"
-  status_header: "<dark_gray>◆ Gem Sockets</dark_gray>"
-  slot_not_opened: "<gray>[{slot}] <dark_gray>Locked - {name}</dark_gray>"
-  slot_empty: "<gray>[{slot}] <yellow>Empty</yellow> <dark_gray>({name})</dark_gray>"
-  slot_inlaid: "<gray>[{slot}]</gray> {gem} <dark_gray>Lv.{level}</dark_gray>"
-
 gui_text:
   common:
     unknown: "Unknown"

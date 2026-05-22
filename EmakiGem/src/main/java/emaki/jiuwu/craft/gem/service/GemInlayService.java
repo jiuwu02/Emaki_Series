@@ -159,7 +159,7 @@ public final class GemInlayService {
             }
             return new InlayResult(Result.failure("command.inlay.apply_failed", Map.of("player", actor.getName())), equipment);
         }
-        // Execute name/lore operations from gem definition and record to ledger
+        // Execute name/lore operations from gem definition effects and record to ledger
         applyGemOperations(rebuilt, gemDefinition, instance, slotIndex, placeholders);
         actionCoordinator.execute(actor, "gem_inlay_success", gemDefinition.inlaySuccessActions(), placeholders);
         return new InlayResult(Result.success("command.inlay.success", placeholders), rebuilt);

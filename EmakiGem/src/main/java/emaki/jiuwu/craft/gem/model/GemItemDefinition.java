@@ -24,6 +24,7 @@ public final class GemItemDefinition {
     private final Set<String> allowedGemTypes;
     private final int maxSameType;
     private final int maxSameId;
+    private final GemItemObtainConfig obtainConfig;
     private final GuiSettings guiSettings;
 
     public GemItemDefinition(String id,
@@ -35,6 +36,7 @@ public final class GemItemDefinition {
             Set<String> allowedGemTypes,
             int maxSameType,
             int maxSameId,
+            GemItemObtainConfig obtainConfig,
             GuiSettings guiSettings) {
         this.id = Texts.lower(id);
         this.itemSources = itemSources == null ? List.of() : List.copyOf(itemSources);
@@ -48,6 +50,7 @@ public final class GemItemDefinition {
         this.allowedGemTypes = allowedGemTypes == null ? Set.of() : Set.copyOf(allowedGemTypes);
         this.maxSameType = Math.max(0, maxSameType);
         this.maxSameId = Math.max(1, maxSameId);
+        this.obtainConfig = obtainConfig == null ? GemItemObtainConfig.empty() : obtainConfig;
         this.guiSettings = guiSettings == null ? GuiSettings.defaults() : guiSettings;
     }
 
@@ -85,6 +88,10 @@ public final class GemItemDefinition {
 
     public int maxSameId() {
         return maxSameId;
+    }
+
+    public GemItemObtainConfig obtainConfig() {
+        return obtainConfig;
     }
 
     public GuiSettings guiSettings() {
@@ -166,6 +173,7 @@ public final class GemItemDefinition {
                 allowedGemTypes,
                 section.getInt("max_same_type", Integer.MAX_VALUE),
                 section.getInt("max_same_id", 1),
+                GemItemObtainConfig.fromConfig(section.get("obtain")),
                 new GuiSettings(
                         gui == null ? "" : gui.getString("gem_template", ""),
                         gui == null ? "" : gui.getString("open_template", "")

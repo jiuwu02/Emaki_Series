@@ -76,14 +76,22 @@ gui:
   open_template: "open/default"
 
 # ============================================================
-# 插槽激活后的外观修改
+# 获得装备时的外观与动作
 # ============================================================
-# 当物品拥有已开放的插槽时，对物品名称和 Lore 的修改。
-name_actions:
-  - action: "prepend_prefix"
-    value: "<gold>✦</gold> "
-
-lore_actions:
-  - action: "append"
-    content:
-      - "<dark_gray>─────────────</dark_gray>"
+# 配置风格参考 EmakiForge 的 result 字段：
+# name_actions / lore_actions / actions 直接写在 obtain 下。
+# actions: 首次识别并写入宝石层时执行的动作
+#
+# 这里完全由文件控制：直接写你想要显示的宝石槽文本即可。
+# 如果要在镶嵌成功后把某个 □ 改成 ■，就让对应流程写一条单独的 lore_actions 去替换整行或替换字符。
+obtain:
+  name_actions:
+    - action: "prepend_prefix"
+      value: "<gold>✦</gold> "
+  lore_actions:
+    - action: "append"
+      content:
+        - "<dark_gray>─────────────</dark_gray>"
+        - "<gray>宝石槽: <yellow>□□□</yellow> <dark_gray>({opened_slots}/{total_slots})</dark_gray></gray>"
+  actions:
+    - 'sendmessage text="<gray>已识别可镶嵌装备：<yellow>{item_definition_id}</yellow></gray>"'

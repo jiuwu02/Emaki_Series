@@ -118,6 +118,15 @@ scaling_curves: {}
 #         适合摔落、接触、爆炸、燃烧、溺水、虚空、荆棘、龙息、音爆等
 #         会随高度、状态或持续叠加变化的来源。
 allowed_damage_causes:
+  - cause: ENTITY_ATTACK
+    damage_type: physical
+    enabled: true
+  - cause: ENTITY_SWEEP_ATTACK
+    damage_type: physical
+    enabled: true
+  - cause: PROJECTILE
+    damage_type: physical
+    enabled: true
   - cause: CONTACT
     damage_type: physical
     enabled: true
@@ -163,6 +172,12 @@ allowed_damage_causes:
   - cause: LIGHTNING
     damage_type: physical
     enabled: true
+  - cause: SUICIDE
+    damage_type: physical
+    enabled: true
+  - cause: KILL
+    damage_type: physical
+    enabled: true
   - cause: WORLD_BORDER
     damage_type: physical
     enabled: true
@@ -197,5 +212,8 @@ allowed_damage_causes:
     damage_type: physical
     enabled: true
   - cause: SONIC_BOOM
+    damage_type: physical
+    enabled: true
+  - cause: CUSTOM
     damage_type: physical
     enabled: true

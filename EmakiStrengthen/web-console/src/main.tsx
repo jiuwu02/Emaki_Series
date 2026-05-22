@@ -1,4 +1,4 @@
-import { getLocale, registerConfigCreateTemplate, registerConfigNodeMeta, registerModuleLocale, registerPluginGuiEditor } from 'emaki-web-console';
+import { getLocale, registerModuleLocale, registerPluginConfig, registerPluginGuiEditor } from 'emaki-web-console';
 
 const MODULE = 'EmakiStrengthen';
 
@@ -27,8 +27,6 @@ const localeMessages: Record<string, string> = Object.fromEntries([
   ['emakistrengthen.filePath.recipes_example_branch_recipe.comment', '示例分支配方文件。'],
   ['emakistrengthen.filePath.gui_strengthen_gui.title', '强化 GUI'],
   ['emakistrengthen.filePath.gui_strengthen_gui.comment', '强化 GUI 模板文件。'],
-  ['emakistrengthen.file.lang.title', '语言文件'],
-  ['emakistrengthen.file.lang.comment', 'Strengthen 语言资源文件目录。'],
   ['emakistrengthen.file.plugin.title', '插件描述'],
   ['emakistrengthen.file.plugin.comment', 'plugin.yml 插件描述与依赖声明。'],
   ['emakistrengthen.file.web-console.title', 'Web Console 声明'],
@@ -62,8 +60,6 @@ registerModuleLocale(MODULE, 'en-US', {
   'emakistrengthen.filePath.recipes_example_branch_recipe.comment': 'Sample branch recipe file.',
   'emakistrengthen.filePath.gui_strengthen_gui.title': 'Strengthen GUI',
   'emakistrengthen.filePath.gui_strengthen_gui.comment': 'Strengthen GUI template file.',
-  'emakistrengthen.file.lang.title': 'Language Files',
-  'emakistrengthen.file.lang.comment': 'Directory for Strengthen language resources.',
   'emakistrengthen.file.plugin.title': 'Plugin Description',
   'emakistrengthen.file.plugin.comment': 'plugin.yml plugin metadata and dependency declaration.',
   'emakistrengthen.file.web-console.title': 'Web Console Declaration',
@@ -79,18 +75,17 @@ registerModuleLocale(MODULE, 'en-US', {
   'emakistrengthen.field.confirm': 'Confirm'
 });
 
-fields.forEach(([path, label, comment, type]) => registerConfigNodeMeta(MODULE, path, {
-  label,
-  comment,
-  type,
-  ...(path === 'success_rates' ? { creatableChildren: true } : {})
-}));
-
-registerConfigCreateTemplate(MODULE, 'success_rates', {
-  id: 'star-success-rate',
-  label: copy('目标星级成功率', 'Target star success rate'),
-  fields: [
-    { path: 'value', label: '成功率', comment: '该目标星级的强化成功率百分比，例如 75.0。', type: 'number', defaultValue: 100 }
+registerPluginConfig({
+  moduleId: MODULE,
+  metaFields: fields.map(([path, label, comment, type]) => [path, label, comment, type, path === 'success_rates' ? { creatableChildren: true } : undefined]),
+  createTemplates: [
+    ['success_rates', {
+      id: 'star-success-rate',
+      label: copy('目标星级成功率', 'Target star success rate'),
+      fields: [
+        { path: 'value', label: '成功率', comment: '该目标星级的强化成功率百分比，例如 75.0。', type: 'number', defaultValue: 100 }
+      ]
+    }]
   ]
 });
 

@@ -130,12 +130,12 @@ export function EditorChrome({
 function ChangePopover({ changes, count, source, sourceOriginal }: { changes: EditorChange[]; count: number; source?: string; sourceOriginal?: string }) {
   return <div className="editor-change-popover" role="status">
     <strong>{changes.length ? t('core.editor.changesTitle', { count }, 'Changes ({count})') : t('core.editor.sourceDiffTitle')}</strong>
-    <ChangeList changes={changes} count={count} source={source} sourceOriginal={sourceOriginal} />
+    <ChangeList changes={changes} count={count} source={source} sourceOriginal={sourceOriginal} compact />
   </div>;
 }
 
-function ChangeList({ changes, count, source, sourceOriginal }: { changes: EditorChange[]; count: number; source?: string; sourceOriginal?: string }) {
-  if (!changes.length) return <SourceDiff before={sourceOriginal ?? ''} after={source ?? ''} compact />;
+function ChangeList({ changes, count, source, sourceOriginal, compact = false }: { changes: EditorChange[]; count: number; source?: string; sourceOriginal?: string; compact?: boolean }) {
+  if (!changes.length) return <p className="editor-change-empty">{t('core.editor.changedSource')}</p>;
   return <>
     <div className="editor-change-list">
       {changes.map(change => <div className="editor-change-row" key={change.path}>
@@ -205,6 +205,7 @@ function SaveModal({ changes, count, source, sourceOriginal, onCancel, onConfirm
     count={count}
     source={source}
     sourceOriginal={sourceOriginal}
+    compact
     confirmLabel={t('core.editor.saveConfirm')}
     confirmVariant="primary"
     onCancel={onCancel}
@@ -226,6 +227,7 @@ function ReloadModal({ changes, count, source, sourceOriginal, onCancel, onConfi
     count={count}
     source={source}
     sourceOriginal={sourceOriginal}
+    compact
     confirmLabel={t('core.gui.continueReload')}
     confirmVariant="danger"
     onCancel={onCancel}
@@ -233,7 +235,7 @@ function ReloadModal({ changes, count, source, sourceOriginal, onCancel, onConfi
   />;
 }
 
-const DiffDecisionModal = forwardRef<HTMLElement, { titleId: string; descId: string; kicker: string; title: string; desc: string; changes: EditorChange[]; count: number; source?: string; sourceOriginal?: string; confirmLabel: string; confirmVariant: 'primary' | 'danger'; onCancel: () => void; onConfirm: () => void }>(function DiffDecisionModal({ titleId, descId, kicker, title, desc, changes, count, source, sourceOriginal, confirmLabel, confirmVariant, onCancel, onConfirm }, dialogRef) {
+const DiffDecisionModal = forwardRef<HTMLElement, { titleId: string; descId: string; kicker: string; title: string; desc: string; changes: EditorChange[]; count: number; source?: string; sourceOriginal?: string; compact?: boolean; confirmLabel: string; confirmVariant: 'primary' | 'danger'; onCancel: () => void; onConfirm: () => void }>(function DiffDecisionModal({ titleId, descId, kicker, title, desc, changes, count, source, sourceOriginal, compact = false, confirmLabel, confirmVariant, onCancel, onConfirm }, dialogRef) {
   return <div className="editor-modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) onCancel(); }}>
     <section ref={dialogRef} className="reload-confirm-dialog diff-dialog" role="dialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={descId} tabIndex={-1}>
       <div className="reload-confirm-head diff-dialog-head">
@@ -244,7 +246,7 @@ const DiffDecisionModal = forwardRef<HTMLElement, { titleId: string; descId: str
         <p id={descId}>{desc}</p>
         <div className="reload-change-summary" aria-label={t('core.editor.reloadChangesAria', { count })}>
           <strong>{changes.length ? t('core.editor.changesTitle', { count }, 'Changes ({count})') : t('core.editor.sourceDiffTitle')}</strong>
-          <ChangeList changes={changes} count={count} source={source} sourceOriginal={sourceOriginal} />
+          <ChangeList changes={changes} count={count} source={source} sourceOriginal={sourceOriginal} compact={compact} />
         </div>
       </div>
       <ActionGroup className="reload-confirm-actions diff-dialog-actions">

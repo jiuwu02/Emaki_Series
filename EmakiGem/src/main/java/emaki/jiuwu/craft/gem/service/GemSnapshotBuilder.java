@@ -5,9 +5,14 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import emaki.jiuwu.craft.corelib.assembly.BaseNamePolicy;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerSnapshot;
+import emaki.jiuwu.craft.corelib.assembly.EmakiNameContribution;
 import emaki.jiuwu.craft.corelib.assembly.EmakiLoreSectionContribution;
 import emaki.jiuwu.craft.corelib.assembly.EmakiStatContribution;
+import emaki.jiuwu.craft.corelib.assembly.EmakiStructuredPresentation;
+import emaki.jiuwu.craft.corelib.assembly.NamePosition;
+import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
 import emaki.jiuwu.craft.gem.model.GemDefinition;
@@ -20,15 +25,14 @@ import emaki.jiuwu.craft.gem.model.ResonanceEffects;
 public final class GemSnapshotBuilder {
 
     private static final String NAMESPACE_ID = "gem";
-    private static final int OVERVIEW_SECTION_ORDER = 100;
-    private static final int STATUS_SECTION_ORDER = 400;
+    private static final int OBTAIN_SECTION_ORDER = 100;
 
     private final EmakiGemPlugin plugin;
     private final GemLoreBuilder loreBuilder;
 
     public GemSnapshotBuilder(EmakiGemPlugin plugin) {
         this.plugin = plugin;
-        this.loreBuilder = new GemLoreBuilder(plugin);
+        this.loreBuilder = new GemLoreBuilder();
     }
 
     public EmakiItemLayerSnapshot build(GemItemDefinition itemDefinition, GemState state) {
@@ -36,15 +40,7 @@ public final class GemSnapshotBuilder {
             return new EmakiItemLayerSnapshot(NAMESPACE_ID, 1, Map.of(), List.of(), null);
         }
         List<EmakiStatContribution> stats = new ArrayList<>();
-        List<EmakiLoreSectionContribution> loreSections = new ArrayList<>();
         int sequence = 0;
-
-        addSection(
-                loreSections,
-                "gem.overview",
-                OVERVIEW_SECTION_ORDER,
-                loreBuilder.buildOverviewLines(itemDefinition, state, List.of())
-        );
 
         for (var entry : state.socketAssignments().entrySet().stream().sorted(Map.Entry.comparingByKey()).toList()) {
             GemItemInstance instance = entry.getValue();
@@ -61,13 +57,6 @@ public final class GemSnapshotBuilder {
                 ));
             }
         }
-        addSection(
-                loreSections,
-                "gem.status",
-                STATUS_SECTION_ORDER,
-                loreBuilder.buildSlotStatusLines(itemDefinition, state)
-        );
-
         // Resonance evaluation
         // Note: resonance name_actions/lore_actions are now applied via ItemOperationLedger after item rebuild.
         // Only stats are still contributed to the layer snapshot here.
@@ -97,8 +86,64 @@ public final class GemSnapshotBuilder {
                 1,
                 state.toAuditMap(),
                 stats,
-                null
+                parseObtainPresentation(itemDefinition, state)
         );
+    }
+
+    private EmakiStructuredPresentation parseObtainPresentation(GemItemDefinition itemDefinition, GemState state) {
+        if (itemDefinition == null || itemDefinition.obtainConfig().emptyConfig()) {
+            return null;
+        }
+        List<EmakiNameContribution> names = new ArrayList<>();
+        List<EmakiLoreSectionContribution> sections = new ArrayList<>();
+        Map<String, Object> placeholders = loreBuilder.buildItemPlaceholders(itemDefinition, state);
+        int loreSequence = 0;
+        String baseNameTemplate = appendNameContributions(names, itemDefinition.obtainConfig().nameActions(), placeholders);
+        List<String> lines = loreBuilder.extractSafeLoreLines(itemDefinition.obtainConfig().loreActions(), placeholders);
+        if (!lines.isEmpty()) {
+            sections.add(new EmakiLoreSectionContribution(
+                    "gem.obtain." + loreSequence,
+                    OBTAIN_SECTION_ORDER + loreSequence,
+                    lines,
+                    NAMESPACE_ID
+            ));
+        }
+        EmakiStructuredPresentation presentation = new EmakiStructuredPresentation(
+                Texts.isBlank(baseNameTemplate) ? BaseNamePolicy.SOURCE_EFFECTIVE_NAME : BaseNamePolicy.EXPLICIT_TEMPLATE,
+                baseNameTemplate,
+                names,
+                sections
+        );
+        return presentation.isEmpty() ? null : presentation;
+    }
+
+    private String appendNameContributions(List<EmakiNameContribution> names,
+            Object nameActions,
+            Map<String, ?> placeholders) {
+        int sequence = 0;
+        String baseNameTemplate = "";
+        for (Object rawAction : ConfigNodes.asObjectList(nameActions)) {
+            Object plain = ConfigNodes.toPlainData(rawAction);
+            if (!(plain instanceof Map<?, ?> actionMap)) {
+                continue;
+            }
+            String action = Texts.lower(ConfigNodes.string(actionMap, "action", ""));
+            Object rawValue = ConfigNodes.get(actionMap, "value");
+            String value = Texts.formatTemplate(Texts.toStringSafe(rawValue), placeholders == null ? Map.of() : placeholders);
+            if (Texts.isBlank(value)) {
+                continue;
+            }
+            if ("replace".equals(action)) {
+                baseNameTemplate = value;
+            } else if ("prepend_prefix".equals(action)) {
+                names.add(new EmakiNameContribution("gem.obtain." + sequence, NamePosition.PREFIX, sequence, value, NAMESPACE_ID));
+                sequence++;
+            } else if ("append_suffix".equals(action)) {
+                names.add(new EmakiNameContribution("gem.obtain." + sequence, NamePosition.POSTFIX, sequence, value, NAMESPACE_ID));
+                sequence++;
+            }
+        }
+        return baseNameTemplate;
     }
 
     public Map<String, Double> aggregateAttributes(EmakiItemLayerSnapshot snapshot) {
@@ -151,30 +196,6 @@ public final class GemSnapshotBuilder {
             aggregated.addAll(definition.skillIdsForLevel(instance.level()));
         }
         return List.copyOf(aggregated);
-    }
-
-    private void addSection(List<EmakiLoreSectionContribution> sections,
-            String sectionId,
-            int order,
-            List<String> lines) {
-        loreBuilder.addSection(sections, sectionId, order, lines);
-    }
-
-    private List<GemDefinition> collectInlaidGems(GemState state) {
-        List<GemDefinition> gems = new ArrayList<>();
-        if (state == null) {
-            return gems;
-        }
-        for (GemItemInstance instance : state.socketAssignments().values()) {
-            if (instance == null) {
-                continue;
-            }
-            GemDefinition definition = plugin.gemLoader().get(instance.gemId());
-            if (definition != null) {
-                gems.add(definition);
-            }
-        }
-        return gems;
     }
 
     private List<GemResonanceService.GemEntry> collectInlaidGemsWithLevels(GemState state) {

@@ -28,6 +28,7 @@ import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.web.WebConsoleRegistry;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.gem.config.AppConfig;
+import emaki.jiuwu.craft.gem.listener.GemItemObtainListener;
 import emaki.jiuwu.craft.gem.loader.GemItemLoader;
 import emaki.jiuwu.craft.gem.loader.GemLoader;
 import emaki.jiuwu.craft.gem.loader.GemResonanceLoader;
@@ -173,6 +174,7 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         if (guiService != null) {
             getServer().getPluginManager().registerEvents(guiService, this);
         }
+        getServer().getPluginManager().registerEvents(new GemItemObtainListener(this), this);
     }
 
     private void registerWebConsole() {

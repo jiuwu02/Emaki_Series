@@ -90,6 +90,7 @@ export class ApiClient {
 
   async readTextDocument(target: TextDocumentTarget): Promise<TextDocument> {
     const kind = normalizeKind(target.kind);
+    if (kind !== 'SCRIPT' && isGlobPath(target.path)) throw new Error(t('core.api.globReadPath'));
     if (kind === 'SCRIPT') {
       const doc = await this.readScript(target.path);
       return { path: target.path, ...doc };
@@ -105,6 +106,7 @@ export class ApiClient {
 
   async saveTextDocument(target: TextDocumentTarget, content: string, revision?: number): Promise<{ revision?: number }> {
     const kind = normalizeKind(target.kind);
+    if (kind !== 'SCRIPT' && isGlobPath(target.path)) throw new Error(t('core.api.globSavePath'));
     if (kind === 'SCRIPT') return this.saveScript(target.path, content, revision);
     if (!target.moduleId) throw new Error(t('core.api.missingModule'));
     if (kind === 'GUI') return this.saveGui(target.moduleId, target.path, content, revision);
@@ -172,11 +174,13 @@ export class ApiClient {
   }
 
   async readResource(moduleId: string, path: string): Promise<ItemDocument> {
+    if (isGlobPath(path)) throw new Error(t('core.api.globReadPath'));
     const data = await this.request(`/api/resources/read?module=${encodeURIComponent(moduleId)}&path=${encodeURIComponent(path)}`);
     return { moduleId: data.moduleId, path: data.path, content: data.content, data: data.data, revision: data.revision } as ItemDocument;
   }
 
   async saveResource(moduleId: string, path: string, content: string, revision?: number): Promise<{ revision?: number }> {
+    if (isGlobPath(path)) throw new Error(t('core.api.globSavePath'));
     const data = await this.request('/api/resources/save', {
       method: 'POST',
       body: JSON.stringify({ moduleId, path, content, revision })
@@ -238,6 +242,10 @@ export class ApiClient {
 
 function normalizeKind(kind: string | undefined): string {
   return String(kind ?? '').toUpperCase();
+}
+
+function isGlobPath(path: string | undefined): boolean {
+  return /[*?]/.test(String(path ?? ''));
 }
 
 function normalizeOptions(value: unknown, fallback: string[]): string[] {
