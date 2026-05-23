@@ -33,6 +33,8 @@ const fields: FieldSpec[] = [
   ['passive_triggers', '被动触发器', '攻击、受伤、击杀、射箭、方块、登录、潜行、定时等由事件自动触发的技能触发器。', 'object']
 ];
 
+const FAILURE_PENALTIES = ['none', 'downgrade'];
+
 const triggerFields: Record<string, [string, string, string]> = {
   display_name: ['显示名称', '触发器在 GUI、ActionBar 或提示文本中显示的名称。', 'text'],
   enabled: ['启用', '是否启用当前触发器或功能项。', 'boolean'],
@@ -75,7 +77,9 @@ registerModuleLocale(MODULE, 'zh-CN', {
   'emakiskills.surface.gui': '技能 GUI',
   'emakiskills.option.script_engine.default_mode.native': '原生脚本',
   'emakiskills.option.script_engine.default_mode.mythic': 'Mythic 技能',
-  'emakiskills.option.script_engine.default_mode.hybrid': '混合模式'
+  'emakiskills.option.script_engine.default_mode.hybrid': '混合模式',
+  'emakiskills.option.upgrade.failure_penalty.none': '无惩罚',
+  'emakiskills.option.upgrade.failure_penalty.downgrade': '降级'
 });
 
 registerModuleLocale(MODULE, 'en-US', {
@@ -118,7 +122,9 @@ registerModuleLocale(MODULE, 'en-US', {
   'emakiskills.field.incompatible_with': 'Incompatible With',
   'emakiskills.option.script_engine.default_mode.native': 'Native',
   'emakiskills.option.script_engine.default_mode.mythic': 'Mythic',
-  'emakiskills.option.script_engine.default_mode.hybrid': 'Hybrid'
+  'emakiskills.option.script_engine.default_mode.hybrid': 'Hybrid',
+  'emakiskills.option.upgrade.failure_penalty.none': 'None',
+  'emakiskills.option.upgrade.failure_penalty.downgrade': 'Downgrade'
 });
 
 registerPluginConfig({
@@ -131,13 +137,19 @@ registerPluginConfig({
     [{ key: 'conditions' }, { label: '释放条件', comment: '技能释放前检查的条件表达式列表。', type: 'stringList' }],
     [{ key: 'passive_triggers' }, { label: '被动触发器', comment: '被动技能触发器 ID 列表。', type: 'stringList' }],
     [{ key: 'incompatible_with' }, { label: '互斥触发器', comment: '与当前触发器互斥的触发器 ID 列表。', type: 'stringList' }],
+    [{ suffix: '.incompatible_with' }, { label: '互斥触发器', comment: '与当前触发器互斥的触发器 ID 列表。', type: 'stringList' }],
     [{ key: 'resource_costs' }, { label: '资源消耗', comment: '释放技能时消耗或检查的资源列表。', type: 'list' }],
     [{ key: 'currencies' }, { label: '升级货币', comment: '升级经济中各币种的成本列表。', type: 'list' }],
     [{ suffix: '.materials' }, { label: '升级材料', comment: '升级等级所需材料列表。', type: 'list' }],
+    [{ path: 'upgrade.failure_penalty' }, { label: '失败惩罚', comment: '技能升级失败后的惩罚方式。', type: 'enum', options: FAILURE_PENALTIES, optionLabelPrefix: 'upgrade.failure_penalty' }],
     [{ key: 'cast' }, { label: '释放阶段', comment: '旧版脚本中的 cast 动作列表。', type: 'stringList' }],
     [{ key: 'hit' }, { label: '命中阶段', comment: '旧版脚本中的 hit 动作列表。', type: 'stringList' }],
     [{ key: 'miss' }, { label: '未命中阶段', comment: '旧版脚本中的 miss 动作列表。', type: 'stringList' }],
-    [{ key: 'fail' }, { label: '失败阶段', comment: '旧版脚本中的 fail 动作列表。', type: 'stringList' }]
+    [{ key: 'fail' }, { label: '失败阶段', comment: '旧版脚本中的 fail 动作列表。', type: 'stringList' }],
+    [{ suffix: '.script.cast' }, { label: '释放阶段', comment: '原生技能脚本 cast 阶段动作列表。', type: 'stringList' }],
+    [{ suffix: '.script.hit' }, { label: '命中阶段', comment: '原生技能脚本 hit 阶段动作列表。', type: 'stringList' }],
+    [{ suffix: '.script.miss' }, { label: '未命中阶段', comment: '原生技能脚本 miss 阶段动作列表。', type: 'stringList' }],
+    [{ suffix: '.script.fail' }, { label: '失败阶段', comment: '原生技能脚本 fail 阶段动作列表。', type: 'stringList' }]
   ],
   listItemSchemas: [
     ['resource_costs', [

@@ -72,7 +72,7 @@ function parseList(lines: ParsedLine[], start: number, indent: number): [unknown
         result.push(child);
         index = nextIndex;
       }
-    } else if (rest.includes(':') && /^([^:#][^:]*):(\s*(.*))?$/.test(rest)) {
+    } else if (looksLikeInlineMapItem(rest)) {
       const [inlineMap, nextIndex] = parseListMapItem(lines, index, indent);
       result.push(inlineMap);
       index = nextIndex;
@@ -82,6 +82,12 @@ function parseList(lines: ParsedLine[], start: number, indent: number): [unknown
     }
   }
   return [result, index];
+}
+
+function looksLikeInlineMapItem(rest: string): boolean {
+  if (!rest.includes(':')) return false;
+  if (rest.startsWith('"') || rest.startsWith("'")) return false;
+  return /^([^:#][^:]*):(\s*(.*))?$/.test(rest);
 }
 
 function parseListMapItem(lines: ParsedLine[], index: number, indent: number): [Record<string, unknown>, number] {

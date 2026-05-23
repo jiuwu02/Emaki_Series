@@ -71,7 +71,7 @@ export function I18nBundleModal({ target, onClose, onSaved }: { target: I18nTarg
           <label>
             <span>{t('core.locale.label')}</span>
             <select value={locale} onChange={(event) => setLocaleDraft(event.target.value)}>
-              {[...new Set([...bundles.map((bundle) => bundle.locale), ...registeredLocales])].map((entry) => <option key={entry} value={entry}>{entry}</option>)}
+              {[...new Set([...bundles.map((bundle) => bundle.locale), ...registeredLocales])].map((entry) => <option key={entry} value={entry}>{localeLabel(entry)}</option>)}
             </select>
           </label>
           <label className="i18n-search">
@@ -108,4 +108,11 @@ export function I18nBundleModal({ target, onClose, onSaved }: { target: I18nTarg
       </section>
     </div>
   );
+}
+
+function localeLabel(locale: string): string {
+  const normalized = String(locale ?? '').replace('_', '-');
+  if (normalized === 'zh-CN') return '简体中文';
+  if (normalized === 'en-US') return 'English';
+  return normalized;
 }

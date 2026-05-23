@@ -50,7 +50,7 @@ const COLOR_THEMES: { id: ColorTheme; labelKey: string }[] = [
   { id: 'dark', labelKey: 'core.theme.dark' },
   { id: 'light', labelKey: 'core.theme.light' }
 ];
-const LOCALE_LABELS: Record<string, string> = { 'zh-CN': '简体中文', zh_CN: '简体中文', zh: '简体中文', 'en-US': 'English', en_US: 'English' };
+const LOCALE_LABELS: Record<string, string> = { 'zh-CN': '简体中文', zh_CN: '简体中文', 'en-US': 'English', en_US: 'English' };
 
 export default function App() {
   const [token, setToken] = useState(() => sessionStorage.getItem('emaki-web-token'));
@@ -316,6 +316,7 @@ export default function App() {
   const mergedDirtyKeys = useMemo(() => new Set([...dirtyTreeKeys, ...surfaceDirtyKeys]), [dirtyTreeKeys, surfaceDirtyKeys]);
   const locales = getRegisteredLocales();
   const currentLocale = getLocale();
+  const selectableLocales = locales.includes(currentLocale) ? locales : [currentLocale, ...locales];
   const currentLocaleLabel = localeLabel(currentLocale);
   const changeLocale = (next: string) => { setLocale(next); setLocaleVersion((version) => version + 1); };
 
@@ -371,7 +372,7 @@ export default function App() {
             <label className="locale-toggle icon-only" title={currentLocaleLabel} aria-label={t('core.locale.switchAria', { locale: currentLocaleLabel })}>
               <LocaleIcon />
               <select value={currentLocale} onChange={(event) => changeLocale(event.target.value)} disabled={!locales.length}>
-                {locales.length ? locales.map((locale) => <option key={locale} value={locale}>{localeLabel(locale)}</option>) : <option>{t('core.i18n.noLocales')}</option>}
+                {selectableLocales.length ? selectableLocales.map((locale) => <option key={locale} value={locale}>{localeLabel(locale)}</option>) : <option>{t('core.i18n.noLocales')}</option>}
               </select>
             </label>
           </div>
@@ -1051,7 +1052,7 @@ function defaultTemplateValues(template: WebConfigCreateTemplate): Record<string
 function defaultSchemaFieldValue(field: WebConfigFieldSchema): unknown {
   if (field.type === 'number') return 0;
   if (field.type === 'boolean') return false;
-  if (field.type === 'list' || field.type === 'stringList' || field.type === 'numberList') return [];
+  if (field.type === 'list' || field.type === 'stringList' || field.type === 'numberList' || field.type === 'json') return [];
   if (field.type === 'enum') return field.options?.[0] ?? '';
   return '';
 }
@@ -1160,12 +1161,12 @@ function buildNodeGroups(nodes: WebConfigNode[], parentPath = ''): NodeGroup[] {
     if (node.type === 'object') {
       const childPrefix = `${node.path}.`;
       const childNodes = nodes.filter(child => child.path.startsWith(childPrefix));
-      groups.push(childNodes.length ? { type: 'section', node, children: childNodes } : { type: 'leaf', node });
+      groups.push(childNodes.length || node.creatableChildren ? { type: 'section', node, children: childNodes } : { type: 'leaf', node });
     } else {
       groups.push({ type: 'leaf', node });
     }
   }
-  return groups.filter(group => group.type === 'leaf' || group.children.length > 0 || !prefix);
+  return groups.filter(group => group.type === 'leaf' || group.children.length > 0 || group.node.creatableChildren || !prefix);
 }
 
 function isDirectChildPath(path: string, parentPath: string): boolean {
@@ -1216,11 +1217,12 @@ function renderControl(node: WebConfigNode, value: unknown, setValue: (v: unknow
   if (node.type === 'boolean') return <BooleanSwitch checked={value === true} label={`${label}: ${value ? t('core.config.booleanOn') : t('core.config.booleanOff')}`} onToggle={() => setValue(!value)} />;
   if (node.type === 'enum' && node.options) return <select value={str(value)} aria-label={label} onChange={(e) => setValue(e.target.value)}>{node.options.map(opt => <option key={opt} value={opt}>{optionLabel(node.optionLabelPrefix || node.path, opt, { moduleId })}</option>)}</select>;
   if (node.type === 'number') return <NumberField value={value} onChange={setValue} ariaLabel={label} />;
+  if (node.type === 'json') return <JsonField value={value} onChange={setValue} ariaLabel={label} />;
   if (node.type === 'dynamic_map') return <DynamicMapEditor value={value} setValue={setValue} />;
   if (node.type === 'object') return <ObjectValuePreview value={value} />;
   if (node.type === 'list') {
     const items = Array.isArray(value) ? value : [];
-    const hasObjectItems = Boolean(node.itemFields?.length) || items.some(isPlainObject);
+    const hasObjectItems = items.some(isPlainObject) || (Boolean(node.itemFields?.length) && !node.itemFields?.every(field => field.path === 'value' && field.type === 'text'));
     if (hasObjectItems) return <ObjectListEditor node={node} items={items} setValue={setValue} moduleId={moduleId} />;
     const update = (i: number, v: string) => setValue(items.map((x, j) => j === i ? parseListValue(x, v) : x));
     return <div className="list-editor">{items.map((item, i) => <div className="list-row" key={i}><input value={str(item)} onChange={(e) => update(i, e.target.value)} aria-label={t('core.config.itemIndex', { index: i + 1 })} /><button type="button" onClick={() => setValue(items.filter((_, j) => j !== i))} aria-label={t('core.config.deleteItem', { index: i + 1 })}>{t('core.config.delete')}</button></div>)}<button type="button" className="add-row" onClick={() => setValue([...items, ''])}>{t('core.config.addItem')}</button></div>;
@@ -1326,6 +1328,7 @@ function renderSchemaField(field: WebConfigFieldSchema | undefined, value: unkno
   if (type === 'number' || typeof value === 'number') return <NumberField value={value} onChange={onChange} ariaLabel={ariaLabel} />;
   if (type === 'list' || type === 'stringList') return <StringListEditor items={asStringListValue(value)} onChange={onChange} />;
   if (type === 'numberList') return <NumberListEditor items={asNumberListValue(value)} onChange={onChange} />;
+  if (type === 'json') return <JsonField value={value} onChange={onChange} ariaLabel={ariaLabel} />;
   if (type === 'enum' && field?.options) {
     const used = new Set(siblingItems.map((item, index) => index === currentIndex ? '' : String(item[field.path] ?? '')).filter(Boolean));
     const current = str(value);
@@ -1424,6 +1427,40 @@ function resolveUniqueListDefault(node: WebConfigNode, field: WebConfigFieldSche
 
 function uniqueListField(node: WebConfigNode): string | null {
   return node.itemFields?.find(field => Boolean((field as any).unique))?.path ?? null;
+}
+
+function JsonField({ value, onChange, ariaLabel }: { value: unknown; onChange: (value: unknown) => void; ariaLabel: string }) {
+  const [text, setText] = useState(() => formatJsonFieldValue(value));
+  const [error, setError] = useState('');
+
+  useEffect(() => { setText(formatJsonFieldValue(value)); setError(''); }, [value]);
+
+  function handleChange(nextText: string) {
+    setText(nextText);
+    if (!nextText.trim()) {
+      setError('');
+      onChange(undefined);
+      return;
+    }
+    try {
+      const parsed = JSON.parse(nextText);
+      setError('');
+      onChange(parsed);
+    } catch {
+      setError(configInlineText('JSON 格式无效，修正后才会写入。', 'Invalid JSON; fix it before saving.'));
+    }
+  }
+
+  return <div className="json-field"><textarea aria-label={ariaLabel} value={text} rows={Math.min(12, Math.max(4, text.split('\n').length))} onChange={(e) => handleChange(e.target.value)} aria-invalid={error ? 'true' : undefined} /><small className="field-error" role="alert">{error}</small></div>;
+}
+
+function formatJsonFieldValue(value: unknown): string {
+  if (value === undefined || value === null || value === '') return '';
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
 }
 
 function NumberField({ value, onChange, ariaLabel }: { value: unknown; onChange: (value: unknown) => void; ariaLabel: string }) {

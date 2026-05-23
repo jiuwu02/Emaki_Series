@@ -558,7 +558,7 @@ function resolveConfigNodeType(detectedType: string | undefined, metaType: strin
   if (detectedType === 'list') return isListUiType(metaType) ? metaType : detectedType;
   if (detectedType === 'boolean') return 'boolean';
   if (detectedType === 'number') return 'number';
-  if (detectedType === 'object') return metaType === 'dynamic_map' ? metaType : 'object';
+  if (detectedType === 'object') return metaType === 'dynamic_map' || metaType === 'json' ? metaType : 'object';
   return metaType;
 }
 

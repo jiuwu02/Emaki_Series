@@ -125,7 +125,14 @@ registerPluginConfig({
       { path: 'name', label: '品质名', comment: '品质名称，会被 default_tier、guarantee.minimum 和品质显示配置引用。', type: 'text', defaultValue: '新品质' },
       { path: 'weight', label: '权重', comment: '随机抽取权重，数值越高越容易出现。', type: 'number', defaultValue: 1 },
       { path: 'multiplier', label: '倍率', comment: '该品质对最终锻造数值的倍率。', type: 'number', defaultValue: 1 }
-    ], { uniqueBy: 'name' }]
+    ], { uniqueBy: 'name' }],
+    ['materials', [
+      { path: 'item_sources', label: '物品来源', comment: '作为此材料匹配条件的 ItemSource 列表。', type: 'stringList', defaultValue: ['minecraft-iron_ingot'] },
+      { path: 'amount', label: '数量', comment: '此材料需要消耗的数量。', type: 'number', defaultValue: 1 },
+      { path: 'capacity_cost', label: '容量消耗', comment: '此材料占用的锻造容量。', type: 'number', defaultValue: 0 },
+      { path: 'effects', label: '效果', comment: '此材料提供的效果对象列表，按 JSON 编辑以保留结构。', type: 'json', defaultValue: [] },
+      { path: 'optional', label: '可选', comment: '是否属于可选材料。', type: 'boolean', defaultValue: false }
+    ]]
   ]
 });
 

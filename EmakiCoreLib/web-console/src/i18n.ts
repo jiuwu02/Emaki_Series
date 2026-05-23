@@ -873,7 +873,6 @@ const CORE_EN_US: LocaleMessages = {
 };
 
 registerLocale('en-US', CORE_EN_US, { replace: true, moduleId: 'EmakiCoreLib' });
-registerLocale('en', CORE_EN_US, { replace: true, moduleId: 'EmakiCoreLib' });
 
 export function registerLocale(locale: string, messages: LocaleMessages, options: RegisterLocaleOptions = {}): void {
   const normalized = normalizeLocale(locale);
@@ -912,7 +911,14 @@ export function getAllLocaleMessages(): Record<string, LocaleMessages> {
 export function getModuleLocaleBundles(moduleId: string): ModuleLocaleBundle[] {
   const moduleMap = moduleStores.get(normalizeModuleId(moduleId));
   if (!moduleMap) return [];
-  return [...moduleMap.entries()].map(([locale, messages]) => ({ moduleId, locale, messages: { ...messages }, count: Object.keys(messages).length }));
+  const normalizedBundles = new Map<string, LocaleMessages>();
+  for (const [locale, messages] of moduleMap.entries()) {
+    const normalized = normalizeLocale(locale);
+    if (!isPrimaryLocale(normalized)) continue;
+    normalizedBundles.set(normalized, { ...(normalizedBundles.get(normalized) ?? {}), ...messages });
+  }
+  return [...normalizedBundles.entries()]
+    .map(([locale, messages]) => ({ moduleId, locale, messages: { ...messages }, count: Object.keys(messages).length }));
 }
 
 export function setLocale(locale: string): void {
@@ -930,7 +936,7 @@ export function getLocale(): string {
 }
 
 export function getRegisteredLocales(): string[] {
-  return [...stores.keys()];
+  return [...new Set([...stores.keys()].map(normalizeLocale).filter(isPrimaryLocale))];
 }
 
 export function t(key: string, params?: TranslationParams, fallback?: string): string {
@@ -1035,11 +1041,19 @@ function readInitialLocale(): string {
 }
 
 function normalizeLocale(locale: string | undefined): string {
-  return String(locale ?? '').trim().replace('_', '-');
+  const normalized = String(locale ?? '').trim().replace('_', '-');
+  if (normalized.toLowerCase() === 'en') return 'en-US';
+  if (normalized.toLowerCase() === 'zh') return 'zh-CN';
+  return normalized;
 }
 
 function normalizeModuleId(moduleId: string | undefined): string {
   return String(moduleId ?? '').trim().toUpperCase();
+}
+
+function isPrimaryLocale(locale: string): boolean {
+  const normalized = normalizeLocale(locale);
+  return normalized.includes('-') || normalized === DEFAULT_LOCALE;
 }
 
 function isRtlLocale(locale: string): boolean {

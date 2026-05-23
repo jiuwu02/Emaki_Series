@@ -135,7 +135,9 @@ function ChangePopover({ changes, count, source, sourceOriginal }: { changes: Ed
 }
 
 function ChangeList({ changes, count, source, sourceOriginal, compact = false }: { changes: EditorChange[]; count: number; source?: string; sourceOriginal?: string; compact?: boolean }) {
-  if (!changes.length) return <p className="editor-change-empty">{t('core.editor.changedSource')}</p>;
+  if (!changes.length) return sourceOriginal !== undefined && source !== undefined
+    ? <SourceDiff before={sourceOriginal} after={source} compact={compact} />
+    : <p className="editor-change-empty">{t('core.editor.changedSource')}</p>;
   return <>
     <div className="editor-change-list">
       {changes.map(change => <div className="editor-change-row" key={change.path}>

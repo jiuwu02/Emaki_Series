@@ -56,7 +56,7 @@ function TreeNodeView({ node, selected, expanded, dirtyKeys, queryActive, toggle
   onDeleteFile?: (node: RegistryTreeNode) => void;
   level: number;
 }) {
-  const children = node.children ?? [];
+  const children = (node.children ?? []).filter(child => !isEmptyGlobPlaceholder(child));
   const hasChildren = children.length > 0;
   const isModule = node.type === 'module';
   const isOpen = queryActive ? true : (expanded[node.id] ?? isModule);
@@ -236,7 +236,7 @@ function sanitizeSvg(svg: string): string {
 function filterTree(nodes: RegistryTreeNode[], query: string): RegistryTreeNode[] {
   if (!query) return nodes;
   return nodes.flatMap((node) => {
-    const children = node.children ?? [];
+    const children = (node.children ?? []).filter(child => !isEmptyGlobPlaceholder(child));
     const filteredChildren = filterTree(children, query);
     if (matchesNode(node, query)) return [{ ...node, children }];
     if (filteredChildren.length) return [{ ...node, children: filteredChildren }];
@@ -251,6 +251,10 @@ function matchesNode(node: RegistryTreeNode, query: string): boolean {
 
 function isGlobTreeNode(node: RegistryTreeNode): boolean {
   return /[*?]/.test(String(node.childPath ?? node.path ?? ''));
+}
+
+function isEmptyGlobPlaceholder(node: RegistryTreeNode): boolean {
+  return isGlobTreeNode(node) && !(node.children ?? []).length;
 }
 
 function normalizeQuery(value: string): string {
