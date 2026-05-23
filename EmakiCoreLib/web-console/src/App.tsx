@@ -254,8 +254,9 @@ export default function App() {
   async function createFileFromTree(target: RegistryTreeNode, name: string) {
     if (!target.moduleId || !target.fileId) return;
     try {
-      const content = createFileDefaultContent(registry, target, name);
-      const created = await api.createFile(target.moduleId, target.fileId, name, content);
+      const createName = normalizeTreeCreateName(target, name);
+      const content = createFileDefaultContent(registry, target, createName);
+      const created = await api.createFile(target.moduleId, target.fileId, createName, content);
       setCreateTarget(null);
       const next = await loadRegistry({ clearDrafts: false, announceRefresh: false });
       setSelected({ moduleId: target.moduleId, fileId: target.fileId, scriptPath: created.path, refreshKey: Date.now() });
@@ -494,6 +495,13 @@ function CreateFileModal({ target, onCancel, onCreate }: { target: RegistryTreeN
       <ActionGroup className="reload-confirm-actions"><Button type="button" onClick={onCancel}>{t('core.gui.cancel')}</Button><Button type="submit" variant="primary" disabled={!validation.ok}>{t('core.file.create')}</Button></ActionGroup>
     </form>
   </div>;
+}
+
+function normalizeTreeCreateName(target: RegistryTreeNode, name: string): string {
+  const normalized = name.trim().replace(/\\/g, '/');
+  const prefix = String(target.createPrefix ?? '').replace(/\\/g, '/').replace(/^\/+|\/+$/g, '');
+  if (!prefix || normalized.startsWith(`${prefix}/`)) return normalized;
+  return `${prefix}/${normalized}`;
 }
 
 function createFileDefaultContent(registry: WebRegistry | null, target: RegistryTreeNode, name: string): string | undefined {
@@ -1052,7 +1060,8 @@ function defaultTemplateValues(template: WebConfigCreateTemplate): Record<string
 function defaultSchemaFieldValue(field: WebConfigFieldSchema): unknown {
   if (field.type === 'number') return 0;
   if (field.type === 'boolean') return false;
-  if (field.type === 'list' || field.type === 'stringList' || field.type === 'numberList' || field.type === 'json') return [];
+  if (field.type === 'json') return {};
+  if (field.type === 'list' || field.type === 'stringList' || field.type === 'numberList' || field.type === 'objectList') return [];
   if (field.type === 'enum') return field.options?.[0] ?? '';
   return '';
 }
@@ -1181,7 +1190,7 @@ function ConfigNodeSection({ scope, node, childrenNodes, drafts, setDraftValue, 
   const sectionChanged = draftKey(scope, node.path) in drafts || sourceEdit?.paths.has(node.path) === true || deletedPaths?.has(node.path) === true;
   const changedInGroup = childrenNodes.filter(n => n.type !== 'object' && (draftKey(scope, n.path) in drafts || sourceEdit?.paths.has(n.path))).length;
   const groupLabel = configNodeDisplayLabel(scope, node);
-  const sectionIndent = depth > 0 ? { paddingLeft: `${depth * 14}px` } : undefined;
+  const sectionIndent = depth > 0 ? { paddingLeft: `${depth * 6}px` } : undefined;
   return <div className={`node-section ${isCollapsed ? 'collapsed' : 'expanded'}${depth > 0 ? ' node-section--nested' : ''}`} style={sectionIndent}>
     <div className={`node-section-header ${isCollapsed ? 'collapsed' : ''} ${sectionChanged ? 'changed' : ''}`}>
       <button type="button" className="node-section-toggle" onClick={() => toggle(node.path)} aria-expanded={!isCollapsed}>
@@ -1328,6 +1337,7 @@ function renderSchemaField(field: WebConfigFieldSchema | undefined, value: unkno
   if (type === 'number' || typeof value === 'number') return <NumberField value={value} onChange={onChange} ariaLabel={ariaLabel} />;
   if (type === 'list' || type === 'stringList') return <StringListEditor items={asStringListValue(value)} onChange={onChange} />;
   if (type === 'numberList') return <NumberListEditor items={asNumberListValue(value)} onChange={onChange} />;
+  if (type === 'objectList') return <JsonField value={value} onChange={onChange} ariaLabel={ariaLabel} />;
   if (type === 'json') return <JsonField value={value} onChange={onChange} ariaLabel={ariaLabel} />;
   if (type === 'enum' && field?.options) {
     const used = new Set(siblingItems.map((item, index) => index === currentIndex ? '' : String(item[field.path] ?? '')).filter(Boolean));
@@ -1401,7 +1411,7 @@ function configInlineText(zh: string, en: string): string {
 }
 
 function isListSchemaField(field: WebConfigFieldSchema | undefined, value: unknown): boolean {
-  return field?.type === 'list' || field?.type === 'stringList' || field?.type === 'numberList' || Array.isArray(value);
+  return field?.type === 'list' || field?.type === 'stringList' || field?.type === 'numberList' || field?.type === 'objectList' || Array.isArray(value);
 }
 
 function asStringListValue(value: unknown): string[] {

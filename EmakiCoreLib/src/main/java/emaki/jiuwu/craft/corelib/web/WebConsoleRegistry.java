@@ -884,6 +884,7 @@ public final class WebConsoleRegistry {
         return "list".equals(type)
                 || "stringList".equals(type)
                 || "numberList".equals(type)
+                || "objectList".equals(type)
                 || "actions".equals(type);
     }
 

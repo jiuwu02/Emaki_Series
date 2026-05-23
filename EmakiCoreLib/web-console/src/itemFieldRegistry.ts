@@ -3,9 +3,9 @@ import type { ActionTypesResult } from './api';
 import type { AnyMap } from './itemEditor';
 import type { ItemPreviewResult, WebEditorField } from './types';
 
-export type CoreEffectType = 'variables' | 'name_action' | 'lore_action' | 'replace_text' | 'replace_text_all';
+export type CoreEffectType = 'variables' | 'name_action' | 'lore_action';
 
-export const CORE_EFFECT_TYPES: CoreEffectType[] = ['variables', 'name_action', 'lore_action', 'replace_text', 'replace_text_all'];
+export const CORE_EFFECT_TYPES: CoreEffectType[] = ['variables', 'name_action', 'lore_action'];
 
 export function isCoreEffectType(type: string): type is CoreEffectType {
   return CORE_EFFECT_TYPES.includes(type as CoreEffectType);
@@ -15,13 +15,11 @@ export function createCoreEffect(type: CoreEffectType): AnyMap {
   if (type === 'variables') return { type, variables: {} };
   if (type === 'name_action') return { type, name_actions: [] };
   if (type === 'lore_action') return { type, lore_actions: [] };
-  if (type === 'replace_text') return { type, anchor: '', index: 1, replacement: '' };
-  if (type === 'replace_text_all') return { type, anchor: '', replacement: '' };
   return { type };
 }
 
 export function coreEffectTypeLabel(type: string): string {
-  return { variables: '变量', name_action: '名称动作链', lore_action: 'Lore 动作链', replace_text: '替换文本', replace_text_all: '全部替换文本' }[type] ?? type;
+  return { variables: '变量', name_action: '名称动作链', lore_action: 'Lore 动作链' }[type] ?? type;
 }
 
 export type ItemFieldRendererContext = {

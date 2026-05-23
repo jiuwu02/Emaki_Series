@@ -563,7 +563,7 @@ function resolveConfigNodeType(detectedType: string | undefined, metaType: strin
 }
 
 function isListUiType(type: string): boolean {
-  return type === 'list' || type === 'stringList' || type === 'numberList' || type === 'actions';
+  return type === 'list' || type === 'stringList' || type === 'numberList' || type === 'objectList' || type === 'actions';
 }
 
 function mergeConfigNodeMeta(base: ConfigNodeMetaOverride | undefined, override: ConfigNodeMetaOverride | undefined): ConfigNodeMetaOverride {

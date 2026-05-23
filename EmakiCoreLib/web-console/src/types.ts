@@ -131,6 +131,7 @@ export type RegistryTreeNode = {
   kind?: string;
   path?: string;
   childPath?: string;
+  createPrefix?: string;
   icon?: string;
   tone?: string;
   comment?: string;

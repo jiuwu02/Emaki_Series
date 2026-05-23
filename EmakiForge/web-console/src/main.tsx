@@ -1,6 +1,7 @@
 import { getLocale, registerModuleLocale, registerPluginConfig, registerPluginGuiEditor } from 'emaki-web-console';
 
 const MODULE = 'EmakiForge';
+const FORGE_EFFECT_TYPES = ['variables', 'ea_attribute', 'es_skill', 'name_action', 'lore_action', 'quality_modify', 'capacity_bonus'];
 
 type FieldSpec = [path: string, label: string, comment: string, type: string, extra?: Record<string, unknown>];
 
@@ -121,6 +122,18 @@ registerPluginConfig({
     }]
   ],
   listItemSchemas: [
+    ['effects', [
+      { path: 'type', label: '类型', comment: '材料效果类型。', type: 'enum', options: FORGE_EFFECT_TYPES, defaultValue: 'variables' },
+      { path: 'variables', label: '变量', comment: '变量/属性贡献。', type: 'json', defaultValue: {} },
+      { path: 'ea_attributes', label: 'EA 属性', comment: '写入 EmakiAttribute 的属性。', type: 'json', defaultValue: {} },
+      { path: 'ea_attribute_meta', label: 'EA 属性元数据', comment: 'EA 属性附加元数据。', type: 'json', defaultValue: {} },
+      { path: 'es_skills', label: 'ES 技能', comment: '附加技能 ID 列表。', type: 'stringList', defaultValue: [] },
+      { path: 'name_actions', label: '名称动作链', comment: '对结果物品名称执行的动作。', type: 'objectList', defaultValue: [] },
+      { path: 'lore_actions', label: 'Lore 动作链', comment: '对结果物品 Lore 执行的动作。', type: 'objectList', defaultValue: [] },
+      { path: 'mode', label: '模式', comment: 'quality_modify 使用 force 或 minimum。', type: 'enum', options: ['force', 'minimum'], defaultValue: 'minimum' },
+      { path: 'tier', label: '品质', comment: '目标品质名称。', type: 'text', defaultValue: '' },
+      { path: 'amount', label: '容量加成', comment: 'capacity_bonus 的容量加成，兼容表达式。', type: 'text', defaultValue: '1' }
+    ]],
     ['quality.tiers', [
       { path: 'name', label: '品质名', comment: '品质名称，会被 default_tier、guarantee.minimum 和品质显示配置引用。', type: 'text', defaultValue: '新品质' },
       { path: 'weight', label: '权重', comment: '随机抽取权重，数值越高越容易出现。', type: 'number', defaultValue: 1 },
@@ -130,7 +143,7 @@ registerPluginConfig({
       { path: 'item_sources', label: '物品来源', comment: '作为此材料匹配条件的 ItemSource 列表。', type: 'stringList', defaultValue: ['minecraft-iron_ingot'] },
       { path: 'amount', label: '数量', comment: '此材料需要消耗的数量。', type: 'number', defaultValue: 1 },
       { path: 'capacity_cost', label: '容量消耗', comment: '此材料占用的锻造容量。', type: 'number', defaultValue: 0 },
-      { path: 'effects', label: '效果', comment: '此材料提供的效果对象列表，按 JSON 编辑以保留结构。', type: 'json', defaultValue: [] },
+      { path: 'effects', label: '效果', comment: '此材料提供的效果对象列表。', type: 'objectList', defaultValue: [] },
       { path: 'optional', label: '可选', comment: '是否属于可选材料。', type: 'boolean', defaultValue: false }
     ]]
   ]

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ActionsEditor, CORE_EFFECT_TYPES, PropRow, SectionHead, StringListEditor, asList, asRecord, asStringList, coreEffectTypeLabel, createCoreEffect, fieldLabel, firstItemSource, getLocale, humanizeFieldLabel, materialFromItemSource, registerConfigCreateTemplate, registerConfigMetaFields, registerConfigRuleFields, registerEditorDescriptor, registerEditorField, registerItemFieldRenderer, registerItemPreviewFallback, registerModuleLocale, registerPluginGuiEditor, serializeActionList, parseActionList, textValue, type AnyMap, type CoreEffectType, type ItemFieldRendererContext, type ItemPreviewResult } from 'emaki-web-console';
+import { ActionsEditor, PropRow, SectionHead, StringListEditor, asList, asRecord, asStringList, coreEffectTypeLabel, createCoreEffect, fieldLabel, firstItemSource, getLocale, humanizeFieldLabel, materialFromItemSource, registerConfigCreateTemplate, registerConfigMetaFields, registerConfigRuleFields, registerEditorDescriptor, registerEditorField, registerItemFieldRenderer, registerItemPreviewFallback, registerModuleLocale, registerPluginGuiEditor, serializeActionList, parseActionList, textValue, type AnyMap, type CoreEffectType, type ItemFieldRendererContext, type ItemPreviewResult } from 'emaki-web-console';
 
 registerModuleLocale('EmakiGem', 'zh-CN', {
   'emakigem.module.name': 'Gem',
@@ -212,7 +212,7 @@ const FAILURE_PENALTIES = ['none', 'downgrade', 'destroy'];
 const DEFAULT_ECONOMY_PROVIDERS = ['auto', 'vault', 'excellenteconomy'];
 const DEFAULT_NAME_ACTIONS = ['replace', 'prepend_prefix', 'append_suffix', 'regex_replace'];
 const DEFAULT_LORE_ACTIONS = ['append', 'prepend', 'replace_line', 'delete_line', 'regex_replace', 'insert_above', 'insert_below', 'search_insert_above', 'search_insert_below'];
-const GEM_EFFECT_TYPES = [...CORE_EFFECT_TYPES, 'ea_attribute', 'es_skill'];
+const GEM_EFFECT_TYPES = ['variables', 'ea_attribute', 'es_skill', 'name_action', 'lore_action'];
 const copy = (zh: string, en: string) => getLocale().startsWith('zh') ? zh : en;
 
 type ConfigSpec = [path: string, label: string, comment: string, type: string, extra?: Record<string, unknown>];
@@ -821,7 +821,7 @@ function ActionEffectList({ value, onChange, actionTypesResult, path }: { value:
         <GemEffectPayload effect={effect} type={type} path={joinPath(path, index)} onChange={nextEffect => update(index, nextEffect)} actionTypesResult={actionTypesResult} />
       </div>;
     })}
-    <div className="prop-cost-actions">{GEM_EFFECT_TYPES.map(type => <button key={type} type="button" className="prop-add" onClick={() => add(type)}>+ {gemEffectTypeLabel(type)}</button>)}</div>
+    <button type="button" className="prop-add" onClick={() => add('variables')}>+ {copy('添加一项', 'Add entry')}</button>
   </div>;
 }
 

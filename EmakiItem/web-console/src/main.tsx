@@ -1,5 +1,5 @@
 import React from 'react';
-import { ActionsEditor, CORE_EFFECT_TYPES, ItemEditorSurface, PropRow, StringListEditor, asList, asRecord, asStringList, coreEffectTypeLabel, createCoreEffect, fieldLabel, getLocale, humanizeFieldLabel, isCoreEffectType, optionLabel, parseActionList, registerFileKindLabel, registerConfigNodeMeta, registerConfigNodeRule, registerEditorDescriptor, registerEditorField, registerItemFieldRenderer, registerModuleLocale, registerPluginSurfaces, registerSourceDocumentAdapter, serializeActionList, textValue, type AnyMap, type CoreEffectType, type ItemFieldRendererContext } from 'emaki-web-console';
+import { ActionsEditor, ItemEditorSurface, PropRow, StringListEditor, asList, asRecord, asStringList, coreEffectTypeLabel, createCoreEffect, fieldLabel, getLocale, humanizeFieldLabel, isCoreEffectType, optionLabel, parseActionList, registerFileKindLabel, registerConfigNodeMeta, registerConfigNodeRule, registerEditorDescriptor, registerEditorField, registerItemFieldRenderer, registerModuleLocale, registerPluginSurfaces, registerSourceDocumentAdapter, serializeActionList, textValue, type AnyMap, type CoreEffectType, type ItemFieldRendererContext } from 'emaki-web-console';
 
 const MODULE = 'EmakiItem';
 const EDITOR_ID = 'emakiitem:item';
@@ -16,7 +16,7 @@ const ATTRIBUTE_OPERATIONS = ['add_number', 'add_scalar', 'multiply_scalar_1'];
 const EQUIPMENT_SLOTS = ['any', 'hand', 'mainhand', 'offhand', 'head', 'chest', 'legs', 'feet', 'body'];
 const ITEM_FLAGS = ['HIDE_ENCHANTS', 'HIDE_ATTRIBUTES', 'HIDE_UNBREAKABLE', 'HIDE_DESTROYS', 'HIDE_PLACED_ON', 'HIDE_ADDITIONAL_TOOLTIP', 'HIDE_DYE', 'HIDE_ARMOR_TRIM'];
 const SET_SLOTS = ['main_hand', 'off_hand', 'helmet', 'chestplate', 'leggings', 'boots'];
-const ITEM_EFFECT_TYPES = [...CORE_EFFECT_TYPES, 'ea_attribute', 'es_skill'];
+const ITEM_EFFECT_TYPES = ['variables', 'ea_attribute', 'es_skill', 'name_action', 'lore_action'];
 const copy = (zh: string, en: string) => getLocale().startsWith('zh') ? zh : en;
 
 const configFields: ConfigSpec[] = [
@@ -293,7 +293,7 @@ registerEditorDescriptor(MODULE, EDITOR_ID, {
     { title: '基础信息', titleKey: 'emakiitem.section.basic', fields: fields(['id', 'material', 'display_name', 'item_name', 'lore']) },
     { title: '显示动作链', titleKey: 'emakiitem.section.displayActions', collapsible: true, defaultCollapsed: true, fields: fields(['name_actions', 'lore_actions']) },
     { title: '更新策略', titleKey: 'emakiitem.section.update', collapsible: true, defaultCollapsed: true, fields: fields(['update.enabled', 'update.version', 'update.preserve_amount', 'update.preserve_damage', 'update.preserve_unknown_attribute_sources', 'update.triggers.join', 'update.triggers.held_change', 'update.triggers.inventory_click', 'update.triggers.inventory_drag', 'update.triggers.pickup', 'update.triggers.interact', 'update.triggers.command']) },
-    { title: '效果与变量', titleKey: 'emakiitem.section.effects', collapsible: true, defaultCollapsed: true, fields: fields(['effects', 'variables', 'ea_attributes', 'ea_attribute_meta', 'es_skills']) },
+    { title: '效果与变量', titleKey: 'emakiitem.section.effects', collapsible: true, defaultCollapsed: true, fields: fields(['effects']) },
     { title: '原版组件', titleKey: 'emakiitem.section.components', collapsible: true, defaultCollapsed: true, fields: fields(['components.custom_model_data', 'components.item_model', 'components.tooltip_style', 'components.enchantments', 'components.item_flags', 'components.hide_tooltip', 'components.unbreakable', 'components.enchantment_glint_override', 'components.max_stack_size', 'components.rarity', 'components.damage', 'components.max_damage', 'components.enchantable', 'components.attribute_modifiers', 'components.raw']) },
     { title: '套装归属', titleKey: 'emakiitem.section.setBinding', collapsible: true, defaultCollapsed: true, fields: fields(['set.id', 'set.piece']) },
     { title: '装备条件', titleKey: 'emakiitem.section.conditions', collapsible: true, defaultCollapsed: true, fields: fields(['conditions.entries', 'conditions.type', 'conditions.required_count', 'conditions.invalid_as_failure', 'conditions.deny_message', 'conditions.deny_actions']) },
@@ -429,7 +429,7 @@ function ItemEffectList({ value, onChange, actionTypesResult, path }: { value: u
         <ItemEffectPayload effect={effect} type={type} path={joinPath(path, index)} onChange={nextEffect => update(index, nextEffect)} actionTypesResult={actionTypesResult} />
       </div>;
     })}
-    <div className="prop-cost-actions">{ITEM_EFFECT_TYPES.map(type => <button key={type} type="button" className="prop-add" onClick={() => add(type)}>+ {itemEffectTypeLabel(type)}</button>)}</div>
+    <button type="button" className="prop-add" onClick={() => add('variables')}>+ {copy('添加一项', 'Add entry')}</button>
   </div>;
 }
 

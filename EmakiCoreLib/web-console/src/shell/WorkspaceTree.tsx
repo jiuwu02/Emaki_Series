@@ -59,6 +59,7 @@ function TreeNodeView({ node, selected, expanded, dirtyKeys, queryActive, toggle
   const children = (node.children ?? []).filter(child => !isEmptyGlobPlaceholder(child));
   const hasChildren = children.length > 0;
   const isModule = node.type === 'module';
+  const isFolder = node.type === 'folder';
   const isOpen = queryActive ? true : (expanded[node.id] ?? isModule);
   const kindLabel = fileKindLabel(node.kind ?? node.type);
   const isGlob = isGlobTreeNode(node);
@@ -108,7 +109,7 @@ function TreeNodeView({ node, selected, expanded, dirtyKeys, queryActive, toggle
           >
             <DisclosureChevron open={isOpen} className="folder-arrow" /><span className="tree-label">{displayLabel}</span><DirtyDot dirty={dirty} />
           </button>
-          {onCreateFile && !isGlob && <button type="button" className="tree-file-action" title={t('core.tree.createFile')} aria-label={t('core.tree.createFile')} onClick={(event) => { event.stopPropagation(); onCreateFile(node); }}>+</button>}
+          {onCreateFile && (isGlob || isFolder || !hasChildren) && <button type="button" className="tree-file-action" title={t('core.tree.createFile')} aria-label={t('core.tree.createFile')} onClick={(event) => { event.stopPropagation(); onCreateFile(node); }}>+</button>}
         </div>
         {isOpen && (
           <div className="tree-children" role="group">
@@ -121,7 +122,7 @@ function TreeNodeView({ node, selected, expanded, dirtyKeys, queryActive, toggle
     );
   }
 
-  const canSelect = Boolean(node.moduleId && node.fileId && !isGlob);
+  const canSelect = Boolean(node.moduleId && node.fileId && !isGlob && !isFolder);
   const rowClass = level > 1 ? 'tree-child-row' : 'tree-file-row';
   return (
     <div className={rowClass} role="none" style={indentStyle(level)}>
@@ -276,7 +277,7 @@ function treeDirtyKey(moduleId: string, fileId: string, filePath: string) {
 }
 
 function indentStyle(level: number): CSSProperties | undefined {
-  return level > 0 ? { paddingLeft: `${level * 12}px` } : undefined;
+  return level > 0 ? { paddingLeft: `${level * 6}px` } : undefined;
 }
 
 function modulesToTree(modules: WebRegistryModule[]): RegistryTreeNode[] {
@@ -296,21 +297,37 @@ function modulesToTree(modules: WebRegistryModule[]): RegistryTreeNode[] {
       kind: file.kind,
       path: file.path,
       comment: file.comment,
-      children: file.children?.filter(child => !isLanguageFilePath(child.fullPath ?? child.relativePath)).map((child) => {
-        const childPath = file.kind?.toUpperCase() === 'SCRIPT' ? child.relativePath : (child.fullPath ?? child.relativePath);
-        return {
-          id: `${file.id}:${childPath}`,
-          label: child.name || leafFileName(childPath),
-          type: 'child',
-          moduleId: module.id,
-          fileId: file.id,
-          kind: file.kind,
-          path: childPath,
-          childPath
-        };
-      })
+      children: globChildrenToTree(module.id, file)
     }))
   }));
+}
+
+function globChildrenToTree(moduleId: string, file: WebRegistryModule['files'][number]): RegistryTreeNode[] | undefined {
+  const children = file.children?.filter(child => !isLanguageFilePath(child.fullPath ?? child.relativePath));
+  if (!children?.length) return undefined;
+  const roots: RegistryTreeNode[] = [];
+  const folderByPath = new Map<string, RegistryTreeNode>();
+  for (const child of children) {
+    const childPath = file.kind?.toUpperCase() === 'SCRIPT' ? child.relativePath : (child.fullPath ?? child.relativePath);
+    const relativePath = file.kind?.toUpperCase() === 'SCRIPT' ? child.relativePath : (child.relativePath ?? childPath);
+    const parts = String(relativePath ?? childPath).split('/').filter(Boolean);
+    let siblings = roots;
+    let prefix = file.path.split('**')[0]?.replace(/\/$/, '') ?? '';
+    for (let index = 0; index < parts.length - 1; index++) {
+      const folderName = parts[index];
+      prefix = prefix ? `${prefix}/${folderName}` : folderName;
+      const folderId = `${file.id}:folder:${prefix}`;
+      let folder = folderByPath.get(folderId);
+      if (!folder) {
+        folder = { id: folderId, label: folderName, type: 'folder', moduleId, fileId: file.id, kind: file.kind, path: prefix, childPath: prefix, createPrefix: prefix, children: [] };
+        folderByPath.set(folderId, folder);
+        siblings.push(folder);
+      }
+      siblings = folder.children ?? (folder.children = []);
+    }
+    siblings.push({ id: `${file.id}:${childPath}`, label: child.name || leafFileName(childPath), type: 'child', moduleId, fileId: file.id, kind: file.kind, path: childPath, childPath });
+  }
+  return roots;
 }
 
 function isLanguageFilePath(path: string | undefined): boolean {

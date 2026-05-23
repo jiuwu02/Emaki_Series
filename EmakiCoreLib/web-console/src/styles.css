@@ -1037,7 +1037,7 @@ textarea {
 }
 
 .tree-children {
-  padding-left: 16px;
+  padding-left: 4px;
 }
 
 .tree-child {
@@ -4824,7 +4824,7 @@ textarea {
 }
 
 .prop-level-body {
-  padding: 10px 0 12px 20px;
+  padding: 10px 0 12px 8px;
   border-top: 1px solid var(--line);
   display: grid;
   gap: 6px;

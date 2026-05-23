@@ -119,10 +119,12 @@ final class WebItemPreviewService {
 
     private Map<String, Object> previewGenericItem(Map<String, Object> data, String baseName, List<String> baseLore) {
         Map<String, Object> variables = resolveVariables(extractVariables(data), Map.of());
-        String initialName = Texts.isBlank(baseName) ? firstText(data.get("display_name"), data.get("item_name"), data.get("id")) : baseName;
-        List<String> initialLore = baseLore == null || baseLore.isEmpty()
-                ? stringLines(data.get("lore"), "lore")
-                : List.copyOf(baseLore);
+        String configuredName = firstText(data.get("display_name"), data.get("item_name"), data.get("id"));
+        String initialName = renderPreviewText(Texts.isBlank(configuredName) ? baseName : configuredName, variables);
+        List<String> configuredLore = stringLines(data.get("lore"), "lore");
+        List<String> initialLore = configuredLore.isEmpty()
+                ? renderPreviewLines(baseLore, variables)
+                : renderPreviewLines(configuredLore, variables);
         PreviewText previewText = applyOperations(initialName, initialLore, data.get("name_actions"), data.get("lore_actions"), variables);
         Map<String, Object> result = baseResult("generic_item", data, previewText, variables);
         result.put("material", firstText(data.get("material"), data.get("item"), "stone"));
@@ -396,6 +398,21 @@ final class WebItemPreviewService {
                 throw ItemPreviewException.loreType(label, line, entry);
             }
             line++;
+        }
+        return List.copyOf(result);
+    }
+
+    private String renderPreviewText(Object raw, Map<String, Object> variables) {
+        return ExpressionEngine.evaluateStringConfig(raw, variables == null ? Map.of() : variables);
+    }
+
+    private List<String> renderPreviewLines(List<String> rawLines, Map<String, Object> variables) {
+        if (rawLines == null || rawLines.isEmpty()) {
+            return List.of();
+        }
+        List<String> result = new ArrayList<>();
+        for (String line : rawLines) {
+            result.add(renderPreviewText(line, variables));
         }
         return List.copyOf(result);
     }

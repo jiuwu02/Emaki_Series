@@ -1,5 +1,7 @@
 import { getLocale, registerModuleLocale, registerPluginConfig, registerPluginGuiEditor } from 'emaki-web-console';
 
+const STRENGTHEN_EFFECT_TYPES = ['variables', 'ea_attribute', 'es_skill'];
+
 const MODULE = 'EmakiStrengthen';
 
 const copy = (zh: string, en: string) => getLocale().startsWith('zh') ? zh : en;
@@ -9,7 +11,8 @@ const fields = [
   ['broadcast', '广播设置', '强化成功时的本地广播与全服广播触发星级设置。', 'object'],
   ['broadcast.local_stars', '本地广播星级', '强化成功达到这些星级时向附近玩家广播。', 'list'],
   ['broadcast.global_stars', '全服广播星级', '强化成功达到这些星级时向全服广播。', 'list'],
-  ['success_rates', '全局成功率', '配方未单独覆盖时使用的全局强化成功率表，键为目标星级，值为百分比。', 'object']
+  ['success_rates', '全局成功率', '配方未单独覆盖时使用的全局强化成功率表，键为目标星级，值为百分比。', 'object'],
+  ['effects', '效果', '强化阶段效果列表；源码当前实际从 effects 中读取 es_skill。', 'objectList']
 ] as const;
 
 const localeMessages: Record<string, string> = Object.fromEntries([
@@ -86,6 +89,17 @@ registerPluginConfig({
         { path: 'value', label: '成功率', comment: '该目标星级的强化成功率百分比，例如 75.0。', type: 'number', defaultValue: 100 }
       ]
     }]
+  ],
+  rules: [
+    [{ key: 'effects' }, { label: '效果', comment: '强化阶段效果列表；新增类型以源码实际解析为准。', type: 'objectList' }]
+  ],
+  listItemSchemaRules: [
+    [{ key: 'effects' }, [
+      { path: 'type', label: '类型', comment: '源码实际解析 variables / ea_attribute / es_skill；es_skill 会从 effects 中生效。', type: 'enum', options: STRENGTHEN_EFFECT_TYPES, defaultValue: 'variables' },
+      { path: 'variables', label: '变量', comment: '保真编辑变量对象；源码当前主要读取阶段顶层 variables。', type: 'json', defaultValue: {} },
+      { path: 'ea_attributes', label: 'EA 属性', comment: '保真编辑属性对象；源码当前主要读取阶段顶层 ea_attributes。', type: 'json', defaultValue: {} },
+      { path: 'es_skills', label: 'ES 技能', comment: '源码会从 effects 中读取的技能 ID 列表。', type: 'stringList', defaultValue: [] }
+    ]]
   ]
 });
 

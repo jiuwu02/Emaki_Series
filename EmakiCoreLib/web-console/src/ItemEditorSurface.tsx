@@ -617,12 +617,9 @@ function GenericPreviewPane({ moduleId, editor, data, preview, previewPending, p
   const previewResultLevel = Number(preview?.level);
   const previewMatchesLevel = !hasLevels || !Number.isFinite(previewResultLevel) || previewResultLevel === previewLevel;
   const livePreview = previewMatchesLevel ? preview : null;
-  const originalName = textValue(livePreview?.baseName) || baseName;
-  const originalLore = previewStringList(livePreview?.baseLore, resolvePreviewBaseLore(data, baseLore));
   const resultName = textValue(livePreview?.displayName);
   const resultLore = livePreview ? asStringList(livePreview.lore) : [];
   const status = previewError ? { tone: 'failed' as const, text: t('core.item.preview.failedTitle') } : previewStatus(livePreview, previewPending);
-  const previewOptions = asRecord(editor?.preview);
   useEffect(() => setImgFailed(false), [material]);
   useEffect(() => subscribeTextureBases(() => { setImgFailed(false); refreshTextureOrder((version) => version + 1); }), []);
 
@@ -653,10 +650,8 @@ function GenericPreviewPane({ moduleId, editor, data, preview, previewPending, p
         <p className="ie-level-hint">{t('core.item.preview.levelHint')}</p>
       </div>}
       <div className="ie-preview-compare">
-        <PreviewTooltipBlock title={t('core.item.preview.original')} name={originalName} lore={originalLore} emptyText={t('core.item.preview.emptyLore')} />
         <PreviewTooltipBlock title={hasLevels ? t('core.item.preview.resultForLevel', { level: previewLevel }) : t('core.item.preview.result')} name={resultName} lore={resultLore} refreshing={previewPending} emptyText={previewPending ? t('core.item.preview.syncing') : t('core.item.preview.emptyResult')} />
       </div>
-      <PreviewPipelineSummary preview={livePreview} hidden={previewOptions.showPipelineSummary === false} />
     </div>
   );
 }
@@ -676,11 +671,6 @@ function asEditableStringList(value: unknown): string[] {
   if (Array.isArray(value)) return value.map(item => item == null ? '' : String(item));
   if (value == null) return [];
   return [String(value)];
-}
-
-function previewStringList(value: unknown, fallback: string[]): string[] {
-  const lines = asStringList(value);
-  return lines.length ? lines : fallback;
 }
 
 function previewStatus(preview: ItemPreviewResult | null, pending: boolean): { tone: 'live' | 'syncing' | 'failed'; text: string } {
@@ -707,57 +697,6 @@ function previewKindLabel(preview: ItemPreviewResult | null, moduleId: string, e
   const labelKey = textValue(labels[kind] ?? labels.default);
   if (labelKey) return t(labelKey, undefined, humanizeFieldLabel(kind || 'item'));
   return kind ? t(`${moduleId.toLowerCase()}.preview.kind.${kind}`, undefined, humanizeFieldLabel(kind)) : t('core.item.genericKind');
-}
-
-function PreviewPipelineSummary({ preview, hidden }: { preview: ItemPreviewResult | null; hidden?: boolean }) {
-  if (hidden) return null;
-  const variables = Object.entries(preview?.variables ?? {});
-  const nameSteps = preview?.nameSteps ?? [];
-  const loreSteps = preview?.loreSteps ?? [];
-  if (!variables.length && !nameSteps.length && !loreSteps.length) return null;
-  return <div className="ie-preview-debug" aria-label={t('core.item.preview.debugAria')}>
-    {variables.length > 0 && <PreviewVariableList entries={variables} />}
-    {nameSteps.length > 0 && <PreviewStepList title={t('core.item.preview.nameSteps')} steps={nameSteps} />}
-    {loreSteps.length > 0 && <PreviewStepList title={t('core.item.preview.loreSteps')} steps={loreSteps} />}
-  </div>;
-}
-
-function PreviewVariableList({ entries }: { entries: [string, unknown][] }) {
-  return <div className="ie-preview-debug-block">
-    <div className="ie-preview-debug-head"><span>{t('core.item.preview.variables')}</span><code>{entries.length}</code></div>
-    <div className="ie-preview-vars">
-      {entries.slice(0, 6).map(([key, value]) => <div className="ie-preview-var" key={key}><code>{key}</code><span>{previewValue(value)}</span></div>)}
-      {entries.length > 6 && <span className="ie-preview-more">{t('core.item.preview.moreVariables', { count: entries.length - 6 })}</span>}
-    </div>
-  </div>;
-}
-
-function PreviewStepList({ title, steps }: { title: string; steps: ItemPreviewStep[] }) {
-  return <div className="ie-preview-debug-block">
-    <div className="ie-preview-debug-head"><span>{title}</span><code>{steps.length}</code></div>
-    <div className="ie-preview-steps">
-      {steps.slice(0, 5).map((step, index) => <div className="ie-preview-step" key={`${step.action}-${index}`}>
-        <code>{step.action || `#${index + 1}`}</code>
-        <span>{previewStepSummary(step)}</span>
-      </div>)}
-      {steps.length > 5 && <span className="ie-preview-more">{t('core.item.preview.moreSteps', { count: steps.length - 5 })}</span>}
-    </div>
-  </div>;
-}
-
-function previewStepSummary(step: ItemPreviewStep): string {
-  if (Array.isArray(step.before) || Array.isArray(step.after)) {
-    const before = Array.isArray(step.before) ? step.before.length : 0;
-    const after = Array.isArray(step.after) ? step.after.length : 0;
-    const content = Array.isArray(step.content) && step.content.length ? t('core.item.preview.writeLines', { count: step.content.length }) : '';
-    const anchorValue = textValue(step.anchor);
-    const anchor = anchorValue ? t('core.item.preview.anchor', { anchor: anchorValue }) : '';
-    return `${t('core.item.preview.lineChange', { before, after })}${content}${anchor}`;
-  }
-  const after = textValue(step.after ?? step.result);
-  const before = textValue(step.before);
-  if (before || after) return before ? `${before} → ${after}` : after;
-  return textValue(step.value, t('core.item.preview.executed'));
 }
 
 function previewValue(value: unknown): string {
