@@ -34,6 +34,8 @@ const fields: FieldSpec[] = [
 ];
 
 const FAILURE_PENALTIES = ['none', 'downgrade'];
+const SCRIPT_MODES = ['native', 'mythic', 'hybrid'];
+const SCRIPT_PHASES = ['cast', 'hit', 'miss', 'fail'];
 
 const triggerFields: Record<string, [string, string, string]> = {
   display_name: ['显示名称', '触发器在 GUI、ActionBar 或提示文本中显示的名称。', 'text'],
@@ -142,14 +144,21 @@ registerPluginConfig({
     [{ key: 'currencies' }, { label: '升级货币', comment: '升级经济中各币种的成本列表。', type: 'list' }],
     [{ suffix: '.materials' }, { label: '升级材料', comment: '升级等级所需材料列表。', type: 'list' }],
     [{ path: 'upgrade.failure_penalty' }, { label: '失败惩罚', comment: '技能升级失败后的惩罚方式。', type: 'enum', options: FAILURE_PENALTIES, optionLabelPrefix: 'upgrade.failure_penalty' }],
+    [{ key: 'script' }, { label: '技能脚本', comment: '原生技能脚本配置；源码读取 enabled/mode/stop_on_failure、actions.* 与 conditions.*，兼容旧版 script.cast/hit/miss/fail。', type: 'object' }],
+    [{ path: 'script.enabled' }, { label: '启用脚本', comment: '是否启用该技能的原生脚本。', type: 'boolean' }],
+    [{ path: 'script.mode' }, { label: '脚本模式', comment: '该技能的脚本执行模式。', type: 'enum', options: SCRIPT_MODES, optionLabelPrefix: 'script_engine.default_mode' }],
+    [{ path: 'script.stop_on_failure' }, { label: '失败停止', comment: '某个脚本动作失败后是否停止后续阶段。', type: 'boolean' }],
     [{ key: 'cast' }, { label: '释放阶段', comment: '旧版脚本中的 cast 动作列表。', type: 'stringList' }],
     [{ key: 'hit' }, { label: '命中阶段', comment: '旧版脚本中的 hit 动作列表。', type: 'stringList' }],
     [{ key: 'miss' }, { label: '未命中阶段', comment: '旧版脚本中的 miss 动作列表。', type: 'stringList' }],
     [{ key: 'fail' }, { label: '失败阶段', comment: '旧版脚本中的 fail 动作列表。', type: 'stringList' }],
-    [{ suffix: '.script.cast' }, { label: '释放阶段', comment: '原生技能脚本 cast 阶段动作列表。', type: 'stringList' }],
-    [{ suffix: '.script.hit' }, { label: '命中阶段', comment: '原生技能脚本 hit 阶段动作列表。', type: 'stringList' }],
-    [{ suffix: '.script.miss' }, { label: '未命中阶段', comment: '原生技能脚本 miss 阶段动作列表。', type: 'stringList' }],
-    [{ suffix: '.script.fail' }, { label: '失败阶段', comment: '原生技能脚本 fail 阶段动作列表。', type: 'stringList' }]
+    ...SCRIPT_PHASES.flatMap(phase => [
+      [{ suffix: `.script.${phase}` }, { label: `${phase} 阶段`, comment: `兼容旧版 script.${phase} 动作列表。`, type: 'stringList' }],
+      [{ suffix: `.script.actions.${phase}` }, { label: `${phase} 动作`, comment: `原生技能脚本 actions.${phase} 阶段动作列表。`, type: 'stringList' }],
+      [{ suffix: `.script.actions.on_${phase}` }, { label: `on_${phase} 动作`, comment: `原生技能脚本 actions.on_${phase} 阶段动作列表。`, type: 'stringList' }],
+      [{ suffix: `.script.conditions.${phase}` }, { label: `${phase} 条件`, comment: `原生技能脚本 conditions.${phase} 阶段条件列表。`, type: 'stringList' }],
+      [{ suffix: `.script.conditions.on_${phase}` }, { label: `on_${phase} 条件`, comment: `原生技能脚本 conditions.on_${phase} 阶段条件列表。`, type: 'stringList' }]
+    ] as Array<[Record<string, string>, { label: string; comment: string; type: string }]>)
   ],
   listItemSchemas: [
     ['resource_costs', [

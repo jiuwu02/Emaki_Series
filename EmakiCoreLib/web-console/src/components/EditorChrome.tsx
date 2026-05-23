@@ -165,7 +165,7 @@ function SourceModal({ source, editable, error, language, onChange, onSave, onCl
 
   function handleInput(value: string) {
     setLocalSource(value);
-    onChange?.(value);
+    if (value !== source) onChange?.(value);
   }
 
   function handleTab() {

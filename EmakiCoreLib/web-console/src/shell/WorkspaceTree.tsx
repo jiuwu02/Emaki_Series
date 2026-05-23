@@ -308,33 +308,61 @@ function globChildrenToTree(moduleId: string, file: WebRegistryModule['files'][n
   const roots: RegistryTreeNode[] = [];
   const folderByPath = new Map<string, RegistryTreeNode>();
   for (const child of children) {
-    const childPath = file.kind?.toUpperCase() === 'SCRIPT' ? child.relativePath : (child.fullPath ?? child.relativePath);
-    const relativePath = file.kind?.toUpperCase() === 'SCRIPT' ? child.relativePath : (child.relativePath ?? childPath);
-    const parts = String(relativePath ?? childPath).split('/').filter(Boolean);
+    const childPath = normalizeTreePath(file.kind?.toUpperCase() === 'SCRIPT' ? child.relativePath : (child.fullPath ?? child.relativePath));
+    const relativePath = normalizeGlobChildRelativePath(file, child, childPath);
+    const parts = relativePath.split('/').filter(Boolean);
+    if (!parts.length) continue;
     let siblings = roots;
-    let prefix = file.path.split('**')[0]?.replace(/\/$/, '') ?? '';
+    let createPrefix = normalizeGlobBaseDir(file.path);
     for (let index = 0; index < parts.length - 1; index++) {
       const folderName = parts[index];
-      prefix = prefix ? `${prefix}/${folderName}` : folderName;
-      const folderId = `${file.id}:folder:${prefix}`;
+      createPrefix = createPrefix ? `${createPrefix}/${folderName}` : folderName;
+      const folderId = `${file.id}:folder:${createPrefix}`;
       let folder = folderByPath.get(folderId);
       if (!folder) {
-        folder = { id: folderId, label: folderName, type: 'folder', moduleId, fileId: file.id, kind: file.kind, path: prefix, childPath: prefix, createPrefix: prefix, children: [] };
+        folder = { id: folderId, label: folderName, type: 'folder', moduleId, fileId: file.id, kind: file.kind, path: createPrefix, childPath: createPrefix, createPrefix, children: [] };
         folderByPath.set(folderId, folder);
         siblings.push(folder);
       }
       siblings = folder.children ?? (folder.children = []);
     }
-    siblings.push({ id: `${file.id}:${childPath}`, label: child.name || leafFileName(childPath), type: 'child', moduleId, fileId: file.id, kind: file.kind, path: childPath, childPath });
+    siblings.push({ id: `${file.id}:${childPath}`, label: leafFileName(childPath), type: 'child', moduleId, fileId: file.id, kind: file.kind, path: childPath, childPath });
   }
   return roots;
 }
 
+function normalizeGlobChildRelativePath(file: WebRegistryModule['files'][number], child: { relativePath: string; fullPath?: string }, childPath: string): string {
+  const rawRelative = normalizeTreePath(child.relativePath || childPath);
+  if (file.kind?.toUpperCase() === 'SCRIPT') return rawRelative;
+  const baseDir = normalizeGlobBaseDir(file.path);
+  if (!baseDir) return rawRelative;
+  if (rawRelative && rawRelative !== leafFileName(rawRelative)) return rawRelative;
+  return stripPathPrefix(childPath, baseDir);
+}
+
+function normalizeGlobBaseDir(path: string | undefined): string {
+  const normalized = normalizeTreePath(path);
+  const starIndex = normalized.search(/[?*]/);
+  const base = starIndex >= 0 ? normalized.slice(0, starIndex) : normalized;
+  return base.replace(/\/+$/g, '');
+}
+
+function stripPathPrefix(path: string, prefix: string): string {
+  const normalizedPath = normalizeTreePath(path);
+  const normalizedPrefix = normalizeTreePath(prefix).replace(/\/+$/g, '');
+  if (!normalizedPrefix) return normalizedPath;
+  return normalizedPath.startsWith(`${normalizedPrefix}/`) ? normalizedPath.slice(normalizedPrefix.length + 1) : normalizedPath;
+}
+
+function normalizeTreePath(path: string | undefined): string {
+  return String(path ?? '').replace(/\\/g, '/').replace(/^\/+|\/+$/g, '');
+}
+
 function isLanguageFilePath(path: string | undefined): boolean {
-  return String(path ?? '').replace(/\\/g, '/').toLowerCase().startsWith('lang/');
+  return normalizeTreePath(path).toLowerCase().startsWith('lang/');
 }
 
 function leafFileName(path: string | undefined): string {
-  const leaf = String(path ?? '').replace(/\\/g, '/').split('/').filter(Boolean).pop() ?? '';
+  const leaf = normalizeTreePath(path).split('/').filter(Boolean).pop() ?? '';
   return leaf.replace(/\.(ya?ml|json|js|kts|txt)$/i, '') || String(path ?? '');
 }

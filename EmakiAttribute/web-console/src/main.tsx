@@ -3,14 +3,14 @@ import { getLocale, registerModuleLocale, registerPluginConfig, getRuntimeEnum }
 const MODULE = 'EmakiAttribute';
 
 const DAMAGE_CAUSES_1_21_11 = [
-  'KILL', 'WORLD_BORDER', 'CONTACT', 'ENTITY_ATTACK', 'ENTITY_SWEEP_ATTACK', 'PROJECTILE',
-  'SUFFOCATION', 'FALL', 'FIRE', 'FIRE_TICK', 'MELTING', 'LAVA', 'DROWNING',
-  'BLOCK_EXPLOSION', 'ENTITY_EXPLOSION', 'VOID', 'LIGHTNING', 'SUICIDE', 'STARVATION',
-  'POISON', 'MAGIC', 'WITHER', 'FALLING_BLOCK', 'THORNS', 'DRAGON_BREATH',
-  'FLY_INTO_WALL', 'HOT_FLOOR', 'CAMPFIRE', 'CRAMMING', 'DRYOUT', 'FREEZE',
-  'SONIC_BOOM', 'CUSTOM'
+  'CONTACT', 'ENTITY_ATTACK', 'ENTITY_SWEEP_ATTACK', 'PROJECTILE', 'SUFFOCATION', 'FALL',
+  'FIRE', 'FIRE_TICK', 'MELTING', 'LAVA', 'DROWNING', 'BLOCK_EXPLOSION', 'ENTITY_EXPLOSION',
+  'VOID', 'LIGHTNING', 'SUICIDE', 'STARVATION', 'POISON', 'MAGIC', 'WITHER', 'FALLING_BLOCK',
+  'THORNS', 'DRAGON_BREATH', 'CUSTOM', 'FLY_INTO_WALL', 'HOT_FLOOR', 'CRAMMING',
+  'DRYOUT', 'FREEZE', 'KILL', 'SONIC_BOOM', 'WORLD_BORDER', 'CAMPFIRE', 'OUTSIDE_BORDER',
+  'GENERIC', 'EXPLOSION', 'BAD_RESPAWN_POINT', 'OUT_OF_WORLD'
 ];
-const damageCauses = [...new Set([...getRuntimeEnum('bukkit.damageCause'), ...DAMAGE_CAUSES_1_21_11])];
+const damageCauses = [...new Set([...DAMAGE_CAUSES_1_21_11, ...getRuntimeEnum('bukkit.damageCause')])];
 const copy = (zh: string, en: string) => getLocale().startsWith('zh') ? zh : en;
 
 type ConfigSpec = [path: string, label: string, comment: string, type: string, extra?: Record<string, unknown>];
@@ -91,7 +91,7 @@ const damageCauseLabels: Record<string, string> = {
   BLOCK_EXPLOSION: '方块爆炸', ENTITY_EXPLOSION: '实体爆炸', VOID: '虚空', LIGHTNING: '雷击', SUICIDE: '自杀', STARVATION: '饥饿',
   POISON: '中毒', MAGIC: '魔法', WITHER: '凋零', FALLING_BLOCK: '落块', THORNS: '荆棘反伤', DRAGON_BREATH: '龙息',
   FLY_INTO_WALL: '碰撞墙体', HOT_FLOOR: '高温方块', CAMPFIRE: '营火', CRAMMING: '实体挤压', DRYOUT: '脱水', FREEZE: '冻结',
-  SONIC_BOOM: '音爆', CUSTOM: '自定义'
+  SONIC_BOOM: '音爆', CUSTOM: '自定义', OUTSIDE_BORDER: '边界外', GENERIC: '通用', EXPLOSION: '爆炸', BAD_RESPAWN_POINT: '错误重生点', OUT_OF_WORLD: '世界外'
 };
 
 registerModuleLocale(MODULE, 'zh-CN', {

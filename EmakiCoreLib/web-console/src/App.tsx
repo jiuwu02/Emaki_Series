@@ -586,22 +586,24 @@ function ConfigStructuredSurface({ module, file, drafts, draftHistory, setDraftV
   const [savingNodes, setSavingNodes] = useState(false);
   useEffect(() => {
     setOptimisticNodes([]);
+    setSourceEditedPaths(new Set());
     setDeletedObjectPaths(new Set());
   }, [file.id, refreshKey]);
   const [optimisticNodes, setOptimisticNodes] = useState<WebConfigNode[]>([]);
+  const [sourceEditedPaths, setSourceEditedPaths] = useState<Set<string>>(() => new Set());
   const [deletedObjectPaths, setDeletedObjectPaths] = useState<Set<string>>(() => new Set());
   const moduleTitle = moduleDisplayName(module);
   const fileTitle = fileDisplayTitle(file);
   const fileComment = fileDisplayComment(file);
   const visibleNodes = useMemo(() => mergeConfigNodes(file.nodes, optimisticNodes, deletedObjectPaths), [file.nodes, optimisticNodes, deletedObjectPaths]);
-  const optimisticPathSet = useMemo(() => new Set(optimisticNodes.map(node => node.path)), [optimisticNodes]);
   const changedNodes = file.nodes.filter(n => n.type !== 'object' && draftKey(scope, n.path) in drafts && !isDeletedPath(n.path, deletedObjectPaths));
 
   const updateSourceNodeValue = (node: WebConfigNode, nextValue: unknown) => {
     updateConfigSourceValue(source, node.path, nextValue, setToast);
+    setSourceEditedPaths(current => new Set([...current, node.path]));
     setOptimisticNodes(current => current.map(entry => entry.path === node.path ? { ...entry, value: nextValue } : entry));
   };
-  const sourceEdit: SourceEditController = { paths: optimisticPathSet, update: updateSourceNodeValue };
+  const sourceEdit: SourceEditController = { paths: sourceEditedPaths, update: updateSourceNodeValue };
 
   async function saveNodes() {
     if (!changedNodes.length) {
@@ -629,6 +631,7 @@ function ConfigStructuredSurface({ module, file, drafts, draftHistory, setDraftV
   async function reloadStructured() {
     clearDraftScope(scope);
     setOptimisticNodes([]);
+    setSourceEditedPaths(new Set());
     setDeletedObjectPaths(new Set());
     await onRefreshRegistry();
     await source.reload(false);
@@ -656,7 +659,7 @@ function ConfigStructuredSurface({ module, file, drafts, draftHistory, setDraftV
       onRedo: () => redoDraftScope(scope),
       onReload: () => void reloadStructured(),
       onSourceChange: source.update,
-      onSave: source.dirty ? () => void source.save(async () => { clearDraftValues(scope); setOptimisticNodes([]); setDeletedObjectPaths(new Set()); await onRefreshRegistry(); await source.reload(false); }) : () => void saveNodes()
+      onSave: source.dirty ? () => void source.save(async () => { clearDraftValues(scope); setOptimisticNodes([]); setSourceEditedPaths(new Set()); setDeletedObjectPaths(new Set()); await onRefreshRegistry(); await source.reload(false); }) : () => void saveNodes()
     });
     return () => setSurfaceToolbar(null);
   }, [moduleTitle, fileTitle, file.path, changedNodes.length, drafts, savingNodes, source.content, source.dirty, source.error, source.saving, source.loading, scopeHistory.undo.length, scopeHistory.redo.length]);
@@ -682,7 +685,7 @@ function useConfigSourceDocument({ module, file, childPath, api, refreshKey, set
   const editor = file.editorId ? { id: file.editorId } : undefined;
   const adapter = getSourceDocumentAdapter(file, editor);
   const sourcePath = childPath || file.path;
-  const context = useMemo(() => ({ module, file, childPath, path: sourcePath, editor }), [module, file, childPath, sourcePath, editor?.id]);
+  const context = useMemo(() => ({ module, file, childPath, path: sourcePath, editor }), [module.id, file.id, childPath, sourcePath, editor?.id]);
 
   async function reload(announce = true) {
     if (!adapter) return;
@@ -733,7 +736,7 @@ function useConfigSourceDocument({ module, file, childPath, api, refreshKey, set
     saving,
     error,
     update: (next: string) => {
-      setContent(next);
+      setContent(current => current === next ? current : next);
       setError(null);
     },
     reload,
@@ -750,17 +753,18 @@ function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, set
   const [revision, setRevision] = useState<number | undefined>(undefined);
   const [saving, setSaving] = useState(false);
   const [optimisticNodes, setOptimisticNodes] = useState<WebConfigNode[]>([]);
+  const [sourceEditedPaths, setSourceEditedPaths] = useState<Set<string>>(() => new Set());
   const [deletedObjectPaths, setDeletedObjectPaths] = useState<Set<string>>(() => new Set());
   const fileTitle = fileDisplayTitle(file);
   const fileName = childPath.split('/').pop() ?? childPath;
   const visibleNodes = useMemo(() => mergeConfigNodes([], optimisticNodes, deletedObjectPaths), [optimisticNodes, deletedObjectPaths]);
-  const optimisticPathSet = useMemo(() => new Set(optimisticNodes.map(node => node.path)), [optimisticNodes]);
   const changedNodes = optimisticNodes.filter(n => n.type !== 'object' && draftKey(scope, n.path) in drafts && !isDeletedPath(n.path, deletedObjectPaths));
   const updateSourceNodeValue = (node: WebConfigNode, nextValue: unknown) => {
     updateConfigSourceValue(source, node.path, nextValue, setToast);
+    setSourceEditedPaths(current => new Set([...current, node.path]));
     setOptimisticNodes(current => current.map(entry => entry.path === node.path ? { ...entry, value: nextValue } : entry));
   };
-  const sourceEdit: SourceEditController = { paths: optimisticPathSet, update: updateSourceNodeValue };
+  const sourceEdit: SourceEditController = { paths: sourceEditedPaths, update: updateSourceNodeValue };
 
   async function reloadChildNodes(announce = true) {
     setLoading(true);
@@ -770,6 +774,7 @@ function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, set
       setOptimisticNodes(applyConfigNodeOverrides(module.id, refreshed.nodes));
       setRevision(refreshed.revision);
       clearDraftScope(scope);
+      setSourceEditedPaths(new Set());
       setDeletedObjectPaths(new Set());
       if (announce) setToast({ tone: 'ok', text: t('core.toast.reloaded') });
     } catch (err) {
@@ -783,6 +788,7 @@ function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, set
   async function reloadChildSurface() {
     clearDraftScope(scope);
     setDeletedObjectPaths(new Set());
+    setSourceEditedPaths(new Set());
     setOptimisticNodes([]);
     await Promise.all([reloadChildNodes(false), source.reload(false)]);
     setToast({ tone: 'ok', text: t('core.toast.reloaded') });
@@ -837,7 +843,7 @@ function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, set
       onRedo: () => redoDraftScope(scope),
       onReload: () => void reloadChildSurface(),
       onSourceChange: source.update,
-      onSave: source.dirty ? () => void source.save(async () => { clearDraftValues(scope); setDeletedObjectPaths(new Set()); setOptimisticNodes([]); await reloadChildNodes(false); }) : () => void saveChild()
+      onSave: source.dirty ? () => void source.save(async () => { clearDraftValues(scope); setDeletedObjectPaths(new Set()); setSourceEditedPaths(new Set()); setOptimisticNodes([]); await reloadChildNodes(false); }) : () => void saveChild()
     });
     return () => setSurfaceToolbar(null);
   }, [fileName, fileTitle, childPath, changedNodes.length, drafts, saving, loading, source.content, source.dirty, source.error, source.saving, source.loading, scopeHistory.undo.length, scopeHistory.redo.length, revision]);
@@ -1216,7 +1222,14 @@ function ConfigNodeView({ scope, node, drafts, setDraftValue, sourceEdit }: { sc
   const key = draftKey(scope, node.path);
   const sourceEdited = sourceEdit?.paths.has(node.path) === true;
   const value = key in drafts ? drafts[key] : node.value;
-  const setValue = (next: unknown) => sourceEdited ? sourceEdit?.update(node, next) : setDraftValue(scope, node, next);
+  const setValue = (next: unknown) => {
+    if (valuesEqual(next, node.value)) {
+      setDraftValue(scope, node, node.value);
+      return;
+    }
+    if (sourceEdited) sourceEdit?.update(node, next);
+    else setDraftValue(scope, node, next);
+  };
   const isWide = node.type === 'dynamic_map' || node.type === 'list' || node.type === 'object';
   const label = configNodeDisplayLabel(scope, node);
   return <div className={`node ${key in drafts || sourceEdited ? 'changed' : ''} ${isWide ? 'node-wide' : ''}`}><div className="node-meta"><strong>{label}</strong><code>{node.path}</code><p>{configNodeDisplayComment(scope, node)}</p></div><div className="node-control">{renderControl(node, value, setValue, label, scope.moduleId)}</div></div>;
