@@ -262,6 +262,10 @@ public final class WebConsoleService {
             WebConsoleService.this.error(exchange, status, message);
         }
 
+        private void error(int status, String message, Map<String, ?> details) throws IOException {
+            WebConsoleService.this.error(exchange, status, message, details);
+        }
+
         private void badRequest(String message) throws IOException {
             WebConsoleService.this.badRequest(exchange, message);
         }
@@ -325,6 +329,14 @@ public final class WebConsoleService {
         context.ok(Map.of("modules", moduleStatusService.modules()));
     }
 
+    private boolean requireConfigWriteAllowed(WebRequestContext context) throws IOException {
+        if (config != null && config.security() != null && config.security().allowConfigWrite()) {
+            return true;
+        }
+        context.error(403, "当前已关闭 Web 配置写入权限。", Map.of("errorType", "config_write_disabled"));
+        return false;
+    }
+
     private void handleRegistry(WebRequestContext context) throws IOException {
         context.ok(Map.of("registry", consoleRegistry.snapshot()));
     }
@@ -344,6 +356,9 @@ public final class WebConsoleService {
     }
 
     private void handleRegistrySave(WebRequestContext context) throws IOException {
+        if (!requireConfigWriteAllowed(context)) {
+            return;
+        }
         String module = context.bodyString("moduleId");
         String filePath = context.bodyString("filePath");
         String path = context.bodyString("path");
@@ -360,6 +375,9 @@ public final class WebConsoleService {
     }
 
     private void handleFileCreate(WebRequestContext context) throws IOException {
+        if (!requireConfigWriteAllowed(context)) {
+            return;
+        }
         String moduleId = context.bodyString("moduleId");
         String fileId = context.bodyString("fileId");
         String name = context.bodyString("name");
@@ -388,6 +406,9 @@ public final class WebConsoleService {
     }
 
     private void handleConfigCreate(WebRequestContext context) throws IOException {
+        if (!requireConfigWriteAllowed(context)) {
+            return;
+        }
         String moduleId = firstNonBlank(context.query("module"), context.bodyString("module"), context.bodyString("moduleId"));
         String path = firstNonBlank(context.bodyString("path"), context.query("path"));
         if (moduleId.isBlank() || path.isBlank()) {
@@ -410,6 +431,9 @@ public final class WebConsoleService {
     }
 
     private void handleFileDelete(WebRequestContext context) throws IOException {
+        if (!requireConfigWriteAllowed(context)) {
+            return;
+        }
         String moduleId = context.bodyString("moduleId");
         String fileId = context.bodyString("fileId");
         String path = context.bodyString("path");
@@ -461,6 +485,9 @@ public final class WebConsoleService {
     }
 
     private void handleConfigSave(WebRequestContext context) throws IOException {
+        if (!requireConfigWriteAllowed(context)) {
+            return;
+        }
         String module = context.bodyString("moduleId");
         String path = context.bodyString("path");
         String body = context.body();
@@ -529,6 +556,9 @@ public final class WebConsoleService {
     }
 
     private void handleScriptSave(WebRequestContext context) throws IOException {
+        if (!requireConfigWriteAllowed(context)) {
+            return;
+        }
         String path = context.bodyString("path");
         String content = context.bodyString("content");
         Long expectedRevision = context.revision();
@@ -593,6 +623,9 @@ public final class WebConsoleService {
     }
 
     private void handleYamlSave(WebRequestContext context, String kind) throws IOException {
+        if (!requireConfigWriteAllowed(context)) {
+            return;
+        }
         String module = context.bodyString("moduleId");
         String path = context.bodyString("path");
         String content = context.bodyString("content");
@@ -656,8 +689,16 @@ public final class WebConsoleService {
         try {
             Map<String, Object> preview = itemPreviewService.preview(content, previewLevel, baseName, baseLore);
             context.ok(Map.of("preview", preview));
+        } catch (WebItemPreviewService.ItemPreviewException exception) {
+            context.error(400, exception.getMessage(), Map.of(
+                    "errorType", exception.errorType(),
+                    "technicalDetails", exception.technicalDetails()
+            ));
         } catch (Exception e) {
-            context.badRequest(e.getMessage());
+            context.error(400, "物品预览失败：配置格式可能有误，请检查 name 或 lore 中的引号、冒号和 MiniMessage 标签。", Map.of(
+                    "errorType", "preview_error",
+                    "technicalDetails", e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage()
+            ));
         }
     }
 
@@ -861,6 +902,16 @@ public final class WebConsoleService {
 
     private void error(HttpExchange exchange, int status, String message) throws IOException {
         WebResponse.json(exchange, status, Map.of("success", false, "error", message == null ? "" : message));
+    }
+
+    private void error(HttpExchange exchange, int status, String message, Map<String, ?> details) throws IOException {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("success", false);
+        payload.put("error", message == null ? "" : message);
+        if (details != null) {
+            payload.putAll(details);
+        }
+        WebResponse.json(exchange, status, payload);
     }
 
     private void badRequest(HttpExchange exchange, String message) throws IOException {

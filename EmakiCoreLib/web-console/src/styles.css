@@ -381,6 +381,34 @@ textarea {
   font-size: 12px;
 }
 
+.ui-inline-error p {
+  margin: 4px 0 0;
+  color: var(--muted);
+}
+
+.ui-inline-error details {
+  margin-top: 6px;
+  color: var(--muted);
+}
+
+.ui-inline-error summary {
+  cursor: pointer;
+  color: var(--red);
+}
+
+.ui-inline-error pre {
+  margin: 6px 0 0;
+  padding: 8px;
+  overflow: auto;
+  border: 1px solid var(--danger-line);
+  border-radius: 6px;
+  background: var(--danger-soft);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 11px;
+  white-space: pre-wrap;
+}
+
 .ui-toast {
   position: fixed;
   top: 18px;
@@ -795,6 +823,24 @@ textarea {
   color: var(--muted);
 }
 
+.tree-file.glob-node,
+.tree-child.glob-node {
+  cursor: default;
+  color: var(--muted);
+}
+
+.tree-file.glob-node:hover,
+.tree-child.glob-node:hover {
+  background: var(--surface);
+  color: var(--muted);
+}
+
+.tree-file:disabled,
+.tree-child:disabled {
+  cursor: default;
+  opacity: .7;
+}
+
 .tree-file:active {
   transform: scale(0.96);
 }
@@ -813,6 +859,15 @@ textarea {
 .tree-empty {
   color: var(--faint);
   padding: 8px;
+}
+
+.tree-empty-search {
+  margin: 8px;
+  border: 1px dashed var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--muted);
+  line-height: 1.45;
 }
 
 .tree-file-folder {
@@ -2552,6 +2607,11 @@ textarea {
   font-size: 12px;
 }
 
+.login-notice {
+  color: var(--green);
+  font-size: 12px;
+}
+
 @media (max-width: 900px) {
   .workbench {
     grid-template-columns: 1fr;
@@ -4027,6 +4087,16 @@ textarea {
   border-color: var(--danger-line);
   color: var(--red);
   background: var(--danger-soft);
+}
+
+.ie-preview-error {
+  grid-column: 1 / -1;
+  align-self: stretch;
+  border: 1px solid var(--danger-line);
+  border-radius: 6px;
+  background: var(--danger-soft);
+  padding: 8px;
+  line-height: 1.45;
 }
 
 .ie-level-panel {

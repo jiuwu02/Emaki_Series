@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import type { ApiClient, ActionTypesResult } from './api';
+import { ApiError, type ApiClient, type ActionTypesResult } from './api';
 import { ActionsEditor, Button, CollapsibleSection, DisclosureChevron, EditorChrome, InlineError, MiniText, PropRow as BasePropRow, SectionHead, StringListEditor, ToastNotice, parseActionList, serializeActionList } from './components';
 import { asList, asRecord, asStringList, displaySource, firstItemSource, materialFromItemSource, setDeepValue, parseYaml, type AnyMap } from './itemEditor';
 import { t, getLocale } from './i18n';
@@ -13,6 +13,7 @@ import type { ItemPreviewResult, ItemPreviewStep, WebEditorDescriptor, WebEditor
 import { serializeItemYaml } from './itemEditor';
 
 type Props = { module: WebRegistryModule; file: WebRegistryFile; api: ApiClient; childPath?: string; refreshKey?: number; editor?: WebEditorDescriptor; onReload?: () => void; setToolbar?: (state: SurfaceToolbarState | null) => void; showLocalChrome?: boolean };
+type PreviewError = { message: string; detail?: string };
 type SnapshotHistory = { undo: AnyMap[]; redo: AnyMap[] };
 const DEFAULT_BASE_NAME = t('core.item.defaultBaseName');
 const DEFAULT_BASE_LORE = t('core.item.defaultBaseLore');
@@ -32,7 +33,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
   const [preview, setPreview] = useState<ItemPreviewResult | null>(null);
   const [previewLevel, setPreviewLevel] = useState(1);
   const [previewPending, setPreviewPending] = useState(false);
-  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [previewError, setPreviewError] = useState<PreviewError | null>(null);
   const previewRequestId = useRef(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -123,8 +124,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
         })
         .catch(err => {
           if (!active || previewRequestId.current !== requestId) return;
-          const message = err instanceof Error ? err.message : t('core.item.preview.failedRequest');
-          setPreviewError(message);
+          setPreviewError(previewErrorFromUnknown(err));
           setPreview(localItemPreview(module.id, editor?.id, file.kind, data, requestedLevel, baseName, previewBaseLore));
         })
         .finally(() => {
@@ -606,7 +606,7 @@ function localItemPreview(moduleId: string, editorId: string | undefined, kind: 
   };
 }
 
-function GenericPreviewPane({ moduleId, editor, data, preview, previewPending, previewError, previewLevel, setPreviewLevel, baseName, baseLore }: { moduleId: string; editor?: WebEditorDescriptor; data: AnyMap; preview: ItemPreviewResult | null; previewPending: boolean; previewError: string | null; previewLevel: number; setPreviewLevel: (level: number) => void; baseName: string; baseLore: string[] }) {
+function GenericPreviewPane({ moduleId, editor, data, preview, previewPending, previewError, previewLevel, setPreviewLevel, baseName, baseLore }: { moduleId: string; editor?: WebEditorDescriptor; data: AnyMap; preview: ItemPreviewResult | null; previewPending: boolean; previewError: PreviewError | null; previewLevel: number; setPreviewLevel: (level: number) => void; baseName: string; baseLore: string[] }) {
   const source = firstItemSource(data.item_sources ?? asRecord(data.match).item_sources ?? preview?.material);
   const material = materialFromItemSource(source || data.material || preview?.material);
   const levels = configuredPreviewLevels(data, preview);
@@ -621,7 +621,7 @@ function GenericPreviewPane({ moduleId, editor, data, preview, previewPending, p
   const originalLore = previewStringList(livePreview?.baseLore, resolvePreviewBaseLore(data, baseLore));
   const resultName = textValue(livePreview?.displayName);
   const resultLore = livePreview ? asStringList(livePreview.lore) : [];
-  const status = previewStatus(livePreview, previewPending);
+  const status = previewError ? { tone: 'failed' as const, text: t('core.item.preview.failedTitle') } : previewStatus(livePreview, previewPending);
   const previewOptions = asRecord(editor?.preview);
   useEffect(() => setImgFailed(false), [material]);
   useEffect(() => subscribeTextureBases(() => { setImgFailed(false); refreshTextureOrder((version) => version + 1); }), []);
@@ -635,8 +635,16 @@ function GenericPreviewPane({ moduleId, editor, data, preview, previewPending, p
         <span className="ie-preview-kind">{previewKindLabel(livePreview, moduleId, editor)}</span>
         {Boolean(livePreview?.id || data.id) && <code className="ie-preview-id">{textValue(livePreview?.id ?? data.id)}</code>}
         <span className="ie-preview-source">{displaySource(source || material)}</span>
-        <span className={`ie-preview-status ${status.tone}`}>{previewError ?? status.text}</span>
+        <span className={`ie-preview-status ${status.tone}`}>{status.text}</span>
       </div>
+      {previewError && <InlineError className="ie-preview-error">
+        <strong>{previewError.message}</strong>
+        <p>{t('core.item.preview.formatHint')}</p>
+        {previewError.detail && <details>
+          <summary>{t('core.item.preview.technicalDetails')}</summary>
+          <pre>{previewError.detail}</pre>
+        </details>}
+      </InlineError>}
       {hasLevels && <div className="ie-level-panel">
         <div className="ie-level-head"><span>{t('core.item.preview.levelTitle')}</span><code>{t('core.item.preview.upgradeLevel', { level: previewLevel })}</code></div>
         <div className="ie-level-rail">
@@ -679,6 +687,18 @@ function previewStatus(preview: ItemPreviewResult | null, pending: boolean): { t
   if (pending) return { tone: 'syncing', text: t('core.item.previewStatus.syncing') };
   if (preview) return { tone: 'live', text: t('core.item.previewStatus.live') };
   return { tone: 'failed', text: t('core.item.previewStatus.failed') };
+}
+
+function previewErrorFromUnknown(error: unknown): PreviewError {
+  if (error instanceof ApiError) {
+    const detail = error.technicalDetails || error.message;
+    if (error.errorType === 'yaml_parse_error') return { message: t('core.item.preview.yamlFailed'), detail };
+    if (error.errorType === 'lore_type_error') return { message: t('core.item.preview.loreLineInvalid'), detail };
+    if (error.errorType === 'preview_error') return { message: t('core.item.preview.failedTitle'), detail };
+    return { message: error.message || t('core.item.preview.failedRequest'), detail };
+  }
+  if (error instanceof Error) return { message: error.message || t('core.item.preview.failedRequest') };
+  return { message: t('core.item.preview.failedRequest') };
 }
 
 function previewKindLabel(preview: ItemPreviewResult | null, moduleId: string, editor?: WebEditorDescriptor): string {

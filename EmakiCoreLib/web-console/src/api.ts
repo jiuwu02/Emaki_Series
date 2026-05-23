@@ -10,6 +10,22 @@ export type TextDocumentTarget = { kind: TextDocumentKind; moduleId?: string; pa
 export type TextDocument = { moduleId?: string; path: string; content: string; revision?: number };
 export type FrontendErrorReport = { message: string; source: string; detail?: string; stack?: string; url?: string };
 
+export class ApiError extends Error {
+  readonly status: number;
+  readonly errorType?: string;
+  readonly technicalDetails?: string;
+  readonly data: any;
+
+  constructor(message: string, status: number, data: any = {}) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.data = data;
+    this.errorType = typeof data?.errorType === 'string' ? data.errorType : undefined;
+    this.technicalDetails = typeof data?.technicalDetails === 'string' ? data.technicalDetails : undefined;
+  }
+}
+
 export class ApiClient {
   private actionTypesCache: ActionTypesResult | null = null;
   private economyProvidersCache: EconomyProvidersResult | null = null;
@@ -45,7 +61,7 @@ export class ApiClient {
     });
     const data = await parseResponseJson(response);
     if (!response.ok || !data.success) {
-      throw new Error(readApiError(response, data, t('core.login.failed')));
+      throw createApiError(response, data, t('core.login.failed'));
     }
     return data;
   }
@@ -231,10 +247,10 @@ export class ApiClient {
     const data = await parseResponseJson(response);
     if (response.status === 401) {
       this.onUnauthorized();
-      throw new Error(t('core.api.unauthorized'));
+      throw createApiError(response, data, t('core.api.unauthorized'));
     }
     if (!response.ok || !data.success) {
-      throw new Error(readApiError(response, data));
+      throw createApiError(response, data);
     }
     return data;
   }
@@ -269,7 +285,12 @@ function trimLogText(value: unknown, maxLength: number): string {
   return text.length > maxLength ? `${text.slice(0, maxLength)}…` : text;
 }
 
+function createApiError(response: Response, data: any, fallback = t('core.api.requestFailed')): ApiError {
+  return new ApiError(readApiError(response, data, fallback), response.status, data);
+}
+
 function readApiError(response: Response, data: any, fallback = t('core.api.requestFailed')): string {
+  if (data?.errorType === 'config_write_disabled') return t('core.api.configWriteDisabled');
   if (typeof data?.error === 'string' && data.error.trim()) return data.error;
   if (typeof data?.message === 'string' && data.message.trim()) return data.message;
   if (response.status === 403) return t('core.api.forbidden');

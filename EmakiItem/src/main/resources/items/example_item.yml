@@ -39,15 +39,15 @@ update:
 # display_name: 物品显示名称（支持 MiniMessage 格式和 {变量} 占位符）
 # item_name: 原版 item_name 组件（不支持变量，用于物品堆叠判断）
 # lore: 物品描述（支持 MiniMessage 格式和 {变量} 占位符）
-display_name: "<gold>示例之刃</gold>"
+display_name: '<gold>示例之刃</gold>'
 item_name: "示例之刃"
 lore:
-  - "<gray>一把用于演示的钻石剑</gray>"
-  - ""
-  - "<yellow>物理攻击: <white>+{physical_attack}</white></yellow>"
-  - "<yellow>暴击率: <white>+{physical_crit_rate}%</white></yellow>"
-  - ""
-  - "<dark_gray>品质: 示例</dark_gray>"
+  - '<gray>一把用于演示的钻石剑</gray>'
+  - ''
+  - '<yellow>物理攻击: <white>+{physical_attack}</white></yellow>'
+  - '<yellow>暴击率: <white>+{physical_crit_rate}%</white></yellow>'
+  - ''
+  - '<dark_gray>品质: 示例</dark_gray>'
 
 # ============================================================
 # 物品效果
@@ -155,7 +155,7 @@ conditions:
   type: "all_of"
   required_count: 2
   invalid_as_failure: true
-  deny_message: "<red>你不满足装备条件！</red>"
+  deny_message: '<red>你不满足装备条件！</red>'
   deny_actions:
     - 'sendmessage text="<red>需要等级 10 以上的战士才能装备此武器。</red>"'
 
@@ -183,12 +183,12 @@ repair:
         currency_id: ""
         base_cost: 100
         cost_formula: "{base_cost} * {damage_percent}"
-        display_name: "<gold>金币</gold>"
+        display_name: '<gold>金币</gold>'
   disabled_display:
-    name_prefix: "<dark_gray>[已损坏] </dark_gray>"
+    name_prefix: '<dark_gray>[已损坏] </dark_gray>'
     lore_append:
-      - ""
-      - "<red>此物品已损坏，属性不生效</red>"
+      - ''
+      - '<red>此物品已损坏，属性不生效</red>'
   on_disabled:
     - 'sendmessage text="<red>你的武器已损坏！</red>"'
   on_repaired:

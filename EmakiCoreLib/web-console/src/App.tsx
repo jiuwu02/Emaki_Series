@@ -43,6 +43,7 @@ type ConfigSourceDocument = ReturnType<typeof useConfigSourceDocument>;
 type SourceEditController = { paths: Set<string>; update: (node: WebConfigNode, next: unknown) => void };
 
 type Toast = { tone: 'ok' | 'bad'; text: string } | null;
+type LoginNotice = 'expired' | 'signedOut' | null;
 type ColorTheme = 'dark' | 'light';
 
 const COLOR_THEMES: { id: ColorTheme; labelKey: string }[] = [
@@ -53,7 +54,7 @@ const LOCALE_LABELS: Record<string, string> = { 'zh-CN': '简体中文', zh_CN: 
 
 export default function App() {
   const [token, setToken] = useState(() => sessionStorage.getItem('emaki-web-token'));
-  const [sessionExpired, setSessionExpired] = useState(false);
+  const [loginNotice, setLoginNotice] = useState<LoginNotice>(null);
   const [registry, setRegistry] = useState<WebRegistry | null>(null);
   const [selected, setSelected] = useState<Selection | null>(null);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
@@ -72,9 +73,9 @@ export default function App() {
   const [extensionStatuses, setExtensionStatuses] = useState<WebConsoleExtensionStatus[]>([]);
   const [extensionHealth, setExtensionHealth] = useState<'idle' | 'loading' | 'ok' | 'failed'>('idle');
 
-  const expireSession = () => {
+  const clearSession = (notice: LoginNotice) => {
     sessionStorage.removeItem('emaki-web-token');
-    setSessionExpired(true);
+    setLoginNotice(notice);
     setToken(null);
     setRegistry(null);
     setSelected(null);
@@ -87,6 +88,9 @@ export default function App() {
     setI18nTarget(null);
     setToast(null);
   };
+
+  const expireSession = () => clearSession('expired');
+  const signOut = () => clearSession('signedOut');
 
   const api = useMemo(() => new ApiClient(token, expireSession), [token]);
 
@@ -343,7 +347,7 @@ export default function App() {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [selectedDraftScope, selectedScopeHistory.undo.length, selectedScopeHistory.redo.length, saving, loading]);
 
-  if (!token) return <Login sessionExpired={sessionExpired} onLogin={(t) => { sessionStorage.setItem('emaki-web-token', t); setSessionExpired(false); setToken(t); }} />;
+  if (!token) return <Login notice={loginNotice} onLogin={(t) => { sessionStorage.setItem('emaki-web-token', t); setLoginNotice(null); setToken(t); }} />;
 
   return (
     <div className="workbench" data-locale-version={localeVersion}>
@@ -378,7 +382,7 @@ export default function App() {
           onRetry={() => void loadRegistry({ clearDrafts: false, announceRefresh: false })}
         />
         <WorkspaceTree registry={registry} selected={selected} expanded={expanded} dirtyKeys={mergedDirtyKeys} setExpanded={setExpanded} onOpenI18n={setI18nTarget} onCreateFile={setCreateTarget} onDeleteFile={setDeleteTarget} onSelect={(next) => setSelected((current) => sameSelection(current, next) ? { ...next, refreshKey: (current?.refreshKey ?? 0) + 1 } : next)} />
-        <button className="rail-action quiet" onClick={expireSession}>{t('core.auth.logout')}</button>
+        <button className="rail-action quiet" onClick={signOut}>{t('core.auth.logout')}</button>
       </ResizableRail>
       <main className="stage">
         <SurfaceSummaryStrip module={selectedModule} file={selectedFile} editor={selectedEditor} toolbar={toolbar} loading={loading} />

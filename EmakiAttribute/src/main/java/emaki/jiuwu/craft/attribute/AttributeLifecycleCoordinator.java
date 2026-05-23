@@ -13,6 +13,7 @@ import java.util.function.Consumer;
 
 import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
+import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -21,7 +22,12 @@ import emaki.jiuwu.craft.attribute.bridge.MythicBridge;
 import emaki.jiuwu.craft.attribute.command.AttributeCommand;
 import emaki.jiuwu.craft.attribute.config.AttributeConfig;
 import emaki.jiuwu.craft.attribute.config.DamageCauseRule;
-import emaki.jiuwu.craft.attribute.listener.AttributeListener;
+import emaki.jiuwu.craft.attribute.listener.CombatDamageListener;
+import emaki.jiuwu.craft.attribute.listener.CombatDebugHandler;
+import emaki.jiuwu.craft.attribute.listener.CombatDebugListener;
+import emaki.jiuwu.craft.attribute.listener.InventoryInteractionListener;
+import emaki.jiuwu.craft.attribute.listener.PlayerLifecycleListener;
+import emaki.jiuwu.craft.attribute.listener.PluginIntegrationListener;
 import emaki.jiuwu.craft.attribute.loader.AttributeBalanceRegistry;
 import emaki.jiuwu.craft.attribute.loader.AttributePresetRegistry;
 import emaki.jiuwu.craft.attribute.loader.AttributeRegistry;
@@ -72,7 +78,14 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                 pdcAttributeService
         );
         EmakiAttributeBridge emakiAttributeBridge = new ServiceBackedEmakiAttributeBridge(attributeService);
-        AttributeListener listener = new AttributeListener(plugin, attributeService);
+        CombatDebugHandler combatDebugHandler = new CombatDebugHandler(attributeService);
+        List<Listener> listeners = List.of(
+                new PlayerLifecycleListener(attributeService),
+                new PluginIntegrationListener(plugin),
+                new InventoryInteractionListener(attributeService),
+                new CombatDamageListener(plugin, attributeService, combatDebugHandler),
+                new CombatDebugListener(attributeService)
+        );
         MythicBridge mythicBridge = Bukkit.getPluginManager().isPluginEnabled("MythicMobs")
                 ? new MythicBridge(plugin, attributeService)
                 : null;
@@ -90,7 +103,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                 emakiAttributeBridge,
                 pdcAttributeService,
                 attributeService,
-                listener,
+                listeners,
                 command,
                 mythicBridge
         );
@@ -106,8 +119,10 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
     }
 
     public void registerListener(EmakiAttributePlugin plugin) {
-        if (plugin.listener() != null) {
-            plugin.getServer().getPluginManager().registerEvents(plugin.listener(), plugin);
+        for (Listener listener : plugin.listeners()) {
+            if (listener != null) {
+                plugin.getServer().getPluginManager().registerEvents(listener, plugin);
+            }
         }
         if (plugin.mythicBridge() != null) {
             plugin.getServer().getPluginManager().registerEvents(plugin.mythicBridge(), plugin);

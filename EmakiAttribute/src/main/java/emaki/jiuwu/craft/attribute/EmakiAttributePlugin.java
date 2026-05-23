@@ -7,6 +7,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 import org.bukkit.Bukkit;
+import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.ServicePriority;
@@ -20,7 +21,6 @@ import emaki.jiuwu.craft.attribute.bridge.MmoItemsBridge;
 import emaki.jiuwu.craft.attribute.bridge.MythicBridge;
 import emaki.jiuwu.craft.attribute.command.AttributeCommand;
 import emaki.jiuwu.craft.attribute.config.AttributeConfig;
-import emaki.jiuwu.craft.attribute.listener.AttributeListener;
 import emaki.jiuwu.craft.attribute.loader.AttributeBalanceRegistry;
 import emaki.jiuwu.craft.attribute.loader.AttributePresetRegistry;
 import emaki.jiuwu.craft.attribute.loader.AttributeRegistry;
@@ -72,7 +72,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
     private EmakiAttributeBridge emakiAttributeBridge;
     private PdcAttributeApi pdcAttributeApi;
     private AttributeService attributeService;
-    private AttributeListener listener;
+    private List<Listener> listeners = List.of();
     private AttributeCommand command;
     private MythicBridge mythicBridge;
     private MmoItemsBridge mmoItemsBridge;
@@ -179,7 +179,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         emakiAttributeBridge = components.emakiAttributeBridge();
         pdcAttributeApi = components.pdcAttributeApi();
         attributeService = components.attributeService();
-        listener = components.listener();
+        listeners = components.listeners();
         command = components.command();
         mythicBridge = components.mythicBridge();
         initDebugLogger();
@@ -270,8 +270,8 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         return attributeService;
     }
 
-    public AttributeListener listener() {
-        return listener;
+    public List<Listener> listeners() {
+        return listeners;
     }
 
     public AttributeCommand command() {

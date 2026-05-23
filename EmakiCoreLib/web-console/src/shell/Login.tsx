@@ -3,7 +3,9 @@ import { ApiClient } from '../api';
 import { t } from '../i18n';
 import { Button, InlineError } from '../components';
 
-export function Login({ onLogin, sessionExpired }: { onLogin: (token: string) => void; sessionExpired?: boolean }) {
+export type LoginNotice = 'expired' | 'signedOut' | null;
+
+export function Login({ onLogin, notice }: { onLogin: (token: string) => void; notice?: LoginNotice }) {
   const [username, setUsername] = useState('EmakiAdmin');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -27,7 +29,8 @@ export function Login({ onLogin, sessionExpired }: { onLogin: (token: string) =>
           <label>{t('core.login.username')}<input value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" /></label>
           <label>{t('core.login.password')}<input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" /></label>
           {error && <InlineError>{error}</InlineError>}
-          {!error && sessionExpired && <InlineError>{t('core.login.sessionExpired')}</InlineError>}
+          {!error && notice === 'expired' && <InlineError>{t('core.login.sessionExpired')}</InlineError>}
+          {!error && notice === 'signedOut' && <div className="login-notice" role="status">{t('core.login.signedOut')}</div>}
           <Button type="submit" variant="primary" disabled={busy || !username.trim() || !password}>{busy ? t('core.login.busy') : t('core.login.submit')}</Button>
         </form>
       </section>

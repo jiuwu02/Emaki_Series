@@ -1,11 +1,13 @@
 package emaki.jiuwu.craft.attribute;
 
+import java.util.List;
 import java.util.Map;
+
+import org.bukkit.event.Listener;
 
 import emaki.jiuwu.craft.attribute.api.PdcAttributeApi;
 import emaki.jiuwu.craft.attribute.bridge.MythicBridge;
 import emaki.jiuwu.craft.attribute.command.AttributeCommand;
-import emaki.jiuwu.craft.attribute.listener.AttributeListener;
 import emaki.jiuwu.craft.attribute.loader.AttributeBalanceRegistry;
 import emaki.jiuwu.craft.attribute.loader.AttributePresetRegistry;
 import emaki.jiuwu.craft.attribute.loader.AttributeRegistry;
@@ -31,7 +33,7 @@ record AttributeRuntimeComponents(AttributeRegistry attributeRegistry,
         EmakiAttributeBridge emakiAttributeBridge,
         PdcAttributeApi pdcAttributeApi,
         AttributeService attributeService,
-        AttributeListener listener,
+        List<Listener> listeners,
         AttributeCommand command,
         MythicBridge mythicBridge) implements RuntimeComponents {
 
@@ -51,7 +53,6 @@ record AttributeRuntimeComponents(AttributeRegistry attributeRegistry,
                 RuntimeComponents.component(PdcAttributeApi.class, pdcAttributeApi),
                 RuntimeComponents.component(emaki.jiuwu.craft.corelib.api.integration.PdcAttributeApi.class, pdcAttributeApi),
                 RuntimeComponents.component(AttributeService.class, attributeService),
-                RuntimeComponents.component(AttributeListener.class, listener),
                 RuntimeComponents.component(AttributeCommand.class, command),
                 RuntimeComponents.component(MythicBridge.class, mythicBridge)
         );

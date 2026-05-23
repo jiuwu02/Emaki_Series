@@ -16,6 +16,7 @@ import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
+import emaki.jiuwu.craft.corelib.yaml.YamlLoadException;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
 final class WebItemPreviewService {
@@ -34,8 +35,15 @@ final class WebItemPreviewService {
     }
 
     Map<String, Object> preview(String content, int previewLevel, String baseName, List<String> baseLore) {
-        YamlSection yaml = YamlFiles.load(content == null ? "" : content);
-        Map<String, Object> data = ConfigNodes.entries(yaml);
+        Map<String, Object> data;
+        try {
+            YamlSection yaml = YamlFiles.load(content == null ? "" : content);
+            data = ConfigNodes.entries(yaml);
+        } catch (YamlLoadException exception) {
+            throw ItemPreviewException.yaml(exception);
+        } catch (RuntimeException exception) {
+            throw ItemPreviewException.yaml(exception);
+        }
         String kind = inferKind(data);
         return switch (kind) {
             case "gem" -> previewGem(data, previewLevel, baseName, baseLore);
@@ -61,7 +69,7 @@ final class WebItemPreviewService {
         Object loreActions = sectionActions(effectiveData, "lore_action", "lore_actions");
         String initialName = Texts.isBlank(baseName) ? Texts.toStringSafe(variables.get("display_name")) : baseName;
         List<String> initialLore = baseLore == null || baseLore.isEmpty()
-                ? ConfigNodes.asObjectList(data.get("lore")).stream().map(Texts::toStringSafe).toList()
+                ? stringLines(data.get("lore"), "lore")
                 : List.copyOf(baseLore);
         PreviewText previewText = applyOperations(initialName, initialLore, nameActions, loreActions, variables);
 
@@ -91,7 +99,10 @@ final class WebItemPreviewService {
         List<String> initialLore = baseLore == null || baseLore.isEmpty()
                 ? new ArrayList<>(List.of("<gray>原始装备 Lore</gray>"))
                 : List.copyOf(baseLore);
-        PreviewText previewText = applyOperations(initialName, initialLore, data.get("name_actions"), data.get("lore_actions"), variables);
+        Map<String, Object> obtain = ConfigNodes.entries(data.get("obtain"));
+        Object nameActions = firstNonNull(data.get("name_actions"), obtain.get("name_actions"));
+        Object loreActions = firstNonNull(data.get("lore_actions"), obtain.get("lore_actions"));
+        PreviewText previewText = applyOperations(initialName, initialLore, nameActions, loreActions, variables);
 
         Map<String, Object> result = baseResult("gem_socket_item", data, previewText, variables);
         Map<String, Object> match = ConfigNodes.entries(ConfigNodes.get(data, "match"));
@@ -110,7 +121,7 @@ final class WebItemPreviewService {
         Map<String, Object> variables = resolveVariables(extractVariables(data), Map.of());
         String initialName = Texts.isBlank(baseName) ? firstText(data.get("display_name"), data.get("item_name"), data.get("id")) : baseName;
         List<String> initialLore = baseLore == null || baseLore.isEmpty()
-                ? ConfigNodes.asObjectList(data.get("lore")).stream().map(Texts::toStringSafe).toList()
+                ? stringLines(data.get("lore"), "lore")
                 : List.copyOf(baseLore);
         PreviewText previewText = applyOperations(initialName, initialLore, data.get("name_actions"), data.get("lore_actions"), variables);
         Map<String, Object> result = baseResult("generic_item", data, previewText, variables);
@@ -134,6 +145,7 @@ final class WebItemPreviewService {
     }
 
     private PreviewText applyOperations(String baseName, List<String> baseLore, Object nameActions, Object loreActions, Map<String, Object> variables) {
+        validateLoreActionContent(loreActions);
         String safeBaseName = Texts.toStringSafe(baseName);
         List<String> safeLore = new ArrayList<>(baseLore == null ? List.of() : baseLore);
         List<Map<String, Object>> nameSteps = new ArrayList<>();
@@ -361,6 +373,33 @@ final class WebItemPreviewService {
         return builder.toString();
     }
 
+    private void validateLoreActionContent(Object loreActions) {
+        int operationIndex = 1;
+        for (Map<String, Object> operation : templateRenderer.normalizeOperations(loreActions)) {
+            if (operation.containsKey("content")) {
+                stringLines(operation.get("content"), "lore_actions 第 " + operationIndex + " 项的 content");
+            }
+            operationIndex++;
+        }
+    }
+
+    private static List<String> stringLines(Object raw, String label) {
+        if (raw == null) {
+            return List.of();
+        }
+        List<String> result = new ArrayList<>();
+        int line = 1;
+        for (Object entry : ConfigNodes.asObjectList(raw)) {
+            if (entry instanceof String text) {
+                result.add(text);
+            } else {
+                throw ItemPreviewException.loreType(label, line, entry);
+            }
+            line++;
+        }
+        return List.copyOf(result);
+    }
+
     private String materialFromItemSources(Object raw) {
         for (Object entry : ConfigNodes.asObjectList(raw)) {
             String text = Texts.toStringSafe(entry).trim();
@@ -408,6 +447,61 @@ final class WebItemPreviewService {
         }
         String text = Texts.toStringSafe(value).trim();
         return "true".equalsIgnoreCase(text) || "yes".equalsIgnoreCase(text) || "1".equals(text) || "on".equalsIgnoreCase(text);
+    }
+
+    static final class ItemPreviewException extends RuntimeException {
+        private final String errorType;
+        private final String technicalDetails;
+
+        private ItemPreviewException(String errorType, String message, String technicalDetails, Throwable cause) {
+            super(message, cause);
+            this.errorType = errorType;
+            this.technicalDetails = technicalDetails == null ? "" : technicalDetails;
+        }
+
+        static ItemPreviewException yaml(Throwable cause) {
+            return new ItemPreviewException(
+                    "yaml_parse_error",
+                    "物品预览失败：配置格式可能有误，请检查 name 或 lore 中的引号、冒号和 MiniMessage 标签。",
+                    safeMessage(cause),
+                    cause
+            );
+        }
+
+        static ItemPreviewException loreType(String label, int line, Object raw) {
+            String location = label == null || label.isBlank() ? "lore" : label;
+            String rawType = raw == null ? "null" : raw.getClass().getSimpleName();
+            String rawValue = Texts.toStringSafe(ConfigNodes.toPlainData(raw));
+            return new ItemPreviewException(
+                    "lore_type_error",
+                    "物品预览失败：" + location + " 第 " + line + " 行不是文本。请用引号包裹包含冒号、引号或 MiniMessage 标签的内容。",
+                    "Expected string at " + location + " line " + line + ", got " + rawType + ": " + rawValue,
+                    null
+            );
+        }
+
+        String errorType() {
+            return errorType;
+        }
+
+        String technicalDetails() {
+            return technicalDetails;
+        }
+
+        private static String safeMessage(Throwable throwable) {
+            if (throwable == null) {
+                return "unknown error";
+            }
+            String message = throwable.getMessage();
+            if (Texts.isNotBlank(message)) {
+                return message;
+            }
+            Throwable cause = throwable.getCause();
+            if (cause != null && Texts.isNotBlank(cause.getMessage())) {
+                return cause.getMessage();
+            }
+            return throwable.getClass().getSimpleName();
+        }
     }
 
     private record PreviewText(String baseName,

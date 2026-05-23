@@ -36,11 +36,10 @@ export function WorkspaceTree({ registry, selected, expanded, dirtyKeys = new Se
       <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t('core.tree.search')} />
     </label>
     <div ref={treeRef} className="tree" role="tree" aria-label={t('core.tree.aria')} onKeyDown={(event) => handleTreeKeyDown(event, treeRef.current, openNode, closeNode)}>
-      {visibleRoots.map((node) => (
+      {visibleRoots.length > 0 ? visibleRoots.map((node) => (
         <TreeNodeView key={node.id} node={node} selected={selected} expanded={expanded} dirtyKeys={dirtyKeys} queryActive={Boolean(normalizedQuery)} toggle={toggle} onSelect={onSelect} onOpenI18n={onOpenI18n} onCreateFile={onCreateFile} onDeleteFile={onDeleteFile} level={0} />
-      ))}
+      )) : normalizedQuery ? <div className="tree-empty tree-empty-search" role="status">{t('core.tree.noResults')}</div> : null}
     </div>
-    {normalizedQuery && visibleRoots.length === 0 && <div className="tree-empty" role="status">{t('core.tree.noResults')}</div>}
   </>;
 }
 
@@ -62,7 +61,8 @@ function TreeNodeView({ node, selected, expanded, dirtyKeys, queryActive, toggle
   const isModule = node.type === 'module';
   const isOpen = queryActive ? true : (expanded[node.id] ?? isModule);
   const kindLabel = fileKindLabel(node.kind ?? node.type);
-  const active = Boolean(node.moduleId && node.fileId && selected?.moduleId === node.moduleId && selected.fileId === node.fileId && (selected.scriptPath ?? '') === (node.childPath ?? ''));
+  const isGlob = isGlobTreeNode(node);
+  const active = Boolean(node.moduleId && node.fileId && !isGlob && selected?.moduleId === node.moduleId && selected.fileId === node.fileId && (selected.scriptPath ?? '') === (node.childPath ?? ''));
   const dirty = isNodeDirty(node, dirtyKeys) || children.some(child => isNodeOrDescendantDirty(child, dirtyKeys));
   const displayLabel = treeNodeDisplayLabel(node);
   const displayComment = treeNodeDisplayComment(node);
@@ -96,18 +96,19 @@ function TreeNodeView({ node, selected, expanded, dirtyKeys, queryActive, toggle
       <div className="tree-file-folder" role="none">
         <div className="tree-file-row" style={indentStyle(level)}>
           <button
-            className={`tree-file folder-toggle ${active ? 'active' : ''} ${dirty ? 'dirty' : ''}`}
+            className={`tree-file folder-toggle ${isGlob ? 'glob-node' : ''} ${active ? 'active' : ''} ${dirty ? 'dirty' : ''}`}
             role="treeitem"
             aria-level={level + 1}
             aria-expanded={isOpen}
             aria-selected={active || undefined}
-            aria-label={`${displayLabel}，${kindLabel}${displayComment ? `，${displayComment}` : ''}${dirty ? `，${t('core.tree.dirty')}` : ''}`}
+            aria-label={`${displayLabel}，${kindLabel}${displayComment ? `，${displayComment}` : ''}${isGlob ? `，${t('core.tree.globHint')}` : ''}${dirty ? `，${t('core.tree.dirty')}` : ''}`}
+            title={isGlob ? t('core.tree.globHint') : undefined}
             data-tree-node-id={node.id}
             onClick={() => toggle(node.id)}
           >
             <DisclosureChevron open={isOpen} className="folder-arrow" /><span className="tree-label">{displayLabel}</span><DirtyDot dirty={dirty} />
           </button>
-          {onCreateFile && <button type="button" className="tree-file-action" title={t('core.tree.createFile')} aria-label={t('core.tree.createFile')} onClick={(event) => { event.stopPropagation(); onCreateFile(node); }}>+</button>}
+          {onCreateFile && !isGlob && <button type="button" className="tree-file-action" title={t('core.tree.createFile')} aria-label={t('core.tree.createFile')} onClick={(event) => { event.stopPropagation(); onCreateFile(node); }}>+</button>}
         </div>
         {isOpen && (
           <div className="tree-children" role="group">
@@ -120,16 +121,17 @@ function TreeNodeView({ node, selected, expanded, dirtyKeys, queryActive, toggle
     );
   }
 
-  const canSelect = Boolean(node.moduleId && node.fileId);
+  const canSelect = Boolean(node.moduleId && node.fileId && !isGlob);
   const rowClass = level > 1 ? 'tree-child-row' : 'tree-file-row';
   return (
     <div className={rowClass} role="none" style={indentStyle(level)}>
       <button
-        className={level > 1 ? `tree-child ${active ? 'active' : ''} ${dirty ? 'dirty' : ''}` : `tree-file ${active ? 'active' : ''} ${dirty ? 'dirty' : ''}`}
+        className={level > 1 ? `tree-child ${isGlob ? 'glob-node' : ''} ${active ? 'active' : ''} ${dirty ? 'dirty' : ''}` : `tree-file ${isGlob ? 'glob-node' : ''} ${active ? 'active' : ''} ${dirty ? 'dirty' : ''}`}
         role="treeitem"
         aria-level={level + 1}
         aria-selected={active}
-        aria-label={`${displayLabel}，${kindLabel}${displayComment ? `，${displayComment}` : ''}${dirty ? `，${t('core.tree.dirty')}` : ''}`}
+        aria-label={`${displayLabel}，${kindLabel}${displayComment ? `，${displayComment}` : ''}${isGlob ? `，${t('core.tree.globHint')}` : ''}${dirty ? `，${t('core.tree.dirty')}` : ''}`}
+        title={isGlob ? t('core.tree.globHint') : undefined}
         data-tree-node-id={node.id}
         onClick={() => {
           if (!canSelect || !node.moduleId || !node.fileId) return;
@@ -245,6 +247,10 @@ function filterTree(nodes: RegistryTreeNode[], query: string): RegistryTreeNode[
 function matchesNode(node: RegistryTreeNode, query: string): boolean {
   const haystack = [treeNodeDisplayLabel(node), treeNodeDisplayComment(node), node.path, node.childPath, node.kind, node.type, node.moduleId].map(value => String(value ?? '').toLowerCase()).join(' ');
   return haystack.includes(query);
+}
+
+function isGlobTreeNode(node: RegistryTreeNode): boolean {
+  return /[*?]/.test(String(node.childPath ?? node.path ?? ''));
 }
 
 function normalizeQuery(value: string): string {
