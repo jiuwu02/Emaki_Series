@@ -25,10 +25,14 @@ const recipeFields: ConfigMetaFieldEntry[] = [
   ['economy.enabled', '启用经济', '是否启用该配方的经济消耗。', 'boolean'],
   ['economy.currencies', '货币消耗', '强化消耗的货币列表。', 'objectList'],
   ['limits', '限制', '强化等级、星级或次数限制。', 'object'],
+  ['limits.max_star', '最大星级', '该配方允许强化到的最高星级。', 'number'],
+  ['limits.max_temper', '最大锻印', '失败累积锻印的最大等级。', 'number'],
+  ['limits.temper_chance_bonus_per_level', '锻印成功率加成', '每级锻印提供的成功率加成百分比。', 'number'],
+  ['limits.success_chance_cap', '成功率上限', '基础成功率和锻印加成后的最高成功率。', 'number'],
   ['success_rates', '成功率覆盖', '该配方按目标星级覆盖的成功率表。', 'object'],
   ['match', '匹配规则', '可强化物品的来源、槽位、Lore 或属性匹配规则。', 'object'],
   ['match.source_types', '来源类型', '允许匹配的物品来源类型。', 'stringList'],
-  ['match.source_ids', '来源 ID', '允许匹配的物品来源 ID。', 'stringList'],
+  ['match.source_ids', '来源 ID', '允许匹配的来源 ID。', 'stringList'],
   ['match.source_patterns', '来源模式', '允许匹配的来源通配或正则模式。', 'stringList'],
   ['match.slot_groups', '槽位组', '允许强化的装备槽位或槽位组。', 'stringList'],
   ['match.lore_contains', 'Lore 包含', '物品 Lore 需要包含的文本。', 'stringList'],
@@ -38,7 +42,8 @@ const recipeFields: ConfigMetaFieldEntry[] = [
   ['branch_tree', '分支树', '分支强化路线配置。', 'object'],
   ['condition_type', '条件逻辑', '条件表达式组合方式。', 'enum', { options: ['all_of', 'any_of'], optionLabelPrefix: 'condition_type' }],
   ['condition_required_count', '需要满足数量', 'any_of 场景下需要满足的最少条件数量。', 'number'],
-  ['name_actions', '名称动作', '强化显示名称相关动作配置。', 'object'],
+  ['name_actions', '名称动作', '强化成功后对物品显示名称执行的动作。', 'objectList'],
+  ['lore_actions', 'Lore 动作', '强化成功后对物品 Lore 执行的动作。', 'objectList'],
   ['effects', '效果', '兼容效果列表，源码读取 variables、ea_attribute、es_skill。', 'objectList']
 ];
 
@@ -135,7 +140,24 @@ registerPluginConfig({
       { path: 'type', label: '类型', comment: '源码实际解析 variables / ea_attribute / es_skill；es_skill 会从 effects 中生效。', type: 'enum', options: STRENGTHEN_EFFECT_TYPES, defaultValue: 'variables' },
       { path: 'variables', label: '变量', comment: '保真编辑变量对象；源码当前主要读取阶段顶层 variables。', type: 'json', defaultValue: {} },
       { path: 'ea_attributes', label: 'EA 属性', comment: '保真编辑属性对象；源码当前主要读取阶段顶层 ea_attributes。', type: 'json', defaultValue: {} },
-      { path: 'es_skills', label: 'ES 技能', comment: '源码会从 effects 中读取的技能 ID 列表。', type: 'stringList', defaultValue: [] }
+      { path: 'es_skills', label: 'ES 技能', comment: '源码会从 effects 中读取的技能 ID 列表。', type: 'stringList', defaultValue: [] },
+      { path: 'es_skill', label: 'ES 技能简写', comment: '单个技能 ID 简写，源码会与 es_skills 合并读取。', type: 'text', defaultValue: '' },
+      { path: 'name_actions', label: '名称动作链', comment: '保真编辑名称动作效果。', type: 'objectList', defaultValue: [] },
+      { path: 'lore_actions', label: 'Lore 动作链', comment: '保真编辑 Lore 动作效果。', type: 'objectList', defaultValue: [] }
+    ]],
+    [{ key: 'materials' }, [
+      { path: 'item_sources', label: '物品来源', comment: '强化材料的 ItemSource 列表。', type: 'stringList', defaultValue: ['minecraft-copper_ingot'] },
+      { path: 'amount', label: '数量', comment: '需要消耗的材料数量；-1 表示只检测不消耗。', type: 'number', defaultValue: 1 },
+      { path: 'optional', label: '可选', comment: '是否为可选材料。', type: 'boolean', defaultValue: false },
+      { path: 'protection', label: '保护材料', comment: '失败时提供保护效果的材料。', type: 'boolean', defaultValue: false },
+      { path: 'temper_boost', label: '锻印提升', comment: '放入后额外增加的锻印等级。', type: 'number', defaultValue: 0 }
+    ]],
+    [{ key: 'currencies' }, [
+      { path: 'provider', label: '经济提供器', comment: '经济系统提供器，例如 vault。', type: 'text', defaultValue: 'vault' },
+      { path: 'currency_id', label: '货币 ID', comment: '多货币系统的货币标识；留空使用默认货币。', type: 'text', defaultValue: '' },
+      { path: 'base_cost', label: '基础费用', comment: '强化经济消耗的基础数值。', type: 'number', defaultValue: 0 },
+      { path: 'cost_formula', label: '费用公式', comment: '根据星级等变量计算最终费用的公式。', type: 'text', defaultValue: '' },
+      { path: 'display_name', label: '显示名称', comment: '货币在提示中的显示名称。', type: 'text', defaultValue: '' }
     ]]
   ]
 });

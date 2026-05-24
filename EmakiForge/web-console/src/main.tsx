@@ -45,6 +45,55 @@ const ruleFields: Record<string, [string, string, string]> = {
   minimum: ['最低品质', '保底或条件要求的最低品质。', 'text']
 };
 
+const itemAdjustmentFields: FieldSpec[] = [
+  ['item_sources', '物品来源', '需要调整显示或匹配的 ItemSource 列表。', 'stringList'],
+  ['adjustment', '显示调整', '共享显示实体偏移、旋转和缩放。', 'object'],
+  ['adjustment.offset', '偏移', '展示实体偏移。', 'object'],
+  ['adjustment.offset.x', 'X 偏移', 'X 轴偏移。', 'number'],
+  ['adjustment.offset.y', 'Y 偏移', 'Y 轴偏移。', 'number'],
+  ['adjustment.offset.z', 'Z 偏移', 'Z 轴偏移。', 'number'],
+  ['adjustment.rotation', '旋转', '展示实体旋转。', 'object'],
+  ['adjustment.rotation.x', 'X 旋转', 'X 轴旋转角度或范围。', 'text'],
+  ['adjustment.rotation.y', 'Y 旋转', 'Y 轴旋转角度或范围。', 'text'],
+  ['adjustment.rotation.z', 'Z 旋转', 'Z 轴旋转角度或范围。', 'text'],
+  ['adjustment.scale', '缩放', '展示实体缩放，可为数字或 x/y/z 对象。', 'object'],
+  ['adjustment.scale.x', 'X 缩放', 'X 轴缩放。', 'number'],
+  ['adjustment.scale.y', 'Y 缩放', 'Y 轴缩放。', 'number'],
+  ['adjustment.scale.z', 'Z 缩放', 'Z 轴缩放。', 'number'],
+  ['stations', '工位覆盖', '按工位覆盖显示调整，例如 wok、oven、steamer。', 'object']
+];
+
+const recipeFields: FieldSpec[] = [
+  ['id', 'ID', '锻造配方唯一标识，文件加载时必填。', 'text'],
+  ['display_name', '显示名称', '配方在 GUI、日志或提示中展示的名称，支持 MiniMessage。', 'text'],
+  ['forge_capacity', '锻造容量', '所有材料 capacity_cost 总和不能超过此值。', 'number'],
+  ['optional_material_limit', '可选材料上限', '单次锻造最多允许放入的可选材料种类数量。', 'number'],
+  ['blueprint_requirements', '蓝图需求', '锻造前必须持有的图纸或前置物品列表，不作为普通材料消耗。', 'objectList'],
+  ['materials', '材料列表', '锻造材料列表；每项包含来源、数量、容量消耗、可选标记和效果。', 'objectList'],
+  ['condition_type', '条件逻辑', '配方条件表达式的组合方式。', 'enum', { options: ['all_of', 'any_of'], optionLabelPrefix: 'condition_type' }],
+  ['condition_required_count', '需要满足数量', 'any_of 条件逻辑下需要满足的最少条件数量。', 'number'],
+  ['permission', '权限', '执行该锻造配方需要的权限节点；留空表示不限制。', 'text'],
+  ['quality', '配方品质覆盖', '当前配方自己的品质开关、自定义品质池和保底设置；未填时使用全局品质规则。', 'object'],
+  ['quality.enabled', '启用品质', '此配方是否参与品质抽取。', 'boolean'],
+  ['quality.custom_pool', '自定义品质池', '此配方专属品质池；留空时使用全局 quality.tiers。', 'stringList'],
+  ['quality.guarantee', '配方保底', '此配方专属的品质保底设置。', 'object'],
+  ['quality.guarantee.enabled', '启用配方保底', '是否启用此配方专属保底。', 'boolean'],
+  ['quality.guarantee.attempts', '保底次数', '连续未达到最低品质多少次后触发保底。', 'number'],
+  ['quality.guarantee.minimum', '保底最低品质', '触发保底时至少获得的品质名称。', 'text'],
+  ['result', '锻造结果', '锻造成功后的产物、结果物品动作和提示动作。', 'object'],
+  ['result.item_sources', '结果物品来源', '锻造成功后产出的 ItemSource 列表。', 'stringList'],
+  ['result.meta_actions', '结果显示动作', '对结果物品名称和 Lore 执行的动作。', 'object'],
+  ['result.meta_actions.name_actions', '结果名称动作', '对结果物品显示名称执行的动作列表。', 'objectList'],
+  ['result.meta_actions.lore_actions', '结果 Lore 动作', '对结果物品 Lore 执行的动作列表。', 'objectList'],
+  ['result.actions', '结果动作', '锻造成功并生成结果后执行的动作列表。', 'stringList'],
+  ['actions', '流程动作', '锻造 pre、success、failure 三个阶段执行的动作。', 'object'],
+  ['actions.pre', '开始前动作', '锻造开始前执行的动作列表。', 'stringList'],
+  ['actions.success', '成功动作', '锻造成功后执行的动作列表。', 'stringList'],
+  ['actions.failure', '失败动作', '锻造失败时执行的动作列表。', 'stringList'],
+  ['success_rate', '成功率', '锻造成功概率，低于 100 时会进入失败结果流程。', 'number'],
+  ['failure_outcomes', '失败结果', '锻造失败时按权重抽取的结果方案列表。', 'objectList']
+];
+
 const localeMessages: Record<string, string> = Object.fromEntries([
   ['emakiforge.module.name', 'Forge'],
   ['emakiforge.module.summary', '品质池、保底、历史与条件'],
@@ -67,6 +116,8 @@ const localeMessages: Record<string, string> = Object.fromEntries([
   ['emakiforge.file.web-console.title', 'Web Console 声明'],
   ['emakiforge.file.web-console.comment', 'Web Console 文件注册与资源入口声明。'],
   ...fields.flatMap(([path, label, comment]) => [[`emakiforge.field.${path}`, label], [`emakiforge.comment.${path}`, comment]]),
+  ...itemAdjustmentFields.flatMap(([path, label, comment]) => [[`emakiforge.field.${path}`, label], [`emakiforge.comment.${path}`, comment]]),
+  ...recipeFields.flatMap(([path, label, comment]) => [[`emakiforge.field.${path}`, label], [`emakiforge.comment.${path}`, comment]]),
   ...Object.entries(ruleFields).flatMap(([key, [label, comment]]) => [[`emakiforge.field.${key}`, label], [`emakiforge.comment.${key}`, comment]])
 ]);
 
@@ -112,6 +163,10 @@ registerModuleLocale(MODULE, 'en-US', {
 registerPluginConfig({
   moduleId: MODULE,
   metaFields: fields,
+  fileSchemas: [
+    { pathPrefix: 'recipes/', fields: recipeFields },
+    { pathPrefix: 'item_adjustments/', fields: itemAdjustmentFields }
+  ],
   ruleFields,
   createTemplates: [
     ['quality.item_meta.tiers', {
@@ -131,11 +186,13 @@ registerPluginConfig({
       { path: 'ea_attributes', label: 'EA 属性', comment: '写入 EmakiAttribute 的属性。', type: 'json', defaultValue: {} },
       { path: 'ea_attribute_meta', label: 'EA 属性元数据', comment: 'EA 属性附加元数据。', type: 'json', defaultValue: {} },
       { path: 'es_skills', label: 'ES 技能', comment: '附加技能 ID 列表。', type: 'stringList', defaultValue: [] },
+      { path: 'es_skill', label: 'ES 技能简写', comment: '单个技能 ID 简写，源码会与 es_skills 合并读取。', type: 'text', defaultValue: '' },
       { path: 'name_actions', label: '名称动作链', comment: '对结果物品名称执行的动作。', type: 'objectList', defaultValue: [] },
       { path: 'lore_actions', label: 'Lore 动作链', comment: '对结果物品 Lore 执行的动作。', type: 'objectList', defaultValue: [] },
       { path: 'mode', label: '模式', comment: 'quality_modify 使用 force 或 minimum。', type: 'enum', options: ['force', 'minimum'], defaultValue: 'minimum' },
       { path: 'tier', label: '品质', comment: '目标品质名称。', type: 'text', defaultValue: '' },
-      { path: 'amount', label: '容量加成', comment: 'capacity_bonus 的容量加成，兼容表达式。', type: 'text', defaultValue: '1' }
+      { path: 'amount', label: '容量加成', comment: 'capacity_bonus 的容量加成，兼容表达式。', type: 'text', defaultValue: '1' },
+      { path: 'value', label: '容量值', comment: 'capacity_bonus 的旧/简写字段，源码会按 value 读取容量加成。', type: 'text', defaultValue: '1' }
     ]],
     ['quality.tiers', [
       { path: 'name', label: '品质名', comment: '品质名称，会被 default_tier、guarantee.minimum 和品质显示配置引用。', type: 'text', defaultValue: '新品质' },
@@ -148,6 +205,15 @@ registerPluginConfig({
       { path: 'capacity_cost', label: '容量消耗', comment: '此材料占用的锻造容量。', type: 'number', defaultValue: 0 },
       { path: 'effects', label: '效果', comment: '此材料提供的效果对象列表。', type: 'objectList', defaultValue: [] },
       { path: 'optional', label: '可选', comment: '是否属于可选材料。', type: 'boolean', defaultValue: false }
+    ]],
+    ['blueprint_requirements', [
+      { path: 'item_sources', label: '蓝图来源', comment: '作为锻造前置蓝图匹配条件的 ItemSource 列表。', type: 'stringList', defaultValue: ['minecraft-enchanted_book'] },
+      { path: 'amount', label: '数量', comment: '需要持有的蓝图数量。', type: 'number', defaultValue: 1 }
+    ]],
+    ['failure_outcomes', [
+      { path: 'type', label: '结果类型', comment: '失败结果类型，例如 return_materials、consume_materials、byproduct。', type: 'enum', options: ['return_materials', 'consume_materials', 'partial_consume', 'fixed_quality', 'byproduct', 'economy_penalty', 'downgrade_quality'], defaultValue: 'return_materials' },
+      { path: 'weight', label: '权重', comment: '失败时随机抽取此结果的权重。', type: 'number', defaultValue: 1 },
+      { path: 'params', label: '参数', comment: '结果类型对应参数，例如 return_rate、quality、item_sources、amount、levels。', type: 'json', defaultValue: {} }
     ]]
   ]
 });

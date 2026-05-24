@@ -100,6 +100,62 @@ const commonFields: Record<string, [string, string, string]> = {
   require_match: ['必须匹配', '是否要求正则必须命中才视为通过。', 'boolean']
 };
 
+const attributeBalanceFields: ConfigSpec[] = [
+  ['schema_version', '结构版本', '属性权重配置结构版本。', 'text'],
+  ['groups', '分组', '属性分组说明。', 'object', { creatableChildren: true }],
+  ['roles', '角色', '属性角色说明。', 'object', { creatableChildren: true }],
+  ['attributes', '属性权重', '各属性的分组、角色、摘要和战力评分系数。', 'object', { creatableChildren: true }]
+];
+
+const attributeDefinitionFields: ConfigSpec[] = [
+  ['id', 'ID', '属性定义唯一标识。', 'text'],
+  ['display_name', '显示名称', '属性展示名称。', 'text'],
+  ['description', '说明', '属性说明文本。', 'text'],
+  ['group', '分组', '属性所属功能分组。', 'text'],
+  ['role', '角色', '属性定位。', 'text'],
+  ['summary', '摘要', '属性短说明。', 'text'],
+  ['value_kind', '数值类型', '属性数值语义。', 'enum', { options: ['FLAT', 'PERCENT', 'CHANCE', 'REGEN', 'RESOURCE'], optionLabelPrefix: 'value_kind' }],
+  ['target_type', '目标类型', '属性作用目标类型。', 'enum', { options: ['GENERIC', 'VANILLA', 'RESOURCE', 'DAMAGE'], optionLabelPrefix: 'target_type' }],
+  ['target_id', '目标 ID', 'target_type 为 VANILLA、RESOURCE 或 DAMAGE 时映射的目标 ID。', 'text'],
+  ['default_value', '默认值', '属性默认基础值。', 'number'],
+  ['min_value', '最小值', '属性允许的最小值。', 'number'],
+  ['max_value', '最大值', '属性允许的最大值。', 'number'],
+  ['allow_negative', '允许负值', '是否允许该属性为负数。', 'boolean'],
+  ['priority', '优先级', '词条读取或匹配优先级。', 'number'],
+  ['lore_format_id', '词条格式', '关联 lore_formats 下的格式 ID。', 'text'],
+  ['lore_patterns', '词条正则', '从物品 Lore 中识别属性数值的正则表达式列表。', 'stringList'],
+  ['attribute_power', '属性战力', '该属性每 1 点对应的战力评分系数。', 'number']
+];
+
+const damageTypeFields: ConfigSpec[] = [
+  ['id', 'ID', '伤害类型唯一标识。', 'text'],
+  ['display_name', '显示名称', '伤害类型展示名称。', 'text'],
+  ['description', '说明', '伤害类型说明。', 'text'],
+  ['aliases', '别名', '可引用为该伤害类型的别名列表。', 'stringList'],
+  ['allowed_events', '允许事件', '允许触发该伤害类型的 Bukkit DamageCause 列表。', 'stringList'],
+  ['hard_lock', '硬锁定', '是否强制接管该伤害类型对应的原版事件。', 'boolean'],
+  ['stages', '结算阶段', '伤害结算的有序阶段列表。', 'objectList'],
+  ['recovery', '恢复规则', '造成伤害后的吸血或资源恢复规则。', 'object'],
+  ['attacker_message', '攻击者消息', '伤害结算后发送给攻击者的消息模板。', 'text'],
+  ['target_message', '受击者消息', '伤害结算后发送给受击者的消息模板。', 'text']
+];
+
+const loreFormatFields: ConfigSpec[] = [
+  ['id', 'ID', '词条格式唯一标识。', 'text'],
+  ['format', '格式模板', '词条显示格式，支持 {name}、{value}、{sign} 等占位符。', 'text'],
+  ['precision', '精度', '数值显示的小数位数。', 'number'],
+  ['read_priority', '读取优先级', '从 Lore 解析属性时的匹配优先级。', 'number'],
+  ['read_patterns', '读取正则', '从 Lore 文本中提取数值的正则表达式列表。', 'stringList']
+];
+
+const conditionFields: ConfigSpec[] = [
+  ['id', 'ID', '条件定义唯一标识。', 'text'],
+  ['source_id', '来源 ID', '条件规则来源标识，用于日志和调试追踪。', 'text'],
+  ['condition_type', '条件逻辑', '多条件组合逻辑。', 'enum', { options: ['all_of', 'any_of'], optionLabelPrefix: 'condition_type' }],
+  ['invalid_as_failure', '解析失败视为失败', '条件表达式解析失败时是否视为不通过。', 'boolean'],
+  ['conditions', '条件列表', '具体条件项列表，每项包含 type、key/pattern 和 condition 表达式。', 'objectList']
+];
+
 const damageCauseLabels: Record<string, string> = {
   KILL: '击杀', WORLD_BORDER: '世界边界', CONTACT: '接触', ENTITY_ATTACK: '实体攻击', ENTITY_SWEEP_ATTACK: '横扫攻击', PROJECTILE: '弹射物',
   SUFFOCATION: '窒息', FALL: '摔落', FIRE: '火焰', FIRE_TICK: '燃烧', MELTING: '融化', LAVA: '岩浆', DROWNING: '溺水',
@@ -139,6 +195,7 @@ registerModuleLocale(MODULE, 'zh-CN', {
   'emakiattribute.file.web-console.title': 'Web Console 声明',
   'emakiattribute.file.web-console.comment': 'Web Console 文件注册与资源入口声明。',
   ...Object.fromEntries(configFields.flatMap(([path, label, comment]) => [[`emakiattribute.field.${path}`, label], [`emakiattribute.comment.${path}`, comment]])),
+  ...Object.fromEntries([...attributeBalanceFields, ...attributeDefinitionFields, ...damageTypeFields, ...loreFormatFields, ...conditionFields].flatMap(([path, label, comment]) => [[`emakiattribute.field.${path}`, label], [`emakiattribute.comment.${path}`, comment]])),
   ...Object.fromEntries(Object.entries(commonFields).flatMap(([key, [label, comment]]) => [[`emakiattribute.field.${key}`, label], [`emakiattribute.comment.${key}`, comment]])),
   'emakiattribute.field.allowed_damage_causes.cause': '伤害来源',
   'emakiattribute.field.allowed_damage_causes.damage_type': '伤害类型',
@@ -218,6 +275,13 @@ registerModuleLocale(MODULE, 'en-US', {
 registerPluginConfig({
   moduleId: MODULE,
   metaFields: configFields,
+  fileSchemas: [
+    { pathPrefix: 'attribute_balance.yml', fields: attributeBalanceFields },
+    { pathPrefix: 'attributes/', fields: attributeDefinitionFields },
+    { pathPrefix: 'damage_types/', fields: damageTypeFields },
+    { pathPrefix: 'lore_formats/', fields: loreFormatFields },
+    { pathPrefix: 'conditions/', fields: conditionFields }
+  ],
   ruleFields: commonFields,
   rules: [
     [{ key: 'value_kind' }, { label: copy('数值类型', 'Value kind'), comment: '属性数值语义。', type: 'enum', options: ['FLAT', 'PERCENT', 'CHANCE', 'REGEN', 'RESOURCE'], optionLabelPrefix: 'value_kind' }],
@@ -270,6 +334,13 @@ registerPluginConfig({
       { path: 'max_chance', label: '概率上限', comment: '阶段触发概率的最大值。', type: 'number', defaultValue: null },
       { path: 'min_multiplier', label: '倍率下限', comment: '阶段倍率允许的最小值。', type: 'number', defaultValue: null },
       { path: 'max_multiplier', label: '倍率上限', comment: '阶段倍率允许的最大值。', type: 'number', defaultValue: null }
-    ], { uniqueBy: 'id' }]
+    ], { uniqueBy: 'id' }],
+    ['conditions', [
+      { path: 'type', label: '类型', comment: '条件类型，例如 pdc、lore 或其他扩展类型。', type: 'text', defaultValue: 'pdc' },
+      { path: 'key', label: 'PDC 键名', comment: '要匹配的 PDC 数据键名。', type: 'text', defaultValue: '' },
+      { path: 'pattern', label: '正则模式', comment: '用于从 Lore 或文本中提取数值的正则表达式。', type: 'text', defaultValue: '' },
+      { path: 'condition', label: '判定表达式', comment: '支持 {value}、{player_level}、{player_name} 等变量的判定表达式。', type: 'text', defaultValue: '' },
+      { path: 'require_match', label: '必须匹配', comment: '是否要求正则必须命中才视为通过。', type: 'boolean', defaultValue: true }
+    ]]
   ]
 });

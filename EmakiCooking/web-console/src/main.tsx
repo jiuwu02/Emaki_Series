@@ -109,6 +109,54 @@ const fields: FieldSpec[] = [
   ['stations.fermentation_barrel.require_sealed', '需要密封', '发酵桶开始或推进时是否要求处于密封状态。', 'boolean']
 ];
 
+const recipeFields: FieldSpec[] = [
+  ['id', 'ID', '烹饪配方唯一标识。', 'text'],
+  ['display_name', '显示名称', '配方在 GUI、日志或提示中的显示名称。', 'text'],
+  ['input', '单输入', '单个输入物品配置，常用于烤炉、榨汁机等工位。', 'object'],
+  ['input.item_sources', '输入来源', '可匹配该输入的 ItemSource 列表。', 'stringList'],
+  ['inputs', '多输入', '多个输入物品配置，常用于研磨、蒸制或发酵链路。', 'objectList'],
+  ['ingredients', '食材列表', '炒锅配方需要的食材记录列表，包含来源、数量和翻炒规则。', 'objectList'],
+  ['cuts_required', '切割次数', '砧板配方完成所需切割次数。', 'number'],
+  ['tool_damage', '工具损耗', '砧板切割时工具损耗值。', 'number'],
+  ['damage_override', '伤害覆盖', '砧板切割伤害覆盖。', 'object'],
+  ['damage_override.chance', '伤害概率', '切割伤害触发概率。', 'number'],
+  ['damage_override.value', '伤害值', '切割伤害数值。', 'number'],
+  ['grind_time_seconds', '研磨秒数', '研磨机完成所需时间。', 'number'],
+  ['required_steam', '所需蒸汽', '蒸锅完成所需蒸汽总量。', 'number'],
+  ['bake_time_seconds', '烘烤秒数', '烤炉基础烘烤时间。', 'number'],
+  ['baking', '烘烤控制', '烤炉完美火力、完美比例和过烤时间。', 'object'],
+  ['baking.perfect_heat.min', '完美火力下限', '烤炉完美火力范围下限。', 'number'],
+  ['baking.perfect_heat.max', '完美火力上限', '烤炉完美火力范围上限。', 'number'],
+  ['baking.perfect_required_ratio', '完美比例', '需要处于完美火力范围内的时间占比。', 'number'],
+  ['baking.overbake_seconds', '过烤秒数', '超过完成时间多少秒后视为过烤。', 'number'],
+  ['presses_required', '按压次数', '榨汁机完成所需按压次数。', 'number'],
+  ['fluid', '流体', '榨汁机产出流体配置。', 'object'],
+  ['fluid.id', '流体 ID', '流体类型标识。', 'text'],
+  ['fluid.display_name', '流体显示名', '流体展示名称。', 'text'],
+  ['fluid.amount_ml', '流体毫升', '每次配方产生的流体量。', 'number'],
+  ['container', '容器', '榨汁机收集容器配置。', 'object'],
+  ['container.item_sources', '容器来源', '可用于收集流体的容器 ItemSource。', 'stringList'],
+  ['container.serving_ml', '容器容量', '每个容器可装的流体量。', 'number'],
+  ['fermentation_time_seconds', '发酵秒数', '发酵桶完成所需时间。', 'number'],
+  ['fermentation', '发酵控制', '发酵早收和过时规则。', 'object'],
+  ['fermentation.early_collect.min_progress_ratio', '早收最小进度', '允许提前收取的最小进度比例。', 'number'],
+  ['fermentation.over_time_seconds', '过发酵秒数', '完成后超过多久进入过时处理。', 'number'],
+  ['heat_level', '火候等级', '炒锅或热源配方要求的火候等级。', 'number'],
+  ['fault_tolerance', '容错次数', '炒锅翻炒或步骤容错次数。', 'number'],
+  ['stir_total.min', '最少翻炒', '炒锅要求的最少翻炒次数。', 'number'],
+  ['stir_total.max', '最多翻炒', '炒锅允许的最多翻炒次数。', 'number'],
+  ['requires_previous_step', '前置步骤', '链式配方要求的前置步骤 ID。', 'text'],
+  ['permission', '权限', '使用此配方所需权限节点；留空表示不限制。', 'text'],
+  ['condition_type', '条件逻辑', '配方条件表达式组合方式。', 'enum', { options: ['all_of', 'any_of'], optionLabelPrefix: 'condition_type' }],
+  ['result', '结果', '配方完成后的产物与动作。', 'object'],
+  ['result.output', '单产物', '单个产物配置。', 'object'],
+  ['result.output.item_sources', '产物来源', '单产物 ItemSource 列表。', 'stringList'],
+  ['result.output.amount', '产物数量', '单产物数量。', 'number'],
+  ['result.output.actions', '产物动作', '产物生成后执行的动作。', 'stringList'],
+  ['result.outputs', '多产物', '多个产物配置列表。', 'objectList'],
+  ['result.actions', '结果动作', '配方完成后执行的动作列表。', 'stringList']
+];
+
 const fieldComments: Record<string, [string, string, string]> = {
   block_item_sources: ['方块来源', '识别为该工位本体方块的 ItemSource 列表，可使用 minecraft-/CraftEngine/ItemsAdder/Nexo 等格式。', 'list'],
   only_recipe_items: ['只允许配方物', '是否只允许能继续匹配工位配方的物品进入输入。省略时通常继承全局输入规则。', 'boolean'],
@@ -209,6 +257,7 @@ const localeMessages: Record<string, string> = Object.fromEntries([
   ['emakicooking.file.web-console.title', 'Web Console 声明'],
   ['emakicooking.file.web-console.comment', 'Web Console 文件注册与资源入口声明。'],
   ...fields.flatMap(([path, label, comment]) => [[`emakicooking.field.${path}`, label], [`emakicooking.comment.${path}`, comment]]),
+  ...recipeFields.flatMap(([path, label, comment]) => [[`emakicooking.field.${path}`, label], [`emakicooking.comment.${path}`, comment]]),
   ...Object.entries(fieldComments).flatMap(([key, [label, comment]]) => [[`emakicooking.field.${key}`, label], [`emakicooking.comment.${key}`, comment]])
 ]);
 
@@ -277,6 +326,9 @@ registerModuleLocale(MODULE, 'en-US', {
 registerPluginConfig({
   moduleId: MODULE,
   metaFields: fields,
+  fileSchemas: [
+    { pathPrefix: 'recipes/', fields: recipeFields }
+  ],
   ruleFields: fieldComments,
   rules: [
     [{ key: 'rotation_axis' }, { label: '旋转轴', comment: '旋转轴，可选 x、y、z。', type: 'enum', options: ['x', 'y', 'z'], optionLabelPrefix: 'axis' }]
@@ -286,6 +338,35 @@ registerPluginConfig({
       { path: 'item_sources', label: '食材来源', comment: '可匹配该食材的 ItemSource 列表。', type: 'stringList', defaultValue: ['minecraft-carrot'] },
       { path: 'amount', label: '数量', comment: '此食材需要的数量。', type: 'number', defaultValue: 1 },
       { path: 'stir_rule', label: '翻炒规则', comment: '炒锅配方加入时机，格式为“最早-最晚”。', type: 'text', defaultValue: '1-1' }
+    ]],
+    ['result.outputs', [
+      { path: 'item_sources', label: '产物来源', comment: '可作为产物生成的 ItemSource 列表。', type: 'stringList', defaultValue: ['minecraft-bread'] },
+      { path: 'amount', label: '数量', comment: '生成的产物数量。', type: 'number', defaultValue: 1 },
+      { path: 'chance', label: '概率', comment: '产出概率；留空时按必定产出处理。', type: 'number', defaultValue: 100 }
+    ]],
+    ['inputs', [
+      { path: 'item_sources', label: '输入来源', comment: '可匹配该输入的 ItemSource 列表。', type: 'stringList', defaultValue: ['minecraft-carrot'] },
+      { path: 'amount', label: '数量', comment: '需要投入的数量。', type: 'number', defaultValue: 1 }
+    ]],
+    ['stations.wok.heat_levels', [
+      { path: 'item_sources', label: '热源来源', comment: '匹配该火候等级的热源 ItemSource。', type: 'stringList', defaultValue: ['minecraft-campfire'] },
+      { path: 'lit_item_sources', label: '点亮来源', comment: '点亮状态下使用的热源 ItemSource。', type: 'stringList', defaultValue: [] },
+      { path: 'unlit_item_sources', label: '熄灭来源', comment: '熄灭状态下使用的热源 ItemSource。', type: 'stringList', defaultValue: [] },
+      { path: 'level', label: '火候等级', comment: '此热源提供的火候等级。', type: 'number', defaultValue: 1 }
+    ]],
+    ['stations.steamer.fuels', [
+      { path: 'item_sources', label: '燃料来源', comment: '可作为蒸锅燃料的 ItemSource 列表。', type: 'stringList', defaultValue: ['minecraft-coal'] },
+      { path: 'duration_seconds', label: '持续秒数', comment: '燃料增加的燃烧时间。', type: 'number', defaultValue: 30 }
+    ]],
+    ['stations.steamer.moisture_rules', [
+      { path: 'input_item_sources', label: '输入来源', comment: '可转化为水分的输入 ItemSource。', type: 'stringList', defaultValue: ['minecraft-water_bucket'] },
+      { path: 'output_item_sources', label: '返还来源', comment: '转化后返还的 ItemSource。', type: 'stringList', defaultValue: ['minecraft-bucket'] },
+      { path: 'moisture', label: '水分', comment: '增加的水分数值。', type: 'number', defaultValue: 100 }
+    ]],
+    ['stations.oven.fuels', [
+      { path: 'item_sources', label: '燃料来源', comment: '可作为烤炉燃料的 ItemSource 列表。', type: 'stringList', defaultValue: ['minecraft-coal'] },
+      { path: 'duration_seconds', label: '持续秒数', comment: '燃料增加的燃烧时间。', type: 'number', defaultValue: 30 },
+      { path: 'heat', label: '火力', comment: '此燃料提供的火力数值。', type: 'number', defaultValue: 20 }
     ]]
   ]
 });

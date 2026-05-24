@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ActionsEditor, PropRow, SectionHead, StringListEditor, asList, asRecord, asStringList, coreEffectTypeLabel, createCoreEffect, fieldLabel, firstItemSource, getLocale, humanizeFieldLabel, materialFromItemSource, registerConfigCreateTemplate, registerConfigMetaFields, registerConfigRuleFields, registerEditorDescriptor, registerEditorField, registerItemFieldRenderer, registerItemPreviewFallback, registerModuleLocale, registerPluginGuiEditor, serializeActionList, parseActionList, textValue, type AnyMap, type CoreEffectType, type ItemFieldRendererContext, type ItemPreviewResult } from 'emaki-web-console';
+import { ActionsEditor, PropRow, SectionHead, StringListEditor, asList, asRecord, asStringList, coreEffectTypeLabel, createCoreEffect, fieldLabel, firstItemSource, getLocale, humanizeFieldLabel, materialFromItemSource, registerConfigCreateTemplate, registerConfigMetaFields, registerConfigRuleFields, registerEditorDescriptor, registerEditorField, registerItemFieldRenderer, registerItemPreviewFallback, registerModuleLocale, registerPluginConfig, registerPluginGuiEditor, serializeActionList, parseActionList, textValue, type AnyMap, type CoreEffectType, type ItemFieldRendererContext, type ItemPreviewResult } from 'emaki-web-console';
 
 registerModuleLocale('EmakiGem', 'zh-CN', {
   'emakigem.module.name': 'Gem',
@@ -243,6 +243,30 @@ const configFields: ConfigSpec[] = [
   ['condition.invalid_as_failure', '解析失败视为失败', '条件表达式解析失败时是否视为条件不通过。', 'boolean']
 ];
 
+const conditionFields: ConfigSpec[] = [
+  ['enabled', '启用', '是否启用此条件源。', 'boolean'],
+  ['source_id', '来源 ID', '供 EmakiAttribute 或其他系统引用的条件源标识。', 'text'],
+  ['condition_type', '条件逻辑', '条件表达式组合方式。', 'enum', { options: ['all_of', 'any_of'], optionLabelPrefix: 'condition_type' }],
+  ['invalid_as_failure', '解析失败视为失败', '表达式解析失败时是否视为不满足条件。', 'boolean'],
+  ['conditions', '条件表达式', '条件表达式列表；空列表表示无额外条件，仅由代码逻辑判断。', 'stringList']
+];
+
+const resonanceFields: ConfigSpec[] = [
+  ['id', 'ID', '宝石共鸣唯一标识。', 'text'],
+  ['display_name', '显示名称', '共鸣展示名称。', 'text'],
+  ['priority', '优先级', '多个共鸣同时满足时的排序优先级。', 'number'],
+  ['exclusive_group', '互斥组', '同一互斥组内只保留一个共鸣。', 'text'],
+  ['chain', '共鸣链', '共鸣匹配模式和宝石需求列表。', 'object'],
+  ['chain.mode', '匹配模式', '共鸣链匹配模式，例如 unordered。', 'text'],
+  ['chain.pattern', '匹配条目', '共鸣要求的宝石 ID、类型和最低等级列表。', 'objectList'],
+  ['effects', '共鸣效果', '共鸣触发后的动作、EA 属性、ES 技能和显示动作。', 'object'],
+  ['effects.actions', '动作', '共鸣触发后执行的动作列表。', 'stringList'],
+  ['effects.ea_attributes', 'EA 属性', '共鸣提供的 EmakiAttribute 属性映射。', 'object'],
+  ['effects.es_skills', 'ES 技能', '共鸣提供的 EmakiSkills 技能 ID 列表。', 'stringList'],
+  ['effects.name_actions', '名称动作链', '共鸣对物品名称执行的动作。', 'objectList'],
+  ['effects.lore_actions', 'Lore 动作链', '共鸣对物品 Lore 执行的动作。', 'objectList']
+];
+
 const dynamicFields: Record<string, [string, string, string]> = {
   item_sources: ['物品来源', '识别物品、材料或开槽道具的 ItemSource 列表。', 'list'],
   name_actions: ['名称动作链', '镶嵌、开槽或品质变化后对物品名称执行的动作列表。', 'actions'],
@@ -375,6 +399,13 @@ registerModuleLocale(MODULE, 'en-US', {
 });
 
 registerConfigMetaFields(MODULE, configFields);
+registerPluginConfig({
+  moduleId: MODULE,
+  fileSchemas: [
+    { pathPrefix: 'conditions/', fields: conditionFields },
+    { pathPrefix: 'resonances/', fields: resonanceFields }
+  ]
+});
 registerConfigRuleFields(MODULE, dynamicFields);
 registerConfigCreateTemplate(MODULE, 'socket_openers', {
   id: 'socket-opener',
@@ -390,6 +421,15 @@ registerConfigCreateTemplate(MODULE, 'upgrade.global_success_rates', {
   label: copy('目标等级成功率', 'Target level success rate'),
   fields: [
     { path: 'value', label: '成功率', comment: '该目标等级的升级成功率百分比。', type: 'number', defaultValue: 100 }
+  ]
+});
+registerConfigCreateTemplate(MODULE, 'chain.pattern', {
+  id: 'resonance-pattern',
+  label: copy('共鸣匹配条目', 'Resonance pattern entry'),
+  fields: [
+    { path: 'id', label: '宝石 ID', comment: '要求的宝石 ID；留空时可按 type 匹配。', type: 'text', defaultValue: '' },
+    { path: 'type', label: '宝石类型', comment: '要求的宝石类型。', type: 'text', defaultValue: 'universal' },
+    { path: 'min_level', label: '最低等级', comment: '要求的最低宝石等级。', type: 'number', defaultValue: 0 }
   ]
 });
 
