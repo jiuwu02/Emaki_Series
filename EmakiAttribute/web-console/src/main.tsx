@@ -16,6 +16,8 @@ const copy = (zh: string, en: string) => getLocale().startsWith('zh') ? zh : en;
 type ConfigSpec = [path: string, label: string, comment: string, type: string, extra?: Record<string, unknown>];
 
 const configFields: ConfigSpec[] = [
+  ['language', '语言', '语言文件 ID，对应 lang/<language>.yml。', 'text'],
+  ['version', '配置版本', '默认配置结构版本，通常不建议手动修改。', 'text'],
   ['hard_lock_damage', '接管原版伤害', '开启后未命中白名单的原版伤害也会进入 EmakiAttribute 结算；关闭后只有白名单原因进入。', 'boolean'],
   ['default_damage_type', '默认伤害类型', '未指定伤害类型或环境伤害回退时使用的 damage_types ID。', 'text'],
   ['vanilla_event_damage', '原版事件伤害接管', '未单独映射的原版 Bukkit DamageCause 进入 EA 结算时使用的默认接管规则。', 'object'],

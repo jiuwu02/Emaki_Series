@@ -218,6 +218,9 @@ const copy = (zh: string, en: string) => getLocale().startsWith('zh') ? zh : en;
 type ConfigSpec = [path: string, label: string, comment: string, type: string, extra?: Record<string, unknown>];
 
 const configFields: ConfigSpec[] = [
+  ['language', '语言', '语言文件 ID，对应 lang/<language>.yml。', 'text'],
+  ['version', '配置版本', '默认配置结构版本，通常不建议手动修改。', 'text'],
+  ['release_default_data', '释放默认数据', '首次启动或缺失 gems/、items/ 等示例数据时是否释放默认文件。', 'boolean'],
   ['socket_openers', '开槽道具', '按插槽类型配置开槽道具、开槽消耗和默认开放插槽规则。', 'object', { creatableChildren: true }],
   ['inlay_success', '镶嵌成功率', '宝石镶嵌成功率、公式变量和失败处理策略。', 'object'],
   ['inlay_success.enabled', '启用成功率', '关闭后镶嵌默认必定成功。', 'boolean'],
@@ -233,7 +236,11 @@ const configFields: ConfigSpec[] = [
   ['permission.op_bypass', 'OP 跳过', '开启后 OP 可跳过宝石操作条件。', 'boolean'],
   ['gui', 'GUI', '宝石 GUI 默认模式、关闭保存和模板入口。', 'object'],
   ['gui.default_mode', '默认页面', '打开宝石 GUI 时默认显示的页面。', 'enum', { options: ['inlay', 'open', 'upgrade'], optionLabelPrefix: 'gui.default_mode' }],
-  ['gui.save_on_close', '关闭保存', '关闭 GUI 时是否自动保存未提交的宝石操作。', 'boolean']
+  ['gui.save_on_close', '关闭保存', '关闭 GUI 时是否自动保存未提交的宝石操作。', 'boolean'],
+  ['condition', '条件配置', '宝石操作条件表达式的组合方式与失败处理策略。', 'object'],
+  ['condition.condition_type', '条件逻辑', '条件表达式组合方式。', 'enum', { options: ['all_of', 'any_of'], optionLabelPrefix: 'condition_type' }],
+  ['condition.required_count', '需要满足数量', 'any_of 场景下需要满足的最少条件数量。', 'number'],
+  ['condition.invalid_as_failure', '解析失败视为失败', '条件表达式解析失败时是否视为条件不通过。', 'boolean']
 ];
 
 const dynamicFields: Record<string, [string, string, string]> = {

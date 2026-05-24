@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.corelib.yaml;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -109,16 +110,17 @@ public final class BoostedYamlSection implements YamlSection {
         if (section == null) {
             return Set.of();
         }
+        Set<String> keys = new LinkedHashSet<>();
         if (!deep) {
-            Set<String> keys = new LinkedHashSet<>();
             for (Object key : section.getKeys()) {
                 if (key != null) {
                     keys.add(String.valueOf(key));
                 }
             }
-            return Set.copyOf(keys);
+        } else {
+            keys.addAll(section.getRoutesAsStrings(true));
         }
-        return Set.copyOf(section.getRoutesAsStrings(true));
+        return Collections.unmodifiableSet(keys);
     }
 
     @Override

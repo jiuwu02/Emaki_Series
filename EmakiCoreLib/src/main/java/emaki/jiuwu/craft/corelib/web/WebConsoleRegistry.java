@@ -896,6 +896,9 @@ public final class WebConsoleRegistry {
     }
 
     private Object normalizeIncomingValue(Object current, Object value) {
+        if (current == null) {
+            return normalizeNewValue(value);
+        }
         if (current instanceof Boolean) {
             return value instanceof Boolean bool ? bool : Boolean.parseBoolean(String.valueOf(value));
         }
@@ -909,6 +912,16 @@ public final class WebConsoleRegistry {
                     .toList();
         }
         return value == null ? "" : String.valueOf(value);
+    }
+
+    private Object normalizeNewValue(Object value) {
+        if (value == null) {
+            return "";
+        }
+        if (value instanceof Boolean || value instanceof Number || value instanceof List<?> || value instanceof Map<?, ?>) {
+            return value;
+        }
+        return String.valueOf(value);
     }
 
     private Number parseNumber(Object value) {

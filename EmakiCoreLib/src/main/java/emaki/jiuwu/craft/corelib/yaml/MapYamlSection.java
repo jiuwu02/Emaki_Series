@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.corelib.yaml;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -161,7 +162,7 @@ public final class MapYamlSection implements YamlSection {
     public Set<String> getKeys(boolean deep) {
         Set<String> keys = new LinkedHashSet<>();
         collectKeys(values, "", deep, keys);
-        return Set.copyOf(keys);
+        return Collections.unmodifiableSet(keys);
     }
 
     @Override

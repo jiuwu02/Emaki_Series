@@ -1,4 +1,4 @@
-import { getLocale, registerModuleLocale, registerPluginConfig, registerPluginGuiEditor } from 'emaki-web-console';
+import { getLocale, registerModuleLocale, registerPluginConfig, registerPluginGuiEditor, type ConfigMetaFieldEntry } from 'emaki-web-console';
 
 const STRENGTHEN_EFFECT_TYPES = ['variables', 'ea_attribute', 'es_skill'];
 
@@ -7,6 +7,8 @@ const MODULE = 'EmakiStrengthen';
 const copy = (zh: string, en: string) => getLocale().startsWith('zh') ? zh : en;
 
 const fields = [
+  ['language', '语言', '语言文件 ID，对应 lang/<language>.yml。', 'text'],
+  ['version', '配置版本', '默认配置结构版本，通常不建议手动修改。', 'text'],
   ['local_broadcast_radius', '本地广播半径', '强化达到本地广播星级时，附近玩家可收到提示的半径，单位方块格。', 'number'],
   ['broadcast', '广播设置', '强化成功时的本地广播与全服广播触发星级设置。', 'object'],
   ['broadcast.local_stars', '本地广播星级', '强化成功达到这些星级时向附近玩家广播。', 'list'],
@@ -14,6 +16,31 @@ const fields = [
   ['success_rates', '全局成功率', '配方未单独覆盖时使用的全局强化成功率表，键为目标星级，值为百分比。', 'object'],
   ['effects', '效果', '强化阶段效果列表；源码当前实际从 effects 中读取 es_skill。', 'objectList']
 ] as const;
+
+const recipeFields: ConfigMetaFieldEntry[] = [
+  ['id', 'ID', '强化配方唯一标识。', 'text'],
+  ['display_name', '显示名称', '配方在 GUI、日志或提示中显示的名称。', 'text'],
+  ['gui_template', 'GUI 模板', '使用的强化 GUI 模板 ID。', 'text'],
+  ['economy', '经济消耗', '强化经济消耗配置。', 'object'],
+  ['economy.enabled', '启用经济', '是否启用该配方的经济消耗。', 'boolean'],
+  ['economy.currencies', '货币消耗', '强化消耗的货币列表。', 'objectList'],
+  ['limits', '限制', '强化等级、星级或次数限制。', 'object'],
+  ['success_rates', '成功率覆盖', '该配方按目标星级覆盖的成功率表。', 'object'],
+  ['match', '匹配规则', '可强化物品的来源、槽位、Lore 或属性匹配规则。', 'object'],
+  ['match.source_types', '来源类型', '允许匹配的物品来源类型。', 'stringList'],
+  ['match.source_ids', '来源 ID', '允许匹配的物品来源 ID。', 'stringList'],
+  ['match.source_patterns', '来源模式', '允许匹配的来源通配或正则模式。', 'stringList'],
+  ['match.slot_groups', '槽位组', '允许强化的装备槽位或槽位组。', 'stringList'],
+  ['match.lore_contains', 'Lore 包含', '物品 Lore 需要包含的文本。', 'stringList'],
+  ['match.stats_any', '任意属性', '物品拥有任意一个属性时允许匹配。', 'stringList'],
+  ['stat_lines', '属性行', '强化属性行模板定义。', 'object'],
+  ['stars', '星级阶段', '每个目标星级的材料、属性、技能和动作配置。', 'object'],
+  ['branch_tree', '分支树', '分支强化路线配置。', 'object'],
+  ['condition_type', '条件逻辑', '条件表达式组合方式。', 'enum', { options: ['all_of', 'any_of'], optionLabelPrefix: 'condition_type' }],
+  ['condition_required_count', '需要满足数量', 'any_of 场景下需要满足的最少条件数量。', 'number'],
+  ['name_actions', '名称动作', '强化显示名称相关动作配置。', 'object'],
+  ['effects', '效果', '兼容效果列表，源码读取 variables、ea_attribute、es_skill。', 'objectList']
+];
 
 const localeMessages: Record<string, string> = Object.fromEntries([
   ['emakistrengthen.module.name', 'Strengthen'],
@@ -35,6 +62,10 @@ const localeMessages: Record<string, string> = Object.fromEntries([
   ['emakistrengthen.file.web-console.title', 'Web Console 声明'],
   ['emakistrengthen.file.web-console.comment', 'Web Console 文件注册与资源入口声明。'],
   ...fields.flatMap(([path, label, comment]) => [
+    [`emakistrengthen.field.${path}`, label],
+    [`emakistrengthen.comment.${path}`, comment]
+  ]),
+  ...recipeFields.flatMap(([path, label, comment]) => [
     [`emakistrengthen.field.${path}`, label],
     [`emakistrengthen.comment.${path}`, comment]
   ])
@@ -81,6 +112,12 @@ registerModuleLocale(MODULE, 'en-US', {
 registerPluginConfig({
   moduleId: MODULE,
   metaFields: fields.map(([path, label, comment, type]) => [path, label, comment, type, path === 'success_rates' ? { creatableChildren: true } : undefined]),
+  fileSchemas: [
+    {
+      pathPrefix: 'recipes/',
+      fields: recipeFields
+    }
+  ],
   createTemplates: [
     ['success_rates', {
       id: 'star-success-rate',

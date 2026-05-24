@@ -90,12 +90,14 @@ export type SurfaceRegistration = {
 export type StandardGuiFieldEntry = [path: string, label: string, comment: string, type: string];
 export type ConfigMetaFieldEntry = [path: string, label: string, comment: string, type?: string, extra?: ConfigNodeMetaOverride];
 export type ConfigRuleFieldEntry = [label: string, comment: string, type?: string, extra?: ConfigNodeMetaOverride];
+export type ConfigFileSchemaEntry = { pathPrefix?: string; pathPattern?: string; fields: ConfigMetaFieldEntry[] };
 export type ConfigCreateTemplateEntry = [nodePath: string, template: WebConfigCreateTemplate];
 export type ConfigListItemSchemaEntry = [listPath: string, fields: WebConfigFieldSchema[], options?: { uniqueBy?: string }];
 export type ConfigListItemSchemaRuleEntry = [matcher: ConfigListItemSchemaRuleMatcher, fields: WebConfigFieldSchema[], options?: { uniqueBy?: string }];
 export type PluginConfigRegistration = {
   moduleId: string;
   metaFields?: ConfigMetaFieldEntry[];
+  fileSchemas?: ConfigFileSchemaEntry[];
   ruleFields?: Record<string, ConfigRuleFieldEntry>;
   rules?: Array<[matcher: ConfigNodeRuleMatcher, meta: ConfigNodeMetaOverride]>;
   createTemplates?: ConfigCreateTemplateEntry[];
@@ -148,6 +150,13 @@ type ConfigListItemSchemaRuleRegistration = {
   uniqueBy?: string;
 };
 
+type ConfigFileSchemaRegistration = {
+  moduleId: string;
+  pathPrefix?: string;
+  pathPattern?: string;
+  fields: ConfigMetaFieldEntry[];
+};
+
 export type EmakiWebConsoleHost = typeof lib & typeof components & typeof i18n & typeof itemFieldRegistry & {
   apiVersion: string;
   React: typeof React;
@@ -172,6 +181,8 @@ export type EmakiWebConsoleHost = typeof lib & typeof components & typeof i18n &
   registerConfigNodeRule: typeof registerConfigNodeRule;
   registerConfigCreateTemplate: typeof registerConfigCreateTemplate;
   registerConfigMetaFields: typeof registerConfigMetaFields;
+  registerConfigFileSchema: typeof registerConfigFileSchema;
+  registerConfigFileSchemas: typeof registerConfigFileSchemas;
   registerConfigRuleFields: typeof registerConfigRuleFields;
   registerConfigCreateTemplates: typeof registerConfigCreateTemplates;
   registerConfigListItemSchemas: typeof registerConfigListItemSchemas;
@@ -197,6 +208,8 @@ const _editorOverrides: Record<string, WebEditorDescriptor> = {};
 const _sourceAdapters: SourceAdapterRegistration[] = [];
 const _extensionStatuses: WebConsoleExtensionStatus[] = [];
 const _configNodeMeta: Record<string, ConfigNodeMetaOverride> = {};
+const _configNodeMetaOrder: Record<string, string[]> = {};
+const _configFileSchemas: ConfigFileSchemaRegistration[] = [];
 const _configCreateTemplates: Record<string, WebConfigCreateTemplate[]> = {};
 const _configListItemFields: Record<string, WebConfigFieldSchema[]> = {};
 const _configUniqueListFields: Record<string, string> = {};
@@ -291,8 +304,12 @@ export function getFileKindLabel(kind: string | undefined): string | undefined {
 
 export function registerConfigNodeMeta(moduleId: string, path: string, meta: ConfigNodeMetaOverride): void {
   if (!moduleId || !path || !meta) return;
-  const key = configOverrideKey(moduleId, path);
+  const normalizedModuleId = normalizeConfigModuleId(moduleId);
+  const normalizedPath = String(path ?? '');
+  const key = configOverrideKey(normalizedModuleId, normalizedPath);
   _configNodeMeta[key] = mergeConfigNodeMeta(_configNodeMeta[key], meta);
+  const order = _configNodeMetaOrder[normalizedModuleId] ?? (_configNodeMetaOrder[normalizedModuleId] = []);
+  if (!order.includes(normalizedPath)) order.push(normalizedPath);
 }
 
 export function registerConfigNodeRule(moduleId: string, matcher: ConfigNodeRuleMatcher, meta: ConfigNodeMetaOverride): void {
@@ -303,6 +320,21 @@ export function registerConfigNodeRule(moduleId: string, matcher: ConfigNodeRule
 export function registerConfigMetaFields(moduleId: string, fields: ConfigMetaFieldEntry[]): void {
   if (!moduleId || !Array.isArray(fields)) return;
   fields.forEach(([path, label, comment, type, extra]) => registerConfigNodeMeta(moduleId, path, { label, comment, type, ...(extra ?? {}) }));
+}
+
+export function registerConfigFileSchema(moduleId: string, schema: ConfigFileSchemaEntry): void {
+  if (!moduleId || !schema || !Array.isArray(schema.fields)) return;
+  _configFileSchemas.push({
+    moduleId: normalizeConfigModuleId(moduleId),
+    pathPrefix: schema.pathPrefix,
+    pathPattern: schema.pathPattern,
+    fields: schema.fields
+  });
+}
+
+export function registerConfigFileSchemas(moduleId: string, schemas: ConfigFileSchemaEntry[]): void {
+  if (!moduleId || !Array.isArray(schemas)) return;
+  schemas.forEach(schema => registerConfigFileSchema(moduleId, schema));
 }
 
 export function registerConfigRuleFields(moduleId: string, fields: Record<string, ConfigRuleFieldEntry>): void {
@@ -352,6 +384,7 @@ export function registerPluginConfig(registration: PluginConfigRegistration): vo
   if (!registration?.moduleId) return;
   const { moduleId } = registration;
   registerConfigMetaFields(moduleId, registration.metaFields ?? []);
+  registerConfigFileSchemas(moduleId, registration.fileSchemas ?? []);
   registerConfigRuleFields(moduleId, registration.ruleFields ?? {});
   (registration.rules ?? []).forEach(([matcher, meta]) => registerConfigNodeRule(moduleId, matcher, meta));
   registerConfigCreateTemplates(moduleId, registration.createTemplates ?? []);
@@ -371,14 +404,24 @@ export function applyConfigRegistryOverrides(registry: WebRegistry): WebRegistry
       ...module,
       files: module.files.map(file => ({
         ...file,
-        nodes: applyConfigNodeOverrides(module.id, file.nodes ?? [])
+        nodes: applyConfigNodeOverrides(module.id, file.nodes ?? [], file.path)
       }))
     }))
   };
 }
 
-export function applyConfigNodeOverrides(moduleId: string, nodes: WebConfigNode[]): WebConfigNode[] {
-  return nodes.map(node => applySingleConfigNodeOverride(moduleId, node));
+export function applyConfigNodeOverrides(moduleId: string, nodes: WebConfigNode[], filePath?: string): WebConfigNode[] {
+  const existing = nodes.map(node => applySingleConfigNodeOverride(moduleId, node));
+  const schemaFields = configSchemaFieldsForFile(moduleId, filePath);
+  if (!schemaFields.length) return existing;
+  const schemaPaths = schemaFields.map(([path]) => path);
+  const existingPaths = new Set(existing.map(node => node.path));
+  const missing = schemaFields
+    .filter(([path]) => !existingPaths.has(path))
+    .map(field => createVirtualConfigNodeFromField(moduleId, field))
+    .filter((node): node is WebConfigNode => Boolean(node));
+  if (!missing.length) return existing;
+  return mergeMissingConfigNodes(existing, missing, schemaPaths);
 }
 
 export function standardGuiFields(entries: StandardGuiFieldEntry[] = []): Record<string, WebEditorField> {
@@ -439,7 +482,7 @@ export function isKind(fileKind: string | undefined, target: string): boolean {
 
 /** Install the browser global used by plugin extension scripts. */
 export function installWebConsoleHost(): EmakiWebConsoleHost {
-  const host: EmakiWebConsoleHost = { ...lib, ...components, ...i18n, ...itemFieldRegistry, apiVersion: EMAKI_WEB_CONSOLE_API_VERSION, React, registerSurface, getSurface, getAllSurfaces, isKind, registerPluginGuiSurface, registerPluginGuiEditor, registerPluginSurfaces, standardGuiFields, registerEditorDescriptor, registerEditorField, registerSourceDocumentAdapter, getSourceDocumentAdapter, registerGuiEditorDescriptor, registerGuiEditorField, getRuntimeEnum, registerFileKindLabel, getFileKindLabel, registerConfigNodeMeta, registerConfigNodeRule, registerConfigCreateTemplate, registerConfigMetaFields, registerConfigRuleFields, registerConfigCreateTemplates, registerConfigListItemSchemas, registerConfigListItemSchemaRules, registerConfigListItemSchema, registerConfigListItemSchemaRule, registerPluginConfig, registerUniqueListField, recordExtensionStatus, getExtensionStatuses, components, lib, i18n, t: i18n.t, registerLocale: i18n.registerLocale, registerModuleLocale: i18n.registerModuleLocale };
+  const host: EmakiWebConsoleHost = { ...lib, ...components, ...i18n, ...itemFieldRegistry, apiVersion: EMAKI_WEB_CONSOLE_API_VERSION, React, registerSurface, getSurface, getAllSurfaces, isKind, registerPluginGuiSurface, registerPluginGuiEditor, registerPluginSurfaces, standardGuiFields, registerEditorDescriptor, registerEditorField, registerSourceDocumentAdapter, getSourceDocumentAdapter, registerGuiEditorDescriptor, registerGuiEditorField, getRuntimeEnum, registerFileKindLabel, getFileKindLabel, registerConfigNodeMeta, registerConfigNodeRule, registerConfigCreateTemplate, registerConfigMetaFields, registerConfigFileSchema, registerConfigFileSchemas, registerConfigRuleFields, registerConfigCreateTemplates, registerConfigListItemSchemas, registerConfigListItemSchemaRules, registerConfigListItemSchema, registerConfigListItemSchemaRule, registerPluginConfig, registerUniqueListField, recordExtensionStatus, getExtensionStatuses, components, lib, i18n, t: i18n.t, registerLocale: i18n.registerLocale, registerModuleLocale: i18n.registerModuleLocale };
   (window as any).React = React;
   window.EmakiWebConsole = host;
   return host;
@@ -518,6 +561,102 @@ function mergeEditorDescriptor(base: WebEditorDescriptor | undefined, override: 
       ...((override.fields ?? {}) as Record<string, WebEditorField>)
     }
   };
+}
+
+function configSchemaFieldsForFile(moduleId: string, filePath: string | undefined): ConfigMetaFieldEntry[] {
+  const normalizedModuleId = normalizeConfigModuleId(moduleId);
+  const normalizedPath = normalizeConfigFilePath(filePath);
+  if (!normalizedPath || normalizedPath === 'config.yml' || normalizedPath === 'config.yaml') {
+    return configNodeMetaOrder(moduleId)
+      .map(path => metaFieldFromRegisteredNode(moduleId, path))
+      .filter((field): field is ConfigMetaFieldEntry => Boolean(field));
+  }
+  const schemas = _configFileSchemas.filter(schema => schema.moduleId === normalizedModuleId && configFileSchemaMatches(schema, normalizedPath));
+  return schemas.flatMap(schema => schema.fields);
+}
+
+function configFileSchemaMatches(schema: ConfigFileSchemaRegistration, filePath: string): boolean {
+  if (schema.pathPrefix && filePath.startsWith(normalizeConfigFilePath(schema.pathPrefix))) return true;
+  if (schema.pathPattern) {
+    const pattern = normalizeConfigFilePath(schema.pathPattern).replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*\*/g, '.*').replace(/\*/g, '[^/]*');
+    return new RegExp(`^${pattern}$`).test(filePath);
+  }
+  return false;
+}
+
+function normalizeConfigFilePath(filePath: string | undefined): string {
+  return String(filePath ?? '').trim().replace(/\\/g, '/').replace(/^\/+/, '').toLowerCase();
+}
+
+function configNodeMetaOrder(moduleId: string): string[] {
+  return [...(_configNodeMetaOrder[normalizeConfigModuleId(moduleId)] ?? [])];
+}
+
+function metaFieldFromRegisteredNode(moduleId: string, path: string): ConfigMetaFieldEntry | null {
+  const meta = _configNodeMeta[configOverrideKey(moduleId, path)];
+  if (!meta) return null;
+  return [path, meta.label ?? lastConfigPathKey(path).replace(/[_-]+/g, ' '), meta.comment ?? '', meta.type ?? 'text', meta];
+}
+
+function createVirtualConfigNodeFromField(moduleId: string, field: ConfigMetaFieldEntry): WebConfigNode | null {
+  const [path, label, comment, type = 'text', extra] = field;
+  if (!path) return null;
+  return applySingleConfigNodeOverride(moduleId, {
+    path,
+    label,
+    comment,
+    type: virtualConfigNodeType(type),
+    editable: true,
+    value: emptyConfigValueForType(type),
+    options: extra?.options,
+    optionLabelPrefix: extra?.optionLabelPrefix,
+    creatableChildren: extra?.creatableChildren,
+    createTemplates: extra?.createTemplates,
+    itemFields: extra?.itemFields,
+    uniqueBy: extra?.uniqueBy
+  });
+}
+
+function mergeMissingConfigNodes(existing: WebConfigNode[], missing: WebConfigNode[], order: string[]): WebConfigNode[] {
+  const result = [...existing];
+  const pathIndex = () => new Map(result.map((node, index) => [node.path, index]));
+  for (const node of missing) {
+    const orderIndex = order.indexOf(node.path);
+    const indexes = pathIndex();
+    let insertAt = result.length;
+    for (let index = orderIndex - 1; index >= 0; index--) {
+      const anchor = indexes.get(order[index]);
+      if (anchor !== undefined) {
+        insertAt = anchor + 1;
+        break;
+      }
+    }
+    if (insertAt === result.length) {
+      for (let index = orderIndex + 1; index < order.length; index++) {
+        const anchor = indexes.get(order[index]);
+        if (anchor !== undefined) {
+          insertAt = anchor;
+          break;
+        }
+      }
+    }
+    result.splice(insertAt, 0, node);
+  }
+  return result;
+}
+
+function virtualConfigNodeType(type: string): string {
+  if (type.startsWith('enum:') || type.startsWith('dynamic_enum:')) return 'enum';
+  return type || 'text';
+}
+
+function emptyConfigValueForType(type: string): unknown {
+  const normalized = virtualConfigNodeType(type);
+  if (normalized === 'number') return undefined;
+  if (normalized === 'boolean') return false;
+  if (normalized === 'list' || normalized === 'stringList' || normalized === 'numberList' || normalized === 'objectList' || normalized === 'actions') return [];
+  if (normalized === 'object' || normalized === 'dynamic_map' || normalized === 'json') return {};
+  return '';
 }
 
 function applySingleConfigNodeOverride(moduleId: string, node: WebConfigNode): WebConfigNode {

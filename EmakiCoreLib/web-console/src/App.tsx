@@ -771,7 +771,7 @@ function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, set
     setError('');
     try {
       const refreshed = await api.registryFileNodes(module.id, childPath);
-      setOptimisticNodes(applyConfigNodeOverrides(module.id, refreshed.nodes));
+      setOptimisticNodes(applyConfigNodeOverrides(module.id, refreshed.nodes, childPath));
       setRevision(refreshed.revision);
       clearDraftScope(scope);
       setSourceEditedPaths(new Set());

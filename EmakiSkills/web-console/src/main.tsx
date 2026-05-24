@@ -7,6 +7,9 @@ type FieldSpec = [path: string, label: string, comment: string, type: string, ex
 const copy = (zh: string, en: string) => getLocale().startsWith('zh') ? zh : en;
 
 const fields: FieldSpec[] = [
+  ['language', '语言', '语言文件 ID，对应 lang/<language>.yml。', 'text'],
+  ['version', '配置版本', '默认配置结构版本，通常不建议手动修改。', 'text'],
+  ['release_default_data', '释放默认数据', '首次启动或缺失 skills/、resources/ 等示例数据时是否释放默认文件。', 'boolean'],
   ['slots', '技能槽位', '玩家主动技能槽位数量与默认分配。', 'object'],
   ['slots.default_count', '默认槽数', '新玩家或未初始化玩家默认拥有的主动技能槽数量。', 'number'],
   ['cast_mode', '施法模式', '进入/退出施法模式的按键、状态恢复与客户端限制说明。', 'object'],
