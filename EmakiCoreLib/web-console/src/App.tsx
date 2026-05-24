@@ -1160,7 +1160,7 @@ function ConfigNodeTree({ scope, nodes, drafts, setDraftValue, onCreateChild, on
 
   return <div className="node-grid">{groups.map(group => {
     if (group.type === 'leaf') {
-      return <ConfigNodeView key={group.node.path} scope={scope} node={group.node} drafts={drafts} setDraftValue={setDraftValue} sourceEdit={sourceEdit} />;
+      return <ConfigNodeView key={group.node.path} scope={scope} node={group.node} drafts={drafts} setDraftValue={setDraftValue} sourceEdit={sourceEdit} deletable={false} onDeleteObject={onDeleteObject} />;
     }
     return <ConfigNodeSection key={group.node.path} scope={scope} node={group.node} childrenNodes={group.children} drafts={drafts} setDraftValue={setDraftValue} collapsed={collapsed} toggle={toggle} onCreateChild={onCreateChild} onDeleteObject={onDeleteObject} sourceEdit={sourceEdit} deletedPaths={deletedPaths} deletable={false} />;
   })}</div>;
@@ -1213,12 +1213,12 @@ function ConfigNodeSection({ scope, node, childrenNodes, drafts, setDraftValue, 
     </div>
     {!isCollapsed && <div className="node-section-body">{groups.map(group => group.type === 'section'
       ? <ConfigNodeSection key={group.node.path} scope={scope} node={group.node} childrenNodes={group.children} drafts={drafts} setDraftValue={setDraftValue} collapsed={collapsed} toggle={toggle} onCreateChild={onCreateChild} onDeleteObject={onDeleteObject} sourceEdit={sourceEdit} deletedPaths={deletedPaths} deletable={node.creatableChildren === true} depth={depth + 1} />
-      : <ConfigNodeView key={group.node.path} scope={scope} node={group.node} drafts={drafts} setDraftValue={setDraftValue} sourceEdit={sourceEdit} />
+      : <ConfigNodeView key={group.node.path} scope={scope} node={group.node} drafts={drafts} setDraftValue={setDraftValue} sourceEdit={sourceEdit} deletable={node.creatableChildren === true} onDeleteObject={onDeleteObject} />
     )}</div>}
   </div>;
 }
 
-function ConfigNodeView({ scope, node, drafts, setDraftValue, sourceEdit }: { scope: ConfigDraftScope; node: WebConfigNode; drafts: DraftMap; setDraftValue: DraftValueSetter; sourceEdit?: SourceEditController }) {
+function ConfigNodeView({ scope, node, drafts, setDraftValue, sourceEdit, deletable = false, onDeleteObject }: { scope: ConfigDraftScope; node: WebConfigNode; drafts: DraftMap; setDraftValue: DraftValueSetter; sourceEdit?: SourceEditController; deletable?: boolean; onDeleteObject?: (node: WebConfigNode) => void }) {
   const key = draftKey(scope, node.path);
   const sourceEdited = sourceEdit?.paths.has(node.path) === true;
   const value = key in drafts ? drafts[key] : node.value;
@@ -1230,9 +1230,13 @@ function ConfigNodeView({ scope, node, drafts, setDraftValue, sourceEdit }: { sc
     if (sourceEdited) sourceEdit?.update(node, next);
     else setDraftValue(scope, node, next);
   };
-  const isWide = node.type === 'dynamic_map' || node.type === 'list' || node.type === 'object';
+  const isWide = isWideConfigNodeType(node.type);
   const label = configNodeDisplayLabel(scope, node);
-  return <div className={`node ${key in drafts || sourceEdited ? 'changed' : ''} ${isWide ? 'node-wide' : ''}`}><div className="node-meta"><strong>{label}</strong><code>{node.path}</code><p>{configNodeDisplayComment(scope, node)}</p></div><div className="node-control">{renderControl(node, value, setValue, label, scope.moduleId)}</div></div>;
+  return <div className={`node ${key in drafts || sourceEdited ? 'changed' : ''} ${isWide ? 'node-wide' : ''}`}><div className="node-meta"><strong>{label}</strong><code>{node.path}</code><p>{configNodeDisplayComment(scope, node)}</p></div><div className="node-control">{renderControl(node, value, setValue, label, scope.moduleId)}{deletable && onDeleteObject && <button type="button" className="node-section-delete" onClick={() => onDeleteObject(node)}>{t('core.config.delete')}</button>}</div></div>;
+}
+
+function isWideConfigNodeType(type: string | undefined): boolean {
+  return type === 'dynamic_map' || type === 'list' || type === 'stringList' || type === 'numberList' || type === 'objectList' || type === 'object';
 }
 
 function renderControl(node: WebConfigNode, value: unknown, setValue: (v: unknown) => void, label: string, moduleId: string) {
@@ -1242,6 +1246,12 @@ function renderControl(node: WebConfigNode, value: unknown, setValue: (v: unknow
   if (node.type === 'json') return <JsonField value={value} onChange={setValue} ariaLabel={label} />;
   if (node.type === 'dynamic_map') return <DynamicMapEditor value={value} setValue={setValue} />;
   if (node.type === 'object') return <ObjectValuePreview value={value} />;
+  if (node.type === 'stringList') return <StringListEditor items={asStringListValue(value)} onChange={setValue} />;
+  if (node.type === 'numberList') return <NumberListEditor items={asNumberListValue(value)} onChange={setValue} />;
+  if (node.type === 'objectList') {
+    const items = Array.isArray(value) ? value : [];
+    return <ObjectListEditor node={node} items={items} setValue={setValue} moduleId={moduleId} />;
+  }
   if (node.type === 'list') {
     const items = Array.isArray(value) ? value : [];
     const hasObjectItems = items.some(isPlainObject) || (Boolean(node.itemFields?.length) && !node.itemFields?.every(field => field.path === 'value' && field.type === 'text'));
@@ -1353,10 +1363,8 @@ function renderSchemaField(field: WebConfigFieldSchema | undefined, value: unkno
   if (type === 'objectList') return <JsonField value={value} onChange={onChange} ariaLabel={ariaLabel} />;
   if (type === 'json') return <JsonField value={value} onChange={onChange} ariaLabel={ariaLabel} />;
   if (type === 'enum' && field?.options) {
-    const used = new Set(siblingItems.map((item, index) => index === currentIndex ? '' : String(item[field.path] ?? '')).filter(Boolean));
     const current = str(value);
-    const options = field.options.filter(option => option === current || !used.has(option));
-    return <select aria-label={ariaLabel} value={current} onChange={(e) => onChange(e.target.value)}>{options.map(option => <option key={option} value={option}>{optionLabel(field.optionLabelPrefix || field.path, option, { moduleId })}</option>)}</select>;
+    return <select aria-label={ariaLabel} value={current} onChange={(e) => onChange(e.target.value)}>{field.options.map(option => <option key={option} value={option}>{optionLabel(field.optionLabelPrefix || field.path, option, { moduleId })}</option>)}</select>;
   }
   return <input aria-label={ariaLabel} value={value == null ? '' : String(value)} onChange={(e) => onChange(e.target.value)} />;
 }

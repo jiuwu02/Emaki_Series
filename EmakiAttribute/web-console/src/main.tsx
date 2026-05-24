@@ -10,7 +10,11 @@ const DAMAGE_CAUSES_1_21_11 = [
   'DRYOUT', 'FREEZE', 'KILL', 'SONIC_BOOM', 'WORLD_BORDER', 'CAMPFIRE', 'OUTSIDE_BORDER',
   'GENERIC', 'EXPLOSION', 'BAD_RESPAWN_POINT', 'OUT_OF_WORLD'
 ];
-const damageCauses = [...new Set([...DAMAGE_CAUSES_1_21_11, ...getRuntimeEnum('bukkit.damageCause')])];
+const runtimeDamageCauses = getRuntimeEnum('bukkit.damageCause');
+const damageCauses = runtimeDamageCauses.length ? runtimeDamageCauses : DAMAGE_CAUSES_1_21_11;
+const DAMAGE_STAGE_KINDS = ['FLAT_PERCENT', 'CUSTOM'];
+const DAMAGE_STAGE_SOURCES = ['ATTACKER', 'TARGET', 'CONTEXT'];
+const DAMAGE_STAGE_MODES = ['ADD', 'SUBTRACT'];
 const copy = (zh: string, en: string) => getLocale().startsWith('zh') ? zh : en;
 
 type ConfigSpec = [path: string, label: string, comment: string, type: string, extra?: Record<string, unknown>];
@@ -66,13 +70,22 @@ const commonFields: Record<string, [string, string, string]> = {
   recovery: ['恢复规则', '造成伤害后的吸血或资源恢复规则。', 'object'],
   attacker_message: ['攻击者消息', '伤害结算后发送给攻击者的消息模板。', 'text'],
   target_message: ['受击者消息', '伤害结算后发送给受击者的消息模板。', 'text'],
+  kind: ['阶段类型', '伤害阶段计算类型。', 'enum'],
   source: ['来源', '阶段或恢复数据来源。', 'enum'],
   resistance_source: ['抗性来源', '恢复抗性属性的来源。', 'enum'],
-  flat_attributes: ['固定属性', '参与固定值计算的属性 ID 列表。', 'list'],
-  percent_attributes: ['百分比属性', '参与百分比计算的属性 ID 列表。', 'list'],
-  chance_attributes: ['概率属性', '决定阶段是否触发的概率属性 ID 列表。', 'list'],
-  multiplier_attributes: ['倍率属性', '触发后的倍率属性 ID 列表。', 'list'],
+  mode: ['计算模式', '阶段对输入伤害的计算模式。', 'enum'],
+  flat_attributes: ['固定属性', '参与固定值计算的属性 ID 列表。', 'stringList'],
+  percent_attributes: ['百分比属性', '参与百分比计算的属性 ID 列表。', 'stringList'],
+  chance_attributes: ['概率属性', '决定阶段是否触发的概率属性 ID 列表。', 'stringList'],
+  multiplier_attributes: ['倍率属性', '触发后的倍率属性 ID 列表。', 'stringList'],
+  resistance_attributes: ['抗性属性', '参与恢复抗性计算的属性 ID 列表。', 'stringList'],
   expression: ['计算表达式', '自定义计算表达式，支持 {input}、{flat}、{percent} 等变量。', 'text'],
+  min_result: ['结果下限', '阶段或恢复结果允许的最小值。', 'number'],
+  max_result: ['结果上限', '阶段或恢复结果允许的最大值。', 'number'],
+  min_chance: ['概率下限', '阶段触发概率的最小值。', 'number'],
+  max_chance: ['概率上限', '阶段触发概率的最大值。', 'number'],
+  min_multiplier: ['倍率下限', '阶段倍率允许的最小值。', 'number'],
+  max_multiplier: ['倍率上限', '阶段倍率允许的最大值。', 'number'],
   format: ['格式模板', '词条显示格式，支持 {name}、{value}、{sign} 等占位符。', 'text'],
   precision: ['精度', '数值显示的小数位数。', 'number'],
   read_priority: ['读取优先级', '从 Lore 解析属性时的匹配优先级。', 'number'],
@@ -141,6 +154,13 @@ registerModuleLocale(MODULE, 'zh-CN', {
   'emakiattribute.option.target_type.VANILLA': '原版属性',
   'emakiattribute.option.target_type.RESOURCE': '资源',
   'emakiattribute.option.target_type.DAMAGE': '伤害',
+  'emakiattribute.option.damageStageKind.FLAT_PERCENT': '固定值 + 百分比',
+  'emakiattribute.option.damageStageKind.CUSTOM': '自定义表达式',
+  'emakiattribute.option.damageStageSource.ATTACKER': '攻击者',
+  'emakiattribute.option.damageStageSource.TARGET': '目标',
+  'emakiattribute.option.damageStageSource.CONTEXT': '上下文',
+  'emakiattribute.option.damageStageMode.ADD': '加算',
+  'emakiattribute.option.damageStageMode.SUBTRACT': '减算',
   'emakiattribute.option.condition_type.all_of': '全部满足',
   'emakiattribute.option.condition_type.any_of': '任一满足'
 });
@@ -185,7 +205,14 @@ registerModuleLocale(MODULE, 'en-US', {
   'emakiattribute.field.allowed_damage_causes.cause': 'Cause',
   'emakiattribute.field.allowed_damage_causes.damage_type': 'Damage Type',
   'emakiattribute.field.allowed_damage_causes.damage': 'Base Damage',
-  'emakiattribute.field.allowed_damage_causes.enabled': 'Enabled'
+  'emakiattribute.field.allowed_damage_causes.enabled': 'Enabled',
+  'emakiattribute.option.damageStageKind.FLAT_PERCENT': 'Flat + Percent',
+  'emakiattribute.option.damageStageKind.CUSTOM': 'Custom Expression',
+  'emakiattribute.option.damageStageSource.ATTACKER': 'Attacker',
+  'emakiattribute.option.damageStageSource.TARGET': 'Target',
+  'emakiattribute.option.damageStageSource.CONTEXT': 'Context',
+  'emakiattribute.option.damageStageMode.ADD': 'Add',
+  'emakiattribute.option.damageStageMode.SUBTRACT': 'Subtract'
 });
 
 registerPluginConfig({
@@ -195,6 +222,10 @@ registerPluginConfig({
   rules: [
     [{ key: 'value_kind' }, { label: copy('数值类型', 'Value kind'), comment: '属性数值语义。', type: 'enum', options: ['FLAT', 'PERCENT', 'CHANCE', 'REGEN', 'RESOURCE'], optionLabelPrefix: 'value_kind' }],
     [{ key: 'target_type' }, { label: copy('目标类型', 'Target type'), comment: '属性作用目标类型。', type: 'enum', options: ['GENERIC', 'VANILLA', 'RESOURCE', 'DAMAGE'], optionLabelPrefix: 'target_type' }],
+    [{ key: 'kind' }, { label: copy('阶段类型', 'Stage kind'), comment: '伤害阶段计算类型。', type: 'enum', options: DAMAGE_STAGE_KINDS, optionLabelPrefix: 'damageStageKind' }],
+    [{ key: 'source' }, { label: copy('来源', 'Source'), comment: '阶段或恢复数据来源。', type: 'enum', options: DAMAGE_STAGE_SOURCES, optionLabelPrefix: 'damageStageSource' }],
+    [{ key: 'resistance_source' }, { label: copy('抗性来源', 'Resistance source'), comment: '恢复抗性属性的来源。', type: 'enum', options: DAMAGE_STAGE_SOURCES, optionLabelPrefix: 'damageStageSource' }],
+    [{ key: 'mode' }, { label: copy('计算模式', 'Mode'), comment: '阶段对输入伤害的计算模式。', type: 'enum', options: DAMAGE_STAGE_MODES, optionLabelPrefix: 'damageStageMode' }],
     [{ key: 'condition_type' }, { label: copy('条件逻辑', 'Condition logic'), comment: '多条件组合逻辑。', type: 'enum', options: ['all_of', 'any_of'], optionLabelPrefix: 'condition_type' }]
   ],
   createTemplates: [
@@ -222,6 +253,23 @@ registerPluginConfig({
       { path: 'damage_type', label: '伤害类型', comment: '对应 damage_types/ 下的伤害类型 ID。', type: 'text', defaultValue: 'physical' },
       { path: 'damage', label: '基础伤害', comment: '进入 EmakiAttribute 结算时使用的基础伤害值。', type: 'number', defaultValue: 1 },
       { path: 'enabled', label: '启用', comment: '是否启用此伤害来源规则。', type: 'boolean', defaultValue: true }
-    ], { uniqueBy: 'cause' }]
+    ], { uniqueBy: 'cause' }],
+    ['stages', [
+      { path: 'id', label: '阶段 ID', comment: '伤害结算阶段的唯一 ID。', type: 'text', defaultValue: 'stage' },
+      { path: 'kind', label: '阶段类型', comment: '伤害阶段计算类型。', type: 'enum', options: DAMAGE_STAGE_KINDS, optionLabelPrefix: 'damageStageKind', defaultValue: 'FLAT_PERCENT' },
+      { path: 'source', label: '来源', comment: '阶段读取属性的来源。', type: 'enum', options: DAMAGE_STAGE_SOURCES, optionLabelPrefix: 'damageStageSource', defaultValue: 'ATTACKER' },
+      { path: 'mode', label: '计算模式', comment: '阶段对输入伤害的计算模式。', type: 'enum', options: DAMAGE_STAGE_MODES, optionLabelPrefix: 'damageStageMode', defaultValue: 'ADD' },
+      { path: 'flat_attributes', label: '固定属性', comment: '参与固定值计算的属性 ID 列表。', type: 'stringList', defaultValue: null },
+      { path: 'percent_attributes', label: '百分比属性', comment: '参与百分比计算的属性 ID 列表。', type: 'stringList', defaultValue: null },
+      { path: 'chance_attributes', label: '概率属性', comment: '决定阶段是否触发的概率属性 ID 列表。', type: 'stringList', defaultValue: null },
+      { path: 'multiplier_attributes', label: '倍率属性', comment: '触发后的倍率属性 ID 列表。', type: 'stringList', defaultValue: null },
+      { path: 'expression', label: '计算表达式', comment: '自定义计算表达式。', type: 'text', defaultValue: null },
+      { path: 'min_result', label: '结果下限', comment: '阶段结果允许的最小值。', type: 'number', defaultValue: null },
+      { path: 'max_result', label: '结果上限', comment: '阶段结果允许的最大值。', type: 'number', defaultValue: null },
+      { path: 'min_chance', label: '概率下限', comment: '阶段触发概率的最小值。', type: 'number', defaultValue: null },
+      { path: 'max_chance', label: '概率上限', comment: '阶段触发概率的最大值。', type: 'number', defaultValue: null },
+      { path: 'min_multiplier', label: '倍率下限', comment: '阶段倍率允许的最小值。', type: 'number', defaultValue: null },
+      { path: 'max_multiplier', label: '倍率上限', comment: '阶段倍率允许的最大值。', type: 'number', defaultValue: null }
+    ], { uniqueBy: 'id' }]
   ]
 });

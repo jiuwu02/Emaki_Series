@@ -156,11 +156,11 @@ registerPluginConfig({
     [{ key: 'miss' }, { label: '未命中阶段', comment: '旧版脚本中的 miss 动作列表。', type: 'stringList' }],
     [{ key: 'fail' }, { label: '失败阶段', comment: '旧版脚本中的 fail 动作列表。', type: 'stringList' }],
     ...SCRIPT_PHASES.flatMap(phase => [
-      [{ suffix: `.script.${phase}` }, { label: `${phase} 阶段`, comment: `兼容旧版 script.${phase} 动作列表。`, type: 'stringList' }],
-      [{ suffix: `.script.actions.${phase}` }, { label: `${phase} 动作`, comment: `原生技能脚本 actions.${phase} 阶段动作列表。`, type: 'stringList' }],
-      [{ suffix: `.script.actions.on_${phase}` }, { label: `on_${phase} 动作`, comment: `原生技能脚本 actions.on_${phase} 阶段动作列表。`, type: 'stringList' }],
-      [{ suffix: `.script.conditions.${phase}` }, { label: `${phase} 条件`, comment: `原生技能脚本 conditions.${phase} 阶段条件列表。`, type: 'stringList' }],
-      [{ suffix: `.script.conditions.on_${phase}` }, { label: `on_${phase} 条件`, comment: `原生技能脚本 conditions.on_${phase} 阶段条件列表。`, type: 'stringList' }]
+      [{ path: `script.${phase}` }, { label: `${phase} 阶段`, comment: `兼容旧版 script.${phase} 动作列表。`, type: 'stringList' }],
+      [{ path: `script.actions.${phase}` }, { label: `${phase} 动作`, comment: `原生技能脚本 actions.${phase} 阶段动作列表。`, type: 'stringList' }],
+      [{ path: `script.actions.on_${phase}` }, { label: `on_${phase} 动作`, comment: `原生技能脚本 actions.on_${phase} 阶段动作列表。`, type: 'stringList' }],
+      [{ path: `script.conditions.${phase}` }, { label: `${phase} 条件`, comment: `原生技能脚本 conditions.${phase} 阶段条件列表。`, type: 'stringList' }],
+      [{ path: `script.conditions.on_${phase}` }, { label: `on_${phase} 条件`, comment: `原生技能脚本 conditions.on_${phase} 阶段条件列表。`, type: 'stringList' }]
     ] as Array<[Record<string, string>, { label: string; comment: string; type: string }]>)
   ],
   listItemSchemas: [

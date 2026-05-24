@@ -1782,6 +1782,11 @@ textarea {
 
 .node.node-wide .node-control {
   justify-content: stretch;
+  align-items: flex-start;
+}
+
+.node.node-wide .node-control > :first-child {
+  flex: 1 1 auto;
 }
 
 .node:hover {
@@ -1858,8 +1863,11 @@ textarea {
 }
 
 .node-control {
+  min-width: 0;
   display: flex;
+  align-items: center;
   justify-content: flex-end;
+  gap: 8px;
 }
 
 /* Collapsible section groups */
