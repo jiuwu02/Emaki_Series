@@ -906,7 +906,7 @@ public final class WebConsoleRegistry {
             return parseNumber(value);
         }
         if (current instanceof List<?>) {
-            return value instanceof List<?> list ? list : Arrays.stream(String.valueOf(value).split("\\n"))
+            return value instanceof List<?> list ? normalizeListValue(list) : Arrays.stream(String.valueOf(value).split("\\n"))
                     .map(String::trim)
                     .filter(entry -> !entry.isEmpty())
                     .toList();
@@ -918,10 +918,44 @@ public final class WebConsoleRegistry {
         if (value == null) {
             return "";
         }
-        if (value instanceof Boolean || value instanceof Number || value instanceof List<?> || value instanceof Map<?, ?>) {
+        if (value instanceof Boolean || value instanceof Number) {
             return value;
         }
+        if (value instanceof List<?> list) {
+            return normalizeListValue(list);
+        }
+        if (value instanceof Map<?, ?> || value instanceof YamlSection) {
+            return normalizePlainValue(value);
+        }
         return String.valueOf(value);
+    }
+
+    private List<Object> normalizeListValue(List<?> list) {
+        List<Object> result = new ArrayList<>();
+        for (Object entry : list) {
+            result.add(normalizePlainValue(entry));
+        }
+        return result;
+    }
+
+    private Object normalizePlainValue(Object value) {
+        if (value instanceof YamlSection section) {
+            return normalizePlainValue(section.asMap());
+        }
+        if (value instanceof Map<?, ?> map) {
+            Map<String, Object> result = new LinkedHashMap<>();
+            for (Map.Entry<?, ?> entry : map.entrySet()) {
+                if (entry.getKey() == null) {
+                    continue;
+                }
+                result.put(String.valueOf(entry.getKey()), normalizePlainValue(entry.getValue()));
+            }
+            return result;
+        }
+        if (value instanceof List<?> list) {
+            return normalizeListValue(list);
+        }
+        return value;
     }
 
     private Number parseNumber(Object value) {

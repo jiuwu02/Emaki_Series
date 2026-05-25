@@ -115,6 +115,7 @@ public final class GuiSession implements InventoryHolder {
         if (renderedSlots == null) {
             return;
         }
+        inventory.clear();
         for (Map.Entry<Integer, ItemStack> entry : renderedSlots.entrySet()) {
             inventory.setItem(entry.getKey(), entry.getValue());
         }

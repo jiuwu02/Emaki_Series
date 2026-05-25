@@ -1254,7 +1254,8 @@ function renderControl(node: WebConfigNode, value: unknown, setValue: (v: unknow
   }
   if (node.type === 'list') {
     const items = Array.isArray(value) ? value : [];
-    const hasObjectItems = items.some(isPlainObject) || (Boolean(node.itemFields?.length) && !node.itemFields?.every(field => field.path === 'value' && field.type === 'text'));
+    const hasObjectSchema = Boolean(node.itemFields?.length) && !node.itemFields?.every(field => field.path === 'value' && field.type === 'text');
+    const hasObjectItems = items.some(isPlainObject) || hasObjectSchema;
     if (hasObjectItems) return <ObjectListEditor node={node} items={items} setValue={setValue} moduleId={moduleId} />;
     const update = (i: number, v: string) => setValue(items.map((x, j) => j === i ? parseListValue(x, v) : x));
     return <div className="list-editor">{items.map((item, i) => <div className="list-row" key={i}><input value={str(item)} onChange={(e) => update(i, e.target.value)} aria-label={t('core.config.itemIndex', { index: i + 1 })} /><button type="button" onClick={() => setValue(items.filter((_, j) => j !== i))} aria-label={t('core.config.deleteItem', { index: i + 1 })}>{t('core.config.delete')}</button></div>)}<button type="button" className="add-row" onClick={() => setValue([...items, ''])}>{t('core.config.addItem')}</button></div>;
@@ -1457,7 +1458,7 @@ function resolveUniqueListDefault(node: WebConfigNode, field: WebConfigFieldSche
 }
 
 function uniqueListField(node: WebConfigNode): string | null {
-  return node.itemFields?.find(field => Boolean((field as any).unique))?.path ?? null;
+  return node.uniqueBy || node.itemFields?.find(field => Boolean((field as any).unique))?.path || null;
 }
 
 function JsonField({ value, onChange, ariaLabel }: { value: unknown; onChange: (value: unknown) => void; ariaLabel: string }) {

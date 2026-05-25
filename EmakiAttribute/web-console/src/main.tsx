@@ -37,7 +37,7 @@ const configFields: ConfigSpec[] = [
   ['synthetic_hit_feedback.knockback_strength', '击退强度', '补发击退力度系数。', 'number'],
   ['synthetic_hit_feedback.hurt_sound', '受伤音效', '接管伤害后是否补发受伤音效。', 'boolean'],
   ['scaling_curves', '衰减曲线', '属性超过阈值后按曲线衰减，防止数值无限膨胀。', 'object', { creatableChildren: true }],
-  ['allowed_damage_causes', '伤害来源白名单', '允许进入 EmakiAttribute 结算的 Bukkit DamageCause 列表。', 'list']
+  ['allowed_damage_causes', '伤害来源白名单', '允许进入 EmakiAttribute 结算的 Bukkit DamageCause 列表。', 'objectList']
 ];
 
 const commonFields: Record<string, [string, string, string]> = {

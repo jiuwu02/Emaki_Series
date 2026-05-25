@@ -97,8 +97,12 @@ public final class CombatDamageListener implements Listener {
             debugHandler.debugCombat(syntheticAttacker, target, syntheticProjectile, "SYNTHETIC_DAMAGE_BYPASS", "combat_debug.synthetic_damage_bypass_entity");
             return;
         }
-        // 只有原生近战 / 横扫 / 投射物继续走战斗属性结算，其余 by-entity 原版伤害按环境伤害分流。
         EntityDamageEvent.DamageCause cause = event.getCause();
+        if (attributeService.config().vanillaEventDamageEnabled()) {
+            handleEnvironmentalDamage(event, target, damager instanceof LivingEntity livingEntity ? livingEntity : null);
+            return;
+        }
+        // 未启用统一原版事件接管时，原生近战 / 横扫 / 投射物继续走战斗属性结算，其余 by-entity 原版伤害按环境伤害分流。
         if (cause == EntityDamageEvent.DamageCause.PROJECTILE) {
             if (damager instanceof Projectile projectile) {
                 Entity shooter = projectile.getShooter() instanceof Entity entity ? entity : null;
@@ -207,8 +211,9 @@ public final class CombatDamageListener implements Listener {
 
     private boolean handleEnvironmentalDamage(EntityDamageEvent event, LivingEntity target, LivingEntity attacker) {
         AttributeConfig config = attributeService.config();
-        DamageCauseRule rule = config.damageCauseRule(event.getCause().name());
-        if (rule == null && !config.vanillaEventDamageEnabled()) {
+        boolean vanillaEventDamage = config.vanillaEventDamageEnabled();
+        DamageCauseRule rule = vanillaEventDamage ? null : config.damageCauseRule(event.getCause().name());
+        if (!vanillaEventDamage && rule == null) {
             if (debugHandler.shouldDebugCombat(attacker, target, null)) {
                 debugHandler.debugCombat(attacker, target, null, "ENVIRONMENT_IGNORED", "combat_debug.environment_ignored", Map.of(
                         "cause", event.getCause().name()
@@ -218,11 +223,11 @@ public final class CombatDamageListener implements Listener {
         }
         event.setCancelled(true);
         DamageContextVariables.Builder context = CombatSupport.baseContext(event, target).toBuilder();
-        if (rule != null && rule.context() != null && !rule.context().isEmpty()) {
+        if (!vanillaEventDamage && rule != null && rule.context() != null && !rule.context().isEmpty()) {
             context.putAll(rule.context());
         }
         double sourceDamage = event.getDamage();
-        double baseDamage = rule == null ? sourceDamage : rule.resolveDamage(sourceDamage);
+        double baseDamage = vanillaEventDamage || rule == null ? sourceDamage : rule.resolveDamage(sourceDamage);
         if (event.getCause() == EntityDamageEvent.DamageCause.FALL) {
             applyFallDamageContext(target, context, sourceDamage);
         }
@@ -235,7 +240,7 @@ public final class CombatDamageListener implements Listener {
         context.put("final_damage", event.getFinalDamage());
         context.put("target_uuid", target.getUniqueId().toString());
         context.put("target_type", target.getType().name());
-        String damageTypeId = rule == null
+        String damageTypeId = vanillaEventDamage
                 ? config.vanillaEventDamageType()
                 : (rule.hasDamageType() ? rule.damageTypeId() : config.defaultDamageType());
         DamageContextVariables resolvedContext = context.build();
