@@ -87,6 +87,29 @@ export type SurfaceRegistration = {
   priority?: number;
 };
 
+export type ConfigPreviewProps = {
+  module: WebRegistryModule;
+  file: WebRegistryFile;
+  path: string;
+  childPath?: string;
+  nodes: WebConfigNode[];
+  data: Record<string, unknown>;
+  sourceContent: string;
+  sourceDirty: boolean;
+  sourceError?: string | null;
+  api: ApiClient;
+};
+
+export type ConfigPreviewRegistration = {
+  moduleId?: string;
+  kind?: string;
+  pathPrefix?: string;
+  pathPattern?: string;
+  component: ComponentType<ConfigPreviewProps>;
+  label?: string;
+  priority?: number;
+};
+
 export type StandardGuiFieldEntry = [path: string, label: string, comment: string, type: string];
 export type ConfigMetaFieldEntry = [path: string, label: string, comment: string, type?: string, extra?: ConfigNodeMetaOverride];
 export type ConfigRuleFieldEntry = [label: string, comment: string, type?: string, extra?: ConfigNodeMetaOverride];
@@ -167,6 +190,9 @@ export type EmakiWebConsoleHost = typeof lib & typeof components & typeof i18n &
   registerPluginGuiSurface: typeof registerPluginGuiSurface;
   registerPluginGuiEditor: typeof registerPluginGuiEditor;
   registerPluginSurfaces: typeof registerPluginSurfaces;
+  registerConfigPreview: typeof registerConfigPreview;
+  getConfigPreview: typeof getConfigPreview;
+  getAllConfigPreviews: typeof getAllConfigPreviews;
   standardGuiFields: typeof standardGuiFields;
   registerEditorDescriptor: typeof registerEditorDescriptor;
   registerEditorField: typeof registerEditorField;
@@ -204,6 +230,7 @@ export type EmakiWebConsoleHost = typeof lib & typeof components & typeof i18n &
 export const EMAKI_WEB_CONSOLE_API_VERSION = '1.1.0';
 
 const _registry: SurfaceRegistration[] = [];
+const _configPreviews: ConfigPreviewRegistration[] = [];
 const _editorOverrides: Record<string, WebEditorDescriptor> = {};
 const _sourceAdapters: SourceAdapterRegistration[] = [];
 const _extensionStatuses: WebConsoleExtensionStatus[] = [];
@@ -228,6 +255,23 @@ declare global {
 
 function normalize(value: string | undefined): string {
   return String(value ?? '').toUpperCase();
+}
+
+function normalizePreviewPath(value: string | undefined): string {
+  return String(value ?? '').trim().replace(/\\/g, '/').replace(/^\/+/, '').toLowerCase();
+}
+
+function configPreviewScore(reg: ConfigPreviewRegistration): number {
+  return (reg.priority ?? 0)
+    + (reg.moduleId ? 100 : 0)
+    + (reg.kind ? 20 : 0)
+    + (reg.pathPattern ? 14 : 0)
+    + (reg.pathPrefix ? 10 + reg.pathPrefix.length / 1000 : 0);
+}
+
+function previewPathPatternMatches(pattern: string, path: string): boolean {
+  const escaped = pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*\*/g, '.*').replace(/\*/g, '[^/]*');
+  return new RegExp(`^${escaped}$`).test(path);
 }
 
 /** Register a surface. Later registrations with higher priority override earlier ones. */
@@ -271,6 +315,43 @@ export function getSurface(fileOrKind: WebRegistryFile | string | undefined, edi
 /** Get all registered surfaces. */
 export function getAllSurfaces(): SurfaceRegistration[] {
   return [..._registry];
+}
+
+export function registerConfigPreview(reg: ConfigPreviewRegistration): void {
+  if (!reg?.component) return;
+  const next: ConfigPreviewRegistration = {
+    ...reg,
+    kind: reg.kind ? normalize(reg.kind) : undefined,
+    moduleId: reg.moduleId ? normalize(reg.moduleId) : undefined,
+    pathPrefix: normalizePreviewPath(reg.pathPrefix),
+    pathPattern: normalizePreviewPath(reg.pathPattern)
+  };
+  const duplicate = _configPreviews.findIndex(existing =>
+    normalize(existing.kind) === normalize(next.kind)
+    && normalize(existing.moduleId) === normalize(next.moduleId)
+    && normalizePreviewPath(existing.pathPrefix) === next.pathPrefix
+    && normalizePreviewPath(existing.pathPattern) === next.pathPattern
+  );
+  if (duplicate >= 0) _configPreviews.splice(duplicate, 1);
+  _configPreviews.push(next);
+  _configPreviews.sort((a, b) => configPreviewScore(b) - configPreviewScore(a));
+}
+
+export function getConfigPreview(context: { moduleId?: string; kind?: string; path?: string }): ConfigPreviewRegistration | undefined {
+  const moduleId = normalize(context.moduleId);
+  const kind = normalize(context.kind);
+  const path = normalizePreviewPath(context.path);
+  return _configPreviews.find(reg => {
+    if (reg.moduleId && normalize(reg.moduleId) !== moduleId) return false;
+    if (reg.kind && normalize(reg.kind) !== kind) return false;
+    if (reg.pathPrefix && !path.startsWith(reg.pathPrefix)) return false;
+    if (reg.pathPattern && !previewPathPatternMatches(reg.pathPattern, path)) return false;
+    return true;
+  });
+}
+
+export function getAllConfigPreviews(): ConfigPreviewRegistration[] {
+  return [..._configPreviews];
 }
 
 export function recordExtensionStatus(status: WebConsoleExtensionStatus): void {
@@ -482,7 +563,7 @@ export function isKind(fileKind: string | undefined, target: string): boolean {
 
 /** Install the browser global used by plugin extension scripts. */
 export function installWebConsoleHost(): EmakiWebConsoleHost {
-  const host: EmakiWebConsoleHost = { ...lib, ...components, ...i18n, ...itemFieldRegistry, apiVersion: EMAKI_WEB_CONSOLE_API_VERSION, React, registerSurface, getSurface, getAllSurfaces, isKind, registerPluginGuiSurface, registerPluginGuiEditor, registerPluginSurfaces, standardGuiFields, registerEditorDescriptor, registerEditorField, registerSourceDocumentAdapter, getSourceDocumentAdapter, registerGuiEditorDescriptor, registerGuiEditorField, getRuntimeEnum, registerFileKindLabel, getFileKindLabel, registerConfigNodeMeta, registerConfigNodeRule, registerConfigCreateTemplate, registerConfigMetaFields, registerConfigFileSchema, registerConfigFileSchemas, registerConfigRuleFields, registerConfigCreateTemplates, registerConfigListItemSchemas, registerConfigListItemSchemaRules, registerConfigListItemSchema, registerConfigListItemSchemaRule, registerPluginConfig, registerUniqueListField, recordExtensionStatus, getExtensionStatuses, components, lib, i18n, t: i18n.t, registerLocale: i18n.registerLocale, registerModuleLocale: i18n.registerModuleLocale };
+  const host: EmakiWebConsoleHost = { ...lib, ...components, ...i18n, ...itemFieldRegistry, apiVersion: EMAKI_WEB_CONSOLE_API_VERSION, React, registerSurface, getSurface, getAllSurfaces, isKind, registerPluginGuiSurface, registerPluginGuiEditor, registerPluginSurfaces, registerConfigPreview, getConfigPreview, getAllConfigPreviews, standardGuiFields, registerEditorDescriptor, registerEditorField, registerSourceDocumentAdapter, getSourceDocumentAdapter, registerGuiEditorDescriptor, registerGuiEditorField, getRuntimeEnum, registerFileKindLabel, getFileKindLabel, registerConfigNodeMeta, registerConfigNodeRule, registerConfigCreateTemplate, registerConfigMetaFields, registerConfigFileSchema, registerConfigFileSchemas, registerConfigRuleFields, registerConfigCreateTemplates, registerConfigListItemSchemas, registerConfigListItemSchemaRules, registerConfigListItemSchema, registerConfigListItemSchemaRule, registerPluginConfig, registerUniqueListField, recordExtensionStatus, getExtensionStatuses, components, lib, i18n, t: i18n.t, registerLocale: i18n.registerLocale, registerModuleLocale: i18n.registerModuleLocale };
   (window as any).React = React;
   window.EmakiWebConsole = host;
   return host;

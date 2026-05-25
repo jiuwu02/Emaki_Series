@@ -5,7 +5,7 @@ import { ApiClient } from './api';
 import { GuiEditorSurface } from './GuiEditorSurface';
 import { ItemEditorSurface } from './ItemEditorSurface';
 import { loadWebExtensions } from './extensions';
-import { applyConfigNodeOverrides, applyConfigRegistryOverrides, applyEditorDescriptorOverrides, getSourceDocumentAdapter, getSurface, isKind, registerSourceDocumentAdapter, registerSurface, setRuntimeEnums, type SourceDocumentAdapterContext } from './registry';
+import { applyConfigNodeOverrides, applyConfigRegistryOverrides, applyEditorDescriptorOverrides, getConfigPreview, getSourceDocumentAdapter, getSurface, isKind, registerSourceDocumentAdapter, registerSurface, setRuntimeEnums, type ConfigPreviewProps, type SourceDocumentAdapterContext } from './registry';
 import { getLocale, getRegisteredLocales, setLocale, t } from './i18n';
 import { ActionGroup, Button, CodeEditor, EditorChrome, DisclosureChevron, InlineError, NumberListEditor, StringListEditor, ToastNotice, type EditorChange } from './components';
 import { useDialogFocus } from './components/useDialogFocus';
@@ -669,10 +669,21 @@ function ConfigStructuredSurface({ module, file, drafts, draftHistory, setDraftV
   return <section className="config-surface">
     {source.loading && <div className="script-loading" role="status">{t('core.state.loading')}</div>}
     {source.error && <InlineError><span>{source.error}</span><Button size="sm" onClick={() => void reloadStructured()}>{t('core.action.retry')}</Button></InlineError>}
+    {!source.loading && !source.error && <ConfigPreviewZone module={module} file={file} path={file.path} nodes={visibleNodes} scope={scope} drafts={drafts} source={source} api={api} />}
     {!source.loading && !source.error && <ConfigNodeTree scope={scope} nodes={visibleNodes} drafts={drafts} setDraftValue={setDraftValue} onCreateChild={setCreateNode} onDeleteObject={setDeleteNode} sourceEdit={sourceEdit} deletedPaths={deletedObjectPaths} />}
     {createNode && <ConfigCreateChildModal scope={scope} node={createNode} source={source} onCancel={() => setCreateNode(null)} onCreated={nodes => { setOptimisticNodes(current => mergeConfigNodes(current, nodes, new Set())); setCreateNode(null); }} setToast={setToast} />}
     {deleteNode && <ConfigDeleteObjectModal node={deleteNode} source={source} onCancel={() => setDeleteNode(null)} onDeleted={path => { setDeletedObjectPaths(current => new Set([...current, path])); setOptimisticNodes(current => current.filter(entry => !entry.path.startsWith(`${path}.`) && entry.path !== path)); setDeleteNode(null); }} setToast={setToast} />}
   </section>;
+}
+
+function ConfigPreviewZone({ module, file, path, childPath, nodes, scope, drafts, source, api }: { module: WebRegistryModule; file: WebRegistryFile; path: string; childPath?: string; nodes: WebConfigNode[]; scope: ConfigDraftScope; drafts: DraftMap; source: ConfigSourceDocument; api: ApiClient }) {
+  const registration = getConfigPreview({ moduleId: module.id, kind: file.kind, path });
+  if (!registration) return null;
+  const Preview = registration.component;
+  const sourceContent = source.dirty ? source.content : configSourcePreview(source.original, scope, nodes.filter(node => node.type !== 'object' && draftKey(scope, node.path) in drafts), drafts);
+  const data = configPreviewData(sourceContent, nodes, scope, drafts);
+  const props: ConfigPreviewProps = { module, file, path, childPath, nodes, data, sourceContent, sourceDirty: source.dirty, sourceError: source.error, api };
+  return <div className="config-preview-zone"><Preview {...props} /></div>;
 }
 
 function useConfigSourceDocument({ module, file, childPath, api, refreshKey, setToast }: { module: WebRegistryModule; file: WebRegistryFile; childPath?: string; api: ApiClient; refreshKey: number; setToast: (toast: Toast) => void }) {
@@ -853,6 +864,7 @@ function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, set
   return <section className="config-surface">
     {loading && <div className="script-loading" role="status">{t('core.state.loading')}</div>}
     {error && <InlineError><span>{error}</span><Button size="sm" onClick={() => void reloadChildNodes()}>{t('core.action.retry')}</Button></InlineError>}
+    {!loading && !error && <ConfigPreviewZone module={module} file={file} path={childPath} childPath={childPath} nodes={visibleNodes} scope={scope} drafts={drafts} source={source} api={api} />}
     {!loading && !error && <ConfigNodeTree scope={scope} nodes={visibleNodes} drafts={drafts} setDraftValue={setDraftValue} onCreateChild={setCreateNode} onDeleteObject={setDeleteNode} sourceEdit={sourceEdit} deletedPaths={deletedObjectPaths} />}
     {createNode && <ConfigCreateChildModal scope={scope} node={createNode} source={source} onCancel={() => setCreateNode(null)} onCreated={nodes => { setOptimisticNodes(current => mergeConfigNodes(current, nodes, new Set())); setCreateNode(null); }} setToast={setToast} />}
     {deleteNode && <ConfigDeleteObjectModal node={deleteNode} source={source} onCancel={() => setDeleteNode(null)} onDeleted={path => { setDeletedObjectPaths(current => new Set([...current, path])); setOptimisticNodes(current => current.filter(entry => !entry.path.startsWith(`${path}.`) && entry.path !== path)); setDeleteNode(null); }} setToast={setToast} />}
@@ -1106,6 +1118,18 @@ function configChanges(scope: ConfigDraftScope, nodes: WebConfigNode[], drafts: 
   return nodes
     .filter(node => node.type !== 'object' && draftKey(scope, node.path) in drafts)
     .map(node => ({ path: node.path, label: configNodeDisplayLabel(scope, node), before: node.value, after: drafts[draftKey(scope, node.path)] }));
+}
+
+function configPreviewData(sourceContent: string, nodes: WebConfigNode[], scope: ConfigDraftScope, drafts: DraftMap): Record<string, unknown> {
+  const parsed = parseSafeYaml(sourceContent || '{}');
+  let data: Record<string, unknown> = parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  for (const node of nodes) {
+    if (node.type === 'object') continue;
+    const key = draftKey(scope, node.path);
+    const value = key in drafts ? drafts[key] : node.value;
+    data = setDeepValue(data, node.path.split('.'), value);
+  }
+  return data;
 }
 
 function configSourcePreview(original: string, scope: ConfigDraftScope, changedNodes: WebConfigNode[], drafts: DraftMap): string {

@@ -1,6 +1,7 @@
-import { getLocale, registerModuleLocale, registerPluginConfig, registerPluginGuiEditor } from 'emaki-web-console';
+import { BlueprintGraph, PreviewMetricStrip, getLocale, registerConfigPreview, registerModuleLocale, registerPluginConfig, registerPluginGuiEditor, type BlueprintEdge, type BlueprintNode, type ConfigPreviewProps } from 'emaki-web-console';
 
 const MODULE = 'EmakiCooking';
+type AnyMap = Record<string, unknown>;
 
 type FieldSpec = [path: string, label: string, comment: string, type: string, extra?: Record<string, unknown>];
 
@@ -371,6 +372,14 @@ registerPluginConfig({
   ]
 });
 
+registerConfigPreview({
+  moduleId: MODULE,
+  kind: 'CONFIG',
+  pathPrefix: 'recipes/',
+  priority: 100,
+  component: CookingRecipePreview
+});
+
 registerPluginGuiEditor({
   moduleId: MODULE,
   editorId: 'emakicooking:gui',
@@ -385,3 +394,115 @@ registerPluginGuiEditor({
     ['progress', '进度槽', '显示烹饪、蒸制、烘烤或发酵进度的槽位。', 'text']
   ]
 });
+
+function CookingRecipePreview({ data, path }: ConfigPreviewProps) {
+  const graph = cookingGraph(data, path);
+  return <div className="config-preview-shell">
+    <div className="config-preview-head">
+      <div>
+        <h3>{copy('烹饪过程预览', 'Cooking Process Preview')}</h3>
+        <p>{String(data.display_name ?? data.id ?? path)} · {copy('使用节点蓝图展示工位流程与结果分支。', 'Blueprint-only view for station process and outcomes.')}</p>
+      </div>
+      <code>{graph.station}</code>
+    </div>
+    <PreviewMetricStrip facts={[
+      { label: copy('工位', 'Station'), value: graph.station },
+      { label: copy('输入', 'Inputs'), value: graph.inputCount },
+      { label: copy('结果', 'Results'), value: graph.resultCount },
+      { label: copy('节点', 'Nodes'), value: graph.nodes.length }
+    ]} />
+    <BlueprintGraph title={copy('配方过程蓝图', 'Recipe Process Blueprint')} summary={`${graph.nodes.length} nodes / ${graph.edges.length} links`} nodes={graph.nodes} edges={graph.edges} />
+  </div>;
+}
+
+function cookingGraph(data: AnyMap, path: string) {
+  const station = stationName(data, path);
+  const nodes: BlueprintNode[] = [];
+  const edges: BlueprintEdge[] = [];
+  const add = (node: BlueprintNode) => nodes.push(node);
+  const link = (from: string, to: string, label?: string, tone?: BlueprintEdge['tone']) => edges.push({ from, to, label, tone });
+  add({ id: 'start', title: copy('配方', 'Recipe'), subtitle: String(data.display_name ?? data.id ?? path), meta: station, tone: 'accent', column: 0, row: 0 });
+  const inputs = recipeInputs(data);
+  inputs.forEach((input, index) => {
+    const id = `input_${index}`;
+    add({ id, title: copy('输入', 'Input'), subtitle: input.label, meta: input.meta, column: 1, row: index, facts: [{ label: copy('数量', 'Amount'), value: input.amount }] });
+    link('start', id);
+  });
+  const processId = 'process';
+  add({ id: processId, title: processTitle(station), subtitle: processSubtitle(data), meta: processMeta(data), tone: 'warn', column: 2, row: Math.max(0, Math.floor(inputs.length / 2)), facts: processFacts(data) });
+  (inputs.length ? inputs.map((_, index) => `input_${index}`) : ['start']).forEach(id => link(id, processId, undefined, 'warn'));
+  const results = resultEntries(data);
+  results.forEach((result, index) => {
+    const id = `result_${index}`;
+    add({ id, title: result.title, subtitle: result.source, meta: result.amount, tone: result.tone, column: 3, row: index, facts: [{ label: copy('动作', 'Actions'), value: result.actions }] });
+    link(processId, id, result.title, result.tone);
+  });
+  return { station, nodes, edges, inputCount: inputs.length, resultCount: results.length };
+}
+
+function stationName(data: AnyMap, path: string): string {
+  if (path.includes('/wok/') || data.ingredients) return copy('炒锅', 'Wok');
+  if (path.includes('/chopping_board/') || data.cuts_required) return copy('砧板', 'Chopping Board');
+  if (path.includes('/grinder/') || data.grind_time_seconds) return copy('研磨机', 'Grinder');
+  if (path.includes('/steamer/') || data.required_steam) return copy('蒸锅', 'Steamer');
+  if (path.includes('/oven/') || data.bake_time_seconds || data.baking) return copy('烤炉', 'Oven');
+  if (path.includes('/juicer/') || data.presses_required || data.fluid) return copy('榨汁机', 'Juicer');
+  if (path.includes('/fermentation_barrel/') || data.fermentation_time_seconds) return copy('发酵桶', 'Fermentation Barrel');
+  return copy('烹饪', 'Cooking');
+}
+
+function recipeInputs(data: AnyMap) {
+  const groups = [data.input, ...asList(data.inputs), ...asList(data.ingredients)].map(asRecord).filter(entry => Object.keys(entry).length);
+  return groups.map((entry, index) => ({ label: asStringList(entry.item_sources)[0] ?? `${copy('输入', 'Input')} ${index + 1}`, amount: entry.amount ?? 1, meta: String(entry.stir_rule ?? entry.item_source ?? '') }));
+}
+
+function resultEntries(data: AnyMap) {
+  const result = asRecord(data.result);
+  const output = asRecord(result.output);
+  const outputs = asList(result.outputs).map(asRecord);
+  const named = Object.entries(result).filter(([, value]) => value && typeof value === 'object' && !Array.isArray(value) && !['output'].includes(String(value))).map(([key, value]) => ({ key, value: asRecord(value) }));
+  const entries = [Object.keys(output).length ? { key: copy('成功', 'Success'), value: output } : null, ...outputs.map((value, index) => ({ key: `${copy('产物', 'Output')} ${index + 1}`, value })), ...named].filter(Boolean) as Array<{ key: string; value: AnyMap }>;
+  if (!entries.length) return [{ title: copy('结果', 'Result'), source: copy('未配置', 'Not configured'), amount: '—', actions: 0, tone: 'default' as const }];
+  return entries.map(entry => ({ title: entry.key, source: asStringList(entry.value.item_sources)[0] ?? asStringList(entry.value.output_item_sources)[0] ?? copy('未设置来源', 'No source'), amount: `x${entry.value.amount ?? 1}`, actions: asList(entry.value.actions).length, tone: entry.key.includes('invalid') || entry.key.includes('over') ? 'bad' as const : 'good' as const }));
+}
+
+function processTitle(station: string): string {
+  return `${station} ${copy('处理', 'Process')}`;
+}
+
+function processSubtitle(data: AnyMap): string {
+  if (data.stir_total) return `${copy('翻炒', 'Stir')} ${asRecord(data.stir_total).min ?? '?'}-${asRecord(data.stir_total).max ?? '?'}`;
+  if (data.cuts_required) return `${copy('切割', 'Cuts')} ${data.cuts_required}`;
+  if (data.grind_time_seconds) return `${copy('研磨', 'Grind')} ${data.grind_time_seconds}s`;
+  if (data.required_steam) return `${copy('蒸汽', 'Steam')} ${data.required_steam}`;
+  if (data.bake_time_seconds) return `${copy('烘烤', 'Bake')} ${data.bake_time_seconds}s`;
+  if (data.presses_required) return `${copy('按压', 'Presses')} ${data.presses_required}`;
+  if (data.fermentation_time_seconds) return `${copy('发酵', 'Ferment')} ${data.fermentation_time_seconds}s`;
+  return copy('流程参数来自当前配方字段', 'Process parameters from recipe fields');
+}
+
+function processMeta(data: AnyMap): string {
+  if (data.heat_level) return `${copy('火候', 'Heat')} ${data.heat_level}`;
+  if (data.permission) return String(data.permission);
+  return '';
+}
+
+function processFacts(data: AnyMap) {
+  return [
+    { label: copy('容错', 'Faults'), value: data.fault_tolerance ?? '—' },
+    { label: copy('条件', 'Condition'), value: data.condition_type ?? 'all_of' }
+  ];
+}
+
+function asRecord(value: unknown): AnyMap {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as AnyMap : {};
+}
+
+function asList(value: unknown): unknown[] {
+  if (Array.isArray(value)) return value;
+  return value == null || value === '' ? [] : [value];
+}
+
+function asStringList(value: unknown): string[] {
+  return asList(value).flatMap(entry => Array.isArray(entry) ? asStringList(entry) : entry == null ? [] : [String(entry)]);
+}

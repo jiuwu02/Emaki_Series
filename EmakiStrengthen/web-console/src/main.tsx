@@ -1,8 +1,9 @@
-import { getLocale, registerModuleLocale, registerPluginConfig, registerPluginGuiEditor, type ConfigMetaFieldEntry } from 'emaki-web-console';
+import { BlueprintGraph, PreviewItemResult, PreviewMetricStrip, getLocale, registerConfigPreview, registerModuleLocale, registerPluginConfig, registerPluginGuiEditor, type BlueprintEdge, type BlueprintNode, type ConfigMetaFieldEntry, type ConfigPreviewProps } from 'emaki-web-console';
 
 const STRENGTHEN_EFFECT_TYPES = ['variables', 'ea_attribute', 'es_skill'];
 
 const MODULE = 'EmakiStrengthen';
+type AnyMap = Record<string, unknown>;
 
 const copy = (zh: string, en: string) => getLocale().startsWith('zh') ? zh : en;
 
@@ -162,6 +163,14 @@ registerPluginConfig({
   ]
 });
 
+registerConfigPreview({
+  moduleId: MODULE,
+  kind: 'CONFIG',
+  pathPrefix: 'recipes/',
+  priority: 120,
+  component: StrengthenRecipePreview
+});
+
 registerPluginGuiEditor({
   moduleId: MODULE,
   editorId: 'emakistrengthen:gui',
@@ -174,3 +183,107 @@ registerPluginGuiEditor({
     ['confirm', '确认按钮', '执行强化操作的按钮槽位。', 'text']
   ]
 });
+
+function StrengthenRecipePreview({ data, path }: ConfigPreviewProps) {
+  const stars = asRecord(data.stars);
+  const tree = asRecord(data.branch_tree);
+  const hasTree = Object.keys(tree).length > 0;
+  const graph = hasTree ? strengthenBranchGraph(tree, asRecord(data.success_rates)) : linearStarsGraph(stars, asRecord(data.success_rates));
+  const starCount = graph.starCount;
+  const branches = graph.branchCount;
+  const maxStar = Number(asRecord(data.limits).max_star ?? Math.max(0, ...graph.starLevels));
+  const firstMaterial = graph.firstMaterial;
+  return <div className="config-preview-shell">
+    <div className="config-preview-head">
+      <div>
+        <h3>{copy('强化预览', 'Strengthen Preview')}</h3>
+        <p>{String(data.display_name ?? data.id ?? path)} · {copy('字段变更会实时反映到下方路线图。', 'Field changes are reflected in the route graph.')}</p>
+      </div>
+      <code>{path}</code>
+    </div>
+    <PreviewMetricStrip facts={[
+      { label: copy('星级', 'Stars'), value: starCount || maxStar },
+      { label: copy('分支', 'Branches'), value: branches || 1, tone: branches > 1 ? 'warn' : 'default' },
+      { label: copy('最高', 'Max'), value: maxStar ? `+${maxStar}` : '—' },
+      { label: copy('成功率', 'Rates'), value: Object.keys(asRecord(data.success_rates)).length }
+    ]} />
+    <PreviewItemResult title={copy('强化结果摘要', 'Strengthened Result')} itemSources={firstMaterial ? [firstMaterial] : []} name={String(data.display_name ?? data.id ?? copy('强化物品', 'Strengthened Item'))} lore={strengthenLoreSummary(data, graph)} status={hasTree ? copy('分支配方', 'Branch recipe') : copy('线性配方', 'Linear recipe')} />
+    <BlueprintGraph title={copy('强化节点蓝图', 'Strengthen Blueprint')} summary={`${graph.nodes.length} nodes / ${graph.edges.length} links`} nodes={graph.nodes} edges={graph.edges} />
+  </div>;
+}
+
+function strengthenBranchGraph(root: AnyMap, rates: AnyMap) {
+  const nodes: BlueprintNode[] = [];
+  const edges: BlueprintEdge[] = [];
+  const starLevels: number[] = [];
+  let branchCount = 0;
+  let firstMaterial = '';
+  const visit = (branch: AnyMap, parentId: string | null, depth: number, row: number, pathLabel: string) => {
+    const id = String(branch.branch_id ?? (pathLabel || `branch_${nodes.length}`));
+    const branchStars = sortedStarEntries(asRecord(branch.stars));
+    branchStars.forEach(([level]) => starLevels.push(level));
+    const materials = branchStars.flatMap(([, star]) => asList(asRecord(star).materials));
+    if (!firstMaterial) firstMaterial = firstSource(materials[0]);
+    nodes.push({
+      id,
+      title: stripMini(String(branch.display_name ?? id)),
+      subtitle: branchStars.length ? `+${branchStars[0][0]} → +${branchStars[branchStars.length - 1][0]}` : copy('无星级阶段', 'No star stages'),
+      meta: Number(branch.fork_after_star) >= 0 ? `fork @ +${branch.fork_after_star}` : 'leaf',
+      tone: parentId ? 'accent' : 'warn',
+      column: depth,
+      row,
+      facts: [{ label: copy('阶段', 'Stages'), value: branchStars.length }, { label: copy('材料', 'Materials'), value: materials.length }, { label: copy('成功率', 'Rate'), value: branchStars.map(([level]) => rates[String(level)] ?? rates[level]).filter(Boolean)[0] ?? '—' }]
+    });
+    if (parentId) edges.push({ from: parentId, to: id, tone: 'accent' });
+    const children = asRecord(branch.children);
+    Object.entries(children).forEach(([key, child], index) => {
+      branchCount += 1;
+      visit(asRecord(child), id, depth + 1, row + index, key);
+    });
+  };
+  visit(root, null, 0, 0, 'root');
+  return { nodes, edges, starCount: new Set(starLevels).size, starLevels, branchCount, firstMaterial };
+}
+
+function linearStarsGraph(stars: AnyMap, rates: AnyMap) {
+  const entries = sortedStarEntries(stars);
+  const nodes: BlueprintNode[] = entries.map(([level, star], index) => {
+    const record = asRecord(star);
+    return { id: `star_${level}`, title: `+${level}`, subtitle: stripMini(String(record.name ?? copy('强化阶段', 'Strengthen stage'))), meta: `${rates[String(level)] ?? rates[level] ?? '—'}%`, tone: index === entries.length - 1 ? 'good' : 'default', column: index, row: 0, facts: [{ label: copy('材料', 'Materials'), value: asList(record.materials).length }, { label: copy('效果', 'Effects'), value: asList(record.effects).length }] };
+  });
+  return { nodes, edges: nodes.slice(1).map((node, index) => ({ from: nodes[index].id, to: node.id })), starCount: entries.length, starLevels: entries.map(([level]) => level), branchCount: 0, firstMaterial: firstSource(asList(asRecord(entries[0]?.[1]).materials)[0]) };
+}
+
+function strengthenLoreSummary(data: AnyMap, graph: ReturnType<typeof linearStarsGraph>) {
+  return [
+    `${copy('路线节点', 'Route nodes')}: ${graph.nodes.length}`,
+    `${copy('分支数量', 'Branches')}: ${graph.branchCount || 0}`,
+    `${copy('名称动作', 'Name actions')}: ${asList(data.name_actions).length}`,
+    `${copy('Lore 动作', 'Lore actions')}: ${asList(data.lore_actions).length}`
+  ];
+}
+
+function sortedStarEntries(stars: AnyMap): Array<[number, AnyMap]> {
+  return Object.entries(stars).map(([key, value]) => [Number(key), asRecord(value)] as [number, AnyMap]).filter(([level]) => Number.isFinite(level)).sort((a, b) => a[0] - b[0]);
+}
+
+function firstSource(material: unknown): string {
+  return asStringList(asRecord(material).item_sources)[0] ?? '';
+}
+
+function asRecord(value: unknown): AnyMap {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as AnyMap : {};
+}
+
+function asList(value: unknown): unknown[] {
+  if (Array.isArray(value)) return value;
+  return value == null || value === '' ? [] : [value];
+}
+
+function asStringList(value: unknown): string[] {
+  return asList(value).flatMap(entry => Array.isArray(entry) ? asStringList(entry) : entry == null ? [] : [String(entry)]);
+}
+
+function stripMini(value: string): string {
+  return value.replace(/<[^>]+>/g, '').trim();
+}
