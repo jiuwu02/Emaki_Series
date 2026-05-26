@@ -216,10 +216,13 @@ function strengthenBranchGraph(root: AnyMap, rates: AnyMap) {
   const nodes: BlueprintNode[] = [];
   const edges: BlueprintEdge[] = [];
   const starLevels: number[] = [];
+  const visited = new Set<AnyMap>();
   let branchCount = 0;
   let firstMaterial = '';
   const visit = (branch: AnyMap, parentId: string | null, depth: number, row: number, pathLabel: string) => {
-    const id = String(branch.branch_id ?? (pathLabel || `branch_${nodes.length}`));
+    if (visited.has(branch) || nodes.length >= 160) return;
+    visited.add(branch);
+    const id = uniqueNodeId(String(branch.branch_id ?? (pathLabel || `branch_${nodes.length}`)), nodes);
     const branchStars = sortedStarEntries(asRecord(branch.stars));
     branchStars.forEach(([level]) => starLevels.push(level));
     const materials = branchStars.flatMap(([, star]) => asList(asRecord(star).materials));
@@ -246,7 +249,7 @@ function strengthenBranchGraph(root: AnyMap, rates: AnyMap) {
 }
 
 function linearStarsGraph(stars: AnyMap, rates: AnyMap) {
-  const entries = sortedStarEntries(stars);
+  const entries = sortedStarEntries(stars).slice(0, 160);
   const nodes: BlueprintNode[] = entries.map(([level, star], index) => {
     const record = asRecord(star);
     return { id: `star_${level}`, title: `+${level}`, subtitle: stripMini(String(record.name ?? copy('强化阶段', 'Strengthen stage'))), meta: `${rates[String(level)] ?? rates[level] ?? '—'}%`, tone: index === entries.length - 1 ? 'good' : 'default', column: index, row: 0, facts: [{ label: copy('材料', 'Materials'), value: asList(record.materials).length }, { label: copy('效果', 'Effects'), value: asList(record.effects).length }] };
@@ -269,6 +272,14 @@ function sortedStarEntries(stars: AnyMap): Array<[number, AnyMap]> {
 
 function firstSource(material: unknown): string {
   return asStringList(asRecord(material).item_sources)[0] ?? '';
+}
+
+function uniqueNodeId(base: string, nodes: BlueprintNode[]): string {
+  const clean = base || `node_${nodes.length}`;
+  if (!nodes.some(node => node.id === clean)) return clean;
+  let index = 2;
+  while (nodes.some(node => node.id === `${clean}_${index}`)) index += 1;
+  return `${clean}_${index}`;
 }
 
 function asRecord(value: unknown): AnyMap {

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { Component, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import type { Completion, CompletionContext, CompletionResult, CompletionSource } from '@codemirror/autocomplete';
 import type { ComponentType } from 'react';
 import { ApiClient } from './api';
@@ -678,12 +678,39 @@ function ConfigStructuredSurface({ module, file, drafts, draftHistory, setDraftV
 
 function ConfigPreviewZone({ module, file, path, childPath, nodes, scope, drafts, source, api }: { module: WebRegistryModule; file: WebRegistryFile; path: string; childPath?: string; nodes: WebConfigNode[]; scope: ConfigDraftScope; drafts: DraftMap; source: ConfigSourceDocument; api: ApiClient }) {
   const registration = getConfigPreview({ moduleId: module.id, kind: file.kind, path });
+  const changedDraftKey = Object.keys(drafts).filter(key => key.startsWith(draftScopePrefix(scope))).sort().map(key => `${key}=${String(drafts[key])}`).join('\u001f');
+  const sourceContent = useMemo(() => {
+    if (source.dirty) return source.content;
+    if (!registration) return '';
+    return configSourcePreview(source.original, scope, nodes.filter(node => node.type !== 'object' && draftKey(scope, node.path) in drafts), drafts);
+  }, [registration, source.dirty, source.content, source.original, scope.moduleId, scope.fileId, scope.filePath, nodes, changedDraftKey]);
+  const data = useMemo(() => registration ? configPreviewData(sourceContent, nodes, scope, drafts) : {}, [registration, sourceContent, nodes, scope.moduleId, scope.fileId, scope.filePath, changedDraftKey]);
   if (!registration) return null;
   const Preview = registration.component;
-  const sourceContent = source.dirty ? source.content : configSourcePreview(source.original, scope, nodes.filter(node => node.type !== 'object' && draftKey(scope, node.path) in drafts), drafts);
-  const data = configPreviewData(sourceContent, nodes, scope, drafts);
   const props: ConfigPreviewProps = { module, file, path, childPath, nodes, data, sourceContent, sourceDirty: source.dirty, sourceError: source.error, api };
-  return <div className="config-preview-zone"><Preview {...props} /></div>;
+  return <ConfigPreviewBoundary previewKey={`${module.id}:${path}`}><div className="config-preview-zone"><Preview {...props} /></div></ConfigPreviewBoundary>;
+}
+
+type ConfigPreviewBoundaryProps = { previewKey: string; children: ReactNode };
+type ConfigPreviewBoundaryState = { error: Error | null; previewKey: string };
+
+class ConfigPreviewBoundary extends Component<ConfigPreviewBoundaryProps, ConfigPreviewBoundaryState> {
+  state: ConfigPreviewBoundaryState = { error: null, previewKey: this.props.previewKey };
+
+  static getDerivedStateFromProps(props: ConfigPreviewBoundaryProps, state: ConfigPreviewBoundaryState): Partial<ConfigPreviewBoundaryState> | null {
+    return props.previewKey !== state.previewKey ? { error: null, previewKey: props.previewKey } : null;
+  }
+
+  static getDerivedStateFromError(error: Error): Partial<ConfigPreviewBoundaryState> {
+    return { error };
+  }
+
+  render() {
+    if (this.state.error) {
+      return <div className="config-preview-zone"><InlineError><span>配方预览暂不可用：{this.state.error.message}</span></InlineError></div>;
+    }
+    return this.props.children;
+  }
 }
 
 function useConfigSourceDocument({ module, file, childPath, api, refreshKey, setToast }: { module: WebRegistryModule; file: WebRegistryFile; childPath?: string; api: ApiClient; refreshKey: number; setToast: (toast: Toast) => void }) {
@@ -1123,8 +1150,10 @@ function configChanges(scope: ConfigDraftScope, nodes: WebConfigNode[], drafts: 
 function configPreviewData(sourceContent: string, nodes: WebConfigNode[], scope: ConfigDraftScope, drafts: DraftMap): Record<string, unknown> {
   const parsed = parseSafeYaml(sourceContent || '{}');
   let data: Record<string, unknown> = parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
-  for (const node of nodes) {
-    if (node.type === 'object') continue;
+  const changedNodes = nodes.filter(node => node.type !== 'object' && draftKey(scope, node.path) in drafts);
+  const sourceIsUseful = Object.keys(data).length > 0 || sourceContent.trim() === '';
+  const nodesToOverlay = sourceIsUseful ? changedNodes : nodes.filter(node => node.type !== 'object');
+  for (const node of nodesToOverlay) {
     const key = draftKey(scope, node.path);
     const value = key in drafts ? drafts[key] : node.value;
     data = setDeepValue(data, node.path.split('.'), value);

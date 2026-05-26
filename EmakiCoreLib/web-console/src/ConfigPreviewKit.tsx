@@ -68,19 +68,23 @@ export function PreviewTooltipBlock({ name, lore, emptyText }: { name?: string; 
 }
 
 export function BlueprintGraph({ title = '节点蓝图', summary, nodes, edges }: { title?: string; summary?: string; nodes: BlueprintNode[]; edges: BlueprintEdge[] }) {
-  const layout = useMemo(() => layoutBlueprint(nodes), [nodes]);
+  const visibleNodes = nodes.slice(0, 96);
+  const visibleNodeIds = useMemo(() => new Set(visibleNodes.map(node => node.id)), [visibleNodes]);
+  const visibleEdges = edges.filter(edge => visibleNodeIds.has(edge.from) && visibleNodeIds.has(edge.to)).slice(0, 160);
+  const hiddenCount = Math.max(0, nodes.length - visibleNodes.length);
+  const layout = useMemo(() => layoutBlueprint(visibleNodes), [visibleNodes]);
   if (!nodes.length) return <div className="blueprint-panel empty"><div className="blueprint-head"><span>{title}</span></div><p>没有可预览的节点。</p></div>;
-  const width = Math.max(520, (layout.maxColumn + 1) * 190 + 40);
-  const height = Math.max(180, (layout.maxRow + 1) * 112 + 34);
+  const width = Math.max(520, Math.min(3600, (layout.maxColumn + 1) * 190 + 40));
+  const height = Math.max(180, Math.min(2600, (layout.maxRow + 1) * 112 + 34));
   return <div className="blueprint-panel">
     <div className="blueprint-head">
       <span>{title}</span>
-      {summary && <code>{summary}</code>}
+      {summary && <code>{hiddenCount ? `${summary} · 显示前 ${visibleNodes.length} 个` : summary}</code>}
     </div>
     <div className="blueprint-scroll" role="img" aria-label={title}>
       <div className="blueprint-canvas" style={{ width, height }}>
         <svg className="blueprint-wires" width={width} height={height} aria-hidden="true">
-          {edges.map((edge, index) => {
+          {visibleEdges.map((edge, index) => {
             const from = layout.positions.get(edge.from);
             const to = layout.positions.get(edge.to);
             if (!from || !to) return null;
