@@ -83,5 +83,6 @@ web_debug:
   disabled_all: "<yellow>Web Console debug disabled</yellow>"
   disabled_frontend: "<yellow>Web Console frontend debug disabled</yellow>"
   disabled_backend: "<yellow>Web Console backend debug disabled</yellow>"
-  not_running: "<red>Web Console is not running</red>"
+  disabled_config: "<yellow>Web Console is disabled, so debug logs cannot be enabled. Set web_console.enabled: true in config.yml, then run /emakicorelib reload.</yellow>"
+  not_running: "<red>Web Console is not running, so debug logs cannot be enabled. Check the startup log or run /emakicorelib reload.</red>"
   no_permission: "<red>You do not have permission to change Web Console debug mode</red>"

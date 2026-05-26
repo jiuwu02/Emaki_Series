@@ -83,7 +83,8 @@ web_debug:
   disabled_all: "<yellow>Web Console 调试模式已关闭</yellow>"
   disabled_frontend: "<yellow>Web Console 前端调试已关闭</yellow>"
   disabled_backend: "<yellow>Web Console 后端调试已关闭</yellow>"
-  not_running: "<red>Web Console 未启动</red>"
+  disabled_config: "<yellow>Web Console 未启用，无法开启调试日志。请先在 config.yml 中设置 web_console.enabled: true，然后执行 /emakicorelib reload。</yellow>"
+  not_running: "<red>Web Console 未运行，无法开启调试日志。请检查启动日志或执行 /emakicorelib reload。</red>"
   no_permission: "<red>你没有权限操作 Web Console 调试模式</red>"
 
 # 命令消息
@@ -99,7 +100,7 @@ command:
   help_header: "<aqua>EmakiCoreLib 命令：</aqua>"
   help_web: "<green>{root} web</green><gray> - 输出可点击的 Web Console 链接</gray>"
   help_reload: "<green>{root} reload</green><gray> - 重载 CoreLib 配置与 Web Console</gray>"
-  help_webdebug: "<green>{root} webdebug [frontend|backend|all]</green><gray> - 开关 Web Console 调试日志</gray>"
+  help_webdebug: "<green>{root} webdebug [frontend|backend|all]</green><gray> - Web Console 启用后开关前端/后端调试日志</gray>"
 
 # Web Console 服务日志
 web_console:

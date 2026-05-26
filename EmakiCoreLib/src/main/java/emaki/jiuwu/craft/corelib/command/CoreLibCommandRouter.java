@@ -106,6 +106,11 @@ public final class CoreLibCommandRouter implements TabExecutor {
             sendLang(sender, "web_debug.no_permission");
             return true;
         }
+        WebConsoleConfig config = plugin.configModel().webConsoleConfig();
+        if (config == null || !config.enabled()) {
+            sendLang(sender, "web_debug.disabled_config");
+            return true;
+        }
         WebConsoleService service = plugin.webConsoleService();
         if (service == null) {
             sendLang(sender, "web_debug.not_running");

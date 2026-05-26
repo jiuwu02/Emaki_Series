@@ -512,7 +512,7 @@ export function standardGuiFields(entries: StandardGuiFieldEntry[] = []): Record
     ['title', '标题', 'GUI 窗口标题，支持 MiniMessage。', 'text'],
     ['rows', '箱子行数', '仅 CHEST 类型可用，范围 1-6。', 'number'],
     ['type', '槽位类型', '插件业务识别的槽位语义。', 'text'],
-    ['slots', '槽位', '槽位索引列表或槽位定义。', 'list'],
+    ['slots', '槽位', '槽位索引列表或槽位配置。', 'list'],
     ['item', '物品', '槽位显示物品，支持原版材料或 ItemSource。', 'text'],
     ['display_name', '显示名', '槽位物品显示名称，支持 MiniMessage。', 'text'],
     ['lore', 'Lore', '槽位物品描述，每行一条。', 'stringList']
