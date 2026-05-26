@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { PreviewItemResult, PreviewMetricStrip, getLocale, registerConfigPreview, registerModuleLocale, registerPluginConfig, registerPluginGuiEditor, type ConfigMetaFieldEntry, type ConfigPreviewProps, type PreviewFact } from 'emaki-web-console';
+import { PreviewMetricStrip, getLocale, registerConfigPreview, registerModuleLocale, registerPluginConfig, registerPluginGuiEditor, type ConfigMetaFieldEntry, type ConfigPreviewProps, type PreviewFact } from 'emaki-web-console';
 import blueprintCss from './blueprint.css?inline';
 
 const STRENGTHEN_EFFECT_TYPES = ['variables', 'ea_attribute', 'es_skill'];
@@ -194,7 +194,7 @@ registerConfigPreview({
   kind: 'CONFIG',
   pathPrefix: 'recipes/',
   priority: 120,
-  component: StrengthenRecipePreview
+  component: StrengthenBlueprintPanel
 });
 
 registerPluginGuiEditor({
@@ -210,7 +210,7 @@ registerPluginGuiEditor({
   ]
 });
 
-function StrengthenRecipePreview({ data, path }: ConfigPreviewProps) {
+function StrengthenBlueprintPanel({ data, path }: ConfigPreviewProps) {
   const stars = asRecord(data.stars);
   const tree = asRecord(data.branch_tree);
   const hasTree = Object.keys(tree).length > 0;
@@ -218,12 +218,11 @@ function StrengthenRecipePreview({ data, path }: ConfigPreviewProps) {
   const starCount = graph.starCount;
   const branches = graph.branchCount;
   const maxStar = Number(asRecord(data.limits).max_star ?? Math.max(0, ...graph.starLevels));
-  const firstMaterial = graph.firstMaterial;
-  return <div className="config-preview-shell">
+  return <div className="config-preview-shell strengthen-blueprint-shell">
     <div className="config-preview-head">
       <div>
-        <h3>{copy('强化预览', 'Strengthen Preview')}</h3>
-        <p>{String(data.display_name ?? data.id ?? path)} · {copy('字段变更会实时反映到下方路线图。', 'Field changes are reflected in the route graph.')}</p>
+        <h3>{copy('强化蓝图', 'Strengthen Blueprint')}</h3>
+        <p>{String(data.display_name ?? data.id ?? path)} · {copy('只保留强化路线蓝图，其他插件不再挂载此类面板。', 'Only the strengthen route blueprint is kept; other plugins no longer mount this panel.')}</p>
       </div>
       <code>{path}</code>
     </div>
@@ -233,7 +232,6 @@ function StrengthenRecipePreview({ data, path }: ConfigPreviewProps) {
       { label: copy('最高', 'Max'), value: maxStar ? `+${maxStar}` : '—' },
       { label: copy('成功率', 'Rates'), value: Object.keys(asRecord(data.success_rates)).length }
     ]} />
-    <PreviewItemResult title={copy('强化结果摘要', 'Strengthened Result')} itemSources={firstMaterial ? [firstMaterial] : []} name={String(data.display_name ?? data.id ?? copy('强化物品', 'Strengthened Item'))} lore={strengthenLoreSummary(data, graph)} status={hasTree ? copy('分支配方', 'Branch recipe') : copy('线性配方', 'Linear recipe')} />
     <BlueprintGraph title={copy('强化节点蓝图', 'Strengthen Blueprint')} summary={`${graph.nodes.length} nodes / ${graph.edges.length} links`} nodes={graph.nodes} edges={graph.edges} />
   </div>;
 }
@@ -352,15 +350,6 @@ function linearStarsGraph(stars: AnyMap, rates: AnyMap) {
     return { id: `star_${level}`, title: `+${level}`, subtitle: stripMini(String(record.name ?? copy('强化阶段', 'Strengthen stage'))), meta: `${rates[String(level)] ?? rates[level] ?? '—'}%`, tone: index === entries.length - 1 ? 'good' : 'default', column: index, row: 0, facts: [{ label: copy('材料', 'Materials'), value: asList(record.materials).length }, { label: copy('效果', 'Effects'), value: asList(record.effects).length }] };
   });
   return { nodes, edges: nodes.slice(1).map((node, index) => ({ from: nodes[index].id, to: node.id })), starCount: entries.length, starLevels: entries.map(([level]) => level), branchCount: 0, firstMaterial: firstSource(asList(asRecord(entries[0]?.[1]).materials)[0]) };
-}
-
-function strengthenLoreSummary(data: AnyMap, graph: ReturnType<typeof linearStarsGraph>) {
-  return [
-    `${copy('路线节点', 'Route nodes')}: ${graph.nodes.length}`,
-    `${copy('分支数量', 'Branches')}: ${graph.branchCount || 0}`,
-    `${copy('名称动作', 'Name actions')}: ${asList(data.name_actions).length}`,
-    `${copy('Lore 动作', 'Lore actions')}: ${asList(data.lore_actions).length}`
-  ];
 }
 
 function sortedStarEntries(stars: AnyMap): Array<[number, AnyMap]> {

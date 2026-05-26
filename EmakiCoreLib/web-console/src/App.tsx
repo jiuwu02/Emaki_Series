@@ -1,4 +1,4 @@
-import { Component, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { Component, useDeferredValue, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import type { Completion, CompletionContext, CompletionResult, CompletionSource } from '@codemirror/autocomplete';
 import type { ComponentType } from 'react';
 import { ApiClient } from './api';
@@ -638,15 +638,17 @@ function ConfigStructuredSurface({ module, file, drafts, draftHistory, setDraftV
     setToast({ tone: 'ok', text: t('core.toast.reloaded') });
   }
 
+  const toolbarChanges = useMemo(() => configChanges(scope, changedNodes, drafts), [scope.moduleId, scope.fileId, scope.filePath, changedNodes, drafts]);
+  const toolbarSource = source.dirty ? source.content : source.original;
+
   useEffect(() => {
-    const previewSource = source.dirty ? source.content : configSourcePreview(source.original, scope, changedNodes, drafts);
     setSurfaceToolbar({
       title: moduleTitle,
       subtitle: `${fileTitle}，${file.path}`,
       dirty: changedNodes.length > 0 || source.dirty,
       changedCount: changedNodes.length + (source.dirty ? 1 : 0),
-      changes: configChanges(scope, changedNodes, drafts),
-      source: previewSource,
+      changes: toolbarChanges,
+      source: toolbarSource,
       sourceOriginal: source.original,
       sourceEditable: true,
       sourceError: source.error,
@@ -662,7 +664,7 @@ function ConfigStructuredSurface({ module, file, drafts, draftHistory, setDraftV
       onSave: source.dirty ? () => void source.save(async () => { clearDraftValues(scope); setOptimisticNodes([]); setSourceEditedPaths(new Set()); setDeletedObjectPaths(new Set()); await onRefreshRegistry(); await source.reload(false); }) : () => void saveNodes()
     });
     return () => setSurfaceToolbar(null);
-  }, [moduleTitle, fileTitle, file.path, changedNodes.length, drafts, savingNodes, source.content, source.dirty, source.error, source.saving, source.loading, scopeHistory.undo.length, scopeHistory.redo.length]);
+  }, [moduleTitle, fileTitle, file.path, changedNodes.length, toolbarChanges, toolbarSource, savingNodes, source.dirty, source.error, source.saving, source.loading, scopeHistory.undo.length, scopeHistory.redo.length]);
 
   const [createNode, setCreateNode] = useState<WebConfigNode | null>(null);
   const [deleteNode, setDeleteNode] = useState<WebConfigNode | null>(null);
@@ -679,12 +681,13 @@ function ConfigStructuredSurface({ module, file, drafts, draftHistory, setDraftV
 function ConfigPreviewZone({ module, file, path, childPath, nodes, scope, drafts, source, api }: { module: WebRegistryModule; file: WebRegistryFile; path: string; childPath?: string; nodes: WebConfigNode[]; scope: ConfigDraftScope; drafts: DraftMap; source: ConfigSourceDocument; api: ApiClient }) {
   const registration = getConfigPreview({ moduleId: module.id, kind: file.kind, path });
   const changedDraftKey = Object.keys(drafts).filter(key => key.startsWith(draftScopePrefix(scope))).sort().map(key => `${key}=${String(drafts[key])}`).join('\u001f');
+  const deferredDraftKey = useDeferredValue(changedDraftKey);
   const sourceContent = useMemo(() => {
     if (source.dirty) return source.content;
     if (!registration) return '';
     return configSourcePreview(source.original, scope, nodes.filter(node => node.type !== 'object' && draftKey(scope, node.path) in drafts), drafts);
-  }, [registration, source.dirty, source.content, source.original, scope.moduleId, scope.fileId, scope.filePath, nodes, changedDraftKey]);
-  const data = useMemo(() => registration ? configPreviewData(sourceContent, nodes, scope, drafts) : {}, [registration, sourceContent, nodes, scope.moduleId, scope.fileId, scope.filePath, changedDraftKey]);
+  }, [registration, source.dirty, source.content, source.original, scope.moduleId, scope.fileId, scope.filePath, nodes, deferredDraftKey]);
+  const data = useMemo(() => registration ? configPreviewData(sourceContent, nodes, scope, drafts) : {}, [registration, sourceContent, nodes, scope.moduleId, scope.fileId, scope.filePath, deferredDraftKey]);
   if (!registration) return null;
   const Preview = registration.component;
   const props: ConfigPreviewProps = { module, file, path, childPath, nodes, data, sourceContent, sourceDirty: source.dirty, sourceError: source.error, api };
@@ -707,7 +710,7 @@ class ConfigPreviewBoundary extends Component<ConfigPreviewBoundaryProps, Config
 
   render() {
     if (this.state.error) {
-      return <div className="config-preview-zone"><InlineError><span>配方预览暂不可用：{this.state.error.message}</span></InlineError></div>;
+      return <div className="config-preview-zone"><InlineError><span>强化蓝图暂不可用：{this.state.error.message}</span></InlineError></div>;
     }
     return this.props.children;
   }
@@ -860,15 +863,17 @@ function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, set
     void reloadChildNodes(false);
   }, [module.id, childPath, refreshKey]);
 
+  const toolbarChanges = useMemo(() => configChanges(scope, changedNodes, drafts), [scope.moduleId, scope.fileId, scope.filePath, changedNodes, drafts]);
+  const toolbarSource = source.dirty ? source.content : source.original;
+
   useEffect(() => {
-    const previewSource = source.dirty ? source.content : configSourcePreview(source.original, scope, changedNodes, drafts);
     setSurfaceToolbar({
       title: fileName,
       subtitle: `${fileTitle} · ${childPath}`,
       dirty: changedNodes.length > 0 || source.dirty,
       changedCount: changedNodes.length + (source.dirty ? 1 : 0),
-      changes: configChanges(scope, changedNodes, drafts),
-      source: previewSource,
+      changes: toolbarChanges,
+      source: toolbarSource,
       sourceOriginal: source.original,
       sourceEditable: true,
       sourceError: source.error,
@@ -884,7 +889,7 @@ function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, set
       onSave: source.dirty ? () => void source.save(async () => { clearDraftValues(scope); setDeletedObjectPaths(new Set()); setSourceEditedPaths(new Set()); setOptimisticNodes([]); await reloadChildNodes(false); }) : () => void saveChild()
     });
     return () => setSurfaceToolbar(null);
-  }, [fileName, fileTitle, childPath, changedNodes.length, drafts, saving, loading, source.content, source.dirty, source.error, source.saving, source.loading, scopeHistory.undo.length, scopeHistory.redo.length, revision]);
+  }, [fileName, fileTitle, childPath, changedNodes.length, toolbarChanges, toolbarSource, saving, loading, source.dirty, source.error, source.saving, source.loading, scopeHistory.undo.length, scopeHistory.redo.length, revision]);
 
   const [createNode, setCreateNode] = useState<WebConfigNode | null>(null);
   const [deleteNode, setDeleteNode] = useState<WebConfigNode | null>(null);

@@ -1,4 +1,4 @@
-import { PreviewItemResult, PreviewMetricStrip, getLocale, registerConfigPreview, registerModuleLocale, registerPluginConfig, registerPluginGuiEditor, type ConfigPreviewProps } from 'emaki-web-console';
+import { getLocale, registerModuleLocale, registerPluginConfig, registerPluginGuiEditor } from 'emaki-web-console';
 
 const MODULE = 'EmakiForge';
 type AnyMap = Record<string, unknown>;
@@ -219,14 +219,6 @@ registerPluginConfig({
   ]
 });
 
-registerConfigPreview({
-  moduleId: MODULE,
-  kind: 'CONFIG',
-  pathPrefix: 'recipes/',
-  priority: 110,
-  component: ForgeRecipePreview
-});
-
 registerPluginGuiEditor({
   moduleId: MODULE,
   editorId: 'emakiforge:gui',
@@ -243,63 +235,3 @@ registerPluginGuiEditor({
   ]
 });
 
-function ForgeRecipePreview({ data, path }: ConfigPreviewProps) {
-  const result = asRecord(data.result);
-  const materials = asList(data.materials).map(asRecord);
-  const blueprints = asList(data.blueprint_requirements);
-  const required = materials.filter(item => item.optional !== true);
-  const optional = materials.filter(item => item.optional === true);
-  const capacity = Number(data.forge_capacity ?? 0);
-  const usedCapacity = materials.reduce((sum, item) => sum + Number(item.capacity_cost ?? 0), 0);
-  const meta = asRecord(result.meta_actions);
-  const name = previewName(meta, data);
-  const lore = previewLore(meta, materials);
-  return <div className="config-preview-shell">
-    <div className="config-preview-head">
-      <div>
-        <h3>{copy('锻造预览', 'Forge Preview')}</h3>
-        <p>{String(data.display_name ?? data.id ?? path)} · {copy('聚焦结果物品与容量约束。', 'Focused on result item and capacity constraints.')}</p>
-      </div>
-      <code>{path}</code>
-    </div>
-    <PreviewItemResult title={copy('锻造结果', 'Forge Result')} itemSources={result.item_sources} name={name} lore={lore} status={`${usedCapacity}/${capacity || '∞'} capacity`} facts={[
-      { label: copy('必需材料', 'Required'), value: required.length },
-      { label: copy('可选材料', 'Optional'), value: optional.length },
-      { label: copy('蓝图', 'Blueprints'), value: blueprints.length, tone: blueprints.length ? 'warn' : 'default' },
-      { label: copy('成功率', 'Rate'), value: data.success_rate ?? '100%' }
-    ]} />
-    <PreviewMetricStrip facts={[
-      { label: copy('容量', 'Capacity'), value: capacity || '—', tone: usedCapacity > capacity && capacity > 0 ? 'bad' : 'default' },
-      { label: copy('已占用', 'Used'), value: usedCapacity, tone: usedCapacity > capacity && capacity > 0 ? 'bad' : 'good' },
-      { label: copy('品质', 'Quality'), value: asRecord(data.quality).enabled === false ? copy('关闭', 'Off') : copy('启用', 'On') },
-      { label: copy('失败结果', 'Failure'), value: asList(data.failure_outcomes).length }
-    ]} />
-  </div>;
-}
-
-function previewName(meta: AnyMap, data: AnyMap): string {
-  const replace = asList(meta.name_actions).map(asRecord).find(action => action.action === 'replace');
-  return String(replace?.value ?? data.display_name ?? data.id ?? copy('锻造结果', 'Forge Result'));
-}
-
-function previewLore(meta: AnyMap, materials: AnyMap[]): string[] {
-  const configured = asList(meta.lore_actions).flatMap(action => asStringList(asRecord(action).content));
-  if (configured.length) return configured;
-  return [
-    `${copy('材料数量', 'Materials')}: ${materials.length}`,
-    `${copy('效果数量', 'Effects')}: ${materials.reduce((sum, item) => sum + asList(item.effects).length, 0)}`
-  ];
-}
-
-function asRecord(value: unknown): AnyMap {
-  return value && typeof value === 'object' && !Array.isArray(value) ? value as AnyMap : {};
-}
-
-function asList(value: unknown): unknown[] {
-  if (Array.isArray(value)) return value;
-  return value == null || value === '' ? [] : [value];
-}
-
-function asStringList(value: unknown): string[] {
-  return asList(value).flatMap(entry => Array.isArray(entry) ? asStringList(entry) : entry == null ? [] : [String(entry)]);
-}
