@@ -1,7 +1,8 @@
-import { BlueprintGraph, PreviewMetricStrip, getLocale, registerConfigPreview, registerModuleLocale, registerPluginConfig, registerPluginGuiEditor, type BlueprintEdge, type BlueprintNode, type ConfigPreviewProps } from 'emaki-web-console';
+import { PreviewMetricStrip, getLocale, registerConfigPreview, registerModuleLocale, registerPluginConfig, registerPluginGuiEditor, type ConfigPreviewProps, type PreviewFact } from 'emaki-web-console';
 
 const MODULE = 'EmakiCooking';
 type AnyMap = Record<string, unknown>;
+type CookingPreviewNode = { title: string; subtitle?: string; meta?: string; tone?: 'default' | 'accent' | 'good' | 'warn' | 'bad'; facts?: PreviewFact[] };
 
 type FieldSpec = [path: string, label: string, comment: string, type: string, extra?: Record<string, unknown>];
 
@@ -401,7 +402,7 @@ function CookingRecipePreview({ data, path }: ConfigPreviewProps) {
     <div className="config-preview-head">
       <div>
         <h3>{copy('烹饪过程预览', 'Cooking Process Preview')}</h3>
-        <p>{String(data.display_name ?? data.id ?? path)} · {copy('使用节点蓝图展示工位流程与结果分支。', 'Blueprint-only view for station process and outcomes.')}</p>
+        <p>{String(data.display_name ?? data.id ?? path)} · {copy('展示工位、输入和结果摘要。', 'Shows station, input, and result summary.')}</p>
       </div>
       <code>{graph.station}</code>
     </div>
@@ -411,33 +412,41 @@ function CookingRecipePreview({ data, path }: ConfigPreviewProps) {
       { label: copy('结果', 'Results'), value: graph.resultCount },
       { label: copy('节点', 'Nodes'), value: graph.nodes.length }
     ]} />
-    <BlueprintGraph title={copy('配方过程蓝图', 'Recipe Process Blueprint')} summary={`${graph.nodes.length} nodes / ${graph.edges.length} links`} nodes={graph.nodes} edges={graph.edges} />
+    <div className="config-preview-list">
+      {graph.nodes.map((node, index) => <div className={`config-preview-list-row ${node.tone ?? 'default'}`} key={`${node.title}-${index}`}>
+        <div>
+          <strong>{node.title}</strong>
+          {node.subtitle && <span>{node.subtitle}</span>}
+        </div>
+        {node.meta && <code>{node.meta}</code>}
+        {node.facts?.length ? <small>{node.facts.map(fact => `${fact.label}: ${formatCookingPreviewValue(fact.value)}`).join(' · ')}</small> : null}
+      </div>)}
+    </div>
   </div>;
 }
 
 function cookingGraph(data: AnyMap, path: string) {
   const station = stationName(data, path);
-  const nodes: BlueprintNode[] = [];
-  const edges: BlueprintEdge[] = [];
-  const add = (node: BlueprintNode) => nodes.push(node);
-  const link = (from: string, to: string, label?: string, tone?: BlueprintEdge['tone']) => edges.push({ from, to, label, tone });
-  add({ id: 'start', title: copy('配方', 'Recipe'), subtitle: String(data.display_name ?? data.id ?? path), meta: station, tone: 'accent', column: 0, row: 0 });
+  const nodes: CookingPreviewNode[] = [];
+  const add = (node: CookingPreviewNode) => nodes.push(node);
+  add({ title: copy('配方', 'Recipe'), subtitle: String(data.display_name ?? data.id ?? path), meta: station, tone: 'accent' });
   const inputs = recipeInputs(data);
-  inputs.forEach((input, index) => {
-    const id = `input_${index}`;
-    add({ id, title: copy('输入', 'Input'), subtitle: input.label, meta: input.meta, column: 1, row: index, facts: [{ label: copy('数量', 'Amount'), value: input.amount }] });
-    link('start', id);
+  inputs.forEach(input => {
+    add({ title: copy('输入', 'Input'), subtitle: input.label, meta: input.meta, facts: [{ label: copy('数量', 'Amount'), value: input.amount }] });
   });
-  const processId = 'process';
-  add({ id: processId, title: processTitle(station), subtitle: processSubtitle(data), meta: processMeta(data), tone: 'warn', column: 2, row: Math.max(0, Math.floor(inputs.length / 2)), facts: processFacts(data) });
-  (inputs.length ? inputs.map((_, index) => `input_${index}`) : ['start']).forEach(id => link(id, processId, undefined, 'warn'));
+  add({ title: processTitle(station), subtitle: processSubtitle(data), meta: processMeta(data), tone: 'warn', facts: processFacts(data) });
   const results = resultEntries(data);
-  results.forEach((result, index) => {
-    const id = `result_${index}`;
-    add({ id, title: result.title, subtitle: result.source, meta: result.amount, tone: result.tone, column: 3, row: index, facts: [{ label: copy('动作', 'Actions'), value: result.actions }] });
-    link(processId, id, result.title, result.tone);
+  results.forEach(result => {
+    add({ title: result.title, subtitle: result.source, meta: result.amount, tone: result.tone, facts: [{ label: copy('动作', 'Actions'), value: result.actions }] });
   });
-  return { station, nodes, edges, inputCount: inputs.length, resultCount: results.length };
+  return { station, nodes, inputCount: inputs.length, resultCount: results.length };
+}
+
+function formatCookingPreviewValue(value: unknown): string {
+  if (value == null || value === '') return '—';
+  if (typeof value === 'boolean') return value ? copy('是', 'yes') : copy('否', 'no');
+  if (Array.isArray(value)) return value.join(', ');
+  return String(value);
 }
 
 function stationName(data: AnyMap, path: string): string {
