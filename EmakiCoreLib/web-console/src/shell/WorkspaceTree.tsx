@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type CSSProperties, type Dispatch, type KeyboardEvent, type SetStateAction } from 'react';
+import { useCallback, useMemo, useRef, useState, type CSSProperties, type Dispatch, type KeyboardEvent, type SetStateAction } from 'react';
 import { getModuleLocaleBundles, t } from '../i18n';
 import { getFileKindLabel } from '../registry';
 import { treeNodeDisplayComment, treeNodeDisplayLabel } from '../lib';
@@ -22,10 +22,11 @@ export function WorkspaceTree({ registry, selected, expanded, dirtyKeys = new Se
   const normalizedQuery = normalizeQuery(query);
   const roots = useMemo(() => registry ? (registry.tree?.length ? registry.tree : modulesToTree(registry.modules)) : [], [registry]);
   const visibleRoots = useMemo(() => filterTree(roots, normalizedQuery), [roots, normalizedQuery]);
+  const dirtyNodeIds = useMemo(() => collectDirtyNodeIds(roots, dirtyKeys), [roots, dirtyKeys]);
   const treeRef = useRef<HTMLDivElement | null>(null);
-  const toggle = (id: string) => setExpanded((current) => ({ ...current, [id]: !current[id] }));
-  const openNode = (id: string) => setExpanded((current) => ({ ...current, [id]: true }));
-  const closeNode = (id: string) => setExpanded((current) => ({ ...current, [id]: false }));
+  const toggle = useCallback((id: string) => setExpanded((current) => ({ ...current, [id]: !current[id] })), [setExpanded]);
+  const openNode = useCallback((id: string) => setExpanded((current) => current[id] ? current : ({ ...current, [id]: true })), [setExpanded]);
+  const closeNode = useCallback((id: string) => setExpanded((current) => current[id] === false ? current : ({ ...current, [id]: false })), [setExpanded]);
 
   if (!registry) return <div className="tree-empty" role="status">{t('core.tree.loading')}</div>;
 
@@ -37,17 +38,17 @@ export function WorkspaceTree({ registry, selected, expanded, dirtyKeys = new Se
     </label>
     <div ref={treeRef} className="tree" role="tree" aria-label={t('core.tree.aria')} onKeyDown={(event) => handleTreeKeyDown(event, treeRef.current, openNode, closeNode)}>
       {visibleRoots.length > 0 ? visibleRoots.map((node) => (
-        <TreeNodeView key={node.id} node={node} selected={selected} expanded={expanded} dirtyKeys={dirtyKeys} queryActive={Boolean(normalizedQuery)} toggle={toggle} onSelect={onSelect} onOpenI18n={onOpenI18n} onCreateFile={onCreateFile} onDeleteFile={onDeleteFile} level={0} />
+        <TreeNodeView key={node.id} node={node} selected={selected} expanded={expanded} dirtyNodeIds={dirtyNodeIds} queryActive={Boolean(normalizedQuery)} toggle={toggle} onSelect={onSelect} onOpenI18n={onOpenI18n} onCreateFile={onCreateFile} onDeleteFile={onDeleteFile} level={0} />
       )) : normalizedQuery ? <div className="tree-empty tree-empty-search" role="status">{t('core.tree.noResults')}</div> : null}
     </div>
   </>;
 }
 
-function TreeNodeView({ node, selected, expanded, dirtyKeys, queryActive, toggle, onSelect, onOpenI18n, onCreateFile, onDeleteFile, level }: {
+function TreeNodeView({ node, selected, expanded, dirtyNodeIds, queryActive, toggle, onSelect, onOpenI18n, onCreateFile, onDeleteFile, level }: {
   node: RegistryTreeNode;
   selected: TreeSelection | null;
   expanded: Record<string, boolean>;
-  dirtyKeys: ReadonlySet<string>;
+  dirtyNodeIds: ReadonlySet<string>;
   queryActive: boolean;
   toggle: (id: string) => void;
   onSelect: (v: TreeSelection) => void;
@@ -64,7 +65,7 @@ function TreeNodeView({ node, selected, expanded, dirtyKeys, queryActive, toggle
   const kindLabel = fileKindLabel(node.kind ?? node.type);
   const isGlob = isGlobTreeNode(node);
   const active = Boolean(node.moduleId && node.fileId && !isGlob && selected?.moduleId === node.moduleId && selected.fileId === node.fileId && (selected.scriptPath ?? '') === (node.childPath ?? ''));
-  const dirty = isNodeDirty(node, dirtyKeys) || children.some(child => isNodeOrDescendantDirty(child, dirtyKeys));
+  const dirty = dirtyNodeIds.has(node.id);
   const displayLabel = treeNodeDisplayLabel(node);
   const displayComment = treeNodeDisplayComment(node);
 
@@ -86,7 +87,7 @@ function TreeNodeView({ node, selected, expanded, dirtyKeys, queryActive, toggle
           {onOpenI18n && node.id && <ModuleI18nButton moduleId={node.id} moduleName={displayLabel} count={i18nCount} onOpen={onOpenI18n} />}
         </div>
         {isOpen && <div role="group">{children.map((child) => (
-          <TreeNodeView key={child.id} node={child} selected={selected} expanded={expanded} dirtyKeys={dirtyKeys} queryActive={queryActive} toggle={toggle} onSelect={onSelect} onOpenI18n={onOpenI18n} onCreateFile={onCreateFile} onDeleteFile={onDeleteFile} level={level + 1} />
+          <TreeNodeView key={child.id} node={child} selected={selected} expanded={expanded} dirtyNodeIds={dirtyNodeIds} queryActive={queryActive} toggle={toggle} onSelect={onSelect} onOpenI18n={onOpenI18n} onCreateFile={onCreateFile} onDeleteFile={onDeleteFile} level={level + 1} />
         ))}</div>}
       </div>
     );
@@ -114,7 +115,7 @@ function TreeNodeView({ node, selected, expanded, dirtyKeys, queryActive, toggle
         {isOpen && (
           <div className="tree-children" role="group">
             {children.map((child) => (
-              <TreeNodeView key={child.id} node={child} selected={selected} expanded={expanded} dirtyKeys={dirtyKeys} queryActive={queryActive} toggle={toggle} onSelect={onSelect} onOpenI18n={onOpenI18n} onCreateFile={onCreateFile} onDeleteFile={onDeleteFile} level={level + 1} />
+              <TreeNodeView key={child.id} node={child} selected={selected} expanded={expanded} dirtyNodeIds={dirtyNodeIds} queryActive={queryActive} toggle={toggle} onSelect={onSelect} onOpenI18n={onOpenI18n} onCreateFile={onCreateFile} onDeleteFile={onDeleteFile} level={level + 1} />
             ))}
           </div>
         )}
@@ -262,8 +263,18 @@ function normalizeQuery(value: string): string {
   return value.trim().toLowerCase();
 }
 
-function isNodeOrDescendantDirty(node: RegistryTreeNode, dirtyKeys: ReadonlySet<string>): boolean {
-  return isNodeDirty(node, dirtyKeys) || (node.children ?? []).some(child => isNodeOrDescendantDirty(child, dirtyKeys));
+function collectDirtyNodeIds(nodes: RegistryTreeNode[], dirtyKeys: ReadonlySet<string>): Set<string> {
+  const dirtyNodeIds = new Set<string>();
+  const visit = (node: RegistryTreeNode): boolean => {
+    let dirty = isNodeDirty(node, dirtyKeys);
+    for (const child of node.children ?? []) {
+      if (visit(child)) dirty = true;
+    }
+    if (dirty) dirtyNodeIds.add(node.id);
+    return dirty;
+  };
+  nodes.forEach(visit);
+  return dirtyNodeIds;
 }
 
 function isNodeDirty(node: RegistryTreeNode, dirtyKeys: ReadonlySet<string>): boolean {

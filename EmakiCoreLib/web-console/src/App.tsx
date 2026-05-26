@@ -14,7 +14,7 @@ import { I18nBundleModal, type I18nTarget } from './I18nBundleModal';
 import { configNodeDisplayComment as resolveConfigNodeComment, fieldLabel, fileDisplayComment, fileDisplayTitle, humanizeFieldLabel, moduleDisplayName, optionLabel, parseYaml, serializeYaml, setDeepValue, valuesEqual } from './lib';
 import { Login, ResizableRail, WorkspaceTree, fileKindLabel } from './shell';
 import type { SurfaceProps, SurfaceToolbarState } from './registry';
-import type { RegistryTreeNode, WebConfigCreateTemplate, WebConfigFieldSchema, WebConfigNode, WebConsoleExtensionStatus, WebEditorDescriptor, WebRegistry, WebRegistryFile, WebRegistryModule } from './types';
+import type { RegistryTreeNode, WebConfigCreateTemplate, WebConfigFieldSchema, WebConfigNode, WebConsoleExtension, WebConsoleExtensionStatus, WebEditorDescriptor, WebRegistry, WebRegistryFile, WebRegistryModule } from './types';
 
 // Register CoreLib's built-in surfaces through the same registry used by plugin extensions.
 registerSurface({ kind: 'GUI', component: GuiEditorSurface as ComponentType<SurfaceProps>, label: t('core.surface.gui.label') });
@@ -72,8 +72,10 @@ export default function App() {
   const [surfaceDirtyKeys, setSurfaceDirtyKeys] = useState<Set<string>>(() => new Set());
   const [extensionStatuses, setExtensionStatuses] = useState<WebConsoleExtensionStatus[]>([]);
   const [extensionHealth, setExtensionHealth] = useState<'idle' | 'loading' | 'ok' | 'failed'>('idle');
+  const registryLoadSeq = useRef(0);
 
   const clearSession = (notice: LoginNotice) => {
+    registryLoadSeq.current += 1;
     sessionStorage.removeItem('emaki-web-token');
     setLoginNotice(notice);
     setToken(null);
@@ -191,33 +193,57 @@ export default function App() {
 
   async function loadRegistry(options: RegistryLoadOptions = {}): Promise<WebRegistry | null> {
     const { initial = false, clearDrafts = false, announceRefresh = !initial } = options;
+    const loadSeq = registryLoadSeq.current + 1;
+    registryLoadSeq.current = loadSeq;
     setLoading(true);
     setExtensionHealth('loading');
     setExtensionStatuses([]);
     try {
       const next = await api.registry();
+      if (loadSeq !== registryLoadSeq.current) return null;
       setRuntimeEnums(next.runtimeEnums);
-      const nextExtensionStatuses = await loadWebExtensions(next.extensions);
-      const failedExtensions = nextExtensionStatuses.filter(status => status.status === 'failed');
-      const merged = applyConfigRegistryOverrides(applyEditorDescriptorOverrides(next));
+      const merged = enhanceRegistry(next);
       setRegistry(merged);
-      setExtensionStatuses(nextExtensionStatuses);
-      setExtensionHealth(failedExtensions.length ? 'failed' : 'ok');
       if (initial) setExpanded(Object.fromEntries(merged.modules.map((m) => [m.id, true])));
       setSelected((c) => c ?? firstSelection(merged));
       if (clearDrafts) {
         setDrafts({});
         setDraftHistory({});
       }
-      if (failedExtensions.length) setToast({ tone: 'bad', text: t('core.toast.extensionLoadFailed', { count: failedExtensions.length }) });
-      else if (announceRefresh) setToast({ tone: 'ok', text: t('core.toast.registryRefreshed') });
+      if (next.extensions?.length) {
+        void loadExtensionsInBackground(next, loadSeq, announceRefresh);
+      } else {
+        setExtensionHealth('ok');
+        if (announceRefresh) setToast({ tone: 'ok', text: t('core.toast.registryRefreshed') });
+      }
       return merged;
     } catch (err) {
-      setExtensionHealth('failed');
-      setToast({ tone: 'bad', text: err instanceof Error ? err.message : t('core.toast.refreshFailed') });
+      if (loadSeq === registryLoadSeq.current) {
+        setExtensionHealth('failed');
+        setToast({ tone: 'bad', text: err instanceof Error ? err.message : t('core.toast.refreshFailed') });
+      }
       return null;
     } finally {
-      setLoading(false);
+      if (loadSeq === registryLoadSeq.current) setLoading(false);
+    }
+  }
+
+  async function loadExtensionsInBackground(baseRegistry: WebRegistry, loadSeq: number, announceRefresh: boolean): Promise<void> {
+    try {
+      const nextExtensionStatuses = await loadWebExtensions(baseRegistry.extensions, { defer: true });
+      if (loadSeq !== registryLoadSeq.current) return;
+      const failedExtensions = nextExtensionStatuses.filter(status => status.status === 'failed');
+      const merged = enhanceRegistry(baseRegistry);
+      setRegistry(merged);
+      setExtensionStatuses(nextExtensionStatuses);
+      setExtensionHealth(failedExtensions.length ? 'failed' : 'ok');
+      setSelected((current) => current && selectionExists(merged, current) ? current : firstSelection(merged));
+      if (failedExtensions.length) setToast({ tone: 'bad', text: t('core.toast.extensionLoadFailed', { count: failedExtensions.length }) });
+      else if (announceRefresh) setToast({ tone: 'ok', text: t('core.toast.registryRefreshed') });
+    } catch (err) {
+      if (loadSeq !== registryLoadSeq.current) return;
+      setExtensionHealth('failed');
+      setToast({ tone: 'bad', text: err instanceof Error ? err.message : t('core.toast.extensionLoadFailed', { count: 1 }) });
     }
   }
 
@@ -290,7 +316,7 @@ export default function App() {
   const selectedDraftScope = selectedModule && selectedFile && isKind(selectedFile.kind, 'CONFIG') ? configDraftScope(selectedModule, selectedFile, selected?.scriptPath) : null;
   const selectedScopeHistory = selectedDraftScope ? draftHistory[draftScopeId(selectedDraftScope)] ?? emptyDraftHistory() : emptyDraftHistory();
   const changedCount = selectedDraftScope && selectedFile ? selectedFile.nodes.filter((n) => n.type !== 'object' && draftKey(selectedDraftScope, n.path) in drafts).length : 0;
-  const dirtyTreeKeys = dirtyTreeKeysFromDrafts(drafts);
+  const dirtyTreeKeys = useMemo(() => dirtyTreeKeysFromDrafts(drafts), [drafts]);
   const activeTheme = COLOR_THEMES.find((entry) => entry.id === theme) ?? COLOR_THEMES[0];
   const activeThemeLabel = t(activeTheme.labelKey);
   const nextTheme = () => setTheme((current) => COLOR_THEMES[(COLOR_THEMES.findIndex((entry) => entry.id === current) + 1) % COLOR_THEMES.length].id);
@@ -319,6 +345,7 @@ export default function App() {
   const currentLocale = getLocale();
   const selectableLocales = locales.includes(currentLocale) ? locales : [currentLocale, ...locales];
   const currentLocaleLabel = localeLabel(currentLocale);
+  const pendingExtensionModules = useMemo(() => pendingExtensionModuleIds(registry?.extensions, extensionStatuses, extensionHealth), [registry?.extensions, extensionStatuses, extensionHealth]);
   const changeLocale = (next: string) => { setLocale(next); setLocaleVersion((version) => version + 1); };
 
   useEffect(() => {
@@ -414,7 +441,7 @@ export default function App() {
           onSave={toolbar.onSave}
         />
         <section className="editor-shell single">
-          <ConfigSurface registry={registry} module={selectedModule} file={selectedFile} drafts={drafts} draftHistory={draftHistory} setDraftValue={setDraftValue} clearDraftScope={clearDraftScope} clearDraftValues={clearDraftValues} undoDraftScope={undoDraftScope} redoDraftScope={redoDraftScope} api={api} scriptPath={selected?.scriptPath} refreshKey={selected?.refreshKey ?? 0} onReload={() => void reloadCurrentSurface()} onRefreshRegistry={() => loadRegistry({ clearDrafts: false, announceRefresh: false })} setSurfaceToolbar={setSurfaceToolbar} setToast={setToast} />
+          <ConfigSurface registry={registry} module={selectedModule} file={selectedFile} drafts={drafts} draftHistory={draftHistory} setDraftValue={setDraftValue} clearDraftScope={clearDraftScope} clearDraftValues={clearDraftValues} undoDraftScope={undoDraftScope} redoDraftScope={redoDraftScope} api={api} scriptPath={selected?.scriptPath} refreshKey={selected?.refreshKey ?? 0} pendingExtensionModules={pendingExtensionModules} onReload={() => void reloadCurrentSurface()} onRefreshRegistry={() => loadRegistry({ clearDrafts: false, announceRefresh: false })} setSurfaceToolbar={setSurfaceToolbar} setToast={setToast} />
         </section>
       </main>
     </div>
@@ -554,7 +581,7 @@ function DeleteFileModal({ target, onCancel, onDelete }: { target: RegistryTreeN
   </div>;
 }
 
-function ConfigSurface({ registry, module, file, drafts, draftHistory, setDraftValue, clearDraftScope, clearDraftValues, undoDraftScope, redoDraftScope, api, scriptPath, refreshKey, onReload, onRefreshRegistry, setSurfaceToolbar, setToast }: { registry: WebRegistry | null; module: WebRegistryModule | null; file: WebRegistryFile | null; drafts: DraftMap; draftHistory: DraftHistoryMap; setDraftValue: DraftValueSetter; clearDraftScope: DraftScopeAction; clearDraftValues: DraftScopeAction; undoDraftScope: DraftScopeAction; redoDraftScope: DraftScopeAction; api: ApiClient; scriptPath?: string; refreshKey: number; onReload?: () => void; onRefreshRegistry: () => Promise<WebRegistry | null>; setSurfaceToolbar: (state: SurfaceToolbarState | null) => void; setToast: (toast: Toast) => void }) {
+function ConfigSurface({ registry, module, file, drafts, draftHistory, setDraftValue, clearDraftScope, clearDraftValues, undoDraftScope, redoDraftScope, api, scriptPath, refreshKey, pendingExtensionModules, onReload, onRefreshRegistry, setSurfaceToolbar, setToast }: { registry: WebRegistry | null; module: WebRegistryModule | null; file: WebRegistryFile | null; drafts: DraftMap; draftHistory: DraftHistoryMap; setDraftValue: DraftValueSetter; clearDraftScope: DraftScopeAction; clearDraftValues: DraftScopeAction; undoDraftScope: DraftScopeAction; redoDraftScope: DraftScopeAction; api: ApiClient; scriptPath?: string; refreshKey: number; pendingExtensionModules: ReadonlySet<string>; onReload?: () => void; onRefreshRegistry: () => Promise<WebRegistry | null>; setSurfaceToolbar: (state: SurfaceToolbarState | null) => void; setToast: (toast: Toast) => void }) {
   useEffect(() => {
     setSurfaceToolbar(null);
     return () => setSurfaceToolbar(null);
@@ -566,6 +593,9 @@ function ConfigSurface({ registry, module, file, drafts, draftHistory, setDraftV
 
   // Check registry for a custom surface first
   const registeredSurface = getSurface(file, editor);
+  if (extensionSurfacePending(module, file, editor, registeredSurface, pendingExtensionModules)) {
+    return <section className="config-surface empty" role="status">{t('core.extension.loadingEditor', undefined, '正在加载插件编辑器…')}</section>;
+  }
   if (registeredSurface && !isKind(file.kind, 'CONFIG') && !isKind(file.kind, 'SCRIPT')) {
     const SurfaceComponent = registeredSurface.component;
     return <SurfaceComponent module={module} file={file} api={api} childPath={scriptPath} refreshKey={refreshKey} editor={editor} onReload={onReload} setToolbar={setSurfaceToolbar} showLocalChrome={false} />;
@@ -580,7 +610,7 @@ function ConfigSurface({ registry, module, file, drafts, draftHistory, setDraftV
 }
 
 function ConfigStructuredSurface({ module, file, drafts, draftHistory, setDraftValue, clearDraftScope, clearDraftValues, undoDraftScope, redoDraftScope, api, refreshKey, onRefreshRegistry, setSurfaceToolbar, setToast }: { module: WebRegistryModule; file: WebRegistryFile; drafts: DraftMap; draftHistory: DraftHistoryMap; setDraftValue: DraftValueSetter; clearDraftScope: DraftScopeAction; clearDraftValues: DraftScopeAction; undoDraftScope: DraftScopeAction; redoDraftScope: DraftScopeAction; api: ApiClient; refreshKey: number; onRefreshRegistry: () => Promise<WebRegistry | null>; setSurfaceToolbar: (state: SurfaceToolbarState | null) => void; setToast: (toast: Toast) => void }) {
-  const scope = configDraftScope(module, file);
+  const scope = useMemo(() => configDraftScope(module, file), [module.id, file.id, file.path]);
   const scopeHistory = draftHistory[draftScopeId(scope)] ?? emptyDraftHistory();
   const source = useConfigSourceDocument({ module, file, api, refreshKey, setToast });
   const [savingNodes, setSavingNodes] = useState(false);
@@ -596,7 +626,7 @@ function ConfigStructuredSurface({ module, file, drafts, draftHistory, setDraftV
   const fileTitle = fileDisplayTitle(file);
   const fileComment = fileDisplayComment(file);
   const visibleNodes = useMemo(() => mergeConfigNodes(file.nodes, optimisticNodes, deletedObjectPaths), [file.nodes, optimisticNodes, deletedObjectPaths]);
-  const changedNodes = file.nodes.filter(n => n.type !== 'object' && draftKey(scope, n.path) in drafts && !isDeletedPath(n.path, deletedObjectPaths));
+  const changedNodes = useMemo(() => file.nodes.filter(n => n.type !== 'object' && draftKey(scope, n.path) in drafts && !isDeletedPath(n.path, deletedObjectPaths)), [file.nodes, drafts, deletedObjectPaths, scope.moduleId, scope.fileId, scope.filePath]);
 
   const updateSourceNodeValue = (node: WebConfigNode, nextValue: unknown) => {
     updateConfigSourceValue(source, node.path, nextValue, setToast);
@@ -663,8 +693,9 @@ function ConfigStructuredSurface({ module, file, drafts, draftHistory, setDraftV
       onSourceChange: source.update,
       onSave: source.dirty ? () => void source.save(async () => { clearDraftValues(scope); setOptimisticNodes([]); setSourceEditedPaths(new Set()); setDeletedObjectPaths(new Set()); await onRefreshRegistry(); await source.reload(false); }) : () => void saveNodes()
     });
-    return () => setSurfaceToolbar(null);
   }, [moduleTitle, fileTitle, file.path, changedNodes.length, toolbarChanges, toolbarSource, savingNodes, source.dirty, source.error, source.saving, source.loading, scopeHistory.undo.length, scopeHistory.redo.length]);
+
+  useEffect(() => () => setSurfaceToolbar(null), [setSurfaceToolbar]);
 
   const [createNode, setCreateNode] = useState<WebConfigNode | null>(null);
   const [deleteNode, setDeleteNode] = useState<WebConfigNode | null>(null);
@@ -680,7 +711,8 @@ function ConfigStructuredSurface({ module, file, drafts, draftHistory, setDraftV
 
 function ConfigPreviewZone({ module, file, path, childPath, nodes, scope, drafts, source, api }: { module: WebRegistryModule; file: WebRegistryFile; path: string; childPath?: string; nodes: WebConfigNode[]; scope: ConfigDraftScope; drafts: DraftMap; source: ConfigSourceDocument; api: ApiClient }) {
   const registration = getConfigPreview({ moduleId: module.id, kind: file.kind, path });
-  const changedDraftKey = Object.keys(drafts).filter(key => key.startsWith(draftScopePrefix(scope))).sort().map(key => `${key}=${String(drafts[key])}`).join('\u001f');
+  const scopePrefix = useMemo(() => draftScopePrefix(scope), [scope.moduleId, scope.fileId, scope.filePath]);
+  const changedDraftKey = useMemo(() => Object.keys(drafts).filter(key => key.startsWith(scopePrefix)).sort().map(key => `${key}=${String(drafts[key])}`).join('\u001f'), [drafts, scopePrefix]);
   const deferredDraftKey = useDeferredValue(changedDraftKey);
   const sourceContent = useMemo(() => {
     if (source.dirty) return source.content;
@@ -786,7 +818,7 @@ function useConfigSourceDocument({ module, file, childPath, api, refreshKey, set
 }
 
 function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, setDraftValue, clearDraftScope, clearDraftValues, undoDraftScope, redoDraftScope, api, refreshKey, setSurfaceToolbar, setToast }: { module: WebRegistryModule; file: WebRegistryFile; childPath: string; drafts: DraftMap; draftHistory: DraftHistoryMap; setDraftValue: DraftValueSetter; clearDraftScope: DraftScopeAction; clearDraftValues: DraftScopeAction; undoDraftScope: DraftScopeAction; redoDraftScope: DraftScopeAction; api: ApiClient; refreshKey: number; setSurfaceToolbar: (state: SurfaceToolbarState | null) => void; setToast: (toast: Toast) => void }) {
-  const scope = configDraftScope(module, file, childPath);
+  const scope = useMemo(() => configDraftScope(module, file, childPath), [module.id, file.id, file.path, childPath]);
   const scopeHistory = draftHistory[draftScopeId(scope)] ?? emptyDraftHistory();
   const source = useConfigSourceDocument({ module, file, childPath, api, refreshKey, setToast });
   const [loading, setLoading] = useState(true);
@@ -799,7 +831,7 @@ function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, set
   const fileTitle = fileDisplayTitle(file);
   const fileName = childPath.split('/').pop() ?? childPath;
   const visibleNodes = useMemo(() => mergeConfigNodes([], optimisticNodes, deletedObjectPaths), [optimisticNodes, deletedObjectPaths]);
-  const changedNodes = optimisticNodes.filter(n => n.type !== 'object' && draftKey(scope, n.path) in drafts && !isDeletedPath(n.path, deletedObjectPaths));
+  const changedNodes = useMemo(() => optimisticNodes.filter(n => n.type !== 'object' && draftKey(scope, n.path) in drafts && !isDeletedPath(n.path, deletedObjectPaths)), [optimisticNodes, drafts, deletedObjectPaths, scope.moduleId, scope.fileId, scope.filePath]);
   const updateSourceNodeValue = (node: WebConfigNode, nextValue: unknown) => {
     updateConfigSourceValue(source, node.path, nextValue, setToast);
     setSourceEditedPaths(current => new Set([...current, node.path]));
@@ -888,8 +920,9 @@ function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, set
       onSourceChange: source.update,
       onSave: source.dirty ? () => void source.save(async () => { clearDraftValues(scope); setDeletedObjectPaths(new Set()); setSourceEditedPaths(new Set()); setOptimisticNodes([]); await reloadChildNodes(false); }) : () => void saveChild()
     });
-    return () => setSurfaceToolbar(null);
   }, [fileName, fileTitle, childPath, changedNodes.length, toolbarChanges, toolbarSource, saving, loading, source.dirty, source.error, source.saving, source.loading, scopeHistory.undo.length, scopeHistory.redo.length, revision]);
+
+  useEffect(() => () => setSurfaceToolbar(null), [setSurfaceToolbar]);
 
   const [createNode, setCreateNode] = useState<WebConfigNode | null>(null);
   const [deleteNode, setDeleteNode] = useState<WebConfigNode | null>(null);
@@ -1212,7 +1245,7 @@ function ConfigNodeTree({ scope, nodes, drafts, setDraftValue, onCreateChild, on
   const toggle = (path: string) => setCollapsed(c => ({ ...c, [path]: !c[path] }));
 
   // 构建树结构：顶级节点是 path 中不含 "." 的节点，或者 object 节点作为分组
-  const groups = buildNodeGroups(nodes);
+  const groups = useMemo(() => buildNodeGroups(nodes), [nodes]);
 
   if (!nodes.length) return <div className="script-placeholder" role="status">{t('core.empty.noConfigNodes')}</div>;
 
@@ -1250,9 +1283,9 @@ function isDirectChildPath(path: string, parentPath: string): boolean {
 
 function ConfigNodeSection({ scope, node, childrenNodes, drafts, setDraftValue, collapsed, toggle, onCreateChild, onDeleteObject, sourceEdit, deletedPaths, deletable, depth = 0 }: { scope: ConfigDraftScope; node: WebConfigNode; childrenNodes: WebConfigNode[]; drafts: DraftMap; setDraftValue: DraftValueSetter; collapsed: Record<string, boolean>; toggle: (path: string) => void; onCreateChild: (node: WebConfigNode) => void; onDeleteObject: (node: WebConfigNode) => void; sourceEdit?: SourceEditController; deletedPaths?: Set<string>; deletable: boolean; depth?: number }) {
   const isCollapsed = collapsed[node.path] === true;
-  const groups = buildNodeGroups(childrenNodes, node.path);
+  const groups = useMemo(() => buildNodeGroups(childrenNodes, node.path), [childrenNodes, node.path]);
   const sectionChanged = draftKey(scope, node.path) in drafts || sourceEdit?.paths.has(node.path) === true || deletedPaths?.has(node.path) === true;
-  const changedInGroup = childrenNodes.filter(n => n.type !== 'object' && (draftKey(scope, n.path) in drafts || sourceEdit?.paths.has(n.path))).length;
+  const changedInGroup = useMemo(() => childrenNodes.filter(n => n.type !== 'object' && (draftKey(scope, n.path) in drafts || sourceEdit?.paths.has(n.path))).length, [childrenNodes, drafts, sourceEdit?.paths, scope.moduleId, scope.fileId, scope.filePath]);
   const groupLabel = configNodeDisplayLabel(scope, node);
   const sectionIndent = depth > 0 ? { paddingLeft: `${depth * 6}px` } : undefined;
   return <div className={`node-section ${isCollapsed ? 'collapsed' : 'expanded'}${depth > 0 ? ' node-section--nested' : ''}`} style={sectionIndent}>
@@ -1756,8 +1789,9 @@ function ScriptEditor({ api, scriptPath, module, file, setSurfaceToolbar, setToa
       onSourceChange: updateScriptContent,
       onSave: () => void save()
     });
-    return () => setSurfaceToolbar(null);
   }, [fileName, fileTitle, scriptPath, isDirty, content, error, saving, loading, history.undo.length, history.redo.length]);
+
+  useEffect(() => () => setSurfaceToolbar(null), [setSurfaceToolbar]);
 
   function handleInput(value: string) {
     updateScriptContent(value);
@@ -1938,4 +1972,22 @@ function isNumericInputValue(value: unknown): boolean { return value == null || 
 function numberInputValue(value: unknown): string { return typeof value === 'number' && Number.isFinite(value) ? String(value) : ''; }
 function parseNumberInputValue(value: string): number | undefined { if (value === '') return undefined; const parsed = Number(value); return Number.isFinite(parsed) ? parsed : undefined; }
 function str(v: unknown): string { if (v == null) return ''; if (typeof v === 'object') try { return JSON.stringify(v, null, 2); } catch { return ''; } return String(v); }
+function enhanceRegistry(registry: WebRegistry): WebRegistry { return applyConfigRegistryOverrides(applyEditorDescriptorOverrides(registry)); }
 function firstSelection(r: WebRegistry): Selection | null { const m = r.modules[0]; return m?.files[0] ? { moduleId: m.id, fileId: m.files[0].id } : null; }
+function selectionExists(registry: WebRegistry, selection: Selection): boolean {
+  const module = registry.modules.find(entry => entry.id === selection.moduleId);
+  const file = module?.files.find(entry => entry.id === selection.fileId);
+  if (!file) return false;
+  if (!selection.scriptPath) return true;
+  return Boolean(file.children?.some(child => (child.fullPath ?? child.relativePath) === selection.scriptPath || child.relativePath === selection.scriptPath));
+}
+function pendingExtensionModuleIds(extensions: WebConsoleExtension[] | undefined, statuses: WebConsoleExtensionStatus[], health: 'idle' | 'loading' | 'ok' | 'failed'): Set<string> {
+  if (health !== 'loading' || !extensions?.length) return new Set();
+  const settled = new Set(statuses.map(status => status.url));
+  return new Set(extensions.filter(extension => !settled.has(extension.url)).map(extension => extension.moduleId));
+}
+function extensionSurfacePending(module: WebRegistryModule, file: WebRegistryFile, editor: WebEditorDescriptor | undefined, registeredSurface: ReturnType<typeof getSurface>, pendingModules: ReadonlySet<string>): boolean {
+  if (!pendingModules.has(module.id) || isKind(file.kind, 'CONFIG') || isKind(file.kind, 'SCRIPT')) return false;
+  if (!file.editorId) return !registeredSurface;
+  return !editor;
+}

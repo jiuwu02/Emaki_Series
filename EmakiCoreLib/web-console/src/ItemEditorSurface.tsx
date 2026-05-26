@@ -55,6 +55,12 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
   const sourceAdapter = getSourceDocumentAdapter(file, editor);
   const sourcePath = childPath || file.path;
   const sourceContext = useMemo(() => ({ module, file, childPath, path: sourcePath, editor }), [module, file, childPath, sourcePath, editor?.id]);
+  const draftContent = useMemo(() => sourceError ? sourceText : serializeItemYaml(data), [sourceError, sourceText, data]);
+  const sourceContent = draftContent;
+  const changes = useMemo(() => diffRecords(data, originalData, '', 18), [data, originalData]);
+  const changedPaths = useMemo(() => changedPathSet(changes), [changes]);
+  const semanticDirty = !sourceError && changes.length > 0;
+  const editorContext = useMemo(() => ({ moduleId: module.id, editorFields, changedPaths, economyProviders }), [module.id, editorFields, changedPaths, economyProviders]);
 
   useEffect(() => {
     if (!toast) return;
@@ -107,7 +113,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
       setPreviewPending(false);
       return;
     }
-    const content = serializeItemYaml(data);
+    const content = sourceContent;
     const previewBaseLore = resolvePreviewBaseLore(data, baseLore as string[]);
     const requestedLevel = previewLevel;
     const requestId = previewRequestId.current + 1;
@@ -132,7 +138,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
         });
     }, 300);
     return () => { active = false; window.clearTimeout(timer); };
-  }, [api, data, previewLevel, loading, baseName, baseLore, file.kind]);
+  }, [api, data, sourceContent, previewLevel, loading, baseName, baseLore, file.kind]);
 
   useEffect(() => {
     const levels = configuredPreviewLevels(data, preview);
@@ -210,13 +216,6 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
     }
   };
 
-  const draftContent = sourceError ? sourceText : serializeItemYaml(data);
-  const sourceContent = draftContent;
-  const changes = useMemo(() => diffRecords(data, originalData, '', 18), [data, originalData]);
-  const changedPaths = useMemo(() => changedPathSet(changes), [changes]);
-  const semanticDirty = !sourceError && changes.length > 0;
-  const editorContext = useMemo(() => ({ moduleId: module.id, editorFields, changedPaths, economyProviders }), [module.id, editorFields, changedPaths, economyProviders]);
-
   useEffect(() => {
     if (!setToolbar) return;
     setToolbar({
@@ -239,8 +238,9 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
       onSourceChange: updateSource,
       onSave: handleSave
     });
-    return () => setToolbar(null);
   }, [setToolbar, editor?.title, fileTitle, module.id, filePath, semanticDirty, changes, sourceContent, sourceError, saving, loading, history.undo.length, history.redo.length, onReload]);
+
+  useEffect(() => () => setToolbar?.(null), [setToolbar]);
 
   if (loading) return <div className="ie-surface"><div className="ie-loading" role="status"><div className="ie-skeleton" aria-label={t('core.item.loadingAria')}><div className="ie-skeleton-line" style={{ width: '60%' }} /><div className="ie-skeleton-line" style={{ width: '80%' }} /><div className="ie-skeleton-line" style={{ width: '45%' }} /><div className="ie-skeleton-line" style={{ width: '70%' }} /></div></div></div>;
   if (error && !data) return <div className="ie-surface"><InlineError>{error}</InlineError>{onReload && <Button size="sm" onClick={onReload}>{t('core.action.retry')}</Button>}</div>;

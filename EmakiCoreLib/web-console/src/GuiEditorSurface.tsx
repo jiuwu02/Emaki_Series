@@ -173,7 +173,7 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
   const selectedKey = selectedVisible?.key ?? selectedCell?.key ?? null;
   const selectedSlot = selectedKey && data?.slots ? data.slots[selectedKey] ?? null : null;
   const hasOverlays = selectedOverlays.length > 1;
-  const draftText = sourceError ? sourceText : data ? serializeGuiYaml(data) : '';
+  const draftText = useMemo(() => sourceError ? sourceText : data ? serializeGuiYaml(data) : '', [sourceError, sourceText, data]);
   const changes = useMemo(() => diffRecords(data ?? {}, originalData ?? {}, '', 18), [data, originalData]);
   const dirty = data != null && !sourceError && changes.length > 0;
   const materialResults = useMemo(() => searchMaterials(query, category), [query, category]);
@@ -351,8 +351,9 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
       onSourceChange: updateSource,
       onSave: () => void save()
     });
-    return () => setToolbar(null);
   }, [setToolbar, path, data, fileTitle, subtitle, dirty, changes, draftText, sourceError, saving, loading, history.undo.length, history.redo.length, onReload]);
+
+  useEffect(() => () => setToolbar?.(null), [setToolbar]);
 
   if (!path) return <section className="config-surface empty" role="status">{t('core.gui.selectFile')}</section>;
   if (loading) return <section className="config-surface gui-surface"><div className="gui-loading" role="status">{t('core.gui.loading')}</div></section>;

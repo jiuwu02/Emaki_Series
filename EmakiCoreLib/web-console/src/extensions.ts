@@ -4,18 +4,46 @@ import { installWebConsoleHost, recordExtensionStatus } from './registry';
 const loaded = new Set<string>();
 const loading = new Map<string, Promise<void>>();
 
+type LoadWebExtensionsOptions = { defer?: boolean };
+
 /** Dynamically load Web Console extension scripts registered by server-side plugins. */
-export async function loadWebExtensions(extensions: WebConsoleExtension[] | undefined): Promise<WebConsoleExtensionStatus[]> {
+export async function loadWebExtensions(extensions: WebConsoleExtension[] | undefined, options: LoadWebExtensionsOptions = {}): Promise<WebConsoleExtensionStatus[]> {
   installWebConsoleHost();
   if (!extensions?.length) return [];
-  const results = await Promise.allSettled(extensions.map(loadWebExtension));
-  return results.map((result, index) => {
-    const extension = extensions[index];
-    const status: WebConsoleExtensionStatus = result.status === 'fulfilled'
-      ? { moduleId: extension.moduleId, id: extension.id, url: extension.url, status: 'loaded' }
-      : { moduleId: extension.moduleId, id: extension.id, url: extension.url, status: 'failed', error: result.reason instanceof Error ? result.reason.message : String(result.reason) };
-    recordExtensionStatus(status);
-    return status;
+  if (!options.defer) {
+    const results = await Promise.allSettled(extensions.map(loadWebExtension));
+    return results.map((result, index) => recordStatusFromResult(extensions[index], result));
+  }
+
+  const statuses: WebConsoleExtensionStatus[] = [];
+  for (const extension of extensions) {
+    if (!isLoaded(extension)) await waitForIdle();
+    const result = await Promise.allSettled([loadWebExtension(extension)]);
+    statuses.push(recordStatusFromResult(extension, result[0]));
+  }
+  return statuses;
+}
+
+function recordStatusFromResult(extension: WebConsoleExtension, result: PromiseSettledResult<void>): WebConsoleExtensionStatus {
+  const status: WebConsoleExtensionStatus = result.status === 'fulfilled'
+    ? { moduleId: extension.moduleId, id: extension.id, url: extension.url, status: 'loaded' }
+    : { moduleId: extension.moduleId, id: extension.id, url: extension.url, status: 'failed', error: result.reason instanceof Error ? result.reason.message : String(result.reason) };
+  recordExtensionStatus(status);
+  return status;
+}
+
+function isLoaded(extension: WebConsoleExtension): boolean {
+  return Boolean(extension.url && loaded.has(extension.url));
+}
+
+function waitForIdle(): Promise<void> {
+  return new Promise(resolve => {
+    const requestIdle = window.requestIdleCallback;
+    if (typeof requestIdle === 'function') {
+      requestIdle(() => resolve(), { timeout: 120 });
+      return;
+    }
+    window.setTimeout(resolve, 16);
   });
 }
 
