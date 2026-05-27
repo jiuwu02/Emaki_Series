@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.bukkit.command.PluginCommand;
+import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.action.ActionExecutor;
@@ -25,7 +26,9 @@ import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.command.CoreLibCommandRouter;
 import emaki.jiuwu.craft.corelib.economy.EconomyManager;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.api.integration.CraftEngineBlockBridge;
+import emaki.jiuwu.craft.corelib.apiimpl.DefaultEmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.integration.CraftEngineBlockBridgeProvider;
 import emaki.jiuwu.craft.corelib.api.integration.CustomBlockBridge;
 import emaki.jiuwu.craft.corelib.integration.ItemsAdderBlockBridgeProvider;
@@ -92,6 +95,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private DebugLogger debugLogger;
     private WebConsoleService webConsoleService;
     private CoreLibCommandRouter commandRouter;
+    private EmakiCoreLibApi coreLibApi;
 
     @Override
     public void onLoad() {
@@ -108,6 +112,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         itemSourceIntegrationCoordinator.initialize();
         reloadActionSystem();
         registerCommandHandler();
+        registerPublicApiService();
         logStartupAudit();
         messageService.info("console.plugin_started");
     }
@@ -123,6 +128,10 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         }
         if (javaScriptService != null) {
             javaScriptService.close();
+        }
+        if (coreLibApi != null) {
+            getServer().getServicesManager().unregister(EmakiCoreLibApi.class, coreLibApi);
+            coreLibApi = null;
         }
         if (asyncTaskScheduler != null) {
             asyncTaskScheduler.shutdown(5_000L);
@@ -221,6 +230,11 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         webConsoleService.stop();
         webConsoleService.restart(configModel.webConsoleConfig());
         refreshServiceRegistry();
+    }
+
+    private void registerPublicApiService() {
+        coreLibApi = new DefaultEmakiCoreLibApi(this);
+        getServer().getServicesManager().register(EmakiCoreLibApi.class, coreLibApi, this, ServicePriority.Normal);
     }
 
     private void logStartupAudit() {

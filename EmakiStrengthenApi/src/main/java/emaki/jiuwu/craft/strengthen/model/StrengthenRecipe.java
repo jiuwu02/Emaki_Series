@@ -12,7 +12,6 @@ import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
 public final class StrengthenRecipe {
 
@@ -213,9 +212,6 @@ public final class StrengthenRecipe {
         this.loreActions = ConfigNodes.toPlainData(loreActions);
     }
 
-    public static StrengthenRecipe fromConfig(YamlSection section) {
-        return StrengthenRecipeParser.parse(section);
-    }
 
     public Map<String, Double> cumulativeVariables(int currentStar) {
         Map<String, Object> rawValues = new LinkedHashMap<>();

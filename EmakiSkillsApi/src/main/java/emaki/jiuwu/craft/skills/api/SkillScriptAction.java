@@ -9,7 +9,6 @@ import emaki.jiuwu.craft.corelib.action.ActionExecutionMode;
 import emaki.jiuwu.craft.corelib.action.ActionParameter;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
 import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.skills.script.SkillScriptContext;
 
 public interface SkillScriptAction {
 

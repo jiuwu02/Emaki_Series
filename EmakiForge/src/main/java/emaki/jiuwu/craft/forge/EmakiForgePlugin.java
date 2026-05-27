@@ -6,6 +6,7 @@ import java.util.concurrent.CompletableFuture;
 
 import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
+import org.bukkit.plugin.ServicePriority;
 import org.bukkit.scheduler.BukkitTask;
 
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
@@ -23,6 +24,8 @@ import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.web.WebConsoleRegistry;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
+import emaki.jiuwu.craft.forge.api.EmakiForgeApi;
+import emaki.jiuwu.craft.forge.apiimpl.DefaultEmakiForgeApi;
 import emaki.jiuwu.craft.forge.config.AppConfig;
 import emaki.jiuwu.craft.forge.loader.PlayerDataStore;
 import emaki.jiuwu.craft.forge.loader.RecipeLoader;
@@ -67,6 +70,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     private ForgePlaceholderExpansion placeholderExpansion;
     private BukkitTask autoSaveTask;
     private DebugCommand debugCommand;
+    private EmakiForgeApi forgeApi;
 
     private static final Set<String> DEBUG_MODULES = Set.of("recipe", "forge", "gui");
 
@@ -83,6 +87,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         reloadPluginState(false);
         registerCommandHandler();
         registerEventHandlers();
+        registerPublicApiService();
         registerWebConsole();
         ensurePlaceholderExpansion();
         messageService.info("console.plugin_started");
@@ -95,6 +100,10 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
             placeholderExpansion = null;
         }
         WebConsoleRegistry.unregisterModule(this);
+        if (forgeApi != null) {
+            getServer().getServicesManager().unregister(EmakiForgeApi.class, forgeApi);
+            forgeApi = null;
+        }
         lifecycleCoordinator.shutdown(this, autoSaveTask);
         AdventureSupport.close(this);
         autoSaveTask = null;
@@ -146,6 +155,11 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
 
     private void registerWebConsole() {
         WebConsoleRegistry.registerFromYaml(this);
+    }
+
+    private void registerPublicApiService() {
+        forgeApi = new DefaultEmakiForgeApi(this);
+        getServer().getServicesManager().register(EmakiForgeApi.class, forgeApi, this, ServicePriority.Normal);
     }
 
     private void ensurePlaceholderExpansion() {

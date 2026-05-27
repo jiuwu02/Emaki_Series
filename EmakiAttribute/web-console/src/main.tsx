@@ -93,6 +93,8 @@ const commonFields: Record<string, [string, string, string]> = {
   source_id: ['来源 ID', '条件规则来源标识，用于日志和调试追踪。', 'text'],
   condition_type: ['条件逻辑', '多条件组合逻辑。', 'enum'],
   invalid_as_failure: ['解析失败视为失败', '条件表达式解析失败时是否视为不通过。', 'boolean'],
+  required_count: ['需要满足数量', 'any_of 条件逻辑下需要满足的最少条件数量。', 'number'],
+  schema_version: ['结构版本', '条件规则结构版本。', 'number'],
   conditions: ['条件列表', '具体条件项列表，每项包含 type、key/pattern 和 condition 表达式。', 'list'],
   key: ['PDC 键名', '要匹配的 PDC 数据键名。', 'text'],
   pattern: ['正则模式', '用于从 Lore 中提取数值的正则表达式。', 'text'],
@@ -151,7 +153,9 @@ const loreFormatFields: ConfigSpec[] = [
 const conditionFields: ConfigSpec[] = [
   ['id', 'ID', '条件定义唯一标识。', 'text'],
   ['source_id', '来源 ID', '条件规则来源标识，用于日志和调试追踪。', 'text'],
+  ['schema_version', '结构版本', '条件规则结构版本；当前源码默认使用 2。', 'number'],
   ['condition_type', '条件逻辑', '多条件组合逻辑。', 'enum', { options: ['all_of', 'any_of'], optionLabelPrefix: 'condition_type' }],
+  ['required_count', '需要满足数量', 'any_of 条件逻辑下需要满足的最少条件数量。', 'number'],
   ['invalid_as_failure', '解析失败视为失败', '条件表达式解析失败时是否视为不通过。', 'boolean'],
   ['conditions', '条件列表', '具体条件项列表，每项包含 type、key/pattern 和 condition 表达式。', 'objectList']
 ];
@@ -290,7 +294,8 @@ registerPluginConfig({
     [{ key: 'source' }, { label: copy('来源', 'Source'), comment: '阶段或恢复数据来源。', type: 'enum', options: DAMAGE_STAGE_SOURCES, optionLabelPrefix: 'damageStageSource' }],
     [{ key: 'resistance_source' }, { label: copy('抗性来源', 'Resistance source'), comment: '恢复抗性属性的来源。', type: 'enum', options: DAMAGE_STAGE_SOURCES, optionLabelPrefix: 'damageStageSource' }],
     [{ key: 'mode' }, { label: copy('计算模式', 'Mode'), comment: '阶段对输入伤害的计算模式。', type: 'enum', options: DAMAGE_STAGE_MODES, optionLabelPrefix: 'damageStageMode' }],
-    [{ key: 'condition_type' }, { label: copy('条件逻辑', 'Condition logic'), comment: '多条件组合逻辑。', type: 'enum', options: ['all_of', 'any_of'], optionLabelPrefix: 'condition_type' }]
+    [{ key: 'condition_type' }, { label: copy('条件逻辑', 'Condition logic'), comment: '多条件组合逻辑。', type: 'enum', options: ['all_of', 'any_of'], optionLabelPrefix: 'condition_type' }],
+    [{ key: 'required_count' }, { label: copy('需要满足数量', 'Required count'), comment: 'any_of 条件逻辑下需要满足的最少条件数量。', type: 'number' }]
   ],
   createTemplates: [
     ['default_profile.resources', { id: 'resource', label: copy('资源模板', 'Resource template'), fields: [
@@ -336,7 +341,7 @@ registerPluginConfig({
       { path: 'max_multiplier', label: '倍率上限', comment: '阶段倍率允许的最大值。', type: 'number', defaultValue: null }
     ], { uniqueBy: 'id' }],
     ['conditions', [
-      { path: 'type', label: '类型', comment: '条件类型，例如 pdc、lore 或其他扩展类型。', type: 'text', defaultValue: 'pdc' },
+      { path: 'type', label: '类型', comment: '条件类型：pdc_meta、pdc_attribute、lore_regex 或 source_id。', type: 'enum', options: ['pdc_meta', 'pdc_attribute', 'lore_regex', 'source_id'], defaultValue: 'pdc_meta' },
       { path: 'key', label: 'PDC 键名', comment: '要匹配的 PDC 数据键名。', type: 'text', defaultValue: '' },
       { path: 'pattern', label: '正则模式', comment: '用于从 Lore 或文本中提取数值的正则表达式。', type: 'text', defaultValue: '' },
       { path: 'condition', label: '判定表达式', comment: '支持 {value}、{player_level}、{player_name} 等变量的判定表达式。', type: 'text', defaultValue: '' },

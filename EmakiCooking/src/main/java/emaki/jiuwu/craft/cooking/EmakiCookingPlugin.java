@@ -5,6 +5,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import org.bukkit.command.PluginCommand;
+import org.bukkit.plugin.ServicePriority;
 
 import emaki.jiuwu.craft.corelib.action.ActionExecutor;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
@@ -22,6 +23,8 @@ import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.web.WebConsoleRegistry;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
+import emaki.jiuwu.craft.cooking.api.EmakiCookingApi;
+import emaki.jiuwu.craft.cooking.apiimpl.DefaultEmakiCookingApi;
 import emaki.jiuwu.craft.cooking.config.AppConfig;
 import emaki.jiuwu.craft.cooking.loader.ChoppingBoardRecipeLoader;
 import emaki.jiuwu.craft.cooking.loader.FermentationBarrelRecipeLoader;
@@ -97,6 +100,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
     private OvenRuntimeService ovenRuntimeService;
     private JuicerRuntimeService juicerRuntimeService;
     private FermentationBarrelRuntimeService fermentationBarrelRuntimeService;
+    private EmakiCookingApi cookingApi;
 
     public EmakiCookingPlugin() {
         super(AppConfig::defaults);
@@ -111,6 +115,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         reloadPluginState();
         registerCommandHandler();
         registerEventHandlers();
+        registerPublicApiService();
         registerWebConsole();
         registerPlaceholderExpansion();
         messageService.info("console.plugin_started");
@@ -119,6 +124,10 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
     @Override
     public void onDisable() {
         WebConsoleRegistry.unregisterModule(this);
+        if (cookingApi != null) {
+            getServer().getServicesManager().unregister(EmakiCookingApi.class, cookingApi);
+            cookingApi = null;
+        }
         if (grinderRuntimeService != null) {
             grinderRuntimeService.shutdown();
         }
@@ -222,6 +231,11 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
 
     private void registerWebConsole() {
         WebConsoleRegistry.registerFromYaml(this);
+    }
+
+    private void registerPublicApiService() {
+        cookingApi = new DefaultEmakiCookingApi(this);
+        getServer().getServicesManager().register(EmakiCookingApi.class, cookingApi, this, ServicePriority.Normal);
     }
 
     private void registerCraftEngineEventHandlers() {

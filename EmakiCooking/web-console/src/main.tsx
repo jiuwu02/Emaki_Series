@@ -6,6 +6,60 @@ type FieldSpec = [path: string, label: string, comment: string, type: string, ex
 
 const copy = (zh: string, en: string) => getLocale().startsWith('zh') ? zh : en;
 
+const displayTransformFields = [
+  { path: 'offset', label: '偏移', comment: '展示实体相对工位方块的 x/y/z 偏移。', type: 'object', defaultValue: {} },
+  { path: 'offset.x', label: 'X 偏移', comment: 'X 轴偏移。', type: 'number', defaultValue: 0 },
+  { path: 'offset.y', label: 'Y 偏移', comment: 'Y 轴偏移。', type: 'number', defaultValue: 0 },
+  { path: 'offset.z', label: 'Z 偏移', comment: 'Z 轴偏移。', type: 'number', defaultValue: 0 },
+  { path: 'rotation', label: '旋转', comment: '展示实体的 x/y/z 旋转角度或范围。', type: 'object', defaultValue: {} },
+  { path: 'rotation.x', label: 'X 旋转', comment: 'X 轴旋转。', type: 'text', defaultValue: '0' },
+  { path: 'rotation.y', label: 'Y 旋转', comment: 'Y 轴旋转。', type: 'text', defaultValue: '0' },
+  { path: 'rotation.z', label: 'Z 旋转', comment: 'Z 轴旋转。', type: 'text', defaultValue: '0' },
+  { path: 'scale', label: '缩放', comment: '展示实体的 x/y/z 缩放倍率。', type: 'object', defaultValue: {} },
+  { path: 'scale.x', label: 'X 缩放', comment: 'X 轴缩放。', type: 'number', defaultValue: 1 },
+  { path: 'scale.y', label: 'Y 缩放', comment: 'Y 轴缩放。', type: 'number', defaultValue: 1 },
+  { path: 'scale.z', label: 'Z 缩放', comment: 'Z 轴缩放。', type: 'number', defaultValue: 1 }
+];
+
+const itemAdjustmentFields: FieldSpec[] = [
+  ['item_sources', '物品来源', '需要调整展示姿态的 ItemSource 列表。', 'stringList'],
+  ['adjustment', '展示调整', '此物品自己的展示实体偏移、旋转和缩放。', 'object'],
+  ['adjustment.offset', '偏移', '展示实体偏移。', 'object'],
+  ['adjustment.offset.x', 'X 偏移', 'X 轴偏移。', 'number'],
+  ['adjustment.offset.y', 'Y 偏移', 'Y 轴偏移。', 'number'],
+  ['adjustment.offset.z', 'Z 偏移', 'Z 轴偏移。', 'number'],
+  ['adjustment.rotation', '旋转', '展示实体旋转。', 'object'],
+  ['adjustment.rotation.x', 'X 旋转', 'X 轴旋转角度或范围。', 'text'],
+  ['adjustment.rotation.y', 'Y 旋转', 'Y 轴旋转角度或范围。', 'text'],
+  ['adjustment.rotation.z', 'Z 旋转', 'Z 轴旋转角度或范围。', 'text'],
+  ['adjustment.scale', '缩放', '展示实体缩放。', 'object'],
+  ['adjustment.scale.x', 'X 缩放', 'X 轴缩放。', 'number'],
+  ['adjustment.scale.y', 'Y 缩放', 'Y 轴缩放。', 'number'],
+  ['adjustment.scale.z', 'Z 缩放', 'Z 轴缩放。', 'number'],
+  ['stations', '工位覆盖', '按工位类型覆盖展示调整。', 'object']
+];
+
+const inputItemFields = [
+  { path: 'item_sources', label: '物品来源', comment: '可匹配该输入的 ItemSource 列表。', type: 'stringList', defaultValue: ['minecraft-carrot'] },
+  { path: 'amount', label: '数量', comment: '需要投入的数量。', type: 'number', defaultValue: 1 }
+];
+
+const outputFields = [
+  { path: 'item_sources', label: '产物来源', comment: '产物 ItemSource 列表。', type: 'stringList', defaultValue: ['minecraft-bread'] },
+  { path: 'amount', label: '数量', comment: '生成的产物数量。', type: 'number', defaultValue: 1 },
+  { path: 'chance', label: '概率', comment: '产出概率；留空时按必定产出处理。', type: 'number', defaultValue: 100 },
+  { path: 'actions', label: '产物动作', comment: '此产物生成后执行的动作。', type: 'stringList', defaultValue: [] },
+  { path: 'structured_presentation', label: '结构化展示', comment: '覆盖产物展示层的结构化呈现配置。', type: 'map', defaultValue: {} }
+];
+
+const outcomeFields = [
+  { path: 'item_sources', label: '产物来源', comment: '单产物 ItemSource 列表；源码会把该对象作为直接产物。', type: 'stringList', defaultValue: ['minecraft-bread'] },
+  { path: 'amount', label: '数量', comment: '生成的产物数量。', type: 'number', defaultValue: 1 },
+  { path: 'actions', label: '产物动作', comment: '该结果触发后执行的动作。', type: 'stringList', defaultValue: [] },
+  { path: 'outputs', label: '多产物', comment: '该结果可产出的多个物品；存在时源码优先按 outputs 列表发放。', type: 'objectList', defaultValue: [], itemFields: outputFields },
+  { path: 'structured_presentation', label: '结构化展示', comment: '覆盖结果展示层的结构化呈现配置。', type: 'map', defaultValue: {} }
+];
+
 const fields: FieldSpec[] = [
   ['language', '语言', '语言文件 ID，对应 lang/<language>.yml。', 'text'],
   ['version', '配置版本', '默认配置结构版本，通常不建议手动修改。', 'text'],
@@ -19,8 +73,8 @@ const fields: FieldSpec[] = [
   ['display_entities.wok', '炒锅展示', '炒锅食材环形展示的专用布局参数。', 'object'],
   ['display_entities.wok.layout_radius', '炒锅半径', '炒锅中多份食材围绕中心摆放的半径，单位方块格。', 'number'],
   ['display_adjustments', '展示变换', '默认展示实体的偏移、旋转、缩放，以及各工位专用覆盖。', 'object'],
-  ['display_adjustments.defaults', '默认展示', '普通物品和方块展示实体的默认变换参数。', 'object'],
-  ['display_adjustments.station_defaults', '工位覆盖', '按工位类型覆盖展示实体变换，例如炒锅食材翻转角度。', 'object'],
+  ['display_adjustments.defaults', '默认展示', '普通物品和方块展示实体的默认变换参数。', 'object', { creatableChildren: true, createTemplates: [{ id: 'display-kind-adjustment', label: copy('展示类型调整', 'Display kind adjustment'), fields: displayTransformFields }] }],
+  ['display_adjustments.station_defaults', '工位覆盖', '按工位类型覆盖展示实体变换，例如炒锅食材翻转角度。', 'object', { creatableChildren: true, createTemplates: [{ id: 'station-display-adjustment', label: copy('工位展示调整', 'Station display adjustment'), fields: [{ path: 'item', label: '物品展示', comment: '该工位物品展示实体的调整。', type: 'object', defaultValue: {}, itemFields: displayTransformFields }] }] }],
   ['stations', '工位设置', '砧板、炒锅、研磨机、蒸锅、烤炉、榨汁机和发酵桶的运行规则。', 'object'],
   ['stations.chopping_board', '砧板', '砧板方块匹配、交互、厨刀识别、切割伤害与动作反馈。', 'object'],
   ['stations.chopping_board.block_item_sources', '砧板方块来源', '识别为砧板本体方块的 ItemSource 列表。', 'list'],
@@ -148,13 +202,34 @@ const recipeFields: FieldSpec[] = [
   ['requires_previous_step', '前置步骤', '链式配方要求的前置步骤 ID。', 'text'],
   ['permission', '权限', '使用此配方所需权限节点；留空表示不限制。', 'text'],
   ['condition_type', '条件逻辑', '配方条件表达式组合方式。', 'enum', { options: ['all_of', 'any_of'], optionLabelPrefix: 'condition_type' }],
+  ['conditions', '条件列表', 'CoreLib 条件表达式列表，源码按 condition_type 组合判定。', 'objectList'],
+  ['condition_required_count', '需要满足数量', 'any_of 条件逻辑下需要满足的最少条件数量；当前 Cooking 源码默认按 0 读取。', 'number'],
+  ['structured_presentation', '结构化展示', '配方层展示配置，会与产物层展示合并。', 'object'],
   ['result', '结果', '配方完成后的产物与动作。', 'object'],
-  ['result.output', '单产物', '单个产物配置。', 'object'],
+  ['result.output', '单产物', '单个产物配置。', 'object', { itemFields: outcomeFields }],
   ['result.output.item_sources', '产物来源', '单产物 ItemSource 列表。', 'stringList'],
   ['result.output.amount', '产物数量', '单产物数量。', 'number'],
   ['result.output.actions', '产物动作', '产物生成后执行的动作。', 'stringList'],
+  ['result.output.outputs', '单结果多产物', '单个结果对象中的多产物列表。', 'objectList', { itemFields: outputFields }],
   ['result.outputs', '多产物', '多个产物配置列表。', 'objectList'],
-  ['result.actions', '结果动作', '配方完成后执行的动作列表。', 'stringList']
+  ['result.actions', '结果动作', '配方完成后执行的动作列表。', 'stringList'],
+  ['result.success', '炒锅成功产物', '炒锅正确烹饪时的结果对象。', 'object', { itemFields: outcomeFields }],
+  ['result.success.item_sources', '成功产物来源', '炒锅成功产物 ItemSource 列表。', 'stringList'],
+  ['result.success.amount', '成功产物数量', '炒锅成功产物数量。', 'number'],
+  ['result.success.actions', '成功动作', '成功产物触发动作。', 'stringList'],
+  ['result.undercooked', '未熟产物', '炒锅翻炒不足时的结果对象。', 'object', { itemFields: outcomeFields }],
+  ['result.undercooked.item_sources', '未熟产物来源', '未熟产物 ItemSource 列表。', 'stringList'],
+  ['result.undercooked.amount', '未熟产物数量', '未熟产物数量。', 'number'],
+  ['result.overcooked', '过熟产物', '炒锅翻炒过度时的结果对象。', 'object', { itemFields: outcomeFields }],
+  ['result.overcooked.item_sources', '过熟产物来源', '过熟产物 ItemSource 列表。', 'stringList'],
+  ['result.overcooked.amount', '过熟产物数量', '过熟产物数量。', 'number'],
+  ['result.invalid', '无效产物', '炒锅食材组合错误时的结果对象。', 'object', { itemFields: outcomeFields }],
+  ['result.invalid.item_sources', '无效产物来源', '无效产物 ItemSource 列表。', 'stringList'],
+  ['result.invalid.amount', '无效产物数量', '无效产物数量。', 'number'],
+  ['result.perfect_output', '完美烘烤产物', '烤炉完美火力完成时的覆盖产物。', 'object', { itemFields: outcomeFields }],
+  ['result.overbaked_output', '过烤产物', '烤炉过烤完成时的覆盖产物。', 'object', { itemFields: outcomeFields }],
+  ['fermentation.early_collect.output', '早收产物', '发酵提前收取时的产物。', 'object', { itemFields: outcomeFields }],
+  ['fermentation.over_output', '过发酵产物', '发酵超时后的产物。', 'object', { itemFields: outcomeFields }]
 ];
 
 const fieldComments: Record<string, [string, string, string]> = {
@@ -257,6 +332,7 @@ const localeMessages: Record<string, string> = Object.fromEntries([
   ['emakicooking.file.web-console.title', 'Web Console 声明'],
   ['emakicooking.file.web-console.comment', 'Web Console 文件注册与资源入口声明。'],
   ...fields.flatMap(([path, label, comment]) => [[`emakicooking.field.${path}`, label], [`emakicooking.comment.${path}`, comment]]),
+  ...itemAdjustmentFields.flatMap(([path, label, comment]) => [[`emakicooking.field.${path}`, label], [`emakicooking.comment.${path}`, comment]]),
   ...recipeFields.flatMap(([path, label, comment]) => [[`emakicooking.field.${path}`, label], [`emakicooking.comment.${path}`, comment]]),
   ...Object.entries(fieldComments).flatMap(([key, [label, comment]]) => [[`emakicooking.field.${key}`, label], [`emakicooking.comment.${key}`, comment]])
 ]);
@@ -327,7 +403,8 @@ registerPluginConfig({
   moduleId: MODULE,
   metaFields: fields,
   fileSchemas: [
-    { pathPrefix: 'recipes/', fields: recipeFields }
+    { pathPrefix: 'recipes/', fields: recipeFields },
+    { pathPrefix: 'item_adjustments/', fields: itemAdjustmentFields }
   ],
   ruleFields: fieldComments,
   rules: [
@@ -339,15 +416,14 @@ registerPluginConfig({
       { path: 'amount', label: '数量', comment: '此食材需要的数量。', type: 'number', defaultValue: 1 },
       { path: 'stir_rule', label: '翻炒规则', comment: '炒锅配方加入时机，格式为“最早-最晚”。', type: 'text', defaultValue: '1-1' }
     ]],
-    ['result.outputs', [
-      { path: 'item_sources', label: '产物来源', comment: '可作为产物生成的 ItemSource 列表。', type: 'stringList', defaultValue: ['minecraft-bread'] },
-      { path: 'amount', label: '数量', comment: '生成的产物数量。', type: 'number', defaultValue: 1 },
-      { path: 'chance', label: '概率', comment: '产出概率；留空时按必定产出处理。', type: 'number', defaultValue: 100 }
+    ['result.outputs', outputFields],
+    ['outputs', outputFields],
+    ['conditions', [
+      { path: 'type', label: '类型', comment: '条件类型或执行器标识。', type: 'text', defaultValue: '' },
+      { path: 'expression', label: '表达式', comment: '条件表达式文本。', type: 'text', defaultValue: '' },
+      { path: 'params', label: '参数', comment: '条件附加参数。', type: 'map', defaultValue: {} }
     ]],
-    ['inputs', [
-      { path: 'item_sources', label: '输入来源', comment: '可匹配该输入的 ItemSource 列表。', type: 'stringList', defaultValue: ['minecraft-carrot'] },
-      { path: 'amount', label: '数量', comment: '需要投入的数量。', type: 'number', defaultValue: 1 }
-    ]],
+    ['inputs', inputItemFields],
     ['stations.wok.heat_levels', [
       { path: 'item_sources', label: '热源来源', comment: '匹配该火候等级的热源 ItemSource。', type: 'stringList', defaultValue: ['minecraft-campfire'] },
       { path: 'lit_item_sources', label: '点亮来源', comment: '点亮状态下使用的热源 ItemSource。', type: 'stringList', defaultValue: [] },

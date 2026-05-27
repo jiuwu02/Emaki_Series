@@ -625,8 +625,9 @@ function ConfigStructuredSurface({ module, file, drafts, draftHistory, setDraftV
   const moduleTitle = moduleDisplayName(module);
   const fileTitle = fileDisplayTitle(file);
   const fileComment = fileDisplayComment(file);
-  const visibleNodes = useMemo(() => mergeConfigNodes(file.nodes, optimisticNodes, deletedObjectPaths), [file.nodes, optimisticNodes, deletedObjectPaths]);
-  const changedNodes = useMemo(() => file.nodes.filter(n => n.type !== 'object' && draftKey(scope, n.path) in drafts && !isDeletedPath(n.path, deletedObjectPaths)), [file.nodes, drafts, deletedObjectPaths, scope.moduleId, scope.fileId, scope.filePath]);
+  const baseNodes = useMemo(() => applyConfigNodeOverrides(module.id, file.nodes, file.path), [module.id, file.nodes, file.path]);
+  const visibleNodes = useMemo(() => mergeConfigNodes(baseNodes, optimisticNodes, deletedObjectPaths), [baseNodes, optimisticNodes, deletedObjectPaths]);
+  const changedNodes = useMemo(() => visibleNodes.filter(n => n.type !== 'object' && draftKey(scope, n.path) in drafts && !isDeletedPath(n.path, deletedObjectPaths)), [visibleNodes, drafts, deletedObjectPaths, scope.moduleId, scope.fileId, scope.filePath]);
 
   const updateSourceNodeValue = (node: WebConfigNode, nextValue: unknown) => {
     updateConfigSourceValue(source, node.path, nextValue, setToast);
@@ -825,13 +826,14 @@ function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, set
   const [error, setError] = useState('');
   const [revision, setRevision] = useState<number | undefined>(undefined);
   const [saving, setSaving] = useState(false);
+  const [baseNodes, setBaseNodes] = useState<WebConfigNode[]>([]);
   const [optimisticNodes, setOptimisticNodes] = useState<WebConfigNode[]>([]);
   const [sourceEditedPaths, setSourceEditedPaths] = useState<Set<string>>(() => new Set());
   const [deletedObjectPaths, setDeletedObjectPaths] = useState<Set<string>>(() => new Set());
   const fileTitle = fileDisplayTitle(file);
   const fileName = childPath.split('/').pop() ?? childPath;
-  const visibleNodes = useMemo(() => mergeConfigNodes([], optimisticNodes, deletedObjectPaths), [optimisticNodes, deletedObjectPaths]);
-  const changedNodes = useMemo(() => optimisticNodes.filter(n => n.type !== 'object' && draftKey(scope, n.path) in drafts && !isDeletedPath(n.path, deletedObjectPaths)), [optimisticNodes, drafts, deletedObjectPaths, scope.moduleId, scope.fileId, scope.filePath]);
+  const visibleNodes = useMemo(() => mergeConfigNodes(baseNodes, optimisticNodes, deletedObjectPaths), [baseNodes, optimisticNodes, deletedObjectPaths]);
+  const changedNodes = useMemo(() => visibleNodes.filter(n => n.type !== 'object' && draftKey(scope, n.path) in drafts && !isDeletedPath(n.path, deletedObjectPaths)), [visibleNodes, drafts, deletedObjectPaths, scope.moduleId, scope.fileId, scope.filePath]);
   const updateSourceNodeValue = (node: WebConfigNode, nextValue: unknown) => {
     updateConfigSourceValue(source, node.path, nextValue, setToast);
     setSourceEditedPaths(current => new Set([...current, node.path]));
@@ -844,7 +846,8 @@ function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, set
     setError('');
     try {
       const refreshed = await api.registryFileNodes(module.id, childPath);
-      setOptimisticNodes(applyConfigNodeOverrides(module.id, refreshed.nodes, childPath));
+      setBaseNodes(applyConfigNodeOverrides(module.id, refreshed.nodes, childPath));
+      setOptimisticNodes([]);
       setRevision(refreshed.revision);
       clearDraftScope(scope);
       setSourceEditedPaths(new Set());
@@ -862,6 +865,7 @@ function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, set
     clearDraftScope(scope);
     setDeletedObjectPaths(new Set());
     setSourceEditedPaths(new Set());
+    setBaseNodes([]);
     setOptimisticNodes([]);
     await Promise.all([reloadChildNodes(false), source.reload(false)]);
     setToast({ tone: 'ok', text: t('core.toast.reloaded') });
@@ -918,7 +922,7 @@ function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, set
       onRedo: () => redoDraftScope(scope),
       onReload: () => void reloadChildSurface(),
       onSourceChange: source.update,
-      onSave: source.dirty ? () => void source.save(async () => { clearDraftValues(scope); setDeletedObjectPaths(new Set()); setSourceEditedPaths(new Set()); setOptimisticNodes([]); await reloadChildNodes(false); }) : () => void saveChild()
+      onSave: source.dirty ? () => void source.save(async () => { clearDraftValues(scope); setDeletedObjectPaths(new Set()); setSourceEditedPaths(new Set()); setBaseNodes([]); setOptimisticNodes([]); await reloadChildNodes(false); }) : () => void saveChild()
     });
   }, [fileName, fileTitle, childPath, changedNodes.length, toolbarChanges, toolbarSource, saving, loading, source.dirty, source.error, source.saving, source.loading, scopeHistory.undo.length, scopeHistory.redo.length, revision]);
 
@@ -1071,7 +1075,19 @@ function createOptimisticConfigNodes(parent: WebConfigNode, key: string, value: 
     createTemplates: [],
   };
   const fields = template.fields.length ? template.fields : Object.keys(value).map(fieldKey => ({ path: fieldKey, label: fieldKey, type: inferConfigFieldType(value[fieldKey]) } as WebConfigFieldSchema));
-  return [root, ...fields.map(field => optimisticFieldNode(rootPath, field, getDeepConfigValue(value, field.path.split('.'))))];
+  const nodes: WebConfigNode[] = [root];
+  for (const field of fields) {
+    const fullPath = `${rootPath}.${field.path}`;
+    const parts = fullPath.split('.');
+    for (let index = rootPath.split('.').length + 1; index < parts.length; index++) {
+      const parentPath = parts.slice(0, index).join('.');
+      if (!nodes.some(node => node.path === parentPath)) {
+        nodes.push({ path: parentPath, label: parentPath.split('.').pop() ?? parentPath, comment: '', type: 'object', editable: true, value: getDeepConfigValue(value, parentPath.slice(rootPath.length + 1).split('.')) ?? {} });
+      }
+    }
+    nodes.push(optimisticFieldNode(rootPath, field, getDeepConfigValue(value, field.path.split('.'))));
+  }
+  return nodes;
 }
 
 function optimisticFieldNode(rootPath: string, field: WebConfigFieldSchema, value: unknown): WebConfigNode {
@@ -1084,6 +1100,8 @@ function optimisticFieldNode(rootPath: string, field: WebConfigFieldSchema, valu
     value,
     options: field.options,
     optionLabelPrefix: field.optionLabelPrefix,
+    itemFields: field.itemFields,
+    uniqueBy: field.uniqueBy
   };
 }
 
@@ -1267,12 +1285,12 @@ function buildNodeGroups(nodes: WebConfigNode[], parentPath = ''): NodeGroup[] {
     if (node.type === 'object') {
       const childPrefix = `${node.path}.`;
       const childNodes = nodes.filter(child => child.path.startsWith(childPrefix));
-      groups.push(childNodes.length || node.creatableChildren ? { type: 'section', node, children: childNodes } : { type: 'leaf', node });
+      groups.push(childNodes.length || node.creatableChildren || node.itemFields?.length ? { type: 'section', node, children: childNodes } : { type: 'leaf', node });
     } else {
       groups.push({ type: 'leaf', node });
     }
   }
-  return groups.filter(group => group.type === 'leaf' || group.children.length > 0 || group.node.creatableChildren || !prefix);
+  return groups.filter(group => group.type === 'leaf' || group.children.length > 0 || group.node.creatableChildren || group.node.itemFields?.length || !prefix);
 }
 
 function isDirectChildPath(path: string, parentPath: string): boolean {
@@ -1336,7 +1354,10 @@ function renderControl(node: WebConfigNode, value: unknown, setValue: (v: unknow
   if (node.type === 'number') return <NumberField value={value} onChange={setValue} ariaLabel={label} />;
   if (node.type === 'json') return <JsonField value={value} onChange={setValue} ariaLabel={label} />;
   if (node.type === 'dynamic_map') return <DynamicMapEditor value={value} setValue={setValue} />;
-  if (node.type === 'object') return <ObjectValuePreview value={value} />;
+  if (node.type === 'object') {
+    if (node.itemFields?.length) return <SchemaObjectEditor field={configNodeToSchemaField(node)} value={value} onChange={setValue} moduleId={moduleId} ariaLabel={label} />;
+    return <ObjectMapEditor value={value} onChange={setValue} />;
+  }
   if (node.type === 'stringList') return <StringListEditor items={asStringListValue(value)} onChange={setValue} />;
   if (node.type === 'numberList') return <NumberListEditor items={asNumberListValue(value)} onChange={setValue} />;
   if (node.type === 'objectList') {
@@ -1371,7 +1392,40 @@ function ObjectValuePreview({ value }: { value: unknown }) {
   </div>;
 }
 
-function ObjectListEditor({ node, items, setValue, moduleId }: { node: WebConfigNode; items: unknown[]; setValue: (v: unknown) => void; moduleId: string }) {
+function ObjectMapEditor({ value, onChange }: { value: unknown; onChange: (value: unknown) => void }) {
+  const entries = Object.entries(isPlainObject(value) ? value : {});
+  const updateKey = (index: number, nextKey: string) => {
+    const next: Record<string, unknown> = {};
+    entries.forEach(([key, entry], itemIndex) => {
+      next[itemIndex === index ? nextKey : key] = entry;
+    });
+    onChange(next);
+  };
+  const updateValue = (index: number, nextValue: string) => {
+    const next: Record<string, unknown> = {};
+    entries.forEach(([key, entry], itemIndex) => {
+      next[key] = itemIndex === index ? parseListValue(entry, nextValue) : entry;
+    });
+    onChange(next);
+  };
+  const remove = (index: number) => onChange(Object.fromEntries(entries.filter((_, itemIndex) => itemIndex !== index)));
+  const add = () => {
+    const keys = entries.map(([key]) => key);
+    let index = 1;
+    while (keys.includes(`key_${index}`)) index += 1;
+    onChange({ ...(isPlainObject(value) ? value : {}), [`key_${index}`]: '' });
+  };
+  return <div className="dynamic-map-editor">
+    {entries.map(([key, entry], index) => <div className="dynamic-map-row" key={`${key}:${index}`}>
+      <input value={key} onChange={event => updateKey(index, event.target.value)} aria-label={t('core.kv.key')} />
+      <input value={entry == null || isPlainObject(entry) || Array.isArray(entry) ? JSON.stringify(entry ?? '') : String(entry)} onChange={event => updateValue(index, event.target.value)} aria-label={t('core.kv.value')} />
+      <button type="button" onClick={() => remove(index)}>{t('core.config.delete')}</button>
+    </div>)}
+    <button type="button" className="add-row" onClick={add}>{t('core.config.create')}</button>
+  </div>;
+}
+
+function ObjectListEditor({ node, items, setValue, moduleId, compact = false }: { node: WebConfigNode; items: unknown[]; setValue: (v: unknown) => void; moduleId: string; compact?: boolean }) {
   const objectItems: Record<string, unknown>[] = items.map(item => isPlainObject(item) ? item : {});
   const stableRef = useStableEntries(objectItems);
   const stable = stableRef.current;
@@ -1403,7 +1457,7 @@ function ObjectListEditor({ node, items, setValue, moduleId }: { node: WebConfig
     setValue([...items, objectListTemplate({ ...node, value: items }, objectItems[0])]);
   }
 
-  if (!stable.length) return <div className="object-list-editor object-list-editor--empty">
+  if (!stable.length) return <div className={`object-list-editor object-list-editor--empty${compact ? ' object-list-editor--compact' : ''}`}>
     <button type="button" className={`object-list-empty ${emptyExpanded ? 'expanded' : ''}`} onClick={() => setEmptyExpanded(current => !current)} aria-expanded={emptyExpanded}>
       <DisclosureChevron open={emptyExpanded} className="object-list-arrow" />
       <strong>{t('core.config.emptyListTitle')}</strong>
@@ -1413,7 +1467,7 @@ function ObjectListEditor({ node, items, setValue, moduleId }: { node: WebConfig
     {!emptyExpanded && <button type="button" className="add-row" onClick={addEntry}>{t('core.config.addItem')}</button>}
   </div>;
 
-  return <div className="object-list-editor">
+  return <div className={`object-list-editor${compact ? ' object-list-editor--compact' : ''}`}>
     {stable.map((entry, index) => {
       const item = entry.data;
       const rowId = entry._id;
@@ -1446,19 +1500,75 @@ function ObjectListEditor({ node, items, setValue, moduleId }: { node: WebConfig
   </div>;
 }
 
+function configNodeToSchemaField(node: WebConfigNode): WebConfigFieldSchema {
+  return {
+    path: node.path,
+    label: node.label,
+    comment: node.comment,
+    type: node.type,
+    options: node.options,
+    optionLabelPrefix: node.optionLabelPrefix,
+    itemFields: node.itemFields,
+    uniqueBy: node.uniqueBy
+  };
+}
+
 function renderSchemaField(field: WebConfigFieldSchema | undefined, value: unknown, onChange: (value: unknown) => void, moduleId: string, ariaLabel: string, siblingItems: Record<string, unknown>[] = [], currentIndex = -1) {
   const type = field?.type;
   if (type === 'boolean' || typeof value === 'boolean') return <BooleanSwitch checked={value === true} label={ariaLabel} onToggle={() => onChange(!value)} />;
   if (type === 'number' || typeof value === 'number') return <NumberField value={value} onChange={onChange} ariaLabel={ariaLabel} />;
   if (type === 'list' || type === 'stringList') return <StringListEditor items={asStringListValue(value)} onChange={onChange} />;
   if (type === 'numberList') return <NumberListEditor items={asNumberListValue(value)} onChange={onChange} />;
-  if (type === 'objectList') return <JsonField value={value} onChange={onChange} ariaLabel={ariaLabel} />;
+  if (type === 'objectList') {
+    const childNode = schemaFieldToConfigNode(field, ariaLabel, value, siblingItems);
+    return <ObjectListEditor node={childNode} items={Array.isArray(value) ? value : []} setValue={onChange} moduleId={moduleId} compact />;
+  }
+  if (type === 'object' && field?.itemFields?.length) {
+    return <SchemaObjectEditor field={field} value={value} onChange={onChange} moduleId={moduleId} ariaLabel={ariaLabel} />;
+  }
   if (type === 'json') return <JsonField value={value} onChange={onChange} ariaLabel={ariaLabel} />;
   if (type === 'enum' && field?.options) {
     const current = str(value);
     return <select aria-label={ariaLabel} value={current} onChange={(e) => onChange(e.target.value)}>{field.options.map(option => <option key={option} value={option}>{optionLabel(field.optionLabelPrefix || field.path, option, { moduleId })}</option>)}</select>;
   }
   return <input aria-label={ariaLabel} value={value == null ? '' : String(value)} onChange={(e) => onChange(e.target.value)} />;
+}
+
+function SchemaObjectEditor({ field, value, onChange, moduleId, ariaLabel }: { field: WebConfigFieldSchema; value: unknown; onChange: (value: unknown) => void; moduleId: string; ariaLabel: string }) {
+  const record = isPlainObject(value) ? value : {};
+  const keys = mergeKeys(field.itemFields?.map(entry => entry.path) ?? [], Object.keys(record));
+  function updateField(key: string, nextValue: unknown) {
+    onChange({ ...record, [key]: nextValue });
+  }
+  return <div className="schema-object-editor" aria-label={ariaLabel}>
+    {keys.map(key => {
+      const childField = field.itemFields?.find(entry => entry.path === key) ?? { path: key, label: key, type: inferConfigFieldType(record[key]) };
+      const wide = isListSchemaField(childField, record[key]) || childField.type === 'object' || childField.type === 'json';
+      return <div className={`object-list-field ${wide ? 'object-list-field--wide' : ''}`} key={key}>
+        <label>{fieldLabel(`${field.path}.${key}`, { moduleId, namespace: moduleId, fallback: getLocale().startsWith('zh') ? (childField.label || key.replace(/_/g, ' ')) : humanizeFieldLabel(key) })}</label>
+        {renderSchemaField(childField, record[key], next => updateField(key, next), moduleId, `${ariaLabel}.${key}`)}
+      </div>;
+    })}
+  </div>;
+}
+
+function cleanObject(value: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(value).filter(([, entry]) => entry !== undefined && entry !== '' && !(Array.isArray(entry) && entry.length === 0)));
+}
+
+function schemaFieldToConfigNode(field: WebConfigFieldSchema | undefined, path: string, value: unknown, siblingItems: Record<string, unknown>[]): WebConfigNode {
+  return {
+    path: field?.path || path,
+    label: field?.label || field?.path || path,
+    comment: field?.comment || '',
+    type: 'objectList',
+    editable: true,
+    value: Array.isArray(value) ? value : siblingItems,
+    options: field?.options,
+    optionLabelPrefix: field?.optionLabelPrefix,
+    itemFields: field?.itemFields,
+    uniqueBy: field?.uniqueBy
+  };
 }
 
 function objectListKeys(node: WebConfigNode, items: Record<string, unknown>[]) {

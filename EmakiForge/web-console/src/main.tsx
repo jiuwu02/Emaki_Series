@@ -4,6 +4,48 @@ const MODULE = 'EmakiForge';
 type AnyMap = Record<string, unknown>;
 const FORGE_EFFECT_TYPES = ['variables', 'ea_attribute', 'es_skill', 'name_action', 'lore_action', 'quality_modify', 'capacity_bonus'];
 
+const actionFields = [
+  { path: 'action', label: '动作', comment: 'CoreLib 物品显示动作类型，例如 append、insert_below、replace、prepend_prefix。', type: 'text', defaultValue: 'append' },
+  { path: 'value', label: '文本值', comment: '名称动作使用的单行文本值。', type: 'text', defaultValue: '' },
+  { path: 'anchor', label: '锚点', comment: 'insert_below / insert_above 等 Lore 动作用于定位的文本。', type: 'text', defaultValue: '' },
+  { path: 'content', label: '内容', comment: 'Lore 动作写入的多行文本。', type: 'stringList', defaultValue: [] }
+];
+
+const effectFields = [
+  { path: 'type', label: '类型', comment: '材料效果类型，源码按 type 分发变量、属性、技能、显示动作、品质修改或容量加成。', type: 'enum', options: FORGE_EFFECT_TYPES, defaultValue: 'variables' },
+  { path: 'variables', label: '变量', comment: 'variables 效果贡献的表达式变量对象。', type: 'map', defaultValue: {} },
+  { path: 'ea_attributes', label: 'EA 属性', comment: 'ea_attribute 效果写入 EmakiAttribute 的属性数值对象。', type: 'map', defaultValue: {} },
+  { path: 'ea_attribute_meta', label: 'EA 属性元数据', comment: 'ea_attribute 效果的附加字符串元数据对象。', type: 'map', defaultValue: {} },
+  { path: 'es_skills', label: 'ES 技能', comment: 'es_skill 效果附加的技能 ID 列表。', type: 'stringList', defaultValue: [] },
+  { path: 'es_skill', label: 'ES 技能简写', comment: '单个技能 ID 简写，源码会与 es_skills 合并读取。', type: 'text', defaultValue: '' },
+  { path: 'name_actions', label: '名称动作链', comment: 'name_action 效果对结果物品名称执行的动作列表。', type: 'objectList', defaultValue: [], itemFields: actionFields },
+  { path: 'lore_actions', label: 'Lore 动作链', comment: 'lore_action 效果对结果物品 Lore 执行的动作列表。', type: 'objectList', defaultValue: [], itemFields: actionFields },
+  { path: 'mode', label: '品质修改模式', comment: 'quality_modify 使用 force 或 minimum。', type: 'enum', options: ['force', 'minimum'], defaultValue: 'minimum' },
+  { path: 'tier', label: '目标品质', comment: 'quality_modify 的目标品质名称。', type: 'text', defaultValue: '' },
+  { path: 'quality', label: '目标品质别名', comment: 'quality_modify 的兼容品质字段；tier 为空时源码读取 quality。', type: 'text', defaultValue: '' },
+  { path: 'value', label: '容量加成', comment: 'capacity_bonus 源码读取的容量加成值，可为数字或表达式。', type: 'text', defaultValue: '1' },
+  { path: 'amount', label: '容量加成别名', comment: '容量加成兼容字段；建议优先使用 value。', type: 'text', defaultValue: '1' }
+];
+
+const materialFields = [
+  { path: 'item_sources', label: '物品来源', comment: '作为此材料匹配条件的 ItemSource 列表。', type: 'stringList', defaultValue: ['minecraft-iron_ingot'] },
+  { path: 'amount', label: '数量', comment: '此材料需要消耗的数量。', type: 'number', defaultValue: 1 },
+  { path: 'capacity_cost', label: '容量消耗', comment: '此材料占用的锻造容量。', type: 'number', defaultValue: 0 },
+  { path: 'optional', label: '可选', comment: '是否属于可选材料。', type: 'boolean', defaultValue: false },
+  { path: 'effects', label: '效果', comment: '此材料提供的效果对象列表。', type: 'objectList', defaultValue: [], itemFields: effectFields }
+];
+
+const blueprintFields = [
+  { path: 'item_sources', label: '蓝图来源', comment: '作为锻造前置蓝图匹配条件的 ItemSource 列表。', type: 'stringList', defaultValue: ['minecraft-enchanted_book'] },
+  { path: 'amount', label: '数量', comment: '需要持有的蓝图数量。', type: 'number', defaultValue: 1 }
+];
+
+const failureOutcomeFields = [
+  { path: 'type', label: '结果类型', comment: '失败结果类型，例如 return_materials、consume_materials、byproduct。', type: 'enum', options: ['return_materials', 'consume_materials', 'partial_consume', 'fixed_quality', 'byproduct', 'economy_penalty', 'downgrade_quality'], defaultValue: 'return_materials' },
+  { path: 'weight', label: '权重', comment: '失败时随机抽取此结果的权重。', type: 'number', defaultValue: 1 },
+  { path: 'params', label: '参数', comment: '结果类型对应参数，例如 return_rate、quality、item_sources、amount、levels。', type: 'map', defaultValue: {} }
+];
+
 type FieldSpec = [path: string, label: string, comment: string, type: string, extra?: Record<string, unknown>];
 
 const copy = (zh: string, en: string) => getLocale().startsWith('zh') ? zh : en;
@@ -21,7 +63,11 @@ const fields: FieldSpec[] = [
   ['quality.guarantee.minimum', '保底品质', '保底触发时至少给到的品质名称，需要与 quality.tiers 中的名称一致。', 'text'],
   ['quality.item_meta', '显示写入', '是否把品质写入物品名称、Lore，以及每个品质对应的显示动作。', 'object'],
   ['quality.item_meta.enabled', '启用写入', '开启后锻造完成会按品质配置修改物品显示。', 'boolean'],
-  ['quality.item_meta.tiers', '品质显示', '每个品质名称对应的 name_actions、lore_actions 或广播动作配置。', 'object', { creatableChildren: true }],
+  ['quality.item_meta.tiers', '品质显示', '每个品质名称对应的 name_actions、lore_actions 或广播动作配置。', 'object', { creatableChildren: true, createTemplates: [{ id: 'quality-tier-display', label: copy('品质显示规则', 'Quality display rule'), fields: [
+    { path: 'name_actions', label: '名称动作链', comment: '给该品质物品名称追加前缀、后缀或执行替换动作。', type: 'objectList', defaultValue: [], itemFields: actionFields },
+    { path: 'lore_actions', label: 'Lore 动作链', comment: '给该品质物品 Lore 执行的动作列表。', type: 'objectList', defaultValue: [], itemFields: actionFields },
+    { path: 'action', label: '广播动作', comment: '该品质达成时执行的广播或提示动作。', type: 'stringList', defaultValue: [] }
+  ] }] }],
   ['number_format', '数值格式', '锻造结果数值在名称、Lore 和日志中的格式化规则。', 'object'],
   ['number_format.default', '默认格式', '普通小数的默认格式，例如 0.##。', 'text'],
   ['number_format.integer', '整数格式', '整数数值的显示格式，例如 0。', 'text'],
@@ -84,8 +130,8 @@ const recipeFields: FieldSpec[] = [
   ['result', '锻造结果', '锻造成功后的产物、结果物品动作和提示动作。', 'object'],
   ['result.item_sources', '结果物品来源', '锻造成功后产出的 ItemSource 列表。', 'stringList'],
   ['result.meta_actions', '结果显示动作', '对结果物品名称和 Lore 执行的动作。', 'object'],
-  ['result.meta_actions.name_actions', '结果名称动作', '对结果物品显示名称执行的动作列表。', 'objectList'],
-  ['result.meta_actions.lore_actions', '结果 Lore 动作', '对结果物品 Lore 执行的动作列表。', 'objectList'],
+  ['result.meta_actions.name_actions', '结果名称动作', '对结果物品显示名称执行的动作列表。', 'objectList', { itemFields: actionFields }],
+  ['result.meta_actions.lore_actions', '结果 Lore 动作', '对结果物品 Lore 执行的动作列表。', 'objectList', { itemFields: actionFields }],
   ['result.actions', '结果动作', '锻造成功并生成结果后执行的动作列表。', 'stringList'],
   ['actions', '流程动作', '锻造 pre、success、failure 三个阶段执行的动作。', 'object'],
   ['actions.pre', '开始前动作', '锻造开始前执行的动作列表。', 'stringList'],
@@ -181,41 +227,17 @@ registerPluginConfig({
     }]
   ],
   listItemSchemas: [
-    ['effects', [
-      { path: 'type', label: '类型', comment: '材料效果类型。', type: 'enum', options: FORGE_EFFECT_TYPES, defaultValue: 'variables' },
-      { path: 'variables', label: '变量', comment: '变量/属性贡献。', type: 'json', defaultValue: {} },
-      { path: 'ea_attributes', label: 'EA 属性', comment: '写入 EmakiAttribute 的属性。', type: 'json', defaultValue: {} },
-      { path: 'ea_attribute_meta', label: 'EA 属性元数据', comment: 'EA 属性附加元数据。', type: 'json', defaultValue: {} },
-      { path: 'es_skills', label: 'ES 技能', comment: '附加技能 ID 列表。', type: 'stringList', defaultValue: [] },
-      { path: 'es_skill', label: 'ES 技能简写', comment: '单个技能 ID 简写，源码会与 es_skills 合并读取。', type: 'text', defaultValue: '' },
-      { path: 'name_actions', label: '名称动作链', comment: '对结果物品名称执行的动作。', type: 'objectList', defaultValue: [] },
-      { path: 'lore_actions', label: 'Lore 动作链', comment: '对结果物品 Lore 执行的动作。', type: 'objectList', defaultValue: [] },
-      { path: 'mode', label: '模式', comment: 'quality_modify 使用 force 或 minimum。', type: 'enum', options: ['force', 'minimum'], defaultValue: 'minimum' },
-      { path: 'tier', label: '品质', comment: '目标品质名称。', type: 'text', defaultValue: '' },
-      { path: 'amount', label: '容量加成', comment: 'capacity_bonus 的容量加成，兼容表达式。', type: 'text', defaultValue: '1' },
-      { path: 'value', label: '容量值', comment: 'capacity_bonus 的旧/简写字段，源码会按 value 读取容量加成。', type: 'text', defaultValue: '1' }
-    ]],
+    ['effects', effectFields],
     ['quality.tiers', [
       { path: 'name', label: '品质名', comment: '品质名称，会被 default_tier、guarantee.minimum 和品质显示配置引用。', type: 'text', defaultValue: '新品质' },
       { path: 'weight', label: '权重', comment: '随机抽取权重，数值越高越容易出现。', type: 'number', defaultValue: 1 },
       { path: 'multiplier', label: '倍率', comment: '该品质对最终锻造数值的倍率。', type: 'number', defaultValue: 1 }
     ], { uniqueBy: 'name' }],
-    ['materials', [
-      { path: 'item_sources', label: '物品来源', comment: '作为此材料匹配条件的 ItemSource 列表。', type: 'stringList', defaultValue: ['minecraft-iron_ingot'] },
-      { path: 'amount', label: '数量', comment: '此材料需要消耗的数量。', type: 'number', defaultValue: 1 },
-      { path: 'capacity_cost', label: '容量消耗', comment: '此材料占用的锻造容量。', type: 'number', defaultValue: 0 },
-      { path: 'effects', label: '效果', comment: '此材料提供的效果对象列表。', type: 'objectList', defaultValue: [] },
-      { path: 'optional', label: '可选', comment: '是否属于可选材料。', type: 'boolean', defaultValue: false }
-    ]],
-    ['blueprint_requirements', [
-      { path: 'item_sources', label: '蓝图来源', comment: '作为锻造前置蓝图匹配条件的 ItemSource 列表。', type: 'stringList', defaultValue: ['minecraft-enchanted_book'] },
-      { path: 'amount', label: '数量', comment: '需要持有的蓝图数量。', type: 'number', defaultValue: 1 }
-    ]],
-    ['failure_outcomes', [
-      { path: 'type', label: '结果类型', comment: '失败结果类型，例如 return_materials、consume_materials、byproduct。', type: 'enum', options: ['return_materials', 'consume_materials', 'partial_consume', 'fixed_quality', 'byproduct', 'economy_penalty', 'downgrade_quality'], defaultValue: 'return_materials' },
-      { path: 'weight', label: '权重', comment: '失败时随机抽取此结果的权重。', type: 'number', defaultValue: 1 },
-      { path: 'params', label: '参数', comment: '结果类型对应参数，例如 return_rate、quality、item_sources、amount、levels。', type: 'json', defaultValue: {} }
-    ]]
+    ['materials', materialFields],
+    ['blueprint_requirements', blueprintFields],
+    ['failure_outcomes', failureOutcomeFields],
+    ['name_actions', actionFields],
+    ['lore_actions', actionFields]
   ]
 });
 

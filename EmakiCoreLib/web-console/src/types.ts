@@ -36,6 +36,8 @@ export type WebConfigFieldSchema = {
   defaultValue?: unknown;
   options?: string[];
   optionLabelPrefix?: string;
+  itemFields?: WebConfigFieldSchema[];
+  uniqueBy?: string;
 };
 
 export type WebConfigCreateTemplate = {

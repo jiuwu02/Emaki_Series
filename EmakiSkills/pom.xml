@@ -28,6 +28,11 @@
             <version>${emaki.corelib.version}</version>
         </dependency>
         <dependency>
+            <groupId>emaki.jiuwu.craft</groupId>
+            <artifactId>emaki-skills-api</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
             <groupId>io.lumine</groupId>
             <artifactId>Mythic-Dist</artifactId>
             <scope>provided</scope>
@@ -81,6 +86,26 @@
                                 <argument>run</argument>
                                 <argument>build</argument>
                             </arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <artifactSet>
+                                <includes>
+                                    <include>emaki.jiuwu.craft:emaki-skills-api</include>
+                                </includes>
+                            </artifactSet>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
                         </configuration>
                     </execution>
                 </executions>

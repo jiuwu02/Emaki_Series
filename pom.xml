@@ -20,7 +20,15 @@
     </scm>
 
     <modules>
+        <module>EmakiCoreLibApi</module>
         <module>EmakiCoreLib</module>
+        <module>EmakiItemApi</module>
+        <module>EmakiStrengthenApi</module>
+        <module>EmakiSkillsApi</module>
+        <module>EmakiAttributeApi</module>
+        <module>EmakiForgeApi</module>
+        <module>EmakiCookingApi</module>
+        <module>EmakiGemApi</module>
         <module>EmakiForge</module>
         <module>EmakiStrengthen</module>
         <module>EmakiCooking</module>
@@ -305,7 +313,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-shade-plugin</artifactId>
-                    <version>3.5.3</version>
+                    <version>3.6.2</version>
                     <configuration>
                         <createDependencyReducedPom>false</createDependencyReducedPom>
                         <relocations>

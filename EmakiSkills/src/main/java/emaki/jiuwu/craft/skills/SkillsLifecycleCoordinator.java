@@ -122,7 +122,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
         SkillScriptExecutor skillScriptExecutor = new SkillScriptExecutor(skillScriptActionRegistry);
         SkillScriptCastService skillScriptCastService = new SkillScriptCastService(plugin, skillVariableResolver, skillScriptExecutor);
         BuiltinSkillScriptActions.registerAll(skillScriptActionRegistry, plugin, mythicSkillCastService);
-        EmakiSkillsApi emakiSkillsApi = new DefaultEmakiSkillsApi(skillScriptActionRegistry, skillScriptCastService);
+        EmakiSkillsApi emakiSkillsApi = new DefaultEmakiSkillsApi(skillScriptActionRegistry);
         CastAttemptService castAttemptService = new CastAttemptService(
                 plugin,
                 playerSkillStateService,

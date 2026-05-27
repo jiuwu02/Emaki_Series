@@ -22,12 +22,12 @@ import emaki.jiuwu.craft.strengthen.model.StrengthenRecipe.StarStage;
 import emaki.jiuwu.craft.strengthen.model.StrengthenRecipe.StarStageMaterial;
 import emaki.jiuwu.craft.strengthen.model.StrengthenRecipe.StatLineDefinition;
 
-final class StrengthenRecipeParser {
+public final class StrengthenRecipeParser {
 
     private StrengthenRecipeParser() {
     }
 
-    static StrengthenRecipe parse(YamlSection section) {
+    public static StrengthenRecipe parse(YamlSection section) {
         if (section == null) {
             return null;
         }
@@ -293,7 +293,11 @@ final class StrengthenRecipeParser {
         String branchId = section.getString("branch_id", defaultId);
         String displayName = section.getString("display_name", "");
         int forkAfterStar = Numbers.tryParseInt(section.get("fork_after_star"), -1);
-        Map<Integer, StarStage> stages = parseStars(section.getSection("stages"));
+        YamlSection stagesSection = section.getSection("stages");
+        if (stagesSection == null) {
+            stagesSection = section.getSection("stars");
+        }
+        Map<Integer, StarStage> stages = parseStars(stagesSection);
         Map<String, StrengthenBranchNode> children = new LinkedHashMap<>();
         YamlSection childrenSection = section.getSection("children");
         if (childrenSection != null) {

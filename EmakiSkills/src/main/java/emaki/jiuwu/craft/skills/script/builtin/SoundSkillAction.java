@@ -11,7 +11,7 @@ import emaki.jiuwu.craft.corelib.action.ActionParameter;
 import emaki.jiuwu.craft.corelib.action.ActionParameterType;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
 import emaki.jiuwu.craft.corelib.gui.SoundParser;
-import emaki.jiuwu.craft.skills.script.SkillScriptContext;
+import emaki.jiuwu.craft.skills.api.SkillScriptContext;
 
 public final class SoundSkillAction extends AbstractSkillScriptAction {
 

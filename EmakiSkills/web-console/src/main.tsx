@@ -6,6 +6,36 @@ type FieldSpec = [path: string, label: string, comment: string, type: string, ex
 
 const copy = (zh: string, en: string) => getLocale().startsWith('zh') ? zh : en;
 
+const materialFields = [
+  { path: 'item_sources', label: '物品来源', comment: '作为材料的 ItemSource 列表。', type: 'stringList', defaultValue: ['minecraft-iron_ingot'] },
+  { path: 'amount', label: '数量', comment: '此材料需要的数量。', type: 'number', defaultValue: 1 },
+  { path: 'optional', label: '可选', comment: '是否可选材料。', type: 'boolean', defaultValue: false },
+  { path: 'protection', label: '保护', comment: '是否受保护规则影响。', type: 'boolean', defaultValue: false }
+];
+
+const currencyFields = [
+  { path: 'provider', label: '提供方', comment: '货币提供方或桥接器。', type: 'text', defaultValue: 'vault' },
+  { path: 'currency_id', label: '货币 ID', comment: '具体货币标识。', type: 'text', defaultValue: 'currency' },
+  { path: 'base_cost', label: '基础成本', comment: '未套公式时的基础数值。', type: 'number', defaultValue: 0 },
+  { path: 'cost_formula', label: '成本公式', comment: '按等级计算成本的公式。', type: 'text', defaultValue: '{base_cost}' },
+  { path: 'display_name', label: '显示名', comment: 'GUI 中显示的货币名称。', type: 'text', defaultValue: '' }
+];
+
+const parameterFields = [
+  { path: 'type', label: '类型', comment: '参数类型，例如 constant、expression、range、string、boolean、random_text。', type: 'text', defaultValue: 'constant' },
+  { path: 'value', label: '值', comment: '常量值或表达式值。', type: 'text', defaultValue: '' },
+  { path: 'expression', label: '表达式', comment: '表达式参数内容。', type: 'text', defaultValue: '' },
+  { path: 'formula', label: '公式', comment: '兼容公式字段，源码会与 expression/value 合并解析。', type: 'text', defaultValue: '' },
+  { path: 'min', label: '最小值', comment: '范围或数值参数下限。', type: 'number', defaultValue: 0 },
+  { path: 'max', label: '最大值', comment: '范围或数值参数上限。', type: 'number', defaultValue: 0 },
+  { path: 'decimals', label: '小数位', comment: '数值格式的小数位数。', type: 'number', defaultValue: 0 },
+  { path: 'default', label: '默认值', comment: '参数缺省值。', type: 'text', defaultValue: '' },
+  { path: 'lines', label: '随机文本行', comment: 'random_text 参数可用文本行。', type: 'stringList', defaultValue: [] },
+  { path: 'values', label: '随机值', comment: 'random_text 参数兼容值列表。', type: 'stringList', defaultValue: [] },
+  { path: 'options', label: '选项', comment: 'random_text 参数兼容选项列表。', type: 'stringList', defaultValue: [] },
+  { path: 'texts', label: '文本', comment: 'random_text 参数兼容文本列表。', type: 'stringList', defaultValue: [] }
+];
+
 const fields: FieldSpec[] = [
   ['language', '语言', '语言文件 ID，对应 lang/<language>.yml。', 'text'],
   ['version', '配置版本', '默认配置结构版本，通常不建议手动修改。', 'text'],
@@ -47,7 +77,7 @@ const skillFields: FieldSpec[] = [
   ['description', '描述', '技能说明文本列表。', 'stringList'],
   ['icon_material', '图标材质', '技能在 GUI 中使用的 Bukkit Material。', 'material'],
   ['mythic_skill', 'Mythic 技能', '桥接 MythicMobs 技能 ID；原生脚本可留空。', 'text'],
-  ['trigger_type', '触发类型', '技能触发类型，active 表示主动技能。', 'text'],
+  ['trigger_type', '触发类型', '技能触发类型，active 表示主动技能。', 'enum', { options: ['active', 'passive'], optionLabelPrefix: 'skill.trigger_type' }],
   ['passive_triggers', '被动触发器', '绑定的被动触发器 ID 列表。', 'stringList'],
   ['skill_parameters', '技能参数', '技能参数定义，支持 type、value/expression/formula、min/max/decimals/default。', 'object', { creatableChildren: true }],
   ['variables', '变量', '兼容参数变量定义，结构同 skill_parameters。', 'object', { creatableChildren: true }],
@@ -65,6 +95,7 @@ const skillFields: FieldSpec[] = [
   ['upgrade.success_rates', '成功率表', '按目标等级配置的全局升级成功率。', 'object', { creatableChildren: true }],
   ['upgrade.failure_penalty', '失败惩罚', '技能升级失败后的惩罚方式。', 'enum', { options: FAILURE_PENALTIES, optionLabelPrefix: 'upgrade.failure_penalty' }],
   ['upgrade.levels', '等级覆盖', '按目标等级覆盖材料、经济、参数和动作。', 'object', { creatableChildren: true }],
+  ['cooldown', '技能冷却秒', '旧示例兼容字段；当前源码主要读取 cooldown_ticks。', 'number'],
   ['cooldown_ticks', '技能冷却', '该技能自身冷却时间，单位 tick。', 'number'],
   ['global_cooldown_ticks', '全局冷却', '释放后施加的全局冷却时间，单位 tick。', 'number'],
   ['resource_costs', '资源消耗', '释放技能时消耗或检查的资源列表。', 'objectList'],
@@ -73,7 +104,8 @@ const skillFields: FieldSpec[] = [
   ['ui_category', 'UI 分类', '技能在 GUI 中的分类 ID。', 'text'],
   ['sort_order', '排序', '同分类内的排序权重。', 'number'],
   ['condition_type', '条件逻辑', '技能释放条件组合逻辑。', 'enum', { options: ['all_of', 'any_of'], optionLabelPrefix: 'condition_type' }],
-  ['conditions', '释放条件', '技能释放前检查的条件表达式列表。', 'stringList']
+  ['conditions', '释放条件', '技能释放前检查的条件表达式列表。', 'stringList'],
+  ['condition_required_count', '需要满足数量', 'any_of 条件逻辑下需要满足的最少条件数量；当前源码默认按 0 读取。', 'number']
 ];
 
 const resourceFields: FieldSpec[] = [
@@ -217,34 +249,18 @@ registerPluginConfig({
     ] as Array<[Record<string, string>, { label: string; comment: string; type: string }]>)
   ],
   createTemplates: [
-    ['skill_parameters', { id: 'skill-parameter', label: copy('技能参数', 'Skill parameter'), fields: [
-      { path: 'type', label: '类型', comment: '参数类型，例如 string、number、expression、range。', type: 'text', defaultValue: 'constant' },
-      { path: 'value', label: '值', comment: '常量值或表达式值。', type: 'text', defaultValue: '' },
-      { path: 'expression', label: '表达式', comment: '表达式参数内容。', type: 'text', defaultValue: '' },
-      { path: 'formula', label: '公式', comment: '兼容公式字段，源码会与 expression/value 合并解析。', type: 'text', defaultValue: '' },
-      { path: 'min', label: '最小值', comment: '范围或数值参数下限。', type: 'number', defaultValue: 0 },
-      { path: 'max', label: '最大值', comment: '范围或数值参数上限。', type: 'number', defaultValue: 0 },
-      { path: 'decimals', label: '小数位', comment: '数值格式的小数位数。', type: 'number', defaultValue: 0 },
-      { path: 'default', label: '默认值', comment: '参数缺省值。', type: 'text', defaultValue: '' }
-    ] }],
-    ['variables', { id: 'skill-variable', label: copy('技能变量', 'Skill variable'), fields: [
-      { path: 'type', label: '类型', comment: '变量类型。', type: 'text', defaultValue: 'constant' },
-      { path: 'value', label: '值', comment: '变量值。', type: 'text', defaultValue: '' },
-      { path: 'expression', label: '表达式', comment: '表达式变量内容。', type: 'text', defaultValue: '' },
-      { path: 'formula', label: '公式', comment: '兼容公式字段。', type: 'text', defaultValue: '' },
-      { path: 'min', label: '最小值', comment: '范围变量下限。', type: 'number', defaultValue: 0 },
-      { path: 'max', label: '最大值', comment: '范围变量上限。', type: 'number', defaultValue: 0 },
-      { path: 'decimals', label: '小数位', comment: '数值格式的小数位数。', type: 'number', defaultValue: 0 },
-      { path: 'default', label: '默认值', comment: '变量缺省值。', type: 'text', defaultValue: '' }
-    ] }],
+    ['skill_parameters', { id: 'skill-parameter', label: copy('技能参数', 'Skill parameter'), fields: parameterFields }],
+    ['variables', { id: 'skill-variable', label: copy('技能变量', 'Skill variable'), fields: parameterFields }],
     ['upgrade.success_rates', { id: 'upgrade-success-rate', label: copy('目标等级成功率', 'Target level success rate'), fields: [
       { path: 'value', label: '成功率', comment: '该目标等级的升级成功率百分比。', type: 'number', defaultValue: 100 }
     ] }],
     ['upgrade.levels', { id: 'upgrade-level', label: copy('升级等级', 'Upgrade level'), fields: [
       { path: 'success_rate', label: '成功率', comment: '该目标等级的成功率覆盖。', type: 'number', defaultValue: 100 },
-      { path: 'materials', label: '材料', comment: '该等级需要的升级材料。', type: 'objectList', defaultValue: [] },
+      { path: 'materials', label: '材料', comment: '该等级需要的升级材料。', type: 'objectList', defaultValue: [], itemFields: materialFields },
       { path: 'economy', label: '经济覆盖', comment: '该等级专属经济消耗。', type: 'object', defaultValue: {} },
-      { path: 'parameters', label: '参数覆盖', comment: '升级到该等级后覆盖的技能参数。', type: 'json', defaultValue: {} },
+      { path: 'economy.enabled', label: '启用经济', comment: '是否启用该等级专属经济消耗。', type: 'boolean', defaultValue: true },
+      { path: 'economy.currencies', label: '货币', comment: '该等级专属货币成本列表。', type: 'objectList', defaultValue: [], itemFields: currencyFields },
+      { path: 'parameters', label: '参数覆盖', comment: '升级到该等级后覆盖的技能参数。', type: 'map', defaultValue: {} },
       { path: 'actions.success', label: '成功动作', comment: '升级成功动作列表。', type: 'stringList', defaultValue: [] },
       { path: 'actions.failure', label: '失败动作', comment: '升级失败动作列表。', type: 'stringList', defaultValue: [] }
     ] }]
@@ -257,21 +273,12 @@ registerPluginConfig({
       { path: 'operation', label: '操作', comment: 'consume 为消耗，require 为检查。', type: 'enum', options: ['consume', 'require'], defaultValue: 'consume', optionLabelPrefix: 'skill.resource_cost.operation' },
       { path: 'failure_message', label: '失败提示', comment: '资源不足时显示的提示消息。', type: 'text', defaultValue: '资源不足' }
     ], { uniqueBy: 'target_id' }],
-    ['upgrade.economy.currencies', [
-      { path: 'provider', label: '提供方', comment: '货币提供方或桥接器。', type: 'text', defaultValue: 'vault' },
-      { path: 'currency_id', label: '货币 ID', comment: '具体货币标识。', type: 'text', defaultValue: 'currency' },
-      { path: 'base_cost', label: '基础成本', comment: '未套公式时的基础数值。', type: 'number', defaultValue: 0 },
-      { path: 'cost_formula', label: '成本公式', comment: '按等级计算成本的公式。', type: 'text', defaultValue: '{base_cost}' },
-      { path: 'display_name', label: '显示名', comment: 'GUI 中显示的货币名称。', type: 'text', defaultValue: '' }
-    ], { uniqueBy: 'currency_id' }]
+    ['upgrade.economy.currencies', currencyFields, { uniqueBy: 'currency_id' }],
+    ['currencies', currencyFields, { uniqueBy: 'currency_id' }],
+    ['materials', materialFields]
   ],
   listItemSchemaRules: [
-    [{ suffix: 'materials' }, [
-      { path: 'item_sources', label: '物品来源', comment: '作为材料的 ItemSource 列表。', type: 'stringList', defaultValue: ['minecraft-iron_ingot'] },
-      { path: 'amount', label: '数量', comment: '此材料需要的数量。', type: 'number', defaultValue: 1 },
-      { path: 'optional', label: '可选', comment: '是否可选材料。', type: 'boolean', defaultValue: false },
-      { path: 'protection', label: '保护', comment: '是否受保护规则影响。', type: 'boolean', defaultValue: false }
-    ]]
+    [{ suffix: 'materials' }, materialFields]
   ]
 });
 

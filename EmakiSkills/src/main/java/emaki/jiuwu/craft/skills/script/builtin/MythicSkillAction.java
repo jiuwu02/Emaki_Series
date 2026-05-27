@@ -7,8 +7,9 @@ import emaki.jiuwu.craft.corelib.action.ActionErrorType;
 import emaki.jiuwu.craft.corelib.action.ActionParameter;
 import emaki.jiuwu.craft.corelib.action.ActionParameterType;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
+import emaki.jiuwu.craft.skills.api.SkillScriptContext;
 import emaki.jiuwu.craft.skills.mythic.MythicSkillCastService;
-import emaki.jiuwu.craft.skills.script.SkillScriptContext;
+import emaki.jiuwu.craft.skills.trigger.TriggerInvocation;
 
 public final class MythicSkillAction extends AbstractSkillScriptAction {
 
@@ -23,7 +24,8 @@ public final class MythicSkillAction extends AbstractSkillScriptAction {
     @Override
     public CompletableFuture<ActionResult> execute(SkillScriptContext context, Map<String, String> arguments) {
         String skill = arg(arguments, "skill", "");
-        if (mythicSkillCastService == null || !mythicSkillCastService.cast(context.caster(), skill, context.invocation())) {
+        TriggerInvocation invocation = context.invocation() instanceof TriggerInvocation triggerInvocation ? triggerInvocation : null;
+        if (mythicSkillCastService == null || !mythicSkillCastService.cast(context.caster(), skill, invocation)) {
             return completed(ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, "Mythic skill cast failed: " + skill));
         }
         return completed(ActionResult.ok());

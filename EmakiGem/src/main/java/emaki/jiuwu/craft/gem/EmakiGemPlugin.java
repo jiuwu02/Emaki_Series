@@ -8,6 +8,7 @@ import java.util.concurrent.CompletableFuture;
 
 import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
+import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
@@ -27,6 +28,8 @@ import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.web.WebConsoleRegistry;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
+import emaki.jiuwu.craft.gem.api.EmakiGemApi;
+import emaki.jiuwu.craft.gem.apiimpl.DefaultEmakiGemApi;
 import emaki.jiuwu.craft.gem.config.AppConfig;
 import emaki.jiuwu.craft.gem.listener.GemItemObtainListener;
 import emaki.jiuwu.craft.gem.loader.GemItemLoader;
@@ -90,6 +93,7 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
     private GemResonanceService resonanceService;
     private GemPlaceholderExpansion placeholderExpansion;
     private DebugCommand debugCommand;
+    private EmakiGemApi gemApi;
 
     public EmakiGemPlugin() {
         super(AppConfig::defaults);
@@ -108,6 +112,7 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         reloadPluginState(false);
         registerCommandHandler();
         registerEventHandlers();
+        registerPublicApiService();
         registerWebConsole();
         ensurePlaceholderExpansion();
         messageService.info("console.plugin_started");
@@ -120,6 +125,10 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
             placeholderExpansion = null;
         }
         WebConsoleRegistry.unregisterModule(this);
+        if (gemApi != null) {
+            getServer().getServicesManager().unregister(EmakiGemApi.class, gemApi);
+            gemApi = null;
+        }
         getServer().getServicesManager().unregisterAll(this);
         lifecycleCoordinator.shutdown(this);
         AdventureSupport.close(this);
@@ -179,6 +188,11 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
 
     private void registerWebConsole() {
         WebConsoleRegistry.registerFromYaml(this);
+    }
+
+    private void registerPublicApiService() {
+        gemApi = new DefaultEmakiGemApi(this);
+        getServer().getServicesManager().register(EmakiGemApi.class, gemApi, this, ServicePriority.Normal);
     }
 
     public void ensurePlaceholderExpansion() {

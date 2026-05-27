@@ -493,14 +493,12 @@ export function applyConfigRegistryOverrides(registry: WebRegistry): WebRegistry
 
 export function applyConfigNodeOverrides(moduleId: string, nodes: WebConfigNode[], filePath?: string): WebConfigNode[] {
   const existing = nodes.map(node => applySingleConfigNodeOverride(moduleId, node));
-  const schemaFields = configSchemaFieldsForFile(moduleId, filePath);
+  const schemaFields = dedupeConfigSchemaFields(configSchemaFieldsForFile(moduleId, filePath));
   if (!schemaFields.length) return existing;
-  const schemaPaths = schemaFields.map(([path]) => path);
+  const virtualNodes = schemaFields.flatMap(field => createVirtualConfigNodesFromField(moduleId, field));
+  const schemaPaths = virtualNodes.map(node => node.path);
   const existingPaths = new Set(existing.map(node => node.path));
-  const missing = schemaFields
-    .filter(([path]) => !existingPaths.has(path))
-    .map(field => createVirtualConfigNodeFromField(moduleId, field))
-    .filter((node): node is WebConfigNode => Boolean(node));
+  const missing = virtualNodes.filter(node => !existingPaths.has(node.path));
   if (!missing.length) return existing;
   return mergeMissingConfigNodes(existing, missing, schemaPaths);
 }
@@ -679,9 +677,53 @@ function metaFieldFromRegisteredNode(moduleId: string, path: string): ConfigMeta
   return [path, meta.label ?? lastConfigPathKey(path).replace(/[_-]+/g, ' '), meta.comment ?? '', meta.type ?? 'text', meta];
 }
 
-function createVirtualConfigNodeFromField(moduleId: string, field: ConfigMetaFieldEntry): WebConfigNode | null {
+function dedupeConfigSchemaFields(fields: ConfigMetaFieldEntry[]): ConfigMetaFieldEntry[] {
+  const byPath = new Map<string, ConfigMetaFieldEntry>();
+  for (const field of fields) {
+    const path = field?.[0];
+    if (!path || byPath.has(path)) continue;
+    byPath.set(path, field);
+  }
+  return [...byPath.values()];
+}
+
+function createVirtualConfigNodesFromField(moduleId: string, field: ConfigMetaFieldEntry): WebConfigNode[] {
   const [path, label, comment, type = 'text', extra] = field;
-  if (!path) return null;
+  if (!path) return [];
+  const nodes: WebConfigNode[] = [];
+  const ensureNode = (node: WebConfigNode) => {
+    if (!nodes.some(entry => entry.path === node.path)) nodes.push(applySingleConfigNodeOverride(moduleId, node));
+  };
+  const parts = path.split('.').filter(Boolean);
+  for (let index = 1; index < parts.length; index++) {
+    const parentPath = parts.slice(0, index).join('.');
+    ensureNode({
+      path: parentPath,
+      label: lastConfigPathKey(parentPath).replace(/[_-]+/g, ' '),
+      comment: '',
+      type: 'object',
+      editable: true,
+      value: {}
+    });
+  }
+  ensureNode(virtualConfigNode(moduleId, path, label, comment, type, extra));
+  if (extra?.itemFields?.length && virtualConfigNodeType(type) === 'object') {
+    for (const child of extra.itemFields) {
+      if (!child?.path) continue;
+      const childPath = `${path}.${child.path}`;
+      nodes.push(...createVirtualConfigNodesFromField(moduleId, [childPath, child.label ?? lastConfigPathKey(child.path).replace(/[_-]+/g, ' '), child.comment ?? '', String(child.type ?? 'text'), child]));
+    }
+  }
+  return dedupeVirtualNodes(nodes);
+}
+
+function dedupeVirtualNodes(nodes: WebConfigNode[]): WebConfigNode[] {
+  const byPath = new Map<string, WebConfigNode>();
+  for (const node of nodes) if (!byPath.has(node.path)) byPath.set(node.path, node);
+  return [...byPath.values()];
+}
+
+function virtualConfigNode(moduleId: string, path: string, label: string, comment: string, type: string, extra?: ConfigNodeMetaOverride | WebConfigFieldSchema): WebConfigNode {
   return applySingleConfigNodeOverride(moduleId, {
     path,
     label,
@@ -691,8 +733,8 @@ function createVirtualConfigNodeFromField(moduleId: string, field: ConfigMetaFie
     value: emptyConfigValueForType(type),
     options: extra?.options,
     optionLabelPrefix: extra?.optionLabelPrefix,
-    creatableChildren: extra?.creatableChildren,
-    createTemplates: extra?.createTemplates,
+    creatableChildren: (extra as ConfigNodeMetaOverride)?.creatableChildren,
+    createTemplates: (extra as ConfigNodeMetaOverride)?.createTemplates,
     itemFields: extra?.itemFields,
     uniqueBy: extra?.uniqueBy
   });
@@ -802,7 +844,7 @@ function copyCreateTemplate(template: WebConfigCreateTemplate): WebConfigCreateT
 }
 
 function copyFieldSchema(field: WebConfigFieldSchema): WebConfigFieldSchema {
-  return { ...field, options: field.options ? [...field.options] : undefined };
+  return { ...field, options: field.options ? [...field.options] : undefined, itemFields: field.itemFields ? field.itemFields.map(copyFieldSchema) : undefined };
 }
 
 function configRuleMatches(matcher: ConfigNodeRuleMatcher, path: string, node: WebConfigNode): boolean {

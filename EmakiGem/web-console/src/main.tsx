@@ -404,6 +404,25 @@ registerPluginConfig({
   fileSchemas: [
     { pathPrefix: 'conditions/', fields: conditionFields },
     { pathPrefix: 'resonances/', fields: resonanceFields }
+  ],
+  listItemSchemas: [
+    ['chain.pattern', [
+      { path: 'id', label: '宝石 ID', comment: '要求的宝石 ID；留空时可按 type 匹配。', type: 'text', defaultValue: '' },
+      { path: 'type', label: '宝石类型', comment: '要求的宝石类型。', type: 'text', defaultValue: 'universal' },
+      { path: 'min_level', label: '最低等级', comment: '要求的最低宝石等级。', type: 'number', defaultValue: 0 }
+    ]],
+    ['effects.name_actions', [
+      { path: 'action', label: '动作', comment: '名称动作类型。', type: 'enum', options: DEFAULT_NAME_ACTIONS, defaultValue: DEFAULT_NAME_ACTIONS[0] },
+      { path: 'value', label: '内容', comment: '动作写入或匹配的文本内容。', type: 'text', defaultValue: '' },
+      { path: 'regex_pattern', label: '正则', comment: 'regex_replace 使用的匹配表达式。', type: 'text', defaultValue: '' },
+      { path: 'replacement', label: '替换内容', comment: 'regex_replace 或 replace_text 使用的替换内容。', type: 'text', defaultValue: '' }
+    ]],
+    ['effects.lore_actions', [
+      { path: 'action', label: '动作', comment: 'Lore 动作类型。', type: 'enum', options: DEFAULT_LORE_ACTIONS, defaultValue: DEFAULT_LORE_ACTIONS[0] },
+      { path: 'content', label: '内容', comment: '要插入、替换或追加的 Lore 行。', type: 'stringList', defaultValue: [] },
+      { path: 'target_pattern', label: '目标匹配', comment: '需要定位目标行时使用的匹配表达式。', type: 'text', defaultValue: '' },
+      { path: 'anchor', label: '锚点', comment: '插入或替换时使用的锚点文本。', type: 'text', defaultValue: '' }
+    ]]
   ]
 });
 registerConfigRuleFields(MODULE, dynamicFields);

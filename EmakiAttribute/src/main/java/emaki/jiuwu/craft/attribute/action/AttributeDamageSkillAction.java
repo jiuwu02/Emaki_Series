@@ -20,7 +20,7 @@ import emaki.jiuwu.craft.corelib.action.ActionParsers;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.skills.api.SkillScriptAction;
-import emaki.jiuwu.craft.skills.script.SkillScriptContext;
+import emaki.jiuwu.craft.skills.api.SkillScriptContext;
 
 /**
  * A SkillScriptAction that applies attribute-based damage through the EmakiAttribute damage pipeline.

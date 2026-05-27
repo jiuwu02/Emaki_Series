@@ -14,6 +14,7 @@ import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
 import emaki.jiuwu.craft.strengthen.model.StrengthenRecipe;
+import emaki.jiuwu.craft.strengthen.model.StrengthenRecipeParser;
 
 public final class StrengthenRecipeLoader {
 
@@ -97,7 +98,7 @@ public final class StrengthenRecipeLoader {
     private void loadFile(File file) {
         try {
             YamlSection configuration = YamlFiles.load(file);
-            StrengthenRecipe recipe = StrengthenRecipe.fromConfig(configuration);
+            StrengthenRecipe recipe = StrengthenRecipeParser.parse(configuration);
             if (recipe == null || Texts.isBlank(recipe.id())) {
                 issue("loader.invalid_blank_id", Map.of(
                         "type", "strengthen-recipe",

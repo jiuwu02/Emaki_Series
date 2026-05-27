@@ -12,7 +12,7 @@ import emaki.jiuwu.craft.skills.EmakiSkillsPlugin;
 import emaki.jiuwu.craft.skills.model.SkillDefinition;
 import emaki.jiuwu.craft.skills.trigger.TriggerInvocation;
 
-public final class SkillScriptContext {
+public final class SkillScriptContext extends emaki.jiuwu.craft.skills.api.SkillScriptContext {
 
     private final EmakiSkillsPlugin plugin;
     private final Player caster;
@@ -30,6 +30,7 @@ public final class SkillScriptContext {
             String triggerId,
             TriggerInvocation invocation,
             Map<String, String> variables) {
+        super(plugin, caster, definition == null ? "" : definition.id(), triggerId, variables);
         this.plugin = plugin;
         this.caster = caster;
         this.definition = definition;

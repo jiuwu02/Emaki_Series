@@ -11,7 +11,7 @@ import org.bukkit.entity.Entity;
 import emaki.jiuwu.craft.corelib.action.ActionParameter;
 import emaki.jiuwu.craft.corelib.action.ActionParsers;
 import emaki.jiuwu.craft.skills.api.SkillScriptAction;
-import emaki.jiuwu.craft.skills.script.SkillScriptContext;
+import emaki.jiuwu.craft.skills.api.SkillScriptContext;
 
 abstract class AbstractSkillScriptAction implements SkillScriptAction {
 

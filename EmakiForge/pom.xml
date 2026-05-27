@@ -28,6 +28,11 @@
             <version>${emaki.corelib.version}</version>
         </dependency>
         <dependency>
+            <groupId>emaki.jiuwu.craft</groupId>
+            <artifactId>emaki-forge-api</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
             <groupId>me.clip</groupId>
             <artifactId>placeholderapi</artifactId>
             <scope>provided</scope>
@@ -71,6 +76,26 @@
                                 <argument>run</argument>
                                 <argument>build</argument>
                             </arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <artifactSet>
+                                <includes>
+                                    <include>emaki.jiuwu.craft:emaki-forge-api</include>
+                                </includes>
+                            </artifactSet>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
                         </configuration>
                     </execution>
                 </executions>
