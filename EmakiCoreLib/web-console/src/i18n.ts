@@ -452,6 +452,7 @@ const CORE_ZH_CN: LocaleMessages = {
   'core.extension.failedDesc': '{count} 个扩展加载失败。',
   'core.extension.failedList': '加载失败的扩展',
   'core.extension.failedFallback': '没有可用的扩展状态。',
+  'core.configPreview.unavailable': '配置预览暂不可用：{message}',
   'core.config.emptyListTitle': '空列表',
   'core.config.emptyListHint': '展开后可直接添加第一项，列表会在这里过渡成可编辑条目。',
   'core.list.itemAria': '第 {index} 项',
@@ -488,9 +489,7 @@ const CORE_ZH_CN: LocaleMessages = {
   'core.item.preview.lineChange': '{before} → {after} 行',
   'core.item.preview.writeLines': '，写入 {count} 行',
   'core.item.preview.anchor': '，锚点 {anchor}',
-  'core.item.preview.upgradeLevel': '当前 Lv.{level}',
-  'core.item.attributeModifiers.add': '添加属性修饰符',
-  'core.item.repairMaterials.add': '添加修复材料'
+  'core.item.preview.upgradeLevel': '当前 Lv.{level}'
 };
 
 registerLocale(DEFAULT_LOCALE, CORE_ZH_CN, { replace: true, moduleId: 'EmakiCoreLib' });
@@ -825,8 +824,7 @@ const CORE_EN_US: LocaleMessages = {
   'core.item.preview.writeLines': ', wrote {count} line(s)',
   'core.item.preview.anchor': ', anchor {anchor}',
   'core.item.preview.upgradeLevel': 'Current Lv.{level}',
-  'core.item.attributeModifiers.add': 'Add attribute modifier',
-  'core.item.repairMaterials.add': 'Add repair material',
+  'core.configPreview.unavailable': 'Config preview unavailable: {message}',
   'core.api.network': 'Unable to connect to the Web UI service. Check the server status or network connection.',
   'core.api.invalidJson': 'The server returned an unparseable response.',
   'core.api.unauthorized': 'Session expired. Please log in again.',

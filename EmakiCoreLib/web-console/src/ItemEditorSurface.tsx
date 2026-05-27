@@ -335,8 +335,6 @@ function DefaultFieldEditor({ field, data, value, changed, setField, actionTypes
     return <PropRow label={label} path={field.path} changed={changed} wide><ScopedActionsEditor actions={parseActionList(value)} onChange={actions => setField(field.path, serializeActionList(actions))} actionTypes={mode === 'lore' ? actionTypesResult?.loreActions ?? [] : actionTypesResult?.nameActions ?? []} mode={mode} /></PropRow>;
   }
   if (type === 'effects') return <PropRow label={label} path={field.path} changed={false} wide><EffectsEditor value={value} path={field.path} onChange={next => setField(field.path, next)} actionTypesResult={actionTypesResult} /></PropRow>;
-  if (type === 'attributeModifiers') return <PropRow label={label} path={field.path} changed={changed} wide><AttributeModifiersEditor value={value} path={field.path} onChange={next => setField(field.path, next)} /></PropRow>;
-  if (type === 'repairMaterials') return <PropRow label={label} path={field.path} changed={changed} wide><RepairMaterialsEditor value={value} path={field.path} onChange={next => setField(field.path, next)} /></PropRow>;
   if (type === 'json') return <PropRow label={label} path={field.path} changed={changed} wide><GenericObjectEditor value={value} onChange={next => setField(field.path, next)} /></PropRow>;
   return <PropRow label={label} path={field.path} changed={changed} wide={field.wide}><input type="text" value={textValue(value)} onChange={e => setField(field.path, e.target.value)} placeholder={field.placeholder} /></PropRow>;
 }
@@ -509,40 +507,6 @@ function EffectPayloadEditor({ effect, type, originalType, onChange, actionTypes
   if (type === 'name_action') return <PropRow label="name_actions" path={joinPath(path, 'name_actions')} wide><ScopedActionsEditor actions={parseActionList(effect.name_actions)} onChange={actions => setPayload('name_actions', serializeActionList(actions))} actionTypes={actionTypesResult?.nameActions ?? []} mode="name" /></PropRow>;
   if (type === 'lore_action') return <PropRow label="lore_actions" path={joinPath(path, 'lore_actions')} wide><ScopedActionsEditor actions={parseActionList(effect.lore_actions)} onChange={actions => setPayload('lore_actions', serializeActionList(actions))} actionTypes={actionTypesResult?.loreActions ?? []} mode="lore" /></PropRow>;
   return <GenericObjectEditor value={effect} reservedKeys={['type']} onChange={next => onChange({ type, ...next })} />;
-}
-
-function AttributeModifiersEditor({ value, onChange, path }: { value: unknown; onChange: (value: AnyMap[]) => void; path?: string }) {
-  const modifiers = asList(value).map(entry => asRecord(entry));
-  const operations = ['add_number', 'add_scalar', 'multiply_scalar_1'];
-  const slots = ['any', 'hand', 'mainhand', 'offhand', 'head', 'chest', 'legs', 'feet', 'body'];
-  const update = (index: number, patch: AnyMap) => onChange(modifiers.map((modifier, itemIndex) => itemIndex === index ? cleanObject({ ...modifier, ...patch }) : modifier));
-  const remove = (index: number) => onChange(modifiers.filter((_, itemIndex) => itemIndex !== index));
-  return <div className="prop-levels" role="list">
-    {modifiers.map((modifier, index) => <div className="prop-cost-entry" key={index} role="listitem">
-      <div className="prop-cost-entry-head"><span>{textValue(modifier.attribute, `attribute_${index + 1}`)}</span><button type="button" className="prop-kv-del" onClick={() => remove(index)} aria-label={`删除属性修饰符 ${index + 1}`}>×</button></div>
-      <PropRow label="attribute" path={joinPath(path, index, 'attribute')}><TextInput value={modifier.attribute} onChange={attribute => update(index, { attribute })} placeholder="attack_damage" /></PropRow>
-      <PropRow label="amount" path={joinPath(path, index, 'amount')}><TextInput value={modifier.amount} onChange={amount => update(index, { amount: parseLooseScalar(amount) })} placeholder={uiCopy('12.0 或 {range}', '12.0 or {range}')} /></PropRow>
-      <PropRow label="operation" path={joinPath(path, index, 'operation')}><SelectInput value={modifier.operation ?? 'add_number'} options={operations} labelPrefix="attributeOperation" onChange={operation => update(index, { operation })} /></PropRow>
-      <PropRow label="slot" path={joinPath(path, index, 'slot')}><SelectInput value={modifier.slot ?? 'any'} options={slots} labelPrefix="equipmentSlot" onChange={slot => update(index, { slot })} /></PropRow>
-      <PropRow label="name" path={joinPath(path, index, 'name')}><TextInput value={modifier.name} onChange={name => update(index, { name })} placeholder="namespace:key" /></PropRow>
-    </div>)}
-    <button type="button" className="prop-add" onClick={() => onChange([...modifiers, { attribute: 'attack_damage', amount: 1, operation: 'add_number', slot: 'any', name: '' }])}>+ {t('core.item.attributeModifiers.add')}</button>
-  </div>;
-}
-
-function RepairMaterialsEditor({ value, onChange, path }: { value: unknown; onChange: (value: AnyMap[]) => void; path?: string }) {
-  const materials = asList(value).map(entry => asRecord(entry));
-  const update = (index: number, patch: AnyMap) => onChange(materials.map((material, itemIndex) => itemIndex === index ? cleanObject({ ...material, ...patch }) : material));
-  const remove = (index: number) => onChange(materials.filter((_, itemIndex) => itemIndex !== index));
-  return <div className="prop-levels" role="list">
-    {materials.map((material, index) => <div className="prop-cost-entry" key={index} role="listitem">
-      <div className="prop-cost-entry-head"><span>{textValue(material.item) || firstItemSource(material.item_sources) || `material_${index + 1}`}</span><button type="button" className="prop-kv-del" onClick={() => remove(index)} aria-label={`删除修复材料 ${index + 1}`}>×</button></div>
-      <PropRow label="item" path={joinPath(path, index, 'item')}><TextInput value={material.item} onChange={item => update(index, { item })} placeholder="minecraft-diamond" /></PropRow>
-      <PropRow label="amount" path={joinPath(path, index, 'amount')}><NumberInput value={material.amount ?? 1} onChange={amount => update(index, { amount: amount ?? 1 })} /></PropRow>
-      <PropRow label="restore" path={joinPath(path, index, 'restore')}><TextInput value={material.restore ?? material.repair_amount} onChange={restore => update(index, { restore, repair_amount: undefined })} placeholder={uiCopy('250 或 {max_damage} * .25', '250 or {max_damage} * .25')} /></PropRow>
-    </div>)}
-    <button type="button" className="prop-add" onClick={() => onChange([...materials, { item: 'minecraft-diamond', amount: 1, restore: 100 }])}>+ {t('core.item.repairMaterials.add')}</button>
-  </div>;
 }
 
 function ActionLinesEditor({ label, value, onChange, path }: { label: string; value: unknown; onChange: (value: string[]) => void; path?: string }) {

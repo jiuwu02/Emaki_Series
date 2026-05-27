@@ -749,7 +749,7 @@ class ConfigPreviewBoundary extends Component<ConfigPreviewBoundaryProps, Config
 
   render() {
     if (this.state.error) {
-      return <div className="config-preview-zone"><InlineError><span>强化蓝图暂不可用：{this.state.error.message}</span></InlineError></div>;
+      return <div className="config-preview-zone"><InlineError><span>{t('core.configPreview.unavailable', { message: this.state.error.message })}</span></InlineError></div>;
     }
     return this.props.children;
   }

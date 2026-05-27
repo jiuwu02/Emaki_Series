@@ -1,5 +1,5 @@
 import React from 'react';
-import { ActionsEditor, ItemEditorSurface, PropRow, StringListEditor, asList, asRecord, asStringList, coreEffectTypeLabel, createCoreEffect, fieldLabel, getLocale, humanizeFieldLabel, isCoreEffectType, optionLabel, parseActionList, registerFileKindLabel, registerConfigNodeMeta, registerConfigNodeRule, registerEditorDescriptor, registerEditorField, registerItemFieldRenderer, registerModuleLocale, registerPluginSurfaces, registerSourceDocumentAdapter, serializeActionList, textValue, type AnyMap, type CoreEffectType, type ItemFieldRendererContext } from 'emaki-web-console';
+import { ActionsEditor, ItemEditorSurface, PropRow, StringListEditor, asList, asRecord, asStringList, coreEffectTypeLabel, createCoreEffect, fieldLabel, firstItemSource, getLocale, humanizeFieldLabel, isCoreEffectType, optionLabel, parseActionList, registerFileKindLabel, registerConfigNodeMeta, registerConfigNodeRule, registerEditorDescriptor, registerEditorField, registerItemFieldRenderer, registerModuleLocale, registerPluginSurfaces, registerSourceDocumentAdapter, serializeActionList, textValue, type AnyMap, type CoreEffectType, type ItemFieldRendererContext } from 'emaki-web-console';
 
 const MODULE = 'EmakiItem';
 const EDITOR_ID = 'emakiitem:item';
@@ -331,6 +331,8 @@ function escapeYamlString(value: string): string {
 
 function registerEmakiItemRenderers() {
   registerItemFieldRenderer('effects', context => <ItemEffectsEditor context={context} />, { moduleId: MODULE, editorId: EDITOR_ID, priority: 100 });
+  registerItemFieldRenderer('attributeModifiers', context => <AttributeModifiersFieldEditor context={context} />, { moduleId: MODULE, editorId: EDITOR_ID, priority: 100 });
+  registerItemFieldRenderer('repairMaterials', context => <RepairMaterialsFieldEditor context={context} />, { moduleId: MODULE, editorId: EDITOR_ID, priority: 100 });
   registerItemFieldRenderer('setPieces', context => <ItemSetPiecesEditor context={context} />, { moduleId: MODULE, editorId: SET_EDITOR_ID, priority: 100 });
   registerItemFieldRenderer('setThresholds', context => <ItemSetThresholdsEditor context={context} />, { moduleId: MODULE, editorId: SET_EDITOR_ID, priority: 100 });
 }
@@ -338,6 +340,18 @@ function registerEmakiItemRenderers() {
 function ItemEffectsEditor({ context }: { context: ItemFieldRendererContext }) {
   return <PropRow label={fieldLabel(context.field.path, { moduleId: MODULE, namespace: MODULE, fallback: getLocale().startsWith('zh') ? context.field.label : humanizeFieldLabel(context.field.path) })} path={context.field.path} moduleId={MODULE} namespace={MODULE} editorFields={context.editorFields} changed={context.changed} wide>
     <ItemEffectList value={context.value} path={context.field.path} onChange={effects => context.setField(context.field.path, effects)} actionTypesResult={context.actionTypesResult} />
+  </PropRow>;
+}
+
+function AttributeModifiersFieldEditor({ context }: { context: ItemFieldRendererContext }) {
+  return <PropRow label={fieldLabel(context.field.path, { moduleId: MODULE, namespace: MODULE, fallback: getLocale().startsWith('zh') ? context.field.label : humanizeFieldLabel(context.field.path) })} path={context.field.path} moduleId={MODULE} namespace={MODULE} editorFields={context.editorFields} changed={context.changed} wide>
+    <AttributeModifiersEditor value={context.value} path={context.field.path} onChange={modifiers => context.setField(context.field.path, modifiers)} />
+  </PropRow>;
+}
+
+function RepairMaterialsFieldEditor({ context }: { context: ItemFieldRendererContext }) {
+  return <PropRow label={fieldLabel(context.field.path, { moduleId: MODULE, namespace: MODULE, fallback: getLocale().startsWith('zh') ? context.field.label : humanizeFieldLabel(context.field.path) })} path={context.field.path} moduleId={MODULE} namespace={MODULE} editorFields={context.editorFields} changed={context.changed} wide>
+    <RepairMaterialsEditor value={context.value} path={context.field.path} onChange={materials => context.setField(context.field.path, materials)} />
   </PropRow>;
 }
 
@@ -351,6 +365,38 @@ function ItemSetThresholdsEditor({ context }: { context: ItemFieldRendererContex
   return <PropRow label={fieldLabel(context.field.path, { moduleId: MODULE, namespace: MODULE, fallback: getLocale().startsWith('zh') ? context.field.label : humanizeFieldLabel(context.field.path) })} path={context.field.path} moduleId={MODULE} namespace={MODULE} editorFields={context.editorFields} changed={context.changed} wide>
     <SetThresholdsEditor value={context.value} path={context.field.path} onChange={thresholds => context.setField(context.field.path, thresholds)} />
   </PropRow>;
+}
+
+function AttributeModifiersEditor({ value, onChange, path }: { value: unknown; onChange: (value: AnyMap[]) => void; path?: string }) {
+  const modifiers = asList(value).map(entry => asRecord(entry));
+  const update = (index: number, patch: AnyMap) => onChange(modifiers.map((modifier, itemIndex) => itemIndex === index ? cleanObject({ ...modifier, ...patch }) : modifier));
+  const remove = (index: number) => onChange(modifiers.filter((_, itemIndex) => itemIndex !== index));
+  return <div className="prop-levels" role="list">
+    {modifiers.map((modifier, index) => <div className="prop-cost-entry" key={index} role="listitem">
+      <div className="prop-cost-entry-head"><span>{textValue(modifier.attribute, `attribute_${index + 1}`)}</span><button type="button" className="prop-kv-del" onClick={() => remove(index)} aria-label={copy(`删除属性修饰符 ${index + 1}`, `Delete attribute modifier ${index + 1}`)}>×</button></div>
+      <ItemFormRow label="attribute" path={joinPath(path, index, 'attribute')}><TextInput value={modifier.attribute} onChange={attribute => update(index, { attribute })} placeholder="attack_damage" /></ItemFormRow>
+      <ItemFormRow label="amount" path={joinPath(path, index, 'amount')}><TextInput value={modifier.amount} onChange={amount => update(index, { amount: parseLooseScalar(amount) })} placeholder={copy('12.0 或 {range}', '12.0 or {range}')} /></ItemFormRow>
+      <ItemFormRow label="operation" path={joinPath(path, index, 'operation')}><ItemOptionSelectInput value={modifier.operation ?? 'add_number'} options={ATTRIBUTE_OPERATIONS} labelPrefix="attributeOperation" onChange={operation => update(index, { operation })} /></ItemFormRow>
+      <ItemFormRow label="slot" path={joinPath(path, index, 'slot')}><ItemOptionSelectInput value={modifier.slot ?? 'any'} options={EQUIPMENT_SLOTS} labelPrefix="equipmentSlot" onChange={slot => update(index, { slot })} /></ItemFormRow>
+      <ItemFormRow label="name" path={joinPath(path, index, 'name')}><TextInput value={modifier.name} onChange={name => update(index, { name })} placeholder="namespace:key" /></ItemFormRow>
+    </div>)}
+    <button type="button" className="prop-add" onClick={() => onChange([...modifiers, { attribute: 'attack_damage', amount: 1, operation: 'add_number', slot: 'any', name: '' }])}>+ {copy('添加属性修饰符', 'Add attribute modifier')}</button>
+  </div>;
+}
+
+function RepairMaterialsEditor({ value, onChange, path }: { value: unknown; onChange: (value: AnyMap[]) => void; path?: string }) {
+  const materials = asList(value).map(entry => asRecord(entry));
+  const update = (index: number, patch: AnyMap) => onChange(materials.map((material, itemIndex) => itemIndex === index ? cleanObject({ ...material, ...patch }) : material));
+  const remove = (index: number) => onChange(materials.filter((_, itemIndex) => itemIndex !== index));
+  return <div className="prop-levels" role="list">
+    {materials.map((material, index) => <div className="prop-cost-entry" key={index} role="listitem">
+      <div className="prop-cost-entry-head"><span>{textValue(material.item) || firstItemSource(material.item_sources) || `material_${index + 1}`}</span><button type="button" className="prop-kv-del" onClick={() => remove(index)} aria-label={copy(`删除修复材料 ${index + 1}`, `Delete repair material ${index + 1}`)}>×</button></div>
+      <ItemFormRow label="item" path={joinPath(path, index, 'item')}><TextInput value={material.item} onChange={item => update(index, { item })} placeholder="minecraft-diamond" /></ItemFormRow>
+      <ItemFormRow label="amount" path={joinPath(path, index, 'amount')}><NumberInput value={material.amount ?? 1} onChange={amount => update(index, { amount: amount ?? 1 })} /></ItemFormRow>
+      <ItemFormRow label="restore" path={joinPath(path, index, 'restore')}><TextInput value={material.restore ?? material.repair_amount} onChange={restore => update(index, { restore, repair_amount: undefined })} placeholder={copy('250 或 {max_damage} * .25', '250 or {max_damage} * .25')} /></ItemFormRow>
+    </div>)}
+    <button type="button" className="prop-add" onClick={() => onChange([...materials, { item: 'minecraft-diamond', amount: 1, restore: 100 }])}>+ {copy('添加修复材料', 'Add repair material')}</button>
+  </div>;
 }
 
 function SetPiecesEditor({ value, onChange, path }: { value: unknown; onChange: (value: AnyMap) => void; path?: string }) {
@@ -488,6 +534,12 @@ function ItemSelectInput({ value, options, onChange }: { value: unknown; options
   const current = textValue(value);
   const merged = current && !options.includes(current) ? [...options, current] : options;
   return <select value={current} onChange={event => onChange(event.target.value)}>{merged.map(option => <option key={option} value={option}>{itemEffectTypeLabel(option)}</option>)}</select>;
+}
+
+function ItemOptionSelectInput({ value, options, labelPrefix, onChange }: { value: unknown; options: string[]; labelPrefix: string; onChange: (value: string) => void }) {
+  const current = textValue(value);
+  const merged = current && !options.includes(current) ? [...options, current] : options;
+  return <select value={current} onChange={event => onChange(event.target.value)}>{merged.map(option => <option key={option} value={option}>{optionLabel(labelPrefix, option, { moduleId: MODULE, namespace: MODULE, fallback: option })}</option>)}</select>;
 }
 
 function parseLooseScalar(value: string): unknown {
