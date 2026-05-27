@@ -128,8 +128,7 @@ function TreeNodeView({ node, selected, expanded, dirtyNodeIds, queryActive, tog
   const canSelect = Boolean(node.moduleId && node.fileId && !isGlob && !isFolder);
   const rowClass = level > 1 ? 'tree-child-row' : 'tree-file-row';
   return (
-    <div className={rowClass} role="none" style={indentStyle(level)} data-tree-level={level} data-tree-branch={isLast ? 'elbow' : 'tee'}>
-      <IndentGuide branch={isLast ? 'elbow' : 'tee'} />
+    <div className={rowClass} role="none" style={indentStyle(level)}>
       <button
         className={level > 1 ? `tree-child ${isGlob ? 'glob-node' : ''} ${active ? 'active' : ''} ${dirty ? 'dirty' : ''}` : `tree-file ${isGlob ? 'glob-node' : ''} ${active ? 'active' : ''} ${dirty ? 'dirty' : ''}`}
         role="treeitem"

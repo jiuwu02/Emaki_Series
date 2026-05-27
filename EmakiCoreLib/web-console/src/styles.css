@@ -1963,13 +1963,14 @@ textarea {
 }
 
 .node {
+  --config-field-depth: 0;
   position: relative;
   display: grid;
   grid-template-columns: minmax(180px, 1fr) minmax(200px, 420px);
   gap: 12px;
   align-items: center;
-  padding: 8px 0;
-  transition: background 0.2s ease;
+  padding: 8px 0 8px calc(var(--config-field-depth) * var(--hierarchy-indent-step));
+  contain: layout paint;
 }
 
 .node.node-wide {
@@ -1987,15 +1988,11 @@ textarea {
 
 .node:hover {
   background: var(--surface-2);
-  margin: 0 -8px;
-  padding: 8px 8px;
   border-radius: 4px;
 }
 
 .node.changed {
   background: var(--changed-bg);
-  margin: 0 -8px;
-  padding: 8px 8px;
   border-radius: 4px;
 }
 
@@ -2074,16 +2071,11 @@ textarea {
   background: transparent;
   overflow: visible;
   box-shadow: none;
-  transition: background 0.18s ease, border-color 0.18s ease;
+  contain: layout paint;
 }
 
 .node-section:last-child {
   border-bottom: 1px solid var(--line);
-}
-
-.node-section:hover,
-.node-section:focus-within {
-  background: color-mix(in oklch, var(--surface) 92%, var(--input) 8%);
 }
 
 .node-section--nested {
@@ -2094,26 +2086,16 @@ textarea {
   overflow: visible;
 }
 
-.node-section--nested:hover,
-.node-section--nested:focus-within {
-  box-shadow: none;
-}
-
 .node-section-header {
   width: 100%;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 8px;
   padding: 0 0 0 calc(var(--config-node-depth) * var(--hierarchy-indent-step));
   text-align: left;
   border: none;
   background: transparent;
-  transition: color 0.15s ease, background 0.15s ease;
-}
-
-.node-section.expanded {
-  background: color-mix(in oklch, var(--surface) 88%, var(--input) 12%);
 }
 
 .node-section--nested > .node-section-header {
@@ -2122,8 +2104,13 @@ textarea {
 }
 
 .node-section-header > .indent-guide {
+  grid-column: 1;
   align-self: stretch;
   margin-left: calc(-1 * var(--hierarchy-guide-width));
+}
+
+.node-section-header > .indent-guide + .node-section-toggle {
+  grid-column: 1;
 }
 
 .node-section-header:hover > .indent-guide,
@@ -2253,17 +2240,17 @@ textarea {
 .node-section-body {
   display: grid;
   gap: 7px;
-  padding: 10px 0 12px calc(var(--hierarchy-guide-width) + 10px);
+  padding: 10px 0 12px 0;
   border-top: 1px solid var(--line);
   background: transparent;
-  animation: prop-block-in 0.14s cubic-bezier(0.16, 1, 0.3, 1);
+  contain: layout paint;
 }
 
 .node-section--nested > .node-section-body {
-  padding: 10px 0 12px calc(var(--hierarchy-guide-width) + 10px);
+  padding: 10px 0 12px 0;
   border-top: 1px solid var(--line);
   background: transparent;
-  animation: prop-block-in 0.14s cubic-bezier(0.16, 1, 0.3, 1);
+  contain: layout paint;
 }
 
 .node-group-inner {
