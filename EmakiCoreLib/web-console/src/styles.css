@@ -82,6 +82,27 @@
   --mc-tooltip-bg: oklch(10% 0.035 295 / .97);
   --mc-tooltip-shadow: oklch(0% 0 0 / .5);
   --mini-token-line: oklch(32% 0.03 255);
+  --hierarchy-indent-step: 14px;
+  --hierarchy-guide-width: 16px;
+  --hierarchy-guide-color: color-mix(in oklch, var(--line-2) 72%, transparent);
+}
+
+.indent-guide {
+  width: var(--hierarchy-guide-width);
+  height: 20px;
+  flex: 0 0 var(--hierarchy-guide-width);
+  color: var(--hierarchy-guide-color);
+  overflow: visible;
+  pointer-events: none;
+}
+
+.indent-guide path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.15;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
 }
 
 :root[data-theme="light"] {
@@ -876,10 +897,25 @@ textarea {
 
 .tree-file-row,
 .tree-child-row {
+  --tree-level: 0;
   display: flex;
   align-items: center;
   gap: 4px;
   min-width: 0;
+  padding-left: calc(var(--tree-level) * var(--hierarchy-indent-step));
+}
+
+.tree-file-row .indent-guide,
+.tree-child-row .indent-guide {
+  align-self: stretch;
+  margin-left: calc(-1 * var(--hierarchy-guide-width));
+}
+
+.tree-file-row:hover .indent-guide,
+.tree-child-row:hover .indent-guide,
+.tree-file-row:focus-within .indent-guide,
+.tree-child-row:focus-within .indent-guide {
+  color: var(--accent);
 }
 
 .tree-file-row .tree-file {
@@ -2032,6 +2068,7 @@ textarea {
 
 /* Collapsible section groups */
 .node-section {
+  --config-node-depth: 0;
   margin-bottom: 0;
   border-top: 1px solid var(--line);
   background: transparent;
@@ -2065,10 +2102,10 @@ textarea {
 .node-section-header {
   width: 100%;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 8px;
-  padding: 0;
+  padding: 0 0 0 calc(var(--config-node-depth) * var(--hierarchy-indent-step));
   text-align: left;
   border: none;
   background: transparent;
@@ -2082,6 +2119,16 @@ textarea {
 .node-section--nested > .node-section-header {
   border-bottom: 0;
   background: transparent;
+}
+
+.node-section-header > .indent-guide {
+  align-self: stretch;
+  margin-left: calc(-1 * var(--hierarchy-guide-width));
+}
+
+.node-section-header:hover > .indent-guide,
+.node-section-header:focus-within > .indent-guide {
+  color: var(--accent);
 }
 
 .node-section-header.changed strong,
@@ -2206,14 +2253,14 @@ textarea {
 .node-section-body {
   display: grid;
   gap: 7px;
-  padding: 10px 0 12px 26px;
+  padding: 10px 0 12px calc(var(--hierarchy-guide-width) + 10px);
   border-top: 1px solid var(--line);
   background: transparent;
   animation: prop-block-in 0.14s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .node-section--nested > .node-section-body {
-  padding: 10px 0 12px 26px;
+  padding: 10px 0 12px calc(var(--hierarchy-guide-width) + 10px);
   border-top: 1px solid var(--line);
   background: transparent;
   animation: prop-block-in 0.14s cubic-bezier(0.16, 1, 0.3, 1);

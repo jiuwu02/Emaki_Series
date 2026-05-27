@@ -37,14 +37,14 @@ export function WorkspaceTree({ registry, selected, expanded, dirtyKeys = new Se
       <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t('core.tree.search')} />
     </label>
     <div ref={treeRef} className="tree" role="tree" aria-label={t('core.tree.aria')} onKeyDown={(event) => handleTreeKeyDown(event, treeRef.current, openNode, closeNode)}>
-      {visibleRoots.length > 0 ? visibleRoots.map((node) => (
-        <TreeNodeView key={node.id} node={node} selected={selected} expanded={expanded} dirtyNodeIds={dirtyNodeIds} queryActive={Boolean(normalizedQuery)} toggle={toggle} onSelect={onSelect} onOpenI18n={onOpenI18n} onCreateFile={onCreateFile} onDeleteFile={onDeleteFile} level={0} />
+      {visibleRoots.length > 0 ? visibleRoots.map((node, index) => (
+        <TreeNodeView key={node.id} node={node} selected={selected} expanded={expanded} dirtyNodeIds={dirtyNodeIds} queryActive={Boolean(normalizedQuery)} toggle={toggle} onSelect={onSelect} onOpenI18n={onOpenI18n} onCreateFile={onCreateFile} onDeleteFile={onDeleteFile} level={0} isLast={index === visibleRoots.length - 1} />
       )) : normalizedQuery ? <div className="tree-empty tree-empty-search" role="status">{t('core.tree.noResults')}</div> : null}
     </div>
   </>;
 }
 
-function TreeNodeView({ node, selected, expanded, dirtyNodeIds, queryActive, toggle, onSelect, onOpenI18n, onCreateFile, onDeleteFile, level }: {
+function TreeNodeView({ node, selected, expanded, dirtyNodeIds, queryActive, toggle, onSelect, onOpenI18n, onCreateFile, onDeleteFile, level, isLast }: {
   node: RegistryTreeNode;
   selected: TreeSelection | null;
   expanded: Record<string, boolean>;
@@ -56,6 +56,7 @@ function TreeNodeView({ node, selected, expanded, dirtyNodeIds, queryActive, tog
   onCreateFile?: (node: RegistryTreeNode) => void;
   onDeleteFile?: (node: RegistryTreeNode) => void;
   level: number;
+  isLast: boolean;
 }) {
   const children = (node.children ?? []).filter(child => !isEmptyGlobPlaceholder(child));
   const hasChildren = children.length > 0;
@@ -86,8 +87,8 @@ function TreeNodeView({ node, selected, expanded, dirtyNodeIds, queryActive, tog
           </button>
           {onOpenI18n && node.id && <ModuleI18nButton moduleId={node.id} moduleName={displayLabel} count={i18nCount} onOpen={onOpenI18n} />}
         </div>
-        {isOpen && <div role="group">{children.map((child) => (
-          <TreeNodeView key={child.id} node={child} selected={selected} expanded={expanded} dirtyNodeIds={dirtyNodeIds} queryActive={queryActive} toggle={toggle} onSelect={onSelect} onOpenI18n={onOpenI18n} onCreateFile={onCreateFile} onDeleteFile={onDeleteFile} level={level + 1} />
+        {isOpen && <div role="group">{children.map((child, index) => (
+          <TreeNodeView key={child.id} node={child} selected={selected} expanded={expanded} dirtyNodeIds={dirtyNodeIds} queryActive={queryActive} toggle={toggle} onSelect={onSelect} onOpenI18n={onOpenI18n} onCreateFile={onCreateFile} onDeleteFile={onDeleteFile} level={level + 1} isLast={index === children.length - 1} />
         ))}</div>}
       </div>
     );
@@ -96,7 +97,8 @@ function TreeNodeView({ node, selected, expanded, dirtyNodeIds, queryActive, tog
   if (hasChildren) {
     return (
       <div className="tree-file-folder" role="none">
-        <div className="tree-file-row" style={indentStyle(level)}>
+        <div className="tree-file-row" style={indentStyle(level)} data-tree-level={level} data-tree-branch={isLast ? 'elbow' : 'tee'}>
+          <IndentGuide branch={isLast ? 'elbow' : 'tee'} />
           <button
             className={`tree-file folder-toggle ${isGlob ? 'glob-node' : ''} ${active ? 'active' : ''} ${dirty ? 'dirty' : ''}`}
             role="treeitem"
@@ -114,8 +116,8 @@ function TreeNodeView({ node, selected, expanded, dirtyNodeIds, queryActive, tog
         </div>
         {isOpen && (
           <div className="tree-children" role="group">
-            {children.map((child) => (
-              <TreeNodeView key={child.id} node={child} selected={selected} expanded={expanded} dirtyNodeIds={dirtyNodeIds} queryActive={queryActive} toggle={toggle} onSelect={onSelect} onOpenI18n={onOpenI18n} onCreateFile={onCreateFile} onDeleteFile={onDeleteFile} level={level + 1} />
+            {children.map((child, index) => (
+              <TreeNodeView key={child.id} node={child} selected={selected} expanded={expanded} dirtyNodeIds={dirtyNodeIds} queryActive={queryActive} toggle={toggle} onSelect={onSelect} onOpenI18n={onOpenI18n} onCreateFile={onCreateFile} onDeleteFile={onDeleteFile} level={level + 1} isLast={index === children.length - 1} />
             ))}
           </div>
         )}
@@ -126,7 +128,8 @@ function TreeNodeView({ node, selected, expanded, dirtyNodeIds, queryActive, tog
   const canSelect = Boolean(node.moduleId && node.fileId && !isGlob && !isFolder);
   const rowClass = level > 1 ? 'tree-child-row' : 'tree-file-row';
   return (
-    <div className={rowClass} role="none" style={indentStyle(level)}>
+    <div className={rowClass} role="none" style={indentStyle(level)} data-tree-level={level} data-tree-branch={isLast ? 'elbow' : 'tee'}>
+      <IndentGuide branch={isLast ? 'elbow' : 'tee'} />
       <button
         className={level > 1 ? `tree-child ${isGlob ? 'glob-node' : ''} ${active ? 'active' : ''} ${dirty ? 'dirty' : ''}` : `tree-file ${isGlob ? 'glob-node' : ''} ${active ? 'active' : ''} ${dirty ? 'dirty' : ''}`}
         role="treeitem"
@@ -214,6 +217,12 @@ function DirtyDot({ dirty }: { dirty: boolean }) {
   return dirty ? <span className="tree-dirty-dot" title={t('core.tree.dirty')} aria-hidden="true" /> : null;
 }
 
+function IndentGuide({ branch }: { branch: 'tee' | 'elbow' }) {
+  return <svg className={`indent-guide indent-guide--${branch}`} viewBox="0 0 16 20" aria-hidden="true" focusable="false">
+    <path d={branch === 'tee' ? 'M6 0v20M6 10h8' : 'M6 0v10h8'} />
+  </svg>;
+}
+
 function SearchIcon() {
   return <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M7.1 2.4a4.7 4.7 0 1 1 0 9.4 4.7 4.7 0 0 1 0-9.4Zm3.35 8.05 3.15 3.15" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" /></svg>;
 }
@@ -288,7 +297,7 @@ function treeDirtyKey(moduleId: string, fileId: string, filePath: string) {
 }
 
 function indentStyle(level: number): CSSProperties | undefined {
-  return level > 0 ? { paddingLeft: `${level * 6}px` } : undefined;
+  return level > 0 ? ({ '--tree-level': level } as CSSProperties) : undefined;
 }
 
 function modulesToTree(modules: WebRegistryModule[]): RegistryTreeNode[] {
