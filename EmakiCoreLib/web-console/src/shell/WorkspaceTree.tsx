@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState, type CSSProperties, type Dispatch, type KeyboardEvent, type SetStateAction } from 'react';
+import { memo, useCallback, useMemo, useRef, useState, type CSSProperties, type Dispatch, type KeyboardEvent, type SetStateAction } from 'react';
 import { getModuleLocaleBundles, t } from '../i18n';
 import { getFileKindLabel } from '../registry';
 import { treeNodeDisplayComment, treeNodeDisplayLabel } from '../lib';
@@ -44,7 +44,7 @@ export function WorkspaceTree({ registry, selected, expanded, dirtyKeys = new Se
   </>;
 }
 
-function TreeNodeView({ node, selected, expanded, dirtyNodeIds, queryActive, toggle, onSelect, onOpenI18n, onCreateFile, onDeleteFile, level, isLast }: {
+const TreeNodeView = memo(function TreeNodeView({ node, selected, expanded, dirtyNodeIds, queryActive, toggle, onSelect, onOpenI18n, onCreateFile, onDeleteFile, level, isLast }: {
   node: RegistryTreeNode;
   selected: TreeSelection | null;
   expanded: Record<string, boolean>;
@@ -129,6 +129,7 @@ function TreeNodeView({ node, selected, expanded, dirtyNodeIds, queryActive, tog
   const rowClass = level > 1 ? 'tree-child-row' : 'tree-file-row';
   return (
     <div className={rowClass} role="none" style={indentStyle(level)}>
+      {level > 1 && <IndentGuide branch={isLast ? 'elbow' : 'tee'} />}
       <button
         className={level > 1 ? `tree-child ${isGlob ? 'glob-node' : ''} ${active ? 'active' : ''} ${dirty ? 'dirty' : ''}` : `tree-file ${isGlob ? 'glob-node' : ''} ${active ? 'active' : ''} ${dirty ? 'dirty' : ''}`}
         role="treeitem"
@@ -148,7 +149,7 @@ function TreeNodeView({ node, selected, expanded, dirtyNodeIds, queryActive, tog
       {onDeleteFile && node.childPath && <button type="button" className="tree-file-action danger" title={t('core.tree.deleteFile')} aria-label={t('core.tree.deleteFile')} onClick={(event) => { event.stopPropagation(); onDeleteFile(node); }}>×</button>}
     </div>
   );
-}
+});
 
 function handleTreeKeyDown(event: KeyboardEvent<HTMLDivElement>, tree: HTMLDivElement | null, openNode: (id: string) => void, closeNode: (id: string) => void) {
   if (!tree) return;

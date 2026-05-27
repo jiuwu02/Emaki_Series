@@ -911,6 +911,10 @@ textarea {
   margin-left: calc(-1 * var(--hierarchy-guide-width));
 }
 
+.tree-child-row .indent-guide {
+  margin-left: 0;
+}
+
 .tree-file-row:hover .indent-guide,
 .tree-child-row:hover .indent-guide,
 .tree-file-row:focus-within .indent-guide,
@@ -1963,13 +1967,12 @@ textarea {
 }
 
 .node {
-  --config-field-depth: 0;
   position: relative;
   display: grid;
-  grid-template-columns: minmax(180px, 1fr) minmax(200px, 420px);
+  grid-template-columns: minmax(0, 1fr) minmax(200px, 420px);
   gap: 12px;
   align-items: center;
-  padding: 8px 0 8px calc(var(--config-field-depth) * var(--hierarchy-indent-step));
+  padding: 8px 0;
   contain: layout paint;
 }
 
@@ -2036,19 +2039,33 @@ textarea {
   font-size: 12px;
 }
 
+.node-meta {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+
 .node-meta strong {
+  flex: 0 0 auto;
   font-size: 12px;
   font-weight: 650;
+  white-space: nowrap;
 }
 
 .node-meta code {
-  margin-left: 8px;
+  min-width: 0;
   color: var(--faint);
   font-family: ui-monospace, "Cascadia Code", monospace;
   font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .node-meta p {
+  flex: 1 1 100%;
   margin-top: 2px;
   color: var(--faint);
   font-size: 11px;
@@ -2092,7 +2109,7 @@ textarea {
   grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 8px;
-  padding: 0 0 0 calc(var(--config-node-depth) * var(--hierarchy-indent-step));
+  padding: 0;
   text-align: left;
   border: none;
   background: transparent;
@@ -2101,21 +2118,6 @@ textarea {
 .node-section--nested > .node-section-header {
   border-bottom: 0;
   background: transparent;
-}
-
-.node-section-header > .indent-guide {
-  grid-column: 1;
-  align-self: stretch;
-  margin-left: calc(-1 * var(--hierarchy-guide-width));
-}
-
-.node-section-header > .indent-guide + .node-section-toggle {
-  grid-column: 1;
-}
-
-.node-section-header:hover > .indent-guide,
-.node-section-header:focus-within > .indent-guide {
-  color: var(--accent);
 }
 
 .node-section-header.changed strong,
@@ -2239,11 +2241,37 @@ textarea {
 
 .node-section-body {
   display: grid;
-  gap: 7px;
+  gap: 0;
   padding: 10px 0 12px 0;
   border-top: 1px solid var(--line);
   background: transparent;
   contain: layout paint;
+}
+
+.node-section-child {
+  --config-child-depth: 1;
+  display: grid;
+  grid-template-columns: var(--hierarchy-guide-width) minmax(0, 1fr);
+  column-gap: 8px;
+  align-items: stretch;
+  padding-left: calc(var(--config-child-depth) * var(--hierarchy-indent-step));
+  min-width: 0;
+}
+
+.node-section-child > .indent-guide {
+  grid-column: 1;
+  align-self: stretch;
+}
+
+.node-section-child > .node,
+.node-section-child > .node-section {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.node-section-child:hover > .indent-guide,
+.node-section-child:focus-within > .indent-guide {
+  color: var(--accent);
 }
 
 .node-section--nested > .node-section-body {

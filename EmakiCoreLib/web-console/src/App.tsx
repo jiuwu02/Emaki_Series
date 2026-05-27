@@ -703,11 +703,17 @@ function ConfigStructuredSurface({ module, file, drafts, draftHistory, setDraftV
   return <section className="config-surface">
     {source.loading && <div className="script-loading" role="status">{t('core.state.loading')}</div>}
     {source.error && <InlineError><span>{source.error}</span><Button size="sm" onClick={() => void reloadStructured()}>{t('core.action.retry')}</Button></InlineError>}
-    {!source.loading && !source.error && <ConfigPreviewZone module={module} file={file} path={file.path} nodes={visibleNodes} scope={scope} drafts={drafts} source={source} api={api} />}
+    {!source.loading && !source.error && <DeferredConfigPreviewZone module={module} file={file} path={file.path} nodes={visibleNodes} scope={scope} drafts={drafts} source={source} api={api} />}
     <ConfigNodeTree scope={scope} nodes={visibleNodes} drafts={drafts} setDraftValue={setDraftValue} onCreateChild={setCreateNode} onDeleteObject={setDeleteNode} sourceEdit={!source.loading && !source.error ? sourceEdit : undefined} deletedPaths={deletedObjectPaths} />
     {createNode && <ConfigCreateChildModal scope={scope} node={createNode} source={source} onCancel={() => setCreateNode(null)} onCreated={nodes => { setOptimisticNodes(current => mergeConfigNodes(current, nodes, new Set())); setCreateNode(null); }} setToast={setToast} />}
     {deleteNode && <ConfigDeleteObjectModal node={deleteNode} source={source} onCancel={() => setDeleteNode(null)} onDeleted={path => { setDeletedObjectPaths(current => new Set([...current, path])); setOptimisticNodes(current => current.filter(entry => !entry.path.startsWith(`${path}.`) && entry.path !== path)); setDeleteNode(null); }} setToast={setToast} />}
   </section>;
+}
+
+function DeferredConfigPreviewZone(props: { module: WebRegistryModule; file: WebRegistryFile; path: string; childPath?: string; nodes: WebConfigNode[]; scope: ConfigDraftScope; drafts: DraftMap; source: ConfigSourceDocument; api: ApiClient }) {
+  const deferredDrafts = useDeferredValue(props.drafts);
+  const deferredNodes = useDeferredValue(props.nodes);
+  return <ConfigPreviewZone {...props} drafts={deferredDrafts} nodes={deferredNodes} />;
 }
 
 function ConfigPreviewZone({ module, file, path, childPath, nodes, scope, drafts, source, api }: { module: WebRegistryModule; file: WebRegistryFile; path: string; childPath?: string; nodes: WebConfigNode[]; scope: ConfigDraftScope; drafts: DraftMap; source: ConfigSourceDocument; api: ApiClient }) {
@@ -935,7 +941,7 @@ function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, set
     {error && <InlineError><span>{error}</span><Button size="sm" onClick={() => void reloadChildNodes()}>{t('core.action.retry')}</Button></InlineError>}
     {!loading && !error && source.loading && <div className="script-loading" role="status">{t('core.state.loading')}</div>}
     {!loading && !error && source.error && <InlineError><span>{source.error}</span><Button size="sm" onClick={() => void source.reload(false)}>{t('core.action.retry')}</Button></InlineError>}
-    {!loading && !error && !source.loading && !source.error && <ConfigPreviewZone module={module} file={file} path={childPath} childPath={childPath} nodes={visibleNodes} scope={scope} drafts={drafts} source={source} api={api} />}
+    {!loading && !error && !source.loading && !source.error && <DeferredConfigPreviewZone module={module} file={file} path={childPath} childPath={childPath} nodes={visibleNodes} scope={scope} drafts={drafts} source={source} api={api} />}
     {!loading && !error && <ConfigNodeTree scope={scope} nodes={visibleNodes} drafts={drafts} setDraftValue={setDraftValue} onCreateChild={setCreateNode} onDeleteObject={setDeleteNode} sourceEdit={!source.loading && !source.error ? sourceEdit : undefined} deletedPaths={deletedObjectPaths} />}
     {createNode && <ConfigCreateChildModal scope={scope} node={createNode} source={source} onCancel={() => setCreateNode(null)} onCreated={nodes => { setOptimisticNodes(current => mergeConfigNodes(current, nodes, new Set())); setCreateNode(null); }} setToast={setToast} />}
     {deleteNode && <ConfigDeleteObjectModal node={deleteNode} source={source} onCancel={() => setDeleteNode(null)} onDeleted={path => { setDeletedObjectPaths(current => new Set([...current, path])); setOptimisticNodes(current => current.filter(entry => !entry.path.startsWith(`${path}.`) && entry.path !== path)); setDeleteNode(null); }} setToast={setToast} />}
@@ -1260,7 +1266,7 @@ function configNodeDisplayComment(scope: ConfigDraftScope, node: WebConfigNode):
   return resolveConfigNodeComment(scope.moduleId, node.path, node.comment);
 }
 
-function ConfigNodeTree({ scope, nodes, drafts, setDraftValue, onCreateChild, onDeleteObject, sourceEdit, deletedPaths }: { scope: ConfigDraftScope; nodes: WebConfigNode[]; drafts: DraftMap; setDraftValue: DraftValueSetter; onCreateChild: (node: WebConfigNode) => void; onDeleteObject: (node: WebConfigNode) => void; sourceEdit?: SourceEditController; deletedPaths?: Set<string> }) {
+const ConfigNodeTree = memo(function ConfigNodeTree({ scope, nodes, drafts, setDraftValue, onCreateChild, onDeleteObject, sourceEdit, deletedPaths }: { scope: ConfigDraftScope; nodes: WebConfigNode[]; drafts: DraftMap; setDraftValue: DraftValueSetter; onCreateChild: (node: WebConfigNode) => void; onDeleteObject: (node: WebConfigNode) => void; sourceEdit?: SourceEditController; deletedPaths?: Set<string> }) {
   const nodeIndex = useMemo(() => buildNodeIndex(nodes), [nodes]);
   const changeState = useMemo(() => buildNodeChangeState(scope, nodes, drafts, sourceEdit?.paths, deletedPaths), [scope.moduleId, scope.fileId, scope.filePath, nodes, drafts, sourceEdit?.paths, deletedPaths]);
   const groups = nodeIndex.groupsByParent.get('') ?? [];
@@ -1271,9 +1277,9 @@ function ConfigNodeTree({ scope, nodes, drafts, setDraftValue, onCreateChild, on
     if (group.type === 'leaf') {
       return <ConfigNodeView key={group.node.path} scope={scope} node={group.node} drafts={drafts} setDraftValue={setDraftValue} sourceEdit={sourceEdit} changed={changeState.changedPaths.has(group.node.path)} deletable={false} onDeleteObject={onDeleteObject} />;
     }
-    return <ConfigNodeSection key={group.node.path} scope={scope} node={group.node} nodeIndex={nodeIndex} changeState={changeState} drafts={drafts} setDraftValue={setDraftValue} onCreateChild={onCreateChild} onDeleteObject={onDeleteObject} sourceEdit={sourceEdit} deletable={false} />;
+    return <ConfigNodeSection key={group.node.path} scope={scope} node={group.node} nodeIndex={nodeIndex} changeState={changeState} drafts={drafts} setDraftValue={setDraftValue} onCreateChild={onCreateChild} onDeleteObject={onDeleteObject} sourceEdit={sourceEdit} deletable={false} depth={0} isLast={true} />;
   })}</div>;
-}
+});
 
 type NodeGroup = { type: 'section'; node: WebConfigNode; children: WebConfigNode[] } | { type: 'leaf'; node: WebConfigNode };
 type ConfigNodeIndex = { groupsByParent: Map<string, NodeGroup[]>; descendantsByPath: Map<string, WebConfigNode[]> };
@@ -1344,10 +1350,8 @@ const ConfigNodeSection = memo(function ConfigNodeSection({ scope, node, nodeInd
   const sectionChanged = changeState.changedPaths.has(node.path);
   const changedInGroup = changeState.descendantCounts.get(node.path) ?? 0;
   const groupLabel = configNodeDisplayLabel(scope, node);
-  const sectionStyle = depth > 0 ? ({ '--config-node-depth': depth } as CSSProperties) : undefined;
-  return <div className={`node-section ${isCollapsed ? 'collapsed' : 'expanded'}${depth > 0 ? ' node-section--nested' : ''}`} style={sectionStyle} data-node-depth={depth} data-node-branch={isLast ? 'elbow' : 'tee'}>
+  return <div className={`node-section ${isCollapsed ? 'collapsed' : 'expanded'}${depth > 0 ? ' node-section--nested' : ''}`} data-node-depth={depth} data-node-branch={isLast ? 'elbow' : 'tee'}>
     <div className={`node-section-header ${isCollapsed ? 'collapsed' : ''} ${sectionChanged ? 'changed' : ''}`}>
-      {depth > 0 && <IndentGuide branch={isLast ? 'elbow' : 'tee'} />}
       <button type="button" className="node-section-toggle" onClick={() => setIsCollapsed(current => !current)} aria-expanded={!isCollapsed}>
         <DisclosureChevron open={!isCollapsed} className="section-arrow" />
         <strong>{groupLabel}</strong>
@@ -1360,10 +1364,15 @@ const ConfigNodeSection = memo(function ConfigNodeSection({ scope, node, nodeInd
       </div>
       <span className="section-meta">{(sectionChanged || changedInGroup > 0) && <span className="section-badge">{Math.max(changedInGroup, sectionChanged ? 1 : 0)}</span>}{t('core.config.groupItems', { count: groups.length })}</span>
     </div>
-    {!isCollapsed && <div className="node-section-body">{groups.map((group, index) => group.type === 'section'
-      ? <ConfigNodeSection key={group.node.path} scope={scope} node={group.node} nodeIndex={nodeIndex} changeState={changeState} drafts={drafts} setDraftValue={setDraftValue} onCreateChild={onCreateChild} onDeleteObject={onDeleteObject} sourceEdit={sourceEdit} deletable={node.creatableChildren === true} depth={depth + 1} isLast={index === groups.length - 1} />
-      : <ConfigNodeView key={group.node.path} scope={scope} node={group.node} drafts={drafts} setDraftValue={setDraftValue} sourceEdit={sourceEdit} changed={changeState.changedPaths.has(group.node.path)} deletable={node.creatableChildren === true} onDeleteObject={onDeleteObject} depth={depth + 1} />
-    )}</div>}
+    {!isCollapsed && <div className="node-section-body">{groups.map((group, index) => {
+      const branch = index === groups.length - 1 ? 'elbow' : 'tee';
+      return <div className="node-section-child" key={group.node.path} style={{ '--config-child-depth': depth + 1 } as CSSProperties} data-node-branch={branch}>
+        <IndentGuide branch={branch} />
+        {group.type === 'section'
+          ? <ConfigNodeSection scope={scope} node={group.node} nodeIndex={nodeIndex} changeState={changeState} drafts={drafts} setDraftValue={setDraftValue} onCreateChild={onCreateChild} onDeleteObject={onDeleteObject} sourceEdit={sourceEdit} deletable={node.creatableChildren === true} depth={depth + 1} isLast={index === groups.length - 1} />
+          : <ConfigNodeView scope={scope} node={group.node} drafts={drafts} setDraftValue={setDraftValue} sourceEdit={sourceEdit} changed={changeState.changedPaths.has(group.node.path)} deletable={node.creatableChildren === true} onDeleteObject={onDeleteObject} />}
+      </div>;
+    })}</div>}
   </div>;
 });
 
@@ -1373,7 +1382,7 @@ function IndentGuide({ branch }: { branch: 'tee' | 'elbow' }) {
   </svg>;
 }
 
-function ConfigNodeView({ scope, node, drafts, setDraftValue, sourceEdit, changed = false, deletable = false, onDeleteObject, depth = 0 }: { scope: ConfigDraftScope; node: WebConfigNode; drafts: DraftMap; setDraftValue: DraftValueSetter; sourceEdit?: SourceEditController; changed?: boolean; deletable?: boolean; onDeleteObject?: (node: WebConfigNode) => void; depth?: number }) {
+function ConfigNodeView({ scope, node, drafts, setDraftValue, sourceEdit, changed = false, deletable = false, onDeleteObject }: { scope: ConfigDraftScope; node: WebConfigNode; drafts: DraftMap; setDraftValue: DraftValueSetter; sourceEdit?: SourceEditController; changed?: boolean; deletable?: boolean; onDeleteObject?: (node: WebConfigNode) => void }) {
   const key = draftKey(scope, node.path);
   const sourceEdited = sourceEdit?.paths.has(node.path) === true;
   const value = key in drafts ? drafts[key] : node.value;
@@ -1387,8 +1396,7 @@ function ConfigNodeView({ scope, node, drafts, setDraftValue, sourceEdit, change
   };
   const isWide = isWideConfigNodeType(node.type);
   const label = configNodeDisplayLabel(scope, node);
-  const nodeStyle = depth > 0 ? ({ '--config-field-depth': depth } as CSSProperties) : undefined;
-  return <div className={`node ${changed || sourceEdited ? 'changed' : ''} ${isWide ? 'node-wide' : ''}`} style={nodeStyle}><div className="node-meta"><strong>{label}</strong><code>{node.path}</code><p>{configNodeDisplayComment(scope, node)}</p></div><div className="node-control">{renderControl(node, value, setValue, label, scope.moduleId)}{deletable && onDeleteObject && <button type="button" className="node-section-delete" onClick={() => onDeleteObject(node)}>{t('core.config.delete')}</button>}</div></div>;
+  return <div className={`node ${changed || sourceEdited ? 'changed' : ''} ${isWide ? 'node-wide' : ''}`}><div className="node-meta"><strong>{label}</strong><code>{node.path}</code><p>{configNodeDisplayComment(scope, node)}</p></div><div className="node-control">{renderControl(node, value, setValue, label, scope.moduleId)}{deletable && onDeleteObject && <button type="button" className="node-section-delete" onClick={() => onDeleteObject(node)}>{t('core.config.delete')}</button>}</div></div>;
 }
 
 function isWideConfigNodeType(type: string | undefined): boolean {
