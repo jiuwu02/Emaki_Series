@@ -225,11 +225,11 @@ button {
   cursor: pointer;
   border: 0;
   background: none;
-  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.15s ease, border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+  transition: opacity 0.12s ease, border-color 0.12s ease, background-color 0.12s ease, color 0.12s ease;
 }
 
 button:active:not(:disabled) {
-  transform: scale(0.95);
+  opacity: .86;
 }
 
 button:disabled {
@@ -823,7 +823,7 @@ textarea {
 }
 
 .tree-folder:active {
-  transform: scale(0.97);
+  opacity: .86;
 }
 
 .tree-file {
@@ -864,7 +864,7 @@ textarea {
 }
 
 .tree-file:active {
-  transform: scale(0.96);
+  opacity: .86;
 }
 
 .tree-file.active {
@@ -1971,17 +1971,18 @@ textarea {
 .node {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(200px, 420px);
-  gap: 12px;
+  grid-template-columns: var(--hierarchy-guide-width) minmax(0, 1fr) minmax(200px, 420px);
+  column-gap: 8px;
+  row-gap: 0;
   align-items: center;
-  padding: 8px 0;
+  padding: 5px 0;
   content-visibility: auto;
   contain: layout paint style;
-  contain-intrinsic-size: auto 38px;
+  contain-intrinsic-size: auto 32px;
 }
 
 .node.node-wide {
-  grid-template-columns: 1fr;
+  grid-template-columns: var(--hierarchy-guide-width) minmax(0, 1fr);
 }
 
 .node.node-wide .node-control {
@@ -1991,6 +1992,38 @@ textarea {
 
 .node.node-wide .node-control > :first-child {
   flex: 1 1 auto;
+}
+
+.node > .indent-guide {
+  grid-column: 1;
+  grid-row: 1;
+  align-self: center;
+}
+
+.node > .node-meta {
+  grid-column: 1 / 3;
+  grid-row: 1;
+}
+
+.node > .indent-guide + .node-meta {
+  grid-column: 2;
+}
+
+.node > .node-control {
+  grid-column: 3;
+}
+
+.node.node-wide > .node-control {
+  grid-column: 1 / -1;
+}
+
+.node.node-wide > .indent-guide + .node-meta,
+.node.node-wide > .indent-guide + .node-meta + .node-control {
+  grid-column: 2;
+}
+
+.node.node-wide > .indent-guide + .node-meta + .node-control {
+  margin-top: 4px;
 }
 
 .node:hover {
@@ -2092,9 +2125,7 @@ textarea {
   background: transparent;
   overflow: visible;
   box-shadow: none;
-  content-visibility: auto;
   contain: layout paint style;
-  contain-intrinsic-size: auto 40px;
 }
 
 .node-section:last-child {
@@ -2112,9 +2143,10 @@ textarea {
 .node-section-header {
   width: 100%;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: var(--hierarchy-guide-width) minmax(0, 1fr) auto auto;
   align-items: center;
-  gap: 8px;
+  column-gap: 8px;
+  row-gap: 0;
   padding: 0;
   text-align: left;
   border: none;
@@ -2137,21 +2169,40 @@ textarea {
   align-items: center;
   gap: 6px;
   flex: 0 0 auto;
+  grid-column: 3;
   margin-right: 8px;
+}
+
+.node-section-header > .indent-guide {
+  grid-column: 1;
+  align-self: center;
 }
 
 .node-section-toggle {
   min-width: 0;
   display: grid;
-  grid-template-columns: 18px auto minmax(0, 1fr) auto;
+  grid-template-columns: 14px auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 8px;
-  padding: 8px 0 8px 10px;
+  gap: 7px;
+  grid-column: 1 / 3;
+  padding: 6px 0 6px 0;
   text-align: left;
   border: 0;
   background: transparent;
   color: inherit;
   cursor: pointer;
+}
+
+.node-section-header > .indent-guide + .node-section-toggle {
+  grid-column: 2;
+}
+
+.node-section-header:not(:has(> .indent-guide)) .node-section-actions {
+  grid-column: 3;
+}
+
+.node-section-header:not(:has(> .indent-guide)) .section-meta {
+  grid-column: 4;
 }
 
 .node-section-toggle:focus-visible {
@@ -2188,6 +2239,7 @@ textarea {
 
 .section-meta {
   flex: 0 0 auto;
+  grid-column: 4;
   margin-right: 8px;
   color: var(--faint);
   font-size: 10px;
@@ -2248,7 +2300,7 @@ textarea {
 .node-section-body {
   display: grid;
   gap: 0;
-  padding: 10px 0 12px 0;
+  padding: 5px 0 6px 0;
   border-top: 1px solid var(--line);
   background: transparent;
   contain: layout paint style;
@@ -2256,37 +2308,25 @@ textarea {
 
 .node-section-child {
   --config-child-depth: 1;
-  display: grid;
-  grid-template-columns: var(--hierarchy-guide-width) minmax(0, 1fr);
-  column-gap: 8px;
-  align-items: center;
+  display: block;
   padding-left: calc(var(--config-child-depth) * var(--hierarchy-indent-step));
   min-width: 0;
 }
 
-.node-section-child > .indent-guide {
-  grid-column: 1;
-  align-self: center;
-}
-
 .node-section-child > .node,
 .node-section-child > .node-section {
-  grid-column: 1 / -1;
   min-width: 0;
 }
 
-.node-section-child > .indent-guide + .node,
-.node-section-child > .indent-guide + .node-section {
-  grid-column: 2;
-}
-
-.node-section-child:hover > .indent-guide,
-.node-section-child:focus-within > .indent-guide {
+.node-section-child:hover > .node > .indent-guide,
+.node-section-child:focus-within > .node > .indent-guide,
+.node-section-child:hover > .node-section > .node-section-header > .indent-guide,
+.node-section-child:focus-within > .node-section > .node-section-header > .indent-guide {
   color: var(--accent);
 }
 
 .node-section--nested > .node-section-body {
-  padding: 10px 0 12px 0;
+  padding: 5px 0 6px 0;
   border-top: 1px solid var(--line);
   background: transparent;
   contain: layout paint style;

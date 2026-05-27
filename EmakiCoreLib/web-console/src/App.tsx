@@ -140,14 +140,20 @@ export default function App() {
 
   function setDraftValue(scope: ConfigDraftScope, node: WebConfigNode, nextValue: unknown) {
     const key = draftKey(scope, node.path);
-    const before = draftScopeSnapshot(drafts, scope);
-    const next = { ...drafts };
-    if (valuesEqual(nextValue, node.value)) delete next[key];
-    else next[key] = nextValue;
-    const after = draftScopeSnapshot(next, scope);
-    if (valuesEqual(before, after)) return;
-    setDrafts(next);
-    rememberDraftHistory(scope, before, after);
+    setDrafts(current => {
+      const hadKey = key in current;
+      const shouldDelete = valuesEqual(nextValue, node.value);
+      if (shouldDelete && !hadKey) return current;
+      if (!shouldDelete && hadKey && valuesEqual(current[key], nextValue)) return current;
+      const before = draftScopeSnapshot(current, scope);
+      const next = { ...current };
+      if (shouldDelete) delete next[key];
+      else next[key] = nextValue;
+      const after = draftScopeSnapshot(next, scope);
+      if (valuesEqual(before, after)) return current;
+      rememberDraftHistory(scope, before, after);
+      return next;
+    });
   }
 
   function rememberDraftHistory(scope: ConfigDraftScope, before: DraftMap, after: DraftMap) {
@@ -315,7 +321,7 @@ export default function App() {
   const selectedFile = selectedModule && selected ? selectedModule.files.find((f) => f.id === selected.fileId) ?? null : null;
   const selectedDraftScope = selectedModule && selectedFile && isKind(selectedFile.kind, 'CONFIG') ? configDraftScope(selectedModule, selectedFile, selected?.scriptPath) : null;
   const selectedScopeHistory = selectedDraftScope ? draftHistory[draftScopeId(selectedDraftScope)] ?? emptyDraftHistory() : emptyDraftHistory();
-  const changedCount = selectedDraftScope && selectedFile ? selectedFile.nodes.filter((n) => n.type !== 'object' && draftKey(selectedDraftScope, n.path) in drafts).length : 0;
+  const changedCount = useMemo(() => selectedDraftScope && selectedFile ? selectedFile.nodes.filter((n) => n.type !== 'object' && draftKey(selectedDraftScope, n.path) in drafts).length : 0, [selectedDraftScope?.moduleId, selectedDraftScope?.fileId, selectedDraftScope?.filePath, selectedFile?.nodes, drafts]);
   const dirtyTreeKeys = useMemo(() => dirtyTreeKeysFromDrafts(drafts), [drafts]);
   const activeTheme = COLOR_THEMES.find((entry) => entry.id === theme) ?? COLOR_THEMES[0];
   const activeThemeLabel = t(activeTheme.labelKey);
@@ -328,7 +334,7 @@ export default function App() {
     subtitle: selectedFile ? `${fileDisplayTitle(selectedFile)}，${selectedFile.path}` : t('core.stage.defaultHint'),
     dirty: changedCount > 0,
     changedCount,
-    changes: selectedDraftScope && selectedFile ? configChanges(selectedDraftScope, selectedFile.nodes, drafts) : [],
+    changes: selectedDraftScope && selectedFile && changedCount > 0 ? configChanges(selectedDraftScope, selectedFile.nodes, drafts) : [],
     source: selectedSource,
     saving,
     loading,
@@ -627,7 +633,8 @@ function ConfigStructuredSurface({ module, file, drafts, draftHistory, setDraftV
   const fileComment = fileDisplayComment(file);
   const baseNodes = useMemo(() => applyConfigNodeOverrides(module.id, file.nodes, file.path), [module.id, file.nodes, file.path]);
   const visibleNodes = useMemo(() => mergeConfigNodes(baseNodes, optimisticNodes, deletedObjectPaths), [baseNodes, optimisticNodes, deletedObjectPaths]);
-  const changedNodes = useMemo(() => visibleNodes.filter(n => n.type !== 'object' && draftKey(scope, n.path) in drafts && !isDeletedPath(n.path, deletedObjectPaths)), [visibleNodes, drafts, deletedObjectPaths, scope.moduleId, scope.fileId, scope.filePath]);
+  const scopeDraftKey = useMemo(() => draftSignatureForScope(drafts, scope), [drafts, scope.moduleId, scope.fileId, scope.filePath]);
+  const changedNodes = useMemo(() => visibleNodes.filter(n => n.type !== 'object' && draftKey(scope, n.path) in drafts && !isDeletedPath(n.path, deletedObjectPaths)), [visibleNodes, scopeDraftKey, deletedObjectPaths, scope.moduleId, scope.fileId, scope.filePath]);
 
   const updateSourceNodeValue = (node: WebConfigNode, nextValue: unknown) => {
     updateConfigSourceValue(source, node.path, nextValue, setToast);
@@ -669,7 +676,8 @@ function ConfigStructuredSurface({ module, file, drafts, draftHistory, setDraftV
     setToast({ tone: 'ok', text: t('core.toast.reloaded') });
   }
 
-  const toolbarChanges = useMemo(() => configChanges(scope, changedNodes, drafts), [scope.moduleId, scope.fileId, scope.filePath, changedNodes, drafts]);
+  const deferredToolbarDrafts = useDeferredValue(drafts);
+  const toolbarChanges = useMemo(() => changedNodes.length ? configChanges(scope, changedNodes, deferredToolbarDrafts) : [], [scope.moduleId, scope.fileId, scope.filePath, changedNodes, deferredToolbarDrafts]);
   const toolbarSource = source.dirty ? source.content : source.original;
 
   useEffect(() => {
@@ -711,15 +719,14 @@ function ConfigStructuredSurface({ module, file, drafts, draftHistory, setDraftV
 }
 
 function DeferredConfigPreviewZone(props: { module: WebRegistryModule; file: WebRegistryFile; path: string; childPath?: string; nodes: WebConfigNode[]; scope: ConfigDraftScope; drafts: DraftMap; source: ConfigSourceDocument; api: ApiClient }) {
-  const deferredDrafts = useDeferredValue(props.drafts);
+  const deferredDrafts = useDebouncedValue(props.drafts, 140);
   const deferredNodes = useDeferredValue(props.nodes);
   return <ConfigPreviewZone {...props} drafts={deferredDrafts} nodes={deferredNodes} />;
 }
 
 function ConfigPreviewZone({ module, file, path, childPath, nodes, scope, drafts, source, api }: { module: WebRegistryModule; file: WebRegistryFile; path: string; childPath?: string; nodes: WebConfigNode[]; scope: ConfigDraftScope; drafts: DraftMap; source: ConfigSourceDocument; api: ApiClient }) {
   const registration = getConfigPreview({ moduleId: module.id, kind: file.kind, path });
-  const scopePrefix = useMemo(() => draftScopePrefix(scope), [scope.moduleId, scope.fileId, scope.filePath]);
-  const changedDraftKey = useMemo(() => Object.keys(drafts).filter(key => key.startsWith(scopePrefix)).sort().map(key => `${key}=${String(drafts[key])}`).join('\u001f'), [drafts, scopePrefix]);
+  const changedDraftKey = useMemo(() => draftSignatureForScope(drafts, scope), [drafts, scope.moduleId, scope.fileId, scope.filePath]);
   const deferredDraftKey = useDeferredValue(changedDraftKey);
   const sourceContent = useMemo(() => {
     if (source.dirty) return source.content;
@@ -839,7 +846,8 @@ function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, set
   const fileTitle = fileDisplayTitle(file);
   const fileName = childPath.split('/').pop() ?? childPath;
   const visibleNodes = useMemo(() => mergeConfigNodes(baseNodes, optimisticNodes, deletedObjectPaths), [baseNodes, optimisticNodes, deletedObjectPaths]);
-  const changedNodes = useMemo(() => visibleNodes.filter(n => n.type !== 'object' && draftKey(scope, n.path) in drafts && !isDeletedPath(n.path, deletedObjectPaths)), [visibleNodes, drafts, deletedObjectPaths, scope.moduleId, scope.fileId, scope.filePath]);
+  const scopeDraftKey = useMemo(() => draftSignatureForScope(drafts, scope), [drafts, scope.moduleId, scope.fileId, scope.filePath]);
+  const changedNodes = useMemo(() => visibleNodes.filter(n => n.type !== 'object' && draftKey(scope, n.path) in drafts && !isDeletedPath(n.path, deletedObjectPaths)), [visibleNodes, scopeDraftKey, deletedObjectPaths, scope.moduleId, scope.fileId, scope.filePath]);
   const updateSourceNodeValue = (node: WebConfigNode, nextValue: unknown) => {
     updateConfigSourceValue(source, node.path, nextValue, setToast);
     setSourceEditedPaths(current => new Set([...current, node.path]));
@@ -905,7 +913,8 @@ function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, set
     void reloadChildNodes(false);
   }, [module.id, childPath, refreshKey]);
 
-  const toolbarChanges = useMemo(() => configChanges(scope, changedNodes, drafts), [scope.moduleId, scope.fileId, scope.filePath, changedNodes, drafts]);
+  const deferredToolbarDrafts = useDeferredValue(drafts);
+  const toolbarChanges = useMemo(() => changedNodes.length ? configChanges(scope, changedNodes, deferredToolbarDrafts) : [], [scope.moduleId, scope.fileId, scope.filePath, changedNodes, deferredToolbarDrafts]);
   const toolbarSource = source.dirty ? source.content : source.original;
 
   useEffect(() => {
@@ -1211,6 +1220,15 @@ function configChanges(scope: ConfigDraftScope, nodes: WebConfigNode[], drafts: 
     .map(node => ({ path: node.path, label: configNodeDisplayLabel(scope, node), before: node.value, after: drafts[draftKey(scope, node.path)] }));
 }
 
+function useDebouncedValue<T>(value: T, delay: number): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebounced(value), delay);
+    return () => window.clearTimeout(timer);
+  }, [value, delay]);
+  return debounced;
+}
+
 function configPreviewData(sourceContent: string, nodes: WebConfigNode[], scope: ConfigDraftScope, drafts: DraftMap): Record<string, unknown> {
   const parsed = parseSafeYaml(sourceContent || '{}');
   let data: Record<string, unknown> = parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
@@ -1274,7 +1292,8 @@ function configNodeDisplayComment(scope: ConfigDraftScope, node: WebConfigNode):
 
 const ConfigNodeTree = memo(function ConfigNodeTree({ scope, nodes, drafts, setDraftValue, onCreateChild, onDeleteObject, sourceEdit, deletedPaths }: { scope: ConfigDraftScope; nodes: WebConfigNode[]; drafts: DraftMap; setDraftValue: DraftValueSetter; onCreateChild: (node: WebConfigNode) => void; onDeleteObject: (node: WebConfigNode) => void; sourceEdit?: SourceEditController; deletedPaths?: Set<string> }) {
   const nodeIndex = useMemo(() => buildNodeIndex(nodes), [nodes]);
-  const changeState = useMemo(() => buildNodeChangeState(scope, nodes, drafts, sourceEdit?.paths, deletedPaths), [scope.moduleId, scope.fileId, scope.filePath, nodes, drafts, sourceEdit?.paths, deletedPaths]);
+  const scopeDraftKey = useMemo(() => draftSignatureForScope(drafts, scope), [drafts, scope.moduleId, scope.fileId, scope.filePath]);
+  const changeState = useMemo(() => buildNodeChangeState(scope, nodes, drafts, sourceEdit?.paths, deletedPaths), [scope.moduleId, scope.fileId, scope.filePath, nodes, scopeDraftKey, sourceEdit?.paths, deletedPaths]);
   const groups = nodeIndex.groupsByParent.get('') ?? [];
 
   if (!nodes.length) return <div className="script-placeholder" role="status">{t('core.empty.noConfigNodes')}</div>;
@@ -1350,16 +1369,41 @@ function configAncestorPaths(path: string): string[] {
   return ancestors;
 }
 
-const ConfigNodeSection = memo(function ConfigNodeSection({ scope, node, nodeIndex, changeState, drafts, setDraftValue, onCreateChild, onDeleteObject, sourceEdit, deletable, depth = 0, isLast = true }: { scope: ConfigDraftScope; node: WebConfigNode; nodeIndex: ConfigNodeIndex; changeState: ConfigNodeChangeState; drafts: DraftMap; setDraftValue: DraftValueSetter; onCreateChild: (node: WebConfigNode) => void; onDeleteObject: (node: WebConfigNode) => void; sourceEdit?: SourceEditController; deletable: boolean; depth?: number; isLast?: boolean }) {
+const ConfigNodeSection = memo(function ConfigNodeSection({ scope, node, nodeIndex, changeState, drafts, setDraftValue, onCreateChild, onDeleteObject, sourceEdit, deletable, depth = 0, isLast = true, branch }: { scope: ConfigDraftScope; node: WebConfigNode; nodeIndex: ConfigNodeIndex; changeState: ConfigNodeChangeState; drafts: DraftMap; setDraftValue: DraftValueSetter; onCreateChild: (node: WebConfigNode) => void; onDeleteObject: (node: WebConfigNode) => void; sourceEdit?: SourceEditController; deletable: boolean; depth?: number; isLast?: boolean; branch?: 'tee' | 'elbow' }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [shouldRenderBody, setShouldRenderBody] = useState(true);
+  const bodyTimer = useRef<number | null>(null);
   const groups = nodeIndex.groupsByParent.get(node.path) ?? [];
-  const hasSiblingBranches = depth > 0 && groups.length > 1;
+  const hasSiblingBranches = groups.length > 1;
   const sectionChanged = changeState.changedPaths.has(node.path);
   const changedInGroup = changeState.descendantCounts.get(node.path) ?? 0;
   const groupLabel = configNodeDisplayLabel(scope, node);
-  return <div className={`node-section ${isCollapsed ? 'collapsed' : 'expanded'}${depth > 0 ? ' node-section--nested' : ''}`} data-node-depth={depth} data-node-branch={depth > 0 ? (isLast ? 'elbow' : 'tee') : undefined}>
+
+  useEffect(() => () => {
+    if (bodyTimer.current !== null) window.clearTimeout(bodyTimer.current);
+  }, []);
+
+  const toggleSection = () => {
+    if (bodyTimer.current !== null) window.clearTimeout(bodyTimer.current);
+    if (isCollapsed) {
+      setIsCollapsed(false);
+      bodyTimer.current = window.setTimeout(() => {
+        bodyTimer.current = null;
+        startTransition(() => setShouldRenderBody(true));
+      }, 35);
+    } else {
+      setIsCollapsed(true);
+      bodyTimer.current = window.setTimeout(() => {
+        bodyTimer.current = null;
+        startTransition(() => setShouldRenderBody(false));
+      }, 120);
+    }
+  };
+
+  return <div className={`node-section ${isCollapsed ? 'collapsed' : 'expanded'}${depth > 0 ? ' node-section--nested' : ''}`} data-node-depth={depth}>
     <div className={`node-section-header ${isCollapsed ? 'collapsed' : ''} ${sectionChanged ? 'changed' : ''}`}>
-      <button type="button" className="node-section-toggle" onClick={() => setIsCollapsed(current => !current)} aria-expanded={!isCollapsed}>
+      {branch && <IndentGuide branch={branch} />}
+      <button type="button" className="node-section-toggle" onClick={toggleSection} aria-expanded={!isCollapsed}>
         <DisclosureChevron open={!isCollapsed} className="section-arrow" />
         <strong>{groupLabel}</strong>
         <code>{node.path}</code>
@@ -1371,13 +1415,12 @@ const ConfigNodeSection = memo(function ConfigNodeSection({ scope, node, nodeInd
       </div>
       <span className="section-meta">{(sectionChanged || changedInGroup > 0) && <span className="section-badge">{Math.max(changedInGroup, sectionChanged ? 1 : 0)}</span>}{t('core.config.groupItems', { count: groups.length })}</span>
     </div>
-    {!isCollapsed && <div className="node-section-body">{groups.map((group, index) => {
+    {shouldRenderBody && <div className="node-section-body" hidden={isCollapsed}>{groups.map((group, index) => {
       const branch = index === groups.length - 1 ? 'elbow' : 'tee';
-      return <div className="node-section-child" key={group.node.path} style={{ '--config-child-depth': depth + 1 } as CSSProperties} data-node-branch={hasSiblingBranches ? branch : undefined}>
-        {hasSiblingBranches && <IndentGuide branch={branch} />}
+      return <div className="node-section-child" key={group.node.path} style={{ '--config-child-depth': depth + 1 } as CSSProperties}>
         {group.type === 'section'
-          ? <ConfigNodeSection scope={scope} node={group.node} nodeIndex={nodeIndex} changeState={changeState} drafts={drafts} setDraftValue={setDraftValue} onCreateChild={onCreateChild} onDeleteObject={onDeleteObject} sourceEdit={sourceEdit} deletable={node.creatableChildren === true} depth={depth + 1} isLast={index === groups.length - 1} />
-          : <ConfigNodeView scope={scope} node={group.node} drafts={drafts} setDraftValue={setDraftValue} sourceEdit={sourceEdit} changed={changeState.changedPaths.has(group.node.path)} deletable={node.creatableChildren === true} onDeleteObject={onDeleteObject} />}
+          ? <ConfigNodeSection scope={scope} node={group.node} nodeIndex={nodeIndex} changeState={changeState} drafts={drafts} setDraftValue={setDraftValue} onCreateChild={onCreateChild} onDeleteObject={onDeleteObject} sourceEdit={sourceEdit} deletable={node.creatableChildren === true} depth={depth + 1} isLast={index === groups.length - 1} branch={hasSiblingBranches ? branch : undefined} />
+          : <ConfigNodeView scope={scope} node={group.node} drafts={drafts} setDraftValue={setDraftValue} sourceEdit={sourceEdit} changed={changeState.changedPaths.has(group.node.path)} deletable={node.creatableChildren === true} onDeleteObject={onDeleteObject} branch={hasSiblingBranches ? branch : undefined} />}
       </div>;
     })}</div>}
   </div>;
@@ -1389,11 +1432,25 @@ function IndentGuide({ branch }: { branch: 'tee' | 'elbow' }) {
   </svg>;
 }
 
-function ConfigNodeView({ scope, node, drafts, setDraftValue, sourceEdit, changed = false, deletable = false, onDeleteObject }: { scope: ConfigDraftScope; node: WebConfigNode; drafts: DraftMap; setDraftValue: DraftValueSetter; sourceEdit?: SourceEditController; changed?: boolean; deletable?: boolean; onDeleteObject?: (node: WebConfigNode) => void }) {
+function ConfigNodeView({ scope, node, drafts, setDraftValue, sourceEdit, changed = false, deletable = false, onDeleteObject, branch }: { scope: ConfigDraftScope; node: WebConfigNode; drafts: DraftMap; setDraftValue: DraftValueSetter; sourceEdit?: SourceEditController; changed?: boolean; deletable?: boolean; onDeleteObject?: (node: WebConfigNode) => void; branch?: 'tee' | 'elbow' }) {
   const key = draftKey(scope, node.path);
   const sourceEdited = sourceEdit?.paths.has(node.path) === true;
-  const value = key in drafts ? drafts[key] : node.value;
-  const setValue = (next: unknown) => {
+  const committedValue = key in drafts ? drafts[key] : node.value;
+  const [localValue, setLocalValue] = useState(committedValue);
+  const commitTimer = useRef<number | null>(null);
+  const pendingValue = useRef<unknown>(committedValue);
+
+  useEffect(() => {
+    if (commitTimer.current !== null) return;
+    pendingValue.current = committedValue;
+    setLocalValue(committedValue);
+  }, [committedValue]);
+
+  useEffect(() => () => {
+    if (commitTimer.current !== null) window.clearTimeout(commitTimer.current);
+  }, []);
+
+  const commitValue = (next: unknown) => {
     startTransition(() => {
       if (valuesEqual(next, node.value)) {
         setDraftValue(scope, node, node.value);
@@ -1403,9 +1460,19 @@ function ConfigNodeView({ scope, node, drafts, setDraftValue, sourceEdit, change
       else setDraftValue(scope, node, next);
     });
   };
+
+  const setValue = (next: unknown) => {
+    pendingValue.current = next;
+    setLocalValue(next);
+    if (commitTimer.current !== null) window.clearTimeout(commitTimer.current);
+    commitTimer.current = window.setTimeout(() => {
+      commitTimer.current = null;
+      commitValue(pendingValue.current);
+    }, 90);
+  };
   const isWide = isWideConfigNodeType(node.type);
   const label = configNodeDisplayLabel(scope, node);
-  return <div className={`node ${changed || sourceEdited ? 'changed' : ''} ${isWide ? 'node-wide' : ''}`}><div className="node-meta"><strong>{label}</strong><code>{node.path}</code><p>{configNodeDisplayComment(scope, node)}</p></div><div className="node-control">{renderControl(node, value, setValue, label, scope.moduleId)}{deletable && onDeleteObject && <button type="button" className="node-section-delete" onClick={() => onDeleteObject(node)}>{t('core.config.delete')}</button>}</div></div>;
+  return <div className={`node ${changed || sourceEdited ? 'changed' : ''} ${isWide ? 'node-wide' : ''}`}>{branch && <IndentGuide branch={branch} />}<div className="node-meta"><strong>{label}</strong><code>{node.path}</code><p>{configNodeDisplayComment(scope, node)}</p></div><div className="node-control">{renderControl(node, localValue, setValue, label, scope.moduleId)}{deletable && onDeleteObject && <button type="button" className="node-section-delete" onClick={() => onDeleteObject(node)}>{t('core.config.delete')}</button>}</div></div>;
 }
 
 function isWideConfigNodeType(type: string | undefined): boolean {
@@ -2075,6 +2142,16 @@ function draftKey(scope: ConfigDraftScope, path: string) {
 
 function draftScopePrefix(scope: ConfigDraftScope) {
   return `${draftScopeId(scope).slice(0, -1)},`;
+}
+
+function draftSignatureForScope(drafts: DraftMap, scope: ConfigDraftScope): string {
+  const prefix = draftScopePrefix(scope);
+  let signature = '';
+  for (const key of Object.keys(drafts)) {
+    if (!key.startsWith(prefix)) continue;
+    signature += `${key}=${String(drafts[key])}\u001f`;
+  }
+  return signature;
 }
 
 function emptyDraftHistory(): DraftScopeHistory { return { undo: [], redo: [] }; }
