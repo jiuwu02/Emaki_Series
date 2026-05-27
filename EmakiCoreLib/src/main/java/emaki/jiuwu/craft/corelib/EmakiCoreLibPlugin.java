@@ -120,7 +120,11 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     @Override
     public void onDisable() {
         if (messageService != null) {
-            messageService.info("console.plugin_stopped");
+            try {
+                messageService.info("console.plugin_stopped");
+            } catch (RuntimeException exception) {
+                getLogger().info("EmakiCoreLib stopped.");
+            }
         }
         if (webConsoleService != null) {
             webConsoleService.stop();

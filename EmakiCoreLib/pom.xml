@@ -218,6 +218,8 @@
                             <artifactSet>
                                 <includes>
                                     <include>emaki.jiuwu.craft:emaki-corelib-api</include>
+                                    <include>com.github.ben-manes.caffeine:caffeine</include>
+                                    <include>net.objecthunter:exp4j</include>
                                 </includes>
                             </artifactSet>
                             <createDependencyReducedPom>false</createDependencyReducedPom>
