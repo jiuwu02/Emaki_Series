@@ -94,6 +94,7 @@
   color: var(--hierarchy-guide-color);
   overflow: visible;
   pointer-events: none;
+  align-self: center;
 }
 
 .indent-guide path {
@@ -907,7 +908,7 @@ textarea {
 
 .tree-file-row .indent-guide,
 .tree-child-row .indent-guide {
-  align-self: stretch;
+  align-self: center;
   margin-left: calc(-1 * var(--hierarchy-guide-width));
 }
 
@@ -956,6 +957,7 @@ textarea {
   width: 12px;
   height: 12px;
   flex: 0 0 auto;
+  align-self: center;
   color: var(--faint);
   transform-origin: 50% 50%;
   transition: transform 0.18s ease, color 0.18s ease, opacity 0.18s ease;
@@ -1973,7 +1975,9 @@ textarea {
   gap: 12px;
   align-items: center;
   padding: 8px 0;
-  contain: layout paint;
+  content-visibility: auto;
+  contain: layout paint style;
+  contain-intrinsic-size: auto 38px;
 }
 
 .node.node-wide {
@@ -2088,7 +2092,9 @@ textarea {
   background: transparent;
   overflow: visible;
   box-shadow: none;
-  contain: layout paint;
+  content-visibility: auto;
+  contain: layout paint style;
+  contain-intrinsic-size: auto 40px;
 }
 
 .node-section:last-child {
@@ -2245,7 +2251,7 @@ textarea {
   padding: 10px 0 12px 0;
   border-top: 1px solid var(--line);
   background: transparent;
-  contain: layout paint;
+  contain: layout paint style;
 }
 
 .node-section-child {
@@ -2253,20 +2259,25 @@ textarea {
   display: grid;
   grid-template-columns: var(--hierarchy-guide-width) minmax(0, 1fr);
   column-gap: 8px;
-  align-items: stretch;
+  align-items: center;
   padding-left: calc(var(--config-child-depth) * var(--hierarchy-indent-step));
   min-width: 0;
 }
 
 .node-section-child > .indent-guide {
   grid-column: 1;
-  align-self: stretch;
+  align-self: center;
 }
 
 .node-section-child > .node,
 .node-section-child > .node-section {
-  grid-column: 2;
+  grid-column: 1 / -1;
   min-width: 0;
+}
+
+.node-section-child > .indent-guide + .node,
+.node-section-child > .indent-guide + .node-section {
+  grid-column: 2;
 }
 
 .node-section-child:hover > .indent-guide,
@@ -2278,7 +2289,7 @@ textarea {
   padding: 10px 0 12px 0;
   border-top: 1px solid var(--line);
   background: transparent;
-  contain: layout paint;
+  contain: layout paint style;
 }
 
 .node-group-inner {

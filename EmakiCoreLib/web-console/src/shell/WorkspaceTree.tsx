@@ -129,7 +129,7 @@ const TreeNodeView = memo(function TreeNodeView({ node, selected, expanded, dirt
   const rowClass = level > 1 ? 'tree-child-row' : 'tree-file-row';
   return (
     <div className={rowClass} role="none" style={indentStyle(level)}>
-      {level > 1 && <IndentGuide branch={isLast ? 'elbow' : 'tee'} />}
+      {level > 1 && hasSiblingBranch(node) && <IndentGuide branch={isLast ? 'elbow' : 'tee'} />}
       <button
         className={level > 1 ? `tree-child ${isGlob ? 'glob-node' : ''} ${active ? 'active' : ''} ${dirty ? 'dirty' : ''}` : `tree-file ${isGlob ? 'glob-node' : ''} ${active ? 'active' : ''} ${dirty ? 'dirty' : ''}`}
         role="treeitem"
@@ -268,6 +268,11 @@ function isEmptyGlobPlaceholder(node: RegistryTreeNode): boolean {
   return isGlobTreeNode(node) && !(node.children ?? []).length;
 }
 
+function hasSiblingBranch(node: RegistryTreeNode): boolean {
+  const parentChildren = (node as RegistryTreeNode & { parentChildren?: number }).parentChildren;
+  return typeof parentChildren === 'number' ? parentChildren > 1 : true;
+}
+
 function normalizeQuery(value: string): string {
   return value.trim().toLowerCase();
 }
@@ -348,7 +353,15 @@ function globChildrenToTree(moduleId: string, file: WebRegistryModule['files'][n
     }
     siblings.push({ id: `${file.id}:${childPath}`, label: leafFileName(childPath), type: 'child', moduleId, fileId: file.id, kind: file.kind, path: childPath, childPath });
   }
-  return roots;
+  return annotateSiblingCounts(roots);
+}
+
+function annotateSiblingCounts(nodes: RegistryTreeNode[]): RegistryTreeNode[] {
+  return nodes.map(node => ({
+    ...node,
+    parentChildren: nodes.length,
+    children: node.children ? annotateSiblingCounts(node.children) : undefined
+  } as RegistryTreeNode & { parentChildren: number }));
 }
 
 function normalizeGlobChildRelativePath(file: WebRegistryModule['files'][number], child: { relativePath: string; fullPath?: string }, childPath: string): string {
