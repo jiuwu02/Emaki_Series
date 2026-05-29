@@ -1,4 +1,4 @@
-import { getLocale, registerModuleLocale, registerPluginConfig, registerPluginGuiEditor, type ConfigMetaFieldEntry } from 'emaki-web-console';
+import { getLocale, registerModuleLocale, registerPluginConfig, registerPluginGuiEditor, standardCurrencyCostFields, standardMaterialCostFields, type ConfigMetaFieldEntry } from 'emaki-web-console';
 
 const STRENGTHEN_EFFECT_TYPES = ['variables', 'ea_attribute', 'es_skill'];
 
@@ -24,21 +24,27 @@ const effectFields = [
   { path: 'lore_actions', label: 'Lore 动作链', comment: 'Lore 动作对象列表。', type: 'objectList', defaultValue: [], itemFields: actionFields }
 ];
 
-const materialFields = [
-  { path: 'item_sources', label: '物品来源', comment: '强化材料的 ItemSource 列表。', type: 'stringList', defaultValue: ['minecraft-copper_ingot'] },
-  { path: 'amount', label: '数量', comment: '需要消耗的材料数量；-1 表示只检测不消耗。', type: 'number', defaultValue: 1 },
-  { path: 'optional', label: '可选', comment: '是否为可选材料。', type: 'boolean', defaultValue: false },
-  { path: 'protection', label: '保护材料', comment: '失败时提供保护效果的材料。', type: 'boolean', defaultValue: false },
-  { path: 'temper_boost', label: '锻印提升', comment: '放入后额外增加的锻印等级。', type: 'number', defaultValue: 0 }
-];
+const materialFields = standardMaterialCostFields({
+  overrides: {
+    item_sources: { label: '物品来源', comment: '强化材料的 ItemSource 列表。', defaultValue: ['minecraft-copper_ingot'] },
+    amount: { label: '数量', comment: '需要消耗的材料数量；-1 表示只检测不消耗。', defaultValue: 1 },
+    optional: { label: '可选', comment: '是否为可选材料。', defaultValue: false },
+    protection: { label: '保护材料', comment: '失败时提供保护效果的材料。', defaultValue: false }
+  },
+  insertAfter: {
+    protection: { path: 'temper_boost', label: '锻印提升', comment: '放入后额外增加的锻印等级。', type: 'number', defaultValue: 0 }
+  }
+});
 
-const currencyFields = [
-  { path: 'provider', label: '经济提供器', comment: '经济系统提供器，例如 vault。', type: 'text', defaultValue: 'vault' },
-  { path: 'currency_id', label: '货币 ID', comment: '多货币系统的货币标识；留空使用默认货币。', type: 'text', defaultValue: '' },
-  { path: 'base_cost', label: '基础费用', comment: '强化经济消耗的基础数值。', type: 'number', defaultValue: 0 },
-  { path: 'cost_formula', label: '费用公式', comment: '根据星级等变量计算最终费用的公式。', type: 'text', defaultValue: '' },
-  { path: 'display_name', label: '显示名称', comment: '货币在提示中的显示名称。', type: 'text', defaultValue: '' }
-];
+const currencyFields = standardCurrencyCostFields({
+  overrides: {
+    provider: { label: '经济提供器', comment: '经济系统提供器，例如 vault。', defaultValue: 'vault' },
+    currency_id: { label: '货币 ID', comment: '多货币系统的货币标识；留空使用默认货币。', defaultValue: '' },
+    base_cost: { label: '基础费用', comment: '强化经济消耗的基础数值。', defaultValue: 0 },
+    cost_formula: { label: '费用公式', comment: '根据星级等变量计算最终费用的公式。', defaultValue: '' },
+    display_name: { label: '显示名称', comment: '货币在提示中的显示名称。', defaultValue: '' }
+  }
+});
 
 const starStageFields = [
   { path: 'name', label: '阶段名称', comment: '该星级的里程碑名称，可留空。', type: 'text', defaultValue: '' },

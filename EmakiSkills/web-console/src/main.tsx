@@ -1,4 +1,4 @@
-import { getLocale, registerModuleLocale, registerPluginConfig, registerPluginGuiEditor } from 'emaki-web-console';
+import { getLocale, registerModuleLocale, registerPluginConfig, registerPluginGuiEditor, standardCurrencyCostFields, standardMaterialCostFields } from 'emaki-web-console';
 
 const MODULE = 'EmakiSkills';
 
@@ -6,20 +6,24 @@ type FieldSpec = [path: string, label: string, comment: string, type: string, ex
 
 const copy = (zh: string, en: string) => getLocale().startsWith('zh') ? zh : en;
 
-const materialFields = [
-  { path: 'item_sources', label: '物品来源', comment: '作为材料的 ItemSource 列表。', type: 'stringList', defaultValue: ['minecraft-iron_ingot'] },
-  { path: 'amount', label: '数量', comment: '此材料需要的数量。', type: 'number', defaultValue: 1 },
-  { path: 'optional', label: '可选', comment: '是否可选材料。', type: 'boolean', defaultValue: false },
-  { path: 'protection', label: '保护', comment: '是否受保护规则影响。', type: 'boolean', defaultValue: false }
-];
+const materialFields = standardMaterialCostFields({
+  overrides: {
+    item_sources: { label: '物品来源', comment: '作为材料的 ItemSource 列表。', defaultValue: ['minecraft-iron_ingot'] },
+    amount: { label: '数量', comment: '此材料需要的数量。', defaultValue: 1 },
+    optional: { label: '可选', comment: '是否可选材料。', defaultValue: false },
+    protection: { label: '保护', comment: '是否受保护规则影响。', defaultValue: false }
+  }
+});
 
-const currencyFields = [
-  { path: 'provider', label: '提供方', comment: '货币提供方或桥接器。', type: 'text', defaultValue: 'vault' },
-  { path: 'currency_id', label: '货币 ID', comment: '具体货币标识。', type: 'text', defaultValue: 'currency' },
-  { path: 'base_cost', label: '基础成本', comment: '未套公式时的基础数值。', type: 'number', defaultValue: 0 },
-  { path: 'cost_formula', label: '成本公式', comment: '按等级计算成本的公式。', type: 'text', defaultValue: '{base_cost}' },
-  { path: 'display_name', label: '显示名', comment: 'GUI 中显示的货币名称。', type: 'text', defaultValue: '' }
-];
+const currencyFields = standardCurrencyCostFields({
+  overrides: {
+    provider: { label: '提供方', comment: '货币提供方或桥接器。', defaultValue: 'vault' },
+    currency_id: { label: '货币 ID', comment: '具体货币标识。', defaultValue: 'currency' },
+    base_cost: { label: '基础成本', comment: '未套公式时的基础数值。', defaultValue: 0 },
+    cost_formula: { label: '成本公式', comment: '按等级计算成本的公式。', defaultValue: '{base_cost}' },
+    display_name: { label: '显示名', comment: 'GUI 中显示的货币名称。', defaultValue: '' }
+  }
+});
 
 const parameterFields = [
   { path: 'type', label: '类型', comment: '参数类型，例如 constant、expression、range、string、boolean、random_text。', type: 'text', defaultValue: 'constant' },

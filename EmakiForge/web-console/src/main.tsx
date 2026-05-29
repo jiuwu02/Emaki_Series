@@ -1,4 +1,4 @@
-import { getLocale, registerModuleLocale, registerPluginConfig, registerPluginGuiEditor } from 'emaki-web-console';
+import { getLocale, registerModuleLocale, registerPluginConfig, registerPluginGuiEditor, standardMaterialCostFields } from 'emaki-web-console';
 
 const MODULE = 'EmakiForge';
 type AnyMap = Record<string, unknown>;
@@ -27,13 +27,18 @@ const effectFields = [
   { path: 'amount', label: '容量加成别名', comment: '容量加成兼容字段；建议优先使用 value。', type: 'text', defaultValue: '1' }
 ];
 
-const materialFields = [
-  { path: 'item_sources', label: '物品来源', comment: '作为此材料匹配条件的 ItemSource 列表。', type: 'stringList', defaultValue: ['minecraft-iron_ingot'] },
-  { path: 'amount', label: '数量', comment: '此材料需要消耗的数量。', type: 'number', defaultValue: 1 },
-  { path: 'capacity_cost', label: '容量消耗', comment: '此材料占用的锻造容量。', type: 'number', defaultValue: 0 },
-  { path: 'optional', label: '可选', comment: '是否属于可选材料。', type: 'boolean', defaultValue: false },
-  { path: 'effects', label: '效果', comment: '此材料提供的效果对象列表。', type: 'objectList', defaultValue: [], itemFields: effectFields }
-];
+const materialFields = standardMaterialCostFields({
+  omit: ['protection'],
+  overrides: {
+    item_sources: { label: '物品来源', comment: '作为此材料匹配条件的 ItemSource 列表。', defaultValue: ['minecraft-iron_ingot'] },
+    amount: { label: '数量', comment: '此材料需要消耗的数量。', defaultValue: 1 },
+    optional: { label: '可选', comment: '是否属于可选材料。', defaultValue: false }
+  },
+  insertAfter: {
+    amount: { path: 'capacity_cost', label: '容量消耗', comment: '此材料占用的锻造容量。', type: 'number', defaultValue: 0 },
+    optional: { path: 'effects', label: '效果', comment: '此材料提供的效果对象列表。', type: 'objectList', defaultValue: [], itemFields: effectFields }
+  }
+});
 
 const blueprintFields = [
   { path: 'item_sources', label: '蓝图来源', comment: '作为锻造前置蓝图匹配条件的 ItemSource 列表。', type: 'stringList', defaultValue: ['minecraft-enchanted_book'] },

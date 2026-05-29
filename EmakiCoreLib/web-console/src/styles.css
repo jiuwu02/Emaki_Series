@@ -84,12 +84,19 @@
   --mini-token-line: oklch(32% 0.03 255);
   --hierarchy-indent-step: 14px;
   --hierarchy-guide-width: 16px;
+  --hierarchy-guide-height: 20px;
   --hierarchy-guide-color: color-mix(in oklch, var(--line-2) 72%, transparent);
+  --config-field-rhythm: 36px;
+  --config-field-control-height: calc(var(--config-field-rhythm) - 6px);
+  --config-field-padding-y: calc((var(--config-field-rhythm) - var(--config-field-control-height)) / 2);
+  --config-field-body-padding-y: calc(var(--config-field-padding-y) - 1px);
+  --config-field-text-line-height: 1.22;
+  --config-field-guide-height: calc(var(--config-field-rhythm) - 10px);
 }
 
 .indent-guide {
   width: var(--hierarchy-guide-width);
-  height: 20px;
+  height: var(--hierarchy-guide-height);
   flex: 0 0 var(--hierarchy-guide-width);
   color: var(--hierarchy-guide-color);
   overflow: visible;
@@ -192,9 +199,19 @@
   margin: 0;
 }
 
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
 body {
   min-height: 100vh;
   background: var(--bg);
+  line-height: 1.2;
 }
 
 button,
@@ -268,6 +285,7 @@ select {
   width: 100%;
   color: var(--text);
   font-size: 12px;
+  line-height: 1.2;
   transition: border-color 0.15s ease, background 0.15s ease;
 }
 
@@ -282,7 +300,7 @@ textarea {
   resize: vertical;
   font-family: ui-monospace, "Cascadia Code", monospace;
   font-size: 12px;
-  line-height: 1.5;
+  line-height: 1.34;
 }
 
 .ui-actions {
@@ -497,9 +515,14 @@ textarea {
 }
 
 .workbench {
+  width: 100vw;
+  max-width: 100vw;
   height: 100vh;
+  min-width: 0;
+  min-height: 0;
   display: grid;
   grid-template-columns: var(--rail-width, 272px) minmax(0, 1fr);
+  overflow: hidden;
 }
 
 .toast {
@@ -781,13 +804,36 @@ textarea {
 .tree {
   overflow-y: auto;
   overflow-x: hidden;
-  flex: 1;
+  flex: 1 1 0;
+  min-height: 0;
   font-size: 13px;
   scrollbar-width: none;
+  position: relative;
+  contain: layout paint;
 }
 
 .tree::-webkit-scrollbar {
   display: none;
+}
+
+.tree-virtual-spacer {
+  position: relative;
+  min-width: 0;
+}
+
+.tree-virtual-list {
+  position: absolute;
+  inset: 0 0 auto 0;
+  min-width: 0;
+}
+
+.tree-virtual-row {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 30px;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .tree-module {
@@ -798,6 +844,8 @@ textarea {
   display: flex;
   align-items: center;
   gap: 4px;
+  height: 30px;
+  min-width: 0;
 }
 
 .tree-module-row .tree-folder {
@@ -810,7 +858,8 @@ textarea {
   align-items: center;
   gap: 7px;
   text-align: left;
-  padding: 6px 8px;
+  padding: 5px 8px;
+  min-height: 28px;
   color: var(--muted);
   border-radius: 6px;
   font-weight: 600;
@@ -829,6 +878,7 @@ textarea {
 .tree-file {
   width: 100%;
   margin-left: 0;
+  min-height: 28px;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -889,7 +939,7 @@ textarea {
   border-radius: 6px;
   background: var(--surface);
   color: var(--muted);
-  line-height: 1.45;
+  line-height: 1.3;
 }
 
 .tree-file-folder {
@@ -903,7 +953,9 @@ textarea {
   align-items: center;
   gap: 4px;
   min-width: 0;
+  height: 30px;
   padding-left: calc(var(--tree-level) * var(--hierarchy-indent-step));
+  box-sizing: border-box;
 }
 
 .tree-file-row .indent-guide,
@@ -1160,11 +1212,17 @@ textarea {
 }
 
 .stage {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 0;
   padding: 0;
   overflow-y: auto;
   overflow-x: hidden;
   scrollbar-width: thin;
-  min-width: 0;
+  scrollbar-gutter: stable;
+  background: var(--surface);
+  line-height: 1.2;
 }
 
 .stage-head {
@@ -1172,7 +1230,7 @@ textarea {
   align-items: center;
   justify-content: space-between;
   gap: 18px;
-  padding: 14px 18px;
+  padding: 11px 18px 11px 18px;
   border-bottom: 1px solid var(--line);
 }
 
@@ -1188,23 +1246,25 @@ textarea {
 .editor-chrome-title p {
   color: var(--faint);
   font-size: 12px;
-  margin-top: 4px;
+  line-height: 1.18;
+  margin-top: 2px;
 }
 
 .surface-summary {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 14px;
-  padding: 12px 18px 10px;
+  gap: 18px;
+  padding: 10px 18px;
   border-bottom: 1px solid var(--line);
-  background: color-mix(in oklch, var(--surface) 90%, var(--input) 10%);
+  background: color-mix(in oklch, var(--surface) 88%, var(--input) 12%);
 }
+
 
 .surface-summary-copy {
   min-width: 0;
   display: grid;
-  gap: 4px;
+  gap: 2px;
 }
 
 .surface-summary-copy strong {
@@ -1216,10 +1276,10 @@ textarea {
 
 .surface-summary-copy p {
   margin: 0;
-  max-width: 72ch;
+  max-width: 58ch;
   color: var(--muted);
   font-size: 12px;
-  line-height: 1.45;
+  line-height: 1.18;
 }
 
 .surface-summary-copy code {
@@ -1287,7 +1347,7 @@ textarea {
   margin: 0;
   color: var(--faint);
   font-size: 11px;
-  line-height: 1.45;
+  line-height: 1.3;
 }
 
 .extension-health-meta {
@@ -1437,17 +1497,24 @@ textarea {
   background: var(--surface);
 }
 
+.config-surface input,
+.config-surface select,
+.config-surface textarea {
+  min-height: var(--config-field-control-height);
+  line-height: var(--config-field-text-line-height);
+}
+
 .config-preview-zone {
   display: grid;
-  gap: 10px;
-  padding: 12px 14px;
+  gap: 7px;
+  padding: 9px 18px 9px 14px;
   border-bottom: 1px solid var(--line);
   background: var(--surface);
 }
 
 .config-preview-shell {
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .config-preview-head {
@@ -1455,7 +1522,7 @@ textarea {
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  padding-bottom: 8px;
+  padding-bottom: 6px;
   border-bottom: 1px solid var(--line);
 }
 
@@ -1468,10 +1535,11 @@ textarea {
 }
 
 .config-preview-head p {
-  margin: 3px 0 0;
+  margin: 1px 0 0;
+  max-width: 58ch;
   color: var(--faint);
   font-size: 11px;
-  line-height: 1.45;
+  line-height: 1.18;
 }
 
 .config-preview-head code,
@@ -1579,7 +1647,7 @@ textarea {
   color: var(--text);
   font-family: ui-monospace, "Cascadia Code", monospace;
   font-size: 11px;
-  line-height: 1.45;
+  line-height: 1.3;
 }
 
 .config-preview-tooltip-name {
@@ -1884,7 +1952,7 @@ textarea {
   color: var(--muted);
   font-family: ui-monospace, "Cascadia Code", monospace;
   font-size: 12px;
-  line-height: 1.55;
+  line-height: 1.42;
 }
 
 .code-editor .cm-editor.cm-focused {
@@ -1955,7 +2023,7 @@ textarea {
 
 .node-grid {
   display: grid;
-  padding: 0 16px 16px;
+  padding: 0 18px 14px 14px;
 }
 
 .node,
@@ -1971,14 +2039,15 @@ textarea {
 .node {
   position: relative;
   display: grid;
-  grid-template-columns: var(--hierarchy-guide-width) minmax(0, 1fr) minmax(200px, 420px);
-  column-gap: 8px;
+  grid-template-columns: var(--hierarchy-guide-width) minmax(0, 1fr) minmax(180px, 384px);
+  column-gap: 6px;
   row-gap: 0;
   align-items: center;
-  padding: 5px 0;
+  min-height: var(--config-field-rhythm);
+  padding: var(--config-field-padding-y) 0;
   content-visibility: auto;
   contain: layout paint style;
-  contain-intrinsic-size: auto 32px;
+  contain-intrinsic-size: auto var(--config-field-rhythm);
 }
 
 .node.node-wide {
@@ -1997,6 +2066,7 @@ textarea {
 .node > .indent-guide {
   grid-column: 1;
   grid-row: 1;
+  height: var(--config-field-guide-height);
   align-self: center;
 }
 
@@ -2055,17 +2125,20 @@ textarea {
 .node-group {
   display: flex;
   align-items: baseline;
-  gap: 10px;
-  padding: 7px 0;
+  gap: 8px;
+  min-height: var(--config-field-rhythm);
+  padding: var(--config-field-padding-y) 0;
   color: var(--muted);
 }
 
 .node-group strong {
   font-size: 12px;
+  line-height: var(--config-field-text-line-height);
 }
 
 .node-group code {
   font-size: 11px;
+  line-height: var(--config-field-text-line-height);
   color: var(--faint);
   font-family: ui-monospace, "Cascadia Code", monospace;
 }
@@ -2074,13 +2147,14 @@ textarea {
   margin-left: auto;
   color: var(--faint);
   font-size: 12px;
+  line-height: var(--config-field-text-line-height);
 }
 
 .node-meta {
   min-width: 0;
   display: flex;
   align-items: baseline;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: nowrap;
 }
 
@@ -2088,6 +2162,7 @@ textarea {
   flex: 0 0 auto;
   font-size: 12px;
   font-weight: 650;
+  line-height: var(--config-field-text-line-height);
   white-space: nowrap;
 }
 
@@ -2096,17 +2171,22 @@ textarea {
   color: var(--faint);
   font-family: ui-monospace, "Cascadia Code", monospace;
   font-size: 11px;
+  line-height: var(--config-field-text-line-height);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .node-meta p {
-  flex: 1 1 100%;
-  margin-top: 2px;
+  flex: 0 1 auto;
+  max-width: min(46ch, 34vw);
+  margin-top: 0;
   color: var(--faint);
   font-size: 11px;
-  line-height: 1.4;
+  line-height: var(--config-field-text-line-height);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .node-control {
@@ -2114,7 +2194,8 @@ textarea {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 8px;
+  gap: 6px;
+  padding-right: 0;
 }
 
 /* Collapsible section groups */
@@ -2175,6 +2256,7 @@ textarea {
 
 .node-section-header > .indent-guide {
   grid-column: 1;
+  height: var(--config-field-guide-height);
   align-self: center;
 }
 
@@ -2183,9 +2265,10 @@ textarea {
   display: grid;
   grid-template-columns: 14px auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
   grid-column: 1 / 3;
-  padding: 6px 0 6px 0;
+  min-height: var(--config-field-rhythm);
+  padding: var(--config-field-padding-y) 0;
   text-align: left;
   border: 0;
   background: transparent;
@@ -2222,12 +2305,14 @@ textarea {
   color: var(--muted);
   font-size: 11px;
   font-weight: 700;
+  line-height: var(--config-field-text-line-height);
 }
 
 .node-section-header code {
   min-width: 0;
   color: var(--accent);
-  font: 500 11px/1.4 ui-monospace, "Cascadia Code", monospace;
+  font: 500 11px ui-monospace, "Cascadia Code", monospace;
+  line-height: var(--config-field-text-line-height);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2243,6 +2328,7 @@ textarea {
   margin-right: 8px;
   color: var(--faint);
   font-size: 10px;
+  line-height: var(--config-field-text-line-height);
   white-space: nowrap;
 }
 
@@ -2287,6 +2373,13 @@ textarea {
   outline: none;
 }
 
+.node-section-create,
+.node-section-delete,
+.object-list-remove {
+  min-height: var(--config-field-control-height);
+  line-height: var(--config-field-text-line-height);
+}
+
 .section-badge {
   display: inline-block;
   background: var(--changed-soft);
@@ -2300,7 +2393,7 @@ textarea {
 .node-section-body {
   display: grid;
   gap: 0;
-  padding: 5px 0 6px 0;
+  padding: var(--config-field-body-padding-y) 0;
   border-top: 1px solid var(--line);
   background: transparent;
   contain: layout paint style;
@@ -2326,7 +2419,7 @@ textarea {
 }
 
 .node-section--nested > .node-section-body {
-  padding: 5px 0 6px 0;
+  padding: var(--config-field-body-padding-y) 0;
   border-top: 1px solid var(--line);
   background: transparent;
   contain: layout paint style;
@@ -2335,8 +2428,9 @@ textarea {
 .node-group-inner {
   display: flex;
   align-items: baseline;
-  gap: 8px;
-  padding: 5px 0 5px 12px;
+  gap: 7px;
+  min-height: var(--config-field-rhythm);
+  padding: var(--config-field-padding-y) 0 var(--config-field-padding-y) 12px;
   color: var(--muted);
   font-size: 11px;
 }
@@ -2364,18 +2458,20 @@ textarea {
   --switch-chip: color-mix(in oklch, var(--surface-3) 64%, var(--input) 36%);
   --switch-mark: var(--faint);
   min-width: 68px;
+  min-height: var(--config-field-control-height);
   display: inline-flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
   border: 1px solid var(--switch-line);
   border-radius: 7px;
-  padding: 4px 7px 4px 5px;
+  padding: 3px 7px 3px 5px;
   color: var(--switch-ink);
   background: var(--switch-fill);
   box-shadow: inset 0 1px 0 color-mix(in oklch, var(--surface-3) 72%, transparent);
   font-size: 12px;
   font-weight: 650;
+  line-height: var(--config-field-text-line-height);
   transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), color 0.18s ease, border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
 }
 
@@ -2441,19 +2537,23 @@ textarea {
 .list-editor {
   width: 100%;
   display: grid;
-  gap: 6px;
+  gap: var(--config-field-body-padding-y);
 }
 
 .list-row {
   display: grid;
   grid-template-columns: 1fr 52px;
   gap: 6px;
+  min-height: var(--config-field-rhythm);
+  align-items: center;
 }
 
 .list-row button {
+  min-height: var(--config-field-control-height);
   color: var(--red);
   border-radius: 6px;
   font-size: 12px;
+  line-height: var(--config-field-text-line-height);
 }
 
 .list-row button:hover {
@@ -2463,7 +2563,23 @@ textarea {
 .object-list-editor {
   width: 100%;
   display: grid;
-  gap: 10px;
+  gap: 8px;
+}
+
+.object-list-scale-hint {
+  padding: 6px 8px;
+  border: 1px dashed var(--line);
+  border-radius: 6px;
+  background: var(--input);
+  color: var(--faint);
+  font-size: 11px;
+  line-height: var(--config-field-text-line-height);
+}
+
+.object-list-editor--large .object-list-entry.collapsed {
+  content-visibility: auto;
+  contain: layout paint style;
+  contain-intrinsic-size: auto calc(var(--config-field-rhythm) + 1px);
 }
 
 .object-list-entry {
@@ -2483,7 +2599,8 @@ textarea {
   grid-template-columns: 18px auto minmax(0, 1fr);
   align-items: center;
   gap: 8px;
-  padding: 9px 10px;
+  min-height: var(--config-field-rhythm);
+  padding: var(--config-field-padding-y) 10px;
   border: 1px solid var(--line);
   border-radius: 6px;
   color: var(--muted);
@@ -2498,6 +2615,7 @@ textarea {
 
 .object-list-empty strong {
   font-size: 11px;
+  line-height: var(--config-field-text-line-height);
   color: var(--text);
 }
 
@@ -2505,6 +2623,7 @@ textarea {
   min-width: 0;
   color: var(--faint);
   font-size: 11px;
+  line-height: var(--config-field-text-line-height);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2557,7 +2676,8 @@ textarea {
   grid-template-columns: 18px auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 8px;
-  padding: 8px 0 8px 10px;
+  min-height: var(--config-field-rhythm);
+  padding: var(--config-field-padding-y) 0 var(--config-field-padding-y) 10px;
   color: var(--text);
   border: 0;
   background: transparent;
@@ -2582,12 +2702,14 @@ textarea {
   color: var(--muted);
   font-size: 11px;
   font-weight: 700;
+  line-height: var(--config-field-text-line-height);
 }
 
 .object-list-head code {
   min-width: 0;
   color: var(--accent);
-  font: 500 11px/1.4 ui-monospace, "Cascadia Code", monospace;
+  font: 500 11px ui-monospace, "Cascadia Code", monospace;
+  line-height: var(--config-field-text-line-height);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2623,8 +2745,8 @@ textarea {
 
 .object-list-fields {
   display: grid;
-  gap: 7px;
-  padding: 10px 0 12px 26px;
+  gap: var(--config-field-body-padding-y);
+  padding: calc(var(--config-field-padding-y) * 2) 0 calc(var(--config-field-padding-y) * 2 + 1px) 26px;
   border-top: 1px solid var(--line);
   background: transparent;
   animation: prop-block-in 0.14s cubic-bezier(0.16, 1, 0.3, 1);
@@ -2635,17 +2757,19 @@ textarea {
   grid-template-columns: minmax(112px, 14ch) minmax(0, 1fr);
   gap: 10px;
   align-items: center;
+  min-height: var(--config-field-rhythm);
 }
 
 .object-list-field--wide {
   grid-template-columns: minmax(0, 1fr);
   align-items: start;
-  gap: 5px;
+  gap: var(--config-field-body-padding-y);
 }
 
 .object-list-field label {
   color: var(--faint);
   font-size: 11px;
+  line-height: var(--config-field-text-line-height);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2667,6 +2791,7 @@ textarea {
 .object-value-preview {
   justify-self: stretch;
   width: 100%;
+  min-height: var(--config-field-control-height);
   display: inline-flex;
   align-items: center;
   justify-content: space-between;
@@ -2683,11 +2808,13 @@ textarea {
   color: var(--accent);
   font-family: ui-monospace, "Cascadia Code", monospace;
   font-size: 11px;
+  line-height: var(--config-field-text-line-height);
 }
 
 .object-value-preview span {
   color: var(--faint);
   font-size: 11px;
+  line-height: var(--config-field-text-line-height);
 }
 
 .object-list-field .prop-kv {
@@ -2709,7 +2836,7 @@ textarea {
 .dynamic-map-editor {
   width: 100%;
   display: grid;
-  gap: 12px;
+  gap: calc(var(--config-field-body-padding-y) * 2);
 }
 
 .dmap-entry {
@@ -2744,25 +2871,31 @@ textarea {
 }
 
 .dmap-list {
-  padding: 8px 10px;
+  padding: calc(var(--config-field-padding-y) * 2) 10px;
   display: grid;
-  gap: 5px;
+  gap: var(--config-field-body-padding-y);
 }
 
 .dmap-row {
   display: grid;
   grid-template-columns: 1fr 48px;
   gap: 6px;
+  min-height: var(--config-field-rhythm);
+  align-items: center;
 }
 
 .dmap-row input {
+  min-height: var(--config-field-control-height);
   font-size: 12px;
+  line-height: var(--config-field-text-line-height);
   padding: 5px 7px;
 }
 
 .dmap-row button {
+  min-height: var(--config-field-control-height);
   color: var(--red);
   font-size: 11px;
+  line-height: var(--config-field-text-line-height);
   border-radius: 4px;
 }
 
@@ -2774,17 +2907,22 @@ textarea {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 8px;
+  min-height: var(--config-field-rhythm);
   align-items: center;
 }
 
 .dmap-add input {
+  min-height: var(--config-field-control-height);
   font-size: 12px;
+  line-height: var(--config-field-text-line-height);
   padding: 6px 8px;
 }
 
 .dmap-add button {
+  min-height: var(--config-field-control-height);
   padding: 6px 10px;
   font-size: 12px;
+  line-height: var(--config-field-text-line-height);
   color: var(--accent);
   border: 1px solid var(--line);
   border-radius: 6px;
@@ -2816,7 +2954,7 @@ textarea {
   max-height: 420px;
   font-family: ui-monospace, "Cascadia Code", monospace;
   font-size: 12px;
-  line-height: 1.55;
+  line-height: 1.42;
   color: var(--muted);
 }
 
@@ -3007,7 +3145,7 @@ textarea {
 
 .script-code-editor .cm-editor {
   min-height: 520px;
-  line-height: 1.5;
+  line-height: 1.34;
 }
 
 /* Syntax highlighting */
@@ -3247,7 +3385,7 @@ textarea {
   padding: 14px 18px;
   color: var(--muted);
   font-size: 13px;
-  line-height: 1.55;
+  line-height: 1.42;
 }
 
 .reload-confirm-body code {
@@ -3346,7 +3484,7 @@ textarea {
   color: var(--muted);
   font-family: ui-monospace, "Cascadia Code", monospace;
   font-size: 12px;
-  line-height: 1.55;
+  line-height: 1.42;
 }
 
 .gui-workbench {
@@ -3671,7 +3809,7 @@ textarea {
   min-height: 52px;
   font-family: ui-monospace, "Cascadia Code", monospace;
   font-size: 11px;
-  line-height: 1.5;
+  line-height: 1.34;
   resize: vertical;
 }
 
@@ -3878,7 +4016,7 @@ textarea {
 .muted-copy {
   color: var(--faint);
   font-size: 12px;
-  line-height: 1.5;
+  line-height: 1.34;
 }
 
 /* ─── Overlay Slot Inspector ─── */
@@ -4253,7 +4391,7 @@ textarea {
   resize: vertical;
   font-family: ui-monospace, "Cascadia Code", monospace;
   font-size: 12px;
-  line-height: 1.55;
+  line-height: 1.42;
   background: var(--input);
   color: var(--muted);
 }
@@ -4377,7 +4515,7 @@ textarea {
   border-radius: 6px;
   background: var(--danger-soft);
   padding: 8px;
-  line-height: 1.45;
+  line-height: 1.3;
 }
 
 .ie-level-panel {
@@ -4437,7 +4575,7 @@ textarea {
 .ie-level-empty {
   color: var(--faint);
   font-size: 10px;
-  line-height: 1.45;
+  line-height: 1.3;
 }
 
 .ie-preview-compare {
@@ -4785,7 +4923,7 @@ textarea {
   min-height: 52px;
   font-family: ui-monospace, "Cascadia Code", monospace;
   font-size: 11px;
-  line-height: 1.5;
+  line-height: 1.34;
   resize: vertical;
 }
 
@@ -5375,7 +5513,7 @@ textarea {
   min-height: 32px;
   resize: vertical;
   font-size: 12px;
-  line-height: 1.45;
+  line-height: 1.3;
 }
 
 .i18n-row-delete {

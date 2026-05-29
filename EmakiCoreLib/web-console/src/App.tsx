@@ -51,6 +51,14 @@ const COLOR_THEMES: { id: ColorTheme; labelKey: string }[] = [
   { id: 'light', labelKey: 'core.theme.light' }
 ];
 const LOCALE_LABELS: Record<string, string> = { 'zh-CN': '简体中文', zh_CN: '简体中文', 'en-US': 'English', en_US: 'English' };
+const CONFIG_INITIAL_GROUPS = 10;
+const CONFIG_GROUP_BATCH_SIZE = 12;
+const CONFIG_SECTION_INITIAL_GROUPS = 8;
+const CONFIG_SECTION_GROUP_BATCH_SIZE = 10;
+const CONFIG_LAZY_SECTION_THRESHOLD = 10;
+const OBJECT_LIST_COLLAPSE_THRESHOLD = 12;
+const OBJECT_LIST_INITIAL_ROWS = 30;
+const OBJECT_LIST_ROW_BATCH_SIZE = 30;
 
 export default function App() {
   const [token, setToken] = useState(() => sessionStorage.getItem('emaki-web-token'));
@@ -719,8 +727,10 @@ function ConfigStructuredSurface({ module, file, drafts, draftHistory, setDraftV
 }
 
 function DeferredConfigPreviewZone(props: { module: WebRegistryModule; file: WebRegistryFile; path: string; childPath?: string; nodes: WebConfigNode[]; scope: ConfigDraftScope; drafts: DraftMap; source: ConfigSourceDocument; api: ApiClient }) {
+  const ready = useIdleReady([props.module.id, props.file.id, props.path, props.childPath, props.source.loading, props.source.error], 140);
   const deferredDrafts = useDebouncedValue(props.drafts, 140);
   const deferredNodes = useDeferredValue(props.nodes);
+  if (!ready) return null;
   return <ConfigPreviewZone {...props} drafts={deferredDrafts} nodes={deferredNodes} />;
 }
 
@@ -1229,6 +1239,54 @@ function useDebouncedValue<T>(value: T, delay: number): T {
   return debounced;
 }
 
+function useProgressiveCount(total: number, initial: number, batch: number, deps: React.DependencyList): number {
+  const [count, setCount] = useState(() => Math.min(total, initial));
+  useEffect(() => {
+    let cancelled = false;
+    setCount(Math.min(total, initial));
+    if (total <= initial) return;
+    const schedule = typeof window.requestAnimationFrame === 'function'
+      ? (callback: () => void) => window.requestAnimationFrame(callback)
+      : (callback: () => void) => window.setTimeout(callback, 16);
+    const cancel = typeof window.cancelAnimationFrame === 'function'
+      ? (id: number) => window.cancelAnimationFrame(id)
+      : (id: number) => window.clearTimeout(id);
+    let handle = 0;
+    const step = () => {
+      if (cancelled) return;
+      setCount(current => {
+        const next = Math.min(total, current + batch);
+        if (next < total) handle = schedule(step);
+        return next;
+      });
+    };
+    handle = schedule(step);
+    return () => {
+      cancelled = true;
+      if (handle) cancel(handle);
+    };
+  }, [total, initial, batch, ...deps]);
+  return Math.min(Math.max(count, Math.min(total, initial)), total);
+}
+
+function useIdleReady(deps: React.DependencyList, delay = 120): boolean {
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    setReady(false);
+    let cancelled = false;
+    const win = window as Window & { requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number; cancelIdleCallback?: (id: number) => void };
+    const handle = win.requestIdleCallback
+      ? win.requestIdleCallback(() => { if (!cancelled) setReady(true); }, { timeout: delay + 180 })
+      : window.setTimeout(() => { if (!cancelled) setReady(true); }, delay);
+    return () => {
+      cancelled = true;
+      if (win.cancelIdleCallback && typeof handle === 'number') win.cancelIdleCallback(handle);
+      else window.clearTimeout(handle);
+    };
+  }, deps);
+  return ready;
+}
+
 function configPreviewData(sourceContent: string, nodes: WebConfigNode[], scope: ConfigDraftScope, drafts: DraftMap): Record<string, unknown> {
   const parsed = parseSafeYaml(sourceContent || '{}');
   let data: Record<string, unknown> = parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
@@ -1295,10 +1353,12 @@ const ConfigNodeTree = memo(function ConfigNodeTree({ scope, nodes, drafts, setD
   const scopeDraftKey = useMemo(() => draftSignatureForScope(drafts, scope), [drafts, scope.moduleId, scope.fileId, scope.filePath]);
   const changeState = useMemo(() => buildNodeChangeState(scope, nodes, drafts, sourceEdit?.paths, deletedPaths), [scope.moduleId, scope.fileId, scope.filePath, nodes, scopeDraftKey, sourceEdit?.paths, deletedPaths]);
   const groups = nodeIndex.groupsByParent.get('') ?? [];
+  const visibleCount = useProgressiveCount(groups.length, CONFIG_INITIAL_GROUPS, CONFIG_GROUP_BATCH_SIZE, [scope.moduleId, scope.fileId, scope.filePath, groups.length]);
+  const visibleGroups = groups.slice(0, visibleCount);
 
   if (!nodes.length) return <div className="script-placeholder" role="status">{t('core.empty.noConfigNodes')}</div>;
 
-  return <div className="node-grid">{groups.map((group, index) => {
+  return <div className="node-grid">{visibleGroups.map((group, index) => {
     if (group.type === 'leaf') {
       return <ConfigNodeView key={group.node.path} scope={scope} node={group.node} drafts={drafts} setDraftValue={setDraftValue} sourceEdit={sourceEdit} changed={changeState.changedPaths.has(group.node.path)} deletable={false} onDeleteObject={onDeleteObject} />;
     }
@@ -1370,13 +1430,16 @@ function configAncestorPaths(path: string): string[] {
 }
 
 const ConfigNodeSection = memo(function ConfigNodeSection({ scope, node, nodeIndex, changeState, drafts, setDraftValue, onCreateChild, onDeleteObject, sourceEdit, deletable, depth = 0, isLast = true, branch }: { scope: ConfigDraftScope; node: WebConfigNode; nodeIndex: ConfigNodeIndex; changeState: ConfigNodeChangeState; drafts: DraftMap; setDraftValue: DraftValueSetter; onCreateChild: (node: WebConfigNode) => void; onDeleteObject: (node: WebConfigNode) => void; sourceEdit?: SourceEditController; deletable: boolean; depth?: number; isLast?: boolean; branch?: 'tee' | 'elbow' }) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const [shouldRenderBody, setShouldRenderBody] = useState(true);
-  const bodyTimer = useRef<number | null>(null);
   const groups = nodeIndex.groupsByParent.get(node.path) ?? [];
-  const hasSiblingBranches = groups.length > 1;
   const sectionChanged = changeState.changedPaths.has(node.path);
   const changedInGroup = changeState.descendantCounts.get(node.path) ?? 0;
+  const lazyInitial = depth > 0 && groups.length >= CONFIG_LAZY_SECTION_THRESHOLD && changedInGroup === 0 && !sectionChanged;
+  const [isCollapsed, setIsCollapsed] = useState(lazyInitial);
+  const [shouldRenderBody, setShouldRenderBody] = useState(!lazyInitial);
+  const bodyTimer = useRef<number | null>(null);
+  const visibleCount = useProgressiveCount(shouldRenderBody && !isCollapsed ? groups.length : 0, CONFIG_SECTION_INITIAL_GROUPS, CONFIG_SECTION_GROUP_BATCH_SIZE, [scope.moduleId, scope.fileId, scope.filePath, node.path, shouldRenderBody, isCollapsed, groups.length]);
+  const visibleGroups = groups.slice(0, visibleCount);
+  const hasSiblingBranches = groups.length > 1;
   const groupLabel = configNodeDisplayLabel(scope, node);
 
   useEffect(() => () => {
@@ -1415,11 +1478,12 @@ const ConfigNodeSection = memo(function ConfigNodeSection({ scope, node, nodeInd
       </div>
       <span className="section-meta">{(sectionChanged || changedInGroup > 0) && <span className="section-badge">{Math.max(changedInGroup, sectionChanged ? 1 : 0)}</span>}{t('core.config.groupItems', { count: groups.length })}</span>
     </div>
-    {shouldRenderBody && <div className="node-section-body" hidden={isCollapsed}>{groups.map((group, index) => {
-      const branch = index === groups.length - 1 ? 'elbow' : 'tee';
+    {shouldRenderBody && <div className="node-section-body" hidden={isCollapsed}>{visibleGroups.map((group, index) => {
+      const absoluteIndex = index;
+      const branch = absoluteIndex === groups.length - 1 ? 'elbow' : 'tee';
       return <div className="node-section-child" key={group.node.path} style={{ '--config-child-depth': depth + 1 } as CSSProperties}>
         {group.type === 'section'
-          ? <ConfigNodeSection scope={scope} node={group.node} nodeIndex={nodeIndex} changeState={changeState} drafts={drafts} setDraftValue={setDraftValue} onCreateChild={onCreateChild} onDeleteObject={onDeleteObject} sourceEdit={sourceEdit} deletable={node.creatableChildren === true} depth={depth + 1} isLast={index === groups.length - 1} branch={hasSiblingBranches ? branch : undefined} />
+          ? <ConfigNodeSection scope={scope} node={group.node} nodeIndex={nodeIndex} changeState={changeState} drafts={drafts} setDraftValue={setDraftValue} onCreateChild={onCreateChild} onDeleteObject={onDeleteObject} sourceEdit={sourceEdit} deletable={node.creatableChildren === true} depth={depth + 1} isLast={absoluteIndex === groups.length - 1} branch={hasSiblingBranches ? branch : undefined} />
           : <ConfigNodeView scope={scope} node={group.node} drafts={drafts} setDraftValue={setDraftValue} sourceEdit={sourceEdit} changed={changeState.changedPaths.has(group.node.path)} deletable={node.creatableChildren === true} onDeleteObject={onDeleteObject} branch={hasSiblingBranches ? branch : undefined} />}
       </div>;
     })}</div>}
@@ -1560,8 +1624,11 @@ function ObjectListEditor({ node, items, setValue, moduleId, compact = false }: 
   const objectItems: Record<string, unknown>[] = items.map(item => isPlainObject(item) ? item : {});
   const stableRef = useStableEntries(objectItems);
   const stable = stableRef.current;
-  const [collapsed, setCollapsed] = useState<Set<number>>(() => new Set());
+  const largeList = stable.length >= OBJECT_LIST_COLLAPSE_THRESHOLD;
+  const [collapsed, setCollapsed] = useState<Set<number>>(() => largeList ? new Set(stable.map(entry => entry._id)) : new Set());
   const [emptyExpanded, setEmptyExpanded] = useState(false);
+  const visibleCount = useProgressiveCount(stable.length, OBJECT_LIST_INITIAL_ROWS, OBJECT_LIST_ROW_BATCH_SIZE, [node.path, stable.length]);
+  const visibleStable = stable.slice(0, visibleCount);
   const keys = objectListKeys(node, objectItems);
   const duplicateValues = duplicateUniqueValues(node, objectItems);
 
@@ -1598,8 +1665,9 @@ function ObjectListEditor({ node, items, setValue, moduleId, compact = false }: 
     {!emptyExpanded && <button type="button" className="add-row" onClick={addEntry}>{t('core.config.addItem')}</button>}
   </div>;
 
-  return <div className={`object-list-editor${compact ? ' object-list-editor--compact' : ''}`}>
-    {stable.map((entry, index) => {
+  return <div className={`object-list-editor${compact ? ' object-list-editor--compact' : ''}${largeList ? ' object-list-editor--large' : ''}`}>
+    {largeList && <div className="object-list-scale-hint">{configInlineText(`大型列表：已默认折叠 ${stable.length} 项，展开单项后编辑。`, `Large list: ${stable.length} items are collapsed by default. Expand one item to edit.`)}</div>}
+    {visibleStable.map((entry, index) => {
       const item = entry.data;
       const rowId = entry._id;
       const expanded = !collapsed.has(rowId);

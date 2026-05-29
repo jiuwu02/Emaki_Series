@@ -7,5 +7,6 @@ export { EMAKI_WEB_CONSOLE_API_VERSION, registerSurface, getSurface, getAllSurfa
 export * from './components';
 export * from './lib';
 export * from './i18n';
+export * from './economyConfig';
 export type { ApiClient, ActionTypesResult, EconomyProvidersResult, RegistryFileNodesResult, RegistrySaveResult } from './api';
 export type { ItemPreviewResult, WebEditorDescriptor, WebEditorField, WebRegistry, WebRegistryFile, WebRegistryModule } from './types';

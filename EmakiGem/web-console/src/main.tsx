@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ActionsEditor, PropRow, SectionHead, StringListEditor, asList, asRecord, asStringList, coreEffectTypeLabel, createCoreEffect, fieldLabel, firstItemSource, getLocale, humanizeFieldLabel, materialFromItemSource, registerConfigCreateTemplate, registerConfigMetaFields, registerConfigRuleFields, registerEditorDescriptor, registerEditorField, registerItemFieldRenderer, registerItemPreviewFallback, registerModuleLocale, registerPluginConfig, registerPluginGuiEditor, serializeActionList, parseActionList, textValue, type AnyMap, type CoreEffectType, type ItemFieldRendererContext, type ItemPreviewResult } from 'emaki-web-console';
+import { ActionsEditor, PropRow, SectionHead, StringListEditor, asList, asRecord, asStringList, coreEffectTypeLabel, createCoreEffect, fieldLabel, firstItemSource, getLocale, humanizeFieldLabel, materialFromItemSource, registerConfigCreateTemplate, registerConfigMetaFields, registerConfigRuleFields, registerEditorDescriptor, registerEditorField, registerItemFieldRenderer, registerItemPreviewFallback, registerModuleLocale, registerPluginConfig, registerPluginGuiEditor, serializeActionList, parseActionList, standardEconomyRuleFields, textValue, type AnyMap, type ConfigRuleFieldEntry, type CoreEffectType, type ItemFieldRendererContext, type ItemPreviewResult } from 'emaki-web-console';
 
 registerModuleLocale('EmakiGem', 'zh-CN', {
   'emakigem.module.name': 'Gem',
@@ -267,19 +267,24 @@ const resonanceFields: ConfigSpec[] = [
   ['effects.lore_actions', 'Lore 动作链', '共鸣对物品 Lore 执行的动作。', 'objectList']
 ];
 
-const dynamicFields: Record<string, [string, string, string]> = {
+const dynamicFields: Record<string, ConfigRuleFieldEntry> = {
   item_sources: ['物品来源', '识别物品、材料或开槽道具的 ItemSource 列表。', 'list'],
   name_actions: ['名称动作链', '镶嵌、开槽或品质变化后对物品名称执行的动作列表。', 'actions'],
   lore_actions: ['Lore 动作链', '镶嵌、开槽或品质变化后对物品 Lore 执行的动作列表。', 'actions'],
   actions: ['动作', '操作成功、失败或展示时执行的 Action 配置。', 'object'],
-  materials: ['材料消耗', '升级、镶嵌或开孔所需材料列表。', 'list'],
-  currencies: ['货币消耗', 'Vault 或其他经济提供器消耗列表。', 'list'],
-  provider: ['经济提供器', '经济消耗使用的提供器，auto 会按 currency_id 自动推断。', 'enum'],
-  currency_id: ['货币 ID', '多货币系统中的货币标识。', 'text'],
-  amount: ['数量', '材料数量、货币数量或当前条目的数值。', 'number'],
-  base_cost: ['基础费用', '费用公式中的基础值。', 'number'],
-  cost_formula: ['费用公式', '根据等级、品质或上下文计算最终费用的表达式。', 'text'],
-  enabled: ['启用', '是否启用当前功能或条目。', 'boolean'],
+  ...standardEconomyRuleFields({
+    omit: ['economy', 'display_name'],
+    overrides: {
+      materials: ['材料消耗', '升级、镶嵌或开孔所需材料列表。', 'list'],
+      currencies: ['货币消耗', 'Vault 或其他经济提供器消耗列表。', 'list'],
+      provider: ['经济提供器', '经济消耗使用的提供器，auto 会按 currency_id 自动推断。', 'enum'],
+      currency_id: ['货币 ID', '多货币系统中的货币标识。', 'text'],
+      amount: ['数量', '材料数量、货币数量或当前条目的数值。', 'number'],
+      base_cost: ['基础费用', '费用公式中的基础值。', 'number'],
+      cost_formula: ['费用公式', '根据等级、品质或上下文计算最终费用的表达式。', 'text'],
+      enabled: ['启用', '是否启用当前功能或条目。', 'boolean']
+    }
+  }),
   max_level: ['最高等级', '宝石可升级到的最高等级。', 'number'],
   success_rate: ['成功率', '升级到该等级或执行该操作的成功率。', 'number'],
   success_chance: ['成功概率', '兼容字段：升级到该等级的成功概率。', 'number'],

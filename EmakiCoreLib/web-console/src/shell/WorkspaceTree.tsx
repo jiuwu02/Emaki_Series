@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useRef, useState, type CSSProperties, type Dispatch, type KeyboardEvent, type SetStateAction } from 'react';
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type Dispatch, type KeyboardEvent, type SetStateAction } from 'react';
 import { getModuleLocaleBundles, t } from '../i18n';
 import { getFileKindLabel } from '../registry';
 import { treeNodeDisplayComment, treeNodeDisplayLabel } from '../lib';
@@ -6,6 +6,44 @@ import { DisclosureChevron } from '../components';
 import type { RegistryTreeNode, WebRegistry, WebRegistryModule } from '../types';
 
 export type TreeSelection = { moduleId: string; fileId: string; scriptPath?: string; refreshKey?: number };
+
+type TreeIndex = {
+  roots: RegistryTreeNode[];
+  rootIds: string[];
+  nodeById: Map<string, RegistryTreeNode>;
+  childrenById: Map<string, RegistryTreeNode[]>;
+  parentById: Map<string, string>;
+  searchTextById: Map<string, string>;
+};
+
+type VisibleTreeRow = {
+  id: string;
+  node: RegistryTreeNode;
+  level: number;
+  isLast: boolean;
+  hasChildren: boolean;
+  isModule: boolean;
+  isFolder: boolean;
+  isGlob: boolean;
+  isOpen: boolean;
+  active: boolean;
+  dirty: boolean;
+  displayLabel: string;
+  displayComment: string;
+  kindLabel: string;
+  ariaLabel: string;
+  i18nCount?: number;
+};
+
+type TreeSearchState = {
+  query: string;
+  visibleIds: Set<string> | null;
+};
+
+type FocusRequest = { id: string; index: number } | null;
+
+const TREE_ROW_HEIGHT = 30;
+const TREE_OVERSCAN = 12;
 
 export function WorkspaceTree({ registry, selected, expanded, dirtyKeys = new Set<string>(), setExpanded, onSelect, onOpenI18n, onCreateFile, onDeleteFile }: {
   registry: WebRegistry | null;
@@ -19,16 +57,69 @@ export function WorkspaceTree({ registry, selected, expanded, dirtyKeys = new Se
   onDeleteFile?: (node: RegistryTreeNode) => void;
 }) {
   const [query, setQuery] = useState('');
+  const [scrollTop, setScrollTop] = useState(0);
+  const [viewportHeight, setViewportHeight] = useState(0);
+  const [focusRequest, setFocusRequest] = useState<FocusRequest>(null);
   const normalizedQuery = normalizeQuery(query);
-  const roots = useMemo(() => registry ? (registry.tree?.length ? registry.tree : modulesToTree(registry.modules)) : [], [registry]);
-  const visibleRoots = useMemo(() => filterTree(roots, normalizedQuery), [roots, normalizedQuery]);
-  const dirtyNodeIds = useMemo(() => collectDirtyNodeIds(roots, dirtyKeys), [roots, dirtyKeys]);
   const treeRef = useRef<HTMLDivElement | null>(null);
+  const rowRefs = useRef(new Map<string, HTMLButtonElement>());
+
+  const treeIndex = useMemo(() => registry ? buildTreeIndex(registry) : null, [registry]);
+  const searchState = useMemo(() => treeIndex ? buildSearchState(treeIndex, normalizedQuery) : { query: normalizedQuery, visibleIds: null }, [treeIndex, normalizedQuery]);
+  const dirtyNodeIds = useMemo(() => treeIndex ? collectDirtyNodeIds(treeIndex, dirtyKeys) : new Set<string>(), [treeIndex, dirtyKeys]);
+  const rows = useMemo(() => treeIndex ? flattenVisibleRows(treeIndex, expanded, selected, dirtyNodeIds, searchState) : [], [treeIndex, expanded, selected?.moduleId, selected?.fileId, selected?.scriptPath, dirtyNodeIds, searchState]);
+  const rowIndexById = useMemo(() => new Map(rows.map((row, index) => [row.id, index])), [rows]);
+
   const toggle = useCallback((id: string) => setExpanded((current) => ({ ...current, [id]: !current[id] })), [setExpanded]);
   const openNode = useCallback((id: string) => setExpanded((current) => current[id] ? current : ({ ...current, [id]: true })), [setExpanded]);
   const closeNode = useCallback((id: string) => setExpanded((current) => current[id] === false ? current : ({ ...current, [id]: false })), [setExpanded]);
 
-  if (!registry) return <div className="tree-empty" role="status">{t('core.tree.loading')}</div>;
+  useLayoutEffect(() => {
+    const element = treeRef.current;
+    if (!element) return;
+    const update = () => setViewportHeight(element.clientHeight);
+    update();
+    const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(update) : null;
+    observer?.observe(element);
+    return () => observer?.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const maxScrollTop = Math.max(0, rows.length * TREE_ROW_HEIGHT - viewportHeight);
+    if (scrollTop > maxScrollTop) {
+      const element = treeRef.current;
+      if (element) element.scrollTop = maxScrollTop;
+      setScrollTop(maxScrollTop);
+    }
+  }, [rows.length, viewportHeight, scrollTop]);
+
+  useEffect(() => {
+    if (!focusRequest) return;
+    const currentIndex = rowIndexById.get(focusRequest.id);
+    if (currentIndex == null) {
+      setFocusRequest(null);
+      return;
+    }
+    const element = treeRef.current;
+    if (!element) return;
+    const top = currentIndex * TREE_ROW_HEIGHT;
+    const bottom = top + TREE_ROW_HEIGHT;
+    if (top < element.scrollTop) element.scrollTop = top;
+    else if (bottom > element.scrollTop + element.clientHeight) element.scrollTop = bottom - element.clientHeight;
+    requestAnimationFrame(() => {
+      rowRefs.current.get(focusRequest.id)?.focus();
+      setFocusRequest(null);
+    });
+  }, [focusRequest, rowIndexById]);
+
+  const handleKeyDown = useCallback((event: KeyboardEvent<HTMLDivElement>) => {
+    handleTreeKeyDown(event, rows, rowIndexById, openNode, closeNode, setFocusRequest);
+  }, [rows, rowIndexById, openNode, closeNode]);
+
+  const virtual = virtualWindow(rows.length, scrollTop, viewportHeight);
+  const visibleRows = rows.slice(virtual.start, virtual.end);
+
+  if (!registry || !treeIndex) return <div className="tree-empty" role="status">{t('core.tree.loading')}</div>;
 
   return <>
     <label className="tree-search">
@@ -36,128 +127,132 @@ export function WorkspaceTree({ registry, selected, expanded, dirtyKeys = new Se
       <SearchIcon />
       <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t('core.tree.search')} />
     </label>
-    <div ref={treeRef} className="tree" role="tree" aria-label={t('core.tree.aria')} onKeyDown={(event) => handleTreeKeyDown(event, treeRef.current, openNode, closeNode)}>
-      {visibleRoots.length > 0 ? visibleRoots.map((node, index) => (
-        <TreeNodeView key={node.id} node={node} selected={selected} expanded={expanded} dirtyNodeIds={dirtyNodeIds} queryActive={Boolean(normalizedQuery)} toggle={toggle} onSelect={onSelect} onOpenI18n={onOpenI18n} onCreateFile={onCreateFile} onDeleteFile={onDeleteFile} level={0} isLast={index === visibleRoots.length - 1} />
-      )) : normalizedQuery ? <div className="tree-empty tree-empty-search" role="status">{t('core.tree.noResults')}</div> : null}
+    <div
+      ref={treeRef}
+      className="tree"
+      role="tree"
+      aria-label={t('core.tree.aria')}
+      onKeyDown={handleKeyDown}
+      onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}
+    >
+      {rows.length > 0 ? <div className="tree-virtual-spacer" style={{ height: rows.length * TREE_ROW_HEIGHT }}>
+        <div className="tree-virtual-list">
+          {visibleRows.map((row, index) => <VirtualTreeRow
+            key={row.id}
+            row={row}
+            virtualIndex={virtual.start + index}
+            setRowRef={setRowRef(rowRefs)}
+            onToggle={toggle}
+            onSelect={onSelect}
+            onOpenI18n={onOpenI18n}
+            onCreateFile={onCreateFile}
+            onDeleteFile={onDeleteFile}
+          />)}
+        </div>
+      </div> : normalizedQuery ? <div className="tree-empty tree-empty-search" role="status">{t('core.tree.noResults')}</div> : null}
     </div>
   </>;
 }
 
-const TreeNodeView = memo(function TreeNodeView({ node, selected, expanded, dirtyNodeIds, queryActive, toggle, onSelect, onOpenI18n, onCreateFile, onDeleteFile, level, isLast }: {
-  node: RegistryTreeNode;
-  selected: TreeSelection | null;
-  expanded: Record<string, boolean>;
-  dirtyNodeIds: ReadonlySet<string>;
-  queryActive: boolean;
-  toggle: (id: string) => void;
+const VirtualTreeRow = memo(function VirtualTreeRow({ row, virtualIndex, setRowRef, onToggle, onSelect, onOpenI18n, onCreateFile, onDeleteFile }: {
+  row: VisibleTreeRow;
+  virtualIndex: number;
+  setRowRef: (id: string, element: HTMLButtonElement | null) => void;
+  onToggle: (id: string) => void;
   onSelect: (v: TreeSelection) => void;
   onOpenI18n?: (target: { moduleId: string }) => void;
   onCreateFile?: (node: RegistryTreeNode) => void;
   onDeleteFile?: (node: RegistryTreeNode) => void;
-  level: number;
-  isLast: boolean;
 }) {
-  const children = (node.children ?? []).filter(child => !isEmptyGlobPlaceholder(child));
-  const hasChildren = children.length > 0;
-  const isModule = node.type === 'module';
-  const isFolder = node.type === 'folder';
-  const isOpen = queryActive ? true : (expanded[node.id] ?? isModule);
-  const kindLabel = fileKindLabel(node.kind ?? node.type);
-  const isGlob = isGlobTreeNode(node);
-  const active = Boolean(node.moduleId && node.fileId && !isGlob && selected?.moduleId === node.moduleId && selected.fileId === node.fileId && (selected.scriptPath ?? '') === (node.childPath ?? ''));
-  const dirty = dirtyNodeIds.has(node.id);
-  const displayLabel = treeNodeDisplayLabel(node);
-  const displayComment = treeNodeDisplayComment(node);
+  const { node } = row;
+  const rowStyle = indentStyle(row.level);
 
-  if (isModule) {
-    const i18nCount = moduleI18nCount(node.id);
-    return (
-      <div className="tree-module" role="none">
-        <div className="tree-module-row">
-          <button
-            className={`tree-folder ${dirty ? 'dirty' : ''}`}
-            role="treeitem"
-            aria-level={level + 1}
-            aria-expanded={isOpen}
-            data-tree-node-id={node.id}
-            onClick={() => toggle(node.id)}
-          >
-            <Icon svg={node.icon} /> <DisclosureChevron open={isOpen} className="folder-arrow" /> <span className="tree-label">{displayLabel}</span><DirtyDot dirty={dirty} />
-          </button>
-          {onOpenI18n && node.id && <ModuleI18nButton moduleId={node.id} moduleName={displayLabel} count={i18nCount} onOpen={onOpenI18n} />}
-        </div>
-        {isOpen && <div role="group">{children.map((child, index) => (
-          <TreeNodeView key={child.id} node={child} selected={selected} expanded={expanded} dirtyNodeIds={dirtyNodeIds} queryActive={queryActive} toggle={toggle} onSelect={onSelect} onOpenI18n={onOpenI18n} onCreateFile={onCreateFile} onDeleteFile={onDeleteFile} level={level + 1} isLast={index === children.length - 1} />
-        ))}</div>}
+  if (row.isModule) {
+    return <div className="tree-virtual-row tree-module" role="none" style={{ top: virtualIndex * TREE_ROW_HEIGHT }}>
+      <div className="tree-module-row">
+        <button
+          ref={(element) => setRowRef(row.id, element)}
+          className={`tree-folder ${row.dirty ? 'dirty' : ''}`}
+          role="treeitem"
+          aria-level={row.level + 1}
+          aria-expanded={row.isOpen}
+          data-tree-node-id={row.id}
+          onClick={() => onToggle(row.id)}
+        >
+          <Icon svg={node.icon} /> <DisclosureChevron open={row.isOpen} className="folder-arrow" /> <span className="tree-label">{row.displayLabel}</span><DirtyDot dirty={row.dirty} />
+        </button>
+        {onOpenI18n && node.id && <ModuleI18nButton moduleId={node.id} moduleName={row.displayLabel} count={row.i18nCount ?? 0} onOpen={onOpenI18n} />}
       </div>
-    );
+    </div>;
   }
 
-  if (hasChildren) {
-    return (
-      <div className="tree-file-folder" role="none">
-        <div className="tree-file-row" style={indentStyle(level)} data-tree-level={level} data-tree-branch={level > 1 ? (isLast ? 'elbow' : 'tee') : undefined}>
-          {level > 1 && <IndentGuide branch={isLast ? 'elbow' : 'tee'} />}
-          <button
-            className={`tree-file folder-toggle ${isGlob ? 'glob-node' : ''} ${active ? 'active' : ''} ${dirty ? 'dirty' : ''}`}
-            role="treeitem"
-            aria-level={level + 1}
-            aria-expanded={isOpen}
-            aria-selected={active || undefined}
-            aria-label={`${displayLabel}，${kindLabel}${displayComment ? `，${displayComment}` : ''}${isGlob ? `，${t('core.tree.globHint')}` : ''}${dirty ? `，${t('core.tree.dirty')}` : ''}`}
-            title={isGlob ? t('core.tree.globHint') : undefined}
-            data-tree-node-id={node.id}
-            onClick={() => toggle(node.id)}
-          >
-            <DisclosureChevron open={isOpen} className="folder-arrow" /><span className="tree-label">{displayLabel}</span><DirtyDot dirty={dirty} />
-          </button>
-          {onCreateFile && (isGlob || isFolder || !hasChildren) && <button type="button" className="tree-file-action" title={t('core.tree.createFile')} aria-label={t('core.tree.createFile')} onClick={(event) => { event.stopPropagation(); onCreateFile(node); }}>+</button>}
-        </div>
-        {isOpen && (
-          <div className="tree-children" role="group">
-            {children.map((child, index) => (
-              <TreeNodeView key={child.id} node={child} selected={selected} expanded={expanded} dirtyNodeIds={dirtyNodeIds} queryActive={queryActive} toggle={toggle} onSelect={onSelect} onOpenI18n={onOpenI18n} onCreateFile={onCreateFile} onDeleteFile={onDeleteFile} level={level + 1} isLast={index === children.length - 1} />
-            ))}
-          </div>
-        )}
+  if (row.hasChildren) {
+    return <div className="tree-virtual-row tree-file-folder" role="none" style={{ top: virtualIndex * TREE_ROW_HEIGHT }}>
+      <div className="tree-file-row" style={rowStyle} data-tree-level={row.level} data-tree-branch={row.level > 1 ? (row.isLast ? 'elbow' : 'tee') : undefined}>
+        {row.level > 1 && <IndentGuide branch={row.isLast ? 'elbow' : 'tee'} />}
+        <button
+          ref={(element) => setRowRef(row.id, element)}
+          className={`tree-file folder-toggle ${row.isGlob ? 'glob-node' : ''} ${row.active ? 'active' : ''} ${row.dirty ? 'dirty' : ''}`}
+          role="treeitem"
+          aria-level={row.level + 1}
+          aria-expanded={row.isOpen}
+          aria-selected={row.active || undefined}
+          aria-label={row.ariaLabel}
+          title={row.isGlob ? t('core.tree.globHint') : undefined}
+          data-tree-node-id={row.id}
+          onClick={() => onToggle(row.id)}
+        >
+          <DisclosureChevron open={row.isOpen} className="folder-arrow" /><span className="tree-label">{row.displayLabel}</span><DirtyDot dirty={row.dirty} />
+        </button>
+        {onCreateFile && (row.isGlob || row.isFolder || !row.hasChildren) && <button type="button" className="tree-file-action" title={t('core.tree.createFile')} aria-label={t('core.tree.createFile')} onClick={(event) => { event.stopPropagation(); onCreateFile(node); }}>+</button>}
       </div>
-    );
+    </div>;
   }
 
-  const canSelect = Boolean(node.moduleId && node.fileId && !isGlob && !isFolder);
-  const rowClass = level > 1 ? 'tree-child-row' : 'tree-file-row';
-  return (
-    <div className={rowClass} role="none" style={indentStyle(level)}>
-      <button
-        className={level > 1 ? `tree-child ${isGlob ? 'glob-node' : ''} ${active ? 'active' : ''} ${dirty ? 'dirty' : ''}` : `tree-file ${isGlob ? 'glob-node' : ''} ${active ? 'active' : ''} ${dirty ? 'dirty' : ''}`}
-        role="treeitem"
-        aria-level={level + 1}
-        aria-selected={active}
-        aria-label={`${displayLabel}，${kindLabel}${displayComment ? `，${displayComment}` : ''}${isGlob ? `，${t('core.tree.globHint')}` : ''}${dirty ? `，${t('core.tree.dirty')}` : ''}`}
-        title={isGlob ? t('core.tree.globHint') : undefined}
-        data-tree-node-id={node.id}
-        onClick={() => {
-          if (!canSelect || !node.moduleId || !node.fileId) return;
-          onSelect({ moduleId: node.moduleId, fileId: node.fileId, scriptPath: node.childPath });
-        }}
-        disabled={!canSelect}
-      >
-        <span className="tree-label">{displayLabel}</span><DirtyDot dirty={dirty} />
-      </button>
-      {onDeleteFile && node.childPath && <button type="button" className="tree-file-action danger" title={t('core.tree.deleteFile')} aria-label={t('core.tree.deleteFile')} onClick={(event) => { event.stopPropagation(); onDeleteFile(node); }}>×</button>}
-    </div>
-  );
+  const canSelect = Boolean(node.moduleId && node.fileId && !row.isGlob && !row.isFolder);
+  const rowClass = row.level > 1 ? 'tree-child-row' : 'tree-file-row';
+  return <div className={`tree-virtual-row ${rowClass}`} role="none" style={{ top: virtualIndex * TREE_ROW_HEIGHT, ...rowStyle }}>
+    {row.level > 1 && <IndentGuide branch={row.isLast ? 'elbow' : 'tee'} />}
+    <button
+      ref={(element) => setRowRef(row.id, element)}
+      className={row.level > 1 ? `tree-child ${row.isGlob ? 'glob-node' : ''} ${row.active ? 'active' : ''} ${row.dirty ? 'dirty' : ''}` : `tree-file ${row.isGlob ? 'glob-node' : ''} ${row.active ? 'active' : ''} ${row.dirty ? 'dirty' : ''}`}
+      role="treeitem"
+      aria-level={row.level + 1}
+      aria-selected={row.active}
+      aria-label={row.ariaLabel}
+      title={row.isGlob ? t('core.tree.globHint') : undefined}
+      data-tree-node-id={row.id}
+      onClick={() => {
+        if (!canSelect || !node.moduleId || !node.fileId) return;
+        onSelect({ moduleId: node.moduleId, fileId: node.fileId, scriptPath: node.childPath });
+      }}
+      disabled={!canSelect}
+    >
+      <span className="tree-label">{row.displayLabel}</span><DirtyDot dirty={row.dirty} />
+    </button>
+    {onDeleteFile && node.childPath && <button type="button" className="tree-file-action danger" title={t('core.tree.deleteFile')} aria-label={t('core.tree.deleteFile')} onClick={(event) => { event.stopPropagation(); onDeleteFile(node); }}>×</button>}
+  </div>;
 });
 
-function handleTreeKeyDown(event: KeyboardEvent<HTMLDivElement>, tree: HTMLDivElement | null, openNode: (id: string) => void, closeNode: (id: string) => void) {
-  if (!tree) return;
+function setRowRef(ref: React.MutableRefObject<Map<string, HTMLButtonElement>>) {
+  return (id: string, element: HTMLButtonElement | null) => {
+    if (element) ref.current.set(id, element);
+    else ref.current.delete(id);
+  };
+}
+
+function handleTreeKeyDown(event: KeyboardEvent<HTMLDivElement>, rows: VisibleTreeRow[], rowIndexById: Map<string, number>, openNode: (id: string) => void, closeNode: (id: string) => void, setFocusRequest: (request: FocusRequest) => void) {
   const current = event.target instanceof HTMLElement ? event.target.closest<HTMLElement>('[role="treeitem"]') : null;
-  if (!current || !tree.contains(current)) return;
-  const items = Array.from(tree.querySelectorAll<HTMLElement>('[role="treeitem"]')).filter(item => !item.hasAttribute('disabled'));
-  const index = items.indexOf(current);
-  if (index < 0) return;
-  const focusAt = (nextIndex: number) => items[Math.max(0, Math.min(items.length - 1, nextIndex))]?.focus();
+  if (!current) return;
+  const id = current.dataset.treeNodeId;
+  if (!id) return;
+  const index = rowIndexById.get(id);
+  if (index == null) return;
+  const focusAt = (nextIndex: number) => {
+    const clamped = Math.max(0, Math.min(rows.length - 1, nextIndex));
+    const next = rows[clamped];
+    if (next) setFocusRequest({ id: next.id, index: clamped });
+  };
   if (event.key === 'ArrowDown') {
     event.preventDefault();
     focusAt(index + 1);
@@ -169,15 +264,11 @@ function handleTreeKeyDown(event: KeyboardEvent<HTMLDivElement>, tree: HTMLDivEl
     focusAt(0);
   } else if (event.key === 'End') {
     event.preventDefault();
-    focusAt(items.length - 1);
+    focusAt(rows.length - 1);
   } else if (event.key === 'ArrowRight' && current.getAttribute('aria-expanded') === 'false') {
-    const id = current.dataset.treeNodeId;
-    if (!id) return;
     event.preventDefault();
     openNode(id);
   } else if (event.key === 'ArrowLeft' && current.getAttribute('aria-expanded') === 'true') {
-    const id = current.dataset.treeNodeId;
-    if (!id) return;
     event.preventDefault();
     closeNode(id);
   }
@@ -243,20 +334,94 @@ function sanitizeSvg(svg: string): string {
     .replace(/\s+(?:href|xlink:href)\s*=("|')\s*javascript:[\s\S]*?\1/gi, '');
 }
 
-function filterTree(nodes: RegistryTreeNode[], query: string): RegistryTreeNode[] {
-  if (!query) return nodes;
-  return nodes.flatMap((node) => {
-    const children = (node.children ?? []).filter(child => !isEmptyGlobPlaceholder(child));
-    const filteredChildren = filterTree(children, query);
-    if (matchesNode(node, query)) return [{ ...node, children }];
-    if (filteredChildren.length) return [{ ...node, children: filteredChildren }];
-    return [];
-  });
+function buildTreeIndex(registry: WebRegistry): TreeIndex {
+  const roots = registry.tree?.length ? registry.tree : modulesToTree(registry.modules);
+  const rootIds = roots.map(node => node.id);
+  const nodeById = new Map<string, RegistryTreeNode>();
+  const childrenById = new Map<string, RegistryTreeNode[]>();
+  const parentById = new Map<string, string>();
+  const searchTextById = new Map<string, string>();
+
+  const visit = (node: RegistryTreeNode, parentId?: string) => {
+    nodeById.set(node.id, node);
+    if (parentId) parentById.set(node.id, parentId);
+    const children = visibleChildren(node);
+    childrenById.set(node.id, children);
+    searchTextById.set(node.id, nodeSearchText(node));
+    children.forEach(child => visit(child, node.id));
+  };
+  roots.forEach(root => visit(root));
+  return { roots, rootIds, nodeById, childrenById, parentById, searchTextById };
 }
 
-function matchesNode(node: RegistryTreeNode, query: string): boolean {
-  const haystack = [treeNodeDisplayLabel(node), treeNodeDisplayComment(node), node.path, node.childPath, node.kind, node.type, node.moduleId].map(value => String(value ?? '').toLowerCase()).join(' ');
-  return haystack.includes(query);
+function buildSearchState(index: TreeIndex, query: string): TreeSearchState {
+  if (!query) return { query, visibleIds: null };
+  const visibleIds = new Set<string>();
+  for (const [id, text] of index.searchTextById) {
+    if (!text.includes(query)) continue;
+    visibleIds.add(id);
+    let parent = index.parentById.get(id);
+    while (parent) {
+      visibleIds.add(parent);
+      parent = index.parentById.get(parent);
+    }
+  }
+  return { query, visibleIds };
+}
+
+function flattenVisibleRows(index: TreeIndex, expanded: Record<string, boolean>, selected: TreeSelection | null, dirtyNodeIds: ReadonlySet<string>, search: TreeSearchState): VisibleTreeRow[] {
+  const rows: VisibleTreeRow[] = [];
+  const queryActive = Boolean(search.query);
+  const visit = (node: RegistryTreeNode, level: number, isLast: boolean) => {
+    if (search.visibleIds && !search.visibleIds.has(node.id)) return;
+    const children = index.childrenById.get(node.id) ?? [];
+    const childRows = search.visibleIds ? children.filter(child => search.visibleIds?.has(child.id)) : children;
+    const hasChildren = childRows.length > 0;
+    const isModule = node.type === 'module';
+    const isFolder = node.type === 'folder';
+    const isOpen = queryActive ? true : (expanded[node.id] ?? isModule);
+    const isGlob = isGlobTreeNode(node);
+    const active = Boolean(node.moduleId && node.fileId && !isGlob && selected?.moduleId === node.moduleId && selected.fileId === node.fileId && (selected.scriptPath ?? '') === (node.childPath ?? ''));
+    const dirty = dirtyNodeIds.has(node.id);
+    const displayLabel = treeNodeDisplayLabel(node);
+    const displayComment = treeNodeDisplayComment(node);
+    const kindLabel = fileKindLabel(node.kind ?? node.type);
+    rows.push({
+      id: node.id,
+      node,
+      level,
+      isLast,
+      hasChildren,
+      isModule,
+      isFolder,
+      isGlob,
+      isOpen,
+      active,
+      dirty,
+      displayLabel,
+      displayComment,
+      kindLabel,
+      ariaLabel: treeRowAriaLabel(displayLabel, kindLabel, displayComment, isGlob, dirty),
+      i18nCount: isModule ? moduleI18nCount(node.id) : undefined
+    });
+    if (hasChildren && isOpen) {
+      childRows.forEach((child, index) => visit(child, level + 1, index === childRows.length - 1));
+    }
+  };
+  index.roots.forEach((root, rootIndex) => visit(root, 0, rootIndex === index.roots.length - 1));
+  return rows;
+}
+
+function treeRowAriaLabel(label: string, kindLabel: string, comment: string, isGlob: boolean, dirty: boolean): string {
+  return `${label}，${kindLabel}${comment ? `，${comment}` : ''}${isGlob ? `，${t('core.tree.globHint')}` : ''}${dirty ? `，${t('core.tree.dirty')}` : ''}`;
+}
+
+function visibleChildren(node: RegistryTreeNode): RegistryTreeNode[] {
+  return (node.children ?? []).filter(child => !isEmptyGlobPlaceholder(child));
+}
+
+function nodeSearchText(node: RegistryTreeNode): string {
+  return [treeNodeDisplayLabel(node), treeNodeDisplayComment(node), node.path, node.childPath, node.kind, node.type, node.moduleId].map(value => String(value ?? '').toLowerCase()).join(' ');
 }
 
 function isGlobTreeNode(node: RegistryTreeNode): boolean {
@@ -271,17 +436,19 @@ function normalizeQuery(value: string): string {
   return value.trim().toLowerCase();
 }
 
-function collectDirtyNodeIds(nodes: RegistryTreeNode[], dirtyKeys: ReadonlySet<string>): Set<string> {
+function collectDirtyNodeIds(index: TreeIndex, dirtyKeys: ReadonlySet<string>): Set<string> {
   const dirtyNodeIds = new Set<string>();
-  const visit = (node: RegistryTreeNode): boolean => {
+  const visit = (id: string): boolean => {
+    const node = index.nodeById.get(id);
+    if (!node) return false;
     let dirty = isNodeDirty(node, dirtyKeys);
-    for (const child of node.children ?? []) {
-      if (visit(child)) dirty = true;
+    for (const child of index.childrenById.get(id) ?? []) {
+      if (visit(child.id)) dirty = true;
     }
-    if (dirty) dirtyNodeIds.add(node.id);
+    if (dirty) dirtyNodeIds.add(id);
     return dirty;
   };
-  nodes.forEach(visit);
+  index.rootIds.forEach(visit);
   return dirtyNodeIds;
 }
 
@@ -293,6 +460,13 @@ function isNodeDirty(node: RegistryTreeNode, dirtyKeys: ReadonlySet<string>): bo
 
 function treeDirtyKey(moduleId: string, fileId: string, filePath: string) {
   return JSON.stringify([moduleId, fileId, filePath.replace(/\\/g, '/')]);
+}
+
+function virtualWindow(count: number, scrollTop: number, viewportHeight: number) {
+  const visibleCount = Math.ceil(Math.max(viewportHeight, TREE_ROW_HEIGHT) / TREE_ROW_HEIGHT);
+  const start = Math.max(0, Math.floor(scrollTop / TREE_ROW_HEIGHT) - TREE_OVERSCAN);
+  const end = Math.min(count, start + visibleCount + TREE_OVERSCAN * 2);
+  return { start, end };
 }
 
 function indentStyle(level: number): CSSProperties | undefined {

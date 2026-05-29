@@ -158,8 +158,11 @@ function pathBasedFileDisplay(path: string | undefined): BuiltinFileCopy | undef
 
 function fallbackFileLabel(path: string | undefined, fallback: string): string {
   const preferred = String(fallback ?? '').trim();
-  if (preferred && !/[\\/]/.test(preferred) && !/\.(ya?ml|json|js|kts|txt)$/i.test(preferred)) return preferred;
-  return humanizeFilePath(path) || preferred;
+  if (preferred && !/[\\/]/.test(preferred) && !/[*?]/.test(preferred) && !/\.(ya?ml|json|js|kts|txt)$/i.test(preferred)) return preferred;
+  const humanized = humanizeFilePath(path);
+  if (humanized) return humanized;
+  const cleanedPreferred = preferred.replace(/[*?]/g, '').replace(/\/+/g, ' ').trim();
+  return cleanedPreferred || preferred;
 }
 
 function childFileLabel(path: string | undefined, fallback: string): string {
@@ -173,8 +176,11 @@ function humanizeFilePath(path: string | undefined): string {
   const normalized = String(path ?? '').trim().replace(/\\/g, '/').replace(/\.(ya?ml|json|js|kts|txt)$/i, '');
   if (!normalized) return '';
   const segments = normalized.split('/').filter(Boolean);
-  const leaf = segments[segments.length - 1] || normalized;
-  return leaf.replace(/[_-]+/g, ' ').trim();
+  // For glob folder nodes (e.g. "recipes/*"), the leaf is a wildcard; prefer the last
+  // meaningful (non-glob) segment so the label reads "recipes" instead of "*".
+  const meaningful = segments.filter(segment => !/[*?]/.test(segment));
+  const leaf = meaningful[meaningful.length - 1] || segments[segments.length - 1] || normalized;
+  return leaf.replace(/[*?]/g, '').replace(/[_-]+/g, ' ').trim();
 }
 
 export function configNodeDisplayComment(moduleId: string | undefined, path: string | undefined, fallback = ''): string {
