@@ -38,9 +38,9 @@ final class StrengthenGuiRenderer {
         String type = Texts.lower(slot.type());
         ItemStack dynamic = switch (type) {
             case "target_item" -> StrengthenGuiSession.cloneNonAir(state.targetItem());
-            case "preview_display" -> buildPreviewItem(state);
-            case "temper_display" -> buildTemperItem(state);
-            case "confirm" -> buildConfirmItem(state);
+            case "preview_display" -> buildPreviewItem(state, slot);
+            case "temper_display" -> buildTemperItem(state, slot);
+            case "confirm" -> buildConfirmItem(state, slot);
             default -> {
                 if (type.startsWith("material_input_")) {
                     int index = parseMaterialIndex(type);
@@ -63,10 +63,10 @@ final class StrengthenGuiRenderer {
         state.guiSession().refresh();
     }
 
-    private ItemStack buildPreviewItem(StrengthenGuiSession state) {
+    private ItemStack buildPreviewItem(StrengthenGuiSession state, GuiSlot slot) {
         AttemptPreview preview = state.preview();
         if (state.targetItem() == null) {
-            return buildItem("BOOK", msg("gui.preview.title"), List.of(
+            return buildItem(slot, "BOOK", msg("gui.preview.title"), List.of(
                     msg("gui.preview.hint_no_target_1"),
                     msg("gui.preview.hint_no_target_2")
             ));
@@ -78,7 +78,7 @@ final class StrengthenGuiRenderer {
                 lore.add("<red>" + msg(preview.errorKey()) + "</red>");
             }
             appendMaterialLines(lore, preview);
-            return buildItem("BOOK", msg("gui.preview.ineligible_title"), lore);
+            return buildItem(slot, "BOOK", msg("gui.preview.ineligible_title"), lore);
         }
         List<String> lore = new ArrayList<>();
         lore.add(msg("gui.preview.current_star", Map.of("star", preview.currentStar())));
@@ -95,7 +95,7 @@ final class StrengthenGuiRenderer {
             preview.successDeltaStats().forEach((id, value)
                     -> lore.add(msg("gui.preview.delta_stats_line", Map.of("id", id, "value", Numbers.formatNumber(value, "0.##")))));
         }
-        return buildItem("BOOK", msg("gui.preview.title"), lore);
+        return buildItem(slot, "BOOK", msg("gui.preview.title"), lore);
     }
 
     private void appendMaterialLines(List<String> lore, AttemptPreview preview) {
@@ -134,7 +134,7 @@ final class StrengthenGuiRenderer {
         return Texts.isBlank(displayName) ? item : displayName;
     }
 
-    private ItemStack buildTemperItem(StrengthenGuiSession state) {
+    private ItemStack buildTemperItem(StrengthenGuiSession state, GuiSlot slot) {
         StrengthenState strengthenState = state.preview() == null ? null : state.preview().state();
         int temper = strengthenState == null ? 0 : strengthenState.temperLevel();
         int maxTemper = state.preview() == null || state.preview().recipe() == null ? 0 : state.preview().recipe().limits().maxTemper();
@@ -144,17 +144,17 @@ final class StrengthenGuiRenderer {
             lore.add(msg("gui.temper.bonus", Map.of("bonus", state.preview().appliedTemperBonus())));
         }
         lore.add(msg("gui.temper.hint"));
-        return buildItem("INK_SAC", msg("gui.temper.title"), lore);
+        return buildItem(slot, "INK_SAC", msg("gui.temper.title"), lore);
     }
 
-    private ItemStack buildConfirmItem(StrengthenGuiSession state) {
+    private ItemStack buildConfirmItem(StrengthenGuiSession state, GuiSlot slot) {
         AttemptPreview preview = state.preview();
         if (preview == null || !preview.eligible()) {
-            return buildItem("BARRIER", msg("gui.confirm.ineligible_title"), List.of(msg("gui.confirm.ineligible_hint")));
+            return buildItem(slot, "BARRIER", msg("gui.confirm.ineligible_title"), List.of(msg("gui.confirm.ineligible_hint")));
         }
         List<String> lore = new ArrayList<>();
         appendRateAndCostSummary(lore, preview);
-        return buildItem("ANVIL", msg("gui.confirm.title"), lore);
+        return buildItem(slot, "ANVIL", msg("gui.confirm.title"), lore);
     }
 
     private void appendRateAndCostSummary(List<String> lore, AttemptPreview preview) {
@@ -178,8 +178,12 @@ final class StrengthenGuiRenderer {
     }
 
     private ItemStack buildItem(String item, String name, List<String> lore) {
+        return buildItem(null, item, name, lore);
+    }
+
+    private ItemStack buildItem(GuiSlot slot, String item, String name, List<String> lore) {
         return GuiItemBuilder.build(
-                item,
+                Texts.isBlank(slot == null ? null : slot.item()) ? item : slot.item(),
                 new ItemComponentParser.ItemComponents(name, true, lore, null, null, Map.of(), List.of()),
                 1,
                 Map.of(),

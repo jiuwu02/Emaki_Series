@@ -2,7 +2,7 @@ import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from 'r
 import type { ApiClient } from './api';
 import { getSourceDocumentAdapter, type SurfaceToolbarState } from './registry';
 import type { GuiSlotDefinition, GuiTemplateData, WebRegistryFile, WebRegistryModule } from './types';
-import { buildOccupancy, clampRows, fieldLabel, guiColumns, guiField, guiSlotCount, guiTypeOptions, loreLines, materialShortName, materialUrls, normalizeGuiType, parseSlotList, parseYaml, renderMiniMessageParts, serializeGuiYaml, subscribeTextureBases, supportsRows, textValue } from './guiEditor';
+import { buildOccupancy, clampRows, fieldLabel, guiColumns, guiField, guiSlotCount, guiTypeOptions, loreLines, materialShortName, materialUrls, normalizeGuiType, parseSlotList, parseYaml, renderMiniMessageParts, serializeGuiYaml, slotItemText, subscribeTextureBases, supportsRows, textValue, withSlotItem } from './guiEditor';
 import { fileDisplayTitle, humanizeFieldLabel } from './lib';
 import { Button, DisclosureChevron, EditorChrome, InlineError, InspectorSection, ToastNotice, ToggleChip } from './components';
 import { getLocale, t } from './i18n';
@@ -266,9 +266,11 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
   function updateSlot(key: string, patch: Partial<GuiSlotDefinition>) {
     updateData((draft) => {
       const currentSlot = (draft.slots ?? {})[key] ?? {};
-      const merged: Record<string, unknown> = { ...currentSlot };
+      let merged: Record<string, unknown> = { ...currentSlot };
       for (const [field, value] of Object.entries(patch)) {
-        if (value === undefined) delete merged[field];
+        if (field === 'item') {
+          merged = withSlotItem(merged as GuiSlotDefinition, value) as Record<string, unknown>;
+        } else if (value === undefined) delete merged[field];
         else merged[field] = value;
       }
       return { ...draft, slots: { ...(draft.slots ?? {}), [key]: merged as GuiSlotDefinition } };
@@ -281,7 +283,7 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
     let key = base;
     let i = 2;
     while (slots[key]) key = `${base}_${i++}`;
-    updateData((draft) => ({ ...draft, slots: { ...(draft.slots ?? {}), [key]: { slots: [index], item: material, display_name: `<gray>${material.toLowerCase()}</gray>`, lore: [] } } }));
+    updateData((draft) => ({ ...draft, slots: { ...(draft.slots ?? {}), [key]: withSlotItem({ slots: [index], display_name: `<gray>${material.toLowerCase()}</gray>`, lore: [] }, material) } }));
     setSelected([index]);
   }
 
@@ -449,7 +451,7 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
           </div>
           <div className="material-list">
             {visibleMaterials.map((material) => <button key={material} draggable onDragStart={(e) => e.dataTransfer.setData('text/material', material)} onClick={() => assignMaterial(material)} title={material}>
-              <SlotIcon slot={{ item: material }} failed={failedImages} setFailed={setFailedImages} />
+              <SlotIcon slot={withSlotItem({}, material)} failed={failedImages} setFailed={setFailedImages} />
               <span><strong>minecraft:{material.toLowerCase()}</strong><small>{materialCategory(material)}</small></span>
             </button>)}
           </div>
@@ -488,8 +490,11 @@ function OverlaySlotInspector({ cell, visibleKey, onVisibilityChange, editor, up
           />
           <button type="button" className="overlay-toggle" onClick={() => toggle(overlay.key)} aria-expanded={!isCollapsed}>
             <DisclosureChevron open={!isCollapsed} className="overlay-arrow" />
-            <code>{overlay.key}</code>
-            {overlay.slot?.type && <small className="overlay-type">{overlay.slot.type}</small>}
+            <span className="overlay-summary">
+              <span className="overlay-discriminator">{slotDiscriminator(overlay.slot)}</span>
+              <code>{overlay.key}</code>
+              <small>{slotMetaSummary(overlay.slot)}</small>
+            </span>
           </button>
           <button type="button" className="overlay-delete" onClick={() => removeSlot(overlay.key)}>{t('core.config.delete')}</button>
         </div>
@@ -512,17 +517,29 @@ function GuiLabel({ editor, path, fallback, children }: { editor?: import('./typ
 }
 
 function SlotInspector({ slotKey, slot, updateSlot, removeSlot, editor, hideHeader = false }: { slotKey: string; slot: GuiSlotDefinition; updateSlot: (key: string, patch: Partial<GuiSlotDefinition>) => void; removeSlot: () => void; editor?: import('./types').WebEditorDescriptor; hideHeader?: boolean }) {
-  const slotsText = parseSlotList(slot.slots).join(', ');
   const setField = (field: string, value: unknown) => updateSlot(slotKey, { [field]: value === '' || value == null ? undefined : value });
   return <div className="slot-form">
     {!hideHeader && <div className="slot-key"><code>{slotKey}</code><button onClick={removeSlot}>{t('core.config.delete')}</button></div>}
-    <InspectorPanel title={t('core.gui.slotDefinition')} storageKey="slot-identity"><GuiLabel editor={editor} path="type" fallback={t('core.gui.slotType')}><input value={textValue(slot.type)} onChange={(e) => setField('type', e.target.value)} /></GuiLabel><GuiLabel editor={editor} path="slots" fallback={t('core.gui.slot')}><input value={slotsText} onChange={(e) => setField('slots', e.target.value.split(/[ ,]+/).map((part) => Number(part)).filter(Number.isFinite))} /></GuiLabel><small>{t('core.gui.slotCount', { count: parseSlotList(slot.slots).length })}</small></InspectorPanel>
-    <InspectorPanel title={t('core.gui.itemSource')} storageKey="slot-item"><GuiLabel editor={editor} path="item" fallback={t('core.gui.item')}><input value={textValue(slot.item)} onChange={(e) => setField('item', e.target.value)} /></GuiLabel></InspectorPanel>
+    <InspectorPanel title={t('core.gui.slotDefinition')} storageKey="slot-identity"><GuiLabel editor={editor} path="type" fallback={t('core.gui.slotType')}><input value={textValue(slot.type)} onChange={(e) => setField('type', e.target.value)} /></GuiLabel><GuiLabel editor={editor} path="slots" fallback={t('core.gui.slot')}><DeferredSlotsInput value={slot.slots} onApply={(value) => setField('slots', value)} /></GuiLabel><small>{t('core.gui.slotCount', { count: parseSlotList(slot.slots).length })}</small></InspectorPanel>
+    <InspectorPanel title={t('core.gui.itemSource')} storageKey="slot-item"><GuiLabel editor={editor} path="item" fallback={t('core.gui.item')}><input value={textValue(slotItemText(slot))} onChange={(e) => setField('item', e.target.value)} /></GuiLabel></InspectorPanel>
     <InspectorPanel title={t('core.gui.displayText')} storageKey="slot-display"><GuiLabel editor={editor} path="display_name" fallback={t('core.gui.displayName')}><input value={textValue(slot.display_name)} onChange={(e) => setField('display_name', e.target.value)} /></GuiLabel><GuiLabel editor={editor} path="lore" fallback="Lore"><textarea value={loreLines(slot.lore).join('\n')} onChange={(e) => setField('lore', e.target.value.split('\n'))} /></GuiLabel></InspectorPanel>
     <InspectorPanel title={t('core.gui.modelComponents')} storageKey="slot-model" defaultCollapsed><div className="mini-grid-2"><GuiLabel editor={editor} path="item_model" fallback={t('core.gui.itemModel')}><input value={textValue(slot.item_model ?? slot['item-model'])} onChange={(e) => setField('item_model', e.target.value)} /></GuiLabel><GuiLabel editor={editor} path="custom_model_data" fallback={t('core.gui.modelData')}><input type="number" value={textValue(slot.custom_model_data ?? slot.custommodeldata)} onChange={(e) => setField('custom_model_data', e.target.value === '' ? undefined : Number(e.target.value))} /></GuiLabel></div><EnchantmentsEditor value={slot.enchantments} onChange={(value) => setField('enchantments', value)} /><HiddenComponentsEditor slot={slot} onChange={(patch) => updateSlot(slotKey, patch)} /></InspectorPanel>
     <InspectorPanel title={t('core.gui.sounds')} storageKey="slot-sounds" defaultCollapsed><SoundsEditor value={slot.sounds} onChange={(value) => setField('sounds', value)} /></InspectorPanel>
     <InspectorPanel title={t('core.gui.advancedFields')} storageKey="slot-advanced" defaultCollapsed><AdvancedFieldsEditor slot={slot} editor={editor} onChange={(patch) => updateSlot(slotKey, patch)} /></InspectorPanel>
   </div>;
+}
+
+function DeferredSlotsInput({ value, onApply }: { value: unknown; onApply: (value: number[]) => void }) {
+  const committed = parseSlotList(value).join(', ');
+  const [draft, setDraft] = useState(committed);
+  useEffect(() => setDraft(committed), [committed]);
+  const pending = draft.trim() !== committed;
+  const parsed = parseSlotList(draft);
+  return <span className="deferred-slot-input">
+    <input value={draft} onChange={(event) => setDraft(event.target.value)} />
+    <Button size="sm" variant="soft" disabled={!pending} onClick={() => onApply(parsed)}>{t('core.gui.applySlots')}</Button>
+    {pending && <small className="slot-pending-note">{t('core.gui.slotsPreviewAfterSave')}</small>}
+  </span>;
 }
 
 function InspectorPanel({ title, storageKey, defaultCollapsed = false, children }: { title: string; storageKey: string; defaultCollapsed?: boolean; children: React.ReactNode }) {
@@ -579,7 +596,7 @@ function normalizeSounds(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? { ...(value as Record<string, unknown>) } : {};
 }
 
-const STANDARD_SLOT_FIELDS = new Set(['type', 'slots', 'item', 'display_name', 'lore', 'item_model', 'item-model', 'custom_model_data', 'custommodeldata', 'enchantments', 'hidden_components', 'hide_tooltip', 'hide-tooltip', 'tooltip_display', 'sounds']);
+const STANDARD_SLOT_FIELDS = new Set(['type', 'slots', 'item', 'item_source', 'item_sources', 'material', 'display_name', 'lore', 'item_model', 'item-model', 'custom_model_data', 'custommodeldata', 'enchantments', 'hidden_components', 'hide_tooltip', 'hide-tooltip', 'tooltip_display', 'sounds']);
 
 function AdvancedFieldsEditor({ slot, editor, onChange }: { slot: GuiSlotDefinition; editor?: import('./types').WebEditorDescriptor; onChange: (patch: Partial<GuiSlotDefinition>) => void }) {
   const extras = Object.entries(slot).filter(([key]) => !STANDARD_SLOT_FIELDS.has(key));
@@ -630,6 +647,19 @@ function parsePrimitiveLine(value: string): string | number | boolean {
   return value;
 }
 
+function slotDiscriminator(slot: GuiSlotDefinition): string {
+  const type = textValue(slot.type).trim();
+  return type || t('core.gui.slotTypeStatic');
+}
+
+function slotMetaSummary(slot: GuiSlotDefinition): string {
+  const parts = [
+    `${t('core.gui.slot')}: ${parseSlotList(slot.slots).join(', ') || '-'}`,
+    slotItemText(slot) ? `${t('core.gui.item')}: ${slotItemText(slot)}` : ''
+  ].filter(Boolean);
+  return parts.join(' · ');
+}
+
 function uniqueNumbers(values: number[]): number[] {
   return values.filter((value, index, array) => Number.isFinite(value) && array.indexOf(value) === index);
 }
@@ -640,7 +670,7 @@ function cleanMap<T extends Record<string, unknown>>(value: T): T | undefined {
 }
 
 function SlotIcon({ slot, failed, setFailed }: { slot?: GuiSlotDefinition | null; failed: Record<string, boolean>; setFailed: React.Dispatch<React.SetStateAction<Record<string, boolean>>> }) {
-  const material = slot?.item ?? 'AIR';
+  const material = slotItemText(slot) || 'AIR';
   const urls = materialUrls(material);
   const failedCount = urls.filter((url) => failed[url]).length;
   const url = urls.find((entry) => !failed[entry]);
@@ -686,7 +716,7 @@ const MinecraftTooltip = forwardRef<HTMLDivElement, { slot: GuiSlotDefinition; s
   const hidden = String(slot.hidden_components ?? '').includes('tooltip') || slot.hide_tooltip === true;
   if (hidden) return <div ref={ref} className="minecraft-tooltip muted-tooltip" style={{ left: position.x, top: position.y }}>{t('core.gui.tooltipHidden')} · {slotKey}</div>;
   return <div ref={ref} className="minecraft-tooltip" style={{ left: position.x, top: position.y }}>
-    <strong><MiniText value={slot.display_name ?? slot.item ?? slotKey} /></strong>
+    <strong><MiniText value={slot.display_name ?? slotItemText(slot) ?? slotKey} /></strong>
     {loreLines(slot.lore).map((line, index) => <span key={index}><MiniText value={line} /></span>)}
     {slot.item_model ? <small>item_model: {String(slot.item_model)}</small> : null}
     {slot.custom_model_data ? <small>custom_model_data: {String(slot.custom_model_data)}</small> : null}

@@ -249,6 +249,9 @@ export type GuiSlotDefinition = {
   type?: string;
   slots?: number[] | number | string;
   item?: string;
+  item_source?: unknown;
+  item_sources?: unknown;
+  material?: string;
   display_name?: unknown;
   lore?: unknown;
   hidden_components?: unknown;

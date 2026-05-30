@@ -8,6 +8,7 @@ import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.gui.GuiItemBuilder;
+import emaki.jiuwu.craft.corelib.gui.GuiSlot;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.corelib.gui.ItemComponentParser;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
@@ -31,14 +32,16 @@ final class GemUpgradeGuiRenderer {
         if (resolvedSlot == null || resolvedSlot.definition() == null) {
             return null;
         }
-        return switch (Texts.lower(resolvedSlot.definition().type())) {
+        GuiSlot slot = resolvedSlot.definition();
+        return switch (Texts.lower(slot.type())) {
             case "target_gem" -> renderTargetGem(state, resolvedSlot);
-            case "level_info" -> renderLevelInfo(state);
-            case "material_slot" -> renderMaterialSlot(state, resolvedSlot.slotIndex());
-            case "preview" -> renderPreview(state);
-            case "success_rate" -> renderSuccessRate(state);
-            case "confirm" -> renderConfirm(state);
-            default -> null;
+            case "level_info" -> renderLevelInfo(state, slot);
+            case "material_slot" -> renderMaterialSlot(state, resolvedSlot.slotIndex(), slot);
+            case "preview" -> renderPreview(state, slot);
+            case "success_rate" -> renderSuccessRate(state, slot);
+            case "confirm" -> renderConfirm(state, slot);
+            default -> GuiItemBuilder.build(slot.item(), slot.components(), 1, Map.of(),
+                    (source, amount) -> plugin.coreItemSourceService() == null ? null : plugin.coreItemSourceService().createItem(source, amount));
         };
     }
 
@@ -63,24 +66,24 @@ final class GemUpgradeGuiRenderer {
         return targetGem.clone();
     }
 
-    private ItemStack renderLevelInfo(GemUpgradeGuiSession state) {
+    private ItemStack renderLevelInfo(GemUpgradeGuiSession state, GuiSlot guiSlot) {
         GemUpgradeService.UpgradePreview preview = preview(state);
         List<String> lore = new ArrayList<>();
         if (!preview.eligible()) {
             lore.add(text("level_info_empty", "<gray>Please place an upgradeable gem first</gray>"));
-            return buildItem(Material.BOOK, text("level_info_name", "<gold>Level Info</gold>"), lore);
+            return buildItem(guiSlot, Material.BOOK, text("level_info_name", "<gold>Level Info</gold>"), lore);
         }
         lore.add(text("gem_line", Map.of("gem", plugin.itemFactory().resolveGemDisplayName(preview.definition(), preview.instance().level())), "<gray>Gem: <yellow>{gem}</yellow></gray>"));
         lore.add(text("current_level", Map.of("level", preview.instance().level()), "<gray>Current level: <yellow>{level}</yellow></gray>"));
         lore.add(text("target_level", Map.of("level", preview.targetLevel()), "<gray>Target level: <gold>{level}</gold></gray>"));
         lore.add(text("max_level", Map.of("level", preview.definition().upgrade().maxLevel()), "<gray>Max level: <aqua>{level}</aqua></gray>"));
-        return buildItem(Material.BOOK, text("level_info_name", "<gold>Level Info</gold>"), lore);
+        return buildItem(guiSlot, Material.BOOK, text("level_info_name", "<gold>Level Info</gold>"), lore);
     }
 
-    private ItemStack renderMaterialSlot(GemUpgradeGuiSession state, int displayIndex) {
+    private ItemStack renderMaterialSlot(GemUpgradeGuiSession state, int displayIndex, GuiSlot guiSlot) {
         GemUpgradeService.UpgradePreview preview = preview(state);
         if (!preview.eligible() || displayIndex >= preview.upgradeLevel().materials().size()) {
-            return buildItem(Material.GRAY_STAINED_GLASS_PANE, text("material_slot_name", "<dark_gray>Material Slot</dark_gray>"), List.of(
+            return buildItem(guiSlot, Material.GRAY_STAINED_GLASS_PANE, text("material_slot_name", "<dark_gray>Material Slot</dark_gray>"), List.of(
                     text("material_slot_empty", "<dark_gray>No material preview</dark_gray>")
             ));
         }
@@ -109,16 +112,16 @@ final class GemUpgradeGuiRenderer {
                     List.of()
             ), Map.of());
         }
-        return buildItem(Material.BLAZE_POWDER, text("material_name", "<aqua>Upgrade Material</aqua>"), lore);
+        return buildItem(guiSlot, Material.BLAZE_POWDER, text("material_name", "<aqua>Upgrade Material</aqua>"), lore);
     }
 
-    private ItemStack renderPreview(GemUpgradeGuiSession state) {
+    private ItemStack renderPreview(GemUpgradeGuiSession state, GuiSlot guiSlot) {
         GemUpgradeService.UpgradePreview preview = preview(state);
         List<String> lore = new ArrayList<>();
         if (!preview.eligible()) {
             lore.add(text("preview_empty_1", "<gray>Upgrade preview will be shown here</gray>"));
             lore.add(text("preview_empty_2", "<gray>Place a gem to view materials and result</gray>"));
-            return buildItem(Material.WRITABLE_BOOK, text("preview_name", "<gold>Upgrade Preview</gold>"), lore);
+            return buildItem(guiSlot, Material.WRITABLE_BOOK, text("preview_name", "<gold>Upgrade Preview</gold>"), lore);
         }
         lore.add(text("result_name", Map.of("gem", plugin.itemFactory().resolveGemDisplayName(preview.definition(), preview.targetLevel())), "<gray>Result item name: <yellow>{gem}</yellow></gray>"));
         List<GemDefinition.CurrencyCost> currencies = !preview.upgradeLevel().currencies().isEmpty()
@@ -138,15 +141,15 @@ final class GemUpgradeGuiRenderer {
         }
         lore.add(text("material_required_hint", "<gray>All upgrade materials must be placed in material slots</gray>"));
         lore.add(text("confirm_update_hint", "<green>Confirming will directly update this gem item</green>"));
-        return buildItem(Material.WRITABLE_BOOK, text("preview_name", "<gold>Upgrade Preview</gold>"), lore);
+        return buildItem(guiSlot, Material.WRITABLE_BOOK, text("preview_name", "<gold>Upgrade Preview</gold>"), lore);
     }
 
-    private ItemStack renderSuccessRate(GemUpgradeGuiSession state) {
+    private ItemStack renderSuccessRate(GemUpgradeGuiSession state, GuiSlot guiSlot) {
         GemUpgradeService.UpgradePreview preview = preview(state);
         List<String> lore = new ArrayList<>();
         if (!preview.eligible()) {
             lore.add(text("success_rate_empty", "<gray>Success rate will be shown after placing a gem</gray>"));
-            return buildItem(Material.EXPERIENCE_BOTTLE, text("success_rate_name", "<gold>Success Rate</gold>"), lore);
+            return buildItem(guiSlot, Material.EXPERIENCE_BOTTLE, text("success_rate_name", "<gold>Success Rate</gold>"), lore);
         }
         double successRate = plugin.upgradeService().effectiveSuccessChance(preview.definition(), preview.targetLevel(), preview.upgradeLevel().successChance());
         lore.add(text("success_rate_line", Map.of("rate", successRate), "<gray>Base success rate: <green>{rate}%</green></gray>"));
@@ -156,17 +159,17 @@ final class GemUpgradeGuiRenderer {
                         ? preview.definition().upgrade().failurePenalty()
                         : plugin.appConfig().upgrade().globalFailurePenalty();
         lore.add(text("failure_penalty", Map.of("penalty", failurePenalty), "<gray>Failure penalty: <yellow>{penalty}</yellow></gray>"));
-        return buildItem(Material.EXPERIENCE_BOTTLE, text("success_rate_name", "<gold>Success Rate</gold>"), lore);
+        return buildItem(guiSlot, Material.EXPERIENCE_BOTTLE, text("success_rate_name", "<gold>Success Rate</gold>"), lore);
     }
 
-    private ItemStack renderConfirm(GemUpgradeGuiSession state) {
+    private ItemStack renderConfirm(GemUpgradeGuiSession state, GuiSlot guiSlot) {
         GemUpgradeService.UpgradePreview preview = preview(state);
         if (!preview.eligible()) {
-            return buildItem(Material.BARRIER, text("confirm_disabled_name", "<red>Cannot Upgrade</red>"), List.of(
+            return buildItem(guiSlot, Material.BARRIER, text("confirm_disabled_name", "<red>Cannot Upgrade</red>"), List.of(
                     text("confirm_disabled_lore", "<gray>Please satisfy upgrade requirements first</gray>")
             ));
         }
-        return buildItem(Material.LIME_STAINED_GLASS_PANE, text("confirm_name", "<green>Confirm Upgrade</green>"), List.of(
+        return buildItem(guiSlot, Material.LIME_STAINED_GLASS_PANE, text("confirm_name", "<green>Confirm Upgrade</green>"), List.of(
                 text("confirm_lore", "<gray>Click to consume GUI materials and try upgrading</gray>"),
                 text("target_level", Map.of("level", preview.targetLevel()), "<gray>Target level: <gold>{level}</gold></gray>")
         ));
@@ -193,12 +196,20 @@ final class GemUpgradeGuiRenderer {
     }
 
     private ItemStack buildItem(Material material, String name, List<String> lore) {
-        return buildItem(material.name(), name, lore);
+        return buildItem(null, material.name(), name, lore);
+    }
+
+    private ItemStack buildItem(GuiSlot slot, Material material, String name, List<String> lore) {
+        return buildItem(slot, material.name(), name, lore);
     }
 
     private ItemStack buildItem(String item, String name, List<String> lore) {
+        return buildItem(null, item, name, lore);
+    }
+
+    private ItemStack buildItem(GuiSlot slot, String item, String name, List<String> lore) {
         return GuiItemBuilder.build(
-                item,
+                Texts.isBlank(slot == null ? null : slot.item()) ? item : slot.item(),
                 new ItemComponentParser.ItemComponents(name, true, lore, null, null, Map.of(), List.of()),
                 1,
                 Map.of(),

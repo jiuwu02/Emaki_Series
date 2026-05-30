@@ -108,6 +108,29 @@ public final class GuiTemplateParser {
         if (Texts.isNotBlank(item)) {
             return item;
         }
+        item = parseItemSourceText(ConfigNodes.get(raw, "item_source"));
+        if (Texts.isNotBlank(item)) {
+            return item;
+        }
+        item = parseItemSourceText(ConfigNodes.get(raw, "item_sources"));
+        if (Texts.isNotBlank(item)) {
+            return item;
+        }
+        item = ConfigNodes.string(raw, "material", null);
+        if (Texts.isNotBlank(item)) {
+            return item;
+        }
+        ItemSource source = ItemSourceUtil.parse(raw);
+        return source == null ? null : ItemSourceUtil.toShorthand(source);
+    }
+
+    private static String parseItemSourceText(Object raw) {
+        if (raw == null) {
+            return null;
+        }
+        if (raw instanceof String text) {
+            return Texts.trim(text);
+        }
         ItemSource source = ItemSourceUtil.parse(raw);
         return source == null ? null : ItemSourceUtil.toShorthand(source);
     }

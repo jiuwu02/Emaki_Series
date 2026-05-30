@@ -3862,6 +3862,24 @@ textarea {
   padding: 0;
 }
 
+.deferred-slot-input {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 5px;
+  align-items: center;
+}
+
+.deferred-slot-input input {
+  min-width: 0;
+}
+
+.slot-pending-note {
+  grid-column: 1 / -1;
+  color: var(--changed);
+  font-size: 10px;
+  line-height: 1.35;
+}
+
 .mini-grid-2 {
   display: grid;
   grid-template-columns: 1fr 120px;
@@ -4073,15 +4091,34 @@ textarea {
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 7px;
   text-align: left;
   color: var(--muted);
   font-size: 12px;
 }
 
-.overlay-toggle span {
+.overlay-toggle .overlay-arrow {
   width: 12px;
   color: var(--faint);
+}
+
+.overlay-summary {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 2px 7px;
+  align-items: center;
+}
+
+.overlay-discriminator {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 1px 7px;
+  color: var(--accent);
+  background: var(--accent-dim);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .02em;
 }
 
 .overlay-toggle code {
@@ -4093,13 +4130,14 @@ textarea {
   white-space: nowrap;
 }
 
-.overlay-type {
-  border: 1px solid var(--line);
-  border-radius: 3px;
-  padding: 1px 5px;
+.overlay-summary small {
+  grid-column: 1 / -1;
+  min-width: 0;
   color: var(--faint);
   font-size: 10px;
-  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .overlay-delete {

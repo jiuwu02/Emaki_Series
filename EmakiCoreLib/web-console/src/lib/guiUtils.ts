@@ -115,34 +115,27 @@ export function buildOccupancy(data: GuiTemplateData): SlotOccupancy[] {
   const occupancy: SlotOccupancy[] = Array.from({ length: count }, (_, index) => ({ index, key: null, slot: null, conflicts: [], overlays: [] }));
   const slots = data.slots ?? {};
   for (const [key, slot] of Object.entries(slots)) {
-    const isDynamic = Boolean(slot?.type);
     for (const index of parseSlotList(slot?.slots)) {
       if (index < 0 || index >= count) continue;
       const cell = occupancy[index];
-      if (isDynamic || cell.key == null) {
-        // Dynamic slots always go into overlays; first static slot becomes primary
-        cell.overlays.push({ key, slot });
-        if (cell.key == null) {
-          cell.key = key;
-          cell.slot = slot;
-        }
-      } else {
-        // Non-dynamic slot conflicting with existing non-dynamic primary
-        const existingIsDynamic = Boolean(cell.slot?.type);
-        if (existingIsDynamic) {
-          // Existing primary is dynamic, new one is static — swap: static becomes primary
-          cell.overlays.push({ key, slot });
-          cell.key = key;
-          cell.slot = slot;
-        } else {
-          // Both non-dynamic — real conflict
-          cell.conflicts = [...cell.conflicts, cell.key, key].filter((entry, i, arr) => arr.indexOf(entry) === i);
-          cell.overlays.push({ key, slot });
-        }
+      cell.overlays.push({ key, slot });
+      if (cell.key == null || (!slotDiscriminator(cell.slot) && slotDiscriminator(slot))) {
+        cell.key = key;
+        cell.slot = slot;
       }
     }
   }
+  for (const cell of occupancy) {
+    const staticKeys = cell.overlays
+      .filter((overlay) => !slotDiscriminator(overlay.slot))
+      .map((overlay) => overlay.key);
+    cell.conflicts = staticKeys.length > 1 ? staticKeys : [];
+  }
   return occupancy;
+}
+
+function slotDiscriminator(slot: GuiSlotDefinition | null | undefined): string {
+  return String(slot?.type ?? '').trim();
 }
 
 export function loreLines(value: unknown): string[] {
@@ -150,6 +143,32 @@ export function loreLines(value: unknown): string[] {
   if (typeof value === 'string') return value ? [value] : [];
   if (value && typeof value === 'object') return [getLocale().startsWith('zh') ? '<dark_gray>复杂 Lore 配置，请在源码中编辑</dark_gray>' : '<dark_gray>Complex lore config. Edit it in source mode.</dark_gray>'];
   return [];
+}
+
+export function slotItemText(slot: GuiSlotDefinition | null | undefined): string {
+  if (!slot) return '';
+  return itemSourceText(slot.item)
+    || itemSourceText(slot.item_source)
+    || itemSourceText(slot.item_sources)
+    || itemSourceText(slot.material);
+}
+
+export function withSlotItem(slot: GuiSlotDefinition, item: unknown): GuiSlotDefinition {
+  return { ...slot, item: item == null ? undefined : String(item) };
+}
+
+function itemSourceText(value: unknown): string {
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (Array.isArray(value)) return value.map(itemSourceText).find(Boolean) ?? '';
+  if (value && typeof value === 'object') {
+    const record = value as Record<string, unknown>;
+    const shorthand = itemSourceText(record.item ?? record.item_source ?? record.source ?? record.material);
+    if (shorthand) return shorthand;
+    const type = itemSourceText(record.type);
+    const identifier = itemSourceText(record.identifier ?? record.id);
+    if (type && identifier) return `${type}-${identifier}`;
+  }
+  return '';
 }
 
 export function serializeGuiYaml(data: GuiTemplateData): string {
