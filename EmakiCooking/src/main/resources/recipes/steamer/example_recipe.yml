@@ -35,11 +35,14 @@ permission: "emakicooking.recipe.steamed_cod"
 # ============================================================
 # 蒸制结果
 # ============================================================
-# output: 蒸制完成后的产出物品
+# success: 蒸制完成后的结果分支
+#   outputs: 产出物品列表
+#   actions: 完成时执行的动作
 result:
-  output:
-    item_sources:
-      - "minecraft-cooked_cod"
-    amount: 1
+  success:
+    outputs:
+      - item_sources:
+          - "minecraft-cooked_cod"
+        amount: 1
     actions:
       - 'sendmessage text="<aqua>蒸制完成。</aqua>"'

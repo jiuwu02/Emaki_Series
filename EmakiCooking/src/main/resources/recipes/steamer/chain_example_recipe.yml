@@ -46,10 +46,11 @@ permission: "emakicooking.recipe.steamed_carrot_cake"
 # 蒸制结果
 # ============================================================
 result:
-  output:
-    item_sources:
-      - "minecraft-pumpkin_pie"
-    amount: 1
+  success:
+    outputs:
+      - item_sources:
+          - "minecraft-pumpkin_pie"
+        amount: 1
     actions:
       - 'sendmessage text="<green>蒸制完成！获得了胡萝卜糕。</green>"'
       - "playsound sound=minecraft:block.brewing_stand.brew volume=0.8 pitch=1.2"

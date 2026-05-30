@@ -33,27 +33,14 @@ inputs:
 # fermentation: 发酵过程控制
 #   early_collect: 提前收取配置
 #     min_progress_ratio: 最早可收取的进度比例（0.0-1.0）
-#     output: 提前收取时的产出（半成品）
 #   over_time_seconds: 超时多少秒后视为过度发酵
-#   over_output: 过度发酵时的产出（变质品）
+# 提前收取和过度发酵产物统一配置在 result.early / result.over。
 fermentation_time_seconds: 300
 
 fermentation:
   early_collect:
     min_progress_ratio: 0.5
-    output:
-      item_sources:
-        - "minecraft-potion"
-      amount: 1
-      actions:
-        - 'sendmessage text="<yellow>提前收取了半发酵苹果饮。</yellow>"'
   over_time_seconds: 600
-  over_output:
-    item_sources:
-      - "minecraft-honey_bottle"
-    amount: 1
-    actions:
-      - 'sendmessage text="<gold>苹果酒已经继续转化为酸甜果醋。</gold>"'
 
 # 使用此配方所需的权限节点
 permission: "emakicooking.recipe.apple_cider"
@@ -61,11 +48,28 @@ permission: "emakicooking.recipe.apple_cider"
 # ============================================================
 # 发酵结果
 # ============================================================
-# output: 正常发酵完成后的产出物品
+# success: 正常发酵完成后的结果分支
+# early: 提前收取时的结果分支
+# over: 过度发酵时的结果分支
 result:
-  output:
-    item_sources:
-      - "minecraft-honey_bottle"
-    amount: 1
+  success:
+    outputs:
+      - item_sources:
+          - "minecraft-honey_bottle"
+        amount: 1
     actions:
       - 'sendmessage text="<gold>发酵完成。</gold>"'
+  early:
+    outputs:
+      - item_sources:
+          - "minecraft-potion"
+        amount: 1
+    actions:
+      - 'sendmessage text="<yellow>提前收取了半发酵苹果饮。</yellow>"'
+  over:
+    outputs:
+      - item_sources:
+          - "minecraft-honey_bottle"
+        amount: 1
+    actions:
+      - 'sendmessage text="<gold>苹果酒已经继续转化为酸甜果醋。</gold>"'

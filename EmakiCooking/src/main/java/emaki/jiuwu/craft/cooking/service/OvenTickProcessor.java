@@ -246,7 +246,7 @@ final class OvenTickProcessor {
             String dropSource = entry.getValue();
             RecipeDocument recipe = recipeService.findOvenRecipe(dropSource, null);
             if (recipe != null && state.progressAt(entry.getKey()) >= recipeService.ovenBakeTimeSeconds(recipe)) {
-                Map<String, Object> outcome = recipeService.outcome(recipe, "result.output");
+                Map<String, Object> outcome = recipeService.outcome(recipe, "result.success");
                 List<Map<String, Object>> outputs = recipeService.outputs(outcome);
                 if (canStoreOutcomeInSlot(outputs)) {
                     dropSource = String.valueOf(outputs.getFirst().getOrDefault("source", dropSource));

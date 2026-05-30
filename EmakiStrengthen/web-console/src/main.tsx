@@ -14,13 +14,8 @@ const actionFields = [
   { path: 'replacement', label: '替换内容', comment: '正则替换动作的替换内容。', type: 'text', defaultValue: '' }
 ];
 
-const effectFields = [
-  { path: 'type', label: '类型', comment: '选择强化阶段贡献的效果类别：变量、EA 属性或 ES 技能。', type: 'enum', options: STRENGTHEN_EFFECT_TYPES, defaultValue: 'variables' },
-  { path: 'variables', label: '变量', comment: '变量对象。', type: 'json', defaultValue: {} },
-  { path: 'ea_attributes', label: 'EA 属性', comment: '写入 EmakiAttribute 的属性。', type: 'json', defaultValue: {} },
-  { path: 'es_skills', label: 'ES 技能', comment: '技能 ID 列表。', type: 'stringList', defaultValue: [] },
-  { path: 'name_actions', label: '名称动作链', comment: '名称动作对象列表。', type: 'objectList', defaultValue: [], itemFields: actionFields },
-  { path: 'lore_actions', label: 'Lore 动作链', comment: 'Lore 动作对象列表。', type: 'objectList', defaultValue: [], itemFields: actionFields }
+const effectTypeFields = [
+  { path: 'type', label: '类型', comment: '强化阶段贡献的效果类别。', type: 'enum', options: [...STRENGTHEN_EFFECT_TYPES, 'name_action', 'lore_action'], defaultValue: 'variables' }
 ];
 
 const materialFields = standardMaterialCostFields({
@@ -47,9 +42,9 @@ const currencyFields = standardCurrencyCostFields({
 
 const starStageFields = [
   { path: 'name', label: '阶段名称', comment: '该星级的里程碑名称，可留空。', type: 'text', defaultValue: '' },
-  { path: 'variables', label: '变量', comment: '表达式变量或属性增量，源码从星级阶段顶层 variables 读取。', type: 'json', defaultValue: {} },
-  { path: 'ea_attributes', label: 'EA 属性', comment: '显式 EmakiAttribute 属性覆盖，源码从星级阶段顶层 ea_attributes 读取。', type: 'json', defaultValue: {} },
-  { path: 'effects', label: '效果', comment: '技能或显示动作效果列表。', type: 'objectList', defaultValue: [], itemFields: effectFields },
+  { path: 'variables', label: '变量', comment: '表达式变量或属性增量，源码从星级阶段顶层 variables 读取。', type: 'dynamic_map', defaultValue: {} },
+  { path: 'ea_attributes', label: 'EA 属性', comment: '显式 EmakiAttribute 属性覆盖，源码从星级阶段顶层 ea_attributes 读取。', type: 'dynamic_map', defaultValue: {} },
+  { path: 'effects', label: '效果', comment: '技能或显示动作效果列表。', type: 'objectList', defaultValue: [] },
   { path: 'materials', label: '材料', comment: '强化到该星级需要的材料列表。', type: 'objectList', defaultValue: [], itemFields: materialFields },
   { path: 'economy_override.currencies', label: '经济覆盖', comment: '该星级专属货币消耗；留空时使用配方 economy。', type: 'objectList', defaultValue: [], itemFields: currencyFields },
   { path: 'actions.success', label: '成功动作', comment: '强化成功到该星级后执行的动作。', type: 'stringList', defaultValue: [] },
@@ -208,13 +203,20 @@ registerPluginConfig({
     ['branch_tree.stars', starStageTemplate],
     ['branch_tree.children', branchTemplate]
   ],
+  listItemSchemas: [
+    ['effects', effectTypeFields]
+  ],
   rules: [
-    [{ key: 'effects' }, { label: '效果', comment: '强化阶段效果列表，用于追加变量、EA 属性或 ES 技能。', type: 'objectList' }],
+    [{ key: 'effects' }, { label: '效果', comment: '强化阶段效果列表，用于追加变量、EA 属性或 ES 技能。', type: 'objectList', itemFields: effectTypeFields }],
+    [{ key: 'variables' }, { label: '变量', comment: '变量键值，只包含表达式变量。', type: 'dynamic_map' }],
+    [{ key: 'ea_attributes' }, { label: 'EA 属性', comment: 'EmakiAttribute 属性数值映射。', type: 'dynamic_map' }],
+    [{ key: 'es_skills' }, { label: 'ES 技能', comment: 'EmakiSkills 技能 ID 列表。', type: 'stringList' }],
+    [{ key: 'name_actions' }, { label: '名称动作链', comment: '对物品显示名称执行的 CoreLib Action 列表。', type: 'objectList', itemFields: actionFields }],
+    [{ key: 'lore_actions' }, { label: 'Lore 动作链', comment: '对物品 Lore 执行的 CoreLib Action 列表。', type: 'objectList', itemFields: actionFields }],
     [{ key: 'stars' }, { label: '星级阶段', comment: '按目标星级添加阶段配置。每个子键应为星级数字。', type: 'object', creatableChildren: true, createTemplates: [starStageTemplate] }],
     [{ key: 'children' }, { label: '子分支', comment: '按分支 ID 添加后续路线，用于分支强化选择。', type: 'object', creatableChildren: true, createTemplates: [branchTemplate] }]
   ],
   listItemSchemaRules: [
-    [{ key: 'effects' }, effectFields],
     [{ key: 'materials' }, materialFields],
     [{ key: 'currencies' }, currencyFields],
     [{ key: 'name_actions' }, actionFields],

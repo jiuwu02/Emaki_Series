@@ -74,11 +74,11 @@ public final class CookingRecipeService {
     }
 
     public List<Map<String, Object>> outputs(RecipeDocument recipe) {
-        return recipe == null ? List.of() : mapList(recipe.configuration().getMapList("result.outputs"));
+        return outputs(outcome(recipe, "result.success"));
     }
 
     public List<String> actions(RecipeDocument recipe) {
-        return recipe == null ? List.of() : recipe.configuration().getStringList("result.actions");
+        return actions(outcome(recipe, "result.success"));
     }
 
     public int grinderTimeSeconds(RecipeDocument recipe) {
@@ -125,14 +125,12 @@ public final class CookingRecipeService {
 
     public Map<String, Object> ovenOutcomeForStage(RecipeDocument recipe, OvenBakeStage stage) {
         if (stage == OvenBakeStage.PERFECT) {
-            Map<String, Object> outcome = outcome(recipe, "result.perfect_output");
-            return outcome.isEmpty() ? outcome(recipe, "result.output") : outcome;
+            return outcome(recipe, "result.perfect");
         }
         if (stage == OvenBakeStage.OVERBAKED) {
-            Map<String, Object> outcome = outcome(recipe, "result.overbaked_output");
-            return outcome.isEmpty() ? outcome(recipe, "result.output") : outcome;
+            return outcome(recipe, "result.overbaked");
         }
-        return outcome(recipe, "result.output");
+        return outcome(recipe, "result.success");
     }
 
     public RecipeDocument findJuicerRecipe(String inputSource, Player player) {
@@ -202,7 +200,7 @@ public final class CookingRecipeService {
     }
 
     public double fermentationEarlyMinProgressRatio(RecipeDocument recipe) {
-        if (recipe == null || outcome(recipe, "fermentation.early_collect.output").isEmpty()) {
+        if (recipe == null || outcome(recipe, "result.early").isEmpty()) {
             return -1.0D;
         }
         double value = recipe.configuration().getDouble("fermentation.early_collect.min_progress_ratio", 1.0D);
@@ -210,7 +208,7 @@ public final class CookingRecipeService {
     }
 
     public int fermentationOverTimeSeconds(RecipeDocument recipe) {
-        if (recipe == null || outcome(recipe, "fermentation.over_output").isEmpty()) {
+        if (recipe == null || outcome(recipe, "result.over").isEmpty()) {
             return 0;
         }
         return Math.max(0, recipe.configuration().getInt("fermentation.over_time_seconds", 0));
@@ -218,14 +216,12 @@ public final class CookingRecipeService {
 
     public Map<String, Object> fermentationOutcomeForStage(RecipeDocument recipe, FermentationStage stage) {
         if (stage == FermentationStage.EARLY) {
-            Map<String, Object> outcome = outcome(recipe, "fermentation.early_collect.output");
-            return outcome.isEmpty() ? outcome(recipe, "result.output") : outcome;
+            return outcome(recipe, "result.early");
         }
         if (stage == FermentationStage.OVER) {
-            Map<String, Object> outcome = outcome(recipe, "fermentation.over_output");
-            return outcome.isEmpty() ? outcome(recipe, "result.output") : outcome;
+            return outcome(recipe, "result.over");
         }
-        return outcome(recipe, "result.output");
+        return outcome(recipe, "result.success");
     }
 
     public List<Map<String, Object>> fermentationInputs(RecipeDocument recipe) {
@@ -305,24 +301,16 @@ public final class CookingRecipeService {
             return List.of();
         }
         Object rawOutputs = outcome.get("outputs");
-        if (rawOutputs instanceof List<?> list) {
-            List<Map<String, Object>> normalized = new ArrayList<>();
-            for (Object entry : list) {
-                if (entry instanceof Map<?, ?> map) {
-                    normalized.add(Map.copyOf(MapYamlSection.normalizeMap(map)));
-                }
-            }
-            return normalized.isEmpty() ? List.of() : List.copyOf(normalized);
-        }
-        if (ItemSourceUtil.parse(outcome.get("item_sources")) == null) {
+        if (!(rawOutputs instanceof List<?> list) || list.isEmpty()) {
             return List.of();
         }
-        Map<String, Object> singleOutput = new java.util.LinkedHashMap<>(outcome);
-        // Direct outcome objects expose their own actions through recipeService.actions(outcome),
-        // so we strip them here to avoid double execution when reward delivery also handles
-        // per-output actions.
-        singleOutput.remove("actions");
-        return List.of(Map.copyOf(singleOutput));
+        List<Map<String, Object>> normalized = new ArrayList<>();
+        for (Object entry : list) {
+            if (entry instanceof Map<?, ?> map) {
+                normalized.add(Map.copyOf(MapYamlSection.normalizeMap(map)));
+            }
+        }
+        return normalized.isEmpty() ? List.of() : List.copyOf(normalized);
     }
 
     public List<String> actions(Map<String, Object> outcome) {

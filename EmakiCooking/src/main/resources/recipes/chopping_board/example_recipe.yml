@@ -37,15 +37,17 @@ permission: "emakicooking.recipe.cut_carrot"
 # ============================================================
 # 切割结果
 # ============================================================
-# outputs: 切割完成后的产出物品列表
-# actions: 切割完成时执行的动作
+# success: 切割完成后的结果分支
+#   outputs: 产出物品列表
+#   actions: 完成时执行的动作
 result:
-  outputs:
-    - item_sources:
-        - "minecraft-golden_carrot"
-      amount: 1
-  actions:
-    - 'sendmessage text="<green>砧板处理完成。</green>"'
+  success:
+    outputs:
+      - item_sources:
+          - "minecraft-golden_carrot"
+        amount: 1
+    actions:
+      - 'sendmessage text="<green>砧板处理完成。</green>"'
 
 # ============================================================
 # 工具损坏覆盖

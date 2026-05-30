@@ -159,7 +159,7 @@ final class SteamerTickProcessor {
     }
 
     void completeSlot(Block steamerBlock, SteamerState state, int slot, RecipeDocument recipe) {
-        Map<String, Object> outcome = recipeService.outcome(recipe, "result.output");
+        Map<String, Object> outcome = recipeService.outcome(recipe, "result.success");
         List<Map<String, Object>> outputs = recipeService.outputs(outcome);
         List<String> actions = combineActions(recipeService.actions(recipe), recipeService.actions(outcome));
         Location rewardLocation = steamerBlock.getLocation().add(0.5D, 1.0D, 0.5D);
@@ -381,7 +381,7 @@ final class SteamerTickProcessor {
             String dropSource = entry.getValue();
             RecipeDocument recipe = recipeService.findSteamerRecipe(dropSource, null);
             if (recipe != null && state.progressAt(entry.getKey()) >= recipeService.steamerRequiredSteam(recipe)) {
-                Map<String, Object> outcome = recipeService.outcome(recipe, "result.output");
+                Map<String, Object> outcome = recipeService.outcome(recipe, "result.success");
                 List<Map<String, Object>> outputs = recipeService.outputs(outcome);
                 if (canStoreOutcomeInSlot(outputs)) {
                     dropSource = String.valueOf(outputs.getFirst().getOrDefault("source", dropSource));

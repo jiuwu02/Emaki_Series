@@ -186,11 +186,7 @@ public final class SkillDefinitionLoader extends YamlDirectoryLoader<SkillDefini
     }
 
     private boolean hasRandomTextLines(YamlSection section) {
-        return section != null
-                && (section.contains("lines")
-                || section.contains("values")
-                || section.contains("options")
-                || section.contains("texts"));
+        return section != null && section.contains("lines");
     }
 
     private SkillScriptDefinition parseScript(YamlSection section) {
@@ -202,19 +198,19 @@ public final class SkillDefinitionLoader extends YamlDirectoryLoader<SkillDefini
         Map<SkillScriptPhase, List<String>> linesByPhase = new LinkedHashMap<>();
         YamlSection actions = section.getSection("actions");
         if (actions != null) {
-            putPhaseLines(linesByPhase, SkillScriptPhase.CAST, actions, "cast", "on_cast");
-            putPhaseLines(linesByPhase, SkillScriptPhase.HIT, actions, "hit", "on_hit");
-            putPhaseLines(linesByPhase, SkillScriptPhase.MISS, actions, "miss", "on_miss");
-            putPhaseLines(linesByPhase, SkillScriptPhase.FAIL, actions, "fail", "on_fail");
+            putPhaseLines(linesByPhase, SkillScriptPhase.CAST, actions, "cast");
+            putPhaseLines(linesByPhase, SkillScriptPhase.HIT, actions, "hit");
+            putPhaseLines(linesByPhase, SkillScriptPhase.MISS, actions, "miss");
+            putPhaseLines(linesByPhase, SkillScriptPhase.FAIL, actions, "fail");
         }
 
         Map<SkillScriptPhase, List<String>> conditionsByPhase = new LinkedHashMap<>();
         YamlSection conditions = section.getSection("conditions");
         if (conditions != null) {
-            putPhaseLines(conditionsByPhase, SkillScriptPhase.CAST, conditions, "cast", "on_cast");
-            putPhaseLines(conditionsByPhase, SkillScriptPhase.HIT, conditions, "hit", "on_hit");
-            putPhaseLines(conditionsByPhase, SkillScriptPhase.MISS, conditions, "miss", "on_miss");
-            putPhaseLines(conditionsByPhase, SkillScriptPhase.FAIL, conditions, "fail", "on_fail");
+            putPhaseLines(conditionsByPhase, SkillScriptPhase.CAST, conditions, "cast");
+            putPhaseLines(conditionsByPhase, SkillScriptPhase.HIT, conditions, "hit");
+            putPhaseLines(conditionsByPhase, SkillScriptPhase.MISS, conditions, "miss");
+            putPhaseLines(conditionsByPhase, SkillScriptPhase.FAIL, conditions, "fail");
         }
 
         boolean enabled = section.contains("enabled")
@@ -226,11 +222,8 @@ public final class SkillDefinitionLoader extends YamlDirectoryLoader<SkillDefini
     private void putPhaseLines(Map<SkillScriptPhase, List<String>> target,
             SkillScriptPhase phase,
             YamlSection section,
-            String primaryKey,
-            String aliasKey) {
-        List<String> lines = new ArrayList<>();
-        lines.addAll(section.getStringList(primaryKey));
-        lines.addAll(section.getStringList(aliasKey));
+            String key) {
+        List<String> lines = section.getStringList(key);
         if (!lines.isEmpty()) {
             target.put(phase, List.copyOf(lines));
         }

@@ -46,11 +46,28 @@ permission: "emakicooking.recipe.baked_potato"
 # ============================================================
 # 烘烤结果
 # ============================================================
-# output: 烘烤完成后的产出物品
+# success: 烘烤完成后的普通结果分支
+# perfect: 完美火力完成时的覆盖结果分支
+# overbaked: 过烤完成时的覆盖结果分支
 result:
-  output:
-    item_sources:
-      - "minecraft-baked_potato"
-    amount: 1
+  success:
+    outputs:
+      - item_sources:
+          - "minecraft-baked_potato"
+        amount: 1
     actions:
       - 'sendmessage text="<gold>烤制完成。</gold>"'
+  perfect:
+    outputs:
+      - item_sources:
+          - "minecraft-baked_potato"
+        amount: 1
+    actions:
+      - 'sendmessage text="<green>火候完美，烤制完成。</green>"'
+  overbaked:
+    outputs:
+      - item_sources:
+          - "minecraft-charcoal"
+        amount: 1
+    actions:
+      - 'sendmessage text="<red>烤过头了。</red>"'

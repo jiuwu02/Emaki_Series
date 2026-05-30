@@ -15,10 +15,10 @@ public enum SkillScriptPhase {
     public static SkillScriptPhase fromString(String value) {
         String normalized = Texts.lower(value).replace('-', '_').trim();
         return switch (normalized) {
-            case "cast", "on_cast" -> CAST;
-            case "hit", "on_hit" -> HIT;
-            case "miss", "on_miss" -> MISS;
-            case "fail", "on_fail" -> FAIL;
+            case "cast" -> CAST;
+            case "hit" -> HIT;
+            case "miss" -> MISS;
+            case "fail" -> FAIL;
             default -> null;
         };
     }

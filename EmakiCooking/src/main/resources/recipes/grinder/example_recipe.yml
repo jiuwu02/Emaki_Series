@@ -34,12 +34,14 @@ permission: "emakicooking.recipe.bone_meal"
 # ============================================================
 # 研磨结果
 # ============================================================
-# outputs: 研磨完成后的产出物品列表（支持多种产出）
-# actions: 研磨完成时执行的动作
+# success: 研磨完成后的结果分支
+#   outputs: 产出物品列表（支持多种产出）
+#   actions: 完成时执行的动作
 result:
-  outputs:
-    - item_sources:
-        - "minecraft-bone_meal"
-      amount: 3
-  actions:
-    - 'sendmessage text="<gray>研磨结束。</gray>"'
+  success:
+    outputs:
+      - item_sources:
+          - "minecraft-bone_meal"
+        amount: 3
+    actions:
+      - 'sendmessage text="<gray>研磨结束。</gray>"'

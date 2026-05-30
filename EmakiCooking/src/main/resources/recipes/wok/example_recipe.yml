@@ -52,26 +52,34 @@ permission: "emakicooking.recipe.simple_stew"
 # ============================================================
 # 烹饪结果
 # ============================================================
-# success: 正确烹饪时的产出
-# undercooked: 翻炒不足时的产出
-# overcooked: 翻炒过度时的产出
-# invalid: 食材组合错误时的产出
+# success: 正确烹饪时的结果分支
+# undercooked: 翻炒不足时的结果分支
+# overcooked: 翻炒过度时的结果分支
+# invalid: 食材组合错误时的结果分支
+# 每个结果分支都使用 outputs/actions 结构。
 result:
   success:
-    item_sources:
-      - "minecraft-rabbit_stew"
-    amount: 1
+    outputs:
+      - item_sources:
+          - "minecraft-rabbit_stew"
+        amount: 1
     actions:
       - 'sendmessage text="<green>成功出锅。</green>"'
   undercooked:
-    item_sources:
-      - "minecraft-mushroom_stew"
-    amount: 1
+    outputs:
+      - item_sources:
+          - "minecraft-mushroom_stew"
+        amount: 1
+    actions: []
   overcooked:
-    item_sources:
-      - "minecraft-dried_kelp"
-    amount: 1
+    outputs:
+      - item_sources:
+          - "minecraft-dried_kelp"
+        amount: 1
+    actions: []
   invalid:
-    item_sources:
-      - "minecraft-stone"
-    amount: 1
+    outputs:
+      - item_sources:
+          - "minecraft-stone"
+        amount: 1
+    actions: []

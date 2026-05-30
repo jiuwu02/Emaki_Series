@@ -267,7 +267,7 @@ public final class JuicerRuntimeService implements Listener {
             return true;
         }
         Location location = block.getLocation().add(0.5D, 1.0D, 0.5D);
-        Map<String, Object> outcome = recipeService.outcome(recipe, "result.output");
+        Map<String, Object> outcome = recipeService.outcome(recipe, "result.success");
         rewardService.deliver(recipe, player, location, settingsService.juicerDropResult(), recipeService.outputs(outcome),
                 recipeService.actions(outcome), "cooking_juicer_serve", Map.of("recipe_id", recipe.id(), "station_type", StationType.JUICER.folderName(), "fluid_id", state.fluidId()));
         state.consumeFluid(servingMl);
@@ -285,7 +285,7 @@ public final class JuicerRuntimeService implements Listener {
 
     private void completeSlot(Player player, Block block, JuicerState state, int slot, RecipeDocument recipe) {
         Location location = block.getLocation().add(0.5D, 1.0D, 0.5D);
-        Map<String, Object> outcome = recipeService.outcome(recipe, "result.output");
+        Map<String, Object> outcome = recipeService.outcome(recipe, "result.success");
         rewardService.deliver(recipe, player, location, settingsService.juicerDropResult(), recipeService.outputs(outcome),
                 recipeService.actions(outcome), "cooking_juicer_complete", Map.of("recipe_id", recipe.id(), "station_type", StationType.JUICER.folderName(), "slot_index", slot));
         state.removeSlot(slot);

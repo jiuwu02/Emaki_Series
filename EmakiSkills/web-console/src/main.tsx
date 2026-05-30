@@ -266,15 +266,9 @@ registerPluginConfig({
     [{ path: 'script.enabled' }, { label: '启用脚本', comment: '是否启用该技能的原生脚本。', type: 'boolean' }],
     [{ path: 'script.mode' }, { label: '脚本模式', comment: '该技能的脚本执行模式。', type: 'enum', options: SCRIPT_MODES, optionLabelPrefix: 'script_engine.default_mode' }],
     [{ path: 'script.stop_on_failure' }, { label: '失败停止', comment: '某个脚本动作失败后是否停止后续阶段。', type: 'boolean' }],
-    [{ key: 'cast' }, { label: '释放阶段', comment: '技能释放时执行的动作列表。', type: 'stringList' }],
-    [{ key: 'hit' }, { label: '命中阶段', comment: '技能命中目标后执行的动作列表。', type: 'stringList' }],
-    [{ key: 'miss' }, { label: '未命中阶段', comment: '技能没有命中目标时执行的动作列表。', type: 'stringList' }],
-    [{ key: 'fail' }, { label: '失败阶段', comment: '技能脚本进入失败分支时执行的动作列表。', type: 'stringList' }],
     ...SCRIPT_PHASES.flatMap(phase => [
       [{ path: `script.actions.${phase}` }, { label: `${phase} 动作`, comment: `原生技能脚本 actions.${phase} 阶段动作列表。`, type: 'stringList' }],
-      [{ path: `script.actions.on_${phase}` }, { label: `on_${phase} 动作`, comment: `原生技能脚本 actions.on_${phase} 阶段动作列表。`, type: 'stringList' }],
-      [{ path: `script.conditions.${phase}` }, { label: `${phase} 条件`, comment: `原生技能脚本 conditions.${phase} 阶段条件列表。`, type: 'stringList' }],
-      [{ path: `script.conditions.on_${phase}` }, { label: `on_${phase} 条件`, comment: `原生技能脚本 conditions.on_${phase} 阶段条件列表。`, type: 'stringList' }]
+      [{ path: `script.conditions.${phase}` }, { label: `${phase} 条件`, comment: `原生技能脚本 conditions.${phase} 阶段条件列表。`, type: 'stringList' }]
     ] as Array<[Record<string, string>, { label: string; comment: string; type: string }]>)
   ],
   createTemplates: [

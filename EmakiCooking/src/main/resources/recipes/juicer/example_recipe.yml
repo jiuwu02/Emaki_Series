@@ -56,11 +56,14 @@ permission: "emakicooking.recipe.apple_juice"
 # ============================================================
 # 榨汁结果
 # ============================================================
-# output: 榨汁完成后的产出物品
+# success: 榨汁完成后的结果分支
+#   outputs: 产出物品列表
+#   actions: 完成时执行的动作
 result:
-  output:
-    item_sources:
-      - "minecraft-honey_bottle"
-    amount: 1
+  success:
+    outputs:
+      - item_sources:
+          - "minecraft-honey_bottle"
+        amount: 1
     actions:
       - 'sendmessage text="<aqua>榨汁完成。</aqua>"'
