@@ -75,6 +75,9 @@ export function treeNodeDisplayLabel(node: RegistryTreeNode): string {
   if (node.type === 'module') {
     return t(`${moduleRegistryNamespace(node.moduleId || node.id)}.module.name`, undefined, node.label || node.moduleId || node.id);
   }
+  if (node.type === 'folder') {
+    return resolveFolderDisplayText(node.moduleId, node.path, node.label || node.path || node.id, 'title');
+  }
   if (node.type === 'child') {
     return childFileLabel(node.path, node.label || node.id);
   }
@@ -88,6 +91,9 @@ export function treeNodeDisplayComment(node: RegistryTreeNode): string {
   if (node.type === 'module') {
     return t(`${moduleRegistryNamespace(node.moduleId || node.id)}.module.summary`, undefined, node.comment || '');
   }
+  if (node.type === 'folder') {
+    return resolveFolderDisplayText(node.moduleId, node.path, node.comment || '', 'comment');
+  }
   if (node.fileId && node.moduleId) {
     return resolveFileDisplayText(node.moduleId, node.path, node.comment || '', 'comment');
   }
@@ -98,10 +104,7 @@ function resolveFileDisplayText(moduleId: string | undefined, path: string | und
   const namespace = moduleRegistryNamespace(moduleId);
   const key = registryFileKey(path);
   const pathKey = registryPathKey(path);
-  const localized = lookupLocale([
-    namespace && `${namespace}.filePath.${pathKey}.${kind}`,
-    namespace && `${namespace}.file.${key}.${kind}`
-  ].filter(Boolean) as string[]);
+  const localized = localizedFileDisplayText(namespace, key, pathKey, kind);
   if (localized) return localized;
   const pathCopy = pathBasedFileDisplay(path);
   const builtin = builtinFileDisplay(key);
@@ -111,6 +114,23 @@ function resolveFileDisplayText(moduleId: string | undefined, path: string | und
   const moduleRootCopy = moduleRootFileDisplay(namespace, path);
   if (moduleRootCopy) return moduleRootCopy[kind];
   return kind === 'title' ? fallbackFileLabel(path, fallback) : fallback;
+}
+
+function resolveFolderDisplayText(moduleId: string | undefined, path: string | undefined, fallback: string, kind: 'title' | 'comment'): string {
+  const namespace = moduleRegistryNamespace(moduleId);
+  const key = registryFileKey(path);
+  const pathKey = registryPathKey(path);
+  const localized = localizedFileDisplayText(namespace, key, pathKey, kind);
+  if (localized) return localized;
+  if (kind === 'comment') return fallback;
+  return fallbackFileLabel(path, fallback);
+}
+
+function localizedFileDisplayText(namespace: string, key: string, pathKey: string, kind: 'title' | 'comment'): string | undefined {
+  return lookupLocale([
+    namespace && `${namespace}.filePath.${pathKey}.${kind}`,
+    namespace && `${namespace}.file.${key}.${kind}`
+  ].filter(Boolean) as string[]);
 }
 
 function builtinFileDisplay(key: string | undefined): BuiltinFileCopy | undefined {

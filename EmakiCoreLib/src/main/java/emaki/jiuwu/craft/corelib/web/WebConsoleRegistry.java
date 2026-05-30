@@ -582,27 +582,85 @@ public final class WebConsoleRegistry {
         node.put("comment", stringValue(file.get("comment")));
         Object childrenValue = file.get("children");
         if (childrenValue instanceof List<?> children && !children.isEmpty()) {
-            List<Map<String, Object>> childNodes = new ArrayList<>();
-            for (Object childValue : children) {
-                if (childValue instanceof Map<?, ?> child) {
-                    childNodes.add(childTreeNode(file, child));
-                }
+            List<Map<String, Object>> childNodes = childTreeNodes(file, children);
+            if (!childNodes.isEmpty()) {
+                node.put("children", childNodes);
             }
-            node.put("children", childNodes);
         }
         return node;
     }
 
-    private Map<String, Object> childTreeNode(Map<String, Object> file, Map<?, ?> child) {
+    private List<Map<String, Object>> childTreeNodes(Map<String, Object> file, List<?> children) {
+        List<Map<String, Object>> roots = new ArrayList<>();
+        Map<String, Map<String, Object>> foldersByPath = new LinkedHashMap<>();
+        for (Object childValue : children) {
+            if (!(childValue instanceof Map<?, ?> child)) {
+                continue;
+            }
+            addChildTreeNode(file, child, roots, foldersByPath);
+        }
+        return roots;
+    }
+
+    @SuppressWarnings("unchecked")
+    private void addChildTreeNode(Map<String, Object> file, Map<?, ?> child, List<Map<String, Object>> roots, Map<String, Map<String, Object>> foldersByPath) {
         String fileId = stringValue(file.get("id"));
         String moduleId = stringValue(file.get("moduleId"));
         String kind = stringValue(file.get("kind"));
-        String relativePath = stringValue(child.get("relativePath"));
-        String fullPath = stringValue(child.get("fullPath"));
+        String relativePath = normalizeTreePath(stringValue(child.get("relativePath")));
+        String fullPath = normalizeTreePath(stringValue(child.get("fullPath")));
         String childPath = "SCRIPT".equalsIgnoreCase(kind) || Texts.isBlank(fullPath) ? relativePath : fullPath;
+        String displayPath = Texts.isBlank(relativePath) ? childPath : relativePath;
+        List<String> parts = Arrays.stream(displayPath.split("/"))
+                .filter(Texts::isNotBlank)
+                .toList();
+        if (parts.isEmpty()) {
+            return;
+        }
+        List<Map<String, Object>> siblings = roots;
+        String folderDisplayPath = "";
+        String folderChildPath = "";
+        String childBasePrefix = basePrefix(childPath, displayPath);
+        for (int index = 0; index < parts.size() - 1; index++) {
+            String folderName = parts.get(index);
+            folderDisplayPath = Texts.isBlank(folderDisplayPath) ? folderName : folderDisplayPath + "/" + folderName;
+            folderChildPath = Texts.isBlank(childBasePrefix) ? folderDisplayPath : childBasePrefix + "/" + folderDisplayPath;
+            String folderId = fileId + ":folder:" + folderChildPath;
+            Map<String, Object> folder = foldersByPath.get(folderId);
+            if (folder == null) {
+                folder = folderTreeNode(moduleId, fileId, kind, folderName, folderChildPath);
+                foldersByPath.put(folderId, folder);
+                siblings.add(folder);
+            }
+            Object nested = folder.get("children");
+            if (!(nested instanceof List<?>)) {
+                nested = new ArrayList<Map<String, Object>>();
+                folder.put("children", nested);
+            }
+            siblings = (List<Map<String, Object>>) nested;
+        }
+        siblings.add(childTreeNode(fileId, moduleId, kind, parts.get(parts.size() - 1), childPath));
+    }
+
+    private Map<String, Object> folderTreeNode(String moduleId, String fileId, String kind, String label, String path) {
+        Map<String, Object> node = new LinkedHashMap<>();
+        node.put("id", fileId + ":folder:" + path);
+        node.put("label", label);
+        node.put("type", "folder");
+        node.put("moduleId", moduleId);
+        node.put("fileId", fileId);
+        node.put("kind", kind);
+        node.put("path", path);
+        node.put("childPath", path);
+        node.put("createPrefix", path);
+        node.put("children", new ArrayList<Map<String, Object>>());
+        return node;
+    }
+
+    private Map<String, Object> childTreeNode(String fileId, String moduleId, String kind, String label, String childPath) {
         Map<String, Object> node = new LinkedHashMap<>();
         node.put("id", fileId + ":" + childPath);
-        node.put("label", stringValue(child.get("name")));
+        node.put("label", label);
         node.put("type", "child");
         node.put("moduleId", moduleId);
         node.put("fileId", fileId);
@@ -610,6 +668,17 @@ public final class WebConsoleRegistry {
         node.put("path", childPath);
         node.put("childPath", childPath);
         return node;
+    }
+
+    private String basePrefix(String fullPath, String relativePath) {
+        if (Texts.isBlank(fullPath) || Texts.isBlank(relativePath) || fullPath.equals(relativePath)) {
+            return "";
+        }
+        return fullPath.endsWith("/" + relativePath) ? fullPath.substring(0, fullPath.length() - relativePath.length() - 1) : "";
+    }
+
+    private String normalizeTreePath(String path) {
+        return stringValue(path).replace('\\', '/').replaceAll("^/+|/+$", "");
     }
 
     private long fileRegistrationRevision(String moduleId, FileRegistration registration) {

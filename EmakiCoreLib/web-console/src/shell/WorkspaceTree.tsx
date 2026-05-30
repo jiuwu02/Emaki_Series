@@ -40,11 +40,12 @@ type TreeSearchState = {
   visibleIds: Set<string> | null;
 };
 
-export function WorkspaceTree({ registry, selected, expanded, dirtyKeys = new Set<string>(), setExpanded, onSelect, onOpenI18n, onCreateFile, onDeleteFile }: {
+export function WorkspaceTree({ registry, selected, expanded, dirtyKeys = new Set<string>(), localeVersion = 0, setExpanded, onSelect, onOpenI18n, onCreateFile, onDeleteFile }: {
   registry: WebRegistry | null;
   selected: TreeSelection | null;
   expanded: Record<string, boolean>;
   dirtyKeys?: ReadonlySet<string>;
+  localeVersion?: number;
   setExpanded: Dispatch<SetStateAction<Record<string, boolean>>>;
   onSelect: (v: TreeSelection) => void;
   onOpenI18n?: (target: { moduleId: string }) => void;
@@ -56,10 +57,10 @@ export function WorkspaceTree({ registry, selected, expanded, dirtyKeys = new Se
   const treeRef = useRef<HTMLDivElement | null>(null);
   const rowRefs = useRef(new Map<string, HTMLButtonElement>());
 
-  const treeIndex = useMemo(() => registry ? buildTreeIndex(registry) : null, [registry]);
-  const searchState = useMemo(() => treeIndex ? buildSearchState(treeIndex, normalizedQuery) : { query: normalizedQuery, visibleIds: null }, [treeIndex, normalizedQuery]);
+  const treeIndex = useMemo(() => registry ? buildTreeIndex(registry) : null, [registry, localeVersion]);
+  const searchState = useMemo(() => treeIndex ? buildSearchState(treeIndex, normalizedQuery) : { query: normalizedQuery, visibleIds: null }, [treeIndex, normalizedQuery, localeVersion]);
   const dirtyNodeIds = useMemo(() => treeIndex ? collectDirtyNodeIds(treeIndex, dirtyKeys) : new Set<string>(), [treeIndex, dirtyKeys]);
-  const rows = useMemo(() => treeIndex ? flattenVisibleRows(treeIndex, expanded, selected, dirtyNodeIds, searchState) : [], [treeIndex, expanded, selected?.moduleId, selected?.fileId, selected?.scriptPath, dirtyNodeIds, searchState]);
+  const rows = useMemo(() => treeIndex ? flattenVisibleRows(treeIndex, expanded, selected, dirtyNodeIds, searchState) : [], [treeIndex, expanded, selected?.moduleId, selected?.fileId, selected?.scriptPath, dirtyNodeIds, searchState, localeVersion]);
   const rowIndexById = useMemo(() => new Map(rows.map((row, index) => [row.id, index])), [rows]);
 
   const toggle = useCallback((id: string) => setExpanded((current) => ({ ...current, [id]: !current[id] })), [setExpanded]);
