@@ -90,11 +90,11 @@ materials:
         ea_attributes:
           fire_damage: 10.0
           physical_crit_rate: 5.0
-      # 附加技能（支持列表和单个简写两种形式）
+      # 附加技能
       - type: "es_skill"
         es_skills:
           - "flame_strike"
-        es_skill: "flame_passive"
+          - "flame_passive"
       # 修改物品名称
       - type: "name_action"
         name_actions:

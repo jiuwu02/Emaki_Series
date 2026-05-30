@@ -23,6 +23,14 @@ web_console:
   security:
     allow_config_write: false
     max_request_body_kb: 256
+    allowed_modules: []
+  config_browser:
+    max_file_size_kb: 512
+    allowed_extensions:
+      - ".yml"
+      - ".yaml"
+      - ".json"
+      - ".txt"
 
 action:
   # 在配方或动作列表中通过 @template=名称 引用

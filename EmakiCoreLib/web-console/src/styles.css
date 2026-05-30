@@ -2532,6 +2532,12 @@ textarea {
   align-items: center;
 }
 
+.list-row input,
+.list-row textarea {
+  min-height: var(--config-field-control-height);
+  line-height: var(--config-field-text-line-height);
+}
+
 .list-row button {
   min-height: var(--config-field-control-height);
   color: var(--red);

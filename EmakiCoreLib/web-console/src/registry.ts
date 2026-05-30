@@ -15,6 +15,7 @@ import * as previewKit from './ConfigPreviewKit';
 import * as lib from './lib';
 import * as i18n from './i18n';
 import * as itemFieldRegistry from './itemFieldRegistry';
+import * as economyConfig from './economyConfig';
 import type { EditorChange } from './components';
 import type { WebConfigCreateTemplate, WebConfigFieldSchema, WebConfigNode, WebEditorDescriptor, WebEditorField, WebRegistry, WebRegistryFile, WebRegistryModule, WebConsoleExtensionStatus } from './types';
 
@@ -181,7 +182,7 @@ type ConfigFileSchemaRegistration = {
   fields: ConfigMetaFieldEntry[];
 };
 
-export type EmakiWebConsoleHost = typeof lib & typeof components & typeof previewKit & typeof i18n & typeof itemFieldRegistry & {
+export type EmakiWebConsoleHost = typeof lib & typeof components & typeof previewKit & typeof i18n & typeof itemFieldRegistry & typeof economyConfig & {
   apiVersion: string;
   React: typeof React;
   registerSurface: typeof registerSurface;
@@ -563,7 +564,7 @@ export function isKind(fileKind: string | undefined, target: string): boolean {
 
 /** Install the browser global used by plugin extension scripts. */
 export function installWebConsoleHost(): EmakiWebConsoleHost {
-  const host: EmakiWebConsoleHost = { ...lib, ...components, ...previewKit, ...i18n, ...itemFieldRegistry, apiVersion: EMAKI_WEB_CONSOLE_API_VERSION, React, registerSurface, getSurface, getAllSurfaces, isKind, registerPluginGuiSurface, registerPluginGuiEditor, registerPluginSurfaces, registerConfigPreview, getConfigPreview, getAllConfigPreviews, standardGuiFields, registerEditorDescriptor, registerEditorField, registerSourceDocumentAdapter, getSourceDocumentAdapter, registerGuiEditorDescriptor, registerGuiEditorField, getRuntimeEnum, registerFileKindLabel, getFileKindLabel, registerConfigNodeMeta, registerConfigNodeRule, registerConfigCreateTemplate, registerConfigMetaFields, registerConfigFileSchema, registerConfigFileSchemas, registerConfigRuleFields, registerConfigCreateTemplates, registerConfigListItemSchemas, registerConfigListItemSchemaRules, registerConfigListItemSchema, registerConfigListItemSchemaRule, registerPluginConfig, registerUniqueListField, recordExtensionStatus, getExtensionStatuses, components, previewKit, lib, i18n, t: i18n.t, registerLocale: i18n.registerLocale, registerModuleLocale: i18n.registerModuleLocale };
+  const host: EmakiWebConsoleHost = { ...lib, ...components, ...previewKit, ...i18n, ...itemFieldRegistry, ...economyConfig, apiVersion: EMAKI_WEB_CONSOLE_API_VERSION, React, registerSurface, getSurface, getAllSurfaces, isKind, registerPluginGuiSurface, registerPluginGuiEditor, registerPluginSurfaces, registerConfigPreview, getConfigPreview, getAllConfigPreviews, standardGuiFields, registerEditorDescriptor, registerEditorField, registerSourceDocumentAdapter, getSourceDocumentAdapter, registerGuiEditorDescriptor, registerGuiEditorField, getRuntimeEnum, registerFileKindLabel, getFileKindLabel, registerConfigNodeMeta, registerConfigNodeRule, registerConfigCreateTemplate, registerConfigMetaFields, registerConfigFileSchema, registerConfigFileSchemas, registerConfigRuleFields, registerConfigCreateTemplates, registerConfigListItemSchemas, registerConfigListItemSchemaRules, registerConfigListItemSchema, registerConfigListItemSchemaRule, registerPluginConfig, registerUniqueListField, recordExtensionStatus, getExtensionStatuses, components, previewKit, lib, i18n, t: i18n.t, registerLocale: i18n.registerLocale, registerModuleLocale: i18n.registerModuleLocale };
   (window as any).React = React;
   window.EmakiWebConsole = host;
   return host;

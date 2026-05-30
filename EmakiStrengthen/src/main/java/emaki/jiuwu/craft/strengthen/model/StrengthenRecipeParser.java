@@ -228,10 +228,6 @@ public final class StrengthenRecipeParser {
                     result.add(skillId);
                 }
             }
-            String skillId = Texts.normalizeId(ConfigNodes.string(rawEffect, "es_skill", ""));
-            if (Texts.isNotBlank(skillId)) {
-                result.add(skillId);
-            }
         }
         return List.copyOf(result);
     }
@@ -293,11 +289,7 @@ public final class StrengthenRecipeParser {
         String branchId = section.getString("branch_id", defaultId);
         String displayName = section.getString("display_name", "");
         int forkAfterStar = Numbers.tryParseInt(section.get("fork_after_star"), -1);
-        YamlSection stagesSection = section.getSection("stages");
-        if (stagesSection == null) {
-            stagesSection = section.getSection("stars");
-        }
-        Map<Integer, StarStage> stages = parseStars(stagesSection);
+        Map<Integer, StarStage> stages = parseStars(section.getSection("stars"));
         Map<String, StrengthenBranchNode> children = new LinkedHashMap<>();
         YamlSection childrenSection = section.getSection("children");
         if (childrenSection != null) {

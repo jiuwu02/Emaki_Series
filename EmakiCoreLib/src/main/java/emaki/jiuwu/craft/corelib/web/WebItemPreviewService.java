@@ -269,7 +269,7 @@ final class WebItemPreviewService {
             Map<String, Object> row = new LinkedHashMap<>();
             row.put("level", entry.getKey());
             row.put("displayName", value.get("display_name"));
-            row.put("successRate", firstNonNull(value.get("success_rate"), value.get("success_chance"), ConfigNodes.get(upgrade.get("success_rates"), entry.getKey())));
+            row.put("successRate", firstNonNull(value.get("success_rate"), ConfigNodes.get(upgrade.get("success_rates"), entry.getKey())));
             row.put("failurePenalty", firstText(value.get("failure_penalty"), upgrade.get("failure_penalty"), "none"));
             row.put("materials", ConfigNodes.toPlainData(value.get("materials")));
             row.put("economy", ConfigNodes.toPlainData(firstNonNull(value.get("economy"), upgrade.get("economy"))));

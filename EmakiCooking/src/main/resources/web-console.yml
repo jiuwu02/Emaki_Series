@@ -1,5 +1,5 @@
-# EmakiCooking Web Console 声明式注册
-# 仅声明结构信息与资源入口，不承载展示文案。
+# EmakiCooking WebUIEdit 声明式注册
+# 仅声明结构信息与资源入口，展示文案由前端扩展 i18n 注册。
 
 module:
   tone: cooking
@@ -9,6 +9,8 @@ files:
   - path: "config.yml"
     kind: CONFIG
   - path: "recipes/**/*.yml"
+    kind: CONFIG
+  - path: "item_adjustments/**/*.yml"
     kind: CONFIG
   - path: "gui/**/*.yml"
     kind: GUI

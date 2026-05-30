@@ -1,5 +1,5 @@
-# EmakiSkills Web Console 声明式注册
-# 仅声明结构信息与资源入口，不承载展示文案。
+# EmakiSkills WebUIEdit 声明式注册
+# 仅声明结构信息与资源入口，展示文案由前端扩展 i18n 注册。
 
 module:
   tone: skills

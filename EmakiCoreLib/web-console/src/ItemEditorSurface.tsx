@@ -18,6 +18,7 @@ type SnapshotHistory = { undo: AnyMap[]; redo: AnyMap[] };
 const DEFAULT_BASE_NAME = t('core.item.defaultBaseName');
 const DEFAULT_BASE_LORE = t('core.item.defaultBaseLore');
 const DEFAULT_ECONOMY_PROVIDERS = ['auto', 'vault', 'excellenteconomy'];
+const COLLAPSIBLE_SECTION_FIELD_THRESHOLD = 10;
 
 const EditorContext = React.createContext<{
   moduleId: string;
@@ -282,7 +283,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
                   title={localizedSectionTitle(module.id, section)}
                   comment={localizedSectionComment(module.id, section)}
                   collapsible={section.collapsible ?? true}
-                  defaultCollapsed={section.defaultCollapsed}
+                  defaultCollapsed={editorSectionDefaultCollapsed(section, data)}
                   storageKey={`core:item-section:${editor?.id ?? file.editorId ?? file.kind}:${section.title}`}
                 >
                   {section.fields.map(field => <FieldEditor key={field.path} field={field} data={data} originalData={originalData} setField={setField} actionTypesResult={actionTypesResult} editorId={editor?.id ?? file.editorId} />)}
@@ -530,6 +531,21 @@ function resolvePreviewBaseLore(data: AnyMap, fallback: string[]): string[] {
 
 function uiCopy(zh: string, en: string): string {
   return getLocale().startsWith('zh') ? zh : en;
+}
+
+function editorSectionDefaultCollapsed(section: WebEditorSection, data: AnyMap): boolean {
+  if (section.defaultCollapsed === true) return true;
+  if (section.fields.length > COLLAPSIBLE_SECTION_FIELD_THRESHOLD) return true;
+  return section.fields.every(field => !hasMeaningfulEditorValue(getDeepValue(data, field.path)));
+}
+
+function hasMeaningfulEditorValue(value: unknown): boolean {
+  if (value === undefined || value === null) return false;
+  if (typeof value === 'string') return value.trim().length > 0;
+  if (typeof value === 'number' || typeof value === 'boolean') return true;
+  if (Array.isArray(value)) return value.some(hasMeaningfulEditorValue);
+  if (value && typeof value === 'object') return Object.values(value as Record<string, unknown>).some(hasMeaningfulEditorValue);
+  return true;
 }
 
 function localizedEditorTitle(editor: WebEditorDescriptor | undefined, fallback: string): string {

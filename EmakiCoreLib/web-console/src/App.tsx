@@ -56,7 +56,7 @@ const CONFIG_GROUP_BATCH_SIZE = 12;
 const CONFIG_SECTION_INITIAL_GROUPS = 8;
 const CONFIG_SECTION_GROUP_BATCH_SIZE = 10;
 const CONFIG_LAZY_SECTION_THRESHOLD = 10;
-const OBJECT_LIST_COLLAPSE_THRESHOLD = 12;
+const OBJECT_LIST_COLLAPSE_THRESHOLD = 10;
 const OBJECT_LIST_INITIAL_ROWS = 30;
 const OBJECT_LIST_ROW_BATCH_SIZE = 30;
 
@@ -504,8 +504,8 @@ function ExtensionHealthBanner({ health, statuses, onRetry }: { health: 'idle' |
 
   return <aside className={`extension-health extension-health--${health}`} aria-live="polite">
     <div className="extension-health-copy">
-      <strong>{health === 'loading' ? t('core.extension.loading', undefined, 'Loading extensions') : health === 'failed' ? t('core.extension.failed', undefined, 'Extension issues') : t('core.extension.ok', undefined, 'Extensions ready')}</strong>
-      <p>{health === 'loading' ? t('core.extension.loadingDesc', undefined, 'Loading plugin extensions and host bridges.') : health === 'failed' ? t('core.extension.failedDesc', { count: failed.length || statuses.length || 1 }, '{count} extension(s) failed to load.') : label}</p>
+      <strong>{health === 'loading' ? t('core.extension.loading', undefined, 'Loading plugin extensions') : health === 'failed' ? t('core.extension.failed', undefined, 'Some plugin extensions did not load') : t('core.extension.ok', undefined, 'Plugin extensions ready')}</strong>
+      <p>{health === 'loading' ? t('core.extension.loadingDesc', undefined, 'Loading plugin extensions and the WebUIEdit host bridge. CoreLib base editors remain available while this finishes.') : health === 'failed' ? t('core.extension.failedDesc', { count: failed.length || statuses.length || 1 }, '{count} plugin extension(s) failed to load. Base editors remain available; fix the extension and retry loading.') : label}</p>
     </div>
     <div className="extension-health-meta">
       {health === 'failed' ? <>
@@ -1408,6 +1408,20 @@ function buildNodeChangeState(scope: ConfigDraftScope, nodes: WebConfigNode[], d
   return { changedPaths, descendantCounts };
 }
 
+function configSectionHasMeaningfulValue(node: WebConfigNode, nodeIndex: ConfigNodeIndex): boolean {
+  if (hasMeaningfulConfigValue(node.value)) return true;
+  return (nodeIndex.descendantsByPath.get(node.path) ?? []).some(descendant => hasMeaningfulConfigValue(descendant.value));
+}
+
+function hasMeaningfulConfigValue(value: unknown): boolean {
+  if (value === undefined || value === null) return false;
+  if (typeof value === 'string') return value.trim().length > 0;
+  if (typeof value === 'number' || typeof value === 'boolean') return true;
+  if (Array.isArray(value)) return value.some(hasMeaningfulConfigValue);
+  if (isPlainObject(value)) return Object.values(value).some(hasMeaningfulConfigValue);
+  return true;
+}
+
 function pushMapList<T>(map: Map<string, T[]>, key: string, value: T): void {
   const list = map.get(key);
   if (list) list.push(value);
@@ -1433,9 +1447,9 @@ const ConfigNodeSection = memo(function ConfigNodeSection({ scope, node, nodeInd
   const groups = nodeIndex.groupsByParent.get(node.path) ?? [];
   const sectionChanged = changeState.changedPaths.has(node.path);
   const changedInGroup = changeState.descendantCounts.get(node.path) ?? 0;
-  const lazyInitial = depth > 0 && groups.length >= CONFIG_LAZY_SECTION_THRESHOLD && changedInGroup === 0 && !sectionChanged;
-  const [isCollapsed, setIsCollapsed] = useState(lazyInitial);
-  const [shouldRenderBody, setShouldRenderBody] = useState(!lazyInitial);
+  const defaultCollapsed = changedInGroup === 0 && !sectionChanged && (!configSectionHasMeaningfulValue(node, nodeIndex) || groups.length > CONFIG_LAZY_SECTION_THRESHOLD);
+  const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
+  const [shouldRenderBody, setShouldRenderBody] = useState(!defaultCollapsed);
   const bodyTimer = useRef<number | null>(null);
   const visibleCount = useProgressiveCount(shouldRenderBody && !isCollapsed ? groups.length : 0, CONFIG_SECTION_INITIAL_GROUPS, CONFIG_SECTION_GROUP_BATCH_SIZE, [scope.moduleId, scope.fileId, scope.filePath, node.path, shouldRenderBody, isCollapsed, groups.length]);
   const visibleGroups = groups.slice(0, visibleCount);
@@ -1445,6 +1459,15 @@ const ConfigNodeSection = memo(function ConfigNodeSection({ scope, node, nodeInd
   useEffect(() => () => {
     if (bodyTimer.current !== null) window.clearTimeout(bodyTimer.current);
   }, []);
+
+  useEffect(() => {
+    if (bodyTimer.current !== null) {
+      window.clearTimeout(bodyTimer.current);
+      bodyTimer.current = null;
+    }
+    setIsCollapsed(defaultCollapsed);
+    setShouldRenderBody(!defaultCollapsed);
+  }, [scope.moduleId, scope.fileId, scope.filePath, node.path, defaultCollapsed]);
 
   const toggleSection = () => {
     if (bodyTimer.current !== null) window.clearTimeout(bodyTimer.current);
@@ -1624,12 +1647,13 @@ function ObjectListEditor({ node, items, setValue, moduleId, compact = false }: 
   const objectItems: Record<string, unknown>[] = items.map(item => isPlainObject(item) ? item : {});
   const stableRef = useStableEntries(objectItems);
   const stable = stableRef.current;
-  const largeList = stable.length >= OBJECT_LIST_COLLAPSE_THRESHOLD;
-  const [collapsed, setCollapsed] = useState<Set<number>>(() => largeList ? new Set(stable.map(entry => entry._id)) : new Set());
+  const keys = objectListKeys(node, objectItems);
+  const defaultCollapsedRows = stable.filter(entry => stable.length > OBJECT_LIST_COLLAPSE_THRESHOLD || keys.length > CONFIG_LAZY_SECTION_THRESHOLD || !hasMeaningfulConfigValue(entry.data)).map(entry => entry._id);
+  const largeList = stable.length > OBJECT_LIST_COLLAPSE_THRESHOLD;
+  const [collapsed, setCollapsed] = useState<Set<number>>(() => new Set(defaultCollapsedRows));
   const [emptyExpanded, setEmptyExpanded] = useState(false);
   const visibleCount = useProgressiveCount(stable.length, OBJECT_LIST_INITIAL_ROWS, OBJECT_LIST_ROW_BATCH_SIZE, [node.path, stable.length]);
   const visibleStable = stable.slice(0, visibleCount);
-  const keys = objectListKeys(node, objectItems);
   const duplicateValues = duplicateUniqueValues(node, objectItems);
 
   function updateField(index: number, key: string, nextValue: unknown) {

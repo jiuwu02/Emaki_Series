@@ -195,9 +195,7 @@ final class GemDefinitionParser {
         }
         double successChance = section.contains("success_rate")
                 ? section.getDouble("success_rate", 100D)
-                : section.contains("success_chance")
-                        ? section.getDouble("success_chance", 100D)
-                        : -1D;
+                : -1D;
         return new GemUpgradeLevel(
                 targetLevel,
                 section.getString("display_name", ""),
@@ -312,10 +310,6 @@ final class GemDefinitionParser {
                 if (Texts.isNotBlank(skillId)) {
                     result.add(skillId);
                 }
-            }
-            String skillId = Texts.normalizeId(ConfigNodes.string(rawEffect, "es_skill", ""));
-            if (Texts.isNotBlank(skillId)) {
-                result.add(skillId);
             }
         }
         return normalizeSkillIds(result);

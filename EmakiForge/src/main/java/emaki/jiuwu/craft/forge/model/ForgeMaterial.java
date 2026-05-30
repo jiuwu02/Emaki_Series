@@ -50,9 +50,6 @@ public final class ForgeMaterial {
             }
             String mode = Texts.lower(effect.get("mode"));
             String tier = Texts.toStringSafe(effect.get("tier"));
-            if (Texts.isBlank(tier)) {
-                tier = Texts.toStringSafe(effect.get("quality"));
-            }
             if (Texts.isBlank(mode) || Texts.isBlank(tier)) {
                 return null;
             }
@@ -182,10 +179,6 @@ public final class ForgeMaterial {
                     result.add(skillId);
                 }
             }
-            String skillId = Texts.normalizeId(ConfigNodes.string(effect.data(), "es_skill", ""));
-            if (Texts.isNotBlank(skillId) && !result.contains(skillId)) {
-                result.add(skillId);
-            }
         }
         return List.copyOf(result);
     }
@@ -282,16 +275,7 @@ public final class ForgeMaterial {
         if (effect == null) {
             return 0;
         }
-        Object raw = effect.get("amount");
-        if (raw == null) {
-            raw = effect.get("bonus");
-        }
-        if (raw == null) {
-            raw = effect.get("value");
-        }
-        if (raw == null) {
-            raw = effect.get("capacity");
-        }
+        Object raw = effect.get("value");
         if (raw == null) {
             return 0;
         }

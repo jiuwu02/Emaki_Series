@@ -15,11 +15,10 @@ const actionFields = [
 ];
 
 const effectFields = [
-  { path: 'type', label: '类型', comment: '源码实际解析 variables / ea_attribute / es_skill；lore_action/name_action 用于保真编辑显示动作。', type: 'enum', options: STRENGTHEN_EFFECT_TYPES, defaultValue: 'variables' },
+  { path: 'type', label: '类型', comment: '选择强化阶段贡献的效果类别：变量、EA 属性或 ES 技能。', type: 'enum', options: STRENGTHEN_EFFECT_TYPES, defaultValue: 'variables' },
   { path: 'variables', label: '变量', comment: '变量对象。', type: 'json', defaultValue: {} },
   { path: 'ea_attributes', label: 'EA 属性', comment: '写入 EmakiAttribute 的属性。', type: 'json', defaultValue: {} },
   { path: 'es_skills', label: 'ES 技能', comment: '技能 ID 列表。', type: 'stringList', defaultValue: [] },
-  { path: 'es_skill', label: 'ES 技能简写', comment: '单个技能 ID 简写。', type: 'text', defaultValue: '' },
   { path: 'name_actions', label: '名称动作链', comment: '名称动作对象列表。', type: 'objectList', defaultValue: [], itemFields: actionFields },
   { path: 'lore_actions', label: 'Lore 动作链', comment: 'Lore 动作对象列表。', type: 'objectList', defaultValue: [], itemFields: actionFields }
 ];
@@ -61,7 +60,7 @@ const branchFields = [
   { path: 'branch_id', label: '分支 ID', comment: '分支唯一标识，root 节点可使用 root。', type: 'text', defaultValue: 'branch' },
   { path: 'display_name', label: '显示名称', comment: '分支在 GUI 或提示中的显示名称。', type: 'text', defaultValue: '<yellow>新分支</yellow>' },
   { path: 'fork_after_star', label: '分叉星级', comment: '-1 表示不再分叉；有 children 时表示完成该星级后选择路线。', type: 'number', defaultValue: -1 },
-  { path: 'stars', label: '星级阶段', comment: '该分支内的星级阶段，源码兼容 stars/stages。', type: 'object', defaultValue: {} },
+  { path: 'stars', label: '星级阶段', comment: '该分支内的星级阶段。', type: 'object', defaultValue: {} },
   { path: 'children', label: '子分支', comment: '此分支后续可选择的子路线。', type: 'object', defaultValue: {} }
 ];
 
@@ -92,7 +91,7 @@ const fields = [
   ['broadcast.local_stars', '本地广播星级', '强化成功达到这些星级时向附近玩家广播。', 'list'],
   ['broadcast.global_stars', '全服广播星级', '强化成功达到这些星级时向全服广播。', 'list'],
   ['success_rates', '全局成功率', '配方未单独覆盖时使用的全局强化成功率表，键为目标星级，值为百分比。', 'object'],
-  ['effects', '效果', '强化阶段效果列表；源码当前实际从 effects 中读取 es_skill。', 'objectList']
+  ['effects', '效果', '强化阶段效果列表，用于追加变量、EA 属性或 ES 技能。', 'objectList']
 ] as const;
 
 const recipeFields: ConfigMetaFieldEntry[] = [
@@ -118,13 +117,13 @@ const recipeFields: ConfigMetaFieldEntry[] = [
   ['stat_lines', '属性行', '强化属性行模板定义。', 'object'],
   ['stars', '星级阶段', '每个目标星级的材料、属性、技能和动作配置。', 'object', { creatableChildren: true, createTemplates: [starStageTemplate] }],
   ['branch_tree', '分支树', '分支强化路线配置。', 'object'],
-  ['branch_tree.stars', '根分支星级', '分支树根节点内的星级阶段；源码兼容 stars/stages。', 'object', { creatableChildren: true, createTemplates: [starStageTemplate] }],
+  ['branch_tree.stars', '根分支星级', '分支树根节点内的星级阶段。', 'object', { creatableChildren: true, createTemplates: [starStageTemplate] }],
   ['branch_tree.children', '子分支', '根分支后可选择的路线。', 'object', { creatableChildren: true, createTemplates: [branchTemplate] }],
   ['condition_type', '条件逻辑', '条件表达式组合方式。', 'enum', { options: ['all_of', 'any_of'], optionLabelPrefix: 'condition_type' }],
   ['condition_required_count', '需要满足数量', 'any_of 场景下需要满足的最少条件数量。', 'number'],
   ['name_actions', '名称动作', '强化成功后对物品显示名称执行的动作。', 'objectList'],
   ['lore_actions', 'Lore 动作', '强化成功后对物品 Lore 执行的动作。', 'objectList'],
-  ['effects', '效果', '兼容效果列表，源码读取 variables、ea_attribute、es_skill。', 'objectList']
+  ['effects', '效果', '强化完成后追加的效果列表，支持变量、EA 属性和 ES 技能。', 'objectList']
 ];
 
 const localeMessages: Record<string, string> = Object.fromEntries([
@@ -133,19 +132,19 @@ const localeMessages: Record<string, string> = Object.fromEntries([
   ['emakistrengthen.file.config.title', '主配置'],
   ['emakistrengthen.file.config.comment', '强化系统主配置，包含成功率、材料、经济和显示策略。'],
   ['emakistrengthen.file.gui.title', 'GUI 模板'],
-  ['emakistrengthen.file.gui.comment', '强化界面 GUI 模板文件。'],
+  ['emakistrengthen.file.gui.comment', '强化界面 GUI 模板，控制目标物品、材料、确认按钮和提示物品。'],
   ['emakistrengthen.file.recipes.title', '配方文件'],
-  ['emakistrengthen.file.recipes.comment', '强化配方文件目录。'],
+  ['emakistrengthen.file.recipes.comment', '强化配方目录，配置星级阶段、分支路线、材料、成功率和动作。'],
   ['emakistrengthen.filePath.recipes_example_recipe.title', '示例配方'],
-  ['emakistrengthen.filePath.recipes_example_recipe.comment', '示例配方文件。'],
+  ['emakistrengthen.filePath.recipes_example_recipe.comment', '线性强化配方示例，展示星级阶段、材料、锻印和失败处理。'],
   ['emakistrengthen.filePath.recipes_example_branch_recipe.title', '示例分支配方'],
-  ['emakistrengthen.filePath.recipes_example_branch_recipe.comment', '示例分支配方文件。'],
+  ['emakistrengthen.filePath.recipes_example_branch_recipe.comment', '分支强化配方示例，展示路线选择、子分支和阶段继承。'],
   ['emakistrengthen.filePath.gui_strengthen_gui.title', '强化 GUI'],
-  ['emakistrengthen.filePath.gui_strengthen_gui.comment', '强化 GUI 模板文件。'],
+  ['emakistrengthen.filePath.gui_strengthen_gui.comment', '强化界面 GUI 模板，控制目标物品、材料和确认槽位。'],
   ['emakistrengthen.file.plugin.title', '插件描述'],
-  ['emakistrengthen.file.plugin.comment', 'plugin.yml 插件描述与依赖声明。'],
-  ['emakistrengthen.file.web-console.title', 'Web Console 声明'],
-  ['emakistrengthen.file.web-console.comment', 'Web Console 文件注册与资源入口声明。'],
+  ['emakistrengthen.file.plugin.comment', 'plugin.yml 元数据、命令、权限和依赖声明。'],
+  ['emakistrengthen.file.web-console.title', 'WebUIEdit 注册'],
+  ['emakistrengthen.file.web-console.comment', '此插件暴露给 WebUIEdit 的文件分组、编辑器类型和前端扩展入口。'],
   ...fields.flatMap(([path, label, comment]) => [
     [`emakistrengthen.field.${path}`, label],
     [`emakistrengthen.comment.${path}`, comment]
@@ -170,19 +169,19 @@ registerModuleLocale(MODULE, 'en-US', {
   'emakistrengthen.file.config.title': 'Main Config',
   'emakistrengthen.file.config.comment': 'Main strengthen configuration covering success rates, materials, economy, and display strategy.',
   'emakistrengthen.file.gui.title': 'GUI Templates',
-  'emakistrengthen.file.gui.comment': 'Strengthen GUI template files.',
+  'emakistrengthen.file.gui.comment': 'Strengthen GUI template controlling target item, materials, confirm button, and hint items.',
   'emakistrengthen.file.recipes.title': 'Recipe Files',
-  'emakistrengthen.file.recipes.comment': 'Directory for strengthen recipe files.',
+  'emakistrengthen.file.recipes.comment': 'Strengthen recipe directory covering star stages, branch paths, materials, success rates, and actions.',
   'emakistrengthen.filePath.recipes_example_recipe.title': 'Sample Recipe',
-  'emakistrengthen.filePath.recipes_example_recipe.comment': 'Sample recipe file.',
+  'emakistrengthen.filePath.recipes_example_recipe.comment': 'Linear strengthen recipe example showing star stages, materials, temper, and failure handling.',
   'emakistrengthen.filePath.recipes_example_branch_recipe.title': 'Sample Branch Recipe',
-  'emakistrengthen.filePath.recipes_example_branch_recipe.comment': 'Sample branch recipe file.',
+  'emakistrengthen.filePath.recipes_example_branch_recipe.comment': 'Branch strengthen recipe example showing route choices, child branches, and stage inheritance.',
   'emakistrengthen.filePath.gui_strengthen_gui.title': 'Strengthen GUI',
-  'emakistrengthen.filePath.gui_strengthen_gui.comment': 'Strengthen GUI template file.',
+  'emakistrengthen.filePath.gui_strengthen_gui.comment': 'Strengthen GUI template controlling target item, materials, and confirm slots.',
   'emakistrengthen.file.plugin.title': 'Plugin Description',
-  'emakistrengthen.file.plugin.comment': 'plugin.yml plugin metadata and dependency declaration.',
-  'emakistrengthen.file.web-console.title': 'Web Console Declaration',
-  'emakistrengthen.file.web-console.comment': 'Web Console file registration and resource entry declaration.',
+  'emakistrengthen.file.plugin.comment': 'plugin.yml metadata, commands, permissions, and dependency declarations.',
+  'emakistrengthen.file.web-console.title': 'WebUIEdit Registration',
+  'emakistrengthen.file.web-console.comment': 'File groups, editor kinds, and frontend extension entries exposed to WebUIEdit by this plugin.',
   'emakistrengthen.surface.gui': 'Strengthen GUI',
   'emakistrengthen.field.local_broadcast_radius': 'Local Broadcast Radius',
   'emakistrengthen.field.broadcast': 'Broadcast',
@@ -210,9 +209,9 @@ registerPluginConfig({
     ['branch_tree.children', branchTemplate]
   ],
   rules: [
-    [{ key: 'effects' }, { label: '效果', comment: '强化阶段效果列表；新增类型以源码实际解析为准。', type: 'objectList' }],
-    [{ key: 'stars' }, { label: '星级阶段', comment: '按目标星级添加阶段配置；源码解析为 Map<Integer, StarStage>。', type: 'object', creatableChildren: true, createTemplates: [starStageTemplate] }],
-    [{ key: 'children' }, { label: '子分支', comment: '按分支 ID 添加子路线；源码解析为分支节点映射。', type: 'object', creatableChildren: true, createTemplates: [branchTemplate] }]
+    [{ key: 'effects' }, { label: '效果', comment: '强化阶段效果列表，用于追加变量、EA 属性或 ES 技能。', type: 'objectList' }],
+    [{ key: 'stars' }, { label: '星级阶段', comment: '按目标星级添加阶段配置。每个子键应为星级数字。', type: 'object', creatableChildren: true, createTemplates: [starStageTemplate] }],
+    [{ key: 'children' }, { label: '子分支', comment: '按分支 ID 添加后续路线，用于分支强化选择。', type: 'object', creatableChildren: true, createTemplates: [branchTemplate] }]
   ],
   listItemSchemaRules: [
     [{ key: 'effects' }, effectFields],

@@ -7,11 +7,11 @@ registerModuleLocale('EmakiGem', 'zh-CN', {
   'emakigem.file.config.title': '主配置',
   'emakigem.file.config.comment': '宝石系统主配置，包含开槽道具、镶嵌、升级和 GUI 入口设置。',
   'emakigem.file.gui.title': 'GUI 模板',
-  'emakigem.file.gui.comment': '宝石镶嵌、开槽、升级 GUI 模板文件。',
+  'emakigem.file.gui.comment': '宝石镶嵌、开槽和升级界面的 GUI 模板。',
   'emakigem.file.items.title': '插槽物品',
-  'emakigem.file.items.comment': '宝石插件物品文件。',
+  'emakigem.file.items.comment': '可镶嵌宝石的装备或道具定义，包含插槽、限制和获得动作。',
   'emakigem.file.gems.title': '宝石',
-  'emakigem.file.gems.comment': '宝石文件，包含物品来源、效果、插槽兼容和升级配置。',
+  'emakigem.file.gems.comment': '宝石定义，包含物品来源、效果、适用插槽和升级配置。',
   'emakigem.surface.gem': '宝石',
   'emakigem.surface.socketItem': '插槽物品',
   'emakigem.surface.gui': '宝石 GUI',
@@ -29,7 +29,6 @@ registerModuleLocale('EmakiGem', 'zh-CN', {
   'emakigem.preview.empty': '暂无预览',
   'emakigem.section.basic': '基础信息',
   'emakigem.section.effects': '效果与变量',
-  'emakigem.section.legacy': '兼容旧字段',
   'emakigem.section.costReturn': '费用与返还',
   'emakigem.section.upgrade': '升级设置',
   'emakigem.section.gemActions': '触发动作',
@@ -120,7 +119,6 @@ registerModuleLocale('EmakiGem', 'zh-CN', {
   'emakigem.field.success_rates': '成功率表',
   'emakigem.field.levels': '等级配置',
   'emakigem.field.success_rate': '成功率',
-  'emakigem.field.success_chance': '成功概率',
   'emakigem.field.actions': '动作',
   'emakigem.field.actions.success': '成功动作',
   'emakigem.field.actions.failure': '失败动作',
@@ -157,7 +155,6 @@ registerModuleLocale('EmakiGem', 'zh-CN', {
   'emakigem.item.field.failure_penalty': '失败惩罚',
   'emakigem.item.field.success_rates': '成功率表',
   'emakigem.item.field.success_rate': '成功率',
-  'emakigem.item.field.success_chance': '成功概率',
   'emakigem.item.field.provider': '经济提供器',
   'emakigem.item.field.currency_id': '货币 ID',
   'emakigem.item.field.amount': '数量',
@@ -285,9 +282,12 @@ const dynamicFields: Record<string, ConfigRuleFieldEntry> = {
       enabled: ['启用', '是否启用当前功能或条目。', 'boolean']
     }
   }),
+  opens_gem_types: ['开放宝石类型', '该开槽道具允许开放的宝石插槽类型，any 表示任意类型。', 'stringList'],
+  consume_on_success: ['成功后消耗', '开槽成功后是否消耗此道具。', 'boolean'],
+  success: ['成功动作', '开槽、镶嵌或升级成功时执行的动作列表。', 'list'],
+  failure: ['失败动作', '开槽、镶嵌或升级失败时执行的动作列表。', 'list'],
   max_level: ['最高等级', '宝石可升级到的最高等级。', 'number'],
   success_rate: ['成功率', '升级到该等级或执行该操作的成功率。', 'number'],
-  success_chance: ['成功概率', '兼容字段：升级到该等级的成功概率。', 'number'],
   failure_penalty: ['失败惩罚', '升级失败后的惩罚方式。', 'enum'],
   default_open_slots: ['默认开放插槽', '物品初始已开放的插槽索引列表。', 'list'],
   allowed_gem_types: ['允许宝石类型', '该物品允许镶嵌的宝石类型白名单。', 'stringList'],
@@ -301,33 +301,33 @@ registerModuleLocale(MODULE, 'zh-CN', {
   'emakigem.file.config.title': '主配置',
   'emakigem.file.config.comment': '宝石系统主配置，包含开槽道具、镶嵌、升级和 GUI 入口设置。',
   'emakigem.file.gui.title': 'GUI 模板',
-  'emakigem.file.gui.comment': '宝石镶嵌、开槽、升级 GUI 模板文件。',
+  'emakigem.file.gui.comment': '宝石镶嵌、开槽和升级界面的 GUI 模板。',
   'emakigem.file.items.title': '插槽物品',
-  'emakigem.file.items.comment': '宝石插件物品文件。',
+  'emakigem.file.items.comment': '可镶嵌宝石的装备或道具定义，包含插槽、限制和获得动作。',
   'emakigem.file.gems.title': '宝石',
-  'emakigem.file.gems.comment': '宝石文件，包含物品来源、效果、插槽兼容和升级配置。',
+  'emakigem.file.gems.comment': '宝石定义，包含物品来源、效果、适用插槽和升级配置。',
   'emakigem.file.resonances.title': '共鸣',
-  'emakigem.file.resonances.comment': '宝石共鸣文件目录。',
+  'emakigem.file.resonances.comment': '宝石共鸣定义目录，用于配置成组属性、技能、优先级和互斥组。',
   'emakigem.file.conditions.title': '条件',
-  'emakigem.file.conditions.comment': '宝石条件文件目录。',
+  'emakigem.file.conditions.comment': '宝石操作条件目录，控制开槽、镶嵌和升级何时允许执行。',
   'emakigem.filePath.gems_example_gem.title': '示例宝石',
-  'emakigem.filePath.gems_example_gem.comment': '示例宝石文件。',
+  'emakigem.filePath.gems_example_gem.comment': '宝石定义示例，展示等级效果、升级费用和动作链。',
   'emakigem.filePath.items_example_socket_item.title': '示例插槽物品',
-  'emakigem.filePath.items_example_socket_item.comment': '示例插槽物品文件。',
+  'emakigem.filePath.items_example_socket_item.comment': '插槽物品示例，展示插槽、默认开放状态和宝石限制。',
   'emakigem.filePath.resonances_example_resonance.title': '示例共鸣',
-  'emakigem.filePath.resonances_example_resonance.comment': '示例共鸣文件。',
+  'emakigem.filePath.resonances_example_resonance.comment': '共鸣定义示例，展示触发条件、属性奖励和互斥组。',
   'emakigem.filePath.conditions_gem.title': '宝石条件',
-  'emakigem.filePath.conditions_gem.comment': '宝石条件文件。',
+  'emakigem.filePath.conditions_gem.comment': '宝石操作条件，控制目标物品或宝石是否满足规则。',
   'emakigem.filePath.gui_gem_default.title': '宝石 GUI',
-  'emakigem.filePath.gui_gem_default.comment': '宝石 GUI 模板文件。',
+  'emakigem.filePath.gui_gem_default.comment': '镶嵌宝石界面模板，控制插槽、按钮和提示物品。',
   'emakigem.filePath.gui_open_default.title': '开槽 GUI',
-  'emakigem.filePath.gui_open_default.comment': '开槽 GUI 模板文件。',
+  'emakigem.filePath.gui_open_default.comment': '开槽界面模板，控制开槽道具、目标装备和结果反馈。',
   'emakigem.filePath.gui_upgrade_default.title': '升级 GUI',
-  'emakigem.filePath.gui_upgrade_default.comment': '升级 GUI 模板文件。',
+  'emakigem.filePath.gui_upgrade_default.comment': '宝石升级界面模板，控制材料、费用、成功率和结果按钮。',
   'emakigem.file.plugin.title': '插件描述',
-  'emakigem.file.plugin.comment': 'plugin.yml 插件描述与依赖声明。',
-  'emakigem.file.web-console.title': 'Web Console 声明',
-  'emakigem.file.web-console.comment': 'Web Console 文件注册与资源入口声明。',
+  'emakigem.file.plugin.comment': 'plugin.yml 元数据、命令、权限和依赖声明。',
+  'emakigem.file.web-console.title': 'WebUIEdit 注册',
+  'emakigem.file.web-console.comment': '此插件暴露给 WebUIEdit 的文件分组、编辑器类型和前端扩展入口。',
   ...Object.fromEntries(configFields.flatMap(([path, label, comment]) => [[`emakigem.field.${path}`, label], [`emakigem.comment.${path}`, comment]])),
   ...Object.fromEntries(Object.entries(dynamicFields).flatMap(([key, [label, comment]]) => [[`emakigem.field.${key}`, label], [`emakigem.comment.${key}`, comment]])),
   'emakigem.option.inlay_success.failure_action.return_gem': '返还宝石',
@@ -347,33 +347,33 @@ registerModuleLocale(MODULE, 'en-US', {
   'emakigem.file.config.title': 'Main Config',
   'emakigem.file.config.comment': 'Main gem system configuration covering socket items, inlay, upgrades, and GUI entry points.',
   'emakigem.file.gui.title': 'GUI Templates',
-  'emakigem.file.gui.comment': 'Gem inlay, socketing, and upgrade GUI template files.',
+  'emakigem.file.gui.comment': 'GUI templates for gem inlay, socket opening, and upgrades.',
   'emakigem.file.items.title': 'Socket Items',
-  'emakigem.file.items.comment': 'Item files for the gem plugin.',
+  'emakigem.file.items.comment': 'Equipment or item definitions that can hold gems, including slots, limits, and obtain actions.',
   'emakigem.file.gems.title': 'Gems',
-  'emakigem.file.gems.comment': 'Gem files covering item sources, effects, socket compatibility, and upgrade settings.',
+  'emakigem.file.gems.comment': 'Gem definitions covering item sources, effects, compatible slots, and upgrade settings.',
   'emakigem.file.resonances.title': 'Resonances',
-  'emakigem.file.resonances.comment': 'Directory for gem resonance files.',
+  'emakigem.file.resonances.comment': 'Gem resonance definitions covering grouped attributes, skills, priority, and exclusive groups.',
   'emakigem.file.conditions.title': 'Conditions',
-  'emakigem.file.conditions.comment': 'Directory for gem condition files.',
+  'emakigem.file.conditions.comment': 'Gem operation conditions controlling when socketing, inlay, and upgrade actions are allowed.',
   'emakigem.filePath.gems_example_gem.title': 'Sample Gem',
-  'emakigem.filePath.gems_example_gem.comment': 'Sample gem file.',
+  'emakigem.filePath.gems_example_gem.comment': 'Gem definition example showing level effects, upgrade costs, and action chains.',
   'emakigem.filePath.items_example_socket_item.title': 'Sample Socket Item',
-  'emakigem.filePath.items_example_socket_item.comment': 'Sample socket item file.',
+  'emakigem.filePath.items_example_socket_item.comment': 'Socket item example showing slots, default open state, and gem limits.',
   'emakigem.filePath.resonances_example_resonance.title': 'Sample Resonance',
-  'emakigem.filePath.resonances_example_resonance.comment': 'Sample resonance file.',
+  'emakigem.filePath.resonances_example_resonance.comment': 'Resonance definition example showing trigger conditions, attribute rewards, and exclusive groups.',
   'emakigem.filePath.conditions_gem.title': 'Gem Condition',
-  'emakigem.filePath.conditions_gem.comment': 'Gem condition file.',
+  'emakigem.filePath.conditions_gem.comment': 'Gem operation condition controlling whether the target item or gem matches the rule.',
   'emakigem.filePath.gui_gem_default.title': 'Gem GUI',
-  'emakigem.filePath.gui_gem_default.comment': 'Gem GUI template file.',
+  'emakigem.filePath.gui_gem_default.comment': 'Gem inlay GUI template controlling slots, buttons, and hint items.',
   'emakigem.filePath.gui_open_default.title': 'Socket Opening GUI',
-  'emakigem.filePath.gui_open_default.comment': 'Socket opening GUI template file.',
+  'emakigem.filePath.gui_open_default.comment': 'Socket opening GUI template controlling opener items, target equipment, and result feedback.',
   'emakigem.filePath.gui_upgrade_default.title': 'Upgrade GUI',
-  'emakigem.filePath.gui_upgrade_default.comment': 'Upgrade GUI template file.',
+  'emakigem.filePath.gui_upgrade_default.comment': 'Gem upgrade GUI template controlling materials, costs, success rate, and result buttons.',
   'emakigem.file.plugin.title': 'Plugin Description',
-  'emakigem.file.plugin.comment': 'plugin.yml plugin metadata and dependency declaration.',
-  'emakigem.file.web-console.title': 'Web Console Declaration',
-  'emakigem.file.web-console.comment': 'Web Console file registration and resource entry declaration.',
+  'emakigem.file.plugin.comment': 'plugin.yml metadata, commands, permissions, and dependency declarations.',
+  'emakigem.file.web-console.title': 'WebUIEdit Registration',
+  'emakigem.file.web-console.comment': 'File groups, editor kinds, and frontend extension entries exposed to WebUIEdit by this plugin.',
   'emakigem.editor.gem.title': 'Gem',
   'emakigem.editor.socketItem.title': 'Gem Socket Item',
   'emakigem.section.basic': 'Basic Info',
@@ -395,6 +395,14 @@ registerModuleLocale(MODULE, 'en-US', {
   'emakigem.field.number_format': 'Number Format',
   'emakigem.field.permission.op_bypass': 'OP Bypass',
   'emakigem.field.gui.default_mode': 'Default Mode',
+  'emakigem.field.opens_gem_types': 'Opened Gem Types',
+  'emakigem.field.consume_on_success': 'Consume on Success',
+  'emakigem.field.actions.success': 'Success Actions',
+  'emakigem.field.actions.failure': 'Failure Actions',
+  'emakigem.field.default_open_slots': 'Default Open Slots',
+  'emakigem.field.allowed_gem_types': 'Allowed Gem Types',
+  'emakigem.field.max_same_type': 'Same Type Limit',
+  'emakigem.field.max_same_id': 'Same ID Limit',
   'emakigem.option.inlay_success.failure_action.return_gem': 'Return gem',
   'emakigem.option.inlay_success.failure_action.destroy_gem': 'Destroy gem',
   'emakigem.option.inlay_success.failure_action.destroy_both': 'Destroy both',
@@ -435,9 +443,12 @@ registerConfigCreateTemplate(MODULE, 'socket_openers', {
   id: 'socket-opener',
   label: copy('开槽道具', 'Socket opener'),
   fields: [
+    { path: 'enabled', label: '启用', comment: '是否启用此开槽道具。', type: 'boolean', defaultValue: true },
     { path: 'item_sources', label: '物品来源', comment: '识别为该开槽道具的物品来源。', type: 'stringList', defaultValue: [] },
-    { path: 'socket_type', label: '插槽类型', comment: '成功开槽后写入的插槽类型。', type: 'text', defaultValue: 'universal' },
-    { path: 'consume', label: '消耗物品', comment: '开槽成功后是否消耗此道具。', type: 'boolean', defaultValue: true }
+    { path: 'opens_gem_types', label: '开放宝石类型', comment: '该道具可开放的宝石插槽类型，any 表示任意类型。', type: 'stringList', defaultValue: ['any'] },
+    { path: 'consume_on_success', label: '成功后消耗', comment: '开槽成功后是否消耗此道具。', type: 'boolean', defaultValue: true },
+    { path: 'actions.success', label: '成功动作', comment: '开槽成功后执行的动作列表。', type: 'stringList', defaultValue: [] },
+    { path: 'actions.failure', label: '失败动作', comment: '开槽失败后执行的动作列表。', type: 'stringList', defaultValue: [] }
   ]
 });
 registerConfigCreateTemplate(MODULE, 'upgrade.global_success_rates', {
@@ -529,6 +540,7 @@ registerEditorDescriptor(MODULE, 'emakigem:socket-item', {
     { title: '插槽结构', titleKey: 'emakigem.section.slots', collapsible: true, defaultCollapsed: true, fields: [{ path: 'slots', label: '插槽列表', type: 'gemSlots', wide: true }] },
     {
       title: '宝石限制', titleKey: 'emakigem.section.gemLimit', collapsible: true, defaultCollapsed: true, fields: [
+        { path: 'default_open_slots', label: '默认开放插槽', type: 'numberList', wide: true },
         { path: 'allowed_gem_types', label: '允许宝石类型', type: 'stringList', wide: true },
         { path: 'max_same_type', label: '同类型上限', type: 'number' },
         { path: 'max_same_id', label: '同 ID 上限', type: 'number' }
@@ -558,6 +570,7 @@ registerEditorDescriptor(MODULE, 'emakigem:socket-item', {
   ['emakigem:gem', 'extract_cost', '拆卸费用', '拆卸宝石时消耗的货币与材料。', 'object'],
   ['emakigem:gem', 'extract_return', '拆卸返还', '拆卸后宝石原样返还、销毁或降级返还。', 'object'],
   ['emakigem:socket-item', 'slots', '插槽列表', '该物品拥有的宝石插槽。', 'list'],
+  ['emakigem:socket-item', 'default_open_slots', '默认开放插槽', '物品初始已开放的插槽索引列表。', 'numberList'],
   ['emakigem:socket-item', 'obtain.name_actions', '名称动作链', '获得该装备时对名称执行的动作。', 'actions'],
   ['emakigem:socket-item', 'obtain.lore_actions', 'Lore 动作链', '获得该装备时对 Lore 执行的动作。', 'actions'],
   ['emakigem:socket-item', 'obtain.actions', '获得动作', '首次识别并写入宝石层时执行的动作。', 'list']
@@ -584,7 +597,7 @@ function localGemPreview(data: AnyMap, previewLevel: number, baseName: string, b
   const variables = resolveLocalVariables(effectiveData, { id: textValue(data.id), level, current_level: level, target_level: level, display_name: textValue(levelData.display_name ?? data.display_name ?? data.id) });
   const nameActions = localSectionActions(effectiveData, 'name_action', 'name_actions');
   const loreActions = localSectionActions(effectiveData, 'lore_action', 'lore_actions');
-  const material = materialFromItemSource(firstItemSource(data.item_sources) || data.material || data.item || 'stone');
+  const material = materialFromItemSource(firstItemSource(data.item_sources) || 'stone');
   const initialLore = previewBaseLore(data, baseLore);
   const displayName = applyLocalNameActions(baseName || textValue(variables.display_name), nameActions, variables);
   const lore = applyLocalLoreActions(initialLore, loreActions, variables);
@@ -592,7 +605,7 @@ function localGemPreview(data: AnyMap, previewLevel: number, baseName: string, b
 }
 
 function localSocketItemPreview(data: AnyMap, baseName: string, baseLore: string[]): ItemPreviewResult {
-  const material = materialFromItemSource(firstItemSource(data.item_sources ?? asRecord(data.match).item_sources) || data.material || data.item || 'stone');
+  const material = materialFromItemSource(firstItemSource(data.item_sources ?? asRecord(data.match).item_sources) || 'stone');
   const defaultOpenSlots = asList(data.default_open_slots).map(value => Number(value)).filter(value => Number.isFinite(value));
   const variables: AnyMap = {
     item_definition_id: textValue(data.id),
@@ -609,7 +622,7 @@ function localSocketItemPreview(data: AnyMap, baseName: string, baseLore: string
     material,
     baseName,
     baseLore,
-    displayName: applyLocalNameActions(textValue(data.display_name ?? data.item_name ?? data.id, baseName), nameActions, variables),
+    displayName: applyLocalNameActions(textValue(data.display_name ?? data.id, baseName), nameActions, variables),
     lore: applyLocalLoreActions(previewBaseLore(data, baseLore), loreActions, variables),
     variables,
     nameSteps: [],
@@ -732,8 +745,8 @@ function MaterialCostList({ items, onChange, path }: { items: AnyMap[]; onChange
   return <div className="prop-cost-group">
     <span className="prop-cost-group-title">{copy('材料', 'Materials')}</span>
     {items.map((material, index) => <div className="prop-cost-entry" key={index}>
-      <div className="prop-cost-entry-head"><span>{firstItemSource(material.item_sources) || textValue(material.item, copy('未设置材料', 'No material'))}</span><button type="button" className="prop-kv-del" onClick={() => remove(index)} aria-label={copy(`删除材料 ${index + 1}`, `Delete material ${index + 1}`)}>×</button></div>
-      <FormRow label="item_sources" path={joinPath(path, index, 'item_sources')} wide><StringListEditor items={materialSources(material)} onChange={item_sources => update(index, cleanObject({ item_sources, item: undefined, material: undefined }))} placeholder="minecraft-gold_nugget" /></FormRow>
+      <div className="prop-cost-entry-head"><span>{firstItemSource(material.item_sources) || copy('未设置材料', 'No material')}</span><button type="button" className="prop-kv-del" onClick={() => remove(index)} aria-label={copy(`删除材料 ${index + 1}`, `Delete material ${index + 1}`)}>×</button></div>
+      <FormRow label="item_sources" path={joinPath(path, index, 'item_sources')} wide><StringListEditor items={editableStringList(material.item_sources)} onChange={item_sources => update(index, cleanObject({ item_sources }))} placeholder="minecraft-gold_nugget" /></FormRow>
       <FormRow label="amount" path={joinPath(path, index, 'amount')}><NumberInput value={material.amount} onChange={amount => update(index, { amount: amount ?? 1 })} /></FormRow>
     </div>)}
     <button type="button" className="prop-add" onClick={() => onChange([...items, { item_sources: ['minecraft-stone'], amount: 1 }])}>+ {copy('材料', 'Material')}</button>
@@ -782,13 +795,13 @@ function UpgradeEditor({ context }: { context: ItemFieldRendererContext }) {
           <div className="prop-level-head">
             <button type="button" className="prop-level-toggle" onClick={() => toggleLevel(levelKey)} aria-expanded={opened} aria-controls={`level-body-${levelKey}`}>
               <span className="prop-level-summary"><span className="prop-level-badge">{opened ? '⌄' : '›'} Lv.{levelKey}</span>{textValue(level.display_name) || copy('未命名', 'Unnamed')}</span>
-              <span className="prop-level-rate">{textValue(level.success_rate ?? level.success_chance, copy('继承', 'Inherited'))}%</span>
+              <span className="prop-level-rate">{textValue(level.success_rate, copy('继承', 'Inherited'))}%</span>
             </button>
             <button type="button" className="prop-kv-del" onClick={event => { event.stopPropagation(); removeLevel(levelKey); }} onKeyDown={stopEvent} aria-label={copy(`删除等级 ${levelKey}`, `Delete level ${levelKey}`)}>×</button>
           </div>
           {opened && <div className="prop-level-body" id={`level-body-${levelKey}`}>
             <FormRow label="display_name" path={joinPath(path, 'levels', levelKey, 'display_name')}><TextInput value={level.display_name} onChange={display_name => updateLevel(levelKey, { display_name })} /></FormRow>
-            <FormRow label="success_rate" path={joinPath(path, 'levels', levelKey, 'success_rate')}><NumberInput value={level.success_rate ?? level.success_chance} onChange={success_rate => updateLevel(levelKey, { success_rate })} /></FormRow>
+            <FormRow label="success_rate" path={joinPath(path, 'levels', levelKey, 'success_rate')}><NumberInput value={level.success_rate} onChange={success_rate => updateLevel(levelKey, { success_rate })} /></FormRow>
             <FormRow label="failure_penalty" path={joinPath(path, 'levels', levelKey, 'failure_penalty')}><SelectInput value={level.failure_penalty ?? ''} options={['', ...FAILURE_PENALTIES]} labelPrefix="failure" onChange={failure_penalty => updateLevel(levelKey, { failure_penalty })} /></FormRow>
             <SectionHead title={copy('等级效果', 'Level effects')} count={asList(level.effects).length} />
             <ActionEffectList value={level.effects} onChange={effects => updateLevel(levelKey, { effects })} actionTypesResult={context.actionTypesResult} path={joinPath(path, 'levels', levelKey, 'effects')} />
@@ -900,7 +913,7 @@ function GemEffectPayload({ effect, type, path, onChange, actionTypesResult }: {
   const setPayload = (key: string, value: unknown) => onChange(cleanObject({ ...effect, [key]: value }));
   if (type === 'variables') return <MapRow label="variables" path={joinPath(path, 'variables')} value={effect.variables} valuePlaceholder={copy('数值/公式', 'Value or formula')} addKeyPrefix="variable" onChange={variables => setPayload('variables', variables)} />;
   if (type === 'ea_attribute') return <MapRow label="ea_attributes" path={joinPath(path, 'ea_attributes')} value={effect.ea_attributes} valuePlaceholder={copy('属性值', 'Attribute value')} addKeyPrefix="attribute" onChange={ea_attributes => setPayload('ea_attributes', ea_attributes)} />;
-  if (type === 'es_skill') return <FormRow label="es_skills" path={joinPath(path, 'es_skills')} wide><StringListEditor items={gemSkillList(effect)} onChange={items => onChange(cleanObject({ ...effect, es_skills: items, es_skill: undefined }))} placeholder={copy('技能 ID', 'Skill ID')} /></FormRow>;
+  if (type === 'es_skill') return <FormRow label="es_skills" path={joinPath(path, 'es_skills')} wide><StringListEditor items={asStringList(effect.es_skills)} onChange={items => onChange(cleanObject({ ...effect, es_skills: items }))} placeholder={copy('技能 ID', 'Skill ID')} /></FormRow>;
   if (type === 'name_action') return <FormRow label="name_actions" path={joinPath(path, 'name_actions')} wide><ActionsEditor actions={parseActionList(effect.name_actions)} onChange={actions => setPayload('name_actions', serializeActionList(actions))} actionTypes={actionTypesResult?.nameActions ?? DEFAULT_NAME_ACTIONS} mode="name" moduleId={MODULE} namespace={MODULE} /></FormRow>;
   if (type === 'lore_action') return <FormRow label="lore_actions" path={joinPath(path, 'lore_actions')} wide><ActionsEditor actions={parseActionList(effect.lore_actions)} onChange={actions => setPayload('lore_actions', serializeActionList(actions))} actionTypes={actionTypesResult?.loreActions ?? DEFAULT_LORE_ACTIONS} mode="lore" moduleId={MODULE} namespace={MODULE} /></FormRow>;
   const payload = Object.fromEntries(Object.entries(effect).filter(([key]) => key !== 'type'));
@@ -918,12 +931,6 @@ function defaultGemEffect(type: string): AnyMap {
 
 function gemEffectTypeLabel(type: string): string {
   return { ea_attribute: copy('EA 属性', 'EA Attribute'), es_skill: copy('ES 技能', 'ES Skill') }[type] ?? coreEffectTypeLabel(type);
-}
-
-function gemSkillList(effect: AnyMap): string[] {
-  const skills = asStringList(effect.es_skills);
-  const single = textValue(effect.es_skill);
-  return single ? [...skills, single] : skills;
 }
 
 function ActionLinesEditor({ label, value, onChange, path }: { label: string; value: unknown; onChange: (value: string[]) => void; path?: string }) {
@@ -979,12 +986,6 @@ function TextInput({ value, onChange, placeholder }: { value: unknown; onChange:
 function joinPath(...parts: Array<string | number | undefined>): string | undefined {
   const filtered = parts.filter(part => part !== undefined && part !== '').map(String);
   return filtered.length ? filtered.join('.') : undefined;
-}
-
-function materialSources(material: AnyMap): string[] {
-  const sources = editableStringList(material.item_sources);
-  const legacy = textValue(material.item || material.material);
-  return sources.length > 0 ? sources : legacy ? [legacy] : [];
 }
 
 function editableStringList(value: unknown): string[] {
