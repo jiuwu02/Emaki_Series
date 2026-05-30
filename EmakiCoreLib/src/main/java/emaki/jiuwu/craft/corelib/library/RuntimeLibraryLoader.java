@@ -73,16 +73,16 @@ public final class RuntimeLibraryLoader {
             new LibraryCoordinate("com.google.code.gson", "gson", "2.8.0"),
             new LibraryCoordinate("dev.dejvokep", "boosted-yaml", "1.3.7"),
             new LibraryCoordinate("net.objecthunter", "exp4j", "0.4.8"),
-            new LibraryCoordinate("com.github.ben-manes.caffeine", "caffeine", "3.1.8"),
-            new LibraryCoordinate("org.graalvm.polyglot", "polyglot", "24.2.1"),
-            new LibraryCoordinate("org.graalvm.sdk", "collections", "24.2.1"),
-            new LibraryCoordinate("org.graalvm.sdk", "nativeimage", "24.2.1"),
-            new LibraryCoordinate("org.graalvm.sdk", "word", "24.2.1"),
-            new LibraryCoordinate("org.graalvm.js", "js-language", "24.2.1"),
-            new LibraryCoordinate("org.graalvm.regex", "regex", "24.2.1"),
-            new LibraryCoordinate("org.graalvm.truffle", "truffle-api", "24.2.1"),
-            new LibraryCoordinate("org.graalvm.shadowed", "icu4j", "24.2.1"),
-            new LibraryCoordinate("org.graalvm.shadowed", "xz", "24.2.1")
+            new LibraryCoordinate("com.github.ben-manes.caffeine", "caffeine", "3.2.4"),
+            new LibraryCoordinate("org.graalvm.polyglot", "polyglot", "25.0.3"),
+            new LibraryCoordinate("org.graalvm.sdk", "collections", "25.0.3"),
+            new LibraryCoordinate("org.graalvm.sdk", "nativeimage", "25.0.3"),
+            new LibraryCoordinate("org.graalvm.sdk", "word", "25.0.3"),
+            new LibraryCoordinate("org.graalvm.js", "js-language", "25.0.3"),
+            new LibraryCoordinate("org.graalvm.regex", "regex", "25.0.3"),
+            new LibraryCoordinate("org.graalvm.truffle", "truffle-api", "25.0.3"),
+            new LibraryCoordinate("org.graalvm.shadowed", "icu4j", "25.0.3"),
+            new LibraryCoordinate("org.graalvm.shadowed", "xz", "25.0.3")
     );
 
     private static final MethodHandle ADD_URL_HANDLE;

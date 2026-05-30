@@ -120,6 +120,7 @@
                             <goal>shade</goal>
                         </goals>
                         <configuration>
+                            <relocations combine.self="override"/>
                             <artifactSet>
                                 <includes>
                                     <include>emaki.jiuwu.craft:emaki-attribute-api</include>
