@@ -34,10 +34,7 @@ const parameterFields = [
   { path: 'max', label: '最大值', comment: '范围或数值参数上限。', type: 'number', defaultValue: 0 },
   { path: 'decimals', label: '小数位', comment: '数值格式的小数位数。', type: 'number', defaultValue: 0 },
   { path: 'default', label: '默认值', comment: '参数缺省值。', type: 'text', defaultValue: '' },
-  { path: 'lines', label: '随机文本行', comment: 'random_text 参数可用文本行。', type: 'stringList', defaultValue: [] },
-  { path: 'values', label: '随机值', comment: 'random_text 参数兼容值列表。', type: 'stringList', defaultValue: [] },
-  { path: 'options', label: '选项', comment: 'random_text 参数兼容选项列表。', type: 'stringList', defaultValue: [] },
-  { path: 'texts', label: '文本', comment: 'random_text 参数兼容文本列表。', type: 'stringList', defaultValue: [] }
+  { path: 'lines', label: '随机文本行', comment: 'random_text 参数可用文本行。', type: 'stringList', defaultValue: [] }
 ];
 
 const fields: FieldSpec[] = [
@@ -84,7 +81,7 @@ const skillFields: FieldSpec[] = [
   ['trigger_type', '触发类型', '技能触发类型，active 表示主动技能。', 'enum', { options: ['active', 'passive'], optionLabelPrefix: 'skill.trigger_type' }],
   ['passive_triggers', '被动触发器', '绑定的被动触发器 ID 列表。', 'stringList'],
   ['skill_parameters', '技能参数', '技能参数定义，支持 type、value/expression/formula、min/max/decimals/default。', 'object', { creatableChildren: true }],
-  ['variables', '变量', '兼容参数变量定义，结构同 skill_parameters。', 'object', { creatableChildren: true }],
+  ['variables', '变量', '变量定义，结构同 skill_parameters。', 'object', { creatableChildren: true }],
   ['script', '技能脚本', '原生技能脚本配置，包含 enabled/mode/stop_on_failure/actions/conditions。', 'object'],
   ['script.enabled', '启用脚本', '是否启用该技能的原生脚本。', 'boolean'],
   ['script.mode', '脚本模式', '该技能的脚本执行模式。', 'enum', { options: SCRIPT_MODES, optionLabelPrefix: 'script_engine.default_mode' }],
@@ -274,7 +271,6 @@ registerPluginConfig({
     [{ key: 'miss' }, { label: '未命中阶段', comment: '技能没有命中目标时执行的动作列表。', type: 'stringList' }],
     [{ key: 'fail' }, { label: '失败阶段', comment: '技能脚本进入失败分支时执行的动作列表。', type: 'stringList' }],
     ...SCRIPT_PHASES.flatMap(phase => [
-      [{ path: `script.${phase}` }, { label: `${phase} 阶段`, comment: `兼容旧版 script.${phase} 动作列表。`, type: 'stringList' }],
       [{ path: `script.actions.${phase}` }, { label: `${phase} 动作`, comment: `原生技能脚本 actions.${phase} 阶段动作列表。`, type: 'stringList' }],
       [{ path: `script.actions.on_${phase}` }, { label: `on_${phase} 动作`, comment: `原生技能脚本 actions.on_${phase} 阶段动作列表。`, type: 'stringList' }],
       [{ path: `script.conditions.${phase}` }, { label: `${phase} 条件`, comment: `原生技能脚本 conditions.${phase} 阶段条件列表。`, type: 'stringList' }],

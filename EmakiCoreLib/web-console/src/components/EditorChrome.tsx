@@ -143,10 +143,7 @@ function ChangeList({ changes, count, source, sourceOriginal, compact = false }:
       {changes.map(change => <div className="editor-change-row" key={change.path}>
         <code>{change.path}</code>
         <span>{change.label || change.path}</span>
-        <div className="editor-change-diff">
-          <span className="editor-change-value before"><b>−</b><code>{formatChangeValue(change.before)}</code></span>
-          <span className="editor-change-value after"><b>+</b><code>{formatChangeValue(change.after)}</code></span>
-        </div>
+        <FieldValueDiff before={change.before} after={change.after} />
       </div>)}
     </div>
     {count > changes.length && <p>{t('core.editor.changesMore', { count: count - changes.length }, 'Another {count} changes are hidden.')}</p>}
@@ -259,22 +256,41 @@ const DiffDecisionModal = forwardRef<HTMLElement, { titleId: string; descId: str
   </div>;
 });
 
+function FieldValueDiff({ before, after }: { before: unknown; after: unknown }) {
+  const diff = useMemo(() => buildValueLineDiff(before, after), [before, after]);
+  if (!diff.changed) return null;
+  const visible = diff.lines.slice(0, 16);
+  const omitted = Math.max(0, diff.lines.length - visible.length);
+  return <div className="editor-change-diff source-diff field-value-diff compact" role="list">
+    {visible.map((line, index) => <DiffLineView line={line} key={`${line.type}-${line.beforeLine ?? ''}-${line.afterLine ?? ''}-${index}`} />)}
+    {omitted > 0 && <p className="source-diff-more">{t('core.editor.sourceDiffMore', { count: omitted })}</p>}
+  </div>;
+}
+
 function SourceDiff({ before, after, compact = false }: { before: string; after: string; compact?: boolean }) {
   const diff = useMemo(() => buildLineDiff(before, after), [before, after]);
   const visible = compact ? diff.lines.slice(0, 24) : diff.lines.slice(0, 120);
   const omitted = Math.max(0, diff.lines.length - visible.length);
   if (!diff.changed) return <p>{t('core.editor.sourceDiffEmpty')}</p>;
   return <div className={`source-diff ${compact ? 'compact' : ''}`} role="list" aria-label={t('core.editor.sourceDiffTitle')}>
-    {visible.map((line, index) => <div className={`source-diff-line ${line.type}`} key={`${line.type}-${line.beforeLine ?? ''}-${line.afterLine ?? ''}-${index}`} role="listitem">
-      <code className="source-diff-no">{line.type === 'add' ? line.afterLine : line.beforeLine}</code>
-      <code className="source-diff-sign">{line.type === 'add' ? '+' : line.type === 'remove' ? '−' : ' '}</code>
-      <code className="source-diff-text">{line.text || ' '}</code>
-    </div>)}
+    {visible.map((line, index) => <DiffLineView line={line} key={`${line.type}-${line.beforeLine ?? ''}-${line.afterLine ?? ''}-${index}`} />)}
     {omitted > 0 && <p className="source-diff-more">{t('core.editor.sourceDiffMore', { count: omitted })}</p>}
   </div>;
 }
 
+function DiffLineView({ line }: { line: DiffLine }) {
+  return <div className={`source-diff-line ${line.type}`} role="listitem">
+    <code className="source-diff-no">{line.type === 'add' ? line.afterLine : line.beforeLine}</code>
+    <code className="source-diff-sign">{line.type === 'add' ? '+' : line.type === 'remove' ? '−' : ' '}</code>
+    <code className="source-diff-text">{line.text || ' '}</code>
+  </div>;
+}
+
 type DiffLine = { type: 'context' | 'add' | 'remove'; text: string; beforeLine?: number; afterLine?: number };
+
+function buildValueLineDiff(before: unknown, after: unknown): { changed: boolean; lines: DiffLine[] } {
+  return buildLineDiff(formatDiffValue(before), formatDiffValue(after));
+}
 
 function buildLineDiff(before: string, after: string): { changed: boolean; lines: DiffLine[] } {
   if (before === after) return { changed: false, lines: [] };
@@ -310,14 +326,37 @@ function pushContext(lines: DiffLine[], line: DiffLine) {
   lines.push(line);
 }
 
-function formatChangeValue(value: unknown): string {
+function formatDiffValue(value: unknown): string {
   if (value === undefined) return '∅';
   if (value === null) return 'null';
-  if (typeof value === 'string') return value.length > 42 ? `${value.slice(0, 39)}…` : value;
-  try {
-    const text = JSON.stringify(value);
-    return text.length > 42 ? `${text.slice(0, 39)}…` : text;
-  } catch {
-    return String(value);
-  }
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') return String(value);
+  if (Array.isArray(value)) return formatArrayValue(value);
+  if (isPlainObject(value)) return formatObjectValue(value);
+  return String(value);
+}
+
+function formatArrayValue(values: unknown[], depth = 0): string {
+  if (!values.length) return '[]';
+  return values.map(value => `${indent(depth)}- ${formatNestedDiffValue(value, depth)}`).join('\n');
+}
+
+function formatObjectValue(value: Record<string, unknown>, depth = 0): string {
+  const entries = Object.entries(value);
+  if (!entries.length) return '{}';
+  return entries.map(([key, entry]) => `${indent(depth)}${key}: ${formatNestedDiffValue(entry, depth)}`).join('\n');
+}
+
+function formatNestedDiffValue(value: unknown, depth: number): string {
+  if (Array.isArray(value)) return value.length ? `\n${formatArrayValue(value, depth + 1)}` : '[]';
+  if (isPlainObject(value)) return Object.keys(value).length ? `\n${formatObjectValue(value, depth + 1)}` : '{}';
+  return formatDiffValue(value);
+}
+
+function indent(depth: number): string {
+  return '  '.repeat(depth);
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value));
 }

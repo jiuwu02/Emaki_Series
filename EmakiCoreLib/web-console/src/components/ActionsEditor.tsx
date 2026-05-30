@@ -241,11 +241,6 @@ export function parseLoreActions(data: Record<string, unknown>): ActionEntry[] {
   return parseActionList(data.lore_actions);
 }
 
-/** Backward-compatible alias for serializeActionList. */
-export function serializeActions(actions: ActionEntry[]): unknown[] {
-  return serializeActionList(actions);
-}
-
 function cleanActionObject(value: Record<string, unknown>): Record<string, unknown> {
   return Object.fromEntries(Object.entries(value).filter(([, entry]) => entry !== undefined && entry !== '' && !(Array.isArray(entry) && entry.length === 0)));
 }

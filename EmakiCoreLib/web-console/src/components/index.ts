@@ -11,5 +11,5 @@ export { SectionHead, CollapsibleSection, DisclosureChevron, type CollapsibleSec
 export { KvTable } from './KvTable';
 export { StringListEditor } from './StringListEditor';
 export { NumberListEditor } from './NumberListEditor';
-export { ActionsEditor, parseActionList, serializeActionList, parseNameActions, parseLoreActions, serializeActions, type ActionEntry, type ActionsEditorProps } from './ActionsEditor';
+export { ActionsEditor, parseActionList, serializeActionList, parseNameActions, parseLoreActions, type ActionEntry, type ActionsEditorProps } from './ActionsEditor';
 export { GuiEditorSurface } from '../GuiEditorSurface';

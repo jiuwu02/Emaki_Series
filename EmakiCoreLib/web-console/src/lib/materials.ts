@@ -121,9 +121,6 @@ export function getTextureBases(): string[] {
     .map(s => s.base);
 }
 
-/** Legacy export for compatibility. */
-export const MATERIAL_TEXTURE_BASES = MATERIAL_TEXTURE_SOURCES.map(s => s.base);
-
 export function normalizeMaterial(value: unknown): string {
   const raw = String(value ?? '').trim();
   if (!raw || raw.toUpperCase() === 'AIR') return 'air';

@@ -2,7 +2,7 @@
  * Shared library re-exports.
  * Import from '@/lib' or '../lib' to access all utilities.
  */
-export { materialUrls, materialUrl, materialShortName, normalizeMaterial, getTextureBases, subscribeTextureBases, MATERIAL_TEXTURE_SOURCES, MATERIAL_TEXTURE_BASES, MINECRAFT_ASSET_VERSION, MINECRAFT_TEXTURE_VERSION } from './materials';
+export { materialUrls, materialUrl, materialShortName, normalizeMaterial, getTextureBases, subscribeTextureBases, MATERIAL_TEXTURE_SOURCES, MINECRAFT_ASSET_VERSION, MINECRAFT_TEXTURE_VERSION } from './materials';
 export { serializeYaml, parseYaml } from './yaml';
 export { fieldLabel, optionLabel, humanizeFieldLabel, lastPathKey, type FieldLabelOptions, type OptionLabelOptions } from './fieldI18n';
 export { moduleDisplayName, moduleDisplaySummary, fileDisplayTitle, fileDisplayComment, treeNodeDisplayLabel, treeNodeDisplayComment, configNodeDisplayComment, registryFileKey, registryPathKey, moduleRegistryNamespace } from './registryI18n';

@@ -57,7 +57,7 @@ const fields: FieldSpec[] = [
   ['version', '配置版本', '默认配置结构版本，通常不建议手动修改。', 'text'],
   ['release_default_data', '释放默认数据', '首次启动或缺失 recipes/ 等示例数据时是否释放默认文件。', 'boolean'],
   ['quality', '品质设置', '锻造结果的品质池、随机回退、保底与品质写入物品显示的全局设置。', 'object'],
-  ['quality.tiers', '品质池', '品质记录列表，每项包含品质名、抽取权重和结果倍率。旧版“名称-权重-倍率”字符串仍可读取。', 'list'],
+  ['quality.tiers', '品质池', '品质记录列表，每项包含品质名、抽取权重和结果倍率。', 'list'],
   ['quality.default_tier', '回退品质', '随机抽取没有命中任何品质时使用的默认品质名称。', 'text'],
   ['quality.guarantee', '保底配置', '连续未出高品质后的品质保底触发条件与最低品质设置。', 'object'],
   ['quality.guarantee.enabled', '启用保底', '是否启用品质保底机制。关闭后 threshold/minimum 不生效。', 'boolean'],

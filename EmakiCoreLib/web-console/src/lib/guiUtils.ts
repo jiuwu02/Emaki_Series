@@ -48,7 +48,7 @@ export const BUKKIT_GUI_TYPES: Record<string, { size: number; supportsRows: bool
 };
 
 export function normalizeGuiType(dataOrType: GuiTemplateData | string | undefined): string {
-  const raw = typeof dataOrType === 'string' ? dataOrType : dataOrType?.gui_type ?? dataOrType?.inventory_type;
+  const raw = typeof dataOrType === 'string' ? dataOrType : dataOrType?.gui_type;
   const normalized = String(raw || DEFAULT_GUI_TYPE).trim().toUpperCase();
   return BUKKIT_GUI_TYPES[normalized] ? normalized : DEFAULT_GUI_TYPE;
 }
@@ -147,10 +147,7 @@ export function loreLines(value: unknown): string[] {
 
 export function slotItemText(slot: GuiSlotDefinition | null | undefined): string {
   if (!slot) return '';
-  return itemSourceText(slot.item)
-    || itemSourceText(slot.item_source)
-    || itemSourceText(slot.item_sources)
-    || itemSourceText(slot.material);
+  return itemSourceText(slot.item);
 }
 
 export function withSlotItem(slot: GuiSlotDefinition, item: unknown): GuiSlotDefinition {
@@ -160,14 +157,6 @@ export function withSlotItem(slot: GuiSlotDefinition, item: unknown): GuiSlotDef
 function itemSourceText(value: unknown): string {
   if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return String(value);
   if (Array.isArray(value)) return value.map(itemSourceText).find(Boolean) ?? '';
-  if (value && typeof value === 'object') {
-    const record = value as Record<string, unknown>;
-    const shorthand = itemSourceText(record.item ?? record.item_source ?? record.source ?? record.material);
-    if (shorthand) return shorthand;
-    const type = itemSourceText(record.type);
-    const identifier = itemSourceText(record.identifier ?? record.id);
-    if (type && identifier) return `${type}-${identifier}`;
-  }
   return '';
 }
 

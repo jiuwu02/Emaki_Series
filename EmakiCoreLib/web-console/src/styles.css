@@ -1813,11 +1813,24 @@ textarea {
   font-size: 10px;
 }
 
+.field-value-diff {
+  margin-top: 4px;
+  max-height: 180px;
+}
+
+.field-value-diff.compact {
+  max-height: 160px;
+}
+
 .source-diff-line {
   display: grid;
   grid-template-columns: 46px 18px minmax(0, 1fr);
   min-width: 0;
   border-bottom: 1px solid color-mix(in oklch, var(--line) 65%, transparent);
+}
+
+.field-value-diff .source-diff-line {
+  grid-template-columns: 32px 16px minmax(0, 1fr);
 }
 
 .source-diff-line:last-child {
