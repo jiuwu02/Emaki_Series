@@ -1,6 +1,6 @@
 import type { WebEditorField } from './types';
 
-export const CORE_ITEM_FIELD_TYPES = ['text', 'number', 'boolean', 'enum', 'multiEnum', 'material', 'textarea', 'stringList', 'numberList', 'map', 'dynamicMap', 'objectMap', 'json', 'actions'] as const;
+export const CORE_ITEM_FIELD_TYPES = ['text', 'number', 'boolean', 'enum', 'multiEnum', 'material', 'textarea', 'stringList', 'numberList', 'map', 'dynamicMap', 'objectMap', 'variablesMap', 'json', 'actions'] as const;
 
 export const STANDARD_ITEM_FIELD_TYPES = ['effects'] as const;
 

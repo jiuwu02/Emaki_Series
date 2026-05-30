@@ -1,5 +1,5 @@
 import React from 'react';
-import { ActionsEditor, ItemEditorSurface, PropRow, StringListEditor, asList, asRecord, asStringList, coreEffectTypeLabel, createCoreEffect, fieldLabel, firstItemSource, getLocale, humanizeFieldLabel, isCoreEffectType, optionLabel, parseActionList, registerFileKindLabel, registerConfigNodeMeta, registerConfigNodeRule, registerEditorDescriptor, registerEditorField, registerItemFieldRenderer, registerModuleLocale, registerPluginSurfaces, registerSourceDocumentAdapter, serializeActionList, textValue, type AnyMap, type CoreEffectType, type ItemFieldRendererContext } from 'emaki-web-console';
+import { ActionsEditor, ItemEditorSurface, PropRow, StringListEditor, VariablesMapEditor, asList, asRecord, asStringList, coreEffectTypeLabel, createCoreEffect, fieldLabel, firstItemSource, getLocale, humanizeFieldLabel, isCoreEffectType, optionLabel, parseActionList, registerFileKindLabel, registerConfigNodeMeta, registerConfigNodeRule, registerEditorDescriptor, registerEditorField, registerItemFieldRenderer, registerModuleLocale, registerPluginSurfaces, registerSourceDocumentAdapter, serializeActionList, textValue, type AnyMap, type CoreEffectType, type ItemFieldRendererContext } from 'emaki-web-console';
 
 const MODULE = 'EmakiItem';
 const EDITOR_ID = 'emakiitem:item';
@@ -105,7 +105,7 @@ const itemEditorFields: ItemFieldSpec[] = [
   ['update.triggers.interact', '交互', '交互时检测更新。', 'boolean'],
   ['update.triggers.command', '命令', '执行相关命令时检测更新。', 'boolean'],
   ['effects', '效果', '按 type 分流为变量、属性、技能和名称/Lore 动作。', 'effects', { wide: true }],
-  ['variables', '变量', '表达式变量映射。', 'map', { wide: true }],
+  ['variables', '变量', '表达式变量映射，支持固定值、公式、随机数值和文本配置。', 'variablesMap', { wide: true }],
   ['ea_attributes', 'EA 属性', 'EmakiAttribute 属性数值映射。', 'map', { wide: true }],
   ['ea_attribute_meta', 'EA 属性元数据', '属性元数据映射。', 'map', { wide: true }],
   ['es_skills', 'ES 技能', 'EmakiSkills 技能 ID 列表。', 'stringList', { wide: true }],
@@ -480,7 +480,7 @@ function ItemEffectList({ value, onChange, actionTypesResult, path }: { value: u
 
 function ItemEffectPayload({ effect, type, path, onChange, actionTypesResult }: { effect: AnyMap; type: string; path?: string; onChange: (value: AnyMap) => void; actionTypesResult: ItemFieldRendererContext['actionTypesResult'] }) {
   const setPayload = (key: string, value: unknown) => onChange(cleanObject({ ...effect, [key]: value }));
-  if (type === 'variables') return <ItemMapRow label="variables" path={joinPath(path, 'variables')} value={effect.variables} valuePlaceholder={copy('数值/公式', 'Value or formula')} addKeyPrefix="variable" onChange={variables => setPayload('variables', variables)} />;
+  if (type === 'variables') return <PropRow label="variables" path={joinPath(path, 'variables')} wide><VariablesMapEditor value={effect.variables} onChange={variables => setPayload('variables', variables)} /></PropRow>;
   if (type === 'ea_attribute') return <ItemMapRow label="ea_attributes" path={joinPath(path, 'ea_attributes')} value={effect.ea_attributes} valuePlaceholder={copy('属性值', 'Attribute value')} addKeyPrefix="attribute" onChange={ea_attributes => setPayload('ea_attributes', ea_attributes)} />;
   if (type === 'es_skill') return <ItemFormRow label="es_skills" path={joinPath(path, 'es_skills')} wide><StringListEditor items={itemSkillList(effect)} onChange={items => onChange(cleanObject({ ...effect, es_skills: items, es_skill: undefined }))} placeholder={copy('技能 ID', 'Skill ID')} /></ItemFormRow>;
   if (type === 'name_action') return <ItemFormRow label="name_actions" path={joinPath(path, 'name_actions')} wide><ActionsEditor actions={parseActionList(effect.name_actions)} onChange={actions => setPayload('name_actions', serializeActionList(actions))} actionTypes={actionTypesResult?.nameActions ?? []} mode="name" moduleId={MODULE} namespace={MODULE} /></ItemFormRow>;

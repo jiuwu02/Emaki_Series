@@ -42,7 +42,7 @@ const currencyFields = standardCurrencyCostFields({
 
 const starStageFields = [
   { path: 'name', label: '阶段名称', comment: '该星级的里程碑名称，可留空。', type: 'text', defaultValue: '' },
-  { path: 'variables', label: '变量', comment: '表达式变量或属性增量，源码从星级阶段顶层 variables 读取。', type: 'dynamic_map', defaultValue: {} },
+  { path: 'variables', label: '变量', comment: '表达式变量或属性增量，源码从星级阶段顶层 variables 读取，支持固定值、公式和随机数值配置。', type: 'variablesMap', defaultValue: {} },
   { path: 'ea_attributes', label: 'EA 属性', comment: '显式 EmakiAttribute 属性覆盖，源码从星级阶段顶层 ea_attributes 读取。', type: 'dynamic_map', defaultValue: {} },
   { path: 'effects', label: '效果', comment: '技能或显示动作效果列表。', type: 'objectList', defaultValue: [] },
   { path: 'materials', label: '材料', comment: '强化到该星级需要的材料列表。', type: 'objectList', defaultValue: [], itemFields: materialFields },
@@ -208,7 +208,7 @@ registerPluginConfig({
   ],
   rules: [
     [{ key: 'effects' }, { label: '效果', comment: '强化阶段效果列表，用于追加变量、EA 属性或 ES 技能。', type: 'objectList', itemFields: effectTypeFields }],
-    [{ key: 'variables' }, { label: '变量', comment: '变量键值，只包含表达式变量。', type: 'dynamic_map' }],
+    [{ key: 'variables' }, { label: '变量', comment: '变量键值，只包含表达式变量，支持固定值、公式和随机数值配置。', type: 'variablesMap' }],
     [{ key: 'ea_attributes' }, { label: 'EA 属性', comment: 'EmakiAttribute 属性数值映射。', type: 'dynamic_map' }],
     [{ key: 'es_skills' }, { label: 'ES 技能', comment: 'EmakiSkills 技能 ID 列表。', type: 'stringList' }],
     [{ key: 'name_actions' }, { label: '名称动作链', comment: '对物品显示名称执行的 CoreLib Action 列表。', type: 'objectList', itemFields: actionFields }],

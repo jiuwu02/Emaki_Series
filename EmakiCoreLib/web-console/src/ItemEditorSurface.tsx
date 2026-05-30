@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ApiError, type ApiClient, type ActionTypesResult } from './api';
-import { ActionsEditor, Button, CollapsibleSection, DisclosureChevron, EditorChrome, InlineError, MiniText, PropRow as BasePropRow, SectionHead, StringListEditor, ToastNotice, parseActionList, serializeActionList } from './components';
+import { ActionsEditor, Button, CollapsibleSection, DisclosureChevron, EditorChrome, InlineError, MiniText, PropRow as BasePropRow, SectionHead, StringListEditor, ToastNotice, VariablesMapEditor, parseActionList, serializeActionList } from './components';
 import { asList, asRecord, asStringList, displaySource, firstItemSource, materialFromItemSource, setDeepValue, parseYaml, type AnyMap } from './itemEditor';
 import { t, getLocale } from './i18n';
 import { changedPathSet, diffRecords, fieldLabel, getDeepValue, humanizeFieldLabel, isChangedFieldPath, materialShortName, materialUrls, optionLabel, subscribeTextureBases, textValue, valuesEqual } from './lib';
@@ -330,6 +330,7 @@ function DefaultFieldEditor({ field, data, value, changed, setField, actionTypes
   if (type === 'textarea') return <PropRow label={label} path={field.path} changed={changed} wide><textarea rows={field.rows ?? 4} value={textValue(value)} onChange={e => setField(field.path, e.target.value)} placeholder={field.placeholder} /></PropRow>;
   if (type === 'stringList') return <PropRow label={label} path={field.path} changed={changed} wide><StringListEditor items={asEditableStringList(value)} onChange={items => setField(field.path, items)} placeholder={field.placeholder} /></PropRow>;
   if (type === 'numberList') return <PropRow label={label} path={field.path} changed={changed} wide><NumberListEditor items={asList(value).map(item => Number(item) || 0)} onChange={items => setField(field.path, items)} /></PropRow>;
+  if (type === 'variablesMap') return <PropRow label={label} path={field.path} changed={changed} wide><VariablesMapEditor value={value} onChange={next => setField(field.path, next)} /></PropRow>;
   if (type === 'map' || type === 'dynamicMap' || type === 'objectMap') return <PropRow label={label} path={field.path} changed={changed} wide><MapEditor value={value} onChange={next => setField(field.path, next)} /></PropRow>;
   if (type === 'actions') {
     const mode = field.path.toLowerCase().includes('lore') ? 'lore' : 'name';
@@ -504,7 +505,7 @@ function EffectsEditor({ value, onChange, actionTypesResult, path }: { value: un
 function EffectPayloadEditor({ effect, type, originalType, onChange, actionTypesResult, path }: { effect: AnyMap; type: CoreEffectType; originalType: string; onChange: (effect: AnyMap) => void; actionTypesResult: ActionTypesResult | null; path?: string }) {
   const setPayload = (key: string, value: unknown) => onChange(cleanObject({ ...effect, [key]: value }));
   if (!isCoreEffectType(originalType)) return <GenericObjectEditor value={effect} reservedKeys={['type']} onChange={next => onChange({ type: originalType, ...next })} />;
-  if (type === 'variables') return <PropRow label="variables" path={joinPath(path, 'variables')} wide><MapEditor value={effect.variables} valuePlaceholder="数值/公式" addKeyPrefix="variable" onChange={value => setPayload('variables', value)} /></PropRow>;
+  if (type === 'variables') return <PropRow label="variables" path={joinPath(path, 'variables')} wide><VariablesMapEditor value={effect.variables} onChange={value => setPayload('variables', value)} /></PropRow>;
   if (type === 'name_action') return <PropRow label="name_actions" path={joinPath(path, 'name_actions')} wide><ScopedActionsEditor actions={parseActionList(effect.name_actions)} onChange={actions => setPayload('name_actions', serializeActionList(actions))} actionTypes={actionTypesResult?.nameActions ?? []} mode="name" /></PropRow>;
   if (type === 'lore_action') return <PropRow label="lore_actions" path={joinPath(path, 'lore_actions')} wide><ScopedActionsEditor actions={parseActionList(effect.lore_actions)} onChange={actions => setPayload('lore_actions', serializeActionList(actions))} actionTypes={actionTypesResult?.loreActions ?? []} mode="lore" /></PropRow>;
   return <GenericObjectEditor value={effect} reservedKeys={['type']} onChange={next => onChange({ type, ...next })} />;

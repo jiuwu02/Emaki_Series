@@ -7,7 +7,7 @@ import { ItemEditorSurface } from './ItemEditorSurface';
 import { loadWebExtensions } from './extensions';
 import { applyConfigNodeOverrides, applyConfigRegistryOverrides, applyEditorDescriptorOverrides, getConfigPreview, getSourceDocumentAdapter, getSurface, isKind, registerSourceDocumentAdapter, registerSurface, setRuntimeEnums, type ConfigPreviewProps, type SourceDocumentAdapterContext } from './registry';
 import { getLocale, getRegisteredLocales, setLocale, t } from './i18n';
-import { ActionGroup, Button, CodeEditor, EditorChrome, DisclosureChevron, InlineError, NumberListEditor, StringListEditor, ToastNotice, type EditorChange } from './components';
+import { ActionGroup, Button, CodeEditor, EditorChrome, DisclosureChevron, InlineError, NumberListEditor, StringListEditor, ToastNotice, VariablesMapEditor, type EditorChange } from './components';
 import { useDialogFocus } from './components/useDialogFocus';
 import { useStableEntries } from './components/useStableEntries';
 import { I18nBundleModal, type I18nTarget } from './I18nBundleModal';
@@ -1571,6 +1571,7 @@ function renderControl(node: WebConfigNode, value: unknown, setValue: (v: unknow
   if (node.type === 'enum' && node.options) return <select value={str(value)} aria-label={label} onChange={(e) => setValue(e.target.value)}>{node.options.map(opt => <option key={opt} value={opt}>{optionLabel(node.optionLabelPrefix || node.path, opt, { moduleId })}</option>)}</select>;
   if (node.type === 'number') return <NumberField value={value} onChange={setValue} ariaLabel={label} />;
   if (node.type === 'json') return <JsonField value={value} onChange={setValue} ariaLabel={label} />;
+  if (node.type === 'variablesMap') return <VariablesMapEditor value={value} onChange={setValue} />;
   if (node.type === 'dynamic_map') return <DynamicMapEditor value={value} setValue={setValue} />;
   if (node.type === 'object') {
     if (node.itemFields?.length) return <SchemaObjectEditor field={configNodeToSchemaField(node)} value={value} onChange={setValue} moduleId={moduleId} ariaLabel={label} />;
@@ -1746,6 +1747,7 @@ function renderSchemaField(field: WebConfigFieldSchema | undefined, value: unkno
     const childNode = schemaFieldToConfigNode(field, ariaLabel, value, siblingItems);
     return <ObjectListEditor node={childNode} items={Array.isArray(value) ? value : []} setValue={onChange} moduleId={moduleId} compact />;
   }
+  if (type === 'variablesMap') return <VariablesMapEditor value={value} onChange={onChange} />;
   if (type === 'object' && field?.itemFields?.length) {
     return <SchemaObjectEditor field={field} value={value} onChange={onChange} moduleId={moduleId} ariaLabel={ariaLabel} />;
   }

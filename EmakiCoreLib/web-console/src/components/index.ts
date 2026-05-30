@@ -9,6 +9,7 @@ export { MiniText } from './MiniText';
 export { PropRow } from './PropRow';
 export { SectionHead, CollapsibleSection, DisclosureChevron, type CollapsibleSectionProps, type DisclosureChevronProps } from './SectionHead';
 export { KvTable } from './KvTable';
+export { VariablesMapEditor } from './VariablesMapEditor';
 export { StringListEditor } from './StringListEditor';
 export { NumberListEditor } from './NumberListEditor';
 export { ActionsEditor, parseActionList, serializeActionList, parseNameActions, parseLoreActions, type ActionEntry, type ActionsEditorProps } from './ActionsEditor';

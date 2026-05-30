@@ -160,43 +160,9 @@ const fields: FieldSpec[] = [
   ['stations.fermentation_barrel.require_sealed', '需要密封', '发酵桶开始或推进时是否要求处于密封状态。', 'boolean']
 ];
 
-const recipeFields: FieldSpec[] = [
+const recipeCommonFields: FieldSpec[] = [
   ['id', 'ID', '烹饪配方唯一标识。', 'text'],
   ['display_name', '显示名称', '配方在 GUI、日志或提示中的显示名称。', 'text'],
-  ['input', '单输入', '单个输入物品配置，常用于烤炉、榨汁机等工位。', 'object'],
-  ['input.item_sources', '输入来源', '可匹配该输入的 ItemSource 列表。', 'stringList'],
-  ['inputs', '多输入', '多个输入物品配置，常用于研磨、蒸制或发酵链路。', 'objectList'],
-  ['ingredients', '食材列表', '炒锅配方需要的食材记录列表，包含来源、数量和翻炒规则。', 'objectList'],
-  ['cuts_required', '切割次数', '砧板配方完成所需切割次数。', 'number'],
-  ['tool_damage', '工具损耗', '砧板切割时工具损耗值。', 'number'],
-  ['damage_override', '伤害覆盖', '砧板切割伤害覆盖。', 'object'],
-  ['damage_override.chance', '伤害概率', '切割伤害触发概率。', 'number'],
-  ['damage_override.value', '伤害值', '切割伤害数值。', 'number'],
-  ['grind_time_seconds', '研磨秒数', '研磨机完成所需时间。', 'number'],
-  ['required_steam', '所需蒸汽', '蒸锅完成所需蒸汽总量。', 'number'],
-  ['bake_time_seconds', '烘烤秒数', '烤炉基础烘烤时间。', 'number'],
-  ['baking', '烘烤控制', '烤炉完美火力、完美比例和过烤时间。', 'object'],
-  ['baking.perfect_heat.min', '完美火力下限', '烤炉完美火力范围下限。', 'number'],
-  ['baking.perfect_heat.max', '完美火力上限', '烤炉完美火力范围上限。', 'number'],
-  ['baking.perfect_required_ratio', '完美比例', '需要处于完美火力范围内的时间占比。', 'number'],
-  ['baking.overbake_seconds', '过烤秒数', '超过完成时间多少秒后视为过烤。', 'number'],
-  ['presses_required', '按压次数', '榨汁机完成所需按压次数。', 'number'],
-  ['fluid', '流体', '榨汁机产出流体配置。', 'object'],
-  ['fluid.id', '流体 ID', '流体类型标识。', 'text'],
-  ['fluid.display_name', '流体显示名', '流体展示名称。', 'text'],
-  ['fluid.amount_ml', '流体毫升', '每次配方产生的流体量。', 'number'],
-  ['container', '容器', '榨汁机收集容器配置。', 'object'],
-  ['container.item_sources', '容器来源', '可用于收集流体的容器 ItemSource。', 'stringList'],
-  ['container.serving_ml', '容器容量', '每个容器可装的流体量。', 'number'],
-  ['fermentation_time_seconds', '发酵秒数', '发酵桶完成所需时间。', 'number'],
-  ['fermentation', '发酵控制', '发酵早收和过时规则。', 'object'],
-  ['fermentation.early_collect.min_progress_ratio', '早收最小进度', '允许提前收取的最小进度比例。', 'number'],
-  ['fermentation.over_time_seconds', '过发酵秒数', '完成后超过多久进入过时处理。', 'number'],
-  ['heat_level', '火候等级', '炒锅或热源配方要求的火候等级。', 'number'],
-  ['fault_tolerance', '容错次数', '炒锅翻炒或步骤容错次数。', 'number'],
-  ['stir_total.min', '最少翻炒', '炒锅要求的最少翻炒次数。', 'number'],
-  ['stir_total.max', '最多翻炒', '炒锅允许的最多翻炒次数。', 'number'],
-  ['requires_previous_step', '前置步骤', '链式配方要求的前置步骤 ID。', 'text'],
   ['permission', '权限', '使用此配方所需权限节点；留空表示不限制。', 'text'],
   ['condition_type', '条件逻辑', '配方条件表达式组合方式。', 'enum', { options: ['all_of', 'any_of'], optionLabelPrefix: 'condition_type' }],
   ['conditions', '条件列表', 'CoreLib 条件表达式列表，源码按 condition_type 组合判定。', 'objectList'],
@@ -205,7 +171,33 @@ const recipeFields: FieldSpec[] = [
   ['result', '结果', '配方完成后的分支产物与动作。', 'object'],
   ['result.success', '成功结果', '普通完成或正确烹饪时的结果分支。', 'object', { itemFields: outcomeFields }],
   ['result.success.outputs', '成功产物', '成功结果分支产出的物品列表。', 'objectList', { itemFields: outputFields }],
-  ['result.success.actions', '成功动作', '成功结果分支触发动作。', 'stringList'],
+  ['result.success.actions', '成功动作', '成功结果分支触发动作。', 'stringList']
+];
+
+const singleInputFields: FieldSpec[] = [
+  ['input', '单输入', '单个输入物品配置。', 'object', { itemFields: inputItemFields }],
+  ['input.item_sources', '输入来源', '可匹配该输入的 ItemSource 列表。', 'stringList'],
+  ['input.amount', '输入数量', '需要投入的数量；未配置时通常按 1 处理。', 'number']
+];
+
+const choppingBoardRecipeFields: FieldSpec[] = [
+  ...recipeCommonFields,
+  ...singleInputFields,
+  ['cuts_required', '切割次数', '砧板配方完成所需切割次数。', 'number'],
+  ['tool_damage', '工具损耗', '砧板切割时工具损耗值。', 'number'],
+  ['damage_override', '伤害覆盖', '砧板切割伤害覆盖。', 'object'],
+  ['damage_override.chance', '伤害概率', '切割伤害触发概率。', 'number'],
+  ['damage_override.value', '伤害值', '切割伤害数值。', 'number']
+];
+
+const wokRecipeFields: FieldSpec[] = [
+  ...recipeCommonFields,
+  ['ingredients', '食材列表', '炒锅配方需要的食材记录列表，包含来源、数量和翻炒规则。', 'objectList'],
+  ['heat_level', '火候等级', '炒锅配方要求的火候等级。', 'number'],
+  ['fault_tolerance', '容错次数', '炒锅翻炒或步骤容错次数。', 'number'],
+  ['stir_total', '翻炒次数范围', '炒锅允许或要求的总翻炒次数范围。', 'object'],
+  ['stir_total.min', '最少翻炒', '炒锅要求的最少翻炒次数。', 'number'],
+  ['stir_total.max', '最多翻炒', '炒锅允许的最多翻炒次数。', 'number'],
   ['result.undercooked', '未熟结果', '炒锅翻炒不足时的结果分支。', 'object', { itemFields: outcomeFields }],
   ['result.undercooked.outputs', '未熟产物', '未熟结果分支产出的物品列表。', 'objectList', { itemFields: outputFields }],
   ['result.undercooked.actions', '未熟动作', '未熟结果分支触发动作。', 'stringList'],
@@ -214,13 +206,61 @@ const recipeFields: FieldSpec[] = [
   ['result.overcooked.actions', '过熟动作', '过熟结果分支触发动作。', 'stringList'],
   ['result.invalid', '无效结果', '炒锅食材组合错误时的结果分支。', 'object', { itemFields: outcomeFields }],
   ['result.invalid.outputs', '无效产物', '无效结果分支产出的物品列表。', 'objectList', { itemFields: outputFields }],
-  ['result.invalid.actions', '无效动作', '无效结果分支触发动作。', 'stringList'],
+  ['result.invalid.actions', '无效动作', '无效结果分支触发动作。', 'stringList']
+];
+
+const grinderRecipeFields: FieldSpec[] = [
+  ...recipeCommonFields,
+  ...singleInputFields,
+  ['grind_time_seconds', '研磨秒数', '研磨机完成所需时间。', 'number']
+];
+
+const steamerRecipeFields: FieldSpec[] = [
+  ...recipeCommonFields,
+  ...singleInputFields,
+  ['required_steam', '所需蒸汽', '蒸锅完成所需蒸汽总量。', 'number'],
+  ['requires_previous_step', '前置步骤', '链式配方要求的前置步骤 ID。', 'text']
+];
+
+const ovenRecipeFields: FieldSpec[] = [
+  ...recipeCommonFields,
+  ...singleInputFields,
+  ['bake_time_seconds', '烘烤秒数', '烤炉基础烘烤时间。', 'number'],
+  ['baking', '烘烤控制', '烤炉完美火力、完美比例和过烤时间。', 'object'],
+  ['baking.perfect_heat', '完美火力', '烤炉完美火力范围。', 'object'],
+  ['baking.perfect_heat.min', '完美火力下限', '烤炉完美火力范围下限。', 'number'],
+  ['baking.perfect_heat.max', '完美火力上限', '烤炉完美火力范围上限。', 'number'],
+  ['baking.perfect_required_ratio', '完美比例', '需要处于完美火力范围内的时间占比。', 'number'],
+  ['baking.overbake_seconds', '过烤秒数', '超过完成时间多少秒后视为过烤。', 'number'],
   ['result.perfect', '完美结果', '烤炉完美火力完成时的结果分支。', 'object', { itemFields: outcomeFields }],
   ['result.perfect.outputs', '完美产物', '完美结果分支产出的物品列表。', 'objectList', { itemFields: outputFields }],
   ['result.perfect.actions', '完美动作', '完美结果分支触发动作。', 'stringList'],
   ['result.overbaked', '过烤结果', '烤炉过烤完成时的结果分支。', 'object', { itemFields: outcomeFields }],
   ['result.overbaked.outputs', '过烤产物', '过烤结果分支产出的物品列表。', 'objectList', { itemFields: outputFields }],
-  ['result.overbaked.actions', '过烤动作', '过烤结果分支触发动作。', 'stringList'],
+  ['result.overbaked.actions', '过烤动作', '过烤结果分支触发动作。', 'stringList']
+];
+
+const juicerRecipeFields: FieldSpec[] = [
+  ...recipeCommonFields,
+  ...singleInputFields,
+  ['presses_required', '按压次数', '榨汁机完成所需按压次数。', 'number'],
+  ['fluid', '流体', '榨汁机产出流体配置。', 'object'],
+  ['fluid.id', '流体 ID', '流体类型标识。', 'text'],
+  ['fluid.display_name', '流体显示名', '流体展示名称。', 'text'],
+  ['fluid.amount_ml', '流体毫升', '每次配方产生的流体量。', 'number'],
+  ['container', '容器', '榨汁机收集容器配置。', 'object'],
+  ['container.item_sources', '容器来源', '可用于收集流体的容器 ItemSource。', 'stringList'],
+  ['container.serving_ml', '容器容量', '每个容器可装的流体量。', 'number']
+];
+
+const fermentationBarrelRecipeFields: FieldSpec[] = [
+  ...recipeCommonFields,
+  ['inputs', '多输入', '多个输入物品配置，常用于发酵链路。', 'objectList'],
+  ['fermentation_time_seconds', '发酵秒数', '发酵桶完成所需时间。', 'number'],
+  ['fermentation', '发酵控制', '发酵早收和过时规则。', 'object'],
+  ['fermentation.early_collect', '早收控制', '发酵提前收取规则。', 'object'],
+  ['fermentation.early_collect.min_progress_ratio', '早收最小进度', '允许提前收取的最小进度比例。', 'number'],
+  ['fermentation.over_time_seconds', '过发酵秒数', '完成后超过多久进入过时处理。', 'number'],
   ['result.early', '早收结果', '发酵提前收取时的结果分支。', 'object', { itemFields: outcomeFields }],
   ['result.early.outputs', '早收产物', '早收结果分支产出的物品列表。', 'objectList', { itemFields: outputFields }],
   ['result.early.actions', '早收动作', '早收结果分支触发动作。', 'stringList'],
@@ -228,6 +268,22 @@ const recipeFields: FieldSpec[] = [
   ['result.over.outputs', '过发酵产物', '过发酵结果分支产出的物品列表。', 'objectList', { itemFields: outputFields }],
   ['result.over.actions', '过发酵动作', '过发酵结果分支触发动作。', 'stringList']
 ];
+
+const recipeFields: FieldSpec[] = dedupeFieldSpecs([
+  ...choppingBoardRecipeFields,
+  ...wokRecipeFields,
+  ...grinderRecipeFields,
+  ...steamerRecipeFields,
+  ...ovenRecipeFields,
+  ...juicerRecipeFields,
+  ...fermentationBarrelRecipeFields
+]);
+
+function dedupeFieldSpecs(fields: FieldSpec[]): FieldSpec[] {
+  const byPath = new Map<string, FieldSpec>();
+  fields.forEach(field => { if (!byPath.has(field[0])) byPath.set(field[0], field); });
+  return [...byPath.values()];
+}
 
 const fieldComments: Record<string, [string, string, string]> = {
   block_item_sources: ['方块来源', '识别为该工位本体方块的 ItemSource 列表，可使用 minecraft-/CraftEngine/ItemsAdder/Nexo 等格式。', 'list'],
@@ -404,7 +460,13 @@ registerPluginConfig({
   moduleId: MODULE,
   metaFields: fields,
   fileSchemas: [
-    { pathPrefix: 'recipes/', fields: recipeFields },
+    { pathPrefix: 'recipes/chopping_board/', fields: choppingBoardRecipeFields },
+    { pathPrefix: 'recipes/wok/', fields: wokRecipeFields },
+    { pathPrefix: 'recipes/grinder/', fields: grinderRecipeFields },
+    { pathPrefix: 'recipes/steamer/', fields: steamerRecipeFields },
+    { pathPrefix: 'recipes/oven/', fields: ovenRecipeFields },
+    { pathPrefix: 'recipes/juicer/', fields: juicerRecipeFields },
+    { pathPrefix: 'recipes/fermentation_barrel/', fields: fermentationBarrelRecipeFields },
     { pathPrefix: 'item_adjustments/', fields: itemAdjustmentFields }
   ],
   ruleFields: fieldComments,

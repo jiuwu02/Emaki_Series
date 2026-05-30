@@ -653,8 +653,12 @@ function configSchemaFieldsForFile(moduleId: string, filePath: string | undefine
       .map(path => metaFieldFromRegisteredNode(moduleId, path))
       .filter((field): field is ConfigMetaFieldEntry => Boolean(field));
   }
-  const schemas = _configFileSchemas.filter(schema => schema.moduleId === normalizedModuleId && configFileSchemaMatches(schema, normalizedPath));
-  return schemas.flatMap(schema => schema.fields);
+  const matched = _configFileSchemas
+    .filter(schema => schema.moduleId === normalizedModuleId && configFileSchemaMatches(schema, normalizedPath))
+    .map(schema => ({ schema, score: configFileSchemaScore(schema) }));
+  if (!matched.length) return [];
+  const bestScore = Math.max(...matched.map(entry => entry.score));
+  return matched.filter(entry => entry.score === bestScore).flatMap(entry => entry.schema.fields);
 }
 
 function configFileSchemaMatches(schema: ConfigFileSchemaRegistration, filePath: string): boolean {
@@ -664,6 +668,14 @@ function configFileSchemaMatches(schema: ConfigFileSchemaRegistration, filePath:
     return new RegExp(`^${pattern}$`).test(filePath);
   }
   return false;
+}
+
+function configFileSchemaScore(schema: ConfigFileSchemaRegistration): number {
+  const prefix = normalizeConfigFilePath(schema.pathPrefix);
+  const pattern = normalizeConfigFilePath(schema.pathPattern);
+  if (pattern) return 20000 + pattern.replace(/[*?]/g, '').length;
+  if (prefix) return 10000 + prefix.length;
+  return 0;
 }
 
 function normalizeConfigFilePath(filePath: string | undefined): string {
@@ -781,7 +793,7 @@ function emptyConfigValueForType(type: string): unknown {
   if (normalized === 'number') return undefined;
   if (normalized === 'boolean') return false;
   if (normalized === 'list' || normalized === 'stringList' || normalized === 'numberList' || normalized === 'objectList' || normalized === 'actions') return [];
-  if (normalized === 'object' || normalized === 'dynamic_map' || normalized === 'json') return {};
+  if (normalized === 'object' || normalized === 'dynamic_map' || normalized === 'variablesMap' || normalized === 'json') return {};
   return '';
 }
 

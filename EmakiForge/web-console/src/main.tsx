@@ -13,7 +13,7 @@ const actionFields = [
 
 const effectFields = [
   { path: 'type', label: '类型', comment: '选择此材料贡献的效果类别：变量、属性、技能、名称/Lore 动作、品质修改或容量加成。', type: 'enum', options: FORGE_EFFECT_TYPES, defaultValue: 'variables' },
-  { path: 'variables', label: '变量', comment: 'variables 效果贡献的表达式变量对象。', type: 'map', defaultValue: {} },
+  { path: 'variables', label: '变量', comment: 'variables 效果贡献的表达式变量对象，支持固定值、公式、随机数值和文本配置。', type: 'variablesMap', defaultValue: {} },
   { path: 'ea_attributes', label: 'EA 属性', comment: 'ea_attribute 效果写入 EmakiAttribute 的属性数值对象。', type: 'map', defaultValue: {} },
   { path: 'ea_attribute_meta', label: 'EA 属性元数据', comment: 'ea_attribute 效果的附加字符串元数据对象。', type: 'map', defaultValue: {} },
   { path: 'es_skills', label: 'ES 技能', comment: 'es_skill 效果附加的技能 ID 列表。', type: 'stringList', defaultValue: [] },
