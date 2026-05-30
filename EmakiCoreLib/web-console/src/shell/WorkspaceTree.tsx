@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type Dispatch, type KeyboardEvent, type SetStateAction } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type Dispatch, type KeyboardEvent, type SetStateAction } from 'react';
 import { getModuleLocaleBundles, t } from '../i18n';
 import { getFileKindLabel } from '../registry';
 import { treeNodeDisplayComment, treeNodeDisplayLabel } from '../lib';
@@ -40,11 +40,6 @@ type TreeSearchState = {
   visibleIds: Set<string> | null;
 };
 
-type FocusRequest = { id: string; index: number } | null;
-
-const TREE_ROW_HEIGHT = 30;
-const TREE_OVERSCAN = 12;
-
 export function WorkspaceTree({ registry, selected, expanded, dirtyKeys = new Set<string>(), setExpanded, onSelect, onOpenI18n, onCreateFile, onDeleteFile }: {
   registry: WebRegistry | null;
   selected: TreeSelection | null;
@@ -57,9 +52,6 @@ export function WorkspaceTree({ registry, selected, expanded, dirtyKeys = new Se
   onDeleteFile?: (node: RegistryTreeNode) => void;
 }) {
   const [query, setQuery] = useState('');
-  const [scrollTop, setScrollTop] = useState(0);
-  const [viewportHeight, setViewportHeight] = useState(0);
-  const [focusRequest, setFocusRequest] = useState<FocusRequest>(null);
   const normalizedQuery = normalizeQuery(query);
   const treeRef = useRef<HTMLDivElement | null>(null);
   const rowRefs = useRef(new Map<string, HTMLButtonElement>());
@@ -74,50 +66,16 @@ export function WorkspaceTree({ registry, selected, expanded, dirtyKeys = new Se
   const openNode = useCallback((id: string) => setExpanded((current) => current[id] ? current : ({ ...current, [id]: true })), [setExpanded]);
   const closeNode = useCallback((id: string) => setExpanded((current) => current[id] === false ? current : ({ ...current, [id]: false })), [setExpanded]);
 
-  useLayoutEffect(() => {
-    const element = treeRef.current;
+  const focusRow = useCallback((id: string) => {
+    const element = rowRefs.current.get(id);
     if (!element) return;
-    const update = () => setViewportHeight(element.clientHeight);
-    update();
-    const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(update) : null;
-    observer?.observe(element);
-    return () => observer?.disconnect();
+    element.scrollIntoView({ block: 'nearest' });
+    element.focus();
   }, []);
 
-  useEffect(() => {
-    const maxScrollTop = Math.max(0, rows.length * TREE_ROW_HEIGHT - viewportHeight);
-    if (scrollTop > maxScrollTop) {
-      const element = treeRef.current;
-      if (element) element.scrollTop = maxScrollTop;
-      setScrollTop(maxScrollTop);
-    }
-  }, [rows.length, viewportHeight, scrollTop]);
-
-  useEffect(() => {
-    if (!focusRequest) return;
-    const currentIndex = rowIndexById.get(focusRequest.id);
-    if (currentIndex == null) {
-      setFocusRequest(null);
-      return;
-    }
-    const element = treeRef.current;
-    if (!element) return;
-    const top = currentIndex * TREE_ROW_HEIGHT;
-    const bottom = top + TREE_ROW_HEIGHT;
-    if (top < element.scrollTop) element.scrollTop = top;
-    else if (bottom > element.scrollTop + element.clientHeight) element.scrollTop = bottom - element.clientHeight;
-    requestAnimationFrame(() => {
-      rowRefs.current.get(focusRequest.id)?.focus();
-      setFocusRequest(null);
-    });
-  }, [focusRequest, rowIndexById]);
-
   const handleKeyDown = useCallback((event: KeyboardEvent<HTMLDivElement>) => {
-    handleTreeKeyDown(event, rows, rowIndexById, openNode, closeNode, setFocusRequest);
-  }, [rows, rowIndexById, openNode, closeNode]);
-
-  const virtual = virtualWindow(rows.length, scrollTop, viewportHeight);
-  const visibleRows = rows.slice(virtual.start, virtual.end);
+    handleTreeKeyDown(event, rows, rowIndexById, openNode, closeNode, focusRow);
+  }, [rows, rowIndexById, openNode, closeNode, focusRow]);
 
   if (!registry || !treeIndex) return <div className="tree-empty" role="status">{t('core.tree.loading')}</div>;
 
@@ -133,30 +91,27 @@ export function WorkspaceTree({ registry, selected, expanded, dirtyKeys = new Se
       role="tree"
       aria-label={t('core.tree.aria')}
       onKeyDown={handleKeyDown}
-      onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}
     >
-      {rows.length > 0 ? <div className="tree-virtual-spacer" style={{ height: rows.length * TREE_ROW_HEIGHT }}>
-        <div className="tree-virtual-list">
-          {visibleRows.map((row, index) => <VirtualTreeRow
-            key={row.id}
-            row={row}
-            virtualIndex={virtual.start + index}
-            setRowRef={setRowRef(rowRefs)}
-            onToggle={toggle}
-            onSelect={onSelect}
-            onOpenI18n={onOpenI18n}
-            onCreateFile={onCreateFile}
-            onDeleteFile={onDeleteFile}
-          />)}
-        </div>
-      </div> : normalizedQuery ? <div className="tree-empty tree-empty-search" role="status">{t('core.tree.noResults')}</div> : null}
+      {rows.length > 0
+        ? <div className="tree-list">
+            {rows.map((row) => <TreeRow
+              key={row.id}
+              row={row}
+              setRowRef={setRowRef(rowRefs)}
+              onToggle={toggle}
+              onSelect={onSelect}
+              onOpenI18n={onOpenI18n}
+              onCreateFile={onCreateFile}
+              onDeleteFile={onDeleteFile}
+            />)}
+          </div>
+        : normalizedQuery ? <div className="tree-empty tree-empty-search" role="status">{t('core.tree.noResults')}</div> : null}
     </div>
   </>;
 }
 
-const VirtualTreeRow = memo(function VirtualTreeRow({ row, virtualIndex, setRowRef, onToggle, onSelect, onOpenI18n, onCreateFile, onDeleteFile }: {
+const TreeRow = memo(function TreeRow({ row, setRowRef, onToggle, onSelect, onOpenI18n, onCreateFile, onDeleteFile }: {
   row: VisibleTreeRow;
-  virtualIndex: number;
   setRowRef: (id: string, element: HTMLButtonElement | null) => void;
   onToggle: (id: string) => void;
   onSelect: (v: TreeSelection) => void;
@@ -168,7 +123,7 @@ const VirtualTreeRow = memo(function VirtualTreeRow({ row, virtualIndex, setRowR
   const rowStyle = indentStyle(row.level);
 
   if (row.isModule) {
-    return <div className="tree-virtual-row tree-module" role="none" style={{ top: virtualIndex * TREE_ROW_HEIGHT }}>
+    return <div className="tree-module" role="none">
       <div className="tree-module-row">
         <button
           ref={(element) => setRowRef(row.id, element)}
@@ -187,7 +142,7 @@ const VirtualTreeRow = memo(function VirtualTreeRow({ row, virtualIndex, setRowR
   }
 
   if (row.hasChildren) {
-    return <div className="tree-virtual-row tree-file-folder" role="none" style={{ top: virtualIndex * TREE_ROW_HEIGHT }}>
+    return <div className="tree-file-folder" role="none">
       <div className="tree-file-row" style={rowStyle} data-tree-level={row.level} data-tree-branch={row.level > 1 ? (row.isLast ? 'elbow' : 'tee') : undefined}>
         {row.level > 1 && <IndentGuide branch={row.isLast ? 'elbow' : 'tee'} />}
         <button
@@ -211,7 +166,7 @@ const VirtualTreeRow = memo(function VirtualTreeRow({ row, virtualIndex, setRowR
 
   const canSelect = Boolean(node.moduleId && node.fileId && !row.isGlob && !row.isFolder);
   const rowClass = row.level > 1 ? 'tree-child-row' : 'tree-file-row';
-  return <div className={`tree-virtual-row ${rowClass}`} role="none" style={{ top: virtualIndex * TREE_ROW_HEIGHT, ...rowStyle }}>
+  return <div className={rowClass} role="none" style={rowStyle}>
     {row.level > 1 && <IndentGuide branch={row.isLast ? 'elbow' : 'tee'} />}
     <button
       ref={(element) => setRowRef(row.id, element)}
@@ -241,7 +196,7 @@ function setRowRef(ref: React.MutableRefObject<Map<string, HTMLButtonElement>>) 
   };
 }
 
-function handleTreeKeyDown(event: KeyboardEvent<HTMLDivElement>, rows: VisibleTreeRow[], rowIndexById: Map<string, number>, openNode: (id: string) => void, closeNode: (id: string) => void, setFocusRequest: (request: FocusRequest) => void) {
+function handleTreeKeyDown(event: KeyboardEvent<HTMLDivElement>, rows: VisibleTreeRow[], rowIndexById: Map<string, number>, openNode: (id: string) => void, closeNode: (id: string) => void, focusRow: (id: string) => void) {
   const current = event.target instanceof HTMLElement ? event.target.closest<HTMLElement>('[role="treeitem"]') : null;
   if (!current) return;
   const id = current.dataset.treeNodeId;
@@ -251,7 +206,7 @@ function handleTreeKeyDown(event: KeyboardEvent<HTMLDivElement>, rows: VisibleTr
   const focusAt = (nextIndex: number) => {
     const clamped = Math.max(0, Math.min(rows.length - 1, nextIndex));
     const next = rows[clamped];
-    if (next) setFocusRequest({ id: next.id, index: clamped });
+    if (next) focusRow(next.id);
   };
   if (event.key === 'ArrowDown') {
     event.preventDefault();
@@ -460,13 +415,6 @@ function isNodeDirty(node: RegistryTreeNode, dirtyKeys: ReadonlySet<string>): bo
 
 function treeDirtyKey(moduleId: string, fileId: string, filePath: string) {
   return JSON.stringify([moduleId, fileId, filePath.replace(/\\/g, '/')]);
-}
-
-function virtualWindow(count: number, scrollTop: number, viewportHeight: number) {
-  const visibleCount = Math.ceil(Math.max(viewportHeight, TREE_ROW_HEIGHT) / TREE_ROW_HEIGHT);
-  const start = Math.max(0, Math.floor(scrollTop / TREE_ROW_HEIGHT) - TREE_OVERSCAN);
-  const end = Math.min(count, start + visibleCount + TREE_OVERSCAN * 2);
-  return { start, end };
 }
 
 function indentStyle(level: number): CSSProperties | undefined {

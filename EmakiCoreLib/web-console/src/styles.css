@@ -808,32 +808,16 @@ textarea {
   min-height: 0;
   font-size: 13px;
   scrollbar-width: none;
-  position: relative;
-  contain: layout paint;
 }
 
 .tree::-webkit-scrollbar {
   display: none;
 }
 
-.tree-virtual-spacer {
-  position: relative;
+.tree-list {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
-}
-
-.tree-virtual-list {
-  position: absolute;
-  inset: 0 0 auto 0;
-  min-width: 0;
-}
-
-.tree-virtual-row {
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 30px;
-  min-width: 0;
-  box-sizing: border-box;
 }
 
 .tree-module {
@@ -844,7 +828,7 @@ textarea {
   display: flex;
   align-items: center;
   gap: 4px;
-  height: 30px;
+  min-height: 30px;
   min-width: 0;
 }
 
@@ -953,7 +937,7 @@ textarea {
   align-items: center;
   gap: 4px;
   min-width: 0;
-  height: 30px;
+  min-height: 30px;
   padding-left: calc(var(--tree-level) * var(--hierarchy-indent-step));
   box-sizing: border-box;
 }
