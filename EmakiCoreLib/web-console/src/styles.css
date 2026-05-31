@@ -3391,7 +3391,8 @@ textarea {
   line-height: 1.42;
 }
 
-.reload-confirm-body code {
+.reload-confirm-body>p code,
+.reload-confirm-body>label code {
   display: block;
   padding: 7px 9px;
   border: 1px solid var(--line);
@@ -5170,6 +5171,7 @@ textarea {
 .variables-map-editor .prop-level-badge {
   min-width: 0;
   color: var(--accent);
+  font-weight: 400;
 }
 
 .variables-map-editor .variable-json textarea {
@@ -5192,7 +5194,7 @@ textarea {
 }
 
 .prop-level-item {
-  border-top: 1px solid var(--line);
+  border: 1px solid var(--line);
   background: transparent;
   overflow: visible;
   animation: prop-block-in 0.16s cubic-bezier(0.16, 1, 0.3, 1);
@@ -5205,6 +5207,7 @@ textarea {
 
 .prop-level-item:hover,
 .prop-level-item:focus-within {
+  border-color: var(--line-2);
   background: color-mix(in oklch, var(--surface) 92%, var(--input) 8%);
 }
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ApiError, type ApiClient, type ActionTypesResult } from './api';
-import { Button, CollapsibleSection, DisclosureChevron, EditorChrome, InlineError, MiniText, PropRow as BasePropRow, SectionHead, StandardActionsField, StandardEconomyProviderSelect, StandardEffectsEditor, StringListEditor, ToastNotice, VariablesMapEditor } from './components';
+import { Button, CollapsibleSection, ChangedPathsProvider, DisclosureChevron, EditorChrome, InlineError, MiniText, PropRow as BasePropRow, SectionHead, StandardActionsField, StandardEconomyProviderSelect, StandardEffectsEditor, StringListEditor, ToastNotice, VariablesMapEditor } from './components';
 import { asList, asRecord, asStringList, displaySource, firstItemSource, materialFromItemSource, setDeepValue, parseYaml, type AnyMap } from './itemEditor';
 import { t, getLocale } from './i18n';
 import { changedPathSet, diffRecords, fieldLabel, getDeepValue, humanizeFieldLabel, isChangedFieldPath, materialShortName, materialUrls, optionLabel, subscribeTextureBases, textValue, valuesEqual } from './lib';
@@ -273,6 +273,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
       {error && <InlineError>{error}</InlineError>}
 
       <EditorContext.Provider value={editorContext}>
+        <ChangedPathsProvider changedPaths={changedPaths}>
         <div className="ie-workbench">
           <GenericPreviewPane moduleId={module.id} editor={editor} data={data} preview={preview} previewPending={previewPending} previewError={previewError} previewLevel={previewLevel} setPreviewLevel={setPreviewLevel} baseName={baseName} baseLore={baseLore as string[]} />
           <div className="ie-props-scroll">
@@ -292,6 +293,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
             </div>
           </div>
         </div>
+        </ChangedPathsProvider>
       </EditorContext.Provider>
     </div>
   );

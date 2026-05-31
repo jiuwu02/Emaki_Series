@@ -8,7 +8,7 @@ import { KvTable } from './KvTable';
 import { PropRow } from './PropRow';
 import { DisclosureChevron } from './SectionHead';
 import { asList, asRecord, asStringList } from '../lib/itemUtils';
-import { fieldLabel, optionLabel, textValue } from '../lib';
+import { fieldLabel, optionLabel, textValue, isChangedFieldPath } from '../lib';
 import { t, getLocale } from '../i18n';
 import {
   getEffectTypeDefinitions,
@@ -62,6 +62,23 @@ export function ActionTypesProvider({ api, children }: { api: ActionTypesSource;
 /** Read the current CoreLib Name/Lore action types from context (with canonical fallback). */
 export function useActionTypes(): ActionTypesResult {
   return useContext(ActionTypesContext);
+}
+
+/**
+ * Provides the set of changed config paths to nested standard editors so
+ * structured sub-fields (e.g. effect payload rows) can render a change
+ * highlight. Surfaces that track diffs wrap their form with the provider;
+ * editors without diff tracking fall back to an empty set (no highlight).
+ */
+const ChangedPathsContext = createContext<ReadonlySet<string>>(new Set());
+
+export function ChangedPathsProvider({ changedPaths, children }: { changedPaths: ReadonlySet<string>; children: React.ReactNode }) {
+  return <ChangedPathsContext.Provider value={changedPaths}>{children}</ChangedPathsContext.Provider>;
+}
+
+/** Read the set of changed config paths from context. */
+export function useChangedPaths(): ReadonlySet<string> {
+  return useContext(ChangedPathsContext);
 }
 
 export type StandardEditorScope = {
@@ -227,7 +244,10 @@ function EffectMapField({ value, onChange }: { value: unknown; onChange: (value:
 }
 
 function StandardPropRow({ label, path, scope, children, wide }: { label: string; path?: string; scope: StandardEditorScope; children: React.ReactNode; wide?: boolean }) {
-  return <PropRow label={label} path={path ?? label} moduleId={scope.moduleId} namespace={scope.namespace ?? scope.moduleId} editorFields={scope.editorFields} wide={wide}>{children}</PropRow>;
+  const rowPath = path ?? label;
+  const changedPaths = useChangedPaths();
+  const changed = isChangedFieldPath(rowPath, changedPaths);
+  return <PropRow label={label} path={rowPath} moduleId={scope.moduleId} namespace={scope.namespace ?? scope.moduleId} editorFields={scope.editorFields} wide={wide} changed={changed}>{children}</PropRow>;
 }
 
 function effectTypeLabel(type: string, definition: EffectTypeDefinition | undefined, moduleId?: string): string {
