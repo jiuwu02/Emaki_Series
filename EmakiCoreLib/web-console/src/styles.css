@@ -5159,6 +5159,31 @@ textarea {
   min-height: 44px;
 }
 
+/* Variables map editor: reuses the .prop-level-* row pattern. A hairline rail
+   plus left inset signals the nested level without a second card. */
+.variables-map-editor {
+  padding: 2px 0 2px 10px;
+  border-left: 1px solid var(--line);
+  margin-left: 2px;
+}
+
+.variables-map-editor .prop-level-badge {
+  min-width: 0;
+  color: var(--accent);
+}
+
+.variables-map-editor .variable-json textarea {
+  width: 100%;
+  font: 500 11px ui-monospace, "Cascadia Code", monospace;
+  line-height: 1.5;
+}
+
+.local-variables-editor {
+  display: grid;
+  gap: 4px;
+  padding-top: 2px;
+}
+
 /* Level / Slot items */
 .prop-levels {
   display: grid;

@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, type KeyboardEvent, type SyntheticEvent } from 'react';
 import { t, getLocale } from '../i18n';
+import { DisclosureChevron } from './SectionHead';
 
 const NUMERIC_TYPES = ['constant', 'range', 'uniform', 'gaussian', 'skew_normal', 'triangle', 'expression'] as const;
 const TEXT_TYPES = ['text', 'random_text', 'boolean'] as const;
@@ -32,20 +33,21 @@ export function VariablesMapEditor({ value, onChange }: { value: unknown; onChan
     return next;
   });
 
-  return <div className="variables-map-editor" role="list" aria-label={copy('变量列表', 'Variables')}>
+  return <div className="prop-levels variables-map-editor" role="list" aria-label={copy('变量列表', 'Variables')}>
     {entries.map((entry, index) => {
       const type = detectVariableType(entry.value);
       const opened = expanded.has(index);
-      return <div className={`variable-entry ${opened ? 'expanded' : 'collapsed'}`} key={index} role="listitem">
-        <div className="variable-entry-head">
-          <button type="button" className="object-list-toggle" onClick={() => toggle(index)} aria-expanded={opened}>
-            <span className="object-list-arrow">{opened ? '▾' : '▸'}</span>
-            <strong>{entry.key || copy('未命名变量', 'Unnamed variable')}</strong>
-            <code>{variableSummary(entry.value)}</code>
-          </button>
-          <button type="button" className="prop-action-del" onClick={() => remove(index)} aria-label={t('core.kv.delete', { index: index + 1 })}>×</button>
+      return <div className={`prop-level-item${opened ? ' expanded' : ''}`} key={index} role="listitem">
+        <div className="prop-level-head" role="button" tabIndex={0} onClick={() => toggle(index)} onKeyDown={event => toggleByKeyboard(event, () => toggle(index))} aria-expanded={opened} aria-controls={`variable-body-${index}`}>
+          <span className="prop-level-summary">
+            <span className="prop-level-badge"><DisclosureChevron open={opened} className="prop-level-arrow" /> {entry.key || copy('未命名', 'Unnamed')}</span>
+          </span>
+          <span className="prop-level-rate">{variableTypeLabel(type)}</span>
+          <span className="prop-action-controls" onClick={stopEvent} onKeyDown={stopEvent}>
+            <button type="button" className="prop-action-del" onClick={() => remove(index)} aria-label={t('core.kv.delete', { index: index + 1 })}>×</button>
+          </span>
         </div>
-        {opened && <div className="variable-entry-body">
+        {opened && <div className="prop-level-body" id={`variable-body-${index}`}>
           <label className="prop-param-field"><span>{copy('变量名', 'Variable')}</span><input value={entry.key} onChange={event => update(index, { key: event.target.value })} /></label>
           <label className="prop-param-field"><span>{copy('值类型', 'Value type')}</span><select value={type} onChange={event => update(index, { value: convertVariableValue(entry.value, event.target.value as VariableType) })}>{TYPE_OPTIONS.map(option => <option key={option} value={option}>{variableTypeLabel(option)}</option>)}</select></label>
           <VariableValueEditor value={entry.value} type={type} onChange={next => update(index, { value: next })} />
@@ -54,6 +56,16 @@ export function VariablesMapEditor({ value, onChange }: { value: unknown; onChan
     })}
     <button type="button" className="prop-add" onClick={add}>+ {copy('添加变量', 'Add variable')}</button>
   </div>;
+}
+
+function toggleByKeyboard(event: KeyboardEvent, action: () => void) {
+  if (event.key !== 'Enter' && event.key !== ' ') return;
+  event.preventDefault();
+  action();
+}
+
+function stopEvent(event: SyntheticEvent) {
+  event.stopPropagation();
 }
 
 function VariableValueEditor({ value, type, onChange }: { value: unknown; type: VariableType; onChange: (value: unknown) => void }) {
@@ -164,12 +176,6 @@ function convertVariableValue(previous: unknown, type: VariableType): unknown {
 
 function asTypedRecord(value: unknown, type: string): AnyMap {
   return { ...(isRecord(value) ? value : {}), type };
-}
-
-function variableSummary(value: unknown): string {
-  if (typeof value === 'number' || typeof value === 'string' || typeof value === 'boolean') return String(value);
-  if (isRecord(value)) return String(value.type ?? copy('对象配置', 'object config'));
-  return copy('空', 'empty');
 }
 
 function variableTypeLabel(type: VariableType): string {
