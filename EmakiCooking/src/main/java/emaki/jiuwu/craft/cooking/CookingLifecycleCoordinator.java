@@ -113,6 +113,7 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 coreActionExecutor,
                 coreLibPlugin.itemAssemblyService()
         );
+        rewardService.setRecipeService(recipeService);
         CookingInspectService inspectService = new CookingInspectService(messageService, coreLibPlugin.itemSourceService());
         CookingDisplayService displayService = CookingDisplayServiceFactory.create(plugin, settingsService);
         CookingTextDisplayService textDisplayService = CookingTextDisplayServiceFactory.create(plugin, settingsService);

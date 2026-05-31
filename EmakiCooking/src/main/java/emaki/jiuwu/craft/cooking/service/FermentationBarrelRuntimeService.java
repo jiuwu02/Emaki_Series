@@ -118,8 +118,7 @@ public final class FermentationBarrelRuntimeService implements Listener {
             return guiController.openGui(player, coordinates);
         }
         if (settingsService.matchesInteraction(StationType.FERMENTATION_BARREL, CookingSettingsService.INTERACTION_START, interaction)) {
-            interaction.cancel();
-            return startOrCollect(player, block, coordinates);
+            return startOrCollect(player, block, coordinates, interaction);
         }
         if (settingsService.matchesInteraction(StationType.FERMENTATION_BARREL, CookingSettingsService.INTERACTION_INSPECT, interaction)) {
             interaction.cancel();
@@ -151,9 +150,10 @@ public final class FermentationBarrelRuntimeService implements Listener {
         return true;
     }
 
-    private boolean startOrCollect(Player player, Block block, StationCoordinates coordinates) {
+    private boolean startOrCollect(Player player, Block block, StationCoordinates coordinates, StationInteraction interaction) {
         FermentationBarrelState state = loadStateOrEmpty(coordinates);
         if (state.completed()) {
+            interaction.cancel();
             if (!player.hasPermission(CookingPermissions.FERMENTATION_BARREL_COLLECT) && !player.hasPermission(CookingPermissions.ADMIN)) {
                 messageService.send(player, "general.no_permission");
                 return true;
@@ -169,6 +169,7 @@ public final class FermentationBarrelRuntimeService implements Listener {
             return true;
         }
         if (state.fermenting()) {
+            interaction.cancel();
             long now = System.currentTimeMillis();
             FermentationStage stage = currentFermentationStage(state, now);
             if (stage == FermentationStage.EARLY) {
@@ -189,13 +190,14 @@ public final class FermentationBarrelRuntimeService implements Listener {
             CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "fermentation_barrel.fermenting", Map.of("seconds", seconds));
             return true;
         }
-        if (!player.hasPermission(CookingPermissions.FERMENTATION_BARREL_START) && !player.hasPermission(CookingPermissions.ADMIN)) {
-            messageService.send(player, "general.no_permission");
-            return true;
-        }
         RecipeDocument recipe = findMatchingRecipe(state, player);
         if (recipe == null) {
-            CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "fermentation_barrel.no_recipe", Map.of());
+            // 空桶或食材无法发酵：不拦截交互，放行让玩家可以破坏方块。
+            return false;
+        }
+        interaction.cancel();
+        if (!player.hasPermission(CookingPermissions.FERMENTATION_BARREL_START) && !player.hasPermission(CookingPermissions.ADMIN)) {
+            messageService.send(player, "general.no_permission");
             return true;
         }
         long now = System.currentTimeMillis();

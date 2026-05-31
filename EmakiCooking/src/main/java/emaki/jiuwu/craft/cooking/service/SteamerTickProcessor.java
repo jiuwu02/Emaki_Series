@@ -170,7 +170,9 @@ final class SteamerTickProcessor {
                 "slot_index", slot
         );
 
-        if (!settingsService.steamerDropResult() && canStoreOutcomeInSlot(outputs)) {
+        boolean conditionBlocks = !rewardService.completionConditionPasses(recipe, player)
+                && rewardService.completionConditionBlocksOutput(recipe);
+        if (!conditionBlocks && !settingsService.steamerDropResult() && canStoreOutcomeInSlot(outputs)) {
             Map<String, Object> storedOutput = outputs.getFirst();
             String source = String.valueOf(storedOutput.getOrDefault("source", ""));
             if (Texts.isNotBlank(source)) {

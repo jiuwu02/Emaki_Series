@@ -361,7 +361,7 @@ stations:
     interactions:
       open: shift_right_click
       start: shift_left_click
-      inspect: left_click
+      inspect: right_click
       serve: shift_left_click
     drop_result: true
     pause_when_open: true

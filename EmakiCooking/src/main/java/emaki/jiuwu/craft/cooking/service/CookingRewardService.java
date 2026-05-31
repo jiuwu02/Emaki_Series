@@ -32,6 +32,7 @@ public final class CookingRewardService {
     private final ActionExecutor actionExecutor;
     private final EmakiItemAssemblyService itemAssemblyService;
     private final CookingLayerSnapshotBuilder snapshotBuilder = new CookingLayerSnapshotBuilder();
+    private CookingRecipeService recipeService;
 
     public CookingRewardService(JavaPlugin plugin,
             MessageService messageService,
@@ -45,6 +46,13 @@ public final class CookingRewardService {
         this.itemAssemblyService = itemAssemblyService;
     }
 
+    /**
+     * 注入配方服务（用于完成条件评估）。在生命周期装配阶段调用，避免构造期循环依赖。
+     */
+    public void setRecipeService(CookingRecipeService recipeService) {
+        this.recipeService = recipeService;
+    }
+
     public void deliver(RecipeDocument recipe,
             Player player,
             Location location,
@@ -53,10 +61,34 @@ public final class CookingRewardService {
             List<String> actions,
             String phase,
             Map<String, ?> placeholders) {
+        boolean conditionPassed = true;
+        if (recipe != null && recipeService != null && recipeService.hasCompletionCondition(recipe)) {
+            conditionPassed = recipeService.completionConditionPasses(recipe, player);
+            List<String> branchActions = recipeService.completionConditionActions(recipe, conditionPassed);
+            executeActions(branchActions, player, location, phase, defaultPlaceholders(player, location, placeholders));
+            if (!conditionPassed && recipeService.completionConditionBlocksOutput(recipe)) {
+                return;
+            }
+        }
         for (Map<String, Object> output : outputs == null ? List.<Map<String, Object>>of() : outputs) {
             deliverOutput(recipe, player, location, dropResult, output, phase, placeholders);
         }
         executeActions(actions, player, location, phase, defaultPlaceholders(player, location, placeholders));
+    }
+
+    /**
+     * 评估配方完成条件是否通过（纯判定，不执行任何动作）。
+     * 供蒸锅/烤炉「产出存回槽位」分支在写入物品前预检，避免条件阻断产出时残留物品。
+     */
+    public boolean completionConditionPasses(RecipeDocument recipe, Player player) {
+        return recipeService == null || recipeService.completionConditionPasses(recipe, player);
+    }
+
+    /**
+     * 条件不通过时是否阻止产出。
+     */
+    public boolean completionConditionBlocksOutput(RecipeDocument recipe) {
+        return recipeService != null && recipeService.completionConditionBlocksOutput(recipe);
     }
 
     public ItemStack createOutputItem(RecipeDocument recipe,

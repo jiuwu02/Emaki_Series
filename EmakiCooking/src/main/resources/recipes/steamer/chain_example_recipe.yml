@@ -43,6 +43,17 @@ required_steam: 60
 permission: "emakicooking.recipe.steamed_carrot_cake"
 
 # ============================================================
+# 完成条件（true/false 动作分支）
+# ============================================================
+# 字段说明详见 chopping_board/example_recipe.yml。留空表示始终成立。
+condition:
+  condition_type: all_of
+  conditions: []
+  true_actions: []
+  false_actions: []
+  block_output_on_false: false
+
+# ============================================================
 # 蒸制结果
 # ============================================================
 result:

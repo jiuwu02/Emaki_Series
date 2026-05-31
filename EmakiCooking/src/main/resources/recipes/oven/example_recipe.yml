@@ -44,6 +44,21 @@ baking:
 permission: "emakicooking.recipe.baked_potato"
 
 # ============================================================
+# 完成条件（true/false 动作分支）
+# ============================================================
+# 字段说明详见 chopping_board/example_recipe.yml。
+# 烤炉会在烤制完成（普通/完美/过烤）时统一评估此条件。
+condition:
+  condition_type: all_of
+  conditions:
+    - "%player_level% >= 2"
+  true_actions:
+    - 'sendmessage text="<gold>烤制条件满足。</gold>"'
+  false_actions:
+    - 'sendmessage text="<red>烤制条件不满足。</red>"'
+  block_output_on_false: false
+
+# ============================================================
 # 烘烤结果
 # ============================================================
 # success: 烘烤完成后的普通结果分支

@@ -35,6 +35,27 @@ tool_damage: 1
 permission: "emakicooking.recipe.cut_carrot"
 
 # ============================================================
+# 完成条件（true/false 动作分支）
+# ============================================================
+# condition: 配方完成时评估的条件块（独立于 permission 权限门槛）。
+#   condition_type: 组合方式 all_of / any_of / none_of / at_least / exactly
+#   required_count: 当 condition_type 为 at_least / exactly 时生效
+#   conditions: 条件表达式列表，支持 PlaceholderAPI 占位符与比较运算符
+#   true_actions: 条件成立时执行的动作
+#   false_actions: 条件不成立时执行的动作
+#   block_output_on_false: 条件不成立时是否阻止产出（默认 false，仅执行 false 动作，产出照常）
+# 留空或不配置 condition 块则始终视为成立。玩家离线时同样视为成立。
+condition:
+  condition_type: all_of
+  conditions:
+    - "%player_level% >= 3"
+  true_actions:
+    - 'sendmessage text="<green>条件满足，切制成功。</green>"'
+  false_actions:
+    - 'sendmessage text="<red>等级不足 3 级，无法切出金胡萝卜。</red>"'
+  block_output_on_false: true
+
+# ============================================================
 # 切割结果
 # ============================================================
 # success: 切割完成后的结果分支

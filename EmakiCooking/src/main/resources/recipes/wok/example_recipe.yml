@@ -50,6 +50,21 @@ fault_tolerance: 0
 permission: "emakicooking.recipe.simple_stew"
 
 # ============================================================
+# 完成条件（true/false 动作分支）
+# ============================================================
+# 字段说明详见 chopping_board/example_recipe.yml。
+# 炒锅会在出锅（成功/欠火/过火/失败）时统一评估此条件。
+condition:
+  condition_type: all_of
+  conditions:
+    - "%player_level% >= 5"
+  true_actions:
+    - 'sendmessage text="<green>厨艺达标，出锅成功。</green>"'
+  false_actions:
+    - 'sendmessage text="<red>厨艺等级不足，出锅失败。</red>"'
+  block_output_on_false: true
+
+# ============================================================
 # 烹饪结果
 # ============================================================
 # success: 正确烹饪时的结果分支

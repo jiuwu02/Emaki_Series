@@ -46,6 +46,22 @@ fermentation:
 permission: "emakicooking.recipe.apple_cider"
 
 # ============================================================
+# 完成条件（true/false 动作分支）
+# ============================================================
+# 字段说明详见 chopping_board/example_recipe.yml。
+# 发酵桶会在收取（正常/提前/过度）时统一评估此条件。
+# 注意：自动完成或破坏掉落时玩家可能离线，此时条件视为成立。
+condition:
+  condition_type: all_of
+  conditions:
+    - "%player_level% >= 4"
+  true_actions:
+    - 'sendmessage text="<gold>发酵收取条件满足。</gold>"'
+  false_actions:
+    - 'sendmessage text="<red>发酵收取条件不满足。</red>"'
+  block_output_on_false: false
+
+# ============================================================
 # 发酵结果
 # ============================================================
 # success: 正常发酵完成后的结果分支

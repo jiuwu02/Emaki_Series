@@ -156,23 +156,25 @@ public final class SteamerRuntimeService implements Listener {
 
     private boolean handleSteamerBlockInteraction(StationInteraction interaction, Block steamerBlock, Player player) {
         Block heatSourceBlock = steamerBlock.getRelative(BlockFace.DOWN);
-        if (!tickProcessor.isHeatSourceBlock(heatSourceBlock)) {
-            CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "steamer.no_heat_source", Map.of());
-            interaction.cancel();
-            return true;
-        }
+        boolean hasHeatSource = tickProcessor.isHeatSourceBlock(heatSourceBlock);
 
         StationCoordinates coordinates = StationCoordinates.fromBlock(steamerBlock);
         ItemStack hand = player.getInventory().getItemInMainHand();
-        if (handleResourceInput(interaction, player, coordinates, heatSourceBlock, hand)) {
+        if (hasHeatSource && handleResourceInput(interaction, player, coordinates, heatSourceBlock, hand)) {
             return true;
         }
 
+        // 仅在"打开"手势上拦截；其它手势（如左键挖掘破坏）一律放行，避免缺少热源时无法破坏蒸锅方块。
         if (!settingsService.matchesInteraction(
                 StationType.STEAMER,
                 CookingSettingsService.INTERACTION_OPEN,
                 interaction)) {
             return false;
+        }
+        if (!hasHeatSource) {
+            CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "steamer.no_heat_source", Map.of());
+            interaction.cancel();
+            return true;
         }
         if (!player.hasPermission(CookingPermissions.STEAMER_USE)
                 && !player.hasPermission(CookingPermissions.ADMIN)) {

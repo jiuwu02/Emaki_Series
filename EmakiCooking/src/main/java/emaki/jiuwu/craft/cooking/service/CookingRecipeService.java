@@ -15,6 +15,7 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.MapYamlSection;
+import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 import org.bukkit.entity.Player;
 
 public final class CookingRecipeService {
@@ -257,6 +258,78 @@ public final class CookingRecipeService {
             );
         }
         return true;
+    }
+
+    // ========== 配方完成条件（true/false 动作分支） ==========
+
+    /**
+     * 配方是否配置了完成条件块 {@code condition}。
+     */
+    public boolean hasCompletionCondition(RecipeDocument recipe) {
+        if (recipe == null) {
+            return false;
+        }
+        YamlSection section = recipe.configuration().getSection("condition");
+        return section != null && !section.isEmpty();
+    }
+
+    /**
+     * 评估配方完成条件块 {@code condition} 是否通过。
+     * <p>
+     * 未配置条件块、条件列表为空，或 player 为 null（离线/自动完成）时返回 true。
+     */
+    public boolean completionConditionPasses(RecipeDocument recipe, Player player) {
+        if (recipe == null) {
+            return true;
+        }
+        YamlSection section = recipe.configuration().getSection("condition");
+        if (section == null || section.isEmpty()) {
+            return true;
+        }
+        ConditionGroup conditions = ConditionGroup.fromConfig(
+                section,
+                section.getString("condition_type", "all_of"),
+                0
+        );
+        if (conditions.emptyGroup() || player == null) {
+            return true;
+        }
+        return ConditionEvaluator.evaluate(
+                conditions,
+                text -> resolvePlaceholders(player, text),
+                true
+        );
+    }
+
+    /**
+     * 获取完成条件分支动作。
+     *
+     * @param passed 条件评估结果，true 返回 {@code condition.true_actions}，false 返回 {@code condition.false_actions}
+     */
+    public List<String> completionConditionActions(RecipeDocument recipe, boolean passed) {
+        if (recipe == null) {
+            return List.of();
+        }
+        YamlSection section = recipe.configuration().getSection("condition");
+        if (section == null || section.isEmpty()) {
+            return List.of();
+        }
+        List<String> actions = section.getStringList(passed ? "true_actions" : "false_actions");
+        return actions == null ? List.of() : actions;
+    }
+
+    /**
+     * 条件不通过时是否阻止产出（默认 false：仅执行 false 动作，产出照常发放）。
+     */
+    public boolean completionConditionBlocksOutput(RecipeDocument recipe) {
+        if (recipe == null) {
+            return false;
+        }
+        YamlSection section = recipe.configuration().getSection("condition");
+        if (section == null || section.isEmpty()) {
+            return false;
+        }
+        return section.getBoolean("block_output_on_false", false);
     }
 
     public boolean canAcceptWokIngredientPrefix(List<WokIngredientInput> actualIngredients, Player player, int heatLevel) {

@@ -54,6 +54,20 @@ container:
 permission: "emakicooking.recipe.apple_juice"
 
 # ============================================================
+# 完成条件（true/false 动作分支）
+# ============================================================
+# 字段说明详见 chopping_board/example_recipe.yml。
+condition:
+  condition_type: all_of
+  conditions:
+    - "%player_level% >= 1"
+  true_actions:
+    - 'sendmessage text="<aqua>榨汁条件满足。</aqua>"'
+  false_actions:
+    - 'sendmessage text="<red>榨汁条件不满足。</red>"'
+  block_output_on_false: false
+
+# ============================================================
 # 榨汁结果
 # ============================================================
 # success: 榨汁完成后的结果分支

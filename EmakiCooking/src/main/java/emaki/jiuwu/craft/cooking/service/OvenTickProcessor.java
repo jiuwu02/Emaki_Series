@@ -115,7 +115,9 @@ final class OvenTickProcessor {
                 "stage", stage.name().toLowerCase(java.util.Locale.ROOT)
         );
 
-        if (!settingsService.ovenDropResult() && canStoreOutcomeInSlot(outputs)) {
+        boolean conditionBlocks = !rewardService.completionConditionPasses(recipe, player)
+                && rewardService.completionConditionBlocksOutput(recipe);
+        if (!conditionBlocks && !settingsService.ovenDropResult() && canStoreOutcomeInSlot(outputs)) {
             Map<String, Object> storedOutput = outputs.getFirst();
             String source = String.valueOf(storedOutput.getOrDefault("source", ""));
             if (Texts.isNotBlank(source)) {

@@ -646,7 +646,7 @@ public final class CookingSettingsService {
             case FERMENTATION_BARREL -> switch (operation) {
                 case INTERACTION_OPEN -> StationInteractionType.SHIFT_RIGHT_CLICK;
                 case INTERACTION_START, INTERACTION_SERVE -> StationInteractionType.SHIFT_LEFT_CLICK;
-                case INTERACTION_INSPECT -> StationInteractionType.LEFT_CLICK;
+                case INTERACTION_INSPECT -> StationInteractionType.RIGHT_CLICK;
                 default -> null;
             };
         };
