@@ -943,6 +943,15 @@ export function getLocaleMessages(locale = currentLocale): LocaleMessages {
   return { ...(stores.get(normalizeLocale(locale)) ?? {}) };
 }
 
+/**
+ * Read a single message for a specific locale directly from the store.
+ * Unlike getLocaleMessages, this does not clone the whole dictionary, so it is
+ * safe to call on hot render paths (field/option/comment label resolution).
+ */
+export function peekLocaleMessage(locale: string, key: string): string | undefined {
+  return stores.get(normalizeLocale(locale))?.[key];
+}
+
 export function getAllLocaleMessages(): Record<string, LocaleMessages> {
   return Object.fromEntries([...stores.entries()].map(([locale, messages]) => [locale, { ...messages }]));
 }

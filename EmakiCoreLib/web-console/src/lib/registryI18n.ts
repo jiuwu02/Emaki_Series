@@ -1,4 +1,4 @@
-import { getLocale, getLocaleMessages, t } from '../i18n';
+import { getLocale, peekLocaleMessage, t } from '../i18n';
 import { humanizeFieldLabel, lastPathKey } from './fieldI18n';
 import type { RegistryTreeNode, WebRegistryFile, WebRegistryModule } from '../types';
 
@@ -236,11 +236,13 @@ function lookupLocale(keys: string[]): string | undefined {
 function lookupCurrentLocale(keys: string[]): string | undefined {
   const locale = getLocale();
   const language = locale.split('-')[0];
-  const messages = [getLocaleMessages(locale), language && language !== locale ? getLocaleMessages(language) : undefined].filter(Boolean) as Record<string, string>[];
+  const useLanguage = Boolean(language) && language !== locale;
   for (const key of keys) {
-    for (const bundle of messages) {
-      const value = bundle[key];
-      if (value) return value;
+    const value = peekLocaleMessage(locale, key);
+    if (value) return value;
+    if (useLanguage) {
+      const langValue = peekLocaleMessage(language, key);
+      if (langValue) return langValue;
     }
   }
   return undefined;

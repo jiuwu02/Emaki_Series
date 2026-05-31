@@ -1,5 +1,5 @@
 import type { WebEditorField } from '../types';
-import { getLocale, getLocaleMessages, t } from '../i18n';
+import { getLocale, peekLocaleMessage, t } from '../i18n';
 
 export type FieldLabelOptions = {
   moduleId?: string;
@@ -74,11 +74,13 @@ export function optionLabel(prefix: string, value: string, options: OptionLabelO
 function lookupCurrentLocale(keys: string[]): string | undefined {
   const locale = getLocale();
   const language = locale.split('-')[0];
-  const messages = [getLocaleMessages(locale), language && language !== locale ? getLocaleMessages(language) : undefined].filter(Boolean) as Record<string, string>[];
+  const useLanguage = Boolean(language) && language !== locale;
   for (const key of keys) {
-    for (const bundle of messages) {
-      const value = bundle[key];
-      if (value) return value;
+    const value = peekLocaleMessage(locale, key);
+    if (value) return value;
+    if (useLanguage) {
+      const langValue = peekLocaleMessage(language, key);
+      if (langValue) return langValue;
     }
   }
   return undefined;
