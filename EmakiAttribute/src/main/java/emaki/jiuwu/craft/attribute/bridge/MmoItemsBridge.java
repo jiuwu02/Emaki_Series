@@ -18,6 +18,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.inventory.EntityEquipment;
@@ -90,8 +91,9 @@ public final class MmoItemsBridge implements Listener {
         if (sourceItem(attacker) == null) {
             return;
         }
-        event.setCancelled(true);
+        boolean perfectMode = attributeService.config().vanillaEventDamageEnabled();
         if (attacker instanceof Player player && attributeService.isAttackCoolingDown(player)) {
+            event.setCancelled(true);
             return;
         }
         DamageContext damageContext = attributeService.createDamageContext(
@@ -104,6 +106,11 @@ public final class MmoItemsBridge implements Listener {
                 0D,
                 CombatSupport.baseContext(event, target)
         );
+        if (perfectMode) {
+            applyPerfectTakeover(event, damageContext, target, event.getDamager());
+            return;
+        }
+        event.setCancelled(true);
         resolveAndApplyDamage(attributeService.resolveDamageApplicationAsync(damageContext), target, event.getDamager());
     }
 
@@ -124,9 +131,9 @@ public final class MmoItemsBridge implements Listener {
 
     private void handleProjectileDamage(EntityDamageByEntityEvent event, Projectile projectile, LivingEntity target) {
         trackedProjectiles.remove(projectile.getUniqueId());
-        event.setCancelled(true);
         LivingEntity shooter = projectile.getShooter() instanceof LivingEntity livingEntity ? livingEntity : null;
         if (shooter instanceof Player player && attributeService.isAttackCoolingDown(player)) {
+            event.setCancelled(true);
             return;
         }
         ProjectileDamageSnapshot snapshot = attributeService.readProjectileSnapshot(projectile);
@@ -146,7 +153,24 @@ public final class MmoItemsBridge implements Listener {
                 targetSnapshot,
                 CombatSupport.baseContext(event, target)
         );
+        if (attributeService.config().vanillaEventDamageEnabled()) {
+            applyPerfectTakeover(event, damageContext, target, projectile);
+            return;
+        }
+        event.setCancelled(true);
         resolveAndApplyDamage(attributeService.resolveDamageApplicationAsync(damageContext), target, projectile);
+    }
+
+    private void applyPerfectTakeover(EntityDamageEvent event, DamageContext damageContext, LivingEntity target, Entity visualSource) {
+        if (attributeService.perfectTakeoverCoordinator().isClaimed(event)) {
+            return;
+        }
+        ResolvedDamage resolvedDamage = attributeService.resolveDamageApplication(damageContext);
+        if (resolvedDamage == null || resolvedDamage.finalDamage() <= 0D) {
+            event.setCancelled(true);
+            return;
+        }
+        attributeService.perfectTakeoverCoordinator().claimAndApply(event, resolvedDamage, visualSource);
     }
 
     private ItemStack sourceItem(LivingEntity entity) {

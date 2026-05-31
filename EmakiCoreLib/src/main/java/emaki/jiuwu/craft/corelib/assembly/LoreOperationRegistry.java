@@ -7,20 +7,6 @@ import java.util.Set;
 
 import emaki.jiuwu.craft.corelib.text.Texts;
 
-/**
- * Registry and executor for lore operations.
- * <p>
- * Supported operations:
- * <ul>
- *   <li>{@code append} — add lines at the end</li>
- *   <li>{@code prepend} — add lines at the beginning</li>
- *   <li>{@code insert_below} / {@code search_insert_below} / {@code search_insert} — insert below matching line</li>
- *   <li>{@code insert_above} / {@code search_insert_above} — insert above matching line</li>
- *   <li>{@code replace_line} — replace the first matching line</li>
- *   <li>{@code delete_line} — delete all matching lines</li>
- *   <li>{@code regex_replace} — regex replace within all lines</li>
- * </ul>
- */
 public final class LoreOperationRegistry {
 
     private final OperationTemplateRenderer templateRenderer;
@@ -73,7 +59,6 @@ public final class LoreOperationRegistry {
         return Set.copyOf(processors.keySet());
     }
 
-    // --- Built-in processors ---
 
     private static int findInsertIndex(List<String> lines, String anchor, boolean below) {
         if (Texts.isBlank(anchor)) {

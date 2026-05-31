@@ -26,7 +26,7 @@ const currencyFields = standardCurrencyCostFields({
 });
 
 const parameterFields = [
-  { path: 'type', label: '类型', comment: '参数类型，例如 constant、expression、range、string、boolean、random_text。', type: 'text', defaultValue: 'constant' },
+  { path: 'type', label: '类型', comment: '参数类型。数值分布: constant/range/uniform/gaussian/skew_normal/triangle/expression；文本: string/random_text；布尔: boolean。', type: 'enum', options: ['string', 'random_text', 'boolean', 'constant', 'range', 'uniform', 'gaussian', 'skew_normal', 'triangle', 'expression'], optionLabelPrefix: 'skill.parameter.type', defaultValue: 'constant' },
   { path: 'value', label: '值', comment: '常量值或表达式值。', type: 'text', defaultValue: '' },
   { path: 'expression', label: '表达式', comment: '表达式参数内容。', type: 'text', defaultValue: '' },
   { path: 'formula', label: '公式', comment: '资源消耗或效果计算公式。若 expression/value 同时存在，请保持含义一致。', type: 'text', defaultValue: '' },
@@ -310,7 +310,7 @@ registerPluginGuiEditor({
   editorId: 'emakiskills:gui',
   label: copy('技能 GUI', 'Skills GUI'),
   fields: [
-    ['type', '槽位类型', '技能业务槽位语义。', 'text'],
+    ['type', '槽位类型', '技能业务槽位语义。可选预设值，也可填自定义/填充槽位。', 'enum', { options: ['active_slot', 'skill_pool', 'cast_mode_toggle', 'trigger_selector', 'page_prev', 'page_next', 'trigger_option', 'back'], optionLabelPrefix: 'slotType' }],
     ['active_slot', '主动技能槽位', '玩家主动技能槽位。', 'text'],
     ['skill_pool', '技能池', '可装配技能列表区域。', 'text'],
     ['cast_mode_toggle', '施法模式按钮', '切换技能施法模式的按钮槽位。', 'text'],

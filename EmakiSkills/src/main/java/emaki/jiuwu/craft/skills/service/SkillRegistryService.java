@@ -47,12 +47,10 @@ public final class SkillRegistryService {
 
         List<UnlockedSkillEntry> raw = new ArrayList<>();
 
-        // 1. Collect from equipment
         if (equipmentCollector != null) {
             raw.addAll(equipmentCollector.collect(player));
         }
 
-        // 2. Collect from all registered providers
         if (sourceRegistry != null) {
             for (SkillSourceProvider provider : sourceRegistry.all()) {
                 try {
@@ -67,7 +65,6 @@ public final class SkillRegistryService {
             }
         }
 
-        // 3. Deduplicate by skillId (keep first occurrence)
         Map<String, UnlockedSkillEntry> seen = new LinkedHashMap<>();
         for (UnlockedSkillEntry entry : raw) {
             seen.putIfAbsent(entry.skillId(), entry);

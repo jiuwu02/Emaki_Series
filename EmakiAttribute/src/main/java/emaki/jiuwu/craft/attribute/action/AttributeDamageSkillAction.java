@@ -22,11 +22,6 @@ import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.skills.api.SkillScriptAction;
 import emaki.jiuwu.craft.skills.api.SkillScriptContext;
 
-/**
- * A SkillScriptAction that applies attribute-based damage through the EmakiAttribute damage pipeline.
- * <p>
- * Registered into EmakiSkills' SkillScriptActionRegistry at runtime when both plugins are present.
- */
 public final class AttributeDamageSkillAction implements SkillScriptAction {
 
     public static final String ID = "attribute_damage";

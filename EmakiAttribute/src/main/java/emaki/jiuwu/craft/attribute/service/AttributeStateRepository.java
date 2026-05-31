@@ -249,4 +249,3 @@ final class AttributeStateRepository {
         return combatPartition.child("resource").child(resourceId);
     }
 }
-

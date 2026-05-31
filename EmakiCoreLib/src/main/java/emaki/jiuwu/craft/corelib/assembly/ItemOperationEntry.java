@@ -7,12 +7,6 @@ import java.util.Map;
 
 import emaki.jiuwu.craft.corelib.text.Texts;
 
-/**
- * 一条物品操作记录，记录对物品 Name/Lore 的一次修改。
- * <p>
- * 每次镶嵌宝石、强化装备等操作都会生成一条记录，存储在物品 PDC 中。
- * 回退时根据 operationId 精确撤销对应的修改。
- */
 public record ItemOperationEntry(
         String operationId,
         String sourceNamespace,
@@ -54,11 +48,6 @@ public record ItemOperationEntry(
         return map;
     }
 
-    /**
-     * 名称操作记录。
-     * <p>
-     * 记录对物品名称的一次修改，包含操作类型、渲染后的实际值，以及回退所需的原始值。
-     */
     public record NameOperationRecord(
             String action,
             String renderedValue,
@@ -94,11 +83,6 @@ public record ItemOperationEntry(
         }
     }
 
-    /**
-     * Lore 操作记录。
-     * <p>
-     * 记录对物品 Lore 的一次修改，包含操作类型、渲染后的实际行内容，以及回退所需的原始行内容。
-     */
     public record LoreOperationRecord(
             String action,
             List<String> renderedLines,

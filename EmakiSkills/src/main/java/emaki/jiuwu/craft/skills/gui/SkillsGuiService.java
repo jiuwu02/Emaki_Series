@@ -77,9 +77,6 @@ public final class SkillsGuiService {
         this.messageService = messageService;
     }
 
-    // ------------------------------------------------------------------
-    // Open GUIs
-    // ------------------------------------------------------------------
 
     public boolean open(Player player) {
         if (player == null) {
@@ -135,12 +132,8 @@ public final class SkillsGuiService {
     }
 
     public void clearAllSessions() {
-        // Sessions are managed by GuiService; closing inventories handles cleanup
     }
 
-    // ------------------------------------------------------------------
-    // Render: Skills GUI
-    // ------------------------------------------------------------------
 
     public void renderSkillsGui(GuiSession session) {
         if (session == null) {
@@ -155,7 +148,7 @@ public final class SkillsGuiService {
         }
         String type = resolved.definition().type();
         if (type == null) {
-            return null; // fall back to template default
+            return null;
         }
         Player player = session.viewer();
 
@@ -164,7 +157,7 @@ public final class SkillsGuiService {
             case "skill_pool" -> renderSkillPoolSlot(session, player, resolved.slotIndex());
             case "cast_mode_toggle" -> renderCastModeToggle(player);
             case "page_info" -> renderPageInfo(session, player);
-            default -> null; // use template default for filler, close, refresh, page_prev, page_next
+            default -> null;
         };
     }
 
@@ -192,14 +185,12 @@ public final class SkillsGuiService {
             List<String> lore = new ArrayList<>();
             lore.add("<gray>槽位: <white>" + slotIndex);
 
-            // Trigger info
             String triggerDisplay = "<red>未绑定触发器";
             if (binding.triggerId() != null && !binding.triggerId().isBlank()) {
                 triggerDisplay = "<green>" + triggerRegistry.getDisplayName(binding.triggerId());
             }
             lore.add("<gray>触发器: " + triggerDisplay);
 
-            // Cooldown info
             appendLevelAndParameterLore(lore, player, definition);
 
             if (definition.cooldownTicks() > 0) {
@@ -251,7 +242,6 @@ public final class SkillsGuiService {
             return new ItemStack(Material.AIR);
         }
 
-        // Check if already equipped
         boolean equipped = isSkillEquipped(player, entry.skillId());
 
         Material icon = resolveIcon(definition.iconMaterial());
@@ -335,9 +325,6 @@ public final class SkillsGuiService {
         return item;
     }
 
-    // ------------------------------------------------------------------
-    // Render: Trigger Select GUI
-    // ------------------------------------------------------------------
 
     public void renderTriggerSelectGui(GuiSession session, int targetSlot) {
         if (session == null) {
@@ -359,7 +346,7 @@ public final class SkillsGuiService {
         if ("trigger_option".equals(type)) {
             return renderTriggerOption(player, resolved.slotIndex(), targetSlot);
         }
-        return null; // use template default for back, filler
+        return null;
     }
 
     private ItemStack renderTriggerOption(Player player, int slotIndex, int targetSlot) {
@@ -370,11 +357,9 @@ public final class SkillsGuiService {
 
         SkillTriggerDefinition trigger = enabledTriggers.get(slotIndex);
 
-        // Check conflict
         String conflict = stateService.checkTriggerConflict(player, targetSlot, trigger.id());
         boolean hasConflict = conflict != null;
 
-        // Check if currently bound to this slot
         PlayerSkillProfile profile = dataStore.get(player);
         boolean currentlyBound = false;
         if (profile != null) {
@@ -393,7 +378,6 @@ public final class SkillsGuiService {
             material = Material.LIME_STAINED_GLASS_PANE;
         }
 
-        // Override with trigger's own material if specified
         if (trigger.material() != null && !trigger.material().isBlank()) {
             Material triggerMat = ItemSourceUtil.resolveVanillaMaterial(trigger.material());
             if (triggerMat != null) {
@@ -429,9 +413,6 @@ public final class SkillsGuiService {
         return item;
     }
 
-    // ------------------------------------------------------------------
-    // Utility
-    // ------------------------------------------------------------------
 
     private Material resolveIcon(String iconMaterial) {
         if (iconMaterial == null || iconMaterial.isBlank()) {

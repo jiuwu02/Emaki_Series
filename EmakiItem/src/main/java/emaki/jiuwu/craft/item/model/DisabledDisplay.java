@@ -4,9 +4,6 @@ import java.util.List;
 
 import emaki.jiuwu.craft.corelib.text.Texts;
 
-/**
- * Display modifications applied to an item when it becomes disabled (durability zero).
- */
 public record DisabledDisplay(String namePrefix,
         List<String> loreAppend) {
 

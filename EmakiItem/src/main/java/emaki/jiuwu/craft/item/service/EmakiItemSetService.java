@@ -65,9 +65,7 @@ public final class EmakiItemSetService {
         List<EquippedItem> equippedItems = readEquippedItems(player);
         Map<String, Set<String>> equippedPiecesBySet = collectEquippedPieces(equippedItems);
         Map<String, Set<String>> allPiecesBySet = collectAllPieces(player, equippedPiecesBySet);
-        // 套装状态基于真实装备槽（决定 ✔/✘ 和激活加成）
         Map<String, EquippedSetState> states = buildStates(equippedPiecesBySet);
-        // 确保背包中存在套装件的 setId 也有对应 state（用于渲染 lore，但 activeCount 基于装备槽）
         for (String setId : allPiecesBySet.keySet()) {
             states.computeIfAbsent(setId, id -> {
                 ItemSetDefinition definition = setLoader.get(id);
@@ -106,7 +104,6 @@ public final class EmakiItemSetService {
                 changed++;
             }
         }
-        // 扫描背包中非装备槽的物品，清除残留的套装 lore
         changed += cleanInventorySetLore(player, states);
         return changed;
     }
@@ -115,8 +112,6 @@ public final class EmakiItemSetService {
             Map<String, EquippedSetState> states) {
         PlayerInventory inventory = player.getInventory();
         int changed = 0;
-        // 背包主区域 0-35，排除装备槽对应的 index
-        // 装备槽: 主手=getHeldItemSlot(), 副手=40, 头盔=39, 胸甲=38, 护腿=37, 靴子=36
         Set<Integer> equippedSlots = new java.util.HashSet<>(Set.of(40, 39, 38, 37, 36));
         equippedSlots.add(inventory.getHeldItemSlot());
         for (int slot = 0; slot < inventory.getSize(); slot++) {
@@ -133,11 +128,9 @@ public final class EmakiItemSetService {
                 continue;
             }
             ItemSetMembership membership = definition.setMembership();
-            // 如果物品是套装成员且在背包中（非装备槽），需要显示套装 lore（仅展示信息，不激活属性）
             if (membership.configured()) {
                 EquippedSetState state = states.get(membership.setId());
                 if (state != null) {
-                    // 背包中的套装物品也应该显示套装 lore（与装备槽一致）
                     String existingSignature = identifier.setSignature(original);
                     Integer existingLoreLines = identifier.setLoreLines(original);
                     ItemStack updated = prepareForSetRendering(original, definition);
@@ -147,7 +140,6 @@ public final class EmakiItemSetService {
                         changed++;
                     }
                 } else {
-                    // 套装定义不存在或没有任何装备件数，清除残留套装 lore
                     if (hasSetPresentation(original)) {
                         ItemStack cleared = clearSetPresentation(original, definition);
                         inventory.setItem(slot, cleared);
@@ -155,7 +147,6 @@ public final class EmakiItemSetService {
                     }
                 }
             } else if (hasSetPresentation(original)) {
-                // 物品不再是套装成员但仍有套装签名，清除
                 ItemStack cleared = clearSetPresentation(original, definition);
                 inventory.setItem(slot, cleared);
                 changed++;
@@ -290,13 +281,11 @@ public final class EmakiItemSetService {
                 continue;
             }
             ItemSetMembership membership = definition.setMembership();
-            // 验证物品是否在正确的穿戴槽位
             ItemSetDefinition setDefinition = setLoader.get(membership.setId());
             if (setDefinition != null) {
                 String pieceId = membership.effectivePieceId(definition.id());
                 ItemSetPieceDefinition pieceDefinition = setDefinition.pieces().get(pieceId);
                 if (pieceDefinition != null && Texts.isNotBlank(pieceDefinition.slot())) {
-                    // 如果套装件定义了 slot，则必须在对应槽位才算装备
                     if (!isSlotMatch(equippedItem.slot(), pieceDefinition.slot())) {
                         continue;
                     }
@@ -308,36 +297,24 @@ public final class EmakiItemSetService {
         return result;
     }
 
-    /**
-     * 判断物品实际所在的装备槽是否匹配套装件定义的 slot。
-     * 例如：头盔必须在 helmet 槽，胸甲必须在 chestplate 槽。
-     * 如果套装件的 slot 是 "any" 或与 pieceId 相同（未显式配置），则任何装备槽都算匹配。
-     */
     private boolean isSlotMatch(String actualSlot, String requiredSlot) {
         if (Texts.isBlank(requiredSlot) || Texts.isBlank(actualSlot)) {
             return true;
         }
         String normalizedRequired = Texts.normalizeId(requiredSlot);
         String normalizedActual = Texts.normalizeId(actualSlot);
-        // "any" 表示任何槽位都可以
         if ("any".equals(normalizedRequired)) {
             return true;
         }
-        // 直接匹配
         if (normalizedRequired.equals(normalizedActual)) {
             return true;
         }
-        // 支持 "hand" 匹配 main_hand 和 off_hand
         if ("hand".equals(normalizedRequired)) {
             return "main_hand".equals(normalizedActual) || "off_hand".equals(normalizedActual);
         }
         return false;
     }
 
-    /**
-     * 收集玩家整个背包（含装备槽）中所有套装物品的 pieceId，用于构建完整的套装状态。
-     * 这样即使物品在背包中未装备，也能正确显示套装 lore。
-     */
     private Map<String, Set<String>> collectAllPieces(Player player, Map<String, Set<String>> equippedPieces) {
         Map<String, Set<String>> result = new LinkedHashMap<>(equippedPieces.size());
         equippedPieces.forEach((setId, pieces) -> result.put(setId, new LinkedHashSet<>(pieces)));

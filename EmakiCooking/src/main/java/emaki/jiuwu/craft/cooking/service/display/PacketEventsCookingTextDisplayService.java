@@ -36,11 +36,6 @@ import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
 
-/**
- * 基于 PacketEvents 虚拟 {@code TEXT_DISPLAY} 发包的文本展示后端。
- * 仅向视距内、同世界的玩家发送实体，刷新逻辑与
- * {@link PacketEventsCookingDisplayService} 对齐。
- */
 public final class PacketEventsCookingTextDisplayService implements CookingTextDisplayService, Listener {
 
     private static final AtomicInteger NEXT_ENTITY_ID = new AtomicInteger(1_500_000_000);
@@ -86,7 +81,6 @@ public final class PacketEventsCookingTextDisplayService implements CookingTextD
             return;
         }
         display.spec = spec;
-        // 已生成的实体直接推送新元数据 + 位置刷新
         WrapperPlayServerEntityMetadata packet = new WrapperPlayServerEntityMetadata(display.entityId, metadata(spec));
         for (UUID playerId : Set.copyOf(display.visiblePlayers)) {
             Player player = Bukkit.getPlayer(playerId);

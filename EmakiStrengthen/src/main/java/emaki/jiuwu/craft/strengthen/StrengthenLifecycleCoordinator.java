@@ -135,10 +135,6 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
         ));
     }
 
-    /**
-     * Asynchronous reload: file I/O stages run on the async thread pool,
-     * final registration and player sync run on the main thread.
-     */
     public CompletableFuture<Void> reloadAsync(EmakiStrengthenPlugin plugin, boolean closeInventories, Consumer<String> progressListener) {
         AsyncTaskScheduler scheduler = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).asyncTaskScheduler();
         if (scheduler == null) {
@@ -146,7 +142,6 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
             return CompletableFuture.completedFuture(null);
         }
 
-        // 主线程前置：关闭 GUI
         if (closeInventories && plugin.strengthenGuiService() != null) {
             for (var player : Bukkit.getOnlinePlayers()) {
                 if (plugin.strengthenGuiService().getSession(player) != null) {
@@ -158,7 +153,6 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
 
         notifyProgress(progressListener, "Loading configuration files...");
 
-        // 异步阶段：文件 I/O
         return runReloadStageAsync(scheduler, new ReloadStageConfig<>(
                 "strengthen", "config-load", "Loading configs...", progressListener,
                 () -> {
@@ -169,7 +163,6 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
                 },
                 null, (stage, ex) -> plugin.getLogger().warning("[Reload] Stage " + stage + " failed: " + ex.getMessage())
         )).thenCompose(_ -> {
-            // 同步阶段：应用配置、刷新缓存
             notifyProgress(progressListener, "Applying configuration...");
             return scheduler.callSync("strengthen-reload-apply", () -> {
                 plugin.languageLoader().setLanguage(plugin.appConfig().language());

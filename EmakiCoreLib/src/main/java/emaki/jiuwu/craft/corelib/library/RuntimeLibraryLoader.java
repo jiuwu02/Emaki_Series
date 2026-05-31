@@ -24,20 +24,6 @@ import java.util.logging.Logger;
 import org.bukkit.plugin.java.JavaPlugin;
 import sun.misc.Unsafe;
 
-/**
- * 运行时依赖库加载器。
- * <p>
- * 在 {@code onLoad()} 阶段自行从 Maven 仓库下载依赖并注入 ClassLoader，
- * 替代 Spigot 内置的 {@code plugin.yml libraries} 机制。
- * </p>
- * <p>
- * 支持双仓库延迟探测：优先使用阿里云 Maven 镜像，延迟过高或不可用时回退到 Maven Central。
- * </p>
- * <p>
- * ClassLoader 注入通过 {@code sun.misc.Unsafe} 获取 trusted {@code MethodHandles.Lookup}，
- * 绕过 Java 模块系统对 {@code URLClassLoader.addURL()} 的访问限制。
- * </p>
- */
 public final class RuntimeLibraryLoader {
 
     private static final String ALIYUN_REPO = "https://maven.aliyun.com/repository/central";
@@ -47,10 +33,6 @@ public final class RuntimeLibraryLoader {
     private static final int DOWNLOAD_CONNECT_TIMEOUT_MS = 8000;
     private static final int DOWNLOAD_READ_TIMEOUT_MS = 30000;
 
-    /**
-     * 需要在运行时下载的依赖库列表。
-     * 更新依赖版本时同步修改此处。
-     */
     private static final List<LibraryCoordinate> LIBRARIES = List.of(
             new LibraryCoordinate("net.kyori", "adventure-api", "4.26.1"),
             new LibraryCoordinate("net.kyori", "adventure-key", "4.26.1"),
@@ -90,7 +72,6 @@ public final class RuntimeLibraryLoader {
     static {
         MethodHandle handle = null;
         try {
-            // 通过 Unsafe 获取 trusted MethodHandles.Lookup（IMPL_LOOKUP），绕过模块系统限制
             Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
             unsafeField.setAccessible(true);
             Unsafe unsafe = (Unsafe) unsafeField.get(null);
@@ -101,7 +82,6 @@ public final class RuntimeLibraryLoader {
 
             handle = trustedLookup.findVirtual(URLClassLoader.class, "addURL", MethodType.methodType(void.class, URL.class));
         } catch (Throwable ignored) {
-            // 如果 Unsafe 方式失败，handle 保持 null，后续会尝试 fallback
         }
         ADD_URL_HANDLE = handle;
     }
@@ -116,9 +96,6 @@ public final class RuntimeLibraryLoader {
         this.cacheDirectory = plugin.getDataFolder().toPath().resolve("libraries");
     }
 
-    /**
-     * 执行依赖库加载。在 onLoad() 中调用。
-     */
     public void load() {
         if (LIBRARIES.isEmpty()) {
             return;
@@ -130,7 +107,6 @@ public final class RuntimeLibraryLoader {
 
         ensureCacheDirectory();
 
-        // 快速检查：所有库是否都已缓存
         boolean allCached = LIBRARIES.stream().allMatch(lib -> Files.exists(resolveLocalPath(lib)));
         String preferredRepo;
         String fallbackRepo;
@@ -142,7 +118,6 @@ public final class RuntimeLibraryLoader {
             fallbackRepo = preferredRepo.equals(ALIYUN_REPO) ? CENTRAL_REPO : ALIYUN_REPO;
         }
 
-        // ===== 阶段1：下载缺失的库 =====
         List<LibraryCoordinate> toDownload = LIBRARIES.stream()
                 .filter(lib -> !Files.exists(resolveLocalPath(lib)) || !Files.isRegularFile(resolveLocalPath(lib)))
                 .toList();
@@ -175,7 +150,6 @@ public final class RuntimeLibraryLoader {
                     + (downloadFailed > 0 ? ", 失败=" + downloadFailed : "") + ")");
         }
 
-        // ===== 阶段2：加载所有库到 ClassLoader =====
         logger.info("[LibraryLoader] 正在加载依赖库 (共 " + LIBRARIES.size() + " 个)...");
         int loaded = 0;
         int loadFailed = 0;
@@ -300,9 +274,6 @@ public final class RuntimeLibraryLoader {
         }
     }
 
-    /**
-     * 通过 trusted MethodHandle 将 jar 注入到插件的 ClassLoader。
-     */
     private boolean injectToClassLoader(Path jarPath) {
         try {
             ClassLoader classLoader = plugin.getClass().getClassLoader();

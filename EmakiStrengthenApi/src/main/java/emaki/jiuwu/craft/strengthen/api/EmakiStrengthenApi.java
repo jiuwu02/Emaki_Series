@@ -11,52 +11,63 @@ import emaki.jiuwu.craft.strengthen.model.AttemptResult;
 import emaki.jiuwu.craft.strengthen.model.StrengthenState;
 
 /**
- * Public API for querying and executing strengthen operations on item stacks.
+ * Public API for inspecting and performing EmakiStrengthen item-strengthening
+ * operations.
+ *
+ * <p>Registered with the Bukkit {@code ServicesManager} by EmakiStrengthen;
+ * obtain it through {@link EmakiStrengthenApiProvider#get()}. Lets other plugins
+ * read an item's strengthen state, preview an attempt's cost and outcome chances
+ * without committing, perform an attempt, and rebuild an item's display layer.
+ *
+ * <p>All item arguments tolerate {@code null}.
  */
 public interface EmakiStrengthenApi {
 
     /**
-     * Returns whether the supplied item can currently enter the strengthen flow.
+     * {@return whether the given item can be strengthened}
      *
-     * @param itemStack the item to inspect
-     * @return {@code true} when the item can be strengthened
+     * @param itemStack the item to test; {@code null} yields {@code false}
      */
     boolean canStrengthen(@Nullable ItemStack itemStack);
 
     /**
-     * Reads the current strengthen state from an item.
+     * Reads the current strengthen state of an item.
      *
-     * @param itemStack the item to inspect
-     * @return the resolved strengthen state
+     * @param itemStack the item to inspect; {@code null} yields an ineligible
+     *                  state
+     * @return the resolved state; never {@code null}
      */
     @NotNull
     StrengthenState readState(@Nullable ItemStack itemStack);
 
     /**
-     * Calculates the preview result for a potential strengthen attempt.
+     * Computes a non-committing preview of a strengthen attempt.
      *
-     * @param player the acting player, when available
-     * @param context the attempt context containing target and material inputs
-     * @return the computed preview
+     * @param player  the player performing the attempt, may be {@code null}
+     * @param context the attempt inputs (target item and materials), may be
+     *                {@code null}
+     * @return the preview describing cost, success rate and projected outcome;
+     *         never {@code null}
      */
     @NotNull
     AttemptPreview preview(@Nullable Player player, @Nullable AttemptContext context);
 
     /**
-     * Executes a strengthen attempt.
+     * Performs a strengthen attempt, consuming costs and materials.
      *
-     * @param player the acting player, when available
-     * @param context the attempt context containing target and material inputs
-     * @return the strengthen result
+     * @param player  the player performing the attempt, may be {@code null}
+     * @param context the attempt inputs, may be {@code null}
+     * @return the result of the attempt; never {@code null}
      */
     @NotNull
     AttemptResult attempt(@Nullable Player player, @Nullable AttemptContext context);
 
     /**
-     * Rebuilds an item's strengthen layer from stored state.
+     * Rebuilds the strengthen display layer (name/lore/stats) of an item from
+     * its stored state.
      *
-     * @param itemStack the source item
-     * @return the rebuilt item, or the original input when no rebuild is needed
+     * @param itemStack the item to rebuild; {@code null} yields {@code null}
+     * @return the rebuilt item, or {@code null} when not applicable
      */
     @Nullable
     ItemStack rebuild(@Nullable ItemStack itemStack);

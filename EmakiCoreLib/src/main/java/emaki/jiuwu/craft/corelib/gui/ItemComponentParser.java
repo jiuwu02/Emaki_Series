@@ -21,13 +21,8 @@ import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
-/**
- * Parses GUI item component overrides and applies them onto an
- * {@link ItemMeta}.
- */
 public final class ItemComponentParser {
 
-    // 附魔解析缓存，避免每次 GUI 渲染都重复 Registry 查找
     private static final ConcurrentHashMap<String, Enchantment> ENCHANTMENT_CACHE = new ConcurrentHashMap<>();
 
     public record ItemComponents(String displayName,

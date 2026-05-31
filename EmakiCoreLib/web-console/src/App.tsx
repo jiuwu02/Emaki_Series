@@ -7,7 +7,7 @@ import { ItemEditorSurface } from './ItemEditorSurface';
 import { loadWebExtensions } from './extensions';
 import { applyConfigNodeOverrides, applyConfigRegistryOverrides, applyEditorDescriptorOverrides, getConfigPreview, getSourceDocumentAdapter, getSurface, isKind, registerSourceDocumentAdapter, registerSurface, setRuntimeEnums, type ConfigPreviewProps, type SourceDocumentAdapterContext } from './registry';
 import { getLocale, getRegisteredLocales, setLocale, t } from './i18n';
-import { ActionGroup, Button, CodeEditor, EditorChrome, DisclosureChevron, InlineError, NumberListEditor, StringListEditor, ToastNotice, VariablesMapEditor, type EditorChange } from './components';
+import { ActionGroup, ActionTypesProvider, Button, CodeEditor, EditorChrome, DisclosureChevron, InlineError, NumberListEditor, StandardActionsField, StandardEffectsEditor, StringListEditor, ToastNotice, VariablesMapEditor, type EditorChange } from './components';
 import { useDialogFocus } from './components/useDialogFocus';
 import { useStableEntries } from './components/useStableEntries';
 import { I18nBundleModal, type I18nTarget } from './I18nBundleModal';
@@ -393,6 +393,7 @@ export default function App() {
   if (!token) return <Login notice={loginNotice} onLogin={(t) => { sessionStorage.setItem('emaki-web-token', t); setLoginNotice(null); setToken(t); }} />;
 
   return (
+    <ActionTypesProvider api={api}>
     <div className="workbench" data-locale-version={localeVersion}>
       {toast && <ToastNotice tone={toast.tone}>{toast.text}</ToastNotice>}
       {createTarget && <CreateFileModal target={createTarget} onCancel={() => setCreateTarget(null)} onCreate={createFileFromTree} />}
@@ -459,6 +460,7 @@ export default function App() {
         </section>
       </main>
     </div>
+    </ActionTypesProvider>
   );
 }
 
@@ -1563,7 +1565,7 @@ function ConfigNodeView({ scope, node, drafts, setDraftValue, sourceEdit, change
 }
 
 function isWideConfigNodeType(type: string | undefined): boolean {
-  return type === 'dynamic_map' || type === 'list' || type === 'stringList' || type === 'numberList' || type === 'objectList' || type === 'object';
+  return type === 'dynamic_map' || type === 'list' || type === 'stringList' || type === 'numberList' || type === 'objectList' || type === 'object' || type === 'actions' || type === 'effects' || type === 'variablesMap';
 }
 
 function renderControl(node: WebConfigNode, value: unknown, setValue: (v: unknown) => void, label: string, moduleId: string) {
@@ -1572,6 +1574,8 @@ function renderControl(node: WebConfigNode, value: unknown, setValue: (v: unknow
   if (node.type === 'number') return <NumberField value={value} onChange={setValue} ariaLabel={label} />;
   if (node.type === 'json') return <JsonField value={value} onChange={setValue} ariaLabel={label} />;
   if (node.type === 'variablesMap') return <VariablesMapEditor value={value} onChange={setValue} />;
+  if (node.type === 'actions') return <StandardActionsField value={value} onChange={setValue} path={node.path} moduleId={moduleId} />;
+  if (node.type === 'effects') return <StandardEffectsEditor value={value} onChange={setValue} path={node.path} moduleId={moduleId} />;
   if (node.type === 'dynamic_map') return <DynamicMapEditor value={value} setValue={setValue} />;
   if (node.type === 'object') {
     if (node.itemFields?.length) return <SchemaObjectEditor field={configNodeToSchemaField(node)} value={value} onChange={setValue} moduleId={moduleId} ariaLabel={label} />;
@@ -1748,6 +1752,8 @@ function renderSchemaField(field: WebConfigFieldSchema | undefined, value: unkno
     return <ObjectListEditor node={childNode} items={Array.isArray(value) ? value : []} setValue={onChange} moduleId={moduleId} compact />;
   }
   if (type === 'variablesMap') return <VariablesMapEditor value={value} onChange={onChange} />;
+  if (type === 'actions') return <StandardActionsField value={value} onChange={onChange} path={field?.path} moduleId={moduleId} />;
+  if (type === 'effects') return <StandardEffectsEditor value={value} onChange={onChange} path={field?.path} moduleId={moduleId} />;
   if (type === 'object' && field?.itemFields?.length) {
     return <SchemaObjectEditor field={field} value={value} onChange={onChange} moduleId={moduleId} ariaLabel={ariaLabel} />;
   }
@@ -1844,8 +1850,15 @@ function duplicateUniqueValues(node: WebConfigNode, items: Record<string, unknow
 function objectListSummary(node: WebConfigNode, item: Record<string, unknown>, index: number): string {
   const uniqueField = uniqueListField(node);
   if (uniqueField) return String(item[uniqueField] ?? `${index + 1}`);
-  const entries = Object.entries(item).slice(0, 2).map(([key, value]) => `${key}: ${String(value ?? '')}`);
+  const entries = Object.entries(item).slice(0, 2).map(([key, value]) => `${key}: ${summaryScalar(value)}`);
   return entries.length ? entries.join(' · ') : `#${index + 1}`;
+}
+
+function summaryScalar(value: unknown): string {
+  if (value == null) return '';
+  if (Array.isArray(value)) return `[${value.length}]`;
+  if (typeof value === 'object') return `{${Object.keys(value as Record<string, unknown>).length}}`;
+  return String(value);
 }
 
 function isDuplicateUniqueValue(node: WebConfigNode, item: Record<string, unknown>, duplicates: Set<string>): boolean {

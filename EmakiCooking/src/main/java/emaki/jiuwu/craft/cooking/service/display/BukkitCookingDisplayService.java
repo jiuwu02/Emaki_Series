@@ -101,16 +101,12 @@ public final class BukkitCookingDisplayService implements CookingDisplayService 
         }
         animatingStations.add(stationKey);
 
-        // 将旋转拆分为多段，每段 ≤ 180°，以支持任意角度（含多圈）
-        // 总段数 = 上升段数 + 下降段数（对称）
         int segments = Math.max(1, (int) Math.ceil(Math.abs(rotationDegrees) / 180.0D));
-        // 上升阶段占一半时间，下降阶段占一半时间
         int halfTicks = Math.max(segments, durationTicks / 2);
         int ticksPerSegment = Math.max(1, halfTicks / segments);
         double degreesPerSegment = rotationDegrees / segments;
         double heightPerSegment = heightOffset / segments;
 
-        // 记录每个 display 的原始 transformation，用于最终回位
         Map<String, Transformation> originalTransformations = new LinkedHashMap<>();
         for (String key : Set.copyOf(keys)) {
             ItemDisplay display = displays.get(key);
@@ -120,7 +116,6 @@ public final class BukkitCookingDisplayService implements CookingDisplayService 
             originalTransformations.put(key, display.getTransformation());
         }
 
-        // 上升阶段：分段递增旋转和高度
         for (int segment = 0; segment < segments; segment++) {
             int delay = segment * ticksPerSegment;
             int segmentIndex = segment + 1;
@@ -138,7 +133,6 @@ public final class BukkitCookingDisplayService implements CookingDisplayService 
                     if (original == null) {
                         continue;
                     }
-                    // 累积到当前段的总旋转和总高度
                     double cumulativeDegrees = degreesPerSegment * segmentIndex;
                     double cumulativeHeight = heightPerSegment * segmentIndex;
                     Transformation target = buildAnimatedTransformation(
@@ -155,7 +149,6 @@ public final class BukkitCookingDisplayService implements CookingDisplayService 
             }
         }
 
-        // 下降阶段：分段从最高点旋转回原位
         int riseEndTick = segments * ticksPerSegment;
         for (int segment = 0; segment < segments; segment++) {
             int delay = riseEndTick + segment * ticksPerSegment;
@@ -174,7 +167,6 @@ public final class BukkitCookingDisplayService implements CookingDisplayService 
                     if (original == null) {
                         continue;
                     }
-                    // 从最高点逐段回落：剩余旋转和剩余高度
                     double remainingFraction = 1.0D - ((double) segmentIndex / segments);
                     double currentDegrees = rotationDegrees * remainingFraction;
                     double currentHeight = heightOffset * remainingFraction;
@@ -188,7 +180,6 @@ public final class BukkitCookingDisplayService implements CookingDisplayService 
             Bukkit.getScheduler().runTaskLater(plugin, segmentTask, delay);
         }
 
-        // 动画结束后清除标记
         int totalTicks = riseEndTick + segments * ticksPerSegment;
         Bukkit.getScheduler().runTaskLater(plugin, () -> animatingStations.remove(stationKey), totalTicks);
     }

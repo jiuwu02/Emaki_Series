@@ -12,13 +12,8 @@ import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
-/**
- * Template rendering utility for name/lore operations.
- * Extracted from EmakiForge's TextTemplateRenderer as a public CoreLib service.
- */
 public final class OperationTemplateRenderer {
 
-    // 正则编译缓存：配置中的 regex 数量有限且固定，避免每次 lore 渲染都重新编译
     private static final Map<String, Pattern> REGEX_CACHE = new ConcurrentHashMap<>();
 
     public List<Map<String, Object>> normalizeOperations(Object raw) {
@@ -113,9 +108,6 @@ public final class OperationTemplateRenderer {
         }
     }
 
-    /**
-     * 清理正则编译缓存。应在插件 reload 或 disable 时调用。
-     */
     public static void clearRegexCache() {
         REGEX_CACHE.clear();
     }

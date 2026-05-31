@@ -74,7 +74,6 @@ public final class PlayerSkillStateService {
         if (current == null) {
             return false;
         }
-        // Preserve existing trigger if any
         profile.setBinding(slotIndex, new SkillSlotBinding(slotIndex, skillId, current.triggerId()));
         return true;
     }
@@ -108,7 +107,6 @@ public final class PlayerSkillStateService {
             return false;
         }
 
-        // Check for conflicts
         String conflict = checkTriggerConflict(player, slotIndex, triggerId);
         if (conflict != null) {
             return false;

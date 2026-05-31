@@ -122,7 +122,6 @@ final class DamageMessageDispatcher {
         replacements.put("critical_text", critical ? messageOrFallback("damage.critical_text", "critical") : "");
         replacements.put("critical_suffix", critical ? messageOrFallback("damage.critical_suffix", " <red>critical</red>") : "");
         replacements.put("roll", rollText);
-        // Health and distance placeholders
         double attackerHealth = damageContext.attacker() == null ? 0D : damageContext.attacker().getHealth();
         double attackerMaxHealth = damageContext.attacker() == null ? 0D : damageContext.attacker().getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH) != null
                 ? damageContext.attacker().getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH).getValue() : 0D;

@@ -7,6 +7,21 @@ import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
+/**
+ * Immutable attribute payload stored on an item under a single source id.
+ *
+ * <p>Holds the attribute id/value pairs granted by the source, free-form string
+ * metadata, optional per-attribute activation conditions, a schema version and
+ * a last-updated timestamp. Keys are normalized on construction. Use
+ * {@link PdcAttributeApi} to persist and read these payloads.
+ *
+ * @param sourceId      the owning source id (normalized)
+ * @param attributes    attribute id to value mapping (normalized keys)
+ * @param meta          arbitrary string metadata (normalized keys)
+ * @param conditions    optional per-attribute activation conditions
+ * @param schemaVersion the payload schema version
+ * @param updatedAt     epoch millis of the last update
+ */
 public record PdcAttributePayload(String sourceId,
         Map<String, Double> attributes,
         Map<String, String> meta,
@@ -14,8 +29,13 @@ public record PdcAttributePayload(String sourceId,
         int schemaVersion,
         long updatedAt) {
 
+    /** Current payload schema version. */
     public static final int CURRENT_SCHEMA_VERSION = 2;
 
+    /**
+     * Canonical constructor; normalizes ids, defaults the schema version and
+     * stamps {@code updatedAt} when not supplied.
+     */
     public PdcAttributePayload {
         sourceId = Texts.normalizeId(sourceId);
         attributes = normalizeAttributes(attributes);
@@ -26,7 +46,13 @@ public record PdcAttributePayload(String sourceId,
     }
 
     /**
-     * Backward-compatible constructor without conditions.
+     * Convenience constructor without explicit conditions.
+     *
+     * @param sourceId      the owning source id
+     * @param attributes    attribute id to value mapping
+     * @param meta          string metadata
+     * @param schemaVersion the schema version
+     * @param updatedAt     epoch millis of the last update
      */
     public PdcAttributePayload(String sourceId,
             Map<String, Double> attributes,
@@ -36,12 +62,30 @@ public record PdcAttributePayload(String sourceId,
         this(sourceId, attributes, meta, Map.of(), schemaVersion, updatedAt);
     }
 
+    /**
+     * Builds a payload with the current schema version and timestamp.
+     *
+     * @param sourceId   the owning source id
+     * @param attributes attribute id to value mapping
+     * @param meta       string metadata
+     * @return the new payload
+     */
     public static PdcAttributePayload of(String sourceId,
             Map<String, Double> attributes,
             Map<String, String> meta) {
         return new PdcAttributePayload(sourceId, attributes, meta, Map.of(), CURRENT_SCHEMA_VERSION, System.currentTimeMillis());
     }
 
+    /**
+     * Builds a payload including activation conditions, with the current schema
+     * version and timestamp.
+     *
+     * @param sourceId   the owning source id
+     * @param attributes attribute id to value mapping
+     * @param meta       string metadata
+     * @param conditions per-attribute activation conditions
+     * @return the new payload
+     */
     public static PdcAttributePayload of(String sourceId,
             Map<String, Double> attributes,
             Map<String, String> meta,
@@ -50,7 +94,9 @@ public record PdcAttributePayload(String sourceId,
     }
 
     /**
-     * Returns the condition expression for the given attribute id, or null if unconditional.
+     * {@return the activation condition for an attribute, or {@code null}}
+     *
+     * @param attributeId the attribute id (normalized before lookup)
      */
     public String conditionFor(String attributeId) {
         if (conditions == null || conditions.isEmpty() || attributeId == null) {
@@ -59,14 +105,12 @@ public record PdcAttributePayload(String sourceId,
         return conditions.get(Texts.normalizeId(attributeId));
     }
 
-    /**
-     * Returns true if this payload has durability scaling enabled.
-     * When enabled, attribute values should be multiplied by the item's current durability percentage.
-     */
+    /** {@return whether this payload's values scale with item durability} */
     public boolean hasDurabilityScaling() {
         return "true".equalsIgnoreCase(meta.get("durability_scaling"));
     }
 
+    /** {@return this payload serialized to a plain, persistable map} */
     public Map<String, Object> toMap() {
         Map<String, Object> map = new LinkedHashMap<>();
         map.put("source_id", sourceId);
@@ -80,6 +124,13 @@ public record PdcAttributePayload(String sourceId,
         return map;
     }
 
+    /**
+     * Reconstructs a payload from a map produced by {@link #toMap()}.
+     *
+     * @param map the serialized form; may be {@code null}
+     * @return the reconstructed payload, or {@code null} if {@code map} is
+     *         {@code null}
+     */
     public static PdcAttributePayload fromMap(Map<String, Object> map) {
         if (map == null) {
             return null;
@@ -144,4 +195,3 @@ public record PdcAttributePayload(String sourceId,
         return normalized.isEmpty() ? Map.of() : Map.copyOf(normalized);
     }
 }
-

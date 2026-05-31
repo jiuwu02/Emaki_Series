@@ -176,10 +176,6 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
         ));
     }
 
-    /**
-     * Asynchronous reload: file I/O stages run on the async thread pool,
-     * final registration and player sync run on the main thread.
-     */
     public CompletableFuture<Void> reloadAsync(EmakiGemPlugin plugin, boolean closeInventories, Consumer<String> progressListener) {
         AsyncTaskScheduler scheduler = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).asyncTaskScheduler();
         if (scheduler == null) {
@@ -187,14 +183,12 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
             return CompletableFuture.completedFuture(null);
         }
 
-        // 主线程前置：关闭 GUI
         if (closeInventories) {
             Bukkit.getOnlinePlayers().forEach(player -> player.closeInventory());
         }
 
         notifyProgress(progressListener, "Loading configuration files...");
 
-        // 异步阶段：文件 I/O
         return runReloadStageAsync(scheduler, new ReloadStageConfig<>(
                 "gem", "config-load", "Loading configs...", progressListener,
                 () -> {
@@ -206,7 +200,6 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
                 },
                 null, (stage, ex) -> plugin.getLogger().warning("[Reload] Stage " + stage + " failed: " + ex.getMessage())
         )).thenCompose(_ -> {
-            // 同步阶段：应用配置、刷新缓存
             notifyProgress(progressListener, "Applying configuration...");
             return scheduler.callSync("gem-reload-apply", () -> {
                 plugin.languageLoader().setLanguage(plugin.appConfig().language());

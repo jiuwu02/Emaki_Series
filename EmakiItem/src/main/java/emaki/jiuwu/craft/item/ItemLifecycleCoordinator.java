@@ -142,10 +142,6 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
         }
     }
 
-    /**
-     * Asynchronous reload: file I/O stages run on the async thread pool,
-     * final registration and cache clearing run on the main thread.
-     */
     public CompletableFuture<Void> reloadAsync(EmakiItemPlugin plugin, Consumer<String> progressListener) {
         AsyncTaskScheduler scheduler = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).asyncTaskScheduler();
         if (scheduler == null) {
@@ -155,7 +151,6 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
 
         notifyProgress(progressListener, "Loading configuration files...");
 
-        // 异步阶段：文件 I/O
         return runReloadStageAsync(scheduler, new ReloadStageConfig<>(
                 "item", "config-load", "Loading configs...", progressListener,
                 () -> {
@@ -166,7 +161,6 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                 },
                 null, (stage, ex) -> plugin.getLogger().warning("[Reload] Stage " + stage + " failed: " + ex.getMessage())
         )).thenCompose(_ -> {
-            // 同步阶段：应用配置、刷新缓存
             notifyProgress(progressListener, "Applying configuration...");
             return scheduler.callSync("item-reload-apply", () -> {
                 plugin.languageLoader().setLanguage(plugin.appConfig().language());

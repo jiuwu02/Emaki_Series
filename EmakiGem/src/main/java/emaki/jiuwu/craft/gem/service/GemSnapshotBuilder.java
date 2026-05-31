@@ -57,9 +57,6 @@ public final class GemSnapshotBuilder {
                 ));
             }
         }
-        // Resonance evaluation
-        // Note: resonance name_actions/lore_actions are now applied via ItemOperationLedger after item rebuild.
-        // Only stats are still contributed to the layer snapshot here.
         GemResonanceService resonanceService = plugin.resonanceService();
         if (resonanceService != null) {
             List<GemResonanceService.GemEntry> inlaidGems = collectInlaidGemsWithLevels(state);
@@ -69,7 +66,6 @@ public final class GemSnapshotBuilder {
                 if (effects == null) {
                     continue;
                 }
-                // Add resonance stats
                 for (Map.Entry<String, Double> statEntry : effects.stats().entrySet()) {
                     stats.add(new EmakiStatContribution(
                             statEntry.getKey(),

@@ -46,9 +46,6 @@ public final class CookingRewardService {
         this.itemAssemblyService = itemAssemblyService;
     }
 
-    /**
-     * 注入配方服务（用于完成条件评估）。在生命周期装配阶段调用，避免构造期循环依赖。
-     */
     public void setRecipeService(CookingRecipeService recipeService) {
         this.recipeService = recipeService;
     }
@@ -76,17 +73,10 @@ public final class CookingRewardService {
         executeActions(actions, player, location, phase, defaultPlaceholders(player, location, placeholders));
     }
 
-    /**
-     * 评估配方完成条件是否通过（纯判定，不执行任何动作）。
-     * 供蒸锅/烤炉「产出存回槽位」分支在写入物品前预检，避免条件阻断产出时残留物品。
-     */
     public boolean completionConditionPasses(RecipeDocument recipe, Player player) {
         return recipeService == null || recipeService.completionConditionPasses(recipe, player);
     }
 
-    /**
-     * 条件不通过时是否阻止产出。
-     */
     public boolean completionConditionBlocksOutput(RecipeDocument recipe) {
         return recipeService != null && recipeService.completionConditionBlocksOutput(recipe);
     }

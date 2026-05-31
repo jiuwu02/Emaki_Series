@@ -49,7 +49,6 @@ public final class ScriptRepository {
         } catch (IOException ignored) {
             return;
         }
-        // 只在 examples 目录为空时释放
         try (Stream<Path> stream = Files.list(examplesDir)) {
             if (stream.findAny().isPresent()) {
                 return;
@@ -57,7 +56,6 @@ public final class ScriptRepository {
         } catch (IOException ignored) {
             return;
         }
-        // 释放默认示例脚本
         String[] examples = {
             "attribute_buff.js",
             "cooking_reward.js",
@@ -76,7 +74,6 @@ public final class ScriptRepository {
                     Files.copy(input, target);
                 }
             } catch (IOException ignored) {
-                // 单个文件释放失败不影响其他
             }
         }
     }

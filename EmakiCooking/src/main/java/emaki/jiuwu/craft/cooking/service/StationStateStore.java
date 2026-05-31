@@ -31,9 +31,6 @@ public final class StationStateStore {
         this.asyncFileService = asyncFileService;
     }
 
-    // ------------------------------------------------------------------
-    // Synchronous API (used during startup loadAll and single-point reads)
-    // ------------------------------------------------------------------
 
     public Map<StationCoordinates, YamlSection> loadAll(StationType stationType) {
         Map<StationCoordinates, YamlSection> states = new LinkedHashMap<>();
@@ -71,16 +68,10 @@ public final class StationStateStore {
         return Files.exists(file) ? YamlFiles.load(file.toFile()) : null;
     }
 
-    /**
-     * Synchronous save. Prefer {@link #saveAsync(StationCoordinates, Map)} for non-blocking operation.
-     */
     public void save(StationCoordinates coordinates, Map<String, Object> state) {
         trySave(coordinates, state);
     }
 
-    /**
-     * Synchronous save with result. Prefer {@link #saveAsync(StationCoordinates, Map)}.
-     */
     public boolean trySave(StationCoordinates coordinates, Map<String, Object> state) {
         if (coordinates == null || state == null || state.isEmpty()) {
             return false;
@@ -94,9 +85,6 @@ public final class StationStateStore {
         }
     }
 
-    /**
-     * Synchronous delete. Prefer {@link #deleteAsync(StationCoordinates)} for non-blocking operation.
-     */
     public void delete(StationCoordinates coordinates) {
         tryDelete(coordinates);
     }
@@ -116,14 +104,7 @@ public final class StationStateStore {
         }
     }
 
-    // ------------------------------------------------------------------
-    // Async API
-    // ------------------------------------------------------------------
 
-    /**
-     * Asynchronously saves station state to disk.
-     * Uses path-keyed serialization to prevent concurrent writes to the same file.
-     */
     public CompletableFuture<Boolean> saveAsync(StationCoordinates coordinates, Map<String, Object> state) {
         if (coordinates == null || state == null || state.isEmpty()) {
             return CompletableFuture.completedFuture(false);
@@ -144,9 +125,6 @@ public final class StationStateStore {
         });
     }
 
-    /**
-     * Asynchronously deletes station state from disk.
-     */
     public CompletableFuture<Boolean> deleteAsync(StationCoordinates coordinates) {
         if (coordinates == null) {
             return CompletableFuture.completedFuture(false);
@@ -168,9 +146,6 @@ public final class StationStateStore {
         });
     }
 
-    /**
-     * Waits for all pending async writes to complete.
-     */
     public CompletableFuture<Void> waitForIdle() {
         if (asyncFileService == null) {
             return CompletableFuture.completedFuture(null);
@@ -178,9 +153,6 @@ public final class StationStateStore {
         return asyncFileService.waitForIdle();
     }
 
-    // ------------------------------------------------------------------
-    // Internal
-    // ------------------------------------------------------------------
 
     private Path pathFor(StationCoordinates coordinates) {
         return plugin.getDataFolder().toPath().resolve(coordinates.relativeDataPath());

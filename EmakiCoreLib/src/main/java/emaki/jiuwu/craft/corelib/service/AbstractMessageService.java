@@ -162,7 +162,6 @@ public class AbstractMessageService implements LogMessages {
             return;
         }
         if (includePrefixInLogs()) {
-            // 使用 Adventure 直接输出到控制台，避免 Spigot 默认的 [PluginName] 前缀
             String loggedText = withPrefix(text);
             AdventureSupport.sendMessage(plugin, Bukkit.getConsoleSender(), render(loggedText));
         } else {

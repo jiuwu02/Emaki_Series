@@ -32,7 +32,6 @@ import emaki.jiuwu.craft.corelib.text.Texts;
 final class AttributeSnapshotCollector {
 
     private static final double ZERO_EPSILON = 1.0E-9D;
-    // 预分配的不可变 EnumSet，避免热路径中反复创建临时 Set
     private static final Set<AttributeValueKind> SKIP_FLAT_KINDS = EnumSet.of(
             AttributeValueKind.CHANCE,
             AttributeValueKind.REGEN,
@@ -145,7 +144,6 @@ final class AttributeSnapshotCollector {
     private AttributeSnapshot collectCombatSnapshot(LivingEntity entity,
             IntFunction<org.bukkit.inventory.ItemStack> itemResolver,
             Player playerOrNull) {
-        // 第一阶段：仅收集签名材料，不构建 values
         List<String> signatureParts = new ArrayList<>();
         signatureParts.add("defaults:" + service.registryService().defaultProfilesSignature());
         signatureParts.add("attributes:" + service.registryService().attributeDefinitionsSignature());
@@ -161,7 +159,6 @@ final class AttributeSnapshotCollector {
         }
         String sourceSignature = SignatureUtil.stableSignature(signatureParts);
 
-        // 第二阶段：签名比对缓存，命中则直接返回，跳过全量计算
         String cachedSignature = service.stateRepository().readCombatSourceSignature(entity);
         AttributeSnapshot cachedSnapshot = service.stateRepository().readCombatSnapshot(entity);
         if (sourceSignature.equals(cachedSignature)
@@ -170,7 +167,6 @@ final class AttributeSnapshotCollector {
             return cachedSnapshot;
         }
 
-        // 第三阶段：缓存未命中，执行全量计算
         Map<String, Double> values = new LinkedHashMap<>();
         mergeValues(values, service.defaultAttributeValues());
         if (itemResolver != null) {
@@ -200,14 +196,12 @@ final class AttributeSnapshotCollector {
         collectEquipment(itemResolver, player, values, signatureParts);
     }
 
-    // 仅收集装备签名，不构建 values（用于缓存命中前的轻量签名计算）
     private void collectEquipmentSignatures(IntFunction<org.bukkit.inventory.ItemStack> itemResolver,
             Player playerOrNull,
             List<String> signatureParts) {
         collectEquipment(itemResolver, playerOrNull, null, signatureParts);
     }
 
-    // 仅收集 values，不收集签名（用于缓存未命中后的全量计算）
     private void collectEquipmentSnapshots(IntFunction<org.bukkit.inventory.ItemStack> itemResolver,
             Player playerOrNull,
             Map<String, Double> values) {
@@ -307,13 +301,11 @@ final class AttributeSnapshotCollector {
         collectContributionProviders(entity, target, signatureParts);
     }
 
-    // 仅收集 contribution provider 签名（用于缓存命中前的轻量签名计算）
     private void collectContributionProviderSignatures(LivingEntity entity,
             List<String> signatureParts) {
         collectContributionProviders(entity, null, signatureParts);
     }
 
-    // 仅合并 contribution provider values（用于缓存未命中后的全量计算）
     private void mergeContributionProviders(LivingEntity entity,
             Map<String, Double> target) {
         collectContributionProviders(entity, target, null);

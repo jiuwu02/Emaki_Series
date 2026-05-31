@@ -177,6 +177,12 @@ combat_debug:
     "Projectile hit snapshot not found, aborting
     under strict snapshot mode: projectile={projectile}"
   async_damage_failed: "Async damage resolve failed: {error}"
+  perfect_takeover_applied: "Perfect takeover rewrote vanilla damage in place: cause={cause},
+    finalDamage={final_damage}; absorption/blocking kept, armor mitigation neutralized,
+    vanilla side effects still fire."
+  perfect_takeover_cancelled: "Perfect takeover resolved to no damage, vanilla event cancelled: cause={cause}"
+  perfect_side_effects: "Perfect takeover applied EA side effects: finalDamage={final_damage},
+    attackerCooldownTicks={attacker_cooldown_ticks}"
 
 command:
   unknown: "<red>Unknown subcommand, use /{label} help for help.</red>"

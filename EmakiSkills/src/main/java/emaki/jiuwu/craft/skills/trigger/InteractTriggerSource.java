@@ -7,10 +7,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
-/**
- * Trigger source that converts {@link PlayerInteractEvent} into
- * left_click / right_click / shift_left_click / shift_right_click invocations.
- */
 public final class InteractTriggerSource implements SkillTriggerSource {
 
     @Override

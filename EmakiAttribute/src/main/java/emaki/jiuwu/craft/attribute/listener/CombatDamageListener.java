@@ -102,7 +102,6 @@ public final class CombatDamageListener implements Listener {
             handleEnvironmentalDamage(event, target, damager instanceof LivingEntity livingEntity ? livingEntity : null);
             return;
         }
-        // 未启用统一原版事件接管时，原生近战 / 横扫 / 投射物继续走战斗属性结算，其余 by-entity 原版伤害按环境伤害分流。
         if (cause == EntityDamageEvent.DamageCause.PROJECTILE) {
             if (damager instanceof Projectile projectile) {
                 Entity shooter = projectile.getShooter() instanceof Entity entity ? entity : null;
@@ -221,7 +220,6 @@ public final class CombatDamageListener implements Listener {
             }
             return false;
         }
-        event.setCancelled(true);
         DamageContextVariables.Builder context = CombatSupport.baseContext(event, target).toBuilder();
         if (!vanillaEventDamage && rule != null && rule.context() != null && !rule.context().isEmpty()) {
             context.putAll(rule.context());
@@ -264,6 +262,11 @@ public final class CombatDamageListener implements Listener {
                 baseDamage,
                 resolvedContext
         );
+        if (vanillaEventDamage) {
+            applyPerfectTakeover(event, damageContext, attacker, target, null, attacker);
+            return true;
+        }
+        event.setCancelled(true);
         resolveAndApplyDamage(
                 attributeService.resolveDamageApplicationAsync(damageContext),
                 attacker,
@@ -280,11 +283,38 @@ public final class CombatDamageListener implements Listener {
         return true;
     }
 
+    private void applyPerfectTakeover(EntityDamageEvent event,
+            DamageContext damageContext,
+            LivingEntity attacker,
+            LivingEntity target,
+            Projectile projectile,
+            Entity visualSource) {
+        if (attributeService.perfectTakeoverCoordinator().isClaimed(event)) {
+            return;
+        }
+        ResolvedDamage resolvedDamage = attributeService.resolveDamageApplication(damageContext);
+        if (resolvedDamage == null || resolvedDamage.finalDamage() <= 0D) {
+            event.setCancelled(true);
+            if (debugHandler.shouldDebugCombat(attacker, target, projectile)) {
+                debugHandler.debugCombat(attacker, target, projectile, "PERFECT_TAKEOVER_CANCELLED", "combat_debug.perfect_takeover_cancelled", Map.of(
+                        "cause", event.getCause().name()
+                ));
+            }
+            return;
+        }
+        attributeService.perfectTakeoverCoordinator().claimAndApply(event, resolvedDamage, visualSource);
+        if (debugHandler.shouldDebugCombat(attacker, target, projectile)) {
+            debugHandler.debugCombat(attacker, target, projectile, "PERFECT_TAKEOVER_APPLIED", "combat_debug.perfect_takeover_applied", Map.of(
+                    "cause", event.getCause().name(),
+                    "final_damage", debugHandler.formatNumber(resolvedDamage.finalDamage())
+            ));
+        }
+    }
+
     private void applyFallDamageContext(LivingEntity target, DamageContextVariables.Builder context, double vanillaDamage) {
         if (target == null || context == null) {
             return;
         }
-        // 原版服务端已经计算过摔落伤害；这里仅补充高度相关上下文，便于调试和表达式引用。
         double fallDistance = Math.max(0D, target.getFallDistance());
         PotionEffect jumpBoost = target.getPotionEffect(PotionEffectType.JUMP_BOOST);
         int jumpBoostLevel = jumpBoost == null ? 0 : Math.max(0, jumpBoost.getAmplifier() + 1);

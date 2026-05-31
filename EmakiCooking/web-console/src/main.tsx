@@ -285,21 +285,23 @@ function dedupeFieldSpecs(fields: FieldSpec[]): FieldSpec[] {
   return [...byPath.values()];
 }
 
-const fieldComments: Record<string, [string, string, string]> = {
+const INTERACTION_OPTIONS = ['left_click', 'right_click', 'shift_left_click', 'shift_right_click'];
+
+const fieldComments: Record<string, [string, string, string] | [string, string, string, { options?: string[]; optionLabelPrefix?: string }]> = {
   block_item_sources: ['方块来源', '识别为该工位本体方块的 ItemSource 列表，可使用 minecraft-/CraftEngine/ItemsAdder/Nexo 等格式。', 'list'],
   only_recipe_items: ['只允许配方物', '是否只允许能继续匹配工位配方的物品进入输入。省略时通常继承全局输入规则。', 'boolean'],
   interactions: ['交互绑定', '不同业务动作对应的玩家点击方式，例如 shift_left_click、right_click。', 'object'],
-  place_input: ['放入输入', '玩家把输入物品放入工位时使用的交互方式。', 'enum'],
-  process: ['处理交互', '玩家触发加工、按压或切割时使用的交互方式。', 'enum'],
-  return_input: ['返还输入', '玩家取回输入物品时使用的交互方式。', 'enum'],
-  add_ingredient: ['加入食材', '玩家向炒锅加入食材时使用的交互方式或动作阶段。', 'enum'],
-  stir: ['翻炒', '玩家翻炒炒锅时使用的交互方式或动作阶段。', 'enum'],
-  serve: ['盛取', '玩家盛取成品时使用的交互方式或动作阶段。', 'enum'],
-  return_ingredient: ['返还食材', '玩家从炒锅取回食材时使用的交互方式。', 'enum'],
-  inspect: ['查看', '玩家查看工位状态时使用的交互方式。', 'enum'],
-  start: ['启动', '玩家启动工位时使用的交互方式或动作阶段。', 'enum'],
-  open: ['打开', '玩家打开工位 GUI 时使用的交互方式。', 'enum'],
-  fuel: ['燃料', '玩家投入燃料时使用的交互方式或动作阶段。', 'enum'],
+  place_input: ['放入输入', '玩家把输入物品放入工位时使用的交互方式。', 'enum', { options: INTERACTION_OPTIONS, optionLabelPrefix: 'station.interaction' }],
+  process: ['处理交互', '玩家触发加工、按压或切割时使用的交互方式。', 'enum', { options: INTERACTION_OPTIONS, optionLabelPrefix: 'station.interaction' }],
+  return_input: ['返还输入', '玩家取回输入物品时使用的交互方式。', 'enum', { options: INTERACTION_OPTIONS, optionLabelPrefix: 'station.interaction' }],
+  add_ingredient: ['加入食材', '玩家向炒锅加入食材时使用的交互方式或动作阶段。', 'enum', { options: INTERACTION_OPTIONS, optionLabelPrefix: 'station.interaction' }],
+  stir: ['翻炒', '玩家翻炒炒锅时使用的交互方式或动作阶段。', 'enum', { options: INTERACTION_OPTIONS, optionLabelPrefix: 'station.interaction' }],
+  serve: ['盛取', '玩家盛取成品时使用的交互方式或动作阶段。', 'enum', { options: INTERACTION_OPTIONS, optionLabelPrefix: 'station.interaction' }],
+  return_ingredient: ['返还食材', '玩家从炒锅取回食材时使用的交互方式。', 'enum', { options: INTERACTION_OPTIONS, optionLabelPrefix: 'station.interaction' }],
+  inspect: ['查看', '玩家查看工位状态时使用的交互方式。', 'enum', { options: INTERACTION_OPTIONS, optionLabelPrefix: 'station.interaction' }],
+  start: ['启动', '玩家启动工位时使用的交互方式或动作阶段。', 'enum', { options: INTERACTION_OPTIONS, optionLabelPrefix: 'station.interaction' }],
+  open: ['打开', '玩家打开工位 GUI 时使用的交互方式。', 'enum', { options: INTERACTION_OPTIONS, optionLabelPrefix: 'station.interaction' }],
+  fuel: ['燃料', '玩家投入燃料时使用的交互方式或动作阶段。', 'enum', { options: INTERACTION_OPTIONS, optionLabelPrefix: 'station.interaction' }],
   complete: ['完成', '工位完成处理时执行的动作阶段。', 'list'],
   running: ['运行中', '工位运行检查时执行的动作阶段。', 'list'],
   collect: ['收取', '玩家收取发酵结果时执行的动作阶段。', 'list'],
@@ -522,7 +524,7 @@ registerPluginGuiEditor({
   editorId: 'emakicooking:gui',
   label: copy('烹饪 GUI', 'Cooking GUI'),
   fields: [
-    ['type', '槽位类型', '烹饪工位槽位语义。', 'text'],
+    ['type', '槽位类型', '烹饪工位槽位语义。可选预设值，也可填自定义/填充槽位。', 'enum', { options: ['ingredient', 'result', 'fuel', 'moisture', 'container', 'progress'], optionLabelPrefix: 'slotType' }],
     ['ingredient', '原料槽', '放入烹饪原料的槽位。', 'text'],
     ['result', '产物槽', '展示或取出产物的槽位。', 'text'],
     ['fuel', '燃料槽', '放入燃料的槽位。', 'text'],

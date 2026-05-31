@@ -192,7 +192,6 @@ public final class FermentationBarrelRuntimeService implements Listener {
         }
         RecipeDocument recipe = findMatchingRecipe(state, player);
         if (recipe == null) {
-            // 空桶或食材无法发酵：不拦截交互，放行让玩家可以破坏方块。
             return false;
         }
         interaction.cancel();

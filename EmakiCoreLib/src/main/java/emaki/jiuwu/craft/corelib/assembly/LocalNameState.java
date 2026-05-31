@@ -6,10 +6,6 @@ import java.util.Map;
 
 import emaki.jiuwu.craft.corelib.text.Texts;
 
-/**
- * Mutable state holder for name modifications during an operation chain.
- * Tracks base name policy, template, prefixes and postfixes.
- */
 public final class LocalNameState {
 
     private BaseNamePolicy baseNamePolicy = BaseNamePolicy.SOURCE_EFFECTIVE_NAME;

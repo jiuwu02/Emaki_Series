@@ -42,7 +42,6 @@ final class DamageCalculationService {
     private final DamageMessageDispatcher messageDispatcher;
     private final SyntheticDamageDispatcher syntheticDamageDispatcher;
 
-    // 缓存：在 refreshCaches() 时更新，避免每次伤害事件都重新查找
     private volatile String cachedDefaultDamageTypeId;
     private volatile String cachedDefaultProjectileDamageTypeId;
 
@@ -55,7 +54,6 @@ final class DamageCalculationService {
 
     void refreshCaches() {
         messageDispatcher.refreshCaches();
-        // 预计算并缓存默认伤害类型 ID，避免每次命中都做 registry 查找
         cachedDefaultDamageTypeId = computeDefaultDamageTypeId();
         cachedDefaultProjectileDamageTypeId = computeDefaultProjectileDamageTypeId();
     }
@@ -465,6 +463,29 @@ final class DamageCalculationService {
             ));
         }
         return remainingDamage > 0D || appliedDamage > 0D;
+    }
+
+    public void applyDamageSideEffects(ResolvedDamage resolvedDamage, Entity visualSource) {
+        if (resolvedDamage == null || resolvedDamage.damageContext() == null) {
+            return;
+        }
+        DamageContext damageContext = resolvedDamage.damageContext();
+        LivingEntity target = damageContext.target();
+        int cooldownTicks = 0;
+        if (damageContext.attacker() instanceof Player player) {
+            cooldownTicks = service.startAttackCooldown(player, damageContext.attackerSnapshot(), player.getInventory().getItemInMainHand());
+        }
+        applyRecovery(damageContext, resolvedDamage.damageType(), resolvedDamage.damageResult(), resolvedDamage.finalDamage());
+        notifyDamageMessages(damageContext, resolvedDamage.damageType(), resolvedDamage.damageResult(), resolvedDamage.finalDamage());
+        if (target != null) {
+            service.scheduleHealthSync(target);
+        }
+        if (shouldDebugCombat(damageContext)) {
+            debugCombat(damageContext, "PERFECT_SIDE_EFFECTS", "combat_debug.perfect_side_effects", Map.of(
+                    "final_damage", service.combatDebug().formatNumber(resolvedDamage.finalDamage()),
+                    "attacker_cooldown_ticks", cooldownTicks
+            ));
+        }
     }
 
     private void applyAggroTarget(LivingEntity target, LivingEntity attacker) {

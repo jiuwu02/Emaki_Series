@@ -12,14 +12,6 @@ import emaki.jiuwu.craft.corelib.action.ActionParameter;
 import emaki.jiuwu.craft.corelib.action.ActionParameterType;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
 
-/**
- * CoreLib built-in action that directly casts a MythicMobs skill on the player.
- *
- * <p>This action soft-depends on MythicMobs. When MythicMobs is not installed,
- * the action gracefully returns a failure result without throwing exceptions.
- *
- * <p>Script usage: {@code castmythicskill skill="FireballSkill"}
- */
 final class CastMythicSkillAction extends BaseAction {
 
     private volatile Object apiHelper;

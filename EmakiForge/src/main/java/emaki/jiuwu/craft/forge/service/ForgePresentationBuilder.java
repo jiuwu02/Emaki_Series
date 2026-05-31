@@ -15,12 +15,6 @@ import emaki.jiuwu.craft.forge.model.Recipe;
 
 import org.bukkit.entity.Player;
 
-/**
- * Builds the structured presentation for the forge layer snapshot.
- * <p>
- * Note: name_actions/lore_actions are now applied via ItemOperationLedger after item rebuild.
- * This builder only provides the base structured presentation (empty name/lore contributions).
- */
 final class ForgePresentationBuilder {
 
     private static final String NAMESPACE_ID = "forge";
@@ -39,7 +33,6 @@ final class ForgePresentationBuilder {
             List<EmakiStatContribution> stats,
             QualitySettings settings,
             Player player) {
-        // name_actions/lore_actions are now applied via ItemOperationLedger after item rebuild.
         return assemblePresentation(new LocalNameState(), List.of());
     }
 

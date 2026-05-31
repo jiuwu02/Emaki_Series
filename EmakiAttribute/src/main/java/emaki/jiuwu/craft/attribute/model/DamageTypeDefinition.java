@@ -133,4 +133,3 @@ public record DamageTypeDefinition(String id,
         return recovery != null;
     }
 }
-

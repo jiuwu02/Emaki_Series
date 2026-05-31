@@ -27,7 +27,6 @@ public final class StrengthenRecipeResolver {
 
     private static final double EPSILON = 1.0E-9D;
 
-    // 正则编译缓存：配置中的 pattern 字符串数量有限，避免每次匹配都重新编译
     private static final Map<String, Pattern> PATTERN_CACHE = new ConcurrentHashMap<>();
 
     private final EmakiStrengthenPlugin plugin;
@@ -298,9 +297,6 @@ public final class StrengthenRecipeResolver {
         }
     }
 
-    /**
-     * 清理正则编译缓存。应在 reload 时调用。
-     */
     public static void clearPatternCache() {
         PATTERN_CACHE.clear();
     }

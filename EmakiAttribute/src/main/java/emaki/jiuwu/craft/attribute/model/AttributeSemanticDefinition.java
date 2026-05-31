@@ -18,4 +18,3 @@ public record AttributeSemanticDefinition(String id,
         score = Double.isNaN(score) ? 1D : score;
     }
 }
-

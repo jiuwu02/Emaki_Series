@@ -4,20 +4,8 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-/**
- * Utility for resolving a trigger id to its human-readable display name.
- * Resolution order:
- * <ol>
- *   <li>Definition's own {@code displayName} (if present in the supplied map)</li>
- *   <li>{@link #DEFAULT_DISPLAY_NAMES} built-in fallback</li>
- *   <li>{@code "[triggerId]"} as last resort</li>
- * </ol>
- */
 public final class TriggerDisplayResolver {
 
-    /**
-     * The 15 built-in trigger display names.
-     */
     public static final Map<String, String> DEFAULT_DISPLAY_NAMES;
 
     static {
@@ -34,30 +22,19 @@ public final class TriggerDisplayResolver {
     }
 
     private TriggerDisplayResolver() {
-        // utility class
     }
 
-    /**
-     * Resolve the display name for a trigger id.
-     *
-     * @param triggerId   the trigger id to resolve
-     * @param definitions the currently registered definitions (may be empty)
-     * @return the resolved display name, never {@code null}
-     */
     public static String resolve(String triggerId, Map<String, SkillTriggerDefinition> definitions) {
-        // 1. Try definition
         SkillTriggerDefinition def = definitions.get(triggerId);
         if (def != null) {
             return def.displayName();
         }
 
-        // 2. Try built-in defaults
         String fallback = DEFAULT_DISPLAY_NAMES.get(triggerId);
         if (fallback != null) {
             return fallback;
         }
 
-        // 3. Last resort
         return "[" + triggerId + "]";
     }
 }

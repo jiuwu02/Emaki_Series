@@ -64,4 +64,3 @@ private static void appendPatterns(List<String> target, Object raw) {
         };
     }
 }
-

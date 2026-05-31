@@ -10,12 +10,6 @@ import org.bukkit.inventory.ItemStack;
 import emaki.jiuwu.craft.forge.model.GuiItems;
 import emaki.jiuwu.craft.forge.model.Recipe;
 
-/**
- * Resolves the outcome when a forge attempt fails (success_rate check did not pass).
- * <p>
- * Selects a failure outcome from the recipe's configured list by weighted random,
- * then executes the corresponding logic (return materials, consume, produce byproduct, etc.).
- */
 final class ForgeFailureResolver {
 
     record ForgeFailureResult(String outcomeType, boolean shouldReturnMaterials, double returnRate) {

@@ -5,18 +5,21 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * A node in the strengthen branch tree.
- * <p>
- * Each node has:
- * <ul>
- *   <li>branchId: identifier for this branch (root node uses "root")</li>
- *   <li>displayName: human-readable name</li>
- *   <li>stages: the linear star stages within this branch (Map&lt;Integer, StarStage&gt;)</li>
- *   <li>forkAfterStar: after which star this node forks into children (-1 = no fork)</li>
- *   <li>children: sub-branches (empty if no fork)</li>
- * </ul>
- * <p>
- * The tree is traversed using a "branch path" string like "sharp/lethal".
+ * A node in a strengthen recipe's branching star tree.
+ *
+ * <p>Each node owns a set of {@link StrengthenRecipe.StarStage star stages} and
+ * may fork into named child branches after {@code forkAfterStar}. Branch paths
+ * are slash-separated child ids (e.g. {@code "fire/blaze"}). The navigation
+ * helpers resolve a path to a node, collect the stages reachable along a path up
+ * to a star, compute the maximum reachable star and determine whether a fork
+ * selection is pending.
+ *
+ * @param branchId     this node's branch id ({@code "root"} when {@code null})
+ * @param displayName  the display name; never {@code null}
+ * @param stages       star level to stage mapping owned by this node
+ * @param forkAfterStar the star after which children fork ({@code -1} when there
+ *                     are no children)
+ * @param children     child branch nodes keyed by branch id; never {@code null}
  */
 public record StrengthenBranchNode(
         String branchId,
@@ -26,6 +29,7 @@ public record StrengthenBranchNode(
         Map<String, StrengthenBranchNode> children
 ) {
 
+    /** Canonical constructor; applies defaults and copies the maps. */
     public StrengthenBranchNode {
         branchId = branchId == null ? "root" : branchId;
         displayName = displayName == null ? "" : displayName;
@@ -35,10 +39,11 @@ public record StrengthenBranchNode(
     }
 
     /**
-     * Traverse the tree following the given branch path and return the deepest reachable node.
+     * Resolves the node reached by following a branch path from this node.
      *
-     * @param branchPath slash-separated path (e.g. "sharp/lethal"), empty or null for root
-     * @return the resolved node, or this node if path is empty
+     * @param branchPath the slash-separated branch path; blank returns this node
+     * @return the resolved node, or the deepest reachable node if the path runs
+     *         past a leaf
      */
     public StrengthenBranchNode resolveNode(String branchPath) {
         if (branchPath == null || branchPath.isEmpty()) {
@@ -61,17 +66,12 @@ public record StrengthenBranchNode(
     }
 
     /**
-     * Collect all stages from root through the branch path, up to the given star level.
-     * <p>
-     * Stages are collected in order:
-     * <ol>
-     *   <li>This node's stages with targetStar &lt;= upToStar (and &lt;= forkAfterStar if a fork exists)</li>
-     *   <li>If the path continues into a child, recurse into that child</li>
-     * </ol>
+     * Collects all star stages reachable along a branch path up to a star level.
      *
-     * @param branchPath slash-separated path
-     * @param upToStar   maximum star level to collect
-     * @return combined map of all collected stages in order
+     * @param branchPath the slash-separated branch path; blank uses the root
+     *                   chain only
+     * @param upToStar   the inclusive star ceiling
+     * @return an immutable star-to-stage map of the reachable stages
      */
     public Map<Integer, StrengthenRecipe.StarStage> collectStages(String branchPath, int upToStar) {
         String[] segments = (branchPath == null || branchPath.isEmpty())
@@ -103,10 +103,9 @@ public record StrengthenBranchNode(
     }
 
     /**
-     * Get the maximum star reachable on the given branch path.
+     * {@return the highest star reachable along the given branch path}
      *
-     * @param branchPath slash-separated path
-     * @return the highest star level reachable, or 0 if no stages exist
+     * @param branchPath the slash-separated branch path
      */
     public int maxReachableStar(String branchPath) {
         String[] segments = (branchPath == null || branchPath.isEmpty())
@@ -125,7 +124,6 @@ public record StrengthenBranchNode(
         }
 
         if (!children.isEmpty() && index >= segments.length) {
-            // At a fork point without a chosen branch — max is forkAfterStar
             return forkAfterStar >= 0 ? forkAfterStar : maxStageKey();
         }
 
@@ -143,10 +141,9 @@ public record StrengthenBranchNode(
     }
 
     /**
-     * Get available children at the fork point reached by the given branch path.
+     * {@return the child branches available at the node resolved by the path}
      *
-     * @param branchPath slash-separated path
-     * @return the children map of the deepest resolved node, or empty map if no fork
+     * @param branchPath the slash-separated branch path
      */
     public Map<String, StrengthenBranchNode> childrenAt(String branchPath) {
         StrengthenBranchNode node = resolveNode(branchPath);
@@ -154,18 +151,11 @@ public record StrengthenBranchNode(
     }
 
     /**
-     * Determine whether the player needs to choose a branch at the current position.
-     * <p>
-     * This is true when:
-     * <ul>
-     *   <li>The resolved node has children (a fork exists)</li>
-     *   <li>currentStar &gt;= forkAfterStar</li>
-     *   <li>The path does not already continue into a child</li>
-     * </ul>
+     * Determines whether the player must choose a fork to continue.
      *
-     * @param branchPath  current branch path
-     * @param currentStar the player's current star level
-     * @return true if a fork selection is needed
+     * @param branchPath  the current slash-separated branch path
+     * @param currentStar the current star level
+     * @return {@code true} when a fork selection is required to advance
      */
     public boolean needsForkSelection(String branchPath, int currentStar) {
         String[] segments = (branchPath == null || branchPath.isEmpty())
@@ -183,16 +173,15 @@ public record StrengthenBranchNode(
             }
         }
 
-        // We are at the deepest resolved node
         return !children.isEmpty() && forkAfterStar >= 0 && currentStar >= forkAfterStar;
     }
 
     /**
-     * Append a child branch id to the current path.
+     * Appends a child branch id to a branch path.
      *
-     * @param currentPath current branch path (may be null or empty)
+     * @param currentPath the existing branch path; blank starts a new path
      * @param childId     the child branch id to append
-     * @return the new path string
+     * @return the combined branch path
      */
     public static String appendBranch(String currentPath, String childId) {
         if (currentPath == null || currentPath.isEmpty()) {
@@ -202,10 +191,10 @@ public record StrengthenBranchNode(
     }
 
     /**
-     * Get the list of branch ids that form the given path.
+     * Splits a branch path into its individual segment ids.
      *
-     * @param branchPath slash-separated path
-     * @return list of segment ids, empty list if path is null or empty
+     * @param branchPath the slash-separated branch path
+     * @return the ordered segment list; empty when the path is blank
      */
     public static List<String> pathSegments(String branchPath) {
         if (branchPath == null || branchPath.isEmpty()) {

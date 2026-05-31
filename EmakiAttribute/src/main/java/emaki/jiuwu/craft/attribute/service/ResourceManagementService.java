@@ -100,8 +100,6 @@ final class ResourceManagementService {
             return;
         }
         UUID playerId = player.getUniqueId();
-        // Equipment is sampled when the task runs, so one pending sync per player is
-        // enough to apply the latest inventory state within the current delay window.
         if (!pendingEquipmentSyncs.add(playerId)) {
             return;
         }

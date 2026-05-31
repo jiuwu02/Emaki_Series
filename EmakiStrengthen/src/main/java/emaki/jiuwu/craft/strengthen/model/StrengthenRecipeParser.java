@@ -246,10 +246,6 @@ public final class StrengthenRecipeParser {
         return values;
     }
 
-    /**
-     * Parse a variables map that accepts both plain numbers and expression strings.
-     * Values are stored as-is (Number or String) for later resolution by ExpressionEngine.
-     */
     static Map<String, Object> parseVariablesMap(YamlSection section) {
         if (section == null) {
             return Map.of();
@@ -266,7 +262,6 @@ public final class StrengthenRecipeParser {
             } else {
                 String text = Texts.toStringSafe(raw).trim();
                 if (Texts.isNotBlank(text)) {
-                    // Try parsing as plain number first
                     Double numericValue = Numbers.tryParseDouble(text, null);
                     values.put(normalizedKey, numericValue != null ? numericValue : text);
                 }

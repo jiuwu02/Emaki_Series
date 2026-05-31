@@ -6,17 +6,6 @@ import java.util.Set;
 
 import emaki.jiuwu.craft.corelib.text.Texts;
 
-/**
- * Registry and executor for name modification operations.
- * <p>
- * Supported operations:
- * <ul>
- *   <li>{@code replace} — completely replace the base name</li>
- *   <li>{@code prepend_prefix} — add a prefix before the name</li>
- *   <li>{@code append_suffix} — add a suffix after the name</li>
- *   <li>{@code regex_replace} — regex replace within the base name template</li>
- * </ul>
- */
 public final class NameOperationRegistry {
 
     private final OperationTemplateRenderer templateRenderer;
@@ -60,7 +49,6 @@ public final class NameOperationRegistry {
         return Set.copyOf(processors.keySet());
     }
 
-    // --- Built-in processors ---
 
     private static final class ReplaceProcessor implements NameOperationProcessor {
 

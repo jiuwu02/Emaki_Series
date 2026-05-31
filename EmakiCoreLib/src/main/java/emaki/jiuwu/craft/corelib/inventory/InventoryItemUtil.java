@@ -157,17 +157,6 @@ public final class InventoryItemUtil {
         return itemStack.clone();
     }
 
-    /**
-     * Temporarily replaces the player's main hand and off hand with the given items,
-     * executes the supplier, then unconditionally restores the original held items.
-     *
-     * @param player the player whose hands to temporarily replace
-     * @param mainHand the temporary main hand item (may be null)
-     * @param offHand the temporary off hand item (may be null)
-     * @param supplier the operation to execute while hands are replaced
-     * @param <T> the result type
-     * @return a result containing the supplier's return value and post-execution hand snapshots
-     */
     public static <T> TemporaryHandsResult<T> withTemporaryHands(Player player,
             ItemStack mainHand,
             ItemStack offHand,

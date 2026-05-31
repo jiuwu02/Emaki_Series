@@ -106,7 +106,6 @@ public final class ActionBarService {
         String template = config.actionBar().templateCastMode();
         Map<String, SkillDefinition> defs = skillDefsSupplier.get();
 
-        // Build slot display segments
         StringBuilder slotDisplay = new StringBuilder();
         for (int i = 0; i < profile.bindings().size(); i++) {
             SkillSlotBinding binding = profile.getBinding(i);
@@ -122,7 +121,6 @@ public final class ActionBarService {
                 slotDisplay.append(skillName).append(triggerName);
             }
 
-            // Replace individual slot placeholders
             String slotPlaceholder = "{slot_" + (i + 1) + "}";
             if (template.contains(slotPlaceholder)) {
                 String slotText;
@@ -138,10 +136,8 @@ public final class ActionBarService {
             }
         }
 
-        // Replace {slot_display} with combined display
         template = template.replace("{slot_display}", slotDisplay.toString());
 
-        // Replace {forced_delay}
         PlayerCastTimingState timing = profile.timingState();
         long remaining = timing.forcedGlobalCastDelayUntil() - System.currentTimeMillis();
         String delayText = remaining > 0

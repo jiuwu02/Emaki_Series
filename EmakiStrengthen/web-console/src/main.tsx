@@ -229,7 +229,7 @@ registerPluginGuiEditor({
   editorId: 'emakistrengthen:gui',
   label: copy('强化 GUI', 'Strengthen GUI'),
   fields: [
-    ['type', '槽位类型', '强化业务槽位语义。', 'text'],
+    ['type', '槽位类型', '强化业务槽位语义。可选预设值，材料输入槽可用 material_input_0/1/2… 自定义。', 'enum', { options: ['target_item', 'preview_display', 'temper_display', 'confirm', 'material_input_0', 'material_input_1', 'material_input_2'], optionLabelPrefix: 'slotType' }],
     ['target_item', '目标物品', '放入待强化物品的槽位。', 'text'],
     ['material', '强化材料', '放入强化材料的槽位。', 'text'],
     ['success_preview', '成功率预览', '显示当前强化成功率与目标星级的槽位。', 'text'],

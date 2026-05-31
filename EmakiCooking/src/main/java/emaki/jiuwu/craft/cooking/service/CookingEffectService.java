@@ -11,13 +11,6 @@ import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 import emaki.jiuwu.craft.cooking.model.StationType;
 
-/**
- * 工位操作效果服务。
- * <p>
- * 从 config.yml 的 {@code stations.<type>.actions.<operation>} 读取动作列表，
- * 通过 CoreLib 的 ActionExecutor 执行（支持 playsound、particle 等所有内置动作）。
- * </p>
- */
 public final class CookingEffectService {
 
     private final EmakiCookingPlugin plugin;
@@ -32,13 +25,6 @@ public final class CookingEffectService {
         this.settingsService = settingsService;
     }
 
-    /**
-     * 播放指定工位操作的效果动作。
-     *
-     * @param stationType 工位类型
-     * @param operation   操作名（如 "stir", "cut", "complete" 等）
-     * @param player      触发操作的玩家
-     */
     public void playActions(StationType stationType, String operation, Player player) {
         if (stationType == null || operation == null || player == null || actionExecutor == null) {
             return;
@@ -51,14 +37,6 @@ public final class CookingEffectService {
         actionExecutor.executeAll(context, actions, false);
     }
 
-    /**
-     * 播放指定工位操作的效果动作，附带额外占位符。
-     *
-     * @param stationType  工位类型
-     * @param operation    操作名
-     * @param player       触发操作的玩家
-     * @param placeholders 额外占位符
-     */
     public void playActions(StationType stationType, String operation, Player player, Map<String, ?> placeholders) {
         if (stationType == null || operation == null || player == null || actionExecutor == null) {
             return;

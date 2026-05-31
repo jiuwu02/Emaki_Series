@@ -213,10 +213,6 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
         ));
     }
 
-    /**
-     * Asynchronous reload: file I/O stages run on the async thread pool,
-     * final registration and player sync run on the main thread.
-     */
     public java.util.concurrent.CompletableFuture<Void> reloadAsync(EmakiSkillsPlugin plugin, boolean closeInventories, java.util.function.Consumer<String> progressListener) {
         emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler scheduler = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).asyncTaskScheduler();
         if (scheduler == null) {
@@ -224,13 +220,11 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
             return java.util.concurrent.CompletableFuture.completedFuture(null);
         }
 
-        // Step 1: Close inventories on main thread (already on main thread when called from command)
         if (closeInventories) {
             Bukkit.getOnlinePlayers().forEach(player -> player.closeInventory());
         }
         notifyProgress(progressListener, plugin.messageService().message("console.reload_loading_files"));
 
-        // Step 2: Async file I/O — load all config/definition files
         return runReloadStageAsync(scheduler, new ReloadStageConfig<>(
                 "skills", "config-load", plugin.messageService().message("console.reload_loading_configs"), progressListener,
                 () -> {
@@ -242,7 +236,6 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                 },
                 null, (stage, ex) -> plugin.getLogger().warning("[Reload] Stage " + stage + " failed: " + ex.getMessage())
         )).thenCompose(_ -> {
-            // Step 3: Back to main thread — apply config and sync players
             notifyProgress(progressListener, plugin.messageService().message("console.reload_applying"));
             return scheduler.callSync("skills-reload-apply", () -> {
                 plugin.languageLoader().setLanguage(plugin.appConfig().language());
@@ -281,13 +274,11 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
         }
         AppConfig defaults = AppConfig.defaults();
 
-        // Slots
         YamlSection slotsSection = configuration.getSection("slots");
         int defaultSlotCount = slotsSection != null
                 ? intValue(slotsSection.getInt("default_count", defaults.defaultSlotCount()), defaults.defaultSlotCount())
                 : defaults.defaultSlotCount();
 
-        // Cast mode
         YamlSection castModeSection = configuration.getSection("cast_mode");
         AppConfig.CastModeSettings castMode;
         if (castModeSection == null) {
@@ -299,7 +290,6 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
             );
         }
 
-        // Cast timing
         YamlSection castTimingSection = configuration.getSection("cast_timing");
         AppConfig.CastTimingSettings castTiming;
         if (castTimingSection == null) {
@@ -310,7 +300,6 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
             );
         }
 
-        // Action bar
         YamlSection actionBarSection = configuration.getSection("actionbar");
         AppConfig.ActionBarSettings actionBar;
         if (actionBarSection == null) {
@@ -324,7 +313,6 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
             );
         }
 
-        // Triggers
         Map<String, AppConfig.TriggerConfig> triggers = parseTriggers(configuration.getSection("triggers"));
         Map<String, AppConfig.TriggerConfig> passiveTriggers = parseTriggers(configuration.getSection("passive_triggers"));
         YamlSection passiveTriggerSettingsSection = configuration.getSection("passive_trigger_settings");
@@ -398,7 +386,6 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
         TriggerRegistry registry = plugin.triggerRegistry();
         registry.clear();
 
-        // Load built-in defaults first
         for (SkillTriggerDefinition def : TriggerRegistry.defaultDefinitions()) {
             registry.register(def);
         }
@@ -406,7 +393,6 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
             registry.register(def);
         }
 
-        // Override with config-defined triggers
         Map<String, AppConfig.TriggerConfig> configTriggers = plugin.appConfig().triggers();
         for (Map.Entry<String, AppConfig.TriggerConfig> entry : configTriggers.entrySet()) {
             String id = entry.getKey();

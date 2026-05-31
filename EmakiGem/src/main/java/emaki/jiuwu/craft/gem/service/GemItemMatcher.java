@@ -36,7 +36,6 @@ public final class GemItemMatcher {
     }
 
     public void refresh() {
-        // Reserved for future cache/index refresh logic.
     }
 
     public ItemSource identifyItem(ItemStack itemStack) {

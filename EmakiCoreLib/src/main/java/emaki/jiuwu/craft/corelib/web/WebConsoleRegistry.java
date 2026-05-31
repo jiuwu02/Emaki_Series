@@ -41,23 +41,14 @@ public final class WebConsoleRegistry {
         this.plugin = plugin;
     }
 
-    /**
-     * 从插件自带的 web-console.yml 执行声明式注册，让插件 Java 入口只保留发现动作。
-     */
     public static void registerFromYaml(JavaPlugin plugin) {
         WebConsoleYamlRegistrar.scanPlugin(plugin);
     }
 
-    /**
-     * 注册一个 Web Console 模块入口。其他插件只需要在启用阶段调用一次，后续文件和字段注释都挂到这个模块下。
-     */
     public static synchronized void registerModule(String id, String name, String summary, String tone) {
         registerModule(id, name, summary, tone, DEFAULT_ICON_SVG);
     }
 
-    /**
-     * 注册一个带插件自有 SVG 的 Web Console 模块入口。SVG 必须由模块所有者提供，CoreLib 不内置外部插件图标。
-     */
     public static synchronized void registerModule(String id, String name, String summary, String tone, String iconSvg) {
         ModuleRegistration existing = MODULES.get(id);
         List<FileRegistration> files = existing == null ? new ArrayList<>() : existing.files();
@@ -72,9 +63,6 @@ public final class WebConsoleRegistry {
         registerModule(plugin.getName(), name, summary, tone, iconSvg);
     }
 
-    /**
-     * 插件关闭时主动反注册，避免 reload 后残留已卸载插件的 Web Console 文件入口。
-     */
     public static synchronized void unregisterModule(JavaPlugin plugin) {
         String moduleId = plugin.getName();
         WebConsoleYamlRegistrar.unmarkScanned(moduleId);
@@ -88,9 +76,6 @@ public final class WebConsoleRegistry {
         NODE_RULES.removeIf(rule -> moduleId.equals(rule.moduleId()));
     }
 
-    /**
-     * 注册普通配置文件。CONFIG 是默认文件类型，前端后续可按类型渲染不同编辑体验。
-     */
     public static synchronized void registerConfigFile(String moduleId, String title, String relativePath, String comment) {
         boolean structured = !relativePath.contains("*");
         registerFile(moduleId, title, relativePath, WebConsoleFileType.CONFIG, comment, structured);
@@ -103,9 +88,6 @@ public final class WebConsoleRegistry {
         registerConfigFile(plugin.getName(), title, relativePath, comment);
     }
 
-    /**
-     * 注册 GUI 模板文件或模板目录。未指定 editorId 时前端使用 CoreLib 的通用 GUI 编辑器。
-     */
     public static synchronized void registerGuiFile(String moduleId, String title, String relativePath, String comment) {
         registerGuiFile(moduleId, title, relativePath, comment, "");
     }
@@ -117,9 +99,6 @@ public final class WebConsoleRegistry {
         registerGuiFile(plugin.getName(), title, relativePath, comment);
     }
 
-    /**
-     * 注册带专属编辑器的 GUI 模板文件。editorId 由子插件命名，例如 emakigem:gui。
-     */
     public static synchronized void registerGuiFile(String moduleId, String title, String relativePath, String comment, String editorId) {
         registerFile(moduleId, title, relativePath, WebConsoleFileType.GUI, comment, false, editorId);
     }
@@ -131,9 +110,6 @@ public final class WebConsoleRegistry {
         registerGuiFile(plugin.getName(), title, relativePath, comment, editorId);
     }
 
-    /**
-     * 注册物品定义文件或物品目录。未指定 editorId 时前端使用 CoreLib 的通用 ITEM 编辑器。
-     */
     public static synchronized void registerItemFile(String moduleId, String title, String relativePath, String comment) {
         registerItemFile(moduleId, title, relativePath, comment, "");
     }
@@ -145,9 +121,6 @@ public final class WebConsoleRegistry {
         registerItemFile(plugin.getName(), title, relativePath, comment);
     }
 
-    /**
-     * 注册带专属编辑器的物品定义文件。editorId 由子插件命名，例如 emakigem:gem。
-     */
     public static synchronized void registerItemFile(String moduleId, String title, String relativePath, String comment, String editorId) {
         registerFile(moduleId, title, relativePath, WebConsoleFileType.ITEM, comment, false, editorId);
     }
@@ -159,9 +132,6 @@ public final class WebConsoleRegistry {
         registerItemFile(plugin.getName(), title, relativePath, comment, editorId);
     }
 
-    /**
-     * 注册插件自定义资源文件或资源目录。kind 会原样暴露给前端 surface registry。
-     */
     public static synchronized void registerResourceFile(String moduleId, String title, String relativePath, String kind, String comment, String editorId) {
         registerFile(moduleId, title, relativePath, WebConsoleFileType.resource(kind), comment, false, editorId);
     }
@@ -198,17 +168,11 @@ public final class WebConsoleRegistry {
         registerEditorDescriptor(plugin.getName(), editorId, descriptor);
     }
 
-    /**
-     * 创建标准 Web Edit 顶级分组描述。默认启用前端折叠能力，用于各插件统一注册页面 section。
-     */
     @SafeVarargs
     public static Map<String, Object> editorSection(String title, Map<String, Object>... fields) {
         return editorSection(title, true, false, fields);
     }
 
-    /**
-     * 创建可配置折叠行为的 Web Edit 顶级分组描述。
-     */
     @SafeVarargs
     public static Map<String, Object> editorSection(String title, boolean collapsible, boolean defaultCollapsed, Map<String, Object>... fields) {
         Map<String, Object> section = new LinkedHashMap<>();
@@ -256,10 +220,6 @@ public final class WebConsoleRegistry {
         registerEditorField(plugin, editorId, path, label, comment, type);
     }
 
-    /**
-     * 注册一个前端扩展脚本。resourcePath 是插件 jar 内的资源路径，例如 web-extensions/emakigem-item-surface.js。
-     * 脚本会在 Web Console 获取 registry 后动态加载，并通过 window.EmakiWebConsole.registerSurface 注册页面。
-     */
     public static synchronized void registerWebExtension(String moduleId, String id, String resourcePath) {
         if (Texts.isBlank(moduleId) || Texts.isBlank(id) || Texts.isBlank(resourcePath)) {
             return;
@@ -423,10 +383,6 @@ public final class WebConsoleRegistry {
         registerUniqueListField(plugin.getName(), listPath, fieldPath);
     }
 
-    /**
-     * 按需加载单个子文件的结构化 YAML 节点列表。
-     * 用于 glob 路径注册的 CONFIG 文件，前端点击子文件时调用。
-     */
     public Map<String, Object> fileNodes(String moduleId, String relativePath) throws IOException {
         if (Texts.isBlank(moduleId) || Texts.isBlank(relativePath)) {
             throw new IOException("缺少 moduleId 或 path 参数");
@@ -447,7 +403,6 @@ public final class WebConsoleRegistry {
     }
 
     public Map<String, Object> snapshot() {
-        // 懒加载：扫描所有插件的声明式 web-console.yml 注册
         WebConsoleYamlRegistrar.scanAll();
         List<Map<String, Object>> modules = new ArrayList<>();
         List<Map<String, Object>> tree = new ArrayList<>();
@@ -504,7 +459,6 @@ public final class WebConsoleRegistry {
             if (config != null) {
                 file = moduleFile(moduleId, config.relativePath());
             } else {
-                // 支持 glob 子文件的直接路径保存
                 file = moduleFile(moduleId, filePath);
                 if (!file.exists() || !file.isFile()) {
                     throw new IOException("文件不存在: " + filePath);
@@ -783,10 +737,8 @@ public final class WebConsoleRegistry {
             String path = Texts.isBlank(prefix) ? entry.getKey() : prefix + "." + entry.getKey();
             Object value = normalizeValue(entry.getValue());
             if (value instanceof Map<?, ?> map) {
-                // 检查该节点是否注册为 dynamic_map 类型
                 NodeMeta meta = resolveMeta(moduleId, path, "object");
                 if ("dynamic_map".equals(meta.type())) {
-                    // dynamic_map：不递归展开，把整个 map 作为可编辑值传给前端
                     nodes.add(node(moduleId, path, "object", value, true));
                 } else {
                     nodes.add(node(moduleId, path, "object", Map.of(), false));
@@ -805,13 +757,11 @@ public final class WebConsoleRegistry {
         node.put("label", meta.label());
         node.put("comment", meta.comment());
         String resolvedType = resolveNodeType(detectedType, meta.type());
-        // 支持 enum:OPT1,OPT2,OPT3 格式（静态枚举）
         if (resolvedType.startsWith("enum:")) {
             node.put("type", "enum");
             String[] options = resolvedType.substring(5).split(",");
             node.put("options", java.util.Arrays.asList(options));
         }
-        // 支持 dynamic_enum:目录路径 格式（动态枚举，扫描目录下 YAML 文件的 id 字段）
         else if (resolvedType.startsWith("dynamic_enum:")) {
             node.put("type", "enum");
             String dirPath = resolvedType.substring("dynamic_enum:".length());
@@ -883,12 +833,10 @@ public final class WebConsoleRegistry {
                     if (id != null && !id.isBlank()) {
                         result.add(id);
                     } else {
-                        // 没有 id 字段时，使用文件名（去掉扩展名）
                         String name = entry.getName();
                         result.add(name.substring(0, name.lastIndexOf('.')));
                     }
                 } catch (Exception ignored) {
-                    // 解析失败时使用文件名
                     String name = entry.getName();
                     result.add(name.substring(0, name.lastIndexOf('.')));
                 }

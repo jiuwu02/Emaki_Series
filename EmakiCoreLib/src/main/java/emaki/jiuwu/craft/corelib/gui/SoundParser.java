@@ -11,9 +11,6 @@ import org.bukkit.Sound;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
-/**
- * Parses and resolves configurable sound definitions.
- */
 public final class SoundParser {
 
     public record SoundDefinition(String key, float volume, float pitch) {

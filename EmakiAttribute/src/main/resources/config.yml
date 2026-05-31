@@ -22,9 +22,14 @@ hard_lock_damage: true
 default_damage_type: physical
 
 # 原版事件伤害接管
-# enabled: true 时，未在 allowed_damage_causes 中单独配置的原版伤害也会进入 EA 结算。
+# enabled: true 时启用「完美接管」——不取消原版伤害事件，只把最终伤害数值替换为 EA 结算值，
+#          屏蔽原版护甲/抗性/魔法减伤、保留吸收之心与举盾格挡，原版副作用照常触发
+#          （着火僵尸点燃玩家、铁傀儡命中击飞、僵尸击退铁傀儡、荆棘、冻结、盾反等）。
+#          此时未在 allowed_damage_causes 中单独配置的原版伤害也会进入 EA 结算。
+# enabled: false 时使用「兼容模式」——取消原版事件后由 EA 合成重新施加伤害（含合成击退/受伤音效），
+#          只有 allowed_damage_causes 白名单内的伤害原因进入 EA；该模式下原版副作用可能缺失。
 # damage_type: 这些未单独映射的原版伤害统一使用的 EA 伤害类型。
-# base_damage 会直接使用 Bukkit 事件里的原版伤害值，适合让原版物品、原版生物也有基础伤害。
+#          base_damage 会直接使用 Bukkit 事件里的原版伤害值，适合让原版物品、原版生物也有基础伤害。
 vanilla_event_damage:
   enabled: true
   damage_type: physical
@@ -72,7 +77,9 @@ default_profile:
     mana_regen: 0.1
 
 synthetic_hit_feedback:
-  # 接管原版伤害后，是否补发击退和受伤音效
+  # 仅在兼容模式（vanilla_event_damage.enabled = false）下生效：
+  # 取消原版事件并合成施加伤害后，是否补发击退和受伤音效。
+  # 完美接管模式（enabled = true）下原版自身已处理击退与受伤反馈，这些设置不参与。
   knockback: true
   knockback_strength: 0.4
   hurt_sound: true

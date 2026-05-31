@@ -260,11 +260,7 @@ public final class CookingRecipeService {
         return true;
     }
 
-    // ========== 配方完成条件（true/false 动作分支） ==========
 
-    /**
-     * 配方是否配置了完成条件块 {@code condition}。
-     */
     public boolean hasCompletionCondition(RecipeDocument recipe) {
         if (recipe == null) {
             return false;
@@ -273,11 +269,6 @@ public final class CookingRecipeService {
         return section != null && !section.isEmpty();
     }
 
-    /**
-     * 评估配方完成条件块 {@code condition} 是否通过。
-     * <p>
-     * 未配置条件块、条件列表为空，或 player 为 null（离线/自动完成）时返回 true。
-     */
     public boolean completionConditionPasses(RecipeDocument recipe, Player player) {
         if (recipe == null) {
             return true;
@@ -301,11 +292,6 @@ public final class CookingRecipeService {
         );
     }
 
-    /**
-     * 获取完成条件分支动作。
-     *
-     * @param passed 条件评估结果，true 返回 {@code condition.pass_actions}，false 返回 {@code condition.fail_actions}
-     */
     public List<String> completionConditionActions(RecipeDocument recipe, boolean passed) {
         if (recipe == null) {
             return List.of();
@@ -318,9 +304,6 @@ public final class CookingRecipeService {
         return actions == null ? List.of() : actions;
     }
 
-    /**
-     * 条件不通过时是否阻止产出（默认 false：仅执行 fail 动作，产出照常发放）。
-     */
     public boolean completionConditionBlocksOutput(RecipeDocument recipe) {
         if (recipe == null) {
             return false;
@@ -501,16 +484,6 @@ public final class CookingRecipeService {
         parsedSourceCache.clear();
     }
 
-    /**
-     * Check if the input item satisfies the recipe's {@code requires_previous_step} constraint.
-     * <p>
-     * If the recipe has no such constraint, returns true.
-     * Otherwise, checks the item's PDC for a processing history tag matching the required step.
-     *
-     * @param recipe    the recipe to check
-     * @param itemStack the input item
-     * @return true if the prerequisite is satisfied or not configured
-     */
     public boolean satisfiesPreviousStep(RecipeDocument recipe, org.bukkit.inventory.ItemStack itemStack) {
         if (recipe == null || itemStack == null || itemStack.getType().isAir()) {
             return true;
@@ -529,12 +502,6 @@ public final class CookingRecipeService {
         return history.contains(requiredStep);
     }
 
-    /**
-     * Write a processing history tag to the output item's PDC.
-     *
-     * @param itemStack the output item
-     * @param recipeId  the recipe id to record as processing history
-     */
     public void writeProcessingHistory(org.bukkit.inventory.ItemStack itemStack, String recipeId) {
         if (itemStack == null || itemStack.getType().isAir() || Texts.isBlank(recipeId)) {
             return;
@@ -571,26 +538,20 @@ public final class CookingRecipeService {
             return text;
         }
         String resolved = text;
-        // 1) 表达式变量 {xxx}（与 EmakiSkills/EmakiItem 等模块一致的花括号风格）
         if (resolved.indexOf('{') >= 0) {
             for (Map.Entry<String, String> entry : playerVariables(player).entrySet()) {
                 resolved = resolved.replace("{" + entry.getKey() + "}", entry.getValue());
             }
         }
-        // 2) PlaceholderAPI 占位符 %xxx%（保留兼容）
         if (resolved.indexOf('%') >= 0 && plugin.getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
             try {
                 resolved = Texts.toStringSafe(me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(player, resolved));
             } catch (Exception | NoClassDefFoundError _) {
-                // 解析失败时保持已替换的文本
             }
         }
         return resolved;
     }
 
-    /**
-     * 提供给条件表达式 {@code {xxx}} 使用的玩家变量（与其它模块的花括号变量风格一致）。
-     */
     private Map<String, String> playerVariables(Player player) {
         Map<String, String> values = new java.util.LinkedHashMap<>();
         values.put("player_name", player.getName());

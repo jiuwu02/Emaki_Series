@@ -84,6 +84,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                 new PluginIntegrationListener(plugin),
                 new InventoryInteractionListener(attributeService),
                 new CombatDamageListener(plugin, attributeService, combatDebugHandler),
+                attributeService.perfectTakeoverCoordinator(),
                 new CombatDebugListener(attributeService)
         );
         MythicBridge mythicBridge = Bukkit.getPluginManager().isPluginEnabled("MythicMobs")
@@ -407,7 +408,6 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         return true;
     }
 
-    // 只迁移与旧 bundled 默认完全一致的条目；用户改过任一字段就保留原值。
     private boolean isLegacyDefaultDamageCauseRule(Object entry, DamageCauseRule rule, String defaultDamageType) {
         if (entry == null || rule == null) {
             return false;

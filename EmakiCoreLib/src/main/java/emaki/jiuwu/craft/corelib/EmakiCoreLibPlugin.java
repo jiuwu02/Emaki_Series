@@ -140,7 +140,6 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         if (asyncTaskScheduler != null) {
             asyncTaskScheduler.shutdown(5_000L);
         }
-        // 清理表达式引擎的全局缓存和当前线程缓存，防止内存泄漏
         ExpressionEngine.clearGlobalCache();
         ExpressionEngine.clearThreadLocalCache();
         emaki.jiuwu.craft.corelib.assembly.OperationTemplateRenderer.clearRegexCache();

@@ -244,7 +244,6 @@ public final class AsyncTaskScheduler implements AutoCloseable {
     }
 
     public void shutdown(long timeoutMillis) {
-        // 在关闭线程池前，向每个工作线程提交 ThreadLocal 清理任务
         if (!executor.isShutdown()) {
             int poolSize = executor.getCorePoolSize();
             for (int i = 0; i < poolSize; i++) {
@@ -400,7 +399,6 @@ public final class AsyncTaskScheduler implements AutoCloseable {
 
         @Override
         public int compareTo(Object other) {
-            // 清理任务优先级最低，排在所有正常任务之后
             if (other instanceof ComparableRunnable) {
                 return 0;
             }

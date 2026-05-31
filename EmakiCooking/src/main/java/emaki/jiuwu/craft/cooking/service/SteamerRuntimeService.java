@@ -164,7 +164,6 @@ public final class SteamerRuntimeService implements Listener {
             return true;
         }
 
-        // 仅在"打开"手势上拦截；其它手势（如左键挖掘破坏）一律放行，避免缺少热源时无法破坏蒸锅方块。
         if (!settingsService.matchesInteraction(
                 StationType.STEAMER,
                 CookingSettingsService.INTERACTION_OPEN,
@@ -509,7 +508,6 @@ public final class SteamerRuntimeService implements Listener {
             dirtyStations.remove(coordinates);
             stateStore.saveAsync(coordinates, serialized).thenAccept(success -> {
                 if (!success) {
-                    // Re-mark dirty on failure so next flush retries
                     dirtyStations.add(coordinates);
                 }
             });

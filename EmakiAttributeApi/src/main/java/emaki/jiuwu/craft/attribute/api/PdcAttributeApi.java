@@ -10,58 +10,66 @@ import org.jetbrains.annotations.Nullable;
 import emaki.jiuwu.craft.attribute.model.PdcAttributePayload;
 
 /**
- * Public API for reading and writing PDC-backed attribute payloads on items.
+ * Public API for reading and writing EmakiAttribute attribute data stored in an
+ * item's Persistent Data Container (PDC).
+ *
+ * <p>Each block of attribute data is keyed by a {@code sourceId}, allowing
+ * several plugins to attach independent attribute payloads to the same item
+ * without clobbering one another. A source must be registered with
+ * {@link #registerSource(String)} before its payloads will be honored.
+ *
+ * <p>Obtain an instance via {@link PdcAttributeApiProvider#get()}. All item
+ * arguments tolerate {@code null} and are treated as "no data".
  */
 public interface PdcAttributeApi {
 
     /**
-     * Registers a payload source id that is allowed to write attribute payloads.
+     * Registers a source id so payloads written under it are recognized.
      *
-     * @param sourceId the source id to register
-     * @return {@code true} when the source was newly registered
+     * @param sourceId the source identifier to register
+     * @return {@code true} if the source was newly registered, {@code false} if
+     *         it was already known
      */
     boolean registerSource(@NotNull String sourceId);
 
     /**
-     * Unregisters a payload source id.
+     * Unregisters a previously registered source id.
      *
-     * @param sourceId the source id to unregister
+     * @param sourceId the source identifier to remove
      */
     void unregisterSource(@NotNull String sourceId);
 
     /**
-     * Returns whether a source id is registered.
+     * {@return whether the given source id is currently registered}
      *
-     * @param sourceId the source id to inspect
-     * @return {@code true} when the source id is registered
+     * @param sourceId the source identifier to check
      */
     boolean isRegisteredSource(@NotNull String sourceId);
 
     /**
-     * Returns all registered source ids.
-     *
-     * @return the immutable set of registered source ids
+     * {@return an immutable view of all currently registered source ids}
      */
     @NotNull
     Set<String> registeredSources();
 
     /**
-     * Writes a payload onto an item.
+     * Writes (or replaces) the attribute payload for its source onto the item.
      *
-     * @param itemStack the item to mutate
-     * @param payload the payload to write
-     * @return {@code true} when the payload was written successfully
+     * @param itemStack the target item; {@code null} is a no-op
+     * @param payload   the payload to store; {@code null} is a no-op
+     * @return {@code true} if the item was modified
      */
     boolean write(@Nullable ItemStack itemStack, @Nullable PdcAttributePayload payload);
 
     /**
-     * Writes a payload using raw source, attribute, and metadata values.
+     * Convenience overload that builds a {@link PdcAttributePayload} from raw
+     * maps and writes it.
      *
-     * @param itemStack the item to mutate
-     * @param sourceId the payload source id
-     * @param attributes the attribute values to store
-     * @param meta the metadata values to store
-     * @return {@code true} when the payload was written successfully
+     * @param itemStack  the target item; {@code null} is a no-op
+     * @param sourceId   the source id the payload belongs to
+     * @param attributes attribute id to value mapping
+     * @param meta       arbitrary string metadata stored alongside the payload
+     * @return {@code true} if the item was modified
      */
     default boolean write(ItemStack itemStack,
             String sourceId,
@@ -71,37 +79,37 @@ public interface PdcAttributeApi {
     }
 
     /**
-     * Reads a payload from an item for a specific source id.
+     * Reads the payload stored for a single source.
      *
-     * @param itemStack the item to inspect
-     * @param sourceId the payload source id
-     * @return the resolved payload, or {@code null} when no payload exists
+     * @param itemStack the item to read from; {@code null} yields {@code null}
+     * @param sourceId  the source id whose payload to read
+     * @return the stored payload, or {@code null} when absent
      */
     @Nullable
     PdcAttributePayload read(@Nullable ItemStack itemStack, @NotNull String sourceId);
 
     /**
-     * Reads all payloads currently stored on an item.
+     * Reads every source payload stored on the item.
      *
-     * @param itemStack the item to inspect
-     * @return all payloads keyed by source id
+     * @param itemStack the item to read from; {@code null} yields an empty map
+     * @return a map of source id to payload; never {@code null}
      */
     @NotNull
     Map<String, PdcAttributePayload> readAll(@Nullable ItemStack itemStack);
 
     /**
-     * Clears a payload for a specific source id.
+     * Removes the payload of a single source from the item.
      *
-     * @param itemStack the item to mutate
-     * @param sourceId the payload source id
-     * @return {@code true} when a payload was cleared
+     * @param itemStack the target item; {@code null} is a no-op
+     * @param sourceId  the source id to clear
+     * @return {@code true} if data was removed
      */
     boolean clear(@Nullable ItemStack itemStack, @NotNull String sourceId);
 
     /**
-     * Clears all payloads from an item.
+     * Removes all EmakiAttribute payloads from the item.
      *
-     * @param itemStack the item to mutate
+     * @param itemStack the target item; {@code null} is a no-op
      */
     void clearAll(@Nullable ItemStack itemStack);
 }

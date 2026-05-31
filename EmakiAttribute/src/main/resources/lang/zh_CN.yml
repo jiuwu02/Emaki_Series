@@ -169,6 +169,11 @@ combat_debug:
     baseDamage={base_damage}"
   projectile_snapshot_missing_strict: "投射物命中时未找到快照，已按严格快照模式终止结算: projectile={projectile}"
   async_damage_failed: "异步伤害解析失败: {error}"
+  perfect_takeover_applied: "完美接管已原地改写原版伤害: cause={cause}, finalDamage={final_damage},
+    保留吸收/格挡、屏蔽护甲减伤，原版副作用照常触发。"
+  perfect_takeover_cancelled: "完美接管结算结果无伤害，已取消原版事件: cause={cause}"
+  perfect_side_effects: "完美接管补发 EA 副作用: finalDamage={final_damage},
+    attackerCooldownTicks={attacker_cooldown_ticks}"
 
 command:
   unknown: "<red>未知子命令，请使用 /{label} help 查看帮助。</red>"

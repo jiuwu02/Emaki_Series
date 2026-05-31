@@ -15,9 +15,6 @@ import org.bukkit.entity.Display;
 import org.bukkit.entity.TextDisplay;
 import org.bukkit.plugin.java.JavaPlugin;
 
-/**
- * 基于真实 {@link TextDisplay} 实体的文本展示后端。
- */
 public final class BukkitCookingTextDisplayService implements CookingTextDisplayService {
 
     private final JavaPlugin plugin;
@@ -104,7 +101,6 @@ public final class BukkitCookingTextDisplayService implements CookingTextDisplay
 
     private void apply(TextDisplay display, CookingTextDisplaySpec spec) {
         CookingSettingsService.TextDisplayProfile profile = spec.profile();
-        // Spigot（非 Paper）TextDisplay#setText 接收 legacy 字符串
         display.setText(MiniMessages.legacy(spec.component()));
         display.setBillboard(billboard(profile.billboard()));
         display.setTransformation(spec.transformation());

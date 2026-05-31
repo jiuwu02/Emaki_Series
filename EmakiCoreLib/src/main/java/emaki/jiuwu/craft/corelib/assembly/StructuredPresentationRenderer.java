@@ -34,7 +34,6 @@ final class StructuredPresentationRenderer {
             return new RenderResult(normalizeComponent(fallbackBaseName), copyLore(currentLore), false);
         }
 
-        // 预构建格式化 Map，整个 render 过程只构建一次，避免每次 renderTemplate 都重建
         Map<String, Object> formattedStats = buildFormattedStats(aggregatedStats);
 
         Component baseName = resolveBaseName(itemStack, fallbackBaseName, presentations, formattedStats);

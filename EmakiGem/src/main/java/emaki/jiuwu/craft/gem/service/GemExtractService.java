@@ -91,7 +91,6 @@ public final class GemExtractService {
             }
             return Result.failure("command.extract.apply_failed", Map.of("player", target.getName()));
         }
-        // Revert name/lore operations for the extracted gem
         operationLedger.revert(rebuilt, OPERATION_NAMESPACE + ":slot_" + slotIndex);
         target.getInventory().setItemInMainHand(rebuilt);
         ItemStack returned = createReturnedGem(gemDefinition, instance);

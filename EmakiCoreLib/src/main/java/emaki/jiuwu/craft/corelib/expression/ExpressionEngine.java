@@ -76,21 +76,6 @@ public final class ExpressionEngine {
         return value == null ? 0D : value;
     }
 
-    /**
-     * Resolve a map of raw variable values (which may contain plain numbers or expression strings)
-     * into a final Map of resolved Double values.
-     * <p>
-     * Variables are resolved in iteration order, so later variables can reference earlier ones.
-     * Expression strings use the standard expression syntax and can reference:
-     * <ul>
-     *   <li>The provided context variables</li>
-     *   <li>Previously resolved variables from the same map</li>
-     * </ul>
-     *
-     * @param rawValues map of variable id to raw value (Number or String expression)
-     * @param context   external context variables (e.g. star, level)
-     * @return resolved map of variable id to computed double value
-     */
     public static Map<String, Double> resolveVariables(Map<String, Object> rawValues, Map<String, ?> context) {
         Map<String, Double> resolved = new java.util.LinkedHashMap<>();
         if (rawValues == null || rawValues.isEmpty()) {
@@ -245,18 +230,10 @@ public final class ExpressionEngine {
         }
     }
 
-    /**
-     * 清理当前线程的表达式编译缓存。
-     * 应在插件 disable 或线程池关闭时调用，防止 ThreadLocal 内存泄漏。
-     */
     public static void clearThreadLocalCache() {
         ExpressionCache.clearThreadLocal();
     }
 
-    /**
-     * 清理全局表达式编译缓存。
-     * 应在插件 disable 时调用。
-     */
     public static void clearGlobalCache() {
         ExpressionCache.clearGlobal();
     }
@@ -994,7 +971,6 @@ public final class ExpressionEngine {
             Map<String, Double> resolvedVariables,
             List<String> resolvingVariables) {
 
-        // 无变量时的零分配快速路径：使用不可变空集合，避免每次求值都分配 LinkedHashMap + ArrayList
         private static final NumericEvaluationScope EMPTY_SCOPE = new NumericEvaluationScope(
                 Map.of(), Map.of(), List.of());
 

@@ -29,4 +29,3 @@ public final class EmakiItemLayerCodecRegistry {
         return codec == null ? EmakiItemLayerSnapshot.CODEC : codec;
     }
 }
-

@@ -14,9 +14,6 @@ import org.bukkit.plugin.RegisteredServiceProvider;
 
 import emaki.jiuwu.craft.corelib.text.Texts;
 
-/**
- * Bridges to EmakiAttribute's PDC API through Bukkit Services.
- */
 public final class PdcAttributeGateway {
 
     private static final String ATTRIBUTE_PLUGIN_NAME = "EmakiAttribute";

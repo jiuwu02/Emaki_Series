@@ -68,7 +68,7 @@ public final class SkillsGuiHandler implements GuiSessionHandler {
             case "page_prev" -> handlePagePrev(session);
             case "page_next" -> handlePageNext(session, player);
             case "close" -> player.closeInventory();
-            default -> { /* filler or unknown — do nothing */ }
+            default -> {  }
         }
     }
 
@@ -90,9 +90,6 @@ public final class SkillsGuiHandler implements GuiSessionHandler {
         dataStore.save(player);
     }
 
-    // ------------------------------------------------------------------
-    // Slot type handlers
-    // ------------------------------------------------------------------
 
     private void handleActiveSlotClick(GuiSession session, InventoryClickEvent event,
             GuiTemplate.ResolvedSlot slot, Player player) {
@@ -107,12 +104,10 @@ public final class SkillsGuiHandler implements GuiSessionHandler {
         }
 
         if (event.isShiftClick()) {
-            // Shift-click: open trigger selection for this slot
             player.closeInventory();
             plugin.getServer().getScheduler().runTask(plugin, () ->
                     skillsGuiService.openTriggerSelect(player, slotIndex));
         } else {
-            // Normal click: unequip
             stateService.unequipSkill(player, slotIndex);
             messageService.send(player, "gui.skill_unequipped");
             skillsGuiService.renderSkillsGui(session);
@@ -140,7 +135,6 @@ public final class SkillsGuiHandler implements GuiSessionHandler {
             return;
         }
 
-        // Check if skill is already equipped
         for (SkillSlotBinding binding : profile.bindings()) {
             if (!binding.isEmpty() && entry.skillId().equals(binding.skillId())) {
                 messageService.send(player, "gui.skill_already_equipped");
@@ -148,7 +142,6 @@ public final class SkillsGuiHandler implements GuiSessionHandler {
             }
         }
 
-        // Find first empty slot
         int emptySlot = -1;
         for (SkillSlotBinding binding : profile.bindings()) {
             if (binding.isEmpty()) {
@@ -203,9 +196,6 @@ public final class SkillsGuiHandler implements GuiSessionHandler {
         }
     }
 
-    // ------------------------------------------------------------------
-    // Helpers
-    // ------------------------------------------------------------------
 
     static int getPage(GuiSession session) {
         Object raw = session.replacements().get(KEY_CURRENT_PAGE);

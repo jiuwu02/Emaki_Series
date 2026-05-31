@@ -4,9 +4,6 @@ import java.util.List;
 
 import emaki.jiuwu.craft.corelib.text.Texts;
 
-/**
- * Configuration for item repair when durability reaches zero.
- */
 public record RepairConfig(boolean enabled,
         List<RepairMaterial> materials,
         DisabledDisplay disabledDisplay,

@@ -33,10 +33,8 @@ import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
 
 public final class ItemTriggerListener implements Listener {
 
-    // 预分配不可变 NamespacedKey，避免在高频事件中反复创建临时对象
     private static final org.bukkit.NamespacedKey DISABLED_KEY = new org.bukkit.NamespacedKey("emakiitem", "disabled");
 
-    // 预分配空 Map 常量，避免在高频触发器调用中反复创建空 Map 实例
     private static final Map<String, Object> EMPTY_PLACEHOLDERS = Map.of();
 
     private final EmakiItemPlugin plugin;

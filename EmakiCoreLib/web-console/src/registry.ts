@@ -112,7 +112,7 @@ export type ConfigPreviewRegistration = {
   priority?: number;
 };
 
-export type StandardGuiFieldEntry = [path: string, label: string, comment: string, type: string];
+export type StandardGuiFieldEntry = [path: string, label: string, comment: string, type: string, extra?: { options?: string[]; optionLabelPrefix?: string }];
 export type ConfigMetaFieldEntry = [path: string, label: string, comment: string, type?: string, extra?: ConfigNodeMetaOverride];
 export type ConfigRuleFieldEntry = [label: string, comment: string, type?: string, extra?: ConfigNodeMetaOverride];
 export type ConfigFileSchemaEntry = { pathPrefix?: string; pathPattern?: string; fields: ConfigMetaFieldEntry[] };
@@ -518,7 +518,7 @@ export function standardGuiFields(entries: StandardGuiFieldEntry[] = []): Record
     ['display_name', '显示名', '槽位物品显示名称，支持 MiniMessage。', 'text'],
     ['lore', 'Lore', '槽位物品描述，每行一条。', 'stringList']
   ];
-  return Object.fromEntries([...base, ...entries].map(([path, label, comment, type]) => [path, { path, label, comment, type }]));
+  return Object.fromEntries([...base, ...entries].map(([path, label, comment, type, extra]) => [path, { path, label, comment, type, options: extra?.options ? [...extra.options] : undefined, optionLabelPrefix: extra?.optionLabelPrefix }]));
 }
 
 export function registerSourceDocumentAdapter(reg: { kind?: string; moduleId?: string; editorId?: string; adapter: SourceDocumentAdapter; priority?: number }): void {
@@ -792,7 +792,7 @@ function emptyConfigValueForType(type: string): unknown {
   const normalized = virtualConfigNodeType(type);
   if (normalized === 'number') return undefined;
   if (normalized === 'boolean') return false;
-  if (normalized === 'list' || normalized === 'stringList' || normalized === 'numberList' || normalized === 'objectList' || normalized === 'actions') return [];
+  if (normalized === 'list' || normalized === 'stringList' || normalized === 'numberList' || normalized === 'objectList' || normalized === 'actions' || normalized === 'effects') return [];
   if (normalized === 'object' || normalized === 'dynamic_map' || normalized === 'variablesMap' || normalized === 'json') return {};
   return '';
 }
@@ -840,7 +840,7 @@ function resolveConfigNodeType(detectedType: string | undefined, metaType: strin
 }
 
 function isListUiType(type: string): boolean {
-  return type === 'list' || type === 'stringList' || type === 'numberList' || type === 'objectList' || type === 'actions';
+  return type === 'list' || type === 'stringList' || type === 'numberList' || type === 'objectList' || type === 'actions' || type === 'effects';
 }
 
 function mergeConfigNodeMeta(base: ConfigNodeMetaOverride | undefined, override: ConfigNodeMetaOverride | undefined): ConfigNodeMetaOverride {

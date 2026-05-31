@@ -3,27 +3,11 @@ package emaki.jiuwu.craft.attribute.service;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Applies diminishing-return curves to attribute values that exceed configured thresholds.
- * <p>
- * Supported curve types:
- * <ul>
- *   <li>{@code logarithmic} — excess is scaled by {@code factor * ln(1 + excess / factor)}</li>
- *   <li>{@code sqrt} — excess is scaled by {@code factor * sqrt(excess / factor)}</li>
- *   <li>{@code piecewise_linear} — excess is multiplied by a flat ratio (e.g. 0.5)</li>
- * </ul>
- */
 final class ScalingCurveProcessor {
 
     ScalingCurveProcessor() {
     }
 
-    /**
-     * Apply scaling curves to the given attribute values in-place.
-     *
-     * @param values mutable map of attribute id → raw value
-     * @param curves the configured curves (may be null or empty)
-     */
     void apply(Map<String, Double> values, List<ScalingCurveConfig> curves) {
         if (values == null || values.isEmpty() || curves == null || curves.isEmpty()) {
             return;

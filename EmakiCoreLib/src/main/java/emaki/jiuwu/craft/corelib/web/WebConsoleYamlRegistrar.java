@@ -15,13 +15,6 @@ import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
-/**
- * 声明式 Web Console 注册器。
- * <p>
- * 扫描所有已启用插件的 {@code web-console.yml} 资源文件，自动调用
- * {@link WebConsoleRegistry} 的注册方法。已通过命令式 API 注册的模块不会被覆盖。
- * </p>
- */
 public final class WebConsoleYamlRegistrar {
 
     private static final String RESOURCE_NAME = "web-console.yml";
@@ -35,10 +28,6 @@ public final class WebConsoleYamlRegistrar {
         }
     }
 
-    /**
-     * 扫描所有已启用插件，对尚未通过命令式 API 注册的模块执行 YAML 声明式注册。
-     * 此方法幂等，同一个插件只会被扫描一次。
-     */
     public static synchronized void scanAll() {
         for (Plugin plugin : Bukkit.getPluginManager().getPlugins()) {
             if (!plugin.isEnabled()) continue;
@@ -47,15 +36,11 @@ public final class WebConsoleYamlRegistrar {
         }
     }
 
-    /**
-     * 扫描单个插件的 web-console.yml 资源。
-     */
     public static synchronized void scanPlugin(JavaPlugin plugin) {
         String moduleId = plugin.getName();
         if (SCANNED.contains(moduleId)) return;
         SCANNED.add(moduleId);
 
-        // 已通过命令式 API 注册的模块跳过
         if (WebConsoleRegistry.isModuleRegistered(moduleId)) return;
 
         try (InputStream input = plugin.getResource(RESOURCE_NAME)) {
@@ -70,7 +55,6 @@ public final class WebConsoleYamlRegistrar {
 
     @SuppressWarnings("unchecked")
     private static void applyRegistration(JavaPlugin plugin, String moduleId, YamlSection yaml) {
-        // --- module ---
         YamlSection moduleSection = yaml.getSection("module");
         if (moduleSection != null) {
             String name = defaultString(moduleSection.getString("name", ""), moduleId);
@@ -84,7 +68,6 @@ public final class WebConsoleYamlRegistrar {
             }
         }
 
-        // --- files ---
         List<?> files = yaml.getList("files");
         if (files != null) {
             for (Object entry : files) {
@@ -105,7 +88,6 @@ public final class WebConsoleYamlRegistrar {
             }
         }
 
-        // --- extensions ---
         List<?> extensions = yaml.getList("extensions");
         if (extensions != null) {
             for (Object entry : extensions) {
@@ -118,19 +100,16 @@ public final class WebConsoleYamlRegistrar {
             }
         }
 
-        // --- nodes ---
         List<?> nodes = yaml.getList("nodes");
         if (nodes != null) {
             registerNodes(moduleId, nodes);
         }
 
-        // --- comments（旧格式兼容；新注册文件不再在此承载展示文案） ---
         YamlSection comments = yaml.getSection("comments");
         if (comments != null) {
             registerCommentsRecursive(moduleId, "", comments.asMap());
         }
 
-        // --- 自动注册通用配置结构 ---
         WebConsoleRegistry.registerCommonConfigComments(moduleId);
     }
 
@@ -158,7 +137,6 @@ public final class WebConsoleYamlRegistrar {
             String path = prefix.isEmpty() ? key : prefix + "." + key;
             Object value = entry.getValue();
             if (!(value instanceof Map<?, ?> nested)) continue;
-            // 如果包含 "label" 键，则视为一个 comment 定义节点
             if (nested.containsKey("label")) {
                 String label = stringVal(nested.get("label"));
                 String comment = stringVal(nested.get("comment"));
@@ -167,7 +145,6 @@ public final class WebConsoleYamlRegistrar {
                     WebConsoleRegistry.registerNodeComment(moduleId, path, label, comment, type);
                 }
             } else {
-                // 否则视为中间分组节点，递归处理
                 registerCommentsRecursive(moduleId, path, (Map<String, Object>) nested);
             }
         }

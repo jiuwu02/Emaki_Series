@@ -138,4 +138,3 @@ private static List<String> normalizeAttributes(List<String> ids, Function<Strin
 
     }
 }
-

@@ -135,10 +135,6 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         return rescheduleAutoSave(plugin, currentTask);
     }
 
-    /**
-     * Asynchronous reload: file I/O stages run on the async thread pool,
-     * final registration and player sync run on the main thread.
-     */
     public CompletableFuture<BukkitTask> reloadAsync(EmakiForgePlugin plugin, BukkitTask currentTask,
             boolean closeOpenInventories, Consumer<String> progressListener) {
         AsyncTaskScheduler scheduler = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).asyncTaskScheduler();
@@ -146,14 +142,12 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
             return CompletableFuture.completedFuture(reload(plugin, currentTask, closeOpenInventories));
         }
 
-        // 主线程前置：关闭打开的 GUI
         if (closeOpenInventories) {
             closeOpenInventories(plugin);
         }
 
         notifyProgress(progressListener, "Loading configuration files...");
 
-        // 异步阶段：文件 I/O
         return runReloadStageAsync(scheduler, new ReloadStageConfig<>(
                 "forge", "config-load", "Loading configs...", progressListener,
                 () -> {
@@ -165,7 +159,6 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                 },
                 currentTask, (stage, ex) -> plugin.getLogger().warning("[Reload] Stage " + stage + " failed: " + ex.getMessage())
         )).thenCompose(passedTask -> {
-            // 同步阶段：应用配置、刷新缓存
             notifyProgress(progressListener, "Applying configuration...");
             return scheduler.callSync("forge-reload-apply", () -> {
                 plugin.languageLoader().setLanguage(plugin.appConfig().language());

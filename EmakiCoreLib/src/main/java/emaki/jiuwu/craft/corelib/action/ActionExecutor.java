@@ -19,9 +19,6 @@ import emaki.jiuwu.craft.corelib.text.LogMessages;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
-/**
- * Executes parsed action lines against a runtime {@link ActionContext}.
- */
 public final class ActionExecutor {
 
     private static final long USE_TEMPLATE_DISPATCH_TIMEOUT_MILLIS = Action.DEFAULT_TIMEOUT_MILLIS;
@@ -34,15 +31,6 @@ public final class ActionExecutor {
     private final ActionTemplateProcessor templateProcessor;
     private final ActionDispatchScheduler dispatchScheduler;
 
-    /**
-     * Creates an executor without async scheduling support.
-     *
-     * @param plugin the owning plugin
-     * @param registry the action registry
-     * @param lineParser the parser used for action lines
-     * @param placeholderRegistry the placeholder resolver registry
-     * @param templateRegistry the template registry
-     */
     public ActionExecutor(@NotNull Plugin plugin,
             @NotNull ActionRegistry registry,
             @NotNull ActionLineParser lineParser,
@@ -51,17 +39,6 @@ public final class ActionExecutor {
         this(plugin, registry, lineParser, placeholderRegistry, templateRegistry, null, null);
     }
 
-    /**
-     * Creates an executor with optional async scheduling support.
-     *
-     * @param plugin the owning plugin
-     * @param registry the action registry
-     * @param lineParser the parser used for action lines
-     * @param placeholderRegistry the placeholder resolver registry
-     * @param templateRegistry the template registry
-     * @param asyncTaskScheduler the optional async task scheduler
-     * @param performanceMonitor the optional performance monitor
-     */
     public ActionExecutor(@NotNull Plugin plugin,
             @NotNull ActionRegistry registry,
             @NotNull ActionLineParser lineParser,
@@ -78,14 +55,6 @@ public final class ActionExecutor {
         this.dispatchScheduler = new ActionDispatchScheduler(plugin, asyncTaskScheduler, performanceMonitor);
     }
 
-    /**
-     * Executes a single action by id.
-     *
-     * @param context the action runtime context
-     * @param actionId the action id to execute
-     * @param arguments the optional resolved arguments
-     * @return a future that completes with the action result
-     */
     @NotNull
     public CompletableFuture<ActionResult> execute(@NotNull ActionContext context,
             @NotNull String actionId,
@@ -106,14 +75,6 @@ public final class ActionExecutor {
         );
     }
 
-    /**
-     * Executes a batch of action lines in order.
-     *
-     * @param context the action runtime context
-     * @param lines the raw action lines to execute
-     * @param stopOnFailure whether execution should stop on the first non-ignored failure
-     * @return a future that completes with the batch result
-     */
     @NotNull
     public CompletableFuture<ActionBatchResult> executeAll(@NotNull ActionContext context,
             @Nullable List<String> lines,

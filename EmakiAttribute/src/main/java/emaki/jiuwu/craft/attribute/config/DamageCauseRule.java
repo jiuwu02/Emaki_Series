@@ -80,4 +80,3 @@ public record DamageCauseRule(String cause,
                 || normalized.equals("context");
     }
 }
-

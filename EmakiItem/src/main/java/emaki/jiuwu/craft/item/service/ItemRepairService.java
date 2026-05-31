@@ -16,9 +16,6 @@ import emaki.jiuwu.craft.item.EmakiItemPlugin;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
 import emaki.jiuwu.craft.item.model.RepairMaterial;
 
-/**
- * Service responsible for managing item disabled state and performing repairs.
- */
 public final class ItemRepairService {
 
     private static final NamespacedKey DISABLED_KEY = new NamespacedKey("emakiitem", "disabled");
@@ -29,9 +26,6 @@ public final class ItemRepairService {
         this.plugin = plugin;
     }
 
-    /**
-     * Checks whether the given item is marked as disabled via PDC.
-     */
     public boolean isDisabled(@Nullable ItemStack itemStack) {
         if (itemStack == null || itemStack.getType().isAir()) {
             return false;
@@ -45,9 +39,6 @@ public final class ItemRepairService {
         return value != null && value == (byte) 1;
     }
 
-    /**
-     * Marks the given item as disabled by writing a PDC byte flag.
-     */
     public void markDisabled(ItemStack itemStack) {
         if (itemStack == null || itemStack.getType().isAir()) {
             return;
@@ -60,9 +51,6 @@ public final class ItemRepairService {
         itemStack.setItemMeta(meta);
     }
 
-    /**
-     * Removes the disabled mark from the given item.
-     */
     public void clearDisabled(ItemStack itemStack) {
         if (itemStack == null || itemStack.getType().isAir()) {
             return;
@@ -75,13 +63,6 @@ public final class ItemRepairService {
         itemStack.setItemMeta(meta);
     }
 
-    /**
-     * Finds the first {@link RepairMaterial} in the definition that matches the given repair item.
-     *
-     * @param definition the item definition containing repair config
-     * @param repairItem the item the player is using to repair
-     * @return the matching RepairMaterial, or null if none matches
-     */
     @Nullable
     public RepairMaterial findMatchingMaterial(EmakiItemDefinition definition, ItemStack repairItem) {
         if (definition == null || repairItem == null || repairItem.getType().isAir()) {
@@ -104,15 +85,6 @@ public final class ItemRepairService {
         return null;
     }
 
-    /**
-     * Performs the repair operation on the equipment item.
-     *
-     * @param player     the player performing the repair
-     * @param equipment  the equipment item being repaired
-     * @param repairItem the repair material item (used for context, not consumed here)
-     * @param matched    the matched RepairMaterial configuration
-     * @return the amount of repair material to consume, or 0 if repair could not be performed
-     */
     public int repair(Player player, ItemStack equipment, ItemStack repairItem, RepairMaterial matched) {
         if (player == null || equipment == null || matched == null) {
             return 0;

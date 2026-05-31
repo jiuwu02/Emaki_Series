@@ -1,8 +1,5 @@
 package emaki.jiuwu.craft.attribute;
 
-/**
- * 集中管理 EmakiAttribute 模块的所有权限字符串。
- */
 public final class AttributePermissions {
 
     public static final String ADMIN = "emakiattribute.admin";

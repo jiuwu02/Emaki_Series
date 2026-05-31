@@ -11,9 +11,6 @@ import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.math.Randoms;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
-/**
- * 处理随机数值配置的求值，包括 uniform、gaussian、skew_normal、triangle 等分布。
- */
 final class RandomExpressionEvaluator {
 
     static final Pattern RANGE_PATTERN = Pattern.compile("^\\s*(.+)\\s*~\\s*(.+)\\s*$");

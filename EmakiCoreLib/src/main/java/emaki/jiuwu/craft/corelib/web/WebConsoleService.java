@@ -161,7 +161,6 @@ public final class WebConsoleService {
                 try {
                     serverError(exchange, "Web Console 请求处理失败，请查看服务器控制台日志。");
                 } catch (IOException ignored) {
-                    // 响应可能已经开始发送，此时只保留服务器日志。
                 }
             } finally {
                 if (shouldDebug) {
@@ -588,7 +587,6 @@ public final class WebConsoleService {
         }
     }
 
-    // --- 通用 YAML 文件读写（GUI / ITEM 共用） ---
 
     private void handleGuiRead(WebRequestContext context) throws IOException { handleYamlRead(context, "GUI"); }
     private void handleGuiSave(WebRequestContext context) throws IOException { handleYamlSave(context, "GUI"); }
@@ -832,8 +830,6 @@ public final class WebConsoleService {
     }
 
     private void handleExtensionAsset(HttpExchange exchange) throws IOException {
-        // Extension 脚本是静态资源，不含敏感数据，无需认证。
-        // <script> 标签无法携带 Authorization header，因此此处不做 requireAuth 检查。
         ExtensionAsset asset;
         try {
             asset = resolveExtensionAsset(exchange.getRequestURI().getPath());
@@ -1021,7 +1017,6 @@ public final class WebConsoleService {
                     "remote", remote
             ));
         } catch (Exception ignored) {
-            // debug 日志不应影响正常请求处理
         }
     }
 

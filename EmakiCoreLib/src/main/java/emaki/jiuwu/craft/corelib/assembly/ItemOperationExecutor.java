@@ -11,12 +11,6 @@ import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
-/**
- * 物品操作执行器（内部实现）。
- * <p>
- * 对物品执行 name_actions / lore_actions 操作，并生成操作记录。
- * 外部插件应通过 {@link ItemOperationLedger#apply} 使用。
- */
 final class ItemOperationExecutor {
 
     private final ItemOperationLedger ledger;
@@ -31,17 +25,6 @@ final class ItemOperationExecutor {
         this.nameOperations = new NameOperationRegistry(templateRenderer);
     }
 
-    /**
-     * 对物品执行操作并记录到账本。
-     *
-     * @param itemStack       目标物品
-     * @param operationId     操作唯一标识
-     * @param sourceNamespace 来源命名空间
-     * @param nameActions     名称操作列表（CoreLib 标准格式），可为 null
-     * @param loreActions     Lore 操作列表（CoreLib 标准格式），可为 null
-     * @param variables       模板变量
-     * @return 执行结果，包含是否成功和生成的操作记录
-     */
     @SuppressWarnings("unchecked")
     public ExecutionResult execute(ItemStack itemStack,
             String operationId,
@@ -65,7 +48,6 @@ final class ItemOperationExecutor {
             return ExecutionResult.EMPTY;
         }
 
-        // Write back ItemMeta after lore modifications
         itemStack.setItemMeta(itemMeta);
 
         ItemOperationEntry entry = new ItemOperationEntry(
@@ -99,7 +81,6 @@ final class ItemOperationExecutor {
         LocalNameState nameState = new LocalNameState();
         nameOperations.apply(nameState, nameActions, variables);
 
-        // Record each operation with rendered values
         for (Map<String, Object> operation : operations) {
             String action = Texts.lower(operation.get("action"));
             Object rawValue = templateRenderer.resolveOperationValue(operation);
@@ -110,7 +91,6 @@ final class ItemOperationExecutor {
             records.add(new ItemOperationEntry.NameOperationRecord(action, renderedValue, currentName));
         }
 
-        // Apply name state to item
         if (!records.isEmpty()) {
             applyNameState(itemStack, itemMeta, nameState, currentName);
         }
@@ -127,7 +107,6 @@ final class ItemOperationExecutor {
         } else if (Texts.isNotBlank(originalName)) {
             finalName.append(originalName);
         } else {
-            // Use effective name as base
             String effectiveName = MiniMessages.serialize(ItemTextBridge.effectiveName(itemStack));
             finalName.append(effectiveName);
         }
@@ -152,7 +131,6 @@ final class ItemOperationExecutor {
             return List.of();
         }
 
-        // Read current lore as MiniMessage strings
         List<String> currentLore = new ArrayList<>();
         List<String> existingLore = ItemTextBridge.loreLines(itemMeta);
         if (existingLore != null) {
@@ -161,7 +139,6 @@ final class ItemOperationExecutor {
 
         List<ItemOperationEntry.LoreOperationRecord> records = new ArrayList<>();
 
-        // Execute each operation and record
         for (Map<String, Object> operation : operations) {
             String action = Texts.lower(operation.get("action"));
             if (Texts.isBlank(action)) {
@@ -171,7 +148,6 @@ final class ItemOperationExecutor {
             Object rawAnchor = templateRenderer.resolveSearchPattern(operation);
             String anchor = rawAnchor == null ? "" : templateRenderer.renderTemplate(rawAnchor, variables);
 
-            // Capture original lines for replace/delete operations
             List<String> originalLines = List.of();
             if ("replace_line".equals(action) || "delete_line".equals(action)) {
                 originalLines = findMatchingLines(currentLore, anchor);
@@ -180,10 +156,8 @@ final class ItemOperationExecutor {
             records.add(new ItemOperationEntry.LoreOperationRecord(action, contentLines, anchor, originalLines));
         }
 
-        // Apply all lore operations at once
         loreOperations.apply(currentLore, loreActions, variables);
 
-        // Write back lore
         ItemTextBridge.setLoreLines(itemMeta, currentLore.isEmpty() ? null : currentLore);
 
         return records;

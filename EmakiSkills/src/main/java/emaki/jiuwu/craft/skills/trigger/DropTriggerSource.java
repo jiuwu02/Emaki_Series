@@ -7,9 +7,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
-/**
- * Trigger source that converts {@link PlayerDropItemEvent} into a drop_q invocation.
- */
 public final class DropTriggerSource implements SkillTriggerSource {
 
     @Override

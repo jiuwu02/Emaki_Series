@@ -43,15 +43,7 @@ public final class PlayerSkillDataStore {
         this.asyncYamlFilesSupplier = asyncYamlFilesSupplier;
     }
 
-    // ------------------------------------------------------------------
-    // Async API
-    // ------------------------------------------------------------------
 
-    /**
-     * Asynchronously loads a player's skill profile from disk.
-     * The profile is cached upon successful load.
-     * If the file does not exist, a default profile is created and cached immediately.
-     */
     public CompletableFuture<PlayerSkillProfile> loadAsync(Player player) {
         if (player == null) {
             return CompletableFuture.completedFuture(null);
@@ -66,7 +58,6 @@ public final class PlayerSkillDataStore {
 
         AsyncYamlFiles asyncYamlFiles = asyncYamlFiles();
         if (asyncYamlFiles == null) {
-            // Fallback to synchronous load
             return CompletableFuture.completedFuture(load(player));
         }
 
@@ -85,10 +76,6 @@ public final class PlayerSkillDataStore {
                 });
     }
 
-    /**
-     * Asynchronously saves a player's skill profile to disk.
-     * Only saves if the profile is dirty.
-     */
     public CompletableFuture<Void> saveAsync(UUID uuid) {
         if (uuid == null) {
             return CompletableFuture.completedFuture(null);
@@ -103,7 +90,6 @@ public final class PlayerSkillDataStore {
 
         AsyncYamlFiles asyncYamlFiles = asyncYamlFiles();
         if (asyncYamlFiles == null) {
-            // Fallback to synchronous save
             saveProfileSync(uuid, profile);
             return CompletableFuture.completedFuture(null);
         }
@@ -113,14 +99,11 @@ public final class PlayerSkillDataStore {
                 .exceptionally(throwable -> {
                     plugin.getLogger().log(Level.WARNING,
                             "[SkillDataStore] Async save failed for " + uuid, unwrap(throwable));
-                    profile.markDirty(); // Re-mark dirty on failure so next flush retries
+                    profile.markDirty();
                     return null;
                 });
     }
 
-    /**
-     * Asynchronously saves all dirty profiles.
-     */
     public CompletableFuture<Void> saveAllAsync() {
         List<CompletableFuture<Void>> futures = new ArrayList<>();
         for (UUID uuid : cache.keySet()) {
@@ -135,26 +118,18 @@ public final class PlayerSkillDataStore {
         return CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new));
     }
 
-    /**
-     * Asynchronously saves (if dirty) and removes the profile from cache.
-     */
     public CompletableFuture<Void> unloadAsync(UUID uuid) {
         if (uuid == null) {
             return CompletableFuture.completedFuture(null);
         }
         PlayerSkillProfile profile = cache.remove(uuid);
         if (profile != null && profile.isDirty()) {
-            // Put back temporarily for saveAsync to find it
             cache.put(uuid, profile);
             return saveAsync(uuid).thenRun(() -> cache.remove(uuid));
         }
         return CompletableFuture.completedFuture(null);
     }
 
-    /**
-     * Waits for all pending async writes to complete.
-     * Call this during plugin shutdown to ensure data safety.
-     */
     public void waitForPendingSaves() {
         AsyncYamlFiles asyncYamlFiles = asyncYamlFiles();
         if (asyncYamlFiles != null) {
@@ -162,14 +137,7 @@ public final class PlayerSkillDataStore {
         }
     }
 
-    // ------------------------------------------------------------------
-    // Synchronous API (kept for backward compatibility and cache access)
-    // ------------------------------------------------------------------
 
-    /**
-     * Synchronously loads a player's skill profile.
-     * Prefer {@link #loadAsync(Player)} for non-blocking operation.
-     */
     public PlayerSkillProfile load(Player player) {
         if (player == null) {
             return null;
@@ -196,9 +164,6 @@ public final class PlayerSkillDataStore {
         }
     }
 
-    /**
-     * Gets the cached profile, or loads synchronously if not cached.
-     */
     public PlayerSkillProfile get(Player player) {
         if (player == null) {
             return null;
@@ -207,9 +172,6 @@ public final class PlayerSkillDataStore {
         return cached != null ? cached : load(player);
     }
 
-    /**
-     * Synchronously saves a player's profile. Prefer {@link #saveAsync(UUID)}.
-     */
     public void save(Player player) {
         if (player == null) {
             return;
@@ -221,9 +183,6 @@ public final class PlayerSkillDataStore {
         saveProfileSync(player.getUniqueId(), profile);
     }
 
-    /**
-     * Synchronously saves all dirty profiles. Prefer {@link #saveAllAsync()}.
-     */
     public void saveAll() {
         for (Map.Entry<UUID, PlayerSkillProfile> entry : cache.entrySet()) {
             PlayerSkillProfile profile = entry.getValue();
@@ -233,9 +192,6 @@ public final class PlayerSkillDataStore {
         }
     }
 
-    /**
-     * Synchronously unloads a player. Prefer {@link #unloadAsync(UUID)}.
-     */
     public void unload(UUID uuid) {
         if (uuid == null) {
             return;
@@ -246,9 +202,6 @@ public final class PlayerSkillDataStore {
         }
     }
 
-    /**
-     * Synchronously saves all and clears cache. Prefer async variants + waitForPendingSaves().
-     */
     public void unloadAll() {
         saveAll();
         cache.clear();
@@ -261,16 +214,12 @@ public final class PlayerSkillDataStore {
         return profile;
     }
 
-    // ------------------------------------------------------------------
-    // Serialization (profile -> Map for async save)
-    // ------------------------------------------------------------------
 
     private Map<String, Object> serializeProfile(UUID uuid, PlayerSkillProfile profile) {
         Map<String, Object> root = new LinkedHashMap<>();
         root.put("uuid", uuid.toString());
         root.put("cast_mode_enabled", profile.castModeEnabled());
 
-        // bindings
         List<Map<String, Object>> bindingsList = new ArrayList<>();
         for (SkillSlotBinding binding : profile.bindings()) {
             if (binding.isEmpty()) {
@@ -284,7 +233,6 @@ public final class PlayerSkillDataStore {
         }
         root.put("bindings", bindingsList);
 
-        // local_resources
         Map<String, Object> resourcesMap = new LinkedHashMap<>();
         for (Map.Entry<String, PlayerLocalResourceState> entry : profile.localResources().entrySet()) {
             Map<String, Object> resMap = new LinkedHashMap<>();
@@ -297,7 +245,6 @@ public final class PlayerSkillDataStore {
             root.put("local_resources", resourcesMap);
         }
 
-        // skill_levels
         Map<String, Object> levelsMap = new LinkedHashMap<>();
         for (Map.Entry<String, PlayerSkillLevelState> entry : profile.skillLevels().entrySet()) {
             PlayerSkillLevelState state = entry.getValue();
@@ -312,7 +259,6 @@ public final class PlayerSkillDataStore {
             root.put("skill_levels", levelsMap);
         }
 
-        // timing
         PlayerCastTimingState timing = profile.timingState();
         Map<String, Object> timingMap = new LinkedHashMap<>();
         timingMap.put("forced_global_cast_delay_until", timing.forcedGlobalCastDelayUntil());
@@ -329,9 +275,6 @@ public final class PlayerSkillDataStore {
         return root;
     }
 
-    // ------------------------------------------------------------------
-    // File I/O (synchronous, used as fallback and for legacy API)
-    // ------------------------------------------------------------------
 
     private File profileFile(UUID uuid) {
         File dataDir = new File(plugin.getDataFolder(), "data");
@@ -345,10 +288,8 @@ public final class PlayerSkillDataStore {
         int slotCount = defaultSlotCount;
         PlayerSkillProfile profile = new PlayerSkillProfile(uuid.toString(), slotCount);
 
-        // cast_mode_enabled
         profile.setCastModeEnabled(section.getBoolean("cast_mode_enabled", false));
 
-        // bindings
         List<?> bindingsList = section.getList("bindings");
         if (bindingsList != null) {
             for (Object obj : bindingsList) {
@@ -364,7 +305,6 @@ public final class PlayerSkillDataStore {
             }
         }
 
-        // local_resources
         emaki.jiuwu.craft.corelib.yaml.YamlSection resourcesSection = section.getSection("local_resources");
         if (resourcesSection != null) {
             for (String key : resourcesSection.getKeys(false)) {
@@ -379,7 +319,6 @@ public final class PlayerSkillDataStore {
             }
         }
 
-        // skill_levels
         emaki.jiuwu.craft.corelib.yaml.YamlSection skillLevelsSection = section.getSection("skill_levels");
         if (skillLevelsSection != null) {
             for (String skillId : skillLevelsSection.getKeys(false)) {
@@ -389,7 +328,6 @@ public final class PlayerSkillDataStore {
             }
         }
 
-        // timing
         emaki.jiuwu.craft.corelib.yaml.YamlSection timingSection = section.getSection("timing");
         if (timingSection != null) {
             PlayerCastTimingState timing = profile.timingState();
@@ -413,10 +351,8 @@ public final class PlayerSkillDataStore {
         int slotCount = defaultSlotCount;
         PlayerSkillProfile profile = new PlayerSkillProfile(uuid.toString(), slotCount);
 
-        // cast_mode_enabled
         profile.setCastModeEnabled(yaml.getBoolean("cast_mode_enabled", false));
 
-        // bindings
         List<?> bindingsList = yaml.getList("bindings");
         if (bindingsList != null) {
             for (Object obj : bindingsList) {
@@ -432,7 +368,6 @@ public final class PlayerSkillDataStore {
             }
         }
 
-        // local_resources
         ConfigurationSection resourcesSection = yaml.getConfigurationSection("local_resources");
         if (resourcesSection != null) {
             for (String key : resourcesSection.getKeys(false)) {
@@ -447,7 +382,6 @@ public final class PlayerSkillDataStore {
             }
         }
 
-        // skill_levels
         ConfigurationSection skillLevelsSection = yaml.getConfigurationSection("skill_levels");
         if (skillLevelsSection != null) {
             for (String skillId : skillLevelsSection.getKeys(false)) {
@@ -456,7 +390,6 @@ public final class PlayerSkillDataStore {
             }
         }
 
-        // timing
         ConfigurationSection timingSection = yaml.getConfigurationSection("timing");
         if (timingSection != null) {
             PlayerCastTimingState timing = profile.timingState();
@@ -483,7 +416,6 @@ public final class PlayerSkillDataStore {
         yaml.set("uuid", uuid.toString());
         yaml.set("cast_mode_enabled", profile.castModeEnabled());
 
-        // bindings
         List<Map<String, Object>> bindingsList = new ArrayList<>();
         for (SkillSlotBinding binding : profile.bindings()) {
             if (binding.isEmpty()) {
@@ -497,7 +429,6 @@ public final class PlayerSkillDataStore {
         }
         yaml.set("bindings", bindingsList);
 
-        // local_resources
         for (Map.Entry<String, PlayerLocalResourceState> entry : profile.localResources().entrySet()) {
             String path = "local_resources." + entry.getKey();
             PlayerLocalResourceState state = entry.getValue();
@@ -505,7 +436,6 @@ public final class PlayerSkillDataStore {
             yaml.set(path + ".last_regen_at", state.lastRegenAt());
         }
 
-        // skill_levels
         for (Map.Entry<String, PlayerSkillLevelState> entry : profile.skillLevels().entrySet()) {
             PlayerSkillLevelState state = entry.getValue();
             if (state == null || state.level() <= 1) {
@@ -514,7 +444,6 @@ public final class PlayerSkillDataStore {
             yaml.set("skill_levels." + entry.getKey() + ".level", state.level());
         }
 
-        // timing
         PlayerCastTimingState timing = profile.timingState();
         yaml.set("timing.forced_global_cast_delay_until", timing.forcedGlobalCastDelayUntil());
         yaml.set("timing.global_cooldown_until", timing.globalCooldownUntil());
@@ -531,9 +460,6 @@ public final class PlayerSkillDataStore {
         }
     }
 
-    // ------------------------------------------------------------------
-    // Helpers
-    // ------------------------------------------------------------------
 
     private AsyncYamlFiles asyncYamlFiles() {
         return asyncYamlFilesSupplier == null ? null : asyncYamlFilesSupplier.get();

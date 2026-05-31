@@ -3,7 +3,7 @@ import type { ApiClient } from './api';
 import { getSourceDocumentAdapter, type SurfaceToolbarState } from './registry';
 import type { GuiSlotDefinition, GuiTemplateData, WebRegistryFile, WebRegistryModule } from './types';
 import { buildOccupancy, clampRows, fieldLabel, guiColumns, guiField, guiSlotCount, guiTypeOptions, loreLines, materialShortName, materialUrls, normalizeGuiType, parseSlotList, parseYaml, renderMiniMessageParts, serializeGuiYaml, slotItemText, subscribeTextureBases, supportsRows, textValue, withSlotItem } from './guiEditor';
-import { fileDisplayTitle, humanizeFieldLabel } from './lib';
+import { fileDisplayTitle, humanizeFieldLabel, optionLabel } from './lib';
 import { Button, DisclosureChevron, EditorChrome, InlineError, InspectorSection, ToastNotice, ToggleChip } from './components';
 import { getLocale, t } from './i18n';
 import { diffRecords } from './lib';
@@ -516,11 +516,28 @@ function GuiLabel({ editor, path, fallback, children }: { editor?: import('./typ
   </label>;
 }
 
+function SlotTypeInput({ editor, value, onChange }: { editor?: import('./types').WebEditorDescriptor; value: unknown; onChange: (value: string) => void }) {
+  const field = guiField(editor, 'type', undefined, 'text');
+  const options = field.type === 'enum' && field.options?.length ? field.options : [];
+  const current = textValue(value);
+  if (!options.length) return <input value={current} onChange={(e) => onChange(e.target.value)} />;
+  // Datalist keeps known slot types as suggestions while still allowing dynamic
+  // custom values (e.g. material_input_0, filler) that are valid for some GUIs.
+  const listId = `slot-type-${editor?.moduleId ?? 'core'}-${editor?.id ?? 'gui'}`;
+  const labelFor = (option: string) => field.optionLabelPrefix
+    ? optionLabel(field.optionLabelPrefix, option, { moduleId: editor?.moduleId, namespace: editor?.moduleId, fallback: option })
+    : option;
+  return <span className="slot-type-input">
+    <input value={current} list={listId} onChange={(e) => onChange(e.target.value)} />
+    <datalist id={listId}>{options.map((option) => <option key={option} value={option}>{labelFor(option)}</option>)}</datalist>
+  </span>;
+}
+
 function SlotInspector({ slotKey, slot, updateSlot, removeSlot, editor, hideHeader = false }: { slotKey: string; slot: GuiSlotDefinition; updateSlot: (key: string, patch: Partial<GuiSlotDefinition>) => void; removeSlot: () => void; editor?: import('./types').WebEditorDescriptor; hideHeader?: boolean }) {
   const setField = (field: string, value: unknown) => updateSlot(slotKey, { [field]: value === '' || value == null ? undefined : value });
   return <div className="slot-form">
     {!hideHeader && <div className="slot-key"><code>{slotKey}</code><button onClick={removeSlot}>{t('core.config.delete')}</button></div>}
-    <InspectorPanel title={t('core.gui.slotDefinition')} storageKey="slot-identity"><GuiLabel editor={editor} path="type" fallback={t('core.gui.slotType')}><input value={textValue(slot.type)} onChange={(e) => setField('type', e.target.value)} /></GuiLabel><GuiLabel editor={editor} path="slots" fallback={t('core.gui.slot')}><DeferredSlotsInput value={slot.slots} onApply={(value) => setField('slots', value)} /></GuiLabel><small>{t('core.gui.slotCount', { count: parseSlotList(slot.slots).length })}</small></InspectorPanel>
+    <InspectorPanel title={t('core.gui.slotDefinition')} storageKey="slot-identity"><GuiLabel editor={editor} path="type" fallback={t('core.gui.slotType')}><SlotTypeInput editor={editor} value={slot.type} onChange={(value) => setField('type', value)} /></GuiLabel><GuiLabel editor={editor} path="slots" fallback={t('core.gui.slot')}><DeferredSlotsInput value={slot.slots} onApply={(value) => setField('slots', value)} /></GuiLabel><small>{t('core.gui.slotCount', { count: parseSlotList(slot.slots).length })}</small></InspectorPanel>
     <InspectorPanel title={t('core.gui.itemSource')} storageKey="slot-item"><GuiLabel editor={editor} path="item" fallback={t('core.gui.item')}><input value={textValue(slotItemText(slot))} onChange={(e) => setField('item', e.target.value)} /></GuiLabel></InspectorPanel>
     <InspectorPanel title={t('core.gui.displayText')} storageKey="slot-display"><GuiLabel editor={editor} path="display_name" fallback={t('core.gui.displayName')}><input value={textValue(slot.display_name)} onChange={(e) => setField('display_name', e.target.value)} /></GuiLabel><GuiLabel editor={editor} path="lore" fallback="Lore"><textarea value={loreLines(slot.lore).join('\n')} onChange={(e) => setField('lore', e.target.value.split('\n'))} /></GuiLabel></InspectorPanel>
     <InspectorPanel title={t('core.gui.modelComponents')} storageKey="slot-model" defaultCollapsed><div className="mini-grid-2"><GuiLabel editor={editor} path="item_model" fallback={t('core.gui.itemModel')}><input value={textValue(slot.item_model)} onChange={(e) => setField('item_model', e.target.value)} /></GuiLabel><GuiLabel editor={editor} path="custom_model_data" fallback={t('core.gui.modelData')}><input type="number" value={textValue(slot.custom_model_data)} onChange={(e) => setField('custom_model_data', e.target.value === '' ? undefined : Number(e.target.value))} /></GuiLabel></div><EnchantmentsEditor value={slot.enchantments} onChange={(value) => setField('enchantments', value)} /><HiddenComponentsEditor slot={slot} onChange={(patch) => updateSlot(slotKey, patch)} /></InspectorPanel>

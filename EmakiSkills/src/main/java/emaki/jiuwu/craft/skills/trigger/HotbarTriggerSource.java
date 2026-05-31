@@ -7,10 +7,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
-/**
- * Trigger source that converts {@link PlayerItemHeldEvent} into
- * hotbar_1 through hotbar_9 invocations.
- */
 public final class HotbarTriggerSource implements SkillTriggerSource {
 
     @Override

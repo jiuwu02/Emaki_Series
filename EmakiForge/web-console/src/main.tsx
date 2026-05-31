@@ -244,7 +244,7 @@ registerPluginGuiEditor({
   editorId: 'emakiforge:gui',
   label: copy('锻造 GUI', 'Forge GUI'),
   fields: [
-    ['type', '槽位类型', '锻造业务槽位语义。', 'text'],
+    ['type', '槽位类型', '锻造业务槽位语义。可选预设值，也可填自定义/填充槽位。', 'enum', { options: ['blueprint_inputs', 'required_materials', 'optional_materials', 'capacity_display', 'confirm'], optionLabelPrefix: 'slotType' }],
     ['hidden_components', '隐藏组件', '隐藏原版组件。', 'stringList'],
     ['sounds', '声音', '槽位交互声音。', 'object'],
     ['blueprint_inputs', '图纸输入', '放入锻造图纸的槽位。', 'text'],

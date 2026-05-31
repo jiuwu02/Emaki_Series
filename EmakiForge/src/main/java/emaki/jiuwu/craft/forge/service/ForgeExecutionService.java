@@ -69,7 +69,6 @@ final class ForgeExecutionService {
                     if (!preBatch.success()) {
                         return buildActionFailure(player, recipe, guiItems, result, preBatch);
                     }
-                    // Success rate check — if recipe has failure mechanism, roll before proceeding
                     if (recipe.hasFailureMechanism()) {
                         double roll = ThreadLocalRandom.current().nextDouble(100D);
                         if (roll >= recipe.successRate()) {

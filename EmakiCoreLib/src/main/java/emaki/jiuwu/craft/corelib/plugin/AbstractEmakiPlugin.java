@@ -39,16 +39,10 @@ public abstract class AbstractEmakiPlugin extends JavaPlugin implements EmakiSer
         registerServices(components == null ? Map.of() : components.services());
     }
 
-    /**
-     * 获取此插件的 DebugLogger 实例。
-     */
     public DebugLogger debugLogger() {
         return debugLogger;
     }
 
-    /**
-     * 设置此插件的 DebugLogger 实例。子类在初始化时调用。
-     */
     protected final void setDebugLogger(DebugLogger debugLogger) {
         this.debugLogger = debugLogger;
     }

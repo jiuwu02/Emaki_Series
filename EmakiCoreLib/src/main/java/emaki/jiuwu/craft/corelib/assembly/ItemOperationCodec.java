@@ -8,11 +8,6 @@ import java.util.Map;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
-/**
- * ItemOperationEntry 的序列化/反序列化工具。
- * <p>
- * 将操作记录列表转换为可存储在 PDC 中的 Map 列表格式，以及从 Map 列表恢复。
- */
 public final class ItemOperationCodec {
 
     private ItemOperationCodec() {

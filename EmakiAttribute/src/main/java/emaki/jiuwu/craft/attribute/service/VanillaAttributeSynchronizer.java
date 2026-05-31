@@ -247,4 +247,3 @@ final class VanillaAttributeSynchronizer {
         return List.copyOf(candidates);
     }
 }
-

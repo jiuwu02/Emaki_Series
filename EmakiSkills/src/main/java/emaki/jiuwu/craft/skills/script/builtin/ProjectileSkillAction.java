@@ -20,12 +20,6 @@ import emaki.jiuwu.craft.corelib.action.ActionParameterType;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
 import emaki.jiuwu.craft.skills.api.SkillScriptContext;
 
-/**
- * Projectile skill action that simulates a custom projectile flying tick-by-tick.
- * <p>
- * Supports speed, gravity, lifetime, hit detection, piercing, homing, and particle trails.
- * On hit, sets the context target entity for subsequent actions.
- */
 public final class ProjectileSkillAction extends AbstractSkillScriptAction {
 
     public ProjectileSkillAction() {
@@ -82,17 +76,14 @@ public final class ProjectileSkillAction extends AbstractSkillScriptAction {
                 }
                 ticksLived++;
 
-                // Apply gravity
                 velocity.setY(velocity.getY() - gravity);
 
-                // Homing
                 if (homing && context.targetEntity() != null && !context.targetEntity().isDead()) {
                     Vector toTarget = context.targetEntity().getLocation().add(0, 1, 0)
                             .toVector().subtract(current.toVector()).normalize();
                     velocity.add(toTarget.multiply(homingStrength)).normalize().multiply(speed);
                 }
 
-                // Move
                 current.add(velocity);
                 World world = current.getWorld();
                 if (world == null) {
@@ -100,18 +91,15 @@ public final class ProjectileSkillAction extends AbstractSkillScriptAction {
                     return;
                 }
 
-                // Particle trail
                 if (particle != null) {
                     world.spawnParticle(particle, current, 1, 0, 0, 0, 0);
                 }
 
-                // Block collision
                 if (current.getBlock().getType().isSolid()) {
                     cancel();
                     return;
                 }
 
-                // Entity collision
                 Collection<Entity> nearby = world.getNearbyEntities(current, hitRadius, hitRadius, hitRadius);
                 for (Entity entity : nearby) {
                     if (!(entity instanceof LivingEntity living)) {
@@ -124,7 +112,6 @@ public final class ProjectileSkillAction extends AbstractSkillScriptAction {
                         continue;
                     }
 
-                    // Hit
                     alreadyHit.add(entity);
                     context.setTarget(living);
                     context.putVariable("projectile_hit", "1");

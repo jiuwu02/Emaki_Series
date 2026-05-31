@@ -5,13 +5,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 import emaki.jiuwu.craft.corelib.text.Texts;
 
-/**
- * Central registry for shorthand {@link ItemSource} parsers.
- *
- * <p>
- * Custom parsers are evaluated before the built-in parsers so projects can
- * extend CoreLib without forking the default implementation.
- */
 public final class ItemSourceRegistry {
 
     private static final ItemSourceRegistry SYSTEM = new ItemSourceRegistry();

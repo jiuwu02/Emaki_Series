@@ -202,9 +202,9 @@ public final class WebJson {
             char c = json.charAt(i);
             if (c == '\\') {
                 if (i + 1 < json.length() && json.charAt(i + 1) == 'u') {
-                    i += 6; // skip unicode escape
+                    i += 6;
                 } else {
-                    i += 2; // skip escape pair
+                    i += 2;
                 }
             } else if (c == '"') {
                 return i;

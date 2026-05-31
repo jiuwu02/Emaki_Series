@@ -104,7 +104,6 @@ public final class GuiItemBuilder {
                 ? Texts.formatTemplate(base.displayName(), safeReplacements)
                 : ExpressionEngine.evaluateStringConfig(base.displayNameConfig(), safeReplacements);
         List<String> lore = resolveLore(base, safeReplacements);
-        // 空 enchantments 直接复用，避免无意义的 Map 拷贝
         Map<String, Integer> enchantments = base.enchantments().isEmpty()
                 ? base.enchantments()
                 : new LinkedHashMap<>(base.enchantments());

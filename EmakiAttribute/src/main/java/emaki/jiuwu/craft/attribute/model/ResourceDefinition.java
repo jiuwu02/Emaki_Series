@@ -42,4 +42,3 @@ public record ResourceDefinition(String id,
         return result;
     }
 }
-

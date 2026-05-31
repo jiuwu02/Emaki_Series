@@ -4,10 +4,6 @@ import emaki.jiuwu.craft.cooking.service.CookingSettingsService;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
-/**
- * 按主配置 {@code display_entities.backend} 选择文本展示后端。
- * 复用与 {@link CookingDisplayServiceFactory} 相同的判定逻辑。
- */
 public final class CookingTextDisplayServiceFactory {
 
     private static final String PACKET_EVENTS_PLUGIN = "PacketEvents";

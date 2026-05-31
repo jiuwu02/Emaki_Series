@@ -294,10 +294,6 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         return debugCommand;
     }
 
-    /**
-     * Returns the configured scaling curves for attribute diminishing returns.
-     * Loaded from the {@code scaling_curves} section of the attribute config.
-     */
     public java.util.List<emaki.jiuwu.craft.attribute.service.ScalingCurveConfig> scalingCurves() {
         return scalingCurves;
     }

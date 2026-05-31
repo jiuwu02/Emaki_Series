@@ -9,19 +9,11 @@ import emaki.jiuwu.craft.attribute.config.AttributeConfig;
 import emaki.jiuwu.craft.attribute.model.DamageContextVariables;
 import emaki.jiuwu.craft.corelib.entity.EntityPhysicsSupport;
 
-/**
- * Shared combat utility methods extracted from AttributeListener and MmoItemsBridge
- * to eliminate duplication.
- */
 public final class CombatSupport {
 
     private CombatSupport() {
     }
 
-    /**
-     * Builds a {@link DamageContextVariables} populated with common damage-event keys
-     * (cause, base/source/input/final damage, target UUID/type, and optional damager info).
-     */
     public static DamageContextVariables baseContext(EntityDamageEvent event, LivingEntity target) {
         DamageContextVariables.Builder context = DamageContextVariables.builder();
         String cause = event.getCause().name();
@@ -41,10 +33,6 @@ public final class CombatSupport {
         return context.build();
     }
 
-    /**
-     * Applies synthetic knockback to the target from the source entity, respecting
-     * the config toggle and strength setting.
-     */
     public static void applySyntheticKnockback(LivingEntity target, Entity source, double finalDamage,
             AttributeConfig config) {
         if (target == null || source == null || finalDamage <= 0D || !target.isValid() || target.isDead()
@@ -58,10 +46,6 @@ public final class CombatSupport {
         EntityPhysicsSupport.applyKnockback(target, source, strength);
     }
 
-    /**
-     * Walks the cause chain of the given throwable and returns the deepest root-cause message,
-     * or {@code "unknown"} if no message is available.
-     */
     public static String rootCauseMessage(Throwable throwable) {
         Throwable current = throwable;
         while (current != null && current.getCause() != null && current.getCause() != current) {

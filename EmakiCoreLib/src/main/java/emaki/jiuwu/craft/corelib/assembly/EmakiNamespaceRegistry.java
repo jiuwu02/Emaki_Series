@@ -64,4 +64,3 @@ public final class EmakiNamespaceRegistry {
         orderedDefinitions = values.isEmpty() ? List.of() : List.copyOf(values);
     }
 }
-

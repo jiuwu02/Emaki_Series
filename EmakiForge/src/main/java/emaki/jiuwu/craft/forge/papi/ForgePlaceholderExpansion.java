@@ -88,7 +88,6 @@ public final class ForgePlaceholderExpansion extends PlaceholderExpansion {
         if (data == null) {
             return "";
         }
-        // Find the recipe with the most recent lastCraftedAt timestamp
         String lastRecipeId = "";
         String latestTimestamp = "";
         for (Map.Entry<String, Object> entry : data.toMap().entrySet()) {

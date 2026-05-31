@@ -237,4 +237,3 @@ public final class AttributeBalanceRegistry {
         return Texts.isBlank(left) ? right : left;
     }
 }
-

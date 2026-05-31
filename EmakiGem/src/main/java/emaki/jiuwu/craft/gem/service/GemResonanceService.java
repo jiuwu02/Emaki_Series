@@ -14,9 +14,6 @@ import emaki.jiuwu.craft.gem.model.ResonancePatternEntry;
 
 public final class GemResonanceService {
 
-    /**
-     * A gem entry carrying both definition and current level for resonance evaluation.
-     */
     public record GemEntry(GemDefinition gem, int level) {
 
         public GemEntry {
@@ -34,9 +31,6 @@ public final class GemResonanceService {
         this.resonanceLoader = resonanceLoader;
     }
 
-    /**
-     * Evaluate resonances without level checking (backward compatible).
-     */
     public List<GemResonanceDefinition> evaluate(Collection<GemDefinition> inlaidGems) {
         if (inlaidGems == null || inlaidGems.isEmpty()) {
             return List.of();
@@ -48,12 +42,6 @@ public final class GemResonanceService {
         return evaluateWithLevels(entries);
     }
 
-    /**
-     * Evaluate resonances with gem level information for min_level gate checking.
-     * Resonances are evaluated in priority descending order.
-     * Within the same exclusive group, only the highest-priority resonance activates.
-     * Gems consumed by a higher-priority resonance are not available for lower-priority ones.
-     */
     public List<GemResonanceDefinition> evaluateWithLevels(Collection<GemEntry> inlaidGems) {
         if (inlaidGems == null || inlaidGems.isEmpty()) {
             return List.of();

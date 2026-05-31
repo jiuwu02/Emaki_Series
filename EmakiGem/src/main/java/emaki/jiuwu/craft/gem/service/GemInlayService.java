@@ -71,11 +71,6 @@ public final class GemInlayService {
         this.operationLedger = new ItemOperationLedger();
     }
 
-    /**
-     * GUI 模式镶嵌：直接传入装备和宝石物品，不从主副手读取。
-     * 材料费用只从玩家背包和快捷栏中扣除（不含盔甲栏和副手）。
-     * 不会修改玩家手持物品，调用方负责处理装备和宝石的归还/消耗。
-     */
     public InlayResult inlayDirect(Player actor,
             ItemStack equipment,
             ItemStack gemItem,
@@ -159,16 +154,11 @@ public final class GemInlayService {
             }
             return new InlayResult(Result.failure("command.inlay.apply_failed", Map.of("player", actor.getName())), equipment);
         }
-        // Execute name/lore operations from gem definition effects and record to ledger
         applyGemOperations(rebuilt, gemDefinition, instance, slotIndex, placeholders);
         actionCoordinator.execute(actor, "gem_inlay_success", gemDefinition.inlaySuccessActions(), placeholders);
         return new InlayResult(Result.success("command.inlay.success", placeholders), rebuilt);
     }
 
-    /**
-     * GUI 模式取出：直接传入装备物品，不从主手读取。
-     * 调用方负责处理装备的归还。
-     */
     public ExtractDirectResult extractDirect(Player actor,
             ItemStack equipment,
             int slotIndex,
@@ -210,7 +200,6 @@ public final class GemInlayService {
             return new ExtractDirectResult(
                     GemExtractService.Result.failure("command.extract.apply_failed", Map.of("player", actor.getName())), equipment, null);
         }
-        // Revert name/lore operations for the extracted gem
         revertGemOperations(rebuilt, slotIndex);
         ItemStack returned = createReturnedGem(gemDefinition, instance);
         Map<String, Object> placeholders = new LinkedHashMap<>();
@@ -309,7 +298,6 @@ public final class GemInlayService {
             variables.putAll(plugin.itemFactory().gemPlaceholders(gemDefinition, instance.level(), null));
             operationLedger.apply(itemStack, operationId, OPERATION_NAMESPACE, nameActions, loreActions, variables);
         }
-        // Apply resonance name/lore operations
         applyResonanceOperations(itemStack);
     }
 
@@ -318,9 +306,7 @@ public final class GemInlayService {
         if (resonanceService == null) {
             return;
         }
-        // First revert any existing resonance operations
         operationLedger.revertAll(itemStack, OPERATION_NAMESPACE + ".resonance");
-        // Re-evaluate resonances based on current state
         GemItemDefinition itemDefinition = stateService.resolveItemDefinition(itemStack);
         if (itemDefinition == null) {
             return;
@@ -358,7 +344,6 @@ public final class GemInlayService {
     private void revertGemOperations(ItemStack itemStack, int slotIndex) {
         String operationId = OPERATION_NAMESPACE + ":slot_" + slotIndex;
         operationLedger.revert(itemStack, operationId);
-        // Re-evaluate resonance after extraction
         applyResonanceOperations(itemStack);
     }
 

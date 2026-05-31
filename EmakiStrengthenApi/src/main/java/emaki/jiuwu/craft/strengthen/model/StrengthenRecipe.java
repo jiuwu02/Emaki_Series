@@ -13,8 +13,33 @@ import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
+/**
+ * A fully resolved strengthen recipe: the rules, economy, limits, per-star
+ * stages and optional branch tree that drive a strengthening profile.
+ *
+ * <p>This is an API model carrying already-parsed data; it does not read
+ * configuration itself. It exposes cumulative calculations (stats, attributes,
+ * skills) up to a given star, optionally along a branch path, plus per-star cost
+ * and success-rate lookups.
+ *
+ * <p>The nested records ({@link MatchRule}, {@link CurrencyEntry},
+ * {@link EconomyConfig}, {@link Limits}, {@link StatLineDefinition},
+ * {@link EconomyOverride}, {@link StarStageMaterial}, {@link StarStage}) model
+ * the individual configuration sections.
+ */
 public final class StrengthenRecipe {
 
+    /**
+     * Criteria deciding whether an item matches this recipe. A rule is
+     * considered {@link #empty()} when no criterion is set.
+     *
+     * @param sourceTypes    accepted item source types (lower-cased)
+     * @param sourceIds      accepted item source ids (lower-cased)
+     * @param sourcePatterns accepted source id patterns
+     * @param slotGroups     accepted slot groups (lower-cased)
+     * @param loreContains   required lore substrings (mini-tags stripped)
+     * @param statsAny       any-of stat ids that must be present (lower-cased)
+     */
     public record MatchRule(List<String> sourceTypes,
             List<String> sourceIds,
             List<String> sourcePatterns,
@@ -22,6 +47,7 @@ public final class StrengthenRecipe {
             List<String> loreContains,
             List<String> statsAny) {
 
+        /** Canonical constructor; normalizes each criterion list. */
         public MatchRule {
             sourceTypes = normalizeLower(sourceTypes);
             sourceIds = normalizeLower(sourceIds);
@@ -31,6 +57,7 @@ public final class StrengthenRecipe {
             statsAny = normalizeLower(statsAny);
         }
 
+        /** {@return whether no matching criterion is configured} */
         public boolean empty() {
             return sourceTypes.isEmpty()
                     && sourceIds.isEmpty()
@@ -41,12 +68,22 @@ public final class StrengthenRecipe {
         }
     }
 
+    /**
+     * A single currency cost entry.
+     *
+     * @param provider    the economy provider id (lower-cased)
+     * @param currencyId  the currency id within the provider
+     * @param baseCost    the base cost; clamped to {@code >= 0}
+     * @param costFormula the cost expression (defaults to {@code "{base_cost}"})
+     * @param displayName a human-readable label
+     */
     public record CurrencyEntry(String provider,
             String currencyId,
             long baseCost,
             String costFormula,
             String displayName) {
 
+        /** Canonical constructor; normalizes fields and defaults the formula. */
         public CurrencyEntry {
             provider = Texts.lower(provider);
             currencyId = Texts.toStringSafe(currencyId);
@@ -56,18 +93,34 @@ public final class StrengthenRecipe {
         }
     }
 
+    /**
+     * The recipe-level economy configuration.
+     *
+     * @param enabled    whether currency costs apply by default
+     * @param currencies the default currency entries; never {@code null}
+     */
     public record EconomyConfig(boolean enabled, List<CurrencyEntry> currencies) {
 
+        /** Canonical constructor; copies the currency list. */
         public EconomyConfig {
             currencies = currencies == null ? List.of() : List.copyOf(currencies);
         }
     }
 
+    /**
+     * Numeric limits and global tuning for the recipe.
+     *
+     * @param maxStar                   maximum reachable star (at least 1)
+     * @param maxTemper                 maximum temper level
+     * @param temperChanceBonusPerLevel success-chance bonus per temper level
+     * @param successChanceCap          success-chance cap, clamped to 0-100
+     */
     public record Limits(int maxStar,
             int maxTemper,
             double temperChanceBonusPerLevel,
             double successChanceCap) {
 
+        /** Canonical constructor; clamps each limit to a sane range. */
         public Limits {
             maxStar = Math.max(1, maxStar);
             maxTemper = Math.max(0, maxTemper);
@@ -75,13 +128,22 @@ public final class StrengthenRecipe {
             successChanceCap = Numbers.clamp(successChanceCap, 0D, 100D);
         }
 
+        /** {@return the default limits (maxStar 12, maxTemper 4, +5/level, 90% cap)} */
         public static Limits defaults() {
             return new Limits(12, 4, 5D, 90D);
         }
     }
 
+    /**
+     * Definition of a generated stat display line.
+     *
+     * @param template     the line template
+     * @param sectionId    the display section id
+     * @param sectionOrder the ordering within the section; clamped to {@code >= 0}
+     */
     public record StatLineDefinition(String template, String sectionId, int sectionOrder) {
 
+        /** Canonical constructor; normalizes text and clamps the order. */
         public StatLineDefinition {
             template = Texts.toStringSafe(template);
             sectionId = Texts.toStringSafe(sectionId);
@@ -89,19 +151,35 @@ public final class StrengthenRecipe {
         }
     }
 
+    /**
+     * A per-stage override of the economy currencies.
+     *
+     * @param currencies the overriding currency entries; never {@code null}
+     */
     public record EconomyOverride(List<CurrencyEntry> currencies) {
 
+        /** Canonical constructor; copies the currency list. */
         public EconomyOverride {
             currencies = currencies == null ? List.of() : List.copyOf(currencies);
         }
     }
 
+    /**
+     * A material requirement of a single star stage.
+     *
+     * @param item        the material item id
+     * @param amount      the amount required (defaults to 1 when 0)
+     * @param optional    whether the material is optional
+     * @param protection  whether the material protects against failure
+     * @param temperBoost temper bonus granted; clamped to {@code >= 0}
+     */
     public record StarStageMaterial(String item,
             int amount,
             boolean optional,
             boolean protection,
             int temperBoost) {
 
+        /** Canonical constructor; normalizes the item id and clamps counts. */
         public StarStageMaterial {
             item = Texts.toStringSafe(item);
             amount = amount == 0 ? 1 : amount;
@@ -109,6 +187,21 @@ public final class StrengthenRecipe {
         }
     }
 
+    /**
+     * A single star stage of the recipe, holding the stats, attributes, skills,
+     * materials, economy override and success/failure actions applied when the
+     * stage is reached.
+     *
+     * @param targetStar      the star level this stage represents
+     * @param name            the stage display name; never {@code null}
+     * @param stats           raw stat values/expressions for the stage
+     * @param attributes      attribute values for the stage
+     * @param skillIds        skill ids granted at the stage (normalized)
+     * @param materials       material requirements of the stage
+     * @param economyOverride per-stage economy override; never {@code null}
+     * @param successActions  actions run on success
+     * @param failureActions  actions run on failure
+     */
     public record StarStage(int targetStar,
             String name,
             Map<String, Object> stats,
@@ -119,6 +212,7 @@ public final class StrengthenRecipe {
             List<String> successActions,
             List<String> failureActions) {
 
+        /** Canonical constructor; normalizes and copies every collection field. */
         public StarStage {
             name = Texts.toStringSafe(name);
             stats = stats == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(stats));
@@ -147,6 +241,22 @@ public final class StrengthenRecipe {
     private final Object nameActions;
     private final Object loreActions;
 
+    /**
+     * Creates a recipe without a branch tree or name/lore actions.
+     *
+     * @param id                    the recipe id
+     * @param displayName           the display name
+     * @param guiTemplate           the GUI template id
+     * @param economy               the economy configuration
+     * @param limits                the numeric limits
+     * @param successRates          per-target-star success rates
+     * @param matchRule             the item matching rule
+     * @param statLines             stat-line definitions keyed by id
+     * @param stars                 star stages keyed by star level
+     * @param conditions            activation conditions
+     * @param conditionType         condition combination type
+     * @param conditionRequiredCount required count for any-of conditions
+     */
     public StrengthenRecipe(String id,
             String displayName,
             String guiTemplate,
@@ -163,6 +273,23 @@ public final class StrengthenRecipe {
                 conditions, conditionType, conditionRequiredCount, null, null, null);
     }
 
+    /**
+     * Creates a recipe with a branch tree but no name/lore actions.
+     *
+     * @param id                    the recipe id
+     * @param displayName           the display name
+     * @param guiTemplate           the GUI template id
+     * @param economy               the economy configuration
+     * @param limits                the numeric limits
+     * @param successRates          per-target-star success rates
+     * @param matchRule             the item matching rule
+     * @param statLines             stat-line definitions keyed by id
+     * @param stars                 star stages keyed by star level
+     * @param conditions            activation conditions
+     * @param conditionType         condition combination type
+     * @param conditionRequiredCount required count for any-of conditions
+     * @param branchTree            the branching star tree
+     */
     public StrengthenRecipe(String id,
             String displayName,
             String guiTemplate,
@@ -180,6 +307,27 @@ public final class StrengthenRecipe {
                 conditions, conditionType, conditionRequiredCount, branchTree, null, null);
     }
 
+    /**
+     * Full constructor.
+     *
+     * @param id                    the recipe id
+     * @param displayName           the display name
+     * @param guiTemplate           the GUI template id (defaults to
+     *                              {@code "strengthen_gui"})
+     * @param economy               the economy configuration
+     * @param limits                the numeric limits
+     * @param successRates          per-target-star success rates
+     * @param matchRule             the item matching rule
+     * @param statLines             stat-line definitions keyed by id
+     * @param stars                 star stages keyed by star level
+     * @param conditions            activation conditions
+     * @param conditionType         condition combination type (defaults to
+     *                              {@code "all_of"})
+     * @param conditionRequiredCount required count for any-of conditions
+     * @param branchTree            the branching star tree, may be {@code null}
+     * @param nameActions           raw name-action config, may be {@code null}
+     * @param loreActions           raw lore-action config, may be {@code null}
+     */
     public StrengthenRecipe(String id,
             String displayName,
             String guiTemplate,
@@ -213,6 +361,12 @@ public final class StrengthenRecipe {
     }
 
 
+    /**
+     * Computes the cumulative stat variables granted up to a star level.
+     *
+     * @param currentStar the inclusive star ceiling
+     * @return resolved stat id to value mapping
+     */
     public Map<String, Double> cumulativeVariables(int currentStar) {
         Map<String, Object> rawValues = new LinkedHashMap<>();
         for (Map.Entry<Integer, StarStage> entry : stars.entrySet()) {
@@ -224,6 +378,13 @@ public final class StrengthenRecipe {
         return resolveExpressions(rawValues, Map.of("star", (double) currentStar));
     }
 
+    /**
+     * Computes the cumulative attributes granted up to a star level, falling
+     * back to {@link #cumulativeVariables(int)} when no attributes are defined.
+     *
+     * @param currentStar the inclusive star ceiling
+     * @return attribute id to value mapping
+     */
     public Map<String, Double> cumulativeAttributes(int currentStar) {
         Map<String, Double> values = new LinkedHashMap<>();
         for (Map.Entry<Integer, StarStage> entry : stars.entrySet()) {
@@ -232,13 +393,18 @@ public final class StrengthenRecipe {
             }
             merge(values, entry.getValue().attributes());
         }
-        // If no explicit attributes configured, use resolved variables as attributes
         if (values.isEmpty()) {
             return cumulativeVariables(currentStar);
         }
         return values;
     }
 
+    /**
+     * Collects the distinct skill ids granted up to a star level.
+     *
+     * @param currentStar the inclusive star ceiling
+     * @return the ordered, de-duplicated skill ids
+     */
     public List<String> cumulativeSkillIds(int currentStar) {
         LinkedHashSet<String> values = new LinkedHashSet<>();
         for (Map.Entry<Integer, StarStage> entry : stars.entrySet()) {
@@ -250,6 +416,13 @@ public final class StrengthenRecipe {
         return List.copyOf(values);
     }
 
+    /**
+     * Computes the stat delta between two star levels.
+     *
+     * @param fromStar the starting star level
+     * @param toStar   the ending star level
+     * @return stat id to delta mapping, excluding near-zero changes
+     */
     public Map<String, Double> deltaStats(int fromStar, int toStar) {
         Map<String, Double> delta = new LinkedHashMap<>();
         Map<String, Double> from = cumulativeVariables(fromStar);
@@ -266,6 +439,11 @@ public final class StrengthenRecipe {
         return delta;
     }
 
+    /**
+     * {@return the stages reached up to a star level, ordered by target star}
+     *
+     * @param currentStar the inclusive star ceiling
+     */
     public List<StarStage> reachedStages(int currentStar) {
         List<StarStage> result = new ArrayList<>();
         for (Map.Entry<Integer, StarStage> entry : stars.entrySet()) {
@@ -277,20 +455,42 @@ public final class StrengthenRecipe {
         return List.copyOf(result);
     }
 
+    /**
+     * {@return the stage for a target star, or {@code null} if undefined}
+     *
+     * @param targetStar the target star level
+     */
     public StarStage stage(int targetStar) {
         return stars.get(targetStar);
     }
 
+    /**
+     * {@return the success actions configured for a target star}
+     *
+     * @param targetStar the target star level
+     */
     public List<String> successActionsForTargetStar(int targetStar) {
         StarStage stage = stage(targetStar);
         return stage == null ? List.of() : stage.successActions();
     }
 
+    /**
+     * {@return the failure actions configured for a resulting star}
+     *
+     * @param resultingStar the star level after a failed attempt
+     */
     public List<String> failureActionsForResultStar(int resultingStar) {
         StarStage stage = stage(resultingStar);
         return stage == null ? List.of() : stage.failureActions();
     }
 
+    /**
+     * Resolves the effective currencies for a target star, preferring a stage
+     * override, then the recipe economy (when enabled).
+     *
+     * @param targetStar the target star level
+     * @return the applicable currency entries; empty when economy is disabled
+     */
     public List<CurrencyEntry> effectiveCurrencies(int targetStar) {
         StarStage stage = stage(targetStar);
         if (stage != null && stage.economyOverride() != null && !stage.economyOverride().currencies().isEmpty()) {
@@ -302,6 +502,14 @@ public final class StrengthenRecipe {
         return economy.currencies();
     }
 
+    /**
+     * Resolves the success rate for a target star, preferring the recipe-level
+     * rate over the supplied global rates.
+     *
+     * @param globalSuccessRates global per-star rates, may be {@code null}
+     * @param targetStar         the target star level
+     * @return the success rate as a percentage
+     */
     public double successRateForTargetStar(Map<Integer, Double> globalSuccessRates, int targetStar) {
         if (successRates.containsKey(targetStar)) {
             return successRates.getOrDefault(targetStar, 0D);
@@ -309,73 +517,92 @@ public final class StrengthenRecipe {
         return globalSuccessRates == null ? 0D : globalSuccessRates.getOrDefault(targetStar, 0D);
     }
 
+    /** {@return the recipe id} */
     public String id() {
         return id;
     }
 
+    /** {@return the recipe display name} */
     public String displayName() {
         return displayName;
     }
 
+    /** {@return the GUI template id used to render this recipe} */
     public String guiTemplate() {
         return guiTemplate;
     }
 
+    /** {@return the recipe-level economy configuration} */
     public EconomyConfig economy() {
         return economy;
     }
 
+    /** {@return the numeric limits of the recipe} */
     public Limits limits() {
         return limits;
     }
 
+    /** {@return the per-target-star success rates} */
     public Map<Integer, Double> successRates() {
         return successRates;
     }
 
+    /** {@return the item matching rule} */
     public MatchRule matchRule() {
         return matchRule;
     }
 
+    /** {@return the stat-line definitions keyed by id} */
     public Map<String, StatLineDefinition> statLines() {
         return statLines;
     }
 
+    /** {@return the star stages keyed by star level} */
     public Map<Integer, StarStage> stars() {
         return stars;
     }
 
+    /** {@return the activation conditions of the recipe} */
     public ConditionGroup conditions() {
         return conditions;
     }
 
+    /** {@return the condition combination type (e.g. {@code all_of}/{@code any_of})} */
     public String conditionType() {
         return conditionType;
     }
 
+    /** {@return the required count for any-of conditions} */
     public int conditionRequiredCount() {
         return conditionRequiredCount;
     }
 
+    /** {@return the branching star tree, or {@code null} when linear} */
     public StrengthenBranchNode branchTree() {
         return branchTree;
     }
 
+    /** {@return whether this recipe has a non-empty branch tree} */
     public boolean hasBranchTree() {
         return branchTree != null && !branchTree.children().isEmpty();
     }
 
+    /** {@return the raw name-action configuration, or {@code null}} */
     public Object nameActions() {
         return nameActions;
     }
 
+    /** {@return the raw lore-action configuration, or {@code null}} */
     public Object loreActions() {
         return loreActions;
     }
 
     /**
-     * Cumulative variables considering branch path.
-     * Falls back to flat stars if no branch tree is configured.
+     * Branch-aware variant of {@link #cumulativeVariables(int)}.
+     *
+     * @param currentStar the inclusive star ceiling
+     * @param branchPath  the slash-separated branch path
+     * @return resolved stat id to value mapping
      */
     public Map<String, Double> cumulativeVariables(int currentStar, String branchPath) {
         if (branchTree != null) {
@@ -392,7 +619,11 @@ public final class StrengthenRecipe {
     }
 
     /**
-     * Cumulative attributes considering branch path.
+     * Branch-aware variant of {@link #cumulativeAttributes(int)}.
+     *
+     * @param currentStar the inclusive star ceiling
+     * @param branchPath  the slash-separated branch path
+     * @return attribute id to value mapping
      */
     public Map<String, Double> cumulativeAttributes(int currentStar, String branchPath) {
         if (branchTree != null) {
@@ -409,7 +640,11 @@ public final class StrengthenRecipe {
     }
 
     /**
-     * Cumulative skill ids considering branch path.
+     * Branch-aware variant of {@link #cumulativeSkillIds(int)}.
+     *
+     * @param currentStar the inclusive star ceiling
+     * @param branchPath  the slash-separated branch path
+     * @return the ordered, de-duplicated skill ids
      */
     public List<String> cumulativeSkillIds(int currentStar, String branchPath) {
         if (branchTree != null) {
@@ -448,23 +683,16 @@ public final class StrengthenRecipe {
             String key = Texts.lower(entry.getKey());
             Object existing = target.get(key);
             Object incoming = entry.getValue();
-            // If both are pure numbers, sum them
             Double existingNum = toDouble(existing);
             Double incomingNum = toDouble(incoming);
             if (existingNum != null && incomingNum != null) {
                 target.put(key, existingNum + incomingNum);
             } else {
-                // Expression or first value — store as-is (last wins for expressions)
                 target.put(key, incoming);
             }
         }
     }
 
-    /**
-     * Resolve a raw variables map (which may contain expressions or plain numbers)
-     * into a final Map of Double values using the ExpressionEngine.
-     * Variables can reference each other and the provided context.
-     */
     static Map<String, Double> resolveExpressions(Map<String, Object> rawValues, Map<String, ?> context) {
         return ExpressionEngine.resolveVariables(rawValues, context);
     }

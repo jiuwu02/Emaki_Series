@@ -7,9 +7,6 @@ import java.util.Objects;
 
 import emaki.jiuwu.craft.corelib.text.Texts;
 
-/**
- * 处理布尔表达式的求值，包括比较运算、逻辑运算（&&、||、!）和字面量解析。
- */
 final class BooleanExpressionEvaluator {
 
     static final List<String> BOOLEAN_OPERATORS = List.of("<=", ">=", "==", "!=", "<", ">");

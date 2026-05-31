@@ -24,18 +24,18 @@ const configFields: ConfigSpec[] = [
   ['version', '配置版本', '默认配置结构版本，通常不建议手动修改。', 'text'],
   ['hard_lock_damage', '接管原版伤害', '开启后未命中白名单的原版伤害也会进入 EmakiAttribute 结算；关闭后只有白名单原因进入。', 'boolean'],
   ['default_damage_type', '默认伤害类型', '未指定伤害类型或环境伤害回退时使用的 damage_types ID。', 'text'],
-  ['vanilla_event_damage', '原版事件伤害接管', '未单独映射的原版 Bukkit DamageCause 进入 EA 结算时使用的默认接管规则。', 'object'],
-  ['vanilla_event_damage.enabled', '启用原版伤害接管', '是否允许未单独配置的原版伤害事件按统一伤害类型进入 EmakiAttribute 结算。', 'boolean'],
+  ['vanilla_event_damage', '原版事件伤害接管', '原版伤害进入 EA 结算的接管模式与默认伤害类型。', 'object'],
+  ['vanilla_event_damage.enabled', '启用完美接管', '开启=完美接管：不取消原版事件，仅把伤害数值替换为 EA 结算值，屏蔽护甲/抗性/魔法减伤、保留吸收与盾牌，原版副作用（着火、击退、铁傀儡击飞、荆棘等）照常触发，未单独映射的原版伤害也进入 EA；关闭=兼容模式：取消事件后由 EA 合成重应用，仅白名单原因进入 EA。', 'boolean'],
   ['vanilla_event_damage.damage_type', '伤害类型', '这些未单独映射的原版伤害统一使用的 damage_types ID。', 'text'],
   ['regen_interval_ticks', '回复间隔', '生命、法力等资源自然回复的间隔，单位 tick。', 'number'],
   ['sync_delay_ticks', '同步延迟', '属性计算后同步到 Bukkit 原生属性的延迟，单位 tick。', 'number'],
   ['default_profile', '默认档案', '玩家默认资源上限、初始属性基础值和新玩家档案模板。', 'object'],
   ['default_profile.resources', '默认资源', '生命、法力等资源的默认最大值、边界与 Bukkit 同步策略。', 'object', { creatableChildren: true }],
   ['default_profile.attributes', '默认属性', '玩家默认拥有的属性基础值，key 为属性 ID。', 'object', { creatableChildren: true }],
-  ['synthetic_hit_feedback', '击中反馈', '接管原版伤害后是否补发击退和受伤音效，避免伤害被替换后缺少反馈。', 'object'],
-  ['synthetic_hit_feedback.knockback', '补发击退', '接管伤害后是否补发击退。', 'boolean'],
-  ['synthetic_hit_feedback.knockback_strength', '击退强度', '补发击退力度系数。', 'number'],
-  ['synthetic_hit_feedback.hurt_sound', '受伤音效', '接管伤害后是否补发受伤音效。', 'boolean'],
+  ['synthetic_hit_feedback', '击中反馈', '仅兼容模式（完美接管关闭）生效：合成重应用伤害后是否补发击退和受伤音效。', 'object'],
+  ['synthetic_hit_feedback.knockback', '补发击退', '仅兼容模式生效：合成伤害后是否补发击退。', 'boolean'],
+  ['synthetic_hit_feedback.knockback_strength', '击退强度', '仅兼容模式生效：补发击退力度系数。', 'number'],
+  ['synthetic_hit_feedback.hurt_sound', '受伤音效', '仅兼容模式生效：合成伤害后是否补发受伤音效。', 'boolean'],
   ['scaling_curves', '衰减曲线', '属性超过阈值后按曲线衰减，防止数值无限膨胀。', 'object', { creatableChildren: true }],
   ['allowed_damage_causes', '伤害来源白名单', '允许进入 EmakiAttribute 结算的 Bukkit DamageCause 列表。', 'objectList']
 ];
@@ -289,6 +289,7 @@ registerPluginConfig({
     [{ key: 'resistance_source' }, { label: copy('抗性来源', 'Resistance source'), comment: '恢复抗性属性的来源。', type: 'enum', options: DAMAGE_STAGE_SOURCES, optionLabelPrefix: 'damageStageSource' }],
     [{ key: 'mode' }, { label: copy('计算模式', 'Mode'), comment: '阶段对输入伤害的计算模式。', type: 'enum', options: DAMAGE_STAGE_MODES, optionLabelPrefix: 'damageStageMode' }],
     [{ key: 'condition_type' }, { label: copy('条件逻辑', 'Condition logic'), comment: '多条件组合逻辑。', type: 'enum', options: ['all_of', 'any_of'], optionLabelPrefix: 'condition_type' }],
+    [{ key: 'curve_type' }, { label: copy('曲线类型', 'Curve type'), comment: '超过阈值后使用的衰减函数类型。', type: 'enum', options: ['logarithmic', 'sqrt', 'piecewise_linear', 'linear'], optionLabelPrefix: 'curve_type' }],
     [{ key: 'required_count' }, { label: copy('需要满足数量', 'Required count'), comment: 'any_of 条件逻辑下需要满足的最少条件数量。', type: 'number' }]
   ],
   createTemplates: [
@@ -306,7 +307,7 @@ registerPluginConfig({
     ['scaling_curves', { id: 'curve', label: copy('衰减曲线模板', 'Scaling curve template'), fields: [
       { path: 'attribute', label: '属性 ID', comment: '需要应用衰减的属性 ID。', type: 'text', defaultValue: 'physical_attack' },
       { path: 'threshold', label: '阈值', comment: '超过该值后开始衰减。', type: 'number', defaultValue: 100 },
-      { path: 'curve_type', label: '曲线类型', comment: '超过阈值后使用的衰减函数类型。', type: 'enum', options: ['logarithmic', 'sqrt', 'piecewise_linear'], defaultValue: 'logarithmic' },
+      { path: 'curve_type', label: '曲线类型', comment: '超过阈值后使用的衰减函数类型。', type: 'enum', options: ['logarithmic', 'sqrt', 'piecewise_linear', 'linear'], defaultValue: 'logarithmic' },
       { path: 'factor', label: '系数', comment: '衰减计算系数。', type: 'number', defaultValue: 1 }
     ] }]
   ],

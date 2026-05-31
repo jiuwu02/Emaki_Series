@@ -40,13 +40,6 @@ public final class EmakiScriptApi {
         this.text = safeConfig.context().exposeText() ? new ScriptTextApi() : null;
     }
 
-    /**
-     * Schedules a task to run on the main server thread.
-     * Use this when calling Bukkit API from an async script execution context.
-     * The task is dispatched via BukkitScheduler.runTask and executes on the next tick.
-     *
-     * @param task the Runnable to execute on the main thread
-     */
     @HostAccess.Export
     public void runSync(Runnable task) {
         if (task == null) {
@@ -63,13 +56,6 @@ public final class EmakiScriptApi {
         Bukkit.getScheduler().runTask(sourcePlugin, task);
     }
 
-    /**
-     * Schedules a task on the main thread and returns a CompletableFuture that completes
-     * when the task finishes. Useful for scripts that need to await a sync result.
-     *
-     * @param task the Runnable to execute on the main thread
-     * @return a CompletableFuture that completes when the task is done
-     */
     @HostAccess.Export
     public CompletableFuture<Void> runSyncAndWait(Runnable task) {
         if (task == null) {

@@ -71,9 +71,6 @@ public final class StrengthenSnapshotBuilder {
         return result;
     }
 
-    /**
-     * Apply fracture decay to stats. Each fracture level reduces effective stats by 5%.
-     */
     private Map<String, Double> applyFractureDecay(Map<String, Double> stats, int fractureLevel) {
         if (stats == null || stats.isEmpty() || fractureLevel <= 0) {
             return stats;

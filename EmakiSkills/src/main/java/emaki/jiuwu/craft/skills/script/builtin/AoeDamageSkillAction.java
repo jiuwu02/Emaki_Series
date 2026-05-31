@@ -16,12 +16,6 @@ import emaki.jiuwu.craft.corelib.action.ActionParameterType;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
 import emaki.jiuwu.craft.skills.api.SkillScriptContext;
 
-/**
- * Area-of-effect damage skill action.
- * <p>
- * Damages all valid entities within a radius around a center point.
- * Writes {@code aoe_hit_count} to the context shared state for use by subsequent actions.
- */
 public final class AoeDamageSkillAction extends AbstractSkillScriptAction {
 
     public AoeDamageSkillAction() {

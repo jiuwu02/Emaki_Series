@@ -256,4 +256,3 @@ final class AttributeRegistryService {
         orderedContributionProviders = providers.isEmpty() ? List.of() : List.copyOf(providers);
     }
 }
-

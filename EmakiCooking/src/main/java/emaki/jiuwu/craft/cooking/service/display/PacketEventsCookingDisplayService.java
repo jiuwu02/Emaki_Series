@@ -137,14 +137,12 @@ public final class PacketEventsCookingDisplayService implements CookingDisplaySe
         }
         animatingStations.add(stationKey);
 
-        // 将旋转拆分为多段，每段 ≤ 180°，以支持任意角度（含多圈）
         int segments = Math.max(1, (int) Math.ceil(Math.abs(rotationDegrees) / 180.0D));
         int halfTicks = Math.max(segments, durationTicks / 2);
         int ticksPerSegment = Math.max(1, halfTicks / segments);
         double degreesPerSegment = rotationDegrees / segments;
         double heightPerSegment = heightOffset / segments;
 
-        // 上升阶段：分段递增旋转和高度
         for (int segment = 0; segment < segments; segment++) {
             int delay = segment * ticksPerSegment;
             int segmentIndex = segment + 1;
@@ -170,7 +168,6 @@ public final class PacketEventsCookingDisplayService implements CookingDisplaySe
             }
         }
 
-        // 下降阶段：分段从最高点旋转回原位
         int riseEndTick = segments * ticksPerSegment;
         for (int segment = 0; segment < segments; segment++) {
             int delay = riseEndTick + segment * ticksPerSegment;
@@ -194,7 +191,6 @@ public final class PacketEventsCookingDisplayService implements CookingDisplaySe
             Bukkit.getScheduler().runTaskLater(plugin, segmentTask, delay);
         }
 
-        // 动画结束后清除标记
         int totalTicks = riseEndTick + segments * ticksPerSegment;
         Bukkit.getScheduler().runTaskLater(plugin, () -> animatingStations.remove(stationKey), totalTicks);
     }
@@ -239,7 +235,6 @@ public final class PacketEventsCookingDisplayService implements CookingDisplaySe
         org.joml.Vector3f scale = transformation.getScale();
         org.joml.Quaternionf rightRotation = transformation.getRightRotation();
 
-        // 计算动画后的 translation 和 rotation
         Vector3f animatedTranslation = new Vector3f(
                 originalTranslation.x(),
                 originalTranslation.y() + (float) heightOffset,
@@ -251,23 +246,17 @@ public final class PacketEventsCookingDisplayService implements CookingDisplaySe
         animatedLeftRotation.mul(deltaRotation);
 
         List<EntityData<?>> metadata = new ArrayList<>();
-        // 设置 interpolation start = 0（立即开始）
         metadata.add(new EntityData<>(interpolationStartIndex, EntityDataTypes.INT, 0));
-        // 设置 interpolation duration
         metadata.add(new EntityData<>(interpolationDurationIndex, EntityDataTypes.INT, interpolationDuration));
         if (hasPositionRotationInterpolation) {
             metadata.add(new EntityData<>(ENTITY_METADATA_BASE + 2, EntityDataTypes.INT, 0));
         }
-        // 设置 translation
         metadata.add(new EntityData<>(translationIndex, EntityDataTypes.VECTOR3F, animatedTranslation));
-        // 设置 scale（保持不变）
         metadata.add(new EntityData<>(translationIndex + 1, EntityDataTypes.VECTOR3F,
                 new Vector3f(scale.x(), scale.y(), scale.z())));
-        // 设置 left_rotation
         metadata.add(new EntityData<>(translationIndex + 2, EntityDataTypes.QUATERNION,
                 new Quaternion4f(animatedLeftRotation.x(), animatedLeftRotation.y(),
                         animatedLeftRotation.z(), animatedLeftRotation.w())));
-        // 设置 right_rotation（保持不变）
         metadata.add(new EntityData<>(translationIndex + 3, EntityDataTypes.QUATERNION,
                 new Quaternion4f(rightRotation.x(), rightRotation.y(), rightRotation.z(), rightRotation.w())));
 

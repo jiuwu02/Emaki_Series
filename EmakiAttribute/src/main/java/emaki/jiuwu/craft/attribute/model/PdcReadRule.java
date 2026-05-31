@@ -126,4 +126,3 @@ public record PdcReadRule(String sourceId,
         }
     }
 }
-

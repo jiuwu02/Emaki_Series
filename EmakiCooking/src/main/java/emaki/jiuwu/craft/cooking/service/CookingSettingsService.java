@@ -49,7 +49,6 @@ public final class CookingSettingsService {
 
     private static final Pattern RANGE_PATTERN = Pattern.compile("^\\s*(-?\\d+(?:\\.\\d+)?)\\s*-\\s*(-?\\d+(?:\\.\\d+)?)\\s*$");
 
-    // 配置中"点燃状态"和"熄灭状态"的兼容 key 列表，在 wokHeatLevels 和 parseHeatSourceIgnitionRules 中复用
     private static final String[] LIT_SOURCE_KEYS = {"lit_item_sources", "lit_source", "ignited_item_sources", "ignited_source", "on_item_sources", "on_source"};
     private static final String[] UNLIT_SOURCE_KEYS = {"unlit_item_sources", "unlit_source", "extinguished_item_sources", "extinguished_source", "off_item_sources", "off_source"};
     private static final DisplayAdjustmentProfile DEFAULT_ITEM_DISPLAY_ADJUSTMENT = new DisplayAdjustmentProfile(
@@ -116,11 +115,7 @@ public final class CookingSettingsService {
         return Math.max(0D, configuration.getDouble("display_entities.wok.layout_radius", 0.26D));
     }
 
-    // ========== 文本展示实体 ==========
 
-    /**
-     * 指定工位是否启用文本展示实体（全局开关 AND 工位级开关）。
-     */
     public boolean textDisplayEnabled(StationType stationType) {
         if (stationType == null) {
             return false;
@@ -132,9 +127,6 @@ public final class CookingSettingsService {
         return configuration.getBoolean(stationPath, true);
     }
 
-    /**
-     * 解析指定工位的文本展示渲染参数（offset/scale 优先取工位级覆盖，回退全局默认）。
-     */
     public TextDisplayProfile textDisplayProfile(StationType stationType) {
         Vector3 defaultOffset = readVector3(
                 configuration.getSection("display_entities.text.defaults.offset"),
@@ -1017,16 +1009,7 @@ public final class CookingSettingsService {
         }
     }
 
-    // ========== 工位操作动作 ==========
 
-    /**
-     * 获取指定工位操作的动作列表。
-     * 配置路径: {@code stations.<type>.actions.<operation>}
-     *
-     * @param stationType 工位类型
-     * @param operation   操作名（如 "stir", "cut", "complete" 等）
-     * @return 动作行列表，如果未配置则返回空列表
-     */
     public List<String> getStationActions(StationType stationType, String operation) {
         if (stationType == null || Texts.isBlank(operation)) {
             return List.of();

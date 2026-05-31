@@ -16,10 +16,6 @@ import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
 import emaki.jiuwu.craft.item.model.RepairConfig;
 import emaki.jiuwu.craft.item.service.ItemRepairService;
 
-/**
- * Listens for item durability damage events and disables emaki items
- * when their damage reaches or exceeds max_damage, instead of allowing them to break.
- */
 public final class ItemDurabilityListener implements Listener {
 
     private final EmakiItemPlugin plugin;
@@ -59,14 +55,11 @@ public final class ItemDurabilityListener implements Listener {
         if (newDamage >= maxDamage) {
             event.setCancelled(true);
 
-            // Set damage to max (visually broken)
             damageable.setDamage(maxDamage);
             itemStack.setItemMeta(meta);
 
-            // Mark as disabled
             repairService.markDisabled(itemStack);
 
-            // Execute on_disabled actions
             Player player = event.getPlayer();
             if (!repairConfig.onDisabledActions().isEmpty()) {
                 plugin.actionService().executeLines(

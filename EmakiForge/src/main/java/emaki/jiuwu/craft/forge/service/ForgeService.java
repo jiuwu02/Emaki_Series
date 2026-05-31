@@ -185,7 +185,6 @@ public final class ForgeService {
             GuiItems guiItems,
             long previewSeed,
             long forgedAt) {
-        // Forge GUI intentionally does not expose preview items to avoid rerolling random outcomes.
         return null;
     }
 

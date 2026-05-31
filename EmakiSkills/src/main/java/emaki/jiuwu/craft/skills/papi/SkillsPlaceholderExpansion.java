@@ -71,46 +71,38 @@ public final class SkillsPlaceholderExpansion extends PlaceholderExpansion {
             return "";
         }
 
-        // %emakiskills_cast_mode%
         if ("cast_mode".equals(normalized)) {
             return String.valueOf(profile.castModeEnabled());
         }
 
-        // %emakiskills_global_cooldown%
         if ("global_cooldown".equals(normalized)) {
             PlayerCastTimingState timing = profile.timingState();
             double remaining = Math.max(0, (timing.globalCooldownUntil() - System.currentTimeMillis())) / 1000.0;
             return Numbers.formatNumber(remaining, "0.#");
         }
 
-        // %emakiskills_unlocked_count%
         if ("unlocked_count".equals(normalized)) {
             return String.valueOf(countUnlocked(profile));
         }
 
-        // %emakiskills_slot_count%
         if ("slot_count".equals(normalized)) {
             return String.valueOf(profile.bindings().size());
         }
 
-        // %emakiskills_level_total%
         if ("level_total".equals(normalized)) {
             return String.valueOf(totalLevels(profile));
         }
 
-        // %emakiskills_level_<skill_id>%
         if (normalized.startsWith("level_")) {
             String skillId = normalized.substring("level_".length());
             PlayerSkillLevelState levelState = profile.skillLevels().get(skillId);
             return String.valueOf(levelState != null ? levelState.level() : 0);
         }
 
-        // %emakiskills_slot_<n>_...%
         if (normalized.startsWith("slot_")) {
             return slotPlaceholder(profile, normalized.substring("slot_".length()));
         }
 
-        // %emakiskills_cooldown_<skill_id>%
         if (normalized.startsWith("cooldown_")) {
             String skillId = normalized.substring("cooldown_".length());
             PlayerCastTimingState timing = profile.timingState();
@@ -119,7 +111,6 @@ public final class SkillsPlaceholderExpansion extends PlaceholderExpansion {
             return Numbers.formatNumber(remaining, "0.#");
         }
 
-        // %emakiskills_resource_<id>_current/max/percent%
         if (normalized.startsWith("resource_")) {
             return resourcePlaceholder(profile, normalized.substring("resource_".length()));
         }
@@ -128,7 +119,6 @@ public final class SkillsPlaceholderExpansion extends PlaceholderExpansion {
     }
 
     private String slotPlaceholder(PlayerSkillProfile profile, String remainder) {
-        // remainder = "<n>_skill" / "<n>_name" / "<n>_trigger" / "<n>_empty"
         int underscoreIndex = remainder.indexOf('_');
         if (underscoreIndex < 0) {
             return "";
@@ -165,7 +155,6 @@ public final class SkillsPlaceholderExpansion extends PlaceholderExpansion {
     }
 
     private String resourcePlaceholder(PlayerSkillProfile profile, String remainder) {
-        // remainder = "<id>_current" / "<id>_max" / "<id>_percent"
         int lastUnderscore = remainder.lastIndexOf('_');
         if (lastUnderscore < 0) {
             return "";

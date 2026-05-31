@@ -68,12 +68,10 @@ public final class CastAttemptService {
             return CastAttemptResult.fail(FailureReason.NO_BINDING, "cast.invalid_input");
         }
 
-        // 1. Check cast mode
         if (!castModeService.isCastModeEnabled(player)) {
             return CastAttemptResult.fail(FailureReason.NOT_IN_CAST_MODE, "cast.not_in_cast_mode");
         }
 
-        // 2. Find binding for triggerId
         PlayerSkillProfile profile = dataStore.get(player);
         if (profile == null) {
             return CastAttemptResult.fail(FailureReason.NO_BINDING, "cast.no_profile");
@@ -86,9 +84,6 @@ public final class CastAttemptService {
         return attemptCastWithBinding(player, triggerId, binding);
     }
 
-    /**
-     * Attempts a cast using a pre-resolved binding, skipping the binding lookup.
-     */
     public CastAttemptResult attemptCast(Player player, String triggerId, SkillSlotBinding binding) {
         if (player == null || triggerId == null || triggerId.isBlank()) {
             return CastAttemptResult.fail(FailureReason.NO_BINDING, "cast.invalid_input");
@@ -97,7 +92,6 @@ public final class CastAttemptService {
             return CastAttemptResult.fail(FailureReason.NO_BINDING, "cast.no_binding");
         }
 
-        // Check cast mode
         if (!castModeService.isCastModeEnabled(player)) {
             return CastAttemptResult.fail(FailureReason.NOT_IN_CAST_MODE, "cast.not_in_cast_mode");
         }
@@ -120,13 +114,11 @@ public final class CastAttemptService {
 
     private CastAttemptResult attemptCastWithBinding(Player player, String triggerId, SkillSlotBinding binding) {
 
-        // 3. Look up SkillDefinition
         SkillDefinition definition = stateService.getDefinition(binding.skillId());
         if (definition == null) {
             return CastAttemptResult.fail(FailureReason.SKILL_NOT_FOUND, "skill.not_found");
         }
 
-        // 4. Check skill still in unlocked pool
         List<UnlockedSkillEntry> unlocked = stateService.getUnlockedSkills(player);
         boolean inPool = false;
         for (UnlockedSkillEntry entry : unlocked) {
@@ -151,23 +143,19 @@ public final class CastAttemptService {
             return CastAttemptResult.fail(FailureReason.NO_BINDING, "cast.no_profile");
         }
 
-        // 5. Check forced global delay
         PlayerCastTimingState timing = profile.timingState();
         if (timing.isForcedDelayActive()) {
             return CastAttemptResult.fail(FailureReason.FORCED_DELAY_ACTIVE, "cast.forced_delay");
         }
 
-        // 6. Check global cooldown
         if (timing.isGlobalCooldownActive()) {
             return CastAttemptResult.fail(FailureReason.GLOBAL_COOLDOWN_ACTIVE, "cast.global_cooldown");
         }
 
-        // 7. Check skill cooldown
         if (timing.isSkillOnCooldown(definition.id())) {
             return CastAttemptResult.fail(FailureReason.SKILL_COOLDOWN_ACTIVE, "cast.skill_cooldown");
         }
 
-        // 7.5. Check skill conditions
         if (!definition.conditions().emptyGroup()) {
             boolean conditionsPassed = ConditionEvaluator.evaluate(
                     definition.conditions(),
@@ -179,13 +167,11 @@ public final class CastAttemptService {
             }
         }
 
-        // 8. Check resource costs
         CastAttemptResult costCheck = checkResourceCosts(player, profile, definition);
         if (costCheck != null) {
             return costCheck;
         }
 
-        // 9. Cast via native script and/or MythicMobs
         ResolvedSkillParameters parameters = skillParameterResolver == null
                 ? ResolvedSkillParameters.empty()
                 : skillParameterResolver.resolve(player, definition, triggerId, invocation);
@@ -194,7 +180,6 @@ public final class CastAttemptService {
             return CastAttemptResult.fail(FailureReason.MYTHIC_CAST_FAILED, "cast.skill_execute_failed");
         }
 
-        // 10. On success: consume resources, record timing
         consumeResources(player, profile, definition);
         AppConfig config = configSupplier.get();
         long forcedDelayTicks = config != null ? config.castTiming().forcedGlobalCastDelayTicks() : 0L;
@@ -205,9 +190,6 @@ public final class CastAttemptService {
         return CastAttemptResult.ok();
     }
 
-    // ------------------------------------------------------------------
-    // Internal helpers
-    // ------------------------------------------------------------------
 
     private boolean castSkill(Player player,
             SkillDefinition definition,
@@ -245,7 +227,6 @@ public final class CastAttemptService {
     private SkillSlotBinding findBindingByTrigger(PlayerSkillProfile profile, String triggerId) {
         SkillSlotBinding indexed = profile.findBindingByTrigger(triggerId);
         if (indexed != null) return indexed;
-        // Fallback to linear scan for safety
         for (SkillSlotBinding binding : profile.bindings()) {
             if (!binding.isEmpty() && triggerId.equals(binding.triggerId())) {
                 return binding;
@@ -314,7 +295,6 @@ public final class CastAttemptService {
                     }
                 }
                 case ATTRIBUTE_CHECK -> {
-                    // Attribute checks are read-only, no consumption
                 }
             }
         }

@@ -56,7 +56,7 @@ public final class TriggerSelectGuiHandler implements GuiSessionHandler {
         switch (type) {
             case "trigger_option" -> handleTriggerOptionClick(session, slot, player);
             case "back" -> handleBack(player);
-            default -> { /* filler or unknown */ }
+            default -> {  }
         }
     }
 
@@ -74,12 +74,8 @@ public final class TriggerSelectGuiHandler implements GuiSessionHandler {
 
     @Override
     public void onClose(GuiSession session, InventoryCloseEvent event) {
-        // No special cleanup needed
     }
 
-    // ------------------------------------------------------------------
-    // Handlers
-    // ------------------------------------------------------------------
 
     private void handleTriggerOptionClick(GuiSession session, GuiTemplate.ResolvedSlot slot, Player player) {
         List<SkillTriggerDefinition> enabledTriggers = getEnabledTriggers();
@@ -90,7 +86,6 @@ public final class TriggerSelectGuiHandler implements GuiSessionHandler {
 
         SkillTriggerDefinition trigger = enabledTriggers.get(index);
 
-        // Check for conflicts
         String conflict = stateService.checkTriggerConflict(player, targetSlot, trigger.id());
         if (conflict != null) {
             messageService.send(player, "gui.trigger_conflict", Map.of(
@@ -100,7 +95,6 @@ public final class TriggerSelectGuiHandler implements GuiSessionHandler {
             return;
         }
 
-        // Bind the trigger
         boolean success = stateService.bindTrigger(player, targetSlot, trigger.id());
         if (success) {
             messageService.send(player, "gui.trigger_bound", Map.of(
@@ -112,7 +106,6 @@ public final class TriggerSelectGuiHandler implements GuiSessionHandler {
             return;
         }
 
-        // Go back to main GUI
         player.closeInventory();
         plugin.getServer().getScheduler().runTask(plugin, onBack);
     }
@@ -122,9 +115,6 @@ public final class TriggerSelectGuiHandler implements GuiSessionHandler {
         plugin.getServer().getScheduler().runTask(plugin, onBack);
     }
 
-    // ------------------------------------------------------------------
-    // Helpers
-    // ------------------------------------------------------------------
 
     List<SkillTriggerDefinition> getEnabledTriggers() {
         List<SkillTriggerDefinition> result = new ArrayList<>();

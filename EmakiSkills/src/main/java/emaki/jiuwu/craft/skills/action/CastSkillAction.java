@@ -15,11 +15,6 @@ import emaki.jiuwu.craft.corelib.action.ActionResult;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.skills.mythic.MythicSkillCastService;
 
-/**
- * CoreLib action that casts a MythicMobs skill through EmakiSkills.
- *
- * <p>Script usage: {@code castskill skill="FireballSkill"}
- */
 public final class CastSkillAction implements Action {
 
     private final MythicSkillCastService mythicSkillCastService;

@@ -335,6 +335,10 @@ abstract class AbstractAttributeServiceFacade implements AttributeServiceFacade 
         return damageCalculationServiceRef().applyResolvedDamage(resolvedDamage, visualSource, alreadyAppliedDamage);
     }
 
+    public void applyDamageSideEffects(ResolvedDamage resolvedDamage, Entity visualSource) {
+        damageCalculationServiceRef().applyDamageSideEffects(resolvedDamage, visualSource);
+    }
+
     @Override
     public boolean applyProjectileDamage(DamageContext damageContext) {
         return damageCalculationServiceRef().applyProjectileDamage(damageContext);

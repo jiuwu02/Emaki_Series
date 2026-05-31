@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ApiError, type ApiClient, type ActionTypesResult } from './api';
-import { ActionsEditor, Button, CollapsibleSection, DisclosureChevron, EditorChrome, InlineError, MiniText, PropRow as BasePropRow, SectionHead, StringListEditor, ToastNotice, VariablesMapEditor, parseActionList, serializeActionList } from './components';
+import { Button, CollapsibleSection, DisclosureChevron, EditorChrome, InlineError, MiniText, PropRow as BasePropRow, SectionHead, StandardActionsField, StandardEffectsEditor, StringListEditor, ToastNotice, VariablesMapEditor } from './components';
 import { asList, asRecord, asStringList, displaySource, firstItemSource, materialFromItemSource, setDeepValue, parseYaml, type AnyMap } from './itemEditor';
 import { t, getLocale } from './i18n';
 import { changedPathSet, diffRecords, fieldLabel, getDeepValue, humanizeFieldLabel, isChangedFieldPath, materialShortName, materialUrls, optionLabel, subscribeTextureBases, textValue, valuesEqual } from './lib';
@@ -8,7 +8,7 @@ import { MINECRAFT_MATERIALS, searchMaterials } from './minecraftMaterials';
 import { getSourceDocumentAdapter, isKind, type SurfaceToolbarState } from './registry';
 import { fileDisplayTitle } from './lib';
 import { CORE_ITEM_FIELD_TYPE_SET, standardDisplayActionFields } from './itemFieldKit';
-import { CORE_EFFECT_TYPES, coreEffectTypeLabel, createCoreEffect, getItemFieldRenderer, getItemPreviewFallback, isCoreEffectType, type CoreEffectType } from './itemFieldRegistry';
+import { getItemFieldRenderer, getItemPreviewFallback } from './itemFieldRegistry';
 import type { ItemPreviewResult, ItemPreviewStep, WebEditorDescriptor, WebEditorField, WebEditorSection, WebRegistryFile, WebRegistryModule } from './types';
 import { serializeItemYaml } from './itemEditor';
 
@@ -332,11 +332,8 @@ function DefaultFieldEditor({ field, data, value, changed, setField, actionTypes
   if (type === 'numberList') return <PropRow label={label} path={field.path} changed={changed} wide><NumberListEditor items={asList(value).map(item => Number(item) || 0)} onChange={items => setField(field.path, items)} /></PropRow>;
   if (type === 'variablesMap') return <PropRow label={label} path={field.path} changed={changed} wide><VariablesMapEditor value={value} onChange={next => setField(field.path, next)} /></PropRow>;
   if (type === 'map' || type === 'dynamicMap' || type === 'objectMap') return <PropRow label={label} path={field.path} changed={changed} wide><MapEditor value={value} onChange={next => setField(field.path, next)} /></PropRow>;
-  if (type === 'actions') {
-    const mode = field.path.toLowerCase().includes('lore') ? 'lore' : 'name';
-    return <PropRow label={label} path={field.path} changed={changed} wide><ScopedActionsEditor actions={parseActionList(value)} onChange={actions => setField(field.path, serializeActionList(actions))} actionTypes={mode === 'lore' ? actionTypesResult?.loreActions ?? [] : actionTypesResult?.nameActions ?? []} mode={mode} /></PropRow>;
-  }
-  if (type === 'effects') return <PropRow label={label} path={field.path} changed={false} wide><EffectsEditor value={value} path={field.path} onChange={next => setField(field.path, next)} actionTypesResult={actionTypesResult} /></PropRow>;
+  if (type === 'actions') return <PropRow label={label} path={field.path} changed={changed} wide><StandardActionsField value={value} onChange={next => setField(field.path, next)} path={field.path} moduleId={context.moduleId} namespace={context.moduleId} editorFields={context.editorFields} actionTypes={actionTypesResult ?? undefined} /></PropRow>;
+  if (type === 'effects') return <PropRow label={label} path={field.path} changed={false} wide><StandardEffectsEditor value={value} path={field.path} onChange={next => setField(field.path, next)} moduleId={context.moduleId} namespace={context.moduleId} editorFields={context.editorFields} actionTypes={actionTypesResult ?? undefined} /></PropRow>;
   if (type === 'json') return <PropRow label={label} path={field.path} changed={changed} wide><GenericObjectEditor value={value} onChange={next => setField(field.path, next)} /></PropRow>;
   return <PropRow label={label} path={field.path} changed={changed} wide={field.wide}><input type="text" value={textValue(value)} onChange={e => setField(field.path, e.target.value)} placeholder={field.placeholder} /></PropRow>;
 }
@@ -353,11 +350,6 @@ function PropRow({ label, path, children, wide, changed }: { label: string; path
     changed={changed ?? isChangedFieldPath(rowPath, context.changedPaths)}
     wide={wide}
   >{children}</BasePropRow>;
-}
-
-function ScopedActionsEditor(props: { actions: ReturnType<typeof parseActionList>; onChange: (actions: ReturnType<typeof parseActionList>) => void; actionTypes: string[]; mode: 'name' | 'lore' }) {
-  const context = React.useContext(EditorContext);
-  return <ActionsEditor {...props} moduleId={context.moduleId} namespace={context.moduleId} editorFields={context.editorFields} />;
 }
 
 function ToggleButton({ id, checked, onChange }: { id?: string; checked: boolean; onChange: (next: boolean) => void }) {
@@ -452,67 +444,6 @@ function NumberListEditor({ items, onChange }: { items: number[]; onChange: (ite
     </div>)}
     <button type="button" className="prop-add" onClick={() => onChange([...items, 0])}>+ {t('core.config.addItem')}</button>
   </div>;
-}
-
-function EffectsEditor({ value, onChange, actionTypesResult, path }: { value: unknown; onChange: (effects: unknown[]) => void; actionTypesResult: ActionTypesResult | null; path?: string }) {
-  const effects = asList(value).map(effect => asRecord(effect));
-  const [expanded, setExpanded] = useState<Set<number>>(() => new Set(effects.map((_, index) => index)));
-  const updateEffect = (index: number, nextEffect: AnyMap) => onChange(effects.map((effect, itemIndex) => itemIndex === index ? cleanObject(nextEffect) : effect));
-  const removeEffect = (index: number) => onChange(effects.filter((_, itemIndex) => itemIndex !== index));
-  const addEffect = (type: CoreEffectType) => {
-    const next = [...effects, createCoreEffect(type)];
-    onChange(next);
-    setExpanded(previous => new Set([...previous, next.length - 1]));
-  };
-  const moveEffect = (index: number, delta: number) => {
-    const target = index + delta;
-    if (target < 0 || target >= effects.length) return;
-    const next = [...effects];
-    [next[index], next[target]] = [next[target], next[index]];
-    onChange(next);
-  };
-  const toggle = (index: number) => setExpanded(previous => {
-    const next = new Set(previous);
-    next.has(index) ? next.delete(index) : next.add(index);
-    return next;
-  });
-  return <div className="prop-levels" role="list">
-    {effects.map((effect, index) => {
-      const type = textValue(effect.type) || 'variables';
-      const coreType = isCoreEffectType(type) ? type : 'variables';
-      const typeOptions = isCoreEffectType(type) ? CORE_EFFECT_TYPES : [...CORE_EFFECT_TYPES, type];
-      const opened = expanded.has(index);
-      return <div className={`prop-level-item${opened ? ' expanded' : ''}`} key={index} role="listitem">
-        <div className="prop-level-head" role="button" tabIndex={0} onClick={() => toggle(index)} onKeyDown={event => toggleByKeyboard(event, () => toggle(index))} aria-expanded={opened} aria-controls={`effect-body-${index}`}>
-          <span className="prop-level-summary"><span className="prop-level-badge"><DisclosureChevron open={opened} className="prop-level-arrow" /> #{index + 1}</span>{coreEffectTypeLabel(type)}</span>
-          <span className="prop-level-rate">{effectSummary(effect)}</span>
-          <span className="prop-action-controls" onClick={stopEvent} onKeyDown={stopEvent}>
-            <button type="button" onClick={() => moveEffect(index, -1)} disabled={index === 0} aria-label={t('core.field.move_up')}>↑</button>
-            <button type="button" onClick={() => moveEffect(index, 1)} disabled={index === effects.length - 1} aria-label={t('core.field.move_down')}>↓</button>
-            <button type="button" className="prop-action-del" onClick={() => removeEffect(index)} aria-label={t('core.field.delete')}>×</button>
-          </span>
-        </div>
-        {opened && <div className="prop-level-body" id={`effect-body-${index}`}>
-          <PropRow label="type" path={joinPath(path, index, 'type')}><SelectInput value={type} options={typeOptions} labelPrefix="effect" onChange={nextType => updateEffect(index, createCoreEffect(nextType as CoreEffectType))} /></PropRow>
-          <EffectPayloadEditor effect={effect} type={coreType} originalType={type} path={joinPath(path, index)} onChange={nextEffect => updateEffect(index, nextEffect)} actionTypesResult={actionTypesResult} />
-        </div>}
-      </div>;
-    })}
-    <div className="prop-cost-actions">{CORE_EFFECT_TYPES.map(type => <button key={type} type="button" className="prop-add" onClick={() => addEffect(type)}>+ {coreEffectTypeLabel(type)}</button>)}</div>
-  </div>;
-}
-
-function EffectPayloadEditor({ effect, type, originalType, onChange, actionTypesResult, path }: { effect: AnyMap; type: CoreEffectType; originalType: string; onChange: (effect: AnyMap) => void; actionTypesResult: ActionTypesResult | null; path?: string }) {
-  const setPayload = (key: string, value: unknown) => onChange(cleanObject({ ...effect, [key]: value }));
-  if (!isCoreEffectType(originalType)) return <GenericObjectEditor value={effect} reservedKeys={['type']} onChange={next => onChange({ type: originalType, ...next })} />;
-  if (type === 'variables') return <PropRow label="variables" path={joinPath(path, 'variables')} wide><VariablesMapEditor value={effect.variables} onChange={value => setPayload('variables', value)} /></PropRow>;
-  if (type === 'name_action') return <PropRow label="name_actions" path={joinPath(path, 'name_actions')} wide><ScopedActionsEditor actions={parseActionList(effect.name_actions)} onChange={actions => setPayload('name_actions', serializeActionList(actions))} actionTypes={actionTypesResult?.nameActions ?? []} mode="name" /></PropRow>;
-  if (type === 'lore_action') return <PropRow label="lore_actions" path={joinPath(path, 'lore_actions')} wide><ScopedActionsEditor actions={parseActionList(effect.lore_actions)} onChange={actions => setPayload('lore_actions', serializeActionList(actions))} actionTypes={actionTypesResult?.loreActions ?? []} mode="lore" /></PropRow>;
-  return <GenericObjectEditor value={effect} reservedKeys={['type']} onChange={next => onChange({ type, ...next })} />;
-}
-
-function ActionLinesEditor({ label, value, onChange, path }: { label: string; value: unknown; onChange: (value: string[]) => void; path?: string }) {
-  return <PropRow label={label} path={path} wide><StringListEditor items={asStringList(value)} onChange={onChange} placeholder="sendmessage text=&quot;...&quot;" /></PropRow>;
 }
 
 function GenericObjectEditor({ value, reservedKeys, onChange }: { value: unknown; reservedKeys?: string[]; onChange: (value: AnyMap) => void }) {
@@ -725,14 +656,6 @@ function defaultSections(): WebEditorSection[] {
   }];
 }
 
-function effectSummary(effect: AnyMap): string {
-  const type = textValue(effect.type);
-  if (type === 'variables') return `${Object.keys(asRecord(effect.variables)).length} 个变量`;
-  if (type === 'name_action') return `${asList(effect.name_actions).length} 个名称动作`;
-  if (type === 'lore_action') return `${asList(effect.lore_actions).length} 个 Lore 动作`;
-  return `${Math.max(0, Object.keys(effect).length - 1)} 个字段`;
-}
-
 function nextUniqueKey(keys: string[], prefix: string): string {
   const normalizedPrefix = prefix.trim() || 'key';
   let index = keys.length + 1;
@@ -774,12 +697,3 @@ function cleanObject<T extends Record<string, unknown>>(value: T): T {
   return Object.fromEntries(Object.entries(value).filter(([, entry]) => entry !== undefined && entry !== '')) as T;
 }
 
-function stopEvent(event: React.SyntheticEvent) {
-  event.stopPropagation();
-}
-
-function toggleByKeyboard(event: React.KeyboardEvent, action: () => void) {
-  if (event.key !== 'Enter' && event.key !== ' ') return;
-  event.preventDefault();
-  action();
-}

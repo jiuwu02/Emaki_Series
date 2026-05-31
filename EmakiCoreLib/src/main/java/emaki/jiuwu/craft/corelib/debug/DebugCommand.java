@@ -12,23 +12,6 @@ import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.corelib.service.AbstractMessageService;
 
-/**
- * 可复用的 debug 子命令处理器。
- * <p>
- * 各插件的 CommandRouter 委托给此类处理 debug 子命令。
- * 所有命令反馈消息从语言文件读取（debug.command.* 节）。
- * </p>
- * <p>
- * 命令格式：
- * <pre>
- *   /命令 debug                  — 显示当前 debug 状态
- *   /命令 debug player &lt;name&gt;    — toggle 追踪指定玩家
- *   /命令 debug module &lt;name&gt;    — toggle 追踪指定模块
- *   /命令 debug on               — 开启全局追踪
- *   /命令 debug off              — 关闭所有追踪
- *   /命令 debug status           — 显示当前追踪状态
- * </pre>
- */
 public final class DebugCommand {
 
     private final DebugLogger debugLogger;
@@ -39,14 +22,6 @@ public final class DebugCommand {
         this.availableModules = availableModules == null ? Set.of() : availableModules;
     }
 
-    /**
-     * 处理 debug 子命令。args[0] 已经是 "debug" 之后的参数。
-     *
-     * @param sender         命令发送者
-     * @param args           debug 之后的参数数组（不含 "debug" 本身）
-     * @param messageService 消息服务
-     * @return 始终返回 true
-     */
     public boolean handle(CommandSender sender, String[] args, AbstractMessageService messageService) {
         if (args.length == 0) {
             sendStatus(sender, messageService);
@@ -69,9 +44,6 @@ public final class DebugCommand {
         return true;
     }
 
-    /**
-     * Tab 补全。args[0] 已经是 "debug" 之后的参数。
-     */
     public List<String> tabComplete(String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {

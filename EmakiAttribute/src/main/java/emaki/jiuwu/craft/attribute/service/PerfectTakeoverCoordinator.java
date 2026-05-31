@@ -1,0 +1,69 @@
+package emaki.jiuwu.craft.attribute.service;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import org.bukkit.entity.Entity;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDamageEvent;
+
+import emaki.jiuwu.craft.attribute.model.ResolvedDamage;
+
+public final class PerfectTakeoverCoordinator implements Listener {
+
+    public record Pending(ResolvedDamage resolvedDamage, Entity visualSource) {
+    }
+
+    private final AttributeService service;
+    private final Map<EntityDamageEvent, Pending> pending = new HashMap<>();
+
+    PerfectTakeoverCoordinator(AttributeService service) {
+        this.service = service;
+    }
+
+    public boolean isClaimed(EntityDamageEvent event) {
+        return event != null && pending.containsKey(event);
+    }
+
+    @SuppressWarnings("deprecation")
+    public void claimAndApply(EntityDamageEvent event, ResolvedDamage resolvedDamage, Entity visualSource) {
+        if (event == null || resolvedDamage == null) {
+            return;
+        }
+        neutralizeVanillaMitigation(event);
+        event.setDamage(EntityDamageEvent.DamageModifier.BASE, resolvedDamage.finalDamage());
+        pending.put(event, new Pending(resolvedDamage, visualSource));
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onEntityDamageMonitor(EntityDamageEvent event) {
+        Pending claimed = pending.remove(event);
+        if (claimed == null) {
+            return;
+        }
+        if (event.isCancelled() || event.getFinalDamage() <= 0D) {
+            return;
+        }
+        service.applyDamageSideEffects(claimed.resolvedDamage(), claimed.visualSource());
+    }
+
+    private void neutralizeVanillaMitigation(EntityDamageEvent event) {
+        zeroModifierIfApplicable(event, EntityDamageEvent.DamageModifier.HARD_HAT);
+        zeroModifierIfApplicable(event, EntityDamageEvent.DamageModifier.ARMOR);
+        zeroModifierIfApplicable(event, EntityDamageEvent.DamageModifier.RESISTANCE);
+        zeroModifierIfApplicable(event, EntityDamageEvent.DamageModifier.MAGIC);
+        zeroModifierIfApplicable(event, EntityDamageEvent.DamageModifier.FREEZING);
+    }
+
+    @SuppressWarnings("deprecation")
+    private void zeroModifierIfApplicable(EntityDamageEvent event, EntityDamageEvent.DamageModifier modifier) {
+        try {
+            if (event.isApplicable(modifier)) {
+                event.setDamage(modifier, 0D);
+            }
+        } catch (UnsupportedOperationException | IllegalArgumentException ignored) {
+        }
+    }
+}

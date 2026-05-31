@@ -3,17 +3,6 @@ package emaki.jiuwu.craft.skills.trigger;
 import java.util.Collections;
 import java.util.Set;
 
-/**
- * Defines a single skill trigger with its metadata and conflict rules.
- *
- * @param id               unique trigger identifier
- * @param displayName      human-readable name shown in GUI
- * @param description      optional description (nullable)
- * @param enabled          whether this trigger is active
- * @param incompatibleWith immutable set of trigger ids that conflict with this one
- * @param material         optional Bukkit Material name for GUI icon (nullable)
- * @param category         whether this is player-bound active trigger or fixed passive trigger
- */
 public record SkillTriggerDefinition(
         String id,
         String displayName,

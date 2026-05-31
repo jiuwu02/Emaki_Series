@@ -4,12 +4,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Tracks per-player, per-recipe forge mastery (proficiency).
- * <p>
- * Each successful craft of a recipe increments the player's mastery for that recipe.
- * Higher mastery provides a quality weight bonus during quality calculation.
- */
 final class ForgeMasteryService {
 
     private static final double DEFAULT_MASTERY_BONUS_PER_LEVEL = 0.01D;
@@ -22,9 +16,6 @@ final class ForgeMasteryService {
     ForgeMasteryService() {
     }
 
-    /**
-     * Record a successful craft, incrementing mastery.
-     */
     void recordCraft(UUID playerId, String recipeId) {
         if (playerId == null || recipeId == null || recipeId.isBlank()) {
             return;
@@ -33,9 +24,6 @@ final class ForgeMasteryService {
                 .merge(recipeId, 1, (current, _) -> Math.min(current + 1, maxMastery));
     }
 
-    /**
-     * Get the current mastery level for a player and recipe.
-     */
     int getMastery(UUID playerId, String recipeId) {
         if (playerId == null || recipeId == null) {
             return 0;
@@ -47,10 +35,6 @@ final class ForgeMasteryService {
         return playerData.getOrDefault(recipeId, 0);
     }
 
-    /**
-     * Calculate the quality weight bonus multiplier based on mastery.
-     * Returns a value >= 1.0 (e.g. 1.05 for 5% bonus).
-     */
     double qualityBonusMultiplier(UUID playerId, String recipeId) {
         int mastery = getMastery(playerId, recipeId);
         if (mastery <= 0) {
@@ -59,18 +43,12 @@ final class ForgeMasteryService {
         return 1.0D + mastery * bonusPerLevel;
     }
 
-    /**
-     * Clear mastery data for a player (e.g. on data reset).
-     */
     void clearPlayer(UUID playerId) {
         if (playerId != null) {
             masteryData.remove(playerId);
         }
     }
 
-    /**
-     * Load mastery data for a player from persistent storage.
-     */
     void loadPlayerData(UUID playerId, Map<String, Integer> data) {
         if (playerId == null || data == null || data.isEmpty()) {
             return;
@@ -78,9 +56,6 @@ final class ForgeMasteryService {
         masteryData.put(playerId, new ConcurrentHashMap<>(data));
     }
 
-    /**
-     * Get all mastery data for a player (for persistence).
-     */
     Map<String, Integer> getPlayerData(UUID playerId) {
         if (playerId == null) {
             return Map.of();

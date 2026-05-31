@@ -787,9 +787,6 @@ public final class WokRuntimeService {
         ));
     }
 
-    /**
-     * 根据已放入食材（前缀）预测玩家想做的配方。
-     */
     private RecipeDocument predictRecipe(WokState state, int heatLevel) {
         if (state == null || !state.hasIngredients()) {
             return null;

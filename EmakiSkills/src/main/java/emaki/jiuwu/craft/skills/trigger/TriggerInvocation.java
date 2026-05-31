@@ -9,11 +9,6 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 
-/**
- * Represents a single trigger invocation carrying the context of the event
- * that fired it. All fields are final except {@code cancelOriginalAction},
- * which downstream handlers may flip to suppress the original Bukkit event.
- */
 public final class TriggerInvocation {
 
     private final Player player;
@@ -113,10 +108,6 @@ public final class TriggerInvocation {
         return sourceEntity;
     }
 
-    /**
-     * Extra variables carried by this invocation (e.g. combo_count).
-     * Returns an unmodifiable map, never null.
-     */
     public Map<String, Object> extraVariables() {
         return extraVariables;
     }

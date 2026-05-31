@@ -212,7 +212,6 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
             getServer().getPluginManager().registerEvents(guiService, this);
         }
 
-        // Register trigger sources — 存为字段以便 reload 时可追踪
         triggerDispatcher = new DefaultTriggerDispatcher(
                 castModeService, triggerRegistry, playerSkillDataStore,
                 castAttemptService, this::appConfig, messageService);
@@ -224,12 +223,10 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
                 triggerRegistry, playerSkillStateService, castAttemptService);
         new PassiveTriggerSource(this::appConfig).register(this, passiveTriggerDispatcher);
 
-        // Register fixed F-key cast mode listener
         getServer().getPluginManager().registerEvents(
                 new CastModeKeyListener(castModeService, actionBarService, messageService),
                 this);
 
-        // Register player join/quit listener
         getServer().getPluginManager().registerEvents(
                 new PlayerJoinQuitListener(this, playerSkillDataStore,
                         castModeService, actionBarService, this::appConfig),

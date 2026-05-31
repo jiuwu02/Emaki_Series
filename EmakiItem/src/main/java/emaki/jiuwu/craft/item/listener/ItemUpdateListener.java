@@ -20,7 +20,6 @@ import emaki.jiuwu.craft.item.EmakiItemPlugin;
 public final class ItemUpdateListener implements Listener {
 
     private final EmakiItemPlugin plugin;
-    // 去重：同一 tick 内对同一玩家只调度一次延迟刷新
     private final Set<UUID> pendingRefresh = ConcurrentHashMap.newKeySet();
 
     public ItemUpdateListener(EmakiItemPlugin plugin) {
@@ -69,7 +68,6 @@ public final class ItemUpdateListener implements Listener {
     }
 
     private void delayed(Player player, String trigger) {
-        // 如果该玩家已有 pending 刷新任务，跳过重复调度
         if (!pendingRefresh.add(player.getUniqueId())) {
             return;
         }

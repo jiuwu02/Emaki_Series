@@ -192,7 +192,7 @@ registerPluginGuiEditor({
   label: getLocale().startsWith('zh') ? '宝石 GUI' : 'Gem GUI',
   fields: [
     ['slots', '槽位', 'GUI 中所有可渲染槽位配置。', 'object'],
-    ['type', '槽位类型', '插件业务识别的槽位语义，例如 target_item、confirm。', 'text'],
+    ['type', '槽位类型', '插件业务识别的槽位语义，例如 target_item、confirm。可选预设值，也可填自定义/填充槽位。', 'enum', { options: ['target_item', 'socket_info', 'socket_summary', 'socket_slot', 'preview_display', 'mode_inlay', 'mode_extract', 'confirm'], optionLabelPrefix: 'slotType' }],
     ['hidden_components', '隐藏组件', '隐藏 tooltip、附魔、属性等原版组件。', 'stringList'],
     ['item_model', '物品模型', '资源包 item model 标识。', 'text'],
     ['custom_model_data', '模型数据', 'Custom Model Data 数值。', 'number'],
@@ -260,8 +260,8 @@ const resonanceFields: ConfigSpec[] = [
   ['effects.actions', '动作', '共鸣触发后执行的动作列表。', 'stringList'],
   ['effects.ea_attributes', 'EA 属性', '共鸣提供的 EmakiAttribute 属性映射。', 'object'],
   ['effects.es_skills', 'ES 技能', '共鸣提供的 EmakiSkills 技能 ID 列表。', 'stringList'],
-  ['effects.name_actions', '名称动作链', '共鸣对物品名称执行的动作。', 'objectList'],
-  ['effects.lore_actions', 'Lore 动作链', '共鸣对物品 Lore 执行的动作。', 'objectList']
+  ['effects.name_actions', '名称动作链', '共鸣对物品名称执行的动作。', 'actions'],
+  ['effects.lore_actions', 'Lore 动作链', '共鸣对物品 Lore 执行的动作。', 'actions']
 ];
 
 const dynamicFields: Record<string, ConfigRuleFieldEntry> = {
@@ -423,18 +423,6 @@ registerPluginConfig({
       { path: 'id', label: '宝石 ID', comment: '要求的宝石 ID；留空时可按 type 匹配。', type: 'text', defaultValue: '' },
       { path: 'type', label: '宝石类型', comment: '要求的宝石类型。', type: 'text', defaultValue: 'universal' },
       { path: 'min_level', label: '最低等级', comment: '要求的最低宝石等级。', type: 'number', defaultValue: 0 }
-    ]],
-    ['effects.name_actions', [
-      { path: 'action', label: '动作', comment: '名称动作类型。', type: 'enum', options: DEFAULT_NAME_ACTIONS, defaultValue: DEFAULT_NAME_ACTIONS[0] },
-      { path: 'value', label: '内容', comment: '动作写入或匹配的文本内容。', type: 'text', defaultValue: '' },
-      { path: 'regex_pattern', label: '正则', comment: 'regex_replace 使用的匹配表达式。', type: 'text', defaultValue: '' },
-      { path: 'replacement', label: '替换内容', comment: 'regex_replace 或 replace_text 使用的替换内容。', type: 'text', defaultValue: '' }
-    ]],
-    ['effects.lore_actions', [
-      { path: 'action', label: '动作', comment: 'Lore 动作类型。', type: 'enum', options: DEFAULT_LORE_ACTIONS, defaultValue: DEFAULT_LORE_ACTIONS[0] },
-      { path: 'content', label: '内容', comment: '要插入、替换或追加的 Lore 行。', type: 'stringList', defaultValue: [] },
-      { path: 'target_pattern', label: '目标匹配', comment: '需要定位目标行时使用的匹配表达式。', type: 'text', defaultValue: '' },
-      { path: 'anchor', label: '锚点', comment: '插入或替换时使用的锚点文本。', type: 'text', defaultValue: '' }
     ]]
   ]
 });

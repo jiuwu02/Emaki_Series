@@ -46,6 +46,7 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
     private final ResourceManagementService resourceManagementService;
     private final DamageCalculationService damageCalculationService;
     private final CombatDebugService combatDebugService;
+    private final PerfectTakeoverCoordinator perfectTakeoverCoordinator;
     private final PdcAttributeService pdcAttributeService;
     private final TemporaryAttributeService temporaryAttributeService;
 
@@ -90,6 +91,7 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
         this.snapshotService = new AttributeSnapshotService(snapshotCollector);
         this.resourceManagementService = new ResourceManagementService(this);
         this.damageCalculationService = new DamageCalculationService(this);
+        this.perfectTakeoverCoordinator = new PerfectTakeoverCoordinator(this);
         refreshCaches();
     }
 
@@ -205,10 +207,6 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
         temporaryAttributeService.close();
     }
 
-    /**
-     * 清理指定实体的内存缓存（攻击冷却、合成伤害标记、伤害类型覆盖）。
-     * 应在玩家退出或被踢出时调用，防止缓存条目永久残留。
-     */
     public void cleanupEntityState(java.util.UUID entityId) {
         stateRepository.cleanupEntity(entityId);
     }
@@ -223,6 +221,10 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
 
     CombatDebugService combatDebug() {
         return combatDebugService;
+    }
+
+    public PerfectTakeoverCoordinator perfectTakeoverCoordinator() {
+        return perfectTakeoverCoordinator;
     }
 
     public boolean toggleCombatDebug(Player player) {
@@ -253,10 +255,6 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
         return damageCalculationService.resolveDamageApplicationAsync(damageContext);
     }
 
-    /**
-     * Returns the configured scaling curves for attribute diminishing returns.
-     * Returns an empty list if no curves are configured.
-     */
     List<ScalingCurveConfig> scalingCurves() {
         return plugin.scalingCurves();
     }

@@ -7,7 +7,6 @@ import emaki.jiuwu.craft.corelib.action.ActionContext;
 
 public final class PlaceholderRegistry {
 
-    // CopyOnWriteArrayList 保证并发安全：register 可能在异步线程调用，resolve 在主线程遍历
     private final List<PlaceholderResolver> resolvers = new CopyOnWriteArrayList<>();
 
     public void register(PlaceholderResolver resolver) {
@@ -17,7 +16,6 @@ public final class PlaceholderRegistry {
     }
 
     public String resolve(ActionContext context, String text) {
-        // 快速路径：如果文本不包含任何占位符标记，直接返回，跳过 resolver 链遍历
         if (text == null || text.isEmpty() || !containsPlaceholderMarker(text)) {
             return text;
         }

@@ -19,9 +19,6 @@ public record GemResonanceDefinition(
         effects = effects == null ? new ResonanceEffects(null, null, null, null, null) : effects;
     }
 
-    /**
-     * Backward-compatible constructor without priority and exclusiveGroup.
-     */
     public GemResonanceDefinition(String id, String displayName, ResonanceChain chain, ResonanceEffects effects) {
         this(id, displayName, 0, "", chain, effects);
     }
