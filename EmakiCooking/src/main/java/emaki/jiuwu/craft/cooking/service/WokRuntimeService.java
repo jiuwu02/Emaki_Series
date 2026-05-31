@@ -22,6 +22,8 @@ import emaki.jiuwu.craft.cooking.model.StationInteraction;
 import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.cooking.service.display.CookingDisplayService;
 import emaki.jiuwu.craft.cooking.service.display.CookingDisplaySpec;
+import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplayService;
+import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplaySpec;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.yaml.MapYamlSection;
 import org.bukkit.Location;
@@ -50,6 +52,7 @@ public final class WokRuntimeService {
     private final CookingRewardService rewardService;
     private final ItemSourceService itemSourceService;
     private final CookingDisplayService displayService;
+    private final CookingTextDisplayService textDisplayService;
 
     public WokRuntimeService(EmakiCookingPlugin plugin,
             MessageService messageService,
@@ -59,7 +62,8 @@ public final class WokRuntimeService {
             CookingRecipeService recipeService,
             CookingRewardService rewardService,
             ItemSourceService itemSourceService,
-            CookingDisplayService displayService) {
+            CookingDisplayService displayService,
+            CookingTextDisplayService textDisplayService) {
         this.plugin = plugin;
         this.messageService = messageService;
         this.settingsService = settingsService;
@@ -69,6 +73,7 @@ public final class WokRuntimeService {
         this.rewardService = rewardService;
         this.itemSourceService = itemSourceService;
         this.displayService = Objects.requireNonNull(displayService, "displayService");
+        this.textDisplayService = Objects.requireNonNull(textDisplayService, "textDisplayService");
     }
 
     public void reload() {
@@ -162,6 +167,7 @@ public final class WokRuntimeService {
             }
             WokState updated = new WokState(updatedIngredients, state.totalStirCount() + 1, now, now);
             saveState(coordinates, updated);
+            refreshText(coordinates, updated);
             Location particleLocation = block.getLocation().add(0.5D, 1.05D, 0.5D);
             if (particleLocation.getWorld() != null) {
                 particleLocation.getWorld().spawnParticle(Particle.CLOUD, particleLocation, 4, 0.15D, 0.1D, 0.15D, 0.01D);
@@ -739,8 +745,118 @@ public final class WokRuntimeService {
         stateStore.saveAsync(coordinates, root);
     }
 
+    private void refreshText(StationCoordinates coordinates, WokState state) {
+        if (!settingsService.textDisplayEnabled(StationType.WOK)
+                || coordinates == null || state == null || !state.hasIngredients()) {
+            textDisplayService.removeStation(StationType.WOK, coordinates);
+            return;
+        }
+        Location baseLocation = coordinates.location(0D, 0D, 0D);
+        if (baseLocation == null || baseLocation.getWorld() == null) {
+            textDisplayService.removeStation(StationType.WOK, coordinates);
+            return;
+        }
+        Block block = coordinates.block();
+        int heatLevel = block == null ? 0 : resolveHeatLevel(block.getRelative(BlockFace.DOWN));
+
+        StringBuilder builder = new StringBuilder();
+        appendLine(builder, messageService.message("text_display.wok.title"));
+        appendLine(builder, messageService.message("text_display.wok.heat", Map.of("heat", heatLevel)));
+        appendLine(builder, messageService.message("text_display.wok.stir", Map.of("count", state.totalStirCount())));
+        appendLine(builder, messageService.message("text_display.wok.ingredients_header"));
+        for (WokIngredientState ingredient : state.ingredients()) {
+            appendLine(builder, messageService.message("text_display.wok.ingredient_line", Map.of(
+                    "item", itemDisplayName(ingredient.source()),
+                    "amount", ingredient.amount()
+            )));
+        }
+        RecipeDocument predicted = predictRecipe(state, heatLevel);
+        if (predicted == null) {
+            appendLine(builder, messageService.message("text_display.wok.no_predict"));
+        } else {
+            appendLine(builder, messageService.message("text_display.wok.predicted", Map.of("recipe", predicted.displayName())));
+            appendLine(builder, nextStepHint(state, predicted));
+        }
+        textDisplayService.upsert(new CookingTextDisplaySpec(
+                StationType.WOK,
+                coordinates,
+                "info",
+                builder.toString(),
+                baseLocation,
+                settingsService.textDisplayProfile(StationType.WOK)
+        ));
+    }
+
+    /**
+     * 根据已放入食材（前缀）预测玩家想做的配方。
+     */
+    private RecipeDocument predictRecipe(WokState state, int heatLevel) {
+        if (state == null || !state.hasIngredients()) {
+            return null;
+        }
+        List<CookingRecipeService.WokIngredientInput> actual = new ArrayList<>();
+        for (WokIngredientState ingredient : state.ingredients()) {
+            actual.add(new CookingRecipeService.WokIngredientInput(ingredient.source(), ingredient.amount()));
+        }
+        for (RecipeDocument recipe : recipeService.wokRecipes()) {
+            if (recipe == null || !recipeService.canUseRecipe(recipe, null)) {
+                continue;
+            }
+            if (recipeService.wokHeatLevel(recipe) > 0 && heatLevel > 0 && recipeService.wokHeatLevel(recipe) != heatLevel) {
+                continue;
+            }
+            if (ingredientsMatchRecipePrefix(recipe, actual)) {
+                return recipe;
+            }
+        }
+        return null;
+    }
+
+    private boolean ingredientsMatchRecipePrefix(RecipeDocument recipe, List<CookingRecipeService.WokIngredientInput> actual) {
+        List<Map<String, Object>> expected = recipeService.wokIngredients(recipe);
+        if (expected.isEmpty() || actual.size() > expected.size()) {
+            return false;
+        }
+        for (int index = 0; index < actual.size(); index++) {
+            String expectedSource = resolveIngredientSource(expected.get(index));
+            if (!sourceMatches(expectedSource, actual.get(index).source())) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private String nextStepHint(WokState state, RecipeDocument recipe) {
+        List<Map<String, Object>> expected = recipeService.wokIngredients(recipe);
+        boolean allIngredientsPlaced = state.ingredients().size() >= expected.size();
+        if (allIngredientsPlaced) {
+            boolean lastAmountComplete = true;
+            int lastIndex = expected.size() - 1;
+            if (lastIndex >= 0 && lastIndex < state.ingredients().size()) {
+                int expectedAmount = CookingRuntimeUtil.parseInteger(expected.get(lastIndex).get("amount"), 1);
+                lastAmountComplete = state.ingredients().get(lastIndex).amount() >= expectedAmount;
+            }
+            if (lastAmountComplete && state.totalStirCount() >= recipeService.wokStirTotalMin(recipe)) {
+                return messageService.message("text_display.wok.hint_serve");
+            }
+            return messageService.message("text_display.wok.hint_stir");
+        }
+        return messageService.message("text_display.wok.hint_add");
+    }
+
+    private void appendLine(StringBuilder builder, String line) {
+        if (Texts.isBlank(line)) {
+            return;
+        }
+        if (builder.length() > 0) {
+            builder.append('\n');
+        }
+        builder.append(line);
+    }
+
     private void refreshDisplays(StationCoordinates coordinates, WokState state) {
         displayService.removeStation(StationType.WOK, coordinates);
+        refreshText(coordinates, state);
         if (coordinates == null || state == null || !state.hasIngredients()) {
             return;
         }
@@ -837,6 +953,7 @@ public final class WokRuntimeService {
         Block block = coordinates == null ? null : coordinates.block();
         setWokHeatSourceLit(block, false);
         displayService.removeStation(StationType.WOK, coordinates);
+        textDisplayService.removeStation(StationType.WOK, coordinates);
         stateStore.deleteAsync(coordinates);
     }
 

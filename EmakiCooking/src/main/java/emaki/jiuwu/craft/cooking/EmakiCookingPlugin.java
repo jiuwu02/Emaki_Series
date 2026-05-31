@@ -49,6 +49,7 @@ import emaki.jiuwu.craft.cooking.service.SteamerRuntimeService;
 import emaki.jiuwu.craft.cooking.service.WokRuntimeService;
 import emaki.jiuwu.craft.cooking.papi.CookingPlaceholderExpansion;
 import emaki.jiuwu.craft.cooking.service.display.CookingDisplayService;
+import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplayService;
 
 public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider, EmakiServiceRegistry {
 
@@ -92,6 +93,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
     private CookingRewardService rewardService;
     private CookingInspectService inspectService;
     private CookingDisplayService displayService;
+    private CookingTextDisplayService textDisplayService;
     private CookingEffectService effectService;
     private ChoppingBoardRuntimeService choppingBoardRuntimeService;
     private WokRuntimeService wokRuntimeService;
@@ -146,6 +148,9 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         if (displayService != null) {
             displayService.shutdown();
         }
+        if (textDisplayService != null) {
+            textDisplayService.shutdown();
+        }
         if (messageService != null) {
             messageService.info("console.plugin_stopped");
         }
@@ -184,6 +189,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         rewardService = components.rewardService();
         inspectService = components.inspectService();
         displayService = components.displayService();
+        textDisplayService = components.textDisplayService();
         effectService = new CookingEffectService(this, coreActionExecutor, settingsService);
         choppingBoardRuntimeService = components.choppingBoardRuntimeService();
         wokRuntimeService = components.wokRuntimeService();
@@ -372,6 +378,10 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
 
     public CookingDisplayService displayService() {
         return displayService;
+    }
+
+    public CookingTextDisplayService textDisplayService() {
+        return textDisplayService;
     }
 
     public CookingEffectService effectService() {

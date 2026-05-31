@@ -116,6 +116,78 @@ public final class CookingSettingsService {
         return Math.max(0D, configuration.getDouble("display_entities.wok.layout_radius", 0.26D));
     }
 
+    // ========== 文本展示实体 ==========
+
+    /**
+     * 指定工位是否启用文本展示实体（全局开关 AND 工位级开关）。
+     */
+    public boolean textDisplayEnabled(StationType stationType) {
+        if (stationType == null) {
+            return false;
+        }
+        if (!configuration.getBoolean("display_entities.text.enabled", true)) {
+            return false;
+        }
+        String stationPath = "display_entities.text.stations." + stationType.folderName() + ".enabled";
+        return configuration.getBoolean(stationPath, true);
+    }
+
+    /**
+     * 解析指定工位的文本展示渲染参数（offset/scale 优先取工位级覆盖，回退全局默认）。
+     */
+    public TextDisplayProfile textDisplayProfile(StationType stationType) {
+        Vector3 defaultOffset = readVector3(
+                configuration.getSection("display_entities.text.defaults.offset"),
+                new Vector3(0.5D, 1.6D, 0.5D));
+        Vector3 defaultScale = readVector3(
+                configuration.getSection("display_entities.text.defaults.scale"),
+                new Vector3(1.0D, 1.0D, 1.0D));
+        String billboard = normalizeBillboard(configuration.getString("display_entities.text.billboard", "center"));
+        int lineWidth = Math.max(1, configuration.getInt("display_entities.text.line_width", 200));
+        int backgroundArgb = configuration.getInt("display_entities.text.background", 0);
+        boolean shadow = configuration.getBoolean("display_entities.text.shadow", true);
+        boolean seeThrough = configuration.getBoolean("display_entities.text.see_through", false);
+
+        Vector3 offset = defaultOffset;
+        Vector3 scale = defaultScale;
+        if (stationType != null) {
+            String base = "display_entities.text.stations." + stationType.folderName();
+            offset = readVector3(configuration.getSection(base + ".offset"), defaultOffset);
+            scale = readVector3(configuration.getSection(base + ".scale"), defaultScale);
+            String stationBillboard = configuration.getString(base + ".billboard", "");
+            if (Texts.isNotBlank(stationBillboard)) {
+                billboard = normalizeBillboard(stationBillboard);
+            }
+        }
+        return new TextDisplayProfile(offset, scale, billboard, lineWidth, backgroundArgb, shadow, seeThrough);
+    }
+
+    private Vector3 readVector3(YamlSection section, Vector3 fallback) {
+        if (section == null || section.isEmpty()) {
+            return fallback;
+        }
+        Double x = section.getDouble("x", null);
+        Double y = section.getDouble("y", null);
+        Double z = section.getDouble("z", null);
+        if (x == null && y == null && z == null) {
+            return fallback;
+        }
+        return new Vector3(
+                x == null ? fallback.x() : x,
+                y == null ? fallback.y() : y,
+                z == null ? fallback.z() : z
+        );
+    }
+
+    private String normalizeBillboard(String value) {
+        return switch (Texts.lower(Texts.toStringSafe(value).trim())) {
+            case "fixed" -> "fixed";
+            case "vertical" -> "vertical";
+            case "horizontal" -> "horizontal";
+            default -> "center";
+        };
+    }
+
     public boolean matchesInteraction(StationType stationType,
             String operation,
             StationInteraction interaction) {
@@ -849,6 +921,22 @@ public final class CookingSettingsService {
 
         private Vector3f toVector3f() {
             return new Vector3f((float) x, (float) y, (float) z);
+        }
+    }
+
+    public record TextDisplayProfile(Vector3 offset,
+            Vector3 scale,
+            String billboard,
+            int lineWidth,
+            int backgroundArgb,
+            boolean shadow,
+            boolean seeThrough) {
+
+        public TextDisplayProfile {
+            offset = offset == null ? new Vector3(0.5D, 1.6D, 0.5D) : offset;
+            scale = scale == null ? new Vector3(1.0D, 1.0D, 1.0D) : scale;
+            billboard = billboard == null || billboard.isBlank() ? "center" : billboard;
+            lineWidth = Math.max(1, lineWidth);
         }
     }
 

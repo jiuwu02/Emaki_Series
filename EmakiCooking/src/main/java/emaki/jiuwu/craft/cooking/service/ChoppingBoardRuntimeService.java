@@ -15,6 +15,8 @@ import emaki.jiuwu.craft.cooking.model.StationInteraction;
 import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.cooking.service.display.CookingDisplayService;
 import emaki.jiuwu.craft.cooking.service.display.CookingDisplaySpec;
+import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplayService;
+import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplaySpec;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
@@ -48,6 +50,7 @@ public final class ChoppingBoardRuntimeService {
     private final CookingRewardService rewardService;
     private final ItemSourceService itemSourceService;
     private final CookingDisplayService displayService;
+    private final CookingTextDisplayService textDisplayService;
 
     public ChoppingBoardRuntimeService(EmakiCookingPlugin plugin,
             MessageService messageService,
@@ -57,7 +60,8 @@ public final class ChoppingBoardRuntimeService {
             CookingRecipeService recipeService,
             CookingRewardService rewardService,
             ItemSourceService itemSourceService,
-            CookingDisplayService displayService) {
+            CookingDisplayService displayService,
+            CookingTextDisplayService textDisplayService) {
         this.plugin = plugin;
         this.messageService = messageService;
         this.settingsService = settingsService;
@@ -67,10 +71,12 @@ public final class ChoppingBoardRuntimeService {
         this.rewardService = rewardService;
         this.itemSourceService = itemSourceService;
         this.displayService = Objects.requireNonNull(displayService, "displayService");
+        this.textDisplayService = Objects.requireNonNull(textDisplayService, "textDisplayService");
     }
 
     public void reload() {
         displayService.removeStationType(StationType.CHOPPING_BOARD);
+        textDisplayService.removeStationType(StationType.CHOPPING_BOARD);
         for (Map.Entry<StationCoordinates, emaki.jiuwu.craft.corelib.yaml.YamlSection> entry : stateStore.loadAll(StationType.CHOPPING_BOARD).entrySet()) {
             StationCoordinates coordinates = entry.getKey();
             ChoppingBoardState state = readState(entry.getValue());
@@ -85,6 +91,7 @@ public final class ChoppingBoardRuntimeService {
                     clearDisplay(coordinates, state.displayEntityId(), state.inputSource());
                 }
                 refreshDisplay(coordinates, state.inputSource(), state.inputItemData());
+                refreshText(coordinates, state);
                 if (state.displayEntityId() != null) {
                     saveState(coordinates, new ChoppingBoardState(
                             state.inputSource(),
@@ -180,6 +187,7 @@ public final class ChoppingBoardRuntimeService {
 
             if (nextCutCount >= cutsRequired) {
                 clearDisplay(coordinates, state.displayEntityId(), state.inputSource());
+                textDisplayService.removeStation(StationType.CHOPPING_BOARD, coordinates);
                 stateStore.deleteAsync(coordinates);
                 rewardService.deliver(
                         recipe,
@@ -208,6 +216,7 @@ public final class ChoppingBoardRuntimeService {
                     state.displayEntityId()
             );
             saveState(coordinates, updated);
+            refreshText(coordinates, updated);
             CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "chopping_board.progress", Map.of(
                     "current", nextCutCount,
                     "required", cutsRequired
@@ -253,6 +262,7 @@ public final class ChoppingBoardRuntimeService {
         refreshDisplay(coordinates, shorthand, itemData);
         ChoppingBoardState updated = new ChoppingBoardState(shorthand, itemData, 0, now, null);
         saveState(coordinates, updated);
+        refreshText(coordinates, updated);
         CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "chopping_board.item_placed", Map.of());
         plugin.effectService().playActions(StationType.CHOPPING_BOARD, "place", player);
         interaction.cancel();
@@ -276,6 +286,7 @@ public final class ChoppingBoardRuntimeService {
             }
         }
         clearDisplay(coordinates, state.displayEntityId(), state.inputSource());
+        textDisplayService.removeStation(StationType.CHOPPING_BOARD, coordinates);
         stateStore.deleteAsync(coordinates);
         return true;
     }
@@ -298,6 +309,7 @@ public final class ChoppingBoardRuntimeService {
 
     private void returnStoredInput(Player player, StationCoordinates coordinates, ChoppingBoardState state) {
         clearDisplay(coordinates, state == null ? null : state.displayEntityId(), state == null ? null : state.inputSource());
+        textDisplayService.removeStation(StationType.CHOPPING_BOARD, coordinates);
         stateStore.deleteAsync(coordinates);
         if (state == null || !state.hasInputSource()) {
             return;
@@ -422,6 +434,56 @@ public final class ChoppingBoardRuntimeService {
         }
         ItemSource source = ItemSourceUtil.parse(sourceText);
         return source == null ? null : itemSourceService.createItem(source, amount);
+    }
+
+    private void refreshText(StationCoordinates coordinates, ChoppingBoardState state) {
+        if (!settingsService.textDisplayEnabled(StationType.CHOPPING_BOARD)
+                || coordinates == null || state == null || !state.hasInputSource()) {
+            textDisplayService.removeStation(StationType.CHOPPING_BOARD, coordinates);
+            return;
+        }
+        Location baseLocation = coordinates.location(0D, 0D, 0D);
+        if (baseLocation == null || baseLocation.getWorld() == null) {
+            textDisplayService.removeStation(StationType.CHOPPING_BOARD, coordinates);
+            return;
+        }
+        StringBuilder builder = new StringBuilder();
+        appendLine(builder, messageService.message("text_display.chopping_board.title"));
+        ItemSource source = ItemSourceUtil.parse(state.inputSource());
+        String itemName = source == null ? state.inputSource() : itemSourceService.displayName(source);
+        if (Texts.isBlank(itemName)) {
+            itemName = state.inputSource();
+        }
+        appendLine(builder, messageService.message("text_display.chopping_board.placed", Map.of("item", itemName)));
+        RecipeDocument recipe = recipeService.findChoppingBoardRecipe(state.inputSource(), null);
+        int cutsRequired = recipe == null ? 0 : recipeService.choppingCutsRequired(recipe);
+        if (recipe == null || cutsRequired <= 0) {
+            appendLine(builder, messageService.message("text_display.chopping_board.no_recipe"));
+        } else {
+            appendLine(builder, messageService.message("text_display.chopping_board.progress", Map.of(
+                    "current", state.cutCount(),
+                    "required", cutsRequired
+            )));
+            appendLine(builder, messageService.message("text_display.chopping_board.hint_cut"));
+        }
+        textDisplayService.upsert(new CookingTextDisplaySpec(
+                StationType.CHOPPING_BOARD,
+                coordinates,
+                "info",
+                builder.toString(),
+                baseLocation,
+                settingsService.textDisplayProfile(StationType.CHOPPING_BOARD)
+        ));
+    }
+
+    private void appendLine(StringBuilder builder, String line) {
+        if (Texts.isBlank(line)) {
+            return;
+        }
+        if (builder.length() > 0) {
+            builder.append('\n');
+        }
+        builder.append(line);
     }
 
     private void clearDisplay(StationCoordinates coordinates, UUID knownId, String inputSource) {

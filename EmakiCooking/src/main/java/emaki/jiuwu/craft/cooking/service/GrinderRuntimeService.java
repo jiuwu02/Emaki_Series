@@ -13,6 +13,8 @@ import emaki.jiuwu.craft.cooking.model.StationBreakContext;
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationInteraction;
 import emaki.jiuwu.craft.cooking.model.StationType;
+import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplayService;
+import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplaySpec;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
@@ -35,6 +37,7 @@ public final class GrinderRuntimeService {
     private final CookingRecipeService recipeService;
     private final CookingRewardService rewardService;
     private final ItemSourceService itemSourceService;
+    private final CookingTextDisplayService textDisplayService;
     private final Set<String> activeStations = ConcurrentHashMap.newKeySet();
     private BukkitTask tickerTask;
 
@@ -45,7 +48,8 @@ public final class GrinderRuntimeService {
             StationStateStore stateStore,
             CookingRecipeService recipeService,
             CookingRewardService rewardService,
-            ItemSourceService itemSourceService) {
+            ItemSourceService itemSourceService,
+            CookingTextDisplayService textDisplayService) {
         this.plugin = plugin;
         this.messageService = messageService;
         this.settingsService = settingsService;
@@ -54,11 +58,13 @@ public final class GrinderRuntimeService {
         this.recipeService = recipeService;
         this.rewardService = rewardService;
         this.itemSourceService = itemSourceService;
+        this.textDisplayService = textDisplayService;
     }
 
     public void reload() {
         cancelTicker();
         activeStations.clear();
+        textDisplayService.removeStationType(StationType.GRINDER);
         for (Map.Entry<StationCoordinates, emaki.jiuwu.craft.corelib.yaml.YamlSection> entry : stateStore.loadAll(StationType.GRINDER).entrySet()) {
             StationCoordinates coordinates = entry.getKey();
             GrinderState state = readState(entry.getValue());
@@ -68,6 +74,7 @@ public final class GrinderRuntimeService {
                 continue;
             }
             activeStations.add(coordinates.runtimeKey());
+            refreshText(coordinates, state);
         }
         ensureTicker();
     }
@@ -75,6 +82,7 @@ public final class GrinderRuntimeService {
     public void shutdown() {
         cancelTicker();
         activeStations.clear();
+        textDisplayService.removeStationType(StationType.GRINDER);
     }
 
     public boolean handleInteraction(StationInteraction interaction) {
@@ -129,6 +137,7 @@ public final class GrinderRuntimeService {
         saveState(coordinates, state);
         activeStations.add(coordinates.runtimeKey());
         ensureTicker();
+        refreshText(coordinates, state);
         CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "grinder.started", Map.of("seconds", recipeService.grinderTimeSeconds(recipe)));
         plugin.effectService().playActions(StationType.GRINDER, "start", player);
         interaction.cancel();
@@ -154,6 +163,7 @@ public final class GrinderRuntimeService {
         }
         activeStations.remove(coordinates.runtimeKey());
         stateStore.deleteAsync(coordinates);
+        textDisplayService.removeStation(StationType.GRINDER, coordinates);
         return true;
     }
 
@@ -201,6 +211,7 @@ public final class GrinderRuntimeService {
         if (block == null || recipe == null || !blockMatcher.matches(block, StationType.GRINDER)) {
             activeStations.remove(coordinates.runtimeKey());
             stateStore.deleteAsync(coordinates);
+            textDisplayService.removeStation(StationType.GRINDER, coordinates);
             return;
         }
         int grindTimeSeconds = recipeService.grinderTimeSeconds(recipe);
@@ -209,6 +220,7 @@ public final class GrinderRuntimeService {
             complete(coordinates, block, state, recipe);
             return;
         }
+        refreshText(coordinates, state);
         Location location = block.getLocation().add(0.5D, 1.0D, 0.5D);
         if (location.getWorld() != null) {
             location.getWorld().spawnParticle(Particle.CLOUD, location, 3, 0.15D, 0.15D, 0.15D, 0.01D);
@@ -237,6 +249,53 @@ public final class GrinderRuntimeService {
         }
         activeStations.remove(coordinates.runtimeKey());
         stateStore.deleteAsync(coordinates);
+        textDisplayService.removeStation(StationType.GRINDER, coordinates);
+    }
+
+    private void refreshText(StationCoordinates coordinates, GrinderState state) {
+        if (!settingsService.textDisplayEnabled(StationType.GRINDER) || coordinates == null || state == null) {
+            textDisplayService.removeStation(StationType.GRINDER, coordinates);
+            return;
+        }
+        Location baseLocation = coordinates.location(0D, 0D, 0D);
+        if (baseLocation == null || baseLocation.getWorld() == null) {
+            textDisplayService.removeStation(StationType.GRINDER, coordinates);
+            return;
+        }
+        RecipeDocument recipe = recipeService.grinderRecipeById(state.recipeId());
+        int grindTimeSeconds = recipe == null ? 0 : recipeService.grinderTimeSeconds(recipe);
+        long elapsedMs = System.currentTimeMillis() - state.startTimeMs();
+        long remainingSeconds = Math.max(0L, (grindTimeSeconds * 1000L - elapsedMs + 999L) / 1000L);
+
+        StringBuilder builder = new StringBuilder();
+        appendLine(builder, messageService.message("text_display.grinder.title"));
+        if (state.hasInputSource()) {
+            ItemSource source = ItemSourceUtil.parse(state.inputSource());
+            String itemName = source == null ? state.inputSource() : itemSourceService.displayName(source);
+            if (itemName == null || itemName.isBlank()) {
+                itemName = state.inputSource();
+            }
+            appendLine(builder, messageService.message("text_display.grinder.item", Map.of("item", itemName)));
+        }
+        appendLine(builder, messageService.message("text_display.grinder.grinding", Map.of("seconds", remainingSeconds)));
+        textDisplayService.upsert(new CookingTextDisplaySpec(
+                StationType.GRINDER,
+                coordinates,
+                "info",
+                builder.toString(),
+                baseLocation,
+                settingsService.textDisplayProfile(StationType.GRINDER)
+        ));
+    }
+
+    private void appendLine(StringBuilder builder, String line) {
+        if (line == null || line.isBlank()) {
+            return;
+        }
+        if (builder.length() > 0) {
+            builder.append('\n');
+        }
+        builder.append(line);
     }
 
     private void saveState(StationCoordinates coordinates, GrinderState state) {

@@ -44,6 +44,8 @@ import emaki.jiuwu.craft.cooking.service.SteamerRuntimeService;
 import emaki.jiuwu.craft.cooking.service.WokRuntimeService;
 import emaki.jiuwu.craft.cooking.service.display.CookingDisplayService;
 import emaki.jiuwu.craft.cooking.service.display.CookingDisplayServiceFactory;
+import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplayService;
+import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplayServiceFactory;
 
 final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiCookingPlugin, CookingRuntimeComponents> {
 
@@ -113,6 +115,7 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
         );
         CookingInspectService inspectService = new CookingInspectService(messageService, coreLibPlugin.itemSourceService());
         CookingDisplayService displayService = CookingDisplayServiceFactory.create(plugin, settingsService);
+        CookingTextDisplayService textDisplayService = CookingTextDisplayServiceFactory.create(plugin, settingsService);
         ChoppingBoardRuntimeService choppingBoardRuntimeService = new ChoppingBoardRuntimeService(
                 plugin,
                 messageService,
@@ -122,7 +125,8 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 recipeService,
                 rewardService,
                 coreLibPlugin.itemSourceService(),
-                displayService
+                displayService,
+                textDisplayService
         );
         WokRuntimeService wokRuntimeService = new WokRuntimeService(
                 plugin,
@@ -133,7 +137,8 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 recipeService,
                 rewardService,
                 coreLibPlugin.itemSourceService(),
-                displayService
+                displayService,
+                textDisplayService
         );
         GrinderRuntimeService grinderRuntimeService = new GrinderRuntimeService(
                 plugin,
@@ -143,7 +148,8 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 stationStateStore,
                 recipeService,
                 rewardService,
-                coreLibPlugin.itemSourceService()
+                coreLibPlugin.itemSourceService(),
+                textDisplayService
         );
         SteamerRuntimeService steamerRuntimeService = new SteamerRuntimeService(
                 plugin,
@@ -153,7 +159,8 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 stationStateStore,
                 recipeService,
                 rewardService,
-                coreLibPlugin.itemSourceService()
+                coreLibPlugin.itemSourceService(),
+                textDisplayService
         );
         OvenRuntimeService ovenRuntimeService = new OvenRuntimeService(
                 plugin,
@@ -163,7 +170,8 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 stationStateStore,
                 recipeService,
                 rewardService,
-                coreLibPlugin.itemSourceService()
+                coreLibPlugin.itemSourceService(),
+                textDisplayService
         );
         JuicerRuntimeService juicerRuntimeService = new JuicerRuntimeService(
                 plugin,
@@ -173,7 +181,8 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 stationStateStore,
                 recipeService,
                 rewardService,
-                coreLibPlugin.itemSourceService()
+                coreLibPlugin.itemSourceService(),
+                textDisplayService
         );
         FermentationBarrelRuntimeService fermentationBarrelRuntimeService = new FermentationBarrelRuntimeService(
                 plugin,
@@ -183,7 +192,8 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 stationStateStore,
                 recipeService,
                 rewardService,
-                coreLibPlugin.itemSourceService()
+                coreLibPlugin.itemSourceService(),
+                textDisplayService
         );
         return new CookingRuntimeComponents(
                 appConfigLoader,
@@ -209,6 +219,7 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 rewardService,
                 inspectService,
                 displayService,
+                textDisplayService,
                 choppingBoardRuntimeService,
                 wokRuntimeService,
                 grinderRuntimeService,

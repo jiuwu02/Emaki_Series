@@ -32,6 +32,46 @@ display_entities:
   refresh_interval_ticks: 20
   wok:
     layout_radius: 0.26
+  # 工位运行态文本展示实体（结果 / 过程 / 下一步引导）
+  # 文本实体跟随上面的 backend；只在工位运行时显示，结束/清空/取回/破坏后移除
+  text:
+    enabled: true
+    # billboard: fixed / vertical / horizontal / center（始终朝向玩家）
+    billboard: center
+    # 文本最大行宽（像素）
+    line_width: 200
+    # 背景色 ARGB 整数；0 表示完全透明（无背景框）。半透明黑示例：1056964608
+    background: 0
+    # 是否渲染文字阴影
+    shadow: true
+    # 是否透视（穿墙可见）
+    see_through: false
+    defaults:
+      # 文本相对工位方块的偏移（默认悬于方块上方居中）
+      offset:
+        x: 0.5
+        y: 1.6
+        z: 0.5
+      scale:
+        x: 1.0
+        y: 1.0
+        z: 1.0
+    # 工位级覆盖；省略的工位继承 defaults，enabled 省略时默认 true
+    stations:
+      chopping_board:
+        enabled: true
+      wok:
+        enabled: true
+      grinder:
+        enabled: true
+      steamer:
+        enabled: true
+      oven:
+        enabled: true
+      juicer:
+        enabled: true
+      fermentation_barrel:
+        enabled: true
 
 display_adjustments:
   defaults:

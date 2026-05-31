@@ -13,6 +13,8 @@ import emaki.jiuwu.craft.cooking.model.StationBreakContext;
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationInteraction;
 import emaki.jiuwu.craft.cooking.model.StationType;
+import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplayService;
+import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplaySpec;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
@@ -42,6 +44,7 @@ public final class JuicerRuntimeService implements Listener {
     private final ItemSourceService itemSourceService;
     private final JuicerStateCodec codec = new JuicerStateCodec();
     private final JuicerGuiController guiController;
+    private final CookingTextDisplayService textDisplayService;
     private final Map<StationCoordinates, JuicerState> runtimeStates = new ConcurrentHashMap<>();
 
     public JuicerRuntimeService(EmakiCookingPlugin plugin,
@@ -51,7 +54,8 @@ public final class JuicerRuntimeService implements Listener {
             StationStateStore stateStore,
             CookingRecipeService recipeService,
             CookingRewardService rewardService,
-            ItemSourceService itemSourceService) {
+            ItemSourceService itemSourceService,
+            CookingTextDisplayService textDisplayService) {
         this.plugin = plugin;
         this.messageService = messageService;
         this.settingsService = settingsService;
@@ -60,12 +64,14 @@ public final class JuicerRuntimeService implements Listener {
         this.recipeService = recipeService;
         this.rewardService = rewardService;
         this.itemSourceService = itemSourceService;
+        this.textDisplayService = textDisplayService;
         this.guiController = new JuicerGuiController(plugin, messageService, settingsService, itemSourceService, recipeService, codec);
         this.guiController.setRuntimeService(this);
     }
 
     public void reload() {
         guiController.closeAllOpenInventories(false);
+        textDisplayService.removeStationType(StationType.JUICER);
         runtimeStates.clear();
         for (Map.Entry<StationCoordinates, emaki.jiuwu.craft.corelib.yaml.YamlSection> entry : stateStore.loadAll(StationType.JUICER).entrySet()) {
             StationCoordinates coordinates = entry.getKey();
@@ -76,6 +82,7 @@ public final class JuicerRuntimeService implements Listener {
                 continue;
             }
             runtimeStates.put(coordinates, state);
+            refreshText(coordinates, state);
         }
     }
 
@@ -83,6 +90,7 @@ public final class JuicerRuntimeService implements Listener {
         guiController.closeAllOpenInventories(false);
         flushAll();
         stateStore.waitForIdle().join();
+        textDisplayService.removeStationType(StationType.JUICER);
         runtimeStates.clear();
     }
 
@@ -341,6 +349,7 @@ public final class JuicerRuntimeService implements Listener {
         }
         runtimeStates.put(coordinates, state);
         stateStore.saveAsync(coordinates, codec.serializeState(coordinates, state));
+        refreshText(coordinates, state);
     }
 
     JuicerState loadStateOrEmpty(StationCoordinates coordinates) {
@@ -361,9 +370,68 @@ public final class JuicerRuntimeService implements Listener {
             return;
         }
         runtimeStates.remove(coordinates);
+        textDisplayService.removeStation(StationType.JUICER, coordinates);
         if (deleteFile) {
             stateStore.deleteAsync(coordinates);
         }
+    }
+
+    private void refreshText(StationCoordinates coordinates, JuicerState state) {
+        if (!settingsService.textDisplayEnabled(StationType.JUICER) || coordinates == null
+                || state == null || state.isCompletelyEmpty()) {
+            textDisplayService.removeStation(StationType.JUICER, coordinates);
+            return;
+        }
+        Location baseLocation = coordinates.location(0D, 0D, 0D);
+        if (baseLocation == null || baseLocation.getWorld() == null) {
+            textDisplayService.removeStation(StationType.JUICER, coordinates);
+            return;
+        }
+        int total = 0;
+        int progress = 0;
+        for (Map.Entry<Integer, String> entry : state.slotSources().entrySet()) {
+            RecipeDocument recipe = recipeService.findJuicerRecipe(entry.getValue(), null);
+            if (recipe == null) {
+                continue;
+            }
+            int required = Math.max(1, recipeService.juicerPressesRequired(recipe));
+            total += required;
+            progress += Math.min(required, state.progressAt(entry.getKey()));
+        }
+        StringBuilder builder = new StringBuilder();
+        appendLine(builder, messageService.message("text_display.juicer.title"));
+        boolean hasSlots = !state.slotSources().isEmpty();
+        if (hasSlots) {
+            String progressText = total <= 0 ? messageService.message("juicer.progress_not_started") : progress + "/" + total;
+            appendLine(builder, messageService.message("text_display.juicer.progress", Map.of("progress", progressText)));
+            appendLine(builder, messageService.message("text_display.juicer.hint_press"));
+        }
+        if (state.hasFluid()) {
+            appendLine(builder, messageService.message("text_display.juicer.fluid", Map.of(
+                    "fluid", state.fluidDisplayName(),
+                    "amount", state.fluidAmountMl(),
+                    "max", settingsService.juicerMaxFluidMl()
+            )));
+            appendLine(builder, messageService.message("text_display.juicer.hint_serve"));
+        }
+        textDisplayService.upsert(new CookingTextDisplaySpec(
+                StationType.JUICER,
+                coordinates,
+                "info",
+                builder.toString(),
+                baseLocation,
+                settingsService.textDisplayProfile(StationType.JUICER)
+        ));
+    }
+
+    private void appendLine(StringBuilder builder, String line) {
+        if (Texts.isBlank(line)) {
+            return;
+        }
+        if (builder.length() > 0) {
+            builder.append('\n');
+        }
+        builder.append(line);
     }
 
     private void flushAll() {

@@ -177,6 +177,56 @@ fermentation_barrel:
   collected_early: "<yellow>Collected an early fermentation output.</yellow>"
   collected_over: "<gold>Collected an over-fermented output.</gold>"
 
+# Station runtime floating text display entities. Supports MiniMessage, \n for line breaks.
+text_display:
+  chopping_board:
+    title: "<gold>Chopping Board</gold>"
+    placed: "<white>{item}</white>"
+    progress: "<gray>Cuts <yellow>{current}</yellow>/<yellow>{required}</yellow></gray>"
+    hint_cut: "<aqua>Hold a knife to chop</aqua>"
+    no_recipe: "<red>No available recipe</red>"
+  wok:
+    title: "<gold>Wok</gold>"
+    heat: "<gray>Heat <yellow>{heat}</yellow></gray>"
+    stir: "<gray>Stirs <yellow>{count}</yellow></gray>"
+    ingredients_header: "<gray>Ingredients:</gray>"
+    ingredient_line: "<white>- {item} x{amount}</white>"
+    predicted: "<gray>Predicted: <aqua>{recipe}</aqua></gray>"
+    hint_add: "<aqua>Keep adding ingredients</aqua>"
+    hint_stir: "<aqua>Hold a spatula to stir</aqua>"
+    hint_serve: "<green>Ready to serve</green>"
+    no_predict: "<yellow>No matching recipe</yellow>"
+  grinder:
+    title: "<gold>Grinder</gold>"
+    grinding: "<gray>Grinding... <yellow>{seconds}</yellow>s left</gray>"
+    item: "<white>{item}</white>"
+  steamer:
+    title: "<gold>Steamer</gold>"
+    burning: "<gray>Burning <yellow>{burning_time}</yellow>s</gray>"
+    moisture: "<gray>Moisture <aqua>{moisture}</aqua></gray>"
+    steam: "<gray>Steam <white>{steam}</white></gray>"
+    progress: "<gray>Progress <yellow>{progress}</yellow></gray>"
+    idle: "<yellow>Waiting for fuel/water</yellow>"
+  oven:
+    title: "<gold>Oven</gold>"
+    heat: "<gray>Heat <yellow>{heat}</yellow></gray>"
+    burning: "<gray>Burning <yellow>{burning_time}</yellow>s</gray>"
+    progress: "<gray>Baking <yellow>{progress}</yellow></gray>"
+    idle: "<yellow>Waiting for fuel</yellow>"
+  juicer:
+    title: "<gold>Juicer</gold>"
+    progress: "<gray>Pressing <yellow>{progress}</yellow></gray>"
+    fluid: "<gray>Fluid <aqua>{fluid}</aqua> <white>{amount}</white>/<white>{max}</white>ml</gray>"
+    hint_press: "<aqua>Sneak left-click to press</aqua>"
+    hint_serve: "<green>Sneak left-click to serve</green>"
+  fermentation_barrel:
+    title: "<gold>Fermentation Barrel</gold>"
+    fermenting: "<gray>Fermenting... <yellow>{seconds}</yellow>s left</gray>"
+    ready: "<green>Fermented, ready to collect</green>"
+    early_ready: "<yellow>Early collect available</yellow>"
+    over: "<gold>Over-fermented</gold>"
+    recipe: "<gray>Output: <aqua>{recipe}</aqua></gray>"
+
 # Debug mode messages
 debug:
   command:

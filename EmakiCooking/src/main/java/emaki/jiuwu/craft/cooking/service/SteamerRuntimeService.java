@@ -14,6 +14,8 @@ import emaki.jiuwu.craft.cooking.model.StationBreakContext;
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationInteraction;
 import emaki.jiuwu.craft.cooking.model.StationType;
+import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplayService;
+import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplaySpec;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
@@ -21,6 +23,7 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
@@ -48,6 +51,7 @@ public final class SteamerRuntimeService implements Listener {
     private final SteamerStateCodec codec;
     private final SteamerTickProcessor tickProcessor;
     private final SteamerGuiController guiController;
+    private final CookingTextDisplayService textDisplayService;
     private final Map<StationCoordinates, SteamerState> runtimeStates = new ConcurrentHashMap<>();
     private final Set<StationCoordinates> activeStations = ConcurrentHashMap.newKeySet();
     private final Set<StationCoordinates> dirtyStations = ConcurrentHashMap.newKeySet();
@@ -61,7 +65,8 @@ public final class SteamerRuntimeService implements Listener {
             StationStateStore stateStore,
             CookingRecipeService recipeService,
             CookingRewardService rewardService,
-            ItemSourceService itemSourceService) {
+            ItemSourceService itemSourceService,
+            CookingTextDisplayService textDisplayService) {
         this.plugin = plugin;
         this.messageService = messageService;
         this.settingsService = settingsService;
@@ -70,6 +75,7 @@ public final class SteamerRuntimeService implements Listener {
         this.recipeService = recipeService;
         this.rewardService = rewardService;
         this.itemSourceService = itemSourceService;
+        this.textDisplayService = textDisplayService;
         this.codec = new SteamerStateCodec();
         this.tickProcessor = new SteamerTickProcessor(settingsService, blockMatcher, recipeService, rewardService, itemSourceService, codec);
         this.guiController = new SteamerGuiController(plugin, messageService, settingsService, itemSourceService, recipeService, codec);
@@ -93,6 +99,7 @@ public final class SteamerRuntimeService implements Listener {
         flushDirtyStates();
         cancelFlushTask();
         cancelTicker();
+        textDisplayService.removeStationType(StationType.STEAMER);
         activeStations.clear();
         runtimeStates.clear();
         dirtyStations.clear();
@@ -107,6 +114,7 @@ public final class SteamerRuntimeService implements Listener {
                 continue;
             }
             cacheState(coordinates, state);
+            refreshText(coordinates, state);
             if (tickProcessor.shouldRemainActive(state, now)) {
                 activeStations.add(coordinates);
             }
@@ -120,6 +128,7 @@ public final class SteamerRuntimeService implements Listener {
         stateStore.waitForIdle().join();
         cancelFlushTask();
         cancelTicker();
+        textDisplayService.removeStationType(StationType.STEAMER);
         activeStations.clear();
         runtimeStates.clear();
         dirtyStations.clear();
@@ -399,6 +408,49 @@ public final class SteamerRuntimeService implements Listener {
         return String.format(Locale.ROOT, "%.2f%%", (double) totalProgress * 100.0D / (double) totalRequired);
     }
 
+    private void refreshText(StationCoordinates coordinates, SteamerState state) {
+        if (!settingsService.textDisplayEnabled(StationType.STEAMER) || coordinates == null
+                || state == null || state.isCompletelyEmpty()) {
+            textDisplayService.removeStation(StationType.STEAMER, coordinates);
+            return;
+        }
+        Location baseLocation = coordinates.location(0D, 0D, 0D);
+        if (baseLocation == null || baseLocation.getWorld() == null) {
+            textDisplayService.removeStation(StationType.STEAMER, coordinates);
+            return;
+        }
+        long now = System.currentTimeMillis();
+        long remainingBurn = state.burningUntilMs() > now ? (state.burningUntilMs() - now) / 1000L : 0L;
+        StringBuilder builder = new StringBuilder();
+        appendLine(builder, messageService.message("text_display.steamer.title"));
+        appendLine(builder, messageService.message("text_display.steamer.burning", Map.of("burning_time", remainingBurn)));
+        appendLine(builder, messageService.message("text_display.steamer.moisture", Map.of("moisture", state.moisture())));
+        appendLine(builder, messageService.message("text_display.steamer.steam", Map.of("steam", state.steam())));
+        if (state.slotSources().isEmpty()) {
+            appendLine(builder, messageService.message("text_display.steamer.idle"));
+        } else {
+            appendLine(builder, messageService.message("text_display.steamer.progress", Map.of("progress", calculateProgressStatus(state))));
+        }
+        textDisplayService.upsert(new CookingTextDisplaySpec(
+                StationType.STEAMER,
+                coordinates,
+                "info",
+                builder.toString(),
+                baseLocation,
+                settingsService.textDisplayProfile(StationType.STEAMER)
+        ));
+    }
+
+    private void appendLine(StringBuilder builder, String line) {
+        if (Texts.isBlank(line)) {
+            return;
+        }
+        if (builder.length() > 0) {
+            builder.append('\n');
+        }
+        builder.append(line);
+    }
+
     void ensureTicker() {
         if (activeStations.isEmpty()) {
             cancelTicker();
@@ -494,10 +546,13 @@ public final class SteamerRuntimeService implements Listener {
         }
         if (tickProcessor.shouldRemainActive(state, now)) {
             activeStations.add(coordinates);
+            refreshText(coordinates, state);
         } else {
             activeStations.remove(coordinates);
             if (state.isCompletelyEmpty()) {
                 removeState(coordinates, true);
+            } else {
+                refreshText(coordinates, state);
             }
         }
     }
@@ -522,6 +577,7 @@ public final class SteamerRuntimeService implements Listener {
         runtimeStates.put(coordinates, state);
         dirtyStations.add(coordinates);
         ensureFlushTask();
+        refreshText(coordinates, state);
     }
 
     SteamerState loadStateOrEmpty(StationCoordinates coordinates) {
@@ -551,6 +607,7 @@ public final class SteamerRuntimeService implements Listener {
         }
         runtimeStates.remove(coordinates);
         dirtyStations.remove(coordinates);
+        textDisplayService.removeStation(StationType.STEAMER, coordinates);
         if (deleteFile) {
             stateStore.deleteAsync(coordinates);
         }

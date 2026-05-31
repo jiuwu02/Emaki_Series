@@ -167,6 +167,56 @@ fermentation_barrel:
   collected_early: "<yellow>已提前收取发酵产物。</yellow>"
   collected_over: "<gold>已收取过度发酵产物。</gold>"
 
+# 工位运行态文本展示实体（悬浮文字）。支持 MiniMessage，\n 换行。
+text_display:
+  chopping_board:
+    title: "<gold>砧板</gold>"
+    placed: "<white>{item}</white>"
+    progress: "<gray>切割 <yellow>{current}</yellow>/<yellow>{required}</yellow></gray>"
+    hint_cut: "<aqua>手持厨刀切割</aqua>"
+    no_recipe: "<red>无可用配方</red>"
+  wok:
+    title: "<gold>炒锅</gold>"
+    heat: "<gray>火候 <yellow>{heat}</yellow></gray>"
+    stir: "<gray>翻炒 <yellow>{count}</yellow></gray>"
+    ingredients_header: "<gray>已放入：</gray>"
+    ingredient_line: "<white>- {item} x{amount}</white>"
+    predicted: "<gray>预测：<aqua>{recipe}</aqua></gray>"
+    hint_add: "<aqua>继续放入食材</aqua>"
+    hint_stir: "<aqua>手持锅铲翻炒</aqua>"
+    hint_serve: "<green>可以出锅了</green>"
+    no_predict: "<yellow>未匹配到配方</yellow>"
+  grinder:
+    title: "<gold>研磨机</gold>"
+    grinding: "<gray>研磨中… 剩余 <yellow>{seconds}</yellow>s</gray>"
+    item: "<white>{item}</white>"
+  steamer:
+    title: "<gold>蒸锅</gold>"
+    burning: "<gray>燃烧 <yellow>{burning_time}</yellow>s</gray>"
+    moisture: "<gray>水分 <aqua>{moisture}</aqua></gray>"
+    steam: "<gray>蒸汽 <white>{steam}</white></gray>"
+    progress: "<gray>进度 <yellow>{progress}</yellow></gray>"
+    idle: "<yellow>等待加燃料/加水</yellow>"
+  oven:
+    title: "<gold>烤炉</gold>"
+    heat: "<gray>火力 <yellow>{heat}</yellow></gray>"
+    burning: "<gray>燃烧 <yellow>{burning_time}</yellow>s</gray>"
+    progress: "<gray>烘烤 <yellow>{progress}</yellow></gray>"
+    idle: "<yellow>等待加燃料</yellow>"
+  juicer:
+    title: "<gold>榨汁机</gold>"
+    progress: "<gray>榨汁 <yellow>{progress}</yellow></gray>"
+    fluid: "<gray>流体 <aqua>{fluid}</aqua> <white>{amount}</white>/<white>{max}</white>ml</gray>"
+    hint_press: "<aqua>潜行左键榨汁</aqua>"
+    hint_serve: "<green>潜行左键盛取</green>"
+  fermentation_barrel:
+    title: "<gold>发酵桶</gold>"
+    fermenting: "<gray>发酵中… 剩余 <yellow>{seconds}</yellow>s</gray>"
+    ready: "<green>发酵完成，可收取</green>"
+    early_ready: "<yellow>可提前收取</yellow>"
+    over: "<gold>过度发酵</gold>"
+    recipe: "<gray>产物：<aqua>{recipe}</aqua></gray>"
+
 # Debug 模式消息
 debug:
   command:

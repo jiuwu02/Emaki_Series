@@ -14,6 +14,8 @@ import emaki.jiuwu.craft.cooking.model.StationBreakContext;
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationInteraction;
 import emaki.jiuwu.craft.cooking.model.StationType;
+import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplayService;
+import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplaySpec;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
@@ -45,6 +47,7 @@ public final class OvenRuntimeService implements Listener {
     private final OvenStateCodec codec;
     private final OvenTickProcessor tickProcessor;
     private final OvenGuiController guiController;
+    private final CookingTextDisplayService textDisplayService;
     private final Map<StationCoordinates, OvenState> runtimeStates = new ConcurrentHashMap<>();
     private final Set<StationCoordinates> activeStations = ConcurrentHashMap.newKeySet();
     private final Set<StationCoordinates> dirtyStations = ConcurrentHashMap.newKeySet();
@@ -58,7 +61,8 @@ public final class OvenRuntimeService implements Listener {
             StationStateStore stateStore,
             CookingRecipeService recipeService,
             CookingRewardService rewardService,
-            ItemSourceService itemSourceService) {
+            ItemSourceService itemSourceService,
+            CookingTextDisplayService textDisplayService) {
         this.plugin = plugin;
         this.messageService = messageService;
         this.settingsService = settingsService;
@@ -66,6 +70,7 @@ public final class OvenRuntimeService implements Listener {
         this.stateStore = stateStore;
         this.recipeService = recipeService;
         this.itemSourceService = itemSourceService;
+        this.textDisplayService = textDisplayService;
         this.codec = new OvenStateCodec();
         this.tickProcessor = new OvenTickProcessor(settingsService, recipeService, rewardService, itemSourceService, codec);
         this.guiController = new OvenGuiController(plugin, messageService, settingsService, itemSourceService, recipeService, codec);
@@ -85,6 +90,7 @@ public final class OvenRuntimeService implements Listener {
         flushDirtyStates();
         cancelFlushTask();
         cancelTicker();
+        textDisplayService.removeStationType(StationType.OVEN);
         activeStations.clear();
         runtimeStates.clear();
         dirtyStations.clear();
@@ -99,6 +105,7 @@ public final class OvenRuntimeService implements Listener {
                 continue;
             }
             cacheState(coordinates, state);
+            refreshText(coordinates, state);
             if (tickProcessor.shouldRemainActive(state, now)) {
                 activeStations.add(coordinates);
             }
@@ -112,6 +119,7 @@ public final class OvenRuntimeService implements Listener {
         stateStore.waitForIdle().join();
         cancelFlushTask();
         cancelTicker();
+        textDisplayService.removeStationType(StationType.OVEN);
         activeStations.clear();
         runtimeStates.clear();
         dirtyStations.clear();
@@ -367,10 +375,13 @@ public final class OvenRuntimeService implements Listener {
         }
         if (tickProcessor.shouldRemainActive(state, now)) {
             activeStations.add(coordinates);
+            refreshText(coordinates, state);
         } else {
             activeStations.remove(coordinates);
             if (state.isCompletelyEmpty()) {
                 removeState(coordinates, true);
+            } else {
+                refreshText(coordinates, state);
             }
         }
     }
@@ -395,6 +406,7 @@ public final class OvenRuntimeService implements Listener {
         runtimeStates.put(coordinates, state);
         dirtyStations.add(coordinates);
         ensureFlushTask();
+        refreshText(coordinates, state);
     }
 
     OvenState loadStateOrEmpty(StationCoordinates coordinates) {
@@ -424,12 +436,55 @@ public final class OvenRuntimeService implements Listener {
         }
         runtimeStates.remove(coordinates);
         dirtyStations.remove(coordinates);
+        textDisplayService.removeStation(StationType.OVEN, coordinates);
         if (deleteFile) {
             stateStore.deleteAsync(coordinates);
         }
         if (dirtyStations.isEmpty()) {
             cancelFlushTask();
         }
+    }
+
+    private void refreshText(StationCoordinates coordinates, OvenState state) {
+        if (!settingsService.textDisplayEnabled(StationType.OVEN) || coordinates == null
+                || state == null || state.isCompletelyEmpty()) {
+            textDisplayService.removeStation(StationType.OVEN, coordinates);
+            return;
+        }
+        org.bukkit.Location baseLocation = coordinates.location(0D, 0D, 0D);
+        if (baseLocation == null || baseLocation.getWorld() == null) {
+            textDisplayService.removeStation(StationType.OVEN, coordinates);
+            return;
+        }
+        long now = System.currentTimeMillis();
+        long remainingBurn = state.burningUntilMs() > now ? (state.burningUntilMs() - now) / 1000L : 0L;
+        StringBuilder builder = new StringBuilder();
+        appendLine(builder, messageService.message("text_display.oven.title"));
+        appendLine(builder, messageService.message("text_display.oven.heat", Map.of("heat", state.heat())));
+        appendLine(builder, messageService.message("text_display.oven.burning", Map.of("burning_time", remainingBurn)));
+        if (state.hasSlots()) {
+            appendLine(builder, messageService.message("text_display.oven.progress", Map.of("progress", calculateProgressStatus(state))));
+        } else {
+            appendLine(builder, messageService.message("text_display.oven.idle"));
+        }
+        textDisplayService.upsert(new CookingTextDisplaySpec(
+                StationType.OVEN,
+                coordinates,
+                "info",
+                builder.toString(),
+                baseLocation,
+                settingsService.textDisplayProfile(StationType.OVEN)
+        ));
+    }
+
+    private void appendLine(StringBuilder builder, String line) {
+        if (Texts.isBlank(line)) {
+            return;
+        }
+        if (builder.length() > 0) {
+            builder.append('\n');
+        }
+        builder.append(line);
     }
 
     private CookingSettingsService.OvenFuelRule matchFuelRule(ItemStack itemStack) {
