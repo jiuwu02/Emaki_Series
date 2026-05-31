@@ -40,10 +40,10 @@ permission: "emakicooking.recipe.bone_meal"
 condition:
   condition_type: all_of
   conditions:
-    - "%player_level% >= 1"
-  true_actions:
+    - "{player_level} >= 1"
+  pass_actions:
     - 'sendmessage text="<gray>研磨条件满足。</gray>"'
-  false_actions:
+  fail_actions:
     - 'sendmessage text="<red>研磨条件不满足。</red>"'
   block_output_on_false: false
 

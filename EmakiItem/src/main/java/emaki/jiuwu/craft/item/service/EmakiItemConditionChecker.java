@@ -44,11 +44,15 @@ public final class EmakiItemConditionChecker {
                 text -> placeholderRegistry.resolve(context, text),
                 conditions.invalidAsFailure()
         );
-        if (!passes) {
+        if (passes) {
+            if (!conditions.passActions().isEmpty()) {
+                actionService.executeLines(player, definition, "condition_pass", conditions.passActions(), Map.of());
+            }
+        } else {
             if (Texts.isNotBlank(conditions.denyMessage())) {
                 AdventureSupport.sendMessage(plugin, player, MiniMessages.parse(conditions.denyMessage()));
             }
-            actionService.executeLines(player, definition, "condition_deny", conditions.denyActions(), Map.of());
+            actionService.executeLines(player, definition, "condition_fail", conditions.failActions(), Map.of());
         }
         return passes;
     }

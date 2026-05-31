@@ -304,7 +304,7 @@ public final class CookingRecipeService {
     /**
      * 获取完成条件分支动作。
      *
-     * @param passed 条件评估结果，true 返回 {@code condition.true_actions}，false 返回 {@code condition.false_actions}
+     * @param passed 条件评估结果，true 返回 {@code condition.pass_actions}，false 返回 {@code condition.fail_actions}
      */
     public List<String> completionConditionActions(RecipeDocument recipe, boolean passed) {
         if (recipe == null) {
@@ -314,12 +314,12 @@ public final class CookingRecipeService {
         if (section == null || section.isEmpty()) {
             return List.of();
         }
-        List<String> actions = section.getStringList(passed ? "true_actions" : "false_actions");
+        List<String> actions = section.getStringList(passed ? "pass_actions" : "fail_actions");
         return actions == null ? List.of() : actions;
     }
 
     /**
-     * 条件不通过时是否阻止产出（默认 false：仅执行 false 动作，产出照常发放）。
+     * 条件不通过时是否阻止产出（默认 false：仅执行 fail 动作，产出照常发放）。
      */
     public boolean completionConditionBlocksOutput(RecipeDocument recipe) {
         if (recipe == null) {
@@ -567,14 +567,39 @@ public final class CookingRecipeService {
     }
 
     private String resolvePlaceholders(Player player, String text) {
-        if (player == null || Texts.isBlank(text) || !plugin.getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+        if (player == null || Texts.isBlank(text)) {
             return text;
         }
-        try {
-            return Texts.toStringSafe(me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(player, text));
-        } catch (Exception | NoClassDefFoundError _) {
-            return text;
+        String resolved = text;
+        // 1) 表达式变量 {xxx}（与 EmakiSkills/EmakiItem 等模块一致的花括号风格）
+        if (resolved.indexOf('{') >= 0) {
+            for (Map.Entry<String, String> entry : playerVariables(player).entrySet()) {
+                resolved = resolved.replace("{" + entry.getKey() + "}", entry.getValue());
+            }
         }
+        // 2) PlaceholderAPI 占位符 %xxx%（保留兼容）
+        if (resolved.indexOf('%') >= 0 && plugin.getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+            try {
+                resolved = Texts.toStringSafe(me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(player, resolved));
+            } catch (Exception | NoClassDefFoundError _) {
+                // 解析失败时保持已替换的文本
+            }
+        }
+        return resolved;
+    }
+
+    /**
+     * 提供给条件表达式 {@code {xxx}} 使用的玩家变量（与其它模块的花括号变量风格一致）。
+     */
+    private Map<String, String> playerVariables(Player player) {
+        Map<String, String> values = new java.util.LinkedHashMap<>();
+        values.put("player_name", player.getName());
+        values.put("player_level", Integer.toString(player.getLevel()));
+        values.put("player_exp", Float.toString(player.getExp()));
+        values.put("player_food", Integer.toString(player.getFoodLevel()));
+        values.put("player_health", Double.toString(player.getHealth()));
+        values.put("player_world", player.getWorld() == null ? "" : player.getWorld().getName());
+        return values;
     }
 
     public record WokIngredientInput(String source, int amount) {

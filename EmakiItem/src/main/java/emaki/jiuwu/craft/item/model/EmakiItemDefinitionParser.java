@@ -106,11 +106,12 @@ public final class EmakiItemDefinitionParser {
         }
         return new ItemConditions(
                 normalizedList(section.get("entries")),
-                section.getString("type", "all_of"),
-                section.getInt("required_count", 1),
+                section.getString("condition_type", "all_of"),
+                section.getInt("condition_required_count", 1),
                 section.getBoolean("invalid_as_failure", true),
                 section.getString("deny_message", ""),
-                normalizedList(section.get("deny_actions"))
+                normalizedList(section.get("pass_actions")),
+                normalizedList(section.get("fail_actions"))
         );
     }
 
