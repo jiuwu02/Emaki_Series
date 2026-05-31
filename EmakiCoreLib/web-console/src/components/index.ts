@@ -14,4 +14,5 @@ export { StringListEditor } from './StringListEditor';
 export { NumberListEditor } from './NumberListEditor';
 export { ActionsEditor, parseActionList, serializeActionList, parseNameActions, parseLoreActions, type ActionEntry, type ActionsEditorProps } from './ActionsEditor';
 export { ActionTypesProvider, useActionTypes, StandardActionsField, StandardEffectsEditor, actionModeFromPath, CANONICAL_NAME_ACTIONS, CANONICAL_LORE_ACTIONS, type StandardEditorScope } from './StandardActionEditors';
+export { EconomyProvidersProvider, useEconomyProviders, StandardEconomyProviderSelect, CANONICAL_ECONOMY_PROVIDERS } from './StandardEconomyEditors';
 export { GuiEditorSurface } from '../GuiEditorSurface';

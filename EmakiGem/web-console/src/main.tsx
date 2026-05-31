@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ActionsEditor, PropRow, SectionHead, StringListEditor, VariablesMapEditor, asList, asRecord, asStringList, coreEffectTypeLabel, createCoreEffect, fieldLabel, firstItemSource, getLocale, humanizeFieldLabel, materialFromItemSource, registerConfigCreateTemplate, registerConfigMetaFields, registerConfigRuleFields, registerEditorDescriptor, registerEditorField, registerItemFieldRenderer, registerItemPreviewFallback, registerModuleLocale, registerPluginConfig, registerPluginGuiEditor, serializeActionList, parseActionList, standardEconomyRuleFields, textValue, type AnyMap, type ConfigRuleFieldEntry, type CoreEffectType, type ItemFieldRendererContext, type ItemPreviewResult } from 'emaki-web-console';
+import { ActionsEditor, PropRow, SectionHead, StandardEconomyProviderSelect, StandardEffectsEditor, StringListEditor, VariablesMapEditor, asList, asRecord, asStringList, coreEffectTypeLabel, createCoreEffect, EA_ATTRIBUTE_EFFECT_DEFINITION, ES_SKILL_EFFECT_DEFINITION, CORE_EFFECT_TYPE_DEFINITIONS, fieldLabel, firstItemSource, getLocale, humanizeFieldLabel, materialFromItemSource, registerConfigCreateTemplate, registerConfigMetaFields, registerConfigRuleFields, registerEditorDescriptor, registerEditorField, registerEffectTypes, registerItemFieldRenderer, registerItemPreviewFallback, registerModuleLocale, registerPluginConfig, registerPluginGuiEditor, serializeActionList, parseActionList, standardEconomyRuleFields, textValue, type AnyMap, type ConfigRuleFieldEntry, type CoreEffectType, type EffectTypeDefinition, type ItemFieldRendererContext, type ItemPreviewResult } from 'emaki-web-console';
 
 registerModuleLocale('EmakiGem', 'zh-CN', {
   'emakigem.module.name': 'Gem',
@@ -274,7 +274,7 @@ const dynamicFields: Record<string, ConfigRuleFieldEntry> = {
     overrides: {
       materials: ['材料消耗', '升级、镶嵌或开孔所需材料列表。', 'list'],
       currencies: ['货币消耗', 'Vault 或其他经济提供器消耗列表。', 'list'],
-      provider: ['经济提供器', '经济消耗使用的提供器，auto 会按 currency_id 自动推断。', 'enum'],
+      provider: ['经济提供器', '经济消耗使用的提供器，auto 会按 currency_id 自动推断。', 'economyProvider', { optionLabelPrefix: 'economyProvider' }],
       currency_id: ['货币 ID', '多货币系统中的货币标识。', 'text'],
       amount: ['数量', '材料数量、货币数量或当前条目的数值。', 'number'],
       base_cost: ['基础费用', '费用公式中的基础值。', 'number'],
@@ -551,7 +551,7 @@ registerEditorDescriptor(MODULE, 'emakigem:socket-item', {
 });
 
 [
-  ['emakigem:gem', 'effects', '宝石效果', '实际写入属性、技能和名称/Lore 动作的效果列表。', 'list'],
+  ['emakigem:gem', 'effects', '宝石效果', '实际写入属性、技能和名称/Lore 动作的效果列表。', 'effects'],
   ['emakigem:gem', 'name_actions', '名称动作链', '宝石展示时对名称执行的标准动作链。', 'actions'],
   ['emakigem:gem', 'lore_actions', 'Lore 动作链', '宝石展示时对 Lore 执行的标准动作链。', 'actions'],
   ['emakigem:gem', 'inlay_cost', '镶嵌费用', '镶嵌宝石时消耗的货币与材料。', 'object'],
@@ -565,12 +565,23 @@ registerEditorDescriptor(MODULE, 'emakigem:socket-item', {
 ].forEach(([editorId, path, label, comment, type]) => registerEditorField(MODULE, editorId, { path, label, comment, type }));
 
 function registerEmakiGemItemRenderers() {
-  registerItemFieldRenderer('effects', context => <GemEffectsEditor context={context} />, { moduleId: MODULE, editorId: 'emakigem:gem', priority: 100 });
   registerItemFieldRenderer('cost', context => <CostEditor label={fieldLabel(context.field.path, { moduleId: MODULE, namespace: MODULE, fallback: getLocale().startsWith('zh') ? context.field.label : humanizeFieldLabel(context.field.path) })} path={context.field.path} value={context.value ?? { currencies: [], materials: [] }} economyProviders={context.economyProviders} onChange={next => context.setField(context.field.path, next)} />, { moduleId: MODULE, priority: 100 });
   registerItemFieldRenderer('extractReturn', context => <ExtractReturnEditor path={context.field.path} value={context.value} onChange={next => context.setField(context.field.path, next)} />, { moduleId: MODULE, priority: 100 });
   registerItemFieldRenderer('gemUpgrade', context => <UpgradeEditor context={context} />, { moduleId: MODULE, editorId: 'emakigem:gem', priority: 100 });
   registerItemFieldRenderer('gemSlots', context => <GemSlotsEditor context={context} />, { moduleId: MODULE, editorId: 'emakigem:socket-item', priority: 100 });
 }
+
+const coreEffectDef = (type: string): EffectTypeDefinition => CORE_EFFECT_TYPE_DEFINITIONS.find(def => def.type === type)!;
+
+// Unified effect types for EmakiGem gem editor, handled by StandardEffectsEditor.
+registerEffectTypes(MODULE, [
+  coreEffectDef('variables'),
+  EA_ATTRIBUTE_EFFECT_DEFINITION,
+  ES_SKILL_EFFECT_DEFINITION,
+  coreEffectDef('name_action'),
+  coreEffectDef('lore_action')
+]);
+
 
 function registerEmakiGemPreviewFallbacks() {
   registerItemPreviewFallback(context => localGemPreview(context.data, context.previewLevel, context.baseName, context.baseLore), { moduleId: MODULE, editorId: 'emakigem:gem', priority: 100 });
@@ -716,7 +727,7 @@ function CurrencyCostList({ items, onChange, path, economyProviders = DEFAULT_EC
     <span className="prop-cost-group-title">{copy('货币', 'Currencies')}</span>
     {items.map((currency, index) => <div className="prop-cost-entry" key={index}>
       <div className="prop-cost-entry-head"><span>{textValue(currency.display_name) || textValue(currency.provider, 'vault')}</span><button type="button" className="prop-kv-del" onClick={() => remove(index)} aria-label={`删除货币 ${index + 1}`}>×</button></div>
-      <FormRow label="provider" path={joinPath(path, index, 'provider')}><SelectInput value={currency.provider ?? 'auto'} options={economyProviders} labelPrefix="economyProvider" onChange={provider => update(index, { provider })} /></FormRow>
+      <FormRow label="provider" path={joinPath(path, index, 'provider')}><StandardEconomyProviderSelect value={currency.provider ?? 'auto'} providers={economyProviders} moduleId={MODULE} onChange={provider => update(index, { provider })} /></FormRow>
       <FormRow label="currency_id" path={joinPath(path, index, 'currency_id')}><TextInput value={currency.currency_id} onChange={currency_id => update(index, { currency_id })} /></FormRow>
       <FormRow label="amount" path={joinPath(path, index, 'amount')}><NumberInput value={currency.amount} onChange={amount => update(index, { amount })} /></FormRow>
       <FormRow label="base_cost" path={joinPath(path, index, 'base_cost')}><NumberInput value={currency.base_cost} onChange={base_cost => update(index, { base_cost })} /></FormRow>
@@ -792,7 +803,7 @@ function UpgradeEditor({ context }: { context: ItemFieldRendererContext }) {
             <FormRow label="success_rate" path={joinPath(path, 'levels', levelKey, 'success_rate')}><NumberInput value={level.success_rate} onChange={success_rate => updateLevel(levelKey, { success_rate })} /></FormRow>
             <FormRow label="failure_penalty" path={joinPath(path, 'levels', levelKey, 'failure_penalty')}><SelectInput value={level.failure_penalty ?? ''} options={['', ...FAILURE_PENALTIES]} labelPrefix="failure" onChange={failure_penalty => updateLevel(levelKey, { failure_penalty })} /></FormRow>
             <SectionHead title={copy('等级效果', 'Level effects')} count={asList(level.effects).length} />
-            <ActionEffectList value={level.effects} onChange={effects => updateLevel(levelKey, { effects })} actionTypesResult={context.actionTypesResult} path={joinPath(path, 'levels', levelKey, 'effects')} />
+            <StandardEffectsEditor value={level.effects} onChange={effects => updateLevel(levelKey, { effects })} actionTypes={context.actionTypesResult ?? undefined} moduleId={MODULE} namespace={MODULE} path={joinPath(path, 'levels', levelKey, 'effects')} />
             <SectionHead title={copy('升级材料', 'Upgrade materials')} count={asList(level.materials).length} />
             <MaterialCostList items={asList(level.materials).map(material => asRecord(material))} path={joinPath(path, 'levels', levelKey, 'materials')} onChange={materials => updateLevel(levelKey, { materials })} />
             <CostEditor label={copy('等级经济覆盖', 'Level economy override')} path={joinPath(path, 'levels', levelKey, 'economy')} value={level.economy ?? { currencies: [] }} onChange={economy => updateLevel(levelKey, { economy })} showEnabled economyProviders={context.economyProviders} />

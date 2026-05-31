@@ -7,7 +7,7 @@ import { ItemEditorSurface } from './ItemEditorSurface';
 import { loadWebExtensions } from './extensions';
 import { applyConfigNodeOverrides, applyConfigRegistryOverrides, applyEditorDescriptorOverrides, getConfigPreview, getSourceDocumentAdapter, getSurface, isKind, registerSourceDocumentAdapter, registerSurface, setRuntimeEnums, type ConfigPreviewProps, type SourceDocumentAdapterContext } from './registry';
 import { getLocale, getRegisteredLocales, setLocale, t } from './i18n';
-import { ActionGroup, ActionTypesProvider, Button, CodeEditor, EditorChrome, DisclosureChevron, InlineError, NumberListEditor, StandardActionsField, StandardEffectsEditor, StringListEditor, ToastNotice, VariablesMapEditor, type EditorChange } from './components';
+import { ActionGroup, ActionTypesProvider, Button, CodeEditor, EconomyProvidersProvider, EditorChrome, DisclosureChevron, InlineError, NumberListEditor, StandardActionsField, StandardEconomyProviderSelect, StandardEffectsEditor, StringListEditor, ToastNotice, VariablesMapEditor, type EditorChange } from './components';
 import { useDialogFocus } from './components/useDialogFocus';
 import { useStableEntries } from './components/useStableEntries';
 import { I18nBundleModal, type I18nTarget } from './I18nBundleModal';
@@ -394,6 +394,7 @@ export default function App() {
 
   return (
     <ActionTypesProvider api={api}>
+    <EconomyProvidersProvider api={api}>
     <div className="workbench" data-locale-version={localeVersion}>
       {toast && <ToastNotice tone={toast.tone}>{toast.text}</ToastNotice>}
       {createTarget && <CreateFileModal target={createTarget} onCancel={() => setCreateTarget(null)} onCreate={createFileFromTree} />}
@@ -460,6 +461,7 @@ export default function App() {
         </section>
       </main>
     </div>
+    </EconomyProvidersProvider>
     </ActionTypesProvider>
   );
 }
@@ -1571,6 +1573,7 @@ function isWideConfigNodeType(type: string | undefined): boolean {
 function renderControl(node: WebConfigNode, value: unknown, setValue: (v: unknown) => void, label: string, moduleId: string) {
   if (node.type === 'boolean') return <BooleanSwitch checked={value === true} label={`${label}: ${value ? t('core.config.booleanOn') : t('core.config.booleanOff')}`} onToggle={() => setValue(!value)} />;
   if (node.type === 'enum' && node.options) return <select value={str(value)} aria-label={label} onChange={(e) => setValue(e.target.value)}>{node.options.map(opt => <option key={opt} value={opt}>{optionLabel(node.optionLabelPrefix || node.path, opt, { moduleId })}</option>)}</select>;
+  if (node.type === 'economyProvider') return <StandardEconomyProviderSelect value={value} onChange={setValue} moduleId={moduleId} optionPrefix={node.optionLabelPrefix || 'economyProvider'} />;
   if (node.type === 'number') return <NumberField value={value} onChange={setValue} ariaLabel={label} />;
   if (node.type === 'json') return <JsonField value={value} onChange={setValue} ariaLabel={label} />;
   if (node.type === 'variablesMap') return <VariablesMapEditor value={value} onChange={setValue} />;
@@ -1754,6 +1757,7 @@ function renderSchemaField(field: WebConfigFieldSchema | undefined, value: unkno
   if (type === 'variablesMap') return <VariablesMapEditor value={value} onChange={onChange} />;
   if (type === 'actions') return <StandardActionsField value={value} onChange={onChange} path={field?.path} moduleId={moduleId} />;
   if (type === 'effects') return <StandardEffectsEditor value={value} onChange={onChange} path={field?.path} moduleId={moduleId} />;
+  if (type === 'economyProvider') return <StandardEconomyProviderSelect value={value} onChange={onChange} moduleId={moduleId} optionPrefix={field?.optionLabelPrefix || 'economyProvider'} />;
   if (type === 'object' && field?.itemFields?.length) {
     return <SchemaObjectEditor field={field} value={value} onChange={onChange} moduleId={moduleId} ariaLabel={ariaLabel} />;
   }

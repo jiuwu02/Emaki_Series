@@ -1,5 +1,5 @@
 import React from 'react';
-import { ActionsEditor, ItemEditorSurface, PropRow, StringListEditor, VariablesMapEditor, asList, asRecord, asStringList, coreEffectTypeLabel, createCoreEffect, fieldLabel, firstItemSource, getLocale, humanizeFieldLabel, isCoreEffectType, optionLabel, parseActionList, registerFileKindLabel, registerConfigNodeMeta, registerConfigNodeRule, registerEditorDescriptor, registerEditorField, registerItemFieldRenderer, registerModuleLocale, registerPluginSurfaces, registerSourceDocumentAdapter, serializeActionList, textValue, type AnyMap, type CoreEffectType, type ItemFieldRendererContext } from 'emaki-web-console';
+import { ActionsEditor, ItemEditorSurface, PropRow, StringListEditor, VariablesMapEditor, asList, asRecord, asStringList, coreEffectTypeLabel, createCoreEffect, EA_ATTRIBUTE_EFFECT_DEFINITION, ES_SKILL_EFFECT_DEFINITION, CORE_EFFECT_TYPE_DEFINITIONS, fieldLabel, firstItemSource, getLocale, humanizeFieldLabel, isCoreEffectType, optionLabel, parseActionList, registerEffectTypes, registerFileKindLabel, registerConfigNodeMeta, registerConfigNodeRule, registerEditorDescriptor, registerEditorField, registerItemFieldRenderer, registerModuleLocale, registerPluginSurfaces, registerSourceDocumentAdapter, serializeActionList, textValue, type AnyMap, type CoreEffectType, type EffectTypeDefinition, type ItemFieldRendererContext } from 'emaki-web-console';
 
 const MODULE = 'EmakiItem';
 const EDITOR_ID = 'emakiitem:item';
@@ -332,12 +332,24 @@ function escapeYamlString(value: string): string {
 }
 
 function registerEmakiItemRenderers() {
-  registerItemFieldRenderer('effects', context => <ItemEffectsEditor context={context} />, { moduleId: MODULE, editorId: EDITOR_ID, priority: 100 });
   registerItemFieldRenderer('attributeModifiers', context => <AttributeModifiersFieldEditor context={context} />, { moduleId: MODULE, editorId: EDITOR_ID, priority: 100 });
   registerItemFieldRenderer('repairMaterials', context => <RepairMaterialsFieldEditor context={context} />, { moduleId: MODULE, editorId: EDITOR_ID, priority: 100 });
   registerItemFieldRenderer('setPieces', context => <ItemSetPiecesEditor context={context} />, { moduleId: MODULE, editorId: SET_EDITOR_ID, priority: 100 });
   registerItemFieldRenderer('setThresholds', context => <ItemSetThresholdsEditor context={context} />, { moduleId: MODULE, editorId: SET_EDITOR_ID, priority: 100 });
 }
+
+const coreEffectDef = (type: string): EffectTypeDefinition => CORE_EFFECT_TYPE_DEFINITIONS.find(def => def.type === type)!;
+
+// Unified effect types for EmakiItem item editor: only each type's own payload
+// fields are shown, handled by the shared StandardEffectsEditor.
+registerEffectTypes(MODULE, [
+  coreEffectDef('variables'),
+  EA_ATTRIBUTE_EFFECT_DEFINITION,
+  ES_SKILL_EFFECT_DEFINITION,
+  coreEffectDef('name_action'),
+  coreEffectDef('lore_action')
+]);
+
 
 function ItemEffectsEditor({ context }: { context: ItemFieldRendererContext }) {
   return <PropRow label={fieldLabel(context.field.path, { moduleId: MODULE, namespace: MODULE, fallback: getLocale().startsWith('zh') ? context.field.label : humanizeFieldLabel(context.field.path) })} path={context.field.path} moduleId={MODULE} namespace={MODULE} editorFields={context.editorFields} changed={context.changed} wide>

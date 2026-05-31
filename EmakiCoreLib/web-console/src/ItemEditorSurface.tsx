@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ApiError, type ApiClient, type ActionTypesResult } from './api';
-import { Button, CollapsibleSection, DisclosureChevron, EditorChrome, InlineError, MiniText, PropRow as BasePropRow, SectionHead, StandardActionsField, StandardEffectsEditor, StringListEditor, ToastNotice, VariablesMapEditor } from './components';
+import { Button, CollapsibleSection, DisclosureChevron, EditorChrome, InlineError, MiniText, PropRow as BasePropRow, SectionHead, StandardActionsField, StandardEconomyProviderSelect, StandardEffectsEditor, StringListEditor, ToastNotice, VariablesMapEditor } from './components';
 import { asList, asRecord, asStringList, displaySource, firstItemSource, materialFromItemSource, setDeepValue, parseYaml, type AnyMap } from './itemEditor';
 import { t, getLocale } from './i18n';
 import { changedPathSet, diffRecords, fieldLabel, getDeepValue, humanizeFieldLabel, isChangedFieldPath, materialShortName, materialUrls, optionLabel, subscribeTextureBases, textValue, valuesEqual } from './lib';
@@ -325,6 +325,7 @@ function DefaultFieldEditor({ field, data, value, changed, setField, actionTypes
   if (type === 'number') return <PropRow label={label} path={field.path} changed={changed} wide={field.wide}><NumberInput value={value} onChange={next => setField(field.path, next)} /></PropRow>;
   if (type === 'boolean') return <PropRow label={label} path={field.path} changed={changed} wide={field.wide}><ToggleButton checked={value === true} onChange={next => setField(field.path, next)} /></PropRow>;
   if (type === 'enum' && field.options?.length) return <PropRow label={label} path={field.path} changed={changed} wide={field.wide}><SelectInput value={value} options={field.options} labelPrefix={field.optionLabelPrefix} onChange={next => setField(field.path, next)} /></PropRow>;
+  if (type === 'economyProvider') return <PropRow label={label} path={field.path} changed={changed} wide={field.wide}><StandardEconomyProviderSelect value={value} onChange={next => setField(field.path, next)} providers={context.economyProviders} moduleId={context.moduleId} optionPrefix={field.optionLabelPrefix || 'economyProvider'} /></PropRow>;
   if (type === 'multiEnum' && field.options?.length) return <PropRow label={label} path={field.path} changed={changed} wide={field.wide ?? true}><MultiEnumEditor value={value} options={field.options} labelPrefix={field.optionLabelPrefix} onChange={next => setField(field.path, next)} /></PropRow>;
   if (type === 'material') return <PropRow label={label} path={field.path} changed={changed} wide={field.wide}><MaterialInput value={value} onChange={next => setField(field.path, next)} /></PropRow>;
   if (type === 'textarea') return <PropRow label={label} path={field.path} changed={changed} wide><textarea rows={field.rows ?? 4} value={textValue(value)} onChange={e => setField(field.path, e.target.value)} placeholder={field.placeholder} /></PropRow>;

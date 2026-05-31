@@ -1,28 +1,28 @@
-import { getLocale, registerModuleLocale, registerPluginConfig, registerPluginGuiEditor, standardMaterialCostFields } from 'emaki-web-console';
+import { getLocale, registerEffectTypes, registerModuleLocale, registerPluginConfig, registerPluginGuiEditor, standardMaterialCostFields, CORE_EFFECT_TYPE_DEFINITIONS, type EffectTypeDefinition } from 'emaki-web-console';
 
 const MODULE = 'EmakiForge';
 type AnyMap = Record<string, unknown>;
-const FORGE_EFFECT_TYPES = ['variables', 'ea_attribute', 'es_skill', 'name_action', 'lore_action', 'quality_modify', 'capacity_bonus'];
 
-const actionFields = [
-  { path: 'action', label: '动作', comment: 'CoreLib 物品显示动作类型，例如 append、insert_below、replace、prepend_prefix。', type: 'text', defaultValue: 'append' },
-  { path: 'value', label: '文本值', comment: '名称动作使用的单行文本值。', type: 'text', defaultValue: '' },
-  { path: 'anchor', label: '锚点', comment: 'insert_below / insert_above 等 Lore 动作用于定位的文本。', type: 'text', defaultValue: '' },
-  { path: 'content', label: '内容', comment: 'Lore 动作写入的多行文本。', type: 'stringList', defaultValue: [] }
-];
+const coreEffectDef = (type: string): EffectTypeDefinition => CORE_EFFECT_TYPE_DEFINITIONS.find(def => def.type === type)!;
 
-const effectFields = [
-  { path: 'type', label: '类型', comment: '选择此材料贡献的效果类别：变量、属性、技能、名称/Lore 动作、品质修改或容量加成。', type: 'enum', options: FORGE_EFFECT_TYPES, defaultValue: 'variables' },
-  { path: 'variables', label: '变量', comment: 'variables 效果贡献的表达式变量对象，支持固定值、公式、随机数值和文本配置。', type: 'variablesMap', defaultValue: {} },
-  { path: 'ea_attributes', label: 'EA 属性', comment: 'ea_attribute 效果写入 EmakiAttribute 的属性数值对象。', type: 'map', defaultValue: {} },
-  { path: 'ea_attribute_meta', label: 'EA 属性元数据', comment: 'ea_attribute 效果的附加字符串元数据对象。', type: 'map', defaultValue: {} },
-  { path: 'es_skills', label: 'ES 技能', comment: 'es_skill 效果附加的技能 ID 列表。', type: 'stringList', defaultValue: [] },
-  { path: 'name_actions', label: '名称动作链', comment: 'name_action 效果对结果物品名称执行的动作列表。', type: 'objectList', defaultValue: [], itemFields: actionFields },
-  { path: 'lore_actions', label: 'Lore 动作链', comment: 'lore_action 效果对结果物品 Lore 执行的动作列表。', type: 'objectList', defaultValue: [], itemFields: actionFields },
-  { path: 'mode', label: '品质修改模式', comment: 'quality_modify 使用 force 或 minimum。', type: 'enum', options: ['force', 'minimum'], defaultValue: 'minimum' },
-  { path: 'tier', label: '目标品质', comment: 'quality_modify 的目标品质名称。', type: 'text', defaultValue: '' },
-  { path: 'value', label: '容量加成', comment: '此材料增加的锻造容量，可填写固定数字或表达式。', type: 'text', defaultValue: '1' }
-];
+// Unified effect types for EmakiForge material effects. Each type only shows its
+// own payload fields via the shared StandardEffectsEditor (no more flat列表).
+registerEffectTypes(MODULE, [
+  coreEffectDef('variables'),
+  { type: 'ea_attribute', label: 'EA 属性', fields: [
+    { key: 'ea_attributes', type: 'map', label: 'EA 属性', defaultValue: {} },
+    { key: 'ea_attribute_meta', type: 'map', label: 'EA 属性元数据', defaultValue: {} }
+  ] },
+  { type: 'es_skill', label: 'ES 技能', fields: [{ key: 'es_skills', type: 'stringList', label: 'ES 技能', defaultValue: [] }] },
+  coreEffectDef('name_action'),
+  coreEffectDef('lore_action'),
+  { type: 'quality_modify', label: '品质修改', fields: [
+    { key: 'mode', type: 'enum', label: '品质修改模式', options: ['force', 'minimum'], defaultValue: 'minimum' },
+    { key: 'tier', type: 'text', label: '目标品质', defaultValue: '' }
+  ] },
+  { type: 'capacity_bonus', label: '容量加成', fields: [{ key: 'value', type: 'text', label: '容量加成', defaultValue: '1' }] }
+]);
+
 
 const materialFields = standardMaterialCostFields({
   omit: ['protection'],
@@ -33,7 +33,7 @@ const materialFields = standardMaterialCostFields({
   },
   insertAfter: {
     amount: { path: 'capacity_cost', label: '容量消耗', comment: '此材料占用的锻造容量。', type: 'number', defaultValue: 0 },
-    optional: { path: 'effects', label: '效果', comment: '此材料提供的效果对象列表。', type: 'objectList', defaultValue: [], itemFields: effectFields }
+    optional: { path: 'effects', label: '效果', comment: '此材料提供的效果对象列表，按 type 分流为变量、属性、技能、名称/Lore 动作、品质修改或容量加成。', type: 'effects', defaultValue: [] }
   }
 });
 
@@ -66,8 +66,8 @@ const fields: FieldSpec[] = [
   ['quality.item_meta', '显示写入', '是否把品质写入物品名称、Lore，以及每个品质对应的显示动作。', 'object'],
   ['quality.item_meta.enabled', '启用写入', '开启后锻造完成会按品质配置修改物品显示。', 'boolean'],
   ['quality.item_meta.tiers', '品质显示', '每个品质名称对应的 name_actions、lore_actions 或广播动作配置。', 'object', { creatableChildren: true, createTemplates: [{ id: 'quality-tier-display', label: copy('品质显示规则', 'Quality display rule'), fields: [
-    { path: 'name_actions', label: '名称动作链', comment: '给该品质物品名称追加前缀、后缀或执行替换动作。', type: 'objectList', defaultValue: [], itemFields: actionFields },
-    { path: 'lore_actions', label: 'Lore 动作链', comment: '给该品质物品 Lore 执行的动作列表。', type: 'objectList', defaultValue: [], itemFields: actionFields },
+    { path: 'name_actions', label: '名称动作链', comment: '给该品质物品名称追加前缀、后缀或执行替换动作。', type: 'actions', defaultValue: [] },
+    { path: 'lore_actions', label: 'Lore 动作链', comment: '给该品质物品 Lore 执行的动作列表。', type: 'actions', defaultValue: [] },
     { path: 'action', label: '广播动作', comment: '该品质达成时执行的广播或提示动作。', type: 'stringList', defaultValue: [] }
   ] }] }],
   ['number_format', '数值格式', '锻造结果数值在名称、Lore 和日志中的格式化规则。', 'object'],
@@ -85,8 +85,8 @@ const fields: FieldSpec[] = [
 ];
 
 const ruleFields: Record<string, [string, string, string]> = {
-  name_actions: ['名称动作链', '对物品显示名称执行的 CoreLib Action 列表，例如前缀、后缀或替换。', 'list'],
-  lore_actions: ['Lore 动作链', '对物品 Lore 执行的 CoreLib Action 列表。', 'list'],
+  name_actions: ['名称动作链', '对物品显示名称执行的 CoreLib Action 列表，例如前缀、后缀或替换。', 'actions'],
+  lore_actions: ['Lore 动作链', '对物品 Lore 执行的 CoreLib Action 列表。', 'actions'],
   action: ['动作', '达成某品质或锻造事件后执行的动作列表。', 'list'],
   value: ['文本值', '动作使用的文本值或格式参数。', 'text'],
   enabled: ['启用', '是否启用当前功能、分支或条目。', 'boolean'],
@@ -132,8 +132,8 @@ const recipeFields: FieldSpec[] = [
   ['result', '锻造结果', '锻造成功后的产物、结果物品动作和提示动作。', 'object'],
   ['result.item_sources', '结果物品来源', '锻造成功后产出的 ItemSource 列表。', 'stringList'],
   ['result.meta_actions', '结果显示动作', '对结果物品名称和 Lore 执行的动作。', 'object'],
-  ['result.meta_actions.name_actions', '结果名称动作', '对结果物品显示名称执行的动作列表。', 'objectList', { itemFields: actionFields }],
-  ['result.meta_actions.lore_actions', '结果 Lore 动作', '对结果物品 Lore 执行的动作列表。', 'objectList', { itemFields: actionFields }],
+  ['result.meta_actions.name_actions', '结果名称动作', '对结果物品显示名称执行的动作列表。', 'actions'],
+  ['result.meta_actions.lore_actions', '结果 Lore 动作', '对结果物品 Lore 执行的动作列表。', 'actions'],
   ['result.actions', '结果动作', '锻造成功并生成结果后执行的动作列表。', 'stringList'],
   ['actions', '流程动作', '锻造 pre、success、failure 三个阶段执行的动作。', 'object'],
   ['actions.pre', '开始前动作', '锻造开始前执行的动作列表。', 'stringList'],
@@ -218,14 +218,13 @@ registerPluginConfig({
       id: 'quality-tier-display',
       label: copy('品质显示规则', 'Quality display rule'),
       fields: [
-        { path: 'name_actions', label: '名称动作链', comment: '给该品质物品名称追加前缀、后缀或执行替换动作。', type: 'list', defaultValue: ['action: "prepend_prefix"', 'value: "<gray>[新品质] </gray>"'] },
-        { path: 'lore_actions', label: 'Lore 动作链', comment: '给该品质物品 Lore 执行的动作列表。', type: 'list', defaultValue: [] },
+        { path: 'name_actions', label: '名称动作链', comment: '给该品质物品名称追加前缀、后缀或执行替换动作。', type: 'actions', defaultValue: [] },
+        { path: 'lore_actions', label: 'Lore 动作链', comment: '给该品质物品 Lore 执行的动作列表。', type: 'actions', defaultValue: [] },
         { path: 'action', label: '广播动作', comment: '该品质达成时执行的广播或提示动作。', type: 'list', defaultValue: [] }
       ]
     }]
   ],
   listItemSchemas: [
-    ['effects', effectFields],
     ['quality.tiers', [
       { path: 'name', label: '品质名', comment: '品质名称，会被 default_tier、guarantee.minimum 和品质显示配置引用。', type: 'text', defaultValue: '新品质' },
       { path: 'weight', label: '权重', comment: '随机抽取权重，数值越高越容易出现。', type: 'number', defaultValue: 1 },
@@ -233,9 +232,7 @@ registerPluginConfig({
     ], { uniqueBy: 'name' }],
     ['materials', materialFields],
     ['blueprint_requirements', blueprintFields],
-    ['failure_outcomes', failureOutcomeFields],
-    ['name_actions', actionFields],
-    ['lore_actions', actionFields]
+    ['failure_outcomes', failureOutcomeFields]
   ]
 });
 

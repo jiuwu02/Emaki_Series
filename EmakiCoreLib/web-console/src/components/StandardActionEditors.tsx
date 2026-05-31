@@ -2,18 +2,21 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { ActionTypesResult } from '../api';
 import { ActionsEditor, parseActionList, serializeActionList } from './ActionsEditor';
 import { VariablesMapEditor } from './VariablesMapEditor';
+import { StringListEditor } from './StringListEditor';
+import { NumberListEditor } from './NumberListEditor';
+import { KvTable } from './KvTable';
 import { PropRow } from './PropRow';
 import { DisclosureChevron } from './SectionHead';
-import { asList, asRecord } from '../lib/itemUtils';
+import { asList, asRecord, asStringList } from '../lib/itemUtils';
 import { fieldLabel, optionLabel, textValue } from '../lib';
 import { t, getLocale } from '../i18n';
 import {
-  CORE_EFFECT_TYPES,
-  coreEffectTypeLabel,
-  createCoreEffect,
-  isCoreEffectType,
-  type CoreEffectType
-} from '../itemFieldRegistry';
+  getEffectTypeDefinitions,
+  getEffectTypeDefinition,
+  createEffectValue,
+  type EffectTypeDefinition,
+  type EffectPayloadField
+} from '../effectTypeRegistry';
 import type { WebEditorField } from '../types';
 
 /**
@@ -101,9 +104,11 @@ export function StandardActionsField({ value, onChange, mode, path, moduleId, na
 }
 
 /**
- * Unified CoreLib effects-list editor. Splits each entry by `type` into
- * variables / name_action / lore_action structured editors, matching the
- * server-side assembly model. Unknown types fall back to a key/value editor.
+ * Unified CoreLib effects-list editor, driven by the effect type registry.
+ * For each effect entry it shows ONLY the payload fields declared by the
+ * selected type's definition (registered per module), so a `variables` effect
+ * never renders EA attribute / ES skill / action inputs and vice versa. The
+ * same component is used by every plugin and page for a consistent style.
  */
 export function StandardEffectsEditor({ value, onChange, path, moduleId, namespace, editorFields, actionTypes }: StandardEditorScope & {
   value: unknown;
@@ -113,14 +118,19 @@ export function StandardEffectsEditor({ value, onChange, path, moduleId, namespa
   const contextTypes = useActionTypes();
   const resolvedTypes = actionTypes ?? contextTypes;
   const scope: StandardEditorScope = { moduleId, namespace: namespace ?? moduleId, editorFields, actionTypes: resolvedTypes };
+  const definitions = getEffectTypeDefinitions(moduleId);
   const effects = asList(value).map(effect => asRecord(effect));
   const [expanded, setExpanded] = useState<Set<number>>(() => new Set(effects.map((_, index) => index)));
   const updateEffect = (index: number, nextEffect: Record<string, unknown>) => onChange(effects.map((effect, itemIndex) => itemIndex === index ? cleanObject(nextEffect) : effect));
   const removeEffect = (index: number) => onChange(effects.filter((_, itemIndex) => itemIndex !== index));
-  const addEffect = (type: CoreEffectType) => {
-    const next = [...effects, createCoreEffect(type)];
+  const addEffect = (def: EffectTypeDefinition) => {
+    const next = [...effects, createEffectValue(def)];
     onChange(next);
     setExpanded(previous => new Set([...previous, next.length - 1]));
+  };
+  const changeEffectType = (index: number, nextType: string) => {
+    const def = getEffectTypeDefinition(moduleId, nextType);
+    updateEffect(index, def ? createEffectValue(def) : { type: nextType });
   };
   const moveEffect = (index: number, delta: number) => {
     const target = index + delta;
@@ -136,14 +146,15 @@ export function StandardEffectsEditor({ value, onChange, path, moduleId, namespa
   });
   return <div className="prop-levels" role="list">
     {effects.map((effect, index) => {
-      const type = textValue(effect.type) || 'variables';
-      const coreType = isCoreEffectType(type) ? type : 'variables';
-      const typeOptions = isCoreEffectType(type) ? CORE_EFFECT_TYPES : [...CORE_EFFECT_TYPES, type];
+      const type = textValue(effect.type) || definitions[0]?.type || 'variables';
+      const known = definitions.some(def => def.type === type);
+      const typeOptions = known ? definitions.map(def => def.type) : [...definitions.map(def => def.type), type];
+      const definition = getEffectTypeDefinition(moduleId, type);
       const opened = expanded.has(index);
       return <div className={`prop-level-item${opened ? ' expanded' : ''}`} key={index} role="listitem">
         <div className="prop-level-head" role="button" tabIndex={0} onClick={() => toggle(index)} onKeyDown={event => toggleByKeyboard(event, () => toggle(index))} aria-expanded={opened} aria-controls={`std-effect-body-${index}`}>
-          <span className="prop-level-summary"><span className="prop-level-badge"><DisclosureChevron open={opened} className="prop-level-arrow" /> #{index + 1}</span>{coreEffectTypeLabel(type)}</span>
-          <span className="prop-level-rate">{effectSummary(effect)}</span>
+          <span className="prop-level-summary"><span className="prop-level-badge"><DisclosureChevron open={opened} className="prop-level-arrow" /> #{index + 1}</span>{effectTypeLabel(type, definition, moduleId)}</span>
+          <span className="prop-level-rate">{effectSummary(effect, definition)}</span>
           <span className="prop-action-controls" onClick={stopEvent} onKeyDown={stopEvent}>
             <button type="button" onClick={() => moveEffect(index, -1)} disabled={index === 0} aria-label={t('core.field.move_up')}>↑</button>
             <button type="button" onClick={() => moveEffect(index, 1)} disabled={index === effects.length - 1} aria-label={t('core.field.move_down')}>↓</button>
@@ -151,40 +162,84 @@ export function StandardEffectsEditor({ value, onChange, path, moduleId, namespa
           </span>
         </div>
         {opened && <div className="prop-level-body" id={`std-effect-body-${index}`}>
-          <StandardPropRow label="type" path={joinPath(path, index, 'type')} scope={scope}><EffectTypeSelect value={type} options={typeOptions} moduleId={moduleId} onChange={nextType => updateEffect(index, createCoreEffect(nextType as CoreEffectType))} /></StandardPropRow>
-          <EffectPayloadEditor effect={effect} type={coreType} originalType={type} path={joinPath(path, index)} scope={scope} onChange={nextEffect => updateEffect(index, nextEffect)} />
+          <StandardPropRow label="type" path={joinPath(path, index, 'type')} scope={scope}><EffectTypeSelect value={type} options={typeOptions} moduleId={moduleId} definitions={definitions} onChange={nextType => changeEffectType(index, nextType)} /></StandardPropRow>
+          <EffectPayloadEditor effect={effect} definition={definition} path={joinPath(path, index)} scope={scope} onChange={nextEffect => updateEffect(index, nextEffect)} />
         </div>}
       </div>;
     })}
-    <div className="prop-cost-actions">{CORE_EFFECT_TYPES.map(type => <button key={type} type="button" className="prop-add" onClick={() => addEffect(type)}>+ {coreEffectTypeLabel(type)}</button>)}</div>
+    <div className="prop-cost-actions">{definitions.map(def => <button key={def.type} type="button" className="prop-add" onClick={() => addEffect(def)}>+ {effectTypeLabel(def.type, def, moduleId)}</button>)}</div>
   </div>;
 }
 
-function EffectPayloadEditor({ effect, type, originalType, onChange, path, scope }: {
+function EffectPayloadEditor({ effect, definition, onChange, path, scope }: {
   effect: Record<string, unknown>;
-  type: CoreEffectType;
-  originalType: string;
+  definition: EffectTypeDefinition | undefined;
   onChange: (effect: Record<string, unknown>) => void;
   path?: string;
   scope: StandardEditorScope;
 }) {
   const setPayload = (key: string, value: unknown) => onChange(cleanObject({ ...effect, [key]: value }));
-  if (!isCoreEffectType(originalType)) return <GenericKeyValueEditor value={effect} reservedKeys={['type']} onChange={next => onChange({ type: originalType, ...next })} />;
-  if (type === 'variables') return <StandardPropRow label="variables" path={joinPath(path, 'variables')} scope={scope} wide><VariablesMapEditor value={effect.variables} onChange={value => setPayload('variables', value)} /></StandardPropRow>;
-  if (type === 'name_action') return <StandardPropRow label="name_actions" path={joinPath(path, 'name_actions')} scope={scope} wide><StandardActionsField value={effect.name_actions} onChange={value => setPayload('name_actions', value)} mode="name" {...scope} /></StandardPropRow>;
-  if (type === 'lore_action') return <StandardPropRow label="lore_actions" path={joinPath(path, 'lore_actions')} scope={scope} wide><StandardActionsField value={effect.lore_actions} onChange={value => setPayload('lore_actions', value)} mode="lore" {...scope} /></StandardPropRow>;
-  return <GenericKeyValueEditor value={effect} reservedKeys={['type']} onChange={next => onChange({ type, ...next })} />;
+  // Unknown type (no registered definition): fall back to a key/value editor so
+  // data is never lost, but this should be rare with a complete registry.
+  if (!definition) return <GenericKeyValueEditor value={effect} reservedKeys={['type']} onChange={next => onChange({ type: textValue(effect.type), ...next })} />;
+  return <>{definition.fields.map(field => (
+    <StandardPropRow key={field.key} label={field.key} path={joinPath(path, field.key)} scope={scope} wide={isWidePayloadField(field.type)}>
+      <EffectPayloadFieldEditor field={field} value={effect[field.key]} scope={scope} moduleId={scope.moduleId} onChange={next => setPayload(field.key, next)} />
+    </StandardPropRow>
+  ))}</>;
+}
+
+function isWidePayloadField(type: EffectPayloadField['type']): boolean {
+  return type !== 'text' && type !== 'number' && type !== 'boolean' && type !== 'enum';
+}
+
+function EffectPayloadFieldEditor({ field, value, onChange, scope, moduleId }: {
+  field: EffectPayloadField;
+  value: unknown;
+  onChange: (value: unknown) => void;
+  scope: StandardEditorScope;
+  moduleId?: string;
+}) {
+  if (field.type === 'variablesMap') return <VariablesMapEditor value={value} onChange={onChange} />;
+  if (field.type === 'map') return <EffectMapField value={value} onChange={onChange} />;
+  if (field.type === 'stringList') return <StringListEditor items={asStringList(value)} onChange={onChange} />;
+  if (field.type === 'numberList') return <NumberListEditor items={asList(value).map(item => Number(item) || 0)} onChange={onChange} />;
+  if (field.type === 'actions') return <StandardActionsField value={value} onChange={onChange} mode={field.actionMode ?? 'name'} {...scope} />;
+  if (field.type === 'boolean') return <input type="checkbox" checked={value === true} onChange={event => onChange(event.target.checked)} />;
+  if (field.type === 'number') return <input type="number" value={value == null ? '' : textValue(value)} onChange={event => onChange(event.target.value === '' ? undefined : Number(event.target.value))} />;
+  if (field.type === 'enum' && field.options?.length) {
+    const current = textValue(value);
+    const merged = current && !field.options.includes(current) ? [...field.options, current] : field.options;
+    return <select value={current} onChange={event => onChange(event.target.value)}>
+      {merged.map(option => <option key={option} value={option}>{optionLabel(field.optionLabelPrefix || field.key, option, { moduleId, namespace: moduleId, fallback: option })}</option>)}
+    </select>;
+  }
+  return <input type="text" value={textValue(value)} onChange={event => onChange(event.target.value)} />;
+}
+
+function EffectMapField({ value, onChange }: { value: unknown; onChange: (value: Record<string, unknown>) => void }) {
+  const entries = Object.entries(asRecord(value)).map(([key, entry]) => ({ key, value: entry }));
+  return <KvTable entries={entries} onChange={nextEntries => {
+    const next: Record<string, unknown> = {};
+    nextEntries.forEach(entry => { if (String(entry.key).trim()) next[String(entry.key).trim()] = entry.value; });
+    onChange(next);
+  }} />;
 }
 
 function StandardPropRow({ label, path, scope, children, wide }: { label: string; path?: string; scope: StandardEditorScope; children: React.ReactNode; wide?: boolean }) {
   return <PropRow label={label} path={path ?? label} moduleId={scope.moduleId} namespace={scope.namespace ?? scope.moduleId} editorFields={scope.editorFields} wide={wide}>{children}</PropRow>;
 }
 
-function EffectTypeSelect({ value, options, onChange, moduleId }: { value: string; options: string[]; onChange: (value: string) => void; moduleId?: string }) {
+function effectTypeLabel(type: string, definition: EffectTypeDefinition | undefined, moduleId?: string): string {
+  return optionLabel('effect', type, { moduleId, namespace: moduleId, fallback: definition?.label ?? type });
+}
+
+function EffectTypeSelect({ value, options, onChange, moduleId, definitions }: { value: string; options: string[]; onChange: (value: string) => void; moduleId?: string; definitions: EffectTypeDefinition[] }) {
   const current = textValue(value);
   const merged = current && !options.includes(current) ? [...options, current] : options;
+  const labelFor = (option: string) => effectTypeLabel(option, definitions.find(def => def.type === option), moduleId);
   return <select value={current} onChange={event => onChange(event.target.value)}>
-    {merged.map(option => <option key={option} value={option}>{optionLabel('effect', option, { moduleId, namespace: moduleId, fallback: coreEffectTypeLabel(option) })}</option>)}
+    {merged.map(option => <option key={option} value={option}>{labelFor(option)}</option>)}
   </select>;
 }
 
@@ -212,12 +267,21 @@ function GenericKeyValueEditor({ value, reservedKeys, onChange }: { value: unkno
   </div>;
 }
 
-function effectSummary(effect: Record<string, unknown>): string {
-  const type = textValue(effect.type);
+function effectSummary(effect: Record<string, unknown>, definition: EffectTypeDefinition | undefined): string {
   const zh = getLocale().startsWith('zh');
-  if (type === 'variables') return zh ? `${Object.keys(asRecord(effect.variables)).length} 个变量` : `${Object.keys(asRecord(effect.variables)).length} variables`;
-  if (type === 'name_action') return zh ? `${asList(effect.name_actions).length} 个名称动作` : `${asList(effect.name_actions).length} name actions`;
-  if (type === 'lore_action') return zh ? `${asList(effect.lore_actions).length} 个 Lore 动作` : `${asList(effect.lore_actions).length} lore actions`;
+  const field = definition?.fields[0];
+  if (field) {
+    const payload = effect[field.key];
+    if (field.type === 'variablesMap' || field.type === 'map') {
+      const count = Object.keys(asRecord(payload)).length;
+      return zh ? `${count} 项` : `${count} entries`;
+    }
+    if (field.type === 'stringList' || field.type === 'numberList' || field.type === 'actions') {
+      const count = asList(payload).length;
+      return zh ? `${count} 项` : `${count} entries`;
+    }
+    return textValue(payload);
+  }
   const count = Math.max(0, Object.keys(effect).length - 1);
   return zh ? `${count} 个字段` : `${count} fields`;
 }

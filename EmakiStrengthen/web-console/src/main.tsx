@@ -1,22 +1,18 @@
-import { getLocale, registerModuleLocale, registerPluginConfig, registerPluginGuiEditor, standardCurrencyCostFields, standardMaterialCostFields, type ConfigMetaFieldEntry } from 'emaki-web-console';
-
-const STRENGTHEN_EFFECT_TYPES = ['variables', 'ea_attribute', 'es_skill'];
+import { getLocale, registerEffectTypes, registerModuleLocale, registerPluginConfig, registerPluginGuiEditor, standardCurrencyCostFields, standardMaterialCostFields, CORE_EFFECT_TYPE_DEFINITIONS, EA_ATTRIBUTE_EFFECT_DEFINITION, ES_SKILL_EFFECT_DEFINITION, type ConfigMetaFieldEntry, type EffectTypeDefinition } from 'emaki-web-console';
 
 const MODULE = 'EmakiStrengthen';
 const copy = (zh: string, en: string) => getLocale().startsWith('zh') ? zh : en;
-const actionFields = [
-  { path: 'action', label: '动作', comment: '动作类型。', type: 'text', defaultValue: '' },
-  { path: 'value', label: '文本值', comment: '动作使用的文本值或格式参数。', type: 'text', defaultValue: '' },
-  { path: 'content', label: '内容', comment: '动作写入的多行内容。', type: 'stringList', defaultValue: [] },
-  { path: 'anchor', label: '锚点', comment: '定位目标行时使用的锚点。', type: 'text', defaultValue: '' },
-  { path: 'target_pattern', label: '目标匹配', comment: '定位目标行时使用的模式。', type: 'text', defaultValue: '' },
-  { path: 'regex_pattern', label: '正则', comment: '正则替换动作的匹配表达式。', type: 'text', defaultValue: '' },
-  { path: 'replacement', label: '替换内容', comment: '正则替换动作的替换内容。', type: 'text', defaultValue: '' }
-];
 
-const effectTypeFields = [
-  { path: 'type', label: '类型', comment: '强化阶段贡献的效果类别。', type: 'enum', options: [...STRENGTHEN_EFFECT_TYPES, 'name_action', 'lore_action'], defaultValue: 'variables' }
-];
+const coreEffectDef = (type: string): EffectTypeDefinition => CORE_EFFECT_TYPE_DEFINITIONS.find(def => def.type === type)!;
+
+// Unified effect types for EmakiStrengthen star-stage / completion effects.
+registerEffectTypes(MODULE, [
+  coreEffectDef('variables'),
+  EA_ATTRIBUTE_EFFECT_DEFINITION,
+  ES_SKILL_EFFECT_DEFINITION,
+  coreEffectDef('name_action'),
+  coreEffectDef('lore_action')
+]);
 
 const materialFields = standardMaterialCostFields({
   overrides: {
@@ -44,7 +40,7 @@ const starStageFields = [
   { path: 'name', label: '阶段名称', comment: '该星级的里程碑名称，可留空。', type: 'text', defaultValue: '' },
   { path: 'variables', label: '变量', comment: '表达式变量或属性增量，源码从星级阶段顶层 variables 读取，支持固定值、公式和随机数值配置。', type: 'variablesMap', defaultValue: {} },
   { path: 'ea_attributes', label: 'EA 属性', comment: '显式 EmakiAttribute 属性覆盖，源码从星级阶段顶层 ea_attributes 读取。', type: 'dynamic_map', defaultValue: {} },
-  { path: 'effects', label: '效果', comment: '技能或显示动作效果列表。', type: 'objectList', defaultValue: [] },
+  { path: 'effects', label: '效果', comment: '技能或显示动作效果列表，按 type 分流为变量、EA 属性、ES 技能、名称/Lore 动作。', type: 'effects', defaultValue: [] },
   { path: 'materials', label: '材料', comment: '强化到该星级需要的材料列表。', type: 'objectList', defaultValue: [], itemFields: materialFields },
   { path: 'economy_override.currencies', label: '经济覆盖', comment: '该星级专属货币消耗；留空时使用配方 economy。', type: 'objectList', defaultValue: [], itemFields: currencyFields },
   { path: 'actions.success', label: '成功动作', comment: '强化成功到该星级后执行的动作。', type: 'stringList', defaultValue: [] },
@@ -86,7 +82,7 @@ const fields = [
   ['broadcast.local_stars', '本地广播星级', '强化成功达到这些星级时向附近玩家广播。', 'list'],
   ['broadcast.global_stars', '全服广播星级', '强化成功达到这些星级时向全服广播。', 'list'],
   ['success_rates', '全局成功率', '配方未单独覆盖时使用的全局强化成功率表，键为目标星级，值为百分比。', 'object'],
-  ['effects', '效果', '强化阶段效果列表，用于追加变量、EA 属性或 ES 技能。', 'objectList']
+  ['effects', '效果', '强化阶段效果列表，用于追加变量、EA 属性或 ES 技能。', 'effects']
 ] as const;
 
 const recipeFields: ConfigMetaFieldEntry[] = [
@@ -116,9 +112,9 @@ const recipeFields: ConfigMetaFieldEntry[] = [
   ['branch_tree.children', '子分支', '根分支后可选择的路线。', 'object', { creatableChildren: true, createTemplates: [branchTemplate] }],
   ['condition_type', '条件逻辑', '条件表达式组合方式。', 'enum', { options: ['all_of', 'any_of'], optionLabelPrefix: 'condition_type' }],
   ['condition_required_count', '需要满足数量', 'any_of 场景下需要满足的最少条件数量。', 'number'],
-  ['name_actions', '名称动作', '强化成功后对物品显示名称执行的动作。', 'objectList'],
-  ['lore_actions', 'Lore 动作', '强化成功后对物品 Lore 执行的动作。', 'objectList'],
-  ['effects', '效果', '强化完成后追加的效果列表，支持变量、EA 属性和 ES 技能。', 'objectList']
+  ['name_actions', '名称动作', '强化成功后对物品显示名称执行的动作。', 'actions'],
+  ['lore_actions', 'Lore 动作', '强化成功后对物品 Lore 执行的动作。', 'actions'],
+  ['effects', '效果', '强化完成后追加的效果列表，支持变量、EA 属性和 ES 技能。', 'effects']
 ];
 
 const localeMessages: Record<string, string> = Object.fromEntries([
@@ -203,24 +199,20 @@ registerPluginConfig({
     ['branch_tree.stars', starStageTemplate],
     ['branch_tree.children', branchTemplate]
   ],
-  listItemSchemas: [
-    ['effects', effectTypeFields]
-  ],
+  listItemSchemas: [],
   rules: [
-    [{ key: 'effects' }, { label: '效果', comment: '强化阶段效果列表，用于追加变量、EA 属性或 ES 技能。', type: 'objectList', itemFields: effectTypeFields }],
+    [{ key: 'effects' }, { label: '效果', comment: '强化阶段效果列表，按 type 分流为变量、EA 属性、ES 技能、名称/Lore 动作。', type: 'effects' }],
     [{ key: 'variables' }, { label: '变量', comment: '变量键值，只包含表达式变量，支持固定值、公式和随机数值配置。', type: 'variablesMap' }],
     [{ key: 'ea_attributes' }, { label: 'EA 属性', comment: 'EmakiAttribute 属性数值映射。', type: 'dynamic_map' }],
     [{ key: 'es_skills' }, { label: 'ES 技能', comment: 'EmakiSkills 技能 ID 列表。', type: 'stringList' }],
-    [{ key: 'name_actions' }, { label: '名称动作链', comment: '对物品显示名称执行的 CoreLib Action 列表。', type: 'objectList', itemFields: actionFields }],
-    [{ key: 'lore_actions' }, { label: 'Lore 动作链', comment: '对物品 Lore 执行的 CoreLib Action 列表。', type: 'objectList', itemFields: actionFields }],
+    [{ key: 'name_actions' }, { label: '名称动作链', comment: '对物品显示名称执行的 CoreLib Action 列表。', type: 'actions' }],
+    [{ key: 'lore_actions' }, { label: 'Lore 动作链', comment: '对物品 Lore 执行的 CoreLib Action 列表。', type: 'actions' }],
     [{ key: 'stars' }, { label: '星级阶段', comment: '按目标星级添加阶段配置。每个子键应为星级数字。', type: 'object', creatableChildren: true, createTemplates: [starStageTemplate] }],
     [{ key: 'children' }, { label: '子分支', comment: '按分支 ID 添加后续路线，用于分支强化选择。', type: 'object', creatableChildren: true, createTemplates: [branchTemplate] }]
   ],
   listItemSchemaRules: [
     [{ key: 'materials' }, materialFields],
-    [{ key: 'currencies' }, currencyFields],
-    [{ key: 'name_actions' }, actionFields],
-    [{ key: 'lore_actions' }, actionFields]
+    [{ key: 'currencies' }, currencyFields]
   ]
 });
 

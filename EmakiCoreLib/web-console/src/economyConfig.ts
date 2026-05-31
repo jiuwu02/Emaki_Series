@@ -15,7 +15,7 @@ export type StandardEconomyRuleOptions = {
 };
 
 const STANDARD_CURRENCY_COST_FIELDS: WebConfigFieldSchema[] = [
-  { path: 'provider', label: '经济提供器', comment: '经济系统提供器，例如 vault。', type: 'text', defaultValue: 'vault' },
+  { path: 'provider', label: '经济提供器', comment: '经济系统提供器；auto 会按 currency_id 自动推断，其余为 CoreLib 已注册的经济提供器。', type: 'economyProvider', optionLabelPrefix: 'economyProvider', defaultValue: 'auto' },
   { path: 'currency_id', label: '货币 ID', comment: '多货币系统的货币标识；留空使用默认货币。', type: 'text', defaultValue: '' },
   { path: 'base_cost', label: '基础费用', comment: '经济消耗的基础数值。', type: 'number', defaultValue: 0 },
   { path: 'cost_formula', label: '费用公式', comment: '根据上下文变量计算最终费用的公式。', type: 'text', defaultValue: '' },
@@ -34,7 +34,7 @@ const STANDARD_ECONOMY_RULE_FIELDS: Record<string, ConfigRuleFieldEntry> = {
   enabled: ['启用', '是否启用当前功能或经济消耗。', 'boolean'],
   currencies: ['货币消耗', '经济消耗中的货币列表。', 'list'],
   materials: ['材料消耗', '经济消耗中的材料列表。', 'list'],
-  provider: ['经济提供器', '经济消耗使用的提供器。', 'text'],
+  provider: ['经济提供器', '经济消耗使用的提供器；auto 会按 currency_id 自动推断。', 'economyProvider', { optionLabelPrefix: 'economyProvider' }],
   currency_id: ['货币 ID', '多货币系统中的货币标识；留空使用默认货币。', 'text'],
   amount: ['数量', '材料数量、货币数量或当前条目的数值。', 'number'],
   base_cost: ['基础费用', '费用公式中的基础值。', 'number'],
