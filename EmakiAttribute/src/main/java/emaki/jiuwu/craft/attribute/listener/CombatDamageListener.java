@@ -26,6 +26,7 @@ import emaki.jiuwu.craft.attribute.model.DamageContextVariables;
 import emaki.jiuwu.craft.attribute.model.ResolvedDamage;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
 import emaki.jiuwu.craft.attribute.service.CombatSupport;
+import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 
 public final class CombatDamageListener implements Listener {
 
@@ -329,7 +330,7 @@ public final class CombatDamageListener implements Listener {
         if (action == null) {
             return;
         }
-        plugin.getServer().getScheduler().runTask(plugin, action);
+        FoliaSchedulerAdapter.runTask(plugin, action);
     }
 
     private boolean isAttackCoolingDown(Player player,

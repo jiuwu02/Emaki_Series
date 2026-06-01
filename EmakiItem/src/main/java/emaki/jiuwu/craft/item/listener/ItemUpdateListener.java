@@ -15,6 +15,7 @@ import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
+import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.item.EmakiItemPlugin;
 
 public final class ItemUpdateListener implements Listener {
@@ -71,7 +72,7 @@ public final class ItemUpdateListener implements Listener {
         if (!pendingRefresh.add(player.getUniqueId())) {
             return;
         }
-        plugin.getServer().getScheduler().runTask(plugin, () -> {
+        FoliaSchedulerAdapter.runEntityTask(plugin, player, () -> {
             pendingRefresh.remove(player.getUniqueId());
             if (player.isOnline()) {
                 refresh(player, trigger);

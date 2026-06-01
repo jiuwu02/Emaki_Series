@@ -12,6 +12,7 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
+import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.gui.GuiSession;
 import emaki.jiuwu.craft.corelib.gui.GuiSessionHandler;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
@@ -54,7 +55,7 @@ final class GemUpgradeGuiInteractionController {
         GuiTemplate template = GemGuiTemplates.resolveUpgradeTemplate(plugin.guiTemplateLoader(), definition);
         String resolvedId = template == null ? "" : template.id();
         if (!resolvedId.equals(state.currentTemplateId())) {
-            plugin.getServer().getScheduler().runTask(plugin, () -> {
+            FoliaSchedulerAdapter.runEntityTask(plugin, state.player(), () -> {
                 if (!service.switchUpgradeTemplate(state)) {
                     renderer.refreshGui(state);
                 }
@@ -291,7 +292,7 @@ final class GemUpgradeGuiInteractionController {
                 event.setCancelled(true);
                 return;
             }
-            plugin.getServer().getScheduler().runTask(plugin, () -> renderer.refreshGui(state));
+            FoliaSchedulerAdapter.runEntityTask(plugin, state.player(), () -> renderer.refreshGui(state));
         }
 
         @Override

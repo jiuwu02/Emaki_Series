@@ -15,6 +15,7 @@ import emaki.jiuwu.craft.cooking.model.StationInteraction;
 import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplayService;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplaySpec;
+import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
@@ -25,7 +26,6 @@ import org.bukkit.Particle;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.scheduler.BukkitTask;
 
 public final class GrinderRuntimeService {
 
@@ -39,7 +39,7 @@ public final class GrinderRuntimeService {
     private final ItemSourceService itemSourceService;
     private final CookingTextDisplayService textDisplayService;
     private final Set<String> activeStations = ConcurrentHashMap.newKeySet();
-    private BukkitTask tickerTask;
+    private Object tickerTask;
 
     public GrinderRuntimeService(EmakiCookingPlugin plugin,
             MessageService messageService,
@@ -173,15 +173,15 @@ public final class GrinderRuntimeService {
             return;
         }
         int interval = settingsService.grinderCheckDelayTicks();
-        if (tickerTask != null && !tickerTask.isCancelled()) {
+        if (tickerTask != null && !FoliaSchedulerAdapter.isTaskCancelled(tickerTask)) {
             return;
         }
-        tickerTask = plugin.getServer().getScheduler().runTaskTimer(plugin, this::tick, interval, interval);
+        tickerTask = FoliaSchedulerAdapter.runTaskTimer(plugin, this::tick, interval, interval);
     }
 
     private void cancelTicker() {
         if (tickerTask != null) {
-            tickerTask.cancel();
+            FoliaSchedulerAdapter.cancelTask(tickerTask);
             tickerTask = null;
         }
     }

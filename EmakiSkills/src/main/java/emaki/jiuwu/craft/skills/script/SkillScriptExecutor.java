@@ -13,6 +13,7 @@ import emaki.jiuwu.craft.corelib.action.ActionParsers;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
 import emaki.jiuwu.craft.corelib.action.ActionSyntaxException;
 import emaki.jiuwu.craft.corelib.action.ParsedActionLine;
+import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.skills.api.SkillScriptAction;
@@ -114,7 +115,7 @@ public final class SkillScriptExecutor {
             return result.thenApply(r -> afterLine(context, r));
         }
         CompletableFuture<ActionResult> delayed = new CompletableFuture<>();
-        context.plugin().getServer().getScheduler().runTaskLater(context.plugin(),
+        FoliaSchedulerAdapter.runEntityTaskLater(context.plugin(), context.caster(),
                 () -> result.whenComplete((r, t) -> delayed.complete(t == null ? afterLine(context, r)
                         : ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, t.getMessage()))), delay);
         return delayed;

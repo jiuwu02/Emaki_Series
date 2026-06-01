@@ -11,6 +11,7 @@ import org.bukkit.event.player.PlayerKickEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.skills.config.AppConfig;
 import emaki.jiuwu.craft.skills.model.PlayerSkillProfile;
 import emaki.jiuwu.craft.skills.service.ActionBarService;
@@ -45,7 +46,7 @@ public final class PlayerJoinQuitListener implements Listener {
             if (!player.isOnline()) {
                 return;
             }
-            plugin.getServer().getScheduler().runTask(plugin, () -> {
+            FoliaSchedulerAdapter.runEntityTask(plugin, player, () -> {
                 if (!player.isOnline()) {
                     return;
                 }

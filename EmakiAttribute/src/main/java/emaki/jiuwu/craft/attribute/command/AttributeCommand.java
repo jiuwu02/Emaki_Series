@@ -23,6 +23,7 @@ import emaki.jiuwu.craft.attribute.model.ResourceState;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
 import emaki.jiuwu.craft.attribute.service.CombatSupport;
 import emaki.jiuwu.craft.attribute.service.MessageService;
+import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
@@ -117,7 +118,7 @@ public final class AttributeCommand implements TabExecutor {
             return true;
         }
         messages().send(sender, "command.reload.started");
-        plugin.reloadPluginStateAsync(true, message -> plugin.getServer().getScheduler().runTask(plugin, () -> messages().sendRaw(sender, message)))
+        plugin.reloadPluginStateAsync(true, message -> FoliaSchedulerAdapter.runTask(plugin, () -> messages().sendRaw(sender, message)))
                 .thenRun(() -> messages().send(sender, "command.reload.success"))
                 .thenRun(() -> messages().send(sender, "command.reload.summary", Map.of(
                         "attributes", attributeService.attributeRegistry().all().size(),
@@ -125,7 +126,7 @@ public final class AttributeCommand implements TabExecutor {
                         "profiles", attributeService.defaultProfileRegistry().all().size()
                 )))
                 .exceptionally(throwable -> {
-                    plugin.getServer().getScheduler().runTask(plugin, () -> messages().send(sender, "command.reload.failed", Map.of(
+                    FoliaSchedulerAdapter.runTask(plugin, () -> messages().send(sender, "command.reload.failed", Map.of(
                             "error", CombatSupport.rootCauseMessage(throwable)
                     )));
                     return null;

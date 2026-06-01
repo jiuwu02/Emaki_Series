@@ -9,6 +9,7 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.gui.GuiSession;
 import emaki.jiuwu.craft.corelib.gui.GuiSessionHandler;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
@@ -105,7 +106,7 @@ public final class SkillsGuiHandler implements GuiSessionHandler {
 
         if (event.isShiftClick()) {
             player.closeInventory();
-            plugin.getServer().getScheduler().runTask(plugin, () ->
+            FoliaSchedulerAdapter.runEntityTask(plugin, player, () ->
                     skillsGuiService.openTriggerSelect(player, slotIndex));
         } else {
             stateService.unequipSkill(player, slotIndex);

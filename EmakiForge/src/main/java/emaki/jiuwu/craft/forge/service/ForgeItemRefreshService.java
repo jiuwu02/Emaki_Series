@@ -13,6 +13,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
+import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerSnapshot;
 import emaki.jiuwu.craft.corelib.assembly.ItemOperationLedger;
@@ -44,7 +45,7 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
 
     public void refreshOnlinePlayers() {
         if (!Bukkit.isPrimaryThread()) {
-            plugin.getServer().getScheduler().runTask(plugin, this::refreshOnlinePlayers);
+            FoliaSchedulerAdapter.runTask(plugin, this::refreshOnlinePlayers);
             return;
         }
         synchronized (warningCache) {

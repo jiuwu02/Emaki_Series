@@ -1,6 +1,5 @@
 package emaki.jiuwu.craft.gem.listener;
 
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -13,6 +12,7 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 
+import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
 import emaki.jiuwu.craft.gem.model.GemItemDefinition;
 
@@ -64,7 +64,7 @@ public final class GemItemObtainListener implements Listener {
         if (player == null || !player.isOnline()) {
             return;
         }
-        Bukkit.getScheduler().runTask(plugin, () -> refreshInventory(player));
+        FoliaSchedulerAdapter.runEntityTask(plugin, player, () -> refreshInventory(player));
     }
 
     private void refreshInventory(Player player) {

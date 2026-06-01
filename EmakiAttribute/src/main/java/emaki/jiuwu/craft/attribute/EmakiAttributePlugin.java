@@ -12,7 +12,6 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.scheduler.BukkitTask;
 
 import emaki.jiuwu.craft.attribute.action.AttributeActions;
 import emaki.jiuwu.craft.attribute.action.AttributeDamageSkillAction;
@@ -77,7 +76,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
     private MythicBridge mythicBridge;
     private MmoItemsBridge mmoItemsBridge;
     private AttributePlaceholderExpansion placeholderExpansion;
-    private BukkitTask regenTask;
+    private Object regenTask;
     private CompletableFuture<Void> reloadFuture;
 
     @Override

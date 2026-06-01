@@ -10,6 +10,7 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.gui.GuiSession;
 import emaki.jiuwu.craft.corelib.gui.GuiSessionHandler;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
@@ -107,12 +108,12 @@ public final class TriggerSelectGuiHandler implements GuiSessionHandler {
         }
 
         player.closeInventory();
-        plugin.getServer().getScheduler().runTask(plugin, onBack);
+        FoliaSchedulerAdapter.runEntityTask(plugin, player, onBack);
     }
 
     private void handleBack(Player player) {
         player.closeInventory();
-        plugin.getServer().getScheduler().runTask(plugin, onBack);
+        FoliaSchedulerAdapter.runEntityTask(plugin, player, onBack);
     }
 
 

@@ -33,6 +33,7 @@ import org.bukkit.event.player.PlayerToggleSneakEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.projectiles.ProjectileSource;
 
+import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.skills.config.AppConfig;
 
 public final class PassiveTriggerSource {
@@ -197,7 +198,7 @@ public final class PassiveTriggerSource {
             }
         }, plugin);
 
-        plugin.getServer().getScheduler().runTaskTimer(plugin, () -> {
+        FoliaSchedulerAdapter.runTaskTimer(plugin, () -> {
             long intervalMillis = timerIntervalTicks() * 50L;
             long now = System.currentTimeMillis();
             if (now - lastTimerDispatchAt < intervalMillis) {

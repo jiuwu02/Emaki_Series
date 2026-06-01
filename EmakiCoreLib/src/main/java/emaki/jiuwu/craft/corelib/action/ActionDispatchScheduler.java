@@ -3,10 +3,10 @@ package emaki.jiuwu.craft.corelib.action;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
-import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
+import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.monitor.PerformanceMonitor;
 
 final class ActionDispatchScheduler {
@@ -39,7 +39,7 @@ final class ActionDispatchScheduler {
         ActionExecutionMode executionMode = mode == null ? ActionExecutionMode.SYNC : mode;
         if (safeDelay > 0L) {
             CompletableFuture<ActionResult> future = new CompletableFuture<>();
-            plugin.getServer().getScheduler().runTaskLater(plugin, () -> dispatchNow(taskName, executionMode, timeoutMillis, task)
+            FoliaSchedulerAdapter.runTaskLater(plugin, () -> dispatchNow(taskName, executionMode, timeoutMillis, task)
                     .whenComplete((result, throwable) -> completeFuture(future, result, throwable)), safeDelay);
             return future;
         }
@@ -58,11 +58,8 @@ final class ActionDispatchScheduler {
                     () -> measure("action-dispatch:" + safeTaskName(taskName), task)
             );
         }
-        if (Bukkit.isPrimaryThread()) {
-            return CompletableFuture.completedFuture(measure("action-dispatch:" + safeTaskName(taskName), task));
-        }
         CompletableFuture<ActionResult> future = new CompletableFuture<>();
-        plugin.getServer().getScheduler().runTask(plugin, () -> completeFuture(future, measure("action-dispatch:" + safeTaskName(taskName), task), null));
+        FoliaSchedulerAdapter.runTask(plugin, () -> completeFuture(future, measure("action-dispatch:" + safeTaskName(taskName), task), null));
         return future;
     }
 

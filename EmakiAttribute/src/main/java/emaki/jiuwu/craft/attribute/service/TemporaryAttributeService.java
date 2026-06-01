@@ -15,6 +15,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
+import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class TemporaryAttributeService implements AutoCloseable {
@@ -201,7 +202,7 @@ public final class TemporaryAttributeService implements AutoCloseable {
         if (plugin == null || !plugin.isEnabled()) {
             return;
         }
-        plugin.getServer().getScheduler().runTask(plugin, () -> {
+        FoliaSchedulerAdapter.runTask(plugin, () -> {
             for (UUID playerId : playerIds) {
                 Player player = Bukkit.getPlayer(playerId);
                 if (player != null && player.isOnline()) {

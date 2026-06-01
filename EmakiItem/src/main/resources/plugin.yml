@@ -2,6 +2,7 @@ name: EmakiItem
 main: emaki.jiuwu.craft.item.EmakiItemPlugin
 version: ${project.version}
 api-version: "1.21"
+folia-supported: true
 depend:
   - EmakiCoreLib
 softdepend:

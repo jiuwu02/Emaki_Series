@@ -33,6 +33,7 @@ import emaki.jiuwu.craft.attribute.model.DamageContext;
 import emaki.jiuwu.craft.attribute.model.ProjectileDamageSnapshot;
 import emaki.jiuwu.craft.attribute.model.ResolvedDamage;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
+import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.attribute.service.CombatSupport;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import net.Indyuce.mmoitems.MMOItems;
@@ -196,7 +197,7 @@ public final class MmoItemsBridge implements Listener {
         if (future == null) {
             return;
         }
-        future.whenComplete((resolvedDamage, throwable) -> plugin.getServer().getScheduler().runTask(plugin, () -> {
+        future.whenComplete((resolvedDamage, throwable) -> FoliaSchedulerAdapter.runEntityTask(plugin, target, () -> {
             if (throwable != null || resolvedDamage == null || target == null || !target.isValid() || target.isDead()) {
                 return;
             }

@@ -2,12 +2,12 @@ package emaki.jiuwu.craft.corelib.api.script;
 
 import java.util.concurrent.CompletableFuture;
 
-import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 import org.graalvm.polyglot.HostAccess;
 
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.action.ActionExecutor;
+import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.script.ScriptConfig;
 
 public final class EmakiScriptApi {
@@ -45,15 +45,7 @@ public final class EmakiScriptApi {
         if (task == null) {
             return;
         }
-        if (Bukkit.isPrimaryThread()) {
-            task.run();
-            return;
-        }
-        if (sourcePlugin == null || !sourcePlugin.isEnabled()) {
-            task.run();
-            return;
-        }
-        Bukkit.getScheduler().runTask(sourcePlugin, task);
+        FoliaSchedulerAdapter.runTask(sourcePlugin, task);
     }
 
     @HostAccess.Export
@@ -61,17 +53,8 @@ public final class EmakiScriptApi {
         if (task == null) {
             return CompletableFuture.completedFuture(null);
         }
-        if (Bukkit.isPrimaryThread()) {
-            task.run();
-            return CompletableFuture.completedFuture(null);
-        }
         CompletableFuture<Void> future = new CompletableFuture<>();
-        if (sourcePlugin == null || !sourcePlugin.isEnabled()) {
-            task.run();
-            future.complete(null);
-            return future;
-        }
-        Bukkit.getScheduler().runTask(sourcePlugin, () -> {
+        FoliaSchedulerAdapter.runTask(sourcePlugin, () -> {
             try {
                 task.run();
                 future.complete(null);

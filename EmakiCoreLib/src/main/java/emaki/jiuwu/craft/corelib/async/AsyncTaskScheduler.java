@@ -16,7 +16,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
-import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
@@ -130,11 +129,7 @@ public final class AsyncTaskScheduler implements AutoCloseable {
                 runnable.run();
                 return;
             }
-            if (Bukkit.isPrimaryThread()) {
-                runnable.run();
-                return;
-            }
-            plugin.getServer().getScheduler().runTask(plugin, runnable);
+            FoliaSchedulerAdapter.runTask(plugin, runnable);
         };
         int threads = Math.max(2, Runtime.getRuntime().availableProcessors() / 2);
         return new AsyncTaskScheduler(sync, threads, DEFAULT_TIMEOUT_MILLIS, threadPrefix, performanceMonitor);
@@ -149,11 +144,7 @@ public final class AsyncTaskScheduler implements AutoCloseable {
                 runnable.run();
                 return;
             }
-            if (Bukkit.isPrimaryThread()) {
-                runnable.run();
-                return;
-            }
-            plugin.getServer().getScheduler().runTask(plugin, runnable);
+            FoliaSchedulerAdapter.runTask(plugin, runnable);
         };
         int threads = Math.max(2, Runtime.getRuntime().availableProcessors() / 2);
         return new AsyncTaskScheduler(sync, threads, DEFAULT_TIMEOUT_MILLIS, threadPrefix, performanceMonitor, true);

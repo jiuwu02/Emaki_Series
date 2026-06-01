@@ -7,6 +7,7 @@ import java.util.Set;
 
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationType;
+import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.ItemDisplay;
@@ -145,7 +146,7 @@ public final class BukkitCookingDisplayService implements CookingDisplayService 
             if (delay == 0) {
                 segmentTask.run();
             } else {
-                Bukkit.getScheduler().runTaskLater(plugin, segmentTask, delay);
+                FoliaSchedulerAdapter.runTaskLater(plugin, segmentTask, delay);
             }
         }
 
@@ -177,11 +178,11 @@ public final class BukkitCookingDisplayService implements CookingDisplayService 
                     display.setInterpolationDelay(0);
                 }
             };
-            Bukkit.getScheduler().runTaskLater(plugin, segmentTask, delay);
+            FoliaSchedulerAdapter.runTaskLater(plugin, segmentTask, delay);
         }
 
         int totalTicks = riseEndTick + segments * ticksPerSegment;
-        Bukkit.getScheduler().runTaskLater(plugin, () -> animatingStations.remove(stationKey), totalTicks);
+        FoliaSchedulerAdapter.runTaskLater(plugin, () -> animatingStations.remove(stationKey), totalTicks);
     }
 
     @Override

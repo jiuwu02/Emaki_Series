@@ -6,8 +6,8 @@ import java.util.function.Supplier;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.scheduler.BukkitTask;
 
+import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.AdventureSupport;
 import emaki.jiuwu.craft.skills.config.AppConfig;
@@ -26,7 +26,7 @@ public final class ActionBarService {
     private final TriggerRegistry triggerRegistry;
     private final Supplier<Map<String, SkillDefinition>> skillDefsSupplier;
     private final MessageService messageService;
-    private BukkitTask refreshTask;
+    private Object refreshTask;
 
     public ActionBarService(JavaPlugin plugin,
             PlayerSkillDataStore dataStore,
@@ -51,12 +51,12 @@ public final class ActionBarService {
             return;
         }
         int interval = config.actionBar().refreshIntervalTicks();
-        refreshTask = Bukkit.getScheduler().runTaskTimer(plugin, this::refreshAll, interval, interval);
+        refreshTask = FoliaSchedulerAdapter.runTaskTimer(plugin, this::refreshAll, interval, interval);
     }
 
     public void stopRefreshTask() {
         if (refreshTask != null) {
-            refreshTask.cancel();
+            FoliaSchedulerAdapter.cancelTask(refreshTask);
             refreshTask = null;
         }
     }

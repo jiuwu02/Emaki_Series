@@ -6,6 +6,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 
+import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.item.PlayerItemRefreshService;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
 
@@ -21,7 +22,7 @@ public final class StrengthenRefreshService implements PlayerItemRefreshService 
 
     public void refreshOnlinePlayers() {
         if (!Bukkit.isPrimaryThread()) {
-            plugin.getServer().getScheduler().runTask(plugin, this::refreshOnlinePlayers);
+            FoliaSchedulerAdapter.runTask(plugin, this::refreshOnlinePlayers);
             return;
         }
         for (Player player : Bukkit.getOnlinePlayers()) {

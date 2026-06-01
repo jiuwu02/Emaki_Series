@@ -16,6 +16,7 @@ import emaki.jiuwu.craft.cooking.model.StationInteraction;
 import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplayService;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplaySpec;
+import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
@@ -32,7 +33,6 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.scheduler.BukkitTask;
 
 public final class FermentationBarrelRuntimeService implements Listener {
 
@@ -50,7 +50,7 @@ public final class FermentationBarrelRuntimeService implements Listener {
     private final CookingTextDisplayService textDisplayService;
     private final Map<StationCoordinates, FermentationBarrelState> runtimeStates = new ConcurrentHashMap<>();
     private final Set<StationCoordinates> activeStations = ConcurrentHashMap.newKeySet();
-    private BukkitTask tickerTask;
+    private Object tickerTask;
 
     public FermentationBarrelRuntimeService(EmakiCookingPlugin plugin, MessageService messageService, CookingSettingsService settingsService,
             CookingBlockMatcher blockMatcher, StationStateStore stateStore, CookingRecipeService recipeService,
@@ -358,15 +358,15 @@ public final class FermentationBarrelRuntimeService implements Listener {
     }
 
     private void ensureTicker() {
-        if (activeStations.isEmpty() || (tickerTask != null && !tickerTask.isCancelled())) {
+        if (activeStations.isEmpty() || (tickerTask != null && !FoliaSchedulerAdapter.isTaskCancelled(tickerTask))) {
             return;
         }
-        tickerTask = plugin.getServer().getScheduler().runTaskTimer(plugin, this::tick, 20L, 20L);
+        tickerTask = FoliaSchedulerAdapter.runTaskTimer(plugin, this::tick, 20L, 20L);
     }
 
     private void cancelTicker() {
         if (tickerTask != null) {
-            tickerTask.cancel();
+            FoliaSchedulerAdapter.cancelTask(tickerTask);
             tickerTask = null;
         }
     }

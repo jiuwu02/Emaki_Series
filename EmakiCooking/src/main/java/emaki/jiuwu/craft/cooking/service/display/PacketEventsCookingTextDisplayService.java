@@ -24,6 +24,7 @@ import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerSp
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.cooking.service.CookingSettingsService;
+import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -34,7 +35,6 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.scheduler.BukkitTask;
 
 public final class PacketEventsCookingTextDisplayService implements CookingTextDisplayService, Listener {
 
@@ -45,14 +45,14 @@ public final class PacketEventsCookingTextDisplayService implements CookingTextD
     private final CookingSettingsService settingsService;
     private final Map<String, VirtualText> displays = new LinkedHashMap<>();
     private final Map<String, Set<String>> displaysByStation = new LinkedHashMap<>();
-    private final BukkitTask refreshTask;
+    private final Object refreshTask;
 
     public PacketEventsCookingTextDisplayService(JavaPlugin plugin, CookingSettingsService settingsService) {
         this.plugin = plugin;
         this.settingsService = settingsService;
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
         int interval = settingsService.displayEntitiesRefreshIntervalTicks();
-        refreshTask = Bukkit.getScheduler().runTaskTimer(plugin, this::refreshAll, interval, interval);
+        refreshTask = FoliaSchedulerAdapter.runTaskTimer(plugin, this::refreshAll, interval, interval);
     }
 
     static boolean isRuntimeSupported() {
@@ -123,7 +123,7 @@ public final class PacketEventsCookingTextDisplayService implements CookingTextD
 
     @Override
     public void shutdown() {
-        refreshTask.cancel();
+        FoliaSchedulerAdapter.cancelTask(refreshTask);
         HandlerList.unregisterAll(this);
         for (VirtualText display : Set.copyOf(displays.values())) {
             destroyForAllVisible(display);
@@ -312,7 +312,7 @@ public final class PacketEventsCookingTextDisplayService implements CookingTextD
     }
 
     private void scheduleRefresh() {
-        Bukkit.getScheduler().runTask(plugin, this::refreshAll);
+        FoliaSchedulerAdapter.runTask(plugin, this::refreshAll);
     }
 
     private static final class VirtualText {

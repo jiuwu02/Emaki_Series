@@ -15,6 +15,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
+import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.monitor.PerformanceMonitor;
 
 public final class GuiService implements Listener {
@@ -60,7 +61,7 @@ public final class GuiService implements Listener {
             return CompletableFuture.completedFuture(null);
         }
         CompletableFuture<GuiSession> future = new CompletableFuture<>();
-        plugin.getServer().getScheduler().runTask(plugin, () -> {
+        FoliaSchedulerAdapter.runEntityTask(plugin, request.viewer(), () -> {
             UUID viewerId = request.viewer().getUniqueId();
             GuiSession existing = sessions.remove(viewerId);
             if (existing != null) {
@@ -77,7 +78,7 @@ public final class GuiService implements Listener {
             );
             sessions.put(viewerId, session);
             asyncGuiRenderer.prepare(session)
-                    .whenComplete((renderedSlots, throwable) -> plugin.getServer().getScheduler().runTask(plugin, () -> {
+                    .whenComplete((renderedSlots, throwable) -> FoliaSchedulerAdapter.runEntityTask(plugin, request.viewer(), () -> {
                         if (throwable != null) {
                             sessions.remove(viewerId, session);
                             future.completeExceptionally(throwable);

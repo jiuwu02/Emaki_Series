@@ -8,10 +8,10 @@ import java.util.function.Consumer;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.scheduler.BukkitTask;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
+import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
@@ -111,7 +111,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         );
     }
 
-    public BukkitTask reload(EmakiForgePlugin plugin, BukkitTask currentTask, boolean closeOpenInventories) {
+    public Object reload(EmakiForgePlugin plugin, Object currentTask, boolean closeOpenInventories) {
         if (closeOpenInventories) {
             closeOpenInventories(plugin);
         }
@@ -135,7 +135,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         return rescheduleAutoSave(plugin, currentTask);
     }
 
-    public CompletableFuture<BukkitTask> reloadAsync(EmakiForgePlugin plugin, BukkitTask currentTask,
+    public CompletableFuture<Object> reloadAsync(EmakiForgePlugin plugin, Object currentTask,
             boolean closeOpenInventories, Consumer<String> progressListener) {
         AsyncTaskScheduler scheduler = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).asyncTaskScheduler();
         if (scheduler == null) {
@@ -179,11 +179,11 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         });
     }
 
-    public BukkitTask rescheduleAutoSave(EmakiForgePlugin plugin, BukkitTask currentTask) {
-        BukkitTask nextTask = cancelAutoSave(currentTask);
+    public Object rescheduleAutoSave(EmakiForgePlugin plugin, Object currentTask) {
+        Object nextTask = cancelAutoSave(currentTask);
         AppConfig config = plugin.appConfig();
         if (config.historyEnabled() && config.historyAutoSave()) {
-            nextTask = plugin.getServer().getScheduler().runTaskTimer(
+            nextTask = FoliaSchedulerAdapter.runTaskTimer(
                     plugin,
                     () -> plugin.playerDataStore().saveAllAsync(),
                     config.historySaveInterval(),
@@ -193,14 +193,12 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         return nextTask;
     }
 
-    public BukkitTask cancelAutoSave(BukkitTask currentTask) {
-        if (currentTask != null) {
-            currentTask.cancel();
-        }
+    public Object cancelAutoSave(Object currentTask) {
+        FoliaSchedulerAdapter.cancelTask(currentTask);
         return null;
     }
 
-    public void shutdown(EmakiForgePlugin plugin, BukkitTask autoSaveTask) {
+    public void shutdown(EmakiForgePlugin plugin, Object autoSaveTask) {
         if (plugin.messageService() != null) {
             plugin.messageService().info("console.plugin_stopping");
         }
