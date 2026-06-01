@@ -199,7 +199,7 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
         }
     }
 
-    public String extractMatchedValue(String normalizedLine, AttributeDefinition definition) {
+    public MatchedRange extractMatchedRange(String normalizedLine, AttributeDefinition definition) {
         synchronized (stateLock) {
             if (Texts.isBlank(normalizedLine) || definition == null) {
                 return null;
@@ -210,9 +210,9 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
                 }
                 var matcher = entry.pattern().matcher(normalizedLine);
                 if (matcher.find()) {
-                    String capturedValue = extractCapturedValue(matcher, definition);
-                    if (Texts.isNotBlank(capturedValue)) {
-                        return capturedValue;
+                    MatchedRange range = extractCapturedRange(matcher, definition);
+                    if (range != null) {
+                        return range;
                     }
                 }
             }
@@ -306,28 +306,51 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
         return Texts.isBlank(key) ? "(?:)" : Pattern.quote(key);
     }
 
-    private String extractCapturedValue(Matcher matcher, AttributeDefinition definition) {
+    private MatchedRange extractCapturedRange(Matcher matcher, AttributeDefinition definition) {
         if (matcher == null || matcher.groupCount() <= 0) {
             return null;
         }
+        String min = null;
         for (int group = 1; group <= matcher.groupCount(); group++) {
-            String value = Texts.toStringSafe(matcher.group(group)).trim();
-            if (Texts.isBlank(value)) {
+            String numeric = cleanNumericGroup(matcher.group(group), definition);
+            if (numeric == null) {
                 continue;
             }
-            String cleaned = value.replace(",", "");
-            if (definition != null && definition.isPercentLike() && cleaned.endsWith("%")) {
-                cleaned = cleaned.substring(0, cleaned.length() - 1).trim();
-            }
-            if (NUMERIC_CAPTURE_PATTERN.matcher(cleaned).matches()) {
-                return cleaned;
+            if (min == null) {
+                min = numeric;
+            } else {
+                return new MatchedRange(min, numeric);
             }
         }
-        return null;
+        return min == null ? null : new MatchedRange(min, min);
+    }
+
+    private String cleanNumericGroup(String rawGroup, AttributeDefinition definition) {
+        String value = Texts.toStringSafe(rawGroup).trim();
+        if (Texts.isBlank(value)) {
+            return null;
+        }
+        String cleaned = value.replace(",", "");
+        if (definition != null && definition.isPercentLike() && cleaned.endsWith("%")) {
+            cleaned = cleaned.substring(0, cleaned.length() - 1).trim();
+        }
+        return NUMERIC_CAPTURE_PATTERN.matcher(cleaned).matches() ? cleaned : null;
     }
 
     private String buildValuePattern() {
-        return "([+-]?\\d+(?:\\.\\d+)?)";
+        return "([+-]?\\d+(?:\\.\\d+)?)(?:\\s*[-~～]\\s*([+-]?\\d+(?:\\.\\d+)?))?";
+    }
+
+    /**
+     * A numeric value parsed from a lore line. When {@link #min()} and
+     * {@link #max()} differ the source declared a range such as
+     * {@code 1-5}, which feeds per-hit random rolling.
+     */
+    public record MatchedRange(String min, String max) {
+
+        public boolean hasRange() {
+            return max != null && !max.equals(min);
+        }
     }
 
     private int resolveReadPriority(AttributeDefinition definition, LoreFormatDefinition format) {

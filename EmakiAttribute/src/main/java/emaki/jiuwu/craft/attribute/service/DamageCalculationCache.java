@@ -70,6 +70,34 @@ final class DamageCalculationCache {
         return computed;
     }
 
+    /**
+     * {@return the summed random "spread" (max - min) of the given attributes}
+     *
+     * <p>Reads the {@code <id>$range_spread} companion entries written by the
+     * lore parser. Not cached: it is a handful of O(1) map lookups and must stay
+     * outside the per-roll damage path so range rolling is applied fresh.
+     */
+    double spreadSum(AttributeSnapshot snapshot, List<String> ids) {
+        if (snapshot == null || ids == null || ids.isEmpty()) {
+            return 0D;
+        }
+        var values = snapshot.values();
+        if (values.isEmpty()) {
+            return 0D;
+        }
+        double total = 0D;
+        for (String id : ids) {
+            if (Texts.isBlank(id)) {
+                continue;
+            }
+            Double spread = values.get(AttributeSnapshot.rangeSpreadKey(id));
+            if (spread != null) {
+                total += spread;
+            }
+        }
+        return total;
+    }
+
     private DamageResultKey resultKey(DamageRequest request, DamageTypeDefinition definition, double seededRoll) {
         DamageContext damageContext = request == null ? null : request.damageContext();
         return new DamageResultKey(

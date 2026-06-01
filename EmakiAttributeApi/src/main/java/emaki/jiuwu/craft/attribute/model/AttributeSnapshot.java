@@ -31,6 +31,37 @@ public record AttributeSnapshot(int schemaVersion,
     public static final int CURRENT_SCHEMA_VERSION = 1;
 
     /**
+     * Suffix marking a companion entry that stores the random "spread" (upper
+     * bound minus lower bound) of a ranged attribute value parsed from a source
+     * such as {@code 物理伤害: 1-5}.
+     *
+     * <p>The base attribute id keeps the lower bound (so every existing reader
+     * sees a safe, deterministic value) while {@code <id>$range_spread} carries
+     * {@code max - min}. Both entries live in the same {@link #values} map, so
+     * additive merges across equipment combine ranges correctly. A spread of
+     * {@code 0} (or a missing companion) means the attribute is a plain scalar.
+     */
+    public static final String RANGE_SPREAD_SUFFIX = "$range_spread";
+
+    /**
+     * {@return the companion spread key for an attribute id}
+     *
+     * @param attributeId the base attribute id
+     */
+    public static String rangeSpreadKey(String attributeId) {
+        return attributeId == null ? RANGE_SPREAD_SUFFIX : attributeId + RANGE_SPREAD_SUFFIX;
+    }
+
+    /**
+     * {@return whether a values-map key is a range-spread companion key}
+     *
+     * @param key the key to test
+     */
+    public static boolean isRangeSpreadKey(String key) {
+        return key != null && key.endsWith(RANGE_SPREAD_SUFFIX);
+    }
+
+    /**
      * Canonical constructor; normalizes a {@code null} signature to an empty
      * string and defensively copies {@code values}.
      */

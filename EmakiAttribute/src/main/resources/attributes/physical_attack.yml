@@ -15,6 +15,8 @@
 #   allow_negative: 是否允许负值
 #   priority: 属性优先级（影响计算顺序）
 #   lore_format_id: Lore 显示格式（对应 lore_formats/ 下的定义）
+#                   读取 Lore 时支持单值（物理伤害: 5）与区间（物理伤害: 1-5 / 1~5）。
+#                   区间在每次命中时按 [最小值, 最大值] 随机取本次物理伤害。
 #   attribute_power: 战力权重
 #   description: 属性描述
 #

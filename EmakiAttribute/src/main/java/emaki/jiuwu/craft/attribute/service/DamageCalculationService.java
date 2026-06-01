@@ -579,9 +579,15 @@ final class DamageCalculationService {
                 "defense"
         );
         DamageContextVariables.Builder variables = resolvedContext.variables().toBuilder();
+        double flatRoll = ThreadLocalRandom.current().nextDouble(0D, 1D);
         variables.put("allow_critical", allowCritical);
         variables.put("allow_target_dodge", allowTargetDodge);
         variables.put("calculate_target_defense", calculateTargetDefense);
+        variables.put("damage_roll", flatRoll);
+        variables.put("damage_roll_flat", flatRoll);
+        variables.put("damage_roll_percent", ThreadLocalRandom.current().nextDouble(0D, 1D));
+        variables.put("damage_roll_chance", ThreadLocalRandom.current().nextDouble(0D, 1D));
+        variables.put("damage_roll_multiplier", ThreadLocalRandom.current().nextDouble(0D, 1D));
         resolvedContext = resolvedContext.withVariables(variables.build());
         DamageTypeDefinition effectiveDamageType = filterDamageType(damageType, allowCritical, calculateTargetDefense);
         double seededRoll = ThreadLocalRandom.current().nextDouble(0D, 100D);

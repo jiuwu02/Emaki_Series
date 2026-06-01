@@ -289,9 +289,17 @@ final class AttributeSnapshotCollector {
             double value = entry.getValue();
             if (Math.abs(value) <= ZERO_EPSILON) {
                 target.remove(key);
+                if (!AttributeSnapshot.isRangeSpreadKey(key)) {
+                    target.remove(AttributeSnapshot.rangeSpreadKey(key));
+                }
                 continue;
             }
             target.put(key, value);
+            if (!AttributeSnapshot.isRangeSpreadKey(key)
+                    && !source.containsKey(AttributeSnapshot.rangeSpreadKey(entry.getKey()))
+                    && !source.containsKey(AttributeSnapshot.rangeSpreadKey(key))) {
+                target.remove(AttributeSnapshot.rangeSpreadKey(key));
+            }
         }
     }
 
@@ -383,9 +391,29 @@ final class AttributeSnapshotCollector {
                 if (rawValue == null) {
                     continue;
                 }
-                double effectiveValue = AttributeFusionMath.toEffectiveFlat(rawValue, percentBonus, rule.clampPercentFactor());
+                String spreadKey = AttributeSnapshot.rangeSpreadKey(flatId);
+                Double rawSpread = values.get(spreadKey);
+                double effectiveValue;
+                if (rawSpread != null && rawSpread > ZERO_EPSILON) {
+                    double minEndpoint = AttributeFusionMath.toEffectiveFlat(rawValue, percentBonus, rule.clampPercentFactor());
+                    double maxEndpoint = AttributeFusionMath.toEffectiveFlat(rawValue + rawSpread, percentBonus, rule.clampPercentFactor());
+                    effectiveValue = Math.min(minEndpoint, maxEndpoint);
+                    double effectiveSpread = Math.abs(maxEndpoint - minEndpoint);
+                    if (effectiveSpread <= ZERO_EPSILON) {
+                        values.remove(spreadKey);
+                    } else {
+                        values.put(spreadKey, effectiveSpread);
+                    }
+                } else {
+                    effectiveValue = AttributeFusionMath.toEffectiveFlat(rawValue, percentBonus, rule.clampPercentFactor());
+                    values.remove(spreadKey);
+                }
                 if (Math.abs(effectiveValue) <= ZERO_EPSILON) {
-                    values.remove(flatId);
+                    if (values.containsKey(spreadKey)) {
+                        values.put(flatId, 0D);
+                    } else {
+                        values.remove(flatId);
+                    }
                     continue;
                 }
                 values.put(flatId, effectiveValue);

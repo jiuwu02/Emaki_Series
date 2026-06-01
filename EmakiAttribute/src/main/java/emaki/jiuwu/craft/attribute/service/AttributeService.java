@@ -25,7 +25,7 @@ import emaki.jiuwu.craft.corelib.pdc.PdcService;
 public final class AttributeService extends AbstractAttributeServiceFacade {
 
     private static final long PROJECTILE_TTL_MS = 5 * 60 * 1000L;
-    private static final String ITEM_LORE_SIGNATURE_VERSION = "lore_parser_v2";
+    private static final String ITEM_LORE_SIGNATURE_VERSION = "lore_parser_v3";
 
     private final EmakiAttributePlugin plugin;
     private final AsyncTaskScheduler asyncTaskScheduler;

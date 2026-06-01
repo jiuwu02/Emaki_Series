@@ -35,9 +35,19 @@ public final class LoreParser {
             if (definition == null) {
                 continue;
             }
-            String matched = attributeRegistry.extractMatchedValue(line, definition);
-            double parsed = parseValue(matched, definition);
-            values.merge(definition.id(), definition.clamp(parsed), Double::sum);
+            AttributeRegistry.MatchedRange matched = attributeRegistry.extractMatchedRange(line, definition);
+            if (matched == null) {
+                continue;
+            }
+            double min = definition.clamp(parseValue(matched.min(), definition));
+            double max = matched.hasRange() ? definition.clamp(parseValue(matched.max(), definition)) : min;
+            double lower = Math.min(min, max);
+            double upper = Math.max(min, max);
+            values.merge(definition.id(), lower, Double::sum);
+            double spread = upper - lower;
+            if (spread > 0D) {
+                values.merge(AttributeSnapshot.rangeSpreadKey(definition.id()), spread, Double::sum);
+            }
         }
         String signature = SignatureUtil.stableSignature(normalized);
         AttributeSnapshot snapshot = new AttributeSnapshot(AttributeSnapshot.CURRENT_SCHEMA_VERSION, signature, values, System.currentTimeMillis());

@@ -157,6 +157,9 @@ final class CombatDebugService {
             }
         }
         for (Map.Entry<String, Double> entry : snapshot.values().entrySet()) {
+            if (AttributeSnapshot.isRangeSpreadKey(entry.getKey())) {
+                continue;
+            }
             ordered.putIfAbsent(entry.getKey(), entry.getValue());
         }
         return ordered;

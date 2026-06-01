@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.attribute.service;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import emaki.jiuwu.craft.attribute.model.AttributeSnapshot;
@@ -84,28 +85,48 @@ final class StageCalculator {
         DamageContext damageContext = request == null ? null : request.damageContext();
         AttributeSnapshot sourceSnapshot = resolveSourceSnapshot(damageContext, stage.source());
         DamageContextVariables context = damageContext == null ? DamageContextVariables.empty() : damageContext.variables();
-        double flat = calculationCache.sum(sourceSnapshot, context, stage.flatAttributes(), stage.flatAttributesSignature());
-        double percent = calculationCache.sum(sourceSnapshot, context, stage.percentAttributes(), stage.percentAttributesSignature());
+        double flatRoll = clampedRoll(context, "damage_roll_flat", context.getDouble("damage_roll", 0D));
+        double percentRoll = clampedRoll(context, "damage_roll_percent", flatRoll);
+        double chanceRoll = clampedRoll(context, "damage_roll_chance", flatRoll);
+        double multiplierRoll = clampedRoll(context, "damage_roll_multiplier", flatRoll);
+        double flat = rolledSum(sourceSnapshot, context, stage.flatAttributes(), stage.flatAttributesSignature(), flatRoll, calculationCache);
+        double percent = rolledSum(sourceSnapshot, context, stage.percentAttributes(), stage.percentAttributesSignature(), percentRoll, calculationCache);
         boolean fusedFlat = stage.kind() == DamageStageKind.FLAT_PERCENT
                 && stage.mode() == DamageStageMode.ADD
                 && !stage.flatAttributes().isEmpty()
                 && !stage.percentAttributes().isEmpty()
                 && AttributeFusionMath.usesFusedCombatValues(sourceSnapshot);
         double chance = clamp(
-                calculationCache.sum(sourceSnapshot, context, stage.chanceAttributes(), stage.chanceAttributesSignature()),
+                rolledSum(sourceSnapshot, context, stage.chanceAttributes(), stage.chanceAttributesSignature(), chanceRoll, calculationCache),
                 stage.minChance(),
                 stage.maxChance(),
                 0D,
                 100D
         );
         double multiplier = clamp(
-                calculationCache.sum(sourceSnapshot, context, stage.multiplierAttributes(), stage.multiplierAttributesSignature()),
+                rolledSum(sourceSnapshot, context, stage.multiplierAttributes(), stage.multiplierAttributesSignature(), multiplierRoll, calculationCache),
                 stage.minMultiplier(),
                 stage.maxMultiplier(),
                 -100D,
                 100000D
         );
         return new StageInputs(flat, percent, chance, multiplier, chance > 0D && roll <= chance, fusedFlat);
+    }
+
+    private double clampedRoll(DamageContextVariables context, String key, double fallback) {
+        double value = context == null ? fallback : context.getDouble(key, fallback);
+        return Math.min(1D, Math.max(0D, value));
+    }
+
+    private double rolledSum(AttributeSnapshot snapshot,
+            DamageContextVariables context,
+            List<String> ids,
+            String attributeIdsSignature,
+            double damageRoll,
+            DamageCalculationCache calculationCache) {
+        double base = calculationCache.sum(snapshot, context, ids, attributeIdsSignature);
+        double spread = calculationCache.spreadSum(snapshot, ids);
+        return spread <= 0D ? base : base + (damageRoll * spread);
     }
 
     private AttributeSnapshot resolveSourceSnapshot(DamageContext damageContext, DamageStageSource source) {
