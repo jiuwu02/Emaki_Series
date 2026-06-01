@@ -452,6 +452,10 @@ final class AttributeSnapshotCollector {
                 if (values.containsKey(key) && Math.abs(values.get(key)) <= 1.0E-9D) {
                     values.remove(key);
                 }
+                String spreadKey = AttributeSnapshot.rangeSpreadKey(key);
+                if (values.containsKey(spreadKey)) {
+                    values.remove(spreadKey);
+                }
             }
         }
         mergeValues(values, filteredPdcValues);

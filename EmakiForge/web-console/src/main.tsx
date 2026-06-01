@@ -10,8 +10,7 @@ const coreEffectDef = (type: string): EffectTypeDefinition => CORE_EFFECT_TYPE_D
 registerEffectTypes(MODULE, [
   coreEffectDef('variables'),
   { type: 'ea_attribute', label: 'EA 属性', fields: [
-    { key: 'ea_attributes', type: 'map', label: 'EA 属性', defaultValue: {} },
-    { key: 'ea_attribute_meta', type: 'map', label: 'EA 属性元数据', defaultValue: {} }
+    { key: 'ea_attributes', type: 'map', label: 'EA 属性', defaultValue: {} }
   ] },
   { type: 'es_skill', label: 'ES 技能', fields: [{ key: 'es_skills', type: 'stringList', label: 'ES 技能', defaultValue: [] }] },
   coreEffectDef('name_action'),

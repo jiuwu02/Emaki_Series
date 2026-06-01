@@ -34,12 +34,14 @@ public final class EmakiItemDefinitionParser {
             warning("Skipping item definition " + source + ": invalid id or material '" + materialName + "'.");
             return null;
         }
-        Map<String, Object> variables = new LinkedHashMap<>(toPlainMap(root.get("ea_attributes")));
-        variables.putAll(toPlainMap(root.get("variables")));
+        List<Map<?, ?>> effects = root.getMapList("effects");
+        Map<String, Object> variables = parseVariables(root, effects);
+        Map<String, Object> attributes = parseAttributes(root, effects);
         ItemComponentsConfig components = parseComponents(root.getSection("components"), id);
         boolean random = containsRandom(root.get("lore"))
                 || containsRandom(root.get("display_name"))
                 || containsRandom(root.get("variables"))
+                || containsRandom(effects)
                 || components.attributeModifiers().stream().anyMatch(VanillaAttributeModifierConfig::randomAmount);
         return new EmakiItemDefinition(
                 id,
@@ -49,9 +51,8 @@ public final class EmakiItemDefinitionParser {
                 root.get("lore"),
                 variables,
                 components,
-                toDoubleMap(root.get("ea_attributes")),
-                toStringMap(root.get("ea_attribute_meta")),
-                normalizedList(root.get("es_skills")),
+                attributes,
+                parseSkills(root, effects),
                 parseSetMembership(root.getSection("set")),
                 parseConditions(root.getSection("conditions")),
                 parseActions(root.getSection("actions")),
@@ -210,35 +211,50 @@ public final class EmakiItemDefinitionParser {
         );
     }
 
-    private Map<String, Object> toPlainMap(Object raw) {
+    private Map<String, Object> parseVariables(YamlSection root, List<Map<?, ?>> effects) {
         Map<String, Object> result = new LinkedHashMap<>();
+        mergePlainMap(result, root.get("variables"));
+        for (Map<?, ?> effect : effects == null ? List.<Map<?, ?>>of() : effects) {
+            if (effect == null || !"variables".equals(Texts.normalizeId(Texts.toStringSafe(ConfigNodes.get(effect, "type"))))) {
+                continue;
+            }
+            mergePlainMap(result, ConfigNodes.get(effect, "variables"));
+        }
+        return result.isEmpty() ? Map.of() : Map.copyOf(result);
+    }
+
+    private Map<String, Object> parseAttributes(YamlSection root, List<Map<?, ?>> effects) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        mergePlainMap(result, root.get("ea_attributes"));
+        for (Map<?, ?> effect : effects == null ? List.<Map<?, ?>>of() : effects) {
+            if (effect == null || !"ea_attribute".equals(Texts.normalizeId(Texts.toStringSafe(ConfigNodes.get(effect, "type"))))) {
+                continue;
+            }
+            mergePlainMap(result, ConfigNodes.get(effect, "ea_attributes"));
+        }
+        return result.isEmpty() ? Map.of() : Map.copyOf(result);
+    }
+
+    private List<String> parseSkills(YamlSection root, List<Map<?, ?>> effects) {
+        java.util.LinkedHashSet<String> result = new java.util.LinkedHashSet<>(normalizedList(root.get("es_skills")));
+        for (Map<?, ?> effect : effects == null ? List.<Map<?, ?>>of() : effects) {
+            if (effect == null || !"es_skill".equals(Texts.normalizeId(Texts.toStringSafe(ConfigNodes.get(effect, "type"))))) {
+                continue;
+            }
+            result.addAll(normalizedList(ConfigNodes.get(effect, "es_skills")));
+        }
+        return result.isEmpty() ? List.of() : List.copyOf(result);
+    }
+
+    private void mergePlainMap(Map<String, Object> target, Object raw) {
+        if (target == null) {
+            return;
+        }
         for (Map.Entry<String, Object> entry : ConfigNodes.entries(raw).entrySet()) {
             if (Texts.isNotBlank(entry.getKey())) {
-                result.put(Texts.normalizeId(entry.getKey()), ConfigNodes.toPlainData(entry.getValue()));
+                target.put(Texts.normalizeId(entry.getKey()), ConfigNodes.toPlainData(entry.getValue()));
             }
         }
-        return result;
-    }
-
-    private Map<String, Double> toDoubleMap(Object raw) {
-        Map<String, Double> result = new LinkedHashMap<>();
-        for (Map.Entry<String, Object> entry : ConfigNodes.entries(raw).entrySet()) {
-            Double value = Numbers.tryParseDouble(entry.getValue(), null);
-            if (Texts.isNotBlank(entry.getKey()) && value != null) {
-                result.put(Texts.normalizeId(entry.getKey()), value);
-            }
-        }
-        return result;
-    }
-
-    private Map<String, String> toStringMap(Object raw) {
-        Map<String, String> result = new LinkedHashMap<>();
-        for (Map.Entry<String, Object> entry : ConfigNodes.entries(raw).entrySet()) {
-            if (Texts.isNotBlank(entry.getKey()) && entry.getValue() != null) {
-                result.put(Texts.normalizeId(entry.getKey()), Texts.toStringSafe(entry.getValue()));
-            }
-        }
-        return result;
     }
 
     private Map<String, Integer> toIntegerMap(Object raw) {

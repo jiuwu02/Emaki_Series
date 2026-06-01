@@ -205,7 +205,7 @@ public final class StrengthenRecipe {
     public record StarStage(int targetStar,
             String name,
             Map<String, Object> stats,
-            Map<String, Double> attributes,
+            Map<String, Object> attributes,
             List<String> skillIds,
             List<StarStageMaterial> materials,
             EconomyOverride economyOverride,
@@ -379,24 +379,20 @@ public final class StrengthenRecipe {
     }
 
     /**
-     * Computes the cumulative attributes granted up to a star level, falling
-     * back to {@link #cumulativeVariables(int)} when no attributes are defined.
+     * Computes the cumulative attributes granted up to a star level.
      *
      * @param currentStar the inclusive star ceiling
      * @return attribute id to value mapping
      */
     public Map<String, Double> cumulativeAttributes(int currentStar) {
-        Map<String, Double> values = new LinkedHashMap<>();
+        Map<String, Object> rawValues = new LinkedHashMap<>();
         for (Map.Entry<Integer, StarStage> entry : stars.entrySet()) {
             if (entry.getKey() > currentStar || entry.getValue() == null) {
                 continue;
             }
-            merge(values, entry.getValue().attributes());
+            mergeRaw(rawValues, entry.getValue().attributes());
         }
-        if (values.isEmpty()) {
-            return cumulativeVariables(currentStar);
-        }
-        return values;
+        return rawValues.isEmpty() ? Map.of() : resolveExpressions(rawValues, Map.of("star", (double) currentStar));
     }
 
     /**
@@ -627,14 +623,14 @@ public final class StrengthenRecipe {
      */
     public Map<String, Double> cumulativeAttributes(int currentStar, String branchPath) {
         if (branchTree != null) {
-            Map<String, Double> values = new LinkedHashMap<>();
+            Map<String, Object> rawValues = new LinkedHashMap<>();
             Map<Integer, StarStage> collected = branchTree.collectStages(branchPath, currentStar);
             for (StarStage stage : collected.values()) {
                 if (stage != null) {
-                    merge(values, stage.attributes());
+                    mergeRaw(rawValues, stage.attributes());
                 }
             }
-            return values;
+            return rawValues.isEmpty() ? Map.of() : resolveExpressions(rawValues, Map.of("star", (double) currentStar));
         }
         return cumulativeAttributes(currentStar);
     }
@@ -660,18 +656,6 @@ public final class StrengthenRecipe {
         return cumulativeSkillIds(currentStar);
     }
 
-    private static void merge(Map<String, Double> target, Map<String, Double> source) {
-        if (target == null || source == null) {
-            return;
-        }
-        for (Map.Entry<String, Double> entry : source.entrySet()) {
-            if (entry.getKey() == null || entry.getValue() == null) {
-                continue;
-            }
-            target.merge(Texts.lower(entry.getKey()), entry.getValue(), Double::sum);
-        }
-    }
-
     private static void mergeRaw(Map<String, Object> target, Map<String, Object> source) {
         if (target == null || source == null) {
             return;
@@ -694,7 +678,31 @@ public final class StrengthenRecipe {
     }
 
     static Map<String, Double> resolveExpressions(Map<String, Object> rawValues, Map<String, ?> context) {
-        return ExpressionEngine.resolveVariables(rawValues, context);
+        Map<String, Double> resolved = new LinkedHashMap<>();
+        if (rawValues == null || rawValues.isEmpty()) {
+            return resolved;
+        }
+        Map<String, Object> evalContext = new LinkedHashMap<>();
+        if (context != null) {
+            evalContext.putAll(context);
+        }
+        for (Map.Entry<String, Object> entry : rawValues.entrySet()) {
+            if (entry.getKey() == null || entry.getValue() == null) {
+                continue;
+            }
+            String key = Texts.lower(entry.getKey());
+            double value = resolveNumericValue(entry.getValue(), evalContext);
+            resolved.put(key, value);
+            evalContext.put(key, value);
+        }
+        return resolved;
+    }
+
+    private static double resolveNumericValue(Object raw, Map<String, ?> variables) {
+        if (raw instanceof Number number) {
+            return number.doubleValue();
+        }
+        return ExpressionEngine.evaluateRandomConfig(raw, variables);
     }
 
     private static Double toDouble(Object value) {

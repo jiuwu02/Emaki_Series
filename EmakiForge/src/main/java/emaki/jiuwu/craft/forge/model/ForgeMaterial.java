@@ -123,44 +123,22 @@ public final class ForgeMaterial {
     }
 
     public Map<String, Double> statContributions() {
-        Map<String, Double> result = new LinkedHashMap<>();
-        for (MaterialEffect effect : effects) {
-            if (!"variables".equals(Texts.lower(effect.type()))) {
-                continue;
-            }
-            for (Map.Entry<String, Object> entry : ConfigNodes.entries(effect.get("variables")).entrySet()) {
-                double value = resolveStatValue(entry.getValue());
-                result.merge(entry.getKey(), value, Double::sum);
-            }
-        }
-        return result;
+        return resolveStatContributions();
     }
 
     public Map<String, Double> attributeContributions() {
+        Map<String, Object> context = new LinkedHashMap<>();
         Map<String, Double> result = new LinkedHashMap<>();
         for (MaterialEffect effect : effects) {
             if (!"ea_attribute".equals(Texts.lower(effect.type()))) {
                 continue;
             }
             for (Map.Entry<String, Object> entry : ConfigNodes.entries(effect.get("ea_attributes")).entrySet()) {
-                Double value = Numbers.tryParseDouble(entry.getValue(), null);
+                Double value = resolveAttributeValue(entry.getValue(), context);
                 if (value != null) {
-                    result.merge(Texts.lower(entry.getKey()), value, Double::sum);
-                }
-            }
-        }
-        return result;
-    }
-
-    public Map<String, String> attributeMeta() {
-        Map<String, String> result = new LinkedHashMap<>();
-        for (MaterialEffect effect : effects) {
-            if (!"ea_attribute".equals(Texts.lower(effect.type()))) {
-                continue;
-            }
-            for (Map.Entry<String, Object> entry : ConfigNodes.entries(effect.get("ea_attribute_meta")).entrySet()) {
-                if (entry.getValue() != null) {
-                    result.putIfAbsent(Texts.lower(entry.getKey()), Texts.toStringSafe(entry.getValue()));
+                    String key = Texts.lower(entry.getKey());
+                    result.merge(key, value, Double::sum);
+                    context.put(key, value);
                 }
             }
         }
@@ -263,8 +241,35 @@ public final class ForgeMaterial {
         return result;
     }
 
-    private static double resolveStatValue(Object raw) {
-        return ExpressionEngine.evaluateRandomConfig(raw);
+    private Map<String, Double> resolveStatContributions() {
+        Map<String, Object> variables = new LinkedHashMap<>();
+        Map<String, Double> result = new LinkedHashMap<>();
+        for (MaterialEffect effect : effects) {
+            if (!"variables".equals(Texts.lower(effect.type()))) {
+                continue;
+            }
+            for (Map.Entry<String, Object> entry : ConfigNodes.entries(effect.get("variables")).entrySet()) {
+                String key = Texts.lower(entry.getKey());
+                double value = resolveStatValue(entry.getValue(), variables);
+                result.merge(key, value, Double::sum);
+                variables.put(key, result.get(key));
+            }
+        }
+        return result;
+    }
+
+    private static double resolveStatValue(Object raw, Map<String, ?> variables) {
+        return ExpressionEngine.evaluateRandomConfig(raw, variables);
+    }
+
+    private static Double resolveAttributeValue(Object raw, Map<String, ?> variables) {
+        if (raw instanceof Number number) {
+            return number.doubleValue();
+        }
+        if (raw instanceof Map<?, ?>) {
+            return ExpressionEngine.evaluateRandomConfig(raw, variables);
+        }
+        return Numbers.tryParseDouble(ExpressionEngine.evaluateStringConfig(raw, variables), null);
     }
 
     private static boolean isForgeCapacityBonusEffect(String type) {

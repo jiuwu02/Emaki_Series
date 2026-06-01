@@ -8,8 +8,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.integration.PdcAttributeGateway;
 import emaki.jiuwu.craft.corelib.integration.SkillPdcGateway;
+import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
 
@@ -31,6 +33,10 @@ public final class EmakiItemPdcWriter {
     }
 
     public void write(ItemStack itemStack, EmakiItemDefinition definition) {
+        write(itemStack, definition, definition == null ? Map.of() : definition.variables());
+    }
+
+    public void write(ItemStack itemStack, EmakiItemDefinition definition, Map<String, ?> variables) {
         if (itemStack == null || definition == null) {
             return;
         }
@@ -40,9 +46,10 @@ public final class EmakiItemPdcWriter {
             identifier.writeIdentity(itemMeta, definition.id(), definition.definitionSignature(), updateVersion);
             itemStack.setItemMeta(itemMeta);
         }
-        if (!definition.attributes().isEmpty()
+        Map<String, Double> attributes = resolveAttributes(definition.attributes());
+        if (!attributes.isEmpty()
                 && Bukkit.getPluginManager().isPluginEnabled("EmakiAttribute")) {
-            attributeGateway.write(itemStack, ATTRIBUTE_SOURCE_ID, definition.attributes(), attributeMeta(definition));
+            attributeGateway.write(itemStack, ATTRIBUTE_SOURCE_ID, attributes, Map.of());
         }
         if (!definition.skills().isEmpty()
                 && Bukkit.getPluginManager().isPluginEnabled("EmakiSkills")) {
@@ -115,83 +122,35 @@ public final class EmakiItemPdcWriter {
         return thresholds.stream().map(String::valueOf).collect(java.util.stream.Collectors.joining(";"));
     }
 
-    private Map<String, String> attributeMeta(EmakiItemDefinition definition) {
-        Map<String, String> meta = new LinkedHashMap<>(definition.attributeMeta());
-        if (definition.conditions().configured()) {
-            meta.putIfAbsent("condition_expressions", conditionExpression(definition));
-            meta.putIfAbsent("condition_type", definition.conditions().type());
-            meta.putIfAbsent("required_count", Integer.toString(definition.conditions().requiredCount()));
-            meta.putIfAbsent("invalid_as_failure", Boolean.toString(definition.conditions().invalidAsFailure()));
+    private Map<String, Double> resolveAttributes(Map<String, Object> rawAttributes) {
+        Map<String, Double> result = new LinkedHashMap<>();
+        if (rawAttributes == null || rawAttributes.isEmpty()) {
+            return result;
         }
-        meta.entrySet().removeIf(entry -> Texts.isBlank(entry.getKey()) || entry.getValue() == null);
-        return meta.isEmpty() ? Map.of() : Map.copyOf(meta);
+        Map<String, Object> context = new LinkedHashMap<>();
+        for (Map.Entry<String, Object> entry : rawAttributes.entrySet()) {
+            if (Texts.isBlank(entry.getKey()) || entry.getValue() == null) {
+                continue;
+            }
+            Double value = resolveAttributeValue(entry.getValue(), context);
+            if (value != null) {
+                String key = Texts.normalizeId(entry.getKey());
+                result.put(key, value);
+                context.put(key, value);
+            }
+        }
+        return result;
     }
 
-    private String conditionExpression(EmakiItemDefinition definition) {
-        List<String> entries = definition.conditions().entries().stream()
-                .filter(Texts::isNotBlank)
-                .map(entry -> "(" + entry + ")")
-                .toList();
-        if (entries.isEmpty()) {
-            return "";
+    private Double resolveAttributeValue(Object raw, Map<String, ?> variables) {
+        if (raw instanceof Number number) {
+            return number.doubleValue();
         }
-        return switch (Texts.normalizeId(definition.conditions().type())) {
-            case "any_of" -> String.join(" || ", entries);
-            case "at_least" -> thresholdExpression(entries, Math.max(1, definition.conditions().requiredCount()), false);
-            case "exactly" -> thresholdExpression(entries, Math.max(0, definition.conditions().requiredCount()), true);
-            default -> String.join(" && ", entries);
-        };
+        if (raw instanceof Map<?, ?>) {
+            return ExpressionEngine.evaluateRandomConfig(raw, variables);
+        }
+        String evaluated = ExpressionEngine.evaluateStringConfig(raw, variables);
+        return Numbers.tryParseDouble(evaluated, null);
     }
 
-    private String thresholdExpression(List<String> entries, int requiredCount, boolean exact) {
-        if (entries.isEmpty()) {
-            return "";
-        }
-        if (!exact && requiredCount <= 1) {
-            return String.join(" || ", entries);
-        }
-        if (requiredCount > entries.size()) {
-            return "false";
-        }
-        if (requiredCount == entries.size()) {
-            return String.join(" && ", exactMatches(entries, allIndexes(entries.size())));
-        }
-        List<String> combinations = new java.util.ArrayList<>();
-        collectCombinations(entries, requiredCount, exact, 0, new java.util.ArrayList<>(), combinations);
-        return combinations.isEmpty() ? "false" : String.join(" || ", combinations);
-    }
-
-    private void collectCombinations(List<String> entries,
-            int requiredCount,
-            boolean exact,
-            int start,
-            List<Integer> selected,
-            List<String> output) {
-        if (selected.size() == requiredCount) {
-            output.add(String.join(" && ", exact ? exactMatches(entries, selected) : selected.stream().map(entries::get).toList()));
-            return;
-        }
-        for (int index = start; index < entries.size(); index++) {
-            selected.add(index);
-            collectCombinations(entries, requiredCount, exact, index + 1, selected, output);
-            selected.remove(selected.size() - 1);
-        }
-    }
-
-    private List<Integer> allIndexes(int size) {
-        List<Integer> indexes = new java.util.ArrayList<>();
-        for (int index = 0; index < size; index++) {
-            indexes.add(index);
-        }
-        return indexes;
-    }
-
-    private List<String> exactMatches(List<String> entries, List<Integer> selected) {
-        List<String> expressions = new java.util.ArrayList<>();
-        for (int index = 0; index < entries.size(); index++) {
-            String entry = entries.get(index);
-            expressions.add(selected.contains(index) ? entry : "!" + entry);
-        }
-        return expressions;
-    }
 }

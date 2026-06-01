@@ -112,10 +112,7 @@ public final class GemStateService {
         if (attributes.isEmpty() || !pdcAttributeWriter.available()) {
             pdcAttributeWriter.clear(rebuilt);
         } else {
-            pdcAttributeWriter.apply(rebuilt, attributes, Map.of(
-                    "item_definition_id", itemDefinition.id(),
-                    "opened_slots", String.valueOf(state.openedSlotIndexes().size())
-            ));
+            pdcAttributeWriter.apply(rebuilt, attributes);
         }
         pdcAttributeWriter.applySkills(rebuilt, snapshotBuilder.aggregateSkillIds(state));
         return rebuilt;

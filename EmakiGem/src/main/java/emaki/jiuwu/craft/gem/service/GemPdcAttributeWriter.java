@@ -23,6 +23,10 @@ public final class GemPdcAttributeWriter {
     }
 
     public void apply(ItemStack itemStack, Map<String, Double> attributes, Map<String, String> meta) {
+        apply(itemStack, attributes);
+    }
+
+    public void apply(ItemStack itemStack, Map<String, Double> attributes) {
         if (gateway == null || itemStack == null) {
             return;
         }
@@ -30,7 +34,7 @@ public final class GemPdcAttributeWriter {
             gateway.clear(itemStack, SOURCE_ID);
             return;
         }
-        gateway.write(itemStack, SOURCE_ID, attributes, meta);
+        gateway.write(itemStack, SOURCE_ID, attributes, Map.of());
     }
 
     public void clear(ItemStack itemStack) {

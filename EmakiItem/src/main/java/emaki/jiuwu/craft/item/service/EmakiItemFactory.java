@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.item.service;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -68,13 +69,14 @@ public final class EmakiItemFactory {
 
     private ItemStack build(EmakiItemDefinition definition) {
         ItemStack itemStack = baseItem(definition);
+        Map<String, Object> variables = resolveBuildVariables(definition.variables());
         ItemMeta itemMeta = itemStack.getItemMeta();
         if (itemMeta != null) {
-            applyText(itemMeta, definition);
-            applyComponents(itemMeta, definition);
+            applyText(itemMeta, definition, variables);
+            applyComponents(itemMeta, definition, variables);
             itemStack.setItemMeta(itemMeta);
         }
-        pdcWriter.write(itemStack, definition);
+        pdcWriter.write(itemStack, definition, variables);
         return itemStack;
     }
 
@@ -93,14 +95,38 @@ public final class EmakiItemFactory {
         }
     }
 
-    private void applyText(ItemMeta itemMeta, EmakiItemDefinition definition) {
-        Map<String, Object> variables = definition.variables();
+    private Map<String, Object> resolveBuildVariables(Map<String, Object> rawVariables) {
+        if (rawVariables == null || rawVariables.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, Object> resolved = new LinkedHashMap<>();
+        for (Map.Entry<String, Object> entry : rawVariables.entrySet()) {
+            if (entry.getKey() == null) {
+                continue;
+            }
+            Object raw = entry.getValue();
+            Object value = raw;
+            if (raw instanceof Number || raw instanceof Boolean) {
+                value = raw;
+            } else if (raw instanceof Map<?, ?>) {
+                value = ExpressionEngine.evaluateRandomConfig(raw, resolved);
+            } else {
+                String text = Texts.toStringSafe(raw);
+                Double numeric = Numbers.tryParseDouble(ExpressionEngine.evaluateStringConfig(text, resolved), null);
+                value = numeric == null ? ExpressionEngine.evaluateStringConfig(text, resolved) : numeric;
+            }
+            resolved.put(entry.getKey(), value);
+        }
+        return resolved.isEmpty() ? Map.of() : Map.copyOf(resolved);
+    }
+
+    private void applyText(ItemMeta itemMeta, EmakiItemDefinition definition, Map<String, Object> variables) {
         String displayName = ExpressionEngine.evaluateStringConfig(definition.displayName(), variables);
         if (Texts.isNotBlank(displayName)) {
             ItemTextBridge.customName(itemMeta, MiniMessages.parse(displayName));
         }
         if (Texts.isNotBlank(definition.itemName())) {
-            itemMeta.setItemName(MiniMessages.serialize(MiniMessages.parse(definition.itemName())));
+            itemMeta.setItemName(MiniMessages.serialize(MiniMessages.parse(ExpressionEngine.evaluateStringConfig(definition.itemName(), variables))));
         }
         List<String> lore = ExpressionEngine.evaluateStringLinesConfig(definition.lore(), variables);
         if (!lore.isEmpty()) {
@@ -108,7 +134,7 @@ public final class EmakiItemFactory {
         }
     }
 
-    private void applyComponents(ItemMeta itemMeta, EmakiItemDefinition definition) {
+    private void applyComponents(ItemMeta itemMeta, EmakiItemDefinition definition, Map<String, Object> variables) {
         ItemComponentsConfig components = definition.components();
         applyCustomModelData(itemMeta, components.customModelData());
         if (Texts.isNotBlank(components.itemModel())) {
@@ -160,7 +186,7 @@ public final class EmakiItemFactory {
         if (components.enchantable() != null && components.enchantable() >= 0) {
             itemMeta.setEnchantable(components.enchantable());
         }
-        applyAttributeModifiers(itemMeta, definition);
+        applyAttributeModifiers(itemMeta, definition, variables);
     }
 
     private void applyCustomModelData(ItemMeta itemMeta, Object raw) {
@@ -190,10 +216,10 @@ public final class EmakiItemFactory {
         itemMeta.setCustomModelDataComponent(component);
     }
 
-    private void applyAttributeModifiers(ItemMeta itemMeta, EmakiItemDefinition definition) {
+    private void applyAttributeModifiers(ItemMeta itemMeta, EmakiItemDefinition definition, Map<String, Object> variables) {
         for (VanillaAttributeModifierConfig config : definition.components().attributeModifiers()) {
             Attribute attribute = Registry.ATTRIBUTE.get(NamespacedKey.minecraft(config.attribute()));
-            Double amount = resolveNumber(config.amount(), definition.variables());
+            Double amount = resolveNumber(config.amount(), variables);
             if (attribute == null || amount == null) {
                 continue;
             }

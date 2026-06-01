@@ -15,8 +15,7 @@ public record EmakiItemDefinition(String id,
         Object lore,
         Map<String, Object> variables,
         ItemComponentsConfig components,
-        Map<String, Double> attributes,
-        Map<String, String> attributeMeta,
+        Map<String, Object> attributes,
         List<String> skills,
         ItemSetMembership setMembership,
         ItemConditions conditions,
@@ -33,7 +32,6 @@ public record EmakiItemDefinition(String id,
         variables = variables == null ? Map.of() : Map.copyOf(variables);
         components = components == null ? ItemComponentsConfig.empty() : components;
         attributes = attributes == null ? Map.of() : Map.copyOf(attributes);
-        attributeMeta = attributeMeta == null ? Map.of() : Map.copyOf(attributeMeta);
         skills = skills == null ? List.of() : List.copyOf(skills);
         setMembership = setMembership == null ? ItemSetMembership.empty() : setMembership;
         conditions = conditions == null ? ItemConditions.empty() : conditions;
@@ -52,7 +50,6 @@ public record EmakiItemDefinition(String id,
         signatureData.put("variables", variables);
         signatureData.put("components", components);
         signatureData.put("ea_attributes", attributes);
-        signatureData.put("ea_attribute_meta", attributeMeta);
         signatureData.put("es_skills", skills);
         signatureData.put("set", Map.of("id", setMembership.setId(), "piece", setMembership.pieceId()));
         signatureData.put("conditions", conditions);

@@ -65,9 +65,6 @@ effects:
     ea_attributes:
       physical_attack: 12.0
       physical_crit_rate: 5.0
-    # ea_attribute_meta: 属性元数据（可选，附加信息写入 PDC）
-    ea_attribute_meta:
-      custom_tag: "blade_type"
   - type: "es_skill"
     es_skills:
       - "fireball"

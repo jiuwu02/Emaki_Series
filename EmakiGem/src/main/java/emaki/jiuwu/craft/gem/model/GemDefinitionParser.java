@@ -229,20 +229,20 @@ final class GemDefinitionParser {
         return topLevel != null ? topLevel : firstEffectPayload(section.getMapList("effects"), "lore_action", "lore_actions");
     }
 
-    static Map<String, Double> parseVariables(YamlSection section) {
+    static Map<String, Object> parseVariables(YamlSection section) {
         if (section == null) {
             return Map.of();
         }
-        Map<String, Double> result = new LinkedHashMap<>(parseStatMap(section.getSection("variables")));
+        Map<String, Object> result = new LinkedHashMap<>(parseStatMap(section.getSection("variables")));
         result.putAll(parseEffectStatMap(section.getMapList("effects"), "variables", "variables"));
         return Map.copyOf(result);
     }
 
-    static Map<String, Double> parseAttributes(YamlSection section) {
+    static Map<String, Object> parseAttributes(YamlSection section) {
         if (section == null) {
             return Map.of();
         }
-        Map<String, Double> result = new LinkedHashMap<>(parseStatMap(section.getSection("ea_attributes")));
+        Map<String, Object> result = new LinkedHashMap<>(parseStatMap(section.getSection("ea_attributes")));
         result.putAll(parseEffectStatMap(section.getMapList("effects"), "ea_attribute", "ea_attributes"));
         return Map.copyOf(result);
     }
@@ -251,13 +251,13 @@ final class GemDefinitionParser {
         return section == null ? List.of() : section.getStringList(key);
     }
 
-    static Map<String, Double> parseStatMap(YamlSection section) {
+    static Map<String, Object> parseStatMap(YamlSection section) {
         if (section == null) {
             return Map.of();
         }
-        Map<String, Double> stats = new LinkedHashMap<>();
+        Map<String, Object> stats = new LinkedHashMap<>();
         for (String key : section.getKeys(false)) {
-            Double value = Numbers.tryParseDouble(section.get(key), null);
+            Object value = ConfigNodes.toPlainData(section.get(key));
             if (value != null) {
                 stats.put(Texts.lower(key), value);
             }
@@ -265,19 +265,18 @@ final class GemDefinitionParser {
         return Map.copyOf(stats);
     }
 
-    static Map<String, Double> parseEffectStatMap(List<Map<?, ?>> rawEffects, String type, String key) {
+    static Map<String, Object> parseEffectStatMap(List<Map<?, ?>> rawEffects, String type, String key) {
         if (rawEffects == null || rawEffects.isEmpty()) {
             return Map.of();
         }
-        Map<String, Double> result = new LinkedHashMap<>();
+        Map<String, Object> result = new LinkedHashMap<>();
         for (Map<?, ?> rawEffect : rawEffects) {
             if (!type.equals(Texts.lower(ConfigNodes.string(rawEffect, "type", "")))) {
                 continue;
             }
             for (Map.Entry<String, Object> entry : ConfigNodes.entries(ConfigNodes.get(rawEffect, key)).entrySet()) {
-                Double value = Numbers.tryParseDouble(entry.getValue(), null);
-                if (value != null) {
-                    result.put(Texts.lower(entry.getKey()), value);
+                if (entry.getValue() != null) {
+                    result.put(Texts.lower(entry.getKey()), ConfigNodes.toPlainData(entry.getValue()));
                 }
             }
         }

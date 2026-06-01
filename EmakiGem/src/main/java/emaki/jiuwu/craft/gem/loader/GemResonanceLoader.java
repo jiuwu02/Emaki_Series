@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.YamlDirectoryLoader;
@@ -91,7 +92,7 @@ public final class GemResonanceLoader extends YamlDirectoryLoader<GemResonanceDe
             return new ResonanceEffects(null, null, null, null, null);
         }
         List<String> actions = section.getStringList("actions");
-        Map<String, Double> stats = parseStatMap(section.getSection("ea_attributes"));
+        Map<String, Double> stats = parseStatMap(section);
         List<String> skills = section.getStringList("es_skills");
         Object nameActions = section.get("name_actions");
         Object loreActions = section.get("lore_actions");
@@ -102,9 +103,45 @@ public final class GemResonanceLoader extends YamlDirectoryLoader<GemResonanceDe
         if (section == null) {
             return Map.of();
         }
-        Map<String, Double> stats = new LinkedHashMap<>();
+        Map<String, Object> attributes = parseObjectMap(section.getSection("ea_attributes"));
+        return attributes.isEmpty() ? Map.of() : resolveRawValues(attributes, Map.of());
+    }
+
+    private Map<String, Double> resolveRawValues(Map<String, Object> rawValues, Map<String, ?> context) {
+        Map<String, Double> resolved = new LinkedHashMap<>();
+        if (rawValues == null || rawValues.isEmpty()) {
+            return resolved;
+        }
+        Map<String, Object> evalContext = new LinkedHashMap<>();
+        if (context != null) {
+            evalContext.putAll(context);
+        }
+        for (Map.Entry<String, Object> entry : rawValues.entrySet()) {
+            if (entry.getKey() == null || entry.getValue() == null) {
+                continue;
+            }
+            String key = Texts.lower(entry.getKey());
+            double value = resolveNumericValue(entry.getValue(), evalContext);
+            resolved.put(key, value);
+            evalContext.put(key, value);
+        }
+        return resolved;
+    }
+
+    private double resolveNumericValue(Object raw, Map<String, ?> variables) {
+        if (raw instanceof Number number) {
+            return number.doubleValue();
+        }
+        return ExpressionEngine.evaluateRandomConfig(raw, variables);
+    }
+
+    private Map<String, Object> parseObjectMap(YamlSection section) {
+        if (section == null) {
+            return Map.of();
+        }
+        Map<String, Object> stats = new LinkedHashMap<>();
         for (String key : section.getKeys(false)) {
-            Double value = Numbers.tryParseDouble(section.get(key), null);
+            Object value = ConfigNodes.toPlainData(section.get(key));
             if (value != null) {
                 stats.put(Texts.lower(key), value);
             }

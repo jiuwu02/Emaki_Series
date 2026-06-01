@@ -51,7 +51,6 @@ final class ForgePdcAttributeWriter {
                     }
                     attributes.merge(entry.getKey(), value, Double::sum);
                 }
-                meta.putAll(contribution.material().attributeMeta());
             }
         }
         skillPdcGateway.write(itemStack, skillIds);

@@ -65,9 +65,6 @@ materials:
         ea_attributes:
           physical_attack: 5.0
           max_health: 2.0
-        # ea_attribute_meta: 属性元数据（可选）
-        ea_attribute_meta:
-          source_material: "iron_ingot"
       - type: "lore_action"
         lore_actions:
           - action: "insert_below"

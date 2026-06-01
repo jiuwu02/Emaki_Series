@@ -171,8 +171,8 @@ public final class StrengthenRecipeParser {
             result.put(targetStar, new StarStage(
                     targetStar,
                     stageSection.getString("name", ""),
-                    parseVariablesMap(stageSection.getSection("variables")),
-                    parseDoubleMap(stageSection.getSection("ea_attributes")),
+                    parseStageVariables(stageSection),
+                    parseStageAttributes(stageSection),
                     parseSkillEffects(stageSection.getMapList("effects")),
                     parseStageMaterials(stageSection.getMapList("materials")),
                     parseEconomyOverride(stageSection.getSection("economy_override")),
@@ -232,18 +232,38 @@ public final class StrengthenRecipeParser {
         return List.copyOf(result);
     }
 
-    static Map<String, Double> parseDoubleMap(YamlSection section) {
+    static Map<String, Object> parseStageVariables(YamlSection section) {
         if (section == null) {
             return Map.of();
         }
-        Map<String, Double> values = new LinkedHashMap<>();
-        for (String key : section.getKeys(false)) {
-            Double value = Numbers.tryParseDouble(section.get(key), null);
-            if (value != null) {
-                values.put(Texts.lower(key), value);
+        Map<String, Object> values = new LinkedHashMap<>(parseVariablesMap(section.getSection("variables")));
+        mergeEffectMap(values, section.getMapList("effects"), "variables", "variables");
+        return values.isEmpty() ? Map.of() : Map.copyOf(values);
+    }
+
+    static Map<String, Object> parseStageAttributes(YamlSection section) {
+        if (section == null) {
+            return Map.of();
+        }
+        Map<String, Object> values = new LinkedHashMap<>(parseVariablesMap(section.getSection("ea_attributes")));
+        mergeEffectMap(values, section.getMapList("effects"), "ea_attribute", "ea_attributes");
+        return values.isEmpty() ? Map.of() : Map.copyOf(values);
+    }
+
+    private static void mergeEffectMap(Map<String, Object> target, List<Map<?, ?>> rawEffects, String type, String key) {
+        if (target == null || rawEffects == null || rawEffects.isEmpty()) {
+            return;
+        }
+        for (Map<?, ?> rawEffect : rawEffects) {
+            if (!type.equals(Texts.lower(ConfigNodes.string(rawEffect, "type", "")))) {
+                continue;
+            }
+            for (Map.Entry<String, Object> entry : ConfigNodes.entries(ConfigNodes.get(rawEffect, key)).entrySet()) {
+                if (Texts.isNotBlank(entry.getKey()) && entry.getValue() != null) {
+                    target.put(Texts.lower(entry.getKey()), ConfigNodes.toPlainData(entry.getValue()));
+                }
             }
         }
-        return values;
     }
 
     static Map<String, Object> parseVariablesMap(YamlSection section) {

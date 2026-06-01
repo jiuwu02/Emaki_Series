@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Set;
 
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
@@ -21,8 +22,8 @@ public final class GemDefinition {
     private final int level;
     private final ItemSource itemSource;
     private final Integer customModelData;
-    private final Map<String, Double> stats;
-    private final Map<String, Double> attributes;
+    private final Map<String, Object> stats;
+    private final Map<String, Object> attributes;
     private final List<String> skillIds;
     private final Set<String> socketCompatibility;
     private final Object nameActions;
@@ -41,8 +42,8 @@ public final class GemDefinition {
             int level,
             ItemSource itemSource,
             Integer customModelData,
-            Map<String, Double> stats,
-            Map<String, Double> attributes,
+            Map<String, Object> stats,
+            Map<String, Object> attributes,
             List<String> skillIds,
             Set<String> socketCompatibility,
             Object nameActions,
@@ -102,11 +103,11 @@ public final class GemDefinition {
         return customModelData;
     }
 
-    public Map<String, Double> stats() {
+    public Map<String, Object> stats() {
         return stats;
     }
 
-    public Map<String, Double> attributes() {
+    public Map<String, Object> attributes() {
         return attributes;
     }
 
@@ -164,11 +165,19 @@ public final class GemDefinition {
     }
 
     public Map<String, Double> statsForLevel(int level) {
+        return resolveRawValues(rawStatsForLevel(level), Map.of("level", (double) Math.max(1, level)));
+    }
+
+    public Map<String, Double> attributesForLevel(int level) {
+        return resolveRawValues(rawAttributesForLevel(level), Map.of("level", (double) Math.max(1, level)));
+    }
+
+    private Map<String, Object> rawStatsForLevel(int level) {
         GemUpgradeLevel upgradeLevel = upgrade.level(level);
         return upgradeLevel == null || upgradeLevel.stats().isEmpty() ? stats : upgradeLevel.stats();
     }
 
-    public Map<String, Double> attributesForLevel(int level) {
+    private Map<String, Object> rawAttributesForLevel(int level) {
         GemUpgradeLevel upgradeLevel = upgrade.level(level);
         return upgradeLevel == null || upgradeLevel.attributes().isEmpty() ? attributes : upgradeLevel.attributes();
     }
@@ -194,6 +203,34 @@ public final class GemDefinition {
 
     public static GemDefinition fromConfig(YamlSection section) {
         return GemDefinitionParser.parse(section);
+    }
+
+    private Map<String, Double> resolveRawValues(Map<String, Object> rawValues, Map<String, ?> context) {
+        Map<String, Double> resolved = new LinkedHashMap<>();
+        if (rawValues == null || rawValues.isEmpty()) {
+            return resolved;
+        }
+        Map<String, Object> evalContext = new LinkedHashMap<>();
+        if (context != null) {
+            evalContext.putAll(context);
+        }
+        for (Map.Entry<String, Object> entry : rawValues.entrySet()) {
+            if (entry.getKey() == null || entry.getValue() == null) {
+                continue;
+            }
+            String key = Texts.lower(entry.getKey());
+            double value = resolveNumericValue(entry.getValue(), evalContext);
+            resolved.put(key, value);
+            evalContext.put(key, value);
+        }
+        return resolved;
+    }
+
+    private double resolveNumericValue(Object raw, Map<String, ?> variables) {
+        if (raw instanceof Number number) {
+            return number.doubleValue();
+        }
+        return ExpressionEngine.evaluateRandomConfig(raw, variables);
     }
 
     static List<String> normalizeSkillIds(List<String> rawSkillIds) {
@@ -339,8 +376,8 @@ public final class GemDefinition {
 
     public record GemUpgradeLevel(int targetLevel,
             String displayName,
-            Map<String, Double> stats,
-            Map<String, Double> attributes,
+            Map<String, Object> stats,
+            Map<String, Object> attributes,
             List<String> skillIds,
             Object nameActions,
             Object loreActions,
