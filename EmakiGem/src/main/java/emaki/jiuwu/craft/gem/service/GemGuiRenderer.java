@@ -67,7 +67,7 @@ final class GemGuiRenderer {
     private ItemStack renderTargetItem(GemGuiSession state, GuiSlot slot) {
         ItemStack targetItem = state.targetItem();
         if (targetItem == null) {
-            return buildItem(slot, Material.LIGHT_BLUE_STAINED_GLASS_PANE, text("target_empty_name", "<aqua>Place Equipment</aqua>"), List.of(
+            return buildConfiguredItem(slot, Material.LIGHT_BLUE_STAINED_GLASS_PANE, text("target_empty_name", "<aqua>Place Equipment</aqua>"), List.of(
                     text("target_empty_lore_1", "<gray>Place gem equipment here</gray>"),
                     common("click_take_back", "<gray>Supports placing from cursor and clicking to retrieve</gray>")
             ));
@@ -84,7 +84,7 @@ final class GemGuiRenderer {
         if (itemDefinition == null || gemState == null) {
             lore.add(text("no_target_line_1", "<red>No valid equipment placed</red>"));
             lore.add(text("no_target_line_2", "<gray>Please place equipment first</gray>"));
-            return buildItem(slot, Material.BOOK, text("info_name", "<gold>Instructions</gold>"), lore);
+            return buildConfiguredItem(slot, Material.BOOK, text("info_name", "<gold>Instructions</gold>"), lore);
         }
         lore.add(text("equipment_definition", Map.of("item", itemDefinition.id()), "<gray>Equipment definition: <gold>{item}</gold></gray>"));
         lore.add(switch (state.mode()) {
@@ -93,7 +93,7 @@ final class GemGuiRenderer {
             case OPEN_SOCKET, UPGRADE -> text("default_help", "<gray>Equipment gem operation mode</gray>");
         });
         lore.add(text("unopened_help", "<gray>Use the socket opening GUI for unopened slots</gray>"));
-        return buildItem(slot, Material.BOOK, text("info_name", "<gold>Instructions</gold>"), lore);
+        return buildConfiguredItem(slot, Material.BOOK, text("info_name", "<gold>Instructions</gold>"), lore);
     }
 
     private ItemStack renderSocketSummary(GemGuiSession state, GuiSlot slot) {
@@ -104,7 +104,7 @@ final class GemGuiRenderer {
         if (itemDefinition == null || gemState == null) {
             lore.add(text("summary_empty_1", "<gray>Socket statistics will be shown here</gray>"));
             lore.add(text("summary_empty_2", "<gray>Place equipment to view socket counts</gray>"));
-            return buildItem(slot, Material.COMPASS, text("summary_name", "<gold>Gem Socket Summary</gold>"), lore);
+            return buildConfiguredItem(slot, Material.COMPASS, text("summary_name", "<gold>Gem Socket Summary</gold>"), lore);
         }
         int total = itemDefinition.slots().size();
         int opened = gemState.openedSlotIndexes().size();
@@ -114,7 +114,7 @@ final class GemGuiRenderer {
         lore.add(text("embedded_slots", Map.of("embedded", embedded), "<gray>Inlaid gems: <aqua>{embedded}</aqua></gray>"));
         lore.add(text("free_opened_slots", Map.of("free", Math.max(0, opened - embedded)), "<gray>Free opened sockets: <gold>{free}</gold></gray>"));
         lore.add(text("locked_slots", Map.of("locked", Math.max(0, total - opened)), "<gray>Locked sockets: <red>{locked}</red></gray>"));
-        return buildItem(slot, Material.COMPASS, text("summary_name", "<gold>Gem Socket Summary</gold>"), lore);
+        return buildConfiguredItem(slot, Material.COMPASS, text("summary_name", "<gold>Gem Socket Summary</gold>"), lore);
     }
 
     private ItemStack renderSocketSlot(GemGuiSession state, int displayIndex, GuiSlot guiSlot) {
@@ -125,7 +125,7 @@ final class GemGuiRenderer {
             return hiddenSlot();
         }
         if (itemDefinition == null || gemState == null) {
-            return buildItem(guiSlot, Material.WHITE_STAINED_GLASS_PANE, text("socket_name", "<white>Gem Socket</white>"), List.of(
+            return buildConfiguredItem(guiSlot, Material.WHITE_STAINED_GLASS_PANE, text("socket_name", "<white>Gem Socket</white>"), List.of(
                     text("socket_empty_lore", "<gray>Sockets are shown after equipment is placed</gray>")
             ));
         }
@@ -141,7 +141,7 @@ final class GemGuiRenderer {
             if (selected) {
                 lore.add(common("selected", "<green>Added to pending operation</green>"));
             }
-            return buildItem(guiSlot, Material.GRAY_STAINED_GLASS_PANE, slotTitle(socketSlot, socketIndex, text("socket_locked", "Locked")), lore);
+            return buildConfiguredItem(guiSlot, Material.GRAY_STAINED_GLASS_PANE, slotTitle(socketSlot, socketIndex, text("socket_locked", "Locked")), lore);
         }
         GemItemInstance assigned = gemState.assignment(socketIndex);
         if (assigned == null) {
@@ -172,7 +172,7 @@ final class GemGuiRenderer {
             if (selected) {
                 lore.add(common("selected", "<green>Added to pending operation</green>"));
             }
-            return buildItem(guiSlot, baseSocketMaterial(socketSlot.type()), slotTitle(socketSlot, socketIndex, text("socket_empty", "Empty")), lore);
+            return buildConfiguredItem(guiSlot, baseSocketMaterial(socketSlot.type()), slotTitle(socketSlot, socketIndex, text("socket_empty", "Empty")), lore);
         }
         GemDefinition definition = plugin.gemLoader().get(assigned.gemId());
         ItemStack gemItem = plugin.itemFactory().recreateGemItem(assigned, 1);
@@ -192,7 +192,7 @@ final class GemGuiRenderer {
         if (gemItem != null) {
             return appendLore(gemItem, extraLore);
         }
-        return buildItem(guiSlot, Material.RED_DYE, slotTitle(socketSlot, socketIndex, text("socket_embedded", "Inlaid")), extraLore);
+        return buildConfiguredItem(guiSlot, Material.RED_DYE, slotTitle(socketSlot, socketIndex, text("socket_embedded", "Inlaid")), extraLore);
     }
 
     private ItemStack renderPreviewDisplay(GemGuiSession state, GuiSlot slot) {
@@ -201,7 +201,7 @@ final class GemGuiRenderer {
         if (!pendingOperation.active()) {
             lore.add(text("preview_empty_1", "<gray>Pending operation preview will be shown here</gray>"));
             lore.add(text("preview_empty_2", "<gray>Click a target socket to view details</gray>"));
-            return buildItem(slot, Material.WRITABLE_BOOK, text("preview_name", "<gold>Operation Preview</gold>"), lore);
+            return buildConfiguredItem(slot, Material.WRITABLE_BOOK, text("preview_name", "<gold>Operation Preview</gold>"), lore);
         }
         ItemStack targetItem = state.targetItem();
         GemItemDefinition itemDefinition = plugin.stateService().resolveItemDefinition(targetItem);
@@ -230,16 +230,16 @@ final class GemGuiRenderer {
             }
         }
         lore.add(text("preview_confirm_hint", "<green>Click confirm to execute</green>"));
-        return buildItem(slot, Material.WRITABLE_BOOK, text("preview_name", "<gold>Operation Preview</gold>"), lore);
+        return buildConfiguredItem(slot, Material.WRITABLE_BOOK, text("preview_name", "<gold>Operation Preview</gold>"), lore);
     }
 
     private ItemStack renderConfirm(GemGuiSession state, GuiSlot slot) {
         if (!state.pendingOperation().active()) {
-            return buildItem(slot, Material.GRAY_STAINED_GLASS_PANE, text("confirm_name_inactive", "<gray>Confirm Operation</gray>"), List.of(
+            return buildConfiguredItem(slot, Material.GRAY_STAINED_GLASS_PANE, text("confirm_name_inactive", "<gray>Confirm Operation</gray>"), List.of(
                     text("confirm_inactive_lore", "<dark_gray>Please select a pending operation first</dark_gray>")
             ));
         }
-        return buildItem(slot, Material.LIME_STAINED_GLASS_PANE, text("confirm_name_active", "<green>Confirm Operation</green>"), List.of(
+        return buildConfiguredItem(slot, Material.LIME_STAINED_GLASS_PANE, text("confirm_name_active", "<green>Confirm Operation</green>"), List.of(
                 text("confirm_active_lore", "<gray>Click to execute current operation</gray>"),
                 text("pending_action", Map.of("action", pendingText(state.pendingOperation().type())), "<gray>Pending: <yellow>{action}</yellow></gray>")
         ));
@@ -249,20 +249,39 @@ final class GemGuiRenderer {
         List<String> lore = new ArrayList<>();
         lore.add("<gray>" + description + "</gray>");
         lore.add(active ? common("active", "<green>Currently enabled</green>") : common("click_switch", "<dark_gray>Click to switch</dark_gray>"));
-        return buildItem(slot, material, (active ? "<green>" : "<yellow>") + title + (active ? "</green>" : "</yellow>"), lore);
+        return buildConfiguredItem(slot, material, (active ? "<green>" : "<yellow>") + title + (active ? "</green>" : "</yellow>"), lore);
     }
 
-    private ItemStack buildItem(Material material, String name, List<String> lore) {
-        return buildItem(null, material, name, lore);
-    }
-
-    private ItemStack buildItem(GuiSlot slot, Material material, String name, List<String> lore) {
+    private ItemStack buildConfiguredItem(GuiSlot slot, Material material, String name, List<String> lore) {
+        String item = Texts.isBlank(slot == null ? null : slot.item()) ? material.name() : slot.item();
         return GuiItemBuilder.build(
-                Texts.isBlank(slot == null ? null : slot.item()) ? material.name() : slot.item(),
-                new ItemComponentParser.ItemComponents(name, true, lore, null, null, Map.of(), List.of()),
+                item,
+                configuredComponents(slot, name, lore),
                 1,
                 Map.of(),
                 (source, amount) -> plugin.coreItemSourceService() == null ? null : plugin.coreItemSourceService().createItem(source, amount)
+        );
+    }
+
+    private ItemComponentParser.ItemComponents configuredComponents(GuiSlot slot, String name, List<String> lore) {
+        ItemComponentParser.ItemComponents configured = slot == null ? null : slot.components();
+        if (configured == null) {
+            return new ItemComponentParser.ItemComponents(name, true, lore, null, null, Map.of(), List.of());
+        }
+        boolean hasDisplayNameConfig = configured.displayNameConfig() != null;
+        boolean hasLoreConfig = configured.loreConfig() != null;
+        String displayName = Texts.isBlank(configured.displayName()) && !hasDisplayNameConfig ? name : configured.displayName();
+        boolean loreConfigured = configured.loreConfigured();
+        return new ItemComponentParser.ItemComponents(
+                displayName,
+                true,
+                loreConfigured ? configured.lore() : lore,
+                configured.itemModel(),
+                configured.customModelData(),
+                configured.enchantments(),
+                configured.hiddenComponents(),
+                hasDisplayNameConfig ? configured.displayNameConfig() : null,
+                hasLoreConfig && loreConfigured ? configured.loreConfig() : null
         );
     }
 

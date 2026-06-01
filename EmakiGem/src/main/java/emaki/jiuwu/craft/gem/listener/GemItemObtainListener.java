@@ -15,6 +15,8 @@ import org.bukkit.inventory.PlayerInventory;
 import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
 import emaki.jiuwu.craft.gem.model.GemItemDefinition;
+import emaki.jiuwu.craft.gem.model.GemItemInstance;
+import emaki.jiuwu.craft.gem.model.GemState;
 
 public final class GemItemObtainListener implements Listener {
 
@@ -64,37 +66,53 @@ public final class GemItemObtainListener implements Listener {
         if (player == null || !player.isOnline()) {
             return;
         }
-        FoliaSchedulerAdapter.runEntityTask(plugin, player, () -> refreshInventory(player));
+        FoliaSchedulerAdapter.runEntityTask(plugin, player, () -> refreshInventory(plugin, player));
     }
 
-    private void refreshInventory(Player player) {
-        if (plugin.stateService() == null) {
+    public static void refreshInventory(EmakiGemPlugin plugin, Player player) {
+        if (plugin == null || player == null || plugin.stateService() == null || plugin.itemMatcher() == null || plugin.itemFactory() == null) {
             return;
         }
         PlayerInventory inventory = player.getInventory();
         boolean changed = false;
         for (int slot = 0; slot < inventory.getSize(); slot++) {
             ItemStack current = inventory.getItem(slot);
-            ItemStack refreshed = refreshItem(player, current);
+            ItemStack refreshed = refreshItem(plugin, player, current);
             if (refreshed != current) {
                 inventory.setItem(slot, refreshed);
                 changed = true;
             }
+        }
+        ItemStack cursorItem = player.getItemOnCursor();
+        ItemStack refreshedCursor = refreshItem(plugin, player, cursorItem);
+        if (refreshedCursor != cursorItem) {
+            player.setItemOnCursor(refreshedCursor);
+            changed = true;
         }
         if (changed) {
             player.updateInventory();
         }
     }
 
-    private ItemStack refreshItem(Player player, ItemStack itemStack) {
+    private static ItemStack refreshItem(EmakiGemPlugin plugin, Player player, ItemStack itemStack) {
         if (itemStack == null || itemStack.getType().isAir()) {
             return itemStack;
         }
-        GemItemDefinition definition = plugin.stateService().resolveItemDefinition(itemStack);
+        GemItemInstance gemInstance = plugin.itemMatcher().readStoredGemInstance(itemStack);
+        if (gemInstance != null) {
+            ItemStack refreshedGem = plugin.itemFactory().recreateGemItem(gemInstance, Math.max(1, itemStack.getAmount()));
+            return refreshedGem == null ? itemStack : refreshedGem;
+        }
+        GemState storedState = plugin.stateService().readStoredState(itemStack);
+        GemItemDefinition definition = storedState == null
+                ? plugin.stateService().resolveItemDefinition(itemStack)
+                : (plugin.gemItemLoader() == null ? null : plugin.gemItemLoader().get(storedState.itemDefinitionId()));
         if (definition == null) {
             return itemStack;
         }
-        ItemStack refreshed = plugin.stateService().applyInitialState(player, itemStack, definition);
+        ItemStack refreshed = storedState == null
+                ? plugin.stateService().applyInitialState(player, itemStack, definition)
+                : plugin.stateService().applyState(itemStack, definition, plugin.stateService().resolveState(itemStack, definition));
         return refreshed == null ? itemStack : refreshed;
     }
 }

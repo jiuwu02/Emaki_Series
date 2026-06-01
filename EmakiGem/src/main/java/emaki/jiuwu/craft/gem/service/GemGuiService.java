@@ -46,17 +46,13 @@ public final class GemGuiService {
     public boolean open(Player player, GemGuiMode mode) {
         return switch (normalizeMode(mode)) {
             case INLAY, EXTRACT -> openEmptyGem(player, mode);
-            case OPEN_SOCKET -> openSocketFromHand(player);
-            case UPGRADE -> openUpgradeFromHand(player);
+            case OPEN_SOCKET -> openSocket(player, null);
+            case UPGRADE -> openUpgrade(player, null);
         };
     }
 
     public boolean open(Player player, GemGuiMode mode, ItemStack initialItem) {
-        return switch (normalizeMode(mode)) {
-            case INLAY, EXTRACT -> openEmptyGem(player, mode);
-            case OPEN_SOCKET -> openSocket(player, initialItem);
-            case UPGRADE -> openUpgrade(player, initialItem);
-        };
+        return open(player, mode);
     }
 
     public boolean openSocket(Player player) {
@@ -64,7 +60,7 @@ public final class GemGuiService {
     }
 
     public boolean openSocket(Player player, ItemStack initialTarget) {
-        return openSocket(player, initialTarget, null);
+        return openSocket(player);
     }
 
     public boolean openUpgrade(Player player) {
@@ -72,7 +68,7 @@ public final class GemGuiService {
     }
 
     public boolean openUpgrade(Player player, ItemStack initialGem) {
-        return openUpgrade(player, initialGem, null);
+        return openUpgrade(player);
     }
 
     public boolean switchTemplate(GemGuiSession state) {
@@ -143,17 +139,6 @@ public final class GemGuiService {
         return true;
     }
 
-    private boolean openSocketFromHand(Player player) {
-        ItemStack initialTarget = player == null ? null : cloneNonAir(player.getInventory().getItemInMainHand());
-        GemItemDefinition itemDefinition = plugin.stateService().resolveItemDefinition(initialTarget);
-        ItemStack loadedTarget = itemDefinition == null ? null : initialTarget;
-        boolean opened = openSocket(player, loadedTarget);
-        if (opened && loadedTarget != null) {
-            player.getInventory().setItemInMainHand(null);
-        }
-        return opened;
-    }
-
     private boolean openSocket(Player player, ItemStack initialTarget, GemOpenGuiSession existingState) {
         if (player == null) {
             return false;
@@ -175,10 +160,6 @@ public final class GemGuiService {
         state.setGuiSession(session);
         stateManager.put(state);
         return true;
-    }
-
-    private boolean openUpgradeFromHand(Player player) {
-        return openUpgrade(player, null);
     }
 
     private boolean openUpgrade(Player player, ItemStack initialGem, GemUpgradeGuiSession existingState) {
@@ -244,7 +225,4 @@ public final class GemGuiService {
         return GemGuiMode.INLAY;
     }
 
-    private ItemStack cloneNonAir(ItemStack itemStack) {
-        return GemGuiSession.cloneNonAir(itemStack);
-    }
 }

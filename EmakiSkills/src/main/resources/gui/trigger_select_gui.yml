@@ -28,10 +28,11 @@ slots:
       - 23
       - 24
       - 25
-    item: "gray_stained_glass_pane"
-    display_name: "<gray>空</gray>"
+    display_name: "<green>{trigger}</green>"
     lore:
-      - "<dark_gray>可用触发器将在此显示</dark_gray>"
+      - "<gray>ID: <white>{trigger_id}</white></gray>"
+      - "<gray>{description}</gray>"
+      - "<dark_gray>冲突: {conflict}</dark_gray>"
 
   back:
     type: back

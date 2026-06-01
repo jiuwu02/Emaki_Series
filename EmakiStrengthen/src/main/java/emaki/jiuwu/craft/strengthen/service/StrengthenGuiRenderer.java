@@ -182,13 +182,29 @@ final class StrengthenGuiRenderer {
     }
 
     private ItemStack buildItem(GuiSlot slot, String item, String name, List<String> lore) {
+        ItemComponentParser.ItemComponents fallbackComponents = new ItemComponentParser.ItemComponents(name, true, lore, null, null, Map.of(), List.of());
+        ItemComponentParser.ItemComponents components = hasConfiguredComponents(slot) ? slot.components() : fallbackComponents;
         return GuiItemBuilder.build(
                 Texts.isBlank(slot == null ? null : slot.item()) ? item : slot.item(),
-                new ItemComponentParser.ItemComponents(name, true, lore, null, null, Map.of(), List.of()),
+                components,
                 1,
                 Map.of(),
                 (source, amount) -> plugin.coreItemFactory().create(source, amount)
         );
+    }
+
+    private boolean hasConfiguredComponents(GuiSlot slot) {
+        if (slot == null || slot.components() == null) {
+            return false;
+        }
+        ItemComponentParser.ItemComponents components = slot.components();
+        return Texts.isNotBlank(components.displayName())
+                || components.displayNameConfig() != null
+                || components.loreConfigured()
+                || Texts.isNotBlank(components.itemModel())
+                || components.customModelData() != null
+                || !components.enchantments().isEmpty()
+                || !components.hiddenComponents().isEmpty();
     }
 
     private static int parseMaterialIndex(String type) {

@@ -26,6 +26,7 @@ import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 import emaki.jiuwu.craft.gem.config.AppConfig;
+import emaki.jiuwu.craft.gem.listener.GemItemObtainListener;
 import emaki.jiuwu.craft.gem.loader.GemItemLoader;
 import emaki.jiuwu.craft.gem.loader.GemLoader;
 import emaki.jiuwu.craft.gem.loader.GemResonanceLoader;
@@ -170,6 +171,7 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
         plugin.itemMatcher().refresh();
         loadResonances(plugin);
         syncPdcAttributeRegistration(plugin.pdcAttributeGateway(), PDC_ATTRIBUTE_SOURCE_ID);
+        refreshOnlinePlayerItems(plugin);
         plugin.messageService().info("console.pdc_source_registered", Map.of("source", PDC_ATTRIBUTE_SOURCE_ID));
         plugin.messageService().info("console.gems_loaded", Map.of(
                 "count", String.valueOf(plugin.gemLoader().all().size())
@@ -206,6 +208,7 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
                 plugin.itemMatcher().refresh();
                 loadResonances(plugin);
                 syncPdcAttributeRegistration(plugin.pdcAttributeGateway(), PDC_ATTRIBUTE_SOURCE_ID);
+                refreshOnlinePlayerItems(plugin);
                 plugin.messageService().info("console.pdc_source_registered", Map.of("source", PDC_ATTRIBUTE_SOURCE_ID));
                 plugin.messageService().info("console.gems_loaded", Map.of(
                         "count", String.valueOf(plugin.gemLoader().all().size())
@@ -214,6 +217,10 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
                 return null;
             });
         });
+    }
+
+    private void refreshOnlinePlayerItems(EmakiGemPlugin plugin) {
+        Bukkit.getOnlinePlayers().forEach(player -> GemItemObtainListener.refreshInventory(plugin, player));
     }
 
     public void shutdown(EmakiGemPlugin plugin) {

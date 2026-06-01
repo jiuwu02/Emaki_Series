@@ -51,12 +51,23 @@ public final class GemItemMatcher {
         if (itemStack == null || itemStack.getType().isAir()) {
             return null;
         }
-        String gemId = PDC.get(itemStack, GEM_ITEM_PARTITION, "id", org.bukkit.persistence.PersistentDataType.STRING);
-        Integer level = PDC.get(itemStack, GEM_ITEM_PARTITION, "level", org.bukkit.persistence.PersistentDataType.INTEGER);
-        if (Texts.isBlank(gemId)) {
-            GemDefinition matched = matchGemDefinitionBySource(itemStack);
-            return matched == null ? null : new GemItemInstance(matched.id(), 1, System.currentTimeMillis());
+        GemItemInstance stored = readStoredGemInstance(itemStack);
+        if (stored != null) {
+            return stored;
         }
+        GemDefinition matched = matchGemDefinitionBySource(itemStack);
+        return matched == null ? null : new GemItemInstance(matched.id(), 1, System.currentTimeMillis());
+    }
+
+    public GemItemInstance readStoredGemInstance(ItemStack itemStack) {
+        if (itemStack == null || itemStack.getType().isAir()) {
+            return null;
+        }
+        String gemId = PDC.get(itemStack, GEM_ITEM_PARTITION, "id", org.bukkit.persistence.PersistentDataType.STRING);
+        if (Texts.isBlank(gemId)) {
+            return null;
+        }
+        Integer level = PDC.get(itemStack, GEM_ITEM_PARTITION, "level", org.bukkit.persistence.PersistentDataType.INTEGER);
         return new GemItemInstance(gemId, level == null ? 1 : level, System.currentTimeMillis());
     }
 

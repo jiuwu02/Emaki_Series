@@ -58,7 +58,7 @@ final class GemUpgradeGuiRenderer {
             String item = resolvedSlot == null || resolvedSlot.definition() == null || Texts.isBlank(resolvedSlot.definition().item())
                     ? Material.RED_STAINED_GLASS_PANE.name()
                     : resolvedSlot.definition().item();
-            return buildItem(item, text("target_empty_name", "<red>Place Gem</red>"), List.of(
+            return buildConfiguredItem(resolvedSlot.definition(), item, text("target_empty_name", "<red>Place Gem</red>"), List.of(
                     text("target_empty_lore_1", "<gray>Place an uninlaid gem item here</gray>"),
                     common("click_take_back", "<gray>Supports placing from cursor and clicking to retrieve</gray>")
             ));
@@ -71,19 +71,19 @@ final class GemUpgradeGuiRenderer {
         List<String> lore = new ArrayList<>();
         if (!preview.eligible()) {
             lore.add(text("level_info_empty", "<gray>Please place an upgradeable gem first</gray>"));
-            return buildItem(guiSlot, Material.BOOK, text("level_info_name", "<gold>Level Info</gold>"), lore);
+            return buildConfiguredItem(guiSlot, Material.BOOK, text("level_info_name", "<gold>Level Info</gold>"), lore);
         }
         lore.add(text("gem_line", Map.of("gem", plugin.itemFactory().resolveGemDisplayName(preview.definition(), preview.instance().level())), "<gray>Gem: <yellow>{gem}</yellow></gray>"));
         lore.add(text("current_level", Map.of("level", preview.instance().level()), "<gray>Current level: <yellow>{level}</yellow></gray>"));
         lore.add(text("target_level", Map.of("level", preview.targetLevel()), "<gray>Target level: <gold>{level}</gold></gray>"));
         lore.add(text("max_level", Map.of("level", preview.definition().upgrade().maxLevel()), "<gray>Max level: <aqua>{level}</aqua></gray>"));
-        return buildItem(guiSlot, Material.BOOK, text("level_info_name", "<gold>Level Info</gold>"), lore);
+        return buildConfiguredItem(guiSlot, Material.BOOK, text("level_info_name", "<gold>Level Info</gold>"), lore);
     }
 
     private ItemStack renderMaterialSlot(GemUpgradeGuiSession state, int displayIndex, GuiSlot guiSlot) {
         GemUpgradeService.UpgradePreview preview = preview(state);
         if (!preview.eligible() || displayIndex >= preview.upgradeLevel().materials().size()) {
-            return buildItem(guiSlot, Material.GRAY_STAINED_GLASS_PANE, text("material_slot_name", "<dark_gray>Material Slot</dark_gray>"), List.of(
+            return buildConfiguredItem(guiSlot, Material.GRAY_STAINED_GLASS_PANE, text("material_slot_name", "<dark_gray>Material Slot</dark_gray>"), List.of(
                     text("material_slot_empty", "<dark_gray>No material preview</dark_gray>")
             ));
         }
@@ -102,17 +102,9 @@ final class GemUpgradeGuiRenderer {
                 ? null
                 : plugin.coreItemSourceService().createItem(material.itemSource(), 1);
         if (previewItem != null) {
-            return GuiItemBuilder.apply(previewItem, new ItemComponentParser.ItemComponents(
-                    text("material_name", "<aqua>Upgrade Material</aqua>"),
-                    true,
-                    lore,
-                    null,
-                    null,
-                    Map.of(),
-                    List.of()
-            ), Map.of());
+            return GuiItemBuilder.apply(previewItem, configuredComponents(guiSlot, text("material_name", "<aqua>Upgrade Material</aqua>"), lore), Map.of());
         }
-        return buildItem(guiSlot, Material.BLAZE_POWDER, text("material_name", "<aqua>Upgrade Material</aqua>"), lore);
+        return buildConfiguredItem(guiSlot, Material.BLAZE_POWDER, text("material_name", "<aqua>Upgrade Material</aqua>"), lore);
     }
 
     private ItemStack renderPreview(GemUpgradeGuiSession state, GuiSlot guiSlot) {
@@ -121,7 +113,7 @@ final class GemUpgradeGuiRenderer {
         if (!preview.eligible()) {
             lore.add(text("preview_empty_1", "<gray>Upgrade preview will be shown here</gray>"));
             lore.add(text("preview_empty_2", "<gray>Place a gem to view materials and result</gray>"));
-            return buildItem(guiSlot, Material.WRITABLE_BOOK, text("preview_name", "<gold>Upgrade Preview</gold>"), lore);
+            return buildConfiguredItem(guiSlot, Material.WRITABLE_BOOK, text("preview_name", "<gold>Upgrade Preview</gold>"), lore);
         }
         lore.add(text("result_name", Map.of("gem", plugin.itemFactory().resolveGemDisplayName(preview.definition(), preview.targetLevel())), "<gray>Result item name: <yellow>{gem}</yellow></gray>"));
         List<GemDefinition.CurrencyCost> currencies = !preview.upgradeLevel().currencies().isEmpty()
@@ -141,7 +133,7 @@ final class GemUpgradeGuiRenderer {
         }
         lore.add(text("material_required_hint", "<gray>All upgrade materials must be placed in material slots</gray>"));
         lore.add(text("confirm_update_hint", "<green>Confirming will directly update this gem item</green>"));
-        return buildItem(guiSlot, Material.WRITABLE_BOOK, text("preview_name", "<gold>Upgrade Preview</gold>"), lore);
+        return buildConfiguredItem(guiSlot, Material.WRITABLE_BOOK, text("preview_name", "<gold>Upgrade Preview</gold>"), lore);
     }
 
     private ItemStack renderSuccessRate(GemUpgradeGuiSession state, GuiSlot guiSlot) {
@@ -149,7 +141,7 @@ final class GemUpgradeGuiRenderer {
         List<String> lore = new ArrayList<>();
         if (!preview.eligible()) {
             lore.add(text("success_rate_empty", "<gray>Success rate will be shown after placing a gem</gray>"));
-            return buildItem(guiSlot, Material.EXPERIENCE_BOTTLE, text("success_rate_name", "<gold>Success Rate</gold>"), lore);
+            return buildConfiguredItem(guiSlot, Material.EXPERIENCE_BOTTLE, text("success_rate_name", "<gold>Success Rate</gold>"), lore);
         }
         double successRate = plugin.upgradeService().effectiveSuccessChance(preview.definition(), preview.targetLevel(), preview.upgradeLevel().successChance());
         lore.add(text("success_rate_line", Map.of("rate", successRate), "<gray>Base success rate: <green>{rate}%</green></gray>"));
@@ -159,17 +151,17 @@ final class GemUpgradeGuiRenderer {
                         ? preview.definition().upgrade().failurePenalty()
                         : plugin.appConfig().upgrade().globalFailurePenalty();
         lore.add(text("failure_penalty", Map.of("penalty", failurePenalty), "<gray>Failure penalty: <yellow>{penalty}</yellow></gray>"));
-        return buildItem(guiSlot, Material.EXPERIENCE_BOTTLE, text("success_rate_name", "<gold>Success Rate</gold>"), lore);
+        return buildConfiguredItem(guiSlot, Material.EXPERIENCE_BOTTLE, text("success_rate_name", "<gold>Success Rate</gold>"), lore);
     }
 
     private ItemStack renderConfirm(GemUpgradeGuiSession state, GuiSlot guiSlot) {
         GemUpgradeService.UpgradePreview preview = preview(state);
         if (!preview.eligible()) {
-            return buildItem(guiSlot, Material.BARRIER, text("confirm_disabled_name", "<red>Cannot Upgrade</red>"), List.of(
+            return buildConfiguredItem(guiSlot, Material.BARRIER, text("confirm_disabled_name", "<red>Cannot Upgrade</red>"), List.of(
                     text("confirm_disabled_lore", "<gray>Please satisfy upgrade requirements first</gray>")
             ));
         }
-        return buildItem(guiSlot, Material.LIME_STAINED_GLASS_PANE, text("confirm_name", "<green>Confirm Upgrade</green>"), List.of(
+        return buildConfiguredItem(guiSlot, Material.LIME_STAINED_GLASS_PANE, text("confirm_name", "<green>Confirm Upgrade</green>"), List.of(
                 text("confirm_lore", "<gray>Click to consume GUI materials and try upgrading</gray>"),
                 text("target_level", Map.of("level", preview.targetLevel()), "<gray>Target level: <gold>{level}</gold></gray>")
         ));
@@ -195,25 +187,40 @@ final class GemUpgradeGuiRenderer {
         return Texts.isBlank(shorthand) ? source.getIdentifier() : shorthand;
     }
 
-    private ItemStack buildItem(Material material, String name, List<String> lore) {
-        return buildItem(null, material.name(), name, lore);
+    private ItemStack buildConfiguredItem(GuiSlot slot, Material material, String name, List<String> lore) {
+        return buildConfiguredItem(slot, material.name(), name, lore);
     }
 
-    private ItemStack buildItem(GuiSlot slot, Material material, String name, List<String> lore) {
-        return buildItem(slot, material.name(), name, lore);
-    }
-
-    private ItemStack buildItem(String item, String name, List<String> lore) {
-        return buildItem(null, item, name, lore);
-    }
-
-    private ItemStack buildItem(GuiSlot slot, String item, String name, List<String> lore) {
+    private ItemStack buildConfiguredItem(GuiSlot slot, String item, String name, List<String> lore) {
+        String itemId = Texts.isBlank(slot == null ? null : slot.item()) ? item : slot.item();
         return GuiItemBuilder.build(
-                Texts.isBlank(slot == null ? null : slot.item()) ? item : slot.item(),
-                new ItemComponentParser.ItemComponents(name, true, lore, null, null, Map.of(), List.of()),
+                itemId,
+                configuredComponents(slot, name, lore),
                 1,
                 Map.of(),
                 (source, amount) -> plugin.coreItemSourceService() == null ? null : plugin.coreItemSourceService().createItem(source, amount)
+        );
+    }
+
+    private ItemComponentParser.ItemComponents configuredComponents(GuiSlot slot, String name, List<String> lore) {
+        ItemComponentParser.ItemComponents configured = slot == null ? null : slot.components();
+        if (configured == null) {
+            return new ItemComponentParser.ItemComponents(name, true, lore, null, null, Map.of(), List.of());
+        }
+        boolean hasDisplayNameConfig = configured.displayNameConfig() != null;
+        boolean hasLoreConfig = configured.loreConfig() != null;
+        String displayName = Texts.isBlank(configured.displayName()) && !hasDisplayNameConfig ? name : configured.displayName();
+        boolean loreConfigured = configured.loreConfigured();
+        return new ItemComponentParser.ItemComponents(
+                displayName,
+                true,
+                loreConfigured ? configured.lore() : lore,
+                configured.itemModel(),
+                configured.customModelData(),
+                configured.enchantments(),
+                configured.hiddenComponents(),
+                hasDisplayNameConfig ? configured.displayNameConfig() : null,
+                hasLoreConfig && loreConfigured ? configured.loreConfig() : null
         );
     }
 

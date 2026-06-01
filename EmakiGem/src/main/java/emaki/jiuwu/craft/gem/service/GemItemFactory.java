@@ -1,12 +1,14 @@
 package emaki.jiuwu.craft.gem.service;
 
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 
+import emaki.jiuwu.craft.corelib.gui.GuiItemBuilder;
+import emaki.jiuwu.craft.corelib.gui.ItemComponentParser;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.math.Numbers;
@@ -38,8 +40,10 @@ public final class GemItemFactory {
         if (itemStack == null) {
             return null;
         }
+        int normalizedLevel = Math.max(1, level);
+        itemStack = applyGemPresentation(itemStack, definition, normalizedLevel);
         PDC.set(itemStack, GEM_ITEM_PARTITION, "id", PersistentDataType.STRING, definition.id());
-        PDC.set(itemStack, GEM_ITEM_PARTITION, "level", PersistentDataType.INTEGER, Math.max(1, level));
+        PDC.set(itemStack, GEM_ITEM_PARTITION, "level", PersistentDataType.INTEGER, normalizedLevel);
         PDC.set(itemStack, GEM_ITEM_PARTITION, "updated_at", PersistentDataType.LONG, System.currentTimeMillis());
         return itemStack;
     }
@@ -52,18 +56,37 @@ public final class GemItemFactory {
     }
 
     public Map<String, Object> gemPlaceholders(GemDefinition definition, int level, Integer oldLevel) {
+        int normalizedLevel = Math.max(1, level);
+        int normalizedOldLevel = oldLevel == null ? normalizedLevel : Math.max(1, oldLevel);
         Map<String, Object> placeholders = new LinkedHashMap<>();
         placeholders.put("gem_id", definition == null ? "" : definition.id());
-        placeholders.put("display_name", resolveGemDisplayName(definition, level));
-        placeholders.put("old_display_name", resolveGemDisplayName(definition, oldLevel == null ? level : oldLevel));
-        placeholders.put("current_level", level);
-        placeholders.put("target_level", level);
-        placeholders.put("level", definition == null ? 1 : definition.level());
+        placeholders.put("display_name", resolveGemDisplayName(definition, normalizedLevel));
+        placeholders.put("old_display_name", resolveGemDisplayName(definition, normalizedOldLevel));
+        placeholders.put("current_level", normalizedLevel);
+        placeholders.put("target_level", normalizedLevel);
+        placeholders.put("level", normalizedLevel);
         placeholders.put("gem_type", definition == null ? "universal" : definition.gemType());
         if (definition != null) {
-            definition.statsForLevel(level).forEach((key, value) -> placeholders.put(key, Numbers.formatNumber(value, plugin.appConfig().numberFormat())));
+            definition.statsForLevel(normalizedLevel).forEach((key, value) -> placeholders.put(key, Numbers.formatNumber(value, plugin.appConfig().numberFormat())));
         }
         return placeholders;
+    }
+
+    private ItemStack applyGemPresentation(ItemStack itemStack, GemDefinition definition, int level) {
+        if (itemStack == null || definition == null) {
+            return itemStack;
+        }
+        Map<String, Object> placeholders = gemPlaceholders(definition, level, null);
+        ItemComponentParser.ItemComponents components = new ItemComponentParser.ItemComponents(
+                resolveGemDisplayName(definition, level),
+                !definition.lore().isEmpty(),
+                definition.lore(),
+                null,
+                definition.customModelData(),
+                Map.of(),
+                List.of()
+        );
+        return GuiItemBuilder.apply(itemStack, components, placeholders);
     }
 
     public String resolveGemDisplayName(GemDefinition definition, int level) {

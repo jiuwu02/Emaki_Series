@@ -8,9 +8,9 @@ import java.util.Map;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import emaki.jiuwu.craft.corelib.gui.GuiItemBuilder;
 import emaki.jiuwu.craft.corelib.gui.GuiOpenRequest;
 import emaki.jiuwu.craft.corelib.gui.GuiRenderer;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
@@ -18,9 +18,10 @@ import emaki.jiuwu.craft.corelib.gui.GuiSession;
 import emaki.jiuwu.craft.corelib.gui.GuiSlot;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
+import emaki.jiuwu.craft.corelib.gui.ItemComponentParser;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
-import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.service.MessageService;
+import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.skills.model.PlayerSkillProfile;
 import emaki.jiuwu.craft.skills.model.ResolvedSkillParameters;
 import emaki.jiuwu.craft.skills.model.SkillDefinition;
@@ -152,76 +153,68 @@ public final class SkillsGuiService {
         }
         Player player = session.viewer();
 
+        GuiSlot slot = resolved.definition();
         return switch (type) {
-            case "active_slot" -> renderActiveSlot(player, resolved.slotIndex());
-            case "skill_pool" -> renderSkillPoolSlot(session, player, resolved.slotIndex());
-            case "cast_mode_toggle" -> renderCastModeToggle(player);
-            case "page_info" -> renderPageInfo(session, player);
+            case "active_slot" -> renderActiveSlot(player, slot, resolved.slotIndex());
+            case "skill_pool" -> renderSkillPoolSlot(session, player, slot, resolved.slotIndex());
+            case "cast_mode_toggle" -> renderCastModeToggle(player, slot);
+            case "page_info" -> renderPageInfo(session, player, slot);
             default -> null;
         };
     }
 
-    private ItemStack renderActiveSlot(Player player, int slotIndex) {
+    private ItemStack renderActiveSlot(Player player, GuiSlot slot, int slotIndex) {
         PlayerSkillProfile profile = dataStore.get(player);
         if (profile == null) {
-            return emptySlotItem(slotIndex);
+            return emptySlotItem(slot, slotIndex);
         }
         SkillSlotBinding binding = profile.getBinding(slotIndex);
         if (binding == null || binding.isEmpty()) {
-            return emptySlotItem(slotIndex);
+            return emptySlotItem(slot, slotIndex);
         }
 
         SkillDefinition definition = registryService.getDefinition(binding.skillId());
         if (definition == null) {
-            return emptySlotItem(slotIndex);
+            return emptySlotItem(slot, slotIndex);
         }
 
-        Material icon = resolveIcon(definition.iconMaterial());
-        ItemStack item = new ItemStack(icon);
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null) {
-            ItemTextBridge.customNameText(meta, "<gold>" + definition.displayName());
-
-            List<String> lore = new ArrayList<>();
-            lore.add("<gray>槽位: <white>" + slotIndex);
-
-            String triggerDisplay = "<red>未绑定触发器";
-            if (binding.triggerId() != null && !binding.triggerId().isBlank()) {
-                triggerDisplay = "<green>" + triggerRegistry.getDisplayName(binding.triggerId());
-            }
-            lore.add("<gray>触发器: " + triggerDisplay);
-
-            appendLevelAndParameterLore(lore, player, definition);
-
-            if (definition.cooldownTicks() > 0) {
-                double seconds = definition.cooldownTicks() / 20.0;
-                lore.add("<gray>冷却: <aqua>" + String.format("%.1f", seconds) + "s");
-            }
-
-            lore.add("");
-            lore.add("<yellow>点击 <gray>卸下技能");
-            lore.add("<yellow>Shift+点击 <gray>更换触发器");
-
-            ItemTextBridge.setLoreLines(meta, lore);
-            item.setItemMeta(meta);
+        String triggerDisplay = "<red>未绑定触发器";
+        String triggerPlain = "未绑定触发器";
+        if (binding.triggerId() != null && !binding.triggerId().isBlank()) {
+            String displayName = triggerRegistry.getDisplayName(binding.triggerId());
+            triggerDisplay = "<green>" + displayName;
+            triggerPlain = displayName;
         }
-        return item;
+        List<String> lore = new ArrayList<>();
+        lore.add("<gray>槽位: <white>" + slotIndex);
+        lore.add("<gray>触发器: " + triggerDisplay);
+        appendLevelAndParameterLore(lore, player, definition);
+        if (definition.cooldownTicks() > 0) {
+            lore.add("<gray>冷却: <aqua>" + cooldownSeconds(definition.cooldownTicks()) + "s");
+        }
+        lore.add("");
+        lore.add("<yellow>点击 <gray>卸下技能");
+        lore.add("<yellow>Shift+点击 <gray>更换触发器");
+        Map<String, Object> replacements = activeSlotReplacements(player, slotIndex, definition, binding, triggerPlain);
+        return buildConfiguredItem(slot, definition.iconMaterial(), "<gold>" + definition.displayName(), lore, replacements);
     }
 
-    private ItemStack emptySlotItem(int slotIndex) {
-        ItemStack item = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null) {
-            ItemTextBridge.customNameText(meta, "<gray>空技能槽 <dark_gray>#" + slotIndex);
-            List<String> lore = new ArrayList<>();
-            lore.add("<dark_gray>从技能池中选择技能装备");
-            ItemTextBridge.setLoreLines(meta, lore);
-            item.setItemMeta(meta);
-        }
-        return item;
+    private ItemStack emptySlotItem(GuiSlot slot, int slotIndex) {
+        Map<String, Object> replacements = new LinkedHashMap<>();
+        replacements.put("slot", slotIndex);
+        replacements.put("skill", "空技能槽");
+        replacements.put("skill_id", "");
+        replacements.put("trigger", "未绑定触发器");
+        replacements.put("trigger_id", "");
+        replacements.put("level", 0);
+        replacements.put("max_level", 0);
+        replacements.put("cooldown", "0.0");
+        replacements.put("cooldown_ticks", 0);
+        return buildConfiguredItem(slot, "gray_stained_glass_pane", "<gray>空技能槽 <dark_gray>#" + slotIndex,
+                List.of("<dark_gray>从技能池中选择技能装备"), replacements);
     }
 
-    private ItemStack renderSkillPoolSlot(GuiSession session, Player player, int slotIndex) {
+    private ItemStack renderSkillPoolSlot(GuiSession session, Player player, GuiSlot slot, int slotIndex) {
         int page = SkillsGuiHandler.getPage(session);
         List<UnlockedSkillEntry> unlocked = stateService.getUnlockedActiveSkills(player);
         List<GuiSlot> poolSlots = session.template().slotsByType("skill_pool");
@@ -244,65 +237,42 @@ public final class SkillsGuiService {
 
         boolean equipped = isSkillEquipped(player, entry.skillId());
 
-        Material icon = resolveIcon(definition.iconMaterial());
-        ItemStack item = new ItemStack(icon);
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null) {
-            String nameColor = equipped ? "<gray><strikethrough>" : "<green>";
-            ItemTextBridge.customNameText(meta, nameColor + definition.displayName());
-
-            List<String> lore = new ArrayList<>();
-            for (String line : definition.description()) {
-                lore.add("<gray>" + line);
-            }
-
-            appendLevelAndParameterLore(lore, player, definition);
-
-            if (entry.sourceType() != null) {
-                lore.add("");
-                String sourceLabel = switch (entry.sourceType()) {
-                    case EQUIPMENT -> "<blue>装备";
-                    case PROVIDER -> "<light_purple>外部来源";
-                };
-                lore.add("<dark_gray>来源: " + sourceLabel);
-            }
-
-            if (equipped) {
-                lore.add("");
-                lore.add("<red>已装备");
-            } else {
-                lore.add("");
-                lore.add("<yellow>点击装备到空槽位");
-            }
-
-            ItemTextBridge.setLoreLines(meta, lore);
-            item.setItemMeta(meta);
+        String nameColor = equipped ? "<gray><strikethrough>" : "<green>";
+        List<String> lore = new ArrayList<>();
+        for (String line : definition.description()) {
+            lore.add("<gray>" + line);
         }
-        return item;
+        appendLevelAndParameterLore(lore, player, definition);
+        String sourceLabel = "";
+        if (entry.sourceType() != null) {
+            lore.add("");
+            sourceLabel = switch (entry.sourceType()) {
+                case EQUIPMENT -> "装备";
+                case PROVIDER -> "外部来源";
+            };
+            String coloredSourceLabel = switch (entry.sourceType()) {
+                case EQUIPMENT -> "<blue>装备";
+                case PROVIDER -> "<light_purple>外部来源";
+            };
+            lore.add("<dark_gray>来源: " + coloredSourceLabel);
+        }
+        lore.add("");
+        lore.add(equipped ? "<red>已装备" : "<yellow>点击装备到空槽位");
+        Map<String, Object> replacements = skillPoolReplacements(player, definition, entry, equipped, sourceLabel);
+        return buildConfiguredItem(slot, definition.iconMaterial(), nameColor + definition.displayName(), lore, replacements);
     }
 
-    private ItemStack renderCastModeToggle(Player player) {
+    private ItemStack renderCastModeToggle(Player player, GuiSlot slot) {
         boolean enabled = castModeService.isCastModeEnabled(player);
-        Material material = enabled ? Material.LIME_DYE : Material.GRAY_DYE;
-        ItemStack item = new ItemStack(material);
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null) {
-            String state = enabled ? "<green>开启" : "<red>关闭";
-            ItemTextBridge.customNameText(meta, "<gold>施法模式: " + state);
-            List<String> lore = new ArrayList<>();
-            lore.add("<gray>点击切换施法模式");
-            if (enabled) {
-                lore.add("<green>当前: 施法模式已激活");
-            } else {
-                lore.add("<red>当前: 施法模式未激活");
-            }
-            ItemTextBridge.setLoreLines(meta, lore);
-            item.setItemMeta(meta);
-        }
-        return item;
+        String state = enabled ? "<green>开启" : "<red>关闭";
+        List<String> lore = new ArrayList<>();
+        lore.add("<gray>点击切换施法模式");
+        lore.add(enabled ? "<green>当前: 施法模式已激活" : "<red>当前: 施法模式未激活");
+        return buildConfiguredItem(slot, enabled ? "lime_dye" : "gray_dye", "<gold>施法模式: " + state, lore,
+                Map.of("state", enabled ? "开启" : "关闭", "enabled", enabled));
     }
 
-    private ItemStack renderPageInfo(GuiSession session, Player player) {
+    private ItemStack renderPageInfo(GuiSession session, Player player, GuiSlot slot) {
         int page = SkillsGuiHandler.getPage(session);
         List<UnlockedSkillEntry> unlocked = stateService.getUnlockedActiveSkills(player);
         List<GuiSlot> poolSlots = session.template().slotsByType("skill_pool");
@@ -313,16 +283,15 @@ public final class SkillsGuiService {
         poolSize = Math.max(1, poolSize);
         int totalPages = Math.max(1, (int) Math.ceil((double) unlocked.size() / poolSize));
 
-        ItemStack item = new ItemStack(Material.PAPER);
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null) {
-            ItemTextBridge.customNameText(meta, "<gold>页码: <white>" + (page + 1) + " / " + totalPages);
-            List<String> lore = new ArrayList<>();
-            lore.add("<gray>已解锁技能: <white>" + unlocked.size());
-            ItemTextBridge.setLoreLines(meta, lore);
-            item.setItemMeta(meta);
-        }
-        return item;
+        Map<String, Object> replacements = Map.of(
+                "current_page", page + 1,
+                "total_pages", totalPages,
+                "page", page + 1,
+                "pages", totalPages,
+                "unlocked_count", unlocked.size()
+        );
+        return buildConfiguredItem(slot, "paper", "<gold>页码: <white>" + (page + 1) + " / " + totalPages,
+                List.of("<gray>已解锁技能: <white>" + unlocked.size()), replacements);
     }
 
 
@@ -344,12 +313,12 @@ public final class SkillsGuiService {
         }
 
         if ("trigger_option".equals(type)) {
-            return renderTriggerOption(player, resolved.slotIndex(), targetSlot);
+            return renderTriggerOption(player, resolved.definition(), resolved.slotIndex(), targetSlot);
         }
         return null;
     }
 
-    private ItemStack renderTriggerOption(Player player, int slotIndex, int targetSlot) {
+    private ItemStack renderTriggerOption(Player player, GuiSlot slot, int slotIndex, int targetSlot) {
         List<SkillTriggerDefinition> enabledTriggers = getEnabledTriggers();
         if (slotIndex < 0 || slotIndex >= enabledTriggers.size()) {
             return new ItemStack(Material.AIR);
@@ -369,58 +338,43 @@ public final class SkillsGuiService {
             }
         }
 
-        Material material;
-        if (currentlyBound) {
-            material = Material.YELLOW_STAINED_GLASS_PANE;
+        String fallbackItem;
+        if (Texts.isNotBlank(trigger.material()) && ItemSourceUtil.resolveVanillaMaterial(trigger.material()) != null) {
+            fallbackItem = trigger.material();
+        } else if (currentlyBound) {
+            fallbackItem = "yellow_stained_glass_pane";
         } else if (hasConflict) {
-            material = Material.RED_STAINED_GLASS_PANE;
+            fallbackItem = "red_stained_glass_pane";
         } else {
-            material = Material.LIME_STAINED_GLASS_PANE;
+            fallbackItem = "lime_stained_glass_pane";
         }
 
-        if (trigger.material() != null && !trigger.material().isBlank()) {
-            Material triggerMat = ItemSourceUtil.resolveVanillaMaterial(trigger.material());
-            if (triggerMat != null) {
-                material = triggerMat;
-            }
+        String nameColor = hasConflict ? "<red>" : (currentlyBound ? "<yellow>" : "<green>");
+        List<String> lore = new ArrayList<>();
+        if (Texts.isNotBlank(trigger.description())) {
+            lore.add("<gray>" + trigger.description());
+        }
+        lore.add("");
+        if (currentlyBound) {
+            lore.add("<yellow>当前已绑定");
+        } else if (hasConflict) {
+            lore.add("<red>存在冲突: " + conflict);
+        } else {
+            lore.add("<green>点击绑定此触发器");
         }
 
-        ItemStack item = new ItemStack(material);
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null) {
-            String nameColor = hasConflict ? "<red>" : (currentlyBound ? "<yellow>" : "<green>");
-            ItemTextBridge.customNameText(meta, nameColor + trigger.displayName());
-
-            List<String> lore = new ArrayList<>();
-            if (trigger.description() != null && !trigger.description().isBlank()) {
-                lore.add("<gray>" + trigger.description());
-            }
-
-            if (currentlyBound) {
-                lore.add("");
-                lore.add("<yellow>当前已绑定");
-            } else if (hasConflict) {
-                lore.add("");
-                lore.add("<red>存在冲突: " + conflict);
-            } else {
-                lore.add("");
-                lore.add("<green>点击绑定此触发器");
-            }
-
-            ItemTextBridge.setLoreLines(meta, lore);
-            item.setItemMeta(meta);
-        }
-        return item;
+        Map<String, Object> replacements = Map.of(
+                "target_slot", targetSlot,
+                "trigger", trigger.displayName(),
+                "trigger_id", trigger.id(),
+                "description", Texts.toStringSafe(trigger.description()),
+                "conflict", Texts.toStringSafe(conflict),
+                "bound", currentlyBound,
+                "available", !currentlyBound && !hasConflict
+        );
+        return buildConfiguredItem(slot, fallbackItem, nameColor + trigger.displayName(), lore, replacements);
     }
 
-
-    private Material resolveIcon(String iconMaterial) {
-        if (iconMaterial == null || iconMaterial.isBlank()) {
-            return Material.NETHER_STAR;
-        }
-        Material material = ItemSourceUtil.resolveVanillaMaterial(iconMaterial);
-        return material != null ? material : Material.NETHER_STAR;
-    }
 
     private boolean isSkillEquipped(Player player, String skillId) {
         PlayerSkillProfile profile = dataStore.get(player);
@@ -472,5 +426,91 @@ public final class SkillsGuiService {
                 break;
             }
         }
+    }
+
+    private ItemStack buildConfiguredItem(GuiSlot slot,
+            String fallbackItem,
+            String fallbackName,
+            List<String> fallbackLore,
+            Map<String, ?> replacements) {
+        ItemComponentParser.ItemComponents fallbackComponents = new ItemComponentParser.ItemComponents(
+                fallbackName,
+                true,
+                fallbackLore == null ? List.of() : fallbackLore,
+                null,
+                null,
+                Map.of(),
+                List.of()
+        );
+        ItemComponentParser.ItemComponents components = hasConfiguredComponents(slot)
+                ? slot.components()
+                : fallbackComponents;
+        String configuredItem = slot == null ? null : slot.item();
+        String item = Texts.isBlank(configuredItem) ? fallbackItem : configuredItem;
+        return GuiItemBuilder.build(
+                Texts.isBlank(item) ? "nether_star" : item,
+                components,
+                1,
+                replacements == null ? Map.of() : replacements,
+                null
+        );
+    }
+
+    private boolean hasConfiguredComponents(GuiSlot slot) {
+        if (slot == null || slot.components() == null) {
+            return false;
+        }
+        ItemComponentParser.ItemComponents components = slot.components();
+        return Texts.isNotBlank(components.displayName())
+                || components.displayNameConfig() != null
+                || components.loreConfigured()
+                || Texts.isNotBlank(components.itemModel())
+                || components.customModelData() != null
+                || !components.enchantments().isEmpty()
+                || !components.hiddenComponents().isEmpty();
+    }
+
+    private Map<String, Object> activeSlotReplacements(Player player,
+            int slotIndex,
+            SkillDefinition definition,
+            SkillSlotBinding binding,
+            String triggerDisplay) {
+        Map<String, Object> replacements = baseSkillReplacements(player, definition);
+        replacements.put("slot", slotIndex);
+        replacements.put("trigger", triggerDisplay);
+        replacements.put("trigger_id", binding == null ? "" : Texts.toStringSafe(binding.triggerId()));
+        return replacements;
+    }
+
+    private Map<String, Object> skillPoolReplacements(Player player,
+            SkillDefinition definition,
+            UnlockedSkillEntry entry,
+            boolean equipped,
+            String sourceLabel) {
+        Map<String, Object> replacements = baseSkillReplacements(player, definition);
+        replacements.put("equipped", equipped);
+        replacements.put("source", sourceLabel == null ? "" : sourceLabel);
+        replacements.put("source_type", entry == null || entry.sourceType() == null ? "" : entry.sourceType().name().toLowerCase(java.util.Locale.ROOT));
+        return replacements;
+    }
+
+    private Map<String, Object> baseSkillReplacements(Player player, SkillDefinition definition) {
+        Map<String, Object> replacements = new LinkedHashMap<>();
+        if (definition == null) {
+            return replacements;
+        }
+        replacements.put("skill", definition.displayName());
+        replacements.put("skill_id", definition.id());
+        replacements.put("cooldown", cooldownSeconds(definition.cooldownTicks()));
+        replacements.put("cooldown_ticks", definition.cooldownTicks());
+        int level = skillLevelService == null || player == null ? 1 : skillLevelService.currentLevel(player, definition);
+        int maxLevel = skillLevelService == null ? 1 : skillLevelService.maxLevel(definition);
+        replacements.put("level", level);
+        replacements.put("max_level", maxLevel);
+        return replacements;
+    }
+
+    private String cooldownSeconds(long cooldownTicks) {
+        return String.format(java.util.Locale.ROOT, "%.1f", cooldownTicks / 20.0D);
     }
 }
