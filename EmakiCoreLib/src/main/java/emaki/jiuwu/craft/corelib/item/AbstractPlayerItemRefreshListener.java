@@ -16,12 +16,13 @@ import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.scheduler.BukkitTask;
+
+import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 
 public abstract class AbstractPlayerItemRefreshListener implements Listener {
 
     private final JavaPlugin plugin;
-    private final Map<UUID, BukkitTask> scheduledRefreshes = new HashMap<>();
+    private final Map<UUID, Object> scheduledRefreshes = new HashMap<>();
 
     protected AbstractPlayerItemRefreshListener(JavaPlugin plugin) {
         this.plugin = Objects.requireNonNull(plugin, "plugin");
@@ -70,9 +71,9 @@ public abstract class AbstractPlayerItemRefreshListener implements Listener {
 
     @EventHandler
     public final void onQuit(PlayerQuitEvent event) {
-        BukkitTask task = scheduledRefreshes.remove(event.getPlayer().getUniqueId());
+        Object task = scheduledRefreshes.remove(event.getPlayer().getUniqueId());
         if (task != null) {
-            task.cancel();
+            FoliaSchedulerAdapter.cancelTask(task);
         }
     }
 
@@ -84,7 +85,7 @@ public abstract class AbstractPlayerItemRefreshListener implements Listener {
         if (scheduledRefreshes.containsKey(playerId)) {
             return;
         }
-        BukkitTask task = plugin.getServer().getScheduler().runTask(plugin, () -> {
+        Object task = FoliaSchedulerAdapter.runTask(plugin, () -> {
             scheduledRefreshes.remove(playerId);
             if (!player.isOnline()) {
                 return;

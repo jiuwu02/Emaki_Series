@@ -18,8 +18,8 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.spigotmc</groupId>
-            <artifactId>spigot-api</artifactId>
+            <groupId>dev.folia</groupId>
+            <artifactId>folia-api</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>

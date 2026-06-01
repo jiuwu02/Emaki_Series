@@ -11,6 +11,7 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.ItemStack;
 
+import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.gui.GuiSession;
 import emaki.jiuwu.craft.corelib.gui.GuiSessionHandler;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
@@ -192,7 +193,7 @@ final class ForgeGuiInteractionController {
                 finalRecipe,
                 snapshot,
                 preparedForge
-        ).whenComplete((result, throwable) -> plugin.getServer().getScheduler().runTask(
+        ).whenComplete((result, throwable) -> FoliaSchedulerAdapter.runTask(
                 plugin,
                 () -> completeForgeAttempt(state, finalRecipe, firstCraft, result, throwable)
         ));

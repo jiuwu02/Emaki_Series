@@ -12,7 +12,6 @@ import java.util.function.Consumer;
 import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.scheduler.BukkitTask;
 
 import emaki.jiuwu.craft.attribute.bridge.ServiceBackedEmakiAttributeBridge;
 import emaki.jiuwu.craft.attribute.bridge.MythicBridge;
@@ -33,6 +32,7 @@ import emaki.jiuwu.craft.attribute.service.MessageService;
 import emaki.jiuwu.craft.attribute.service.PdcAttributeService;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
+import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.api.integration.EmakiAttributeBridge;
 import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
@@ -110,7 +110,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         }
     }
 
-    public BukkitTask reload(EmakiAttributePlugin plugin, BukkitTask currentTask, boolean resyncPlayers) {
+    public Object reload(EmakiAttributePlugin plugin, Object currentTask, boolean resyncPlayers) {
         if (plugin.languageLoader() != null) {
             plugin.languageLoader().load();
         }
@@ -142,8 +142,8 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         return rescheduleRegenTask(plugin, currentTask);
     }
 
-    public CompletableFuture<BukkitTask> reloadAsync(EmakiAttributePlugin plugin,
-            BukkitTask currentTask,
+    public CompletableFuture<Object> reloadAsync(EmakiAttributePlugin plugin,
+            Object currentTask,
             boolean resyncPlayers,
             Consumer<String> progressListener) {
         AsyncTaskScheduler scheduler = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).asyncTaskScheduler();
@@ -234,19 +234,19 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
             if (plugin.attributeService() != null && resyncPlayers) {
                 plugin.attributeService().resyncAllPlayers();
             }
-            BukkitTask nextTask = rescheduleRegenTask(plugin, currentTask);
+            Object nextTask = rescheduleRegenTask(plugin, currentTask);
             notifyProgress(progressListener, "EmakiAttribute 重载完成。");
             return nextTask;
         }));
     }
 
-    public BukkitTask rescheduleRegenTask(EmakiAttributePlugin plugin, BukkitTask currentTask) {
-        BukkitTask nextTask = cancelRegenTask(currentTask);
+    public Object rescheduleRegenTask(EmakiAttributePlugin plugin, Object currentTask) {
+        Object nextTask = cancelRegenTask(currentTask);
         if (plugin.attributeService() == null) {
             return nextTask;
         }
         int intervalTicks = Math.max(1, plugin.configModel().regenIntervalTicks());
-        return plugin.getServer().getScheduler().runTaskTimer(
+        return FoliaSchedulerAdapter.runTaskTimer(
                 plugin,
                 plugin.attributeService()::regenerateOnlinePlayers,
                 intervalTicks,
@@ -254,14 +254,14 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         );
     }
 
-    public BukkitTask cancelRegenTask(BukkitTask currentTask) {
+    public Object cancelRegenTask(Object currentTask) {
         if (currentTask != null) {
-            currentTask.cancel();
+            FoliaSchedulerAdapter.cancelTask(currentTask);
         }
         return null;
     }
 
-    public void shutdown(EmakiAttributePlugin plugin, BukkitTask currentTask) {
+    public void shutdown(EmakiAttributePlugin plugin, Object currentTask) {
         cancelRegenTask(currentTask);
         if (plugin.attributeService() != null) {
             plugin.attributeService().shutdown();

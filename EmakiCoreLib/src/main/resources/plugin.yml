@@ -3,6 +3,7 @@ prefix: ${project.name}
 main: emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin
 version: ${project.version}
 api-version: "1.21"
+folia-supported: true
 author: JiuWu
 description: Shared native Java core library for Emaki plugins
 libraries:

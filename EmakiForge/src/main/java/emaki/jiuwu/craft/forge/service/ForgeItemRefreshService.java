@@ -16,6 +16,7 @@ import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerSnapshot;
 import emaki.jiuwu.craft.corelib.assembly.ItemOperationLedger;
+import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.item.PlayerItemRefreshService;
 import emaki.jiuwu.craft.corelib.math.Numbers;
@@ -43,16 +44,15 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
     }
 
     public void refreshOnlinePlayers() {
-        if (!Bukkit.isPrimaryThread()) {
-            plugin.getServer().getScheduler().runTask(plugin, this::refreshOnlinePlayers);
-            return;
-        }
-        synchronized (warningCache) {
-            warningCache.clear();
-        }
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            refreshPlayerInventory(player);
-        }
+        // Ensure execution on appropriate thread/region
+        FoliaSchedulerAdapter.runTask(plugin, () -> {
+            synchronized (warningCache) {
+                warningCache.clear();
+            }
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                refreshPlayerInventory(player);
+            }
+        });
     }
 
     @Override

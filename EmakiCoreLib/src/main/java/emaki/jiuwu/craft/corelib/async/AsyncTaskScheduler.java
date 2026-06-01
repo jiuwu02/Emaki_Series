@@ -130,11 +130,7 @@ public final class AsyncTaskScheduler implements AutoCloseable {
                 runnable.run();
                 return;
             }
-            if (Bukkit.isPrimaryThread()) {
-                runnable.run();
-                return;
-            }
-            plugin.getServer().getScheduler().runTask(plugin, runnable);
+            FoliaSchedulerAdapter.runTask(plugin, runnable);
         };
         int threads = Math.max(2, Runtime.getRuntime().availableProcessors() / 2);
         return new AsyncTaskScheduler(sync, threads, DEFAULT_TIMEOUT_MILLIS, threadPrefix, performanceMonitor);
@@ -149,11 +145,7 @@ public final class AsyncTaskScheduler implements AutoCloseable {
                 runnable.run();
                 return;
             }
-            if (Bukkit.isPrimaryThread()) {
-                runnable.run();
-                return;
-            }
-            plugin.getServer().getScheduler().runTask(plugin, runnable);
+            FoliaSchedulerAdapter.runTask(plugin, runnable);
         };
         int threads = Math.max(2, Runtime.getRuntime().availableProcessors() / 2);
         return new AsyncTaskScheduler(sync, threads, DEFAULT_TIMEOUT_MILLIS, threadPrefix, performanceMonitor, true);

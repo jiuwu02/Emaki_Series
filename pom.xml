@@ -45,9 +45,12 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>25</maven.compiler.source>
+        <maven.compiler.target>25</maven.compiler.target>
         <maven.compiler.release>25</maven.compiler.release>
+        <java.version>25</java.version>
         <emaki.corelib.version>4.0.0</emaki.corelib.version>
-        <spigot.api.version>1.21.11-R0.1-SNAPSHOT</spigot.api.version>
+        <folia.api.version>1.21.11-R0.1-SNAPSHOT</folia.api.version>
         <adventure.version>4.26.1</adventure.version>
         <adventure.platform.version>4.4.1</adventure.platform.version>
         <exp4j.version>0.4.8</exp4j.version>
@@ -60,7 +63,6 @@
         <nightcore.version>2.14.0</nightcore.version>
         <placeholderapi.version>2.12.2</placeholderapi.version>
         <mmoitems.version>6.10.1-SNAPSHOT</mmoitems.version>
-        <craftengine.version>26.5-SNAPSHOT</craftengine.version>
         <itemsadder.version>4.0.10</itemsadder.version>
         <nexo.version>1.21.0</nexo.version>
         <neigeitems.version>1.21.142</neigeitems.version>
@@ -88,9 +90,9 @@
                 <version>${boosted.yaml.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.spigotmc</groupId>
-                <artifactId>spigot-api</artifactId>
-                <version>${spigot.api.version}</version>
+                <groupId>dev.folia</groupId>
+                <artifactId>folia-api</artifactId>
+                <version>${folia.api.version}</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
@@ -167,8 +169,20 @@
             </dependency>
             <dependency>
                 <groupId>net.momirealms</groupId>
+                <artifactId>craft-engine-core</artifactId>
+                <version>26.6</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>net.momirealms</groupId>
+                <artifactId>craft-engine-bukkit</artifactId>
+                <version>26.6</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>net.momirealms</groupId>
                 <artifactId>craft-engine-dev</artifactId>
-                <version>${craftengine.version}</version>
+                <version>26.6</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
@@ -221,6 +235,10 @@
     </dependencyManagement>
 
     <repositories>
+        <repository>
+            <id>papermc</id>
+            <url>https://repo.papermc.io/repository/maven-public/</url>
+        </repository>
         <repository>
             <id>phoenix</id>
             <url>https://nexus.phoenixdevt.fr/repository/maven-public/</url>
@@ -279,8 +297,12 @@
                     <artifactId>maven-compiler-plugin</artifactId>
                     <version>3.13.0</version>
                     <configuration>
+                        <source>${maven.compiler.source}</source>
+                        <target>${maven.compiler.target}</target>
                         <release>${maven.compiler.release}</release>
                         <proc>none</proc>
+                        <fork>true</fork>
+                        <executable>C:\jdk-25.0.1+8\bin\javac</executable>
                     </configuration>
                 </plugin>
                 <plugin>

@@ -22,6 +22,7 @@ import emaki.jiuwu.craft.attribute.model.AttributeValueKind;
 import emaki.jiuwu.craft.attribute.model.ResourceDefinition;
 import emaki.jiuwu.craft.attribute.model.ResourceState;
 import emaki.jiuwu.craft.attribute.model.ResourceSyncReason;
+import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 
 final class ResourceManagementService {
 
@@ -105,7 +106,7 @@ final class ResourceManagementService {
         if (!pendingEquipmentSyncs.add(playerId)) {
             return;
         }
-        service.plugin().getServer().getScheduler().runTaskLater(
+        FoliaSchedulerAdapter.runTaskLater(
                 service.plugin(),
                 () -> {
                     try {
@@ -306,7 +307,7 @@ final class ResourceManagementService {
             return;
         }
         UUID playerId = player.getUniqueId();
-        service.plugin().getServer().getScheduler().runTaskLater(
+        FoliaSchedulerAdapter.runTaskLater(
                 service.plugin(),
                 () -> {
                     Player online = Bukkit.getPlayer(playerId);
@@ -323,7 +324,7 @@ final class ResourceManagementService {
             return;
         }
         UUID entityId = entity.getUniqueId();
-        service.plugin().getServer().getScheduler().runTaskLater(
+        FoliaSchedulerAdapter.runTaskLater(
                 service.plugin(),
                 () -> {
                     Entity current = Bukkit.getEntity(entityId);

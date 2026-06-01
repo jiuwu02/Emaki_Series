@@ -8,6 +8,7 @@ import org.graalvm.polyglot.HostAccess;
 
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.action.ActionExecutor;
+import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.script.ScriptConfig;
 
 public final class EmakiScriptApi {
@@ -43,7 +44,8 @@ public final class EmakiScriptApi {
     /**
      * Schedules a task to run on the main server thread.
      * Use this when calling Bukkit API from an async script execution context.
-     * The task is dispatched via BukkitScheduler.runTask and executes on the next tick.
+     * The task is dispatched via the scheduler and executes on the next tick.
+     * On Folia, this uses the global region scheduler.
      *
      * @param task the Runnable to execute on the main thread
      */
@@ -52,20 +54,18 @@ public final class EmakiScriptApi {
         if (task == null) {
             return;
         }
-        if (Bukkit.isPrimaryThread()) {
-            task.run();
-            return;
-        }
         if (sourcePlugin == null || !sourcePlugin.isEnabled()) {
             task.run();
             return;
         }
-        Bukkit.getScheduler().runTask(sourcePlugin, task);
+        // Always use scheduler for consistency across Spigot and Folia
+        FoliaSchedulerAdapter.runTask(sourcePlugin, task);
     }
 
     /**
      * Schedules a task on the main thread and returns a CompletableFuture that completes
      * when the task finishes. Useful for scripts that need to await a sync result.
+     * On Folia, this uses the global region scheduler.
      *
      * @param task the Runnable to execute on the main thread
      * @return a CompletableFuture that completes when the task is done
@@ -75,17 +75,14 @@ public final class EmakiScriptApi {
         if (task == null) {
             return CompletableFuture.completedFuture(null);
         }
-        if (Bukkit.isPrimaryThread()) {
-            task.run();
-            return CompletableFuture.completedFuture(null);
-        }
         CompletableFuture<Void> future = new CompletableFuture<>();
         if (sourcePlugin == null || !sourcePlugin.isEnabled()) {
             task.run();
             future.complete(null);
             return future;
         }
-        Bukkit.getScheduler().runTask(sourcePlugin, () -> {
+        // Always use scheduler for consistency across Spigot and Folia
+        FoliaSchedulerAdapter.runTask(sourcePlugin, () -> {
             try {
                 task.run();
                 future.complete(null);

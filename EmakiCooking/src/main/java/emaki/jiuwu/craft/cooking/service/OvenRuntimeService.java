@@ -14,6 +14,7 @@ import emaki.jiuwu.craft.cooking.model.StationBreakContext;
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationInteraction;
 import emaki.jiuwu.craft.cooking.model.StationType;
+import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
@@ -29,7 +30,6 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.scheduler.BukkitTask;
 
 public final class OvenRuntimeService implements Listener {
 
@@ -48,8 +48,8 @@ public final class OvenRuntimeService implements Listener {
     private final Map<StationCoordinates, OvenState> runtimeStates = new ConcurrentHashMap<>();
     private final Set<StationCoordinates> activeStations = ConcurrentHashMap.newKeySet();
     private final Set<StationCoordinates> dirtyStations = ConcurrentHashMap.newKeySet();
-    private BukkitTask tickerTask;
-    private BukkitTask flushTask;
+    private Object tickerTask;
+    private Object flushTask;
 
     public OvenRuntimeService(EmakiCookingPlugin plugin,
             MessageService messageService,
@@ -277,10 +277,10 @@ public final class OvenRuntimeService implements Listener {
             cancelTicker();
             return;
         }
-        if (tickerTask != null && !tickerTask.isCancelled()) {
+        if (tickerTask != null) {
             return;
         }
-        tickerTask = plugin.getServer().getScheduler().runTaskTimer(plugin, this::tick, 20L, 20L);
+        tickerTask = FoliaSchedulerAdapter.runTaskTimer(plugin, this::tick, 20L, 20L);
     }
 
     private void ensureFlushTask() {
@@ -288,10 +288,10 @@ public final class OvenRuntimeService implements Listener {
             cancelFlushTask();
             return;
         }
-        if (flushTask != null && !flushTask.isCancelled()) {
+        if (flushTask != null) {
             return;
         }
-        flushTask = plugin.getServer().getScheduler().runTaskTimer(
+        flushTask = FoliaSchedulerAdapter.runTaskTimer(
                 plugin,
                 this::flushDirtyStates,
                 DIRTY_FLUSH_INTERVAL_TICKS,
@@ -301,14 +301,14 @@ public final class OvenRuntimeService implements Listener {
 
     private void cancelTicker() {
         if (tickerTask != null) {
-            tickerTask.cancel();
+            FoliaSchedulerAdapter.cancelTask(tickerTask);
             tickerTask = null;
         }
     }
 
     private void cancelFlushTask() {
         if (flushTask != null) {
-            flushTask.cancel();
+            FoliaSchedulerAdapter.cancelTask(flushTask);
             flushTask = null;
         }
     }

@@ -24,6 +24,7 @@ import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerSp
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.cooking.service.CookingSettingsService;
+import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -36,7 +37,6 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Transformation;
 
 public final class PacketEventsCookingDisplayService implements CookingDisplayService {
@@ -49,14 +49,14 @@ public final class PacketEventsCookingDisplayService implements CookingDisplaySe
     private final Map<String, VirtualDisplay> displays = new LinkedHashMap<>();
     private final Map<String, Set<String>> displaysByStation = new LinkedHashMap<>();
     private final DisplayVisibilityListener listener = new DisplayVisibilityListener();
-    private final BukkitTask refreshTask;
+    private final Object refreshTask;
 
     public PacketEventsCookingDisplayService(JavaPlugin plugin, CookingSettingsService settingsService) {
         this.plugin = plugin;
         this.settingsService = settingsService;
         plugin.getServer().getPluginManager().registerEvents(listener, plugin);
         int interval = settingsService.displayEntitiesRefreshIntervalTicks();
-        refreshTask = Bukkit.getScheduler().runTaskTimer(plugin, this::refreshAll, interval, interval);
+        refreshTask = FoliaSchedulerAdapter.runTaskTimer(plugin, this::refreshAll, interval, interval);
     }
 
     static boolean isRuntimeSupported() {
@@ -117,7 +117,7 @@ public final class PacketEventsCookingDisplayService implements CookingDisplaySe
 
     @Override
     public void shutdown() {
-        refreshTask.cancel();
+        FoliaSchedulerAdapter.cancelTask(refreshTask);
         HandlerList.unregisterAll(listener);
         for (VirtualDisplay display : Set.copyOf(displays.values())) {
             destroyForAllVisible(display);
@@ -313,7 +313,7 @@ public final class PacketEventsCookingDisplayService implements CookingDisplaySe
         }
 
         private void scheduleRefresh() {
-            Bukkit.getScheduler().runTask(plugin, PacketEventsCookingDisplayService.this::refreshAll);
+            FoliaSchedulerAdapter.runTask(plugin, PacketEventsCookingDisplayService.this::refreshAll);
         }
     }
 

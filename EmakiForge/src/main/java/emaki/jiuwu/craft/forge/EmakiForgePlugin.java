@@ -2,7 +2,6 @@ package emaki.jiuwu.craft.forge;
 
 import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
-import org.bukkit.scheduler.BukkitTask;
 
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
@@ -58,7 +57,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     private ForgeGuiService forgeGuiService;
     private RecipeBookGuiService recipeBookGuiService;
     private ForgePlaceholderExpansion placeholderExpansion;
-    private BukkitTask autoSaveTask;
+    private Object autoSaveTask;
 
     public EmakiForgePlugin() {
         super(AppConfig::defaults);
