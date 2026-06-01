@@ -447,7 +447,7 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
         <InspectorSection className="material-palette" title={t('core.gui.materialSource')} meta={`MC ${MINECRAFT_MATERIAL_VERSION} · ${t('core.config.groupItems', { count: materialResults.length })}`}>
           <input aria-label={t('core.gui.materialSearch')} placeholder={t('core.gui.materialPlaceholder')} value={query} onChange={(e) => setQuery(e.target.value)} />
           <div className="material-tabs">
-            {(['全部', ...MATERIAL_CATEGORIES] as const).map((entry) => <button key={entry} className={category === entry ? 'active' : ''} onClick={() => setCategory(entry)}>{entry === '全部' ? t('core.gui.materialAll') : entry}</button>)}
+            {(['全部', ...MATERIAL_CATEGORIES] as const).map((entry) => <button key={entry} className={category === entry ? 'active' : ''} onClick={() => setCategory(entry)}>{entry === '全部' ? t('core.gui.materialAll') : t(`core.material.category.${entry}`, undefined, entry)}</button>)}
           </div>
           <div className="material-list">
             {visibleMaterials.map((material) => <button key={material} draggable onDragStart={(e) => e.dataTransfer.setData('text/material', material)} onClick={() => assignMaterial(material)} title={material}>

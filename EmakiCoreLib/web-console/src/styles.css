@@ -285,6 +285,7 @@ select {
   width: 100%;
   color: var(--text);
   font-size: 12px;
+  font-weight: 400;
   line-height: 1.2;
   transition: border-color 0.15s ease, background 0.15s ease;
 }
@@ -1703,6 +1704,91 @@ textarea {
   display: inline-flex;
 }
 
+.editor-shortcut-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.editor-shortcut-button {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--faint);
+  cursor: pointer;
+  transition: color .12s, border-color .12s, background .12s;
+}
+
+.editor-shortcut-button svg {
+  width: 15px;
+  height: 15px;
+}
+
+.editor-shortcut-button:hover,
+.editor-shortcut-wrap:focus-within .editor-shortcut-button {
+  color: var(--accent);
+  border-color: var(--line-2);
+  background: var(--surface-2);
+}
+
+.editor-shortcut-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 40;
+  width: max-content;
+  max-width: min(320px, calc(100vw - 32px));
+  border: 1px solid var(--line-2);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  border-radius: 8px;
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.editor-shortcut-popover strong {
+  color: var(--text);
+  font-size: 12px;
+}
+
+.editor-shortcut-popover dl {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+
+.editor-shortcut-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.editor-shortcut-row dt {
+  margin: 0;
+}
+
+.editor-shortcut-row dd {
+  margin: 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.editor-shortcut-row kbd {
+  font-family: ui-monospace, "Cascadia Code", monospace;
+  font-size: 11px;
+  color: var(--text);
+  background: var(--input);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 1px 6px;
+  white-space: nowrap;
+}
+
 .editor-change-popover {
   position: absolute;
   top: calc(100% + 8px);
@@ -1934,6 +2020,17 @@ textarea {
   color: var(--red);
   padding: 8px 16px;
   font-size: 11px;
+}
+
+.editor-source-error-line {
+  display: inline-block;
+  margin-right: 8px;
+  padding: 1px 6px;
+  border: 1px solid var(--danger-line);
+  border-radius: 4px;
+  font-family: ui-monospace, "Cascadia Code", monospace;
+  font-size: 10px;
+  color: var(--danger-ink);
 }
 
 /* Source modal editor */
@@ -4905,19 +5002,49 @@ textarea {
 }
 
 .prop-label {
-  display: block;
+  display: flex;
+  align-items: center;
   font-size: 11px;
   color: var(--faint);
   padding-top: 7px;
   text-align: left;
-  white-space: nowrap;
+  cursor: default;
+}
+
+.prop-label-text {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  cursor: default;
+  white-space: nowrap;
 }
 
 .prop-row:focus-within .prop-label {
   color: var(--muted);
+}
+
+.prop-help {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 13px;
+  height: 13px;
+  margin-left: 5px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--faint);
+  cursor: help;
+  vertical-align: baseline;
+  transition: color .12s, border-color .12s;
+}
+
+.prop-help:hover,
+.prop-help:focus-visible {
+  color: var(--accent);
+  border-color: var(--accent);
+  outline: none;
 }
 
 .prop-row.changed {
@@ -5160,12 +5287,10 @@ textarea {
   min-height: 44px;
 }
 
-/* Variables map editor: reuses the .prop-level-* row pattern. A hairline rail
-   plus left inset signals the nested level without a second card. */
+/* Variables map editor: reuses the .prop-level-* row pattern. Each entry is a
+   complete bordered box (matching the action editor), so no extra rail. */
 .variables-map-editor {
-  padding: 2px 0 2px 10px;
-  border-left: 1px solid var(--line);
-  margin-left: 2px;
+  padding: 2px 0;
 }
 
 .variables-map-editor .prop-level-badge {

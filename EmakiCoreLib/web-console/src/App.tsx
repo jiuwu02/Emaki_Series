@@ -1,7 +1,7 @@
 import { Component, memo, startTransition, useDeferredValue, useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react';
 import type { Completion, CompletionContext, CompletionResult, CompletionSource } from '@codemirror/autocomplete';
 import type { ComponentType } from 'react';
-import { ApiClient } from './api';
+import { ApiClient, ApiError } from './api';
 import { GuiEditorSurface } from './GuiEditorSurface';
 import { ItemEditorSurface } from './ItemEditorSurface';
 import { loadWebExtensions } from './extensions';
@@ -38,9 +38,64 @@ type DraftScopeHistory = { undo: DraftHistoryEntry[]; redo: DraftHistoryEntry[] 
 type DraftHistoryMap = Record<string, DraftScopeHistory>;
 type DraftValueSetter = (scope: ConfigDraftScope, node: WebConfigNode, next: unknown) => void;
 type DraftScopeAction = (scope: ConfigDraftScope) => void;
+type DraftPathsAction = (scope: ConfigDraftScope, paths: string[]) => void;
 type RegistryLoadOptions = { initial?: boolean; clearDrafts?: boolean; announceRefresh?: boolean };
 type ConfigSourceDocument = ReturnType<typeof useConfigSourceDocument>;
 type SourceEditController = { paths: Set<string>; update: (node: WebConfigNode, next: unknown) => void };
+
+// Sequentially persist changed config nodes, tracking exactly which paths committed so a
+// mid-loop failure never leaves the UI claiming clean fields are dirty (or vice versa).
+type NodeSaveOutcome = {
+  savedPaths: string[];
+  revision: number | undefined;
+  status: 'ok' | 'conflict' | 'error';
+  conflictRevision?: number;
+  error?: unknown;
+};
+
+async function saveNodesSequentially(api: ApiClient, moduleId: string, filePath: string, nodes: { path: string }[], draftValueFor: (path: string) => unknown, startRevision: number | undefined): Promise<NodeSaveOutcome> {
+  const savedPaths: string[] = [];
+  let revision = startRevision;
+  for (const node of nodes) {
+    try {
+      const result = await api.saveRegistryValue(moduleId, filePath, node.path, draftValueFor(node.path), revision);
+      revision = result.revision ?? revision;
+      savedPaths.push(node.path);
+    } catch (err) {
+      if (isRevisionConflict(err)) {
+        return { savedPaths, revision, status: 'conflict', conflictRevision: revisionFromError(err), error: err };
+      }
+      return { savedPaths, revision, status: 'error', error: err };
+    }
+  }
+  return { savedPaths, revision, status: 'ok' };
+}
+
+function isRevisionConflict(err: unknown): boolean {
+  return err instanceof ApiError && (err.status === 409 && (err.errorType === 'revision_conflict' || typeof err.data?.revision === 'number'));
+}
+
+function revisionFromError(err: unknown): number | undefined {
+  return err instanceof ApiError && typeof err.data?.revision === 'number' ? err.data.revision : undefined;
+}
+
+// A conflict surfaced by any save site. The owning surface supplies replay/overwrite closures
+// because each surface reloads its baseline differently; App renders a single shared modal.
+type SaveConflict = {
+  fileLabel: string;
+  savedCount: number;
+  pendingChanges: EditorChange[];
+  onReplay: () => void | Promise<void>;
+  onOverwrite: () => void | Promise<void>;
+};
+
+// Bundle of the save-safety wiring threaded from App down into the structured config surfaces.
+type ConfigSaveSafety = {
+  clearDraftPaths: DraftPathsAction;
+  reconcileScopeDrafts: (scope: ConfigDraftScope, freshNodes: WebConfigNode[]) => void;
+  setSaveConflict: (conflict: SaveConflict | null) => void;
+};
+
 
 type Toast = { tone: 'ok' | 'bad'; text: string } | null;
 type LoginNotice = 'expired' | 'signedOut' | null;
@@ -68,6 +123,7 @@ export default function App() {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [drafts, setDrafts] = useState<DraftMap>({});
   const [draftHistory, setDraftHistory] = useState<DraftHistoryMap>({});
+  const [saveConflict, setSaveConflict] = useState<SaveConflict | null>(null);
   const [toast, setToast] = useState<Toast>(null);
   const [theme, setTheme] = useState<ColorTheme>(() => readTheme());
   const [localeVersion, setLocaleVersion] = useState(0);
@@ -205,6 +261,21 @@ export default function App() {
     setDrafts(current => removeDraftScope(current, scope));
   }
 
+  // Clear only specific paths (the ones that actually committed in a partial save) without
+  // touching the rest of the scope's drafts or its undo history.
+  function clearDraftPaths(scope: ConfigDraftScope, paths: string[]) {
+    if (!paths.length) return;
+    setDrafts(current => {
+      const next = { ...current };
+      let changed = false;
+      for (const path of paths) {
+        const key = draftKey(scope, path);
+        if (key in next) { delete next[key]; changed = true; }
+      }
+      return changed ? next : current;
+    });
+  }
+
   async function loadRegistry(options: RegistryLoadOptions = {}): Promise<WebRegistry | null> {
     const { initial = false, clearDrafts = false, announceRefresh = !initial } = options;
     const loadSeq = registryLoadSeq.current + 1;
@@ -272,23 +343,66 @@ export default function App() {
 
   async function saveCurrent() {
     if (!selectedModule || !selectedFile || !selectedDraftScope) return;
-    const changes = configChanges(selectedDraftScope, selectedFile.nodes, drafts);
+    const scope = selectedDraftScope;
+    const moduleId = selectedModule.id;
+    const changes = configChanges(scope, selectedFile.nodes, drafts);
     if (!changes.length) return;
     setSaving(true);
     try {
-      let revision = selectedFile.revision;
-      for (const node of changes) {
-        const result = await api.saveRegistryValue(selectedModule.id, selectedDraftScope.filePath, node.path, drafts[draftKey(selectedDraftScope, node.path)], revision);
-        revision = result.revision ?? revision;
+      const outcome = await saveNodesSequentially(api, moduleId, scope.filePath, changes, path => drafts[draftKey(scope, path)], selectedFile.revision);
+      clearDraftPaths(scope, outcome.savedPaths);
+      if (outcome.status === 'ok') {
+        setToast({ tone: 'ok', text: t('core.toast.savedConfig', { count: outcome.savedPaths.length }) });
+        await loadRegistry({ clearDrafts: false, announceRefresh: false });
+        return;
       }
-      clearDraftValues(selectedDraftScope);
-      setToast({ tone: 'ok', text: t('core.toast.savedConfig', { count: changes.length }) });
-      await loadRegistry({ clearDrafts: false, announceRefresh: false });
-    } catch (err) {
-      setToast({ tone: 'bad', text: userFacingSaveError(err) });
+      if (outcome.status === 'conflict') {
+        const pending = changes.filter(change => !outcome.savedPaths.includes(change.path));
+        const replay = async () => {
+          const next = await loadRegistry({ clearDrafts: false, announceRefresh: false });
+          const freshFile = next?.modules.find(m => m.id === moduleId)?.files.find(f => f.id === scope.fileId);
+          reconcileScopeDrafts(scope, freshFile?.nodes ?? []);
+          setSaveConflict(null);
+          setToast({ tone: 'ok', text: t('core.toast.conflictReloaded') });
+        };
+        const overwrite = async () => {
+          setSaveConflict(null);
+          setSaving(true);
+          try {
+            const retry = await saveNodesSequentially(api, moduleId, scope.filePath, pending, path => drafts[draftKey(scope, path)], outcome.conflictRevision);
+            clearDraftPaths(scope, retry.savedPaths);
+            setToast(retry.status === 'ok' ? { tone: 'ok', text: t('core.toast.savedConfig', { count: retry.savedPaths.length }) } : { tone: 'bad', text: userFacingSaveError(retry.error) });
+            await loadRegistry({ clearDrafts: false, announceRefresh: false });
+          } finally {
+            setSaving(false);
+          }
+        };
+        setSaveConflict({ fileLabel: fileDisplayTitle(selectedFile), savedCount: outcome.savedPaths.length, pendingChanges: pending, onReplay: replay, onOverwrite: overwrite });
+        return;
+      }
+      setToast({ tone: 'bad', text: userFacingSaveError(outcome.error) });
+      if (outcome.savedPaths.length) await loadRegistry({ clearDrafts: false, announceRefresh: false });
     } finally {
       setSaving(false);
     }
+  }
+
+  // After a reload-and-replay, drop drafts that now match the fresh server value (auto-resolved),
+  // and keep only genuinely divergent edits dirty so the admin re-reviews them on the new baseline.
+  function reconcileScopeDrafts(scope: ConfigDraftScope, freshNodes: WebConfigNode[]) {
+    const nodeByPath = new Map(freshNodes.map(node => [node.path, node]));
+    setDrafts(current => {
+      const prefix = draftScopePrefix(scope);
+      const next = { ...current };
+      let changed = false;
+      for (const key of Object.keys(next)) {
+        if (!key.startsWith(prefix)) continue;
+        const path = draftKeyPath(key);
+        const node = path ? nodeByPath.get(path) : undefined;
+        if (node && valuesEqual(node.value, next[key])) { delete next[key]; changed = true; }
+      }
+      return changed ? next : current;
+    });
   }
 
   async function createFileFromTree(target: RegistryTreeNode, name: string) {
@@ -400,6 +514,7 @@ export default function App() {
       {createTarget && <CreateFileModal target={createTarget} onCancel={() => setCreateTarget(null)} onCreate={createFileFromTree} />}
       {deleteTarget && <DeleteFileModal target={deleteTarget} onCancel={() => setDeleteTarget(null)} onDelete={deleteFileFromTree} />}
       {i18nTarget && <I18nBundleModal target={i18nTarget} onClose={() => setI18nTarget(null)} onSaved={() => { setLocaleVersion((version) => version + 1); setToast({ tone: 'ok', text: t('core.i18n.saved') }); }} />}
+      {saveConflict && <SaveConflictModal conflict={saveConflict} onCancel={() => setSaveConflict(null)} />}
       <ResizableRail>
         <div className="brand-block">
           <div className="brand-main">
@@ -457,7 +572,7 @@ export default function App() {
           onSave={toolbar.onSave}
         />
         <section className="editor-shell single">
-          <ConfigSurface registry={registry} module={selectedModule} file={selectedFile} drafts={drafts} draftHistory={draftHistory} setDraftValue={setDraftValue} clearDraftScope={clearDraftScope} clearDraftValues={clearDraftValues} undoDraftScope={undoDraftScope} redoDraftScope={redoDraftScope} api={api} scriptPath={selected?.scriptPath} refreshKey={selected?.refreshKey ?? 0} pendingExtensionModules={pendingExtensionModules} onReload={() => void reloadCurrentSurface()} onRefreshRegistry={() => loadRegistry({ clearDrafts: false, announceRefresh: false })} setSurfaceToolbar={setSurfaceToolbar} setToast={setToast} />
+          <ConfigSurface registry={registry} module={selectedModule} file={selectedFile} drafts={drafts} draftHistory={draftHistory} setDraftValue={setDraftValue} clearDraftScope={clearDraftScope} clearDraftValues={clearDraftValues} clearDraftPaths={clearDraftPaths} reconcileScopeDrafts={reconcileScopeDrafts} setSaveConflict={setSaveConflict} undoDraftScope={undoDraftScope} redoDraftScope={redoDraftScope} api={api} scriptPath={selected?.scriptPath} refreshKey={selected?.refreshKey ?? 0} pendingExtensionModules={pendingExtensionModules} onReload={() => void reloadCurrentSurface()} onRefreshRegistry={() => loadRegistry({ clearDrafts: false, announceRefresh: false })} setSurfaceToolbar={setSurfaceToolbar} setToast={setToast} />
         </section>
       </main>
     </div>
@@ -571,14 +686,50 @@ function normalizeCreatedFilePath(file: WebRegistryFile, name: string): string {
   return globPrefix ? `${globPrefix}/${leaf}` : leaf;
 }
 
+// Reload-and-replay conflict dialog. Shown when a save hits HTTP 409 because another admin wrote
+// the same file. Primary action reloads the server baseline and replays the remaining edits;
+// secondary action force-overwrites them onto the latest revision.
+function SaveConflictModal({ conflict, onCancel }: { conflict: SaveConflict; onCancel: () => void }) {
+  const dialogRef = useRef<HTMLElement | null>(null);
+  useDialogFocus(dialogRef, onCancel);
+  const preview = conflict.pendingChanges.slice(0, 12);
+  return <div className="editor-modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) onCancel(); }}>
+    <section ref={dialogRef} className="reload-confirm-dialog diff-dialog" role="dialog" aria-modal="true" aria-labelledby="save-conflict-title" aria-describedby="save-conflict-desc" tabIndex={-1}>
+      <div className="reload-confirm-head diff-dialog-head">
+        <span>{t('core.conflict.kicker')}</span>
+        <h3 id="save-conflict-title">{t('core.conflict.title')}</h3>
+      </div>
+      <div className="reload-confirm-body diff-dialog-body">
+        <p id="save-conflict-desc">{t('core.conflict.desc', { file: conflict.fileLabel })}</p>
+        {conflict.savedCount > 0 && <p className="config-create-hint">{t('core.conflict.savedNote', { count: conflict.savedCount })}</p>}
+        <div className="reload-change-summary" aria-label={t('core.conflict.pendingAria', { count: conflict.pendingChanges.length })}>
+          <strong>{t('core.conflict.pendingTitle', { count: conflict.pendingChanges.length })}</strong>
+          <div className="editor-change-list">
+            {preview.map(change => <div className="editor-change-row" key={change.path}>
+              <code>{change.path}</code>
+              <span>{change.label || change.path}</span>
+            </div>)}
+          </div>
+          {conflict.pendingChanges.length > preview.length && <p>{t('core.editor.changesMore', { count: conflict.pendingChanges.length - preview.length })}</p>}
+        </div>
+      </div>
+      <ActionGroup className="reload-confirm-actions diff-dialog-actions">
+        <Button onClick={onCancel}>{t('core.gui.cancel')}</Button>
+        <Button variant="danger" onClick={() => void conflict.onOverwrite()}>{t('core.conflict.overwrite')}</Button>
+        <Button variant="primary" autoFocus onClick={() => void conflict.onReplay()}>{t('core.conflict.replay')}</Button>
+      </ActionGroup>
+    </section>
+  </div>;
+}
+
 function validateCreateFileName(name: string): { ok: boolean; message?: string } {
   const value = name.trim().replace(/\\/g, '/');
   if (!value) return { ok: false };
-  if (value.startsWith('/') || value.endsWith('/') || value.includes('..')) return { ok: false, message: '文件名不合法' };
+  if (value.startsWith('/') || value.endsWith('/') || value.includes('..')) return { ok: false, message: t('core.file.nameInvalid') };
   const illegal = Array.from(new Set(Array.from(value).filter(char => /[<>:"|?*]/.test(char) || char.charCodeAt(0) < 32)));
-  if (illegal.length) return { ok: false, message: `文件名包含非法字符：${illegal.join(' ')}` };
-  if (/<\s*\/?\s*[a-z][^>]*>/i.test(value)) return { ok: false, message: '文件名包含非法 HTML 标签' };
-  if (value.split('/').some(part => !part || part === '.' || part === '..')) return { ok: false, message: '文件名不合法' };
+  if (illegal.length) return { ok: false, message: t('core.file.nameIllegalChars', { chars: illegal.join(' ') }) };
+  if (/<\s*\/?\s*[a-z][^>]*>/i.test(value)) return { ok: false, message: t('core.file.nameHtmlTag') };
+  if (value.split('/').some(part => !part || part === '.' || part === '..')) return { ok: false, message: t('core.file.nameInvalid') };
   return { ok: true };
 }
 
@@ -599,7 +750,7 @@ function DeleteFileModal({ target, onCancel, onDelete }: { target: RegistryTreeN
   </div>;
 }
 
-function ConfigSurface({ registry, module, file, drafts, draftHistory, setDraftValue, clearDraftScope, clearDraftValues, undoDraftScope, redoDraftScope, api, scriptPath, refreshKey, pendingExtensionModules, onReload, onRefreshRegistry, setSurfaceToolbar, setToast }: { registry: WebRegistry | null; module: WebRegistryModule | null; file: WebRegistryFile | null; drafts: DraftMap; draftHistory: DraftHistoryMap; setDraftValue: DraftValueSetter; clearDraftScope: DraftScopeAction; clearDraftValues: DraftScopeAction; undoDraftScope: DraftScopeAction; redoDraftScope: DraftScopeAction; api: ApiClient; scriptPath?: string; refreshKey: number; pendingExtensionModules: ReadonlySet<string>; onReload?: () => void; onRefreshRegistry: () => Promise<WebRegistry | null>; setSurfaceToolbar: (state: SurfaceToolbarState | null) => void; setToast: (toast: Toast) => void }) {
+function ConfigSurface({ registry, module, file, drafts, draftHistory, setDraftValue, clearDraftScope, clearDraftValues, clearDraftPaths, reconcileScopeDrafts, setSaveConflict, undoDraftScope, redoDraftScope, api, scriptPath, refreshKey, pendingExtensionModules, onReload, onRefreshRegistry, setSurfaceToolbar, setToast }: { registry: WebRegistry | null; module: WebRegistryModule | null; file: WebRegistryFile | null; drafts: DraftMap; draftHistory: DraftHistoryMap; setDraftValue: DraftValueSetter; clearDraftScope: DraftScopeAction; clearDraftValues: DraftScopeAction; clearDraftPaths: DraftPathsAction; reconcileScopeDrafts: ConfigSaveSafety['reconcileScopeDrafts']; setSaveConflict: ConfigSaveSafety['setSaveConflict']; undoDraftScope: DraftScopeAction; redoDraftScope: DraftScopeAction; api: ApiClient; scriptPath?: string; refreshKey: number; pendingExtensionModules: ReadonlySet<string>; onReload?: () => void; onRefreshRegistry: () => Promise<WebRegistry | null>; setSurfaceToolbar: (state: SurfaceToolbarState | null) => void; setToast: (toast: Toast) => void }) {
   useEffect(() => {
     setSurfaceToolbar(null);
     return () => setSurfaceToolbar(null);
@@ -621,13 +772,13 @@ function ConfigSurface({ registry, module, file, drafts, draftHistory, setDraftV
 
   if (isKind(file.kind, 'SCRIPT')) return <section className="config-surface script-surface"><div className="surface-head"><div><h2>{fileDisplayTitle(file)}</h2><p>{fileDisplayComment(file)}</p></div><span className="file-kind script">{fileKindLabel(file.kind)}</span></div>{scriptPath ? <ScriptEditor api={api} scriptPath={scriptPath} module={module} file={file} setSurfaceToolbar={setSurfaceToolbar} setToast={setToast} /> : <div className="script-placeholder" role="status">{t('core.empty.selectScript')}</div>}</section>;
   // CONFIG 类型：如果有子文件路径，按需加载子文件内容
-  if (isKind(file.kind, 'CONFIG') && scriptPath) return <ConfigChildSurface module={module} file={file} childPath={scriptPath} drafts={drafts} draftHistory={draftHistory} setDraftValue={setDraftValue} clearDraftScope={clearDraftScope} clearDraftValues={clearDraftValues} undoDraftScope={undoDraftScope} redoDraftScope={redoDraftScope} api={api} refreshKey={refreshKey} setSurfaceToolbar={setSurfaceToolbar} setToast={setToast} />;
+  if (isKind(file.kind, 'CONFIG') && scriptPath) return <ConfigChildSurface module={module} file={file} childPath={scriptPath} drafts={drafts} draftHistory={draftHistory} setDraftValue={setDraftValue} clearDraftScope={clearDraftScope} clearDraftValues={clearDraftValues} clearDraftPaths={clearDraftPaths} reconcileScopeDrafts={reconcileScopeDrafts} setSaveConflict={setSaveConflict} undoDraftScope={undoDraftScope} redoDraftScope={redoDraftScope} api={api} refreshKey={refreshKey} setSurfaceToolbar={setSurfaceToolbar} setToast={setToast} />;
   // CONFIG 类型 glob 文件无子文件选中时，显示提示
   if (isKind(file.kind, 'CONFIG') && file.children && file.children.length > 0 && file.nodes.length === 0) return <section className="config-surface"><div className="surface-head"><div><h2>{fileDisplayTitle(file)}</h2><p>{fileDisplayComment(file)}</p></div><span className={`file-kind ${String(file.kind).toLowerCase()}`}>{fileKindLabel(file.kind)}</span></div><div className="script-placeholder" role="status">{t('core.empty.selectFile')}</div></section>;
-  return <ConfigStructuredSurface module={module} file={file} drafts={drafts} draftHistory={draftHistory} setDraftValue={setDraftValue} clearDraftScope={clearDraftScope} clearDraftValues={clearDraftValues} undoDraftScope={undoDraftScope} redoDraftScope={redoDraftScope} api={api} refreshKey={refreshKey} onRefreshRegistry={onRefreshRegistry} setSurfaceToolbar={setSurfaceToolbar} setToast={setToast} />;
+  return <ConfigStructuredSurface module={module} file={file} drafts={drafts} draftHistory={draftHistory} setDraftValue={setDraftValue} clearDraftScope={clearDraftScope} clearDraftValues={clearDraftValues} clearDraftPaths={clearDraftPaths} reconcileScopeDrafts={reconcileScopeDrafts} setSaveConflict={setSaveConflict} undoDraftScope={undoDraftScope} redoDraftScope={redoDraftScope} api={api} refreshKey={refreshKey} onRefreshRegistry={onRefreshRegistry} setSurfaceToolbar={setSurfaceToolbar} setToast={setToast} />;
 }
 
-function ConfigStructuredSurface({ module, file, drafts, draftHistory, setDraftValue, clearDraftScope, clearDraftValues, undoDraftScope, redoDraftScope, api, refreshKey, onRefreshRegistry, setSurfaceToolbar, setToast }: { module: WebRegistryModule; file: WebRegistryFile; drafts: DraftMap; draftHistory: DraftHistoryMap; setDraftValue: DraftValueSetter; clearDraftScope: DraftScopeAction; clearDraftValues: DraftScopeAction; undoDraftScope: DraftScopeAction; redoDraftScope: DraftScopeAction; api: ApiClient; refreshKey: number; onRefreshRegistry: () => Promise<WebRegistry | null>; setSurfaceToolbar: (state: SurfaceToolbarState | null) => void; setToast: (toast: Toast) => void }) {
+function ConfigStructuredSurface({ module, file, drafts, draftHistory, setDraftValue, clearDraftScope, clearDraftValues, clearDraftPaths, reconcileScopeDrafts, setSaveConflict, undoDraftScope, redoDraftScope, api, refreshKey, onRefreshRegistry, setSurfaceToolbar, setToast }: { module: WebRegistryModule; file: WebRegistryFile; drafts: DraftMap; draftHistory: DraftHistoryMap; setDraftValue: DraftValueSetter; clearDraftScope: DraftScopeAction; clearDraftValues: DraftScopeAction; clearDraftPaths: DraftPathsAction; reconcileScopeDrafts: ConfigSaveSafety['reconcileScopeDrafts']; setSaveConflict: ConfigSaveSafety['setSaveConflict']; undoDraftScope: DraftScopeAction; redoDraftScope: DraftScopeAction; api: ApiClient; refreshKey: number; onRefreshRegistry: () => Promise<WebRegistry | null>; setSurfaceToolbar: (state: SurfaceToolbarState | null) => void; setToast: (toast: Toast) => void }) {
   const scope = useMemo(() => configDraftScope(module, file), [module.id, file.id, file.path]);
   const scopeHistory = draftHistory[draftScopeId(scope)] ?? emptyDraftHistory();
   const source = useConfigSourceDocument({ module, file, api, refreshKey, setToast });
@@ -662,20 +813,51 @@ function ConfigStructuredSurface({ module, file, drafts, draftHistory, setDraftV
     }
     setSavingNodes(true);
     try {
-      let nextRevision = file.revision;
-      for (const node of changedNodes) {
-        const result = await api.saveRegistryValue(module.id, scope.filePath, node.path, drafts[draftKey(scope, node.path)], nextRevision);
-        nextRevision = result.revision ?? nextRevision;
+      const outcome = await saveNodesSequentially(api, module.id, scope.filePath, changedNodes, path => drafts[draftKey(scope, path)], file.revision);
+      clearDraftPaths(scope, outcome.savedPaths);
+      if (outcome.status === 'ok') {
+        await onRefreshRegistry();
+        await source.reload(false);
+        setToast({ tone: 'ok', text: t('core.toast.savedConfig', { count: outcome.savedPaths.length }) });
+        return;
       }
-      clearDraftValues(scope);
-      await onRefreshRegistry();
-      await source.reload(false);
-      setToast({ tone: 'ok', text: t('core.toast.savedConfig', { count: changedNodes.length }) });
-    } catch (err) {
-      setToast({ tone: 'bad', text: userFacingSaveError(err) });
+      if (outcome.status === 'conflict') {
+        presentConflict(outcome);
+        return;
+      }
+      setToast({ tone: 'bad', text: userFacingSaveError(outcome.error) });
+      if (outcome.savedPaths.length) { await onRefreshRegistry(); await source.reload(false); }
     } finally {
       setSavingNodes(false);
     }
+  }
+
+  function presentConflict(outcome: NodeSaveOutcome) {
+    const pendingPaths = changedNodes.map(node => node.path).filter(path => !outcome.savedPaths.includes(path));
+    const pendingChanges = configChanges(scope, changedNodes.filter(node => pendingPaths.includes(node.path)), drafts);
+    const replay = async () => {
+      const next = await onRefreshRegistry();
+      const freshFile = next?.modules.find(m => m.id === module.id)?.files.find(f => f.id === file.id);
+      reconcileScopeDrafts(scope, freshFile?.nodes ?? []);
+      await source.reload(false);
+      setSaveConflict(null);
+      setToast({ tone: 'ok', text: t('core.toast.conflictReloaded') });
+    };
+    const overwrite = async () => {
+      setSaveConflict(null);
+      setSavingNodes(true);
+      try {
+        const retryNodes = changedNodes.filter(node => pendingPaths.includes(node.path));
+        const retry = await saveNodesSequentially(api, module.id, scope.filePath, retryNodes, path => drafts[draftKey(scope, path)], outcome.conflictRevision);
+        clearDraftPaths(scope, retry.savedPaths);
+        await onRefreshRegistry();
+        await source.reload(false);
+        setToast(retry.status === 'ok' ? { tone: 'ok', text: t('core.toast.savedConfig', { count: retry.savedPaths.length }) } : { tone: 'bad', text: userFacingSaveError(retry.error) });
+      } finally {
+        setSavingNodes(false);
+      }
+    };
+    setSaveConflict({ fileLabel: fileDisplayTitle(file), savedCount: outcome.savedPaths.length, pendingChanges, onReplay: replay, onOverwrite: overwrite });
   }
 
   async function reloadStructured() {
@@ -845,7 +1027,7 @@ function useConfigSourceDocument({ module, file, childPath, api, refreshKey, set
   };
 }
 
-function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, setDraftValue, clearDraftScope, clearDraftValues, undoDraftScope, redoDraftScope, api, refreshKey, setSurfaceToolbar, setToast }: { module: WebRegistryModule; file: WebRegistryFile; childPath: string; drafts: DraftMap; draftHistory: DraftHistoryMap; setDraftValue: DraftValueSetter; clearDraftScope: DraftScopeAction; clearDraftValues: DraftScopeAction; undoDraftScope: DraftScopeAction; redoDraftScope: DraftScopeAction; api: ApiClient; refreshKey: number; setSurfaceToolbar: (state: SurfaceToolbarState | null) => void; setToast: (toast: Toast) => void }) {
+function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, setDraftValue, clearDraftScope, clearDraftValues, clearDraftPaths, reconcileScopeDrafts, setSaveConflict, undoDraftScope, redoDraftScope, api, refreshKey, setSurfaceToolbar, setToast }: { module: WebRegistryModule; file: WebRegistryFile; childPath: string; drafts: DraftMap; draftHistory: DraftHistoryMap; setDraftValue: DraftValueSetter; clearDraftScope: DraftScopeAction; clearDraftValues: DraftScopeAction; clearDraftPaths: DraftPathsAction; reconcileScopeDrafts: ConfigSaveSafety['reconcileScopeDrafts']; setSaveConflict: ConfigSaveSafety['setSaveConflict']; undoDraftScope: DraftScopeAction; redoDraftScope: DraftScopeAction; api: ApiClient; refreshKey: number; setSurfaceToolbar: (state: SurfaceToolbarState | null) => void; setToast: (toast: Toast) => void }) {
   const scope = useMemo(() => configDraftScope(module, file, childPath), [module.id, file.id, file.path, childPath]);
   const scopeHistory = draftHistory[draftScopeId(scope)] ?? emptyDraftHistory();
   const source = useConfigSourceDocument({ module, file, childPath, api, refreshKey, setToast });
@@ -869,21 +1051,24 @@ function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, set
   };
   const sourceEdit: SourceEditController = { paths: sourceEditedPaths, update: updateSourceNodeValue };
 
-  async function reloadChildNodes(announce = true) {
+  async function reloadChildNodes(announce = true, keepDrafts = false): Promise<WebConfigNode[]> {
     setLoading(true);
     setError('');
     try {
       const refreshed = await api.registryFileNodes(module.id, childPath);
-      setBaseNodes(applyConfigNodeOverrides(module.id, refreshed.nodes, childPath));
+      const overridden = applyConfigNodeOverrides(module.id, refreshed.nodes, childPath);
+      setBaseNodes(overridden);
       setOptimisticNodes([]);
       setRevision(refreshed.revision);
-      clearDraftScope(scope);
+      if (!keepDrafts) clearDraftScope(scope);
       setSourceEditedPaths(new Set());
       setDeletedObjectPaths(new Set());
       if (announce) setToast({ tone: 'ok', text: t('core.toast.reloaded') });
+      return overridden;
     } catch (err) {
       setError(err instanceof Error ? err.message : t('core.config.childLoadFailed'));
       setToast({ tone: 'bad', text: err instanceof Error ? err.message : t('core.toast.refreshFailed') });
+      return [];
     } finally {
       setLoading(false);
     }
@@ -907,17 +1092,43 @@ function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, set
     }
     setSaving(true);
     try {
-      let nextRevision = revision;
-      for (const node of changed) {
-        const result = await api.saveRegistryValue(module.id, childPath, node.path, drafts[draftKey(scope, node.path)], nextRevision);
-        nextRevision = result.revision ?? nextRevision;
+      const outcome = await saveNodesSequentially(api, module.id, childPath, changed, path => drafts[draftKey(scope, path)], revision);
+      setRevision(outcome.revision);
+      clearDraftPaths(scope, outcome.savedPaths);
+      if (outcome.status === 'ok') {
+        await reloadChildNodes(false);
+        setToast({ tone: 'ok', text: t('core.toast.savedConfig', { count: outcome.savedPaths.length }) });
+        return;
       }
-      setRevision(nextRevision);
-      await reloadChildNodes(false);
-      clearDraftValues(scope);
-      setToast({ tone: 'ok', text: t('core.toast.savedConfig', { count: changed.length }) });
-    } catch (err) {
-      setToast({ tone: 'bad', text: userFacingSaveError(err) });
+      if (outcome.status === 'conflict') {
+        const pendingPaths = changed.map(node => node.path).filter(path => !outcome.savedPaths.includes(path));
+        const pendingChanges = configChanges(scope, changed.filter(node => pendingPaths.includes(node.path)), drafts);
+        const replay = async () => {
+          const fresh = await reloadChildNodes(false, true);
+          reconcileScopeDrafts(scope, fresh);
+          await source.reload(false);
+          setSaveConflict(null);
+          setToast({ tone: 'ok', text: t('core.toast.conflictReloaded') });
+        };
+        const overwrite = async () => {
+          setSaveConflict(null);
+          setSaving(true);
+          try {
+            const retryNodes = changed.filter(node => pendingPaths.includes(node.path));
+            const retry = await saveNodesSequentially(api, module.id, childPath, retryNodes, path => drafts[draftKey(scope, path)], outcome.conflictRevision);
+            setRevision(retry.revision);
+            clearDraftPaths(scope, retry.savedPaths);
+            await reloadChildNodes(false);
+            setToast(retry.status === 'ok' ? { tone: 'ok', text: t('core.toast.savedConfig', { count: retry.savedPaths.length }) } : { tone: 'bad', text: userFacingSaveError(retry.error) });
+          } finally {
+            setSaving(false);
+          }
+        };
+        setSaveConflict({ fileLabel: fileDisplayTitle(file), savedCount: outcome.savedPaths.length, pendingChanges, onReplay: replay, onOverwrite: overwrite });
+        return;
+      }
+      setToast({ tone: 'bad', text: userFacingSaveError(outcome.error) });
+      if (outcome.savedPaths.length) await reloadChildNodes(false);
     } finally {
       setSaving(false);
     }
@@ -2311,6 +2522,15 @@ function parseDraftKey(key: string): ConfigDraftScope | null {
     const value = JSON.parse(key);
     if (!Array.isArray(value) || value.length < 4) return null;
     return { moduleId: String(value[0]), fileId: String(value[1]), filePath: normalizeDraftPath(String(value[2])) };
+  } catch {
+    return null;
+  }
+}
+
+function draftKeyPath(key: string): string | null {
+  try {
+    const value = JSON.parse(key);
+    return Array.isArray(value) && value.length >= 4 ? String(value[3]) : null;
   } catch {
     return null;
   }

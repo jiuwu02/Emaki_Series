@@ -726,7 +726,7 @@ function CurrencyCostList({ items, onChange, path, economyProviders = DEFAULT_EC
   return <div className="prop-cost-group">
     <span className="prop-cost-group-title">{copy('货币', 'Currencies')}</span>
     {items.map((currency, index) => <div className="prop-cost-entry" key={index}>
-      <div className="prop-cost-entry-head"><span>{textValue(currency.display_name) || textValue(currency.provider, 'vault')}</span><button type="button" className="prop-kv-del" onClick={() => remove(index)} aria-label={`删除货币 ${index + 1}`}>×</button></div>
+      <div className="prop-cost-entry-head"><span>{textValue(currency.display_name) || textValue(currency.provider, 'vault')}</span><button type="button" className="prop-kv-del" onClick={() => remove(index)} aria-label={copy(`删除货币 ${index + 1}`, `Delete currency ${index + 1}`)}>×</button></div>
       <FormRow label="provider" path={joinPath(path, index, 'provider')}><StandardEconomyProviderSelect value={currency.provider ?? 'auto'} providers={economyProviders} moduleId={MODULE} onChange={provider => update(index, { provider })} /></FormRow>
       <FormRow label="currency_id" path={joinPath(path, index, 'currency_id')}><TextInput value={currency.currency_id} onChange={currency_id => update(index, { currency_id })} /></FormRow>
       <FormRow label="amount" path={joinPath(path, index, 'amount')}><NumberInput value={currency.amount} onChange={amount => update(index, { amount })} /></FormRow>

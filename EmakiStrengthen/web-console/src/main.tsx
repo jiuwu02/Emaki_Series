@@ -181,7 +181,15 @@ registerModuleLocale(MODULE, 'en-US', {
   'emakistrengthen.field.success_rates': 'Success Rates',
   'emakistrengthen.field.target_item': 'Target Item',
   'emakistrengthen.field.material': 'Material',
-  'emakistrengthen.field.confirm': 'Confirm'
+  'emakistrengthen.field.confirm': 'Confirm',
+  'emakistrengthen.field.effects': 'Effects',
+  'emakistrengthen.field.variables': 'Variables',
+  'emakistrengthen.field.ea_attributes': 'EA Attributes',
+  'emakistrengthen.field.es_skills': 'ES Skills',
+  'emakistrengthen.field.name_actions': 'Name Actions',
+  'emakistrengthen.field.lore_actions': 'Lore Actions',
+  'emakistrengthen.field.stars': 'Star Stages',
+  'emakistrengthen.field.children': 'Child Branches'
 });
 
 registerPluginConfig({

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { MiniText } from './components';
+import { t } from './i18n';
 import { asStringList, displaySource, firstItemSource, materialFromItemSource } from './itemEditor';
 import { materialShortName, materialUrls, subscribeTextureBases } from './lib';
 
@@ -15,7 +16,8 @@ export function PreviewMetricStrip({ facts }: { facts: PreviewFact[] }) {
   </div>;
 }
 
-export function PreviewItemResult({ title = '结果物品', itemSources, name, lore, facts = [], status }: { title?: string; itemSources?: unknown; name?: string; lore?: string[]; facts?: PreviewFact[]; status?: string }) {
+export function PreviewItemResult({ title, itemSources, name, lore, facts = [], status }: { title?: string; itemSources?: unknown; name?: string; lore?: string[]; facts?: PreviewFact[]; status?: string }) {
+  const resolvedTitle = title ?? t('core.preview.resultItem', undefined, 'Result item');
   const source = firstItemSource(itemSources);
   const material = materialFromItemSource(source);
   const urls = materialUrls(material);
@@ -35,11 +37,11 @@ export function PreviewItemResult({ title = '结果物品', itemSources, name, l
     </div>
     <div className="config-item-preview-body">
       <div className="config-item-preview-head">
-        <span>{title}</span>
+        <span>{resolvedTitle}</span>
         {status && <code>{status}</code>}
       </div>
       <code className="config-item-preview-source">{displaySource(source || material)}</code>
-      <PreviewTooltipBlock name={name || source || material} lore={lore ?? []} emptyText="暂无结果描述" />
+      <PreviewTooltipBlock name={name || source || material} lore={lore ?? []} emptyText={t('core.preview.noResultDesc', undefined, 'No result description')} />
       <PreviewMetricStrip facts={facts} />
     </div>
   </div>;
@@ -50,15 +52,15 @@ export function PreviewTooltipBlock({ name, lore, emptyText }: { name?: string; 
   return <div className="config-preview-tooltip">
     {name ? <div className="config-preview-tooltip-name"><MiniText value={name} /></div> : null}
     {lines.map((line, index) => <div className="config-preview-tooltip-line" key={`${line}-${index}`}><MiniText value={line} /></div>)}
-    {!name && !lines.length && <span className="config-preview-empty">{emptyText ?? '暂无预览'}</span>}
+    {!name && !lines.length && <span className="config-preview-empty">{emptyText ?? t('core.preview.empty', undefined, 'No preview')}</span>}
   </div>;
 }
 
 function formatPreviewValue(value: unknown): string {
   if (value == null || value === '') return '—';
   if (typeof value === 'number') return Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/\.00$/, '');
-  if (typeof value === 'boolean') return value ? '是' : '否';
+  if (typeof value === 'boolean') return value ? t('core.preview.yes', undefined, 'Yes') : t('core.preview.no', undefined, 'No');
   if (Array.isArray(value)) return value.length > 3 ? `${value.slice(0, 3).join(', ')} +${value.length - 3}` : value.join(', ');
-  if (typeof value === 'object') return `${Object.keys(value as Record<string, unknown>).length} 项`;
+  if (typeof value === 'object') return t('core.preview.itemCount', { count: Object.keys(value as Record<string, unknown>).length }, '{count} items');
   return String(value);
 }

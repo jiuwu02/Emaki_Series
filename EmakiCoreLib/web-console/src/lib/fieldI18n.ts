@@ -51,8 +51,32 @@ export function fieldLabel(path: string, options: FieldLabelOptions = {}): strin
   return options.fallback || humanizeFieldLabel(exactPath);
 }
 
-export function optionLabel(prefix: string, value: string, options: OptionLabelOptions = {}): string {
-  const text = String(value ?? '');
+// Resolve a field's help comment (the YAML comment shown as a tooltip). Returns '' when none is
+// registered, so callers can omit the tooltip rather than show an empty bubble.
+export function fieldComment(path: string, options: FieldLabelOptions = {}): string {
+  const exactPath = String(path || '');
+  const last = lastPathKey(exactPath);
+  const namespace = normalizeNamespace(options.namespace);
+  const moduleNamespace = normalizeNamespace(options.moduleId);
+  const keys = [
+    namespace && `${namespace}.comment.${exactPath}`,
+    namespace && `${namespace}.comment.${last}`,
+    moduleNamespace && `${moduleNamespace}.comment.${exactPath}`,
+    moduleNamespace && `${moduleNamespace}.comment.${last}`,
+    `core.comment.${exactPath}`,
+    `core.comment.${last}`
+  ].filter(Boolean) as string[];
+  const currentValue = lookupCurrentLocale(keys);
+  if (currentValue) return currentValue;
+  const fields = options.editorFields;
+  const exact = fields?.[exactPath]?.comment;
+  if (exact) return exact;
+  const loose = fields?.[last]?.comment;
+  if (loose) return loose;
+  return '';
+}
+
+export function optionLabel(prefix: string, value: string, options: OptionLabelOptions = {}): string {  const text = String(value ?? '');
   if (!text) return text;
   const namespace = normalizeNamespace(options.namespace);
   const moduleNamespace = normalizeNamespace(options.moduleId);

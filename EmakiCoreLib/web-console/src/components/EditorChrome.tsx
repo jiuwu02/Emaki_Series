@@ -111,6 +111,7 @@ export function EditorChrome({
       </div>
       <ActionGroup className="editor-chrome-actions" role="toolbar" aria-label={t('core.editor.toolbarAria', undefined, 'Editor actions')}>
         {children}
+        <ShortcutHint />
         {onUndo && <Button size="sm" onClick={onUndo} disabled={!canUndo || saving || loading} title={t('core.editor.undoHint', undefined, 'Undo last change')}>{t('core.editor.undo')}</Button>}
         {onRedo && <Button size="sm" onClick={onRedo} disabled={!canRedo || saving || loading} title={t('core.editor.redoHint', undefined, 'Redo last change')}>{t('core.editor.redo')}</Button>}
         <Button size="sm" onClick={() => setSourceOpen(true)} disabled={!canOpenSource}>{sourceLabel ?? t('core.item.source', undefined, 'Source')}</Button>
@@ -132,6 +133,30 @@ function ChangePopover({ changes, count, source, sourceOriginal }: { changes: Ed
     <strong>{changes.length ? t('core.editor.changesTitle', { count }, 'Changes ({count})') : t('core.editor.sourceDiffTitle')}</strong>
     <ChangeList changes={changes} count={count} source={source} sourceOriginal={sourceOriginal} compact />
   </div>;
+}
+
+// Keyboard-shortcut discovery affordance. Surfaces the shortcuts that already exist (save, undo,
+// redo, tree navigation) so power users find them without trial and error.
+function ShortcutHint() {
+  const [open, setOpen] = useState(false);
+  const shortcuts: { keys: string; desc: string }[] = [
+    { keys: 'Ctrl/⌘ + S', desc: t('core.shortcut.save', undefined, 'Save changes') },
+    { keys: 'Ctrl/⌘ + Z', desc: t('core.shortcut.undo', undefined, 'Undo') },
+    { keys: 'Ctrl/⌘ + Y', desc: t('core.shortcut.redo', undefined, 'Redo') },
+    { keys: '↑ ↓ ← →', desc: t('core.shortcut.treeNav', undefined, 'Navigate the file tree') },
+    { keys: 'Esc', desc: t('core.shortcut.closeDialog', undefined, 'Close dialog') }
+  ];
+  return <span className="editor-shortcut-wrap" onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)} onFocus={() => setOpen(true)} onBlur={() => setOpen(false)}>
+    <button type="button" className="editor-shortcut-button" aria-label={t('core.shortcut.title', undefined, 'Keyboard shortcuts')} aria-expanded={open}>
+      <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="1.5" y="4" width="13" height="8" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.2" /><path d="M4 6.6h.01M6.4 6.6h.01M8.8 6.6h.01M11.2 6.6h.01M4 9.4h6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" /></svg>
+    </button>
+    {open && <div className="editor-shortcut-popover" role="status">
+      <strong>{t('core.shortcut.title', undefined, 'Keyboard shortcuts')}</strong>
+      <dl>
+        {shortcuts.map(item => <div className="editor-shortcut-row" key={item.keys}><dt><kbd>{item.keys}</kbd></dt><dd>{item.desc}</dd></div>)}
+      </dl>
+    </div>}
+  </span>;
 }
 
 function ChangeList({ changes, count, source, sourceOriginal, compact = false }: { changes: EditorChange[]; count: number; source?: string; sourceOriginal?: string; compact?: boolean }) {
@@ -169,6 +194,10 @@ function SourceModal({ source, editable, error, language, onChange, onSave, onCl
     // CodeMirror owns indentation and cursor placement; keeping Tab handled inside the editor avoids browser focus jumps.
   }
 
+  const errorRef = useRef<HTMLParagraphElement | null>(null);
+  useEffect(() => { if (error) errorRef.current?.scrollIntoView({ block: 'nearest' }); }, [error]);
+  const errorLine = error ? sourceErrorLine(error) : null;
+
   return <div className="editor-modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) onClose(); }}>
     <section ref={dialogRef} className="editor-source-modal" role="dialog" aria-modal="true" aria-labelledby="editor-source-title" tabIndex={-1}>
       <header className="editor-modal-head">
@@ -185,9 +214,18 @@ function SourceModal({ source, editable, error, language, onChange, onSave, onCl
         onSave={onSave}
         onTab={handleTab}
       />
-      {error && <p className="editor-source-error" role="alert">{error}</p>}
+      {error && <p ref={errorRef} className="editor-source-error" role="alert">{errorLine != null && <code className="editor-source-error-line">{t('core.editor.sourceErrorLine', { line: errorLine }, 'Line {line}')}</code>}{error}</p>}
     </section>
   </div>;
+}
+
+// Pull a 1-based line number out of common YAML/parser error messages so the modal can flag it
+// prominently. Matches "line 12", "第 12 行", and "(12:3)" style coordinates.
+function sourceErrorLine(message: string): number | null {
+  const match = message.match(/line\s+(\d+)/i) || message.match(/第\s*(\d+)\s*行/) || message.match(/\((\d+):\d+\)/);
+  if (!match) return null;
+  const line = Number(match[1]);
+  return Number.isFinite(line) && line > 0 ? line : null;
 }
 
 function SaveModal({ changes, count, source, sourceOriginal, onCancel, onConfirm }: { changes: EditorChange[]; count: number; source?: string; sourceOriginal?: string; onCancel: () => void; onConfirm: () => void }) {

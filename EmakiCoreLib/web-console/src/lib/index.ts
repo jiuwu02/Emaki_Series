@@ -4,7 +4,7 @@
  */
 export { materialUrls, materialUrl, materialShortName, normalizeMaterial, getTextureBases, subscribeTextureBases, MATERIAL_TEXTURE_SOURCES, MINECRAFT_ASSET_VERSION, MINECRAFT_TEXTURE_VERSION } from './materials';
 export { serializeYaml, parseYaml } from './yaml';
-export { fieldLabel, optionLabel, humanizeFieldLabel, lastPathKey, type FieldLabelOptions, type OptionLabelOptions } from './fieldI18n';
+export { fieldLabel, fieldComment, optionLabel, humanizeFieldLabel, lastPathKey, type FieldLabelOptions, type OptionLabelOptions } from './fieldI18n';
 export { moduleDisplayName, moduleDisplaySummary, fileDisplayTitle, fileDisplayComment, treeNodeDisplayLabel, treeNodeDisplayComment, configNodeDisplayComment, registryFileKey, registryPathKey, moduleRegistryNamespace } from './registryI18n';
 export { diffRecords, changedPathSet, isChangedPath, isChangedFieldPath, getDeepValue, valuesEqual, type ChangePathInput, type ChangePathMatchMode } from './changeTracking';
 export { renderMiniMessageParts, textValue, type MiniMessagePart } from './miniMessage';

@@ -282,12 +282,42 @@ function Icon({ svg }: { svg?: string }) {
   return <span className="module-icon" aria-hidden="true" dangerouslySetInnerHTML={{ __html: sanitizeSvg(svg) }} />;
 }
 
+// Sanitize a module-provided SVG icon with a DOM allowlist rather than regex string-stripping.
+// Plugin icons are semi-trusted (declared in web-console.yml), but parsing + walking the tree and
+// dropping any non-allowlisted element/attribute is far harder to bypass than pattern replacement.
+const SVG_ALLOWED_TAGS = new Set(['svg', 'g', 'path', 'circle', 'ellipse', 'rect', 'line', 'polyline', 'polygon', 'defs', 'lineargradient', 'radialgradient', 'stop', 'title', 'desc', 'use', 'clippath', 'mask']);
+const SVG_EVENT_ATTR = /^on/i;
+
 function sanitizeSvg(svg: string): string {
-  if (!svg.trim().startsWith('<svg')) return '';
-  return svg
-    .replace(/<\/?(?:script|foreignObject|iframe|object|embed|link|meta)[\s\S]*?>/gi, '')
-    .replace(/\s+on[a-z]+\s*=("[^"]*"|'[^']*'|[^\s>]+)/gi, '')
-    .replace(/\s+(?:href|xlink:href)\s*=("|')\s*javascript:[\s\S]*?\1/gi, '');
+  if (typeof window === 'undefined' || typeof DOMParser === 'undefined') return '';
+  if (!svg.trim().toLowerCase().startsWith('<svg')) return '';
+  try {
+    const doc = new DOMParser().parseFromString(svg, 'image/svg+xml');
+    if (doc.querySelector('parsererror')) return '';
+    const root = doc.documentElement;
+    if (!root || root.tagName.toLowerCase() !== 'svg') return '';
+    if (!scrubSvgNode(root)) return '';
+    return root.outerHTML;
+  } catch {
+    return '';
+  }
+}
+
+function scrubSvgNode(element: Element): boolean {
+  if (!SVG_ALLOWED_TAGS.has(element.tagName.toLowerCase())) {
+    element.remove();
+    return false;
+  }
+  for (const attr of Array.from(element.attributes)) {
+    const name = attr.name.toLowerCase();
+    const value = attr.value.trim().toLowerCase();
+    const isHref = name === 'href' || name === 'xlink:href';
+    if (SVG_EVENT_ATTR.test(name) || (isHref && !value.startsWith('#')) || value.includes('javascript:') || value.includes('data:text/html')) {
+      element.removeAttribute(attr.name);
+    }
+  }
+  for (const child of Array.from(element.children)) scrubSvgNode(child);
+  return true;
 }
 
 function buildTreeIndex(registry: WebRegistry): TreeIndex {

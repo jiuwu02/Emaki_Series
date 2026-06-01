@@ -936,11 +936,11 @@ public final class WebConsoleService {
     }
 
     private void writeRevisionConflict(HttpExchange exchange, WebConsoleRegistry.RevisionConflictException exception) throws IOException {
-        WebResponse.json(exchange, 409, Map.of("success", false, "error", exception.getMessage(), "revision", exception.currentRevision()));
+        WebResponse.json(exchange, 409, Map.of("success", false, "error", exception.getMessage(), "revision", exception.currentRevision(), "errorType", "revision_conflict"));
     }
 
     private void writeRevisionConflict(HttpExchange exchange, long currentRevision) throws IOException {
-        WebResponse.json(exchange, 409, Map.of("success", false, "error", "文件已被其他管理员修改，请重载后再保存。", "revision", currentRevision));
+        WebResponse.json(exchange, 409, Map.of("success", false, "error", "文件已被其他管理员修改，请重载后再保存。", "revision", currentRevision, "errorType", "revision_conflict"));
     }
 
     private WebAuthService.Session requireAuth(HttpExchange exchange) throws IOException {
