@@ -56,19 +56,19 @@ public final class GemGuiService {
     }
 
     public boolean openSocket(Player player) {
-        return open(player, GemGuiMode.OPEN_SOCKET);
+        return openSocket(player, null);
     }
 
     public boolean openSocket(Player player, ItemStack initialTarget) {
-        return openSocket(player);
+        return openSocket(player, null, null);
     }
 
     public boolean openUpgrade(Player player) {
-        return open(player, GemGuiMode.UPGRADE);
+        return openUpgrade(player, null);
     }
 
     public boolean openUpgrade(Player player, ItemStack initialGem) {
-        return openUpgrade(player);
+        return openUpgrade(player, null, null);
     }
 
     public boolean switchTemplate(GemGuiSession state) {
