@@ -68,7 +68,7 @@ public final class GemInlayService {
         this.stateService = stateService;
         this.economyService = economyService;
         this.actionCoordinator = actionCoordinator;
-        this.operationLedger = new ItemOperationLedger();
+        this.operationLedger = new ItemOperationLedger(plugin::debugLogger);
     }
 
     public InlayResult inlayDirect(Player actor,

@@ -81,6 +81,10 @@ final class ForgeLayerSnapshotBuilder {
         return auditBuilder.buildMaterialsSignature(materials);
     }
 
+    Map<String, Object> buildDisplayVariables(List<ForgeMaterialContribution> materials, double multiplier, String numberFormat) {
+        return statBuilder.buildDisplayVariables(materials, multiplier, numberFormat);
+    }
+
     private QualitySettings qualitySettings() {
         if (plugin == null || plugin.appConfig() == null || plugin.appConfig().qualitySettings() == null) {
             return QualitySettings.defaults();

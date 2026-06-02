@@ -55,7 +55,7 @@ public final class GemExtractService {
         this.stateService = stateService;
         this.economyService = economyService;
         this.actionCoordinator = actionCoordinator;
-        this.operationLedger = new ItemOperationLedger();
+        this.operationLedger = new ItemOperationLedger(plugin::debugLogger);
     }
 
     public Result extract(Player actor, Player target, int slotIndex, boolean bypassCost) {

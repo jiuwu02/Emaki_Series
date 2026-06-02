@@ -33,15 +33,17 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
     private final ForgeLayerSnapshotBuilder snapshotBuilder;
     private final ForgePdcAttributeWriter pdcAttributeWriter;
     private final ForgeQualityModifierResolver qualityModifierResolver = new ForgeQualityModifierResolver();
-    private final ItemOperationLedger operationLedger = new ItemOperationLedger();
+    private final ItemOperationLedger operationLedger;
     private final Set<String> warningCache = new LinkedHashSet<>();
 
     public ForgeItemRefreshService(EmakiForgePlugin plugin, EmakiItemAssemblyService itemAssemblyService) {
         this.plugin = plugin;
         this.itemAssemblyService = itemAssemblyService;
         this.snapshotBuilder = new ForgeLayerSnapshotBuilder(plugin);
-        this.pdcAttributeWriter = new ForgePdcAttributeWriter(plugin);
+        this.pdcAttributeWriter = new ForgePdcAttributeWriter(plugin, "forge");
+        this.operationLedger = new ItemOperationLedger(plugin::debugLogger);
     }
+
 
     public void refreshOnlinePlayers() {
         if (!Bukkit.isPrimaryThread()) {
@@ -313,13 +315,7 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
         if (allNameActions.isEmpty() && allLoreActions.isEmpty()) {
             return;
         }
-        java.util.Map<String, Object> variables = new java.util.LinkedHashMap<>();
-        if (plan.qualityTier() != null) {
-            variables.put("quality", plan.qualityTier().name());
-            variables.put("quality_name", plan.qualityTier().name());
-        }
-        variables.put("quality_multiplier", Numbers.formatNumber(plan.multiplier(), "0.##"));
-        variables.put("multiplier", Numbers.formatNumber(plan.multiplier(), "0.##"));
+        java.util.Map<String, Object> variables = buildOperationVariables(plan);
 
         String operationId = "forge:" + recipe.id();
         Object nameActionsToApply = allNameActions.size() == 1 ? allNameActions.get(0) : allNameActions;
@@ -328,6 +324,22 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
                 allNameActions.isEmpty() ? null : nameActionsToApply,
                 allLoreActions.isEmpty() ? null : loreActionsToApply,
                 variables);
+    }
+
+    private java.util.Map<String, Object> buildOperationVariables(RefreshPlan plan) {
+        double multiplier = plan == null ? 1D : plan.multiplier();
+        java.util.Map<String, Object> variables = new java.util.LinkedHashMap<>(snapshotBuilder.buildDisplayVariables(
+                plan == null ? java.util.List.of() : plan.materials(),
+                multiplier,
+                plugin.appConfig().defaultNumberFormat()
+        ));
+        if (plan != null && plan.qualityTier() != null) {
+            variables.put("quality", plan.qualityTier().name());
+            variables.put("quality_name", plan.qualityTier().name());
+        }
+        variables.put("quality_multiplier", Numbers.formatNumber(multiplier, "0.##"));
+        variables.put("multiplier", Numbers.formatNumber(multiplier, "0.##"));
+        return variables;
     }
 
     private record RefreshPlan(boolean shouldRefresh,

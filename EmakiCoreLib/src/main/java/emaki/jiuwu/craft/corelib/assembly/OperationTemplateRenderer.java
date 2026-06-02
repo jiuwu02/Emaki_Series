@@ -18,11 +18,16 @@ public final class OperationTemplateRenderer {
 
     public List<Map<String, Object>> normalizeOperations(Object raw) {
         List<Map<String, Object>> normalized = new ArrayList<>();
-        for (Object operation : ConfigNodes.asObjectList(raw)) {
-            Object plain = ConfigNodes.toPlainData(operation);
-            if (!(plain instanceof Map<?, ?> map)) {
-                continue;
-            }
+        appendNormalizedOperations(normalized, raw);
+        return normalized;
+    }
+
+    private void appendNormalizedOperations(List<Map<String, Object>> normalized, Object raw) {
+        if (normalized == null || raw == null) {
+            return;
+        }
+        Object plain = ConfigNodes.toPlainData(raw);
+        if (plain instanceof Map<?, ?> map) {
             Map<String, Object> normalizedOperation = new LinkedHashMap<>();
             for (Map.Entry<?, ?> entry : map.entrySet()) {
                 if (entry.getKey() == null) {
@@ -34,8 +39,13 @@ public final class OperationTemplateRenderer {
                 );
             }
             normalized.add(normalizedOperation);
+            return;
         }
-        return normalized;
+        if (plain instanceof Iterable<?> iterable) {
+            for (Object entry : iterable) {
+                appendNormalizedOperations(normalized, entry);
+            }
+        }
     }
 
     public List<String> renderContent(Map<String, Object> operation, Map<String, Object> variables) {

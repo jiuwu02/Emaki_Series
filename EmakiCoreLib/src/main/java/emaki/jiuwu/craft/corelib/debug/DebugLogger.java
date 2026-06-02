@@ -31,7 +31,8 @@ public final class DebugLogger {
         if (!globalEnabled) {
             return false;
         }
-        if (!enabledModules.isEmpty() && !enabledModules.contains(module)) {
+        String normalizedModule = Texts.lower(module);
+        if (!enabledModules.isEmpty() && !enabledModules.contains(normalizedModule)) {
             return false;
         }
         return trackedPlayers.isEmpty() || player == null || trackedPlayers.contains(player);
@@ -50,7 +51,18 @@ public final class DebugLogger {
         String message = replacements == null || replacements.isEmpty()
                 ? template
                 : Texts.formatTemplate(template, replacements);
-        logger.info("[DEBUG][" + module + "] " + message);
+        logger.info("[DEBUG][" + Texts.lower(module) + "] " + message);
+    }
+
+    public void logRaw(String module, UUID player, String message) {
+        if (!shouldLog(module, player)) {
+            return;
+        }
+        logger.info("[DEBUG][" + Texts.lower(module) + "] " + Texts.toStringSafe(message));
+    }
+
+    public void logRaw(String module, Player player, String message) {
+        logRaw(module, player == null ? null : player.getUniqueId(), message);
     }
 
     public void log(String module, UUID player, String langKey) {

@@ -1,6 +1,8 @@
 package emaki.jiuwu.craft.corelib.debug;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -14,12 +16,22 @@ import emaki.jiuwu.craft.corelib.service.AbstractMessageService;
 
 public final class DebugCommand {
 
+    private static final Set<String> SHARED_MODULES = Set.of("action", "item_operation");
+
     private final DebugLogger debugLogger;
     private final Set<String> availableModules;
 
     public DebugCommand(DebugLogger debugLogger, Set<String> availableModules) {
         this.debugLogger = debugLogger;
-        this.availableModules = availableModules == null ? Set.of() : availableModules;
+        LinkedHashSet<String> modules = new LinkedHashSet<>();
+        if (availableModules != null) {
+            availableModules.stream()
+                    .filter(module -> module != null && !module.isBlank())
+                    .map(String::toLowerCase)
+                    .forEach(modules::add);
+        }
+        modules.addAll(SHARED_MODULES);
+        this.availableModules = Collections.unmodifiableSet(modules);
     }
 
     public boolean handle(CommandSender sender, String[] args, AbstractMessageService messageService) {

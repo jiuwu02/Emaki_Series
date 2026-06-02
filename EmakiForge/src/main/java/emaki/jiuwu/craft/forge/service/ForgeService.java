@@ -103,7 +103,7 @@ public final class ForgeService {
                 plugin,
                 layerSnapshotBuilder,
                 pdcAttributeWriter,
-                new ItemOperationLedger()
+                new ItemOperationLedger(plugin::debugLogger)
         );
         this.recipeMatchingService = new RecipeMatchingService(
                 this::candidateRecipes,

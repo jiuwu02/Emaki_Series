@@ -3,10 +3,12 @@ package emaki.jiuwu.craft.corelib.assembly;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -40,11 +42,20 @@ final class ItemOperationExecutor {
             return ExecutionResult.EMPTY;
         }
         Map<String, Object> safeVariables = variables == null ? Map.of() : (Map<String, Object>) variables;
+        List<Map<String, Object>> normalizedNameActions = templateRenderer.normalizeOperations(nameActions);
+        List<Map<String, Object>> normalizedLoreActions = templateRenderer.normalizeOperations(loreActions);
+        debug("apply start | operationId=" + operationId
+                + " | namespace=" + sourceNamespace
+                + " | item=" + itemStack.getType().name()
+                + " | nameActions=" + normalizedNameActions.size()
+                + " | loreActions=" + normalizedLoreActions.size()
+                + " | variables=" + summarizeMap(safeVariables));
 
-        List<ItemOperationEntry.NameOperationRecord> nameRecords = executeNameActions(itemStack, itemMeta, nameActions, safeVariables);
-        List<ItemOperationEntry.LoreOperationRecord> loreRecords = executeLoreActions(itemMeta, loreActions, safeVariables);
+        List<ItemOperationEntry.NameOperationRecord> nameRecords = executeNameActions(itemStack, itemMeta, normalizedNameActions, safeVariables);
+        List<ItemOperationEntry.LoreOperationRecord> loreRecords = executeLoreActions(itemMeta, normalizedLoreActions, safeVariables);
 
         if (nameRecords.isEmpty() && loreRecords.isEmpty()) {
+            debug("apply empty | operationId=" + operationId + " | reason=no_effective_records");
             return ExecutionResult.EMPTY;
         }
 
@@ -58,18 +69,17 @@ final class ItemOperationExecutor {
                 loreRecords
         );
         ledger.append(itemStack, entry);
+        debug("apply success | operationId=" + operationId
+                + " | nameRecords=" + nameRecords.size()
+                + " | loreRecords=" + loreRecords.size());
         return new ExecutionResult(true, entry);
     }
 
     private List<ItemOperationEntry.NameOperationRecord> executeNameActions(ItemStack itemStack,
             ItemMeta itemMeta,
-            Object nameActions,
+            List<Map<String, Object>> operations,
             Map<String, Object> variables) {
-        if (nameActions == null) {
-            return List.of();
-        }
-        List<Map<String, Object>> operations = templateRenderer.normalizeOperations(nameActions);
-        if (operations.isEmpty()) {
+        if (operations == null || operations.isEmpty()) {
             return List.of();
         }
 
@@ -79,12 +89,17 @@ final class ItemOperationExecutor {
                 : "";
 
         LocalNameState nameState = new LocalNameState();
-        nameOperations.apply(nameState, nameActions, variables);
+        nameOperations.apply(nameState, operations, variables);
 
         for (Map<String, Object> operation : operations) {
             String action = Texts.lower(operation.get("action"));
             Object rawValue = templateRenderer.resolveOperationValue(operation);
             String renderedValue = rawValue == null ? "" : templateRenderer.renderTemplate(rawValue, variables);
+            boolean recognized = nameOperations.getProcessor(action) != null;
+            debug("name action | action=" + action
+                    + " | recognized=" + recognized
+                    + " | value=" + summarize(renderedValue)
+                    + " | raw=" + summarizeMap(operation));
             if (Texts.isBlank(action) || Texts.isBlank(renderedValue)) {
                 continue;
             }
@@ -114,6 +129,7 @@ final class ItemOperationExecutor {
             finalName.append(postfix);
         }
         String result = finalName.toString();
+        debug("name result | original=" + summarize(originalName) + " | result=" + summarize(result));
         if (Texts.isNotBlank(result)) {
             ItemTextBridge.customName(itemMeta, MiniMessages.parse(result));
             itemStack.setItemMeta(itemMeta);
@@ -121,13 +137,9 @@ final class ItemOperationExecutor {
     }
 
     private List<ItemOperationEntry.LoreOperationRecord> executeLoreActions(ItemMeta itemMeta,
-            Object loreActions,
+            List<Map<String, Object>> operations,
             Map<String, Object> variables) {
-        if (loreActions == null) {
-            return List.of();
-        }
-        List<Map<String, Object>> operations = templateRenderer.normalizeOperations(loreActions);
-        if (operations.isEmpty()) {
+        if (operations == null || operations.isEmpty()) {
             return List.of();
         }
 
@@ -142,11 +154,18 @@ final class ItemOperationExecutor {
         for (Map<String, Object> operation : operations) {
             String action = Texts.lower(operation.get("action"));
             if (Texts.isBlank(action)) {
+                debug("lore action skipped | reason=blank_action | raw=" + summarizeMap(operation));
                 continue;
             }
             List<String> contentLines = templateRenderer.renderContent(operation, variables);
             Object rawAnchor = templateRenderer.resolveSearchPattern(operation);
             String anchor = rawAnchor == null ? "" : templateRenderer.renderTemplate(rawAnchor, variables);
+            boolean recognized = loreOperations.getProcessor(action) != null;
+            debug("lore action | action=" + action
+                    + " | recognized=" + recognized
+                    + " | anchor=" + summarize(anchor)
+                    + " | content=" + summarize(contentLines)
+                    + " | raw=" + summarizeMap(operation));
 
             List<String> originalLines = List.of();
             if ("replace_line".equals(action) || "delete_line".equals(action)) {
@@ -156,9 +175,11 @@ final class ItemOperationExecutor {
             records.add(new ItemOperationEntry.LoreOperationRecord(action, contentLines, anchor, originalLines));
         }
 
-        loreOperations.apply(currentLore, loreActions, variables);
+        int beforeSize = existingLore == null ? 0 : existingLore.size();
+        loreOperations.apply(currentLore, operations, variables);
 
         ItemTextBridge.setLoreLines(itemMeta, currentLore.isEmpty() ? null : currentLore);
+        debug("lore result | beforeLines=" + beforeSize + " | afterLines=" + currentLore.size());
 
         return records;
     }
@@ -174,6 +195,51 @@ final class ItemOperationExecutor {
             }
         }
         return matched;
+    }
+
+    private void debug(String message) {
+        DebugLogger debugLogger = ledger.debugLogger();
+        if (debugLogger != null) {
+            debugLogger.logRaw("item_operation", (UUID) null, message);
+        }
+    }
+
+    private String summarizeMap(Map<String, ?> values) {
+        if (values == null || values.isEmpty()) {
+            return "{}";
+        }
+        List<String> parts = new ArrayList<>();
+        for (Map.Entry<String, ?> entry : values.entrySet()) {
+            parts.add(entry.getKey() + "=" + summarize(entry.getValue()));
+            if (parts.size() >= 8) {
+                parts.add("...");
+                break;
+            }
+        }
+        return "{" + String.join(", ", parts) + "}";
+    }
+
+    private String summarize(Object value) {
+        if (value == null) {
+            return "";
+        }
+        String text;
+        if (value instanceof Iterable<?> iterable) {
+            List<String> parts = new ArrayList<>();
+            int count = 0;
+            for (Object entry : iterable) {
+                if (count >= 4) {
+                    parts.add("...");
+                    break;
+                }
+                parts.add(Texts.toStringSafe(entry));
+                count++;
+            }
+            text = "[" + String.join(" | ", parts) + "]";
+        } else {
+            text = Texts.toStringSafe(value);
+        }
+        return text.length() <= 160 ? text : text.substring(0, 157) + "...";
     }
 
     public record ExecutionResult(boolean success, ItemOperationEntry entry) {

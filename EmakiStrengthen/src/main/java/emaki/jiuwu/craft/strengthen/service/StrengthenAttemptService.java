@@ -64,7 +64,7 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
         this.actionCoordinator = actionCoordinator;
         this.itemAssemblyService = itemAssemblyService;
         this.pdcAttributeWriter = new StrengthenPdcAttributeWriter(plugin, PDC_ATTRIBUTE_SOURCE_ID);
-        this.operationLedger = new ItemOperationLedger();
+        this.operationLedger = new ItemOperationLedger(plugin::debugLogger);
     }
 
     @Override

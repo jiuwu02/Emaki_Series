@@ -10,7 +10,6 @@ import org.bukkit.inventory.ItemStack;
 import emaki.jiuwu.craft.corelib.assembly.ItemOperationLedger;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
-import emaki.jiuwu.craft.forge.model.ForgeMaterial;
 import emaki.jiuwu.craft.forge.model.GuiItems;
 import emaki.jiuwu.craft.forge.model.QualitySettings;
 import emaki.jiuwu.craft.forge.model.Recipe;
@@ -41,20 +40,21 @@ final class ForgeResultPostProcessor {
         if (preparedForge == null || resultItem == null) {
             return;
         }
+        List<ForgeMaterialContribution> materials = layerSnapshotBuilder.collectMaterialContributions(recipe, guiItems);
         pdcAttributeWriter.apply(
                 recipe,
-                layerSnapshotBuilder.collectMaterialContributions(recipe, guiItems),
+                materials,
                 preparedForge.multiplier(),
                 preparedForge.qualityTier(),
                 resultItem
         );
-        applyForgeOperations(recipe, guiItems, preparedForge, resultItem);
+        applyForgeOperations(recipe, preparedForge, resultItem, materials);
     }
 
     private void applyForgeOperations(Recipe recipe,
-            GuiItems guiItems,
             ForgeService.PreparedForge preparedForge,
-            ItemStack resultItem) {
+            ItemStack resultItem,
+            List<ForgeMaterialContribution> materials) {
         if (recipe == null || resultItem == null) {
             return;
         }
@@ -70,7 +70,6 @@ final class ForgeResultPostProcessor {
             }
         }
 
-        List<ForgeMaterialContribution> materials = layerSnapshotBuilder.collectMaterialContributions(recipe, guiItems);
         if (materials != null) {
             for (ForgeMaterialContribution material : materials) {
                 if (material == null || material.material() == null) {
@@ -105,13 +104,7 @@ final class ForgeResultPostProcessor {
             return;
         }
 
-        Map<String, Object> variables = new LinkedHashMap<>();
-        if (preparedForge.qualityTier() != null) {
-            variables.put("quality", preparedForge.qualityTier().name());
-            variables.put("quality_name", preparedForge.qualityTier().name());
-        }
-        variables.put("quality_multiplier", Numbers.formatNumber(preparedForge.multiplier(), "0.##"));
-        variables.put("multiplier", Numbers.formatNumber(preparedForge.multiplier(), "0.##"));
+        Map<String, Object> variables = buildOperationVariables(materials, preparedForge);
 
         String operationId = OPERATION_NAMESPACE + ":" + recipe.id();
         Object nameActionsToApply = allNameActions.size() == 1 ? allNameActions.get(0) : allNameActions;
@@ -120,5 +113,22 @@ final class ForgeResultPostProcessor {
                 allNameActions.isEmpty() ? null : nameActionsToApply,
                 allLoreActions.isEmpty() ? null : loreActionsToApply,
                 variables);
+    }
+
+    private Map<String, Object> buildOperationVariables(List<ForgeMaterialContribution> materials,
+            ForgeService.PreparedForge preparedForge) {
+        double multiplier = preparedForge == null ? 1D : preparedForge.multiplier();
+        Map<String, Object> variables = new LinkedHashMap<>(layerSnapshotBuilder.buildDisplayVariables(
+                materials,
+                multiplier,
+                plugin.appConfig().defaultNumberFormat()
+        ));
+        if (preparedForge != null && preparedForge.qualityTier() != null) {
+            variables.put("quality", preparedForge.qualityTier().name());
+            variables.put("quality_name", preparedForge.qualityTier().name());
+        }
+        variables.put("quality_multiplier", Numbers.formatNumber(multiplier, "0.##"));
+        variables.put("multiplier", Numbers.formatNumber(multiplier, "0.##"));
+        return variables;
     }
 }

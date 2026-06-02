@@ -3,11 +3,13 @@ package emaki.jiuwu.craft.corelib.assembly;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.pdc.PdcPartition;
 import emaki.jiuwu.craft.corelib.pdc.PdcService;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -19,10 +21,20 @@ public final class ItemOperationLedger {
     private static final PdcPartition PARTITION = PDC.partition("item");
     private static final String FIELD = "operations";
 
+    private final Supplier<DebugLogger> debugLoggerSupplier;
     private final ItemOperationExecutor executor;
     private final ItemOperationReverter reverter;
 
     public ItemOperationLedger() {
+        this((Supplier<DebugLogger>) null);
+    }
+
+    public ItemOperationLedger(DebugLogger debugLogger) {
+        this(() -> debugLogger);
+    }
+
+    public ItemOperationLedger(Supplier<DebugLogger> debugLoggerSupplier) {
+        this.debugLoggerSupplier = debugLoggerSupplier == null ? () -> null : debugLoggerSupplier;
         this.executor = new ItemOperationExecutor(this);
         this.reverter = new ItemOperationReverter(this);
     }
@@ -43,6 +55,10 @@ public final class ItemOperationLedger {
 
     public int revertAll(ItemStack itemStack, String sourceNamespace) {
         return reverter.revertAll(itemStack, sourceNamespace).revertedCount();
+    }
+
+    DebugLogger debugLogger() {
+        return debugLoggerSupplier.get();
     }
 
 
