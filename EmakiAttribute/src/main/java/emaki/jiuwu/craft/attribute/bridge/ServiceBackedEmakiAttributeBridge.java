@@ -73,6 +73,14 @@ public final class ServiceBackedEmakiAttributeBridge implements EmakiAttributeBr
     }
 
     @Override
+    public void scheduleEquipmentSync(Player player) {
+        if (player == null || attributeService == null) {
+            return;
+        }
+        attributeService.scheduleEquipmentSync(player);
+    }
+
+    @Override
     public boolean applyDamage(LivingEntity attacker, LivingEntity target, String damageTypeId, double baseDamage, Map<String, Object> context) {
         if (target == null || attributeService == null) {
             return false;

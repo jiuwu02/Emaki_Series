@@ -12,7 +12,8 @@ import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class ActionContextPlaceholderResolver implements PlaceholderResolver {
 
-    private static final Pattern PLACEHOLDER = Pattern.compile("%([a-zA-Z0-9_]+)%");
+    private static final Pattern PERCENT_PLACEHOLDER = Pattern.compile("%([a-zA-Z0-9_]+)%");
+    private static final Pattern BRACED_PLACEHOLDER = Pattern.compile("\\{([a-zA-Z0-9_]+)\\}");
 
     @Override
     public String resolve(ActionContext context, String text) {
@@ -30,7 +31,12 @@ public final class ActionContextPlaceholderResolver implements PlaceholderResolv
             values.putIfAbsent("player_z", String.valueOf(player.getLocation().getZ()));
         }
         values.putIfAbsent("phase", context.phase());
-        Matcher matcher = PLACEHOLDER.matcher(text);
+        String resolved = replace(values, text, PERCENT_PLACEHOLDER);
+        return replace(values, resolved, BRACED_PLACEHOLDER);
+    }
+
+    private String replace(Map<String, String> values, String text, Pattern pattern) {
+        Matcher matcher = pattern.matcher(text);
         StringBuffer buffer = new StringBuffer();
         while (matcher.find()) {
             String key = Texts.lower(matcher.group(1));

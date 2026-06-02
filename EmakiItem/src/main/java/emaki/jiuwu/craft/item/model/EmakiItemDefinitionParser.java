@@ -10,6 +10,7 @@ import java.util.logging.Logger;
 import org.bukkit.Material;
 
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.item.EquipmentSlotMatcher;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -53,6 +54,7 @@ public final class EmakiItemDefinitionParser {
                 components,
                 attributes,
                 parseSkills(root, effects),
+                parseEquipSlot(root, id, source),
                 parseSetMembership(root.getSection("set")),
                 parseConditions(root.getSection("conditions")),
                 parseActions(root.getSection("actions")),
@@ -166,6 +168,31 @@ public final class EmakiItemDefinitionParser {
                 section.getBoolean("interact", null),
                 section.getBoolean("command", null)
         );
+    }
+
+    private String parseEquipSlot(YamlSection root, String itemId, String source) {
+        String configured = root.getString("equip_slot", EquipmentSlotMatcher.SLOT_ALL);
+        String normalized = EquipmentSlotMatcher.normalizeRequired(configured);
+        if (isSupportedEquipSlot(normalized)) {
+            return normalized;
+        }
+        warning("Item definition " + source + " configures unsupported equip_slot '" + configured
+                + "' for '" + itemId + "'; falling back to 'all'.");
+        return EquipmentSlotMatcher.SLOT_ALL;
+    }
+
+    private boolean isSupportedEquipSlot(String slot) {
+        return switch (slot) {
+            case EquipmentSlotMatcher.SLOT_ALL,
+                EquipmentSlotMatcher.SLOT_HAND,
+                EquipmentSlotMatcher.SLOT_MAIN_HAND,
+                EquipmentSlotMatcher.SLOT_OFF_HAND,
+                EquipmentSlotMatcher.SLOT_HELMET,
+                EquipmentSlotMatcher.SLOT_CHESTPLATE,
+                EquipmentSlotMatcher.SLOT_LEGGINGS,
+                EquipmentSlotMatcher.SLOT_BOOTS -> true;
+            default -> false;
+        };
     }
 
     private ItemSetMembership parseSetMembership(YamlSection section) {

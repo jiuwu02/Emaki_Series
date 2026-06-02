@@ -16,6 +16,7 @@ import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import emaki.jiuwu.craft.corelib.item.EquipmentSlotMatcher;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.skills.model.SkillDefinition;
 import emaki.jiuwu.craft.skills.model.SkillSourceType;
@@ -42,11 +43,13 @@ public final class EquipmentSkillCollector {
     };
 
     private final NamespacedKey pdcKey;
+    private final NamespacedKey activeSlotKey;
     private final Supplier<Map<String, SkillDefinition>> skillDefinitionsSupplier;
 
     public EquipmentSkillCollector(JavaPlugin plugin,
             Supplier<Map<String, SkillDefinition>> skillDefinitionsSupplier) {
         this.pdcKey = new NamespacedKey("emaki_skills", "item.skills.ids");
+        this.activeSlotKey = new NamespacedKey("emaki_skills", "item.skills.active_slot");
         this.skillDefinitionsSupplier = skillDefinitionsSupplier;
     }
 
@@ -78,6 +81,10 @@ public final class EquipmentSkillCollector {
         PersistentDataContainer pdc = meta.getPersistentDataContainer();
         String raw = pdc.get(pdcKey, PersistentDataType.STRING);
         if (raw == null || raw.isBlank()) {
+            return;
+        }
+        String requiredSlot = pdc.get(activeSlotKey, PersistentDataType.STRING);
+        if (!EquipmentSlotMatcher.matches(slotName, requiredSlot)) {
             return;
         }
         for (String skillId : raw.split(";")) {

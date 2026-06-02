@@ -222,9 +222,10 @@ final class AttributeSnapshotCollector {
         }
         for (int index = 0; index < EQUIPMENT_SLOT_NAMES.length; index++) {
             org.bukkit.inventory.ItemStack itemStack = itemResolver.apply(index);
+            String slotName = EQUIPMENT_SLOT_NAMES[index];
             PdcAttributeService.PdcAttributeViews views = playerOrNull == null
                     ? null
-                    : service.pdcAttributeService().collectContributionViews(playerOrNull, itemStack);
+                    : service.pdcAttributeService().collectContributionViews(playerOrNull, itemStack, slotName);
             AttributeSnapshot itemSnapshot = playerOrNull == null
                     ? collectItemSnapshot(itemStack)
                     : collectItemSnapshot(itemStack, views.raw());

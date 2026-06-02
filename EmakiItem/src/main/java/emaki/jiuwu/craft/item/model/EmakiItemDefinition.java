@@ -6,6 +6,7 @@ import java.util.Map;
 import org.bukkit.Material;
 
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.item.EquipmentSlotMatcher;
 import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
 
 public record EmakiItemDefinition(String id,
@@ -17,6 +18,7 @@ public record EmakiItemDefinition(String id,
         ItemComponentsConfig components,
         Map<String, Object> attributes,
         List<String> skills,
+        String equipSlot,
         ItemSetMembership setMembership,
         ItemConditions conditions,
         Map<String, List<String>> actions,
@@ -33,6 +35,7 @@ public record EmakiItemDefinition(String id,
         components = components == null ? ItemComponentsConfig.empty() : components;
         attributes = attributes == null ? Map.of() : Map.copyOf(attributes);
         skills = skills == null ? List.of() : List.copyOf(skills);
+        equipSlot = EquipmentSlotMatcher.normalizeRequired(equipSlot);
         setMembership = setMembership == null ? ItemSetMembership.empty() : setMembership;
         conditions = conditions == null ? ItemConditions.empty() : conditions;
         actions = actions == null ? Map.of() : copyActions(actions);
@@ -51,6 +54,7 @@ public record EmakiItemDefinition(String id,
         signatureData.put("components", components);
         signatureData.put("ea_attributes", attributes);
         signatureData.put("es_skills", skills);
+        signatureData.put("equip_slot", equipSlot);
         signatureData.put("set", Map.of("id", setMembership.setId(), "piece", setMembership.pieceId()));
         signatureData.put("conditions", conditions);
         signatureData.put("actions", actions);

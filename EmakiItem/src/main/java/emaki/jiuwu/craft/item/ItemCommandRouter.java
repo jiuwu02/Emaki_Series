@@ -154,6 +154,7 @@ final class ItemCommandRouter implements TabExecutor {
         plugin.actionService().execute(target, definition, "give", Map.of("amount", amount));
         plugin.updateService().updatePlayerItems(target, "give");
         plugin.setService().refreshEquippedSets(target, "give");
+        plugin.scheduleAttributeEquipmentSync(target);
         plugin.messageService().send(sender, "general.give_success", Map.of(
                 "player", target.getName(),
                 "id", id,
@@ -205,6 +206,9 @@ final class ItemCommandRouter implements TabExecutor {
         }
         int changed = plugin.updateService().updatePlayerItems(target, "command");
         changed += plugin.setService().refreshEquippedSets(target, "command");
+        if (changed > 0) {
+            plugin.scheduleAttributeEquipmentSync(target);
+        }
         plugin.messageService().send(sender, "general.update_success", Map.of("player", target.getName(), "count", changed));
         return true;
     }

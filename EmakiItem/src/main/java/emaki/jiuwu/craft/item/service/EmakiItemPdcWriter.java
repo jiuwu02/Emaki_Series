@@ -11,6 +11,7 @@ import java.util.Map;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.integration.PdcAttributeGateway;
 import emaki.jiuwu.craft.corelib.integration.SkillPdcGateway;
+import emaki.jiuwu.craft.corelib.item.EquipmentSlotMatcher;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
@@ -46,14 +47,17 @@ public final class EmakiItemPdcWriter {
             identifier.writeIdentity(itemMeta, definition.id(), definition.definitionSignature(), updateVersion);
             itemStack.setItemMeta(itemMeta);
         }
+        String equipSlot = EquipmentSlotMatcher.normalizeRequired(definition.equipSlot());
         Map<String, Double> attributes = resolveAttributes(definition.attributes());
         if (!attributes.isEmpty()
                 && Bukkit.getPluginManager().isPluginEnabled("EmakiAttribute")) {
-            attributeGateway.write(itemStack, ATTRIBUTE_SOURCE_ID, attributes, Map.of());
+            attributeGateway.write(itemStack, ATTRIBUTE_SOURCE_ID, attributes, Map.of(
+                    EquipmentSlotMatcher.ACTIVE_SLOT_META_KEY, equipSlot
+            ));
         }
         if (!definition.skills().isEmpty()
                 && Bukkit.getPluginManager().isPluginEnabled("EmakiSkills")) {
-            skillPdcGateway.write(itemStack, definition.skills());
+            skillPdcGateway.write(itemStack, definition.skills(), equipSlot);
         }
     }
 
@@ -92,7 +96,7 @@ public final class EmakiItemPdcWriter {
             if (setSkills != null) {
                 skills.addAll(setSkills);
             }
-            skillPdcGateway.write(itemStack, skills);
+            skillPdcGateway.write(itemStack, skills, EquipmentSlotMatcher.normalizeRequired(definition.equipSlot()));
         }
     }
 
@@ -107,7 +111,7 @@ public final class EmakiItemPdcWriter {
         }
         attributeGateway.clear(itemStack, SET_ATTRIBUTE_SOURCE_ID);
         if (definition != null && Bukkit.getPluginManager().isPluginEnabled("EmakiSkills")) {
-            skillPdcGateway.write(itemStack, definition.skills());
+            skillPdcGateway.write(itemStack, definition.skills(), EquipmentSlotMatcher.normalizeRequired(definition.equipSlot()));
         }
     }
 

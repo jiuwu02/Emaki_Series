@@ -82,6 +82,10 @@ public final class ItemUpdateListener implements Listener {
 
     private int refresh(Player player, String trigger) {
         int changed = plugin.updateService().updatePlayerItems(player, trigger);
-        return changed + plugin.setService().refreshEquippedSets(player, trigger);
+        changed += plugin.setService().refreshEquippedSets(player, trigger);
+        if (changed > 0) {
+            plugin.scheduleAttributeEquipmentSync(player);
+        }
+        return changed;
     }
 }

@@ -17,6 +17,9 @@ public interface EmakiAttributeBridge {
 
     double readAttributeValue(Player player, String attributeId);
 
+    default void scheduleEquipmentSync(Player player) {
+    }
+
     default boolean applyDamage(LivingEntity attacker, LivingEntity target, String damageTypeId, double baseDamage, Map<String, Object> context) {
         return false;
     }

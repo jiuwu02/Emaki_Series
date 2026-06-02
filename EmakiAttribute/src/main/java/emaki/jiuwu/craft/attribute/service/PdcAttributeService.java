@@ -25,6 +25,7 @@ import emaki.jiuwu.craft.attribute.model.PdcAttributePayload;
 import emaki.jiuwu.craft.attribute.model.PdcReadRule;
 import emaki.jiuwu.craft.attribute.model.PdcReadRule.RuleCondition;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
+import emaki.jiuwu.craft.corelib.item.EquipmentSlotMatcher;
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.pdc.PdcPartition;
 import emaki.jiuwu.craft.corelib.pdc.PdcService;
@@ -173,21 +174,26 @@ public final class PdcAttributeService implements PdcAttributeApi, emaki.jiuwu.c
     }
 
     PdcAttributeCollection collectFilteredContribution(Player player, ItemStack itemStack) {
-        return collectContributionViews(player, itemStack).filtered();
+        return collectContributionViews(player, itemStack, null).filtered();
     }
 
     PdcAttributeViews collectContributionViews(Player player, ItemStack itemStack) {
+        return collectContributionViews(player, itemStack, null);
+    }
+
+    PdcAttributeViews collectContributionViews(Player player, ItemStack itemStack, String actualSlot) {
         Map<String, PdcAttributePayload> payloads = readAll(itemStack);
         PdcAttributeCollection raw = collectRawContribution(payloads.values());
         if (player == null || payloads.isEmpty()) {
             return new PdcAttributeViews(raw, raw);
         }
-        return new PdcAttributeViews(raw, collectFilteredContribution(player, itemStack, payloads));
+        return new PdcAttributeViews(raw, collectFilteredContribution(player, itemStack, payloads, actualSlot));
     }
 
     private PdcAttributeCollection collectFilteredContribution(Player player,
             ItemStack itemStack,
-            Map<String, PdcAttributePayload> payloads) {
+            Map<String, PdcAttributePayload> payloads,
+            String actualSlot) {
         List<String> loreLines = readLoreLines(itemStack);
         Map<String, Double> values = new LinkedHashMap<>();
         List<Object> signatureParts = new ArrayList<>();
@@ -195,25 +201,32 @@ public final class PdcAttributeService implements PdcAttributeApi, emaki.jiuwu.c
             String sourceId = entry.getKey();
             PdcAttributePayload payload = entry.getValue();
             PdcReadRule rule = ruleLoader == null ? null : ruleLoader.get(sourceId);
+            boolean slotMatched = matchesEquipmentSlot(payload, actualSlot);
             if (rule == null) {
-                mergeValues(values, payload.attributes());
+                if (slotMatched) {
+                    mergeValues(values, payload.attributes());
+                }
                 signatureParts.add(Map.of(
                         "source_id", sourceId,
                         "mode", "default",
-                        "payload", payload.toMap()
+                        "payload", payload.toMap(),
+                        "actual_slot", Texts.toStringSafe(actualSlot),
+                        "slot_matched", slotMatched
                 ));
                 continue;
             }
             FilterOutcome outcome = evaluateRule(player, payload, rule, loreLines);
-            if (outcome.accepted()) {
+            if (slotMatched && outcome.accepted()) {
                 mergeValues(values, payload.attributes());
             }
             signatureParts.add(Map.of(
                     "source_id", sourceId,
                     "payload", payload.toMap(),
                     "rule", rule.toMap(),
+                    "actual_slot", Texts.toStringSafe(actualSlot),
+                    "slot_matched", slotMatched,
                     "resolved_conditions", outcome.resolvedConditions(),
-                    "accepted", outcome.accepted()
+                    "accepted", outcome.accepted() && slotMatched
             ));
         }
         return new PdcAttributeCollection(
@@ -476,6 +489,14 @@ public final class PdcAttributeService implements PdcAttributeApi, emaki.jiuwu.c
             }
         }
         return lines.isEmpty() ? List.of() : List.copyOf(lines);
+    }
+
+    private boolean matchesEquipmentSlot(PdcAttributePayload payload, String actualSlot) {
+        if (payload == null) {
+            return true;
+        }
+        String requiredSlot = payload.meta().get(EquipmentSlotMatcher.ACTIVE_SLOT_META_KEY);
+        return EquipmentSlotMatcher.matches(actualSlot, requiredSlot);
     }
 
     private String resolvePlaceholders(Player player, PdcAttributePayload payload, String text) {

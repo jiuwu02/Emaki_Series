@@ -170,7 +170,7 @@ final class FoliaSchedulerCompat implements SchedulerCompat {
                     scheduledTaskClass,
                     "cancel",
                     MethodType.methodType(loadCancelledStateClass(classLoader)),
-                    MethodType.methodType(Object.class, Object.class)
+                    MethodType.methodType(void.class, Object.class)
             );
             MethodHandle taskIsCancelled = bindVirtual(
                     scheduledTaskClass,

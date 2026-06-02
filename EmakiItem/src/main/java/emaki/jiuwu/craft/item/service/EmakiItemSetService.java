@@ -12,6 +12,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import emaki.jiuwu.craft.corelib.item.EquipmentSlotMatcher;
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -280,6 +281,9 @@ public final class EmakiItemSetService {
             if (definition == null || !definition.setMembership().configured()) {
                 continue;
             }
+            if (!EquipmentSlotMatcher.matches(equippedItem.slot(), definition.equipSlot())) {
+                continue;
+            }
             ItemSetMembership membership = definition.setMembership();
             ItemSetDefinition setDefinition = setLoader.get(membership.setId());
             if (setDefinition != null) {
@@ -298,21 +302,7 @@ public final class EmakiItemSetService {
     }
 
     private boolean isSlotMatch(String actualSlot, String requiredSlot) {
-        if (Texts.isBlank(requiredSlot) || Texts.isBlank(actualSlot)) {
-            return true;
-        }
-        String normalizedRequired = Texts.normalizeId(requiredSlot);
-        String normalizedActual = Texts.normalizeId(actualSlot);
-        if ("any".equals(normalizedRequired)) {
-            return true;
-        }
-        if (normalizedRequired.equals(normalizedActual)) {
-            return true;
-        }
-        if ("hand".equals(normalizedRequired)) {
-            return "main_hand".equals(normalizedActual) || "off_hand".equals(normalizedActual);
-        }
-        return false;
+        return EquipmentSlotMatcher.matches(actualSlot, requiredSlot);
     }
 
     private Map<String, Set<String>> collectAllPieces(Player player, Map<String, Set<String>> equippedPieces) {

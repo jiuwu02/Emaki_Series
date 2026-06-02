@@ -5,10 +5,13 @@ import java.util.concurrent.CompletableFuture;
 
 import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
+import org.bukkit.entity.Player;
+import org.bukkit.plugin.RegisteredServiceProvider;
 
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
+import emaki.jiuwu.craft.corelib.api.integration.EmakiAttributeBridge;
 import emaki.jiuwu.craft.corelib.integration.PdcAttributeGateway;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
@@ -217,6 +220,17 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
 
     public PdcAttributeGateway pdcAttributeGateway() {
         return pdcAttributeGateway;
+    }
+
+    public void scheduleAttributeEquipmentSync(Player player) {
+        if (player == null) {
+            return;
+        }
+        RegisteredServiceProvider<EmakiAttributeBridge> registration = Bukkit.getServicesManager().getRegistration(EmakiAttributeBridge.class);
+        EmakiAttributeBridge bridge = registration == null ? null : registration.getProvider();
+        if (bridge != null && bridge.available()) {
+            bridge.scheduleEquipmentSync(player);
+        }
     }
 
     public DebugCommand debugCommand() {

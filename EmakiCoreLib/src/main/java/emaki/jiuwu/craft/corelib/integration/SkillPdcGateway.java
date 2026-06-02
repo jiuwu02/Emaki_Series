@@ -11,13 +11,19 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 
+import emaki.jiuwu.craft.corelib.item.EquipmentSlotMatcher;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class SkillPdcGateway {
 
     private static final NamespacedKey SKILL_IDS_KEY = new NamespacedKey("emaki_skills", "item.skills.ids");
+    private static final NamespacedKey SKILL_ACTIVE_SLOT_KEY = new NamespacedKey("emaki_skills", "item.skills.active_slot");
 
     public void write(ItemStack itemStack, Collection<String> skillIds) {
+        write(itemStack, skillIds, EquipmentSlotMatcher.SLOT_ALL);
+    }
+
+    public void write(ItemStack itemStack, Collection<String> skillIds, String activeSlot) {
         if (itemStack == null) {
             return;
         }
@@ -28,8 +34,14 @@ public final class SkillPdcGateway {
         }
         if (normalized.isEmpty()) {
             itemMeta.getPersistentDataContainer().remove(SKILL_IDS_KEY);
+            itemMeta.getPersistentDataContainer().remove(SKILL_ACTIVE_SLOT_KEY);
         } else {
             itemMeta.getPersistentDataContainer().set(SKILL_IDS_KEY, PersistentDataType.STRING, String.join(";", normalized));
+            itemMeta.getPersistentDataContainer().set(
+                    SKILL_ACTIVE_SLOT_KEY,
+                    PersistentDataType.STRING,
+                    EquipmentSlotMatcher.normalizeRequired(activeSlot)
+            );
         }
         itemStack.setItemMeta(itemMeta);
     }
@@ -48,10 +60,17 @@ public final class SkillPdcGateway {
             return;
         }
         String raw = originalMeta.getPersistentDataContainer().get(SKILL_IDS_KEY, PersistentDataType.STRING);
+        String activeSlot = originalMeta.getPersistentDataContainer().get(SKILL_ACTIVE_SLOT_KEY, PersistentDataType.STRING);
         if (Texts.isBlank(raw)) {
             rebuiltMeta.getPersistentDataContainer().remove(SKILL_IDS_KEY);
+            rebuiltMeta.getPersistentDataContainer().remove(SKILL_ACTIVE_SLOT_KEY);
         } else {
             rebuiltMeta.getPersistentDataContainer().set(SKILL_IDS_KEY, PersistentDataType.STRING, raw);
+            rebuiltMeta.getPersistentDataContainer().set(
+                    SKILL_ACTIVE_SLOT_KEY,
+                    PersistentDataType.STRING,
+                    EquipmentSlotMatcher.normalizeRequired(activeSlot)
+            );
         }
         rebuilt.setItemMeta(rebuiltMeta);
     }
