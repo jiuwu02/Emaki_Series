@@ -44,12 +44,23 @@ public final class GemActionCoordinator {
         ActionContext context = ActionContext.create(plugin, player, phase, false)
                 .withPlaceholders(placeholders)
                 .withAttribute("phase", phase);
-        ActionBatchResult result = executor.executeAll(context, actions, true).join();
-        if (result == null || result.success()) {
-            return ExecutionResult.ok();
+        executor.executeAll(context, actions, true).whenComplete((result, throwable) -> {
+            if (throwable != null) {
+                warnActionFailure(phase, throwable.getMessage());
+                return;
+            }
+            if (result != null && !result.success()) {
+                warnActionFailure(phase, result.firstFailure() == null
+                        ? "Unknown action failure."
+                        : result.firstFailure().result().errorMessage());
+            }
+        });
+        return ExecutionResult.ok();
+    }
+
+    private void warnActionFailure(String phase, String message) {
+        if (plugin != null) {
+            plugin.getLogger().warning("Gem action phase '" + Texts.toStringSafe(phase) + "' failed: " + Texts.toStringSafe(message));
         }
-        return ExecutionResult.failure(result.firstFailure() == null
-                ? "Unknown action failure."
-                : result.firstFailure().result().errorMessage());
     }
 }

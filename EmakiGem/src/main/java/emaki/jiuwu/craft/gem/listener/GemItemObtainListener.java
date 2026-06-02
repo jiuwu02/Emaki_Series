@@ -1,5 +1,9 @@
 package emaki.jiuwu.craft.gem.listener;
 
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -9,6 +13,7 @@ import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 
@@ -21,6 +26,7 @@ import emaki.jiuwu.craft.gem.model.GemState;
 public final class GemItemObtainListener implements Listener {
 
     private final EmakiGemPlugin plugin;
+    private final Set<UUID> pendingRefreshes = ConcurrentHashMap.newKeySet();
 
     public GemItemObtainListener(EmakiGemPlugin plugin) {
         this.plugin = plugin;
@@ -29,6 +35,11 @@ public final class GemItemObtainListener implements Listener {
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
         refreshLater(event.getPlayer());
+    }
+
+    @EventHandler
+    public void onQuit(PlayerQuitEvent event) {
+        pendingRefreshes.remove(event.getPlayer().getUniqueId());
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -66,7 +77,19 @@ public final class GemItemObtainListener implements Listener {
         if (player == null || !player.isOnline()) {
             return;
         }
-        FoliaSchedulerAdapter.runEntityTask(plugin, player, () -> refreshInventory(plugin, player));
+        UUID playerId = player.getUniqueId();
+        if (!pendingRefreshes.add(playerId)) {
+            return;
+        }
+        if (FoliaSchedulerAdapter.runEntityTask(plugin, player, () -> {
+            try {
+                refreshInventory(plugin, player);
+            } finally {
+                pendingRefreshes.remove(playerId);
+            }
+        }) == null) {
+            pendingRefreshes.remove(playerId);
+        }
     }
 
     public static void refreshInventory(EmakiGemPlugin plugin, Player player) {
@@ -78,20 +101,33 @@ public final class GemItemObtainListener implements Listener {
         for (int slot = 0; slot < inventory.getSize(); slot++) {
             ItemStack current = inventory.getItem(slot);
             ItemStack refreshed = refreshItem(plugin, player, current);
-            if (refreshed != current) {
+            if (shouldReplace(current, refreshed)) {
                 inventory.setItem(slot, refreshed);
                 changed = true;
             }
         }
         ItemStack cursorItem = player.getItemOnCursor();
         ItemStack refreshedCursor = refreshItem(plugin, player, cursorItem);
-        if (refreshedCursor != cursorItem) {
+        if (shouldReplace(cursorItem, refreshedCursor)) {
             player.setItemOnCursor(refreshedCursor);
             changed = true;
         }
         if (changed) {
             player.updateInventory();
         }
+    }
+
+    private static boolean shouldReplace(ItemStack current, ItemStack refreshed) {
+        if (refreshed == current) {
+            return false;
+        }
+        if (current == null || current.getType().isAir()) {
+            return refreshed != null && !refreshed.getType().isAir();
+        }
+        if (refreshed == null || refreshed.getType().isAir()) {
+            return true;
+        }
+        return current.getAmount() != refreshed.getAmount() || !current.isSimilar(refreshed);
     }
 
     private static ItemStack refreshItem(EmakiGemPlugin plugin, Player player, ItemStack itemStack) {
