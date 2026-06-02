@@ -379,6 +379,24 @@ public final class StrengthenRecipe {
     }
 
     /**
+     * Computes the cumulative variables as text-aware values for operation templates.
+     * Numeric stat calculations should continue using {@link #cumulativeVariables(int)}.
+     *
+     * @param currentStar the inclusive star ceiling
+     * @return resolved variable id to value mapping
+     */
+    public Map<String, Object> cumulativeMixedVariables(int currentStar) {
+        Map<String, Object> rawValues = new LinkedHashMap<>();
+        for (Map.Entry<Integer, StarStage> entry : stars.entrySet()) {
+            if (entry.getKey() > currentStar || entry.getValue() == null) {
+                continue;
+            }
+            mergeRaw(rawValues, entry.getValue().stats());
+        }
+        return resolveMixedExpressions(rawValues, Map.of("star", (double) currentStar));
+    }
+
+    /**
      * Computes the cumulative attributes granted up to a star level.
      *
      * @param currentStar the inclusive star ceiling
@@ -615,6 +633,27 @@ public final class StrengthenRecipe {
     }
 
     /**
+     * Branch-aware variant of {@link #cumulativeMixedVariables(int)}.
+     *
+     * @param currentStar the inclusive star ceiling
+     * @param branchPath  the slash-separated branch path
+     * @return resolved variable id to value mapping
+     */
+    public Map<String, Object> cumulativeMixedVariables(int currentStar, String branchPath) {
+        if (branchTree != null) {
+            Map<String, Object> rawValues = new LinkedHashMap<>();
+            Map<Integer, StarStage> collected = branchTree.collectStages(branchPath, currentStar);
+            for (StarStage stage : collected.values()) {
+                if (stage != null) {
+                    mergeRaw(rawValues, stage.stats());
+                }
+            }
+            return resolveMixedExpressions(rawValues, Map.of("star", (double) currentStar));
+        }
+        return cumulativeMixedVariables(currentStar);
+    }
+
+    /**
      * Branch-aware variant of {@link #cumulativeAttributes(int)}.
      *
      * @param currentStar the inclusive star ceiling
@@ -696,6 +735,19 @@ public final class StrengthenRecipe {
             evalContext.put(key, value);
         }
         return resolved;
+    }
+
+    static Map<String, Object> resolveMixedExpressions(Map<String, Object> rawValues, Map<String, ?> context) {
+        if (rawValues == null || rawValues.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, Object> normalized = new LinkedHashMap<>();
+        for (Map.Entry<String, Object> entry : rawValues.entrySet()) {
+            if (entry.getKey() != null && entry.getValue() != null) {
+                normalized.put(Texts.lower(entry.getKey()), entry.getValue());
+            }
+        }
+        return ExpressionEngine.resolveMixedVariables(normalized, context);
     }
 
     private static double resolveNumericValue(Object raw, Map<String, ?> variables) {

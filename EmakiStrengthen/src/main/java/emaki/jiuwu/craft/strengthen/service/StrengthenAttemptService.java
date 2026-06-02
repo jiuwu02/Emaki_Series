@@ -420,9 +420,9 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
         }
         String operationId = OPERATION_NAMESPACE + ":" + recipe.id() + ":star_" + state.currentStar();
         Map<String, Object> variables = new LinkedHashMap<>();
-        Map<String, Double> stats = recipe.cumulativeVariables(state.currentStar(), state.branchPath());
-        if (stats != null) {
-            variables.putAll(stats);
+        Map<String, Object> mixedVariables = recipe.cumulativeMixedVariables(state.currentStar(), state.branchPath());
+        if (mixedVariables != null) {
+            variables.putAll(mixedVariables);
         }
         variables.put("star", state.currentStar());
         variables.put("temper", state.temperLevel());

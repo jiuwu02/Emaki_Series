@@ -1,7 +1,6 @@
 package emaki.jiuwu.craft.item.service;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -99,24 +98,7 @@ public final class EmakiItemFactory {
         if (rawVariables == null || rawVariables.isEmpty()) {
             return Map.of();
         }
-        Map<String, Object> resolved = new LinkedHashMap<>();
-        for (Map.Entry<String, Object> entry : rawVariables.entrySet()) {
-            if (entry.getKey() == null) {
-                continue;
-            }
-            Object raw = entry.getValue();
-            Object value = raw;
-            if (raw instanceof Number || raw instanceof Boolean) {
-                value = raw;
-            } else if (raw instanceof Map<?, ?>) {
-                value = ExpressionEngine.evaluateRandomConfig(raw, resolved);
-            } else {
-                String text = Texts.toStringSafe(raw);
-                Double numeric = Numbers.tryParseDouble(ExpressionEngine.evaluateStringConfig(text, resolved), null);
-                value = numeric == null ? ExpressionEngine.evaluateStringConfig(text, resolved) : numeric;
-            }
-            resolved.put(entry.getKey(), value);
-        }
+        Map<String, Object> resolved = ExpressionEngine.resolveMixedVariables(rawVariables, Map.of());
         return resolved.isEmpty() ? Map.of() : Map.copyOf(resolved);
     }
 

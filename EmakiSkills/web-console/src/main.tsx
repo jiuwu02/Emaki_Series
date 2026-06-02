@@ -26,7 +26,7 @@ const currencyFields = standardCurrencyCostFields({
 });
 
 const parameterFields = [
-  { path: 'type', label: '类型', comment: '参数类型。数值分布: constant/range/uniform/gaussian/skew_normal/triangle/expression；文本: string/random_text；布尔: boolean。', type: 'enum', options: ['string', 'random_text', 'boolean', 'constant', 'range', 'uniform', 'gaussian', 'skew_normal', 'triangle', 'expression'], optionLabelPrefix: 'skill.parameter.type', defaultValue: 'constant' },
+  { path: 'type', label: '类型', comment: '参数类型。数值分布: constant/range/uniform/gaussian/skew_normal/triangle/expression；文本: string/random_text/random_char/weighted_random_char/conditional_char；布尔: boolean。', type: 'enum', options: ['string', 'random_text', 'random_char', 'weighted_random_char', 'conditional_char', 'boolean', 'constant', 'range', 'uniform', 'gaussian', 'skew_normal', 'triangle', 'expression'], optionLabelPrefix: 'skill.parameter.type', defaultValue: 'constant' },
   { path: 'value', label: '值', comment: '常量值或表达式值。', type: 'text', defaultValue: '' },
   { path: 'expression', label: '表达式', comment: '表达式参数内容。', type: 'text', defaultValue: '' },
   { path: 'formula', label: '公式', comment: '资源消耗或效果计算公式。若 expression/value 同时存在，请保持含义一致。', type: 'text', defaultValue: '' },
@@ -34,7 +34,16 @@ const parameterFields = [
   { path: 'max', label: '最大值', comment: '范围或数值参数上限。', type: 'number', defaultValue: 0 },
   { path: 'decimals', label: '小数位', comment: '数值格式的小数位数。', type: 'number', defaultValue: 0 },
   { path: 'default', label: '默认值', comment: '参数缺省值。', type: 'text', defaultValue: '' },
-  { path: 'lines', label: '随机文本行', comment: 'random_text 参数可用文本行。', type: 'stringList', defaultValue: [] }
+  { path: 'lines', label: '随机文本行', comment: 'random_text 参数可用文本行。', type: 'stringList', defaultValue: [] },
+  { path: 'chars', label: '候选字符', comment: 'random_char/weighted_random_char 的候选字符；random_char 可留空使用 a-z。', type: 'text', defaultValue: '' },
+  { path: 'weights', label: '权重列表', comment: 'weighted_random_char 的权重列表，按位置对应候选字符。', type: 'numberList', defaultValue: [] },
+  { path: 'count', label: '随机次数', comment: '随机字符抽取次数，默认 1。', type: 'number', defaultValue: 1 },
+  { path: 'allow_duplicates', label: '允许重复', comment: '是否允许同一次解析中重复抽到同一个候选字符。', type: 'boolean', defaultValue: false },
+  { path: 'condition', label: '条件', comment: 'conditional_char 的二选一布尔表达式。', type: 'text', defaultValue: '' },
+  { path: 'true_value', label: '成立输出', comment: 'conditional_char 条件成立时输出的字符或文本。', type: 'text', defaultValue: '' },
+  { path: 'false_value', label: '不成立输出', comment: 'conditional_char 条件不成立或无法判断时输出的字符或文本。', type: 'text', defaultValue: '' },
+  { path: 'cases', label: '穷举条件', comment: 'conditional_char 穷举条件列表，建议每项包含 condition 和 value。', type: 'objectList', defaultValue: [] },
+  { path: 'fallback', label: '兜底输出', comment: '没有任何穷举条件命中时输出的字符或文本。', type: 'text', defaultValue: '' }
 ];
 
 const fields: FieldSpec[] = [
@@ -171,6 +180,9 @@ const localeMessages: Record<string, string> = Object.fromEntries([
 registerModuleLocale(MODULE, 'zh-CN', {
   ...localeMessages,
   'emakiskills.surface.gui': '技能 GUI',
+  'emakiskills.option.skill.parameter.type.random_char': '随机字符',
+  'emakiskills.option.skill.parameter.type.weighted_random_char': '权重随机字符',
+  'emakiskills.option.skill.parameter.type.conditional_char': '条件字符',
   'emakiskills.option.script_engine.default_mode.native': '原生脚本',
   'emakiskills.option.script_engine.default_mode.mythic': 'Mythic 技能',
   'emakiskills.option.script_engine.default_mode.hybrid': '混合模式',
@@ -206,6 +218,9 @@ registerModuleLocale(MODULE, 'en-US', {
   'emakiskills.file.web-console.title': 'WebUIEdit Registration',
   'emakiskills.file.web-console.comment': 'File groups, editor kinds, and frontend extension entries exposed to WebUIEdit by this plugin.',
   'emakiskills.surface.gui': 'Skills GUI',
+  'emakiskills.option.skill.parameter.type.random_char': 'Random char',
+  'emakiskills.option.skill.parameter.type.weighted_random_char': 'Weighted random char',
+  'emakiskills.option.skill.parameter.type.conditional_char': 'Conditional char',
   'emakiskills.field.slots': 'Skill Slots',
   'emakiskills.field.cast_mode': 'Cast Mode',
   'emakiskills.field.cast_timing': 'Cast Timing',

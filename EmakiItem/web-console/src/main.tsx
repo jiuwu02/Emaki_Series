@@ -104,7 +104,7 @@ const itemEditorFields: ItemFieldSpec[] = [
   ['update.triggers.interact', '交互', '交互时检测更新。', 'boolean'],
   ['update.triggers.command', '命令', '执行相关命令时检测更新。', 'boolean'],
   ['effects', '效果', '按 type 分流为变量、属性、技能和名称/Lore 动作。', 'effects', { wide: true }],
-  ['variables', '变量', '表达式变量映射，支持固定值、公式、随机数值和文本配置。', 'variablesMap', { wide: true }],
+  ['variables', '变量', '表达式变量映射，支持固定值、公式、随机数值、随机文本、随机字符、权重随机字符和条件字符。', 'variablesMap', { wide: true }],
   ['ea_attributes', 'EA 属性', 'EmakiAttribute 属性数值映射。', 'map', { wide: true }],
   ['es_skills', 'ES 技能', 'EmakiSkills 技能 ID 列表。', 'stringList', { wide: true }],
   ['components.custom_model_data', '模型数据', '数字或 1.21.4+ floats、flags、strings、colors 复合结构。', 'json', { wide: true }],

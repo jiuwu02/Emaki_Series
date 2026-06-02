@@ -63,7 +63,11 @@ public final class SkillVariableResolver {
         Object config = variable.config() == null && Texts.isNotBlank(variable.defaultValue())
                 ? variable.defaultValue()
                 : variable.config();
-        if (variable.type() == SkillParameterType.STRING || variable.type() == SkillParameterType.RANDOM_TEXT) {
+        if (variable.type() == SkillParameterType.STRING
+                || variable.type() == SkillParameterType.RANDOM_TEXT
+                || variable.type() == SkillParameterType.RANDOM_CHAR
+                || variable.type() == SkillParameterType.WEIGHTED_RANDOM_CHAR
+                || variable.type() == SkillParameterType.CONDITIONAL_CHAR) {
             return ExpressionEngine.evaluateStringConfig(config, variables);
         }
         if (variable.type() == SkillParameterType.BOOLEAN) {

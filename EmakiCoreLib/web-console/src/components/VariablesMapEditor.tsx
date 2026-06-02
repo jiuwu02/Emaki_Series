@@ -3,7 +3,7 @@ import { t, getLocale } from '../i18n';
 import { DisclosureChevron } from './SectionHead';
 
 const NUMERIC_TYPES = ['constant', 'range', 'uniform', 'gaussian', 'skew_normal', 'triangle', 'expression'] as const;
-const TEXT_TYPES = ['text', 'random_text', 'boolean'] as const;
+const TEXT_TYPES = ['text', 'random_text', 'random_char', 'weighted_random_char', 'conditional_char', 'boolean'] as const;
 const TYPE_OPTIONS = ['number', 'formula', ...NUMERIC_TYPES, ...TEXT_TYPES, 'custom'] as const;
 
 type VariableType = typeof TYPE_OPTIONS[number];
@@ -79,6 +79,9 @@ function VariableValueEditor({ value, type, onChange }: { value: unknown; type: 
   if (type === 'expression') return <ExpressionObjectEditor value={asTypedRecord(value, 'expression')} onChange={onChange} />;
   if (type === 'text') return <TextObjectEditor value={asTypedRecord(value, 'text')} onChange={onChange} />;
   if (type === 'random_text') return <RandomTextObjectEditor value={asTypedRecord(value, 'random_text')} onChange={onChange} />;
+  if (type === 'random_char') return <RandomCharObjectEditor value={asTypedRecord(value, 'random_char')} onChange={onChange} />;
+  if (type === 'weighted_random_char') return <WeightedRandomCharObjectEditor value={asTypedRecord(value, 'weighted_random_char')} onChange={onChange} />;
+  if (type === 'conditional_char') return <ConditionalCharObjectEditor value={asTypedRecord(value, 'conditional_char')} onChange={onChange} />;
   if (type === 'boolean') return <BooleanObjectEditor value={asTypedRecord(value, 'boolean')} onChange={onChange} />;
   return <JsonObjectField value={value} onChange={onChange} />;
 }
@@ -110,6 +113,39 @@ function RandomTextObjectEditor({ value, onChange }: { value: AnyMap; onChange: 
     <label className="prop-param-field prop-param-field--wide"><span>{copy('候选文本', 'Candidates')}</span><textarea rows={4} value={lines.map(String).join('\n')} onChange={event => onChange(cleanObject({ ...value, lines: event.target.value.split('\n'), values: undefined }))} /></label>
     <label className="prop-param-field"><span>{copy('抽取数量', 'Count')}</span><input type="text" value={String(value.count ?? value.rolls ?? 1)} onChange={event => onChange(cleanObject({ ...value, count: parseLoose(event.target.value), rolls: undefined }))} /></label>
     <label className="inline-switch"><input type="checkbox" checked={value.allow_duplicates === true} onChange={event => onChange(cleanObject({ ...value, allow_duplicates: event.target.checked || undefined }))} /> {copy('允许重复', 'Allow duplicates')}</label>
+    <LocalVariablesEditor value={value.variables} onChange={variables => onChange(cleanObject({ ...value, variables }))} />
+  </div>;
+}
+
+function RandomCharObjectEditor({ value, onChange }: { value: AnyMap; onChange: (value: unknown) => void }) {
+  return <div className="schema-object-editor">
+    <label className="prop-param-field prop-param-field--wide"><span>{copy('候选字符', 'Characters')}</span><input value={String(value.chars ?? value.characters ?? value.alphabet ?? '')} onChange={event => onChange(cleanObject({ ...value, chars: event.target.value || undefined, characters: undefined, alphabet: undefined }))} placeholder={copy('留空使用 a-z', 'Leave blank for a-z')} /></label>
+    <label className="prop-param-field"><span>{copy('随机次数', 'Count')}</span><input type="text" value={String(value.count ?? value.rolls ?? 1)} onChange={event => onChange(cleanObject({ ...value, count: parseLoose(event.target.value), rolls: undefined }))} /></label>
+    <label className="inline-switch"><input type="checkbox" checked={value.allow_duplicates === true} onChange={event => onChange(cleanObject({ ...value, allow_duplicates: event.target.checked || undefined }))} /> {copy('允许重复', 'Allow duplicates')}</label>
+    <LocalVariablesEditor value={value.variables} onChange={variables => onChange(cleanObject({ ...value, variables }))} />
+  </div>;
+}
+
+function WeightedRandomCharObjectEditor({ value, onChange }: { value: AnyMap; onChange: (value: unknown) => void }) {
+  const chars = charRows(value.chars ?? value.characters ?? value.values);
+  const weights = listRows(value.weights ?? value.weight);
+  return <div className="schema-object-editor">
+    <label className="prop-param-field prop-param-field--wide"><span>{copy('候选字符（每行一个）', 'Characters, one per line')}</span><textarea rows={4} value={chars.join('\n')} onChange={event => onChange(cleanObject({ ...value, chars: splitRows(event.target.value), characters: undefined, values: undefined }))} /></label>
+    <label className="prop-param-field prop-param-field--wide"><span>{copy('权重（逐行对应）', 'Weights, matching rows')}</span><textarea rows={4} value={weights.join('\n')} onChange={event => onChange(cleanObject({ ...value, weights: splitRows(event.target.value).map(parseLoose), weight: undefined }))} /></label>
+    <label className="prop-param-field"><span>{copy('随机次数', 'Count')}</span><input type="text" value={String(value.count ?? value.rolls ?? 1)} onChange={event => onChange(cleanObject({ ...value, count: parseLoose(event.target.value), rolls: undefined }))} /></label>
+    <label className="inline-switch"><input type="checkbox" checked={value.allow_duplicates === true} onChange={event => onChange(cleanObject({ ...value, allow_duplicates: event.target.checked || undefined }))} /> {copy('允许重复', 'Allow duplicates')}</label>
+    <LocalVariablesEditor value={value.variables} onChange={variables => onChange(cleanObject({ ...value, variables }))} />
+  </div>;
+}
+
+function ConditionalCharObjectEditor({ value, onChange }: { value: AnyMap; onChange: (value: unknown) => void }) {
+  const cases = conditionalCaseRows(value.cases ?? value.conditions);
+  return <div className="schema-object-editor">
+    <label className="prop-param-field prop-param-field--wide"><span>{copy('条件', 'Condition')}</span><input value={String(value.condition ?? value.when ?? value['if'] ?? '')} onChange={event => onChange(cleanObject({ ...value, condition: event.target.value, when: undefined, 'if': undefined }))} placeholder="{level} &gt;= 10" /></label>
+    <label className="prop-param-field"><span>{copy('成立输出', 'True value')}</span><input value={String(value.true_value ?? value['true'] ?? value.then ?? '')} onChange={event => onChange(cleanObject({ ...value, true_value: event.target.value, 'true': undefined, then: undefined }))} /></label>
+    <label className="prop-param-field"><span>{copy('不成立输出', 'False value')}</span><input value={String(value.false_value ?? value['false'] ?? value['else'] ?? '')} onChange={event => onChange(cleanObject({ ...value, false_value: event.target.value, 'false': undefined, 'else': undefined }))} /></label>
+    <label className="prop-param-field prop-param-field--wide"><span>{copy('穷举条件', 'Cases')}</span><textarea rows={4} value={cases.join('\n')} onChange={event => onChange(cleanObject({ ...value, cases: parseConditionalCases(event.target.value), conditions: undefined }))} placeholder="{level} &gt;= 30 =&gt; S&#10;{level} &gt;= 20 =&gt; A" /></label>
+    <label className="prop-param-field"><span>{copy('兜底输出', 'Fallback')}</span><input value={String(value.fallback ?? value.default ?? '')} onChange={event => onChange(cleanObject({ ...value, fallback: event.target.value, 'default': undefined }))} /></label>
     <LocalVariablesEditor value={value.variables} onChange={variables => onChange(cleanObject({ ...value, variables }))} />
   </div>;
 }
@@ -170,6 +206,9 @@ function convertVariableValue(previous: unknown, type: VariableType): unknown {
   if (type === 'expression') return cleanObject({ type, expression: String(record.expression ?? record.formula ?? previous ?? '') });
   if (type === 'text') return cleanObject({ type, value: String(record.value ?? record.text ?? previous ?? '') });
   if (type === 'random_text') return cleanObject({ type, lines: Array.isArray(record.lines ?? record.values) ? record.lines ?? record.values : [''], count: 1 });
+  if (type === 'random_char') return cleanObject({ type, chars: String(record.chars ?? record.characters ?? ''), count: 1 });
+  if (type === 'weighted_random_char') return cleanObject({ type, chars: charRows(record.chars ?? record.characters ?? record.values).length ? charRows(record.chars ?? record.characters ?? record.values) : ['A', 'B', 'C'], weights: listRows(record.weights ?? record.weight).length ? listRows(record.weights ?? record.weight).map(parseLoose) : [1, 1, 1], count: 1 });
+  if (type === 'conditional_char') return cleanObject({ type, condition: String(record.condition ?? record.when ?? record['if'] ?? ''), true_value: String(record.true_value ?? record['true'] ?? record.then ?? '1'), false_value: String(record.false_value ?? record['false'] ?? record['else'] ?? '2'), fallback: String(record.fallback ?? record['default'] ?? '') });
   if (type === 'boolean') return cleanObject({ type, expression: String(record.expression ?? record.value ?? '') });
   return previous ?? {};
 }
@@ -179,8 +218,8 @@ function asTypedRecord(value: unknown, type: string): AnyMap {
 }
 
 function variableTypeLabel(type: VariableType): string {
-  const zh: Record<string, string> = { number: '数字简写', formula: '公式简写', constant: '固定数值', range: '范围随机', uniform: '均匀随机', gaussian: '正态随机', skew_normal: '偏态正态', triangle: '三角分布', expression: '表达式', text: '文本', random_text: '随机文本', boolean: '布尔', custom: '自定义对象' };
-  const en: Record<string, string> = { number: 'Number shorthand', formula: 'Formula shorthand', constant: 'Constant', range: 'Range random', uniform: 'Uniform random', gaussian: 'Gaussian', skew_normal: 'Skew normal', triangle: 'Triangle', expression: 'Expression', text: 'Text', random_text: 'Random text', boolean: 'Boolean', custom: 'Custom object' };
+  const zh: Record<string, string> = { number: '数字简写', formula: '公式简写', constant: '固定数值', range: '范围随机', uniform: '均匀随机', gaussian: '正态随机', skew_normal: '偏态正态', triangle: '三角分布', expression: '表达式', text: '文本', random_text: '随机文本', random_char: '随机字符', weighted_random_char: '权重随机字符', conditional_char: '条件字符', boolean: '布尔', custom: '自定义对象' };
+  const en: Record<string, string> = { number: 'Number shorthand', formula: 'Formula shorthand', constant: 'Constant', range: 'Range random', uniform: 'Uniform random', gaussian: 'Gaussian', skew_normal: 'Skew normal', triangle: 'Triangle', expression: 'Expression', text: 'Text', random_text: 'Random text', random_char: 'Random char', weighted_random_char: 'Weighted random char', conditional_char: 'Conditional char', boolean: 'Boolean', custom: 'Custom object' };
   return (getLocale().startsWith('zh') ? zh : en)[type] ?? type;
 }
 
@@ -188,6 +227,27 @@ function variableFieldLabel(field: string): string {
   const zh: Record<string, string> = { value: '值', min: '最小值', max: '最大值', mean: '均值', std_dev: '标准差', skewness: '偏度', mode: '众数/中心', deviation: '偏移', max_attempts: '最大尝试次数' };
   const en: Record<string, string> = { value: 'Value', min: 'Min', max: 'Max', mean: 'Mean', std_dev: 'Std dev', skewness: 'Skewness', mode: 'Mode', deviation: 'Deviation', max_attempts: 'Max attempts' };
   return (getLocale().startsWith('zh') ? zh : en)[field] ?? field;
+}
+
+function conditionalCaseRows(value: unknown): string[] {
+  if (!Array.isArray(value)) return splitRows(String(value ?? ''));
+  return value.map(entry => {
+    if (!isRecord(entry)) return String(entry ?? '');
+    const condition = String(entry.condition ?? entry.when ?? entry['if'] ?? entry.expression ?? entry.formula ?? '');
+    const result = String(entry.value ?? entry.char ?? entry.text ?? entry.result ?? entry.output ?? '');
+    return condition || result ? `${condition} => ${result}` : '';
+  }).filter(entry => entry.trim() !== '');
+}
+
+function parseConditionalCases(value: string): AnyMap[] {
+  return splitRows(value).map(row => {
+    const arrowIndex = row.indexOf('=>');
+    const thinArrowIndex = arrowIndex < 0 ? row.indexOf('->') : -1;
+    const delimiterIndex = arrowIndex >= 0 ? arrowIndex : thinArrowIndex;
+    const delimiterLength = arrowIndex >= 0 ? 2 : thinArrowIndex >= 0 ? 2 : 0;
+    if (delimiterIndex < 0) return cleanObject({ condition: row, value: '' });
+    return cleanObject({ condition: row.slice(0, delimiterIndex).trim(), value: row.slice(delimiterIndex + delimiterLength).trim() });
+  }).filter(entry => Boolean(entry.condition || entry.value));
 }
 
 function nextVariableKey(keys: string[]): string {
@@ -205,6 +265,21 @@ function parseLoose(value: string): unknown {
   if (value === '') return undefined;
   const number = Number(value);
   return Number.isFinite(number) && /^-?\d+(\.\d+)?$/.test(value.trim()) ? number : value;
+}
+
+function charRows(value: unknown): string[] {
+  if (Array.isArray(value)) return value.map(String).filter(entry => entry.trim() !== '');
+  const text = String(value ?? '');
+  return text ? Array.from(text) : [];
+}
+
+function listRows(value: unknown): string[] {
+  if (Array.isArray(value)) return value.map(String).filter(entry => entry.trim() !== '');
+  return splitRows(String(value ?? ''));
+}
+
+function splitRows(value: string): string[] {
+  return value.split('\n').map(entry => entry.trim()).filter(Boolean);
 }
 
 function cleanObject(value: AnyMap): AnyMap {

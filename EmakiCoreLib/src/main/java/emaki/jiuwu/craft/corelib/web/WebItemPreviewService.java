@@ -214,24 +214,7 @@ final class WebItemPreviewService {
     }
 
     private Map<String, Object> resolveVariables(Map<String, Object> raw, Map<String, ?> context) {
-        Map<String, Object> result = new LinkedHashMap<>();
-        Map<String, Object> evalContext = new LinkedHashMap<>();
-        if (context != null) evalContext.putAll(context);
-        for (Map.Entry<String, Object> entry : raw.entrySet()) {
-            Object value = entry.getValue();
-            Object resolved = value;
-            if (value instanceof Number || value instanceof String || value instanceof Map<?, ?>) {
-                ExpressionEngine.NumericEvaluationResult numeric = ExpressionEngine.evaluateRandomConfigDetailed(value, evalContext);
-                if (numeric.success()) {
-                    resolved = numeric.value();
-                } else if (value instanceof String text) {
-                    resolved = ExpressionEngine.evaluateString(text, evalContext);
-                }
-            }
-            result.put(entry.getKey(), resolved);
-            evalContext.put(entry.getKey(), resolved);
-        }
-        return result;
+        return ExpressionEngine.resolveMixedVariables(raw, context == null ? Map.of() : context);
     }
 
     private List<Map<String, Object>> summarizeEffects(Map<String, Object> data, Map<String, ?> variables, String source) {

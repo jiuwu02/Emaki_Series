@@ -109,7 +109,7 @@ public final class SkillParameterResolver {
     private String resolveSingle(SkillParameterDefinition parameter, Map<String, Object> variables) {
         Object config = parameter.config();
         return switch (parameter.type()) {
-            case STRING, RANDOM_TEXT -> resolveText(parameter, config, variables);
+            case STRING, RANDOM_TEXT, RANDOM_CHAR, WEIGHTED_RANDOM_CHAR, CONDITIONAL_CHAR -> resolveText(parameter, config, variables);
             case BOOLEAN -> Boolean.toString(ExpressionEngine.evaluateBoolean(Texts.toStringSafe(config), variables,
                     ExpressionEngine.evaluateBoolean(parameter.defaultValue(), variables, false)));
             case CONSTANT, RANGE, UNIFORM, GAUSSIAN, SKEW_NORMAL, TRIANGLE, EXPRESSION -> resolveNumeric(parameter, config, variables);

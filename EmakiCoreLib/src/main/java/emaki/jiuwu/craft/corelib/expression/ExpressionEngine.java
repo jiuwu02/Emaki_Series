@@ -19,6 +19,7 @@ public final class ExpressionEngine {
 
     static final Pattern VARIABLE_PATTERN = Pattern.compile("\\{([^{}\\s]+)}");
     private static final double INTEGER_ROUNDING_EPSILON = 1.0E-9D;
+    private static final String DEFAULT_RANDOM_CHARS = "abcdefghijklmnopqrstuvwxyz";
     private static final Function[] CUSTOM_FUNCTIONS = new Function[]{
         new Function("ceil", 1) {
             @Override
@@ -101,6 +102,27 @@ public final class ExpressionEngine {
         return resolved;
     }
 
+    public static Map<String, Object> resolveMixedVariables(Map<String, Object> rawValues, Map<String, ?> context) {
+        Map<String, Object> resolved = new java.util.LinkedHashMap<>();
+        if (rawValues == null || rawValues.isEmpty()) {
+            return resolved;
+        }
+        Map<String, Object> evalContext = new java.util.LinkedHashMap<>();
+        if (context != null) {
+            evalContext.putAll(context);
+        }
+        for (Map.Entry<String, Object> entry : rawValues.entrySet()) {
+            String key = entry.getKey();
+            if (Texts.isBlank(key)) {
+                continue;
+            }
+            Object value = resolveMixedVariableValue(entry.getValue(), evalContext);
+            resolved.put(key, value);
+            evalContext.put(key, value);
+        }
+        return resolved;
+    }
+
     public static NumericEvaluationResult evaluateNumericDetailed(String expression) {
         return evaluateNumericDetailed(expression, Map.of());
     }
@@ -163,6 +185,36 @@ public final class ExpressionEngine {
     public static boolean evaluateBoolean(String expression, Map<String, ?> variables, boolean fallback) {
         Boolean value = evaluateBoolean(expression, variables);
         return value == null ? fallback : value;
+    }
+
+    private static Object resolveMixedVariableValue(Object raw, Map<String, ?> variables) {
+        if (raw == null) {
+            return "";
+        }
+        if (raw instanceof Number || raw instanceof Boolean) {
+            return raw;
+        }
+        TextEvaluationResult text = evaluateStringConfigDetailed(raw, variables);
+        if (text.success()) {
+            return coerceResolvedTextValue(raw, text.value());
+        }
+        NumericEvaluationResult numeric = evaluateRandomConfigDetailed(raw, variables);
+        if (numeric.success()) {
+            return numeric.value();
+        }
+        return coerceResolvedTextValue(raw, text.value());
+    }
+
+    private static Object coerceResolvedTextValue(Object raw, String value) {
+        String safeValue = Texts.toStringSafe(value);
+        if (raw instanceof Map<?, ?> && looksLikeTextConfig(raw)) {
+            return safeValue;
+        }
+        if (raw instanceof Iterable<?>) {
+            return safeValue;
+        }
+        Double numeric = Numbers.tryParseDouble(safeValue, null);
+        return numeric == null ? safeValue : numeric;
     }
 
     private static Double evaluateNumberOrNull(String expression, Map<String, ?> variables) {
@@ -449,6 +501,14 @@ public final class ExpressionEngine {
             if (hasRandomTextLines(config)) {
                 return evaluateRandomTextLinesDetailed(config, scoped, depth + 1);
             }
+            if (looksLikeNumericConfig(config)) {
+                NumericEvaluationResult result = evaluateRandomConfigDetailed(config,
+                        NumericEvaluationScope.of(scoped.variables()),
+                        depth + 1);
+                return result.success()
+                        ? TextEvaluationResult.success(formatTextNumber(result.value()))
+                        : TextEvaluationResult.failure(result.issues());
+            }
             Object value = firstConfigValue(config, "value", "text", "template", "expression", "formula");
             if (value != null) {
                 return evaluateStringConfigDetailed(value, scoped, depth + 1);
@@ -458,6 +518,15 @@ public final class ExpressionEngine {
 
         if (isRandomTextConfigType(type)) {
             return evaluateRandomTextLinesDetailed(config, scoped, depth + 1);
+        }
+        if (isRandomCharConfigType(type)) {
+            return evaluateRandomCharsDetailed(config, scoped, depth + 1, false);
+        }
+        if (isWeightedRandomCharConfigType(type)) {
+            return evaluateRandomCharsDetailed(config, scoped, depth + 1, true);
+        }
+        if (isConditionalCharConfigType(type)) {
+            return evaluateConditionalCharDetailed(config, scoped, depth + 1);
         }
         if (isStringConfigType(type)) {
             Object value = firstConfigValue(config, "value", "text", "template", "expression", "formula");
@@ -485,7 +554,7 @@ public final class ExpressionEngine {
                     : TextEvaluationResult.failure(result.issues());
         }
         return TextEvaluationResult.failure("Unsupported text config type '" + type
-                + "'. Supported text types: string, random_text.");
+                + "'. Supported text types: string, random_text, random_char, weighted_random_char, conditional_char, boolean.");
     }
 
     private static TextEvaluationResult evaluateRandomTextLinesDetailed(Object config,
@@ -539,6 +608,114 @@ public final class ExpressionEngine {
             separator = "\n";
         }
         return new TextEvaluationResult(issues.isEmpty(), String.join(separator, lines), lines, issues);
+    }
+
+    private static TextEvaluationResult evaluateRandomCharsDetailed(Object config,
+            TextEvaluationScope scope,
+            int depth,
+            boolean weighted) {
+        if (depth > ExpressionRules.MAX_NESTED_DEPTH) {
+            return TextEvaluationResult.failure("Random char config exceeded maximum nested depth "
+                    + ExpressionRules.MAX_NESTED_DEPTH + ".");
+        }
+        TextEvaluationScope scoped = textScopeWithConfigVariables(config, scope);
+        TextCandidates candidates = randomCharCandidates(config, scoped, depth + 1);
+        List<String> issues = new ArrayList<>(candidates.issues());
+        if (candidates.values().isEmpty()) {
+            issues.add("Random char config has no candidate chars.");
+            return TextEvaluationResult.failure(issues);
+        }
+
+        TextIntegerResult count = evaluateTextRollCount(config, scoped, depth + 1);
+        TextBooleanResult allowDuplicates = evaluateTextAllowDuplicates(config, scoped, depth + 1);
+        issues.addAll(count.issues());
+        issues.addAll(allowDuplicates.issues());
+        int requestedCount = Math.max(0, count.value());
+        if (requestedCount <= 0) {
+            return new TextEvaluationResult(issues.isEmpty(), "", List.of(), issues);
+        }
+
+        List<String> selected = weighted
+                ? selectWeightedRandomChars(config, candidates.values(), scoped, depth + 1, requestedCount,
+                        allowDuplicates.value(), issues)
+                : selectRandomChars(candidates.values(), requestedCount, allowDuplicates.value());
+        String separator = Texts.toStringSafe(firstConfigValue(config, "separator", "joiner"));
+        String value = String.join(separator, selected);
+        return new TextEvaluationResult(issues.isEmpty(), value, value.isEmpty() ? List.of() : List.of(value), issues);
+    }
+
+    private static TextEvaluationResult evaluateConditionalCharDetailed(Object config,
+            TextEvaluationScope scope,
+            int depth) {
+        if (depth > ExpressionRules.MAX_NESTED_DEPTH) {
+            return TextEvaluationResult.failure("Conditional char config exceeded maximum nested depth "
+                    + ExpressionRules.MAX_NESTED_DEPTH + ".");
+        }
+        TextEvaluationScope scoped = textScopeWithConfigVariables(config, scope);
+        List<String> issues = new ArrayList<>();
+        Object rawCases = firstConfigValue(config, "cases", "conditions");
+        List<Object> cases = ConfigNodes.asObjectList(rawCases);
+        if (!cases.isEmpty()) {
+            for (int index = 0; index < cases.size(); index++) {
+                Object entry = cases.get(index);
+                if (entry == null) {
+                    issues.add("Conditional char case at index " + index + " is empty.");
+                    continue;
+                }
+                Object condition = firstConfigValue(entry, "condition", "when", "if", "expression", "formula");
+                if (condition == null) {
+                    issues.add("Conditional char case at index " + index + " is missing condition.");
+                    continue;
+                }
+                TextBooleanResult conditionResult = evaluateTextBooleanValue(condition, scoped, depth + 1, false);
+                if (!conditionResult.issues().isEmpty()) {
+                    issues.add("Conditional char case at index " + index + " condition is invalid.");
+                    issues.addAll(conditionResult.issues());
+                    continue;
+                }
+                if (!conditionResult.value()) {
+                    continue;
+                }
+                Object value = firstConfigValue(entry, "value", "char", "text", "result", "output");
+                if (value == null) {
+                    issues.add("Conditional char case at index " + index + " is missing value.");
+                    return new TextEvaluationResult(false, "", List.of(), issues);
+                }
+                return evaluateConditionalCharValue(value, scoped, depth + 1, issues);
+            }
+            Object fallback = firstConfigValue(config, "fallback", "default", "else", "false_value");
+            if (fallback == null) {
+                return new TextEvaluationResult(issues.isEmpty(), "", List.of(), issues);
+            }
+            return evaluateConditionalCharValue(fallback, scoped, depth + 1, issues);
+        }
+
+        Object condition = firstConfigValue(config, "condition", "when", "if", "expression", "formula");
+        if (condition == null) {
+            return TextEvaluationResult.failure("Conditional char config is missing 'condition' or 'cases'.");
+        }
+        TextBooleanResult conditionResult = evaluateTextBooleanValue(condition, scoped, depth + 1, false);
+        issues.addAll(conditionResult.issues());
+        Object value = conditionResult.issues().isEmpty() && conditionResult.value()
+                ? firstConfigValue(config, "true_value", "true", "then", "value", "char")
+                : firstConfigValue(config, "false_value", "false", "else", "fallback", "default");
+        if (value == null) {
+            issues.add("Conditional char config is missing "
+                    + (conditionResult.issues().isEmpty() && conditionResult.value() ? "true_value" : "false_value")
+                    + ".");
+            return new TextEvaluationResult(false, "", List.of(), issues);
+        }
+        return evaluateConditionalCharValue(value, scoped, depth + 1, issues);
+    }
+
+    private static TextEvaluationResult evaluateConditionalCharValue(Object value,
+            TextEvaluationScope scope,
+            int depth,
+            List<String> issues) {
+        TextEvaluationResult result = evaluateStringConfigDetailed(value, scope.fresh(), depth + 1);
+        List<String> allIssues = new ArrayList<>(issues == null ? List.of() : issues);
+        allIssues.addAll(result.issues());
+        return new TextEvaluationResult(allIssues.isEmpty(), result.value(), result.lines(), allIssues);
     }
 
     private static TextEvaluationResult evaluateTextListDetailed(Object config,
@@ -753,6 +930,141 @@ public final class ExpressionEngine {
         return result;
     }
 
+    private static TextCandidates randomCharCandidates(Object config, TextEvaluationScope scope, int depth) {
+        Object raw = firstConfigValue(config, "chars", "characters", "alphabet", "values");
+        if (raw == null) {
+            raw = DEFAULT_RANDOM_CHARS;
+        }
+        List<String> result = new ArrayList<>();
+        List<String> issues = new ArrayList<>();
+        if (raw instanceof String text) {
+            TextEvaluationResult evaluated = evaluateStringConfigDetailed(text, scope.fresh(), depth + 1);
+            issues.addAll(evaluated.issues());
+            evaluated.value().codePoints()
+                    .mapToObj(codePoint -> new String(Character.toChars(codePoint)))
+                    .filter(Texts::isNotBlank)
+                    .forEach(result::add);
+            return new TextCandidates(result, issues);
+        }
+        for (Object entry : ConfigNodes.asObjectList(raw)) {
+            if (entry == null) {
+                continue;
+            }
+            TextEvaluationResult evaluated = evaluateStringConfigDetailed(entry, scope.fresh(), depth + 1);
+            issues.addAll(evaluated.issues());
+            if (Texts.isNotBlank(evaluated.value())) {
+                result.add(evaluated.value());
+            }
+        }
+        return new TextCandidates(result, issues);
+    }
+
+    private static List<String> selectRandomChars(List<String> candidates,
+            int requestedCount,
+            boolean allowDuplicates) {
+        int safeCount = requestedCount;
+        if (!allowDuplicates) {
+            safeCount = Math.min(safeCount, candidates.size());
+        }
+        if (safeCount <= 0) {
+            return List.of();
+        }
+        List<String> selected = new ArrayList<>();
+        if (allowDuplicates) {
+            for (int index = 0; index < safeCount; index++) {
+                selected.add(candidates.get(Randoms.randomInt(0, candidates.size() - 1)));
+            }
+            return selected;
+        }
+        selected.addAll(Randoms.shuffle(candidates).subList(0, safeCount));
+        return selected;
+    }
+
+    private static List<String> selectWeightedRandomChars(Object config,
+            List<String> candidates,
+            TextEvaluationScope scope,
+            int depth,
+            int requestedCount,
+            boolean allowDuplicates,
+            List<String> issues) {
+        List<WeightedChar> weightedChars = weightedCharCandidates(config, candidates, scope, depth + 1, issues);
+        if (!issues.isEmpty()) {
+            return List.of();
+        }
+        int safeCount = requestedCount;
+        if (!allowDuplicates) {
+            safeCount = Math.min(safeCount, weightedChars.size());
+        }
+        if (safeCount <= 0) {
+            return List.of();
+        }
+        List<String> selected = new ArrayList<>();
+        if (allowDuplicates) {
+            List<Randoms.Weighted<WeightedChar>> weightedItems = weightedItems(weightedChars);
+            for (int index = 0; index < safeCount; index++) {
+                WeightedChar selectedChar = Randoms.weightedRandom(weightedItems);
+                if (selectedChar == null) {
+                    break;
+                }
+                selected.add(selectedChar.value());
+            }
+            return selected;
+        }
+        List<WeightedChar> remaining = new ArrayList<>(weightedChars);
+        for (int index = 0; index < safeCount && !remaining.isEmpty(); index++) {
+            WeightedChar selectedChar = Randoms.weightedRandom(weightedItems(remaining));
+            if (selectedChar == null) {
+                break;
+            }
+            selected.add(selectedChar.value());
+            remaining.remove(selectedChar);
+        }
+        return selected;
+    }
+
+    private static List<WeightedChar> weightedCharCandidates(Object config,
+            List<String> candidates,
+            TextEvaluationScope scope,
+            int depth,
+            List<String> issues) {
+        Object rawWeights = firstConfigValue(config, "weights", "weight");
+        if (rawWeights == null) {
+            issues.add("Weighted random char config is missing 'weights'.");
+            return List.of();
+        }
+        List<Object> weights = ConfigNodes.asObjectList(rawWeights);
+        if (weights.size() != candidates.size()) {
+            issues.add("Weighted random char config requires weights count to match chars count.");
+            return List.of();
+        }
+        List<WeightedChar> result = new ArrayList<>();
+        for (int index = 0; index < candidates.size(); index++) {
+            NumericEvaluationResult weight = evaluateRandomConfigDetailed(weights.get(index),
+                    NumericEvaluationScope.of(scope.variables()),
+                    depth + 1);
+            if (!weight.success()) {
+                issues.add("Weighted random char weight at index " + index + " is invalid.");
+                issues.addAll(weight.issues());
+                continue;
+            }
+            if (weight.value() > 0D) {
+                result.add(new WeightedChar(candidates.get(index), weight.value()));
+            }
+        }
+        if (result.isEmpty()) {
+            issues.add("Weighted random char config has no positive weights.");
+        }
+        return result;
+    }
+
+    private static List<Randoms.Weighted<WeightedChar>> weightedItems(List<WeightedChar> candidates) {
+        List<Randoms.Weighted<WeightedChar>> result = new ArrayList<>();
+        for (WeightedChar candidate : candidates) {
+            result.add(new Randoms.Weighted<>(candidate, candidate.weight()));
+        }
+        return result;
+    }
+
     private static boolean hasRandomTextLines(Object config) {
         return firstConfigValue(config, "lines", "values", "options", "texts") != null;
     }
@@ -800,6 +1112,42 @@ public final class ExpressionEngine {
                 || "random_lines".equals(type)
                 || "random_line".equals(type)
                 || "text_lines".equals(type);
+    }
+
+    private static boolean isRandomCharConfigType(String type) {
+        return "random_char".equals(type)
+                || "random_chars".equals(type)
+                || "char_random".equals(type)
+                || "chars_random".equals(type);
+    }
+
+    private static boolean isWeightedRandomCharConfigType(String type) {
+        return "weighted_random_char".equals(type)
+                || "weighted_random_chars".equals(type)
+                || "weighted_char".equals(type)
+                || "weighted_chars".equals(type)
+                || "weighted_char_random".equals(type);
+    }
+
+    private static boolean isConditionalCharConfigType(String type) {
+        return "conditional_char".equals(type)
+                || "condition_char".equals(type)
+                || "case_char".equals(type)
+                || "if_char".equals(type);
+    }
+
+    private static boolean looksLikeTextConfig(Object config) {
+        String type = normalizedConfigType(config);
+        if (isStringConfigType(type)
+                || isRandomTextConfigType(type)
+                || isRandomCharConfigType(type)
+                || isWeightedRandomCharConfigType(type)
+                || isConditionalCharConfigType(type)
+                || isBooleanConfigType(type)) {
+            return true;
+        }
+        return Texts.isBlank(type) && (hasRandomTextLines(config)
+                || firstConfigValue(config, "text", "template") != null);
     }
 
     private static boolean looksLikeNumericConfig(Object config) {
@@ -943,6 +1291,21 @@ public final class ExpressionEngine {
 
         private TextBooleanResult {
             issues = issues == null || issues.isEmpty() ? List.of() : List.copyOf(issues);
+        }
+    }
+
+    private record TextCandidates(List<String> values, List<String> issues) {
+
+        private TextCandidates {
+            values = values == null || values.isEmpty() ? List.of() : List.copyOf(values);
+            issues = issues == null || issues.isEmpty() ? List.of() : List.copyOf(issues);
+        }
+    }
+
+    private record WeightedChar(String value, double weight) {
+
+        private WeightedChar {
+            value = Texts.toStringSafe(value);
         }
     }
 
