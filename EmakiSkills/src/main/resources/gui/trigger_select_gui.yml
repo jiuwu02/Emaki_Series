@@ -28,11 +28,11 @@ slots:
       - 23
       - 24
       - 25
-    display_name: "<green>{trigger}</green>"
+    display_name: "<green>%trigger%</green>"
     lore:
-      - "<gray>ID: <white>{trigger_id}</white></gray>"
-      - "<gray>{description}</gray>"
-      - "<dark_gray>冲突: {conflict}</dark_gray>"
+      - "<gray>ID: <white>%trigger_id%</white></gray>"
+      - "<gray>%description%</gray>"
+      - "<dark_gray>冲突: %conflict%</dark_gray>"
 
   back:
     type: back

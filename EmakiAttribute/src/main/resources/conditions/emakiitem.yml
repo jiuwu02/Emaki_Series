@@ -24,11 +24,11 @@ invalid_as_failure: true
 # type: pdc_meta → 从物品 PDC 中读取指定 key 的值
 # key: condition_expressions → EmakiItem 写入的条件表达式字段
 # pattern: 正则匹配（".+" 表示非空即匹配）
-# condition: "{value}" → 直接将读取到的值作为条件表达式执行
+# condition: "%value%" → 直接将读取到的值作为条件表达式执行
 # require_match: false → 如果 key 不存在则跳过（不视为失败）
 conditions:
   - type: pdc_meta
     key: condition_expressions
     pattern: ".+"
-    condition: "{value}"
+    condition: "%value%"
     require_match: false

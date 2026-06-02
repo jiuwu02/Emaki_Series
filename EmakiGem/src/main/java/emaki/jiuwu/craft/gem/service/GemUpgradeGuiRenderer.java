@@ -73,10 +73,10 @@ final class GemUpgradeGuiRenderer {
             lore.add(text("level_info_empty", "<gray>Please place an upgradeable gem first</gray>"));
             return buildConfiguredItem(guiSlot, Material.BOOK, text("level_info_name", "<gold>Level Info</gold>"), lore);
         }
-        lore.add(text("gem_line", Map.of("gem", plugin.itemFactory().resolveGemDisplayName(preview.definition(), preview.instance().level())), "<gray>Gem: <yellow>{gem}</yellow></gray>"));
-        lore.add(text("current_level", Map.of("level", preview.instance().level()), "<gray>Current level: <yellow>{level}</yellow></gray>"));
-        lore.add(text("target_level", Map.of("level", preview.targetLevel()), "<gray>Target level: <gold>{level}</gold></gray>"));
-        lore.add(text("max_level", Map.of("level", preview.definition().upgrade().maxLevel()), "<gray>Max level: <aqua>{level}</aqua></gray>"));
+        lore.add(text("gem_line", Map.of("gem", plugin.itemFactory().resolveGemDisplayName(preview.definition(), preview.instance().level())), "<gray>Gem: <yellow>%gem%</yellow></gray>"));
+        lore.add(text("current_level", Map.of("level", preview.instance().level()), "<gray>Current level: <yellow>%level%</yellow></gray>"));
+        lore.add(text("target_level", Map.of("level", preview.targetLevel()), "<gray>Target level: <gold>%level%</gold></gray>"));
+        lore.add(text("max_level", Map.of("level", preview.definition().upgrade().maxLevel()), "<gray>Max level: <aqua>%level%</aqua></gray>"));
         return buildConfiguredItem(guiSlot, Material.BOOK, text("level_info_name", "<gold>Level Info</gold>"), lore);
     }
 
@@ -91,8 +91,8 @@ final class GemUpgradeGuiRenderer {
         String itemName = materialDisplayName(material.itemSource());
         ItemStack placedItem = state.materialItem(displayIndex);
         List<String> lore = new ArrayList<>();
-        lore.add(text("material_line", Map.of("material", itemName), "<gray>Material: <yellow>{material}</yellow></gray>"));
-        lore.add(text("material_amount", Map.of("amount", material.amount()), "<gray>Required amount: <gold>x{amount}</gold></gray>"));
+        lore.add(text("material_line", Map.of("material", itemName), "<gray>Material: <yellow>%material%</yellow></gray>"));
+        lore.add(text("material_amount", Map.of("amount", material.amount()), "<gray>Required amount: <gold>x%amount%</gold></gray>"));
         if (placedItem != null) {
             return placedItem.clone();
         }
@@ -115,7 +115,7 @@ final class GemUpgradeGuiRenderer {
             lore.add(text("preview_empty_2", "<gray>Place a gem to view materials and result</gray>"));
             return buildConfiguredItem(guiSlot, Material.WRITABLE_BOOK, text("preview_name", "<gold>Upgrade Preview</gold>"), lore);
         }
-        lore.add(text("result_name", Map.of("gem", plugin.itemFactory().resolveGemDisplayName(preview.definition(), preview.targetLevel())), "<gray>Result item name: <yellow>{gem}</yellow></gray>"));
+        lore.add(text("result_name", Map.of("gem", plugin.itemFactory().resolveGemDisplayName(preview.definition(), preview.targetLevel())), "<gray>Result item name: <yellow>%gem%</yellow></gray>"));
         List<GemDefinition.CurrencyCost> currencies = !preview.upgradeLevel().currencies().isEmpty()
                 ? preview.upgradeLevel().currencies()
                 : preview.definition().upgrade().currencies();
@@ -128,7 +128,7 @@ final class GemUpgradeGuiRenderer {
                         "current_level", currentLevel,
                         "target_level", preview.targetLevel()
                 ));
-                lore.add(text("economy_line", Map.of("provider", currency.provider(), "amount", amount), "<gold> - {provider}: {amount}</gold>"));
+                lore.add(text("economy_line", Map.of("provider", currency.provider(), "amount", amount), "<gold> - %provider%: %amount%</gold>"));
             }
         }
         lore.add(text("material_required_hint", "<gray>All upgrade materials must be placed in material slots</gray>"));
@@ -144,13 +144,13 @@ final class GemUpgradeGuiRenderer {
             return buildConfiguredItem(guiSlot, Material.EXPERIENCE_BOTTLE, text("success_rate_name", "<gold>Success Rate</gold>"), lore);
         }
         double successRate = plugin.upgradeService().effectiveSuccessChance(preview.definition(), preview.targetLevel(), preview.upgradeLevel().successChance());
-        lore.add(text("success_rate_line", Map.of("rate", successRate), "<gray>Base success rate: <green>{rate}%</green></gray>"));
+        lore.add(text("success_rate_line", Map.of("rate", successRate), "<gray>Base success rate: <green>%rate%%</green></gray>"));
         String failurePenalty = !preview.upgradeLevel().failurePenalty().isBlank()
                 ? preview.upgradeLevel().failurePenalty()
                 : !preview.definition().upgrade().failurePenalty().isBlank()
                         ? preview.definition().upgrade().failurePenalty()
                         : plugin.appConfig().upgrade().globalFailurePenalty();
-        lore.add(text("failure_penalty", Map.of("penalty", failurePenalty), "<gray>Failure penalty: <yellow>{penalty}</yellow></gray>"));
+        lore.add(text("failure_penalty", Map.of("penalty", failurePenalty), "<gray>Failure penalty: <yellow>%penalty%</yellow></gray>"));
         return buildConfiguredItem(guiSlot, Material.EXPERIENCE_BOTTLE, text("success_rate_name", "<gold>Success Rate</gold>"), lore);
     }
 
@@ -163,7 +163,7 @@ final class GemUpgradeGuiRenderer {
         }
         return buildConfiguredItem(guiSlot, Material.LIME_STAINED_GLASS_PANE, text("confirm_name", "<green>Confirm Upgrade</green>"), List.of(
                 text("confirm_lore", "<gray>Click to consume GUI materials and try upgrading</gray>"),
-                text("target_level", Map.of("level", preview.targetLevel()), "<gray>Target level: <gold>{level}</gold></gray>")
+                text("target_level", Map.of("level", preview.targetLevel()), "<gray>Target level: <gold>%level%</gold></gray>")
         ));
     }
 

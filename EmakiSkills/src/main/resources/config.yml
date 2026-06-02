@@ -37,8 +37,8 @@ actionbar:
   # 刷新间隔，单位 tick
   refresh_interval_ticks: 10
   # 施法模式下的显示模板
-  template_cast_mode: "<gold>施法模式</gold> {slot_1} {slot_2} {slot_3}
-    <gray>延迟:</gray> {forced_delay}"
+  template_cast_mode: "<gold>施法模式</gold> %slot_1% %slot_2% %slot_3%
+    <gray>延迟:</gray> %forced_delay%"
   # 非施法模式下的显示模板，空字符串表示不显示
   template_idle: ""
 

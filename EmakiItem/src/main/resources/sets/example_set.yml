@@ -44,18 +44,18 @@ pieces:
 # 套装 Lore 显示配置
 # ============================================================
 # 控制套装信息在物品 Lore 中的显示格式。
-# header: 套装标题行（{active} = 已装备件数，{total} = 总件数）
+# header: 套装标题行（%active% = 已装备件数，%total% = 总件数）
 # equipped_format: 已装备部件的显示格式
 # missing_format: 未装备部件的显示格式
 # active_threshold_format: 已激活阈值的显示格式
 # inactive_threshold_format: 未激活阈值的显示格式
 # separator: 部件列表与阈值列表之间的分隔行
 lore:
-  header: "<dark_gray>—— <aqua>示例守护者套装</aqua> <gray>({active}/{total})</gray> ——</dark_gray>"
-  equipped_format: "<green>✔ {piece}</green>"
-  missing_format: "<gray>✘ {piece}</gray>"
-  active_threshold_format: "<green>{line}</green>"
-  inactive_threshold_format: "<dark_gray>{line}</dark_gray>"
+  header: "<dark_gray>—— <aqua>示例守护者套装</aqua> <gray>(%active%/%total%)</gray> ——</dark_gray>"
+  equipped_format: "<green>✔ %piece%</green>"
+  missing_format: "<gray>✘ %piece%</gray>"
+  active_threshold_format: "<green>%line%</green>"
+  inactive_threshold_format: "<dark_gray>%line%</dark_gray>"
   separator: ""
 
 # ============================================================

@@ -3,12 +3,12 @@ package emaki.jiuwu.craft.corelib.assembly;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
-
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
+import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRenderer;
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -27,8 +27,17 @@ final class ItemOperationExecutor {
         this.nameOperations = new NameOperationRegistry(templateRenderer);
     }
 
-    @SuppressWarnings("unchecked")
     public ExecutionResult execute(ItemStack itemStack,
+            String operationId,
+            String sourceNamespace,
+            Object nameActions,
+            Object loreActions,
+            Map<String, ?> variables) {
+        return execute(null, itemStack, operationId, sourceNamespace, nameActions, loreActions, variables);
+    }
+
+    public ExecutionResult execute(ActionContext context,
+            ItemStack itemStack,
             String operationId,
             String sourceNamespace,
             Object nameActions,
@@ -41,21 +50,22 @@ final class ItemOperationExecutor {
         if (itemMeta == null) {
             return ExecutionResult.EMPTY;
         }
-        Map<String, Object> safeVariables = variables == null ? Map.of() : (Map<String, Object>) variables;
+        Map<String, Object> safeVariables = PlaceholderRenderer.mergeContextVariables(context, variables);
+        PlaceholderRenderer.debugVariables(safeVariables, ledger.debugLogger(), context == null ? null : context.player(), "item_operation." + operationId);
         List<Map<String, Object>> normalizedNameActions = templateRenderer.normalizeOperations(nameActions);
         List<Map<String, Object>> normalizedLoreActions = templateRenderer.normalizeOperations(loreActions);
-        debug("apply start | operationId=" + operationId
+        debug(context, "apply start | operationId=" + operationId
                 + " | namespace=" + sourceNamespace
                 + " | item=" + itemStack.getType().name()
                 + " | nameActions=" + normalizedNameActions.size()
                 + " | loreActions=" + normalizedLoreActions.size()
                 + " | variables=" + summarizeMap(safeVariables));
 
-        List<ItemOperationEntry.NameOperationRecord> nameRecords = executeNameActions(itemStack, itemMeta, normalizedNameActions, safeVariables);
-        List<ItemOperationEntry.LoreOperationRecord> loreRecords = executeLoreActions(itemMeta, normalizedLoreActions, safeVariables);
+        List<ItemOperationEntry.NameOperationRecord> nameRecords = executeNameActions(context, itemStack, itemMeta, normalizedNameActions, safeVariables);
+        List<ItemOperationEntry.LoreOperationRecord> loreRecords = executeLoreActions(context, itemMeta, normalizedLoreActions, safeVariables);
 
         if (nameRecords.isEmpty() && loreRecords.isEmpty()) {
-            debug("apply empty | operationId=" + operationId + " | reason=no_effective_records");
+            debug(context, "apply empty | operationId=" + operationId + " | reason=no_effective_records");
             return ExecutionResult.EMPTY;
         }
 
@@ -69,13 +79,14 @@ final class ItemOperationExecutor {
                 loreRecords
         );
         ledger.append(itemStack, entry);
-        debug("apply success | operationId=" + operationId
+        debug(context, "apply success | operationId=" + operationId
                 + " | nameRecords=" + nameRecords.size()
                 + " | loreRecords=" + loreRecords.size());
         return new ExecutionResult(true, entry);
     }
 
-    private List<ItemOperationEntry.NameOperationRecord> executeNameActions(ItemStack itemStack,
+    private List<ItemOperationEntry.NameOperationRecord> executeNameActions(ActionContext context,
+            ItemStack itemStack,
             ItemMeta itemMeta,
             List<Map<String, Object>> operations,
             Map<String, Object> variables) {
@@ -89,14 +100,14 @@ final class ItemOperationExecutor {
                 : "";
 
         LocalNameState nameState = new LocalNameState();
-        nameOperations.apply(nameState, operations, variables);
+        nameOperations.apply(nameState, operations, variables, context, ledger.debugLogger());
 
         for (Map<String, Object> operation : operations) {
             String action = Texts.lower(operation.get("action"));
             Object rawValue = templateRenderer.resolveOperationValue(operation);
-            String renderedValue = rawValue == null ? "" : templateRenderer.renderTemplate(rawValue, variables);
+            String renderedValue = rawValue == null ? "" : templateRenderer.renderTemplate(rawValue, variables, context, ledger.debugLogger(), "item_operation.name.record." + action);
             boolean recognized = nameOperations.getProcessor(action) != null;
-            debug("name action | action=" + action
+            debug(context, "name action | action=" + action
                     + " | recognized=" + recognized
                     + " | value=" + summarize(renderedValue)
                     + " | raw=" + summarizeMap(operation));
@@ -107,12 +118,12 @@ final class ItemOperationExecutor {
         }
 
         if (!records.isEmpty()) {
-            applyNameState(itemStack, itemMeta, nameState, currentName);
+            applyNameState(context, itemStack, itemMeta, nameState, currentName);
         }
         return records;
     }
 
-    private void applyNameState(ItemStack itemStack, ItemMeta itemMeta, LocalNameState nameState, String originalName) {
+    private void applyNameState(ActionContext context, ItemStack itemStack, ItemMeta itemMeta, LocalNameState nameState, String originalName) {
         StringBuilder finalName = new StringBuilder();
         for (String prefix : nameState.prefixes()) {
             finalName.append(prefix);
@@ -129,14 +140,15 @@ final class ItemOperationExecutor {
             finalName.append(postfix);
         }
         String result = finalName.toString();
-        debug("name result | original=" + summarize(originalName) + " | result=" + summarize(result));
+        debug(context, "name result | original=" + summarize(originalName) + " | result=" + summarize(result));
         if (Texts.isNotBlank(result)) {
             ItemTextBridge.customName(itemMeta, MiniMessages.parse(result));
             itemStack.setItemMeta(itemMeta);
         }
     }
 
-    private List<ItemOperationEntry.LoreOperationRecord> executeLoreActions(ItemMeta itemMeta,
+    private List<ItemOperationEntry.LoreOperationRecord> executeLoreActions(ActionContext context,
+            ItemMeta itemMeta,
             List<Map<String, Object>> operations,
             Map<String, Object> variables) {
         if (operations == null || operations.isEmpty()) {
@@ -154,14 +166,14 @@ final class ItemOperationExecutor {
         for (Map<String, Object> operation : operations) {
             String action = Texts.lower(operation.get("action"));
             if (Texts.isBlank(action)) {
-                debug("lore action skipped | reason=blank_action | raw=" + summarizeMap(operation));
+                debug(context, "lore action skipped | reason=blank_action | raw=" + summarizeMap(operation));
                 continue;
             }
-            List<String> contentLines = templateRenderer.renderContent(operation, variables);
+            List<String> contentLines = templateRenderer.renderContent(operation, variables, context, ledger.debugLogger(), "item_operation.lore.record." + action);
             Object rawAnchor = templateRenderer.resolveSearchPattern(operation);
-            String anchor = rawAnchor == null ? "" : templateRenderer.renderTemplate(rawAnchor, variables);
+            String anchor = rawAnchor == null ? "" : templateRenderer.renderTemplate(rawAnchor, variables, context, ledger.debugLogger(), "item_operation.lore.anchor.record." + action);
             boolean recognized = loreOperations.getProcessor(action) != null;
-            debug("lore action | action=" + action
+            debug(context, "lore action | action=" + action
                     + " | recognized=" + recognized
                     + " | anchor=" + summarize(anchor)
                     + " | content=" + summarize(contentLines)
@@ -176,10 +188,10 @@ final class ItemOperationExecutor {
         }
 
         int beforeSize = existingLore == null ? 0 : existingLore.size();
-        loreOperations.apply(currentLore, operations, variables);
+        loreOperations.apply(currentLore, operations, variables, context, ledger.debugLogger());
 
         ItemTextBridge.setLoreLines(itemMeta, currentLore.isEmpty() ? null : currentLore);
-        debug("lore result | beforeLines=" + beforeSize + " | afterLines=" + currentLore.size());
+        debug(context, "lore result | beforeLines=" + beforeSize + " | afterLines=" + currentLore.size());
 
         return records;
     }
@@ -197,10 +209,10 @@ final class ItemOperationExecutor {
         return matched;
     }
 
-    private void debug(String message) {
+    private void debug(ActionContext context, String message) {
         DebugLogger debugLogger = ledger.debugLogger();
         if (debugLogger != null) {
-            debugLogger.logRaw("item_operation", (UUID) null, message);
+            debugLogger.logRaw("item_operation", context == null ? null : context.player(), message);
         }
     }
 

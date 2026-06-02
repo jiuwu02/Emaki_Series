@@ -31,7 +31,7 @@ stages:
     source: ATTACKER
     chance_attributes: [projectile_crit_rate]
     multiplier_attributes: [projectile_crit_damage]
-    expression: "{input} * (1 + ({crit} * ({multiplier} / 100)))"
+    expression: "%input% * (1 + (%crit% * (%multiplier% / 100)))"
 
   - id: defense
     kind: FLAT_PERCENT
@@ -39,7 +39,7 @@ stages:
     mode: SUBTRACT
     flat_attributes: [projectile_defense]
     percent_attributes: []
-    expression: "max(0, {input} - {flat})"
+    expression: "max(0, %input% - %flat%)"
 
 recovery:
   source: ATTACKER
@@ -48,7 +48,7 @@ recovery:
   percent_attributes: [lifesteal]
   resistance_attributes: [lifesteal_resistance]
 
-attacker_message: "<gray>[<gold>{damage_type}</gold>]</gray> <green>你对 <white>{target}</white> 造成了 <yellow>{final_damage}</yellow> 点伤害</green>{critical_suffix}"
-target_message: "<gray>[<gold>{damage_type}</gold>]</gray> <red>{attacker}</red> 对你造成了 <yellow>{final_damage}</yellow> 点伤害{critical_suffix}"
+attacker_message: "<gray>[<gold>%damage_type%</gold>]</gray> <green>你对 <white>%target%</white> 造成了 <yellow>%final_damage%</yellow> 点伤害</green>%critical_suffix%"
+target_message: "<gray>[<gold>%damage_type%</gold>]</gray> <red>%attacker%</red> 对你造成了 <yellow>%final_damage%</yellow> 点伤害%critical_suffix%"
 
 description: "Projectile damage resolved entirely through Emaki attributes."

@@ -20,13 +20,13 @@ general:
   input_rejected: "<red>This item is not a valid recipe input for this station.</red>"
   reloading: "<gray>Reloading configuration...</gray>"
   reload_success: "<green>Configuration reloaded.</green>"
-  reload_summary: "<gray>Reloaded {recipes} recipes, {resources} GUI resources.</gray>"
+  reload_summary: "<gray>Reloaded %recipes% recipes, %resources% GUI resources.</gray>"
 
 command:
   help:
     header: "<gold>========== EmakiCooking Help ==========</gold>"
     footer: "<gold>=======================================</gold>"
-    line: "<yellow>{cmd}</yellow> <gray>- {desc}</gray>"
+    line: "<yellow>%cmd%</yellow> <gray>- %desc%</gray>"
     desc:
       help: "Show help information"
       reload: "Reload configuration, language and recipe directories"
@@ -34,7 +34,7 @@ command:
       debug: "Manage Debug mode"
   inspect:
     header: "<gold>========== Held Item Inspection ==========</gold>"
-    line: "<yellow>{key}</yellow> <gray>- {value}</gray>"
+    line: "<yellow>%key%</yellow> <gray>- %value%</gray>"
 
 console:
   plugin_starting: "<gray>Starting...</gray>"
@@ -44,16 +44,16 @@ console:
   bootstrap_complete: "<green>Default file check complete.</green>"
   bootstrap_skip: "<yellow>Skipped default data generation.</yellow>"
   bootstrap_copy_failed: "<yellow>Failed to copy default resource:
-    <red>{path}</red> <gray>({error})</gray></yellow>"
+    <red>%path%</red> <gray>(%error%)</gray></yellow>"
   bootstrap_save_failed: "<yellow>Failed to save merged resource:
-    <red>{path}</red> <gray>({error})</gray></yellow>"
-  default_file_missing: "<yellow>Missing built-in default resource: <red>{path}</red></yellow>"
-  directory_create_failed: "<yellow>Failed to create directory: <red>{path}</red></yellow>"
+    <red>%path%</red> <gray>(%error%)</gray></yellow>"
+  default_file_missing: "<yellow>Missing built-in default resource: <red>%path%</red></yellow>"
+  directory_create_failed: "<yellow>Failed to create directory: <red>%path%</red></yellow>"
   loader_config_load_error: "<yellow>Failed to load EmakiCooking config:
-    <red>{path}</red> <gray>({error})</gray></yellow>"
-  station_recipes_loaded: "<gray>Loaded {station} <yellow>{count}</yellow> recipe(s)</gray>"
-  block_source_bridge_ready: "<gray>Block source connected: <aqua>{provider}</aqua></gray>"
-  block_source_bridge_unavailable: "<yellow>Block source unavailable: {provider} ({error})</yellow>"
+    <red>%path%</red> <gray>(%error%)</gray></yellow>"
+  station_recipes_loaded: "<gray>Loaded %station% <yellow>%count%</yellow> recipe(s)</gray>"
+  block_source_bridge_ready: "<gray>Block source connected: <aqua>%provider%</aqua></gray>"
+  block_source_bridge_unavailable: "<yellow>Block source unavailable: %provider% (%error%)</yellow>"
   station_name:
     chopping_board: "Chopping Board"
     wok: "Wok"
@@ -64,33 +64,33 @@ console:
     fermentation_barrel: "Fermentation Barrel"
 
 loader:
-  lang_directory_create_failed: "<yellow>Unable to create language directory: <red>{path}</red></yellow>"
-  bundled_language_load_failed: "<yellow>Failed to load bundled language: <red>{error}</red></yellow>"
-  directory_create_failed: "<yellow>Unable to create {type} directory: <red>{path}</red></yellow>"
-  invalid_blank_id: "<yellow>{type} ID is blank: <red>{file}</red></yellow>"
-  duplicate_id: "<yellow>Duplicate {type} ID <red>{id}</red>, source
-    <gray>{file}</gray></yellow>"
-  load_failed: "<yellow>Failed to load {type} file: <red>{file}</red>
-    <gray>({error})</gray></yellow>"
+  lang_directory_create_failed: "<yellow>Unable to create language directory: <red>%path%</red></yellow>"
+  bundled_language_load_failed: "<yellow>Failed to load bundled language: <red>%error%</red></yellow>"
+  directory_create_failed: "<yellow>Unable to create %type% directory: <red>%path%</red></yellow>"
+  invalid_blank_id: "<yellow>%type% ID is blank: <red>%file%</red></yellow>"
+  duplicate_id: "<yellow>Duplicate %type% ID <red>%id%</red>, source
+    <gray>%file%</gray></yellow>"
+  load_failed: "<yellow>Failed to load %type% file: <red>%file%</red>
+    <gray>(%error%)</gray></yellow>"
 
 chopping_board:
   too_fast: "<yellow>Too fast, please wait a moment.</yellow>"
   wrong_tool: "<yellow>You need to hold the configured kitchen knife to chop.</yellow>"
   cannot_cut: "<red>The placed ingredient has no available chopping board recipe.</red>"
   progress: "<gray>Chopping progress:
-    <yellow>{current}</yellow>/<yellow>{required}</yellow></gray>"
+    <yellow>%current%</yellow>/<yellow>%required%</yellow></gray>"
   completed: "<green>Chopping board processing complete:
-    <yellow>{recipe}</yellow></green>"
+    <yellow>%recipe%</yellow></green>"
   item_placed: "<gray>Placed ingredient on the chopping board.</gray>"
   item_returned: "<gray>Retrieved ingredient from the chopping board.</gray>"
-  cut_hurt: "<red>You cut yourself, taking {damage} damage.</red>"
+  cut_hurt: "<red>You cut yourself, taking %damage% damage.</red>"
 
 grinder:
   busy: "<yellow>The grinder is running, please wait.</yellow>"
   no_recipe: "<red>No matching grinder recipe for the current item.</red>"
-  started: "<gray>Grinding started, estimated <yellow>{seconds}</yellow> seconds
+  started: "<gray>Grinding started, estimated <yellow>%seconds%</yellow> seconds
     to complete.</gray>"
-  completed: "<green>Grinding complete: <yellow>{recipe}</yellow></green>"
+  completed: "<green>Grinding complete: <yellow>%recipe%</yellow></green>"
 
 wok:
   no_item: "<yellow>There are no ingredients in the wok to work with.</yellow>"
@@ -100,26 +100,26 @@ wok:
     "<yellow>You need to hold the configured spatula to stir or inspect
     contents.</yellow>"
   burnt_timeout: "<red>Heat was interrupted too long, the food is burnt.</red>"
-  stir_count: "<gray>Stir count: <yellow>{count}</yellow></gray>"
-  ingredient_added: "<gray>Added ingredient: <yellow>{item}</yellow></gray>"
-  ingredient_returned: "<gray>Retrieved ingredient from wok: <yellow>{item}</yellow></gray>"
+  stir_count: "<gray>Stir count: <yellow>%count%</yellow></gray>"
+  ingredient_added: "<gray>Added ingredient: <yellow>%item%</yellow></gray>"
+  ingredient_returned: "<gray>Retrieved ingredient from wok: <yellow>%item%</yellow></gray>"
   no_recipe: "<yellow>The current ingredient combination cannot be served yet.</yellow>"
-  completed_success: "<green>Successfully served: <yellow>{recipe}</yellow></green>"
-  completed_undercooked: "<yellow>Undercooked, produced a half-raw <white>{recipe}</white></yellow>"
-  completed_overcooked: "<red>Overcooked, produced a burnt <white>{recipe}</white></red>"
+  completed_success: "<green>Successfully served: <yellow>%recipe%</yellow></green>"
+  completed_undercooked: "<yellow>Undercooked, produced a half-raw <white>%recipe%</white></yellow>"
+  completed_overcooked: "<red>Overcooked, produced a burnt <white>%recipe%</white></red>"
   completed_invalid: "<red>This dish is ruined.</red>"
-  scalded: "<red>You were scalded by the hot wok, taking {damage} damage.</red>"
+  scalded: "<red>You were scalded by the hot wok, taking %damage% damage.</red>"
   info_header: "<gold>========== Wok Contents =========="
-  info_line: "<gray>{index}. {item} x{amount} | Stirs per item {stir}</gray>"
-  info_footer: "<gray>Total stirs: <yellow>{count}</yellow> | Heat:
-    <yellow>{heat}</yellow></gray>"
+  info_line: "<gray>%index%. %item% x%amount% | Stirs per item %stir%</gray>"
+  info_footer: "<gray>Total stirs: <yellow>%count%</yellow> | Heat:
+    <yellow>%heat%</yellow></gray>"
 
 oven:
   in_use: "<yellow>This oven is being used by another player, please try again later.</yellow>"
   open_failed: "<red>Failed to open oven GUI.</red>"
   opened: "<gray>Oven opened.</gray>"
-  add_fuel: "<gray>Added fuel <yellow>{item}</yellow>, estimated duration <yellow>{seconds}</yellow> seconds. Current heat: <yellow>{heat}</yellow></gray>"
-  info: "<gray>Heat: <yellow>{heat}</yellow> | Burn time: <yellow>{burning_time}</yellow>s | Cooking progress: <yellow>{progress}</yellow></gray>"
+  add_fuel: "<gray>Added fuel <yellow>%item%</yellow>, estimated duration <yellow>%seconds%</yellow> seconds. Current heat: <yellow>%heat%</yellow></gray>"
+  info: "<gray>Heat: <yellow>%heat%</yellow> | Burn time: <yellow>%burning_time%</yellow>s | Cooking progress: <yellow>%progress%</yellow></gray>"
   progress_not_started: "Not Started"
   progress_completed: "Completed"
 
@@ -130,14 +130,14 @@ steamer:
     later.</yellow>"
   open_failed: "<red>Failed to open steamer GUI.</red>"
   opened: "<gray>Steamer opened.</gray>"
-  add_fuel: "<gray>Added fuel <yellow>{item}</yellow>, estimated duration
-    <yellow>{seconds}</yellow> seconds.</gray>"
-  add_moisture: "<gray>Added moisture source <yellow>{item}</yellow>, added
-    <aqua>{moisture}</aqua> moisture, current total
-    <aqua>{total}</aqua>.</gray>"
-  info: "<gray>Burn time: <yellow>{burning_time}</yellow>s | Moisture:
-    <aqua>{moisture}</aqua> | Steam: <white>{steam}</white> | Cooking progress:
-    <yellow>{progress}</yellow></gray>"
+  add_fuel: "<gray>Added fuel <yellow>%item%</yellow>, estimated duration
+    <yellow>%seconds%</yellow> seconds.</gray>"
+  add_moisture: "<gray>Added moisture source <yellow>%item%</yellow>, added
+    <aqua>%moisture%</aqua> moisture, current total
+    <aqua>%total%</aqua>.</gray>"
+  info: "<gray>Burn time: <yellow>%burning_time%</yellow>s | Moisture:
+    <aqua>%moisture%</aqua> | Steam: <white>%steam%</white> | Cooking progress:
+    <yellow>%progress%</yellow></gray>"
   progress_not_started: "Not Started"
   progress_completed: "Completed"
 
@@ -147,28 +147,28 @@ juicer:
   open_failed: "<red>Failed to open juicer GUI.</red>"
   no_item: "<yellow>There are no ingredients in the juicer.</yellow>"
   no_recipe: "<red>No available juicer recipe for the current ingredient.</red>"
-  pressed: "<gray>Juicing progress: <yellow>{current}</yellow>/<yellow>{required}</yellow></gray>"
+  pressed: "<gray>Juicing progress: <yellow>%current%</yellow>/<yellow>%required%</yellow></gray>"
   need_container: "<yellow>You need to hold a container to collect juice.</yellow>"
-  completed: "<green>Juicing complete: <yellow>{recipe}</yellow></green>"
-  info: "<gray>Juicing progress: <yellow>{progress}</yellow> | Fluid: <aqua>{fluid}</aqua></gray>"
+  completed: "<green>Juicing complete: <yellow>%recipe%</yellow></green>"
+  info: "<gray>Juicing progress: <yellow>%progress%</yellow> | Fluid: <aqua>%fluid%</aqua></gray>"
   progress_not_started: "Not Started"
   fluid_none: "None"
-  fluid_added: "<aqua>Pressed {amount}ml of {fluid}, now {current}/{max}ml.</aqua>"
-  fluid_mismatch: "<red>The juicer already contains {current_fluid}; cannot add {new_fluid}.</red>"
-  fluid_full: "<yellow>The juicer does not have enough capacity, currently {current}/{max}ml.</yellow>"
+  fluid_added: "<aqua>Pressed %amount%ml of %fluid%, now %current%/%max%ml.</aqua>"
+  fluid_mismatch: "<red>The juicer already contains %current_fluid%; cannot add %new_fluid%.</red>"
+  fluid_full: "<yellow>The juicer does not have enough capacity, currently %current%/%max%ml.</yellow>"
   fluid_empty: "<yellow>There is no fluid to serve.</yellow>"
-  fluid_not_enough: "<yellow>Not enough {fluid}; requires {required}ml, currently {current}ml.</yellow>"
-  served: "<green>Served {amount}ml of {fluid}, remaining {current}/{max}ml.</green>"
+  fluid_not_enough: "<yellow>Not enough %fluid%; requires %required%ml, currently %current%ml.</yellow>"
+  served: "<green>Served %amount%ml of %fluid%, remaining %current%/%max%ml.</green>"
 
 fermentation_barrel:
   in_use: "<yellow>This fermentation barrel is being used by another player, please try again later.</yellow>"
   opened: "<gray>Fermentation barrel opened.</gray>"
   open_failed: "<red>Failed to open fermentation barrel GUI.</red>"
   no_recipe: "<red>The current ingredient combination cannot ferment.</red>"
-  started: "<gray>Fermentation started, estimated <yellow>{seconds}</yellow> seconds to complete.</gray>"
-  fermenting: "<gray>Fermenting, <yellow>{seconds}</yellow> seconds remaining.</gray>"
+  started: "<gray>Fermentation started, estimated <yellow>%seconds%</yellow> seconds to complete.</gray>"
+  fermenting: "<gray>Fermenting, <yellow>%seconds%</yellow> seconds remaining.</gray>"
   collected: "<green>Collected fermented output.</green>"
-  info: "<gray>Fermentation status: <yellow>{status}</yellow> | Remaining: <yellow>{seconds}</yellow>s | Progress: <yellow>{progress}</yellow></gray>"
+  info: "<gray>Fermentation status: <yellow>%status%</yellow> | Remaining: <yellow>%seconds%</yellow>s | Progress: <yellow>%progress%</yellow></gray>"
   status_idle: "Idle"
   status_fermenting: "Fermenting"
   status_early_ready: "Early Collect Ready"
@@ -181,51 +181,51 @@ fermentation_barrel:
 text_display:
   chopping_board:
     title: "<gold>Chopping Board</gold>"
-    placed: "<white>{item}</white>"
-    progress: "<gray>Cuts <yellow>{current}</yellow>/<yellow>{required}</yellow></gray>"
+    placed: "<white>%item%</white>"
+    progress: "<gray>Cuts <yellow>%current%</yellow>/<yellow>%required%</yellow></gray>"
     hint_cut: "<aqua>Hold a knife to chop</aqua>"
     no_recipe: "<red>No available recipe</red>"
   wok:
     title: "<gold>Wok</gold>"
-    heat: "<gray>Heat <yellow>{heat}</yellow></gray>"
-    stir: "<gray>Stirs <yellow>{count}</yellow></gray>"
+    heat: "<gray>Heat <yellow>%heat%</yellow></gray>"
+    stir: "<gray>Stirs <yellow>%count%</yellow></gray>"
     ingredients_header: "<gray>Ingredients:</gray>"
-    ingredient_line: "<white>- {item} x{amount}</white>"
-    predicted: "<gray>Predicted: <aqua>{recipe}</aqua></gray>"
+    ingredient_line: "<white>- %item% x%amount%</white>"
+    predicted: "<gray>Predicted: <aqua>%recipe%</aqua></gray>"
     hint_add: "<aqua>Keep adding ingredients</aqua>"
     hint_stir: "<aqua>Hold a spatula to stir</aqua>"
     hint_serve: "<green>Ready to serve</green>"
     no_predict: "<yellow>No matching recipe</yellow>"
   grinder:
     title: "<gold>Grinder</gold>"
-    grinding: "<gray>Grinding... <yellow>{seconds}</yellow>s left</gray>"
-    item: "<white>{item}</white>"
+    grinding: "<gray>Grinding... <yellow>%seconds%</yellow>s left</gray>"
+    item: "<white>%item%</white>"
   steamer:
     title: "<gold>Steamer</gold>"
-    burning: "<gray>Burning <yellow>{burning_time}</yellow>s</gray>"
-    moisture: "<gray>Moisture <aqua>{moisture}</aqua></gray>"
-    steam: "<gray>Steam <white>{steam}</white></gray>"
-    progress: "<gray>Progress <yellow>{progress}</yellow></gray>"
+    burning: "<gray>Burning <yellow>%burning_time%</yellow>s</gray>"
+    moisture: "<gray>Moisture <aqua>%moisture%</aqua></gray>"
+    steam: "<gray>Steam <white>%steam%</white></gray>"
+    progress: "<gray>Progress <yellow>%progress%</yellow></gray>"
     idle: "<yellow>Waiting for fuel/water</yellow>"
   oven:
     title: "<gold>Oven</gold>"
-    heat: "<gray>Heat <yellow>{heat}</yellow></gray>"
-    burning: "<gray>Burning <yellow>{burning_time}</yellow>s</gray>"
-    progress: "<gray>Baking <yellow>{progress}</yellow></gray>"
+    heat: "<gray>Heat <yellow>%heat%</yellow></gray>"
+    burning: "<gray>Burning <yellow>%burning_time%</yellow>s</gray>"
+    progress: "<gray>Baking <yellow>%progress%</yellow></gray>"
     idle: "<yellow>Waiting for fuel</yellow>"
   juicer:
     title: "<gold>Juicer</gold>"
-    progress: "<gray>Pressing <yellow>{progress}</yellow></gray>"
-    fluid: "<gray>Fluid <aqua>{fluid}</aqua> <white>{amount}</white>/<white>{max}</white>ml</gray>"
+    progress: "<gray>Pressing <yellow>%progress%</yellow></gray>"
+    fluid: "<gray>Fluid <aqua>%fluid%</aqua> <white>%amount%</white>/<white>%max%</white>ml</gray>"
     hint_press: "<aqua>Sneak left-click to press</aqua>"
     hint_serve: "<green>Sneak left-click to serve</green>"
   fermentation_barrel:
     title: "<gold>Fermentation Barrel</gold>"
-    fermenting: "<gray>Fermenting... <yellow>{seconds}</yellow>s left</gray>"
+    fermenting: "<gray>Fermenting... <yellow>%seconds%</yellow>s left</gray>"
     ready: "<green>Fermented, ready to collect</green>"
     early_ready: "<yellow>Early collect available</yellow>"
     over: "<gold>Over-fermented</gold>"
-    recipe: "<gray>Output: <aqua>{recipe}</aqua></gray>"
+    recipe: "<gray>Output: <aqua>%recipe%</aqua></gray>"
 
 # Debug mode messages
 debug:
@@ -233,31 +233,31 @@ debug:
     status_header: "<gold>========== EmakiCooking Debug Status ==========</gold>"
     status_enabled: "<green>Debug enabled</green>"
     status_disabled: "<gray>Debug disabled</gray>"
-    tracked_players: "<gray>Tracked players: <yellow>{players}</yellow></gray>"
-    tracked_modules: "<gray>Tracked modules: <yellow>{modules}</yellow></gray>"
-    player_added: "<green>Now tracking player: <aqua>{player}</aqua></green>"
-    player_removed: "<yellow>Stopped tracking player: <aqua>{player}</aqua></yellow>"
-    module_enabled: "<green>Module tracking enabled: <yellow>{module}</yellow></green>"
-    module_disabled: "<yellow>Module tracking disabled: <gray>{module}</gray></yellow>"
+    tracked_players: "<gray>Tracked players: <yellow>%players%</yellow></gray>"
+    tracked_modules: "<gray>Tracked modules: <yellow>%modules%</yellow></gray>"
+    player_added: "<green>Now tracking player: <aqua>%player%</aqua></green>"
+    player_removed: "<yellow>Stopped tracking player: <aqua>%player%</aqua></yellow>"
+    module_enabled: "<green>Module tracking enabled: <yellow>%module%</yellow></green>"
+    module_disabled: "<yellow>Module tracking disabled: <gray>%module%</gray></yellow>"
     all_enabled: "<green>Global debug enabled (all players + all modules)</green>"
     all_disabled: "<yellow>All debug tracking disabled</yellow>"
-    player_not_found: "<red>Online player not found: {player}</red>"
-    available_modules: "<gray>Available modules: <yellow>{modules}</yellow></gray>"
+    player_not_found: "<red>Online player not found: %player%</red>"
+    available_modules: "<gray>Available modules: <yellow>%modules%</yellow></gray>"
   station:
-    interact: "Station interact | Player={player} | Type={type} | Location={location}"
-    ingredient_add: "Ingredient added | Player={player} | Station={station} | Item={item}"
-    ingredient_remove: "Ingredient removed | Player={player} | Station={station} | Item={item}"
-    state_change: "Station state change | Station={station} | Old={old} | New={new}"
+    interact: "Station interact | Player=%player% | Type=%type% | Location=%location%"
+    ingredient_add: "Ingredient added | Player=%player% | Station=%station% | Item=%item%"
+    ingredient_remove: "Ingredient removed | Player=%player% | Station=%station% | Item=%item%"
+    state_change: "Station state change | Station=%station% | Old=%old% | New=%new%"
   recipe:
-    source_resolve: "Ingredient source resolve | Sources={sources} | Resolved={resolved}"
-    match_start: "Recipe match start | Station={station} | Ingredients={ingredients}"
-    match_check: "Checking recipe {recipe_id} | Match={result} | Reason={reason}"
-    match_result: "Recipe match complete | Result={recipe_id}"
+    source_resolve: "Ingredient source resolve | Sources=%sources% | Resolved=%resolved%"
+    match_start: "Recipe match start | Station=%station% | Ingredients=%ingredients%"
+    match_check: "Checking recipe %recipe_id% | Match=%result% | Reason=%reason%"
+    match_result: "Recipe match complete | Result=%recipe_id%"
   stir:
-    trigger: "Stir triggered | Player={player} | Station={station} | Count={count}/{max}"
-    animation_start: "Stir animation start | Entities={entities} | Height={height}"
-    animation_end: "Stir animation end | Station={station}"
+    trigger: "Stir triggered | Player=%player% | Station=%station% | Count=%count%/%max%"
+    animation_start: "Stir animation start | Entities=%entities% | Height=%height%"
+    animation_end: "Stir animation end | Station=%station%"
   display:
-    create: "Display entity created | Station={station} | Backend={backend} | Item={item}"
-    remove: "Display entity removed | Station={station} | Count={count}"
-    update: "Display entity updated | Station={station} | Change={change}"
+    create: "Display entity created | Station=%station% | Backend=%backend% | Item=%item%"
+    remove: "Display entity removed | Station=%station% | Count=%count%"
+    update: "Display entity updated | Station=%station% | Change=%change%"

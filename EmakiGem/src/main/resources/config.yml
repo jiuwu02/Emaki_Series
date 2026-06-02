@@ -71,8 +71,8 @@ inlay_success:
   # 默认成功率（百分比）
   default_chance: 100.0
   # 支持变量:
-  # {default_chance} {level_chance} {configured_chance} {level}
-  rate_formula: "{default_chance} - ({level} - 1) * 5"
+  # %default_chance% %level_chance% %configured_chance% %level%
+  rate_formula: "%default_chance% - (%level% - 1) * 5"
   # 镶嵌失败时的处理：
   # return_gem: 不扣宝石，也不扣镶嵌成本
   # destroy_gem: 扣宝石，并在判定前先扣镶嵌成本

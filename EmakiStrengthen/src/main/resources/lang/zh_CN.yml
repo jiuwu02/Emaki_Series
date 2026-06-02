@@ -19,13 +19,13 @@ general:
   invalid_args: "<red>参数错误。</red>"
   reloading: "<gray>正在重载配置...</gray>"
   reload_success: "<green>配置已重载。</green>"
-  reload_summary: "<gray>已重载配方 {recipes} 个、材料 {materials} 个、GUI {guis} 个。</gray>"
+  reload_summary: "<gray>已重载配方 %recipes% 个、材料 %materials% 个、GUI %guis% 个。</gray>"
 
 command:
   help:
     header: "<gold>========== 强化帮助 ==========</gold>"
     footer: "<gold>==================================</gold>"
-    line: "<yellow>{cmd}</yellow> <gray>- {desc}</gray>"
+    line: "<yellow>%cmd%</yellow> <gray>- %desc%</gray>"
     desc:
       help: "显示帮助信息"
       open: "打开强化界面"
@@ -38,20 +38,20 @@ command:
       givecatalyst: "发放强化材料"
       debug: "管理 Debug 追踪"
   inspect:
-    header: "<gold>========== {player} 的强化状态 ==========</gold>"
-    line: "<yellow>{key}</yellow> <gray>- {value}</gray>"
+    header: "<gold>========== %player% 的强化状态 ==========</gold>"
+    line: "<yellow>%key%</yellow> <gray>- %value%</gray>"
   refresh:
-    success: "<green>已刷新 <aqua>{player}</aqua> 背包中的强化层。</green>"
+    success: "<green>已刷新 <aqua>%player%</aqua> 背包中的强化层。</green>"
   setstar:
-    success: "<green>主手物品已设置为 <gold>+{star}</gold>。</green>"
+    success: "<green>主手物品已设置为 <gold>+%star%</gold>。</green>"
   clearstate:
     success: "<green>已清空主手物品上的强化层。</green>"
     no_layer: "<yellow>主手物品当前没有可移除的强化层。</yellow>"
   clearcrack:
     success: "<green>主手物品的锻印已清零。</green>"
   givecatalyst:
-    success: "<green>已向 <aqua>{player}</aqua> 发放 <gold>{amount}</gold> 个
-      {material}。</green>"
+    success: "<green>已向 <aqua>%player%</aqua> 发放 <gold>%amount%</gold> 个
+      %material%。</green>"
   catalyst_not_found: "<red>未找到该强化材料 ID。</red>"
   catalyst_create_failed: "<red>无法创建该强化材料物品。</red>"
   admin_state_failed: "<red>无法将主手物品写回强化状态。</red>"
@@ -62,25 +62,25 @@ console:
   plugin_stopped: "<yellow>已关闭</yellow>"
   bootstrap_start: "<white>开始检查默认文件...</white>"
   bootstrap_complete: "<green>默认文件检查完成。</green>"
-  bootstrap_copy_failed: "<yellow>复制默认资源失败: <red>{path}</red> <gray>({error})</gray></yellow>"
-  bootstrap_save_failed: "<yellow>保存合并资源失败: <red>{path}</red> <gray>({error})</gray></yellow>"
-  default_file_missing: "<yellow>缺少内置默认资源: <red>{path}</red></yellow>"
-  directory_create_failed: "<yellow>创建目录失败: <red>{path}</red></yellow>"
-  loader_config_load_error: "<yellow>读取强化配置失败: <red>{path}</red> <gray>({error})</gray></yellow>"
+  bootstrap_copy_failed: "<yellow>复制默认资源失败: <red>%path%</red> <gray>(%error%)</gray></yellow>"
+  bootstrap_save_failed: "<yellow>保存合并资源失败: <red>%path%</red> <gray>(%error%)</gray></yellow>"
+  default_file_missing: "<yellow>缺少内置默认资源: <red>%path%</red></yellow>"
+  directory_create_failed: "<yellow>创建目录失败: <red>%path%</red></yellow>"
+  loader_config_load_error: "<yellow>读取强化配置失败: <red>%path%</red> <gray>(%error%)</gray></yellow>"
   recipe_action_failed:
-    "<yellow>强化动作链执行失败: <red>{recipe}</red> <gray>阶段 {phase}
-    星级 {star} ({error})</gray></yellow>"
-  pdc_source_registered: "<gray>PDC 属性源已注册: <aqua>{source}</aqua></gray>"
-  recipes_loaded: "<gray>已加载 <yellow>{count}</yellow> 个强化配方</gray>"
+    "<yellow>强化动作链执行失败: <red>%recipe%</red> <gray>阶段 %phase%
+    星级 %star% (%error%)</gray></yellow>"
+  pdc_source_registered: "<gray>PDC 属性源已注册: <aqua>%source%</aqua></gray>"
+  recipes_loaded: "<gray>已加载 <yellow>%count%</yellow> 个强化配方</gray>"
   papi_registered: "<gray>PlaceholderAPI 扩展已注册</gray>"
 
 loader:
-  lang_directory_create_failed: "<yellow>无法创建语言目录: <red>{path}</red></yellow>"
-  bundled_language_load_failed: "<yellow>读取内置语言失败: <red>{error}</red></yellow>"
-  directory_create_failed: "<yellow>无法创建 {type} 目录: <red>{path}</red></yellow>"
-  invalid_blank_id: "<yellow>{type} ID 为空: <red>{file}</red></yellow>"
-  duplicate_id: "<yellow>重复的 {type} ID <red>{id}</red>，来源 <gray>{file}</gray></yellow>"
-  load_failed: "<yellow>读取 {type} 文件失败: <red>{file}</red> <gray>({error})</gray></yellow>"
+  lang_directory_create_failed: "<yellow>无法创建语言目录: <red>%path%</red></yellow>"
+  bundled_language_load_failed: "<yellow>读取内置语言失败: <red>%error%</red></yellow>"
+  directory_create_failed: "<yellow>无法创建 %type% 目录: <red>%path%</red></yellow>"
+  invalid_blank_id: "<yellow>%type% ID 为空: <red>%file%</red></yellow>"
+  duplicate_id: "<yellow>重复的 %type% ID <red>%id%</red>，来源 <gray>%file%</gray></yellow>"
+  load_failed: "<yellow>读取 %type% 文件失败: <red>%file%</red> <gray>(%error%)</gray></yellow>"
 
 strengthen:
   misc:
@@ -94,7 +94,7 @@ strengthen:
     already_max: "<red>该物品已经达到最高星级。</red>"
     material_missing: "<red>GUI 中放入的强化材料不足。</red>"
     invalid_optional_material: "<red>放入 GUI 的强化材料与当前星级配方不匹配。</red>"
-    insufficient_funds: "<red>本次强化所需费用不足: {costs}</red>"
+    insufficient_funds: "<red>本次强化所需费用不足: %costs%</red>"
     economy_provider_unavailable: "<red>经济提供者当前不可用。</red>"
     rebuild_failed: "<red>强化结果写回失败，未执行本次强化。</red>"
   preview:
@@ -102,16 +102,16 @@ strengthen:
     failure_drop: "<red>失败后掉落 1 星，并累积锻印。</red>"
     failure_drop_protected: "<gold>失败后消耗保护材料，不会掉星。</gold>"
   broadcast:
-    local_reach: "<aqua>{player}</aqua> <yellow>将 {show_item} 强化到
-      <gold>+{star}</gold>。</yellow>"
-    global_reach: "<aqua>{player}</aqua> <yellow>成功将 {show_item} 强化到
-      <gold>+{star}</gold>。</yellow>"
+    local_reach: "<aqua>%player%</aqua> <yellow>将 %show_item% 强化到
+      <gold>+%star%</gold>。</yellow>"
+    global_reach: "<aqua>%player%</aqua> <yellow>成功将 %show_item% 强化到
+      <gold>+%star%</gold>。</yellow>"
 
 gui:
   open_failed: "<red>无法打开强化界面，请检查 GUI 模板是否加载成功。</red>"
-  attempt_success: "<green>强化成功，当前星级提升至 <gold>+{star}</gold>。</green>"
-  attempt_failed: "<yellow>强化失败，但仍维持在 <gold>+{star}</gold>。</yellow>"
-  attempt_failed_downgrade: "<red>强化失败，星级掉落至 <gold>+{star}</gold>。</red>"
+  attempt_success: "<green>强化成功，当前星级提升至 <gold>+%star%</gold>。</green>"
+  attempt_failed: "<yellow>强化失败，但仍维持在 <gold>+%star%</gold>。</yellow>"
+  attempt_failed_downgrade: "<red>强化失败，星级掉落至 <gold>+%star%</gold>。</red>"
   inventory_full: "<yellow>背包空间不足，多余物品已掉落在脚边。</yellow>"
   preview:
     title: "<gold>强化预览</gold>"
@@ -119,20 +119,20 @@ gui:
     hint_no_target_2: "<gray>所有强化材料都需要放入 GUI 才会计数与扣除</gray>"
     ineligible_title: "<red>强化条件未满足</red>"
     ineligible_hint: "<gray>当前无法强化</gray>"
-    current_star: "<gray>当前星级: <gold>+{star}</gold></gray>"
-    target_star: "<gray>目标星级: <yellow>+{star}</yellow></gray>"
-    success_rate: "<gray>成功率: <green>{rate}%</green></gray>"
+    current_star: "<gray>当前星级: <gold>+%star%</gold></gray>"
+    target_star: "<gray>目标星级: <yellow>+%star%</yellow></gray>"
+    success_rate: "<gray>成功率: <green>%rate%%</green></gray>"
     cost_free: "<gray>花费: <green>免费</green></gray>"
     cost_header: "<gray>花费:</gray>"
-    cost_line: "<gold> - {amount} {name}</gold>"
+    cost_line: "<gold> - %amount% %name%</gold>"
     required_materials_header: "<gray>阶段材料（GUI）:</gray>"
     optional_materials_header: "<gray>已放入 GUI 材料:</gray>"
     delta_stats_header: "<gray>强化提升:</gray>"
-    delta_stats_line: "<gold> - {id} +{value}</gold>"
+    delta_stats_line: "<gold> - %id% +%value%</gold>"
   temper:
     title: "<gold>锻印状态</gold>"
-    current: "<gray>当前锻印: <gold>{temper}/{max}</gold></gray>"
-    bonus: "<gray>本次额外锻印加成: <aqua>+{bonus}</aqua></gray>"
+    current: "<gray>当前锻印: <gold>%temper%/%max%</gold></gray>"
+    bonus: "<gray>本次额外锻印加成: <aqua>+%bonus%</aqua></gray>"
     hint: "<gray>失败后会累积锻印，提高后续成功率</gray>"
   confirm:
     title: "<green>确认强化</green>"
@@ -145,27 +145,27 @@ debug:
     status_header: "<gold>========== EmakiStrengthen Debug 状态 ==========</gold>"
     status_enabled: "<green>Debug 已开启</green>"
     status_disabled: "<gray>Debug 已关闭</gray>"
-    tracked_players: "<gray>追踪玩家: <yellow>{players}</yellow></gray>"
-    tracked_modules: "<gray>追踪模块: <yellow>{modules}</yellow></gray>"
-    player_added: "<green>已开始追踪玩家: <aqua>{player}</aqua></green>"
-    player_removed: "<yellow>已停止追踪玩家: <aqua>{player}</aqua></yellow>"
-    module_enabled: "<green>已开启模块追踪: <yellow>{module}</yellow></green>"
-    module_disabled: "<yellow>已关闭模块追踪: <gray>{module}</gray></yellow>"
+    tracked_players: "<gray>追踪玩家: <yellow>%players%</yellow></gray>"
+    tracked_modules: "<gray>追踪模块: <yellow>%modules%</yellow></gray>"
+    player_added: "<green>已开始追踪玩家: <aqua>%player%</aqua></green>"
+    player_removed: "<yellow>已停止追踪玩家: <aqua>%player%</aqua></yellow>"
+    module_enabled: "<green>已开启模块追踪: <yellow>%module%</yellow></green>"
+    module_disabled: "<yellow>已关闭模块追踪: <gray>%module%</gray></yellow>"
     all_enabled: "<green>已开启全局 Debug（所有玩家+所有模块）</green>"
     all_disabled: "<yellow>已关闭所有 Debug 追踪</yellow>"
-    player_not_found: "<red>找不到在线玩家: {player}</red>"
-    available_modules: "<gray>可用模块: <yellow>{modules}</yellow></gray>"
+    player_not_found: "<red>找不到在线玩家: %player%</red>"
+    available_modules: "<gray>可用模块: <yellow>%modules%</yellow></gray>"
   attempt:
-    start: "开始强化 | 玩家={player} | 物品={item} | 当前星级={star}"
-    probability: "概率计算 | 基础={base} | 加成={bonus} | 最终={final}"
-    roll: "随机结果 | 随机值={roll} | 阈值={threshold} | 成功={success}"
-    success: "强化成功 | 新星级={star}"
-    failed: "强化失败 | 类型={type} | 裂纹={crack}"
-    destroyed: "强化破碎 | 物品={item}"
+    start: "开始强化 | 玩家=%player% | 物品=%item% | 当前星级=%star%"
+    probability: "概率计算 | 基础=%base% | 加成=%bonus% | 最终=%final%"
+    roll: "随机结果 | 随机值=%roll% | 阈值=%threshold% | 成功=%success%"
+    success: "强化成功 | 新星级=%star%"
+    failed: "强化失败 | 类型=%type% | 裂纹=%crack%"
+    destroyed: "强化破碎 | 物品=%item%"
   state:
-    read: "读取强化状态 | 物品={item} | 星级={star} | 裂纹={crack} | 配方={recipe}"
-    write: "写入强化状态 | 物品={item} | 变更={change}"
+    read: "读取强化状态 | 物品=%item% | 星级=%star% | 裂纹=%crack% | 配方=%recipe%"
+    write: "写入强化状态 | 物品=%item% | 变更=%change%"
   gui:
-    open: "打开 GUI | 玩家={player}"
-    slot_update: "GUI 槽位更新 | 玩家={player} | 槽位={slot} | 物品={item}"
-    close: "关闭 GUI | 玩家={player}"
+    open: "打开 GUI | 玩家=%player%"
+    slot_update: "GUI 槽位更新 | 玩家=%player% | 槽位=%slot% | 物品=%item%"
+    close: "关闭 GUI | 玩家=%player%"

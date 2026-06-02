@@ -54,7 +54,7 @@ permission: "emakicooking.recipe.apple_cider"
 condition:
   condition_type: all_of
   conditions:
-    - "{player_level} >= 4"
+    - "%player_level% >= 4"
   pass_actions:
     - 'sendmessage text="<gold>发酵收取条件满足。</gold>"'
   fail_actions:

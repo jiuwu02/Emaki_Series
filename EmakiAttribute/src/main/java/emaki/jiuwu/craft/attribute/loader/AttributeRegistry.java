@@ -275,13 +275,13 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
         }
         return switch (definition.loreFormatId()) {
             case "default_percent" ->
-                List.of("{Key}.*?: ?{Value}%$");
+                List.of("%Key%.*?: ?%Value%%$");
             case "default_regen" ->
-                List.of("{Key}.*?: ?{Value}/秒$");
+                List.of("%Key%.*?: ?%Value%/秒$");
             default ->
                 definition.isPercentLike()
-                ? List.of("{Key}.*?: ?{Value}%$")
-                : List.of("{Key}.*?: ?{Value}$");
+                ? List.of("%Key%.*?: ?%Value%%$")
+                : List.of("%Key%.*?: ?%Value%$");
         };
     }
 
@@ -292,10 +292,10 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
         String key = buildKeyPattern(definition);
         String value = buildValuePattern();
         return template
-                .replace("{Key}", key)
-                .replace("{key}", key)
-                .replace("{Value}", value)
-                .replace("{value}", value);
+                .replace("%Key%", key)
+                .replace("%key%", key)
+                .replace("%Value%", value)
+                .replace("%value%", value);
     }
 
     private String buildKeyPattern(AttributeDefinition definition) {

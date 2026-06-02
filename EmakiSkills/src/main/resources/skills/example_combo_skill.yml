@@ -7,7 +7,7 @@
 # combo_attack 触发器特性:
 #   - 每次攻击递增连击计数
 #   - 超过 combo_timeout_ticks（默认 60 tick = 3 秒）未攻击则重置
-#   - 触发时携带 {combo_count} 变量，可在条件中引用
+#   - 触发时携带 %combo_count% 变量，可在条件中引用
 #
 # 文件放置位置: plugins/EmakiSkills/skills/
 # ============================================================
@@ -32,7 +32,7 @@ passive_triggers:
 
 # 触发条件: 连击次数 >= 5
 conditions:
-  - "{combo_count} >= 5"
+  - "%combo_count% >= 5"
 
 # 冷却时间（秒）
 cooldown: 5.0
@@ -44,4 +44,4 @@ script:
       - "aoe_damage amount=20 radius=4 center=target shape=sphere filter=hostile"
       - "particle type=EXPLOSION_LARGE at=target count=5"
       - "sound sound=minecraft:entity.generic.explode volume=1 pitch=0.8"
-      - "message text='<red>连击终结！命中 {aoe_hit_count} 个目标</red>'"
+      - "message text='<red>连击终结！命中 %aoe_hit_count% 个目标</red>'"

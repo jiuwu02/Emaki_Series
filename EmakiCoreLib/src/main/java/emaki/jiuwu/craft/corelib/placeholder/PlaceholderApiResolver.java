@@ -4,7 +4,6 @@ import org.bukkit.Bukkit;
 
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.text.Texts;
-import me.clip.placeholderapi.PlaceholderAPI;
 
 public final class PlaceholderApiResolver implements PlaceholderResolver {
 
@@ -17,7 +16,7 @@ public final class PlaceholderApiResolver implements PlaceholderResolver {
             return text;
         }
         try {
-            return PlaceholderAPI.setPlaceholders(context.player(), text);
+            return PlaceholderRenderer.renderPapi(context.player(), text, null, "placeholder_api");
         } catch (Exception _) {
             return text;
         }

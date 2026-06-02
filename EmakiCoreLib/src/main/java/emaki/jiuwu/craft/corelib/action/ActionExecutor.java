@@ -17,6 +17,7 @@ import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.monitor.PerformanceMonitor;
 import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRegistry;
+import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRenderer;
 import emaki.jiuwu.craft.corelib.plugin.AbstractEmakiPlugin;
 import emaki.jiuwu.craft.corelib.text.LogMessages;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
@@ -64,6 +65,7 @@ public final class ActionExecutor {
             @NotNull String actionId,
             @Nullable Map<String, String> arguments) {
         debug(context, "execute direct | phase=" + context.phase() + " | action=" + actionId + " | rawArgs=" + summarizeMap(arguments));
+        PlaceholderRenderer.debugVariables(PlaceholderRenderer.contextVariables(context), resolveDebugLogger(context), context.player(), "action.direct." + actionId);
         Action action = registry.get(actionId);
         if (action == null) {
             ActionResult result = missingActionResult(actionId);
@@ -95,6 +97,7 @@ public final class ActionExecutor {
         debug(context, "execute batch start | phase=" + context.phase()
                 + " | lines=" + safeLines.size()
                 + " | stopOnFailure=" + stopOnFailure);
+        PlaceholderRenderer.debugVariables(PlaceholderRenderer.contextVariables(context), resolveDebugLogger(context), context.player(), "action." + context.phase());
         CompletableFuture<ActionBatchResult> future = new CompletableFuture<>();
         executeIndex(context, safeLines, stopOnFailure, 0, new ArrayList<>(), future);
         return future.whenComplete((batch, throwable) -> debug(context, "execute batch result | phase=" + context.phase()

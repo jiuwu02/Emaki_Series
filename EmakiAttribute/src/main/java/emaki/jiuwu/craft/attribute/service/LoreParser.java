@@ -59,18 +59,18 @@ public final class LoreParser {
             return List.of();
         }
         LoreFormatDefinition format = loreFormatRegistry == null ? null : loreFormatRegistry.get(definition.loreFormatId());
-        String template = format == null ? "{sign}{value} {name}" : format.format();
+        String template = format == null ? "%sign%%value% %name%" : format.format();
         int precision = format == null ? 2 : Math.max(0, format.precision());
         String sign = value >= 0D ? "+" : "-";
         String pattern = precision <= 0 ? "0" : "0." + "#".repeat(Math.min(precision, 6));
         String formattedValue = Numbers.formatNumber(Math.abs(value), pattern);
         String unit = definition.isPercentLike() ? "%" : "";
         String rendered = template
-                .replace("{sign}", sign)
-                .replace("{value}", formattedValue)
-                .replace("{name}", definition.displayName())
-                .replace("{id}", definition.id())
-                .replace("{unit}", unit);
+                .replace("%sign%", sign)
+                .replace("%value%", formattedValue)
+                .replace("%name%", definition.displayName())
+                .replace("%id%", definition.id())
+                .replace("%unit%", unit);
         return List.of(rendered);
     }
 

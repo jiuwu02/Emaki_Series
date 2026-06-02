@@ -100,12 +100,18 @@ public final class Texts {
         StringBuilder sb = new StringBuilder(len + 32);
         for (int i = 0; i < len; i++) {
             char ch = template.charAt(i);
-            if (ch == '{') {
-                int close = template.indexOf('}', i + 1);
-                if (close > i) {
+            if (ch == '%') {
+                int close = template.indexOf('%', i + 1);
+                if (close > i + 1) {
                     String key = template.substring(i + 1, close);
                     if (replacements.containsKey(key)) {
                         sb.append(toStringSafe(replacements.get(key)));
+                        i = close;
+                        continue;
+                    }
+                    String lowerKey = lower(key);
+                    if (replacements.containsKey(lowerKey)) {
+                        sb.append(toStringSafe(replacements.get(lowerKey)));
                         i = close;
                         continue;
                     }

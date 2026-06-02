@@ -18,12 +18,12 @@ slots:
       - 11
       - 13
       - 15
-    display_name: "<gold>{skill}</gold>"
+    display_name: "<gold>%skill%</gold>"
     lore:
-      - "<gray>槽位: <white>{slot}</white></gray>"
-      - "<gray>触发器: <white>{trigger}</white></gray>"
-      - "<gray>等级: <gold>{level}</gold><dark_gray>/</dark_gray><yellow>{max_level}</yellow></gray>"
-      - "<gray>冷却: <aqua>{cooldown}s</aqua></gray>"
+      - "<gray>槽位: <white>%slot%</white></gray>"
+      - "<gray>触发器: <white>%trigger%</white></gray>"
+      - "<gray>等级: <gold>%level%</gold><dark_gray>/</dark_gray><yellow>%max_level%</yellow></gray>"
+      - "<gray>冷却: <aqua>%cooldown%s</aqua></gray>"
       - "<dark_gray>空槽位可从技能池中选择技能装备</dark_gray>"
 
   # 施法模式按钮 (位置 4)
@@ -32,7 +32,7 @@ slots:
     slots:
       - 4
     item: "ender_eye"
-    display_name: "<gold>施法模式: {state}</gold>"
+    display_name: "<gold>施法模式: %state%</gold>"
     lore:
       - "<gray>点击切换施法模式</gray>"
 
@@ -64,12 +64,12 @@ slots:
       - 41
       - 42
       - 43
-    display_name: "<green>{skill}</green>"
+    display_name: "<green>%skill%</green>"
     lore:
-      - "<gray>ID: <white>{skill_id}</white></gray>"
-      - "<gray>等级: <gold>{level}</gold><dark_gray>/</dark_gray><yellow>{max_level}</yellow></gray>"
-      - "<gray>冷却: <aqua>{cooldown}s</aqua></gray>"
-      - "<gray>来源: <white>{source}</white></gray>"
+      - "<gray>ID: <white>%skill_id%</white></gray>"
+      - "<gray>等级: <gold>%level%</gold><dark_gray>/</dark_gray><yellow>%max_level%</yellow></gray>"
+      - "<gray>冷却: <aqua>%cooldown%s</aqua></gray>"
+      - "<gray>来源: <white>%source%</white></gray>"
       - "<yellow>点击装备到空槽位</yellow>"
 
   # 上一页 (位置 45)
@@ -88,9 +88,9 @@ slots:
     slots:
       - 49
     item: "book"
-    display_name: "<gray>第 {current_page}/{total_pages} 页</gray>"
+    display_name: "<gray>第 %current_page%/%total_pages% 页</gray>"
     lore:
-      - "<dark_gray>已解锁技能: {unlocked_count}</dark_gray>"
+      - "<dark_gray>已解锁技能: %unlocked_count%</dark_gray>"
 
   # 下一页 (位置 53)
   page_next:

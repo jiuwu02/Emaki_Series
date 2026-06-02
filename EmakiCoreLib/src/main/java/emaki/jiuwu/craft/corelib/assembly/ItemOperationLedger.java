@@ -8,6 +8,7 @@ import java.util.function.Supplier;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 
+import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.pdc.PdcPartition;
@@ -47,6 +48,16 @@ public final class ItemOperationLedger {
             Object loreActions,
             Map<String, ?> variables) {
         return executor.execute(itemStack, operationId, sourceNamespace, nameActions, loreActions, variables).success();
+    }
+
+    public boolean apply(ActionContext context,
+            ItemStack itemStack,
+            String operationId,
+            String sourceNamespace,
+            Object nameActions,
+            Object loreActions,
+            Map<String, ?> variables) {
+        return executor.execute(context, itemStack, operationId, sourceNamespace, nameActions, loreActions, variables).success();
     }
 
     public boolean revert(ItemStack itemStack, String operationId) {

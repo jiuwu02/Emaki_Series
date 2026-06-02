@@ -7,7 +7,7 @@
 # ============================================================
 id: "editor_gui"
 gui_type: CHEST
-title: "<gold>{title}</gold>"
+title: "<gold>%title%</gold>"
 rows: 6
 
 slots:
@@ -27,7 +27,7 @@ pages:
         slots:
           - 22
         item: "book"
-        display_name: "<gold>{type_name}</gold>"
+        display_name: "<gold>%type_name%</gold>"
         lore:
           - "<gray>打开最新配方资源列表。</gray>"
       close:
@@ -39,14 +39,14 @@ pages:
           - "<gray>关闭当前界面。</gray>"
 
   list:
-    title: "{type_name}列表"
+    title: "%type_name%列表"
     content_slots:
       - "0-44"
     content_item:
       item: "book"
-      display_name: "<gold>{entry_id}</gold>"
+      display_name: "<gold>%entry_id%</gold>"
       lore:
-        - "<gray>{entry_name}</gray>"
+        - "<gray>%entry_name%</gray>"
         - "<gray>左键打开编辑。</gray>"
     buttons:
       back:
@@ -62,28 +62,28 @@ pages:
         item: "ARROW"
         display_name: "<yellow>上一页</yellow>"
         lore:
-          - "<gray>{page}/{pages}</gray>"
+          - "<gray>%page%/%pages%</gray>"
       create:
         slots:
           - 47
         item: "LIME_DYE"
-        display_name: "<green>创建新{type_name}</green>"
+        display_name: "<green>创建新%type_name%</green>"
         lore:
           - "<gray>创建新的资源草稿。</gray>"
       summary:
         slots:
           - 49
         item: "book"
-        display_name: "<gold>{type_name}列表</gold>"
+        display_name: "<gold>%type_name%列表</gold>"
         lore:
-          - "<gray>总数: {count}</gray>"
+          - "<gray>总数: %count%</gray>"
       next_page:
         slots:
           - 52
         item: "ARROW"
         display_name: "<yellow>下一页</yellow>"
         lore:
-          - "<gray>{page}/{pages}</gray>"
+          - "<gray>%page%/%pages%</gray>"
       close:
         slots:
           - 53
@@ -93,55 +93,55 @@ pages:
           - "<gray>关闭当前界面。</gray>"
 
   document:
-    title: "{type_name}:{current_id}"
+    title: "%type_name%:%current_id%"
     content_slots:
       - "0-44"
     content_templates:
       map:
         item: "CHEST"
-        display_name: "<gold>{entry_label}</gold>"
+        display_name: "<gold>%entry_label%</gold>"
         lore:
-          - "<gray>类型: {node_type}</gray>"
-          - "<gray>值: {node_value}</gray>"
-          - "{edit_hint}"
-          - "{delete_hint}"
-          - "{is_slot_list}"
+          - "<gray>类型: %node_type%</gray>"
+          - "<gray>值: %node_value%</gray>"
+          - "%edit_hint%"
+          - "%delete_hint%"
+          - "%is_slot_list%"
       list:
         item: "BARREL"
-        display_name: "<gold>{entry_label}</gold>"
+        display_name: "<gold>%entry_label%</gold>"
         lore:
-          - "<gray>类型: {node_type}</gray>"
-          - "<gray>值: {node_value}</gray>"
-          - "{edit_hint}"
-          - "{delete_hint}"
-          - "{is_slot_list}"
+          - "<gray>类型: %node_type%</gray>"
+          - "<gray>值: %node_value%</gray>"
+          - "%edit_hint%"
+          - "%delete_hint%"
+          - "%is_slot_list%"
       boolean:
         item: "LEVER"
-        display_name: "<gold>{entry_label}</gold>"
+        display_name: "<gold>%entry_label%</gold>"
         lore:
-          - "<gray>类型: {node_type}</gray>"
-          - "<gray>值: {node_value}</gray>"
-          - "{edit_hint}"
-          - "{secondary_hint}"
-          - "{delete_hint}"
+          - "<gray>类型: %node_type%</gray>"
+          - "<gray>值: %node_value%</gray>"
+          - "%edit_hint%"
+          - "%secondary_hint%"
+          - "%delete_hint%"
       number:
         item: "CLOCK"
-        display_name: "<gold>{entry_label}</gold>"
+        display_name: "<gold>%entry_label%</gold>"
         lore:
-          - "<gray>类型: {node_type}</gray>"
-          - "<gray>值: {node_value}</gray>"
-          - "{edit_hint}"
-          - "{secondary_hint}"
-          - "{delete_hint}"
+          - "<gray>类型: %node_type%</gray>"
+          - "<gray>值: %node_value%</gray>"
+          - "%edit_hint%"
+          - "%secondary_hint%"
+          - "%delete_hint%"
       scalar:
         item: "NAME_TAG"
-        display_name: "<gold>{entry_label}</gold>"
+        display_name: "<gold>%entry_label%</gold>"
         lore:
-          - "<gray>类型: {node_type}</gray>"
-          - "<gray>值: {node_value}</gray>"
-          - "{edit_hint}"
-          - "{secondary_hint}"
-          - "{delete_hint}"
+          - "<gray>类型: %node_type%</gray>"
+          - "<gray>值: %node_value%</gray>"
+          - "%edit_hint%"
+          - "%secondary_hint%"
+          - "%delete_hint%"
     buttons:
       back:
         slots:
@@ -149,14 +149,14 @@ pages:
         item: "COMPASS"
         display_name: "<yellow>返回上级</yellow>"
         lore:
-          - "<gray>{path}</gray>"
+          - "<gray>%path%</gray>"
       prev_page:
         slots:
           - 46
         item: "ARROW"
         display_name: "<yellow>上一页</yellow>"
         lore:
-          - "<gray>{page}/{pages}</gray>"
+          - "<gray>%page%/%pages%</gray>"
       add:
         slots:
           - 47
@@ -177,13 +177,13 @@ pages:
         item: "writable_book"
         display_name: "<gold>当前节点</gold>"
         lore:
-          - "<gray>{path}</gray>"
-          - "<gray>{node_type}</gray>"
+          - "<gray>%path%</gray>"
+          - "<gray>%node_type%</gray>"
       context_source:
         item: "ITEM_FRAME"
         display_name: "<gold>读取主手物品</gold>"
         lore:
-          - "<gray>写入 {source_key} 字段。</gray>"
+          - "<gray>写入 %source_key% 字段。</gray>"
       grid:
         slots:
           - 50
@@ -204,7 +204,7 @@ pages:
         item: "ARROW"
         display_name: "<yellow>下一页</yellow>"
         lore:
-          - "<gray>{page}/{pages}</gray>"
+          - "<gray>%page%/%pages%</gray>"
       close:
         slots:
           - 53
@@ -220,12 +220,12 @@ pages:
     content_templates:
       enabled:
         item: "lime_stained_glass_pane"
-        display_name: "<green>槽位 {slot} 已启用</green>"
+        display_name: "<green>槽位 %slot% 已启用</green>"
         lore:
           - "<gray>左键切换该槽位。</gray>"
       disabled:
         item: "gray_stained_glass_pane"
-        display_name: "<gray>槽位 {slot} 未启用</gray>"
+        display_name: "<gray>槽位 %slot% 未启用</gray>"
         lore:
           - "<gray>左键切换该槽位。</gray>"
     buttons:
@@ -242,7 +242,7 @@ pages:
         item: "ARROW"
         display_name: "<yellow>上一页</yellow>"
         lore:
-          - "<gray>{page}/{pages}</gray>"
+          - "<gray>%page%/%pages%</gray>"
       save:
         slots:
           - 48
@@ -254,16 +254,16 @@ pages:
         slots:
           - 49
         item: "book"
-        display_name: "<gold>槽位数量: {count}</gold>"
+        display_name: "<gold>槽位数量: %count%</gold>"
         lore:
-          - "<gray>{path}</gray>"
+          - "<gray>%path%</gray>"
       next_page:
         slots:
           - 52
         item: "ARROW"
         display_name: "<yellow>下一页</yellow>"
         lore:
-          - "<gray>{page}/{pages}</gray>"
+          - "<gray>%page%/%pages%</gray>"
       close:
         slots:
           - 53

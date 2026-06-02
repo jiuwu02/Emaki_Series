@@ -62,7 +62,7 @@ public record SkillUpgradeConfig(
             provider = Texts.isBlank(provider) ? "auto" : Texts.lower(provider);
             currencyId = Texts.toStringSafe(currencyId);
             baseCost = Math.max(0D, baseCost);
-            costFormula = Texts.isBlank(costFormula) ? "{base_cost}" : Texts.toStringSafe(costFormula);
+            costFormula = Texts.isBlank(costFormula) ? "%base_cost%" : Texts.toStringSafe(costFormula);
             displayName = Texts.toStringSafe(displayName);
         }
     }

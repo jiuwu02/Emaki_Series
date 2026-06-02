@@ -24,7 +24,7 @@ priority: 35
 lore_format_id: default_flat
 
 lore_patterns:
-  - "{Key}.*?: ?{Value} Hit/s$"
+  - "%Key%.*?: ?%Value% Hit/s$"
 
 attribute_power: 1.0
 

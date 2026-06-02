@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import emaki.jiuwu.craft.corelib.action.ActionContext;
+import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class LoreOperationRegistry {
@@ -37,13 +39,27 @@ public final class LoreOperationRegistry {
     }
 
     public void apply(List<String> lines, Object operations, Map<String, Object> variables) {
+        apply(lines, operations, variables, null, null);
+    }
+
+    public void apply(List<String> lines,
+            Object operations,
+            Map<String, Object> variables,
+            ActionContext context,
+            DebugLogger debugLogger) {
         if (lines == null) {
             return;
         }
         for (Map<String, Object> operation : templateRenderer.normalizeOperations(operations)) {
             String action = Texts.lower(operation.get("action"));
-            List<String> content = templateRenderer.renderContent(operation, variables);
-            String anchor = templateRenderer.renderTemplate(templateRenderer.resolveSearchPattern(operation), variables);
+            List<String> content = templateRenderer.renderContent(operation, variables, context, debugLogger, "item_operation.lore." + action);
+            String anchor = templateRenderer.renderTemplate(
+                    templateRenderer.resolveSearchPattern(operation),
+                    variables,
+                    context,
+                    debugLogger,
+                    "item_operation.lore.anchor." + action
+            );
             LoreOperationProcessor processor = getProcessor(action);
             if (processor != null) {
                 processor.process(lines, new LoreOperationProcessor.Context(operation, content, anchor, variables));

@@ -4,6 +4,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
+import emaki.jiuwu.craft.corelib.action.ActionContext;
+import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class NameOperationRegistry {
@@ -28,12 +30,26 @@ public final class NameOperationRegistry {
     }
 
     public void apply(LocalNameState state, Object operations, Map<String, Object> variables) {
+        apply(state, operations, variables, null, null);
+    }
+
+    public void apply(LocalNameState state,
+            Object operations,
+            Map<String, Object> variables,
+            ActionContext context,
+            DebugLogger debugLogger) {
         if (state == null) {
             return;
         }
         for (Map<String, Object> operation : templateRenderer.normalizeOperations(operations)) {
             String action = Texts.lower(operation.get("action"));
-            String value = templateRenderer.renderTemplate(templateRenderer.resolveOperationValue(operation), variables);
+            String value = templateRenderer.renderTemplate(
+                    templateRenderer.resolveOperationValue(operation),
+                    variables,
+                    context,
+                    debugLogger,
+                    "item_operation.name." + action
+            );
             NameOperationProcessor processor = getProcessor(action);
             if (processor != null) {
                 processor.process(state, new NameOperationProcessor.Context(operation, value, variables));

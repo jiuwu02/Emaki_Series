@@ -5,8 +5,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.assembly.ItemOperationLedger;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
@@ -33,7 +35,8 @@ final class ForgeResultPostProcessor {
         this.operationLedger = operationLedger;
     }
 
-    void process(Recipe recipe,
+    void process(Player player,
+            Recipe recipe,
             GuiItems guiItems,
             ForgeService.PreparedForge preparedForge,
             ItemStack resultItem) {
@@ -48,10 +51,11 @@ final class ForgeResultPostProcessor {
                 preparedForge.qualityTier(),
                 resultItem
         );
-        applyForgeOperations(recipe, preparedForge, resultItem, materials);
+        applyForgeOperations(player, recipe, preparedForge, resultItem, materials);
     }
 
-    private void applyForgeOperations(Recipe recipe,
+    private void applyForgeOperations(Player player,
+            Recipe recipe,
             ForgeService.PreparedForge preparedForge,
             ItemStack resultItem,
             List<ForgeMaterialContribution> materials) {
@@ -109,7 +113,13 @@ final class ForgeResultPostProcessor {
         String operationId = OPERATION_NAMESPACE + ":" + recipe.id();
         Object nameActionsToApply = allNameActions.size() == 1 ? allNameActions.get(0) : allNameActions;
         Object loreActionsToApply = allLoreActions.size() == 1 ? allLoreActions.get(0) : allLoreActions;
-        operationLedger.apply(resultItem, operationId, OPERATION_NAMESPACE,
+        ActionContext context = ActionContext.create(plugin, player, "forge.result_meta", false)
+                .withPlaceholders(variables)
+                .withAttribute("recipe", recipe)
+                .withAttribute("resultItem", resultItem)
+                .withAttribute("quality", preparedForge == null || preparedForge.qualityTier() == null ? "" : preparedForge.qualityTier().name())
+                .withAttribute("multiplier", preparedForge == null ? 1D : preparedForge.multiplier());
+        operationLedger.apply(context, resultItem, operationId, OPERATION_NAMESPACE,
                 allNameActions.isEmpty() ? null : nameActionsToApply,
                 allLoreActions.isEmpty() ? null : loreActionsToApply,
                 variables);

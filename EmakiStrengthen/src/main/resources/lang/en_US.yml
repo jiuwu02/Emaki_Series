@@ -20,14 +20,14 @@ general:
   reloading: "<gray>Reloading configuration...</gray>"
   reload_success: "<green>Config reloaded.</green>"
   reload_summary:
-    "<gray>Reloaded {recipes} recipes, {materials} materials, {guis}
+    "<gray>Reloaded %recipes% recipes, %materials% materials, %guis%
     GUIs.</gray>"
 
 command:
   help:
     header: "<gold>========== Strengthen Help ==========</gold>"
     footer: "<gold>==================================</gold>"
-    line: "<yellow>{cmd}</yellow> <gray>- {desc}</gray>"
+    line: "<yellow>%cmd%</yellow> <gray>- %desc%</gray>"
     desc:
       help: "Show help"
       open: "Open strengthen GUI"
@@ -40,20 +40,20 @@ command:
       givecatalyst: "Give strengthen material"
       debug: "Manage debug tracking"
   inspect:
-    header: "<gold>========== {player} Strengthen State ==========</gold>"
-    line: "<yellow>{key}</yellow> <gray>- {value}</gray>"
+    header: "<gold>========== %player% Strengthen State ==========</gold>"
+    line: "<yellow>%key%</yellow> <gray>- %value%</gray>"
   refresh:
-    success: "<green>Refreshed strengthen layers for <aqua>{player}</aqua>.</green>"
+    success: "<green>Refreshed strengthen layers for <aqua>%player%</aqua>.</green>"
   setstar:
-    success: "<green>Main-hand item set to <gold>+{star}</gold>.</green>"
+    success: "<green>Main-hand item set to <gold>+%star%</gold>.</green>"
   clearstate:
     success: "<green>Strengthen layer removed from main-hand item.</green>"
     no_layer: "<yellow>Main-hand item has no removable strengthen layer.</yellow>"
   clearcrack:
     success: "<green>Main-hand item crack cleared.</green>"
   givecatalyst:
-    success: "<green>Gave <gold>{amount}</gold> {material} to
-      <aqua>{player}</aqua>.</green>"
+    success: "<green>Gave <gold>%amount%</gold> %material% to
+      <aqua>%player%</aqua>.</green>"
   catalyst_not_found: "<red>Strengthen material ID not found.</red>"
   catalyst_create_failed: "<red>Failed to create strengthen material item.</red>"
   admin_state_failed: "<red>Failed to write strengthen state back to main-hand item.</red>"
@@ -65,29 +65,29 @@ console:
   bootstrap_start: "<white>Checking default files...</white>"
   bootstrap_complete: "<green>Default file check complete.</green>"
   bootstrap_copy_failed: "<yellow>Failed to copy default resource:
-    <red>{path}</red> <gray>({error})</gray></yellow>"
+    <red>%path%</red> <gray>(%error%)</gray></yellow>"
   bootstrap_save_failed: "<yellow>Failed to save merged resource:
-    <red>{path}</red> <gray>({error})</gray></yellow>"
-  default_file_missing: "<yellow>Missing bundled default resource: <red>{path}</red></yellow>"
-  directory_create_failed: "<yellow>Failed to create directory: <red>{path}</red></yellow>"
+    <red>%path%</red> <gray>(%error%)</gray></yellow>"
+  default_file_missing: "<yellow>Missing bundled default resource: <red>%path%</red></yellow>"
+  directory_create_failed: "<yellow>Failed to create directory: <red>%path%</red></yellow>"
   loader_config_load_error: "<yellow>Failed to load strengthen config:
-    <red>{path}</red> <gray>({error})</gray></yellow>"
+    <red>%path%</red> <gray>(%error%)</gray></yellow>"
   recipe_action_failed: "<yellow>Strengthen action chain failed:
-    <red>{recipe}</red> <gray>phase {phase} star {star}
-    ({error})</gray></yellow>"
-  pdc_source_registered: "<gray>PDC attribute source registered: <aqua>{source}</aqua></gray>"
-  recipes_loaded: "<gray>Loaded <yellow>{count}</yellow> strengthen recipe(s)</gray>"
+    <red>%recipe%</red> <gray>phase %phase% star %star%
+    (%error%)</gray></yellow>"
+  pdc_source_registered: "<gray>PDC attribute source registered: <aqua>%source%</aqua></gray>"
+  recipes_loaded: "<gray>Loaded <yellow>%count%</yellow> strengthen recipe(s)</gray>"
   papi_registered: "<gray>PlaceholderAPI expansion registered</gray>"
 
 loader:
-  lang_directory_create_failed: "<yellow>Failed to create language directory: <red>{path}</red></yellow>"
-  bundled_language_load_failed: "<yellow>Failed to load bundled language: <red>{error}</red></yellow>"
-  directory_create_failed: "<yellow>Failed to create {type} directory: <red>{path}</red></yellow>"
-  invalid_blank_id: "<yellow>{type} ID is blank: <red>{file}</red></yellow>"
-  duplicate_id: "<yellow>Duplicate {type} ID <red>{id}</red>, source
-    <gray>{file}</gray></yellow>"
-  load_failed: "<yellow>Failed to load {type} file: <red>{file}</red>
-    <gray>({error})</gray></yellow>"
+  lang_directory_create_failed: "<yellow>Failed to create language directory: <red>%path%</red></yellow>"
+  bundled_language_load_failed: "<yellow>Failed to load bundled language: <red>%error%</red></yellow>"
+  directory_create_failed: "<yellow>Failed to create %type% directory: <red>%path%</red></yellow>"
+  invalid_blank_id: "<yellow>%type% ID is blank: <red>%file%</red></yellow>"
+  duplicate_id: "<yellow>Duplicate %type% ID <red>%id%</red>, source
+    <gray>%file%</gray></yellow>"
+  load_failed: "<yellow>Failed to load %type% file: <red>%file%</red>
+    <gray>(%error%)</gray></yellow>"
 
 strengthen:
   misc:
@@ -101,7 +101,7 @@ strengthen:
     already_max: "<red>This item has already reached the maximum star level.</red>"
     material_missing: "<red>Insufficient strengthen materials in GUI.</red>"
     invalid_optional_material: "<red>Materials in GUI do not match the current star recipe.</red>"
-    insufficient_funds: "<red>Insufficient funds for this strengthen: {costs}</red>"
+    insufficient_funds: "<red>Insufficient funds for this strengthen: %costs%</red>"
     economy_provider_unavailable: "<red>Economy provider is currently unavailable.</red>"
     rebuild_failed: "<red>Failed to write strengthen result, operation aborted.</red>"
   preview:
@@ -109,17 +109,17 @@ strengthen:
     failure_drop: "<red>On failure, drop 1 star and accumulate crack.</red>"
     failure_drop_protected: "<gold>On failure, protection material consumed, no star drop.</gold>"
   broadcast:
-    local_reach: "<aqua>{player}</aqua> <yellow>strengthened {show_item} to
-      <gold>+{star}</gold>.</yellow>"
-    global_reach: "<aqua>{player}</aqua> <yellow>successfully strengthened
-      {show_item} to <gold>+{star}</gold>.</yellow>"
+    local_reach: "<aqua>%player%</aqua> <yellow>strengthened %show_item% to
+      <gold>+%star%</gold>.</yellow>"
+    global_reach: "<aqua>%player%</aqua> <yellow>successfully strengthened
+      %show_item% to <gold>+%star%</gold>.</yellow>"
 
 gui:
   open_failed: "<red>Failed to open strengthen GUI, check if GUI template loaded.</red>"
   attempt_success: "<green>Strengthen success, star level raised to
-    <gold>+{star}</gold>.</green>"
-  attempt_failed: "<yellow>Strengthen failed, still at <gold>+{star}</gold>.</yellow>"
-  attempt_failed_downgrade: "<red>Strengthen failed, star level dropped to <gold>+{star}</gold>.</red>"
+    <gold>+%star%</gold>.</green>"
+  attempt_failed: "<yellow>Strengthen failed, still at <gold>+%star%</gold>.</yellow>"
+  attempt_failed_downgrade: "<red>Strengthen failed, star level dropped to <gold>+%star%</gold>.</red>"
   inventory_full: "<yellow>Inventory full, excess items dropped at your feet.</yellow>"
   preview:
     title: "<gold>Strengthen Preview</gold>"
@@ -127,20 +127,20 @@ gui:
     hint_no_target_2: "<gray>All materials must be placed in GUI to be counted</gray>"
     ineligible_title: "<red>Strengthen conditions not met</red>"
     ineligible_hint: "<gray>Cannot strengthen at this time</gray>"
-    current_star: "<gray>Current star: <gold>+{star}</gold></gray>"
-    target_star: "<gray>Target star: <yellow>+{star}</yellow></gray>"
-    success_rate: "<gray>Success rate: <green>{rate}%</green></gray>"
+    current_star: "<gray>Current star: <gold>+%star%</gold></gray>"
+    target_star: "<gray>Target star: <yellow>+%star%</yellow></gray>"
+    success_rate: "<gray>Success rate: <green>%rate%%</green></gray>"
     cost_free: "<gray>Cost: <green>Free</green></gray>"
     cost_header: "<gray>Cost:</gray>"
-    cost_line: "<gold> - {amount} {name}</gold>"
+    cost_line: "<gold> - %amount% %name%</gold>"
     required_materials_header: "<gray>Stage materials (GUI):</gray>"
     optional_materials_header: "<gray>Placed GUI materials:</gray>"
     delta_stats_header: "<gray>Strengthen bonus:</gray>"
-    delta_stats_line: "<gold> - {id} +{value}</gold>"
+    delta_stats_line: "<gold> - %id% +%value%</gold>"
   temper:
     title: "<gold>Crack Status</gold>"
-    current: "<gray>Current crack: <gold>{temper}/{max}</gold></gray>"
-    bonus: "<gray>Extra crack bonus this time: <aqua>+{bonus}</aqua></gray>"
+    current: "<gray>Current crack: <gold>%temper%/%max%</gold></gray>"
+    bonus: "<gray>Extra crack bonus this time: <aqua>+%bonus%</aqua></gray>"
     hint: "<gray>Crack accumulates on failure, increasing future success rate</gray>"
   confirm:
     title: "<green>Confirm Strengthen</green>"
@@ -153,27 +153,27 @@ debug:
     status_header: "<gold>========== EmakiStrengthen Debug Status ==========</gold>"
     status_enabled: "<green>Debug enabled</green>"
     status_disabled: "<gray>Debug disabled</gray>"
-    tracked_players: "<gray>Tracked players: <yellow>{players}</yellow></gray>"
-    tracked_modules: "<gray>Tracked modules: <yellow>{modules}</yellow></gray>"
-    player_added: "<green>Now tracking player: <aqua>{player}</aqua></green>"
-    player_removed: "<yellow>Stopped tracking player: <aqua>{player}</aqua></yellow>"
-    module_enabled: "<green>Module tracking enabled: <yellow>{module}</yellow></green>"
-    module_disabled: "<yellow>Module tracking disabled: <gray>{module}</gray></yellow>"
+    tracked_players: "<gray>Tracked players: <yellow>%players%</yellow></gray>"
+    tracked_modules: "<gray>Tracked modules: <yellow>%modules%</yellow></gray>"
+    player_added: "<green>Now tracking player: <aqua>%player%</aqua></green>"
+    player_removed: "<yellow>Stopped tracking player: <aqua>%player%</aqua></yellow>"
+    module_enabled: "<green>Module tracking enabled: <yellow>%module%</yellow></green>"
+    module_disabled: "<yellow>Module tracking disabled: <gray>%module%</gray></yellow>"
     all_enabled: "<green>Global debug enabled (all players + all modules)</green>"
     all_disabled: "<yellow>All debug tracking disabled</yellow>"
-    player_not_found: "<red>Online player not found: {player}</red>"
-    available_modules: "<gray>Available modules: <yellow>{modules}</yellow></gray>"
+    player_not_found: "<red>Online player not found: %player%</red>"
+    available_modules: "<gray>Available modules: <yellow>%modules%</yellow></gray>"
   attempt:
-    start: "Strengthen start | player={player} | item={item} | current_star={star}"
-    probability: "Probability calc | base={base} | bonus={bonus} | final={final}"
-    roll: "Random result | roll={roll} | threshold={threshold} | success={success}"
-    success: "Strengthen success | new_star={star}"
-    failed: "Strengthen failed | type={type} | crack={crack}"
-    destroyed: "Strengthen destroyed | item={item}"
+    start: "Strengthen start | player=%player% | item=%item% | current_star=%star%"
+    probability: "Probability calc | base=%base% | bonus=%bonus% | final=%final%"
+    roll: "Random result | roll=%roll% | threshold=%threshold% | success=%success%"
+    success: "Strengthen success | new_star=%star%"
+    failed: "Strengthen failed | type=%type% | crack=%crack%"
+    destroyed: "Strengthen destroyed | item=%item%"
   state:
-    read: "Read strengthen state | item={item} | star={star} | crack={crack} | recipe={recipe}"
-    write: "Write strengthen state | item={item} | change={change}"
+    read: "Read strengthen state | item=%item% | star=%star% | crack=%crack% | recipe=%recipe%"
+    write: "Write strengthen state | item=%item% | change=%change%"
   gui:
-    open: "Open GUI | player={player}"
-    slot_update: "GUI slot update | player={player} | slot={slot} | item={item}"
-    close: "Close GUI | player={player}"
+    open: "Open GUI | player=%player%"
+    slot_update: "GUI slot update | player=%player% | slot=%slot% | item=%item%"
+    close: "Close GUI | player=%player%"

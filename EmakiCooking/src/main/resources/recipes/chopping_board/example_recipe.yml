@@ -40,7 +40,7 @@ permission: "emakicooking.recipe.cut_carrot"
 # condition: 配方完成时评估的条件块（独立于 permission 权限门槛）。
 #   condition_type: 组合方式 all_of / any_of / none_of / at_least / exactly
 #   condition_required_count: 当 condition_type 为 at_least / exactly 时生效
-#   conditions: 条件表达式列表，支持 {player_level} 等花括号变量与比较运算符
+#   conditions: 条件表达式列表，支持 %player_level% 等花括号变量与比较运算符
 #   pass_actions: 条件成立时执行的动作
 #   fail_actions: 条件不成立时执行的动作
 #   block_output_on_false: 条件不成立时是否阻止产出（默认 false，仅执行 fail 动作，产出照常）
@@ -48,7 +48,7 @@ permission: "emakicooking.recipe.cut_carrot"
 condition:
   condition_type: all_of
   conditions:
-    - "{player_level} >= 3"
+    - "%player_level% >= 3"
   pass_actions:
     - 'sendmessage text="<green>条件满足，切制成功。</green>"'
   fail_actions:

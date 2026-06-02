@@ -76,9 +76,9 @@ final class GemOpenGuiRenderer {
         }
         int total = itemDefinition.slots().size();
         int opened = gemState.openedSlotIndexes().size();
-        lore.add(text("equipment_definition", Map.of("item", itemDefinition.id()), "<gray>Equipment definition: <gold>{item}</gold></gray>"));
-        lore.add(text("opened_count", Map.of("opened", opened, "total", total), "<gray>Opened: <green>{opened}</green>/<yellow>{total}</yellow></gray>"));
-        lore.add(text("locked_count", Map.of("locked", Math.max(0, total - opened)), "<gray>Locked: <yellow>{locked}</yellow></gray>"));
+        lore.add(text("equipment_definition", Map.of("item", itemDefinition.id()), "<gray>Equipment definition: <gold>%item%</gold></gray>"));
+        lore.add(text("opened_count", Map.of("opened", opened, "total", total), "<gray>Opened: <green>%opened%</green>/<yellow>%total%</yellow></gray>"));
+        lore.add(text("locked_count", Map.of("locked", Math.max(0, total - opened)), "<gray>Locked: <yellow>%locked%</yellow></gray>"));
         lore.add(text("info_hint", "<gray>Place an opener, then click a locked slot</gray>"));
         return buildConfiguredItem(guiSlot, Material.BOOK, text("info_name", "<gold>Socket Info</gold>"), lore);
     }
@@ -141,12 +141,12 @@ final class GemOpenGuiRenderer {
         }
         GemItemDefinition itemDefinition = plugin.stateService().resolveItemDefinition(state.mutableTargetItem());
         GemItemDefinition.SocketSlot slot = itemDefinition == null ? null : itemDefinition.slot(state.selectedSlotIndex());
-        lore.add(text("preview_equipment", Map.of("item", itemDefinition == null ? common("unrecognized", "Unrecognized") : itemDefinition.id()), "<gray>Equipment: <yellow>{item}</yellow></gray>"));
+        lore.add(text("preview_equipment", Map.of("item", itemDefinition == null ? common("unrecognized", "Unrecognized") : itemDefinition.id()), "<gray>Equipment: <yellow>%item%</yellow></gray>"));
         SocketOpenerConfig opener = slot == null
                 ? plugin.itemMatcher().matchOpenerItem(state.mutableOpenerItem())
                 : plugin.itemMatcher().matchOpenerForType(state.mutableOpenerItem(), slot.type());
-        lore.add(text("preview_opener", Map.of("opener", openerText(state, opener)), "<gray>Opener: <yellow>{opener}</yellow></gray>"));
-        lore.add(text("preview_slot", Map.of("slot", slot == null ? text("slot_not_selected", "Not selected") : "#" + slot.index() + " " + slot.displayName()), "<gray>Target slot: <yellow>{slot}</yellow></gray>"));
+        lore.add(text("preview_opener", Map.of("opener", openerText(state, opener)), "<gray>Opener: <yellow>%opener%</yellow></gray>"));
+        lore.add(text("preview_slot", Map.of("slot", slot == null ? text("slot_not_selected", "Not selected") : "#" + slot.index() + " " + slot.displayName()), "<gray>Target slot: <yellow>%slot%</yellow></gray>"));
         lore.add(text("preview_hint", "<gray>Confirming will open the selected locked slot once</gray>"));
         return buildConfiguredItem(guiSlot, Material.WRITABLE_BOOK, text("preview_name", "<gold>Opening Preview</gold>"), lore);
     }
@@ -209,11 +209,11 @@ final class GemOpenGuiRenderer {
     }
 
     private String slotTitle(GemItemDefinition.SocketSlot slot, int slotIndex, String stateText) {
-        return common("slot_title", Map.of("name", slot.displayName(), "slot", slotIndex, "state", stateText), "<white>{name} <gray>(#{slot} {state})</gray></white>");
+        return common("slot_title", Map.of("name", slot.displayName(), "slot", slotIndex, "state", stateText), "<white>%name% <gray>(#%slot% %state%)</gray></white>");
     }
 
     private String socketType(String displayName) {
-        return common("socket_type", Map.of("type", displayName), "<gray>Socket type: <yellow>{type}</yellow></gray>");
+        return common("socket_type", Map.of("type", displayName), "<gray>Socket type: <yellow>%type%</yellow></gray>");
     }
 
     private String openerText(GemOpenGuiSession state, SocketOpenerConfig opener) {

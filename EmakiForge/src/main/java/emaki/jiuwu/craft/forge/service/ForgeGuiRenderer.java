@@ -78,7 +78,7 @@ final class ForgeGuiRenderer {
                             "<red>无法锻造</red>",
                             true,
                             List.of(
-                                    "<gray>当前容量: <yellow>{current}/{max}</yellow></gray>",
+                                    "<gray>当前容量: <yellow>%current%/%max%</yellow></gray>",
                                     "<red>可选材料容量已超出上限</red>",
                                     "<gray>减少材料后再试一次</gray>"
                             ),

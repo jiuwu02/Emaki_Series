@@ -96,7 +96,7 @@ final class ForgeExecutionService {
                         return result;
                     }
                     if (resultItemPostProcessor != null) {
-                        resultItemPostProcessor.process(recipe, guiItems, forgePlan, resultItem);
+                        resultItemPostProcessor.process(player, recipe, guiItems, forgePlan, resultItem);
                     }
                     if (!resultItemGiver.deliver(player, resultItem)) {
                         result.setErrorKey("forge.error.item_create");
@@ -182,6 +182,6 @@ final class ForgeExecutionService {
     @FunctionalInterface
     interface ResultItemPostProcessor {
 
-        void process(Recipe recipe, GuiItems guiItems, ForgeService.PreparedForge preparedForge, ItemStack resultItem);
+        void process(Player player, Recipe recipe, GuiItems guiItems, ForgeService.PreparedForge preparedForge, ItemStack resultItem);
     }
 }

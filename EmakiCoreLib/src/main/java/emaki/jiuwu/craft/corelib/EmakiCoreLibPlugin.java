@@ -170,7 +170,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         reloadScriptSystem();
         actionRegistry = new ActionRegistry();
         actionTemplateRegistry = new ActionTemplateRegistry();
-        placeholderRegistry = new PlaceholderRegistry();
+        placeholderRegistry = new PlaceholderRegistry(this::debugLogger);
         economyManager = new EconomyManager(this);
         placeholderRegistry.register(new ActionContextPlaceholderResolver());
         placeholderRegistry.register(new ActionInlineTokenResolver());

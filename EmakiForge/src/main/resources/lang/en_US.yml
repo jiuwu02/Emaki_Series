@@ -21,14 +21,14 @@ general:
   reloading: "<gray>Reloading configuration...</gray>"
   reload_success: "<green>Configuration reloaded.</green>"
   reload_fail: "<red>Configuration reload failed.</red>"
-  reload_summary: "<gray>Reloaded {recipes} recipes, {guis} GUIs.</gray>"
+  reload_summary: "<gray>Reloaded %recipes% recipes, %guis% GUIs.</gray>"
 
 # Command help
 command:
   help:
     header: "<gold>========== Emaki Forge Help ==========</gold>"
     footer: "<gold>========================================</gold>"
-    line: "<yellow>{cmd}</yellow> <gray>- {desc}</gray>"
+    line: "<yellow>%cmd%</yellow> <gray>- %desc%</gray>"
     commands:
       help: "Show help information"
       forge: "Open standalone forge"
@@ -41,15 +41,15 @@ command:
       "create recipe [id]": "Create new recipe draft"
       "delete recipe <id>": "Delete specified recipe"
   list:
-    header: "<gold>========== {type} List ==========</gold>"
-    recipes_header: "<gold>========== Recipe List ({count} total) ==========</gold>"
-    blueprints_header: "<gold>========== Blueprint List ({count} total) ==========</gold>"
-    materials_header: "<gold>========== Material List ({count} total) ==========</gold>"
-    recipe_line: "<yellow>{id}</yellow> <gray>- {name}</gray>"
-    blueprint_line: "<yellow>{id}</yellow> <gray>- {name}</gray>"
+    header: "<gold>========== %type% List ==========</gold>"
+    recipes_header: "<gold>========== Recipe List (%count% total) ==========</gold>"
+    blueprints_header: "<gold>========== Blueprint List (%count% total) ==========</gold>"
+    materials_header: "<gold>========== Material List (%count% total) ==========</gold>"
+    recipe_line: "<yellow>%id%</yellow> <gray>- %name%</gray>"
+    blueprint_line: "<yellow>%id%</yellow> <gray>- %name%</gray>"
     material_line:
-      "<yellow>{id}</yellow> <gray>- {name} (Cost: {capacity}, Bonus:
-      +{bonus})</gray>"
+      "<yellow>%id%</yellow> <gray>- %name% (Cost: %capacity%, Bonus:
+      +%bonus%)</gray>"
 
 # Console logs
 console:
@@ -57,11 +57,11 @@ console:
   plugin_started: "<green>Started</green>"
   plugin_stopping: "<gray>Shutting down...</gray>"
   plugin_stopped: "<yellow>Stopped</yellow>"
-  config_load_failed: "<red>Failed to load config: {error}</red>"
+  config_load_failed: "<red>Failed to load config: %error%</red>"
   checking_config: "<white>Checking default config files...</white>"
   data_folder_error: "<yellow>Unable to access data directory, skipped default
     file check.</yellow>"
-  data_folder_failed: "<yellow>Failed to access data folder: <red>{error}</red>"
+  data_folder_failed: "<yellow>Failed to access data folder: <red>%error%</red>"
   loading_configs: "<white>Loading config files...</white>"
   config_loaded: "<green>Config files loaded.</green>"
   registering_services: "<white>Registering services...</white>"
@@ -71,13 +71,13 @@ console:
   registering_listeners: "<white>Registering event listeners...</white>"
   listeners_registered: "<green>Event listeners registered.</green>"
   saving_player_data: "<white>Saving player data...</white>"
-  player_data_saved: "<gray>Saved {count} player data entries</gray>"
+  player_data_saved: "<gray>Saved %count% player data entries</gray>"
   bootstrap_start: "<white>Checking default files...</white>"
   bootstrap_skip: "<gray>release_default_data=false, skipped default data generation</gray>"
   bootstrap_complete: "<green>Default file check complete.</green>"
-  bootstrap_config_read_error: "<yellow>Failed to read or update config, using defaults: <red>{error}</red>"
-  directory_created: "<green>Created directory <yellow>{path}</yellow>"
-  directory_create_failed: "<yellow>Failed to create directory <red>{path}</red>"
+  bootstrap_config_read_error: "<yellow>Failed to read or update config, using defaults: <red>%error%</red>"
+  directory_created: "<green>Created directory <yellow>%path%</yellow>"
+  directory_create_failed: "<yellow>Failed to create directory <red>%path%</red>"
   config_exists: "<gray>config.yml already exists, skipping creation</gray>"
   lang_exists: "<gray>lang/zh_CN.yml already exists, skipping creation</gray>"
   gui_forge_exists: "<gray>gui/forge_gui.yml already exists, skipping creation</gray>"
@@ -88,112 +88,112 @@ console:
   material_iron_exists: "<gray>materials/iron_essence.yml already exists, skipping creation</gray>"
   material_flame_exists: "<gray>materials/flame_crystal.yml already exists, skipping creation</gray>"
   recipe_example_exists: "<gray>recipes/example_recipe.yml already exists, skipping creation</gray>"
-  file_created_success: "<green>Successfully created <yellow>{name}</yellow>"
-  file_create_failed: "<yellow>Failed to create <red>{name}</red> <yellow>: <red>{error}</red>"
-  file_create_failed_ext: "<yellow>Failed to create <red>{name}</red> <yellow>: <red>{error}</red>"
-  default_file_missing: "<yellow>Built-in resource does not exist, skipped: <red>{path}</red>"
+  file_created_success: "<green>Successfully created <yellow>%name%</yellow>"
+  file_create_failed: "<yellow>Failed to create <red>%name%</red> <yellow>: <red>%error%</red>"
+  file_create_failed_ext: "<yellow>Failed to create <red>%name%</red> <yellow>: <red>%error%</red>"
+  default_file_missing: "<yellow>Built-in resource does not exist, skipped: <red>%path%</red>"
   data_folder_not_init: "<yellow>Data directory not yet initialized.</yellow>"
   bootstrap_copy_failed: "<yellow>Failed to copy default resource:
-    <red>{path}</red> <gray>({error})</gray></yellow>"
+    <red>%path%</red> <gray>(%error%)</gray></yellow>"
   bootstrap_save_failed:
-    "<yellow>Failed to save merged config: <red>{path}</red>
-    <gray>({error})</gray></yellow>"
-  pdc_source_registered: "<gray>PDC attribute source registered: <aqua>{source}</aqua></gray>"
-  recipes_loaded: "<gray>Loaded <yellow>{count}</yellow> recipe(s)</gray>"
-  guis_loaded: "<gray>Loaded <yellow>{count}</yellow> GUI template(s)</gray>"
-  player_data_directory_create_failed: "<yellow>Unable to create player data directory: <red>{path}</red></yellow>"
+    "<yellow>Failed to save merged config: <red>%path%</red>
+    <gray>(%error%)</gray></yellow>"
+  pdc_source_registered: "<gray>PDC attribute source registered: <aqua>%source%</aqua></gray>"
+  recipes_loaded: "<gray>Loaded <yellow>%count%</yellow> recipe(s)</gray>"
+  guis_loaded: "<gray>Loaded <yellow>%count%</yellow> GUI template(s)</gray>"
+  player_data_directory_create_failed: "<yellow>Unable to create player data directory: <red>%path%</red></yellow>"
   player_data_save_failed:
-    "<yellow>Failed to save player data: <red>{uuid}</red>
-    <gray>({error})</gray></yellow>"
-  item_unknown_vanilla_material_source: "<yellow>Unknown vanilla material source: <red>{identifier}</red></yellow>"
+    "<yellow>Failed to save player data: <red>%uuid%</red>
+    <gray>(%error%)</gray></yellow>"
+  item_unknown_vanilla_material_source: "<yellow>Unknown vanilla material source: <red>%identifier%</red></yellow>"
   external_item_source_unavailable: "<yellow>External item source unavailable:
-    <gray>dependency={dependency}, context={context}, source={source},
-    detail={detail}</gray></yellow>"
-  item_bridge_unavailable: "<yellow>{dependency} API bridge unavailable: <red>{error}</red></yellow>"
+    <gray>dependency=%dependency%, context=%context%, source=%source%,
+    detail=%detail%</gray></yellow>"
+  item_bridge_unavailable: "<yellow>%dependency% API bridge unavailable: <red>%error%</red></yellow>"
   forge_execution_failed: "<yellow>Forge execution failed: recipe
-    <red>{recipe}</red> <gray>({error})</gray></yellow>"
+    <red>%recipe%</red> <gray>(%error%)</gray></yellow>"
   forge_phase_execution_failed: "<yellow>Forge phase execution failed: phase
-    <red>{phase}</red>, recipe <red>{recipe}</red>
-    <gray>({error})</gray></yellow>"
-  forge_phase_failed: "<yellow>Forge phase failed: phase <red>{phase}</red>,
-    recipe <red>{recipe}</red> <gray>({reason})</gray></yellow>"
+    <red>%phase%</red>, recipe <red>%recipe%</red>
+    <gray>(%error%)</gray></yellow>"
+  forge_phase_failed: "<yellow>Forge phase failed: phase <red>%phase%</red>,
+    recipe <red>%recipe%</red> <gray>(%reason%)</gray></yellow>"
   forge_quality_execution_failed: "<yellow>Quality action execution failed:
-    quality <red>{tier}</red> <gray>({error})</gray></yellow>"
+    quality <red>%tier%</red> <gray>(%error%)</gray></yellow>"
   forge_quality_failed:
-    "<yellow>Quality action failed: quality <red>{tier}</red>
-    <gray>({reason})</gray></yellow>"
-  forge_refresh_failed: "<yellow>Failed to refresh forged item: recipe <red>{recipe}</red></yellow>"
+    "<yellow>Quality action failed: quality <red>%tier%</red>
+    <gray>(%reason%)</gray></yellow>"
+  forge_refresh_failed: "<yellow>Failed to refresh forged item: recipe <red>%recipe%</red></yellow>"
   forge_refresh_invalid_audit:
     "<yellow>Detected non-refreshable forge audit data:
-    <red>{reason}</red></yellow>"
+    <red>%reason%</red></yellow>"
   forge_refresh_missing_recipe: "<yellow>Recipe not found when refreshing forged
-    item: <red>{recipe}</red></yellow>"
+    item: <red>%recipe%</red></yellow>"
   forge_refresh_missing_material: "<yellow>Material not found when refreshing
-    forged item: recipe <red>{recipe}</red>, material
-    <red>{material}</red></yellow>"
+    forged item: recipe <red>%recipe%</red>, material
+    <red>%material%</red></yellow>"
   forge_refresh_invalid_quality: "<yellow>Invalid quality found when refreshing
-    forged item: recipe <red>{recipe}</red>, quality
-    <red>{quality}</red></yellow>"
+    forged item: recipe <red>%recipe%</red>, quality
+    <red>%quality%</red></yellow>"
   pdc_write_skipped_primary_thread: "<yellow>Skipped forge PDC write: not on primary thread.</yellow>"
   pdc_write_failed: "<yellow>Failed to write forge PDC data: recipe
-    <red>{recipe}</red> <gray>({error})</gray></yellow>"
-  pdc_corrupted_data_detected: "<yellow>Corrupted forge PDC data detected: <red>{reason}</red></yellow>"
+    <red>%recipe%</red> <gray>(%error%)</gray></yellow>"
+  pdc_corrupted_data_detected: "<yellow>Corrupted forge PDC data detected: <red>%reason%</red></yellow>"
   pdc_deserialize_failed: "<yellow>Failed to deserialize forge material data:
-    <red>{error}</red></yellow>"
+    <red>%error%</red></yellow>"
   pdc_deserialize_unexpected_error:
     "<yellow>Unexpected error deserializing forge
-    material data: <red>{error}</red></yellow>"
+    material data: <red>%error%</red></yellow>"
   loader_config_load_error: "<red>Failed to load config file
-    <yellow>{path}</yellow>: <gray>{error}</gray>"
-  loader_config_unavailable: "<yellow>{type} config unavailable <red>{path}</red>"
-  loader_invalid_config: "<yellow>{type} config invalid <red>{path}</red>"
-  loader_duplicate_id: "<yellow>Duplicate {type} ID found <red>{id}</red>
-    <gray>source: {path}</gray>"
+    <yellow>%path%</yellow>: <gray>%error%</gray>"
+  loader_config_unavailable: "<yellow>%type% config unavailable <red>%path%</red>"
+  loader_invalid_config: "<yellow>%type% config invalid <red>%path%</red>"
+  loader_duplicate_id: "<yellow>Duplicate %type% ID found <red>%id%</red>
+    <gray>source: %path%</gray>"
   loader_exception:
-    "<red>Exception loading {type} config <yellow>{path}</yellow>:
-    <gray>{error}</gray>"
-  forge_consume_plan_mismatch: "<yellow>{category} consumption plan mismatch
-    <gray>recipe={recipe}, mode={mode}, required={required},
-    reserved={reserved}</gray>"
-  forge_consume_mismatch: "<yellow>{category} consumption quantity mismatch
-    <gray>recipe={recipe}, id={id}, required={required},
-    removed={removed}</gray>"
+    "<red>Exception loading %type% config <yellow>%path%</yellow>:
+    <gray>%error%</gray>"
+  forge_consume_plan_mismatch: "<yellow>%category% consumption plan mismatch
+    <gray>recipe=%recipe%, mode=%mode%, required=%required%,
+    reserved=%reserved%</gray>"
+  forge_consume_mismatch: "<yellow>%category% consumption quantity mismatch
+    <gray>recipe=%recipe%, id=%id%, required=%required%,
+    removed=%removed%</gray>"
   lore_search_not_found: "<yellow>Lore search insert target not found: source
-    <red>{source}</red>, action <red>{action}</red>, pattern
-    <red>{pattern}</red></yellow>"
+    <red>%source%</red>, action <red>%action%</red>, pattern
+    <red>%pattern%</red></yellow>"
   lore_invalid_action_name: "<yellow>Invalid lore search action name: source
-    <red>{source}</red>, action <red>{action}</red>
-    <gray>({error})</gray></yellow>"
+    <red>%source%</red>, action <red>%action%</red>
+    <gray>(%error%)</gray></yellow>"
   lore_invalid_regex: "<yellow>Invalid lore search regex: source
-    <red>{source}</red>, action <red>{action}</red>, expression
-    <red>{pattern}</red> <gray>({error})</gray></yellow>"
+    <red>%source%</red>, action <red>%action%</red>, expression
+    <red>%pattern%</red> <gray>(%error%)</gray></yellow>"
   lore_invalid_search_insert_config: "<yellow>Invalid lore search insert config:
-    source <red>{source}</red>, action <red>{action}</red>
-    <gray>({error})</gray></yellow>"
+    source <red>%source%</red>, action <red>%action%</red>
+    <gray>(%error%)</gray></yellow>"
   papi_registered: "<gray>PlaceholderAPI expansion registered</gray>"
 
 loader:
-  lang_directory_create_failed: "<red>Unable to create language directory: {path}</red>"
-  bundled_language_load_failed: "<red>Failed to load bundled language: {error}</red>"
-  invalid_config: "<yellow>{type} file {file} has invalid config, skipped loading.</yellow>"
-  bundled_resource_missing: "<red>Bundled resource missing: {resource}, cannot write to {path}</red>"
+  lang_directory_create_failed: "<red>Unable to create language directory: %path%</red>"
+  bundled_language_load_failed: "<red>Failed to load bundled language: %error%</red>"
+  invalid_config: "<yellow>%type% file %file% has invalid config, skipped loading.</yellow>"
+  bundled_resource_missing: "<red>Bundled resource missing: %resource%, cannot write to %path%</red>"
   recipe_action_validation_skipped:
     "<yellow>Skipped action validation for recipe
-    {file} because EmakiCoreLib is unavailable.</yellow>"
+    %file% because EmakiCoreLib is unavailable.</yellow>"
   recipe_invalid_action_syntax:
-    "<yellow>Invalid action syntax in recipe {recipe}:
-    {file}, phase {phase}, line {line} <gray>({error})</gray></yellow>"
-  recipe_unknown_action: "<yellow>Unknown action <red>{action}</red> in recipe
-    {recipe}: {file}, phase {phase}, line {line}{suggestion}</yellow>"
+    "<yellow>Invalid action syntax in recipe %recipe%:
+    %file%, phase %phase%, line %line% <gray>(%error%)</gray></yellow>"
+  recipe_unknown_action: "<yellow>Unknown action <red>%action%</red> in recipe
+    %recipe%: %file%, phase %phase%, line %line%%suggestion%</yellow>"
   recipe_invalid_action_arguments: "<yellow>Invalid action arguments in recipe
-    {recipe}: {file}, phase {phase}, line {line}
-    <gray>({error})</gray></yellow>"
+    %recipe%: %file%, phase %phase%, line %line%
+    <gray>(%error%)</gray></yellow>"
   recipe_unknown_action_template:
-    "<yellow>Unknown template <red>{template}</red>
-    in recipe {recipe}: {file}, phase {phase}, line {line}</yellow>"
+    "<yellow>Unknown template <red>%template%</red>
+    in recipe %recipe%: %file%, phase %phase%, line %line%</yellow>"
   recipe_invalid_condition_type: "<yellow>Invalid condition_type in recipe
-    {recipe}: {file} -> <red>{value}</red>. Allowed values:
-    <gray>{allowed}</gray>, loading rejected.</yellow>"
+    %recipe%: %file% -> <red>%value%</red>. Allowed values:
+    <gray>%allowed%</gray>, loading rejected.</yellow>"
 
 # Forge related
 forge:
@@ -204,21 +204,21 @@ forge:
     condition_not_met: "<red>Forge conditions not met.</red>"
     no_target_item: "<red>Please place a target item.</red>"
     invalid_target_item: "<red>Target item does not match.</red>"
-    capacity_exceeded: "<red>Forge capacity exceeded: current {current}/{max}</red>"
+    capacity_exceeded: "<red>Forge capacity exceeded: current %current%/%max%</red>"
     material_not_allowed: "<red>This material is not in the allowed list.</red>"
     material_blacklisted: "<red>This material is blacklisted.</red>"
     blueprint_required: "<red>Required blueprint is missing.</red>"
     material_required: "<red>Required material is missing.</red>"
     material_count_exceeded: "<red>Optional material count exceeded.</red>"
     item_create: "<red>Unable to create result item.</red>"
-    action_failed: "<red>Forge action execution failed: {reason}</red>"
-    lore_search_not_found: "<red>Lore search insert target not found: {pattern}</red>"
-    lore_invalid_action_name: "<red>Invalid lore search action: {action}</red>"
-    lore_invalid_regex: "<red>Invalid lore search regex: {pattern}</red>"
+    action_failed: "<red>Forge action execution failed: %reason%</red>"
+    lore_search_not_found: "<red>Lore search insert target not found: %pattern%</red>"
+    lore_invalid_action_name: "<red>Invalid lore search action: %action%</red>"
+    lore_invalid_regex: "<red>Invalid lore search regex: %pattern%</red>"
 
   success:
-    crafted: "<green>Forge successful, obtained {item}</green>"
-    quality: "<gold>Quality: {quality} (Multiplier: {multiplier}x)</gold>"
+    crafted: "<green>Forge successful, obtained %item%</green>"
+    quality: "<gold>Quality: %quality% (Multiplier: %multiplier%x)</gold>"
     first_craft: "<green>First time completing this recipe.</green>"
 
 # Blueprint related
@@ -233,7 +233,7 @@ material:
 gui:
   title:
     book: "<dark_gray>Recipe Book</dark_gray>"
-    forge: "<dark_gray>Forge - {recipe}</dark_gray>"
+    forge: "<dark_gray>Forge - %recipe%</dark_gray>"
 
   slot:
     blueprint: "<gray>Place Blueprint</gray>"
@@ -247,9 +247,9 @@ gui:
     locked: "<red>Locked</red>"
 
   display:
-    capacity: "<gray>Forge Capacity: <yellow>{current}/{max}</yellow></gray>"
-    capacity_warning: "<gold>Forge Capacity: {current}/{max} (near limit)</gold>"
-    capacity_exceeded: "<red>Forge Capacity: {current}/{max} (exceeded)</red>"
+    capacity: "<gray>Forge Capacity: <yellow>%current%/%max%</yellow></gray>"
+    capacity_warning: "<gold>Forge Capacity: %current%/%max% (near limit)</gold>"
+    capacity_exceeded: "<red>Forge Capacity: %current%/%max% (exceeded)</red>"
     capacity_pending: "<gray>Forge Capacity: click confirm to match recipe</gray>"
 
   button:
@@ -265,30 +265,30 @@ debug:
     status_header: "<gold>========== EmakiForge Debug Status ==========</gold>"
     status_enabled: "<green>Debug is enabled</green>"
     status_disabled: "<gray>Debug is disabled</gray>"
-    tracked_players: "<gray>Tracked players: <yellow>{players}</yellow></gray>"
-    tracked_modules: "<gray>Tracked modules: <yellow>{modules}</yellow></gray>"
-    player_added: "<green>Now tracking player: <aqua>{player}</aqua></green>"
-    player_removed: "<yellow>Stopped tracking player: <aqua>{player}</aqua></yellow>"
-    module_enabled: "<green>Module tracking enabled: <yellow>{module}</yellow></green>"
-    module_disabled: "<yellow>Module tracking disabled: <gray>{module}</gray></yellow>"
+    tracked_players: "<gray>Tracked players: <yellow>%players%</yellow></gray>"
+    tracked_modules: "<gray>Tracked modules: <yellow>%modules%</yellow></gray>"
+    player_added: "<green>Now tracking player: <aqua>%player%</aqua></green>"
+    player_removed: "<yellow>Stopped tracking player: <aqua>%player%</aqua></yellow>"
+    module_enabled: "<green>Module tracking enabled: <yellow>%module%</yellow></green>"
+    module_disabled: "<yellow>Module tracking disabled: <gray>%module%</gray></yellow>"
     all_enabled: "<green>Global debug enabled (all players + all modules)</green>"
     all_disabled: "<yellow>All debug tracking disabled</yellow>"
-    player_not_found: "<red>Online player not found: {player}</red>"
-    available_modules: "<gray>Available modules: <yellow>{modules}</yellow></gray>"
+    player_not_found: "<red>Online player not found: %player%</red>"
+    available_modules: "<gray>Available modules: <yellow>%modules%</yellow></gray>"
   recipe:
-    match_start: "Recipe matching start | player={player} | input={items}"
-    match_check: "Check recipe {recipe_id} | match={result}"
-    match_result: "Recipe match complete | result={recipe_id}"
-    no_match: "No matching recipe | input={items}"
+    match_start: "Recipe matching start | player=%player% | input=%items%"
+    match_check: "Check recipe %recipe_id% | match=%result%"
+    match_result: "Recipe match complete | result=%recipe_id%"
+    no_match: "No matching recipe | input=%items%"
   forge:
-    start: "Forge start | player={player} | recipe={recipe_id}"
-    quality_roll: "Quality roll | quality={quality} | multiplier={multiplier}"
-    success: "Forge success | output={output} | quality={quality}"
-    failed: "Forge failed | reason={reason}"
-    consume_material: "Consume material | material={material} | amount={amount}"
-    produce_item: "Produce item | item={item} | amount={amount}"
-    action_execute: "Execute forge action | phase={phase} | action={action}"
+    start: "Forge start | player=%player% | recipe=%recipe_id%"
+    quality_roll: "Quality roll | quality=%quality% | multiplier=%multiplier%"
+    success: "Forge success | output=%output% | quality=%quality%"
+    failed: "Forge failed | reason=%reason%"
+    consume_material: "Consume material | material=%material% | amount=%amount%"
+    produce_item: "Produce item | item=%item% | amount=%amount%"
+    action_execute: "Execute forge action | phase=%phase% | action=%action%"
   gui:
-    open: "Open GUI | player={player} | type={type}"
-    click: "GUI click | player={player} | slot={slot} | action={action}"
-    close: "Close GUI | player={player}"
+    open: "Open GUI | player=%player% | type=%type%"
+    click: "GUI click | player=%player% | slot=%slot% | action=%action%"
+    close: "Close GUI | player=%player%"

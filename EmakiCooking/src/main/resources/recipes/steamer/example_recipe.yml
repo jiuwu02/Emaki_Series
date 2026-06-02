@@ -39,7 +39,7 @@ permission: "emakicooking.recipe.steamed_cod"
 condition:
   condition_type: all_of
   conditions:
-    - "{player_level} >= 2"
+    - "%player_level% >= 2"
   pass_actions:
     - 'sendmessage text="<aqua>蒸制条件满足。</aqua>"'
   fail_actions:

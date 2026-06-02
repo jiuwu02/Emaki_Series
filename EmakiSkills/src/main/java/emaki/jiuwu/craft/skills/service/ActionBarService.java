@@ -137,14 +137,14 @@ public final class ActionBarService {
             }
         }
 
-        template = template.replace("{slot_display}", slotDisplay.toString());
+        template = template.replace("%slot_display%", slotDisplay.toString());
 
         PlayerCastTimingState timing = profile.timingState();
         long remaining = timing.forcedGlobalCastDelayUntil() - System.currentTimeMillis();
         String delayText = remaining > 0
                 ? String.format("%.1fs", remaining / 1000.0)
                 : "0s";
-        template = template.replace("{forced_delay}", delayText);
+        template = template.replace("%forced_delay%", delayText);
 
         return template;
     }

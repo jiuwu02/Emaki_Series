@@ -100,13 +100,13 @@ public final class AppConfig extends BaseAppConfig {
 
         public InlaySuccessConfig {
             defaultChance = Math.max(0D, Math.min(100D, defaultChance));
-            rateFormula = Texts.isBlank(rateFormula) ? "{default_chance}" : rateFormula;
+            rateFormula = Texts.isBlank(rateFormula) ? "%default_chance%" : rateFormula;
             failureAction = Texts.isBlank(failureAction) ? "return_gem" : Texts.lower(failureAction);
             levelChances = levelChances == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(levelChances));
         }
 
         public static InlaySuccessConfig defaults() {
-            return new InlaySuccessConfig(false, 100D, "{default_chance}", "return_gem", Map.of());
+            return new InlaySuccessConfig(false, 100D, "%default_chance%", "return_gem", Map.of());
         }
     }
 

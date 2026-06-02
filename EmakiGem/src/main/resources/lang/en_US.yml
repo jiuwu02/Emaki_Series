@@ -20,7 +20,7 @@ general:
   player_not_found: "<red>Target player not found.</red>"
   reloading: "<gray>Reloading configuration...</gray>"
   reload_success: "<green>Configuration reloaded.</green>"
-  reload_summary: "<gray>Loaded {gems} gems, {items} equipment items, {guis} GUI
+  reload_summary: "<gray>Loaded %gems% gems, %items% equipment items, %guis% GUI
     templates.</gray>"
 
 console:
@@ -31,42 +31,42 @@ console:
     generation.</gray>"
   bootstrap_complete: "<green>Default file check complete.</green>"
   default_file_missing: "<yellow>Missing built-in default resource, skipped:
-    <red>{path}</red></yellow>"
+    <red>%path%</red></yellow>"
   bootstrap_copy_failed: "<yellow>Failed to copy default resource:
-    <red>{path}</red> <gray>({error})</gray></yellow>"
+    <red>%path%</red> <gray>(%error%)</gray></yellow>"
   bootstrap_save_failed: "<yellow>Failed to save default resource:
-    <red>{path}</red> <gray>({error})</gray></yellow>"
-  directory_create_failed: "<yellow>Unable to create directory: <red>{path}</red></yellow>"
-  loader_config_load_error: "<red>Failed to load config: {path} ({error})</red>"
-  pdc_source_registered: "<gray>PDC attribute source registered: <aqua>{source}</aqua></gray>"
-  gems_loaded: "<gray>Loaded <yellow>{count}</yellow> gem(s)</gray>"
+    <red>%path%</red> <gray>(%error%)</gray></yellow>"
+  directory_create_failed: "<yellow>Unable to create directory: <red>%path%</red></yellow>"
+  loader_config_load_error: "<red>Failed to load config: %path% (%error%)</red>"
+  pdc_source_registered: "<gray>PDC attribute source registered: <aqua>%source%</aqua></gray>"
+  gems_loaded: "<gray>Loaded <yellow>%count%</yellow> gem(s)</gray>"
   papi_registered: "<gray>PlaceholderAPI expansion registered</gray>"
 
 loader:
-  lang_directory_create_failed: "<red>Unable to create language directory: {path}</red>"
-  bundled_language_load_failed: "<red>Failed to load bundled language: {error}</red>"
-  bundled_resource_missing: "<red>Bundled resource missing: {resource}, cannot write to {path}</red>"
-  directory_create_failed: "<red>Unable to create directory: {path}</red>"
-  invalid_blank_id: "<red>{type} file {file} is missing a valid ID.</red>"
-  duplicate_id: "<red>{type} file {file} has duplicate ID: {id}</red>"
-  load_failed: "<red>Failed to load {type} file {file}: {error}</red>"
-  invalid_config: "<red>{type} file {file} has invalid config, skipped loading.</red>"
-  gem_missing_item_source: "<red>Gem file {file} has missing or invalid
-    item_sources, loading rejected: {id}, value: {item_sources}</red>"
+  lang_directory_create_failed: "<red>Unable to create language directory: %path%</red>"
+  bundled_language_load_failed: "<red>Failed to load bundled language: %error%</red>"
+  bundled_resource_missing: "<red>Bundled resource missing: %resource%, cannot write to %path%</red>"
+  directory_create_failed: "<red>Unable to create directory: %path%</red>"
+  invalid_blank_id: "<red>%type% file %file% is missing a valid ID.</red>"
+  duplicate_id: "<red>%type% file %file% has duplicate ID: %id%</red>"
+  load_failed: "<red>Failed to load %type% file %file%: %error%</red>"
+  invalid_config: "<red>%type% file %file% has invalid config, skipped loading.</red>"
+  gem_missing_item_source: "<red>Gem file %file% has missing or invalid
+    item_sources, loading rejected: %id%, value: %item_sources%</red>"
 
 gem:
   error:
-    invalid_equipment: "<red>{player}'s item is not an inlayable equipment.</red>"
+    invalid_equipment: "<red>%player%'s item is not an inlayable equipment.</red>"
     insufficient_cost: "<red>Insufficient currency or materials.</red>"
-    insufficient_currency: "<red>Insufficient currency: missing <yellow>{display_name}</yellow>, required <gold>{required}</gold>, available <gray>{available}</gray>.</red>"
-    insufficient_material: "<red>Insufficient material: missing <yellow>{display_name}</yellow>, required <gold>{required}</gold>, available <gray>{available}</gray>.</red>"
+    insufficient_currency: "<red>Insufficient currency: missing <yellow>%display_name%</yellow>, required <gold>%required%</gold>, available <gray>%available%</gray>.</red>"
+    insufficient_material: "<red>Insufficient material: missing <yellow>%display_name%</yellow>, required <gold>%required%</gold>, available <gray>%available%</gray>.</red>"
     player_required: "<red>This operation must be performed by a player.</red>"
 
 command:
   help:
     header: "<gold>EmakiGem Help</gold>"
-    line: "<gray>/emakigem <yellow>{cmd}</yellow> <dark_gray>-</dark_gray>
-      {desc}</gray>"
+    line: "<gray>/emakigem <yellow>%cmd%</yellow> <dark_gray>-</dark_gray>
+      %desc%</gray>"
     footer: "<dark_gray>For inlay/extraction, socket opening and upgrade
       interfaces, use <gray>/emakigem gui [inlay|open|upgrade]</gray> to
       open.</dark_gray>"
@@ -79,45 +79,45 @@ command:
       debug: "Manage debug mode"
 
   inspect:
-    header: "<gold>Gem Status Check - {player}</gold>"
-    line: "<gray>{key}: <yellow>{value}</yellow></gray>"
+    header: "<gold>Gem Status Check - %player%</gold>"
+    line: "<gray>%key%: <yellow>%value%</yellow></gray>"
 
   open:
-    opener_not_found: "<red>No available socket opener config found: {opener}</red>"
-    hold_opener: "<red>Please provide a valid <yellow>{opener}</yellow> socket
+    opener_not_found: "<red>No available socket opener config found: %opener%</red>"
+    hold_opener: "<red>Please provide a valid <yellow>%opener%</yellow> socket
       opener.</red>"
     no_available_slot: "<red>No more slots available to open.</red>"
     slot_already_opened: "<yellow>This socket is already opened.</yellow>"
     slot_unavailable: "<red>The specified slot cannot be opened at this time.</red>"
     apply_failed: "<red>Socket opening failed, unable to write back equipment state.</red>"
-    success: "<green>Opened slot <gold>#{slot}</gold> for
-      <aqua>{player}</aqua>.</green>"
+    success: "<green>Opened slot <gold>#%slot%</gold> for
+      <aqua>%player%</aqua>.</green>"
 
   inlay:
-    slot_not_found: "<red>Slot #{slot} not found.</red>"
-    slot_not_opened: "<red>Slot #{slot} has not been opened yet.</red>"
-    slot_occupied: "<red>Slot #{slot} already has a gem inlaid.</red>"
+    slot_not_found: "<red>Slot #%slot% not found.</red>"
+    slot_not_opened: "<red>Slot #%slot% has not been opened yet.</red>"
+    slot_occupied: "<red>Slot #%slot% already has a gem inlaid.</red>"
     hold_gem: "<red>Please provide a valid gem item.</red>"
     gem_type_blocked: "<red>This equipment does not allow gems of type
-      <yellow>{type}</yellow>.</red>"
-    socket_incompatible: "<red>Gem is incompatible with slot #{slot} of type
-      <yellow>{type}</yellow>.</red>"
+      <yellow>%type%</yellow>.</red>"
+    socket_incompatible: "<red>Gem is incompatible with slot #%slot% of type
+      <yellow>%type%</yellow>.</red>"
     max_same_type:
       "<red>This equipment has reached the limit for gems of the same
-      type: {type}</red>"
+      type: %type%</red>"
     max_same_id:
       "<red>This equipment has reached the limit for gems with the same
-      ID: {gem}</red>"
+      ID: %gem%</red>"
     chance_failed: "<red>Inlay failed, gem was not applied to equipment.</red>"
     apply_failed: "<red>Inlay failed, unable to write back equipment state.</red>"
-    success: "<green>Inlaid <yellow>{gem}</yellow> into slot
-      <gold>#{slot}</gold>.</green>"
+    success: "<green>Inlaid <yellow>%gem%</yellow> into slot
+      <gold>#%slot%</gold>.</green>"
 
   extract:
-    slot_empty: "<red>No gem to extract in slot #{slot}.</red>"
+    slot_empty: "<red>No gem to extract in slot #%slot%.</red>"
     apply_failed: "<red>Extraction failed, unable to write back equipment state.</red>"
-    success: "<green>Extracted <yellow>{gem}</yellow> from slot
-      <gold>#{slot}</gold>.</green>"
+    success: "<green>Extracted <yellow>%gem%</yellow> from slot
+      <gold>#%slot%</gold>.</green>"
 
   clearstate:
     no_layer: "<yellow>The main hand item currently has no removable gem layer.</yellow>"
@@ -128,7 +128,7 @@ command:
 
   upgrade:
     hold_gem: "<red>Please place the gem item to upgrade first.</red>"
-    slot_empty: "<red>No upgradeable gem in the specified slot #{slot}.</red>"
+    slot_empty: "<red>No upgradeable gem in the specified slot #%slot%.</red>"
     direct_disabled:
       "<red>Direct in-equipment upgrade is not enabled, please use
       the standalone upgrade interface.</red>"
@@ -136,7 +136,7 @@ command:
     failed: "<red>Upgrade failed, materials consumed but gem was not improved.</red>"
     apply_failed: "<red>Upgrade failed, unable to generate new gem item.</red>"
     success: "<green>Gem upgraded successfully, current level
-      <gold>{target_level}</gold>.</green>"
+      <gold>%target_level%</gold>.</green>"
 
 gui:
   open_failed: "<red>Unable to open gem main interface, please check if the GUI
@@ -168,7 +168,7 @@ gui:
   upgrade:
     invalid_gem: "<red>The placed item is not a valid gem item.</red>"
     invalid_material: "<red>This material slot only accepts items matching
-      <yellow>{material}</yellow>.</red>"
+      <yellow>%material%</yellow>.</red>"
 
 gui_text:
   common:
@@ -180,16 +180,16 @@ gui_text:
     click_switch: "<dark_gray>Click to switch to this mode</dark_gray>"
     click_take_back: "<gray>Supports placing from cursor and clicking to retrieve</gray>"
     selected: "<green>Added to pending operation</green>"
-    socket_type: "<gray>Socket type: <yellow>{type}</yellow></gray>"
-    slot_title: "<white>{name} <gray>(#{slot} {state})</gray></white>"
+    socket_type: "<gray>Socket type: <yellow>%type%</yellow></gray>"
+    slot_title: "<white>%name% <gray>(#%slot% %state%)</gray></white>"
   gem:
     target_empty_name: "<aqua>Place Equipment</aqua>"
     target_empty_lore_1: "<gray>Place equipment that supports gem inlay here</gray>"
     info_name: "<gold>Instructions</gold>"
-    mode_line: "<gray>Current mode: <yellow>{mode}</yellow></gray>"
+    mode_line: "<gray>Current mode: <yellow>%mode%</yellow></gray>"
     no_target_line_1: "<red>No valid equipment placed</red>"
     no_target_line_2: "<gray>Please place equipment in the left slot first</gray>"
-    equipment_definition: "<gray>Equipment definition: <gold>{item}</gold></gray>"
+    equipment_definition: "<gray>Equipment definition: <gold>%item%</gold></gray>"
     inlay_help: "<gray>Hold a gem and click an opened empty slot to preview inlay</gray>"
     extract_help: "<gray>Click an inlaid gem slot to preview extraction</gray>"
     default_help: "<gray>This interface uses equipment gem operation mode</gray>"
@@ -197,11 +197,11 @@ gui_text:
     summary_name: "<gold>Gem Socket Summary</gold>"
     summary_empty_1: "<gray>Current equipment gem socket statistics will be shown here</gray>"
     summary_empty_2: "<gray>Place equipment to view total sockets and inlaid count</gray>"
-    total_slots: "<gray>Total sockets: <yellow>{total}</yellow></gray>"
-    opened_slots: "<gray>Opened sockets: <green>{opened}</green></gray>"
-    embedded_slots: "<gray>Inlaid gems: <aqua>{embedded}</aqua></gray>"
-    free_opened_slots: "<gray>Free opened sockets: <gold>{free}</gold></gray>"
-    locked_slots: "<gray>Locked sockets: <red>{locked}</red></gray>"
+    total_slots: "<gray>Total sockets: <yellow>%total%</yellow></gray>"
+    opened_slots: "<gray>Opened sockets: <green>%opened%</green></gray>"
+    embedded_slots: "<gray>Inlaid gems: <aqua>%embedded%</aqua></gray>"
+    free_opened_slots: "<gray>Free opened sockets: <gold>%free%</gold></gray>"
+    locked_slots: "<gray>Locked sockets: <red>%locked%</red></gray>"
     socket_name: "<white>Gem Socket</white>"
     socket_empty_lore: "<gray>After equipment is placed, sockets are shown by actual count</gray>"
     socket_locked: "Locked"
@@ -214,18 +214,18 @@ gui_text:
     socket_extract_empty: "<dark_gray>Empty slot cannot be extracted</dark_gray>"
     socket_extract_hint: "<gray>Click to preview extraction</gray>"
     socket_occupied_hint: "<dark_gray>This slot already has a gem</dark_gray>"
-    slot_position: "<gray>Socket position: <gold>#{slot}</gold></gray>"
-    gem_type: "<gray>Gem type: <yellow>{type}</yellow></gray>"
-    gem_level: "<gray>Gem level: <yellow>Lv.{level}</yellow></gray>"
+    slot_position: "<gray>Socket position: <gold>#%slot%</gold></gray>"
+    gem_type: "<gray>Gem type: <yellow>%type%</yellow></gray>"
+    gem_level: "<gray>Gem level: <yellow>Lv.%level%</yellow></gray>"
     pending_inlay: "<green>Pending inlay</green>"
     preview_name: "<gold>Operation Preview</gold>"
     preview_empty_1: "<gray>Pending operation preview will be shown here</gray>"
     preview_empty_2: "<gray>Click a target socket in the current mode to view details</gray>"
-    pending_action: "<gray>Pending: <yellow>{action}</yellow></gray>"
-    target_slot: "<gray>Target socket: <gold>#{slot}</gold></gray>"
-    preview_gem: "<gray>Gem: <yellow>{gem}</yellow></gray>"
-    preview_level: "<gray>Level: <gold>Lv.{level}</gold></gray>"
-    preview_extract_gem: "<gray>Extract gem: <yellow>{gem}</yellow></gray>"
+    pending_action: "<gray>Pending: <yellow>%action%</yellow></gray>"
+    target_slot: "<gray>Target socket: <gold>#%slot%</gold></gray>"
+    preview_gem: "<gray>Gem: <yellow>%gem%</yellow></gray>"
+    preview_level: "<gray>Level: <gold>Lv.%level%</gold></gray>"
+    preview_extract_gem: "<gray>Extract gem: <yellow>%gem%</yellow></gray>"
     preview_confirm_hint: "<green>Click confirm to execute</green>"
     confirm_name_inactive: "<gray>Confirm Operation</gray>"
     confirm_name_active: "<green>Confirm Operation</green>"
@@ -247,9 +247,9 @@ gui_text:
     info_name: "<gold>Socket Info</gold>"
     no_target_line_1: "<red>No valid equipment placed</red>"
     no_target_line_2: "<gray>Please place equipment that supports socket opening first</gray>"
-    equipment_definition: "<gray>Equipment definition: <gold>{item}</gold></gray>"
-    opened_count: "<gray>Opened: <green>{opened}</green>/<yellow>{total}</yellow></gray>"
-    locked_count: "<gray>Locked: <yellow>{locked}</yellow></gray>"
+    equipment_definition: "<gray>Equipment definition: <gold>%item%</gold></gray>"
+    opened_count: "<gray>Opened: <green>%opened%</green>/<yellow>%total%</yellow></gray>"
+    locked_count: "<gray>Locked: <yellow>%locked%</yellow></gray>"
     info_hint: "<gray>Place a socket opener first, then click a locked slot below</gray>"
     opener_empty_name: "<light_purple>Place Socket Opener</light_purple>"
     opener_empty_lore_1: "<gray>Place a socket opener here</gray>"
@@ -266,9 +266,9 @@ gui_text:
     selected: "<green>This slot is selected</green>"
     preview_name: "<gold>Opening Preview</gold>"
     preview_empty: "<gray>Equipment and target slot preview will be shown here</gray>"
-    preview_equipment: "<gray>Equipment: <yellow>{item}</yellow></gray>"
-    preview_opener: "<gray>Opener: <yellow>{opener}</yellow></gray>"
-    preview_slot: "<gray>Target slot: <yellow>{slot}</yellow></gray>"
+    preview_equipment: "<gray>Equipment: <yellow>%item%</yellow></gray>"
+    preview_opener: "<gray>Opener: <yellow>%opener%</yellow></gray>"
+    preview_slot: "<gray>Target slot: <yellow>%slot%</yellow></gray>"
     preview_hint: "<gray>Confirming will open the selected locked slot once</gray>"
     confirm_name_inactive: "<gray>Confirm Opening</gray>"
     confirm_name_active: "<green>Confirm Opening</green>"
@@ -282,29 +282,29 @@ gui_text:
     target_empty_lore_1: "<gray>Place an uninlaid gem item here</gray>"
     level_info_name: "<gold>Level Info</gold>"
     level_info_empty: "<gray>Please place an upgradeable gem first</gray>"
-    gem_line: "<gray>Gem: <yellow>{gem}</yellow></gray>"
-    current_level: "<gray>Current level: <yellow>{level}</yellow></gray>"
-    target_level: "<gray>Target level: <gold>{level}</gold></gray>"
-    max_level: "<gray>Max level: <aqua>{level}</aqua></gray>"
+    gem_line: "<gray>Gem: <yellow>%gem%</yellow></gray>"
+    current_level: "<gray>Current level: <yellow>%level%</yellow></gray>"
+    target_level: "<gray>Target level: <gold>%level%</gold></gray>"
+    max_level: "<gray>Max level: <aqua>%level%</aqua></gray>"
     material_slot_name: "<dark_gray>Material Slot</dark_gray>"
     material_slot_empty: "<dark_gray>No material preview</dark_gray>"
-    material_line: "<gray>Material: <yellow>{material}</yellow></gray>"
-    material_amount: "<gray>Required amount: <gold>x{amount}</gold></gray>"
+    material_line: "<gray>Material: <yellow>%material%</yellow></gray>"
+    material_amount: "<gray>Required amount: <gold>x%amount%</gold></gray>"
     material_place: "<gray>Please place matching item source material</gray>"
     material_scope: "<dark_gray>Only materials placed in this GUI are consumed</dark_gray>"
     material_name: "<aqua>Upgrade Material</aqua>"
     preview_name: "<gold>Upgrade Preview</gold>"
     preview_empty_1: "<gray>Upgrade preview will be shown here</gray>"
     preview_empty_2: "<gray>Place a gem to view materials and result</gray>"
-    result_name: "<gray>Result item name: <yellow>{gem}</yellow></gray>"
+    result_name: "<gray>Result item name: <yellow>%gem%</yellow></gray>"
     economy_cost: "<gray>Economy cost:</gray>"
-    economy_line: "<gold> - {provider}: {amount}</gold>"
+    economy_line: "<gold> - %provider%: %amount%</gold>"
     material_required_hint: "<gray>All upgrade materials must be placed in material slots</gray>"
     confirm_update_hint: "<green>Confirming will directly update this gem item</green>"
     success_rate_name: "<gold>Success Rate</gold>"
     success_rate_empty: "<gray>Success rate will be shown after placing a gem</gray>"
-    success_rate_line: "<gray>Base success rate: <green>{rate}%</green></gray>"
-    failure_penalty: "<gray>Failure penalty: <yellow>{penalty}</yellow></gray>"
+    success_rate_line: "<gray>Base success rate: <green>%rate%%</green></gray>"
+    failure_penalty: "<gray>Failure penalty: <yellow>%penalty%</yellow></gray>"
     confirm_disabled_name: "<red>Cannot Upgrade</red>"
     confirm_disabled_lore: "<gray>Please satisfy upgrade requirements first</gray>"
     confirm_name: "<green>Confirm Upgrade</green>"
@@ -316,29 +316,29 @@ debug:
     status_header: "<gold>========== EmakiGem Debug Status ==========</gold>"
     status_enabled: "<green>Debug enabled</green>"
     status_disabled: "<gray>Debug disabled</gray>"
-    tracked_players: "<gray>Tracked players: <yellow>{players}</yellow></gray>"
-    tracked_modules: "<gray>Tracked modules: <yellow>{modules}</yellow></gray>"
-    player_added: "<green>Now tracking player: <aqua>{player}</aqua></green>"
-    player_removed: "<yellow>Stopped tracking player: <aqua>{player}</aqua></yellow>"
-    module_enabled: "<green>Module tracking enabled: <yellow>{module}</yellow></green>"
-    module_disabled: "<yellow>Module tracking disabled: <gray>{module}</gray></yellow>"
+    tracked_players: "<gray>Tracked players: <yellow>%players%</yellow></gray>"
+    tracked_modules: "<gray>Tracked modules: <yellow>%modules%</yellow></gray>"
+    player_added: "<green>Now tracking player: <aqua>%player%</aqua></green>"
+    player_removed: "<yellow>Stopped tracking player: <aqua>%player%</aqua></yellow>"
+    module_enabled: "<green>Module tracking enabled: <yellow>%module%</yellow></green>"
+    module_disabled: "<yellow>Module tracking disabled: <gray>%module%</gray></yellow>"
     all_enabled: "<green>Global debug enabled (all players + all modules)</green>"
     all_disabled: "<yellow>All debug tracking disabled</yellow>"
-    player_not_found: "<red>Online player not found: {player}</red>"
-    available_modules: "<gray>Available modules: <yellow>{modules}</yellow></gray>"
+    player_not_found: "<red>Online player not found: %player%</red>"
+    available_modules: "<gray>Available modules: <yellow>%modules%</yellow></gray>"
   inlay:
-    start: "Inlay start | Player={player} | Gem={gem} | Slot={slot}"
-    check: "Inlay check | Condition={condition} | Result={result}"
-    success: "Inlay success | Gem={gem} | Slot={slot}"
-    failed: "Inlay failed | Reason={reason}"
+    start: "Inlay start | Player=%player% | Gem=%gem% | Slot=%slot%"
+    check: "Inlay check | Condition=%condition% | Result=%result%"
+    success: "Inlay success | Gem=%gem% | Slot=%slot%"
+    failed: "Inlay failed | Reason=%reason%"
   socket:
-    open_start: "Socket open start | Player={player} | Current slots={current}"
-    open_success: "Socket open success | New count={count}"
-    open_failed: "Socket open failed | Reason={reason}"
+    open_start: "Socket open start | Player=%player% | Current slots=%current%"
+    open_success: "Socket open success | New count=%count%"
+    open_failed: "Socket open failed | Reason=%reason%"
   state:
-    read: "Read gem state | Item={item} | Opened={slots} | Inlaid={gems}"
-    write: "Write gem state | Item={item} | Change={change}"
+    read: "Read gem state | Item=%item% | Opened=%slots% | Inlaid=%gems%"
+    write: "Write gem state | Item=%item% | Change=%change%"
   gui:
-    open: "GUI open | Player={player} | Mode={mode}"
-    click: "GUI click | Player={player} | Slot={slot} | Action={action}"
-    close: "GUI close | Player={player}"
+    open: "GUI open | Player=%player% | Mode=%mode%"
+    click: "GUI click | Player=%player% | Slot=%slot% | Action=%action%"
+    close: "GUI close | Player=%player%"

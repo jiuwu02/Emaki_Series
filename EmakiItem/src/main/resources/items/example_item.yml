@@ -47,8 +47,8 @@ equip_slot: "main_hand"
 lore:
   - "<gray>一把用于演示的钻石剑</gray>"
   - ""
-  - "<yellow>物理攻击: <white>+{physical_attack}</white></yellow>"
-  - "<yellow>暴击率: <white>+{physical_crit_rate}%</white></yellow>"
+  - "<yellow>物理攻击: <white>+%physical_attack%</white></yellow>"
+  - "<yellow>暴击率: <white>+%physical_crit_rate%%</white></yellow>"
   - ""
   - "<dark_gray>品质: 示例</dark_gray>"
 
@@ -128,7 +128,7 @@ components:
       slot: "hand"
       name: "emakiitem:example_item/attack_speed"
   # 原始物品组件字符串（高级用法，直接传递给 Bukkit）
-  # raw: "[minecraft:custom_data={example:1}]"
+  # raw: "[minecraft:custom_data=%example:1%]"
 
 # ============================================================
 # 套装归属
@@ -144,7 +144,7 @@ set:
 # 装备条件
 # ============================================================
 # 不满足条件时，物品的 ea_attributes 不生效。
-# entries: 条件表达式列表（支持 {player_level}、{player_class} 等变量）
+# entries: 条件表达式列表（支持 %player_level%、%player_class% 等变量）
 # condition_type: 条件组合方式（all_of = 全部满足 / any_of = 任一满足）
 # condition_required_count: 需要满足的最少条件数
 # invalid_as_failure: 表达式解析失败时是否视为不满足
@@ -153,8 +153,8 @@ set:
 # fail_actions: 条件不满足时执行的动作
 conditions:
   entries:
-    - "{player_level} >= 10"
-    - "{player_class} == 'warrior'"
+    - "%player_level% >= 10"
+    - "%player_class% == 'warrior'"
   condition_type: "all_of"
   condition_required_count: 2
   invalid_as_failure: true
@@ -187,7 +187,7 @@ repair:
       - provider: "vault"
         currency_id: ""
         base_cost: 100
-        cost_formula: "{base_cost} * {damage_percent}"
+        cost_formula: "%base_cost% * %damage_percent%"
         display_name: "<gold>金币</gold>"
   disabled_display:
     name_prefix: "<dark_gray>[已损坏] </dark_gray>"
@@ -209,6 +209,6 @@ repair:
 actions:
   give:
     - "playsound sound=entity.player.levelup volume=1.0 pitch=1.2"
-    - 'sendmessage text="<green>你获得了 <gold>{item_name}</gold>！</green>"'
+    - 'sendmessage text="<green>你获得了 <gold>%item_name%</gold>！</green>"'
   interact:
     - 'sendactionbar text="<gray>你挥舞了示例之刃</gray>"'

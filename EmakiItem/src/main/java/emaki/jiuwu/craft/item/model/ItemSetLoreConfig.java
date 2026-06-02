@@ -10,11 +10,11 @@ public record ItemSetLoreConfig(String header,
         String separator) {
 
     public ItemSetLoreConfig {
-        header = Texts.isBlank(header) ? "<dark_gray>—— {set_name} <gray>({active}/{total})</gray> ——</dark_gray>" : header;
-        equippedFormat = Texts.isBlank(equippedFormat) ? "<green>✔ {piece}</green>" : equippedFormat;
-        missingFormat = Texts.isBlank(missingFormat) ? "<gray>✘ {piece}</gray>" : missingFormat;
-        activeThresholdFormat = Texts.isBlank(activeThresholdFormat) ? "<green>{line}</green>" : activeThresholdFormat;
-        inactiveThresholdFormat = Texts.isBlank(inactiveThresholdFormat) ? "<dark_gray>{line}</dark_gray>" : inactiveThresholdFormat;
+        header = Texts.isBlank(header) ? "<dark_gray>—— %set_name% <gray>(%active%/%total%)</gray> ——</dark_gray>" : header;
+        equippedFormat = Texts.isBlank(equippedFormat) ? "<green>✔ %piece%</green>" : equippedFormat;
+        missingFormat = Texts.isBlank(missingFormat) ? "<gray>✘ %piece%</gray>" : missingFormat;
+        activeThresholdFormat = Texts.isBlank(activeThresholdFormat) ? "<green>%line%</green>" : activeThresholdFormat;
+        inactiveThresholdFormat = Texts.isBlank(inactiveThresholdFormat) ? "<dark_gray>%line%</dark_gray>" : inactiveThresholdFormat;
         separator = separator == null ? "" : separator;
     }
 

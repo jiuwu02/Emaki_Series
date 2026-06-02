@@ -60,7 +60,7 @@ permission: "emakicooking.recipe.apple_juice"
 condition:
   condition_type: all_of
   conditions:
-    - "{player_level} >= 1"
+    - "%player_level% >= 1"
   pass_actions:
     - 'sendmessage text="<aqua>榨汁条件满足。</aqua>"'
   fail_actions:

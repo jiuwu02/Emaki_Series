@@ -12,10 +12,10 @@
 id: default_flat
 
 # 显示格式模板
-# {name}: 属性显示名称
-# {sign}: 正负号（+ 或 -）
-# {value}: 属性数值
-format: "{name} {sign}{value}"
+# %name%: 属性显示名称
+# %sign%: 正负号（+ 或 -）
+# %value%: 属性数值
+format: "%name% %sign%%value%"
 
 # 数值精度（小数位数）
 precision: 2
@@ -24,9 +24,9 @@ precision: 2
 read_priority: 50
 
 # 读取正则模式
-# {Key}: 匹配属性名称
-# {Value}: 匹配属性数值；同时支持区间写法 a-b / a~b（如 "1-5"）
+# %Key%: 匹配属性名称
+# %Value%: 匹配属性数值；同时支持区间写法 a-b / a~b（如 "1-5"）
 #          区间会被解析为「下界 + 随机幅度」，战斗时每次命中在 [a, b] 内取随机值。
 #          单值写法（如 "5"）行为不变。
 read_patterns:
-  - "{Key}.*?: ?{Value}$"
+  - "%Key%.*?: ?%Value%$"

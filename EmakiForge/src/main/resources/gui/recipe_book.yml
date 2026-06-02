@@ -84,7 +84,7 @@ slots:
     item: "ARROW"
     display_name: "<gray>上一页</gray>"
     lore:
-      - "<gray>当前页码: <yellow>{page}/{pages}</yellow>"
+      - "<gray>当前页码: <yellow>%page%/%pages%</yellow>"
     sounds:
       click:
         sound: "ui.button.click"
@@ -112,7 +112,7 @@ slots:
     item: "ARROW"
     display_name: "<gray>下一页</gray>"
     lore:
-      - "<gray>当前页码: <yellow>{page}/{pages}</yellow>"
+      - "<gray>当前页码: <yellow>%page%/%pages%</yellow>"
     sounds:
       click:
         sound: "ui.button.click"
@@ -121,12 +121,12 @@ slots:
 
 virtual_items:
   recipe_entry:
-    display_name: "{recipe_name}"
+    display_name: "%recipe_name%"
     lore:
-      - "{unlock_state}"
-      - "<gray>配方ID: {recipe_id}</gray>"
-      - "{crafted_state}"
-      - "{click_hint}"
+      - "%unlock_state%"
+      - "<gray>配方ID: %recipe_id%</gray>"
+      - "%crafted_state%"
+      - "%click_hint%"
 
 texts:
   recipe_entry:

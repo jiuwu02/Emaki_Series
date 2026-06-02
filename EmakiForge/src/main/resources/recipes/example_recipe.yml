@@ -70,8 +70,8 @@ materials:
           - action: "insert_below"
             anchor: "锻造属性:"
             content:
-              - "<gray>物理伤害: <red>+{physical_damage}"
-              - "<gray>生命值: <green>+{max_health}"
+              - "<gray>物理伤害: <red>+%physical_damage%"
+              - "<gray>生命值: <green>+%max_health%"
 
   # ---- 基础材料：烈焰粉（提供火焰属性 + 技能 + 名称修改）----
   - item_sources:
@@ -102,8 +102,8 @@ materials:
           - action: "insert_below"
             anchor: "锻造属性:"
             content:
-              - "<red>火焰伤害: +{fire_damage}"
-              - "<yellow>暴击率: +{critical_chance}%"
+              - "<red>火焰伤害: +%fire_damage%"
+              - "<yellow>暴击率: +%critical_chance%%"
 
   # ---- 可选材料：火焰弹（额外火焰属性）----
   - item_sources:
@@ -124,8 +124,8 @@ materials:
         lore_actions:
           - action: "append"
             content:
-              - "<red>火焰伤害: +{fire_damage}"
-              - "<yellow>暴击率: +{critical_chance}%"
+              - "<red>火焰伤害: +%fire_damage%"
+              - "<yellow>暴击率: +%critical_chance%%"
 
   # ---- 可选材料：羽毛（移动速度）----
   - item_sources:
@@ -209,10 +209,10 @@ result:
         content:
           - "<gray>锻造属性:"
           - ""
-          - "<dark_gray>由 {player} 锻造"
+          - "<dark_gray>由 %player% 锻造"
           - "<dark_gray>EmakiForge 示例配方"
   actions:
-    - 'sendmessage text="<green>锻造成功! 获得了 {forge_result_item_name}</green>"'
+    - 'sendmessage text="<green>锻造成功! 获得了 %forge_result_item_name%</green>"'
     - "playsound sound=minecraft:block.anvil.use volume=1 pitch=1"
 
 # ============================================================
@@ -226,7 +226,7 @@ actions:
     - 'sendactionbar text="<gray>烈焰之力正在熔铸...</gray>"'
   success: []
   failure:
-    - 'sendmessage text="<red>锻造前置操作失败: {forge_failure_reason}</red>"'
+    - 'sendmessage text="<red>锻造前置操作失败: %forge_failure_reason%</red>"'
 
 # ============================================================
 # 锻造成功率（可选）

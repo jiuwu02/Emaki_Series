@@ -16,48 +16,48 @@ console:
   plugin_starting: "<gray>正在启动...</gray>"
   plugin_started: "<green>启动完成</green>"
   plugin_stopped: "<yellow>已关闭</yellow>"
-  config_load_failed: "<red>配置读取失败: {error}</red>"
-  reload_stage_failed: "<yellow>重载阶段 {stage} 失败: <red>{error}</red></yellow>"
-  vanilla_attribute_resolve_failed: "<yellow>无法解析原版属性映射: <red>{attribute}</red> -> <red>{target}</red></yellow>"
+  config_load_failed: "<red>配置读取失败: %error%</red>"
+  reload_stage_failed: "<yellow>重载阶段 %stage% 失败: <red>%error%</red></yellow>"
+  vanilla_attribute_resolve_failed: "<yellow>无法解析原版属性映射: <red>%attribute%</red> -> <red>%target%</red></yellow>"
   attribute_key_contains_conflict: "<yellow>[属性注册] 检测到词条关键字包含冲突:
-    <aqua>{lower_display_name}</aqua> (<white>{lower_id}</white>, 优先级
-    {lower_priority}) 的关键字 <white>{lower_key}</white> 包含了
-    <aqua>{higher_display_name}</aqua> (<white>{higher_id}</white>, 优先级
-    {higher_priority}) 的关键字
-    <white>{higher_key}</white>。这会因为优先级较低导致读取失效，请提高优先级或修改
+    <aqua>%lower_display_name%</aqua> (<white>%lower_id%</white>, 优先级
+    %lower_priority%) 的关键字 <white>%lower_key%</white> 包含了
+    <aqua>%higher_display_name%</aqua> (<white>%higher_id%</white>, 优先级
+    %higher_priority%) 的关键字
+    <white>%higher_key%</white>。这会因为优先级较低导致读取失效，请提高优先级或修改
     display_name。</yellow>"
-  mmoitems_bridge_unavailable: "<yellow>MMOItems 属性映射桥初始化失败: <red>{error}</red></yellow>"
+  mmoitems_bridge_unavailable: "<yellow>MMOItems 属性映射桥初始化失败: <red>%error%</red></yellow>"
   mmoitems_stat_resolve_failed: "<yellow>MMOItems 属性映射无法解析统计项: 属性
-    <aqua>{attribute}</aqua> -> <red>{stat}</red></yellow>"
+    <aqua>%attribute%</aqua> -> <red>%stat%</red></yellow>"
   mmoitems_stat_read_failed: "<yellow>MMOItems 属性映射读取失败: 属性
-    <aqua>{attribute}</aqua> -> <red>{stat}</red> (<red>{error}</red>)</yellow>"
+    <aqua>%attribute%</aqua> -> <red>%stat%</red> (<red>%error%</red>)</yellow>"
   attribute_registry_empty: "<yellow>未加载到任何属性</yellow>"
-  attribute_registry_summary: "<gray>已加载 <yellow>{count}</yellow> 个属性</gray>"
+  attribute_registry_summary: "<gray>已加载 <yellow>%count%</yellow> 个属性</gray>"
   attribute_registry_entry: "<gray>[属性注册]</gray>
-    <aqua>{display_name}</aqua>
-    <dark_gray>(</dark_gray><white>{id}</white><dark_gray>)</dark_gray>
-    <dark_gray>|</dark_gray> <gray>默认值</gray> <yellow>{default_value}</yellow>
+    <aqua>%display_name%</aqua>
+    <dark_gray>(</dark_gray><white>%id%</white><dark_gray>)</dark_gray>
+    <dark_gray>|</dark_gray> <gray>默认值</gray> <yellow>%default_value%</yellow>
     <dark_gray>|</dark_gray> <gray>战力系数</gray>
-    <yellow>{attribute_power}</yellow>"
+    <yellow>%attribute_power%</yellow>"
   papi_registered: "<gray>PlaceholderAPI 扩展已注册</gray>"
 
 loader:
-  lang_directory_create_failed: "<red>无法创建语言目录: {path}</red>"
-  bundled_language_load_failed: "<red>读取内置语言失败: {error}</red>"
-  bundled_resource_missing: "<red>内置资源缺失: {resource}，无法写入 {path}</red>"
-  bundled_resource_sync_failed: "<red>同步内置资源失败: {path} ({error})</red>"
-  bundled_resource_write_failed: "<red>写入内置资源失败: {path} ({error})</red>"
-  directory_create_failed: "<red>无法创建{type}目录: {path}</red>"
-  schema_missing_id: "<red>{type}文件 {file} 缺少 ID 字段。</red>"
-  schema_missing_section: "<red>{type}文件 {file} 缺少必要的 {field} 节点。</red>"
-  schema_invalid_section: "<red>{type}文件 {file} 的 {field} 结构无效。</red>"
-  schema_invalid_enum: "<red>{type}文件 {file} 的 {field} 枚举值无效。</red>"
-  schema_invalid_number: "<red>{type}文件 {file} 的 {field} 不是有效数字。</red>"
-  schema_unsupported_field: "<red>{type}文件 {file} 仍包含当前版本不支持的 {field} 字段。</red>"
-  invalid_blank_id: "<red>{type}文件 {file} 的 ID 为空。</red>"
-  duplicate_id: "<red>{type}文件 {file} 的 ID 重复: {id}。</red>"
-  invalid_lore_pattern: "<red>{attribute} 的词条正则无效: {pattern} ({error})</red>"
-  load_failed: "<red>读取{type}文件 {file} 失败: {error}</red>"
+  lang_directory_create_failed: "<red>无法创建语言目录: %path%</red>"
+  bundled_language_load_failed: "<red>读取内置语言失败: %error%</red>"
+  bundled_resource_missing: "<red>内置资源缺失: %resource%，无法写入 %path%</red>"
+  bundled_resource_sync_failed: "<red>同步内置资源失败: %path% (%error%)</red>"
+  bundled_resource_write_failed: "<red>写入内置资源失败: %path% (%error%)</red>"
+  directory_create_failed: "<red>无法创建%type%目录: %path%</red>"
+  schema_missing_id: "<red>%type%文件 %file% 缺少 ID 字段。</red>"
+  schema_missing_section: "<red>%type%文件 %file% 缺少必要的 %field% 节点。</red>"
+  schema_invalid_section: "<red>%type%文件 %file% 的 %field% 结构无效。</red>"
+  schema_invalid_enum: "<red>%type%文件 %file% 的 %field% 枚举值无效。</red>"
+  schema_invalid_number: "<red>%type%文件 %file% 的 %field% 不是有效数字。</red>"
+  schema_unsupported_field: "<red>%type%文件 %file% 仍包含当前版本不支持的 %field% 字段。</red>"
+  invalid_blank_id: "<red>%type%文件 %file% 的 ID 为空。</red>"
+  duplicate_id: "<red>%type%文件 %file% 的 ID 重复: %id%。</red>"
+  invalid_lore_pattern: "<red>%attribute% 的词条正则无效: %pattern% (%error%)</red>"
+  load_failed: "<red>读取%type%文件 %file% 失败: %error%</red>"
 
 label:
   attribute: "属性"
@@ -110,127 +110,127 @@ damage:
     custom: "自定义"
 
 combat_debug:
-  projectile_snapshot_write: "投射物快照已写入: projectile={projectile},
-    shooter={shooter}, damageType={damage_type}, signature={signature},
-    snapshot={snapshot}"
-  projectile_snapshot_missing_apply: "applyProjectileDamage 读取不到投射物快照，已中止结算: projectile={projectile}"
+  projectile_snapshot_write: "投射物快照已写入: projectile=%projectile%,
+    shooter=%shooter%, damageType=%damage_type%, signature=%signature%,
+    snapshot=%snapshot%"
+  projectile_snapshot_missing_apply: "applyProjectileDamage 读取不到投射物快照，已中止结算: projectile=%projectile%"
   resolve_skipped: "目标无效或已死亡，EA 伤害解析已跳过。"
-  resolve_begin_sync: "开始解析 EA 伤害: {context} |
-    attackerSnapshot={attacker_snapshot} | targetSnapshot={target_snapshot}"
-  resolve_begin_async: "开始异步解析 EA 伤害: {context} |
-    attackerSnapshot={attacker_snapshot} | targetSnapshot={target_snapshot}"
+  resolve_begin_sync: "开始解析 EA 伤害: %context% |
+    attackerSnapshot=%attacker_snapshot% | targetSnapshot=%target_snapshot%"
+  resolve_begin_async: "开始异步解析 EA 伤害: %context% |
+    attackerSnapshot=%attacker_snapshot% | targetSnapshot=%target_snapshot%"
   apply_skipped: "目标无效或已死亡，EA 伤害落地已跳过。"
-  apply_begin: "准备落地 EA 伤害: finalDamage={final_damage},
-    alreadyApplied={already_applied}, remaining={remaining},
-    targetHealthBefore={target_health_before},
-    targetAbsorptionBefore={target_absorption_before},
-    visualSource={visual_source}"
-  apply_done: "EA 伤害已落地: targetHealthAfter={target_health_after},
-    targetAbsorptionAfter={target_absorption_after},
-    attackerCooldownTicks={attacker_cooldown_ticks}"
-  dodge_triggered: "目标闪避了本次 EA 伤害: dodgeChance={dodge_chance}, dodgeRoll={dodge_roll}"
+  apply_begin: "准备落地 EA 伤害: finalDamage=%final_damage%,
+    alreadyApplied=%already_applied%, remaining=%remaining%,
+    targetHealthBefore=%target_health_before%,
+    targetAbsorptionBefore=%target_absorption_before%,
+    visualSource=%visual_source%"
+  apply_done: "EA 伤害已落地: targetHealthAfter=%target_health_after%,
+    targetAbsorptionAfter=%target_absorption_after%,
+    attackerCooldownTicks=%attacker_cooldown_ticks%"
+  dodge_triggered: "目标闪避了本次 EA 伤害: dodgeChance=%dodge_chance%, dodgeRoll=%dodge_roll%"
   event_result_empty: "EA 伤害结果为空，已跳过后续事件与落地。"
   calc_result:
-    "伤害计算完成: damageType={damage_type}, finalDamage={final_damage},
-    critical={critical}, roll={roll}, stages={stages}"
-  event_blocked: "EmakiAttributeDamageEvent 未通过: cancelled={cancelled},
-    finalDamage={final_damage}"
-  event_passed: "EmakiAttributeDamageEvent 已通过: finalDamage={final_damage},
-    resolvedDamageType={resolved_damage_type}"
+    "伤害计算完成: damageType=%damage_type%, finalDamage=%final_damage%,
+    critical=%critical%, roll=%roll%, stages=%stages%"
+  event_blocked: "EmakiAttributeDamageEvent 未通过: cancelled=%cancelled%,
+    finalDamage=%final_damage%"
+  event_passed: "EmakiAttributeDamageEvent 已通过: finalDamage=%final_damage%,
+    resolvedDamageType=%resolved_damage_type%"
   mythic_on_damaged_blocked: "synthetic onDamaged 事件阻止了本次 EA 伤害:
-    cancelled={cancelled}, finalDamage={final_damage}"
-  mythic_on_damaged_adjusted: "synthetic onDamaged 调整了最终伤害: before={before}, after={after}"
-  projectile_launch_blocked: "投射物发射被攻击冷却拦截: shooter={shooter}"
+    cancelled=%cancelled%, finalDamage=%final_damage%"
+  mythic_on_damaged_adjusted: "synthetic onDamaged 调整了最终伤害: before=%before%, after=%after%"
+  projectile_launch_blocked: "投射物发射被攻击冷却拦截: shooter=%shooter%"
   projectile_launch_snapshot_written:
-    "投射物已写入快照: projectile={projectile},
-    damageType={damage_type}, signature={signature}"
+    "投射物已写入快照: projectile=%projectile%,
+    damageType=%damage_type%, signature=%signature%"
   synthetic_damage_bypass_entity: "已放行 synthetic 伤害事件，避免 EA 二次接管。"
-  projectile_hit_intercept: "拦截原版投射物伤害: shooter={shooter},
-    projectile={projectile}, target={target}, cause={cause},
-    vanillaDamage={vanilla_damage}, vanillaFinal={vanilla_final}"
-  projectile_hit_blocked: "投射物命中被攻击冷却拦截: shooter={shooter}"
+  projectile_hit_intercept: "拦截原版投射物伤害: shooter=%shooter%,
+    projectile=%projectile%, target=%target%, cause=%cause%,
+    vanillaDamage=%vanilla_damage%, vanillaFinal=%vanilla_final%"
+  projectile_hit_blocked: "投射物命中被攻击冷却拦截: shooter=%shooter%"
   projectile_resolve_empty: "投射物命中没有得到有效的 EA 伤害结果，命中流程到此结束。"
-  projectile_resolved: "投射物命中已解析 EA 伤害: {resolved}"
+  projectile_resolved: "投射物命中已解析 EA 伤害: %resolved%"
   projectile_apply: "开始执行下一 tick 的投射物 EA 伤害落地。"
-  melee_hit_intercept: "拦截原版近战伤害: attacker={attacker}, target={target},
-    cause={cause}, vanillaDamage={vanilla_damage}, vanillaFinal={vanilla_final}"
-  melee_hit_blocked: "近战命中被攻击冷却拦截: attacker={attacker}"
+  melee_hit_intercept: "拦截原版近战伤害: attacker=%attacker%, target=%target%,
+    cause=%cause%, vanillaDamage=%vanilla_damage%, vanillaFinal=%vanilla_final%"
+  melee_hit_blocked: "近战命中被攻击冷却拦截: attacker=%attacker%"
   melee_resolve_empty: "近战命中没有得到有效的 EA 伤害结果，命中流程到此结束。"
-  melee_resolved: "近战命中已解析 EA 伤害: {resolved}"
+  melee_resolved: "近战命中已解析 EA 伤害: %resolved%"
   melee_apply: "开始执行下一 tick 的近战 EA 伤害落地。"
   synthetic_damage_bypass_non_entity: "已放行 synthetic 非实体伤害事件，避免 EA 二次接管。"
-  environment_fallback: "环境伤害未命中白名单，但启用了硬锁，改为使用默认伤害类型接管: cause={cause}"
+  environment_fallback: "环境伤害未命中白名单，但启用了硬锁，改为使用默认伤害类型接管: cause=%cause%"
   environment_resolve_empty: "环境伤害没有得到有效的 EA 伤害结果，命中流程到此结束。"
-  environment_resolved_async: "环境伤害已解析 EA 伤害: {resolved}"
+  environment_resolved_async: "环境伤害已解析 EA 伤害: %resolved%"
   environment_apply: "开始执行下一 tick 的环境 EA 伤害落地。"
-  environment_ignored: "环境伤害未命中白名单，保持原版处理: cause={cause}"
-  environment_mapped: "环境伤害已映射为 EA 伤害: target={target}, cause={cause},
-    damageType={damage_type}, sourceDamage={source_damage},
-    baseDamage={base_damage}"
-  projectile_snapshot_missing_strict: "投射物命中时未找到快照，已按严格快照模式终止结算: projectile={projectile}"
-  async_damage_failed: "异步伤害解析失败: {error}"
-  perfect_takeover_applied: "完美接管已原地改写原版伤害: cause={cause}, finalDamage={final_damage},
+  environment_ignored: "环境伤害未命中白名单，保持原版处理: cause=%cause%"
+  environment_mapped: "环境伤害已映射为 EA 伤害: target=%target%, cause=%cause%,
+    damageType=%damage_type%, sourceDamage=%source_damage%,
+    baseDamage=%base_damage%"
+  projectile_snapshot_missing_strict: "投射物命中时未找到快照，已按严格快照模式终止结算: projectile=%projectile%"
+  async_damage_failed: "异步伤害解析失败: %error%"
+  perfect_takeover_applied: "完美接管已原地改写原版伤害: cause=%cause%, finalDamage=%final_damage%,
     保留吸收/格挡、屏蔽护甲减伤，原版副作用照常触发。"
-  perfect_takeover_cancelled: "完美接管结算结果无伤害，已取消原版事件: cause={cause}"
-  perfect_side_effects: "完美接管补发 EA 副作用: finalDamage={final_damage},
-    attackerCooldownTicks={attacker_cooldown_ticks}"
+  perfect_takeover_cancelled: "完美接管结算结果无伤害，已取消原版事件: cause=%cause%"
+  perfect_side_effects: "完美接管补发 EA 副作用: finalDamage=%final_damage%,
+    attackerCooldownTicks=%attacker_cooldown_ticks%"
 
 command:
-  unknown: "<red>未知子命令，请使用 /{label} help 查看帮助。</red>"
+  unknown: "<red>未知子命令，请使用 /%label% help 查看帮助。</red>"
 
   reload:
     no_permission: "<red>你没有权限执行此命令。</red>"
     in_progress: "<yellow>属性系统正在重载中，请稍后。</yellow>"
     started: "<gray>已提交异步重载任务，后续进度会继续输出。</gray>"
     success: "<green>属性系统已重载。</green>"
-    failed: "<red>属性系统重载失败: {error}</red>"
-    summary: "<gray>属性 {attributes} 项，伤害类型 {damage_types} 项，默认属性配置 {profiles} 份。</gray>"
+    failed: "<red>属性系统重载失败: %error%</red>"
+    summary: "<gray>属性 %attributes% 项，伤害类型 %damage_types% 项，默认属性配置 %profiles% 份。</gray>"
 
   resync:
     no_permission: "<red>你没有权限执行此命令。</red>"
     self_success: "<green>已为你重新同步属性。</green>"
     console_usage: "<yellow>控制台用法: /emakiattribute resync <player|all></yellow>"
-    player_not_found: "<red>未找到玩家 {player}。</red>"
-    player_success: "<green>已为 {player} 重新同步属性。</green>"
+    player_not_found: "<red>未找到玩家 %player%。</red>"
+    player_success: "<green>已为 %player% 重新同步属性。</green>"
     all_success: "<green>已为所有在线玩家重新同步属性。</green>"
 
   preview:
     no_permission: "<red>你没有权限执行此命令。</red>"
     console_usage: "<yellow>控制台用法: /emakiattribute preview <player> <slot></yellow>"
-    player_not_found: "<red>未找到玩家 {player}。</red>"
-    invalid_slot: "<red>无效槽位 {slot}，可用值:
+    player_not_found: "<red>未找到玩家 %player%。</red>"
+    invalid_slot: "<red>无效槽位 %slot%，可用值:
       main_hand/off_hand/helmet/chestplate/leggings/boots。</red>"
     no_item: "<yellow>该槽位没有物品。</yellow>"
-    item: "<gray>物品: {item}</gray>"
+    item: "<gray>物品: %item%</gray>"
     name_label: "<gray>名称: </gray>"
-    name: "<gray>名称: {name}</gray>"
-    signature: "<gray>签名: {signature}</gray>"
-    values: "<gray>数值: {values}</gray>"
+    name: "<gray>名称: %name%</gray>"
+    signature: "<gray>签名: %signature%</gray>"
+    values: "<gray>数值: %values%</gray>"
 
   dump:
     no_permission: "<red>你没有权限执行此命令。</red>"
-    player_not_found: "<red>未找到玩家 {player}。</red>"
+    player_not_found: "<red>未找到玩家 %player%。</red>"
     console_usage: "<yellow>控制台用法: /emakiattribute dump <player></yellow>"
-    player: "<green>正在查看玩家 {player} 的属性快照。</green>"
+    player: "<green>正在查看玩家 %player% 的属性快照。</green>"
     signature: "<gray>签名 <dark_gray>(悬停查看)</dark_gray></gray>"
     values: "<gray>属性数值 <dark_gray>(悬停查看)</dark_gray></gray>"
-    resource_line: "<gray>{resource}: 默认 {default_max}，加成 {bonus_max}，上限
-      {current_max}，当前 {current}</gray>"
+    resource_line: "<gray>%resource%: 默认 %default_max%，加成 %bonus_max%，上限
+      %current_max%，当前 %current%</gray>"
 
   debug:
     no_permission: "<red>你没有权限执行此命令。</red>"
-    player_not_found: "<red>未找到玩家 {player}。</red>"
+    player_not_found: "<red>未找到玩家 %player%。</red>"
     console_usage: "<yellow>控制台用法: /emakiattribute debug <player> [on|off|toggle]</yellow>"
-    enabled: "<green>已为 {player} 开启战斗调试日志，相关输出将写入控制台。</green>"
-    disabled: "<yellow>已为 {player} 关闭战斗调试日志。</yellow>"
+    enabled: "<green>已为 %player% 开启战斗调试日志，相关输出将写入控制台。</green>"
+    disabled: "<yellow>已为 %player% 关闭战斗调试日志。</yellow>"
 
   lint:
     no_permission: "<red>你没有权限执行此命令。</red>"
     header: "<gold>========== EmakiAttribute 自检 ==========</gold>"
     footer: "<gold>==========================================</gold>"
-    config_status: "<gray>配置: {config}</gray>"
-    ok: "<green>{name} 未发现问题。</green>"
-    issues: "<yellow>{name} 发现 {count} 个问题。</yellow>"
+    config_status: "<gray>配置: %config%</gray>"
+    ok: "<green>%name% 未发现问题。</green>"
+    issues: "<yellow>%name% 发现 %count% 个问题。</yellow>"
 
   help:
     header: "<gold>========== EmakiAttribute 帮助 ==========</gold>"
@@ -249,29 +249,29 @@ debug:
     status_header: "<gold>========== EmakiAttribute Debug 状态 ==========</gold>"
     status_enabled: "<green>Debug 已开启</green>"
     status_disabled: "<gray>Debug 已关闭</gray>"
-    tracked_players: "<gray>追踪玩家: <yellow>{players}</yellow></gray>"
-    tracked_modules: "<gray>追踪模块: <yellow>{modules}</yellow></gray>"
-    player_added: "<green>已开始追踪玩家: <aqua>{player}</aqua></green>"
-    player_removed: "<yellow>已停止追踪玩家: <aqua>{player}</aqua></yellow>"
-    module_enabled: "<green>已开启模块追踪: <yellow>{module}</yellow></green>"
-    module_disabled: "<yellow>已关闭模块追踪: <gray>{module}</gray></yellow>"
+    tracked_players: "<gray>追踪玩家: <yellow>%players%</yellow></gray>"
+    tracked_modules: "<gray>追踪模块: <yellow>%modules%</yellow></gray>"
+    player_added: "<green>已开始追踪玩家: <aqua>%player%</aqua></green>"
+    player_removed: "<yellow>已停止追踪玩家: <aqua>%player%</aqua></yellow>"
+    module_enabled: "<green>已开启模块追踪: <yellow>%module%</yellow></green>"
+    module_disabled: "<yellow>已关闭模块追踪: <gray>%module%</gray></yellow>"
     all_enabled: "<green>已开启全局 Debug（所有玩家+所有模块）</green>"
     all_disabled: "<yellow>已关闭所有 Debug 追踪</yellow>"
-    player_not_found: "<red>找不到在线玩家: {player}</red>"
-    available_modules: "<gray>可用模块: <yellow>{modules}</yellow></gray>"
+    player_not_found: "<red>找不到在线玩家: %player%</red>"
+    available_modules: "<gray>可用模块: <yellow>%modules%</yellow></gray>"
   combat:
-    damage_start: "伤害计算开始 | 攻击者={attacker} | 目标={target} | 原始伤害={damage}"
-    snapshot_collect: "收集属性快照 | 实体={entity} | 属性数={count}"
-    damage_stage: "伤害阶段 | 阶段={stage} | 值={values}"
-    damage_result: "伤害计算完成 | 最终伤害={damage} | 类型={type}"
+    damage_start: "伤害计算开始 | 攻击者=%attacker% | 目标=%target% | 原始伤害=%damage%"
+    snapshot_collect: "收集属性快照 | 实体=%entity% | 属性数=%count%"
+    damage_stage: "伤害阶段 | 阶段=%stage% | 值=%values%"
+    damage_result: "伤害计算完成 | 最终伤害=%damage% | 类型=%type%"
   resync:
-    start: "开始属性重同步 | 玩家={player}"
-    slot_scan: "扫描装备槽 | 槽位={slot} | 物品={item} | 来源={source}"
-    applied: "属性已应用 | 玩家={player} | 属性数={count}"
+    start: "开始属性重同步 | 玩家=%player%"
+    slot_scan: "扫描装备槽 | 槽位=%slot% | 物品=%item% | 来源=%source%"
+    applied: "属性已应用 | 玩家=%player% | 属性数=%count%"
   snapshot:
-    collect_start: "开始收集快照 | 来源={source}"
-    layer_read: "读取属性层 | 层={layer} | 属性={attributes}"
-    merge: "合并快照 | 来源数={sources} | 最终属性数={count}"
+    collect_start: "开始收集快照 | 来源=%source%"
+    layer_read: "读取属性层 | 层=%layer% | 属性=%attributes%"
+    merge: "合并快照 | 来源数=%sources% | 最终属性数=%count%"
   resource:
-    change: "资源值变化 | 玩家={player} | 资源={resource} | 旧值={old} | 新值={new}"
-    max_update: "资源上限更新 | 玩家={player} | 资源={resource} | 上限={max}"
+    change: "资源值变化 | 玩家=%player% | 资源=%resource% | 旧值=%old% | 新值=%new%"
+    max_update: "资源上限更新 | 玩家=%player% | 资源=%resource% | 上限=%max%"

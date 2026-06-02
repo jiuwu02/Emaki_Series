@@ -187,13 +187,13 @@ public final class RecipeBookGuiService {
                 itemStack,
                 replacements,
                 new emaki.jiuwu.craft.corelib.gui.ItemComponentParser.ItemComponents(
-                        "{recipe_name}",
+                        "%recipe_name%",
                         true,
                         List.of(
-                                "{unlock_state}",
-                                "<gray>配方ID: {recipe_id}</gray>",
-                                "{crafted_state}",
-                                "{click_hint}"
+                                "%unlock_state%",
+                                "<gray>配方ID: %recipe_id%</gray>",
+                                "%crafted_state%",
+                                "%click_hint%"
                         ),
                         null,
                         null,

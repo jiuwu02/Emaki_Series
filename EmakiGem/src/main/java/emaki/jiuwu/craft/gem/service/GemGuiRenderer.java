@@ -80,13 +80,13 @@ final class GemGuiRenderer {
         GemItemDefinition itemDefinition = plugin.stateService().resolveItemDefinition(targetItem);
         GemState gemState = itemDefinition == null ? null : plugin.stateService().resolveState(targetItem, itemDefinition);
         List<String> lore = new ArrayList<>();
-        lore.add(text("mode_line", Map.of("mode", modeText(state.mode())), "<gray>Current mode: <yellow>{mode}</yellow></gray>"));
+        lore.add(text("mode_line", Map.of("mode", modeText(state.mode())), "<gray>Current mode: <yellow>%mode%</yellow></gray>"));
         if (itemDefinition == null || gemState == null) {
             lore.add(text("no_target_line_1", "<red>No valid equipment placed</red>"));
             lore.add(text("no_target_line_2", "<gray>Please place equipment first</gray>"));
             return buildConfiguredItem(slot, Material.BOOK, text("info_name", "<gold>Instructions</gold>"), lore);
         }
-        lore.add(text("equipment_definition", Map.of("item", itemDefinition.id()), "<gray>Equipment definition: <gold>{item}</gold></gray>"));
+        lore.add(text("equipment_definition", Map.of("item", itemDefinition.id()), "<gray>Equipment definition: <gold>%item%</gold></gray>"));
         lore.add(switch (state.mode()) {
             case INLAY -> text("inlay_help", "<gray>Hold a gem and click an opened empty slot</gray>");
             case EXTRACT -> text("extract_help", "<gray>Click an inlaid gem slot</gray>");
@@ -109,11 +109,11 @@ final class GemGuiRenderer {
         int total = itemDefinition.slots().size();
         int opened = gemState.openedSlotIndexes().size();
         int embedded = gemState.socketAssignments().size();
-        lore.add(text("total_slots", Map.of("total", total), "<gray>Total sockets: <yellow>{total}</yellow></gray>"));
-        lore.add(text("opened_slots", Map.of("opened", opened), "<gray>Opened sockets: <green>{opened}</green></gray>"));
-        lore.add(text("embedded_slots", Map.of("embedded", embedded), "<gray>Inlaid gems: <aqua>{embedded}</aqua></gray>"));
-        lore.add(text("free_opened_slots", Map.of("free", Math.max(0, opened - embedded)), "<gray>Free opened sockets: <gold>{free}</gold></gray>"));
-        lore.add(text("locked_slots", Map.of("locked", Math.max(0, total - opened)), "<gray>Locked sockets: <red>{locked}</red></gray>"));
+        lore.add(text("total_slots", Map.of("total", total), "<gray>Total sockets: <yellow>%total%</yellow></gray>"));
+        lore.add(text("opened_slots", Map.of("opened", opened), "<gray>Opened sockets: <green>%opened%</green></gray>"));
+        lore.add(text("embedded_slots", Map.of("embedded", embedded), "<gray>Inlaid gems: <aqua>%embedded%</aqua></gray>"));
+        lore.add(text("free_opened_slots", Map.of("free", Math.max(0, opened - embedded)), "<gray>Free opened sockets: <gold>%free%</gold></gray>"));
+        lore.add(text("locked_slots", Map.of("locked", Math.max(0, total - opened)), "<gray>Locked sockets: <red>%locked%</red></gray>"));
         return buildConfiguredItem(slot, Material.COMPASS, text("summary_name", "<gold>Gem Socket Summary</gold>"), lore);
     }
 
@@ -150,13 +150,13 @@ final class GemGuiRenderer {
                 GemDefinition pendingDefinition = pendingInstance == null ? null : plugin.gemLoader().get(pendingInstance.gemId());
                 ItemStack pendingGemDisplay = plugin.itemFactory().recreateGemItem(pendingInstance, 1);
                 List<String> extraLore = new ArrayList<>();
-                extraLore.add(text("slot_position", Map.of("slot", socketIndex), "<gray>Socket position: <gold>#{slot}</gold></gray>"));
+                extraLore.add(text("slot_position", Map.of("slot", socketIndex), "<gray>Socket position: <gold>#%slot%</gold></gray>"));
                 extraLore.add(socketType(socketSlot.displayName()));
                 if (pendingDefinition != null) {
-                    extraLore.add(text("gem_type", Map.of("type", pendingDefinition.gemType()), "<gray>Gem type: <yellow>{type}</yellow></gray>"));
+                    extraLore.add(text("gem_type", Map.of("type", pendingDefinition.gemType()), "<gray>Gem type: <yellow>%type%</yellow></gray>"));
                 }
                 if (pendingInstance != null) {
-                    extraLore.add(text("gem_level", Map.of("level", pendingInstance.level()), "<gray>Gem level: <yellow>Lv.{level}</yellow></gray>"));
+                    extraLore.add(text("gem_level", Map.of("level", pendingInstance.level()), "<gray>Gem level: <yellow>Lv.%level%</yellow></gray>"));
                 }
                 extraLore.add(text("pending_inlay", "<green>Pending inlay</green>"));
                 if (pendingGemDisplay != null) {
@@ -177,11 +177,11 @@ final class GemGuiRenderer {
         GemDefinition definition = plugin.gemLoader().get(assigned.gemId());
         ItemStack gemItem = plugin.itemFactory().recreateGemItem(assigned, 1);
         List<String> extraLore = new ArrayList<>();
-        extraLore.add(text("slot_position", Map.of("slot", socketIndex), "<gray>Socket position: <gold>#{slot}</gold></gray>"));
+        extraLore.add(text("slot_position", Map.of("slot", socketIndex), "<gray>Socket position: <gold>#%slot%</gold></gray>"));
         extraLore.add(socketType(socketSlot.displayName()));
-        extraLore.add(text("gem_level", Map.of("level", assigned.level()), "<gray>Gem level: <yellow>Lv.{level}</yellow></gray>"));
+        extraLore.add(text("gem_level", Map.of("level", assigned.level()), "<gray>Gem level: <yellow>Lv.%level%</yellow></gray>"));
         if (definition != null) {
-            extraLore.add(text("gem_type", Map.of("type", definition.gemType()), "<gray>Gem type: <yellow>{type}</yellow></gray>"));
+            extraLore.add(text("gem_type", Map.of("type", definition.gemType()), "<gray>Gem type: <yellow>%type%</yellow></gray>"));
         }
         extraLore.add(state.mode() == GemGuiMode.EXTRACT
                 ? text("socket_extract_hint", "<gray>Click to preview extraction</gray>")
@@ -207,8 +207,8 @@ final class GemGuiRenderer {
         GemItemDefinition itemDefinition = plugin.stateService().resolveItemDefinition(targetItem);
         GemState gemState = itemDefinition == null ? null : plugin.stateService().resolveState(targetItem, itemDefinition);
         GemItemDefinition.SocketSlot socketSlot = itemDefinition == null ? null : itemDefinition.slot(pendingOperation.slotIndex());
-        lore.add(text("pending_action", Map.of("action", pendingText(pendingOperation.type())), "<gray>Pending: <yellow>{action}</yellow></gray>"));
-        lore.add(text("target_slot", Map.of("slot", pendingOperation.slotIndex()), "<gray>Target socket: <gold>#{slot}</gold></gray>"));
+        lore.add(text("pending_action", Map.of("action", pendingText(pendingOperation.type())), "<gray>Pending: <yellow>%action%</yellow></gray>"));
+        lore.add(text("target_slot", Map.of("slot", pendingOperation.slotIndex()), "<gray>Target socket: <gold>#%slot%</gold></gray>"));
         if (socketSlot != null) {
             lore.add(socketType(socketSlot.displayName()));
         }
@@ -216,15 +216,15 @@ final class GemGuiRenderer {
             case INLAY -> {
                 GemItemInstance instance = plugin.itemMatcher().readGemInstance(pendingOperation.inputItem());
                 GemDefinition definition = instance == null ? null : plugin.gemLoader().get(instance.gemId());
-                lore.add(text("preview_gem", Map.of("gem", definition == null ? common("unrecognized", "Unrecognized") : plugin.itemFactory().resolveGemDisplayName(definition, instance.level())), "<gray>Gem: <yellow>{gem}</yellow></gray>"));
+                lore.add(text("preview_gem", Map.of("gem", definition == null ? common("unrecognized", "Unrecognized") : plugin.itemFactory().resolveGemDisplayName(definition, instance.level())), "<gray>Gem: <yellow>%gem%</yellow></gray>"));
                 if (instance != null) {
-                    lore.add(text("preview_level", Map.of("level", instance.level()), "<gray>Level: <gold>Lv.{level}</gold></gray>"));
+                    lore.add(text("preview_level", Map.of("level", instance.level()), "<gray>Level: <gold>Lv.%level%</gold></gray>"));
                 }
             }
             case EXTRACT -> {
                 GemItemInstance instance = gemState == null ? null : gemState.assignment(pendingOperation.slotIndex());
                 GemDefinition definition = instance == null ? null : plugin.gemLoader().get(instance.gemId());
-                lore.add(text("preview_extract_gem", Map.of("gem", definition == null ? common("unknown", "Unknown") : plugin.itemFactory().resolveGemDisplayName(definition, instance.level())), "<gray>Extract gem: <yellow>{gem}</yellow></gray>"));
+                lore.add(text("preview_extract_gem", Map.of("gem", definition == null ? common("unknown", "Unknown") : plugin.itemFactory().resolveGemDisplayName(definition, instance.level())), "<gray>Extract gem: <yellow>%gem%</yellow></gray>"));
             }
             default -> {
             }
@@ -241,7 +241,7 @@ final class GemGuiRenderer {
         }
         return buildConfiguredItem(slot, Material.LIME_STAINED_GLASS_PANE, text("confirm_name_active", "<green>Confirm Operation</green>"), List.of(
                 text("confirm_active_lore", "<gray>Click to execute current operation</gray>"),
-                text("pending_action", Map.of("action", pendingText(state.pendingOperation().type())), "<gray>Pending: <yellow>{action}</yellow></gray>")
+                text("pending_action", Map.of("action", pendingText(state.pendingOperation().type())), "<gray>Pending: <yellow>%action%</yellow></gray>")
         ));
     }
 
@@ -320,11 +320,11 @@ final class GemGuiRenderer {
     }
 
     private String slotTitle(GemItemDefinition.SocketSlot slot, int slotIndex, String stateText) {
-        return common("slot_title", Map.of("name", slot.displayName(), "slot", slotIndex, "state", stateText), "<white>{name} <gray>(#{slot} {state})</gray></white>");
+        return common("slot_title", Map.of("name", slot.displayName(), "slot", slotIndex, "state", stateText), "<white>%name% <gray>(#%slot% %state%)</gray></white>");
     }
 
     private String socketType(String displayName) {
-        return common("socket_type", Map.of("type", displayName), "<gray>Socket type: <yellow>{type}</yellow></gray>");
+        return common("socket_type", Map.of("type", displayName), "<gray>Socket type: <yellow>%type%</yellow></gray>");
     }
 
     private String modeText(GemGuiMode mode) {

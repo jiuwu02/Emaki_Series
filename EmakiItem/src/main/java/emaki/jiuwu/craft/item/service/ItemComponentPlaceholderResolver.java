@@ -12,8 +12,8 @@ import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class ItemComponentPlaceholderResolver implements PlaceholderResolver {
 
-    private static final Pattern PARAMETERIZED = Pattern.compile("\\{(held_component_has|item_component_has|held_component_value|item_component_value|held_component_json|item_component_json):([^}]+)}");
-    private static final Pattern SIMPLE = Pattern.compile("\\{(held_components_raw|item_components_raw|held_components|item_components)}");
+    private static final Pattern PARAMETERIZED = Pattern.compile("%(held_component_has|item_component_has|held_component_value|item_component_value|held_component_json|item_component_json):([^%]+)%");
+    private static final Pattern SIMPLE = Pattern.compile("%(held_components_raw|item_components_raw|held_components|item_components)%");
 
     private final ItemComponentInspector inspector;
 

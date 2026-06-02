@@ -8,8 +8,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
+import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRenderer;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class OperationTemplateRenderer {
@@ -52,6 +55,14 @@ public final class OperationTemplateRenderer {
         return renderTextLines(operation == null ? null : operation.get("content"), variables);
     }
 
+    public List<String> renderContent(Map<String, Object> operation,
+            Map<String, Object> variables,
+            ActionContext context,
+            DebugLogger debugLogger,
+            String source) {
+        return renderTextLines(operation == null ? null : operation.get("content"), variables, context, debugLogger, source);
+    }
+
     public Object resolveOperationValue(Map<String, Object> operation) {
         if (operation == null) {
             return "";
@@ -83,6 +94,18 @@ public final class OperationTemplateRenderer {
         return ExpressionEngine.evaluateStringConfig(template, variables == null ? Map.of() : variables);
     }
 
+    public String renderTemplate(Object template,
+            Map<String, Object> variables,
+            ActionContext context,
+            DebugLogger debugLogger,
+            String source) {
+        Map<String, Object> safeVariables = variables == null ? Map.of() : variables;
+        String rendered = template instanceof String text
+                ? PlaceholderRenderer.renderInternal(text, safeVariables, debugLogger, context == null ? null : context.player(), source)
+                : ExpressionEngine.evaluateStringConfig(template, safeVariables);
+        return PlaceholderRenderer.renderPapi(context == null ? null : context.player(), rendered, debugLogger, source);
+    }
+
     public List<String> renderTextLines(Object raw, Map<String, Object> variables) {
         Map<String, Object> safeVariables = variables == null ? Map.of() : variables;
         if (raw instanceof Iterable<?> iterable) {
@@ -97,6 +120,40 @@ public final class OperationTemplateRenderer {
             return result;
         }
         return ExpressionEngine.evaluateStringLinesConfig(raw, safeVariables);
+    }
+
+    public List<String> renderTextLines(Object raw,
+            Map<String, Object> variables,
+            ActionContext context,
+            DebugLogger debugLogger,
+            String source) {
+        Map<String, Object> safeVariables = variables == null ? Map.of() : variables;
+        if (raw instanceof String text) {
+            String rendered = renderTemplate(text, safeVariables, context, debugLogger, source);
+            return rendered.isEmpty() ? List.of() : List.of(rendered);
+        }
+        if (raw instanceof Iterable<?> iterable) {
+            List<String> result = new ArrayList<>();
+            for (Object entry : iterable) {
+                if (entry instanceof String text) {
+                    result.add(renderTemplate(text, safeVariables, context, debugLogger, source));
+                    continue;
+                }
+                for (String line : ExpressionEngine.evaluateStringLinesConfig(entry, safeVariables)) {
+                    result.add(PlaceholderRenderer.renderPapi(context == null ? null : context.player(), line, debugLogger, source));
+                }
+            }
+            return result;
+        }
+        List<String> lines = ExpressionEngine.evaluateStringLinesConfig(raw, safeVariables);
+        if (lines.isEmpty()) {
+            return lines;
+        }
+        List<String> result = new ArrayList<>(lines.size());
+        for (String line : lines) {
+            result.add(PlaceholderRenderer.renderPapi(context == null ? null : context.player(), line, debugLogger, source));
+        }
+        return result;
     }
 
     public static String replaceRegex(String text,

@@ -56,13 +56,13 @@ stages:
     source: ATTACKER
     chance_attributes: [physical_crit_rate]
     multiplier_attributes: [physical_crit_damage]
-    expression: "{input} * (1 + ({crit} * ({multiplier} / 100)))"
+    expression: "%input% * (1 + (%crit% * (%multiplier% / 100)))"
 
   - id: defense
     kind: CUSTOM
     source: TARGET
     flat_attributes: [physical_defense]
-    expression: "max(0, {input} - {flat})"
+    expression: "max(0, %input% - %flat%)"
 
 # ============================================================
 # 吸血/回复配置
@@ -76,8 +76,8 @@ recovery:
   resistance_attributes: [lifesteal_resistance]
 
 # 伤害消息模板
-attacker_message: "<gray>[<gold>{damage_type}</gold>]</gray> <green>你对 <white>{target}</white> 造成了 <yellow>{final_damage}</yellow> 点伤害</green>{critical_suffix}"
+attacker_message: "<gray>[<gold>%damage_type%</gold>]</gray> <green>你对 <white>%target%</white> 造成了 <yellow>%final_damage%</yellow> 点伤害</green>%critical_suffix%"
 
-target_message: "<gray>[<gold>{damage_type}</gold>]</gray> <red>{attacker}</red> 对你造成了 <yellow>{final_damage}</yellow> 点伤害{critical_suffix}"
+target_message: "<gray>[<gold>%damage_type%</gold>]</gray> <red>%attacker%</red> 对你造成了 <yellow>%final_damage%</yellow> 点伤害%critical_suffix%"
 
 description: "Physical damage resolved entirely through Emaki attributes."

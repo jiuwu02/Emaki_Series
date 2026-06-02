@@ -22,8 +22,8 @@ invalid_as_failure: true
 # 条件列表
 # type: pdc_meta → 从物品 PDC 中读取指定 key 的值
 # key: PDC 中的键名
-# condition: 条件表达式（{value} 为读取到的值）
+# condition: 条件表达式（%value% 为读取到的值）
 conditions:
   - type: pdc_meta
     key: required_level
-    condition: "{value} <= {player_level}"
+    condition: "%value% <= %player_level%"

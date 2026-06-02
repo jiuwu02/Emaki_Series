@@ -33,7 +33,7 @@ economy:
     - provider: "vault"
       currency_id: ""
       base_cost: 500
-      cost_formula: "{base_cost} * {star}"
+      cost_formula: "%base_cost% * %star%"
       display_name: "<gold>金币</gold>"
 
 # ============================================================
@@ -72,13 +72,13 @@ match:
 # ============================================================
 name_actions:
   - action: "append_suffix"
-    value: " <gradient:#FFD700:#FF4500>[+{star}]</gradient>"
+    value: " <gradient:#FFD700:#FF4500>[+%star%]</gradient>"
 
 lore_actions:
   - action: "prepend"
     content:
-      - "<gradient:#FFD700:#FF4500>精炼等级 +{star}</gradient>"
-      - "<gray>锻印: {temper_color}{temper}/{max_temper}</gray>"
+      - "<gradient:#FFD700:#FF4500>精炼等级 +%star%</gradient>"
+      - "<gray>锻印: %temper_color%%temper%/%max_temper%</gray>"
 
 # ============================================================
 # 分支树定义

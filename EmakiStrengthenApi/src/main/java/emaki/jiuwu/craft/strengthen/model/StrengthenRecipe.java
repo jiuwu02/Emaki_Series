@@ -74,7 +74,7 @@ public final class StrengthenRecipe {
      * @param provider    the economy provider id (lower-cased)
      * @param currencyId  the currency id within the provider
      * @param baseCost    the base cost; clamped to {@code >= 0}
-     * @param costFormula the cost expression (defaults to {@code "{base_cost}"})
+     * @param costFormula the cost expression (defaults to {@code "%base_cost%"})
      * @param displayName a human-readable label
      */
     public record CurrencyEntry(String provider,
@@ -88,7 +88,7 @@ public final class StrengthenRecipe {
             provider = Texts.lower(provider);
             currencyId = Texts.toStringSafe(currencyId);
             baseCost = Math.max(0L, baseCost);
-            costFormula = Texts.isBlank(costFormula) ? "{base_cost}" : Texts.toStringSafe(costFormula);
+            costFormula = Texts.isBlank(costFormula) ? "%base_cost%" : Texts.toStringSafe(costFormula);
             displayName = Texts.toStringSafe(displayName);
         }
     }

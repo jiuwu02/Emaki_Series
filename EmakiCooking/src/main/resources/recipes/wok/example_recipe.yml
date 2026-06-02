@@ -57,7 +57,7 @@ permission: "emakicooking.recipe.simple_stew"
 condition:
   condition_type: all_of
   conditions:
-    - "{player_level} >= 5"
+    - "%player_level% >= 5"
   pass_actions:
     - 'sendmessage text="<green>厨艺达标，出锅成功。</green>"'
   fail_actions:

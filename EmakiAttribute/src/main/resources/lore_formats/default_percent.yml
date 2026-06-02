@@ -8,13 +8,13 @@
 
 id: default_percent
 
-format: "{name} {sign}{value}%"
+format: "%name% %sign%%value%%"
 
 precision: 2
 
 read_priority: 100
 
 read_patterns:
-  # {Value} 支持单值与区间：如 "10%" 或 "10-20%"。
+  # %Value% 支持单值与区间：如 "10%" 或 "10-20%"。
   # 区间会在每次命中结算对应阶段输入时按 [最小值, 最大值] 随机取值。
-  - "{Key}.*?: ?{Value}%$"
+  - "%Key%.*?: ?%Value%%$"

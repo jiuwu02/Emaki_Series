@@ -17,7 +17,7 @@ import net.objecthunter.exp4j.function.Function;
 
 public final class ExpressionEngine {
 
-    static final Pattern VARIABLE_PATTERN = Pattern.compile("\\{([^{}\\s]+)}");
+    static final Pattern VARIABLE_PATTERN = Pattern.compile("%([^%\\s]+)%");
     private static final double INTEGER_ROUNDING_EPSILON = 1.0E-9D;
     private static final String DEFAULT_RANDOM_CHARS = "abcdefghijklmnopqrstuvwxyz";
     private static final Function[] CUSTOM_FUNCTIONS = new Function[]{

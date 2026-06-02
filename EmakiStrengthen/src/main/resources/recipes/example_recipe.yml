@@ -22,14 +22,14 @@ gui_template: "strengthen_gui"
 # 经济系统配置
 # ============================================================
 # 每次强化时扣除的货币费用。
-# cost_formula 支持表达式，可引用 {base_cost}、{star} 等变量。
+# cost_formula 支持表达式，可引用 %base_cost%、%star% 等变量。
 economy:
   enabled: true
   currencies:
     - provider: "vault"
       currency_id: ""
       base_cost: 320
-      cost_formula: "{base_cost} * {star}"
+      cost_formula: "%base_cost% * %star%"
       display_name: "<gold>金币</gold>"
 
 # ============================================================
@@ -80,16 +80,16 @@ match:
 # 这些 actions 在每次强化成功后都会应用到物品上。
 # name_actions: 修改物品显示名称
 # lore_actions: 修改物品 Lore
-# 支持 {star}、{temper}、{max_temper}、{temper_color} 等占位符。
+# 支持 %star%、%temper%、%max_temper%、%temper_color% 等占位符。
 name_actions:
   - action: "append_suffix"
-    value: " [+{star}]"
+    value: " [+%star%]"
 
 lore_actions:
   - action: "prepend"
     content:
-      - "<gradient:#F2C46D:#C9703D>强化等级 +{star}</gradient>"
-      - "<gray>锻印: {temper_color}{temper}/{max_temper}</gray>"
+      - "<gradient:#F2C46D:#C9703D>强化等级 +%star%</gradient>"
+      - "<gray>锻印: %temper_color%%temper%/%max_temper%</gray>"
 
 # ============================================================
 # 星级阶段定义

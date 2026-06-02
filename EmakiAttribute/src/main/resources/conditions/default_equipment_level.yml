@@ -22,9 +22,9 @@ invalid_as_failure: true
 
 # 条件列表
 # type: lore_regex → 通过正则表达式匹配物品 Lore
-# pattern: 正则表达式（捕获组 1 的值作为 {value}）
+# pattern: 正则表达式（捕获组 1 的值作为 %value%）
 # condition: 条件表达式
 conditions:
   - type: lore_regex
     pattern: "装备等级需求: Lv\\.(\\d+)"
-    condition: "{value} <= {player_level}"
+    condition: "%value% <= %player_level%"

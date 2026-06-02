@@ -40,7 +40,7 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
         this.plugin = plugin;
         this.itemAssemblyService = itemAssemblyService;
         this.snapshotBuilder = new ForgeLayerSnapshotBuilder(plugin);
-        this.pdcAttributeWriter = new ForgePdcAttributeWriter(plugin, "forge");
+        this.pdcAttributeWriter = new ForgePdcAttributeWriter(plugin);
         this.operationLedger = new ItemOperationLedger(plugin::debugLogger);
     }
 

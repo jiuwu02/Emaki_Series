@@ -127,14 +127,14 @@ public final class AppConfig extends BaseAppConfig {
         public ActionBarSettings {
             refreshIntervalTicks = Math.max(1, refreshIntervalTicks);
             templateCastMode = templateCastMode == null || templateCastMode.isBlank()
-                    ? "&aCast Mode &7| {slot_display}" : templateCastMode;
+                    ? "&aCast Mode &7| %slot_display%" : templateCastMode;
             templateIdle = templateIdle == null || templateIdle.isBlank()
                     ? "&7Idle" : templateIdle;
         }
 
         public static ActionBarSettings defaults() {
             return new ActionBarSettings(true, 10,
-                    "&aCast Mode &7| {slot_display}",
+                    "&aCast Mode &7| %slot_display%",
                     "&7Idle");
         }
     }

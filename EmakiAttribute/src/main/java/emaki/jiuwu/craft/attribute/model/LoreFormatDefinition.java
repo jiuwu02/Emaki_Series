@@ -15,7 +15,7 @@ public record LoreFormatDefinition(String id,
 
     public LoreFormatDefinition     {
         id = Texts.normalizeId(id);
-        format = Texts.isBlank(format) ? "{sign}{value} {name}" : Texts.toStringSafe(format).trim();
+        format = Texts.isBlank(format) ? "%sign%%value% %name%" : Texts.toStringSafe(format).trim();
         readPatterns = readPatterns == null ? List.of() : List.copyOf(readPatterns);
     }
 

@@ -51,7 +51,7 @@ permission: "emakicooking.recipe.baked_potato"
 condition:
   condition_type: all_of
   conditions:
-    - "{player_level} >= 2"
+    - "%player_level% >= 2"
   pass_actions:
     - 'sendmessage text="<gold>烤制条件满足。</gold>"'
   fail_actions:

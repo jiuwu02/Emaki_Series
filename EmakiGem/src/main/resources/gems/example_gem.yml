@@ -53,7 +53,7 @@ effects:
   - type: "name_action"
     name_actions:
       - action: "append_suffix"
-        value: " <red>[{display_name}]</red>"
+        value: " <red>[%display_name%]</red>"
   - type: "lore_action"
     lore_actions:
       # 第 1 个匹配替换成 ■；如果匹配数更少，会替换最后一个匹配。
@@ -69,7 +69,7 @@ effects:
           - "■"
       - action: "append"
         content:
-          - "<red>◆ {display_name}: 物理攻击+{physical_attack} 暴击率+{physical_crit_rate}%</red>"
+          - "<red>◆ %display_name%: 物理攻击+%physical_attack% 暴击率+%physical_crit_rate%%</red>"
 
 # ============================================================
 # 插槽兼容性
@@ -84,13 +84,13 @@ socket_compatibility:
 # 镶嵌费用
 # ============================================================
 # 镶嵌宝石时需要支付的货币和材料。
-# cost_formula 支持表达式，可引用 {base_cost}、{level} 等变量。
+# cost_formula 支持表达式，可引用 %base_cost%、%level% 等变量。
 inlay_cost:
   currencies:
     - provider: "vault"
       currency_id: ""
       base_cost: 1000
-      cost_formula: "{base_cost} * {level}"
+      cost_formula: "%base_cost% * %level%"
       display_name: "<gold>金币</gold>"
   materials:
     - item_sources:
@@ -106,7 +106,7 @@ extract_cost:
     - provider: "vault"
       currency_id: ""
       base_cost: 500
-      cost_formula: "{base_cost} * {level}"
+      cost_formula: "%base_cost% * %level%"
       display_name: "<gold>金币</gold>"
   materials:
     - item_sources:
@@ -145,7 +145,7 @@ upgrade:
       - provider: "vault"
         currency_id: ""
         base_cost: 2000
-        cost_formula: "{base_cost} * {target_level}"
+        cost_formula: "%base_cost% * %target_level%"
         display_name: "<gold>金币</gold>"
 
   # 各等级升级成功率
@@ -171,12 +171,12 @@ upgrade:
         - type: "name_action"
           name_actions:
             - action: "append_suffix"
-              value: " <red>[{display_name}]</red>"
+              value: " <red>[%display_name%]</red>"
         - type: "lore_action"
           lore_actions:
             - action: "append"
               content:
-                - "<red>◆ {display_name}: 物理攻击+{physical_attack} 暴击率+{physical_crit_rate}%</red>"
+                - "<red>◆ %display_name%: 物理攻击+%physical_attack% 暴击率+%physical_crit_rate%%</red>"
       # 升级所需材料
       materials:
         - item_sources:
@@ -205,12 +205,12 @@ upgrade:
         - type: "name_action"
           name_actions:
             - action: "append_suffix"
-              value: " <red>[{display_name}]</red>"
+              value: " <red>[%display_name%]</red>"
         - type: "lore_action"
           lore_actions:
             - action: "append"
               content:
-                - "<red>◆ {display_name}: 物理攻击+{physical_attack} 暴击率+{physical_crit_rate}%</red>"
+                - "<red>◆ %display_name%: 物理攻击+%physical_attack% 暴击率+%physical_crit_rate%%</red>"
       materials:
         - item_sources:
             - "minecraft-gold_ingot"
@@ -241,12 +241,12 @@ upgrade:
         - type: "name_action"
           name_actions:
             - action: "append_suffix"
-              value: " <red>[{display_name}]</red>"
+              value: " <red>[%display_name%]</red>"
         - type: "lore_action"
           lore_actions:
             - action: "append"
               content:
-                - "<red>◆ {display_name}: 物理攻击+{physical_attack} 暴击率+{physical_crit_rate}%</red>"
+                - "<red>◆ %display_name%: 物理攻击+%physical_attack% 暴击率+%physical_crit_rate%%</red>"
                 - "<gold>  ★ 解锁技能: 红宝石爆发</gold>"
       materials:
         - item_sources:
@@ -262,13 +262,13 @@ upgrade:
           - provider: "vault"
             currency_id: ""
             base_cost: 5000
-            cost_formula: "{base_cost}"
+            cost_formula: "%base_cost%"
             display_name: "<gold>金币</gold>"
       success_rate: 60.0
       failure_penalty: "downgrade"
       actions:
         success:
-          - 'sendmessage text="<gold>{player}</gold> <yellow>成功将红宝石升级至 IV！</yellow>"'
+          - 'sendmessage text="<gold>%player%</gold> <yellow>成功将红宝石升级至 IV！</yellow>"'
           - "playsound sound=minecraft:entity.player.levelup volume=1 pitch=1.5"
         failure:
           - 'sendmessage text="<red>升级失败，宝石降级了...</red>"'
