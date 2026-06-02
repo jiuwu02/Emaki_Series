@@ -85,25 +85,27 @@ public final class ItemTriggerListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onDrop(PlayerDropItemEvent event) {
-        EmakiItemDefinition definition = definition(event.getItemDrop().getItemStack());
-        if (definition == null || !passes(event.getPlayer(), definition, "drop")) {
+        ItemStack dropped = event.getItemDrop().getItemStack();
+        EmakiItemDefinition definition = definition(dropped);
+        if (definition == null || !passes(event.getPlayer(), definition, "drop", dropped)) {
             return;
         }
-        run(event.getPlayer(), definition, "drop", EMPTY_PLACEHOLDERS);
+        run(event.getPlayer(), definition, "drop", EMPTY_PLACEHOLDERS, dropped);
         if (event.getPlayer().isSneaking()) {
-            run(event.getPlayer(), definition, "shift_drop", EMPTY_PLACEHOLDERS);
+            run(event.getPlayer(), definition, "shift_drop", EMPTY_PLACEHOLDERS, dropped);
         }
     }
 
     @EventHandler(ignoreCancelled = true)
     public void onSwap(PlayerSwapHandItemsEvent event) {
-        EmakiItemDefinition definition = definition(event.getMainHandItem());
-        if (definition == null || !passes(event.getPlayer(), definition, "swap_hand")) {
+        ItemStack mainHandItem = event.getMainHandItem();
+        EmakiItemDefinition definition = definition(mainHandItem);
+        if (definition == null || !passes(event.getPlayer(), definition, "swap_hand", mainHandItem)) {
             return;
         }
-        run(event.getPlayer(), definition, "swap_hand", EMPTY_PLACEHOLDERS);
+        run(event.getPlayer(), definition, "swap_hand", EMPTY_PLACEHOLDERS, mainHandItem);
         if (event.getPlayer().isSneaking()) {
-            run(event.getPlayer(), definition, "shift_swap_hand", EMPTY_PLACEHOLDERS);
+            run(event.getPlayer(), definition, "shift_swap_hand", EMPTY_PLACEHOLDERS, mainHandItem);
         }
     }
 
@@ -229,9 +231,10 @@ public final class ItemTriggerListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onPlace(BlockPlaceEvent event) {
-        EmakiItemDefinition definition = definition(event.getItemInHand());
-        if (definition != null && passes(event.getPlayer(), definition, "place_block")) {
-            run(event.getPlayer(), definition, "place_block", Map.of("block", event.getBlock().getType().name()));
+        ItemStack placed = event.getItemInHand();
+        EmakiItemDefinition definition = definition(placed);
+        if (definition != null && passes(event.getPlayer(), definition, "place_block", placed)) {
+            run(event.getPlayer(), definition, "place_block", Map.of("block", event.getBlock().getType().name()), placed);
         }
     }
 
@@ -253,17 +256,22 @@ public final class ItemTriggerListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onConsume(PlayerItemConsumeEvent event) {
-        EmakiItemDefinition definition = definition(event.getItem());
-        if (definition == null || !passes(event.getPlayer(), definition, "consume")) {
+        ItemStack consumed = event.getItem();
+        EmakiItemDefinition definition = definition(consumed);
+        if (definition == null || !passes(event.getPlayer(), definition, "consume", consumed)) {
             return;
         }
         run(event.getPlayer(), definition, "consume", Map.of(
-                "consumed_item", event.getItem().getType().name()
-        ));
+                "consumed_item", consumed.getType().name()
+        ), consumed);
     }
 
     private EmakiItemDefinition held(Player player) {
-        return player == null ? null : definition(player.getInventory().getItemInMainHand());
+        return definition(heldItem(player));
+    }
+
+    private ItemStack heldItem(Player player) {
+        return player == null ? null : player.getInventory().getItemInMainHand();
     }
 
     private EmakiItemDefinition definition(ItemStack itemStack) {
@@ -272,10 +280,14 @@ public final class ItemTriggerListener implements Listener {
     }
 
     private boolean passes(Player player, EmakiItemDefinition definition, String trigger) {
+        return passes(player, definition, trigger, heldItem(player));
+    }
+
+    private boolean passes(Player player, EmakiItemDefinition definition, String trigger, ItemStack itemStack) {
         if (definition.repair().enabled() && isHeldItemDisabled(player)) {
             return false;
         }
-        return plugin.conditionChecker().passes(player, definition, trigger);
+        return plugin.conditionChecker().passes(player, definition, trigger, itemStack);
     }
 
     private boolean isHeldItemDisabled(Player player) {
@@ -292,7 +304,11 @@ public final class ItemTriggerListener implements Listener {
     }
 
     private void run(Player player, EmakiItemDefinition definition, String trigger, Map<String, ?> placeholders) {
-        plugin.actionService().execute(player, definition, trigger, placeholders);
+        run(player, definition, trigger, placeholders, heldItem(player));
+    }
+
+    private void run(Player player, EmakiItemDefinition definition, String trigger, Map<String, ?> placeholders, ItemStack itemStack) {
+        plugin.actionService().execute(player, definition, trigger, placeholders, itemStack);
     }
 
     private Player playerDamager(Entity damager) {

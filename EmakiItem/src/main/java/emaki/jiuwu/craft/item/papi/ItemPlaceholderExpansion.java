@@ -1,5 +1,7 @@
 package emaki.jiuwu.craft.item.papi;
 
+import java.util.Locale;
+
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
@@ -42,12 +44,29 @@ public final class ItemPlaceholderExpansion extends PlaceholderExpansion {
         if (player == null) {
             return "";
         }
-        return switch (params.toLowerCase()) {
-            case "held_id" -> plugin.identifier().identify(player.getInventory().getItemInMainHand());
-            case "held_name" -> resolveHeldName(player.getInventory().getItemInMainHand());
+        ItemStack held = player.getInventory().getItemInMainHand();
+        String normalized = params.toLowerCase(Locale.ROOT);
+        return switch (normalized) {
+            case "held_id" -> plugin.identifier().identify(held);
+            case "held_name" -> resolveHeldName(held);
+            case "held_components" -> plugin.componentInspector().idList(held);
+            case "held_components_raw" -> plugin.componentInspector().raw(held);
             case "loaded_count" -> Integer.toString(plugin.itemLoader().all().size());
-            default -> "";
+            default -> resolveComponentPlaceholder(held, normalized);
         };
+    }
+
+    private String resolveComponentPlaceholder(ItemStack held, String params) {
+        if (params.startsWith("held_component_has_")) {
+            return plugin.componentInspector().contains(held, params.substring("held_component_has_".length())) ? "1" : "0";
+        }
+        if (params.startsWith("held_component_value_")) {
+            return plugin.componentInspector().value(held, params.substring("held_component_value_".length()));
+        }
+        if (params.startsWith("held_component_json_")) {
+            return plugin.componentInspector().prettyJson(held, params.substring("held_component_json_".length()));
+        }
+        return "";
     }
 
     private String resolveHeldName(ItemStack item) {

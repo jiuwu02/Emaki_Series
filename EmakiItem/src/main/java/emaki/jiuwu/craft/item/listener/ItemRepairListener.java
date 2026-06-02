@@ -77,7 +77,8 @@ public final class ItemRepairListener implements Listener {
                     definition,
                     "on_repaired",
                     repairConfig.onRepairedActions(),
-                    Map.of("item_id", definition.id())
+                    Map.of("item_id", definition.id()),
+                    clicked
             );
         }
 

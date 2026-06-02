@@ -15,6 +15,12 @@ public final class PlaceholderRegistry {
         }
     }
 
+    public void unregister(PlaceholderResolver resolver) {
+        if (resolver != null) {
+            resolvers.remove(resolver);
+        }
+    }
+
     public String resolve(ActionContext context, String text) {
         if (text == null || text.isEmpty() || !containsPlaceholderMarker(text)) {
             return text;

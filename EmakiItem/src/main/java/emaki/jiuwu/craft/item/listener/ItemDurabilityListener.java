@@ -67,7 +67,8 @@ public final class ItemDurabilityListener implements Listener {
                         definition,
                         "on_disabled",
                         repairConfig.onDisabledActions(),
-                        Map.of("item_id", definition.id())
+                        Map.of("item_id", definition.id()),
+                        itemStack
                 );
             }
         }

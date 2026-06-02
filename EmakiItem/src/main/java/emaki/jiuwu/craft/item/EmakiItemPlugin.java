@@ -36,6 +36,8 @@ import emaki.jiuwu.craft.item.service.EmakiItemIdentifier;
 import emaki.jiuwu.craft.item.service.EmakiItemPdcWriter;
 import emaki.jiuwu.craft.item.service.EmakiItemSetService;
 import emaki.jiuwu.craft.item.service.EmakiItemUpdateService;
+import emaki.jiuwu.craft.item.service.ItemComponentInspector;
+import emaki.jiuwu.craft.item.service.ItemComponentPlaceholderResolver;
 
 public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider {
 
@@ -68,6 +70,8 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     private EmakiItemActionService actionService;
     private EmakiItemConditionChecker conditionChecker;
     private EmakiItemApi itemApi;
+    private ItemComponentInspector componentInspector;
+    private ItemComponentPlaceholderResolver componentPlaceholderResolver;
     private ItemSourceService itemSourceService;
     private PdcAttributeGateway pdcAttributeGateway;
 
@@ -124,6 +128,8 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         actionService = components.actionService();
         conditionChecker = components.conditionChecker();
         itemApi = components.itemApi();
+        componentInspector = components.componentInspector();
+        componentPlaceholderResolver = components.componentPlaceholderResolver();
         itemSourceService = components.itemSourceService();
         pdcAttributeGateway = components.pdcAttributeGateway();
         setDebugLogger(new DebugLogger(getLogger(), languageLoader));
@@ -212,6 +218,14 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
 
     public EmakiItemApi itemApi() {
         return itemApi;
+    }
+
+    public ItemComponentInspector componentInspector() {
+        return componentInspector;
+    }
+
+    public ItemComponentPlaceholderResolver componentPlaceholderResolver() {
+        return componentPlaceholderResolver;
     }
 
     public ItemSourceService itemSourceService() {

@@ -48,6 +48,7 @@ command:
       list: "分页列出物品 ID"
       give: "给予玩家物品"
       inspect: "检查主手 EmakiItem"
+      components: "输出主手物品组件 JSON"
       update: "刷新玩家物品更新和套装 Lore"
       reload: "重载配置和物品定义"
       debug: "管理 Debug 模式"
@@ -57,6 +58,11 @@ command:
   inspect:
     header: "<aqua>{player}</aqua><gray> 主手物品</gray>"
     line: "<gray>{key}: <white>{value}</white></gray>"
+  components:
+    header: "<aqua>{player}</aqua><gray> 主手物品组件</gray> <dark_gray>({count} 个)</dark_gray>"
+    no_item: "<red><white>{player}</white> 主手没有物品。</red>"
+    empty: "<yellow><white>{player}</white> 主手物品没有可展示组件。</yellow>"
+    not_found: "<red>找不到组件: <white>{id}</white></red>"
 
 # Debug 模式消息
 debug:

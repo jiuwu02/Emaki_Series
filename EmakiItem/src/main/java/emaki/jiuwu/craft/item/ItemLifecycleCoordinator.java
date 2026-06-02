@@ -35,6 +35,8 @@ import emaki.jiuwu.craft.item.service.EmakiItemPdcWriter;
 import emaki.jiuwu.craft.item.service.EmakiItemSetService;
 import emaki.jiuwu.craft.item.service.EmakiItemSourceResolver;
 import emaki.jiuwu.craft.item.service.EmakiItemUpdateService;
+import emaki.jiuwu.craft.item.service.ItemComponentInspector;
+import emaki.jiuwu.craft.item.service.ItemComponentPlaceholderResolver;
 import emaki.jiuwu.craft.item.service.ItemSetLoreRenderer;
 
 final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiItemPlugin, ItemRuntimeComponents> {
@@ -105,6 +107,9 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                 plugin::appConfig
         );
         DefaultEmakiItemApi itemApi = new DefaultEmakiItemApi(itemLoader, itemFactory, identifier);
+        ItemComponentInspector componentInspector = new ItemComponentInspector();
+        ItemComponentPlaceholderResolver componentPlaceholderResolver = new ItemComponentPlaceholderResolver(componentInspector);
+        coreLibPlugin.placeholderRegistry().register(componentPlaceholderResolver);
         EmakiItemActionService actionService = new EmakiItemActionService(plugin, coreLibPlugin.actionExecutor());
         EmakiItemConditionChecker conditionChecker = new EmakiItemConditionChecker(plugin, coreLibPlugin.placeholderRegistry(), actionService);
         return new ItemRuntimeComponents(
@@ -122,6 +127,8 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                 actionService,
                 conditionChecker,
                 itemApi,
+                componentInspector,
+                componentPlaceholderResolver,
                 coreLibPlugin.itemSourceService(),
                 pdcAttributeGateway,
                 pdcService
@@ -189,6 +196,10 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
     public void shutdown(EmakiItemPlugin plugin) {
         if (plugin.messageService() != null) {
             plugin.messageService().info("console.plugin_stopping");
+        }
+        EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        if (coreLibPlugin.placeholderRegistry() != null && plugin.componentPlaceholderResolver() != null) {
+            coreLibPlugin.placeholderRegistry().unregister(plugin.componentPlaceholderResolver());
         }
         plugin.getServer().getServicesManager().unregister(EmakiItemApi.class, plugin.itemApi());
         if (plugin.itemSourceService() != null) {

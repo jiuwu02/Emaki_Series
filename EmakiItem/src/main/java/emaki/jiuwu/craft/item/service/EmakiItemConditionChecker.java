@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.item.service;
 import java.util.Map;
 
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
@@ -29,6 +30,10 @@ public final class EmakiItemConditionChecker {
     }
 
     public boolean passes(Player player, EmakiItemDefinition definition, String trigger) {
+        return passes(player, definition, trigger, null);
+    }
+
+    public boolean passes(Player player, EmakiItemDefinition definition, String trigger, ItemStack itemStack) {
         if (player == null || definition == null) {
             return false;
         }
@@ -36,7 +41,7 @@ public final class EmakiItemConditionChecker {
         if (conditions == null || !conditions.configured()) {
             return true;
         }
-        ActionContext context = actionService.context(player, definition, trigger, Map.of());
+        ActionContext context = actionService.context(player, definition, trigger, Map.of(), itemStack);
         boolean passes = ConditionEvaluator.evaluate(
                 conditions.entries(),
                 conditions.type(),
@@ -46,13 +51,13 @@ public final class EmakiItemConditionChecker {
         );
         if (passes) {
             if (!conditions.passActions().isEmpty()) {
-                actionService.executeLines(player, definition, "condition_pass", conditions.passActions(), Map.of());
+                actionService.executeLines(player, definition, "condition_pass", conditions.passActions(), Map.of(), itemStack);
             }
         } else {
             if (Texts.isNotBlank(conditions.denyMessage())) {
                 AdventureSupport.sendMessage(plugin, player, MiniMessages.parse(conditions.denyMessage()));
             }
-            actionService.executeLines(player, definition, "condition_fail", conditions.failActions(), Map.of());
+            actionService.executeLines(player, definition, "condition_fail", conditions.failActions(), Map.of(), itemStack);
         }
         return passes;
     }

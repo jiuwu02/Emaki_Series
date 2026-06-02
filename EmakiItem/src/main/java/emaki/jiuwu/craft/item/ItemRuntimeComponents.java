@@ -21,6 +21,8 @@ import emaki.jiuwu.craft.item.service.EmakiItemIdentifier;
 import emaki.jiuwu.craft.item.service.EmakiItemPdcWriter;
 import emaki.jiuwu.craft.item.service.EmakiItemSetService;
 import emaki.jiuwu.craft.item.service.EmakiItemUpdateService;
+import emaki.jiuwu.craft.item.service.ItemComponentInspector;
+import emaki.jiuwu.craft.item.service.ItemComponentPlaceholderResolver;
 
 record ItemRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
         LanguageLoader languageLoader,
@@ -36,6 +38,8 @@ record ItemRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
         EmakiItemActionService actionService,
         EmakiItemConditionChecker conditionChecker,
         EmakiItemApi itemApi,
+        ItemComponentInspector componentInspector,
+        ItemComponentPlaceholderResolver componentPlaceholderResolver,
         ItemSourceService itemSourceService,
         PdcAttributeGateway pdcAttributeGateway,
         PdcService pdcService) implements RuntimeComponents {
@@ -57,6 +61,8 @@ record ItemRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
                 RuntimeComponents.component(EmakiItemActionService.class, actionService),
                 RuntimeComponents.component(EmakiItemConditionChecker.class, conditionChecker),
                 RuntimeComponents.component(EmakiItemApi.class, itemApi),
+                RuntimeComponents.component(ItemComponentInspector.class, componentInspector),
+                RuntimeComponents.component(ItemComponentPlaceholderResolver.class, componentPlaceholderResolver),
                 RuntimeComponents.component(ItemSourceService.class, itemSourceService),
                 RuntimeComponents.component(PdcAttributeGateway.class, pdcAttributeGateway),
                 RuntimeComponents.component(PdcService.class, pdcService)

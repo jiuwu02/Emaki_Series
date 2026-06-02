@@ -48,6 +48,7 @@ command:
       list: "List item ids"
       give: "Give an item to a player"
       inspect: "Inspect held EmakiItem"
+      components: "Print held item components as JSON"
       update: "Refresh item updates and set lore"
       reload: "Reload config and items"
       debug: "Manage debug tracking"
@@ -57,6 +58,11 @@ command:
   inspect:
     header: "<gold>{player}</gold><gray> held item</gray>"
     line: "<gray>{key}: <white>{value}</white></gray>"
+  components:
+    header: "<gold>{player}</gold><gray> held item components</gray> <dark_gray>({count})</dark_gray>"
+    no_item: "<red><white>{player}</white> is not holding an item.</red>"
+    empty: "<yellow><white>{player}</white>'s held item has no displayable components.</yellow>"
+    not_found: "<red>Component not found: <white>{id}</white></red>"
 
 # Debug mode messages
 debug:
