@@ -18,11 +18,12 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
+import emaki.jiuwu.craft.corelib.async.TaskHandle;
 
 public abstract class AbstractPlayerItemRefreshListener implements Listener {
 
     private final JavaPlugin plugin;
-    private final Map<UUID, Object> scheduledRefreshes = new HashMap<>();
+    private final Map<UUID, TaskHandle> scheduledRefreshes = new HashMap<>();
 
     protected AbstractPlayerItemRefreshListener(JavaPlugin plugin) {
         this.plugin = Objects.requireNonNull(plugin, "plugin");
@@ -71,7 +72,7 @@ public abstract class AbstractPlayerItemRefreshListener implements Listener {
 
     @EventHandler
     public final void onQuit(PlayerQuitEvent event) {
-        Object task = scheduledRefreshes.remove(event.getPlayer().getUniqueId());
+        TaskHandle task = scheduledRefreshes.remove(event.getPlayer().getUniqueId());
         FoliaSchedulerAdapter.cancelTask(task);
     }
 
@@ -83,7 +84,7 @@ public abstract class AbstractPlayerItemRefreshListener implements Listener {
         if (scheduledRefreshes.containsKey(playerId)) {
             return;
         }
-        Object task = FoliaSchedulerAdapter.runEntityTask(plugin, player, () -> {
+        TaskHandle task = FoliaSchedulerAdapter.runEntityTask(plugin, player, () -> {
             scheduledRefreshes.remove(playerId);
             if (!player.isOnline()) {
                 return;
@@ -93,6 +94,8 @@ public abstract class AbstractPlayerItemRefreshListener implements Listener {
                 refreshService.refreshPlayerInventory(player);
             }
         });
-        scheduledRefreshes.put(playerId, task);
+        if (task != null) {
+            scheduledRefreshes.put(playerId, task);
+        }
     }
 }

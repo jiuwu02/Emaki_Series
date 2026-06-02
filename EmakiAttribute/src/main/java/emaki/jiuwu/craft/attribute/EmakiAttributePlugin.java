@@ -33,6 +33,7 @@ import emaki.jiuwu.craft.attribute.service.AttributeService;
 import emaki.jiuwu.craft.attribute.service.MessageService;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.api.integration.EmakiAttributeBridge;
+import emaki.jiuwu.craft.corelib.async.TaskHandle;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.plugin.AbstractEmakiPlugin;
@@ -76,7 +77,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
     private MythicBridge mythicBridge;
     private MmoItemsBridge mmoItemsBridge;
     private AttributePlaceholderExpansion placeholderExpansion;
-    private Object regenTask;
+    private TaskHandle regenTask;
     private CompletableFuture<Void> reloadFuture;
 
     @Override

@@ -16,6 +16,7 @@ import org.bukkit.command.PluginCommand;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
 import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
+import emaki.jiuwu.craft.corelib.async.TaskHandle;
 
 import emaki.jiuwu.craft.attribute.bridge.ServiceBackedEmakiAttributeBridge;
 import emaki.jiuwu.craft.attribute.bridge.MythicBridge;
@@ -130,7 +131,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         }
     }
 
-    public Object reload(EmakiAttributePlugin plugin, Object currentTask, boolean resyncPlayers) {
+    public TaskHandle reload(EmakiAttributePlugin plugin, TaskHandle currentTask, boolean resyncPlayers) {
         if (plugin.languageLoader() != null) {
             plugin.languageLoader().load();
         }
@@ -162,8 +163,8 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         return rescheduleRegenTask(plugin, currentTask);
     }
 
-    public CompletableFuture<Object> reloadAsync(EmakiAttributePlugin plugin,
-            Object currentTask,
+    public CompletableFuture<TaskHandle> reloadAsync(EmakiAttributePlugin plugin,
+            TaskHandle currentTask,
             boolean resyncPlayers,
             Consumer<String> progressListener) {
         AsyncTaskScheduler scheduler = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).asyncTaskScheduler();
@@ -254,14 +255,14 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
             if (plugin.attributeService() != null && resyncPlayers) {
                 plugin.attributeService().resyncAllPlayers();
             }
-            Object nextTask = rescheduleRegenTask(plugin, currentTask);
+            TaskHandle nextTask = rescheduleRegenTask(plugin, currentTask);
             notifyProgress(progressListener, "EmakiAttribute 重载完成。");
             return nextTask;
         }));
     }
 
-    public Object rescheduleRegenTask(EmakiAttributePlugin plugin, Object currentTask) {
-        Object nextTask = cancelRegenTask(currentTask);
+    public TaskHandle rescheduleRegenTask(EmakiAttributePlugin plugin, TaskHandle currentTask) {
+        TaskHandle nextTask = cancelRegenTask(currentTask);
         if (plugin.attributeService() == null) {
             return nextTask;
         }
@@ -274,12 +275,12 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         );
     }
 
-    public Object cancelRegenTask(Object currentTask) {
+    public TaskHandle cancelRegenTask(TaskHandle currentTask) {
         FoliaSchedulerAdapter.cancelTask(currentTask);
         return null;
     }
 
-    public void shutdown(EmakiAttributePlugin plugin, Object currentTask) {
+    public void shutdown(EmakiAttributePlugin plugin, TaskHandle currentTask) {
         cancelRegenTask(currentTask);
         if (plugin.attributeService() != null) {
             plugin.attributeService().shutdown();

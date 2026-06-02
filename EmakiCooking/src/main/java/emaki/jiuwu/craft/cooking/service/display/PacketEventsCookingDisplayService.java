@@ -25,6 +25,7 @@ import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.cooking.service.CookingSettingsService;
 import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
+import emaki.jiuwu.craft.corelib.async.TaskHandle;
 import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -51,7 +52,7 @@ public final class PacketEventsCookingDisplayService implements CookingDisplaySe
     private final Map<String, Set<String>> displaysByStation = new LinkedHashMap<>();
     private final Set<String> animatingStations = new LinkedHashSet<>();
     private final DisplayVisibilityListener listener = new DisplayVisibilityListener();
-    private final Object refreshTask;
+    private final TaskHandle refreshTask;
 
     public PacketEventsCookingDisplayService(JavaPlugin plugin, CookingSettingsService settingsService) {
         this.plugin = plugin;

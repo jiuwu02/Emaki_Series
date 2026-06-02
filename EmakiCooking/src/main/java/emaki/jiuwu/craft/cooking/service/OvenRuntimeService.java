@@ -17,6 +17,7 @@ import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplayService;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplaySpec;
 import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
+import emaki.jiuwu.craft.corelib.async.TaskHandle;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
@@ -51,8 +52,8 @@ public final class OvenRuntimeService implements Listener {
     private final Map<StationCoordinates, OvenState> runtimeStates = new ConcurrentHashMap<>();
     private final Set<StationCoordinates> activeStations = ConcurrentHashMap.newKeySet();
     private final Set<StationCoordinates> dirtyStations = ConcurrentHashMap.newKeySet();
-    private Object tickerTask;
-    private Object flushTask;
+    private TaskHandle tickerTask;
+    private TaskHandle flushTask;
 
     public OvenRuntimeService(EmakiCookingPlugin plugin,
             MessageService messageService,

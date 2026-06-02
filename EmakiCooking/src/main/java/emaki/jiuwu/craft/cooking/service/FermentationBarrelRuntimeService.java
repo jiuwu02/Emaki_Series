@@ -17,6 +17,7 @@ import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplayService;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplaySpec;
 import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
+import emaki.jiuwu.craft.corelib.async.TaskHandle;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
@@ -50,7 +51,7 @@ public final class FermentationBarrelRuntimeService implements Listener {
     private final CookingTextDisplayService textDisplayService;
     private final Map<StationCoordinates, FermentationBarrelState> runtimeStates = new ConcurrentHashMap<>();
     private final Set<StationCoordinates> activeStations = ConcurrentHashMap.newKeySet();
-    private Object tickerTask;
+    private TaskHandle tickerTask;
 
     public FermentationBarrelRuntimeService(EmakiCookingPlugin plugin, MessageService messageService, CookingSettingsService settingsService,
             CookingBlockMatcher blockMatcher, StationStateStore stateStore, CookingRecipeService recipeService,

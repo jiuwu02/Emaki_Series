@@ -8,6 +8,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.ServicePriority;
 
+import emaki.jiuwu.craft.corelib.async.TaskHandle;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
@@ -67,7 +68,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     private ForgeGuiService forgeGuiService;
     private RecipeBookGuiService recipeBookGuiService;
     private ForgePlaceholderExpansion placeholderExpansion;
-    private Object autoSaveTask;
+    private TaskHandle autoSaveTask;
     private DebugCommand debugCommand;
     private EmakiForgeApi forgeApi;
 

@@ -8,6 +8,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
+import emaki.jiuwu.craft.corelib.async.TaskHandle;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.AdventureSupport;
 import emaki.jiuwu.craft.skills.config.AppConfig;
@@ -26,7 +27,7 @@ public final class ActionBarService {
     private final TriggerRegistry triggerRegistry;
     private final Supplier<Map<String, SkillDefinition>> skillDefsSupplier;
     private final MessageService messageService;
-    private Object refreshTask;
+    private TaskHandle refreshTask;
 
     public ActionBarService(JavaPlugin plugin,
             PlayerSkillDataStore dataStore,

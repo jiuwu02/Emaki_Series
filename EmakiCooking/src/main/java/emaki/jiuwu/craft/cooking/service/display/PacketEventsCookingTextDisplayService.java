@@ -25,6 +25,7 @@ import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.cooking.service.CookingSettingsService;
 import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
+import emaki.jiuwu.craft.corelib.async.TaskHandle;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -45,7 +46,7 @@ public final class PacketEventsCookingTextDisplayService implements CookingTextD
     private final CookingSettingsService settingsService;
     private final Map<String, VirtualText> displays = new LinkedHashMap<>();
     private final Map<String, Set<String>> displaysByStation = new LinkedHashMap<>();
-    private final Object refreshTask;
+    private final TaskHandle refreshTask;
 
     public PacketEventsCookingTextDisplayService(JavaPlugin plugin, CookingSettingsService settingsService) {
         this.plugin = plugin;

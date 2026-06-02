@@ -12,6 +12,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
+import emaki.jiuwu.craft.corelib.async.TaskHandle;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
@@ -111,7 +112,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         );
     }
 
-    public Object reload(EmakiForgePlugin plugin, Object currentTask, boolean closeOpenInventories) {
+    public TaskHandle reload(EmakiForgePlugin plugin, TaskHandle currentTask, boolean closeOpenInventories) {
         if (closeOpenInventories) {
             closeOpenInventories(plugin);
         }
@@ -135,7 +136,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         return rescheduleAutoSave(plugin, currentTask);
     }
 
-    public CompletableFuture<Object> reloadAsync(EmakiForgePlugin plugin, Object currentTask,
+    public CompletableFuture<TaskHandle> reloadAsync(EmakiForgePlugin plugin, TaskHandle currentTask,
             boolean closeOpenInventories, Consumer<String> progressListener) {
         AsyncTaskScheduler scheduler = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).asyncTaskScheduler();
         if (scheduler == null) {
@@ -179,8 +180,8 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         });
     }
 
-    public Object rescheduleAutoSave(EmakiForgePlugin plugin, Object currentTask) {
-        Object nextTask = cancelAutoSave(currentTask);
+    public TaskHandle rescheduleAutoSave(EmakiForgePlugin plugin, TaskHandle currentTask) {
+        TaskHandle nextTask = cancelAutoSave(currentTask);
         AppConfig config = plugin.appConfig();
         if (config.historyEnabled() && config.historyAutoSave()) {
             nextTask = FoliaSchedulerAdapter.runTaskTimer(
@@ -193,12 +194,12 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         return nextTask;
     }
 
-    public Object cancelAutoSave(Object currentTask) {
+    public TaskHandle cancelAutoSave(TaskHandle currentTask) {
         FoliaSchedulerAdapter.cancelTask(currentTask);
         return null;
     }
 
-    public void shutdown(EmakiForgePlugin plugin, Object autoSaveTask) {
+    public void shutdown(EmakiForgePlugin plugin, TaskHandle autoSaveTask) {
         if (plugin.messageService() != null) {
             plugin.messageService().info("console.plugin_stopping");
         }
