@@ -14,6 +14,7 @@ public record ScriptConfig(boolean enabled,
         Action action,
         Context context,
         Security security,
+        ServerApi serverApi,
         Debug debug) {
 
     public static ScriptConfig defaults() {
@@ -24,6 +25,7 @@ public record ScriptConfig(boolean enabled,
                 Action.defaults(),
                 Context.defaults(),
                 Security.defaults(),
+                ServerApi.defaults(),
                 Debug.defaults()
         );
     }
@@ -39,6 +41,7 @@ public record ScriptConfig(boolean enabled,
                 Action.fromConfig(section.getSection("action")),
                 Context.fromConfig(section.getSection("context")),
                 Security.fromConfig(section.getSection("security")),
+                ServerApi.fromConfig(section.getSection("server_api")),
                 Debug.fromConfig(section.getSection("debug"))
         );
     }
@@ -95,7 +98,7 @@ public record ScriptConfig(boolean enabled,
     public record Paths(String root, List<String> createDirectories) {
 
         public static Paths defaults() {
-            return new Paths("scripts", List.of("global", "templates", "examples"));
+            return new Paths("scripts", List.of("global", "forge", "strengthen", "cooking", "gem", "skills", "item", "attribute", "extensions/skills", "extensions/attribute", "extensions/global", "templates", "examples"));
         }
 
         public static Paths fromConfig(YamlSection section) {
@@ -189,6 +192,33 @@ public record ScriptConfig(boolean enabled,
                     deniedActions.isEmpty() ? defaults.deniedActionsFromScript() : List.copyOf(deniedActions),
                     section.getBoolean("allow_action_dispatch", defaults.allowActionDispatch()),
                     Math.max(0, Numbers.tryParseInt(section.get("max_action_depth"), defaults.maxActionDepth()))
+            );
+        }
+    }
+
+    public record ServerApi(boolean enabled,
+            boolean allowTypeAccess,
+            List<String> allowedTypePrefixes,
+            boolean allowConsoleCommand) {
+
+        public static ServerApi defaults() {
+            return new ServerApi(true, false, List.of("org.bukkit.", "io.papermc.paper."), false);
+        }
+
+        public static ServerApi fromConfig(YamlSection section) {
+            ServerApi defaults = defaults();
+            if (section == null) {
+                return defaults;
+            }
+            List<String> prefixes = section.getStringList("allowed_type_prefixes").stream()
+                    .map(Texts::trim)
+                    .filter(Texts::isNotBlank)
+                    .toList();
+            return new ServerApi(
+                    section.getBoolean("enabled", defaults.enabled()),
+                    section.getBoolean("allow_type_access", defaults.allowTypeAccess()),
+                    prefixes.isEmpty() ? defaults.allowedTypePrefixes() : List.copyOf(prefixes),
+                    section.getBoolean("allow_console_command", defaults.allowConsoleCommand())
             );
         }
     }

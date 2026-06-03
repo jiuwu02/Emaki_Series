@@ -32,7 +32,11 @@ import emaki.jiuwu.craft.attribute.loader.LoreFormatRegistry;
 import emaki.jiuwu.craft.attribute.loader.PdcReadRuleLoader;
 import emaki.jiuwu.craft.attribute.papi.AttributePlaceholderExpansion;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
+import emaki.jiuwu.craft.attribute.service.AttributeServiceFacade;
 import emaki.jiuwu.craft.attribute.service.MessageService;
+import emaki.jiuwu.craft.attribute.script.js.JavaScriptAttributeExtensionLoader;
+import emaki.jiuwu.craft.attribute.script.js.JavaScriptDamageHookListener;
+import emaki.jiuwu.craft.attribute.script.js.JavaScriptDamageHookRegistry;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.api.integration.EmakiAttributeBridge;
 import emaki.jiuwu.craft.corelib.async.TaskHandle;
@@ -54,7 +58,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
    \\/_____/\\/_/  \\/_/\\/_/\\/_/\\/_/\\/_/ \\/_/\\/_/\\/_/  \\/_/    \\/_/  \\/_/ /_/\\/_/\\/_____/\\/_____/  \\/_/  \\/_____/
                                                                                                                 
 """;
-    private static final int BSTATS_PLUGIN_ID = 31764
+    private static final int BSTATS_PLUGIN_ID = 31764;
 
     private Metrics metrics;
 
@@ -82,6 +86,8 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
     private MythicBridge mythicBridge;
     private MmoItemsBridge mmoItemsBridge;
     private AttributePlaceholderExpansion placeholderExpansion;
+    private JavaScriptDamageHookRegistry javaScriptDamageHookRegistry;
+    private JavaScriptAttributeExtensionLoader javaScriptAttributeExtensionLoader;
     private TaskHandle regenTask;
     private CompletableFuture<Void> reloadFuture;
 
@@ -90,6 +96,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         applyRuntimeComponents(lifecycleCoordinator.initialize(this));
         registerAttributeBridgeService();
         registerPdcAttributeApi();
+        registerAttributeServiceFacade();
         ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII);
         reloadPluginState(true);
         ensureMmoItemsBridge();
@@ -106,6 +113,10 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
     @Override
     public void onDisable() {
         unregisterCoreLibActions();
+        if (javaScriptAttributeExtensionLoader != null) {
+            javaScriptAttributeExtensionLoader.close();
+            javaScriptAttributeExtensionLoader = null;
+        }
         WebConsoleRegistry.unregisterModule(this);
         Bukkit.getServicesManager().unregisterAll(this);
         lifecycleCoordinator.shutdown(this, regenTask);
@@ -154,6 +165,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
 
     public void reloadPluginState(boolean resyncPlayers) {
         regenTask = lifecycleCoordinator.reload(this, regenTask, resyncPlayers);
+        reloadJavaScriptAttributeExtensions();
         registerCoreLibActions();
     }
 
@@ -167,6 +179,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         reloadFuture = lifecycleCoordinator.reloadAsync(this, regenTask, resyncPlayers, progressListener)
                 .thenAccept(task -> {
                     regenTask = task;
+                    reloadJavaScriptAttributeExtensions();
                     registerCoreLibActions();
                 })
                 .whenComplete((_, throwable) -> {
@@ -223,6 +236,14 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         }
         Bukkit.getServicesManager().unregister(EmakiAttributeBridge.class, emakiAttributeBridge);
         Bukkit.getServicesManager().register(EmakiAttributeBridge.class, emakiAttributeBridge, this, ServicePriority.Normal);
+    }
+
+    private void registerAttributeServiceFacade() {
+        if (attributeService == null) {
+            return;
+        }
+        Bukkit.getServicesManager().unregister(AttributeServiceFacade.class, attributeService);
+        Bukkit.getServicesManager().register(AttributeServiceFacade.class, attributeService, this, ServicePriority.Normal);
     }
 
     void setConfigModel(AttributeConfig configModel) {
@@ -301,6 +322,10 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         return placeholderExpansion;
     }
 
+    public JavaScriptDamageHookRegistry javaScriptDamageHookRegistry() {
+        return javaScriptDamageHookRegistry;
+    }
+
     public DebugCommand debugCommand() {
         return debugCommand;
     }
@@ -338,6 +363,26 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
             return;
         }
         AttributeActions.registerAll(coreLibPlugin.actionRegistry(), attributeService);
+    }
+
+    private void reloadJavaScriptAttributeExtensions() {
+        EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        if (javaScriptAttributeExtensionLoader != null) {
+            javaScriptAttributeExtensionLoader.close();
+        }
+        if (coreLibPlugin.javaScriptService() == null || attributeService == null) {
+            return;
+        }
+        if (javaScriptDamageHookRegistry == null) {
+            javaScriptDamageHookRegistry = new JavaScriptDamageHookRegistry(this, coreLibPlugin.javaScriptService(), coreLibPlugin.configModel().scriptConfig());
+        }
+        javaScriptAttributeExtensionLoader = new JavaScriptAttributeExtensionLoader(
+                this,
+                coreLibPlugin.javaScriptService(),
+                coreLibPlugin.configModel().scriptConfig(),
+                javaScriptDamageHookRegistry
+        );
+        javaScriptAttributeExtensionLoader.reload();
     }
 
     private void unregisterCoreLibActions() {

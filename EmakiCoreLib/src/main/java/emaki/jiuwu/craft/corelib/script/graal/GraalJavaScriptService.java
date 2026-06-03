@@ -21,6 +21,7 @@ import emaki.jiuwu.craft.corelib.script.JavaScriptService;
 import emaki.jiuwu.craft.corelib.script.ScriptConfig;
 import emaki.jiuwu.craft.corelib.script.ScriptExecutionRequest;
 import emaki.jiuwu.craft.corelib.script.ScriptExecutionResult;
+import emaki.jiuwu.craft.corelib.script.ScriptInvocationRequest;
 import emaki.jiuwu.craft.corelib.script.ScriptReloadResult;
 import emaki.jiuwu.craft.corelib.script.ScriptRepository;
 import emaki.jiuwu.craft.corelib.script.ScriptSource;
@@ -53,6 +54,23 @@ public final class GraalJavaScriptService implements JavaScriptService {
 
     @Override
     public ScriptExecutionResult execute(ScriptExecutionRequest request) {
+        if (request == null) {
+            return ScriptExecutionResult.failure("Script request cannot be null.");
+        }
+        return invoke(new ScriptInvocationRequest(
+                request.sourcePlugin(),
+                request.actionContext(),
+                request.scriptPath(),
+                request.functionName(),
+                List.of(request.actionContext()),
+                request.arguments(),
+                request.timeoutMillis(),
+                request.silent()
+        ));
+    }
+
+    @Override
+    public ScriptExecutionResult invoke(ScriptInvocationRequest request) {
         if (!enabled()) {
             return ScriptExecutionResult.failure("JavaScript scripting is disabled.");
         }
@@ -69,19 +87,20 @@ public final class GraalJavaScriptService implements JavaScriptService {
         try (Context context = createContext()) {
             EmakiScriptApi api = new EmakiScriptApi(
                     request.actionContext(),
-                    request.arguments(),
+                    request.namedArguments(),
                     actionExecutorSupplier == null ? null : actionExecutorSupplier.get(),
                     config,
-                    source.logicalPath()
+                    source.logicalPath(),
+                    request.sourcePlugin()
             );
             context.getBindings("js").putMember("emaki", api);
-            context.getBindings("js").putMember("args", request.arguments());
+            context.getBindings("js").putMember("args", request.namedArguments());
             context.eval(Source.newBuilder("js", source.content(), source.logicalPath()).buildLiteral());
             Value function = context.getBindings("js").getMember(functionName);
             if (function == null || !function.canExecute()) {
                 return ScriptExecutionResult.failure("Function not found: " + functionName + " in " + source.logicalPath());
             }
-            Value value = function.execute(request.actionContext());
+            Value value = function.execute(request.arguments().toArray(Object[]::new));
             ScriptExecutionResult result = mapReturnValue(value);
             if (config.debug().logScriptExecute()) {
                 log("Executed script " + source.logicalPath() + "#" + functionName + " in " + ((System.nanoTime() - start) / 1_000_000D) + " ms.");

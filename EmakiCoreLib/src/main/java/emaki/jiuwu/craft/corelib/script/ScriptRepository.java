@@ -43,20 +43,7 @@ public final class ScriptRepository {
     }
 
     public void releaseDefaultScripts(Plugin plugin) {
-        Path examplesDir = root.resolve("examples");
-        try {
-            Files.createDirectories(examplesDir);
-        } catch (IOException ignored) {
-            return;
-        }
-        try (Stream<Path> stream = Files.list(examplesDir)) {
-            if (stream.findAny().isPresent()) {
-                return;
-            }
-        } catch (IOException ignored) {
-            return;
-        }
-        String[] examples = {
+        releaseDefaultScriptGroup(plugin, "examples", true, new String[] {
             "attribute_buff.js",
             "cooking_reward.js",
             "forge_success.js",
@@ -64,12 +51,46 @@ public final class ScriptRepository {
             "item_right_click.js",
             "skills_upgrade_success.js",
             "strengthen_success.js"
-        };
-        for (String name : examples) {
-            String resourcePath = "scripts/examples/" + name;
+        });
+        releaseDefaultScriptGroup(plugin, "extensions/skills", false, new String[] {
+            "js_lightning_strike.js"
+        });
+        releaseDefaultScriptGroup(plugin, "extensions/attribute", false, new String[] {
+            "js_fire_mastery.js",
+            "mythic_js_damage.js"
+        });
+        releaseDefaultScriptGroup(plugin, "extensions/global", false, new String[] {
+            "js_broadcast_action.js"
+        });
+    }
+
+    private void releaseDefaultScriptGroup(Plugin plugin, String directory, boolean skipWhenAnyFileExists, String[] names) {
+        if (plugin == null || Texts.isBlank(directory) || names == null || names.length == 0) {
+            return;
+        }
+        Path targetDir = root.resolve(directory);
+        try {
+            Files.createDirectories(targetDir);
+        } catch (IOException ignored) {
+            return;
+        }
+        if (skipWhenAnyFileExists) {
+            try (Stream<Path> stream = Files.list(targetDir)) {
+                if (stream.findAny().isPresent()) {
+                    return;
+                }
+            } catch (IOException ignored) {
+                return;
+            }
+        }
+        for (String name : names) {
+            if (Texts.isBlank(name)) {
+                continue;
+            }
+            String resourcePath = "scripts/" + directory + "/" + name;
             try (InputStream input = plugin.getResource(resourcePath)) {
                 if (input == null) continue;
-                Path target = examplesDir.resolve(name);
+                Path target = targetDir.resolve(name);
                 if (!Files.exists(target)) {
                     Files.copy(input, target);
                 }

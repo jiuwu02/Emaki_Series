@@ -6,6 +6,10 @@ public interface JavaScriptService extends ScriptService, AutoCloseable {
         return execute(request);
     }
 
+    default ScriptExecutionResult invokeJavaScript(ScriptInvocationRequest request) {
+        return invoke(request);
+    }
+
     @Override
     void close();
 }

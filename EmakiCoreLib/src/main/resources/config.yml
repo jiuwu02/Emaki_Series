@@ -57,6 +57,16 @@ script:
     root: "scripts"
     create_directories:
       - "global"
+      - "forge"
+      - "strengthen"
+      - "cooking"
+      - "gem"
+      - "skills"
+      - "item"
+      - "attribute"
+      - "extensions/skills"
+      - "extensions/attribute"
+      - "extensions/global"
       - "templates"
       - "examples"
   action:
@@ -86,6 +96,13 @@ script:
       - "javascript"
     allow_action_dispatch: true
     max_action_depth: 3
+  server_api:
+    enabled: true
+    allow_type_access: false
+    allowed_type_prefixes:
+      - "org.bukkit."
+      - "io.papermc.paper."
+    allow_console_command: false
   debug:
     log_script_load: true
     log_script_execute: false

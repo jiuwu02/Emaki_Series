@@ -47,6 +47,7 @@ import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRegistry;
 import emaki.jiuwu.craft.corelib.script.JavaScriptService;
 import emaki.jiuwu.craft.corelib.script.ScriptService;
 import emaki.jiuwu.craft.corelib.script.graal.GraalJavaScriptService;
+import emaki.jiuwu.craft.corelib.script.js.JavaScriptActionExtensionLoader;
 import emaki.jiuwu.craft.corelib.service.EmakiServiceRegistry;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
@@ -101,6 +102,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private WebConsoleService webConsoleService;
     private CoreLibCommandRouter commandRouter;
     private EmakiCoreLibApi coreLibApi;
+    private JavaScriptActionExtensionLoader javaScriptActionExtensionLoader;
 
     @Override
     public void onLoad() {
@@ -140,6 +142,10 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         if (metrics != null) {
             metrics.shutdown();
             metrics = null;
+        }
+        if (javaScriptActionExtensionLoader != null) {
+            javaScriptActionExtensionLoader.close();
+            javaScriptActionExtensionLoader = null;
         }
         if (javaScriptService != null) {
             javaScriptService.close();
@@ -201,6 +207,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
             for (RunJavaScriptAction action : RunJavaScriptAction.createAll(javaScriptService, configModel.scriptConfig())) {
                 actionRegistry.register(action);
             }
+            reloadJavaScriptActionExtensions();
         }
         actionExecutor = new ActionExecutor(
                 this,
@@ -215,6 +222,10 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     }
 
     private void reloadScriptSystem() {
+        if (javaScriptActionExtensionLoader != null) {
+            javaScriptActionExtensionLoader.close();
+            javaScriptActionExtensionLoader = null;
+        }
         if (javaScriptService != null) {
             javaScriptService.close();
             javaScriptService = null;
@@ -235,6 +246,24 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         } catch (Exception exception) {
             messageService.warning("console.script_engine_failed", Map.of("error", String.valueOf(exception.getMessage())));
         }
+    }
+
+    private void reloadJavaScriptActionExtensions() {
+        if (javaScriptActionExtensionLoader != null) {
+            javaScriptActionExtensionLoader.close();
+            javaScriptActionExtensionLoader = null;
+        }
+        if (javaScriptService == null || !javaScriptService.enabled() || actionRegistry == null || configModel == null || configModel.scriptConfig() == null) {
+            return;
+        }
+        javaScriptActionExtensionLoader = new JavaScriptActionExtensionLoader(
+                this,
+                actionRegistry,
+                javaScriptService,
+                configModel.scriptConfig(),
+                dataPath(configModel.scriptConfig().paths().root())
+        );
+        javaScriptActionExtensionLoader.reload();
     }
 
     private void reloadWebConsole() {

@@ -39,6 +39,7 @@ import emaki.jiuwu.craft.attribute.loader.LoreFormatRegistry;
 import emaki.jiuwu.craft.attribute.loader.PdcReadRuleLoader;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
 import emaki.jiuwu.craft.attribute.service.MessageService;
+import emaki.jiuwu.craft.attribute.script.js.JavaScriptDamageHookListener;
 import emaki.jiuwu.craft.attribute.service.PdcAttributeService;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
@@ -125,6 +126,9 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
             if (listener != null) {
                 plugin.getServer().getPluginManager().registerEvents(listener, plugin);
             }
+        }
+        if (plugin.javaScriptDamageHookRegistry() != null) {
+            plugin.getServer().getPluginManager().registerEvents(new JavaScriptDamageHookListener(plugin.javaScriptDamageHookRegistry()), plugin);
         }
         if (plugin.mythicBridge() != null) {
             plugin.getServer().getPluginManager().registerEvents(plugin.mythicBridge(), plugin);

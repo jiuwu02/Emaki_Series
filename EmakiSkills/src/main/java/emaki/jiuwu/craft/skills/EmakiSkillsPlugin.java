@@ -47,6 +47,7 @@ import emaki.jiuwu.craft.skills.service.SkillUpgradeService;
 import emaki.jiuwu.craft.skills.script.SkillScriptCastService;
 import emaki.jiuwu.craft.skills.script.SkillScriptExecutor;
 import emaki.jiuwu.craft.skills.script.SkillVariableResolver;
+import emaki.jiuwu.craft.skills.script.js.JavaScriptSkillExtensionLoader;
 import emaki.jiuwu.craft.skills.trigger.DefaultTriggerDispatcher;
 import emaki.jiuwu.craft.skills.trigger.DropTriggerSource;
 import emaki.jiuwu.craft.skills.trigger.HotbarTriggerSource;
@@ -72,7 +73,7 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
  \\ \\_____\\ \\_\\ \\ \\_\\ \\_\\ \\_\\ \\_\\ \\_\\\\ \\_\\/\\_____\\ \\_\\ \\_\\\\ \\_\\ \\_____\\ \\_____\\/\\_____\\
   \\/_____/\\/_/  \\/_/\\/_/\\/_/\\/_/\\/_/ \\/_/\\/_____/\\/_/\\/_/ \\/_/\\/_____/\\/_____/\\/_____/
 """;
-    private static final int BSTATS_PLUGIN_ID = 31768
+    private static final int BSTATS_PLUGIN_ID = 31768;
 
     private Metrics metrics;
 
@@ -103,6 +104,7 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
     private SkillScriptActionRegistry skillScriptActionRegistry;
     private SkillScriptExecutor skillScriptExecutor;
     private SkillScriptCastService skillScriptCastService;
+    private JavaScriptSkillExtensionLoader javaScriptSkillExtensionLoader;
     private EmakiSkillsApi emakiSkillsApi;
     private SkillUpgradeService skillUpgradeService;
     private CastModeService castModeService;
@@ -153,6 +155,10 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
             placeholderExpansion.unregister();
             placeholderExpansion = null;
         }
+        if (javaScriptSkillExtensionLoader != null) {
+            javaScriptSkillExtensionLoader.close();
+            javaScriptSkillExtensionLoader = null;
+        }
         if (skillScriptActionRegistry != null) {
             skillScriptActionRegistry.unregisterAll(this);
         }
@@ -167,10 +173,12 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
 
     public void reloadPluginState(boolean closeOpenInventories) {
         lifecycleCoordinator.reload(this, closeOpenInventories);
+        reloadJavaScriptSkillExtensions();
     }
 
     public java.util.concurrent.CompletableFuture<Void> reloadPluginStateAsync(boolean closeOpenInventories, java.util.function.Consumer<String> progressListener) {
-        return lifecycleCoordinator.reloadAsync(this, closeOpenInventories, progressListener);
+        return lifecycleCoordinator.reloadAsync(this, closeOpenInventories, progressListener)
+                .thenRun(this::reloadJavaScriptSkillExtensions);
     }
 
     private void applyRuntimeComponents(SkillsRuntimeComponents components) {
@@ -246,6 +254,22 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
 
     private void registerCoreLibActions() {
         coreLib().actionRegistry().register(new CastSkillAction(mythicSkillCastService));
+    }
+
+    private void reloadJavaScriptSkillExtensions() {
+        if (javaScriptSkillExtensionLoader != null) {
+            javaScriptSkillExtensionLoader.close();
+        }
+        if (skillScriptActionRegistry == null || coreLib().javaScriptService() == null) {
+            return;
+        }
+        javaScriptSkillExtensionLoader = new JavaScriptSkillExtensionLoader(
+                this,
+                skillScriptActionRegistry,
+                coreLib().javaScriptService(),
+                coreLib().configModel().scriptConfig()
+        );
+        javaScriptSkillExtensionLoader.reload();
     }
 
     private void registerWebConsole() {
