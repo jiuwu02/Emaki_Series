@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-item</artifactId>
-    <version>2.1.0</version>
+    <version>2.1.1</version>
     <name>EmakiItem</name>
     <packaging>jar</packaging>
 
@@ -74,11 +74,11 @@
                             <goal>exec</goal>
                         </goals>
                         <configuration>
-                            <workingDirectory>${project.basedir}/web-console</workingDirectory>
+                            <workingDirectory>${project.basedir}/..</workingDirectory>
                             <executable>npm</executable>
                             <arguments>
                                 <argument>run</argument>
-                                <argument>build</argument>
+                                <argument>build:web:item</argument>
                             </arguments>
                         </configuration>
                     </execution>

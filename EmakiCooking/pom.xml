@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-cooking</artifactId>
-    <version>3.1.0</version>
+    <version>3.1.1</version>
     <name>EmakiCooking</name>
     <packaging>jar</packaging>
 
@@ -110,11 +110,11 @@
                             <goal>exec</goal>
                         </goals>
                         <configuration>
-                            <workingDirectory>${project.basedir}/web-console</workingDirectory>
+                            <workingDirectory>${project.basedir}/..</workingDirectory>
                             <executable>npm</executable>
                             <arguments>
                                 <argument>run</argument>
-                                <argument>build</argument>
+                                <argument>build:web:cooking</argument>
                             </arguments>
                         </configuration>
                     </execution>

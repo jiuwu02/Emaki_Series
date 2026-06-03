@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-corelib</artifactId>
-    <version>4.1.0</version>
+    <version>4.1.2</version>
     <name>EmakiCoreLib</name>
     <packaging>jar</packaging>
 
@@ -182,11 +182,11 @@
                             <goal>exec</goal>
                         </goals>
                         <configuration>
-                            <workingDirectory>${project.basedir}/web-console</workingDirectory>
+                            <workingDirectory>${project.basedir}/..</workingDirectory>
                             <executable>npm</executable>
                             <arguments>
                                 <argument>run</argument>
-                                <argument>build</argument>
+                                <argument>build:web:core</argument>
                             </arguments>
                             <skip>${skip.web.console}</skip>
                         </configuration>

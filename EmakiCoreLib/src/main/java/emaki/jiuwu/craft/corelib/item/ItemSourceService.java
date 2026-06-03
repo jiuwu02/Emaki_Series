@@ -104,6 +104,10 @@ public final class ItemSourceService {
                 return displayName;
             }
         }
+        String itemStackName = createdItemDisplayName(source);
+        if (Texts.isNotBlank(itemStackName)) {
+            return itemStackName;
+        }
         return fallbackDisplayName(source);
     }
 
@@ -138,6 +142,11 @@ public final class ItemSourceService {
         } catch (RuntimeException _) {
             return "";
         }
+    }
+
+    private String createdItemDisplayName(ItemSource source) {
+        ItemStack itemStack = createItem(source, 1);
+        return itemStack == null || itemStack.getType().isAir() ? "" : ItemTextBridge.effectiveNameText(itemStack);
     }
 
     private String fallbackDisplayName(ItemSource source) {

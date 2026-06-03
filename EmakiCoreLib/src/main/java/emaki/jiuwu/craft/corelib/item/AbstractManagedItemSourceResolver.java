@@ -65,6 +65,18 @@ abstract class AbstractManagedItemSourceResolver<A extends AbstractManagedItemSo
     }
 
     @Override
+    public String displayName(ItemSource source) {
+        if (!supports(source) || !isOperational()) {
+            return null;
+        }
+        String displayName = accessor.displayName(source.getIdentifier());
+        if (Texts.isNotBlank(displayName)) {
+            return displayName;
+        }
+        return ManagedItemSourceResolver.super.displayName(source);
+    }
+
+    @Override
     public Status bootstrap() {
         return refresh(false);
     }
@@ -116,6 +128,10 @@ abstract class AbstractManagedItemSourceResolver<A extends AbstractManagedItemSo
         String identifyIdentifier(ItemStack itemStack);
 
         ItemStack createItem(String identifier, int amount);
+
+        default String displayName(String identifier) {
+            return null;
+        }
 
         void reset();
     }

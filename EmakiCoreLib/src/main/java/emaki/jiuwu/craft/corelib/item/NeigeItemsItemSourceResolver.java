@@ -114,6 +114,19 @@ final class NeigeItemsItemSourceResolver
         }
 
         @Override
+        public String displayName(String identifier) {
+            try {
+                if (Texts.isBlank(identifier) || ItemManager.INSTANCE.getItem(identifier) == null) {
+                    return null;
+                }
+                ItemStack itemStack = ItemManager.INSTANCE.getItemStack(identifier);
+                return itemStack == null || itemStack.getType().isAir() ? null : ItemTextBridge.effectiveNameText(itemStack);
+            } catch (RuntimeException | LinkageError exception) {
+                return null;
+            }
+        }
+
+        @Override
         public void reset() {
             failureReason = "";
         }

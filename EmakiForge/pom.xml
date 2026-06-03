@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-forge</artifactId>
-    <version>4.1.0</version>
+    <version>4.1.1</version>
     <name>EmakiForge</name>
     <packaging>jar</packaging>
 
@@ -74,11 +74,11 @@
                             <goal>exec</goal>
                         </goals>
                         <configuration>
-                            <workingDirectory>${project.basedir}/web-console</workingDirectory>
+                            <workingDirectory>${project.basedir}/..</workingDirectory>
                             <executable>npm</executable>
                             <arguments>
                                 <argument>run</argument>
-                                <argument>build</argument>
+                                <argument>build:web:forge</argument>
                             </arguments>
                         </configuration>
                     </execution>

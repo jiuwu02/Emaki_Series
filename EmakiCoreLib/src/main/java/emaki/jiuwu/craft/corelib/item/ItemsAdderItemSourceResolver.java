@@ -12,6 +12,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import dev.lone.itemsadder.api.CustomStack;
 import dev.lone.itemsadder.api.ItemsAdder;
 import dev.lone.itemsadder.api.Events.ItemsAdderLoadDataEvent;
+import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
 final class ItemsAdderItemSourceResolver
@@ -114,6 +115,23 @@ final class ItemsAdderItemSourceResolver
             try {
                 CustomStack customStack = Texts.isBlank(identifier) ? null : CustomStack.getInstance(identifier);
                 return customStack == null ? null : customStack.getItemStack();
+            } catch (RuntimeException | LinkageError exception) {
+                return null;
+            }
+        }
+
+        @Override
+        public String displayName(String identifier) {
+            try {
+                CustomStack customStack = Texts.isBlank(identifier) ? null : CustomStack.getInstance(identifier);
+                if (customStack == null) {
+                    return null;
+                }
+                String displayName = customStack.getDisplayName();
+                if (Texts.isNotBlank(displayName)) {
+                    return displayName;
+                }
+                return MiniMessages.serialize(customStack.itemName());
             } catch (RuntimeException | LinkageError exception) {
                 return null;
             }
