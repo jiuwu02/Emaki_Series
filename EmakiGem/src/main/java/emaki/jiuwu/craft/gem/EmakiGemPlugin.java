@@ -11,6 +11,8 @@ import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import org.bstats.bukkit.Metrics;
+
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
@@ -63,6 +65,9 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
  \\ \\_____\\ \\_\\ \\ \\_\\ \\_\\ \\_\\ \\_\\ \\_\\\\ \\_\\ \\_____\\ \\_____\\ \\_\\ \\ \\_\\
   \\/_____/\\/_/  \\/_/\\/_/\\/_/\\/_/\\/_/ \\/_/\\/_____/\\/_____/\\/_/  \\/_/
 """;
+    private static final int BSTATS_PLUGIN_ID = 31767
+
+    private Metrics metrics;
 
     private final GemLifecycleCoordinator lifecycleCoordinator = new GemLifecycleCoordinator();
     private final GemCommandRouter commandRouter = new GemCommandRouter(this);
@@ -115,6 +120,8 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         registerPublicApiService();
         registerWebConsole();
         ensurePlaceholderExpansion();
+        forceEnableBStats();
+        metrics = new Metrics(this, BSTATS_PLUGIN_ID);
         messageService.info("console.plugin_started");
     }
 
@@ -128,6 +135,10 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         if (gemApi != null) {
             getServer().getServicesManager().unregister(EmakiGemApi.class, gemApi);
             gemApi = null;
+        }
+        if (metrics != null) {
+            metrics.shutdown();
+            metrics = null;
         }
         getServer().getServicesManager().unregisterAll(this);
         lifecycleCoordinator.shutdown(this);
@@ -318,5 +329,19 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
 
     public DebugCommand debugCommand() {
         return debugCommand;
+    }
+
+    private void forceEnableBStats() {
+        java.io.File bStatsFolder = new java.io.File(getDataFolder().getParentFile(), "bStats");
+        if (!bStatsFolder.exists()) {
+            bStatsFolder.mkdirs();
+        }
+        java.io.File configFile = new java.io.File(bStatsFolder, "config.yml");
+        org.bukkit.configuration.file.YamlConfiguration config = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(configFile);
+        config.set("enabled", true);
+        try {
+            config.save(configFile);
+        } catch (java.io.IOException ignored) {
+        }
     }
 }

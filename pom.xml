@@ -73,6 +73,7 @@
         <nexo.version>1.23</nexo.version>
         <neigeitems.version>1.21.142</neigeitems.version>
         <packetevents.version>2.12.1</packetevents.version>
+        <bstats.version>3.1.0</bstats.version>
         <caffeine.version>3.2.4</caffeine.version>
         <graalvm.polyglot.version>25.0.3</graalvm.polyglot.version>
     </properties>
@@ -231,6 +232,11 @@
                 <version>${graalvm.polyglot.version}</version>
                 <type>pom</type>
             </dependency>
+            <dependency>
+                <groupId>org.bstats</groupId>
+                <artifactId>bstats-bukkit</artifactId>
+                <version>${bstats.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -372,6 +378,12 @@
                                 <excludes>
                                     <exclude>META-INF/MANIFEST.MF</exclude>
                                     <exclude>META-INF/maven/**</exclude>
+                                </excludes>
+                            </filter>
+                            <filter>
+                                <artifact>org.bstats:bstats-bukkit</artifact>
+                                <excludes>
+                                    <exclude>plugin.yml</exclude>
                                 </excludes>
                             </filter>
                         </filters>
