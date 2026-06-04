@@ -54,6 +54,8 @@ public final class JavaScriptActionExtensionLoader implements AutoCloseable {
 
     public int reload() {
         close();
+        loadedExtensionScripts.clear();
+        recentErrors.clear();
         if (plugin == null || registry == null || javaScriptService == null || !javaScriptService.enabled() || scriptRoot == null) {
             return 0;
         }
@@ -85,9 +87,11 @@ public final class JavaScriptActionExtensionLoader implements AutoCloseable {
                 registeredIds.addAll(api.registeredIds());
                 registeredSources.add(scriptPath);
                 registeredPlaceholders.addAll(api.registeredPlaceholders());
+                loadedExtensionScripts.add(scriptPath);
                 loaded++;
             } else {
                 String message = result == null ? "no result" : result.message();
+                recordError(scriptPath, "register", message);
                 plugin.getLogger().warning("Failed to load JavaScript action extension " + scriptPath + ": " + message);
             }
         }
@@ -97,6 +101,24 @@ public final class JavaScriptActionExtensionLoader implements AutoCloseable {
                     + ", events=" + (eventRegistry == null ? 0 : eventRegistry.subscriptions().size()));
         }
         return loaded;
+    }
+
+    public Map<String, Object> statusSnapshot() {
+        Map<String, Object> snapshot = new LinkedHashMap<>();
+        snapshot.put("enabled", javaScriptService != null && javaScriptService.enabled());
+        snapshot.put("scriptRoot", scriptRoot == null ? "" : scriptRoot.toString());
+        snapshot.put("loadedScripts", javaScriptService == null ? List.of() : javaScriptService.loadedScripts());
+        snapshot.put("globalExtensionScripts", List.copyOf(loadedExtensionScripts));
+        snapshot.put("actions", actionSnapshots());
+        snapshot.put("placeholders", placeholderSnapshots());
+        snapshot.put("events", eventSnapshots());
+        snapshot.put("recentErrors", List.copyOf(recentErrors));
+        snapshot.put("attribute", Map.of(
+                "available", plugin != null && plugin.getServer().getPluginManager().isPluginEnabled("EmakiAttribute"),
+                "status", "not_exposed",
+                "message", "Attribute JavaScript provider/hook status is not exposed by EmakiAttribute yet."
+        ));
+        return snapshot;
     }
 
     @Override
@@ -122,6 +144,67 @@ public final class JavaScriptActionExtensionLoader implements AutoCloseable {
         registeredPlaceholders.clear();
         registeredSources.clear();
         registeredIds.clear();
+    }
+
+    private List<Map<String, Object>> actionSnapshots() {
+        if (registry == null) {
+            return List.of();
+        }
+        List<Map<String, Object>> actions = new ArrayList<>();
+        for (String id : registeredIds) {
+            emaki.jiuwu.craft.corelib.action.Action action = registry.get(id);
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("id", id);
+            item.put("registered", action != null);
+            item.put("category", action == null ? "" : action.category());
+            item.put("description", action == null ? "" : action.description());
+            item.put("source", registry.sourceOf(id));
+            item.put("owner", registry.ownerKeyOf(id));
+            actions.add(item);
+        }
+        return List.copyOf(actions);
+    }
+
+    private List<Map<String, Object>> placeholderSnapshots() {
+        List<Map<String, Object>> placeholders = new ArrayList<>();
+        for (JavaScriptPlaceholderResolver resolver : registeredPlaceholders) {
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("id", resolver.id());
+            item.put("token", "%" + resolver.id() + "%");
+            placeholders.add(item);
+        }
+        return List.copyOf(placeholders);
+    }
+
+    private List<Map<String, Object>> eventSnapshots() {
+        if (eventRegistry == null) {
+            return List.of();
+        }
+        List<Map<String, Object>> events = new ArrayList<>();
+        for (emaki.jiuwu.craft.corelib.script.js.event.JavaScriptEventSubscription subscription : eventRegistry.subscriptions()) {
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("id", subscription.id());
+            item.put("event", subscription.eventType());
+            item.put("priority", subscription.priority().name());
+            item.put("ignoreCancelled", subscription.ignoreCancelled());
+            item.put("script", subscription.scriptPath());
+            item.put("function", subscription.functionName());
+            item.put("timeoutMillis", subscription.timeoutMillis());
+            events.add(item);
+        }
+        return List.copyOf(events);
+    }
+
+    private void recordError(String scriptPath, String phase, String message) {
+        Map<String, Object> error = new LinkedHashMap<>();
+        error.put("script", scriptPath == null ? "" : scriptPath);
+        error.put("phase", phase == null ? "" : phase);
+        error.put("message", message == null ? "" : message);
+        error.put("time", System.currentTimeMillis());
+        recentErrors.add(error);
+        while (recentErrors.size() > 20) {
+            recentErrors.remove(0);
+        }
     }
 
     private List<String> scanScripts() {

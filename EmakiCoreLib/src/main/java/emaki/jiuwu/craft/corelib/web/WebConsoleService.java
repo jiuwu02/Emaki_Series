@@ -86,6 +86,7 @@ public final class WebConsoleService {
             createContext("/api/debug/frontend-error", postAuth(this::handleFrontendError));
             createContext("/api/scripts/read", auth(this::handleScriptRead));
             createContext("/api/scripts/save", postAuth(this::handleScriptSave));
+            createContext("/api/scripts/extensions", auth(this::handleScriptExtensions));
             createContext("/api/gui/read", auth(this::handleGuiRead));
             createContext("/api/gui/save", postAuth(this::handleGuiSave));
             createContext("/api/items/read", auth(this::handleItemRead));
@@ -552,6 +553,10 @@ public final class WebConsoleService {
         } catch (Exception e) {
             context.serverError(e.getMessage());
         }
+    }
+
+    private void handleScriptExtensions(WebRequestContext context) throws IOException {
+        context.ok(Map.of("extensions", plugin.javaScriptExtensionStatus()));
     }
 
     private void handleScriptSave(WebRequestContext context) throws IOException {

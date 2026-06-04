@@ -457,6 +457,17 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         return webConsoleService;
     }
 
+    public java.util.Map<String, Object> javaScriptExtensionStatus() {
+        return javaScriptActionExtensionLoader == null ? java.util.Map.of(
+                "enabled", javaScriptService != null && javaScriptService.enabled(),
+                "globalExtensionScripts", java.util.List.of(),
+                "actions", java.util.List.of(),
+                "placeholders", java.util.List.of(),
+                "events", java.util.List.of(),
+                "recentErrors", java.util.List.of()
+        ) : javaScriptActionExtensionLoader.statusSnapshot();
+    }
+
     private void refreshServiceRegistry() {
         serviceRegistry.clear();
         registerService(LanguageLoader.class, languageLoader);
