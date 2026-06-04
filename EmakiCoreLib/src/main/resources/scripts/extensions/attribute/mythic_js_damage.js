@@ -1,3 +1,9 @@
+function register(attribute) {
+  // 此脚本主要给 MythicMobs 的 emaki_js / attribute_js mechanic 调用。
+  // 保留空注册入口，避免 Attribute 扩展加载器把 callable 脚本误判为加载失败。
+  return true;
+}
+
 function mythicDamage(meta, args) {
   const caster = meta.caster();
   const target = meta.firstTarget();
