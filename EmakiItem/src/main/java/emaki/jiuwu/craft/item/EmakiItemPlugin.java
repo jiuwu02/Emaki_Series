@@ -52,7 +52,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
  \\ \\_____\\ \\_\\ \\ \\_\\ \\_\\ \\_\\ \\_\\ \\_\\\\ \\_\\ \\_\\ \\ \\_\\ \\ \\_____\\ \\_\\ \\ \\_\\/\\_____\\
   \\/_____/\\/_/  \\/_/\\/_/\\/_/\\/_/\\/_/ \\/_/\\/_/  \\/_/  \\/_____/\\/_/  \\/_/\\/_____/
 """;
-    private static final int BSTATS_PLUGIN_ID = 31770
+    private static final int BSTATS_PLUGIN_ID = 31770;
 
     private Metrics metrics;
 

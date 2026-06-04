@@ -65,7 +65,7 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
  \\ \\_____\\ \\_\\ \\ \\_\\ \\_\\ \\_\\ \\_\\ \\_\\\\ \\_\\ \\_____\\ \\_____\\ \\_\\ \\ \\_\\
   \\/_____/\\/_/  \\/_/\\/_/\\/_/\\/_/\\/_/ \\/_/\\/_____/\\/_____/\\/_/  \\/_/
 """;
-    private static final int BSTATS_PLUGIN_ID = 31767
+    private static final int BSTATS_PLUGIN_ID = 31767;
 
     private Metrics metrics;
 

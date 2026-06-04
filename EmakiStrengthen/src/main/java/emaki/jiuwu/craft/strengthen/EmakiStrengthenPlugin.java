@@ -52,7 +52,7 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
  \\ \\_____\\ \\_\\ \\ \\_\\ \\_\\ \\_\\ \\_\\ \\_\\\\ \\_\\/\\_____\\ \\ \\_\\ \\ \\_\\ \\_\\ \\_____\\ \\_\\\\"\\_\\ \\_____\\ \\ \\_\\ \\ \\_\\ \\_\\ \\_____\\ \\_\\\\"\\_\\
   \\/_____/\\/_/  \\/_/\\/_/\\/_/\\/_/\\/_/ \\/_/\\/_____/  \\/_/  \\/_/ /_/\\/_____/\\/_/ \\/_/\\/_____/  \\/_/  \\/_/\\/_/\\/_____/\\/_/ \\/_/
 """;
-    private static final int BSTATS_PLUGIN_ID = 31769
+    private static final int BSTATS_PLUGIN_ID = 31769;
 
     private Metrics metrics;
 

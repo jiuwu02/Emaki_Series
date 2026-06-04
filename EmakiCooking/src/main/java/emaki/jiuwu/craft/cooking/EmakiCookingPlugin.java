@@ -64,7 +64,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
  \\ \\_____\\ \\_\\ \\ \\_\\ \\_\\ \\_\\ \\_\\ \\_\\\\ \\_\\ \\_____\\ \\_____\\ \\_____\\ \\_\\ \\_\\\\ \\_\\ \\_\\\\"\\_\\ \\_____\\ 
   \\/_____/\\/_/  \\/_/\\/_/\\/_/\\/_/\\/_/ \\/_/\\/_____/\\/_____/\\/_____/\\/_/\\/_/ \\/_/\\/_/ \\/_/\\/_____/ 
 """;
-    private static final int BSTATS_PLUGIN_ID = 31765
+    private static final int BSTATS_PLUGIN_ID = 31765;
 
     private Metrics metrics;
 

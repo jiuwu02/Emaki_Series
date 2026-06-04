@@ -330,6 +330,10 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         return debugCommand;
     }
 
+    public EmakiCoreLibPlugin coreLib() {
+        return JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+    }
+
     public java.util.List<emaki.jiuwu.craft.attribute.service.ScalingCurveConfig> scalingCurves() {
         return scalingCurves;
     }

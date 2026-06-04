@@ -71,7 +71,7 @@ public final class JavaScriptSkillRegistrationApi {
             plugin.getLogger().info("Registered JavaScript skill action: " + id + " from " + scriptPath);
             return true;
         }
-        plugin.getLogger().warning("Failed to register JavaScript skill action " + id + ": " + result.message());
+        plugin.getLogger().warning("Failed to register JavaScript skill action " + id + ": " + result.errorMessage());
         return false;
     }
 
