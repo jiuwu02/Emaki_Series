@@ -1,0 +1,30 @@
+name: EmakiLevel
+main: emaki.jiuwu.craft.level.EmakiLevelPlugin
+version: ${project.version}
+api-version: "1.21"
+folia-supported: true
+depend:
+  - EmakiCoreLib
+softdepend:
+  - MythicMobs
+  - EmakiAttribute
+  - EmakiCooking
+  - EmakiForge
+  - PlaceholderAPI
+commands:
+  emakilevel:
+    aliases: [elv, elevel]
+    permission: emakilevel.use
+permissions:
+  emakilevel.use:
+    default: true
+  emakilevel.levelup:
+    default: true
+  emakilevel.top:
+    default: true
+  emakilevel.reload:
+    default: op
+  emakilevel.debug:
+    default: op
+  emakilevel.admin:
+    default: op

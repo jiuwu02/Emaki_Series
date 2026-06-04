@@ -9,7 +9,7 @@
 
 # Emaki CoreLib 默认语言文件
 # version 由资源同步维护
-version: "4.1.12"
+version: "4.1.13"
 
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiCoreLib</gradient> ]</gray>"
@@ -24,6 +24,8 @@ console:
   script_engine_ready: "<gray>脚本引擎已启用 (GraalJS)</gray>"
   script_engine_failed: "<red>脚本引擎初始化失败: %error%</red>"
   scripts_loaded: "<gray>已加载 <yellow>%count%</yellow> 个脚本</gray>"
+  mythic_js_bridge_ready: "<gray>MythicMobs JavaScript 技能桥接已就绪</gray>"
+  mythic_js_script_missing: "<yellow>MythicMobs JavaScript 技能 <aqua>%mechanic%</aqua> 缺少 script 参数</yellow>"
   js_extension_no_result: "无返回结果"
   js_extension_load_failed: "<red>加载 JavaScript 全局扩展失败: <gray>%script%</gray> (%error%)</red>"
   js_extensions_loaded: "<gray>已加载 <yellow>%count%</yellow> 个 JavaScript 全局扩展脚本，动作=<yellow>%actions%</yellow>，占位符=<yellow>%placeholders%</yellow>，事件=<yellow>%events%</yellow></gray>"

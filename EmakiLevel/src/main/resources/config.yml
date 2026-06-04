@@ -1,0 +1,47 @@
+version: "1.0.0"
+language: "zh_CN"
+release_default_data: true
+primary_type: "main"
+
+level:
+  default_start_level: 1
+  default_max_level: 100
+  max_auto_upgrade_steps: 10
+  keep_total_exp_at_max_level: true
+
+storage:
+  type: "yaml"
+  save_on_quit: true
+  save_on_shutdown: true
+
+pdc:
+  enabled: true
+  namespace: "emakilevel"
+  sync_on_join: true
+  sync_on_exp_change: true
+  sync_on_level_change: true
+  sync_on_reload: true
+
+attribute:
+  enabled: true
+  provider_id: "emakilevel"
+
+mythicmobs:
+  enabled: true
+  kill_sources: true
+  drops:
+    enabled: true
+    names:
+      - "emakilevel_exp"
+      - "elv_exp"
+
+anti_abuse:
+  placed_block_tracking: true
+  placed_block_exp: false
+  last_damager_tracking:
+    enabled: true
+    expire_ticks: 200
+
+gui:
+  enabled: true
+  default_template: "level_gui"

@@ -1,0 +1,8 @@
+id: "level_gui"
+title: "<dark_gray>等级"
+size: 54
+slots:
+  background:
+    type: filler
+    item: "minecraft-black_stained_glass_pane"
+    display_name: " "

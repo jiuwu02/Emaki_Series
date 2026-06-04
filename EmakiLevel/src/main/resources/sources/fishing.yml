@@ -1,0 +1,12 @@
+id: "fishing_sources"
+enabled: true
+sources:
+  player_fish:
+    enabled: true
+    type: "fishing"
+    trigger: "player_fish"
+    rules:
+      - states: ["CAUGHT_FISH"]
+        exp_formula: "10"
+      - states: ["CAUGHT_ENTITY"]
+        exp_formula: "5"

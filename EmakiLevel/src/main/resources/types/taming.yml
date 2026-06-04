@@ -1,0 +1,28 @@
+id: "taming"
+enabled: true
+display_name: "<yellow>驯养等级</yellow>"
+primary: false
+start_level: 1
+max_level: 60
+requirement:
+  group: "profession"
+upgrade:
+  enabled: true
+  auto_upgrade: true
+  manual_upgrade: true
+  cost:
+    enabled: false
+    economy:
+      enabled: false
+      currencies: []
+    materials: []
+  rewards:
+    items: []
+  actions:
+    success: []
+    failure: []
+pdc:
+  enabled: true
+attributes:
+  enabled: false
+  values: {}

@@ -1,0 +1,13 @@
+id: "crafting_sources"
+enabled: true
+sources:
+  craft_item:
+    enabled: true
+    type: "crafting"
+    trigger: "craft_item"
+    count_result_amount: true
+    rules:
+      - result_item_sources: ["minecraft-crafting_table", "minecraft-furnace"]
+        exp_formula: "5 * %result_amount%"
+      - result_item_sources: ["minecraft-diamond_pickaxe", "minecraft-diamond_sword"]
+        exp_formula: "40 * %result_amount%"

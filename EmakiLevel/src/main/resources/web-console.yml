@@ -1,0 +1,22 @@
+module:
+  tone: level
+  icon: '<svg viewBox="0 0 38 38" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M8 28h22M10 24l5-6 5 4 8-12M10 10h8M10 14h5M29 10v18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+
+files:
+  - path: "config.yml"
+    kind: CONFIG
+  - path: "requirements.yml"
+    kind: CONFIG
+  - path: "types/**/*.yml"
+    kind: CONFIG
+  - path: "sources/**/*.yml"
+    kind: CONFIG
+  - path: "gui/**/*.yml"
+    kind: GUI
+    editor: "emakilevel:gui"
+  - path: "lang/**/*.yml"
+    kind: CONFIG
+
+extensions:
+  - id: "emakilevel:config"
+    resource: "web-extensions/emakilevel-config.js"

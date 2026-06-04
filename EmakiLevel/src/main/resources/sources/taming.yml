@@ -1,0 +1,10 @@
+id: "taming_sources"
+enabled: true
+sources:
+  entity_tame:
+    enabled: true
+    type: "taming"
+    trigger: "entity_tame"
+    rules:
+      - entity_types: ["WOLF", "CAT", "HORSE", "PARROT"]
+        exp_formula: "20"

@@ -1,0 +1,21 @@
+global:
+  formula: "floor(100 + 25 * %target_level% + 8 * pow(%target_level%, 2))"
+  values: {}
+
+groups:
+  main:
+    formula: "floor(150 + 40 * %target_level% + 14 * pow(%target_level%, 2))"
+    values:
+      2: 150
+      3: 350
+      4: 750
+      5: 1200
+  profession:
+    formula: "floor(60 + 18 * %target_level% + 5 * pow(%target_level%, 2))"
+    values:
+      2: 80
+      3: 160
+      4: 300
+  crafting_profession:
+    formula: "floor(80 + 22 * %target_level% + 6 * pow(%target_level%, 2))"
+    values: {}

@@ -1,0 +1,31 @@
+id: "mining"
+enabled: true
+display_name: "<gray>挖掘等级</gray>"
+primary: false
+start_level: 1
+max_level: 60
+requirement:
+  group: "profession"
+upgrade:
+  enabled: true
+  auto_upgrade: false
+  manual_upgrade: true
+  cost:
+    enabled: false
+    economy:
+      enabled: false
+      currencies: []
+    materials: []
+  rewards:
+    items: []
+  actions:
+    success:
+      - 'sendmessage text="<gray>挖掘等级提升到了 <yellow>%new_level%</yellow> 级。</gray>"'
+    failure:
+      - 'sendmessage text="<red>挖掘升级失败: %failure_reason%</red>"'
+pdc:
+  enabled: true
+attributes:
+  enabled: true
+  values:
+    mining_power: "%level% * 0.2"

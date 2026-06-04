@@ -1,0 +1,12 @@
+id: "brewing_sources"
+enabled: true
+sources:
+  brew_complete:
+    enabled: true
+    type: "brewing"
+    trigger: "brew_complete"
+    attribution:
+      expire_ticks: 1200
+    rules:
+      - potion_types: ["AWKWARD", "SPEED", "STRENGTH"]
+        exp_formula: "15"

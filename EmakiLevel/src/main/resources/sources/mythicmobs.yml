@@ -1,0 +1,12 @@
+id: "mythicmobs_sources"
+enabled: true
+sources:
+  mythic_mob_kill:
+    enabled: true
+    type: "combat"
+    trigger: "mythic_mob_kill"
+    rules:
+      - mob_ids: ["SkeletonKing", "UndeadKnight"]
+        exp_formula: "50 + %mythic_level% * 5"
+      - mob_ids: ["ForestBoss"]
+        exp_formula: "300 + %mythic_level% * 20"

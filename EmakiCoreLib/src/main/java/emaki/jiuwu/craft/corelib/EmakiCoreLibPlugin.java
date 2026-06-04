@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.bukkit.command.PluginCommand;
+import org.bukkit.event.HandlerList;
 import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -25,6 +26,7 @@ import emaki.jiuwu.craft.corelib.assembly.EmakiNamespaceDefinition;
 import emaki.jiuwu.craft.corelib.assembly.EmakiNamespaceRegistry;
 import emaki.jiuwu.craft.corelib.async.AsyncFileService;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
+import emaki.jiuwu.craft.corelib.bridge.mythic.MythicJavaScriptBridge;
 import emaki.jiuwu.craft.corelib.command.CoreLibCommandRouter;
 import emaki.jiuwu.craft.corelib.economy.EconomyManager;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
@@ -103,6 +105,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private CoreLibCommandRouter commandRouter;
     private EmakiCoreLibApi coreLibApi;
     private JavaScriptActionExtensionLoader javaScriptActionExtensionLoader;
+    private MythicJavaScriptBridge mythicJavaScriptBridge;
 
     @Override
     public void onLoad() {
@@ -118,6 +121,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         configModel = loadConfigModel();
         itemSourceIntegrationCoordinator.initialize();
         reloadActionSystem();
+        registerMythicJavaScriptBridge();
         registerCommandHandler();
         registerPublicApiService();
         logStartupAudit();
@@ -146,6 +150,10 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         if (javaScriptActionExtensionLoader != null) {
             javaScriptActionExtensionLoader.close();
             javaScriptActionExtensionLoader = null;
+        }
+        if (mythicJavaScriptBridge != null) {
+            HandlerList.unregisterAll(mythicJavaScriptBridge);
+            mythicJavaScriptBridge = null;
         }
         if (javaScriptService != null) {
             javaScriptService.close();
@@ -280,6 +288,15 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private void registerPublicApiService() {
         coreLibApi = new DefaultEmakiCoreLibApi(this);
         getServer().getServicesManager().register(EmakiCoreLibApi.class, coreLibApi, this, ServicePriority.Normal);
+    }
+
+    private void registerMythicJavaScriptBridge() {
+        if (mythicJavaScriptBridge != null || !getServer().getPluginManager().isPluginEnabled("MythicMobs")) {
+            return;
+        }
+        mythicJavaScriptBridge = new MythicJavaScriptBridge(this);
+        getServer().getPluginManager().registerEvents(mythicJavaScriptBridge, this);
+        messageService.info("console.mythic_js_bridge_ready");
     }
 
     private void logStartupAudit() {

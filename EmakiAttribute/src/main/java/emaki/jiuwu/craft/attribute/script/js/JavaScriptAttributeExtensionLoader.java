@@ -55,8 +55,6 @@ public final class JavaScriptAttributeExtensionLoader implements AutoCloseable {
             if (result != null && result.success() && !result.skipped()) {
                 registeredProviders.addAll(api.registeredProviders());
                 loaded++;
-            } else if (isMissingRegisterFunction(result, scriptPath)) {
-                continue;
             } else {
                 String message = result == null ? plugin.messageService().message("console.js_attribute_extension_no_result") : result.message();
                 plugin.messageService().warning("console.js_attribute_extension_load_failed", Map.of(
@@ -92,14 +90,6 @@ public final class JavaScriptAttributeExtensionLoader implements AutoCloseable {
         if (damageHookRegistry != null) {
             damageHookRegistry.clear();
         }
-    }
-
-    private boolean isMissingRegisterFunction(ScriptExecutionResult result, String scriptPath) {
-        if (result == null || result.success()) {
-            return false;
-        }
-        String message = Texts.toStringSafe(result.message());
-        return message.equals("Function not found: register in " + Texts.toStringSafe(scriptPath));
     }
 
     private List<String> scanScripts() {
