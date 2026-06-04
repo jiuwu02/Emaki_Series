@@ -125,7 +125,7 @@ public final class JavaScriptRegisteredAction implements Action {
                 context,
                 scriptPath,
                 executeFunction,
-                List.of(context, arguments == null ? Map.of() : arguments),
+                List.of(context == null ? Map.of() : context, arguments == null ? Map.of() : arguments),
                 Map.of("action_id", id),
                 scriptConfig.clampTimeoutMillis(timeoutMillis),
                 false

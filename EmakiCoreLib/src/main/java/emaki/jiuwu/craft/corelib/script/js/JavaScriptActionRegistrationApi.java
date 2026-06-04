@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.bukkit.event.EventPriority;
 import org.bukkit.plugin.Plugin;
 import org.graalvm.polyglot.HostAccess;
 
@@ -12,26 +13,36 @@ import emaki.jiuwu.craft.corelib.action.ActionParameter;
 import emaki.jiuwu.craft.corelib.action.ActionParameterType;
 import emaki.jiuwu.craft.corelib.action.ActionRegistry;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
+import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRegistry;
 import emaki.jiuwu.craft.corelib.script.JavaScriptService;
 import emaki.jiuwu.craft.corelib.script.ScriptConfig;
+import emaki.jiuwu.craft.corelib.script.js.event.JavaScriptEventRegistry;
+import emaki.jiuwu.craft.corelib.script.js.event.JavaScriptEventSubscription;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class JavaScriptActionRegistrationApi {
 
     private final Plugin plugin;
     private final ActionRegistry registry;
+    private final PlaceholderRegistry placeholderRegistry;
+    private final JavaScriptEventRegistry eventRegistry;
     private final JavaScriptService javaScriptService;
     private final ScriptConfig scriptConfig;
     private final String scriptPath;
     private final List<String> registeredIds = new ArrayList<>();
+    private final List<JavaScriptPlaceholderResolver> registeredPlaceholders = new ArrayList<>();
 
     public JavaScriptActionRegistrationApi(Plugin plugin,
             ActionRegistry registry,
+            PlaceholderRegistry placeholderRegistry,
+            JavaScriptEventRegistry eventRegistry,
             JavaScriptService javaScriptService,
             ScriptConfig scriptConfig,
             String scriptPath) {
         this.plugin = plugin;
         this.registry = registry;
+        this.placeholderRegistry = placeholderRegistry;
+        this.eventRegistry = eventRegistry;
         this.javaScriptService = javaScriptService;
         this.scriptConfig = scriptConfig == null ? ScriptConfig.defaults() : scriptConfig;
         this.scriptPath = scriptPath;
@@ -39,6 +50,10 @@ public final class JavaScriptActionRegistrationApi {
 
     public List<String> registeredIds() {
         return List.copyOf(registeredIds);
+    }
+
+    public List<JavaScriptPlaceholderResolver> registeredPlaceholders() {
+        return List.copyOf(registeredPlaceholders);
     }
 
     @HostAccess.Export
@@ -66,7 +81,7 @@ public final class JavaScriptActionRegistrationApi {
                 value(definition, "validate", ""),
                 parseBoolean(definition.get("acceptsDynamicParameters"), parseBoolean(definition.get("accepts_dynamic_parameters"), false))
         );
-        ActionResult result = registry.register(action);
+        ActionResult result = registry.register(plugin, scriptPath, action);
         if (result.success()) {
             registeredIds.add(id);
             log("Registered JavaScript action: " + id + " from " + scriptPath);
@@ -82,6 +97,76 @@ public final class JavaScriptActionRegistrationApi {
             String normalized = Texts.normalizeId(actionId);
             registry.unregister(normalized);
             registeredIds.remove(normalized);
+        }
+    }
+
+    @HostAccess.Export
+    public boolean registerPlaceholder(Map<String, ?> definition) {
+        if (definition == null || placeholderRegistry == null || javaScriptService == null) {
+            return false;
+        }
+        String id = Texts.normalizeId(value(definition, "id", ""));
+        if (Texts.isBlank(id)) {
+            warn("JavaScript placeholder id cannot be blank in " + scriptPath);
+            return false;
+        }
+        JavaScriptPlaceholderResolver resolver = new JavaScriptPlaceholderResolver(
+                plugin,
+                javaScriptService,
+                scriptConfig,
+                id,
+                scriptPath,
+                value(definition, "function", value(definition, "resolve", "resolve")),
+                parseLong(definition.get("timeoutMillis"), scriptConfig.engine().defaultTimeoutMillis())
+        );
+        placeholderRegistry.register(resolver);
+        registeredPlaceholders.add(resolver);
+        log("Registered JavaScript placeholder: %" + id + "% from " + scriptPath);
+        return true;
+    }
+
+    @HostAccess.Export
+    public void unregisterPlaceholder(String placeholderId) {
+        String normalized = Texts.normalizeId(placeholderId);
+        for (JavaScriptPlaceholderResolver resolver : List.copyOf(registeredPlaceholders)) {
+            if (resolver.id().equals(normalized)) {
+                placeholderRegistry.unregister(resolver);
+                registeredPlaceholders.remove(resolver);
+            }
+        }
+    }
+
+    @HostAccess.Export
+    public boolean onEvent(Map<String, ?> definition) {
+        if (definition == null || eventRegistry == null || javaScriptService == null) {
+            return false;
+        }
+        String id = Texts.normalizeId(value(definition, "id", ""));
+        String eventType = Texts.normalizeId(value(definition, "event", ""));
+        if (Texts.isBlank(id) || !JavaScriptEventRegistry.isSupported(eventType)) {
+            warn("Unsupported JavaScript event listener in " + scriptPath + ": " + eventType);
+            return false;
+        }
+        JavaScriptEventSubscription subscription = new JavaScriptEventSubscription(
+                id,
+                eventType,
+                parsePriority(value(definition, "priority", "NORMAL")),
+                parseBoolean(definition.get("ignoreCancelled"), parseBoolean(definition.get("ignore_cancelled"), true)),
+                scriptPath,
+                value(definition, "function", value(definition, "execute", "execute")),
+                parseLong(definition.get("timeoutMillis"), scriptConfig.engine().defaultTimeoutMillis())
+        );
+        boolean registered = eventRegistry.register(subscription);
+        if (registered) {
+            log("Registered JavaScript event listener: " + id + " for " + eventType + " from " + scriptPath);
+        }
+        return registered;
+    }
+
+    @HostAccess.Export
+    public void offEvent(String id) {
+        if (eventRegistry != null) {
+            eventRegistry.unregister(id);
         }
     }
 
@@ -122,6 +207,14 @@ public final class JavaScriptActionRegistrationApi {
             return ActionExecutionMode.valueOf(Texts.toStringSafe(raw).trim().toUpperCase(java.util.Locale.ROOT));
         } catch (IllegalArgumentException exception) {
             return ActionExecutionMode.SYNC;
+        }
+    }
+
+    private EventPriority parsePriority(String raw) {
+        try {
+            return EventPriority.valueOf(Texts.toStringSafe(raw).trim().toUpperCase(java.util.Locale.ROOT));
+        } catch (IllegalArgumentException exception) {
+            return EventPriority.NORMAL;
         }
     }
 

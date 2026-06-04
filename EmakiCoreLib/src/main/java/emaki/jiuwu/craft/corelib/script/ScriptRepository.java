@@ -60,7 +60,9 @@ public final class ScriptRepository {
             "mythic_js_damage.js"
         });
         releaseDefaultScriptGroup(plugin, "extensions/global", false, new String[] {
-            "js_broadcast_action.js"
+            "js_broadcast_action.js",
+            "js_placeholders.js",
+            "js_event_examples.js"
         });
     }
 

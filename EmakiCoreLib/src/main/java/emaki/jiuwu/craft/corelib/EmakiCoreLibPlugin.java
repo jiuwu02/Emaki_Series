@@ -259,6 +259,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         javaScriptActionExtensionLoader = new JavaScriptActionExtensionLoader(
                 this,
                 actionRegistry,
+                placeholderRegistry,
                 javaScriptService,
                 configModel.scriptConfig(),
                 dataPath(configModel.scriptConfig().paths().root())
