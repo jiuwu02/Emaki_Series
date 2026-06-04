@@ -9,7 +9,7 @@
 
 # Emaki CoreLib Default Language File
 # version is maintained by resource sync
-version: "4.1.13"
+version: "4.1.17"
 
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiCoreLib</gradient> ]</gray>"
@@ -20,6 +20,12 @@ console:
   plugin_stopped: "<yellow>Stopped</yellow>"
   economy_bridge_ready: "<gray>Economy bridge connected: <aqua>%provider%</aqua></gray>"
   block_source_bridge_ready: "<gray>Block source connected: <aqua>%provider%</aqua></gray>"
+  bstats_registered: "<gray>bStats metrics registered: <aqua>%plugin%</aqua> <dark_gray>(pluginId=%plugin_id%)</dark_gray></gray>"
+  bstats_register_failed: "<yellow>bStats metrics registration failed and was skipped: <aqua>%plugin%</aqua> <dark_gray>(pluginId=%plugin_id%, %error%)</dark_gray></yellow>"
+  bstats_closed: "<gray>bStats metrics closed: <aqua>%plugin%</aqua></gray>"
+  bstats_close_failed: "<yellow>Failed to close bStats metrics: <aqua>%plugin%</aqua> <dark_gray>(%error%)</dark_gray></yellow>"
+  bstats_config_directory_create_failed: "<yellow>Failed to create bStats config directory: %path%</yellow>"
+  bstats_config_write_failed: "<yellow>Failed to write bStats config: %path% (%error%)</yellow>"
   script_engine_disabled: "<gray>Script engine disabled</gray>"
   script_engine_ready: "<gray>Script engine enabled (GraalJS)</gray>"
   script_engine_failed: "<red>Script engine initialization failed: %error%</red>"

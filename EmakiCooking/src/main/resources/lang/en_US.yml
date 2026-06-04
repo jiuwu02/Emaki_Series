@@ -8,7 +8,7 @@
 # ============================================================
 
 # version is maintained by resource sync
-version: "3.1.4"
+version: "3.1.6"
 
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiCooking</gradient> ]</gray>"

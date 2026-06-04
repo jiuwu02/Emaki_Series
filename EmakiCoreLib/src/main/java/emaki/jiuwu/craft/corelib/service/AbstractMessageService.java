@@ -65,7 +65,6 @@ public class AbstractMessageService implements LogMessages {
         return Texts.isBlank(value) || key.equals(value) ? fallback : value;
     }
 
-    @Override
     public Component render(String text) {
         return MiniMessages.parse(text);
     }

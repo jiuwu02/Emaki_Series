@@ -10,8 +10,6 @@ import org.bukkit.event.HandlerList;
 import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import org.bstats.bukkit.Metrics;
-
 import emaki.jiuwu.craft.corelib.action.ActionExecutor;
 import emaki.jiuwu.craft.corelib.action.ActionLineParser;
 import emaki.jiuwu.craft.corelib.action.ActionRegistry;
@@ -40,6 +38,8 @@ import emaki.jiuwu.craft.corelib.integration.NexoBlockBridgeProvider;
 import emaki.jiuwu.craft.corelib.item.ItemSourceIntegrationCoordinator;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
+import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
+import emaki.jiuwu.craft.corelib.metrics.BStatsService;
 import emaki.jiuwu.craft.corelib.monitor.PerformanceMonitor;
 import emaki.jiuwu.craft.corelib.pdc.PdcService;
 import emaki.jiuwu.craft.corelib.placeholder.ActionContextPlaceholderResolver;
@@ -71,7 +71,8 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
 """;
     private static final int BSTATS_PLUGIN_ID = 31763;
 
-    private Metrics metrics;
+    private BStatsRegistration metrics;
+    private BStatsService bStatsService;
 
     private LanguageLoader languageLoader;
     private MessageService messageService;
@@ -125,8 +126,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         registerCommandHandler();
         registerPublicApiService();
         logStartupAudit();
-        forceEnableBStats();
-        metrics = new Metrics(this, BSTATS_PLUGIN_ID);
+        metrics = registerBStats(this, BSTATS_PLUGIN_ID);
         messageService.info("console.plugin_started");
     }
 
@@ -144,8 +144,12 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
             webConsoleService = null;
         }
         if (metrics != null) {
-            metrics.shutdown();
+            metrics.close();
             metrics = null;
+        }
+        if (bStatsService != null) {
+            bStatsService.shutdownAll();
+            bStatsService = null;
         }
         if (javaScriptActionExtensionLoader != null) {
             javaScriptActionExtensionLoader.close();
@@ -290,6 +294,17 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         getServer().getServicesManager().register(EmakiCoreLibApi.class, coreLibApi, this, ServicePriority.Normal);
     }
 
+    public BStatsRegistration registerBStats(JavaPlugin plugin, int pluginId) {
+        if (bStatsService == null) {
+            return BStatsRegistration.noop(plugin, pluginId);
+        }
+        return bStatsService.register(plugin, pluginId);
+    }
+
+    public BStatsService bStatsService() {
+        return bStatsService;
+    }
+
     private void registerMythicJavaScriptBridge() {
         if (mythicJavaScriptBridge != null || !getServer().getPluginManager().isPluginEnabled("MythicMobs")) {
             return;
@@ -329,6 +344,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private void initializeServices() {
         languageLoader = new LanguageLoader(this);
         messageService = new MessageService(this, languageLoader);
+        bStatsService = new BStatsService(this, messageService);
         debugLogger = new DebugLogger(getLogger(), languageLoader);
         itemSourceIntegrationCoordinator = new ItemSourceIntegrationCoordinator(this, messageService, itemSourceService);
         performanceMonitor = new PerformanceMonitor();
@@ -361,20 +377,6 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
                     "path", target.getPath(),
                     "error", String.valueOf(exception.getMessage())
             ));
-        }
-    }
-
-    private void forceEnableBStats() {
-        File bStatsFolder = new File(getDataFolder().getParentFile(), "bStats");
-        if (!bStatsFolder.exists()) {
-            bStatsFolder.mkdirs();
-        }
-        File configFile = new File(bStatsFolder, "config.yml");
-        org.bukkit.configuration.file.YamlConfiguration config = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(configFile);
-        config.set("enabled", true);
-        try {
-            config.save(configFile);
-        } catch (java.io.IOException ignored) {
         }
     }
 
@@ -490,6 +492,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         serviceRegistry.clear();
         registerService(LanguageLoader.class, languageLoader);
         registerService(MessageService.class, messageService);
+        registerService(BStatsService.class, bStatsService);
         registerService(PerformanceMonitor.class, performanceMonitor);
         registerService(AsyncTaskScheduler.class, asyncTaskScheduler);
         registerService(AsyncFileService.class, asyncFileService);

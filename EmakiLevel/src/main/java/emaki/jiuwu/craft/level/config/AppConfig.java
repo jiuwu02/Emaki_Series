@@ -28,7 +28,7 @@ public record AppConfig(String version,
         List<String> mythicDropNames) {
 
     public static AppConfig defaults() {
-        return new AppConfig("1.0.0", "zh_CN", true, "main", 1, 100, 10, true, true, "emakilevel", true, "emakilevel", true, false, true, 200, true, "level_gui", true, true, true, List.of("emakilevel_exp", "elv_exp"));
+        return new AppConfig("1.0.2", "zh_CN", true, "main", 1, 100, 10, true, true, "emakilevel", true, "emakilevel", true, false, true, 200, true, "level_gui", true, true, true, List.of("emakilevel_exp", "elv_exp"));
     }
 
     public static AppConfig parse(YamlSection section) {

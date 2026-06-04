@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-corelib</artifactId>
-    <version>4.1.13</version>
+    <version>4.1.17</version>
     <name>EmakiCoreLib</name>
     <packaging>jar</packaging>
 
@@ -30,6 +30,13 @@
             <groupId>emaki.jiuwu.craft</groupId>
             <artifactId>emaki-corelib-api</artifactId>
             <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>emaki.jiuwu.craft</groupId>
+            <artifactId>emaki-bstats-runtime</artifactId>
+            <version>${project.version}</version>
+            <scope>runtime</scope>
+            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>net.kyori</groupId>
@@ -145,10 +152,6 @@
             <artifactId>js</artifactId>
             <type>pom</type>
         </dependency>
-        <dependency>
-            <groupId>org.bstats</groupId>
-            <artifactId>bstats-bukkit</artifactId>
-        </dependency>
     </dependencies>
 
     <build>
@@ -195,6 +198,31 @@
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>3.8.1</version>
+                <executions>
+                    <execution>
+                        <id>copy-bstats-runtime</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>copy</goal>
+                        </goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>emaki.jiuwu.craft</groupId>
+                                    <artifactId>emaki-bstats-runtime</artifactId>
+                                    <version>${project.version}</version>
+                                    <outputDirectory>${project.build.outputDirectory}/runtime-libraries/emaki/jiuwu/craft/emaki-bstats-runtime/${project.version}</outputDirectory>
+                                    <destFileName>emaki-bstats-runtime-${project.version}.jar</destFileName>
+                                </artifactItem>
+                            </artifactItems>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
                     <compilerArgs>
@@ -219,17 +247,9 @@
                             <goal>shade</goal>
                         </goals>
                         <configuration>
-                            <relocations combine.self="override">
-                                <relocation>
-                                    <pattern>org.bstats</pattern>
-                                    <shadedPattern>emaki.jiuwu.craft.corelib.shadow.bstats</shadedPattern>
-                                </relocation>
-                            </relocations>
                             <artifactSet>
                                 <includes>
                                     <include>emaki.jiuwu.craft:emaki-corelib-api</include>
-                                    <include>org.bstats:bstats-bukkit</include>
-                                    <include>org.bstats:bstats-base</include>
                                 </includes>
                             </artifactSet>
                             <createDependencyReducedPom>false</createDependencyReducedPom>

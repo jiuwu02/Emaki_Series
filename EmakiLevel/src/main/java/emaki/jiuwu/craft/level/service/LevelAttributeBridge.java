@@ -1,6 +1,8 @@
 package emaki.jiuwu.craft.level.service;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -8,27 +10,27 @@ import java.util.List;
 import java.util.Map;
 
 import org.bukkit.Bukkit;
-import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import emaki.jiuwu.craft.attribute.api.AttributeContribution;
-import emaki.jiuwu.craft.attribute.api.AttributeContributionProvider;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.level.config.AppConfig;
 import emaki.jiuwu.craft.level.config.LevelTypeConfig;
 import emaki.jiuwu.craft.level.model.PlayerLevelData;
 import emaki.jiuwu.craft.level.model.PlayerLevelEntry;
 
-public final class LevelAttributeBridge implements AttributeContributionProvider {
+public final class LevelAttributeBridge {
 
     private final JavaPlugin plugin;
     private final LevelTypeRegistry typeRegistry;
     private final PlayerLevelDataStore dataStore;
     private AppConfig config;
     private Object facade;
+    private Object providerProxy;
     private Method unregisterMethod;
+    private Constructor<?> contributionConstructor;
 
     public LevelAttributeBridge(JavaPlugin plugin, LevelTypeRegistry typeRegistry, PlayerLevelDataStore dataStore, AppConfig config) {
         this.plugin = plugin;
@@ -41,21 +43,48 @@ public final class LevelAttributeBridge implements AttributeContributionProvider
         if (config == null || !config.attributeEnabled() || !Bukkit.getPluginManager().isPluginEnabled("EmakiAttribute")) {
             return false;
         }
+        Plugin attributePlugin = Bukkit.getPluginManager().getPlugin("EmakiAttribute");
+        if (attributePlugin == null) {
+            return false;
+        }
         try {
-            Class<?> facadeType = Class.forName("emaki.jiuwu.craft.attribute.service.AttributeServiceFacade");
+            ClassLoader attributeClassLoader = attributePlugin.getClass().getClassLoader();
+            Class<?> facadeType = Class.forName("emaki.jiuwu.craft.attribute.service.AttributeServiceFacade", true, attributeClassLoader);
+            Class<?> providerType = Class.forName("emaki.jiuwu.craft.attribute.api.AttributeContributionProvider", true, attributeClassLoader);
+            Class<?> contributionType = Class.forName("emaki.jiuwu.craft.attribute.api.AttributeContribution", true, attributeClassLoader);
             RegisteredServiceProvider<?> provider = Bukkit.getServicesManager().getRegistration(facadeType);
             if (provider == null || provider.getProvider() == null) {
                 return false;
             }
+            contributionConstructor = contributionType.getConstructor(String.class, double.class, String.class);
             facade = provider.getProvider();
-            Method registerMethod = facadeType.getMethod("registerContributionProvider", AttributeContributionProvider.class);
+            providerProxy = Proxy.newProxyInstance(attributeClassLoader, new Class<?>[]{providerType}, (proxy, method, args) -> {
+                String methodName = method.getName();
+                if (method.getDeclaringClass() == Object.class) {
+                    return switch (methodName) {
+                        case "toString" -> "EmakiLevelAttributeProvider{" + id() + "}";
+                        case "hashCode" -> System.identityHashCode(proxy);
+                        case "equals" -> proxy == (args == null || args.length == 0 ? null : args[0]);
+                        default -> method.invoke(this, args);
+                    };
+                }
+                return switch (methodName) {
+                    case "id" -> id();
+                    case "priority" -> priority();
+                    case "collect" -> collect(args == null || args.length == 0 ? null : args[0]);
+                    default -> throw new UnsupportedOperationException("Unsupported AttributeContributionProvider method: " + methodName);
+                };
+            });
+            Method registerMethod = facadeType.getMethod("registerContributionProvider", providerType);
             unregisterMethod = facadeType.getMethod("unregisterContributionProvider", String.class);
-            registerMethod.invoke(facade, this);
+            registerMethod.invoke(facade, providerProxy);
             return true;
         } catch (ReflectiveOperationException | LinkageError exception) {
             plugin.getLogger().fine("EmakiAttribute bridge skipped: " + exception.getMessage());
             facade = null;
+            providerProxy = null;
             unregisterMethod = null;
+            contributionConstructor = null;
             return false;
         }
     }
@@ -69,7 +98,9 @@ public final class LevelAttributeBridge implements AttributeContributionProvider
         } catch (ReflectiveOperationException ignored) {
         } finally {
             facade = null;
+            providerProxy = null;
             unregisterMethod = null;
+            contributionConstructor = null;
         }
     }
 
@@ -99,26 +130,23 @@ public final class LevelAttributeBridge implements AttributeContributionProvider
         }
     }
 
-    @Override
     public String id() {
         return config == null ? "emakilevel" : config.attributeProviderId();
     }
 
-    @Override
     public int priority() {
         return 100;
     }
 
-    @Override
-    public Collection<AttributeContribution> collect(LivingEntity entity) {
-        if (!(entity instanceof Player player) || config == null || !config.attributeEnabled()) {
+    private Collection<?> collect(Object entity) {
+        if (!(entity instanceof Player player) || config == null || !config.attributeEnabled() || contributionConstructor == null) {
             return List.of();
         }
         PlayerLevelData data = dataStore.cached(player.getUniqueId());
         if (data == null) {
             data = dataStore.getOrLoad(player.getUniqueId(), typeRegistry.asMap());
         }
-        java.util.List<AttributeContribution> contributions = new ArrayList<>();
+        List<Object> contributions = new ArrayList<>();
         for (LevelTypeConfig type : typeRegistry.all()) {
             if (!type.enabled() || !type.attributesEnabled() || type.attributes().isEmpty()) {
                 continue;
@@ -134,10 +162,18 @@ public final class LevelAttributeBridge implements AttributeContributionProvider
             for (Map.Entry<String, String> attribute : type.attributes().entrySet()) {
                 double value = ExpressionEngine.evaluate(attribute.getValue(), variables);
                 if (Math.abs(value) > 1.0E-9D) {
-                    contributions.add(new AttributeContribution(attribute.getKey(), value, id() + ":" + type.id()));
+                    addContribution(contributions, attribute.getKey(), value, id() + ":" + type.id());
                 }
             }
         }
         return contributions;
+    }
+
+    private void addContribution(Collection<Object> contributions, String attributeId, double value, String sourceId) {
+        try {
+            contributions.add(contributionConstructor.newInstance(attributeId, value, sourceId));
+        } catch (ReflectiveOperationException exception) {
+            plugin.getLogger().fine("EmakiAttribute contribution skipped: " + exception.getMessage());
+        }
     }
 }

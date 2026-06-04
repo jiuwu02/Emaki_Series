@@ -4,8 +4,6 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.graalvm.polyglot.HostAccess;
-
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.attribute.model.AttributeDefinition;
 import emaki.jiuwu.craft.corelib.script.JavaScriptService;
@@ -37,7 +35,6 @@ public final class JavaScriptAttributeRegistrationApi {
         return Set.copyOf(registeredProviders);
     }
 
-    @HostAccess.Export
     public boolean registerAttribute(Map<String, ?> definitionMap) {
         AttributeDefinition definition = ScriptAttributeDefinitionParser.parse(definitionMap);
         if (definition == null || Texts.isBlank(definition.id())) {
@@ -54,7 +51,6 @@ public final class JavaScriptAttributeRegistrationApi {
         return registered;
     }
 
-    @HostAccess.Export
     public boolean registerProvider(Map<String, ?> definition) {
         if (definition == null || plugin.attributeService() == null) {
             return false;
@@ -82,7 +78,6 @@ public final class JavaScriptAttributeRegistrationApi {
         return true;
     }
 
-    @HostAccess.Export
     public boolean onDamage(Map<String, ?> definition) {
         if (definition == null || damageHookRegistry == null) {
             return false;

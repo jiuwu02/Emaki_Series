@@ -219,12 +219,17 @@ public final class PacketEventsCookingTextDisplayService implements CookingTextD
         metadata.add(new EntityData<>(translationIndex + 3, EntityDataTypes.QUATERNION, new Quaternion4f(0F, 0F, 0F, 1F)));
         metadata.add(new EntityData<>(billboardIndex, EntityDataTypes.BYTE, billboardByte(profile.billboard())));
         metadata.add(new EntityData<>(viewRangeIndex, EntityDataTypes.FLOAT, (float) settingsService.displayEntitiesViewDistanceBlocks()));
-        metadata.add(new EntityData<>(textIndex, EntityDataTypes.ADV_COMPONENT, spec.component()));
+        metadata.add(componentMetadata(textIndex, spec.componentObject()));
         metadata.add(new EntityData<>(textIndex + 1, EntityDataTypes.INT, profile.lineWidth()));
         metadata.add(new EntityData<>(textIndex + 2, EntityDataTypes.INT, profile.backgroundArgb()));
         metadata.add(new EntityData<>(textIndex + 3, EntityDataTypes.BYTE, (byte) 0xFF));
         metadata.add(new EntityData<>(textIndex + 4, EntityDataTypes.BYTE, styleFlags(profile)));
         return metadata;
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private EntityData<?> componentMetadata(int index, Object component) {
+        return new EntityData(index, EntityDataTypes.ADV_COMPONENT, component);
     }
 
     private byte billboardByte(String value) {

@@ -8,15 +8,16 @@ import org.bukkit.command.PluginCommand;
 import org.bukkit.event.HandlerList;
 import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bstats.bukkit.Metrics;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.text.AdventureSupport;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.web.WebConsoleRegistry;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
+import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 import emaki.jiuwu.craft.level.action.LevelActionRegistrar;
 import emaki.jiuwu.craft.level.api.EmakiLevelApi;
 import emaki.jiuwu.craft.level.apiimpl.DefaultEmakiLevelApi;
@@ -46,11 +47,11 @@ import emaki.jiuwu.craft.level.service.RequirementService;
 
 public final class EmakiLevelPlugin extends JavaPlugin {
 
-    private static final int BSTATS_PLUGIN_ID = 31768;
+    private static final int BSTATS_PLUGIN_ID = 31794;
     private static final String STARTUP_ASCII = """
  ______  __    __  ______  __  __   __  __      ______  __   ________  __
 /\\  ___\\/\\ "-./  \\/\\  __ \\/\\ \\/ /  /\\ \\/\\ \\    /\\  ___\\/\\ \\ / /\\  ___\\/\\ \\
-\\ \\  __\\\\ \\ \\-./\\ \\ \\  __ \\ \\  _"-.\\ \\ \\ \\___\\ \\  __\\\\ \\ \\'/\\ \\  __\\\\ \\ \\____
+\\ \\  __\\\\ \\ \\-./\\ \\ \\  __ \\ \\  _"-.\\ \\ \\ \\ \\___\\ \\  __\\\\ \\ \\'/\\ \\  __\\\\ \\ \\____
  \\ \\_____\\ \\_\\ \\ \\_\\ \\_\\ \\_\\ \\_\\ \\_\\\\ \\_\\ \\_____\\ \\_____\\ \\__| \\ \\_____\\ \\_____\\
   \\/_____/\\/_/  \\/_/\\/_/\\/_/\\/_/\\/_/ \\/_/\\/_____/\\/_____/\\/_/   \\/_____/\\/_____/
 """;
@@ -100,13 +101,14 @@ public final class EmakiLevelPlugin extends JavaPlugin {
     private MythicLevelDropBridge mythicDropBridge;
     private LevelPlaceholderExpansion placeholderExpansion;
     private EmakiLevelApi api;
-    private Metrics metrics;
+    private BStatsRegistration metrics;
 
     @Override
     public void onEnable() {
         ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII);
         coreLib = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
         initializeServices();
+        messages.info("console.plugin_starting");
         bootstrapService.bootstrap();
         reloadPluginState();
         registerCommand();
@@ -117,7 +119,7 @@ public final class EmakiLevelPlugin extends JavaPlugin {
         registerPlaceholderExpansion();
         registerAttributeBridge();
         registerMythicDrops();
-        metrics = new Metrics(this, BSTATS_PLUGIN_ID);
+        metrics = coreLib.registerBStats(this, BSTATS_PLUGIN_ID);
         messages.info("console.plugin_started");
     }
 
@@ -146,7 +148,7 @@ public final class EmakiLevelPlugin extends JavaPlugin {
             coreLib.actionRegistry().unregisterAll(this);
         }
         if (metrics != null) {
-            metrics.shutdown();
+            metrics.close();
             metrics = null;
         }
         if (messages != null) {
@@ -191,6 +193,17 @@ public final class EmakiLevelPlugin extends JavaPlugin {
                     public boolean shouldInstallDefaultData() {
                         AppConfig runtimeConfig = AppConfig.parse(YamlFiles.load(getDataFolder().toPath().resolve("config.yml").toFile()));
                         return runtimeConfig.releaseDefaultData();
+                    }
+
+                    @Override
+                    public void afterVersionedMerge(String relativePath, YamlSection runtime, YamlSection bundled) {
+                        if (relativePath == null || !relativePath.startsWith("lang/") || runtime == null || bundled == null) {
+                            return;
+                        }
+                        YamlSection consoleDefaults = bundled.getSection("console");
+                        if (consoleDefaults != null) {
+                            runtime.set("console", consoleDefaults.asMap());
+                        }
                     }
                 }
         );

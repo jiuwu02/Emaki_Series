@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-level</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.5</version>
     <name>EmakiLevel</name>
     <packaging>jar</packaging>
 
@@ -33,12 +33,6 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>emaki.jiuwu.craft</groupId>
-            <artifactId>emaki-attribute-api</artifactId>
-            <version>4.1.9</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
             <groupId>io.lumine</groupId>
             <artifactId>Mythic-Dist</artifactId>
             <scope>provided</scope>
@@ -47,10 +41,6 @@
             <groupId>me.clip</groupId>
             <artifactId>placeholderapi</artifactId>
             <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.bstats</groupId>
-            <artifactId>bstats-bukkit</artifactId>
         </dependency>
     </dependencies>
 
@@ -105,17 +95,9 @@
                             <goal>shade</goal>
                         </goals>
                         <configuration>
-                            <relocations>
-                                <relocation>
-                                    <pattern>org.bstats</pattern>
-                                    <shadedPattern>emaki.jiuwu.craft.level.shadow.bstats</shadedPattern>
-                                </relocation>
-                            </relocations>
                             <artifactSet>
                                 <includes>
                                     <include>emaki.jiuwu.craft:emaki-level-api</include>
-                                    <include>org.bstats:bstats-bukkit</include>
-                                    <include>org.bstats:bstats-base</include>
                                 </includes>
                             </artifactSet>
                             <createDependencyReducedPom>false</createDependencyReducedPom>

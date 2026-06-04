@@ -8,7 +8,6 @@ import java.util.Set;
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.cooking.service.CookingSettingsService;
-import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.entity.Display;
@@ -101,7 +100,7 @@ public final class BukkitCookingTextDisplayService implements CookingTextDisplay
 
     private void apply(TextDisplay display, CookingTextDisplaySpec spec) {
         CookingSettingsService.TextDisplayProfile profile = spec.profile();
-        display.setText(MiniMessages.legacy(spec.component()));
+        display.setText(spec.legacyText());
         display.setBillboard(billboard(profile.billboard()));
         display.setTransformation(spec.transformation());
         display.setInterpolationDuration(0);

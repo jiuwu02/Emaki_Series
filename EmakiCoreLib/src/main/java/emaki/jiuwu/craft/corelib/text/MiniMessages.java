@@ -26,6 +26,10 @@ public final class MiniMessages {
         }
     }
 
+    public static Object componentObject(String text) {
+        return parse(text);
+    }
+
     public static Component read(String text) {
         if (Texts.isBlank(text)) {
             return Component.empty();
@@ -53,6 +57,13 @@ public final class MiniMessages {
         } catch (Exception _) {
             return plain(component);
         }
+    }
+
+    public static String legacyText(String text) {
+        if (Texts.isBlank(text)) {
+            return "";
+        }
+        return legacy(read(text));
     }
 
     public static Component legacyRead(String text) {

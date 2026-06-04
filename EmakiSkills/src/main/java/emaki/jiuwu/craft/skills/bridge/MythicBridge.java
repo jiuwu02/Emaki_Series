@@ -149,7 +149,7 @@ public final class MythicBridge {
 
     private void warning(String key, Map<String, ?> replacements, Throwable throwable) {
         String text = messages == null ? key : messages.message(key, replacements == null ? Map.of() : replacements);
-        String plainText = messages == null ? text : MiniMessages.plain(messages.render(text));
+        String plainText = messages == null ? text : MiniMessages.plainText(text);
         if (throwable == null) {
             plugin.getLogger().warning(plainText);
             return;

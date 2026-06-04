@@ -7,10 +7,11 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.RegisteredServiceProvider;
+import org.bukkit.plugin.java.JavaPlugin;
 
-import org.bstats.bukkit.Metrics;
-
+import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.api.integration.EmakiAttributeBridge;
@@ -54,7 +55,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
 """;
     private static final int BSTATS_PLUGIN_ID = 31770;
 
-    private Metrics metrics;
+    private BStatsRegistration metrics;
 
     private final ItemLifecycleCoordinator lifecycleCoordinator = new ItemLifecycleCoordinator();
     private final ItemCommandRouter commandRouter = new ItemCommandRouter(this);
@@ -96,8 +97,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         registerEventHandlers();
         registerWebConsole();
         ensurePlaceholderExpansion();
-        forceEnableBStats();
-        metrics = new Metrics(this, BSTATS_PLUGIN_ID);
+        metrics = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).registerBStats(this, BSTATS_PLUGIN_ID);
         messageService.info("console.plugin_started");
     }
 
@@ -108,7 +108,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
             placeholderExpansion = null;
         }
         if (metrics != null) {
-            metrics.shutdown();
+            metrics.close();
             metrics = null;
         }
         WebConsoleRegistry.unregisterModule(this);
@@ -260,19 +260,5 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
 
     public DebugCommand debugCommand() {
         return debugCommand;
-    }
-
-    private void forceEnableBStats() {
-        java.io.File bStatsFolder = new java.io.File(getDataFolder().getParentFile(), "bStats");
-        if (!bStatsFolder.exists()) {
-            bStatsFolder.mkdirs();
-        }
-        java.io.File configFile = new java.io.File(bStatsFolder, "config.yml");
-        org.bukkit.configuration.file.YamlConfiguration config = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(configFile);
-        config.set("enabled", true);
-        try {
-            config.save(configFile);
-        } catch (java.io.IOException ignored) {
-        }
     }
 }

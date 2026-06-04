@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-skills</artifactId>
-    <version>2.1.7</version>
+    <version>2.1.9</version>
     <name>EmakiSkills</name>
     <packaging>jar</packaging>
 
@@ -46,10 +46,6 @@
             <groupId>org.jetbrains</groupId>
             <artifactId>annotations</artifactId>
             <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.bstats</groupId>
-            <artifactId>bstats-bukkit</artifactId>
         </dependency>
     </dependencies>
 
@@ -104,17 +100,9 @@
                             <goal>shade</goal>
                         </goals>
                         <configuration>
-                            <relocations>
-                                <relocation>
-                                    <pattern>org.bstats</pattern>
-                                    <shadedPattern>emaki.jiuwu.craft.skills.shadow.bstats</shadedPattern>
-                                </relocation>
-                            </relocations>
                             <artifactSet>
                                 <includes>
                                     <include>emaki.jiuwu.craft:emaki-skills-api</include>
-                                    <include>org.bstats:bstats-bukkit</include>
-                                    <include>org.bstats:bstats-base</include>
                                 </includes>
                             </artifactSet>
                             <createDependencyReducedPom>false</createDependencyReducedPom>

@@ -2,15 +2,13 @@ package emaki.jiuwu.craft.attribute.service;
 
 import java.util.List;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
-
 import emaki.jiuwu.craft.attribute.model.AttributeSnapshot;
 import emaki.jiuwu.craft.attribute.model.DamageContext;
 import emaki.jiuwu.craft.attribute.model.DamageContextVariables;
 import emaki.jiuwu.craft.attribute.model.DamageRequest;
 import emaki.jiuwu.craft.attribute.model.DamageResult;
 import emaki.jiuwu.craft.attribute.model.DamageTypeDefinition;
+import emaki.jiuwu.craft.corelib.cache.CacheManager;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -20,25 +18,21 @@ final class DamageCalculationCache {
     private static final int DEFAULT_RESULT_LIMIT = 512;
     private static final int DEFAULT_SUM_LIMIT = 1024;
 
-    private final Cache<DamageResultKey, DamageResult> resultCache;
-    private final Cache<AttributeSumKey, Double> sumCache;
+    private final CacheManager<DamageResultKey, DamageResult> resultCache;
+    private final CacheManager<AttributeSumKey, Double> sumCache;
 
     DamageCalculationCache() {
         this(DEFAULT_RESULT_LIMIT, DEFAULT_SUM_LIMIT);
     }
 
     DamageCalculationCache(int resultLimit, int sumLimit) {
-        this.resultCache = Caffeine.newBuilder()
-                .maximumSize(resultLimit)
-                .build();
-        this.sumCache = Caffeine.newBuilder()
-                .maximumSize(sumLimit)
-                .build();
+        this.resultCache = new CacheManager<>(resultLimit, 0L);
+        this.sumCache = new CacheManager<>(sumLimit, 0L);
     }
 
     DamageResult getResult(DamageRequest request, DamageTypeDefinition definition, double seededRoll) {
         DamageResultKey key = resultKey(request, definition, seededRoll);
-        return resultCache.getIfPresent(key);
+        return resultCache.get(key);
     }
 
     void cacheResult(DamageRequest request, DamageTypeDefinition definition, double seededRoll, DamageResult result) {
@@ -61,7 +55,7 @@ final class DamageCalculationCache {
                 contextSigHash(context),
                 (long) safeHashCode(attributeIdsSignature)
         );
-        Double cached = sumCache.getIfPresent(key);
+        Double cached = sumCache.get(key);
         if (cached != null) {
             return cached;
         }

@@ -9,7 +9,7 @@
 
 # Emaki CoreLib 默认语言文件
 # version 由资源同步维护
-version: "4.1.13"
+version: "4.1.17"
 
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiCoreLib</gradient> ]</gray>"
@@ -20,6 +20,12 @@ console:
   plugin_stopped: "<yellow>已关闭</yellow>"
   economy_bridge_ready: "<gray>经济桥接已接入: <aqua>%provider%</aqua></gray>"
   block_source_bridge_ready: "<gray>已接入方块源: <aqua>%provider%</aqua></gray>"
+  bstats_registered: "<gray>bStats 统计已注册: <aqua>%plugin%</aqua> <dark_gray>(pluginId=%plugin_id%)</dark_gray></gray>"
+  bstats_register_failed: "<yellow>bStats 统计注册失败，已跳过: <aqua>%plugin%</aqua> <dark_gray>(pluginId=%plugin_id%, %error%)</dark_gray></yellow>"
+  bstats_closed: "<gray>bStats 统计已关闭: <aqua>%plugin%</aqua></gray>"
+  bstats_close_failed: "<yellow>bStats 统计关闭失败: <aqua>%plugin%</aqua> <dark_gray>(%error%)</dark_gray></yellow>"
+  bstats_config_directory_create_failed: "<yellow>无法创建 bStats 配置目录: %path%</yellow>"
+  bstats_config_write_failed: "<yellow>无法写入 bStats 配置: %path% (%error%)</yellow>"
   script_engine_disabled: "<gray>脚本引擎已禁用</gray>"
   script_engine_ready: "<gray>脚本引擎已启用 (GraalJS)</gray>"
   script_engine_failed: "<red>脚本引擎初始化失败: %error%</red>"

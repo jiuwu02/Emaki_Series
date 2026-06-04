@@ -21,6 +21,7 @@
 
     <modules>
         <module>EmakiCoreLibApi</module>
+        <module>EmakiBStatsRuntime</module>
         <module>EmakiCoreLib</module>
         <module>EmakiItemApi</module>
         <module>EmakiStrengthenApi</module>
@@ -56,7 +57,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>25</maven.compiler.release>
-        <emaki.corelib.version>4.1.13</emaki.corelib.version>
+        <emaki.corelib.version>4.1.17</emaki.corelib.version>
         <spigot.api.version>1.21.11-R0.1-SNAPSHOT</spigot.api.version>
         <adventure.version>4.26.1</adventure.version>
         <adventure.platform.version>4.4.1</adventure.platform.version>
@@ -324,16 +325,6 @@
                     <version>3.6.2</version>
                     <configuration>
                         <createDependencyReducedPom>false</createDependencyReducedPom>
-                        <relocations>
-                            <relocation>
-                                <pattern>net.objecthunter.exp4j</pattern>
-                                <shadedPattern>emaki.jiuwu.craft.corelib.shadow.exp4j</shadedPattern>
-                            </relocation>
-                            <relocation>
-                                <pattern>com.github.benmanes.caffeine</pattern>
-                                <shadedPattern>emaki.jiuwu.craft.corelib.shadow.caffeine</shadedPattern>
-                            </relocation>
-                        </relocations>
                         <filters>
                             <filter>
                                 <artifact>*:*</artifact>

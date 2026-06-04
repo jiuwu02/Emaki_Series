@@ -293,7 +293,11 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
             plugin.placeholderExpansion().unregister();
             plugin.setPlaceholderExpansion(null);
         }
-        plugin.messageService().info("console.plugin_stopped");
+        if (plugin.messageService() != null) {
+            plugin.messageService().info("console.plugin_stopped");
+        } else {
+            plugin.getLogger().info("EmakiAttribute stopped.");
+        }
     }
 
     private PluginCommand getPluginCommand(EmakiAttributePlugin plugin) {

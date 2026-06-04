@@ -6,11 +6,8 @@ import java.util.Map;
 import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import net.kyori.adventure.text.Component;
-
 import emaki.jiuwu.craft.corelib.text.AdventureSupport;
 import emaki.jiuwu.craft.corelib.text.LogMessages;
-import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
@@ -20,6 +17,7 @@ public final class LevelMessageService implements LogMessages {
     private final JavaPlugin plugin;
     private String language = "zh_CN";
     private YamlSection messages = YamlFiles.load("");
+    private YamlSection fallbackMessages = YamlFiles.load("");
 
     public LevelMessageService(JavaPlugin plugin) {
         this.plugin = plugin;
@@ -27,6 +25,7 @@ public final class LevelMessageService implements LogMessages {
 
     public void load(String language) {
         this.language = Texts.isBlank(language) ? "zh_CN" : Texts.trim(language);
+        fallbackMessages = YamlFiles.loadResource(plugin, "lang/" + this.language + ".yml");
         File file = plugin.getDataFolder().toPath().resolve("lang").resolve(this.language + ".yml").toFile();
         messages = YamlFiles.load(file);
     }
@@ -38,8 +37,8 @@ public final class LevelMessageService implements LogMessages {
 
     @Override
     public String message(String key, Map<String, ?> replacements) {
-        String raw = messages.getString(key, key);
-        String prefix = messages.getString("prefix", "<gray>[<gold>EmakiLevel</gold>]</gray> ");
+        String raw = resolveText(key, key);
+        String prefix = resolveText("prefix", "<gray>[<gold>EmakiLevel</gold>]</gray> ");
         Map<String, Object> merged = new java.util.LinkedHashMap<>();
         merged.put("prefix", prefix);
         if (replacements != null) {
@@ -48,9 +47,41 @@ public final class LevelMessageService implements LogMessages {
         return Texts.formatTemplate(raw, merged);
     }
 
-    @Override
-    public Component render(String text) {
-        return MiniMessages.parse(text);
+    private String resolveText(String key, String fallback) {
+        String local = nestedString(messages, key);
+        if (local != null) {
+            return local;
+        }
+        String bundled = nestedString(fallbackMessages, key);
+        return bundled == null ? fallback : bundled;
+    }
+
+    private String nestedString(YamlSection section, String key) {
+        if (section == null || Texts.isBlank(key)) {
+            return null;
+        }
+        String direct = section.getString(key, null);
+        if (direct != null) {
+            return direct;
+        }
+        String[] parts = key.split("\\.");
+        YamlSection current = section;
+        for (int index = 0; index < parts.length; index++) {
+            String part = parts[index];
+            if (Texts.isBlank(part)) {
+                return null;
+            }
+            if (index == parts.length - 1) {
+                return current.getString(part, null);
+            }
+            Object nested = current.get(part);
+            if (nested instanceof YamlSection nestedSection) {
+                current = nestedSection;
+            } else {
+                return null;
+            }
+        }
+        return null;
     }
 
     public void send(CommandSender sender, String key) {
