@@ -9,7 +9,7 @@
 
 # Emaki CoreLib 默认语言文件
 # version 由资源同步维护
-version: "4.1.18"
+version: "4.1.19"
 
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiCoreLib</gradient> ]</gray>"
@@ -18,6 +18,7 @@ console:
   plugin_starting: "<gray>正在启动...</gray>"
   plugin_started: "<green>启动完成</green>"
   plugin_stopped: "<yellow>已关闭</yellow>"
+  versioned_file_updated: "<green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
   economy_bridge_ready: "<gray>经济桥接已接入: <aqua>%provider%</aqua></gray>"
   block_source_bridge_ready: "<gray>已接入方块源: <aqua>%provider%</aqua></gray>"
   bstats_registered: "<gray>bStats 统计已注册: <aqua>%plugin%</aqua> <dark_gray>(pluginId=%plugin_id%)</dark_gray></gray>"

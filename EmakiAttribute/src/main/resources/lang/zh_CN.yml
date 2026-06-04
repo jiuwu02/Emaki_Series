@@ -8,7 +8,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "4.1.13"
+version: "4.1.14"
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiAttribute</gradient> ]</gray>"
 
@@ -16,6 +16,7 @@ console:
   plugin_starting: "<gray>正在启动...</gray>"
   plugin_started: "<green>启动完成</green>"
   plugin_stopped: "<yellow>已关闭</yellow>"
+  versioned_file_updated: "<green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
   config_load_failed: "<red>配置读取失败: %error%</red>"
   reload_stage_failed: "<yellow>重载阶段 %stage% 失败: <red>%error%</red></yellow>"
   vanilla_attribute_resolve_failed: "<yellow>无法解析原版属性映射: <red>%attribute%</red> -> <red>%target%</red></yellow>"

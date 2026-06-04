@@ -321,6 +321,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                     "version",
                     document -> mergeBundledConfig(document.root(), document.defaults())
             );
+            logVersionUpdate(plugin, "config.yml", versionedFile);
             if (!file.exists()) {
                 plugin.messageService().warning("loader.bundled_resource_missing", Map.of(
                         "type", "配置",
@@ -335,6 +336,17 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
             ));
             return AttributeConfig.defaults();
         }
+    }
+
+    private void logVersionUpdate(EmakiAttributePlugin plugin, String relativePath, VersionedYamlFile versionedFile) {
+        if (versionedFile == null || !versionedFile.versionUpdated()) {
+            return;
+        }
+        plugin.messageService().info("console.versioned_file_updated", Map.of(
+                "path", relativePath,
+                "old_version", versionedFile.previousVersion().isBlank() ? "unknown" : versionedFile.previousVersion(),
+                "new_version", versionedFile.updatedVersion()
+        ));
     }
 
     private void mergeBundledConfig(emaki.jiuwu.craft.corelib.yaml.YamlSection runtime,

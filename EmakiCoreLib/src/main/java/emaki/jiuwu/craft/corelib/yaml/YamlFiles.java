@@ -147,7 +147,14 @@ public final class YamlFiles {
         }
         versionedFile.root().set(versionKey, bundledVersion);
         versionedFile.save();
-        return versionedFile;
+        return new VersionedYamlFile(
+                versionedFile.file(),
+                versionedFile.resourcePath(),
+                versionedFile.document(),
+                true,
+                runtimeVersion,
+                bundledVersion
+        );
     }
 
     public static void save(File file, YamlSection section) throws IOException {

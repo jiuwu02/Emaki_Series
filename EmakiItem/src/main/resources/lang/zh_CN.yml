@@ -7,7 +7,7 @@
 # 文件放置位置: plugins/EmakiItem/lang/
 # ============================================================
 
-version: "2.1.6"
+version: "2.1.7"
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiItem</gradient> ]</gray>"
   no_permission: "<red>你没有权限执行这个命令。</red>"
@@ -32,6 +32,7 @@ console:
   sets_loaded: "<gray>已加载 <yellow>%count%</yellow> 个套装</gray>"
   bootstrap_start: "正在同步默认资源..."
   bootstrap_complete: "默认资源同步完成。"
+  versioned_file_updated: "<green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
   bootstrap_skip: "已按配置跳过默认数据释放。"
   default_file_missing: "内置资源不存在: %path%"
   bootstrap_copy_failed: "复制默认资源失败: %path% (%error%)"

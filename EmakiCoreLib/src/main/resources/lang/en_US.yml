@@ -9,7 +9,7 @@
 
 # Emaki CoreLib Default Language File
 # version is maintained by resource sync
-version: "4.1.18"
+version: "4.1.19"
 
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiCoreLib</gradient> ]</gray>"
@@ -18,6 +18,7 @@ console:
   plugin_starting: "<gray>Starting...</gray>"
   plugin_started: "<green>Started</green>"
   plugin_stopped: "<yellow>Stopped</yellow>"
+  versioned_file_updated: "<green>Updated bundled file version: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
   economy_bridge_ready: "<gray>Economy bridge connected: <aqua>%provider%</aqua></gray>"
   block_source_bridge_ready: "<gray>Block source connected: <aqua>%provider%</aqua></gray>"
   bstats_registered: "<gray>bStats metrics registered: <aqua>%plugin%</aqua> <dark_gray>(pluginId=%plugin_id%)</dark_gray></gray>"

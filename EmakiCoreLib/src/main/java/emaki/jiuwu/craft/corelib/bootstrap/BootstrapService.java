@@ -95,13 +95,26 @@ public final class BootstrapService {
             );
             if (versionedFile == null) {
                 warning("console.default_file_missing", Map.of("path", relativePath));
+                return;
             }
+            logVersionUpdate(relativePath, versionedFile);
         } catch (IOException exception) {
             warning("console.bootstrap_save_failed", Map.of(
                     "path", relativePath,
                     "error", String.valueOf(exception.getMessage())
             ));
         }
+    }
+
+    private void logVersionUpdate(String relativePath, VersionedYamlFile versionedFile) {
+        if (versionedFile == null || !versionedFile.versionUpdated()) {
+            return;
+        }
+        info("console.versioned_file_updated", Map.of(
+                "path", relativePath,
+                "old_version", versionedFile.previousVersion().isBlank() ? "unknown" : versionedFile.previousVersion(),
+                "new_version", versionedFile.updatedVersion()
+        ));
     }
 
     private void ensureDirectory(Path path) {
@@ -122,6 +135,12 @@ public final class BootstrapService {
     private void info(String key) {
         if (messages != null) {
             messages.info(key);
+        }
+    }
+
+    private void info(String key, Map<String, ?> replacements) {
+        if (messages != null) {
+            messages.info(key, replacements);
         }
     }
 

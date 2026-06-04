@@ -394,6 +394,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         try {
             File file = new File(getDataFolder(), "config.yml");
             VersionedYamlFile versionedFile = YamlFiles.syncVersionedResource(this, file, "config.yml", "version");
+            logVersionUpdate("config.yml", versionedFile);
             return CoreLibConfig.fromConfig(versionedFile == null ? YamlFiles.load(file) : versionedFile.root());
         } catch (Exception exception) {
             messageService.warning("console.action_config_load_failed", java.util.Map.of(
@@ -401,6 +402,17 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
             ));
             return CoreLibConfig.defaults();
         }
+    }
+
+    private void logVersionUpdate(String relativePath, VersionedYamlFile versionedFile) {
+        if (versionedFile == null || !versionedFile.versionUpdated()) {
+            return;
+        }
+        messageService.info("console.versioned_file_updated", Map.of(
+                "path", relativePath,
+                "old_version", versionedFile.previousVersion().isBlank() ? "unknown" : versionedFile.previousVersion(),
+                "new_version", versionedFile.updatedVersion()
+        ));
     }
 
     public CoreLibConfig configModel() {

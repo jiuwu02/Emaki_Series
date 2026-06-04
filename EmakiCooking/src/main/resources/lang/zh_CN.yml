@@ -8,7 +8,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "3.1.7"
+version: "3.1.8"
 
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiCooking</gradient> ]</gray>"
@@ -42,6 +42,7 @@ console:
   plugin_stopped: "<yellow>已关闭</yellow>"
   bootstrap_start: "<white>开始检查默认文件...</white>"
   bootstrap_complete: "<green>默认文件检查完成。</green>"
+  versioned_file_updated: "<green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
   bootstrap_skip: "<yellow>已跳过默认数据写入。</yellow>"
   bootstrap_copy_failed: "<yellow>复制默认资源失败: <red>%path%</red> <gray>(%error%)</gray></yellow>"
   bootstrap_save_failed: "<yellow>保存合并资源失败: <red>%path%</red> <gray>(%error%)</gray></yellow>"

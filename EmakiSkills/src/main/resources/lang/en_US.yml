@@ -8,7 +8,7 @@
 # ============================================================
 
 # version is maintained by resource sync
-version: "2.1.10"
+version: "2.1.11"
 
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiSkills</gradient> ]</gray>"
@@ -30,6 +30,7 @@ console:
   reload_complete: "<green>Reload complete.</green>"
   bootstrap_start: "Checking default files..."
   bootstrap_complete: "Default file check complete."
+  versioned_file_updated: "<green>Updated bundled file version: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
   bootstrap_skip: "Skipped default data generation."
   bootstrap_copy_failed: "Failed to copy default resource: %path% (%error%)"
   bootstrap_save_failed: "Failed to save default resource: %path% (%error%)"

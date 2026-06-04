@@ -1,4 +1,4 @@
-version: "1.0.5"
+version: "1.0.6"
 prefix: "<dark_gray>[<gold>EmakiLevel</gold>]</dark_gray> "
 console:
   plugin_starting: "<gray>正在启动...</gray>"
@@ -13,6 +13,7 @@ console:
   mythic_drops_registered: "<gray>MythicMobs Drops 已注册</gray>"
   bootstrap_start: "<white>开始检查默认文件...</white>"
   bootstrap_complete: "<green>默认文件检查完成。</green>"
+  versioned_file_updated: "<green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
   bootstrap_skip: "<gray>release_default_data=false，跳过默认数据文件生成。</gray>"
   default_file_missing: "<yellow>缺少内置默认资源: <red>%path%</red></yellow>"
   bootstrap_copy_failed: "<yellow>复制默认资源失败: <red>%path%</red> <gray>(%error%)</gray></yellow>"

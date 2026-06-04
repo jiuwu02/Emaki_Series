@@ -8,7 +8,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "2.1.10"
+version: "2.1.11"
 
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiSkills</gradient> ]</gray>"
@@ -30,6 +30,7 @@ console:
   reload_complete: "<green>重载完成。</green>"
   bootstrap_start: "开始检查默认文件..."
   bootstrap_complete: "默认文件检查完成。"
+  versioned_file_updated: "<green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
   bootstrap_skip: "已跳过默认数据写入。"
   bootstrap_copy_failed: "复制默认资源失败: %path% (%error%)"
   bootstrap_save_failed: "保存默认资源失败: %path% (%error%)"

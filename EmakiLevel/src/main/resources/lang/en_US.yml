@@ -1,4 +1,4 @@
-version: "1.0.5"
+version: "1.0.6"
 prefix: "<dark_gray>[<gold>EmakiLevel</gold>]</dark_gray> "
 console:
   plugin_starting: "<gray>Starting...</gray>"
@@ -13,6 +13,7 @@ console:
   mythic_drops_registered: "<gray>MythicMobs drops registered</gray>"
   bootstrap_start: "<white>Checking default files...</white>"
   bootstrap_complete: "<green>Default file check complete.</green>"
+  versioned_file_updated: "<green>Updated bundled file version: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
   bootstrap_skip: "<gray>release_default_data=false, skipped default data file generation.</gray>"
   default_file_missing: "<yellow>Missing bundled default resource: <red>%path%</red></yellow>"
   bootstrap_copy_failed: "<yellow>Failed to copy default resource: <red>%path%</red> <gray>(%error%)</gray></yellow>"

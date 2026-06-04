@@ -8,7 +8,7 @@
 # ============================================================
 
 # version is maintained by resource sync
-version: "4.1.13"
+version: "4.1.14"
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiAttribute</gradient> ]</gray>"
 
@@ -16,6 +16,7 @@ console:
   plugin_starting: "<gray>Starting...</gray>"
   plugin_started: "<green>Started</green>"
   plugin_stopped: "<yellow>Stopped</yellow>"
+  versioned_file_updated: "<green>Updated bundled file version: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
   config_load_failed: "<red>Config load failed: %error%</red>"
   reload_stage_failed: "<yellow>Reload stage %stage% failed: <red>%error%</red></yellow>"
   vanilla_attribute_resolve_failed: "<yellow>Failed to resolve vanilla attribute

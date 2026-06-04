@@ -8,7 +8,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "2.1.6"
+version: "2.1.7"
 
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiGem</gradient> ]</gray>"
@@ -27,6 +27,7 @@ console:
   bootstrap_start: "<white>开始检查默认文件...</white>"
   bootstrap_skip: "<gray>release_default_data=false，跳过默认数据文件生成。</gray>"
   bootstrap_complete: "<green>默认文件检查完成。</green>"
+  versioned_file_updated: "<green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
   default_file_missing: "<yellow>缺少内置默认资源，已跳过: <red>%path%</red></yellow>"
   bootstrap_copy_failed: "<yellow>复制默认资源失败: <red>%path%</red> <gray>(%error%)</gray></yellow>"
   bootstrap_save_failed: "<yellow>保存默认资源失败: <red>%path%</red> <gray>(%error%)</gray></yellow>"
