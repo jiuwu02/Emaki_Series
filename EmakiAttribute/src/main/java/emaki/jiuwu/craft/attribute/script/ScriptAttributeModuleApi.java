@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.corelib.api.script.modules;
+package emaki.jiuwu.craft.attribute.script;
 
 import java.util.Map;
 
@@ -8,6 +8,7 @@ import org.graalvm.polyglot.HostAccess;
 
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.api.script.ScriptServerApi.ScriptEntityApi;
+import emaki.jiuwu.craft.corelib.api.script.modules.ScriptServiceApiSupport;
 
 public final class ScriptAttributeModuleApi {
 

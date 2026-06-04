@@ -7,16 +7,11 @@ import org.graalvm.polyglot.HostAccess;
 
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.action.ActionExecutor;
+import emaki.jiuwu.craft.corelib.api.script.modules.ScriptCoreLibModuleApi;
 import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.script.ScriptConfig;
-import emaki.jiuwu.craft.corelib.api.script.modules.ScriptAttributeModuleApi;
-import emaki.jiuwu.craft.corelib.api.script.modules.ScriptCookingModuleApi;
-import emaki.jiuwu.craft.corelib.api.script.modules.ScriptCoreLibModuleApi;
-import emaki.jiuwu.craft.corelib.api.script.modules.ScriptForgeModuleApi;
-import emaki.jiuwu.craft.corelib.api.script.modules.ScriptGemModuleApi;
-import emaki.jiuwu.craft.corelib.api.script.modules.ScriptItemModuleApi;
-import emaki.jiuwu.craft.corelib.api.script.modules.ScriptSkillsModuleApi;
-import emaki.jiuwu.craft.corelib.api.script.modules.ScriptStrengthenModuleApi;
+import emaki.jiuwu.craft.corelib.script.ScriptModuleContext;
+import emaki.jiuwu.craft.corelib.script.ScriptModuleRegistry;
 
 public final class EmakiScriptApi {
 
@@ -29,23 +24,19 @@ public final class EmakiScriptApi {
     public final ScriptSharedStateApi state;
     public final ScriptTextApi text;
     public final ScriptCoreLibModuleApi corelib;
-    public final ScriptAttributeModuleApi attribute;
-    public final ScriptStrengthenModuleApi strengthen;
-    public final ScriptSkillsModuleApi skills;
-    public final ScriptItemModuleApi items;
-    public final ScriptForgeModuleApi forge;
-    public final ScriptCookingModuleApi cooking;
-    public final ScriptGemModuleApi gem;
+    public final ScriptModuleRegistry.ScriptModulesApi modules;
     public final ScriptServerApi server;
 
     private final Plugin sourcePlugin;
+    private final ScriptModuleContext moduleContext;
+    private final ScriptModuleRegistry moduleRegistry;
 
     public EmakiScriptApi(ActionContext context,
             java.util.Map<String, Object> arguments,
             ActionExecutor actionExecutor,
             ScriptConfig config,
             String scriptPath) {
-        this(context, arguments, actionExecutor, config, scriptPath, context == null ? null : context.sourcePlugin());
+        this(context, arguments, actionExecutor, config, scriptPath, context == null ? null : context.sourcePlugin(), null);
     }
 
     public EmakiScriptApi(ActionContext context,
@@ -54,6 +45,16 @@ public final class EmakiScriptApi {
             ScriptConfig config,
             String scriptPath,
             Plugin sourcePlugin) {
+        this(context, arguments, actionExecutor, config, scriptPath, sourcePlugin, null);
+    }
+
+    public EmakiScriptApi(ActionContext context,
+            java.util.Map<String, Object> arguments,
+            ActionExecutor actionExecutor,
+            ScriptConfig config,
+            String scriptPath,
+            Plugin sourcePlugin,
+            ScriptModuleRegistry moduleRegistry) {
         ScriptConfig safeConfig = config == null ? ScriptConfig.defaults() : config;
         this.sourcePlugin = sourcePlugin == null && context != null ? context.sourcePlugin() : sourcePlugin;
         this.context = safeConfig.context().exposeContext() ? new ScriptContextApi(context, arguments) : null;
@@ -65,14 +66,15 @@ public final class EmakiScriptApi {
         this.state = safeConfig.context().exposeSharedState() ? new ScriptSharedStateApi(context) : null;
         this.text = safeConfig.context().exposeText() ? new ScriptTextApi() : null;
         this.corelib = new ScriptCoreLibModuleApi();
-        this.attribute = new ScriptAttributeModuleApi(context);
-        this.strengthen = new ScriptStrengthenModuleApi(context);
-        this.skills = new ScriptSkillsModuleApi();
-        this.items = new ScriptItemModuleApi(context);
-        this.forge = new ScriptForgeModuleApi();
-        this.cooking = new ScriptCookingModuleApi();
-        this.gem = new ScriptGemModuleApi();
+        this.moduleRegistry = moduleRegistry == null ? new ScriptModuleRegistry() : moduleRegistry;
+        this.moduleContext = new ScriptModuleContext(context, arguments, actionExecutor, safeConfig, scriptPath, this.sourcePlugin);
+        this.modules = this.moduleRegistry.api(this.moduleContext);
         this.server = safeConfig.serverApi().enabled() ? new ScriptServerApi(this.sourcePlugin, safeConfig) : null;
+    }
+
+    @HostAccess.Export
+    public Object module(String id) {
+        return modules.get(id);
     }
 
     @HostAccess.Export

@@ -35,7 +35,7 @@ function collectFireMastery(entity) {
 
 function boostFireDamage(event) {
   // 伤害钩子可以读取技能或脚本提供的显式上下文变量。
-  // 示例: emaki.attribute.applyDamage(attacker, target, "fire", 10, { js_fire_mastery: 15 })
+  // 示例: emaki.module("attribute").applyDamage(attacker, target, "fire", 10, { js_fire_mastery: 15 })
   const context = event.context();
   const mastery = Number(read(context, "js_fire_mastery", 0));
   if (!Number.isFinite(mastery) || mastery <= 0) {

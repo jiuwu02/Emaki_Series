@@ -1,6 +1,8 @@
-package emaki.jiuwu.craft.corelib.api.script.modules;
+package emaki.jiuwu.craft.skills.script;
 
 import org.graalvm.polyglot.HostAccess;
+
+import emaki.jiuwu.craft.corelib.api.script.modules.ScriptServiceApiSupport;
 
 public final class ScriptSkillsModuleApi {
 

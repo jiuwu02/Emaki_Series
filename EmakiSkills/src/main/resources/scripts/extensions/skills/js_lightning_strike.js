@@ -42,8 +42,9 @@ function executeLightning(ctx, args) {
   }
 
   let applied = false;
-  if (emaki.attribute.available()) {
-    applied = emaki.attribute.applyDamage(caster, target, damageType, damage, {
+  const attribute = emaki.module("attribute");
+  if (attribute.available()) {
+    applied = attribute.applyDamage(caster, target, damageType, damage, {
       source: "js_lightning_strike",
       skill_id: ctx.skillId(),
       trigger_id: ctx.triggerId()

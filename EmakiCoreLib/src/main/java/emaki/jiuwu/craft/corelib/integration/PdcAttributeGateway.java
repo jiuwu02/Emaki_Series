@@ -16,8 +16,6 @@ import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class PdcAttributeGateway {
 
-    private static final String ATTRIBUTE_PLUGIN_NAME = "EmakiAttribute";
-
     private final Plugin owner;
     private volatile PdcAttributeApi apiInstance;
     private volatile String registeredSourceId;
@@ -131,11 +129,6 @@ public final class PdcAttributeGateway {
     }
 
     private PdcAttributeApi resolveApiInstance() {
-        Plugin attributePlugin = Bukkit.getPluginManager().getPlugin(ATTRIBUTE_PLUGIN_NAME);
-        if (attributePlugin == null || !attributePlugin.isEnabled()) {
-            apiInstance = null;
-            return null;
-        }
         PdcAttributeApi instance = apiInstance;
         if (instance != null) {
             return instance;
@@ -143,6 +136,11 @@ public final class PdcAttributeGateway {
         RegisteredServiceProvider<PdcAttributeApi> provider = Bukkit.getServicesManager()
                 .getRegistration(PdcAttributeApi.class);
         if (provider == null) {
+            apiInstance = null;
+            return null;
+        }
+        Plugin providerPlugin = provider.getPlugin();
+        if (providerPlugin == null || !providerPlugin.isEnabled()) {
             apiInstance = null;
             return null;
         }

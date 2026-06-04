@@ -132,6 +132,9 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
 
     @Override
     public void onDisable() {
+        EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        coreLibPlugin.namespaceRegistry().unregister("cooking");
+        coreLibPlugin.scriptModuleRegistry().unregister("cooking");
         WebConsoleRegistry.unregisterModule(this);
         if (cookingApi != null) {
             getServer().getServicesManager().unregister(EmakiCookingApi.class, cookingApi);

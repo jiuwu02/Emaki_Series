@@ -1,7 +1,10 @@
 package emaki.jiuwu.craft.corelib.item;
 
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Function;
 
 import emaki.jiuwu.craft.corelib.text.Texts;
 
@@ -10,6 +13,8 @@ public final class ItemSourceRegistry {
     private static final ItemSourceRegistry SYSTEM = new ItemSourceRegistry();
 
     private final List<ItemSourceParser> parsers = new CopyOnWriteArrayList<>();
+    private final Map<String, ItemSourceParser> namedParsers = new ConcurrentHashMap<>();
+    private final Map<ItemSourceType, Function<ItemSource, String>> shorthandWriters = new ConcurrentHashMap<>();
     private volatile ItemSourceParser fallbackParser = ItemSourceUtil::parseVanillaShorthand;
 
     private ItemSourceRegistry() {
@@ -24,6 +29,48 @@ public final class ItemSourceRegistry {
         if (parser != null) {
             parsers.add(0, parser);
         }
+    }
+
+    public void registerParser(String id, ItemSourceParser parser) {
+        if (Texts.isBlank(id) || parser == null) {
+            registerParser(parser);
+            return;
+        }
+        String normalizedId = Texts.normalizeId(id);
+        unregisterParser(normalizedId);
+        namedParsers.put(normalizedId, parser);
+        parsers.add(0, parser);
+    }
+
+    public void unregisterParser(String id) {
+        if (Texts.isBlank(id)) {
+            return;
+        }
+        ItemSourceParser parser = namedParsers.remove(Texts.normalizeId(id));
+        if (parser != null) {
+            parsers.remove(parser);
+        }
+    }
+
+    public void registerShorthandWriter(ItemSourceType type, Function<ItemSource, String> writer) {
+        if (type == null || writer == null) {
+            return;
+        }
+        shorthandWriters.put(type, writer);
+    }
+
+    public void unregisterShorthandWriter(ItemSourceType type) {
+        if (type != null) {
+            shorthandWriters.remove(type);
+        }
+    }
+
+    public String toShorthand(ItemSource source) {
+        if (source == null || source.getType() == null) {
+            return null;
+        }
+        Function<ItemSource, String> writer = shorthandWriters.get(source.getType());
+        return writer == null ? null : writer.apply(source);
     }
 
     public void setFallbackParser(ItemSourceParser parser) {
@@ -52,8 +99,6 @@ public final class ItemSourceRegistry {
         parsers.add(prefixParser("ia-", ItemSourceType.ITEMSADDER));
         parsers.add(prefixParser("neigeitems-", ItemSourceType.NEIGEITEMS));
         parsers.add(prefixParser("ni-", ItemSourceType.NEIGEITEMS));
-        parsers.add(prefixParser("emakiitem-", ItemSourceType.EMAKIITEM));
-        parsers.add(prefixParser("ei-", ItemSourceType.EMAKIITEM));
         parsers.add(prefixParser("nexo-", ItemSourceType.NEXO));
         parsers.add(prefixParser("no-", ItemSourceType.NEXO));
         parsers.add(prefixParser("craftengine-", ItemSourceType.CRAFTENGINE));

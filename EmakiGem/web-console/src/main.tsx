@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ActionsEditor, PropRow, SectionHead, StandardEconomyProviderSelect, StandardEffectsEditor, StringListEditor, VariablesMapEditor, asList, asRecord, asStringList, coreEffectTypeLabel, createCoreEffect, EA_ATTRIBUTE_EFFECT_DEFINITION, ES_SKILL_EFFECT_DEFINITION, CORE_EFFECT_TYPE_DEFINITIONS, fieldLabel, firstItemSource, getLocale, humanizeFieldLabel, materialFromItemSource, registerConfigCreateTemplate, registerConfigMetaFields, registerConfigRuleFields, registerEditorDescriptor, registerEditorField, registerEffectTypes, registerItemFieldRenderer, registerItemPreviewFallback, registerModuleLocale, registerPluginConfig, registerPluginGuiEditor, serializeActionList, parseActionList, standardEconomyRuleFields, textValue, type AnyMap, type ConfigRuleFieldEntry, type CoreEffectType, type EffectTypeDefinition, type ItemFieldRendererContext, type ItemPreviewResult } from 'emaki-web-console';
+import { ActionsEditor, PropRow, SectionHead, StandardEconomyProviderSelect, StandardEffectsEditor, StringListEditor, VariablesMapEditor, asList, asRecord, asStringList, coreEffectTypeLabel, createCoreEffect, CORE_EFFECT_TYPE_DEFINITIONS, fieldLabel, firstItemSource, getLocale, humanizeFieldLabel, materialFromItemSource, registerConfigCreateTemplate, registerConfigMetaFields, registerConfigRuleFields, registerEditorDescriptor, registerEditorField, registerEffectTypes, registerItemFieldRenderer, registerItemPreviewFallback, registerModuleLocale, registerPluginConfig, registerPluginGuiEditor, serializeActionList, parseActionList, standardEconomyRuleFields, textValue, type AnyMap, type ConfigRuleFieldEntry, type CoreEffectType, type EffectTypeDefinition, type ItemFieldRendererContext, type ItemPreviewResult } from 'emaki-web-console';
 
 registerModuleLocale('EmakiGem', 'zh-CN', {
   'emakigem.module.name': 'Gem',
@@ -572,12 +572,14 @@ function registerEmakiGemItemRenderers() {
 }
 
 const coreEffectDef = (type: string): EffectTypeDefinition => CORE_EFFECT_TYPE_DEFINITIONS.find(def => def.type === type)!;
+const attributeEffectDef: EffectTypeDefinition = { type: 'ea_attribute', label: 'EA 属性', fields: [{ key: 'ea_attributes', type: 'map', label: 'EA 属性', defaultValue: {} }] };
+const skillEffectDef: EffectTypeDefinition = { type: 'es_skill', label: 'ES 技能', fields: [{ key: 'es_skills', type: 'stringList', label: 'ES 技能', defaultValue: [] }] };
 
 // Unified effect types for EmakiGem gem editor, handled by StandardEffectsEditor.
 registerEffectTypes(MODULE, [
   coreEffectDef('variables'),
-  EA_ATTRIBUTE_EFFECT_DEFINITION,
-  ES_SKILL_EFFECT_DEFINITION,
+  attributeEffectDef,
+  skillEffectDef,
   coreEffectDef('name_action'),
   coreEffectDef('lore_action')
 ]);

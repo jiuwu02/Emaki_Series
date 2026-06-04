@@ -5,7 +5,6 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -44,68 +43,16 @@ public final class ScriptRepository {
     }
 
     public void releaseDefaultScripts(Plugin plugin) {
-        migrateLegacyMythicDamageScript();
-        releaseDefaultScriptGroup(plugin, "examples", true, new String[] {
-            "attribute_buff.js",
-            "cooking_reward.js",
-            "forge_success.js",
-            "hello.js",
-            "item_right_click.js",
-            "skills_upgrade_success.js",
-            "strengthen_success.js"
-        });
-        releaseDefaultScriptGroup(plugin, "extensions/skills", false, new String[] {
-            "js_lightning_strike.js"
-        });
-        releaseDefaultScriptGroup(plugin, "extensions/attribute", false, new String[] {
-            "js_fire_mastery.js"
-        });
-        releaseDefaultScriptGroup(plugin, "mythic", false, new String[] {
-            "mythic_js_damage.js"
-        });
-        releaseDefaultScriptGroup(plugin, "extensions/global", false, new String[] {
-            "js_broadcast_action.js",
-            "js_placeholders.js",
-            "js_event_examples.js"
-        });
+        releaseScriptGroup(plugin, "examples", true, List.of("hello.js"));
+        releaseScriptGroup(plugin, "extensions/global", false, List.of(
+                "js_broadcast_action.js",
+                "js_placeholders.js",
+                "js_event_examples.js"
+        ));
     }
 
-    private void migrateLegacyMythicDamageScript() {
-        Path legacy = root.resolve("extensions/attribute/mythic_js_damage.js");
-        if (!Files.isRegularFile(legacy)) {
-            return;
-        }
-        Path targetDir = root.resolve("mythic");
-        Path target = targetDir.resolve("mythic_js_damage.js");
-        try {
-            Files.createDirectories(targetDir);
-            if (!Files.exists(target)) {
-                Files.move(legacy, target, StandardCopyOption.REPLACE_EXISTING);
-                return;
-            }
-            String legacyContent = Files.readString(legacy, StandardCharsets.UTF_8);
-            String targetContent = Files.readString(target, StandardCharsets.UTF_8);
-            if (legacyContent.equals(targetContent)) {
-                Files.deleteIfExists(legacy);
-                return;
-            }
-            Files.move(legacy, uniqueLegacyTarget(targetDir, "mythic_js_damage_legacy", ".js"));
-        } catch (IOException ignored) {
-        }
-    }
-
-    private Path uniqueLegacyTarget(Path targetDir, String baseName, String extension) throws IOException {
-        Path target = targetDir.resolve(baseName + extension);
-        int index = 2;
-        while (Files.exists(target)) {
-            target = targetDir.resolve(baseName + "_" + index + extension);
-            index++;
-        }
-        return target;
-    }
-
-    private void releaseDefaultScriptGroup(Plugin plugin, String directory, boolean skipWhenAnyFileExists, String[] names) {
-        if (plugin == null || Texts.isBlank(directory) || names == null || names.length == 0) {
+    public void releaseScriptGroup(Plugin plugin, String directory, boolean skipWhenAnyFileExists, List<String> names) {
+        if (plugin == null || Texts.isBlank(directory) || names == null || names.isEmpty()) {
             return;
         }
         Path targetDir = root.resolve(directory);

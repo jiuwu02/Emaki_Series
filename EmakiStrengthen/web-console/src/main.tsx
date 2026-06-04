@@ -1,15 +1,17 @@
-import { getLocale, registerEffectTypes, registerModuleLocale, registerPluginConfig, registerPluginGuiEditor, standardCurrencyCostFields, standardMaterialCostFields, CORE_EFFECT_TYPE_DEFINITIONS, EA_ATTRIBUTE_EFFECT_DEFINITION, ES_SKILL_EFFECT_DEFINITION, type ConfigMetaFieldEntry, type EffectTypeDefinition } from 'emaki-web-console';
+import { getLocale, registerEffectTypes, registerModuleLocale, registerPluginConfig, registerPluginGuiEditor, standardCurrencyCostFields, standardMaterialCostFields, CORE_EFFECT_TYPE_DEFINITIONS, type ConfigMetaFieldEntry, type EffectTypeDefinition } from 'emaki-web-console';
 
 const MODULE = 'EmakiStrengthen';
 const copy = (zh: string, en: string) => getLocale().startsWith('zh') ? zh : en;
 
 const coreEffectDef = (type: string): EffectTypeDefinition => CORE_EFFECT_TYPE_DEFINITIONS.find(def => def.type === type)!;
+const attributeEffectDef: EffectTypeDefinition = { type: 'ea_attribute', label: 'EA 属性', fields: [{ key: 'ea_attributes', type: 'map', label: 'EA 属性', defaultValue: {} }] };
+const skillEffectDef: EffectTypeDefinition = { type: 'es_skill', label: 'ES 技能', fields: [{ key: 'es_skills', type: 'stringList', label: 'ES 技能', defaultValue: [] }] };
 
 // Unified effect types for EmakiStrengthen star-stage / completion effects.
 registerEffectTypes(MODULE, [
   coreEffectDef('variables'),
-  EA_ATTRIBUTE_EFFECT_DEFINITION,
-  ES_SKILL_EFFECT_DEFINITION,
+  attributeEffectDef,
+  skillEffectDef,
   coreEffectDef('name_action'),
   coreEffectDef('lore_action')
 ]);

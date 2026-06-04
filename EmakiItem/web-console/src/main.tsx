@@ -1,5 +1,5 @@
 import React from 'react';
-import { ActionsEditor, ItemEditorSurface, PropRow, StringListEditor, VariablesMapEditor, asList, asRecord, asStringList, coreEffectTypeLabel, createCoreEffect, EA_ATTRIBUTE_EFFECT_DEFINITION, ES_SKILL_EFFECT_DEFINITION, CORE_EFFECT_TYPE_DEFINITIONS, fieldLabel, firstItemSource, getLocale, humanizeFieldLabel, isCoreEffectType, optionLabel, parseActionList, registerEffectTypes, registerFileKindLabel, registerConfigNodeMeta, registerConfigNodeRule, registerEditorDescriptor, registerEditorField, registerItemFieldRenderer, registerModuleLocale, registerPluginSurfaces, registerSourceDocumentAdapter, serializeActionList, textValue, type AnyMap, type CoreEffectType, type EffectTypeDefinition, type ItemFieldRendererContext } from 'emaki-web-console';
+import { ActionsEditor, ItemEditorSurface, PropRow, StringListEditor, VariablesMapEditor, asList, asRecord, asStringList, coreEffectTypeLabel, createCoreEffect, CORE_EFFECT_TYPE_DEFINITIONS, fieldLabel, firstItemSource, getLocale, humanizeFieldLabel, isCoreEffectType, optionLabel, parseActionList, registerEffectTypes, registerFileKindLabel, registerConfigNodeMeta, registerConfigNodeRule, registerEditorDescriptor, registerEditorField, registerItemFieldRenderer, registerModuleLocale, registerPluginSurfaces, registerSourceDocumentAdapter, serializeActionList, textValue, type AnyMap, type CoreEffectType, type EffectTypeDefinition, type ItemFieldRendererContext } from 'emaki-web-console';
 
 const MODULE = 'EmakiItem';
 const EDITOR_ID = 'emakiitem:item';
@@ -337,13 +337,15 @@ function registerEmakiItemRenderers() {
 }
 
 const coreEffectDef = (type: string): EffectTypeDefinition => CORE_EFFECT_TYPE_DEFINITIONS.find(def => def.type === type)!;
+const attributeEffectDef: EffectTypeDefinition = { type: 'ea_attribute', label: 'EA 属性', fields: [{ key: 'ea_attributes', type: 'map', label: 'EA 属性', defaultValue: {} }] };
+const skillEffectDef: EffectTypeDefinition = { type: 'es_skill', label: 'ES 技能', fields: [{ key: 'es_skills', type: 'stringList', label: 'ES 技能', defaultValue: [] }] };
 
 // Unified effect types for EmakiItem item editor: only each type's own payload
 // fields are shown, handled by the shared StandardEffectsEditor.
 registerEffectTypes(MODULE, [
   coreEffectDef('variables'),
-  EA_ATTRIBUTE_EFFECT_DEFINITION,
-  ES_SKILL_EFFECT_DEFINITION,
+  attributeEffectDef,
+  skillEffectDef,
   coreEffectDef('name_action'),
   coreEffectDef('lore_action')
 ]);

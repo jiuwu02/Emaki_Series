@@ -124,11 +124,6 @@ public final class JavaScriptActionExtensionLoader implements AutoCloseable {
         snapshot.put("placeholders", placeholderSnapshots());
         snapshot.put("events", eventSnapshots());
         snapshot.put("recentErrors", List.copyOf(recentErrors));
-        snapshot.put("attribute", Map.of(
-                "available", plugin != null && plugin.getServer().getPluginManager().isPluginEnabled("EmakiAttribute"),
-                "status", "not_exposed",
-                "message", "Attribute JavaScript provider/hook status is not exposed by EmakiAttribute yet."
-        ));
         return snapshot;
     }
 

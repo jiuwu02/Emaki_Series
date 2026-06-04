@@ -1,4 +1,6 @@
-package emaki.jiuwu.craft.corelib.api.script.modules;
+package emaki.jiuwu.craft.cooking.script;
+
+import emaki.jiuwu.craft.corelib.api.script.modules.ScriptProbeModuleApi;
 
 public final class ScriptCookingModuleApi extends ScriptProbeModuleApi {
 

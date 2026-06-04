@@ -39,6 +39,7 @@ import emaki.jiuwu.craft.attribute.script.js.JavaScriptDamageHookListener;
 import emaki.jiuwu.craft.attribute.script.js.JavaScriptDamageHookRegistry;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.api.integration.EmakiAttributeBridge;
+import emaki.jiuwu.craft.attribute.script.ScriptAttributeModuleApi;
 import emaki.jiuwu.craft.corelib.async.TaskHandle;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
@@ -97,6 +98,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         registerAttributeBridgeService();
         registerPdcAttributeApi();
         registerAttributeServiceFacade();
+        registerScriptModule();
         ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII);
         reloadPluginState(true);
         ensureMmoItemsBridge();
@@ -112,6 +114,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
     @Override
     public void onDisable() {
         unregisterCoreLibActions();
+        coreLib().scriptModuleRegistry().unregister("attribute");
         if (javaScriptAttributeExtensionLoader != null) {
             javaScriptAttributeExtensionLoader.close();
             javaScriptAttributeExtensionLoader = null;
@@ -245,6 +248,10 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         Bukkit.getServicesManager().register(AttributeServiceFacade.class, attributeService, this, ServicePriority.Normal);
     }
 
+    private void registerScriptModule() {
+        coreLib().scriptModuleRegistry().register("attribute", context -> new ScriptAttributeModuleApi(context.actionContext()));
+    }
+
     void setConfigModel(AttributeConfig configModel) {
         this.configModel = configModel == null ? AttributeConfig.defaults() : configModel;
     }
@@ -373,6 +380,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         if (javaScriptAttributeExtensionLoader != null) {
             javaScriptAttributeExtensionLoader.close();
         }
+        releaseBundledScripts(coreLibPlugin);
         if (coreLibPlugin.javaScriptService() == null || attributeService == null) {
             return;
         }
@@ -394,6 +402,12 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
             return;
         }
         AttributeActions.unregisterAll(coreLibPlugin.actionRegistry());
+    }
+
+    private void releaseBundledScripts(EmakiCoreLibPlugin coreLibPlugin) {
+        coreLibPlugin.releaseBundledScripts(this, "extensions/attribute", false, java.util.List.of("js_fire_mastery.js"));
+        coreLibPlugin.releaseBundledScripts(this, "mythic", false, java.util.List.of("mythic_js_damage.js"));
+        coreLibPlugin.releaseBundledScripts(this, "examples", false, java.util.List.of("attribute_buff.js"));
     }
 
     private void registerSkillScriptActions() {

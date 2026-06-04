@@ -5,9 +5,11 @@ import java.util.Map;
 
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
 import emaki.jiuwu.craft.corelib.api.script.ScriptServerApi.ScriptEntityApi;
+import emaki.jiuwu.craft.corelib.api.script.modules.ScriptServiceApiSupport;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.skills.EmakiSkillsPlugin;
 import emaki.jiuwu.craft.skills.api.SkillScriptContext;
@@ -134,9 +136,23 @@ public final class ScriptSkillContextApi {
         if (!(context != null && context.plugin() instanceof EmakiSkillsPlugin plugin)) {
             return false;
         }
+        LivingEntity attacker = context.caster() instanceof LivingEntity livingAttacker ? livingAttacker : null;
         ScriptEntityApi resolvedTarget = target == null ? target() : target;
-        return new emaki.jiuwu.craft.corelib.api.script.modules.ScriptAttributeModuleApi(null)
-                .applyDamage(new ScriptEntityApi(context.caster()), resolvedTarget, damageTypeId, baseDamage, mergeSkillDamageContext(plugin, damageContext));
+        LivingEntity targetEntity = resolvedTarget != null && resolvedTarget.entity() instanceof LivingEntity livingTarget ? livingTarget : null;
+        if (targetEntity == null) {
+            return false;
+        }
+        Map<String, ?> mergedContext = mergeSkillDamageContext(plugin, damageContext);
+        return ScriptServiceApiSupport.service("emaki.jiuwu.craft.attribute.service.AttributeServiceFacade")
+                .map(service -> ScriptServiceApiSupport.invokeBoolean(service,
+                        "applyDamage",
+                        new Class<?>[] { LivingEntity.class, LivingEntity.class, String.class, double.class, Map.class },
+                        attacker,
+                        targetEntity,
+                        damageTypeId,
+                        baseDamage,
+                        mergedContext))
+                .orElse(false);
     }
 
     private Map<String, Object> skillAttributes() {

@@ -8,15 +8,20 @@ import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.item.script.ScriptItemModuleApi;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.integration.PdcAttributeGateway;
 import emaki.jiuwu.craft.corelib.integration.SkillPdcGateway;
+import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.item.ItemSourceType;
+import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.pdc.PdcService;
 import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
 import emaki.jiuwu.craft.corelib.service.MessageService;
+import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
@@ -50,6 +55,8 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
     @Override
     public ItemRuntimeComponents initialize(EmakiItemPlugin plugin) {
         EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        registerScriptModule(coreLibPlugin);
+        releaseBundledScripts(coreLibPlugin, plugin);
         YamlConfigLoader<AppConfig> appConfigLoader = new YamlConfigLoader<>(
                 plugin,
                 "config.yml",
@@ -190,6 +197,8 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                 plugin,
                 ServicePriority.Normal
         );
+        ItemSourceUtil.registerParser("emakiitem", this::parseEmakiItemSource);
+        ItemSourceUtil.registerShorthandWriter(ItemSourceType.EMAKIITEM, source -> "emakiitem-" + source.getIdentifier());
         plugin.itemSourceService().registerResolver(new EmakiItemSourceResolver(plugin.itemApi()));
     }
 
@@ -205,6 +214,9 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
         if (plugin.itemSourceService() != null) {
             plugin.itemSourceService().unregisterResolver("emakiitem");
         }
+        coreLibPlugin.scriptModuleRegistry().unregister("items");
+        ItemSourceUtil.unregisterParser("emakiitem");
+        ItemSourceUtil.unregisterShorthandWriter(ItemSourceType.EMAKIITEM);
         if (plugin.pdcWriter() != null) {
             plugin.pdcWriter().shutdown();
         }
@@ -250,5 +262,31 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
     private boolean shouldReleaseDefaultData(EmakiItemPlugin plugin) {
         YamlSection configuration = YamlFiles.load(plugin.dataPath("config.yml").toFile());
         return configuration.getBoolean("release_default_data", true);
+    }
+
+    private void registerScriptModule(EmakiCoreLibPlugin coreLibPlugin) {
+        coreLibPlugin.scriptModuleRegistry().register("items", context -> new ScriptItemModuleApi(context.actionContext()));
+    }
+
+    private ItemSource parseEmakiItemSource(String shorthand) {
+        if (Texts.isBlank(shorthand)) {
+            return null;
+        }
+        String text = Texts.trim(shorthand);
+        String lower = Texts.lower(text);
+        String identifier;
+        if (lower.startsWith("emakiitem-")) {
+            identifier = text.substring("emakiitem-".length());
+        } else if (lower.startsWith("ei-")) {
+            identifier = text.substring("ei-".length());
+        } else {
+            return null;
+        }
+        String normalized = ItemSourceUtil.normalizeIdentifier(ItemSourceType.EMAKIITEM, identifier);
+        return Texts.isBlank(normalized) ? null : new ItemSource(ItemSourceType.EMAKIITEM, normalized);
+    }
+
+    private void releaseBundledScripts(EmakiCoreLibPlugin coreLibPlugin, EmakiItemPlugin plugin) {
+        coreLibPlugin.releaseBundledScripts(plugin, "examples", false, List.of("item_right_click.js"));
     }
 }

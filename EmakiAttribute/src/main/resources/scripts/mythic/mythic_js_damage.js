@@ -11,7 +11,8 @@ function mythicDamage(meta, args) {
     return { success: false, message: "damage must be a positive number" };
   }
 
-  const applied = emaki.attribute.applyDamage(caster, target, damageType, damage, {
+  const attribute = emaki.module("attribute");
+  const applied = attribute.applyDamage(caster, target, damageType, damage, {
     source: "mythic_js",
     mythic_mechanic: meta.mechanic(),
     mythic_power: meta.power(),

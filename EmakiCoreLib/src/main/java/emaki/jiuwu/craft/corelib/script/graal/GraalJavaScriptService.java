@@ -22,6 +22,7 @@ import emaki.jiuwu.craft.corelib.script.ScriptConfig;
 import emaki.jiuwu.craft.corelib.script.ScriptExecutionRequest;
 import emaki.jiuwu.craft.corelib.script.ScriptExecutionResult;
 import emaki.jiuwu.craft.corelib.script.ScriptInvocationRequest;
+import emaki.jiuwu.craft.corelib.script.ScriptModuleRegistry;
 import emaki.jiuwu.craft.corelib.script.ScriptReloadResult;
 import emaki.jiuwu.craft.corelib.script.ScriptRepository;
 import emaki.jiuwu.craft.corelib.script.ScriptSource;
@@ -34,6 +35,7 @@ public final class GraalJavaScriptService implements JavaScriptService {
     private final ScriptConfig config;
     private final ScriptRepository repository;
     private final java.util.function.Supplier<ActionExecutor> actionExecutorSupplier;
+    private final ScriptModuleRegistry moduleRegistry;
     private final Map<String, ScriptSource> sourceCache = new ConcurrentHashMap<>();
     private final Engine engine;
     private boolean closed;
@@ -42,10 +44,19 @@ public final class GraalJavaScriptService implements JavaScriptService {
             ScriptConfig config,
             Path scriptRoot,
             java.util.function.Supplier<ActionExecutor> actionExecutorSupplier) {
+        this(plugin, config, scriptRoot, actionExecutorSupplier, null);
+    }
+
+    public GraalJavaScriptService(Plugin plugin,
+            ScriptConfig config,
+            Path scriptRoot,
+            java.util.function.Supplier<ActionExecutor> actionExecutorSupplier,
+            ScriptModuleRegistry moduleRegistry) {
         this.plugin = plugin;
         this.config = config == null ? ScriptConfig.defaults() : config;
         this.repository = new ScriptRepository(scriptRoot, this.config.security());
         this.actionExecutorSupplier = actionExecutorSupplier;
+        this.moduleRegistry = moduleRegistry == null ? new ScriptModuleRegistry() : moduleRegistry;
         this.engine = Engine.newBuilder()
                 .option("engine.WarnInterpreterOnly", "false")
                 .build();
@@ -91,7 +102,8 @@ public final class GraalJavaScriptService implements JavaScriptService {
                     actionExecutorSupplier == null ? null : actionExecutorSupplier.get(),
                     config,
                     source.logicalPath(),
-                    request.sourcePlugin()
+                    request.sourcePlugin(),
+                    moduleRegistry
             );
             context.getBindings("js").putMember("emaki", api);
             context.getBindings("js").putMember("args", request.namedArguments());

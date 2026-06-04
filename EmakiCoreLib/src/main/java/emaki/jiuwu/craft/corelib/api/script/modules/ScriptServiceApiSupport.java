@@ -17,12 +17,12 @@ import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
-final class ScriptServiceApiSupport {
+public final class ScriptServiceApiSupport {
 
     private ScriptServiceApiSupport() {
     }
 
-    static Optional<Object> service(String serviceClassName) {
+    public static Optional<Object> service(String serviceClassName) {
         Optional<Class<?>> serviceClass = serviceClass(serviceClassName);
         if (serviceClass.isPresent()) {
             RegisteredServiceProvider<?> provider = Bukkit.getServicesManager().getRegistration(serviceClass.get());
@@ -40,7 +40,7 @@ final class ScriptServiceApiSupport {
         return Optional.empty();
     }
 
-    static boolean available(String serviceClassName) {
+    public static boolean available(String serviceClassName) {
         return service(serviceClassName).isPresent();
     }
 
@@ -74,7 +74,7 @@ final class ScriptServiceApiSupport {
         return implementsInterface(type.getSuperclass(), serviceClassName);
     }
 
-    static Object invoke(Object service, String methodName, Class<?>[] parameterTypes, Object... arguments) {
+    public static Object invoke(Object service, String methodName, Class<?>[] parameterTypes, Object... arguments) {
         if (service == null) {
             return null;
         }
@@ -86,17 +86,17 @@ final class ScriptServiceApiSupport {
         }
     }
 
-    static boolean invokeBoolean(Object service, String methodName, Class<?>[] parameterTypes, Object... arguments) {
+    public static boolean invokeBoolean(Object service, String methodName, Class<?>[] parameterTypes, Object... arguments) {
         Object result = invoke(service, methodName, parameterTypes, arguments);
         return result instanceof Boolean value && value;
     }
 
-    static String invokeString(Object service, String methodName, Class<?>[] parameterTypes, Object... arguments) {
+    public static String invokeString(Object service, String methodName, Class<?>[] parameterTypes, Object... arguments) {
         Object result = invoke(service, methodName, parameterTypes, arguments);
         return Texts.toStringSafe(result);
     }
 
-    static List<String> toStringList(Object value) {
+    public static List<String> toStringList(Object value) {
         if (!(value instanceof Collection<?> collection)) {
             return List.of();
         }
@@ -109,7 +109,7 @@ final class ScriptServiceApiSupport {
         return List.copyOf(result);
     }
 
-    static ItemStack item(ActionContext context, String itemKey) {
+    public static ItemStack item(ActionContext context, String itemKey) {
         if (context == null || Texts.isBlank(itemKey)) {
             return null;
         }
@@ -117,7 +117,7 @@ final class ScriptServiceApiSupport {
         return value instanceof ItemStack itemStack ? itemStack : null;
     }
 
-    static Map<String, Object> itemSummary(ItemStack itemStack) {
+    public static Map<String, Object> itemSummary(ItemStack itemStack) {
         if (itemStack == null || itemStack.getType().isAir()) {
             return Map.of();
         }
@@ -128,7 +128,7 @@ final class ScriptServiceApiSupport {
         return summary;
     }
 
-    static Map<String, Object> payloadToMap(Object payload) {
+    public static Map<String, Object> payloadToMap(Object payload) {
         if (payload == null) {
             return null;
         }
@@ -142,7 +142,7 @@ final class ScriptServiceApiSupport {
         return map;
     }
 
-    static Map<String, Object> payloadsToMap(Object payloads) {
+    public static Map<String, Object> payloadsToMap(Object payloads) {
         if (!(payloads instanceof Map<?, ?> source)) {
             return Map.of();
         }
@@ -156,7 +156,7 @@ final class ScriptServiceApiSupport {
         return result;
     }
 
-    static Map<String, Object> damageResultToMap(Object result) {
+    public static Map<String, Object> damageResultToMap(Object result) {
         if (result == null) {
             return Map.of();
         }
@@ -170,7 +170,7 @@ final class ScriptServiceApiSupport {
         return map;
     }
 
-    static Map<String, Object> strengthenStateToMap(Object state) {
+    public static Map<String, Object> strengthenStateToMap(Object state) {
         if (state == null) {
             return Map.of();
         }
@@ -192,7 +192,7 @@ final class ScriptServiceApiSupport {
         return map;
     }
 
-    static Map<String, Double> doubleMap(Map<String, ?> source) {
+    public static Map<String, Double> doubleMap(Map<String, ?> source) {
         Map<String, Double> result = new LinkedHashMap<>();
         if (source == null) {
             return result;
@@ -210,7 +210,7 @@ final class ScriptServiceApiSupport {
         return result;
     }
 
-    static Map<String, String> stringMap(Map<String, ?> source) {
+    public static Map<String, String> stringMap(Map<String, ?> source) {
         Map<String, String> result = new LinkedHashMap<>();
         if (source == null) {
             return result;

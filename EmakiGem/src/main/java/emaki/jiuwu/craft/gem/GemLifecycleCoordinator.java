@@ -11,7 +11,9 @@ import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.gem.script.ScriptGemModuleApi;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
+import emaki.jiuwu.craft.corelib.assembly.EmakiNamespaceDefinition;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.condition.ConditionGroup;
@@ -56,6 +58,8 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
     @Override
     public GemRuntimeComponents initialize(EmakiGemPlugin plugin) {
         EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        registerAssemblyLayer(coreLibPlugin);
+        registerScriptModule(coreLibPlugin);
 
         YamlConfigLoader<AppConfig> appConfigLoader = new YamlConfigLoader<>(
                 plugin,
@@ -224,6 +228,9 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
     }
 
     public void shutdown(EmakiGemPlugin plugin) {
+        EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        coreLibPlugin.namespaceRegistry().unregister("gem");
+        coreLibPlugin.scriptModuleRegistry().unregister("gem");
         if (plugin.pdcAttributeGateway() != null) {
             plugin.pdcAttributeGateway().shutdown();
         }
@@ -388,4 +395,11 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
         return List.copyOf(files);
     }
 
+    private void registerAssemblyLayer(EmakiCoreLibPlugin coreLibPlugin) {
+        coreLibPlugin.namespaceRegistry().register(new EmakiNamespaceDefinition("gem", 300, "Gem"));
+    }
+
+    private void registerScriptModule(EmakiCoreLibPlugin coreLibPlugin) {
+        coreLibPlugin.scriptModuleRegistry().register("gem", context -> new ScriptGemModuleApi());
+    }
 }

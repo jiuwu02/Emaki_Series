@@ -8,6 +8,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
+import emaki.jiuwu.craft.skills.script.ScriptSkillsModuleApi;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
@@ -125,6 +126,7 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
     public void onEnable() {
         ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII);
         applyRuntimeComponents(lifecycleCoordinator.initialize(this));
+        registerScriptModule();
         if (languageLoader != null) {
             languageLoader.load();
             languageLoader.setLanguage(appConfig().language());
@@ -148,6 +150,7 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
     @Override
     public void onDisable() {
         unregisterCoreLibActions();
+        coreLib().scriptModuleRegistry().unregister("skills");
         WebConsoleRegistry.unregisterModule(this);
         if (placeholderExpansion != null) {
             placeholderExpansion.unregister();
@@ -258,6 +261,7 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
         if (javaScriptSkillExtensionLoader != null) {
             javaScriptSkillExtensionLoader.close();
         }
+        releaseBundledScripts();
         if (skillScriptActionRegistry == null || coreLib().javaScriptService() == null) {
             return;
         }
@@ -270,8 +274,17 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
         javaScriptSkillExtensionLoader.reload();
     }
 
+    private void releaseBundledScripts() {
+        coreLib().releaseBundledScripts(this, "extensions/skills", false, java.util.List.of("js_lightning_strike.js"));
+        coreLib().releaseBundledScripts(this, "examples", false, java.util.List.of("skills_upgrade_success.js"));
+    }
+
     private void registerWebConsole() {
         WebConsoleRegistry.registerFromYaml(this);
+    }
+
+    private void registerScriptModule() {
+        coreLib().scriptModuleRegistry().register("skills", context -> new ScriptSkillsModuleApi());
     }
 
     private void registerPublicApi() {

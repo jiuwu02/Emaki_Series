@@ -20,7 +20,6 @@ import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.library.RuntimeLibraryLoader;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerCodecRegistry;
-import emaki.jiuwu.craft.corelib.assembly.EmakiNamespaceDefinition;
 import emaki.jiuwu.craft.corelib.assembly.EmakiNamespaceRegistry;
 import emaki.jiuwu.craft.corelib.async.AsyncFileService;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
@@ -47,6 +46,8 @@ import emaki.jiuwu.craft.corelib.placeholder.ActionInlineTokenResolver;
 import emaki.jiuwu.craft.corelib.placeholder.PlaceholderApiResolver;
 import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRegistry;
 import emaki.jiuwu.craft.corelib.script.JavaScriptService;
+import emaki.jiuwu.craft.corelib.script.ScriptModuleRegistry;
+import emaki.jiuwu.craft.corelib.script.ScriptRepository;
 import emaki.jiuwu.craft.corelib.script.ScriptService;
 import emaki.jiuwu.craft.corelib.script.graal.GraalJavaScriptService;
 import emaki.jiuwu.craft.corelib.script.js.JavaScriptActionExtensionLoader;
@@ -87,6 +88,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private EconomyManager economyManager;
     private ActionExecutor actionExecutor;
     private JavaScriptService javaScriptService;
+    private final ScriptModuleRegistry scriptModuleRegistry = new ScriptModuleRegistry();
     private final PdcService pdcService = new PdcService("emaki_corelib");
     private final ItemSourceService itemSourceService = new ItemSourceService();
     private ItemSourceIntegrationCoordinator itemSourceIntegrationCoordinator;
@@ -251,7 +253,8 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
                     this,
                     configModel.scriptConfig(),
                     dataPath(configModel.scriptConfig().paths().root()),
-                    () -> actionExecutor
+                    () -> actionExecutor,
+                    scriptModuleRegistry
             );
             messageService.info("console.script_engine_ready");
             messageService.info("console.scripts_loaded", Map.of("count", String.valueOf(javaScriptService.loadedScripts().size())));
@@ -332,6 +335,17 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         return getDataFolder().toPath().resolve(Path.of(first, more));
     }
 
+    public void releaseBundledScripts(JavaPlugin sourcePlugin, String directory, boolean skipWhenAnyFileExists, java.util.List<String> names) {
+        CoreLibConfig effectiveConfig = configModel == null ? CoreLibConfig.defaults() : configModel;
+        var scriptConfig = effectiveConfig.scriptConfig() == null
+                ? emaki.jiuwu.craft.corelib.script.ScriptConfig.defaults()
+                : effectiveConfig.scriptConfig();
+        new ScriptRepository(
+                dataPath(scriptConfig.paths().root()),
+                scriptConfig.security()
+        ).releaseScriptGroup(sourcePlugin, directory, skipWhenAnyFileExists, names);
+    }
+
     private void registerCommandHandler() {
         commandRouter = new CoreLibCommandRouter(this);
         PluginCommand pluginCommand = getCommand("emakicorelib");
@@ -352,10 +366,6 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         asyncFileService = new AsyncFileService(asyncTaskScheduler, 3, performanceMonitor);
         asyncYamlFiles = new AsyncYamlFiles(asyncFileService);
         languageLoader.load();
-        namespaceRegistry.register(new EmakiNamespaceDefinition("forge", 100, "Forge"));
-        namespaceRegistry.register(new EmakiNamespaceDefinition("strengthen", 200, "Strengthen"));
-        namespaceRegistry.register(new EmakiNamespaceDefinition("gem", 300, "Gem"));
-        namespaceRegistry.register(new EmakiNamespaceDefinition("cooking", 10000, "Cooking"));
         itemAssemblyService = new EmakiItemAssemblyService(namespaceRegistry, itemLayerCodecRegistry, itemSourceService);
         itemAssemblyService.configureAsync(asyncTaskScheduler, performanceMonitor);
         refreshServiceRegistry();
@@ -419,6 +429,10 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
 
     public JavaScriptService javaScriptService() {
         return javaScriptService;
+    }
+
+    public ScriptModuleRegistry scriptModuleRegistry() {
+        return scriptModuleRegistry;
     }
 
     public AsyncTaskScheduler asyncTaskScheduler() {
@@ -504,6 +518,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         registerService(ActionExecutor.class, actionExecutor);
         registerService(JavaScriptService.class, javaScriptService);
         registerService(ScriptService.class, javaScriptService);
+        registerService(ScriptModuleRegistry.class, scriptModuleRegistry);
         registerService(WebConsoleService.class, webConsoleService);
         registerService(PdcService.class, pdcService);
         registerService(ItemSourceService.class, itemSourceService);

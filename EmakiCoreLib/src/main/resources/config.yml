@@ -8,7 +8,7 @@
 
 # CoreLib 主配置
 # version 由资源同步维护
-version: "4.1.17"
+version: "4.1.18"
 
 web_console:
   # 内置 Web 管理台，默认关闭。启用前请修改 auth.password。
@@ -35,8 +35,8 @@ web_console:
 action:
   # 在配方或动作列表中通过 @template=名称 引用
   templates:
-    # forge_success_common:
-    #   - 'sendmessage text="<green>成功获得 %forge_result_item_name%</green>"'
+    # reward_success_common:
+    #   - 'sendmessage text="<green>成功获得 %result_item_name%</green>"'
     #   - '@delay=10t playsound sound=minecraft:entity.experience_orb.pickup volume=0.8 pitch=1.2'
 
 script:
@@ -57,16 +57,7 @@ script:
     root: "scripts"
     create_directories:
       - "global"
-      - "forge"
-      - "strengthen"
-      - "cooking"
-      - "gem"
-      - "skills"
-      - "item"
-      - "attribute"
       - "mythic"
-      - "extensions/skills"
-      - "extensions/attribute"
       - "extensions/global"
       - "templates"
       - "examples"
