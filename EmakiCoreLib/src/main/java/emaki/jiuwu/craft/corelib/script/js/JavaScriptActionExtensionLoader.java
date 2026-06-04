@@ -19,6 +19,7 @@ import emaki.jiuwu.craft.corelib.script.ScriptConfig;
 import emaki.jiuwu.craft.corelib.script.ScriptExecutionResult;
 import emaki.jiuwu.craft.corelib.script.ScriptInvocationRequest;
 import emaki.jiuwu.craft.corelib.script.js.event.JavaScriptEventRegistry;
+import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class JavaScriptActionExtensionLoader implements AutoCloseable {
@@ -29,6 +30,7 @@ public final class JavaScriptActionExtensionLoader implements AutoCloseable {
     private final ActionRegistry registry;
     private final PlaceholderRegistry placeholderRegistry;
     private final JavaScriptService javaScriptService;
+    private final MessageService messageService;
     private final ScriptConfig scriptConfig;
     private final Path scriptRoot;
     private final List<String> registeredIds = new ArrayList<>();
@@ -42,12 +44,14 @@ public final class JavaScriptActionExtensionLoader implements AutoCloseable {
             ActionRegistry registry,
             PlaceholderRegistry placeholderRegistry,
             JavaScriptService javaScriptService,
+            MessageService messageService,
             ScriptConfig scriptConfig,
             Path scriptRoot) {
         this.plugin = plugin;
         this.registry = registry;
         this.placeholderRegistry = placeholderRegistry;
         this.javaScriptService = javaScriptService;
+        this.messageService = messageService;
         this.scriptConfig = scriptConfig == null ? ScriptConfig.defaults() : scriptConfig;
         this.scriptRoot = scriptRoot;
     }
@@ -59,7 +63,7 @@ public final class JavaScriptActionExtensionLoader implements AutoCloseable {
         if (plugin == null || registry == null || javaScriptService == null || !javaScriptService.enabled() || scriptRoot == null) {
             return 0;
         }
-        eventRegistry = new JavaScriptEventRegistry(plugin, javaScriptService, scriptConfig);
+        eventRegistry = new JavaScriptEventRegistry(plugin, javaScriptService, messageService, scriptConfig);
         plugin.getServer().getPluginManager().registerEvents(eventRegistry, plugin);
         List<String> scripts = scanScripts();
         int loaded = 0;
@@ -70,6 +74,7 @@ public final class JavaScriptActionExtensionLoader implements AutoCloseable {
                     placeholderRegistry,
                     eventRegistry,
                     javaScriptService,
+                    messageService,
                     scriptConfig,
                     scriptPath
             );
@@ -90,15 +95,21 @@ public final class JavaScriptActionExtensionLoader implements AutoCloseable {
                 loadedExtensionScripts.add(scriptPath);
                 loaded++;
             } else {
-                String message = result == null ? "no result" : result.message();
+                String message = result == null ? message("console.js_extension_no_result") : result.message();
                 recordError(scriptPath, "register", message);
-                plugin.getLogger().warning("Failed to load JavaScript action extension " + scriptPath + ": " + message);
+                warning("console.js_extension_load_failed", Map.of(
+                        "script", scriptPath,
+                        "error", Texts.toStringSafe(message)
+                ));
             }
         }
         if (loaded > 0) {
-            plugin.getLogger().info("Loaded " + loaded + " JavaScript global action extension script(s), actions=" + registeredIds.size()
-                    + ", placeholders=" + registeredPlaceholders.size()
-                    + ", events=" + (eventRegistry == null ? 0 : eventRegistry.subscriptions().size()));
+            info("console.js_extensions_loaded", Map.of(
+                    "count", String.valueOf(loaded),
+                    "actions", String.valueOf(registeredIds.size()),
+                    "placeholders", String.valueOf(registeredPlaceholders.size()),
+                    "events", String.valueOf(eventRegistry == null ? 0 : eventRegistry.subscriptions().size())
+            ));
         }
         return loaded;
     }
@@ -213,7 +224,9 @@ public final class JavaScriptActionExtensionLoader implements AutoCloseable {
             try {
                 Files.createDirectories(root);
             } catch (IOException exception) {
-                plugin.getLogger().warning("Failed to create JavaScript global action extension directory: " + exception.getMessage());
+                warning("console.js_extension_directory_create_failed", Map.of(
+                        "error", Texts.toStringSafe(exception.getMessage())
+                ));
             }
             return List.of();
         }
@@ -226,8 +239,26 @@ public final class JavaScriptActionExtensionLoader implements AutoCloseable {
                     .filter(Texts::isNotBlank)
                     .toList();
         } catch (IOException exception) {
-            plugin.getLogger().warning("Failed to scan JavaScript global action extensions: " + exception.getMessage());
+            warning("console.js_extension_scan_failed", Map.of(
+                    "error", Texts.toStringSafe(exception.getMessage())
+            ));
             return List.of();
+        }
+    }
+
+    private String message(String key) {
+        return messageService == null ? key : messageService.message(key);
+    }
+
+    private void info(String key, Map<String, ?> replacements) {
+        if (messageService != null) {
+            messageService.info(key, replacements);
+        }
+    }
+
+    private void warning(String key, Map<String, ?> replacements) {
+        if (messageService != null) {
+            messageService.warning(key, replacements);
         }
     }
 }

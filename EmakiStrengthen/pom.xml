@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-strengthen</artifactId>
-    <version>4.1.2</version>
+    <version>4.1.4</version>
     <name>EmakiStrengthen</name>
     <packaging>jar</packaging>
 
@@ -99,10 +99,17 @@
                             <goal>shade</goal>
                         </goals>
                         <configuration>
+                            <relocations>
+                                <relocation>
+                                    <pattern>org.bstats</pattern>
+                                    <shadedPattern>emaki.jiuwu.craft.strengthen.shadow.bstats</shadedPattern>
+                                </relocation>
+                            </relocations>
                             <artifactSet>
                                 <includes>
                                     <include>emaki.jiuwu.craft:emaki-strengthen-api</include>
                                     <include>org.bstats:bstats-bukkit</include>
+                                    <include>org.bstats:bstats-base</include>
                                 </includes>
                             </artifactSet>
                             <createDependencyReducedPom>false</createDependencyReducedPom>

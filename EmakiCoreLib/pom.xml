@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-corelib</artifactId>
-    <version>4.1.9</version>
+    <version>4.1.11</version>
     <name>EmakiCoreLib</name>
     <packaging>jar</packaging>
 
@@ -219,11 +219,17 @@
                             <goal>shade</goal>
                         </goals>
                         <configuration>
-                            <relocations combine.self="override"/>
+                            <relocations combine.self="override">
+                                <relocation>
+                                    <pattern>org.bstats</pattern>
+                                    <shadedPattern>emaki.jiuwu.craft.corelib.shadow.bstats</shadedPattern>
+                                </relocation>
+                            </relocations>
                             <artifactSet>
                                 <includes>
                                     <include>emaki.jiuwu.craft:emaki-corelib-api</include>
                                     <include>org.bstats:bstats-bukkit</include>
+                                    <include>org.bstats:bstats-base</include>
                                 </includes>
                             </artifactSet>
                             <createDependencyReducedPom>false</createDependencyReducedPom>

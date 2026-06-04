@@ -16,6 +16,7 @@ import org.bukkit.plugin.Plugin;
 import emaki.jiuwu.craft.corelib.script.JavaScriptService;
 import emaki.jiuwu.craft.corelib.script.ScriptConfig;
 import emaki.jiuwu.craft.corelib.script.ScriptExecutionResult;
+import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.script.ScriptInvocationRequest;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
@@ -23,12 +24,17 @@ public final class JavaScriptEventRegistry implements Listener, AutoCloseable {
 
     private final Plugin plugin;
     private final JavaScriptService javaScriptService;
+    private final MessageService messageService;
     private final ScriptConfig scriptConfig;
     private final List<JavaScriptEventSubscription> subscriptions = new ArrayList<>();
 
-    public JavaScriptEventRegistry(Plugin plugin, JavaScriptService javaScriptService, ScriptConfig scriptConfig) {
+    public JavaScriptEventRegistry(Plugin plugin,
+            JavaScriptService javaScriptService,
+            MessageService messageService,
+            ScriptConfig scriptConfig) {
         this.plugin = plugin;
         this.javaScriptService = javaScriptService;
+        this.messageService = messageService;
         this.scriptConfig = scriptConfig == null ? ScriptConfig.defaults() : scriptConfig;
     }
 
@@ -174,10 +180,16 @@ public final class JavaScriptEventRegistry implements Listener, AutoCloseable {
                     true
             ));
             if (result != null && !result.success()) {
-                plugin.getLogger().warning("JavaScript event listener failed: " + subscription.id() + " -> " + result.message());
+                warning("console.js_event_listener_failed", Map.of(
+                        "id", subscription.id(),
+                        "error", Texts.toStringSafe(result.message())
+                ));
             }
         } catch (Exception exception) {
-            plugin.getLogger().warning("JavaScript event listener exception: " + subscription.id() + " -> " + exception.getMessage());
+            warning("console.js_event_listener_exception", Map.of(
+                    "id", subscription.id(),
+                    "error", Texts.toStringSafe(exception.getMessage())
+            ));
         }
     }
 
@@ -188,6 +200,12 @@ public final class JavaScriptEventRegistry implements Listener, AutoCloseable {
         arguments.put("priority", subscription.priority().name());
         arguments.put("script", subscription.scriptPath());
         return arguments;
+    }
+
+    private void warning(String key, Map<String, ?> replacements) {
+        if (messageService != null) {
+            messageService.warning(key, replacements);
+        }
     }
 
     public static boolean isSupported(String eventType) {

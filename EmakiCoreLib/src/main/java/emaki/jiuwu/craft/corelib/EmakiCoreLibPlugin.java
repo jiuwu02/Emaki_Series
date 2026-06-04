@@ -261,6 +261,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
                 actionRegistry,
                 placeholderRegistry,
                 javaScriptService,
+                messageService,
                 configModel.scriptConfig(),
                 dataPath(configModel.scriptConfig().paths().root())
         );

@@ -9,7 +9,7 @@
 
 # Emaki CoreLib 默认语言文件
 # version 由资源同步维护
-version: "4.1.9"
+version: "4.1.11"
 
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiCoreLib</gradient> ]</gray>"
@@ -24,6 +24,20 @@ console:
   script_engine_ready: "<gray>脚本引擎已启用 (GraalJS)</gray>"
   script_engine_failed: "<red>脚本引擎初始化失败: %error%</red>"
   scripts_loaded: "<gray>已加载 <yellow>%count%</yellow> 个脚本</gray>"
+  js_extension_no_result: "无返回结果"
+  js_extension_load_failed: "<red>加载 JavaScript 全局扩展失败: <gray>%script%</gray> (%error%)</red>"
+  js_extensions_loaded: "<gray>已加载 <yellow>%count%</yellow> 个 JavaScript 全局扩展脚本，动作=<yellow>%actions%</yellow>，占位符=<yellow>%placeholders%</yellow>，事件=<yellow>%events%</yellow></gray>"
+  js_extension_directory_create_failed: "<red>无法创建 JavaScript 全局扩展目录: %error%</red>"
+  js_extension_scan_failed: "<red>扫描 JavaScript 全局扩展失败: %error%</red>"
+  js_action_blank_id: "<yellow>JavaScript 动作 ID 为空: <gray>%script%</gray></yellow>"
+  js_action_registered: "<gray>已注册 JavaScript 动作: <aqua>%id%</aqua> <dark_gray>(%script%)</dark_gray></gray>"
+  js_action_register_failed: "<red>注册 JavaScript 动作失败: <aqua>%id%</aqua> (%error%)</red>"
+  js_placeholder_blank_id: "<yellow>JavaScript 占位符 ID 为空: <gray>%script%</gray></yellow>"
+  js_placeholder_registered: "<gray>已注册 JavaScript 占位符: <aqua>%placeholder%</aqua> <dark_gray>(%script%)</dark_gray></gray>"
+  js_event_unsupported: "<yellow>不支持的 JavaScript 事件监听器: <aqua>%event%</aqua> <dark_gray>(%script%)</dark_gray></yellow>"
+  js_event_registered: "<gray>已注册 JavaScript 事件监听器: <aqua>%id%</aqua> -> <aqua>%event%</aqua> <dark_gray>(%script%)</dark_gray></gray>"
+  js_event_listener_failed: "<red>JavaScript 事件监听器执行失败: <aqua>%id%</aqua> (%error%)</red>"
+  js_event_listener_exception: "<red>JavaScript 事件监听器异常: <aqua>%id%</aqua> (%error%)</red>"
   action_config_load_failed: "<red>加载动作配置失败: %error%</red>"
   item_source_bridge_ready: "<gray>已接入物品源: <aqua>%library%</aqua></gray>"
   item_source_bridge_waiting: "<gray>已检测到 <aqua>%library%</aqua>，等待物品注册完成: %detail%</gray>"

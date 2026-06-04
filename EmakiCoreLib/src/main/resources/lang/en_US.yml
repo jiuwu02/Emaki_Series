@@ -9,7 +9,7 @@
 
 # Emaki CoreLib Default Language File
 # version is maintained by resource sync
-version: "4.1.9"
+version: "4.1.11"
 
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiCoreLib</gradient> ]</gray>"
@@ -24,6 +24,20 @@ console:
   script_engine_ready: "<gray>Script engine enabled (GraalJS)</gray>"
   script_engine_failed: "<red>Script engine initialization failed: %error%</red>"
   scripts_loaded: "<gray>Loaded <yellow>%count%</yellow> scripts</gray>"
+  js_extension_no_result: "no result"
+  js_extension_load_failed: "<red>Failed to load JavaScript global extension: <gray>%script%</gray> (%error%)</red>"
+  js_extensions_loaded: "<gray>Loaded <yellow>%count%</yellow> JavaScript global extension script(s), actions=<yellow>%actions%</yellow>, placeholders=<yellow>%placeholders%</yellow>, events=<yellow>%events%</yellow></gray>"
+  js_extension_directory_create_failed: "<red>Failed to create JavaScript global extension directory: %error%</red>"
+  js_extension_scan_failed: "<red>Failed to scan JavaScript global extensions: %error%</red>"
+  js_action_blank_id: "<yellow>JavaScript action ID is blank: <gray>%script%</gray></yellow>"
+  js_action_registered: "<gray>Registered JavaScript action: <aqua>%id%</aqua> <dark_gray>(%script%)</dark_gray></gray>"
+  js_action_register_failed: "<red>Failed to register JavaScript action: <aqua>%id%</aqua> (%error%)</red>"
+  js_placeholder_blank_id: "<yellow>JavaScript placeholder ID is blank: <gray>%script%</gray></yellow>"
+  js_placeholder_registered: "<gray>Registered JavaScript placeholder: <aqua>%placeholder%</aqua> <dark_gray>(%script%)</dark_gray></gray>"
+  js_event_unsupported: "<yellow>Unsupported JavaScript event listener: <aqua>%event%</aqua> <dark_gray>(%script%)</dark_gray></yellow>"
+  js_event_registered: "<gray>Registered JavaScript event listener: <aqua>%id%</aqua> -> <aqua>%event%</aqua> <dark_gray>(%script%)</dark_gray></gray>"
+  js_event_listener_failed: "<red>JavaScript event listener failed: <aqua>%id%</aqua> (%error%)</red>"
+  js_event_listener_exception: "<red>JavaScript event listener exception: <aqua>%id%</aqua> (%error%)</red>"
   action_config_load_failed: "<red>Failed to load action config: %error%</red>"
   item_source_bridge_ready: "<gray>Item source connected: <aqua>%library%</aqua></gray>"
   item_source_bridge_waiting: "<gray>Detected <aqua>%library%</aqua>, waiting for item registration: %detail%</gray>"

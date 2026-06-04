@@ -16,6 +16,7 @@ import emaki.jiuwu.craft.corelib.action.ActionResult;
 import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRegistry;
 import emaki.jiuwu.craft.corelib.script.JavaScriptService;
 import emaki.jiuwu.craft.corelib.script.ScriptConfig;
+import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.script.js.event.JavaScriptEventRegistry;
 import emaki.jiuwu.craft.corelib.script.js.event.JavaScriptEventSubscription;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -27,6 +28,7 @@ public final class JavaScriptActionRegistrationApi {
     private final PlaceholderRegistry placeholderRegistry;
     private final JavaScriptEventRegistry eventRegistry;
     private final JavaScriptService javaScriptService;
+    private final MessageService messageService;
     private final ScriptConfig scriptConfig;
     private final String scriptPath;
     private final List<String> registeredIds = new ArrayList<>();
@@ -37,6 +39,7 @@ public final class JavaScriptActionRegistrationApi {
             PlaceholderRegistry placeholderRegistry,
             JavaScriptEventRegistry eventRegistry,
             JavaScriptService javaScriptService,
+            MessageService messageService,
             ScriptConfig scriptConfig,
             String scriptPath) {
         this.plugin = plugin;
@@ -44,6 +47,7 @@ public final class JavaScriptActionRegistrationApi {
         this.placeholderRegistry = placeholderRegistry;
         this.eventRegistry = eventRegistry;
         this.javaScriptService = javaScriptService;
+        this.messageService = messageService;
         this.scriptConfig = scriptConfig == null ? ScriptConfig.defaults() : scriptConfig;
         this.scriptPath = scriptPath;
     }
@@ -63,7 +67,7 @@ public final class JavaScriptActionRegistrationApi {
         }
         String id = Texts.normalizeId(value(definition, "id", ""));
         if (Texts.isBlank(id)) {
-            warn("JavaScript action id cannot be blank in " + scriptPath);
+            warning("console.js_action_blank_id", Map.of("script", safe(scriptPath)));
             return false;
         }
         JavaScriptRegisteredAction action = new JavaScriptRegisteredAction(
@@ -84,10 +88,16 @@ public final class JavaScriptActionRegistrationApi {
         ActionResult result = registry.register(plugin, scriptPath, action);
         if (result.success()) {
             registeredIds.add(id);
-            log("Registered JavaScript action: " + id + " from " + scriptPath);
+            info("console.js_action_registered", Map.of(
+                    "id", id,
+                    "script", safe(scriptPath)
+            ));
             return true;
         }
-        warn("Failed to register JavaScript action " + id + ": " + result.errorMessage());
+        warning("console.js_action_register_failed", Map.of(
+                "id", id,
+                "error", safe(result.errorMessage())
+        ));
         return false;
     }
 
@@ -107,7 +117,7 @@ public final class JavaScriptActionRegistrationApi {
         }
         String id = Texts.normalizeId(value(definition, "id", ""));
         if (Texts.isBlank(id)) {
-            warn("JavaScript placeholder id cannot be blank in " + scriptPath);
+            warning("console.js_placeholder_blank_id", Map.of("script", safe(scriptPath)));
             return false;
         }
         JavaScriptPlaceholderResolver resolver = new JavaScriptPlaceholderResolver(
@@ -121,7 +131,10 @@ public final class JavaScriptActionRegistrationApi {
         );
         placeholderRegistry.register(resolver);
         registeredPlaceholders.add(resolver);
-        log("Registered JavaScript placeholder: %" + id + "% from " + scriptPath);
+        info("console.js_placeholder_registered", Map.of(
+                "placeholder", "%" + id + "%",
+                "script", safe(scriptPath)
+        ));
         return true;
     }
 
@@ -144,7 +157,10 @@ public final class JavaScriptActionRegistrationApi {
         String id = Texts.normalizeId(value(definition, "id", ""));
         String eventType = Texts.normalizeId(value(definition, "event", ""));
         if (Texts.isBlank(id) || !JavaScriptEventRegistry.isSupported(eventType)) {
-            warn("Unsupported JavaScript event listener in " + scriptPath + ": " + eventType);
+            warning("console.js_event_unsupported", Map.of(
+                    "event", safe(eventType),
+                    "script", safe(scriptPath)
+            ));
             return false;
         }
         JavaScriptEventSubscription subscription = new JavaScriptEventSubscription(
@@ -158,7 +174,11 @@ public final class JavaScriptActionRegistrationApi {
         );
         boolean registered = eventRegistry.register(subscription);
         if (registered) {
-            log("Registered JavaScript event listener: " + id + " for " + eventType + " from " + scriptPath);
+            info("console.js_event_registered", Map.of(
+                    "id", id,
+                    "event", eventType,
+                    "script", safe(scriptPath)
+            ));
         }
         return registered;
     }
@@ -241,15 +261,19 @@ public final class JavaScriptActionRegistrationApi {
         return value == null ? fallback : Texts.toStringSafe(value);
     }
 
-    private void log(String message) {
-        if (plugin != null) {
-            plugin.getLogger().info(message);
+    private String safe(Object value) {
+        return Texts.toStringSafe(value);
+    }
+
+    private void info(String key, Map<String, ?> replacements) {
+        if (messageService != null) {
+            messageService.info(key, replacements);
         }
     }
 
-    private void warn(String message) {
-        if (plugin != null) {
-            plugin.getLogger().warning(message);
+    private void warning(String key, Map<String, ?> replacements) {
+        if (messageService != null) {
+            messageService.warning(key, replacements);
         }
     }
 }
