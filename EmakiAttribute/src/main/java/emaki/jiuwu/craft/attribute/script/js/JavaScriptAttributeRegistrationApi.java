@@ -41,12 +41,15 @@ public final class JavaScriptAttributeRegistrationApi {
     public boolean registerAttribute(Map<String, ?> definitionMap) {
         AttributeDefinition definition = ScriptAttributeDefinitionParser.parse(definitionMap);
         if (definition == null || Texts.isBlank(definition.id())) {
-            plugin.getLogger().warning("JavaScript attribute definition id cannot be blank in " + scriptPath);
+            plugin.messageService().warning("console.js_attribute_blank_id", Map.of("script", safe(scriptPath)));
             return false;
         }
         boolean registered = plugin.attributeRegistry().registerRuntime(definition, scriptPath);
         if (registered) {
-            plugin.getLogger().info("Registered JavaScript attribute: " + definition.id() + " from " + scriptPath);
+            plugin.messageService().info("console.js_attribute_registered", Map.of(
+                    "id", definition.id(),
+                    "script", safe(scriptPath)
+            ));
         }
         return registered;
     }
@@ -58,7 +61,7 @@ public final class JavaScriptAttributeRegistrationApi {
         }
         String id = Texts.normalizeId(value(definition, "id", ""));
         if (Texts.isBlank(id)) {
-            plugin.getLogger().warning("JavaScript attribute provider id cannot be blank in " + scriptPath);
+            plugin.messageService().warning("console.js_attribute_provider_blank_id", Map.of("script", safe(scriptPath)));
             return false;
         }
         JavaScriptAttributeContributionProvider provider = new JavaScriptAttributeContributionProvider(
@@ -72,7 +75,10 @@ public final class JavaScriptAttributeRegistrationApi {
         );
         plugin.attributeService().registerContributionProvider(provider);
         registeredProviders.add(id);
-        plugin.getLogger().info("Registered JavaScript attribute provider: " + id + " from " + scriptPath);
+        plugin.messageService().info("console.js_attribute_provider_registered", Map.of(
+                "id", id,
+                "script", safe(scriptPath)
+        ));
         return true;
     }
 
@@ -84,7 +90,7 @@ public final class JavaScriptAttributeRegistrationApi {
         String id = Texts.normalizeId(value(definition, "id", ""));
         String function = value(definition, "function", "");
         if (Texts.isBlank(id) || Texts.isBlank(function)) {
-            plugin.getLogger().warning("JavaScript damage hook requires id and function in " + scriptPath);
+            plugin.messageService().warning("console.js_damage_hook_invalid", Map.of("script", safe(scriptPath)));
             return false;
         }
         damageHookRegistry.register(id,
@@ -92,7 +98,10 @@ public final class JavaScriptAttributeRegistrationApi {
                 stringSet(definition.get("damageTypes")),
                 scriptPath,
                 function);
-        plugin.getLogger().info("Registered JavaScript damage hook: " + id + " from " + scriptPath);
+        plugin.messageService().info("console.js_damage_hook_registered", Map.of(
+                "id", id,
+                "script", safe(scriptPath)
+        ));
         return true;
     }
 
@@ -112,6 +121,10 @@ public final class JavaScriptAttributeRegistrationApi {
     private String value(Map<?, ?> map, String key, String fallback) {
         Object value = map.get(key);
         return value == null ? fallback : Texts.toStringSafe(value);
+    }
+
+    private String safe(String value) {
+        return Texts.toStringSafe(value);
     }
 
     private double number(Object value, double fallback) {

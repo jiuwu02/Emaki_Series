@@ -8,7 +8,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "4.1.6"
+version: "4.1.7"
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiAttribute</gradient> ]</gray>"
 
@@ -40,6 +40,18 @@ console:
     <dark_gray>|</dark_gray> <gray>战力系数</gray>
     <yellow>%attribute_power%</yellow>"
   papi_registered: "<gray>PlaceholderAPI 扩展已注册</gray>"
+  js_attribute_extension_no_result: "无执行结果"
+  js_attribute_extension_load_failed: "<yellow>JavaScript 属性扩展加载失败: <white>%script%</white> (<red>%error%</red>)</yellow>"
+  js_attribute_extensions_loaded: "<gray>已加载 <yellow>%count%</yellow> 个 JavaScript 属性扩展脚本，伤害 Hook=<yellow>%damage_hooks%</yellow></gray>"
+  js_attribute_extension_directory_create_failed: "<yellow>无法创建 JavaScript 属性扩展目录: <red>%error%</red></yellow>"
+  js_attribute_extension_scan_failed: "<yellow>扫描 JavaScript 属性扩展失败: <red>%error%</red></yellow>"
+  js_attribute_blank_id: "<yellow>JavaScript 属性定义 ID 不能为空: <white>%script%</white></yellow>"
+  js_attribute_registered: "<gray>已注册 JavaScript 属性: <aqua>%id%</aqua> <dark_gray>(%script%)</dark_gray></gray>"
+  js_attribute_provider_blank_id: "<yellow>JavaScript 属性 Provider ID 不能为空: <white>%script%</white></yellow>"
+  js_attribute_provider_registered: "<gray>已注册 JavaScript 属性 Provider: <aqua>%id%</aqua> <dark_gray>(%script%)</dark_gray></gray>"
+  js_damage_hook_invalid: "<yellow>JavaScript 伤害 Hook 需要 id 和 function: <white>%script%</white></yellow>"
+  js_damage_hook_registered: "<gray>已注册 JavaScript 伤害 Hook: <aqua>%id%</aqua> <dark_gray>(%script%)</dark_gray></gray>"
+  js_damage_hook_failed: "<yellow>JavaScript 伤害 Hook 执行失败: <aqua>%id%</aqua> (<red>%error%</red>)</yellow>"
 
 loader:
   lang_directory_create_failed: "<red>无法创建语言目录: %path%</red>"

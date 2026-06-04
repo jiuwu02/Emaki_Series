@@ -8,7 +8,7 @@
 # ============================================================
 
 # version is maintained by resource sync
-version: "4.1.6"
+version: "4.1.7"
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiAttribute</gradient> ]</gray>"
 
@@ -43,6 +43,18 @@ console:
     <yellow>%default_value%</yellow> <dark_gray>|</dark_gray> <gray>Power</gray>
     <yellow>%attribute_power%</yellow>"
   papi_registered: "<gray>PlaceholderAPI expansion registered</gray>"
+  js_attribute_extension_no_result: "no result"
+  js_attribute_extension_load_failed: "<yellow>Failed to load JavaScript attribute extension: <white>%script%</white> (<red>%error%</red>)</yellow>"
+  js_attribute_extensions_loaded: "<gray>Loaded <yellow>%count%</yellow> JavaScript attribute extension script(s), damage hooks=<yellow>%damage_hooks%</yellow></gray>"
+  js_attribute_extension_directory_create_failed: "<yellow>Failed to create JavaScript attribute extension directory: <red>%error%</red></yellow>"
+  js_attribute_extension_scan_failed: "<yellow>Failed to scan JavaScript attribute extensions: <red>%error%</red></yellow>"
+  js_attribute_blank_id: "<yellow>JavaScript attribute definition ID cannot be blank: <white>%script%</white></yellow>"
+  js_attribute_registered: "<gray>Registered JavaScript attribute: <aqua>%id%</aqua> <dark_gray>(%script%)</dark_gray></gray>"
+  js_attribute_provider_blank_id: "<yellow>JavaScript attribute provider ID cannot be blank: <white>%script%</white></yellow>"
+  js_attribute_provider_registered: "<gray>Registered JavaScript attribute provider: <aqua>%id%</aqua> <dark_gray>(%script%)</dark_gray></gray>"
+  js_damage_hook_invalid: "<yellow>JavaScript damage hook requires id and function: <white>%script%</white></yellow>"
+  js_damage_hook_registered: "<gray>Registered JavaScript damage hook: <aqua>%id%</aqua> <dark_gray>(%script%)</dark_gray></gray>"
+  js_damage_hook_failed: "<yellow>JavaScript damage hook failed: <aqua>%id%</aqua> (<red>%error%</red>)</yellow>"
 
 loader:
   lang_directory_create_failed: "<red>Failed to create language directory: %path%</red>"

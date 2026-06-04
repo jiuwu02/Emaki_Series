@@ -56,8 +56,11 @@ public final class JavaScriptAttributeExtensionLoader implements AutoCloseable {
                 registeredProviders.addAll(api.registeredProviders());
                 loaded++;
             } else {
-                String message = result == null ? "no result" : result.message();
-                plugin.getLogger().warning("Failed to load JavaScript attribute extension " + scriptPath + ": " + message);
+                String message = result == null ? plugin.messageService().message("console.js_attribute_extension_no_result") : result.message();
+                plugin.messageService().warning("console.js_attribute_extension_load_failed", Map.of(
+                        "script", scriptPath,
+                        "error", Texts.toStringSafe(message)
+                ));
             }
         }
         if (plugin.attributeService() != null) {
@@ -65,8 +68,10 @@ public final class JavaScriptAttributeExtensionLoader implements AutoCloseable {
             plugin.attributeService().resyncAllPlayers();
         }
         if (loaded > 0) {
-            plugin.getLogger().info("Loaded " + loaded + " JavaScript attribute extension script(s), damageHooks="
-                    + (damageHookRegistry == null ? 0 : damageHookRegistry.size()));
+            plugin.messageService().info("console.js_attribute_extensions_loaded", Map.of(
+                    "count", String.valueOf(loaded),
+                    "damage_hooks", String.valueOf(damageHookRegistry == null ? 0 : damageHookRegistry.size())
+            ));
         }
         return loaded;
     }
@@ -93,7 +98,9 @@ public final class JavaScriptAttributeExtensionLoader implements AutoCloseable {
             try {
                 Files.createDirectories(root);
             } catch (IOException exception) {
-                plugin.getLogger().warning("Failed to create JavaScript attribute extension directory: " + exception.getMessage());
+                plugin.messageService().warning("console.js_attribute_extension_directory_create_failed", Map.of(
+                        "error", Texts.toStringSafe(exception.getMessage())
+                ));
             }
             return List.of();
         }
@@ -107,7 +114,9 @@ public final class JavaScriptAttributeExtensionLoader implements AutoCloseable {
                     .filter(Texts::isNotBlank)
                     .toList();
         } catch (IOException exception) {
-            plugin.getLogger().warning("Failed to scan JavaScript attribute extensions: " + exception.getMessage());
+            plugin.messageService().warning("console.js_attribute_extension_scan_failed", Map.of(
+                    "error", Texts.toStringSafe(exception.getMessage())
+            ));
             return List.of();
         }
     }

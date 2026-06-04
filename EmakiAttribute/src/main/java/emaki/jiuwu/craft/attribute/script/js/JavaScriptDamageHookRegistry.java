@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.attribute.api.EmakiAttributeDamageEvent;
 import emaki.jiuwu.craft.corelib.script.JavaScriptService;
 import emaki.jiuwu.craft.corelib.script.ScriptConfig;
@@ -14,12 +15,12 @@ import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class JavaScriptDamageHookRegistry {
 
-    private final org.bukkit.plugin.Plugin plugin;
+    private final EmakiAttributePlugin plugin;
     private final JavaScriptService javaScriptService;
     private final ScriptConfig scriptConfig;
     private final List<Hook> hooks = new ArrayList<>();
 
-    public JavaScriptDamageHookRegistry(org.bukkit.plugin.Plugin plugin, JavaScriptService javaScriptService, ScriptConfig scriptConfig) {
+    public JavaScriptDamageHookRegistry(EmakiAttributePlugin plugin, JavaScriptService javaScriptService, ScriptConfig scriptConfig) {
         this.plugin = plugin;
         this.javaScriptService = javaScriptService;
         this.scriptConfig = scriptConfig == null ? ScriptConfig.defaults() : scriptConfig;
@@ -67,7 +68,10 @@ public final class JavaScriptDamageHookRegistry {
                         true
                 ));
             } catch (RuntimeException exception) {
-                plugin.getLogger().warning("JavaScript damage hook failed: " + hook.id() + " - " + exception.getMessage());
+                plugin.messageService().warning("console.js_damage_hook_failed", Map.of(
+                        "id", hook.id(),
+                        "error", Texts.toStringSafe(exception.getMessage())
+                ));
             }
             if (event.isCancelled()) {
                 return;

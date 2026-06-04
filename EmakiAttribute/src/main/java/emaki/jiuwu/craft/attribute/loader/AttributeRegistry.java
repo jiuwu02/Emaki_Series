@@ -162,7 +162,9 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
 
     @Override
     protected void afterLoad() {
-        rebuildIndexes();
+        List<AttributeDefinition> definitions = rebuildIndexes();
+        logLoadReport(definitions);
+        detectKeyContainmentConflicts(definitions);
     }
 
     public boolean registerRuntime(AttributeDefinition definition, String source) {
@@ -173,7 +175,7 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
             String id = normalizeId(definition.id());
             runtimeDefinitions.put(id, definition);
             runtimeSources.put(id, Texts.toStringSafe(source));
-            rebuildIndexes();
+            detectKeyContainmentConflicts(rebuildIndexes());
             return true;
         }
     }
@@ -230,7 +232,7 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
         }
     }
 
-    private void rebuildIndexes() {
+    private List<AttributeDefinition> rebuildIndexes() {
         aliasIndex.clear();
         orderedPatterns.clear();
         Map<String, AttributeDefinition> merged = new LinkedHashMap<>(items);
@@ -245,8 +247,7 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
             orderedPatterns.addAll(compilePatterns(definition));
         }
         orderedPatterns.sort(Comparator.comparingInt(PatternEntry::priority).reversed());
-        logLoadReport(definitions);
-        detectKeyContainmentConflicts(definitions);
+        return definitions;
     }
 
     public AttributeDefinition resolve(String id) {

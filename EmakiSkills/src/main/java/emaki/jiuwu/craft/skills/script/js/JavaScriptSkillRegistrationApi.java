@@ -48,7 +48,7 @@ public final class JavaScriptSkillRegistrationApi {
         }
         String id = Texts.normalizeId(value(definition, "id", ""));
         if (Texts.isBlank(id)) {
-            plugin.getLogger().warning("JavaScript skill action id cannot be blank in " + scriptPath);
+            plugin.messageService().warning("console.js_skill_action_blank_id", Map.of("script", safe(scriptPath)));
             return false;
         }
         JavaScriptSkillAction action = new JavaScriptSkillAction(
@@ -68,10 +68,16 @@ public final class JavaScriptSkillRegistrationApi {
         ActionResult result = registry.register(plugin, action);
         if (result.success()) {
             registeredIds.add(id);
-            plugin.getLogger().info("Registered JavaScript skill action: " + id + " from " + scriptPath);
+            plugin.messageService().info("console.js_skill_action_registered", Map.of(
+                    "id", id,
+                    "script", safe(scriptPath)
+            ));
             return true;
         }
-        plugin.getLogger().warning("Failed to register JavaScript skill action " + id + ": " + result.errorMessage());
+        plugin.messageService().warning("console.js_skill_action_register_failed", Map.of(
+                "id", id,
+                "error", safe(result.errorMessage())
+        ));
         return false;
     }
 
@@ -137,5 +143,9 @@ public final class JavaScriptSkillRegistrationApi {
     private String value(Map<?, ?> map, String key, String fallback) {
         Object value = map.get(key);
         return value == null ? fallback : Texts.toStringSafe(value);
+    }
+
+    private String safe(String value) {
+        return Texts.toStringSafe(value);
     }
 }

@@ -8,7 +8,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "2.1.6"
+version: "2.1.7"
 
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiSkills</gradient> ]</gray>"
@@ -52,6 +52,14 @@ console:
   mythic_bridge_cast_failed: "释放 Mythic 技能失败: %skill% (%error%)"
   skills_loaded: "<gray>已加载 <yellow>%skills%</yellow> 个技能, <yellow>%triggers%</yellow> 个触发器</gray>"
   papi_registered: "<gray>PlaceholderAPI 扩展已注册</gray>"
+  js_skill_extension_no_result: "无执行结果"
+  js_skill_extension_load_failed: "<yellow>JavaScript 技能扩展加载失败: <white>%script%</white> (<red>%error%</red>)</yellow>"
+  js_skill_extensions_loaded: "<gray>已加载 <yellow>%count%</yellow> 个 JavaScript 技能扩展脚本，动作=<yellow>%actions%</yellow></gray>"
+  js_skill_extension_directory_create_failed: "<yellow>无法创建 JavaScript 技能扩展目录: <red>%error%</red></yellow>"
+  js_skill_extension_scan_failed: "<yellow>扫描 JavaScript 技能扩展失败: <red>%error%</red></yellow>"
+  js_skill_action_blank_id: "<yellow>JavaScript 技能动作 ID 不能为空: <white>%script%</white></yellow>"
+  js_skill_action_registered: "<gray>已注册 JavaScript 技能动作: <aqua>%id%</aqua> <dark_gray>(%script%)</dark_gray></gray>"
+  js_skill_action_register_failed: "<yellow>JavaScript 技能动作注册失败: <aqua>%id%</aqua> (<red>%error%</red>)</yellow>"
 
 loader:
   lang_directory_create_failed: "无法创建语言目录: %path%"

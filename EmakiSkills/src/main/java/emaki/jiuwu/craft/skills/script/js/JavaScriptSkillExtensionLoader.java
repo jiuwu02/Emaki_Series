@@ -65,12 +65,18 @@ public final class JavaScriptSkillExtensionLoader implements AutoCloseable {
                 registeredIds.addAll(registrationApi.registeredIds());
                 loaded++;
             } else {
-                String message = result == null ? "no result" : result.message();
-                plugin.getLogger().warning("Failed to load JavaScript skill extension " + scriptPath + ": " + message);
+                String message = result == null ? plugin.messageService().message("console.js_skill_extension_no_result") : result.message();
+                plugin.messageService().warning("console.js_skill_extension_load_failed", Map.of(
+                        "script", scriptPath,
+                        "error", Texts.toStringSafe(message)
+                ));
             }
         }
         if (loaded > 0) {
-            plugin.getLogger().info("Loaded " + loaded + " JavaScript skill extension script(s), actions=" + registeredIds.size());
+            plugin.messageService().info("console.js_skill_extensions_loaded", Map.of(
+                    "count", String.valueOf(loaded),
+                    "actions", String.valueOf(registeredIds.size())
+            ));
         }
         return loaded;
     }
@@ -91,7 +97,9 @@ public final class JavaScriptSkillExtensionLoader implements AutoCloseable {
             try {
                 Files.createDirectories(root);
             } catch (IOException exception) {
-                plugin.getLogger().warning("Failed to create JavaScript skill extension directory: " + exception.getMessage());
+                plugin.messageService().warning("console.js_skill_extension_directory_create_failed", Map.of(
+                        "error", Texts.toStringSafe(exception.getMessage())
+                ));
             }
             return List.of();
         }
@@ -104,7 +112,9 @@ public final class JavaScriptSkillExtensionLoader implements AutoCloseable {
                     .filter(Texts::isNotBlank)
                     .toList();
         } catch (IOException exception) {
-            plugin.getLogger().warning("Failed to scan JavaScript skill extensions: " + exception.getMessage());
+            plugin.messageService().warning("console.js_skill_extension_scan_failed", Map.of(
+                    "error", Texts.toStringSafe(exception.getMessage())
+            ));
             return List.of();
         }
     }
