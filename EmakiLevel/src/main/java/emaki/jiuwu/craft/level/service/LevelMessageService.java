@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.level.service;
 import java.io.File;
 import java.util.Map;
 
+import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -38,13 +39,26 @@ public final class LevelMessageService implements LogMessages {
     @Override
     public String message(String key, Map<String, ?> replacements) {
         String raw = resolveText(key, key);
-        String prefix = resolveText("prefix", "<gray>[<gold>EmakiLevel</gold>]</gray> ");
         Map<String, Object> merged = new java.util.LinkedHashMap<>();
-        merged.put("prefix", prefix);
+        merged.put("prefix", prefix());
         if (replacements != null) {
             merged.putAll(replacements);
         }
         return Texts.formatTemplate(raw, merged);
+    }
+
+    private String prefix() {
+        String prefix = resolveText("general.prefix", null);
+        if (Texts.isBlank(prefix)) {
+            prefix = resolveText("prefix", "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiLevel</gradient> ]</gray>");
+        }
+        return Texts.toStringSafe(prefix);
+    }
+
+    private String withPrefix(String text) {
+        String prefix = prefix();
+        String normalizedText = Texts.toStringSafe(text);
+        return prefix + (prefix.endsWith(" ") ? "" : " ") + normalizedText;
     }
 
     private String resolveText(String key, String fallback) {
@@ -98,32 +112,39 @@ public final class LevelMessageService implements LogMessages {
 
     @Override
     public void info(String key) {
-        plugin.getLogger().info(Texts.stripMiniTags(message(key)));
+        info(key, Map.of());
     }
 
     @Override
     public void info(String key, Map<String, ?> replacements) {
-        plugin.getLogger().info(Texts.stripMiniTags(message(key, replacements)));
+        sendConsole(message(key, replacements));
     }
 
     @Override
     public void warning(String key) {
-        plugin.getLogger().warning(Texts.stripMiniTags(message(key)));
+        warning(key, Map.of());
     }
 
     @Override
     public void warning(String key, Map<String, ?> replacements) {
-        plugin.getLogger().warning(Texts.stripMiniTags(message(key, replacements)));
+        sendConsole(message(key, replacements));
     }
 
     @Override
     public void severe(String key) {
-        plugin.getLogger().severe(Texts.stripMiniTags(message(key)));
+        severe(key, Map.of());
     }
 
     @Override
     public void severe(String key, Map<String, ?> replacements) {
-        plugin.getLogger().severe(Texts.stripMiniTags(message(key, replacements)));
+        sendConsole(message(key, replacements));
+    }
+
+    private void sendConsole(String text) {
+        if (Texts.isBlank(text)) {
+            return;
+        }
+        AdventureSupport.sendMiniMessage(plugin, Bukkit.getConsoleSender(), withPrefix(text));
     }
 
     public String language() {

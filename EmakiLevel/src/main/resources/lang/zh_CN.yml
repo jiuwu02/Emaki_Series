@@ -1,5 +1,6 @@
-version: "1.0.6"
-prefix: "<dark_gray>[<gold>EmakiLevel</gold>]</dark_gray> "
+version: "1.0.7"
+general:
+  prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiLevel</gradient> ]</gray>"
 console:
   plugin_starting: "<gray>正在启动...</gray>"
   plugin_started: "<green>启动完成</green>"
