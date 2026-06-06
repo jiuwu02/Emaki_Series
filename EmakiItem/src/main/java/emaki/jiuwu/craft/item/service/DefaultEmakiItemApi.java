@@ -10,7 +10,7 @@ import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.item.api.EmakiItemApi;
 import emaki.jiuwu.craft.item.loader.EmakiItemLoader;
 
-public final class DefaultEmakiItemApi implements EmakiItemApi {
+public final class DefaultEmakiItemApi implements EmakiItemApi.Bridge {
 
     private final EmakiItemLoader loader;
     private final EmakiItemFactory factory;

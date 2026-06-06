@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
-import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
@@ -112,7 +111,6 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                 new ItemSetLoreRenderer(),
                 plugin::appConfig
         );
-        EmakiItemApi itemApi = plugin;
         ItemComponentInspector componentInspector = new ItemComponentInspector();
         ItemComponentPlaceholderResolver componentPlaceholderResolver = new ItemComponentPlaceholderResolver(componentInspector);
         coreLibPlugin.placeholderRegistry().register(componentPlaceholderResolver);
@@ -132,7 +130,6 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                 setService,
                 actionService,
                 conditionChecker,
-                itemApi,
                 componentInspector,
                 componentPlaceholderResolver,
                 coreLibPlugin.itemSourceService(),
@@ -190,12 +187,6 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
     }
 
     public void registerServices(EmakiItemPlugin plugin) {
-        plugin.getServer().getServicesManager().register(
-                EmakiItemApi.class,
-                plugin,
-                plugin,
-                ServicePriority.Normal
-        );
         ItemSourceUtil.registerParser("emakiitem", this::parseEmakiItemSource);
         ItemSourceUtil.registerShorthandWriter(ItemSourceType.EMAKIITEM, source -> "emakiitem-" + source.getIdentifier());
         plugin.itemSourceService().registerResolver(new EmakiItemSourceResolver(plugin.itemApi()));
@@ -209,7 +200,6 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
         if (coreLibPlugin.placeholderRegistry() != null && plugin.componentPlaceholderResolver() != null) {
             coreLibPlugin.placeholderRegistry().unregister(plugin.componentPlaceholderResolver());
         }
-        plugin.getServer().getServicesManager().unregister(EmakiItemApi.class, plugin);
         if (plugin.itemSourceService() != null) {
             plugin.itemSourceService().unregisterResolver("emakiitem");
         }

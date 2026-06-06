@@ -1,31 +1,34 @@
 package emaki.jiuwu.craft.level.api;
 
-import java.util.Optional;
-
-import org.bukkit.Bukkit;
-import org.bukkit.plugin.Plugin;
-
+/**
+ * Compatibility helper for the static {@link EmakiLevelApi} facade.
+ *
+ * <p>The public API no longer exposes an instance service. Use
+ * {@link EmakiLevelApi} static methods directly and this provider only for
+ * availability checks during migration.
+ */
 public final class EmakiLevelApiProvider {
-
-    private static final String PLUGIN_NAME = "EmakiLevel";
-    private static volatile EmakiLevelApi cached;
 
     private EmakiLevelApiProvider() {
     }
 
-    public static Optional<EmakiLevelApi> get() {
-        EmakiLevelApi api = cached;
-        if (api instanceof Plugin plugin && plugin.isEnabled()) {
-            return Optional.of(api);
-        }
-        cached = null;
+    /**
+     * Checks whether the static EmakiLevel API bridge is installed.
+     *
+     * @return {@code true} when EmakiLevel is available
+     */
+    public static boolean available() {
+        return EmakiLevelApi.available();
+    }
 
-        Plugin plugin = Bukkit.getPluginManager().getPlugin(PLUGIN_NAME);
-        if (plugin == null || !plugin.isEnabled() || !EmakiLevelApi.class.isInstance(plugin)) {
-            return Optional.empty();
+    /**
+     * Verifies that EmakiLevel is available.
+     *
+     * @throws IllegalStateException when the static API bridge is not installed
+     */
+    public static void requireAvailable() {
+        if (!available()) {
+            throw new IllegalStateException("EmakiLevel API is not available.");
         }
-        api = EmakiLevelApi.class.cast(plugin);
-        cached = api;
-        return Optional.of(api);
     }
 }

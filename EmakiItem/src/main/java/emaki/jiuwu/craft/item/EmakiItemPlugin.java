@@ -6,7 +6,10 @@ import java.util.concurrent.CompletableFuture;
 import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.RegisteredServiceProvider;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
@@ -45,7 +48,7 @@ import emaki.jiuwu.craft.item.service.EmakiItemUpdateService;
 import emaki.jiuwu.craft.item.service.ItemComponentInspector;
 import emaki.jiuwu.craft.item.service.ItemComponentPlaceholderResolver;
 
-public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider, EmakiItemApi {
+public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider {
 
     private static final String ROOT_COMMAND = "emakiitem";
     private static final Set<String> DEBUG_MODULES = Set.of("create", "update", "identify");
@@ -82,6 +85,37 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     private ItemComponentPlaceholderResolver componentPlaceholderResolver;
     private ItemSourceService itemSourceService;
     private PdcAttributeGateway pdcAttributeGateway;
+    private final EmakiItemApi.Bridge itemApiBridge = new EmakiItemApi.Bridge() {
+        @Override
+        public boolean exists(String id) {
+            return itemLoader != null && itemLoader.get(id) != null;
+        }
+
+        @Override
+        public @Nullable ItemStack create(String id, int amount) {
+            return itemFactory == null ? null : itemFactory.create(id, amount);
+        }
+
+        @Override
+        public @Nullable String identify(@Nullable ItemStack itemStack) {
+            return identifier == null ? null : identifier.identify(itemStack);
+        }
+
+        @Override
+        public @NotNull Set<String> definitionIds() {
+            return itemLoader == null ? Set.of() : itemLoader.all().keySet();
+        }
+
+        @Override
+        public @NotNull String displayName(String id) {
+            ItemStack itemStack = create(id, 1);
+            if (itemStack == null) {
+                return "";
+            }
+            String text = ItemTextBridge.effectiveNameText(itemStack);
+            return Texts.isBlank(text) ? MiniMessages.serialize(ItemTextBridge.effectiveName(itemStack)) : text;
+        }
+    };
 
     public EmakiItemPlugin() {
         super(AppConfig::defaults);
@@ -94,6 +128,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         messageService.info("console.plugin_starting");
         bootstrapService.bootstrap();
         reloadPluginState();
+        EmakiItemApi.install(itemApiBridge);
         lifecycleCoordinator.registerServices(this);
         registerCommandHandler();
         registerEventHandlers();
@@ -114,6 +149,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
             metrics = null;
         }
         WebConsoleRegistry.unregisterModule(this);
+        EmakiItemApi.uninstall(itemApiBridge);
         lifecycleCoordinator.shutdown(this);
         AdventureSupport.close(this);
     }
@@ -228,38 +264,8 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         return conditionChecker;
     }
 
-    public EmakiItemApi itemApi() {
-        return this;
-    }
-
-    @Override
-    public boolean exists(String id) {
-        return itemLoader != null && itemLoader.get(id) != null;
-    }
-
-    @Override
-    public org.bukkit.inventory.ItemStack create(String id, int amount) {
-        return itemFactory == null ? null : itemFactory.create(id, amount);
-    }
-
-    @Override
-    public String identify(org.bukkit.inventory.ItemStack itemStack) {
-        return identifier == null ? null : identifier.identify(itemStack);
-    }
-
-    @Override
-    public Set<String> definitionIds() {
-        return itemLoader == null ? Set.of() : itemLoader.all().keySet();
-    }
-
-    @Override
-    public String displayName(String id) {
-        org.bukkit.inventory.ItemStack itemStack = create(id, 1);
-        if (itemStack == null) {
-            return "";
-        }
-        String text = ItemTextBridge.effectiveNameText(itemStack);
-        return Texts.isBlank(text) ? MiniMessages.serialize(ItemTextBridge.effectiveName(itemStack)) : text;
+    public EmakiItemApi.Bridge itemApi() {
+        return itemApiBridge;
     }
 
     public ItemComponentInspector componentInspector() {

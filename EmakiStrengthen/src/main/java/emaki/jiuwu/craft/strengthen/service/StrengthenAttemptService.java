@@ -32,7 +32,7 @@ import emaki.jiuwu.craft.strengthen.model.AttemptResult;
 import emaki.jiuwu.craft.strengthen.model.StrengthenRecipe;
 import emaki.jiuwu.craft.strengthen.model.StrengthenState;
 
-public final class StrengthenAttemptService implements EmakiStrengthenApi {
+public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge {
 
     private static final String PDC_ATTRIBUTE_SOURCE_ID = "strengthen";
     private static final String OPERATION_NAMESPACE = "strengthen";

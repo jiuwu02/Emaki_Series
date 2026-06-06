@@ -1,10 +1,28 @@
 package emaki.jiuwu.craft.cooking.script;
 
-import emaki.jiuwu.craft.corelib.api.script.modules.ScriptProbeModuleApi;
+import org.graalvm.polyglot.HostAccess;
 
-public final class ScriptCookingModuleApi extends ScriptProbeModuleApi {
+import emaki.jiuwu.craft.cooking.api.EmakiCookingApi;
 
-    public ScriptCookingModuleApi() {
-        super("emaki.jiuwu.craft.cooking.api.EmakiCookingApi");
+public final class ScriptCookingModuleApi {
+
+    @HostAccess.Export
+    public boolean available() {
+        return EmakiCookingApi.available();
+    }
+
+    @HostAccess.Export
+    public String apiVersion() {
+        return EmakiCookingApi.apiVersion();
+    }
+
+    @HostAccess.Export
+    public String pluginName() {
+        return EmakiCookingApi.pluginName();
+    }
+
+    @HostAccess.Export
+    public boolean ready() {
+        return EmakiCookingApi.isReady();
     }
 }

@@ -50,7 +50,7 @@ import emaki.jiuwu.craft.gem.service.GemResonanceService;
 import emaki.jiuwu.craft.gem.service.GemUpgradeService;
 import emaki.jiuwu.craft.gem.service.SocketOpenerService;
 
-public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider, EmakiServiceRegistry, EmakiGemApi {
+public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider, EmakiServiceRegistry {
 
     private static final String ROOT_COMMAND = "emakigem";
 
@@ -96,6 +96,22 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
     private GemResonanceService resonanceService;
     private GemPlaceholderExpansion placeholderExpansion;
     private DebugCommand debugCommand;
+    private final EmakiGemApi.Bridge gemApiBridge = new EmakiGemApi.Bridge() {
+        @Override
+        public String apiVersion() {
+            return getDescription().getVersion();
+        }
+
+        @Override
+        public String pluginName() {
+            return getName();
+        }
+
+        @Override
+        public boolean isReady() {
+            return isEnabled() && stateService() != null;
+        }
+    };
 
     public EmakiGemPlugin() {
         super(AppConfig::defaults);
@@ -128,7 +144,7 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
             placeholderExpansion = null;
         }
         WebConsoleRegistry.unregisterModule(this);
-        getServer().getServicesManager().unregister(EmakiGemApi.class, this);
+        EmakiGemApi.uninstall(gemApiBridge);
         if (metrics != null) {
             metrics.close();
             metrics = null;
@@ -195,22 +211,7 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
     }
 
     private void registerPublicApiService() {
-        getServer().getServicesManager().register(EmakiGemApi.class, this, this, ServicePriority.Normal);
-    }
-
-    @Override
-    public String apiVersion() {
-        return getDescription().getVersion();
-    }
-
-    @Override
-    public String pluginName() {
-        return getName();
-    }
-
-    @Override
-    public boolean isReady() {
-        return isEnabled() && stateService() != null;
+        EmakiGemApi.install(gemApiBridge);
     }
 
     public void ensurePlaceholderExpansion() {

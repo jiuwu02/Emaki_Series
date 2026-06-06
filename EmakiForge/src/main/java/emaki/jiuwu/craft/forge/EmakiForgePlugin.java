@@ -38,7 +38,7 @@ import emaki.jiuwu.craft.forge.service.ForgeService;
 import emaki.jiuwu.craft.forge.service.ItemIdentifierService;
 import emaki.jiuwu.craft.forge.service.RecipeBookGuiService;
 
-public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider, EmakiServiceRegistry, EmakiForgeApi {
+public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider, EmakiServiceRegistry {
 
     private static final String ROOT_COMMAND = "emakiforge";
 
@@ -75,6 +75,22 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     private ForgePlaceholderExpansion placeholderExpansion;
     private TaskHandle autoSaveTask;
     private DebugCommand debugCommand;
+    private final EmakiForgeApi.Bridge forgeApiBridge = new EmakiForgeApi.Bridge() {
+        @Override
+        public String apiVersion() {
+            return getDescription().getVersion();
+        }
+
+        @Override
+        public String pluginName() {
+            return getName();
+        }
+
+        @Override
+        public boolean isReady() {
+            return isEnabled() && forgeService() != null;
+        }
+    };
 
     private static final Set<String> DEBUG_MODULES = Set.of("recipe", "forge", "gui");
 
@@ -105,7 +121,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
             placeholderExpansion = null;
         }
         WebConsoleRegistry.unregisterModule(this);
-        getServer().getServicesManager().unregister(EmakiForgeApi.class, this);
+        EmakiForgeApi.uninstall(forgeApiBridge);
         if (metrics != null) {
             metrics.close();
             metrics = null;
@@ -164,22 +180,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     }
 
     private void registerPublicApiService() {
-        getServer().getServicesManager().register(EmakiForgeApi.class, this, this, ServicePriority.Normal);
-    }
-
-    @Override
-    public String apiVersion() {
-        return getDescription().getVersion();
-    }
-
-    @Override
-    public String pluginName() {
-        return getName();
-    }
-
-    @Override
-    public boolean isReady() {
-        return isEnabled() && forgeService() != null;
+        EmakiForgeApi.install(forgeApiBridge);
     }
 
     private void ensurePlaceholderExpansion() {

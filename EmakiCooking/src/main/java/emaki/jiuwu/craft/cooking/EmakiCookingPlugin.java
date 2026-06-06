@@ -53,7 +53,7 @@ import emaki.jiuwu.craft.cooking.papi.CookingPlaceholderExpansion;
 import emaki.jiuwu.craft.cooking.service.display.CookingDisplayService;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplayService;
 
-public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider, EmakiServiceRegistry, EmakiCookingApi {
+public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider, EmakiServiceRegistry {
 
     private static final String ROOT_COMMAND = "ecooking";
 
@@ -107,6 +107,22 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
     private OvenRuntimeService ovenRuntimeService;
     private JuicerRuntimeService juicerRuntimeService;
     private FermentationBarrelRuntimeService fermentationBarrelRuntimeService;
+    private final EmakiCookingApi.Bridge cookingApiBridge = new EmakiCookingApi.Bridge() {
+        @Override
+        public String apiVersion() {
+            return getDescription().getVersion();
+        }
+
+        @Override
+        public String pluginName() {
+            return getName();
+        }
+
+        @Override
+        public boolean isReady() {
+            return isEnabled() && recipeService() != null;
+        }
+    };
 
     public EmakiCookingPlugin() {
         super(AppConfig::defaults);
@@ -134,7 +150,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         coreLibPlugin.namespaceRegistry().unregister("cooking");
         coreLibPlugin.scriptModuleRegistry().unregister("cooking");
         WebConsoleRegistry.unregisterModule(this);
-        getServer().getServicesManager().unregister(EmakiCookingApi.class, this);
+        EmakiCookingApi.uninstall(cookingApiBridge);
         if (grinderRuntimeService != null) {
             grinderRuntimeService.shutdown();
         }
@@ -249,22 +265,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
     }
 
     private void registerPublicApiService() {
-        getServer().getServicesManager().register(EmakiCookingApi.class, this, this, ServicePriority.Normal);
-    }
-
-    @Override
-    public String apiVersion() {
-        return getDescription().getVersion();
-    }
-
-    @Override
-    public String pluginName() {
-        return getName();
-    }
-
-    @Override
-    public boolean isReady() {
-        return isEnabled() && recipeService() != null;
+        EmakiCookingApi.install(cookingApiBridge);
     }
 
     private void registerCraftEngineEventHandlers() {

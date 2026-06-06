@@ -1,10 +1,28 @@
 package emaki.jiuwu.craft.gem.script;
 
-import emaki.jiuwu.craft.corelib.api.script.modules.ScriptProbeModuleApi;
+import org.graalvm.polyglot.HostAccess;
 
-public final class ScriptGemModuleApi extends ScriptProbeModuleApi {
+import emaki.jiuwu.craft.gem.api.EmakiGemApi;
 
-    public ScriptGemModuleApi() {
-        super("emaki.jiuwu.craft.gem.api.EmakiGemApi");
+public final class ScriptGemModuleApi {
+
+    @HostAccess.Export
+    public boolean available() {
+        return EmakiGemApi.available();
+    }
+
+    @HostAccess.Export
+    public String apiVersion() {
+        return EmakiGemApi.apiVersion();
+    }
+
+    @HostAccess.Export
+    public String pluginName() {
+        return EmakiGemApi.pluginName();
+    }
+
+    @HostAccess.Export
+    public boolean ready() {
+        return EmakiGemApi.isReady();
     }
 }

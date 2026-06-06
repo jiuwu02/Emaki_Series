@@ -1,48 +1,34 @@
 package emaki.jiuwu.craft.attribute.api;
 
-import java.util.Optional;
-
-import org.bukkit.Bukkit;
-import org.bukkit.plugin.Plugin;
-
 /**
- * Entry point for obtaining the {@link PdcAttributeApi} implemented by the
- * enabled EmakiAttribute plugin instance.
+ * Compatibility helper for the static {@link PdcAttributeApi} facade.
  *
- * <p>Typical usage from a third-party plugin:
- * <pre>{@code
- * PdcAttributeApiProvider.get().ifPresent(api -> api.registerSource("myplugin"));
- * }</pre>
- *
- * <p>The service is only present once EmakiAttribute has enabled, so callers
- * should resolve it lazily rather than during their own load phase. Successful
- * lookups are cached while the owning plugin remains enabled.
+ * <p>The public API no longer exposes an instance service. Use
+ * {@link PdcAttributeApi} static methods directly and this provider only for
+ * availability checks during migration.
  */
 public final class PdcAttributeApiProvider {
-
-    private static final String PLUGIN_NAME = "EmakiAttribute";
-    private static volatile PdcAttributeApi cached;
 
     private PdcAttributeApiProvider() {
     }
 
     /**
-     * {@return the enabled {@link PdcAttributeApi}, or an empty optional} Empty
-     * when EmakiAttribute is absent, disabled or not exposing the API.
+     * Checks whether the static EmakiAttribute PDC API bridge is installed.
+     *
+     * @return {@code true} when EmakiAttribute PDC API is available
      */
-    public static Optional<PdcAttributeApi> get() {
-        PdcAttributeApi api = cached;
-        if (api instanceof Plugin plugin && plugin.isEnabled()) {
-            return Optional.of(api);
-        }
-        cached = null;
+    public static boolean available() {
+        return PdcAttributeApi.available();
+    }
 
-        Plugin plugin = Bukkit.getPluginManager().getPlugin(PLUGIN_NAME);
-        if (plugin == null || !plugin.isEnabled() || !PdcAttributeApi.class.isInstance(plugin)) {
-            return Optional.empty();
+    /**
+     * Verifies that EmakiAttribute PDC API is available.
+     *
+     * @throws IllegalStateException when the static API bridge is not installed
+     */
+    public static void requireAvailable() {
+        if (!available()) {
+            throw new IllegalStateException("EmakiAttribute PDC API is not available.");
         }
-        api = PdcAttributeApi.class.cast(plugin);
-        cached = api;
-        return Optional.of(api);
     }
 }

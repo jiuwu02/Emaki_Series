@@ -9,6 +9,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.ServicePriority;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
@@ -47,7 +49,7 @@ import emaki.jiuwu.craft.strengthen.service.StrengthenGuiService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenRefreshService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenSnapshotBuilder;
 
-public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider, EmakiServiceRegistry, EmakiStrengthenApi {
+public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider, EmakiServiceRegistry {
 
     private static final String ROOT_COMMAND = "emakistrengthen";
     private static final Set<String> DEBUG_MODULES = Set.of("attempt", "state", "gui");
@@ -89,6 +91,32 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     private StrengthenRefreshService refreshService;
     private StrengthenGuiService strengthenGuiService;
     private StrengthenPlaceholderExpansion placeholderExpansion;
+    private final EmakiStrengthenApi.Bridge strengthenApiBridge = new EmakiStrengthenApi.Bridge() {
+        @Override
+        public boolean canStrengthen(@Nullable ItemStack itemStack) {
+            return attemptService != null && attemptService.canStrengthen(itemStack);
+        }
+
+        @Override
+        public @NotNull StrengthenState readState(@Nullable ItemStack itemStack) {
+            return attemptService.readState(itemStack);
+        }
+
+        @Override
+        public @NotNull AttemptPreview preview(@Nullable Player player, @Nullable AttemptContext context) {
+            return attemptService.preview(player, context);
+        }
+
+        @Override
+        public @NotNull AttemptResult attempt(@Nullable Player player, @Nullable AttemptContext context) {
+            return attemptService.attempt(player, context);
+        }
+
+        @Override
+        public @Nullable ItemStack rebuild(@Nullable ItemStack itemStack) {
+            return attemptService.rebuild(itemStack);
+        }
+    };
 
     public EmakiStrengthenPlugin() {
         super(AppConfig::defaults);
@@ -117,6 +145,7 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
             placeholderExpansion = null;
         }
         WebConsoleRegistry.unregisterModule(this);
+        EmakiStrengthenApi.uninstall(strengthenApiBridge);
         getServer().getServicesManager().unregisterAll(this);
         if (metrics != null) {
             metrics.close();
@@ -158,32 +187,7 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     }
 
     private void registerApi() {
-        getServer().getServicesManager().register(EmakiStrengthenApi.class, this, this, ServicePriority.Normal);
-    }
-
-    @Override
-    public boolean canStrengthen(ItemStack itemStack) {
-        return attemptService != null && attemptService.canStrengthen(itemStack);
-    }
-
-    @Override
-    public StrengthenState readState(ItemStack itemStack) {
-        return attemptService.readState(itemStack);
-    }
-
-    @Override
-    public AttemptPreview preview(Player player, AttemptContext context) {
-        return attemptService.preview(player, context);
-    }
-
-    @Override
-    public AttemptResult attempt(Player player, AttemptContext context) {
-        return attemptService.attempt(player, context);
-    }
-
-    @Override
-    public ItemStack rebuild(ItemStack itemStack) {
-        return attemptService.rebuild(itemStack);
+        EmakiStrengthenApi.install(strengthenApiBridge);
     }
 
     private void registerCommandHandler() {

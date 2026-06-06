@@ -57,7 +57,7 @@ import emaki.jiuwu.craft.level.service.PlayerLevelDataStore;
 import emaki.jiuwu.craft.level.service.PlayerLevelService;
 import emaki.jiuwu.craft.level.service.RequirementService;
 
-public final class EmakiLevelPlugin extends JavaPlugin implements EmakiLevelApi {
+public final class EmakiLevelPlugin extends JavaPlugin {
 
     private static final int BSTATS_PLUGIN_ID = 31794;
     private static final String STARTUP_ASCII = """
@@ -113,6 +113,84 @@ public final class EmakiLevelPlugin extends JavaPlugin implements EmakiLevelApi 
     private MythicLevelDropBridge mythicDropBridge;
     private LevelPlaceholderExpansion placeholderExpansion;
     private BStatsRegistration metrics;
+    private final EmakiLevelApi.Bridge levelApiBridge = new EmakiLevelApi.Bridge() {
+        @Override
+        public Optional<LevelTypeView> type(String typeId) {
+            return typeRegistry.type(typeId).map(EmakiLevelPlugin.this::view);
+        }
+
+        @Override
+        public Collection<LevelTypeView> types() {
+            return typeRegistry.all().stream().map(EmakiLevelPlugin.this::view).toList();
+        }
+
+        @Override
+        public CompletableFuture<PlayerLevelView> getPlayerData(UUID uuid) {
+            return CompletableFuture.completedFuture(playerView(dataStore.getOrLoad(uuid, typeRegistry.asMap())));
+        }
+
+        @Override
+        public int getLevel(UUID uuid, String typeId) {
+            PlayerLevelEntry entry = entry(uuid, typeId);
+            return entry == null ? 0 : entry.level();
+        }
+
+        @Override
+        public double getExp(UUID uuid, String typeId) {
+            PlayerLevelEntry entry = entry(uuid, typeId);
+            return entry == null ? 0D : entry.exp();
+        }
+
+        @Override
+        public double getTotalExp(UUID uuid, String typeId) {
+            PlayerLevelEntry entry = entry(uuid, typeId);
+            return entry == null ? 0D : entry.totalExp();
+        }
+
+        @Override
+        public double getRequiredExp(UUID uuid, String typeId, int targetLevel) {
+            LevelTypeConfig type = typeRegistry.type(typeId).orElse(null);
+            if (type == null) {
+                return 0D;
+            }
+            return requirementService.requiredExp(type, entry(uuid, typeId), targetLevel);
+        }
+
+        @Override
+        public LevelOperationResult addExp(UUID uuid, String typeId, double amount, String reason) {
+            return levelService.addExp(uuid, typeId, amount, reason);
+        }
+
+        @Override
+        public LevelOperationResult removeExp(UUID uuid, String typeId, double amount, String reason) {
+            return levelService.removeExp(uuid, typeId, amount, reason);
+        }
+
+        @Override
+        public LevelOperationResult setExp(UUID uuid, String typeId, double amount, String reason) {
+            return levelService.setExp(uuid, typeId, amount, reason);
+        }
+
+        @Override
+        public LevelOperationResult addLevel(UUID uuid, String typeId, int amount, String reason) {
+            return levelService.addLevel(uuid, typeId, amount, reason);
+        }
+
+        @Override
+        public LevelOperationResult removeLevel(UUID uuid, String typeId, int amount, String reason) {
+            return levelService.removeLevel(uuid, typeId, amount, reason);
+        }
+
+        @Override
+        public LevelOperationResult setLevel(UUID uuid, String typeId, int level, String reason) {
+            return levelService.setLevel(uuid, typeId, level, reason);
+        }
+
+        @Override
+        public LevelOperationResult levelUp(UUID uuid, String typeId, LevelUpCause cause) {
+            return levelService.levelUp(uuid, typeId, cause);
+        }
+    };
 
     @Override
     public void onEnable() {
@@ -148,7 +226,7 @@ public final class EmakiLevelPlugin extends JavaPlugin implements EmakiLevelApi 
             mythicDropBridge = null;
         }
         WebConsoleRegistry.unregisterModule(this);
-        getServer().getServicesManager().unregister(EmakiLevelApi.class, this);
+        EmakiLevelApi.uninstall(levelApiBridge);
         if (dataStore != null) {
             dataStore.saveAll();
         }
@@ -260,7 +338,7 @@ public final class EmakiLevelPlugin extends JavaPlugin implements EmakiLevelApi 
     }
 
     private void registerApi() {
-        getServer().getServicesManager().register(EmakiLevelApi.class, this, this, ServicePriority.Normal);
+        EmakiLevelApi.install(levelApiBridge);
     }
 
     private void registerActions() {
@@ -296,83 +374,6 @@ public final class EmakiLevelPlugin extends JavaPlugin implements EmakiLevelApi 
         mythicDropBridge = new MythicLevelDropBridge(this);
         getServer().getPluginManager().registerEvents(mythicDropBridge, this);
         messages.info("console.mythic_drops_registered");
-    }
-
-    @Override
-    public Optional<LevelTypeView> type(String typeId) {
-        return typeRegistry.type(typeId).map(this::view);
-    }
-
-    @Override
-    public Collection<LevelTypeView> types() {
-        return typeRegistry.all().stream().map(this::view).toList();
-    }
-
-    @Override
-    public CompletableFuture<PlayerLevelView> getPlayerData(UUID uuid) {
-        return CompletableFuture.completedFuture(playerView(dataStore.getOrLoad(uuid, typeRegistry.asMap())));
-    }
-
-    @Override
-    public int getLevel(UUID uuid, String typeId) {
-        PlayerLevelEntry entry = entry(uuid, typeId);
-        return entry == null ? 0 : entry.level();
-    }
-
-    @Override
-    public double getExp(UUID uuid, String typeId) {
-        PlayerLevelEntry entry = entry(uuid, typeId);
-        return entry == null ? 0D : entry.exp();
-    }
-
-    @Override
-    public double getTotalExp(UUID uuid, String typeId) {
-        PlayerLevelEntry entry = entry(uuid, typeId);
-        return entry == null ? 0D : entry.totalExp();
-    }
-
-    @Override
-    public double getRequiredExp(UUID uuid, String typeId, int targetLevel) {
-        LevelTypeConfig type = typeRegistry.type(typeId).orElse(null);
-        if (type == null) {
-            return 0D;
-        }
-        return requirementService.requiredExp(type, entry(uuid, typeId), targetLevel);
-    }
-
-    @Override
-    public LevelOperationResult addExp(UUID uuid, String typeId, double amount, String reason) {
-        return levelService.addExp(uuid, typeId, amount, reason);
-    }
-
-    @Override
-    public LevelOperationResult removeExp(UUID uuid, String typeId, double amount, String reason) {
-        return levelService.removeExp(uuid, typeId, amount, reason);
-    }
-
-    @Override
-    public LevelOperationResult setExp(UUID uuid, String typeId, double amount, String reason) {
-        return levelService.setExp(uuid, typeId, amount, reason);
-    }
-
-    @Override
-    public LevelOperationResult addLevel(UUID uuid, String typeId, int amount, String reason) {
-        return levelService.addLevel(uuid, typeId, amount, reason);
-    }
-
-    @Override
-    public LevelOperationResult removeLevel(UUID uuid, String typeId, int amount, String reason) {
-        return levelService.removeLevel(uuid, typeId, amount, reason);
-    }
-
-    @Override
-    public LevelOperationResult setLevel(UUID uuid, String typeId, int level, String reason) {
-        return levelService.setLevel(uuid, typeId, level, reason);
-    }
-
-    @Override
-    public LevelOperationResult levelUp(UUID uuid, String typeId, LevelUpCause cause) {
-        return levelService.levelUp(uuid, typeId, cause);
     }
 
     private PlayerLevelEntry entry(UUID uuid, String typeId) {

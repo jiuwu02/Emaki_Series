@@ -1,43 +1,34 @@
 package emaki.jiuwu.craft.gem.api;
 
-import java.util.Optional;
-
-import org.bukkit.Bukkit;
-import org.bukkit.plugin.Plugin;
-
 /**
- * Entry point for obtaining the {@link EmakiGemApi} implemented by the enabled
- * EmakiGem plugin instance.
+ * Compatibility helper for the static {@link EmakiGemApi} facade.
  *
- * <p>The service only exists after EmakiGem has enabled, so resolve it lazily
- * rather than during your own plugin's load phase. Successful lookups are
- * cached while the owning plugin remains enabled.
+ * <p>The public API no longer exposes an instance service. Use
+ * {@link EmakiGemApi} static methods directly and this provider only for
+ * availability checks during migration.
  */
 public final class EmakiGemApiProvider {
-
-    private static final String PLUGIN_NAME = "EmakiGem";
-    private static volatile EmakiGemApi cached;
 
     private EmakiGemApiProvider() {
     }
 
     /**
-     * {@return the enabled {@link EmakiGemApi}, or an empty optional} Empty when
-     * EmakiGem is absent, disabled or not exposing the API.
+     * Checks whether the static EmakiGem API bridge is installed.
+     *
+     * @return {@code true} when EmakiGem is available
      */
-    public static Optional<EmakiGemApi> get() {
-        EmakiGemApi api = cached;
-        if (api instanceof Plugin plugin && plugin.isEnabled()) {
-            return Optional.of(api);
-        }
-        cached = null;
+    public static boolean available() {
+        return EmakiGemApi.available();
+    }
 
-        Plugin plugin = Bukkit.getPluginManager().getPlugin(PLUGIN_NAME);
-        if (plugin == null || !plugin.isEnabled() || !EmakiGemApi.class.isInstance(plugin)) {
-            return Optional.empty();
+    /**
+     * Verifies that EmakiGem is available.
+     *
+     * @throws IllegalStateException when the static API bridge is not installed
+     */
+    public static void requireAvailable() {
+        if (!available()) {
+            throw new IllegalStateException("EmakiGem API is not available.");
         }
-        api = EmakiGemApi.class.cast(plugin);
-        cached = api;
-        return Optional.of(api);
     }
 }

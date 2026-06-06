@@ -60,7 +60,7 @@ import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.VersionedYamlFile;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 
-public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvider, EmakiServiceRegistry, EmakiCoreLibApi {
+public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvider, EmakiServiceRegistry {
 
     private static final String STARTUP_ASCII = """
  ______  __    __  ______  __  __   __  ______  ______  ______  ______  __      __  ______
@@ -105,6 +105,22 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private DebugLogger debugLogger;
     private WebConsoleService webConsoleService;
     private CoreLibCommandRouter commandRouter;
+    private final EmakiCoreLibApi.Bridge coreLibApiBridge = new EmakiCoreLibApi.Bridge() {
+        @Override
+        public String apiVersion() {
+            return getDescription().getVersion();
+        }
+
+        @Override
+        public String pluginName() {
+            return getName();
+        }
+
+        @Override
+        public boolean isReady() {
+            return isEnabled() && messageService() != null;
+        }
+    };
     private JavaScriptActionExtensionLoader javaScriptActionExtensionLoader;
     private MythicJavaScriptBridge mythicJavaScriptBridge;
 
@@ -162,7 +178,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         if (javaScriptService != null) {
             javaScriptService.close();
         }
-        getServer().getServicesManager().unregister(EmakiCoreLibApi.class, this);
+        EmakiCoreLibApi.uninstall(coreLibApiBridge);
         if (asyncTaskScheduler != null) {
             asyncTaskScheduler.shutdown(5_000L);
         }
@@ -288,22 +304,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     }
 
     private void registerPublicApiService() {
-        getServer().getServicesManager().register(EmakiCoreLibApi.class, this, this, ServicePriority.Normal);
-    }
-
-    @Override
-    public String apiVersion() {
-        return getDescription().getVersion();
-    }
-
-    @Override
-    public String pluginName() {
-        return getName();
-    }
-
-    @Override
-    public boolean isReady() {
-        return isEnabled() && messageService() != null;
+        EmakiCoreLibApi.install(coreLibApiBridge);
     }
 
     public BStatsRegistration registerBStats(JavaPlugin plugin, int pluginId) {

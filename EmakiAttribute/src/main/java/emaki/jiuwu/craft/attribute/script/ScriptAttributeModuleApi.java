@@ -6,13 +6,13 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.inventory.ItemStack;
 import org.graalvm.polyglot.HostAccess;
 
+import emaki.jiuwu.craft.attribute.api.PdcAttributeApi;
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.api.script.ScriptServerApi.ScriptEntityApi;
 import emaki.jiuwu.craft.corelib.api.script.modules.ScriptServiceApiSupport;
 
 public final class ScriptAttributeModuleApi {
 
-    private static final String SERVICE = "emaki.jiuwu.craft.attribute.api.PdcAttributeApi";
     private static final String FACADE = "emaki.jiuwu.craft.attribute.service.AttributeServiceFacade";
 
     private final ActionContext context;
@@ -23,79 +23,60 @@ public final class ScriptAttributeModuleApi {
 
     @HostAccess.Export
     public boolean available() {
-        return ScriptServiceApiSupport.available(SERVICE);
+        return PdcAttributeApi.available();
     }
 
     @HostAccess.Export
     public boolean registerSource(String sourceId) {
-        return ScriptServiceApiSupport.service(SERVICE)
-                .map(service -> ScriptServiceApiSupport.invokeBoolean(service, "registerSource", new Class<?>[] { String.class }, sourceId))
-                .orElse(false);
+        return PdcAttributeApi.registerSource(sourceId);
     }
 
     @HostAccess.Export
     public void unregisterSource(String sourceId) {
-        ScriptServiceApiSupport.service(SERVICE)
-                .ifPresent(service -> ScriptServiceApiSupport.invoke(service, "unregisterSource", new Class<?>[] { String.class }, sourceId));
+        PdcAttributeApi.unregisterSource(sourceId);
     }
 
     @HostAccess.Export
     public boolean isRegisteredSource(String sourceId) {
-        return ScriptServiceApiSupport.service(SERVICE)
-                .map(service -> ScriptServiceApiSupport.invokeBoolean(service, "isRegisteredSource", new Class<?>[] { String.class }, sourceId))
-                .orElse(false);
+        return PdcAttributeApi.isRegisteredSource(sourceId);
     }
 
     @HostAccess.Export
     public java.util.List<String> registeredSources() {
-        return ScriptServiceApiSupport.service(SERVICE)
-                .map(service -> ScriptServiceApiSupport.toStringList(ScriptServiceApiSupport.invoke(service, "registeredSources", new Class<?>[0])))
-                .orElseGet(java.util.List::of);
+        return java.util.List.copyOf(PdcAttributeApi.registeredSources());
     }
 
     @HostAccess.Export
     public Map<String, Object> read(String itemKey, String sourceId) {
         ItemStack itemStack = ScriptServiceApiSupport.item(context, itemKey);
-        return ScriptServiceApiSupport.service(SERVICE)
-                .map(service -> ScriptServiceApiSupport.payloadToMap(ScriptServiceApiSupport.invoke(service, "read", new Class<?>[] { ItemStack.class, String.class }, itemStack, sourceId)))
-                .orElse(null);
+        return ScriptServiceApiSupport.payloadToMap(PdcAttributeApi.read(itemStack, sourceId));
     }
 
     @HostAccess.Export
     public Map<String, Object> readAll(String itemKey) {
         ItemStack itemStack = ScriptServiceApiSupport.item(context, itemKey);
-        return ScriptServiceApiSupport.service(SERVICE)
-                .map(service -> ScriptServiceApiSupport.payloadsToMap(ScriptServiceApiSupport.invoke(service, "readAll", new Class<?>[] { ItemStack.class }, itemStack)))
-                .orElseGet(Map::of);
+        return ScriptServiceApiSupport.payloadsToMap(PdcAttributeApi.readAll(itemStack));
     }
 
     @HostAccess.Export
     public boolean write(String itemKey, String sourceId, Map<String, ?> attributes, Map<String, ?> meta) {
         ItemStack itemStack = ScriptServiceApiSupport.item(context, itemKey);
-        return ScriptServiceApiSupport.service(SERVICE)
-                .map(service -> ScriptServiceApiSupport.invokeBoolean(service,
-                        "write",
-                        new Class<?>[] { ItemStack.class, String.class, Map.class, Map.class },
-                        itemStack,
-                        sourceId,
-                        ScriptServiceApiSupport.doubleMap(attributes),
-                        ScriptServiceApiSupport.stringMap(meta)))
-                .orElse(false);
+        return PdcAttributeApi.write(itemStack,
+                sourceId,
+                ScriptServiceApiSupport.doubleMap(attributes),
+                ScriptServiceApiSupport.stringMap(meta));
     }
 
     @HostAccess.Export
     public boolean clear(String itemKey, String sourceId) {
         ItemStack itemStack = ScriptServiceApiSupport.item(context, itemKey);
-        return ScriptServiceApiSupport.service(SERVICE)
-                .map(service -> ScriptServiceApiSupport.invokeBoolean(service, "clear", new Class<?>[] { ItemStack.class, String.class }, itemStack, sourceId))
-                .orElse(false);
+        return PdcAttributeApi.clear(itemStack, sourceId);
     }
 
     @HostAccess.Export
     public void clearAll(String itemKey) {
         ItemStack itemStack = ScriptServiceApiSupport.item(context, itemKey);
-        ScriptServiceApiSupport.service(SERVICE)
-                .ifPresent(service -> ScriptServiceApiSupport.invoke(service, "clearAll", new Class<?>[] { ItemStack.class }, itemStack));
+        PdcAttributeApi.clearAll(itemStack);
     }
 
     @HostAccess.Export

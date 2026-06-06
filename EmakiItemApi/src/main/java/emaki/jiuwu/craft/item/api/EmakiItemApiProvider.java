@@ -1,43 +1,34 @@
 package emaki.jiuwu.craft.item.api;
 
-import java.util.Optional;
-
-import org.bukkit.Bukkit;
-import org.bukkit.plugin.Plugin;
-
 /**
- * Entry point for obtaining the {@link EmakiItemApi} implemented by the enabled
- * EmakiItem plugin instance.
+ * Compatibility helper for the static {@link EmakiItemApi} facade.
  *
- * <p>The service only exists after EmakiItem has enabled, so resolve it lazily
- * rather than during your own plugin's load phase. Successful lookups are
- * cached while the owning plugin remains enabled.
+ * <p>The public API no longer exposes an instance service. Use
+ * {@link EmakiItemApi} static methods directly and this provider only for
+ * availability checks during migration.
  */
 public final class EmakiItemApiProvider {
-
-    private static final String PLUGIN_NAME = "EmakiItem";
-    private static volatile EmakiItemApi cached;
 
     private EmakiItemApiProvider() {
     }
 
     /**
-     * {@return the enabled {@link EmakiItemApi}, or an empty optional} Empty when
-     * EmakiItem is absent, disabled or not exposing the API.
+     * Checks whether the static EmakiItem API bridge is installed.
+     *
+     * @return {@code true} when EmakiItem is available
      */
-    public static Optional<EmakiItemApi> get() {
-        EmakiItemApi api = cached;
-        if (api instanceof Plugin plugin && plugin.isEnabled()) {
-            return Optional.of(api);
-        }
-        cached = null;
+    public static boolean available() {
+        return EmakiItemApi.available();
+    }
 
-        Plugin plugin = Bukkit.getPluginManager().getPlugin(PLUGIN_NAME);
-        if (plugin == null || !plugin.isEnabled() || !EmakiItemApi.class.isInstance(plugin)) {
-            return Optional.empty();
+    /**
+     * Verifies that EmakiItem is available.
+     *
+     * @throws IllegalStateException when the static API bridge is not installed
+     */
+    public static void requireAvailable() {
+        if (!available()) {
+            throw new IllegalStateException("EmakiItem API is not available.");
         }
-        api = EmakiItemApi.class.cast(plugin);
-        cached = api;
-        return Optional.of(api);
     }
 }

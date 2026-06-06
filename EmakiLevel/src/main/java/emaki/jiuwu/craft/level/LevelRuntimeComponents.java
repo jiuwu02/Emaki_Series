@@ -1,6 +1,5 @@
 package emaki.jiuwu.craft.level;
 
-import emaki.jiuwu.craft.level.api.EmakiLevelApi;
 import emaki.jiuwu.craft.level.loader.LevelTypeLoader;
 import emaki.jiuwu.craft.level.loader.RequirementLoader;
 import emaki.jiuwu.craft.level.loader.SourceRuleLoader;
@@ -21,6 +20,5 @@ record LevelRuntimeComponents(LevelMessageService messages,
         PlayerLevelDataStore dataStore,
         LevelPdcService pdcService,
         PlayerLevelService levelService,
-        LevelTopService topService,
-        EmakiLevelApi api) {
+        LevelTopService topService) {
 }

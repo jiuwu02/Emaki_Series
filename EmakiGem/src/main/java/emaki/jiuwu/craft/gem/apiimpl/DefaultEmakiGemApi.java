@@ -3,7 +3,7 @@ package emaki.jiuwu.craft.gem.apiimpl;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
 import emaki.jiuwu.craft.gem.api.EmakiGemApi;
 
-public final class DefaultEmakiGemApi implements EmakiGemApi {
+public final class DefaultEmakiGemApi implements EmakiGemApi.Bridge {
 
     private final EmakiGemPlugin plugin;
 

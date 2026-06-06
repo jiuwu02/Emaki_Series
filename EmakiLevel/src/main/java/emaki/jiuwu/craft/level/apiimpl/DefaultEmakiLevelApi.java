@@ -18,7 +18,7 @@ import emaki.jiuwu.craft.level.config.LevelTypeConfig;
 import emaki.jiuwu.craft.level.model.PlayerLevelData;
 import emaki.jiuwu.craft.level.model.PlayerLevelEntry;
 
-public final class DefaultEmakiLevelApi implements EmakiLevelApi {
+public final class DefaultEmakiLevelApi implements EmakiLevelApi.Bridge {
 
     private final EmakiLevelPlugin plugin;
 

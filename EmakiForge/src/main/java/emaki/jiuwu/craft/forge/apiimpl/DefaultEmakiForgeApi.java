@@ -3,7 +3,7 @@ package emaki.jiuwu.craft.forge.apiimpl;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.api.EmakiForgeApi;
 
-public final class DefaultEmakiForgeApi implements EmakiForgeApi {
+public final class DefaultEmakiForgeApi implements EmakiForgeApi.Bridge {
 
     private final EmakiForgePlugin plugin;
 

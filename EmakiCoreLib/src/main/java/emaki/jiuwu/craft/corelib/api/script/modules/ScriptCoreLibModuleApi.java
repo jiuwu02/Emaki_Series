@@ -2,33 +2,27 @@ package emaki.jiuwu.craft.corelib.api.script.modules;
 
 import org.graalvm.polyglot.HostAccess;
 
-public final class ScriptCoreLibModuleApi {
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 
-    private static final String SERVICE = "emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi";
+public final class ScriptCoreLibModuleApi {
 
     @HostAccess.Export
     public boolean available() {
-        return ScriptServiceApiSupport.available(SERVICE);
+        return EmakiCoreLibApi.available();
     }
 
     @HostAccess.Export
     public String apiVersion() {
-        return ScriptServiceApiSupport.service(SERVICE)
-                .map(service -> ScriptServiceApiSupport.invokeString(service, "apiVersion", new Class<?>[0]))
-                .orElse("");
+        return EmakiCoreLibApi.apiVersion();
     }
 
     @HostAccess.Export
     public String pluginName() {
-        return ScriptServiceApiSupport.service(SERVICE)
-                .map(service -> ScriptServiceApiSupport.invokeString(service, "pluginName", new Class<?>[0]))
-                .orElse("");
+        return EmakiCoreLibApi.pluginName();
     }
 
     @HostAccess.Export
     public boolean ready() {
-        return ScriptServiceApiSupport.service(SERVICE)
-                .map(service -> ScriptServiceApiSupport.invokeBoolean(service, "isReady", new Class<?>[0]))
-                .orElse(false);
+        return EmakiCoreLibApi.isReady();
     }
 }

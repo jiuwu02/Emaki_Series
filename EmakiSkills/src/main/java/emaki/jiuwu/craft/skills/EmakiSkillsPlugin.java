@@ -62,7 +62,7 @@ import emaki.jiuwu.craft.skills.papi.SkillsPlaceholderExpansion;
 
 import org.bukkit.Bukkit;
 
-public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider, EmakiServiceRegistry, EmakiSkillsApi {
+public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider, EmakiServiceRegistry {
 
     private static final String ROOT_COMMAND = "emakiskills";
 
@@ -116,6 +116,12 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
     private SkillsPlaceholderExpansion placeholderExpansion;
     private DefaultTriggerDispatcher triggerDispatcher;
     private PassiveTriggerDispatcher passiveTriggerDispatcher;
+    private final EmakiSkillsApi.Bridge skillsApiBridge = new EmakiSkillsApi.Bridge() {
+        @Override
+        public SkillScriptActionRegistry scriptActionRegistry() {
+            return skillScriptActionRegistry;
+        }
+    };
 
     public EmakiSkillsPlugin() {
         super(AppConfig::defaults);
@@ -166,6 +172,7 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
             metrics.close();
             metrics = null;
         }
+        EmakiSkillsApi.uninstall(skillsApiBridge);
         getServer().getServicesManager().unregisterAll(this);
         lifecycleCoordinator.shutdown(this);
         AdventureSupport.close(this);
@@ -286,17 +293,11 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
     }
 
     private void registerPublicApi() {
-        getServer().getServicesManager().register(EmakiSkillsApi.class, this, this,
-                org.bukkit.plugin.ServicePriority.Normal);
+        EmakiSkillsApi.install(skillsApiBridge);
         if (skillScriptActionRegistry != null) {
             getServer().getServicesManager().register(SkillScriptActionRegistry.class, skillScriptActionRegistry, this,
                     org.bukkit.plugin.ServicePriority.Normal);
         }
-    }
-
-    @Override
-    public SkillScriptActionRegistry scriptActionRegistry() {
-        return skillScriptActionRegistry;
     }
 
     private void unregisterCoreLibActions() {
@@ -405,8 +406,8 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
         return skillScriptCastService;
     }
 
-    public EmakiSkillsApi emakiSkillsApi() {
-        return this;
+    public EmakiSkillsApi.Bridge emakiSkillsApi() {
+        return skillsApiBridge;
     }
 
     public SkillUpgradeService skillUpgradeService() {

@@ -1,43 +1,34 @@
 package emaki.jiuwu.craft.cooking.api;
 
-import java.util.Optional;
-
-import org.bukkit.Bukkit;
-import org.bukkit.plugin.Plugin;
-
 /**
- * Entry point for obtaining the {@link EmakiCookingApi} implemented by the
- * enabled EmakiCooking plugin instance.
+ * Compatibility helper for the static {@link EmakiCookingApi} facade.
  *
- * <p>The service only exists after EmakiCooking has enabled, so resolve it
- * lazily rather than during your own plugin's load phase. Successful lookups
- * are cached while the owning plugin remains enabled.
+ * <p>The public API no longer exposes an instance service. Use
+ * {@link EmakiCookingApi} static methods directly and this provider only for
+ * availability checks during migration.
  */
 public final class EmakiCookingApiProvider {
-
-    private static final String PLUGIN_NAME = "EmakiCooking";
-    private static volatile EmakiCookingApi cached;
 
     private EmakiCookingApiProvider() {
     }
 
     /**
-     * {@return the enabled {@link EmakiCookingApi}, or an empty optional} Empty
-     * when EmakiCooking is absent, disabled or not exposing the API.
+     * Checks whether the static EmakiCooking API bridge is installed.
+     *
+     * @return {@code true} when EmakiCooking is available
      */
-    public static Optional<EmakiCookingApi> get() {
-        EmakiCookingApi api = cached;
-        if (api instanceof Plugin plugin && plugin.isEnabled()) {
-            return Optional.of(api);
-        }
-        cached = null;
+    public static boolean available() {
+        return EmakiCookingApi.available();
+    }
 
-        Plugin plugin = Bukkit.getPluginManager().getPlugin(PLUGIN_NAME);
-        if (plugin == null || !plugin.isEnabled() || !EmakiCookingApi.class.isInstance(plugin)) {
-            return Optional.empty();
+    /**
+     * Verifies that EmakiCooking is available.
+     *
+     * @throws IllegalStateException when the static API bridge is not installed
+     */
+    public static void requireAvailable() {
+        if (!available()) {
+            throw new IllegalStateException("EmakiCooking API is not available.");
         }
-        api = EmakiCookingApi.class.cast(plugin);
-        cached = api;
-        return Optional.of(api);
     }
 }

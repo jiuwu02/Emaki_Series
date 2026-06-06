@@ -10,7 +10,6 @@ import emaki.jiuwu.craft.corelib.pdc.PdcService;
 import emaki.jiuwu.craft.corelib.runtime.RuntimeComponents;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
-import emaki.jiuwu.craft.item.api.EmakiItemApi;
 import emaki.jiuwu.craft.item.config.AppConfig;
 import emaki.jiuwu.craft.item.loader.EmakiItemLoader;
 import emaki.jiuwu.craft.item.loader.EmakiItemSetLoader;
@@ -37,7 +36,6 @@ record ItemRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
         EmakiItemSetService setService,
         EmakiItemActionService actionService,
         EmakiItemConditionChecker conditionChecker,
-        EmakiItemApi itemApi,
         ItemComponentInspector componentInspector,
         ItemComponentPlaceholderResolver componentPlaceholderResolver,
         ItemSourceService itemSourceService,
@@ -60,7 +58,6 @@ record ItemRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
                 RuntimeComponents.component(EmakiItemSetService.class, setService),
                 RuntimeComponents.component(EmakiItemActionService.class, actionService),
                 RuntimeComponents.component(EmakiItemConditionChecker.class, conditionChecker),
-                RuntimeComponents.component(EmakiItemApi.class, itemApi),
                 RuntimeComponents.component(ItemComponentInspector.class, componentInspector),
                 RuntimeComponents.component(ItemComponentPlaceholderResolver.class, componentPlaceholderResolver),
                 RuntimeComponents.component(ItemSourceService.class, itemSourceService),

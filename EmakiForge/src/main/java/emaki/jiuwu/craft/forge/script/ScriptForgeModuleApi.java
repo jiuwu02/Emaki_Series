@@ -1,10 +1,28 @@
 package emaki.jiuwu.craft.forge.script;
 
-import emaki.jiuwu.craft.corelib.api.script.modules.ScriptProbeModuleApi;
+import org.graalvm.polyglot.HostAccess;
 
-public final class ScriptForgeModuleApi extends ScriptProbeModuleApi {
+import emaki.jiuwu.craft.forge.api.EmakiForgeApi;
 
-    public ScriptForgeModuleApi() {
-        super("emaki.jiuwu.craft.forge.api.EmakiForgeApi");
+public final class ScriptForgeModuleApi {
+
+    @HostAccess.Export
+    public boolean available() {
+        return EmakiForgeApi.available();
+    }
+
+    @HostAccess.Export
+    public String apiVersion() {
+        return EmakiForgeApi.apiVersion();
+    }
+
+    @HostAccess.Export
+    public String pluginName() {
+        return EmakiForgeApi.pluginName();
+    }
+
+    @HostAccess.Export
+    public boolean ready() {
+        return EmakiForgeApi.isReady();
     }
 }

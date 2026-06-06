@@ -1,43 +1,34 @@
 package emaki.jiuwu.craft.strengthen.api;
 
-import java.util.Optional;
-
-import org.bukkit.Bukkit;
-import org.bukkit.plugin.Plugin;
-
 /**
- * Entry point for obtaining the {@link EmakiStrengthenApi} implemented by the
- * enabled EmakiStrengthen plugin instance.
+ * Compatibility helper for the static {@link EmakiStrengthenApi} facade.
  *
- * <p>The service only exists after EmakiStrengthen has enabled, so resolve it
- * lazily rather than during your own plugin's load phase. Successful lookups
- * are cached while the owning plugin remains enabled.
+ * <p>The public API no longer exposes an instance service. Use
+ * {@link EmakiStrengthenApi} static methods directly and this provider only for
+ * availability checks during migration.
  */
 public final class EmakiStrengthenApiProvider {
-
-    private static final String PLUGIN_NAME = "EmakiStrengthen";
-    private static volatile EmakiStrengthenApi cached;
 
     private EmakiStrengthenApiProvider() {
     }
 
     /**
-     * {@return the enabled {@link EmakiStrengthenApi}, or an empty optional}
-     * Empty when EmakiStrengthen is absent, disabled or not exposing the API.
+     * Checks whether the static EmakiStrengthen API bridge is installed.
+     *
+     * @return {@code true} when EmakiStrengthen is available
      */
-    public static Optional<EmakiStrengthenApi> get() {
-        EmakiStrengthenApi api = cached;
-        if (api instanceof Plugin plugin && plugin.isEnabled()) {
-            return Optional.of(api);
-        }
-        cached = null;
+    public static boolean available() {
+        return EmakiStrengthenApi.available();
+    }
 
-        Plugin plugin = Bukkit.getPluginManager().getPlugin(PLUGIN_NAME);
-        if (plugin == null || !plugin.isEnabled() || !EmakiStrengthenApi.class.isInstance(plugin)) {
-            return Optional.empty();
+    /**
+     * Verifies that EmakiStrengthen is available.
+     *
+     * @throws IllegalStateException when the static API bridge is not installed
+     */
+    public static void requireAvailable() {
+        if (!available()) {
+            throw new IllegalStateException("EmakiStrengthen API is not available.");
         }
-        api = EmakiStrengthenApi.class.cast(plugin);
-        cached = api;
-        return Optional.of(api);
     }
 }

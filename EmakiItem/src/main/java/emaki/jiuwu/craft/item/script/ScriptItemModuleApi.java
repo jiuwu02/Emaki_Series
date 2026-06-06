@@ -7,10 +7,9 @@ import org.graalvm.polyglot.HostAccess;
 
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.api.script.modules.ScriptServiceApiSupport;
+import emaki.jiuwu.craft.item.api.EmakiItemApi;
 
 public final class ScriptItemModuleApi {
-
-    private static final String SERVICE = "emaki.jiuwu.craft.item.api.EmakiItemApi";
 
     private final ActionContext context;
 
@@ -20,43 +19,34 @@ public final class ScriptItemModuleApi {
 
     @HostAccess.Export
     public boolean available() {
-        return ScriptServiceApiSupport.available(SERVICE);
+        return EmakiItemApi.available();
     }
 
     @HostAccess.Export
     public boolean exists(String id) {
-        return ScriptServiceApiSupport.service(SERVICE)
-                .map(service -> ScriptServiceApiSupport.invokeBoolean(service, "exists", new Class<?>[] { String.class }, id))
-                .orElse(false);
+        return EmakiItemApi.exists(id);
     }
 
     @HostAccess.Export
     public Map<String, Object> create(String id, int amount) {
         int safeAmount = Math.max(1, Math.min(64, amount));
-        return ScriptServiceApiSupport.service(SERVICE)
-                .map(service -> ScriptServiceApiSupport.itemSummary((ItemStack) ScriptServiceApiSupport.invoke(service, "create", new Class<?>[] { String.class, int.class }, id, safeAmount)))
-                .orElseGet(Map::of);
+        return ScriptServiceApiSupport.itemSummary(EmakiItemApi.create(id, safeAmount));
     }
 
     @HostAccess.Export
     public String identify(String itemKey) {
         ItemStack itemStack = ScriptServiceApiSupport.item(context, itemKey);
-        return ScriptServiceApiSupport.service(SERVICE)
-                .map(service -> ScriptServiceApiSupport.invokeString(service, "identify", new Class<?>[] { ItemStack.class }, itemStack))
-                .orElse("");
+        String id = EmakiItemApi.identify(itemStack);
+        return id == null ? "" : id;
     }
 
     @HostAccess.Export
     public java.util.List<String> definitionIds() {
-        return ScriptServiceApiSupport.service(SERVICE)
-                .map(service -> ScriptServiceApiSupport.toStringList(ScriptServiceApiSupport.invoke(service, "definitionIds", new Class<?>[0])))
-                .orElseGet(java.util.List::of);
+        return java.util.List.copyOf(EmakiItemApi.definitionIds());
     }
 
     @HostAccess.Export
     public String displayName(String id) {
-        return ScriptServiceApiSupport.service(SERVICE)
-                .map(service -> ScriptServiceApiSupport.invokeString(service, "displayName", new Class<?>[] { String.class }, id))
-                .orElse("");
+        return EmakiItemApi.displayName(id);
     }
 }

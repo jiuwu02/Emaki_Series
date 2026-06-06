@@ -3,7 +3,7 @@ package emaki.jiuwu.craft.corelib.apiimpl;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 
-public final class DefaultEmakiCoreLibApi implements EmakiCoreLibApi {
+public final class DefaultEmakiCoreLibApi implements EmakiCoreLibApi.Bridge {
 
     private final EmakiCoreLibPlugin plugin;
 

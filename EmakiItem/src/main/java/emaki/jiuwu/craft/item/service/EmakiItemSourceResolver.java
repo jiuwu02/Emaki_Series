@@ -10,9 +10,9 @@ import emaki.jiuwu.craft.item.api.EmakiItemApi;
 
 public final class EmakiItemSourceResolver implements ItemSourceResolver {
 
-    private final EmakiItemApi api;
+    private final EmakiItemApi.Bridge api;
 
-    public EmakiItemSourceResolver(EmakiItemApi api) {
+    public EmakiItemSourceResolver(EmakiItemApi.Bridge api) {
         this.api = api;
     }
 

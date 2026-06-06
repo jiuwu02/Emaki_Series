@@ -9,7 +9,6 @@ import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.runtime.RuntimeComponents;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
-import emaki.jiuwu.craft.skills.api.EmakiSkillsApi;
 import emaki.jiuwu.craft.skills.api.SkillScriptActionRegistry;
 import emaki.jiuwu.craft.skills.bridge.EaBridge;
 import emaki.jiuwu.craft.skills.bridge.MythicBridge;
@@ -57,7 +56,6 @@ record SkillsRuntimeComponents(
         SkillScriptActionRegistry skillScriptActionRegistry,
         SkillScriptExecutor skillScriptExecutor,
         SkillScriptCastService skillScriptCastService,
-        EmakiSkillsApi emakiSkillsApi,
         SkillUpgradeService skillUpgradeService,
         CastModeService castModeService,
         CastAttemptService castAttemptService,
@@ -92,7 +90,6 @@ record SkillsRuntimeComponents(
                 RuntimeComponents.component(SkillScriptActionRegistry.class, skillScriptActionRegistry),
                 RuntimeComponents.component(SkillScriptExecutor.class, skillScriptExecutor),
                 RuntimeComponents.component(SkillScriptCastService.class, skillScriptCastService),
-                RuntimeComponents.component(EmakiSkillsApi.class, emakiSkillsApi),
                 RuntimeComponents.component(SkillUpgradeService.class, skillUpgradeService),
                 RuntimeComponents.component(CastModeService.class, castModeService),
                 RuntimeComponents.component(CastAttemptService.class, castAttemptService),
