@@ -27,7 +27,6 @@ import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.web.WebConsoleRegistry;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.cooking.api.EmakiCookingApi;
-import emaki.jiuwu.craft.cooking.apiimpl.DefaultEmakiCookingApi;
 import emaki.jiuwu.craft.cooking.config.AppConfig;
 import emaki.jiuwu.craft.cooking.loader.ChoppingBoardRecipeLoader;
 import emaki.jiuwu.craft.cooking.loader.FermentationBarrelRecipeLoader;
@@ -54,7 +53,7 @@ import emaki.jiuwu.craft.cooking.papi.CookingPlaceholderExpansion;
 import emaki.jiuwu.craft.cooking.service.display.CookingDisplayService;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplayService;
 
-public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider, EmakiServiceRegistry {
+public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider, EmakiServiceRegistry, EmakiCookingApi {
 
     private static final String ROOT_COMMAND = "ecooking";
 
@@ -108,7 +107,6 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
     private OvenRuntimeService ovenRuntimeService;
     private JuicerRuntimeService juicerRuntimeService;
     private FermentationBarrelRuntimeService fermentationBarrelRuntimeService;
-    private EmakiCookingApi cookingApi;
 
     public EmakiCookingPlugin() {
         super(AppConfig::defaults);
@@ -136,10 +134,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         coreLibPlugin.namespaceRegistry().unregister("cooking");
         coreLibPlugin.scriptModuleRegistry().unregister("cooking");
         WebConsoleRegistry.unregisterModule(this);
-        if (cookingApi != null) {
-            getServer().getServicesManager().unregister(EmakiCookingApi.class, cookingApi);
-            cookingApi = null;
-        }
+        getServer().getServicesManager().unregister(EmakiCookingApi.class, this);
         if (grinderRuntimeService != null) {
             grinderRuntimeService.shutdown();
         }
@@ -254,8 +249,22 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
     }
 
     private void registerPublicApiService() {
-        cookingApi = new DefaultEmakiCookingApi(this);
-        getServer().getServicesManager().register(EmakiCookingApi.class, cookingApi, this, ServicePriority.Normal);
+        getServer().getServicesManager().register(EmakiCookingApi.class, this, this, ServicePriority.Normal);
+    }
+
+    @Override
+    public String apiVersion() {
+        return getDescription().getVersion();
+    }
+
+    @Override
+    public String pluginName() {
+        return getName();
+    }
+
+    @Override
+    public boolean isReady() {
+        return isEnabled() && recipeService() != null;
     }
 
     private void registerCraftEngineEventHandlers() {

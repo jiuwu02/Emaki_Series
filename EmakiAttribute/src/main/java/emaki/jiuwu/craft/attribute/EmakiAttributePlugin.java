@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.attribute;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
@@ -9,6 +10,7 @@ import java.util.function.Consumer;
 import org.bukkit.Bukkit;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -18,6 +20,7 @@ import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.attribute.action.AttributeActions;
 import emaki.jiuwu.craft.attribute.action.AttributeDamageSkillAction;
 import emaki.jiuwu.craft.attribute.api.PdcAttributeApi;
+import emaki.jiuwu.craft.attribute.model.PdcAttributePayload;
 import emaki.jiuwu.craft.attribute.bridge.MmoItemsBridge;
 import emaki.jiuwu.craft.attribute.bridge.MythicBridge;
 import emaki.jiuwu.craft.attribute.command.AttributeCommand;
@@ -49,7 +52,7 @@ import emaki.jiuwu.craft.corelib.text.AdventureSupport;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.web.WebConsoleRegistry;
 
-public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements EmakiServiceRegistry {
+public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements EmakiServiceRegistry, PdcAttributeApi {
 
     private static final String STARTUP_ASCII = """
   ______  __    __  ______  __  __   __  ______  ______  ______  ______  __  ______  __  __  ______  ______
@@ -224,8 +227,8 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         if (pdcAttributeApi == null) {
             return;
         }
-        Bukkit.getServicesManager().unregister(PdcAttributeApi.class, pdcAttributeApi);
-        Bukkit.getServicesManager().register(PdcAttributeApi.class, pdcAttributeApi, this, ServicePriority.Normal);
+        Bukkit.getServicesManager().unregister(PdcAttributeApi.class, this);
+        Bukkit.getServicesManager().register(PdcAttributeApi.class, this, this, ServicePriority.Normal);
         emaki.jiuwu.craft.corelib.api.integration.PdcAttributeApi coreApi =
                 (emaki.jiuwu.craft.corelib.api.integration.PdcAttributeApi) pdcAttributeApi;
         Bukkit.getServicesManager().unregister(emaki.jiuwu.craft.corelib.api.integration.PdcAttributeApi.class, coreApi);
@@ -306,6 +309,55 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
 
     public AttributeService attributeService() {
         return attributeService;
+    }
+
+    @Override
+    public boolean registerSource(String sourceId) {
+        return pdcAttributeApi != null && pdcAttributeApi.registerSource(sourceId);
+    }
+
+    @Override
+    public void unregisterSource(String sourceId) {
+        if (pdcAttributeApi != null) {
+            pdcAttributeApi.unregisterSource(sourceId);
+        }
+    }
+
+    @Override
+    public boolean isRegisteredSource(String sourceId) {
+        return pdcAttributeApi != null && pdcAttributeApi.isRegisteredSource(sourceId);
+    }
+
+    @Override
+    public Set<String> registeredSources() {
+        return pdcAttributeApi == null ? Set.of() : pdcAttributeApi.registeredSources();
+    }
+
+    @Override
+    public boolean write(ItemStack itemStack, PdcAttributePayload payload) {
+        return pdcAttributeApi != null && pdcAttributeApi.write(itemStack, payload);
+    }
+
+    @Override
+    public PdcAttributePayload read(ItemStack itemStack, String sourceId) {
+        return pdcAttributeApi == null ? null : pdcAttributeApi.read(itemStack, sourceId);
+    }
+
+    @Override
+    public Map<String, PdcAttributePayload> readAll(ItemStack itemStack) {
+        return pdcAttributeApi == null ? Map.of() : pdcAttributeApi.readAll(itemStack);
+    }
+
+    @Override
+    public boolean clear(ItemStack itemStack, String sourceId) {
+        return pdcAttributeApi != null && pdcAttributeApi.clear(itemStack, sourceId);
+    }
+
+    @Override
+    public void clearAll(ItemStack itemStack) {
+        if (pdcAttributeApi != null) {
+            pdcAttributeApi.clearAll(itemStack);
+        }
     }
 
     public List<Listener> listeners() {

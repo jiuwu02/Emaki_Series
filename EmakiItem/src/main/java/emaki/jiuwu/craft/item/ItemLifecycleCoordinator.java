@@ -31,7 +31,6 @@ import emaki.jiuwu.craft.item.model.ItemUpdateConfig;
 import emaki.jiuwu.craft.item.model.SetBonusConfig;
 import emaki.jiuwu.craft.item.loader.EmakiItemLoader;
 import emaki.jiuwu.craft.item.loader.EmakiItemSetLoader;
-import emaki.jiuwu.craft.item.service.DefaultEmakiItemApi;
 import emaki.jiuwu.craft.item.service.EmakiItemActionService;
 import emaki.jiuwu.craft.item.service.EmakiItemConditionChecker;
 import emaki.jiuwu.craft.item.service.EmakiItemFactory;
@@ -113,7 +112,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                 new ItemSetLoreRenderer(),
                 plugin::appConfig
         );
-        DefaultEmakiItemApi itemApi = new DefaultEmakiItemApi(itemLoader, itemFactory, identifier);
+        EmakiItemApi itemApi = plugin;
         ItemComponentInspector componentInspector = new ItemComponentInspector();
         ItemComponentPlaceholderResolver componentPlaceholderResolver = new ItemComponentPlaceholderResolver(componentInspector);
         coreLibPlugin.placeholderRegistry().register(componentPlaceholderResolver);
@@ -193,7 +192,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
     public void registerServices(EmakiItemPlugin plugin) {
         plugin.getServer().getServicesManager().register(
                 EmakiItemApi.class,
-                plugin.itemApi(),
+                plugin,
                 plugin,
                 ServicePriority.Normal
         );
@@ -210,7 +209,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
         if (coreLibPlugin.placeholderRegistry() != null && plugin.componentPlaceholderResolver() != null) {
             coreLibPlugin.placeholderRegistry().unregister(plugin.componentPlaceholderResolver());
         }
-        plugin.getServer().getServicesManager().unregister(EmakiItemApi.class, plugin.itemApi());
+        plugin.getServer().getServicesManager().unregister(EmakiItemApi.class, plugin);
         if (plugin.itemSourceService() != null) {
             plugin.itemSourceService().unregisterResolver("emakiitem");
         }

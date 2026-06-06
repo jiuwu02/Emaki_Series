@@ -62,7 +62,7 @@ import emaki.jiuwu.craft.skills.papi.SkillsPlaceholderExpansion;
 
 import org.bukkit.Bukkit;
 
-public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider, EmakiServiceRegistry {
+public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider, EmakiServiceRegistry, EmakiSkillsApi {
 
     private static final String ROOT_COMMAND = "emakiskills";
 
@@ -105,7 +105,6 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
     private SkillScriptExecutor skillScriptExecutor;
     private SkillScriptCastService skillScriptCastService;
     private JavaScriptSkillExtensionLoader javaScriptSkillExtensionLoader;
-    private EmakiSkillsApi emakiSkillsApi;
     private SkillUpgradeService skillUpgradeService;
     private CastModeService castModeService;
     private CastAttemptService castAttemptService;
@@ -204,7 +203,6 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
         skillScriptActionRegistry = components.skillScriptActionRegistry();
         skillScriptExecutor = components.skillScriptExecutor();
         skillScriptCastService = components.skillScriptCastService();
-        emakiSkillsApi = components.emakiSkillsApi();
         skillUpgradeService = components.skillUpgradeService();
         castModeService = components.castModeService();
         castAttemptService = components.castAttemptService();
@@ -288,15 +286,17 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
     }
 
     private void registerPublicApi() {
-        if (emakiSkillsApi == null) {
-            return;
-        }
-        getServer().getServicesManager().register(EmakiSkillsApi.class, emakiSkillsApi, this,
+        getServer().getServicesManager().register(EmakiSkillsApi.class, this, this,
                 org.bukkit.plugin.ServicePriority.Normal);
         if (skillScriptActionRegistry != null) {
             getServer().getServicesManager().register(SkillScriptActionRegistry.class, skillScriptActionRegistry, this,
                     org.bukkit.plugin.ServicePriority.Normal);
         }
+    }
+
+    @Override
+    public SkillScriptActionRegistry scriptActionRegistry() {
+        return skillScriptActionRegistry;
     }
 
     private void unregisterCoreLibActions() {
@@ -406,7 +406,7 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
     }
 
     public EmakiSkillsApi emakiSkillsApi() {
-        return emakiSkillsApi;
+        return this;
     }
 
     public SkillUpgradeService skillUpgradeService() {

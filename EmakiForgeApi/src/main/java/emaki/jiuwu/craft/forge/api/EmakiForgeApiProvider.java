@@ -3,26 +3,41 @@ package emaki.jiuwu.craft.forge.api;
 import java.util.Optional;
 
 import org.bukkit.Bukkit;
-import org.bukkit.plugin.RegisteredServiceProvider;
+import org.bukkit.plugin.Plugin;
 
 /**
- * Entry point for obtaining the {@link EmakiForgeApi} that EmakiForge registers with the
- * Bukkit {@code ServicesManager}.
+ * Entry point for obtaining the {@link EmakiForgeApi} implemented by the enabled
+ * EmakiForge plugin instance.
  *
  * <p>The service only exists after EmakiForge has enabled, so resolve it lazily
- * rather than caching it during your own plugin's load phase.
+ * rather than during your own plugin's load phase. Successful lookups are
+ * cached while the owning plugin remains enabled.
  */
 public final class EmakiForgeApiProvider {
+
+    private static final String PLUGIN_NAME = "EmakiForge";
+    private static volatile EmakiForgeApi cached;
 
     private EmakiForgeApiProvider() {
     }
 
     /**
-     * {@return the registered {@link EmakiForgeApi}, or an empty optional} Empty when
-     * EmakiForge is absent or has not finished enabling.
+     * {@return the enabled {@link EmakiForgeApi}, or an empty optional} Empty when
+     * EmakiForge is absent, disabled or not exposing the API.
      */
     public static Optional<EmakiForgeApi> get() {
-        RegisteredServiceProvider<EmakiForgeApi> provider = Bukkit.getServicesManager().getRegistration(EmakiForgeApi.class);
-        return provider == null ? Optional.empty() : Optional.ofNullable(provider.getProvider());
+        EmakiForgeApi api = cached;
+        if (api instanceof Plugin plugin && plugin.isEnabled()) {
+            return Optional.of(api);
+        }
+        cached = null;
+
+        Plugin plugin = Bukkit.getPluginManager().getPlugin(PLUGIN_NAME);
+        if (plugin == null || !plugin.isEnabled() || !EmakiForgeApi.class.isInstance(plugin)) {
+            return Optional.empty();
+        }
+        api = EmakiForgeApi.class.cast(plugin);
+        cached = api;
+        return Optional.of(api);
     }
 }

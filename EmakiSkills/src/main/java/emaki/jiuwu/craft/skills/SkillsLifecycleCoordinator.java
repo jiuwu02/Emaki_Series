@@ -22,7 +22,6 @@ import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
-import emaki.jiuwu.craft.skills.api.DefaultEmakiSkillsApi;
 import emaki.jiuwu.craft.skills.api.DefaultSkillScriptActionRegistry;
 import emaki.jiuwu.craft.skills.api.EmakiSkillsApi;
 import emaki.jiuwu.craft.skills.api.SkillScriptActionRegistry;
@@ -122,7 +121,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
         SkillScriptExecutor skillScriptExecutor = new SkillScriptExecutor(skillScriptActionRegistry);
         SkillScriptCastService skillScriptCastService = new SkillScriptCastService(plugin, skillVariableResolver, skillScriptExecutor);
         BuiltinSkillScriptActions.registerAll(skillScriptActionRegistry, plugin, mythicSkillCastService);
-        EmakiSkillsApi emakiSkillsApi = new DefaultEmakiSkillsApi(skillScriptActionRegistry);
+        EmakiSkillsApi emakiSkillsApi = plugin;
         CastAttemptService castAttemptService = new CastAttemptService(
                 plugin,
                 playerSkillStateService,

@@ -30,7 +30,6 @@ import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.web.WebConsoleRegistry;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.gem.api.EmakiGemApi;
-import emaki.jiuwu.craft.gem.apiimpl.DefaultEmakiGemApi;
 import emaki.jiuwu.craft.gem.config.AppConfig;
 import emaki.jiuwu.craft.gem.listener.GemItemObtainListener;
 import emaki.jiuwu.craft.gem.loader.GemItemLoader;
@@ -51,7 +50,7 @@ import emaki.jiuwu.craft.gem.service.GemResonanceService;
 import emaki.jiuwu.craft.gem.service.GemUpgradeService;
 import emaki.jiuwu.craft.gem.service.SocketOpenerService;
 
-public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider, EmakiServiceRegistry {
+public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider, EmakiServiceRegistry, EmakiGemApi {
 
     private static final String ROOT_COMMAND = "emakigem";
 
@@ -97,7 +96,6 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
     private GemResonanceService resonanceService;
     private GemPlaceholderExpansion placeholderExpansion;
     private DebugCommand debugCommand;
-    private EmakiGemApi gemApi;
 
     public EmakiGemPlugin() {
         super(AppConfig::defaults);
@@ -130,10 +128,7 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
             placeholderExpansion = null;
         }
         WebConsoleRegistry.unregisterModule(this);
-        if (gemApi != null) {
-            getServer().getServicesManager().unregister(EmakiGemApi.class, gemApi);
-            gemApi = null;
-        }
+        getServer().getServicesManager().unregister(EmakiGemApi.class, this);
         if (metrics != null) {
             metrics.close();
             metrics = null;
@@ -200,8 +195,22 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
     }
 
     private void registerPublicApiService() {
-        gemApi = new DefaultEmakiGemApi(this);
-        getServer().getServicesManager().register(EmakiGemApi.class, gemApi, this, ServicePriority.Normal);
+        getServer().getServicesManager().register(EmakiGemApi.class, this, this, ServicePriority.Normal);
+    }
+
+    @Override
+    public String apiVersion() {
+        return getDescription().getVersion();
+    }
+
+    @Override
+    public String pluginName() {
+        return getName();
+    }
+
+    @Override
+    public boolean isReady() {
+        return isEnabled() && stateService() != null;
     }
 
     public void ensurePlaceholderExpansion() {

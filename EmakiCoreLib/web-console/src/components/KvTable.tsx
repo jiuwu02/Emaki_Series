@@ -1,33 +1,45 @@
 import { t } from '../i18n';
-import { useStableEntries } from './useStableEntries';
+import { StableListEditor } from './StableListEditor';
+
+export type KvEntry = { key: string; value: unknown };
+export type KvTableProps = {
+  entries: KvEntry[];
+  onChange: (entries: KvEntry[]) => void;
+  valuePlaceholder?: string;
+  addKeyPrefix?: string;
+  createEntry?: (entries: KvEntry[]) => KvEntry;
+  parseValue?: (value: string) => unknown;
+};
+
+function defaultParseValue(value: string) {
+  return value === '' ? '' : isNaN(Number(value)) ? value : Number(value);
+}
+
+function nextUniqueKey(keys: string[], prefix: string): string {
+  const used = new Set(keys.map(key => key.trim()).filter(Boolean));
+  if (!used.has(prefix)) return prefix;
+  let index = 2;
+  while (used.has(`${prefix}_${index}`)) index++;
+  return `${prefix}_${index}`;
+}
 
 /** Editable key-value pair table with stable keys for React reconciliation. */
-export function KvTable({ entries, onChange }: { entries: Array<{ key: string; value: unknown }>; onChange: (entries: Array<{ key: string; value: unknown }>) => void }) {
-  const stableRef = useStableEntries(entries);
-  const stable = stableRef.current;
+export function KvTable({ entries, onChange, valuePlaceholder = t('core.kv.value'), addKeyPrefix, createEntry, parseValue = defaultParseValue }: KvTableProps) {
+  const createDefaultEntry = (currentEntries: KvEntry[]) => ({
+    key: addKeyPrefix ? nextUniqueKey(currentEntries.map(entry => entry.key), addKeyPrefix) : '',
+    value: 0
+  });
 
-  const update = (i: number, field: 'key' | 'value', v: string) => {
-    const next = [...entries];
-    if (field === 'key') {
-      next[i] = { ...next[i], key: v };
-    } else {
-      next[i] = { ...next[i], value: v === '' ? '' : isNaN(Number(v)) ? v : Number(v) };
-    }
-    onChange(next);
-  };
-  const remove = (i: number) => { stableRef.current.splice(i, 1); onChange(entries.filter((_, idx) => idx !== i)); };
-  const add = () => onChange([...entries, { key: '', value: 0 }]);
-
-  return (
-    <div className="prop-kv" role="list" aria-label={t('core.kv.aria')}>
-      {stable.map((entry, i) => (
-        <div className="prop-kv-row" key={entry._id} role="listitem">
-          <input type="text" value={String(entry.data.key)} onChange={e => update(i, 'key', e.target.value)} placeholder={t('core.kv.key')} aria-label={`${t('core.kv.key')} ${i + 1}`} />
-          <input type="text" value={String(entry.data.value ?? '')} onChange={e => update(i, 'value', e.target.value)} placeholder={t('core.kv.value')} aria-label={`${t('core.kv.value')} ${i + 1}`} />
-          <button type="button" className="prop-kv-del" onClick={() => remove(i)} aria-label={t('core.kv.delete', { index: i + 1 })}>×</button>
-        </div>
-      ))}
-      <button type="button" className="prop-add" onClick={add}>+ {t('core.kv.add')}</button>
-    </div>
-  );
+  return <StableListEditor
+    items={entries}
+    onChange={onChange}
+    createItem={createEntry ?? createDefaultEntry}
+    addLabel={t('core.kv.add')}
+    ariaLabel={t('core.kv.aria')}
+    renderItem={({ item, index, update, remove }) => <>
+      <input type="text" value={item.key} onChange={e => update({ ...item, key: e.target.value })} placeholder={t('core.kv.key')} aria-label={`${t('core.kv.key')} ${index + 1}`} />
+      <input type="text" value={item.value == null ? '' : String(item.value)} onChange={e => update({ ...item, value: parseValue(e.target.value) })} placeholder={valuePlaceholder} aria-label={`${t('core.kv.value')} ${index + 1}`} />
+      <button type="button" className="prop-kv-del" onClick={remove} aria-label={t('core.kv.delete', { index: index + 1 })}>×</button>
+    </>}
+  />;
 }

@@ -28,7 +28,6 @@ import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.web.WebConsoleRegistry;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.forge.api.EmakiForgeApi;
-import emaki.jiuwu.craft.forge.apiimpl.DefaultEmakiForgeApi;
 import emaki.jiuwu.craft.forge.config.AppConfig;
 import emaki.jiuwu.craft.forge.loader.PlayerDataStore;
 import emaki.jiuwu.craft.forge.loader.RecipeLoader;
@@ -39,7 +38,7 @@ import emaki.jiuwu.craft.forge.service.ForgeService;
 import emaki.jiuwu.craft.forge.service.ItemIdentifierService;
 import emaki.jiuwu.craft.forge.service.RecipeBookGuiService;
 
-public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider, EmakiServiceRegistry {
+public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider, EmakiServiceRegistry, EmakiForgeApi {
 
     private static final String ROOT_COMMAND = "emakiforge";
 
@@ -76,7 +75,6 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     private ForgePlaceholderExpansion placeholderExpansion;
     private TaskHandle autoSaveTask;
     private DebugCommand debugCommand;
-    private EmakiForgeApi forgeApi;
 
     private static final Set<String> DEBUG_MODULES = Set.of("recipe", "forge", "gui");
 
@@ -107,10 +105,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
             placeholderExpansion = null;
         }
         WebConsoleRegistry.unregisterModule(this);
-        if (forgeApi != null) {
-            getServer().getServicesManager().unregister(EmakiForgeApi.class, forgeApi);
-            forgeApi = null;
-        }
+        getServer().getServicesManager().unregister(EmakiForgeApi.class, this);
         if (metrics != null) {
             metrics.close();
             metrics = null;
@@ -169,8 +164,22 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     }
 
     private void registerPublicApiService() {
-        forgeApi = new DefaultEmakiForgeApi(this);
-        getServer().getServicesManager().register(EmakiForgeApi.class, forgeApi, this, ServicePriority.Normal);
+        getServer().getServicesManager().register(EmakiForgeApi.class, this, this, ServicePriority.Normal);
+    }
+
+    @Override
+    public String apiVersion() {
+        return getDescription().getVersion();
+    }
+
+    @Override
+    public String pluginName() {
+        return getName();
+    }
+
+    @Override
+    public boolean isReady() {
+        return isEnabled() && forgeService() != null;
     }
 
     private void ensurePlaceholderExpansion() {

@@ -3,26 +3,41 @@ package emaki.jiuwu.craft.gem.api;
 import java.util.Optional;
 
 import org.bukkit.Bukkit;
-import org.bukkit.plugin.RegisteredServiceProvider;
+import org.bukkit.plugin.Plugin;
 
 /**
- * Entry point for obtaining the {@link EmakiGemApi} that EmakiGem registers with the
- * Bukkit {@code ServicesManager}.
+ * Entry point for obtaining the {@link EmakiGemApi} implemented by the enabled
+ * EmakiGem plugin instance.
  *
  * <p>The service only exists after EmakiGem has enabled, so resolve it lazily
- * rather than caching it during your own plugin's load phase.
+ * rather than during your own plugin's load phase. Successful lookups are
+ * cached while the owning plugin remains enabled.
  */
 public final class EmakiGemApiProvider {
+
+    private static final String PLUGIN_NAME = "EmakiGem";
+    private static volatile EmakiGemApi cached;
 
     private EmakiGemApiProvider() {
     }
 
     /**
-     * {@return the registered {@link EmakiGemApi}, or an empty optional} Empty when
-     * EmakiGem is absent or has not finished enabling.
+     * {@return the enabled {@link EmakiGemApi}, or an empty optional} Empty when
+     * EmakiGem is absent, disabled or not exposing the API.
      */
     public static Optional<EmakiGemApi> get() {
-        RegisteredServiceProvider<EmakiGemApi> provider = Bukkit.getServicesManager().getRegistration(EmakiGemApi.class);
-        return provider == null ? Optional.empty() : Optional.ofNullable(provider.getProvider());
+        EmakiGemApi api = cached;
+        if (api instanceof Plugin plugin && plugin.isEnabled()) {
+            return Optional.of(api);
+        }
+        cached = null;
+
+        Plugin plugin = Bukkit.getPluginManager().getPlugin(PLUGIN_NAME);
+        if (plugin == null || !plugin.isEnabled() || !EmakiGemApi.class.isInstance(plugin)) {
+            return Optional.empty();
+        }
+        api = EmakiGemApi.class.cast(plugin);
+        cached = api;
+        return Optional.of(api);
     }
 }

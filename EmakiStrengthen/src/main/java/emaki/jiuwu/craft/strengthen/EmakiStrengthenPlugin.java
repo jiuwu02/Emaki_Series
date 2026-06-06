@@ -5,6 +5,8 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -31,6 +33,10 @@ import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.strengthen.api.EmakiStrengthenApi;
 import emaki.jiuwu.craft.strengthen.config.AppConfig;
 import emaki.jiuwu.craft.strengthen.loader.StrengthenRecipeLoader;
+import emaki.jiuwu.craft.strengthen.model.AttemptContext;
+import emaki.jiuwu.craft.strengthen.model.AttemptPreview;
+import emaki.jiuwu.craft.strengthen.model.AttemptResult;
+import emaki.jiuwu.craft.strengthen.model.StrengthenState;
 import emaki.jiuwu.craft.strengthen.papi.StrengthenPlaceholderExpansion;
 import emaki.jiuwu.craft.strengthen.service.ChanceCalculator;
 import emaki.jiuwu.craft.strengthen.service.StrengthenRecipeResolver;
@@ -41,7 +47,7 @@ import emaki.jiuwu.craft.strengthen.service.StrengthenGuiService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenRefreshService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenSnapshotBuilder;
 
-public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider, EmakiServiceRegistry {
+public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider, EmakiServiceRegistry, EmakiStrengthenApi {
 
     private static final String ROOT_COMMAND = "emakistrengthen";
     private static final Set<String> DEBUG_MODULES = Set.of("attempt", "state", "gui");
@@ -152,7 +158,32 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     }
 
     private void registerApi() {
-        getServer().getServicesManager().register(EmakiStrengthenApi.class, attemptService, this, ServicePriority.Normal);
+        getServer().getServicesManager().register(EmakiStrengthenApi.class, this, this, ServicePriority.Normal);
+    }
+
+    @Override
+    public boolean canStrengthen(ItemStack itemStack) {
+        return attemptService != null && attemptService.canStrengthen(itemStack);
+    }
+
+    @Override
+    public StrengthenState readState(ItemStack itemStack) {
+        return attemptService.readState(itemStack);
+    }
+
+    @Override
+    public AttemptPreview preview(Player player, AttemptContext context) {
+        return attemptService.preview(player, context);
+    }
+
+    @Override
+    public AttemptResult attempt(Player player, AttemptContext context) {
+        return attemptService.attempt(player, context);
+    }
+
+    @Override
+    public ItemStack rebuild(ItemStack itemStack) {
+        return attemptService.rebuild(itemStack);
     }
 
     private void registerCommandHandler() {

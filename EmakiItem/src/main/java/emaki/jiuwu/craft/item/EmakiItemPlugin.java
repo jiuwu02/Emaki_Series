@@ -17,11 +17,14 @@ import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.api.integration.EmakiAttributeBridge;
 import emaki.jiuwu.craft.corelib.integration.PdcAttributeGateway;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
+import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.plugin.AbstractConfigurableEmakiPlugin;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.AdventureSupport;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
+import emaki.jiuwu.craft.corelib.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.web.WebConsoleRegistry;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
@@ -42,7 +45,7 @@ import emaki.jiuwu.craft.item.service.EmakiItemUpdateService;
 import emaki.jiuwu.craft.item.service.ItemComponentInspector;
 import emaki.jiuwu.craft.item.service.ItemComponentPlaceholderResolver;
 
-public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider {
+public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider, EmakiItemApi {
 
     private static final String ROOT_COMMAND = "emakiitem";
     private static final Set<String> DEBUG_MODULES = Set.of("create", "update", "identify");
@@ -75,7 +78,6 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     private EmakiItemSetService setService;
     private EmakiItemActionService actionService;
     private EmakiItemConditionChecker conditionChecker;
-    private EmakiItemApi itemApi;
     private ItemComponentInspector componentInspector;
     private ItemComponentPlaceholderResolver componentPlaceholderResolver;
     private ItemSourceService itemSourceService;
@@ -138,7 +140,6 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         setService = components.setService();
         actionService = components.actionService();
         conditionChecker = components.conditionChecker();
-        itemApi = components.itemApi();
         componentInspector = components.componentInspector();
         componentPlaceholderResolver = components.componentPlaceholderResolver();
         itemSourceService = components.itemSourceService();
@@ -228,7 +229,37 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     }
 
     public EmakiItemApi itemApi() {
-        return itemApi;
+        return this;
+    }
+
+    @Override
+    public boolean exists(String id) {
+        return itemLoader != null && itemLoader.get(id) != null;
+    }
+
+    @Override
+    public org.bukkit.inventory.ItemStack create(String id, int amount) {
+        return itemFactory == null ? null : itemFactory.create(id, amount);
+    }
+
+    @Override
+    public String identify(org.bukkit.inventory.ItemStack itemStack) {
+        return identifier == null ? null : identifier.identify(itemStack);
+    }
+
+    @Override
+    public Set<String> definitionIds() {
+        return itemLoader == null ? Set.of() : itemLoader.all().keySet();
+    }
+
+    @Override
+    public String displayName(String id) {
+        org.bukkit.inventory.ItemStack itemStack = create(id, 1);
+        if (itemStack == null) {
+            return "";
+        }
+        String text = ItemTextBridge.effectiveNameText(itemStack);
+        return Texts.isBlank(text) ? MiniMessages.serialize(ItemTextBridge.effectiveName(itemStack)) : text;
     }
 
     public ItemComponentInspector componentInspector() {

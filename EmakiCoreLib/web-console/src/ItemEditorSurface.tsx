@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ApiError, type ApiClient, type ActionTypesResult } from './api';
-import { Button, CollapsibleSection, ChangedPathsProvider, DisclosureChevron, EditorChrome, InlineError, MiniText, PropRow as BasePropRow, SectionHead, StandardActionsField, StandardEconomyProviderSelect, StandardEffectsEditor, StringListEditor, ToastNotice, VariablesMapEditor } from './components';
+import { Button, CollapsibleSection, ChangedPathsProvider, DisclosureChevron, EditorChrome, InlineError, KvTable, MiniText, NumberListEditor, PropRow as BasePropRow, SectionHead, StandardActionsField, StandardEconomyProviderSelect, StandardEffectsEditor, StringListEditor, ToastNotice, VariablesMapEditor } from './components';
 import { asList, asRecord, asStringList, displaySource, firstItemSource, materialFromItemSource, setDeepValue, parseYaml, type AnyMap } from './itemEditor';
 import { t, getLocale } from './i18n';
 import { changedPathSet, diffRecords, fieldLabel, getDeepValue, humanizeFieldLabel, isChangedFieldPath, materialShortName, materialUrls, optionLabel, subscribeTextureBases, textValue, valuesEqual } from './lib';
@@ -410,53 +410,34 @@ function TextInput({ id, value, onChange, placeholder }: { id?: string; value: u
   return <input id={id} type="text" value={textValue(value)} onChange={event => onChange(event.target.value)} placeholder={placeholder} />;
 }
 
-function KvTable({ entries, onChange, valuePlaceholder = t('core.kv.value'), addKeyPrefix = 'key' }: { entries: Array<{ key: string; value: unknown }>; onChange: (entries: Array<{ key: string; value: unknown }>) => void; valuePlaceholder?: string; addKeyPrefix?: string }) {
-  const update = (index: number, field: 'key' | 'value', value: string) => {
-    const next = [...entries];
-    next[index] = field === 'key' ? { ...next[index], key: value } : { ...next[index], value: parseLooseScalar(value) };
-    onChange(next);
-  };
-  const remove = (index: number) => onChange(entries.filter((_, itemIndex) => itemIndex !== index));
-  const add = () => onChange([...entries, { key: nextUniqueKey(entries.map(entry => entry.key), addKeyPrefix), value: 0 }]);
-  return <div className="prop-kv" role="list" aria-label={t('core.kv.aria')}>
-    {entries.map((entry, index) => <div className="prop-kv-row" key={index} role="listitem">
-      <input type="text" value={entry.key} onChange={event => update(index, 'key', event.target.value)} placeholder={t('core.kv.key')} aria-label={`${t('core.kv.key')} ${index + 1}`} />
-      <input type="text" value={entry.value == null ? '' : String(entry.value)} onChange={event => update(index, 'value', event.target.value)} placeholder={valuePlaceholder} aria-label={`${t('core.kv.value')} ${index + 1}`} />
-      <button type="button" className="prop-kv-del" onClick={() => remove(index)} aria-label={t('core.kv.delete', { index: index + 1 })}>×</button>
-    </div>)}
-    <button type="button" className="prop-add" onClick={add}>+ {t('core.kv.add')}</button>
-  </div>;
-}
-
-function MapEditor({ value, onChange, valuePlaceholder, addKeyPrefix }: { value: unknown; onChange: (value: Record<string, unknown>) => void; valuePlaceholder?: string; addKeyPrefix?: string }) {
+function MapEditor({ value, onChange, valuePlaceholder, addKeyPrefix = 'key' }: { value: unknown; onChange: (value: Record<string, unknown>) => void; valuePlaceholder?: string; addKeyPrefix?: string }) {
   const entries = Object.entries(asRecord(value)).map(([key, entry]) => ({ key, value: entry }));
-  return <KvTable entries={entries} valuePlaceholder={valuePlaceholder} addKeyPrefix={addKeyPrefix} onChange={nextEntries => {
-    const next: AnyMap = {};
-    nextEntries.forEach(entry => { if (entry.key.trim()) next[entry.key.trim()] = entry.value; });
-    onChange(next);
-  }} />;
-}
-
-function NumberListEditor({ items, onChange }: { items: number[]; onChange: (items: number[]) => void }) {
-  const update = (index: number, value: number | undefined) => onChange(items.map((item, itemIndex) => itemIndex === index ? value ?? 0 : item));
-  const remove = (index: number) => onChange(items.filter((_, itemIndex) => itemIndex !== index));
-  return <div className="prop-kv" role="list">
-    {items.map((item, index) => <div className="prop-kv-row prop-kv-row--single" key={index} role="listitem">
-      <input type="number" value={String(item)} onChange={event => update(index, event.target.value === '' ? undefined : Number(event.target.value))} aria-label={t('core.list.numberAria', { index: index + 1 })} />
-      <button type="button" className="prop-kv-del" onClick={() => remove(index)} aria-label={t('core.config.deleteItem', { index: index + 1 })}>×</button>
-    </div>)}
-    <button type="button" className="prop-add" onClick={() => onChange([...items, 0])}>+ {t('core.config.addItem')}</button>
-  </div>;
+  return <KvTable
+    entries={entries}
+    valuePlaceholder={valuePlaceholder}
+    parseValue={parseLooseScalar}
+    createEntry={currentEntries => ({ key: nextUniqueKey(currentEntries.map(entry => entry.key), addKeyPrefix), value: 0 })}
+    onChange={nextEntries => {
+      const next: AnyMap = {};
+      nextEntries.forEach(entry => { if (entry.key.trim()) next[entry.key.trim()] = entry.value; });
+      onChange(next);
+    }}
+  />;
 }
 
 function GenericObjectEditor({ value, reservedKeys, onChange }: { value: unknown; reservedKeys?: string[]; onChange: (value: AnyMap) => void }) {
   const reserved = new Set(reservedKeys ?? []);
   const entries = Object.entries(asRecord(value)).filter(([key]) => !reserved.has(key)).map(([key, entry]) => ({ key, value: entry }));
-  return <PropRow label="字段" wide><KvTable entries={entries} onChange={nextEntries => {
-    const next: AnyMap = {};
-    nextEntries.forEach(entry => { if (entry.key.trim()) next[entry.key.trim()] = entry.value; });
-    onChange(next);
-  }} /></PropRow>;
+  return <PropRow label="字段" wide><KvTable
+    entries={entries}
+    parseValue={parseLooseScalar}
+    createEntry={currentEntries => ({ key: nextUniqueKey(currentEntries.map(entry => entry.key), 'key'), value: 0 })}
+    onChange={nextEntries => {
+      const next: AnyMap = {};
+      nextEntries.forEach(entry => { if (entry.key.trim()) next[entry.key.trim()] = entry.value; });
+      onChange(next);
+    }}
+  /></PropRow>;
 }
 
 function resolvePreviewBaseLore(data: AnyMap, fallback: string[]): string[] {

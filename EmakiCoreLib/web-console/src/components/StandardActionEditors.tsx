@@ -271,20 +271,12 @@ function GenericKeyValueEditor({ value, reservedKeys, onChange }: { value: unkno
     nextEntries.forEach(entry => { if (entry.key.trim()) next[entry.key.trim()] = entry.value; });
     onChange(next);
   };
-  const update = (index: number, field: 'key' | 'value', raw: string) => {
-    const next = entries.map((entry, itemIndex) => itemIndex === index ? (field === 'key' ? { ...entry, key: raw } : { ...entry, value: parseLooseScalar(raw) }) : entry);
-    commit(next);
-  };
-  const remove = (index: number) => commit(entries.filter((_, itemIndex) => itemIndex !== index));
-  const add = () => commit([...entries, { key: nextUniqueKey(entries.map(entry => entry.key), 'key'), value: '' }]);
-  return <div className="prop-kv" role="list">
-    {entries.map((entry, index) => <div className="prop-kv-row" key={index} role="listitem">
-      <input type="text" value={entry.key} onChange={event => update(index, 'key', event.target.value)} placeholder={t('core.kv.key')} aria-label={`${t('core.kv.key')} ${index + 1}`} />
-      <input type="text" value={entry.value == null ? '' : String(entry.value)} onChange={event => update(index, 'value', event.target.value)} placeholder={t('core.kv.value')} aria-label={`${t('core.kv.value')} ${index + 1}`} />
-      <button type="button" className="prop-kv-del" onClick={() => remove(index)} aria-label={t('core.kv.delete', { index: index + 1 })}>×</button>
-    </div>)}
-    <button type="button" className="prop-add" onClick={add}>+ {t('core.kv.add')}</button>
-  </div>;
+  return <KvTable
+    entries={entries}
+    parseValue={parseLooseScalar}
+    createEntry={currentEntries => ({ key: nextUniqueKey(currentEntries.map(entry => entry.key), 'key'), value: '' })}
+    onChange={commit}
+  />;
 }
 
 function effectSummary(effect: Record<string, unknown>, definition: EffectTypeDefinition | undefined): string {
