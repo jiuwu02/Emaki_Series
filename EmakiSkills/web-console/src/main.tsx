@@ -305,7 +305,7 @@ registerPluginConfig({
   ],
   listItemSchemas: [
     ['resource_costs', [
-      { path: 'type', label: '资源类型', comment: '资源消耗类型。', type: 'enum', options: ['ea-resource', 'attribute-check', 'local-resource'], defaultValue: 'local-resource', optionLabelPrefix: 'skill.resource_cost.type' },
+      { path: 'type', label: '资源类型', comment: '资源消耗类型。', type: 'enum', options: ['ea-resource', 'attribute-check', 'local-resource', 'auraskills-mana', 'mmocore-mana', 'mythiclib-mana'], defaultValue: 'local-resource', optionLabelPrefix: 'skill.resource_cost.type' },
       { path: 'target_id', label: '目标 ID', comment: '资源或属性标识。', type: 'text', defaultValue: 'mana' },
       { path: 'amount', label: '数量', comment: '消耗或检查的数量。', type: 'number', defaultValue: 1 },
       { path: 'operation', label: '操作', comment: 'consume 为消耗，require 为检查。', type: 'enum', options: ['consume', 'require'], defaultValue: 'consume', optionLabelPrefix: 'skill.resource_cost.operation' },

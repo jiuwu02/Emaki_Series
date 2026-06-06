@@ -9,7 +9,7 @@ public enum SkillScriptPhase {
     FAIL;
 
     public String configKey() {
-        return name().toLowerCase();
+        return name().toLowerCase(java.util.Locale.ROOT);
     }
 
     public static SkillScriptPhase fromString(String value) {

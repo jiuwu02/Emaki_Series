@@ -39,7 +39,7 @@ final class SkillsCommandRouter implements TabExecutor {
             sendHelp(sender);
             return true;
         }
-        return switch (args[0].toLowerCase()) {
+        return switch (args[0].toLowerCase(java.util.Locale.ROOT)) {
             case "help" -> {
                 sendHelp(sender);
                 yield true;
@@ -66,7 +66,7 @@ final class SkillsCommandRouter implements TabExecutor {
         if (args.length == 1) {
             for (String sub : List.of("help", "gui", "reload", "castmode", "upgrade", "level",
                     "debug", "inspect", "clearslot", "resync")) {
-                if (sub.startsWith(args[0].toLowerCase())) {
+                if (sub.startsWith(args[0].toLowerCase(java.util.Locale.ROOT))) {
                     result.add(sub);
                 }
             }
@@ -76,10 +76,10 @@ final class SkillsCommandRouter implements TabExecutor {
             return plugin.debugCommand().tabComplete(Arrays.copyOfRange(args, 1, args.length));
         }
         if (args.length == 2) {
-            switch (args[0].toLowerCase()) {
+            switch (args[0].toLowerCase(java.util.Locale.ROOT)) {
                 case "castmode" -> {
                     for (String sub : List.of("on", "off", "toggle")) {
-                        if (sub.startsWith(args[1].toLowerCase())) {
+                        if (sub.startsWith(args[1].toLowerCase(java.util.Locale.ROOT))) {
                             result.add(sub);
                         }
                     }
@@ -160,7 +160,7 @@ final class SkillsCommandRouter implements TabExecutor {
             plugin.messageService().send(sender, "general.invalid_args");
             return true;
         }
-        String action = args[1].toLowerCase();
+        String action = args[1].toLowerCase(java.util.Locale.ROOT);
         Player target = Bukkit.getPlayerExact(args[2]);
         if (target == null) {
             plugin.messageService().send(sender, "general.player_not_found");
@@ -261,7 +261,7 @@ final class SkillsCommandRouter implements TabExecutor {
             plugin.messageService().send(sender, "general.invalid_args");
             return true;
         }
-        switch (args[1].toLowerCase()) {
+        switch (args[1].toLowerCase(java.util.Locale.ROOT)) {
             case "on" -> {
                 plugin.castModeService().setCastMode(player, true);
                 plugin.messageService().send(sender, "command.castmode.enabled");
@@ -373,7 +373,7 @@ final class SkillsCommandRouter implements TabExecutor {
     private void completePlayers(List<String> result, String prefix) {
         Bukkit.getOnlinePlayers().stream()
                 .map(Player::getName)
-                .filter(name -> name.toLowerCase().startsWith(prefix.toLowerCase()))
+                .filter(name -> name.toLowerCase(java.util.Locale.ROOT).startsWith(prefix.toLowerCase(java.util.Locale.ROOT)))
                 .forEach(result::add);
     }
 
@@ -387,7 +387,7 @@ final class SkillsCommandRouter implements TabExecutor {
                                 && definition.upgrade().enabled()
                                 && !plugin.skillLevelService().isMaxLevel(player, definition);
                     })
-                    .filter(skillId -> skillId.toLowerCase().startsWith(prefix.toLowerCase()))
+                    .filter(skillId -> skillId.toLowerCase(java.util.Locale.ROOT).startsWith(prefix.toLowerCase(java.util.Locale.ROOT)))
                     .distinct()
                     .forEach(result::add);
             return;
@@ -396,16 +396,16 @@ final class SkillsCommandRouter implements TabExecutor {
     }
 
     private void completeSkillIds(List<String> result, String prefix) {
-        String lowered = prefix == null ? "" : prefix.toLowerCase();
+        String lowered = prefix == null ? "" : prefix.toLowerCase(java.util.Locale.ROOT);
         plugin.skillRegistryService().allDefinitions().keySet().stream()
-                .filter(skillId -> skillId.toLowerCase().startsWith(lowered))
+                .filter(skillId -> skillId.toLowerCase(java.util.Locale.ROOT).startsWith(lowered))
                 .forEach(result::add);
     }
 
     private void completeLiteral(List<String> result, String prefix, String... values) {
-        String lowered = prefix == null ? "" : prefix.toLowerCase();
+        String lowered = prefix == null ? "" : prefix.toLowerCase(java.util.Locale.ROOT);
         for (String value : values) {
-            if (value.toLowerCase().startsWith(lowered)) {
+            if (value.toLowerCase(java.util.Locale.ROOT).startsWith(lowered)) {
                 result.add(value);
             }
         }

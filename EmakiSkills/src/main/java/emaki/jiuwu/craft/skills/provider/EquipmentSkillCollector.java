@@ -66,7 +66,7 @@ public final class EquipmentSkillCollector {
             if (item == null || item.getType() == Material.AIR) {
                 continue;
             }
-            String slotName = SLOT_NAMES.getOrDefault(slot, slot.name().toLowerCase());
+            String slotName = SLOT_NAMES.getOrDefault(slot, slot.name().toLowerCase(java.util.Locale.ROOT));
             collectFromPdc(item, slotName, result);
             collectFromLore(item, slotName, definitions, result);
         }

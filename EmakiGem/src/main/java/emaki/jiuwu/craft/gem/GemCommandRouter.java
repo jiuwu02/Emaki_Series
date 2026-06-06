@@ -38,7 +38,7 @@ final class GemCommandRouter implements TabExecutor {
             sendHelp(sender);
             return true;
         }
-        return switch (args[0].toLowerCase()) {
+        return switch (args[0].toLowerCase(java.util.Locale.ROOT)) {
             case "help" -> {
                 sendHelp(sender);
                 yield true;
@@ -60,7 +60,7 @@ final class GemCommandRouter implements TabExecutor {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
             for (String sub : List.of("help", "gui", "reload", "inspect", "clearstate", "debug")) {
-                if (sub.startsWith(args[0].toLowerCase())) {
+                if (sub.startsWith(args[0].toLowerCase(java.util.Locale.ROOT))) {
                     result.add(sub);
                 }
             }
@@ -70,10 +70,10 @@ final class GemCommandRouter implements TabExecutor {
             return plugin.debugCommand().tabComplete(Arrays.copyOfRange(args, 1, args.length));
         }
         if (args.length == 2) {
-            switch (args[0].toLowerCase()) {
+            switch (args[0].toLowerCase(java.util.Locale.ROOT)) {
                 case "gui" -> {
                     for (String sub : List.of("inlay", "open", "upgrade")) {
-                        if (sub.startsWith(args[1].toLowerCase())) {
+                        if (sub.startsWith(args[1].toLowerCase(java.util.Locale.ROOT))) {
                             result.add(sub);
                         }
                     }
@@ -125,7 +125,7 @@ final class GemCommandRouter implements TabExecutor {
             plugin.messageService().send(sender, "general.invalid_args");
             return true;
         }
-        return switch (args[1].toLowerCase()) {
+        return switch (args[1].toLowerCase(java.util.Locale.ROOT)) {
             case "inlay" -> handleGui(sender, GemGuiMode.INLAY);
             case "open" -> handleGui(sender, GemGuiMode.OPEN_SOCKET);
             case "upgrade" -> handleGui(sender, GemGuiMode.UPGRADE);
@@ -198,7 +198,7 @@ final class GemCommandRouter implements TabExecutor {
     private void completePlayers(List<String> result, String prefix) {
         Bukkit.getOnlinePlayers().stream()
                 .map(Player::getName)
-                .filter(name -> name.toLowerCase().startsWith(prefix.toLowerCase()))
+                .filter(name -> name.toLowerCase(java.util.Locale.ROOT).startsWith(prefix.toLowerCase(java.util.Locale.ROOT)))
                 .forEach(result::add);
     }
 

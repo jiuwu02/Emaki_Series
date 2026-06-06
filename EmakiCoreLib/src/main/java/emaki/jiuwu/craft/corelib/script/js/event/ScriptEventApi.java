@@ -131,7 +131,7 @@ public final class ScriptEventApi {
     @HostAccess.Export
     public String clickedBlockType() {
         Block block = event instanceof PlayerInteractEvent interactEvent ? interactEvent.getClickedBlock() : null;
-        return block == null ? "" : block.getType().name().toLowerCase();
+        return block == null ? "" : block.getType().name().toLowerCase(java.util.Locale.ROOT);
     }
 
     @HostAccess.Export
@@ -146,7 +146,7 @@ public final class ScriptEventApi {
             return "";
         }
         Material material = interactEvent.getItem().getType();
-        return material == null ? "" : material.name().toLowerCase();
+        return material == null ? "" : material.name().toLowerCase(java.util.Locale.ROOT);
     }
 
     @HostAccess.Export

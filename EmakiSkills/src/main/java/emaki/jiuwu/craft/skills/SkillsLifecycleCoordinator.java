@@ -25,6 +25,7 @@ import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 import emaki.jiuwu.craft.skills.api.DefaultSkillScriptActionRegistry;
 import emaki.jiuwu.craft.skills.api.SkillScriptActionRegistry;
 import emaki.jiuwu.craft.skills.bridge.EaBridge;
+import emaki.jiuwu.craft.skills.bridge.ExternalManaBridge;
 import emaki.jiuwu.craft.skills.bridge.MythicBridge;
 import emaki.jiuwu.craft.skills.config.AppConfig;
 import emaki.jiuwu.craft.skills.gui.SkillsGuiService;
@@ -100,6 +101,8 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
         );
         EaBridge eaBridge = new EaBridge(plugin, messageService);
         eaBridge.init();
+        ExternalManaBridge externalManaBridge = new ExternalManaBridge(plugin, messageService);
+        externalManaBridge.init();
         MythicBridge mythicBridge = new MythicBridge(plugin, messageService);
         mythicBridge.init();
         PlayerSkillStateService playerSkillStateService = new PlayerSkillStateService(
@@ -129,6 +132,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                 skillScriptCastService,
                 skillParameterResolver,
                 eaBridge,
+                externalManaBridge,
                 () -> localResourceDefinitionLoader.all(),
                 plugin::appConfig
         );
@@ -185,6 +189,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                 actionBarService,
                 skillsGuiService,
                 eaBridge,
+                externalManaBridge,
                 mythicBridge
         );
     }
@@ -255,6 +260,9 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
         }
         if (plugin.eaBridge() != null) {
             plugin.eaBridge().shutdown();
+        }
+        if (plugin.externalManaBridge() != null) {
+            plugin.externalManaBridge().shutdown();
         }
         if (plugin.mythicBridge() != null) {
             plugin.mythicBridge().shutdown();

@@ -20,7 +20,7 @@ public final class ScriptItemApi {
 
     public String type(String attributeKey) {
         ItemStack itemStack = item(attributeKey);
-        return itemStack == null ? "" : itemStack.getType().name().toLowerCase();
+        return itemStack == null ? "" : itemStack.getType().name().toLowerCase(java.util.Locale.ROOT);
     }
 
     public int amount(String attributeKey) {

@@ -65,7 +65,7 @@ abstract class AbstractSkillScriptAction implements SkillScriptAction {
     }
 
     protected Entity entityTarget(SkillScriptContext context, Map<String, String> arguments) {
-        String target = arg(arguments, "target", "target").toLowerCase();
+        String target = arg(arguments, "target", "target").toLowerCase(java.util.Locale.ROOT);
         if ("caster".equals(target) || "self".equals(target) || "player".equals(target)) {
             return context.caster();
         }
@@ -77,7 +77,7 @@ abstract class AbstractSkillScriptAction implements SkillScriptAction {
     }
 
     protected Location locationTarget(SkillScriptContext context, Map<String, String> arguments) {
-        String at = arg(arguments, "at", arg(arguments, "target", "target")).toLowerCase();
+        String at = arg(arguments, "at", arg(arguments, "target", "target")).toLowerCase(java.util.Locale.ROOT);
         if ("caster".equals(at) || "self".equals(at) || "player".equals(at)) {
             return context.caster().getLocation();
         }

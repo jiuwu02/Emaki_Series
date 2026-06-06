@@ -180,7 +180,7 @@ public final class ScriptServerApi {
 
         @HostAccess.Export
         public String type() {
-            return entity == null ? "" : entity.getType().name().toLowerCase();
+            return entity == null ? "" : entity.getType().name().toLowerCase(java.util.Locale.ROOT);
         }
 
         @HostAccess.Export

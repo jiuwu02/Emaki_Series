@@ -74,7 +74,7 @@ public final class WebConsoleYamlRegistrar {
                 if (!(entry instanceof Map<?, ?> fileMap)) continue;
                 String path = stringVal(fileMap.get("path"));
                 String title = defaultString(stringVal(fileMap.get("title")), path);
-                String kind = stringVal(fileMap.get("kind")).toUpperCase();
+                String kind = stringVal(fileMap.get("kind")).toUpperCase(java.util.Locale.ROOT);
                 String comment = stringVal(fileMap.get("comment"));
                 String editor = stringVal(fileMap.get("editor"));
                 if (Texts.isBlank(path)) continue;

@@ -9,6 +9,9 @@ softdepend:
   - MythicMobs
   - EmakiAttribute
   - PlaceholderAPI
+  - AuraSkills
+  - MythicLib
+  - MMOCore
 commands:
   emakiskills:
     aliases: [eskills]

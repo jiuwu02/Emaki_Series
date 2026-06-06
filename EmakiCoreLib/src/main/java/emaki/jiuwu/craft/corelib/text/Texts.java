@@ -32,11 +32,11 @@ public final class Texts {
     }
 
     public static String lower(Object value) {
-        return toStringSafe(value).toLowerCase();
+        return toStringSafe(value).toLowerCase(java.util.Locale.ROOT);
     }
 
     public static String upper(Object value) {
-        return toStringSafe(value).toUpperCase();
+        return toStringSafe(value).toUpperCase(java.util.Locale.ROOT);
     }
 
     public static boolean startsWith(Object text, Object prefix) {

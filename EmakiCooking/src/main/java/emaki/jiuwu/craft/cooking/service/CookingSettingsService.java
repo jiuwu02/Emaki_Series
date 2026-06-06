@@ -696,7 +696,7 @@ public final class CookingSettingsService {
             List<Path> files = stream
                     .filter(Files::isRegularFile)
                     .filter(this::isYamlFile)
-                    .sorted(Comparator.comparing(path -> path.toString().toLowerCase()))
+                    .sorted(Comparator.comparing(path -> path.toString().toLowerCase(java.util.Locale.ROOT)))
                     .toList();
             for (Path file : files) {
                 ItemDisplayAdjustmentOverride adjustment = parseItemDisplayAdjustment(file, YamlFiles.load(file.toFile()));
@@ -715,7 +715,7 @@ public final class CookingSettingsService {
         if (path == null || path.getFileName() == null) {
             return false;
         }
-        String name = path.getFileName().toString().toLowerCase();
+        String name = path.getFileName().toString().toLowerCase(java.util.Locale.ROOT);
         return name.endsWith(".yml") || name.endsWith(".yaml");
     }
 

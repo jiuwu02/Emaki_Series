@@ -41,7 +41,7 @@ public final class StationStateStore {
         try (Stream<Path> stream = Files.walk(root)) {
             for (Path file : stream.filter(Files::isRegularFile)
                     .filter(path -> {
-                        String lower = path.getFileName().toString().toLowerCase();
+                        String lower = path.getFileName().toString().toLowerCase(java.util.Locale.ROOT);
                         return lower.endsWith(".yml") || lower.endsWith(".yaml");
                     })
                     .toList()) {

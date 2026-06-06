@@ -9,7 +9,7 @@ public enum CostOperation {
         if (value == null || value.isBlank()) {
             return null;
         }
-        return switch (value.strip().toLowerCase()) {
+        return switch (value.strip().toLowerCase(java.util.Locale.ROOT)) {
             case "consume" -> CONSUME;
             case "require" -> REQUIRE;
             default -> null;

@@ -1225,7 +1225,7 @@ public final class WebConsoleRegistry {
 
     private static String fileId(String moduleId, FileRegistration registration) {
         return (moduleId + "-" + registration.type().kind() + "-" + registration.relativePath())
-                .toLowerCase()
+                .toLowerCase(java.util.Locale.ROOT)
                 .replace("**/", "")
                 .replace("*", "all")
                 .replace('/', '-')

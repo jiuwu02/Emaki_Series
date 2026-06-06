@@ -1,7 +1,6 @@
 package emaki.jiuwu.craft.strengthen.model;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import org.bukkit.inventory.ItemStack;
@@ -28,7 +27,7 @@ public record AttemptContext(ItemStack targetItem, List<ItemStack> materialInput
             for (ItemStack itemStack : materialInputs) {
                 normalized.add(normalizeItem(itemStack));
             }
-            materialInputs = Collections.unmodifiableList(normalized);
+            materialInputs = List.copyOf(normalized);
         }
     }
 

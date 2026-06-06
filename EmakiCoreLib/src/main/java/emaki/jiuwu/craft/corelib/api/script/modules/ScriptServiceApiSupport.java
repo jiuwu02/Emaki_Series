@@ -122,7 +122,7 @@ public final class ScriptServiceApiSupport {
             return Map.of();
         }
         Map<String, Object> summary = new LinkedHashMap<>();
-        summary.put("type", itemStack.getType().name().toLowerCase());
+        summary.put("type", itemStack.getType().name().toLowerCase(java.util.Locale.ROOT));
         summary.put("amount", itemStack.getAmount());
         summary.put("displayName", ItemTextBridge.effectiveNamePlain(itemStack));
         return summary;

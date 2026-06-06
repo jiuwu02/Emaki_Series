@@ -8,7 +8,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "2.2.0"
+version: "2.2.3"
 
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiSkills</gradient> ]</gray>"
@@ -45,6 +45,16 @@ console:
   ea_bridge_read_resource_max_failed: "读取 EmakiAttribute 资源上限失败: %resource% (%error%)"
   ea_bridge_consume_failed: "扣除 EmakiAttribute 资源失败: %resource% (%error%)"
   ea_bridge_attribute_read_failed: "读取 EmakiAttribute 属性失败: %attribute% (%error%)"
+  auraskills_mana_unavailable: "未检测到可用的 AuraSkills 法力接口，AuraSkills 法力消耗将阻止施法。"
+  auraskills_mana_ready: "AuraSkills 法力桥接已就绪，接入方式: %mode%。"
+  auraskills_mana_init_failed: "初始化 AuraSkills 法力桥接失败: %error%"
+  auraskills_mana_read_failed: "读取 AuraSkills 法力值失败: %error%"
+  auraskills_mana_consume_failed: "扣除 AuraSkills 法力值失败: %error%"
+  mythic_mana_unavailable: "未检测到可用的 MythicLib/MMOCore 法力接口，MMOCore 法力消耗将阻止施法。"
+  mythic_mana_ready: "MythicLib/MMOCore 法力桥接已就绪，接入方式: %mode%。"
+  mythic_mana_init_failed: "初始化 MythicLib/MMOCore 法力桥接失败: %error%"
+  mythic_mana_read_failed: "读取 MythicLib/MMOCore 法力值失败: %error%"
+  mythic_mana_consume_failed: "扣除 MythicLib/MMOCore 法力值失败: %error%"
   mythic_bridge_unavailable: "未检测到 MythicMobs，已禁用 Mythic 技能桥接。"
   mythic_bridge_class_unavailable: "MythicMobs 类不可用，已禁用 Mythic 技能桥接。"
   mythic_bridge_ready: "MythicMobs 技能桥接已就绪。"

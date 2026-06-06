@@ -11,6 +11,7 @@ import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.skills.api.SkillScriptActionRegistry;
 import emaki.jiuwu.craft.skills.bridge.EaBridge;
+import emaki.jiuwu.craft.skills.bridge.ExternalManaBridge;
 import emaki.jiuwu.craft.skills.bridge.MythicBridge;
 import emaki.jiuwu.craft.skills.config.AppConfig;
 import emaki.jiuwu.craft.skills.gui.SkillsGuiService;
@@ -63,6 +64,7 @@ record SkillsRuntimeComponents(
         ActionBarService actionBarService,
         SkillsGuiService skillsGuiService,
         EaBridge eaBridge,
+        ExternalManaBridge externalManaBridge,
         MythicBridge mythicBridge
 ) implements RuntimeComponents {
 
@@ -97,6 +99,7 @@ record SkillsRuntimeComponents(
                 RuntimeComponents.component(ActionBarService.class, actionBarService),
                 RuntimeComponents.component(SkillsGuiService.class, skillsGuiService),
                 RuntimeComponents.component(EaBridge.class, eaBridge),
+                RuntimeComponents.component(ExternalManaBridge.class, externalManaBridge),
                 RuntimeComponents.component(MythicBridge.class, mythicBridge)
         );
     }

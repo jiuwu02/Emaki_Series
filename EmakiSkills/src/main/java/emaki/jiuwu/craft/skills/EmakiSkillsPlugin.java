@@ -27,6 +27,7 @@ import emaki.jiuwu.craft.skills.action.CastSkillAction;
 import emaki.jiuwu.craft.skills.api.EmakiSkillsApi;
 import emaki.jiuwu.craft.skills.api.SkillScriptActionRegistry;
 import emaki.jiuwu.craft.skills.bridge.EaBridge;
+import emaki.jiuwu.craft.skills.bridge.ExternalManaBridge;
 import emaki.jiuwu.craft.skills.bridge.MythicBridge;
 import emaki.jiuwu.craft.skills.config.AppConfig;
 import emaki.jiuwu.craft.skills.gui.SkillsGuiService;
@@ -112,6 +113,7 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
     private ActionBarService actionBarService;
     private SkillsGuiService skillsGuiService;
     private EaBridge eaBridge;
+    private ExternalManaBridge externalManaBridge;
     private MythicBridge mythicBridge;
     private SkillsPlaceholderExpansion placeholderExpansion;
     private DefaultTriggerDispatcher triggerDispatcher;
@@ -217,6 +219,7 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
         actionBarService = components.actionBarService();
         skillsGuiService = components.skillsGuiService();
         eaBridge = components.eaBridge();
+        externalManaBridge = components.externalManaBridge();
         mythicBridge = components.mythicBridge();
         setDebugLogger(new DebugLogger(getLogger(), languageLoader));
         debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES);
@@ -436,6 +439,10 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
 
     public EaBridge eaBridge() {
         return eaBridge;
+    }
+
+    public ExternalManaBridge externalManaBridge() {
+        return externalManaBridge;
     }
 
     public MythicBridge mythicBridge() {

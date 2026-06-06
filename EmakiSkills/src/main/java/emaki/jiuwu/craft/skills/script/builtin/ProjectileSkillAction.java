@@ -50,9 +50,9 @@ public final class ProjectileSkillAction extends AbstractSkillScriptAction {
         int pierce = intArg(arguments, "pierce", 0);
         boolean homing = Boolean.parseBoolean(arg(arguments, "homing", "false"));
         double homingStrength = doubleArg(arguments, "homing_strength", 0.1D);
-        String particleName = arg(arguments, "particle", "FLAME").toUpperCase();
+        String particleName = arg(arguments, "particle", "FLAME").toUpperCase(java.util.Locale.ROOT);
         double damage = doubleArg(arguments, "damage", 0D);
-        String directionMode = arg(arguments, "direction", "look").toLowerCase();
+        String directionMode = arg(arguments, "direction", "look").toLowerCase(java.util.Locale.ROOT);
 
         Particle particle = parseParticle(particleName);
         Location origin = caster.getEyeLocation();

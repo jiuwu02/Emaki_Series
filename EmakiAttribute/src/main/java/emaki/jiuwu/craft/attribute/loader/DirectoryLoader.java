@@ -167,7 +167,7 @@ public abstract class DirectoryLoader<T> {
     }
 
     protected String normalizeId(String id) {
-        return Texts.toStringSafe(id).trim().toLowerCase().replace(' ', '_');
+        return Texts.toStringSafe(id).trim().toLowerCase(java.util.Locale.ROOT).replace(' ', '_');
     }
 
     protected void afterLoad() {

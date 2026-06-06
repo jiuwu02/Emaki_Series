@@ -8,6 +8,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.skills.bridge.EaBridge;
+import emaki.jiuwu.craft.skills.bridge.ExternalManaBridge;
 import emaki.jiuwu.craft.skills.config.AppConfig;
 import emaki.jiuwu.craft.skills.model.CastAttemptResult;
 import emaki.jiuwu.craft.skills.model.CastAttemptResult.FailureReason;
@@ -38,6 +39,7 @@ public final class CastAttemptService {
     private final SkillScriptCastService skillScriptCastService;
     private final SkillParameterResolver skillParameterResolver;
     private final EaBridge eaBridge;
+    private final ExternalManaBridge externalManaBridge;
     private final Supplier<Map<String, LocalResourceDefinition>> localResourceDefsSupplier;
     private final Supplier<AppConfig> configSupplier;
 
@@ -49,6 +51,7 @@ public final class CastAttemptService {
             SkillScriptCastService skillScriptCastService,
             SkillParameterResolver skillParameterResolver,
             EaBridge eaBridge,
+            ExternalManaBridge externalManaBridge,
             Supplier<Map<String, LocalResourceDefinition>> localResourceDefsSupplier,
             Supplier<AppConfig> configSupplier) {
         this.plugin = plugin;
@@ -59,6 +62,7 @@ public final class CastAttemptService {
         this.skillScriptCastService = skillScriptCastService;
         this.skillParameterResolver = skillParameterResolver;
         this.eaBridge = eaBridge;
+        this.externalManaBridge = externalManaBridge;
         this.localResourceDefsSupplier = localResourceDefsSupplier;
         this.configSupplier = configSupplier;
     }
@@ -242,6 +246,7 @@ public final class CastAttemptService {
                 case EA_RESOURCE -> checkEaResource(player, cost);
                 case ATTRIBUTE_CHECK -> checkAttribute(player, cost);
                 case LOCAL_RESOURCE -> checkLocalResource(profile, cost);
+                case AURASKILLS_MANA, MYTHICLIB_MANA -> checkExternalMana(player, cost);
             };
             if (!sufficient) {
                 String message = cost.failureMessage() != null && !cost.failureMessage().isBlank()
@@ -277,6 +282,14 @@ public final class CastAttemptService {
         return state.currentValue() >= cost.amount();
     }
 
+    private boolean checkExternalMana(Player player, SkillResourceCost cost) {
+        if (externalManaBridge == null || !externalManaBridge.isAvailable(cost.type())) {
+            return false;
+        }
+        double current = externalManaBridge.readCurrent(player, cost.type());
+        return current >= cost.amount();
+    }
+
     private void consumeResources(Player player, PlayerSkillProfile profile, SkillDefinition definition) {
         for (SkillResourceCost cost : definition.resourceCosts()) {
             if (cost.operation() != CostOperation.CONSUME) {
@@ -295,6 +308,11 @@ public final class CastAttemptService {
                     }
                 }
                 case ATTRIBUTE_CHECK -> {
+                }
+                case AURASKILLS_MANA, MYTHICLIB_MANA -> {
+                    if (externalManaBridge != null && externalManaBridge.isAvailable(cost.type())) {
+                        externalManaBridge.consume(player, cost.type(), cost.amount());
+                    }
                 }
             }
         }

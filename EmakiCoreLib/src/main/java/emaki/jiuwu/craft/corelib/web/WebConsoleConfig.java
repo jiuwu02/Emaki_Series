@@ -108,7 +108,7 @@ public record WebConsoleConfig(
                     List.copyOf(extensions.stream()
                             .map(String::trim)
                             .filter(value -> !value.isEmpty())
-                            .map(value -> value.startsWith(".") ? value.toLowerCase() : "." + value.toLowerCase())
+                            .map(value -> value.startsWith(".") ? value.toLowerCase(java.util.Locale.ROOT) : "." + value.toLowerCase(java.util.Locale.ROOT))
                             .toList())
             );
         }

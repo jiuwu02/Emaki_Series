@@ -31,7 +31,7 @@ final class CookingCommandRouter implements TabExecutor {
             sendHelp(sender);
             return true;
         }
-        return switch (args[0].toLowerCase()) {
+        return switch (args[0].toLowerCase(java.util.Locale.ROOT)) {
             case "help" -> {
                 sendHelp(sender);
                 yield true;
@@ -51,7 +51,7 @@ final class CookingCommandRouter implements TabExecutor {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
             for (String sub : List.of("help", "reload", "inspect", "debug")) {
-                if (sub.startsWith(args[0].toLowerCase())) {
+                if (sub.startsWith(args[0].toLowerCase(java.util.Locale.ROOT))) {
                     result.add(sub);
                 }
             }
@@ -61,7 +61,7 @@ final class CookingCommandRouter implements TabExecutor {
             return plugin.debugCommand().tabComplete(Arrays.copyOfRange(args, 1, args.length));
         }
         if (args.length == 2) {
-            if ("inspect".equalsIgnoreCase(args[0]) && "hand".startsWith(args[1].toLowerCase())) {
+            if ("inspect".equalsIgnoreCase(args[0]) && "hand".startsWith(args[1].toLowerCase(java.util.Locale.ROOT))) {
                 result.add("hand");
             }
             return result;

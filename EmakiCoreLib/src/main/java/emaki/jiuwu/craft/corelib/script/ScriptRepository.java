@@ -108,7 +108,7 @@ public final class ScriptRepository {
         List<String> scripts = new ArrayList<>();
         try (Stream<Path> stream = Files.walk(root)) {
             stream.filter(Files::isRegularFile)
-                    .filter(path -> path.getFileName().toString().toLowerCase().endsWith(".js"))
+                    .filter(path -> path.getFileName().toString().toLowerCase(java.util.Locale.ROOT).endsWith(".js"))
                     .map(path -> normalizeLogicalPath(root.relativize(path.toAbsolutePath().normalize())))
                     .sorted()
                     .forEach(scripts::add);

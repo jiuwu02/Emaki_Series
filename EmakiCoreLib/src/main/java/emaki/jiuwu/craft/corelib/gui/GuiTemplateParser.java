@@ -56,7 +56,7 @@ public final class GuiTemplateParser {
             return InventoryType.CHEST;
         }
         try {
-            return InventoryType.valueOf(configured.trim().toUpperCase());
+            return InventoryType.valueOf(configured.trim().toUpperCase(java.util.Locale.ROOT));
         } catch (IllegalArgumentException ignored) {
             return InventoryType.CHEST;
         }

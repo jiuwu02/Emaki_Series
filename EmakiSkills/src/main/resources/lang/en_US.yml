@@ -8,7 +8,7 @@
 # ============================================================
 
 # version is maintained by resource sync
-version: "2.2.0"
+version: "2.2.3"
 
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiSkills</gradient> ]</gray>"
@@ -47,6 +47,16 @@ console:
   ea_bridge_read_resource_max_failed: "Failed to read EmakiAttribute resource max value: %resource% (%error%)"
   ea_bridge_consume_failed: "Failed to consume EmakiAttribute resource: %resource% (%error%)"
   ea_bridge_attribute_read_failed: "Failed to read EmakiAttribute attribute: %attribute% (%error%)"
+  auraskills_mana_unavailable: "No usable AuraSkills mana API detected; AuraSkills mana costs will block casting."
+  auraskills_mana_ready: "AuraSkills mana bridge ready, connection mode: %mode%."
+  auraskills_mana_init_failed: "Failed to initialize AuraSkills mana bridge: %error%"
+  auraskills_mana_read_failed: "Failed to read AuraSkills mana: %error%"
+  auraskills_mana_consume_failed: "Failed to consume AuraSkills mana: %error%"
+  mythic_mana_unavailable: "No usable MythicLib/MMOCore mana API detected; MMOCore mana costs will block casting."
+  mythic_mana_ready: "MythicLib/MMOCore mana bridge ready, connection mode: %mode%."
+  mythic_mana_init_failed: "Failed to initialize MythicLib/MMOCore mana bridge: %error%"
+  mythic_mana_read_failed: "Failed to read MythicLib/MMOCore mana: %error%"
+  mythic_mana_consume_failed: "Failed to consume MythicLib/MMOCore mana: %error%"
   mythic_bridge_unavailable: "MythicMobs not detected, Mythic skill bridge disabled."
   mythic_bridge_class_unavailable: "MythicMobs class unavailable, Mythic skill bridge disabled."
   mythic_bridge_ready: "MythicMobs skill bridge ready."

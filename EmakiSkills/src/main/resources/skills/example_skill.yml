@@ -74,8 +74,10 @@ condition_type: "all_of"
 # type: 资源类型
 #   - "local-resource": EmakiSkills 本地资源（如本地 mana）
 #   - "ea-resource": EmakiAttribute 资源（如 EA 的 mana 当前值）
-#   - "ea-attribute-check": 检查 EA 属性值（不消耗，仅检测）
-# target_id: 资源 ID
+#   - "attribute-check" / "ea-attribute-check": 检查 EA 属性值（不消耗，仅检测）
+#   - "auraskills-mana": AuraSkills 法力值
+#   - "mmocore-mana" / "mythiclib-mana": MMOCore/MythicLib 法力值
+# target_id: 资源 ID；外部 mana 类型暂时仅保留为可读标识，默认写 mana
 # amount: 消耗/检查的数量
 # operation: 操作类型（consume = 消耗）
 # failure_message: 资源不足时的提示消息

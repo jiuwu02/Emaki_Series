@@ -67,14 +67,14 @@ public record EmakiItemDefinition(String id,
         if (trigger == null || trigger.isBlank()) {
             return List.of();
         }
-        return actions.getOrDefault(trigger.toLowerCase(), List.of());
+        return actions.getOrDefault(trigger.toLowerCase(java.util.Locale.ROOT), List.of());
     }
 
     private static Map<String, List<String>> copyActions(Map<String, List<String>> source) {
         java.util.LinkedHashMap<String, List<String>> copy = new java.util.LinkedHashMap<>();
         source.forEach((key, value) -> {
             if (key != null && value != null && !value.isEmpty()) {
-                copy.put(key.toLowerCase(), List.copyOf(value));
+                copy.put(key.toLowerCase(java.util.Locale.ROOT), List.copyOf(value));
             }
         });
         return Map.copyOf(copy);

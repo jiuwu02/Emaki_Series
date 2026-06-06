@@ -46,7 +46,7 @@ final class ItemCommandRouter implements TabExecutor {
             sendHelp(sender);
             return true;
         }
-        return switch (args[0].toLowerCase()) {
+        return switch (args[0].toLowerCase(java.util.Locale.ROOT)) {
             case "help" -> {
                 sendHelp(sender);
                 yield true;
@@ -70,7 +70,7 @@ final class ItemCommandRouter implements TabExecutor {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
             for (String sub : List.of("help", "list", "give", "inspect", "components", "component", "update", "reload", "debug")) {
-                if (sub.startsWith(args[0].toLowerCase())) {
+                if (sub.startsWith(args[0].toLowerCase(java.util.Locale.ROOT))) {
                     result.add(sub);
                 }
             }
@@ -80,7 +80,7 @@ final class ItemCommandRouter implements TabExecutor {
             return plugin.debugCommand().tabComplete(Arrays.copyOfRange(args, 1, args.length));
         }
         if (args.length == 2) {
-            switch (args[0].toLowerCase()) {
+            switch (args[0].toLowerCase(java.util.Locale.ROOT)) {
                 case "give", "inspect", "update" -> completePlayers(result, args[1]);
                 case "components", "component" -> {
                     completePlayers(result, args[1]);
@@ -102,7 +102,7 @@ final class ItemCommandRouter implements TabExecutor {
         }
         if (args.length == 3 && "give".equalsIgnoreCase(args[0])) {
             plugin.itemLoader().all().keySet().stream()
-                    .filter(id -> id.startsWith(args[2].toLowerCase()))
+                    .filter(id -> id.startsWith(args[2].toLowerCase(java.util.Locale.ROOT)))
                     .forEach(result::add);
             return result;
         }
@@ -348,14 +348,14 @@ final class ItemCommandRouter implements TabExecutor {
     private void completePlayers(List<String> result, String prefix) {
         Bukkit.getOnlinePlayers().stream()
                 .map(Player::getName)
-                .filter(name -> name.toLowerCase().startsWith(prefix.toLowerCase()))
+                .filter(name -> name.toLowerCase(java.util.Locale.ROOT).startsWith(prefix.toLowerCase(java.util.Locale.ROOT)))
                 .forEach(result::add);
     }
 
     private void completeComponentIds(List<String> result, Player player, String prefix) {
-        String normalizedPrefix = Texts.toStringSafe(prefix).toLowerCase();
+        String normalizedPrefix = Texts.toStringSafe(prefix).toLowerCase(java.util.Locale.ROOT);
         for (String id : plugin.componentInspector().ids(player.getInventory().getItemInMainHand())) {
-            if (id.toLowerCase().startsWith(normalizedPrefix) && !result.contains(id)) {
+            if (id.toLowerCase(java.util.Locale.ROOT).startsWith(normalizedPrefix) && !result.contains(id)) {
                 result.add(id);
             }
         }

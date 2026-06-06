@@ -350,7 +350,7 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
             return defaults;
         }
         String configuredMode = section.getString("default_mode", defaults.defaultMode().name());
-        GemGuiMode defaultMode = switch (configuredMode == null ? "" : configuredMode.toLowerCase()) {
+        GemGuiMode defaultMode = switch (configuredMode == null ? "" : configuredMode.toLowerCase(java.util.Locale.ROOT)) {
             case "open", "open_socket", "socket_open" -> GemGuiMode.OPEN_SOCKET;
             case "upgrade" -> GemGuiMode.UPGRADE;
             default -> GemGuiMode.INLAY;

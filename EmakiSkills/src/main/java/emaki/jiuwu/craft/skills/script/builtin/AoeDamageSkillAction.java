@@ -34,8 +34,8 @@ public final class AoeDamageSkillAction extends AbstractSkillScriptAction {
         double amount = doubleArg(arguments, "amount", 0D);
         double radius = doubleArg(arguments, "radius", 5D);
         int maxTargets = intArg(arguments, "max_targets", 20);
-        String shape = arg(arguments, "shape", "sphere").toLowerCase();
-        String filter = arg(arguments, "filter", "hostile").toLowerCase();
+        String shape = arg(arguments, "shape", "sphere").toLowerCase(java.util.Locale.ROOT);
+        String filter = arg(arguments, "filter", "hostile").toLowerCase(java.util.Locale.ROOT);
         boolean excludeCaster = Boolean.parseBoolean(arg(arguments, "exclude_caster", "true"));
 
         Location center = resolveCenterLocation(context, arguments);
@@ -90,7 +90,7 @@ public final class AoeDamageSkillAction extends AbstractSkillScriptAction {
     }
 
     private Location resolveCenterLocation(SkillScriptContext context, Map<String, String> arguments) {
-        String centerArg = arg(arguments, "center", "target").toLowerCase();
+        String centerArg = arg(arguments, "center", "target").toLowerCase(java.util.Locale.ROOT);
         if ("caster".equals(centerArg) || "self".equals(centerArg) || "player".equals(centerArg)) {
             return context.caster().getLocation();
         }

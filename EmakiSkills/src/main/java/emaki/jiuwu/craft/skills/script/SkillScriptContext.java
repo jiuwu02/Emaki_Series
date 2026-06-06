@@ -73,7 +73,7 @@ public final class SkillScriptContext extends emaki.jiuwu.craft.skills.api.Skill
 
     public void putVariable(String key, Object value) {
         if (key != null && !key.isBlank()) {
-            variables.put(key.toLowerCase(), value == null ? "" : String.valueOf(value));
+            variables.put(key.toLowerCase(java.util.Locale.ROOT), value == null ? "" : String.valueOf(value));
         }
     }
 

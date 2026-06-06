@@ -76,7 +76,7 @@ public final class PerformanceMonitor {
     }
 
     private String normalizeOperation(String operation) {
-        return operation == null || operation.isBlank() ? "unknown" : operation.trim().toLowerCase();
+        return operation == null || operation.isBlank() ? "unknown" : operation.trim().toLowerCase(java.util.Locale.ROOT);
     }
 
     private static final class MetricAccumulator {
