@@ -50,6 +50,10 @@ public final class CookingRecipeService {
         return recipe == null ? 0 : recipe.configuration().getInt("cuts_required", 0);
     }
 
+    public int choppingInputAmount(RecipeDocument recipe) {
+        return recipe == null ? 1 : Math.max(1, recipe.configuration().getInt("input.amount", 1));
+    }
+
     public int choppingToolDamage(RecipeDocument recipe) {
         return recipe == null ? 1 : Math.max(1, recipe.configuration().getInt("tool_damage", 1));
     }

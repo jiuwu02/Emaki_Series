@@ -8,7 +8,7 @@
 # ============================================================
 
 # version is maintained by resource sync
-version: "3.2.6"
+version: "3.2.7"
 
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiCooking</gradient> ]</gray>"
@@ -78,12 +78,13 @@ chopping_board:
   too_fast: "<yellow>Too fast, please wait a moment.</yellow>"
   wrong_tool: "<yellow>You need to hold the configured kitchen knife to chop.</yellow>"
   cannot_cut: "<red>The placed ingredient has no available chopping board recipe.</red>"
+  not_enough_input: "<yellow>Not enough ingredients on the board. Required <white>%required%</white>, current <white>%current%</white>.</yellow>"
   progress: "<gray>Chopping progress:
     <yellow>%current%</yellow>/<yellow>%required%</yellow></gray>"
   completed: "<green>Chopping board processing complete:
     <yellow>%recipe%</yellow></green>"
-  item_placed: "<gray>Placed ingredient on the chopping board.</gray>"
-  item_returned: "<gray>Retrieved ingredient from the chopping board.</gray>"
+  item_placed: "<gray>Placed <yellow>%amount%</yellow> ingredient(s). Board now has <yellow>%total%</yellow>/<yellow>%required%</yellow>.</gray>"
+  item_returned: "<gray>Retrieved <yellow>%amount%</yellow> ingredient(s) from the chopping board.</gray>"
   cut_hurt: "<red>You cut yourself, taking %damage% damage.</red>"
 
 grinder:
@@ -183,7 +184,9 @@ text_display:
   chopping_board:
     title: "<gold>Chopping Board</gold>"
     placed: "<white>%item%</white>"
+    amount: "<gray>Amount <yellow>%current%</yellow>/<yellow>%required%</yellow></gray>"
     progress: "<gray>Cuts <yellow>%current%</yellow>/<yellow>%required%</yellow></gray>"
+    hint_add: "<aqua>Add more ingredients</aqua>"
     hint_cut: "<aqua>Hold a knife to chop</aqua>"
     no_recipe: "<red>No available recipe</red>"
   wok:
