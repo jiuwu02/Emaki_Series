@@ -524,7 +524,6 @@ registerPluginGuiEditor({
   editorId: 'emakicooking:gui',
   label: copy('烹饪 GUI', 'Cooking GUI'),
   fields: [
-    ['type', '槽位类型', '烹饪工位槽位语义。可选预设值，也可填自定义/填充槽位。', 'enum', { options: ['ingredient', 'result', 'fuel', 'moisture', 'container', 'progress'], optionLabelPrefix: 'slotType' }],
     ['ingredient', '原料槽', '放入烹饪原料的槽位。', 'text'],
     ['result', '产物槽', '展示或取出产物的槽位。', 'text'],
     ['fuel', '燃料槽', '放入燃料的槽位。', 'text'],
