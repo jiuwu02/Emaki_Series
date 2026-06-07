@@ -71,7 +71,26 @@ public final class JavaScriptAttributeContributionProvider implements AttributeC
         if (result == null || !result.success() || result.returnValue() == null) {
             return List.of();
         }
-        return parseContributions(result.returnValue());
+        try {
+            return parseContributions(result.returnValue());
+        } catch (IllegalStateException exception) {
+            if (isClosedContextException(exception)) {
+                return List.of();
+            }
+            throw exception;
+        }
+    }
+
+    private boolean isClosedContextException(IllegalStateException exception) {
+        Throwable current = exception;
+        while (current != null) {
+            String message = current.getMessage();
+            if (message != null && message.contains("Context is already closed")) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 
     private Collection<AttributeContribution> parseContributions(Object value) {

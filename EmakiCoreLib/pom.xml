@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-corelib</artifactId>
-    <version>4.2.4</version>
+    <version>4.2.5</version>
     <name>EmakiCoreLib</name>
     <packaging>jar</packaging>
 
@@ -109,8 +109,8 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>dev.lone</groupId>
-            <artifactId>api-itemsadder</artifactId>
+            <groupId>beer.devs</groupId>
+            <artifactId>itemsadder-api</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>

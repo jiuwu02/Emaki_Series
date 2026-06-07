@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.cooking.model;
 
 import java.util.function.Consumer;
 
+import emaki.jiuwu.craft.corelib.item.ItemSource;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 
@@ -10,7 +11,17 @@ public record StationInteraction(Player player,
         boolean leftClick,
         boolean rightClick,
         boolean mainHand,
-        Consumer<Boolean> cancelConsumer) {
+        Consumer<Boolean> cancelConsumer,
+        ItemSource stationSource) {
+
+    public StationInteraction(Player player,
+            Block block,
+            boolean leftClick,
+            boolean rightClick,
+            boolean mainHand,
+            Consumer<Boolean> cancelConsumer) {
+        this(player, block, leftClick, rightClick, mainHand, cancelConsumer, null);
+    }
 
     public StationInteractionType type() {
         if (leftClick) {

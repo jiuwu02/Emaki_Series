@@ -57,7 +57,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>25</maven.compiler.release>
-        <emaki.corelib.version>4.2.4</emaki.corelib.version>
+        <emaki.corelib.version>4.2.5</emaki.corelib.version>
         <spigot.api.version>1.21.11-R0.1-SNAPSHOT</spigot.api.version>
         <adventure.version>4.26.1</adventure.version>
         <adventure.platform.version>4.4.1</adventure.platform.version>
@@ -72,8 +72,8 @@
         <placeholderapi.version>2.12.2</placeholderapi.version>
         <mmoitems.version>6.10.1-SNAPSHOT</mmoitems.version>
         <craftengine.version>26.6</craftengine.version>
-        <itemsadder.version>4.0.10</itemsadder.version>
-        <nexo.version>1.23</nexo.version>
+        <itemsadder.version>4.0.17</itemsadder.version>
+        <nexo.version>1.24.0</nexo.version>
         <neigeitems.version>1.21.145</neigeitems.version>
         <packetevents.version>2.12.2</packetevents.version>
         <bstats.version>3.2.1</bstats.version>
@@ -190,8 +190,8 @@
                 <scope>provided</scope>
             </dependency>
             <dependency>
-                <groupId>dev.lone</groupId>
-                <artifactId>api-itemsadder</artifactId>
+                <groupId>beer.devs</groupId>
+                <artifactId>itemsadder-api</artifactId>
                 <version>${itemsadder.version}</version>
                 <scope>provided</scope>
             </dependency>

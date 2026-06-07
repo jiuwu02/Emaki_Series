@@ -80,8 +80,9 @@ public final class ChoppingBoardRuntimeService {
         for (Map.Entry<StationCoordinates, emaki.jiuwu.craft.corelib.yaml.YamlSection> entry : stateStore.loadAll(StationType.CHOPPING_BOARD).entrySet()) {
             StationCoordinates coordinates = entry.getKey();
             ChoppingBoardState state = readState(entry.getValue());
+            ItemSource stationSource = stateStore.stationSource(entry.getValue());
             Block block = coordinates.block();
-            if (state == null || block == null || !blockMatcher.matches(block, StationType.CHOPPING_BOARD)) {
+            if (state == null || !blockMatcher.matches(block, StationType.CHOPPING_BOARD, stationSource)) {
                 clearDisplay(coordinates, state == null ? null : state.displayEntityId(), state == null ? null : state.inputSource());
                 stateStore.deleteAsync(coordinates);
                 continue;
@@ -107,7 +108,7 @@ public final class ChoppingBoardRuntimeService {
 
     public boolean handleInteraction(StationInteraction interaction) {
         Block block = interaction.block();
-        if (block == null || !interaction.mainHand() || !blockMatcher.matches(block, StationType.CHOPPING_BOARD)) {
+        if (block == null || !interaction.mainHand() || !blockMatcher.matches(interaction, StationType.CHOPPING_BOARD)) {
             return false;
         }
         Player player = interaction.player();
@@ -115,6 +116,7 @@ public final class ChoppingBoardRuntimeService {
             return false;
         }
         StationCoordinates coordinates = StationCoordinates.fromBlock(block);
+        stateStore.rememberStationSource(coordinates, interaction.stationSource());
         ChoppingBoardState state = readState(stateStore.load(coordinates));
         long now = System.currentTimeMillis();
 
@@ -271,10 +273,11 @@ public final class ChoppingBoardRuntimeService {
 
     public boolean handleBreak(StationBreakContext context) {
         Block block = context.block();
-        if (block == null || !blockMatcher.matches(block, StationType.CHOPPING_BOARD)) {
+        if (block == null || !blockMatcher.matches(context, StationType.CHOPPING_BOARD)) {
             return false;
         }
         StationCoordinates coordinates = StationCoordinates.fromBlock(block);
+        stateStore.rememberStationSource(coordinates, context.stationSource());
         ChoppingBoardState state = readState(stateStore.load(coordinates));
         if (state == null) {
             return false;

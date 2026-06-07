@@ -80,7 +80,8 @@ public final class FermentationBarrelRuntimeService implements Listener {
             StationCoordinates coordinates = entry.getKey();
             Block block = coordinates.block();
             FermentationBarrelState state = codec.readState(entry.getValue());
-            if (block == null || !blockMatcher.matches(block, StationType.FERMENTATION_BARREL) || state.isCompletelyEmpty()) {
+            ItemSource stationSource = stateStore.stationSource(entry.getValue());
+            if (!blockMatcher.matches(block, StationType.FERMENTATION_BARREL, stationSource) || state.isCompletelyEmpty()) {
                 removeState(coordinates, true);
                 continue;
             }
@@ -106,10 +107,11 @@ public final class FermentationBarrelRuntimeService implements Listener {
     public boolean handleInteraction(StationInteraction interaction) {
         Block block = interaction.block();
         Player player = interaction.player();
-        if (block == null || player == null || !interaction.mainHand() || !blockMatcher.matches(block, StationType.FERMENTATION_BARREL)) {
+        if (block == null || player == null || !interaction.mainHand() || !blockMatcher.matches(interaction, StationType.FERMENTATION_BARREL)) {
             return false;
         }
         StationCoordinates coordinates = StationCoordinates.fromBlock(block);
+        stateStore.rememberStationSource(coordinates, interaction.stationSource());
         if (settingsService.matchesInteraction(StationType.FERMENTATION_BARREL, CookingSettingsService.INTERACTION_OPEN, interaction)) {
             interaction.cancel();
             if (!player.hasPermission(CookingPermissions.FERMENTATION_BARREL_USE) && !player.hasPermission(CookingPermissions.ADMIN)) {
@@ -130,10 +132,11 @@ public final class FermentationBarrelRuntimeService implements Listener {
 
     public boolean handleBreak(StationBreakContext context) {
         Block block = context.block();
-        if (block == null || !blockMatcher.matches(block, StationType.FERMENTATION_BARREL)) {
+        if (block == null || !blockMatcher.matches(context, StationType.FERMENTATION_BARREL)) {
             return false;
         }
         StationCoordinates coordinates = StationCoordinates.fromBlock(block);
+        stateStore.rememberStationSource(coordinates, context.stationSource());
         FermentationBarrelGuiHolder openHolder = guiController.findOpenSession(coordinates);
         FermentationBarrelState state = openHolder == null ? loadStateOrEmpty(coordinates) : guiController.snapshotInventoryState(coordinates,
                 openHolder.getInventory(), openHolder.viewerId(), Bukkit.getPlayer(openHolder.viewerId()) == null ? "" : Bukkit.getPlayer(openHolder.viewerId()).getName());
@@ -338,7 +341,8 @@ public final class FermentationBarrelRuntimeService implements Listener {
         for (StationCoordinates coordinates : List.copyOf(activeStations)) {
             FermentationBarrelState state = loadStateOrEmpty(coordinates);
             Block block = coordinates.block();
-            if (block == null || !blockMatcher.matches(block, StationType.FERMENTATION_BARREL)) {
+            ItemSource stationSource = stateStore.rememberedStationSource(coordinates);
+            if (block == null || !blockMatcher.matches(block, StationType.FERMENTATION_BARREL, stationSource)) {
                 removeState(coordinates, true);
                 activeStations.remove(coordinates);
                 continue;

@@ -108,8 +108,9 @@ public final class SteamerRuntimeService implements Listener {
         for (Map.Entry<StationCoordinates, emaki.jiuwu.craft.corelib.yaml.YamlSection> entry : stateStore.loadAll(StationType.STEAMER).entrySet()) {
             StationCoordinates coordinates = entry.getKey();
             SteamerState state = codec.readState(entry.getValue());
+            ItemSource stationSource = stateStore.stationSource(entry.getValue());
             Block block = coordinates.block();
-            if (state == null || block == null || !blockMatcher.matches(block, StationType.STEAMER)) {
+            if (state == null || !blockMatcher.matches(block, StationType.STEAMER, stationSource)) {
                 guiController.closeOpenInventories(coordinates, true);
                 removeState(coordinates, true);
                 continue;
@@ -141,7 +142,7 @@ public final class SteamerRuntimeService implements Listener {
         if (block == null || player == null || !interaction.mainHand()) {
             return false;
         }
-        if (blockMatcher.matches(block, StationType.STEAMER)) {
+        if (blockMatcher.matches(interaction, StationType.STEAMER)) {
             return handleSteamerBlockInteraction(interaction, block, player);
         }
 
@@ -160,6 +161,7 @@ public final class SteamerRuntimeService implements Listener {
         boolean hasHeatSource = tickProcessor.isHeatSourceBlock(heatSourceBlock);
 
         StationCoordinates coordinates = StationCoordinates.fromBlock(steamerBlock);
+        stateStore.rememberStationSource(coordinates, interaction.stationSource());
         ItemStack hand = player.getInventory().getItemInMainHand();
         if (hasHeatSource && handleResourceInput(interaction, player, coordinates, heatSourceBlock, hand)) {
             return true;
@@ -255,7 +257,7 @@ public final class SteamerRuntimeService implements Listener {
             return false;
         }
         Block steamerBlock = null;
-        if (blockMatcher.matches(block, StationType.STEAMER)) {
+        if (blockMatcher.matches(context, StationType.STEAMER)) {
             steamerBlock = block;
         } else if (tickProcessor.isHeatSourceBlock(block) && blockMatcher.matches(block.getRelative(BlockFace.UP), StationType.STEAMER)) {
             steamerBlock = block.getRelative(BlockFace.UP);
@@ -264,6 +266,7 @@ public final class SteamerRuntimeService implements Listener {
             return false;
         }
         StationCoordinates coordinates = StationCoordinates.fromBlock(steamerBlock);
+        stateStore.rememberStationSource(coordinates, context.stationSource());
         SteamerGuiHolder openHolder = guiController.findOpenSession(coordinates);
         SteamerState state = openHolder == null
                 ? loadStateOrEmpty(coordinates)
@@ -535,7 +538,8 @@ public final class SteamerRuntimeService implements Listener {
     private void processStation(StationCoordinates coordinates, long now) {
         Block block = coordinates == null ? null : coordinates.block();
         SteamerState state = loadStateOrEmpty(coordinates);
-        if (block == null || !blockMatcher.matches(block, StationType.STEAMER)) {
+        ItemSource stationSource = stateStore.rememberedStationSource(coordinates);
+        if (block == null || !blockMatcher.matches(block, StationType.STEAMER, stationSource)) {
             guiController.closeOpenInventories(coordinates, true);
             removeState(coordinates, true);
             activeStations.remove(coordinates);

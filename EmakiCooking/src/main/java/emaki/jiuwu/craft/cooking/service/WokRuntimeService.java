@@ -81,8 +81,9 @@ public final class WokRuntimeService {
         for (Map.Entry<StationCoordinates, emaki.jiuwu.craft.corelib.yaml.YamlSection> entry : stateStore.loadAll(StationType.WOK).entrySet()) {
             StationCoordinates coordinates = entry.getKey();
             WokState state = readState(entry.getValue());
+            ItemSource stationSource = stateStore.stationSource(entry.getValue());
             Block block = coordinates.block();
-            if (state == null || block == null || !blockMatcher.matches(block, StationType.WOK) || !state.hasIngredients()) {
+            if (state == null || !blockMatcher.matches(block, StationType.WOK, stationSource) || !state.hasIngredients()) {
                 stateStore.deleteAsync(coordinates);
                 displayService.removeStation(StationType.WOK, coordinates);
                 continue;
@@ -94,7 +95,7 @@ public final class WokRuntimeService {
     public boolean handleInteraction(StationInteraction interaction) {
         Block block = interaction.block();
         Player player = interaction.player();
-        if (block == null || player == null || !interaction.mainHand() || !blockMatcher.matches(block, StationType.WOK)) {
+        if (block == null || player == null || !interaction.mainHand() || !blockMatcher.matches(interaction, StationType.WOK)) {
             return false;
         }
         if (!player.hasPermission(CookingPermissions.WOK_USE)
@@ -104,6 +105,7 @@ public final class WokRuntimeService {
             return true;
         }
         StationCoordinates coordinates = StationCoordinates.fromBlock(block);
+        stateStore.rememberStationSource(coordinates, interaction.stationSource());
         WokState state = readState(stateStore.load(coordinates));
         int heatLevel = resolveHeatLevel(block.getRelative(BlockFace.DOWN));
         ItemStack hand = player.getInventory().getItemInMainHand();
@@ -318,10 +320,11 @@ public final class WokRuntimeService {
 
     public boolean handleBreak(StationBreakContext context) {
         Block block = context.block();
-        if (block == null || !blockMatcher.matches(block, StationType.WOK)) {
+        if (block == null || !blockMatcher.matches(context, StationType.WOK)) {
             return false;
         }
         StationCoordinates coordinates = StationCoordinates.fromBlock(block);
+        stateStore.rememberStationSource(coordinates, context.stationSource());
         WokState state = readState(stateStore.load(coordinates));
         if (state == null || !state.hasIngredients()) {
             return false;

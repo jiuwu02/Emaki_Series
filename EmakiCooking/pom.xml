@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-cooking</artifactId>
-    <version>3.2.3</version>
+    <version>3.2.6</version>
     <name>EmakiCooking</name>
     <packaging>jar</packaging>
 
@@ -49,8 +49,8 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>dev.lone</groupId>
-            <artifactId>api-itemsadder</artifactId>
+            <groupId>beer.devs</groupId>
+            <artifactId>itemsadder-api</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>

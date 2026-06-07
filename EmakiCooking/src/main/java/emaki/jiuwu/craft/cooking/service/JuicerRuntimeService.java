@@ -77,7 +77,8 @@ public final class JuicerRuntimeService implements Listener {
             StationCoordinates coordinates = entry.getKey();
             Block block = coordinates.block();
             JuicerState state = codec.readState(entry.getValue());
-            if (block == null || !blockMatcher.matches(block, StationType.JUICER) || state.isCompletelyEmpty()) {
+            ItemSource stationSource = stateStore.stationSource(entry.getValue());
+            if (!blockMatcher.matches(block, StationType.JUICER, stationSource) || state.isCompletelyEmpty()) {
                 removeState(coordinates, true);
                 continue;
             }
@@ -97,10 +98,11 @@ public final class JuicerRuntimeService implements Listener {
     public boolean handleInteraction(StationInteraction interaction) {
         Block block = interaction.block();
         Player player = interaction.player();
-        if (block == null || player == null || !interaction.mainHand() || !blockMatcher.matches(block, StationType.JUICER)) {
+        if (block == null || player == null || !interaction.mainHand() || !blockMatcher.matches(interaction, StationType.JUICER)) {
             return false;
         }
         StationCoordinates coordinates = StationCoordinates.fromBlock(block);
+        stateStore.rememberStationSource(coordinates, interaction.stationSource());
         if (settingsService.matchesInteraction(StationType.JUICER, CookingSettingsService.INTERACTION_OPEN, interaction)) {
             interaction.cancel();
             if (!player.hasPermission(CookingPermissions.JUICER_USE) && !player.hasPermission(CookingPermissions.ADMIN)) {
@@ -115,6 +117,10 @@ public final class JuicerRuntimeService implements Listener {
             return serve(player, block, coordinates);
         }
         if (settingsService.matchesInteraction(StationType.JUICER, CookingSettingsService.INTERACTION_PROCESS, interaction)) {
+            JuicerState currentState = loadStateOrEmpty(coordinates);
+            if (currentState.isCompletelyEmpty() && interaction.leftClick()) {
+                return false;
+            }
             interaction.cancel();
             if (!player.hasPermission(CookingPermissions.JUICER_PRESS) && !player.hasPermission(CookingPermissions.ADMIN)) {
                 messageService.send(player, "general.no_permission");
@@ -131,10 +137,11 @@ public final class JuicerRuntimeService implements Listener {
 
     public boolean handleBreak(StationBreakContext context) {
         Block block = context.block();
-        if (block == null || !blockMatcher.matches(block, StationType.JUICER)) {
+        if (block == null || !blockMatcher.matches(context, StationType.JUICER)) {
             return false;
         }
         StationCoordinates coordinates = StationCoordinates.fromBlock(block);
+        stateStore.rememberStationSource(coordinates, context.stationSource());
         JuicerGuiHolder openHolder = guiController.findOpenSession(coordinates);
         JuicerState state = openHolder == null ? loadStateOrEmpty(coordinates) : guiController.snapshotInventoryState(
                 coordinates,

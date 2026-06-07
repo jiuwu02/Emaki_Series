@@ -2,10 +2,12 @@ package emaki.jiuwu.craft.corelib.script.graal;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.Optional;
 
 import org.bukkit.plugin.Plugin;
@@ -211,22 +213,56 @@ public final class GraalJavaScriptService implements JavaScriptService {
         if (value.hasMembers()) {
             boolean success = !value.hasMember("success") || asBoolean(value.getMember("success"), true);
             boolean skipped = value.hasMember("skipped") && asBoolean(value.getMember("skipped"), false);
-            String message = value.hasMember("message") ? Texts.toStringSafe(value.getMember("message").as(Object.class)) : "";
+            String message = value.hasMember("message") ? Texts.toStringSafe(detachValue(value.getMember("message"))) : "";
             Map<String, Object> output = new LinkedHashMap<>();
             if (value.hasMember("output") && value.getMember("output").hasMembers()) {
                 Value rawOutput = value.getMember("output");
                 for (String key : rawOutput.getMemberKeys()) {
-                    output.put(key, rawOutput.getMember(key).as(Object.class));
+                    output.put(key, detachValue(rawOutput.getMember(key)));
                 }
             }
             if (skipped) {
                 return ScriptExecutionResult.skipped(message);
             }
             return success
-                    ? ScriptExecutionResult.success(value.as(Object.class), message, output)
+                    ? ScriptExecutionResult.success(detachValue(value), message, output)
                     : ScriptExecutionResult.failure(Texts.isBlank(message) ? "Script returned failure." : message);
         }
-        return ScriptExecutionResult.success(value.as(Object.class), "");
+        return ScriptExecutionResult.success(detachValue(value), "");
+    }
+
+    private Object detachValue(Value value) {
+        if (value == null || value.isNull()) {
+            return null;
+        }
+        if (value.isHostObject()) {
+            return value.asHostObject();
+        }
+        if (value.hasArrayElements()) {
+            List<Object> result = new ArrayList<>();
+            long size = value.getArraySize();
+            for (long index = 0; index < size; index++) {
+                result.add(detachValue(value.getArrayElement(index)));
+            }
+            return Collections.unmodifiableList(result);
+        }
+        if (value.hasMembers()) {
+            Map<String, Object> result = new LinkedHashMap<>();
+            for (String key : value.getMemberKeys()) {
+                result.put(key, detachValue(value.getMember(key)));
+            }
+            return Collections.unmodifiableMap(result);
+        }
+        if (value.isString()) {
+            return value.asString();
+        }
+        if (value.isBoolean()) {
+            return value.asBoolean();
+        }
+        if (value.isNumber()) {
+            return value.as(Object.class);
+        }
+        return Texts.toStringSafe(value.as(Object.class));
     }
 
     private boolean asBoolean(Value value, boolean fallback) {

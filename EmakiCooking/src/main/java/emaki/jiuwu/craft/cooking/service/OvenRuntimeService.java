@@ -99,8 +99,9 @@ public final class OvenRuntimeService implements Listener {
         for (Map.Entry<StationCoordinates, emaki.jiuwu.craft.corelib.yaml.YamlSection> entry : stateStore.loadAll(StationType.OVEN).entrySet()) {
             StationCoordinates coordinates = entry.getKey();
             OvenState state = codec.readState(entry.getValue());
+            ItemSource stationSource = stateStore.stationSource(entry.getValue());
             Block block = coordinates.block();
-            if (state == null || block == null || !blockMatcher.matches(block, StationType.OVEN)) {
+            if (state == null || !blockMatcher.matches(block, StationType.OVEN, stationSource)) {
                 guiController.closeOpenInventories(coordinates, true);
                 removeState(coordinates, true);
                 continue;
@@ -132,10 +133,11 @@ public final class OvenRuntimeService implements Listener {
         if (block == null || player == null || !interaction.mainHand()) {
             return false;
         }
-        if (!blockMatcher.matches(block, StationType.OVEN)) {
+        if (!blockMatcher.matches(interaction, StationType.OVEN)) {
             return false;
         }
         StationCoordinates coordinates = StationCoordinates.fromBlock(block);
+        stateStore.rememberStationSource(coordinates, interaction.stationSource());
         ItemStack hand = player.getInventory().getItemInMainHand();
         CookingSettingsService.OvenFuelRule fuelRule = matchFuelRule(hand);
         if (fuelRule != null && settingsService.matchesInteraction(StationType.OVEN, CookingSettingsService.INTERACTION_FUEL, interaction)) {
@@ -167,10 +169,11 @@ public final class OvenRuntimeService implements Listener {
 
     public boolean handleBreak(StationBreakContext context) {
         Block block = context.block();
-        if (block == null || !blockMatcher.matches(block, StationType.OVEN)) {
+        if (block == null || !blockMatcher.matches(context, StationType.OVEN)) {
             return false;
         }
         StationCoordinates coordinates = StationCoordinates.fromBlock(block);
+        stateStore.rememberStationSource(coordinates, context.stationSource());
         OvenGuiHolder openHolder = guiController.findOpenSession(coordinates);
         OvenState state = openHolder == null
                 ? loadStateOrEmpty(coordinates)
@@ -364,7 +367,8 @@ public final class OvenRuntimeService implements Listener {
     private void processStation(StationCoordinates coordinates, long now) {
         Block block = coordinates == null ? null : coordinates.block();
         OvenState state = loadStateOrEmpty(coordinates);
-        if (block == null || !blockMatcher.matches(block, StationType.OVEN)) {
+        ItemSource stationSource = stateStore.rememberedStationSource(coordinates);
+        if (block == null || !blockMatcher.matches(block, StationType.OVEN, stationSource)) {
             guiController.closeOpenInventories(coordinates, true);
             removeState(coordinates, true);
             activeStations.remove(coordinates);
