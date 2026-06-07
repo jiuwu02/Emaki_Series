@@ -83,8 +83,13 @@ public final class CookingSettingsService {
         itemAdjustments = loadItemAdjustments();
     }
 
+    public List<ItemSource> stationBlockSources(StationType stationType) {
+        return parseSources(configuration.get(stationPath(stationType) + ".block_item_sources"));
+    }
+
     public ItemSource stationBlockSource(StationType stationType) {
-        return ItemSourceUtil.parse(configuration.get(stationPath(stationType) + ".block_item_sources"));
+        List<ItemSource> sources = stationBlockSources(stationType);
+        return sources.isEmpty() ? null : sources.getFirst();
     }
 
     public boolean onlyRecipeItems(StationType stationType) {

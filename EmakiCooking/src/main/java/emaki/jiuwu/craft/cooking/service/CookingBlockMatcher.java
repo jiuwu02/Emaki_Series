@@ -31,8 +31,12 @@ public final class CookingBlockMatcher {
         if (block == null || stationType == null) {
             return false;
         }
-        ItemSource source = settingsService.stationBlockSource(stationType);
-        return matches(block, source);
+        for (ItemSource source : settingsService.stationBlockSources(stationType)) {
+            if (matches(block, source)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public boolean matches(Block block, ItemSource source) {
