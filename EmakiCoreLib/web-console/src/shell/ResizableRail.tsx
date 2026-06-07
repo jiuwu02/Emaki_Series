@@ -1,26 +1,73 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { t } from '../i18n';
 
 const RAIL_MIN = 180;
 const RAIL_MAX = 600;
 const RAIL_STEP = 16;
+const OUTLINE_MIN = 180;
+const OUTLINE_MAX = 440;
+const OUTLINE_STEP = 16;
 
-export function ResizableRail({ children }: { children: React.ReactNode }) {
+type ResizableSideRailProps = {
+  children: ReactNode;
+  className: string;
+  resizeClassName: string;
+  storageKey: string;
+  cssVariable: string;
+  defaultWidth: number;
+  min: number;
+  max: number;
+  step: number;
+  dragDirection: 1 | -1;
+  ariaLabel: string;
+};
+
+export function ResizableRail({ children }: { children: ReactNode }) {
+  return <ResizableSideRail
+    className="tree-rail"
+    resizeClassName="rail-resize"
+    storageKey="emaki-rail-width"
+    cssVariable="--rail-width"
+    defaultWidth={272}
+    min={RAIL_MIN}
+    max={RAIL_MAX}
+    step={RAIL_STEP}
+    dragDirection={1}
+    ariaLabel={t('core.tree.resizeAria')}
+  >{children}</ResizableSideRail>;
+}
+
+export function ResizableOutlineRail({ children }: { children: ReactNode }) {
+  return <ResizableSideRail
+    className="field-outline-rail"
+    resizeClassName="outline-resize"
+    storageKey="emaki-outline-width"
+    cssVariable="--outline-width"
+    defaultWidth={240}
+    min={OUTLINE_MIN}
+    max={OUTLINE_MAX}
+    step={OUTLINE_STEP}
+    dragDirection={-1}
+    ariaLabel={t('core.outline.resizeAria')}
+  >{children}</ResizableSideRail>;
+}
+
+function ResizableSideRail({ children, className, resizeClassName, storageKey, cssVariable, defaultWidth, min, max, step, dragDirection, ariaLabel }: ResizableSideRailProps) {
   const [width, setWidth] = useState(() => {
-    const saved = localStorage.getItem('emaki-rail-width');
-    return saved ? clampRailWidth(Number(saved)) : 272;
+    const saved = localStorage.getItem(storageKey);
+    return saved ? clampRailWidth(Number(saved), min, max, defaultWidth) : defaultWidth;
   });
   const [dragging, setDragging] = useState(false);
   const startX = useRef(0);
-  const startW = useRef(272);
+  const startW = useRef(defaultWidth);
   const latestWidth = useRef(width);
 
   const commitWidth = useCallback((next: number) => {
-    const clamped = clampRailWidth(next);
+    const clamped = clampRailWidth(next, min, max, defaultWidth);
     latestWidth.current = clamped;
     setWidth(clamped);
-    localStorage.setItem('emaki-rail-width', String(clamped));
-  }, []);
+    localStorage.setItem(storageKey, String(clamped));
+  }, [defaultWidth, max, min, storageKey]);
 
   const onMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -32,21 +79,21 @@ export function ResizableRail({ children }: { children: React.ReactNode }) {
   const onKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
     e.preventDefault();
-    if (e.key === 'Home') commitWidth(RAIL_MIN);
-    else if (e.key === 'End') commitWidth(RAIL_MAX);
-    else commitWidth(width + (e.key === 'ArrowRight' ? RAIL_STEP : -RAIL_STEP));
-  }, [commitWidth, width]);
+    if (e.key === 'Home') commitWidth(min);
+    else if (e.key === 'End') commitWidth(max);
+    else commitWidth(width + (e.key === 'ArrowRight' ? step : -step) * dragDirection);
+  }, [commitWidth, dragDirection, max, min, step, width]);
 
   useEffect(() => {
     if (!dragging) return;
     const onMove = (e: MouseEvent) => {
-      const next = clampRailWidth(startW.current + (e.clientX - startX.current));
+      const next = clampRailWidth(startW.current + (e.clientX - startX.current) * dragDirection, min, max, defaultWidth);
       latestWidth.current = next;
       setWidth(next);
     };
     const onUp = () => {
       setDragging(false);
-      localStorage.setItem('emaki-rail-width', String(latestWidth.current));
+      localStorage.setItem(storageKey, String(latestWidth.current));
     };
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
@@ -58,24 +105,24 @@ export function ResizableRail({ children }: { children: React.ReactNode }) {
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
     };
-  }, [dragging]);
+  }, [defaultWidth, dragDirection, dragging, max, min, storageKey]);
 
   useEffect(() => {
     latestWidth.current = width;
-    document.documentElement.style.setProperty('--rail-width', `${width}px`);
-  }, [width]);
+    document.documentElement.style.setProperty(cssVariable, `${width}px`);
+  }, [cssVariable, width]);
 
   return (
-    <aside className="tree-rail">
+    <aside className={className}>
       {children}
       <div
-        className={`rail-resize ${dragging ? 'active' : ''}`}
+        className={`${resizeClassName} ${dragging ? 'active' : ''}`}
         role="separator"
         tabIndex={0}
         aria-orientation="vertical"
-        aria-label={t('core.tree.resizeAria')}
-        aria-valuemin={RAIL_MIN}
-        aria-valuemax={RAIL_MAX}
+        aria-label={ariaLabel}
+        aria-valuemin={min}
+        aria-valuemax={max}
         aria-valuenow={width}
         onMouseDown={onMouseDown}
         onKeyDown={onKeyDown}
@@ -84,6 +131,6 @@ export function ResizableRail({ children }: { children: React.ReactNode }) {
   );
 }
 
-function clampRailWidth(value: number): number {
-  return Math.max(RAIL_MIN, Math.min(RAIL_MAX, Number.isFinite(value) ? value : 272));
+function clampRailWidth(value: number, min: number, max: number, fallback: number): number {
+  return Math.max(min, Math.min(max, Number.isFinite(value) ? value : fallback));
 }

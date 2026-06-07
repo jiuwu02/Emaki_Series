@@ -12,7 +12,7 @@ import { useDialogFocus } from './components/useDialogFocus';
 import { useStableEntries } from './components/useStableEntries';
 import { I18nBundleModal, type I18nTarget } from './I18nBundleModal';
 import { configNodeDisplayComment as resolveConfigNodeComment, fieldLabel, fileDisplayComment, fileDisplayTitle, humanizeFieldLabel, moduleDisplayName, optionLabel, parseYaml, serializeYaml, setDeepValue, valuesEqual } from './lib';
-import { Login, ResizableRail, WorkspaceTree, fileKindLabel } from './shell';
+import { Login, ResizableOutlineRail, ResizableRail, WorkspaceTree, fileKindLabel } from './shell';
 import type { SurfaceProps, SurfaceToolbarState } from './registry';
 import type { RegistryTreeNode, WebConfigCreateTemplate, WebConfigFieldSchema, WebConfigNode, WebConsoleExtension, WebConsoleExtensionStatus, WebEditorDescriptor, WebRegistry, WebRegistryFile, WebRegistryModule } from './types';
 
@@ -42,6 +42,8 @@ type DraftPathsAction = (scope: ConfigDraftScope, paths: string[]) => void;
 type RegistryLoadOptions = { initial?: boolean; clearDrafts?: boolean; announceRefresh?: boolean };
 type ConfigSourceDocument = ReturnType<typeof useConfigSourceDocument>;
 type SourceEditController = { paths: Set<string>; update: (node: WebConfigNode, next: unknown) => void };
+type SurfaceOutlineItem = { path: string; label: string; type: string; childCount: number; changedCount: number; changed: boolean };
+type SurfaceOutlineState = { title: string; subtitle: string; items: SurfaceOutlineItem[]; emptyText?: string } | null;
 
 // Sequentially persist changed config nodes, tracking exactly which paths committed so a
 // mid-loop failure never leaves the UI claiming clean fields are dirty (or vice versa).
@@ -133,6 +135,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [surfaceToolbar, setSurfaceToolbar] = useState<SurfaceToolbarState | null>(null);
+  const [surfaceOutline, setSurfaceOutline] = useState<SurfaceOutlineState>(null);
   const [surfaceDirtyKeys, setSurfaceDirtyKeys] = useState<Set<string>>(() => new Set());
   const [extensionStatuses, setExtensionStatuses] = useState<WebConsoleExtensionStatus[]>([]);
   const [extensionHealth, setExtensionHealth] = useState<'idle' | 'loading' | 'ok' | 'failed'>('idle');
@@ -148,6 +151,7 @@ export default function App() {
     setDrafts({});
     setDraftHistory({});
     setSurfaceToolbar(null);
+    setSurfaceOutline(null);
     setSurfaceDirtyKeys(new Set());
     setCreateTarget(null);
     setDeleteTarget(null);
@@ -504,6 +508,10 @@ export default function App() {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [selectedDraftScope, selectedScopeHistory.undo.length, selectedScopeHistory.redo.length, saving, loading]);
 
+  function jumpToConfigPath(path: string) {
+    jumpToConfigNode(path);
+  }
+
   if (!token) return <Login notice={loginNotice} onLogin={(t) => { sessionStorage.setItem('emaki-web-token', t); setLoginNotice(null); setToken(t); }} />;
 
   return (
@@ -572,9 +580,12 @@ export default function App() {
           onSave={toolbar.onSave}
         />
         <section className="editor-shell single">
-          <ConfigSurface registry={registry} module={selectedModule} file={selectedFile} drafts={drafts} draftHistory={draftHistory} setDraftValue={setDraftValue} clearDraftScope={clearDraftScope} clearDraftValues={clearDraftValues} clearDraftPaths={clearDraftPaths} reconcileScopeDrafts={reconcileScopeDrafts} setSaveConflict={setSaveConflict} undoDraftScope={undoDraftScope} redoDraftScope={redoDraftScope} api={api} scriptPath={selected?.scriptPath} refreshKey={selected?.refreshKey ?? 0} pendingExtensionModules={pendingExtensionModules} onReload={() => void reloadCurrentSurface()} onRefreshRegistry={() => loadRegistry({ clearDrafts: false, announceRefresh: false })} setSurfaceToolbar={setSurfaceToolbar} setToast={setToast} />
+          <ConfigSurface registry={registry} module={selectedModule} file={selectedFile} drafts={drafts} draftHistory={draftHistory} setDraftValue={setDraftValue} clearDraftScope={clearDraftScope} clearDraftValues={clearDraftValues} clearDraftPaths={clearDraftPaths} reconcileScopeDrafts={reconcileScopeDrafts} setSaveConflict={setSaveConflict} undoDraftScope={undoDraftScope} redoDraftScope={redoDraftScope} api={api} scriptPath={selected?.scriptPath} refreshKey={selected?.refreshKey ?? 0} pendingExtensionModules={pendingExtensionModules} onReload={() => void reloadCurrentSurface()} onRefreshRegistry={() => loadRegistry({ clearDrafts: false, announceRefresh: false })} setSurfaceToolbar={setSurfaceToolbar} setSurfaceOutline={setSurfaceOutline} setToast={setToast} />
         </section>
       </main>
+      <ResizableOutlineRail>
+        <FieldOutlineRail outline={surfaceOutline} onJump={jumpToConfigPath} />
+      </ResizableOutlineRail>
     </div>
     </EconomyProvidersProvider>
     </ActionTypesProvider>
@@ -609,6 +620,54 @@ function SurfaceSummaryStrip({ module, file, editor, toolbar, loading }: { modul
       {chips.map((chip, index) => <span key={`${chip}-${index}`} className={`surface-summary-chip${chip === fileKind ? ' kind' : ''}`}>{chip}</span>)}
     </div>
   </section>;
+}
+
+function FieldOutlineRail({ outline, onJump }: { outline: SurfaceOutlineState; onJump: (path: string) => void }) {
+  const items = outline?.items ?? [];
+  const title = outline?.title ?? t('core.outline.title');
+  const subtitle = outline?.subtitle || t('core.outline.noConfig');
+  const emptyText = outline?.emptyText || t('core.outline.noConfig');
+  return <div className="field-outline">
+    <div className="field-outline-head">
+      <span>{t('core.outline.subtitle')}</span>
+      <strong>{title}</strong>
+      <code>{subtitle}</code>
+    </div>
+    {items.length > 0
+      ? <nav className="field-outline-list" aria-label={title}>{items.map(item => <button
+          key={item.path}
+          type="button"
+          className={`field-outline-item${item.changed ? ' changed' : ''}`}
+          onClick={() => onJump(item.path)}
+          aria-label={t('core.outline.itemAria', { path: item.path })}
+        >
+          <span className="field-outline-item-main"><strong>{item.label}</strong>{item.changedCount > 0 && <em>{t('core.outline.changed', { count: item.changedCount })}</em>}</span>
+          <code>{item.path}</code>
+          <span className="field-outline-item-meta">{item.childCount > 0 ? t('core.outline.childCount', { count: item.childCount }) : item.type}</span>
+        </button>)}</nav>
+      : <div className="field-outline-empty" role="status">{emptyText}</div>}
+  </div>;
+}
+
+function jumpToConfigNode(path: string, attempt = 0) {
+  const stage = document.querySelector<HTMLElement>('.stage');
+  const target = (stage ?? document).querySelector<HTMLElement>(`[data-config-node-path="${cssSelectorEscape(path)}"]`);
+  if (!target) {
+    if (attempt < 8) window.requestAnimationFrame(() => jumpToConfigNode(path, attempt + 1));
+    return;
+  }
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  target.scrollIntoView({ block: 'center', behavior: reduceMotion ? 'auto' : 'smooth' });
+  target.classList.remove('config-node-locate');
+  void target.offsetWidth;
+  target.classList.add('config-node-locate');
+  window.setTimeout(() => target.classList.remove('config-node-locate'), reduceMotion ? 900 : 1500);
+}
+
+function cssSelectorEscape(value: string): string {
+  const css = globalThis.CSS;
+  if (css && typeof css.escape === 'function') return css.escape(value);
+  return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\0/g, '\uFFFD');
 }
 
 function ExtensionHealthBanner({ health, statuses, onRetry }: { health: 'idle' | 'loading' | 'ok' | 'failed'; statuses: WebConsoleExtensionStatus[]; onRetry: () => void }) {
@@ -750,10 +809,11 @@ function DeleteFileModal({ target, onCancel, onDelete }: { target: RegistryTreeN
   </div>;
 }
 
-function ConfigSurface({ registry, module, file, drafts, draftHistory, setDraftValue, clearDraftScope, clearDraftValues, clearDraftPaths, reconcileScopeDrafts, setSaveConflict, undoDraftScope, redoDraftScope, api, scriptPath, refreshKey, pendingExtensionModules, onReload, onRefreshRegistry, setSurfaceToolbar, setToast }: { registry: WebRegistry | null; module: WebRegistryModule | null; file: WebRegistryFile | null; drafts: DraftMap; draftHistory: DraftHistoryMap; setDraftValue: DraftValueSetter; clearDraftScope: DraftScopeAction; clearDraftValues: DraftScopeAction; clearDraftPaths: DraftPathsAction; reconcileScopeDrafts: ConfigSaveSafety['reconcileScopeDrafts']; setSaveConflict: ConfigSaveSafety['setSaveConflict']; undoDraftScope: DraftScopeAction; redoDraftScope: DraftScopeAction; api: ApiClient; scriptPath?: string; refreshKey: number; pendingExtensionModules: ReadonlySet<string>; onReload?: () => void; onRefreshRegistry: () => Promise<WebRegistry | null>; setSurfaceToolbar: (state: SurfaceToolbarState | null) => void; setToast: (toast: Toast) => void }) {
+function ConfigSurface({ registry, module, file, drafts, draftHistory, setDraftValue, clearDraftScope, clearDraftValues, clearDraftPaths, reconcileScopeDrafts, setSaveConflict, undoDraftScope, redoDraftScope, api, scriptPath, refreshKey, pendingExtensionModules, onReload, onRefreshRegistry, setSurfaceToolbar, setSurfaceOutline, setToast }: { registry: WebRegistry | null; module: WebRegistryModule | null; file: WebRegistryFile | null; drafts: DraftMap; draftHistory: DraftHistoryMap; setDraftValue: DraftValueSetter; clearDraftScope: DraftScopeAction; clearDraftValues: DraftScopeAction; clearDraftPaths: DraftPathsAction; reconcileScopeDrafts: ConfigSaveSafety['reconcileScopeDrafts']; setSaveConflict: ConfigSaveSafety['setSaveConflict']; undoDraftScope: DraftScopeAction; redoDraftScope: DraftScopeAction; api: ApiClient; scriptPath?: string; refreshKey: number; pendingExtensionModules: ReadonlySet<string>; onReload?: () => void; onRefreshRegistry: () => Promise<WebRegistry | null>; setSurfaceToolbar: (state: SurfaceToolbarState | null) => void; setSurfaceOutline: (state: SurfaceOutlineState) => void; setToast: (toast: Toast) => void }) {
   useEffect(() => {
     setSurfaceToolbar(null);
-    return () => setSurfaceToolbar(null);
+    setSurfaceOutline(null);
+    return () => { setSurfaceToolbar(null); setSurfaceOutline(null); };
   }, [module?.id, file?.id, scriptPath]);
 
   if (registry && registry.modules.length === 0) return <section className="config-surface empty" role="status">{t('core.empty.noRegistry')}</section>;
@@ -772,13 +832,13 @@ function ConfigSurface({ registry, module, file, drafts, draftHistory, setDraftV
 
   if (isKind(file.kind, 'SCRIPT')) return <section className="config-surface script-surface"><div className="surface-head"><div><h2>{fileDisplayTitle(file)}</h2><p>{fileDisplayComment(file)}</p></div><span className="file-kind script">{fileKindLabel(file.kind)}</span></div>{scriptPath ? <ScriptEditor api={api} scriptPath={scriptPath} module={module} file={file} setSurfaceToolbar={setSurfaceToolbar} setToast={setToast} /> : <div className="script-placeholder" role="status">{t('core.empty.selectScript')}</div>}</section>;
   // CONFIG 类型：如果有子文件路径，按需加载子文件内容
-  if (isKind(file.kind, 'CONFIG') && scriptPath) return <ConfigChildSurface module={module} file={file} childPath={scriptPath} drafts={drafts} draftHistory={draftHistory} setDraftValue={setDraftValue} clearDraftScope={clearDraftScope} clearDraftValues={clearDraftValues} clearDraftPaths={clearDraftPaths} reconcileScopeDrafts={reconcileScopeDrafts} setSaveConflict={setSaveConflict} undoDraftScope={undoDraftScope} redoDraftScope={redoDraftScope} api={api} refreshKey={refreshKey} setSurfaceToolbar={setSurfaceToolbar} setToast={setToast} />;
+  if (isKind(file.kind, 'CONFIG') && scriptPath) return <ConfigChildSurface module={module} file={file} childPath={scriptPath} drafts={drafts} draftHistory={draftHistory} setDraftValue={setDraftValue} clearDraftScope={clearDraftScope} clearDraftValues={clearDraftValues} clearDraftPaths={clearDraftPaths} reconcileScopeDrafts={reconcileScopeDrafts} setSaveConflict={setSaveConflict} undoDraftScope={undoDraftScope} redoDraftScope={redoDraftScope} api={api} refreshKey={refreshKey} setSurfaceToolbar={setSurfaceToolbar} setSurfaceOutline={setSurfaceOutline} setToast={setToast} />;
   // CONFIG 类型 glob 文件无子文件选中时，显示提示
   if (isKind(file.kind, 'CONFIG') && file.children && file.children.length > 0 && file.nodes.length === 0) return <section className="config-surface"><div className="surface-head"><div><h2>{fileDisplayTitle(file)}</h2><p>{fileDisplayComment(file)}</p></div><span className={`file-kind ${String(file.kind).toLowerCase()}`}>{fileKindLabel(file.kind)}</span></div><div className="script-placeholder" role="status">{t('core.empty.selectFile')}</div></section>;
-  return <ConfigStructuredSurface module={module} file={file} drafts={drafts} draftHistory={draftHistory} setDraftValue={setDraftValue} clearDraftScope={clearDraftScope} clearDraftValues={clearDraftValues} clearDraftPaths={clearDraftPaths} reconcileScopeDrafts={reconcileScopeDrafts} setSaveConflict={setSaveConflict} undoDraftScope={undoDraftScope} redoDraftScope={redoDraftScope} api={api} refreshKey={refreshKey} onRefreshRegistry={onRefreshRegistry} setSurfaceToolbar={setSurfaceToolbar} setToast={setToast} />;
+  return <ConfigStructuredSurface module={module} file={file} drafts={drafts} draftHistory={draftHistory} setDraftValue={setDraftValue} clearDraftScope={clearDraftScope} clearDraftValues={clearDraftValues} clearDraftPaths={clearDraftPaths} reconcileScopeDrafts={reconcileScopeDrafts} setSaveConflict={setSaveConflict} undoDraftScope={undoDraftScope} redoDraftScope={redoDraftScope} api={api} refreshKey={refreshKey} onRefreshRegistry={onRefreshRegistry} setSurfaceToolbar={setSurfaceToolbar} setSurfaceOutline={setSurfaceOutline} setToast={setToast} />;
 }
 
-function ConfigStructuredSurface({ module, file, drafts, draftHistory, setDraftValue, clearDraftScope, clearDraftValues, clearDraftPaths, reconcileScopeDrafts, setSaveConflict, undoDraftScope, redoDraftScope, api, refreshKey, onRefreshRegistry, setSurfaceToolbar, setToast }: { module: WebRegistryModule; file: WebRegistryFile; drafts: DraftMap; draftHistory: DraftHistoryMap; setDraftValue: DraftValueSetter; clearDraftScope: DraftScopeAction; clearDraftValues: DraftScopeAction; clearDraftPaths: DraftPathsAction; reconcileScopeDrafts: ConfigSaveSafety['reconcileScopeDrafts']; setSaveConflict: ConfigSaveSafety['setSaveConflict']; undoDraftScope: DraftScopeAction; redoDraftScope: DraftScopeAction; api: ApiClient; refreshKey: number; onRefreshRegistry: () => Promise<WebRegistry | null>; setSurfaceToolbar: (state: SurfaceToolbarState | null) => void; setToast: (toast: Toast) => void }) {
+function ConfigStructuredSurface({ module, file, drafts, draftHistory, setDraftValue, clearDraftScope, clearDraftValues, clearDraftPaths, reconcileScopeDrafts, setSaveConflict, undoDraftScope, redoDraftScope, api, refreshKey, onRefreshRegistry, setSurfaceToolbar, setSurfaceOutline, setToast }: { module: WebRegistryModule; file: WebRegistryFile; drafts: DraftMap; draftHistory: DraftHistoryMap; setDraftValue: DraftValueSetter; clearDraftScope: DraftScopeAction; clearDraftValues: DraftScopeAction; clearDraftPaths: DraftPathsAction; reconcileScopeDrafts: ConfigSaveSafety['reconcileScopeDrafts']; setSaveConflict: ConfigSaveSafety['setSaveConflict']; undoDraftScope: DraftScopeAction; redoDraftScope: DraftScopeAction; api: ApiClient; refreshKey: number; onRefreshRegistry: () => Promise<WebRegistry | null>; setSurfaceToolbar: (state: SurfaceToolbarState | null) => void; setSurfaceOutline: (state: SurfaceOutlineState) => void; setToast: (toast: Toast) => void }) {
   const scope = useMemo(() => configDraftScope(module, file), [module.id, file.id, file.path]);
   const scopeHistory = draftHistory[draftScopeId(scope)] ?? emptyDraftHistory();
   const source = useConfigSourceDocument({ module, file, api, refreshKey, setToast });
@@ -906,7 +966,7 @@ function ConfigStructuredSurface({ module, file, drafts, draftHistory, setDraftV
     {source.loading && <div className="script-loading" role="status">{t('core.state.loading')}</div>}
     {source.error && <InlineError><span>{source.error}</span><Button size="sm" onClick={() => void reloadStructured()}>{t('core.action.retry')}</Button></InlineError>}
     {!source.loading && !source.error && <DeferredConfigPreviewZone module={module} file={file} path={file.path} nodes={visibleNodes} scope={scope} drafts={drafts} source={source} api={api} />}
-    <ConfigNodeTree scope={scope} nodes={visibleNodes} drafts={drafts} setDraftValue={setDraftValue} onCreateChild={setCreateNode} onDeleteObject={setDeleteNode} sourceEdit={!source.loading && !source.error ? sourceEdit : undefined} deletedPaths={deletedObjectPaths} />
+    <ConfigNodeTree scope={scope} nodes={visibleNodes} outlineTitle={fileTitle} outlineSubtitle={file.path} drafts={drafts} setDraftValue={setDraftValue} onCreateChild={setCreateNode} onDeleteObject={setDeleteNode} sourceEdit={!source.loading && !source.error ? sourceEdit : undefined} deletedPaths={deletedObjectPaths} setSurfaceOutline={setSurfaceOutline} />
     {createNode && <ConfigCreateChildModal scope={scope} node={createNode} source={source} onCancel={() => setCreateNode(null)} onCreated={nodes => { setOptimisticNodes(current => mergeConfigNodes(current, nodes, new Set())); setCreateNode(null); }} setToast={setToast} />}
     {deleteNode && <ConfigDeleteObjectModal node={deleteNode} source={source} onCancel={() => setDeleteNode(null)} onDeleted={path => { setDeletedObjectPaths(current => new Set([...current, path])); setOptimisticNodes(current => current.filter(entry => !entry.path.startsWith(`${path}.`) && entry.path !== path)); setDeleteNode(null); }} setToast={setToast} />}
   </section>;
@@ -1027,7 +1087,7 @@ function useConfigSourceDocument({ module, file, childPath, api, refreshKey, set
   };
 }
 
-function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, setDraftValue, clearDraftScope, clearDraftValues, clearDraftPaths, reconcileScopeDrafts, setSaveConflict, undoDraftScope, redoDraftScope, api, refreshKey, setSurfaceToolbar, setToast }: { module: WebRegistryModule; file: WebRegistryFile; childPath: string; drafts: DraftMap; draftHistory: DraftHistoryMap; setDraftValue: DraftValueSetter; clearDraftScope: DraftScopeAction; clearDraftValues: DraftScopeAction; clearDraftPaths: DraftPathsAction; reconcileScopeDrafts: ConfigSaveSafety['reconcileScopeDrafts']; setSaveConflict: ConfigSaveSafety['setSaveConflict']; undoDraftScope: DraftScopeAction; redoDraftScope: DraftScopeAction; api: ApiClient; refreshKey: number; setSurfaceToolbar: (state: SurfaceToolbarState | null) => void; setToast: (toast: Toast) => void }) {
+function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, setDraftValue, clearDraftScope, clearDraftValues, clearDraftPaths, reconcileScopeDrafts, setSaveConflict, undoDraftScope, redoDraftScope, api, refreshKey, setSurfaceToolbar, setSurfaceOutline, setToast }: { module: WebRegistryModule; file: WebRegistryFile; childPath: string; drafts: DraftMap; draftHistory: DraftHistoryMap; setDraftValue: DraftValueSetter; clearDraftScope: DraftScopeAction; clearDraftValues: DraftScopeAction; clearDraftPaths: DraftPathsAction; reconcileScopeDrafts: ConfigSaveSafety['reconcileScopeDrafts']; setSaveConflict: ConfigSaveSafety['setSaveConflict']; undoDraftScope: DraftScopeAction; redoDraftScope: DraftScopeAction; api: ApiClient; refreshKey: number; setSurfaceToolbar: (state: SurfaceToolbarState | null) => void; setSurfaceOutline: (state: SurfaceOutlineState) => void; setToast: (toast: Toast) => void }) {
   const scope = useMemo(() => configDraftScope(module, file, childPath), [module.id, file.id, file.path, childPath]);
   const scopeHistory = draftHistory[draftScopeId(scope)] ?? emptyDraftHistory();
   const source = useConfigSourceDocument({ module, file, childPath, api, refreshKey, setToast });
@@ -1176,7 +1236,7 @@ function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, set
     {!loading && !error && source.loading && <div className="script-loading" role="status">{t('core.state.loading')}</div>}
     {!loading && !error && source.error && <InlineError><span>{source.error}</span><Button size="sm" onClick={() => void source.reload(false)}>{t('core.action.retry')}</Button></InlineError>}
     {!loading && !error && !source.loading && !source.error && <DeferredConfigPreviewZone module={module} file={file} path={childPath} childPath={childPath} nodes={visibleNodes} scope={scope} drafts={drafts} source={source} api={api} />}
-    {!loading && !error && <ConfigNodeTree scope={scope} nodes={visibleNodes} drafts={drafts} setDraftValue={setDraftValue} onCreateChild={setCreateNode} onDeleteObject={setDeleteNode} sourceEdit={!source.loading && !source.error ? sourceEdit : undefined} deletedPaths={deletedObjectPaths} />}
+    {!loading && !error && <ConfigNodeTree scope={scope} nodes={visibleNodes} outlineTitle={fileName} outlineSubtitle={`${fileTitle} · ${childPath}`} drafts={drafts} setDraftValue={setDraftValue} onCreateChild={setCreateNode} onDeleteObject={setDeleteNode} sourceEdit={!source.loading && !source.error ? sourceEdit : undefined} deletedPaths={deletedObjectPaths} setSurfaceOutline={setSurfaceOutline} />}
     {createNode && <ConfigCreateChildModal scope={scope} node={createNode} source={source} onCancel={() => setCreateNode(null)} onCreated={nodes => { setOptimisticNodes(current => mergeConfigNodes(current, nodes, new Set())); setCreateNode(null); }} setToast={setToast} />}
     {deleteNode && <ConfigDeleteObjectModal node={deleteNode} source={source} onCancel={() => setDeleteNode(null)} onDeleted={path => { setDeletedObjectPaths(current => new Set([...current, path])); setOptimisticNodes(current => current.filter(entry => !entry.path.startsWith(`${path}.`) && entry.path !== path)); setDeleteNode(null); }} setToast={setToast} />}
   </section>;
@@ -1371,25 +1431,29 @@ function deleteDeepValue(source: Record<string, unknown>, path: string[]): Recor
 }
 
 function mergeConfigNodes(baseNodes: WebConfigNode[], optimisticNodes: WebConfigNode[], deletedPaths: Set<string>): WebConfigNode[] {
-  const byPath = new Map<string, WebConfigNode>();
-  for (const node of baseNodes) if (!isDeletedPath(node.path, deletedPaths)) byPath.set(node.path, node);
-  for (const node of optimisticNodes) if (!isDeletedPath(node.path, deletedPaths)) byPath.set(node.path, node);
-  return Array.from(byPath.values()).sort((left, right) => compareConfigPath(left.path, right.path));
+  const optimisticByPath = new Map<string, WebConfigNode>();
+  for (const node of optimisticNodes) {
+    if (!isDeletedPath(node.path, deletedPaths)) optimisticByPath.set(node.path, node);
+  }
+  const result: WebConfigNode[] = [];
+  const emitted = new Set<string>();
+  for (const baseNode of baseNodes) {
+    if (isDeletedPath(baseNode.path, deletedPaths)) continue;
+    const optimistic = optimisticByPath.get(baseNode.path);
+    result.push(optimistic ?? baseNode);
+    emitted.add(baseNode.path);
+  }
+  for (const optimisticNode of optimisticNodes) {
+    if (emitted.has(optimisticNode.path) || isDeletedPath(optimisticNode.path, deletedPaths)) continue;
+    result.push(optimisticNode);
+    emitted.add(optimisticNode.path);
+  }
+  return result;
 }
 
 function isDeletedPath(path: string, deletedPaths: Set<string>): boolean {
   for (const deletedPath of deletedPaths) if (path === deletedPath || path.startsWith(`${deletedPath}.`)) return true;
   return false;
-}
-
-function compareConfigPath(left: string, right: string): number {
-  const leftParts = left.split('.');
-  const rightParts = right.split('.');
-  for (let index = 0; index < Math.min(leftParts.length, rightParts.length); index++) {
-    if (leftParts[index] === rightParts[index]) continue;
-    return leftParts[index].localeCompare(rightParts[index], undefined, { numeric: true });
-  }
-  return leftParts.length - rightParts.length;
 }
 
 function emptyCreateTemplate(node: WebConfigNode): WebConfigCreateTemplate {
@@ -1563,13 +1627,24 @@ function configNodeDisplayComment(scope: ConfigDraftScope, node: WebConfigNode):
   return resolveConfigNodeComment(scope.moduleId, node.path, node.comment);
 }
 
-const ConfigNodeTree = memo(function ConfigNodeTree({ scope, nodes, drafts, setDraftValue, onCreateChild, onDeleteObject, sourceEdit, deletedPaths }: { scope: ConfigDraftScope; nodes: WebConfigNode[]; drafts: DraftMap; setDraftValue: DraftValueSetter; onCreateChild: (node: WebConfigNode) => void; onDeleteObject: (node: WebConfigNode) => void; sourceEdit?: SourceEditController; deletedPaths?: Set<string> }) {
+const ConfigNodeTree = memo(function ConfigNodeTree({ scope, nodes, outlineTitle, outlineSubtitle, drafts, setDraftValue, onCreateChild, onDeleteObject, sourceEdit, deletedPaths, setSurfaceOutline }: { scope: ConfigDraftScope; nodes: WebConfigNode[]; outlineTitle: string; outlineSubtitle: string; drafts: DraftMap; setDraftValue: DraftValueSetter; onCreateChild: (node: WebConfigNode) => void; onDeleteObject: (node: WebConfigNode) => void; sourceEdit?: SourceEditController; deletedPaths?: Set<string>; setSurfaceOutline: (state: SurfaceOutlineState) => void }) {
   const nodeIndex = useMemo(() => buildNodeIndex(nodes), [nodes]);
   const scopeDraftKey = useMemo(() => draftSignatureForScope(drafts, scope), [drafts, scope.moduleId, scope.fileId, scope.filePath]);
   const changeState = useMemo(() => buildNodeChangeState(scope, nodes, drafts, sourceEdit?.paths, deletedPaths), [scope.moduleId, scope.fileId, scope.filePath, nodes, scopeDraftKey, sourceEdit?.paths, deletedPaths]);
   const groups = nodeIndex.groupsByParent.get('') ?? [];
   const visibleCount = useProgressiveCount(groups.length, CONFIG_INITIAL_GROUPS, CONFIG_GROUP_BATCH_SIZE, [scope.moduleId, scope.fileId, scope.filePath, groups.length]);
   const visibleGroups = groups.slice(0, visibleCount);
+  const locale = getLocale();
+
+  useEffect(() => {
+    setSurfaceOutline({
+      title: outlineTitle || t('core.outline.title'),
+      subtitle: outlineSubtitle,
+      emptyText: nodes.length ? t('core.outline.empty') : t('core.empty.noConfigNodes'),
+      items: groups.map(group => outlineItemForGroup(scope, group, changeState, nodeIndex))
+    });
+    return () => setSurfaceOutline(null);
+  }, [outlineTitle, outlineSubtitle, groups, nodeIndex, changeState, nodes.length, scope.moduleId, scope.fileId, scope.filePath, locale, setSurfaceOutline]);
 
   if (!nodes.length) return <div className="script-placeholder" role="status">{t('core.empty.noConfigNodes')}</div>;
 
@@ -1584,6 +1659,20 @@ const ConfigNodeTree = memo(function ConfigNodeTree({ scope, nodes, drafts, setD
 type NodeGroup = { type: 'section'; node: WebConfigNode; children: WebConfigNode[] } | { type: 'leaf'; node: WebConfigNode };
 type ConfigNodeIndex = { groupsByParent: Map<string, NodeGroup[]>; descendantsByPath: Map<string, WebConfigNode[]> };
 type ConfigNodeChangeState = { changedPaths: Set<string>; descendantCounts: Map<string, number> };
+
+function outlineItemForGroup(scope: ConfigDraftScope, group: NodeGroup, changeState: ConfigNodeChangeState, nodeIndex: ConfigNodeIndex): SurfaceOutlineItem {
+  const node = group.node;
+  const childCount = group.type === 'section' ? (nodeIndex.descendantsByPath.get(node.path)?.length ?? group.children.length) : 0;
+  const changedCount = Math.max(changeState.descendantCounts.get(node.path) ?? 0, changeState.changedPaths.has(node.path) ? 1 : 0);
+  return {
+    path: node.path,
+    label: configNodeDisplayLabel(scope, node),
+    type: node.type,
+    childCount,
+    changedCount,
+    changed: changedCount > 0
+  };
+}
 
 function buildNodeIndex(nodes: WebConfigNode[]): ConfigNodeIndex {
   const directByParent = new Map<string, WebConfigNode[]>();
@@ -1701,7 +1790,7 @@ const ConfigNodeSection = memo(function ConfigNodeSection({ scope, node, nodeInd
     }
   };
 
-  return <div className={`node-section ${isCollapsed ? 'collapsed' : 'expanded'}${depth > 0 ? ' node-section--nested' : ''}`} data-node-depth={depth}>
+  return <div className={`node-section ${isCollapsed ? 'collapsed' : 'expanded'}${depth > 0 ? ' node-section--nested' : ''}`} data-node-depth={depth} data-config-node-path={node.path}>
     <div className={`node-section-header ${isCollapsed ? 'collapsed' : ''} ${sectionChanged ? 'changed' : ''}`}>
       {branch && <IndentGuide branch={branch} />}
       <button type="button" className="node-section-toggle" onClick={toggleSection} aria-expanded={!isCollapsed}>
@@ -1774,7 +1863,7 @@ function ConfigNodeView({ scope, node, drafts, setDraftValue, sourceEdit, change
   };
   const isWide = isWideConfigNodeType(node.type);
   const label = configNodeDisplayLabel(scope, node);
-  return <div className={`node ${changed || sourceEdited ? 'changed' : ''} ${isWide ? 'node-wide' : ''}`}>{branch && <IndentGuide branch={branch} />}<div className="node-meta"><strong>{label}</strong><code>{node.path}</code><p>{configNodeDisplayComment(scope, node)}</p></div><div className="node-control">{renderControl(node, localValue, setValue, label, scope.moduleId)}{deletable && onDeleteObject && <button type="button" className="node-section-delete" onClick={() => onDeleteObject(node)}>{t('core.config.delete')}</button>}</div></div>;
+  return <div className={`node ${changed || sourceEdited ? 'changed' : ''} ${isWide ? 'node-wide' : ''}`} data-config-node-path={node.path}>{branch && <IndentGuide branch={branch} />}<div className="node-meta"><strong>{label}</strong><code>{node.path}</code><p>{configNodeDisplayComment(scope, node)}</p></div><div className="node-control">{renderControl(node, localValue, setValue, label, scope.moduleId)}{deletable && onDeleteObject && <button type="button" className="node-section-delete" onClick={() => onDeleteObject(node)}>{t('core.config.delete')}</button>}</div></div>;
 }
 
 function isWideConfigNodeType(type: string | undefined): boolean {

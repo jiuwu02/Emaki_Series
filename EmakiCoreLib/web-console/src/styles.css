@@ -522,7 +522,7 @@ textarea {
   min-width: 0;
   min-height: 0;
   display: grid;
-  grid-template-columns: var(--rail-width, 272px) minmax(0, 1fr);
+  grid-template-columns: var(--rail-width, 272px) minmax(0, 1fr) var(--outline-width, 240px);
   overflow: hidden;
 }
 
@@ -1180,6 +1180,171 @@ textarea {
 .rail-resize:focus-visible {
   background: var(--accent);
   opacity: 0.5;
+}
+
+.field-outline-rail {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--line);
+  background: color-mix(in oklch, var(--rail) 90%, var(--surface) 10%);
+}
+
+.outline-resize {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 5;
+  background: transparent;
+  transition: background 0.15s;
+}
+
+.outline-resize:hover,
+.outline-resize.active,
+.outline-resize:focus-visible {
+  background: var(--accent);
+  opacity: 0.5;
+}
+
+.field-outline {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 10px;
+}
+
+.field-outline-head {
+  display: grid;
+  gap: 3px;
+  padding: 4px 6px 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.field-outline-head span {
+  color: var(--faint);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.field-outline-head strong {
+  min-width: 0;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 750;
+  letter-spacing: -.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.field-outline-head code {
+  min-width: 0;
+  color: var(--faint);
+  font-family: ui-monospace, "Cascadia Code", monospace;
+  font-size: 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.field-outline-list {
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  display: grid;
+  gap: 3px;
+  padding-right: 2px;
+}
+
+.field-outline-item {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+  padding: 7px 7px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  text-align: left;
+  cursor: pointer;
+  transition: background .16s ease, border-color .16s ease, color .16s ease, transform .16s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.field-outline-item:hover,
+.field-outline-item:focus-visible {
+  border-color: var(--line-2);
+  background: var(--surface-2);
+  color: var(--text);
+  outline: none;
+}
+
+.field-outline-item:active {
+  transform: scale(.985);
+}
+
+.field-outline-item.changed {
+  border-color: var(--changed-line);
+  background: color-mix(in oklch, var(--changed-bg) 54%, transparent);
+  color: var(--changed-ink);
+}
+
+.field-outline-item-main {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.field-outline-item-main strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.field-outline-item-main em {
+  flex: 0 0 auto;
+  font-style: normal;
+  color: var(--changed-ink);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.field-outline-item code {
+  min-width: 0;
+  color: var(--faint);
+  font-family: ui-monospace, "Cascadia Code", monospace;
+  font-size: 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.field-outline-item-meta {
+  color: var(--faint);
+  font-size: 10px;
+}
+
+.field-outline-empty {
+  margin: 0 4px;
+  padding: 10px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--faint);
+  font-size: 11px;
+  line-height: 1.35;
 }
 
 .module-icon {
@@ -2216,6 +2381,28 @@ textarea {
   }
 }
 
+.node.config-node-locate,
+.node-section.config-node-locate > .node-section-header {
+  outline: 1px solid var(--changed-line);
+  outline-offset: -1px;
+  box-shadow: inset 0 0 0 1px var(--changed-line), 0 0 0 1px var(--changed-soft);
+  animation: config-node-locate 1.2s cubic-bezier(0.16, 1, 0.3, 1) 1;
+}
+
+@keyframes config-node-locate {
+  0%, 100% { background: transparent; }
+  10%, 32%, 54%, 76% { background: var(--changed-bg); }
+  20%, 44%, 66%, 88% { background: transparent; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .node.config-node-locate,
+  .node-section.config-node-locate > .node-section-header {
+    animation: none;
+    background: var(--changed-bg);
+  }
+}
+
 .node-group {
   display: flex;
   align-items: baseline;
@@ -3129,6 +3316,16 @@ textarea {
 .login-notice {
   color: var(--green);
   font-size: 12px;
+}
+
+@media (max-width: 1180px) {
+  .workbench {
+    grid-template-columns: var(--rail-width, 272px) minmax(0, 1fr);
+  }
+
+  .field-outline-rail {
+    display: none;
+  }
 }
 
 @media (max-width: 900px) {
