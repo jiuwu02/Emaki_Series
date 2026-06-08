@@ -16,6 +16,7 @@ export type TextDocumentKind = 'CONFIG' | 'GUI' | 'ITEM' | 'SCRIPT' | string;
 export type TextDocumentTarget = { kind: TextDocumentKind; moduleId?: string; path: string };
 export type TextDocument = { moduleId?: string; path: string; content: string; revision?: number };
 export type FrontendErrorReport = { message: string; source: string; detail?: string; stack?: string; url?: string };
+export type FrontendDebugEventReport = { type: string; target?: string; label?: string; value?: string; detail?: string; url?: string };
 
 export class ApiError extends Error {
   readonly status: number;
@@ -38,6 +39,17 @@ export class ApiClient {
   private economyProvidersCache: EconomyProvidersResult | null = null;
 
   constructor(private token: string | null, private onUnauthorized: () => void) { }
+
+  async reportFrontendEvent(event: FrontendDebugEventReport): Promise<void> {
+    try {
+      await this.request('/api/debug/frontend-event', {
+        method: 'POST',
+        body: JSON.stringify(normalizeFrontendDebugEvent(event))
+      });
+    } catch {
+      // 前端交互 debug 不能影响 Web Console 正常使用。
+    }
+  }
 
   async reportFrontendError(error: FrontendErrorReport): Promise<void> {
     try {
@@ -358,8 +370,39 @@ async function parseResponseJson(response: Response): Promise<any> {
   }
 }
 
+export function reportFrontendLoginEvent(event: FrontendDebugEventReport): void {
+  void postDebugEvent('/api/debug/frontend-login-event', normalizeFrontendDebugEvent(event));
+}
+
+function normalizeFrontendDebugEvent(event: FrontendDebugEventReport): Record<string, string> {
+  return {
+    type: trimLogText(event.type, 80),
+    target: trimLogText(event.target, 180),
+    label: trimLogText(event.label, 180),
+    value: trimLogText(event.value, 180),
+    detail: trimLogText(event.detail, 500),
+    url: trimLogText(event.url ?? window.location.href, 500)
+  };
+}
+
+async function postDebugEvent(path: string, payload: Record<string, string>, token?: string | null): Promise<void> {
+  try {
+    await fetch(path, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify(payload),
+      keepalive: true
+    });
+  } catch {
+    // debug 上报失败不应打断用户操作。
+  }
+}
+
 function trimLogText(value: unknown, maxLength: number): string {
-  const text = String(value ?? '');
+  const text = String(value ?? '').replace(/[\r\n]+/g, ' ').trim();
   return text.length > maxLength ? `${text.slice(0, maxLength)}…` : text;
 }
 

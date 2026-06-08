@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ApiClient } from '../api';
+import { ApiClient, reportFrontendLoginEvent } from '../api';
 import { t } from '../i18n';
 import { Button, InlineError } from '../components';
 
@@ -14,9 +14,27 @@ export function Login({ onLogin, notice }: { onLogin: (token: string) => void; n
 
   async function submit(e: React.FormEvent) {
     e.preventDefault(); setBusy(true); setError('');
-    try { onLogin((await api.login(username, password)).token); }
-    catch (err) { setError(err instanceof Error ? err.message : t('core.login.failed')); }
+    reportLoginDebug('login_submit', `username=${username.trim() || '<empty>'}; password=<masked>`);
+    try {
+      const result = await api.login(username, password);
+      reportLoginDebug('login_success', `username=${username.trim() || '<empty>'}`);
+      onLogin(result.token);
+    }
+    catch (err) {
+      const message = err instanceof Error ? err.message : t('core.login.failed');
+      reportLoginDebug('login_failed', message);
+      setError(message);
+    }
     finally { setBusy(false); }
+  }
+
+  function reportLoginDebug(type: string, detail: string) {
+    reportFrontendLoginEvent({
+      type,
+      target: 'login.form',
+      label: t('core.login.submit'),
+      detail
+    });
   }
 
   return (

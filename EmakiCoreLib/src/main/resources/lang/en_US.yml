@@ -9,7 +9,7 @@
 
 # Emaki CoreLib Default Language File
 # version is maintained by resource sync
-version: "4.2.15"
+version: "4.2.17"
 
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiCoreLib</gradient> ]</gray>"
@@ -100,6 +100,16 @@ debug:
 web_debug:
   request: "[WebDebug][%side%] %method% %uri% → %status% (%elapsed%ms) from %remote%"
   frontend_error: "[WebDebug][frontend][ERROR] %message% | source=%source% | detail=%detail% | url=%url% | stack=%stack%"
+  frontend_event: "[WebDebug][frontend][EVENT] %event% | type=%type% | target=%target% | label=%label% | value=%value% | detail=%detail% | url=%url%"
+  event_type:
+    click: "Click"
+    change: "Input changed"
+    submit: "Form submitted"
+    shortcut: "Shortcut"
+    login_submit: "Login submitted"
+    login_success: "Login succeeded"
+    login_failed: "Login failed"
+    logout_submit: "Logout requested"
   enabled_all: "<green>Web Console debug enabled (frontend + backend)</green>"
   enabled_frontend: "<green>Web Console frontend debug enabled (static assets and extension scripts)</green>"
   enabled_backend: "<green>Web Console backend debug enabled (API requests)</green>"

@@ -9,7 +9,7 @@
 
 # Emaki CoreLib 默认语言文件
 # version 由资源同步维护
-version: "4.2.15"
+version: "4.2.17"
 
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiCoreLib</gradient> ]</gray>"
@@ -100,6 +100,16 @@ debug:
 web_debug:
   request: "[WebDebug][%label%] %method% %uri% → %status% (%elapsed%ms) from %remote%"
   frontend_error: "[WebDebug][前端][ERROR] %message% | source=%source% | detail=%detail% | url=%url% | stack=%stack%"
+  frontend_event: "[WebDebug][前端][EVENT] %event% | type=%type% | target=%target% | label=%label% | value=%value% | detail=%detail% | url=%url%"
+  event_type:
+    click: "点击"
+    change: "修改输入"
+    submit: "提交表单"
+    shortcut: "快捷键"
+    login_submit: "提交登录"
+    login_success: "登录成功"
+    login_failed: "登录失败"
+    logout_submit: "请求登出"
   enabled_all: "<green>Web Console 调试模式已开启（前端+后端）</green>"
   enabled_frontend: "<green>Web Console 前端调试已开启（静态资源与扩展脚本）</green>"
   enabled_backend: "<green>Web Console 后端调试已开启（API 请求）</green>"

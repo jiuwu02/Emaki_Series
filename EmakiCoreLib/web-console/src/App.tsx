@@ -1,7 +1,7 @@
 import { Component, memo, startTransition, useDeferredValue, useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react';
 import type { Completion, CompletionContext, CompletionResult, CompletionSource } from '@codemirror/autocomplete';
 import type { ComponentType } from 'react';
-import { ApiClient, ApiError, type HistoryEntry, type HistorySnapshot, type InsightDependencyGraphEdge, type InsightDependencyGraphNode, type InsightDependencyGraphResult, type InsightReferenceResult, type InsightSearchResult } from './api';
+import { ApiClient, ApiError, type FrontendDebugEventReport, type HistoryEntry, type HistorySnapshot, type InsightDependencyGraphEdge, type InsightDependencyGraphNode, type InsightDependencyGraphResult, type InsightReferenceResult, type InsightSearchResult } from './api';
 import { GuiEditorSurface } from './GuiEditorSurface';
 import { ItemEditorSurface } from './ItemEditorSurface';
 import { loadWebExtensions } from './extensions';
@@ -119,6 +119,58 @@ const OBJECT_LIST_COLLAPSE_THRESHOLD = 10;
 const OBJECT_LIST_INITIAL_ROWS = 30;
 const OBJECT_LIST_ROW_BATCH_SIZE = 30;
 
+function interactiveTarget(target: EventTarget | null): HTMLElement | null {
+  if (!(target instanceof HTMLElement)) return null;
+  return target.closest('button, a, input, select, textarea, [role="button"], [role="menuitem"], [tabindex]');
+}
+
+function isFormControl(target: HTMLElement): target is HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement {
+  return target instanceof HTMLInputElement || target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement;
+}
+
+function frontendDebugEvent(type: string, target: HTMLElement, extra: Partial<FrontendDebugEventReport> = {}): FrontendDebugEventReport {
+  return {
+    type,
+    target: describeDebugTarget(target),
+    label: debugElementLabel(target),
+    ...extra
+  };
+}
+
+function describeDebugTarget(target: HTMLElement): string {
+  const tag = target.tagName.toLowerCase();
+  const id = target.id ? `#${target.id}` : '';
+  const className = String(target.getAttribute('class') ?? '').trim().split(/\s+/).filter(Boolean).slice(0, 3).map(part => `.${part}`).join('');
+  const name = target.getAttribute('name') ? `[name=${target.getAttribute('name')}]` : '';
+  const role = target.getAttribute('role') ? `[role=${target.getAttribute('role')}]` : '';
+  return `${tag}${id}${className}${name}${role}` || tag;
+}
+
+function debugElementLabel(target: HTMLElement): string {
+  const ownLabel = target.getAttribute('aria-label') || target.getAttribute('title') || target.getAttribute('placeholder');
+  if (ownLabel?.trim()) return trimDebugText(ownLabel, 120);
+  const label = target.closest('label');
+  if (label?.textContent?.trim()) return trimDebugText(label.textContent, 120);
+  return trimDebugText(target.textContent ?? '', 120);
+}
+
+function debugInputValue(target: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement): string {
+  const name = `${target.getAttribute('name') ?? ''} ${target.id ?? ''} ${target.getAttribute('autocomplete') ?? ''} ${target.getAttribute('aria-label') ?? ''}`.toLowerCase();
+  if (/password|token|secret|key|authorization/.test(name) || (target instanceof HTMLInputElement && target.type === 'password')) {
+    return '<masked>';
+  }
+  const value = target instanceof HTMLInputElement && (target.type === 'checkbox' || target.type === 'radio') ? String(target.checked) : target.value;
+  if (target instanceof HTMLTextAreaElement || value.length > 180) {
+    return `${trimDebugText(value, 120)} (length=${value.length})`;
+  }
+  return trimDebugText(value, 120);
+}
+
+function trimDebugText(value: string, maxLength: number): string {
+  const normalized = String(value ?? '').replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
+  return normalized.length > maxLength ? `${normalized.slice(0, maxLength)}…` : normalized;
+}
+
 export default function App() {
   const [token, setToken] = useState(() => sessionStorage.getItem('emaki-web-token'));
   const [loginNotice, setLoginNotice] = useState<LoginNotice>(null);
@@ -171,6 +223,7 @@ export default function App() {
 
   const expireSession = () => clearSession('expired');
   const signOut = () => {
+    void api.reportFrontendEvent({ type: 'logout_submit', target: 'auth.logout', label: t('core.auth.logout') });
     void api.logout().catch(() => undefined).finally(() => clearSession('signedOut'));
   };
 
@@ -206,6 +259,40 @@ export default function App() {
     return () => {
       window.removeEventListener('error', handleError);
       window.removeEventListener('unhandledrejection', handleRejection);
+    };
+  }, [api, token]);
+  useEffect(() => {
+    if (!token) return;
+    const report = (event: FrontendDebugEventReport) => void api.reportFrontendEvent(event);
+    const handleClick = (event: MouseEvent) => {
+      const target = interactiveTarget(event.target);
+      if (!target) return;
+      report(frontendDebugEvent('click', target));
+    };
+    const handleChange = (event: Event) => {
+      const target = event.target instanceof HTMLElement ? event.target : null;
+      if (!target || !isFormControl(target)) return;
+      report(frontendDebugEvent('change', target, { value: debugInputValue(target) }));
+    };
+    const handleSubmit = (event: SubmitEvent) => {
+      const target = event.target instanceof HTMLElement ? event.target : null;
+      if (!target) return;
+      report(frontendDebugEvent('submit', target));
+    };
+    const handleKeydown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+        report({ type: 'shortcut', target: 'document', label: 'Ctrl/Meta+K', detail: 'open insight search' });
+      }
+    };
+    document.addEventListener('click', handleClick, true);
+    document.addEventListener('change', handleChange, true);
+    document.addEventListener('submit', handleSubmit, true);
+    document.addEventListener('keydown', handleKeydown, true);
+    return () => {
+      document.removeEventListener('click', handleClick, true);
+      document.removeEventListener('change', handleChange, true);
+      document.removeEventListener('submit', handleSubmit, true);
+      document.removeEventListener('keydown', handleKeydown, true);
     };
   }, [api, token]);
   useEffect(() => {

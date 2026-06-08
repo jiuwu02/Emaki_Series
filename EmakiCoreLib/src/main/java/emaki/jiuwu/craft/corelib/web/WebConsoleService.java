@@ -13,6 +13,7 @@ import java.util.concurrent.ExecutorService;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.economy.EconomyManager;
+import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.web.history.WebChangeHistoryService;
 import emaki.jiuwu.craft.corelib.web.insight.WebInsightDependencyGraphService;
 import emaki.jiuwu.craft.corelib.web.insight.WebInsightReferenceService;
@@ -97,6 +98,8 @@ public final class WebConsoleService {
             createContext("/api/configs/save", postAuth(this::handleConfigSave));
             createContext("/api/libraries", auth(this::handleLibraries));
             createContext("/api/debug/frontend-error", postAuth(this::handleFrontendError));
+            createContext("/api/debug/frontend-event", postAuth(this::handleFrontendEvent));
+            createContext("/api/debug/frontend-login-event", post(this::handleFrontendLoginEvent));
             createContext("/api/scripts/read", auth(this::handleScriptRead));
             createContext("/api/scripts/save", postAuth(this::handleScriptSave));
             createContext("/api/scripts/extensions", auth(this::handleScriptExtensions));
@@ -568,6 +571,35 @@ public final class WebConsoleService {
         String stack = context.bodyString("stack");
         String url = context.bodyString("url");
         logFrontendDebugError(source, message, detail, stack, url);
+        context.ok(Map.of("accepted", true));
+    }
+
+    private void handleFrontendEvent(WebRequestContext context) throws IOException {
+        logFrontendDebugEvent(
+                context.bodyString("type"),
+                context.bodyString("target"),
+                context.bodyString("label"),
+                context.bodyString("value"),
+                context.bodyString("detail"),
+                context.bodyString("url")
+        );
+        context.ok(Map.of("accepted", true));
+    }
+
+    private void handleFrontendLoginEvent(WebRequestContext context) throws IOException {
+        String type = safeLogValue(context.bodyString("type"), "unknown");
+        if (!type.startsWith("login_")) {
+            context.ok(Map.of("accepted", false));
+            return;
+        }
+        logFrontendDebugEvent(
+                type,
+                context.bodyString("target"),
+                context.bodyString("label"),
+                context.bodyString("value"),
+                context.bodyString("detail"),
+                context.bodyString("url")
+        );
         context.ok(Map.of("accepted", true));
     }
 
@@ -1263,6 +1295,27 @@ public final class WebConsoleService {
                 "stack", safeLogValue(stack, "-"),
                 "url", safeLogValue(url, "-")
         ));
+    }
+
+    private void logFrontendDebugEvent(String type, String target, String label, String value, String detail, String url) {
+        if (!debugFrontend) {
+            return;
+        }
+        String safeType = safeLogValue(type, "unknown");
+        plugin.messageService().info("web_debug.frontend_event", Map.of(
+                "event", debugEventTypeLabel(safeType),
+                "type", safeType,
+                "target", safeLogValue(target, "-"),
+                "label", safeLogValue(label, "-"),
+                "value", safeLogValue(value, "-"),
+                "detail", safeLogValue(detail, "-"),
+                "url", safeLogValue(url, "-")
+        ));
+    }
+
+    private String debugEventTypeLabel(String type) {
+        String normalized = Texts.toStringSafe(type).toLowerCase(java.util.Locale.ROOT).replaceAll("[^a-z0-9_\\-]", "_");
+        return plugin.messageService().messageOrFallback("web_debug.event_type." + normalized, type);
     }
 
     private String debugSideLabel(String side) {
