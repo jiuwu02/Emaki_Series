@@ -19,6 +19,7 @@ import emaki.jiuwu.craft.cooking.service.display.CookingDisplayService;
 import emaki.jiuwu.craft.cooking.service.display.CookingDisplaySpec;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplayService;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplaySpec;
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
@@ -618,8 +619,7 @@ public final class ChoppingBoardRuntimeService {
         if (Texts.isNotBlank(storedName)) {
             return storedName;
         }
-        ItemSource source = ItemSourceUtil.parse(state.inputSource());
-        String sourceName = source == null ? "" : itemSourceService.displayName(source);
+        String sourceName = EmakiCoreLibApi.itemDisplayName(state.inputSource());
         return Texts.isBlank(sourceName) ? state.inputSource() : sourceName;
     }
 

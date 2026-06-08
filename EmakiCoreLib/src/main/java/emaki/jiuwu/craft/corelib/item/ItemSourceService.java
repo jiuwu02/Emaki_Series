@@ -94,6 +94,12 @@ public final class ItemSourceService {
         if (Texts.isNotBlank(explicitItemStackName)) {
             return explicitItemStackName;
         }
+        if (source.getType() == ItemSourceType.VANILLA) {
+            String vanillaName = vanillaDisplayName(source);
+            if (Texts.isNotBlank(vanillaName)) {
+                return vanillaName;
+            }
+        }
         for (ItemSourceResolver resolver : orderedResolvers) {
             if (!resolver.supports(source)) {
                 continue;
@@ -101,12 +107,6 @@ public final class ItemSourceService {
             String displayName = resolver.displayName(source);
             if (Texts.isNotBlank(displayName)) {
                 return displayName;
-            }
-        }
-        if (source.getType() == ItemSourceType.VANILLA) {
-            String vanillaName = vanillaDisplayName(source);
-            if (Texts.isNotBlank(vanillaName)) {
-                return vanillaName;
             }
         }
         String itemStackName = createdItemDisplayName(source);

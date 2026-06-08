@@ -15,6 +15,7 @@ import emaki.jiuwu.craft.cooking.model.StationInteraction;
 import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplayService;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplaySpec;
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.async.TaskHandle;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
@@ -275,8 +276,7 @@ public final class GrinderRuntimeService {
         StringBuilder builder = new StringBuilder();
         appendLine(builder, messageService.message("text_display.grinder.title"));
         if (state.hasInputSource()) {
-            ItemSource source = ItemSourceUtil.parse(state.inputSource());
-            String itemName = source == null ? state.inputSource() : itemSourceService.displayName(source);
+            String itemName = EmakiCoreLibApi.itemDisplayName(state.inputSource());
             if (itemName == null || itemName.isBlank()) {
                 itemName = state.inputSource();
             }

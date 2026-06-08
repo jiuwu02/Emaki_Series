@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.corelib.api;
 
+import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -60,6 +61,35 @@ public final class EmakiCoreLibApi {
         return resolved != null && resolved.isReady();
     }
 
+    /**
+     * Resolves a unified display name for an item source shorthand or identifier.
+     *
+     * <p>The returned value is MiniMessage text and may contain translatable
+     * components so the client can render vanilla names in its active language.
+     *
+     * @param itemSource item source shorthand such as {@code minecraft-apple},
+     *                   {@code craftengine-namespace:id}, or another registered source
+     * @return the resolved display name, or an empty string when unavailable
+     */
+    public static @NotNull String itemDisplayName(@Nullable String itemSource) {
+        Bridge resolved = bridge;
+        return resolved == null ? "" : resolved.itemDisplayName(itemSource);
+    }
+
+    /**
+     * Resolves a unified display name for a real item stack.
+     *
+     * <p>The returned value is MiniMessage text and may contain translatable
+     * components so the client can render vanilla names in its active language.
+     *
+     * @param itemStack item stack to inspect
+     * @return the resolved display name, or an empty string when unavailable
+     */
+    public static @NotNull String itemDisplayName(@Nullable ItemStack itemStack) {
+        Bridge resolved = bridge;
+        return resolved == null ? "" : resolved.itemDisplayName(itemStack);
+    }
+
     /** Internal bridge installed by EmakiCoreLib. */
     public interface Bridge {
         /** {@return the semantic version string of the backing plugin} */
@@ -72,5 +102,13 @@ public final class EmakiCoreLibApi {
 
         /** {@return whether the backing plugin is initialized and usable} */
         boolean isReady();
+
+        /** {@return unified MiniMessage display name for an item source shorthand} */
+        @NotNull
+        String itemDisplayName(@Nullable String itemSource);
+
+        /** {@return unified MiniMessage display name for a real item stack} */
+        @NotNull
+        String itemDisplayName(@Nullable ItemStack itemStack);
     }
 }

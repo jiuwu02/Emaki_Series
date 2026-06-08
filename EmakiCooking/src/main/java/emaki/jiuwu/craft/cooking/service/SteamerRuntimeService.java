@@ -16,6 +16,7 @@ import emaki.jiuwu.craft.cooking.model.StationInteraction;
 import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplayService;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplaySpec;
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.async.TaskHandle;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
@@ -648,8 +649,7 @@ public final class SteamerRuntimeService implements Listener {
     }
 
     private String itemDisplayName(ItemStack itemStack) {
-        ItemSource source = itemStack == null || itemStack.getType().isAir() ? null : itemSourceService.identifyItem(itemStack);
-        String displayName = itemSourceService.displayName(source);
+        String displayName = EmakiCoreLibApi.itemDisplayName(itemStack);
         return Texts.isBlank(displayName)
                 ? (itemStack == null || itemStack.getType() == null ? "" : itemStack.getType().name())
                 : displayName;

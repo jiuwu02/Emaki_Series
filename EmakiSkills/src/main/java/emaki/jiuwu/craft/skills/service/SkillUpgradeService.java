@@ -18,6 +18,7 @@ import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.action.ActionErrorType;
 import emaki.jiuwu.craft.corelib.action.ActionExecutor;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.economy.EconomyManager;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
@@ -505,8 +506,7 @@ public final class SkillUpgradeService {
     }
 
     private String resolveMaterialDisplayName(String itemToken) {
-        ItemSource source = ItemSourceUtil.parse(itemToken);
-        String displayName = source == null || itemSourceService == null ? "" : itemSourceService.displayName(source);
+        String displayName = EmakiCoreLibApi.itemDisplayName(itemToken);
         return Texts.isBlank(displayName) ? itemToken : displayName;
     }
 

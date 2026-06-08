@@ -7,6 +7,7 @@ import java.util.Map;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.gui.GuiItemBuilder;
 import emaki.jiuwu.craft.corelib.gui.GuiSlot;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
@@ -177,11 +178,9 @@ final class GemUpgradeGuiRenderer {
         if (source == null) {
             return common("unknown_material", "Unknown material");
         }
-        if (plugin.coreItemSourceService() != null) {
-            String displayName = plugin.coreItemSourceService().displayName(source);
-            if (Texts.isNotBlank(displayName)) {
-                return displayName;
-            }
+        String displayName = EmakiCoreLibApi.itemDisplayName(ItemSourceUtil.toShorthand(source));
+        if (Texts.isNotBlank(displayName)) {
+            return displayName;
         }
         String shorthand = ItemSourceUtil.toShorthand(source);
         return Texts.isBlank(shorthand) ? source.getIdentifier() : shorthand;

@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
 
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
@@ -696,7 +697,7 @@ public final class WokRuntimeService {
     }
 
     private String itemDisplayName(String source) {
-        String displayName = itemSourceService.displayName(ItemSourceUtil.parse(source));
+        String displayName = EmakiCoreLibApi.itemDisplayName(source);
         return Texts.isBlank(displayName) ? source : displayName;
     }
 

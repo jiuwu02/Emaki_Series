@@ -10,6 +10,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.action.ActionResult;
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.economy.EconomyManager;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
@@ -261,10 +262,9 @@ public final class GemEconomyService {
     private Map<String, Object> materialPlaceholders(GemDefinition.MaterialCost material, long available) {
         Map<String, Object> placeholders = new LinkedHashMap<>();
         String item = material == null || material.itemSource() == null ? "" : ItemSourceUtil.toShorthand(material.itemSource());
-        String displayName = "";
-        if (material != null && material.itemSource() != null && itemSourceService != null) {
-            displayName = itemSourceService.displayName(material.itemSource());
-        }
+        String displayName = material == null || material.itemSource() == null
+                ? ""
+                : EmakiCoreLibApi.itemDisplayName(item);
         placeholders.put("item", Texts.isBlank(item) ? "unknown" : item);
         placeholders.put("material", Texts.isBlank(displayName) ? placeholders.get("item") : displayName);
         placeholders.put("display_name", placeholders.get("material"));

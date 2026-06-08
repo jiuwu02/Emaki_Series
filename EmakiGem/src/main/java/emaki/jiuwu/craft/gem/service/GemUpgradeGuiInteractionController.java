@@ -12,6 +12,7 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.gui.GuiSession;
 import emaki.jiuwu.craft.corelib.gui.GuiSessionHandler;
@@ -223,11 +224,9 @@ final class GemUpgradeGuiInteractionController {
         if (materialCost == null || materialCost.itemSource() == null) {
             return "unknown";
         }
-        if (plugin.coreItemSourceService() != null) {
-            String displayName = plugin.coreItemSourceService().displayName(materialCost.itemSource());
-            if (Texts.isNotBlank(displayName)) {
-                return displayName;
-            }
+        String displayName = EmakiCoreLibApi.itemDisplayName(ItemSourceUtil.toShorthand(materialCost.itemSource()));
+        if (Texts.isNotBlank(displayName)) {
+            return displayName;
         }
         String shorthand = ItemSourceUtil.toShorthand(materialCost.itemSource());
         return Texts.isBlank(shorthand) ? materialCost.itemSource().getIdentifier() : shorthand;
