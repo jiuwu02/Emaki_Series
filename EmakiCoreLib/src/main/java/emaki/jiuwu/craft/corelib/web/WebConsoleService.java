@@ -115,6 +115,7 @@ public final class WebConsoleService {
             createContext("/api/history/snapshot", auth(this::handleHistorySnapshot));
             createContext("/api/history/diff", auth(this::handleHistoryDiff));
             createContext("/api/history/rollback", postAuth(this::handleHistoryRollback));
+            createContext("/api/plugin/", auth(this::handlePluginApi));
             createContext("/extensions/", this::handleExtensionAsset);
             createContext("/", this::handleStatic);
             server.start();
@@ -320,6 +321,7 @@ public final class WebConsoleService {
             executor = null;
         }
         WebConsoleRegistry.unregisterModule(plugin);
+        WebPluginApiRegistry.unregister(plugin);
         consoleRegistry = null;
         itemPreviewService = null;
         insightSearchService = null;
@@ -831,6 +833,32 @@ public final class WebConsoleService {
             context.forbidden(exception.getMessage());
         } catch (Exception exception) {
             context.badRequest(exception.getMessage());
+        }
+    }
+
+    private void handlePluginApi(WebRequestContext context) throws IOException {
+        String path = context.exchange().getRequestURI().getPath();
+        String relative = path.substring("/api/plugin/".length()).replace('\\', '/');
+        int separator = relative.indexOf('/');
+        if (separator <= 0 || separator + 1 >= relative.length()) {
+            context.notFound("插件 Web API 不存在");
+            return;
+        }
+        String moduleId = relative.substring(0, separator);
+        String routeId = relative.substring(separator + 1);
+        WebPluginApiRegistry.RegisteredRoute route = WebPluginApiRegistry.route(moduleId, routeId);
+        if (route == null || !route.plugin().isEnabled()) {
+            context.notFound("插件 Web API 不存在");
+            return;
+        }
+        try {
+            String body = "POST".equalsIgnoreCase(context.exchange().getRequestMethod()) ? context.body() : "";
+            Map<String, ?> response = route.handler().handle(new WebPluginApiRequest(moduleId, routeId, context.exchange().getRequestMethod(), body));
+            context.ok(response == null ? Map.of() : response);
+        } catch (IOException exception) {
+            context.badRequest(exception.getMessage());
+        } catch (Exception exception) {
+            context.serverError(exception.getMessage());
         }
     }
 

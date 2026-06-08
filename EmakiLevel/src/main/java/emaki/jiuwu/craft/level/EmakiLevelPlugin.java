@@ -21,6 +21,7 @@ import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.text.AdventureSupport;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.web.WebConsoleRegistry;
+import emaki.jiuwu.craft.corelib.web.WebPluginApiRegistry;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 import emaki.jiuwu.craft.level.action.LevelActionRegistrar;
@@ -49,6 +50,7 @@ import emaki.jiuwu.craft.level.loader.RequirementLoader;
 import emaki.jiuwu.craft.level.loader.SourceRuleLoader;
 import emaki.jiuwu.craft.level.papi.LevelPlaceholderExpansion;
 import emaki.jiuwu.craft.level.service.LevelAttributeBridge;
+import emaki.jiuwu.craft.level.service.LevelCurveService;
 import emaki.jiuwu.craft.level.service.LevelMessageService;
 import emaki.jiuwu.craft.level.service.LevelPdcService;
 import emaki.jiuwu.craft.level.service.LevelTopService;
@@ -105,6 +107,7 @@ public final class EmakiLevelPlugin extends JavaPlugin {
     private SourceRuleLoader sourceRuleLoader;
     private LevelTypeRegistry typeRegistry;
     private RequirementService requirementService;
+    private LevelCurveService curveService;
     private PlayerLevelDataStore dataStore;
     private LevelPdcService pdcService;
     private PlayerLevelService levelService;
@@ -226,6 +229,7 @@ public final class EmakiLevelPlugin extends JavaPlugin {
             mythicDropBridge = null;
         }
         WebConsoleRegistry.unregisterModule(this);
+        WebPluginApiRegistry.unregister(this);
         EmakiLevelApi.uninstall(levelApiBridge);
         if (dataStore != null) {
             dataStore.saveAll();
@@ -298,6 +302,7 @@ public final class EmakiLevelPlugin extends JavaPlugin {
         sourceRuleLoader = new SourceRuleLoader(this);
         typeRegistry = new LevelTypeRegistry();
         requirementService = new RequirementService();
+        curveService = new LevelCurveService(typeRegistry, requirementService);
         dataStore = new PlayerLevelDataStore(this);
         pdcService = new LevelPdcService(appConfig.pdcNamespace(), appConfig.pdcEnabled());
         attributeBridge = new LevelAttributeBridge(this, typeRegistry, dataStore, appConfig);
@@ -348,6 +353,10 @@ public final class EmakiLevelPlugin extends JavaPlugin {
 
     private void registerWebConsole() {
         WebConsoleRegistry.registerFromYaml(this);
+        WebPluginApiRegistry.register(this, "level", "curve", request -> {
+            request.requirePost();
+            return curveService.curves(request.stringList("types"), request.integer("fromLevel", 1), request.integer("toLevel", 0));
+        });
     }
 
     private void registerPlaceholderExpansion() {

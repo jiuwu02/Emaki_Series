@@ -1,4 +1,5 @@
-import { getLocale, registerConfigCreateTemplate, registerConfigMetaFields, registerConfigRuleFields, registerModuleLocale, registerPluginConfig, registerPluginGuiEditor, type ConfigMetaFieldEntry, type ConfigRuleFieldEntry } from 'emaki-web-console';
+import React, { useEffect, useMemo, useState } from 'react';
+import { getLocale, registerConfigCreateTemplate, registerConfigMetaFields, registerConfigPreview, registerConfigRuleFields, registerModuleLocale, registerPluginConfig, registerPluginGuiEditor, type ConfigMetaFieldEntry, type ConfigPreviewProps, type ConfigRuleFieldEntry } from 'emaki-web-console';
 
 const MODULE = 'EmakiLevel';
 const copy = (zh: string, en: string) => getLocale().startsWith('zh') ? zh : en;
@@ -81,6 +82,12 @@ registerModuleLocale(MODULE, 'en-US', {
   'emakilevel.option.trigger.entity_tame': 'Taming'
 });
 
+type CurveWarning = { type: string; message: string; targetLevel?: number };
+type CurvePoint = { targetLevel: number; requiredExp: number; totalExp: number; growthRate: number; source: string; warnings?: CurveWarning[] };
+type Curve = { type: string; displayName: string; startLevel: number; maxLevel: number; fromLevel: number; toLevel: number; points: CurvePoint[]; warnings?: CurveWarning[] };
+type CurveResult = { curves: Curve[]; limits?: { maxPointsPerType?: number }; warnings?: CurveWarning[] };
+type CurveMetric = 'requiredExp' | 'totalExp' | 'growthRate';
+
 const mainConfigFields: ConfigMetaFieldEntry[] = [
   ['version', copy('配置版本', 'Config version'), copy('默认配置结构版本。', 'Default config schema version.'), 'text'],
   ['language', copy('语言', 'Language'), copy('语言文件 ID，对应 lang/<language>.yml。', 'Language file id under lang/<language>.yml.'), 'text'],
@@ -139,6 +146,163 @@ const dynamicFields: Record<string, ConfigRuleFieldEntry> = {
   potion_types: [copy('药水类型', 'Potion types'), copy('药水类型名称。', 'Potion type names.'), 'stringList']
 };
 
+function LevelCurvePreview({ api, file, data }: ConfigPreviewProps) {
+  const fileTypeId = typeof data?.id === 'string' ? data.id : '';
+  const [typeInput, setTypeInput] = useState(file.path.startsWith('types/') ? fileTypeId : '');
+  const [fromLevel, setFromLevel] = useState(1);
+  const [toLevel, setToLevel] = useState(80);
+  const [metric, setMetric] = useState<CurveMetric>('requiredExp');
+  const [result, setResult] = useState<CurveResult | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const selectedTypes = useMemo(() => typeInput.split(',').map(value => value.trim()).filter(Boolean), [typeInput]);
+  const firstCurve = result?.curves?.[0];
+
+  const load = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const response = await api.pluginApi('level', 'curve', { types: selectedTypes, fromLevel, toLevel });
+      setResult({ curves: Array.isArray(response.curves) ? response.curves : [], limits: response.limits, warnings: response.warnings });
+    } catch (exception) {
+      setError(exception instanceof Error ? exception.message : String(exception));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void load();
+  }, []);
+
+  const exportCsv = () => {
+    if (!result?.curves?.length) return;
+    const rows = ['type,target_level,required_exp,total_exp,growth_rate,source,warnings'];
+    result.curves.forEach(curve => curve.points.forEach(point => rows.push([
+      curve.type,
+      point.targetLevel,
+      point.requiredExp,
+      point.totalExp,
+      point.growthRate,
+      point.source,
+      (point.warnings ?? []).map(warning => warning.type).join('|')
+    ].map(csvCell).join(','))));
+    const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'emakilevel-curve.csv';
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return <section style={cardStyle}>
+    <div style={headerStyle}>
+      <div>
+        <h3 style={{ margin: 0 }}>{copy('等级曲线', 'Level curve')}</h3>
+        <p style={hintStyle}>{copy('由服务端基于真实 RequirementService 计算，前端只负责展示。', 'Calculated by the server through the real RequirementService; the frontend only visualizes it.')}</p>
+      </div>
+      <button type="button" onClick={load} disabled={loading} style={buttonStyle}>{loading ? copy('加载中...', 'Loading...') : copy('刷新曲线', 'Refresh')}</button>
+    </div>
+    <div style={controlGridStyle}>
+      <label style={labelStyle}>{copy('等级类型，逗号分隔', 'Level types, comma separated')}<input value={typeInput} onChange={event => setTypeInput(event.target.value)} placeholder={copy('留空显示前 6 个启用类型', 'Empty = first 6 enabled types')} style={inputStyle} /></label>
+      <label style={labelStyle}>{copy('起始目标等级', 'From target level')}<input type="number" min={1} value={fromLevel} onChange={event => setFromLevel(Number(event.target.value) || 1)} style={inputStyle} /></label>
+      <label style={labelStyle}>{copy('结束目标等级', 'To target level')}<input type="number" min={1} value={toLevel} onChange={event => setToLevel(Number(event.target.value) || 1)} style={inputStyle} /></label>
+      <label style={labelStyle}>{copy('图表指标', 'Metric')}<select value={metric} onChange={event => setMetric(event.target.value as CurveMetric)} style={inputStyle}>
+        <option value="requiredExp">{copy('单级需求经验', 'Required exp')}</option>
+        <option value="totalExp">{copy('累计总经验', 'Total exp')}</option>
+        <option value="growthRate">{copy('增长率', 'Growth rate')}</option>
+      </select></label>
+    </div>
+    {error ? <div style={errorStyle}>{error}</div> : null}
+    {result?.curves?.length ? <>
+      <LevelCurveSvg curves={result.curves} metric={metric} />
+      <div style={summaryStyle}>
+        <span>{copy('曲线数量', 'Curves')}: <strong>{result.curves.length}</strong></span>
+        <span>{copy('单类型最多点数', 'Max points/type')}: <strong>{result.limits?.maxPointsPerType ?? '-'}</strong></span>
+        <button type="button" onClick={exportCsv} style={secondaryButtonStyle}>{copy('导出 CSV', 'Export CSV')}</button>
+      </div>
+      {firstCurve ? <CurveTable curve={firstCurve} /> : null}
+    </> : <div style={emptyStyle}>{copy('暂无曲线数据。', 'No curve data.')}</div>}
+  </section>;
+}
+
+function LevelCurveSvg({ curves, metric }: { curves: Curve[]; metric: CurveMetric }) {
+  const width = 760;
+  const height = 260;
+  const padding = 32;
+  const points = curves.flatMap(curve => curve.points.map(point => ({ curve, point, value: pointMetric(point, metric) })));
+  const minLevel = Math.min(...points.map(entry => entry.point.targetLevel));
+  const maxLevel = Math.max(...points.map(entry => entry.point.targetLevel));
+  const maxValue = Math.max(1, ...points.map(entry => entry.value));
+  const x = (level: number) => padding + ((level - minLevel) / Math.max(1, maxLevel - minLevel)) * (width - padding * 2);
+  const y = (value: number) => height - padding - (value / maxValue) * (height - padding * 2);
+  return <svg viewBox={`0 0 ${width} ${height}`} style={svgStyle} role="img" aria-label={copy('等级曲线图', 'Level curve chart')}>
+    <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="rgba(148,163,184,.45)" />
+    <line x1={padding} y1={padding} x2={padding} y2={height - padding} stroke="rgba(148,163,184,.45)" />
+    {curves.map((curve, index) => {
+      const d = curve.points.map((point, pointIndex) => `${pointIndex === 0 ? 'M' : 'L'} ${x(point.targetLevel)} ${y(pointMetric(point, metric))}`).join(' ');
+      const color = palette[index % palette.length];
+      return <g key={curve.type}>
+        <path d={d} fill="none" stroke={color} strokeWidth="3" />
+        {curve.points.map(point => <circle key={`${curve.type}-${point.targetLevel}`} cx={x(point.targetLevel)} cy={y(pointMetric(point, metric))} r={(point.warnings?.length ?? 0) > 0 ? 4 : 2.5} fill={(point.warnings?.length ?? 0) > 0 ? '#f97316' : color}><title>{`${curve.type} Lv.${point.targetLevel}: ${formatNumber(pointMetric(point, metric))}`}</title></circle>)}
+      </g>;
+    })}
+  </svg>;
+}
+
+function CurveTable({ curve }: { curve: Curve }) {
+  return <div style={{ overflowX: 'auto' }}>
+    <h4 style={{ margin: '12px 0 8px' }}>{curve.displayName || curve.type} · {curve.type}</h4>
+    <table style={tableStyle}>
+      <thead><tr><th>Lv</th><th>{copy('需求', 'Required')}</th><th>{copy('累计', 'Total')}</th><th>{copy('增长率', 'Growth')}</th><th>{copy('来源', 'Source')}</th><th>{copy('警告', 'Warnings')}</th></tr></thead>
+      <tbody>{curve.points.slice(0, 80).map(point => <tr key={point.targetLevel}>
+        <td>{point.targetLevel}</td>
+        <td>{formatNumber(point.requiredExp)}</td>
+        <td>{formatNumber(point.totalExp)}</td>
+        <td>{formatPercent(point.growthRate)}</td>
+        <td><code>{point.source}</code></td>
+        <td>{(point.warnings ?? []).map(warning => warning.type).join(', ')}</td>
+      </tr>)}</tbody>
+    </table>
+  </div>;
+}
+
+function pointMetric(point: CurvePoint, metric: CurveMetric): number {
+  if (metric === 'totalExp') return point.totalExp;
+  if (metric === 'growthRate') return Math.max(0, point.growthRate * 100);
+  return point.requiredExp;
+}
+
+function csvCell(value: unknown): string {
+  const text = String(value ?? '');
+  return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+function formatNumber(value: number): string {
+  return Number.isFinite(value) ? value.toLocaleString(undefined, { maximumFractionDigits: 2 }) : '-';
+}
+
+function formatPercent(value: number): string {
+  return Number.isFinite(value) ? `${(value * 100).toFixed(2)}%` : '-';
+}
+
+const palette = ['#60a5fa', '#a78bfa', '#34d399', '#f59e0b', '#f472b6', '#22d3ee'];
+const cardStyle: React.CSSProperties = { border: '1px solid rgba(148,163,184,.24)', borderRadius: 16, padding: 16, marginTop: 16, background: 'linear-gradient(180deg, rgba(15,23,42,.72), rgba(15,23,42,.44))' };
+const headerStyle: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' };
+const hintStyle: React.CSSProperties = { margin: '6px 0 0', color: 'rgba(203,213,225,.78)', fontSize: 13 };
+const controlGridStyle: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'minmax(220px,2fr) repeat(3,minmax(120px,1fr))', gap: 10, marginTop: 14 };
+const labelStyle: React.CSSProperties = { display: 'grid', gap: 6, fontSize: 12, color: 'rgba(226,232,240,.82)' };
+const inputStyle: React.CSSProperties = { border: '1px solid rgba(148,163,184,.35)', borderRadius: 10, background: 'rgba(2,6,23,.48)', color: 'inherit', padding: '8px 10px' };
+const buttonStyle: React.CSSProperties = { border: 0, borderRadius: 10, padding: '9px 13px', background: '#60a5fa', color: '#07111f', fontWeight: 700, cursor: 'pointer' };
+const secondaryButtonStyle: React.CSSProperties = { ...buttonStyle, background: 'rgba(96,165,250,.18)', color: '#bfdbfe', border: '1px solid rgba(96,165,250,.35)' };
+const errorStyle: React.CSSProperties = { marginTop: 12, color: '#fecaca', background: 'rgba(127,29,29,.25)', border: '1px solid rgba(248,113,113,.35)', borderRadius: 10, padding: 10 };
+const emptyStyle: React.CSSProperties = { marginTop: 12, color: 'rgba(203,213,225,.75)' };
+const svgStyle: React.CSSProperties = { width: '100%', marginTop: 16, background: 'rgba(2,6,23,.28)', borderRadius: 12 };
+const summaryStyle: React.CSSProperties = { display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginTop: 12, color: 'rgba(226,232,240,.86)' };
+const tableStyle: React.CSSProperties = { width: '100%', borderCollapse: 'collapse', fontSize: 13 };
+
 registerPluginGuiEditor({
   moduleId: MODULE,
   editorId: 'emakilevel:gui',
@@ -161,6 +325,8 @@ registerPluginConfig({
   ]
 });
 registerConfigRuleFields(MODULE, dynamicFields);
+registerConfigPreview({ moduleId: MODULE, kind: 'CONFIG', pathPattern: 'requirements.yml', component: LevelCurvePreview, label: copy('等级曲线', 'Level curve'), priority: 20 });
+registerConfigPreview({ moduleId: MODULE, kind: 'CONFIG', pathPattern: 'types/**/*.yml', component: LevelCurvePreview, label: copy('等级曲线', 'Level curve'), priority: 20 });
 registerConfigCreateTemplate(MODULE, 'sources', {
   id: 'source-rule',
   label: copy('经验来源', 'Experience source'),

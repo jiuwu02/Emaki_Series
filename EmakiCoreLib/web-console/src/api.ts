@@ -293,6 +293,15 @@ export class ApiClient {
     return this.economyProvidersCache;
   }
 
+  async pluginApi(moduleId: string, routeId: string, body: Record<string, unknown> = {}): Promise<any> {
+    const normalizedModule = encodeURIComponent(moduleId.trim().toLowerCase());
+    const normalizedRoute = routeId.trim().replace(/^\/+|\/+$/g, '').split('/').map(encodeURIComponent).join('/');
+    return this.request(`/api/plugin/${normalizedModule}/${normalizedRoute}`, {
+      method: 'POST',
+      body: JSON.stringify(body)
+    });
+  }
+
   private async request(path: string, init: RequestInit = {}): Promise<any> {
     let response: Response;
     try {

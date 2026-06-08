@@ -31,6 +31,7 @@ import emaki.jiuwu.craft.corelib.text.AdventureSupport;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.web.WebConsoleRegistry;
+import emaki.jiuwu.craft.corelib.web.WebPluginApiRegistry;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.strengthen.api.EmakiStrengthenApi;
 import emaki.jiuwu.craft.strengthen.config.AppConfig;
@@ -47,6 +48,7 @@ import emaki.jiuwu.craft.strengthen.service.StrengthenAttemptService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenEconomyService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenGuiService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenRefreshService;
+import emaki.jiuwu.craft.strengthen.service.StrengthenRoutePreviewService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenSnapshotBuilder;
 
 public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider, EmakiServiceRegistry {
@@ -90,6 +92,7 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     private StrengthenAttemptService attemptService;
     private StrengthenRefreshService refreshService;
     private StrengthenGuiService strengthenGuiService;
+    private StrengthenRoutePreviewService routePreviewService;
     private StrengthenPlaceholderExpansion placeholderExpansion;
     private final EmakiStrengthenApi.Bridge strengthenApiBridge = new EmakiStrengthenApi.Bridge() {
         @Override
@@ -145,6 +148,7 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
             placeholderExpansion = null;
         }
         WebConsoleRegistry.unregisterModule(this);
+        WebPluginApiRegistry.unregister(this);
         EmakiStrengthenApi.uninstall(strengthenApiBridge);
         getServer().getServicesManager().unregisterAll(this);
         if (metrics != null) {
@@ -181,6 +185,7 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         attemptService = components.attemptService();
         refreshService = components.refreshService();
         strengthenGuiService = components.strengthenGuiService();
+        routePreviewService = new StrengthenRoutePreviewService(this);
         setDebugLogger(new DebugLogger(getLogger(), languageLoader));
         debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES);
         registerServices(components);
@@ -206,6 +211,10 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
 
     private void registerWebConsole() {
         WebConsoleRegistry.registerFromYaml(this);
+        WebPluginApiRegistry.register(this, "strengthen", "route-preview", request -> {
+            request.requirePost();
+            return routePreviewService.preview(request.string("recipeId"));
+        });
     }
 
     private void ensurePlaceholderExpansion() {
