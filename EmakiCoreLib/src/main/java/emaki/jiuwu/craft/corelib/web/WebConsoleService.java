@@ -13,6 +13,7 @@ import java.util.concurrent.ExecutorService;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.economy.EconomyManager;
+import emaki.jiuwu.craft.corelib.web.insight.WebInsightDependencyGraphService;
 import emaki.jiuwu.craft.corelib.web.insight.WebInsightReferenceService;
 import emaki.jiuwu.craft.corelib.web.insight.WebInsightSearchService;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
@@ -41,6 +42,7 @@ public final class WebConsoleService {
     private WebItemPreviewService itemPreviewService;
     private WebInsightSearchService insightSearchService;
     private WebInsightReferenceService insightReferenceService;
+    private WebInsightDependencyGraphService insightDependencyGraphService;
     private final WebStaticAssets staticAssets = new WebStaticAssets();
     private volatile boolean debugEnabled;
     private volatile boolean debugFrontend;
@@ -69,6 +71,7 @@ public final class WebConsoleService {
             itemPreviewService = new WebItemPreviewService();
             insightSearchService = new WebInsightSearchService(plugin, config);
             insightReferenceService = new WebInsightReferenceService(plugin, config);
+            insightDependencyGraphService = new WebInsightDependencyGraphService(insightReferenceService);
             server = HttpServer.create(new InetSocketAddress(config.host(), config.port()), 0);
             executor = Executors.newFixedThreadPool(4, runnable -> {
                 Thread thread = new Thread(runnable, "emaki-web-console");
@@ -104,6 +107,7 @@ public final class WebConsoleService {
             createContext("/api/economy/providers", auth(this::handleEconomyProviders));
             createContext("/api/insight/search", auth(this::handleInsightSearch));
             createContext("/api/insight/references", auth(this::handleInsightReferences));
+            createContext("/api/insight/dependency-graph", auth(this::handleInsightDependencyGraph));
             createContext("/extensions/", this::handleExtensionAsset);
             createContext("/", this::handleStatic);
             server.start();
@@ -747,6 +751,33 @@ public final class WebConsoleService {
             context.ok(Map.of("idType", idType, "id", id, "references", insightReferenceService.references(idType, id)));
         } catch (Exception exception) {
             context.serverError(exception.getMessage());
+        }
+    }
+
+    private void handleInsightDependencyGraph(WebRequestContext context) throws IOException {
+        String idType = context.query("idType");
+        String id = context.query("id");
+        if (idType.isBlank() || id.isBlank()) {
+            context.badRequest("缺少 idType 或 id 参数");
+            return;
+        }
+        int depth = intQuery(context.query("depth"), 1);
+        String direction = context.query("direction");
+        try {
+            context.ok(insightDependencyGraphService.graph(idType, id, depth, direction));
+        } catch (Exception exception) {
+            context.serverError(exception.getMessage());
+        }
+    }
+
+    private int intQuery(String value, int fallback) {
+        if (value == null || value.isBlank()) {
+            return fallback;
+        }
+        try {
+            return Integer.parseInt(value.trim());
+        } catch (NumberFormatException ignored) {
+            return fallback;
         }
     }
 

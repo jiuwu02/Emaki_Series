@@ -1,7 +1,7 @@
 import { Component, memo, startTransition, useDeferredValue, useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react';
 import type { Completion, CompletionContext, CompletionResult, CompletionSource } from '@codemirror/autocomplete';
 import type { ComponentType } from 'react';
-import { ApiClient, ApiError, type InsightReferenceResult, type InsightSearchResult } from './api';
+import { ApiClient, ApiError, type InsightDependencyGraphEdge, type InsightDependencyGraphNode, type InsightDependencyGraphResult, type InsightReferenceResult, type InsightSearchResult } from './api';
 import { GuiEditorSurface } from './GuiEditorSurface';
 import { ItemEditorSurface } from './ItemEditorSurface';
 import { loadWebExtensions } from './extensions';
@@ -135,6 +135,7 @@ export default function App() {
   const [deleteTarget, setDeleteTarget] = useState<RegistryTreeNode | null>(null);
   const [insightSearchOpen, setInsightSearchOpen] = useState(false);
   const [referenceTarget, setReferenceTarget] = useState<InsightReferenceTarget | null>(null);
+  const [dependencyGraphTarget, setDependencyGraphTarget] = useState<InsightReferenceTarget | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [surfaceToolbar, setSurfaceToolbar] = useState<SurfaceToolbarState | null>(null);
@@ -160,6 +161,7 @@ export default function App() {
     setDeleteTarget(null);
     setInsightSearchOpen(false);
     setReferenceTarget(null);
+    setDependencyGraphTarget(null);
     setI18nTarget(null);
     setToast(null);
   };
@@ -549,7 +551,14 @@ export default function App() {
 
   function openInsightReferences(target: InsightReferenceTarget) {
     setInsightSearchOpen(false);
+    setDependencyGraphTarget(null);
     setReferenceTarget(target);
+  }
+
+  function openInsightDependencyGraph(target: InsightReferenceTarget) {
+    setInsightSearchOpen(false);
+    setReferenceTarget(null);
+    setDependencyGraphTarget(target);
   }
 
   function openInsightReferenceResult(result: InsightReferenceResult) {
@@ -566,8 +575,9 @@ export default function App() {
       {createTarget && <CreateFileModal target={createTarget} onCancel={() => setCreateTarget(null)} onCreate={createFileFromTree} />}
       {deleteTarget && <DeleteFileModal target={deleteTarget} onCancel={() => setDeleteTarget(null)} onDelete={deleteFileFromTree} />}
       {i18nTarget && <I18nBundleModal target={i18nTarget} onClose={() => setI18nTarget(null)} onSaved={() => { setLocaleVersion((version) => version + 1); setToast({ tone: 'ok', text: t('core.i18n.saved') }); }} />}
-      {insightSearchOpen && <InsightSearchModal api={api} registry={registry} onCancel={() => setInsightSearchOpen(false)} onOpen={openInsightSearchResult} onReferences={openInsightReferences} />}
-      {referenceTarget && <InsightReferenceModal api={api} registry={registry} target={referenceTarget} onCancel={() => setReferenceTarget(null)} onOpen={openInsightReferenceResult} />}
+      {insightSearchOpen && <InsightSearchModal api={api} registry={registry} onCancel={() => setInsightSearchOpen(false)} onOpen={openInsightSearchResult} onReferences={openInsightReferences} onGraph={openInsightDependencyGraph} />}
+      {referenceTarget && <InsightReferenceModal api={api} registry={registry} target={referenceTarget} onCancel={() => setReferenceTarget(null)} onOpen={openInsightReferenceResult} onGraph={openInsightDependencyGraph} />}
+      {dependencyGraphTarget && <InsightDependencyGraphModal api={api} registry={registry} target={dependencyGraphTarget} onCancel={() => setDependencyGraphTarget(null)} onOpen={location => openInsightLocation(location, () => setDependencyGraphTarget(null))} />}
       {saveConflict && <SaveConflictModal conflict={saveConflict} onCancel={() => setSaveConflict(null)} />}
       <ResizableRail>
         <div className="brand-block">
@@ -603,7 +613,7 @@ export default function App() {
         <button className="rail-action quiet" onClick={signOut}>{t('core.auth.logout')}</button>
       </ResizableRail>
       <main className="stage">
-        <SurfaceSummaryStrip module={selectedModule} file={selectedFile} editor={selectedEditor} toolbar={toolbar} loading={loading} referenceTarget={selectedReferenceTarget} onOpenReferences={openInsightReferences} />
+        <SurfaceSummaryStrip module={selectedModule} file={selectedFile} editor={selectedEditor} toolbar={toolbar} loading={loading} referenceTarget={selectedReferenceTarget} onOpenReferences={openInsightReferences} onOpenGraph={openInsightDependencyGraph} />
         <EditorChrome
           className="stage-head"
           title={toolbar.title ?? (selectedModule ? moduleDisplayName(selectedModule) : t('core.stage.defaultTitle'))}
@@ -642,7 +652,7 @@ export default function App() {
   );
 }
 
-function SurfaceSummaryStrip({ module, file, editor, toolbar, loading, referenceTarget, onOpenReferences }: { module: WebRegistryModule | null; file: WebRegistryFile | null; editor?: WebEditorDescriptor; toolbar: SurfaceToolbarState; loading: boolean; referenceTarget: InsightReferenceTarget | null; onOpenReferences: (target: InsightReferenceTarget) => void }) {
+function SurfaceSummaryStrip({ module, file, editor, toolbar, loading, referenceTarget, onOpenReferences, onOpenGraph }: { module: WebRegistryModule | null; file: WebRegistryFile | null; editor?: WebEditorDescriptor; toolbar: SurfaceToolbarState; loading: boolean; referenceTarget: InsightReferenceTarget | null; onOpenReferences: (target: InsightReferenceTarget) => void; onOpenGraph: (target: InsightReferenceTarget) => void }) {
   const moduleName = module ? moduleDisplayName(module) : t('core.stage.defaultTitle');
   const moduleSummary = module?.summary?.trim() || '';
   const fileComment = file ? fileDisplayComment(file).trim() : '';
@@ -669,6 +679,7 @@ function SurfaceSummaryStrip({ module, file, editor, toolbar, loading, reference
     <div className="surface-summary-meta" aria-live="polite">
       {chips.map((chip, index) => <span key={`${chip}-${index}`} className={`surface-summary-chip${chip === fileKind ? ' kind' : ''}`}>{chip}</span>)}
       {referenceTarget && <button type="button" className="surface-summary-chip action" onClick={() => onOpenReferences(referenceTarget)}>{t('core.insight.references')}</button>}
+      {referenceTarget && <button type="button" className="surface-summary-chip action" onClick={() => onOpenGraph(referenceTarget)}>{t('core.insight.graph')}</button>}
     </div>
   </section>;
 }
@@ -799,7 +810,7 @@ function insightMatchLabel(matchType: string): string {
   return t(`core.insight.match.${normalized}`, undefined, normalized || t('core.kind.file'));
 }
 
-function InsightSearchModal({ api, registry, onCancel, onOpen, onReferences }: { api: ApiClient; registry: WebRegistry | null; onCancel: () => void; onOpen: (result: InsightSearchResult) => void; onReferences: (target: InsightReferenceTarget) => void }) {
+function InsightSearchModal({ api, registry, onCancel, onOpen, onReferences, onGraph }: { api: ApiClient; registry: WebRegistry | null; onCancel: () => void; onOpen: (result: InsightSearchResult) => void; onReferences: (target: InsightReferenceTarget) => void; onGraph: (target: InsightReferenceTarget) => void }) {
   const dialogRef = useRef<HTMLElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [query, setQuery] = useState('');
@@ -870,7 +881,10 @@ function InsightSearchModal({ api, registry, onCancel, onOpen, onReferences }: {
                 {result.keyPath && <code>{result.keyPath}</code>}
                 <small>{result.snippet || result.path}</small>
               </button>
-              {target && <button type="button" className="insight-reference-mini" onClick={() => onReferences(target)}>{t('core.insight.references')}</button>}
+              {target && <div className="insight-result-actions">
+                <button type="button" className="insight-reference-mini" onClick={() => onReferences(target)}>{t('core.insight.references')}</button>
+                <button type="button" className="insight-reference-mini" onClick={() => onGraph(target)}>{t('core.insight.graph')}</button>
+              </div>}
             </div>;
           })}
         </section>) : !loading && query.trim() && !error ? <div className="insight-search-empty">{t('core.insight.noResults')}</div> : null}
@@ -895,7 +909,7 @@ function referenceEdgeLabel(edgeType: string): string {
   return t(`core.insight.edge.${normalized}`, undefined, normalized || t('core.insight.edge.uses'));
 }
 
-function InsightReferenceModal({ api, registry, target, onCancel, onOpen }: { api: ApiClient; registry: WebRegistry | null; target: InsightReferenceTarget; onCancel: () => void; onOpen: (result: InsightReferenceResult) => void }) {
+function InsightReferenceModal({ api, registry, target, onCancel, onOpen, onGraph }: { api: ApiClient; registry: WebRegistry | null; target: InsightReferenceTarget; onCancel: () => void; onOpen: (result: InsightReferenceResult) => void; onGraph: (target: InsightReferenceTarget) => void }) {
   const dialogRef = useRef<HTMLElement | null>(null);
   const [results, setResults] = useState<InsightReferenceResult[]>([]);
   const [loading, setLoading] = useState(false);
@@ -928,7 +942,8 @@ function InsightReferenceModal({ api, registry, target, onCancel, onOpen }: { ap
         <button type="button" className="insight-search-close" onClick={onCancel} aria-label={t('core.i18n.close')}>×</button>
       </div>
       <div className="insight-search-status" aria-live="polite">
-        {loading ? t('core.state.loading') : error || t('core.insight.referencesCount', { count: results.length })}
+        <span>{loading ? t('core.state.loading') : error || t('core.insight.referencesCount', { count: results.length })}</span>
+        <button type="button" className="insight-reference-mini" onClick={() => onGraph(target)}>{t('core.insight.graph')}</button>
       </div>
       <div className="insight-search-results">
         {grouped.length > 0 ? grouped.map(group => <section className="insight-search-group" key={group.moduleId}>
@@ -949,6 +964,136 @@ function InsightReferenceModal({ api, registry, target, onCancel, onOpen }: { ap
         </section>) : !loading && !error ? <div className="insight-search-empty">{t('core.insight.referencesEmpty')}</div> : null}
       </div>
     </section>
+  </div>;
+}
+
+function InsightDependencyGraphModal({ api, registry, target, onCancel, onOpen }: { api: ApiClient; registry: WebRegistry | null; target: InsightReferenceTarget; onCancel: () => void; onOpen: (location: { moduleId: string; path: string; keyPath?: string }) => void }) {
+  const dialogRef = useRef<HTMLElement | null>(null);
+  const [graph, setGraph] = useState<InsightDependencyGraphResult | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [moduleFilter, setModuleFilter] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
+  useDialogFocus(dialogRef, onCancel);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError('');
+    setGraph(null);
+    void api.insightDependencyGraph(target.idType, target.id, { depth: 1, direction: 'both' })
+      .then(next => { if (!cancelled) setGraph(next); })
+      .catch(err => { if (!cancelled) setError(err instanceof Error ? err.message : t('core.api.requestFailed')); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [api, target.idType, target.id]);
+
+  const nodes = graph?.nodes ?? [];
+  const edges = graph?.edges ?? [];
+  const modules = useMemo(() => [...new Set(nodes.map(node => node.moduleId).filter(Boolean))].sort(), [nodes]);
+  const types = useMemo(() => [...new Set(nodes.map(node => node.idType).filter(Boolean))].sort(), [nodes]);
+  const filtered = useMemo(() => filterDependencyGraph(nodes, edges, moduleFilter, typeFilter), [nodes, edges, moduleFilter, typeFilter]);
+  const title = t('core.insight.graphTitle', { id: target.id, idType: target.idType });
+
+  function openNode(node: InsightDependencyGraphNode) {
+    if (node.moduleId && node.path) onOpen({ moduleId: node.moduleId, path: node.path });
+  }
+
+  function openEdge(edge: InsightDependencyGraphEdge) {
+    if (edge.moduleId && edge.path) onOpen({ moduleId: edge.moduleId, path: edge.path, keyPath: edge.keyPath });
+  }
+
+  function exportJson() {
+    if (!graph) return;
+    const blob = new Blob([JSON.stringify(graph, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `emaki-dependency-${target.idType}-${target.id}.json`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+
+  return <div className="editor-modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) onCancel(); }}>
+    <section ref={dialogRef} className="insight-search-dialog insight-graph-dialog" role="dialog" aria-modal="true" aria-labelledby="insight-graph-title" tabIndex={-1}>
+      <div className="insight-search-head">
+        <span>{t('core.insight.graphKicker')}</span>
+        <h3 id="insight-graph-title">{title}</h3>
+        <button type="button" className="insight-search-close" onClick={onCancel} aria-label={t('core.i18n.close')}>×</button>
+      </div>
+      <div className="insight-graph-toolbar">
+        <span className="insight-graph-depth">{t('core.insight.graphDepthOne')}</span>
+        <span className="insight-graph-depth">{t('core.insight.graphDirectionBoth')}</span>
+        <label><span>{t('core.insight.graphModuleFilter')}</span><select value={moduleFilter} onChange={event => setModuleFilter(event.target.value)}><option value="">{t('core.insight.graphAllModules')}</option>{modules.map(moduleId => <option key={moduleId} value={moduleId}>{moduleId}</option>)}</select></label>
+        <label><span>{t('core.insight.graphTypeFilter')}</span><select value={typeFilter} onChange={event => setTypeFilter(event.target.value)}><option value="">{t('core.insight.graphAllTypes')}</option>{types.map(type => <option key={type} value={type}>{type}</option>)}</select></label>
+        <button type="button" className="insight-reference-mini" disabled={!graph} onClick={exportJson}>{t('core.insight.graphExportJson')}</button>
+      </div>
+      <div className="insight-search-status" aria-live="polite">
+        {loading ? t('core.state.loading') : error || (graph ? t('core.insight.graphCount', { nodes: filtered.nodes.length, edges: filtered.edges.length }) : t('core.insight.graphEmpty'))}
+      </div>
+      <div className="insight-graph-body">
+        <aside className="insight-graph-nodes" aria-label={t('core.insight.graphNodes')}>
+          {filtered.nodes.map(node => <button key={node.key} type="button" className={`insight-graph-node-row ${node.role}`} disabled={!node.moduleId || !node.path} onClick={() => openNode(node)}>
+            <strong>{node.label || node.id || node.path}</strong>
+            <code>{node.key}</code>
+            <span>{node.moduleId || node.idType}</span>
+          </button>)}
+        </aside>
+        <DependencyGraphSvg nodes={filtered.nodes} edges={filtered.edges} onNode={openNode} onEdge={openEdge} />
+      </div>
+      <div className="insight-graph-details" aria-label={t('core.insight.graphDetails')}>
+        {filtered.edges.length > 0 ? filtered.edges.map((edge, index) => <button key={`${edge.from}:${edge.to}:${edge.keyPath}:${index}`} type="button" className="insight-graph-edge-row" onClick={() => openEdge(edge)}>
+          <span>{referenceEdgeLabel(edge.edgeType)}</span>
+          <strong>{edge.path}</strong>
+          <code>{edge.keyPath}</code>
+          <small>{edge.snippet}</small>
+        </button>) : !loading && !error ? <div className="insight-search-empty">{t('core.insight.graphEmpty')}</div> : null}
+      </div>
+    </section>
+  </div>;
+}
+
+function filterDependencyGraph(nodes: InsightDependencyGraphNode[], edges: InsightDependencyGraphEdge[], moduleFilter: string, typeFilter: string): { nodes: InsightDependencyGraphNode[]; edges: InsightDependencyGraphEdge[] } {
+  const nextNodes = nodes.filter(node => (!moduleFilter || !node.moduleId || node.moduleId === moduleFilter) && (!typeFilter || node.idType === typeFilter || node.role === 'root'));
+  const keys = new Set(nextNodes.map(node => node.key));
+  const nextEdges = edges.filter(edge => keys.has(edge.from) && keys.has(edge.to));
+  return { nodes: nextNodes, edges: nextEdges };
+}
+
+function DependencyGraphSvg({ nodes, edges, onNode, onEdge }: { nodes: InsightDependencyGraphNode[]; edges: InsightDependencyGraphEdge[]; onNode: (node: InsightDependencyGraphNode) => void; onEdge: (edge: InsightDependencyGraphEdge) => void }) {
+  const root = nodes.find(node => node.role === 'root') ?? nodes[0];
+  const refs = nodes.filter(node => node.key !== root?.key);
+  const width = 760;
+  const rowHeight = 54;
+  const height = Math.max(260, refs.length * rowHeight + 64);
+  const rootPoint = { x: width - 190, y: height / 2 };
+  const points = new Map<string, { x: number; y: number }>();
+  if (root) points.set(root.key, rootPoint);
+  refs.forEach((node, index) => points.set(node.key, { x: 170, y: 42 + index * rowHeight }));
+
+  return <div className="insight-graph-canvas">
+    <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={t('core.insight.graphCanvas')}>
+      {edges.map((edge, index) => {
+        const from = points.get(edge.from);
+        const to = points.get(edge.to);
+        if (!from || !to) return null;
+        const mid = (from.x + to.x) / 2;
+        return <g key={`${edge.from}:${edge.to}:${edge.keyPath}:${index}`} className="insight-graph-edge" onClick={() => onEdge(edge)}>
+          <path d={`M ${from.x + 112} ${from.y} C ${mid} ${from.y}, ${mid} ${to.y}, ${to.x - 112} ${to.y}`} />
+          <text x={mid} y={(from.y + to.y) / 2 - 6}>{referenceEdgeLabel(edge.edgeType)}</text>
+        </g>;
+      })}
+      {nodes.map(node => {
+        const point = points.get(node.key);
+        if (!point) return null;
+        const clickable = Boolean(node.moduleId && node.path);
+        return <g key={node.key} className={`insight-graph-svg-node ${node.role}${clickable ? ' clickable' : ''}`} onClick={() => clickable && onNode(node)}>
+          <rect x={point.x - 112} y={point.y - 18} width="224" height="36" rx="6" />
+          <text x={point.x - 98} y={point.y - 3}>{node.label || node.id || node.path}</text>
+          <text className="meta" x={point.x - 98} y={point.y + 12}>{node.moduleId || node.idType}</text>
+        </g>;
+      })}
+    </svg>
   </div>;
 }
 

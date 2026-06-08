@@ -5,6 +5,9 @@ export type ActionTypesResult = { nameActions: string[]; loreActions: string[] }
 export type EconomyProvidersResult = { providers: string[]; availableProviders: string[] };
 export type InsightSearchResult = { moduleId: string; path: string; kind: string; keyPath: string; matchType: 'definition' | 'reference' | 'text' | 'file' | string; idType: string; id?: string; snippet: string };
 export type InsightReferenceResult = { moduleId: string; path: string; kind: string; keyPath: string; idType: string; id: string; referenceValue: string; edgeType: string; snippet: string };
+export type InsightDependencyGraphNode = { key: string; idType: string; id: string; label: string; moduleId: string; path: string; kind: string; role: 'root' | 'reference' | string };
+export type InsightDependencyGraphEdge = { from: string; to: string; edgeType: string; moduleId: string; path: string; kind: string; keyPath: string; snippet: string };
+export type InsightDependencyGraphResult = { idType: string; id: string; depth: number; direction: string; nodes: InsightDependencyGraphNode[]; edges: InsightDependencyGraphEdge[] };
 export type RegistrySaveResult = { revision?: number };
 export type RegistryFileNodesResult = { nodes: WebConfigNode[]; revision?: number; path?: string };
 export type TextDocumentKind = 'CONFIG' | 'GUI' | 'ITEM' | 'SCRIPT' | string;
@@ -234,6 +237,22 @@ export class ApiClient {
     if (!normalizedType || !normalizedId) return [];
     const data = await this.request(`/api/insight/references?idType=${encodeURIComponent(normalizedType)}&id=${encodeURIComponent(normalizedId)}`);
     return Array.isArray(data.references) ? data.references as InsightReferenceResult[] : [];
+  }
+
+  async insightDependencyGraph(idType: string, id: string, options: { depth?: number; direction?: string } = {}): Promise<InsightDependencyGraphResult> {
+    const normalizedType = idType.trim();
+    const normalizedId = id.trim();
+    if (!normalizedType || !normalizedId) return { idType: normalizedType, id: normalizedId, depth: 1, direction: options.direction ?? 'both', nodes: [], edges: [] };
+    const params = new URLSearchParams({ idType: normalizedType, id: normalizedId, depth: String(options.depth ?? 1), direction: options.direction ?? 'both' });
+    const data = await this.request(`/api/insight/dependency-graph?${params.toString()}`);
+    return {
+      idType: String(data.idType ?? normalizedType),
+      id: String(data.id ?? normalizedId),
+      depth: typeof data.depth === 'number' ? data.depth : 1,
+      direction: String(data.direction ?? options.direction ?? 'both'),
+      nodes: Array.isArray(data.nodes) ? data.nodes as InsightDependencyGraphNode[] : [],
+      edges: Array.isArray(data.edges) ? data.edges as InsightDependencyGraphEdge[] : []
+    };
   }
 
   async economyProviders(): Promise<EconomyProvidersResult> {
