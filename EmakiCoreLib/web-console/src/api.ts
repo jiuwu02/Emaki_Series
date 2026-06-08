@@ -8,6 +8,8 @@ export type InsightReferenceResult = { moduleId: string; path: string; kind: str
 export type InsightDependencyGraphNode = { key: string; idType: string; id: string; label: string; moduleId: string; path: string; kind: string; role: 'root' | 'reference' | string };
 export type InsightDependencyGraphEdge = { from: string; to: string; edgeType: string; moduleId: string; path: string; kind: string; keyPath: string; snippet: string };
 export type InsightDependencyGraphResult = { idType: string; id: string; depth: number; direction: string; nodes: InsightDependencyGraphNode[]; edges: InsightDependencyGraphEdge[] };
+export type HistoryEntry = { id: string; scope?: string; moduleId: string; path: string; kind: string; operation: string; actor: string; createdAt: number; sourceRevision?: number; size?: number; rollbackAllowed?: boolean; note?: string };
+export type HistorySnapshot = { entry?: HistoryEntry; content: string; rollbackAllowed: boolean };
 export type RegistrySaveResult = { revision?: number };
 export type RegistryFileNodesResult = { nodes: WebConfigNode[]; revision?: number; path?: string };
 export type TextDocumentKind = 'CONFIG' | 'GUI' | 'ITEM' | 'SCRIPT' | string;
@@ -237,6 +239,32 @@ export class ApiClient {
     if (!normalizedType || !normalizedId) return [];
     const data = await this.request(`/api/insight/references?idType=${encodeURIComponent(normalizedType)}&id=${encodeURIComponent(normalizedId)}`);
     return Array.isArray(data.references) ? data.references as InsightReferenceResult[] : [];
+  }
+
+  async historyList(moduleId: string, path: string, kind: string): Promise<{ history: HistoryEntry[]; revision?: number }> {
+    const params = new URLSearchParams({ module: moduleId, path, kind });
+    const data = await this.request(`/api/history/list?${params.toString()}`);
+    return { history: Array.isArray(data.history) ? data.history as HistoryEntry[] : [], revision: typeof data.revision === 'number' ? data.revision : undefined };
+  }
+
+  async historySnapshot(moduleId: string, path: string, kind: string, id: string): Promise<HistorySnapshot> {
+    const params = new URLSearchParams({ module: moduleId, path, kind, id });
+    const data = await this.request(`/api/history/snapshot?${params.toString()}`);
+    return { entry: data.entry as HistoryEntry | undefined, content: String(data.content ?? ''), rollbackAllowed: Boolean(data.rollbackAllowed) };
+  }
+
+  async historyDiff(moduleId: string, path: string, kind: string, id: string): Promise<{ diff: string; rollbackAllowed: boolean }> {
+    const params = new URLSearchParams({ module: moduleId, path, kind, id });
+    const data = await this.request(`/api/history/diff?${params.toString()}`);
+    return { diff: String(data.diff ?? ''), rollbackAllowed: Boolean(data.rollbackAllowed) };
+  }
+
+  async historyRollback(moduleId: string, path: string, kind: string, id: string, revision?: number): Promise<{ revision?: number }> {
+    const data = await this.request('/api/history/rollback', {
+      method: 'POST',
+      body: JSON.stringify({ moduleId, path, kind, id, revision })
+    });
+    return { revision: typeof data.revision === 'number' ? data.revision : undefined };
   }
 
   async insightDependencyGraph(idType: string, id: string, options: { depth?: number; direction?: string } = {}): Promise<InsightDependencyGraphResult> {

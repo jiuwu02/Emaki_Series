@@ -1176,6 +1176,12 @@ public final class WebConsoleRegistry {
         registerNodeComment("EmakiCoreLib", "web_console.config_browser", "文件浏览", "Web Console 文件浏览器大小与扩展名限制。", "object");
         registerNodeComment("EmakiCoreLib", "web_console.config_browser.max_file_size_kb", "文件大小上限", "允许读取的单文件最大大小，单位 KB。", "number");
         registerNodeComment("EmakiCoreLib", "web_console.config_browser.allowed_extensions", "允许扩展名", "文件浏览器允许读取的扩展名列表。", "list");
+        registerNodeComment("EmakiCoreLib", "web_console.history", "变更历史", "Web Console 写入历史、快照保留和删除备份设置。", "object");
+        registerNodeComment("EmakiCoreLib", "web_console.history.enabled", "启用历史", "是否记录 Web Console 写入历史。", "boolean");
+        registerNodeComment("EmakiCoreLib", "web_console.history.max_snapshots_per_file", "单文件快照上限", "每个文件最多保留的历史快照数量。", "number");
+        registerNodeComment("EmakiCoreLib", "web_console.history.max_age_days", "历史保留天数", "历史快照最多保留的天数。", "number");
+        registerNodeComment("EmakiCoreLib", "web_console.history.record_web_writes", "记录写入", "是否记录保存、创建和回滚等 Web 写入操作。", "boolean");
+        registerNodeComment("EmakiCoreLib", "web_console.history.record_delete_backup", "删除备份", "删除文件前是否保留历史备份。", "boolean");
         registerNodeComment("EmakiCoreLib", "action", "动作", "CoreLib Action 全局配置。", "object");
         registerCreatableNode("EmakiCoreLib", "action.templates", "动作模板", "可通过 @template=名称 引用的动作模板映射。", "object");
         registerNodeKeyComment("EmakiCoreLib", "templates", "动作模板", "可通过 @template=名称 引用的动作模板映射，模板值为 CoreLib Action 行列表。", "object");

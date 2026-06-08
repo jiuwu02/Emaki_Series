@@ -1,7 +1,7 @@
 import { Component, memo, startTransition, useDeferredValue, useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react';
 import type { Completion, CompletionContext, CompletionResult, CompletionSource } from '@codemirror/autocomplete';
 import type { ComponentType } from 'react';
-import { ApiClient, ApiError, type InsightDependencyGraphEdge, type InsightDependencyGraphNode, type InsightDependencyGraphResult, type InsightReferenceResult, type InsightSearchResult } from './api';
+import { ApiClient, ApiError, type HistoryEntry, type HistorySnapshot, type InsightDependencyGraphEdge, type InsightDependencyGraphNode, type InsightDependencyGraphResult, type InsightReferenceResult, type InsightSearchResult } from './api';
 import { GuiEditorSurface } from './GuiEditorSurface';
 import { ItemEditorSurface } from './ItemEditorSurface';
 import { loadWebExtensions } from './extensions';
@@ -99,6 +99,7 @@ type ConfigSaveSafety = {
 };
 
 type InsightReferenceTarget = { idType: string; id: string };
+type HistoryTarget = { moduleId: string; path: string; kind: string; revision?: number; title: string };
 
 type Toast = { tone: 'ok' | 'bad'; text: string } | null;
 type LoginNotice = 'expired' | 'signedOut' | null;
@@ -136,6 +137,7 @@ export default function App() {
   const [insightSearchOpen, setInsightSearchOpen] = useState(false);
   const [referenceTarget, setReferenceTarget] = useState<InsightReferenceTarget | null>(null);
   const [dependencyGraphTarget, setDependencyGraphTarget] = useState<InsightReferenceTarget | null>(null);
+  const [historyTarget, setHistoryTarget] = useState<HistoryTarget | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [surfaceToolbar, setSurfaceToolbar] = useState<SurfaceToolbarState | null>(null);
@@ -162,6 +164,7 @@ export default function App() {
     setInsightSearchOpen(false);
     setReferenceTarget(null);
     setDependencyGraphTarget(null);
+    setHistoryTarget(null);
     setI18nTarget(null);
     setToast(null);
   };
@@ -453,6 +456,7 @@ export default function App() {
   const selectedModule = selected && registry ? registry.modules.find((m) => m.id === selected.moduleId) ?? null : null;
   const selectedFile = selectedModule && selected ? selectedModule.files.find((f) => f.id === selected.fileId) ?? null : null;
   const selectedReferenceTarget = useMemo(() => insightDefinitionTarget(selectedModule, selectedFile, selected?.scriptPath), [selectedModule?.id, selectedFile?.path, selectedFile?.nodes, selected?.scriptPath]);
+  const selectedHistoryTarget = useMemo(() => historyTargetForSelection(selectedModule, selectedFile, selected?.scriptPath), [selectedModule?.id, selectedFile?.id, selectedFile?.path, selectedFile?.kind, selectedFile?.revision, selected?.scriptPath]);
   const selectedDraftScope = selectedModule && selectedFile && isKind(selectedFile.kind, 'CONFIG') ? configDraftScope(selectedModule, selectedFile, selected?.scriptPath) : null;
   const selectedScopeHistory = selectedDraftScope ? draftHistory[draftScopeId(selectedDraftScope)] ?? emptyDraftHistory() : emptyDraftHistory();
   const changedCount = useMemo(() => selectedDraftScope && selectedFile ? selectedFile.nodes.filter((n) => n.type !== 'object' && draftKey(selectedDraftScope, n.path) in drafts).length : 0, [selectedDraftScope?.moduleId, selectedDraftScope?.fileId, selectedDraftScope?.filePath, selectedFile?.nodes, drafts]);
@@ -578,6 +582,7 @@ export default function App() {
       {insightSearchOpen && <InsightSearchModal api={api} registry={registry} onCancel={() => setInsightSearchOpen(false)} onOpen={openInsightSearchResult} onReferences={openInsightReferences} onGraph={openInsightDependencyGraph} />}
       {referenceTarget && <InsightReferenceModal api={api} registry={registry} target={referenceTarget} onCancel={() => setReferenceTarget(null)} onOpen={openInsightReferenceResult} onGraph={openInsightDependencyGraph} />}
       {dependencyGraphTarget && <InsightDependencyGraphModal api={api} registry={registry} target={dependencyGraphTarget} onCancel={() => setDependencyGraphTarget(null)} onOpen={location => openInsightLocation(location, () => setDependencyGraphTarget(null))} />}
+      {historyTarget && <HistoryModal api={api} target={historyTarget} onCancel={() => setHistoryTarget(null)} onRolledBack={async () => { setHistoryTarget(null); await reloadCurrentSurface(); }} />}
       {saveConflict && <SaveConflictModal conflict={saveConflict} onCancel={() => setSaveConflict(null)} />}
       <ResizableRail>
         <div className="brand-block">
@@ -613,7 +618,7 @@ export default function App() {
         <button className="rail-action quiet" onClick={signOut}>{t('core.auth.logout')}</button>
       </ResizableRail>
       <main className="stage">
-        <SurfaceSummaryStrip module={selectedModule} file={selectedFile} editor={selectedEditor} toolbar={toolbar} loading={loading} referenceTarget={selectedReferenceTarget} onOpenReferences={openInsightReferences} onOpenGraph={openInsightDependencyGraph} />
+        <SurfaceSummaryStrip module={selectedModule} file={selectedFile} editor={selectedEditor} toolbar={toolbar} loading={loading} referenceTarget={selectedReferenceTarget} historyTarget={selectedHistoryTarget} onOpenReferences={openInsightReferences} onOpenGraph={openInsightDependencyGraph} onOpenHistory={setHistoryTarget} />
         <EditorChrome
           className="stage-head"
           title={toolbar.title ?? (selectedModule ? moduleDisplayName(selectedModule) : t('core.stage.defaultTitle'))}
@@ -652,7 +657,7 @@ export default function App() {
   );
 }
 
-function SurfaceSummaryStrip({ module, file, editor, toolbar, loading, referenceTarget, onOpenReferences, onOpenGraph }: { module: WebRegistryModule | null; file: WebRegistryFile | null; editor?: WebEditorDescriptor; toolbar: SurfaceToolbarState; loading: boolean; referenceTarget: InsightReferenceTarget | null; onOpenReferences: (target: InsightReferenceTarget) => void; onOpenGraph: (target: InsightReferenceTarget) => void }) {
+function SurfaceSummaryStrip({ module, file, editor, toolbar, loading, referenceTarget, historyTarget, onOpenReferences, onOpenGraph, onOpenHistory }: { module: WebRegistryModule | null; file: WebRegistryFile | null; editor?: WebEditorDescriptor; toolbar: SurfaceToolbarState; loading: boolean; referenceTarget: InsightReferenceTarget | null; historyTarget: HistoryTarget | null; onOpenReferences: (target: InsightReferenceTarget) => void; onOpenGraph: (target: InsightReferenceTarget) => void; onOpenHistory: (target: HistoryTarget) => void }) {
   const moduleName = module ? moduleDisplayName(module) : t('core.stage.defaultTitle');
   const moduleSummary = module?.summary?.trim() || '';
   const fileComment = file ? fileDisplayComment(file).trim() : '';
@@ -678,6 +683,7 @@ function SurfaceSummaryStrip({ module, file, editor, toolbar, loading, reference
     </div>
     <div className="surface-summary-meta" aria-live="polite">
       {chips.map((chip, index) => <span key={`${chip}-${index}`} className={`surface-summary-chip${chip === fileKind ? ' kind' : ''}`}>{chip}</span>)}
+      {historyTarget && <button type="button" className="surface-summary-chip action" onClick={() => onOpenHistory(historyTarget)}>{t('core.history.button', undefined, '历史')}</button>}
       {referenceTarget && <button type="button" className="surface-summary-chip action" onClick={() => onOpenReferences(referenceTarget)}>{t('core.insight.references')}</button>}
       {referenceTarget && <button type="button" className="surface-summary-chip action" onClick={() => onOpenGraph(referenceTarget)}>{t('core.insight.graph')}</button>}
     </div>
@@ -758,6 +764,13 @@ function findSearchResultSelection(registry: WebRegistry, result: { moduleId: st
 
 function normalizeInsightPath(path: string | undefined): string {
   return String(path ?? '').replace(/\\/g, '/').replace(/^\/+|\/+$/g, '').toLowerCase();
+}
+
+function historyTargetForSelection(module: WebRegistryModule | null, file: WebRegistryFile | null, childPath?: string): HistoryTarget | null {
+  if (!module || !file) return null;
+  const path = (childPath || file.path || '').trim();
+  if (!path || /[*?]/.test(path)) return null;
+  return { moduleId: module.id, path, kind: String(file.kind ?? 'CONFIG').toUpperCase(), revision: file.revision, title: `${fileDisplayTitle(file)} · ${path}` };
 }
 
 function insightDefinitionTarget(module: WebRegistryModule | null, file: WebRegistryFile | null, childPath?: string): InsightReferenceTarget | null {
@@ -1095,6 +1108,125 @@ function DependencyGraphSvg({ nodes, edges, onNode, onEdge }: { nodes: InsightDe
       })}
     </svg>
   </div>;
+}
+
+function HistoryModal({ api, target, onCancel, onRolledBack }: { api: ApiClient; target: HistoryTarget; onCancel: () => void; onRolledBack: () => void | Promise<void> }) {
+  const dialogRef = useRef<HTMLElement | null>(null);
+  const [entries, setEntries] = useState<HistoryEntry[]>([]);
+  const [selectedId, setSelectedId] = useState('');
+  const [snapshot, setSnapshot] = useState<HistorySnapshot | null>(null);
+  const [diff, setDiff] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [currentRevision, setCurrentRevision] = useState<number | undefined>(target.revision);
+  const [rollingBack, setRollingBack] = useState(false);
+  useDialogFocus(dialogRef, onCancel);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError('');
+    setEntries([]);
+    setSelectedId('');
+    setSnapshot(null);
+    setDiff('');
+    void api.historyList(target.moduleId, target.path, target.kind)
+      .then(result => {
+        if (cancelled) return;
+        setEntries(result.history);
+        setCurrentRevision(result.revision ?? target.revision);
+        const first = result.history[0]?.id ?? '';
+        setSelectedId(first);
+      })
+      .catch(err => { if (!cancelled) setError(err instanceof Error ? err.message : t('core.api.requestFailed')); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [api, target.moduleId, target.path, target.kind]);
+
+  useEffect(() => {
+    if (!selectedId) {
+      setSnapshot(null);
+      setDiff('');
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    setError('');
+    Promise.all([
+      api.historySnapshot(target.moduleId, target.path, target.kind, selectedId),
+      api.historyDiff(target.moduleId, target.path, target.kind, selectedId)
+    ]).then(([nextSnapshot, nextDiff]) => {
+      if (cancelled) return;
+      setSnapshot(nextSnapshot);
+      setDiff(nextDiff.diff);
+    }).catch(err => {
+      if (!cancelled) setError(err instanceof Error ? err.message : t('core.api.requestFailed'));
+    }).finally(() => {
+      if (!cancelled) setLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [api, target.moduleId, target.path, target.kind, selectedId]);
+
+  const selectedEntry = entries.find(entry => entry.id === selectedId) ?? snapshot?.entry;
+  const rollbackAllowed = Boolean(selectedEntry?.rollbackAllowed && snapshot?.rollbackAllowed);
+
+  async function rollback() {
+    if (!selectedId || !rollbackAllowed || rollingBack) return;
+    if (!window.confirm(t('core.history.rollbackConfirm', { path: target.path }))) return;
+    setRollingBack(true);
+    setError('');
+    try {
+      await api.historyRollback(target.moduleId, target.path, target.kind, selectedId, currentRevision);
+      await onRolledBack();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('core.history.rollbackFailed'));
+    } finally {
+      setRollingBack(false);
+    }
+  }
+
+  return <div className="editor-modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) onCancel(); }}>
+    <section ref={dialogRef} className="insight-search-dialog insight-reference-dialog" role="dialog" aria-modal="true" aria-labelledby="history-title" tabIndex={-1}>
+      <div className="insight-search-head">
+        <span>{t('core.history.kicker')}</span>
+        <h3 id="history-title">{t('core.history.title', { file: target.title })}</h3>
+        <button type="button" className="insight-search-close" onClick={onCancel} aria-label={t('core.i18n.close')}>×</button>
+      </div>
+      <div className="insight-search-status" aria-live="polite">{loading ? t('core.state.loading') : error || t('core.history.count', { count: entries.length })}</div>
+      <div className="insight-graph-body">
+        <aside className="insight-graph-nodes" aria-label={t('core.history.entries')}>
+          {entries.length > 0 ? entries.map(entry => <button key={entry.id} type="button" className={`insight-graph-node-row ${entry.id === selectedId ? 'root' : ''}`} onClick={() => setSelectedId(entry.id)}>
+            <strong>{historyOperationLabel(entry.operation)}</strong>
+            <code>{entry.id}</code>
+            <span>{formatHistoryTime(entry.createdAt)} · {entry.actor || 'web'}{entry.rollbackAllowed === false ? ` · ${t('core.history.protected')}` : ''}</span>
+          </button>) : !loading && <div className="insight-search-empty">{t('core.history.empty')}</div>}
+        </aside>
+        <div className="insight-graph-canvas history-preview">
+          {selectedEntry ? <div className="history-preview-head">
+            <strong>{historyOperationLabel(selectedEntry.operation)} · {selectedEntry.id}</strong>
+            <span>{formatHistoryTime(selectedEntry.createdAt)} · {selectedEntry.actor || 'web'}</span>
+            {!rollbackAllowed && <small>{t('core.history.rollbackDisabled')}</small>}
+          </div> : null}
+          <pre>{diff || snapshot?.content || t('core.history.noDiff')}</pre>
+        </div>
+      </div>
+      <ActionGroup className="reload-confirm-actions">
+        <Button type="button" onClick={onCancel}>{t('core.gui.cancel')}</Button>
+        <Button type="button" variant="danger" disabled={!rollbackAllowed || rollingBack} onClick={() => void rollback()}>{rollingBack ? t('core.state.loading') : t('core.history.rollback')}</Button>
+      </ActionGroup>
+    </section>
+  </div>;
+}
+
+function historyOperationLabel(operation: string | undefined): string {
+  const key = String(operation ?? 'save').toLowerCase();
+  return t(`core.history.operation.${key}`, undefined, key);
+}
+
+function formatHistoryTime(value: unknown): string {
+  const time = typeof value === 'number' ? value : Number(value ?? 0);
+  if (!Number.isFinite(time) || time <= 0) return '-';
+  return new Date(time).toLocaleString();
 }
 
 function ExtensionHealthBanner({ health, statuses, onRetry }: { health: 'idle' | 'loading' | 'ok' | 'failed'; statuses: WebConsoleExtensionStatus[]; onRetry: () => void }) {

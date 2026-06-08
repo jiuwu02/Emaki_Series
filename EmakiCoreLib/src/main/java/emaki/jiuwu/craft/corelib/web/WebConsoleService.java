@@ -13,6 +13,7 @@ import java.util.concurrent.ExecutorService;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.economy.EconomyManager;
+import emaki.jiuwu.craft.corelib.web.history.WebChangeHistoryService;
 import emaki.jiuwu.craft.corelib.web.insight.WebInsightDependencyGraphService;
 import emaki.jiuwu.craft.corelib.web.insight.WebInsightReferenceService;
 import emaki.jiuwu.craft.corelib.web.insight.WebInsightSearchService;
@@ -43,6 +44,7 @@ public final class WebConsoleService {
     private WebInsightSearchService insightSearchService;
     private WebInsightReferenceService insightReferenceService;
     private WebInsightDependencyGraphService insightDependencyGraphService;
+    private WebChangeHistoryService changeHistoryService;
     private final WebStaticAssets staticAssets = new WebStaticAssets();
     private volatile boolean debugEnabled;
     private volatile boolean debugFrontend;
@@ -72,6 +74,7 @@ public final class WebConsoleService {
             insightSearchService = new WebInsightSearchService(plugin, config);
             insightReferenceService = new WebInsightReferenceService(plugin, config);
             insightDependencyGraphService = new WebInsightDependencyGraphService(insightReferenceService);
+            changeHistoryService = new WebChangeHistoryService(plugin, config);
             server = HttpServer.create(new InetSocketAddress(config.host(), config.port()), 0);
             executor = Executors.newFixedThreadPool(4, runnable -> {
                 Thread thread = new Thread(runnable, "emaki-web-console");
@@ -108,6 +111,10 @@ public final class WebConsoleService {
             createContext("/api/insight/search", auth(this::handleInsightSearch));
             createContext("/api/insight/references", auth(this::handleInsightReferences));
             createContext("/api/insight/dependency-graph", auth(this::handleInsightDependencyGraph));
+            createContext("/api/history/list", auth(this::handleHistoryList));
+            createContext("/api/history/snapshot", auth(this::handleHistorySnapshot));
+            createContext("/api/history/diff", auth(this::handleHistoryDiff));
+            createContext("/api/history/rollback", postAuth(this::handleHistoryRollback));
             createContext("/extensions/", this::handleExtensionAsset);
             createContext("/", this::handleStatic);
             server.start();
@@ -317,6 +324,8 @@ public final class WebConsoleService {
         itemPreviewService = null;
         insightSearchService = null;
         insightReferenceService = null;
+        insightDependencyGraphService = null;
+        changeHistoryService = null;
     }
 
     private void handleLogin(WebRequestContext context) throws IOException {
@@ -376,9 +385,14 @@ public final class WebConsoleService {
         String module = context.bodyString("moduleId");
         String filePath = context.bodyString("filePath");
         String path = context.bodyString("path");
+        if (filePath == null || filePath.isBlank()) {
+            filePath = "config.yml";
+        }
         Object value = context.bodyValue("value");
         Long revision = context.revision();
         try {
+            WebChangeHistoryService.HistoryTarget historyTarget = historyTarget(module, filePath, "CONFIG");
+            recordBeforeWrite(historyTarget, "save_node", context.session());
             long nextRevision = consoleRegistry.saveValue(module, filePath, path, value, revision);
             context.ok(Map.of("revision", nextRevision));
         } catch (WebConsoleRegistry.RevisionConflictException exception) {
@@ -413,6 +427,7 @@ public final class WebConsoleService {
             String treePath = creation.type() == WebConsoleRegistry.WebConsoleFileType.SCRIPT && relative.startsWith(creation.baseDir() + "/")
                     ? relative.substring(creation.baseDir().length() + 1)
                     : relative;
+            recordCreate(historyTarget(moduleId, treePath, creation.type().kind()), context.session());
             context.ok(Map.of("path", treePath, "name", treePath.substring(treePath.lastIndexOf('/') + 1), "revision", fileRevision(target)));
         } catch (Exception exception) {
             context.badRequest(exception.getMessage());
@@ -438,6 +453,7 @@ public final class WebConsoleService {
             }
             Files.createDirectories(target.toPath().getParent());
             Files.writeString(target.toPath(), defaultFileContent(WebConsoleRegistry.WebConsoleFileType.CONFIG), StandardCharsets.UTF_8);
+            recordCreate(historyTarget(moduleId, relative, "CONFIG"), context.session());
             context.ok(Map.of("path", relative, "name", relative.substring(relative.lastIndexOf('/') + 1), "revision", fileRevision(target)));
         } catch (Exception exception) {
             context.badRequest(exception.getMessage());
@@ -472,6 +488,7 @@ public final class WebConsoleService {
                 context.forbidden("此文件类型不允许删除");
                 return;
             }
+            recordDeleteBackup(historyTarget(moduleId, normalizedPath, treeFileKind(moduleId, fileId)), context.session());
             Files.delete(target.toPath());
             context.ok(Map.of("path", normalizedPath));
         } catch (Exception exception) {
@@ -522,6 +539,7 @@ public final class WebConsoleService {
         String content = context.bodyString("content");
         try {
             YamlFiles.load(content == null ? "" : content);
+            recordBeforeWrite(historyTarget(module, path, "CONFIG"), "save", context.session());
             long revision = configBrowserService.save(module, path, content, expectedRevision);
             context.ok(Map.of("revision", revision));
         } catch (WebConsoleRegistry.RevisionConflictException exception) {
@@ -598,6 +616,7 @@ public final class WebConsoleService {
                     return;
                 }
             }
+            recordBeforeWrite(changeHistoryService.scriptTarget(path), "save", context.session());
             java.nio.file.Files.createDirectories(target.toPath().getParent());
             java.nio.file.Files.writeString(target.toPath(), content == null ? "" : content, StandardCharsets.UTF_8);
             context.ok(Map.of("revision", fileRevision(target)));
@@ -665,6 +684,7 @@ public final class WebConsoleService {
                 }
             }
             YamlFiles.load(content == null ? "" : content);
+            recordBeforeWrite(historyTarget(module, path, normalizeHistoryKind(kind)), "save", context.session());
             java.nio.file.Files.createDirectories(target.toPath().getParent());
             java.nio.file.Files.writeString(target.toPath(), content == null ? "" : content, StandardCharsets.UTF_8);
             context.ok(Map.of("revision", fileRevision(target)));
@@ -770,6 +790,50 @@ public final class WebConsoleService {
         }
     }
 
+    private void handleHistoryList(WebRequestContext context) throws IOException {
+        try {
+            WebChangeHistoryService.HistoryTarget target = historyTarget(context.query("module"), context.query("path"), context.query("kind"));
+            context.ok(Map.of("history", changeHistoryService.list(target), "revision", changeHistoryService.currentRevision(target)));
+        } catch (Exception exception) {
+            context.badRequest(exception.getMessage());
+        }
+    }
+
+    private void handleHistorySnapshot(WebRequestContext context) throws IOException {
+        try {
+            WebChangeHistoryService.HistoryTarget target = historyTarget(context.query("module"), context.query("path"), context.query("kind"));
+            context.ok(changeHistoryService.snapshot(target, context.query("id")));
+        } catch (Exception exception) {
+            context.badRequest(exception.getMessage());
+        }
+    }
+
+    private void handleHistoryDiff(WebRequestContext context) throws IOException {
+        try {
+            WebChangeHistoryService.HistoryTarget target = historyTarget(context.query("module"), context.query("path"), context.query("kind"));
+            context.ok(changeHistoryService.diffCurrent(target, context.query("id")));
+        } catch (Exception exception) {
+            context.badRequest(exception.getMessage());
+        }
+    }
+
+    private void handleHistoryRollback(WebRequestContext context) throws IOException {
+        if (!requireConfigWriteAllowed(context)) {
+            return;
+        }
+        try {
+            WebChangeHistoryService.HistoryTarget target = historyTarget(context.bodyString("moduleId"), context.bodyString("path"), context.bodyString("kind"));
+            long revision = changeHistoryService.rollback(target, context.bodyString("id"), actor(context.session()), context.revision());
+            context.ok(Map.of("revision", revision));
+        } catch (WebConsoleRegistry.RevisionConflictException exception) {
+            writeRevisionConflict(context.exchange(), exception);
+        } catch (WebChangeHistoryService.RollbackForbiddenException exception) {
+            context.forbidden(exception.getMessage());
+        } catch (Exception exception) {
+            context.badRequest(exception.getMessage());
+        }
+    }
+
     private int intQuery(String value, int fallback) {
         if (value == null || value.isBlank()) {
             return fallback;
@@ -809,6 +873,60 @@ public final class WebConsoleService {
 
     private static boolean isGlobPath(String path) {
         return path != null && (path.contains("*") || path.contains("?"));
+    }
+
+    private WebChangeHistoryService.HistoryTarget historyTarget(String moduleId, String path, String kind) throws IOException {
+        String normalizedKind = normalizeHistoryKind(kind);
+        if ("SCRIPT".equals(normalizedKind)) {
+            return changeHistoryService.scriptTarget(path);
+        }
+        return changeHistoryService.moduleTarget(moduleId, path, normalizedKind);
+    }
+
+    private void recordBeforeWrite(WebChangeHistoryService.HistoryTarget target, String operation, WebAuthService.Session session) throws IOException {
+        if (changeHistoryService != null) {
+            changeHistoryService.recordBeforeWrite(target, operation, actor(session));
+        }
+    }
+
+    private void recordCreate(WebChangeHistoryService.HistoryTarget target, WebAuthService.Session session) throws IOException {
+        if (changeHistoryService != null) {
+            changeHistoryService.recordCreate(target, actor(session));
+        }
+    }
+
+    private void recordDeleteBackup(WebChangeHistoryService.HistoryTarget target, WebAuthService.Session session) throws IOException {
+        if (changeHistoryService != null) {
+            changeHistoryService.recordDeleteBackup(target, actor(session));
+        }
+    }
+
+    private String actor(WebAuthService.Session session) {
+        return session == null || session.username() == null || session.username().isBlank() ? "web" : session.username();
+    }
+
+    private String normalizeHistoryKind(String kind) {
+        if (kind == null || kind.isBlank()) {
+            return "CONFIG";
+        }
+        return switch (kind.trim().toUpperCase(java.util.Locale.ROOT)) {
+            case "GUI" -> "GUI";
+            case "ITEM" -> "ITEM";
+            case "SCRIPT" -> "SCRIPT";
+            case "资源", "RESOURCE" -> "RESOURCE";
+            default -> kind.trim().toUpperCase(java.util.Locale.ROOT);
+        };
+    }
+
+    private String treeFileKind(String moduleId, String fileId) {
+        if (fileId == null || fileId.isBlank()) {
+            return "CONFIG";
+        }
+        String normalized = fileId.toLowerCase(java.util.Locale.ROOT);
+        if (normalized.contains("-script-")) return "SCRIPT";
+        if (normalized.contains("-gui-")) return "GUI";
+        if (normalized.contains("-item-")) return "ITEM";
+        return "CONFIG";
     }
 
     private String resolveTreeFilePath(String moduleId, String fileId, String path) throws IOException {
