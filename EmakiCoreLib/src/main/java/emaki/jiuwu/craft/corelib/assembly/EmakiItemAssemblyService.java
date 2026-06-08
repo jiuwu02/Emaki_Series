@@ -216,6 +216,9 @@ public final class EmakiItemAssemblyService {
         if (itemStack == null) {
             return null;
         }
+        if (!requiresRenderedAssembly(context)) {
+            return itemStack;
+        }
         itemRenderService.renderItem(itemStack, context.layerSnapshots().values(), baseNameOverride(context.baseCustomName()));
         dataManager.writeAssemblyData(
                 itemStack,
@@ -229,6 +232,24 @@ public final class EmakiItemAssemblyService {
                 context.layerSnapshots().values()
         );
         return itemStack;
+    }
+
+    private boolean requiresRenderedAssembly(AssemblyContext context) {
+        if (context == null) {
+            return false;
+        }
+        if (Texts.isNotBlank(context.baseCustomName())) {
+            return true;
+        }
+        if (context.layerSnapshots() == null || context.layerSnapshots().isEmpty()) {
+            return false;
+        }
+        for (EmakiItemLayerSnapshot snapshot : context.layerSnapshots().values()) {
+            if (snapshot != null && snapshot.hasStructuredPresentation()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private String requestSignature(EmakiItemAssemblyRequest request) {

@@ -3,6 +3,7 @@ import type { ConfigFile, GuiDocument, ItemDocument, ItemPreviewResult, ModuleSt
 
 export type ActionTypesResult = { nameActions: string[]; loreActions: string[] };
 export type EconomyProvidersResult = { providers: string[]; availableProviders: string[] };
+export type InsightSearchResult = { moduleId: string; path: string; kind: string; keyPath: string; matchType: 'definition' | 'reference' | 'text' | 'file' | string; idType: string; snippet: string };
 export type RegistrySaveResult = { revision?: number };
 export type RegistryFileNodesResult = { nodes: WebConfigNode[]; revision?: number; path?: string };
 export type TextDocumentKind = 'CONFIG' | 'GUI' | 'ITEM' | 'SCRIPT' | string;
@@ -217,6 +218,13 @@ export class ApiClient {
     const data = await this.request('/api/items/action-types');
     this.actionTypesCache = { nameActions: data.nameActions ?? [], loreActions: data.loreActions ?? [] };
     return this.actionTypesCache;
+  }
+
+  async insightSearch(query: string): Promise<InsightSearchResult[]> {
+    const trimmed = query.trim();
+    if (!trimmed) return [];
+    const data = await this.request(`/api/insight/search?q=${encodeURIComponent(trimmed)}`);
+    return Array.isArray(data.results) ? data.results as InsightSearchResult[] : [];
   }
 
   async economyProviders(): Promise<EconomyProvidersResult> {

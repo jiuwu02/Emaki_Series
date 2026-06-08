@@ -9,6 +9,8 @@ import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerSnapshot;
 import emaki.jiuwu.craft.corelib.assembly.EmakiStructuredPresentation;
 import emaki.jiuwu.craft.corelib.assembly.StructuredPresentationTemplateResolver;
 import emaki.jiuwu.craft.corelib.assembly.StructuredPresentationValidator;
+import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.MapYamlSection;
 import emaki.jiuwu.craft.cooking.model.RecipeDocument;
@@ -71,7 +73,7 @@ public final class CookingLayerSnapshotBuilder {
             audit.put("station_type", recipe.stationType().folderName());
         }
         putIfPresent(audit, "phase", Texts.trim(phase));
-        putIfPresent(audit, "source", output == null ? null : output.get("source"));
+        putIfPresent(audit, "source", outputSourceShorthand(output));
         putIfPresent(audit, "amount", output == null ? null : output.get("amount"));
         putIfPresent(audit, "chance", output == null ? null : output.get("chance"));
         if (output != null && output.get("amount_range") instanceof Map<?, ?> amountRange) {
@@ -104,7 +106,7 @@ public final class CookingLayerSnapshotBuilder {
             replacements.put("station_type", recipe.stationType().folderName());
         }
         putIfPresent(replacements, "phase", Texts.trim(phase));
-        putIfPresent(replacements, "output_source", output == null ? null : output.get("source"));
+        putIfPresent(replacements, "output_source", outputSourceShorthand(output));
         putIfPresent(replacements, "output_amount", output == null ? null : output.get("amount"));
         putIfPresent(replacements, "output_chance", output == null ? null : output.get("chance"));
         if (output != null && output.get("amount_range") instanceof Map<?, ?> amountRange) {
@@ -113,6 +115,15 @@ public final class CookingLayerSnapshotBuilder {
             putIfPresent(replacements, "output_amount_max", normalizedRange.get("max"));
         }
         return replacements;
+    }
+
+    private String outputSourceShorthand(Map<String, Object> output) {
+        if (output == null || output.isEmpty()) {
+            return "";
+        }
+        ItemSource source = ItemSourceUtil.parse(output.get("item_sources"));
+        String shorthand = ItemSourceUtil.toShorthand(source);
+        return shorthand == null ? "" : shorthand;
     }
 
     private void putIfPresent(Map<String, Object> target, String key, Object value) {

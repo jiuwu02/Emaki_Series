@@ -999,6 +999,26 @@ public final class WebConsoleRegistry {
         return MODULES.containsKey(moduleId);
     }
 
+    public static synchronized List<WebRegisteredFileEntry> registeredFileEntries() {
+        List<WebRegisteredFileEntry> result = new ArrayList<>();
+        for (ModuleRegistration registration : MODULES.values()) {
+            Plugin installed = Bukkit.getPluginManager().getPlugin(registration.id());
+            if (installed == null || !installed.isEnabled()) {
+                continue;
+            }
+            for (FileRegistration file : registration.files()) {
+                result.add(new WebRegisteredFileEntry(
+                        registration.id(),
+                        file.title(),
+                        file.relativePath(),
+                        file.type().kind(),
+                        file.structuredYaml()
+                ));
+            }
+        }
+        return List.copyOf(result);
+    }
+
     private static synchronized List<ModuleRegistration> registeredModules() {
         return List.copyOf(MODULES.values());
     }
@@ -1281,6 +1301,7 @@ public final class WebConsoleRegistry {
         KEY
     }
 
+    public record WebRegisteredFileEntry(String moduleId, String title, String relativePath, String kind, boolean structuredYaml) {}
     private record ModuleRegistration(String id, String name, String summary, String tone, String iconSvg, List<FileRegistration> files) {}
     private record EditorRegistration(String moduleId, String editorId, Map<String, Object> descriptor) {}
     private record WebExtensionRegistration(String moduleId, String id, String resourcePath) {}

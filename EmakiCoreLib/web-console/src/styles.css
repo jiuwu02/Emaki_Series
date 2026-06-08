@@ -5776,6 +5776,212 @@ textarea {
   gap: 4px;
 }
 
+.insight-search-trigger {
+  width: calc(100% - 24px);
+  margin: 0 12px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--input);
+  color: var(--muted);
+  font-size: 12px;
+  text-align: left;
+}
+
+.insight-search-trigger:hover,
+.insight-search-trigger:focus-visible {
+  border-color: var(--accent);
+  color: var(--text);
+  background: var(--accent-dim);
+  outline: none;
+}
+
+.insight-search-trigger kbd {
+  flex: 0 0 auto;
+  border: 1px solid var(--line-2);
+  border-radius: 5px;
+  padding: 2px 6px;
+  color: var(--faint);
+  font: 700 10px ui-monospace, "Cascadia Code", monospace;
+  background: var(--surface);
+}
+
+.insight-search-dialog {
+  width: min(820px, calc(100vw - 32px));
+  max-height: min(760px, calc(100vh - 32px));
+  display: grid;
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+  border: 1px solid var(--line-2);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  animation: reload-confirm-in 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.insight-search-head {
+  position: relative;
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid var(--line);
+  background: var(--input);
+}
+
+.insight-search-head span {
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .045em;
+  text-transform: uppercase;
+}
+
+.insight-search-head h3 {
+  margin-top: 3px;
+  font-size: 17px;
+}
+
+.insight-search-close {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  color: var(--faint);
+  font-size: 20px;
+}
+
+.insight-search-close:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.insight-search-input {
+  display: grid;
+  gap: 6px;
+  padding: 14px 18px 10px;
+  color: var(--faint);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.insight-search-input input {
+  width: 100%;
+  padding: 11px 12px;
+  font-size: 14px;
+}
+
+.insight-search-status {
+  padding: 0 18px 10px;
+  color: var(--faint);
+  font-size: 12px;
+}
+
+.insight-search-results {
+  min-height: 220px;
+  overflow: auto;
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  padding: 0 18px 18px;
+  scrollbar-width: thin;
+}
+
+.insight-search-group {
+  display: grid;
+  gap: 7px;
+}
+
+.insight-search-group h4 {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.insight-search-result {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  gap: 5px 8px;
+  align-items: center;
+  padding: 10px 11px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--input);
+  text-align: left;
+}
+
+.insight-search-result:hover:not(:disabled),
+.insight-search-result:focus-visible:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+  outline: none;
+}
+
+.insight-search-result:disabled {
+  opacity: .52;
+  cursor: not-allowed;
+}
+
+.insight-search-result strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+  font-size: 12px;
+}
+
+.insight-search-result code {
+  grid-column: 3;
+  color: var(--accent);
+  font: 600 11px ui-monospace, "Cascadia Code", monospace;
+  overflow-wrap: anywhere;
+}
+
+.insight-search-result small {
+  grid-column: 1 / -1;
+  color: var(--faint);
+  font-size: 11px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.insight-search-badge,
+.insight-search-idtype {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 20px;
+  padding: 2px 7px;
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.insight-search-badge.definition {
+  border-color: var(--success-line);
+  color: var(--green);
+  background: var(--success-soft);
+}
+
+.insight-search-badge.reference {
+  border-color: var(--changed-line);
+  color: var(--changed-ink);
+  background: var(--changed-bg);
+}
+
+.insight-search-empty {
+  min-height: 160px;
+  display: grid;
+  place-items: center;
+  color: var(--faint);
+  font-size: 13px;
+}
+
 /* i18n bundle modal */
 .i18n-modal-backdrop {
   position: fixed;

@@ -13,6 +13,7 @@ import java.util.concurrent.ExecutorService;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.economy.EconomyManager;
+import emaki.jiuwu.craft.corelib.web.insight.WebInsightSearchService;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 import java.util.concurrent.Executors;
@@ -37,6 +38,7 @@ public final class WebConsoleService {
     private WebRuntimeLibraryService runtimeLibraryService;
     private WebConsoleRegistry consoleRegistry;
     private WebItemPreviewService itemPreviewService;
+    private WebInsightSearchService insightSearchService;
     private final WebStaticAssets staticAssets = new WebStaticAssets();
     private volatile boolean debugEnabled;
     private volatile boolean debugFrontend;
@@ -63,6 +65,7 @@ public final class WebConsoleService {
             runtimeLibraryService = new WebRuntimeLibraryService(plugin);
             consoleRegistry = new WebConsoleRegistry(plugin);
             itemPreviewService = new WebItemPreviewService();
+            insightSearchService = new WebInsightSearchService(plugin, config);
             server = HttpServer.create(new InetSocketAddress(config.host(), config.port()), 0);
             executor = Executors.newFixedThreadPool(4, runnable -> {
                 Thread thread = new Thread(runnable, "emaki-web-console");
@@ -96,6 +99,7 @@ public final class WebConsoleService {
             createContext("/api/items/preview", postAuth(this::handleItemPreview));
             createContext("/api/items/action-types", auth(this::handleItemActionTypes));
             createContext("/api/economy/providers", auth(this::handleEconomyProviders));
+            createContext("/api/insight/search", auth(this::handleInsightSearch));
             createContext("/extensions/", this::handleExtensionAsset);
             createContext("/", this::handleStatic);
             server.start();
@@ -303,6 +307,7 @@ public final class WebConsoleService {
         WebConsoleRegistry.unregisterModule(plugin);
         consoleRegistry = null;
         itemPreviewService = null;
+        insightSearchService = null;
     }
 
     private void handleLogin(WebRequestContext context) throws IOException {
@@ -710,6 +715,19 @@ public final class WebConsoleService {
             context.ok(itemPreviewService.actionTypes());
         } catch (Exception e) {
             context.serverError(e.getMessage());
+        }
+    }
+
+    private void handleInsightSearch(WebRequestContext context) throws IOException {
+        String query = context.query("q");
+        if (query.isBlank()) {
+            context.ok(Map.of("query", "", "results", List.of()));
+            return;
+        }
+        try {
+            context.ok(Map.of("query", query, "results", insightSearchService.search(query)));
+        } catch (Exception exception) {
+            context.serverError(exception.getMessage());
         }
     }
 

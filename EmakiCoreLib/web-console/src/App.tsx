@@ -1,7 +1,7 @@
 import { Component, memo, startTransition, useDeferredValue, useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react';
 import type { Completion, CompletionContext, CompletionResult, CompletionSource } from '@codemirror/autocomplete';
 import type { ComponentType } from 'react';
-import { ApiClient, ApiError } from './api';
+import { ApiClient, ApiError, type InsightSearchResult } from './api';
 import { GuiEditorSurface } from './GuiEditorSurface';
 import { ItemEditorSurface } from './ItemEditorSurface';
 import { loadWebExtensions } from './extensions';
@@ -132,6 +132,7 @@ export default function App() {
   const [i18nTarget, setI18nTarget] = useState<I18nTarget | null>(null);
   const [createTarget, setCreateTarget] = useState<RegistryTreeNode | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<RegistryTreeNode | null>(null);
+  const [insightSearchOpen, setInsightSearchOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [surfaceToolbar, setSurfaceToolbar] = useState<SurfaceToolbarState | null>(null);
@@ -155,6 +156,7 @@ export default function App() {
     setSurfaceDirtyKeys(new Set());
     setCreateTarget(null);
     setDeleteTarget(null);
+    setInsightSearchOpen(false);
     setI18nTarget(null);
     setToast(null);
   };
@@ -508,8 +510,33 @@ export default function App() {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [selectedDraftScope, selectedScopeHistory.undo.length, selectedScopeHistory.redo.length, saving, loading]);
 
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const mod = event.ctrlKey || event.metaKey;
+      if (!mod || event.key.toLowerCase() !== 'k') return;
+      event.preventDefault();
+      setInsightSearchOpen(true);
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   function jumpToConfigPath(path: string) {
     jumpToConfigNode(path);
+  }
+
+  function openInsightSearchResult(result: InsightSearchResult) {
+    if (!registry) return;
+    const target = findSearchResultSelection(registry, result);
+    if (!target) {
+      setToast({ tone: 'bad', text: t('core.insight.openFailed') });
+      return;
+    }
+    setSelected({ ...target, refreshKey: Date.now() });
+    setInsightSearchOpen(false);
+    if (result.keyPath) {
+      window.setTimeout(() => jumpToConfigNode(result.keyPath), 280);
+    }
   }
 
   if (!token) return <Login notice={loginNotice} onLogin={(t) => { sessionStorage.setItem('emaki-web-token', t); setLoginNotice(null); setToken(t); }} />;
@@ -522,6 +549,7 @@ export default function App() {
       {createTarget && <CreateFileModal target={createTarget} onCancel={() => setCreateTarget(null)} onCreate={createFileFromTree} />}
       {deleteTarget && <DeleteFileModal target={deleteTarget} onCancel={() => setDeleteTarget(null)} onDelete={deleteFileFromTree} />}
       {i18nTarget && <I18nBundleModal target={i18nTarget} onClose={() => setI18nTarget(null)} onSaved={() => { setLocaleVersion((version) => version + 1); setToast({ tone: 'ok', text: t('core.i18n.saved') }); }} />}
+      {insightSearchOpen && <InsightSearchModal api={api} registry={registry} onCancel={() => setInsightSearchOpen(false)} onOpen={openInsightSearchResult} />}
       {saveConflict && <SaveConflictModal conflict={saveConflict} onCancel={() => setSaveConflict(null)} />}
       <ResizableRail>
         <div className="brand-block">
@@ -544,6 +572,10 @@ export default function App() {
             </label>
           </div>
         </div>
+        <button type="button" className="insight-search-trigger" onClick={() => setInsightSearchOpen(true)} aria-label={t('core.insight.searchAria')}>
+          <span>{t('core.insight.searchPlaceholder')}</span>
+          <kbd>Ctrl K</kbd>
+        </button>
         <ExtensionHealthBanner
           health={extensionHealth}
           statuses={extensionStatuses}
@@ -668,6 +700,114 @@ function cssSelectorEscape(value: string): string {
   const css = globalThis.CSS;
   if (css && typeof css.escape === 'function') return css.escape(value);
   return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\0/g, '\uFFFD');
+}
+
+function groupInsightResults(results: InsightSearchResult[], registry: WebRegistry | null): { moduleId: string; module?: WebRegistryModule; results: InsightSearchResult[] }[] {
+  const groups = new Map<string, { moduleId: string; module?: WebRegistryModule; results: InsightSearchResult[] }>();
+  for (const result of results) {
+    const module = registry?.modules.find(entry => entry.id === result.moduleId);
+    const entry = groups.get(result.moduleId) ?? { moduleId: result.moduleId, module, results: [] };
+    entry.results.push(result);
+    groups.set(result.moduleId, entry);
+  }
+  return [...groups.values()];
+}
+
+function findSearchResultSelection(registry: WebRegistry, result: InsightSearchResult): Selection | null {
+  const module = registry.modules.find(entry => entry.id === result.moduleId);
+  if (!module) return null;
+  const normalizedPath = normalizeInsightPath(result.path);
+  const directFile = module.files.find(file => normalizeInsightPath(file.path) === normalizedPath);
+  if (directFile) return { moduleId: module.id, fileId: directFile.id };
+  for (const file of module.files) {
+    const child = file.children?.find(entry => normalizeInsightPath(entry.fullPath || entry.relativePath) === normalizedPath || normalizeInsightPath(entry.relativePath) === normalizedPath);
+    if (child) return { moduleId: module.id, fileId: file.id, scriptPath: child.fullPath || child.relativePath };
+  }
+  return null;
+}
+
+function normalizeInsightPath(path: string | undefined): string {
+  return String(path ?? '').replace(/\\/g, '/').replace(/^\/+|\/+$/g, '').toLowerCase();
+}
+
+function insightMatchLabel(matchType: string): string {
+  const normalized = String(matchType ?? '').toLowerCase();
+  return t(`core.insight.match.${normalized}`, undefined, normalized || t('core.kind.file'));
+}
+
+function InsightSearchModal({ api, registry, onCancel, onOpen }: { api: ApiClient; registry: WebRegistry | null; onCancel: () => void; onOpen: (result: InsightSearchResult) => void }) {
+  const dialogRef = useRef<HTMLElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<InsightSearchResult[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  useDialogFocus(dialogRef, onCancel);
+
+  useEffect(() => { window.setTimeout(() => inputRef.current?.focus(), 0); }, []);
+  useEffect(() => {
+    const trimmed = query.trim();
+    setError('');
+    if (!trimmed) {
+      setResults([]);
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      setLoading(true);
+      try {
+        const next = await api.insightSearch(trimmed);
+        if (!cancelled) setResults(next);
+      } catch (err) {
+        if (!cancelled) {
+          setResults([]);
+          setError(err instanceof Error ? err.message : t('core.api.requestFailed'));
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }, 180);
+    return () => { cancelled = true; window.clearTimeout(timer); };
+  }, [api, query]);
+
+  const grouped = useMemo(() => groupInsightResults(results, registry), [results, registry]);
+  const canOpen = (result: InsightSearchResult) => Boolean(registry && findSearchResultSelection(registry, result));
+
+  return <div className="editor-modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) onCancel(); }}>
+    <section ref={dialogRef} className="insight-search-dialog" role="dialog" aria-modal="true" aria-labelledby="insight-search-title" tabIndex={-1}>
+      <div className="insight-search-head">
+        <span>{t('core.insight.kicker')}</span>
+        <h3 id="insight-search-title">{t('core.insight.title')}</h3>
+        <button type="button" className="insight-search-close" onClick={onCancel} aria-label={t('core.i18n.close')}>×</button>
+      </div>
+      <label className="insight-search-input">
+        <span>{t('core.insight.inputLabel')}</span>
+        <input ref={inputRef} value={query} onChange={event => setQuery(event.target.value)} placeholder={t('core.insight.searchPlaceholder')} />
+      </label>
+      <div className="insight-search-status" aria-live="polite">
+        {loading ? t('core.state.loading') : error || (query.trim() ? t('core.insight.resultCount', { count: results.length }) : t('core.insight.emptyQuery'))}
+      </div>
+      <div className="insight-search-results">
+        {grouped.length > 0 ? grouped.map(group => <section className="insight-search-group" key={group.moduleId}>
+          <h4>{group.module ? moduleDisplayName(group.module) : group.moduleId}</h4>
+          {group.results.map((result, index) => <button
+            key={`${result.moduleId}:${result.path}:${result.keyPath}:${index}`}
+            type="button"
+            className="insight-search-result"
+            disabled={!canOpen(result)}
+            onClick={() => onOpen(result)}
+          >
+            <span className={`insight-search-badge ${result.matchType}`}>{insightMatchLabel(result.matchType)}</span>
+            {result.idType && <span className="insight-search-idtype">{result.idType}</span>}
+            <strong>{result.path}</strong>
+            {result.keyPath && <code>{result.keyPath}</code>}
+            <small>{result.snippet || result.path}</small>
+          </button>)}
+        </section>) : !loading && query.trim() && !error ? <div className="insight-search-empty">{t('core.insight.noResults')}</div> : null}
+      </div>
+    </section>
+  </div>;
 }
 
 function ExtensionHealthBanner({ health, statuses, onRetry }: { health: 'idle' | 'loading' | 'ok' | 'failed'; statuses: WebConsoleExtensionStatus[]; onRetry: () => void }) {

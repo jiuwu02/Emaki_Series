@@ -247,7 +247,7 @@ public final class CookingRewardService {
             values.put("phase", phase);
         }
         if (output != null && !output.isEmpty()) {
-            putIfPresent(values, "output_source", output.get("source"));
+            putIfPresent(values, "output_source", outputSourceShorthand(output));
             putIfPresent(values, "output_amount", output.get("amount"));
             putIfPresent(values, "output_chance", output.get("chance"));
             if (output.get("amount_range") instanceof Map<?, ?> amountRange) {
@@ -291,6 +291,15 @@ public final class CookingRewardService {
             }
         }
         return actions.isEmpty() ? List.of() : List.copyOf(actions);
+    }
+
+    private String outputSourceShorthand(Map<String, Object> output) {
+        if (output == null || output.isEmpty()) {
+            return "";
+        }
+        ItemSource source = ItemSourceUtil.parse(output.get("item_sources"));
+        String shorthand = ItemSourceUtil.toShorthand(source);
+        return shorthand == null ? "" : shorthand;
     }
 
     private Integer parseInteger(Object raw, Integer fallback) {

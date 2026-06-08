@@ -100,7 +100,14 @@ public final class PdcAttributeGateway {
             return false;
         }
         PdcAttributeApi api = resolveApiInstance();
-        return api != null && api.clear(itemStack, normalized);
+        if (api == null) {
+            return false;
+        }
+        Map<String, PdcAttributePayloadSnapshot> payloads = api.readAllSnapshots(itemStack);
+        if (payloads == null || !payloads.containsKey(normalized)) {
+            return false;
+        }
+        return api.clear(itemStack, normalized);
     }
 
     public Map<String, PdcAttributePayloadSnapshot> readAll(ItemStack itemStack) {
