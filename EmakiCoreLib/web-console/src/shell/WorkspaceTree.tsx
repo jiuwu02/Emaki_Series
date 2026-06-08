@@ -187,7 +187,7 @@ const TreeRow = memo(function TreeRow({ row, setRowRef, onToggle, onSelect, onOp
     >
       <span className="tree-label">{row.displayLabel}</span><DirtyDot dirty={row.dirty} />
     </button>
-    {onDeleteFile && node.childPath && <button type="button" className="tree-file-action danger" title={t('core.tree.deleteFile')} aria-label={t('core.tree.deleteFile')} onClick={(event) => { event.stopPropagation(); onDeleteFile(node); }}>×</button>}
+    {onDeleteFile && node.childPath && !isGlobPath(node.childPath) && <button type="button" className="tree-file-action danger" title={t('core.tree.deleteFile')} aria-label={t('core.tree.deleteFile')} onClick={(event) => { event.stopPropagation(); onDeleteFile(node); }}>×</button>}
   </div>;
 });
 
@@ -322,7 +322,8 @@ function scrubSvgNode(element: Element): boolean {
 }
 
 function buildTreeIndex(registry: WebRegistry): TreeIndex {
-  const roots = registry.tree?.length ? registry.tree : modulesToTree(registry.modules);
+  const pathIndex = buildGlobChildPathIndex(registry.modules);
+  const roots = registry.tree?.length ? normalizeRegistryTree(registry.tree, pathIndex) : modulesToTree(registry.modules);
   const rootIds = roots.map(node => node.id);
   const nodeById = new Map<string, RegistryTreeNode>();
   const childrenById = new Map<string, RegistryTreeNode[]>();
@@ -413,16 +414,21 @@ function nodeSearchText(node: RegistryTreeNode): string {
 }
 
 function isGlobTreeNode(node: RegistryTreeNode): boolean {
-  return /[*?]/.test(String(node.childPath ?? node.path ?? ''));
+  return isGlobPath(node.childPath) || isGlobPath(node.path);
 }
 
 function selectableChildPath(node: RegistryTreeNode): string | undefined {
-  if (node.childPath && !isGlobTreeNode(node)) return node.childPath;
-  return node.type === 'file' ? undefined : node.childPath;
+  const childPath = normalizeTreePath(node.childPath);
+  if (childPath && !isGlobPath(childPath)) return childPath;
+  return undefined;
 }
 
 function isEmptyGlobPlaceholder(node: RegistryTreeNode): boolean {
   return isGlobTreeNode(node) && !(node.children ?? []).length;
+}
+
+function isGlobPath(path: string | undefined): boolean {
+  return /[*?]/.test(String(path ?? ''));
 }
 
 function normalizeQuery(value: string): string {
@@ -479,6 +485,49 @@ function modulesToTree(modules: WebRegistryModule[]): RegistryTreeNode[] {
       children: globChildrenToTree(module.id, file)
     }))
   }));
+}
+
+function buildGlobChildPathIndex(modules: WebRegistryModule[]): Map<string, string> {
+  const index = new Map<string, string>();
+  for (const module of modules) {
+    for (const file of module.files) {
+      for (const child of file.children ?? []) {
+        const relativePath = normalizeTreePath(child.relativePath);
+        const fullPath = normalizeTreePath(file.kind?.toUpperCase() === 'SCRIPT' ? child.relativePath : (child.fullPath ?? child.relativePath));
+        if (!relativePath || !fullPath || isGlobPath(fullPath)) continue;
+        const keys = new Set([
+          treeChildPathKey(module.id, file.id, relativePath),
+          treeChildPathKey(module.id, file.id, fullPath),
+          treeChildPathKey(module.id, file.id, leafFileName(relativePath)),
+          treeChildPathKey(module.id, file.id, leafFileName(fullPath))
+        ]);
+        for (const key of keys) index.set(key, fullPath);
+      }
+    }
+  }
+  return index;
+}
+
+function normalizeRegistryTree(nodes: RegistryTreeNode[], pathIndex: Map<string, string>): RegistryTreeNode[] {
+  return nodes.map(node => normalizeRegistryTreeNode(node, pathIndex));
+}
+
+function normalizeRegistryTreeNode(node: RegistryTreeNode, pathIndex: Map<string, string>): RegistryTreeNode {
+  const nextChildren = node.children?.map(child => normalizeRegistryTreeNode(child, pathIndex));
+  let next: RegistryTreeNode = nextChildren ? { ...node, children: nextChildren } : { ...node };
+  if (next.type === 'child' && next.moduleId && next.fileId) {
+    const currentPath = normalizeTreePath(next.childPath ?? next.path);
+    const indexedPath = pathIndex.get(treeChildPathKey(next.moduleId, next.fileId, currentPath))
+      ?? pathIndex.get(treeChildPathKey(next.moduleId, next.fileId, leafFileName(currentPath)))
+      ?? pathIndex.get(treeChildPathKey(next.moduleId, next.fileId, normalizeTreePath(next.label)));
+    const safePath = indexedPath && !isGlobPath(indexedPath) ? indexedPath : (!isGlobPath(currentPath) ? currentPath : '');
+    if (safePath) next = { ...next, path: safePath, childPath: safePath, id: next.id && !isGlobPath(next.id) ? next.id : `${next.fileId}:${safePath}` };
+  }
+  return next;
+}
+
+function treeChildPathKey(moduleId: string | undefined, fileId: string | undefined, path: string | undefined): string {
+  return `${String(moduleId ?? '').toLowerCase()}\u0000${String(fileId ?? '').toLowerCase()}\u0000${normalizeTreePath(path).toLowerCase()}`;
 }
 
 function globChildrenToTree(moduleId: string, file: WebRegistryModule['files'][number]): RegistryTreeNode[] | undefined {
