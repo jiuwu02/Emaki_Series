@@ -3,20 +3,17 @@ package emaki.jiuwu.craft.corelib.web.insight;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-public record WebInsightSearchResult(
+public record WebInsightReferenceResult(
         String moduleId,
         String path,
         String kind,
         String keyPath,
-        String matchType,
         String idType,
         String id,
+        String referenceValue,
+        String edgeType,
         String snippet
 ) {
-
-    public WebInsightSearchResult(String moduleId, String path, String kind, String keyPath, String matchType, String idType, String snippet) {
-        this(moduleId, path, kind, keyPath, matchType, idType, "", snippet);
-    }
 
     public Map<String, Object> toMap() {
         Map<String, Object> result = new LinkedHashMap<>();
@@ -24,9 +21,10 @@ public record WebInsightSearchResult(
         result.put("path", safe(path));
         result.put("kind", safe(kind));
         result.put("keyPath", safe(keyPath));
-        result.put("matchType", safe(matchType));
         result.put("idType", safe(idType));
         result.put("id", safe(id));
+        result.put("referenceValue", safe(referenceValue));
+        result.put("edgeType", safe(edgeType));
         result.put("snippet", safe(snippet));
         return result;
     }

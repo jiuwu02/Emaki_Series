@@ -69,11 +69,12 @@ abstract class AbstractManagedItemSourceResolver<A extends AbstractManagedItemSo
         if (!supports(source) || !isOperational()) {
             return null;
         }
-        String displayName = accessor.displayName(source.getIdentifier());
-        if (Texts.isNotBlank(displayName)) {
-            return displayName;
+        String itemStackName = ManagedItemSourceResolver.super.displayName(source);
+        if (Texts.isNotBlank(itemStackName)) {
+            return itemStackName;
         }
-        return ManagedItemSourceResolver.super.displayName(source);
+        String displayName = accessor.displayName(source.getIdentifier());
+        return Texts.isBlank(displayName) ? null : displayName;
     }
 
     @Override

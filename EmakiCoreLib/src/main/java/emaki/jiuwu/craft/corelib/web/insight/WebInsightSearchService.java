@@ -159,8 +159,32 @@ public final class WebInsightSearchService {
         }
         String matchType = matchType(keyPath);
         String idType = "definition".equals(matchType) ? inferIdType(entry.moduleId(), filePath) : referenceIdType(keyPath, text);
+        String id = resultId(matchType, idType, text);
         String snippet = Texts.isBlank(keyPath) ? text : keyPath + ": " + text;
-        add(results, new WebInsightSearchResult(entry.moduleId(), filePath, entry.kind(), keyPath, matchType, idType, snippet(snippet, query)));
+        add(results, new WebInsightSearchResult(entry.moduleId(), filePath, entry.kind(), keyPath, matchType, idType, id, snippet(snippet, query)));
+    }
+
+    private String resultId(String matchType, String idType, String value) {
+        if ("definition".equals(matchType)) {
+            return normalizeReferenceId(idType, value);
+        }
+        if ("reference".equals(matchType)) {
+            return normalizeReferenceId(idType, value);
+        }
+        return "";
+    }
+
+    private String normalizeReferenceId(String idType, String value) {
+        String normalized = normalize(value);
+        if ("emaki_item".equals(idType)) {
+            if (normalized.startsWith("emakiitem-")) {
+                return normalized.substring("emakiitem-".length());
+            }
+            if (normalized.startsWith("ei-")) {
+                return normalized.substring("ei-".length());
+            }
+        }
+        return normalized;
     }
 
     private void add(List<WebInsightSearchResult> results, WebInsightSearchResult result) {

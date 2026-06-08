@@ -8,6 +8,7 @@ import java.util.Map;
 
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.Nullable;
 
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
@@ -89,11 +90,9 @@ public final class ItemSourceService {
         if (source == null || source.getType() == null || Texts.isBlank(source.getIdentifier())) {
             return "";
         }
-        if (source.getType() == ItemSourceType.VANILLA) {
-            String vanillaName = vanillaDisplayName(source);
-            if (Texts.isNotBlank(vanillaName)) {
-                return vanillaName;
-            }
+        String explicitItemStackName = createdItemCustomDisplayName(source);
+        if (Texts.isNotBlank(explicitItemStackName)) {
+            return explicitItemStackName;
         }
         for (ItemSourceResolver resolver : orderedResolvers) {
             if (!resolver.supports(source)) {
@@ -102,6 +101,12 @@ public final class ItemSourceService {
             String displayName = resolver.displayName(source);
             if (Texts.isNotBlank(displayName)) {
                 return displayName;
+            }
+        }
+        if (source.getType() == ItemSourceType.VANILLA) {
+            String vanillaName = vanillaDisplayName(source);
+            if (Texts.isNotBlank(vanillaName)) {
+                return vanillaName;
             }
         }
         String itemStackName = createdItemDisplayName(source);
@@ -142,6 +147,19 @@ public final class ItemSourceService {
         } catch (RuntimeException _) {
             return "";
         }
+    }
+
+    private String createdItemCustomDisplayName(ItemSource source) {
+        ItemStack itemStack = createItem(source, 1);
+        if (itemStack == null || itemStack.getType().isAir()) {
+            return "";
+        }
+        ItemMeta itemMeta = itemStack.getItemMeta();
+        if (!ItemTextBridge.hasCustomName(itemMeta)) {
+            return "";
+        }
+        String displayName = MiniMessages.serialize(ItemTextBridge.customName(itemMeta));
+        return Texts.isBlank(displayName) ? "" : displayName;
     }
 
     private String createdItemDisplayName(ItemSource source) {

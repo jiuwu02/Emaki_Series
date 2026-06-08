@@ -8,13 +8,10 @@ import org.bukkit.event.Listener;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import net.momirealms.craftengine.bukkit.api.CraftEngineItems;
 import net.momirealms.craftengine.bukkit.api.event.CraftEngineReloadEvent;
-import net.momirealms.craftengine.bukkit.item.BukkitItemDefinition;
 import net.momirealms.craftengine.core.util.Key;
-import net.kyori.adventure.text.Component;
 
 final class CraftEngineItemSourceResolver
         extends AbstractManagedItemSourceResolver<CraftEngineItemSourceResolver.DirectAccessor> {
@@ -118,19 +115,7 @@ final class CraftEngineItemSourceResolver
 
         @Override
         public String displayName(String identifier) {
-            if (Texts.isBlank(identifier)) {
-                return null;
-            }
-            try {
-                BukkitItemDefinition definition = CraftEngineItems.byId(Key.of(identifier));
-                if (definition == null) {
-                    return null;
-                }
-                String translationKey = definition.translationKey();
-                return Texts.isBlank(translationKey) ? null : MiniMessages.serialize(Component.translatable(translationKey));
-            } catch (RuntimeException | LinkageError exception) {
-                return null;
-            }
+            return null;
         }
 
         @Override

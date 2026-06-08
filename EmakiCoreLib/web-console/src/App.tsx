@@ -1,7 +1,7 @@
 import { Component, memo, startTransition, useDeferredValue, useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react';
 import type { Completion, CompletionContext, CompletionResult, CompletionSource } from '@codemirror/autocomplete';
 import type { ComponentType } from 'react';
-import { ApiClient, ApiError, type InsightSearchResult } from './api';
+import { ApiClient, ApiError, type InsightReferenceResult, type InsightSearchResult } from './api';
 import { GuiEditorSurface } from './GuiEditorSurface';
 import { ItemEditorSurface } from './ItemEditorSurface';
 import { loadWebExtensions } from './extensions';
@@ -98,6 +98,7 @@ type ConfigSaveSafety = {
   setSaveConflict: (conflict: SaveConflict | null) => void;
 };
 
+type InsightReferenceTarget = { idType: string; id: string };
 
 type Toast = { tone: 'ok' | 'bad'; text: string } | null;
 type LoginNotice = 'expired' | 'signedOut' | null;
@@ -133,6 +134,7 @@ export default function App() {
   const [createTarget, setCreateTarget] = useState<RegistryTreeNode | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<RegistryTreeNode | null>(null);
   const [insightSearchOpen, setInsightSearchOpen] = useState(false);
+  const [referenceTarget, setReferenceTarget] = useState<InsightReferenceTarget | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [surfaceToolbar, setSurfaceToolbar] = useState<SurfaceToolbarState | null>(null);
@@ -157,6 +159,7 @@ export default function App() {
     setCreateTarget(null);
     setDeleteTarget(null);
     setInsightSearchOpen(false);
+    setReferenceTarget(null);
     setI18nTarget(null);
     setToast(null);
   };
@@ -447,6 +450,7 @@ export default function App() {
 
   const selectedModule = selected && registry ? registry.modules.find((m) => m.id === selected.moduleId) ?? null : null;
   const selectedFile = selectedModule && selected ? selectedModule.files.find((f) => f.id === selected.fileId) ?? null : null;
+  const selectedReferenceTarget = useMemo(() => insightDefinitionTarget(selectedModule, selectedFile, selected?.scriptPath), [selectedModule?.id, selectedFile?.path, selectedFile?.nodes, selected?.scriptPath]);
   const selectedDraftScope = selectedModule && selectedFile && isKind(selectedFile.kind, 'CONFIG') ? configDraftScope(selectedModule, selectedFile, selected?.scriptPath) : null;
   const selectedScopeHistory = selectedDraftScope ? draftHistory[draftScopeId(selectedDraftScope)] ?? emptyDraftHistory() : emptyDraftHistory();
   const changedCount = useMemo(() => selectedDraftScope && selectedFile ? selectedFile.nodes.filter((n) => n.type !== 'object' && draftKey(selectedDraftScope, n.path) in drafts).length : 0, [selectedDraftScope?.moduleId, selectedDraftScope?.fileId, selectedDraftScope?.filePath, selectedFile?.nodes, drafts]);
@@ -525,18 +529,31 @@ export default function App() {
     jumpToConfigNode(path);
   }
 
-  function openInsightSearchResult(result: InsightSearchResult) {
+  function openInsightLocation(location: { moduleId: string; path: string; keyPath?: string }, close: () => void) {
     if (!registry) return;
-    const target = findSearchResultSelection(registry, result);
+    const target = findSearchResultSelection(registry, location);
     if (!target) {
       setToast({ tone: 'bad', text: t('core.insight.openFailed') });
       return;
     }
     setSelected({ ...target, refreshKey: Date.now() });
-    setInsightSearchOpen(false);
-    if (result.keyPath) {
-      window.setTimeout(() => jumpToConfigNode(result.keyPath), 280);
+    close();
+    if (location.keyPath) {
+      window.setTimeout(() => jumpToConfigNode(location.keyPath ?? ''), 280);
     }
+  }
+
+  function openInsightSearchResult(result: InsightSearchResult) {
+    openInsightLocation(result, () => setInsightSearchOpen(false));
+  }
+
+  function openInsightReferences(target: InsightReferenceTarget) {
+    setInsightSearchOpen(false);
+    setReferenceTarget(target);
+  }
+
+  function openInsightReferenceResult(result: InsightReferenceResult) {
+    openInsightLocation(result, () => setReferenceTarget(null));
   }
 
   if (!token) return <Login notice={loginNotice} onLogin={(t) => { sessionStorage.setItem('emaki-web-token', t); setLoginNotice(null); setToken(t); }} />;
@@ -549,7 +566,8 @@ export default function App() {
       {createTarget && <CreateFileModal target={createTarget} onCancel={() => setCreateTarget(null)} onCreate={createFileFromTree} />}
       {deleteTarget && <DeleteFileModal target={deleteTarget} onCancel={() => setDeleteTarget(null)} onDelete={deleteFileFromTree} />}
       {i18nTarget && <I18nBundleModal target={i18nTarget} onClose={() => setI18nTarget(null)} onSaved={() => { setLocaleVersion((version) => version + 1); setToast({ tone: 'ok', text: t('core.i18n.saved') }); }} />}
-      {insightSearchOpen && <InsightSearchModal api={api} registry={registry} onCancel={() => setInsightSearchOpen(false)} onOpen={openInsightSearchResult} />}
+      {insightSearchOpen && <InsightSearchModal api={api} registry={registry} onCancel={() => setInsightSearchOpen(false)} onOpen={openInsightSearchResult} onReferences={openInsightReferences} />}
+      {referenceTarget && <InsightReferenceModal api={api} registry={registry} target={referenceTarget} onCancel={() => setReferenceTarget(null)} onOpen={openInsightReferenceResult} />}
       {saveConflict && <SaveConflictModal conflict={saveConflict} onCancel={() => setSaveConflict(null)} />}
       <ResizableRail>
         <div className="brand-block">
@@ -585,7 +603,7 @@ export default function App() {
         <button className="rail-action quiet" onClick={signOut}>{t('core.auth.logout')}</button>
       </ResizableRail>
       <main className="stage">
-        <SurfaceSummaryStrip module={selectedModule} file={selectedFile} editor={selectedEditor} toolbar={toolbar} loading={loading} />
+        <SurfaceSummaryStrip module={selectedModule} file={selectedFile} editor={selectedEditor} toolbar={toolbar} loading={loading} referenceTarget={selectedReferenceTarget} onOpenReferences={openInsightReferences} />
         <EditorChrome
           className="stage-head"
           title={toolbar.title ?? (selectedModule ? moduleDisplayName(selectedModule) : t('core.stage.defaultTitle'))}
@@ -624,7 +642,7 @@ export default function App() {
   );
 }
 
-function SurfaceSummaryStrip({ module, file, editor, toolbar, loading }: { module: WebRegistryModule | null; file: WebRegistryFile | null; editor?: WebEditorDescriptor; toolbar: SurfaceToolbarState; loading: boolean }) {
+function SurfaceSummaryStrip({ module, file, editor, toolbar, loading, referenceTarget, onOpenReferences }: { module: WebRegistryModule | null; file: WebRegistryFile | null; editor?: WebEditorDescriptor; toolbar: SurfaceToolbarState; loading: boolean; referenceTarget: InsightReferenceTarget | null; onOpenReferences: (target: InsightReferenceTarget) => void }) {
   const moduleName = module ? moduleDisplayName(module) : t('core.stage.defaultTitle');
   const moduleSummary = module?.summary?.trim() || '';
   const fileComment = file ? fileDisplayComment(file).trim() : '';
@@ -650,6 +668,7 @@ function SurfaceSummaryStrip({ module, file, editor, toolbar, loading }: { modul
     </div>
     <div className="surface-summary-meta" aria-live="polite">
       {chips.map((chip, index) => <span key={`${chip}-${index}`} className={`surface-summary-chip${chip === fileKind ? ' kind' : ''}`}>{chip}</span>)}
+      {referenceTarget && <button type="button" className="surface-summary-chip action" onClick={() => onOpenReferences(referenceTarget)}>{t('core.insight.references')}</button>}
     </div>
   </section>;
 }
@@ -713,7 +732,7 @@ function groupInsightResults(results: InsightSearchResult[], registry: WebRegist
   return [...groups.values()];
 }
 
-function findSearchResultSelection(registry: WebRegistry, result: InsightSearchResult): Selection | null {
+function findSearchResultSelection(registry: WebRegistry, result: { moduleId: string; path: string }): Selection | null {
   const module = registry.modules.find(entry => entry.id === result.moduleId);
   if (!module) return null;
   const normalizedPath = normalizeInsightPath(result.path);
@@ -730,12 +749,57 @@ function normalizeInsightPath(path: string | undefined): string {
   return String(path ?? '').replace(/\\/g, '/').replace(/^\/+|\/+$/g, '').toLowerCase();
 }
 
+function insightDefinitionTarget(module: WebRegistryModule | null, file: WebRegistryFile | null, childPath?: string): InsightReferenceTarget | null {
+  if (!module || !file) return null;
+  const path = normalizeInsightPath(childPath || file.path);
+  const idType = inferInsightIdType(module.id, path);
+  if (!idType) return null;
+  const idNode = file.nodes?.find(node => node.path === 'id');
+  const nodeId = scalarText(idNode?.value).trim();
+  const fallbackId = basenameWithoutExtension(path);
+  const id = nodeId || fallbackId;
+  return id ? { idType, id } : null;
+}
+
+function referenceTargetFromSearchResult(result: InsightSearchResult): InsightReferenceTarget | null {
+  const idType = String(result.idType ?? '').trim();
+  const id = String(result.id ?? '').trim();
+  if (!idType || !id) return null;
+  const matchType = String(result.matchType ?? '').toLowerCase();
+  if (matchType !== 'definition' && matchType !== 'reference') return null;
+  return { idType, id };
+}
+
+function inferInsightIdType(moduleId: string, path: string): string {
+  const module = String(moduleId ?? '').toLowerCase();
+  const normalizedPath = normalizeInsightPath(path);
+  if (module === 'emakiattribute' && normalizedPath.startsWith('attributes/')) return 'attribute';
+  if (module === 'emakiitem' && normalizedPath.startsWith('items/')) return 'emaki_item';
+  if (module === 'emakigem' && normalizedPath.startsWith('gems/')) return 'gem';
+  if (module === 'emakiskills' && normalizedPath.startsWith('skills/')) return 'skill';
+  if (module === 'emakilevel' && normalizedPath.startsWith('types/')) return 'level_type';
+  if (module === 'emakiforge' && normalizedPath.startsWith('recipes/')) return 'forge_recipe';
+  if (module === 'emakistrengthen' && normalizedPath.startsWith('recipes/')) return 'strengthen_recipe';
+  return '';
+}
+
+function basenameWithoutExtension(path: string): string {
+  const normalized = normalizeInsightPath(path);
+  const name = normalized.substring(normalized.lastIndexOf('/') + 1);
+  return name.replace(/\.(ya?ml|json)$/i, '');
+}
+
+function scalarText(value: unknown): string {
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return String(value);
+  return '';
+}
+
 function insightMatchLabel(matchType: string): string {
   const normalized = String(matchType ?? '').toLowerCase();
   return t(`core.insight.match.${normalized}`, undefined, normalized || t('core.kind.file'));
 }
 
-function InsightSearchModal({ api, registry, onCancel, onOpen }: { api: ApiClient; registry: WebRegistry | null; onCancel: () => void; onOpen: (result: InsightSearchResult) => void }) {
+function InsightSearchModal({ api, registry, onCancel, onOpen, onReferences }: { api: ApiClient; registry: WebRegistry | null; onCancel: () => void; onOpen: (result: InsightSearchResult) => void; onReferences: (target: InsightReferenceTarget) => void }) {
   const dialogRef = useRef<HTMLElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [query, setQuery] = useState('');
@@ -791,20 +855,98 @@ function InsightSearchModal({ api, registry, onCancel, onOpen }: { api: ApiClien
       <div className="insight-search-results">
         {grouped.length > 0 ? grouped.map(group => <section className="insight-search-group" key={group.moduleId}>
           <h4>{group.module ? moduleDisplayName(group.module) : group.moduleId}</h4>
+          {group.results.map((result, index) => {
+            const target = referenceTargetFromSearchResult(result);
+            return <div className="insight-search-result-row" key={`${result.moduleId}:${result.path}:${result.keyPath}:${index}`}>
+              <button
+                type="button"
+                className="insight-search-result"
+                disabled={!canOpen(result)}
+                onClick={() => onOpen(result)}
+              >
+                <span className={`insight-search-badge ${result.matchType}`}>{insightMatchLabel(result.matchType)}</span>
+                {result.idType && <span className="insight-search-idtype">{result.idType}</span>}
+                <strong>{result.path}</strong>
+                {result.keyPath && <code>{result.keyPath}</code>}
+                <small>{result.snippet || result.path}</small>
+              </button>
+              {target && <button type="button" className="insight-reference-mini" onClick={() => onReferences(target)}>{t('core.insight.references')}</button>}
+            </div>;
+          })}
+        </section>) : !loading && query.trim() && !error ? <div className="insight-search-empty">{t('core.insight.noResults')}</div> : null}
+      </div>
+    </section>
+  </div>;
+}
+
+function groupInsightReferences(results: InsightReferenceResult[], registry: WebRegistry | null): { moduleId: string; module?: WebRegistryModule; results: InsightReferenceResult[] }[] {
+  const groups = new Map<string, { moduleId: string; module?: WebRegistryModule; results: InsightReferenceResult[] }>();
+  for (const result of results) {
+    const module = registry?.modules.find(entry => entry.id === result.moduleId);
+    const entry = groups.get(result.moduleId) ?? { moduleId: result.moduleId, module, results: [] };
+    entry.results.push(result);
+    groups.set(result.moduleId, entry);
+  }
+  return [...groups.values()];
+}
+
+function referenceEdgeLabel(edgeType: string): string {
+  const normalized = String(edgeType ?? '').toLowerCase();
+  return t(`core.insight.edge.${normalized}`, undefined, normalized || t('core.insight.edge.uses'));
+}
+
+function InsightReferenceModal({ api, registry, target, onCancel, onOpen }: { api: ApiClient; registry: WebRegistry | null; target: InsightReferenceTarget; onCancel: () => void; onOpen: (result: InsightReferenceResult) => void }) {
+  const dialogRef = useRef<HTMLElement | null>(null);
+  const [results, setResults] = useState<InsightReferenceResult[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  useDialogFocus(dialogRef, onCancel);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError('');
+    setResults([]);
+    void api.insightReferences(target.idType, target.id)
+      .then(next => { if (!cancelled) setResults(next); })
+      .catch(err => {
+        if (!cancelled) setError(err instanceof Error ? err.message : t('core.api.requestFailed'));
+      })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [api, target.idType, target.id]);
+
+  const grouped = useMemo(() => groupInsightReferences(results, registry), [results, registry]);
+  const canOpen = (result: InsightReferenceResult) => Boolean(registry && findSearchResultSelection(registry, result));
+  const title = t('core.insight.referencesTitle', { id: target.id, idType: target.idType });
+
+  return <div className="editor-modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) onCancel(); }}>
+    <section ref={dialogRef} className="insight-search-dialog insight-reference-dialog" role="dialog" aria-modal="true" aria-labelledby="insight-reference-title" tabIndex={-1}>
+      <div className="insight-search-head">
+        <span>{t('core.insight.referencesKicker')}</span>
+        <h3 id="insight-reference-title">{title}</h3>
+        <button type="button" className="insight-search-close" onClick={onCancel} aria-label={t('core.i18n.close')}>×</button>
+      </div>
+      <div className="insight-search-status" aria-live="polite">
+        {loading ? t('core.state.loading') : error || t('core.insight.referencesCount', { count: results.length })}
+      </div>
+      <div className="insight-search-results">
+        {grouped.length > 0 ? grouped.map(group => <section className="insight-search-group" key={group.moduleId}>
+          <h4>{group.module ? moduleDisplayName(group.module) : group.moduleId}</h4>
           {group.results.map((result, index) => <button
             key={`${result.moduleId}:${result.path}:${result.keyPath}:${index}`}
             type="button"
-            className="insight-search-result"
+            className="insight-search-result insight-reference-result"
             disabled={!canOpen(result)}
             onClick={() => onOpen(result)}
           >
-            <span className={`insight-search-badge ${result.matchType}`}>{insightMatchLabel(result.matchType)}</span>
+            <span className="insight-search-badge reference">{referenceEdgeLabel(result.edgeType)}</span>
             {result.idType && <span className="insight-search-idtype">{result.idType}</span>}
             <strong>{result.path}</strong>
             {result.keyPath && <code>{result.keyPath}</code>}
-            <small>{result.snippet || result.path}</small>
+            <small>{result.snippet || result.referenceValue || result.path}</small>
           </button>)}
-        </section>) : !loading && query.trim() && !error ? <div className="insight-search-empty">{t('core.insight.noResults')}</div> : null}
+        </section>) : !loading && !error ? <div className="insight-search-empty">{t('core.insight.referencesEmpty')}</div> : null}
       </div>
     </section>
   </div>;
