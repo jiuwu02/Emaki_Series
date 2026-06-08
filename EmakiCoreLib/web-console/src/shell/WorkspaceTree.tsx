@@ -165,7 +165,8 @@ const TreeRow = memo(function TreeRow({ row, setRowRef, onToggle, onSelect, onOp
     </div>;
   }
 
-  const canSelect = Boolean(node.moduleId && node.fileId && !row.isGlob && !row.isFolder);
+  const childSelectionPath = selectableChildPath(node);
+  const canSelect = Boolean(node.moduleId && node.fileId && !row.isGlob && !row.isFolder && (node.type === 'file' || childSelectionPath !== undefined));
   const rowClass = row.level > 1 ? 'tree-child-row' : 'tree-file-row';
   return <div className={rowClass} role="none" style={rowStyle}>
     {row.level > 1 && <IndentGuide branch={row.isLast ? 'elbow' : 'tee'} />}
@@ -180,7 +181,7 @@ const TreeRow = memo(function TreeRow({ row, setRowRef, onToggle, onSelect, onOp
       data-tree-node-id={row.id}
       onClick={() => {
         if (!canSelect || !node.moduleId || !node.fileId) return;
-        onSelect({ moduleId: node.moduleId, fileId: node.fileId, scriptPath: node.childPath });
+        onSelect({ moduleId: node.moduleId, fileId: node.fileId, scriptPath: childSelectionPath });
       }}
       disabled={!canSelect}
     >
@@ -367,7 +368,8 @@ function flattenVisibleRows(index: TreeIndex, expanded: Record<string, boolean>,
     const isFolder = node.type === 'folder';
     const isOpen = queryActive ? true : (expanded[node.id] ?? isModule);
     const isGlob = isGlobTreeNode(node);
-    const active = Boolean(node.moduleId && node.fileId && !isGlob && selected?.moduleId === node.moduleId && selected.fileId === node.fileId && (selected.scriptPath ?? '') === (node.childPath ?? ''));
+    const childSelectionPath = selectableChildPath(node);
+    const active = Boolean(node.moduleId && node.fileId && !isGlob && selected?.moduleId === node.moduleId && selected.fileId === node.fileId && (selected.scriptPath ?? '') === (childSelectionPath ?? ''));
     const dirty = dirtyNodeIds.has(node.id);
     const displayLabel = treeNodeDisplayLabel(node);
     const displayComment = treeNodeDisplayComment(node);
@@ -412,6 +414,11 @@ function nodeSearchText(node: RegistryTreeNode): string {
 
 function isGlobTreeNode(node: RegistryTreeNode): boolean {
   return /[*?]/.test(String(node.childPath ?? node.path ?? ''));
+}
+
+function selectableChildPath(node: RegistryTreeNode): string | undefined {
+  if (node.childPath && !isGlobTreeNode(node)) return node.childPath;
+  return node.type === 'file' ? undefined : node.childPath;
 }
 
 function isEmptyGlobPlaceholder(node: RegistryTreeNode): boolean {
