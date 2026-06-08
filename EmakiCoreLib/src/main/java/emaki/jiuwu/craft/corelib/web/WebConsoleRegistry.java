@@ -472,7 +472,7 @@ public final class WebConsoleRegistry {
             file = moduleFile(moduleId, config.relativePath());
         }
         long currentRevision = fileRevision(file);
-        if (expectedRevision != null && currentRevision != expectedRevision) {
+        if (currentRevision != 0L && (expectedRevision == null || currentRevision != expectedRevision)) {
             throw new RevisionConflictException("文件已被其他管理员修改，请重载后再保存。", currentRevision);
         }
         YamlSection yaml = YamlFiles.load(file);

@@ -31,6 +31,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
   const [data, setData] = useState<AnyMap>({});
   const [originalData, setOriginalData] = useState<AnyMap>({});
   const [originalContent, setOriginalContent] = useState('');
+  const [revision, setRevision] = useState<number | undefined>(undefined);
   const [preview, setPreview] = useState<ItemPreviewResult | null>(null);
   const [previewLevel, setPreviewLevel] = useState(1);
   const [previewPending, setPreviewPending] = useState(false);
@@ -80,6 +81,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
         setData(parsed);
         setOriginalData(parsed);
         setOriginalContent(doc.content);
+        setRevision(doc.revision);
         setSourceText(doc.content);
         setSourceError(null);
       } catch (err) {
@@ -87,6 +89,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
         setData({});
         setOriginalData({});
         setOriginalContent(doc.content);
+        setRevision(doc.revision);
         setSourceText(doc.content);
         setSourceError(message);
         void api.reportFrontendError({ message, source: 'item-yaml-parse', detail: `${module.id}/${filePath}` });
@@ -204,8 +207,9 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
     setError(null);
     try {
       const content = sourceContent;
-      await (sourceAdapter?.save(api, sourceContext, content) ?? api.saveTextDocument({ kind: file.kind, moduleId: module.id, path: filePath }, content));
+      const result = await (sourceAdapter?.save(api, sourceContext, content, revision) ?? api.saveTextDocument({ kind: file.kind, moduleId: module.id, path: filePath }, content, revision));
       setOriginalContent(content);
+      setRevision(result.revision ?? revision);
       setOriginalData(data);
       setSourceText(content);
       setHistory({ undo: [], redo: [] });

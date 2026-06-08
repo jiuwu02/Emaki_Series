@@ -73,6 +73,11 @@ export class ApiClient {
     return data;
   }
 
+  async logout(): Promise<void> {
+    if (!this.token) return;
+    await this.request('/api/auth/logout', { method: 'POST' });
+  }
+
   async modules(): Promise<ModuleStatus[]> {
     const data = await this.request('/api/modules');
     return data.modules;

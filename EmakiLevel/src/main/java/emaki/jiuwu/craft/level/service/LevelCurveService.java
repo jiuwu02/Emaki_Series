@@ -106,9 +106,10 @@ public final class LevelCurveService {
             point.put("source", source);
             point.put("warnings", pointWarnings);
             points.add(point);
+            int warningTargetLevel = targetLevel;
             warnings.addAll(pointWarnings.stream()
                     .map(warning -> Map.of(
-                            "targetLevel", targetLevel,
+                            "targetLevel", warningTargetLevel,
                             "type", warning.get("type"),
                             "message", warning.get("message")
                     ))

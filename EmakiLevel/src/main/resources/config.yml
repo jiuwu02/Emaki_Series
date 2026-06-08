@@ -1,4 +1,4 @@
-version: "1.0.2"
+version: "1.0.3"
 language: "zh_CN"
 release_default_data: true
 primary_type: "main"

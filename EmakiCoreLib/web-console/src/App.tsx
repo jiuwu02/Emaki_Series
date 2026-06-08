@@ -170,7 +170,9 @@ export default function App() {
   };
 
   const expireSession = () => clearSession('expired');
-  const signOut = () => clearSession('signedOut');
+  const signOut = () => {
+    void api.logout().catch(() => undefined).finally(() => clearSession('signedOut'));
+  };
 
   const api = useMemo(() => new ApiClient(token, expireSession), [token]);
 

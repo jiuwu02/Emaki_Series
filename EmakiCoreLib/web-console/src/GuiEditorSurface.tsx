@@ -31,6 +31,7 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
   const [data, setData] = useState<GuiTemplateData | null>(null);
   const [originalData, setOriginalData] = useState<GuiTemplateData | null>(null);
   const [originalText, setOriginalText] = useState('');
+  const [revision, setRevision] = useState<number | undefined>(undefined);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -147,6 +148,7 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
       setOriginalData(normalizedData);
       const serialized = serializeGuiYaml(normalizedData);
       setOriginalText(serialized);
+      setRevision(doc.revision);
       setSourceText(serialized);
       setSourceError(null);
       setHistory({ undo: [], redo: [] });
@@ -200,8 +202,9 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
     try {
       if (sourceError) return;
       const content = draftText;
-      await (sourceAdapter?.save(api, sourceContext, content) ?? api.saveGui(module.id, path, content));
+      const result = await (sourceAdapter?.save(api, sourceContext, content, revision) ?? api.saveGui(module.id, path, content, revision));
       setOriginalText(content);
+      setRevision(result.revision ?? revision);
       setOriginalData(data);
       setSourceText(content);
       setHistory({ undo: [], redo: [] });

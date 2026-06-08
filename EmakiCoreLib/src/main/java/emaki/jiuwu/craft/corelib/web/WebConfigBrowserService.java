@@ -53,9 +53,9 @@ public final class WebConfigBrowserService {
         if (target == null || !isAllowedFile(target)) {
             throw new IOException("文件不在允许访问范围内");
         }
-        if (expectedRevision != null && Files.exists(target)) {
+        if (Files.exists(target)) {
             long current = Files.getLastModifiedTime(target).toMillis();
-            if (current != 0L && current != expectedRevision) {
+            if (current != 0L && (expectedRevision == null || current != expectedRevision)) {
                 throw new WebConsoleRegistry.RevisionConflictException("文件已被其他管理员修改，请重载后再保存。", current);
             }
         }

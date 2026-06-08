@@ -35,11 +35,10 @@ public final class WebAuthService {
     }
 
     public Session session(HttpExchange exchange) {
-        String header = exchange.getRequestHeaders().getFirst("Authorization");
-        if (header == null || !header.startsWith("Bearer ")) {
+        String token = token(exchange);
+        if (token == null || token.isBlank()) {
             return null;
         }
-        String token = header.substring("Bearer ".length()).trim();
         Session session = sessions.get(token);
         if (session == null) {
             return null;
@@ -49,6 +48,19 @@ public final class WebAuthService {
             return null;
         }
         return session;
+    }
+
+    public boolean logout(HttpExchange exchange) {
+        String token = token(exchange);
+        return token != null && sessions.remove(token) != null;
+    }
+
+    private String token(HttpExchange exchange) {
+        String header = exchange.getRequestHeaders().getFirst("Authorization");
+        if (header == null || !header.startsWith("Bearer ")) {
+            return null;
+        }
+        return header.substring("Bearer ".length()).trim();
     }
 
     public void clear() {

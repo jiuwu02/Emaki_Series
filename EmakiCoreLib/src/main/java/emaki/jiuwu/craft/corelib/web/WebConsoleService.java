@@ -83,6 +83,7 @@ public final class WebConsoleService {
             });
             server.setExecutor(executor);
             createContext("/api/auth/login", post(this::handleLogin));
+            createContext("/api/auth/logout", postAuth(this::handleLogout));
             createContext("/api/session", auth(this::handleSession));
             createContext("/api/modules", auth(this::handleModules));
             createContext("/api/registry", auth(this::handleRegistry));
@@ -350,6 +351,11 @@ public final class WebConsoleService {
         context.ok(Map.of("username", session.username(), "expiresAt", session.expiresAt()));
     }
 
+    private void handleLogout(WebRequestContext context) throws IOException {
+        authService.logout(context.exchange());
+        context.ok(Map.of("loggedOut", true));
+    }
+
     private void handleModules(WebRequestContext context) throws IOException {
         context.ok(Map.of("modules", moduleStatusService.modules()));
     }
@@ -611,9 +617,9 @@ public final class WebConsoleService {
                 context.forbidden("路径不合法");
                 return;
             }
-            if (expectedRevision != null && target.exists()) {
+            if (target.exists()) {
                 long current = fileRevision(target);
-                if (current != 0 && current != expectedRevision) {
+                if (current != 0 && (expectedRevision == null || current != expectedRevision)) {
                     writeRevisionConflict(context.exchange(), current);
                     return;
                 }
@@ -678,20 +684,27 @@ public final class WebConsoleService {
         }
         try {
             java.io.File target = safeModuleFile(module, path);
-            if (expectedRevision != null && target.exists()) {
+            if (target.exists()) {
                 long current = fileRevision(target);
-                if (current != 0 && current != expectedRevision) {
+                if (current != 0 && (expectedRevision == null || current != expectedRevision)) {
                     writeRevisionConflict(context.exchange(), current);
                     return;
                 }
             }
-            YamlFiles.load(content == null ? "" : content);
+            try {
+                YamlFiles.load(content == null ? "" : content);
+            } catch (Exception exception) {
+                context.badRequest(exception.getMessage());
+                return;
+            }
             recordBeforeWrite(historyTarget(module, path, normalizeHistoryKind(kind)), "save", context.session());
             java.nio.file.Files.createDirectories(target.toPath().getParent());
             java.nio.file.Files.writeString(target.toPath(), content == null ? "" : content, StandardCharsets.UTF_8);
             context.ok(Map.of("revision", fileRevision(target)));
+        } catch (WebConsoleRegistry.RevisionConflictException exception) {
+            writeRevisionConflict(context.exchange(), exception);
         } catch (Exception e) {
-            context.serverError(e.getMessage());
+            context.badRequest(e.getMessage());
         }
     }
 
