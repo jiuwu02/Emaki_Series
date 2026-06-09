@@ -620,6 +620,20 @@ export default function App() {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const mod = event.ctrlKey || event.metaKey;
+      if (!mod || event.key.toLowerCase() !== 's') return;
+      event.preventDefault();
+      const target = event.target instanceof HTMLElement ? event.target : null;
+      if (target?.closest('.cm-editor')) return;
+      if (!toolbar.onSave || !toolbar.dirty || toolbar.saving || toolbar.loading) return;
+      toolbar.onSave();
+    };
+    document.addEventListener('keydown', handleKeyDown, true);
+    return () => document.removeEventListener('keydown', handleKeyDown, true);
+  }, [toolbar.onSave, toolbar.dirty, toolbar.saving, toolbar.loading]);
+
   function jumpToConfigPath(path: string) {
     jumpToConfigNode(path);
   }
@@ -663,7 +677,7 @@ export default function App() {
   return (
     <ActionTypesProvider api={api}>
     <EconomyProvidersProvider api={api}>
-    <div className="workbench" data-locale-version={localeVersion}>
+    <div className={`workbench${surfaceOutline ? '' : ' workbench--no-outline'}`} data-locale-version={localeVersion}>
       {toast && <ToastNotice tone={toast.tone}>{toast.text}</ToastNotice>}
       {createTarget && <CreateFileModal target={createTarget} onCancel={() => setCreateTarget(null)} onCreate={createFileFromTree} />}
       {deleteTarget && <DeleteFileModal target={deleteTarget} onCancel={() => setDeleteTarget(null)} onDelete={deleteFileFromTree} />}
@@ -737,9 +751,9 @@ export default function App() {
           <ConfigSurface registry={registry} module={selectedModule} file={selectedFile} drafts={drafts} draftHistory={draftHistory} setDraftValue={setDraftValue} clearDraftScope={clearDraftScope} clearDraftValues={clearDraftValues} clearDraftPaths={clearDraftPaths} reconcileScopeDrafts={reconcileScopeDrafts} setSaveConflict={setSaveConflict} undoDraftScope={undoDraftScope} redoDraftScope={redoDraftScope} api={api} scriptPath={selected?.scriptPath} refreshKey={selected?.refreshKey ?? 0} pendingExtensionModules={pendingExtensionModules} onReload={() => void reloadCurrentSurface()} onRefreshRegistry={() => loadRegistry({ clearDrafts: false, announceRefresh: false })} setSurfaceToolbar={setSurfaceToolbar} setSurfaceOutline={setSurfaceOutline} setToast={setToast} />
         </section>
       </main>
-      <ResizableOutlineRail>
+      {surfaceOutline && <ResizableOutlineRail>
         <FieldOutlineRail outline={surfaceOutline} onJump={jumpToConfigPath} />
-      </ResizableOutlineRail>
+      </ResizableOutlineRail>}
     </div>
     </EconomyProvidersProvider>
     </ActionTypesProvider>
@@ -2543,8 +2557,7 @@ function renderControl(node: WebConfigNode, value: unknown, setValue: (v: unknow
     const hasObjectSchema = Boolean(node.itemFields?.length) && !node.itemFields?.every(field => field.path === 'value' && field.type === 'text');
     const hasObjectItems = items.some(isPlainObject) || hasObjectSchema;
     if (hasObjectItems) return <ObjectListEditor node={node} items={items} setValue={setValue} moduleId={moduleId} />;
-    const update = (i: number, v: string) => setValue(items.map((x, j) => j === i ? parseListValue(x, v) : x));
-    return <div className="list-editor">{items.map((item, i) => <div className="list-row" key={i}><input value={str(item)} onChange={(e) => update(i, e.target.value)} aria-label={t('core.config.itemIndex', { index: i + 1 })} /><button type="button" onClick={() => setValue(items.filter((_, j) => j !== i))} aria-label={t('core.config.deleteItem', { index: i + 1 })}>{t('core.config.delete')}</button></div>)}<button type="button" className="add-row" onClick={() => setValue([...items, ''])}>{t('core.config.addItem')}</button></div>;
+    return <StringListEditor items={items.map(str)} onChange={setValue} />;
   }
   return <input aria-label={label} value={str(value)} onChange={(e) => setValue(e.target.value)} />;
 }

@@ -526,6 +526,10 @@ textarea {
   overflow: hidden;
 }
 
+.workbench--no-outline {
+  grid-template-columns: var(--rail-width, 272px) minmax(0, 1fr);
+}
+
 .toast {
   position: fixed;
   top: 18px;
@@ -2929,8 +2933,8 @@ textarea {
 
 .object-list-fields {
   display: grid;
-  gap: var(--config-field-body-padding-y);
-  padding: calc(var(--config-field-padding-y) * 2) 0 calc(var(--config-field-padding-y) * 2 + 1px) 26px;
+  gap: 0;
+  padding: var(--config-field-body-padding-y) 0 var(--config-field-body-padding-y) 26px;
   border-top: 1px solid var(--line);
   background: transparent;
   animation: prop-block-in 0.14s cubic-bezier(0.16, 1, 0.3, 1);
@@ -2942,6 +2946,7 @@ textarea {
   gap: 10px;
   align-items: center;
   min-height: var(--config-field-rhythm);
+  padding: var(--config-field-padding-y) 0;
 }
 
 .object-list-field--wide {
@@ -3235,11 +3240,43 @@ textarea {
   padding: 5px 0;
 }
 
+.prop-kv--string-list {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--config-field-body-padding-y) 6px;
+  padding: 0;
+}
+
+.prop-list-add {
+  grid-column: 2;
+  justify-self: end;
+  width: var(--config-field-control-height);
+  min-width: var(--config-field-control-height);
+  height: var(--config-field-control-height);
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--accent);
+  background: transparent;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.prop-list-add:hover,
+.prop-list-add:focus-visible {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  outline: none;
+}
+
 .prop-kv-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(78px, .28fr) 28px;
   gap: 5px;
   align-items: center;
+  min-height: var(--config-field-rhythm);
   animation: prop-block-in 0.16s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -3247,9 +3284,27 @@ textarea {
   grid-template-columns: minmax(0, 1fr) 28px;
 }
 
+.prop-list-row {
+  grid-column: 1 / -1;
+  grid-template-columns: minmax(0, 1fr) var(--config-field-control-height);
+  gap: 6px;
+}
+
+.prop-list-row .prop-kv-del {
+  width: var(--config-field-control-height);
+  height: var(--config-field-control-height);
+}
+
 .prop-kv-row input {
   font-size: 11px;
   padding: 4px 7px;
+}
+
+.prop-list-row input {
+  min-height: var(--config-field-control-height);
+  font-size: 12px;
+  line-height: var(--config-field-text-line-height);
+  padding: 5px 8px;
 }
 
 .prop-kv-row:focus-within input {
@@ -5782,6 +5837,54 @@ textarea {
 
 .prop-level-body .inline-switch {
   min-height: var(--config-field-control-height);
+}
+
+/* Unified scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklch, var(--line-2) 74%, var(--accent) 26%) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+  display: initial;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--line-2) 74%, var(--accent) 26%);
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in oklch, var(--line-2) 48%, var(--accent) 52%);
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+.tree,
+.gui-preview-pane,
+.gui-inspector,
+.completion-popup,
+.cm-tooltip-autocomplete ul {
+  scrollbar-width: thin;
+}
+
+.tree::-webkit-scrollbar,
+.gui-preview-pane::-webkit-scrollbar,
+.gui-inspector::-webkit-scrollbar,
+.completion-popup::-webkit-scrollbar,
+.cm-tooltip-autocomplete ul::-webkit-scrollbar {
+  display: initial;
 }
 
 /* ─── Responsive ─── */

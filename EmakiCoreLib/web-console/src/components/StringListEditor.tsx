@@ -7,8 +7,12 @@ export function StringListEditor({ items, onChange, placeholder }: { items: stri
     items={items}
     onChange={onChange}
     createItem={() => ''}
-    rowClassName="prop-kv-row prop-kv-row--single"
+    className="prop-kv--string-list"
+    rowClassName="prop-kv-row prop-kv-row--single prop-list-row"
     addLabel={t('core.config.addItem')}
+    addButtonClassName="prop-list-add"
+    addButtonContent="+"
+    addFirst
     renderItem={({ item, index, update, remove }) => <>
       <input type="text" value={item} onChange={e => update(e.target.value)} placeholder={placeholder} aria-label={t('core.list.itemAria', { index: index + 1 })} />
       <button type="button" className="prop-kv-del" onClick={remove} aria-label={t('core.config.deleteItem', { index: index + 1 })}>×</button>
