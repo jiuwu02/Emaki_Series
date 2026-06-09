@@ -155,16 +155,26 @@ function LevelCurvePreview({ api, file, data }: ConfigPreviewProps) {
   const [result, setResult] = useState<CurveResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [hiddenTypes, setHiddenTypes] = useState<Set<string>>(new Set());
+  const [openTypes, setOpenTypes] = useState<Set<string>>(new Set());
+  const [hoverLevel, setHoverLevel] = useState<number | null>(null);
+  const [hoverPosition, setHoverPosition] = useState<{ x: number; y: number } | null>(null);
 
   const selectedTypes = useMemo(() => typeInput.split(',').map(value => value.trim()).filter(Boolean), [typeInput]);
-  const firstCurve = result?.curves?.[0];
+  const curves = result?.curves ?? [];
+  const visibleCurves = curves.filter(curve => !hiddenTypes.has(curve.type));
 
   const load = async () => {
     setLoading(true);
     setError('');
     try {
       const response = await api.pluginApi('level', 'curve', { types: selectedTypes, fromLevel, toLevel });
-      setResult({ curves: Array.isArray(response.curves) ? response.curves : [], limits: response.limits, warnings: response.warnings });
+      const nextCurves = Array.isArray(response.curves) ? response.curves : [];
+      setResult({ curves: nextCurves, limits: response.limits, warnings: response.warnings });
+      setHiddenTypes(new Set());
+      setOpenTypes(new Set(nextCurves[0]?.type ? [nextCurves[0].type] : []));
+      setHoverLevel(null);
+      setHoverPosition(null);
     } catch (exception) {
       setError(exception instanceof Error ? exception.message : String(exception));
     } finally {
@@ -172,14 +182,25 @@ function LevelCurvePreview({ api, file, data }: ConfigPreviewProps) {
     }
   };
 
-  useEffect(() => {
-    void load();
-  }, []);
+  useEffect(() => { void load(); }, []);
+
+  const toggleType = (type: string) => setHiddenTypes(current => {
+    const next = new Set(current);
+    if (next.has(type)) next.delete(type);
+    else next.add(type);
+    return next;
+  });
+  const toggleOpen = (type: string) => setOpenTypes(current => {
+    const next = new Set(current);
+    if (next.has(type)) next.delete(type);
+    else next.add(type);
+    return next;
+  });
 
   const exportCsv = () => {
-    if (!result?.curves?.length) return;
+    if (!curves.length) return;
     const rows = ['type,target_level,required_exp,total_exp,growth_rate,source,warnings'];
-    result.curves.forEach(curve => curve.points.forEach(point => rows.push([
+    curves.forEach(curve => curve.points.forEach(point => rows.push([
       curve.type,
       point.targetLevel,
       point.requiredExp,
@@ -196,6 +217,8 @@ function LevelCurvePreview({ api, file, data }: ConfigPreviewProps) {
     link.click();
     URL.revokeObjectURL(url);
   };
+
+  const hoverRows = hoverLevel == null ? [] : visibleCurves.map((curve, index) => ({ curve, point: nearestPoint(curve.points, hoverLevel), color: colorForCurve(curve, curves, index) })).filter(entry => entry.point) as { curve: Curve; point: CurvePoint; color: string }[];
 
   return <section style={cardStyle}>
     <div style={headerStyle}>
@@ -216,54 +239,127 @@ function LevelCurvePreview({ api, file, data }: ConfigPreviewProps) {
       </select></label>
     </div>
     {error ? <div style={errorStyle}>{error}</div> : null}
-    {result?.curves?.length ? <>
-      <LevelCurveSvg curves={result.curves} metric={metric} />
+    {curves.length ? <>
+      <CurveLegend curves={curves} hiddenTypes={hiddenTypes} onToggle={toggleType} />
+      <div style={chartWrapStyle}>
+        <LevelCurveSvg curves={curves} visibleCurves={visibleCurves} hiddenTypes={hiddenTypes} metric={metric} hoverLevel={hoverLevel} onHover={(level, position) => { setHoverLevel(level); setHoverPosition(position); }} onLeave={() => { setHoverLevel(null); setHoverPosition(null); }} />
+        {hoverRows.length && hoverPosition ? <CurveTooltip level={hoverLevel ?? 0} rows={hoverRows} metric={metric} position={hoverPosition} /> : null}
+      </div>
       <div style={summaryStyle}>
-        <span>{copy('曲线数量', 'Curves')}: <strong>{result.curves.length}</strong></span>
-        <span>{copy('单类型最多点数', 'Max points/type')}: <strong>{result.limits?.maxPointsPerType ?? '-'}</strong></span>
+        <span>{copy('曲线数量', 'Curves')}: <strong>{curves.length}</strong></span>
+        <span>{copy('显示中', 'Visible')}: <strong>{visibleCurves.length}</strong></span>
+        <span>{copy('单类型最多点数', 'Max points/type')}: <strong>{result?.limits?.maxPointsPerType ?? '-'}</strong></span>
         <button type="button" onClick={exportCsv} style={secondaryButtonStyle}>{copy('导出 CSV', 'Export CSV')}</button>
       </div>
-      {firstCurve ? <CurveTable curve={firstCurve} /> : null}
+      <CurveTables curves={curves} hiddenTypes={hiddenTypes} openTypes={openTypes} onToggleOpen={toggleOpen} />
     </> : <div style={emptyStyle}>{copy('暂无曲线数据。', 'No curve data.')}</div>}
   </section>;
 }
 
-function LevelCurveSvg({ curves, metric }: { curves: Curve[]; metric: CurveMetric }) {
-  const width = 760;
-  const height = 260;
-  const padding = 32;
-  const points = curves.flatMap(curve => curve.points.map(point => ({ curve, point, value: pointMetric(point, metric) })));
-  const minLevel = Math.min(...points.map(entry => entry.point.targetLevel));
-  const maxLevel = Math.max(...points.map(entry => entry.point.targetLevel));
+function CurveLegend({ curves, hiddenTypes, onToggle }: { curves: Curve[]; hiddenTypes: Set<string>; onToggle: (type: string) => void }) {
+  return <div style={legendStyle}>{curves.map((curve, index) => {
+    const color = colorForCurve(curve, curves, index);
+    const hidden = hiddenTypes.has(curve.type);
+    return <button key={curve.type} type="button" onClick={() => onToggle(curve.type)} style={{ ...legendButtonStyle, opacity: hidden ? .42 : 1 }} aria-pressed={!hidden}>
+      <span style={{ ...legendSwatchStyle, background: color }} />
+      <span style={legendTextStyle}><strong>{curve.displayName || curve.type}</strong><code>{curve.type}</code></span>
+      <small>{curve.points.length}</small>
+    </button>;
+  })}</div>;
+}
+
+function LevelCurveSvg({ curves, visibleCurves, hiddenTypes, metric, hoverLevel, onHover, onLeave }: { curves: Curve[]; visibleCurves: Curve[]; hiddenTypes: Set<string>; metric: CurveMetric; hoverLevel: number | null; onHover: (level: number, position: { x: number; y: number }) => void; onLeave: () => void }) {
+  const width = 820;
+  const height = 300;
+  const pad = { left: 42, right: 28, top: 26, bottom: 34 };
+  const points = visibleCurves.flatMap(curve => curve.points.map(point => ({ curve, point, value: pointMetric(point, metric) })));
+  const minLevel = points.length ? Math.min(...points.map(entry => entry.point.targetLevel)) : 1;
+  const maxLevel = points.length ? Math.max(...points.map(entry => entry.point.targetLevel)) : 1;
   const maxValue = Math.max(1, ...points.map(entry => entry.value));
-  const x = (level: number) => padding + ((level - minLevel) / Math.max(1, maxLevel - minLevel)) * (width - padding * 2);
-  const y = (value: number) => height - padding - (value / maxValue) * (height - padding * 2);
-  return <svg viewBox={`0 0 ${width} ${height}`} style={svgStyle} role="img" aria-label={copy('等级曲线图', 'Level curve chart')}>
-    <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="rgba(148,163,184,.45)" />
-    <line x1={padding} y1={padding} x2={padding} y2={height - padding} stroke="rgba(148,163,184,.45)" />
+  const chartWidth = width - pad.left - pad.right;
+  const chartHeight = height - pad.top - pad.bottom;
+  const x = (level: number) => pad.left + ((level - minLevel) / Math.max(1, maxLevel - minLevel)) * chartWidth;
+  const y = (value: number) => pad.top + chartHeight - (value / maxValue) * chartHeight;
+  const levels = Array.from(new Set(points.map(entry => entry.point.targetLevel))).sort((a, b) => a - b);
+  const nearestLevel = (clientX: number, rect: DOMRect) => {
+    const localX = ((clientX - rect.left) / rect.width) * width;
+    const raw = minLevel + ((localX - pad.left) / Math.max(1, chartWidth)) * Math.max(1, maxLevel - minLevel);
+    return levels.reduce((best, level) => Math.abs(level - raw) < Math.abs(best - raw) ? level : best, levels[0] ?? minLevel);
+  };
+  const handleMove = (event: React.MouseEvent<SVGSVGElement>) => {
+    if (!levels.length) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    const level = nearestLevel(event.clientX, rect);
+    onHover(level, { x: event.clientX - rect.left, y: event.clientY - rect.top });
+  };
+  return <svg viewBox={`0 0 ${width} ${height}`} style={svgStyle} role="img" aria-label={copy('等级曲线图', 'Level curve chart')} onMouseMove={handleMove} onMouseLeave={onLeave}>
+    {[0, .25, .5, .75, 1].map(step => <line key={step} x1={pad.left} x2={width - pad.right} y1={pad.top + chartHeight * step} y2={pad.top + chartHeight * step} stroke="rgba(148,163,184,.16)" />)}
+    <line x1={pad.left} y1={height - pad.bottom} x2={width - pad.right} y2={height - pad.bottom} stroke="rgba(148,163,184,.45)" />
+    <line x1={pad.left} y1={pad.top} x2={pad.left} y2={height - pad.bottom} stroke="rgba(148,163,184,.45)" />
+    {hoverLevel != null && <line x1={x(hoverLevel)} y1={pad.top} x2={x(hoverLevel)} y2={height - pad.bottom} stroke="rgba(226,232,240,.42)" strokeDasharray="4 4" />}
     {curves.map((curve, index) => {
+      if (hiddenTypes.has(curve.type)) return null;
+      const color = colorForCurve(curve, curves, index);
       const d = curve.points.map((point, pointIndex) => `${pointIndex === 0 ? 'M' : 'L'} ${x(point.targetLevel)} ${y(pointMetric(point, metric))}`).join(' ');
-      const color = palette[index % palette.length];
       return <g key={curve.type}>
-        <path d={d} fill="none" stroke={color} strokeWidth="3" />
-        {curve.points.map(point => <circle key={`${curve.type}-${point.targetLevel}`} cx={x(point.targetLevel)} cy={y(pointMetric(point, metric))} r={(point.warnings?.length ?? 0) > 0 ? 4 : 2.5} fill={(point.warnings?.length ?? 0) > 0 ? '#f97316' : color}><title>{`${curve.type} Lv.${point.targetLevel}: ${formatNumber(pointMetric(point, metric))}`}</title></circle>)}
+        <path d={d} fill="none" stroke={color} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+        {curve.points.map(point => {
+          const active = hoverLevel === point.targetLevel;
+          const warning = (point.warnings?.length ?? 0) > 0;
+          return <circle key={`${curve.type}-${point.targetLevel}`} cx={x(point.targetLevel)} cy={y(pointMetric(point, metric))} r={active ? 5 : warning ? 4 : 2.6} fill={warning ? '#f97316' : color} stroke={active ? 'rgba(255,255,255,.88)' : 'transparent'} strokeWidth={active ? 2 : 0} />;
+        })}
       </g>;
     })}
+    <text x={pad.left} y={height - 8} fill="rgba(203,213,225,.7)" fontSize="11">Lv.{minLevel}</text>
+    <text x={width - pad.right} y={height - 8} fill="rgba(203,213,225,.7)" fontSize="11" textAnchor="end">Lv.{maxLevel}</text>
   </svg>;
 }
 
+function CurveTooltip({ level, rows, position }: { level: number; rows: { curve: Curve; point: CurvePoint; color: string }[]; metric: CurveMetric; position: { x: number; y: number } }) {
+  const left = Math.min(Math.max(12, position.x + 14), 680);
+  const top = Math.max(12, position.y - 18);
+  return <div style={{ ...tooltipStyle, left, top }}>
+    <strong>{copy('目标等级', 'Target level')} Lv.{level}</strong>
+    {rows.map(({ curve, point, color }) => <div key={curve.type} style={tooltipRowStyle}>
+      <span style={{ ...legendSwatchStyle, background: color }} />
+      <div style={{ minWidth: 0 }}>
+        <div style={tooltipTitleStyle}>{curve.displayName || curve.type} <code>{curve.type}</code></div>
+        <div style={tooltipMetaStyle}>{copy('需求', 'Required')}: {formatNumber(point.requiredExp)} · {copy('累计', 'Total')}: {formatNumber(point.totalExp)} · {copy('增长率', 'Growth')}: {formatPercent(point.growthRate)}</div>
+        <code style={tooltipSourceStyle}>{point.source}</code>
+      </div>
+    </div>)}
+  </div>;
+}
+
+function CurveTables({ curves, hiddenTypes, openTypes, onToggleOpen }: { curves: Curve[]; hiddenTypes: Set<string>; openTypes: Set<string>; onToggleOpen: (type: string) => void }) {
+  return <div style={tablesWrapStyle}>{curves.map((curve, index) => {
+    const open = openTypes.has(curve.type);
+    const hidden = hiddenTypes.has(curve.type);
+    const warningCount = curve.points.reduce((sum, point) => sum + (point.warnings?.length ?? 0), 0) + (curve.warnings?.length ?? 0);
+    const color = colorForCurve(curve, curves, index);
+    return <section key={curve.type} style={{ ...tableGroupStyle, opacity: hidden ? .5 : 1 }}>
+      <button type="button" style={tableGroupHeadStyle} onClick={() => onToggleOpen(curve.type)} aria-expanded={open}>
+        <span>{open ? '⌄' : '›'}</span><span style={{ ...legendSwatchStyle, background: color }} />
+        <strong>{curve.displayName || curve.type}</strong><code>{curve.type}</code>
+        <em>{curve.fromLevel}-{curve.toLevel}</em><small>{curve.points.length} {copy('点', 'points')}</small>{warningCount ? <small style={warningPillStyle}>{warningCount}</small> : null}
+      </button>
+      {open && <CurveTable curve={curve} />}
+    </section>;
+  })}</div>;
+}
+
 function CurveTable({ curve }: { curve: Curve }) {
-  return <div style={{ overflowX: 'auto' }}>
-    <h4 style={{ margin: '12px 0 8px' }}>{curve.displayName || curve.type} · {curve.type}</h4>
+  return <div style={tableScrollStyle}>
     <table style={tableStyle}>
-      <thead><tr><th>Lv</th><th>{copy('需求', 'Required')}</th><th>{copy('累计', 'Total')}</th><th>{copy('增长率', 'Growth')}</th><th>{copy('来源', 'Source')}</th><th>{copy('警告', 'Warnings')}</th></tr></thead>
-      <tbody>{curve.points.slice(0, 80).map(point => <tr key={point.targetLevel}>
-        <td>{point.targetLevel}</td>
-        <td>{formatNumber(point.requiredExp)}</td>
-        <td>{formatNumber(point.totalExp)}</td>
-        <td>{formatPercent(point.growthRate)}</td>
-        <td><code>{point.source}</code></td>
-        <td>{(point.warnings ?? []).map(warning => warning.type).join(', ')}</td>
+      <colgroup><col style={{ width: '64px' }} /><col style={{ width: '120px' }} /><col style={{ width: '130px' }} /><col style={{ width: '100px' }} /><col /><col style={{ width: '120px' }} /></colgroup>
+      <thead><tr><th style={{ ...headCellStyle, ...numCellStyle }}>Lv</th><th style={{ ...headCellStyle, ...numCellStyle }}>{copy('需求', 'Required')}</th><th style={{ ...headCellStyle, ...numCellStyle }}>{copy('累计', 'Total')}</th><th style={{ ...headCellStyle, ...numCellStyle }}>{copy('增长率', 'Growth')}</th><th style={headCellStyle}>{copy('来源', 'Source')}</th><th style={headCellStyle}>{copy('警告', 'Warnings')}</th></tr></thead>
+      <tbody>{curve.points.map(point => <tr key={point.targetLevel}>
+        <td style={{ ...bodyCellStyle, ...numCellStyle }}>{point.targetLevel}</td>
+        <td style={{ ...bodyCellStyle, ...numCellStyle }}>{formatNumber(point.requiredExp)}</td>
+        <td style={{ ...bodyCellStyle, ...numCellStyle }}>{formatNumber(point.totalExp)}</td>
+        <td style={{ ...bodyCellStyle, ...numCellStyle }}>{formatPercent(point.growthRate)}</td>
+        <td style={bodyCellStyle}><code style={sourceCellStyle}>{point.source}</code></td>
+        <td style={bodyCellStyle}>{(point.warnings ?? []).map(warning => warning.type).join(', ')}</td>
       </tr>)}</tbody>
     </table>
   </div>;
@@ -273,6 +369,16 @@ function pointMetric(point: CurvePoint, metric: CurveMetric): number {
   if (metric === 'totalExp') return point.totalExp;
   if (metric === 'growthRate') return Math.max(0, point.growthRate * 100);
   return point.requiredExp;
+}
+
+function nearestPoint(points: CurvePoint[], level: number): CurvePoint | null {
+  if (!points.length) return null;
+  return points.reduce((best, point) => Math.abs(point.targetLevel - level) < Math.abs(best.targetLevel - level) ? point : best, points[0]);
+}
+
+function colorForCurve(curve: Curve, curves: Curve[], fallbackIndex: number): string {
+  const index = Math.max(0, curves.findIndex(entry => entry.type === curve.type));
+  return palette[(index >= 0 ? index : fallbackIndex) % palette.length];
 }
 
 function csvCell(value: unknown): string {
@@ -288,7 +394,7 @@ function formatPercent(value: number): string {
   return Number.isFinite(value) ? `${(value * 100).toFixed(2)}%` : '-';
 }
 
-const palette = ['#60a5fa', '#a78bfa', '#34d399', '#f59e0b', '#f472b6', '#22d3ee'];
+const palette = ['#60a5fa', '#a78bfa', '#34d399', '#f59e0b', '#f472b6', '#22d3ee', '#fb7185', '#2dd4bf'];
 const cardStyle: React.CSSProperties = { border: '1px solid rgba(148,163,184,.24)', borderRadius: 16, padding: 16, marginTop: 16, background: 'linear-gradient(180deg, rgba(15,23,42,.72), rgba(15,23,42,.44))' };
 const headerStyle: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' };
 const hintStyle: React.CSSProperties = { margin: '6px 0 0', color: 'rgba(203,213,225,.78)', fontSize: 13 };
@@ -299,9 +405,28 @@ const buttonStyle: React.CSSProperties = { border: 0, borderRadius: 10, padding:
 const secondaryButtonStyle: React.CSSProperties = { ...buttonStyle, background: 'rgba(96,165,250,.18)', color: '#bfdbfe', border: '1px solid rgba(96,165,250,.35)' };
 const errorStyle: React.CSSProperties = { marginTop: 12, color: '#fecaca', background: 'rgba(127,29,29,.25)', border: '1px solid rgba(248,113,113,.35)', borderRadius: 10, padding: 10 };
 const emptyStyle: React.CSSProperties = { marginTop: 12, color: 'rgba(203,213,225,.75)' };
-const svgStyle: React.CSSProperties = { width: '100%', marginTop: 16, background: 'rgba(2,6,23,.28)', borderRadius: 12 };
+const svgStyle: React.CSSProperties = { width: '100%', display: 'block', background: 'rgba(2,6,23,.28)', borderRadius: 12 };
 const summaryStyle: React.CSSProperties = { display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginTop: 12, color: 'rgba(226,232,240,.86)' };
-const tableStyle: React.CSSProperties = { width: '100%', borderCollapse: 'collapse', fontSize: 13 };
+const legendStyle: React.CSSProperties = { display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 14 };
+const legendButtonStyle: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: 8, border: '1px solid rgba(148,163,184,.24)', borderRadius: 999, padding: '6px 9px', color: 'rgba(226,232,240,.9)', background: 'rgba(15,23,42,.36)' };
+const legendSwatchStyle: React.CSSProperties = { width: 10, height: 10, borderRadius: 999, flex: '0 0 auto' };
+const legendTextStyle: React.CSSProperties = { display: 'grid', gap: 1, textAlign: 'left' };
+const chartWrapStyle: React.CSSProperties = { position: 'relative', marginTop: 14 };
+const tooltipStyle: React.CSSProperties = { position: 'absolute', zIndex: 2, width: 360, maxWidth: 'calc(100% - 24px)', display: 'grid', gap: 8, padding: 10, border: '1px solid rgba(148,163,184,.35)', borderRadius: 12, background: 'rgba(15,23,42,.96)', boxShadow: '0 18px 42px rgba(0,0,0,.32)', pointerEvents: 'none', color: 'rgba(226,232,240,.94)' };
+const tooltipRowStyle: React.CSSProperties = { display: 'grid', gridTemplateColumns: '10px minmax(0,1fr)', gap: 8, alignItems: 'start' };
+const tooltipTitleStyle: React.CSSProperties = { display: 'flex', gap: 6, alignItems: 'baseline', minWidth: 0, fontSize: 12, fontWeight: 700 };
+const tooltipMetaStyle: React.CSSProperties = { marginTop: 2, color: 'rgba(203,213,225,.78)', fontSize: 11, lineHeight: 1.35 };
+const tooltipSourceStyle: React.CSSProperties = { display: 'block', marginTop: 2, color: 'rgba(148,163,184,.86)', fontSize: 10, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' };
+const tablesWrapStyle: React.CSSProperties = { display: 'grid', gap: 8, marginTop: 12 };
+const tableGroupStyle: React.CSSProperties = { border: '1px solid rgba(148,163,184,.2)', borderRadius: 10, overflow: 'hidden', background: 'rgba(15,23,42,.26)' };
+const tableGroupHeadStyle: React.CSSProperties = { width: '100%', minHeight: 38, display: 'grid', gridTemplateColumns: '18px 10px minmax(120px,1fr) minmax(80px,.6fr) auto auto auto', alignItems: 'center', gap: 8, padding: '7px 10px', color: 'rgba(226,232,240,.9)', textAlign: 'left', borderBottom: '1px solid rgba(148,163,184,.16)' };
+const warningPillStyle: React.CSSProperties = { color: '#fed7aa', border: '1px solid rgba(251,146,60,.35)', borderRadius: 999, padding: '1px 6px' };
+const tableScrollStyle: React.CSSProperties = { overflowX: 'auto' };
+const tableStyle: React.CSSProperties = { width: '100%', minWidth: 720, borderCollapse: 'collapse', tableLayout: 'fixed', fontSize: 12, color: 'rgba(226,232,240,.88)' };
+const headCellStyle: React.CSSProperties = { padding: '8px 10px', borderBottom: '1px solid rgba(148,163,184,.22)', color: 'rgba(203,213,225,.78)', fontWeight: 700, textAlign: 'left' };
+const bodyCellStyle: React.CSSProperties = { padding: '7px 10px', borderBottom: '1px solid rgba(148,163,184,.12)', verticalAlign: 'middle' };
+const numCellStyle: React.CSSProperties = { textAlign: 'right', fontVariantNumeric: 'tabular-nums' };
+const sourceCellStyle: React.CSSProperties = { display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'rgba(148,163,184,.9)' };
 
 registerPluginGuiEditor({
   moduleId: MODULE,
