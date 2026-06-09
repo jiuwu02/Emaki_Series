@@ -33,6 +33,7 @@ public final class EmakiItemAssemblyService {
     private final AssemblyDataManager dataManager;
     private final EmakiNamespaceRegistry namespaceRegistry;
     private final ItemRenderService itemRenderService;
+    private final ItemOperationLedger operationLedger = new ItemOperationLedger();
     private final CacheManager<String, ItemStack> previewCache =
             new CacheManager<>(PREVIEW_CACHE_SIZE, PREVIEW_CACHE_TTL_MILLIS);
     private volatile AsyncConfig asyncConfig = new AsyncConfig(null, null);
@@ -163,6 +164,8 @@ public final class EmakiItemAssemblyService {
         List<String> previousActiveLayers = List.of();
         boolean existingIsEmakiItem = request.existingItem() != null && dataManager.isEmakiItem(request.existingItem());
         String baseCustomName = resolveBaseCustomName(request.existingItem(), existingIsEmakiItem);
+        List<String> baseLore = resolveBaseLore(request.existingItem(), existingIsEmakiItem);
+        List<ItemOperationEntry> operationEntries = resolveOperationEntries(request.existingItem(), existingIsEmakiItem);
         if (existingIsEmakiItem) {
             if (baseSource == null) {
                 baseSource = dataManager.readBaseSource(request.existingItem());
@@ -202,9 +205,21 @@ public final class EmakiItemAssemblyService {
                 ItemSourceUtil.toShorthand(baseSource),
                 amount,
                 baseCustomName,
-                orderedLayers.values().stream().map(EmakiItemLayerSnapshot::toMap).toList()
+                baseLore,
+                orderedLayers.values().stream().map(EmakiItemLayerSnapshot::toMap).toList(),
+                operationEntries.stream().map(ItemOperationEntry::toMap).toList()
         ));
-        return new AssemblyContext(baseSource, Math.max(1, amount), baseCustomName, orderedLayers, activeLayers, previousActiveLayers, signature);
+        return new AssemblyContext(
+                baseSource,
+                Math.max(1, amount),
+                baseCustomName,
+                baseLore,
+                orderedLayers,
+                activeLayers,
+                previousActiveLayers,
+                operationEntries,
+                signature
+        );
     }
 
     private ItemStack renderPreview(EmakiItemAssemblyRequest request) {
@@ -219,6 +234,7 @@ public final class EmakiItemAssemblyService {
         if (!requiresRenderedAssembly(context)) {
             return itemStack;
         }
+        applyBaseLore(itemStack, context.baseLore());
         itemRenderService.renderItem(itemStack, context.layerSnapshots().values(), baseNameOverride(context.baseCustomName()));
         dataManager.writeAssemblyData(
                 itemStack,
@@ -226,11 +242,13 @@ public final class EmakiItemAssemblyService {
                 context.baseSource(),
                 context.amount(),
                 context.baseCustomName(),
+                context.baseLore(),
                 context.activeLayers(),
                 context.previousActiveLayers(),
                 context.assemblySignature(),
                 context.layerSnapshots().values()
         );
+        operationLedger.replay(itemStack, context.operationEntries());
         return itemStack;
     }
 
@@ -239,6 +257,12 @@ public final class EmakiItemAssemblyService {
             return false;
         }
         if (Texts.isNotBlank(context.baseCustomName())) {
+            return true;
+        }
+        if (context.baseLore() != null && !context.baseLore().isEmpty()) {
+            return true;
+        }
+        if (context.operationEntries() != null && !context.operationEntries().isEmpty()) {
             return true;
         }
         if (context.layerSnapshots() == null || context.layerSnapshots().isEmpty()) {
@@ -256,11 +280,19 @@ public final class EmakiItemAssemblyService {
         if (request == null) {
             return "assembly:null";
         }
+        boolean existingIsEmakiItem = request.existingItem() != null && dataManager.isEmakiItem(request.existingItem());
         return SignatureUtil.stableSignature(List.of(
                 request.baseSource() == null ? "" : ItemSourceUtil.toShorthand(request.baseSource()),
                 request.amount(),
                 request.existingItem() == null ? "" : ItemSourceUtil.toShorthand(itemSourceService.identifyItem(request.existingItem())),
-                request.existingItem() == null ? "" : resolveBaseCustomName(request.existingItem(), dataManager.isEmakiItem(request.existingItem())),
+                request.existingItem() == null ? "" : resolveBaseCustomName(request.existingItem(), existingIsEmakiItem),
+                request.existingItem() == null ? List.of() : resolveBaseLore(request.existingItem(), existingIsEmakiItem),
+                request.existingItem() == null
+                        ? List.of()
+                        : resolveOperationEntries(request.existingItem(), existingIsEmakiItem)
+                                .stream()
+                                .map(ItemOperationEntry::toMap)
+                                .toList(),
                 request.layerSnapshots() == null ? List.of() : request.layerSnapshots().stream().map(EmakiItemLayerSnapshot::toMap).toList(),
                 request.removedNamespaceIds()
         ));
@@ -278,6 +310,39 @@ public final class EmakiItemAssemblyService {
             return "";
         }
         return MiniMessages.serialize(ItemTextBridge.customName(itemMeta));
+    }
+
+    private List<String> resolveBaseLore(ItemStack existingItem, boolean existingIsEmakiItem) {
+        if (existingItem == null) {
+            return List.of();
+        }
+        if (existingIsEmakiItem) {
+            List<String> storedLore = dataManager.readBaseLore(existingItem);
+            return storedLore == null || storedLore.isEmpty() ? List.of() : List.copyOf(storedLore);
+        }
+        ItemMeta itemMeta = existingItem.getItemMeta();
+        List<String> loreLines = ItemTextBridge.loreLines(itemMeta);
+        return loreLines == null || loreLines.isEmpty() ? List.of() : List.copyOf(loreLines);
+    }
+
+    private List<ItemOperationEntry> resolveOperationEntries(ItemStack existingItem, boolean existingIsEmakiItem) {
+        if (existingItem == null || !existingIsEmakiItem) {
+            return List.of();
+        }
+        List<ItemOperationEntry> entries = operationLedger.readAll(existingItem);
+        return entries == null || entries.isEmpty() ? List.of() : List.copyOf(entries);
+    }
+
+    private void applyBaseLore(ItemStack itemStack, List<String> baseLore) {
+        if (itemStack == null || baseLore == null || baseLore.isEmpty()) {
+            return;
+        }
+        ItemMeta itemMeta = itemStack.getItemMeta();
+        if (itemMeta == null) {
+            return;
+        }
+        ItemTextBridge.setLoreLines(itemMeta, baseLore);
+        itemStack.setItemMeta(itemMeta);
     }
 
     private Component baseNameOverride(String baseCustomName) {
@@ -302,7 +367,8 @@ public final class EmakiItemAssemblyService {
             }
         }
     }
-@FunctionalInterface
+
+    @FunctionalInterface
     private interface SupplierWithException<T> {
 
         T get() throws Exception;
@@ -315,9 +381,11 @@ public final class EmakiItemAssemblyService {
     private record AssemblyContext(ItemSource baseSource,
             int amount,
             String baseCustomName,
+            List<String> baseLore,
             Map<String, EmakiItemLayerSnapshot> layerSnapshots,
             List<String> activeLayers,
             List<String> previousActiveLayers,
+            List<ItemOperationEntry> operationEntries,
             String assemblySignature) {
 
     }

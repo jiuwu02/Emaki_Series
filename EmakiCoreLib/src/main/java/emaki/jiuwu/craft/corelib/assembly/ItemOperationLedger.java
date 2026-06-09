@@ -25,6 +25,7 @@ public final class ItemOperationLedger {
     private final Supplier<DebugLogger> debugLoggerSupplier;
     private final ItemOperationExecutor executor;
     private final ItemOperationReverter reverter;
+    private final ItemOperationReplayer replayer;
 
     public ItemOperationLedger() {
         this((Supplier<DebugLogger>) null);
@@ -38,6 +39,7 @@ public final class ItemOperationLedger {
         this.debugLoggerSupplier = debugLoggerSupplier == null ? () -> null : debugLoggerSupplier;
         this.executor = new ItemOperationExecutor(this);
         this.reverter = new ItemOperationReverter(this);
+        this.replayer = new ItemOperationReplayer();
     }
 
 
@@ -47,6 +49,7 @@ public final class ItemOperationLedger {
             Object nameActions,
             Object loreActions,
             Map<String, ?> variables) {
+        revert(itemStack, operationId);
         return executor.execute(itemStack, operationId, sourceNamespace, nameActions, loreActions, variables).success();
     }
 
@@ -57,6 +60,7 @@ public final class ItemOperationLedger {
             Object nameActions,
             Object loreActions,
             Map<String, ?> variables) {
+        revert(itemStack, operationId);
         return executor.execute(context, itemStack, operationId, sourceNamespace, nameActions, loreActions, variables).success();
     }
 
@@ -119,6 +123,14 @@ public final class ItemOperationLedger {
             return;
         }
         PDC.remove(itemStack, PARTITION, FIELD);
+    }
+
+    void replay(ItemStack itemStack, List<ItemOperationEntry> entries) {
+        if (itemStack == null || itemStack.getType().isAir() || entries == null || entries.isEmpty()) {
+            return;
+        }
+        replayer.replay(itemStack, entries);
+        writeAll(itemStack, entries);
     }
 
 

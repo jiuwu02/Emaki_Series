@@ -3422,23 +3422,25 @@ textarea {
 .prop-list-add {
   grid-column: 2;
   justify-self: end;
-  width: var(--config-field-control-height);
-  min-width: var(--config-field-control-height);
+  align-self: center;
+  width: 28px;
+  min-width: 28px;
   height: var(--config-field-control-height);
   display: grid;
   place-items: center;
-  border: 1px solid var(--line);
-  border-radius: 6px;
+  border: 0;
+  border-radius: 3px;
   color: var(--accent);
   background: transparent;
-  font-size: 16px;
-  font-weight: 700;
+  font-size: 18px;
+  font-weight: 800;
   line-height: 1;
+  opacity: .78;
 }
 
 .prop-list-add:hover,
 .prop-list-add:focus-visible {
-  border-color: var(--accent);
+  opacity: 1;
   background: var(--accent-soft);
   outline: none;
 }

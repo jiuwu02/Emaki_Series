@@ -14,6 +14,7 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.pdc.PdcPartition;
 import emaki.jiuwu.craft.corelib.pdc.PdcService;
 import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 
 final class AssemblyDataManager {
 
@@ -46,6 +47,18 @@ final class AssemblyDataManager {
     String readBaseCustomName(ItemStack itemStack) {
         String customName = pdcService.get(itemStack, itemPartition, "base_custom_name", PersistentDataType.STRING);
         return Texts.toStringSafe(customName);
+    }
+
+    List<String> readBaseLore(ItemStack itemStack) {
+        String payload = pdcService.get(itemStack, itemPartition, "base_lore", PersistentDataType.STRING);
+        if (Texts.isBlank(payload)) {
+            return List.of();
+        }
+        try {
+            return Texts.asStringList(YamlFiles.load(payload).get("lore"));
+        } catch (RuntimeException _) {
+            return List.of();
+        }
     }
 
     List<String> readActiveLayers(ItemStack itemStack) {
@@ -90,6 +103,7 @@ final class AssemblyDataManager {
             ItemSource baseSource,
             int amount,
             String baseCustomName,
+            List<String> baseLore,
             List<String> activeLayers,
             List<String> previousActiveLayers,
             String assemblySignature,
@@ -102,6 +116,7 @@ final class AssemblyDataManager {
         } else {
             pdcService.set(itemStack, itemPartition, "base_custom_name", PersistentDataType.STRING, baseCustomName);
         }
+        writeBaseLore(itemStack, baseLore);
         pdcService.set(itemStack, itemPartition, "active_layers", PersistentDataType.STRING, String.join(",", activeLayers));
         pdcService.set(itemStack, itemPartition, "assembly_signature", PersistentDataType.STRING, assemblySignature);
         clearInactiveLayerSnapshots(itemStack, previousActiveLayers, activeLayers);
@@ -115,6 +130,17 @@ final class AssemblyDataManager {
             String field = Texts.normalizeId(snapshot.namespaceId()) + ".snapshot";
             pdcService.writeBlob(itemStack, pdcService.partition(""), field, codecRegistry.codecFor(snapshot.namespaceId()), snapshot);
         }
+    }
+
+    private void writeBaseLore(ItemStack itemStack, List<String> baseLore) {
+        if (baseLore == null || baseLore.isEmpty()) {
+            pdcService.remove(itemStack, itemPartition, "base_lore");
+            return;
+        }
+        List<String> lines = baseLore.stream()
+                .map(Texts::toStringSafe)
+                .toList();
+        pdcService.set(itemStack, itemPartition, "base_lore", PersistentDataType.STRING, YamlFiles.dump(Map.of("lore", lines)));
     }
 
     private void clearInactiveLayerSnapshots(ItemStack itemStack,

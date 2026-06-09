@@ -427,6 +427,7 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
         variables.put("star", state.currentStar());
         variables.put("temper", state.temperLevel());
         variables.put("max_temper", recipe.limits().maxTemper());
+        operationLedger.revertAll(itemStack, OPERATION_NAMESPACE);
         operationLedger.apply(itemStack, operationId, OPERATION_NAMESPACE, nameActions, loreActions, variables);
     }
 
