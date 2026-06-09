@@ -52,7 +52,6 @@ public final class LevelCurveService {
         return all.stream()
                 .filter(LevelTypeConfig::enabled)
                 .sorted(Comparator.comparing(LevelTypeConfig::primary).reversed().thenComparing(LevelTypeConfig::id))
-                .limit(6)
                 .toList();
     }
 
