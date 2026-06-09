@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -649,17 +650,18 @@ public final class WebConsoleService {
                 context.forbidden("路径不合法");
                 return;
             }
+            long current = 0L;
             if (target.exists()) {
-                long current = fileRevision(target);
+                current = fileRevision(target);
                 if (current != 0 && (expectedRevision == null || current != expectedRevision)) {
                     writeRevisionConflict(context.exchange(), current);
                     return;
                 }
             }
             recordBeforeWrite(changeHistoryService.scriptTarget(path), "save", context.session());
-            java.nio.file.Files.createDirectories(target.toPath().getParent());
-            java.nio.file.Files.writeString(target.toPath(), content == null ? "" : content, StandardCharsets.UTF_8);
-            context.ok(Map.of("revision", fileRevision(target)));
+            Files.createDirectories(target.toPath().getParent());
+            Files.writeString(target.toPath(), content == null ? "" : content, StandardCharsets.UTF_8);
+            context.ok(Map.of("revision", advanceFileRevision(target, current)));
         } catch (Exception e) {
             context.serverError(e.getMessage());
         }
@@ -716,8 +718,9 @@ public final class WebConsoleService {
         }
         try {
             java.io.File target = safeModuleFile(module, path);
+            long current = 0L;
             if (target.exists()) {
-                long current = fileRevision(target);
+                current = fileRevision(target);
                 if (current != 0 && (expectedRevision == null || current != expectedRevision)) {
                     writeRevisionConflict(context.exchange(), current);
                     return;
@@ -730,9 +733,9 @@ public final class WebConsoleService {
                 return;
             }
             recordBeforeWrite(historyTarget(module, path, normalizeHistoryKind(kind)), "save", context.session());
-            java.nio.file.Files.createDirectories(target.toPath().getParent());
-            java.nio.file.Files.writeString(target.toPath(), content == null ? "" : content, StandardCharsets.UTF_8);
-            context.ok(Map.of("revision", fileRevision(target)));
+            Files.createDirectories(target.toPath().getParent());
+            Files.writeString(target.toPath(), content == null ? "" : content, StandardCharsets.UTF_8);
+            context.ok(Map.of("revision", advanceFileRevision(target, current)));
         } catch (WebConsoleRegistry.RevisionConflictException exception) {
             writeRevisionConflict(context.exchange(), exception);
         } catch (Exception e) {
@@ -755,10 +758,19 @@ public final class WebConsoleService {
     private long fileRevision(java.io.File file) {
         if (!file.exists()) return 0L;
         try {
-            return java.nio.file.Files.getLastModifiedTime(file.toPath()).toMillis();
+            return Files.getLastModifiedTime(file.toPath()).toMillis();
         } catch (IOException ignored) {
             return 0L;
         }
+    }
+
+    private long advanceFileRevision(java.io.File file, long previousRevision) throws IOException {
+        long nextRevision = fileRevision(file);
+        if (previousRevision > 0L && nextRevision <= previousRevision) {
+            nextRevision = previousRevision + 1L;
+            Files.setLastModifiedTime(file.toPath(), FileTime.fromMillis(nextRevision));
+        }
+        return nextRevision;
     }
 
     private void handleItemPreview(WebRequestContext context) throws IOException {

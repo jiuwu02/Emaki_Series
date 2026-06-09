@@ -158,7 +158,7 @@ function LevelCurvePreview({ api, file, data }: ConfigPreviewProps) {
   const [hiddenTypes, setHiddenTypes] = useState<Set<string>>(new Set());
   const [openTypes, setOpenTypes] = useState<Set<string>>(new Set());
   const [hoverLevel, setHoverLevel] = useState<number | null>(null);
-  const [hoverPosition, setHoverPosition] = useState<{ x: number; y: number } | null>(null);
+  const [hoverPosition, setHoverPosition] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
 
   const selectedTypes = useMemo(() => typeInput.split(',').map(value => value.trim()).filter(Boolean), [typeInput]);
   const curves = result?.curves ?? [];
@@ -268,7 +268,7 @@ function CurveLegend({ curves, hiddenTypes, onToggle }: { curves: Curve[]; hidde
   })}</div>;
 }
 
-function LevelCurveSvg({ curves, visibleCurves, hiddenTypes, metric, hoverLevel, onHover, onLeave }: { curves: Curve[]; visibleCurves: Curve[]; hiddenTypes: Set<string>; metric: CurveMetric; hoverLevel: number | null; onHover: (level: number, position: { x: number; y: number }) => void; onLeave: () => void }) {
+function LevelCurveSvg({ curves, visibleCurves, hiddenTypes, metric, hoverLevel, onHover, onLeave }: { curves: Curve[]; visibleCurves: Curve[]; hiddenTypes: Set<string>; metric: CurveMetric; hoverLevel: number | null; onHover: (level: number, position: { x: number; y: number; width: number; height: number }) => void; onLeave: () => void }) {
   const width = 820;
   const height = 300;
   const pad = { left: 42, right: 28, top: 26, bottom: 34 };
@@ -290,7 +290,7 @@ function LevelCurveSvg({ curves, visibleCurves, hiddenTypes, metric, hoverLevel,
     if (!levels.length) return;
     const rect = event.currentTarget.getBoundingClientRect();
     const level = nearestLevel(event.clientX, rect);
-    onHover(level, { x: event.clientX - rect.left, y: event.clientY - rect.top });
+    onHover(level, { x: event.clientX - rect.left, y: event.clientY - rect.top, width: rect.width, height: rect.height });
   };
   return <svg viewBox={`0 0 ${width} ${height}`} style={svgStyle} role="img" aria-label={copy('等级曲线图', 'Level curve chart')} onMouseMove={handleMove} onMouseLeave={onLeave}>
     {[0, .25, .5, .75, 1].map(step => <line key={step} x1={pad.left} x2={width - pad.right} y1={pad.top + chartHeight * step} y2={pad.top + chartHeight * step} stroke="color-mix(in oklch, var(--line) 58%, transparent)" />)}
@@ -315,20 +315,27 @@ function LevelCurveSvg({ curves, visibleCurves, hiddenTypes, metric, hoverLevel,
   </svg>;
 }
 
-function CurveTooltip({ level, rows, position }: { level: number; rows: { curve: Curve; point: CurvePoint; color: string }[]; metric: CurveMetric; position: { x: number; y: number } }) {
-  const estimatedHeight = Math.min(360, 48 + rows.length * 58);
-  const showAbove = position.y > estimatedHeight + 18;
-  const showLeft = position.x > 520;
-  const left = Math.max(12, showLeft ? position.x - 374 : position.x + 14);
-  const top = Math.max(12, showAbove ? position.y - estimatedHeight - 12 : position.y + 14);
-  return <div style={{ ...tooltipStyle, left, top }}>
+function CurveTooltip({ level, rows, position }: { level: number; rows: { curve: Curve; point: CurvePoint; color: string }[]; metric: CurveMetric; position: { x: number; y: number; width: number; height: number } }) {
+  const tooltipWidth = Math.min(360, Math.max(260, position.width - 24));
+  const estimatedHeight = Math.min(420, 46 + rows.length * 52);
+  const gap = 14;
+  const maxLeft = Math.max(12, position.width - tooltipWidth - 12);
+  const maxTop = Math.max(12, position.height - estimatedHeight - 12);
+  const preferLeft = position.x + gap + tooltipWidth > position.width - 12;
+  const preferAbove = position.y + gap + estimatedHeight > position.height - 12;
+  const left = clamp(preferLeft ? position.x - tooltipWidth - gap : position.x + gap, 12, maxLeft);
+  const top = clamp(preferAbove ? position.y - estimatedHeight - gap : position.y + gap, 12, maxTop);
+  return <div style={{ ...tooltipStyle, left, top, width: tooltipWidth, maxHeight: Math.max(160, position.height - 24) }}>
     <strong>{copy('目标等级', 'Target level')} Lv.{level}</strong>
     {rows.map(({ curve, point, color }) => <div key={curve.type} style={tooltipRowStyle}>
       <span style={{ ...legendSwatchStyle, background: color }} />
       <div style={{ minWidth: 0 }}>
         <div style={tooltipTitleStyle}><code>{curve.type}</code></div>
-        <div style={tooltipMetaStyle}>{copy('需求', 'Required')}: {formatNumber(point.requiredExp)} · {copy('累计', 'Total')}: {formatNumber(point.totalExp)} · {copy('增长率', 'Growth')}: {formatPercent(point.growthRate)}</div>
-        <code style={tooltipSourceStyle}>{point.source}</code>
+        <div style={tooltipMetaStyle}>
+          <span>{copy('需求', 'Required')} <b style={tooltipNumberStyle}>{formatNumber(point.requiredExp)}</b></span>
+          <span>{copy('累计', 'Total')} <b style={tooltipNumberStyle}>{formatNumber(point.totalExp)}</b></span>
+          <span>{copy('增长率', 'Growth')} <b style={tooltipNumberStyle}>{formatPercent(point.growthRate)}</b></span>
+        </div>
       </div>
     </div>)}
   </div>;
@@ -384,6 +391,10 @@ function csvCell(value: unknown): string {
   return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 }
 
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
 function formatNumber(value: number): string {
   return Number.isFinite(value) ? value.toLocaleString(undefined, { maximumFractionDigits: 2 }) : '-';
 }
@@ -409,11 +420,11 @@ const legendStyle: React.CSSProperties = { display: 'flex', flexWrap: 'wrap', ga
 const legendButtonStyle: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: 6, border: '1px solid var(--line)', borderRadius: 999, padding: '4px 8px', color: 'var(--text)', background: 'color-mix(in oklch, var(--surface-2) 78%, transparent)', fontSize: 11 };
 const legendSwatchStyle: React.CSSProperties = { width: 10, height: 10, borderRadius: 999, flex: '0 0 auto' };
 const chartWrapStyle: React.CSSProperties = { position: 'relative', marginTop: 14 };
-const tooltipStyle: React.CSSProperties = { position: 'absolute', zIndex: 2, width: 360, maxWidth: 'calc(100% - 24px)', display: 'grid', gap: 8, padding: 10, border: '1px solid var(--line-2)', borderRadius: 12, background: 'color-mix(in oklch, var(--surface) 96%, var(--bg) 4%)', boxShadow: 'var(--shadow)', pointerEvents: 'none', color: 'var(--text)' };
+const tooltipStyle: React.CSSProperties = { position: 'absolute', zIndex: 2, maxWidth: 'calc(100% - 24px)', overflowY: 'auto', display: 'grid', gap: 8, padding: 10, border: '1px solid var(--line-2)', borderRadius: 12, background: 'color-mix(in oklch, var(--surface) 96%, var(--bg) 4%)', boxShadow: 'var(--shadow)', pointerEvents: 'none', color: 'var(--text)' };
 const tooltipRowStyle: React.CSSProperties = { display: 'grid', gridTemplateColumns: '10px minmax(0,1fr)', gap: 8, alignItems: 'start' };
 const tooltipTitleStyle: React.CSSProperties = { display: 'flex', gap: 6, alignItems: 'baseline', minWidth: 0, fontSize: 12, fontWeight: 700 };
-const tooltipMetaStyle: React.CSSProperties = { marginTop: 2, color: 'var(--muted)', fontSize: 11, lineHeight: 1.35 };
-const tooltipSourceStyle: React.CSSProperties = { display: 'block', marginTop: 2, color: 'var(--faint)', fontSize: 10, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' };
+const tooltipMetaStyle: React.CSSProperties = { marginTop: 3, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 6, color: 'var(--muted)', fontSize: 11, lineHeight: 1.35 };
+const tooltipNumberStyle: React.CSSProperties = { display: 'block', marginTop: 1, color: 'var(--accent-strong)', fontWeight: 800, fontVariantNumeric: 'tabular-nums' };
 const tablesWrapStyle: React.CSSProperties = { display: 'grid', gap: 8, marginTop: 12 };
 const tableGroupStyle: React.CSSProperties = { border: '1px solid var(--line)', borderRadius: 10, overflow: 'hidden', background: 'color-mix(in oklch, var(--surface-2) 54%, transparent)' };
 const tableGroupHeadStyle: React.CSSProperties = { width: '100%', minHeight: 36, display: 'grid', gridTemplateColumns: '18px 10px minmax(120px,1fr) minmax(80px,.6fr) auto auto', alignItems: 'center', justifyItems: 'center', gap: 8, padding: '7px 10px', color: 'var(--text)', textAlign: 'center', borderBottom: '1px solid var(--line)' };

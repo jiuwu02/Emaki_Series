@@ -828,11 +828,29 @@ function jumpToConfigNode(path: string, attempt = 0) {
     return;
   }
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  target.scrollIntoView({ block: 'center', behavior: reduceMotion ? 'auto' : 'smooth' });
+  scrollElementToStageTop(target, stage, reduceMotion ? 'auto' : 'smooth');
   target.classList.remove('config-node-locate');
   void target.offsetWidth;
   target.classList.add('config-node-locate');
   window.setTimeout(() => target.classList.remove('config-node-locate'), reduceMotion ? 900 : 1500);
+}
+
+function scrollElementToStageTop(target: HTMLElement, stage: HTMLElement | null, behavior: ScrollBehavior) {
+  const headerOffset = 18;
+  if (stage && isScrollable(stage)) {
+    const stageRect = stage.getBoundingClientRect();
+    const targetRect = target.getBoundingClientRect();
+    const top = stage.scrollTop + targetRect.top - stageRect.top - headerOffset;
+    stage.scrollTo({ top: Math.max(0, top), behavior });
+    return;
+  }
+  const top = window.scrollY + target.getBoundingClientRect().top - headerOffset;
+  window.scrollTo({ top: Math.max(0, top), behavior });
+}
+
+function isScrollable(element: HTMLElement): boolean {
+  const style = window.getComputedStyle(element);
+  return /(auto|scroll|overlay)/.test(`${style.overflowY} ${style.overflow}`) && element.scrollHeight > element.clientHeight;
 }
 
 function cssSelectorEscape(value: string): string {
@@ -1219,6 +1237,7 @@ function HistoryModal({ api, target, onCancel, onRolledBack }: { api: ApiClient;
   const [selectedId, setSelectedId] = useState('');
   const [snapshot, setSnapshot] = useState<HistorySnapshot | null>(null);
   const [diff, setDiff] = useState('');
+  const parsedDiff = useMemo(() => parseUnifiedDiff(diff), [diff]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [currentRevision, setCurrentRevision] = useState<number | undefined>(target.revision);
@@ -1289,7 +1308,7 @@ function HistoryModal({ api, target, onCancel, onRolledBack }: { api: ApiClient;
   }
 
   return <div className="editor-modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) onCancel(); }}>
-    <section ref={dialogRef} className="insight-search-dialog insight-reference-dialog" role="dialog" aria-modal="true" aria-labelledby="history-title" tabIndex={-1}>
+    <section ref={dialogRef} className="insight-search-dialog insight-reference-dialog history-dialog" role="dialog" aria-modal="true" aria-labelledby="history-title" tabIndex={-1}>
       <div className="insight-search-head">
         <span>{t('core.history.kicker')}</span>
         <h3 id="history-title">{t('core.history.title', { file: target.title })}</h3>
@@ -1310,7 +1329,13 @@ function HistoryModal({ api, target, onCancel, onRolledBack }: { api: ApiClient;
             <span>{formatHistoryTime(selectedEntry.createdAt)} · {selectedEntry.actor || 'web'}</span>
             {!rollbackAllowed && <small>{t('core.history.rollbackDisabled')}</small>}
           </div> : null}
-          <pre>{diff || snapshot?.content || t('core.history.noDiff')}</pre>
+          {parsedDiff.length > 0 ? <div className="history-diff source-diff" role="list" aria-label={t('core.editor.sourceDiffTitle')}>
+            {parsedDiff.map((line, index) => <div className={`source-diff-line ${line.type}`} role="listitem" key={`${line.type}-${line.lineNo}-${index}`}>
+              <code className="source-diff-no">{line.lineNo}</code>
+              <code className="source-diff-sign">{line.type === 'add' ? '+' : '−'}</code>
+              <code className="source-diff-text">{line.text || ' '}</code>
+            </div>)}
+          </div> : <pre>{snapshot?.content || t('core.history.noDiff')}</pre>}
         </div>
       </div>
       <ActionGroup className="reload-confirm-actions">
@@ -1319,6 +1344,34 @@ function HistoryModal({ api, target, onCancel, onRolledBack }: { api: ApiClient;
       </ActionGroup>
     </section>
   </div>;
+}
+
+function parseUnifiedDiff(diff: string): { type: 'add' | 'remove'; text: string; lineNo?: number }[] {
+  const lines: { type: 'add' | 'remove'; text: string; lineNo?: number }[] = [];
+  let beforeLine = 0;
+  let afterLine = 0;
+  for (const rawLine of String(diff ?? '').replace(/\r\n?/g, '\n').split('\n')) {
+    const hunk = rawLine.match(/^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/);
+    if (hunk) {
+      beforeLine = Number(hunk[1]);
+      afterLine = Number(hunk[2]);
+      continue;
+    }
+    if (rawLine.startsWith('---') || rawLine.startsWith('+++') || rawLine.startsWith('diff ') || rawLine.startsWith('index ')) continue;
+    if (rawLine.startsWith('-')) {
+      lines.push({ type: 'remove', text: rawLine.slice(1), lineNo: beforeLine || undefined });
+      beforeLine += 1;
+      continue;
+    }
+    if (rawLine.startsWith('+')) {
+      lines.push({ type: 'add', text: rawLine.slice(1), lineNo: afterLine || undefined });
+      afterLine += 1;
+      continue;
+    }
+    if (beforeLine > 0) beforeLine += 1;
+    if (afterLine > 0) afterLine += 1;
+  }
+  return lines;
 }
 
 function historyOperationLabel(operation: string | undefined): string {

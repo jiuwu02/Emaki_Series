@@ -2,6 +2,8 @@ package emaki.jiuwu.craft.corelib.web;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -482,7 +484,7 @@ public final class WebConsoleRegistry {
         }
         yaml.set(path, normalizeIncomingValue(current, value));
         YamlFiles.save(file, yaml);
-        return fileRevision(file);
+        return advanceFileRevision(file, currentRevision);
     }
 
     private Map<String, Object> fileSnapshot(String moduleId, FileRegistration registration) {
@@ -646,10 +648,19 @@ public final class WebConsoleRegistry {
     private long fileRevision(File file) {
         if (!file.exists()) return 0L;
         try {
-            return java.nio.file.Files.getLastModifiedTime(file.toPath()).toMillis();
+            return Files.getLastModifiedTime(file.toPath()).toMillis();
         } catch (IOException ignored) {
             return 0L;
         }
+    }
+
+    private long advanceFileRevision(File file, long previousRevision) throws IOException {
+        long nextRevision = fileRevision(file);
+        if (previousRevision > 0L && nextRevision <= previousRevision) {
+            nextRevision = previousRevision + 1L;
+            Files.setLastModifiedTime(file.toPath(), FileTime.fromMillis(nextRevision));
+        }
+        return nextRevision;
     }
 
     public static final class RevisionConflictException extends IOException {

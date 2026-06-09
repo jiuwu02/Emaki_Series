@@ -307,7 +307,8 @@ function FieldValueDiff({ before, after }: { before: unknown; after: unknown }) 
 
 function SourceDiff({ before, after, compact = false }: { before: string; after: string; compact?: boolean }) {
   const diff = useMemo(() => buildLineDiff(before, after), [before, after]);
-  const visible = compact ? diff.lines.slice(0, 24) : diff.lines.slice(0, 120);
+  const changedLines = compact ? diff.lines.filter(line => line.type !== 'context') : diff.lines;
+  const visible = compact ? changedLines.slice(0, 24) : changedLines.slice(0, 120);
   const omitted = Math.max(0, diff.lines.length - visible.length);
   if (!diff.changed) return <p>{t('core.editor.sourceDiffEmpty')}</p>;
   return <div className={`source-diff ${compact ? 'compact' : ''}`} role="list" aria-label={t('core.editor.sourceDiffTitle')}>

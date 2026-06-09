@@ -2045,6 +2045,18 @@ textarea {
   font-size: 11px;
 }
 
+@keyframes reload-confirm-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 .editor-modal-backdrop {
   position: fixed;
   inset: 0;
@@ -2108,6 +2120,166 @@ textarea {
   font-family: ui-monospace, "Cascadia Code", monospace;
   font-size: 10px;
   color: var(--danger-ink);
+}
+
+.reload-confirm-dialog,
+.file-action-dialog,
+.config-create-dialog {
+  width: min(560px, calc(100vw - 32px));
+  max-height: min(720px, calc(100vh - 32px));
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  border: 1px solid var(--line-2);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  animation: reload-confirm-in 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.diff-dialog,
+.config-create-dialog {
+  width: min(640px, calc(100vw - 32px));
+}
+
+.file-action-dialog.danger {
+  border-color: var(--danger-line);
+}
+
+.reload-confirm-head {
+  display: grid;
+  gap: 3px;
+  padding: 15px 16px 12px;
+  border-bottom: 1px solid var(--line);
+  background: var(--input);
+}
+
+.reload-confirm-head span {
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.file-action-dialog.danger .reload-confirm-head span {
+  color: var(--danger-ink);
+}
+
+.reload-confirm-head h3 {
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: -.02em;
+}
+
+.reload-confirm-body {
+  min-height: 0;
+  overflow: auto;
+  display: grid;
+  gap: 12px;
+  padding: 14px 16px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.reload-change-summary {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--input);
+}
+
+.reload-change-summary>strong {
+  color: var(--text);
+  font-size: 12px;
+}
+
+.reload-confirm-actions {
+  justify-content: flex-end;
+  padding: 12px 16px;
+  border-top: 1px solid var(--line);
+  background: var(--input);
+}
+
+.file-confirm-field {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.file-confirm-field span {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.file-confirm-field input,
+.file-confirm-field select {
+  width: 100%;
+  min-height: 34px;
+  border: 1px solid var(--line-2);
+  border-radius: 6px;
+  background: var(--input);
+  color: var(--text);
+  padding: 7px 9px;
+}
+
+.file-delete-path {
+  display: block;
+  padding: 7px 9px;
+  border: 1px solid var(--danger-line);
+  border-radius: 6px;
+  background: var(--danger-soft);
+  color: var(--danger-ink);
+  font-family: ui-monospace, "Cascadia Code", monospace;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.config-create-hint {
+  margin: 0;
+  padding: 7px 9px;
+  border: 1px solid var(--changed-line);
+  border-radius: 6px;
+  background: var(--changed-bg);
+  color: var(--changed-ink);
+  font-size: 12px;
+}
+
+.config-create-fields {
+  display: grid;
+  gap: 9px;
+}
+
+.config-create-fields .object-list-field {
+  display: grid;
+  gap: 5px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: color-mix(in oklch, var(--input) 72%, transparent);
+}
+
+.config-create-fields .object-list-field>label {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.config-create-fields input,
+.config-create-fields select,
+.config-create-fields textarea {
+  width: 100%;
+  border: 1px solid var(--line-2);
+  border-radius: 6px;
+  background: var(--input);
+  color: var(--text);
+  padding: 7px 9px;
 }
 
 .code-editor {
@@ -4335,6 +4507,40 @@ textarea {
   grid-column: 1 / -1;
   color: var(--faint);
   font-size: 11px;
+}
+
+.history-dialog {
+  width: min(1120px, calc(100vw - 32px));
+  max-height: min(820px, calc(100vh - 32px));
+}
+
+.history-dialog .insight-graph-body {
+  grid-template-columns: minmax(220px, 320px) minmax(0, 1fr);
+  min-height: min(560px, calc(100vh - 220px));
+}
+
+.history-preview {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 10px;
+}
+
+.history-preview .history-diff {
+  max-height: none;
+  height: 100%;
+}
+
+.history-preview pre {
+  min-height: 0;
+  overflow: auto;
+  margin: 0;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--code-gutter);
+  color: var(--muted);
+  font: 11px/1.5 ui-monospace, "Cascadia Code", monospace;
+  white-space: pre-wrap;
 }
 
 @media (max-width: 860px) {
