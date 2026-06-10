@@ -287,7 +287,7 @@
 /* ─── Responsive ─── */
 @media (max-width: 1180px) {
   .workbench {
-    grid-template-columns: var(--rail-width, 272px) minmax(var(--stage-min-width, 0px), 1fr);
+    grid-template-columns: var(--rail-width, 272px) minmax(0, var(--stage-width, 1fr));
   }
 
   .field-outline-rail {

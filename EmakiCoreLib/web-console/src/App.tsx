@@ -6,7 +6,7 @@ import { GuiEditorSurface } from './GuiEditorSurface';
 import { ItemEditorSurface } from './ItemEditorSurface';
 import { loadWebExtensions } from './extensions';
 import { applyConfigNodeOverrides, applyConfigRegistryOverrides, applyEditorDescriptorOverrides, getConfigPreview, getSourceDocumentAdapter, getSurface, isKind, registerSourceDocumentAdapter, registerSurface, setRuntimeEnums, type ConfigPreviewProps, type SourceDocumentAdapterContext } from './registry';
-import { isGlobPath, normalizeDocumentPath, normalizeLookupPath, resolveConcreteChildPath, treeDirtyKey } from './documentPaths';
+import { firstConcreteChildPath, isGlobPath, normalizeDocumentPath, normalizeLookupPath, resolveConcreteChildPath, treeDirtyKey } from './documentPaths';
 import { getLocale, getRegisteredLocales, setLocale, t } from './i18n';
 import { ActionGroup, ActionTypesProvider, Button, CodeEditor, EconomyProvidersProvider, EditorChrome, DisclosureChevron, InlineError, NumberListEditor, StandardActionsField, StandardEconomyProviderSelect, StandardEffectsEditor, StringListEditor, ToastNotice, VariablesMapEditor, type EditorChange } from './components';
 import { UnifiedDiffView, parseUnifiedDiff } from './components/DiffViewer';
@@ -194,7 +194,8 @@ function resolveWorkbenchLayout(viewportWidth: number, hasOutline: boolean, rail
 
   railWidth = Math.round(railWidth);
   outlineWidth = Math.round(outlineWidth);
-  const stageMinWidth = Math.max(0, Math.floor(Math.min(stageTarget, viewportWidth - railWidth - outlineWidth)));
+  const stageWidth = Math.max(0, Math.floor(viewportWidth - railWidth - outlineWidth));
+  const stageMinWidth = Math.max(0, Math.floor(Math.min(stageTarget, stageWidth)));
   return {
     outlineVisible,
     railWidth,
@@ -202,6 +203,7 @@ function resolveWorkbenchLayout(viewportWidth: number, hasOutline: boolean, rail
     style: {
       '--rail-width': `${railWidth}px`,
       '--outline-width': `${outlineWidth}px`,
+      '--stage-width': `${stageWidth}px`,
       '--stage-min-width': `${stageMinWidth}px`
     } as CSSProperties
   };
@@ -1500,13 +1502,14 @@ function ConfigSurface({ registry, module, file, drafts, draftHistory, setDraftV
   if (extensionSurfacePending(module, file, editor, registeredSurface, pendingExtensionModules)) {
     return <section className="config-surface empty" role="status">{t('core.extension.loadingEditor', undefined, '正在加载插件编辑器…')}</section>;
   }
-  if (!scriptPath && isGlobPath(file.path)) {
-    return <section className="config-surface"><div className="surface-head"><div><h2>{fileDisplayTitle(file)}</h2><p>{fileDisplayComment(file)}</p></div><span className={`file-kind ${String(file.kind).toLowerCase()}`}>{fileKindLabel(file.kind)}</span></div><div className="script-placeholder" role="status">{t('core.empty.selectFile')}</div></section>;
-  }
   if (registeredSurface && !isKind(file.kind, 'CONFIG') && !isKind(file.kind, 'SCRIPT')) {
     const SurfaceComponent = registeredSurface.component;
     const outlineSetter = isKind(file.kind, 'GUI') ? undefined : setSurfaceOutline;
-    return <SurfaceComponent module={module} file={file} api={api} childPath={scriptPath} refreshKey={refreshKey} editor={editor} onReload={onReload} setToolbar={setSurfaceToolbar} setOutline={outlineSetter} showLocalChrome={false} />;
+    const surfaceChildPath = scriptPath || (isGlobPath(file.path) ? firstConcreteChildPath(file) : undefined);
+    return <SurfaceComponent module={module} file={file} api={api} childPath={surfaceChildPath} refreshKey={refreshKey} editor={editor} onReload={onReload} setToolbar={setSurfaceToolbar} setOutline={outlineSetter} showLocalChrome={false} />;
+  }
+  if (!scriptPath && isGlobPath(file.path)) {
+    return <section className="config-surface"><div className="surface-head"><div><h2>{fileDisplayTitle(file)}</h2><p>{fileDisplayComment(file)}</p></div><span className={`file-kind ${String(file.kind).toLowerCase()}`}>{fileKindLabel(file.kind)}</span></div><div className="script-placeholder" role="status">{t('core.empty.selectFile')}</div></section>;
   }
 
   if (isKind(file.kind, 'SCRIPT')) return <section className="config-surface script-surface"><div className="surface-head"><div><h2>{fileDisplayTitle(file)}</h2><p>{fileDisplayComment(file)}</p></div><span className="file-kind script">{fileKindLabel(file.kind)}</span></div>{scriptPath ? <ScriptEditor api={api} scriptPath={scriptPath} module={module} file={file} setSurfaceToolbar={setSurfaceToolbar} setToast={setToast} /> : <div className="script-placeholder" role="status">{t('core.empty.selectScript')}</div>}</section>;
@@ -2546,8 +2549,12 @@ function ConfigNodeView({ scope, node, drafts, setDraftValue, sourceEdit, change
 }
 
 function isWideConfigNode(node: WebConfigNode): boolean {
-  if (node.type === 'list' || node.type === 'stringList' || node.type === 'numberList') return true;
-  return node.type === 'dynamic_map' || node.type === 'objectList' || node.type === 'object' || node.type === 'actions' || node.type === 'effects' || node.type === 'variablesMap';
+  return node.type === 'dynamic_map' || node.type === 'objectList' || node.type === 'object' || node.type === 'actions' || node.type === 'effects' || node.type === 'variablesMap' || node.type === 'json';
+}
+
+function isInlineScalarListPath(path: string | undefined): boolean {
+  const key = String(path ?? '').split('.').pop() ?? '';
+  return key === 'item_sources' || key === 'item_source';
 }
 
 function hasObjectListSchema(fields: WebConfigFieldSchema[] | undefined): boolean {
@@ -2568,8 +2575,8 @@ function renderControl(node: WebConfigNode, value: unknown, setValue: (v: unknow
     if (node.itemFields?.length) return <SchemaObjectEditor field={configNodeToSchemaField(node)} value={value} onChange={setValue} moduleId={moduleId} ariaLabel={label} />;
     return <ObjectMapEditor value={value} onChange={setValue} />;
   }
-  if (node.type === 'stringList') return <StringListEditor items={asStringListValue(value)} onChange={setValue} />;
-  if (node.type === 'numberList') return <NumberListEditor items={asNumberListValue(value)} onChange={setValue} />;
+  if (node.type === 'stringList') return <StringListEditor items={asStringListValue(value)} onChange={setValue} layout={isInlineScalarListPath(node.path) ? 'inline' : 'block'} />;
+  if (node.type === 'numberList') return <NumberListEditor items={asNumberListValue(value)} onChange={setValue} layout={isInlineScalarListPath(node.path) ? 'inline' : 'block'} />;
   if (node.type === 'objectList') {
     const items = Array.isArray(value) ? value : [];
     return <ObjectListEditor node={node} items={items} setValue={setValue} moduleId={moduleId} />;

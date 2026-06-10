@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ApiError, type ApiClient, type ActionTypesResult } from './api';
 import { Button, CollapsibleSection, ChangedPathsProvider, DisclosureChevron, EditorChrome, InlineError, KvTable, MiniText, NumberListEditor, PropRow as BasePropRow, SectionHead, StandardActionsField, StandardEconomyProviderSelect, StandardEffectsEditor, StringListEditor, ToastNotice, VariablesMapEditor, parseActionList, type ActionEntry } from './components';
 import { asList, asRecord, asStringList, displaySource, firstItemSource, materialFromItemSource, setDeepValue, parseYaml, type AnyMap } from './itemEditor';
-import { concreteRegistryChildPath, isConcretePath, isGlobPath, normalizeDocumentPath } from './documentPaths';
+import { firstConcreteChildPath, isConcretePath, isGlobPath, normalizeDocumentPath } from './documentPaths';
 import { t, getLocale } from './i18n';
 import { changedPathSet, diffRecords, fieldLabel, getDeepValue, humanizeFieldLabel, isChangedFieldPath, materialShortName, materialUrls, optionLabel, subscribeTextureBases, textValue, valuesEqual } from './lib';
 import { MINECRAFT_MATERIALS, searchMaterials } from './minecraftMaterials';
@@ -331,14 +331,6 @@ function resolveSurfaceFilePath(file: WebRegistryFile, childPath?: string): stri
   const filePath = normalizeDocumentPath(file.path);
   if (!isGlobPath(filePath)) return filePath;
   return firstConcreteChildPath(file) ?? filePath;
-}
-
-function firstConcreteChildPath(file: WebRegistryFile): string | undefined {
-  for (const child of file.children ?? []) {
-    const childPath = concreteRegistryChildPath(file, child);
-    if (isConcretePath(childPath)) return childPath;
-  }
-  return undefined;
 }
 
 function FieldEditor({ field, data, originalData, setField, actionTypesResult, editorId }: { field: WebEditorField; data: AnyMap; originalData: AnyMap; setField: (path: string, value: unknown) => void; actionTypesResult: ActionTypesResult | null; editorId?: string }) {

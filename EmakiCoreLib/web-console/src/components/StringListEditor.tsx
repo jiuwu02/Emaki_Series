@@ -2,12 +2,12 @@ import { t } from '../i18n';
 import { StableListEditor } from './StableListEditor';
 
 /** Editable string list with stable keys. */
-export function StringListEditor({ items, onChange, placeholder, ariaLabel }: { items: string[]; onChange: (items: string[]) => void; placeholder?: string; ariaLabel?: string }) {
+export function StringListEditor({ items, onChange, placeholder, ariaLabel, layout = 'block' }: { items: string[]; onChange: (items: string[]) => void; placeholder?: string; ariaLabel?: string; layout?: 'block' | 'inline' }) {
   return <StableListEditor
     items={items}
     onChange={onChange}
     createItem={() => ''}
-    className="prop-kv--string-list"
+    className={`prop-kv--string-list prop-kv--string-list-${layout}`}
     rowClassName="prop-kv-row prop-kv-row--single prop-list-row"
     addLabel={t('core.config.addItem')}
     ariaLabel={ariaLabel}

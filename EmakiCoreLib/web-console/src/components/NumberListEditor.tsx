@@ -2,12 +2,12 @@ import { t } from '../i18n';
 import { StableListEditor } from './StableListEditor';
 
 /** Editable number list with stable keys. */
-export function NumberListEditor({ items, onChange }: { items: number[]; onChange: (items: number[]) => void }) {
+export function NumberListEditor({ items, onChange, layout = 'block' }: { items: number[]; onChange: (items: number[]) => void; layout?: 'block' | 'inline' }) {
   return <StableListEditor
     items={items}
     onChange={onChange}
     createItem={() => 0}
-    className="prop-kv--string-list"
+    className={`prop-kv--string-list prop-kv--string-list-${layout}`}
     rowClassName="prop-kv-row prop-kv-row--single prop-list-row"
     addLabel={t('core.config.addItem')}
     addButtonClassName="prop-list-add"

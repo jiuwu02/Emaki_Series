@@ -45,6 +45,14 @@ export function childPathCandidates(file: Pick<WebRegistryFile, 'kind'>, child: 
   return Array.from(new Set([fullPath, relativePath, leafFileName(fullPath), leafFileName(relativePath)].filter(Boolean)));
 }
 
+export function firstConcreteChildPath(file: Pick<WebRegistryFile, 'kind' | 'children'>): string | undefined {
+  for (const child of file.children ?? []) {
+    const concrete = concreteRegistryChildPath(file, child);
+    if (isConcretePath(concrete)) return concrete;
+  }
+  return undefined;
+}
+
 export function resolveConcreteChildPath(module: WebRegistryModule, targetPath: string): { file: WebRegistryFile; path: string } | null {
   const normalizedTarget = normalizeLookupPath(targetPath);
   for (const file of module.files) {
