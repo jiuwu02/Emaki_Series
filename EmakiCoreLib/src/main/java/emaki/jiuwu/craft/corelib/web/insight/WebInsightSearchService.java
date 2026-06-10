@@ -167,13 +167,14 @@ public final class WebInsightSearchService {
             return;
         }
         String text = String.valueOf(value == null ? "" : value);
-        boolean pathHit = contains(keyPath, query);
+        String semanticPath = semanticKeyPath(keyPath);
+        boolean pathHit = contains(semanticPath, query);
         boolean valueHit = contains(text, query);
         if (!pathHit && !valueHit) {
             return;
         }
-        String matchType = matchType(keyPath);
-        String idType = "definition".equals(matchType) ? inferIdType(entry.moduleId(), filePath) : referenceIdType(keyPath, text);
+        String matchType = matchType(semanticPath);
+        String idType = "definition".equals(matchType) ? inferIdType(entry.moduleId(), filePath) : referenceIdType(semanticPath, text);
         String id = resultId(matchType, idType, text);
         String snippet = Texts.isBlank(keyPath) ? text : keyPath + ": " + text;
         add(results, new WebInsightSearchResult(entry.moduleId(), filePath, entry.kind(), keyPath, matchType, idType, id, snippet(snippet, query)));
@@ -216,7 +217,7 @@ public final class WebInsightSearchService {
 
     private int resultRank(WebInsightSearchResult result, String query) {
         String path = normalize(result.path());
-        String keyPath = normalize(result.keyPath());
+        String keyPath = normalize(semanticKeyPath(result.keyPath()));
         String snippet = normalize(result.snippet());
         String id = normalize(result.id());
         String matchType = normalize(result.matchType());
@@ -243,6 +244,13 @@ public final class WebInsightSearchService {
             return "definition";
         }
         return isReferencePath(keyPath) ? "reference" : "text";
+    }
+
+    private String semanticKeyPath(String keyPath) {
+        if (Texts.isBlank(keyPath)) {
+            return "";
+        }
+        return keyPath.replaceAll("\\[\\d+\\]", "");
     }
 
     private boolean isReferencePath(String keyPath) {

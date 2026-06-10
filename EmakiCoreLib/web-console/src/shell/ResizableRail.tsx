@@ -4,8 +4,8 @@ import { t } from '../i18n';
 const RAIL_MIN = 180;
 const RAIL_MAX = 600;
 const RAIL_STEP = 16;
-const OUTLINE_MIN = 180;
-const OUTLINE_MAX = 440;
+const OUTLINE_MIN = 168;
+const OUTLINE_MAX = 320;
 const OUTLINE_STEP = 16;
 
 type ResizableSideRailProps = {
@@ -43,7 +43,7 @@ export function ResizableOutlineRail({ children }: { children: ReactNode }) {
     resizeClassName="outline-resize"
     storageKey="emaki-outline-width"
     cssVariable="--outline-width"
-    defaultWidth={240}
+    defaultWidth={216}
     min={OUTLINE_MIN}
     max={OUTLINE_MAX}
     step={OUTLINE_STEP}

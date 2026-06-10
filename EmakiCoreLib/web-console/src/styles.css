@@ -522,7 +522,7 @@ textarea {
   min-width: 0;
   min-height: 0;
   display: grid;
-  grid-template-columns: var(--rail-width, 272px) minmax(0, 1fr) var(--outline-width, 240px);
+  grid-template-columns: var(--rail-width, 272px) minmax(0, 1fr) var(--outline-width, 216px);
   overflow: hidden;
 }
 
@@ -3327,9 +3327,10 @@ textarea {
 .prop-label {
   display: flex;
   align-items: center;
+  min-height: var(--config-field-control-height);
   font-size: 11px;
   color: var(--faint);
-  padding-top: 7px;
+  padding-top: 0;
   text-align: left;
   cursor: default;
 }
@@ -3438,7 +3439,7 @@ textarea {
 }
 
 .prop-kv--string-list {
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) var(--config-field-control-height);
   align-items: center;
   gap: var(--config-field-body-padding-y) 6px;
   padding: 0;
@@ -3446,10 +3447,11 @@ textarea {
 
 .prop-list-add {
   grid-column: 2;
+  grid-row: 1;
   justify-self: end;
   align-self: center;
-  width: 28px;
-  min-width: 28px;
+  width: var(--config-field-control-height);
+  min-width: var(--config-field-control-height);
   height: var(--config-field-control-height);
   display: grid;
   place-items: center;
@@ -3488,6 +3490,11 @@ textarea {
   grid-column: 1 / -1;
   grid-template-columns: minmax(0, 1fr) var(--config-field-control-height);
   gap: 6px;
+}
+
+.prop-kv--string-list .prop-list-row:first-of-type {
+  grid-column: 1;
+  grid-row: 1;
 }
 
 .prop-list-row .prop-kv-del {
@@ -3645,7 +3652,7 @@ textarea {
   display: grid;
   grid-template-columns: minmax(96px, 12ch) minmax(0, 1fr);
   gap: 8px;
-  align-items: start;
+  align-items: center;
   color: var(--faint);
   font-size: 10px;
   font-weight: 700;
@@ -3653,7 +3660,7 @@ textarea {
 
 .prop-param-field span {
   color: var(--faint);
-  padding-top: 6px;
+  padding-top: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -3667,6 +3674,10 @@ textarea {
 .prop-param-field textarea,
 .prop-param-field select {
   min-width: 0;
+}
+
+.prop-param-field--wide {
+  align-items: start;
 }
 
 .prop-param-field--wide textarea {
@@ -6150,6 +6161,14 @@ textarea {
 
 /* ─── Responsive ─── */
 @media (max-width: 1180px) {
+  .workbench {
+    grid-template-columns: var(--rail-width, 272px) minmax(0, 1fr);
+  }
+
+  .field-outline-rail {
+    display: none;
+  }
+
   .ie-workbench {
     --preview-column: 228px;
     grid-template-columns: var(--preview-column) minmax(0, 1fr);

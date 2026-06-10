@@ -647,7 +647,7 @@ export default function App() {
     setSelected({ ...target, refreshKey: Date.now() });
     close();
     if (location.keyPath) {
-      window.setTimeout(() => jumpToConfigNode(location.keyPath ?? ''), 280);
+      window.requestAnimationFrame(() => jumpToConfigNode(location.keyPath ?? ''));
     }
   }
 
@@ -821,9 +821,9 @@ function FieldOutlineRail({ outline, onJump }: { outline: SurfaceOutlineState; o
 
 function jumpToConfigNode(path: string, attempt = 0) {
   const stage = document.querySelector<HTMLElement>('.stage');
-  const target = (stage ?? document).querySelector<HTMLElement>(`[data-config-node-path="${cssSelectorEscape(path)}"]`);
+  const target = findConfigNodeTarget(stage ?? document, path);
   if (!target) {
-    if (attempt < 8) window.requestAnimationFrame(() => jumpToConfigNode(path, attempt + 1));
+    if (attempt < 14) window.requestAnimationFrame(() => jumpToConfigNode(path, attempt + 1));
     return;
   }
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -832,6 +832,41 @@ function jumpToConfigNode(path: string, attempt = 0) {
   void target.offsetWidth;
   target.classList.add('config-node-locate');
   window.setTimeout(() => target.classList.remove('config-node-locate'), reduceMotion ? 900 : 1500);
+}
+
+function findConfigNodeTarget(root: ParentNode, path: string): HTMLElement | null {
+  for (const candidate of configNodePathCandidates(path)) {
+    const target = root.querySelector<HTMLElement>(`[data-config-node-path="${cssSelectorEscape(candidate)}"]`);
+    if (target) return visibleConfigNodeTarget(target);
+  }
+  return null;
+}
+
+function visibleConfigNodeTarget(target: HTMLElement): HTMLElement {
+  const hiddenParent = target.closest<HTMLElement>('[hidden]');
+  return hiddenParent?.closest<HTMLElement>('.node-section') ?? target;
+}
+
+function configNodePathCandidates(path: string): string[] {
+  const raw = String(path ?? '').trim();
+  const candidates: string[] = [];
+  const push = (candidate: string) => {
+    const normalized = candidate.replace(/^\.+|\.+$/g, '').replace(/\.\.+/g, '.');
+    if (normalized && !candidates.includes(normalized)) candidates.push(normalized);
+  };
+  const pushWithParents = (candidate: string) => {
+    push(candidate);
+    let parent = candidate;
+    while (parent.includes('.')) {
+      parent = parent.slice(0, parent.lastIndexOf('.'));
+      push(parent);
+    }
+  };
+  const bracketAsDot = raw.replace(/\[(\d+)\]/g, '.$1');
+  const withoutBracketIndexes = raw.replace(/\[\d+\]/g, '');
+  const withoutDotIndexes = bracketAsDot.split('.').filter(segment => segment && !/^\d+$/.test(segment)).join('.');
+  [raw, bracketAsDot, withoutBracketIndexes, withoutDotIndexes].forEach(pushWithParents);
+  return candidates;
 }
 
 function scrollElementToStageTop(target: HTMLElement, stage: HTMLElement | null, behavior: ScrollBehavior) {
@@ -2541,13 +2576,21 @@ function ConfigNodeView({ scope, node, drafts, setDraftValue, sourceEdit, change
       commitValue(pendingValue.current);
     }, 90);
   };
-  const isWide = isWideConfigNodeType(node.type);
+  const isWide = isWideConfigNode(node);
   const label = configNodeDisplayLabel(scope, node);
   return <div className={`node ${changed || sourceEdited ? 'changed' : ''} ${isWide ? 'node-wide' : ''}`} data-config-node-path={node.path}>{branch && <IndentGuide branch={branch} />}<div className="node-meta"><strong>{label}</strong><code>{node.path}</code><p>{configNodeDisplayComment(scope, node)}</p></div><div className="node-control">{renderControl(node, localValue, setValue, label, scope.moduleId)}{deletable && onDeleteObject && <button type="button" className="node-section-delete" onClick={() => onDeleteObject(node)}>{t('core.config.delete')}</button>}</div></div>;
 }
 
-function isWideConfigNodeType(type: string | undefined): boolean {
-  return type === 'dynamic_map' || type === 'list' || type === 'stringList' || type === 'numberList' || type === 'objectList' || type === 'object' || type === 'actions' || type === 'effects' || type === 'variablesMap';
+function isWideConfigNode(node: WebConfigNode): boolean {
+  if (node.type === 'list') {
+    const items = Array.isArray(node.value) ? node.value : [];
+    return hasObjectListSchema(node.itemFields) || items.some(isPlainObject);
+  }
+  return node.type === 'dynamic_map' || node.type === 'objectList' || node.type === 'object' || node.type === 'actions' || node.type === 'effects' || node.type === 'variablesMap';
+}
+
+function hasObjectListSchema(fields: WebConfigFieldSchema[] | undefined): boolean {
+  return Boolean(fields?.length) && !fields?.every(field => field.path === 'value' && field.type === 'text');
 }
 
 function renderControl(node: WebConfigNode, value: unknown, setValue: (v: unknown) => void, label: string, moduleId: string) {
@@ -2855,7 +2898,9 @@ function configInlineText(zh: string, en: string): string {
 }
 
 function isListSchemaField(field: WebConfigFieldSchema | undefined, value: unknown): boolean {
-  return field?.type === 'list' || field?.type === 'stringList' || field?.type === 'numberList' || field?.type === 'objectList' || Array.isArray(value);
+  if (field?.type === 'objectList') return true;
+  if (field?.type === 'list') return hasObjectListSchema(field.itemFields) || (Array.isArray(value) && value.some(isPlainObject));
+  return Array.isArray(value) && value.some(isPlainObject);
 }
 
 function asStringListValue(value: unknown): string[] {
