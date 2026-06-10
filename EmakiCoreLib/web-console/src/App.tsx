@@ -1,13 +1,15 @@
 import { Component, memo, startTransition, useDeferredValue, useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react';
 import type { Completion, CompletionContext, CompletionResult, CompletionSource } from '@codemirror/autocomplete';
 import type { ComponentType } from 'react';
-import { ApiClient, ApiError, type FrontendDebugEventReport, type HistoryEntry, type HistorySnapshot, type InsightDependencyGraphEdge, type InsightDependencyGraphNode, type InsightDependencyGraphResult, type InsightReferenceResult, type InsightSearchResult } from './api';
+import { ApiClient, ApiError, type FrontendDebugEventReport, type HistoryEntry, type HistorySnapshot, type InsightDependencyGraphEdge, type InsightDependencyGraphNode, type InsightDependencyGraphResult, type InsightReferenceResult, type InsightSearchResult, type RegistryValueChange } from './api';
 import { GuiEditorSurface } from './GuiEditorSurface';
 import { ItemEditorSurface } from './ItemEditorSurface';
 import { loadWebExtensions } from './extensions';
 import { applyConfigNodeOverrides, applyConfigRegistryOverrides, applyEditorDescriptorOverrides, getConfigPreview, getSourceDocumentAdapter, getSurface, isKind, registerSourceDocumentAdapter, registerSurface, setRuntimeEnums, type ConfigPreviewProps, type SourceDocumentAdapterContext } from './registry';
+import { isGlobPath, normalizeDocumentPath, normalizeLookupPath, resolveConcreteChildPath, treeDirtyKey } from './documentPaths';
 import { getLocale, getRegisteredLocales, setLocale, t } from './i18n';
 import { ActionGroup, ActionTypesProvider, Button, CodeEditor, EconomyProvidersProvider, EditorChrome, DisclosureChevron, InlineError, NumberListEditor, StandardActionsField, StandardEconomyProviderSelect, StandardEffectsEditor, StringListEditor, ToastNotice, VariablesMapEditor, type EditorChange } from './components';
+import { UnifiedDiffView, parseUnifiedDiff } from './components/DiffViewer';
 import { useDialogFocus } from './components/useDialogFocus';
 import { useStableEntries } from './components/useStableEntries';
 import { I18nBundleModal, type I18nTarget } from './I18nBundleModal';
@@ -45,8 +47,8 @@ type SourceEditController = { paths: Set<string>; update: (node: WebConfigNode, 
 type SurfaceOutlineItem = { path: string; label: string; type: string; childCount: number; changedCount: number; changed: boolean };
 type SurfaceOutlineState = { title: string; subtitle: string; items: SurfaceOutlineItem[]; emptyText?: string } | null;
 
-// Sequentially persist changed config nodes, tracking exactly which paths committed so a
-// mid-loop failure never leaves the UI claiming clean fields are dirty (or vice versa).
+// Persist all changed config nodes in one file-level request so the backend checks the
+// expected revision once, loads YAML once and writes the file once.
 type NodeSaveOutcome = {
   savedPaths: string[];
   revision: number | undefined;
@@ -55,22 +57,17 @@ type NodeSaveOutcome = {
   error?: unknown;
 };
 
-async function saveNodesSequentially(api: ApiClient, moduleId: string, filePath: string, nodes: { path: string }[], draftValueFor: (path: string) => unknown, startRevision: number | undefined): Promise<NodeSaveOutcome> {
-  const savedPaths: string[] = [];
-  let revision = startRevision;
-  for (const node of nodes) {
-    try {
-      const result = await api.saveRegistryValue(moduleId, filePath, node.path, draftValueFor(node.path), revision);
-      revision = result.revision ?? revision;
-      savedPaths.push(node.path);
-    } catch (err) {
-      if (isRevisionConflict(err)) {
-        return { savedPaths, revision, status: 'conflict', conflictRevision: revisionFromError(err), error: err };
-      }
-      return { savedPaths, revision, status: 'error', error: err };
+async function saveNodesBatch(api: ApiClient, moduleId: string, filePath: string, nodes: { path: string }[], draftValueFor: (path: string) => unknown, startRevision: number | undefined): Promise<NodeSaveOutcome> {
+  const changes: RegistryValueChange[] = nodes.map(node => ({ path: node.path, value: draftValueFor(node.path) }));
+  try {
+    const result = await api.saveRegistryValues(moduleId, filePath, changes, startRevision);
+    return { savedPaths: result.savedPaths?.length ? result.savedPaths : changes.map(change => change.path), revision: result.revision ?? startRevision, status: 'ok' };
+  } catch (err) {
+    if (isRevisionConflict(err)) {
+      return { savedPaths: [], revision: startRevision, status: 'conflict', conflictRevision: revisionFromError(err), error: err };
     }
+    return { savedPaths: [], revision: startRevision, status: 'error', error: err };
   }
-  return { savedPaths, revision, status: 'ok' };
 }
 
 function isRevisionConflict(err: unknown): boolean {
@@ -78,7 +75,9 @@ function isRevisionConflict(err: unknown): boolean {
 }
 
 function revisionFromError(err: unknown): number | undefined {
-  return err instanceof ApiError && typeof err.data?.revision === 'number' ? err.data.revision : undefined;
+  if (!(err instanceof ApiError)) return undefined;
+  if (typeof err.data?.currentRevision === 'number') return err.data.currentRevision;
+  return typeof err.data?.revision === 'number' ? err.data.revision : undefined;
 }
 
 // A conflict surfaced by any save site. The owning surface supplies replay/overwrite closures
@@ -393,7 +392,7 @@ export default function App() {
       const merged = enhanceRegistry(next);
       setRegistry(merged);
       if (initial) setExpanded(Object.fromEntries(merged.modules.map((m) => [m.id, true])));
-      setSelected((c) => c ?? firstSelection(merged));
+      setSelected((current) => current && selectionExists(merged, current) ? current : firstSelection(merged));
       if (clearDrafts) {
         setDrafts({});
         setDraftHistory({});
@@ -452,7 +451,7 @@ export default function App() {
     if (!changes.length) return;
     setSaving(true);
     try {
-      const outcome = await saveNodesSequentially(api, moduleId, scope.filePath, changes, path => drafts[draftKey(scope, path)], selectedFile.revision);
+      const outcome = await saveNodesBatch(api, moduleId, scope.filePath, changes, path => drafts[draftKey(scope, path)], selectedFile.revision);
       clearDraftPaths(scope, outcome.savedPaths);
       if (outcome.status === 'ok') {
         setToast({ tone: 'ok', text: t('core.toast.savedConfig', { count: outcome.savedPaths.length }) });
@@ -472,7 +471,7 @@ export default function App() {
           setSaveConflict(null);
           setSaving(true);
           try {
-            const retry = await saveNodesSequentially(api, moduleId, scope.filePath, pending, path => drafts[draftKey(scope, path)], outcome.conflictRevision);
+            const retry = await saveNodesBatch(api, moduleId, scope.filePath, pending, path => drafts[draftKey(scope, path)], outcome.conflictRevision);
             clearDraftPaths(scope, retry.savedPaths);
             setToast(retry.status === 'ok' ? { tone: 'ok', text: t('core.toast.savedConfig', { count: retry.savedPaths.length }) } : { tone: 'bad', text: userFacingSaveError(retry.error) });
             await loadRegistry({ clearDrafts: false, announceRefresh: false });
@@ -873,24 +872,21 @@ function groupInsightResults(results: InsightSearchResult[], registry: WebRegist
 function findSearchResultSelection(registry: WebRegistry, result: { moduleId: string; path: string }): Selection | null {
   const module = registry.modules.find(entry => entry.id === result.moduleId);
   if (!module) return null;
-  const normalizedPath = normalizeInsightPath(result.path);
-  const directFile = module.files.find(file => normalizeInsightPath(file.path) === normalizedPath);
-  if (directFile) return { moduleId: module.id, fileId: directFile.id };
-  for (const file of module.files) {
-    const child = file.children?.find(entry => normalizeInsightPath(entry.fullPath || entry.relativePath) === normalizedPath || normalizeInsightPath(entry.relativePath) === normalizedPath);
-    if (child) return { moduleId: module.id, fileId: file.id, scriptPath: child.fullPath || child.relativePath };
-  }
-  return null;
+  const resolved = resolveConcreteChildPath(module, result.path);
+  if (!resolved) return null;
+  const filePath = normalizeLookupPath(resolved.file.path);
+  const concretePath = normalizeDocumentPath(resolved.path);
+  return { moduleId: module.id, fileId: resolved.file.id, scriptPath: filePath === normalizeLookupPath(concretePath) ? undefined : concretePath };
 }
 
 function normalizeInsightPath(path: string | undefined): string {
-  return String(path ?? '').replace(/\\/g, '/').replace(/^\/+|\/+$/g, '').toLowerCase();
+  return normalizeLookupPath(path);
 }
 
 function historyTargetForSelection(module: WebRegistryModule | null, file: WebRegistryFile | null, childPath?: string): HistoryTarget | null {
   if (!module || !file) return null;
-  const path = (childPath || file.path || '').trim();
-  if (!path || /[*?]/.test(path)) return null;
+  const path = normalizeDocumentPath(childPath || file.path);
+  if (!path || isGlobPath(path)) return null;
   return { moduleId: module.id, path, kind: String(file.kind ?? 'CONFIG').toUpperCase(), revision: file.revision, title: `${fileDisplayTitle(file)} · ${path}` };
 }
 
@@ -1329,13 +1325,7 @@ function HistoryModal({ api, target, onCancel, onRolledBack }: { api: ApiClient;
             <span>{formatHistoryTime(selectedEntry.createdAt)} · {selectedEntry.actor || 'web'}</span>
             {!rollbackAllowed && <small>{t('core.history.rollbackDisabled')}</small>}
           </div> : null}
-          {parsedDiff.length > 0 ? <div className="history-diff source-diff" role="list" aria-label={t('core.editor.sourceDiffTitle')}>
-            {parsedDiff.map((line, index) => <div className={`source-diff-line ${line.type}`} role="listitem" key={`${line.type}-${line.lineNo}-${index}`}>
-              <code className="source-diff-no">{line.lineNo}</code>
-              <code className="source-diff-sign">{line.type === 'add' ? '+' : '−'}</code>
-              <code className="source-diff-text">{line.text || ' '}</code>
-            </div>)}
-          </div> : <pre>{snapshot?.content || t('core.history.noDiff')}</pre>}
+          {parsedDiff.length > 0 ? <UnifiedDiffView diff={parsedDiff} className="history-diff" maxLines={240} /> : <pre>{snapshot?.content || t('core.history.noDiff')}</pre>}
         </div>
       </div>
       <ActionGroup className="reload-confirm-actions">
@@ -1344,34 +1334,6 @@ function HistoryModal({ api, target, onCancel, onRolledBack }: { api: ApiClient;
       </ActionGroup>
     </section>
   </div>;
-}
-
-function parseUnifiedDiff(diff: string): { type: 'add' | 'remove'; text: string; lineNo?: number }[] {
-  const lines: { type: 'add' | 'remove'; text: string; lineNo?: number }[] = [];
-  let beforeLine = 0;
-  let afterLine = 0;
-  for (const rawLine of String(diff ?? '').replace(/\r\n?/g, '\n').split('\n')) {
-    const hunk = rawLine.match(/^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/);
-    if (hunk) {
-      beforeLine = Number(hunk[1]);
-      afterLine = Number(hunk[2]);
-      continue;
-    }
-    if (rawLine.startsWith('---') || rawLine.startsWith('+++') || rawLine.startsWith('diff ') || rawLine.startsWith('index ')) continue;
-    if (rawLine.startsWith('-')) {
-      lines.push({ type: 'remove', text: rawLine.slice(1), lineNo: beforeLine || undefined });
-      beforeLine += 1;
-      continue;
-    }
-    if (rawLine.startsWith('+')) {
-      lines.push({ type: 'add', text: rawLine.slice(1), lineNo: afterLine || undefined });
-      afterLine += 1;
-      continue;
-    }
-    if (beforeLine > 0) beforeLine += 1;
-    if (afterLine > 0) afterLine += 1;
-  }
-  return lines;
 }
 
 function historyOperationLabel(operation: string | undefined): string {
@@ -1540,6 +1502,9 @@ function ConfigSurface({ registry, module, file, drafts, draftHistory, setDraftV
   if (extensionSurfacePending(module, file, editor, registeredSurface, pendingExtensionModules)) {
     return <section className="config-surface empty" role="status">{t('core.extension.loadingEditor', undefined, '正在加载插件编辑器…')}</section>;
   }
+  if (!scriptPath && isGlobPath(file.path)) {
+    return <section className="config-surface"><div className="surface-head"><div><h2>{fileDisplayTitle(file)}</h2><p>{fileDisplayComment(file)}</p></div><span className={`file-kind ${String(file.kind).toLowerCase()}`}>{fileKindLabel(file.kind)}</span></div><div className="script-placeholder" role="status">{t('core.empty.selectFile')}</div></section>;
+  }
   if (registeredSurface && !isKind(file.kind, 'CONFIG') && !isKind(file.kind, 'SCRIPT')) {
     const SurfaceComponent = registeredSurface.component;
     return <SurfaceComponent module={module} file={file} api={api} childPath={scriptPath} refreshKey={refreshKey} editor={editor} onReload={onReload} setToolbar={setSurfaceToolbar} showLocalChrome={false} />;
@@ -1588,7 +1553,7 @@ function ConfigStructuredSurface({ module, file, drafts, draftHistory, setDraftV
     }
     setSavingNodes(true);
     try {
-      const outcome = await saveNodesSequentially(api, module.id, scope.filePath, changedNodes, path => drafts[draftKey(scope, path)], file.revision);
+      const outcome = await saveNodesBatch(api, module.id, scope.filePath, changedNodes, path => drafts[draftKey(scope, path)], file.revision);
       clearDraftPaths(scope, outcome.savedPaths);
       if (outcome.status === 'ok') {
         await onRefreshRegistry();
@@ -1623,7 +1588,7 @@ function ConfigStructuredSurface({ module, file, drafts, draftHistory, setDraftV
       setSavingNodes(true);
       try {
         const retryNodes = changedNodes.filter(node => pendingPaths.includes(node.path));
-        const retry = await saveNodesSequentially(api, module.id, scope.filePath, retryNodes, path => drafts[draftKey(scope, path)], outcome.conflictRevision);
+        const retry = await saveNodesBatch(api, module.id, scope.filePath, retryNodes, path => drafts[draftKey(scope, path)], outcome.conflictRevision);
         clearDraftPaths(scope, retry.savedPaths);
         await onRefreshRegistry();
         await source.reload(false);
@@ -1867,7 +1832,7 @@ function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, set
     }
     setSaving(true);
     try {
-      const outcome = await saveNodesSequentially(api, module.id, childPath, changed, path => drafts[draftKey(scope, path)], revision);
+      const outcome = await saveNodesBatch(api, module.id, childPath, changed, path => drafts[draftKey(scope, path)], revision);
       setRevision(outcome.revision);
       clearDraftPaths(scope, outcome.savedPaths);
       if (outcome.status === 'ok') {
@@ -1890,7 +1855,7 @@ function ConfigChildSurface({ module, file, childPath, drafts, draftHistory, set
           setSaving(true);
           try {
             const retryNodes = changed.filter(node => pendingPaths.includes(node.path));
-            const retry = await saveNodesSequentially(api, module.id, childPath, retryNodes, path => drafts[draftKey(scope, path)], outcome.conflictRevision);
+            const retry = await saveNodesBatch(api, module.id, childPath, retryNodes, path => drafts[draftKey(scope, path)], outcome.conflictRevision);
             setRevision(retry.revision);
             clearDraftPaths(scope, retry.savedPaths);
             await reloadChildNodes(false);
@@ -3339,10 +3304,6 @@ function draftKeyPath(key: string): string | null {
   }
 }
 
-function treeDirtyKey(moduleId: string, fileId: string, filePath: string) {
-  return JSON.stringify([moduleId, fileId, normalizeDraftPath(filePath)]);
-}
-
 function sourceEditingElement(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
   const tag = target.tagName.toLowerCase();
@@ -3358,13 +3319,25 @@ function numberInputValue(value: unknown): string { return typeof value === 'num
 function parseNumberInputValue(value: string): number | undefined { if (value === '') return undefined; const parsed = Number(value); return Number.isFinite(parsed) ? parsed : undefined; }
 function str(v: unknown): string { if (v == null) return ''; if (typeof v === 'object') try { return JSON.stringify(v, null, 2); } catch { return ''; } return String(v); }
 function enhanceRegistry(registry: WebRegistry): WebRegistry { return applyConfigRegistryOverrides(applyEditorDescriptorOverrides(registry)); }
-function firstSelection(r: WebRegistry): Selection | null { const m = r.modules[0]; return m?.files[0] ? { moduleId: m.id, fileId: m.files[0].id } : null; }
+function firstSelection(r: WebRegistry): Selection | null {
+  for (const module of r.modules) {
+    for (const file of module.files) {
+      if (!isGlobPath(file.path)) return { moduleId: module.id, fileId: file.id };
+      for (const child of file.children ?? []) {
+        const resolved = resolveConcreteChildPath(module, child.relativePath);
+        if (resolved?.file.id === file.id) return { moduleId: module.id, fileId: file.id, scriptPath: resolved.path };
+      }
+    }
+  }
+  return null;
+}
 function selectionExists(registry: WebRegistry, selection: Selection): boolean {
   const module = registry.modules.find(entry => entry.id === selection.moduleId);
   const file = module?.files.find(entry => entry.id === selection.fileId);
-  if (!file) return false;
-  if (!selection.scriptPath) return true;
-  return Boolean(file.children?.some(child => (child.fullPath ?? child.relativePath) === selection.scriptPath || child.relativePath === selection.scriptPath));
+  if (!module || !file) return false;
+  if (!selection.scriptPath) return !isGlobPath(file.path);
+  const resolved = resolveConcreteChildPath(module, selection.scriptPath);
+  return Boolean(resolved && resolved.file.id === file.id);
 }
 function pendingExtensionModuleIds(extensions: WebConsoleExtension[] | undefined, statuses: WebConsoleExtensionStatus[], health: 'idle' | 'loading' | 'ok' | 'failed'): Set<string> {
   if (health !== 'loading' || !extensions?.length) return new Set();

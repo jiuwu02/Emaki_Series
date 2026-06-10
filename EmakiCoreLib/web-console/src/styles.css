@@ -516,8 +516,8 @@ textarea {
 }
 
 .workbench {
-  width: 100vw;
-  max-width: 100vw;
+  width: 100%;
+  max-width: 100%;
   height: 100vh;
   min-width: 0;
   min-height: 0;
@@ -1657,12 +1657,24 @@ textarea {
   }
 }
 
-.editor-shell.single {
-  display: block;
+.editor-shell {
   min-width: 0;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-shell.single {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
 }
 
 .config-surface {
+  min-width: 0;
+  min-height: 0;
+  flex: 1 1 auto;
   background: var(--surface);
 }
 
@@ -3293,8 +3305,9 @@ textarea {
 }
 
 .prop-row {
+  min-width: 0;
   display: grid;
-  grid-template-columns: minmax(104px, 13ch) minmax(0, 1fr);
+  grid-template-columns: minmax(116px, 16ch) minmax(0, 1fr);
   gap: 10px;
   align-items: start;
   padding: 4px 0;
@@ -3386,7 +3399,17 @@ textarea {
 
 .prop-value {
   min-width: 0;
+  max-width: 100%;
   text-align: left;
+}
+
+.prop-value > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.prop-value button {
+  flex: 0 0 auto;
 }
 
 .prop-value input,
@@ -3407,6 +3430,8 @@ textarea {
 }
 
 .prop-kv {
+  min-width: 0;
+  width: 100%;
   display: grid;
   gap: 4px;
   padding: 5px 0;
@@ -3446,6 +3471,7 @@ textarea {
 }
 
 .prop-kv-row {
+  min-width: 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(78px, .28fr) 28px;
   gap: 5px;
@@ -3866,6 +3892,7 @@ textarea {
 }
 
 .dynamic-map-editor {
+  min-width: 0;
   width: 100%;
   display: grid;
   gap: calc(var(--config-field-body-padding-y) * 2);
@@ -3909,8 +3936,9 @@ textarea {
 }
 
 .dmap-row {
+  min-width: 0;
   display: grid;
-  grid-template-columns: 1fr 48px;
+  grid-template-columns: minmax(0, 1fr) 48px;
   gap: 6px;
   min-height: var(--config-field-rhythm);
   align-items: center;
@@ -3938,8 +3966,9 @@ textarea {
 }
 
 .dmap-add {
+  min-width: 0;
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 8px;
   min-height: var(--config-field-rhythm);
   align-items: center;
@@ -4065,6 +4094,20 @@ textarea {
   font-size: 12px;
 }
 
+.insight-search-dialog,
+.insight-reference-dialog {
+  width: min(760px, calc(100vw - 32px));
+  max-height: min(760px, calc(100vh - 32px));
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+  border: 1px solid var(--line-2);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
 .insight-reference-dialog {
   grid-template-rows: auto auto minmax(0, 1fr);
 }
@@ -4131,7 +4174,7 @@ textarea {
 }
 
 .insight-search-results {
-  min-height: 220px;
+  min-height: 0;
   overflow: auto;
   display: grid;
   align-content: start;
@@ -4151,6 +4194,7 @@ textarea {
 }
 
 .insight-search-result-row {
+  min-width: 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 8px;
@@ -4158,6 +4202,7 @@ textarea {
 }
 
 .insight-search-result {
+  min-width: 0;
   display: grid;
   grid-template-columns: auto auto minmax(0, 1fr);
   gap: 5px 8px;
@@ -4891,8 +4936,10 @@ textarea {
 
 .ie-workbench {
   --preview-column: clamp(232px, 22vw, 304px);
+  min-width: 0;
+  min-height: 0;
   display: grid;
-  grid-template-columns: var(--preview-column) minmax(520px, 1fr);
+  grid-template-columns: var(--preview-column) minmax(0, 1fr);
   gap: 0;
   align-items: start;
 }
@@ -5224,7 +5271,12 @@ textarea {
 
 /* GUI editor */
 .gui-surface {
-  min-height: 100vh;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   background: var(--gui-surface-bg);
 }
 
@@ -5268,11 +5320,12 @@ textarea {
 .gui-workbench {
   --mc-slot: clamp(44px, 3.7vw, 64px);
   --gui-inspector-width: 380px;
+  min-width: 0;
+  min-height: 0;
+  flex: 1 1 auto;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 8px var(--gui-inspector-width);
   gap: 0;
-  height: calc(100vh - 67px);
-  min-height: 520px;
   padding: 20px;
   align-items: stretch;
   background: var(--gui-workbench-texture);
@@ -6103,7 +6156,7 @@ textarea {
   }
 
   .prop-row {
-    grid-template-columns: minmax(92px, 12ch) minmax(0, 1fr);
+    grid-template-columns: minmax(108px, 14ch) minmax(0, 1fr);
   }
 }
 
@@ -6142,9 +6195,7 @@ textarea {
   .gui-workbench {
     --mc-slot: 52px;
     grid-template-columns: 1fr;
-    height: auto;
-    min-height: calc(100vh - 67px);
-    overflow: visible;
+    overflow: auto;
   }
 
   .gui-preview-pane {
@@ -6159,6 +6210,7 @@ textarea {
 
   .gui-inspector {
     height: auto;
+    max-height: none;
     overflow: visible;
     padding-left: 0;
     grid-template-columns: repeat(2, minmax(0, 1fr));

@@ -22,6 +22,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.web.WebConsoleConfig;
 import emaki.jiuwu.craft.corelib.web.WebConsoleRegistry;
+import emaki.jiuwu.craft.corelib.web.WebFileRevisions;
 import emaki.jiuwu.craft.corelib.web.WebPathSecurity;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
@@ -127,23 +128,21 @@ public final class WebChangeHistoryService {
         if (!booleanMeta(meta, "rollbackAllowed", false)) {
             throw new RollbackForbiddenException("此历史记录包含敏感配置或无可回滚快照，不能整文件回滚。");
         }
-        long currentRevision = currentRevision(target);
-        if (expectedRevision != null && currentRevision != 0L && currentRevision != expectedRevision) {
-            throw new WebConsoleRegistry.RevisionConflictException("文件已被其他管理员修改，请重载后再回滚。", currentRevision);
-        }
+        long currentRevision = WebFileRevisions.requireExpected(target.target(), expectedRevision, "文件已被其他管理员修改，请重载后再回滚。");
         if (Files.isRegularFile(target.target())) {
             record(target, "rollback_backup", actor, Files.readString(target.target(), StandardCharsets.UTF_8), currentRevision);
         }
         String content = Files.readString(files.snapshot(), StandardCharsets.UTF_8);
         Files.createDirectories(target.target().getParent());
         Files.writeString(target.target(), content, StandardCharsets.UTF_8);
-        record(target, "rollback", actor, content, currentRevision(target));
+        long nextRevision = WebFileRevisions.advance(target.target(), currentRevision);
+        record(target, "rollback", actor, content, nextRevision);
         prune(target);
-        return currentRevision(target);
+        return nextRevision;
     }
 
     public long currentRevision(HistoryTarget target) throws IOException {
-        return Files.exists(target.target()) ? Files.getLastModifiedTime(target.target()).toMillis() : 0L;
+        return WebFileRevisions.revision(target.target());
     }
 
     private void record(HistoryTarget target, String operation, String actor, String content, long sourceRevision) throws IOException {

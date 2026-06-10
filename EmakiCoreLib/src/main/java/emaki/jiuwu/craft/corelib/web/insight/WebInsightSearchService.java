@@ -56,24 +56,23 @@ public final class WebInsightSearchService {
         List<WebInsightSearchResult> results = new ArrayList<>();
         WebConsoleYamlRegistrar.scanAll();
         for (WebConsoleRegistry.WebRegisteredFileEntry entry : WebConsoleRegistry.registeredFileEntries()) {
-            if (results.size() >= MAX_RESULTS) {
-                break;
-            }
             scanEntry(entry, normalizedQuery, results);
         }
-        return results.stream().limit(MAX_RESULTS).map(WebInsightSearchResult::toMap).toList();
+        return results.stream()
+                .sorted(resultOrder(normalizedQuery))
+                .limit(MAX_RESULTS)
+                .map(WebInsightSearchResult::toMap)
+                .toList();
     }
 
     private void scanEntry(WebConsoleRegistry.WebRegisteredFileEntry entry, String query, List<WebInsightSearchResult> results) throws IOException {
         if (isGlobPath(entry.relativePath())) {
             for (String childPath : globChildren(entry)) {
-                if (results.size() >= MAX_RESULTS) {
-                    return;
-                }
                 scanFile(entry, childPath, query, results);
             }
             return;
         }
+
         scanFile(entry, entry.relativePath(), query, results);
     }
 
@@ -109,6 +108,7 @@ public final class WebInsightSearchService {
             add(results, new WebInsightSearchResult(entry.moduleId(), path, entry.kind(), "", "file", inferIdType(entry.moduleId(), path), path));
         }
         String content = Files.readString(target, StandardCharsets.UTF_8);
+        scanCommentLines(entry, path, content, query, results);
         try {
             YamlSection yaml = YamlFiles.load(content);
             scanValue(entry, path, "", yaml.asMap(), query, results);
@@ -119,11 +119,26 @@ public final class WebInsightSearchService {
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private void scanValue(WebConsoleRegistry.WebRegisteredFileEntry entry, String filePath, String keyPath, Object value, String query, List<WebInsightSearchResult> results) {
-        if (results.size() >= MAX_RESULTS) {
+    private void scanCommentLines(WebConsoleRegistry.WebRegisteredFileEntry entry, String filePath, String content, String query, List<WebInsightSearchResult> results) {
+        if (Texts.isBlank(content)) {
             return;
         }
+        String[] lines = content.split("\\R", -1);
+        for (int index = 0; index < lines.length; index++) {
+            String line = lines[index];
+            int commentIndex = line.indexOf('#');
+            if (commentIndex < 0) {
+                continue;
+            }
+            String comment = line.substring(commentIndex);
+            if (contains(comment, query)) {
+                add(results, new WebInsightSearchResult(entry.moduleId(), filePath, entry.kind(), "line " + (index + 1), "comment", inferIdType(entry.moduleId(), filePath), snippet(comment, query)));
+            }
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void scanValue(WebConsoleRegistry.WebRegisteredFileEntry entry, String filePath, String keyPath, Object value, String query, List<WebInsightSearchResult> results) {
         if (value instanceof YamlSection section) {
             scanValue(entry, filePath, keyPath, section.asMap(), query, results);
             return;
@@ -188,9 +203,39 @@ public final class WebInsightSearchService {
     }
 
     private void add(List<WebInsightSearchResult> results, WebInsightSearchResult result) {
-        if (results.size() < MAX_RESULTS) {
-            results.add(result);
-        }
+        results.add(result);
+    }
+
+    private Comparator<WebInsightSearchResult> resultOrder(String query) {
+        return Comparator
+                .comparingInt((WebInsightSearchResult result) -> resultRank(result, query))
+                .thenComparing(result -> normalize(result.path()))
+                .thenComparing(result -> normalize(result.keyPath()))
+                .thenComparing(result -> normalize(result.snippet()));
+    }
+
+    private int resultRank(WebInsightSearchResult result, String query) {
+        String path = normalize(result.path());
+        String keyPath = normalize(result.keyPath());
+        String snippet = normalize(result.snippet());
+        String id = normalize(result.id());
+        String matchType = normalize(result.matchType());
+        if ("file".equals(matchType) && (path.equals(query) || fileName(path).equals(query))) return 0;
+        if ("definition".equals(matchType) && (id.equals(query) || snippet.endsWith(": " + query))) return 1;
+        if ("file".equals(matchType)) return 2;
+        if (keyPath.equals(query)) return 3;
+        if (keyPath.contains(query)) return 4;
+        if ("definition".equals(matchType)) return 5;
+        if ("reference".equals(matchType)) return 6;
+        if ("text".equals(matchType)) return 7;
+        if ("comment".equals(matchType)) return 8;
+        return snippet.contains(query) ? 9 : 10;
+    }
+
+    private String fileName(String path) {
+        String normalized = path == null ? "" : path.replace('\\', '/');
+        int index = normalized.lastIndexOf('/');
+        return index >= 0 ? normalized.substring(index + 1) : normalized;
     }
 
     private String matchType(String keyPath) {

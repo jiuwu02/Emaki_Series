@@ -12,6 +12,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import emaki.jiuwu.craft.corelib.assembly.ItemOperationLedger;
 import emaki.jiuwu.craft.corelib.item.EquipmentSlotMatcher;
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
@@ -28,6 +29,8 @@ import emaki.jiuwu.craft.item.model.ItemSetThreshold;
 
 public final class EmakiItemSetService {
 
+    private static final String SET_DISPLAY_NAMESPACE = "emakiitem:set_display";
+
     private final EmakiItemLoader itemLoader;
     private final EmakiItemSetLoader setLoader;
     private final EmakiItemFactory itemFactory;
@@ -35,6 +38,7 @@ public final class EmakiItemSetService {
     private final EmakiItemPdcWriter pdcWriter;
     private final EmakiItemUpdateService updateService;
     private final ItemSetLoreRenderer loreRenderer;
+    private final ItemOperationLedger itemOperationLedger = new ItemOperationLedger();
     private final java.util.function.Supplier<AppConfig> configSupplier;
 
     public EmakiItemSetService(EmakiItemLoader itemLoader,
@@ -165,6 +169,9 @@ public final class EmakiItemSetService {
 
     private ItemStack clearSetPresentation(ItemStack itemStack, EmakiItemDefinition definition) {
         ItemStack updated = prepareForSetRendering(itemStack, definition);
+        if (definition.setMembership().configured()) {
+            itemOperationLedger.revert(updated, setOperationId(definition.setMembership().setId()));
+        }
         if (updated == itemStack) {
             stripSetLore(updated);
         }
@@ -215,6 +222,7 @@ public final class EmakiItemSetService {
         if (itemStack == null || definition == null || state == null || state.definition() == null) {
             return itemStack;
         }
+        itemOperationLedger.revert(itemStack, setOperationId(membership.setId()));
         List<String> setLore = loreRenderer.render(state);
         ItemMeta itemMeta = itemStack.getItemMeta();
         int appendedLoreLines = 0;
@@ -237,13 +245,18 @@ public final class EmakiItemSetService {
         }
         List<ItemSetThreshold> activeThresholds = state.activeThresholds();
         List<Integer> activeThresholdNumbers = activeThresholds.stream().map(ItemSetThreshold::requiredPieces).toList();
+        Object nameActions = state.mergedNameActions();
+        Object loreActions = state.mergedLoreActions();
+        applySetDisplayActions(itemStack, definition, membership, state, nameActions, loreActions);
         String setSignature = SignatureUtil.stableSignature(List.of(
                 definition.definitionSignature(),
                 state.definition().id(),
                 state.activeCount(),
                 state.equippedPieces().stream().sorted().toList(),
                 activeThresholdNumbers,
-                setLore
+                setLore,
+                nameActions,
+                loreActions
         ));
         pdcWriter.writeDynamicSet(
                 itemStack,
@@ -259,6 +272,55 @@ public final class EmakiItemSetService {
                 setSignature
         );
         return itemStack;
+    }
+
+    private void applySetDisplayActions(ItemStack itemStack,
+            EmakiItemDefinition definition,
+            ItemSetMembership membership,
+            EquippedSetState state,
+            Object nameActions,
+            Object loreActions) {
+        if (itemStack == null || definition == null || membership == null || state == null) {
+            return;
+        }
+        String operationId = setOperationId(membership.setId());
+        if (!hasActions(nameActions) && !hasActions(loreActions)) {
+            itemOperationLedger.revert(itemStack, operationId);
+            return;
+        }
+        itemOperationLedger.apply(
+                itemStack,
+                operationId,
+                SET_DISPLAY_NAMESPACE,
+                nameActions,
+                loreActions,
+                setActionVariables(definition, membership, state)
+        );
+    }
+
+    private Map<String, Object> setActionVariables(EmakiItemDefinition definition, ItemSetMembership membership, EquippedSetState state) {
+        Map<String, Object> variables = new LinkedHashMap<>();
+        variables.put("item_id", definition.id());
+        variables.put("set_id", membership.setId());
+        variables.put("piece_id", membership.effectivePieceId(definition.id()));
+        variables.put("set_name", state.definition().displayName());
+        variables.put("active", state.activeCount());
+        variables.put("active_count", state.activeCount());
+        variables.put("total", state.definition().totalPieces());
+        variables.put("total_pieces", state.definition().totalPieces());
+        variables.put("active_thresholds", state.activeThresholds().stream().map(ItemSetThreshold::requiredPieces).toList());
+        return variables;
+    }
+
+    private String setOperationId(String setId) {
+        return "emakiitem:set_display:" + Texts.normalizeId(setId);
+    }
+
+    private boolean hasActions(Object raw) {
+        if (raw == null) return false;
+        if (raw instanceof Map<?, ?> map) return !map.isEmpty();
+        if (raw instanceof Iterable<?> iterable) return iterable.iterator().hasNext();
+        return Texts.isNotBlank(raw);
     }
 
     private List<EquippedItem> readEquippedItems(Player player) {

@@ -122,14 +122,78 @@ public final class EmakiItemSetLoader {
             if (required <= 0 || threshold == null) {
                 continue;
             }
+            List<Map<?, ?>> effects = threshold.getMapList("effects");
             result.add(new ItemSetThreshold(
                     required,
                     normalizedList(threshold.get("lore")),
-                    toDoubleMap(threshold.get("ea_attributes")),
-                    normalizedList(threshold.get("es_skills"))
+                    thresholdAttributes(threshold, effects),
+                    thresholdSkills(threshold, effects),
+                    thresholdActions(threshold, effects, "name_action", "name_actions", "name_action"),
+                    thresholdActions(threshold, effects, "lore_action", "lore_actions", "lore_action"),
+                    List.of()
             ));
         }
         return result;
+    }
+
+    private Map<String, Double> thresholdAttributes(YamlSection threshold, List<Map<?, ?>> effects) {
+        Map<String, Double> result = new LinkedHashMap<>(toDoubleMap(threshold.get("ea_attributes")));
+        for (Map<?, ?> effect : effects == null ? List.<Map<?, ?>>of() : effects) {
+            if (effect == null || !"ea_attribute".equals(Texts.normalizeId(Texts.toStringSafe(ConfigNodes.get(effect, "type"))))) {
+                continue;
+            }
+            result.putAll(toDoubleMap(firstNonNull(ConfigNodes.get(effect, "ea_attributes"), ConfigNodes.get(effect, "attributes"))));
+        }
+        return result.isEmpty() ? Map.of() : Map.copyOf(result);
+    }
+
+    private List<String> thresholdSkills(YamlSection threshold, List<Map<?, ?>> effects) {
+        java.util.LinkedHashSet<String> result = new java.util.LinkedHashSet<>(normalizedList(threshold.get("es_skills")));
+        for (Map<?, ?> effect : effects == null ? List.<Map<?, ?>>of() : effects) {
+            if (effect == null || !"es_skill".equals(Texts.normalizeId(Texts.toStringSafe(ConfigNodes.get(effect, "type"))))) {
+                continue;
+            }
+            result.addAll(normalizedList(firstNonNull(ConfigNodes.get(effect, "es_skills"), ConfigNodes.get(effect, "es_skill"))));
+        }
+        return result.isEmpty() ? List.of() : List.copyOf(result);
+    }
+
+    private Object thresholdActions(YamlSection threshold, List<Map<?, ?>> effects, String effectType, String topKey, String effectKey) {
+        List<Object> actions = new ArrayList<>();
+        appendActions(actions, threshold.get(topKey));
+        for (Map<?, ?> effect : effects == null ? List.<Map<?, ?>>of() : effects) {
+            if (effect == null || !effectType.equals(Texts.normalizeId(Texts.toStringSafe(ConfigNodes.get(effect, "type"))))) {
+                continue;
+            }
+            appendActions(actions, ConfigNodes.get(effect, topKey));
+            appendActions(actions, ConfigNodes.get(effect, effectKey));
+        }
+        return actions.isEmpty() ? List.of() : List.copyOf(actions);
+    }
+
+    private void appendActions(List<Object> actions, Object raw) {
+        if (actions == null || raw == null) {
+            return;
+        }
+        Object plain = ConfigNodes.toPlainData(raw);
+        if (plain instanceof Iterable<?> iterable) {
+            for (Object entry : iterable) {
+                if (entry != null) {
+                    actions.add(entry);
+                }
+            }
+            return;
+        }
+        actions.add(plain);
+    }
+
+    private Object firstNonNull(Object... values) {
+        for (Object value : values) {
+            if (value != null) {
+                return value;
+            }
+        }
+        return null;
     }
 
     private ItemSetLoreConfig parseLore(YamlSection section) {

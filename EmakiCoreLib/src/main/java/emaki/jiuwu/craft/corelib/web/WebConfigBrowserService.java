@@ -53,15 +53,10 @@ public final class WebConfigBrowserService {
         if (target == null || !isAllowedFile(target)) {
             throw new IOException("文件不在允许访问范围内");
         }
-        if (Files.exists(target)) {
-            long current = Files.getLastModifiedTime(target).toMillis();
-            if (current != 0L && (expectedRevision == null || current != expectedRevision)) {
-                throw new WebConsoleRegistry.RevisionConflictException("文件已被其他管理员修改，请重载后再保存。", current);
-            }
-        }
+        long current = WebFileRevisions.requireExpected(target, expectedRevision);
         Files.createDirectories(target.getParent());
         Files.writeString(target, content == null ? "" : content, StandardCharsets.UTF_8);
-        return Files.getLastModifiedTime(target).toMillis();
+        return WebFileRevisions.advance(target, current);
     }
 
     private Path readableFile(Path root, String relativePath) throws IOException {

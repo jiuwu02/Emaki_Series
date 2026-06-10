@@ -14,6 +14,8 @@ public record EmakiItemDefinition(String id,
         Object displayName,
         String itemName,
         Object lore,
+        Object nameActions,
+        Object loreActions,
         Map<String, Object> variables,
         ItemComponentsConfig components,
         Map<String, Object> attributes,
@@ -31,6 +33,8 @@ public record EmakiItemDefinition(String id,
         itemName = itemName == null ? "" : itemName;
         displayName = ConfigNodes.toPlainData(displayName);
         lore = ConfigNodes.toPlainData(lore);
+        nameActions = ConfigNodes.toPlainData(nameActions);
+        loreActions = ConfigNodes.toPlainData(loreActions);
         variables = variables == null ? Map.of() : Map.copyOf(variables);
         components = components == null ? ItemComponentsConfig.empty() : components;
         attributes = attributes == null ? Map.of() : Map.copyOf(attributes);
@@ -50,6 +54,8 @@ public record EmakiItemDefinition(String id,
         signatureData.put("display_name", displayName);
         signatureData.put("item_name", itemName);
         signatureData.put("lore", lore);
+        signatureData.put("name_actions", nameActions);
+        signatureData.put("lore_actions", loreActions);
         signatureData.put("variables", variables);
         signatureData.put("components", components);
         signatureData.put("ea_attributes", attributes);

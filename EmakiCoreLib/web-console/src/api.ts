@@ -1,3 +1,4 @@
+import { isGlobPath } from './documentPaths';
 import { t } from './i18n';
 import type { ConfigFile, GuiDocument, ItemDocument, ItemPreviewResult, ModuleStatus, RuntimeLibrary, WebConfigNode, WebRegistry } from './types';
 
@@ -10,7 +11,8 @@ export type InsightDependencyGraphEdge = { from: string; to: string; edgeType: s
 export type InsightDependencyGraphResult = { idType: string; id: string; depth: number; direction: string; nodes: InsightDependencyGraphNode[]; edges: InsightDependencyGraphEdge[] };
 export type HistoryEntry = { id: string; scope?: string; moduleId: string; path: string; kind: string; operation: string; actor: string; createdAt: number; sourceRevision?: number; size?: number; rollbackAllowed?: boolean; note?: string };
 export type HistorySnapshot = { entry?: HistoryEntry; content: string; rollbackAllowed: boolean };
-export type RegistrySaveResult = { revision?: number };
+export type RegistrySaveResult = { revision?: number; savedPaths?: string[] };
+export type RegistryValueChange = { path: string; value: unknown };
 export type RegistryFileNodesResult = { nodes: WebConfigNode[]; revision?: number; path?: string };
 export type TextDocumentKind = 'CONFIG' | 'GUI' | 'ITEM' | 'SCRIPT' | string;
 export type TextDocumentTarget = { kind: TextDocumentKind; moduleId?: string; path: string };
@@ -101,11 +103,18 @@ export class ApiClient {
   }
 
   async saveRegistryValue(moduleId: string, filePath: string, path: string, value: unknown, revision?: number): Promise<RegistrySaveResult> {
+    return this.saveRegistryValues(moduleId, filePath, [{ path, value }], revision);
+  }
+
+  async saveRegistryValues(moduleId: string, filePath: string, changes: RegistryValueChange[], revision?: number): Promise<RegistrySaveResult> {
     const data = await this.request('/api/registry/save', {
       method: 'POST',
-      body: JSON.stringify({ moduleId, filePath, path, value, revision })
+      body: JSON.stringify({ moduleId, filePath, changes, revision })
     });
-    return { revision: typeof data.revision === 'number' ? data.revision : undefined };
+    return {
+      revision: typeof data.revision === 'number' ? data.revision : undefined,
+      savedPaths: Array.isArray(data.savedPaths) ? data.savedPaths.map(String) : changes.map(change => change.path)
+    };
   }
 
   async registryFileNodes(moduleId: string, path: string): Promise<RegistryFileNodesResult> {
@@ -350,9 +359,6 @@ function normalizeKind(kind: string | undefined): string {
   return String(kind ?? '').toUpperCase();
 }
 
-function isGlobPath(path: string | undefined): boolean {
-  return /[*?]/.test(String(path ?? ''));
-}
 
 function normalizeOptions(value: unknown, fallback: string[]): string[] {
   const raw = Array.isArray(value) ? value : fallback;

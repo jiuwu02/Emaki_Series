@@ -20,6 +20,7 @@ import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.components.CustomModelDataComponent;
 
+import emaki.jiuwu.craft.corelib.assembly.ItemOperationLedger;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.math.Numbers;
@@ -32,8 +33,11 @@ import emaki.jiuwu.craft.item.model.VanillaAttributeModifierConfig;
 
 public final class EmakiItemFactory {
 
+    private static final String DISPLAY_OPERATION_NAMESPACE = "emakiitem:item_display";
+
     private final EmakiItemLoader loader;
     private final EmakiItemPdcWriter pdcWriter;
+    private final ItemOperationLedger itemOperationLedger = new ItemOperationLedger();
     private final ConcurrentHashMap<String, ItemStack> prototypeCache = new ConcurrentHashMap<>();
 
     public EmakiItemFactory(EmakiItemLoader loader, EmakiItemPdcWriter pdcWriter) {
@@ -76,7 +80,29 @@ public final class EmakiItemFactory {
             itemStack.setItemMeta(itemMeta);
         }
         pdcWriter.write(itemStack, definition, variables);
+        applyDisplayActions(itemStack, definition, variables);
         return itemStack;
+    }
+
+    private void applyDisplayActions(ItemStack itemStack, EmakiItemDefinition definition, Map<String, Object> variables) {
+        if (itemStack == null || definition == null || (!hasActions(definition.nameActions()) && !hasActions(definition.loreActions()))) {
+            return;
+        }
+        itemOperationLedger.apply(
+                itemStack,
+                "emakiitem:item_display:" + definition.id(),
+                DISPLAY_OPERATION_NAMESPACE,
+                definition.nameActions(),
+                definition.loreActions(),
+                variables
+        );
+    }
+
+    private boolean hasActions(Object raw) {
+        if (raw == null) return false;
+        if (raw instanceof Map<?, ?> map) return !map.isEmpty();
+        if (raw instanceof Iterable<?> iterable) return iterable.iterator().hasNext();
+        return Texts.isNotBlank(raw);
     }
 
     private ItemStack baseItem(EmakiItemDefinition definition) {

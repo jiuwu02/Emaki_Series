@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -401,17 +400,44 @@ public final class WebConsoleService {
             filePath = "config.yml";
         }
         Object value = context.bodyValue("value");
+        Object changesValue = context.bodyValue("changes");
         Long revision = context.revision();
         try {
             WebChangeHistoryService.HistoryTarget historyTarget = historyTarget(module, filePath, "CONFIG");
+            if (changesValue instanceof List<?> rawChanges) {
+                List<WebConsoleRegistry.RegistryValueChange> changes = registryValueChanges(rawChanges);
+                recordBeforeWrite(historyTarget, "save_nodes", context.session());
+                long nextRevision = consoleRegistry.saveValues(module, filePath, changes, revision);
+                context.ok(Map.of("revision", nextRevision, "savedPaths", changes.stream().map(WebConsoleRegistry.RegistryValueChange::path).toList()));
+                return;
+            }
             recordBeforeWrite(historyTarget, "save_node", context.session());
             long nextRevision = consoleRegistry.saveValue(module, filePath, path, value, revision);
-            context.ok(Map.of("revision", nextRevision));
+            context.ok(Map.of("revision", nextRevision, "savedPaths", List.of(path)));
         } catch (WebConsoleRegistry.RevisionConflictException exception) {
             writeRevisionConflict(context.exchange(), exception);
         } catch (IOException exception) {
             context.badRequest(exception.getMessage());
         }
+    }
+
+    private List<WebConsoleRegistry.RegistryValueChange> registryValueChanges(List<?> rawChanges) throws IOException {
+        List<WebConsoleRegistry.RegistryValueChange> changes = new ArrayList<>();
+        for (Object rawChange : rawChanges) {
+            if (!(rawChange instanceof Map<?, ?> map)) {
+                throw new IOException("批量保存项格式不正确");
+            }
+            Object pathValue = map.get("path");
+            String path = String.valueOf(pathValue == null ? "" : pathValue).trim();
+            if (path.isBlank()) {
+                throw new IOException("批量保存项缺少 path");
+            }
+            changes.add(new WebConsoleRegistry.RegistryValueChange(path, map.get("value")));
+        }
+        if (changes.isEmpty()) {
+            throw new IOException("缺少要保存的配置项");
+        }
+        return changes;
     }
 
     private void handleFileCreate(WebRequestContext context) throws IOException {
@@ -440,7 +466,7 @@ public final class WebConsoleService {
                     ? relative.substring(creation.baseDir().length() + 1)
                     : relative;
             recordCreate(historyTarget(moduleId, treePath, creation.type().kind()), context.session());
-            context.ok(Map.of("path", treePath, "name", treePath.substring(treePath.lastIndexOf('/') + 1), "revision", fileRevision(target)));
+            context.ok(Map.of("path", treePath, "name", treePath.substring(treePath.lastIndexOf('/') + 1), "revision", WebFileRevisions.revision(target)));
         } catch (Exception exception) {
             context.badRequest(exception.getMessage());
         }
@@ -466,7 +492,7 @@ public final class WebConsoleService {
             Files.createDirectories(target.toPath().getParent());
             Files.writeString(target.toPath(), defaultFileContent(WebConsoleRegistry.WebConsoleFileType.CONFIG), StandardCharsets.UTF_8);
             recordCreate(historyTarget(moduleId, relative, "CONFIG"), context.session());
-            context.ok(Map.of("path", relative, "name", relative.substring(relative.lastIndexOf('/') + 1), "revision", fileRevision(target)));
+            context.ok(Map.of("path", relative, "name", relative.substring(relative.lastIndexOf('/') + 1), "revision", WebFileRevisions.revision(target)));
         } catch (Exception exception) {
             context.badRequest(exception.getMessage());
         }
@@ -622,7 +648,7 @@ public final class WebConsoleService {
                 return;
             }
             String content = java.nio.file.Files.readString(target.toPath(), StandardCharsets.UTF_8);
-            context.ok(Map.of("path", path, "content", content, "revision", fileRevision(target)));
+            context.ok(Map.of("path", path, "content", content, "revision", WebFileRevisions.revision(target)));
         } catch (Exception e) {
             context.serverError(e.getMessage());
         }
@@ -650,18 +676,13 @@ public final class WebConsoleService {
                 context.forbidden("路径不合法");
                 return;
             }
-            long current = 0L;
-            if (target.exists()) {
-                current = fileRevision(target);
-                if (current != 0 && (expectedRevision == null || current != expectedRevision)) {
-                    writeRevisionConflict(context.exchange(), current);
-                    return;
-                }
-            }
+            long current = WebFileRevisions.requireExpected(target, expectedRevision);
             recordBeforeWrite(changeHistoryService.scriptTarget(path), "save", context.session());
             Files.createDirectories(target.toPath().getParent());
             Files.writeString(target.toPath(), content == null ? "" : content, StandardCharsets.UTF_8);
-            context.ok(Map.of("revision", advanceFileRevision(target, current)));
+            context.ok(Map.of("revision", WebFileRevisions.advance(target, current)));
+        } catch (WebConsoleRegistry.RevisionConflictException exception) {
+            writeRevisionConflict(context.exchange(), exception);
         } catch (Exception e) {
             context.serverError(e.getMessage());
         }
@@ -694,7 +715,7 @@ public final class WebConsoleService {
             }
             String content = java.nio.file.Files.readString(target.toPath(), StandardCharsets.UTF_8);
             YamlSection yaml = YamlFiles.load(content);
-            context.ok(Map.of("moduleId", module, "path", path, "content", content, "data", ConfigNodes.toPlainData(yaml), "revision", fileRevision(target)));
+            context.ok(Map.of("moduleId", module, "path", path, "content", content, "data", ConfigNodes.toPlainData(yaml), "revision", WebFileRevisions.revision(target)));
         } catch (Exception e) {
             context.serverError(e.getMessage());
         }
@@ -718,14 +739,7 @@ public final class WebConsoleService {
         }
         try {
             java.io.File target = safeModuleFile(module, path);
-            long current = 0L;
-            if (target.exists()) {
-                current = fileRevision(target);
-                if (current != 0 && (expectedRevision == null || current != expectedRevision)) {
-                    writeRevisionConflict(context.exchange(), current);
-                    return;
-                }
-            }
+            long current = WebFileRevisions.requireExpected(target, expectedRevision);
             try {
                 YamlFiles.load(content == null ? "" : content);
             } catch (Exception exception) {
@@ -735,7 +749,7 @@ public final class WebConsoleService {
             recordBeforeWrite(historyTarget(module, path, normalizeHistoryKind(kind)), "save", context.session());
             Files.createDirectories(target.toPath().getParent());
             Files.writeString(target.toPath(), content == null ? "" : content, StandardCharsets.UTF_8);
-            context.ok(Map.of("revision", advanceFileRevision(target, current)));
+            context.ok(Map.of("revision", WebFileRevisions.advance(target, current)));
         } catch (WebConsoleRegistry.RevisionConflictException exception) {
             writeRevisionConflict(context.exchange(), exception);
         } catch (Exception e) {
@@ -753,24 +767,6 @@ public final class WebConsoleService {
 
     private boolean jsonHasKey(String json, String key) {
         return json != null && key != null && java.util.regex.Pattern.compile(java.util.regex.Pattern.quote(WebJson.quote(key)) + "\\s*:").matcher(json).find();
-    }
-
-    private long fileRevision(java.io.File file) {
-        if (!file.exists()) return 0L;
-        try {
-            return Files.getLastModifiedTime(file.toPath()).toMillis();
-        } catch (IOException ignored) {
-            return 0L;
-        }
-    }
-
-    private long advanceFileRevision(java.io.File file, long previousRevision) throws IOException {
-        long nextRevision = fileRevision(file);
-        if (previousRevision > 0L && nextRevision <= previousRevision) {
-            nextRevision = previousRevision + 1L;
-            Files.setLastModifiedTime(file.toPath(), FileTime.fromMillis(nextRevision));
-        }
-        return nextRevision;
     }
 
     private void handleItemPreview(WebRequestContext context) throws IOException {
@@ -1212,11 +1208,11 @@ public final class WebConsoleService {
     }
 
     private void writeRevisionConflict(HttpExchange exchange, WebConsoleRegistry.RevisionConflictException exception) throws IOException {
-        WebResponse.json(exchange, 409, Map.of("success", false, "error", exception.getMessage(), "revision", exception.currentRevision(), "errorType", "revision_conflict"));
+        WebResponse.json(exchange, 409, WebFileRevisions.conflictPayload(exception.getMessage(), exception.currentRevision()));
     }
 
     private void writeRevisionConflict(HttpExchange exchange, long currentRevision) throws IOException {
-        WebResponse.json(exchange, 409, Map.of("success", false, "error", "文件已被其他管理员修改，请重载后再保存。", "revision", currentRevision, "errorType", "revision_conflict"));
+        WebResponse.json(exchange, 409, WebFileRevisions.conflictPayload(WebFileRevisions.SAVE_CONFLICT_MESSAGE, currentRevision));
     }
 
     private WebAuthService.Session requireAuth(HttpExchange exchange) throws IOException {

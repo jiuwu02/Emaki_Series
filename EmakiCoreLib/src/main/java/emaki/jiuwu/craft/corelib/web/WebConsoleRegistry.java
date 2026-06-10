@@ -2,8 +2,6 @@ package emaki.jiuwu.craft.corelib.web;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -399,7 +397,7 @@ public final class WebConsoleRegistry {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("moduleId", moduleId);
         result.put("path", relativePath);
-        result.put("revision", fileRevision(file));
+        result.put("revision", WebFileRevisions.revision(file));
         result.put("nodes", nodes);
         return result;
     }
@@ -451,40 +449,51 @@ public final class WebConsoleRegistry {
     }
 
     public long saveValue(String moduleId, String filePath, String path, Object value, Long expectedRevision) throws IOException {
+        return saveValues(moduleId, filePath, List.of(new RegistryValueChange(path, value)), expectedRevision);
+    }
+
+    public long saveValues(String moduleId, String filePath, List<RegistryValueChange> changes, Long expectedRevision) throws IOException {
+        if (changes == null || changes.isEmpty()) {
+            throw new IOException("缺少要保存的配置项");
+        }
+        File file = writableConfigFile(moduleId, filePath);
+        long currentRevision = WebFileRevisions.requireExpected(file, expectedRevision);
+        YamlSection yaml = YamlFiles.load(file);
+        for (RegistryValueChange change : changes) {
+            if (change == null || Texts.isBlank(change.path())) {
+                throw new IOException("配置项路径不能为空");
+            }
+            Object current = yaml.get(change.path());
+            if (current instanceof YamlSection || current instanceof Map<?, ?>) {
+                throw new IOException("分组节点不能直接保存，请修改其子配置项");
+            }
+            yaml.set(change.path(), normalizeIncomingValue(current, change.value()));
+        }
+        YamlFiles.save(file, yaml);
+        return WebFileRevisions.advance(file, currentRevision);
+    }
+
+    private File writableConfigFile(String moduleId, String filePath) throws IOException {
         ModuleRegistration registration = module(moduleId);
         if (registration == null) {
             throw new IOException("模块未注册");
         }
-        File file;
         if (!Texts.isBlank(filePath)) {
             FileRegistration config = configByPath(registration, filePath);
             if (config != null) {
-                file = moduleFile(moduleId, config.relativePath());
-            } else {
-                file = moduleFile(moduleId, filePath);
-                if (!file.exists() || !file.isFile()) {
-                    throw new IOException("文件不存在: " + filePath);
-                }
+                return moduleFile(moduleId, config.relativePath());
             }
-        } else {
-            FileRegistration config = primaryConfig(registration);
-            if (config == null) {
-                throw new IOException("模块未注册可写配置文件");
+            File file = moduleFile(moduleId, filePath);
+            if (!file.exists() || !file.isFile()) {
+                throw new IOException("文件不存在: " + filePath);
             }
-            file = moduleFile(moduleId, config.relativePath());
+            return file;
         }
-        long currentRevision = fileRevision(file);
-        if (currentRevision != 0L && (expectedRevision == null || currentRevision != expectedRevision)) {
-            throw new RevisionConflictException("文件已被其他管理员修改，请重载后再保存。", currentRevision);
+        FileRegistration config = primaryConfig(registration);
+        if (config == null) {
+            throw new IOException("模块未注册可写配置文件");
         }
-        YamlSection yaml = YamlFiles.load(file);
-        Object current = yaml.get(path);
-        if (current instanceof YamlSection || current instanceof Map<?, ?>) {
-            throw new IOException("分组节点不能直接保存，请修改其子配置项");
-        }
-        yaml.set(path, normalizeIncomingValue(current, value));
-        YamlFiles.save(file, yaml);
-        return advanceFileRevision(file, currentRevision);
+        return moduleFile(moduleId, config.relativePath());
     }
 
     private Map<String, Object> fileSnapshot(String moduleId, FileRegistration registration) {
@@ -642,25 +651,7 @@ public final class WebConsoleRegistry {
         if (path.contains("*") || path.contains("?")) {
             return 0L;
         }
-        return fileRevision(moduleFile(moduleId, path));
-    }
-
-    private long fileRevision(File file) {
-        if (!file.exists()) return 0L;
-        try {
-            return Files.getLastModifiedTime(file.toPath()).toMillis();
-        } catch (IOException ignored) {
-            return 0L;
-        }
-    }
-
-    private long advanceFileRevision(File file, long previousRevision) throws IOException {
-        long nextRevision = fileRevision(file);
-        if (previousRevision > 0L && nextRevision <= previousRevision) {
-            nextRevision = previousRevision + 1L;
-            Files.setLastModifiedTime(file.toPath(), FileTime.fromMillis(nextRevision));
-        }
-        return nextRevision;
+        return WebFileRevisions.revision(moduleFile(moduleId, path));
     }
 
     public static final class RevisionConflictException extends IOException {
@@ -679,6 +670,8 @@ public final class WebConsoleRegistry {
     private static String stringValue(Object value) {
         return value == null ? "" : String.valueOf(value);
     }
+
+    public record RegistryValueChange(String path, Object value) {}
 
     public FileCreationTarget creationTarget(String moduleId, String fileId) throws IOException {
         ModuleRegistration registration = module(moduleId);

@@ -8,7 +8,7 @@
 
 # CoreLib 主配置
 # version 由资源同步维护
-version: "4.2.23"
+version: "4.2.24"
 
 web_console:
   # 内置 Web 管理台，默认关闭。启用前请修改 auth.password。

@@ -35,4 +35,35 @@ public record EquippedSetState(ItemSetDefinition definition, Set<String> equippe
         }
         return skills.isEmpty() ? List.of() : List.copyOf(skills);
     }
+
+    public Object mergedNameActions() {
+        List<Object> actions = new java.util.ArrayList<>();
+        for (ItemSetThreshold threshold : activeThresholds()) {
+            appendActions(actions, threshold.nameActions());
+        }
+        return actions.isEmpty() ? List.of() : List.copyOf(actions);
+    }
+
+    public Object mergedLoreActions() {
+        List<Object> actions = new java.util.ArrayList<>();
+        for (ItemSetThreshold threshold : activeThresholds()) {
+            appendActions(actions, threshold.loreActions());
+        }
+        return actions.isEmpty() ? List.of() : List.copyOf(actions);
+    }
+
+    private static void appendActions(List<Object> actions, Object raw) {
+        if (actions == null || raw == null) {
+            return;
+        }
+        if (raw instanceof Iterable<?> iterable) {
+            for (Object entry : iterable) {
+                if (entry != null) {
+                    actions.add(entry);
+                }
+            }
+            return;
+        }
+        actions.add(raw);
+    }
 }

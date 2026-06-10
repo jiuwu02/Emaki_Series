@@ -65,8 +65,8 @@ final class WebItemPreviewService {
         variables.putAll(resolveVariables(extractVariables(effectiveData), variables));
 
         List<Map<String, Object>> effectSummary = summarizeEffects(effectiveData, variables, effectiveData == levelData ? "level" : "base");
-        Object nameActions = sectionActions(effectiveData, "name_action", "name_actions");
-        Object loreActions = sectionActions(effectiveData, "lore_action", "lore_actions");
+        Object nameActions = sectionActions(effectiveData, "name_action", "name_actions", "name_action");
+        Object loreActions = sectionActions(effectiveData, "lore_action", "lore_actions", "lore_action");
         String initialName = Texts.isBlank(baseName) ? Texts.toStringSafe(variables.get("display_name")) : baseName;
         List<String> initialLore = baseLore == null || baseLore.isEmpty()
                 ? stringLines(data.get("lore"), "lore")
@@ -100,8 +100,8 @@ final class WebItemPreviewService {
                 ? new ArrayList<>(List.of("<gray>原始装备 Lore</gray>"))
                 : List.copyOf(baseLore);
         Map<String, Object> obtain = ConfigNodes.entries(data.get("obtain"));
-        Object nameActions = firstNonNull(data.get("name_actions"), obtain.get("name_actions"));
-        Object loreActions = firstNonNull(data.get("lore_actions"), obtain.get("lore_actions"));
+        Object nameActions = firstNonNull(sectionActions(data, "name_action", "name_actions", "name_action"), obtain.get("name_actions"));
+        Object loreActions = firstNonNull(sectionActions(data, "lore_action", "lore_actions", "lore_action"), obtain.get("lore_actions"));
         PreviewText previewText = applyOperations(initialName, initialLore, nameActions, loreActions, variables);
 
         Map<String, Object> result = baseResult("gem_socket_item", data, previewText, variables);
@@ -125,7 +125,10 @@ final class WebItemPreviewService {
         List<String> initialLore = configuredLore.isEmpty()
                 ? renderPreviewLines(baseLore, variables)
                 : renderPreviewLines(configuredLore, variables);
-        PreviewText previewText = applyOperations(initialName, initialLore, data.get("name_actions"), data.get("lore_actions"), variables);
+        PreviewText previewText = applyOperations(initialName, initialLore,
+                sectionActions(data, "name_action", "name_actions", "name_action"),
+                sectionActions(data, "lore_action", "lore_actions", "lore_action"),
+                variables);
         Map<String, Object> result = baseResult("generic_item", data, previewText, variables);
         result.put("material", firstText(data.get("material"), data.get("item"), "stone"));
         result.put("effects", summarizeEffects(data, variables, "base"));
@@ -321,19 +324,33 @@ final class WebItemPreviewService {
         return ConfigNodes.entries(ConfigNodes.get(levels, Integer.toString(level)));
     }
 
-    private Object sectionActions(Map<String, Object> data, String type, String key) {
-        Object topLevel = data.get(key);
-        return topLevel == null ? firstEffectPayload(data, type, key) : topLevel;
-    }
-
-    private Object firstEffectPayload(Map<String, Object> data, String type, String key) {
+    private Object sectionActions(Map<String, Object> data, String type, String topKey, String effectKey) {
+        List<Object> actions = new ArrayList<>();
+        appendActions(actions, data.get(topKey));
         for (Object entry : ConfigNodes.asObjectList(data.get("effects"))) {
             Map<String, Object> effect = ConfigNodes.entries(entry);
             if (type.equals(Texts.lower(effect.get("type")))) {
-                return effect.get(key);
+                appendActions(actions, effect.get(topKey));
+                appendActions(actions, effect.get(effectKey));
             }
         }
-        return null;
+        return actions.isEmpty() ? null : List.copyOf(actions);
+    }
+
+    private void appendActions(List<Object> actions, Object raw) {
+        if (actions == null || raw == null) {
+            return;
+        }
+        Object plain = ConfigNodes.toPlainData(raw);
+        if (plain instanceof Iterable<?> iterable) {
+            for (Object entry : iterable) {
+                if (entry != null) {
+                    actions.add(entry);
+                }
+            }
+            return;
+        }
+        actions.add(plain);
     }
 
     private Map<String, Object> effectMap(Map<String, Object> data, String type, String key) {

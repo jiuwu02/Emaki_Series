@@ -1,5 +1,6 @@
 import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ApiClient } from './api';
+import { isGlobPath } from './documentPaths';
 import { getSourceDocumentAdapter, type SurfaceToolbarState } from './registry';
 import type { GuiSlotDefinition, GuiTemplateData, WebRegistryFile, WebRegistryModule } from './types';
 import { buildOccupancy, clampRows, fieldLabel, guiColumns, guiField, guiSlotCount, guiTypeOptions, loreLines, materialShortName, materialUrls, normalizeGuiType, parseSlotList, parseYaml, renderMiniMessageParts, serializeGuiYaml, slotItemText, subscribeTextureBases, supportsRows, textValue, withSlotItem } from './guiEditor';
@@ -57,7 +58,7 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
   const inspectorResizeStartW = useRef(380);
   const latestInspectorWidth = useRef(inspectorWidth);
 
-  const path = childPath ?? '';
+  const path = childPath || file.path;
   const fileTitle = fileDisplayTitle(file);
   const sourceAdapter = getSourceDocumentAdapter(file, editor);
   const sourcePath = childPath || file.path;
@@ -139,6 +140,11 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
 
   async function reloadGui() {
     if (!path) return;
+    if (isGlobPath(path)) {
+      setError(t('core.empty.selectFile'));
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError('');
     try {
@@ -361,6 +367,7 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
   useEffect(() => () => setToolbar?.(null), [setToolbar]);
 
   if (!path) return <section className="config-surface empty" role="status">{t('core.gui.selectFile')}</section>;
+  if (isGlobPath(path)) return <section className="config-surface empty" role="status"><InlineError>{t('core.empty.selectFile')}</InlineError></section>;
   if (loading) return <section className="config-surface gui-surface"><div className="gui-loading" role="status">{t('core.gui.loading')}</div></section>;
   if (!data) return <section className="config-surface empty"><InlineError>{error || t('core.gui.unavailable')}</InlineError><Button size="sm" onClick={() => void reloadGui()}>{t('core.action.retry')}</Button></section>;
 

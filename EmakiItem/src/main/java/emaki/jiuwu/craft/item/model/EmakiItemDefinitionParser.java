@@ -41,6 +41,8 @@ public final class EmakiItemDefinitionParser {
         ItemComponentsConfig components = parseComponents(root.getSection("components"), id);
         boolean random = containsRandom(root.get("lore"))
                 || containsRandom(root.get("display_name"))
+                || containsRandom(root.get("name_actions"))
+                || containsRandom(root.get("lore_actions"))
                 || containsRandom(root.get("variables"))
                 || containsRandom(effects)
                 || components.attributeModifiers().stream().anyMatch(VanillaAttributeModifierConfig::randomAmount);
@@ -50,6 +52,8 @@ public final class EmakiItemDefinitionParser {
                 root.get("display_name"),
                 root.getString("item_name", ""),
                 root.get("lore"),
+                parseDisplayActions(root, effects, "name_action", "name_actions", "name_action"),
+                parseDisplayActions(root, effects, "lore_action", "lore_actions", "lore_action"),
                 variables,
                 components,
                 attributes,
@@ -271,6 +275,35 @@ public final class EmakiItemDefinitionParser {
             result.addAll(normalizedList(ConfigNodes.get(effect, "es_skills")));
         }
         return result.isEmpty() ? List.of() : List.copyOf(result);
+    }
+
+    private Object parseDisplayActions(YamlSection root, List<Map<?, ?>> effects, String effectType, String topKey, String effectKey) {
+        List<Object> actions = new ArrayList<>();
+        appendDisplayActions(actions, root == null ? null : root.get(topKey));
+        for (Map<?, ?> effect : effects == null ? List.<Map<?, ?>>of() : effects) {
+            if (effect == null || !effectType.equals(Texts.normalizeId(Texts.toStringSafe(ConfigNodes.get(effect, "type"))))) {
+                continue;
+            }
+            appendDisplayActions(actions, ConfigNodes.get(effect, topKey));
+            appendDisplayActions(actions, ConfigNodes.get(effect, effectKey));
+        }
+        return actions.isEmpty() ? List.of() : List.copyOf(actions);
+    }
+
+    private void appendDisplayActions(List<Object> actions, Object raw) {
+        if (actions == null || raw == null) {
+            return;
+        }
+        Object plain = ConfigNodes.toPlainData(raw);
+        if (plain instanceof Iterable<?> iterable) {
+            for (Object entry : iterable) {
+                if (entry != null) {
+                    actions.add(entry);
+                }
+            }
+            return;
+        }
+        actions.add(plain);
     }
 
     private void mergePlainMap(Map<String, Object> target, Object raw) {

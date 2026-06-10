@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ApiError, type ApiClient, type ActionTypesResult } from './api';
-import { Button, CollapsibleSection, ChangedPathsProvider, DisclosureChevron, EditorChrome, InlineError, KvTable, MiniText, NumberListEditor, PropRow as BasePropRow, SectionHead, StandardActionsField, StandardEconomyProviderSelect, StandardEffectsEditor, StringListEditor, ToastNotice, VariablesMapEditor } from './components';
+import { Button, CollapsibleSection, ChangedPathsProvider, DisclosureChevron, EditorChrome, InlineError, KvTable, MiniText, NumberListEditor, PropRow as BasePropRow, SectionHead, StandardActionsField, StandardEconomyProviderSelect, StandardEffectsEditor, StringListEditor, ToastNotice, VariablesMapEditor, parseActionList, type ActionEntry } from './components';
 import { asList, asRecord, asStringList, displaySource, firstItemSource, materialFromItemSource, setDeepValue, parseYaml, type AnyMap } from './itemEditor';
+import { isGlobPath } from './documentPaths';
 import { t, getLocale } from './i18n';
 import { changedPathSet, diffRecords, fieldLabel, getDeepValue, humanizeFieldLabel, isChangedFieldPath, materialShortName, materialUrls, optionLabel, subscribeTextureBases, textValue, valuesEqual } from './lib';
 import { MINECRAFT_MATERIALS, searchMaterials } from './minecraftMaterials';
@@ -72,6 +73,11 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
 
   useEffect(() => {
     let cancelled = false;
+    if (isGlobPath(filePath)) {
+      setLoading(false);
+      setError(t('core.empty.selectFile'));
+      return;
+    }
     setLoading(true);
     setError(null);
     api.readTextDocument({ kind: file.kind, moduleId: module.id, path: filePath }).then(doc => {
@@ -247,6 +253,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
 
   useEffect(() => () => setToolbar?.(null), [setToolbar]);
 
+  if (isGlobPath(filePath)) return <div className="ie-surface"><InlineError>{t('core.empty.selectFile')}</InlineError></div>;
   if (loading) return <div className="ie-surface"><div className="ie-loading" role="status"><div className="ie-skeleton" aria-label={t('core.item.loadingAria')}><div className="ie-skeleton-line" style={{ width: '60%' }} /><div className="ie-skeleton-line" style={{ width: '80%' }} /><div className="ie-skeleton-line" style={{ width: '45%' }} /><div className="ie-skeleton-line" style={{ width: '70%' }} /></div></div></div>;
   if (error && !data) return <div className="ie-surface"><InlineError>{error}</InlineError>{onReload && <Button size="sm" onClick={onReload}>{t('core.action.retry')}</Button>}</div>;
 
@@ -335,8 +342,8 @@ function DefaultFieldEditor({ field, data, value, changed, setField, actionTypes
   if (type === 'multiEnum' && field.options?.length) return <PropRow label={label} path={field.path} changed={changed} wide={field.wide ?? true}><MultiEnumEditor value={value} options={field.options} labelPrefix={field.optionLabelPrefix} onChange={next => setField(field.path, next)} /></PropRow>;
   if (type === 'material') return <PropRow label={label} path={field.path} changed={changed} wide={field.wide}><MaterialInput value={value} onChange={next => setField(field.path, next)} /></PropRow>;
   if (type === 'textarea') return <PropRow label={label} path={field.path} changed={changed} wide><textarea rows={field.rows ?? 4} value={textValue(value)} onChange={e => setField(field.path, e.target.value)} placeholder={field.placeholder} /></PropRow>;
-  if (type === 'stringList') return <PropRow label={label} path={field.path} changed={changed} wide><StringListEditor items={asEditableStringList(value)} onChange={items => setField(field.path, items)} placeholder={field.placeholder} /></PropRow>;
-  if (type === 'numberList') return <PropRow label={label} path={field.path} changed={changed} wide><NumberListEditor items={asList(value).map(item => Number(item) || 0)} onChange={items => setField(field.path, items)} /></PropRow>;
+  if (type === 'stringList') return <PropRow label={label} path={field.path} changed={changed} wide={field.wide}><StringListEditor items={asEditableStringList(value)} onChange={items => setField(field.path, items)} placeholder={field.placeholder} /></PropRow>;
+  if (type === 'numberList') return <PropRow label={label} path={field.path} changed={changed} wide={field.wide}><NumberListEditor items={asList(value).map(item => Number(item) || 0)} onChange={items => setField(field.path, items)} /></PropRow>;
   if (type === 'variablesMap') return <PropRow label={label} path={field.path} changed={changed} wide><VariablesMapEditor value={value} onChange={next => setField(field.path, next)} /></PropRow>;
   if (type === 'map' || type === 'dynamicMap' || type === 'objectMap') return <PropRow label={label} path={field.path} changed={changed} wide><MapEditor value={value} onChange={next => setField(field.path, next)} /></PropRow>;
   if (type === 'actions') return <PropRow label={label} path={field.path} changed={changed} wide><StandardActionsField value={value} onChange={next => setField(field.path, next)} path={field.path} moduleId={context.moduleId} namespace={context.moduleId} editorFields={context.editorFields} actionTypes={actionTypesResult ?? undefined} /></PropRow>;
@@ -487,23 +494,132 @@ function localItemPreview(moduleId: string, editorId: string | undefined, kind: 
   const pluginFallback = getItemPreviewFallback(moduleId, editorId, kind);
   const pluginPreview = pluginFallback?.({ data, previewLevel, baseName, baseLore, moduleId, editorId, kind });
   if (pluginPreview) return pluginPreview;
-  const displayName = textValue(data.display_name ?? data.item_name ?? data.id, baseName);
-  const lore = resolvePreviewBaseLore(data, baseLore);
+  const variables = asRecord(data.variables);
+  const displayName = renderLocalTemplate(textValue(data.display_name ?? data.item_name ?? data.id, baseName), variables);
+  const lore = resolvePreviewBaseLore(data, baseLore).map(line => renderLocalTemplate(line, variables));
+  const textPreview = applyLocalDisplayActions(displayName, lore, collectDisplayActions(data, 'name_actions', 'name_action', 'name_action'), collectDisplayActions(data, 'lore_actions', 'lore_action', 'lore_action'), variables);
   const material = materialFromItemSource(firstItemSource(data.item_sources ?? asRecord(data.match).item_sources) || data.material || data.item || 'stone');
   return {
     kind: 'generic_item',
     id: textValue(data.id),
     material,
-    baseName,
-    baseLore,
-    displayName,
-    lore,
-    variables: asRecord(data.variables),
-    nameSteps: [],
-    loreSteps: [],
+    baseName: displayName,
+    baseLore: lore,
+    displayName: textPreview.name,
+    lore: textPreview.lore,
+    variables,
+    nameSteps: textPreview.nameSteps,
+    loreSteps: textPreview.loreSteps,
     level: undefined,
     levels: []
   };
+}
+
+function collectDisplayActions(data: AnyMap, topKey: string, effectType: string, effectKey: string): ActionEntry[] {
+  const actions: ActionEntry[] = [];
+  actions.push(...parseActionList(data[topKey]));
+  for (const effect of asList(data.effects)) {
+    const row = asRecord(effect);
+    if (textValue(row.type).toLowerCase() !== effectType) continue;
+    actions.push(...parseActionList(row[topKey]));
+    actions.push(...parseActionList(row[effectKey]));
+  }
+  return actions;
+}
+
+function applyLocalDisplayActions(baseName: string, baseLore: string[], nameActions: ActionEntry[], loreActions: ActionEntry[], variables: AnyMap): { name: string; lore: string[]; nameSteps: ItemPreviewResult['nameSteps']; loreSteps: ItemPreviewResult['loreSteps'] } {
+  let name = baseName;
+  const nameSteps: ItemPreviewResult['nameSteps'] = [];
+  for (const action of nameActions) {
+    const before = name;
+    const value = localActionValue(action, variables);
+    if (action.type === 'replace') name = value;
+    else if (action.type === 'prepend_prefix') name = `${value}${name}`;
+    else if (action.type === 'append_suffix') name = `${name}${value}`;
+    else if (action.type === 'regex_replace') name = localRegexReplace(name, textValue(action.params.regex_pattern), renderLocalTemplate(textValue(action.params.replacement), variables));
+    nameSteps.push({ action: action.type, value, before, after: name, result: name });
+  }
+
+  const lore = [...baseLore];
+  const loreSteps: ItemPreviewResult['loreSteps'] = [];
+  for (const action of loreActions) {
+    const before = [...lore];
+    const content = localActionContent(action, variables);
+    const anchor = renderLocalTemplate(textValue(action.params.search ?? action.params.anchor ?? action.params.pattern), variables);
+    applyLocalLoreAction(lore, action, content, anchor, variables);
+    loreSteps.push({ action: action.type, anchor, content, before, after: [...lore] });
+  }
+  return { name, lore, nameSteps, loreSteps };
+}
+
+function localActionValue(action: ActionEntry, variables: AnyMap): string {
+  return renderLocalTemplate(textValue(action.params.value ?? action.params.content ?? action.params.text ?? action.params.name ?? action.params.replacement), variables);
+}
+
+function localActionContent(action: ActionEntry, variables: AnyMap): string[] {
+  const raw = action.params.content ?? action.params.lines ?? action.params.value ?? action.params.text;
+  const lines = asStringList(raw);
+  return (lines.length ? lines : [textValue(raw)]).filter(line => line.length > 0).map(line => renderLocalTemplate(line, variables));
+}
+
+function applyLocalLoreAction(lore: string[], action: ActionEntry, content: string[], anchor: string, variables: AnyMap) {
+  switch (action.type) {
+    case 'prepend':
+      lore.unshift(...content);
+      break;
+    case 'insert_above':
+    case 'search_insert_above':
+      lore.splice(findLocalLoreIndex(lore, anchor, false), 0, ...content);
+      break;
+    case 'insert_below':
+    case 'search_insert_below':
+    case 'search_insert':
+      lore.splice(findLocalLoreIndex(lore, anchor, true), 0, ...content);
+      break;
+    case 'replace_line': {
+      const index = lore.findIndex(line => anchor && line.includes(anchor));
+      if (index >= 0) lore.splice(index, 1, content[0] ?? '');
+      break;
+    }
+    case 'replace_text':
+    case 'replace_text_all': {
+      if (!anchor) break;
+      const replacement = content[0] ?? '';
+      const replaceAll = action.type === 'replace_text_all';
+      for (let i = 0; i < lore.length; i += 1) {
+        if (lore[i].includes(anchor)) {
+          lore[i] = replaceAll ? lore[i].split(anchor).join(replacement) : lore[i].replace(anchor, replacement);
+          if (!replaceAll) break;
+        }
+      }
+      break;
+    }
+    case 'delete_line':
+      for (let i = lore.length - 1; i >= 0; i -= 1) if (anchor && lore[i].includes(anchor)) lore.splice(i, 1);
+      break;
+    case 'regex_replace':
+      for (let i = 0; i < lore.length; i += 1) lore[i] = localRegexReplace(lore[i], textValue(action.params.regex_pattern), renderLocalTemplate(textValue(action.params.replacement), variables));
+      break;
+    case 'append':
+    default:
+      lore.push(...content);
+      break;
+  }
+}
+
+function findLocalLoreIndex(lore: string[], anchor: string, below: boolean): number {
+  if (!anchor) return below ? lore.length : 0;
+  const index = lore.findIndex(line => line.includes(anchor));
+  return index < 0 ? lore.length : index + (below ? 1 : 0);
+}
+
+function localRegexReplace(value: string, pattern: string, replacement: string): string {
+  if (!pattern) return value;
+  try { return value.replace(new RegExp(pattern, 'g'), replacement); } catch { return value; }
+}
+
+function renderLocalTemplate(value: string, variables: AnyMap): string {
+  return textValue(value).replace(/\{([^{}]+)\}/g, (_, key) => textValue(variables[textValue(key).trim()], `{${key}}`));
 }
 
 function GenericPreviewPane({ moduleId, editor, data, preview, previewPending, previewError, previewLevel, setPreviewLevel, baseName, baseLore }: { moduleId: string; editor?: WebEditorDescriptor; data: AnyMap; preview: ItemPreviewResult | null; previewPending: boolean; previewError: PreviewError | null; previewLevel: number; setPreviewLevel: (level: number) => void; baseName: string; baseLore: string[] }) {

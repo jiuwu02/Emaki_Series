@@ -1,4 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type Dispatch, type KeyboardEvent, type SetStateAction } from 'react';
+import { isGlobPath, treeDirtyKey } from '../documentPaths';
 import { getModuleLocaleBundles, t } from '../i18n';
 import { getFileKindLabel } from '../registry';
 import { treeNodeDisplayComment, treeNodeDisplayLabel } from '../lib';
@@ -427,10 +428,6 @@ function isEmptyGlobPlaceholder(node: RegistryTreeNode): boolean {
   return isGlobTreeNode(node) && !(node.children ?? []).length;
 }
 
-function isGlobPath(path: string | undefined): boolean {
-  return /[*?]/.test(String(path ?? ''));
-}
-
 function normalizeQuery(value: string): string {
   return value.trim().toLowerCase();
 }
@@ -455,10 +452,6 @@ function isNodeDirty(node: RegistryTreeNode, dirtyKeys: ReadonlySet<string>): bo
   if (!node.moduleId || !node.fileId) return false;
   const filePath = node.childPath ?? node.path;
   return Boolean(filePath && dirtyKeys.has(treeDirtyKey(node.moduleId, node.fileId, filePath)));
-}
-
-function treeDirtyKey(moduleId: string, fileId: string, filePath: string) {
-  return JSON.stringify([moduleId, fileId, filePath.replace(/\\/g, '/')]);
 }
 
 function indentStyle(level: number): CSSProperties | undefined {
