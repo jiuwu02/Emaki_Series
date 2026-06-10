@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { localeText, type ConfigMetaFieldEntry, type ConfigPreviewProps, type ConfigRuleFieldEntry } from 'emaki-web-console';
+import { Button, InlineError, localeText, type ConfigMetaFieldEntry, type ConfigPreviewProps, type ConfigRuleFieldEntry } from 'emaki-web-console';
+import './LevelCurvePreview.css';
 
 const copy = localeText;
 
@@ -139,40 +140,51 @@ export function LevelCurvePreview({ api, file, data }: ConfigPreviewProps) {
 
   const hoverRows = hoverLevel == null ? [] : visibleCurves.map((curve, index) => ({ curve, point: curve.points.find(point => point.targetLevel === hoverLevel) ?? null, color: colorForCurve(curve, curves, index) })).filter(entry => entry.point) as { curve: Curve; point: CurvePoint; color: string }[];
 
-  return <section style={cardStyle}>
-    <div style={headerStyle}>
+  return <section className="level-curve-preview">
+    <div className="level-curve-preview__header">
       <div>
-        <h3 style={{ margin: 0 }}>{copy('等级曲线', 'Level curve')}</h3>
-        <p style={hintStyle}>{copy('由服务端基于真实 RequirementService 计算，前端只负责展示。', 'Calculated by the server through the real RequirementService; the frontend only visualizes it.')}</p>
+        <h3 className="level-curve-preview__title">{copy('等级曲线', 'Level curve')}</h3>
+        <p className="level-curve-preview__hint">{copy('由服务端基于真实 RequirementService 计算，前端只负责展示。结构化配置仍可继续编辑，预览只反映运行时计算结果。', 'Calculated by the server through the real RequirementService; the frontend only visualizes it. Structured config remains editable; the preview reflects runtime calculation only.')}</p>
       </div>
-      <button type="button" onClick={load} disabled={loading} style={buttonStyle}>{loading ? copy('加载中...', 'Loading...') : copy('刷新曲线', 'Refresh')}</button>
+      <Button size="sm" onClick={load} disabled={loading}>{loading ? copy('加载中...', 'Loading...') : copy('刷新曲线', 'Refresh curve')}</Button>
     </div>
-    <div style={controlGridStyle}>
-      <label style={labelStyle}>{copy('等级类型，逗号分隔', 'Level types, comma separated')}<input value={typeInput} onChange={event => setTypeInput(event.target.value)} placeholder={copy('留空显示全部启用类型', 'Empty = all enabled types')} style={inputStyle} /></label>
-      <label style={labelStyle}>{copy('起始目标等级', 'From target level')}<input type="number" min={1} value={fromLevel} onChange={event => setFromLevel(Number(event.target.value) || 1)} style={inputStyle} /></label>
-      <label style={labelStyle}>{copy('结束目标等级', 'To target level')}<input type="number" min={1} value={toLevel} onChange={event => setToLevel(Number(event.target.value) || 1)} style={inputStyle} /></label>
-      <label style={labelStyle}>{copy('图表指标', 'Metric')}<select value={metric} onChange={event => setMetric(event.target.value as CurveMetric)} style={inputStyle}>
+    <div className="level-curve-preview__controls">
+      <label className="level-curve-preview__field">{copy('等级类型，逗号分隔', 'Level types, comma separated')}<input value={typeInput} onChange={event => setTypeInput(event.target.value)} placeholder={copy('留空显示全部启用类型', 'Empty = all enabled types')} /></label>
+      <label className="level-curve-preview__field">{copy('起始目标等级', 'From target level')}<input type="number" min={1} value={fromLevel} onChange={event => setFromLevel(Number(event.target.value) || 1)} /></label>
+      <label className="level-curve-preview__field">{copy('结束目标等级', 'To target level')}<input type="number" min={1} value={toLevel} onChange={event => setToLevel(Number(event.target.value) || 1)} /></label>
+      <label className="level-curve-preview__field">{copy('图表指标', 'Metric')}<select value={metric} onChange={event => setMetric(event.target.value as CurveMetric)}>
         <option value="requiredExp">{copy('单级需求经验', 'Required exp')}</option>
         <option value="totalExp">{copy('累计总经验', 'Total exp')}</option>
         <option value="growthRate">{copy('增长率', 'Growth rate')}</option>
       </select></label>
     </div>
-    {error ? <div style={errorStyle}>{error}</div> : null}
+    {error ? <PluginApiError route="curve" message={error} /> : null}
     {curves.length ? <>
       <CurveLegend curves={curves} hiddenTypes={hiddenTypes} onToggle={toggleType} />
-      <div style={chartWrapStyle}>
+      <div className="level-curve-preview__chart-wrap">
         <LevelCurveSvg curves={curves} visibleCurves={visibleCurves} hiddenTypes={hiddenTypes} metric={metric} hoverLevel={hoverLevel} onHover={setHoverLevel} />
       </div>
       <CurveLevelInspector level={hoverLevel} rows={hoverRows} />
-      <div style={summaryStyle}>
+      <div className="level-curve-preview__summary">
         <span>{copy('曲线数量', 'Curves')}: <strong>{curves.length}</strong></span>
         <span>{copy('显示中', 'Visible')}: <strong>{visibleCurves.length}</strong></span>
         <span>{copy('单类型最多点数', 'Max points/type')}: <strong>{result?.limits?.maxPointsPerType ?? '-'}</strong></span>
-        <button type="button" onClick={exportCsv} style={secondaryButtonStyle}>{copy('导出 CSV', 'Export CSV')}</button>
+        <Button size="sm" variant="soft" onClick={exportCsv}>{copy('导出 CSV', 'Export CSV')}</Button>
       </div>
       <CurveTables curves={curves} hiddenTypes={hiddenTypes} openTypes={openTypes} onToggleOpen={toggleOpen} />
-    </> : <div style={emptyStyle}>{copy('暂无曲线数据。', 'No curve data.')}</div>}
+    </> : <div className="level-curve-preview__empty">{copy('暂无曲线数据。', 'No curve data.')}</div>}
   </section>;
+}
+
+function PluginApiError({ route, message }: { route: string; message: string }) {
+  return <InlineError>
+    <strong>{copy('等级曲线预览暂不可用。', 'Level curve preview is unavailable.')}</strong>
+    <p>{copy(`插件 API level/${route} 请求失败；当前 YAML 仍可继续编辑，保存不依赖此只读预览。`, `Plugin API level/${route} failed. The current YAML remains editable; saving does not depend on this read-only preview.`)}</p>
+    <details className="level-curve-preview__diagnostic">
+      <summary>{copy('开发者诊断', 'Developer diagnostics')}</summary>
+      <pre>{message}</pre>
+    </details>
+  </InlineError>;
 }
 
 function CurveLegend({ curves, hiddenTypes, onToggle }: { curves: Curve[]; hiddenTypes: Set<string>; onToggle: (type: string) => void }) {
@@ -211,7 +223,7 @@ function LevelCurveSvg({ curves, visibleCurves, hiddenTypes, metric, hoverLevel,
     const level = nearestLevel(event.clientX, rect);
     onHover(level);
   };
-  return <svg viewBox={`0 0 ${width} ${height}`} style={svgStyle} role="img" aria-label={copy('等级曲线图', 'Level curve chart')} onMouseMove={handleMove}>
+  return <svg viewBox={`0 0 ${width} ${height}`} className="level-curve-preview__chart" role="img" aria-label={copy('等级曲线图', 'Level curve chart')} onMouseMove={handleMove}>
     {[0, .25, .5, .75, 1].map(step => <line key={step} x1={pad.left} x2={width - pad.right} y1={pad.top + chartHeight * step} y2={pad.top + chartHeight * step} stroke="color-mix(in oklch, var(--line) 58%, transparent)" />)}
     <line x1={pad.left} y1={height - pad.bottom} x2={width - pad.right} y2={height - pad.bottom} stroke="color-mix(in oklch, var(--line-2) 78%, transparent)" />
     <line x1={pad.left} y1={pad.top} x2={pad.left} y2={height - pad.bottom} stroke="color-mix(in oklch, var(--line-2) 78%, transparent)" />
@@ -315,16 +327,25 @@ function formatPercent(value: number): string {
   return Number.isFinite(value) ? `${(value * 100).toFixed(2)}%` : '-';
 }
 
-const palette = ['#60a5fa', '#a78bfa', '#34d399', '#f59e0b', '#f472b6', '#22d3ee', '#fb7185', '#2dd4bf'];
-const cardStyle: React.CSSProperties = { border: '1px solid var(--line)', borderRadius: 16, padding: 16, marginTop: 16, background: 'linear-gradient(180deg, color-mix(in oklch, var(--surface-2) 78%, transparent), color-mix(in oklch, var(--surface) 88%, transparent))', color: 'var(--text)' };
+const palette = [
+  'var(--accent)',
+  'var(--accent-strong)',
+  'var(--green)',
+  'var(--amber)',
+  'color-mix(in oklch, var(--accent) 62%, var(--danger-ink) 38%)',
+  'color-mix(in oklch, var(--accent) 54%, var(--green) 46%)',
+  'var(--red)',
+  'color-mix(in oklch, var(--green) 62%, var(--accent-strong) 38%)'
+];
+const cardStyle: React.CSSProperties = { border: '1px solid var(--line)', borderRadius: 8, padding: 14, marginTop: 16, background: 'var(--surface)', color: 'var(--text)' };
 const headerStyle: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' };
 const hintStyle: React.CSSProperties = { margin: '6px 0 0', color: 'var(--muted)', fontSize: 13 };
 const controlGridStyle: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'minmax(220px,2fr) repeat(3,minmax(120px,1fr))', gap: 10, marginTop: 14 };
 const labelStyle: React.CSSProperties = { display: 'grid', gap: 6, fontSize: 12, color: 'var(--muted)' };
-const inputStyle: React.CSSProperties = { border: '1px solid var(--line-2)', borderRadius: 10, background: 'var(--input)', color: 'var(--text)', padding: '8px 10px' };
-const buttonStyle: React.CSSProperties = { border: 0, borderRadius: 10, padding: '9px 13px', background: 'var(--accent)', color: 'var(--bg)', fontWeight: 700, cursor: 'pointer' };
+const inputStyle: React.CSSProperties = { border: '1px solid var(--line-2)', borderRadius: 6, background: 'var(--input)', color: 'var(--text)', padding: '8px 10px' };
+const buttonStyle: React.CSSProperties = { border: 0, borderRadius: 6, padding: '9px 13px', background: 'var(--accent)', color: 'var(--bg)', fontWeight: 700, cursor: 'pointer' };
 const secondaryButtonStyle: React.CSSProperties = { ...buttonStyle, background: 'var(--accent-soft)', color: 'var(--accent-strong)', border: '1px solid color-mix(in oklch, var(--accent) 44%, var(--line) 56%)' };
-const errorStyle: React.CSSProperties = { marginTop: 12, color: 'var(--danger-ink)', background: 'var(--danger-soft)', border: '1px solid var(--danger-line)', borderRadius: 10, padding: 10 };
+const errorStyle: React.CSSProperties = { marginTop: 12, color: 'var(--danger-ink)', background: 'var(--danger-soft)', border: '1px solid var(--danger-line)', borderRadius: 6, padding: 10 };
 const emptyStyle: React.CSSProperties = { marginTop: 12, color: 'var(--muted)' };
 const svgStyle: React.CSSProperties = { width: '100%', display: 'block', background: 'color-mix(in oklch, var(--input) 76%, transparent)', borderRadius: 12 };
 const summaryStyle: React.CSSProperties = { display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginTop: 12, color: 'var(--muted)' };
@@ -341,7 +362,7 @@ const tooltipTitleStyle: React.CSSProperties = { display: 'flex', gap: 6, alignI
 const tooltipMetaStyle: React.CSSProperties = { marginTop: 3, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 6, color: 'var(--muted)', fontSize: 11, lineHeight: 1.35 };
 const tooltipNumberStyle: React.CSSProperties = { display: 'block', marginTop: 1, color: 'var(--accent-strong)', fontWeight: 800, fontVariantNumeric: 'tabular-nums' };
 const tablesWrapStyle: React.CSSProperties = { display: 'grid', gap: 8, marginTop: 12 };
-const tableGroupStyle: React.CSSProperties = { border: '1px solid var(--line)', borderRadius: 10, overflow: 'hidden', background: 'color-mix(in oklch, var(--surface-2) 54%, transparent)' };
+const tableGroupStyle: React.CSSProperties = { border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden', background: 'color-mix(in oklch, var(--surface-2) 54%, transparent)' };
 const tableGroupHeadStyle: React.CSSProperties = { width: '100%', minHeight: 36, display: 'grid', gridTemplateColumns: '18px 10px minmax(120px,1fr) minmax(80px,.6fr) auto auto', alignItems: 'center', justifyItems: 'center', gap: 8, padding: '7px 10px', color: 'var(--text)', textAlign: 'center', borderBottom: '1px solid var(--line)' };
 const warningPillStyle: React.CSSProperties = { color: 'var(--amber)', border: '1px solid color-mix(in oklch, var(--amber) 44%, var(--line) 56%)', borderRadius: 999, padding: '1px 6px' };
 const tableScrollStyle: React.CSSProperties = { overflowX: 'auto' };

@@ -1238,6 +1238,7 @@ function HistoryModal({ api, target, onCancel, onRolledBack }: { api: ApiClient;
   const [error, setError] = useState('');
   const [currentRevision, setCurrentRevision] = useState<number | undefined>(target.revision);
   const [rollingBack, setRollingBack] = useState(false);
+  const [rollbackConfirmOpen, setRollbackConfirmOpen] = useState(false);
   useDialogFocus(dialogRef, onCancel);
 
   useEffect(() => {
@@ -1288,9 +1289,14 @@ function HistoryModal({ api, target, onCancel, onRolledBack }: { api: ApiClient;
   const selectedEntry = entries.find(entry => entry.id === selectedId) ?? snapshot?.entry;
   const rollbackAllowed = Boolean(selectedEntry?.rollbackAllowed && snapshot?.rollbackAllowed);
 
-  async function rollback() {
+  function requestRollback() {
     if (!selectedId || !rollbackAllowed || rollingBack) return;
-    if (!window.confirm(t('core.history.rollbackConfirm', { path: target.path }))) return;
+    setRollbackConfirmOpen(true);
+  }
+
+  async function confirmRollback() {
+    if (!selectedId || !rollbackAllowed || rollingBack) return;
+    setRollbackConfirmOpen(false);
     setRollingBack(true);
     setError('');
     try {
@@ -1303,7 +1309,8 @@ function HistoryModal({ api, target, onCancel, onRolledBack }: { api: ApiClient;
     }
   }
 
-  return <div className="editor-modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) onCancel(); }}>
+  return <>
+  <div className="editor-modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) onCancel(); }}>
     <section ref={dialogRef} className="insight-search-dialog insight-reference-dialog history-dialog" role="dialog" aria-modal="true" aria-labelledby="history-title" tabIndex={-1}>
       <div className="insight-search-head">
         <span>{t('core.history.kicker')}</span>
@@ -1330,7 +1337,44 @@ function HistoryModal({ api, target, onCancel, onRolledBack }: { api: ApiClient;
       </div>
       <ActionGroup className="reload-confirm-actions">
         <Button type="button" onClick={onCancel}>{t('core.gui.cancel')}</Button>
-        <Button type="button" variant="danger" disabled={!rollbackAllowed || rollingBack} onClick={() => void rollback()}>{rollingBack ? t('core.state.loading') : t('core.history.rollback')}</Button>
+        <Button type="button" variant="danger" disabled={!rollbackAllowed || rollingBack} onClick={requestRollback}>{rollingBack ? t('core.state.loading') : t('core.history.rollback')}</Button>
+      </ActionGroup>
+    </section>
+  </div>
+  {rollbackConfirmOpen && selectedEntry && <RollbackConfirmModal
+    target={target}
+    entry={selectedEntry}
+    revision={currentRevision}
+    rollingBack={rollingBack}
+    onCancel={() => setRollbackConfirmOpen(false)}
+    onConfirm={() => void confirmRollback()}
+  />}
+  </>;
+}
+
+function RollbackConfirmModal({ target, entry, revision, rollingBack, onCancel, onConfirm }: { target: HistoryTarget; entry: HistoryEntry; revision?: number; rollingBack: boolean; onCancel: () => void; onConfirm: () => void }) {
+  const dialogRef = useRef<HTMLElement | null>(null);
+  useDialogFocus(dialogRef, onCancel);
+  return <div className="editor-modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) onCancel(); }}>
+    <section ref={dialogRef} className="reload-confirm-dialog diff-dialog history-rollback-dialog" role="dialog" aria-modal="true" aria-labelledby="history-rollback-title" aria-describedby="history-rollback-desc" tabIndex={-1}>
+      <div className="reload-confirm-head diff-dialog-head">
+        <span>{t('core.history.rollbackKicker')}</span>
+        <h3 id="history-rollback-title">{t('core.history.rollbackTitle')}</h3>
+      </div>
+      <div className="reload-confirm-body diff-dialog-body">
+        <p id="history-rollback-desc">{t('core.history.rollbackDesc')}</p>
+        <dl className="history-rollback-summary">
+          <div><dt>{t('core.history.rollbackFile')}</dt><dd><code>{target.path}</code></dd></div>
+          <div><dt>{t('core.history.rollbackEntry')}</dt><dd><code>{entry.id}</code></dd></div>
+          <div><dt>{t('core.history.rollbackOperation')}</dt><dd>{historyOperationLabel(entry.operation)}</dd></div>
+          <div><dt>{t('core.history.rollbackActor')}</dt><dd>{entry.actor || 'web'}</dd></div>
+          <div><dt>{t('core.history.rollbackRevision')}</dt><dd>{revision ?? '-'}</dd></div>
+          <div><dt>{t('core.history.rollbackTime')}</dt><dd>{formatHistoryTime(entry.createdAt)}</dd></div>
+        </dl>
+      </div>
+      <ActionGroup className="reload-confirm-actions diff-dialog-actions">
+        <Button type="button" onClick={onCancel} autoFocus>{t('core.gui.cancel')}</Button>
+        <Button type="button" variant="danger" onClick={onConfirm} disabled={rollingBack}>{rollingBack ? t('core.state.loading') : t('core.history.rollbackConfirmAction')}</Button>
       </ActionGroup>
     </section>
   </div>;
