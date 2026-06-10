@@ -1,4 +1,4 @@
-version: "1.0.5"
+version: "1.0.6"
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiLevel</gradient> ]</gray>"
 console:

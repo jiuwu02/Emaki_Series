@@ -9,5 +9,6 @@ export * from './components';
 export * from './lib';
 export * from './i18n';
 export * from './economyConfig';
+export * from './pluginKit';
 export type { ApiClient, ActionTypesResult, EconomyProvidersResult, RegistryFileNodesResult, RegistrySaveResult } from './api';
 export type { ItemPreviewResult, WebEditorDescriptor, WebEditorField, WebRegistry, WebRegistryFile, WebRegistryModule } from './types';

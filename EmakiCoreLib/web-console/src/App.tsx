@@ -15,6 +15,8 @@ import { useStableEntries } from './components/useStableEntries';
 import { I18nBundleModal, type I18nTarget } from './I18nBundleModal';
 import { configNodeDisplayComment as resolveConfigNodeComment, fieldLabel, fileDisplayComment, fileDisplayTitle, humanizeFieldLabel, moduleDisplayName, optionLabel, parseYaml, serializeYaml, setDeepValue, valuesEqual } from './lib';
 import { Login, ResizableOutlineRail, ResizableRail, WorkspaceTree, fileKindLabel } from './shell';
+import { FieldOutlineRail, jumpToConfigNode } from './shell/FieldOutlineRail';
+import { debugInputValue, frontendDebugEvent, interactiveTarget, isFormControl } from './shell/frontendDebug';
 import type { SurfaceOutlineItem, SurfaceOutlineState, SurfaceProps, SurfaceToolbarState } from './registry';
 import type { RegistryTreeNode, WebConfigCreateTemplate, WebConfigFieldSchema, WebConfigNode, WebConsoleExtension, WebConsoleExtensionStatus, WebEditorDescriptor, WebRegistry, WebRegistryFile, WebRegistryModule } from './types';
 
@@ -116,57 +118,6 @@ const OBJECT_LIST_COLLAPSE_THRESHOLD = 10;
 const OBJECT_LIST_INITIAL_ROWS = 30;
 const OBJECT_LIST_ROW_BATCH_SIZE = 30;
 
-function interactiveTarget(target: EventTarget | null): HTMLElement | null {
-  if (!(target instanceof HTMLElement)) return null;
-  return target.closest('button, a, input, select, textarea, [role="button"], [role="menuitem"], [tabindex]');
-}
-
-function isFormControl(target: HTMLElement): target is HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement {
-  return target instanceof HTMLInputElement || target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement;
-}
-
-function frontendDebugEvent(type: string, target: HTMLElement, extra: Partial<FrontendDebugEventReport> = {}): FrontendDebugEventReport {
-  return {
-    type,
-    target: describeDebugTarget(target),
-    label: debugElementLabel(target),
-    ...extra
-  };
-}
-
-function describeDebugTarget(target: HTMLElement): string {
-  const tag = target.tagName.toLowerCase();
-  const id = target.id ? `#${target.id}` : '';
-  const className = String(target.getAttribute('class') ?? '').trim().split(/\s+/).filter(Boolean).slice(0, 3).map(part => `.${part}`).join('');
-  const name = target.getAttribute('name') ? `[name=${target.getAttribute('name')}]` : '';
-  const role = target.getAttribute('role') ? `[role=${target.getAttribute('role')}]` : '';
-  return `${tag}${id}${className}${name}${role}` || tag;
-}
-
-function debugElementLabel(target: HTMLElement): string {
-  const ownLabel = target.getAttribute('aria-label') || target.getAttribute('title') || target.getAttribute('placeholder');
-  if (ownLabel?.trim()) return trimDebugText(ownLabel, 120);
-  const label = target.closest('label');
-  if (label?.textContent?.trim()) return trimDebugText(label.textContent, 120);
-  return trimDebugText(target.textContent ?? '', 120);
-}
-
-function debugInputValue(target: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement): string {
-  const name = `${target.getAttribute('name') ?? ''} ${target.id ?? ''} ${target.getAttribute('autocomplete') ?? ''} ${target.getAttribute('aria-label') ?? ''}`.toLowerCase();
-  if (/password|token|secret|key|authorization/.test(name) || (target instanceof HTMLInputElement && target.type === 'password')) {
-    return '<masked>';
-  }
-  const value = target instanceof HTMLInputElement && (target.type === 'checkbox' || target.type === 'radio') ? String(target.checked) : target.value;
-  if (target instanceof HTMLTextAreaElement || value.length > 180) {
-    return `${trimDebugText(value, 120)} (length=${value.length})`;
-  }
-  return trimDebugText(value, 120);
-}
-
-function trimDebugText(value: string, maxLength: number): string {
-  const normalized = String(value ?? '').replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
-  return normalized.length > maxLength ? `${normalized.slice(0, maxLength)}…` : normalized;
-}
 
 export default function App() {
   const [token, setToken] = useState(() => sessionStorage.getItem('emaki-web-token'));
@@ -790,107 +741,6 @@ function SurfaceSummaryStrip({ module, file, editor, toolbar, loading, reference
   </section>;
 }
 
-function FieldOutlineRail({ outline, onJump }: { outline: SurfaceOutlineState; onJump: (path: string) => void }) {
-  const items = outline?.items ?? [];
-  const title = outline?.title ?? t('core.outline.title');
-  const subtitle = outline?.subtitle || t('core.outline.noConfig');
-  const emptyText = outline?.emptyText || t('core.outline.noConfig');
-  return <div className="field-outline">
-    <div className="field-outline-head">
-      <span>{t('core.outline.subtitle')}</span>
-      <strong>{title}</strong>
-      <code>{subtitle}</code>
-    </div>
-    {items.length > 0
-      ? <nav className="field-outline-list" aria-label={title}>{items.map(item => <button
-          key={item.path}
-          type="button"
-          className={`field-outline-item${item.changed ? ' changed' : ''}`}
-          onClick={() => onJump(item.path)}
-          aria-label={t('core.outline.itemAria', { path: item.path })}
-        >
-          <span className="field-outline-item-main"><strong>{item.label}</strong>{item.changedCount > 0 && <em>{t('core.outline.changed', { count: item.changedCount })}</em>}</span>
-          <code>{item.path}</code>
-          <span className="field-outline-item-meta">{item.childCount > 0 ? t('core.outline.childCount', { count: item.childCount }) : item.type}</span>
-        </button>)}</nav>
-      : <div className="field-outline-empty" role="status">{emptyText}</div>}
-  </div>;
-}
-
-function jumpToConfigNode(path: string, attempt = 0) {
-  const stage = document.querySelector<HTMLElement>('.stage');
-  const target = findConfigNodeTarget(stage ?? document, path);
-  if (!target) {
-    if (attempt < 14) window.requestAnimationFrame(() => jumpToConfigNode(path, attempt + 1));
-    return;
-  }
-  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const scrollRoot = target.closest<HTMLElement>('.editor-shell.single') ?? stage;
-  scrollElementToStageTop(target, scrollRoot, reduceMotion ? 'auto' : 'smooth');
-  target.classList.remove('config-node-locate');
-  void target.offsetWidth;
-  target.classList.add('config-node-locate');
-  window.setTimeout(() => target.classList.remove('config-node-locate'), reduceMotion ? 900 : 1500);
-}
-
-function findConfigNodeTarget(root: ParentNode, path: string): HTMLElement | null {
-  for (const candidate of configNodePathCandidates(path)) {
-    const target = root.querySelector<HTMLElement>(`[data-config-node-path="${cssSelectorEscape(candidate)}"]`);
-    if (target) return visibleConfigNodeTarget(target);
-  }
-  return null;
-}
-
-function visibleConfigNodeTarget(target: HTMLElement): HTMLElement {
-  const hiddenParent = target.closest<HTMLElement>('[hidden]');
-  return hiddenParent?.closest<HTMLElement>('.node-section') ?? target;
-}
-
-function configNodePathCandidates(path: string): string[] {
-  const raw = String(path ?? '').trim();
-  const candidates: string[] = [];
-  const push = (candidate: string) => {
-    const normalized = candidate.replace(/^\.+|\.+$/g, '').replace(/\.\.+/g, '.');
-    if (normalized && !candidates.includes(normalized)) candidates.push(normalized);
-  };
-  const pushWithParents = (candidate: string) => {
-    push(candidate);
-    let parent = candidate;
-    while (parent.includes('.')) {
-      parent = parent.slice(0, parent.lastIndexOf('.'));
-      push(parent);
-    }
-  };
-  const bracketAsDot = raw.replace(/\[(\d+)\]/g, '.$1');
-  const withoutBracketIndexes = raw.replace(/\[\d+\]/g, '');
-  const withoutDotIndexes = bracketAsDot.split('.').filter(segment => segment && !/^\d+$/.test(segment)).join('.');
-  [raw, bracketAsDot, withoutBracketIndexes, withoutDotIndexes].forEach(pushWithParents);
-  return candidates;
-}
-
-function scrollElementToStageTop(target: HTMLElement, stage: HTMLElement | null, behavior: ScrollBehavior) {
-  const headerOffset = 18;
-  if (stage && isScrollable(stage)) {
-    const stageRect = stage.getBoundingClientRect();
-    const targetRect = target.getBoundingClientRect();
-    const top = stage.scrollTop + targetRect.top - stageRect.top - headerOffset;
-    stage.scrollTo({ top: Math.max(0, top), behavior });
-    return;
-  }
-  const top = window.scrollY + target.getBoundingClientRect().top - headerOffset;
-  window.scrollTo({ top: Math.max(0, top), behavior });
-}
-
-function isScrollable(element: HTMLElement): boolean {
-  const style = window.getComputedStyle(element);
-  return /(auto|scroll|overlay)/.test(`${style.overflowY} ${style.overflow}`) && element.scrollHeight > element.clientHeight;
-}
-
-function cssSelectorEscape(value: string): string {
-  const css = globalThis.CSS;
-  if (css && typeof css.escape === 'function') return css.escape(value);
-  return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\0/g, '\uFFFD');
-}
 
 function groupInsightResults(results: InsightSearchResult[], registry: WebRegistry | null): { moduleId: string; module?: WebRegistryModule; results: InsightSearchResult[] }[] {
   const groups = new Map<string, { moduleId: string; module?: WebRegistryModule; results: InsightSearchResult[] }>();
