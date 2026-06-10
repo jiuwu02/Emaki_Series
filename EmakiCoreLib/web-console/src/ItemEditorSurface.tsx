@@ -6,14 +6,14 @@ import { isGlobPath } from './documentPaths';
 import { t, getLocale } from './i18n';
 import { changedPathSet, diffRecords, fieldLabel, getDeepValue, humanizeFieldLabel, isChangedFieldPath, materialShortName, materialUrls, optionLabel, subscribeTextureBases, textValue, valuesEqual } from './lib';
 import { MINECRAFT_MATERIALS, searchMaterials } from './minecraftMaterials';
-import { getSourceDocumentAdapter, isKind, type SurfaceToolbarState } from './registry';
+import { getSourceDocumentAdapter, isKind, type SurfaceOutlineState, type SurfaceToolbarState } from './registry';
 import { fileDisplayTitle } from './lib';
 import { CORE_ITEM_FIELD_TYPE_SET, standardDisplayActionFields } from './itemFieldKit';
 import { getItemFieldRenderer, getItemPreviewFallback } from './itemFieldRegistry';
 import type { ItemPreviewResult, ItemPreviewStep, WebEditorDescriptor, WebEditorField, WebEditorSection, WebRegistryFile, WebRegistryModule } from './types';
 import { serializeItemYaml } from './itemEditor';
 
-type Props = { module: WebRegistryModule; file: WebRegistryFile; api: ApiClient; childPath?: string; refreshKey?: number; editor?: WebEditorDescriptor; onReload?: () => void; setToolbar?: (state: SurfaceToolbarState | null) => void; showLocalChrome?: boolean };
+type Props = { module: WebRegistryModule; file: WebRegistryFile; api: ApiClient; childPath?: string; refreshKey?: number; editor?: WebEditorDescriptor; onReload?: () => void; setToolbar?: (state: SurfaceToolbarState | null) => void; setOutline?: (state: SurfaceOutlineState) => void; showLocalChrome?: boolean };
 type PreviewError = { message: string; detail?: string };
 type SnapshotHistory = { undo: AnyMap[]; redo: AnyMap[] };
 const DEFAULT_BASE_NAME = t('core.item.defaultBaseName');
@@ -28,7 +28,7 @@ const EditorContext = React.createContext<{
   economyProviders: string[];
 }>({ moduleId: '', editorFields: {}, changedPaths: new Set(), economyProviders: DEFAULT_ECONOMY_PROVIDERS });
 
-export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0, editor, onReload, setToolbar, showLocalChrome = true }: Props) {
+export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0, editor, onReload, setToolbar, setOutline, showLocalChrome = true }: Props) {
   const [data, setData] = useState<AnyMap>({});
   const [originalData, setOriginalData] = useState<AnyMap>({});
   const [originalContent, setOriginalContent] = useState('');
@@ -253,6 +253,17 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
 
   useEffect(() => () => setToolbar?.(null), [setToolbar]);
 
+  useEffect(() => {
+    if (!setOutline) return;
+    setOutline({
+      title: localizedEditorTitle(editor, fileTitle ?? t('core.item.editorTitle')),
+      subtitle: `${module.id}/${filePath}`,
+      emptyText: t('core.outline.empty'),
+      items: sections.map((section, index) => itemSectionOutline(module.id, section, index, changedPaths))
+    });
+    return () => setOutline(null);
+  }, [setOutline, editor?.title, editor?.titleKey, fileTitle, module.id, filePath, sections, changedPaths]);
+
   if (isGlobPath(filePath)) return <div className="ie-surface"><InlineError>{t('core.empty.selectFile')}</InlineError></div>;
   if (loading) return <div className="ie-surface"><div className="ie-loading" role="status"><div className="ie-skeleton" aria-label={t('core.item.loadingAria')}><div className="ie-skeleton-line" style={{ width: '60%' }} /><div className="ie-skeleton-line" style={{ width: '80%' }} /><div className="ie-skeleton-line" style={{ width: '45%' }} /><div className="ie-skeleton-line" style={{ width: '70%' }} /></div></div></div>;
   if (error && !data) return <div className="ie-surface"><InlineError>{error}</InlineError>{onReload && <Button size="sm" onClick={onReload}>{t('core.action.retry')}</Button>}</div>;
@@ -289,17 +300,18 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
           <GenericPreviewPane moduleId={module.id} editor={editor} data={data} preview={preview} previewPending={previewPending} previewError={previewError} previewLevel={previewLevel} setPreviewLevel={setPreviewLevel} baseName={baseName} baseLore={baseLore as string[]} />
           <div className="ie-props-scroll">
             <div className="ie-props">
-              {sections.map(section => (
-                <CollapsibleSection
-                  key={section.title}
-                  title={localizedSectionTitle(module.id, section)}
-                  comment={localizedSectionComment(module.id, section)}
-                  collapsible={section.collapsible ?? true}
-                  defaultCollapsed={editorSectionDefaultCollapsed(section, data)}
-                  storageKey={`core:item-section:${editor?.id ?? file.editorId ?? file.kind}:${section.title}`}
-                >
-                  {section.fields.map(field => <FieldEditor key={field.path} field={field} data={data} originalData={originalData} setField={setField} actionTypesResult={actionTypesResult} editorId={editor?.id ?? file.editorId} />)}
-                </CollapsibleSection>
+              {sections.map((section, sectionIndex) => (
+                <div className="ie-outline-anchor" data-config-node-path={itemSectionPath(section, sectionIndex)} key={section.title || sectionIndex}>
+                  <CollapsibleSection
+                    title={localizedSectionTitle(module.id, section)}
+                    comment={localizedSectionComment(module.id, section)}
+                    collapsible={section.collapsible ?? true}
+                    defaultCollapsed={editorSectionDefaultCollapsed(section, data)}
+                    storageKey={`core:item-section:${editor?.id ?? file.editorId ?? file.kind}:${section.title}`}
+                  >
+                    {section.fields.map(field => <div className="ie-outline-anchor" data-config-node-path={field.path} key={field.path}><FieldEditor field={field} data={data} originalData={originalData} setField={setField} actionTypesResult={actionTypesResult} editorId={editor?.id ?? file.editorId} /></div>)}
+                  </CollapsibleSection>
+                </div>
               ))}
             </div>
           </div>
@@ -342,8 +354,8 @@ function DefaultFieldEditor({ field, data, value, changed, setField, actionTypes
   if (type === 'multiEnum' && field.options?.length) return <PropRow label={label} path={field.path} changed={changed} wide={field.wide ?? true}><MultiEnumEditor value={value} options={field.options} labelPrefix={field.optionLabelPrefix} onChange={next => setField(field.path, next)} /></PropRow>;
   if (type === 'material') return <PropRow label={label} path={field.path} changed={changed} wide={field.wide}><MaterialInput value={value} onChange={next => setField(field.path, next)} /></PropRow>;
   if (type === 'textarea') return <PropRow label={label} path={field.path} changed={changed} wide><textarea rows={field.rows ?? 4} value={textValue(value)} onChange={e => setField(field.path, e.target.value)} placeholder={field.placeholder} /></PropRow>;
-  if (type === 'stringList') return <PropRow label={label} path={field.path} changed={changed} wide={field.wide}><StringListEditor items={asEditableStringList(value)} onChange={items => setField(field.path, items)} placeholder={field.placeholder} /></PropRow>;
-  if (type === 'numberList') return <PropRow label={label} path={field.path} changed={changed} wide={field.wide}><NumberListEditor items={asList(value).map(item => Number(item) || 0)} onChange={items => setField(field.path, items)} /></PropRow>;
+  if (type === 'stringList') return <PropRow label={label} path={field.path} changed={changed} wide><StringListEditor items={asEditableStringList(value)} onChange={items => setField(field.path, items)} placeholder={field.placeholder} /></PropRow>;
+  if (type === 'numberList') return <PropRow label={label} path={field.path} changed={changed} wide><NumberListEditor items={asList(value).map(item => Number(item) || 0)} onChange={items => setField(field.path, items)} /></PropRow>;
   if (type === 'variablesMap') return <PropRow label={label} path={field.path} changed={changed} wide><VariablesMapEditor value={value} onChange={next => setField(field.path, next)} /></PropRow>;
   if (type === 'map' || type === 'dynamicMap' || type === 'objectMap') return <PropRow label={label} path={field.path} changed={changed} wide><MapEditor value={value} onChange={next => setField(field.path, next)} /></PropRow>;
   if (type === 'actions') return <PropRow label={label} path={field.path} changed={changed} wide><StandardActionsField value={value} onChange={next => setField(field.path, next)} path={field.path} moduleId={context.moduleId} namespace={context.moduleId} editorFields={context.editorFields} actionTypes={actionTypesResult ?? undefined} /></PropRow>;
@@ -477,6 +489,23 @@ function hasMeaningfulEditorValue(value: unknown): boolean {
 
 function localizedEditorTitle(editor: WebEditorDescriptor | undefined, fallback: string): string {
   return textValue(editor?.titleKey) ? t(textValue(editor?.titleKey), undefined, fallback) : textValue(editor?.title, fallback);
+}
+
+function itemSectionPath(section: WebEditorSection, index: number): string {
+  const raw = textValue((section as AnyMap).titleKey) || section.title || `section-${index + 1}`;
+  return `section:${raw}`;
+}
+
+function itemSectionOutline(moduleId: string, section: WebEditorSection, index: number, changedPaths: Set<string>) {
+  const changedCount = section.fields.reduce((count, field) => count + (isChangedFieldPath(field.path, changedPaths) ? 1 : 0), 0);
+  return {
+    path: itemSectionPath(section, index),
+    label: localizedSectionTitle(moduleId, section),
+    type: 'section',
+    childCount: section.fields.length,
+    changedCount,
+    changed: changedCount > 0
+  };
 }
 
 function localizedSectionTitle(moduleId: string, section: WebEditorSection): string {

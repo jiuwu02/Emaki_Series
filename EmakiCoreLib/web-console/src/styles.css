@@ -1217,10 +1217,12 @@ textarea {
 
 .field-outline {
   min-height: 0;
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
   gap: 10px;
   padding: 14px 10px;
+  overflow: hidden;
 }
 
 .field-outline-head {
@@ -1370,9 +1372,11 @@ textarea {
   max-width: 100%;
   min-width: 0;
   min-height: 0;
+  height: 100%;
   padding: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  overflow: hidden;
   scrollbar-width: thin;
   scrollbar-gutter: stable;
   background: var(--surface);
@@ -1380,12 +1384,16 @@ textarea {
 }
 
 .stage-head {
+  position: sticky;
+  top: 0;
+  z-index: 11;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 18px;
   padding: 11px 18px 11px 18px;
   border-bottom: 1px solid var(--line);
+  background: var(--surface);
 }
 
 .stage-head h1,
@@ -1405,6 +1413,9 @@ textarea {
 }
 
 .surface-summary {
+  position: sticky;
+  top: 0;
+  z-index: 12;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1669,11 +1680,14 @@ textarea {
   display: flex;
   min-width: 0;
   min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
 }
 
 .config-surface {
   min-width: 0;
   min-height: 0;
+  height: 100%;
   flex: 1 1 auto;
   background: var(--surface);
 }
@@ -3440,8 +3454,8 @@ textarea {
 
 .prop-kv--string-list {
   grid-template-columns: minmax(0, 1fr) var(--config-field-control-height);
-  align-items: center;
-  gap: var(--config-field-body-padding-y) 6px;
+  align-items: start;
+  gap: 6px;
   padding: 0;
 }
 
@@ -3490,11 +3504,6 @@ textarea {
   grid-column: 1 / -1;
   grid-template-columns: minmax(0, 1fr) var(--config-field-control-height);
   gap: 6px;
-}
-
-.prop-kv--string-list .prop-list-row:first-of-type {
-  grid-column: 1;
-  grid-row: 1;
 }
 
 .prop-list-row .prop-kv-del {
@@ -4588,6 +4597,18 @@ textarea {
   height: 100%;
 }
 
+.history-diff--changes-only .source-diff-line {
+  grid-template-columns: 58px 20px minmax(0, 1fr);
+}
+
+.history-diff--changes-only .source-diff-line.add .source-diff-no::before {
+  content: '新 ';
+}
+
+.history-diff--changes-only .source-diff-line.remove .source-diff-no::before {
+  content: '旧 ';
+}
+
 .history-preview pre {
   min-height: 0;
   overflow: auto;
@@ -4776,7 +4797,12 @@ textarea {
 
 /* Item editor */
 .ie-surface {
-  min-height: calc(100vh - 140px);
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   background: var(--gui-surface-bg);
   text-align: left;
 }
@@ -4949,16 +4975,20 @@ textarea {
   --preview-column: clamp(232px, 22vw, 304px);
   min-width: 0;
   min-height: 0;
+  flex: 1 1 auto;
+  height: 100%;
   display: grid;
   grid-template-columns: var(--preview-column) minmax(0, 1fr);
   gap: 0;
-  align-items: start;
+  align-items: stretch;
+  overflow: hidden;
 }
 
 .ie-preview {
   position: sticky;
   top: 0;
-  max-height: calc(100vh - 64px);
+  height: 100%;
+  max-height: 100%;
   overflow-y: auto;
   display: grid;
   gap: 0;
@@ -5263,7 +5293,11 @@ textarea {
 
 .ie-props-scroll {
   min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow-y: auto;
   padding: 0;
+  scrollbar-width: thin;
 }
 
 .ie-props {
@@ -5333,6 +5367,8 @@ textarea {
   --gui-inspector-width: 380px;
   min-width: 0;
   min-height: 0;
+  height: 100%;
+  max-height: 100%;
   flex: 1 1 auto;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 8px var(--gui-inspector-width);

@@ -158,7 +158,6 @@ function LevelCurvePreview({ api, file, data }: ConfigPreviewProps) {
   const [hiddenTypes, setHiddenTypes] = useState<Set<string>>(new Set());
   const [openTypes, setOpenTypes] = useState<Set<string>>(new Set());
   const [hoverLevel, setHoverLevel] = useState<number | null>(null);
-  const [hoverPosition, setHoverPosition] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
 
   const selectedTypes = useMemo(() => typeInput.split(',').map(value => value.trim()).filter(Boolean), [typeInput]);
   const curves = result?.curves ?? [];
@@ -174,7 +173,6 @@ function LevelCurvePreview({ api, file, data }: ConfigPreviewProps) {
       setHiddenTypes(new Set());
       setOpenTypes(new Set(nextCurves[0]?.type ? [nextCurves[0].type] : []));
       setHoverLevel(null);
-      setHoverPosition(null);
     } catch (exception) {
       setError(exception instanceof Error ? exception.message : String(exception));
     } finally {
@@ -242,9 +240,9 @@ function LevelCurvePreview({ api, file, data }: ConfigPreviewProps) {
     {curves.length ? <>
       <CurveLegend curves={curves} hiddenTypes={hiddenTypes} onToggle={toggleType} />
       <div style={chartWrapStyle}>
-        <LevelCurveSvg curves={curves} visibleCurves={visibleCurves} hiddenTypes={hiddenTypes} metric={metric} hoverLevel={hoverLevel} onHover={(level, position) => { setHoverLevel(level); setHoverPosition(position); }} onLeave={() => { setHoverLevel(null); setHoverPosition(null); }} />
-        {hoverRows.length && hoverPosition ? <CurveTooltip level={hoverLevel ?? 0} rows={hoverRows} metric={metric} position={hoverPosition} /> : null}
+        <LevelCurveSvg curves={curves} visibleCurves={visibleCurves} hiddenTypes={hiddenTypes} metric={metric} hoverLevel={hoverLevel} onHover={setHoverLevel} />
       </div>
+      <CurveLevelInspector level={hoverLevel} rows={hoverRows} />
       <div style={summaryStyle}>
         <span>{copy('曲线数量', 'Curves')}: <strong>{curves.length}</strong></span>
         <span>{copy('显示中', 'Visible')}: <strong>{visibleCurves.length}</strong></span>
@@ -268,7 +266,7 @@ function CurveLegend({ curves, hiddenTypes, onToggle }: { curves: Curve[]; hidde
   })}</div>;
 }
 
-function LevelCurveSvg({ curves, visibleCurves, hiddenTypes, metric, hoverLevel, onHover, onLeave }: { curves: Curve[]; visibleCurves: Curve[]; hiddenTypes: Set<string>; metric: CurveMetric; hoverLevel: number | null; onHover: (level: number, position: { x: number; y: number; width: number; height: number }) => void; onLeave: () => void }) {
+function LevelCurveSvg({ curves, visibleCurves, hiddenTypes, metric, hoverLevel, onHover }: { curves: Curve[]; visibleCurves: Curve[]; hiddenTypes: Set<string>; metric: CurveMetric; hoverLevel: number | null; onHover: (level: number) => void }) {
   const width = 820;
   const height = 300;
   const pad = { left: 42, right: 28, top: 26, bottom: 34 };
@@ -290,9 +288,9 @@ function LevelCurveSvg({ curves, visibleCurves, hiddenTypes, metric, hoverLevel,
     if (!levels.length) return;
     const rect = event.currentTarget.getBoundingClientRect();
     const level = nearestLevel(event.clientX, rect);
-    onHover(level, { x: event.clientX - rect.left, y: event.clientY - rect.top, width: rect.width, height: rect.height });
+    onHover(level);
   };
-  return <svg viewBox={`0 0 ${width} ${height}`} style={svgStyle} role="img" aria-label={copy('等级曲线图', 'Level curve chart')} onMouseMove={handleMove} onMouseLeave={onLeave}>
+  return <svg viewBox={`0 0 ${width} ${height}`} style={svgStyle} role="img" aria-label={copy('等级曲线图', 'Level curve chart')} onMouseMove={handleMove}>
     {[0, .25, .5, .75, 1].map(step => <line key={step} x1={pad.left} x2={width - pad.right} y1={pad.top + chartHeight * step} y2={pad.top + chartHeight * step} stroke="color-mix(in oklch, var(--line) 58%, transparent)" />)}
     <line x1={pad.left} y1={height - pad.bottom} x2={width - pad.right} y2={height - pad.bottom} stroke="color-mix(in oklch, var(--line-2) 78%, transparent)" />
     <line x1={pad.left} y1={pad.top} x2={pad.left} y2={height - pad.bottom} stroke="color-mix(in oklch, var(--line-2) 78%, transparent)" />
@@ -315,30 +313,27 @@ function LevelCurveSvg({ curves, visibleCurves, hiddenTypes, metric, hoverLevel,
   </svg>;
 }
 
-function CurveTooltip({ level, rows, position }: { level: number; rows: { curve: Curve; point: CurvePoint; color: string }[]; metric: CurveMetric; position: { x: number; y: number; width: number; height: number } }) {
-  const tooltipWidth = Math.min(360, Math.max(260, position.width - 24));
-  const estimatedHeight = Math.min(420, 46 + rows.length * 52);
-  const gap = 14;
-  const maxLeft = Math.max(12, position.width - tooltipWidth - 12);
-  const maxTop = Math.max(12, position.height - estimatedHeight - 12);
-  const preferLeft = position.x + gap + tooltipWidth > position.width - 12;
-  const preferAbove = position.y + gap + estimatedHeight > position.height - 12;
-  const left = clamp(preferLeft ? position.x - tooltipWidth - gap : position.x + gap, 12, maxLeft);
-  const top = clamp(preferAbove ? position.y - estimatedHeight - gap : position.y + gap, 12, maxTop);
-  return <div style={{ ...tooltipStyle, left, top, width: tooltipWidth, maxHeight: Math.max(160, position.height - 24) }}>
-    <strong>{copy('目标等级', 'Target level')} Lv.{level}</strong>
-    {rows.map(({ curve, point, color }) => <div key={curve.type} style={tooltipRowStyle}>
-      <span style={{ ...legendSwatchStyle, background: color }} />
-      <div style={{ minWidth: 0 }}>
-        <div style={tooltipTitleStyle}><code>{curve.type}</code></div>
-        <div style={tooltipMetaStyle}>
-          <span>{copy('需求', 'Required')} <b style={tooltipNumberStyle}>{formatNumber(point.requiredExp)}</b></span>
-          <span>{copy('累计', 'Total')} <b style={tooltipNumberStyle}>{formatNumber(point.totalExp)}</b></span>
-          <span>{copy('增长率', 'Growth')} <b style={tooltipNumberStyle}>{formatPercent(point.growthRate)}</b></span>
+function CurveLevelInspector({ level, rows }: { level: number | null; rows: { curve: Curve; point: CurvePoint; color: string }[] }) {
+  if (level == null || !rows.length) return <div style={levelInspectorEmptyStyle}>{copy('移动到曲线上的等级位置查看各等级组数值。', 'Move over a level on the chart to inspect every visible group.')}</div>;
+  return <aside style={levelInspectorStyle} aria-live="polite">
+    <div style={levelInspectorHeadStyle}>
+      <strong>{copy('目标等级', 'Target level')} Lv.{level}</strong>
+      <span>{rows.length} {copy('组', 'groups')}</span>
+    </div>
+    <div style={levelInspectorRowsStyle}>
+      {rows.map(({ curve, point, color }) => <div key={curve.type} style={tooltipRowStyle}>
+        <span style={{ ...legendSwatchStyle, background: color }} />
+        <div style={{ minWidth: 0 }}>
+          <div style={tooltipTitleStyle}><code>{curve.type}</code>{(point.warnings?.length ?? 0) > 0 ? <small style={warningPillStyle}>{point.warnings?.length}</small> : null}</div>
+          <div style={tooltipMetaStyle}>
+            <span>{copy('需求', 'Required')} <b style={tooltipNumberStyle}>{formatNumber(point.requiredExp)}</b></span>
+            <span>{copy('累计', 'Total')} <b style={tooltipNumberStyle}>{formatNumber(point.totalExp)}</b></span>
+            <span>{copy('增长率', 'Growth')} <b style={tooltipNumberStyle}>{formatPercent(point.growthRate)}</b></span>
+          </div>
         </div>
-      </div>
-    </div>)}
-  </div>;
+      </div>)}
+    </div>
+  </aside>;
 }
 
 function CurveTables({ curves, hiddenTypes, openTypes, onToggleOpen }: { curves: Curve[]; hiddenTypes: Set<string>; openTypes: Set<string>; onToggleOpen: (type: string) => void }) {
@@ -391,10 +386,6 @@ function csvCell(value: unknown): string {
   return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 }
 
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
-}
-
 function formatNumber(value: number): string {
   return Number.isFinite(value) ? value.toLocaleString(undefined, { maximumFractionDigits: 2 }) : '-';
 }
@@ -420,7 +411,10 @@ const legendStyle: React.CSSProperties = { display: 'flex', flexWrap: 'wrap', ga
 const legendButtonStyle: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: 6, border: '1px solid var(--line)', borderRadius: 999, padding: '4px 8px', color: 'var(--text)', background: 'color-mix(in oklch, var(--surface-2) 78%, transparent)', fontSize: 11 };
 const legendSwatchStyle: React.CSSProperties = { width: 10, height: 10, borderRadius: 999, flex: '0 0 auto' };
 const chartWrapStyle: React.CSSProperties = { position: 'relative', marginTop: 14 };
-const tooltipStyle: React.CSSProperties = { position: 'absolute', zIndex: 2, maxWidth: 'calc(100% - 24px)', overflowY: 'auto', display: 'grid', gap: 8, padding: 10, border: '1px solid var(--line-2)', borderRadius: 12, background: 'color-mix(in oklch, var(--surface) 96%, var(--bg) 4%)', boxShadow: 'var(--shadow)', pointerEvents: 'none', color: 'var(--text)' };
+const levelInspectorStyle: React.CSSProperties = { marginTop: 10, display: 'grid', gap: 8, padding: 10, border: '1px solid var(--line-2)', borderRadius: 12, background: 'color-mix(in oklch, var(--surface) 96%, var(--bg) 4%)', boxShadow: '0 10px 28px oklch(0% 0 0 / .16)', color: 'var(--text)' };
+const levelInspectorEmptyStyle: React.CSSProperties = { marginTop: 10, padding: 10, border: '1px dashed var(--line)', borderRadius: 12, background: 'color-mix(in oklch, var(--input) 76%, transparent)', color: 'var(--faint)', fontSize: 12 };
+const levelInspectorHeadStyle: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', color: 'var(--text)', fontSize: 12 };
+const levelInspectorRowsStyle: React.CSSProperties = { maxHeight: 220, overflowY: 'auto', display: 'grid', gap: 8, paddingRight: 2, scrollbarWidth: 'thin' };
 const tooltipRowStyle: React.CSSProperties = { display: 'grid', gridTemplateColumns: '10px minmax(0,1fr)', gap: 8, alignItems: 'start' };
 const tooltipTitleStyle: React.CSSProperties = { display: 'flex', gap: 6, alignItems: 'baseline', minWidth: 0, fontSize: 12, fontWeight: 700 };
 const tooltipMetaStyle: React.CSSProperties = { marginTop: 3, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 6, color: 'var(--muted)', fontSize: 11, lineHeight: 1.35 };

@@ -15,7 +15,7 @@ import { useStableEntries } from './components/useStableEntries';
 import { I18nBundleModal, type I18nTarget } from './I18nBundleModal';
 import { configNodeDisplayComment as resolveConfigNodeComment, fieldLabel, fileDisplayComment, fileDisplayTitle, humanizeFieldLabel, moduleDisplayName, optionLabel, parseYaml, serializeYaml, setDeepValue, valuesEqual } from './lib';
 import { Login, ResizableOutlineRail, ResizableRail, WorkspaceTree, fileKindLabel } from './shell';
-import type { SurfaceProps, SurfaceToolbarState } from './registry';
+import type { SurfaceOutlineItem, SurfaceOutlineState, SurfaceProps, SurfaceToolbarState } from './registry';
 import type { RegistryTreeNode, WebConfigCreateTemplate, WebConfigFieldSchema, WebConfigNode, WebConsoleExtension, WebConsoleExtensionStatus, WebEditorDescriptor, WebRegistry, WebRegistryFile, WebRegistryModule } from './types';
 
 // Register CoreLib's built-in surfaces through the same registry used by plugin extensions.
@@ -44,8 +44,6 @@ type DraftPathsAction = (scope: ConfigDraftScope, paths: string[]) => void;
 type RegistryLoadOptions = { initial?: boolean; clearDrafts?: boolean; announceRefresh?: boolean };
 type ConfigSourceDocument = ReturnType<typeof useConfigSourceDocument>;
 type SourceEditController = { paths: Set<string>; update: (node: WebConfigNode, next: unknown) => void };
-type SurfaceOutlineItem = { path: string; label: string; type: string; childCount: number; changedCount: number; changed: boolean };
-type SurfaceOutlineState = { title: string; subtitle: string; items: SurfaceOutlineItem[]; emptyText?: string } | null;
 
 // Persist all changed config nodes in one file-level request so the backend checks the
 // expected revision once, loads YAML once and writes the file once.
@@ -827,7 +825,8 @@ function jumpToConfigNode(path: string, attempt = 0) {
     return;
   }
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  scrollElementToStageTop(target, stage, reduceMotion ? 'auto' : 'smooth');
+  const scrollRoot = target.closest<HTMLElement>('.editor-shell.single') ?? stage;
+  scrollElementToStageTop(target, scrollRoot, reduceMotion ? 'auto' : 'smooth');
   target.classList.remove('config-node-locate');
   void target.offsetWidth;
   target.classList.add('config-node-locate');
@@ -1360,7 +1359,7 @@ function HistoryModal({ api, target, onCancel, onRolledBack }: { api: ApiClient;
             <span>{formatHistoryTime(selectedEntry.createdAt)} · {selectedEntry.actor || 'web'}</span>
             {!rollbackAllowed && <small>{t('core.history.rollbackDisabled')}</small>}
           </div> : null}
-          {parsedDiff.length > 0 ? <UnifiedDiffView diff={parsedDiff} className="history-diff" maxLines={240} /> : <pre>{snapshot?.content || t('core.history.noDiff')}</pre>}
+          {parsedDiff.length > 0 ? <UnifiedDiffView diff={parsedDiff} className="history-diff history-diff--changes-only" maxLines={240} hideContext /> : <pre>{snapshot?.content || t('core.history.noDiff')}</pre>}
         </div>
       </div>
       <ActionGroup className="reload-confirm-actions">
@@ -1542,7 +1541,8 @@ function ConfigSurface({ registry, module, file, drafts, draftHistory, setDraftV
   }
   if (registeredSurface && !isKind(file.kind, 'CONFIG') && !isKind(file.kind, 'SCRIPT')) {
     const SurfaceComponent = registeredSurface.component;
-    return <SurfaceComponent module={module} file={file} api={api} childPath={scriptPath} refreshKey={refreshKey} editor={editor} onReload={onReload} setToolbar={setSurfaceToolbar} showLocalChrome={false} />;
+    const outlineSetter = isKind(file.kind, 'GUI') ? undefined : setSurfaceOutline;
+    return <SurfaceComponent module={module} file={file} api={api} childPath={scriptPath} refreshKey={refreshKey} editor={editor} onReload={onReload} setToolbar={setSurfaceToolbar} setOutline={outlineSetter} showLocalChrome={false} />;
   }
 
   if (isKind(file.kind, 'SCRIPT')) return <section className="config-surface script-surface"><div className="surface-head"><div><h2>{fileDisplayTitle(file)}</h2><p>{fileDisplayComment(file)}</p></div><span className="file-kind script">{fileKindLabel(file.kind)}</span></div>{scriptPath ? <ScriptEditor api={api} scriptPath={scriptPath} module={module} file={file} setSurfaceToolbar={setSurfaceToolbar} setToast={setToast} /> : <div className="script-placeholder" role="status">{t('core.empty.selectScript')}</div>}</section>;
@@ -2582,10 +2582,7 @@ function ConfigNodeView({ scope, node, drafts, setDraftValue, sourceEdit, change
 }
 
 function isWideConfigNode(node: WebConfigNode): boolean {
-  if (node.type === 'list') {
-    const items = Array.isArray(node.value) ? node.value : [];
-    return hasObjectListSchema(node.itemFields) || items.some(isPlainObject);
-  }
+  if (node.type === 'list' || node.type === 'stringList' || node.type === 'numberList') return true;
   return node.type === 'dynamic_map' || node.type === 'objectList' || node.type === 'object' || node.type === 'actions' || node.type === 'effects' || node.type === 'variablesMap';
 }
 
@@ -2898,9 +2895,8 @@ function configInlineText(zh: string, en: string): string {
 }
 
 function isListSchemaField(field: WebConfigFieldSchema | undefined, value: unknown): boolean {
-  if (field?.type === 'objectList') return true;
-  if (field?.type === 'list') return hasObjectListSchema(field.itemFields) || (Array.isArray(value) && value.some(isPlainObject));
-  return Array.isArray(value) && value.some(isPlainObject);
+  if (field?.type === 'objectList' || field?.type === 'list' || field?.type === 'stringList' || field?.type === 'numberList') return true;
+  return Array.isArray(value);
 }
 
 function asStringListValue(value: unknown): string[] {

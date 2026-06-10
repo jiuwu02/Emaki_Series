@@ -37,6 +37,22 @@ export type SourceDocumentAdapter = {
   language?: 'yaml' | 'javascript' | 'text' | string;
 };
 
+export type SurfaceOutlineItem = {
+  path: string;
+  label: string;
+  type: string;
+  childCount: number;
+  changedCount: number;
+  changed: boolean;
+};
+
+export type SurfaceOutlineState = {
+  title: string;
+  subtitle: string;
+  items: SurfaceOutlineItem[];
+  emptyText?: string;
+} | null;
+
 export type SurfaceToolbarState = {
   title?: ReactNode;
   subtitle?: ReactNode;
@@ -72,6 +88,7 @@ export type SurfaceProps = {
   editor?: WebEditorDescriptor;
   onReload?: () => void;
   setToolbar?: (state: SurfaceToolbarState | null) => void;
+  setOutline?: (state: SurfaceOutlineState) => void;
   showLocalChrome?: boolean;
 };
 
