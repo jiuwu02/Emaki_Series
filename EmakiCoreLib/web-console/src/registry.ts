@@ -516,13 +516,40 @@ export function applyConfigRegistryOverrides(registry: WebRegistry): WebRegistry
 export function applyConfigNodeOverrides(moduleId: string, nodes: WebConfigNode[], filePath?: string): WebConfigNode[] {
   const existing = nodes.map(node => applySingleConfigNodeOverride(moduleId, node));
   const schemaFields = dedupeConfigSchemaFields(configSchemaFieldsForFile(moduleId, filePath));
-  if (!schemaFields.length) return existing;
-  const virtualNodes = schemaFields.flatMap(field => createVirtualConfigNodesFromField(moduleId, field));
+  let merged = existing;
+  if (schemaFields.length) {
+    const virtualNodes = dedupeVirtualNodes(schemaFields.flatMap(field => createVirtualConfigNodesFromField(moduleId, field)));
+    const schemaPaths = virtualNodes.map(node => node.path);
+    const existingPaths = new Set(merged.map(node => node.path));
+    const missing = virtualNodes.filter(node => !existingPaths.has(node.path));
+    if (missing.length) merged = mergeMissingConfigNodes(merged, missing, schemaPaths);
+  }
+  return mergeSchemaObjectChildNodes(moduleId, merged);
+}
+
+function mergeSchemaObjectChildNodes(moduleId: string, nodes: WebConfigNode[]): WebConfigNode[] {
+  const virtualNodes = dedupeVirtualNodes(nodes.flatMap(node => createVirtualConfigNodesFromObjectItemFields(moduleId, node)));
+  if (!virtualNodes.length) return nodes;
   const schemaPaths = virtualNodes.map(node => node.path);
-  const existingPaths = new Set(existing.map(node => node.path));
+  const existingPaths = new Set(nodes.map(node => node.path));
   const missing = virtualNodes.filter(node => !existingPaths.has(node.path));
-  if (!missing.length) return existing;
-  return mergeMissingConfigNodes(existing, missing, schemaPaths);
+  return missing.length ? mergeMissingConfigNodes(nodes, missing, schemaPaths) : nodes;
+}
+
+function createVirtualConfigNodesFromObjectItemFields(moduleId: string, node: WebConfigNode): WebConfigNode[] {
+  if (node.type !== 'object' || !node.itemFields?.length) return [];
+  const nodes = node.itemFields.flatMap(field => {
+    if (!field?.path) return [];
+    const childPath = `${node.path}.${field.path}`;
+    return createVirtualConfigNodesFromField(moduleId, [
+      childPath,
+      field.label ?? lastConfigPathKey(field.path).replace(/[_-]+/g, ' '),
+      field.comment ?? '',
+      String(field.type ?? 'text'),
+      field
+    ]);
+  });
+  return dedupeVirtualNodes(nodes);
 }
 
 export function standardGuiFields(entries: StandardGuiFieldEntry[] = []): Record<string, WebEditorField> {
@@ -776,8 +803,10 @@ function virtualConfigNode(moduleId: string, path: string, label: string, commen
 
 function mergeMissingConfigNodes(existing: WebConfigNode[], missing: WebConfigNode[], order: string[]): WebConfigNode[] {
   const result = [...existing];
+  const resultPaths = new Set(result.map(node => node.path));
   const pathIndex = () => new Map(result.map((node, index) => [node.path, index]));
   for (const node of missing) {
+    if (!node.path || resultPaths.has(node.path)) continue;
     const orderIndex = order.indexOf(node.path);
     const indexes = pathIndex();
     let insertAt = result.length;
@@ -798,6 +827,7 @@ function mergeMissingConfigNodes(existing: WebConfigNode[], missing: WebConfigNo
       }
     }
     result.splice(insertAt, 0, node);
+    resultPaths.add(node.path);
   }
   return result;
 }

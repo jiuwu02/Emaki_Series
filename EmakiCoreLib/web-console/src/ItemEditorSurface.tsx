@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ApiError, type ApiClient, type ActionTypesResult } from './api';
 import { Button, CollapsibleSection, ChangedPathsProvider, DisclosureChevron, EditorChrome, InlineError, KvTable, MiniText, NumberListEditor, PropRow as BasePropRow, SectionHead, StandardActionsField, StandardEconomyProviderSelect, StandardEffectsEditor, StringListEditor, ToastNotice, VariablesMapEditor, parseActionList, type ActionEntry } from './components';
 import { asList, asRecord, asStringList, displaySource, firstItemSource, materialFromItemSource, setDeepValue, parseYaml, type AnyMap } from './itemEditor';
-import { isGlobPath } from './documentPaths';
+import { concreteRegistryChildPath, isConcretePath, isGlobPath, normalizeDocumentPath } from './documentPaths';
 import { t, getLocale } from './i18n';
 import { changedPathSet, diffRecords, fieldLabel, getDeepValue, humanizeFieldLabel, isChangedFieldPath, materialShortName, materialUrls, optionLabel, subscribeTextureBases, textValue, valuesEqual } from './lib';
 import { MINECRAFT_MATERIALS, searchMaterials } from './minecraftMaterials';
@@ -49,15 +49,15 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
   const [actionTypesResult, setActionTypesResult] = useState<ActionTypesResult | null>(null);
   const [economyProviders, setEconomyProviders] = useState<string[]>(DEFAULT_ECONOMY_PROVIDERS);
 
-  const filePath = childPath || file.path;
+  const filePath = useMemo(() => resolveSurfaceFilePath(file, childPath), [file, childPath]);
   const fileTitle = fileDisplayTitle(file);
   const baseName = editor?.baseName ?? DEFAULT_BASE_NAME;
   const baseLore = useMemo(() => editor?.baseLore ?? [DEFAULT_BASE_LORE], [editor?.baseLore]);
   const sections = useMemo(() => editor?.sections?.length ? editor.sections : defaultSections(), [editor]);
   const editorFields = useMemo(() => editorFieldMap(editor), [editor]);
   const sourceAdapter = getSourceDocumentAdapter(file, editor);
-  const sourcePath = childPath || file.path;
-  const sourceContext = useMemo(() => ({ module, file, childPath, path: sourcePath, editor }), [module, file, childPath, sourcePath, editor?.id]);
+  const resolvedChildPath = isGlobPath(file.path) && isConcretePath(filePath) ? filePath : childPath;
+  const sourceContext = useMemo(() => ({ module, file, childPath: resolvedChildPath, path: filePath, editor }), [module, file, resolvedChildPath, filePath, editor?.id]);
   const draftContent = useMemo(() => sourceError ? sourceText : serializeItemYaml(data), [sourceError, sourceText, data]);
   const sourceContent = draftContent;
   const changes = useMemo(() => diffRecords(data, originalData, '', 18), [data, originalData]);
@@ -80,7 +80,10 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
     }
     setLoading(true);
     setError(null);
-    api.readTextDocument({ kind: file.kind, moduleId: module.id, path: filePath }).then(doc => {
+    const readDocument = sourceAdapter
+      ? sourceAdapter.read(api, sourceContext)
+      : api.readTextDocument({ kind: file.kind, moduleId: module.id, path: filePath });
+    readDocument.then(doc => {
       if (cancelled) return;
       try {
         const parsed = parseYaml(doc.content) as AnyMap;
@@ -108,7 +111,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
       setLoading(false);
     });
     return () => { cancelled = true; };
-  }, [api, module.id, filePath, refreshKey]);
+  }, [api, module.id, file.kind, filePath, refreshKey, sourceAdapter, sourceContext]);
 
   useEffect(() => {
     api.actionTypes().then(setActionTypesResult).catch(err => void api.reportFrontendError({ message: err instanceof Error ? err.message : String(err), source: 'item-action-types', detail: module.id }));
@@ -320,6 +323,22 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
       </EditorContext.Provider>
     </div>
   );
+}
+
+function resolveSurfaceFilePath(file: WebRegistryFile, childPath?: string): string {
+  const selectedPath = normalizeDocumentPath(childPath);
+  if (isConcretePath(selectedPath)) return selectedPath;
+  const filePath = normalizeDocumentPath(file.path);
+  if (!isGlobPath(filePath)) return filePath;
+  return firstConcreteChildPath(file) ?? filePath;
+}
+
+function firstConcreteChildPath(file: WebRegistryFile): string | undefined {
+  for (const child of file.children ?? []) {
+    const childPath = concreteRegistryChildPath(file, child);
+    if (isConcretePath(childPath)) return childPath;
+  }
+  return undefined;
 }
 
 function FieldEditor({ field, data, originalData, setField, actionTypesResult, editorId }: { field: WebEditorField; data: AnyMap; originalData: AnyMap; setField: (path: string, value: unknown) => void; actionTypesResult: ActionTypesResult | null; editorId?: string }) {

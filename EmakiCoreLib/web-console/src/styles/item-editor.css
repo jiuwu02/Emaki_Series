@@ -435,7 +435,7 @@
 
 .prop-kv--string-list {
   grid-template-columns: minmax(0, 1fr) var(--config-field-control-height);
-  align-items: start;
+  align-items: center;
   gap: 6px;
   padding: 0;
 }
@@ -454,10 +454,10 @@
   border-radius: 3px;
   color: var(--accent);
   background: transparent;
-  font-size: 18px;
-  font-weight: 800;
+  font-size: 12px;
+  font-weight: 400;
   line-height: 1;
-  opacity: .78;
+  opacity: .72;
 }
 
 .prop-list-add:hover,
@@ -485,6 +485,12 @@
   grid-column: 1 / -1;
   grid-template-columns: minmax(0, 1fr) var(--config-field-control-height);
   gap: 6px;
+  min-height: var(--config-field-control-height);
+}
+
+.prop-list-add + .prop-list-row {
+  grid-column: 1;
+  grid-row: 1;
 }
 
 .prop-list-row .prop-kv-del {
@@ -501,7 +507,7 @@
   min-height: var(--config-field-control-height);
   font-size: 12px;
   line-height: var(--config-field-text-line-height);
-  padding: 5px 8px;
+  padding: var(--config-field-body-padding-y) 8px;
 }
 
 .prop-kv-row:focus-within input {

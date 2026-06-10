@@ -522,12 +522,12 @@ textarea {
   min-width: 0;
   min-height: 0;
   display: grid;
-  grid-template-columns: var(--rail-width, 272px) minmax(0, 1fr) var(--outline-width, 216px);
+  grid-template-columns: var(--rail-width, 272px) minmax(var(--stage-min-width, 0px), 1fr) var(--outline-width, 216px);
   overflow: hidden;
 }
 
 .workbench--no-outline {
-  grid-template-columns: var(--rail-width, 272px) minmax(0, 1fr);
+  grid-template-columns: var(--rail-width, 272px) minmax(var(--stage-min-width, 0px), 1fr);
 }
 
 .toast {

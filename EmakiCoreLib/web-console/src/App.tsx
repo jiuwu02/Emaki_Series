@@ -1,4 +1,4 @@
-import { Component, memo, startTransition, useDeferredValue, useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react';
+import { Component, memo, startTransition, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react';
 import type { Completion, CompletionContext, CompletionResult, CompletionSource } from '@codemirror/autocomplete';
 import type { ComponentType } from 'react';
 import { ApiClient, ApiError, type FrontendDebugEventReport, type HistoryEntry, type HistorySnapshot, type InsightDependencyGraphEdge, type InsightDependencyGraphNode, type InsightDependencyGraphResult, type InsightReferenceResult, type InsightSearchResult, type RegistryValueChange } from './api';
@@ -14,7 +14,7 @@ import { useDialogFocus } from './components/useDialogFocus';
 import { useStableEntries } from './components/useStableEntries';
 import { I18nBundleModal, type I18nTarget } from './I18nBundleModal';
 import { configNodeDisplayComment as resolveConfigNodeComment, fieldLabel, fileDisplayComment, fileDisplayTitle, humanizeFieldLabel, moduleDisplayName, optionLabel, parseYaml, serializeYaml, setDeepValue, valuesEqual } from './lib';
-import { Login, ResizableOutlineRail, ResizableRail, WorkspaceTree, fileKindLabel } from './shell';
+import { Login, OUTLINE_DEFAULT, OUTLINE_MAX, OUTLINE_MIN, OUTLINE_STORAGE_KEY, RAIL_DEFAULT, RAIL_MAX, RAIL_MIN, RAIL_STORAGE_KEY, ResizableOutlineRail, ResizableRail, WorkspaceTree, fileKindLabel } from './shell';
 import { FieldOutlineRail, jumpToConfigNode } from './shell/FieldOutlineRail';
 import { debugInputValue, frontendDebugEvent, interactiveTarget, isFormControl } from './shell/frontendDebug';
 import type { SurfaceOutlineItem, SurfaceOutlineState, SurfaceProps, SurfaceToolbarState } from './registry';
@@ -117,7 +117,120 @@ const CONFIG_LAZY_SECTION_THRESHOLD = 10;
 const OBJECT_LIST_COLLAPSE_THRESHOLD = 10;
 const OBJECT_LIST_INITIAL_ROWS = 30;
 const OBJECT_LIST_ROW_BATCH_SIZE = 30;
+const WORKBENCH_STAGE_TARGET = 720;
+const WORKBENCH_OUTLINE_COLLAPSE_WIDTH = 1180;
 
+type WorkbenchLayout = {
+  outlineVisible: boolean;
+  railWidth: number;
+  outlineWidth: number;
+  style: CSSProperties;
+  setRailRequested: (width: number) => void;
+  setOutlineRequested: (width: number) => void;
+};
+
+function useWorkbenchLayout(hasOutline: boolean): WorkbenchLayout {
+  const [viewportWidth, setViewportWidth] = useState(() => browserViewportWidth());
+  const [railRequested, setRailRequestedState] = useState(() => readStoredWorkbenchWidth(RAIL_STORAGE_KEY, RAIL_DEFAULT, RAIL_MIN, RAIL_MAX));
+  const [outlineRequested, setOutlineRequestedState] = useState(() => readStoredWorkbenchWidth(OUTLINE_STORAGE_KEY, OUTLINE_DEFAULT, OUTLINE_MIN, OUTLINE_MAX));
+
+  useEffect(() => {
+    const onResize = () => setViewportWidth(browserViewportWidth());
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  const layout = useMemo(() => resolveWorkbenchLayout(viewportWidth, hasOutline, railRequested, outlineRequested), [viewportWidth, hasOutline, railRequested, outlineRequested]);
+
+  const setRailRequested = useCallback((width: number) => {
+    setRailRequestedState(() => {
+      const next = clampWorkbenchWidth(width, RAIL_MIN, RAIL_MAX, RAIL_DEFAULT);
+      writeStoredWorkbenchWidth(RAIL_STORAGE_KEY, next);
+      return next;
+    });
+  }, []);
+
+  const setOutlineRequested = useCallback((width: number) => {
+    setOutlineRequestedState(() => {
+      const next = clampWorkbenchWidth(width, OUTLINE_MIN, OUTLINE_MAX, OUTLINE_DEFAULT);
+      writeStoredWorkbenchWidth(OUTLINE_STORAGE_KEY, next);
+      return next;
+    });
+  }, []);
+
+  return {
+    ...layout,
+    setRailRequested,
+    setOutlineRequested
+  };
+}
+
+function resolveWorkbenchLayout(viewportWidth: number, hasOutline: boolean, railRequested: number, outlineRequested: number): Omit<WorkbenchLayout, 'setRailRequested' | 'setOutlineRequested'> {
+  const outlineVisible = hasOutline && viewportWidth > WORKBENCH_OUTLINE_COLLAPSE_WIDTH;
+  const minSideWidth = RAIL_MIN + (outlineVisible ? OUTLINE_MIN : 0);
+  const possibleStageWidth = Math.max(0, viewportWidth - minSideWidth);
+  const stageTarget = Math.min(WORKBENCH_STAGE_TARGET, possibleStageWidth);
+  const availableForSidebars = Math.max(minSideWidth, viewportWidth - stageTarget);
+  let railWidth = clampWorkbenchWidth(railRequested, RAIL_MIN, RAIL_MAX, RAIL_DEFAULT);
+  let outlineWidth = outlineVisible ? clampWorkbenchWidth(outlineRequested, OUTLINE_MIN, OUTLINE_MAX, OUTLINE_DEFAULT) : 0;
+
+  if (outlineVisible) {
+    let overflow = railWidth + outlineWidth - availableForSidebars;
+    if (overflow > 0) {
+      const railFlexible = Math.max(0, railWidth - RAIL_MIN);
+      const outlineFlexible = Math.max(0, outlineWidth - OUTLINE_MIN);
+      const totalFlexible = railFlexible + outlineFlexible;
+      if (totalFlexible > 0) {
+        const railShrink = Math.min(railFlexible, overflow * (railFlexible / totalFlexible));
+        railWidth -= railShrink;
+        overflow -= railShrink;
+        const outlineShrink = Math.min(outlineFlexible, overflow);
+        outlineWidth -= outlineShrink;
+      }
+    }
+  } else {
+    railWidth = Math.min(railWidth, Math.max(RAIL_MIN, availableForSidebars));
+  }
+
+  railWidth = Math.round(railWidth);
+  outlineWidth = Math.round(outlineWidth);
+  const stageMinWidth = Math.max(0, Math.floor(Math.min(stageTarget, viewportWidth - railWidth - outlineWidth)));
+  return {
+    outlineVisible,
+    railWidth,
+    outlineWidth,
+    style: {
+      '--rail-width': `${railWidth}px`,
+      '--outline-width': `${outlineWidth}px`,
+      '--stage-min-width': `${stageMinWidth}px`
+    } as CSSProperties
+  };
+}
+
+function browserViewportWidth(): number {
+  return typeof window === 'undefined' ? 1440 : Math.max(0, window.innerWidth || document.documentElement.clientWidth || 1440);
+}
+
+function readStoredWorkbenchWidth(key: string, fallback: number, min: number, max: number): number {
+  try {
+    const value = localStorage.getItem(key);
+    return value == null ? fallback : clampWorkbenchWidth(Number(value), min, max, fallback);
+  } catch (_) {
+    return fallback;
+  }
+}
+
+function writeStoredWorkbenchWidth(key: string, value: number): void {
+  try {
+    localStorage.setItem(key, String(Math.round(value)));
+  } catch (_) {
+    // Storage can be unavailable in private mode; layout still works with in-memory state.
+  }
+}
+
+function clampWorkbenchWidth(value: number, min: number, max: number, fallback: number): number {
+  return Math.max(min, Math.min(max, Number.isFinite(value) ? value : fallback));
+}
 
 export default function App() {
   const [token, setToken] = useState(() => sessionStorage.getItem('emaki-web-token'));
@@ -142,6 +255,7 @@ export default function App() {
   const [saving, setSaving] = useState(false);
   const [surfaceToolbar, setSurfaceToolbar] = useState<SurfaceToolbarState | null>(null);
   const [surfaceOutline, setSurfaceOutline] = useState<SurfaceOutlineState>(null);
+  const workbenchLayout = useWorkbenchLayout(Boolean(surfaceOutline));
   const [surfaceDirtyKeys, setSurfaceDirtyKeys] = useState<Set<string>>(() => new Set());
   const [extensionStatuses, setExtensionStatuses] = useState<WebConsoleExtensionStatus[]>([]);
   const [extensionHealth, setExtensionHealth] = useState<'idle' | 'loading' | 'ok' | 'failed'>('idle');
@@ -625,7 +739,7 @@ export default function App() {
   return (
     <ActionTypesProvider api={api}>
     <EconomyProvidersProvider api={api}>
-    <div className={`workbench${surfaceOutline ? '' : ' workbench--no-outline'}`} data-locale-version={localeVersion}>
+    <div className={`workbench${workbenchLayout.outlineVisible ? '' : ' workbench--no-outline'}`} style={workbenchLayout.style} data-locale-version={localeVersion}>
       {toast && <ToastNotice tone={toast.tone}>{toast.text}</ToastNotice>}
       {createTarget && <CreateFileModal target={createTarget} onCancel={() => setCreateTarget(null)} onCreate={createFileFromTree} />}
       {deleteTarget && <DeleteFileModal target={deleteTarget} onCancel={() => setDeleteTarget(null)} onDelete={deleteFileFromTree} />}
@@ -635,7 +749,7 @@ export default function App() {
       {dependencyGraphTarget && <InsightDependencyGraphModal api={api} registry={registry} target={dependencyGraphTarget} onCancel={() => setDependencyGraphTarget(null)} onOpen={location => openInsightLocation(location, () => setDependencyGraphTarget(null))} />}
       {historyTarget && <HistoryModal api={api} target={historyTarget} onCancel={() => setHistoryTarget(null)} onRolledBack={async () => { setHistoryTarget(null); await reloadCurrentSurface(); }} />}
       {saveConflict && <SaveConflictModal conflict={saveConflict} onCancel={() => setSaveConflict(null)} />}
-      <ResizableRail>
+      <ResizableRail width={workbenchLayout.railWidth} onWidthChange={workbenchLayout.setRailRequested}>
         <div className="brand-block">
           <div className="brand-main">
             <span className="brand-mark" aria-hidden="true"><EmakiParentMark /></span>
@@ -699,7 +813,7 @@ export default function App() {
           <ConfigSurface registry={registry} module={selectedModule} file={selectedFile} drafts={drafts} draftHistory={draftHistory} setDraftValue={setDraftValue} clearDraftScope={clearDraftScope} clearDraftValues={clearDraftValues} clearDraftPaths={clearDraftPaths} reconcileScopeDrafts={reconcileScopeDrafts} setSaveConflict={setSaveConflict} undoDraftScope={undoDraftScope} redoDraftScope={redoDraftScope} api={api} scriptPath={selected?.scriptPath} refreshKey={selected?.refreshKey ?? 0} pendingExtensionModules={pendingExtensionModules} onReload={() => void reloadCurrentSurface()} onRefreshRegistry={() => loadRegistry({ clearDrafts: false, announceRefresh: false })} setSurfaceToolbar={setSurfaceToolbar} setSurfaceOutline={setSurfaceOutline} setToast={setToast} />
         </section>
       </main>
-      {surfaceOutline && <ResizableOutlineRail>
+      {surfaceOutline && workbenchLayout.outlineVisible && <ResizableOutlineRail width={workbenchLayout.outlineWidth} onWidthChange={workbenchLayout.setOutlineRequested}>
         <FieldOutlineRail outline={surfaceOutline} onJump={jumpToConfigPath} />
       </ResizableOutlineRail>}
     </div>

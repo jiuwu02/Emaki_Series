@@ -54,6 +54,15 @@ export function registerEmakiForgeWebConsole(): void {
 
   const copy = localeText;
 
+  const qualityTierDisplayFields = [
+    { path: 'name_actions', label: '名称动作链', comment: '给该品质物品名称追加前缀、后缀或执行替换动作。', type: 'actions', defaultValue: [] },
+    { path: 'lore_actions', label: 'Lore 动作链', comment: '给该品质物品 Lore 执行的动作列表。', type: 'actions', defaultValue: [] },
+    { path: 'action', label: 'CoreLib 动作', comment: '该品质达成时执行的 CoreLib Action 行列表，例如广播、提示或命令动作。', type: 'stringList', defaultValue: [] }
+  ];
+  const qualityTierDisplayMatcher = (path: string, node: { type?: string }) => node.type === 'object'
+    && path.startsWith('quality.item_meta.tiers.')
+    && path.split('.').length === 4;
+
   const fields: FieldSpec[] = [
     ['language', '语言', '语言文件 ID，对应 lang/<language>.yml。', 'text'],
     ['version', '配置版本', '默认配置结构版本，通常不建议手动修改。', 'text'],
@@ -67,11 +76,7 @@ export function registerEmakiForgeWebConsole(): void {
     ['quality.guarantee.minimum', '保底品质', '保底触发时至少给到的品质名称，需要与 quality.tiers 中的名称一致。', 'text'],
     ['quality.item_meta', '显示写入', '是否把品质写入物品名称、Lore，以及每个品质对应的显示动作。', 'object'],
     ['quality.item_meta.enabled', '启用写入', '开启后锻造完成会按品质配置修改物品显示。', 'boolean'],
-    ['quality.item_meta.tiers', '品质显示', '每个品质名称对应的 name_actions、lore_actions 或广播动作配置。', 'object', { creatableChildren: true, createTemplates: [{ id: 'quality-tier-display', label: copy('品质显示规则', 'Quality display rule'), fields: [
-      { path: 'name_actions', label: '名称动作链', comment: '给该品质物品名称追加前缀、后缀或执行替换动作。', type: 'actions', defaultValue: [] },
-      { path: 'lore_actions', label: 'Lore 动作链', comment: '给该品质物品 Lore 执行的动作列表。', type: 'actions', defaultValue: [] },
-      { path: 'action', label: '广播动作', comment: '该品质达成时执行的广播或提示动作。', type: 'stringList', defaultValue: [] }
-    ] }] }],
+    ['quality.item_meta.tiers', '品质显示', '每个品质名称对应的 name_actions、lore_actions 或 CoreLib 动作配置。', 'object', { creatableChildren: true, createTemplates: [{ id: 'quality-tier-display', label: copy('品质显示规则', 'Quality display rule'), fields: qualityTierDisplayFields }] }],
     ['number_format', '数值格式', '锻造结果数值在名称、Lore 和日志中的格式化规则。', 'object'],
     ['number_format.default', '默认格式', '普通小数的默认格式，例如 0.##。', 'text'],
     ['number_format.integer', '整数格式', '整数数值的显示格式，例如 0。', 'text'],
@@ -89,7 +94,7 @@ export function registerEmakiForgeWebConsole(): void {
   const ruleFields: Record<string, [string, string, string]> = {
     name_actions: ['名称动作链', '对物品显示名称执行的 CoreLib Action 列表，例如前缀、后缀或替换。', 'actions'],
     lore_actions: ['Lore 动作链', '对物品 Lore 执行的 CoreLib Action 列表。', 'actions'],
-    action: ['动作', '达成某品质或锻造事件后执行的动作列表。', 'list'],
+    action: ['CoreLib 动作', '达成某品质或锻造事件后执行的 CoreLib Action 行列表。', 'stringList'],
     value: ['文本值', '动作使用的文本值或格式参数。', 'text'],
     enabled: ['启用', '是否启用当前功能、分支或条目。', 'boolean'],
     threshold: ['阈值', '触发保底、条件或区间逻辑的数值阈值。', 'number'],
@@ -215,15 +220,14 @@ export function registerEmakiForgeWebConsole(): void {
       { pathPrefix: 'item_adjustments/', fields: itemAdjustmentFields }
     ],
     ruleFields,
+    rules: [
+      [qualityTierDisplayMatcher, { itemFields: qualityTierDisplayFields }]
+    ],
     createTemplates: [
       ['quality.item_meta.tiers', {
         id: 'quality-tier-display',
         label: copy('品质显示规则', 'Quality display rule'),
-        fields: [
-          { path: 'name_actions', label: '名称动作链', comment: '给该品质物品名称追加前缀、后缀或执行替换动作。', type: 'actions', defaultValue: [] },
-          { path: 'lore_actions', label: 'Lore 动作链', comment: '给该品质物品 Lore 执行的动作列表。', type: 'actions', defaultValue: [] },
-          { path: 'action', label: '广播动作', comment: '该品质达成时执行的广播或提示动作。', type: 'list', defaultValue: [] }
-        ]
+        fields: qualityTierDisplayFields
       }]
     ],
     listItemSchemas: [

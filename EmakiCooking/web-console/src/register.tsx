@@ -26,22 +26,22 @@ export function registerEmakiCookingWebConsole(): void {
     { path: 'scale.z', label: 'Z 缩放', comment: 'Z 轴缩放。', type: 'number', defaultValue: 1 }
   ];
 
+  const stationAdjustmentTemplate = {
+    id: 'station-display-adjustment',
+    label: copy('工位展示调整', 'Station display adjustment'),
+    fields: displayTransformFields
+  };
+
   const itemAdjustmentFields: FieldSpec[] = [
     ['item_sources', '物品来源', '需要调整展示姿态的 ItemSource 列表。', 'stringList'],
-    ['adjustment', '展示调整', '此物品自己的展示实体偏移、旋转和缩放。', 'object'],
-    ['adjustment.offset', '偏移', '展示实体偏移。', 'object'],
-    ['adjustment.offset.x', 'X 偏移', 'X 轴偏移。', 'number'],
-    ['adjustment.offset.y', 'Y 偏移', 'Y 轴偏移。', 'number'],
-    ['adjustment.offset.z', 'Z 偏移', 'Z 轴偏移。', 'number'],
-    ['adjustment.rotation', '旋转', '展示实体旋转。', 'object'],
-    ['adjustment.rotation.x', 'X 旋转', 'X 轴旋转角度或范围。', 'text'],
-    ['adjustment.rotation.y', 'Y 旋转', 'Y 轴旋转角度或范围。', 'text'],
-    ['adjustment.rotation.z', 'Z 旋转', 'Z 轴旋转角度或范围。', 'text'],
-    ['adjustment.scale', '缩放', '展示实体缩放。', 'object'],
-    ['adjustment.scale.x', 'X 缩放', 'X 轴缩放。', 'number'],
-    ['adjustment.scale.y', 'Y 缩放', 'Y 轴缩放。', 'number'],
-    ['adjustment.scale.z', 'Z 缩放', 'Z 轴缩放。', 'number'],
-    ['stations', '工位覆盖', '按工位类型覆盖展示调整。', 'object']
+    ['stations', '工位覆盖', '按工位类型覆盖展示调整；YAML 结构为 stations.<工位>.offset/rotation/scale。', 'object', { creatableChildren: true, createTemplates: [stationAdjustmentTemplate] }],
+    ['stations.chopping_board', '砧板展示', '砧板上的该物品展示调整。', 'object', { itemFields: displayTransformFields }],
+    ['stations.wok', '炒锅展示', '炒锅上的该物品展示调整。', 'object', { itemFields: displayTransformFields }],
+    ['stations.grinder', '研磨机展示', '研磨机上的该物品展示调整。', 'object', { itemFields: displayTransformFields }],
+    ['stations.steamer', '蒸锅展示', '蒸锅上的该物品展示调整。', 'object', { itemFields: displayTransformFields }],
+    ['stations.oven', '烤炉展示', '烤炉上的该物品展示调整。', 'object', { itemFields: displayTransformFields }],
+    ['stations.juicer', '榨汁机展示', '榨汁机上的该物品展示调整。', 'object', { itemFields: displayTransformFields }],
+    ['stations.fermentation_barrel', '发酵桶展示', '发酵桶上的该物品展示调整。', 'object', { itemFields: displayTransformFields }]
   ];
 
   const inputItemFields = [
@@ -52,14 +52,12 @@ export function registerEmakiCookingWebConsole(): void {
   const outputFields = [
     { path: 'item_sources', label: '产物来源', comment: '产物 ItemSource 列表。', type: 'stringList', defaultValue: ['minecraft-bread'] },
     { path: 'amount', label: '数量', comment: '生成的产物数量。', type: 'number', defaultValue: 1 },
-    { path: 'chance', label: '概率', comment: '产出概率；留空时按必定产出处理。', type: 'number', defaultValue: 100 },
-    { path: 'structured_presentation', label: '结构化展示', comment: '覆盖产物展示层的结构化呈现配置。', type: 'map', defaultValue: {} }
+    { path: 'chance', label: '概率', comment: '产出概率；留空时按必定产出处理。', type: 'number', defaultValue: 100 }
   ];
 
   const outcomeFields = [
     { path: 'outputs', label: '产物列表', comment: '该结果分支产出的物品列表。', type: 'objectList', defaultValue: [], itemFields: outputFields },
-    { path: 'actions', label: '结果动作', comment: '该结果分支触发后执行的动作。', type: 'stringList', defaultValue: [] },
-    { path: 'structured_presentation', label: '结构化展示', comment: '覆盖结果展示层的结构化呈现配置。', type: 'map', defaultValue: {} }
+    { path: 'actions', label: '结果动作', comment: '该结果分支触发后执行的动作。', type: 'stringList', defaultValue: [] }
   ];
 
   const fields: FieldSpec[] = [
@@ -168,11 +166,14 @@ export function registerEmakiCookingWebConsole(): void {
   const recipeCommonFields: FieldSpec[] = [
     ['id', 'ID', '烹饪配方唯一标识。', 'text'],
     ['display_name', '显示名称', '配方在 GUI、日志或提示中的显示名称。', 'text'],
-    ['permission', '权限', '使用此配方所需权限节点；留空表示不限制。', 'text'],
-    ['condition_type', '条件逻辑', '配方条件表达式组合方式。', 'enum', { options: ['all_of', 'any_of'], optionLabelPrefix: 'condition_type' }],
-    ['conditions', '条件列表', 'CoreLib 条件表达式列表，源码按 condition_type 组合判定。', 'objectList'],
-    ['condition_required_count', '需要满足数量', 'any_of 条件逻辑下需要满足的最少条件数量；0 表示不额外限制。', 'number'],
-    ['structured_presentation', '结构化展示', '配方层展示配置，会与产物层展示合并。', 'object'],
+    ['permission', '权限', '源码按 getString("permission") 读取的单个权限节点；留空表示不限制。', 'text'],
+    ['condition', '完成条件', '配方完成时评估的条件块，字段结构与默认 YAML 的 condition 一致。', 'object'],
+    ['condition.condition_type', '条件逻辑', '条件表达式组合方式。', 'enum', { options: ['all_of', 'any_of', 'none_of', 'at_least', 'exactly'], optionLabelPrefix: 'condition_type' }],
+    ['condition.conditions', '条件表达式', 'CoreLib 条件表达式字符串列表。', 'stringList'],
+    ['condition.condition_required_count', '需要满足数量', 'at_least / exactly 条件逻辑下需要满足的条件数量。', 'number'],
+    ['condition.pass_actions', '条件成立动作', '条件成立时执行的 CoreLib Action 列表。', 'stringList'],
+    ['condition.fail_actions', '条件失败动作', '条件不成立时执行的 CoreLib Action 列表。', 'stringList'],
+    ['condition.block_output_on_false', '失败阻止产出', '条件不成立时是否阻止产物输出。', 'boolean'],
     ['result', '结果', '配方完成后的分支产物与动作。', 'object'],
     ['result.success', '成功结果', '普通完成或正确烹饪时的结果分支。', 'object', { itemFields: outcomeFields }],
     ['result.success.outputs', '成功产物', '成功结果分支产出的物品列表。', 'objectList', { itemFields: outputFields }],
@@ -333,7 +334,14 @@ export function registerEmakiCookingWebConsole(): void {
     rotation_degrees: ['旋转角度', '动画旋转角度，单位度。', 'number'],
     failure: ['失败规则', '工位处理失败时的概率、产物与反馈配置。', 'object'],
     item_sources: ['物品来源', '参与匹配、消耗、返还或产出的 ItemSource 列表。', 'list'],
-    permission: ['权限', '玩家执行该配方时需要拥有的权限节点；留空表示不限制。', 'text'],
+    permission: ['权限', '源码按 getString("permission") 读取的单个权限节点；留空表示不限制。', 'text'],
+    condition: ['完成条件', '配方完成时评估的条件块。', 'object'],
+    condition_type: ['条件逻辑', '条件表达式组合方式。', 'enum', { options: ['all_of', 'any_of', 'none_of', 'at_least', 'exactly'], optionLabelPrefix: 'condition_type' }],
+    condition_required_count: ['需要满足数量', 'at_least / exactly 条件逻辑下需要满足的条件数量。', 'number'],
+    conditions: ['条件表达式', 'CoreLib 条件表达式字符串列表。', 'stringList'],
+    pass_actions: ['条件成立动作', '条件成立时执行的 CoreLib Action 列表。', 'stringList'],
+    fail_actions: ['条件失败动作', '条件不成立时执行的 CoreLib Action 列表。', 'stringList'],
+    block_output_on_false: ['失败阻止产出', '条件不成立时是否阻止产物输出。', 'boolean'],
     id: ['ID', '配方唯一标识。', 'text'],
     result: ['产物', '配方完成后的产物配置。', 'object'],
     actions: ['阶段动作', '工位流程中各阶段触发的 CoreLib Action 列表。', 'object'],
@@ -495,11 +503,6 @@ export function registerEmakiCookingWebConsole(): void {
       ['result.early.outputs', outputFields],
       ['result.over.outputs', outputFields],
       ['outputs', outputFields],
-      ['conditions', [
-        { path: 'type', label: '类型', comment: '条件类型或执行器标识。', type: 'text', defaultValue: '' },
-        { path: 'expression', label: '表达式', comment: '条件表达式文本。', type: 'text', defaultValue: '' },
-        { path: 'params', label: '参数', comment: '条件附加参数。', type: 'map', defaultValue: {} }
-      ]],
       ['inputs', inputItemFields],
       ['stations.wok.heat_levels', [
         { path: 'item_sources', label: '热源来源', comment: '匹配该火候等级的热源 ItemSource。', type: 'stringList', defaultValue: ['minecraft-campfire'] },

@@ -1,20 +1,26 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { t } from '../i18n';
 
-const RAIL_MIN = 180;
-const RAIL_MAX = 600;
-const RAIL_STEP = 16;
-const OUTLINE_MIN = 168;
-const OUTLINE_MAX = 320;
-const OUTLINE_STEP = 16;
+export const RAIL_MIN = 180;
+export const RAIL_MAX = 600;
+export const RAIL_DEFAULT = 272;
+export const RAIL_STEP = 16;
+export const OUTLINE_MIN = 168;
+export const OUTLINE_MAX = 320;
+export const OUTLINE_DEFAULT = 216;
+export const OUTLINE_STEP = 16;
+export const RAIL_STORAGE_KEY = 'emaki-rail-width';
+export const OUTLINE_STORAGE_KEY = 'emaki-outline-width';
 
-type ResizableSideRailProps = {
+type ResizableRailProps = {
   children: ReactNode;
+  width: number;
+  onWidthChange: (width: number) => void;
+};
+
+type ResizableSideRailProps = ResizableRailProps & {
   className: string;
   resizeClassName: string;
-  storageKey: string;
-  cssVariable: string;
-  defaultWidth: number;
   min: number;
   max: number;
   step: number;
@@ -22,13 +28,12 @@ type ResizableSideRailProps = {
   ariaLabel: string;
 };
 
-export function ResizableRail({ children }: { children: ReactNode }) {
+export function ResizableRail({ children, width, onWidthChange }: ResizableRailProps) {
   return <ResizableSideRail
     className="tree-rail"
     resizeClassName="rail-resize"
-    storageKey="emaki-rail-width"
-    cssVariable="--rail-width"
-    defaultWidth={272}
+    width={width}
+    onWidthChange={onWidthChange}
     min={RAIL_MIN}
     max={RAIL_MAX}
     step={RAIL_STEP}
@@ -37,13 +42,12 @@ export function ResizableRail({ children }: { children: ReactNode }) {
   >{children}</ResizableSideRail>;
 }
 
-export function ResizableOutlineRail({ children }: { children: ReactNode }) {
+export function ResizableOutlineRail({ children, width, onWidthChange }: ResizableRailProps) {
   return <ResizableSideRail
     className="field-outline-rail"
     resizeClassName="outline-resize"
-    storageKey="emaki-outline-width"
-    cssVariable="--outline-width"
-    defaultWidth={216}
+    width={width}
+    onWidthChange={onWidthChange}
     min={OUTLINE_MIN}
     max={OUTLINE_MAX}
     step={OUTLINE_STEP}
@@ -52,27 +56,23 @@ export function ResizableOutlineRail({ children }: { children: ReactNode }) {
   >{children}</ResizableSideRail>;
 }
 
-function ResizableSideRail({ children, className, resizeClassName, storageKey, cssVariable, defaultWidth, min, max, step, dragDirection, ariaLabel }: ResizableSideRailProps) {
-  const [width, setWidth] = useState(() => {
-    const saved = localStorage.getItem(storageKey);
-    return saved ? clampRailWidth(Number(saved), min, max, defaultWidth) : defaultWidth;
-  });
+function ResizableSideRail({ children, className, resizeClassName, width, onWidthChange, min, max, step, dragDirection, ariaLabel }: ResizableSideRailProps) {
   const [dragging, setDragging] = useState(false);
   const startX = useRef(0);
-  const startW = useRef(defaultWidth);
+  const startW = useRef(width);
   const latestWidth = useRef(width);
 
   const commitWidth = useCallback((next: number) => {
-    const clamped = clampRailWidth(next, min, max, defaultWidth);
+    const clamped = clampRailWidth(next, min, max, width);
     latestWidth.current = clamped;
-    setWidth(clamped);
-    localStorage.setItem(storageKey, String(clamped));
-  }, [defaultWidth, max, min, storageKey]);
+    onWidthChange(clamped);
+  }, [max, min, onWidthChange, width]);
 
   const onMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     startX.current = e.clientX;
     startW.current = width;
+    latestWidth.current = width;
     setDragging(true);
   }, [width]);
 
@@ -85,15 +85,19 @@ function ResizableSideRail({ children, className, resizeClassName, storageKey, c
   }, [commitWidth, dragDirection, max, min, step, width]);
 
   useEffect(() => {
+    latestWidth.current = width;
+  }, [width]);
+
+  useEffect(() => {
     if (!dragging) return;
     const onMove = (e: MouseEvent) => {
-      const next = clampRailWidth(startW.current + (e.clientX - startX.current) * dragDirection, min, max, defaultWidth);
+      const next = clampRailWidth(startW.current + (e.clientX - startX.current) * dragDirection, min, max, width);
       latestWidth.current = next;
-      setWidth(next);
+      onWidthChange(next);
     };
     const onUp = () => {
       setDragging(false);
-      localStorage.setItem(storageKey, String(latestWidth.current));
+      onWidthChange(latestWidth.current);
     };
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
@@ -105,12 +109,7 @@ function ResizableSideRail({ children, className, resizeClassName, storageKey, c
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
     };
-  }, [defaultWidth, dragDirection, dragging, max, min, storageKey]);
-
-  useEffect(() => {
-    latestWidth.current = width;
-    document.documentElement.style.setProperty(cssVariable, `${width}px`);
-  }, [cssVariable, width]);
+  }, [dragDirection, dragging, max, min, onWidthChange, width]);
 
   return (
     <aside className={className}>
@@ -123,7 +122,7 @@ function ResizableSideRail({ children, className, resizeClassName, storageKey, c
         aria-label={ariaLabel}
         aria-valuemin={min}
         aria-valuemax={max}
-        aria-valuenow={width}
+        aria-valuenow={Math.round(width)}
         onMouseDown={onMouseDown}
         onKeyDown={onKeyDown}
       />

@@ -274,8 +274,8 @@ export function registerEmakiItemWebConsole(): void {
     editorId: SET_EDITOR_ID,
     priority: 120,
     adapter: {
-      read: (api, context) => api.readTextDocument({ kind: context.file.kind, moduleId: context.module.id, path: context.childPath || context.file.path }),
-      save: (api, context, content, revision) => api.saveTextDocument({ kind: context.file.kind, moduleId: context.module.id, path: context.childPath || context.file.path }, content, revision),
+      read: (api, context) => api.readTextDocument({ kind: context.file.kind, moduleId: context.module.id, path: context.path || context.childPath || context.file.path }),
+      save: (api, context, content, revision) => api.saveTextDocument({ kind: context.file.kind, moduleId: context.module.id, path: context.path || context.childPath || context.file.path }, content, revision),
       language: 'yaml',
       defaultContent: context => defaultSetContent(context.name)
     }
