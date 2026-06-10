@@ -6,7 +6,7 @@ import { GuiEditorSurface } from './GuiEditorSurface';
 import { ItemEditorSurface } from './ItemEditorSurface';
 import { loadWebExtensions } from './extensions';
 import { applyConfigNodeOverrides, applyConfigRegistryOverrides, applyEditorDescriptorOverrides, getConfigPreview, getSourceDocumentAdapter, getSurface, isKind, registerSourceDocumentAdapter, registerSurface, setRuntimeEnums, type ConfigPreviewProps, type SourceDocumentAdapterContext } from './registry';
-import { firstConcreteChildPath, isGlobPath, normalizeDocumentPath, normalizeLookupPath, resolveConcreteChildPath, treeDirtyKey } from './documentPaths';
+import { isGlobPath, normalizeDocumentPath, normalizeLookupPath, resolveConcreteChildPath, resolveSurfaceDocumentPath, treeDirtyKey } from './documentPaths';
 import { getLocale, getRegisteredLocales, setLocale, t } from './i18n';
 import { ActionGroup, ActionTypesProvider, Button, CodeEditor, EconomyProvidersProvider, EditorChrome, DisclosureChevron, InlineError, NumberListEditor, StandardActionsField, StandardEconomyProviderSelect, StandardEffectsEditor, StringListEditor, ToastNotice, VariablesMapEditor, type EditorChange } from './components';
 import { UnifiedDiffView, parseUnifiedDiff } from './components/DiffViewer';
@@ -1549,7 +1549,11 @@ function ConfigSurface({ registry, module, file, drafts, draftHistory, setDraftV
   if (registeredSurface && !isKind(file.kind, 'CONFIG') && !isKind(file.kind, 'SCRIPT')) {
     const SurfaceComponent = registeredSurface.component;
     const outlineSetter = isKind(file.kind, 'GUI') ? undefined : setSurfaceOutline;
-    const surfaceChildPath = scriptPath || (isGlobPath(file.path) ? firstConcreteChildPath(file) : undefined);
+    const surfacePath = resolveSurfaceDocumentPath(file, scriptPath);
+    if (isGlobPath(file.path) && !surfacePath) {
+      return <section className="config-surface"><div className="surface-head"><div><h2>{fileDisplayTitle(file)}</h2><p>{fileDisplayComment(file)}</p></div><span className={`file-kind ${String(file.kind).toLowerCase()}`}>{fileKindLabel(file.kind)}</span></div><div className="script-placeholder" role="status">{t('core.empty.selectFile')}</div></section>;
+    }
+    const surfaceChildPath = isGlobPath(file.path) ? surfacePath : scriptPath;
     return <SurfaceComponent module={module} file={file} api={api} childPath={surfaceChildPath} refreshKey={refreshKey} editor={editor} onReload={onReload} setToolbar={setSurfaceToolbar} setOutline={outlineSetter} showLocalChrome={false} />;
   }
   if (!scriptPath && isGlobPath(file.path)) {
@@ -2623,7 +2627,7 @@ function renderControl(node: WebConfigNode, value: unknown, setValue: (v: unknow
   if (node.type === 'numberList') return <NumberListEditor items={asNumberListValue(value)} onChange={setValue} layout={isInlineScalarListPath(node.path) ? 'inline' : 'block'} />;
   if (node.type === 'objectList') {
     const items = Array.isArray(value) ? value : [];
-    return <ObjectListEditor node={node} items={items} setValue={setValue} moduleId={moduleId} />;
+    return <ObjectListEditor node={node} items={items} setValue={setValue} moduleId={moduleId} headerAdd />;
   }
   if (node.type === 'list') {
     const items = Array.isArray(value) ? value : [];
@@ -2685,7 +2689,7 @@ function ObjectMapEditor({ value, onChange }: { value: unknown; onChange: (value
   </div>;
 }
 
-function ObjectListEditor({ node, items, setValue, moduleId, compact = false }: { node: WebConfigNode; items: unknown[]; setValue: (v: unknown) => void; moduleId: string; compact?: boolean }) {
+function ObjectListEditor({ node, items, setValue, moduleId, compact = false, headerAdd = false }: { node: WebConfigNode; items: unknown[]; setValue: (v: unknown) => void; moduleId: string; compact?: boolean; headerAdd?: boolean }) {
   const objectItems: Record<string, unknown>[] = items.map(item => isPlainObject(item) ? item : {});
   const stableRef = useStableEntries(objectItems);
   const stable = stableRef.current;
@@ -2731,7 +2735,8 @@ function ObjectListEditor({ node, items, setValue, moduleId, compact = false }: 
     {!emptyExpanded && <button type="button" className="add-row" onClick={addEntry}>{t('core.config.addItem')}</button>}
   </div>;
 
-  return <div className={`object-list-editor${compact ? ' object-list-editor--compact' : ''}${largeList ? ' object-list-editor--large' : ''}`}>
+  return <div className={`object-list-editor${compact ? ' object-list-editor--compact' : ''}${largeList ? ' object-list-editor--large' : ''}${headerAdd ? ' object-list-editor--header-add' : ''}`}>
+    {headerAdd && <button type="button" className="object-list-header-add" onClick={addEntry}>{t('core.config.addItem')}</button>}
     {largeList && <div className="object-list-scale-hint">{configInlineText(`大型列表：已默认折叠 ${stable.length} 项，展开单项后编辑。`, `Large list: ${stable.length} items are collapsed by default. Expand one item to edit.`)}</div>}
     {visibleStable.map((entry, index) => {
       const item = entry.data;
@@ -2761,7 +2766,7 @@ function ObjectListEditor({ node, items, setValue, moduleId, compact = false }: 
         </div>}
       </div>;
     })}
-    <button type="button" className="add-row" onClick={addEntry}>{t('core.config.addItem')}</button>
+    {!headerAdd && <button type="button" className="add-row" onClick={addEntry}>{t('core.config.addItem')}</button>}
   </div>;
 }
 

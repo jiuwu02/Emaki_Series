@@ -53,6 +53,14 @@ export function firstConcreteChildPath(file: Pick<WebRegistryFile, 'kind' | 'chi
   return undefined;
 }
 
+export function resolveSurfaceDocumentPath(file: Pick<WebRegistryFile, 'kind' | 'path' | 'children'>, childPath?: string): string | undefined {
+  const selectedPath = normalizeDocumentPath(childPath);
+  if (isConcretePath(selectedPath)) return selectedPath;
+  const filePath = normalizeDocumentPath(file.path);
+  if (!isGlobPath(filePath)) return filePath;
+  return firstConcreteChildPath(file);
+}
+
 export function resolveConcreteChildPath(module: WebRegistryModule, targetPath: string): { file: WebRegistryFile; path: string } | null {
   const normalizedTarget = normalizeLookupPath(targetPath);
   for (const file of module.files) {

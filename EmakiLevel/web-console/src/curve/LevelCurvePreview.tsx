@@ -1,6 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Button, InlineError, localeText, type ConfigMetaFieldEntry, type ConfigPreviewProps, type ConfigRuleFieldEntry } from 'emaki-web-console';
-import './LevelCurvePreview.css';
+import { Button, InlineError, injectExtensionStyles, localeText, type ConfigMetaFieldEntry, type ConfigPreviewProps, type ConfigRuleFieldEntry } from 'emaki-web-console';
+import levelCurvePreviewStyles from './LevelCurvePreview.css?raw';
+
+export function installLevelCurvePreviewStyles(): void {
+  injectExtensionStyles('emakilevel-curve-preview', levelCurvePreviewStyles);
+}
 
 const copy = localeText;
 

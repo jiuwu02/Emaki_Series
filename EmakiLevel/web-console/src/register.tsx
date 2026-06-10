@@ -1,11 +1,12 @@
 import { localeText, registerConfigCreateTemplate, registerConfigMetaFields, registerConfigPreview, registerConfigRuleFields, registerModuleLocale, registerPluginConfig, registerPluginGuiEditor } from 'emaki-web-console';
-import { LevelCurvePreview, dynamicFields, mainConfigFields, sourceFields, typeFields } from './curve/LevelCurvePreview';
+import { LevelCurvePreview, dynamicFields, installLevelCurvePreviewStyles, mainConfigFields, sourceFields, typeFields } from './curve/LevelCurvePreview';
 
 let registered = false;
 
 export function registerEmakiLevelWebConsole(): void {
   if (registered) return;
   registered = true;
+  installLevelCurvePreviewStyles();
   const MODULE = 'EmakiLevel';
   const copy = localeText;
 
