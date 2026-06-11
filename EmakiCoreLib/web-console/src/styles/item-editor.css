@@ -488,6 +488,10 @@
   min-height: var(--config-field-control-height);
 }
 
+.prop-kv--string-list-block .prop-list-row {
+  grid-column: 1 / -1;
+}
+
 .prop-kv--string-list-inline .prop-list-add + .prop-list-row {
   grid-column: 1;
   grid-row: 1;

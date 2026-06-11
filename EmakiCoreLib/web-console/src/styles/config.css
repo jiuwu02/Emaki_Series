@@ -298,36 +298,43 @@
   margin-top: 4px;
 }
 
-.node.node-wide:has(.object-list-editor--header-add) {
+.node.node-wide:has(.object-list-editor--header-add),
+.node:has(.prop-kv--string-list-block) {
   grid-template-columns: var(--hierarchy-guide-width) minmax(0, 1fr) auto;
-  align-items: start;
+  align-items: center;
 }
 
-.node.node-wide:has(.object-list-editor--header-add) > .node-meta {
+.node.node-wide:has(.object-list-editor--header-add) > .node-meta,
+.node:has(.prop-kv--string-list-block) > .node-meta {
   grid-column: 1 / 3;
 }
 
-.node.node-wide:has(.object-list-editor--header-add) > .indent-guide + .node-meta {
+.node.node-wide:has(.object-list-editor--header-add) > .indent-guide + .node-meta,
+.node:has(.prop-kv--string-list-block) > .indent-guide + .node-meta {
   grid-column: 2;
 }
 
-.node.node-wide:has(.object-list-editor--header-add) > .node-control {
+.node.node-wide:has(.object-list-editor--header-add) > .node-control,
+.node:has(.prop-kv--string-list-block) > .node-control {
   grid-column: 1 / -1;
   grid-row: 2;
   justify-content: stretch;
   margin-top: 4px;
 }
 
-.node.node-wide:has(.object-list-editor--header-add) > .indent-guide + .node-meta + .node-control {
+.node.node-wide:has(.object-list-editor--header-add) > .indent-guide + .node-meta + .node-control,
+.node:has(.prop-kv--string-list-block) > .indent-guide + .node-meta + .node-control {
   grid-column: 2 / -1;
 }
 
-.node.node-wide:has(.object-list-editor--header-add) .object-list-editor {
+.node.node-wide:has(.object-list-editor--header-add) .object-list-editor,
+.node:has(.prop-kv--string-list-block) .prop-kv--string-list-block {
   position: relative;
   padding-top: 0;
 }
 
-.object-list-header-add {
+.object-list-header-add,
+.node:has(.prop-kv--string-list-block) .prop-list-add {
   position: absolute;
   right: 0;
   top: calc(-1 * (var(--config-field-rhythm) + var(--config-field-padding-y)));
@@ -344,8 +351,17 @@
   cursor: pointer;
 }
 
+.node:has(.prop-kv--string-list-block) .prop-list-add {
+  width: var(--config-field-control-height);
+  min-width: var(--config-field-control-height);
+  height: var(--config-field-control-height);
+  padding: 0;
+}
+
 .object-list-header-add:hover,
-.object-list-header-add:focus-visible {
+.object-list-header-add:focus-visible,
+.node:has(.prop-kv--string-list-block) .prop-list-add:hover,
+.node:has(.prop-kv--string-list-block) .prop-list-add:focus-visible {
   border-color: var(--accent);
   background: var(--accent-soft);
   outline: none;
