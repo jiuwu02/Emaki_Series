@@ -8,8 +8,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 import emaki.jiuwu.craft.cooking.model.RecipeDocument;
+import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
-import emaki.jiuwu.craft.corelib.condition.ConditionGroup;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.math.Numbers;
@@ -253,15 +253,25 @@ public final class CookingRecipeService {
         if (player != null && Texts.isNotBlank(permission) && !player.hasPermission(permission)) {
             return false;
         }
-        ConditionGroup conditions = ConditionGroup.fromConfig(recipe.configuration(), recipe.configuration().getString("condition_type", "all_of"), 0);
-        if (player != null && !conditions.emptyGroup()) {
+        ConditionBlock condition = availabilityCondition(recipe.configuration());
+        if (player != null && condition.configured()) {
             return ConditionEvaluator.evaluate(
-                    conditions,
-                    text -> resolvePlaceholders(player, text),
-                    true
+                    condition,
+                    text -> resolvePlaceholders(player, text)
             );
         }
         return true;
+    }
+
+    private ConditionBlock availabilityCondition(YamlSection configuration) {
+        if (configuration == null) {
+            return ConditionBlock.empty();
+        }
+        YamlSection section = configuration.getSection("availability_condition");
+        if (section != null && !section.isEmpty()) {
+            return ConditionBlock.fromConfig(section, true, false);
+        }
+        return ConditionBlock.fromLegacyRoot(configuration, true, false);
     }
 
 
@@ -281,18 +291,13 @@ public final class CookingRecipeService {
         if (section == null || section.isEmpty()) {
             return true;
         }
-        ConditionGroup conditions = ConditionGroup.fromConfig(
-                section,
-                section.getString("condition_type", "all_of"),
-                0
-        );
-        if (conditions.emptyGroup() || player == null) {
+        ConditionBlock condition = ConditionBlock.fromConfig(section, true, false);
+        if (!condition.configured() || player == null) {
             return true;
         }
         return ConditionEvaluator.evaluate(
-                conditions,
-                text -> resolvePlaceholders(player, text),
-                true
+                condition,
+                text -> resolvePlaceholders(player, text)
         );
     }
 
@@ -304,8 +309,8 @@ public final class CookingRecipeService {
         if (section == null || section.isEmpty()) {
             return List.of();
         }
-        List<String> actions = section.getStringList(passed ? "pass_actions" : "fail_actions");
-        return actions == null ? List.of() : actions;
+        ConditionBlock condition = ConditionBlock.fromConfig(section, true, false);
+        return passed ? condition.passActions() : condition.failActions();
     }
 
     public boolean completionConditionBlocksOutput(RecipeDocument recipe) {
@@ -316,7 +321,7 @@ public final class CookingRecipeService {
         if (section == null || section.isEmpty()) {
             return false;
         }
-        return section.getBoolean("block_output_on_false", false);
+        return ConditionBlock.fromConfig(section, true, false).blockOutput();
     }
 
     public boolean canAcceptWokIngredientPrefix(List<WokIngredientInput> actualIngredients, Player player, int heatLevel) {

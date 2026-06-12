@@ -6,6 +6,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 
+import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
 import emaki.jiuwu.craft.corelib.condition.ConditionGroup;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
@@ -35,6 +36,8 @@ public final class StrengthenRecipeParser {
         if (Texts.isBlank(id)) {
             return null;
         }
+        ConditionBlock condition = ConditionBlock.fromRoot(section, true, false);
+        ConditionGroup conditionGroup = condition.group();
         return new StrengthenRecipe(
                 id,
                 section.getString("display_name", id),
@@ -45,9 +48,9 @@ public final class StrengthenRecipeParser {
                 parseMatchRule(section.getSection("match")),
                 parseStatLines(section.getSection("stat_lines")),
                 parseStars(section.getSection("stars")),
-                ConditionGroup.fromConfig(section, section.getString("condition_type", "all_of"), Numbers.tryParseInt(section.get("condition_required_count"), 0)),
-                section.getString("condition_type", "all_of"),
-                Numbers.tryParseInt(section.get("condition_required_count"), 0),
+                conditionGroup,
+                conditionGroup.conditionType(),
+                conditionGroup.requiredCount(),
                 parseBranchTree(section.getSection("branch_tree")),
                 section.get("name_actions"),
                 section.get("lore_actions")

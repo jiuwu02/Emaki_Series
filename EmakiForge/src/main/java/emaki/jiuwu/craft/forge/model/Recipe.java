@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
 import emaki.jiuwu.craft.corelib.condition.ConditionGroup;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.yaml.MapYamlSection;
@@ -134,6 +135,8 @@ public final class Recipe {
         if (result == null) {
             return null;
         }
+        ConditionBlock condition = ConditionBlock.fromRoot(section, true, false);
+        ConditionGroup conditionGroup = condition.group();
         return new Recipe(
                 id,
                 section.getString("display_name", id),
@@ -141,9 +144,9 @@ public final class Recipe {
                 materials,
                 Math.max(0, Numbers.tryParseInt(section.get("forge_capacity"), 0)),
                 Math.max(0, Numbers.tryParseInt(section.get("optional_material_limit"), 0)),
-                section.getString("condition_type", "all_of"),
-                Numbers.tryParseInt(section.get("condition_required_count"), 0),
-                ConditionGroup.fromConfig(section, section.getString("condition_type", "all_of"), Numbers.tryParseInt(section.get("condition_required_count"), 0)),
+                conditionGroup.conditionType(),
+                conditionGroup.requiredCount(),
+                conditionGroup,
                 parseQuality(section.get("quality")),
                 result,
                 parseAction(ConfigNodes.get(section, "actions")),

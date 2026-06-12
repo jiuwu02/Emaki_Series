@@ -23,7 +23,8 @@ import type { RegistryTreeNode, WebConfigCreateTemplate, WebConfigFieldSchema, W
 // Register CoreLib's built-in surfaces through the same registry used by plugin extensions.
 registerSurface({ kind: 'GUI', component: GuiEditorSurface as ComponentType<SurfaceProps>, label: t('core.surface.gui.label') });
 registerSurface({ kind: 'ITEM', component: ItemEditorSurface as ComponentType<SurfaceProps>, label: t('core.surface.item.label') });
-for (const kind of ['CONFIG', 'GUI', 'ITEM', 'SCRIPT']) {
+registerSurface({ kind: 'GEM', component: ItemEditorSurface as ComponentType<SurfaceProps>, label: t('core.surface.gem.label') });
+for (const kind of ['CONFIG', 'GUI', 'ITEM', 'GEM', 'SCRIPT']) {
   registerSourceDocumentAdapter({
     kind,
     adapter: {

@@ -192,7 +192,7 @@ loader:
   recipe_unknown_action_template:
     "<yellow>Unknown template <red>%template%</red>
     in recipe %recipe%: %file%, phase %phase%, line %line%</yellow>"
-  recipe_invalid_condition_type: "<yellow>Invalid condition_type in recipe
+  recipe_invalid_condition_mode: "<yellow>Invalid condition.type in recipe
     %recipe%: %file% -> <red>%value%</red>. Allowed values:
     <gray>%allowed%</gray>, loading rejected.</yellow>"
 

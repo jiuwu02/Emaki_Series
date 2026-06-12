@@ -127,9 +127,10 @@ export function registerEmakiSkillsWebConsole(): void {
     ['pdc_skill_id', 'PDC 技能 ID', '写入 PDC 或识别时使用的技能 ID；留空默认等于 id。', 'text'],
     ['ui_category', 'UI 分类', '技能在 GUI 中的分类 ID。', 'text'],
     ['sort_order', '排序', '同分类内的排序权重。', 'number'],
-    ['condition_type', '条件逻辑', '技能释放条件组合逻辑。', 'enum', { options: ['all_of', 'any_of'], optionLabelPrefix: 'condition_type' }],
-    ['conditions', '释放条件', '技能释放前检查的条件表达式列表。', 'stringList'],
-    ['condition_required_count', '需要满足数量', 'any_of 条件逻辑下需要满足的最少条件数量；0 表示不额外限制。', 'number']
+    ['condition', '释放条件', '技能释放前检查的条件块。', 'object'],
+    ['condition.type', '条件逻辑', '技能释放条件组合逻辑。', 'enum', { options: ['all_of', 'any_of', 'none_of', 'at_least', 'exactly'], optionLabelPrefix: 'conditionType' }],
+    ['condition.entries', '释放条件', '技能释放前检查的条件表达式列表。', 'stringList'],
+    ['condition.required_count', '需要满足数量', 'at_least / exactly 条件逻辑下需要满足的最少条件数量；0 表示不额外限制。', 'number']
   ];
 
   const resourceFields: FieldSpec[] = [
@@ -274,7 +275,7 @@ export function registerEmakiSkillsWebConsole(): void {
     rules: [
       [{ key: 'description' }, { label: '技能描述', comment: '技能说明文本列表。', type: 'stringList' }],
       [{ key: 'lore_aliases' }, { label: 'Lore 别名', comment: '用于 Lore 匹配识别的别名列表。', type: 'stringList' }],
-      [{ key: 'conditions' }, { label: '释放条件', comment: '技能释放前检查的条件表达式列表。', type: 'stringList' }],
+      [{ path: 'condition.entries' }, { label: '释放条件', comment: '技能释放前检查的条件表达式列表。', type: 'stringList' }],
       [{ key: 'passive_triggers' }, { label: '被动触发器', comment: '被动技能触发器 ID 列表。', type: 'stringList' }],
       [{ key: 'incompatible_with' }, { label: '互斥触发器', comment: '与当前触发器互斥的触发器 ID 列表。', type: 'stringList' }],
       [{ suffix: '.incompatible_with' }, { label: '互斥触发器', comment: '与当前触发器互斥的触发器 ID 列表。', type: 'stringList' }],

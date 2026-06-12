@@ -62,10 +62,11 @@ enabled: true
 # 释放条件
 # ============================================================
 # 技能释放前检查的条件表达式。
-# condition_type: 条件组合方式（all_of / any_of）
-conditions:
-  - "%level% >= 1"
-condition_type: "all_of"
+# type: 条件组合方式（all_of / any_of）
+condition:
+  type: "all_of"
+  entries:
+    - "%level% >= 1"
 
 # ============================================================
 # 资源消耗

@@ -47,11 +47,13 @@ permission: "emakicooking.recipe.steamed_carrot_cake"
 # ============================================================
 # 字段说明详见 chopping_board/example_recipe.yml。留空表示始终成立。
 condition:
-  condition_type: all_of
-  conditions: []
-  pass_actions: []
-  fail_actions: []
-  block_output_on_false: false
+  type: all_of
+  entries: []
+  on_pass:
+    actions: []
+  on_fail:
+    actions: []
+    block_output: false
 
 # ============================================================
 # 蒸制结果

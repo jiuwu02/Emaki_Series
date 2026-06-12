@@ -31,8 +31,10 @@ passive_triggers:
   - "combo_attack"
 
 # 触发条件: 连击次数 >= 5
-conditions:
-  - "%combo_count% >= 5"
+condition:
+  type: all_of
+  entries:
+    - "%combo_count% >= 5"
 
 # 冷却时间（秒）
 cooldown: 5.0

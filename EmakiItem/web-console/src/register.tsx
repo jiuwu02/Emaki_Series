@@ -16,7 +16,7 @@ export function registerEmakiItemWebConsole(): void {
   type ItemFieldSpec = [path: string, label: string, comment: string, type: string, extra?: Record<string, unknown>];
 
   const RARITIES = ['common', 'uncommon', 'rare', 'epic'];
-  const CONDITION_TYPES = ['all_of', 'any_of'];
+  const CONDITION_TYPES = ['all_of', 'any_of', 'none_of', 'at_least', 'exactly'];
   const ATTRIBUTE_OPERATIONS = ['add_number', 'add_scalar', 'multiply_scalar_1'];
   const EQUIPMENT_SLOTS = ['any', 'hand', 'mainhand', 'offhand', 'head', 'chest', 'legs', 'feet', 'body'];
   const ITEM_FLAGS = ['HIDE_ENCHANTS', 'HIDE_ATTRIBUTES', 'HIDE_UNBREAKABLE', 'HIDE_DESTROYS', 'HIDE_PLACED_ON', 'HIDE_ADDITIONAL_TOOLTIP', 'HIDE_DYE', 'HIDE_ARMOR_TRIM'];
@@ -128,13 +128,13 @@ export function registerEmakiItemWebConsole(): void {
     ['components.raw', 'Raw 组件', '高级用法，直接传递给 Bukkit。', 'textarea', { wide: true, rows: 3 }],
     ['set.id', '套装 ID', '对应 sets/ 目录下的套装定义。', 'text'],
     ['set.piece', '套装部件', '此物品在套装中的部件标识。', 'text'],
-    ['conditions.entries', '条件表达式', '支持玩家变量的条件表达式列表。', 'stringList', { wide: true }],
-    ['conditions.condition_type', '组合方式', '源码固定读取 all_of 或 any_of。', 'enum', { options: CONDITION_TYPES, optionLabelPrefix: 'conditionType' }],
-    ['conditions.condition_required_count', '需要满足数量', 'any_of 场景下需要满足的最少条件数。', 'number'],
-    ['conditions.invalid_as_failure', '解析失败视为失败', '表达式解析异常时是否不通过。', 'boolean'],
-    ['conditions.deny_message', '拒绝消息', '条件不满足时提示。', 'text'],
-    ['conditions.pass_actions', '满足动作', '条件满足时执行的动作。', 'stringList', { wide: true }],
-    ['conditions.fail_actions', '不满足动作', '条件不满足时执行的动作。', 'stringList', { wide: true }],
+    ['condition.entries', '条件表达式', '支持玩家变量的条件表达式列表。', 'stringList', { wide: true }],
+    ['condition.type', '组合方式', '条件表达式组合方式。', 'enum', { options: CONDITION_TYPES, optionLabelPrefix: 'conditionType' }],
+    ['condition.required_count', '需要满足数量', 'at_least / exactly 场景下需要满足的条件数。', 'number'],
+    ['condition.invalid_as_failure', '解析失败视为失败', '表达式解析异常时是否不通过。', 'boolean'],
+    ['condition.on_fail.message', '拒绝消息', '条件不满足时提示。', 'text'],
+    ['condition.on_pass.actions', '满足动作', '条件满足时执行的动作。', 'stringList', { wide: true }],
+    ['condition.on_fail.actions', '不满足动作', '条件不满足时执行的动作。', 'stringList', { wide: true }],
     ['repair.enabled', '启用修复', '关闭时 repair 配置不生效。', 'boolean'],
     ['repair.materials', '修复材料', '每种修复材料的物品来源、消耗数量和恢复耐久值。', 'repairMaterials', { wide: true }],
     ['repair.economy', '修复经济', '修复时可选的经济消耗配置。', 'json', { wide: true }],
@@ -301,7 +301,7 @@ export function registerEmakiItemWebConsole(): void {
       { title: '效果与变量', titleKey: 'emakiitem.section.effects', collapsible: true, defaultCollapsed: true, fields: fields(['effects']) },
       { title: '原版组件', titleKey: 'emakiitem.section.components', collapsible: true, defaultCollapsed: true, fields: fields(['components.custom_model_data', 'components.item_model', 'components.tooltip_style', 'components.enchantments', 'components.item_flags', 'components.hide_tooltip', 'components.unbreakable', 'components.enchantment_glint_override', 'components.max_stack_size', 'components.rarity', 'components.damage', 'components.max_damage', 'components.enchantable', 'components.attribute_modifiers', 'components.raw']) },
       { title: '套装归属', titleKey: 'emakiitem.section.setBinding', collapsible: true, defaultCollapsed: true, fields: fields(['set.id', 'set.piece']) },
-      { title: '装备条件', titleKey: 'emakiitem.section.conditions', collapsible: true, defaultCollapsed: true, fields: fields(['conditions.entries', 'conditions.condition_type', 'conditions.condition_required_count', 'conditions.invalid_as_failure', 'conditions.deny_message', 'conditions.pass_actions', 'conditions.fail_actions']) },
+      { title: '装备条件', titleKey: 'emakiitem.section.conditions', collapsible: true, defaultCollapsed: true, fields: fields(['condition.entries', 'condition.type', 'condition.required_count', 'condition.invalid_as_failure', 'condition.on_fail.message', 'condition.on_pass.actions', 'condition.on_fail.actions']) },
       { title: '修复配置', titleKey: 'emakiitem.section.repair', collapsible: true, defaultCollapsed: true, fields: fields(['repair.enabled', 'repair.materials', 'repair.disabled_display.name_prefix', 'repair.disabled_display.lore_append', 'repair.on_disabled', 'repair.on_repaired']) },
       { title: '触发动作', titleKey: 'emakiitem.section.actions', collapsible: true, defaultCollapsed: true, fields: fields(['actions.give', 'actions.interact']) }
     ]

@@ -52,14 +52,16 @@ permission: "emakicooking.recipe.apple_cider"
 # 发酵桶会在收取（正常/提前/过度）时统一评估此条件。
 # 注意：自动完成或破坏掉落时玩家可能离线，此时条件视为成立。
 condition:
-  condition_type: all_of
-  conditions:
+  type: all_of
+  entries:
     - "%player_level% >= 4"
-  pass_actions:
-    - 'sendmessage text="<gold>发酵收取条件满足。</gold>"'
-  fail_actions:
-    - 'sendmessage text="<red>发酵收取条件不满足。</red>"'
-  block_output_on_false: false
+  on_pass:
+    actions:
+      - 'sendmessage text="<gold>发酵收取条件满足。</gold>"'
+  on_fail:
+    actions:
+      - 'sendmessage text="<red>发酵收取条件不满足。</red>"'
+    block_output: false
 
 # ============================================================
 # 发酵结果

@@ -19,7 +19,7 @@ files:
     kind: ITEM
     editor: "emakigem:socket-item"
   - path: "gems/**/*.yml"
-    kind: ITEM
+    kind: GEM
     editor: "emakigem:gem"
 
 extensions:

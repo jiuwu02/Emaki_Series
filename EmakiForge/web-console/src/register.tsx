@@ -101,23 +101,7 @@ export function registerEmakiForgeWebConsole(): void {
     minimum: ['最低品质', '保底或条件要求的最低品质。', 'text']
   };
 
-  const itemAdjustmentFields: FieldSpec[] = [
-    ['item_sources', '物品来源', '需要调整显示或匹配的 ItemSource 列表。', 'stringList'],
-    ['adjustment', '显示调整', '共享显示实体偏移、旋转和缩放。', 'object'],
-    ['adjustment.offset', '偏移', '展示实体偏移。', 'object'],
-    ['adjustment.offset.x', 'X 偏移', 'X 轴偏移。', 'number'],
-    ['adjustment.offset.y', 'Y 偏移', 'Y 轴偏移。', 'number'],
-    ['adjustment.offset.z', 'Z 偏移', 'Z 轴偏移。', 'number'],
-    ['adjustment.rotation', '旋转', '展示实体旋转。', 'object'],
-    ['adjustment.rotation.x', 'X 旋转', 'X 轴旋转角度或范围。', 'text'],
-    ['adjustment.rotation.y', 'Y 旋转', 'Y 轴旋转角度或范围。', 'text'],
-    ['adjustment.rotation.z', 'Z 旋转', 'Z 轴旋转角度或范围。', 'text'],
-    ['adjustment.scale', '缩放', '展示实体缩放，可为数字或 x/y/z 对象。', 'object'],
-    ['adjustment.scale.x', 'X 缩放', 'X 轴缩放。', 'number'],
-    ['adjustment.scale.y', 'Y 缩放', 'Y 轴缩放。', 'number'],
-    ['adjustment.scale.z', 'Z 缩放', 'Z 轴缩放。', 'number'],
-    ['stations', '工位覆盖', '按工位覆盖显示调整，例如 wok、oven、steamer。', 'object']
-  ];
+
 
   const recipeFields: FieldSpec[] = [
     ['id', 'ID', '锻造配方唯一标识，文件加载时必填。', 'text'],
@@ -126,8 +110,10 @@ export function registerEmakiForgeWebConsole(): void {
     ['optional_material_limit', '可选材料上限', '单次锻造最多允许放入的可选材料种类数量。', 'number'],
     ['blueprint_requirements', '蓝图需求', '锻造前必须持有的图纸或前置物品列表，不作为普通材料消耗。', 'objectList'],
     ['materials', '材料列表', '锻造材料列表；每项包含来源、数量、容量消耗、可选标记和效果。', 'objectList'],
-    ['condition_type', '条件逻辑', '配方条件表达式的组合方式。', 'enum', { options: ['all_of', 'any_of'], optionLabelPrefix: 'condition_type' }],
-    ['condition_required_count', '需要满足数量', 'any_of 条件逻辑下需要满足的最少条件数量。', 'number'],
+    ['condition', '配方条件', '执行该锻造配方前检查的条件块。', 'object'],
+    ['condition.type', '条件逻辑', '配方条件表达式的组合方式。', 'enum', { options: ['all_of', 'any_of', 'none_of', 'at_least', 'exactly'], optionLabelPrefix: 'conditionType' }],
+    ['condition.entries', '条件表达式', 'CoreLib 条件表达式字符串列表。', 'stringList'],
+    ['condition.required_count', '需要满足数量', 'at_least / exactly 条件逻辑下需要满足的最少条件数量。', 'number'],
     ['permission', '权限', '执行该锻造配方需要的权限节点；留空表示不限制。', 'text'],
     ['quality', '配方品质覆盖', '当前配方自己的品质开关、自定义品质池和保底设置；未填时使用全局品质规则。', 'object'],
     ['quality.enabled', '启用品质', '此配方是否参与品质抽取。', 'boolean'],
@@ -170,7 +156,6 @@ export function registerEmakiForgeWebConsole(): void {
     ['emakiforge.file.web-console.comment', '此插件暴露给 WebUIEdit 的文件分组、编辑器类型和前端扩展入口。'],
 
     ...fields.flatMap(([path, label, comment]) => [[`emakiforge.field.${path}`, label], [`emakiforge.comment.${path}`, comment]]),
-    ...itemAdjustmentFields.flatMap(([path, label, comment]) => [[`emakiforge.field.${path}`, label], [`emakiforge.comment.${path}`, comment]]),
     ...recipeFields.flatMap(([path, label, comment]) => [[`emakiforge.field.${path}`, label], [`emakiforge.comment.${path}`, comment]]),
     ...Object.entries(ruleFields).flatMap(([key, [label, comment]]) => [[`emakiforge.field.${key}`, label], [`emakiforge.comment.${key}`, comment]])
   ]);
@@ -216,8 +201,7 @@ export function registerEmakiForgeWebConsole(): void {
     moduleId: MODULE,
     metaFields: fields,
     fileSchemas: [
-      { pathPrefix: 'recipes/', fields: recipeFields },
-      { pathPrefix: 'item_adjustments/', fields: itemAdjustmentFields }
+      { pathPrefix: 'recipes/', fields: recipeFields }
     ],
     ruleFields,
     rules: [

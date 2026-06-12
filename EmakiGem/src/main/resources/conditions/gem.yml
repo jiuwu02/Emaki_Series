@@ -14,11 +14,11 @@ enabled: true
 # 条件源标识符（供 EmakiAttribute 引用）
 source_id: "gem"
 
-# 条件组合方式: "all_of"（全部满足）/ "any_of"（任一满足）
-condition_type: "all_of"
-
-# 表达式解析失败时是否视为不满足条件
-invalid_as_failure: true
-
-# 条件表达式列表（空列表表示无额外条件，仅由代码逻辑判断）
-conditions: []
+# 条件块（空 entries 表示无额外条件，仅由代码逻辑判断）
+condition:
+  # 条件组合方式: "all_of"（全部满足）/ "any_of"（任一满足）
+  type: "all_of"
+  # 表达式解析失败时是否视为不满足条件
+  invalid_as_failure: true
+  # 条件表达式列表
+  entries: []

@@ -50,14 +50,15 @@ public record ConditionGroup(String conditionType,
         }
         YamlSection section = asSection(raw);
         if (section != null) {
-            if (!section.contains("conditions")) {
+            Object entries = section.contains("entries") ? section.get("entries") : section.get("conditions");
+            if (entries == null) {
                 return new ConditionGroup(defaultType, defaultRequiredCount, List.of());
             }
             return new ConditionGroup(
-                    section.getString("condition_type", defaultType),
+                    section.getString("type", section.getString("condition_type", defaultType)),
                     Numbers.tryParseInt(section.get("required_count"),
                             Numbers.tryParseInt(section.get("condition_required_count"), defaultRequiredCount)),
-                    parseNodes(section.get("conditions"))
+                    parseNodes(entries)
             );
         }
         return new ConditionGroup(defaultType, defaultRequiredCount, parseNodes(raw));

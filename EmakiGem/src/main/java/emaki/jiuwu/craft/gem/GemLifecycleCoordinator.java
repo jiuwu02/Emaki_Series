@@ -16,6 +16,7 @@ import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.assembly.EmakiNamespaceDefinition;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
 import emaki.jiuwu.craft.corelib.condition.ConditionGroup;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
@@ -365,13 +366,13 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
         if (section == null || section.getKeys(false).isEmpty()) {
             return defaults;
         }
-        String conditionType = section.getString("condition_type", defaults.conditionType());
-        int requiredCount = section.getInt("required_count", defaults.requiredCount());
+        ConditionBlock condition = ConditionBlock.fromConfig(section, defaults.invalidAsFailure(), false);
+        ConditionGroup conditionGroup = condition.group();
         return new AppConfig.ConditionConfig(
-                ConditionGroup.fromConfig(section, conditionType, requiredCount),
-                conditionType,
-                requiredCount,
-                section.getBoolean("invalid_as_failure", defaults.invalidAsFailure())
+                conditionGroup,
+                conditionGroup.conditionType(),
+                conditionGroup.requiredCount(),
+                condition.invalidAsFailure()
         );
     }
 

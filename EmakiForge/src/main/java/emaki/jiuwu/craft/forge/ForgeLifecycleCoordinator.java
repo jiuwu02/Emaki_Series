@@ -17,6 +17,7 @@ import emaki.jiuwu.craft.corelib.async.TaskHandle;
 import emaki.jiuwu.craft.corelib.assembly.EmakiNamespaceDefinition;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiSlot;
@@ -280,7 +281,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                 numberFormat == null ? "0" : numberFormat.getString("integer", "0"),
                 numberFormat == null ? "0.##%" : numberFormat.getString("percentage", "0.##%"),
                 permission != null && permission.getBoolean("op_bypass", false),
-                condition == null || condition.getBoolean("invalid_as_failure", true),
+                ConditionBlock.fromConfig(condition, true, false).invalidAsFailure(),
                 history == null || history.getBoolean("enabled", true),
                 history == null || history.getBoolean("auto_save", true),
                 history == null ? 6000 : Numbers.tryParseInt(history.get("save_interval"), 6000)

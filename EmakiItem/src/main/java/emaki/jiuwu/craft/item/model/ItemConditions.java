@@ -2,28 +2,36 @@ package emaki.jiuwu.craft.item.model;
 
 import java.util.List;
 
-public record ItemConditions(List<String> entries,
-        String type,
-        int requiredCount,
-        boolean invalidAsFailure,
-        String denyMessage,
-        List<String> passActions,
-        List<String> failActions) {
+import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
+import emaki.jiuwu.craft.corelib.condition.ConditionGroup;
+
+public record ItemConditions(ConditionBlock block) {
 
     public ItemConditions {
-        entries = entries == null ? List.of() : List.copyOf(entries);
-        type = type == null || type.isBlank() ? "all_of" : type;
-        requiredCount = Math.max(0, requiredCount);
-        denyMessage = denyMessage == null ? "" : denyMessage;
-        passActions = passActions == null ? List.of() : List.copyOf(passActions);
-        failActions = failActions == null ? List.of() : List.copyOf(failActions);
+        block = block == null ? ConditionBlock.empty() : block;
     }
 
     public static ItemConditions empty() {
-        return new ItemConditions(List.of(), "all_of", 1, true, "", List.of(), List.of());
+        return new ItemConditions(ConditionBlock.empty());
     }
 
     public boolean configured() {
-        return !entries.isEmpty();
+        return block.configured();
+    }
+
+    public ConditionGroup group() {
+        return block.group();
+    }
+
+    public String denyMessage() {
+        return block.failMessage();
+    }
+
+    public List<String> passActions() {
+        return block.passActions();
+    }
+
+    public List<String> failActions() {
+        return block.failActions();
     }
 }

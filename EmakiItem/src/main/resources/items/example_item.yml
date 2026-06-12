@@ -145,24 +145,26 @@ set:
 # ============================================================
 # 不满足条件时，物品的 ea_attributes 不生效。
 # entries: 条件表达式列表（支持 %player_level%、%player_class% 等变量）
-# condition_type: 条件组合方式（all_of = 全部满足 / any_of = 任一满足）
-# condition_required_count: 需要满足的最少条件数
+# type: 条件组合方式（all_of = 全部满足 / any_of = 任一满足）
+# required_count: 需要满足的最少条件数
 # invalid_as_failure: 表达式解析失败时是否视为不满足
-# deny_message: 条件不满足时发送给玩家的提示
-# pass_actions: 条件满足时执行的动作
-# fail_actions: 条件不满足时执行的动作
-conditions:
+# on_fail.message: 条件不满足时发送给玩家的提示
+# on_pass.actions: 条件满足时执行的动作
+# on_fail.actions: 条件不满足时执行的动作
+condition:
+  type: "all_of"
+  required_count: 2
+  invalid_as_failure: true
   entries:
     - "%player_level% >= 10"
     - "%player_class% == 'warrior'"
-  condition_type: "all_of"
-  condition_required_count: 2
-  invalid_as_failure: true
-  deny_message: "<red>你不满足装备条件！</red>"
-  pass_actions:
-    - 'sendmessage text="<green>装备条件满足，属性已生效。</green>"'
-  fail_actions:
-    - 'sendmessage text="<red>需要等级 10 以上的战士才能装备此武器。</red>"'
+  on_pass:
+    actions:
+      - 'sendmessage text="<green>装备条件满足，属性已生效。</green>"'
+  on_fail:
+    message: "<red>你不满足装备条件！</red>"
+    actions:
+      - 'sendmessage text="<red>需要等级 10 以上的战士才能装备此武器。</red>"'
 
 # ============================================================
 # 修复配置

@@ -61,6 +61,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
   const sections = useMemo(() => editor?.sections?.length ? editor.sections : defaultSections(), [editor]);
   const editorFields = useMemo(() => editorFieldMap(editor), [editor]);
   const sourceAdapter = getSourceDocumentAdapter(file, editor);
+  const itemLikeKind = isKind(file.kind, 'ITEM') || isKind(file.kind, 'GEM');
   const resolvedChildPath = isGlobPath(file.path) && isConcretePath(filePath) ? filePath : childPath;
   const sourceContext = useMemo(() => ({ module, file, childPath: resolvedChildPath, path: filePath, editor }), [module, file, resolvedChildPath, filePath, editor?.id]);
   const draftContent = useMemo(() => sourceError ? sourceText : serializeItemYaml(data), [sourceError, sourceText, data]);
@@ -125,7 +126,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
 
   useEffect(() => {
     if (loading) return;
-    if (!isKind(file.kind, 'ITEM')) {
+    if (!itemLikeKind) {
       previewRequestId.current += 1;
       setPreview(null);
       setPreviewPending(false);
@@ -156,7 +157,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
         });
     }, 300);
     return () => { active = false; window.clearTimeout(timer); };
-  }, [api, data, sourceContent, previewLevel, loading, baseName, baseLore, file.kind]);
+  }, [api, data, sourceContent, previewLevel, loading, baseName, baseLore, file.kind, itemLikeKind]);
 
   useEffect(() => {
     const levels = configuredPreviewLevels(data, preview);
@@ -170,7 +171,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
   useEffect(() => {
     const previewConfig = asRecord(editor?.preview);
     const layeredRoute = textValue(previewConfig.layeredRoute);
-    if (loading || !isKind(file.kind, 'ITEM') || !layeredRoute) {
+    if (loading || !itemLikeKind || !layeredRoute) {
       layerPreviewRequestId.current += 1;
       setLayerPreview(null);
       setLayerPreviewPending(false);
@@ -199,7 +200,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
         });
     }, 350);
     return () => { active = false; window.clearTimeout(timer); };
-  }, [api, data, editor?.preview, file.kind, filePath, layerOptions, loading, module.id, sourceContent]);
+  }, [api, data, editor?.preview, file.kind, itemLikeKind, filePath, layerOptions, loading, module.id, sourceContent]);
 
   const setField = (path: string, value: unknown) => {
     setData(prev => {

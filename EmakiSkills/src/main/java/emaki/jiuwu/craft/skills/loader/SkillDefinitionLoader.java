@@ -8,6 +8,7 @@ import java.util.Map;
 
 import org.bukkit.plugin.java.JavaPlugin;
 
+import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
 import emaki.jiuwu.craft.corelib.condition.ConditionGroup;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -61,6 +62,8 @@ public final class SkillDefinitionLoader extends YamlDirectoryLoader<SkillDefini
         String iconMaterial = Texts.lower(configuration.getString("icon_material", ""));
         SkillActivationType activationType = SkillActivationType.fromString(
                 configuration.getString("trigger_type", "active"));
+        ConditionBlock condition = ConditionBlock.fromRoot(configuration, true, false);
+        ConditionGroup conditionGroup = condition.group();
 
         return new SkillDefinition(
                 id,
@@ -82,8 +85,8 @@ public final class SkillDefinitionLoader extends YamlDirectoryLoader<SkillDefini
                 configuration.getString("ui_category", "default"),
                 configuration.getInt("sort_order", 0),
                 enabled,
-                ConditionGroup.fromConfig(configuration, configuration.getString("condition_type", "all_of"), 0),
-                configuration.getString("condition_type", "all_of")
+                conditionGroup,
+                conditionGroup.conditionType()
         );
     }
 

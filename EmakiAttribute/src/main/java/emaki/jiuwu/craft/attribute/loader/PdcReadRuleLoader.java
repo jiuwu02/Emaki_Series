@@ -78,7 +78,7 @@ public final class PdcReadRuleLoader extends DirectoryLoader<PdcReadRule> {
                     Map.of(
                             "type", typeName(),
                             "file", file.getName(),
-                            "field", "conditions"
+                            "field", "condition.entries"
                     )
             );
             return false;
@@ -90,7 +90,7 @@ public final class PdcReadRuleLoader extends DirectoryLoader<PdcReadRule> {
                         Map.of(
                                 "type", typeName(),
                                 "file", file.getName(),
-                                "field", "conditions.type"
+                                "field", "condition.entries.type"
                         )
                 );
                 return false;
@@ -101,7 +101,7 @@ public final class PdcReadRuleLoader extends DirectoryLoader<PdcReadRule> {
                         Map.of(
                                 "type", typeName(),
                                 "file", file.getName(),
-                                "field", "conditions.key"
+                                "field", "condition.entries.key"
                         )
                 );
                 return false;
@@ -112,7 +112,7 @@ public final class PdcReadRuleLoader extends DirectoryLoader<PdcReadRule> {
                         Map.of(
                                 "type", typeName(),
                                 "file", file.getName(),
-                                "field", "conditions.pattern"
+                                "field", "condition.entries.pattern"
                         )
                 );
                 return false;
@@ -158,7 +158,11 @@ public final class PdcReadRuleLoader extends DirectoryLoader<PdcReadRule> {
         if (configuration == null || rule == null) {
             return false;
         }
-        Object rawEntries = configuration.get("conditions");
+        YamlSection condition = configuration.getSection("condition");
+        Object rawEntries = condition == null ? configuration.get("conditions") : condition.get("entries");
+        if (rawEntries == null && condition != null) {
+            rawEntries = condition.get("conditions");
+        }
         if (rawEntries == null) {
             return true;
         }

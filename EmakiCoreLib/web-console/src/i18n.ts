@@ -14,6 +14,7 @@ let currentLocale = readInitialLocale();
 const CORE_ZH_CN: LocaleMessages = {
   'core.surface.gui.label': 'GUI',
   'core.surface.item.label': '物品',
+  'core.surface.gem.label': '宝石',
   'core.theme.dark': '深色',
   'core.theme.light': '浅色',
   'emakicorelib.module.name': 'CoreLib',
@@ -330,6 +331,7 @@ const CORE_ZH_CN: LocaleMessages = {
   'core.kind.config': '配置',
   'core.kind.gui': 'GUI',
   'core.kind.item': '物品',
+  'core.kind.gem': '宝石',
   'core.kind.script': '脚本',
   'core.kind.file': '文件',
   'core.item.defaultBaseName': '<gray>预览装备</gray>',
@@ -668,6 +670,7 @@ loadPersistedLocales();
 const CORE_EN_US: LocaleMessages = {
   'core.surface.gui.label': 'GUI',
   'core.surface.item.label': 'Item',
+  'core.surface.gem.label': 'Gem',
   'core.theme.dark': 'Dark',
   'core.theme.light': 'Light',
   'emakicorelib.module.name': 'CoreLib',
@@ -898,6 +901,7 @@ const CORE_EN_US: LocaleMessages = {
   'core.kind.config': 'Config',
   'core.kind.gui': 'GUI',
   'core.kind.item': 'Item',
+  'core.kind.gem': 'Gem',
   'core.kind.script': 'Script',
   'core.kind.file': 'File',
   'core.item.defaultBaseName': '<gray>Preview gear</gray>',

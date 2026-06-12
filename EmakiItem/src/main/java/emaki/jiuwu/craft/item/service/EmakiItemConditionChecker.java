@@ -43,11 +43,8 @@ public final class EmakiItemConditionChecker {
         }
         ActionContext context = actionService.context(player, definition, trigger, Map.of(), itemStack);
         boolean passes = ConditionEvaluator.evaluate(
-                conditions.entries(),
-                conditions.type(),
-                conditions.requiredCount(),
-                text -> placeholderRegistry.resolve(context, text),
-                conditions.invalidAsFailure()
+                conditions.block(),
+                text -> placeholderRegistry.resolve(context, text)
         );
         if (passes) {
             if (!conditions.passActions().isEmpty()) {

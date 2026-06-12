@@ -9,6 +9,7 @@ import java.util.logging.Logger;
 
 import org.bukkit.Material;
 
+import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.item.EquipmentSlotMatcher;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
@@ -60,7 +61,7 @@ public final class EmakiItemDefinitionParser {
                 parseSkills(root, effects),
                 parseEquipSlot(root, id, source),
                 parseSetMembership(root.getSection("set")),
-                parseConditions(root.getSection("conditions")),
+                parseConditions(root),
                 parseActions(root.getSection("actions")),
                 parseUpdate(root.getSection("update"), id, source),
                 parseRepair(root.getSection("repair")),
@@ -107,19 +108,8 @@ public final class EmakiItemDefinitionParser {
         );
     }
 
-    private ItemConditions parseConditions(YamlSection section) {
-        if (section == null) {
-            return ItemConditions.empty();
-        }
-        return new ItemConditions(
-                normalizedList(section.get("entries")),
-                section.getString("condition_type", "all_of"),
-                section.getInt("condition_required_count", 1),
-                section.getBoolean("invalid_as_failure", true),
-                section.getString("deny_message", ""),
-                normalizedList(section.get("pass_actions")),
-                normalizedList(section.get("fail_actions"))
-        );
+    private ItemConditions parseConditions(YamlSection root) {
+        return root == null ? ItemConditions.empty() : new ItemConditions(ConditionBlock.fromRoot(root, true, false));
     }
 
     private Map<String, List<String>> parseActions(YamlSection section) {

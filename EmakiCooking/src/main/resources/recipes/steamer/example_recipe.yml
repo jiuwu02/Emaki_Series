@@ -37,14 +37,16 @@ permission: "emakicooking.recipe.steamed_cod"
 # ============================================================
 # 字段说明详见 chopping_board/example_recipe.yml。
 condition:
-  condition_type: all_of
-  conditions:
+  type: all_of
+  entries:
     - "%player_level% >= 2"
-  pass_actions:
-    - 'sendmessage text="<aqua>蒸制条件满足。</aqua>"'
-  fail_actions:
-    - 'sendmessage text="<red>蒸制条件不满足。</red>"'
-  block_output_on_false: false
+  on_pass:
+    actions:
+      - 'sendmessage text="<aqua>蒸制条件满足。</aqua>"'
+  on_fail:
+    actions:
+      - 'sendmessage text="<red>蒸制条件不满足。</red>"'
+    block_output: false
 
 # ============================================================
 # 蒸制结果

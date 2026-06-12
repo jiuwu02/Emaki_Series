@@ -35,17 +35,19 @@ permission: "emakicooking.recipe.bone_meal"
 # 完成条件（true/false 动作分支）
 # ============================================================
 # 字段说明详见 chopping_board/example_recipe.yml。
-# condition_type: all_of / any_of / none_of / at_least / exactly
-# block_output_on_false: 条件不成立是否阻止产出（默认 false）
+# type: all_of / any_of / none_of / at_least / exactly
+# on_fail.block_output: 条件不成立是否阻止产出（默认 false）
 condition:
-  condition_type: all_of
-  conditions:
+  type: all_of
+  entries:
     - "%player_level% >= 1"
-  pass_actions:
-    - 'sendmessage text="<gray>研磨条件满足。</gray>"'
-  fail_actions:
-    - 'sendmessage text="<red>研磨条件不满足。</red>"'
-  block_output_on_false: false
+  on_pass:
+    actions:
+      - 'sendmessage text="<gray>研磨条件满足。</gray>"'
+  on_fail:
+    actions:
+      - 'sendmessage text="<red>研磨条件不满足。</red>"'
+    block_output: false
 
 # ============================================================
 # 研磨结果

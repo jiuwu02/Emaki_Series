@@ -40,7 +40,7 @@ public record ConditionNode(String type,
             return expression(Texts.toStringSafe(raw));
         }
         String type = section.getString("type", "expression");
-        if ("group".equals(Texts.lower(type)) || section.contains("conditions")) {
+        if ("group".equals(Texts.lower(type)) || section.contains("entries") || section.contains("conditions")) {
             return group(ConditionGroup.fromConfig(section));
         }
         String expression = firstNotBlank(

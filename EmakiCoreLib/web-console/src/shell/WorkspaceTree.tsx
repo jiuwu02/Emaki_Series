@@ -238,6 +238,7 @@ export function fileKindLabel(kind: string | undefined): string {
   if (upper === 'CONFIG') return t('core.kind.config');
   if (upper === 'GUI') return t('core.kind.gui');
   if (upper === 'ITEM') return t('core.kind.item');
+  if (upper === 'GEM') return t('core.kind.gem');
   const registered = getFileKindLabel(upper);
   if (registered) return registered;
   if (upper === 'SCRIPT') return t('core.kind.script');

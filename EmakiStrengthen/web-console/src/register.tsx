@@ -117,8 +117,10 @@ export function registerEmakiStrengthenWebConsole(): void {
     ['branch_tree', '分支树', '分支强化路线配置。', 'object'],
     ['branch_tree.stars', '根分支星级', '分支树根节点内的星级阶段。', 'object', { creatableChildren: true, createTemplates: [starStageTemplate] }],
     ['branch_tree.children', '子分支', '根分支后可选择的路线。', 'object', { creatableChildren: true, createTemplates: [branchTemplate] }],
-    ['condition_type', '条件逻辑', '条件表达式组合方式。', 'enum', { options: ['all_of', 'any_of'], optionLabelPrefix: 'condition_type' }],
-    ['condition_required_count', '需要满足数量', 'any_of 场景下需要满足的最少条件数量。', 'number'],
+    ['condition', '强化条件', '执行强化前检查的条件块。', 'object'],
+    ['condition.type', '条件逻辑', '条件表达式组合方式。', 'enum', { options: ['all_of', 'any_of', 'none_of', 'at_least', 'exactly'], optionLabelPrefix: 'conditionType' }],
+    ['condition.entries', '条件表达式', 'CoreLib 条件表达式字符串列表。', 'stringList'],
+    ['condition.required_count', '需要满足数量', 'at_least / exactly 场景下需要满足的最少条件数量。', 'number'],
     ['name_actions', '名称动作', '强化成功后对物品显示名称执行的动作。', 'actions'],
     ['lore_actions', 'Lore 动作', '强化成功后对物品 Lore 执行的动作。', 'actions'],
     ['effects', '效果', '强化完成后追加的效果列表，支持变量、EA 属性和 ES 技能。', 'effects']

@@ -203,8 +203,8 @@ loader:
     %phase%，第 %line% 行 <gray>(%error%)</gray></yellow>"
   recipe_unknown_action_template: "<yellow>配方 %recipe% 中存在未知模板
     <red>%template%</red>: %file%，阶段 %phase%，第 %line% 行</yellow>"
-  recipe_invalid_condition_type:
-    "<yellow>配方 %recipe% 的 condition_type 非法: %file%
+  recipe_invalid_condition_mode:
+    "<yellow>配方 %recipe% 的 condition.type 非法: %file%
     -> <red>%value%</red>。允许值: <gray>%allowed%</gray>，已拒绝加载。</yellow>"
 
 # 锻造相关

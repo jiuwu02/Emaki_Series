@@ -303,7 +303,7 @@ public final class PdcAttributeService implements PdcAttributeApi.Bridge, emaki.
             case "lore_regex" ->
                 evaluateLoreRegexCondition(player, payload, loreLines, condition);
             default ->
-                ConditionOutcome.invalid("condition_type=" + condition.type());
+                ConditionOutcome.invalid("condition.type=" + condition.type());
         };
     }
 

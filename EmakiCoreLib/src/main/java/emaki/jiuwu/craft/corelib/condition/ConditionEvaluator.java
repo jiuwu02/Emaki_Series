@@ -59,6 +59,14 @@ public final class ConditionEvaluator {
                 invalidAsFailure);
     }
 
+    public static boolean evaluate(ConditionBlock block,
+            Function<String, String> placeholderReplacer) {
+        if (block == null || !block.configured()) {
+            return true;
+        }
+        return evaluate(block.group(), placeholderReplacer, block.invalidAsFailure());
+    }
+
     public static boolean evaluate(ConditionGroup group,
             Function<String, String> placeholderReplacer,
             boolean invalidAsFailure) {
