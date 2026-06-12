@@ -1,24 +1,27 @@
 package emaki.jiuwu.craft.item.service;
 
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.plugin.Plugin;
 
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.web.preview.WebItemLayerPreviewProvider;
+import emaki.jiuwu.craft.corelib.web.preview.WebItemLayerPreviewRegistry;
+import emaki.jiuwu.craft.corelib.web.preview.WebItemLayerPreviewRequest;
+import emaki.jiuwu.craft.corelib.web.preview.WebItemLayerPreviewResult;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import emaki.jiuwu.craft.item.EmakiItemPlugin;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinitionParser;
 
 public final class EmakiItemLayerPreviewService {
+
+    private static final List<String> BUILTIN_LAYER_IDS = List.of("strengthen", "gem");
 
     private final EmakiItemPlugin plugin;
     private final EmakiItemDefinitionParser parser;
@@ -28,22 +31,89 @@ public final class EmakiItemLayerPreviewService {
         this.parser = new EmakiItemDefinitionParser(plugin.getLogger());
     }
 
-    public Map<String, Object> preview(String content, String fallbackId) {
+    public Map<String, Object> preview(String content, String fallbackId, Map<String, Object> layerOptions) {
         List<Map<String, Object>> warnings = new ArrayList<>();
         EmakiItemDefinition definition = parseDefinition(content, fallbackId, warnings);
+        String itemId = definition == null ? Texts.normalizeId(fallbackId) : definition.id();
         ItemStack base = definition == null ? null : plugin.itemFactory().rebuildBase(definition, 1);
-        Map<String, Object> basePreview = itemPreview("base", true, "", base, Map.of("itemId", definition == null ? Texts.normalizeId(fallbackId) : definition.id()));
-        Map<String, Object> strengthen = strengthenLayer(base);
-        Map<String, Object> gem = gemLayer(base);
-        List<Map<String, Object>> layers = List.of(strengthen, gem);
+        ItemStack current = base;
+        Map<String, Object> basePreview = itemPreview("base", true, "", base, Map.of("itemId", itemId));
+        List<Map<String, Object>> layers = new ArrayList<>();
+        Map<String, WebItemLayerPreviewProvider> providers = providersById();
+        for (String id : BUILTIN_LAYER_IDS) {
+            WebItemLayerPreviewProvider provider = providers.remove(id);
+            if (provider == null) {
+                layers.add(unregisteredLayer(id));
+                continue;
+            }
+            WebItemLayerPreviewResult result = previewProvider(provider, itemId, base, current, layerOptionsFor(layerOptions, id));
+            if (result.available() && result.itemStack() != null) {
+                current = result.itemStack();
+            }
+            layers.add(result.toLayerMap(itemPreview(id, result.available(), result.reason(), result.itemStack(), result.details())));
+        }
+        for (WebItemLayerPreviewProvider provider : providers.values()) {
+            WebItemLayerPreviewResult result = previewProvider(provider, itemId, base, current, layerOptionsFor(layerOptions, provider.id()));
+            if (result.available() && result.itemStack() != null) {
+                current = result.itemStack();
+            }
+            layers.add(result.toLayerMap(itemPreview(provider.id(), result.available(), result.reason(), result.itemStack(), result.details())));
+        }
         return mapOf(
                 "ok", true,
-                "itemId", definition == null ? Texts.normalizeId(fallbackId) : definition.id(),
+                "itemId", itemId,
                 "base", basePreview,
                 "layers", layers,
-                "final", basePreview,
+                "availableLayers", layers.stream().filter(layer -> Boolean.TRUE.equals(layer.get("available"))).map(layer -> Texts.toStringSafe(layer.get("id"))).toList(),
+                "final", itemPreview("final", current != null, "", current, Map.of("itemId", itemId)),
                 "warnings", warnings
         );
+    }
+
+    private WebItemLayerPreviewResult previewProvider(WebItemLayerPreviewProvider provider, String itemId, ItemStack base, ItemStack current, Map<String, Object> options) {
+        try {
+            return provider.preview(new WebItemLayerPreviewRequest(itemId, base, current == null ? base : current, options));
+        } catch (RuntimeException exception) {
+            return WebItemLayerPreviewResult.unavailable(provider.id(), provider.id() + " 预览失败：" + exception.getMessage(), Map.of(), Map.of());
+        }
+    }
+
+    private Map<String, WebItemLayerPreviewProvider> providersById() {
+        Map<String, WebItemLayerPreviewProvider> providers = new LinkedHashMap<>();
+        for (WebItemLayerPreviewProvider provider : WebItemLayerPreviewRegistry.providers()) {
+            providers.put(Texts.lower(provider.id()), provider);
+        }
+        return providers;
+    }
+
+    private Map<String, Object> layerOptionsFor(Map<String, Object> layerOptions, String id) {
+        if (layerOptions == null || id == null) {
+            return Map.of();
+        }
+        Object value = layerOptions.get(id);
+        if (!(value instanceof Map<?, ?>)) {
+            value = layerOptions.get(Texts.lower(id));
+        }
+        if (!(value instanceof Map<?, ?> map)) {
+            return Map.of();
+        }
+        Map<String, Object> result = new LinkedHashMap<>();
+        for (Map.Entry<?, ?> entry : map.entrySet()) {
+            if (entry.getKey() != null) {
+                result.put(String.valueOf(entry.getKey()), entry.getValue());
+            }
+        }
+        return result;
+    }
+
+    private Map<String, Object> unregisteredLayer(String id) {
+        String pluginName = switch (id) {
+            case "strengthen" -> "EmakiStrengthen";
+            case "gem" -> "EmakiGem";
+            default -> id;
+        };
+        return WebItemLayerPreviewResult.unavailable(id, pluginName + " 未加载。", Map.of(), Map.of())
+                .toLayerMap(itemPreview(id, false, pluginName + " 未加载。", null, Map.of()));
     }
 
     private EmakiItemDefinition parseDefinition(String content, String fallbackId, List<Map<String, Object>> warnings) {
@@ -59,69 +129,6 @@ public final class EmakiItemLayerPreviewService {
         return Texts.isBlank(id) ? null : plugin.itemLoader().get(id);
     }
 
-    private Map<String, Object> strengthenLayer(ItemStack base) {
-        Plugin strengthen = Bukkit.getPluginManager().getPlugin("EmakiStrengthen");
-        if (strengthen == null || !strengthen.isEnabled()) {
-            return unavailable("strengthen", "EmakiStrengthen 未加载。");
-        }
-        if (base == null || base.getType().isAir()) {
-            return unavailable("strengthen", "基础物品不可用。");
-        }
-        try {
-            Method recipeResolverMethod = strengthen.getClass().getMethod("recipeResolver");
-            Object resolver = recipeResolverMethod.invoke(strengthen);
-            Object resolved = resolver.getClass().getMethod("resolve", ItemStack.class, String.class).invoke(resolver, base, null);
-            String recipeId = Texts.toStringSafe(resolved.getClass().getMethod("resolvedRecipeId").invoke(resolved));
-            String source = Texts.toStringSafe(resolved.getClass().getMethod("baseSourceSignature").invoke(resolved));
-            if (Texts.isBlank(recipeId)) {
-                return unavailable("strengthen", "EmakiStrengthen 已加载，但没有任何强化配方匹配当前 EmakiItem。", Map.of("source", source));
-            }
-            Map<String, Object> details = new LinkedHashMap<>();
-            details.put("recipeId", recipeId);
-            details.put("source", source);
-            try {
-                Object routePreviewService = strengthen.getClass().getMethod("routePreviewService").invoke(strengthen);
-                details.put("route", routePreviewService.getClass().getMethod("preview", String.class).invoke(routePreviewService, recipeId));
-            } catch (ReflectiveOperationException ignored) {
-                // 旧构建没有暴露 routePreviewService 时仍可返回匹配状态。
-            }
-            return available("strengthen", "已匹配强化配方。", details);
-        } catch (ReflectiveOperationException exception) {
-            return unavailable("strengthen", "Strengthen 预览桥接失败：" + exception.getMessage());
-        }
-    }
-
-    private Map<String, Object> gemLayer(ItemStack base) {
-        Plugin gem = Bukkit.getPluginManager().getPlugin("EmakiGem");
-        if (gem == null || !gem.isEnabled()) {
-            return unavailable("gem", "EmakiGem 未加载。");
-        }
-        if (base == null || base.getType().isAir()) {
-            return unavailable("gem", "基础物品不可用。");
-        }
-        try {
-            Object matcher = gem.getClass().getMethod("itemMatcher").invoke(gem);
-            Object definition = matcher.getClass().getMethod("matchEquipment", ItemStack.class).invoke(matcher, base);
-            if (definition == null) {
-                return unavailable("gem", "EmakiGem 已加载，但没有任何宝石模板匹配当前 EmakiItem。");
-            }
-            String templateId = Texts.toStringSafe(definition.getClass().getMethod("id").invoke(definition));
-            Object slots = definition.getClass().getMethod("slots").invoke(definition);
-            Object defaultOpenSlots = definition.getClass().getMethod("defaultOpenedSlotIndexes").invoke(definition);
-            Map<String, Object> details = new LinkedHashMap<>();
-            details.put("templateId", templateId);
-            if (slots instanceof List<?> list) {
-                details.put("slotCount", list.size());
-            }
-            if (defaultOpenSlots instanceof java.util.Set<?> set) {
-                details.put("defaultOpenSlotCount", set.size());
-            }
-            return available("gem", "已匹配宝石模板。", details);
-        } catch (ReflectiveOperationException exception) {
-            return unavailable("gem", "Gem 预览桥接失败：" + exception.getMessage());
-        }
-    }
-
     private Map<String, Object> itemPreview(String id, boolean available, String reason, ItemStack itemStack, Map<String, ?> details) {
         Map<String, Object> map = new LinkedHashMap<>();
         map.put("id", id);
@@ -130,22 +137,6 @@ public final class EmakiItemLayerPreviewService {
         map.put("displayName", displayName(itemStack));
         map.put("lore", lore(itemStack));
         map.put("details", details == null ? Map.of() : details);
-        return map;
-    }
-
-    private Map<String, Object> available(String id, String reason, Map<String, ?> details) {
-        Map<String, Object> map = itemPreview(id, true, reason, null, details);
-        map.put("status", "available");
-        return map;
-    }
-
-    private Map<String, Object> unavailable(String id, String reason) {
-        return unavailable(id, reason, Map.of());
-    }
-
-    private Map<String, Object> unavailable(String id, String reason, Map<String, ?> details) {
-        Map<String, Object> map = itemPreview(id, false, reason, null, details);
-        map.put("status", "unavailable");
         return map;
     }
 
@@ -164,7 +155,7 @@ public final class EmakiItemLayerPreviewService {
         return ItemTextBridge.loreLines(itemStack.getItemMeta());
     }
 
-    private Map<String, String> warning(String type, String message) {
+    private Map<String, Object> warning(String type, String message) {
         return Map.of("type", Texts.toStringSafe(type), "message", Texts.toStringSafe(message));
     }
 

@@ -452,6 +452,15 @@
   font-weight: 800;
 }
 
+.insight-search-idtype.alias {
+  grid-column: 1 / -1;
+  justify-self: start;
+  border-color: var(--line);
+  color: var(--accent);
+  background: var(--accent-dim);
+  text-transform: none;
+}
+
 .insight-search-badge.definition {
   border-color: var(--success-line);
   color: var(--green);

@@ -1,5 +1,5 @@
 import { useState, type KeyboardEvent, type SyntheticEvent } from 'react';
-import { t, getLocale } from '../i18n';
+import { t } from '../i18n';
 import { DisclosureChevron } from './SectionHead';
 
 const NUMERIC_TYPES = ['constant', 'range', 'uniform', 'gaussian', 'skew_normal', 'triangle', 'expression'] as const;
@@ -33,14 +33,14 @@ export function VariablesMapEditor({ value, onChange }: { value: unknown; onChan
     return next;
   });
 
-  return <div className="prop-levels variables-map-editor" role="list" aria-label={copy('变量列表', 'Variables')}>
+  return <div className="prop-levels variables-map-editor" role="list" aria-label={t('core.variables.aria')}>
     {entries.map((entry, index) => {
       const type = detectVariableType(entry.value);
       const opened = expanded.has(index);
       return <div className={`prop-level-item${opened ? ' expanded' : ''}`} key={index} role="listitem">
         <div className="prop-level-head" role="button" tabIndex={0} onClick={() => toggle(index)} onKeyDown={event => toggleByKeyboard(event, () => toggle(index))} aria-expanded={opened} aria-controls={`variable-body-${index}`}>
           <span className="prop-level-summary">
-            <span className="prop-level-badge"><DisclosureChevron open={opened} className="prop-level-arrow" /> {entry.key || copy('未命名', 'Unnamed')}</span>
+            <span className="prop-level-badge"><DisclosureChevron open={opened} className="prop-level-arrow" /> {entry.key || t('core.variables.unnamed')}</span>
           </span>
           <span className="prop-level-rate">{variableTypeLabel(type)}</span>
           <span className="prop-action-controls" onClick={stopEvent} onKeyDown={stopEvent}>
@@ -48,13 +48,13 @@ export function VariablesMapEditor({ value, onChange }: { value: unknown; onChan
           </span>
         </div>
         {opened && <div className="prop-level-body" id={`variable-body-${index}`}>
-          <label className="prop-param-field"><span>{copy('变量名', 'Variable')}</span><input value={entry.key} onChange={event => update(index, { key: event.target.value })} /></label>
-          <label className="prop-param-field"><span>{copy('值类型', 'Value type')}</span><select value={type} onChange={event => update(index, { value: convertVariableValue(entry.value, event.target.value as VariableType) })}>{TYPE_OPTIONS.map(option => <option key={option} value={option}>{variableTypeLabel(option)}</option>)}</select></label>
+          <label className="prop-param-field"><span>{t('core.variables.name')}</span><input value={entry.key} onChange={event => update(index, { key: event.target.value })} /></label>
+          <label className="prop-param-field"><span>{t('core.variables.valueType')}</span><select value={type} onChange={event => update(index, { value: convertVariableValue(entry.value, event.target.value as VariableType) })}>{TYPE_OPTIONS.map(option => <option key={option} value={option}>{variableTypeLabel(option)}</option>)}</select></label>
           <VariableValueEditor value={entry.value} type={type} onChange={next => update(index, { value: next })} />
         </div>}
       </div>;
     })}
-    <button type="button" className="prop-add" onClick={add}>+ {copy('添加变量', 'Add variable')}</button>
+    <button type="button" className="prop-add" onClick={add}>+ {t('core.variables.add')}</button>
   </div>;
 }
 
@@ -69,8 +69,8 @@ function stopEvent(event: SyntheticEvent) {
 }
 
 function VariableValueEditor({ value, type, onChange }: { value: unknown; type: VariableType; onChange: (value: unknown) => void }) {
-  if (type === 'number') return <label className="prop-param-field"><span>{copy('数字值', 'Number')}</span><input type="number" value={typeof value === 'number' ? value : Number(value) || 0} onChange={event => onChange(event.target.value === '' ? 0 : Number(event.target.value))} /></label>;
-  if (type === 'formula') return <label className="prop-param-field prop-param-field--wide"><span>{copy('公式', 'Formula')}</span><input value={String(value ?? '')} onChange={event => onChange(event.target.value)} placeholder="{level} * 2 + 5" /></label>;
+  if (type === 'number') return <label className="prop-param-field"><span>{t('core.variables.numberValue')}</span><input type="number" value={typeof value === 'number' ? value : Number(value) || 0} onChange={event => onChange(event.target.value === '' ? 0 : Number(event.target.value))} /></label>;
+  if (type === 'formula') return <label className="prop-param-field prop-param-field--wide"><span>{t('core.variables.formula')}</span><input value={String(value ?? '')} onChange={event => onChange(event.target.value)} placeholder="{level} * 2 + 5" /></label>;
   if (type === 'constant') return <NumericObjectEditor value={asTypedRecord(value, 'constant')} fields={['value']} onChange={onChange} />;
   if (type === 'range' || type === 'uniform') return <NumericObjectEditor value={asTypedRecord(value, type)} fields={['min', 'max']} onChange={onChange} />;
   if (type === 'gaussian') return <NumericObjectEditor value={asTypedRecord(value, type)} fields={['mean', 'std_dev', 'min', 'max', 'max_attempts']} onChange={onChange} />;
@@ -95,14 +95,14 @@ function NumericObjectEditor({ value, fields, onChange }: { value: AnyMap; field
 
 function ExpressionObjectEditor({ value, onChange }: { value: AnyMap; onChange: (value: unknown) => void }) {
   return <div className="schema-object-editor">
-    <label className="prop-param-field prop-param-field--wide"><span>{copy('表达式', 'Expression')}</span><input value={String(value.expression ?? value.formula ?? '')} onChange={event => onChange(cleanObject({ ...value, expression: event.target.value, formula: undefined }))} placeholder="{base} * 1.2" /></label>
+    <label className="prop-param-field prop-param-field--wide"><span>{t('core.variables.expression')}</span><input value={String(value.expression ?? value.formula ?? '')} onChange={event => onChange(cleanObject({ ...value, expression: event.target.value, formula: undefined }))} placeholder="{base} * 1.2" /></label>
     <LocalVariablesEditor value={value.variables} onChange={variables => onChange(cleanObject({ ...value, variables }))} />
   </div>;
 }
 
 function TextObjectEditor({ value, onChange }: { value: AnyMap; onChange: (value: unknown) => void }) {
   return <div className="schema-object-editor">
-    <label className="prop-param-field prop-param-field--wide"><span>{copy('文本', 'Text')}</span><input value={String(value.value ?? value.text ?? value.template ?? '')} onChange={event => onChange(cleanObject({ ...value, value: event.target.value, text: undefined, template: undefined }))} /></label>
+    <label className="prop-param-field prop-param-field--wide"><span>{t('core.variables.text')}</span><input value={String(value.value ?? value.text ?? value.template ?? '')} onChange={event => onChange(cleanObject({ ...value, value: event.target.value, text: undefined, template: undefined }))} /></label>
     <LocalVariablesEditor value={value.variables} onChange={variables => onChange(cleanObject({ ...value, variables }))} />
   </div>;
 }
@@ -110,18 +110,18 @@ function TextObjectEditor({ value, onChange }: { value: AnyMap; onChange: (value
 function RandomTextObjectEditor({ value, onChange }: { value: AnyMap; onChange: (value: unknown) => void }) {
   const lines = Array.isArray(value.lines ?? value.values) ? (value.lines ?? value.values) as unknown[] : [];
   return <div className="schema-object-editor">
-    <label className="prop-param-field prop-param-field--wide"><span>{copy('候选文本', 'Candidates')}</span><textarea rows={4} value={lines.map(String).join('\n')} onChange={event => onChange(cleanObject({ ...value, lines: event.target.value.split('\n'), values: undefined }))} /></label>
-    <label className="prop-param-field"><span>{copy('抽取数量', 'Count')}</span><input type="text" value={String(value.count ?? value.rolls ?? 1)} onChange={event => onChange(cleanObject({ ...value, count: parseLoose(event.target.value), rolls: undefined }))} /></label>
-    <label className="inline-switch"><input type="checkbox" checked={value.allow_duplicates === true} onChange={event => onChange(cleanObject({ ...value, allow_duplicates: event.target.checked || undefined }))} /> {copy('允许重复', 'Allow duplicates')}</label>
+    <label className="prop-param-field prop-param-field--wide"><span>{t('core.variables.candidates')}</span><textarea rows={4} value={lines.map(String).join('\n')} onChange={event => onChange(cleanObject({ ...value, lines: event.target.value.split('\n'), values: undefined }))} /></label>
+    <label className="prop-param-field"><span>{t('core.variables.drawCount')}</span><input type="text" value={String(value.count ?? value.rolls ?? 1)} onChange={event => onChange(cleanObject({ ...value, count: parseLoose(event.target.value), rolls: undefined }))} /></label>
+    <label className="inline-switch"><input type="checkbox" checked={value.allow_duplicates === true} onChange={event => onChange(cleanObject({ ...value, allow_duplicates: event.target.checked || undefined }))} /> {t('core.variables.allowDuplicates')}</label>
     <LocalVariablesEditor value={value.variables} onChange={variables => onChange(cleanObject({ ...value, variables }))} />
   </div>;
 }
 
 function RandomCharObjectEditor({ value, onChange }: { value: AnyMap; onChange: (value: unknown) => void }) {
   return <div className="schema-object-editor">
-    <label className="prop-param-field prop-param-field--wide"><span>{copy('候选字符', 'Characters')}</span><input value={String(value.chars ?? value.characters ?? value.alphabet ?? '')} onChange={event => onChange(cleanObject({ ...value, chars: event.target.value || undefined, characters: undefined, alphabet: undefined }))} placeholder={copy('留空使用 a-z', 'Leave blank for a-z')} /></label>
-    <label className="prop-param-field"><span>{copy('随机次数', 'Count')}</span><input type="text" value={String(value.count ?? value.rolls ?? 1)} onChange={event => onChange(cleanObject({ ...value, count: parseLoose(event.target.value), rolls: undefined }))} /></label>
-    <label className="inline-switch"><input type="checkbox" checked={value.allow_duplicates === true} onChange={event => onChange(cleanObject({ ...value, allow_duplicates: event.target.checked || undefined }))} /> {copy('允许重复', 'Allow duplicates')}</label>
+    <label className="prop-param-field prop-param-field--wide"><span>{t('core.variables.characters')}</span><input value={String(value.chars ?? value.characters ?? value.alphabet ?? '')} onChange={event => onChange(cleanObject({ ...value, chars: event.target.value || undefined, characters: undefined, alphabet: undefined }))} placeholder={t('core.variables.charactersPlaceholder')} /></label>
+    <label className="prop-param-field"><span>{t('core.variables.randomCount')}</span><input type="text" value={String(value.count ?? value.rolls ?? 1)} onChange={event => onChange(cleanObject({ ...value, count: parseLoose(event.target.value), rolls: undefined }))} /></label>
+    <label className="inline-switch"><input type="checkbox" checked={value.allow_duplicates === true} onChange={event => onChange(cleanObject({ ...value, allow_duplicates: event.target.checked || undefined }))} /> {t('core.variables.allowDuplicates')}</label>
     <LocalVariablesEditor value={value.variables} onChange={variables => onChange(cleanObject({ ...value, variables }))} />
   </div>;
 }
@@ -130,10 +130,10 @@ function WeightedRandomCharObjectEditor({ value, onChange }: { value: AnyMap; on
   const chars = charRows(value.chars ?? value.characters ?? value.values);
   const weights = listRows(value.weights ?? value.weight);
   return <div className="schema-object-editor">
-    <label className="prop-param-field prop-param-field--wide"><span>{copy('候选字符（每行一个）', 'Characters, one per line')}</span><textarea rows={4} value={chars.join('\n')} onChange={event => onChange(cleanObject({ ...value, chars: splitRows(event.target.value), characters: undefined, values: undefined }))} /></label>
-    <label className="prop-param-field prop-param-field--wide"><span>{copy('权重（逐行对应）', 'Weights, matching rows')}</span><textarea rows={4} value={weights.join('\n')} onChange={event => onChange(cleanObject({ ...value, weights: splitRows(event.target.value).map(parseLoose), weight: undefined }))} /></label>
-    <label className="prop-param-field"><span>{copy('随机次数', 'Count')}</span><input type="text" value={String(value.count ?? value.rolls ?? 1)} onChange={event => onChange(cleanObject({ ...value, count: parseLoose(event.target.value), rolls: undefined }))} /></label>
-    <label className="inline-switch"><input type="checkbox" checked={value.allow_duplicates === true} onChange={event => onChange(cleanObject({ ...value, allow_duplicates: event.target.checked || undefined }))} /> {copy('允许重复', 'Allow duplicates')}</label>
+    <label className="prop-param-field prop-param-field--wide"><span>{t('core.variables.charactersPerLine')}</span><textarea rows={4} value={chars.join('\n')} onChange={event => onChange(cleanObject({ ...value, chars: splitRows(event.target.value), characters: undefined, values: undefined }))} /></label>
+    <label className="prop-param-field prop-param-field--wide"><span>{t('core.variables.weightsByRow')}</span><textarea rows={4} value={weights.join('\n')} onChange={event => onChange(cleanObject({ ...value, weights: splitRows(event.target.value).map(parseLoose), weight: undefined }))} /></label>
+    <label className="prop-param-field"><span>{t('core.variables.randomCount')}</span><input type="text" value={String(value.count ?? value.rolls ?? 1)} onChange={event => onChange(cleanObject({ ...value, count: parseLoose(event.target.value), rolls: undefined }))} /></label>
+    <label className="inline-switch"><input type="checkbox" checked={value.allow_duplicates === true} onChange={event => onChange(cleanObject({ ...value, allow_duplicates: event.target.checked || undefined }))} /> {t('core.variables.allowDuplicates')}</label>
     <LocalVariablesEditor value={value.variables} onChange={variables => onChange(cleanObject({ ...value, variables }))} />
   </div>;
 }
@@ -141,18 +141,18 @@ function WeightedRandomCharObjectEditor({ value, onChange }: { value: AnyMap; on
 function ConditionalCharObjectEditor({ value, onChange }: { value: AnyMap; onChange: (value: unknown) => void }) {
   const cases = conditionalCaseRows(value.cases ?? value.conditions);
   return <div className="schema-object-editor">
-    <label className="prop-param-field prop-param-field--wide"><span>{copy('条件', 'Condition')}</span><input value={String(value.condition ?? value.when ?? value['if'] ?? '')} onChange={event => onChange(cleanObject({ ...value, condition: event.target.value, when: undefined, 'if': undefined }))} placeholder="{level} &gt;= 10" /></label>
-    <label className="prop-param-field"><span>{copy('成立输出', 'True value')}</span><input value={String(value.true_value ?? value['true'] ?? value.then ?? '')} onChange={event => onChange(cleanObject({ ...value, true_value: event.target.value, 'true': undefined, then: undefined }))} /></label>
-    <label className="prop-param-field"><span>{copy('不成立输出', 'False value')}</span><input value={String(value.false_value ?? value['false'] ?? value['else'] ?? '')} onChange={event => onChange(cleanObject({ ...value, false_value: event.target.value, 'false': undefined, 'else': undefined }))} /></label>
-    <label className="prop-param-field prop-param-field--wide"><span>{copy('穷举条件', 'Cases')}</span><textarea rows={4} value={cases.join('\n')} onChange={event => onChange(cleanObject({ ...value, cases: parseConditionalCases(event.target.value), conditions: undefined }))} placeholder="{level} &gt;= 30 =&gt; S&#10;{level} &gt;= 20 =&gt; A" /></label>
-    <label className="prop-param-field"><span>{copy('兜底输出', 'Fallback')}</span><input value={String(value.fallback ?? value.default ?? '')} onChange={event => onChange(cleanObject({ ...value, fallback: event.target.value, 'default': undefined }))} /></label>
+    <label className="prop-param-field prop-param-field--wide"><span>{t('core.variables.condition')}</span><input value={String(value.condition ?? value.when ?? value['if'] ?? '')} onChange={event => onChange(cleanObject({ ...value, condition: event.target.value, when: undefined, 'if': undefined }))} placeholder="{level} &gt;= 10" /></label>
+    <label className="prop-param-field"><span>{t('core.variables.trueValue')}</span><input value={String(value.true_value ?? value['true'] ?? value.then ?? '')} onChange={event => onChange(cleanObject({ ...value, true_value: event.target.value, 'true': undefined, then: undefined }))} /></label>
+    <label className="prop-param-field"><span>{t('core.variables.falseValue')}</span><input value={String(value.false_value ?? value['false'] ?? value['else'] ?? '')} onChange={event => onChange(cleanObject({ ...value, false_value: event.target.value, 'false': undefined, 'else': undefined }))} /></label>
+    <label className="prop-param-field prop-param-field--wide"><span>{t('core.variables.cases')}</span><textarea rows={4} value={cases.join('\n')} onChange={event => onChange(cleanObject({ ...value, cases: parseConditionalCases(event.target.value), conditions: undefined }))} placeholder="{level} &gt;= 30 =&gt; S&#10;{level} &gt;= 20 =&gt; A" /></label>
+    <label className="prop-param-field"><span>{t('core.variables.fallback')}</span><input value={String(value.fallback ?? value.default ?? '')} onChange={event => onChange(cleanObject({ ...value, fallback: event.target.value, 'default': undefined }))} /></label>
     <LocalVariablesEditor value={value.variables} onChange={variables => onChange(cleanObject({ ...value, variables }))} />
   </div>;
 }
 
 function BooleanObjectEditor({ value, onChange }: { value: AnyMap; onChange: (value: unknown) => void }) {
   return <div className="schema-object-editor">
-    <label className="prop-param-field prop-param-field--wide"><span>{copy('布尔表达式', 'Boolean expression')}</span><input value={String(value.expression ?? value.value ?? '')} onChange={event => onChange(cleanObject({ ...value, expression: event.target.value, value: undefined }))} placeholder="{level} >= 10" /></label>
+    <label className="prop-param-field prop-param-field--wide"><span>{t('core.variables.booleanExpression')}</span><input value={String(value.expression ?? value.value ?? '')} onChange={event => onChange(cleanObject({ ...value, expression: event.target.value, value: undefined }))} placeholder="{level} >= 10" /></label>
     <LocalVariablesEditor value={value.variables} onChange={variables => onChange(cleanObject({ ...value, variables }))} />
   </div>;
 }
@@ -160,7 +160,7 @@ function BooleanObjectEditor({ value, onChange }: { value: AnyMap; onChange: (va
 function LocalVariablesEditor({ value, onChange }: { value: unknown; onChange: (value: Record<string, unknown> | undefined) => void }) {
   const [open, setOpen] = useState(false);
   return <div className="local-variables-editor">
-    <button type="button" className="prop-add" onClick={() => setOpen(current => !current)}>{open ? '−' : '+'} {copy('局部变量', 'Local variables')}</button>
+    <button type="button" className="prop-add" onClick={() => setOpen(current => !current)}>{open ? '−' : '+'} {t('core.variables.localVariables')}</button>
     {open && <VariablesMapEditor value={value} onChange={next => onChange(Object.keys(next).length ? next : undefined)} />}
   </div>;
 }
@@ -169,7 +169,7 @@ function JsonObjectField({ value, onChange }: { value: unknown; onChange: (value
   const [text, setText] = useState(() => JSON.stringify(value ?? {}, null, 2));
   const [error, setError] = useState('');
   return <div className="variable-json">
-    <textarea rows={8} value={text} aria-label={copy('自定义变量配置', 'Custom variable config')} onChange={event => {
+    <textarea rows={8} value={text} aria-label={t('core.variables.customConfig')} onChange={event => {
       const next = event.target.value;
       setText(next);
       try {
@@ -218,15 +218,11 @@ function asTypedRecord(value: unknown, type: string): AnyMap {
 }
 
 function variableTypeLabel(type: VariableType): string {
-  const zh: Record<string, string> = { number: '数字简写', formula: '公式简写', constant: '固定数值', range: '范围随机', uniform: '均匀随机', gaussian: '正态随机', skew_normal: '偏态正态', triangle: '三角分布', expression: '表达式', text: '文本', random_text: '随机文本', random_char: '随机字符', weighted_random_char: '权重随机字符', conditional_char: '条件字符', boolean: '布尔', custom: '自定义对象' };
-  const en: Record<string, string> = { number: 'Number shorthand', formula: 'Formula shorthand', constant: 'Constant', range: 'Range random', uniform: 'Uniform random', gaussian: 'Gaussian', skew_normal: 'Skew normal', triangle: 'Triangle', expression: 'Expression', text: 'Text', random_text: 'Random text', random_char: 'Random char', weighted_random_char: 'Weighted random char', conditional_char: 'Conditional char', boolean: 'Boolean', custom: 'Custom object' };
-  return (getLocale().startsWith('zh') ? zh : en)[type] ?? type;
+  return t(`core.variables.type.${type}`, undefined, type);
 }
 
 function variableFieldLabel(field: string): string {
-  const zh: Record<string, string> = { value: '值', min: '最小值', max: '最大值', mean: '均值', std_dev: '标准差', skewness: '偏度', mode: '众数/中心', deviation: '偏移', max_attempts: '最大尝试次数' };
-  const en: Record<string, string> = { value: 'Value', min: 'Min', max: 'Max', mean: 'Mean', std_dev: 'Std dev', skewness: 'Skewness', mode: 'Mode', deviation: 'Deviation', max_attempts: 'Max attempts' };
-  return (getLocale().startsWith('zh') ? zh : en)[field] ?? field;
+  return t(`core.variables.field.${field}`, undefined, field);
 }
 
 function conditionalCaseRows(value: unknown): string[] {
@@ -288,8 +284,4 @@ function cleanObject(value: AnyMap): AnyMap {
 
 function isRecord(value: unknown): value is AnyMap {
   return Boolean(value && typeof value === 'object' && !Array.isArray(value));
-}
-
-function copy(zh: string, en: string): string {
-  return getLocale().startsWith('zh') ? zh : en;
 }

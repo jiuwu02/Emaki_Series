@@ -28,6 +28,7 @@ import emaki.jiuwu.craft.corelib.text.AdventureSupport;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.web.WebConsoleRegistry;
+import emaki.jiuwu.craft.corelib.web.preview.WebItemLayerPreviewRegistry;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.gem.api.EmakiGemApi;
 import emaki.jiuwu.craft.gem.config.AppConfig;
@@ -41,6 +42,7 @@ import emaki.jiuwu.craft.gem.service.GemEconomyService;
 import emaki.jiuwu.craft.gem.service.GemExtractService;
 import emaki.jiuwu.craft.gem.service.GemGuiService;
 import emaki.jiuwu.craft.gem.service.GemInlayService;
+import emaki.jiuwu.craft.gem.service.GemItemLayerPreviewProvider;
 import emaki.jiuwu.craft.gem.service.GemItemFactory;
 import emaki.jiuwu.craft.gem.service.GemItemMatcher;
 import emaki.jiuwu.craft.gem.service.GemPdcAttributeWriter;
@@ -144,6 +146,7 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
             placeholderExpansion = null;
         }
         WebConsoleRegistry.unregisterModule(this);
+        WebItemLayerPreviewRegistry.unregister(this);
         EmakiGemApi.uninstall(gemApiBridge);
         if (metrics != null) {
             metrics.close();
@@ -208,6 +211,7 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
 
     private void registerWebConsole() {
         WebConsoleRegistry.registerFromYaml(this);
+        WebItemLayerPreviewRegistry.register(this, new GemItemLayerPreviewProvider(this));
     }
 
     private void registerPublicApiService() {

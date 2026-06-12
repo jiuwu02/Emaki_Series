@@ -172,7 +172,9 @@ public final class WebInsightReferenceService {
             return;
         }
         String candidateId = normalizeReferenceId(candidateType, value);
-        if (!target.id().equals(candidateId)) {
+        boolean directMatch = target.id().equals(candidateId);
+        WebInsightAliasResolver.AliasResolution alias = directMatch ? null : aliasResolution(candidateType, candidateId, target.id());
+        if (!directMatch && alias == null) {
             return;
         }
         add(results, seen, new WebInsightReferenceResult(
@@ -181,10 +183,14 @@ public final class WebInsightReferenceService {
                 entry.kind(),
                 keyPath,
                 candidateType,
-                candidateId,
+                directMatch ? candidateId : target.id(),
                 value,
                 edgeType(candidateType, keyPath),
-                keyPath + ": " + value
+                keyPath + ": " + value,
+                alias != null,
+                alias == null ? "" : alias.sourceId(),
+                alias == null ? "" : alias.targetId(),
+                alias == null ? "" : candidateType
         ));
     }
 
@@ -250,6 +256,15 @@ public final class WebInsightReferenceService {
             return "strengthen_recipe";
         }
         return "";
+    }
+
+    private WebInsightAliasResolver.AliasResolution aliasResolution(String idType, String sourceId, String targetId) {
+        WebInsightAliasResolver.AliasResolution resolution = WebInsightAliasRegistry.resolve(idType, sourceId);
+        if (resolution == null) {
+            return null;
+        }
+        String normalizedTarget = normalizeReferenceId(idType, resolution.targetId());
+        return normalizedTarget.equals(targetId) ? resolution : null;
     }
 
     private String edgeType(String idType, String keyPath) {

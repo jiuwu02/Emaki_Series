@@ -32,6 +32,7 @@ import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.web.WebConsoleRegistry;
 import emaki.jiuwu.craft.corelib.web.WebPluginApiRegistry;
+import emaki.jiuwu.craft.corelib.web.preview.WebItemLayerPreviewRegistry;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.strengthen.api.EmakiStrengthenApi;
 import emaki.jiuwu.craft.strengthen.config.AppConfig;
@@ -47,6 +48,7 @@ import emaki.jiuwu.craft.strengthen.service.StrengthenActionCoordinator;
 import emaki.jiuwu.craft.strengthen.service.StrengthenAttemptService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenEconomyService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenGuiService;
+import emaki.jiuwu.craft.strengthen.service.StrengthenItemLayerPreviewProvider;
 import emaki.jiuwu.craft.strengthen.service.StrengthenRefreshService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenRoutePreviewService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenSnapshotBuilder;
@@ -149,6 +151,7 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         }
         WebConsoleRegistry.unregisterModule(this);
         WebPluginApiRegistry.unregister(this);
+        WebItemLayerPreviewRegistry.unregister(this);
         EmakiStrengthenApi.uninstall(strengthenApiBridge);
         getServer().getServicesManager().unregisterAll(this);
         if (metrics != null) {
@@ -211,6 +214,7 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
 
     private void registerWebConsole() {
         WebConsoleRegistry.registerFromYaml(this);
+        WebItemLayerPreviewRegistry.register(this, new StrengthenItemLayerPreviewProvider(this));
         WebPluginApiRegistry.register(this, "strengthen", "route-preview", request -> {
             request.requirePost();
             return routePreviewService.preview(request.string("recipeId"));

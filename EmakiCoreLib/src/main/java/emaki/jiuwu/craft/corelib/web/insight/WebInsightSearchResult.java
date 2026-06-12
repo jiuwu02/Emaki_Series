@@ -11,11 +11,19 @@ public record WebInsightSearchResult(
         String matchType,
         String idType,
         String id,
-        String snippet
+        String snippet,
+        boolean alias,
+        String aliasSourceId,
+        String aliasTargetId,
+        String aliasIdType
 ) {
 
     public WebInsightSearchResult(String moduleId, String path, String kind, String keyPath, String matchType, String idType, String snippet) {
         this(moduleId, path, kind, keyPath, matchType, idType, "", snippet);
+    }
+
+    public WebInsightSearchResult(String moduleId, String path, String kind, String keyPath, String matchType, String idType, String id, String snippet) {
+        this(moduleId, path, kind, keyPath, matchType, idType, id, snippet, false, "", "", "");
     }
 
     public Map<String, Object> toMap() {
@@ -28,6 +36,10 @@ public record WebInsightSearchResult(
         result.put("idType", safe(idType));
         result.put("id", safe(id));
         result.put("snippet", safe(snippet));
+        result.put("alias", alias);
+        result.put("aliasSourceId", safe(aliasSourceId));
+        result.put("aliasTargetId", safe(aliasTargetId));
+        result.put("aliasIdType", safe(aliasIdType));
         return result;
     }
 

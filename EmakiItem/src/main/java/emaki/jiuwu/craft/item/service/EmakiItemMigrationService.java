@@ -23,11 +23,15 @@ import emaki.jiuwu.craft.corelib.web.WebConsoleRegistry;
 import emaki.jiuwu.craft.corelib.web.WebConsoleYamlRegistrar;
 import emaki.jiuwu.craft.corelib.web.WebFileRevisions;
 import emaki.jiuwu.craft.corelib.web.WebPathSecurity;
+import emaki.jiuwu.craft.corelib.web.WebPluginApiRequest;
+import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import emaki.jiuwu.craft.item.EmakiItemPlugin;
+import emaki.jiuwu.craft.item.model.EmakiItemAlias;
 
 public final class EmakiItemMigrationService {
 
     private static final long MAX_FILE_BYTES = 512L * 1024L;
+    private static final String ALIAS_FILE = "id_aliases.yml";
 
     private final EmakiItemPlugin plugin;
 
@@ -61,12 +65,18 @@ public final class EmakiItemMigrationService {
                 "oldExists", plugin.itemLoader().get(oldNormalized) != null,
                 "newExists", plugin.itemLoader().get(newNormalized) != null,
                 "aliasExists", plugin.aliasLoader().get(oldNormalized) != null,
+                "aliasRevision", WebFileRevisions.revision(aliasPath()),
                 "files", files,
                 "replacementCount", replacements
         );
     }
 
-    public Map<String, Object> apply(String oldId, String newId, boolean replaceReferences, boolean keepAlias) throws IOException {
+    public Map<String, Object> apply(String oldId,
+            String newId,
+            boolean replaceReferences,
+            boolean keepAlias,
+            Map<String, Long> expectedRevisions,
+            WebPluginApiRequest request) throws IOException {
         String oldNormalized = Texts.normalizeId(oldId);
         String newNormalized = Texts.normalizeId(newId);
         if (Texts.isBlank(oldNormalized) || Texts.isBlank(newNormalized) || oldNormalized.equals(newNormalized)) {
@@ -75,7 +85,11 @@ public final class EmakiItemMigrationService {
         if (plugin.itemLoader().get(newNormalized) == null) {
             throw new IOException("目标物品 ID 不存在：" + newNormalized);
         }
-        List<Map<String, Object>> changed = new ArrayList<>();
+        if (request == null) {
+            throw new IOException("Web 写入上下文不可用");
+        }
+
+        List<PlannedWrite> plannedWrites = new ArrayList<>();
         int replacements = 0;
         if (replaceReferences) {
             for (TargetFile target : targetFiles()) {
@@ -84,29 +98,67 @@ public final class EmakiItemMigrationService {
                 if (replacement.count() <= 0 || replacement.content().equals(content)) {
                     continue;
                 }
-                writeBackup(target, content);
-                long currentRevision = WebFileRevisions.revision(target.path());
-                Files.writeString(target.path(), replacement.content(), StandardCharsets.UTF_8);
-                long nextRevision = WebFileRevisions.advance(target.path(), currentRevision);
+                YamlFiles.load(replacement.content());
+                Long expectedRevision = expectedRevision(expectedRevisions, target.moduleId(), target.relativePath());
+                WebFileRevisions.requireExpected(target.path(), expectedRevision);
+                plannedWrites.add(new PlannedWrite(target, replacement.content(), replacement.count(), expectedRevision));
                 replacements += replacement.count();
-                changed.add(Map.of(
-                        "moduleId", target.moduleId(),
-                        "path", target.relativePath(),
-                        "kind", target.kind(),
-                        "replacements", replacement.count(),
-                        "revision", nextRevision
-                ));
             }
         }
+
+        AliasWrite aliasWrite = null;
         if (keepAlias) {
-            plugin.aliasLoader().put(oldNormalized, newNormalized);
+            Map<String, EmakiItemAlias> aliases = new LinkedHashMap<>(plugin.aliasLoader().all());
+            EmakiItemAlias alias = new EmakiItemAlias(oldNormalized, newNormalized, true, true, "never");
+            if (!alias.valid()) {
+                throw new IOException("无法创建 ID alias：" + oldNormalized + " -> " + newNormalized);
+            }
+            aliases.put(alias.oldId(), alias);
+            String content = renderAliases(aliases);
+            YamlFiles.load(content);
+            Long expectedRevision = expectedRevision(expectedRevisions, plugin.getName(), ALIAS_FILE);
+            WebFileRevisions.requireExpected(aliasPath(), expectedRevision);
+            aliasWrite = new AliasWrite(content, expectedRevision);
+        }
+
+        List<Map<String, Object>> changed = new ArrayList<>();
+        for (PlannedWrite planned : plannedWrites) {
+            writeBackup(planned.target(), Files.readString(planned.target().path(), StandardCharsets.UTF_8));
+            long nextRevision = request.saveModuleConfig(
+                    planned.target().moduleId(),
+                    planned.target().relativePath(),
+                    planned.target().kind(),
+                    planned.content(),
+                    planned.expectedRevision(),
+                    "item_rename_references"
+            );
+            changed.add(Map.of(
+                    "moduleId", planned.target().moduleId(),
+                    "path", planned.target().relativePath(),
+                    "kind", planned.target().kind(),
+                    "replacements", planned.replacements(),
+                    "revision", nextRevision
+            ));
+        }
+        Long aliasRevision = null;
+        if (aliasWrite != null) {
+            aliasRevision = request.saveModuleConfig(
+                    plugin.getName(),
+                    ALIAS_FILE,
+                    "ALIAS",
+                    aliasWrite.content(),
+                    aliasWrite.expectedRevision(),
+                    "item_rename_alias"
+            );
+            plugin.aliasLoader().load();
         }
         return Map.of(
                 "oldId", oldNormalized,
                 "newId", newNormalized,
                 "changedFiles", changed,
                 "replacementCount", replacements,
-                "aliasKept", keepAlias
+                "aliasKept", keepAlias,
+                "aliasRevision", aliasRevision == null ? WebFileRevisions.revision(aliasPath()) : aliasRevision
         );
     }
 
@@ -144,7 +196,7 @@ public final class EmakiItemMigrationService {
         WebConsoleYamlRegistrar.scanAll();
         List<TargetFile> targets = new ArrayList<>();
         for (WebConsoleRegistry.WebRegisteredFileEntry entry : WebConsoleRegistry.registeredFileEntries()) {
-            if (!isYamlPath(entry.relativePath())) {
+            if (!isYamlPath(entry.relativePath()) || isAliasFile(entry.moduleId(), entry.relativePath())) {
                 continue;
             }
             if (isGlobPath(entry.relativePath())) {
@@ -173,7 +225,12 @@ public final class EmakiItemMigrationService {
                     .filter(path -> extension.isBlank() || path.getFileName().toString().toLowerCase(Locale.ROOT).endsWith(extension))
                     .filter(this::readableYaml)
                     .sorted(Comparator.comparing(Path::toString))
-                    .forEach(path -> result.add(new TargetFile(entry.moduleId(), root.relativize(path).toString().replace('\\', '/'), entry.kind(), path)));
+                    .forEach(path -> {
+                        String relative = root.relativize(path).toString().replace('\\', '/');
+                        if (!isAliasFile(entry.moduleId(), relative)) {
+                            result.add(new TargetFile(entry.moduleId(), relative, entry.kind(), path));
+                        }
+                    });
         }
         return result;
     }
@@ -225,6 +282,42 @@ public final class EmakiItemMigrationService {
         Files.writeString(backup, content == null ? "" : content, StandardCharsets.UTF_8);
     }
 
+    private String renderAliases(Map<String, EmakiItemAlias> source) {
+        Map<String, Object> root = new LinkedHashMap<>();
+        Map<String, Object> aliasMap = new LinkedHashMap<>();
+        for (EmakiItemAlias alias : source.values()) {
+            Map<String, Object> data = new LinkedHashMap<>();
+            data.put("target", alias.targetId());
+            data.put("migrate_pdc", alias.migratePdc());
+            data.put("rewrite_display", alias.rewriteDisplay());
+            data.put("expires_after", Texts.isBlank(alias.expiresAfter()) ? "never" : alias.expiresAfter());
+            aliasMap.put(alias.oldId(), data);
+        }
+        root.put("aliases", aliasMap);
+        return YamlFiles.dump(root);
+    }
+
+    private Long expectedRevision(Map<String, Long> expectedRevisions, String moduleId, String path) {
+        if (expectedRevisions == null || expectedRevisions.isEmpty()) {
+            return null;
+        }
+        String normalizedModule = Texts.toStringSafe(moduleId);
+        String normalizedPath = normalizeRelativePath(path);
+        for (String key : List.of(
+                normalizedModule + ":" + normalizedPath,
+                normalizedModule + "/" + normalizedPath,
+                normalizedModule.toLowerCase(Locale.ROOT) + ":" + normalizedPath,
+                normalizedModule.toLowerCase(Locale.ROOT) + "/" + normalizedPath,
+                normalizedPath
+        )) {
+            Long revision = expectedRevisions.get(key);
+            if (revision != null) {
+                return revision;
+            }
+        }
+        return null;
+    }
+
     private boolean readableYaml(Path path) {
         try {
             return path != null && Files.isRegularFile(path) && isYamlPath(path.getFileName().toString()) && Files.size(path) <= MAX_FILE_BYTES;
@@ -241,9 +334,18 @@ public final class EmakiItemMigrationService {
         return plugin.getDataFolder().toPath().getParent().resolve(moduleId).toAbsolutePath().normalize();
     }
 
+    private Path aliasPath() {
+        return plugin.getDataFolder().toPath().resolve(ALIAS_FILE).toAbsolutePath().normalize();
+    }
+
     private boolean isYamlPath(String path) {
         String lower = Texts.toStringSafe(path).toLowerCase(Locale.ROOT);
         return lower.endsWith(".yml") || lower.endsWith(".yaml") || lower.contains("*.yml") || lower.contains("*.yaml");
+    }
+
+    private boolean isAliasFile(String moduleId, String path) {
+        return plugin.getName().equalsIgnoreCase(Texts.toStringSafe(moduleId))
+                && ALIAS_FILE.equalsIgnoreCase(normalizeRelativePath(path));
     }
 
     private boolean isGlobPath(String path) {
@@ -274,4 +376,6 @@ public final class EmakiItemMigrationService {
     private record TargetFile(String moduleId, String relativePath, String kind, Path path) {}
     private record Replacement(String content, int count) {}
     private record ReplaceResult(String content, int count) {}
+    private record PlannedWrite(TargetFile target, String content, int replacements, Long expectedRevision) {}
+    private record AliasWrite(String content, Long expectedRevision) {}
 }

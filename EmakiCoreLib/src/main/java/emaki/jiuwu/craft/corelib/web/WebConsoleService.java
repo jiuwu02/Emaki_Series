@@ -167,6 +167,31 @@ public final class WebConsoleService {
         return debugBackend;
     }
 
+    public long saveModuleConfigFromPlugin(String moduleId,
+            String path,
+            String kind,
+            String content,
+            Long expectedRevision,
+            String operation,
+            String actor) throws IOException {
+        if (!configWriteAllowed()) {
+            throw new WebPluginApiRequest.WebPluginApiException(403, "当前已关闭 Web 配置写入权限。", Map.of("errorType", "config_write_disabled"));
+        }
+        if (moduleId == null || moduleId.isBlank() || path == null || path.isBlank()) {
+            throw new IOException("缺少 moduleId 或 path");
+        }
+        YamlFiles.load(content == null ? "" : content);
+        WebChangeHistoryService.HistoryTarget target = historyTarget(moduleId, path, normalizeHistoryKind(kind));
+        if (changeHistoryService != null) {
+            changeHistoryService.recordBeforeWrite(target, Texts.isBlank(operation) ? "plugin_api_save" : operation, Texts.isBlank(actor) ? "web" : actor);
+        }
+        return configBrowserService.save(moduleId, path, content, expectedRevision);
+    }
+
+    private boolean configWriteAllowed() {
+        return config != null && config.security() != null && config.security().allowConfigWrite();
+    }
+
     private void createContext(String path, WebRoute route) {
         boolean isBackendApi = path.startsWith("/api/");
         server.createContext(path, exchange -> {
@@ -364,7 +389,7 @@ public final class WebConsoleService {
     }
 
     private boolean requireConfigWriteAllowed(WebRequestContext context) throws IOException {
-        if (config != null && config.security() != null && config.security().allowConfigWrite()) {
+        if (configWriteAllowed()) {
             return true;
         }
         context.error(403, "当前已关闭 Web 配置写入权限。", Map.of("errorType", "config_write_disabled"));
@@ -906,8 +931,20 @@ public final class WebConsoleService {
         }
         try {
             String body = "POST".equalsIgnoreCase(context.exchange().getRequestMethod()) ? context.body() : "";
-            Map<String, ?> response = route.handler().handle(new WebPluginApiRequest(moduleId, routeId, context.exchange().getRequestMethod(), body));
+            Map<String, ?> response = route.handler().handle(new WebPluginApiRequest(
+                    moduleId,
+                    routeId,
+                    context.exchange().getRequestMethod(),
+                    body,
+                    configWriteAllowed(),
+                    actor(context.session()),
+                    this
+            ));
             context.ok(response == null ? Map.of() : response);
+        } catch (WebPluginApiRequest.WebPluginApiException exception) {
+            context.error(exception.status(), exception.getMessage(), exception.details());
+        } catch (WebConsoleRegistry.RevisionConflictException exception) {
+            writeRevisionConflict(context.exchange(), exception);
         } catch (IOException exception) {
             context.badRequest(exception.getMessage());
         } catch (Exception exception) {

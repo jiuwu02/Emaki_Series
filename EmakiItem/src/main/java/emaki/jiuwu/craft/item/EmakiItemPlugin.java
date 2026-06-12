@@ -32,6 +32,8 @@ import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.web.WebConsoleRegistry;
 import emaki.jiuwu.craft.corelib.web.WebPluginApiRegistry;
+import emaki.jiuwu.craft.corelib.web.insight.WebInsightAliasRegistry;
+import emaki.jiuwu.craft.corelib.web.insight.WebInsightAliasResolver;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.item.api.EmakiItemApi;
 import emaki.jiuwu.craft.item.config.AppConfig;
@@ -160,6 +162,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         }
         WebConsoleRegistry.unregisterModule(this);
         WebPluginApiRegistry.unregister(this);
+        WebInsightAliasRegistry.unregister(this);
         EmakiItemApi.uninstall(itemApiBridge);
         lifecycleCoordinator.shutdown(this);
         AdventureSupport.close(this);
@@ -215,6 +218,21 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
 
     private void registerWebConsole() {
         WebConsoleRegistry.registerFromYaml(this);
+        WebInsightAliasRegistry.register(this, new WebInsightAliasResolver() {
+            @Override
+            public String idType() {
+                return "emaki_item";
+            }
+
+            @Override
+            public AliasResolution resolve(String sourceId) {
+                if (aliasLoader == null) {
+                    return null;
+                }
+                emaki.jiuwu.craft.item.model.EmakiItemAlias alias = aliasLoader.get(sourceId);
+                return alias == null ? null : new AliasResolution(alias.oldId(), alias.targetId());
+            }
+        });
         WebPluginApiRegistry.register(this, "item", "alias-list", request -> Map.of("ok", true, "aliases", aliasLoader == null ? Map.of() : aliasLoader.all().values().stream()
                 .map(alias -> Map.of(
                         "oldId", alias.oldId(),
@@ -229,14 +247,15 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         });
         WebPluginApiRegistry.register(this, "item", "rename-apply", request -> {
             request.requirePost();
+            request.requireConfigWriteAllowed();
             String mode = Texts.lower(request.string("mode"));
             boolean replaceReferences = !"alias_only".equals(mode);
             boolean keepAlias = "alias_only".equals(mode) || "replace_and_alias".equals(mode);
-            return migrationService.apply(request.string("oldId"), request.string("newId"), replaceReferences, keepAlias);
+            return migrationService.apply(request.string("oldId"), request.string("newId"), replaceReferences, keepAlias, request.longMap("revisions"), request);
         });
         WebPluginApiRegistry.register(this, "item", "preview-layered", request -> {
             request.requirePost();
-            return layerPreviewService.preview(request.string("content"), request.string("itemId"));
+            return layerPreviewService.preview(request.string("content"), request.string("itemId"), request.map("layers"));
         });
     }
 

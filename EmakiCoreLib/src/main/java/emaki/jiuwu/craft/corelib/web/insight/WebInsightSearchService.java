@@ -170,14 +170,48 @@ public final class WebInsightSearchService {
         String semanticPath = semanticKeyPath(keyPath);
         boolean pathHit = contains(semanticPath, query);
         boolean valueHit = contains(text, query);
-        if (!pathHit && !valueHit) {
-            return;
-        }
         String matchType = matchType(semanticPath);
         String idType = "definition".equals(matchType) ? inferIdType(entry.moduleId(), filePath) : referenceIdType(semanticPath, text);
         String id = resultId(matchType, idType, text);
+        WebInsightAliasResolver.AliasResolution alias = aliasResolution(matchType, idType, id);
+        boolean aliasHit = alias != null && matchesAliasQuery(idType, alias, query);
+        if (!pathHit && !valueHit && !aliasHit) {
+            return;
+        }
         String snippet = Texts.isBlank(keyPath) ? text : keyPath + ": " + text;
-        add(results, new WebInsightSearchResult(entry.moduleId(), filePath, entry.kind(), keyPath, matchType, idType, id, snippet(snippet, query)));
+        add(results, new WebInsightSearchResult(
+                entry.moduleId(),
+                filePath,
+                entry.kind(),
+                keyPath,
+                matchType,
+                idType,
+                id,
+                snippet(snippet, valueHit ? query : id),
+                alias != null,
+                alias == null ? "" : alias.sourceId(),
+                alias == null ? "" : alias.targetId(),
+                alias == null ? "" : idType
+        ));
+    }
+
+    private WebInsightAliasResolver.AliasResolution aliasResolution(String matchType, String idType, String sourceId) {
+        if (!"reference".equals(matchType) || Texts.isBlank(idType) || Texts.isBlank(sourceId)) {
+            return null;
+        }
+        return WebInsightAliasRegistry.resolve(idType, sourceId);
+    }
+
+    private boolean matchesAliasQuery(String idType, WebInsightAliasResolver.AliasResolution alias, String query) {
+        if (alias == null || Texts.isBlank(query)) {
+            return false;
+        }
+        String normalizedSource = normalizeReferenceId(idType, alias.sourceId());
+        String normalizedTarget = normalizeReferenceId(idType, alias.targetId());
+        return normalizedSource.contains(query)
+                || normalizedTarget.contains(query)
+                || normalize(alias.sourceId()).contains(query)
+                || normalize(alias.targetId()).contains(query);
     }
 
     private String resultId(String matchType, String idType, String value) {

@@ -4,8 +4,8 @@ import type { ConfigFile, GuiDocument, ItemDocument, ItemPreviewResult, ModuleSt
 
 export type ActionTypesResult = { nameActions: string[]; loreActions: string[] };
 export type EconomyProvidersResult = { providers: string[]; availableProviders: string[] };
-export type InsightSearchResult = { moduleId: string; path: string; kind: string; keyPath: string; matchType: 'definition' | 'reference' | 'text' | 'file' | string; idType: string; id?: string; snippet: string };
-export type InsightReferenceResult = { moduleId: string; path: string; kind: string; keyPath: string; idType: string; id: string; referenceValue: string; edgeType: string; snippet: string };
+export type InsightSearchResult = { moduleId: string; path: string; kind: string; keyPath: string; matchType: 'definition' | 'reference' | 'text' | 'file' | string; idType: string; id?: string; snippet: string; alias?: boolean; aliasSourceId?: string; aliasTargetId?: string; aliasIdType?: string };
+export type InsightReferenceResult = { moduleId: string; path: string; kind: string; keyPath: string; idType: string; id: string; referenceValue: string; edgeType: string; snippet: string; alias?: boolean; aliasSourceId?: string; aliasTargetId?: string; aliasIdType?: string };
 export type InsightDependencyGraphNode = { key: string; idType: string; id: string; label: string; moduleId: string; path: string; kind: string; role: 'root' | 'reference' | string };
 export type InsightDependencyGraphEdge = { from: string; to: string; edgeType: string; moduleId: string; path: string; kind: string; keyPath: string; snippet: string };
 export type InsightDependencyGraphResult = { idType: string; id: string; depth: number; direction: string; nodes: InsightDependencyGraphNode[]; edges: InsightDependencyGraphEdge[] };

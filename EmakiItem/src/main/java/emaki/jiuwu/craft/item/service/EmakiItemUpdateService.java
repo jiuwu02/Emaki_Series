@@ -9,6 +9,7 @@ import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import emaki.jiuwu.craft.item.loader.EmakiItemLoader;
+import emaki.jiuwu.craft.item.model.EmakiItemAlias;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
 import emaki.jiuwu.craft.item.model.ItemUpdateConfig;
 
@@ -40,6 +41,10 @@ public final class EmakiItemUpdateService {
         if (id.isBlank()) {
             return original;
         }
+        EmakiItemAlias alias = idResolver == null ? null : idResolver.aliasFor(id);
+        if (alias != null) {
+            return migrateAlias(original, id, alias);
+        }
         EmakiItemDefinition definition = idResolver == null ? itemLoader.get(id) : idResolver.resolveDefinition(id);
         if (definition == null) {
             return original;
@@ -51,7 +56,7 @@ public final class EmakiItemUpdateService {
         if (identifier.updateVersion(original) >= definition.updatePolicy().version()) {
             return original;
         }
-        return rebuild(original, definition, updateConfig);
+        return rebuild(original, definition, updateConfig, definition.id());
     }
 
     public ItemStack forceUpdate(ItemStack original) {
@@ -59,12 +64,16 @@ public final class EmakiItemUpdateService {
             return original;
         }
         String id = identifier.identify(original);
+        EmakiItemAlias alias = idResolver == null ? null : idResolver.aliasFor(id);
+        if (alias != null) {
+            return migrateAlias(original, id, alias);
+        }
         EmakiItemDefinition definition = id.isBlank() ? null : (idResolver == null ? itemLoader.get(id) : idResolver.resolveDefinition(id));
         if (definition == null) {
             return original;
         }
         ItemUpdateConfig updateConfig = definition.updatePolicy().resolve();
-        return updateConfig.enabled() ? rebuild(original, definition, updateConfig) : original;
+        return updateConfig.enabled() ? rebuild(original, definition, updateConfig, definition.id()) : original;
     }
 
     public int updatePlayerItems(Player player, String trigger) {
@@ -84,12 +93,38 @@ public final class EmakiItemUpdateService {
         return changed;
     }
 
-    private ItemStack rebuild(ItemStack original, EmakiItemDefinition definition, ItemUpdateConfig updateConfig) {
+    private ItemStack migrateAlias(ItemStack original, String currentId, EmakiItemAlias alias) {
+        if (alias == null) {
+            return original;
+        }
+        EmakiItemDefinition definition = itemLoader.get(alias.targetId());
+        if (definition == null) {
+            return original;
+        }
+        boolean migratePdc = alias.migratePdc();
+        boolean rewriteDisplay = alias.rewriteDisplay();
+        if (!migratePdc && !rewriteDisplay) {
+            return original;
+        }
+        ItemUpdateConfig updateConfig = definition.updatePolicy().resolve();
+        String identityId = migratePdc ? definition.id() : currentId;
+        if (rewriteDisplay) {
+            return rebuild(original, definition, updateConfig, identityId);
+        }
+        ItemStack migrated = original.clone();
+        writeIdentity(migrated, definition, identityId);
+        return migrated;
+    }
+
+    private ItemStack rebuild(ItemStack original, EmakiItemDefinition definition, ItemUpdateConfig updateConfig, String identityId) {
         int amount = updateConfig.preserveAmount() ? original.getAmount() : 1;
         int oldDamage = readDamage(original);
         ItemStack rebuilt = itemFactory.rebuildBase(definition, amount);
         if (rebuilt == null) {
             return original;
+        }
+        if (!definition.id().equals(identityId)) {
+            writeIdentity(rebuilt, definition, identityId);
         }
         if (updateConfig.preserveDamage()) {
             applyDamage(rebuilt, oldDamage);
@@ -98,6 +133,19 @@ public final class EmakiItemUpdateService {
             attributeGateway.copyPayloads(original, rebuilt, Set.of("emakiitem", EmakiItemPdcWriter.SET_ATTRIBUTE_SOURCE_ID));
         }
         return rebuilt;
+    }
+
+    private void writeIdentity(ItemStack itemStack, EmakiItemDefinition definition, String identityId) {
+        if (itemStack == null || definition == null) {
+            return;
+        }
+        ItemMeta itemMeta = itemStack.getItemMeta();
+        if (itemMeta == null) {
+            return;
+        }
+        Integer updateVersion = definition.updatePolicy().updateEnabled() ? definition.updatePolicy().version() : null;
+        identifier.writeIdentity(itemMeta, identityId, definition.definitionSignature(), updateVersion);
+        itemStack.setItemMeta(itemMeta);
     }
 
     private int readDamage(ItemStack itemStack) {

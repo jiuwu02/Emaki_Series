@@ -1009,6 +1009,7 @@ function InsightSearchModal({ api, registry, onCancel, onOpen, onReferences, onG
                 {result.idType && <span className="insight-search-idtype">{result.idType}</span>}
                 <strong>{result.path}</strong>
                 {result.keyPath && <code>{result.keyPath}</code>}
+                {result.alias && <span className="insight-search-idtype alias">alias {aliasLabel(result)}</span>}
                 <small>{result.snippet || result.path}</small>
               </button>
               {target && <div className="insight-result-actions">
@@ -1037,6 +1038,12 @@ function groupInsightReferences(results: InsightReferenceResult[], registry: Web
 function referenceEdgeLabel(edgeType: string): string {
   const normalized = String(edgeType ?? '').toLowerCase();
   return t(`core.insight.edge.${normalized}`, undefined, normalized || t('core.insight.edge.uses'));
+}
+
+function aliasLabel(result: { aliasSourceId?: string; aliasTargetId?: string }): string {
+  const source = String(result.aliasSourceId ?? '').trim();
+  const target = String(result.aliasTargetId ?? '').trim();
+  return source && target ? `${source} → ${target}` : source || target;
 }
 
 function InsightReferenceModal({ api, registry, target, onCancel, onOpen, onGraph }: { api: ApiClient; registry: WebRegistry | null; target: InsightReferenceTarget; onCancel: () => void; onOpen: (result: InsightReferenceResult) => void; onGraph: (target: InsightReferenceTarget) => void }) {
@@ -1089,6 +1096,7 @@ function InsightReferenceModal({ api, registry, target, onCancel, onOpen, onGrap
             {result.idType && <span className="insight-search-idtype">{result.idType}</span>}
             <strong>{result.path}</strong>
             {result.keyPath && <code>{result.keyPath}</code>}
+            {result.alias && <span className="insight-search-idtype alias">alias {aliasLabel(result)}</span>}
             <small>{result.snippet || result.referenceValue || result.path}</small>
           </button>)}
         </section>) : !loading && !error ? <div className="insight-search-empty">{t('core.insight.referencesEmpty')}</div> : null}

@@ -40,6 +40,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
   const [layerPreview, setLayerPreview] = useState<AnyMap | null>(null);
   const [layerPreviewPending, setLayerPreviewPending] = useState(false);
   const [layerPreviewError, setLayerPreviewError] = useState<string | null>(null);
+  const [layerOptions, setLayerOptions] = useState<AnyMap>({});
   const previewRequestId = useRef(0);
   const layerPreviewRequestId = useRef(0);
   const [loading, setLoading] = useState(true);
@@ -183,7 +184,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
     setLayerPreviewError(null);
     let active = true;
     const timer = window.setTimeout(() => {
-      api.pluginApi(layeredModule, layeredRoute, { content: sourceContent, itemId: textValue(data.id), path: filePath })
+      api.pluginApi(layeredModule, layeredRoute, { content: sourceContent, itemId: textValue(data.id), path: filePath, layers: layerOptions })
         .then(result => {
           if (!active || layerPreviewRequestId.current !== requestId) return;
           setLayerPreview(asRecord(result));
@@ -198,7 +199,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
         });
     }, 350);
     return () => { active = false; window.clearTimeout(timer); };
-  }, [api, data, editor?.preview, file.kind, filePath, loading, module.id, sourceContent]);
+  }, [api, data, editor?.preview, file.kind, filePath, layerOptions, loading, module.id, sourceContent]);
 
   const setField = (path: string, value: unknown) => {
     setData(prev => {
@@ -340,7 +341,8 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
         <div className="ie-workbench">
           <div className="ie-preview-stack">
             <GenericPreviewPane moduleId={module.id} editor={editor} data={data} preview={preview} previewPending={previewPending} previewError={previewError} previewLevel={previewLevel} setPreviewLevel={setPreviewLevel} baseName={baseName} baseLore={baseLore as string[]} />
-            <LayeredPreviewPane preview={layerPreview} pending={layerPreviewPending} error={layerPreviewError} />
+            <LayeredPreviewPane preview={layerPreview} pending={layerPreviewPending} error={layerPreviewError} options={layerOptions} onOptionsChange={setLayerOptions} />
+            <RenameMigrationPane api={api} editor={editor} moduleId={module.id} currentId={textValue(data.id)} sourceError={sourceError} dirty={semanticDirty} onApplied={() => { setToast({ tone: 'ok', text: '重命名迁移已应用' }); onReload?.(); }} />
           </div>
           <div className="ie-props-scroll">
             <div className="ie-props">
@@ -749,10 +751,133 @@ function GenericPreviewPane({ moduleId, editor, data, preview, previewPending, p
   );
 }
 
-function LayeredPreviewPane({ preview, pending, error }: { preview: AnyMap | null; pending: boolean; error: string | null }) {
+function RenameMigrationPane({ api, editor, moduleId, currentId, sourceError, dirty, onApplied }: { api: ApiClient; editor?: WebEditorDescriptor; moduleId: string; currentId: string; sourceError: string | null; dirty: boolean; onApplied: () => void }) {
+  const config = asRecord(editor?.rename);
+  const previewRoute = textValue(config.previewRoute);
+  const applyRoute = textValue(config.applyRoute);
+  const apiModule = textValue(config.module || config.moduleId || 'item');
+  const [newId, setNewId] = useState('');
+  const [mode, setMode] = useState('replace_and_alias');
+  const [preview, setPreview] = useState<AnyMap | null>(null);
+  const [pending, setPending] = useState(false);
+  const [applying, setApplying] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const disabledReason = sourceError ? '当前 YAML 解析失败，请先修复。' : dirty ? '当前文件有未保存改动，请先保存。' : '';
+  const normalizedNewId = newId.trim();
+
+  useEffect(() => {
+    setNewId('');
+    setPreview(null);
+    setError(null);
+  }, [currentId]);
+
+  if (!previewRoute || !applyRoute || !currentId) return null;
+
+  const runPreview = async () => {
+    if (!normalizedNewId || disabledReason) return;
+    setPending(true);
+    setError(null);
+    try {
+      const result = await api.pluginApi(apiModule, previewRoute, { oldId: currentId, newId: normalizedNewId });
+      setPreview(asRecord(result));
+    } catch (err) {
+      setPreview(null);
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setPending(false);
+    }
+  };
+
+  const apply = async () => {
+    if (!preview || !normalizedNewId || disabledReason) return;
+    setApplying(true);
+    setError(null);
+    try {
+      await api.pluginApi(apiModule, applyRoute, {
+        oldId: currentId,
+        newId: normalizedNewId,
+        mode,
+        revisions: renameRevisionMap(preview, moduleId)
+      });
+      setPreview(null);
+      onApplied();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setApplying(false);
+    }
+  };
+
+  const files = asList(preview?.files).map(asRecord);
+  const replacementCount = Number(preview?.replacementCount ?? 0);
+  const newExists = preview ? Boolean(preview.newExists) : false;
+  const aliasExists = preview ? Boolean(preview.aliasExists) : false;
+  const canApply = Boolean(preview && normalizedNewId && !disabledReason && (newExists || mode === 'alias_only'));
+
+  return <div className="ie-preview ie-rename-pane" role="complementary" aria-label="物品 ID 重命名迁移">
+    <div className="ie-preview-meta">
+      <span className="ie-preview-kind">ID 重命名迁移</span>
+      <code className="ie-preview-id">{currentId}</code>
+      <span className={`ie-preview-status ${pending || applying ? 'syncing' : error ? 'failed' : preview ? 'live' : 'syncing'}`}>{pending ? '预览中' : applying ? '应用中' : error ? '失败' : preview ? '已预览' : '待预览'}</span>
+    </div>
+    <div className="ie-rename-form">
+      <label>
+        <span>新 ID</span>
+        <input value={newId} onChange={event => { setNewId(event.target.value); setPreview(null); }} placeholder="flame_sword" disabled={Boolean(disabledReason) || pending || applying} />
+      </label>
+      <label>
+        <span>处理方式</span>
+        <select value={mode} onChange={event => setMode(event.target.value)} disabled={pending || applying}>
+          <option value="replace_and_alias">替换引用并保留 alias</option>
+          <option value="replace_only">仅替换引用</option>
+          <option value="alias_only">仅保留 alias</option>
+        </select>
+      </label>
+      {disabledReason && <MiniText value={disabledReason} />}
+      <div className="ie-rename-actions">
+        <Button size="sm" onClick={runPreview} disabled={!normalizedNewId || Boolean(disabledReason) || pending || applying}>{pending ? '预览中…' : '预览影响'}</Button>
+        <Button size="sm" variant="primary" onClick={apply} disabled={!canApply || applying}>{applying ? '应用中…' : '应用迁移'}</Button>
+      </div>
+    </div>
+    {error && <InlineError className="ie-preview-error">{error}</InlineError>}
+    {preview && <div className="ie-rename-summary">
+      <div><strong>{replacementCount}</strong><span>处引用将被替换</span></div>
+      <div><strong>{files.length}</strong><span>个文件受影响</span></div>
+      <div><strong>{newExists ? '存在' : '不存在'}</strong><span>目标 ID</span></div>
+      <div><strong>{aliasExists ? '已存在' : '将创建'}</strong><span>旧 ID alias</span></div>
+    </div>}
+    {preview && !newExists && mode !== 'alias_only' && <InlineError className="ie-preview-error">目标物品 ID 尚不存在。请先保存新 ID 的物品定义，或改用“仅保留 alias”。</InlineError>}
+    {files.length > 0 && <div className="ie-layer-list">
+      {files.slice(0, 8).map(file => <div className="ie-layer-row" key={`${textValue(file.moduleId)}:${textValue(file.path)}`}>
+        <div><strong>{textValue(file.moduleId)}</strong><p><code>{textValue(file.path)}</code></p></div>
+        <span className="ie-preview-status syncing">{Number(file.replacements ?? 0)} 处</span>
+      </div>)}
+      {files.length > 8 && <MiniText value={`另有 ${files.length - 8} 个文件未展开显示。`} />}
+    </div>}
+  </div>;
+}
+
+function renameRevisionMap(preview: AnyMap, moduleId: string): Record<string, number> {
+  const revisions: Record<string, number> = {};
+  for (const file of asList(preview.files).map(asRecord)) {
+    const fileModule = textValue(file.moduleId);
+    const path = textValue(file.path);
+    const revision = Number(file.revision ?? 0);
+    if (fileModule && path && revision > 0) revisions[`${fileModule}:${path}`] = revision;
+  }
+  const aliasRevision = Number(preview.aliasRevision ?? 0);
+  if (aliasRevision > 0) revisions[`${moduleId}:id_aliases.yml`] = aliasRevision;
+  return revisions;
+}
+
+function LayeredPreviewPane({ preview, pending, error, options, onOptionsChange }: { preview: AnyMap | null; pending: boolean; error: string | null; options: AnyMap; onOptionsChange: (options: AnyMap) => void }) {
   if (!preview && !pending && !error) return null;
   const layers = asList(preview?.layers).map(asRecord);
   const finalPreview = asRecord(preview?.final);
+  const updateLayerOption = (layerId: string, key: string, value: unknown) => {
+    const current = asRecord(options[layerId]);
+    onOptionsChange({ ...options, [layerId]: { ...current, [key]: value } });
+  };
   return <div className="ie-preview ie-layer-preview" role="complementary" aria-label="分层预览">
     <div className="ie-preview-meta">
       <span className="ie-preview-kind">分层预览</span>
@@ -760,13 +885,73 @@ function LayeredPreviewPane({ preview, pending, error }: { preview: AnyMap | nul
     </div>
     {error && <InlineError className="ie-preview-error">{error}</InlineError>}
     {layers.length > 0 && <div className="ie-layer-list">
-      {layers.map(layer => <div className="ie-layer-row" key={textValue(layer.id)}>
-        <div><strong>{layerLabel(textValue(layer.id))}</strong><p>{textValue(layer.reason || layer.message)}</p></div>
-        <span className={`ie-preview-status ${layer.available ? 'live' : 'failed'}`}>{layer.available ? '可用' : '不可用'}</span>
-      </div>)}
+      {layers.map(layer => <LayerPreviewRow key={textValue(layer.id)} layer={layer} layerOptions={asRecord(options[textValue(layer.id)])} onOptionChange={updateLayerOption} pending={pending} />)}
     </div>}
     {finalPreview.displayName || asStringList(finalPreview.lore).length ? <PreviewTooltipBlock title="最终预览" name={textValue(finalPreview.displayName)} lore={asStringList(finalPreview.lore)} emptyText="暂无最终预览" refreshing={pending} /> : null}
   </div>;
+}
+
+function LayerPreviewRow({ layer, layerOptions, onOptionChange, pending }: { layer: AnyMap; layerOptions: AnyMap; onOptionChange: (layerId: string, key: string, value: unknown) => void; pending: boolean }) {
+  const layerId = textValue(layer.id);
+  const preview = asRecord(layer.preview);
+  const reason = textValue(layer.reason || layer.message);
+  return <div className={`ie-layer-row ${layer.available ? '' : 'is-unavailable'}`}>
+    <div className="ie-layer-main">
+      <div className="ie-layer-heading"><strong>{layerLabel(layerId)}</strong><span className={`ie-preview-status ${layer.available ? 'live' : 'failed'}`}>{layer.available ? '可用' : '不可用'}</span></div>
+      {reason && <p>{reason}</p>}
+      <LayerPreviewControls layer={layer} layerOptions={layerOptions} onOptionChange={onOptionChange} />
+      {(preview.displayName || asStringList(preview.lore).length) && <PreviewTooltipBlock title="层预览" name={textValue(preview.displayName)} lore={asStringList(preview.lore)} emptyText="暂无层预览" refreshing={pending} />}
+    </div>
+  </div>;
+}
+
+function LayerPreviewControls({ layer, layerOptions, onOptionChange }: { layer: AnyMap; layerOptions: AnyMap; onOptionChange: (layerId: string, key: string, value: unknown) => void }) {
+  const layerId = textValue(layer.id);
+  if (!layer.available) return null;
+  if (layerId === 'strengthen') return <StrengthenLayerControls layer={layer} layerOptions={layerOptions} onOptionChange={onOptionChange} />;
+  if (layerId === 'gem') return <GemLayerControls layer={layer} layerOptions={layerOptions} onOptionChange={onOptionChange} />;
+  return null;
+}
+
+function StrengthenLayerControls({ layer, layerOptions, onOptionChange }: { layer: AnyMap; layerOptions: AnyMap; onOptionChange: (layerId: string, key: string, value: unknown) => void }) {
+  const layerId = textValue(layer.id);
+  const layerConfig = asRecord(layer.options);
+  const selected = asRecord(layer.selected);
+  const stars = asList(layerConfig.stars).map(value => Number(value)).filter(value => Number.isFinite(value) && value > 0);
+  const maxStar = Math.max(1, Number(layerConfig.maxStar || Math.max(1, ...stars)) || 1);
+  const starChoices = stars.length ? stars : Array.from({ length: maxStar }, (_, index) => index + 1);
+  const selectedStar = String(layerOptions.star ?? selected.star ?? layerConfig.selectedStar ?? starChoices[0]);
+  const maxTemper = Math.max(0, Number(layerConfig.maxTemper || 0) || 0);
+  const selectedTemper = String(layerOptions.temper ?? selected.temper ?? layerConfig.selectedTemper ?? 0);
+  return <div className="ie-layer-controls">
+    <label><span>星级</span><select value={selectedStar} onChange={event => onOptionChange(layerId, 'star', Number(event.target.value))}>{starChoices.map(star => <option key={star} value={star}>{star} 星</option>)}</select></label>
+    {maxTemper > 0 && <label><span>淬炼</span><select value={selectedTemper} onChange={event => onOptionChange(layerId, 'temper', Number(event.target.value))}>{Array.from({ length: maxTemper + 1 }, (_, value) => <option key={value} value={value}>{value}</option>)}</select></label>}
+  </div>;
+}
+
+function GemLayerControls({ layer, layerOptions, onOptionChange }: { layer: AnyMap; layerOptions: AnyMap; onOptionChange: (layerId: string, key: string, value: unknown) => void }) {
+  const layerId = textValue(layer.id);
+  const layerConfig = asRecord(layer.options);
+  const selected = asRecord(layer.selected);
+  const slots = asList(layerConfig.slots).map(asRecord);
+  const gems = asList(layerConfig.gems).map(asRecord);
+  const selectedSlot = String(layerOptions.slot ?? selected.slot ?? layerConfig.selectedSlot ?? (slots[0]?.index ?? -1));
+  const selectedGemId = textValue(layerOptions.gemId ?? selected.gemId ?? layerConfig.selectedGemId ?? gems[0]?.id);
+  const currentGem = gems.find(gem => textValue(gem.id) === selectedGemId) || gems[0];
+  const maxLevel = Math.max(1, Number(currentGem?.maxLevel || currentGem?.level || 1) || 1);
+  const selectedLevel = String(layerOptions.level ?? selected.level ?? layerConfig.selectedLevel ?? currentGem?.level ?? 1);
+  return <div className="ie-layer-controls">
+    {slots.length > 0 && <label><span>槽位</span><select value={selectedSlot} onChange={event => onOptionChange(layerId, 'slot', Number(event.target.value))}>{slots.map(slot => <option key={textValue(slot.index)} value={textValue(slot.index)}>{slotLabel(slot)}</option>)}</select></label>}
+    {gems.length > 0 && <label><span>宝石</span><select value={selectedGemId} onChange={event => onOptionChange(layerId, 'gemId', event.target.value)}>{gems.map(gem => <option key={textValue(gem.id)} value={textValue(gem.id)}>{textValue(gem.displayName || gem.id)}</option>)}</select></label>}
+    {gems.length > 0 && maxLevel > 1 && <label><span>等级</span><select value={selectedLevel} onChange={event => onOptionChange(layerId, 'level', Number(event.target.value))}>{Array.from({ length: maxLevel }, (_, index) => index + 1).map(level => <option key={level} value={level}>{level}</option>)}</select></label>}
+  </div>;
+}
+
+function slotLabel(slot: AnyMap): string {
+  const index = textValue(slot.index);
+  const name = textValue(slot.displayName || slot.type);
+  const tags = [slot.opened ? '已开' : '未开', slot.assigned ? '已镶嵌' : '空'].join(' · ');
+  return `#${index} ${name}（${tags}）`;
 }
 
 function layerLabel(id: string): string {
