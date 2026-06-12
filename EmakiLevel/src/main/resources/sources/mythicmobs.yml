@@ -5,6 +5,10 @@ sources:
     enabled: true
     type: "combat"
     trigger: "mythic_mob_kill"
+    anti_abuse:
+      exp_cooldown_ticks: 5
+      ignore_near_spawner: true
+      spawner_scan_radius: 8
     rules:
       - mob_ids: ["SkeletonKing", "UndeadKnight"]
         exp_formula: "50 + %mythic_level% * 5"

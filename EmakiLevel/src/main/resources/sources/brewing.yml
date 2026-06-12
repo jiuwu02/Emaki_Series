@@ -7,6 +7,8 @@ sources:
     trigger: "brew_complete"
     attribution:
       expire_ticks: 1200
+    anti_abuse:
+      exp_cooldown_ticks: 20
     rules:
       - potion_types: ["AWKWARD", "SPEED", "STRENGTH"]
         exp_formula: "15"

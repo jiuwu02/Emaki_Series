@@ -6,6 +6,10 @@ sources:
     type: "combat"
     trigger: "entity_kill"
     include_players: false
+    anti_abuse:
+      exp_cooldown_ticks: 5
+      ignore_near_spawner: true
+      spawner_scan_radius: 8
     rules:
       - entity_types: ["ZOMBIE", "SKELETON", "SPIDER", "CREEPER"]
         exp_formula: "10"

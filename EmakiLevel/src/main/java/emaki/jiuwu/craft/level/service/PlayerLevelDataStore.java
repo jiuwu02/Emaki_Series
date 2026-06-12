@@ -59,6 +59,27 @@ public final class PlayerLevelDataStore {
         return Map.copyOf(cache);
     }
 
+    public Map<UUID, PlayerLevelData> allKnownData(Map<String, LevelTypeConfig> types) {
+        Map<UUID, PlayerLevelData> result = new LinkedHashMap<>();
+        File directory = plugin.getDataFolder().toPath().resolve("data").toFile();
+        File[] files = directory.listFiles((_, name) -> name != null && name.endsWith(".yml"));
+        if (files != null) {
+            for (File file : files) {
+                UUID uuid = uuidFromDataFile(file);
+                if (uuid == null) {
+                    continue;
+                }
+                PlayerLevelData cachedData = cache.get(uuid);
+                result.put(uuid, cachedData == null ? read(uuid, null, types) : cachedData);
+            }
+        }
+        for (Map.Entry<UUID, PlayerLevelData> entry : cache.entrySet()) {
+            ensureTypes(entry.getValue(), types);
+            result.put(entry.getKey(), entry.getValue());
+        }
+        return result;
+    }
+
     public void unload(UUID uuid, boolean save) {
         PlayerLevelData data = cache.remove(uuid);
         if (save && data != null) {
@@ -133,6 +154,21 @@ public final class PlayerLevelDataStore {
         ensureTypes(data, types);
         data.clearDirty();
         return data;
+    }
+
+    private UUID uuidFromDataFile(File file) {
+        if (file == null) {
+            return null;
+        }
+        String name = file.getName();
+        if (Texts.isBlank(name) || !name.endsWith(".yml")) {
+            return null;
+        }
+        try {
+            return UUID.fromString(name.substring(0, name.length() - 4));
+        } catch (IllegalArgumentException exception) {
+            return null;
+        }
     }
 
     private File file(UUID uuid) {

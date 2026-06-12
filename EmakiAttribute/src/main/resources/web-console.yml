@@ -16,6 +16,11 @@ files:
     kind: CONFIG
   - path: "lore_formats/**/*.yml"
     kind: CONFIG
+  - path: "diagnostics"
+    kind: ATTRIBUTE_DIAGNOSTICS
+    title: "玩家属性追踪 / 伤害调试器"
+    comment: "查询在线玩家的属性来源与最近伤害 Trace。"
+    editor: "emakiattribute:diagnostics"
   - path: "conditions/**/*.yml"
     kind: CONFIG
 

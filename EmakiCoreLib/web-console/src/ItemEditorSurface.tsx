@@ -37,7 +37,11 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
   const [previewLevel, setPreviewLevel] = useState(1);
   const [previewPending, setPreviewPending] = useState(false);
   const [previewError, setPreviewError] = useState<PreviewError | null>(null);
+  const [layerPreview, setLayerPreview] = useState<AnyMap | null>(null);
+  const [layerPreviewPending, setLayerPreviewPending] = useState(false);
+  const [layerPreviewError, setLayerPreviewError] = useState<string | null>(null);
   const previewRequestId = useRef(0);
+  const layerPreviewRequestId = useRef(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -161,6 +165,40 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
     }
     if (!levels.includes(previewLevel)) setPreviewLevel(levels[0]);
   }, [data, preview, previewLevel]);
+
+  useEffect(() => {
+    const previewConfig = asRecord(editor?.preview);
+    const layeredRoute = textValue(previewConfig.layeredRoute);
+    if (loading || !isKind(file.kind, 'ITEM') || !layeredRoute) {
+      layerPreviewRequestId.current += 1;
+      setLayerPreview(null);
+      setLayerPreviewPending(false);
+      setLayerPreviewError(null);
+      return;
+    }
+    const layeredModule = textValue(previewConfig.layeredModule || module.id);
+    const requestId = layerPreviewRequestId.current + 1;
+    layerPreviewRequestId.current = requestId;
+    setLayerPreviewPending(true);
+    setLayerPreviewError(null);
+    let active = true;
+    const timer = window.setTimeout(() => {
+      api.pluginApi(layeredModule, layeredRoute, { content: sourceContent, itemId: textValue(data.id), path: filePath })
+        .then(result => {
+          if (!active || layerPreviewRequestId.current !== requestId) return;
+          setLayerPreview(asRecord(result));
+        })
+        .catch(err => {
+          if (!active || layerPreviewRequestId.current !== requestId) return;
+          setLayerPreview(null);
+          setLayerPreviewError(err instanceof Error ? err.message : String(err));
+        })
+        .finally(() => {
+          if (active && layerPreviewRequestId.current === requestId) setLayerPreviewPending(false);
+        });
+    }, 350);
+    return () => { active = false; window.clearTimeout(timer); };
+  }, [api, data, editor?.preview, file.kind, filePath, loading, module.id, sourceContent]);
 
   const setField = (path: string, value: unknown) => {
     setData(prev => {
@@ -300,7 +338,10 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
       <EditorContext.Provider value={editorContext}>
         <ChangedPathsProvider changedPaths={changedPaths}>
         <div className="ie-workbench">
-          <GenericPreviewPane moduleId={module.id} editor={editor} data={data} preview={preview} previewPending={previewPending} previewError={previewError} previewLevel={previewLevel} setPreviewLevel={setPreviewLevel} baseName={baseName} baseLore={baseLore as string[]} />
+          <div className="ie-preview-stack">
+            <GenericPreviewPane moduleId={module.id} editor={editor} data={data} preview={preview} previewPending={previewPending} previewError={previewError} previewLevel={previewLevel} setPreviewLevel={setPreviewLevel} baseName={baseName} baseLore={baseLore as string[]} />
+            <LayeredPreviewPane preview={layerPreview} pending={layerPreviewPending} error={layerPreviewError} />
+          </div>
           <div className="ie-props-scroll">
             <div className="ie-props">
               {sections.map((section, sectionIndex) => (
@@ -706,6 +747,32 @@ function GenericPreviewPane({ moduleId, editor, data, preview, previewPending, p
       </div>
     </div>
   );
+}
+
+function LayeredPreviewPane({ preview, pending, error }: { preview: AnyMap | null; pending: boolean; error: string | null }) {
+  if (!preview && !pending && !error) return null;
+  const layers = asList(preview?.layers).map(asRecord);
+  const finalPreview = asRecord(preview?.final);
+  return <div className="ie-preview ie-layer-preview" role="complementary" aria-label="分层预览">
+    <div className="ie-preview-meta">
+      <span className="ie-preview-kind">分层预览</span>
+      <span className={`ie-preview-status ${pending ? 'syncing' : error ? 'failed' : 'live'}`}>{pending ? '同步中' : error ? '失败' : '已同步'}</span>
+    </div>
+    {error && <InlineError className="ie-preview-error">{error}</InlineError>}
+    {layers.length > 0 && <div className="ie-layer-list">
+      {layers.map(layer => <div className="ie-layer-row" key={textValue(layer.id)}>
+        <div><strong>{layerLabel(textValue(layer.id))}</strong><p>{textValue(layer.reason || layer.message)}</p></div>
+        <span className={`ie-preview-status ${layer.available ? 'live' : 'failed'}`}>{layer.available ? '可用' : '不可用'}</span>
+      </div>)}
+    </div>}
+    {finalPreview.displayName || asStringList(finalPreview.lore).length ? <PreviewTooltipBlock title="最终预览" name={textValue(finalPreview.displayName)} lore={asStringList(finalPreview.lore)} emptyText="暂无最终预览" refreshing={pending} /> : null}
+  </div>;
+}
+
+function layerLabel(id: string): string {
+  if (id === 'strengthen') return 'Strengthen 强化层';
+  if (id === 'gem') return 'Gem 宝石层';
+  return id || 'Layer';
 }
 
 function PreviewTooltipBlock({ title, name, lore, emptyText, refreshing }: { title: string; name: string; lore: string[]; emptyText: string; refreshing?: boolean }) {

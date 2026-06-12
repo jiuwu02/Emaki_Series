@@ -15,15 +15,18 @@ import emaki.jiuwu.craft.item.model.ItemUpdateConfig;
 public final class EmakiItemUpdateService {
 
     private final EmakiItemLoader itemLoader;
+    private final EmakiItemIdResolver idResolver;
     private final EmakiItemFactory itemFactory;
     private final EmakiItemIdentifier identifier;
     private final PdcAttributeGatewayAdapter attributeGateway;
 
     public EmakiItemUpdateService(EmakiItemLoader itemLoader,
+            EmakiItemIdResolver idResolver,
             EmakiItemFactory itemFactory,
             EmakiItemIdentifier identifier,
             PdcAttributeGatewayAdapter attributeGateway) {
         this.itemLoader = itemLoader;
+        this.idResolver = idResolver;
         this.itemFactory = itemFactory;
         this.identifier = identifier;
         this.attributeGateway = attributeGateway;
@@ -37,7 +40,7 @@ public final class EmakiItemUpdateService {
         if (id.isBlank()) {
             return original;
         }
-        EmakiItemDefinition definition = itemLoader.get(id);
+        EmakiItemDefinition definition = idResolver == null ? itemLoader.get(id) : idResolver.resolveDefinition(id);
         if (definition == null) {
             return original;
         }
@@ -56,7 +59,7 @@ public final class EmakiItemUpdateService {
             return original;
         }
         String id = identifier.identify(original);
-        EmakiItemDefinition definition = id.isBlank() ? null : itemLoader.get(id);
+        EmakiItemDefinition definition = id.isBlank() ? null : (idResolver == null ? itemLoader.get(id) : idResolver.resolveDefinition(id));
         if (definition == null) {
             return original;
         }

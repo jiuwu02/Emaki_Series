@@ -17,7 +17,7 @@ public final class PlayerDataListener implements Listener {
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
-        plugin.dataStore().load(event.getPlayer(), plugin.typeRegistry().asMap());
+        plugin.topService().update(plugin.dataStore().load(event.getPlayer(), plugin.typeRegistry().asMap()));
         plugin.levelService().syncAllOnline();
     }
 

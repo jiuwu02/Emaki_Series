@@ -14,6 +14,7 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.level.EmakiLevelPlugin;
+import emaki.jiuwu.craft.level.api.LevelOperationResult;
 import emaki.jiuwu.craft.level.config.SourceRuleConfig;
 
 public final class SourceExperienceService {
@@ -33,10 +34,13 @@ public final class SourceExperienceService {
             context.putAll(variables);
         }
         double amount = Math.max(0D, ExpressionEngine.evaluate(rule.expFormula(), context));
-        if (amount <= 0D) {
+        if (amount <= 0D || plugin.antiAbuseService().isOnCooldown(player, source)) {
             return;
         }
-        plugin.levelService().addExp(player.getUniqueId(), source.type(), amount, reason);
+        LevelOperationResult result = plugin.levelService().addExp(player.getUniqueId(), source.type(), amount, reason);
+        if (result.success()) {
+            plugin.antiAbuseService().markCooldown(player, source);
+        }
     }
 
     public SourceRuleConfig.Rule matchEntity(SourceRuleConfig source, EntityType type) {

@@ -18,6 +18,8 @@ import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.gui.GuiService;
+import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.text.AdventureSupport;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.web.WebConsoleRegistry;
@@ -49,10 +51,13 @@ import emaki.jiuwu.craft.level.loader.LevelTypeLoader;
 import emaki.jiuwu.craft.level.loader.RequirementLoader;
 import emaki.jiuwu.craft.level.loader.SourceRuleLoader;
 import emaki.jiuwu.craft.level.papi.LevelPlaceholderExpansion;
+import emaki.jiuwu.craft.level.service.LevelAntiAbuseService;
 import emaki.jiuwu.craft.level.service.LevelAttributeBridge;
 import emaki.jiuwu.craft.level.service.LevelCurveService;
+import emaki.jiuwu.craft.level.service.LevelGuiService;
 import emaki.jiuwu.craft.level.service.LevelMessageService;
 import emaki.jiuwu.craft.level.service.LevelPdcService;
+import emaki.jiuwu.craft.level.service.LevelTopGuiService;
 import emaki.jiuwu.craft.level.service.LevelTopService;
 import emaki.jiuwu.craft.level.service.LevelTypeRegistry;
 import emaki.jiuwu.craft.level.service.PlayerLevelDataStore;
@@ -74,6 +79,7 @@ public final class EmakiLevelPlugin extends JavaPlugin {
     private static final List<String> DEFAULT_DATA_FILES = List.of(
             "requirements.yml",
             "gui/level_gui.yml",
+            "gui/top_gui.yml",
             "types/main.yml",
             "types/combat.yml",
             "types/mining.yml",
@@ -105,13 +111,18 @@ public final class EmakiLevelPlugin extends JavaPlugin {
     private LevelTypeLoader typeLoader;
     private RequirementLoader requirementLoader;
     private SourceRuleLoader sourceRuleLoader;
+    private GuiTemplateLoader guiTemplateLoader;
+    private GuiService guiService;
     private LevelTypeRegistry typeRegistry;
     private RequirementService requirementService;
     private LevelCurveService curveService;
     private PlayerLevelDataStore dataStore;
     private LevelPdcService pdcService;
+    private LevelAntiAbuseService antiAbuseService;
     private PlayerLevelService levelService;
     private LevelTopService topService;
+    private LevelGuiService levelGuiService;
+    private LevelTopGuiService levelTopGuiService;
     private LevelAttributeBridge attributeBridge;
     private MythicLevelDropBridge mythicDropBridge;
     private LevelPlaceholderExpansion placeholderExpansion;
@@ -253,9 +264,11 @@ public final class EmakiLevelPlugin extends JavaPlugin {
         typeLoader.load(appConfig);
         requirementLoader.load();
         sourceRuleLoader.load();
+        guiTemplateLoader.load();
         typeRegistry.reload(typeLoader.types());
         requirementService.reload(requirementLoader.config());
         pdcService.enabled(appConfig.pdcEnabled());
+        antiAbuseService.config(appConfig);
         levelService.config(appConfig);
         if (attributeBridge != null) {
             attributeBridge.config(appConfig);
@@ -263,6 +276,7 @@ public final class EmakiLevelPlugin extends JavaPlugin {
         for (org.bukkit.entity.Player player : Bukkit.getOnlinePlayers()) {
             dataStore.load(player, typeRegistry.asMap());
         }
+        topService.rebuild();
         levelService.syncAllOnline();
         messages.info("console.types_loaded", Map.of("count", String.valueOf(typeRegistry.all().size())));
         messages.info("console.sources_loaded", Map.of("count", String.valueOf(sourceRuleLoader.rules().size())));
@@ -300,12 +314,16 @@ public final class EmakiLevelPlugin extends JavaPlugin {
         typeLoader = new LevelTypeLoader(this);
         requirementLoader = new RequirementLoader(this);
         sourceRuleLoader = new SourceRuleLoader(this);
+        guiTemplateLoader = new GuiTemplateLoader(this);
+        guiService = new GuiService(this, coreLib.asyncTaskScheduler(), coreLib.performanceMonitor());
         typeRegistry = new LevelTypeRegistry();
         requirementService = new RequirementService();
         curveService = new LevelCurveService(typeRegistry, requirementService);
         dataStore = new PlayerLevelDataStore(this);
         pdcService = new LevelPdcService(appConfig.pdcNamespace(), appConfig.pdcEnabled());
+        antiAbuseService = new LevelAntiAbuseService(appConfig);
         attributeBridge = new LevelAttributeBridge(this, typeRegistry, dataStore, appConfig);
+        topService = new LevelTopService(dataStore, typeRegistry);
         levelService = new PlayerLevelService(
                 this,
                 typeRegistry,
@@ -317,9 +335,11 @@ public final class EmakiLevelPlugin extends JavaPlugin {
                 coreLib.actionExecutor(),
                 appConfig,
                 () -> attributeBridge.resyncAll(),
-                player -> attributeBridge.resync(player)
+                player -> attributeBridge.resync(player),
+                data -> topService.update(data)
         );
-        topService = new LevelTopService(dataStore);
+        levelGuiService = new LevelGuiService(this, guiService, guiTemplateLoader);
+        levelTopGuiService = new LevelTopGuiService(this, guiService, guiTemplateLoader);
     }
 
     private void registerCommand() {
@@ -332,6 +352,7 @@ public final class EmakiLevelPlugin extends JavaPlugin {
     }
 
     private void registerListeners() {
+        getServer().getPluginManager().registerEvents(guiService, this);
         getServer().getPluginManager().registerEvents(new PlayerDataListener(this), this);
         getServer().getPluginManager().registerEvents(new CombatSourceListener(this), this);
         getServer().getPluginManager().registerEvents(new BlockSourceListener(this), this);
@@ -441,6 +462,18 @@ public final class EmakiLevelPlugin extends JavaPlugin {
 
     public LevelTopService topService() {
         return topService;
+    }
+
+    public LevelAntiAbuseService antiAbuseService() {
+        return antiAbuseService;
+    }
+
+    public LevelGuiService levelGuiService() {
+        return levelGuiService;
+    }
+
+    public LevelTopGuiService levelTopGuiService() {
+        return levelTopGuiService;
     }
 
     public EmakiCoreLibPlugin coreLib() {

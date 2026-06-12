@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.item;
 
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
@@ -30,11 +31,13 @@ import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.web.WebConsoleRegistry;
+import emaki.jiuwu.craft.corelib.web.WebPluginApiRegistry;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.item.api.EmakiItemApi;
 import emaki.jiuwu.craft.item.config.AppConfig;
 import emaki.jiuwu.craft.item.listener.ItemTriggerListener;
 import emaki.jiuwu.craft.item.listener.ItemUpdateListener;
+import emaki.jiuwu.craft.item.loader.EmakiItemAliasLoader;
 import emaki.jiuwu.craft.item.loader.EmakiItemLoader;
 import emaki.jiuwu.craft.item.loader.EmakiItemSetLoader;
 import emaki.jiuwu.craft.item.papi.ItemPlaceholderExpansion;
@@ -42,6 +45,9 @@ import emaki.jiuwu.craft.item.service.EmakiItemActionService;
 import emaki.jiuwu.craft.item.service.EmakiItemConditionChecker;
 import emaki.jiuwu.craft.item.service.EmakiItemFactory;
 import emaki.jiuwu.craft.item.service.EmakiItemIdentifier;
+import emaki.jiuwu.craft.item.service.EmakiItemIdResolver;
+import emaki.jiuwu.craft.item.service.EmakiItemLayerPreviewService;
+import emaki.jiuwu.craft.item.service.EmakiItemMigrationService;
 import emaki.jiuwu.craft.item.service.EmakiItemPdcWriter;
 import emaki.jiuwu.craft.item.service.EmakiItemSetService;
 import emaki.jiuwu.craft.item.service.EmakiItemUpdateService;
@@ -74,6 +80,10 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     private BootstrapService bootstrapService;
     private EmakiItemLoader itemLoader;
     private EmakiItemSetLoader setLoader;
+    private EmakiItemAliasLoader aliasLoader;
+    private EmakiItemIdResolver idResolver;
+    private EmakiItemMigrationService migrationService;
+    private EmakiItemLayerPreviewService layerPreviewService;
     private EmakiItemIdentifier identifier;
     private EmakiItemPdcWriter pdcWriter;
     private EmakiItemFactory itemFactory;
@@ -88,7 +98,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     private final EmakiItemApi.Bridge itemApiBridge = new EmakiItemApi.Bridge() {
         @Override
         public boolean exists(String id) {
-            return itemLoader != null && itemLoader.get(id) != null;
+            return idResolver != null && idResolver.resolveDefinition(id) != null;
         }
 
         @Override
@@ -149,6 +159,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
             metrics = null;
         }
         WebConsoleRegistry.unregisterModule(this);
+        WebPluginApiRegistry.unregister(this);
         EmakiItemApi.uninstall(itemApiBridge);
         lifecycleCoordinator.shutdown(this);
         AdventureSupport.close(this);
@@ -169,6 +180,10 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         bootstrapService = components.bootstrapService();
         itemLoader = components.itemLoader();
         setLoader = components.setLoader();
+        aliasLoader = components.aliasLoader();
+        idResolver = components.idResolver();
+        migrationService = components.migrationService();
+        layerPreviewService = components.layerPreviewService();
         identifier = components.identifier();
         pdcWriter = components.pdcWriter();
         itemFactory = components.itemFactory();
@@ -200,6 +215,29 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
 
     private void registerWebConsole() {
         WebConsoleRegistry.registerFromYaml(this);
+        WebPluginApiRegistry.register(this, "item", "alias-list", request -> Map.of("ok", true, "aliases", aliasLoader == null ? Map.of() : aliasLoader.all().values().stream()
+                .map(alias -> Map.of(
+                        "oldId", alias.oldId(),
+                        "targetId", alias.targetId(),
+                        "migratePdc", alias.migratePdc(),
+                        "rewriteDisplay", alias.rewriteDisplay(),
+                        "expiresAfter", alias.expiresAfter()))
+                .toList()));
+        WebPluginApiRegistry.register(this, "item", "rename-preview", request -> {
+            request.requirePost();
+            return migrationService.preview(request.string("oldId"), request.string("newId"));
+        });
+        WebPluginApiRegistry.register(this, "item", "rename-apply", request -> {
+            request.requirePost();
+            String mode = Texts.lower(request.string("mode"));
+            boolean replaceReferences = !"alias_only".equals(mode);
+            boolean keepAlias = "alias_only".equals(mode) || "replace_and_alias".equals(mode);
+            return migrationService.apply(request.string("oldId"), request.string("newId"), replaceReferences, keepAlias);
+        });
+        WebPluginApiRegistry.register(this, "item", "preview-layered", request -> {
+            request.requirePost();
+            return layerPreviewService.preview(request.string("content"), request.string("itemId"));
+        });
     }
 
     private void ensurePlaceholderExpansion() {
@@ -234,6 +272,22 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
 
     public EmakiItemSetLoader setLoader() {
         return setLoader;
+    }
+
+    public EmakiItemAliasLoader aliasLoader() {
+        return aliasLoader;
+    }
+
+    public EmakiItemIdResolver idResolver() {
+        return idResolver;
+    }
+
+    public EmakiItemMigrationService migrationService() {
+        return migrationService;
+    }
+
+    public EmakiItemLayerPreviewService layerPreviewService() {
+        return layerPreviewService;
     }
 
     public EmakiItemIdentifier identifier() {

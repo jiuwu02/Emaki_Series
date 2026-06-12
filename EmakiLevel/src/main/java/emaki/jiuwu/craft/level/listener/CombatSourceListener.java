@@ -59,6 +59,9 @@ public final class CombatSourceListener implements Listener {
             if (!source.includePlayers() && entity instanceof Player) {
                 continue;
             }
+            if (source.ignoreNearSpawner() && plugin.antiAbuseService().nearSpawner(entity.getLocation(), source.spawnerScanRadius())) {
+                continue;
+            }
             SourceRuleConfig.Rule rule = sourceService.matchEntity(source, entity.getType());
             if (rule == null) {
                 continue;
@@ -77,6 +80,9 @@ public final class CombatSourceListener implements Listener {
             return;
         }
         for (SourceRuleConfig source : plugin.sourceRuleLoader().byTrigger("mythic_mob_kill")) {
+            if (source.ignoreNearSpawner() && plugin.antiAbuseService().nearSpawner(entity.getLocation(), source.spawnerScanRadius())) {
+                continue;
+            }
             SourceRuleConfig.Rule rule = sourceService.matchMobId(source, info.mobId());
             if (rule != null) {
                 sourceService.award(killer, source, rule, Map.of("mythic_id", info.mobId(), "mythic_level", info.level()), "mythic_mob_kill");

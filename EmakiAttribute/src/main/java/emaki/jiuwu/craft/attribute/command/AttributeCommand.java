@@ -18,7 +18,10 @@ import org.bukkit.inventory.ItemStack;
 import emaki.jiuwu.craft.attribute.AttributePermissions;
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.attribute.config.DamageCauseRule;
+import emaki.jiuwu.craft.attribute.model.AttributeContributionTrace;
 import emaki.jiuwu.craft.attribute.model.AttributeSnapshot;
+import emaki.jiuwu.craft.attribute.model.AttributeSourceTraceReport;
+import emaki.jiuwu.craft.attribute.model.DamageTraceRecord;
 import emaki.jiuwu.craft.attribute.model.ResourceState;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
 import emaki.jiuwu.craft.attribute.service.CombatSupport;
@@ -28,6 +31,7 @@ import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.web.WebJson;
 
 public final class AttributeCommand implements TabExecutor {
 
@@ -56,6 +60,10 @@ public final class AttributeCommand implements TabExecutor {
                 handleDump(sender, args);
             case "debug" ->
                 handleDebug(sender, args);
+            case "source" ->
+                handleSource(sender, args);
+            case "trace" ->
+                handleTrace(sender, args);
             case "lint" ->
                 handleLint(sender);
             case "help" -> {
@@ -73,7 +81,7 @@ public final class AttributeCommand implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            for (String candidate : List.of("help", "reload", "resync", "preview", "dump", "debug", "lint")) {
+            for (String candidate : List.of("help", "reload", "resync", "preview", "dump", "debug", "source", "trace", "lint")) {
                 if (candidate.startsWith(args[0].toLowerCase(Locale.ROOT))) {
                     result.add(candidate);
                 }
@@ -87,6 +95,39 @@ public final class AttributeCommand implements TabExecutor {
         }
         if (args.length == 2 && "dump".equalsIgnoreCase(args[0])) {
             completePlayerNames(result, args[1]);
+            return result;
+        }
+        if (args.length == 3 && "dump".equalsIgnoreCase(args[0])) {
+            if ("sources".startsWith(args[2].toLowerCase(Locale.ROOT))) {
+                result.add("sources");
+            }
+            if ("json".startsWith(args[2].toLowerCase(Locale.ROOT))) {
+                result.add("json");
+            }
+            return result;
+        }
+        if (args.length == 4 && "dump".equalsIgnoreCase(args[0]) && "sources".equalsIgnoreCase(args[2])) {
+            completeAttributeIds(result, args[3]);
+            return result;
+        }
+        if (args.length == 2 && "source".equalsIgnoreCase(args[0])) {
+            completePlayerNames(result, args[1]);
+            return result;
+        }
+        if (args.length == 3 && "source".equalsIgnoreCase(args[0])) {
+            completeAttributeIds(result, args[2]);
+            return result;
+        }
+        if (args.length == 2 && "trace".equalsIgnoreCase(args[0])) {
+            for (String sub : List.of("last", "list", "export", "clear")) {
+                if (sub.startsWith(args[1].toLowerCase(Locale.ROOT))) {
+                    result.add(sub);
+                }
+            }
+            return result;
+        }
+        if (args.length == 3 && "trace".equalsIgnoreCase(args[0])) {
+            completePlayerNames(result, args[2]);
             return result;
         }
         if (args.length == 2 && "preview".equalsIgnoreCase(args[0])) {
@@ -209,10 +250,17 @@ public final class AttributeCommand implements TabExecutor {
             messages().send(sender, "command.dump.console_usage");
             return true;
         }
+        if (args.length >= 3 && "sources".equalsIgnoreCase(args[2])) {
+            sendSourceTrace(sender, target, args.length >= 4 ? args[3] : "");
+            return true;
+        }
         AttributeSnapshot snapshot = attributeService.collectCombatSnapshot(target);
         messages().send(sender, "command.dump.player", Map.of("player", target.getName()));
         messages().sendRaw(sender, buildDumpSignatureMessage(snapshot));
         messages().sendRaw(sender, buildDumpValuesMessage(snapshot));
+        if (args.length >= 3 && "json".equalsIgnoreCase(args[2])) {
+            messages().sendRaw(sender, WebJson.stringify(attributeService.attributeTraceService().trace(target, "").toMap()));
+        }
         for (Map.Entry<String, ResourceState> entry : dumpResources(target).entrySet()) {
             ResourceState state = entry.getValue();
             messages().send(sender, "command.dump.resource_line", Map.of(
@@ -231,7 +279,84 @@ public final class AttributeCommand implements TabExecutor {
             messages().send(sender, "command.debug.no_permission");
             return true;
         }
+        if (args.length >= 3) {
+            Player target = Bukkit.getPlayerExact(args[1]);
+            String mode = args[2].toLowerCase(Locale.ROOT);
+            if (target != null && List.of("on", "off", "toggle").contains(mode)) {
+                boolean enabled = switch (mode) {
+                    case "on" -> attributeService.setCombatDebug(target, true);
+                    case "off" -> attributeService.setCombatDebug(target, false);
+                    default -> attributeService.toggleCombatDebug(target);
+                };
+                messages().sendRaw(sender, "<gray>[EA]</gray> <aqua>" + target.getName() + "</aqua> 战斗 Trace 已" + (enabled ? "<green>开启</green>" : "<red>关闭</red>"));
+                return true;
+            }
+        }
         return plugin.debugCommand().handle(sender, Arrays.copyOfRange(args, 1, args.length), plugin.messageService());
+    }
+
+    private boolean handleSource(CommandSender sender, String[] args) {
+        if (!sender.hasPermission(AttributePermissions.DEBUG) && !sender.hasPermission(AttributePermissions.ADMIN)) {
+            messages().send(sender, "command.dump.no_permission");
+            return true;
+        }
+        if (args.length < 3) {
+            messages().sendRaw(sender, "<red>用法: /ea source <player> <attribute></red>");
+            return true;
+        }
+        Player target = Bukkit.getPlayerExact(args[1]);
+        if (target == null) {
+            messages().send(sender, "command.dump.player_not_found", Map.of("player", args[1]));
+            return true;
+        }
+        sendSourceTrace(sender, target, args[2]);
+        return true;
+    }
+
+    private boolean handleTrace(CommandSender sender, String[] args) {
+        if (!sender.hasPermission(AttributePermissions.DEBUG) && !sender.hasPermission(AttributePermissions.ADMIN)) {
+            messages().send(sender, "command.debug.no_permission");
+            return true;
+        }
+        if (args.length < 3) {
+            messages().sendRaw(sender, "<red>用法: /ea trace <last|list|export|clear> <player></red>");
+            return true;
+        }
+        Player target = Bukkit.getPlayerExact(args[2]);
+        if (target == null) {
+            messages().send(sender, "command.dump.player_not_found", Map.of("player", args[2]));
+            return true;
+        }
+        String action = args[1].toLowerCase(Locale.ROOT);
+        return switch (action) {
+            case "last" -> {
+                DamageTraceRecord record = attributeService.damageTraceService().last(target.getUniqueId());
+                sendDamageTrace(sender, record, false);
+                yield true;
+            }
+            case "list" -> {
+                List<DamageTraceRecord> records = attributeService.damageTraceService().list(target.getUniqueId());
+                messages().sendRaw(sender, "<gray>[EA]</gray> <aqua>" + target.getName() + "</aqua> 最近伤害 Trace: <yellow>" + records.size() + "</yellow>");
+                for (DamageTraceRecord record : records) {
+                    messages().sendRaw(sender, formatTraceSummary(record));
+                }
+                yield true;
+            }
+            case "export" -> {
+                DamageTraceRecord record = attributeService.damageTraceService().last(target.getUniqueId());
+                sendDamageTrace(sender, record, true);
+                yield true;
+            }
+            case "clear" -> {
+                boolean cleared = attributeService.damageTraceService().clear(target.getUniqueId());
+                messages().sendRaw(sender, cleared ? "<green>已清空伤害 Trace。</green>" : "<gray>没有可清空的伤害 Trace。</gray>");
+                yield true;
+            }
+            default -> {
+                messages().sendRaw(sender, "<red>未知 trace 子命令: " + MiniMessages.escape(action) + "</red>");
+                yield true;
+            }
+        };
     }
 
     private boolean handleLint(CommandSender sender) {
@@ -334,8 +459,65 @@ public final class AttributeCommand implements TabExecutor {
         messages().send(sender, "command.help.preview");
         messages().send(sender, "command.help.dump");
         messages().send(sender, "command.help.debug");
+        messages().send(sender, "command.help.source");
+        messages().send(sender, "command.help.trace");
         messages().send(sender, "command.help.lint");
         messages().sendRaw(sender, messages().message("command.help.footer"));
+    }
+
+    private void sendSourceTrace(CommandSender sender, Player target, String attributeFilter) {
+        AttributeSourceTraceReport report = attributeService.attributeTraceService().trace(target, attributeFilter);
+        String filter = Texts.normalizeId(attributeFilter);
+        messages().sendRaw(sender, "<gray>[EA]</gray> <aqua>" + MiniMessages.escape(target.getName()) + "</aqua> 属性来源" + (Texts.isBlank(filter) ? "" : " <yellow>" + MiniMessages.escape(filter) + "</yellow>"));
+        int count = 0;
+        for (AttributeContributionTrace trace : report.contributions()) {
+            if (Texts.isNotBlank(filter) && !filter.equals(Texts.normalizeId(trace.attributeId()))) {
+                continue;
+            }
+            messages().sendRaw(sender, formatContributionTrace(trace));
+            count++;
+        }
+        if (count == 0) {
+            messages().sendRaw(sender, "<gray>没有匹配的属性来源。</gray>");
+        }
+    }
+
+    private String formatContributionTrace(AttributeContributionTrace trace) {
+        String value = Numbers.formatNumber(trace.value(), "0.##");
+        String sign = trace.value() >= 0D ? "+" : "";
+        String passed = trace.conditionPassed() ? "" : " <red>未生效</red>";
+        return "<gray>-</gray> <yellow>" + MiniMessages.escape(sign + value) + "</yellow> "
+                + "<aqua>" + MiniMessages.escape(trace.attributeId()) + "</aqua> "
+                + "<dark_gray>[</dark_gray>" + MiniMessages.escape(trace.sourceType()) + "<dark_gray>]</dark_gray> "
+                + "<white>" + MiniMessages.escape(trace.sourceLabel()) + "</white>" + passed;
+    }
+
+    private void sendDamageTrace(CommandSender sender, DamageTraceRecord record, boolean exportJson) {
+        if (record == null) {
+            messages().sendRaw(sender, "<gray>没有伤害 Trace。先使用 /ea debug <player> on 开启记录。</gray>");
+            return;
+        }
+        if (exportJson) {
+            messages().sendRaw(sender, WebJson.stringify(record.toMap()));
+            return;
+        }
+        messages().sendRaw(sender, formatTraceSummary(record));
+        for (var stage : record.stages()) {
+            messages().sendRaw(sender, "  <gray>Stage</gray> <aqua>" + MiniMessages.escape(stage.stageId()) + "</aqua> <yellow>" + Numbers.formatNumber(stage.input(), "0.##") + "</yellow> -> <green>" + Numbers.formatNumber(stage.output(), "0.##") + "</green>");
+        }
+    }
+
+    private String formatTraceSummary(DamageTraceRecord record) {
+        if (record == null) {
+            return "<gray>无 Trace</gray>";
+        }
+        return "<gray>#" + record.traceId() + "</gray> "
+                + "<white>" + MiniMessages.escape(record.attackerLabel()) + "</white> -> "
+                + "<white>" + MiniMessages.escape(record.targetLabel()) + "</white> "
+                + "<dark_gray>type=</dark_gray><aqua>" + MiniMessages.escape(record.damageTypeId()) + "</aqua> "
+                + "<dark_gray>cause=</dark_gray><aqua>" + MiniMessages.escape(record.cause()) + "</aqua> "
+                + "<dark_gray>final=</dark_gray><yellow>" + Numbers.formatNumber(record.finalDamage(), "0.##") + "</yellow> "
+                + "<dark_gray>mode=</dark_gray><green>" + MiniMessages.escape(record.applyMode()) + "</green>";
     }
 
     private MessageService messages() {
@@ -347,6 +529,15 @@ public final class AttributeCommand implements TabExecutor {
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (player.getName().toLowerCase(Locale.ROOT).startsWith(lowerPrefix)) {
                 result.add(player.getName());
+            }
+        }
+    }
+
+    private void completeAttributeIds(List<String> result, String prefix) {
+        String lowerPrefix = Texts.toStringSafe(prefix).toLowerCase(Locale.ROOT);
+        for (String id : attributeService.attributeRegistry().all().keySet()) {
+            if (id != null && id.toLowerCase(Locale.ROOT).startsWith(lowerPrefix)) {
+                result.add(id);
             }
         }
     }

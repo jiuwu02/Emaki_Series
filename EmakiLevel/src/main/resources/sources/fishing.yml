@@ -5,6 +5,8 @@ sources:
     enabled: true
     type: "fishing"
     trigger: "player_fish"
+    anti_abuse:
+      exp_cooldown_ticks: 5
     rules:
       - states: ["CAUGHT_FISH"]
         exp_formula: "10"

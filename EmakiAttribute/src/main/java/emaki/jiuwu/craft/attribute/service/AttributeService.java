@@ -46,6 +46,8 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
     private final ResourceManagementService resourceManagementService;
     private final DamageCalculationService damageCalculationService;
     private final CombatDebugService combatDebugService;
+    private final AttributeTraceService attributeTraceService;
+    private final DamageTraceService damageTraceService;
     private final PerfectTakeoverCoordinator perfectTakeoverCoordinator;
     private final PdcAttributeService pdcAttributeService;
     private final TemporaryAttributeService temporaryAttributeService;
@@ -86,6 +88,8 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
                 vanillaSynchronizer
         );
         this.combatDebugService = new CombatDebugService(this);
+        this.attributeTraceService = new AttributeTraceService(this);
+        this.damageTraceService = new DamageTraceService();
         this.temporaryAttributeService = new TemporaryAttributeService(plugin, this);
         AttributeSnapshotCollector snapshotCollector = new AttributeSnapshotCollector(this);
         this.snapshotService = new AttributeSnapshotService(snapshotCollector);
@@ -221,6 +225,14 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
 
     CombatDebugService combatDebug() {
         return combatDebugService;
+    }
+
+    public AttributeTraceService attributeTraceService() {
+        return attributeTraceService;
+    }
+
+    public DamageTraceService damageTraceService() {
+        return damageTraceService;
     }
 
     public PerfectTakeoverCoordinator perfectTakeoverCoordinator() {

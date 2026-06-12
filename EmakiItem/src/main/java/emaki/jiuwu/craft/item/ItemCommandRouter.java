@@ -20,6 +20,7 @@ import emaki.jiuwu.craft.corelib.api.integration.PdcAttributePayloadSnapshot;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.item.model.EmakiItemAlias;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
 import emaki.jiuwu.craft.item.service.ItemComponentInspector;
 
@@ -56,6 +57,8 @@ final class ItemCommandRouter implements TabExecutor {
             case "inspect" -> handleInspect(sender, args);
             case "components", "component" -> handleComponents(sender, args);
             case "update" -> handleUpdate(sender, args);
+            case "alias" -> handleAlias(sender, args);
+            case "migrate" -> handleMigrate(sender, args);
             case "reload" -> handleReload(sender);
             case "debug" -> handleDebug(sender, args);
             default -> {
@@ -69,7 +72,7 @@ final class ItemCommandRouter implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            for (String sub : List.of("help", "list", "give", "inspect", "components", "component", "update", "reload", "debug")) {
+            for (String sub : List.of("help", "list", "give", "inspect", "components", "component", "update", "alias", "migrate", "reload", "debug")) {
                 if (sub.startsWith(args[0].toLowerCase(java.util.Locale.ROOT))) {
                     result.add(sub);
                 }
@@ -78,6 +81,22 @@ final class ItemCommandRouter implements TabExecutor {
         }
         if (args.length >= 2 && "debug".equalsIgnoreCase(args[0])) {
             return plugin.debugCommand().tabComplete(Arrays.copyOfRange(args, 1, args.length));
+        }
+        if (args.length == 2 && "alias".equalsIgnoreCase(args[0])) {
+            for (String sub : List.of("list", "add", "remove")) {
+                if (sub.startsWith(args[1].toLowerCase(java.util.Locale.ROOT))) {
+                    result.add(sub);
+                }
+            }
+            return result;
+        }
+        if (args.length == 2 && "migrate".equalsIgnoreCase(args[0])) {
+            for (String sub : List.of("id", "inventory")) {
+                if (sub.startsWith(args[1].toLowerCase(java.util.Locale.ROOT))) {
+                    result.add(sub);
+                }
+            }
+            return result;
         }
         if (args.length == 2) {
             switch (args[0].toLowerCase(java.util.Locale.ROOT)) {
@@ -160,7 +179,7 @@ final class ItemCommandRouter implements TabExecutor {
         String id = Texts.normalizeId(args[2]);
         int amount = Math.max(1, Numbers.tryParseInt(args.length >= 4 ? args[3] : null, 1));
         ItemStack itemStack = plugin.itemFactory().create(id, amount);
-        EmakiItemDefinition definition = plugin.itemLoader().get(id);
+        EmakiItemDefinition definition = plugin.idResolver().resolveDefinition(id);
         if (itemStack == null || definition == null) {
             plugin.messageService().send(sender, "general.item_not_found", Map.of("id", id));
             return true;
@@ -331,6 +350,90 @@ final class ItemCommandRouter implements TabExecutor {
         return Texts.isBlank(raw) ? "-" : raw;
     }
 
+    private boolean handleAlias(CommandSender sender, String[] args) {
+        if (!sender.hasPermission(PERMISSION_ADMIN)) {
+            plugin.messageService().send(sender, "general.no_permission");
+            return true;
+        }
+        if (args.length < 2 || "list".equalsIgnoreCase(args[1])) {
+            plugin.messageService().sendRaw(sender, "<gray>EmakiItem aliases: <white>" + plugin.aliasLoader().all().size() + "</white></gray>");
+            for (EmakiItemAlias alias : plugin.aliasLoader().all().values()) {
+                plugin.messageService().sendRaw(sender, "<gray>- <aqua>" + alias.oldId() + "</aqua> -> <green>" + alias.targetId() + "</green></gray>");
+            }
+            return true;
+        }
+        if ("add".equalsIgnoreCase(args[1]) && args.length >= 4) {
+            String oldId = Texts.normalizeId(args[2]);
+            String newId = Texts.normalizeId(args[3]);
+            if (plugin.itemLoader().get(newId) == null) {
+                plugin.messageService().send(sender, "general.item_not_found", Map.of("id", newId));
+                return true;
+            }
+            plugin.aliasLoader().put(oldId, newId);
+            plugin.itemFactory().clearCache();
+            plugin.messageService().sendRaw(sender, "<green>Alias 已添加：</green> <aqua>" + oldId + "</aqua> -> <green>" + newId + "</green>");
+            return true;
+        }
+        if ("remove".equalsIgnoreCase(args[1]) && args.length >= 3) {
+            String oldId = Texts.normalizeId(args[2]);
+            boolean removed = plugin.aliasLoader().remove(oldId);
+            plugin.itemFactory().clearCache();
+            plugin.messageService().sendRaw(sender, removed ? "<green>Alias 已删除：</green> <aqua>" + oldId + "</aqua>" : "<yellow>Alias 不存在：</yellow> <aqua>" + oldId + "</aqua>");
+            return true;
+        }
+        plugin.messageService().sendRaw(sender, "<red>用法：</red> /ei alias list | add <old> <new> | remove <old>");
+        return true;
+    }
+
+    private boolean handleMigrate(CommandSender sender, String[] args) {
+        if (!sender.hasPermission(PERMISSION_ADMIN)) {
+            plugin.messageService().send(sender, "general.no_permission");
+            return true;
+        }
+        if (args.length >= 5 && "id".equalsIgnoreCase(args[1])) {
+            String oldId = Texts.normalizeId(args[2]);
+            String newId = Texts.normalizeId(args[3]);
+            String mode = args[4].toLowerCase(java.util.Locale.ROOT);
+            try {
+                if ("--dry-run".equals(mode)) {
+                    Map<String, Object> preview = plugin.migrationService().preview(oldId, newId);
+                    plugin.messageService().sendRaw(sender, "<gray>迁移预览：<aqua>" + oldId + "</aqua> -> <green>" + newId + "</green>，替换数 <white>" + preview.get("replacementCount") + "</white></gray>");
+                    for (Object file : (List<?>) preview.getOrDefault("files", List.of())) {
+                        plugin.messageService().sendRaw(sender, "<gray>- " + file + "</gray>");
+                    }
+                    return true;
+                }
+                if ("--apply".equals(mode)) {
+                    Map<String, Object> result = plugin.migrationService().apply(oldId, newId, true, true);
+                    plugin.aliasLoader().load();
+                    plugin.itemFactory().clearCache();
+                    plugin.messageService().sendRaw(sender, "<green>迁移完成：</green> 替换数 <white>" + result.get("replacementCount") + "</white>，并保留 alias。");
+                    return true;
+                }
+            } catch (Exception exception) {
+                plugin.messageService().sendRaw(sender, "<red>迁移失败：</red> " + MiniMessages.escape(exception.getMessage()));
+                return true;
+            }
+        }
+        if (args.length >= 3 && "inventory".equalsIgnoreCase(args[1])) {
+            if ("all".equalsIgnoreCase(args[2])) {
+                int changed = plugin.migrationService().migrateAllOnlineInventories();
+                plugin.messageService().sendRaw(sender, "<green>在线玩家背包迁移完成：</green> " + changed + " 件物品。");
+                return true;
+            }
+            Player target = Bukkit.getPlayerExact(args[2]);
+            if (target == null) {
+                plugin.messageService().send(sender, "general.player_not_found");
+                return true;
+            }
+            int changed = plugin.migrationService().migrateInventory(target);
+            plugin.messageService().sendRaw(sender, "<green>背包迁移完成：</green> " + target.getName() + " / " + changed + " 件物品。");
+            return true;
+        }
+        plugin.messageService().sendRaw(sender, "<red>用法：</red> /ei migrate id <old> <new> --dry-run|--apply 或 /ei migrate inventory <player|all>");
+        return true;
+    }
+
     private boolean handleReload(CommandSender sender) {
         if (!sender.hasPermission(PERMISSION_RELOAD)) {
             plugin.messageService().send(sender, "general.no_permission");
@@ -370,6 +473,8 @@ final class ItemCommandRouter implements TabExecutor {
         lines.put("inspect [player]", plugin.messageService().message("command.help.desc.inspect"));
         lines.put("components [player] [component_id]", plugin.messageService().message("command.help.desc.components"));
         lines.put("update [player]", plugin.messageService().message("command.help.desc.update"));
+        lines.put("alias list|add|remove", "管理物品 ID alias。");
+        lines.put("migrate id|inventory", "预览或执行物品 ID 迁移。");
         lines.put("reload", plugin.messageService().message("command.help.desc.reload"));
         lines.put("debug [player|module|on|off]", plugin.messageService().message("command.help.desc.debug"));
         lines.forEach((name, description) -> plugin.messageService().sendRaw(sender,

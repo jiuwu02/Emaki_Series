@@ -1,0 +1,119 @@
+id: "top_gui"
+gui_type: CHEST
+title: "<gradient:#FACC15:#FB7185>%type_display_name% 排行榜</gradient> <dark_gray>%current_page%/%total_pages%</dark_gray>"
+rows: 6
+
+slots:
+  entries:
+    type: top_entry
+    slots:
+      - 10
+      - 11
+      - 12
+      - 13
+      - 14
+      - 15
+      - 16
+      - 19
+      - 20
+      - 21
+      - 22
+      - 23
+      - 24
+      - 25
+      - 28
+      - 29
+      - 30
+      - 31
+      - 32
+      - 33
+      - 34
+    display_name: "<gold>#%rank%</gold> <white>%player%</white>"
+    lore:
+      - "<gray>等级: <yellow>%level%</yellow></gray>"
+      - "<gray>累计经验: <aqua>%total_exp%</aqua></gray>"
+      - "<gray>类型: <white>%type_display_name%</white></gray>"
+
+  type_info:
+    type: type_info
+    slots:
+      - 4
+    item: "experience_bottle"
+    display_name: "<gold>%type_display_name%</gold>"
+    lore:
+      - "<gray>等级类型: <white>%type%</white></gray>"
+      - "<gray>收录玩家: <aqua>%entry_count%</aqua></gray>"
+
+  page_prev:
+    type: page_prev
+    slots:
+      - 45
+    item: "arrow"
+    display_name: "<gray>上一页</gray>"
+    lore:
+      - "<dark_gray>点击翻到上一页</dark_gray>"
+
+  page_info:
+    type: page_info
+    slots:
+      - 49
+    item: "book"
+    display_name: "<aqua>第 %current_page%/%total_pages% 页</aqua>"
+    lore:
+      - "<gray>排行榜条目: <white>%entry_count%</white></gray>"
+
+  page_next:
+    type: page_next
+    slots:
+      - 53
+    item: "arrow"
+    display_name: "<gray>下一页</gray>"
+    lore:
+      - "<dark_gray>点击翻到下一页</dark_gray>"
+
+  back:
+    type: back
+    slots:
+      - 48
+    item: "spectral_arrow"
+    display_name: "<yellow>返回等级面板</yellow>"
+
+  close:
+    type: close
+    slots:
+      - 0
+    item: "barrier"
+    display_name: "<red>关闭</red>"
+
+  border:
+    type: filler
+    slots:
+      - 1
+      - 2
+      - 3
+      - 5
+      - 6
+      - 7
+      - 8
+      - 9
+      - 17
+      - 18
+      - 26
+      - 27
+      - 35
+      - 36
+      - 37
+      - 38
+      - 39
+      - 40
+      - 41
+      - 42
+      - 43
+      - 44
+      - 46
+      - 47
+      - 50
+      - 51
+      - 52
+    item: "black_stained_glass_pane"
+    display_name: " "

@@ -455,14 +455,16 @@ final class DamageCalculationService {
         applyRecovery(damageContext, effectiveResolvedDamage.damageType(), effectiveResolvedDamage.damageResult(), effectiveResolvedDamage.finalDamage());
         notifyDamageMessages(damageContext, effectiveResolvedDamage.damageType(), effectiveResolvedDamage.damageResult(), effectiveResolvedDamage.finalDamage());
         service.scheduleHealthSync(target);
+        boolean applied = remainingDamage > 0D || appliedDamage > 0D;
         if (shouldDebugCombat(damageContext)) {
             debugCombat(damageContext, "APPLY_DONE", "combat_debug.apply_done", Map.of(
                     "target_health_after", service.combatDebug().formatNumber(target.getHealth()),
                     "target_absorption_after", service.combatDebug().formatNumber(target.getAbsorptionAmount()),
                     "attacker_cooldown_ticks", cooldownTicks
             ));
+            service.damageTraceService().record(effectiveResolvedDamage, "synthetic_apply", false, false, applied, List.of("APPLY_DONE"));
         }
-        return remainingDamage > 0D || appliedDamage > 0D;
+        return applied;
     }
 
     public void applyDamageSideEffects(ResolvedDamage resolvedDamage, Entity visualSource) {
@@ -485,6 +487,7 @@ final class DamageCalculationService {
                     "final_damage", service.combatDebug().formatNumber(resolvedDamage.finalDamage()),
                     "attacker_cooldown_ticks", cooldownTicks
             ));
+            service.damageTraceService().record(resolvedDamage, "perfect_side_effects", false, true, true, List.of("PERFECT_SIDE_EFFECTS"));
         }
     }
 

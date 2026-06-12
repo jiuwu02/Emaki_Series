@@ -41,8 +41,10 @@ public final class LevelCommand implements CommandExecutor, TabCompleter {
         }
         return switch (args[0].toLowerCase(Locale.ROOT)) {
             case "info" -> handleInfo(sender, tail(args));
+            case "gui", "open" -> handleGui(sender, tail(args));
             case "levelup", "up" -> handleLevelUp(sender, tail(args));
             case "top" -> handleTop(sender, tail(args));
+            case "topgui", "topopen" -> handleTopGui(sender, tail(args));
             case "giveexp", "addexp" -> handleExp(sender, tail(args), "add");
             case "takeexp", "removeexp" -> handleExp(sender, tail(args), "remove");
             case "setexp" -> handleExp(sender, tail(args), "set");
@@ -77,6 +79,30 @@ public final class LevelCommand implements CommandExecutor, TabCompleter {
         for (LevelTypeConfig type : plugin.typeRegistry().all()) {
             sendInfoLine(sender, type, data.entry(type.id()));
         }
+        return true;
+    }
+
+    private boolean handleGui(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player player)) {
+            plugin.messages().send(sender, "command.player_only");
+            return true;
+        }
+        String typeId = args.length > 0 ? args[0] : plugin.appConfig().primaryType();
+        plugin.levelGuiService().open(player, typeId);
+        return true;
+    }
+
+    private boolean handleTopGui(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player player)) {
+            plugin.messages().send(sender, "command.player_only");
+            return true;
+        }
+        if (!sender.hasPermission(LevelPermissions.TOP)) {
+            plugin.messages().send(sender, "command.no_permission");
+            return true;
+        }
+        String typeId = args.length > 0 ? args[0] : plugin.appConfig().primaryType();
+        plugin.levelTopGuiService().open(player, typeId);
         return true;
     }
 
@@ -281,7 +307,7 @@ public final class LevelCommand implements CommandExecutor, TabCompleter {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            for (String candidate : List.of("info", "levelup", "top", "giveexp", "takeexp", "setexp", "addlevel", "takelevel", "setlevel", "reset", "reload", "debug")) {
+            for (String candidate : List.of("info", "gui", "levelup", "top", "topgui", "giveexp", "takeexp", "setexp", "addlevel", "takelevel", "setlevel", "reset", "reload", "debug")) {
                 addIfStarts(result, candidate, args[0]);
             }
             return result;
@@ -297,7 +323,7 @@ public final class LevelCommand implements CommandExecutor, TabCompleter {
             }
             return result;
         }
-        if (("info".equals(sub) || "levelup".equals(sub) || "top".equals(sub)) && args.length == 2) {
+        if (("info".equals(sub) || "gui".equals(sub) || "levelup".equals(sub) || "top".equals(sub) || "topgui".equals(sub)) && args.length == 2) {
             completeTypes(result, args[1]);
         }
         if ("debug".equals(sub)) {

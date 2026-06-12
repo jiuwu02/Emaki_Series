@@ -11,12 +11,16 @@ import emaki.jiuwu.craft.corelib.runtime.RuntimeComponents;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.item.config.AppConfig;
+import emaki.jiuwu.craft.item.loader.EmakiItemAliasLoader;
 import emaki.jiuwu.craft.item.loader.EmakiItemLoader;
 import emaki.jiuwu.craft.item.loader.EmakiItemSetLoader;
 import emaki.jiuwu.craft.item.service.EmakiItemActionService;
 import emaki.jiuwu.craft.item.service.EmakiItemConditionChecker;
 import emaki.jiuwu.craft.item.service.EmakiItemFactory;
 import emaki.jiuwu.craft.item.service.EmakiItemIdentifier;
+import emaki.jiuwu.craft.item.service.EmakiItemIdResolver;
+import emaki.jiuwu.craft.item.service.EmakiItemLayerPreviewService;
+import emaki.jiuwu.craft.item.service.EmakiItemMigrationService;
 import emaki.jiuwu.craft.item.service.EmakiItemPdcWriter;
 import emaki.jiuwu.craft.item.service.EmakiItemSetService;
 import emaki.jiuwu.craft.item.service.EmakiItemUpdateService;
@@ -29,6 +33,10 @@ record ItemRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
         BootstrapService bootstrapService,
         EmakiItemLoader itemLoader,
         EmakiItemSetLoader setLoader,
+        EmakiItemAliasLoader aliasLoader,
+        EmakiItemIdResolver idResolver,
+        EmakiItemMigrationService migrationService,
+        EmakiItemLayerPreviewService layerPreviewService,
         EmakiItemIdentifier identifier,
         EmakiItemPdcWriter pdcWriter,
         EmakiItemFactory itemFactory,
@@ -51,6 +59,10 @@ record ItemRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
                 RuntimeComponents.component(BootstrapService.class, bootstrapService),
                 RuntimeComponents.component(EmakiItemLoader.class, itemLoader),
                 RuntimeComponents.component(EmakiItemSetLoader.class, setLoader),
+                RuntimeComponents.component(EmakiItemAliasLoader.class, aliasLoader),
+                RuntimeComponents.component(EmakiItemIdResolver.class, idResolver),
+                RuntimeComponents.component(EmakiItemMigrationService.class, migrationService),
+                RuntimeComponents.component(EmakiItemLayerPreviewService.class, layerPreviewService),
                 RuntimeComponents.component(EmakiItemIdentifier.class, identifier),
                 RuntimeComponents.component(EmakiItemPdcWriter.class, pdcWriter),
                 RuntimeComponents.component(EmakiItemFactory.class, itemFactory),

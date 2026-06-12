@@ -36,17 +36,19 @@ public final class EmakiItemFactory {
     private static final String DISPLAY_OPERATION_NAMESPACE = "emakiitem:item_display";
 
     private final EmakiItemLoader loader;
+    private final EmakiItemIdResolver idResolver;
     private final EmakiItemPdcWriter pdcWriter;
     private final ItemOperationLedger itemOperationLedger = new ItemOperationLedger();
     private final ConcurrentHashMap<String, ItemStack> prototypeCache = new ConcurrentHashMap<>();
 
-    public EmakiItemFactory(EmakiItemLoader loader, EmakiItemPdcWriter pdcWriter) {
+    public EmakiItemFactory(EmakiItemLoader loader, EmakiItemIdResolver idResolver, EmakiItemPdcWriter pdcWriter) {
         this.loader = loader;
+        this.idResolver = idResolver;
         this.pdcWriter = pdcWriter;
     }
 
     public ItemStack create(String id, int amount) {
-        EmakiItemDefinition definition = loader.get(id);
+        EmakiItemDefinition definition = idResolver == null ? loader.get(id) : idResolver.resolveDefinition(id);
         if (definition == null) {
             return null;
         }

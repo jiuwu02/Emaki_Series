@@ -1,10 +1,12 @@
-import { getLocale, localeText, registerModuleLocale, registerPluginConfig, getRuntimeEnum } from 'emaki-web-console';
+import { getLocale, localeText, registerModuleLocale, registerPluginConfig, getRuntimeEnum, registerSurface } from 'emaki-web-console';
+import { AttributeDiagnosticsPanel, installAttributeDiagnosticsStyles } from './diagnostics/AttributeDiagnosticsPanel';
 
 let registered = false;
 
 export function registerEmakiAttributeWebConsole(): void {
   if (registered) return;
   registered = true;
+  installAttributeDiagnosticsStyles();
   const MODULE = 'EmakiAttribute';
 
   const DAMAGE_CAUSES_1_21_11 = [
@@ -273,6 +275,15 @@ export function registerEmakiAttributeWebConsole(): void {
     'emakiattribute.option.damageStageSource.CONTEXT': 'Context',
     'emakiattribute.option.damageStageMode.ADD': 'Add',
     'emakiattribute.option.damageStageMode.SUBTRACT': 'Subtract'
+  });
+
+  registerSurface({
+    moduleId: MODULE,
+    kind: 'ATTRIBUTE_DIAGNOSTICS',
+    editorId: 'emakiattribute:diagnostics',
+    component: AttributeDiagnosticsPanel,
+    label: copy('玩家属性追踪 / 伤害调试器', 'Attribute sources / Damage trace'),
+    priority: 120
   });
 
   registerPluginConfig({

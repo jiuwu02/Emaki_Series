@@ -1,4 +1,4 @@
-version: "1.0.6"
+version: "1.1.0"
 language: "zh_CN"
 release_default_data: true
 primary_type: "main"
@@ -38,6 +38,7 @@ mythicmobs:
 anti_abuse:
   placed_block_tracking: true
   placed_block_exp: false
+  placed_block_record_ttl_ticks: 864000
   last_damager_tracking:
     enabled: true
     expire_ticks: 200

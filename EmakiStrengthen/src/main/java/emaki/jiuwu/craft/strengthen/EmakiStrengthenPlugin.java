@@ -290,6 +290,10 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         return refreshService;
     }
 
+    public StrengthenRoutePreviewService routePreviewService() {
+        return routePreviewService;
+    }
+
     public StrengthenGuiService strengthenGuiService() {
         return strengthenGuiService;
     }

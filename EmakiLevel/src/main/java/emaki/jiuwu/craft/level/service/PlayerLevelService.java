@@ -40,6 +40,7 @@ public final class PlayerLevelService {
     private final ActionExecutor actionExecutor;
     private final Runnable attributeRefreshAll;
     private final java.util.function.Consumer<Player> attributeRefreshPlayer;
+    private final java.util.function.Consumer<PlayerLevelData> dataChangeListener;
     private AppConfig config;
 
     public PlayerLevelService(Plugin plugin,
@@ -52,7 +53,8 @@ public final class PlayerLevelService {
             ActionExecutor actionExecutor,
             AppConfig config,
             Runnable attributeRefreshAll,
-            java.util.function.Consumer<Player> attributeRefreshPlayer) {
+            java.util.function.Consumer<Player> attributeRefreshPlayer,
+            java.util.function.Consumer<PlayerLevelData> dataChangeListener) {
         this.plugin = plugin;
         this.typeRegistry = typeRegistry;
         this.requirementService = requirementService;
@@ -64,6 +66,7 @@ public final class PlayerLevelService {
         this.config = config;
         this.attributeRefreshAll = attributeRefreshAll == null ? () -> { } : attributeRefreshAll;
         this.attributeRefreshPlayer = attributeRefreshPlayer == null ? player -> { } : attributeRefreshPlayer;
+        this.dataChangeListener = dataChangeListener == null ? data -> { } : dataChangeListener;
     }
 
     public void config(AppConfig config) {
@@ -95,6 +98,7 @@ public final class PlayerLevelService {
                 data.markDirty();
             }
             sync(uuid, type, entry);
+            publishDataChange(data);
             return LevelOperationResult.success(LevelOperationType.ADD_EXP, type.id(), oldLevel, entry.level(), oldExp, entry.exp(), amount);
         }
         entry.exp(entry.exp() + amount);
@@ -118,6 +122,7 @@ public final class PlayerLevelService {
             }
         }
         sync(uuid, type, entry);
+        publishDataChange(data);
         return LevelOperationResult.success(LevelOperationType.ADD_EXP, type.id(), oldLevel, entry.level(), oldExp, entry.exp(), amount);
     }
 
@@ -136,6 +141,7 @@ public final class PlayerLevelService {
         entry.exp(amount);
         data.markDirty();
         sync(uuid, type, entry);
+        publishDataChange(data);
         return LevelOperationResult.success(LevelOperationType.SET_EXP, type.id(), oldLevel, entry.level(), oldExp, entry.exp(), amount);
     }
 
@@ -154,6 +160,7 @@ public final class PlayerLevelService {
         entry.exp(Math.max(0D, entry.exp() - amount));
         data.markDirty();
         sync(uuid, type, entry);
+        publishDataChange(data);
         return LevelOperationResult.success(LevelOperationType.REMOVE_EXP, type.id(), oldLevel, entry.level(), oldExp, entry.exp(), amount);
     }
 
@@ -173,6 +180,7 @@ public final class PlayerLevelService {
         entry.exp(0D);
         data.markDirty();
         sync(uuid, type, entry);
+        publishDataChange(data);
         refreshAttribute(uuid);
         return LevelOperationResult.success(LevelOperationType.ADD_LEVEL, type.id(), oldLevel, entry.level(), oldExp, entry.exp(), amount);
     }
@@ -193,6 +201,7 @@ public final class PlayerLevelService {
         entry.exp(0D);
         data.markDirty();
         sync(uuid, type, entry);
+        publishDataChange(data);
         refreshAttribute(uuid);
         return LevelOperationResult.success(LevelOperationType.REMOVE_LEVEL, type.id(), oldLevel, entry.level(), oldExp, entry.exp(), amount);
     }
@@ -210,6 +219,7 @@ public final class PlayerLevelService {
         entry.exp(0D);
         data.markDirty();
         sync(uuid, type, entry);
+        publishDataChange(data);
         refreshAttribute(uuid);
         return LevelOperationResult.success(LevelOperationType.SET_LEVEL, type.id(), oldLevel, entry.level(), oldExp, entry.exp(), level);
     }
@@ -228,6 +238,7 @@ public final class PlayerLevelService {
         entry.totalExp(0D);
         data.markDirty();
         sync(uuid, type, entry);
+        publishDataChange(data);
         refreshAttribute(uuid);
         return LevelOperationResult.success(LevelOperationType.RESET, type.id(), oldLevel, entry.level(), oldExp, entry.exp(), 0D);
     }
@@ -275,6 +286,7 @@ public final class PlayerLevelService {
         Map<String, Object> placeholders = placeholders(type, entry, oldLevel, oldExp, 1D, cause == null ? "levelup" : cause.name().toLowerCase(java.util.Locale.ROOT));
         executeActions(player, type, "success", placeholders);
         sync(uuid, type, entry);
+        publishDataChange(data);
         refreshAttribute(uuid);
         return LevelOperationResult.success(LevelOperationType.LEVEL_UP, type.id(), oldLevel, entry.level(), oldExp, entry.exp(), 1D);
     }
@@ -435,6 +447,12 @@ public final class PlayerLevelService {
         Player player = Bukkit.getPlayer(uuid);
         if (player != null) {
             attributeRefreshPlayer.accept(player);
+        }
+    }
+
+    private void publishDataChange(PlayerLevelData data) {
+        if (data != null) {
+            dataChangeListener.accept(data);
         }
     }
 

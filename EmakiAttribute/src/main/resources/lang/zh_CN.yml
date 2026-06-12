@@ -8,7 +8,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "4.2.4"
+version: "4.2.5"
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiAttribute</gradient> ]</gray>"
 
@@ -255,6 +255,8 @@ command:
     dump: "<gray>/emakiattribute dump [玩家]</gray> 查看当前战斗快照与资源状态。"
     debug: "<gray>/emakiattribute debug <status|player|module|all> [...]</gray>
       管理 Debug 追踪。"
+    source: "<gray>/emakiattribute source <玩家> <属性></gray> 查看指定属性来源。"
+    trace: "<gray>/emakiattribute trace <last|list|export|clear> <玩家></gray> 查看伤害 Trace。"
     lint: "<gray>/emakiattribute lint</gray> 检查配置与资源加载问题。"
 
 # Debug 模式消息

@@ -48,6 +48,7 @@ import emaki.jiuwu.craft.corelib.service.EmakiServiceRegistry;
 import emaki.jiuwu.craft.corelib.text.AdventureSupport;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.web.WebConsoleRegistry;
+import emaki.jiuwu.craft.corelib.web.WebPluginApiRegistry;
 
 public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements EmakiServiceRegistry {
 
@@ -119,6 +120,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
             javaScriptAttributeExtensionLoader.close();
             javaScriptAttributeExtensionLoader = null;
         }
+        WebPluginApiRegistry.unregister(this);
         WebConsoleRegistry.unregisterModule(this);
         PdcAttributeApi.uninstall(pdcAttributeApi);
         Bukkit.getServicesManager().unregisterAll(this);
@@ -436,6 +438,34 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
 
     private void registerWebConsole() {
         WebConsoleRegistry.registerFromYaml(this);
+        WebPluginApiRegistry.register(this, "attribute", "source-trace", request -> {
+            request.requirePost();
+            org.bukkit.entity.Player player = Bukkit.getPlayerExact(request.string("player"));
+            if (player == null) {
+                return java.util.Map.of("ok", false, "error", "player_not_found", "player", request.string("player"));
+            }
+            return java.util.Map.of("ok", true, "report", attributeService.attributeTraceService().trace(player, request.string("attributeId")).toMap());
+        });
+        WebPluginApiRegistry.register(this, "attribute", "damage-trace", request -> {
+            request.requirePost();
+            org.bukkit.entity.Player player = Bukkit.getPlayerExact(request.string("player"));
+            if (player == null) {
+                return java.util.Map.of("ok", false, "error", "player_not_found", "player", request.string("player"));
+            }
+            String action = request.string("action");
+            if ("clear".equalsIgnoreCase(action)) {
+                boolean cleared = attributeService.damageTraceService().clear(player.getUniqueId());
+                return java.util.Map.of("ok", true, "cleared", cleared);
+            }
+            java.util.List<java.util.Map<String, Object>> records = attributeService.damageTraceService().list(player.getUniqueId()).stream()
+                    .map(emaki.jiuwu.craft.attribute.model.DamageTraceRecord::toMap)
+                    .toList();
+            return java.util.Map.of(
+                    "ok", true,
+                    "records", records,
+                    "last", records.isEmpty() ? java.util.Map.of() : records.get(0)
+            );
+        });
     }
 
 }

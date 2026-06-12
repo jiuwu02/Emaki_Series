@@ -5,6 +5,8 @@ sources:
     enabled: true
     type: "taming"
     trigger: "entity_tame"
+    anti_abuse:
+      exp_cooldown_ticks: 10
     rules:
       - entity_types: ["WOLF", "CAT", "HORSE", "PARROT"]
         exp_formula: "20"

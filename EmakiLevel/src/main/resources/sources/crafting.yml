@@ -6,6 +6,8 @@ sources:
     type: "crafting"
     trigger: "craft_item"
     count_result_amount: true
+    anti_abuse:
+      exp_cooldown_ticks: 1
     rules:
       - result_item_sources: ["minecraft-crafting_table", "minecraft-furnace"]
         exp_formula: "5 * %result_amount%"

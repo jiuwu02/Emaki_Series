@@ -291,7 +291,7 @@ export function registerEmakiItemWebConsole(): void {
     kindLabel: '物品',
     baseName: copy('<gray>EmakiItem 预览</gray>', '<gray>EmakiItem Preview</gray>'),
     baseLore: [copy('<dark_gray>根据当前 YAML 草稿生成的物品预览</dark_gray>', '<dark_gray>Preview generated from the current YAML draft</dark_gray>')],
-    preview: { kindLabels: { generic_item: 'emakiitem.preview.kind.generic_item', default: 'emakiitem.preview.kind.generic_item' } },
+    preview: { kindLabels: { generic_item: 'emakiitem.preview.kind.generic_item', default: 'emakiitem.preview.kind.generic_item' }, layeredModule: 'item', layeredRoute: 'preview-layered' },
     allowedFieldTypes: ['effects', 'attributeModifiers', 'repairMaterials'],
     sections: [
       { title: '基础信息', titleKey: 'emakiitem.section.basic', fields: fields(['id', 'material', 'display_name', 'item_name', 'lore']) },

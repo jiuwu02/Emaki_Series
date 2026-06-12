@@ -28,12 +28,16 @@ import emaki.jiuwu.craft.item.api.EmakiItemApi;
 import emaki.jiuwu.craft.item.config.AppConfig;
 import emaki.jiuwu.craft.item.model.ItemUpdateConfig;
 import emaki.jiuwu.craft.item.model.SetBonusConfig;
+import emaki.jiuwu.craft.item.loader.EmakiItemAliasLoader;
 import emaki.jiuwu.craft.item.loader.EmakiItemLoader;
 import emaki.jiuwu.craft.item.loader.EmakiItemSetLoader;
 import emaki.jiuwu.craft.item.service.EmakiItemActionService;
 import emaki.jiuwu.craft.item.service.EmakiItemConditionChecker;
 import emaki.jiuwu.craft.item.service.EmakiItemFactory;
 import emaki.jiuwu.craft.item.service.EmakiItemIdentifier;
+import emaki.jiuwu.craft.item.service.EmakiItemIdResolver;
+import emaki.jiuwu.craft.item.service.EmakiItemLayerPreviewService;
+import emaki.jiuwu.craft.item.service.EmakiItemMigrationService;
 import emaki.jiuwu.craft.item.service.EmakiItemPdcWriter;
 import emaki.jiuwu.craft.item.service.EmakiItemSetService;
 import emaki.jiuwu.craft.item.service.EmakiItemSourceResolver;
@@ -47,7 +51,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
     private static final String DEFAULT_PREFIX = "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiItem</gradient> ]</gray>";
     private static final String PDC_ATTRIBUTE_SOURCE_ID = "emakiitem";
     private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml", "lang/en_US.yml");
-    private static final List<String> DEFAULT_DATA_FILES = List.of("items/example_item.yml", "sets/example_set.yml");
+    private static final List<String> DEFAULT_DATA_FILES = List.of("items/example_item.yml", "sets/example_set.yml", "id_aliases.yml");
     private static final List<String> EXTRA_DIRECTORIES = List.of("items", "sets");
 
     @Override
@@ -89,14 +93,19 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
         );
         EmakiItemLoader itemLoader = new EmakiItemLoader(plugin);
         EmakiItemSetLoader setLoader = new EmakiItemSetLoader(plugin);
+        EmakiItemAliasLoader aliasLoader = new EmakiItemAliasLoader(plugin);
+        EmakiItemIdResolver idResolver = new EmakiItemIdResolver(itemLoader, aliasLoader);
+        EmakiItemMigrationService migrationService = new EmakiItemMigrationService(plugin);
+        EmakiItemLayerPreviewService layerPreviewService = new EmakiItemLayerPreviewService(plugin);
         PdcService pdcService = new PdcService("emaki");
         EmakiItemIdentifier identifier = new EmakiItemIdentifier(pdcService);
         PdcAttributeGateway pdcAttributeGateway = new PdcAttributeGateway(plugin);
         syncPdcAttributeRegistration(pdcAttributeGateway, PDC_ATTRIBUTE_SOURCE_ID);
         EmakiItemPdcWriter pdcWriter = new EmakiItemPdcWriter(identifier, pdcAttributeGateway, new SkillPdcGateway());
-        EmakiItemFactory itemFactory = new EmakiItemFactory(itemLoader, pdcWriter);
+        EmakiItemFactory itemFactory = new EmakiItemFactory(itemLoader, idResolver, pdcWriter);
         EmakiItemUpdateService updateService = new EmakiItemUpdateService(
                 itemLoader,
+                idResolver,
                 itemFactory,
                 identifier,
                 pdcAttributeGateway::copyPayloads
@@ -123,6 +132,10 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                 bootstrapService,
                 itemLoader,
                 setLoader,
+                aliasLoader,
+                idResolver,
+                migrationService,
+                layerPreviewService,
                 identifier,
                 pdcWriter,
                 itemFactory,
@@ -145,10 +158,12 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
         syncPdcAttributeRegistration(plugin.pdcAttributeGateway(), PDC_ATTRIBUTE_SOURCE_ID);
         int loadedItems = plugin.itemLoader().load();
         int loadedSets = plugin.setLoader().load();
+        int loadedAliases = plugin.aliasLoader().load();
         plugin.itemFactory().clearCache();
         if (plugin.messageService() != null) {
             plugin.messageService().info("console.items_loaded", java.util.Map.of("count", loadedItems));
             plugin.messageService().info("console.sets_loaded", java.util.Map.of("count", loadedSets));
+            plugin.getLogger().info("Loaded " + loadedAliases + " EmakiItem ID aliases.");
         }
     }
 
@@ -168,9 +183,10 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                     plugin.appConfigLoader().load();
                     plugin.itemLoader().load();
                     plugin.setLoader().load();
+                    plugin.aliasLoader().load();
                 },
                 null, (stage, ex) -> plugin.getLogger().warning("[Reload] Stage " + stage + " failed: " + ex.getMessage())
-        )).thenCompose(_ -> {
+        )).thenCompose(ignored -> {
             notifyProgress(progressListener, "Applying configuration...");
             return scheduler.callSync("item-reload-apply", () -> {
                 plugin.languageLoader().setLanguage(plugin.appConfig().language());

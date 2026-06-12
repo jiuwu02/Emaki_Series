@@ -18,6 +18,7 @@ public record AppConfig(String version,
         String attributeProviderId,
         boolean placedBlockTracking,
         boolean placedBlockExp,
+        int placedBlockRecordTtlTicks,
         boolean lastDamagerTracking,
         int lastDamagerExpireTicks,
         boolean guiEnabled,
@@ -28,7 +29,7 @@ public record AppConfig(String version,
         List<String> mythicDropNames) {
 
     public static AppConfig defaults() {
-        return new AppConfig("1.0.2", "zh_CN", true, "main", 1, 100, 10, true, true, "emakilevel", true, "emakilevel", true, false, true, 200, true, "level_gui", true, true, true, List.of("emakilevel_exp", "elv_exp"));
+        return new AppConfig("1.1.0", "zh_CN", true, "main", 1, 100, 10, true, true, "emakilevel", true, "emakilevel", true, false, 864000, true, 200, true, "level_gui", true, true, true, List.of("emakilevel_exp", "elv_exp"));
     }
 
     public static AppConfig parse(YamlSection section) {
@@ -55,6 +56,7 @@ public record AppConfig(String version,
                 section.getString("attribute.provider_id", defaults.attributeProviderId),
                 section.getBoolean("anti_abuse.placed_block_tracking", defaults.placedBlockTracking),
                 section.getBoolean("anti_abuse.placed_block_exp", defaults.placedBlockExp),
+                section.getInt("anti_abuse.placed_block_record_ttl_ticks", defaults.placedBlockRecordTtlTicks),
                 section.getBoolean("anti_abuse.last_damager_tracking.enabled", defaults.lastDamagerTracking),
                 section.getInt("anti_abuse.last_damager_tracking.expire_ticks", defaults.lastDamagerExpireTicks),
                 section.getBoolean("gui.enabled", defaults.guiEnabled),

@@ -15,6 +15,9 @@ public record SourceRuleConfig(String id,
         String trigger,
         boolean includePlayers,
         boolean ignorePlayerPlacedBlocks,
+        int expCooldownTicks,
+        boolean ignoreNearSpawner,
+        int spawnerScanRadius,
         boolean countResultAmount,
         int attributionExpireTicks,
         List<Rule> rules,
@@ -44,9 +47,15 @@ public record SourceRuleConfig(String id,
             gainActions = stringList(actionMap.get("gain"));
         }
         boolean ignorePlaced = false;
+        int cooldownTicks = 0;
+        boolean ignoreNearSpawner = false;
+        int spawnerScanRadius = 8;
         Object antiAbuse = values == null ? null : values.get("anti_abuse");
         if (antiAbuse instanceof Map<?, ?> antiMap) {
             ignorePlaced = bool(antiMap.get("ignore_player_placed_blocks"), false);
+            cooldownTicks = (int) number(antiMap.get("exp_cooldown_ticks"), cooldownTicks);
+            ignoreNearSpawner = bool(antiMap.get("ignore_near_spawner"), false);
+            spawnerScanRadius = (int) number(antiMap.get("spawner_scan_radius"), spawnerScanRadius);
         }
         int expireTicks = 1200;
         Object attribution = values == null ? null : values.get("attribution");
@@ -60,6 +69,9 @@ public record SourceRuleConfig(String id,
                 string(get(values, "trigger"), ""),
                 bool(get(values, "include_players"), false),
                 ignorePlaced,
+                Math.max(0, cooldownTicks),
+                ignoreNearSpawner,
+                Math.max(0, spawnerScanRadius),
                 bool(get(values, "count_result_amount"), false),
                 expireTicks,
                 rules,
