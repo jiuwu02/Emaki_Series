@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
@@ -18,6 +19,9 @@ import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import emaki.jiuwu.craft.item.EmakiItemPlugin;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinitionParser;
+import emaki.jiuwu.craft.item.model.EquippedSetState;
+import emaki.jiuwu.craft.item.model.ItemSetDefinition;
+import emaki.jiuwu.craft.item.model.ItemSetMembership;
 
 public final class EmakiItemLayerPreviewService {
 
@@ -36,8 +40,9 @@ public final class EmakiItemLayerPreviewService {
         EmakiItemDefinition definition = parseDefinition(content, fallbackId, warnings);
         String itemId = definition == null ? Texts.normalizeId(fallbackId) : definition.id();
         ItemStack base = definition == null ? null : plugin.itemFactory().rebuildBase(definition, 1);
+        Map<String, Object> setPreview = applySetPreview(definition, base);
         ItemStack current = base;
-        Map<String, Object> basePreview = itemPreview("base", true, "", base, Map.of("itemId", itemId));
+        Map<String, Object> basePreview = itemPreview("base", base != null, "", base, Map.of("itemId", itemId, "setPreview", setPreview));
         List<Map<String, Object>> layers = new ArrayList<>();
         Map<String, WebItemLayerPreviewProvider> providers = providersById();
         for (String id : BUILTIN_LAYER_IDS) {
@@ -65,9 +70,59 @@ public final class EmakiItemLayerPreviewService {
                 "base", basePreview,
                 "layers", layers,
                 "availableLayers", layers.stream().filter(layer -> Boolean.TRUE.equals(layer.get("available"))).map(layer -> Texts.toStringSafe(layer.get("id"))).toList(),
-                "final", itemPreview("final", current != null, "", current, Map.of("itemId", itemId)),
+                "setPreview", setPreview,
+                "final", itemPreview("final", current != null, "", current, Map.of("itemId", itemId, "setPreview", setPreview)),
                 "warnings", warnings
         );
+    }
+
+    private Map<String, Object> applySetPreview(EmakiItemDefinition definition, ItemStack itemStack) {
+        if (definition == null || itemStack == null || itemStack.getType().isAir()) {
+            return mapOf("available", false, "reason", "当前物品无法生成套装预览。");
+        }
+        ItemSetMembership membership = definition.setMembership();
+        if (membership == null || !membership.configured()) {
+            return mapOf("available", false, "reason", "当前物品未绑定套装。");
+        }
+        ItemSetDefinition setDefinition = plugin.setLoader().get(membership.setId());
+        if (setDefinition == null) {
+            return mapOf(
+                    "available", false,
+                    "setId", membership.setId(),
+                    "pieceId", membership.effectivePieceId(definition.id()),
+                    "reason", "未找到套装定义。"
+            );
+        }
+        String pieceId = membership.effectivePieceId(definition.id());
+        EquippedSetState state = new EquippedSetState(setDefinition, java.util.Set.of(pieceId));
+        List<String> setLore = new ItemSetLoreRenderer().render(state);
+        appendSetLore(itemStack, setLore);
+        return mapOf(
+                "available", true,
+                "setId", membership.setId(),
+                "pieceId", pieceId,
+                "active", state.activeCount(),
+                "total", setDefinition.totalPieces(),
+                "lore", setLore,
+                "reason", ""
+        );
+    }
+
+    private void appendSetLore(ItemStack itemStack, List<String> setLore) {
+        if (itemStack == null || itemStack.getType().isAir() || setLore == null || setLore.isEmpty()) {
+            return;
+        }
+        ItemMeta itemMeta = itemStack.getItemMeta();
+        if (itemMeta == null) {
+            return;
+        }
+        List<String> mergedLore = new ArrayList<>(ItemTextBridge.loreLines(itemMeta));
+        if (!mergedLore.isEmpty()) {
+            mergedLore.add("");
+        }
+        mergedLore.addAll(setLore);
+        ItemTextBridge.setLoreLines(itemMeta, mergedLore);
+        itemStack.setItemMeta(itemMeta);
     }
 
     private WebItemLayerPreviewResult previewProvider(WebItemLayerPreviewProvider provider, String itemId, ItemStack base, ItemStack current, Map<String, Object> options) {

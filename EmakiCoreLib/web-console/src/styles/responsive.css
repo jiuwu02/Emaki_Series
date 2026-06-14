@@ -309,11 +309,14 @@
     grid-template-columns: 1fr;
   }
 
-  .ie-preview {
-    position: static;
-    max-height: none;
+  .ie-preview-stack {
     border-right: 0;
     border-bottom: 1px solid var(--line);
+    max-height: 42vh;
+  }
+
+  .ie-preview {
+    max-height: none;
   }
 
   .ie-preview-icon {

@@ -1,4 +1,3 @@
-import { debugTrace } from './debugTrace';
 import type { WebRegistryFile, WebRegistryModule } from './types';
 
 export type RegistryChildFile = { name: string; relativePath: string; fullPath?: string };
@@ -57,17 +56,7 @@ export function firstConcreteChildPath(file: Pick<WebRegistryFile, 'kind' | 'chi
 export function resolveSurfaceDocumentPath(file: Pick<WebRegistryFile, 'kind' | 'path' | 'children'>, childPath?: string): string | undefined {
   const selectedPath = normalizeDocumentPath(childPath);
   const filePath = normalizeDocumentPath(file.path);
-  const resolved = isConcretePath(selectedPath) ? selectedPath : (!isGlobPath(filePath) ? filePath : undefined);
-  debugTrace('06', 'resolveSurfaceDocumentPath', {
-    fileKind: file.kind,
-    filePath,
-    childPath,
-    selectedPath,
-    selectedPathConcrete: isConcretePath(selectedPath),
-    filePathGlob: isGlobPath(filePath),
-    resolved
-  });
-  return resolved;
+  return isConcretePath(selectedPath) ? selectedPath : (!isGlobPath(filePath) ? filePath : undefined);
 }
 
 export function resolveConcreteChildPath(module: WebRegistryModule, targetPath: string): { file: WebRegistryFile; path: string } | null {

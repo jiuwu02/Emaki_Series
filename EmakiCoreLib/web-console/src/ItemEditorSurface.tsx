@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ApiError, type ApiClient, type ActionTypesResult } from './api';
 import { Button, CollapsibleSection, ChangedPathsProvider, DisclosureChevron, EditorChrome, InlineError, KvTable, MiniText, NumberListEditor, PropRow as BasePropRow, SectionHead, StandardActionsField, StandardEconomyProviderSelect, StandardEffectsEditor, StringListEditor, ToastNotice, VariablesMapEditor, parseActionList, type ActionEntry } from './components';
 import { asList, asRecord, asStringList, displaySource, firstItemSource, materialFromItemSource, setDeepValue, parseYaml, type AnyMap } from './itemEditor';
-import { debugTrace } from './debugTrace';
 import { isConcretePath, isGlobPath, resolveSurfaceDocumentPath } from './documentPaths';
 import { t, getLocale } from './i18n';
 import { changedPathSet, diffRecords, fieldLabel, getDeepValue, humanizeFieldLabel, isChangedFieldPath, materialShortName, materialUrls, optionLabel, subscribeTextureBases, textValue, valuesEqual } from './lib';
@@ -10,6 +9,7 @@ import { MINECRAFT_MATERIALS, searchMaterials } from './minecraftMaterials';
 import { getSourceDocumentAdapter, isKind, type SurfaceOutlineState, type SurfaceToolbarState } from './registry';
 import { fileDisplayTitle } from './lib';
 import { CORE_ITEM_FIELD_TYPE_SET, standardDisplayActionFields } from './itemFieldKit';
+import { getEffectTypeDefinition } from './effectTypeRegistry';
 import { getItemFieldRenderer, getItemPreviewFallback } from './itemFieldRegistry';
 import type { ItemPreviewResult, ItemPreviewStep, WebEditorDescriptor, WebEditorField, WebEditorSection, WebRegistryFile, WebRegistryModule } from './types';
 import { serializeItemYaml } from './itemEditor';
@@ -65,24 +65,6 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
   const itemLikeKind = isKind(file.kind, 'ITEM') || isKind(file.kind, 'GEM');
   const resolvedChildPath = childPath && isConcretePath(childPath) ? childPath : (isGlobPath(file.path) && isConcretePath(filePath) ? filePath : undefined);
   const sourceContext = useMemo(() => ({ module, file, childPath: resolvedChildPath, path: filePath, editor }), [module, file, resolvedChildPath, filePath, editor?.id]);
-  useEffect(() => {
-    debugTrace('08', 'ItemEditorSurface path context', {
-      moduleId: module.id,
-      fileId: file.id,
-      fileKind: file.kind,
-      filePath: file.path,
-      inputChildPath: childPath,
-      resolvedFilePath: filePath,
-      resolvedChildPath,
-      sourceContext: {
-        path: sourceContext.path,
-        childPath: sourceContext.childPath,
-        editorId: sourceContext.editor?.id
-      },
-      hasSourceAdapter: Boolean(sourceAdapter),
-      sourceAdapterLanguage: sourceAdapter?.language
-    }, { api });
-  }, [api, module.id, file.id, file.kind, file.path, childPath, filePath, resolvedChildPath, sourceContext, sourceAdapter]);
   const draftContent = useMemo(() => sourceError ? sourceText : serializeItemYaml(data), [sourceError, sourceText, data]);
   const sourceContent = draftContent;
   const changes = useMemo(() => diffRecords(data, originalData, '', 18), [data, originalData]);
@@ -99,52 +81,19 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
   useEffect(() => {
     let cancelled = false;
     if (!filePath || isGlobPath(filePath)) {
-      debugTrace('09', 'ItemEditorSurface blocked before read', {
-        reason: !filePath ? 'empty-filePath' : 'glob-filePath',
-        moduleId: module.id,
-        fileId: file.id,
-        fileKind: file.kind,
-        filePath,
-        inputChildPath: childPath,
-        resolvedChildPath,
-        sourceContext: { path: sourceContext.path, childPath: sourceContext.childPath, editorId: sourceContext.editor?.id }
-      }, { api });
       setLoading(false);
       setError(t('core.empty.selectFile'));
       return;
     }
     setLoading(true);
     setError(null);
-    debugTrace('09', 'ItemEditorSurface read decision', {
-      moduleId: module.id,
-      fileId: file.id,
-      fileKind: file.kind,
-      filePath,
-      inputChildPath: childPath,
-      resolvedChildPath,
-      readVia: sourceAdapter ? 'source-adapter' : 'default-api',
-      sourceContext: { path: sourceContext.path, childPath: sourceContext.childPath, editorId: sourceContext.editor?.id }
-    }, { api });
     const readDocument = sourceAdapter
       ? sourceAdapter.read(api, sourceContext)
       : api.readTextDocument({ kind: file.kind, moduleId: module.id, path: filePath });
     readDocument.then(doc => {
       if (cancelled) return;
       try {
-        debugTrace('09', 'ItemEditorSurface read success', {
-          moduleId: module.id,
-          filePath,
-          docPath: doc.path,
-          revision: doc.revision,
-          contentLength: doc.content?.length ?? 0,
-          contentPreview: String(doc.content ?? '').slice(0, 240)
-        }, { api });
         const parsed = parseYaml(doc.content) as AnyMap;
-        debugTrace('09', 'ItemEditorSurface yaml parse success', {
-          moduleId: module.id,
-          filePath,
-          topLevelKeys: Object.keys(asRecord(parsed))
-        }, { api });
         setData(parsed);
         setOriginalData(parsed);
         setOriginalContent(doc.content);
@@ -153,14 +102,6 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
         setSourceError(null);
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
-        debugTrace('09', 'ItemEditorSurface yaml parse failed', {
-          moduleId: module.id,
-          filePath,
-          docPath: doc.path,
-          message,
-          contentLength: doc.content?.length ?? 0,
-          contentPreview: String(doc.content ?? '').slice(0, 240)
-        }, { api });
         setData({});
         setOriginalData({});
         setOriginalContent(doc.content);
@@ -173,18 +114,6 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
       setLoading(false);
     }).catch(err => {
       if (cancelled) return;
-      debugTrace('09', 'ItemEditorSurface read failed', {
-        moduleId: module.id,
-        fileId: file.id,
-        fileKind: file.kind,
-        filePath,
-        inputChildPath: childPath,
-        resolvedChildPath,
-        sourceContext: { path: sourceContext.path, childPath: sourceContext.childPath, editorId: sourceContext.editor?.id },
-        errorName: err instanceof Error ? err.name : undefined,
-        message: String(err?.message ?? err),
-        stack: err instanceof Error ? err.stack : undefined
-      }, { api });
       setError(String(err?.message ?? err));
       setLoading(false);
     });
@@ -328,24 +257,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
     setError(null);
     try {
       const content = sourceContent;
-      debugTrace('09', 'ItemEditorSurface save decision', {
-        moduleId: module.id,
-        fileId: file.id,
-        fileKind: file.kind,
-        filePath,
-        resolvedChildPath,
-        revision,
-        saveVia: sourceAdapter ? 'source-adapter' : 'default-api',
-        sourceContext: { path: sourceContext.path, childPath: sourceContext.childPath, editorId: sourceContext.editor?.id },
-        contentLength: content.length
-      }, { api });
       const result = await (sourceAdapter?.save(api, sourceContext, content, revision) ?? api.saveTextDocument({ kind: file.kind, moduleId: module.id, path: filePath }, content, revision));
-      debugTrace('09', 'ItemEditorSurface save success', {
-        moduleId: module.id,
-        filePath,
-        previousRevision: revision,
-        nextRevision: result.revision ?? revision
-      }, { api });
       setOriginalContent(content);
       setRevision(result.revision ?? revision);
       setOriginalData(data);
@@ -353,16 +265,6 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
       setHistory({ undo: [], redo: [] });
       setToast({ tone: 'ok', text: t('core.toast.savedItem') });
     } catch (err: any) {
-      debugTrace('09', 'ItemEditorSurface save failed', {
-        moduleId: module.id,
-        fileId: file.id,
-        fileKind: file.kind,
-        filePath,
-        resolvedChildPath,
-        sourceContext: { path: sourceContext.path, childPath: sourceContext.childPath, editorId: sourceContext.editor?.id },
-        message: String(err?.message ?? err),
-        stack: err instanceof Error ? err.stack : undefined
-      }, { api });
       setError(err?.message ?? t('core.toast.saveFailed'));
     } finally {
       setSaving(false);
@@ -440,7 +342,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
         <ChangedPathsProvider changedPaths={changedPaths}>
         <div className="ie-workbench">
           <div className="ie-preview-stack">
-            <GenericPreviewPane moduleId={module.id} editor={editor} data={data} preview={preview} previewPending={previewPending} previewError={previewError} previewLevel={previewLevel} setPreviewLevel={setPreviewLevel} baseName={baseName} baseLore={baseLore as string[]} />
+            <GenericPreviewPane moduleId={module.id} fileKind={file.kind} editor={editor} data={data} preview={preview} layerPreview={layerPreview} previewPending={previewPending} previewError={previewError} previewLevel={previewLevel} setPreviewLevel={setPreviewLevel} baseName={baseName} baseLore={baseLore as string[]} />
             <LayeredPreviewPane preview={layerPreview} pending={layerPreviewPending} error={layerPreviewError} options={layerOptions} onOptionsChange={setLayerOptions} />
             <RenameMigrationPane api={api} editor={editor} moduleId={module.id} currentId={textValue(data.id)} sourceError={sourceError} dirty={semanticDirty} onApplied={() => { setToast({ tone: 'ok', text: '重命名迁移已应用' }); onReload?.(); }} />
           </div>
@@ -801,32 +703,152 @@ function renderLocalTemplate(value: string, variables: AnyMap): string {
   return textValue(value).replace(/\{([^{}]+)\}/g, (_, key) => textValue(variables[textValue(key).trim()], `{${key}}`));
 }
 
-function GenericPreviewPane({ moduleId, editor, data, preview, previewPending, previewError, previewLevel, setPreviewLevel, baseName, baseLore }: { moduleId: string; editor?: WebEditorDescriptor; data: AnyMap; preview: ItemPreviewResult | null; previewPending: boolean; previewError: PreviewError | null; previewLevel: number; setPreviewLevel: (level: number) => void; baseName: string; baseLore: string[] }) {
+type TooltipSection = { title: string; lines: string[] };
+type SetDraftPreview = { id: string; name: string; lore: string[]; pieces: number; thresholds: number; active: number; effectSections: TooltipSection[] };
+
+function isSetEditor(fileKind: string | undefined, editor?: WebEditorDescriptor): boolean {
+  return textValue(fileKind).toUpperCase() === 'SET' || textValue(editor?.id).toLowerCase().includes(':set');
+}
+
+function buildSetDraftPreview(data: AnyMap, moduleId: string): SetDraftPreview {
+  const pieces = Object.entries(asRecord(data.pieces)).map(([key, value]) => ({ key, value: asRecord(value) }));
+  const thresholds = Object.entries(asRecord(data.thresholds)).map(([key, value]) => ({ key, value: asRecord(value) })).sort((left, right) => Number(left.key) - Number(right.key));
+  const active = pieces.length ? 1 : 0;
+  const loreConfig = asRecord(data.lore);
+  const id = textValue(data.id, 'set');
+  const name = textValue(data.display_name, id);
+  const base = { set_id: id, set_name: name, active: String(active), total: String(pieces.length) };
+  const lore: string[] = [];
+  addOptionalLine(lore, replaceSetTemplate(textValue(loreConfig.header, '<dark_gray>—— %set_name% <gray>(%active%/%total%)</gray> ——</dark_gray>'), base));
+  for (const piece of pieces) {
+    const pieceId = textValue(piece.key);
+    const equipped = pieces.indexOf(piece) < active;
+    const display = textValue(piece.value.display || piece.value.item || pieceId, pieceId);
+    const row = { ...base, piece: display, piece_id: pieceId, slot: textValue(piece.value.slot) };
+    addOptionalLine(lore, replaceSetTemplate(textValue(equipped ? loreConfig.equipped_format : loreConfig.missing_format, equipped ? '<green>✔ %piece%</green>' : '<gray>✘ %piece%</gray>'), row));
+  }
+  const separator = textValue(loreConfig.separator);
+  if (separator) lore.push(separator);
+  const thresholdEffectLines: string[] = [];
+  for (const threshold of thresholds) {
+    const required = Math.max(1, Number(threshold.key) || 1);
+    const isActive = active >= required;
+    const lines = asStringList(threshold.value.lore);
+    const format = textValue(isActive ? loreConfig.active_threshold_format : loreConfig.inactive_threshold_format, isActive ? '<green>%line%</green>' : '<dark_gray>%line%</dark_gray>');
+    for (const line of lines) addOptionalLine(lore, replaceSetTemplate(format, { ...base, threshold: String(required), line }));
+    thresholdEffectLines.push(...summarizeSetThresholdEffects(threshold.value, moduleId, required));
+  }
+  return {
+    id,
+    name,
+    lore,
+    pieces: pieces.length,
+    thresholds: thresholds.length,
+    active,
+    effectSections: thresholdEffectLines.length ? [{ title: uiCopy('阈值效果', 'Threshold effects'), lines: thresholdEffectLines }] : []
+  };
+}
+
+function SetPreviewSummary({ preview }: { preview: SetDraftPreview | null }) {
+  return <div className="ie-preview-summary-grid" aria-label={uiCopy('套装摘要', 'Set summary')}>
+    <div className="ie-preview-stat"><strong>{preview?.pieces ?? 0}</strong><span>{uiCopy('部件', 'Pieces')}</span></div>
+    <div className="ie-preview-stat"><strong>{preview?.thresholds ?? 0}</strong><span>{uiCopy('阈值', 'Thresholds')}</span></div>
+    <div className="ie-preview-stat"><strong>{preview?.active ?? 0}</strong><span>{uiCopy('预览已装备', 'Active')}</span></div>
+  </div>;
+}
+
+function addOptionalLine(lines: string[], line: string) {
+  if (line !== '') lines.push(line);
+}
+
+function replaceSetTemplate(template: string, values: Record<string, string>): string {
+  let result = template;
+  for (const [key, rawValue] of Object.entries(values)) {
+    const value = rawValue ?? '';
+    result = result.split(`%${key}%`).join(value).split(`{${key}}`).join(value);
+  }
+  return result;
+}
+
+function buildPreviewEffectSections(preview: ItemPreviewResult | null, moduleId: string): TooltipSection[] {
+  const lines = summarizeEffectList(asList(preview?.effects).map(asRecord), moduleId);
+  return lines.length ? [{ title: uiCopy('效果', 'Effects'), lines }] : [];
+}
+
+function summarizeSetThresholdEffects(threshold: AnyMap, moduleId: string, required: number): string[] {
+  const effectLines = summarizeEffectList(asList(threshold.effects).map(asRecord), moduleId);
+  if (effectLines.length) return effectLines.map(line => `${required}件 · ${line}`);
+  const fallback: string[] = [];
+  const attributes = asRecord(threshold.ea_attributes);
+  const skills = asStringList(threshold.es_skills);
+  if (Object.keys(attributes).length) fallback.push(`${required}件 · ${effectLabel('ea_attribute', moduleId)}: ${previewValue(attributes)}`);
+  if (skills.length) fallback.push(`${required}件 · ${effectLabel('es_skill', moduleId)}: ${skills.join(', ')}`);
+  return fallback;
+}
+
+function summarizeEffectList(effects: AnyMap[], moduleId: string): string[] {
+  return effects.flatMap(effect => {
+    const type = textValue(effect.type);
+    if (!type) return [];
+    const definition = getEffectTypeDefinition(moduleId, type);
+    const fields = definition?.fields?.length ? definition.fields.map(field => field.key) : Object.keys(effect).filter(key => key !== 'type' && key !== 'source');
+    const payload = asRecord(effect.payload);
+    const parts = fields.flatMap(key => {
+      const value = effect[key] ?? payload[key];
+      if (!hasPreviewValue(value)) return [];
+      return [`${fieldLabel(key, { moduleId, namespace: moduleId, fallback: humanizeFieldLabel(key) })} ${previewValue(value)}`];
+    });
+    return [`${effectLabel(type, moduleId)}${parts.length ? `: ${parts.join(' · ')}` : ''}`];
+  });
+}
+
+function effectLabel(type: string, moduleId: string): string {
+  const definition = getEffectTypeDefinition(moduleId, type);
+  return optionLabel('effect', type, { moduleId, namespace: moduleId, fallback: definition?.label ?? humanizeFieldLabel(type) });
+}
+
+function hasPreviewValue(value: unknown): boolean {
+  if (value == null || value === '') return false;
+  if (Array.isArray(value)) return value.length > 0;
+  if (typeof value === 'object') return Object.keys(value as Record<string, unknown>).length > 0;
+  return true;
+}
+
+function GenericPreviewPane({ moduleId, fileKind, editor, data, preview, layerPreview, previewPending, previewError, previewLevel, setPreviewLevel, baseName, baseLore }: { moduleId: string; fileKind?: string; editor?: WebEditorDescriptor; data: AnyMap; preview: ItemPreviewResult | null; layerPreview: AnyMap | null; previewPending: boolean; previewError: PreviewError | null; previewLevel: number; setPreviewLevel: (level: number) => void; baseName: string; baseLore: string[] }) {
+  const isSetPreview = isSetEditor(fileKind, editor);
+  const setDraftPreview = isSetPreview ? buildSetDraftPreview(data, moduleId) : null;
   const source = firstItemSource(data.item_sources ?? asRecord(data.match).item_sources ?? preview?.material);
   const material = materialFromItemSource(source || data.material || preview?.material);
   const levels = configuredPreviewLevels(data, preview);
-  const hasLevels = levels.length > 0;
+  const hasLevels = !isSetPreview && levels.length > 0;
   const [, refreshTextureOrder] = useState(0);
-  const urls = materialUrls(material);
+  const urls = isSetPreview ? [] : materialUrls(material);
   const [imgFailed, setImgFailed] = useState(false);
   const previewResultLevel = Number(preview?.level);
   const previewMatchesLevel = !hasLevels || !Number.isFinite(previewResultLevel) || previewResultLevel === previewLevel;
   const livePreview = previewMatchesLevel ? preview : null;
-  const resultName = textValue(livePreview?.displayName);
-  const resultLore = livePreview ? asStringList(livePreview.lore) : [];
-  const status = previewError ? { tone: 'failed' as const, text: t('core.item.preview.failedTitle') } : previewStatus(livePreview, previewPending);
+  const finalPreview = asRecord(layerPreview?.final);
+  const finalName = textValue(finalPreview.displayName);
+  const finalLore = asStringList(finalPreview.lore);
+  const setLayerPreview = asRecord(layerPreview?.setPreview);
+  const resultName = setDraftPreview?.name ?? (finalName || textValue(livePreview?.displayName));
+  const resultLore = setDraftPreview?.lore ?? (finalLore.length ? finalLore : livePreview ? asStringList(livePreview.lore) : []);
+  const effectSections = setDraftPreview?.effectSections ?? buildPreviewEffectSections(livePreview, moduleId);
+  const setSection = !isSetPreview && setLayerPreview.available && !finalLore.length ? [{ title: uiCopy('套装 Lore', 'Set Lore'), lines: asStringList(setLayerPreview.lore) }] : [];
+  const status = isSetPreview ? { tone: 'live' as const, text: uiCopy('草稿预览', 'Draft preview') } : previewError ? { tone: 'failed' as const, text: t('core.item.preview.failedTitle') } : previewStatus(livePreview, previewPending);
   useEffect(() => setImgFailed(false), [material]);
   useEffect(() => subscribeTextureBases(() => { setImgFailed(false); refreshTextureOrder((version) => version + 1); }), []);
 
   return (
-    <div className="ie-preview" role="complementary" aria-label={t('core.item.previewAria')}>
-      <div className="ie-preview-icon">
+    <div className={`ie-preview${isSetPreview ? ' ie-preview--set' : ''}`} role="complementary" aria-label={t('core.item.previewAria')}>
+      {isSetPreview ? <SetPreviewSummary preview={setDraftPreview} /> : <div className="ie-preview-icon">
         {urls.length > 0 && !imgFailed ? <img src={urls[0]} alt={material || t('core.item.iconAlt')} onError={e => { const target = e.currentTarget; const next = urls[urls.indexOf(target.src) + 1]; if (next) target.src = next; else setImgFailed(true); }} /> : <span className="ie-preview-fallback">{materialShortName(material) || '?'}</span>}
-      </div>
+      </div>}
       <div className="ie-preview-meta">
-        <span className="ie-preview-kind">{previewKindLabel(livePreview, moduleId, editor)}</span>
-        {Boolean(livePreview?.id || data.id) && <code className="ie-preview-id">{textValue(livePreview?.id ?? data.id)}</code>}
-        <span className="ie-preview-source">{displaySource(source || material)}</span>
+        <span className="ie-preview-kind">{setDraftPreview ? uiCopy('套装预览', 'Set preview') : previewKindLabel(livePreview, moduleId, editor)}</span>
+        {Boolean(setDraftPreview?.id || livePreview?.id || data.id) && <code className="ie-preview-id">{textValue(setDraftPreview?.id ?? livePreview?.id ?? data.id)}</code>}
+        {!isSetPreview && <span className="ie-preview-source">{displaySource(source || material)}</span>}
+        {!isSetPreview && setLayerPreview.setId && <span className="ie-preview-source">{uiCopy('套装', 'Set')}: {textValue(setLayerPreview.setId)} / {textValue(setLayerPreview.pieceId)}</span>}
         <span className={`ie-preview-status ${status.tone}`}>{status.text}</span>
       </div>
       {previewError && <InlineError className="ie-preview-error">
@@ -845,7 +867,7 @@ function GenericPreviewPane({ moduleId, editor, data, preview, previewPending, p
         <p className="ie-level-hint">{t('core.item.preview.levelHint')}</p>
       </div>}
       <div className="ie-preview-compare">
-        <PreviewTooltipBlock title={hasLevels ? t('core.item.preview.resultForLevel', { level: previewLevel }) : t('core.item.preview.result')} name={resultName} lore={resultLore} refreshing={previewPending} emptyText={previewPending ? t('core.item.preview.syncing') : t('core.item.preview.emptyResult')} />
+        <PreviewTooltipBlock title={hasLevels ? t('core.item.preview.resultForLevel', { level: previewLevel }) : t('core.item.preview.result')} name={resultName} lore={resultLore} sections={[...setSection, ...effectSections]} refreshing={previewPending} emptyText={previewPending ? t('core.item.preview.syncing') : t('core.item.preview.emptyResult')} />
       </div>
     </div>
   );
@@ -1060,13 +1082,18 @@ function layerLabel(id: string): string {
   return id || 'Layer';
 }
 
-function PreviewTooltipBlock({ title, name, lore, emptyText, refreshing }: { title: string; name: string; lore: string[]; emptyText: string; refreshing?: boolean }) {
+function PreviewTooltipBlock({ title, name, lore, sections, emptyText, refreshing }: { title: string; name: string; lore: string[]; sections?: TooltipSection[]; emptyText: string; refreshing?: boolean }) {
+  const visibleSections = (sections ?? []).filter(section => section.lines.length > 0);
   return <div className="ie-preview-tooltip-block">
     <div className="ie-tooltip-label">{title}</div>
     <div className={`ie-tooltip${refreshing ? ' is-refreshing' : ''}`}>
       {name ? <div className="ie-tooltip-name"><MiniText value={name} /></div> : null}
       {lore.map((line, i) => <div className="ie-tooltip-line" key={i}><MiniText value={line} /></div>)}
-      {!name && !lore.length && <span className="ie-tooltip-empty">{emptyText}</span>}
+      {visibleSections.map(section => <div className="ie-tooltip-section" key={section.title}>
+        <div className="ie-tooltip-section-title">{section.title}</div>
+        {section.lines.map((line, index) => <div className="ie-tooltip-line" key={index}><MiniText value={line} /></div>)}
+      </div>)}
+      {!name && !lore.length && !visibleSections.length && <span className="ie-tooltip-empty">{emptyText}</span>}
     </div>
   </div>;
 }

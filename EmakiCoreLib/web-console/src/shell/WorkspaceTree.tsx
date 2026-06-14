@@ -1,5 +1,4 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type Dispatch, type KeyboardEvent, type SetStateAction } from 'react';
-import { debugTrace } from '../debugTrace';
 import { isGlobPath, treeDirtyKey } from '../documentPaths';
 import { getModuleLocaleBundles, t } from '../i18n';
 import { getFileKindLabel } from '../registry';
@@ -184,21 +183,6 @@ const TreeRow = memo(function TreeRow({ row, setRowRef, onToggle, onSelect, onOp
       onClick={() => {
         if (!canSelect || !node.moduleId || !node.fileId) return;
         const selection = { moduleId: node.moduleId, fileId: node.fileId, scriptPath: childSelectionPath };
-        debugTrace('03', 'WorkspaceTree select', {
-          canSelect,
-          node: {
-            id: node.id,
-            type: node.type,
-            label: node.label,
-            moduleId: node.moduleId,
-            fileId: node.fileId,
-            kind: node.kind,
-            path: node.path,
-            childPath: node.childPath
-          },
-          childSelectionPath,
-          selection
-        });
         onSelect(selection);
       }}
       disabled={!canSelect}
@@ -505,20 +489,6 @@ function buildGlobChildPathIndex(modules: WebRegistryModule[]): Map<string, stri
       for (const child of file.children ?? []) {
         const relativePath = normalizeTreePath(child.relativePath);
         const fullPath = normalizeTreePath(file.kind?.toUpperCase() === 'SCRIPT' ? child.relativePath : (child.fullPath ?? child.relativePath));
-        if (shouldTraceItemSetTreePath(module.id, file.kind, file.path, child.relativePath, child.fullPath)) {
-          debugTrace('01', 'WorkspaceTree glob child raw', {
-            moduleId: module.id,
-            fileId: file.id,
-            fileKind: file.kind,
-            filePath: file.path,
-            childName: child.name,
-            childRelativePath: child.relativePath,
-            childFullPath: child.fullPath,
-            normalizedRelativePath: relativePath,
-            normalizedFullPath: fullPath,
-            skipped: !relativePath || !fullPath || isGlobPath(fullPath)
-          });
-        }
         if (!relativePath || !fullPath || isGlobPath(fullPath)) continue;
         const keys = new Set([
           treeChildPathKey(module.id, file.id, relativePath),
@@ -546,24 +516,6 @@ function normalizeRegistryTreeNode(node: RegistryTreeNode, pathIndex: Map<string
       ?? pathIndex.get(treeChildPathKey(next.moduleId, next.fileId, leafFileName(currentPath)))
       ?? pathIndex.get(treeChildPathKey(next.moduleId, next.fileId, normalizeTreePath(next.label)));
     const safePath = indexedPath && !isGlobPath(indexedPath) ? indexedPath : (!isGlobPath(currentPath) ? currentPath : '');
-    if (shouldTraceItemSetTreePath(node.moduleId, node.kind, node.path, node.childPath, node.label)) {
-      debugTrace('02', 'WorkspaceTree normalize child node', {
-        before: {
-          id: node.id,
-          type: node.type,
-          label: node.label,
-          moduleId: node.moduleId,
-          fileId: node.fileId,
-          kind: node.kind,
-          path: node.path,
-          childPath: node.childPath
-        },
-        currentPath,
-        indexedPath,
-        safePath,
-        changed: Boolean(safePath && (node.path !== safePath || node.childPath !== safePath))
-      });
-    }
     if (safePath) next = { ...next, path: safePath, childPath: safePath, id: next.id && !isGlobPath(next.id) ? next.id : `${next.fileId}:${safePath}` };
   }
   return next;
@@ -571,13 +523,6 @@ function normalizeRegistryTreeNode(node: RegistryTreeNode, pathIndex: Map<string
 
 function treeChildPathKey(moduleId: string | undefined, fileId: string | undefined, path: string | undefined): string {
   return `${String(moduleId ?? '').toLowerCase()}\u0000${String(fileId ?? '').toLowerCase()}\u0000${normalizeTreePath(path).toLowerCase()}`;
-}
-
-function shouldTraceItemSetTreePath(moduleId: string | undefined, kind: string | undefined, ...paths: Array<string | undefined>): boolean {
-  const normalizedModule = String(moduleId ?? '').toLowerCase();
-  const normalizedKind = String(kind ?? '').toUpperCase();
-  if (normalizedModule !== 'emakiitem' && normalizedKind !== 'SET') return false;
-  return paths.some(path => normalizeTreePath(path).toLowerCase().startsWith('sets/') || normalizeTreePath(path).toLowerCase().includes('sets/'));
 }
 
 function globChildrenToTree(moduleId: string, file: WebRegistryModule['files'][number]): RegistryTreeNode[] | undefined {
@@ -605,20 +550,6 @@ function globChildrenToTree(moduleId: string, file: WebRegistryModule['files'][n
       siblings = folder.children ?? (folder.children = []);
     }
     const childNode = { id: `${file.id}:${childPath}`, label: leafFileName(childPath), type: 'child' as const, moduleId, fileId: file.id, kind: file.kind, path: childPath, childPath };
-    if (shouldTraceItemSetTreePath(moduleId, file.kind, file.path, child.relativePath, child.fullPath)) {
-      debugTrace('02', 'WorkspaceTree child node built', {
-        moduleId,
-        fileId: file.id,
-        fileKind: file.kind,
-        filePath: file.path,
-        childName: child.name,
-        childRelativePath: child.relativePath,
-        childFullPath: child.fullPath,
-        childPath,
-        relativePath,
-        node: childNode
-      });
-    }
     siblings.push(childNode);
   }
   return roots;

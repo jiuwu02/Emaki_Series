@@ -1,5 +1,5 @@
 import React from 'react';
-import { ItemEditorSurface, PropRow, StringListEditor, asList, asRecord, asStringList, coreEffectDefinition, debugTrace, payloadEffectDefinition, fieldLabel, getLocale, humanizeFieldLabel, localeText, optionLabel, registerEffectTypes, registerFileKindLabel, registerConfigNodeMeta, registerConfigNodeRule, registerEditorDescriptor, registerEditorField, registerItemFieldRenderer, registerModuleLocale, registerPluginSurfaces, registerSourceDocumentAdapter, textValue, type AnyMap, type ItemFieldRendererContext } from 'emaki-web-console';
+import { ItemEditorSurface, PropRow, StandardEffectsEditor, StringListEditor, asList, asRecord, asStringList, coreEffectDefinition, payloadEffectDefinition, fieldLabel, getLocale, humanizeFieldLabel, localeText, optionLabel, registerEffectTypes, registerFileKindLabel, registerConfigNodeMeta, registerConfigNodeRule, registerEditorDescriptor, registerEditorField, registerItemFieldRenderer, registerModuleLocale, registerPluginSurfaces, registerSourceDocumentAdapter, textValue, type AnyMap, type ItemFieldRendererContext } from 'emaki-web-console';
 
 let registered = false;
 
@@ -38,56 +38,24 @@ export function registerEmakiItemWebConsole(): void {
     const childPath = normalizeDocumentPath(context.childPath);
     const basePath = globDirectory(parentPath);
 
-    debugTrace('10', 'EmakiItem concreteSetPath input', {
-      contextPath: context.path,
-      contextChildPath: context.childPath,
-      parentPath,
-      childPath,
-      basePath,
-      parentContainsGlob: containsGlob(parentPath),
-      childContainsGlob: containsGlob(childPath)
-    });
 
     let rawPath: string;
-    let branch: string;
     if (childPath && !containsGlob(childPath)) {
       if (!childPath.includes('/')) {
         rawPath = basePath ? `${basePath}${childPath}` : childPath;
-        branch = 'child-leaf-with-base';
       } else if (basePath && !childPath.startsWith(basePath)) {
         rawPath = `${basePath}${childPath.split('/').pop()}`;
-        branch = 'child-path-outside-base-use-leaf';
       } else {
         rawPath = childPath;
-        branch = 'child-concrete-path';
       }
     } else {
       rawPath = parentPath;
-      branch = childPath ? 'child-glob-fallback-parent' : 'no-child-fallback-parent';
     }
 
-    const finalPath = rawPath && !containsGlob(rawPath) ? withYamlExtension(rawPath) : null;
-    debugTrace('11', 'EmakiItem concreteSetPath result', {
-      contextPath: context.path,
-      contextChildPath: context.childPath,
-      parentPath,
-      childPath,
-      basePath,
-      branch,
-      rawPath,
-      rawPathContainsGlob: containsGlob(rawPath),
-      finalPath,
-      nullReason: !rawPath ? 'empty-raw-path' : containsGlob(rawPath) ? 'raw-path-still-glob' : undefined
-    });
-    return finalPath;
+    return rawPath && !containsGlob(rawPath) ? withYamlExtension(rawPath) : null;
   };
   const missingSetPathError = (context?: SetDocumentContext) => {
     const path = normalizeDocumentPath(context?.childPath || context?.path) || 'unknown';
-    debugTrace('11', 'EmakiItem missingSetPathError', {
-      contextPath: context?.path,
-      contextChildPath: context?.childPath,
-      displayedPath: path
-    });
     return new Error(copy(`请选择具体套装文件。当前路径：${path}`, `Select a concrete set file. Current path: ${path}`));
   };
 
@@ -365,100 +333,14 @@ export function registerEmakiItemWebConsole(): void {
     priority: 120,
     adapter: {
       read: (api, context) => {
-        debugTrace('12', 'EmakiItem SET adapter read start', {
-          moduleId: context.module.id,
-          fileId: context.file.id,
-          fileKind: context.file.kind,
-          filePath: context.file.path,
-          contextPath: context.path,
-          contextChildPath: context.childPath,
-          editorId: context.editor?.id
-        }, { api });
         const path = concreteSetPath(context);
-        if (!path) {
-          debugTrace('12', 'EmakiItem SET adapter read rejected', {
-            moduleId: context.module.id,
-            fileId: context.file.id,
-            fileKind: context.file.kind,
-            filePath: context.file.path,
-            contextPath: context.path,
-            contextChildPath: context.childPath
-          }, { api });
-          return Promise.reject(missingSetPathError(context));
-        }
-        debugTrace('12', 'EmakiItem SET adapter read request', {
-          kind: context.file.kind,
-          moduleId: context.module.id,
-          path
-        }, { api });
-        return api.readTextDocument({ kind: context.file.kind, moduleId: context.module.id, path })
-          .then(doc => {
-            debugTrace('12', 'EmakiItem SET adapter read success', {
-              requestedPath: path,
-              docPath: doc.path,
-              revision: doc.revision,
-              contentLength: doc.content?.length ?? 0,
-              contentPreview: String(doc.content ?? '').slice(0, 240)
-            }, { api });
-            return doc;
-          })
-          .catch(err => {
-            debugTrace('12', 'EmakiItem SET adapter read failed', {
-              requestedPath: path,
-              message: String(err?.message ?? err),
-              stack: err instanceof Error ? err.stack : undefined
-            }, { api });
-            throw err;
-          });
+        if (!path) return Promise.reject(missingSetPathError(context));
+        return api.readTextDocument({ kind: context.file.kind, moduleId: context.module.id, path });
       },
       save: (api, context, content, revision) => {
-        debugTrace('12', 'EmakiItem SET adapter save start', {
-          moduleId: context.module.id,
-          fileId: context.file.id,
-          fileKind: context.file.kind,
-          filePath: context.file.path,
-          contextPath: context.path,
-          contextChildPath: context.childPath,
-          editorId: context.editor?.id,
-          revision,
-          contentLength: content.length
-        }, { api });
         const path = concreteSetPath(context);
-        if (!path) {
-          debugTrace('12', 'EmakiItem SET adapter save rejected', {
-            moduleId: context.module.id,
-            fileId: context.file.id,
-            fileKind: context.file.kind,
-            filePath: context.file.path,
-            contextPath: context.path,
-            contextChildPath: context.childPath
-          }, { api });
-          return Promise.reject(missingSetPathError(context));
-        }
-        debugTrace('12', 'EmakiItem SET adapter save request', {
-          kind: context.file.kind,
-          moduleId: context.module.id,
-          path,
-          revision,
-          contentLength: content.length
-        }, { api });
-        return api.saveTextDocument({ kind: context.file.kind, moduleId: context.module.id, path }, content, revision)
-          .then(result => {
-            debugTrace('12', 'EmakiItem SET adapter save success', {
-              requestedPath: path,
-              previousRevision: revision,
-              nextRevision: result.revision
-            }, { api });
-            return result;
-          })
-          .catch(err => {
-            debugTrace('12', 'EmakiItem SET adapter save failed', {
-              requestedPath: path,
-              message: String(err?.message ?? err),
-              stack: err instanceof Error ? err.stack : undefined
-            }, { api });
-            throw err;
-          });
+        if (!path) return Promise.reject(missingSetPathError(context));
+        return api.saveTextDocument({ kind: context.file.kind, moduleId: context.module.id, path }, content, revision);
       },
       language: 'yaml',
       defaultContent: context => defaultSetContent(context.name)
@@ -559,7 +441,7 @@ export function registerEmakiItemWebConsole(): void {
 
   function ItemSetThresholdsEditor({ context }: { context: ItemFieldRendererContext }) {
     return <PropRow label={fieldLabel(context.field.path, { moduleId: MODULE, namespace: MODULE, fallback: getLocale().startsWith('zh') ? context.field.label : humanizeFieldLabel(context.field.path) })} path={context.field.path} moduleId={MODULE} namespace={MODULE} editorFields={context.editorFields} changed={context.changed} wide>
-      <SetThresholdsEditor value={context.value} path={context.field.path} onChange={thresholds => context.setField(context.field.path, thresholds)} />
+      <SetThresholdsEditor value={context.value} path={context.field.path} actionTypesResult={context.actionTypesResult} onChange={thresholds => context.setField(context.field.path, thresholds)} />
     </PropRow>;
   }
 
@@ -625,21 +507,20 @@ export function registerEmakiItemWebConsole(): void {
     </div>;
   }
 
-  function SetThresholdsEditor({ value, onChange, path }: { value: unknown; onChange: (value: AnyMap) => void; path?: string }) {
+  function SetThresholdsEditor({ value, onChange, path, actionTypesResult }: { value: unknown; onChange: (value: AnyMap) => void; path?: string; actionTypesResult: ItemFieldRendererContext['actionTypesResult'] }) {
     const thresholds = Object.entries(asRecord(value)).map(([key, entry]) => ({ key, value: asRecord(entry) })).sort((left, right) => Number(left.key) - Number(right.key));
     const update = (index: number, key: string, patch: AnyMap) => {
       const nextEntries = thresholds.map((threshold, itemIndex) => itemIndex === index ? { key, value: cleanObject({ ...threshold.value, ...patch }) } : threshold);
       onChange(Object.fromEntries(nextEntries.filter(threshold => threshold.key.trim()).map(threshold => [threshold.key.trim(), threshold.value])));
     };
     const remove = (index: number) => onChange(Object.fromEntries(thresholds.filter((_, itemIndex) => itemIndex !== index).map(threshold => [threshold.key, threshold.value])));
-    const add = () => onChange({ ...asRecord(value), [nextNumericKey(thresholds.map(threshold => threshold.key), 2)]: { lore: [], ea_attributes: {}, es_skills: [] } });
+    const add = () => onChange({ ...asRecord(value), [nextNumericKey(thresholds.map(threshold => threshold.key), 2)]: { lore: [], effects: [] } });
     return <div className="prop-levels" role="list">
       {thresholds.map((threshold, index) => <div className="prop-cost-entry" key={index} role="listitem">
         <div className="prop-cost-entry-head"><span>{copy(`${threshold.key} 件套`, `${threshold.key}-piece`)}</span><button type="button" className="prop-kv-del" onClick={() => remove(index)} aria-label={copy(`删除阈值 ${threshold.key}`, `Delete threshold ${threshold.key}`)}>×</button></div>
         <ItemFormRow label="required" path={joinPath(path, threshold.key)}><NumberInput value={Number(threshold.key)} onChange={required => update(index, String(Math.max(1, required ?? 1)), {})} /></ItemFormRow>
         <ItemFormRow label="lore" path={joinPath(path, threshold.key, 'lore')} wide><StringListEditor items={asStringList(threshold.value.lore)} onChange={lore => update(index, threshold.key, { lore })} placeholder={copy('[2件套] 物理攻击 +5', '[2-piece] Physical Attack +5')} /></ItemFormRow>
-        <ItemMapRow label="ea_attributes" path={joinPath(path, threshold.key, 'ea_attributes')} value={threshold.value.ea_attributes} valuePlaceholder={copy('属性值', 'Attribute value')} addKeyPrefix="attribute" onChange={ea_attributes => update(index, threshold.key, { ea_attributes })} />
-        <ItemFormRow label="es_skills" path={joinPath(path, threshold.key, 'es_skills')} wide><StringListEditor items={asStringList(threshold.value.es_skills)} onChange={es_skills => update(index, threshold.key, { es_skills })} placeholder="guardian_aura" /></ItemFormRow>
+        <ItemFormRow label="effects" path={joinPath(path, threshold.key, 'effects')} wide><StandardEffectsEditor value={threshold.value.effects} path={joinPath(path, threshold.key, 'effects')} onChange={effects => update(index, threshold.key, { effects })} moduleId={MODULE} namespace={MODULE} actionTypes={actionTypesResult ?? undefined} /></ItemFormRow>
       </div>)}
       <button type="button" className="prop-add" onClick={add}>+ {copy('添加阈值', 'Add threshold')}</button>
     </div>;
