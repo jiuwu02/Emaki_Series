@@ -205,6 +205,7 @@
 }
 
 .ie-header {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -364,12 +365,21 @@
   --preview-column: clamp(232px, 22vw, 304px);
   min-width: 0;
   min-height: 0;
-  flex: 1 1 auto;
-  height: 100%;
+  flex: 1 1 0;
+  height: auto;
   display: grid;
   grid-template-columns: var(--preview-column) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
   gap: 0;
   align-items: stretch;
+  overflow: hidden;
+}
+
+.ie-preview-stack {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
 }
 
@@ -798,8 +808,12 @@
   min-width: 0;
   min-height: 0;
   height: 100%;
+  max-height: 100%;
+  overflow-x: hidden;
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 0;
+  scrollbar-gutter: stable;
   scrollbar-width: thin;
 }
 

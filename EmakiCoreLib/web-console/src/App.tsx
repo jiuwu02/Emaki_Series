@@ -5,7 +5,8 @@ import { ApiClient, ApiError, type FrontendDebugEventReport, type HistoryEntry, 
 import { GuiEditorSurface } from './GuiEditorSurface';
 import { ItemEditorSurface } from './ItemEditorSurface';
 import { loadWebExtensions } from './extensions';
-import { applyConfigNodeOverrides, applyConfigRegistryOverrides, applyEditorDescriptorOverrides, getConfigPreview, getSourceDocumentAdapter, getSurface, isKind, registerSourceDocumentAdapter, registerSurface, setRuntimeEnums, type ConfigPreviewProps, type SourceDocumentAdapterContext } from './registry';
+import { applyConfigNodeOverrides, applyConfigRegistryOverrides, applyEditorDescriptorOverrides, getAllSurfaces, getConfigPreview, getSourceDocumentAdapter, getSurface, isKind, registerSourceDocumentAdapter, registerSurface, setRuntimeEnums, type ConfigPreviewProps, type SourceDocumentAdapterContext } from './registry';
+import { debugTrace } from './debugTrace';
 import { isGlobPath, normalizeDocumentPath, normalizeLookupPath, resolveConcreteChildPath, resolveSurfaceDocumentPath, treeDirtyKey } from './documentPaths';
 import { getLocale, getRegisteredLocales, setLocale, t } from './i18n';
 import { ActionGroup, ActionTypesProvider, Button, CodeEditor, EconomyProvidersProvider, EditorChrome, DisclosureChevron, InlineError, NumberListEditor, StandardActionsField, StandardEconomyProviderSelect, StandardEffectsEditor, StringListEditor, ToastNotice, VariablesMapEditor, type EditorChange } from './components';
@@ -782,7 +783,12 @@ export default function App() {
           statuses={extensionStatuses}
           onRetry={() => void loadRegistry({ clearDrafts: false, announceRefresh: false })}
         />
-        <WorkspaceTree registry={registry} selected={selected} expanded={expanded} dirtyKeys={mergedDirtyKeys} localeVersion={localeVersion} setExpanded={setExpanded} onOpenI18n={setI18nTarget} onCreateFile={setCreateTarget} onDeleteFile={setDeleteTarget} onSelect={(next) => setSelected((current) => sameSelection(current, next) ? { ...next, refreshKey: (current?.refreshKey ?? 0) + 1 } : next)} />
+        <WorkspaceTree registry={registry} selected={selected} expanded={expanded} dirtyKeys={mergedDirtyKeys} localeVersion={localeVersion} setExpanded={setExpanded} onOpenI18n={setI18nTarget} onCreateFile={setCreateTarget} onDeleteFile={setDeleteTarget} onSelect={(next) => setSelected((current) => {
+          const same = sameSelection(current, next);
+          const accepted = same ? { ...next, refreshKey: (current?.refreshKey ?? 0) + 1 } : next;
+          debugTrace('04', 'App selection accepted', { previous: current, next, sameSelection: same, accepted }, { api });
+          return accepted;
+        })} />
         <button className="rail-action quiet" onClick={signOut}>{t('core.auth.logout')}</button>
       </ResizableRail>
       <main className="stage">
@@ -1546,12 +1552,60 @@ function ConfigSurface({ registry, module, file, drafts, draftHistory, setDraftV
     return () => { setSurfaceToolbar(null); setSurfaceOutline(null); };
   }, [module?.id, file?.id, scriptPath]);
 
+  useEffect(() => {
+    debugTrace('05', 'ConfigSurface input', {
+      hasRegistry: Boolean(registry),
+      moduleId: module?.id,
+      fileId: file?.id,
+      fileKind: file?.kind,
+      filePath: file?.path,
+      fileEditorId: file?.editorId,
+      fileChildren: file?.children?.map(child => ({ name: child.name, relativePath: child.relativePath, fullPath: child.fullPath })).slice(0, 20),
+      scriptPath,
+      refreshKey
+    }, { api });
+  }, [api, registry, module?.id, file?.id, file?.kind, file?.path, file?.editorId, file?.children, scriptPath, refreshKey]);
+
   if (registry && registry.modules.length === 0) return <section className="config-surface empty" role="status">{t('core.empty.noRegistry')}</section>;
   if (!module || !file) return <section className="config-surface empty" role="status">{t('core.empty.selectConfig')}</section>;
   const editor = file.editorId ? registry?.editors?.[file.editorId] : undefined;
 
   // Check registry for a custom surface first
   const registeredSurface = getSurface(file, editor);
+  if (shouldTraceItemSetSurface(module, file, scriptPath)) {
+    debugTrace('05B', 'ConfigSurface editor/surface lookup', {
+      moduleId: module.id,
+      fileId: file.id,
+      fileKind: file.kind,
+      filePath: file.path,
+      scriptPath,
+      fileEditorId: file.editorId,
+      editorFound: Boolean(editor),
+      editor: editor ? {
+        id: editor.id,
+        moduleId: editor.moduleId,
+        title: editor.title,
+        titleKey: editor.titleKey,
+        kindLabel: editor.kindLabel,
+        sectionCount: editor.sections?.length ?? 0,
+        allowedFieldTypes: editor.allowedFieldTypes
+      } : undefined,
+      registeredSurfaceFound: Boolean(registeredSurface),
+      registeredSurface: registeredSurface ? {
+        kind: registeredSurface.kind,
+        moduleId: registeredSurface.moduleId,
+        editorId: registeredSurface.editorId,
+        label: registeredSurface.label,
+        priority: registeredSurface.priority
+      } : undefined,
+      pendingExtensionModules: Array.from(pendingExtensionModules),
+      matchingSurfaces: getAllSurfaces()
+        .filter(surface => String(surface.kind ?? '').toUpperCase() === String(file.kind ?? '').toUpperCase()
+          || String(surface.moduleId ?? '').toUpperCase() === String(module.id ?? '').toUpperCase()
+          || String(surface.editorId ?? '') === String(file.editorId ?? ''))
+        .map(surface => ({ kind: surface.kind, moduleId: surface.moduleId, editorId: surface.editorId, label: surface.label, priority: surface.priority }))
+    }, { api });
+  }
   if (extensionSurfacePending(module, file, editor, registeredSurface, pendingExtensionModules)) {
     return <section className="config-surface empty" role="status">{t('core.extension.loadingEditor', undefined, '正在加载插件编辑器…')}</section>;
   }
@@ -1559,11 +1613,24 @@ function ConfigSurface({ registry, module, file, drafts, draftHistory, setDraftV
     const SurfaceComponent = registeredSurface.component;
     const outlineSetter = isKind(file.kind, 'GUI') ? undefined : setSurfaceOutline;
     const surfacePath = resolveSurfaceDocumentPath(file, scriptPath);
+    debugTrace('07', 'ConfigSurface custom surface dispatch', {
+      moduleId: module.id,
+      fileId: file.id,
+      fileKind: file.kind,
+      filePath: file.path,
+      editorId: editor?.id,
+      scriptPath,
+      registeredSurface: { label: registeredSurface.label, moduleId: registeredSurface.moduleId, editorId: registeredSurface.editorId, priority: registeredSurface.priority },
+      filePathGlob: isGlobPath(file.path),
+      surfacePath,
+      willShowSelectFilePlaceholder: Boolean(isGlobPath(file.path) && !surfacePath),
+      surfaceChildPath: isGlobPath(file.path) ? surfacePath : scriptPath
+    }, { api });
     if (isGlobPath(file.path) && !surfacePath) {
       return <section className="config-surface"><div className="surface-head"><div><h2>{fileDisplayTitle(file)}</h2><p>{fileDisplayComment(file)}</p></div><span className={`file-kind ${String(file.kind).toLowerCase()}`}>{fileKindLabel(file.kind)}</span></div><div className="script-placeholder" role="status">{t('core.empty.selectFile')}</div></section>;
     }
     const surfaceChildPath = isGlobPath(file.path) ? surfacePath : scriptPath;
-    return <SurfaceComponent module={module} file={file} api={api} childPath={surfaceChildPath} refreshKey={refreshKey} editor={editor} onReload={onReload} setToolbar={setSurfaceToolbar} setOutline={outlineSetter} showLocalChrome={false} />;
+  return <SurfaceComponent module={module} file={file} api={api} childPath={surfaceChildPath} refreshKey={refreshKey} editor={editor} onReload={onReload} setToolbar={setSurfaceToolbar} setOutline={outlineSetter} showLocalChrome={false} />;
   }
   if (!scriptPath && isGlobPath(file.path)) {
     return <section className="config-surface"><div className="surface-head"><div><h2>{fileDisplayTitle(file)}</h2><p>{fileDisplayComment(file)}</p></div><span className={`file-kind ${String(file.kind).toLowerCase()}`}>{fileKindLabel(file.kind)}</span></div><div className="script-placeholder" role="status">{t('core.empty.selectFile')}</div></section>;
@@ -3422,6 +3489,13 @@ function pendingExtensionModuleIds(extensions: WebConsoleExtension[] | undefined
   if (health !== 'loading' || !extensions?.length) return new Set();
   const settled = new Set(statuses.map(status => status.url));
   return new Set(extensions.filter(extension => !settled.has(extension.url)).map(extension => extension.moduleId));
+}
+function shouldTraceItemSetSurface(module: WebRegistryModule, file: WebRegistryFile, scriptPath?: string): boolean {
+  const moduleId = String(module.id ?? '').toLowerCase();
+  const kind = String(file.kind ?? '').toUpperCase();
+  const filePath = normalizeDocumentPath(file.path).toLowerCase();
+  const childPath = normalizeDocumentPath(scriptPath).toLowerCase();
+  return (moduleId === 'emakiitem' || kind === 'SET') && (filePath.includes('sets/') || childPath.includes('sets/'));
 }
 function extensionSurfacePending(module: WebRegistryModule, file: WebRegistryFile, editor: WebEditorDescriptor | undefined, registeredSurface: ReturnType<typeof getSurface>, pendingModules: ReadonlySet<string>): boolean {
   if (!pendingModules.has(module.id) || isKind(file.kind, 'CONFIG') || isKind(file.kind, 'SCRIPT')) return false;

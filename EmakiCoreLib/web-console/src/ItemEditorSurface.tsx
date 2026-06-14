@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ApiError, type ApiClient, type ActionTypesResult } from './api';
 import { Button, CollapsibleSection, ChangedPathsProvider, DisclosureChevron, EditorChrome, InlineError, KvTable, MiniText, NumberListEditor, PropRow as BasePropRow, SectionHead, StandardActionsField, StandardEconomyProviderSelect, StandardEffectsEditor, StringListEditor, ToastNotice, VariablesMapEditor, parseActionList, type ActionEntry } from './components';
 import { asList, asRecord, asStringList, displaySource, firstItemSource, materialFromItemSource, setDeepValue, parseYaml, type AnyMap } from './itemEditor';
+import { debugTrace } from './debugTrace';
 import { isConcretePath, isGlobPath, resolveSurfaceDocumentPath } from './documentPaths';
 import { t, getLocale } from './i18n';
 import { changedPathSet, diffRecords, fieldLabel, getDeepValue, humanizeFieldLabel, isChangedFieldPath, materialShortName, materialUrls, optionLabel, subscribeTextureBases, textValue, valuesEqual } from './lib';
@@ -62,8 +63,26 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
   const editorFields = useMemo(() => editorFieldMap(editor), [editor]);
   const sourceAdapter = getSourceDocumentAdapter(file, editor);
   const itemLikeKind = isKind(file.kind, 'ITEM') || isKind(file.kind, 'GEM');
-  const resolvedChildPath = isGlobPath(file.path) && isConcretePath(filePath) ? filePath : childPath;
+  const resolvedChildPath = childPath && isConcretePath(childPath) ? childPath : (isGlobPath(file.path) && isConcretePath(filePath) ? filePath : undefined);
   const sourceContext = useMemo(() => ({ module, file, childPath: resolvedChildPath, path: filePath, editor }), [module, file, resolvedChildPath, filePath, editor?.id]);
+  useEffect(() => {
+    debugTrace('08', 'ItemEditorSurface path context', {
+      moduleId: module.id,
+      fileId: file.id,
+      fileKind: file.kind,
+      filePath: file.path,
+      inputChildPath: childPath,
+      resolvedFilePath: filePath,
+      resolvedChildPath,
+      sourceContext: {
+        path: sourceContext.path,
+        childPath: sourceContext.childPath,
+        editorId: sourceContext.editor?.id
+      },
+      hasSourceAdapter: Boolean(sourceAdapter),
+      sourceAdapterLanguage: sourceAdapter?.language
+    }, { api });
+  }, [api, module.id, file.id, file.kind, file.path, childPath, filePath, resolvedChildPath, sourceContext, sourceAdapter]);
   const draftContent = useMemo(() => sourceError ? sourceText : serializeItemYaml(data), [sourceError, sourceText, data]);
   const sourceContent = draftContent;
   const changes = useMemo(() => diffRecords(data, originalData, '', 18), [data, originalData]);
@@ -80,19 +99,52 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
   useEffect(() => {
     let cancelled = false;
     if (!filePath || isGlobPath(filePath)) {
+      debugTrace('09', 'ItemEditorSurface blocked before read', {
+        reason: !filePath ? 'empty-filePath' : 'glob-filePath',
+        moduleId: module.id,
+        fileId: file.id,
+        fileKind: file.kind,
+        filePath,
+        inputChildPath: childPath,
+        resolvedChildPath,
+        sourceContext: { path: sourceContext.path, childPath: sourceContext.childPath, editorId: sourceContext.editor?.id }
+      }, { api });
       setLoading(false);
       setError(t('core.empty.selectFile'));
       return;
     }
     setLoading(true);
     setError(null);
+    debugTrace('09', 'ItemEditorSurface read decision', {
+      moduleId: module.id,
+      fileId: file.id,
+      fileKind: file.kind,
+      filePath,
+      inputChildPath: childPath,
+      resolvedChildPath,
+      readVia: sourceAdapter ? 'source-adapter' : 'default-api',
+      sourceContext: { path: sourceContext.path, childPath: sourceContext.childPath, editorId: sourceContext.editor?.id }
+    }, { api });
     const readDocument = sourceAdapter
       ? sourceAdapter.read(api, sourceContext)
       : api.readTextDocument({ kind: file.kind, moduleId: module.id, path: filePath });
     readDocument.then(doc => {
       if (cancelled) return;
       try {
+        debugTrace('09', 'ItemEditorSurface read success', {
+          moduleId: module.id,
+          filePath,
+          docPath: doc.path,
+          revision: doc.revision,
+          contentLength: doc.content?.length ?? 0,
+          contentPreview: String(doc.content ?? '').slice(0, 240)
+        }, { api });
         const parsed = parseYaml(doc.content) as AnyMap;
+        debugTrace('09', 'ItemEditorSurface yaml parse success', {
+          moduleId: module.id,
+          filePath,
+          topLevelKeys: Object.keys(asRecord(parsed))
+        }, { api });
         setData(parsed);
         setOriginalData(parsed);
         setOriginalContent(doc.content);
@@ -101,6 +153,14 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
         setSourceError(null);
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
+        debugTrace('09', 'ItemEditorSurface yaml parse failed', {
+          moduleId: module.id,
+          filePath,
+          docPath: doc.path,
+          message,
+          contentLength: doc.content?.length ?? 0,
+          contentPreview: String(doc.content ?? '').slice(0, 240)
+        }, { api });
         setData({});
         setOriginalData({});
         setOriginalContent(doc.content);
@@ -113,6 +173,18 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
       setLoading(false);
     }).catch(err => {
       if (cancelled) return;
+      debugTrace('09', 'ItemEditorSurface read failed', {
+        moduleId: module.id,
+        fileId: file.id,
+        fileKind: file.kind,
+        filePath,
+        inputChildPath: childPath,
+        resolvedChildPath,
+        sourceContext: { path: sourceContext.path, childPath: sourceContext.childPath, editorId: sourceContext.editor?.id },
+        errorName: err instanceof Error ? err.name : undefined,
+        message: String(err?.message ?? err),
+        stack: err instanceof Error ? err.stack : undefined
+      }, { api });
       setError(String(err?.message ?? err));
       setLoading(false);
     });
@@ -256,7 +328,24 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
     setError(null);
     try {
       const content = sourceContent;
+      debugTrace('09', 'ItemEditorSurface save decision', {
+        moduleId: module.id,
+        fileId: file.id,
+        fileKind: file.kind,
+        filePath,
+        resolvedChildPath,
+        revision,
+        saveVia: sourceAdapter ? 'source-adapter' : 'default-api',
+        sourceContext: { path: sourceContext.path, childPath: sourceContext.childPath, editorId: sourceContext.editor?.id },
+        contentLength: content.length
+      }, { api });
       const result = await (sourceAdapter?.save(api, sourceContext, content, revision) ?? api.saveTextDocument({ kind: file.kind, moduleId: module.id, path: filePath }, content, revision));
+      debugTrace('09', 'ItemEditorSurface save success', {
+        moduleId: module.id,
+        filePath,
+        previousRevision: revision,
+        nextRevision: result.revision ?? revision
+      }, { api });
       setOriginalContent(content);
       setRevision(result.revision ?? revision);
       setOriginalData(data);
@@ -264,6 +353,16 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
       setHistory({ undo: [], redo: [] });
       setToast({ tone: 'ok', text: t('core.toast.savedItem') });
     } catch (err: any) {
+      debugTrace('09', 'ItemEditorSurface save failed', {
+        moduleId: module.id,
+        fileId: file.id,
+        fileKind: file.kind,
+        filePath,
+        resolvedChildPath,
+        sourceContext: { path: sourceContext.path, childPath: sourceContext.childPath, editorId: sourceContext.editor?.id },
+        message: String(err?.message ?? err),
+        stack: err instanceof Error ? err.stack : undefined
+      }, { api });
       setError(err?.message ?? t('core.toast.saveFailed'));
     } finally {
       setSaving(false);

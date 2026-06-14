@@ -1,4 +1,4 @@
-import { getLocale, localeText, registerModuleLocale, registerPluginConfig, getRuntimeEnum, registerSurface } from 'emaki-web-console';
+import { getLocale, localeText, registerFileKindLabel, registerModuleLocale, registerPluginConfig, getRuntimeEnum, registerSurface } from 'emaki-web-console';
 import { AttributeDiagnosticsPanel, installAttributeDiagnosticsStyles } from './diagnostics/AttributeDiagnosticsPanel';
 
 let registered = false;
@@ -8,21 +8,9 @@ export function registerEmakiAttributeWebConsole(): void {
   registered = true;
   installAttributeDiagnosticsStyles();
   const MODULE = 'EmakiAttribute';
-
-  const DAMAGE_CAUSES_1_21_11 = [
-    'CONTACT', 'ENTITY_ATTACK', 'ENTITY_SWEEP_ATTACK', 'PROJECTILE', 'SUFFOCATION', 'FALL',
-    'FIRE', 'FIRE_TICK', 'MELTING', 'LAVA', 'DROWNING', 'BLOCK_EXPLOSION', 'ENTITY_EXPLOSION',
-    'VOID', 'LIGHTNING', 'SUICIDE', 'STARVATION', 'POISON', 'MAGIC', 'WITHER', 'FALLING_BLOCK',
-    'THORNS', 'DRAGON_BREATH', 'CUSTOM', 'FLY_INTO_WALL', 'HOT_FLOOR', 'CRAMMING',
-    'DRYOUT', 'FREEZE', 'KILL', 'SONIC_BOOM', 'WORLD_BORDER', 'CAMPFIRE', 'OUTSIDE_BORDER',
-    'GENERIC', 'EXPLOSION', 'BAD_RESPAWN_POINT', 'OUT_OF_WORLD'
-  ];
-  const runtimeDamageCauses = getRuntimeEnum('bukkit.damageCause');
-  const damageCauses = runtimeDamageCauses.length ? runtimeDamageCauses : DAMAGE_CAUSES_1_21_11;
-  const DAMAGE_STAGE_KINDS = ['FLAT_PERCENT', 'CUSTOM'];
-  const DAMAGE_STAGE_SOURCES = ['ATTACKER', 'TARGET', 'CONTEXT'];
-  const DAMAGE_STAGE_MODES = ['ADD', 'SUBTRACT'];
   const copy = localeText;
+  registerFileKindLabel('ATTRIBUTE_DIAGNOSTICS', copy('诊断', 'Diagnostics'));
+
 
   type ConfigSpec = [path: string, label: string, comment: string, type: string, extra?: Record<string, unknown>];
 
@@ -176,6 +164,11 @@ export function registerEmakiAttributeWebConsole(): void {
     FLY_INTO_WALL: '碰撞墙体', HOT_FLOOR: '高温方块', CAMPFIRE: '营火', CRAMMING: '实体挤压', DRYOUT: '脱水', FREEZE: '冻结',
     SONIC_BOOM: '音爆', CUSTOM: '自定义', OUTSIDE_BORDER: '边界外', GENERIC: '通用', EXPLOSION: '爆炸', BAD_RESPAWN_POINT: '错误重生点', OUT_OF_WORLD: '世界外'
   };
+  const runtimeDamageCauses = getRuntimeEnum('bukkit.damageCause');
+  const damageCauses = runtimeDamageCauses.length ? runtimeDamageCauses : Object.keys(damageCauseLabels);
+  const DAMAGE_STAGE_KINDS = ['FLAT_PERCENT', 'CUSTOM'];
+  const DAMAGE_STAGE_SOURCES = ['ATTACKER', 'TARGET', 'CONTEXT'];
+  const DAMAGE_STAGE_MODES = ['ADD', 'SUBTRACT'];
 
   registerModuleLocale(MODULE, 'zh-CN', {
     'emakiattribute.module.name': 'Attribute',
@@ -192,6 +185,10 @@ export function registerEmakiAttributeWebConsole(): void {
     'emakiattribute.file.lore_formats.comment': '词条格式文件目录，每个文件配置一种属性在物品 Lore 中的显示模板。',
     'emakiattribute.file.conditions.title': 'PDC 条件',
     'emakiattribute.file.conditions.comment': 'PDC 属性读取条件目录，控制物品属性在何种条件下生效。',
+    'emakiattribute.file.diagnostics.title': '属性诊断',
+    'emakiattribute.file.diagnostics.comment': '查询在线玩家的属性来源与最近伤害 Trace。',
+    'emakiattribute.filePath.diagnostics.title': '属性诊断',
+    'emakiattribute.filePath.diagnostics.comment': '查询在线玩家的属性来源与最近伤害 Trace。',
     'emakiattribute.filePath.conditions_default_bind.title': '默认绑定条件',
     'emakiattribute.filePath.conditions_default_bind.comment': '默认绑定条件，控制带绑定标记的物品属性何时生效。',
     'emakiattribute.filePath.conditions_default_equipment_level.comment': '默认装备等级条件，按装备等级限制属性读取。',
@@ -246,6 +243,10 @@ export function registerEmakiAttributeWebConsole(): void {
     'emakiattribute.file.lore_formats.comment': 'Directory of lore format files. Each file configures the display template for an attribute in item lore.',
     'emakiattribute.file.conditions.title': 'PDC Conditions',
     'emakiattribute.file.conditions.comment': 'Directory of PDC attribute read conditions that control when item attributes take effect.',
+    'emakiattribute.file.diagnostics.title': 'Attribute Diagnostics',
+    'emakiattribute.file.diagnostics.comment': 'Query online player attribute sources and recent damage traces.',
+    'emakiattribute.filePath.diagnostics.title': 'Attribute Diagnostics',
+    'emakiattribute.filePath.diagnostics.comment': 'Query online player attribute sources and recent damage traces.',
     'emakiattribute.filePath.conditions_default_bind.title': 'Default Bind Condition',
     'emakiattribute.filePath.conditions_default_bind.comment': 'Default bind condition controlling when bound item attributes take effect.',
     'emakiattribute.filePath.conditions_default_equipment_level.comment': 'Default equipment-level condition for limiting attribute reads by equipment level.',

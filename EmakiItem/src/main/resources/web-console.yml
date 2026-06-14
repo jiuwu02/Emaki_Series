@@ -18,8 +18,14 @@ files:
     kind: GUI
     editor: "emakicore:gui"
   - path: "id_aliases.yml"
-    kind: ALIAS
-    editor: "yaml"
+    kind: CONFIG
+
+nodes:
+  - path: "aliases"
+    label: "ID 别名"
+    comment: "旧物品 ID 到目标 ID 的迁移映射。"
+    type: dynamic_map
+    creatableChildren: true
 
 extensions:
   - id: "emakiitem:locale"

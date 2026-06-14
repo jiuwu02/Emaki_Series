@@ -1,5 +1,5 @@
 import React from 'react';
-import { ItemEditorSurface, PropRow, StringListEditor, asList, asRecord, asStringList, coreEffectDefinition, payloadEffectDefinition, fieldLabel, getLocale, humanizeFieldLabel, localeText, optionLabel, registerEffectTypes, registerFileKindLabel, registerConfigNodeMeta, registerConfigNodeRule, registerEditorDescriptor, registerEditorField, registerItemFieldRenderer, registerModuleLocale, registerPluginSurfaces, registerSourceDocumentAdapter, textValue, type AnyMap, type ItemFieldRendererContext } from 'emaki-web-console';
+import { ItemEditorSurface, PropRow, StringListEditor, asList, asRecord, asStringList, coreEffectDefinition, debugTrace, payloadEffectDefinition, fieldLabel, getLocale, humanizeFieldLabel, localeText, optionLabel, registerEffectTypes, registerFileKindLabel, registerConfigNodeMeta, registerConfigNodeRule, registerEditorDescriptor, registerEditorField, registerItemFieldRenderer, registerModuleLocale, registerPluginSurfaces, registerSourceDocumentAdapter, textValue, type AnyMap, type ItemFieldRendererContext } from 'emaki-web-console';
 
 let registered = false;
 
@@ -24,11 +24,72 @@ export function registerEmakiItemWebConsole(): void {
   const SET_SLOTS = ['main_hand', 'off_hand', 'helmet', 'chestplate', 'leggings', 'boots'];
   const copy = localeText;
   type SetDocumentContext = { path?: string; childPath?: string };
-  const concreteSetPath = (context: SetDocumentContext): string | null => {
-    const path = textValue(context.path || context.childPath).trim();
-    return path && !/[?*]/.test(path) ? path : null;
+  const normalizeDocumentPath = (path: unknown): string => textValue(path).trim().replace(/\\/g, '/').replace(/^\/+/, '');
+  const containsGlob = (path: string): boolean => /[?*]/.test(path);
+  const globDirectory = (path: string): string => {
+    const wildcardIndex = path.search(/[?*]/);
+    if (wildcardIndex < 0) return '';
+    const slashIndex = path.slice(0, wildcardIndex).lastIndexOf('/');
+    return slashIndex >= 0 ? path.slice(0, slashIndex + 1) : '';
   };
-  const missingSetPathError = () => new Error(copy('请选择具体套装文件。', 'Select a concrete set file.'));
+  const withYamlExtension = (path: string): string => /\.ya?ml$/i.test(path) ? path : `${path}.yml`;
+  const concreteSetPath = (context: SetDocumentContext): string | null => {
+    const parentPath = normalizeDocumentPath(context.path);
+    const childPath = normalizeDocumentPath(context.childPath);
+    const basePath = globDirectory(parentPath);
+
+    debugTrace('10', 'EmakiItem concreteSetPath input', {
+      contextPath: context.path,
+      contextChildPath: context.childPath,
+      parentPath,
+      childPath,
+      basePath,
+      parentContainsGlob: containsGlob(parentPath),
+      childContainsGlob: containsGlob(childPath)
+    });
+
+    let rawPath: string;
+    let branch: string;
+    if (childPath && !containsGlob(childPath)) {
+      if (!childPath.includes('/')) {
+        rawPath = basePath ? `${basePath}${childPath}` : childPath;
+        branch = 'child-leaf-with-base';
+      } else if (basePath && !childPath.startsWith(basePath)) {
+        rawPath = `${basePath}${childPath.split('/').pop()}`;
+        branch = 'child-path-outside-base-use-leaf';
+      } else {
+        rawPath = childPath;
+        branch = 'child-concrete-path';
+      }
+    } else {
+      rawPath = parentPath;
+      branch = childPath ? 'child-glob-fallback-parent' : 'no-child-fallback-parent';
+    }
+
+    const finalPath = rawPath && !containsGlob(rawPath) ? withYamlExtension(rawPath) : null;
+    debugTrace('11', 'EmakiItem concreteSetPath result', {
+      contextPath: context.path,
+      contextChildPath: context.childPath,
+      parentPath,
+      childPath,
+      basePath,
+      branch,
+      rawPath,
+      rawPathContainsGlob: containsGlob(rawPath),
+      finalPath,
+      nullReason: !rawPath ? 'empty-raw-path' : containsGlob(rawPath) ? 'raw-path-still-glob' : undefined
+    });
+    return finalPath;
+  };
+  const missingSetPathError = (context?: SetDocumentContext) => {
+    const path = normalizeDocumentPath(context?.childPath || context?.path) || 'unknown';
+    debugTrace('11', 'EmakiItem missingSetPathError', {
+      contextPath: context?.path,
+      contextChildPath: context?.childPath,
+      displayedPath: path
+    });
+    return new Error(copy(`请选择具体套装文件。当前路径：${path}`, `Select a concrete set file. Current path: ${path}`));
+  };
 
   const configFields: ConfigSpec[] = [
     ['version', '配置版本', '默认配置结构版本，通常不建议手动修改。', 'text'],
@@ -166,6 +227,8 @@ export function registerEmakiItemWebConsole(): void {
     'emakiitem.file.items.comment': '自定义物品定义，包含显示文本、属性、技能、条件、修复和触发动作。',
     'emakiitem.file.sets.title': '套装',
     'emakiitem.file.sets.comment': '套装定义，配置部件、阈值效果、套装 Lore 和刷新规则。',
+    'emakiitem.file.id_aliases.title': 'ID 别名',
+    'emakiitem.file.id_aliases.comment': '重命名迁移使用的旧物品 ID 到目标 ID 映射。',
     'emakiitem.filePath.items_example_item.comment': '自定义物品示例，展示属性、技能、条件、耐久和动作链。',
     'emakiitem.filePath.sets_example_set.comment': '套装示例，展示部件绑定、阈值属性和套装 Lore。',
     'emakiitem.file.plugin.title': '插件描述',
@@ -240,6 +303,8 @@ export function registerEmakiItemWebConsole(): void {
     'emakiitem.file.items.comment': 'Custom item definitions covering display text, attributes, skills, conditions, repair, and trigger actions.',
     'emakiitem.file.sets.title': 'Sets',
     'emakiitem.file.sets.comment': 'Set definitions covering pieces, threshold effects, set lore, and refresh rules.',
+    'emakiitem.file.id_aliases.title': 'ID Aliases',
+    'emakiitem.file.id_aliases.comment': 'Old item ID to target ID mappings used by rename migration.',
     'emakiitem.filePath.items_example_item.comment': 'Custom item example showing attributes, skills, conditions, durability, and action chains.',
     'emakiitem.filePath.sets_example_set.comment': 'Set example showing piece bindings, threshold attributes, and set lore.',
     'emakiitem.file.plugin.title': 'Plugin Description',
@@ -300,16 +365,100 @@ export function registerEmakiItemWebConsole(): void {
     priority: 120,
     adapter: {
       read: (api, context) => {
+        debugTrace('12', 'EmakiItem SET adapter read start', {
+          moduleId: context.module.id,
+          fileId: context.file.id,
+          fileKind: context.file.kind,
+          filePath: context.file.path,
+          contextPath: context.path,
+          contextChildPath: context.childPath,
+          editorId: context.editor?.id
+        }, { api });
         const path = concreteSetPath(context);
-        return path
-          ? api.readTextDocument({ kind: context.file.kind, moduleId: context.module.id, path })
-          : Promise.reject(missingSetPathError());
+        if (!path) {
+          debugTrace('12', 'EmakiItem SET adapter read rejected', {
+            moduleId: context.module.id,
+            fileId: context.file.id,
+            fileKind: context.file.kind,
+            filePath: context.file.path,
+            contextPath: context.path,
+            contextChildPath: context.childPath
+          }, { api });
+          return Promise.reject(missingSetPathError(context));
+        }
+        debugTrace('12', 'EmakiItem SET adapter read request', {
+          kind: context.file.kind,
+          moduleId: context.module.id,
+          path
+        }, { api });
+        return api.readTextDocument({ kind: context.file.kind, moduleId: context.module.id, path })
+          .then(doc => {
+            debugTrace('12', 'EmakiItem SET adapter read success', {
+              requestedPath: path,
+              docPath: doc.path,
+              revision: doc.revision,
+              contentLength: doc.content?.length ?? 0,
+              contentPreview: String(doc.content ?? '').slice(0, 240)
+            }, { api });
+            return doc;
+          })
+          .catch(err => {
+            debugTrace('12', 'EmakiItem SET adapter read failed', {
+              requestedPath: path,
+              message: String(err?.message ?? err),
+              stack: err instanceof Error ? err.stack : undefined
+            }, { api });
+            throw err;
+          });
       },
       save: (api, context, content, revision) => {
+        debugTrace('12', 'EmakiItem SET adapter save start', {
+          moduleId: context.module.id,
+          fileId: context.file.id,
+          fileKind: context.file.kind,
+          filePath: context.file.path,
+          contextPath: context.path,
+          contextChildPath: context.childPath,
+          editorId: context.editor?.id,
+          revision,
+          contentLength: content.length
+        }, { api });
         const path = concreteSetPath(context);
-        return path
-          ? api.saveTextDocument({ kind: context.file.kind, moduleId: context.module.id, path }, content, revision)
-          : Promise.reject(missingSetPathError());
+        if (!path) {
+          debugTrace('12', 'EmakiItem SET adapter save rejected', {
+            moduleId: context.module.id,
+            fileId: context.file.id,
+            fileKind: context.file.kind,
+            filePath: context.file.path,
+            contextPath: context.path,
+            contextChildPath: context.childPath
+          }, { api });
+          return Promise.reject(missingSetPathError(context));
+        }
+        debugTrace('12', 'EmakiItem SET adapter save request', {
+          kind: context.file.kind,
+          moduleId: context.module.id,
+          path,
+          revision,
+          contentLength: content.length
+        }, { api });
+        return api.saveTextDocument({ kind: context.file.kind, moduleId: context.module.id, path }, content, revision)
+          .then(result => {
+            debugTrace('12', 'EmakiItem SET adapter save success', {
+              requestedPath: path,
+              previousRevision: revision,
+              nextRevision: result.revision
+            }, { api });
+            return result;
+          })
+          .catch(err => {
+            debugTrace('12', 'EmakiItem SET adapter save failed', {
+              requestedPath: path,
+              message: String(err?.message ?? err),
+              stack: err instanceof Error ? err.stack : undefined
+            }, { api });
+            throw err;
+          });
       },
       language: 'yaml',
       defaultContent: context => defaultSetContent(context.name)
@@ -589,5 +738,6 @@ export function registerEmakiItemWebConsole(): void {
   }
 
   configFields.forEach(([path, label, comment, type]) => registerConfigNodeMeta(MODULE, path, { label, comment, type }));
+  registerConfigNodeMeta(MODULE, 'aliases', { label: copy('ID 别名', 'ID Aliases'), comment: copy('旧物品 ID 到目标 ID 的迁移映射。', 'Old item ID to target ID mappings used by rename migration.'), type: 'dynamic_map', creatableChildren: true });
   Object.entries(commonItemFields).forEach(([key, [label, comment, type]]) => registerConfigNodeRule(MODULE, { key }, { label, comment, type }));
 }
