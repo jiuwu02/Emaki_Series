@@ -1,5 +1,5 @@
 import React from 'react';
-import { ItemEditorSurface, PropRow, StringListEditor, asList, asRecord, asStringList, coreEffectDefinition, payloadEffectDefinition, fieldLabel, firstItemSource, getLocale, humanizeFieldLabel, localeText, optionLabel, registerEffectTypes, registerFileKindLabel, registerConfigNodeMeta, registerConfigNodeRule, registerEditorDescriptor, registerEditorField, registerItemFieldRenderer, registerModuleLocale, registerPluginSurfaces, registerSourceDocumentAdapter, textValue, type AnyMap, type ItemFieldRendererContext } from 'emaki-web-console';
+import { ItemEditorSurface, PropRow, StringListEditor, asList, asRecord, asStringList, coreEffectDefinition, payloadEffectDefinition, fieldLabel, getLocale, humanizeFieldLabel, localeText, optionLabel, registerEffectTypes, registerFileKindLabel, registerConfigNodeMeta, registerConfigNodeRule, registerEditorDescriptor, registerEditorField, registerItemFieldRenderer, registerModuleLocale, registerPluginSurfaces, registerSourceDocumentAdapter, textValue, type AnyMap, type ItemFieldRendererContext } from 'emaki-web-console';
 
 let registered = false;
 
@@ -19,9 +19,16 @@ export function registerEmakiItemWebConsole(): void {
   const CONDITION_TYPES = ['all_of', 'any_of', 'none_of', 'at_least', 'exactly'];
   const ATTRIBUTE_OPERATIONS = ['add_number', 'add_scalar', 'multiply_scalar_1'];
   const EQUIPMENT_SLOTS = ['any', 'hand', 'mainhand', 'offhand', 'head', 'chest', 'legs', 'feet', 'body'];
+  const EQUIP_SLOTS = ['all', 'hand', 'main_hand', 'off_hand', 'helmet', 'chestplate', 'leggings', 'boots'];
   const ITEM_FLAGS = ['HIDE_ENCHANTS', 'HIDE_ATTRIBUTES', 'HIDE_UNBREAKABLE', 'HIDE_DESTROYS', 'HIDE_PLACED_ON', 'HIDE_ADDITIONAL_TOOLTIP', 'HIDE_DYE', 'HIDE_ARMOR_TRIM'];
   const SET_SLOTS = ['main_hand', 'off_hand', 'helmet', 'chestplate', 'leggings', 'boots'];
   const copy = localeText;
+  type SetDocumentContext = { path?: string; childPath?: string };
+  const concreteSetPath = (context: SetDocumentContext): string | null => {
+    const path = textValue(context.path || context.childPath).trim();
+    return path && !/[?*]/.test(path) ? path : null;
+  };
+  const missingSetPathError = () => new Error(copy('请选择具体套装文件。', 'Select a concrete set file.'));
 
   const configFields: ConfigSpec[] = [
     ['version', '配置版本', '默认配置结构版本，通常不建议手动修改。', 'text'],
@@ -42,11 +49,12 @@ export function registerEmakiItemWebConsole(): void {
   const commonItemFields: Record<string, [string, string, string]> = {
     id: ['物品 ID', '物品定义的唯一标识。', 'text'],
     material: ['材质', 'Bukkit Material，源码要求必须可解析且 isItem。', 'material'],
+    equip_slot: ['生效槽位', '属性与技能生效的装备槽位。', 'enum'],
     display_name: ['显示名称', '物品显示名称，支持 MiniMessage 与变量占位。', 'text'],
     item_name: ['原版名称', 'item_name 组件，不支持变量，影响物品堆叠判断。', 'text'],
     lore: ['Lore', '物品说明文本，每行一条。', 'list'],
     effects: ['效果', '通过 type 区分 variables、ea_attribute、es_skill 等效果。', 'list'],
-    variables: ['变量', '表达式变量，会与 ea_attributes 合并用于名称和 Lore 占位。', 'object'],
+    variables: ['变量', '表达式变量，可用于名称、Lore 和动作模板占位。', 'object'],
     ea_attributes: ['EA 属性', '写入 EmakiAttribute PDC 的属性数值。', 'object'],
     es_skills: ['ES 技能', '装备时附加的 EmakiSkills 技能 ID。', 'list'],
     components: ['原版组件', 'Minecraft 1.21+ 物品组件。', 'object'],
@@ -78,7 +86,7 @@ export function registerEmakiItemWebConsole(): void {
     ['id', 'ID', '套装唯一标识，加载时会 normalize。', 'text'],
     ['display_name', '显示名称', '套装显示名称，支持 MiniMessage。', 'text'],
     ['pieces', '套装部件', '部件 ID 到 item、slot、display 的映射。', 'setPieces', { wide: true }],
-    ['lore.header', '标题行', '套装 Lore 标题，支持 {set_name}、{active}、{total}。', 'text'],
+    ['lore.header', '标题行', '套装 Lore 标题，支持 %set_name%、%active%、%total%。', 'text'],
     ['lore.equipped_format', '已装备格式', '已装备部件的 Lore 行格式。', 'text'],
     ['lore.missing_format', '缺失格式', '未装备部件的 Lore 行格式。', 'text'],
     ['lore.active_threshold_format', '已激活阈值格式', '已激活阈值 Lore 包装格式。', 'text'],
@@ -90,9 +98,10 @@ export function registerEmakiItemWebConsole(): void {
   const itemEditorFields: ItemFieldSpec[] = [
     ['id', 'ID', '物品定义唯一标识，加载时会 normalize。', 'text'],
     ['material', '材质', 'Bukkit Material，必须是原版物品。', 'material'],
-    ['display_name', '显示名称', '支持 MiniMessage 与 {变量} 占位。', 'text'],
+    ['equip_slot', '生效槽位', '控制属性与技能在哪个装备槽位生效，不负责原版穿戴拦截。', 'enum', { options: EQUIP_SLOTS, optionLabelPrefix: 'equipSlot' }],
+    ['display_name', '显示名称', '支持 MiniMessage 与 %变量% 占位。', 'text'],
     ['item_name', '原版 item_name', '原版 item_name 组件，不参与变量渲染。', 'text'],
-    ['lore', 'Lore', '支持 MiniMessage 与 {变量} 占位。', 'stringList', { wide: true }],
+    ['lore', 'Lore', '支持 MiniMessage 与 %变量% 占位。', 'stringList', { wide: true }],
     ['name_actions', '名称动作链', '生成显示名称时执行的标准动作链。', 'actions', { wide: true }],
     ['lore_actions', 'Lore 动作链', '生成 Lore 时执行的标准动作链。', 'actions', { wide: true }],
     ['update.enabled', '启用更新', '关闭时其余 update 字段不会生效。', 'boolean'],
@@ -137,7 +146,9 @@ export function registerEmakiItemWebConsole(): void {
     ['condition.on_fail.actions', '不满足动作', '条件不满足时执行的动作。', 'stringList', { wide: true }],
     ['repair.enabled', '启用修复', '关闭时 repair 配置不生效。', 'boolean'],
     ['repair.materials', '修复材料', '每种修复材料的物品来源、消耗数量和恢复耐久值。', 'repairMaterials', { wide: true }],
-    ['repair.economy', '修复经济', '修复时可选的经济消耗配置。', 'json', { wide: true }],
+    ['repair.economy.enabled', '启用经济修复', '是否允许通过 CoreLib 经济系统扣款修复。', 'boolean'],
+    ['repair.economy.restore', '经济修复耐久', '经济修复恢复的耐久值，支持固定值或百分比。', 'text'],
+    ['repair.economy.currencies', '经济修复货币', '经济修复消耗的货币列表，支持 provider、currency/currency_id、amount/base_cost/formula。', 'json', { wide: true }],
     ['repair.disabled_display.name_prefix', '损坏名称前缀', '物品损坏时追加到名称前的 MiniMessage。', 'text'],
     ['repair.disabled_display.lore_append', '损坏 Lore', '物品损坏时追加的 Lore。', 'stringList', { wide: true }],
     ['repair.on_disabled', '损坏动作', '物品进入损坏状态时执行。', 'stringList', { wide: true }],
@@ -204,6 +215,14 @@ export function registerEmakiItemWebConsole(): void {
     'emakiitem.option.equipmentSlot.legs': '护腿',
     'emakiitem.option.equipmentSlot.feet': '靴子',
     'emakiitem.option.equipmentSlot.body': '身体',
+    'emakiitem.option.equipSlot.all': '全部槽位',
+    'emakiitem.option.equipSlot.hand': '任意手',
+    'emakiitem.option.equipSlot.main_hand': '主手',
+    'emakiitem.option.equipSlot.off_hand': '副手',
+    'emakiitem.option.equipSlot.helmet': '头盔',
+    'emakiitem.option.equipSlot.chestplate': '胸甲',
+    'emakiitem.option.equipSlot.leggings': '护腿',
+    'emakiitem.option.equipSlot.boots': '靴子',
     'emakiitem.option.setSlot.main_hand': '主手',
     'emakiitem.option.setSlot.off_hand': '副手',
     'emakiitem.option.setSlot.helmet': '头盔',
@@ -255,8 +274,14 @@ export function registerEmakiItemWebConsole(): void {
     'emakiitem.field.display_name': 'Display Name',
     'emakiitem.field.lore': 'Lore',
     'emakiitem.field.item_sources': 'Item Sources',
-    'emakiitem.field.repair.economy': 'Repair Economy',
-    'emakiitem.comment.repair.economy': 'Optional economy cost configuration for repairing this item.',
+    'emakiitem.option.equipSlot.all': 'All slots',
+    'emakiitem.option.equipSlot.hand': 'Either hand',
+    'emakiitem.option.equipSlot.main_hand': 'Main hand',
+    'emakiitem.option.equipSlot.off_hand': 'Off hand',
+    'emakiitem.option.equipSlot.helmet': 'Helmet',
+    'emakiitem.option.equipSlot.chestplate': 'Chestplate',
+    'emakiitem.option.equipSlot.leggings': 'Leggings',
+    'emakiitem.option.equipSlot.boots': 'Boots',
     'emakiitem.option.conditionType.all_of': 'All of',
     'emakiitem.option.conditionType.any_of': 'Any of'
   });
@@ -274,8 +299,18 @@ export function registerEmakiItemWebConsole(): void {
     editorId: SET_EDITOR_ID,
     priority: 120,
     adapter: {
-      read: (api, context) => api.readTextDocument({ kind: context.file.kind, moduleId: context.module.id, path: context.path || context.childPath || context.file.path }),
-      save: (api, context, content, revision) => api.saveTextDocument({ kind: context.file.kind, moduleId: context.module.id, path: context.path || context.childPath || context.file.path }, content, revision),
+      read: (api, context) => {
+        const path = concreteSetPath(context);
+        return path
+          ? api.readTextDocument({ kind: context.file.kind, moduleId: context.module.id, path })
+          : Promise.reject(missingSetPathError());
+      },
+      save: (api, context, content, revision) => {
+        const path = concreteSetPath(context);
+        return path
+          ? api.saveTextDocument({ kind: context.file.kind, moduleId: context.module.id, path }, content, revision)
+          : Promise.reject(missingSetPathError());
+      },
       language: 'yaml',
       defaultContent: context => defaultSetContent(context.name)
     }
@@ -295,14 +330,14 @@ export function registerEmakiItemWebConsole(): void {
     rename: { module: 'item', previewRoute: 'rename-preview', applyRoute: 'rename-apply', aliasRoute: 'alias-list' },
     allowedFieldTypes: ['effects', 'attributeModifiers', 'repairMaterials'],
     sections: [
-      { title: '基础信息', titleKey: 'emakiitem.section.basic', fields: fields(['id', 'material', 'display_name', 'item_name', 'lore']) },
+      { title: '基础信息', titleKey: 'emakiitem.section.basic', fields: fields(['id', 'material', 'equip_slot', 'display_name', 'item_name', 'lore']) },
       { title: '显示动作链', titleKey: 'emakiitem.section.displayActions', collapsible: true, defaultCollapsed: true, fields: fields(['name_actions', 'lore_actions']) },
       { title: '更新策略', titleKey: 'emakiitem.section.update', collapsible: true, defaultCollapsed: true, fields: fields(['update.enabled', 'update.version', 'update.preserve_amount', 'update.preserve_damage', 'update.preserve_unknown_attribute_sources', 'update.triggers.join', 'update.triggers.held_change', 'update.triggers.inventory_click', 'update.triggers.inventory_drag', 'update.triggers.pickup', 'update.triggers.interact', 'update.triggers.command']) },
       { title: '效果与变量', titleKey: 'emakiitem.section.effects', collapsible: true, defaultCollapsed: true, fields: fields(['effects']) },
       { title: '原版组件', titleKey: 'emakiitem.section.components', collapsible: true, defaultCollapsed: true, fields: fields(['components.custom_model_data', 'components.item_model', 'components.tooltip_style', 'components.enchantments', 'components.item_flags', 'components.hide_tooltip', 'components.unbreakable', 'components.enchantment_glint_override', 'components.max_stack_size', 'components.rarity', 'components.damage', 'components.max_damage', 'components.enchantable', 'components.attribute_modifiers', 'components.raw']) },
       { title: '套装归属', titleKey: 'emakiitem.section.setBinding', collapsible: true, defaultCollapsed: true, fields: fields(['set.id', 'set.piece']) },
       { title: '装备条件', titleKey: 'emakiitem.section.conditions', collapsible: true, defaultCollapsed: true, fields: fields(['condition.entries', 'condition.type', 'condition.required_count', 'condition.invalid_as_failure', 'condition.on_fail.message', 'condition.on_pass.actions', 'condition.on_fail.actions']) },
-      { title: '修复配置', titleKey: 'emakiitem.section.repair', collapsible: true, defaultCollapsed: true, fields: fields(['repair.enabled', 'repair.materials', 'repair.disabled_display.name_prefix', 'repair.disabled_display.lore_append', 'repair.on_disabled', 'repair.on_repaired']) },
+      { title: '修复配置', titleKey: 'emakiitem.section.repair', collapsible: true, defaultCollapsed: true, fields: fields(['repair.enabled', 'repair.materials', 'repair.economy.enabled', 'repair.economy.restore', 'repair.economy.currencies', 'repair.disabled_display.name_prefix', 'repair.disabled_display.lore_append', 'repair.on_disabled', 'repair.on_repaired']) },
       { title: '触发动作', titleKey: 'emakiitem.section.actions', collapsible: true, defaultCollapsed: true, fields: fields(['actions.give', 'actions.interact']) }
     ]
   });
@@ -327,7 +362,7 @@ export function registerEmakiItemWebConsole(): void {
 
   function defaultSetContent(name: string): string {
     const id = name.split('/').pop()?.replace(/\.(ya?ml)$/i, '').trim() || 'new_set';
-    return `id: "${escapeYamlString(id)}"\ndisplay_name: "<aqua>${escapeYamlString(id)}</aqua>"\npieces: {}\nlore:\n  header: "<dark_gray>—— <aqua>{set_name}</aqua> <gray>({active}/{total})</gray> ——</dark_gray>"\n  equipped_format: "<green>✔ {piece}</green>"\n  missing_format: "<gray>✘ {piece}</gray>"\n  active_threshold_format: "<green>{line}</green>"\n  inactive_threshold_format: "<dark_gray>{line}</dark_gray>"\n  separator: ""\nthresholds: {}\n`;
+    return `id: "${escapeYamlString(id)}"\ndisplay_name: "<aqua>${escapeYamlString(id)}</aqua>"\npieces: {}\nlore:\n  header: "<dark_gray>—— <aqua>%set_name%</aqua> <gray>(%active%/%total%)</gray> ——</dark_gray>"\n  equipped_format: "<green>✔ %piece%</green>"\n  missing_format: "<gray>✘ %piece%</gray>"\n  active_threshold_format: "<green>%line%</green>"\n  inactive_threshold_format: "<dark_gray>%line%</dark_gray>"\n  separator: ""\nthresholds: {}\n`;
   }
 
   function escapeYamlString(value: string): string {
@@ -401,14 +436,24 @@ export function registerEmakiItemWebConsole(): void {
     const update = (index: number, patch: AnyMap) => onChange(materials.map((material, itemIndex) => itemIndex === index ? cleanObject({ ...material, ...patch }) : material));
     const remove = (index: number) => onChange(materials.filter((_, itemIndex) => itemIndex !== index));
     return <div className="prop-levels" role="list">
-      {materials.map((material, index) => <div className="prop-cost-entry" key={index} role="listitem">
-        <div className="prop-cost-entry-head"><span>{textValue(material.item) || firstItemSource(material.item_sources) || `material_${index + 1}`}</span><button type="button" className="prop-kv-del" onClick={() => remove(index)} aria-label={copy(`删除修复材料 ${index + 1}`, `Delete repair material ${index + 1}`)}>×</button></div>
-        <ItemFormRow label="item" path={joinPath(path, index, 'item')}><TextInput value={material.item} onChange={item => update(index, { item })} placeholder="minecraft-diamond" /></ItemFormRow>
-        <ItemFormRow label="amount" path={joinPath(path, index, 'amount')}><NumberInput value={material.amount ?? 1} onChange={amount => update(index, { amount: amount ?? 1 })} /></ItemFormRow>
-        <ItemFormRow label="restore" path={joinPath(path, index, 'restore')}><TextInput value={material.restore ?? material.repair_amount} onChange={restore => update(index, { restore, repair_amount: undefined })} placeholder={copy('250 或 {max_damage} * .25', '250 or {max_damage} * .25')} /></ItemFormRow>
-      </div>)}
-      <button type="button" className="prop-add" onClick={() => onChange([...materials, { item: 'minecraft-diamond', amount: 1, restore: 100 }])}>+ {copy('添加修复材料', 'Add repair material')}</button>
+      {materials.map((material, index) => {
+        const itemSources = repairMaterialSources(material);
+        return <div className="prop-cost-entry" key={index} role="listitem">
+          <div className="prop-cost-entry-head"><span>{itemSources[0] || `material_${index + 1}`}</span><button type="button" className="prop-kv-del" onClick={() => remove(index)} aria-label={copy(`删除修复材料 ${index + 1}`, `Delete repair material ${index + 1}`)}>×</button></div>
+          <ItemFormRow label="item_sources" path={joinPath(path, index, 'item_sources')} wide><StringListEditor items={itemSources} onChange={item_sources => update(index, { item_sources, item_source: undefined, item: undefined })} placeholder="minecraft-diamond" /></ItemFormRow>
+          <ItemFormRow label="amount" path={joinPath(path, index, 'amount')}><NumberInput value={material.amount ?? 1} onChange={amount => update(index, { amount: amount ?? 1 })} /></ItemFormRow>
+          <ItemFormRow label="restore" path={joinPath(path, index, 'restore')}><TextInput value={material.restore} onChange={restore => update(index, { restore })} placeholder={copy('250 或 25%', '250 or 25%')} /></ItemFormRow>
+        </div>;
+      })}
+      <button type="button" className="prop-add" onClick={() => onChange([...materials, { item_sources: ['minecraft-diamond'], amount: 1, restore: 100 }])}>+ {copy('添加修复材料', 'Add repair material')}</button>
     </div>;
+  }
+
+  function repairMaterialSources(material: AnyMap): string[] {
+    const sources = asStringList(material.item_sources);
+    if (sources.length > 0) return sources;
+    const single = textValue(material.item_source || material.item).trim();
+    return single ? [single] : [];
   }
 
   function SetPiecesEditor({ value, onChange, path }: { value: unknown; onChange: (value: AnyMap) => void; path?: string }) {

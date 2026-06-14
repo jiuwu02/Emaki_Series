@@ -36,8 +36,8 @@ condition:
   entries:
     - "%combo_count% >= 5"
 
-# 冷却时间（秒）
-cooldown: 5.0
+# 冷却时间（tick，20 tick = 1 秒）
+cooldown_ticks: 100
 
 # 技能脚本
 script:

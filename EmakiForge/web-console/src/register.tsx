@@ -110,7 +110,7 @@ export function registerEmakiForgeWebConsole(): void {
     ['optional_material_limit', '可选材料上限', '单次锻造最多允许放入的可选材料种类数量。', 'number'],
     ['blueprint_requirements', '蓝图需求', '锻造前必须持有的图纸或前置物品列表，不作为普通材料消耗。', 'objectList'],
     ['materials', '材料列表', '锻造材料列表；每项包含来源、数量、容量消耗、可选标记和效果。', 'objectList'],
-    ['condition', '配方条件', '执行该锻造配方前检查的条件块。', 'object'],
+    ['condition', '配方条件', '执行该锻造配方前检查的条件判定块；仅用于判定，不执行 on_pass/on_fail 动作。', 'object'],
     ['condition.type', '条件逻辑', '配方条件表达式的组合方式。', 'enum', { options: ['all_of', 'any_of', 'none_of', 'at_least', 'exactly'], optionLabelPrefix: 'conditionType' }],
     ['condition.entries', '条件表达式', 'CoreLib 条件表达式字符串列表。', 'stringList'],
     ['condition.required_count', '需要满足数量', 'at_least / exactly 条件逻辑下需要满足的最少条件数量。', 'number'],

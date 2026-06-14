@@ -2606,7 +2606,16 @@ function ConfigNodeView({ scope, node, drafts, setDraftValue, sourceEdit, change
 }
 
 function isWideConfigNode(node: WebConfigNode): boolean {
-  return node.type === 'dynamic_map' || node.type === 'objectList' || node.type === 'object' || node.type === 'actions' || node.type === 'effects' || node.type === 'variablesMap' || node.type === 'json';
+  return node.type === 'dynamic_map'
+    || node.type === 'list'
+    || node.type === 'stringList'
+    || node.type === 'numberList'
+    || node.type === 'objectList'
+    || node.type === 'object'
+    || node.type === 'actions'
+    || node.type === 'effects'
+    || node.type === 'variablesMap'
+    || node.type === 'json';
 }
 
 function isInlineScalarListPath(path: string | undefined): boolean {

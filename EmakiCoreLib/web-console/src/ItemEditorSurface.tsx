@@ -79,7 +79,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
 
   useEffect(() => {
     let cancelled = false;
-    if (isGlobPath(filePath)) {
+    if (!filePath || isGlobPath(filePath)) {
       setLoading(false);
       setError(t('core.empty.selectFile'));
       return;
@@ -370,7 +370,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
 }
 
 function resolveSurfaceFilePath(file: WebRegistryFile, childPath?: string): string {
-  return resolveSurfaceDocumentPath(file, childPath) ?? file.path;
+  return resolveSurfaceDocumentPath(file, childPath) ?? '';
 }
 
 function FieldEditor({ field, data, originalData, setField, actionTypesResult, editorId }: { field: WebEditorField; data: AnyMap; originalData: AnyMap; setField: (path: string, value: unknown) => void; actionTypesResult: ActionTypesResult | null; editorId?: string }) {

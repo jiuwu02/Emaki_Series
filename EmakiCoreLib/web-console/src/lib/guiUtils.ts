@@ -147,11 +147,13 @@ export function loreLines(value: unknown): string[] {
 
 export function slotItemText(slot: GuiSlotDefinition | null | undefined): string {
   if (!slot) return '';
-  return itemSourceText(slot.item);
+  return itemSourceText(slot.item_source) || itemSourceText(slot.item_sources) || itemSourceText(slot.material) || itemSourceText(slot.item);
 }
 
 export function withSlotItem(slot: GuiSlotDefinition, item: unknown): GuiSlotDefinition {
-  return { ...slot, item: item == null ? undefined : String(item) };
+  const next = { ...slot };
+  delete next.item;
+  return { ...next, item_source: item == null ? undefined : String(item) };
 }
 
 function itemSourceText(value: unknown): string {

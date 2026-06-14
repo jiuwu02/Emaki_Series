@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
+import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
@@ -11,6 +12,8 @@ import emaki.jiuwu.craft.item.script.ScriptItemModuleApi;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.gui.GuiService;
+import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.integration.PdcAttributeGateway;
 import emaki.jiuwu.craft.corelib.integration.SkillPdcGateway;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
@@ -44,6 +47,8 @@ import emaki.jiuwu.craft.item.service.EmakiItemSourceResolver;
 import emaki.jiuwu.craft.item.service.EmakiItemUpdateService;
 import emaki.jiuwu.craft.item.service.ItemComponentInspector;
 import emaki.jiuwu.craft.item.service.ItemComponentPlaceholderResolver;
+import emaki.jiuwu.craft.item.service.ItemRepairGuiService;
+import emaki.jiuwu.craft.item.service.ItemRepairService;
 import emaki.jiuwu.craft.item.service.ItemSetLoreRenderer;
 
 final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiItemPlugin, ItemRuntimeComponents> {
@@ -51,8 +56,8 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
     private static final String DEFAULT_PREFIX = "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiItem</gradient> ]</gray>";
     private static final String PDC_ATTRIBUTE_SOURCE_ID = "emakiitem";
     private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml", "lang/en_US.yml");
-    private static final List<String> DEFAULT_DATA_FILES = List.of("items/example_item.yml", "sets/example_set.yml", "id_aliases.yml");
-    private static final List<String> EXTRA_DIRECTORIES = List.of("items", "sets");
+    private static final List<String> DEFAULT_DATA_FILES = List.of("items/example_item.yml", "sets/example_set.yml", "gui/repair_gui.yml", "id_aliases.yml");
+    private static final List<String> EXTRA_DIRECTORIES = List.of("items", "sets", "gui");
 
     @Override
     public ItemRuntimeComponents initialize(EmakiItemPlugin plugin) {
@@ -94,6 +99,8 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
         EmakiItemLoader itemLoader = new EmakiItemLoader(plugin);
         EmakiItemSetLoader setLoader = new EmakiItemSetLoader(plugin);
         EmakiItemAliasLoader aliasLoader = new EmakiItemAliasLoader(plugin);
+        GuiTemplateLoader guiTemplateLoader = new GuiTemplateLoader(plugin);
+        GuiService guiService = new GuiService(plugin, coreLibPlugin.asyncTaskScheduler(), coreLibPlugin.performanceMonitor());
         EmakiItemIdResolver idResolver = new EmakiItemIdResolver(itemLoader, aliasLoader);
         EmakiItemMigrationService migrationService = new EmakiItemMigrationService(plugin);
         EmakiItemLayerPreviewService layerPreviewService = new EmakiItemLayerPreviewService(plugin);
@@ -125,11 +132,15 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
         coreLibPlugin.placeholderRegistry().register(componentPlaceholderResolver);
         EmakiItemActionService actionService = new EmakiItemActionService(plugin, coreLibPlugin.actionExecutor());
         EmakiItemConditionChecker conditionChecker = new EmakiItemConditionChecker(plugin, coreLibPlugin.placeholderRegistry(), actionService);
+        ItemRepairService repairService = new ItemRepairService(plugin, coreLibPlugin::economyManager);
+        ItemRepairGuiService repairGuiService = new ItemRepairGuiService(plugin, guiService, repairService);
         return new ItemRuntimeComponents(
                 appConfigLoader,
                 languageLoader,
                 messageService,
                 bootstrapService,
+                guiTemplateLoader,
+                guiService,
                 itemLoader,
                 setLoader,
                 aliasLoader,
@@ -147,11 +158,14 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                 componentPlaceholderResolver,
                 coreLibPlugin.itemSourceService(),
                 pdcAttributeGateway,
-                pdcService
+                pdcService,
+                repairService,
+                repairGuiService
         );
     }
 
     public void reload(EmakiItemPlugin plugin) {
+        closeRepairInventories(plugin);
         plugin.languageLoader().load();
         plugin.appConfigLoader().load();
         plugin.languageLoader().setLanguage(plugin.appConfig().language());
@@ -159,6 +173,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
         int loadedItems = plugin.itemLoader().load();
         int loadedSets = plugin.setLoader().load();
         int loadedAliases = plugin.aliasLoader().load();
+        plugin.guiTemplateLoader().load();
         plugin.itemFactory().clearCache();
         if (plugin.messageService() != null) {
             plugin.messageService().info("console.items_loaded", java.util.Map.of("count", loadedItems));
@@ -168,6 +183,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
     }
 
     public CompletableFuture<Void> reloadAsync(EmakiItemPlugin plugin, Consumer<String> progressListener) {
+        closeRepairInventories(plugin);
         AsyncTaskScheduler scheduler = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).asyncTaskScheduler();
         if (scheduler == null) {
             reload(plugin);
@@ -184,6 +200,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                     plugin.itemLoader().load();
                     plugin.setLoader().load();
                     plugin.aliasLoader().load();
+                    plugin.guiTemplateLoader().load();
                 },
                 null, (stage, ex) -> plugin.getLogger().warning("[Reload] Stage " + stage + " failed: " + ex.getMessage())
         )).thenCompose(ignored -> {
@@ -202,6 +219,18 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
         });
     }
 
+    private void closeRepairInventories(EmakiItemPlugin plugin) {
+        if (plugin == null || plugin.repairGuiService() == null) {
+            return;
+        }
+        for (var player : Bukkit.getOnlinePlayers()) {
+            if (plugin.repairGuiService().getSession(player) != null) {
+                player.closeInventory();
+            }
+        }
+        plugin.repairGuiService().clearAllSessions();
+    }
+
     public void registerServices(EmakiItemPlugin plugin) {
         ItemSourceUtil.registerParser("emakiitem", this::parseEmakiItemSource);
         ItemSourceUtil.registerShorthandWriter(ItemSourceType.EMAKIITEM, source -> "emakiitem-" + source.getIdentifier());
@@ -212,6 +241,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
         if (plugin.messageService() != null) {
             plugin.messageService().info("console.plugin_stopping");
         }
+        closeRepairInventories(plugin);
         EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
         if (coreLibPlugin.placeholderRegistry() != null && plugin.componentPlaceholderResolver() != null) {
             coreLibPlugin.placeholderRegistry().unregister(plugin.componentPlaceholderResolver());

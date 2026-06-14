@@ -12,6 +12,7 @@ import org.bukkit.Material;
 import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.item.EquipmentSlotMatcher;
+import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -209,17 +210,65 @@ public final class EmakiItemDefinitionParser {
             if (entry == null) {
                 continue;
             }
-            String item = Texts.toStringSafe(ConfigNodes.get(entry, "item"));
+            List<ItemSource> itemSources = parseRepairItemSources(entry);
             int amount = Numbers.tryParseInt(ConfigNodes.get(entry, "amount"), 1);
             String restore = Texts.toStringSafe(ConfigNodes.get(entry, "restore"));
-            if (Texts.isNotBlank(item) && Texts.isNotBlank(restore)) {
-                materials.add(new RepairMaterial(item, amount, restore));
+            if (!itemSources.isEmpty() && Texts.isNotBlank(restore)) {
+                materials.add(new RepairMaterial(itemSources, amount, restore));
             }
         }
+        RepairEconomyConfig economy = parseRepairEconomy(section.getSection("economy"));
         DisabledDisplay disabledDisplay = parseDisabledDisplay(section.getSection("disabled_display"));
         List<String> onDisabled = normalizedList(section.get("on_disabled"));
         List<String> onRepaired = normalizedList(section.get("on_repaired"));
-        return new RepairConfig(true, materials, disabledDisplay, onDisabled, onRepaired);
+        return new RepairConfig(true, materials, economy, disabledDisplay, onDisabled, onRepaired);
+    }
+
+    private List<ItemSource> parseRepairItemSources(Map<?, ?> entry) {
+        Object rawSources = ConfigNodes.get(entry, "item_sources");
+        if (rawSources == null) {
+            rawSources = ConfigNodes.get(entry, "item_source");
+        }
+        if (rawSources == null) {
+            rawSources = ConfigNodes.get(entry, "item");
+        }
+        List<ItemSource> result = new ArrayList<>();
+        for (Object rawSource : ConfigNodes.asObjectList(rawSources)) {
+            ItemSource source = ItemSourceUtil.parse(rawSource);
+            if (source != null) {
+                result.add(source);
+            }
+        }
+        return result.isEmpty() ? List.of() : List.copyOf(result);
+    }
+
+    private RepairEconomyConfig parseRepairEconomy(YamlSection section) {
+        if (section == null) {
+            return RepairEconomyConfig.disabled();
+        }
+        List<RepairCurrencyCost> currencies = new ArrayList<>();
+        for (Map<?, ?> entry : section.getMapList("currencies")) {
+            if (entry == null) {
+                continue;
+            }
+            String currencyId = ConfigNodes.string(entry, "currency_id", ConfigNodes.string(entry, "currency", ""));
+            String costFormula = ConfigNodes.string(entry, "cost_formula", ConfigNodes.string(entry, "formula", ""));
+            RepairCurrencyCost currency = new RepairCurrencyCost(
+                    ConfigNodes.string(entry, "provider", "auto"),
+                    currencyId,
+                    Numbers.tryParseDouble(ConfigNodes.get(entry, "amount"), 0D),
+                    Numbers.tryParseDouble(ConfigNodes.get(entry, "base_cost"), 0D),
+                    costFormula,
+                    ConfigNodes.string(entry, "display_name", "")
+            );
+            if (currency.hasCost()) {
+                currencies.add(currency);
+            }
+        }
+        Boolean enabledValue = section.getBoolean("enabled");
+        boolean enabled = enabledValue != null ? enabledValue : !currencies.isEmpty();
+        String restore = section.getString("restore", "100%");
+        return new RepairEconomyConfig(enabled, restore, currencies);
     }
 
     private DisabledDisplay parseDisabledDisplay(YamlSection section) {

@@ -104,11 +104,7 @@ public final class GuiTemplateParser {
         if (raw instanceof String text) {
             return Texts.trim(text);
         }
-        String item = ConfigNodes.string(raw, "item", null);
-        if (Texts.isNotBlank(item)) {
-            return item;
-        }
-        item = parseItemSourceText(ConfigNodes.get(raw, "item_source"));
+        String item = parseItemSourceText(ConfigNodes.get(raw, "item_source"));
         if (Texts.isNotBlank(item)) {
             return item;
         }
@@ -117,6 +113,10 @@ public final class GuiTemplateParser {
             return item;
         }
         item = ConfigNodes.string(raw, "material", null);
+        if (Texts.isNotBlank(item)) {
+            return item;
+        }
+        item = ConfigNodes.string(raw, "item", null);
         if (Texts.isNotBlank(item)) {
             return item;
         }

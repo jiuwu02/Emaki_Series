@@ -117,7 +117,7 @@ export function registerEmakiStrengthenWebConsole(): void {
     ['branch_tree', '分支树', '分支强化路线配置。', 'object'],
     ['branch_tree.stars', '根分支星级', '分支树根节点内的星级阶段。', 'object', { creatableChildren: true, createTemplates: [starStageTemplate] }],
     ['branch_tree.children', '子分支', '根分支后可选择的路线。', 'object', { creatableChildren: true, createTemplates: [branchTemplate] }],
-    ['condition', '强化条件', '执行强化前检查的条件块。', 'object'],
+    ['condition', '强化条件', '执行强化前检查的条件判定块；仅用于判定，不执行 on_pass/on_fail 动作。', 'object'],
     ['condition.type', '条件逻辑', '条件表达式组合方式。', 'enum', { options: ['all_of', 'any_of', 'none_of', 'at_least', 'exactly'], optionLabelPrefix: 'conditionType' }],
     ['condition.entries', '条件表达式', 'CoreLib 条件表达式字符串列表。', 'stringList'],
     ['condition.required_count', '需要满足数量', 'at_least / exactly 场景下需要满足的最少条件数量。', 'number'],

@@ -238,7 +238,7 @@ export function registerEmakiGemWebConsole(): void {
     ['gui', 'GUI', '宝石 GUI 默认模式、关闭保存和模板入口。', 'object'],
     ['gui.default_mode', '默认页面', '打开宝石 GUI 时默认显示的页面。', 'enum', { options: ['inlay', 'open', 'upgrade'], optionLabelPrefix: 'gui.default_mode' }],
     ['gui.save_on_close', '关闭保存', '关闭 GUI 时是否自动保存未提交的宝石操作。', 'boolean'],
-    ['condition', '条件配置', '宝石操作条件表达式的组合方式与失败处理策略。', 'object'],
+    ['condition', '条件配置', '宝石操作条件表达式的组合方式与失败处理策略；仅用于判定，不执行 on_pass/on_fail 动作。', 'object'],
     ['condition.type', '条件逻辑', '条件表达式组合方式。', 'enum', { options: ['all_of', 'any_of', 'none_of', 'at_least', 'exactly'], optionLabelPrefix: 'conditionType' }],
     ['condition.required_count', '需要满足数量', 'at_least / exactly 场景下需要满足的最少条件数量。', 'number'],
     ['condition.entries', '条件表达式', 'CoreLib 条件表达式字符串列表。', 'stringList'],
@@ -248,7 +248,7 @@ export function registerEmakiGemWebConsole(): void {
   const conditionFields: ConfigSpec[] = [
     ['enabled', '启用', '是否启用此条件源。', 'boolean'],
     ['source_id', '来源 ID', '供 EmakiAttribute 或其他系统引用的条件源标识。', 'text'],
-    ['condition', '条件块', '条件表达式组合方式与失败处理策略。', 'object'],
+    ['condition', '条件块', '条件表达式组合方式与失败处理策略；仅用于判定，不执行 on_pass/on_fail 动作。', 'object'],
     ['condition.type', '条件逻辑', '条件表达式组合方式。', 'enum', { options: ['all_of', 'any_of', 'none_of', 'at_least', 'exactly'], optionLabelPrefix: 'conditionType' }],
     ['condition.invalid_as_failure', '解析失败视为失败', '表达式解析失败时是否视为不满足条件。', 'boolean'],
     ['condition.entries', '条件表达式', '条件表达式列表；空列表表示无额外条件，仅由代码逻辑判断。', 'stringList']

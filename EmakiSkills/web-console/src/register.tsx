@@ -127,7 +127,7 @@ export function registerEmakiSkillsWebConsole(): void {
     ['pdc_skill_id', 'PDC 技能 ID', '写入 PDC 或识别时使用的技能 ID；留空默认等于 id。', 'text'],
     ['ui_category', 'UI 分类', '技能在 GUI 中的分类 ID。', 'text'],
     ['sort_order', '排序', '同分类内的排序权重。', 'number'],
-    ['condition', '释放条件', '技能释放前检查的条件块。', 'object'],
+    ['condition', '释放条件', '技能释放前检查的条件判定块；仅用于判定，不执行 on_pass/on_fail 动作。', 'object'],
     ['condition.type', '条件逻辑', '技能释放条件组合逻辑。', 'enum', { options: ['all_of', 'any_of', 'none_of', 'at_least', 'exactly'], optionLabelPrefix: 'conditionType' }],
     ['condition.entries', '释放条件', '技能释放前检查的条件表达式列表。', 'stringList'],
     ['condition.required_count', '需要满足数量', 'at_least / exactly 条件逻辑下需要满足的最少条件数量；0 表示不额外限制。', 'number']

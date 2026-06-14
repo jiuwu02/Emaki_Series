@@ -7,7 +7,7 @@
 # 文件放置位置: plugins/EmakiItem/lang/
 # ============================================================
 
-version: "2.2.6"
+version: "2.2.12"
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiItem</gradient> ]</gray>"
   no_permission: "<red>你没有权限执行这个命令。</red>"
@@ -50,6 +50,7 @@ command:
       give: "给予玩家物品"
       inspect: "检查主手 EmakiItem"
       components: "输出主手物品组件 JSON"
+      repair: "打开物品修复界面"
       update: "刷新玩家物品更新和套装 Lore"
       reload: "重载配置和物品定义"
       debug: "管理 Debug 模式"
@@ -64,6 +65,53 @@ command:
     no_item: "<red><white>%player%</white> 主手没有物品。</red>"
     empty: "<yellow><white>%player%</white> 主手物品没有可展示组件。</yellow>"
     not_found: "<red>找不到组件: <white>%id%</white></red>"
+repair:
+  gui_open_failed: "<red>修复界面不可用，请检查 gui/repair_gui.yml。</red>"
+  inventory_full: "<yellow>背包空间不足，剩余物品已掉落在脚下。</yellow>"
+  success: "<green>修复完成，恢复 <white>%restore%</white> 点耐久。</green>"
+  error:
+    invalid_item: "<red>请先放入可修复的 EmakiItem 装备。</red>"
+    insufficient_materials: "<red>修复材料不足。</red>"
+    invalid_restore: "<red>修复恢复值无效。</red>"
+    already_repaired: "<yellow>该物品无需修复。</yellow>"
+    economy_disabled: "<red>该物品未启用经济修复。</red>"
+    not_repairable: "<red>该物品没有可修复耐久。</red>"
+    economy_provider_unavailable: "<red>经济服务不可用：<white>%provider%</white> / <white>%currency%</white></red>"
+    invalid_cost: "<red>经济修复未配置有效花费。</red>"
+    insufficient_funds: "<red><white>%name%</white> 不足，需要 <white>%required%</white>，当前 <white>%available%</white>。</red>"
+  preview:
+    title: "<gold>修复预览</gold>"
+    no_target_1: "<gray>将待修复装备放入左侧槽位。</gray>"
+    no_target_2: "<gray>材料修复和经济修复会在这里显示状态。</gray>"
+    invalid_title: "<red>无法修复</red>"
+    invalid_item: "<red>该物品不是可修复的 EmakiItem。</red>"
+    repair_disabled: "<red>该物品未启用 repair 配置。</red>"
+    not_repairable: "<red>该物品没有耐久组件。</red>"
+    item: "<gray>物品: <white>%id%</white></gray>"
+    damage: "<gray>损伤: <white>%damage%</white>/<white>%max%</white></gray>"
+    disabled: "<red>状态: 已损坏</red>"
+    enabled: "<green>状态: 可用</green>"
+    already_repaired: "<yellow>当前耐久已满。</yellow>"
+    materials_empty: "<dark_gray>未配置材料修复。</dark_gray>"
+    materials_header: "<yellow>材料修复:</yellow>"
+    material_line_ready: "<green>✔ %material% x%required%（已有 %available%，恢复 %restore%）</green>"
+    material_line_missing: "<red>✘ %material% x%required%（已有 %available%，恢复 %restore%）</red>"
+    economy_disabled: "<dark_gray>未配置经济修复。</dark_gray>"
+    economy_header: "<yellow>经济修复:</yellow>"
+    economy_line_ready: "<green>✔ %name% %required%（余额 %available%）</green>"
+    economy_line_missing: "<red>✘ %name% %required%（余额 %available%）</red>"
+  material_button:
+    ready: "<green>材料修复</green>"
+    blocked: "<red>材料修复不可用</red>"
+    no_target: "<gray>请先放入可修复装备。</gray>"
+    need_material: "<gray>请放入足够修复材料。</gray>"
+    material: "<gray>消耗 <white>%material%</white> x%amount%，恢复 <white>%restore%</white>。</gray>"
+  economy_button:
+    ready: "<green>经济修复</green>"
+    blocked: "<red>经济修复不可用</red>"
+    disabled: "<gray>该物品未配置经济修复。</gray>"
+    restore: "<gray>恢复 <white>%restore%</white> 点耐久。</gray>"
+    cost: "<gray>消耗 <white>%name%</white> <white>%required%</white>（余额 <white>%available%</white>）。</gray>"
 
 # Debug 模式消息
 debug:

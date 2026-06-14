@@ -19,6 +19,8 @@ import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.api.integration.EmakiAttributeBridge;
+import emaki.jiuwu.craft.corelib.gui.GuiService;
+import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.integration.PdcAttributeGateway;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
@@ -37,6 +39,8 @@ import emaki.jiuwu.craft.corelib.web.insight.WebInsightAliasResolver;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.item.api.EmakiItemApi;
 import emaki.jiuwu.craft.item.config.AppConfig;
+import emaki.jiuwu.craft.item.listener.ItemDurabilityListener;
+import emaki.jiuwu.craft.item.listener.ItemRepairListener;
 import emaki.jiuwu.craft.item.listener.ItemTriggerListener;
 import emaki.jiuwu.craft.item.listener.ItemUpdateListener;
 import emaki.jiuwu.craft.item.loader.EmakiItemAliasLoader;
@@ -55,6 +59,8 @@ import emaki.jiuwu.craft.item.service.EmakiItemSetService;
 import emaki.jiuwu.craft.item.service.EmakiItemUpdateService;
 import emaki.jiuwu.craft.item.service.ItemComponentInspector;
 import emaki.jiuwu.craft.item.service.ItemComponentPlaceholderResolver;
+import emaki.jiuwu.craft.item.service.ItemRepairGuiService;
+import emaki.jiuwu.craft.item.service.ItemRepairService;
 
 public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider {
 
@@ -80,6 +86,8 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     private LanguageLoader languageLoader;
     private MessageService messageService;
     private BootstrapService bootstrapService;
+    private GuiTemplateLoader guiTemplateLoader;
+    private GuiService guiService;
     private EmakiItemLoader itemLoader;
     private EmakiItemSetLoader setLoader;
     private EmakiItemAliasLoader aliasLoader;
@@ -97,6 +105,8 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     private ItemComponentPlaceholderResolver componentPlaceholderResolver;
     private ItemSourceService itemSourceService;
     private PdcAttributeGateway pdcAttributeGateway;
+    private ItemRepairService repairService;
+    private ItemRepairGuiService repairGuiService;
     private final EmakiItemApi.Bridge itemApiBridge = new EmakiItemApi.Bridge() {
         @Override
         public boolean exists(String id) {
@@ -181,6 +191,8 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         languageLoader = components.languageLoader();
         messageService = components.messageService();
         bootstrapService = components.bootstrapService();
+        guiTemplateLoader = components.guiTemplateLoader();
+        guiService = components.guiService();
         itemLoader = components.itemLoader();
         setLoader = components.setLoader();
         aliasLoader = components.aliasLoader();
@@ -198,6 +210,8 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         componentPlaceholderResolver = components.componentPlaceholderResolver();
         itemSourceService = components.itemSourceService();
         pdcAttributeGateway = components.pdcAttributeGateway();
+        repairService = components.repairService();
+        repairGuiService = components.repairGuiService();
         setDebugLogger(new DebugLogger(getLogger(), languageLoader));
         debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES);
         registerServices(components);
@@ -212,8 +226,11 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     }
 
     private void registerEventHandlers() {
+        getServer().getPluginManager().registerEvents(guiService, this);
         getServer().getPluginManager().registerEvents(new ItemTriggerListener(this), this);
         getServer().getPluginManager().registerEvents(new ItemUpdateListener(this), this);
+        getServer().getPluginManager().registerEvents(new ItemDurabilityListener(this, repairService), this);
+        getServer().getPluginManager().registerEvents(new ItemRepairListener(this, repairService), this);
     }
 
     private void registerWebConsole() {
@@ -283,6 +300,14 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
 
     public BootstrapService bootstrapService() {
         return bootstrapService;
+    }
+
+    public GuiTemplateLoader guiTemplateLoader() {
+        return guiTemplateLoader;
+    }
+
+    public GuiService guiService() {
+        return guiService;
     }
 
     public EmakiItemLoader itemLoader() {
@@ -355,6 +380,14 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
 
     public PdcAttributeGateway pdcAttributeGateway() {
         return pdcAttributeGateway;
+    }
+
+    public ItemRepairService repairService() {
+        return repairService;
+    }
+
+    public ItemRepairGuiService repairGuiService() {
+        return repairGuiService;
     }
 
     public void scheduleAttributeEquipmentSync(Player player) {

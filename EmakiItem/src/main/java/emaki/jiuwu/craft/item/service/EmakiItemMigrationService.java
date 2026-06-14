@@ -74,9 +74,29 @@ public final class EmakiItemMigrationService {
     public Map<String, Object> apply(String oldId,
             String newId,
             boolean replaceReferences,
+            boolean keepAlias) throws IOException {
+        return applyWithWriter(oldId, newId, replaceReferences, keepAlias, Map.of(), this::saveDirect);
+    }
+
+    public Map<String, Object> apply(String oldId,
+            String newId,
+            boolean replaceReferences,
             boolean keepAlias,
             Map<String, Long> expectedRevisions,
             WebPluginApiRequest request) throws IOException {
+        if (request == null) {
+            throw new IOException("Web 写入上下文不可用");
+        }
+        return applyWithWriter(oldId, newId, replaceReferences, keepAlias, expectedRevisions,
+                (moduleId, path, kind, content, expectedRevision, operation, physicalPath) -> request.saveModuleConfig(moduleId, path, kind, content, expectedRevision, operation));
+    }
+
+    private Map<String, Object> applyWithWriter(String oldId,
+            String newId,
+            boolean replaceReferences,
+            boolean keepAlias,
+            Map<String, Long> expectedRevisions,
+            ConfigWriteSink writer) throws IOException {
         String oldNormalized = Texts.normalizeId(oldId);
         String newNormalized = Texts.normalizeId(newId);
         if (Texts.isBlank(oldNormalized) || Texts.isBlank(newNormalized) || oldNormalized.equals(newNormalized)) {
@@ -85,10 +105,6 @@ public final class EmakiItemMigrationService {
         if (plugin.itemLoader().get(newNormalized) == null) {
             throw new IOException("目标物品 ID 不存在：" + newNormalized);
         }
-        if (request == null) {
-            throw new IOException("Web 写入上下文不可用");
-        }
-
         List<PlannedWrite> plannedWrites = new ArrayList<>();
         int replacements = 0;
         if (replaceReferences) {
@@ -124,13 +140,14 @@ public final class EmakiItemMigrationService {
         List<Map<String, Object>> changed = new ArrayList<>();
         for (PlannedWrite planned : plannedWrites) {
             writeBackup(planned.target(), Files.readString(planned.target().path(), StandardCharsets.UTF_8));
-            long nextRevision = request.saveModuleConfig(
+            long nextRevision = writer.save(
                     planned.target().moduleId(),
                     planned.target().relativePath(),
                     planned.target().kind(),
                     planned.content(),
                     planned.expectedRevision(),
-                    "item_rename_references"
+                    "item_rename_references",
+                    planned.target().path()
             );
             changed.add(Map.of(
                     "moduleId", planned.target().moduleId(),
@@ -142,13 +159,14 @@ public final class EmakiItemMigrationService {
         }
         Long aliasRevision = null;
         if (aliasWrite != null) {
-            aliasRevision = request.saveModuleConfig(
+            aliasRevision = writer.save(
                     plugin.getName(),
                     ALIAS_FILE,
                     "ALIAS",
                     aliasWrite.content(),
                     aliasWrite.expectedRevision(),
-                    "item_rename_alias"
+                    "item_rename_alias",
+                    aliasPath()
             );
             plugin.aliasLoader().load();
         }
@@ -371,6 +389,22 @@ public final class EmakiItemMigrationService {
 
     private String normalizeRelativePath(String path) {
         return Texts.toStringSafe(path).replace('\\', '/').replaceAll("^/+", "");
+    }
+
+    private long saveDirect(String moduleId, String path, String kind, String content, Long expectedRevision, String operation, Path physicalPath) throws IOException {
+        if (physicalPath == null) {
+            throw new IOException("缺少写入路径: " + moduleId + "/" + path);
+        }
+        YamlFiles.load(content == null ? "" : content);
+        long previousRevision = WebFileRevisions.requireExpected(physicalPath, expectedRevision);
+        Files.createDirectories(physicalPath.getParent());
+        Files.writeString(physicalPath, content == null ? "" : content, StandardCharsets.UTF_8);
+        return WebFileRevisions.advance(physicalPath, previousRevision);
+    }
+
+    @FunctionalInterface
+    private interface ConfigWriteSink {
+        long save(String moduleId, String path, String kind, String content, Long expectedRevision, String operation, Path physicalPath) throws IOException;
     }
 
     private record TargetFile(String moduleId, String relativePath, String kind, Path path) {}

@@ -62,7 +62,9 @@ public final class ItemSetLoreRenderer {
         }
         String result = template;
         for (Map.Entry<String, String> entry : placeholders.entrySet()) {
-            result = result.replace("{" + entry.getKey() + "}", entry.getValue() == null ? "" : entry.getValue());
+            String value = entry.getValue() == null ? "" : entry.getValue();
+            result = result.replace("%" + entry.getKey() + "%", value);
+            result = result.replace("{" + entry.getKey() + "}", value);
         }
         return result;
     }

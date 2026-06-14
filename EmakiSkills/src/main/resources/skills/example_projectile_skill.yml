@@ -33,7 +33,8 @@ icon_material: "fire_charge"
 trigger_type: "active"
 enabled: true
 
-cooldown: 3.0
+# 冷却时间（tick，20 tick = 1 秒）
+cooldown_ticks: 60
 
 # 技能脚本
 script:

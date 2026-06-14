@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-level</artifactId>
-    <version>1.1.0</version>
+    <version>1.0.8</version>
     <name>EmakiLevel</name>
     <packaging>jar</packaging>
 

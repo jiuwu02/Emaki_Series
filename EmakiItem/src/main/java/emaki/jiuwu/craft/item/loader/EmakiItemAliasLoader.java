@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.item.loader;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -34,7 +35,7 @@ public final class EmakiItemAliasLoader {
         for (Map.Entry<String, Object> entry : root.entrySet()) {
             String oldId = Texts.normalizeId(entry.getKey());
             Map<String, Object> data = ConfigNodes.entries(entry.getValue());
-            String target = Texts.normalizeId(data.get("target"));
+            String target = Texts.normalizeId(Texts.toStringSafe(data.get("target")));
             EmakiItemAlias alias = new EmakiItemAlias(
                     oldId,
                     target,
@@ -93,7 +94,11 @@ public final class EmakiItemAliasLoader {
             aliasMap.put(alias.oldId(), data);
         }
         root.put("aliases", aliasMap);
-        YamlFiles.save(plugin.getDataFolder().toPath().resolve("id_aliases.yml").toFile(), root);
+        try {
+            YamlFiles.save(plugin.getDataFolder().toPath().resolve("id_aliases.yml").toFile(), root);
+        } catch (IOException e) {
+            plugin.getLogger().warning("Failed to save id_aliases.yml: " + e.getMessage());
+        }
     }
 
     private boolean booleanValue(Object value, boolean fallback) {

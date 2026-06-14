@@ -7,7 +7,7 @@
 # 文件放置位置: plugins/EmakiItem/lang/
 # ============================================================
 
-version: "2.2.6"
+version: "2.2.12"
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiItem</gradient> ]</gray>"
   no_permission: "<red>You do not have permission.</red>"
@@ -50,6 +50,7 @@ command:
       give: "Give an item to a player"
       inspect: "Inspect held EmakiItem"
       components: "Print held item components as JSON"
+      repair: "Open the item repair GUI"
       update: "Refresh item updates and set lore"
       reload: "Reload config and items"
       debug: "Manage debug tracking"
@@ -64,6 +65,53 @@ command:
     no_item: "<red><white>%player%</white> is not holding an item.</red>"
     empty: "<yellow><white>%player%</white>'s held item has no displayable components.</yellow>"
     not_found: "<red>Component not found: <white>%id%</white></red>"
+repair:
+  gui_open_failed: "<red>Repair GUI is unavailable. Please check gui/repair_gui.yml.</red>"
+  inventory_full: "<yellow>Your inventory is full. Remaining items were dropped nearby.</yellow>"
+  success: "<green>Repair complete. Restored <white>%restore%</white> durability.</green>"
+  error:
+    invalid_item: "<red>Place a repairable EmakiItem first.</red>"
+    insufficient_materials: "<red>Not enough repair materials.</red>"
+    invalid_restore: "<red>Invalid repair restore amount.</red>"
+    already_repaired: "<yellow>This item does not need repair.</yellow>"
+    economy_disabled: "<red>Economy repair is not enabled for this item.</red>"
+    not_repairable: "<red>This item has no repairable durability.</red>"
+    economy_provider_unavailable: "<red>Economy service unavailable: <white>%provider%</white> / <white>%currency%</white></red>"
+    invalid_cost: "<red>No valid economy repair cost is configured.</red>"
+    insufficient_funds: "<red>Not enough <white>%name%</white>. Need <white>%required%</white>, available <white>%available%</white>.</red>"
+  preview:
+    title: "<gold>Repair Preview</gold>"
+    no_target_1: "<gray>Place the item to repair in the left slot.</gray>"
+    no_target_2: "<gray>Material and economy repair status will appear here.</gray>"
+    invalid_title: "<red>Cannot repair</red>"
+    invalid_item: "<red>This is not a repairable EmakiItem.</red>"
+    repair_disabled: "<red>This item has no enabled repair config.</red>"
+    not_repairable: "<red>This item has no durability component.</red>"
+    item: "<gray>Item: <white>%id%</white></gray>"
+    damage: "<gray>Damage: <white>%damage%</white>/<white>%max%</white></gray>"
+    disabled: "<red>Status: disabled</red>"
+    enabled: "<green>Status: available</green>"
+    already_repaired: "<yellow>Durability is already full.</yellow>"
+    materials_empty: "<dark_gray>No material repair configured.</dark_gray>"
+    materials_header: "<yellow>Material repair:</yellow>"
+    material_line_ready: "<green>✔ %material% x%required% (have %available%, restores %restore%)</green>"
+    material_line_missing: "<red>✘ %material% x%required% (have %available%, restores %restore%)</red>"
+    economy_disabled: "<dark_gray>No economy repair configured.</dark_gray>"
+    economy_header: "<yellow>Economy repair:</yellow>"
+    economy_line_ready: "<green>✔ %name% %required% (balance %available%)</green>"
+    economy_line_missing: "<red>✘ %name% %required% (balance %available%)</red>"
+  material_button:
+    ready: "<green>Material Repair</green>"
+    blocked: "<red>Material Repair Unavailable</red>"
+    no_target: "<gray>Place a repairable item first.</gray>"
+    need_material: "<gray>Place enough repair materials.</gray>"
+    material: "<gray>Consumes <white>%material%</white> x%amount%, restores <white>%restore%</white>.</gray>"
+  economy_button:
+    ready: "<green>Economy Repair</green>"
+    blocked: "<red>Economy Repair Unavailable</red>"
+    disabled: "<gray>This item has no economy repair config.</gray>"
+    restore: "<gray>Restores <white>%restore%</white> durability.</gray>"
+    cost: "<gray>Costs <white>%name%</white> <white>%required%</white> (balance <white>%available%</white>).</gray>"
 
 # Debug mode messages
 debug:

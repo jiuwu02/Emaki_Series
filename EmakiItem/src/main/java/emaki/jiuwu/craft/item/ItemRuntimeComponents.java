@@ -3,6 +3,8 @@ package emaki.jiuwu.craft.item;
 import java.util.Map;
 
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.gui.GuiService;
+import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.integration.PdcAttributeGateway;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
@@ -26,11 +28,15 @@ import emaki.jiuwu.craft.item.service.EmakiItemSetService;
 import emaki.jiuwu.craft.item.service.EmakiItemUpdateService;
 import emaki.jiuwu.craft.item.service.ItemComponentInspector;
 import emaki.jiuwu.craft.item.service.ItemComponentPlaceholderResolver;
+import emaki.jiuwu.craft.item.service.ItemRepairGuiService;
+import emaki.jiuwu.craft.item.service.ItemRepairService;
 
 record ItemRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
         LanguageLoader languageLoader,
         MessageService messageService,
         BootstrapService bootstrapService,
+        GuiTemplateLoader guiTemplateLoader,
+        GuiService guiService,
         EmakiItemLoader itemLoader,
         EmakiItemSetLoader setLoader,
         EmakiItemAliasLoader aliasLoader,
@@ -48,7 +54,9 @@ record ItemRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
         ItemComponentPlaceholderResolver componentPlaceholderResolver,
         ItemSourceService itemSourceService,
         PdcAttributeGateway pdcAttributeGateway,
-        PdcService pdcService) implements RuntimeComponents {
+        PdcService pdcService,
+        ItemRepairService repairService,
+        ItemRepairGuiService repairGuiService) implements RuntimeComponents {
 
     @Override
     public Map<Class<?>, Object> services() {
@@ -57,6 +65,8 @@ record ItemRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
                 RuntimeComponents.component(LanguageLoader.class, languageLoader),
                 RuntimeComponents.component(MessageService.class, messageService),
                 RuntimeComponents.component(BootstrapService.class, bootstrapService),
+                RuntimeComponents.component(GuiTemplateLoader.class, guiTemplateLoader),
+                RuntimeComponents.component(GuiService.class, guiService),
                 RuntimeComponents.component(EmakiItemLoader.class, itemLoader),
                 RuntimeComponents.component(EmakiItemSetLoader.class, setLoader),
                 RuntimeComponents.component(EmakiItemAliasLoader.class, aliasLoader),
@@ -74,7 +84,9 @@ record ItemRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
                 RuntimeComponents.component(ItemComponentPlaceholderResolver.class, componentPlaceholderResolver),
                 RuntimeComponents.component(ItemSourceService.class, itemSourceService),
                 RuntimeComponents.component(PdcAttributeGateway.class, pdcAttributeGateway),
-                RuntimeComponents.component(PdcService.class, pdcService)
+                RuntimeComponents.component(PdcService.class, pdcService),
+                RuntimeComponents.component(ItemRepairService.class, repairService),
+                RuntimeComponents.component(ItemRepairGuiService.class, repairGuiService)
         );
     }
 }

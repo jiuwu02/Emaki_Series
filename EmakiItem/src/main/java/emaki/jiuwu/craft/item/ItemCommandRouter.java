@@ -56,6 +56,7 @@ final class ItemCommandRouter implements TabExecutor {
             case "give" -> handleGive(sender, args);
             case "inspect" -> handleInspect(sender, args);
             case "components", "component" -> handleComponents(sender, args);
+            case "repair" -> handleRepair(sender);
             case "update" -> handleUpdate(sender, args);
             case "alias" -> handleAlias(sender, args);
             case "migrate" -> handleMigrate(sender, args);
@@ -72,7 +73,7 @@ final class ItemCommandRouter implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            for (String sub : List.of("help", "list", "give", "inspect", "components", "component", "update", "alias", "migrate", "reload", "debug")) {
+            for (String sub : List.of("help", "list", "give", "inspect", "components", "component", "repair", "update", "alias", "migrate", "reload", "debug")) {
                 if (sub.startsWith(args[0].toLowerCase(java.util.Locale.ROOT))) {
                     result.add(sub);
                 }
@@ -301,6 +302,21 @@ final class ItemCommandRouter implements TabExecutor {
         return Texts.toStringSafe(value).replace("\\", "\\\\").replace("'", "\\'");
     }
 
+    private boolean handleRepair(CommandSender sender) {
+        if (!sender.hasPermission(PERMISSION_USE)) {
+            plugin.messageService().send(sender, "general.no_permission");
+            return true;
+        }
+        if (!(sender instanceof Player player)) {
+            plugin.messageService().send(sender, "general.player_only");
+            return true;
+        }
+        if (!plugin.repairGuiService().open(player)) {
+            plugin.messageService().send(sender, "repair.gui_open_failed");
+        }
+        return true;
+    }
+
     private boolean handleUpdate(CommandSender sender, String[] args) {
         if (!sender.hasPermission(PERMISSION_UPDATE)) {
             plugin.messageService().send(sender, "general.no_permission");
@@ -472,6 +488,7 @@ final class ItemCommandRouter implements TabExecutor {
         lines.put("give <player> <id> [amount]", plugin.messageService().message("command.help.desc.give"));
         lines.put("inspect [player]", plugin.messageService().message("command.help.desc.inspect"));
         lines.put("components [player] [component_id]", plugin.messageService().message("command.help.desc.components"));
+        lines.put("repair", plugin.messageService().message("command.help.desc.repair"));
         lines.put("update [player]", plugin.messageService().message("command.help.desc.update"));
         lines.put("alias list|add|remove", "管理物品 ID alias。");
         lines.put("migrate id|inventory", "预览或执行物品 ID 迁移。");
