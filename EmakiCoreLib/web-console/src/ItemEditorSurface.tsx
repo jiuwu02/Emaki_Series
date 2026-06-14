@@ -848,7 +848,7 @@ function GenericPreviewPane({ moduleId, fileKind, editor, data, preview, layerPr
         <span className="ie-preview-kind">{setDraftPreview ? uiCopy('套装预览', 'Set preview') : previewKindLabel(livePreview, moduleId, editor)}</span>
         {Boolean(setDraftPreview?.id || livePreview?.id || data.id) && <code className="ie-preview-id">{textValue(setDraftPreview?.id ?? livePreview?.id ?? data.id)}</code>}
         {!isSetPreview && <span className="ie-preview-source">{displaySource(source || material)}</span>}
-        {!isSetPreview && setLayerPreview.setId && <span className="ie-preview-source">{uiCopy('套装', 'Set')}: {textValue(setLayerPreview.setId)} / {textValue(setLayerPreview.pieceId)}</span>}
+        {!isSetPreview && Boolean(setLayerPreview.setId) && <span className="ie-preview-source">{uiCopy('套装', 'Set')}: {textValue(setLayerPreview.setId)} / {textValue(setLayerPreview.pieceId)}</span>}
         <span className={`ie-preview-status ${status.tone}`}>{status.text}</span>
       </div>
       {previewError && <InlineError className="ie-preview-error">
