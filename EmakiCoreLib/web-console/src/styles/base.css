@@ -16,6 +16,8 @@
   --text: oklch(91% 0.01 var(--hue));
   --muted: oklch(64% 0.012 var(--hue));
   --faint: oklch(49% 0.012 var(--hue));
+  --subtle-readable: oklch(70% 0.012 var(--hue));
+  --placeholder: oklch(68% 0.012 var(--hue));
   --accent: oklch(69% 0.14 var(--accent-hue));
   --accent-strong: oklch(78% 0.16 var(--accent-hue));
   --accent-soft: oklch(23% 0.05 var(--accent-hue));
@@ -51,6 +53,14 @@
   --code-operator: oklch(68% 0.08 var(--accent-hue));
   --code-selection: oklch(69% 0.14 var(--accent-hue) / .3);
   --code-active-line: var(--surface-2);
+  --viz-1: oklch(72% 0.15 255);
+  --viz-2: oklch(72% 0.13 205);
+  --viz-3: oklch(74% 0.14 150);
+  --viz-4: oklch(78% 0.13 82);
+  --viz-5: oklch(72% 0.14 315);
+  --viz-6: oklch(70% 0.14 25);
+  --viz-7: oklch(76% 0.12 180);
+  --viz-8: oklch(75% 0.13 120);
   --overlay: oklch(8% 0.012 var(--hue) / .78);
   --gui-surface-bg: oklch(14.5% 0.01 var(--hue));
   --gui-workbench-bg: oklch(13.8% 0.011 var(--hue));
@@ -126,6 +136,8 @@
   --text: oklch(22% 0.014 var(--hue));
   --muted: oklch(42% 0.014 var(--hue));
   --faint: oklch(58% 0.012 var(--hue));
+  --subtle-readable: oklch(38% 0.014 var(--hue));
+  --placeholder: oklch(40% 0.014 var(--hue));
   --accent: oklch(55% 0.15 var(--accent-hue));
   --accent-strong: oklch(45% 0.16 var(--accent-hue));
   --accent-soft: oklch(91.5% 0.045 var(--accent-hue));
@@ -161,6 +173,14 @@
   --code-operator: oklch(42% 0.08 var(--accent-hue));
   --code-selection: oklch(55% 0.15 var(--accent-hue) / .18);
   --code-active-line: var(--surface-2);
+  --viz-1: oklch(50% 0.16 255);
+  --viz-2: oklch(47% 0.13 205);
+  --viz-3: oklch(46% 0.14 150);
+  --viz-4: oklch(55% 0.14 82);
+  --viz-5: oklch(50% 0.15 315);
+  --viz-6: oklch(52% 0.16 25);
+  --viz-7: oklch(48% 0.12 180);
+  --viz-8: oklch(50% 0.13 120);
   --overlay: oklch(22% 0.014 var(--hue) / .28);
   --gui-surface-bg: oklch(95.5% 0.01 var(--hue));
   --gui-workbench-bg: oklch(94% 0.011 var(--hue));
@@ -252,6 +272,11 @@ button:active:not(:disabled) {
 button:disabled {
   opacity: .45;
   cursor: not-allowed;
+}
+
+::placeholder {
+  color: var(--placeholder);
+  opacity: 1;
 }
 
 button:focus-visible,

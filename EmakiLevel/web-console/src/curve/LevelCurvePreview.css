@@ -156,6 +156,10 @@
   align-items: start;
 }
 
+.level-curve-preview__tooltip-copy {
+  min-width: 0;
+}
+
 .level-curve-preview__tooltip-title {
   align-items: baseline;
   min-width: 0;
@@ -247,6 +251,26 @@
   font-weight: 700;
 }
 
+.level-curve-preview__col-lv {
+  width: 64px;
+}
+
+.level-curve-preview__col-required {
+  width: 120px;
+}
+
+.level-curve-preview__col-total {
+  width: 130px;
+}
+
+.level-curve-preview__col-growth {
+  width: 100px;
+}
+
+.level-curve-preview__col-warnings {
+  width: 120px;
+}
+
 .level-curve-preview__num {
   font-variant-numeric: tabular-nums;
 }
@@ -256,12 +280,12 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--faint);
+  color: var(--subtle-readable);
 }
 
 .level-curve-preview__diagnostic {
   margin-top: 8px;
-  color: var(--faint);
+  color: var(--subtle-readable);
   font-size: 11px;
 }
 
@@ -275,5 +299,26 @@
   .level-curve-preview__controls {
     display: grid;
     grid-template-columns: 1fr;
+  }
+
+  .level-curve-preview__chart-wrap,
+  .level-curve-preview__table-scroll {
+    margin-inline: -2px;
+    padding-bottom: 4px;
+  }
+
+  .level-curve-preview__legend-button,
+  .level-curve-preview__table-head,
+  .level-curve-preview__field input,
+  .level-curve-preview__field select {
+    min-height: 44px;
+  }
+
+  .level-curve-preview__tooltip-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .level-curve-preview__table {
+    min-width: 640px;
   }
 }

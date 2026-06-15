@@ -62,7 +62,11 @@ public final class StrengthenItemLayerPreviewProvider implements WebItemLayerPre
             return WebItemLayerPreviewResult.unavailable(LAYER_ID, "强化层预览重建失败。", details(state, recipe.id(), recipe), options(recipe, state, targetStar, targetTemper));
         }
         Map<String, Object> details = details(state, recipe.id(), recipe);
-        details.put("route", plugin.routePreviewService().preview(recipe.id()));
+        details.put("routeSummary", Map.of(
+                "recipeId", recipe.id(),
+                "maxStar", recipe.limits().maxStar(),
+                "branching", recipe.branchTree() != null
+        ));
         details.put("source", state.baseSourceSignature());
         return WebItemLayerPreviewResult.available(
                 LAYER_ID,

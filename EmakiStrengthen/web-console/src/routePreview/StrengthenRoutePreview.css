@@ -226,4 +226,20 @@
   .strengthen-route-preview__actions {
     flex-wrap: wrap;
   }
+
+  .strengthen-route-preview__graph-scroll,
+  .strengthen-route-preview__table-scroll {
+    margin-inline: -2px;
+    padding-bottom: 4px;
+  }
+
+  .strengthen-route-preview__actions .ui-button,
+  .strengthen-route-preview__select-button,
+  .strengthen-route-preview__node-button {
+    min-height: 44px;
+  }
+
+  .strengthen-route-preview__table {
+    min-width: 680px;
+  }
 }

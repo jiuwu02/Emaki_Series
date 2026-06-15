@@ -237,8 +237,9 @@ export class ApiClient {
     return { revision: typeof data.revision === 'number' ? data.revision : undefined };
   }
 
-  async previewItem(content: string, previewLevel: number, baseName = '', baseLore: string[] = []): Promise<ItemPreviewResult> {
+  async previewItem(content: string, previewLevel: number, baseName = '', baseLore: string[] = [], init: RequestInit = {}): Promise<ItemPreviewResult> {
     const data = await this.request('/api/items/preview', {
+      ...init,
       method: 'POST',
       body: JSON.stringify({ content, previewLevel, baseName, baseLore })
     });
@@ -319,10 +320,11 @@ export class ApiClient {
     return this.economyProvidersCache;
   }
 
-  async pluginApi(moduleId: string, routeId: string, body: Record<string, unknown> = {}): Promise<any> {
+  async pluginApi(moduleId: string, routeId: string, body: Record<string, unknown> = {}, init: RequestInit = {}): Promise<any> {
     const normalizedModule = encodeURIComponent(moduleId.trim().toLowerCase());
     const normalizedRoute = routeId.trim().replace(/^\/+|\/+$/g, '').split('/').map(encodeURIComponent).join('/');
     return this.request(`/api/plugin/${normalizedModule}/${normalizedRoute}`, {
+      ...init,
       method: 'POST',
       body: JSON.stringify(body)
     });

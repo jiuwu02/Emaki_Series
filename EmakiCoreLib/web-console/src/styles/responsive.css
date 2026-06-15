@@ -1,5 +1,5 @@
 .muted-copy {
-  color: var(--faint);
+  color: var(--subtle-readable);
   font-size: 12px;
   line-height: 1.34;
 }
@@ -442,6 +442,11 @@
 
   .material-list button,
   .material-tabs button,
+  .surface-summary-chip.action,
+  .overlay-toggle,
+  .overlay-delete,
+  .prop-level-toggle,
+  .prop-action-controls button,
   .wide-action,
   .ui-button--full {
     min-height: 44px;

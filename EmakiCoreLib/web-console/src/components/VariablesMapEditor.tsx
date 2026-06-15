@@ -1,4 +1,4 @@
-import { useState, type KeyboardEvent, type SyntheticEvent } from 'react';
+import { useState } from 'react';
 import { t } from '../i18n';
 import { DisclosureChevron } from './SectionHead';
 
@@ -38,12 +38,14 @@ export function VariablesMapEditor({ value, onChange }: { value: unknown; onChan
       const type = detectVariableType(entry.value);
       const opened = expanded.has(index);
       return <div className={`prop-level-item${opened ? ' expanded' : ''}`} key={index} role="listitem">
-        <div className="prop-level-head" role="button" tabIndex={0} onClick={() => toggle(index)} onKeyDown={event => toggleByKeyboard(event, () => toggle(index))} aria-expanded={opened} aria-controls={`variable-body-${index}`}>
-          <span className="prop-level-summary">
-            <span className="prop-level-badge"><DisclosureChevron open={opened} className="prop-level-arrow" /> {entry.key || t('core.variables.unnamed')}</span>
-          </span>
+        <div className="prop-level-head">
+          <button type="button" className="prop-level-toggle" onClick={() => toggle(index)} aria-expanded={opened} aria-controls={`variable-body-${index}`}>
+            <span className="prop-level-summary">
+              <span className="prop-level-badge"><DisclosureChevron open={opened} className="prop-level-arrow" /> {entry.key || t('core.variables.unnamed')}</span>
+            </span>
+          </button>
           <span className="prop-level-rate">{variableTypeLabel(type)}</span>
-          <span className="prop-action-controls" onClick={stopEvent} onKeyDown={stopEvent}>
+          <span className="prop-action-controls">
             <button type="button" className="prop-action-del" onClick={() => remove(index)} aria-label={t('core.kv.delete', { index: index + 1 })}>×</button>
           </span>
         </div>
@@ -56,16 +58,6 @@ export function VariablesMapEditor({ value, onChange }: { value: unknown; onChan
     })}
     <button type="button" className="prop-add" onClick={add}>+ {t('core.variables.add')}</button>
   </div>;
-}
-
-function toggleByKeyboard(event: KeyboardEvent, action: () => void) {
-  if (event.key !== 'Enter' && event.key !== ' ') return;
-  event.preventDefault();
-  action();
-}
-
-function stopEvent(event: SyntheticEvent) {
-  event.stopPropagation();
 }
 
 function VariableValueEditor({ value, type, onChange }: { value: unknown; type: VariableType; onChange: (value: unknown) => void }) {

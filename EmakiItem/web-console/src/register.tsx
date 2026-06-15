@@ -1,5 +1,5 @@
 import React from 'react';
-import { ItemEditorSurface, PropRow, StandardEffectsEditor, StringListEditor, asList, asRecord, asStringList, coreEffectDefinition, payloadEffectDefinition, fieldLabel, getLocale, humanizeFieldLabel, localeText, optionLabel, registerEffectTypes, registerFileKindLabel, registerConfigNodeMeta, registerConfigNodeRule, registerEditorDescriptor, registerEditorField, registerItemFieldRenderer, registerModuleLocale, registerPluginSurfaces, registerSourceDocumentAdapter, textValue, type AnyMap, type ItemFieldRendererContext } from 'emaki-web-console';
+import { DisclosureChevron, ItemEditorSurface, PropRow, StandardEffectsEditor, StringListEditor, asList, asRecord, asStringList, coreEffectDefinition, payloadEffectDefinition, fieldLabel, getLocale, humanizeFieldLabel, localeText, optionLabel, registerEffectTypes, registerFileKindLabel, registerConfigNodeMeta, registerConfigNodeRule, registerEditorDescriptor, registerEditorField, registerItemFieldRenderer, registerModuleLocale, registerPluginSurfaces, registerSourceDocumentAdapter, textValue, type AnyMap, type ItemFieldRendererContext } from 'emaki-web-console';
 
 let registered = false;
 
@@ -527,28 +527,70 @@ export function registerEmakiItemWebConsole(): void {
 
   function SetThresholdsEditor({ value, onChange, path, actionTypesResult }: { value: unknown; onChange: (value: AnyMap) => void; path?: string; actionTypesResult: ItemFieldRendererContext['actionTypesResult'] }) {
     const thresholds = Object.entries(asRecord(value)).map(([key, entry]) => ({ key, value: asRecord(entry) })).sort((left, right) => Number(left.key) - Number(right.key));
+    const [collapsed, setCollapsed] = React.useState<Set<string>>(() => new Set());
     const update = (index: number, key: string, patch: AnyMap) => {
+      const oldKey = thresholds[index]?.key;
       const nextEntries = thresholds.map((threshold, itemIndex) => itemIndex === index ? { key, value: cleanObject({ ...threshold.value, ...patch }) } : threshold);
+      if (oldKey && oldKey !== key) {
+        setCollapsed(current => {
+          if (!current.has(oldKey)) return current;
+          const next = new Set(current);
+          next.delete(oldKey);
+          next.add(key);
+          return next;
+        });
+      }
       onChange(Object.fromEntries(nextEntries.filter(threshold => threshold.key.trim()).map(threshold => [threshold.key.trim(), threshold.value])));
     };
-    const remove = (index: number) => onChange(Object.fromEntries(thresholds.filter((_, itemIndex) => itemIndex !== index).map(threshold => [threshold.key, threshold.value])));
-    const add = () => onChange({ ...asRecord(value), [nextNumericKey(thresholds.map(threshold => threshold.key), 2)]: { lore: [], effects: [] } });
+    const remove = (index: number) => {
+      const removedKey = thresholds[index]?.key;
+      if (removedKey) {
+        setCollapsed(current => {
+          if (!current.has(removedKey)) return current;
+          const next = new Set(current);
+          next.delete(removedKey);
+          return next;
+        });
+      }
+      onChange(Object.fromEntries(thresholds.filter((_, itemIndex) => itemIndex !== index).map(threshold => [threshold.key, threshold.value])));
+    };
+    const add = () => {
+      const key = nextNumericKey(thresholds.map(threshold => threshold.key), 2);
+      setCollapsed(current => {
+        if (!current.has(key)) return current;
+        const next = new Set(current);
+        next.delete(key);
+        return next;
+      });
+      onChange({ ...asRecord(value), [key]: { lore: [], effects: [] } });
+    };
+    const toggle = (key: string) => setCollapsed(current => {
+      const next = new Set(current);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
     return <div className="prop-levels" role="list">
-      {thresholds.map((threshold, index) => <div className="prop-level-item expanded" key={index} role="listitem">
-        <div className="prop-level-head">
-          <span className="prop-level-summary"><span className="prop-level-badge">#{index + 1}</span>{copy(`${threshold.key} 件套`, `${threshold.key}-piece`)}</span>
-          <span className="prop-level-rate">{asStringList(threshold.value.lore).length} Lore</span>
-          <span className="prop-action-controls">
-            <button type="button" className="prop-action-del" onClick={() => remove(index)} aria-label={copy(`删除阈值 ${threshold.key}`, `Delete threshold ${threshold.key}`)}>×</button>
-          </span>
-        </div>
-        <div className="prop-level-body">
-          <ItemFormRow label="required" path={joinPath(path, threshold.key)}><NumberInput value={Number(threshold.key)} onChange={required => update(index, String(Math.max(1, required ?? 1)), {})} /></ItemFormRow>
-          <ItemFormRow label="lore" path={joinPath(path, threshold.key, 'lore')} wide><StringListEditor items={asStringList(threshold.value.lore)} onChange={lore => update(index, threshold.key, { lore })} placeholder={copy('[2件套] 物理攻击 +5', '[2-piece] Physical Attack +5')} addFirst={false} /></ItemFormRow>
-          <ItemFormRow label="effects" path={joinPath(path, threshold.key, 'effects')} wide><StandardEffectsEditor value={threshold.value.effects} path={joinPath(path, threshold.key, 'effects')} onChange={effects => update(index, threshold.key, { effects })} moduleId={MODULE} namespace={MODULE} actionTypes={actionTypesResult ?? undefined} /></ItemFormRow>
-        </div>
-      </div>)}
-      <button type="button" className="prop-add" onClick={add}>+ {copy('添加阈值', 'Add threshold')}</button>
+      {thresholds.map((threshold, index) => {
+        const opened = !collapsed.has(threshold.key);
+        return <div className={`prop-level-item ${opened ? 'expanded' : 'collapsed'}`} key={threshold.key || index} role="listitem">
+          <div className="prop-level-head">
+            <button type="button" className="prop-level-toggle" onClick={() => toggle(threshold.key)} aria-expanded={opened}>
+              <span className="prop-level-summary"><span className="prop-level-badge"><DisclosureChevron open={opened} className="prop-level-arrow" /> #{index + 1}</span>{copy(`${threshold.key} 件套`, `${threshold.key}-piece`)}</span>
+            </button>
+            <span className="prop-level-rate">{asStringList(threshold.value.lore).length} Lore</span>
+            <span className="prop-action-controls">
+              <button type="button" className="prop-action-del" onClick={() => remove(index)} aria-label={copy(`删除套装效果 ${threshold.key}`, `Delete set effect ${threshold.key}`)}>×</button>
+            </span>
+          </div>
+          {opened && <div className="prop-level-body">
+            <ItemFormRow label="required" path={joinPath(path, threshold.key)}><NumberInput value={Number(threshold.key)} onChange={required => update(index, String(Math.max(1, required ?? 1)), {})} /></ItemFormRow>
+            <ItemFormRow label="lore" path={joinPath(path, threshold.key, 'lore')} wide><StringListEditor items={asStringList(threshold.value.lore)} onChange={lore => update(index, threshold.key, { lore })} placeholder={copy('[2件套] 物理攻击 +5', '[2-piece] Physical Attack +5')} addFirst={false} /></ItemFormRow>
+            <ItemFormRow label="effects" path={joinPath(path, threshold.key, 'effects')} wide><StandardEffectsEditor value={threshold.value.effects} path={joinPath(path, threshold.key, 'effects')} onChange={effects => update(index, threshold.key, { effects })} moduleId={MODULE} namespace={MODULE} actionTypes={actionTypesResult ?? undefined} /></ItemFormRow>
+          </div>}
+        </div>;
+      })}
+      <button type="button" className="prop-add" onClick={add}>+ {copy('添加套装效果', 'Add set effect')}</button>
     </div>;
   }
 

@@ -142,14 +142,15 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
     setPreviewError(null);
     setPreviewPending(true);
     let active = true;
+    const controller = new AbortController();
     const timer = window.setTimeout(() => {
-      api.previewItem(content, requestedLevel, baseName, previewBaseLore)
+      api.previewItem(content, requestedLevel, baseName, previewBaseLore, { signal: controller.signal })
         .then(nextPreview => {
           if (!active || previewRequestId.current !== requestId) return;
           setPreview(nextPreview);
         })
         .catch(err => {
-          if (!active || previewRequestId.current !== requestId) return;
+          if (!active || previewRequestId.current !== requestId || isAbortError(err)) return;
           setPreviewError(previewErrorFromUnknown(err));
           setPreview(localItemPreview(module.id, editor?.id, file.kind, data, requestedLevel, baseName, previewBaseLore));
         })
@@ -157,7 +158,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
           if (active && previewRequestId.current === requestId) setPreviewPending(false);
         });
     }, 300);
-    return () => { active = false; window.clearTimeout(timer); };
+    return () => { active = false; window.clearTimeout(timer); controller.abort(); };
   }, [api, data, sourceContent, previewLevel, loading, baseName, baseLore, file.kind, itemLikeKind]);
 
   useEffect(() => {
@@ -185,14 +186,15 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
     setLayerPreviewPending(true);
     setLayerPreviewError(null);
     let active = true;
+    const controller = new AbortController();
     const timer = window.setTimeout(() => {
-      api.pluginApi(layeredModule, layeredRoute, { content: sourceContent, itemId: textValue(data.id), path: filePath, layers: layerOptions })
+      api.pluginApi(layeredModule, layeredRoute, { content: sourceContent, itemId: textValue(data.id), path: filePath, layers: layerOptions }, { signal: controller.signal })
         .then(result => {
           if (!active || layerPreviewRequestId.current !== requestId) return;
-          setLayerPreview(asRecord(result));
+          setLayerPreview(compactLayerPreview(result));
         })
         .catch(err => {
-          if (!active || layerPreviewRequestId.current !== requestId) return;
+          if (!active || layerPreviewRequestId.current !== requestId || isAbortError(err)) return;
           setLayerPreview(null);
           setLayerPreviewError(err instanceof Error ? err.message : String(err));
         })
@@ -200,7 +202,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
           if (active && layerPreviewRequestId.current === requestId) setLayerPreviewPending(false);
         });
     }, 350);
-    return () => { active = false; window.clearTimeout(timer); };
+    return () => { active = false; window.clearTimeout(timer); controller.abort(); };
   }, [api, data, editor?.preview, file.kind, itemLikeKind, filePath, layerOptions, loading, module.id, sourceContent]);
 
   const setField = (path: string, value: unknown) => {
@@ -342,9 +344,11 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
         <ChangedPathsProvider changedPaths={changedPaths}>
         <div className="ie-workbench">
           <div className="ie-preview-stack">
-            <GenericPreviewPane moduleId={module.id} fileKind={file.kind} editor={editor} data={data} preview={preview} layerPreview={layerPreview} previewPending={previewPending} previewError={previewError} previewLevel={previewLevel} setPreviewLevel={setPreviewLevel} baseName={baseName} baseLore={baseLore as string[]} />
-            <LayeredPreviewPane preview={layerPreview} pending={layerPreviewPending} error={layerPreviewError} options={layerOptions} onOptionsChange={setLayerOptions} />
-            <RenameMigrationPane api={api} editor={editor} moduleId={module.id} currentId={textValue(data.id)} sourceError={sourceError} dirty={semanticDirty} onApplied={() => { setToast({ tone: 'ok', text: '重命名迁移已应用' }); onReload?.(); }} />
+            <div className="ie-preview ie-preview-combined" role="complementary" aria-label={t('core.item.previewAria')}>
+              <GenericPreviewPane moduleId={module.id} fileKind={file.kind} editor={editor} data={data} preview={preview} layerPreview={layerPreview} previewPending={previewPending} previewError={previewError} previewLevel={previewLevel} setPreviewLevel={setPreviewLevel} baseName={baseName} baseLore={baseLore as string[]} />
+              <LayeredPreviewPane preview={layerPreview} pending={layerPreviewPending} error={layerPreviewError} options={layerOptions} onOptionsChange={setLayerOptions} />
+              <RenameMigrationPane api={api} editor={editor} moduleId={module.id} currentId={textValue(data.id)} sourceError={sourceError} dirty={semanticDirty} onApplied={() => { setToast({ tone: 'ok', text: '重命名迁移已应用' }); onReload?.(); }} />
+            </div>
           </div>
           <div className="ie-props-scroll">
             <div className="ie-props">
@@ -518,6 +522,95 @@ function GenericObjectEditor({ value, reservedKeys, onChange }: { value: unknown
 function resolvePreviewBaseLore(data: AnyMap, fallback: string[]): string[] {
   const configuredLore = asStringList(data.lore);
   return configuredLore.length > 0 ? configuredLore : fallback;
+}
+
+function compactLayerPreview(value: unknown): AnyMap | null {
+  const preview = asRecord(value);
+  if (!Object.keys(preview).length) return null;
+  return cleanObject({
+    ok: preview.ok === true,
+    itemId: textValue(preview.itemId),
+    final: compactLayerItemPreview(preview.final),
+    setPreview: compactSetPreview(preview.setPreview),
+    layers: asList(preview.layers).map(compactLayerRow),
+    availableLayers: asStringList(preview.availableLayers),
+    warnings: asList(preview.warnings).map(asRecord)
+  });
+}
+
+function compactLayerRow(value: unknown): AnyMap {
+  const layer = asRecord(value);
+  return cleanObject({
+    id: textValue(layer.id),
+    available: layer.available === true,
+    reason: textValue(layer.reason),
+    status: textValue(layer.status),
+    selected: asRecord(layer.selected),
+    options: compactLayerOptions(layer.id, layer.options),
+    preview: compactLayerItemPreview(layer.preview)
+  });
+}
+
+function compactLayerItemPreview(value: unknown): AnyMap {
+  const preview = asRecord(value);
+  return cleanObject({
+    id: textValue(preview.id),
+    available: preview.available === true,
+    reason: textValue(preview.reason),
+    displayName: textValue(preview.displayName),
+    lore: asStringList(preview.lore)
+  });
+}
+
+function compactSetPreview(value: unknown): AnyMap {
+  const preview = asRecord(value);
+  return cleanObject({
+    available: preview.available === true,
+    reason: textValue(preview.reason),
+    setId: textValue(preview.setId),
+    pieceId: textValue(preview.pieceId),
+    active: preview.active,
+    total: preview.total,
+    lore: asStringList(preview.lore)
+  });
+}
+
+function compactLayerOptions(layerId: unknown, value: unknown): AnyMap {
+  const options = asRecord(value);
+  const id = textValue(layerId).toLowerCase();
+  if (id === 'strengthen') return cleanObject({
+    recipeId: textValue(options.recipeId),
+    recipes: asList(options.recipes).map(entry => {
+      const recipe = asRecord(entry);
+      return cleanObject({ id: textValue(recipe.id), displayName: textValue(recipe.displayName) });
+    }),
+    currentStar: options.currentStar,
+    currentTemper: options.currentTemper,
+    selectedStar: options.selectedStar,
+    selectedTemper: options.selectedTemper,
+    maxStar: options.maxStar,
+    maxTemper: options.maxTemper,
+    stars: asList(options.stars).map(Number).filter(Number.isFinite)
+  });
+  if (id === 'gem') return cleanObject({
+    templateId: textValue(options.templateId),
+    selectedSlot: options.selectedSlot,
+    selectedGemId: textValue(options.selectedGemId),
+    selectedLevel: options.selectedLevel,
+    slots: asList(options.slots).map(entry => {
+      const slot = asRecord(entry);
+      return cleanObject({ index: slot.index, type: textValue(slot.type), displayName: textValue(slot.displayName), opened: slot.opened === true, assigned: slot.assigned === true });
+    }),
+    gems: asList(options.gems).map(entry => {
+      const gem = asRecord(entry);
+      return cleanObject({ id: textValue(gem.id), displayName: textValue(gem.displayName), type: textValue(gem.type), level: gem.level, maxLevel: gem.maxLevel });
+    })
+  });
+  return {};
+}
+
+function isAbortError(error: unknown): boolean {
+  return error instanceof DOMException && error.name === 'AbortError';
 }
 
 function uiCopy(zh: string, en: string): string {
@@ -826,7 +919,7 @@ function GenericPreviewPane({ moduleId, fileKind, editor, data, preview, layerPr
   useEffect(() => subscribeTextureBases(() => { setImgFailed(false); refreshTextureOrder((version) => version + 1); }), []);
 
   return (
-    <div className={`ie-preview${isSetPreview ? ' ie-preview--set' : ''}`} role="complementary" aria-label={t('core.item.previewAria')}>
+    <section className={`ie-preview-section ie-preview-primary${isSetPreview ? ' ie-preview--set' : ''}`} aria-label={t('core.item.previewAria')}>
       {isSetPreview ? <SetPreviewSummary preview={setDraftPreview} /> : <div className="ie-preview-icon">
         {urls.length > 0 && !imgFailed ? <img src={urls[0]} alt={material || t('core.item.iconAlt')} onError={e => { const target = e.currentTarget; const next = urls[urls.indexOf(target.src) + 1]; if (next) target.src = next; else setImgFailed(true); }} /> : <span className="ie-preview-fallback">{materialShortName(material) || '?'}</span>}
       </div>}
@@ -855,7 +948,7 @@ function GenericPreviewPane({ moduleId, fileKind, editor, data, preview, layerPr
       <div className="ie-preview-compare">
         <PreviewTooltipBlock title={hasLevels ? t('core.item.preview.resultForLevel', { level: previewLevel }) : t('core.item.preview.result')} name={resultName} lore={resultLore} sections={[...setSection, ...effectSections]} refreshing={previewPending} emptyText={previewPending ? t('core.item.preview.syncing') : t('core.item.preview.emptyResult')} />
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -922,7 +1015,7 @@ function RenameMigrationPane({ api, editor, moduleId, currentId, sourceError, di
   const aliasExists = preview ? Boolean(preview.aliasExists) : false;
   const canApply = Boolean(preview && normalizedNewId && !disabledReason && (newExists || mode === 'alias_only'));
 
-  return <div className="ie-preview ie-rename-pane" role="complementary" aria-label="物品 ID 重命名迁移">
+  return <section className="ie-preview-section ie-rename-pane" aria-label="物品 ID 重命名迁移">
     <div className="ie-preview-meta">
       <span className="ie-preview-kind">ID 重命名迁移</span>
       <code className="ie-preview-id">{currentId}</code>
@@ -962,7 +1055,7 @@ function RenameMigrationPane({ api, editor, moduleId, currentId, sourceError, di
       </div>)}
       {files.length > 8 && <MiniText value={`另有 ${files.length - 8} 个文件未展开显示。`} />}
     </div>}
-  </div>;
+  </section>;
 }
 
 function renameRevisionMap(preview: AnyMap, moduleId: string): Record<string, number> {
@@ -986,7 +1079,7 @@ function LayeredPreviewPane({ preview, pending, error, options, onOptionsChange 
     const current = asRecord(options[layerId]);
     onOptionsChange({ ...options, [layerId]: { ...current, [key]: value } });
   };
-  return <div className="ie-preview ie-layer-preview" role="complementary" aria-label="分层预览">
+  return <section className="ie-preview-section ie-layer-preview" aria-label="分层预览">
     <div className="ie-preview-meta">
       <span className="ie-preview-kind">分层预览</span>
       <span className={`ie-preview-status ${pending ? 'syncing' : error ? 'failed' : 'live'}`}>{pending ? '同步中' : error ? '失败' : '已同步'}</span>
@@ -996,7 +1089,7 @@ function LayeredPreviewPane({ preview, pending, error, options, onOptionsChange 
       {layers.map(layer => <LayerPreviewRow key={textValue(layer.id)} layer={layer} layerOptions={asRecord(options[textValue(layer.id)])} onOptionChange={updateLayerOption} pending={pending} />)}
     </div>}
     {finalPreview.displayName || asStringList(finalPreview.lore).length ? <PreviewTooltipBlock title="最终预览" name={textValue(finalPreview.displayName)} lore={asStringList(finalPreview.lore)} emptyText="暂无最终预览" refreshing={pending} /> : null}
-  </div>;
+  </section>;
 }
 
 function LayerPreviewRow({ layer, layerOptions, onOptionChange, pending }: { layer: AnyMap; layerOptions: AnyMap; onOptionChange: (layerId: string, key: string, value: unknown) => void; pending: boolean }) {
@@ -1048,9 +1141,7 @@ function StrengthenLayerControls({ layer, layerOptions, onOptionChange }: { laye
 }
 
 function recipeLabel(recipe: AnyMap): string {
-  const id = textValue(recipe.id);
-  const displayName = textValue(recipe.displayName);
-  return displayName && displayName !== id ? `${id} · ${displayName}` : id;
+  return textValue(recipe.id);
 }
 
 function GemLayerControls({ layer, layerOptions, onOptionChange }: { layer: AnyMap; layerOptions: AnyMap; onOptionChange: (layerId: string, key: string, value: unknown) => void }) {

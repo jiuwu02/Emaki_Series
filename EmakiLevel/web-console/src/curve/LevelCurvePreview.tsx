@@ -192,11 +192,11 @@ function PluginApiError({ route, message }: { route: string; message: string }) 
 }
 
 function CurveLegend({ curves, hiddenTypes, onToggle }: { curves: Curve[]; hiddenTypes: Set<string>; onToggle: (type: string) => void }) {
-  return <div style={legendStyle}>{curves.map((curve, index) => {
+  return <div className="level-curve-preview__legend">{curves.map((curve, index) => {
     const color = colorForCurve(curve, curves, index);
     const hidden = hiddenTypes.has(curve.type);
-    return <button key={curve.type} type="button" onClick={() => onToggle(curve.type)} style={{ ...legendButtonStyle, opacity: hidden ? .42 : 1 }} aria-pressed={!hidden}>
-      <span style={{ ...legendSwatchStyle, background: color }} />
+    return <button key={curve.type} type="button" className="level-curve-preview__legend-button" onClick={() => onToggle(curve.type)} style={curveColorStyle(color)} aria-pressed={!hidden}>
+      <span className="level-curve-preview__swatch" />
       <code>{curve.type}</code>
       <small>{curve.points.length}</small>
     </button>;
@@ -225,7 +225,7 @@ function LevelCurveSvg({ curves, visibleCurves, hiddenTypes, metric, hoverLevel,
     if (!levels.length) return;
     const rect = event.currentTarget.getBoundingClientRect();
     const level = nearestLevel(event.clientX, rect);
-    onHover(level);
+    if (level !== hoverLevel) onHover(level);
   };
   return <svg viewBox={`0 0 ${width} ${height}`} className="level-curve-preview__chart" role="img" aria-label={copy('等级曲线图', 'Level curve chart')} onMouseMove={handleMove}>
     {[0, .25, .5, .75, 1].map(step => <line key={step} x1={pad.left} x2={width - pad.right} y1={pad.top + chartHeight * step} y2={pad.top + chartHeight * step} stroke="color-mix(in oklch, var(--line) 58%, transparent)" />)}
@@ -251,21 +251,21 @@ function LevelCurveSvg({ curves, visibleCurves, hiddenTypes, metric, hoverLevel,
 }
 
 function CurveLevelInspector({ level, rows }: { level: number | null; rows: { curve: Curve; point: CurvePoint; color: string }[] }) {
-  if (level == null || !rows.length) return <div style={levelInspectorEmptyStyle}>{copy('移动到曲线上的等级位置查看各等级组数值。', 'Move over a level on the chart to inspect every visible group.')}</div>;
-  return <aside style={levelInspectorStyle} aria-live="polite">
-    <div style={levelInspectorHeadStyle}>
+  if (level == null || !rows.length) return <div className="level-curve-preview__inspector-empty">{copy('移动到曲线上的等级位置查看各等级组数值。', 'Move over a level on the chart to inspect every visible group.')}</div>;
+  return <aside className="level-curve-preview__inspector" aria-live="polite">
+    <div className="level-curve-preview__inspector-head">
       <strong>{copy('目标等级', 'Target level')} Lv.{level}</strong>
       <span>{rows.length} {copy('组', 'groups')}</span>
     </div>
-    <div style={levelInspectorRowsStyle}>
-      {rows.map(({ curve, point, color }) => <div key={curve.type} style={tooltipRowStyle}>
-        <span style={{ ...legendSwatchStyle, background: color }} />
-        <div style={{ minWidth: 0 }}>
-          <div style={tooltipTitleStyle}><code>{curve.type}</code>{(point.warnings?.length ?? 0) > 0 ? <small style={warningPillStyle}>{point.warnings?.length}</small> : null}</div>
-          <div style={tooltipMetaStyle}>
-            <span>{copy('需求', 'Required')} <b style={tooltipNumberStyle}>{formatNumber(point.requiredExp)}</b></span>
-            <span>{copy('累计', 'Total')} <b style={tooltipNumberStyle}>{formatNumber(point.totalExp)}</b></span>
-            <span>{copy('增长率', 'Growth')} <b style={tooltipNumberStyle}>{formatPercent(point.growthRate)}</b></span>
+    <div className="level-curve-preview__inspector-rows">
+      {rows.map(({ curve, point, color }) => <div key={curve.type} className="level-curve-preview__tooltip-row" style={curveColorStyle(color)}>
+        <span className="level-curve-preview__swatch" />
+        <div className="level-curve-preview__tooltip-copy">
+          <div className="level-curve-preview__tooltip-title"><code>{curve.type}</code>{(point.warnings?.length ?? 0) > 0 ? <small className="level-curve-preview__warning-pill">{point.warnings?.length}</small> : null}</div>
+          <div className="level-curve-preview__tooltip-meta">
+            <span>{copy('需求', 'Required')} <b className="level-curve-preview__tooltip-number">{formatNumber(point.requiredExp)}</b></span>
+            <span>{copy('累计', 'Total')} <b className="level-curve-preview__tooltip-number">{formatNumber(point.totalExp)}</b></span>
+            <span>{copy('增长率', 'Growth')} <b className="level-curve-preview__tooltip-number">{formatPercent(point.growthRate)}</b></span>
           </div>
         </div>
       </div>)}
@@ -274,16 +274,16 @@ function CurveLevelInspector({ level, rows }: { level: number | null; rows: { cu
 }
 
 function CurveTables({ curves, hiddenTypes, openTypes, onToggleOpen }: { curves: Curve[]; hiddenTypes: Set<string>; openTypes: Set<string>; onToggleOpen: (type: string) => void }) {
-  return <div style={tablesWrapStyle}>{curves.map((curve, index) => {
+  return <div className="level-curve-preview__tables">{curves.map((curve, index) => {
     const open = openTypes.has(curve.type);
     const hidden = hiddenTypes.has(curve.type);
     const warningCount = curve.points.reduce((sum, point) => sum + (point.warnings?.length ?? 0), 0) + (curve.warnings?.length ?? 0);
     const color = colorForCurve(curve, curves, index);
-    return <section key={curve.type} style={{ ...tableGroupStyle, opacity: hidden ? .5 : 1 }}>
-      <button type="button" style={tableGroupHeadStyle} onClick={() => onToggleOpen(curve.type)} aria-expanded={open}>
-        <span>{open ? '⌄' : '›'}</span><span style={{ ...legendSwatchStyle, background: color }} />
+    return <section key={curve.type} className="level-curve-preview__table-group" aria-disabled={hidden}>
+      <button type="button" className="level-curve-preview__table-head" onClick={() => onToggleOpen(curve.type)} aria-expanded={open} style={curveColorStyle(color)}>
+        <span>{open ? '⌄' : '›'}</span><span className="level-curve-preview__swatch" />
         <code>{curve.type}</code>
-        <em>{curve.fromLevel}-{curve.toLevel}</em><small>{curve.points.length} {copy('点', 'points')}</small>{warningCount ? <small style={warningPillStyle}>{warningCount}</small> : null}
+        <em>{curve.fromLevel}-{curve.toLevel}</em><small>{curve.points.length} {copy('点', 'points')}</small>{warningCount ? <small className="level-curve-preview__warning-pill">{warningCount}</small> : null}
       </button>
       {open && <CurveTable curve={curve} />}
     </section>;
@@ -291,17 +291,17 @@ function CurveTables({ curves, hiddenTypes, openTypes, onToggleOpen }: { curves:
 }
 
 function CurveTable({ curve }: { curve: Curve }) {
-  return <div style={tableScrollStyle}>
-    <table style={tableStyle}>
-      <colgroup><col style={{ width: '64px' }} /><col style={{ width: '120px' }} /><col style={{ width: '130px' }} /><col style={{ width: '100px' }} /><col /><col style={{ width: '120px' }} /></colgroup>
-      <thead><tr><th style={{ ...headCellStyle, ...numCellStyle }}>Lv</th><th style={{ ...headCellStyle, ...numCellStyle }}>{copy('需求', 'Required')}</th><th style={{ ...headCellStyle, ...numCellStyle }}>{copy('累计', 'Total')}</th><th style={{ ...headCellStyle, ...numCellStyle }}>{copy('增长率', 'Growth')}</th><th style={headCellStyle}>{copy('来源', 'Source')}</th><th style={headCellStyle}>{copy('警告', 'Warnings')}</th></tr></thead>
+  return <div className="level-curve-preview__table-scroll">
+    <table className="level-curve-preview__table">
+      <colgroup><col className="level-curve-preview__col-lv" /><col className="level-curve-preview__col-required" /><col className="level-curve-preview__col-total" /><col className="level-curve-preview__col-growth" /><col /><col className="level-curve-preview__col-warnings" /></colgroup>
+      <thead><tr><th className="level-curve-preview__num">Lv</th><th className="level-curve-preview__num">{copy('需求', 'Required')}</th><th className="level-curve-preview__num">{copy('累计', 'Total')}</th><th className="level-curve-preview__num">{copy('增长率', 'Growth')}</th><th>{copy('来源', 'Source')}</th><th>{copy('警告', 'Warnings')}</th></tr></thead>
       <tbody>{curve.points.map(point => <tr key={point.targetLevel}>
-        <td style={{ ...bodyCellStyle, ...numCellStyle }}>{point.targetLevel}</td>
-        <td style={{ ...bodyCellStyle, ...numCellStyle }}>{formatNumber(point.requiredExp)}</td>
-        <td style={{ ...bodyCellStyle, ...numCellStyle }}>{formatNumber(point.totalExp)}</td>
-        <td style={{ ...bodyCellStyle, ...numCellStyle }}>{formatPercent(point.growthRate)}</td>
-        <td style={bodyCellStyle}><code style={sourceCellStyle}>{point.source}</code></td>
-        <td style={bodyCellStyle}>{(point.warnings ?? []).map(warning => warning.type).join(', ')}</td>
+        <td className="level-curve-preview__num">{point.targetLevel}</td>
+        <td className="level-curve-preview__num">{formatNumber(point.requiredExp)}</td>
+        <td className="level-curve-preview__num">{formatNumber(point.totalExp)}</td>
+        <td className="level-curve-preview__num">{formatPercent(point.growthRate)}</td>
+        <td><code className="level-curve-preview__source">{point.source}</code></td>
+        <td>{(point.warnings ?? []).map(warning => warning.type).join(', ')}</td>
       </tr>)}</tbody>
     </table>
   </div>;
@@ -332,46 +332,15 @@ function formatPercent(value: number): string {
 }
 
 const palette = [
-  'var(--accent)',
-  'var(--accent-strong)',
-  'var(--green)',
-  'var(--amber)',
-  'color-mix(in oklch, var(--accent) 62%, var(--danger-ink) 38%)',
-  'color-mix(in oklch, var(--accent) 54%, var(--green) 46%)',
-  'var(--red)',
-  'color-mix(in oklch, var(--green) 62%, var(--accent-strong) 38%)'
+  'var(--viz-1)',
+  'var(--viz-2)',
+  'var(--viz-3)',
+  'var(--viz-4)',
+  'var(--viz-5)',
+  'var(--viz-6)',
+  'var(--viz-7)',
+  'var(--viz-8)'
 ];
-const cardStyle: React.CSSProperties = { border: '1px solid var(--line)', borderRadius: 8, padding: 14, marginTop: 16, background: 'var(--surface)', color: 'var(--text)' };
-const headerStyle: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' };
-const hintStyle: React.CSSProperties = { margin: '6px 0 0', color: 'var(--muted)', fontSize: 13 };
-const controlGridStyle: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'minmax(220px,2fr) repeat(3,minmax(120px,1fr))', gap: 10, marginTop: 14 };
-const labelStyle: React.CSSProperties = { display: 'grid', gap: 6, fontSize: 12, color: 'var(--muted)' };
-const inputStyle: React.CSSProperties = { border: '1px solid var(--line-2)', borderRadius: 6, background: 'var(--input)', color: 'var(--text)', padding: '8px 10px' };
-const buttonStyle: React.CSSProperties = { border: 0, borderRadius: 6, padding: '9px 13px', background: 'var(--accent)', color: 'var(--bg)', fontWeight: 700, cursor: 'pointer' };
-const secondaryButtonStyle: React.CSSProperties = { ...buttonStyle, background: 'var(--accent-soft)', color: 'var(--accent-strong)', border: '1px solid color-mix(in oklch, var(--accent) 44%, var(--line) 56%)' };
-const errorStyle: React.CSSProperties = { marginTop: 12, color: 'var(--danger-ink)', background: 'var(--danger-soft)', border: '1px solid var(--danger-line)', borderRadius: 6, padding: 10 };
-const emptyStyle: React.CSSProperties = { marginTop: 12, color: 'var(--muted)' };
-const svgStyle: React.CSSProperties = { width: '100%', display: 'block', background: 'color-mix(in oklch, var(--input) 76%, transparent)', borderRadius: 12 };
-const summaryStyle: React.CSSProperties = { display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginTop: 12, color: 'var(--muted)' };
-const legendStyle: React.CSSProperties = { display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 14 };
-const legendButtonStyle: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: 6, border: '1px solid var(--line)', borderRadius: 999, padding: '4px 8px', color: 'var(--text)', background: 'color-mix(in oklch, var(--surface-2) 78%, transparent)', fontSize: 11 };
-const legendSwatchStyle: React.CSSProperties = { width: 10, height: 10, borderRadius: 999, flex: '0 0 auto' };
-const chartWrapStyle: React.CSSProperties = { position: 'relative', marginTop: 14 };
-const levelInspectorStyle: React.CSSProperties = { marginTop: 10, display: 'grid', gap: 8, padding: 10, border: '1px solid var(--line-2)', borderRadius: 12, background: 'color-mix(in oklch, var(--surface) 96%, var(--bg) 4%)', boxShadow: '0 10px 28px oklch(0% 0 0 / .16)', color: 'var(--text)' };
-const levelInspectorEmptyStyle: React.CSSProperties = { marginTop: 10, padding: 10, border: '1px dashed var(--line)', borderRadius: 12, background: 'color-mix(in oklch, var(--input) 76%, transparent)', color: 'var(--faint)', fontSize: 12 };
-const levelInspectorHeadStyle: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', color: 'var(--text)', fontSize: 12 };
-const levelInspectorRowsStyle: React.CSSProperties = { maxHeight: 220, overflowY: 'auto', display: 'grid', gap: 8, paddingRight: 2, scrollbarWidth: 'thin' };
-const tooltipRowStyle: React.CSSProperties = { display: 'grid', gridTemplateColumns: '10px minmax(0,1fr)', gap: 8, alignItems: 'start' };
-const tooltipTitleStyle: React.CSSProperties = { display: 'flex', gap: 6, alignItems: 'baseline', minWidth: 0, fontSize: 12, fontWeight: 700 };
-const tooltipMetaStyle: React.CSSProperties = { marginTop: 3, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 6, color: 'var(--muted)', fontSize: 11, lineHeight: 1.35 };
-const tooltipNumberStyle: React.CSSProperties = { display: 'block', marginTop: 1, color: 'var(--accent-strong)', fontWeight: 800, fontVariantNumeric: 'tabular-nums' };
-const tablesWrapStyle: React.CSSProperties = { display: 'grid', gap: 8, marginTop: 12 };
-const tableGroupStyle: React.CSSProperties = { border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden', background: 'color-mix(in oklch, var(--surface-2) 54%, transparent)' };
-const tableGroupHeadStyle: React.CSSProperties = { width: '100%', minHeight: 36, display: 'grid', gridTemplateColumns: '18px 10px minmax(120px,1fr) minmax(80px,.6fr) auto auto', alignItems: 'center', justifyItems: 'center', gap: 8, padding: '7px 10px', color: 'var(--text)', textAlign: 'center', borderBottom: '1px solid var(--line)' };
-const warningPillStyle: React.CSSProperties = { color: 'var(--amber)', border: '1px solid color-mix(in oklch, var(--amber) 44%, var(--line) 56%)', borderRadius: 999, padding: '1px 6px' };
-const tableScrollStyle: React.CSSProperties = { overflowX: 'auto' };
-const tableStyle: React.CSSProperties = { width: '100%', minWidth: 720, borderCollapse: 'collapse', tableLayout: 'fixed', fontSize: 12, color: 'var(--text)' };
-const headCellStyle: React.CSSProperties = { padding: '8px 10px', borderBottom: '1px solid var(--line)', color: 'var(--muted)', fontWeight: 700, textAlign: 'center' };
-const bodyCellStyle: React.CSSProperties = { padding: '7px 10px', borderBottom: '1px solid color-mix(in oklch, var(--line) 72%, transparent)', verticalAlign: 'middle', textAlign: 'center' };
-const numCellStyle: React.CSSProperties = { textAlign: 'center', fontVariantNumeric: 'tabular-nums' };
-const sourceCellStyle: React.CSSProperties = { display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--faint)', textAlign: 'center' };
+function curveColorStyle(color: string): React.CSSProperties {
+  return { '--curve-color': color } as React.CSSProperties;
+}

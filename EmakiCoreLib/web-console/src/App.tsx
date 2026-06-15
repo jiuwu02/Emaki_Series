@@ -1,9 +1,7 @@
-import { Component, memo, startTransition, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react';
+import { Component, Suspense, lazy, memo, startTransition, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react';
 import type { Completion, CompletionContext, CompletionResult, CompletionSource } from '@codemirror/autocomplete';
 import type { ComponentType } from 'react';
 import { ApiClient, ApiError, type FrontendDebugEventReport, type HistoryEntry, type HistorySnapshot, type InsightDependencyGraphEdge, type InsightDependencyGraphNode, type InsightDependencyGraphResult, type InsightReferenceResult, type InsightSearchResult, type RegistryValueChange } from './api';
-import { GuiEditorSurface } from './GuiEditorSurface';
-import { ItemEditorSurface } from './ItemEditorSurface';
 import { loadWebExtensions } from './extensions';
 import { applyConfigNodeOverrides, applyConfigRegistryOverrides, applyEditorDescriptorOverrides, getConfigPreview, getSourceDocumentAdapter, getSurface, isKind, registerSourceDocumentAdapter, registerSurface, setRuntimeEnums, type ConfigPreviewProps, type SourceDocumentAdapterContext } from './registry';
 import { isGlobPath, normalizeDocumentPath, normalizeLookupPath, resolveConcreteChildPath, resolveSurfaceDocumentPath, treeDirtyKey } from './documentPaths';
@@ -12,13 +10,17 @@ import { ActionGroup, ActionTypesProvider, Button, CodeEditor, EconomyProvidersP
 import { UnifiedDiffView, parseUnifiedDiff } from './components/DiffViewer';
 import { useDialogFocus } from './components/useDialogFocus';
 import { useStableEntries } from './components/useStableEntries';
-import { I18nBundleModal, type I18nTarget } from './I18nBundleModal';
+import type { I18nTarget } from './I18nBundleModal';
 import { configNodeDisplayComment as resolveConfigNodeComment, fieldLabel, fileDisplayComment, fileDisplayTitle, humanizeFieldLabel, moduleDisplayName, optionLabel, parseYaml, serializeYaml, setDeepValue, valuesEqual } from './lib';
 import { Login, OUTLINE_DEFAULT, OUTLINE_MAX, OUTLINE_MIN, OUTLINE_STORAGE_KEY, RAIL_DEFAULT, RAIL_MAX, RAIL_MIN, RAIL_STORAGE_KEY, ResizableOutlineRail, ResizableRail, WorkspaceTree, fileKindLabel } from './shell';
 import { FieldOutlineRail, jumpToConfigNode } from './shell/FieldOutlineRail';
 import { debugInputValue, frontendDebugEvent, interactiveTarget, isFormControl } from './shell/frontendDebug';
 import type { SurfaceOutlineItem, SurfaceOutlineState, SurfaceProps, SurfaceToolbarState } from './registry';
 import type { RegistryTreeNode, WebConfigCreateTemplate, WebConfigFieldSchema, WebConfigNode, WebConsoleExtension, WebConsoleExtensionStatus, WebEditorDescriptor, WebRegistry, WebRegistryFile, WebRegistryModule } from './types';
+
+const GuiEditorSurface = lazy(() => import('./GuiEditorSurface').then(module => ({ default: module.GuiEditorSurface })));
+const ItemEditorSurface = lazy(() => import('./ItemEditorSurface').then(module => ({ default: module.ItemEditorSurface })));
+const I18nBundleModal = lazy(() => import('./I18nBundleModal').then(module => ({ default: module.I18nBundleModal })));
 
 // Register CoreLib's built-in surfaces through the same registry used by plugin extensions.
 registerSurface({ kind: 'GUI', component: GuiEditorSurface as ComponentType<SurfaceProps>, label: t('core.surface.gui.label') });
@@ -746,7 +748,7 @@ export default function App() {
       {toast && <ToastNotice tone={toast.tone}>{toast.text}</ToastNotice>}
       {createTarget && <CreateFileModal target={createTarget} onCancel={() => setCreateTarget(null)} onCreate={createFileFromTree} />}
       {deleteTarget && <DeleteFileModal target={deleteTarget} onCancel={() => setDeleteTarget(null)} onDelete={deleteFileFromTree} />}
-      {i18nTarget && <I18nBundleModal target={i18nTarget} onClose={() => setI18nTarget(null)} onSaved={() => { setLocaleVersion((version) => version + 1); setToast({ tone: 'ok', text: t('core.i18n.saved') }); }} />}
+      {i18nTarget && <Suspense fallback={null}><I18nBundleModal target={i18nTarget} onClose={() => setI18nTarget(null)} onSaved={() => { setLocaleVersion((version) => version + 1); setToast({ tone: 'ok', text: t('core.i18n.saved') }); }} /></Suspense>}
       {insightSearchOpen && <InsightSearchModal api={api} registry={registry} onCancel={() => setInsightSearchOpen(false)} onOpen={openInsightSearchResult} onReferences={openInsightReferences} onGraph={openInsightDependencyGraph} />}
       {referenceTarget && <InsightReferenceModal api={api} registry={registry} target={referenceTarget} onCancel={() => setReferenceTarget(null)} onOpen={openInsightReferenceResult} onGraph={openInsightDependencyGraph} />}
       {dependencyGraphTarget && <InsightDependencyGraphModal api={api} registry={registry} target={dependencyGraphTarget} onCancel={() => setDependencyGraphTarget(null)} onOpen={location => openInsightLocation(location, () => setDependencyGraphTarget(null))} />}
@@ -1568,7 +1570,7 @@ function ConfigSurface({ registry, module, file, drafts, draftHistory, setDraftV
       return <section className="config-surface"><div className="surface-head"><div><h2>{fileDisplayTitle(file)}</h2><p>{fileDisplayComment(file)}</p></div><span className={`file-kind ${String(file.kind).toLowerCase()}`}>{fileKindLabel(file.kind)}</span></div><div className="script-placeholder" role="status">{t('core.empty.selectFile')}</div></section>;
     }
     const surfaceChildPath = isGlobPath(file.path) ? surfacePath : scriptPath;
-  return <SurfaceComponent module={module} file={file} api={api} childPath={surfaceChildPath} refreshKey={refreshKey} editor={editor} onReload={onReload} setToolbar={setSurfaceToolbar} setOutline={outlineSetter} showLocalChrome={false} />;
+    return <Suspense fallback={<section className="config-surface empty" role="status">{t('core.extension.loadingEditor', undefined, '正在加载编辑器…')}</section>}><SurfaceComponent module={module} file={file} api={api} childPath={surfaceChildPath} refreshKey={refreshKey} editor={editor} onReload={onReload} setToolbar={setSurfaceToolbar} setOutline={outlineSetter} showLocalChrome={false} /></Suspense>;
   }
   if (!scriptPath && isGlobPath(file.path)) {
     return <section className="config-surface"><div className="surface-head"><div><h2>{fileDisplayTitle(file)}</h2><p>{fileDisplayComment(file)}</p></div><span className={`file-kind ${String(file.kind).toLowerCase()}`}>{fileKindLabel(file.kind)}</span></div><div className="script-placeholder" role="status">{t('core.empty.selectFile')}</div></section>;
