@@ -121,7 +121,7 @@ export function registerEmakiItemWebConsole(): void {
     ['lore.active_threshold_format', '已激活阈值格式', '已激活阈值 Lore 包装格式。', 'text'],
     ['lore.inactive_threshold_format', '未激活阈值格式', '未激活阈值 Lore 包装格式。', 'text'],
     ['lore.separator', '分隔行', '部件列表与阈值列表之间的分隔行。', 'text'],
-    ['thresholds', '阈值效果', '达到指定装备件数时激活的 Lore、EA 属性和 ES 技能。', 'setThresholds', { wide: true }]
+    ['thresholds', '套装效果', '达到指定装备件数时激活的 Lore、EA 属性和 ES 技能。', 'setThresholds', { wide: true }]
   ];
 
   const itemEditorFields: ItemFieldSpec[] = [
@@ -194,7 +194,7 @@ export function registerEmakiItemWebConsole(): void {
     'emakiitem.file.items.title': '物品',
     'emakiitem.file.items.comment': '自定义物品定义，包含显示文本、属性、技能、条件、修复和触发动作。',
     'emakiitem.file.sets.title': '套装',
-    'emakiitem.file.sets.comment': '套装定义，配置部件、阈值效果、套装 Lore 和刷新规则。',
+    'emakiitem.file.sets.comment': '套装定义，配置部件、套装效果、套装 Lore 和刷新规则。',
     'emakiitem.file.id_aliases.title': 'ID 别名',
     'emakiitem.file.id_aliases.comment': '重命名迁移使用的旧物品 ID 到目标 ID 映射。',
     'emakiitem.filePath.items_example_item.comment': '自定义物品示例，展示属性、技能、条件、耐久和动作链。',
@@ -218,7 +218,7 @@ export function registerEmakiItemWebConsole(): void {
     'emakiitem.section.actions': '触发动作',
     'emakiitem.section.setPieces': '套装部件',
     'emakiitem.section.setLore': '套装 Lore',
-    'emakiitem.section.thresholds': '阈值效果',
+    'emakiitem.section.thresholds': '套装效果',
     'emakiitem.preview.aria': 'EmakiItem 物品预览',
     'emakiitem.preview.kind': '自定义物品',
     'emakiitem.preview.kind.generic_item': '自定义物品',
@@ -259,7 +259,12 @@ export function registerEmakiItemWebConsole(): void {
     'emakiitem.option.setSlot.helmet': '头盔',
     'emakiitem.option.setSlot.chestplate': '胸甲',
     'emakiitem.option.setSlot.leggings': '护腿',
-    'emakiitem.option.setSlot.boots': '靴子'
+    'emakiitem.option.setSlot.boots': '靴子',
+    'emakiitem.option.effect.variables': '变量',
+    'emakiitem.option.effect.ea_attribute': 'EA 属性',
+    'emakiitem.option.effect.es_skill': 'ES 技能',
+    'emakiitem.option.effect.name_action': '名称动作链',
+    'emakiitem.option.effect.lore_action': 'Lore 动作链'
   });
 
   registerModuleLocale(MODULE, 'en-US', {
@@ -270,7 +275,7 @@ export function registerEmakiItemWebConsole(): void {
     'emakiitem.file.items.title': 'Items',
     'emakiitem.file.items.comment': 'Custom item definitions covering display text, attributes, skills, conditions, repair, and trigger actions.',
     'emakiitem.file.sets.title': 'Sets',
-    'emakiitem.file.sets.comment': 'Set definitions covering pieces, threshold effects, set lore, and refresh rules.',
+    'emakiitem.file.sets.comment': 'Set definitions covering pieces, set effects, set lore, and refresh rules.',
     'emakiitem.file.id_aliases.title': 'ID Aliases',
     'emakiitem.file.id_aliases.comment': 'Old item ID to target ID mappings used by rename migration.',
     'emakiitem.filePath.items_example_item.comment': 'Custom item example showing attributes, skills, conditions, durability, and action chains.',
@@ -294,7 +299,7 @@ export function registerEmakiItemWebConsole(): void {
     'emakiitem.section.actions': 'Trigger Actions',
     'emakiitem.section.setPieces': 'Set Pieces',
     'emakiitem.section.setLore': 'Set Lore',
-    'emakiitem.section.thresholds': 'Threshold Effects',
+    'emakiitem.section.thresholds': 'Set Effects',
     'emakiitem.preview.kind.generic_item': 'Custom Item',
     'emakiitem.action.addSetPiece': 'Add set piece',
     'emakiitem.action.addThreshold': 'Add threshold',
@@ -316,7 +321,12 @@ export function registerEmakiItemWebConsole(): void {
     'emakiitem.option.equipSlot.leggings': 'Leggings',
     'emakiitem.option.equipSlot.boots': 'Boots',
     'emakiitem.option.conditionType.all_of': 'All of',
-    'emakiitem.option.conditionType.any_of': 'Any of'
+    'emakiitem.option.conditionType.any_of': 'Any of',
+    'emakiitem.option.effect.variables': 'Variables',
+    'emakiitem.option.effect.ea_attribute': 'EA Attribute',
+    'emakiitem.option.effect.es_skill': 'ES Skill',
+    'emakiitem.option.effect.name_action': 'Name action chain',
+    'emakiitem.option.effect.lore_action': 'Lore action chain'
   });
 
   registerPluginSurfaces([
@@ -384,7 +394,7 @@ export function registerEmakiItemWebConsole(): void {
       { title: '基础信息', titleKey: 'emakiitem.section.basic', fields: setFields(['id', 'display_name']) },
       { title: '套装部件', titleKey: 'emakiitem.section.setPieces', collapsible: true, fields: setFields(['pieces']) },
       { title: '套装 Lore', titleKey: 'emakiitem.section.setLore', collapsible: true, defaultCollapsed: true, fields: setFields(['lore.header', 'lore.equipped_format', 'lore.missing_format', 'lore.active_threshold_format', 'lore.inactive_threshold_format', 'lore.separator']) },
-      { title: '阈值效果', titleKey: 'emakiitem.section.thresholds', collapsible: true, fields: setFields(['thresholds']) }
+      { title: '套装效果', titleKey: 'emakiitem.section.thresholds', collapsible: true, fields: setFields(['thresholds']) }
     ]
   });
 
@@ -496,12 +506,20 @@ export function registerEmakiItemWebConsole(): void {
     const remove = (index: number) => onChange(Object.fromEntries(pieces.filter((_, itemIndex) => itemIndex !== index).map(piece => [piece.key, piece.value])));
     const add = () => onChange({ ...asRecord(value), [nextUniqueKey(pieces.map(piece => piece.key), 'piece')]: { item: '', slot: 'main_hand', display: '' } });
     return <div className="prop-levels" role="list">
-      {pieces.map((piece, index) => <div className="prop-cost-entry" key={index} role="listitem">
-        <div className="prop-cost-entry-head"><span>{piece.key}</span><button type="button" className="prop-kv-del" onClick={() => remove(index)} aria-label={copy(`删除套装部件 ${index + 1}`, `Delete set piece ${index + 1}`)}>×</button></div>
-        <ItemFormRow label="piece_id" path={joinPath(path, piece.key)}><TextInput value={piece.key} onChange={nextKey => update(index, nextKey, {})} /></ItemFormRow>
-        <ItemFormRow label="item" path={joinPath(path, piece.key, 'item')}><TextInput value={piece.value.item} onChange={item => update(index, piece.key, { item })} placeholder="example_item" /></ItemFormRow>
-        <ItemFormRow label="slot" path={joinPath(path, piece.key, 'slot')}><SetSlotSelectInput value={piece.value.slot ?? 'main_hand'} onChange={slot => update(index, piece.key, { slot })} /></ItemFormRow>
-        <ItemFormRow label="display" path={joinPath(path, piece.key, 'display')}><TextInput value={piece.value.display} onChange={display => update(index, piece.key, { display })} placeholder={piece.key} /></ItemFormRow>
+      {pieces.map((piece, index) => <div className="prop-level-item expanded" key={index} role="listitem">
+        <div className="prop-level-head">
+          <span className="prop-level-summary"><span className="prop-level-badge">#{index + 1}</span>{piece.key || copy('未命名部件', 'Unnamed piece')}</span>
+          <span className="prop-level-rate">{optionLabel('setSlot', textValue(piece.value.slot, 'main_hand'), { moduleId: MODULE, namespace: MODULE, fallback: textValue(piece.value.slot, 'main_hand') })}</span>
+          <span className="prop-action-controls">
+            <button type="button" className="prop-action-del" onClick={() => remove(index)} aria-label={copy(`删除套装部件 ${index + 1}`, `Delete set piece ${index + 1}`)}>×</button>
+          </span>
+        </div>
+        <div className="prop-level-body">
+          <ItemFormRow label="piece_id" path={joinPath(path, piece.key)}><TextInput value={piece.key} onChange={nextKey => update(index, nextKey, {})} /></ItemFormRow>
+          <ItemFormRow label="item" path={joinPath(path, piece.key, 'item')}><TextInput value={piece.value.item} onChange={item => update(index, piece.key, { item })} placeholder="example_item" /></ItemFormRow>
+          <ItemFormRow label="slot" path={joinPath(path, piece.key, 'slot')}><SetSlotSelectInput value={piece.value.slot ?? 'main_hand'} onChange={slot => update(index, piece.key, { slot })} /></ItemFormRow>
+          <ItemFormRow label="display" path={joinPath(path, piece.key, 'display')}><TextInput value={piece.value.display} onChange={display => update(index, piece.key, { display })} placeholder={piece.key} /></ItemFormRow>
+        </div>
       </div>)}
       <button type="button" className="prop-add" onClick={add}>+ {copy('添加套装部件', 'Add set piece')}</button>
     </div>;
@@ -516,11 +534,19 @@ export function registerEmakiItemWebConsole(): void {
     const remove = (index: number) => onChange(Object.fromEntries(thresholds.filter((_, itemIndex) => itemIndex !== index).map(threshold => [threshold.key, threshold.value])));
     const add = () => onChange({ ...asRecord(value), [nextNumericKey(thresholds.map(threshold => threshold.key), 2)]: { lore: [], effects: [] } });
     return <div className="prop-levels" role="list">
-      {thresholds.map((threshold, index) => <div className="prop-cost-entry" key={index} role="listitem">
-        <div className="prop-cost-entry-head"><span>{copy(`${threshold.key} 件套`, `${threshold.key}-piece`)}</span><button type="button" className="prop-kv-del" onClick={() => remove(index)} aria-label={copy(`删除阈值 ${threshold.key}`, `Delete threshold ${threshold.key}`)}>×</button></div>
-        <ItemFormRow label="required" path={joinPath(path, threshold.key)}><NumberInput value={Number(threshold.key)} onChange={required => update(index, String(Math.max(1, required ?? 1)), {})} /></ItemFormRow>
-        <ItemFormRow label="lore" path={joinPath(path, threshold.key, 'lore')} wide><StringListEditor items={asStringList(threshold.value.lore)} onChange={lore => update(index, threshold.key, { lore })} placeholder={copy('[2件套] 物理攻击 +5', '[2-piece] Physical Attack +5')} /></ItemFormRow>
-        <ItemFormRow label="effects" path={joinPath(path, threshold.key, 'effects')} wide><StandardEffectsEditor value={threshold.value.effects} path={joinPath(path, threshold.key, 'effects')} onChange={effects => update(index, threshold.key, { effects })} moduleId={MODULE} namespace={MODULE} actionTypes={actionTypesResult ?? undefined} /></ItemFormRow>
+      {thresholds.map((threshold, index) => <div className="prop-level-item expanded" key={index} role="listitem">
+        <div className="prop-level-head">
+          <span className="prop-level-summary"><span className="prop-level-badge">#{index + 1}</span>{copy(`${threshold.key} 件套`, `${threshold.key}-piece`)}</span>
+          <span className="prop-level-rate">{asStringList(threshold.value.lore).length} Lore</span>
+          <span className="prop-action-controls">
+            <button type="button" className="prop-action-del" onClick={() => remove(index)} aria-label={copy(`删除阈值 ${threshold.key}`, `Delete threshold ${threshold.key}`)}>×</button>
+          </span>
+        </div>
+        <div className="prop-level-body">
+          <ItemFormRow label="required" path={joinPath(path, threshold.key)}><NumberInput value={Number(threshold.key)} onChange={required => update(index, String(Math.max(1, required ?? 1)), {})} /></ItemFormRow>
+          <ItemFormRow label="lore" path={joinPath(path, threshold.key, 'lore')} wide><StringListEditor items={asStringList(threshold.value.lore)} onChange={lore => update(index, threshold.key, { lore })} placeholder={copy('[2件套] 物理攻击 +5', '[2-piece] Physical Attack +5')} addFirst={false} /></ItemFormRow>
+          <ItemFormRow label="effects" path={joinPath(path, threshold.key, 'effects')} wide><StandardEffectsEditor value={threshold.value.effects} path={joinPath(path, threshold.key, 'effects')} onChange={effects => update(index, threshold.key, { effects })} moduleId={MODULE} namespace={MODULE} actionTypes={actionTypesResult ?? undefined} /></ItemFormRow>
+        </div>
       </div>)}
       <button type="button" className="prop-add" onClick={add}>+ {copy('添加阈值', 'Add threshold')}</button>
     </div>;

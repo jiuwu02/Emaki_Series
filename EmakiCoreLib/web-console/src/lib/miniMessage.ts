@@ -34,6 +34,7 @@ export function renderMiniMessageParts(text: unknown): MiniMessagePart[] {
         if (COLOR_MAP[tag]) {
           flush(); colorStack.push(COLOR_MAP[tag]); i = end; continue;
         }
+        if (/^#[0-9a-f]{6}$/i.test(tag)) { flush(); colorStack.push(tag); i = end; continue; }
         if (tag === 'gradient') { flush(); colorStack.push(COLOR_MAP.light_purple); i = end; continue; }
       }
     }

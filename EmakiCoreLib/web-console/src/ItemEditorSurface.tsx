@@ -704,13 +704,13 @@ function renderLocalTemplate(value: string, variables: AnyMap): string {
 }
 
 type TooltipSection = { title: string; lines: string[] };
-type SetDraftPreview = { id: string; name: string; lore: string[]; pieces: number; thresholds: number; active: number; effectSections: TooltipSection[] };
+type SetDraftPreview = { id: string; name: string; lore: string[]; pieces: number; thresholds: number; active: number };
 
 function isSetEditor(fileKind: string | undefined, editor?: WebEditorDescriptor): boolean {
   return textValue(fileKind).toUpperCase() === 'SET' || textValue(editor?.id).toLowerCase().includes(':set');
 }
 
-function buildSetDraftPreview(data: AnyMap, moduleId: string): SetDraftPreview {
+function buildSetDraftPreview(data: AnyMap): SetDraftPreview {
   const pieces = Object.entries(asRecord(data.pieces)).map(([key, value]) => ({ key, value: asRecord(value) }));
   const thresholds = Object.entries(asRecord(data.thresholds)).map(([key, value]) => ({ key, value: asRecord(value) })).sort((left, right) => Number(left.key) - Number(right.key));
   const active = pieces.length ? 1 : 0;
@@ -729,14 +729,12 @@ function buildSetDraftPreview(data: AnyMap, moduleId: string): SetDraftPreview {
   }
   const separator = textValue(loreConfig.separator);
   if (separator) lore.push(separator);
-  const thresholdEffectLines: string[] = [];
   for (const threshold of thresholds) {
     const required = Math.max(1, Number(threshold.key) || 1);
     const isActive = active >= required;
     const lines = asStringList(threshold.value.lore);
     const format = textValue(isActive ? loreConfig.active_threshold_format : loreConfig.inactive_threshold_format, isActive ? '<green>%line%</green>' : '<dark_gray>%line%</dark_gray>');
     for (const line of lines) addOptionalLine(lore, replaceSetTemplate(format, { ...base, threshold: String(required), line }));
-    thresholdEffectLines.push(...summarizeSetThresholdEffects(threshold.value, moduleId, required));
   }
   return {
     id,
@@ -744,8 +742,7 @@ function buildSetDraftPreview(data: AnyMap, moduleId: string): SetDraftPreview {
     lore,
     pieces: pieces.length,
     thresholds: thresholds.length,
-    active,
-    effectSections: thresholdEffectLines.length ? [{ title: uiCopy('阈值效果', 'Threshold effects'), lines: thresholdEffectLines }] : []
+    active
   };
 }
 
@@ -773,17 +770,6 @@ function replaceSetTemplate(template: string, values: Record<string, string>): s
 function buildPreviewEffectSections(preview: ItemPreviewResult | null, moduleId: string): TooltipSection[] {
   const lines = summarizeEffectList(asList(preview?.effects).map(asRecord), moduleId);
   return lines.length ? [{ title: uiCopy('效果', 'Effects'), lines }] : [];
-}
-
-function summarizeSetThresholdEffects(threshold: AnyMap, moduleId: string, required: number): string[] {
-  const effectLines = summarizeEffectList(asList(threshold.effects).map(asRecord), moduleId);
-  if (effectLines.length) return effectLines.map(line => `${required}件 · ${line}`);
-  const fallback: string[] = [];
-  const attributes = asRecord(threshold.ea_attributes);
-  const skills = asStringList(threshold.es_skills);
-  if (Object.keys(attributes).length) fallback.push(`${required}件 · ${effectLabel('ea_attribute', moduleId)}: ${previewValue(attributes)}`);
-  if (skills.length) fallback.push(`${required}件 · ${effectLabel('es_skill', moduleId)}: ${skills.join(', ')}`);
-  return fallback;
 }
 
 function summarizeEffectList(effects: AnyMap[], moduleId: string): string[] {
@@ -816,7 +802,7 @@ function hasPreviewValue(value: unknown): boolean {
 
 function GenericPreviewPane({ moduleId, fileKind, editor, data, preview, layerPreview, previewPending, previewError, previewLevel, setPreviewLevel, baseName, baseLore }: { moduleId: string; fileKind?: string; editor?: WebEditorDescriptor; data: AnyMap; preview: ItemPreviewResult | null; layerPreview: AnyMap | null; previewPending: boolean; previewError: PreviewError | null; previewLevel: number; setPreviewLevel: (level: number) => void; baseName: string; baseLore: string[] }) {
   const isSetPreview = isSetEditor(fileKind, editor);
-  const setDraftPreview = isSetPreview ? buildSetDraftPreview(data, moduleId) : null;
+  const setDraftPreview = isSetPreview ? buildSetDraftPreview(data) : null;
   const source = firstItemSource(data.item_sources ?? asRecord(data.match).item_sources ?? preview?.material);
   const material = materialFromItemSource(source || data.material || preview?.material);
   const levels = configuredPreviewLevels(data, preview);
@@ -833,7 +819,7 @@ function GenericPreviewPane({ moduleId, fileKind, editor, data, preview, layerPr
   const setLayerPreview = asRecord(layerPreview?.setPreview);
   const resultName = setDraftPreview?.name ?? (finalName || textValue(livePreview?.displayName));
   const resultLore = setDraftPreview?.lore ?? (finalLore.length ? finalLore : livePreview ? asStringList(livePreview.lore) : []);
-  const effectSections = setDraftPreview?.effectSections ?? buildPreviewEffectSections(livePreview, moduleId);
+  const effectSections = setDraftPreview ? [] : buildPreviewEffectSections(livePreview, moduleId);
   const setSection = !isSetPreview && setLayerPreview.available && !finalLore.length ? [{ title: uiCopy('套装 Lore', 'Set Lore'), lines: asStringList(setLayerPreview.lore) }] : [];
   const status = isSetPreview ? { tone: 'live' as const, text: uiCopy('草稿预览', 'Draft preview') } : previewError ? { tone: 'failed' as const, text: t('core.item.preview.failedTitle') } : previewStatus(livePreview, previewPending);
   useEffect(() => setImgFailed(false), [material]);
@@ -1029,8 +1015,8 @@ function LayerPreviewRow({ layer, layerOptions, onOptionChange, pending }: { lay
 
 function LayerPreviewControls({ layer, layerOptions, onOptionChange }: { layer: AnyMap; layerOptions: AnyMap; onOptionChange: (layerId: string, key: string, value: unknown) => void }) {
   const layerId = textValue(layer.id);
-  if (!layer.available) return null;
   if (layerId === 'strengthen') return <StrengthenLayerControls layer={layer} layerOptions={layerOptions} onOptionChange={onOptionChange} />;
+  if (!layer.available) return null;
   if (layerId === 'gem') return <GemLayerControls layer={layer} layerOptions={layerOptions} onOptionChange={onOptionChange} />;
   return null;
 }
@@ -1039,16 +1025,32 @@ function StrengthenLayerControls({ layer, layerOptions, onOptionChange }: { laye
   const layerId = textValue(layer.id);
   const layerConfig = asRecord(layer.options);
   const selected = asRecord(layer.selected);
+  const details = asRecord(layer.details);
+  const recipes = asList(layerConfig.recipes).map(asRecord).filter(recipe => textValue(recipe.id));
+  const selectedRecipeId = textValue(layerOptions.recipeId) || textValue(selected.recipeId) || textValue(layerConfig.recipeId) || textValue(details.recipeId);
+  const selectedRecipe = recipes.find(recipe => textValue(recipe.id) === selectedRecipeId);
   const stars = asList(layerConfig.stars).map(value => Number(value)).filter(value => Number.isFinite(value) && value > 0);
   const maxStar = Math.max(1, Number(layerConfig.maxStar || Math.max(1, ...stars)) || 1);
-  const starChoices = stars.length ? stars : Array.from({ length: maxStar }, (_, index) => index + 1);
-  const selectedStar = String(layerOptions.star ?? selected.star ?? layerConfig.selectedStar ?? starChoices[0]);
+  const starChoices = stars.length ? stars : (layer.available ? Array.from({ length: maxStar }, (_, index) => index + 1) : []);
+  const selectedStar = String(layerOptions.star ?? selected.star ?? layerConfig.selectedStar ?? starChoices[0] ?? '');
   const maxTemper = Math.max(0, Number(layerConfig.maxTemper || 0) || 0);
   const selectedTemper = String(layerOptions.temper ?? selected.temper ?? layerConfig.selectedTemper ?? 0);
+  if (!recipes.length && !layer.available) return null;
   return <div className="ie-layer-controls">
-    <label><span>星级</span><select value={selectedStar} onChange={event => onOptionChange(layerId, 'star', Number(event.target.value))}>{starChoices.map(star => <option key={star} value={star}>{star} 星</option>)}</select></label>
+    {recipes.length > 0 && <label><span>强化配方</span><select value={selectedRecipeId} onChange={event => onOptionChange(layerId, 'recipeId', event.target.value)}>
+      <option value="">自动匹配</option>
+      {recipes.map(recipe => <option key={textValue(recipe.id)} value={textValue(recipe.id)}>{recipeLabel(recipe)}</option>)}
+    </select></label>}
+    {selectedRecipeId && <span className="ie-layer-current">当前配方：<code>{selectedRecipeId}</code>{selectedRecipe && textValue(selectedRecipe.displayName) ? ` · ${textValue(selectedRecipe.displayName)}` : ''}</span>}
+    {starChoices.length > 0 && <label><span>星级</span><select value={selectedStar} onChange={event => onOptionChange(layerId, 'star', Number(event.target.value))}>{starChoices.map(star => <option key={star} value={star}>{star} 星</option>)}</select></label>}
     {maxTemper > 0 && <label><span>淬炼</span><select value={selectedTemper} onChange={event => onOptionChange(layerId, 'temper', Number(event.target.value))}>{Array.from({ length: maxTemper + 1 }, (_, value) => <option key={value} value={value}>{value}</option>)}</select></label>}
   </div>;
+}
+
+function recipeLabel(recipe: AnyMap): string {
+  const id = textValue(recipe.id);
+  const displayName = textValue(recipe.displayName);
+  return displayName && displayName !== id ? `${id} · ${displayName}` : id;
 }
 
 function GemLayerControls({ layer, layerOptions, onOptionChange }: { layer: AnyMap; layerOptions: AnyMap; onOptionChange: (layerId: string, key: string, value: unknown) => void }) {

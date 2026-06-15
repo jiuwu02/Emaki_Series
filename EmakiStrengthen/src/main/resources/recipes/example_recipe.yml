@@ -68,11 +68,12 @@ success_rates:
 # 匹配规则
 # ============================================================
 # 定义哪些物品可以使用此配方进行强化。
-# slot_groups: 按装备槽位组匹配（weapon/armor/offhand）
-# 也支持 lore_contains（Lore 包含指定文本）和 stats_any（拥有指定属性）
+# 推荐优先使用 source_ids 精确绑定 EmakiItem / ItemSource，避免示例配方泛匹配所有武器。
+# slot_groups 是粗粒度槽位组/装备类型组（weapon/armor/offhand/generic），不是 main_hand/helmet 这类具体装备槽位。
+# 也支持 lore_contains（Lore 包含指定文本）和 stats_any（拥有指定属性）。
 match:
-  slot_groups:
-    - "weapon"
+  source_ids:
+    - "emakiitem-example_item"
 
 # ============================================================
 # 全局名称与 Lore 修改

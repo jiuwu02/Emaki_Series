@@ -366,7 +366,8 @@
   min-width: 0;
   min-height: 0;
   flex: 1 1 0;
-  height: auto;
+  height: 100%;
+  max-height: 100%;
   display: grid;
   grid-template-columns: var(--preview-column) minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr);
@@ -378,14 +379,18 @@
 .ie-preview-stack {
   min-width: 0;
   min-height: 0;
+  height: 100%;
+  max-height: 100%;
   display: flex;
   flex-direction: column;
   gap: 10px;
   overflow-x: hidden;
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 12px;
   border-right: 1px solid var(--line);
   background: var(--surface);
+  scrollbar-gutter: stable;
   scrollbar-width: thin;
 }
 
@@ -592,6 +597,19 @@
 
 .ie-layer-controls select {
   width: 100%;
+}
+
+.ie-layer-current {
+  grid-column: 1 / -1;
+  color: var(--faint);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.ie-layer-current code {
+  color: var(--accent);
+  font-family: ui-monospace, "Cascadia Code", monospace;
+  overflow-wrap: anywhere;
 }
 
 .ie-level-panel {

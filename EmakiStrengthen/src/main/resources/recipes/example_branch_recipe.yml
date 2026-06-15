@@ -63,9 +63,11 @@ success_rates:
 # ============================================================
 # 匹配规则
 # ============================================================
+# 推荐优先使用 source_ids 精确绑定示例物品源；请将下方演示 ID 替换为你的实际物品源。
+# slot_groups 是粗粒度槽位组/装备类型组（weapon/armor/offhand/generic），不是 main_hand/helmet 这类具体装备槽位。
 match:
-  slot_groups:
-    - "weapon"
+  source_ids:
+    - "emakiitem-example_branch_blade"
 
 # ============================================================
 # 全局名称与 Lore 修改

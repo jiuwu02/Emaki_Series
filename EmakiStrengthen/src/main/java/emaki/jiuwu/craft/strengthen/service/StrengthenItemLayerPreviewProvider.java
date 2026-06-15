@@ -46,7 +46,9 @@ public final class StrengthenItemLayerPreviewProvider implements WebItemLayerPre
         String recipeId = Texts.isNotBlank(requestedRecipeId) ? requestedRecipeId : state.recipeId();
         StrengthenRecipe recipe = plugin.recipeLoader().get(recipeId);
         if (recipe == null) {
-            return WebItemLayerPreviewResult.unavailable(LAYER_ID, "没有任何强化配方匹配当前 EmakiItem。", details(state, recipeId, null), Map.of());
+            Map<String, Object> selected = new LinkedHashMap<>();
+            selected.put("recipeId", Texts.toStringSafe(recipeId));
+            return new WebItemLayerPreviewResult(LAYER_ID, false, "没有任何强化配方匹配当前 EmakiItem。", null, details(state, recipeId, null), options(null, state, 0, 0), selected);
         }
         int maxStar = Math.max(0, recipe.limits().maxStar());
         if (maxStar <= 0) {
@@ -91,15 +93,29 @@ public final class StrengthenItemLayerPreviewProvider implements WebItemLayerPre
 
     private Map<String, Object> options(StrengthenRecipe recipe, StrengthenState state, int selectedStar, int selectedTemper) {
         Map<String, Object> options = new LinkedHashMap<>();
-        options.put("recipeId", recipe.id());
+        options.put("recipeId", recipe == null ? "" : recipe.id());
+        options.put("recipes", recipeOptions());
         options.put("currentStar", state == null ? 0 : state.currentStar());
         options.put("currentTemper", state == null ? 0 : state.temperLevel());
         options.put("selectedStar", selectedStar);
         options.put("selectedTemper", selectedTemper);
-        options.put("maxStar", recipe.limits().maxStar());
-        options.put("maxTemper", recipe.limits().maxTemper());
-        options.put("stars", List.copyOf(recipe.stars().keySet().stream().sorted().toList()));
+        if (recipe != null) {
+            options.put("maxStar", recipe.limits().maxStar());
+            options.put("maxTemper", recipe.limits().maxTemper());
+            options.put("stars", List.copyOf(recipe.stars().keySet().stream().sorted().toList()));
+        }
         return options;
+    }
+
+    private List<Map<String, String>> recipeOptions() {
+        return plugin.recipeLoader().ordered().stream()
+                .map(recipe -> {
+                    Map<String, String> entry = new LinkedHashMap<>();
+                    entry.put("id", recipe.id());
+                    entry.put("displayName", Texts.toStringSafe(recipe.displayName()));
+                    return entry;
+                })
+                .toList();
     }
 
     private String option(Map<String, Object> options, String key) {

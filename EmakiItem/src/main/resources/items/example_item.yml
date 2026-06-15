@@ -7,6 +7,8 @@
 #
 # 文件放置位置: plugins/EmakiItem/items/
 # 文件名即为物品的内部标识，加载时自动注册。
+# 如果安装 EmakiStrengthen，示例强化来自其 example_recipe.yml 中的 match.source_ids 显式引用，
+# 不是此物品自身默认携带强化；修改物品 ID 后请同步调整强化配方的 source_ids。
 # ============================================================
 
 # 物品唯一标识符（必填）

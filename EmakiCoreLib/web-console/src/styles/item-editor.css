@@ -492,6 +492,16 @@
   grid-column: 1 / -1;
 }
 
+.prop-kv--string-list-add-last {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.prop-kv--string-list-add-last .prop-list-add {
+  grid-column: 1;
+  grid-row: auto;
+  justify-self: end;
+}
+
 .prop-kv--string-list-inline .prop-list-add + .prop-list-row {
   grid-column: 1;
   grid-row: 1;
